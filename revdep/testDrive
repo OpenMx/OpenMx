@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -o errexit
 set -o nounset
 set -o noclobber
 
@@ -9,7 +8,8 @@ if [ ! -x revdep/testDrive ]; then
   exit 1
 fi
 
-git submodule update --init --recursive #--depth=50
+# add --depth=50 later TODO
+git submodule update --init --recursive || exit 1
 
 pkgs="ctsem lvnet metasem semtree umx"
 
@@ -18,7 +18,14 @@ R --no-save -f util/update-dependencies.R --args \
 
 pushd revdep
 
+# investigate devtools,
+# https://www.rdocumentation.org/packages/devtools/versions/1.12.0/topics/revdep_check_save_summary?
+
+declare -i RESULT=0
+
 for pk in $pkgs; do
-    R CMD build "$pk"
-    R CMD check ${pk}_*.tar.gz
+    R CMD build "$pk" && R CMD check ${pk}_*.tar.gz
+    RESULT+=$?
 done
+
+exit $RESULT
