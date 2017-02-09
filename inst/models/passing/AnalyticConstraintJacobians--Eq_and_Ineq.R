@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 library(OpenMx)
-mxOption(NULL,"Default optimizer","SLSQP")
+#mxOption(NULL,"Default optimizer","SLSQP")
 library(mvtnorm)
 
 set.seed(170209)
@@ -50,7 +50,7 @@ m1 <- mxModel(
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
-	mxConstraint(-1%x%Sigma<Zilch,name="safety"),
+	mxConstraint(Sigma>Zilch,name="safety"),
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying")
 )
 m2 <- mxRun(m1)
@@ -82,19 +82,21 @@ ineqjsub <- mxAlgebra(rbind(
 eqjac <- mxAlgebra(cbind(eqJacSub,tauEqJac),name="eqJac",
 									 dimnames=list(NULL,c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3")))
 sgn <- mxMatrix(type="Full",nrow=1,ncol=1,free=F, #This is weird but necessary.
-								values=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL",-1,1),name="Sgn")
+								values=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL",-1,1),
+								#values=1,
+								name="Sgn")
 ineqjac <- mxAlgebra(Sgn%x%cbind(ineqJacSub,tauIneqJac),name="ineqJac",
 										 dimnames=list(NULL,c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3")))
 
-mxOption(NULL,"Standard Errors","No")
-mxOption(NULL,"Calculate Hessian","No")
-plan <- omxDefaultComputePlan(modelName="mod3")
-plan$steps$GD$verbose <- 5L
+# mxOption(NULL,"Standard Errors","No")
+# mxOption(NULL,"Calculate Hessian","No")
+# plan <- omxDefaultComputePlan(modelName="mod3")
+# plan$steps$GD$verbose <- 5L
 
 m3 <- mxModel(
 	"mod3",
 	mxdat,
-	plan,
+	#plan,
 	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
@@ -103,7 +105,7 @@ m3 <- mxModel(
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
-	mxConstraint(-1%x%Sigma<Zilch,name="safety"),#jac="ineqJac"),
+	mxConstraint(Sigma>Zilch,name="safety"),#jac="ineqJac"),
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying",jac="eqJac"),
 	eqjsub, taueqjac, eqjac#, 
 	#tauineqjac, ineqjsub, ineqjac, sgn
@@ -113,13 +115,13 @@ summary(m4)
 mxEval(Sigma,m4,T)
 
 
-plan <- omxDefaultComputePlan(modelName="mod5")
-plan$steps$GD$verbose <- 5L
+# plan <- omxDefaultComputePlan(modelName="mod5")
+# plan$steps$GD$verbose <- 5L
 
 m5 <- mxModel(
 	"mod5",
 	mxdat,
-	plan,
+	#plan,
 	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
@@ -128,7 +130,7 @@ m5 <- mxModel(
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
-	mxConstraint(-1%x%Sigma<Zilch,name="safety",jac="ineqJac"),
+	mxConstraint(Sigma>Zilch,name="safety",jac="ineqJac"),
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying",jac="eqJac"),
 	eqjsub, taueqjac, eqjac, 
 	tauineqjac, ineqjsub, ineqjac, sgn
