@@ -81,7 +81,7 @@ ineqjsub <- mxAlgebra(rbind(
 ), name="ineqJacSub")
 eqjac <- mxAlgebra(cbind(eqJacSub,tauEqJac),name="eqJac",
 									 dimnames=list(NULL,c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3")))
-sgn <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,
+sgn <- mxMatrix(type="Full",nrow=1,ncol=1,free=F, #This is weird but necessary.
 								values=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL",-1,1),name="Sgn")
 ineqjac <- mxAlgebra(Sgn%x%cbind(ineqJacSub,tauIneqJac),name="ineqJac",
 										 dimnames=list(NULL,c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3")))

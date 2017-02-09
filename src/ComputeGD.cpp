@@ -269,39 +269,27 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 	
 	/*Note that this needs to happen even if no equality constraints have analytic Jacobians, because
 	analyticEqJacTmp is copied to the Jacobian matrix the elements of which are populated by code in
-	finiteDifferences.h, which knows to numerically populate an element is it's NA:*/
+	finiteDifferences.h, which knows to numerically populate an element if it's NA:*/
 	analyticEqJacTmp.setConstant(analyticEqJacTmp.rows(),analyticEqJacTmp.cols(),NA_REAL);
 	
-	if(wantAJ && usingAnalyticJacobian){
-		int cur = 0, c=0, roffset=0;
-		for(int j = 0; j < int(st->conListX.size()); j++) {
-			omxConstraint &con = *st->conListX[j];
-			if (con.opCode != omxConstraint::EQUALITY) continue;
-			
-			con.refreshAndGrab(fc, &equality(cur));
-			if(con.jacobian != NULL){
-				omxRecompute(con.jacobian, fc);
-				for(c=0; c<con.jacobian->cols; c++){
-					if(con.jacMap[c]<0){continue;}
-					for(roffset=0; roffset<con.size; roffset++){
-						analyticEqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-					}
+	int cur=0, j=0, c=0, roffset=0;
+	for(j = 0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		if (con.opCode != omxConstraint::EQUALITY) continue;
+		
+		con.refreshAndGrab(fc, &equality(cur));
+		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+			omxRecompute(con.jacobian, fc);
+			for(c=0; c<con.jacobian->cols; c++){
+				if(con.jacMap[c]<0){continue;}
+				for(roffset=0; roffset<con.size; roffset++){
+					analyticEqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
 				}
 			}
-			cur += con.size;
 		}
+		cur += con.size;
 	}
-	else{
-		int cur = 0;
-		for(int j = 0; j < int(st->conListX.size()); j++) {
-			omxConstraint &con = *st->conListX[j];
-			if (con.opCode != omxConstraint::EQUALITY) continue;
-			
-			con.refreshAndGrab(fc, &equality(cur));
-			cur += con.size;
-		}
-	}
-
+	
 	if (verbose >= 3) {
 		mxPrintMat("equality", equality);
 	}
@@ -317,43 +305,34 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 	if (!ineq_n) return;
 	
 	analyticIneqJacTmp.setConstant(analyticIneqJacTmp.rows(),analyticIneqJacTmp.cols(),NA_REAL);
-
-	if(wantAJ && usingAnalyticJacobian){
-		int cur = 0, c=0, roffset=0;
-		for (int j = 0; j < int(st->conListX.size()); j++) {
-			omxConstraint &con = *st->conListX[j];
-			if (con.opCode == omxConstraint::EQUALITY) continue;
-			
-			con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-			if(con.jacobian != NULL){
-				omxRecompute(con.jacobian, fc);
-				for(c=0; c<con.jacobian->cols; c++){
-					if(con.jacMap[c]<0){continue;}
-					for(roffset=0; roffset<con.size; roffset++){
-						analyticIneqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-					}
+	
+	int cur=0, j=0, c=0, roffset=0;
+	for (j=0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		if (con.opCode == omxConstraint::EQUALITY) continue;
+		
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+			omxRecompute(con.jacobian, fc);
+			for(c=0; c<con.jacobian->cols; c++){
+				if(con.jacMap[c]<0){continue;}
+				for(roffset=0; roffset<con.size; roffset++){
+					analyticIneqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
 				}
 			}
-			cur += con.size;
 		}
+		cur += con.size;
 	}
-	else{
-		int cur = 0;
-		for (int j = 0; j < int(st->conListX.size()); j++) {
-			omxConstraint &con = *st->conListX[j];
-			if (con.opCode == omxConstraint::EQUALITY) continue;
-			
-			con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-			cur += con.size;
-		}
-	}
-
+	
 	if (CSOLNP_HACK) {
 		// CSOLNP doesn't know that inequality constraints can be inactive TODO
 	} else {
+		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
 		inequality = inequality.array().max(0.0);
 		if(wantAJ && usingAnalyticJacobian){
 			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
+				/*The Jacobians of each inactive constraint are set to zero here; 
+				as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
 				if(!inequality[i]){analyticIneqJacTmp.row(i).setZero();}
 			}
 		}
