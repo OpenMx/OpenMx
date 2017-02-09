@@ -267,6 +267,9 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 
 	if (!eq_n) return;
 	
+	/*Note that this needs to happen even if no equality constraints have analytic Jacobians, because
+	analyticEqJacTmp is copied to the Jacobian matrix the elements of which are populated by code in
+	finiteDifferences.h, which knows to numerically populate an element is it's NA:*/
 	analyticEqJacTmp.setConstant(analyticEqJacTmp.rows(),analyticEqJacTmp.cols(),NA_REAL);
 	
 	if(wantAJ && usingAnalyticJacobian){
@@ -306,20 +309,43 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 
 // NOTE: All non-linear constraints are applied regardless of free
 // variable group.
-void GradientOptimizerContext::myineqFun()
+void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
 	const int ineq_n = (int) inequality.size();
 	omxState *st = fc->state;
 
 	if (!ineq_n) return;
+	
+	analyticIneqJacTmp.setConstant(analyticIneqJacTmp.rows(),analyticIneqJacTmp.cols(),NA_REAL);
 
-	int cur = 0;
-	for (int j = 0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		if (con.opCode == omxConstraint::EQUALITY) continue;
-
-		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-		cur += con.size;
+	if(wantAJ && usingAnalyticJacobian){
+		int cur = 0, c=0, roffset=0;
+		for (int j = 0; j < int(st->conListX.size()); j++) {
+			omxConstraint &con = *st->conListX[j];
+			if (con.opCode == omxConstraint::EQUALITY) continue;
+			
+			con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+			if(con.jacobian != NULL){
+				omxRecompute(con.jacobian, fc);
+				for(c=0; c<con.jacobian->cols; c++){
+					if(con.jacMap[c]<0){continue;}
+					for(roffset=0; roffset<con.size; roffset++){
+						analyticIneqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
+					}
+				}
+			}
+			cur += con.size;
+		}
+	}
+	else{
+		int cur = 0;
+		for (int j = 0; j < int(st->conListX.size()); j++) {
+			omxConstraint &con = *st->conListX[j];
+			if (con.opCode == omxConstraint::EQUALITY) continue;
+			
+			con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+			cur += con.size;
+		}
 	}
 
 	if (CSOLNP_HACK) {
@@ -593,7 +619,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		rf.setupSimpleBounds();
 		rf.setupIneqConstraintBounds();
 		rf.solEqBFun(false);
-		rf.myineqFun();
+		rf.myineqFun(false);
 		if(rf.inequality.size() == 0 && rf.equality.size() == 0) {
 			omxSD(rf);   // unconstrained problems
 			rf.finish();

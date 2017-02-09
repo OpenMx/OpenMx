@@ -93,8 +93,11 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	Eigen::VectorXd Eresult(ctx.origeq);
 	Eigen::MatrixXd jacobian(n, ctx.origeq);
 	equality_functional ff(goc);
-	ff(Epoint, Eresult, jacobian);
-	if (grad) {
+	/*I don't think nloptEqualityFunction is ever called when 'grad' is a null pointer, 
+	but I don't want to assume that:*/
+	if(!grad){ff(Epoint, Eresult);}
+	else{
+		ff(Epoint, Eresult, jacobian);
 		goc.eqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,
               ff, Eresult, Epoint, jacobian);
@@ -158,9 +161,19 @@ struct inequality_functional {
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		goc.copyFromOptimizer(x.derived().data());
-		goc.myineqFun();
+		goc.myineqFun(false);
 		result = goc.inequality;
 	}
+	
+	template <typename T1, typename T2, typename T3>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+		goc.copyFromOptimizer(x.derived().data());
+		goc.analyticIneqJacTmp.resize(jacobian.cols(), jacobian.rows());
+		goc.myineqFun(true);
+		result = goc.inequality;
+		jacobian = goc.analyticIneqJacTmp.transpose();
+	}
+	
 };
 
 static void nloptInequalityFunction(unsigned m, double *result, unsigned n, const double* x, double* grad, void* f_data)
@@ -170,11 +183,13 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
 	inequality_functional ff(*goc);
-	ff(Epoint, Eresult);
-	if (grad && goc->verbose >= 2) {
-		mxPrintMat("major iteration ineq", Eresult);
-	}
-	if (grad) {
+	/*nloptInequalityFunction() is routinely called when 'grad' is a null pointer:*/
+	if(!grad){ff(Epoint,Eresult);}
+	else{
+		ff(Epoint, Eresult, jacobian);
+		if (goc->verbose >= 2) {
+			mxPrintMat("major iteration ineq", Eresult);
+		}
 		goc->ineqNorm = Eresult.array().abs().sum();
 		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
               ff, Eresult, Epoint, jacobian);
@@ -183,9 +198,9 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
 		}
-	}
-	if (goc->verbose >= 3 && grad) {
-		mxPrintMat("inequality jacobian", jacobian);
+		if (goc->verbose >= 3) {
+			mxPrintMat("inequality jacobian", jacobian);
+		}
 	}
 }
 

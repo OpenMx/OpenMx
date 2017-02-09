@@ -97,7 +97,7 @@ class GradientOptimizerContext {
 	double solFun(double *myPars, int* mode);
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun(bool wantAJ);
-	void myineqFun();
+	void myineqFun(bool wantAJ);
 	template <typename T1, typename T2, typename T3> void allConstraintsFun(
 			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
