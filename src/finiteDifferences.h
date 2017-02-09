@@ -242,7 +242,23 @@ void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &poi
 				if(isnan(jacobiOut(px,i))){jacobiOut(px,i) = Gaprox(i,0);}
 			}
 		}
-	}
+	}/*
+	//If there are no constraint functions with analytic Jacobians, we can avoid unnecessary row sums, 
+	//unnecessary elementwise checking for NaNs, and use a simpler and better-tested block of code:
+	else{
+		for (int px=0; px < int(point.size()); ++px) {
+			double offset = std::max(fabs(point[px] * eps), eps);
+			Eigen::MatrixXd Gaprox(ref.size(), numIter);
+			dfn(ff, ref, point, offset, px, numIter, Gaprox);
+			for(int m = 1; m < numIter; m++) {						// Richardson Step
+				for(int k = 0; k < (numIter - m); k++) {
+					// NumDeriv Hard-wires 4s for r here. Why?
+					Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
+				}
+			}
+			jacobiOut.row(px) = Gaprox.col(0).transpose();
+		}
+	}*/
 }
 
 template <typename T1, typename T2, typename T3, typename T4>
