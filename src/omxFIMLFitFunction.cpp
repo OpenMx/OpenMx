@@ -55,7 +55,7 @@ bool condOrdByRow::eval()
 
 	SimpCholesky< MatrixXd >  covDecomp;
 	double ordLik = 1.0;
-	double contLik = 1.0;
+	double contLogLik = 0.0;
 
 	VectorXd contMean;
 	MatrixXd contCov;
@@ -200,7 +200,7 @@ bool condOrdByRow::eval()
 				sufficientSet &ss = parent->sufficientSets[ssx++];
 				if (ss.start != row) Rf_error("oops");
 				if (ordLik == 0.0) {
-					record(0, ss.length);
+					record(-std::numeric_limits<double>::infinity(), ss.length);
 					continue;
 				}
 				Eigen::VectorXd resid = ss.dataMean - contMean;
@@ -215,7 +215,7 @@ bool condOrdByRow::eval()
 				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
 				double ll = ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
 				record(-0.5 * ll + ss.length * log(ordLik), ss.length);
-				contLik = 1.0;
+				contLogLik = 0.0;
 				continue;
 			}
 
@@ -225,11 +225,11 @@ bool condOrdByRow::eval()
 			double cterm = M_LN_2PI * resid.size();
 			double logDet = covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
-			contLik = exp(-0.5 * (iqf + cterm + logDet));
-			if (contLik == 0.0) reportBadContRow(cData, resid, contCov);
-		} else { contLik = 1.0; }
+			contLogLik = -0.5 * (iqf + cterm + logDet);
+			if (!std::isfinite(contLogLik)) reportBadContRow(cData, resid, contCov);
+		} else { contLogLik = 0.0; }
 
-		recordRow(contLik, ordLik);
+		recordRow(contLogLik, ordLik);
 	}
 
 	return false;
@@ -249,7 +249,7 @@ bool condContByRow::eval()
 	VectorXd ordMean;
 	MatrixXd ordAdj;
 	SimpCholesky< Eigen::MatrixXd >  covDecomp;
-	double contLik = 1.0;
+	double contLogLik = 0.0;
 	double ordLik = 1.0;
 
 	while(row < lastrow) {
@@ -321,13 +321,13 @@ bool condContByRow::eval()
 				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double cterm = M_LN_2PI * resid.size();
 				double logDet = covDecomp.log_determinant();
-				contLik = exp(-0.5 * (iqf + cterm + logDet));
-				if (contLik == 0.0) {
+				contLogLik = -0.5 * (iqf + cterm + logDet);
+				if (!std::isfinite(contLogLik)) {
 					reportBadContRow(cData, resid, contCov);
 				}
 			}
 		} else {
-			contLik = 1.0;
+			contLogLik = 0.0;
 		}
 
 		if (rowOrdinal) {
@@ -346,7 +346,7 @@ bool condContByRow::eval()
 			ordLik = 1.0;
 		}
 
-		recordRow(contLik, ordLik);
+		recordRow(contLogLik, ordLik);
 	}
 
 	return false;

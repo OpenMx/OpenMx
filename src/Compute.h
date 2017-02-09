@@ -287,6 +287,7 @@ inline double addSkippedRowPenalty(double orig, int skipped) // orig does not ha
 	//
 	// http://www.cplusplus.com/forum/general/53760/
 	//
+	orig *= skipped;        // add some extra badness
 	return orig;
 }
 

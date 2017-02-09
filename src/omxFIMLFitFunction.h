@@ -279,15 +279,15 @@ class mvnByRow {
 		return true;
 	}
 
-	void record(double lik, int rows)
+	void record(double logLik, int rows)
 	{
 		if (returnRowLikelihoods) Rf_error("oops");
-		if (lik == 0.0) {
+		if (!std::isfinite(logLik)) {
 			ofiml->skippedRows += rows;
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
 			//mxLog("%g += record(%g)", rl[0], lik);
-			rl[0] += lik;
+			rl[0] += logLik;
 		}
 		firstRow = false;
 		row += rows;
@@ -316,18 +316,18 @@ class mvnByRow {
 		firstRow = false;
 	}
 
-	void recordRow(double contLik, double ordLik)
+	void recordRow(double contLogLik, double ordLik)
 	{
-		double rowLik = ordLik * contLik;
-		if (rowLik == 0.0) {
+		if (ordLik == 0.0 || !std::isfinite(contLogLik)) {
 			skipRow();
 			return;
 		}
 		if (OMX_DEBUG_ROWS(sortedRow)) {
-			mxLog("%d/%d ordLik %g contLik %g = rowLik %g", row, sortedRow, ordLik, contLik, rowLik);
+			mxLog("%d/%d ordLik %g contLogLik %g", row, sortedRow, ordLik, contLogLik);
 		}
 		if (returnRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
+			double rowLik = exp(contLogLik) * ordLik;
 			rl[sortedRow] = rowLik;
 			row += 1;
 			while (row < data->rows && sameAsPrevious[row]) {
@@ -336,7 +336,7 @@ class mvnByRow {
 			}
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
-			double rowLogLik = log(rowLik);
+			double rowLogLik = contLogLik + log(ordLik);
 			rl[0] += rowLogLik;
 			row += 1;
 			while (row < data->rows && sameAsPrevious[row]) {
