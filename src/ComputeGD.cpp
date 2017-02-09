@@ -352,6 +352,11 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 		// CSOLNP doesn't know that inequality constraints can be inactive TODO
 	} else {
 		inequality = inequality.array().max(0.0);
+		if(wantAJ && usingAnalyticJacobian){
+			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
+				if(!inequality[i]){analyticIneqJacTmp.row(i).setZero();}
+			}
+		}
 	}
 
 	if (verbose >= 3) {
