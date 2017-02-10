@@ -31,7 +31,7 @@ mxConstraint(expression, name=NA, ..., jac=character(0))
    \item{expression}{The \link{MxAlgebra}-like expression representing the constraint function.}
    \item{name}{An optional character string indicating the name of the object.}
    \item{...}{Not used.  Helps OpenMx catch bad input to argument \code{expression}, and requires argument \code{jac}--meant for advanced users--to be specified by name.}
-   \item{jac}{An optional character string naming the \link{MxAlgebra} representing the Jacobian for the constraint function.}
+   \item{jac}{An optional character string naming the \link{MxAlgebra} or \link{MxMatrix} representing the Jacobian for the constraint function.}
 }
 
 \details{
@@ -41,7 +41,7 @@ Usage Note: Use of \code{mxConstraint()} should be avoided where it is possible 
 
 Alernatives to mxConstraints include using labels, lbound or ubound arguments or algebras. Free parameters in the same \link{MxModel} may be constrained to equality by giving them the same name in their respective 'labels' matrices. Similarly, parameters may be fixed to an individual element in a \link{MxModel} object or the result of an \link{MxAlgebra} object through labeling. For example, assigning a label of ``name[1,1]`` fixes the value of a parameter at the value in first row and first column of the matrix or algebra ``name``. The mxConstraint function should be used to enforce inequalities that cannot be conveyed using other methods.
 
-Argument \code{jac} is used to provide the name of an \link{MxMatrix} or \link{MxAlgebra} that equals the matrix of first derivatives--the Jacobian--of the constraint function with respect to the free parameters.  Here, the "constraint function" refers to the constraint expression in canonical form, with an arbitrary matrix expression on the left-hand side of the comparator, and a matrix with the same dimensions, and constant with respect to free parameters, on the right-hand side.  The rows of the Jacobian correspond to elements of the  matrix result of the right-hand side, in column-major order.  Each row of the Jacobian is the vector of first partial derivatives, with respect to the free parameters of the MxModel, of its corresponding element.  Each column of the Jacobian corresponds to a free parameter of the MxModel; each column must be named with the label of the corresponding free parameter.  %TODO: provide a concrete example
+Argument \code{jac} is used to provide the name of an \link{MxMatrix} or \link{MxAlgebra} that equals the matrix of first derivatives--the Jacobian--of the constraint function with respect to the free parameters.  Here, the "constraint function" refers to the constraint expression in canonical form, with an arbitrary matrix expression on the left-hand side of the comparator, and a matrix with the same dimensions, and constant with respect to free parameters (typically, a matrix of zeroes), on the right-hand side.  The rows of the Jacobian correspond to elements of the  matrix result of the right-hand side, in column-major order.  Each row of the Jacobian is the vector of first partial derivatives, with respect to the free parameters of the MxModel, of its corresponding element.  Each column of the Jacobian corresponds to a free parameter of the MxModel; each column must be named with the label of the corresponding free parameter.  Only the \link[=mxComputeGradientDescent]{gradient-descent} optimizers NPSOL and SLSQP are able to take advantage of user-supplied Jacobians.  %TODO: provide a concrete example
 }
 
 \value{
