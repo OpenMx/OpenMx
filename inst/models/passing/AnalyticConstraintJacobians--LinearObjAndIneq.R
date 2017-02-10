@@ -47,3 +47,7 @@ summary(testrun2)
 testrun2$fitfunction$result
 testrun2$output$iterations
 testrun2$output$evaluations
+omxCheckCloseEnough(mxEval(X,testrun1,T),mxEval(X,testrun2,T),as.numeric(mxOption(NULL,"Optimality tolerance")))
+omxCheckCloseEnough(mxEval(fitfunc,testrun1,T),mxEval(fitfunc,testrun2,T),1e-8)
+if(mxOption(NULL,"Default optimizer") %in% c("NPSOL","SLSQP")){omxCheckTrue(testrun1$output$evaluations > testrun2$output$evaluations)}
+
