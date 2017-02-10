@@ -175,7 +175,8 @@ otherOptions <- list(
     "Gradient iterations" = "Auto",#1L,
     "Gradient step size" = "Auto",#1.0e-7,
     "Parallel diagnostics" = "No",
-    "Debug protect stack" = "No"
+    "Debug protect stack" = "No",
+		"Nudge zero starts" = "TRUE"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
@@ -310,3 +311,4 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 		else{stop(paste("found unrecognized character string '",optionList[[optionName]],"' as value for mxOption '",optionName,"' in argument 'optionList'",sep=""))}
 	}
 }
+

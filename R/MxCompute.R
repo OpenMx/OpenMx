@@ -413,7 +413,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
-				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
+				     nudgeZeroStarts=as.logical(mxOption(NULL,"Nudge zero starts")), maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
 				     gradientIterations=imxAutoOptionValue("Gradient iterations"),
 				     gradientStepSize=imxAutoOptionValue("Gradient step size")) {
