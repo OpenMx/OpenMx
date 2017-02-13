@@ -8,7 +8,7 @@
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun Now gives feedback about optimization progress.
 * NEW: Analytic constraint Jacobians can now be provided to MxConstraints (presently with NPSOL only).
-* NEW: Constraint diagnostics exported to frontend (presently with NPSOL only).
+* NEW: Constraint diagnostics exported to frontend (NPSOL and SLSQP).
 * NEW: omxDefaultComputePlan()
 * CHANGE: CSOLNP is now the default optimizer.
 	* Change this with mxOption(NULL, "Default optimizer", "CSOLNP|NPSOL|SLSQP")
@@ -29,6 +29,11 @@
 	* Use mxCI(..., boundAdj = FALSE) to disable the adjustment.
 * FIXED: mxRefModels Now handles models with one data variable.
 * FIXED: mxTryHard Now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
+* NEW: Functions now usable in MxAlgebras: dchisq(), pchisq(), dbinom(), pbinom(), dcauchy(), pcauchy().
+* IMPROVED: better man pages for mxOption() and mxComputeGradientDescent().
+* NEW: "Auto" mxOption values.
+* FIXED: bug with omxSetParameters() when matrix has condensed slots.
+* FIXED: Some functions now respect locally set mxOptions, when previously they would ignore them.
 
 # OpenMx 2.6.9
 * UPDATED: Stan header compatibility.
