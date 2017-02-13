@@ -16,8 +16,6 @@
 library(OpenMx)
 #mxOption(NULL,"Default optimizer","SLSQP"
 
-#CSOLNP crashes and burns so hard that this test script might belong in models/failing...
-if(mxOption(NULL,"Default optimizer")!="CSOLNP"){
 	library(mvtnorm)
 	
 	set.seed(170209)
@@ -166,4 +164,3 @@ if(mxOption(NULL,"Default optimizer")!="CSOLNP"){
 	omxCheckCloseEnough(diag(mxEval(Sigma,m6,T)),c(1,1,1),as.numeric(mxOption(NULL,"Feasibility tolerance")))
 	omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],mxEval(Tau,m2,T)[1,],5e-4)
 	omxCheckCloseEnough(mxEval(Sigma,m6,T),mxEval(Sigma,m2,T),5e-4)
-}
