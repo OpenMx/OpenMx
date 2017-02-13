@@ -3,6 +3,7 @@
 * FIXED: mxKalmanScores are now correct for continuous time state space models.
 * FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization. If you are using 2.7.x then you have avoid problems with expectation$.useSufficientSets = FALSE.
 * IMPROVED: Rampart uses much less memory on large datasets.
+* NEW: "Auto" mxOption values.
 
 # OpenMx 2.7.x: Lots of NEWs
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
@@ -31,7 +32,6 @@
 * FIXED: mxTryHard Now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
 * NEW: Functions now usable in MxAlgebras: dchisq(), pchisq(), dbinom(), pbinom(), dcauchy(), pcauchy().
 * IMPROVED: better man pages for mxOption() and mxComputeGradientDescent().
-* NEW: "Auto" mxOption values.
 * FIXED: bug with omxSetParameters() when matrix has condensed slots.
 * FIXED: Some functions now respect locally set mxOptions, when previously they would ignore them.
 
