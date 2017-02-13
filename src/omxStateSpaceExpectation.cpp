@@ -38,10 +38,7 @@
 #include <iostream>
 #include "omxExpectation.h"
 #include "omxStateSpaceExpectation.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static void omxSetStateSpaceExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
 {

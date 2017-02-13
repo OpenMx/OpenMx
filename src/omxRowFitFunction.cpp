@@ -19,10 +19,7 @@
 #include "omxData.h"
 #include "omxRowFitFunction.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 typedef struct omxRowFitFunction {
 

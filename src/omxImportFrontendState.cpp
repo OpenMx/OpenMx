@@ -22,10 +22,7 @@
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;

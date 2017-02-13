@@ -38,6 +38,7 @@
 #include "omxCsolnp.h"
 #include <Rcpp.h>
 #include <RcppEigen.h>
+#include "EnableWarnings.h"
 #include "omxSadmvnWrapper.h"
 
 void markAsDataFrame(SEXP list, int rows)

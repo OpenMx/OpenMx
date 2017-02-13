@@ -23,10 +23,7 @@
 #include "RAMInternal.h"
 #include "matrix.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static const double MIN_VARIANCE = 1e-6;
 

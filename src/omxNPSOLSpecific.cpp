@@ -23,10 +23,7 @@
 #include "Compute.h"
 #include "ComputeGD.h"
 #include "npsolswitch.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 template <typename T1, typename T2, typename T3>
 void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, 

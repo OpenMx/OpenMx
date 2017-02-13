@@ -51,9 +51,9 @@ namespace UndirectedGraph {
 			}
 		}
 	public:
-		Connectedness(std::vector<int> &region, SubgraphType &connected,
-			      int size, bool verbose) :
-			region(region), connected(connected), verbose(verbose)
+		Connectedness(std::vector<int> &_region, SubgraphType &_connected,
+			      int size, bool _verbose) :
+			region(_region), connected(_connected), verbose(_verbose)
 		{
 			region.assign(size, -1);
 			connected.clear();

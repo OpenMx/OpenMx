@@ -13,10 +13,7 @@
 #include "nlopt.h"
 #include "slsqp.h"
 #include "nlopt-internal.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 namespace SLSQP {
 

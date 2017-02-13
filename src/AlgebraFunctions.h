@@ -30,9 +30,11 @@
 #include <limits>
 #include "omxMatrix.h"
 #include "merge.h"
-#include "omxSadmvnWrapper.h"
 #include "matrix.h"
 #include "omxState.h"
+#include <Eigen/Cholesky>
+#include "omxSadmvnWrapper.h"
+#include "EnableWarnings.h"
 
 // TODO: Implement wrappers for BLAS functions used here.
 

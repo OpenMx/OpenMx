@@ -5,10 +5,7 @@
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "glue.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static const int ERROR_LEN = 80;
 

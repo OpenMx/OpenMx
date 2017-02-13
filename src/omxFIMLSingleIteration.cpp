@@ -18,13 +18,10 @@
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
+#include <Eigen/Cholesky>
 #include "omxFIMLFitFunction.h"
 #include "matrix.h"
-#include <Eigen/Cholesky>
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void omxFIMLAdvanceJointRow(int *row, int *numIdenticalDefs, 
 	int *numIdenticalContinuousMissingness,

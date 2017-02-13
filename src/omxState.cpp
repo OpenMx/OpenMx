@@ -22,10 +22,7 @@
 #include "omxState.h"
 #include "Compute.h"
 #include "omxImportFrontendState.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 struct omxGlobal *Global = NULL;
 static bool mxLogEnabled = false;

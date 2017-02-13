@@ -32,10 +32,7 @@
 #include "omxState.h"
 #include <Eigen/Cholesky>
 #include "finiteDifferences.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void pda(const double *ar, int rows, int cols);
 

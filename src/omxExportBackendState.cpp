@@ -21,10 +21,7 @@
 #include "omxNPSOLSpecific.h"
 #include "glue.h"
 #include "omxExportBackendState.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void omxState::omxExportResults(MxRList *out, FitContext *fc)
 {

@@ -30,10 +30,7 @@
 #include "omxMatrix.h"
 #include "omxFitFunction.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 {

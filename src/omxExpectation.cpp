@@ -31,10 +31,7 @@
 **********************************************************/
 
 #include "omxExpectation.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 

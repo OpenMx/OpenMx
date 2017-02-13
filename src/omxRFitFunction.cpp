@@ -17,10 +17,7 @@
 #include "glue.h"
 #include "Compute.h"
 #include "omxRFitFunction.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *)
 {

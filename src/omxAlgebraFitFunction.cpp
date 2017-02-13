@@ -19,10 +19,7 @@
 #include "omxBuffer.h"
 #include <algorithm>
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 struct AlgebraFitFunction {
 	omxFitFunction *ff;

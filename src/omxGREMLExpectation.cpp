@@ -21,10 +21,7 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
- 
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void omxInitGREMLExpectation(omxExpectation* ox){
   

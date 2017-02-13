@@ -36,10 +36,7 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 #include "omxBuffer.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 class omxComputeNumericDeriv : public omxCompute {
 	typedef omxCompute super;

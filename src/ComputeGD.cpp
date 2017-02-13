@@ -29,9 +29,7 @@
 #include "ComputeSD.h"
 #include "ComputeGD.h"
 
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void GradientOptimizerContext::copyBounds()
 {

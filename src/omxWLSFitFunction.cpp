@@ -17,6 +17,7 @@
 #include "omxData.h"
 #include <Eigen/Core>
 // #include <Eigen/Dense>
+#include "EnableWarnings.h"
 
 struct omxWLSFitFunction {
 
@@ -36,10 +37,6 @@ struct omxWLSFitFunction {
 
 	omxWLSFitFunction() :standardExpectedMeans(0), standardExpectedThresholds(0) {};
 };
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
 
 static void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector) {

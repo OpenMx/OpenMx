@@ -21,12 +21,12 @@
 #include "omxData.h"
 #include "Connectedness.h"
 #include <limits>
-#include <Rcpp.h>
-#include <Eigen/CholmodSupport>
-#include <Eigen/Cholesky>
-#include <RcppEigenWrap.h>
 #include "matrix.h"
 #include "Compute.h"
+
+#ifndef EIGEN_CHOLESKY_MODULE_H
+#error "#include <Eigen/Cholesky>"
+#endif
 
 #ifdef  __cplusplus
 extern "C" {
@@ -37,10 +37,6 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 
 #ifdef  __cplusplus
 }
-#endif
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
 #endif
 
 void omxSadmvnWrapper(int numVars, 

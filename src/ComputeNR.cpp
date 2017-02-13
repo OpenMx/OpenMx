@@ -21,10 +21,7 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 #include "matrix.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static const char engineName[] = "NnRn";
 

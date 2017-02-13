@@ -17,11 +17,9 @@
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
+#include <Eigen/Cholesky>
+#include "EnableWarnings.h"
 #include "omxFIMLFitFunction.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
 
 nanotime_t omxFIMLFitFunction::getMedianElapsedTime()
 {
