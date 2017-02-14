@@ -72,7 +72,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     LB_e = fit.solLB;
     UB_e = fit.solUB;
     //verbose = 3;
-
+    
     flag = 0;
     flag_NormgZ = 0; minr_rec = 0;
     
@@ -770,19 +770,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 rowSort_e(gap_e);
                 dx_e.transpose().block(0, 0, 1, mm) = gap_e.col(0).transpose().block(0, 0, 1, mm);
                 dx_e(npic_int, 0) = p0_e(0, npic_int);
-		
-	        Eigen::VectorXd minusInf(LB_e.rows());
-                minusInf.setConstant(-2e+20);
-                Eigen::VectorXd plusInf(LB_e.rows());
-                plusInf.setConstant(2e+20);
-                if (pb_e.col(0).block(nineq,0,LB_e.rows(), 1).isApprox(minusInf) && pb_e.col(1).block(nineq,0,LB_e.rows(),1).isApprox(plusInf)) {
-                	double max_dx = dx_e.transpose().block(0,0,1,nineq).array().maxCoeff();
-                        Eigen::MatrixXd subMat (1, LB_e.rows());
-                        subMat.setConstant(std::max(max_dx, (double)100));
-                        dx_e.block(nineq, 0, LB_e.rows(), 1) = subMat;
-                }
-
-		Eigen::MatrixXd argum1_e;
+                Eigen::MatrixXd argum1_e;
                 argum1_e = a_e * dx_e.asDiagonal();
                 argum1_e.transposeInPlace();
                 Eigen::MatrixXd argum2_e;
@@ -1030,18 +1018,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             gap_e.resize(mm, 1);
             gap_e = gap_eTemp;
             dx_e.block(0, 0, 1, mm) = temp.cwiseQuotient(gap_e).transpose();
-            Eigen::VectorXd minusInf(LB_e.rows());
-	    minusInf.setConstant(-2e+20);
-	    Eigen::VectorXd plusInf(LB_e.rows());
-	    plusInf.setConstant(2e+20);
-	    if (pb_e.col(0).block(nineq,0,LB_e.rows(), 1).isApprox(minusInf) && pb_e.col(1).block(nineq,0,LB_e.rows(),1).isApprox(plusInf))
-	    {
-            	double min_dx = dx_e.transpose().block(0,0,1,nineq).array().minCoeff();
-            	Eigen::MatrixXd subMat (1, LB_e.rows());
-            	subMat.setConstant(std::min(min_dx, (double)0.01));
-            	dx_e.block(0, nineq, 1, LB_e.rows()) = subMat;
-	    }
-	}
+        }
         
         go = -1;
         lambdaValue = lambdaValue/10.0;
