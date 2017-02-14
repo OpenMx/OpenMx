@@ -539,20 +539,27 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     /*Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.cols);
     Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.cols);*/
     
+    Eigen::VectorXd minusInf(LB_e.rows());
+    minusInf.setConstant(-2e+20);
+    Eigen::VectorXd plusInf(LB_e.rows());
+    plusInf.setConstant(2e+20);
+
     if(nineq) {
         pb_e.setZero(nineq, 2);
         pb_e.col(1) = Eigen::VectorXd::Constant(pb_e.rows(), INF);
-        Eigen::MatrixXd pb_cont_e;
-        pb_cont_e.setZero(np, 2);
-        pb_cont_e.col(0) = LB_e;
-        pb_cont_e.col(1) = UB_e;
-        pb_e.transposeInPlace();
-        pb_cont_e.transposeInPlace();
-        Eigen::MatrixXd pbJoined(2, nineq + np);
-        pbJoined << pb_e, pb_cont_e;
-        pbJoined.transposeInPlace();
-        pb_e.resize(pbJoined.rows(), pbJoined.cols());
-        pb_e = pbJoined;
+        if (!LB_e.isApprox(minusInf) ||  !UB_e.isApprox(plusInf)){
+		Eigen::MatrixXd pb_cont_e;
+        	pb_cont_e.setZero(np, 2);
+        	pb_cont_e.col(0) = LB_e;
+        	pb_cont_e.col(1) = UB_e;
+        	pb_e.transposeInPlace();
+        	pb_cont_e.transposeInPlace();
+        	Eigen::MatrixXd pbJoined(2, nineq + np);
+        	pbJoined << pb_e, pb_cont_e;
+        	pbJoined.transposeInPlace();
+        	pb_e.resize(pbJoined.rows(), pbJoined.cols());
+        	pb_e = pbJoined;
+	}
     } else {
         pb_e.setZero(np, 2);
         pb_e.col(0) = LB_e;
@@ -566,11 +573,17 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     
     ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
     p0_e = p0_e.cwiseQuotient(vscale_e.block(0, neq + 1, 1, nc + np - neq));
-    
-    int mm = 0;
+     
+    int mm;
+
+    if (!LB_e.isApprox(minusInf) || !UB_e.isApprox(plusInf) || ind[indHasIneq])
     {
-        mm=npic;
-        Eigen::MatrixXd pbCopied;
+	if (LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf))
+		mm = nineq;
+	else
+        	mm=npic;
+        
+	Eigen::MatrixXd pbCopied;
         pbCopied.setZero(pb_e.rows(), pb_e.cols());
         pbCopied.col(0) = vscale_e.block(0, neq + 1, 1, mm).transpose();
         pbCopied.col(1) = vscale_e.block(0, neq + 1, 1, mm).transpose();
@@ -737,7 +750,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         if (alp[0] <= 0){
             
             ch = 1;
-            
+	    
+            if ((LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf)) && !ind[indHasIneq])
+            {
+            	p0_e = p0_e - (a_e.transpose() * ((a_e * a_e.transpose()).lu().solve(constraint_e.transpose()))).transpose();
+            	alp[0] = 1;
+
+            }
         } // end if (alp[0][0] <= 0){
         
         if (alp[0] <= 0){
@@ -770,7 +789,16 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 rowSort_e(gap_e);
                 dx_e.transpose().block(0, 0, 1, mm) = gap_e.col(0).transpose().block(0, 0, 1, mm);
                 dx_e(npic_int, 0) = p0_e(0, npic_int);
-                Eigen::MatrixXd argum1_e;
+                
+		if (LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf))
+		{
+			double max_dx = dx_e.transpose().block(0,0,1,mm).array().maxCoeff();
+                	Eigen::MatrixXd subMat (1, LB_e.rows());
+                	subMat.setConstant(std::max(max_dx, (double)100));
+                	dx_e.block(mm, 0, LB_e.rows(), 1) = subMat.transpose();
+		}
+		
+		Eigen::MatrixXd argum1_e;
                 argum1_e = a_e * dx_e.asDiagonal();
                 argum1_e.transposeInPlace();
                 Eigen::MatrixXd argum2_e;
@@ -1004,7 +1032,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         Eigen::MatrixXd dx_e(1, npic);
         dx_e.setOnes();
         dx_e *= 0.01;
-        
+        if (!LB_e.isApprox(minusInf) || !UB_e.isApprox(plusInf) || ind[indHasIneq]) 
         {
             Eigen::MatrixXd gap_e(pb_e.rows(), pb_e.cols());
             gap_e.setZero();
@@ -1018,6 +1046,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             gap_e.resize(mm, 1);
             gap_e = gap_eTemp;
             dx_e.block(0, 0, 1, mm) = temp.cwiseQuotient(gap_e).transpose();
+	    if (LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf))
+	    {
+		double min_dx = dx_e.block(0,0,1,mm).array().minCoeff();
+                Eigen::MatrixXd subMat (1, LB_e.rows());
+                subMat.setConstant(std::min(min_dx, (double)0.01));
+                dx_e.block(0, mm, 1, LB_e.rows()) = subMat;
+	    }
         }
         
         go = -1;
@@ -1088,6 +1123,9 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             p0_e.resize(npic);
             p0_e = u_e.block(0, 0, 1, npic) + p_e;
             
+	    if ((LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf)) && !ind[indHasIneq])
+		go = 1;
+	    else    
             {
                 Eigen::MatrixXd listPartOne = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
                 Eigen::MatrixXd listPartTwo = pb_e.col(1) - p0_e.block(0, 0, 1, mm).transpose();
