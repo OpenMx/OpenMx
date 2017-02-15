@@ -177,3 +177,4 @@ man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
+omxNormalQuantiles.Rd
