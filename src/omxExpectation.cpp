@@ -37,7 +37,7 @@ typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 
 struct omxExpectationTableEntry {
 	char name[32];
-	void (*initFun)(omxExpectation*);
+	omxExpectation *(*initFun)();
 };
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
@@ -51,9 +51,7 @@ static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 
 void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
-    
-	if (ox->destructFun) ox->destructFun(ox);
-	Free(ox);
+	delete ox;
 }
 
 void omxExpectationRecompute(FitContext *fc, omxExpectation *ox)
@@ -66,21 +64,19 @@ void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what,
 	if (!ox) return;
 
 	ox->data->recompute(); // for dynamic data
-	ox->computeFun(ox, fc, what, how);
+	ox->compute(fc, what, how);
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
 {
 	if(component == NULL) return NULL;
 
-	if(ox->componentFun == NULL) return NULL;
-
-	return(ox->componentFun(ox, component));
+	return(ox->getComponent(component));
 }
 
 void omxSetExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
 {
-	ox->mutateFun(ox, component, om);
+	ox->mutate(component, om);
 }
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {
@@ -134,9 +130,9 @@ static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
-		if(OMX_DEBUG) mxPrintMat("Variable mapping", ox->getDataColumns());
+		if(OMX_DEBUG) mxPrintMat("Variable mapping", ox->omxExpectation::getDataColumns());
 		if (isRaw) {
-			auto dc = ox->getDataColumns();
+			auto dc = ox->omxExpectation::getDataColumns();
 			for (int cx=0; cx < numCols; ++cx) {
 				int var = dc[cx];
 				data->assertColumnIsData(var);
@@ -205,15 +201,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 
 	omxExpectationProcessDataStructures(ox, ox->rObj);
 
-	ox->initFun(ox);
-
-	if(ox->computeFun == NULL) {
-		if (isErrorRaised()) {
-			Rf_error("Failed to initialize '%s' of type %s: %s", ox->name, ox->expType, Global->getBads());
-		} else {
-			Rf_error("Failed to initialize '%s' of type %s", ox->name, ox->expType);
-		}
-	}
+	ox->init();
 
 	if (OMX_DEBUG) {
 		omxData *od = ox->data;
@@ -236,62 +224,62 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	}
 }
 
-static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
+void omxExpectation::setVarGroup(FreeVarGroup *fvg)
 {
-	if (OMX_DEBUG && ox->freeVarGroup && ox->freeVarGroup != fvg) {
+	if (OMX_DEBUG && freeVarGroup && freeVarGroup != fvg) {
 		Rf_warning("setFreeVarGroup called with different group (%d vs %d) on %s",
-			ox->name, ox->freeVarGroup->id[0], fvg->id[0]);
+			name, freeVarGroup->id[0], fvg->id[0]);
 	}
-	ox->freeVarGroup = fvg;
+	freeVarGroup = fvg;
 }
 
 void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
 {
-	(*ox->setVarGroup)(ox, fvg);
+	ox->setVarGroup(fvg);
 }
 
-int *defaultDataColumnFun(omxExpectation *ex)
-{ return ex->dataColumnsPtr; }
+const Eigen::Map<omxExpectation::DataColumnType> omxExpectation::getDataColumns()
+{
+	return Eigen::Map<DataColumnType>(dataColumnsPtr, numDataColumns);
+}
 
-std::vector< omxThresholdColumn > &defaultThresholdInfoFun(omxExpectation *ex)
-{ return ex->thresholds; }
+std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
+{
+	return thresholds;
+}
 
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {
-	omxExpectation* expect = Calloc(1, omxExpectation);
-	expect->setVarGroup = defaultSetVarGroup;
+	omxExpectation* expect = 0;
 
 	/* Switch based on Expectation type. */ 
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
 		if(strEQ(expType, entry->name)) {
+			expect = entry->initFun();
 		        expect->expType = entry->name;
-			expect->initFun = entry->initFun;
 			break;
 		}
 	}
 
-	if(!expect->initFun) {
-		Free(expect);
-		Rf_error("Expectation %s not implemented", expType);
-	}
+	if (!expect) Rf_error("expectation '%s' not recognized", expType);
 
 	expect->currentState = os;
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
-	expect->dataColumnFun = defaultDataColumnFun;
-	expect->thresholdInfoFun = defaultThresholdInfoFun;
 
 	return expect;
 }
 
-void omxExpectationPrint(omxExpectation* ox, char* d) {
-	if(ox->printFun != NULL) {
-		ox->printFun(ox);
-	} else {
-		mxLog("(Expectation, type %s) ", (ox->expType==NULL?"Untyped":ox->expType));
-	}
+void omxExpectation::print()
+{
+	mxLog("(Expectation, type %s) ", (expType==NULL?"Untyped":expType));
+}
+
+void omxExpectationPrint(omxExpectation* ox, char* d)
+{
+	ox->print();
 }
 
 void complainAboutMissingMeans(omxExpectation *off)

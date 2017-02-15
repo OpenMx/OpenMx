@@ -81,7 +81,7 @@ void omxData::connectDynamicData(omxState *currentState)
 
 	if (Rf_length(dataLoc) == 1) {
 		omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], currentState);
-		BA81Expect *other = (BA81Expect *) ex->argStruct;
+		BA81Expect *other = (BA81Expect *) ex;
 		numObs = other->weightSum;
 		addDynamicDataSource(ex);
 		// nothing special to do
@@ -101,7 +101,7 @@ void omxData::connectDynamicData(omxState *currentState)
 					       ex->expType);
 				continue;
 			}
-			BA81Expect *other = (BA81Expect *) ex->argStruct;
+			BA81Expect *other = (BA81Expect *) ex;
 			weightSum += other->weightSum;
 			if (!refE) {
 				refE = ex;

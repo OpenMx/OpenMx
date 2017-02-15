@@ -21,9 +21,10 @@
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.
 
-void omxCallLISRELExpectation(omxExpectation* oo, FitContext *fc, const char *, const char *) {
+void omxLISRELExpectation::compute(FitContext *fc, const char *, const char *)
+{
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
-	omxLISRELExpectation* oro = (omxLISRELExpectation*)(oo->argStruct);
+    omxLISRELExpectation* oro = this;
 	
 	omxRecompute(oro->LX, fc);
 	omxRecompute(oro->LY, fc);
@@ -46,11 +47,11 @@ void omxCallLISRELExpectation(omxExpectation* oo, FitContext *fc, const char *, 
 	omxCalculateLISRELCovarianceAndMeans(oro);
 }
 
-void omxDestroyLISRELExpectation(omxExpectation* oo) {
-
+omxLISRELExpectation::~omxLISRELExpectation()
+{
 	if(OMX_DEBUG) { mxLog("Destroying LISREL Expectation."); }
 	
-	omxLISRELExpectation* argStruct = (omxLISRELExpectation*)(oo->argStruct);
+	omxLISRELExpectation* argStruct = this;
 
 	omxFreeMatrix(argStruct->cov);
 	omxFreeMatrix(argStruct->means);
@@ -91,8 +92,10 @@ void omxDestroyLISRELExpectation(omxExpectation* oo) {
 	}
 }
 
-void omxPopulateLISRELAttributes(omxExpectation *oo, SEXP algebra)
+void omxLISRELExpectation::populateAttr(SEXP algebra)
 {
+	auto oo = this;
+
     Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(oo->data)));
 
 	/*
@@ -375,9 +378,9 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 */
 }
 
-void omxInitLISRELExpectation(omxExpectation* oo) {
-	SEXP rObj = oo->rObj;
-	
+omxExpectation *omxInitLISRELExpectation() { return new omxLISRELExpectation; }
+
+void omxLISRELExpectation::init() {
 	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }
 		
 	int nx, nxi, ny, neta, ntotal;
@@ -385,15 +388,7 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 	SEXP slotValue;
 	
 	/* Create and fill expectation */
-	omxLISRELExpectation *LISobj = (omxLISRELExpectation*) R_alloc(1, sizeof(omxLISRELExpectation));
-	omxState* currentState = oo->currentState;
-	
-	/* Set Expectation Calls and Structures */
-	oo->computeFun = omxCallLISRELExpectation;
-	oo->destructFun = omxDestroyLISRELExpectation;
-	oo->componentFun = omxGetLISRELExpectationComponent;
-	oo->populateAttrFun = omxPopulateLISRELAttributes;
-	oo->argStruct = (void*) LISobj;
+	omxLISRELExpectation *LISobj = this;
 	
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing LISREL Meta Data for expectation."); }
@@ -510,8 +505,8 @@ void omxInitLISRELExpectation(omxExpectation* oo) {
 
 }
 
-omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, const char* component) {
-	omxLISRELExpectation* ore = (omxLISRELExpectation*)(ox->argStruct);
+omxMatrix* omxLISRELExpectation::getComponent(const char* component) {
+	omxLISRELExpectation* ore = this;
 	omxMatrix* retval = NULL;
 
 	if(strEQ("cov", component)) {

@@ -331,7 +331,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	if (strEQ(omxDataType(dataMat), "raw")) {
 		int useFellner = Rf_asLogical(Rfellner);
 		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 			if (ram->between.size()) {
 				if (useFellner == 0) {
 					Rf_error("%s: fellner=TRUE is required for %s",

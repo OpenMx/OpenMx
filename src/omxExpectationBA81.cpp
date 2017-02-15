@@ -116,19 +116,19 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 {
 	int allVer = 0;
 	for (size_t ex=0; ex < expectation.size(); ++ex) {
-		BA81Expect *ba81 = (BA81Expect *) expectation[ex]->argStruct;
+		BA81Expect *ba81 = (BA81Expect *) expectation[ex];
 		allVer += ba81->ElatentVersion;
 	}
 	if (*version == allVer) return;
 	*version = allVer;
 
-	BA81Expect *exemplar = (BA81Expect *) expectation[0]->argStruct;
+	BA81Expect *exemplar = (BA81Expect *) expectation[0];
 	ba81NormalQuad &quad = exemplar->getQuad();
 	ba81NormalQuad combined(quad);
 
 	int got = 0;
 	for (size_t ex=0; ex < expectation.size(); ++ex) {
-		BA81Expect *ba81 = (BA81Expect *) expectation[ex]->argStruct;
+		BA81Expect *ba81 = (BA81Expect *) expectation[ex];
 		// double weight = 1/ba81->weightSum; ?
 		combined.addSummary(ba81->grp.quad);
 		++got;
@@ -174,7 +174,7 @@ static unsigned getLatentVersion(BA81Expect *state)
 // Attempt G-H grid? http://dbarajassolano.wordpress.com/2012/01/26/on-sparse-grid-quadratures/
 void ba81RefreshQuadrature(omxExpectation* oo)
 {
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	BA81Expect *state = (BA81Expect *) oo;
 	ba81NormalQuad &quad = state->getQuad();
 
 	Eigen::VectorXd mean;
@@ -193,21 +193,21 @@ void ba81RefreshQuadrature(omxExpectation* oo)
 	quad.refresh(mean, fullCov);
 }
 
-void refreshPatternLikelihood(BA81Expect *state, bool hasFreeLatent)
+void BA81Expect::refreshPatternLikelihood(bool hasFreeLatent)
 {
 	if (hasFreeLatent) {
 		BA81Engine<BA81Expect*, BA81LatentSummary, BA81OmitEstep> engine;
-		engine.ba81Estep1(&state->grp, state);
+		engine.ba81Estep1(&this->grp, this);
 	} else {
 		BA81Engine<BA81Expect*, BA81LatentFixed, BA81OmitEstep> engine;
-		engine.ba81Estep1(&state->grp, state);
+		engine.ba81Estep1(&this->grp, this);
 	}
 }
 
-static void
-ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *how)
+void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 {
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
+	omxExpectation *oo = this;
+	BA81Expect *state = (BA81Expect *) oo;
 
 	if (what) {
 		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
@@ -268,7 +268,7 @@ ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *ho
 			}
 		} else {
 			state->grp.quad.releaseEstep();
-			refreshPatternLikelihood(state, oo->dynamicDataSource);
+			state->refreshPatternLikelihood(oo->dynamicDataSource);
 		}
 		if (oo->dynamicDataSource && state->verbose >= 2) {
 			mxLog("%s: empirical distribution mean and cov:", state->name);
@@ -298,25 +298,23 @@ ba81compute(omxExpectation *oo, FitContext *fc, const char *what, const char *ho
  * categories. In D. Thissen & H. Wainer (Eds.), \emph{Test scoring}
  * (pp 73-140). Lawrence Erlbaum Associates, Inc.
  */
-static void
-ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
+void BA81Expect::populateAttr(SEXP robj)
 {
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	if (!state->debugInternal) return;
+	if (!debugInternal) return;
 
-	ba81NormalQuad &quad = state->getQuad();
+	ba81NormalQuad &quad = getQuad();
 	int maxAbilities = quad.abilities();
-	const int numUnique = state->getNumUnique();
+	const int numUnique = getNumUnique();
 
-	const double LogLargest = state->LogLargestDouble;
+	const double LogLargest = LogLargestDouble;
 	SEXP Rlik;
 
-	if (state->grp.patternLik.size() != numUnique) {
-		refreshPatternLikelihood(state, oo->dynamicDataSource);
+	if (grp.patternLik.size() != numUnique) {
+		refreshPatternLikelihood(dynamicDataSource);
 	}
 
 	Rf_protect(Rlik = Rf_allocVector(REALSXP, numUnique));
-	memcpy(REAL(Rlik), state->grp.patternLik.data(), sizeof(double) * numUnique);
+	memcpy(REAL(Rlik), grp.patternLik.data(), sizeof(double) * numUnique);
 	double *lik_out = REAL(Rlik);
 	for (int px=0; px < numUnique; ++px) {
 		// Must return value in log units because it may not be representable otherwise
@@ -335,41 +333,35 @@ ba81PopulateAttributes(omxExpectation *oo, SEXP robj)
 	}
 
 	SEXP Rmean, Rcov;
-	if (state->estLatentMean) {
+	if (estLatentMean) {
 		Rf_protect(Rmean = Rf_allocVector(REALSXP, maxAbilities));
-		memcpy(REAL(Rmean), state->estLatentMean->data, maxAbilities * sizeof(double));
+		memcpy(REAL(Rmean), estLatentMean->data, maxAbilities * sizeof(double));
 		dbg.add("mean", Rmean);
 	}
-	if (state->estLatentCov) {
+	if (estLatentCov) {
 		Rf_protect(Rcov = Rf_allocMatrix(REALSXP, maxAbilities, maxAbilities));
-		memcpy(REAL(Rcov), state->estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
+		memcpy(REAL(Rcov), estLatentCov->data, maxAbilities * maxAbilities * sizeof(double));
 		dbg.add("cov", Rcov);
 	}
 
 	Rf_setAttrib(robj, Rf_install("debug"), dbg.asR());
 }
 
-static void ba81Destroy(omxExpectation *oo) {
+BA81Expect::~BA81Expect()
+{
 	if(OMX_DEBUG) {
-		mxLog("Freeing %s function.", oo->name);
+		mxLog("Freeing %s function.", name);
 	}
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
-	omxFreeMatrix(state->estLatentMean);
-	omxFreeMatrix(state->estLatentCov);
-	delete state;
+	omxFreeMatrix(estLatentMean);
+	omxFreeMatrix(estLatentCov);
 }
 
-static void ignoreSetVarGroup(omxExpectation*, FreeVarGroup *)
-{}
-
-static omxMatrix *getComponent(omxExpectation *oo, const char *what)
+omxMatrix *BA81Expect::getComponent(const char *what)
 {
-	BA81Expect *state = (BA81Expect *) oo->argStruct;
-
 	if (strcmp(what, "covariance")==0) {
-		return state->estLatentCov;
+		return estLatentCov;
 	} else if (strcmp(what, "mean")==0) {
-		return state->estLatentMean;
+		return estLatentMean;
 	} else {
 		return NULL;
 	}
@@ -384,13 +376,13 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols)
     *cols = dimList[1];
 }
 
-void omxInitExpectationBA81(omxExpectation* oo) {
-	omxState* currentState = oo->currentState;	
-	SEXP rObj = oo->rObj;
+omxExpectation *omxInitExpectationBA81() { return new BA81Expect; }
+
+void BA81Expect::init() {
 	SEXP tmp;
 	
 	if(OMX_DEBUG) {
-		mxLog("Initializing %s.", oo->name);
+		mxLog("Initializing %s.", name);
 	}
 	if (!Glibrpf_model) {
 #if USE_EXTERNAL_LIBRPF
@@ -403,10 +395,10 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 #endif
 	}
 	
-	BA81Expect *state = new BA81Expect;
+	BA81Expect *state = this;
 
 	// These two constants should be as identical as possible
-	state->name = oo->name;
+	state->name = name;
 	if (0) {
 		state->LogLargestDouble = 0.0;
 		state->LargestDouble = 1.0;
@@ -426,14 +418,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	state->EitemParam = NULL;
 	state->itemParamVersion = 0;
 	state->latentParamVersion = 0;
-	oo->argStruct = (void*) state;
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("data")));
 	state->data = omxDataLookupFromState(tmp, currentState);
 	}
 
 	if (strcmp(omxDataType(state->data), "raw") != 0) {
-		omxRaiseErrorf("%s unable to handle data type %s", oo->name, omxDataType(state->data));
+		omxRaiseErrorf("%s unable to handle data type %s", name, omxDataType(state->data));
 		return;
 	}
 
@@ -452,7 +443,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("ItemSpec")));
 	state->grp.importSpec(tmp);
-	if (state->verbose >= 2) mxLog("%s: found %d item specs", oo->name, state->numItems());
+	if (state->verbose >= 2) mxLog("%s: found %d item specs", name, state->numItems());
 	}
 
 	state->_latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
@@ -495,19 +486,13 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	}
 
-	oo->computeFun = ba81compute;
-	oo->setVarGroup = ignoreSetVarGroup;
-	oo->destructFun = ba81Destroy;
-	oo->populateAttrFun = ba81PopulateAttributes;
-	oo->componentFun = getComponent;
-	oo->canDuplicate = false;
+	canDuplicate = false;
 	
 	// TODO: Exactly identical rows do not contribute any information.
 	// The sorting algorithm ought to remove them so we get better cache behavior.
 	// The following summary stats would be cheaper to calculate too.
 
-	omxData *data = state->data;
-	if (data->hasDefinitionVariables()) Rf_error("%s: not implemented yet", oo->name);
+	if (data->hasDefinitionVariables()) Rf_error("%s: not implemented yet", name);
 
 	std::vector<int> &rowMap = state->grp.rowMap;
 
@@ -534,7 +519,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	else {
 		if (omxDataColumnIsFactor(data, weightCol)) {
-			omxRaiseErrorf("%s: weightColumn %d is a factor", oo->name, 1 + weightCol);
+			omxRaiseErrorf("%s: weightColumn %d is a factor", name, 1 + weightCol);
 			return;
 		}
 		state->grp.rowWeight = omxDoubleDataColumn(data, weightCol);
@@ -547,7 +532,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	}
 	// complain about non-integral rowWeights (EAP can't work) TODO
 
-	auto colMap = oo->getDataColumns();
+	auto colMap = getDataColumns();
 
 	for (int cx = 0; cx < numItems; cx++) {
 		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);
@@ -558,7 +543,7 @@ void omxInitExpectationBA81(omxExpectation* oo) {
 	for (int cx = 0; cx < numItems; cx++) {
 		if (!omxDataColumnIsFactor(data, colMap[cx])) {
 			data->omxPrintData("diagnostic", 3);
-			omxRaiseErrorf("%s: column %d is not a factor", oo->name, int(1 + colMap[cx]));
+			omxRaiseErrorf("%s: column %d is not a factor", name, int(1 + colMap[cx]));
 			return;
 		}
 	}

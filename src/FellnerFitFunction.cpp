@@ -52,7 +52,7 @@ namespace FellnerFitFunction {
 	void state::setupProfiledParam(omxFitFunction *oo, FitContext *fc)
 	{
 		omxExpectation *expectation             = oo->expectation;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 
 		if (numProfiledOut) ram->forceSingleGroup = true;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
@@ -155,7 +155,7 @@ namespace FellnerFitFunction {
 	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
 	{
 		omxExpectation *expectation             = oo->expectation;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+		omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
 			if (fc->isClone()) return;

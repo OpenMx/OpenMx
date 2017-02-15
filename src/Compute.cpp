@@ -2911,10 +2911,8 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 		omxExpectationRecompute(fc, curExpectation);
 		SEXP rExpect;
 		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
-		if(curExpectation->populateAttrFun != NULL) {
-			if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", (int) index); }
-			curExpectation->populateAttrFun(curExpectation, rExpect);
-		}
+		if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", (int) index); }
+		curExpectation->populateAttr(rExpect);
 		SET_VECTOR_ELT(expectations, index, rExpect);
 	}
 

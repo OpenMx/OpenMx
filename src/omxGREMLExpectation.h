@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
  
- typedef struct {
+struct omxGREMLExpectation : public omxExpectation {
   omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, *origVdim_om;
   omxData *y, *data2;
   int alwaysComputeMeans, numcases2drop, cholquadX_fail;
@@ -23,14 +23,15 @@
   Eigen::VectorXd cholquadX_vectorD;
   Eigen::MatrixXd XtVinv, quadXinv;
   std::vector< const char* > yXcolnames;
-} omxGREMLExpectation;
 
-void omxInitGREMLExpectation(omxExpectation* ox);
-void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *);
-void omxDestroyGREMLExpectation(omxExpectation* ox);
-void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra);
+  virtual ~omxGREMLExpectation();
+  virtual void init();
+  virtual void compute(FitContext *fc, const char *what, const char *how);
+  virtual void populateAttr(SEXP expectation);
+  virtual omxMatrix *getComponent(const char*);
+};
+
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixXd &em, int num2drop, std::vector< int > todrop, 
 	int symmetric, int origDim);
-omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, const char* component);
 void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > todrop, int symmetric, int origDim);
 

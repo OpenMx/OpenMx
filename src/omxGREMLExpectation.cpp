@@ -23,25 +23,16 @@
 #include <Eigen/Dense>
 #include "EnableWarnings.h"
 
-void omxInitGREMLExpectation(omxExpectation* ox){
-  
-  SEXP rObj = ox->rObj;
-  SEXP Rmtx, casesToDrop, yXcolnames;
+omxExpectation *omxInitGREMLExpectation(){ return new omxGREMLExpectation; }
+
+void omxGREMLExpectation::init()
+{
+  SEXP Rmtx, casesToDrop, RyXcolnames;
   int i=0;
-  omxState* currentState = ox->currentState;
   
   if(OMX_DEBUG) { mxLog("Initializing GREML expectation."); }
   
-  //omxGREMLExpectation *oge = (omxGREMLExpectation*) R_alloc(1, sizeof(omxGREMLExpectation));
-  omxGREMLExpectation *oge = new omxGREMLExpectation;
-  
-  /* Set Expectation Calls and Structures */
-  ox->computeFun = omxComputeGREMLExpectation;
-	ox->destructFun = omxDestroyGREMLExpectation;
-	ox->componentFun = omxGetGREMLExpectationComponent;
-	ox->populateAttrFun = omxPopulateGREMLAttributes;
-	ox->argStruct = (void*) oge;
-  
+  omxGREMLExpectation *oge = this;
   
     /* Set up expectation structures */
   //y:
@@ -105,11 +96,11 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   
   //column names of y and X:
   {
-  ScopedProtect p1(yXcolnames, R_do_slot(rObj, Rf_install("yXcolnames")));
-  oge->yXcolnames.resize(Rf_length(yXcolnames));
-  for(i=0; i < Rf_length(yXcolnames); i++){
+  ScopedProtect p1(RyXcolnames, R_do_slot(rObj, Rf_install("yXcolnames")));
+  oge->yXcolnames.resize(Rf_length(RyXcolnames));
+  for(i=0; i < Rf_length(RyXcolnames); i++){
     SEXP elem;
-    {ScopedProtect p2(elem, STRING_ELT(yXcolnames, i));
+    {ScopedProtect p2(elem, STRING_ELT(RyXcolnames, i));
   	oge->yXcolnames[i] = CHAR(elem);}
   }
   }
@@ -153,16 +144,16 @@ void omxInitGREMLExpectation(omxExpectation* ox){
   yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
   
   /*Prepare y as the data that the FIML fitfunction will use:*/
-  oge->data2 = ox->data;
-  ox->data = oge->y;
-  if (oge->data2->hasDefinitionVariables()) {
+  data2 = data;  // for safekeeping
+  data = oge->y;
+  if (data2->hasDefinitionVariables()) {
 	  Rf_error("definition variables are incompatible (and unnecessary) with GREML expectation");
   }
 }
 
 
-void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
-  omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
+void omxGREMLExpectation::compute(FitContext *fc, const char *, const char *) {
+	omxGREMLExpectation* oge = this;
 	omxRecompute(oge->cov, fc);
   int i=0;
   oge->cholV_fail_om->data[0] = 0;
@@ -218,10 +209,10 @@ void omxComputeGREMLExpectation(omxExpectation* ox, FitContext *fc, const char *
 }
 
 
-void omxDestroyGREMLExpectation(omxExpectation* ox) {
+omxGREMLExpectation::~omxGREMLExpectation()
+{
 	if(OMX_DEBUG) { mxLog("Destroying GREML Expectation."); }
-  omxGREMLExpectation* argStruct = (omxGREMLExpectation*)(ox->argStruct);
-  ox->data = argStruct->data2;
+	omxGREMLExpectation* argStruct = this;
   omxFreeMatrix(argStruct->means);
   omxFreeMatrix(argStruct->invcov);
   omxFreeMatrix(argStruct->logdetV_om);
@@ -232,16 +223,16 @@ void omxDestroyGREMLExpectation(omxExpectation* ox) {
 
 /*Possible TODO: it will require some additional computation, but it is probably best to calculate the final
 regression coefficients using QR, which is more numerically stable*/
-void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
+void omxGREMLExpectation::populateAttr(SEXP algebra) {
   if(OMX_DEBUG) { mxLog("Populating GREML expectation attributes."); }
 
-  omxGREMLExpectation* oge = (omxGREMLExpectation*) (ox->argStruct);
+  omxGREMLExpectation* oge = this;
   
   Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->dataMat->cols));
   Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
   
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
-  SEXP b_ext, bcov_ext, yXcolnames;
+  SEXP b_ext, bcov_ext, RyXcolnames;
   oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
   Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
   
@@ -265,20 +256,20 @@ void omxPopulateGREMLAttributes(omxExpectation *ox, SEXP algebra) {
   
   //yXcolnames:
   {
-  ScopedProtect p1(yXcolnames, Rf_allocVector(STRSXP, oge->yXcolnames.size()));
+  ScopedProtect p1(RyXcolnames, Rf_allocVector(STRSXP, oge->yXcolnames.size()));
   for(int i=0; i < (int)(oge->yXcolnames.size()); i++){
-    SET_STRING_ELT(yXcolnames, i, Rf_mkChar(oge->yXcolnames[i]));
+    SET_STRING_ELT(RyXcolnames, i, Rf_mkChar(oge->yXcolnames[i]));
   }
-  Rf_setAttrib(algebra, Rf_install("yXcolnames"), yXcolnames);
+  Rf_setAttrib(algebra, Rf_install("yXcolnames"), RyXcolnames);
   }
   
 }
 
-omxMatrix* omxGetGREMLExpectationComponent(omxExpectation* ox, const char* component){
+omxMatrix *omxGREMLExpectation::getComponent(const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
   if(OMX_DEBUG) { mxLog("GREML expectation: %s requested--", component); }
 
-	omxGREMLExpectation* oge = (omxGREMLExpectation*)(ox->argStruct);
+  omxGREMLExpectation* oge = this;
 	omxMatrix* retval = NULL;
 
 	

@@ -41,53 +41,16 @@
 
 /* Expectation structure itself */
 class omxExpectation {					// An Expectation
-	int defVarRow;
 	int *dataColumnsPtr;
 	std::vector< omxThresholdColumn > thresholds;
 
  public:
 	int numDataColumns;
-
-	void (*initFun)(omxExpectation *ox);
-	void (*destructFun)(omxExpectation* ox);									// Wrapper for the destructor object
-	void (*computeFun)(omxExpectation* ox, FitContext *fc, const char *what, const char *how);
-	void (*printFun)(omxExpectation* ox);										// Prints the appropriate pieces of the expectation
-	void (*populateAttrFun)(omxExpectation* ox, SEXP expectation);
-	void (*setVarGroup)(omxExpectation*, FreeVarGroup *);  // TODO remove
-	
-	// componentfun & mutateFun probably take encapsulation a little too seriously.
-	// The Fit function should probably just include the structure definition
-	// for the expectation and access fields directly or through object methods.
-	omxMatrix* (*componentFun)(omxExpectation*, const char*);
-	void (*mutateFun)(omxExpectation*, const char*, omxMatrix*);
-	int *(*dataColumnFun)(omxExpectation *);
-	std::vector< omxThresholdColumn > &(*thresholdInfoFun)(omxExpectation *);
-
-	SEXP rObj;																	// Original r Object Pointer
-	void* argStruct;															// Arguments needed for Expectation function
+	SEXP rObj;
         const char* expType;   // pointer to a static string, no need to allocate or free
-
 	omxData* data;
-	bool loadDefVars(int row);
-	int getDefVarRow() const { return defVarRow; };
-
-	void saveDataColumnsInfo(SEXP vec) {
-		numDataColumns = Rf_length(vec);
-		dataColumnsPtr = INTEGER(vec);
-	}
-
-	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
-	const Eigen::Map<DataColumnType> getDataColumns() {
-		return Eigen::Map<DataColumnType>(this->dataColumnFun(this), numDataColumns);
-	}
-	std::vector< omxThresholdColumn > &getThresholdInfo() {
-		return this->thresholdInfoFun(this);
-	}
-
 	omxMatrix *thresholdsMat;
 	int numOrdinal;  // number of thresholds with matrix != 0
-	void loadThresholds(int numCols, int *thresholdColumn, int *thresholdNumber);
-	
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
 	omxState* currentState;
@@ -100,8 +63,34 @@ class omxExpectation {					// An Expectation
 	bool canDuplicate;
 	bool dynamicDataSource;
 
-	friend int *defaultDataColumnFun(omxExpectation *ex);
-	friend std::vector< omxThresholdColumn > &defaultThresholdInfoFun(omxExpectation *ex);
+	omxExpectation() : dataColumnsPtr(0), numDataColumns(0), rObj(0), expType(0),
+		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(0),
+		expNum(0), freeVarGroup(0), name(0), canDuplicate(false), dynamicDataSource(false) {};
+	virtual ~omxExpectation() {};
+	virtual void init() {};
+	virtual void compute(FitContext *fc, const char *what, const char *how) = 0;
+	virtual void print();
+	virtual void populateAttr(SEXP expectation) {};
+	virtual void setVarGroup(FreeVarGroup *);  // TODO remove
+	
+	// getComponent & mutate probably take encapsulation a little too seriously.
+	// The Fit function should probably just include the structure definition
+	// for the expectation and access fields directly or through object methods.
+	virtual omxMatrix *getComponent(const char*) { return 0; }
+	virtual void mutate(const char*, omxMatrix*) {};
+
+	bool loadDefVars(int row);
+
+	void saveDataColumnsInfo(SEXP vec) {
+		numDataColumns = Rf_length(vec);
+		dataColumnsPtr = INTEGER(vec);
+	}
+
+	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
+	virtual const Eigen::Map<DataColumnType> getDataColumns();
+	virtual std::vector< omxThresholdColumn > &getThresholdInfo();
+
+	void loadThresholds(int numCols, int *thresholdColumn, int *thresholdNumber);
 };
 
 omxExpectation *
@@ -130,12 +119,13 @@ omxMatrix* omxGetExpectationComponent(omxExpectation *ox, const char* component)
 	
 void omxSetExpectationComponent(omxExpectation *ox, const char* component, omxMatrix *om);
 
-void omxInitNormalExpectation(omxExpectation *ox);
-void omxInitLISRELExpectation(omxExpectation *ox);
-void omxInitStateSpaceExpectation(omxExpectation *ox);
-void omxInitRAMExpectation(omxExpectation *ox);
-void omxInitExpectationBA81(omxExpectation* oo);
-void omxInitGREMLExpectation(omxExpectation* ox);
+omxExpectation *omxInitNormalExpectation();
+omxExpectation *omxInitLISRELExpectation();
+omxExpectation *omxInitStateSpaceExpectation();
+omxExpectation *omxInitRAMExpectation();
+omxExpectation *omxInitExpectationBA81();
+omxExpectation *omxInitGREMLExpectation();
+
 void complainAboutMissingMeans(omxExpectation *off);
 
 #endif /* _OMXEXPECTATION_H_ */

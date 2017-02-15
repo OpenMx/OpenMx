@@ -18,7 +18,7 @@
 #ifndef _OMXLISRELEXPECTATION_H_
 #define _OMXLISRELEXPECTATION_H_
 
-typedef struct {
+struct omxLISRELExpectation : public omxExpectation {
 
 	omxMatrix *cov, *means; // expected covariance and means
 	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH; // LISREL model Matrices
@@ -40,13 +40,14 @@ typedef struct {
 	bool noLY;
 	bool Lnocol;
 
-} omxLISRELExpectation;
+	virtual ~omxLISRELExpectation();
+	virtual void init();
+	virtual void compute(FitContext *fc, const char *what, const char *how);
+	virtual void populateAttr(SEXP expectation);
+	virtual omxMatrix *getComponent(const char*);
+};
 
 void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro);
-
-void omxInitLISRELExpectation(omxExpectation* oo);
-
-omxMatrix* omxGetLISRELExpectationComponent(omxExpectation* ox, const char* component);
 
 /*
 void omxFastLISRELInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ); // same as RAM inverse

@@ -37,12 +37,46 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <iostream>
 #include "omxExpectation.h"
-#include "omxStateSpaceExpectation.h"
 #include "EnableWarnings.h"
 
-static void omxSetStateSpaceExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
+struct omxStateSpaceExpectation : omxExpectation {
+	omxMatrix *cov, *means;
+	omxMatrix *A, *B, *C, *D, *Q, *R, *t; // State Space model Matrices
+	omxMatrix *r, *s, *u, *x, *y, *z; // Data and place holder vectors
+	omxMatrix *K, *P, *S, *Y, *Z; // Behind the scenes state space matrices (P, S, and K) and place holder matrices
+	omxMatrix *x0, *P0; // Placeholders for initial state and initial Rf_error cov
+	omxMatrix *det; // Determinant of expected covariance matrix S
+	omxMatrix *smallC, *smallD, *smallr, *smallR, *smallK, *smallS, *smallY; //aliases of C, D, r, R, K, and S for missing data handling
+	omxMatrix *covInfo; //info from Cholesky decomp of small expected cov (smallS) to be passed to FIML single iteration
+	double oldT;
+	double deltaT;
+	int returnScores; // Whether or not to populated the row-by-row expected means, covariances, Kalman scores, and likelihoods back to R
+	int flagAIsZero; //Whether the A matrix is fixed to zero
+	
+	/* Eigen Matrix initialization */
+	Eigen::MatrixXd eigenExpA;
+	Eigen::MatrixXd I;
+	Eigen::MatrixXd eigenIA;
+	Eigen::MatrixXd PSI;
+	Eigen::MatrixXd eigenPreX;
+	
+	virtual ~omxStateSpaceExpectation();
+	virtual void init();
+	virtual omxMatrix *getComponent(const char*);
+	virtual void mutate(const char*, omxMatrix*);
+	virtual void compute(FitContext *fc, const char *what, const char *how);
+	virtual void populateAttr(SEXP expectation);
+};
+
+
+static void omxKalmanPredict(omxStateSpaceExpectation* ose);
+static void omxKalmanUpdate(omxStateSpaceExpectation* ose);
+static void omxKalmanBucyPredict(omxStateSpaceExpectation* ose);
+static void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose);
+
+void omxStateSpaceExpectation::mutate(const char* component, omxMatrix* om)
 {
-	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+	omxStateSpaceExpectation* ose = this;
 	
 	if(!strcmp("y", component)) {
 		for(int i = 0; i < ose->y->rows; i++) {
@@ -61,9 +95,9 @@ static void omxSetStateSpaceExpectationComponent(omxExpectation* ox, const char*
 	}
 }
 
-void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
+void omxStateSpaceExpectation::compute(FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
-	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+    omxStateSpaceExpectation* ose = this;
 	
 	omxRecompute(ose->A, fc);
 	omxRecompute(ose->B, fc);
@@ -83,11 +117,11 @@ void omxCallStateSpaceExpectation(omxExpectation* ox, FitContext *fc, const char
 
 
 
-void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
-	
+omxStateSpaceExpectation::~omxStateSpaceExpectation()
+{
 	if(OMX_DEBUG) { mxLog("Destroying State Space Expectation."); }
 	
-	omxStateSpaceExpectation* argStruct = (omxStateSpaceExpectation*)(ox->argStruct);
+	omxStateSpaceExpectation* argStruct = this;
 	
 	omxFreeMatrix(argStruct->r);
 	omxFreeMatrix(argStruct->s);
@@ -110,18 +144,16 @@ void omxDestroyStateSpaceExpectation(omxExpectation* ox) {
 	omxFreeMatrix(argStruct->smallK);
 	omxFreeMatrix(argStruct->smallS);
 	omxFreeMatrix(argStruct->smallY);
-	
-	delete argStruct;
-	
 }
 
 
-void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
+void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
 	
 	/* Initialize */
-	omxSetExpectationComponent(ox, "Reset", NULL); //maybe shoulde be on ose?  after next line?
-	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+	this->mutate("Reset", NULL);
+	auto ose = this;
+	auto ox = this;
 	
 	if( !(ose->returnScores) ){
 		if(OMX_DEBUG) { mxLog("Not asking for attributes, this is being skipped!"); }
@@ -199,7 +231,6 @@ void omxPopulateSSMAttributes(omxExpectation *ox, SEXP algebra) {
 		/* Run Kalman prediction */
 		if(ose->t == NULL){
 			omxKalmanPredict(ose);
-			EigenMatrixAdaptor eigenExpA(ose->A);
 			// Copy discrete version of A
 			for(int j = 0; j < nx; j++){
 				for(int i = 0; i < nx; i++){
@@ -809,9 +840,10 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 }
 
 
-void omxInitStateSpaceExpectation(omxExpectation* ox) {
-	
-	SEXP rObj = ox->rObj;
+omxExpectation *omxInitStateSpaceExpectation() { return new omxStateSpaceExpectation; }
+
+void omxStateSpaceExpectation::init()
+{
 	if(OMX_DEBUG) { mxLog("Initializing State Space Expectation."); }
 		
 	int nx, ny, nu;
@@ -819,19 +851,9 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	//SEXP slotValue;   //Used by PPML
 	
 	/* Create and fill expectation */
-	//omxStateSpaceExpectation *SSMexp = (omxStateSpaceExpectation*) R_alloc(1, sizeof(omxStateSpaceExpectation));
-	omxStateSpaceExpectation *SSMexp = new omxStateSpaceExpectation;
+	omxStateSpaceExpectation *SSMexp = this;
 	
-	omxState* currentState = ox->currentState;
-	
-	/* Set Expectation Calls and Structures */
-	ox->computeFun = omxCallStateSpaceExpectation;
-	ox->destructFun = omxDestroyStateSpaceExpectation;
-	ox->componentFun = omxGetStateSpaceExpectationComponent;
-	ox->mutateFun = omxSetStateSpaceExpectationComponent;
-	ox->populateAttrFun = omxPopulateSSMAttributes;
-	ox->argStruct = (void*) SSMexp;
-	ox->canDuplicate = true;
+	canDuplicate = true;
 	
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing State Space Meta Data for expectation."); }
@@ -875,7 +897,7 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 	if(OMX_DEBUG) { mxLog("Processing first data row for y."); }
 	SSMexp->y = omxInitMatrix(ny, 1, TRUE, currentState);
 	for(int i = 0; i < ny; i++) {
-		omxSetMatrixElement(SSMexp->y, i, 0, omxDoubleDataElement(ox->data, 0, i));
+		omxSetMatrixElement(SSMexp->y, i, 0, omxDoubleDataElement(data, 0, i));
 	}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(SSMexp->y, "....State Space: y"); }
 	
@@ -947,8 +969,8 @@ void omxInitStateSpaceExpectation(omxExpectation* ox) {
 }
 
 
-omxMatrix* omxGetStateSpaceExpectationComponent(omxExpectation* ox, const char* component) {
-	omxStateSpaceExpectation* ose = (omxStateSpaceExpectation*)(ox->argStruct);
+omxMatrix* omxStateSpaceExpectation::getComponent(const char* component) {
+	omxStateSpaceExpectation* ose = this;
 	omxMatrix* retval = NULL;
 
 	if(strEQ("cov", component)) {

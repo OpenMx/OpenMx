@@ -294,7 +294,6 @@ inline double addSkippedRowPenalty(double orig, int skipped) // orig does not ha
 template <typename T>
 void printSparse(Eigen::SparseMatrixBase<T> &sm) {
 	typedef typename T::Index Index;
-	typedef typename T::Scalar Scalar;
 	typedef typename T::Storage Storage;
 	// assume column major
 	std::string buf;

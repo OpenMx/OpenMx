@@ -49,8 +49,15 @@ struct BA81LatentSummary {
 	bool hasEnd() { return true; }
 };
 
-class BA81Expect {
+class BA81Expect : public omxExpectation {
  public:
+	virtual ~BA81Expect();
+	virtual void init();
+	virtual void compute(FitContext *fc, const char *what, const char *how);
+	virtual void populateAttr(SEXP expectation);
+	virtual void setVarGroup(FreeVarGroup *) {};
+	virtual omxMatrix *getComponent(const char*);
+
 	class ifaGroup grp;
 	int totalOutcomes() { return grp.totalOutcomes; }
 	const double *itemSpec(int ix) { return grp.spec[ix]; }
@@ -63,7 +70,6 @@ class BA81Expect {
 	double LargestDouble;          // should be const but need constexpr
 
 	// data characteristics
-	omxData *data;
 	double weightSum;                // sum of rowWeight
 
 	// quadrature related
@@ -93,6 +99,8 @@ class BA81Expect {
 
 	BA81Expect() : grp(Global->numThreads, true) {};
 	const char *getLatentIncompatible(BA81Expect *other);
+
+	void refreshPatternLikelihood(bool hasFreeLatent);
 };
 
 template <typename Tmean, typename Tcov>

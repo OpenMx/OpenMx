@@ -48,7 +48,7 @@
     Rf_error("GREML fitfunction is currently only compatible with GREML expectation");
   }
   else{
-    omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+    omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
     oge->alwaysComputeMeans = 0;
   }
 
@@ -178,7 +178,7 @@
  	
  	if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		if(gff->usingGREMLExpectation){
- 			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+ 			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
  			
  			//Check that factorizations of V and the quadratic form in X succeeded:
  			if(oge->cholV_fail_om->data[0]){
@@ -282,7 +282,7 @@
  	
  	if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		//This part requires GREML expectation:
- 		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+ 		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
  		
  		//Recompute derivatives:
  		gff->dVupdate(fc);
@@ -535,7 +535,7 @@ static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
   SEXP rObj = oo->rObj;
   SEXP nval, mlfitval;
-  int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation->argStruct) )->data2->numObs);
+  int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation) )->data2->numObs);
   
   //Tell the frontend fitfunction counterpart how many observations there are...:
   {

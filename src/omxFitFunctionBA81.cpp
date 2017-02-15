@@ -93,7 +93,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
 	std::vector<int> &latentMap = state->latentMap;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	int maxAbilities = estate->grp.itemDims;
 
 	if (state->haveLatentMap == fc->varGroup->id[0]) return;
@@ -149,7 +149,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 {
 	FreeVarGroup *fvg = fc->varGroup;
 	BA81FitState *state = (BA81FitState *) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	std::vector<const double*> &itemSpec = estate->grp.spec;
 
 	if (state->haveItemMap == fc->varGroup->id[0]) return;
@@ -296,7 +296,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	const double Scale = Global->llScale;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->grp.spec;
 	ba81NormalQuad &quad = estate->getQuad();
@@ -512,7 +512,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	const double abScale = fabs(Global->llScale);
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) expectation;
 	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->name());
 
 	omxMatrix *itemParam = estate->itemParam;
@@ -597,7 +597,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove? TODO
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	std::vector<int> &latentMap = state->latentMap;
 	ba81NormalQuad &quad = estate->getQuad();
 	int maxAbilities = quad.abilities();
@@ -674,7 +674,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	const double Scale = Global->llScale;
 	omxExpectation *expectation = oo->expectation;
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) expectation;
 	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->name());
 
 	omxMatrix *itemParam = estate->itemParam;
@@ -795,7 +795,7 @@ static void
 ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
-	BA81Expect *estate = (BA81Expect*) oo->expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FINAL_FIT)) return;
@@ -937,7 +937,7 @@ void omxInitFitFunctionBA81(omxFitFunction* oo)
 	BA81FitState *state = (BA81FitState*) oo->argStruct;
 
 	omxExpectation *expectation = oo->expectation;
-	BA81Expect *estate = (BA81Expect*) expectation->argStruct;
+	BA81Expect *estate = (BA81Expect*) expectation;
 	estate->fit = oo;
 
 	oo->computeFun = ba81Compute;

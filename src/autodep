@@ -155,7 +155,7 @@ omxNPSOLSpecific.o: Makevars omxNPSOLSpecific.cpp omxState.h omxDefines.h \
 omxNormalExpectation.o: Makevars omxNormalExpectation.cpp omxExpectation.h \
  omxDefines.h  \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxFitFunction.h omxData.h omxNormalExpectation.h EnableWarnings.h
+ omxFitFunction.h omxData.h  EnableWarnings.h
 omxRAMExpectation.o: Makevars omxRAMExpectation.cpp omxExpectation.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h RAMInternal.h \
@@ -178,7 +178,7 @@ omxStateSpaceExpectation.o: Makevars omxStateSpaceExpectation.cpp omxDefines.h \
  omxExpectation.h  \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxState.h omxFitFunction.h omxData.h \
- omxStateSpaceExpectation.h EnableWarnings.h
+ EnableWarnings.h
 omxSymbolTable.o: Makevars omxSymbolTable.cpp omxSymbolTable.h omxMatrix.h \
   omxDefines.h \
  algebraOp.h AlgebraFunctions.h merge.h matrix.h omxState.h omxAlgebra.h \
