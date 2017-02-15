@@ -28,6 +28,9 @@
 #include "glue.h"
 #include "ComputeSD.h"
 #include "ComputeGD.h"
+#include <Eigen/Core>
+#include <Eigen/Cholesky>
+#include <Eigen/Dense>
 
 #include "EnableWarnings.h"
 
@@ -538,6 +541,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	} else {
 		rf.maxMajorIterations = fc->iterations + maxIter;
 	}
+	/*Arguably, this effort involving a warm start should be conditioned on use of NPSOL.
+	But hopefully, we'll support warm starts for other optimizers someday.*/
 	if (warmStart) {
 		if (warmStartSize != int(numParam)) {
 			Rf_warning("%s: warmStart size %d does not match number of free parameters %d (ignored)",
@@ -547,6 +552,25 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			rf.hessOut = hessWrap;
 			rf.warmStart = true;
 		}
+	}
+	else{
+		if(fc->wanted & FF_COMPUTE_HESSIAN){
+			rf.hessOut.setZero(numParam,numParam);
+			Eigen::LLT< Eigen::MatrixXd > chol4WS(numParam);
+			fc->refreshDenseHess();
+			fc->copyDenseHess(rf.hessOut.data());
+			chol4WS.compute(rf.hessOut);
+			if(chol4WS.info() == Eigen::Success){
+				rf.hessOut = (Eigen::MatrixXd)(chol4WS.matrixU());
+				rf.warmStart = true;
+			}
+			else{
+				if(rf.verbose >= 1){
+					mxLog("Hessian not positive-definite at initial values");
+				}
+			}
+		}
+		//else if(fc->wanted & FF_COMPUTE_IHESSIAN)
 	}
 
 	switch (engine) {
