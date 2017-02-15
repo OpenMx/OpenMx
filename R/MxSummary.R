@@ -554,7 +554,7 @@ print.summary.mxmodel <- function(x,...) {
 			chidof <- x$ChiDoF
 		}
 		chipee <- x$p
-		cat("chi-square:  ", "X2 ( df=", chidof, " ) = ", chival, ",  p = ", chipee, '\n', sep="")
+		cat("chi-square:  ", "\U03C7\U00B2 ( df=", chidof, " ) = ", chival, ",  p = ", chipee, '\n', sep="")
 	}
 	#
 	cat("Information Criteria: \n")
