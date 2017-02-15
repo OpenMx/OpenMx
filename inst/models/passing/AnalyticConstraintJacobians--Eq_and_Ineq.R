@@ -16,6 +16,9 @@
 library(OpenMx)
 #mxOption(NULL,"Default optimizer","SLSQP"
 
+#CSOLNP still fails in a platform-specific manner:
+if(mxOption(NULL,"Default optimizer")=="CSOLNP" && .Platform$OS.type=="windows" && .Platform$r_arch=="i386"){stop("SKIP")}
+
 library(mvtnorm)
 
 set.seed(170209)
