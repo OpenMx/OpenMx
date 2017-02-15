@@ -567,7 +567,9 @@ mxKalmanScores <- function(model, data=NA){
 			Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i)
 			R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i)
 			u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i)
-			newT <- mxEvalByName(model@expectation@t, model, compute=TRUE, defvar.row=i)
+			if(continuousTime){
+				newT <- mxEvalByName(model@expectation@t, model, compute=TRUE, defvar.row=i)
+			}
 		}
 		
 		deltaT <- newT - oldT
