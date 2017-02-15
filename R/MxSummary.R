@@ -498,28 +498,11 @@ print.summary.mxmodel <- function(x,...) {
 		print(x$CIdetail)
 		cat("\n")
 	}
-  if(length(x$GREMLfixeff)>0 && any(sapply(x$GREMLfixeff,length)>0)){
-    cat("regression coefficients:\n")
-    print(x$GREMLfixeff)
-    cat("\n")
-  }
-	#cat("observed statistics: ", x$observedStatistics, '\n')
-	constraints <- x$constraints
-	if(length(constraints) > 0) {
-		for(i in 1:length(constraints)) {
-			name <- names(constraints)[[i]]
-			if (constraints[[i]] == 1) plural <- ''
-			else plural <- 's'
-			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
-				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
-		}
+	if(length(x$GREMLfixeff)>0 && any(sapply(x$GREMLfixeff,length)>0)){
+		cat("regression coefficients:\n")
+		print(x$GREMLfixeff)
+		cat("\n")
 	}
-	#cat("estimated parameters: ", x$estimatedParameters, '\n')
-	#cat("degrees of freedom: ", x$degreesOfFreedom, '\n')
-	#cat("fit value (", x$fitUnits, "units ): ", x$Minus2LogLikelihood, '\n')
-	#if(x$verbose==TRUE || !is.na(x$SaturatedLikelihood)){
-	#	cat("saturated fit value (", x$fitUnits, "units ): ", x$SaturatedLikelihood, '\n')
-	#}
 	cat('Model Statistics:', '\n')
 	EP <- matrix(
 		c(x$estimatedParameters, x$saturatedParameters, x$independenceParameters,
@@ -533,7 +516,16 @@ print.summary.mxmodel <- function(x,...) {
 	)
 	print(EP)
 	cat('Number of observations/statistics: ', x$numObs, "/", x$observedStatistics, '\n\n', sep="")
-	#cat("number of observations: ", x$numObs, '\n')
+	constraints <- x$constraints
+	if(length(constraints) > 0) {
+		for(i in 1:length(constraints)) {
+			name <- names(constraints)[[i]]
+			if (constraints[[i]] == 1) plural <- ''
+			else plural <- 's'
+			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
+				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
+		}
+	}
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
 		if (!x$infoDefinite) {
 			cat("\n** Information matrix is not positive definite (not at a candidate optimum).\n  Be suspicious of these results. At minimum, do not trust the standard errors.\n\n")
