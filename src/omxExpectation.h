@@ -41,6 +41,7 @@
 
 /* Expectation structure itself */
 class omxExpectation {					// An Expectation
+	typedef omxExpectation base;
 	int *dataColumnsPtr;
 	std::vector< omxThresholdColumn > thresholds;
 
@@ -79,6 +80,7 @@ class omxExpectation {					// An Expectation
 	virtual omxMatrix *getComponent(const char*) { return 0; }
 	virtual void mutate(const char*, omxMatrix*) {};
 
+	void loadFromR();
 	bool loadDefVars(int row);
 
 	void saveDataColumnsInfo(SEXP vec) {

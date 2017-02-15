@@ -118,21 +118,22 @@ void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thre
 	}
 }
 
-static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
+void omxExpectation::loadFromR()
 {
-	int numCols=0;
-	
 	if(rObj == NULL) return;
 
+	auto ox = this;
+
+	int numCols=0;
 	omxData *data = ox->data;
 	bool isRaw = strEQ(omxDataType(data), "raw");
 	if (isRaw || omxDataHasMatrix(data)) {
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
-		if(OMX_DEBUG) mxPrintMat("Variable mapping", ox->omxExpectation::getDataColumns());
+		if(OMX_DEBUG) mxPrintMat("Variable mapping", base::getDataColumns());
 		if (isRaw) {
-			auto dc = ox->omxExpectation::getDataColumns();
+			auto dc = base::getDataColumns();
 			for (int cx=0; cx < numCols; ++cx) {
 				int var = dc[cx];
 				data->assertColumnIsData(var);
@@ -199,8 +200,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	if(ox->isComplete) return;
 	ox->isComplete = TRUE;
 
-	omxExpectationProcessDataStructures(ox, ox->rObj);
-
+	ox->loadFromR();
 	ox->init();
 
 	if (OMX_DEBUG) {
