@@ -522,17 +522,17 @@ print.summary.mxmodel <- function(x,...) {
 	#}
 	cat('Model Statistics:', '\n')
 	EP <- matrix(
-		c(x$numObs, x$estimatedParameters, x$saturatedParameters, x$independenceParameters,
-		x$observedStatistics, x$degreesOfFreedom, x$saturatedDoF, x$independenceDoF,
-		NA, x$Minus2LogLikelihood, x$SaturatedLikelihood, x$IndependenceLikelihood),
-		nrow=4, ncol=3,
+		c(x$estimatedParameters, x$saturatedParameters, x$independenceParameters,
+		x$degreesOfFreedom, x$saturatedDoF, x$independenceDoF,
+		x$Minus2LogLikelihood, x$SaturatedLikelihood, x$IndependenceLikelihood),
+		nrow=3, ncol=3,
 		dimnames=list(
-			c('    Observed:', '       Model:', '   Saturated:', 'Independence:'),
+			c('       Model:', '   Saturated:', 'Independence:'),
 			c(' |  Parameters', ' |  Degrees of Freedom', paste0(' |  Fit (', x$fitUnits, ' units)'))
 		)
 	)
 	print(EP)
-	cat('\n')
+	cat('Number of observations/statistics: ', x$numObs, "/", x$observedStatistics, '\n\n', sep="")
 	#cat("number of observations: ", x$numObs, '\n')
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
 		if (!x$infoDefinite) {
