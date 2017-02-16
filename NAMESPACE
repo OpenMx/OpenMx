@@ -4,7 +4,7 @@ import(MASS)
 import(digest)
 importFrom(Rcpp, Module)   # not used, just to import something
 importFrom(Matrix, nearPD)
-importFrom(utils, .DollarNames, installed.packages, read.table)
+importFrom(utils, .DollarNames, installed.packages, packageVersion, read.table)
 importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize,
 	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var)
 importFrom("stats", "coef", "rcauchy")
