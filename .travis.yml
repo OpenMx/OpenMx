@@ -19,7 +19,6 @@ dist: trusty
 sudo: required
 latex: true
 language: r
-before_install:
 install:
 - mkdir -p ~/.R
 - ./util/travis/install-$TRAVIS_OS_NAME
@@ -29,7 +28,7 @@ env:
   - MODE=test IMX_OPT_ENGINE=NPSOL
   - MODE=test IMX_OPT_ENGINE=CSOLNP
   - MODE=test IMX_OPT_ENGINE=SLSQP
-#  - MODE=cran-check  # blocked on roxygen2 bug
+  - MODE=cran-check
 branches:
   except:
   - stable   # already tested

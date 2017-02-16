@@ -4,28 +4,29 @@ set -o errexit
 set -o nounset
 set -o noclobber
 
+fold_start() {
+  echo -e "travis_fold:start:$1\033[33;1m$2\033[0m"
+}
+
+fold_end() {
+  echo -e "\ntravis_fold:end:$1\r"
+}
+
 if [ ! -x util/rox ]; then
   echo "$0 must be run from the top of the package directory"
   exit 1
 fi
 
-echo "** roxygen2 is temporarily disabled until"
-echo "** https://github.com/klutometis/roxygen/issues/568 is fixed."
-exit 0
+# https://github.com/klutometis/roxygen/issues/585
 
-# Version=0.4
-# descVersion=$(grep Version DESCRIPTION | cut -d ' ' -f 2)
-# if [ "$descVersion" != "$Version" ]; then
-#   today=$(date +%Y-%m-%d)
-#   perl -pi -e "s/^Date\:.*$/Date: $today/;
-#                s/^Version\:.*$/Version: $Version/;" DESCRIPTION
-# fi
+fold_start roxygenize "roxygenize"
 
-#rm -f man/*
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
-library(roxygen2)
-roxygenize('.', roclets=c('rd'))
+library(devtools)
+devtools::document('.', roclets=c('rd'))
 EOF
+
+fold_end roxygenize
 
 grep -v -E '(man/.*\.Rd|# The following list of roxygen)' .gitignore > .gitignore.new
 echo '# The following list of roxygen built man pages is automatically updated' >> .gitignore.new

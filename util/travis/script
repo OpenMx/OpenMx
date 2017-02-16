@@ -25,6 +25,7 @@ do_cran_check() {
 	local minutes=$((minutes+1))
 	sleep 60
     done
+    wait $! || exit 1
 }
 
 #echo "IMX_OPT_ENGINE=$IMX_OPT_ENGINE"

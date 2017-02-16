@@ -48,6 +48,7 @@ Suggests:
     mvtnorm,
     numDeriv,
     roxygen2 (>= 3.1),
+    devtools,
     Rmpi,
     rpf (>= 0.45),
     snowfall,
