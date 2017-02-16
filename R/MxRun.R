@@ -19,7 +19,7 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		useOptimizer = TRUE){
 
 	if (.hasSlot(model, '.version')) {
-		mV <- model@.version
+		mV <- package_version(model@.version)
 		curV <- packageVersion('OpenMx')
 		if (curV$major != mV$major ||
 		    curV$minor != mV$minor) {
