@@ -1,9 +1,12 @@
 # OpenMx bleed
 * NEW: mxAutoStart Get automatic starting values.
-* FIXED: mxKalmanScores are now correct for continuous time state space models.
-* FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization. If you are using 2.7.x then you have avoid problems with expectation$.useSufficientSets = FALSE.
-* IMPROVED: Rampart uses much less memory on large datasets.
 * NEW: "Auto" mxOption values.
+* NEW: omxNudgeZeroStarts helper function
+* IMPROVED: Summary table is easier to read and more informative
+* IMPROVED: Rampart uses much less memory on large datasets.
+* FIXED: mxKalmanScores are now correct for continuous time state space models.
+* FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization.
+	* If using 2.7.x (older), set expectation$.useSufficientSets = FALSE to avoid athis bug.
 
 # OpenMx 2.7.x: Lots of NEWs
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
