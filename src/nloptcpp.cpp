@@ -256,15 +256,16 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 	goc.LagrHessianOut = Lmat * Dmat * Lmat.transpose();
 }
 
-/*static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const double feasTol){
+//Ideally, this function should recalculate the gradient and Jacobian 
+//to make sure they're as numerically accurate as possible:
+static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const double feasTol){
 	int code = 0, i;
 	//Nothing to do here if there are no MxConstraints:
-	if(!goc.fc->state->conListX.size()){return(code);}
+	if(!goc.constraintFunValsOut.size()){return(code);}
 	//First see if bounds are satisfied:
 	for(i=0; i<goc.est.size(); i++){
 		if(goc.solLB[i]-goc.est[i] > feasTol || goc.est[i]-goc.solUB[i] > feasTol){
 			code = 3;
-			return(code);
 		}
 	}
 	//Now see if constraints are satisfied:
@@ -272,12 +273,27 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 		//This works because we set the values of inactive inequality constraints to zero before SLSQP sees them:
 		if(fabs(goc.constraintFunValsOut[i])>feasTol){
 			code = 3;
-			return(code);
+		}
+	}
+	if(0){ //This part, where the gradient is checked, is not yet satisfactory
+		//This threshold might be too strict unless the gradient was calculated with central differences and 4 Richardson extrapolations:
+		double gradThresh = Global->getGradientThreshold(goc.getFit());
+		Eigen::VectorXd tmpGrad = goc.grad;
+		//We set the values of inactive constraint functions to zero, along with all of their elements of the Jacobian.
+		//Therefore, we can use a simple expression for the gradient of the Lagrangian:
+		for(i=0; i<goc.constraintJacobianOut.rows(); i++){
+			tmpGrad += (goc.LagrMultipliersOut[i] * goc.constraintJacobianOut.row(i));
+		}
+		for(i=0; i<tmpGrad.size(); i++){
+			if(fabs(tmpGrad[i])>gradThresh){
+				code=6;
+				break;
+			}
 		}
 	}
 	//Finish:
 	return(code);
-}*/
+}
 
 };
 
@@ -354,7 +370,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	
 	goc.setWanted(oldWanted);
 	
-	//int constrainedCode = constrainedSLSQPOptimalityCheck(goc, feasibilityTolerance);
+	int constrainedCode = SLSQP::constrainedSLSQPOptimalityCheck(goc, feasibilityTolerance);
 	
 	if (code == NLOPT_INVALID_ARGS) {
 		Rf_error("NLOPT invoked with invalid arguments");
@@ -383,7 +399,11 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 		goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
-	} else {
+	} else if(constrainedCode==6){
+		goc.informOut = INFORM_NOT_AT_OPTIMUM;
+	} else if(constrainedCode==3){
+		goc.informOut = INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE;
+	}	else {
 		goc.informOut = INFORM_CONVERGED_OPTIMUM;
 	}
 }
