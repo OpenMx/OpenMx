@@ -110,4 +110,5 @@ m4 <- mxModel(
 run4 <- mxRun(m4)
 
 omxCheckTrue(run4$output$evaluations < run1$output$evaluations)
+#The 1 additional funeval is, of course, from the MxComputeOnce step:
 omxCheckTrue(run4$output$evaluations == run2$output$evaluations+1)
