@@ -47,3 +47,7 @@ setClassUnion("MxOptionalMatrix", c("NULL", "matrix"))
 ##' An optional numeric
 ##' @name MxOptionalNumeric-class
 setClassUnion("MxOptionalNumeric", c("NULL", "numeric"))
+
+##' A character or logical
+##' @name MxCharOrLogical-class
+setClassUnion("MxCharOrLogical", c("character", "logical"))

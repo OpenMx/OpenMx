@@ -176,7 +176,7 @@ otherOptions <- list(
     "Gradient step size" = "Auto",#1.0e-7,
     "Parallel diagnostics" = "No",
     "Debug protect stack" = "No",
-		"Nudge zero starts" = "TRUE"
+		"Nudge zero starts" = "Yes"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
