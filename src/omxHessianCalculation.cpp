@@ -356,7 +356,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMat, fc);
 	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
 
-	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
+	if(wantHessian && fc->state->conListX.size()){
+		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
+	}
+	// TODO: Adjust algorithm to account for constraints
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 0;
