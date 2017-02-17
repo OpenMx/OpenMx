@@ -8,7 +8,7 @@
 #include "nloptcpp.h"
 #include "Compute.h"
 #include "ComputeGD.h"
-//#include <Rmath.h>
+//#include "finiteDifferences.h"
 
 #include "nlopt.h"
 #include "slsqp.h"
@@ -256,6 +256,29 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 	goc.LagrHessianOut = Lmat * Dmat * Lmat.transpose();
 }
 
+/*static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const double feasTol){
+	int code = 0, i;
+	//Nothing to do here if there are no MxConstraints:
+	if(!goc.fc->state->conListX.size()){return(code);}
+	//First see if bounds are satisfied:
+	for(i=0; i<goc.est.size(); i++){
+		if(goc.solLB[i]-goc.est[i] > feasTol || goc.est[i]-goc.solUB[i] > feasTol){
+			code = 3;
+			return(code);
+		}
+	}
+	//Now see if constraints are satisfied:
+	for(i=0; i<goc.constraintFunValsOut.size(); i++){
+		//This works because we set the values of inactive inequality constraints to zero before SLSQP sees them:
+		if(fabs(goc.constraintFunValsOut[i])>feasTol){
+			code = 3;
+			return(code);
+		}
+	}
+	//Finish:
+	return(code);
+}*/
+
 };
 
 void omxInvokeNLOPT(GradientOptimizerContext &goc)
@@ -330,6 +353,8 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	nlopt_destroy(opt);
 	
 	goc.setWanted(oldWanted);
+	
+	//int constrainedCode = constrainedSLSQPOptimalityCheck(goc, feasibilityTolerance);
 	
 	if (code == NLOPT_INVALID_ARGS) {
 		Rf_error("NLOPT invoked with invalid arguments");
