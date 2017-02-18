@@ -37,5 +37,5 @@ if(mxOption(NULL,"Default optimizer")!='NPSOL'){
 	omxCheckWarning(varrun <- mxRun(varmod), 
 									"due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes")
 #(^^^Ironically, the SEs are probably fine in this case, since the only constraint is an inactive inequality...)
+	summary(varrun)
 }
-summary(varrun)
