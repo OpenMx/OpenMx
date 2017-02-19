@@ -3,6 +3,8 @@ if (length(options("repos")) == 1 && options("repos") == "@CRAN@") {
 	options(repos = c(CRAN = "https://cloud.r-project.org"))
 }
 
+options(download.file.method = 'wget')  # easier to route through SOCKS
+
 ip <- installed.packages()
 ap <- available.packages()
 
