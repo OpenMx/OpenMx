@@ -141,7 +141,43 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		excludeVars.push_back(got);
 	}
 	
-	Rf_error("successful importation of Nelder-Mead compute object from frontend");
+	//Rf_error("successful importation of Nelder-Mead compute object from frontend");
+}
+
+
+void omxComputeNM::computeImpl(FitContext *fc){
+	
+	omxAlgebraPreeval(fitMatrix, fc);
+	if (isErrorRaised()) return;
+	
+	size_t numParam = fc->varGroup->vars.size();
+	if (excludeVars.size()) {
+		fc->profiledOut.assign(fc->numParam, false);
+		for (auto vx : excludeVars) fc->profiledOut[vx] = true;
+	}
+	if (fc->profiledOut.size()) {
+		if (fc->profiledOut.size() != fc->numParam) Rf_error("Fail");
+		for (size_t vx=0; vx < fc->varGroup->vars.size(); ++vx) {
+			if (fc->profiledOut[vx]) --numParam;
+		}
+	}
+	
+	if (numParam <= 0) {
+		omxRaiseErrorf("%s: model has no free parameters", name);
+		return;
+	}
+	
+	fc->ensureParamWithinBox(nudge);
+	fc->createChildren(fitMatrix);
+	
+	
+	int beforeEval = fc->getLocalComputeCount();
+	
+	if (verbose >= 1){
+		//mxLog something here
+	}
+	
+	return;
 }
 
 
