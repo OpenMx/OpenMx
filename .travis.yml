@@ -19,6 +19,8 @@ dist: trusty
 sudo: required
 latex: true
 language: r
+git:
+  submodules: false
 install:
 - mkdir -p ~/.R
 - ./util/travis/install-$TRAVIS_OS_NAME
