@@ -185,6 +185,17 @@ torture:
 nightly:
 	$(REXEC) $(GDBWRAP)  --vanilla --slave -f $(TESTFILE) --args nightly
 
+nightly-parallel: nightly-csolnp nightly-npsol nightly-slsqp  # use with -j3
+
+nightly-csolnp:
+	IMX_OPT_ENGINE=CSOLNP $(REXEC) $(GDBWRAP)  --vanilla --slave -f $(TESTFILE) --args nightly
+
+nightly-npsol:
+	IMX_OPT_ENGINE=NPSOL $(REXEC) $(GDBWRAP)  --vanilla --slave -f $(TESTFILE) --args nightly
+
+nightly-slsqp:
+	IMX_OPT_ENGINE=SLSQP $(REXEC) $(GDBWRAP)  --vanilla --slave -f $(TESTFILE) --args nightly
+
 failtest:
 	$(REXEC) --vanilla --slave < $(FAILTESTFILE)
 
