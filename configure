@@ -99,9 +99,9 @@ if [ -r inst/npsol/checksum ]; then
 	    npsol_url1="http://$wwwHome/packages/npsol/linux/${omx_arch}/$want"
 	    npsol_url2="http://$wwwHome/packages/npsol/$pick/libnpsol.a"
 	    if [ ! -f src/libnpsol.a ]; then
-		curl -s -o src/libnpsol.a "$npsol_url1"
+		wget -q -O src/libnpsol.a "$npsol_url1"
 		if grep -s 'HTML document' src/libnpsol.a; then
-		    curl -s -o src/libnpsol.a "$npsol_url2"
+		    wget -q -O src/libnpsol.a "$npsol_url2"
 		fi
 	    fi
 	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
