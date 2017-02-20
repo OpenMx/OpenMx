@@ -125,7 +125,6 @@ void omxExpectation::loadFromR()
 	auto ox = this;
 
 	int numCols=0;
-	omxData *data = ox->data;
 	bool isRaw = strEQ(omxDataType(data), "raw");
 	if (isRaw || omxDataHasMatrix(data)) {
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
