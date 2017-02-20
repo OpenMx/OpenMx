@@ -9,7 +9,7 @@ if [ ! -x revdep/testDrive ]; then
   exit 1
 fi
 
-git submodule update --init --recursive --depth=50
+git submodule update --init --recursive #--depth=50
 
 pkgs="ctsem lvnet metasem semtree umx"
 
