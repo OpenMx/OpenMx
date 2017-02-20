@@ -1,15 +1,15 @@
 [submodule "revdep/ctsem"]
 	path = revdep/ctsem
-	url = https://github.com/cdriveraus/ctsem
+	url = git@github.com:cdriveraus/ctsem.git
 [submodule "revdep/metasem"]
 	path = revdep/metasem
-	url = https://github.com/mikewlcheung/metasem
+	url = git@github.com:mikewlcheung/metasem.git
 [submodule "revdep/umx"]
 	path = revdep/umx
-	url = http://github.com/tbates/umx
+	url = git@github.com:tbates/umx.git
 [submodule "revdep/lvnet"]
 	path = revdep/lvnet
-	url = https://github.com/cran/lvnet.git
+	url = git@github.com:cran/lvnet.git
 [submodule "revdep/semtree"]
 	path = revdep/semtree
-	url = https://github.com/cran/semtree.git
+	url = git@github.com:cran/semtree.git
