@@ -24,7 +24,7 @@ pushd revdep
 declare -i RESULT=0
 
 for pk in $pkgs; do
-    R CMD build "$pk" && R CMD check ${pk}_*.tar.gz
+    R CMD build "$pk" && R CMD check --no-manual --no-build-vignettes ${pk}_*.tar.gz
     RESULT+=$?
 done
 
