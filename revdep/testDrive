@@ -11,7 +11,7 @@ fi
 # add --depth=50 later TODO
 git submodule update --init --recursive || exit 1
 
-pkgs="ctsem lvnet metasem semtree umx"
+pkgs="ctsem lvnet metaSEM semtree umx"
 
 R --no-save -f util/update-dependencies.R --args \
   $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pkgs)
@@ -24,8 +24,10 @@ pushd revdep
 declare -i RESULT=0
 
 for pk in $pkgs; do
-    R CMD build "$pk" && R CMD check --no-manual --no-build-vignettes ${pk}_*.tar.gz
+    R CMD build --no-build-vignettes "$pk" && R CMD check --no-manual --no-vignettes ${pk}_*.tar.gz
     RESULT+=$?
 done
+
+popd
 
 exit $RESULT

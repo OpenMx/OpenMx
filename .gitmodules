@@ -2,7 +2,7 @@
 	path = revdep/ctsem
 	url = git@github.com:cdriveraus/ctsem.git
 [submodule "revdep/metasem"]
-	path = revdep/metasem
+	path = revdep/metaSEM
 	url = git@github.com:mikewlcheung/metasem.git
 [submodule "revdep/umx"]
 	path = revdep/umx
