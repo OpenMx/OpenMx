@@ -1676,7 +1676,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeReportDeriv", &newComputeReportDeriv},
 	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval},
 	{"MxComputeReportExpectation", &newComputeReportExpectation},
-	{"MxComputeTryHard", &newComputeTryHard}
+	{"MxComputeTryHard", &newComputeTryHard},
+	{"MxComputeNelderMead", &newComputeNelderMead}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
