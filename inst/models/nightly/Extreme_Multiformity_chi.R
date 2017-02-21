@@ -168,7 +168,7 @@ ExtremeMultiformityFit		<- mxRun(ExtremeMultiformityModel, intervals=T)
 
 (ExtremeMultiformitySumm		<- summary(ExtremeMultiformityFit))
 
-omxCheckCloseEnough(mxEval(MZ.Af1, ExtremeMultiformityFit), 0.5434, 1e-2)
+omxCheckCloseEnough(mxEval(MZ.Af1, ExtremeMultiformityFit), 0.5434, .05)
 omxCheckCloseEnough(mxEval(MZ.Af2, ExtremeMultiformityFit), 0.4425, 1e-2)
 omxCheckCloseEnough(mxEval(MZ.Cf1, ExtremeMultiformityFit), 0.2537, 1e-2)
 omxCheckCloseEnough(mxEval(MZ.Cf2, ExtremeMultiformityFit), 0, 1e-2)
