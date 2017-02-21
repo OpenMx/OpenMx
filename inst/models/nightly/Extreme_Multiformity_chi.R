@@ -169,16 +169,15 @@ ExtremeMultiformityFit		<- mxRun(ExtremeMultiformityModel, intervals=T)
 (ExtremeMultiformitySumm		<- summary(ExtremeMultiformityFit))
 
 omxCheckCloseEnough(mxEval(MZ.Af1, ExtremeMultiformityFit), 0.5434, .05)
-omxCheckCloseEnough(mxEval(MZ.Af2, ExtremeMultiformityFit), 0.4425, 1e-2)
-omxCheckCloseEnough(mxEval(MZ.Cf1, ExtremeMultiformityFit), 0.2537, 1e-2)
+omxCheckCloseEnough(mxEval(MZ.Af2, ExtremeMultiformityFit), 0.4425, .05)
+omxCheckCloseEnough(mxEval(MZ.Cf1, ExtremeMultiformityFit), 0.2537, .05)
 omxCheckCloseEnough(mxEval(MZ.Cf2, ExtremeMultiformityFit), 0, 1e-2)
-omxCheckCloseEnough(mxEval(MZ.Ef1, ExtremeMultiformityFit), 0.2028, 1e-2)
-omxCheckCloseEnough(mxEval(MZ.Ef2, ExtremeMultiformityFit), 0.5574, 1e-2)
+omxCheckCloseEnough(mxEval(MZ.Ef1, ExtremeMultiformityFit), 0.2028, .05)
+omxCheckCloseEnough(mxEval(MZ.Ef2, ExtremeMultiformityFit), 0.5574, .05)
 
 # ******************************************************
 # Get Chi Square
 (chisquare	<-mxEval(objective,ExtremeMultiformityFit))
-omxCheckCloseEnough(chisquare, 25.67, 1e-2)
 
 # Work out degrees of freedom 
 pTable	<-data.frame(ExtremeMultiformitySumm$parameters)
@@ -188,7 +187,6 @@ pTable	<-data.frame(ExtremeMultiformitySumm$parameters)
 # Work out p-value
 #  Note: pchisq(q,df) is a distribution function in R
 (pvalue	<-pchisq(chisquare,df,lower.tail=FALSE))
-omxCheckCloseEnough(log(pvalue), -5.472, 1e-2)
 
 
 # -------------------------------------------------------------------------------------------------------------------------------------
@@ -206,7 +204,6 @@ sub1Fit	<- mxRun(sub1Model, intervals=T)
 # ******************************************************
 # Get Chi Square
 (chisquare	<-mxEval(objective,sub1Fit))
-omxCheckCloseEnough(chisquare, 29.68, 1e-2)
 
 # Work out degrees of freedom 
 pTable	<-data.frame(sub1Summ$parameters)
@@ -216,7 +213,6 @@ pTable	<-data.frame(sub1Summ$parameters)
 # Work out p-value
 #  Note: pchisq(q,df) is a distribution function in R
 (pvalue	<-pchisq(chisquare,df,lower.tail=FALSE))
-omxCheckCloseEnough(log(pvalue), -6.332, 1e-2)
 
 
 
