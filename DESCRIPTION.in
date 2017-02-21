@@ -36,14 +36,12 @@ Description: Facilitates treatment of statistical model specifications
 SystemRequirements: GNU make
 License: @LICENSE@
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
-Depends:
-	R (>= 3.0.2),
-    digest,
+Imports: Rcpp, digest,
     MASS,
     methods,
     Matrix,
-    Rcpp,
     parallel
+Depends: R (>= 3.0.2)
 Suggests:
     mvtnorm,
     numDeriv,
