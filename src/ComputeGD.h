@@ -42,9 +42,6 @@ class GradientOptimizerContext {
 	double gradientStepSize;
 
 	bool feasible;
-	bool avoidRedundentEvals;
-	Eigen::VectorXd prevPoint;
-	int prevMode;
 	void *extraData;
 	omxMatrix *fitMatrix;
 	int numOptimizerThreads;

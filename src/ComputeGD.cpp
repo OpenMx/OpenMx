@@ -144,7 +144,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	useGradient = false;
 	warmStart = false;
 	ineqType = omxConstraint::LESS_THAN;
-	avoidRedundentEvals = false;
 	est.resize(numFree);
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
@@ -214,12 +213,6 @@ void GradientOptimizerContext::finish()
 double GradientOptimizerContext::solFun(double *myPars, int* mode)
 {
 	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
-	if (feasible && avoidRedundentEvals && *mode == prevMode) {
-		if (Est == prevPoint) {
-			return fc->fit;
-		}
-	}
-
 	if (*mode == 1) {
 		fc->iterations += 1;
 		Global->reportProgress("MxComputeGradientDescent", fc);
@@ -239,10 +232,6 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		*mode = -1;
 	} else {
 		feasible = true;
-		if (avoidRedundentEvals) {
-			prevPoint = Est;
-			prevMode = *mode;
-		}
 		if (want & FF_COMPUTE_GRADIENT) {
 			int px=0;
 			for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
@@ -598,7 +587,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;}
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
-		rf.avoidRedundentEvals = true;
 		rf.CSOLNP_HACK = true;
 		omxCSOLNP(rf);
 		rf.finish();
