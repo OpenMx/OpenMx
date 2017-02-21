@@ -747,6 +747,7 @@ class ComputeCI : public omxCompute {
 	void recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 		      int &detailRow, double val, Diagnostic diag);
 	void checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *currentCI, Diagnostic &diag);
+	void runPlan(FitContext *fc);
 public:
 	ComputeCI();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -766,6 +767,14 @@ ComputeCI::ComputeCI()
 	intervalCodes = 0;
 	detail = 0;
 	useInequality = false;
+}
+
+void ComputeCI::runPlan(FitContext *fc)
+{
+	plan->compute(fc);
+
+	// any derivs are only relevent to the current problem
+	fc->wanted &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 }
 
 void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -1267,7 +1276,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			double boxSave = nearBox;
 			nearBox = NA_REAL;
 			Est = Mle;
-			plan->compute(&fc);
+			runPlan(&fc);
 			nearBox = boxSave;
 			if (verbose >= 2) {
 				omxRecompute(ciMatrix, &fc);
@@ -1296,7 +1305,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		// Could set farBox to the regular UB95, but we'd need to optimize to get it
 		Est = Mle;
 		fc.ciobj = &baobj;
-		plan->compute(&fc);
+		runPlan(&fc);
 		constr.pop();
 
 		omxRecompute(ciMatrix, &fc);
@@ -1319,7 +1328,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			Est = Mle;
 			Est[currentCI->varIndex] = nearBox; // might be infeasible
 			fc.profiledOut[currentCI->varIndex] = true;
-			plan->compute(&fc);
+			runPlan(&fc);
 			fc.profiledOut[currentCI->varIndex] = false;
 			if (fc.getInform() == 0) {
 				boundLL = fc.fit;
@@ -1341,7 +1350,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 				ciobj.bound = nearBox;
 				fc.ciobj = &ciobj;
 				Est = Mle;
-				plan->compute(&fc);
+				runPlan(&fc);
 				constr.pop();
 				boundLL = fc.fit;
 				Diagnostic diag = ciobj.getDiag();
@@ -1400,7 +1409,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		// Perspective helps? Optimizer seems to like to start further away
 		Est[currentCI->varIndex] = (9*Mle[currentCI->varIndex] + nearBox) / 10.0;
 		fc.ciobj = &bnobj;
-		plan->compute(&fc);
+		runPlan(&fc);
 		farBox = boxSave;
 		constr.pop();
 
@@ -1468,7 +1477,7 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	fc.ciobj = &ciobj;
 	//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 
-	plan->compute(&fc);
+	runPlan(&fc);
 	constr.pop();
 
 	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
@@ -1821,6 +1830,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		--retriesRemain;
 
 		fc->setInform(INFORM_UNINITIALIZED);
+		fc->wanted &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
 		plan->compute(fc);
 		if (fc->getInform() != INFORM_UNINITIALIZED && fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE &&
 		    (bestStatus == INFORM_UNINITIALIZED || fc->getInform() < bestStatus)) {
