@@ -8,6 +8,8 @@ if [ ! -x revdep/testDrive ]; then
   exit 1
 fi
 
+export _R_CHECK_FORCE_SUGGESTS_=0
+
 # add --depth=50 later TODO
 git submodule update --init --recursive || exit 1
 

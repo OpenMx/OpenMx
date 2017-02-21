@@ -10,7 +10,7 @@ ap <- available.packages()
 
 updateDependencies <- function(desc) {
 	rawPkg <- read.dcf(desc,
-			   fields=c('LinkingTo', 'Depends', 'Suggests'))
+			   fields=c('LinkingTo', 'Depends', 'Suggests', 'Imports'))
 	pkg <- unlist(strsplit(rawPkg, split=",", fixed=TRUE))
 	pkg <- sub("\\(.*\\)", "", pkg)
 	pkg <- gsub("\\s", "", pkg)
