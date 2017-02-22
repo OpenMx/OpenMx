@@ -385,7 +385,6 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 }
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE, fullWeight=TRUE){
-	message("Calculating asymptotic summary statistics ...")
 	# version 0.2
 	#
 	#available types
@@ -409,6 +408,9 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	nvar <- sum(ords)
 	ntvar <- ncol(data)
 	n <- dim(data)[1]
+
+	message(paste("Calculating asymptotic summary statistics for",
+		      ntvar - nvar, "continuous and", nvar, "ordinal variables ..."))
 
 	# if no ordinal variables, use continuous-only helper
 	if(nvar ==0){ #N.B. This fails for any missing data
