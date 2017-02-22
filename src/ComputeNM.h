@@ -69,6 +69,7 @@ public:
 	int numEqC;
 	int n; //<--number of free parameters minus number of equality constraints
 	int backtrackSteps;
+	int itersElapsed;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -77,12 +78,12 @@ public:
 	double evalFit(Eigen::VectorXd &x);
 	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
 	void evalFirstPoint(Eigen::VectorXd &x, double fv, int infeas);
-	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int infeas);
+	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int newInfeas, int oldInfeas);
 	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
 	void invokeNelderMead();
 	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength);
-	/*void fastSort();
 	void fullSort();
+	/*void fastSort();
 	void restart();
 	void validationRestart();*/
 	
@@ -100,7 +101,7 @@ public:
 	Eigen::VectorXd xr, xe, xoc, xic;
 	
 	bool needFullSort;
-	double avgFitValPrev, avgFitValCurr;
+	//double avgFitValPrev, avgFitValCurr;
 	int restartCount, unchangedx0Count;
 	
 	

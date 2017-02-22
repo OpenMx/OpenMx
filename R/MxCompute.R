@@ -1163,7 +1163,7 @@ mxComputeNelderMead <- function(
 
 extractNMcontrolvars <- function(control){
 	ctrlnames <- names(control)
-	if(!length(ctrlnames)){ctrlnames <- "XXX"}
+	#if(!length(ctrlnames)){ctrlnames <- "XXX"}
 	control2 <- list()
 	control2$alpha <- as.numeric(ifelse("alpha" %in% ctrlnames, control[["alpha"]][1], 1))
 	if(control2$alpha<=0){stop("invalid Nelder-Mead control variable: reflection coefficient 'alpha' must be positive")}
@@ -1202,13 +1202,13 @@ extractNMcontrolvars <- function(control){
 	control2$validationRestart <- as.logical(ifelse("validationRestart" %in% ctrlnames, control[["validationRestart"]][1], TRUE))
 	control2$xTolProx <- 1e-4 #<--MATLAB FMINSEARCH default
 	control2$fTolProx <- 1e-4#<--MATLAB FMINSEARCH default
-	control2$xTolRelChange <- -1#1e-4
-	control2$fTolRelChange <- -1#1e-8
+	#control2$xTolRelChange <- -1#1e-4
+	#control2$fTolRelChange <- -1#1e-8
 	if("tolerances" %in% ctrlnames){
 		if("xTolProx" %in% names(control[["tolerances"]])){control2$xTolProx <- as.numeric(control[["tolerances"]]["xTolProx"])}
 		if("fTolProx" %in% names(control[["tolerances"]])){control2$fTolProx <- as.numeric(control[["tolerances"]]["fTolProx"])}
-		if("xTolRelChange" %in% names(control[["tolerances"]])){control2$xTolRelChange <- as.numeric(control[["tolerances"]]["xTolRelChange"])}
-		if("fTolRelChange" %in% names(control[["tolerances"]])){control2$fTolRelChange <- as.numeric(control[["tolerances"]]["fTolRelChange"])}
+		#if("xTolRelChange" %in% names(control[["tolerances"]])){control2$xTolRelChange <- as.numeric(control[["tolerances"]]["xTolRelChange"])}
+		#if("fTolRelChange" %in% names(control[["tolerances"]])){control2$fTolRelChange <- as.numeric(control[["tolerances"]]["fTolRelChange"])}
 	}
 	control2$pseudoHessian <- as.logical(ifelse("pseudoHessian" %in% ctrlnames, control[["pseudoHessian"]][1], FALSE))
 	control2$ineqConstraintMthd <-
@@ -1246,8 +1246,8 @@ setClass(
 		validationRestart="logical",
 		xTolProx="numeric",
 		fTolProx="numeric",
-		xTolRelChange="numeric",
-		fTolRelChange="numeric",
+		#xTolRelChange="numeric",
+		#fTolRelChange="numeric",
 		pseudoHessian="logical",
 		ineqConstraintMthd="character",
 		eqConstraintMthd="character"))
@@ -1282,8 +1282,8 @@ setMethod(
 		.Object@validationRestart <- ctrl$validationRestart
 		.Object@xTolProx <- ctrl$xTolProx
 		.Object@fTolProx <- ctrl$fTolProx
-		.Object@xTolRelChange <- ctrl$xTolRelChange
-		.Object@fTolRelChange <- ctrl$fTolRelChange
+		#.Object@xTolRelChange <- ctrl$xTolRelChange
+		#.Object@fTolRelChange <- ctrl$fTolRelChange
 		.Object@pseudoHessian <- ctrl$pseudoHessian
 		.Object@ineqConstraintMthd <- ctrl$ineqConstraintMthd
 		.Object@eqConstraintMthd <- ctrl$eqConstraintMthd

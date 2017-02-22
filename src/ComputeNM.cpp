@@ -28,7 +28,7 @@
 #include <Eigen/Dense>
 
 #include <Rmath.h>
-#include <Rinternals.h>
+#include <R_ext/Utils.h>
 
 #include "EnableWarnings.h"
 
@@ -127,11 +127,11 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	ScopedProtect p20(slotValue, R_do_slot(rObj, Rf_install("fTolProx")));
 	fTolProx = Rf_asReal(slotValue);
 	
-	ScopedProtect p21(slotValue, R_do_slot(rObj, Rf_install("xTolRelChange")));
+	/*ScopedProtect p21(slotValue, R_do_slot(rObj, Rf_install("xTolRelChange")));
 	xTolRelChange = Rf_asReal(slotValue);
 	
 	ScopedProtect p22(slotValue, R_do_slot(rObj, Rf_install("fTolRelChange")));
-	fTolRelChange = Rf_asReal(slotValue);
+	fTolRelChange = Rf_asReal(slotValue);*/
 	
 	ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("pseudoHessian")));
 	doPseudoHessian = Rf_asLogical(slotValue);
@@ -393,6 +393,7 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, i
 	if(!ifcr.sum()){
 		infeas = 0L;
 		fv = (evalFit(x));
+		//if(fv==NMobj->bignum){infeas=1L;}
 		return;
 	}
 	else if(ifcr[1] || (ifcr[0] && ineqConstraintMthd)){
@@ -403,7 +404,9 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, i
 			return;
 		case 2:
 			//Can't backtrack to someplace else if it's the very first point.
-			Rf_error("starting values not feasible; re-specify the initial simplex, or consider mxTryHard()");
+			//Rf_error("starting values not feasible; re-specify the initial simplex, or consider mxTryHard()");
+			infeas = 1L;
+			fv = bignum;
 			break;
 		case 3:
 			Rf_error("'GDsearch' Not Yet Implemented");
@@ -427,7 +430,7 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, i
 }
 
 //oldpt is used for backtracking:
-void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int infeas)
+void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int newInfeas, int oldInfeas)
 {
 	Eigen::Vector2i ifcr;
 	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
@@ -436,35 +439,41 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 	enforceBounds(newpt);
 	checkNewPointInfeas(newpt, ifcr);
 	if(!ifcr.sum()){
-		infeas = 0L;
+		newInfeas = 0L;
 		fv = (evalFit(newpt));
 		return;
 	}
 	else if(ifcr[1] || (ifcr[0] && ineqConstraintMthd)){
 		switch(eqConstraintMthd){
 		case 1:
-			infeas = 1L;
+			newInfeas = 1L;
 			fv = bignum;
 			return;
 		case 2:
-			Rf_error("'backtrack' Not Yet Implemented");
+			//If old point is not feasible, there's no sense in backtracking toward it:
+			if(oldInfeas){
+				newInfeas = 1L;
+				fv = bignum;
+				return;
+			}
+			else{Rf_error("'backtrack' Not Yet Implemented");}
 		case 3:
 			Rf_error("'GDsearch' Not Yet Implemented");
 		case 4:
 			if(ifcr[0]){
 				fv = bignum;
-				infeas = 1L;
+				newInfeas = 1L;
 			}
 			else{
 				fv = evalFit(newpt);
-				infeas = 0L;
+				newInfeas = 0L;
 			}
 			return;
 		}
 	}
 	else if(ifcr[0]){
 		fv = bignum;
-		infeas = 1L;
+		newInfeas = 1L;
 		return;
 	}
 }
@@ -485,7 +494,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 {
 	//vertices.resize(n,numFree);
 	int i=0;
-	Eigen::VectorXd xin, xout;
+	Eigen::VectorXd xin, xout, newpt, oldpt;
 	if(NMobj->iniSimplexMtx.rows() && NMobj->iniSimplexMtx.cols()){
 		Eigen::MatrixXd SiniSupp;
 		if(NMobj->iniSimplexMtx.cols() != numFree){
@@ -518,7 +527,9 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		//TODO: regular simplex for edge length other than 1.0
 		double shhp = (1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
 		double shhq = (1/n/sqrt(2))*(sqrt(1.0+n)-1);
-		Eigen::VectorXd xin, xout;
+		Eigen::VectorXd xu, xd;
+		double fu=0, fd=0;
+		int badu=0, badd=0;
 		switch(NMobj->iniSimplexType){
 		case 1:
 			vertices.setZero(n,numFree);
@@ -527,20 +538,37 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 				vertices(i,i-1) = shhp;
 			}
 			for(i=0; i<n+1; i++){
-				vertices.row(i) += est;
+				vertices.row(i) += startpt;
 			}
 			break;
 		case 3:
-			//TODO
+			//TODO: this could be even smarter if it also figured out different edge lengths 
+			//to account for different scaling of the free parameters:
+			oldpt = vertices.row(0); //<--oldpt
+			evalFirstPoint(oldpt, fvals[0], vertexInfeas[0]);
+			vertices.row(0) = oldpt;
+			for(i=0; i<n; i++){
+				oldpt = vertices.row(0);
+				xu = vertices.row(0);
+				xu[i] += edgeLength;
+				xd = vertices.row(0);
+				xd[i] -= edgeLength;
+				evalNewPoint(xu, oldpt, fu, badu, vertexInfeas[0]);
+				evalNewPoint(xd, oldpt, fd, badd, vertexInfeas[0]);
+				vertices.row(i+1) = fu<fd ? xu : xd;
+				fvals[i+1] = fu<fd ? fu : fd;
+				vertexInfeas[i+1] = fu<fd ? badu : badd;
+			}
+			return;
 		case 2:
-			vertices.row(0) = est;
+			vertices.row(0) = startpt;
 			for(i=1; i<n+1; i++){
 				vertices.row(i) = vertices.row(0);
 				vertices(i,i-1) = vertices(0,i-1)+edgeLength;
 			}
 			break;
 		case 4:
-			vertices.row(0) = est;
+			vertices.row(0) = startpt;
 			xin=vertices.row(0);
 			for(i=1; i<n+1; i++){
 				xout=vertices.row(i);
@@ -551,16 +579,59 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		}
 	}
 	//Now evaluate each vertex (if not done already):
-	Eigen::VectorXd newpt, oldpt;
-	oldpt=vertices.row(0); //<--oldpt
+	oldpt = vertices.row(0); //<--oldpt
 	evalFirstPoint(oldpt, fvals[0], vertexInfeas[0]);
-	vertices.row(0)=oldpt;
+	vertices.row(0) = oldpt;
 	for(i=1; i<n+1; i++){
 		newpt = vertices.row(i); //<--newpt
-		evalNewPoint(newpt, oldpt, fvals[i], vertexInfeas[i]);
+		evalNewPoint(newpt, oldpt, fvals[i], vertexInfeas[i], vertexInfeas[0]);
 		vertices.row(i) = newpt;
 	}
 }
+
+
+void NelderMeadOptimizerContext::fullSort()
+{
+	int i=0;
+	Eigen::VectorXi ind(n+1);
+	for(i=0; i<=n; i++){
+		ind[i] = i;
+	}
+	Eigen::VectorXi tmpVertexInfeas = vertexInfeas;
+	Eigen::MatrixXd tmpVertices = vertices;
+	//If we don't care about tie-breaking rules:
+	if( (fvals.tail(n).array() < fvals[0]).any() ){
+		rsort_with_index(fvals.data(), ind.data(), n+1);
+		for(i=0; i<n+1; i++){
+			vertices.row(i) = tmpVertices.row(ind[i]);
+			vertexInfeas[i] = tmpVertexInfeas[ind[i]];
+		}
+	}
+	else{
+		ind = ind.tail(n);
+		Eigen::VectorXd fvals_tail = fvals.tail(n);
+		rsort_with_index(fvals_tail.data(), ind.data(), n);
+		for(i=1; i<n+1; i++){
+			fvals[i] = fvals_tail[i-1];
+			vertices.row(i) = tmpVertices.row(ind[i-1]);
+			vertexInfeas[i] = tmpVertexInfeas[ind[i-1]];
+		}
+	}
+	//unchangedx0Count = 0;
+	return;
+}
+
+/*NelderMeadOptimizerContext::fastSort()
+{
+	int i=0, j;
+	Eigen::VectorXi tmpVertexInfeas = vertexInfeas;
+	Eigen::MatrixXd tmpVertices = vertices;
+	Eigen::VectorXd tmpFvals = fvals;
+	if(fvals[n]<fvals[0])
+	for(i=0; i<n-1; i++){
+		
+	}
+}*/
 
 
 void NelderMeadOptimizerContext::invokeNelderMead(){
@@ -569,7 +640,19 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	fvals.resize(n+1);
 	vertexInfeas.resize(n+1);
 	initializeSimplex(est, NMobj->iniSimplexEdge);
-	Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
+	if(vertexInfeas.sum()==n+1 || (fvals==NMobj->bignum).all()){
+		Rf_error("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
+	}
+	needFullSort=true;
+	bool stopflag=false;
+	
+	do{
+		//Ordering the vertices by fit value:
+		if(needFullSort){fullSort();}
+		//else{fastSort();}
+		Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");	
+	} while (!stopflag);
+	
 }
 
 
