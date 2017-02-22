@@ -393,7 +393,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	# error checking
 	if (!is.data.frame(data)){
 		stop("'data' must be a data frame.")
-		}
+	}
+	for (cn in colnames(data)) imxVerifyName(cn, 2)
 	# check type
 	if (!(type %in% wlsTypes)){
 		stop(
