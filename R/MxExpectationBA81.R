@@ -138,12 +138,6 @@ setMethod("qualifyNames", signature("MxExpectationBA81"),
 		return(.Object)
 })
 
-setMethod("genericExpRename", signature("MxExpectationBA81"),
-	function(.Object, oldname, newname) {
-          # not sure what goes here yet
-		return(.Object)
-})
-
 ##' Create a Bock & Aitkin (1981) expectation
 ##'
 ##' Used in conjuction with \link{mxFitFunctionML}, this expectation

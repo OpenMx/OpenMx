@@ -126,7 +126,7 @@ setMethod("genericExpDependencies", "NULL",
 
 setMethod("genericExpRename", "MxBaseExpectation",
 	function(.Object, oldname, newname) {
-		return(.Object)
+		stop("Not implemented yet")
 })
 
 setMethod("genericExpRename", "NULL",
