@@ -114,6 +114,7 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 	dtt$yMax <- pcThresh[dtt$y + 1,2]
 	
 	# make correlation matrix for 
+	k <- max(min(k,.999),-.999)
 	corMatrix <- matrix(c(1, k, k, 1), 2, 2)
 	for (i in 1:dim(dtt)[1]){
 		dtt$mLL[i] <- (- 1 - useMinusTwo) * log(mvtnorm::pmvnorm(
