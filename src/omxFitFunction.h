@@ -120,6 +120,8 @@ void omxInitRowFitFunction(omxFitFunction *off);
 void omxInitMLFitFunction(omxFitFunction *off);
 void omxInitRFitFunction(omxFitFunction *off);
 void omxInitFitFunctionBA81(omxFitFunction* oo);
+void InitMarkovFF(omxFitFunction* oo);
+
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 void omxInitGREMLFitFunction(omxFitFunction *oo);
 void InitFellnerFitFunction(omxFitFunction *oo);

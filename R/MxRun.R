@@ -300,7 +300,9 @@ updateModelExpectationDims <- function(model, expectations){
 	expectationNames <- names(expectations)
 	for(aname in expectationNames){
 		if(!is.null(model[[aname]])){
-			model[[aname]]@.runDims <- expectations[[aname]]@dims
+			if (.hasSlot(expectations[[aname]], 'dims')) {
+				model[[aname]]@.runDims <- expectations[[aname]]@dims
+			}
 		}
 	}
 	return(model)
