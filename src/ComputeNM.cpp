@@ -27,6 +27,9 @@
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
 
+#include <Rmath.h>
+#include <Rinternals.h>
+
 #include "EnableWarnings.h"
 
 
@@ -92,7 +95,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	iniSimplexEdge = Rf_asReal(slotValue);
 	
 	ScopedProtect p13(slotValue, R_do_slot(rObj, Rf_install("iniSimplexMtx")));
-	if (!Rf_isNull(slotValue)) {
+	if (Rf_length(slotValue)) {
 		SEXP matrixDims;
 		ScopedProtect pipm(matrixDims, Rf_getAttrib(slotValue, R_DimSymbol));
 		int *dimList = INTEGER(matrixDims);
@@ -133,6 +136,20 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("pseudoHessian")));
 	doPseudoHessian = Rf_asLogical(slotValue);
 	
+	ScopedProtect p24(slotValue, R_do_slot(rObj, Rf_install("ineqConstraintMthd")));
+	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){ineqConstraintMthd = 0;}
+	else if(strEQ(CHAR(Rf_asChar(slotValue)),"eqMthd")){ineqConstraintMthd = 1;}
+	else{Rf_error("unrecognized character string provided for Nelder-Mead 'ineqConstraintMthd'");}
+	
+	ScopedProtect p25(slotValue, R_do_slot(rObj, Rf_install("eqConstraintMthd")));
+	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){eqConstraintMthd = 1;}
+	else if(strEQ(CHAR(Rf_asChar(slotValue)),"backtrack")){eqConstraintMthd = 2;}
+	else if(strEQ(CHAR(Rf_asChar(slotValue)),"GDsearch")){eqConstraintMthd = 3;}
+	else if(strEQ(CHAR(Rf_asChar(slotValue)),"augLag")){eqConstraintMthd = 4;}
+	else{Rf_error("unrecognized character string provided for Nelder-Mead 'eqConstraintMthd'");}
+	
+	feasTol = Global->feasibilityTolerance;
+	
 	ProtectedSEXP Rexclude(R_do_slot(rObj, Rf_install(".excludeVars")));
 	excludeVars.reserve(Rf_length(Rexclude));
 	for (int ex=0; ex < Rf_length(Rexclude); ++ex) {
@@ -171,13 +188,388 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	fc->createChildren(fitMatrix);
 	
 	
-	int beforeEval = fc->getLocalComputeCount();
+	//int beforeEval = fc->getLocalComputeCount();
 	
 	if (verbose >= 1){
 		//mxLog something here
 	}
+
+	//Rf_error("omxComputeNM::computeImpl() : so far, so good");
 	
-	return;
+	NelderMeadOptimizerContext nmoc(fc, this);
+	if(eqConstraintMthd==4){Rf_error("'augLag' Not Yet Implemented");}
+	nmoc.countConstraintsAndSetupBounds();
+	nmoc.invokeNelderMead();
+}
+
+//-------------------------------------------------------
+
+NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
+	: fc(_fc), NMobj(_nmo), numFree(countNumFree())
+{
+	est.resize(numFree);
+	copyParamsFromFitContext(est.data());
+	backtrackSteps=10; //<--Eventually should be made user-settable
+}
+
+void NelderMeadOptimizerContext::copyBounds()
+{
+	FreeVarGroup *varGroup = fc->varGroup;
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		solLB[px] = varGroup->vars[vx]->lbound;
+		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
+		solUB[px] = varGroup->vars[vx]->ubound;
+		if (!std::isfinite(solUB[px])) solUB[px] = INF;
+		++px;
+	}
+}
+
+void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
+{
+	solLB.resize(numFree);
+	solUB.resize(numFree);
+	copyBounds();
+	
+	omxState *globalState = fc->state;
+	globalState->countNonlinearConstraints(numEqC, numIneqC, false);
+	//If there aren't any of one of the two constraint types, then the
+	//method for handling them shouldn't matter.  But, switching the
+	//method to the simplest setting helps simplify programming logic:
+	if(!numIneqC){NMobj->ineqConstraintMthd = 0;}
+	if(!numEqC){NMobj->eqConstraintMthd = 1;}
+	equality.resize(numEqC);
+	inequality.resize(numIneqC);
+}
+
+int NelderMeadOptimizerContext::countNumFree()
+{
+	int nf = 0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		++nf;
+	}
+	return nf;
+}
+
+void NelderMeadOptimizerContext::copyParamsFromFitContext(double *ocpars)
+{
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		ocpars[px] = fc->est[vx];
+		++px;
+	}
+}
+
+void NelderMeadOptimizerContext::copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2)
+{
+	int px=0;
+	for (size_t vx=0; vx < fc2->profiledOut.size(); ++vx) {
+		if (fc2->profiledOut[vx]) continue;
+		fc2->est[vx] = x[px];
+		++px;
+	}
+	fc2->copyParamToModel();
+}
+
+//----------------------------------------------------------------------
+
+void NelderMeadOptimizerContext::enforceBounds(Eigen::VectorXd &x){
+	int i=0;
+	for(i=0; i < x.size(); i++){
+		if(x[i] < solLB[i]){x[i] = solLB[i];}
+		if(x[i] > solUB[i]){x[i] = solUB[i];}
+	}
+}
+
+bool NelderMeadOptimizerContext::checkBounds(Eigen::VectorXd &x){
+	bool retval=true;
+	int i=0;
+	for(i=0; i < x.size(); i++){
+		if(x[i] < solLB[i] && x[i] > solUB[i]){
+			retval=false;
+			break;
+		}
+	}
+	return(retval);
+}
+
+void NelderMeadOptimizerContext::evalIneqC()
+{
+	if(!numIneqC){return;}
+	
+	omxState *st = fc->state;
+	
+	int cur=0, j=0;
+	for (j=0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		if (con.opCode == omxConstraint::EQUALITY) continue;
+		//con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+		con.refreshAndGrab(fc, (omxConstraint::Type) con.opCode, &inequality(cur));
+		//Nelder-Mead, of course, does not use constraint Jacobians...
+		cur += con.size;
+	}
+	//Nelder-Mead will not care about the function values of inactive inequality constraints:
+	inequality = inequality.array().max(0.0);
+	
+	if (NMobj->verbose >= 3) {
+		mxPrintMat("inequality", inequality);
+	}
+	
+}
+
+void NelderMeadOptimizerContext::evalEqC()
+{
+	if(!numEqC){return;}
+	
+	omxState *st = fc->state;
+	
+	int cur=0, j=0;
+	for(j = 0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		if (con.opCode != omxConstraint::EQUALITY) continue;
+		con.refreshAndGrab(fc, &equality(cur));
+		//Nelder-Mead, of course, does not use constraint Jacobians...
+		cur += con.size;
+	}
+	
+	if (NMobj->verbose >= 3) {
+		mxPrintMat("equality", equality);
+	}
+}
+
+double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
+{
+	copyParamsFromOptimizer(x,fc);
+	if(!std::isfinite(fc->fit)){return(NMobj->bignum);}
+	else{
+		double fv = fc->fit;
+		if(NMobj->eqConstraintMthd==4){
+			//TODO: add terms from augmented Lagrangian to fv
+		}
+		return(fv);
+	}
+}
+
+void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr)
+{
+	int i=0;
+	double feasTol = NMobj->feasTol;
+	ifcr.setZero(2);
+	if(!numIneqC && !numEqC){return;}
+	copyParamsFromOptimizer(x,fc);
+	evalIneqC();
+	evalEqC();
+	if(numIneqC){
+		for(i=0; i < inequality.size(); i++){
+			if(inequality[i] > feasTol){
+				ifcr[0] = 1;
+				break;
+			}
+		}
+	}
+	if(numEqC){
+		for(i=0; i < equality.size(); i++){
+			if(fabs(equality[i]) > feasTol){
+				ifcr[1] = 1;
+				break;
+			}
+		}
+	}
+}
+
+//TODO: rewrite this and evalNewPoint() using templates for Eigen-library classes, 
+//to avoid copying rows of 'vertices' to temporary Eigen::Vectors:
+void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, int infeas)
+{
+	Eigen::Vector2i ifcr;
+	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
+	int eqConstraintMthd = NMobj->eqConstraintMthd;
+	double bignum = NMobj->bignum;
+	enforceBounds(x);
+	checkNewPointInfeas(x, ifcr);
+	if(!ifcr.sum()){
+		infeas = 0L;
+		fv = (evalFit(x));
+		return;
+	}
+	else if(ifcr[1] || (ifcr[0] && ineqConstraintMthd)){
+		switch(eqConstraintMthd){
+		case 1:
+			infeas = 1L;
+			fv = bignum;
+			return;
+		case 2:
+			//Can't backtrack to someplace else if it's the very first point.
+			Rf_error("starting values not feasible; re-specify the initial simplex, or consider mxTryHard()");
+			break;
+		case 3:
+			Rf_error("'GDsearch' Not Yet Implemented");
+		case 4:
+			if(ifcr[0]){
+				fv = bignum;
+				infeas = 1L;
+			}
+			else{
+				fv = evalFit(x);
+				infeas = 0L;
+			}
+			return;
+		}
+	}
+	else if(ifcr[0]){
+		fv = bignum;
+		infeas = 1L;
+		return;
+	}
+}
+
+//oldpt is used for backtracking:
+void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int infeas)
+{
+	Eigen::Vector2i ifcr;
+	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
+	int eqConstraintMthd = NMobj->eqConstraintMthd;
+	double bignum = NMobj->bignum;
+	enforceBounds(newpt);
+	checkNewPointInfeas(newpt, ifcr);
+	if(!ifcr.sum()){
+		infeas = 0L;
+		fv = (evalFit(newpt));
+		return;
+	}
+	else if(ifcr[1] || (ifcr[0] && ineqConstraintMthd)){
+		switch(eqConstraintMthd){
+		case 1:
+			infeas = 1L;
+			fv = bignum;
+			return;
+		case 2:
+			Rf_error("'backtrack' Not Yet Implemented");
+		case 3:
+			Rf_error("'GDsearch' Not Yet Implemented");
+		case 4:
+			if(ifcr[0]){
+				fv = bignum;
+				infeas = 1L;
+			}
+			else{
+				fv = evalFit(newpt);
+				infeas = 0L;
+			}
+			return;
+		}
+	}
+	else if(ifcr[0]){
+		fv = bignum;
+		infeas = 1L;
+		return;
+	}
+}
+
+void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout){
+	double a,b;
+	int i;
+	GetRNGstate();
+	for(i=0; i < xin.size(); i++){
+		b = Rf_runif(0.25,1.75);
+		a = Rf_runif(-0.25,0.25);
+		xout[i] = b*xin[i] + a;
+	}
+	PutRNGstate();
+}
+
+void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, double edgeLength)
+{
+	//vertices.resize(n,numFree);
+	int i=0;
+	Eigen::VectorXd xin, xout;
+	if(NMobj->iniSimplexMtx.rows() && NMobj->iniSimplexMtx.cols()){
+		Eigen::MatrixXd SiniSupp;
+		if(NMobj->iniSimplexMtx.cols() != numFree){
+			Rf_error("'iniSimplexMtx' has %d columns, but %d columns expected",NMobj->iniSimplexMtx.cols(), numFree);
+		}
+		if(NMobj->iniSimplexMtx.rows()>n){
+			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMtx.rows(), n);
+			NMobj->iniSimplexMtx.conservativeResize(n,numFree);
+		}
+		if(NMobj->iniSimplexMtx.rows()<n){
+			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMtx.rows(),n);
+			SiniSupp.resize(n - NMobj->iniSimplexMtx.rows(), numFree);
+			xin=NMobj->iniSimplexMtx.row(0);
+			for(i=0; i<SiniSupp.rows(); i++){
+				xout=SiniSupp.row(i);
+				jiggleCoord(xin, xout);
+				SiniSupp.row(i) = xout;
+			}
+		}
+		for(i=0; i < NMobj->iniSimplexMtx.rows(); i++){
+			vertices.row(i) = NMobj->iniSimplexMtx.row(i);
+		}
+		if(SiniSupp.rows()){
+			for(i=0; i<SiniSupp.rows(); i++){
+				vertices.row(i+NMobj->iniSimplexMtx.rows()) = SiniSupp.row(i);
+			}
+		}
+	}
+	else{
+		//TODO: regular simplex for edge length other than 1.0
+		double shhp = (1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
+		double shhq = (1/n/sqrt(2))*(sqrt(1.0+n)-1);
+		Eigen::VectorXd xin, xout;
+		switch(NMobj->iniSimplexType){
+		case 1:
+			vertices.setZero(n,numFree);
+			for(i=1; i<n+1; i++){
+				vertices.row(i).setConstant(shhq);
+				vertices(i,i-1) = shhp;
+			}
+			for(i=0; i<n+1; i++){
+				vertices.row(i) += est;
+			}
+			break;
+		case 3:
+			//TODO
+		case 2:
+			vertices.row(0) = est;
+			for(i=1; i<n+1; i++){
+				vertices.row(i) = vertices.row(0);
+				vertices(i,i-1) = vertices(0,i-1)+edgeLength;
+			}
+			break;
+		case 4:
+			vertices.row(0) = est;
+			xin=vertices.row(0);
+			for(i=1; i<n+1; i++){
+				xout=vertices.row(i);
+				jiggleCoord(xin,xout);
+				vertices.row(i)=xout;
+			}
+			break;
+		}
+	}
+	//Now evaluate each vertex (if not done already):
+	Eigen::VectorXd newpt, oldpt;
+	oldpt=vertices.row(0); //<--oldpt
+	evalFirstPoint(oldpt, fvals[0], vertexInfeas[0]);
+	vertices.row(0)=oldpt;
+	for(i=1; i<n+1; i++){
+		newpt = vertices.row(i); //<--newpt
+		evalNewPoint(newpt, oldpt, fvals[i], vertexInfeas[i]);
+		vertices.row(i) = newpt;
+	}
+}
+
+
+void NelderMeadOptimizerContext::invokeNelderMead(){
+	n = numFree - numEqC;
+	vertices.resize(n+1,numFree);
+	fvals.resize(n+1);
+	vertexInfeas.resize(n+1);
+	initializeSimplex(est, NMobj->iniSimplexEdge);
+	Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
 }
 
 

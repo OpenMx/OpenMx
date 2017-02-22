@@ -1211,6 +1211,12 @@ extractNMcontrolvars <- function(control){
 		if("fTolRelChange" %in% names(control[["tolerances"]])){control2$fTolRelChange <- as.numeric(control[["tolerances"]]["fTolRelChange"])}
 	}
 	control2$pseudoHessian <- as.logical(ifelse("pseudoHessian" %in% ctrlnames, control[["pseudoHessian"]][1], FALSE))
+	control2$ineqConstraintMthd <-
+		as.character(
+			ifelse("ineqConstraintMthd" %in% ctrlnames, match.arg(control[["ineqConstraintMthd"]],c("soft","eqMethd")), "soft"))
+	control2$eqConstraintMthd <- 
+		as.character(
+			ifelse("eqConstraintMthd" %in% ctrlnames, match.arg(control[["eqConstraintMthd"]],c("soft","backtrack","GDsearch","augLag")), "soft"))
 	return(control2)
 }
 
@@ -1242,7 +1248,9 @@ setClass(
 		fTolProx="numeric",
 		xTolRelChange="numeric",
 		fTolRelChange="numeric",
-		pseudoHessian="logical"))
+		pseudoHessian="logical",
+		ineqConstraintMthd="character",
+		eqConstraintMthd="character"))
 
 setMethod(
 	"initialize", "MxComputeNelderMead",
@@ -1277,6 +1285,8 @@ setMethod(
 		.Object@xTolRelChange <- ctrl$xTolRelChange
 		.Object@fTolRelChange <- ctrl$fTolRelChange
 		.Object@pseudoHessian <- ctrl$pseudoHessian
+		.Object@ineqConstraintMthd <- ctrl$ineqConstraintMthd
+		.Object@eqConstraintMthd <- ctrl$eqConstraintMthd
 		.Object
 	})
 

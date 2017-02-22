@@ -23,8 +23,10 @@
 class omxComputeNM : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMatrix;
-	int verbose;
 	bool nudge;
+	
+public:
+	int verbose;
 	int maxIter;
 	bool defaultMaxIter;
 	std::vector<int> excludeVars;
@@ -39,10 +41,68 @@ class omxComputeNM : public omxCompute {
 	bool validationRestart;
 	double xTolProx, fTolProx, xTolRelChange, fTolRelChange;
 	bool doPseudoHessian;
-	
-public:
+	int ineqConstraintMthd, eqConstraintMthd;
+	double feasTol;
 	omxComputeNM();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
-	//virtual void computeImpl(FitContext *fc);
+	virtual void computeImpl(FitContext *fc);
 	//virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
+
+
+class NelderMeadOptimizerContext{
+private:
+	void copyBounds();
+	int countNumFree();
+	FitContext *fc;
+public:
+	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);
+	void countConstraintsAndSetupBounds();
+	void copyParamsFromFitContext(double *ocpars);
+	void copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2);
+
+	
+	omxComputeNM* NMobj;
+	const int numFree;
+	int numIneqC;
+	int numEqC;
+	int n; //<--number of free parameters minus number of equality constraints
+	int backtrackSteps;
+	
+	bool checkBounds(Eigen::VectorXd &x);
+	void enforceBounds(Eigen::VectorXd &x);
+	void evalIneqC();
+	void evalEqC();
+	double evalFit(Eigen::VectorXd &x);
+	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
+	void evalFirstPoint(Eigen::VectorXd &x, double fv, int infeas);
+	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int infeas);
+	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
+	void invokeNelderMead();
+	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength);
+	/*void fastSort();
+	void fullSort();
+	void restart();
+	void validationRestart();*/
+	
+	Eigen::VectorXd est;
+	Eigen::MatrixXd vertices;
+	Eigen::VectorXd fvals;
+	Eigen::VectorXi vertexInfeas;
+	Eigen::VectorXd solLB;
+	Eigen::VectorXd solUB;
+	Eigen::VectorXd equality;
+	Eigen::VectorXd inequality;
+	Eigen::Vector2i feasCheckResults;
+	Eigen::VectorXd subcentroid;
+	Eigen::VectorXd eucentroidPrev, eucentroidCurr;
+	Eigen::VectorXd xr, xe, xoc, xic;
+	
+	bool needFullSort;
+	double avgFitValPrev, avgFitValCurr;
+	int restartCount, unchangedx0Count;
+	
+	
+	
 };

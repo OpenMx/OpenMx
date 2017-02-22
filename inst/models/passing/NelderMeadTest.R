@@ -32,4 +32,4 @@ factorModel <- mxModel("OneFactor",
 											 			 free=FALSE, values=1.0),
 											 mxData(cov(demoOneFactor), type="cov",
 											 			 numObs=500))
-omxCheckError(mxRun(factorModel),"successful importation of Nelder-Mead compute object from frontend")
+omxCheckError(mxRun(factorModel),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")
