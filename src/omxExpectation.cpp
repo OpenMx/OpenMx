@@ -46,7 +46,8 @@ static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationNormal", 		&omxInitNormalExpectation},
 	{"MxExpectationRAM",			&omxInitRAMExpectation},
 	{"MxExpectationBA81", &omxInitExpectationBA81},
-  {"MxExpectationGREML", &omxInitGREMLExpectation}
+	{"MxExpectationGREML", &omxInitGREMLExpectation},
+	{"MxExpectationHiddenMarkov", &InitHiddenMarkovExpectation},
 };
 
 void omxFreeExpectationArgs(omxExpectation *ox) {
@@ -63,7 +64,7 @@ void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what,
 {
 	if (!ox) return;
 
-	ox->data->recompute(); // for dynamic data
+	if (ox->data) ox->data->recompute(); // for dynamic data
 	ox->compute(fc, what, how);
 }
 
@@ -120,7 +121,7 @@ void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thre
 
 void omxExpectation::loadFromR()
 {
-	if(rObj == NULL) return;
+	if (!rObj || !data) return;
 
 	auto ox = this;
 
@@ -186,9 +187,9 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	expect->rObj = rObj;
 	expect->expNum = expNum;
 	
-	SEXP nextMatrix;
-	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
-	expect->data = omxDataLookupFromState(nextMatrix, os);
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
+	if (TYPEOF(Rdata) == INTSXP) {
+		expect->data = omxDataLookupFromState(Rdata, os);
 	}
 
 	return expect;
