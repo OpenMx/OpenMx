@@ -309,6 +309,8 @@ model <- mxModel(model, mxAlgebra(dcauchy(H,A,D,0),name="test90a"))
 model <- mxModel(model, mxAlgebra(dcauchy(H,A,D,1),name="test90b"))
 model <- mxModel(model, mxAlgebra(pcauchy(H,A,D,0,1),name="test91a"))
 model <- mxModel(model, mxAlgebra(pcauchy(H,A,D,1,0),name="test91b"))
+model <- mxModel(model, mxAlgebra(rowSums(A),name="test92"))
+model <- mxModel(model, mxAlgebra(colSums(A),name="test93"))
 modelOut <- mxRun(model)
 
 # Check passing tests
@@ -602,6 +604,8 @@ omxCheckCloseEnough(modelOut[["test84b"]]$result, mxEval(omxDnbinom(D,D,-1,C,C),
 omxCheckCloseEnough(modelOut[["test85a"]]$result, mxEval(omxPnbinom(D,D,-1,C,C,0),modelOut,T))
 omxCheckCloseEnough(modelOut[["test85b"]]$result, mxEval(omxPnbinom(D,D,-1,C,1,0),modelOut,T))
 omxCheckCloseEnough(modelOut[["test85c"]]$result, mxEval(omxPnbinom(D,D,-1,C,0,1),modelOut,T))
+omxCheckCloseEnough(c(modelOut[["test92"]]$result), mxEval(rowSums(A),modelOut,T))
+omxCheckCloseEnough(c(modelOut[["test93"]]$result), mxEval(colSums(A),modelOut,T))
 
 
 # Check internal function for definition variables

@@ -2730,3 +2730,23 @@ static void mxMatrixLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 	logm_eigen(inMat->rows, inMat->data, result->data);
 }
+
+static void omxRowSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxResizeMatrix(result, inMat->rows, 1);
+	result->colMajor = true;
+	EigenVectorAdaptor Eresult(result);
+	EigenMatrixAdaptor src(inMat);
+	Eresult.derived() = src.rowwise().sum();
+}
+
+static void omxColSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxResizeMatrix(result, inMat->rows, 1);
+	result->colMajor = true;
+	EigenVectorAdaptor Eresult(result);
+	EigenMatrixAdaptor src(inMat);
+	Eresult.derived() = src.colwise().sum();
+}

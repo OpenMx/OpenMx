@@ -86,6 +86,8 @@ Functions
 \item{\code{chol}}{Cholesky Decomposition}
 \item{\code{cbind}}{Horizontal adhesion}
 \item{\code{rbind}}{Vertical adhesion}
+\item{\code{colSums}}{Matrix column sums as a column vector}
+\item{\code{rowSums}}{Matrix row sums as a column vector}
 \item{\code{det}}{Determinant}
 \item{\code{tr}}{Trace}
 \item{\code{sum}}{Sum}

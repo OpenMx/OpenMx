@@ -89,3 +89,5 @@
 87    "Binomial CDF"  "pbinom"  5  "omxElementPbinom"
 88    "Cauchy PDF"  "dcauchy"  4  "omxElementDcauchy"
 89    "Cauchy CDF"  "pcauchy"  5  "omxElementPcauchy"
+90    "Row sums"    "rowSums"  1  "omxRowSums"
+91    "Column sums"    "colSums"  1  "omxColSums"
