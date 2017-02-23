@@ -116,11 +116,16 @@ collectStatistics <- function(refSummary, otherSummary) {
 		otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom,
 		NA)
 	names(otherStats) <- c("base", "comparison", "ep", "minus2LL", "df", "AIC", "diffLL", "diffdf", "p")
-	if (otherStats[['diffdf']] < 1) {
+	if (otherStats[['diffdf']] == 0) {
+		msg <- paste("Model", omxQuotes(refSummary$modelName), "has the same degrees of freedom as",
+			     otherSummary$modelName, "which means the models are not nested and should not be",
+			     "compared with the likelihood ratio test.",
+			     "Compare these models using the information criteria statistics")
+		warning(msg)
+	} else if (otherStats[['diffdf']] < 1) {
 		msg <- paste("Model", omxQuotes(refSummary$modelName), "has more degrees of freedom than",
-			     otherSummary$modelName, "which means that either the models need to be",
-			     "compared in the oppposite order or the models are not nested and should not be",
-			     "compared with the likelihood ratio test")
+			     otherSummary$modelName, "which means that the models need to be",
+			     "compared in the opposite order")
 		warning(msg)
 	} else {
 		otherStats[['p']] <- pchisq(otherStats[['diffLL']], otherStats[['diffdf']], lower.tail=FALSE)
