@@ -70,6 +70,8 @@ public:
 	int n; //<--number of free parameters minus number of equality constraints
 	int backtrackSteps;
 	int itersElapsed;
+	double fr, fe, foc, fic;
+	int badr, bade, badoc, badic, badsc;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -81,14 +83,16 @@ public:
 	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int newInfeas, int oldInfeas);
 	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
 	void invokeNelderMead();
-	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength);
+	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart);
 	void fullSort();
-	/*void fastSort();
-	void restart();
+	void fastSort();
+	void simplexTransformation();
+	/*void restart();
 	void validationRestart();*/
 	
+	std::vector<Eigen::VectorXd> vertices;	
 	Eigen::VectorXd est;
-	Eigen::MatrixXd vertices;
+	//Eigen::MatrixXd vertices;
 	Eigen::VectorXd fvals;
 	Eigen::VectorXi vertexInfeas;
 	Eigen::VectorXd solLB;

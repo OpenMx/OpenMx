@@ -490,12 +490,11 @@ void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::Vector
 	PutRNGstate();
 }
 
-void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, double edgeLength)
+void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart)
 {
-	//vertices.resize(n,numFree);
 	int i=0;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
-	if(NMobj->iniSimplexMtx.rows() && NMobj->iniSimplexMtx.cols()){
+	if(NMobj->iniSimplexMtx.rows() && NMobj->iniSimplexMtx.cols() && !isRestart){
 		Eigen::MatrixXd SiniSupp;
 		if(NMobj->iniSimplexMtx.cols() != numFree){
 			Rf_error("'iniSimplexMtx' has %d columns, but %d columns expected",NMobj->iniSimplexMtx.cols(), numFree);
@@ -515,11 +514,11 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 			}
 		}
 		for(i=0; i < NMobj->iniSimplexMtx.rows(); i++){
-			vertices.row(i) = NMobj->iniSimplexMtx.row(i);
+			vertices[i] = NMobj->iniSimplexMtx.row(i);
 		}
 		if(SiniSupp.rows()){
 			for(i=0; i<SiniSupp.rows(); i++){
-				vertices.row(i+NMobj->iniSimplexMtx.rows()) = SiniSupp.row(i);
+				vertices[i+NMobj->iniSimplexMtx.rows()] = SiniSupp.row(i);
 			}
 		}
 	}
@@ -532,60 +531,62 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		int badu=0, badd=0;
 		switch(NMobj->iniSimplexType){
 		case 1:
-			vertices.setZero(n,numFree);
+			for(i=0; i<n+1; i++){vertices[i].setZero(numFree);}
+			//vertices.setZero(n,numFree);
 			for(i=1; i<n+1; i++){
-				vertices.row(i).setConstant(shhq);
-				vertices(i,i-1) = shhp;
+				vertices[i].setConstant(shhq);
+				vertices[i][i-1] = shhp;
 			}
 			for(i=0; i<n+1; i++){
-				vertices.row(i) += startpt;
+				vertices[i] += startpt;
+			}
+			break;
+		case 2:
+			vertices[0] = startpt;
+			for(i=1; i<n+1; i++){
+				vertices[i] = vertices[0];
+				vertices[i][i-1] = vertices[0][i-1]+edgeLength;
 			}
 			break;
 		case 3:
 			//TODO: this could be even smarter if it also figured out different edge lengths 
 			//to account for different scaling of the free parameters:
-			oldpt = vertices.row(0); //<--oldpt
-			evalFirstPoint(oldpt, fvals[0], vertexInfeas[0]);
-			vertices.row(0) = oldpt;
+			//oldpt = vertices.row(0); //<--oldpt
+			vertices[0] = startpt;
+			evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
+			//vertices.row(0) = oldpt;
 			for(i=0; i<n; i++){
-				oldpt = vertices.row(0);
-				xu = vertices.row(0);
+				//oldpt = vertices.row(0);
+				xu = vertices[0];
 				xu[i] += edgeLength;
-				xd = vertices.row(0);
+				xd = vertices[0];
 				xd[i] -= edgeLength;
-				evalNewPoint(xu, oldpt, fu, badu, vertexInfeas[0]);
-				evalNewPoint(xd, oldpt, fd, badd, vertexInfeas[0]);
-				vertices.row(i+1) = fu<fd ? xu : xd;
+				evalNewPoint(xu, vertices[0], fu, badu, vertexInfeas[0]);
+				evalNewPoint(xd, vertices[0], fd, badd, vertexInfeas[0]);
+				vertices[i+1] = fu<fd ? xu : xd;
 				fvals[i+1] = fu<fd ? fu : fd;
 				vertexInfeas[i+1] = fu<fd ? badu : badd;
 			}
 			return;
-		case 2:
-			vertices.row(0) = startpt;
-			for(i=1; i<n+1; i++){
-				vertices.row(i) = vertices.row(0);
-				vertices(i,i-1) = vertices(0,i-1)+edgeLength;
-			}
-			break;
 		case 4:
-			vertices.row(0) = startpt;
-			xin=vertices.row(0);
+			vertices[0] = startpt;
+			//xin=vertices.row(0);
 			for(i=1; i<n+1; i++){
-				xout=vertices.row(i);
-				jiggleCoord(xin,xout);
-				vertices.row(i)=xout;
+				//xout=vertices.row(i);
+				jiggleCoord(vertices[0],vertices[i]);
+				//vertices.row(i)=xout;
 			}
 			break;
 		}
 	}
-	//Now evaluate each vertex (if not done already):
-	oldpt = vertices.row(0); //<--oldpt
-	evalFirstPoint(oldpt, fvals[0], vertexInfeas[0]);
-	vertices.row(0) = oldpt;
+	//Now evaluate each vertex:
+	//oldpt = vertices.row(0); //<--oldpt
+	evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
+	//vertices.row(0) = oldpt;
 	for(i=1; i<n+1; i++){
-		newpt = vertices.row(i); //<--newpt
-		evalNewPoint(newpt, oldpt, fvals[i], vertexInfeas[i], vertexInfeas[0]);
-		vertices.row(i) = newpt;
+		//newpt = vertices.row(i); //<--newpt
+		evalNewPoint(vertices[i], vertices[0], fvals[i], vertexInfeas[i], vertexInfeas[0]);
+		//vertices.row(i) = newpt;
 	}
 }
 
@@ -598,12 +599,13 @@ void NelderMeadOptimizerContext::fullSort()
 		ind[i] = i;
 	}
 	Eigen::VectorXi tmpVertexInfeas = vertexInfeas;
-	Eigen::MatrixXd tmpVertices = vertices;
+	std::vector<Eigen::VectorXd> tmpVertices = vertices;
 	//If we don't care about tie-breaking rules:
 	if( (fvals.tail(n).array() < fvals[0]).any() ){
+		unchangedx0Count = 0;
 		rsort_with_index(fvals.data(), ind.data(), n+1);
 		for(i=0; i<n+1; i++){
-			vertices.row(i) = tmpVertices.row(ind[i]);
+			vertices[i] = tmpVertices[ind[i]];
 			vertexInfeas[i] = tmpVertexInfeas[ind[i]];
 		}
 	}
@@ -613,43 +615,191 @@ void NelderMeadOptimizerContext::fullSort()
 		rsort_with_index(fvals_tail.data(), ind.data(), n);
 		for(i=1; i<n+1; i++){
 			fvals[i] = fvals_tail[i-1];
-			vertices.row(i) = tmpVertices.row(ind[i-1]);
+			vertices[i] = tmpVertices[ind[i-1]];
 			vertexInfeas[i] = tmpVertexInfeas[ind[i-1]];
 		}
 	}
-	//unchangedx0Count = 0;
 	return;
 }
 
-/*NelderMeadOptimizerContext::fastSort()
+void NelderMeadOptimizerContext::fastSort()
 {
 	int i=0, j;
 	Eigen::VectorXi tmpVertexInfeas = vertexInfeas;
-	Eigen::MatrixXd tmpVertices = vertices;
+	std::vector<Eigen::VectorXd> tmpVertices = vertices;
 	Eigen::VectorXd tmpFvals = fvals;
-	if(fvals[n]<fvals[0])
-	for(i=0; i<n-1; i++){
-		
+	if(tmpFvals[n]<tmpFvals[0]){
+		unchangedx0Count = 0;
+		fvals[0] = tmpFvals[n];
+		vertices[0] = tmpVertices[n];
+		vertexInfeas[0] = tmpVertexInfeas[n];
+		for(i=1; i<=n; i++){
+			fvals[i] = tmpFvals[i-1];
+			vertices[i] = tmpVertices[i-1];
+			vertexInfeas[i] = tmpVertexInfeas[i-1];
+		}
 	}
-}*/
+	else{
+		for(i=n-1; i>0; i--){
+			if(tmpFvals[n]>=tmpFvals[i]){
+				fvals[i] = tmpFvals[i];
+				vertices[i] = tmpVertices[i];
+				vertexInfeas[i] = tmpVertexInfeas[i];
+			}
+			else{
+				fvals[i] = tmpFvals[n];
+				vertices[i] = tmpVertices[n];
+				vertexInfeas[i] = tmpVertexInfeas[n];
+				break;
+			}
+		}
+		for(j=i-1; j>0; i--){
+			fvals[j] = tmpFvals[j+1];
+			vertices[j] = tmpVertices[j+1];
+			vertexInfeas[j] = tmpVertexInfeas[j+1];
+		}
+	}
+}
+
+
+void NelderMeadOptimizerContext::simplexTransformation()
+{
+	//Reflection transformation:
+	xr = subcentroid + NMobj->alpha*(subcentroid - vertices[n]);
+	evalNewPoint(xr, subcentroid, fr, badr, badsc);
+	if(fr<fvals[n-1]){ //<--If fit at reflection point is better than second worst fit
+		//If fit at reflection point is worse than best fit, or expansions are turned off, accept reflection point:
+		if(fr>=fvals[0] || NMobj->gamma<0){
+			fvals[n] = fr;
+			vertices[n] = xr;
+			vertexInfeas[n] = badr;
+			needFullSort=false;
+			return;
+		}
+		else{ //<--If fit at reflection point is better than best fit and expansions are turned on
+			//Expansion transformation:
+			xe = subcentroid + NMobj->gamma*(xr - subcentroid);
+			evalNewPoint(xe, subcentroid, fe, bade, badsc);
+			if(NMobj->greedyMinimize){ //<--If using greedy minimization
+				//Accept the better of the reflection and expansion points:
+				fvals[n] = (fr<fe) ? fr : fe;
+				vertices[n] = (fr<fe) ? xr : xe;
+				vertexInfeas[n] = (fr<fe) ? badr : bade;
+				needFullSort=false;
+				return;
+			}
+			else{ //<--If using greedy expansion
+				//Accept expansion point unless reflection point is strictly better:
+				fvals[n] = (fe<fvals[0]) ? fe : fr;
+				vertices[n] = (fe<fvals[0]) ? xe : xr;
+				vertexInfeas[n] = (fe<fvals[0]) ? bade : badr;
+				needFullSort=false;
+				return;
+			}
+		}
+	}
+	else{
+		if(fr<fvals[n]){ //<--If fit at reflection point is at least better than the second-worst fit
+			//Outside-contraction transformation:
+			if(!NMobj->altContraction){
+				xoc = subcentroid + NMobj->betao*(xr - subcentroid);
+				evalNewPoint(xoc, subcentroid, foc, badoc, badsc);
+			}
+			else{
+				//Eigen::VectorXd oldpt = vertices.row(0);
+				xoc = vertices[0] + NMobj->betao*(xr - vertices[0]);
+				evalNewPoint(xoc, vertices[0], foc, badoc, vertexInfeas[0]);
+			}
+			if(foc<=fr){ //<--If fit at xoc is no worse than fit at reflection point
+				//Accept xoc:
+				fvals[n] = foc;
+				vertices[n] = xoc;
+				vertexInfeas[n] = badoc;
+				needFullSort=false;
+				return;
+			}
+			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
+				//Accept reflection point:
+				fvals[n] = fr;
+				vertices[n] = xr;
+				vertexInfeas[n] = badr;
+				needFullSort=false;
+				return;
+			}
+		}
+		else{ //<--If fit at reflection point is no better than worst fit
+			//Inside-contraction transformation:
+			if(!NMobj->altContraction){
+				xic = subcentroid + NMobj->betai*(vertices[n] - subcentroid);
+				evalNewPoint(xic, subcentroid, fic, badic, badsc);
+			}
+			else{
+				//Eigen::VectorXd oldpt = vertices.row(0);
+				xic = vertices[0] + NMobj->betai*(vertices[n] - vertices[0]);
+				evalNewPoint(xic, vertices[0], fic, badic, vertexInfeas[0]);
+			}
+			if(fic<fvals[n]){ //<--If fit at xic is better than worst fit
+				//Accept xic:
+				fvals[n] = fic;
+				vertices[n] = xic;
+				vertexInfeas[n] = badic;
+				needFullSort=false;
+				return;
+			}
+			//else if(sigma<=0)
+		}
+		//Shrink transformation:
+		if(NMobj->sigma>0){
+			int i=0;
+			std::vector<Eigen::VectorXd> tmpVertices = vertices;
+			Eigen::VectorXi tmpVertexInfeas = vertexInfeas;
+			for(i=1; i<n+1; i++){
+				vertices[i] = vertices[i] + NMobj->sigma*(vertices[i] - vertices[0]);
+				evalNewPoint(vertices[i], tmpVertices[i], fvals[i], vertexInfeas[i], tmpVertexInfeas[i]);
+			}
+			needFullSort=true;
+			return;
+		}
+	}
+}
+
+
+//void NelderMeadOptimizerContext::
 
 
 void NelderMeadOptimizerContext::invokeNelderMead(){
+	int i=0;
 	n = numFree - numEqC;
-	vertices.resize(n+1,numFree);
+	vertices.resize(n+1);
 	fvals.resize(n+1);
 	vertexInfeas.resize(n+1);
-	initializeSimplex(est, NMobj->iniSimplexEdge);
-	if(vertexInfeas.sum()==n+1 || (fvals==NMobj->bignum).all()){
+	subcentroid.resize(n);
+	initializeSimplex(est, NMobj->iniSimplexEdge, false);
+	if(vertexInfeas.sum()==n+1 || (fvals.array()==NMobj->bignum).all()){
 		Rf_error("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
 	}
 	needFullSort=true;
 	bool stopflag=false;
+	itersElapsed = 0;
 	
 	do{
-		//Ordering the vertices by fit value:
+		//Reset objects as needed for new iteration:
+		feasCheckResults.setZero();
+		
+		//Order the vertices by fit value:
 		if(needFullSort){fullSort();}
-		//else{fastSort();}
+		else{fastSort();}
+		
+		//Calculate subcentroid:
+		subcentroid.setZero(n);
+		for(i=0; i<n; i++){
+			subcentroid += vertices[i] / n;
+		}
+		checkNewPointInfeas(subcentroid, feasCheckResults);
+		badsc = (feasCheckResults.sum()) ? 1 : 0;
+		
+		simplexTransformation();
+		
 		Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");	
 	} while (!stopflag);
 	
