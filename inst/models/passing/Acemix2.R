@@ -39,7 +39,8 @@ frameMZ <- data.frame(pMZ = DataMZ$pMZ)
 
 twinACEModel <- mxModel("twinACE", 
 	        # Matrix expMean for expected mean vector for MZ and DZ twins    
-	mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=20, label="mean", name="expMean"), 
+	mxMatrix("Full", nrow=1, ncol=2, free=TRUE, values=0,
+	         label="mean", name="expMean"), 
 
 	        # Matrices X, Y, and Z to store the a, c, and e path coefficients
 	mxMatrix("Full", nrow=1, ncol=1, free=TRUE, values=.6, label="a", name="X"),
@@ -81,4 +82,6 @@ twinACEModel <- mxModel("twinACE",
 	mxFitFunctionAlgebra("twin")
 )
 
-twinACEFit <- mxRun(twinACEModel, suppressWarnings = TRUE)
+twinACEFit <- mxRun(twinACEModel)
+
+omxCheckCloseEnough(twinACEFit$output$fit, 4715.549, 1e-2)
