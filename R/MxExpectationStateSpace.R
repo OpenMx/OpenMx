@@ -502,7 +502,7 @@ KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P, ct=FALSE, dt=0){
 	r[!notMiss] <- 0
 	if(length(r)==sum(!notMiss)){#all missing row
 		m2ll <- log(det(C %*% P %*% t(C) + R))
-		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.pred, P.upda=P.pred, m2ll=m2ll, L=exp(m2ll/-2) ))
+		return(list(x.pred=x.pred, P.pred=P.pred, x.upda=x.pred, P.upda=P.pred, m2ll=m2ll, L=exp(m2ll/-2), A=A ))
 	} else {
 		Cf <- C[notMiss, , drop=FALSE]
 		Rf <- R[notMiss, notMiss, drop=FALSE]
