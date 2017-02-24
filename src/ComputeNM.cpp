@@ -55,34 +55,61 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
+	if(OMX_DEBUG){
+		mxLog("omxComputeNM member 'verbose' is %d", verbose);
+	}
 	
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = Rf_asLogical(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'nudgeZeroStarts' is %d", nudge);
+	}
 	
-	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("defaultMaxIter")));
-	defaultMaxIter = Rf_asLogical(slotValue);
+	//ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("defaultMaxIter")));
+	//defaultMaxIter = Rf_asLogical(slotValue);
 	
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
 	if(Rf_isNull(slotValue)){maxIter = Global->majorIterations * 5;}
 	else{maxIter = Rf_asInteger(slotValue);}
+	if(verbose){
+		mxLog("omxComputeNM member 'maxIter' is %d", maxIter);
+	}
 	
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("alpha")));
 	alpha = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'alpha' is %f", alpha);
+	}
 	
 	ScopedProtect p6(slotValue, R_do_slot(rObj, Rf_install("betao")));
 	betao = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'betao' is %f", betao);
+	}
 	
 	ScopedProtect p7(slotValue, R_do_slot(rObj, Rf_install("betai")));
 	betai = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'betai' is %f", betai);
+	}
 	
 	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gamma")));
 	gamma = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'gamma' is %f", gamma);
+	}
 	
 	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("sigma")));
 	sigma = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'sigma' is %f", sigma);
+	}
 	
 	ScopedProtect p10(slotValue, R_do_slot(rObj, Rf_install("bignum")));
 	bignum = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'bignum' is %f", bignum);
+	}
 	
 	ScopedProtect p11(slotValue, R_do_slot(rObj, Rf_install("iniSimplexType")));
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"regular")){iniSimplexType = 1;}
@@ -90,9 +117,15 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"smartRight")){iniSimplexType = 3;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"random")){iniSimplexType = 4;}
 	else{Rf_error("unrecognized character string provided for Nelder-Mead 'iniSimplexType'");}
+	if(verbose){
+		mxLog("omxComputeNM member 'iniSimplexType' is %d", iniSimplexType);
+	}
 	
 	ScopedProtect p12(slotValue, R_do_slot(rObj, Rf_install("iniSimplexEdge")));
 	iniSimplexEdge = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'iniSimplexEdge' is %f", iniSimplexEdge);
+	}
 	
 	ScopedProtect p13(slotValue, R_do_slot(rObj, Rf_install("iniSimplexMtx")));
 	if (Rf_length(slotValue)) {
@@ -107,25 +140,46 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p14(slotValue, R_do_slot(rObj, Rf_install("greedyMinimize")));
 	greedyMinimize = Rf_asLogical(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'greedyMinimize' is %d", greedyMinimize);
+	}
 	
 	ScopedProtect p15(slotValue, R_do_slot(rObj, Rf_install("altContraction")));
 	altContraction = Rf_asLogical(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'altContraction' is %d", altContraction);
+	}
 	
 	ScopedProtect p16(slotValue, R_do_slot(rObj, Rf_install("degenLimit")));
-	degenLimit = Rf_asLogical(slotValue);
+	degenLimit = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'degenLimit' is %f", degenLimit);
+	}
 	
 	ScopedProtect p17(slotValue, R_do_slot(rObj, Rf_install("stagnationCtrl")));
 	stagnationCtrl[0] = INTEGER(slotValue)[0];
 	stagnationCtrl[1] = INTEGER(slotValue)[1];
+	if(verbose){
+		mxPrintMat("omxComputeNM member 'stagnationCtrl':", stagnationCtrl);
+	}
 	
 	ScopedProtect p18(slotValue, R_do_slot(rObj, Rf_install("validationRestart")));
 	validationRestart = Rf_asLogical(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'validationRestart' is %d", validationRestart);
+	}
 	
 	ScopedProtect p19(slotValue, R_do_slot(rObj, Rf_install("xTolProx")));
 	xTolProx = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'xTolProx' is %f", xTolProx);
+	}
 	
 	ScopedProtect p20(slotValue, R_do_slot(rObj, Rf_install("fTolProx")));
 	fTolProx = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'fTolProx' is %f", fTolProx);
+	}
 	
 	/*ScopedProtect p21(slotValue, R_do_slot(rObj, Rf_install("xTolRelChange")));
 	xTolRelChange = Rf_asReal(slotValue);
@@ -135,11 +189,17 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("pseudoHessian")));
 	doPseudoHessian = Rf_asLogical(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'doPseudoHessian' is %d", doPseudoHessian);
+	}
 	
 	ScopedProtect p24(slotValue, R_do_slot(rObj, Rf_install("ineqConstraintMthd")));
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){ineqConstraintMthd = 0;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"eqMthd")){ineqConstraintMthd = 1;}
 	else{Rf_error("unrecognized character string provided for Nelder-Mead 'ineqConstraintMthd'");}
+	if(verbose){
+		mxLog("omxComputeNM member 'ineqConstraintMthd' is %d", ineqConstraintMthd);
+	}
 	
 	ScopedProtect p25(slotValue, R_do_slot(rObj, Rf_install("eqConstraintMthd")));
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){eqConstraintMthd = 1;}
@@ -147,6 +207,9 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"GDsearch")){eqConstraintMthd = 3;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"augLag")){eqConstraintMthd = 4;}
 	else{Rf_error("unrecognized character string provided for Nelder-Mead 'eqConstraintMthd'");}
+	if(verbose){
+		mxLog("omxComputeNM member 'eqConstraintMthd' is %d", eqConstraintMthd);
+	}
 	
 	feasTol = Global->feasibilityTolerance;
 	
@@ -198,6 +261,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	
 	NelderMeadOptimizerContext nmoc(fc, this);
 	if(eqConstraintMthd==4){Rf_error("'augLag' Not Yet Implemented");}
+	nmoc.verbose = verbose;
 	nmoc.countConstraintsAndSetupBounds();
 	nmoc.invokeNelderMead();
 }
@@ -234,6 +298,10 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	
 	omxState *globalState = fc->state;
 	globalState->countNonlinearConstraints(numEqC, numIneqC, false);
+	if(verbose){
+		mxLog("counted %d equality constraints",numEqC);
+		mxLog("counted %d inequality constraints",numIneqC);
+	}
 	//If there aren't any of one of the two constraint types, then the
 	//method for handling them shouldn't matter.  But, switching the
 	//method to the simplest setting helps simplify programming logic:
@@ -489,8 +557,26 @@ void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::Vector
 	PutRNGstate();
 }
 
+void NelderMeadOptimizerContext::printProblemState()
+{
+	int i=0;
+	Eigen::MatrixXd tmpvrt(n+1,n);
+	for(i=0; i<n+1; i++){tmpvrt.row(i) = vertices[i];}
+	mxPrintMat("working simplex:",tmpvrt);
+	mxPrintMat("fitfunction values:",fvals);
+	mxPrintMat("infeasibility states:",vertexInfeas);
+}
+
+void NelderMeadOptimizerContext::printNewPoint(Eigen::VectorXd &x, double fv, int isbad)
+{
+	mxPrintMat("coordinates:",x);
+	mxLog("fitfunction value: %f",fv);
+	mxLog("infeasible?: %d",isbad);
+}
+
 void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart)
 {
+	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
 	if(NMobj->iniSimplexMtx.rows() && NMobj->iniSimplexMtx.cols() && !isRestart){
@@ -522,9 +608,11 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		}
 	}
 	else{
-		//TODO: check this math:
-		double shhp = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
-		double shhq = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(sqrt(1.0+n)-1);
+		//TODO: regular simplex for other than unit edge-length:
+		//double shhp = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
+		//double shhq = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(sqrt(1.0+n)-1);
+		double shhp = (1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
+		double shhq = (1/n/sqrt(2))*(sqrt(1.0+n)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
@@ -566,6 +654,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 				fvals[i+1] = fu<fd ? fu : fd;
 				vertexInfeas[i+1] = fu<fd ? badu : badd;
 			}
+			if(verbose){printProblemState();}
 			return;
 		case 4:
 			vertices[0] = startpt;
@@ -587,6 +676,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		evalNewPoint(vertices[i], vertices[0], fvals[i], vertexInfeas[i], vertexInfeas[0]);
 		//vertices.row(i) = newpt;
 	}
+	//if(verbose){printProblemState();}
 }
 
 
@@ -601,7 +691,7 @@ void NelderMeadOptimizerContext::fullSort()
 	std::vector<Eigen::VectorXd> tmpVertices = vertices;
 	//If we don't care about tie-breaking rules:
 	if( (fvals.tail(n).array() < fvals[0]).any() ){
-		//unchangedx0count = 0;
+		unchangedx0count = 0;
 		rsort_with_index(fvals.data(), ind.data(), n+1);
 		for(i=0; i<n+1; i++){
 			vertices[i] = tmpVertices[ind[i]];
@@ -609,7 +699,7 @@ void NelderMeadOptimizerContext::fullSort()
 		}
 	}
 	else{
-		//unchangedx0count++;
+		unchangedx0count++;
 		ind = ind.tail(n);
 		Eigen::VectorXd fvals_tail = fvals.tail(n);
 		rsort_with_index(fvals_tail.data(), ind.data(), n);
@@ -632,6 +722,10 @@ void NelderMeadOptimizerContext::fullSort()
 	badsc = (scfcr.sum()) ? 1 : 0;
 	
 	needFullSort = false;
+	if(verbose){
+		mxLog("full sort complete...");
+		printProblemState();
+	}
 	return;
 }
 
@@ -642,7 +736,7 @@ void NelderMeadOptimizerContext::fastSort()
 	std::vector<Eigen::VectorXd> tmpVertices = vertices;
 	Eigen::VectorXd tmpFvals = fvals;
 	if(tmpFvals[n]<tmpFvals[0]){
-		//unchangedx0count = 0;
+		unchangedx0count = 0;
 		fvals[0] = tmpFvals[n];
 		vertices[0] = tmpVertices[n];
 		vertexInfeas[0] = tmpVertexInfeas[n];
@@ -653,7 +747,7 @@ void NelderMeadOptimizerContext::fastSort()
 		}
 	}
 	else{
-		//unchangedx0count++;
+		unchangedx0count++;
 		for(i=n-1; i>0; i--){
 			if(tmpFvals[n]>=tmpFvals[i]){
 				fvals[i] = tmpFvals[i];
@@ -684,6 +778,11 @@ void NelderMeadOptimizerContext::fastSort()
 	scfcr.setZero();
 	checkNewPointInfeas(subcentroid, scfcr);
 	badsc = (scfcr.sum()) ? 1 : 0;
+	
+	if(verbose){
+		mxLog("fast sort complete...");
+		printProblemState();
+	}
 	return;
 }
 
@@ -694,6 +793,10 @@ void NelderMeadOptimizerContext::simplexTransformation()
 	//Reflection transformation:
 	xr = subcentroid + NMobj->alpha*(subcentroid - vertices[n]);
 	evalNewPoint(xr, subcentroid, fr, badr, badsc);
+	if(verbose){
+		mxLog("reflection point...");
+		printNewPoint(xr, fr, badr);
+	}
 	if(fr<fvals[n-1]){ //<--If fit at reflection point is better than second worst fit
 		//If fit at reflection point is worse than best fit, or expansions are turned off, accept reflection point:
 		if(fr>=fvals[0] || NMobj->gamma<0){
@@ -701,18 +804,27 @@ void NelderMeadOptimizerContext::simplexTransformation()
 			vertices[n] = xr;
 			vertexInfeas[n] = badr;
 			needFullSort=false;
+			if(verbose){mxLog("reflection point accepted");}
 			return;
 		}
 		else{ //<--If fit at reflection point is better than best fit and expansions are turned on
 			//Expansion transformation:
 			xe = subcentroid + NMobj->gamma*(xr - subcentroid);
 			evalNewPoint(xe, subcentroid, fe, bade, badsc);
+			if(verbose){
+				mxLog("expansion point...");
+				printNewPoint(xe, fe, bade);
+			}
 			if(NMobj->greedyMinimize){ //<--If using greedy minimization
 				//Accept the better of the reflection and expansion points:
 				fvals[n] = (fr<fe) ? fr : fe;
 				vertices[n] = (fr<fe) ? xr : xe;
 				vertexInfeas[n] = (fr<fe) ? badr : bade;
 				needFullSort=false;
+				if(verbose){
+					if(fr<fe){mxLog("reflection point accepted");}
+					else{mxLog("expansion point accepted");}
+				}
 				return;
 			}
 			else{ //<--If using greedy expansion
@@ -721,12 +833,16 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				vertices[n] = (fe<fvals[0]) ? xe : xr;
 				vertexInfeas[n] = (fe<fvals[0]) ? bade : badr;
 				needFullSort=false;
+				if(verbose){
+					if(fe<fvals[0]){mxLog("expansion point accepted");}
+					else{mxLog("reflection point accepted");}
+				}
 				return;
 			}
 		}
 	}
 	else{
-		if(fr<fvals[n]){ //<--If fit at reflection point is at least better than the second-worst fit
+		if(fr<fvals[n]){ //<--If fit at reflection point is at least better than the worst fit
 			//Outside-contraction transformation:
 			if(!NMobj->altContraction){
 				xoc = subcentroid + NMobj->betao*(xr - subcentroid);
@@ -737,12 +853,17 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				xoc = vertices[0] + NMobj->betao*(xr - vertices[0]);
 				evalNewPoint(xoc, vertices[0], foc, badoc, vertexInfeas[0]);
 			}
+			if(verbose){
+				mxLog("outside reflection point...");
+				printNewPoint(xoc, foc, badoc);
+			}
 			if(foc<=fr){ //<--If fit at xoc is no worse than fit at reflection point
 				//Accept xoc:
 				fvals[n] = foc;
 				vertices[n] = xoc;
 				vertexInfeas[n] = badoc;
 				needFullSort=false;
+				if(verbose){mxLog("outside contraction point accepted");}
 				return;
 			}
 			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
@@ -752,6 +873,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				vertices[n] = xr;
 				vertexInfeas[n] = badr;
 				needFullSort=false;
+				if(verbose){mxLog("reflection point accepted");}
 				return;
 			}
 		}
@@ -762,9 +884,12 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				evalNewPoint(xic, subcentroid, fic, badic, badsc);
 			}
 			else{
-				//Eigen::VectorXd oldpt = vertices.row(0);
 				xic = vertices[0] + NMobj->betai*(vertices[n] - vertices[0]);
 				evalNewPoint(xic, vertices[0], fic, badic, vertexInfeas[0]);
+			}
+			if(verbose){
+				mxLog("inside reflection point...");
+				printNewPoint(xic, fic, badic);
 			}
 			if(fic<fvals[n]){ //<--If fit at xic is better than worst fit
 				//Accept xic:
@@ -772,10 +897,12 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				vertices[n] = xic;
 				vertexInfeas[n] = badic;
 				needFullSort=false;
+				if(verbose){mxLog("inside contraction point accepted");}
 				return;
 			}
 			else if(NMobj->sigma<=0){
 				failedContraction = true;
+				if(verbose){mxLog("contraction failed and shrinks are switched off...");}
 				return;
 			}
 		}
@@ -789,6 +916,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				evalNewPoint(vertices[i], tmpVertices[i], fvals[i], vertexInfeas[i], tmpVertexInfeas[i]);
 			}
 			needFullSort=true;
+			if(verbose){mxLog("shrink transformation complete");}
 			return;
 		}
 	}
@@ -882,6 +1010,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 			if(needRestart){
 				initializeSimplex(vertices[0], sqrt((vertices[0]-vertices[1]).dot(vertices[0]-vertices[1])), true);
 				needRestart = false;
+				needFullSort = true;
 				itersElapsed++;
 				continue;
 			}

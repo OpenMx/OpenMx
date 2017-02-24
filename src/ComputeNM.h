@@ -65,6 +65,7 @@ public:
 	
 	omxComputeNM* NMobj;
 	const int numFree;
+	int verbose;
 	int numIneqC;
 	int numEqC;
 	int n; //<--number of free parameters minus number of equality constraints
@@ -91,6 +92,8 @@ public:
 	void simplexTransformation();
 	bool checkConvergence();
 	bool checkProgress();
+	void printProblemState();
+	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
 	/*void restart();
 	void validationRestart();*/
 	

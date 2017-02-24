@@ -16,6 +16,8 @@
 library(OpenMx)
 foo <- mxComputeNelderMead()
 foo$verbose <- 5L
+foo$maxIter = 3000L
+foo$iniSimplexType <- "smartRight"
 plan <- omxDefaultComputePlan()
 plan$steps <- list(foo,plan$steps$RE)
 
