@@ -194,4 +194,7 @@ cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a)
 #  answer.
 omxCheckCloseEnough(omxGetParameters(wrun2), omxGetParameters(wrun2a), 1e-4)
 
+#------------------------------------------------------------------------------
+
+
 
