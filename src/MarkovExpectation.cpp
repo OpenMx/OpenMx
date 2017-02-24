@@ -15,22 +15,41 @@
  */
 
 #include "omxExpectation.h"
+#include <Eigen/SparseCore>
+#include <Eigen/CholmodSupport>
+#include <RcppEigenWrap.h>
 #include "EnableWarnings.h"
 
 class MarkovExpectation : public omxExpectation {
 public:
+	enum ScaleType { SCALE_SOFTMAX, SCALE_SUM };
+
 	std::vector< omxExpectation* > components;
-	omxMatrix *initial;  // mixture at time=0
+	omxMatrix *initial;
 	omxMatrix *transition;
+	unsigned initialV;
+	unsigned transitionV;
 	int verbose;
-	
+	ScaleType scale;
+	omxMatrix *scaledInitial;
+	omxMatrix *scaledTransition;
+
+	MarkovExpectation() : initialV(0), transitionV(0) {};
+	virtual ~MarkovExpectation();
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
+	virtual void populateAttr(SEXP expectation);
 };
 
 omxExpectation *InitHiddenMarkovExpectation()
 { return new MarkovExpectation; }
+
+MarkovExpectation::~MarkovExpectation()
+{
+	omxFreeMatrix(scaledInitial);
+	omxFreeMatrix(scaledTransition);
+}
 
 void MarkovExpectation::init()
 {
@@ -44,21 +63,71 @@ void MarkovExpectation::init()
 		components.push_back(omxExpectationFromIndex(cvec[cx], currentState));
 	}
 
-	initial = omxNewMatrixFromSlot(rObj, currentState, "T0");
-	transition = omxNewMatrixFromSlot(rObj, currentState, "G");
+	initial = omxNewMatrixFromSlot(rObj, currentState, "initial");
+	transition = omxNewMatrixFromSlot(rObj, currentState, "transition");
 
-	if (data) Rf_warning("'%s' does not require data (ignored)", name);
+	ProtectedSEXP Rscale(R_do_slot(rObj, Rf_install("scale")));
+	auto scaleName = CHAR(STRING_ELT(Rscale, 0));
+	if (strEQ(scaleName, "softmax")) {
+		scale = SCALE_SOFTMAX;
+	} else if (strEQ(scaleName, "sum")) {
+		scale = SCALE_SUM;
+	} else {
+		Rf_error("%s: unknown scale '%s'", name, scaleName);
+	}
+
+	scaledInitial = omxInitMatrix(1, 1, TRUE, currentState);
+	scaledTransition = 0;
+	if (transition) {
+		scaledTransition = omxInitMatrix(1, 1, TRUE, currentState);
+	}
 }
 
 void MarkovExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
-	for (auto c1 : components) {
-		c1->compute(fc, what, how);
+	if (fc) {
+		for (auto c1 : components) {
+			c1->compute(fc, what, how);
+		}
 	}
 
-	omxRecompute(initial, fc);
-	if (transition)
+	if (initialV != omxGetMatrixVersion(initial)) {
+		omxRecompute(initial, fc);
+		omxCopyMatrix(scaledInitial, initial);
+		EigenVectorAdaptor Ei(scaledInitial);
+		if (scale == SCALE_SOFTMAX) Ei.derived() = Ei.array().exp();
+		Ei /= Ei.sum();
+		if (verbose >= 2) mxPrintMat("initial", Ei);
+		initialV = omxGetMatrixVersion(initial);
+	}
+
+	if (transition && transitionV != omxGetMatrixVersion(transition)) {
 		omxRecompute(transition, fc);
+		omxCopyMatrix(scaledTransition, transition);
+		EigenArrayAdaptor Et(scaledTransition);
+		if (scale == SCALE_SOFTMAX) Et.derived() = Et.array().exp();
+		Eigen::ArrayXd v = Et.colwise().sum();
+		Et.rowwise() /= v.transpose();
+		if (verbose >= 2) mxPrintMat("transition", Et);
+		transitionV = omxGetMatrixVersion(transition);
+	}
+}
+
+void MarkovExpectation::populateAttr(SEXP robj)
+{
+	compute(0, 0, 0); // needed? TODO
+
+	MxRList out;
+
+	EigenVectorAdaptor Ei(scaledInitial);
+	out.add("initial", Rcpp::wrap(Ei));
+
+	if (scaledTransition) {
+		EigenMatrixAdaptor Et(scaledTransition);
+		out.add("transition", Rcpp::wrap(Et));
+	}
+
+	Rf_setAttrib(robj, Rf_install("output"), out.asR());
 }
 
 omxMatrix *MarkovExpectation::getComponent(const char* component)
@@ -66,9 +135,9 @@ omxMatrix *MarkovExpectation::getComponent(const char* component)
 	omxMatrix *retval = 0;
 
 	if (strEQ("initial", component)) {
-		retval = initial;
+		retval = scaledInitial;
 	} else if (strEQ("transition", component)) {
-		retval = transition;
+		retval = scaledTransition;
 	}
 	return retval;
 }
