@@ -380,8 +380,7 @@ void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::
 	}
 }
 
-//TODO: rewrite this and evalNewPoint() using templates for Eigen-library classes, 
-//to avoid copying rows of 'vertices' to temporary Eigen::Vectors:
+
 void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, int infeas)
 {
 	Eigen::Vector2i ifcr;
@@ -523,9 +522,9 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		}
 	}
 	else{
-		//TODO: regular simplex for edge length other than 1.0
-		double shhp = (1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
-		double shhq = (1/n/sqrt(2))*(sqrt(1.0+n)-1);
+		//TODO: check this math:
+		double shhp = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
+		double shhq = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(sqrt(1.0+n)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
@@ -602,7 +601,7 @@ void NelderMeadOptimizerContext::fullSort()
 	std::vector<Eigen::VectorXd> tmpVertices = vertices;
 	//If we don't care about tie-breaking rules:
 	if( (fvals.tail(n).array() < fvals[0]).any() ){
-		unchangedx0Count = 0;
+		//unchangedx0count = 0;
 		rsort_with_index(fvals.data(), ind.data(), n+1);
 		for(i=0; i<n+1; i++){
 			vertices[i] = tmpVertices[ind[i]];
@@ -610,6 +609,7 @@ void NelderMeadOptimizerContext::fullSort()
 		}
 	}
 	else{
+		//unchangedx0count++;
 		ind = ind.tail(n);
 		Eigen::VectorXd fvals_tail = fvals.tail(n);
 		rsort_with_index(fvals_tail.data(), ind.data(), n);
@@ -619,6 +619,19 @@ void NelderMeadOptimizerContext::fullSort()
 			vertexInfeas[i] = tmpVertexInfeas[ind[i-1]];
 		}
 	}
+	//Calculate centroids:
+	subcentroid.setZero(n);
+	eucentroidCurr.setZero(n+1);
+	for(i=0; i<n+1; i++){
+		eucentroidCurr += vertices[i] / (n+1);
+		if(i<n){subcentroid += vertices[i] / n;}
+	}
+	Eigen::Vector2i scfcr;
+	scfcr.setZero();
+	checkNewPointInfeas(subcentroid, scfcr);
+	badsc = (scfcr.sum()) ? 1 : 0;
+	
+	needFullSort = false;
 	return;
 }
 
@@ -629,7 +642,7 @@ void NelderMeadOptimizerContext::fastSort()
 	std::vector<Eigen::VectorXd> tmpVertices = vertices;
 	Eigen::VectorXd tmpFvals = fvals;
 	if(tmpFvals[n]<tmpFvals[0]){
-		unchangedx0Count = 0;
+		//unchangedx0count = 0;
 		fvals[0] = tmpFvals[n];
 		vertices[0] = tmpVertices[n];
 		vertexInfeas[0] = tmpVertexInfeas[n];
@@ -640,6 +653,7 @@ void NelderMeadOptimizerContext::fastSort()
 		}
 	}
 	else{
+		//unchangedx0count++;
 		for(i=n-1; i>0; i--){
 			if(tmpFvals[n]>=tmpFvals[i]){
 				fvals[i] = tmpFvals[i];
@@ -659,11 +673,24 @@ void NelderMeadOptimizerContext::fastSort()
 			vertexInfeas[j] = tmpVertexInfeas[j+1];
 		}
 	}
+	//TODO: this could be made faster, since we do fastSort() only when one vertex of the simplex has changed:
+	subcentroid.setZero(n);
+	eucentroidCurr.setZero(n+1);
+	for(i=0; i<n+1; i++){
+		eucentroidCurr += vertices[i] / (n+1);
+		if(i<n){subcentroid += vertices[i] / n;}
+	}
+	Eigen::Vector2i scfcr;
+	scfcr.setZero();
+	checkNewPointInfeas(subcentroid, scfcr);
+	badsc = (scfcr.sum()) ? 1 : 0;
+	return;
 }
 
 
 void NelderMeadOptimizerContext::simplexTransformation()
 {
+	failedContraction = false;
 	//Reflection transformation:
 	xr = subcentroid + NMobj->alpha*(subcentroid - vertices[n]);
 	evalNewPoint(xr, subcentroid, fr, badr, badsc);
@@ -719,6 +746,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				return;
 			}
 			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
+				failedContraction = true;
 				//Accept reflection point:
 				fvals[n] = fr;
 				vertices[n] = xr;
@@ -746,7 +774,10 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				needFullSort=false;
 				return;
 			}
-			//else if(sigma<=0)
+			else if(NMobj->sigma<=0){
+				failedContraction = true;
+				return;
+			}
 		}
 		//Shrink transformation:
 		if(NMobj->sigma>0){
@@ -764,44 +795,110 @@ void NelderMeadOptimizerContext::simplexTransformation()
 }
 
 
-//void NelderMeadOptimizerContext::
+bool NelderMeadOptimizerContext::checkConvergence(){
+	int i=0;
+	Eigen::VectorXd xdiffs(n);
+	Eigen::VectorXd fdiffs(n);
+	//Range-convergence test:
+	for(i=1; i<n+1; i++){
+		fdiffs[i] = fabs(fvals[i] - fvals[0]);
+	}
+	if(fdiffs.array().maxCoeff() < NMobj->fTolProx){
+		return(true);
+	}
+	//Domain-convergence test:
+	for(i=1; i<n+1; i++){
+		xdiffs[i] = (vertices[i] - vertices[0]).array().abs().maxCoeff();
+	}
+	if(xdiffs.array().maxCoeff() < NMobj->xTolProx){
+		return(true);
+	}
+	return(false);
+}
+
+
+bool NelderMeadOptimizerContext::checkProgress(){
+	const double myPI	=	3.141592653589793238462643383280;
+	//bool needrestart = false;
+	Eigen::VectorXd d1, d2;
+	double t;
+	int i, j, k;
+	if(failedContraction && NMobj->sigma<=0){
+		return(true);
+	}
+	if(NMobj->stagnationCtrl[0]>0 && NMobj->stagnationCtrl[1]>0 && 
+    unchangedx0count>=NMobj->stagnationCtrl[0] && NMobj->stagnationCtrl[1]<restartsUsed){
+		return(true);
+	}
+	if(NMobj->degenLimit>0){
+		for(i=0; i<n+1; i++){
+			for(j=0; j<n; j++){
+				if(j==i){continue;}
+				for(k=j+1; k<n+1; k++){
+					d1 = vertices[i] - vertices[j];
+					d2 = vertices[i] - vertices[k];
+					t = acos( d1.dot(d2) / sqrt(d1.dot(d1)) / sqrt(d2.dot(d2)) );
+					if(t < NMobj->degenLimit || myPI - t < NMobj->degenLimit){
+						return(true);
+					}
+				}
+			}
+		}
+	}
+	return(false);
+}
 
 
 void NelderMeadOptimizerContext::invokeNelderMead(){
-	int i=0;
+	//int i=0;
 	n = numFree - numEqC;
 	vertices.resize(n+1);
 	fvals.resize(n+1);
 	vertexInfeas.resize(n+1);
 	subcentroid.resize(n);
+	eucentroidCurr.resize(n+1);
 	initializeSimplex(est, NMobj->iniSimplexEdge, false);
 	if(vertexInfeas.sum()==n+1 || (fvals.array()==NMobj->bignum).all()){
 		Rf_error("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
 	}
-	needFullSort=true;
+	fullSort();
+	needFullSort=false;
+	bool needRestart = false;
 	bool stopflag=false;
 	itersElapsed = 0;
+	restartsUsed = 0;
 	
+	//Loop is: sort, check convergence, check progress, transform;
 	do{
-		//Reset objects as needed for new iteration:
-		feasCheckResults.setZero();
-		
-		//Order the vertices by fit value:
-		if(needFullSort){fullSort();}
-		else{fastSort();}
-		
-		//Calculate subcentroid:
-		subcentroid.setZero(n);
-		for(i=0; i<n; i++){
-			subcentroid += vertices[i] / n;
+		if(itersElapsed){
+			//Order the vertices by fit value:
+			if(needFullSort){fullSort();}
+			else{fastSort();}
+			
+			stopflag = checkConvergence();
+			if(stopflag){break;}
+			
+			needRestart = checkProgress();
+			if(needRestart){
+				initializeSimplex(vertices[0], sqrt((vertices[0]-vertices[1]).dot(vertices[0]-vertices[1])), true);
+				needRestart = false;
+				itersElapsed++;
+				continue;
+			}
 		}
-		checkNewPointInfeas(subcentroid, feasCheckResults);
-		badsc = (feasCheckResults.sum()) ? 1 : 0;
 		
 		simplexTransformation();
 		
-		Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");	
+		eucentroidPrev = eucentroidCurr;
+		itersElapsed++;
+		if(itersElapsed >= NMobj->maxIter){
+			stopflag = true;
+		}
 	} while (!stopflag);
+	
+	mxPrintMat("solution",vertices[0]);
+	
+	Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
 	
 }
 

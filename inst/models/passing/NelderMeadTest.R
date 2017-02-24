@@ -15,21 +15,22 @@
 
 library(OpenMx)
 foo <- mxComputeNelderMead()
+foo$verbose <- 5L
 plan <- omxDefaultComputePlan()
 plan$steps <- list(foo,plan$steps$RE)
 
-data(demoOneFactor)
-manifests <- names(demoOneFactor)
-latents <- c("G")
-factorModel <- mxModel("OneFactor",
-											 type="RAM",
-											 plan,
-											 manifestVars = manifests,
-											 latentVars = latents,
-											 mxPath(from=latents, to=manifests),
-											 mxPath(from=manifests, arrows=2),
-											 mxPath(from=latents, arrows=2,
-											 			 free=FALSE, values=1.0),
-											 mxData(cov(demoOneFactor), type="cov",
-											 			 numObs=500))
-omxCheckError(mxRun(factorModel),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")
+set.seed(1611150)
+x <- matrix(rnorm(1000,sd=2))
+colnames(x) <- "x"
+
+varmod <- mxModel(
+	"mod",
+	plan,
+	mxData(observed=x,type="raw"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,labels="mu",name="Mu"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
+	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
+	mxAlgebra(sqrt(Sigma2),name="Sigma"),
+	mxFitFunctionML()
+)
+omxCheckError(mxRun(varmod),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")

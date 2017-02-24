@@ -72,6 +72,8 @@ public:
 	int itersElapsed;
 	double fr, fe, foc, fic;
 	int badr, bade, badoc, badic, badsc;
+	int restartsUsed;
+	bool failedContraction;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -87,6 +89,8 @@ public:
 	void fullSort();
 	void fastSort();
 	void simplexTransformation();
+	bool checkConvergence();
+	bool checkProgress();
 	/*void restart();
 	void validationRestart();*/
 	
@@ -106,7 +110,7 @@ public:
 	
 	bool needFullSort;
 	//double avgFitValPrev, avgFitValCurr;
-	int restartCount, unchangedx0Count;
+	int restartCount, unchangedx0count;
 	
 	
 	
