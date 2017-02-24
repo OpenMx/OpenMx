@@ -24,13 +24,14 @@ This function creates the Kalman predicted, Kalman updated, and Rauch-Tung-Strie
 }
 
 \usage{
-mxKalmanScores(model, data=NA)
+mxKalmanScores(model, data=NA, frontend=TRUE)
 }
 
 
 \arguments{
    \item{model}{An MxModel object with an MxExpectationStateSpace.}
    \item{data}{An optional data.frame or matrix.}
+   \item{frontend}{When TRUE, compute score in the frontend, otherwise use the backend.}
 }
 
 \details{

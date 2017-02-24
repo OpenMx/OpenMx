@@ -522,8 +522,21 @@ KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P, ct=FALSE, dt=0){
 	}
 }
 
+kalmanBackendScoreHelper <- function(model, data){
+	if(!single.na(data)){
+		model@data <- data
+	}
+	model <- omxSetParameters(model, labels=names(coef(model)), free=FALSE)
+	model <- mxModel(model=model, name='KalmanScoring',
+		mxExpectationStateSpace())
+}
 
-mxKalmanScores <- function(model, data=NA){
+mxKalmanScores <- function(model, data=NA, frontend=TRUE){
+	if(!frontend){
+		stop("Backend Kalman scores are not yet implemented.")
+		#backendScores <- kalmanBackendScoreHelper(model, data)
+		#return(backendScores)
+	}
 	message("Computing Kalman scores in frontend R.  This may take a few seconds.")
 	if(single.na(data)) {
 		#TODO check that data are raw
