@@ -58,21 +58,10 @@ namespace MarkovFF {
 			}
 		}
 
-		EigenMatrixAdaptor Einitial(st->initial);
-		Eigen::VectorXd expect = Einitial;
-		expect /= expect.sum();
-		if (st->verbose >= 3) mxPrintMat("expect", expect);
-
-		if (st->transition) {
-			EigenArrayAdaptor Etransition(st->transition);
-			Eigen::ArrayXd v = Etransition.colwise().sum();
-			Etransition.colwise() /= v;
-			if (st->verbose >= 3) mxPrintMat("transition", Etransition);
-		}
-
+		EigenVectorAdaptor Einitial(st->initial);
+		Eigen::VectorXd expect(Einitial);
 		Eigen::VectorXd tp(components.size());
 		double lp=0;
-		double rowp=1;
 		for (int rx=0; rx < nrow; ++rx) {
 			for (int cx=0; cx < int(components.size()); ++cx) {
 				EigenVectorAdaptor Ecomp(components[cx]);
@@ -80,11 +69,14 @@ namespace MarkovFF {
 			}
 			if (st->verbose >= 4) mxPrintMat("tp", tp);
 			if (st->transition) {
+				if (expectation->loadDefVars(rx)) {
+					omxExpectationCompute(fc, expectation, NULL);
+				}
 				EigenMatrixAdaptor Etransition(st->transition);
 				expect = (Etransition * expect).eval();
 			}
 			expect = tp.array() * expect.array();
-			rowp = expect.sum();
+			double rowp = expect.sum();
 			expect /= rowp;
 			lp += log(rowp);
 		}

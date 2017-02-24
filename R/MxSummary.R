@@ -47,7 +47,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 			return(list(expectation@numStats, historySet))
 		}
 	}
-	if (is.na(expectation@data) || is.null(expectation@data)) {
+	if (length(expectation@data)==0 || is.na(expectation@data) || !.hasSlot(expectation, 'dims')) {
 		return(list(0, historySet))
 	}
 	if (is.numeric(expectation@data)) {
