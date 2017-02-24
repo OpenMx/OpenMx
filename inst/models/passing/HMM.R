@@ -3,6 +3,9 @@ library(OpenMx)
 start_prob <- c(.2,.4,.4)
 transition_prob <- matrix(.1,3,3)
 diag(transition_prob) <- .8
+transition_prob <- matrix(c(.8, .1, .1,
+							.3, .6, .1,
+							.1, .3, .6), 3, 3)
 
 # simulate a trajectory
 state <- sample.int(3, 1, prob=start_prob)
@@ -43,8 +46,10 @@ summary(hmmFit)
 
 start <- mxEval(startFull, hmmFit, compute=T)
 start <- start / sum(start)
+start
 print(head(trailN))
 
 transition <- mxEval(transitionFull, hmmFit, compute=T)
 transition <- t(t(transition) / colSums(transition))
-print(transition)
+print(transition) # estimated
+transition_prob # true
