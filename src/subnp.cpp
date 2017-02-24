@@ -417,7 +417,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             
             
             if (llist.maxCoeff() <= 0){
-                lambda_e.resize(1, 1); lambda_e(0, 0) = 0;
+                lambda_e.setZero();
                 hessv_e = hessv_e.diagonal().asDiagonal();
             }
             
