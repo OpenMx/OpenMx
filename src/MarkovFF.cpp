@@ -71,21 +71,22 @@ namespace MarkovFF {
 		}
 
 		Eigen::VectorXd tp(components.size());
-		Eigen::VectorXd phi;
 		double lp=0;
+		double rowp=1;
 		for (int rx=0; rx < nrow; ++rx) {
 			for (int cx=0; cx < int(components.size()); ++cx) {
 				EigenVectorAdaptor Ecomp(components[cx]);
 				tp[cx] = Ecomp[rx];
 			}
 			if (st->verbose >= 4) mxPrintMat("tp", tp);
-			phi = tp.array() * expect.array();
-			lp += log(phi.sum());
 			if (st->transition) {
 				EigenMatrixAdaptor Etransition(st->transition);
-				expect = (Etransition * phi).eval();
-				expect /= expect.sum();
+				expect = (Etransition * expect).eval();
 			}
+			expect = tp.array() * expect.array();
+			rowp = expect.sum();
+			expect /= rowp;
+			lp += log(rowp);
 		}
 		oo->matrix->data[0] = Global->llScale * lp;
 		if (st->verbose >= 2) mxLog("%s: fit=%f", oo->name(), lp);
