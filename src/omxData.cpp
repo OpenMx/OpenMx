@@ -718,6 +718,7 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 		mxLog("Load data %f into %s[%d,%d], state[%d]",
 		      val, mat->name(), row, col, state->getId());
 	}
+	omxMarkClean(mat);
 	markDefVarDependencies(state, this);
 	return true;
 }

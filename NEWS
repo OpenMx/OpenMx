@@ -2,6 +2,7 @@
 * NEW: mxAutoStart Get automatic starting values.
 * NEW: "Auto" mxOption values.
 * NEW: omxNudgeZeroStarts helper function
+* NEW: Hidden Markov models with mxExpectationHiddenMarkov
 * IMPROVED: Summary table is easier to read and more informative
 * IMPROVED: Rampart uses much less memory on large datasets.
 * FIXED: mxKalmanScores are now correct for continuous time state space models.

@@ -306,6 +306,11 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 		return;
 	}
 
+	if (strEQ(expectation->expType, "MxExpectationHiddenMarkov")) {
+		InitMarkovFF(oo);
+		return;
+	}
+
 	if(OMX_DEBUG) { mxLog("Initializing ML fit function."); }
 
 	oo->computeFun = omxCallMLFitFunction;
