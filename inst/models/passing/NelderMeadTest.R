@@ -18,12 +18,27 @@ foo <- mxComputeNelderMead()
 foo$verbose <- 5L
 foo$maxIter = 3000L
 foo$iniSimplexType <- "smartRight"
+foo$nudgeZeroStarts <- FALSE
 plan <- omxDefaultComputePlan()
 plan$steps <- list(foo,plan$steps$RE)
 
 set.seed(1611150)
 x <- matrix(rnorm(1000,sd=2))
 colnames(x) <- "x"
+
+print(mean(x))
+print(var(x))
+
+varmodGD <- mxModel(
+	"mod",
+	mxData(observed=x,type="raw"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,labels="mu",name="Mu"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
+	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
+	mxAlgebra(sqrt(Sigma2),name="Sigma"),
+	mxFitFunctionML()
+)
+varrunGD <- mxRun(varmodGD)
 
 varmod <- mxModel(
 	"mod",
@@ -36,3 +51,7 @@ varmod <- mxModel(
 	mxFitFunctionML()
 )
 omxCheckError(mxRun(varmod),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")
+
+print(mean(x))
+print(var(x))
+varrunGD$output$estimate

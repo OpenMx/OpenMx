@@ -32,6 +32,8 @@
 
 #include "EnableWarnings.h"
 
+static const char engineName[] = "NldrMd";
+
 
 class omxCompute *newComputeNelderMead()
 {
@@ -411,6 +413,8 @@ void NelderMeadOptimizerContext::evalEqC()
 double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 {
 	copyParamsFromOptimizer(x,fc);
+	//int want |= FF_COMPUTE_FIT;
+	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
 	if(!std::isfinite(fc->fit)){return(NMobj->bignum);}
 	else{
 		double fv = fc->fit;
@@ -449,7 +453,7 @@ void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::
 }
 
 
-void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, int infeas)
+void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas)
 {
 	Eigen::Vector2i ifcr;
 	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
@@ -497,7 +501,7 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double fv, i
 }
 
 //oldpt is used for backtracking:
-void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int newInfeas, int oldInfeas)
+void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double &fv, int &newInfeas, int oldInfeas)
 {
 	Eigen::Vector2i ifcr;
 	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
@@ -561,6 +565,8 @@ void NelderMeadOptimizerContext::printProblemState()
 {
 	int i=0;
 	Eigen::MatrixXd tmpvrt(n+1,n);
+	//Eigen::VectorXd tmpvi(n+1);
+	//tmpvi = (Eigen::VectorXd) vertexInfeas;
 	for(i=0; i<n+1; i++){tmpvrt.row(i) = vertices[i];}
 	mxPrintMat("working simplex:",tmpvrt);
 	mxPrintMat("fitfunction values:",fvals);
@@ -574,7 +580,7 @@ void NelderMeadOptimizerContext::printNewPoint(Eigen::VectorXd &x, double fv, in
 	mxLog("infeasible?: %d",isbad);
 }
 
-void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart)
+void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, double edgeLength, bool isRestart)
 {
 	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
@@ -632,7 +638,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 			vertices[0] = startpt;
 			for(i=1; i<n+1; i++){
 				vertices[i] = vertices[0];
-				vertices[i][i-1] = vertices[0][i-1]+edgeLength;
+				vertices[i][i-1] += edgeLength;
 			}
 			break;
 		case 3:
@@ -700,13 +706,13 @@ void NelderMeadOptimizerContext::fullSort()
 	}
 	else{
 		unchangedx0count++;
-		ind = ind.tail(n);
+		Eigen::VectorXi ind_tail = ind.tail(n);
 		Eigen::VectorXd fvals_tail = fvals.tail(n);
-		rsort_with_index(fvals_tail.data(), ind.data(), n);
+		rsort_with_index(fvals_tail.data(), ind_tail.data(), n);
 		for(i=1; i<n+1; i++){
 			fvals[i] = fvals_tail[i-1];
-			vertices[i] = tmpVertices[ind[i-1]];
-			vertexInfeas[i] = tmpVertexInfeas[ind[i-1]];
+			vertices[i] = tmpVertices[ind_tail[i-1]];
+			vertexInfeas[i] = tmpVertexInfeas[ind_tail[i-1]];
 		}
 	}
 	//Calculate centroids:
@@ -748,26 +754,33 @@ void NelderMeadOptimizerContext::fastSort()
 	}
 	else{
 		unchangedx0count++;
-		for(i=n-1; i>0; i--){
-			if(tmpFvals[n]>=tmpFvals[i]){
-				fvals[i] = tmpFvals[i];
-				vertices[i] = tmpVertices[i];
-				vertexInfeas[i] = tmpVertexInfeas[i];
+		for(i=n-1; i>=0; i--){
+			if(tmpFvals[i] > tmpFvals[n]){
+				fvals[i+1] = tmpFvals[i];
+				vertices[i+1] = tmpVertices[i];
+				vertexInfeas[i+1] = tmpVertexInfeas[i];
 			}
 			else{
-				fvals[i] = tmpFvals[n];
-				vertices[i] = tmpVertices[n];
-				vertexInfeas[i] = tmpVertexInfeas[n];
+				fvals[i+1] = tmpFvals[n];
+				vertices[i+1] = tmpVertices[n];
+				vertexInfeas[i+1] = tmpVertexInfeas[n];
 				break;
 			}
 		}
-		for(j=i-1; j>0; i--){
-			fvals[j] = tmpFvals[j+1];
-			vertices[j] = tmpVertices[j+1];
-			vertexInfeas[j] = tmpVertexInfeas[j+1];
+		/*if(i<=0){
+			fvals[0] = tmpFvals[n];
+			vertices[0] = tmpVertices[n];
+			vertexInfeas[0] = tmpVertexInfeas[n];
+		}*/
+		//else{
+			for(j=i; j>=0; j--){
+				fvals[j] = tmpFvals[j];
+				vertices[j] = tmpVertices[j];
+				vertexInfeas[j] = tmpVertexInfeas[j];
+			//}
 		}
 	}
-	//TODO: this could be made faster, since we do fastSort() only when one vertex of the simplex has changed:
+	//TODO: this could be made faster, since we do fastSort() when only one vertex of the simplex has changed:
 	subcentroid.setZero(n);
 	eucentroidCurr.setZero(n+1);
 	for(i=0; i<n+1; i++){
@@ -790,6 +803,7 @@ void NelderMeadOptimizerContext::fastSort()
 void NelderMeadOptimizerContext::simplexTransformation()
 {
 	failedContraction = false;
+	oldWorstVertex = vertices[n];
 	//Reflection transformation:
 	xr = subcentroid + NMobj->alpha*(subcentroid - vertices[n]);
 	evalNewPoint(xr, subcentroid, fr, badr, badsc);
@@ -854,7 +868,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				evalNewPoint(xoc, vertices[0], foc, badoc, vertexInfeas[0]);
 			}
 			if(verbose){
-				mxLog("outside reflection point...");
+				mxLog("outside contraction point...");
 				printNewPoint(xoc, foc, badoc);
 			}
 			if(foc<=fr){ //<--If fit at xoc is no worse than fit at reflection point
@@ -888,7 +902,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				evalNewPoint(xic, vertices[0], fic, badic, vertexInfeas[0]);
 			}
 			if(verbose){
-				mxLog("inside reflection point...");
+				mxLog("inside contraction point...");
 				printNewPoint(xic, fic, badic);
 			}
 			if(fic<fvals[n]){ //<--If fit at xic is better than worst fit
@@ -927,18 +941,23 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 	int i=0;
 	Eigen::VectorXd xdiffs(n);
 	Eigen::VectorXd fdiffs(n);
+	double fprox, xprox;
 	//Range-convergence test:
 	for(i=1; i<n+1; i++){
 		fdiffs[i] = fabs(fvals[i] - fvals[0]);
 	}
-	if(fdiffs.array().maxCoeff() < NMobj->fTolProx){
+	fprox = fdiffs.array().maxCoeff();
+	if(verbose){mxLog("range proximity measure: %f",fprox);}
+	if(fprox < NMobj->fTolProx){
 		return(true);
 	}
 	//Domain-convergence test:
 	for(i=1; i<n+1; i++){
 		xdiffs[i] = (vertices[i] - vertices[0]).array().abs().maxCoeff();
 	}
-	if(xdiffs.array().maxCoeff() < NMobj->xTolProx){
+	xprox = xdiffs.array().maxCoeff();
+	if(verbose){mxLog("domain proximity measure: %f",xprox);}
+	if(xprox < NMobj->xTolProx){
 		return(true);
 	}
 	return(false);

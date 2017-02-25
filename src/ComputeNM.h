@@ -22,10 +22,10 @@
 
 class omxComputeNM : public omxCompute {
 	typedef omxCompute super;
-	omxMatrix *fitMatrix;
 	bool nudge;
 	
 public:
+	omxMatrix *fitMatrix;
 	int verbose;
 	int maxIter;
 	bool defaultMaxIter;
@@ -82,11 +82,11 @@ public:
 	void evalEqC();
 	double evalFit(Eigen::VectorXd &x);
 	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
-	void evalFirstPoint(Eigen::VectorXd &x, double fv, int infeas);
-	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double fv, int newInfeas, int oldInfeas);
+	void evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas);
+	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double &fv, int &newInfeas, int oldInfeas);
 	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
 	void invokeNelderMead();
-	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart);
+	void initializeSimplex(Eigen::VectorXd &startpt, double edgeLength, bool isRestart);
 	void fullSort();
 	void fastSort();
 	void simplexTransformation();
@@ -110,6 +110,7 @@ public:
 	Eigen::VectorXd subcentroid;
 	Eigen::VectorXd eucentroidPrev, eucentroidCurr;
 	Eigen::VectorXd xr, xe, xoc, xic;
+	Eigen::VectorXd oldWorstVertex;
 	
 	bool needFullSort;
 	//double avgFitValPrev, avgFitValCurr;
