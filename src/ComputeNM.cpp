@@ -67,11 +67,11 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'nudgeZeroStarts' is %d", nudge);
 	}
 	
-	//ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("defaultMaxIter")));
-	//defaultMaxIter = Rf_asLogical(slotValue);
+	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("defaultMaxIter")));
+	defaultMaxIter = Rf_asLogical(slotValue);
 	
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
-	if(Rf_isNull(slotValue)){maxIter = Global->majorIterations * 5;}
+	if(defaultMaxIter){maxIter = Global->majorIterations * 5;}
 	else{maxIter = Rf_asInteger(slotValue);}
 	if(verbose){
 		mxLog("omxComputeNM member 'maxIter' is %d", maxIter);
@@ -564,7 +564,7 @@ void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::Vector
 void NelderMeadOptimizerContext::printProblemState()
 {
 	int i=0;
-	Eigen::MatrixXd tmpvrt(n+1,n);
+	Eigen::MatrixXd tmpvrt(n+1,numFree);
 	//Eigen::VectorXd tmpvi(n+1);
 	//tmpvi = (Eigen::VectorXd) vertexInfeas;
 	for(i=0; i<n+1; i++){tmpvrt.row(i) = vertices[i];}
@@ -590,13 +590,13 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 		if(NMobj->iniSimplexMtx.cols() != numFree){
 			Rf_error("'iniSimplexMtx' has %d columns, but %d columns expected",NMobj->iniSimplexMtx.cols(), numFree);
 		}
-		if(NMobj->iniSimplexMtx.rows()>n){
-			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMtx.rows(), n);
+		if(NMobj->iniSimplexMtx.rows()>n+1){
+			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMtx.rows(), n+1);
 			NMobj->iniSimplexMtx.conservativeResize(n,numFree);
 		}
-		if(NMobj->iniSimplexMtx.rows()<n){
-			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMtx.rows(),n);
-			SiniSupp.resize(n - NMobj->iniSimplexMtx.rows(), numFree);
+		if(NMobj->iniSimplexMtx.rows()<n+1){
+			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMtx.rows(),n+1);
+			SiniSupp.resize(n + 1 - NMobj->iniSimplexMtx.rows(), numFree);
 			xin=NMobj->iniSimplexMtx.row(0);
 			for(i=0; i<SiniSupp.rows(); i++){
 				xout=SiniSupp.row(i);
@@ -617,17 +617,19 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 		//TODO: regular simplex for other than unit edge-length:
 		//double shhp = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
 		//double shhq = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(sqrt(1.0+n)-1);
-		double shhp = (1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
-		double shhq = (1/n/sqrt(2))*(sqrt(1.0+n)-1);
+		double k = (double) n;
+		double shhp = (1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
+		double shhq = (1/k/sqrt(2))*(sqrt(1.0+k)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
 		switch(NMobj->iniSimplexType){
 		case 1:
-			for(i=0; i<n+1; i++){vertices[i].setZero(numFree);}
+			//for(i=0; i<n+1; i++){vertices[i].setZero(numFree);}
 			//vertices.setZero(n,numFree);
+			vertices[0].setZero(numFree);
 			for(i=1; i<n+1; i++){
-				vertices[i].setConstant(shhq);
+				vertices[i].setConstant(numFree,shhq);
 				vertices[i][i-1] = shhp;
 			}
 			for(i=0; i<n+1; i++){
@@ -666,7 +668,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 			vertices[0] = startpt;
 			//xin=vertices.row(0);
 			for(i=1; i<n+1; i++){
-				//xout=vertices.row(i);
+				vertices[i].setZero(numFree);
 				jiggleCoord(vertices[0],vertices[i]);
 				//vertices.row(i)=xout;
 			}
@@ -716,8 +718,8 @@ void NelderMeadOptimizerContext::fullSort()
 		}
 	}
 	//Calculate centroids:
-	subcentroid.setZero(n);
-	eucentroidCurr.setZero(n+1);
+	subcentroid.setZero(numFree);
+	eucentroidCurr.setZero(numFree);
 	for(i=0; i<n+1; i++){
 		eucentroidCurr += vertices[i] / (n+1);
 		if(i<n){subcentroid += vertices[i] / n;}
@@ -926,7 +928,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 			std::vector<Eigen::VectorXd> tmpVertices = vertices;
 			Eigen::VectorXi tmpVertexInfeas = vertexInfeas;
 			for(i=1; i<n+1; i++){
-				vertices[i] = vertices[i] + NMobj->sigma*(vertices[i] - vertices[0]);
+				vertices[i] = vertices[0] + NMobj->sigma*(vertices[i] - vertices[0]);
 				evalNewPoint(vertices[i], tmpVertices[i], fvals[i], vertexInfeas[i], tmpVertexInfeas[i]);
 			}
 			needFullSort=true;
@@ -943,8 +945,8 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 	Eigen::VectorXd fdiffs(n);
 	double fprox, xprox;
 	//Range-convergence test:
-	for(i=1; i<n+1; i++){
-		fdiffs[i] = fabs(fvals[i] - fvals[0]);
+	for(i=0; i<n; i++){
+		fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
 	}
 	fprox = fdiffs.array().maxCoeff();
 	if(verbose){mxLog("range proximity measure: %f",fprox);}
@@ -952,8 +954,8 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 		return(true);
 	}
 	//Domain-convergence test:
-	for(i=1; i<n+1; i++){
-		xdiffs[i] = (vertices[i] - vertices[0]).array().abs().maxCoeff();
+	for(i=0; i<n; i++){
+		xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
 	}
 	xprox = xdiffs.array().maxCoeff();
 	if(verbose){mxLog("domain proximity measure: %f",xprox);}
@@ -1002,8 +1004,8 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	vertices.resize(n+1);
 	fvals.resize(n+1);
 	vertexInfeas.resize(n+1);
-	subcentroid.resize(n);
-	eucentroidCurr.resize(n+1);
+	subcentroid.resize(numFree);
+	eucentroidCurr.resize(numFree);
 	initializeSimplex(est, NMobj->iniSimplexEdge, false);
 	if(vertexInfeas.sum()==n+1 || (fvals.array()==NMobj->bignum).all()){
 		Rf_error("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
