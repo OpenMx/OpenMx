@@ -156,7 +156,7 @@ See \code{\link{mxModel}()}, as almost all uses of \code{mxOption()} are via an 
 
 \examples{
 # set the Numbder of Threads (cores to use)
-mxOption(NULL, "Number of Threads", detectCores() - 1)
+mxOption(NULL, "Number of Threads", parallel::detectCores() - 1)
 
 testModel <- mxModel(model = "testModel") # make a model to use for example
 testModel$options   # show the model options (none yet)
