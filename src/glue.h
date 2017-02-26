@@ -62,6 +62,8 @@ SEXP dtmvnorm_marginal2(SEXP Rxq, SEXP Rxr, SEXP Rq, SEXP Rr,
 			SEXP Rsigma, SEXP Rlower, SEXP Rupper);
 SEXP mtmvnorm(SEXP sigma, SEXP lower, SEXP upper);
 
+void friendlyStringToLogical(const char *key, SEXP rawValue, int *out);
+
 #ifndef M_LN_2PI
 #define M_LN_2PI        1.837877066409345483560659472811        /* log(2*pi) */
 #endif

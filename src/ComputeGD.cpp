@@ -371,7 +371,7 @@ class omxComputeGD : public omxCompute {
 
 	bool useGradient;
 	SEXP hessChol;
-	bool nudge;
+	int nudge;
 
 	int warmStartSize;
 	double *warmStart;
@@ -439,7 +439,8 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
-	nudge = Rf_asLogical(slotValue);
+	nudge = false;
+	friendlyStringToLogical("nudgeZeroStarts", slotValue, &nudge);
 
 	ScopedProtect p6(slotValue, R_do_slot(rObj, Rf_install("warmStart")));
 	if (!Rf_isNull(slotValue)) {

@@ -299,8 +299,7 @@ SEXP MxRList::asR()
 	return ans;
 }
 
-static void
-friendlyStringToLogical(const char *key, SEXP rawValue, int *out)
+void friendlyStringToLogical(const char *key, SEXP rawValue, int *out)
 {
 	if (TYPEOF(rawValue) == LGLSXP) {
 		*out = Rf_asLogical(rawValue);
