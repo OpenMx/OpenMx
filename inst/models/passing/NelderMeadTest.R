@@ -14,19 +14,24 @@
 #   limitations under the License.
 
 library(OpenMx)
+#No need to run this test with other than the on-load default GD optimizer:
+if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 #Need to use stricter convergence tolerances to avoid status Red:
 foo <- mxComputeNelderMead(iniSimplexType="smartRight", nudgeZeroStarts=FALSE, xTolProx=1e-8, fTolProx=1e-8)
 #foo$verbose <- 5L
 plan <- omxDefaultComputePlan()
 plan$steps$GD <- foo
 
+#Simulate data:
 set.seed(1611150)
 x <- matrix(rnorm(1000,sd=2))
 colnames(x) <- "x"
 
+#Summary statistics:
 print(mean(x))
 print(var(x))
 
+#Run with CSOLNP:
 varmodGD <- mxModel(
 	"mod",
 	mxData(observed=x,type="raw"),
@@ -38,6 +43,7 @@ varmodGD <- mxModel(
 )
 varrunGD <- mxRun(varmodGD)
 
+#Run with custom NM compute plan:
 varmod <- mxModel(
 	"mod",
 	plan,
@@ -50,6 +56,16 @@ varmod <- mxModel(
 )
 varrun <- mxRun(varmod)
 
-c(mean(x),var(x))
+#Tests:
+c(mean(x),var(x)*999/1000)
 varrunGD$output$estimate
 varrun$output$estimate
+omxCheckCloseEnough(varrun$output$estimate, c(mean(x),var(x)*999/1000), 1e-5)
+
+varrunGD$output$fit
+varrun$output$fit
+omxCheckCloseEnough(varrunGD$output$fit, varrun$output$fit, 1e-4)
+
+varrunGD$output$standardErrors
+varrun$output$standardErrors
+omxCheckCloseEnough(varrunGD$output$standardErrors, varrun$output$standardErrors, 1e-5)
