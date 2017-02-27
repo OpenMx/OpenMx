@@ -168,12 +168,12 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'degenLimit' is %f", degenLimit);
 	}
 	
-	ScopedProtect p17(slotValue, R_do_slot(rObj, Rf_install("stagnationCtrl")));
-	if(Rf_length(slotValue)!=2){Rf_error("'stagnationCtrl' must be an integer vector of length 2");}
-	stagnationCtrl[0] = INTEGER(slotValue)[0];
-	stagnationCtrl[1] = INTEGER(slotValue)[1];
+	ScopedProtect p17(slotValue, R_do_slot(rObj, Rf_install("stagnCtrl")));
+	if(Rf_length(slotValue)!=2){Rf_error("'stagnCtrl' must be an integer vector of length 2");}
+	stagnCtrl[0] = INTEGER(slotValue)[0];
+	stagnCtrl[1] = INTEGER(slotValue)[1];
 	if(verbose){
-		mxPrintMat("omxComputeNM member 'stagnationCtrl':", stagnationCtrl);
+		mxPrintMat("omxComputeNM member 'stagnCtrl':", stagnCtrl);
 	}
 	
 	/*ScopedProtect p18(slotValue, R_do_slot(rObj, Rf_install("validationRestart")));
@@ -192,6 +192,12 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	fTolProx = Rf_asReal(slotValue);
 	if(verbose){
 		mxLog("omxComputeNM member 'fTolProx' is %f", fTolProx);
+	}
+	
+	//Prevent user blunder w/r/t convergence criteria:
+	if(xTolProx<=0 && fTolProx<=0){
+		fTolProx = 1e-14;
+		Rf_warning("both 'xTolProx' and 'fTolProx' are non-positive; 'fTolProx' will be assigned a value of 1e-14");
 	}
 	
 	/*ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("doPseudoHessian")));
@@ -956,27 +962,36 @@ void NelderMeadOptimizerContext::simplexTransformation()
 }
 
 
+//TODO:status codes
 bool NelderMeadOptimizerContext::checkConvergence(){
 	int i=0;
 	Eigen::VectorXd xdiffs(n);
 	Eigen::VectorXd fdiffs(n);
 	double fprox, xprox;
 	//Range-convergence test:
-	for(i=0; i<n; i++){
-		fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
-	}
-	fprox = fdiffs.array().maxCoeff();
-	if(verbose){mxLog("range proximity measure: %f",fprox);}
-	if(fprox < NMobj->fTolProx){
-		return(true);
+	if(NMobj->fTolProx > 0){
+		for(i=0; i<n; i++){
+			fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
+		}
+		fprox = fdiffs.array().maxCoeff();
+		if(verbose){mxLog("range proximity measure: %f",fprox);}
+		if(fprox < NMobj->fTolProx){
+			return(true);
+		}
 	}
 	//Domain-convergence test:
-	for(i=0; i<n; i++){
-		xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
+	if(NMobj->fTolProx > 0){
+		for(i=0; i<n; i++){
+			xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
+		}
+		xprox = xdiffs.array().maxCoeff();
+		if(verbose){mxLog("domain proximity measure: %f",xprox);}
+		if(xprox < NMobj->xTolProx){
+			return(true);
+		}
 	}
-	xprox = xdiffs.array().maxCoeff();
-	if(verbose){mxLog("domain proximity measure: %f",xprox);}
-	if(xprox < NMobj->xTolProx){
+	if(itersElapsed >= NMobj->maxIter){
+		//TODO: set code 4 (status blue)
 		return(true);
 	}
 	return(false);
@@ -992,8 +1007,8 @@ bool NelderMeadOptimizerContext::checkProgress(){
 	if(failedContraction && NMobj->sigma<=0){
 		return(true);
 	}
-	if(NMobj->stagnationCtrl[0]>0 && NMobj->stagnationCtrl[1]>0 && 
-    unchangedx0count>=NMobj->stagnationCtrl[0] && NMobj->stagnationCtrl[1]<restartsUsed){
+	if(NMobj->stagnCtrl[0]>0 && NMobj->stagnCtrl[1]>0 && 
+    unchangedx0count>=NMobj->stagnCtrl[0] && NMobj->stagnCtrl[1]<restartsUsed){
 		return(true);
 	}
 	if(NMobj->degenLimit>0){

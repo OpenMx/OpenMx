@@ -1150,11 +1150,11 @@ mxComputeNelderMead <- function(
 	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35, 
 	iniSimplexType=c("regular","right","smartRight","random"),
 	iniSimplexEdge=1, iniSimplexMat=NA, greedyMinimize=FALSE, 
-	altContraction=FALSE, degenLimit=0, stagnationCtrl=c(-1L,-1L),
+	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	#validationRestart=TRUE,
 	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
 	#doPseudoHessian=FALSE,
-	ineqConstraintMthd=c("soft","eqMthd"), 
+	ineqConstraintMthd=c("soft"), 
 	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),
 	eqConstraintMthd=c("soft")){
 	garbageArguments <- list(...)
@@ -1193,8 +1193,8 @@ mxComputeNelderMead <- function(
 	if(degenLimit<0 || degenLimit>pi){
 		stop("'degenLimit' must ge within interval [0,pi]")
 	}
-	if(length(stagnationCtrl)<2){stop("'stagnationCtrl' must be an integer vector of length 2")}
-	stagnationCtrl <- as.integer(stagnationCtrl[1:2])
+	if(length(stagnCtrl)<2){stop("'stagnCtrl' must be an integer vector of length 2")}
+	stagnCtrl <- as.integer(stagnCtrl[1:2])
 	#validationRestart <- as.logical(validationRestart[1])
 	xTolProx <- as.numeric(xTolProx[1])
 	fTolProx <- as.numeric(fTolProx[1])
@@ -1203,7 +1203,7 @@ mxComputeNelderMead <- function(
 	eqConstraintMthd <- as.character(match.arg(eqConstraintMthd,c("soft")))
 	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
 						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
-						 greedyMinimize, altContraction, degenLimit, stagnationCtrl, xTolProx, fTolProx, 
+						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
 						 ineqConstraintMthd, eqConstraintMthd))
 }
 
@@ -1229,7 +1229,7 @@ setClass(
 		greedyMinimize="logical",
 		altContraction="logical",
 		degenLimit="numeric",
-		stagnationCtrl="integer",
+		stagnCtrl="integer",
 		#validationRestart="logical",
 		xTolProx="numeric",
 		fTolProx="numeric",
@@ -1237,11 +1237,13 @@ setClass(
 		ineqConstraintMthd="character",
 		eqConstraintMthd="character"))
 
+#TODO: a user or developer might someday want to directly use this low-level 'initialize' method instead of the high-level constructor function,
+#so typecasting should also occur here:
 setMethod(
 	"initialize", "MxComputeNelderMead",
 	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
 					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
-					 greedyMinimize, altContraction, degenLimit, stagnationCtrl, xTolProx, fTolProx, 
+					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
 					 ineqConstraintMthd, eqConstraintMthd){
 		.Object@name <- 'compute'
 		.Object@.persist <- TRUE
@@ -1266,7 +1268,7 @@ setMethod(
 		.Object@greedyMinimize <- greedyMinimize
 		.Object@altContraction <- altContraction
 		.Object@degenLimit <- degenLimit
-		.Object@stagnationCtrl <- stagnationCtrl
+		.Object@stagnCtrl <- stagnCtrl
 		#.Object@validationRestart <- validationRestart
 		.Object@xTolProx <- xTolProx
 		.Object@fTolProx <- fTolProx

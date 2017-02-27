@@ -14,13 +14,11 @@
 #   limitations under the License.
 
 library(OpenMx)
-foo <- mxComputeNelderMead()
-foo$verbose <- 5L
-foo$maxIter = 3000L
-foo$iniSimplexType <- "smartRight"
-foo$nudgeZeroStarts <- FALSE
+#Need to use stricter convergence tolerances to avoid status Red:
+foo <- mxComputeNelderMead(iniSimplexType="smartRight", nudgeZeroStarts=FALSE, xTolProx=1e-8, fTolProx=1e-8)
+#foo$verbose <- 5L
 plan <- omxDefaultComputePlan()
-plan$steps <- list(foo,plan$steps$RE)
+plan$steps$GD <- foo
 
 set.seed(1611150)
 x <- matrix(rnorm(1000,sd=2))
@@ -51,9 +49,7 @@ varmod <- mxModel(
 	mxFitFunctionML()
 )
 varrun <- mxRun(varmod)
-#omxCheckError(mxRun(varmod),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")
 
-print(mean(x))
-print(var(x))
+c(mean(x),var(x))
 varrunGD$output$estimate
 varrun$output$estimate

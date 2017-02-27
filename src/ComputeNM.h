@@ -37,7 +37,7 @@ public:
 	Eigen::MatrixXd iniSimplexMat;
 	bool greedyMinimize, altContraction;
 	double degenLimit;
-	Eigen::Vector2i stagnationCtrl;
+	Eigen::Vector2i stagnCtrl;
 	bool validationRestart;
 	double xTolProx, fTolProx;
 	bool doPseudoHessian;
