@@ -19,15 +19,15 @@ mxComputeNelderMead(
 	iniSimplexEdge=1, iniSimplexMat=NA, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	xTolProx=1e-4, fTolProx=1e-4,
-	ineqConstraintMthd=c("soft","eqMthd"), 
+	ineqConstraintMthd=c("soft"), 
 	eqConstraintMthd=c("soft"))
 }
 \arguments{
-  \item{freeSet}{Character-string names of \link[MxMatrix]{MxMatrices} containing free parameters.}
+  \item{freeSet}{Character-string names of \link[=MxMatrix]{MxMatrices} containing free parameters.}
   \item{fitfunction}{Character-string name of the fitfunction; defaults to 'fitfunction'.}
   \item{verbose}{Integer level of reporting printed to terminal at \link[mxRun]{runtime}; defaults to 0.}
   \item{nudgeZeroStarts}{Should free parameters with start values of zero be "nudged" to 0.1 at \link[mxRun]{runtime}?  Defaults to the current global value of \link{mxOption} "Nudge zero starts".  May be a logical value, or one of character strings "Yes" or "No".}
-  \item{maxIter}{Integer maximum number of iterations.  Value of \code{NULL} is accepted, in which case the value used at \link[mxRun]{runtime} will be 5 times the number of iterations specified by the effective value of \link{mxOption} "Major iterations".}
+  \item{maxIter}{Integer maximum number of iterations.  Value of \code{NULL} is accepted, in which case the value used at \link[=mxRun]{runtime} will be 5 times the number of iterations specified by the effective value of \link{mxOption} "Major iterations".}
   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
   \item{alpha}{Numeric reflection coefficient.  Must be positive.  Defaults to 1.0.}
   \item{betao, betai}{Numeric outside- and inside-contraction coefficients, respectively.  Both must be within unit interval (0,1).  Both default to 0.5.}
@@ -36,7 +36,7 @@ mxComputeNelderMead(
   \item{bignum}{Numeric value with which the fitfunction value is to be replaced if the fit is non-finite or is evaluated at infeasible parameter values.  Defaults to 1e35.}
   \item{iniSimplexType}{Character string naming the method by which to construct the initial simplex from the free-parameter start values.  Defaults to "regular".}
   \item{iniSimplexEdge}{Numeric edge-length of the initial simplex.  Defaults to 1.0.}
-  \item{iniSimplexMat}{Optional numeric matrix providing the vertices of the initial simplex.  The matrix must have as many columns as there are free parameters in the \link{MxModel}.  The matrix's number of rows must be no less than the number of free parameters minus the number of degrees-of-freedom gained from equality \link[mxConstraint]{constraints}, if any.  If a non-\code{NA} value is provided, argument \code{iniSimplexEdge} is ignored, and argument \code{iniSimplexType} is only used in the case of a restart.}
+  \item{iniSimplexMat}{Optional numeric matrix providing the vertices of the initial simplex.  The matrix must have as many columns as there are free parameters in the \link{MxModel}.  The matrix's number of rows must be no less than the number of free parameters minus the number of degrees-of-freedom gained from equality \link[=mxConstraint]{constraints}, if any.  If a non-\code{NA} value is provided, argument \code{iniSimplexEdge} is ignored, and argument \code{iniSimplexType} is only used in the case of a restart.}
   \item{greedyMinimize}{Logical; should the optimizer use "greedy minimization?"  Defaults to \code{FALSE}.  See below for details.}
   \item{altContraction}{Logical; should the optimizer use an "alternate contraction" transformation?  Defaults to \code{FALSE}.  See below for details.}
   \item{degenLimit}{Numeric "degeneracy limit;" defaults to 0.  If positive, the simplex will be restarted if the measure of the angle between any two of its edges is within 0 or pi by less than \code{degenLimit}.}
