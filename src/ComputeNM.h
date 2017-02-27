@@ -34,19 +34,19 @@ public:
 	double bignum;
 	int iniSimplexType; //regular=1, right=2, smartRight=3, random=4
 	double iniSimplexEdge;
-	Eigen::MatrixXd iniSimplexMtx;
+	Eigen::MatrixXd iniSimplexMat;
 	bool greedyMinimize, altContraction;
 	double degenLimit;
 	Eigen::Vector2i stagnationCtrl;
 	bool validationRestart;
-	double xTolProx, fTolProx, xTolRelChange, fTolRelChange;
+	double xTolProx, fTolProx;
 	bool doPseudoHessian;
 	int ineqConstraintMthd, eqConstraintMthd;
 	double feasTol;
 	omxComputeNM();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
-	//virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
 

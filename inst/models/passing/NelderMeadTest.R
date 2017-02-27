@@ -50,8 +50,10 @@ varmod <- mxModel(
 	mxAlgebra(sqrt(Sigma2),name="Sigma"),
 	mxFitFunctionML()
 )
-omxCheckError(mxRun(varmod),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")
+varrun <- mxRun(varmod)
+#omxCheckError(mxRun(varmod),"NelderMeadOptimizerContext::invokeNelderMead() : so far, so good")
 
 print(mean(x))
 print(var(x))
 varrunGD$output$estimate
+varrun$output$estimate

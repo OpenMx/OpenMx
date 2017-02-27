@@ -1144,80 +1144,67 @@ setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 
 #----------------------------------------------------
 mxComputeNelderMead <- function(
-	freeSet=NA_character_, ..., fitfunction="fitfunction", verbose=0L, 
-	nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), maxIter=NULL,	control=list()){
+	freeSet=NA_character_, fitfunction="fitfunction", verbose=0L, 
+	nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), 
+	maxIter=NULL,	...,
+	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35, 
+	iniSimplexType=c("regular","right","smartRight","random"),
+	iniSimplexEdge=1, iniSimplexMat=NA, greedyMinimize=FALSE, 
+	altContraction=FALSE, degenLimit=0, stagnationCtrl=c(-1L,-1L),
+	#validationRestart=TRUE,
+	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
+	#doPseudoHessian=FALSE,
+	ineqConstraintMthd=c("soft","eqMthd"), 
+	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),
+	eqConstraintMthd=c("soft")){
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeNelderMead() does not accept values for the '...' argument")
 	}
-	verbose <- as.integer(verbose)
-	maxIter <- as.integer(maxIter)
-	if(is.character(nudgeZeroStarts)){
-		if(substr(nudgeZeroStarts,1,1) %in% c("Y","y")){nudgeZeroStarts <- TRUE}
-		else if(substr(nudgeZeroStarts,1,1) %in% c("N","n")){nudgeZeroStarts <- FALSE}
+	verbose <- as.integer(verbose[1])
+	maxIter <- as.integer(maxIter[1])
+	if(is.character(nudgeZeroStarts[1])){
+		if(substr(nudgeZeroStarts[1],1,1) %in% c("Y","y")){nudgeZeroStarts <- TRUE}
+		else if(substr(nudgeZeroStarts[1],1,1) %in% c("N","n")){nudgeZeroStarts <- FALSE}
 		else{stop("unrecognized character string provided as argument 'nudgeZeroStarts'")}
 	}
-	control2 <- extractNMcontrolvars(control)
-	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, control2))
-}
-
-extractNMcontrolvars <- function(control){
-	ctrlnames <- names(control)
-	#if(!length(ctrlnames)){ctrlnames <- "XXX"}
-	control2 <- list()
-	control2$alpha <- as.numeric(ifelse("alpha" %in% ctrlnames, control[["alpha"]][1], 1))
-	if(control2$alpha<=0){stop("invalid Nelder-Mead control variable: reflection coefficient 'alpha' must be positive")}
-	control2$betao <- as.numeric(ifelse("betao" %in% ctrlnames, control[["betao"]][1], 0.5))
-	control2$betai <- as.numeric(ifelse("beta" %in% ctrlnames, control[["betai"]][1], 0.5))
-	if(any(control2$betao<=0, control2$betao>=1, control2$betai<=0, control2$betai>=1)){
-		stop("invalid Nelder-Mead control variable: contraction coefficients 'betao' and 'betai' must both be within unit interval (0,1)")
+	alpha <- as.numeric(alpha[1])
+	if(alpha<=0){stop("reflection coefficient 'alpha' must be positive")}
+	betao <- as.numeric(betao[1])
+	betai <- as.numeric(betai[1])
+	if(any(betao<=0, betao>=1, betai<=0, betai>=1)){
+		stop("contraction coefficients 'betao' and 'betai' must both be within unit interval (0,1)")
 	}
-	control2$gamma <- as.numeric(ifelse("gamma" %in% ctrlnames, control[["gamma"]][1], 2))
-	#Allow user to provide non-positive gamma to "turn off" expanstion transformations
-	if(control2$gamma>0 && control2$gamma<=control2$alpha){
-		stop("invalid Nelder-Mead control variable: if positive, expansion coefficient 'gamma' must be greater than reflection coefficient 'alpha'")
+	gamma <- as.numeric(gamma[1])
+	#Allow user to provide non-positive gamma to "turn off" expanstion transformations:
+	if(gamma>0 && gamma<=alpha){
+		stop("if positive, expansion coefficient 'gamma' must be greater than reflection coefficient 'alpha'")
 	}
-	control2$sigma <- as.numeric(ifelse("sigma" %in% ctrlnames, control[["sigma"]][1], 0.5))
+	sigma <- as.numeric(sigma[1])
 	#Allow user to provide non-positive sigma to "turn off" shrinks:
-	if(control2$sigma>=1){stop("invalid Nelder-Mead control variable: shrink coefficient 'sigma' must be less than 1.0")}
-	control2$bignum <- as.numeric(ifelse("bignum" %in% ctrlnames, control[["bignum"]][1], 1e35))
-	control2$iniSimplexType <- 
-		as.character(
-			ifelse("iniSimplexType" %in% ctrlnames, match.arg(control[["iniSimplexType"]],c("regular","right","smartRight","random")), "regular"))
-	control2$iniSimplexEdge <- as.numeric(ifelse("iniSimplexEdge" %in% ctrlnames, control[["iniSimplexEdge"]][1], 1))
-	control2$iniSimplexMtx <- ifelse("iniSimplexMtx" %in% ctrlnames, control[["iniSimplexMtx"]], NA)
-	control2$greedyMinimize <- as.logical(ifelse("greedyMinimize" %in% ctrlnames, control[["greedyMinimize"]][1], FALSE))
-	control2$altContraction <- as.logical(ifelse("altContraction" %in% ctrlnames, control[["altContraction"]][1], FALSE))
-	control2$degenLimit <- as.numeric(ifelse("degenLimit" %in% ctrlnames, control[["degenLimit"]][1], 0))
-	if(control2$degenLimit<0 || control2$degenLimit>pi){
-		stop("invalid Nelder-Mead control variable: 'degenLimit' must be within interval [0,pi]")
+	if(sigma>=1){stop("shrink coefficient 'sigma' must be less than 1.0")}
+	bignum <- as.numeric(bignum[1])
+	iniSimplexType <- as.character(match.arg(iniSimplexType,c("regular","right","smartRight","random")))
+	iniSimplexEdge <- as.numeric(iniSimplexEdge[1])
+	iniSimplexMat <- ifelse(is.na(iniSimplexMat),NA,as.matrix(iniSimplexMat))
+	greedyMinimize <- as.logical(greedyMinimize[1])
+	altContraction <- as.logical(altContraction[1])
+	degenLimit <- as.numeric(degenLimit[1])
+	if(degenLimit<0 || degenLimit>pi){
+		stop("'degenLimit' must ge within interval [0,pi]")
 	}
-	if("stagnationCtrl" %in% ctrlnames){
-		if(length(control[["stagnationCtrl"]])<2){
-			stop("invalid Nelder-Mead control variable: 'stagnationCtrl' must be an integer vector of length 2")
-		}
-		control2$stagnationCtrl <- as.integer(c(control[["stagnationCtrl"]][1],control[["stagnationCtrl"]][2]))
-	}
-	else{control2$stagnationCtrl <- c(-1L,-1L)}
-	control2$validationRestart <- as.logical(ifelse("validationRestart" %in% ctrlnames, control[["validationRestart"]][1], TRUE))
-	control2$xTolProx <- 1e-4 #<--MATLAB FMINSEARCH default
-	control2$fTolProx <- 1e-4#<--MATLAB FMINSEARCH default
-	#control2$xTolRelChange <- -1#1e-4
-	#control2$fTolRelChange <- -1#1e-8
-	if("tolerances" %in% ctrlnames){
-		if("xTolProx" %in% names(control[["tolerances"]])){control2$xTolProx <- as.numeric(control[["tolerances"]]["xTolProx"])}
-		if("fTolProx" %in% names(control[["tolerances"]])){control2$fTolProx <- as.numeric(control[["tolerances"]]["fTolProx"])}
-		#if("xTolRelChange" %in% names(control[["tolerances"]])){control2$xTolRelChange <- as.numeric(control[["tolerances"]]["xTolRelChange"])}
-		#if("fTolRelChange" %in% names(control[["tolerances"]])){control2$fTolRelChange <- as.numeric(control[["tolerances"]]["fTolRelChange"])}
-	}
-	control2$pseudoHessian <- as.logical(ifelse("pseudoHessian" %in% ctrlnames, control[["pseudoHessian"]][1], FALSE))
-	control2$ineqConstraintMthd <-
-		as.character(
-			ifelse("ineqConstraintMthd" %in% ctrlnames, match.arg(control[["ineqConstraintMthd"]],c("soft","eqMethd")), "soft"))
-	control2$eqConstraintMthd <- 
-		as.character(
-			ifelse("eqConstraintMthd" %in% ctrlnames, match.arg(control[["eqConstraintMthd"]],c("soft","backtrack","GDsearch","augLag")), "soft"))
-	return(control2)
+	if(length(stagnationCtrl)<2){stop("'stagnationCtrl' must be an integer vector of length 2")}
+	stagnationCtrl <- as.integer(stagnationCtrl[1:2])
+	#validationRestart <- as.logical(validationRestart[1])
+	xTolProx <- as.numeric(xTolProx[1])
+	fTolProx <- as.numeric(fTolProx[1])
+	#doPseudoHessian <- as.logical(doPseudoHessian[1])
+	ineqConstraintMthd <- as.character(match.arg(ineqConstraintMthd,c("soft","eqMthd")))
+	eqConstraintMthd <- as.character(match.arg(eqConstraintMthd,c("soft")))
+	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
+						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
+						 greedyMinimize, altContraction, degenLimit, stagnationCtrl, xTolProx, fTolProx, 
+						 ineqConstraintMthd, eqConstraintMthd))
 }
 
 setClass(
@@ -1238,23 +1225,24 @@ setClass(
 		bignum="numeric",
 		iniSimplexType="character",
 		iniSimplexEdge="numeric",
-		iniSimplexMtx="MxOptionalMatrix",
+		iniSimplexMat="MxOptionalMatrix",
 		greedyMinimize="logical",
 		altContraction="logical",
 		degenLimit="numeric",
 		stagnationCtrl="integer",
-		validationRestart="logical",
+		#validationRestart="logical",
 		xTolProx="numeric",
 		fTolProx="numeric",
-		#xTolRelChange="numeric",
-		#fTolRelChange="numeric",
-		pseudoHessian="logical",
+		#doPseudoHessian="logical",
 		ineqConstraintMthd="character",
 		eqConstraintMthd="character"))
 
 setMethod(
 	"initialize", "MxComputeNelderMead",
-	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, ctrl){
+	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
+					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
+					 greedyMinimize, altContraction, degenLimit, stagnationCtrl, xTolProx, fTolProx, 
+					 ineqConstraintMthd, eqConstraintMthd){
 		.Object@name <- 'compute'
 		.Object@.persist <- TRUE
 		.Object@freeSet <- freeSet
@@ -1265,28 +1253,26 @@ setMethod(
 		.Object@maxIter <- as.integer(maxIter)
 		.Object@.excludeVars <- c()
 		
-		.Object@alpha <- ctrl$alpha
-		.Object@betao <- ctrl$betao
-		.Object@betai <- ctrl$betai
-		.Object@gamma <- ctrl$gamma
-		.Object@sigma <- ctrl$sigma
-		.Object@bignum <- ctrl$bignum
-		.Object@iniSimplexType <- ctrl$iniSimplexType
-		.Object@iniSimplexEdge <- ctrl$iniSimplexEdge
-		if(is.na(ctrl$iniSimplexMtx)){.Object@iniSimplexMtx <- NULL}
-		else{.Object@iniSimplexMtx <- ctrl$iniSimplexMtx}
-		.Object@greedyMinimize <- ctrl$greedyMinimize
-		.Object@altContraction <- ctrl$altContraction
-		.Object@degenLimit <- ctrl$degenLimit
-		.Object@stagnationCtrl <- ctrl$stagnationCtrl
-		.Object@validationRestart <- ctrl$validationRestart
-		.Object@xTolProx <- ctrl$xTolProx
-		.Object@fTolProx <- ctrl$fTolProx
-		#.Object@xTolRelChange <- ctrl$xTolRelChange
-		#.Object@fTolRelChange <- ctrl$fTolRelChange
-		.Object@pseudoHessian <- ctrl$pseudoHessian
-		.Object@ineqConstraintMthd <- ctrl$ineqConstraintMthd
-		.Object@eqConstraintMthd <- ctrl$eqConstraintMthd
+		.Object@alpha <- alpha
+		.Object@betao <- betao
+		.Object@betai <- betai
+		.Object@gamma <- gamma
+		.Object@sigma <- sigma
+		.Object@bignum <- bignum
+		.Object@iniSimplexType <- iniSimplexType
+		.Object@iniSimplexEdge <- iniSimplexEdge
+		if(is.na(iniSimplexMat)){.Object@iniSimplexMat <- NULL}
+		else{.Object@iniSimplexMat <- iniSimplexMat}
+		.Object@greedyMinimize <- greedyMinimize
+		.Object@altContraction <- altContraction
+		.Object@degenLimit <- degenLimit
+		.Object@stagnationCtrl <- stagnationCtrl
+		#.Object@validationRestart <- validationRestart
+		.Object@xTolProx <- xTolProx
+		.Object@fTolProx <- fTolProx
+		#.Object@pseudoHessian <- ctrl$pseudoHessian
+		.Object@ineqConstraintMthd <- ineqConstraintMthd
+		.Object@eqConstraintMthd <- eqConstraintMthd
 		.Object
 	})
 

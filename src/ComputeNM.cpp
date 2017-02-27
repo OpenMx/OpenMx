@@ -50,6 +50,8 @@ omxComputeNM::omxComputeNM()
 void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	super::initFromFrontend(globalState, rObj);
 	
+	const double myPI	=	3.141592653589793238462643383280;
+	
 	SEXP slotValue;
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
@@ -79,6 +81,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("alpha")));
 	alpha = Rf_asReal(slotValue);
+	if(alpha<=0){Rf_error("reflection coefficient 'alpha' must be positive");}
 	if(verbose){
 		mxLog("omxComputeNM member 'alpha' is %f", alpha);
 	}
@@ -94,15 +97,22 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	if(verbose){
 		mxLog("omxComputeNM member 'betai' is %f", betai);
 	}
+	if(betao<=0 || betao>=1 || betai<=0 || betai>=1){
+		Rf_error("contraction coefficient 'betao' and 'betai' must both be within unit interval (0,1)");
+	}
 	
 	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gamma")));
 	gamma = Rf_asReal(slotValue);
+	if(gamma>0 && gamma<=alpha){
+		Rf_error("if positive, expansion coefficient 'gamma' must be greater than reflection coefficient 'alpha'");
+	}
 	if(verbose){
 		mxLog("omxComputeNM member 'gamma' is %f", gamma);
 	}
 	
 	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("sigma")));
 	sigma = Rf_asReal(slotValue);
+	if(sigma>=1){Rf_error("shrink coefficient 'sigma' must be less than 1.0");}
 	if(verbose){
 		mxLog("omxComputeNM member 'sigma' is %f", sigma);
 	}
@@ -129,15 +139,14 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'iniSimplexEdge' is %f", iniSimplexEdge);
 	}
 	
-	ScopedProtect p13(slotValue, R_do_slot(rObj, Rf_install("iniSimplexMtx")));
+	ScopedProtect p13(slotValue, R_do_slot(rObj, Rf_install("iniSimplexMat")));
 	if (Rf_length(slotValue)) {
 		SEXP matrixDims;
 		ScopedProtect pipm(matrixDims, Rf_getAttrib(slotValue, R_DimSymbol));
 		int *dimList = INTEGER(matrixDims);
 		int rows = dimList[0];
 		int cols = dimList[1];
-		//iniSimplexMtx(REAL(slotValue), rows, cols);
-		iniSimplexMtx = Eigen::Map< Eigen::MatrixXd >(REAL(slotValue), rows, cols);
+		iniSimplexMat = Eigen::Map< Eigen::MatrixXd >(REAL(slotValue), rows, cols);
 	}
 	
 	ScopedProtect p14(slotValue, R_do_slot(rObj, Rf_install("greedyMinimize")));
@@ -154,22 +163,24 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p16(slotValue, R_do_slot(rObj, Rf_install("degenLimit")));
 	degenLimit = Rf_asReal(slotValue);
+	if(degenLimit<0 || degenLimit>myPI){Rf_error("'degenLimit' must ge within interval [0,pi]");}
 	if(verbose){
 		mxLog("omxComputeNM member 'degenLimit' is %f", degenLimit);
 	}
 	
 	ScopedProtect p17(slotValue, R_do_slot(rObj, Rf_install("stagnationCtrl")));
+	if(Rf_length(slotValue)!=2){Rf_error("'stagnationCtrl' must be an integer vector of length 2");}
 	stagnationCtrl[0] = INTEGER(slotValue)[0];
 	stagnationCtrl[1] = INTEGER(slotValue)[1];
 	if(verbose){
 		mxPrintMat("omxComputeNM member 'stagnationCtrl':", stagnationCtrl);
 	}
 	
-	ScopedProtect p18(slotValue, R_do_slot(rObj, Rf_install("validationRestart")));
+	/*ScopedProtect p18(slotValue, R_do_slot(rObj, Rf_install("validationRestart")));
 	validationRestart = Rf_asLogical(slotValue);
 	if(verbose){
 		mxLog("omxComputeNM member 'validationRestart' is %d", validationRestart);
-	}
+	}*/
 	
 	ScopedProtect p19(slotValue, R_do_slot(rObj, Rf_install("xTolProx")));
 	xTolProx = Rf_asReal(slotValue);
@@ -183,17 +194,11 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'fTolProx' is %f", fTolProx);
 	}
 	
-	/*ScopedProtect p21(slotValue, R_do_slot(rObj, Rf_install("xTolRelChange")));
-	xTolRelChange = Rf_asReal(slotValue);
-	
-	ScopedProtect p22(slotValue, R_do_slot(rObj, Rf_install("fTolRelChange")));
-	fTolRelChange = Rf_asReal(slotValue);*/
-	
-	ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("pseudoHessian")));
+	/*ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("doPseudoHessian")));
 	doPseudoHessian = Rf_asLogical(slotValue);
 	if(verbose){
 		mxLog("omxComputeNM member 'doPseudoHessian' is %d", doPseudoHessian);
-	}
+	}*/
 	
 	ScopedProtect p24(slotValue, R_do_slot(rObj, Rf_install("ineqConstraintMthd")));
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){ineqConstraintMthd = 0;}
@@ -266,6 +271,17 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.verbose = verbose;
 	nmoc.countConstraintsAndSetupBounds();
 	nmoc.invokeNelderMead();
+	//nmoc.copyParamsFromOptimizer();
+	fc->fit = nmoc.fvals[0]; //<--Necessary here?
+	//TODO: validation restart, pseudoHessian, etc.
+	return;
+}
+
+
+void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
+	omxPopulateFitFunction(fitMatrix, out);
+	//TODO: export final simplex and fit-value vector, pseudoHessian, etc.
+	return;
 }
 
 //-------------------------------------------------------
@@ -585,44 +601,45 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
-	if(NMobj->iniSimplexMtx.rows() && NMobj->iniSimplexMtx.cols() && !isRestart){
+	if(NMobj->iniSimplexMat.rows() && NMobj->iniSimplexMat.cols() && !isRestart){
 		Eigen::MatrixXd SiniSupp;
-		if(NMobj->iniSimplexMtx.cols() != numFree){
-			Rf_error("'iniSimplexMtx' has %d columns, but %d columns expected",NMobj->iniSimplexMtx.cols(), numFree);
+		if(NMobj->iniSimplexMat.cols() != numFree){
+			Rf_error("'iniSimplexMat' has %d columns, but %d columns expected",NMobj->iniSimplexMat.cols(), numFree);
 		}
-		if(NMobj->iniSimplexMtx.rows()>n+1){
-			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMtx.rows(), n+1);
-			NMobj->iniSimplexMtx.conservativeResize(n,numFree);
+		if(NMobj->iniSimplexMat.rows()>n+1){
+			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMat.rows(), n+1);
+			NMobj->iniSimplexMat.conservativeResize(n,numFree);
 		}
-		if(NMobj->iniSimplexMtx.rows()<n+1){
-			Rf_warning("'iniSimplexMtx' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMtx.rows(),n+1);
-			SiniSupp.resize(n + 1 - NMobj->iniSimplexMtx.rows(), numFree);
-			xin=NMobj->iniSimplexMtx.row(0);
+		if(NMobj->iniSimplexMat.rows()<n+1){
+			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMat.rows(),n+1);
+			SiniSupp.resize(n + 1 - NMobj->iniSimplexMat.rows(), numFree);
+			xin=NMobj->iniSimplexMat.row(0);
 			for(i=0; i<SiniSupp.rows(); i++){
 				xout=SiniSupp.row(i);
 				jiggleCoord(xin, xout);
 				SiniSupp.row(i) = xout;
 			}
 		}
-		for(i=0; i < NMobj->iniSimplexMtx.rows(); i++){
-			vertices[i] = NMobj->iniSimplexMtx.row(i);
+		for(i=0; i < NMobj->iniSimplexMat.rows(); i++){
+			vertices[i] = NMobj->iniSimplexMat.row(i);
 		}
 		if(SiniSupp.rows()){
 			for(i=0; i<SiniSupp.rows(); i++){
-				vertices[i+NMobj->iniSimplexMtx.rows()] = SiniSupp.row(i);
+				vertices[i+NMobj->iniSimplexMat.rows()] = SiniSupp.row(i);
 			}
 		}
 	}
 	else{
 		//TODO: regular simplex for other than unit edge-length:
-		//double shhp = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(-1.0 + n + sqrt(1.0+n));
-		//double shhq = (edgeLength/sqrt(n))*(1/n/sqrt(2))*(sqrt(1.0+n)-1);
 		double k = (double) n;
+		//double shhp = (R_pow_di(edgeLength,2)/sqrt(k))*(1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
+		//double shhq = (R_pow_di(edgeLength,2)/sqrt(k))*(1/k/sqrt(2))*(sqrt(1.0+k)-1);
 		double shhp = (1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
 		double shhq = (1/k/sqrt(2))*(sqrt(1.0+k)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
+		//TODO: None of these except case 4 are OK to use with equality MxConstraints
 		switch(NMobj->iniSimplexType){
 		case 1:
 			//for(i=0; i<n+1; i++){vertices[i].setZero(numFree);}
@@ -998,6 +1015,7 @@ bool NelderMeadOptimizerContext::checkProgress(){
 }
 
 
+//TODO: pass optimization status codes to FitContext.
 void NelderMeadOptimizerContext::invokeNelderMead(){
 	//int i=0;
 	n = numFree - numEqC;
@@ -1041,14 +1059,17 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 		
 		eucentroidPrev = eucentroidCurr;
 		itersElapsed++;
-		if(itersElapsed >= NMobj->maxIter){
+		if(itersElapsed >= NMobj->maxIter){ //TODO: check iters during checkConvergence().
 			stopflag = true;
 		}
 	} while (!stopflag);
 	
-	mxPrintMat("solution",vertices[0]);
+	if(verbose){mxPrintMat("solution?",vertices[0]);}
 	
-	Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
+	//TODO: check to see if fit at centroids is any better than at best vertex
+	copyParamsFromOptimizer(vertices[0],fc);
+	
+	//Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
 	
 }
 
