@@ -35,6 +35,7 @@ public:
 	int iniSimplexType; //regular=1, right=2, smartRight=3, random=4
 	double iniSimplexEdge;
 	Eigen::MatrixXd iniSimplexMat;
+	std::vector< const char* > iniSimplexColnames;
 	bool greedyMinimize, altContraction;
 	double degenLimit;
 	Eigen::Vector2i stagnCtrl;

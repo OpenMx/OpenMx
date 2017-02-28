@@ -98,7 +98,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'betai' is %f", betai);
 	}
 	if(betao<=0 || betao>=1 || betai<=0 || betai>=1){
-		Rf_error("contraction coefficient 'betao' and 'betai' must both be within unit interval (0,1)");
+		Rf_error("contraction coefficients 'betao' and 'betai' must both be within unit interval (0,1)");
 	}
 	
 	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gamma")));
@@ -147,6 +147,20 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		int rows = dimList[0];
 		int cols = dimList[1];
 		iniSimplexMat = Eigen::Map< Eigen::MatrixXd >(REAL(slotValue), rows, cols);
+	}
+	
+	ScopedProtect p26(slotValue, R_do_slot(rObj, Rf_install(".iniSimplexColnames")));
+	int cnameslen = Rf_length(slotValue);
+	if(cnameslen){
+		iniSimplexColnames.resize(cnameslen);
+		int i;
+		for(i=0; i<cnameslen; i++){
+			SEXP elem;
+			{
+				ScopedProtect p27(elem, STRING_ELT(slotValue, i));
+				iniSimplexColnames[i] = CHAR(elem);
+			}
+		}
 	}
 	
 	ScopedProtect p14(slotValue, R_do_slot(rObj, Rf_install("greedyMinimize")));
@@ -392,13 +406,14 @@ void NelderMeadOptimizerContext::evalIneqC()
 	if(!numIneqC){return;}
 	
 	omxState *st = fc->state;
+	int ineqType = omxConstraint::LESS_THAN;
 	
 	int cur=0, j=0;
 	for (j=0; j < int(st->conListX.size()); j++) {
 		omxConstraint &con = *st->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
-		//con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-		con.refreshAndGrab(fc, (omxConstraint::Type) con.opCode, &inequality(cur));
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
+		//con.refreshAndGrab(fc, (omxConstraint::Type) con.opCode, &inequality(cur));
 		//Nelder-Mead, of course, does not use constraint Jacobians...
 		cur += con.size;
 	}
@@ -575,7 +590,7 @@ void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::Vector
 	int i;
 	GetRNGstate();
 	for(i=0; i < xin.size(); i++){
-		b = Rf_runif(0.25,1.75);
+		b = Rf_runif(0.75,1.25);
 		a = Rf_runif(-0.25,0.25);
 		xout[i] = b*xin[i] + a;
 	}
@@ -607,18 +622,41 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 	int i=0;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
 	if(NMobj->iniSimplexMat.rows() && NMobj->iniSimplexMat.cols() && !isRestart){
-		Eigen::MatrixXd SiniSupp;
+		Eigen::MatrixXd SiniSupp, iniSimplexMat2;
+		Eigen::VectorXi paramMap(numFree);
 		if(NMobj->iniSimplexMat.cols() != numFree){
 			Rf_error("'iniSimplexMat' has %d columns, but %d columns expected",NMobj->iniSimplexMat.cols(), numFree);
 		}
+		if( int(NMobj->iniSimplexColnames.size()) != numFree){
+			Rf_error("'iniSimplexMat' has %d column names, but %d column names expected", NMobj->iniSimplexColnames.size(), numFree);
+		}
 		if(NMobj->iniSimplexMat.rows()>n+1){
 			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMat.rows(), n+1);
-			NMobj->iniSimplexMat.conservativeResize(n,numFree);
+			NMobj->iniSimplexMat.conservativeResize(n+1,numFree);
+		}
+		iniSimplexMat2.resize(NMobj->iniSimplexMat.rows(), numFree);
+		int gx=0;
+		/*If there are no problems, then every time vx gets incremented, it should become equal to the current 
+		 value of gx*/
+		for (int vx=0; vx < int(fc->varGroup->vars.size()); ++vx) {
+			for (int nx=0; nx < int(NMobj->iniSimplexColnames.size()); ++nx) {
+				if (strEQ(NMobj->iniSimplexColnames[nx], fc->varGroup->vars[vx]->name)) {
+					paramMap[gx] = vx;
+					++gx;
+					break;
+				}
+			}
+		}
+		if ( gx != int(NMobj->iniSimplexColnames.size()) ){
+			Rf_error("error in mapping column names of 'iniSimplexMat' to free-parameter labels");
+		}
+		for(i=0; i < NMobj->iniSimplexMat.cols(); i++){
+			iniSimplexMat2.col(paramMap[i]) = NMobj->iniSimplexMat.col(i);
 		}
 		if(NMobj->iniSimplexMat.rows()<n+1){
 			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMat.rows(),n+1);
 			SiniSupp.resize(n + 1 - NMobj->iniSimplexMat.rows(), numFree);
-			xin=NMobj->iniSimplexMat.row(0);
+			xin=iniSimplexMat2.row(0);
 			for(i=0; i<SiniSupp.rows(); i++){
 				xout=SiniSupp.row(i);
 				jiggleCoord(xin, xout);
@@ -626,7 +664,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 			}
 		}
 		for(i=0; i < NMobj->iniSimplexMat.rows(); i++){
-			vertices[i] = NMobj->iniSimplexMat.row(i);
+			vertices[i] = iniSimplexMat2.row(i);
 		}
 		if(SiniSupp.rows()){
 			for(i=0; i<SiniSupp.rows(); i++){
@@ -637,10 +675,10 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 	else{
 		//TODO: regular simplex for other than unit edge-length:
 		double k = (double) n;
-		//double shhp = (R_pow_di(edgeLength,2)/sqrt(k))*(1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
-		//double shhq = (R_pow_di(edgeLength,2)/sqrt(k))*(1/k/sqrt(2))*(sqrt(1.0+k)-1);
-		double shhp = (1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
-		double shhq = (1/k/sqrt(2))*(sqrt(1.0+k)-1);
+		double shhp = (edgeLength/sqrt(k))*(1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
+		double shhq = (edgeLength/sqrt(k))*(1/k/sqrt(2))*(sqrt(1.0+k)-1);
+		//double shhp = (1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
+		//double shhq = (1/k/sqrt(2))*(sqrt(1.0+k)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
@@ -1078,7 +1116,8 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	if(verbose){mxPrintMat("solution?",vertices[0]);}
 	
 	//TODO: check to see if fit at centroids is any better than at best vertex
-	fvals[0] = evalFit(vertices[0]);
+	fvals[0] = evalFit(vertices[0]); //<--This is to assign the parameter and fit values at the solution to the FitContext as part of evalFit() .
+	fc->iterations = itersElapsed;
 	
 	//Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
 	

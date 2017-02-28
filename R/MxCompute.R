@@ -1149,14 +1149,15 @@ mxComputeNelderMead <- function(
 	maxIter=NULL,	...,
 	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35, 
 	iniSimplexType=c("regular","right","smartRight","random"),
-	iniSimplexEdge=1, iniSimplexMat=NA, greedyMinimize=FALSE, 
+	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	#validationRestart=TRUE,
 	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
 	#doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft"), 
 	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),
-	eqConstraintMthd=c("soft")){
+	eqConstraintMthd=c("soft")
+	){
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeNelderMead() does not accept values for the '...' argument")
@@ -1186,12 +1187,19 @@ mxComputeNelderMead <- function(
 	bignum <- as.numeric(bignum[1])
 	iniSimplexType <- as.character(match.arg(iniSimplexType,c("regular","right","smartRight","random")))
 	iniSimplexEdge <- as.numeric(iniSimplexEdge[1])
-	iniSimplexMat <- ifelse(single.na(iniSimplexMat),NA,as.matrix(iniSimplexMat))
+	if(length(iniSimplexMat)){
+		iniSimplexMat <- as.matrix(iniSimplexMat)
+		iniSimplexColnames <- colnames(iniSimplexMat)
+	}
+	else{
+		iniSimplexColnames <- NULL
+		iniSimplexMat <- NULL
+	}
 	greedyMinimize <- as.logical(greedyMinimize[1])
 	altContraction <- as.logical(altContraction[1])
 	degenLimit <- as.numeric(degenLimit[1])
 	if(degenLimit<0 || degenLimit>pi){
-		stop("'degenLimit' must ge within interval [0,pi]")
+		stop("'degenLimit' must be within interval [0,pi]")
 	}
 	if(length(stagnCtrl)<2){stop("'stagnCtrl' must be an integer vector of length 2")}
 	stagnCtrl <- as.integer(stagnCtrl[1:2])
@@ -1202,7 +1210,7 @@ mxComputeNelderMead <- function(
 	ineqConstraintMthd <- as.character(match.arg(ineqConstraintMthd,c("soft","eqMthd")))
 	eqConstraintMthd <- as.character(match.arg(eqConstraintMthd,c("soft")))
 	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
-						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
+						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, iniSimplexColnames,
 						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
 						 ineqConstraintMthd, eqConstraintMthd))
 }
@@ -1226,6 +1234,7 @@ setClass(
 		iniSimplexType="character",
 		iniSimplexEdge="numeric",
 		iniSimplexMat="MxOptionalMatrix",
+		.iniSimplexColnames="MxOptionalChar",
 		greedyMinimize="logical",
 		altContraction="logical",
 		degenLimit="numeric",
@@ -1242,7 +1251,7 @@ setClass(
 setMethod(
 	"initialize", "MxComputeNelderMead",
 	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
-					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
+					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, iniSimplexColnames,
 					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
 					 ineqConstraintMthd, eqConstraintMthd){
 		.Object@name <- 'compute'
@@ -1263,8 +1272,9 @@ setMethod(
 		.Object@bignum <- bignum
 		.Object@iniSimplexType <- iniSimplexType
 		.Object@iniSimplexEdge <- iniSimplexEdge
-		if(is.na(iniSimplexMat)){.Object@iniSimplexMat <- NULL}
+		if(!length(iniSimplexMat)){.Object@iniSimplexMat <- NULL}
 		else{.Object@iniSimplexMat <- iniSimplexMat}
+		.Object@.iniSimplexColnames <- iniSimplexColnames
 		.Object@greedyMinimize <- greedyMinimize
 		.Object@altContraction <- altContraction
 		.Object@degenLimit <- degenLimit
@@ -1284,6 +1294,7 @@ setMethod("qualifyNames", signature("MxComputeNelderMead"),
 						for (sl in c('fitfunction')) {
 							slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 						}
+						if(length(.Object@iniSimplexMat)){.Object@.iniSimplexColnames <- colnames(.Object@iniSimplexMat)}
 						.Object
 					})
 

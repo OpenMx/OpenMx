@@ -18,7 +18,9 @@ library(OpenMx)
 if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
 
 #The naive "soft" method only seems to work OK if EVERY vertex of the initial simplex is feasible...:
-foo <- mxComputeNelderMead(iniSimplexMat=matrix(0.2,4,4) + diag(0.2,4), nudgeZeroStarts=FALSE, xTolProx=1e-12, fTolProx=1e-8)
+ism <- matrix(0.2,4,4) + diag(0.2,4)
+colnames(ism) <- c("pred","pyellow","pgreen","pblue")
+foo <- mxComputeNelderMead(iniSimplexMat=ism, nudgeZeroStarts=FALSE, xTolProx=1e-12, fTolProx=1e-8)
 #foo$verbose <- 5L
 plan <- omxDefaultComputePlan()
 plan$steps <- list(foo,plan$steps$RE)
