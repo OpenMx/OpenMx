@@ -247,8 +247,6 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		if (got < 0) continue;
 		excludeVars.push_back(got);
 	}
-	
-	//Rf_error("successful importation of Nelder-Mead compute object from frontend");
 }
 
 
@@ -283,8 +281,6 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	if (verbose >= 1){
 		//mxLog something here
 	}
-
-	//Rf_error("omxComputeNM::computeImpl() : so far, so good");
 	
 	NelderMeadOptimizerContext nmoc(fc, this);
 	if(eqConstraintMthd==4){Rf_error("'augLag' Not Yet Implemented");}
@@ -413,7 +409,6 @@ void NelderMeadOptimizerContext::evalIneqC()
 		omxConstraint &con = *st->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-		//con.refreshAndGrab(fc, (omxConstraint::Type) con.opCode, &inequality(cur));
 		//Nelder-Mead, of course, does not use constraint Jacobians...
 		cur += con.size;
 	}
@@ -449,7 +444,6 @@ void NelderMeadOptimizerContext::evalEqC()
 double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 {
 	copyParamsFromOptimizer(x,fc);
-	//int want |= FF_COMPUTE_FIT;
 	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
 	if(!std::isfinite(fc->fit)){return(NMobj->bignum);}
 	else{
@@ -601,8 +595,6 @@ void NelderMeadOptimizerContext::printProblemState()
 {
 	int i=0;
 	Eigen::MatrixXd tmpvrt(n+1,numFree);
-	//Eigen::VectorXd tmpvi(n+1);
-	//tmpvi = (Eigen::VectorXd) vertexInfeas;
 	for(i=0; i<n+1; i++){tmpvrt.row(i) = vertices[i];}
 	mxPrintMat("working simplex:",tmpvrt);
 	mxPrintMat("fitfunction values:",fvals);
@@ -685,8 +677,6 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 		//TODO: None of these except case 4 are OK to use with equality MxConstraints
 		switch(NMobj->iniSimplexType){
 		case 1:
-			//for(i=0; i<n+1; i++){vertices[i].setZero(numFree);}
-			//vertices.setZero(n,numFree);
 			vertices[0].setZero(numFree);
 			for(i=1; i<n+1; i++){
 				vertices[i].setConstant(numFree,shhq);
@@ -709,9 +699,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 			//oldpt = vertices.row(0); //<--oldpt
 			vertices[0] = startpt;
 			evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
-			//vertices.row(0) = oldpt;
 			for(i=0; i<n; i++){
-				//oldpt = vertices.row(0);
 				xu = vertices[0];
 				xu[i] += edgeLength;
 				xd = vertices[0];
@@ -726,23 +714,17 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 			return;
 		case 4:
 			vertices[0] = startpt;
-			//xin=vertices.row(0);
 			for(i=1; i<n+1; i++){
 				vertices[i].setZero(numFree);
 				jiggleCoord(vertices[0],vertices[i]);
-				//vertices.row(i)=xout;
 			}
 			break;
 		}
 	}
 	//Now evaluate each vertex:
-	//oldpt = vertices.row(0); //<--oldpt
 	evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
-	//vertices.row(0) = oldpt;
 	for(i=1; i<n+1; i++){
-		//newpt = vertices.row(i); //<--newpt
 		evalNewPoint(vertices[i], vertices[0], fvals[i], vertexInfeas[i], vertexInfeas[0]);
-		//vertices.row(i) = newpt;
 	}
 	//if(verbose){printProblemState();}
 }
@@ -829,17 +811,10 @@ void NelderMeadOptimizerContext::fastSort()
 				break;
 			}
 		}
-		/*if(i<=0){
-			fvals[0] = tmpFvals[n];
-			vertices[0] = tmpVertices[n];
-			vertexInfeas[0] = tmpVertexInfeas[n];
-		}*/
-		//else{
-			for(j=i; j>=0; j--){
-				fvals[j] = tmpFvals[j];
-				vertices[j] = tmpVertices[j];
-				vertexInfeas[j] = tmpVertexInfeas[j];
-			//}
+		for(j=i; j>=0; j--){
+			fvals[j] = tmpFvals[j];
+			vertices[j] = tmpVertices[j];
+			vertexInfeas[j] = tmpVertexInfeas[j];
 		}
 	}
 	//TODO: this could be made faster, since we do fastSort() when only one vertex of the simplex has changed:
@@ -1037,7 +1012,6 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 
 bool NelderMeadOptimizerContext::checkProgress(){
 	const double myPI	=	3.141592653589793238462643383280;
-	//bool needrestart = false;
 	Eigen::VectorXd d1, d2;
 	double t;
 	int i, j, k;
@@ -1069,7 +1043,6 @@ bool NelderMeadOptimizerContext::checkProgress(){
 
 //TODO: pass optimization status codes to FitContext.
 void NelderMeadOptimizerContext::invokeNelderMead(){
-	//int i=0;
 	n = numFree - numEqC;
 	vertices.resize(n+1);
 	fvals.resize(n+1);
@@ -1118,9 +1091,6 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	//TODO: check to see if fit at centroids is any better than at best vertex
 	fvals[0] = evalFit(vertices[0]); //<--This is to assign the parameter and fit values at the solution to the FitContext as part of evalFit() .
 	fc->iterations = itersElapsed;
-	
-	//Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
-	
 }
 
 
