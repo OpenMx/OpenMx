@@ -1186,7 +1186,7 @@ mxComputeNelderMead <- function(
 	bignum <- as.numeric(bignum[1])
 	iniSimplexType <- as.character(match.arg(iniSimplexType,c("regular","right","smartRight","random")))
 	iniSimplexEdge <- as.numeric(iniSimplexEdge[1])
-	iniSimplexMat <- ifelse(is.na(iniSimplexMat),NA,as.matrix(iniSimplexMat))
+	iniSimplexMat <- ifelse(single.na(iniSimplexMat),NA,as.matrix(iniSimplexMat))
 	greedyMinimize <- as.logical(greedyMinimize[1])
 	altContraction <- as.logical(altContraction[1])
 	degenLimit <- as.numeric(degenLimit[1])

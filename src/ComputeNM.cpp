@@ -277,8 +277,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.verbose = verbose;
 	nmoc.countConstraintsAndSetupBounds();
 	nmoc.invokeNelderMead();
-	//nmoc.copyParamsFromOptimizer();
-	fc->fit = nmoc.fvals[0]; //<--Necessary here?
+	
 	//TODO: validation restart, pseudoHessian, etc.
 	return;
 }
@@ -806,8 +805,8 @@ void NelderMeadOptimizerContext::fastSort()
 		}
 	}
 	//TODO: this could be made faster, since we do fastSort() when only one vertex of the simplex has changed:
-	subcentroid.setZero(n);
-	eucentroidCurr.setZero(n+1);
+	subcentroid.setZero(numFree);
+	eucentroidCurr.setZero(numFree);
 	for(i=0; i<n+1; i++){
 		eucentroidCurr += vertices[i] / (n+1);
 		if(i<n){subcentroid += vertices[i] / n;}
@@ -1074,15 +1073,12 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 		
 		eucentroidPrev = eucentroidCurr;
 		itersElapsed++;
-		if(itersElapsed >= NMobj->maxIter){ //TODO: check iters during checkConvergence().
-			stopflag = true;
-		}
 	} while (!stopflag);
 	
 	if(verbose){mxPrintMat("solution?",vertices[0]);}
 	
 	//TODO: check to see if fit at centroids is any better than at best vertex
-	copyParamsFromOptimizer(vertices[0],fc);
+	fvals[0] = evalFit(vertices[0]);
 	
 	//Rf_error("NelderMeadOptimizerContext::invokeNelderMead() : so far, so good");
 	

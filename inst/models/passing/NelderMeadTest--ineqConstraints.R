@@ -55,3 +55,5 @@ testrun2$output$evaluations
 testrun2$output$fit
 #c2 is barely satisfied within feasibility tolerance:
 mxEval(X[1,1] - X[2,1] - X[3,1] + 1, testrun2, T)
+
+omxCheckCloseEnough(testrun2$output$fit+mxEval(X[1,1] - X[2,1] - X[3,1] + 1, testrun2, T), testrun1$output$fit, 1e-7)
