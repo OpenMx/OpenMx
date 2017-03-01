@@ -829,8 +829,12 @@ qualifyNamesFormula <- function(formula, modelname, namespace) {
         } else if (is.numeric(formula)) {
         } else if (identical(as.character(formula), "")) {
         } else {
-            result <- imxConvertIdentifier(as.character(formula), modelname, namespace)
-	    formula <- as.symbol(result)
+            result <- imxConvertIdentifier(formula, modelname, namespace)
+            if (is.symbol(formula) && is.character(result)) {
+                formula <- as.symbol(result)
+            } else {
+                formula <- result
+            }
         }
 	} else {
 		for (i in 2:length(formula)) {
