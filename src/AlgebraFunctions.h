@@ -111,6 +111,21 @@ static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *re
 		omxAlgebraRecompute(om, FF_COMPUTE_INITIAL_FIT, fc);
 		return;
 	}
+	if (mat0->rows != mat1->rows || mat0->cols != mat1->cols) {
+		std::string detail;
+		std::string empty;
+		if (mat0->rows * mat0->cols < 100) {
+			EigenMatrixAdaptor m(mat0);
+			detail += mxStringifyMatrix(mat0->name(), m, empty);
+		}
+		if (mat1->rows * mat1->cols < 100) {
+			EigenMatrixAdaptor m(mat1);
+			detail += mxStringifyMatrix(mat1->name(), m, empty);
+		}
+		Rf_error("Element-wise matrix op not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
+			 mat0->name(), mat0->rows, mat0->cols,
+			 mat1->name(), mat1->rows, mat1->cols, detail.c_str());
+	}
 }
 
 static void omxBroadcast(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
