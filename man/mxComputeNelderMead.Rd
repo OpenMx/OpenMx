@@ -16,7 +16,7 @@ mxComputeNelderMead(
 	maxIter=NULL,	...,
 	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35, 
 	iniSimplexType=c("regular","right","smartRight","random"),
-	iniSimplexEdge=1, iniSimplexMat=NA, greedyMinimize=FALSE, 
+	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	xTolProx=1e-4, fTolProx=1e-4,
 	ineqConstraintMthd=c("soft"), 
