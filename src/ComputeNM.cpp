@@ -288,6 +288,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.iniSimplexType = iniSimplexType;
 	nmoc.iniSimplexEdge = iniSimplexEdge;
 	nmoc.fit2beat = R_PosInf;
+	nmoc.bignum = bignum;
 	nmoc.countConstraintsAndSetupBounds();
 	nmoc.invokeNelderMead();
 	fc->iterations = nmoc.itersElapsed;
@@ -494,8 +495,9 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 {
 	copyParamsFromOptimizer(x,fc);
 	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
-	if(!std::isfinite(fc->fit)){return(NMobj->bignum);}
+	if(!std::isfinite(fc->fit)){return(bignum);}
 	else{
+		if(fc->fit > bignum){bignum = 10 * fc->fit;}
 		double fv = fc->fit;
 		if(NMobj->eqConstraintMthd==4){
 			//TODO: add terms from augmented Lagrangian to fv
@@ -537,13 +539,12 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 	Eigen::Vector2i ifcr;
 	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
 	int eqConstraintMthd = NMobj->eqConstraintMthd;
-	double bignum = NMobj->bignum;
 	enforceBounds(x);
 	checkNewPointInfeas(x, ifcr);
 	if(!ifcr.sum()){
 		infeas = 0L;
 		fv = (evalFit(x));
-		//if(fv==NMobj->bignum){infeas=1L;}
+		if(fv==bignum){infeas=1L;}
 		return;
 	}
 	else if(ifcr[1] || (ifcr[0] && ineqConstraintMthd)){
@@ -585,12 +586,12 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 	Eigen::Vector2i ifcr;
 	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
 	int eqConstraintMthd = NMobj->eqConstraintMthd;
-	double bignum = NMobj->bignum;
 	enforceBounds(newpt);
 	checkNewPointInfeas(newpt, ifcr);
 	if(!ifcr.sum()){
 		newInfeas = 0L;
 		fv = (evalFit(newpt));
+		if(fv==bignum){newInfeas=1L;}
 		return;
 	}
 	else if(ifcr[1] || (ifcr[0] && ineqConstraintMthd)){
@@ -657,7 +658,8 @@ void NelderMeadOptimizerContext::printNewPoint(Eigen::VectorXd &x, double fv, in
 	mxLog("infeasible?: %d",isbad);
 }
 
-void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, double edgeLength, bool isRestart)
+//Want to pass startpt as value, not reference:
+void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart)
 {
 	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
@@ -1106,7 +1108,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	subcentroid.resize(numFree);
 	eucentroidCurr.resize(numFree);
 	initializeSimplex(est, iniSimplexEdge, false);
-	if(vertexInfeas.sum()==n+1 || (fvals.array()==NMobj->bignum).all()){
+	if(vertexInfeas.sum()==n+1 || (fvals.array()==bignum).all()){
 		omxRaiseErrorf("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
 		statuscode = 3;
 		return;
@@ -1132,6 +1134,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 			if(needRestart){
 				initializeSimplex(vertices[0], sqrt((vertices[0]-vertices[1]).dot(vertices[0]-vertices[1])), true);
 				needRestart = false;
+				restartsUsed++;
 				needFullSort = true;
 				itersElapsed++;
 				continue;

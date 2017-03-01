@@ -84,6 +84,7 @@ public:
 	int restartCount, unchangedx0count;
 	double fit2beat, bestfit;
 	int statuscode;
+	double bignum;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -95,7 +96,7 @@ public:
 	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double &fv, int &newInfeas, int oldInfeas);
 	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
 	void invokeNelderMead();
-	void initializeSimplex(Eigen::VectorXd &startpt, double edgeLength, bool isRestart);
+	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart);
 	void fullSort();
 	void fastSort();
 	void simplexTransformation();
