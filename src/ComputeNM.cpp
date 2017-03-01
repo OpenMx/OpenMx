@@ -190,11 +190,11 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxPrintMat("omxComputeNM member 'stagnCtrl':", stagnCtrl);
 	}
 	
-	/*ScopedProtect p18(slotValue, R_do_slot(rObj, Rf_install("validationRestart")));
+	ScopedProtect p18(slotValue, R_do_slot(rObj, Rf_install("validationRestart")));
 	validationRestart = Rf_asLogical(slotValue);
 	if(verbose){
 		mxLog("omxComputeNM member 'validationRestart' is %d", validationRestart);
-	}*/
+	}
 	
 	ScopedProtect p19(slotValue, R_do_slot(rObj, Rf_install("xTolProx")));
 	xTolProx = Rf_asReal(slotValue);
@@ -275,7 +275,6 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(fitMatrix);
 	
-	
 	//int beforeEval = fc->getLocalComputeCount();
 	
 	if (verbose >= 1){
@@ -285,10 +284,59 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	NelderMeadOptimizerContext nmoc(fc, this);
 	if(eqConstraintMthd==4){Rf_error("'augLag' Not Yet Implemented");}
 	nmoc.verbose = verbose;
+	nmoc.maxIter = maxIter;
+	nmoc.iniSimplexType = iniSimplexType;
+	nmoc.iniSimplexEdge = iniSimplexEdge;
+	nmoc.fit2beat = R_PosInf;
 	nmoc.countConstraintsAndSetupBounds();
 	nmoc.invokeNelderMead();
+	fc->iterations = nmoc.itersElapsed;
 	
-	//TODO: validation restart, pseudoHessian, etc.
+	switch(nmoc.statuscode){
+	case -1:
+		Rf_error("unknown Nelder-Mead optimizer error");
+		break;
+	case 0:
+		fc->setInform(INFORM_CONVERGED_OPTIMUM);
+		break;
+	case 3:
+		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
+		break;
+	case 4:
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	}
+	
+	if(validationRestart && nmoc.statuscode==0){
+		NelderMeadOptimizerContext nmoc2(fc, this);
+		nmoc2.verbose = verbose;
+		nmoc2.maxIter = 2 * nmoc.n;
+		nmoc2.iniSimplexType = 1;
+		nmoc2.iniSimplexEdge = 
+			sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+		nmoc2.fit2beat = nmoc.fvals[0];
+		nmoc2.est = nmoc.vertices[0];
+		nmoc2.countConstraintsAndSetupBounds();
+		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
+		nmoc2.invokeNelderMead();
+		
+		if(nmoc2.fvals[0] < nmoc.fvals[0] && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
+			nmoc.fvals = nmoc2.fvals;
+			nmoc.vertices = nmoc2.vertices;
+			nmoc.vertexInfeas = nmoc2.vertexInfeas;
+			nmoc.subcentroid = nmoc2.subcentroid;
+			nmoc.eucentroidPrev = nmoc2.eucentroidPrev;
+			nmoc.equality = nmoc2.equality;
+			nmoc.inequality = nmoc2.inequality;
+		}
+		
+		//Not sure about this:
+		fc->iterations += nmoc2.itersElapsed;
+	}
+	
+	//TODO: pseudoHessian, check fit at centroids
+	nmoc.est = nmoc.vertices[0];
+	nmoc.bestfit = nmoc.evalFit(nmoc.est);
 	return;
 }
 
@@ -306,6 +354,7 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 {
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());
+	statuscode = -1;
 	backtrackSteps=10; //<--Eventually should be made user-settable
 }
 
@@ -665,17 +714,14 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd &startpt, dou
 		}
 	}
 	else{
-		//TODO: regular simplex for other than unit edge-length:
 		double k = (double) n;
-		double shhp = (edgeLength/sqrt(k))*(1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
-		double shhq = (edgeLength/sqrt(k))*(1/k/sqrt(2))*(sqrt(1.0+k)-1);
-		//double shhp = (1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
-		//double shhq = (1/k/sqrt(2))*(sqrt(1.0+k)-1);
+		double shhp = edgeLength*(1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
+		double shhq = edgeLength*(1/k/sqrt(2))*(sqrt(1.0+k)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
 		//TODO: None of these except case 4 are OK to use with equality MxConstraints
-		switch(NMobj->iniSimplexType){
+		switch(iniSimplexType){
 		case 1:
 			vertices[0].setZero(numFree);
 			for(i=1; i<n+1; i++){
@@ -974,36 +1020,46 @@ void NelderMeadOptimizerContext::simplexTransformation()
 }
 
 
-//TODO:status codes
 bool NelderMeadOptimizerContext::checkConvergence(){
-	int i=0;
-	Eigen::VectorXd xdiffs(n);
-	Eigen::VectorXd fdiffs(n);
-	double fprox, xprox;
-	//Range-convergence test:
-	if(NMobj->fTolProx > 0){
-		for(i=0; i<n; i++){
-			fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
+	if(!std::isfinite(fit2beat)){
+		int i=0;
+		Eigen::VectorXd xdiffs(n);
+		Eigen::VectorXd fdiffs(n);
+		double fprox, xprox;
+		//Range-convergence test:
+		if(NMobj->fTolProx > 0){
+			for(i=0; i<n; i++){
+				fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
+			}
+			fprox = fdiffs.array().maxCoeff();
+			if(verbose){mxLog("range proximity measure: %f",fprox);}
+			if(fprox < NMobj->fTolProx){
+				statuscode = 0;
+				return(true);
+			}
 		}
-		fprox = fdiffs.array().maxCoeff();
-		if(verbose){mxLog("range proximity measure: %f",fprox);}
-		if(fprox < NMobj->fTolProx){
+		//Domain-convergence test:
+		if(NMobj->fTolProx > 0){
+			for(i=0; i<n; i++){
+				xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
+			}
+			xprox = xdiffs.array().maxCoeff();
+			if(verbose){mxLog("domain proximity measure: %f",xprox);}
+			if(xprox < NMobj->xTolProx){
+				statuscode = 0;
+				return(true);
+			}
+		}
+	}
+	//If Nelder-Mead is trying to beat a given fit value, it only stops if it does so or runs out of iters:
+	else{
+		if(fvals[0] < fit2beat){
+			statuscode = 0;
 			return(true);
 		}
 	}
-	//Domain-convergence test:
-	if(NMobj->fTolProx > 0){
-		for(i=0; i<n; i++){
-			xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
-		}
-		xprox = xdiffs.array().maxCoeff();
-		if(verbose){mxLog("domain proximity measure: %f",xprox);}
-		if(xprox < NMobj->xTolProx){
-			return(true);
-		}
-	}
-	if(itersElapsed >= NMobj->maxIter){
-		//TODO: set code 4 (status blue)
+	if(itersElapsed >= maxIter){
+		statuscode = 4;
 		return(true);
 	}
 	return(false);
@@ -1049,9 +1105,11 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	vertexInfeas.resize(n+1);
 	subcentroid.resize(numFree);
 	eucentroidCurr.resize(numFree);
-	initializeSimplex(est, NMobj->iniSimplexEdge, false);
+	initializeSimplex(est, iniSimplexEdge, false);
 	if(vertexInfeas.sum()==n+1 || (fvals.array()==NMobj->bignum).all()){
-		Rf_error("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
+		omxRaiseErrorf("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
+		statuscode = 3;
+		return;
 	}
 	fullSort();
 	needFullSort=false;
@@ -1088,9 +1146,6 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	
 	if(verbose){mxPrintMat("solution?",vertices[0]);}
 	
-	//TODO: check to see if fit at centroids is any better than at best vertex
-	fvals[0] = evalFit(vertices[0]); //<--This is to assign the parameter and fit values at the solution to the FitContext as part of evalFit() .
-	fc->iterations = itersElapsed;
 }
 
 

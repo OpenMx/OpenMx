@@ -1151,7 +1151,7 @@ mxComputeNelderMead <- function(
 	iniSimplexType=c("regular","right","smartRight","random"),
 	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
-	#validationRestart=TRUE,
+	validationRestart=TRUE,
 	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
 	#doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft"), 
@@ -1203,14 +1203,15 @@ mxComputeNelderMead <- function(
 	}
 	if(length(stagnCtrl)<2){stop("'stagnCtrl' must be an integer vector of length 2")}
 	stagnCtrl <- as.integer(stagnCtrl[1:2])
-	#validationRestart <- as.logical(validationRestart[1])
+	validationRestart <- as.logical(validationRestart[1])
 	xTolProx <- as.numeric(xTolProx[1])
 	fTolProx <- as.numeric(fTolProx[1])
 	#doPseudoHessian <- as.logical(doPseudoHessian[1])
 	ineqConstraintMthd <- as.character(match.arg(ineqConstraintMthd,c("soft","eqMthd")))
 	eqConstraintMthd <- as.character(match.arg(eqConstraintMthd,c("soft")))
 	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
-						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, iniSimplexColnames,
+						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
+						 iniSimplexColnames, validationRestart,
 						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
 						 ineqConstraintMthd, eqConstraintMthd))
 }
@@ -1239,7 +1240,7 @@ setClass(
 		altContraction="logical",
 		degenLimit="numeric",
 		stagnCtrl="integer",
-		#validationRestart="logical",
+		validationRestart="logical",
 		xTolProx="numeric",
 		fTolProx="numeric",
 		#doPseudoHessian="logical",
@@ -1251,7 +1252,8 @@ setClass(
 setMethod(
 	"initialize", "MxComputeNelderMead",
 	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
-					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, iniSimplexColnames,
+					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
+					 iniSimplexColnames, validationRestart,
 					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
 					 ineqConstraintMthd, eqConstraintMthd){
 		.Object@name <- 'compute'
@@ -1279,7 +1281,7 @@ setMethod(
 		.Object@altContraction <- altContraction
 		.Object@degenLimit <- degenLimit
 		.Object@stagnCtrl <- stagnCtrl
-		#.Object@validationRestart <- validationRestart
+		.Object@validationRestart <- validationRestart
 		.Object@xTolProx <- xTolProx
 		.Object@fTolProx <- fTolProx
 		#.Object@pseudoHessian <- ctrl$pseudoHessian

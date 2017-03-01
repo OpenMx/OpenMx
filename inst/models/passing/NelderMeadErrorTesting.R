@@ -179,7 +179,7 @@ plan$steps$GD$iniSimplexMat <- ism
 #plan$steps$GD$verbose <- 5L
 omxCheckError(
 	mxRun(mxModel(m,plan,mxConstraint(Mu<0))),
-	"initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()"
+	"The job for model 'mod' exited abnormally with the error message: initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()"
 )
 plan <- plan2
 
@@ -189,5 +189,11 @@ plan$steps$GD$iniSimplexMat <- ism
 #plan$steps$GD$verbose <- 5L
 omxCheckError(
 	mxRun(mxModel(m,plan,mxConstraint(Mu>0))),
-	"initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()"
+	"The job for model 'mod' exited abnormally with the error message: initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()"
 )
+plan <- plan2
+
+ism <- matrix(c(0,4,-1,4,0,5),3,2,byrow=T)
+plan$steps$GD$iniSimplexMat <- ism
+omxCheckError(mxRun(mxModel(m,plan)), "'iniSimplexMat' has 0 column names, but 2 column names expected")
+plan <- plan2

@@ -71,11 +71,19 @@ public:
 	int numEqC;
 	int n; //<--number of free parameters minus number of equality constraints
 	int backtrackSteps;
+	int maxIter;
 	int itersElapsed;
+	int iniSimplexType; //regular=1, right=2, smartRight=3, random=4
+	double iniSimplexEdge;
 	double fr, fe, foc, fic;
 	int badr, bade, badoc, badic, badsc;
 	int restartsUsed;
 	bool failedContraction;
+	bool needFullSort;
+	//double avgFitValPrev, avgFitValCurr;
+	int restartCount, unchangedx0count;
+	double fit2beat, bestfit;
+	int statuscode;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -113,9 +121,6 @@ public:
 	Eigen::VectorXd xr, xe, xoc, xic;
 	Eigen::VectorXd oldWorstVertex;
 	
-	bool needFullSort;
-	//double avgFitValPrev, avgFitValCurr;
-	int restartCount, unchangedx0count;
 	
 	
 	
