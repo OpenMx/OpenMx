@@ -16,9 +16,7 @@
 library(OpenMx)
 
 omxCheckError(
-	mxComputeNelderMead(freeSet=NA_character_, fitfunction="fitfunction", verbose=0L, 
-										nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), 
-										maxIter=NULL, 3),
+	mxComputeNelderMead(unrecognizedArgument=3),
 	"mxComputeNelderMead() does not accept values for the '...' argument"
 )
 

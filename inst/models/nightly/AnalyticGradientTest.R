@@ -23,7 +23,7 @@ ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T)
 
 gff <- mxFitFunctionGREML(dV=c(va="A",ve="I"))
 
-plan <- mxComputeSequence(freeSet = c("Va","Ve"),steps=list(
+plan <- mxComputeSequence(steps=list(
 	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer"),useGradient=TRUE),
 	mxComputeReportExpectation()
 ))
@@ -53,7 +53,7 @@ testmod <- mxModel(
 testrun <- mxRun(testmod)
 
 testmod2 <- testmod
-testmod2$compute <- mxComputeSequence(freeSet = c("Va","Ve"),steps=list(
+testmod2$compute <- mxComputeSequence(steps=list(
 	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer"),useGradient=FALSE),
 	mxComputeReportExpectation()
 ))

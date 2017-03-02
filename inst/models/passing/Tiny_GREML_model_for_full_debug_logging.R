@@ -23,7 +23,7 @@ dat[5,1] <- NA
 
 ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=FALSE)
 gff <- mxFitFunctionGREML(dV=c(ve="I"))
-plan <- mxComputeSequence(freeSet=c("Ve"),steps=list(
+plan <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
 	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 	mxComputeStandardError(),

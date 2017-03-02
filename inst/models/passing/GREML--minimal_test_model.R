@@ -23,10 +23,10 @@ colnames(dat) <- c("y","x")
 ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=FALSE)
 gff <- mxFitFunctionGREML(dV=c(ve="I"))
 plan <- mxComputeSequence(steps=list(
-  mxComputeNewtonRaphson(freeSet=c("Ve"),fitfunction="fitfunction"),
-  mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian'),freeSet=c("Ve")),
-  mxComputeStandardError(freeSet=c("Ve")),
-			      mxComputeReportDeriv(freeSet=c("Ve")),
+  mxComputeNewtonRaphson(fitfunction="fitfunction"),
+  mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+  mxComputeStandardError(),
+			      mxComputeReportDeriv(),
 			      mxComputeReportExpectation()
 ))
 

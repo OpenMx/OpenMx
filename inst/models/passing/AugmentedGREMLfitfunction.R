@@ -81,7 +81,7 @@ testmod3 <- mxModel(
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
 	mxData(observed = dat, type="raw", sort=FALSE),
 	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
@@ -105,7 +105,7 @@ testmod4 <- mxModel(
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
 	mxData(observed = dat, type="raw", sort=FALSE),
 	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),

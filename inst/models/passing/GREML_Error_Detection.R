@@ -214,7 +214,7 @@ testmod <- mxModel(
 	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
 	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
@@ -247,7 +247,7 @@ testmod <- mxModel(
 	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
 	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
@@ -274,7 +274,7 @@ testmod <- mxModel(
 	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
 	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxComputeSequence(freeSet = c("Va1","Va2","Ve"),steps=list(
+	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),

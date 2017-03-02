@@ -50,7 +50,7 @@ gff <- mxFitFunctionGREML(dV=c(va="A",ve="I"))
 #This is a custom compute plan.  It is necessary because we want to use the Newton-Raphson optimizer, which
 #can use analytic first and second derivatives of the GREML fitfunction to speed up convergence.  It looks
 #especially messy here because we want a profile-likelihood confidence interval for the heritability:
-plan <- mxComputeSequence(freeSet = c("Va","Ve"),steps=list(
+plan <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
 	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 	mxComputeConfidenceInterval(
@@ -133,7 +133,7 @@ testmod2 <- mxModel(
 	mxAlgebra(Va/(Va+Ve), name="h2"),
 	gff,
 	#We'll do without the CI this time:
-	mxComputeSequence(freeSet = c("Va","Ve"),steps=list(
+	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
 		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 		mxComputeStandardError(),
@@ -160,7 +160,7 @@ omxCheckCloseEnough(testrun$expectation$bcov,testrun2$expectation$bcov,1e-6)
 
 gff3 <- mxFitFunctionGREML(dV=c(h2="dVdH2",vp="dVdVp")) #<--Need new fitfunction object
 #Need new compute plan:
-plan3 <- mxComputeSequence(freeSet = c("H2","Vp"),steps=list(
+plan3 <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
 	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
 	mxComputeConfidenceInterval(
