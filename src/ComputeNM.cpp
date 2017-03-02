@@ -340,13 +340,88 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	//TODO: pseudoHessian, check fit at centroids
 	nmoc.est = nmoc.vertices[0];
 	nmoc.bestfit = nmoc.evalFit(nmoc.est);
+	
+	size_t i=0;
+	Eigen::VectorXd xdiffs(nmoc.n);
+	Eigen::VectorXd fdiffs(nmoc.n);
+	verticesOut.resize(nmoc.vertices.size(), nmoc.vertices[0].size());
+	for(i=0; i < nmoc.vertices.size(); i++){
+		verticesOut.row(i) = nmoc.vertices[i];
+	}
+	fvalsOut = nmoc.fvals;
+	vertexInfeasOut = nmoc.vertexInfeas;
+	for(i=0; i < size_t(nmoc.n); i++){
+		fdiffs[i] = fabs(fvalsOut[i+1] - fvalsOut[0]);
+	}
+	fproxOut = fdiffs.array().maxCoeff();
+	for(i=0; i < size_t(nmoc.n); i++){
+		xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+	}
+	xproxOut = xdiffs.array().maxCoeff();
+	
+	
 	return;
 }
 
 
 void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	omxPopulateFitFunction(fitMatrix, out);
-	//TODO: export final simplex and fit-value vector, pseudoHessian, etc.
+	
+	MxRList output;
+	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm;
+	size_t i=0;
+	
+	if( fc->varGroup->vars.size() ){
+		Rf_protect(pn = Rf_allocVector( STRSXP, fc->varGroup->vars.size() ));
+		for(i=0; i < fc->varGroup->vars.size(); i++){
+			SET_STRING_ELT( pn, i, Rf_mkChar(fc->varGroup->vars[i]->name) );
+		}
+		output.add("paramNames", pn);
+	}
+	if( fc->state->conListX.size() ){
+		Rf_protect(cn = Rf_allocVector( STRSXP, fc->state->conListX.size() ));
+		Rf_protect(cr = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
+		Rf_protect(cc = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
+		for(i=0; i < fc->state->conListX.size(); i++){
+			SET_STRING_ELT( cn, i, Rf_mkChar(fc->state->conListX[i]->name) );
+			INTEGER(cr)[i] = fc->state->conListX[i]->nrows;
+			INTEGER(cc)[i] = fc->state->conListX[i]->ncols;
+		}
+		output.add("constraintNames", cn);
+		output.add("constraintRows", cr);
+		output.add("constraintCols", cc);
+	}
+	if( fc->constraintFunVals.size() ){
+		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
+		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
+		output.add("constraintFunctionValues", cv);
+	}
+	if( verticesOut.rows() && verticesOut.cols() ){
+		Rf_protect(vrt = Rf_allocMatrix( REALSXP, verticesOut.rows(), verticesOut.cols() ));
+		memcpy( REAL(vrt), verticesOut.data(), sizeof(double) * verticesOut.rows() * verticesOut.cols() );
+		output.add("finalSimplexMat", vrt);
+	}
+	if( fvalsOut.size() ){
+		Rf_protect(fv = Rf_allocVector( REALSXP, fvalsOut.size() ));
+		memcpy( REAL(fv), fvalsOut.data(), sizeof(double) * fvalsOut.size() );
+		output.add("finalFitValues", fv);
+	}
+	if( vertexInfeasOut.size() ){
+		Rf_protect(vinf = Rf_allocVector( INTSXP, vertexInfeasOut.size() ));
+		memcpy( INTEGER(vinf), vertexInfeasOut.data(), sizeof(int) * vertexInfeasOut.size() );
+		output.add("finalVertexInfeas", vinf); //<--Not sure if CSOLNP and SLSQP have their own constraint state codes.
+	}
+	
+	Rf_protect(fpm = Rf_allocVector(REALSXP, 1));
+	//it would also work to do 'REAL(fpm)[0] = fproxOut;':
+	memcpy( REAL(fpm), &fproxOut, sizeof(double) );
+	output.add("rangeProximityMeasure", fpm);
+	
+	Rf_protect(xpm = Rf_allocVector(REALSXP, 1));
+	memcpy( REAL(xpm), &xproxOut, sizeof(double) );
+	output.add("domainProximityMeasure", xpm);
+	
+	slots->add("output", output.asR());
 	return;
 }
 

@@ -44,6 +44,12 @@ public:
 	bool doPseudoHessian;
 	int ineqConstraintMthd, eqConstraintMthd;
 	double feasTol;
+
+	Eigen::MatrixXd verticesOut;
+	Eigen::VectorXd fvalsOut;
+	Eigen::VectorXi vertexInfeasOut;
+	double fproxOut, xproxOut;
+
 	omxComputeNM();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
@@ -81,7 +87,7 @@ public:
 	bool failedContraction;
 	bool needFullSort;
 	//double avgFitValPrev, avgFitValCurr;
-	int restartCount, unchangedx0count;
+	int unchangedx0count;
 	double fit2beat, bestfit;
 	int statuscode;
 	double bignum;
