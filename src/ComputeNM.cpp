@@ -289,6 +289,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.iniSimplexEdge = iniSimplexEdge;
 	nmoc.fit2beat = R_PosInf;
 	nmoc.bignum = bignum;
+	nmoc.iniSimplexMat = iniSimplexMat;
 	nmoc.countConstraintsAndSetupBounds();
 	nmoc.invokeNelderMead();
 	fc->iterations = nmoc.itersElapsed;
@@ -316,6 +317,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.iniSimplexEdge = 
 			sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
 		nmoc2.fit2beat = nmoc.fvals[0];
+		nmoc2.bignum = nmoc.bignum;
 		nmoc2.est = nmoc.vertices[0];
 		nmoc2.countConstraintsAndSetupBounds();
 		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
@@ -495,7 +497,9 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 {
 	copyParamsFromOptimizer(x,fc);
 	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
-	if(!std::isfinite(fc->fit)){return(bignum);}
+	if( fc->outsideFeasibleSet() ){
+		return(bignum);
+	}
 	else{
 		if(fc->fit > bignum){bignum = 10 * fc->fit;}
 		double fv = fc->fit;
@@ -617,7 +621,8 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 			}
 			else{
 				fv = evalFit(newpt);
-				newInfeas = 0L;
+				if(fv==bignum){newInfeas = 1L;}
+				else{newInfeas = 0L;}
 			}
 			return;
 		}
@@ -664,20 +669,20 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
-	if(NMobj->iniSimplexMat.rows() && NMobj->iniSimplexMat.cols() && !isRestart){
+	if(iniSimplexMat.rows() && iniSimplexMat.cols() && !isRestart){
 		Eigen::MatrixXd SiniSupp, iniSimplexMat2;
 		Eigen::VectorXi paramMap(numFree);
-		if(NMobj->iniSimplexMat.cols() != numFree){
-			Rf_error("'iniSimplexMat' has %d columns, but %d columns expected",NMobj->iniSimplexMat.cols(), numFree);
+		if(iniSimplexMat.cols() != numFree){
+			Rf_error("'iniSimplexMat' has %d columns, but %d columns expected",iniSimplexMat.cols(), numFree);
 		}
 		if( int(NMobj->iniSimplexColnames.size()) != numFree){
 			Rf_error("'iniSimplexMat' has %d column names, but %d column names expected", NMobj->iniSimplexColnames.size(), numFree);
 		}
-		if(NMobj->iniSimplexMat.rows()>n+1){
-			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; extraneous rows will be ignored",NMobj->iniSimplexMat.rows(), n+1);
-			NMobj->iniSimplexMat.conservativeResize(n+1,numFree);
+		if(iniSimplexMat.rows()>n+1){
+			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; extraneous rows will be ignored",iniSimplexMat.rows(), n+1);
+			iniSimplexMat.conservativeResize(n+1,numFree);
 		}
-		iniSimplexMat2.resize(NMobj->iniSimplexMat.rows(), numFree);
+		iniSimplexMat2.resize(iniSimplexMat.rows(), numFree);
 		int gx=0;
 		/*If there are no problems, then every time vx gets incremented, it should become equal to the current 
 		 value of gx*/
@@ -693,12 +698,12 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		if ( gx != int(NMobj->iniSimplexColnames.size()) ){
 			Rf_error("error in mapping column names of 'iniSimplexMat' to free-parameter labels");
 		}
-		for(i=0; i < NMobj->iniSimplexMat.cols(); i++){
-			iniSimplexMat2.col(paramMap[i]) = NMobj->iniSimplexMat.col(i);
+		for(i=0; i < iniSimplexMat.cols(); i++){
+			iniSimplexMat2.col(paramMap[i]) = iniSimplexMat.col(i);
 		}
-		if(NMobj->iniSimplexMat.rows()<n+1){
-			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; omitted rows will be generated randomly",NMobj->iniSimplexMat.rows(),n+1);
-			SiniSupp.resize(n + 1 - NMobj->iniSimplexMat.rows(), numFree);
+		if(iniSimplexMat.rows()<n+1){
+			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; omitted rows will be generated randomly",iniSimplexMat.rows(),n+1);
+			SiniSupp.resize(n + 1 - iniSimplexMat.rows(), numFree);
 			xin=iniSimplexMat2.row(0);
 			for(i=0; i<SiniSupp.rows(); i++){
 				xout=SiniSupp.row(i);
@@ -706,12 +711,12 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 				SiniSupp.row(i) = xout;
 			}
 		}
-		for(i=0; i < NMobj->iniSimplexMat.rows(); i++){
+		for(i=0; i < iniSimplexMat.rows(); i++){
 			vertices[i] = iniSimplexMat2.row(i);
 		}
 		if(SiniSupp.rows()){
 			for(i=0; i<SiniSupp.rows(); i++){
-				vertices[i+NMobj->iniSimplexMat.rows()] = SiniSupp.row(i);
+				vertices[i+iniSimplexMat.rows()] = SiniSupp.row(i);
 			}
 		}
 	}
@@ -1128,7 +1133,10 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 			else{fastSort();}
 			
 			stopflag = checkConvergence();
-			if(stopflag){break;}
+			if(stopflag){
+				//fc->resetIterationError();
+				break;
+			}
 			
 			needRestart = checkProgress();
 			if(needRestart){

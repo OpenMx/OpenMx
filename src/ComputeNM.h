@@ -121,6 +121,7 @@ public:
 	Eigen::VectorXd eucentroidPrev, eucentroidCurr;
 	Eigen::VectorXd xr, xe, xoc, xic;
 	Eigen::VectorXd oldWorstVertex;
+	Eigen::MatrixXd iniSimplexMat;
 	
 	
 	
