@@ -96,7 +96,7 @@ m <- mxModel(
 	"mod",
 	mxData(observed=x,type="raw"),
 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,labels="mu",name="Mu"),
-	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0.0001),
 	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
 	mxAlgebra(sqrt(Sigma2),name="Sigma"),
 	mxFitFunctionML()
