@@ -232,8 +232,19 @@ summary(m16o)
 m16o$output$iterations
 
 #sigma<=0:
-plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, sigma=-0.4)
+#Under 32-bit Windows, if using a non-random simplex for m17, 
+#Nelder-Mead gets stuck in a loop of restarting the simplex
+#to the same state over and over, every iteration 
+#(although using a random simplex doesn't yield a good solution, at least not with this script's RNG seed).
+#All the literature I've read says that shrink transformations are rare, but that has not been my experience
+#so far; the user turns off shrinks at his/her own peril:
+if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386"){
+	plan$steps$GD <- mxComputeNelderMead(
+		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",iniSimplexEdge=0.5, sigma=-0.4)
+} else{
+	plan$steps$GD <- mxComputeNelderMead(
+		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, sigma=-0.4)	
+}
 m17 <- mxModel(model,plan)
 m17o <- mxRun(m17)
 summary(m17o) 
