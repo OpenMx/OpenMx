@@ -61,7 +61,7 @@ omxCheckError(
 
 omxCheckError(
 	mxComputeNelderMead(iniSimplexType="foo"),
-	"'arg' should be one of “regular”, “right”, “smartRight”, “random”"
+	"'foo' should be one of 'regular', 'right', 'smartRight', and 'random'"
 )
 
 omxCheckError(
@@ -80,11 +80,11 @@ omxCheckError(
 
 omxCheckError(
 	mxComputeNelderMead(ineqConstraintMthd="foo"),
-	"'arg' should be one of “soft”, “eqMthd”"
+	"'foo' should be one of 'soft' and 'eqMthd'"
 )
 omxCheckError(
 	mxComputeNelderMead(eqConstraintMthd="foo"),
-	"'arg' should be one of “soft”"
+	"'foo' should be one of 'soft'"
 )
 
 ##################################################

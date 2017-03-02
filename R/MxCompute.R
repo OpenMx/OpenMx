@@ -1143,6 +1143,35 @@ setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 	  })
 
 #----------------------------------------------------
+#Mike Hunter's "better match.arg" function
+match.barg <- function (arg, choices, several.ok = FALSE) 
+{
+	if (missing(choices)) {
+		formal.args <- formals(sys.function(sys.parent()))
+		choices <- eval(formal.args[[deparse(substitute(arg))]])
+	}
+	if (is.null(arg)) 
+		return(choices[1L])
+	else if (!is.character(arg)) 
+		stop("'arg' must be NULL or a character vector")
+	if (!several.ok) {
+		if (identical(arg, choices)) 
+			return(arg[1L])
+		if (length(arg) > 1L) 
+			stop("'arg' must be of length 1")
+	}
+	else if (length(arg) == 0L) 
+		stop("'arg' must be of length >= 1")
+	i <- pmatch(arg, choices, nomatch = 0L, duplicates.ok = TRUE)
+	if (all(i == 0L)) 
+		stop(gettextf("%s should be one of %s", omxQuotes(arg), omxQuotes(choices)
+		), domain = NA)
+	i <- i[i > 0L]
+	if (!several.ok && length(i) > 1) 
+		stop("there is more than one match in 'match.arg'")
+	choices[i]
+}
+
 mxComputeNelderMead <- function(
 	freeSet=NA_character_, fitfunction="fitfunction", verbose=0L, 
 	nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), 
@@ -1185,7 +1214,7 @@ mxComputeNelderMead <- function(
 	#Allow user to provide non-positive sigma to "turn off" shrinks:
 	if(sigma>=1){stop("shrink coefficient 'sigma' must be less than 1.0")}
 	bignum <- as.numeric(bignum[1])
-	iniSimplexType <- as.character(match.arg(iniSimplexType,c("regular","right","smartRight","random")))
+	iniSimplexType <- as.character(match.barg(iniSimplexType,c("regular","right","smartRight","random")))
 	iniSimplexEdge <- as.numeric(iniSimplexEdge[1])
 	if(length(iniSimplexMat)){
 		iniSimplexMat <- as.matrix(iniSimplexMat)
@@ -1207,8 +1236,8 @@ mxComputeNelderMead <- function(
 	xTolProx <- as.numeric(xTolProx[1])
 	fTolProx <- as.numeric(fTolProx[1])
 	#doPseudoHessian <- as.logical(doPseudoHessian[1])
-	ineqConstraintMthd <- as.character(match.arg(ineqConstraintMthd,c("soft","eqMthd")))
-	eqConstraintMthd <- as.character(match.arg(eqConstraintMthd,c("soft")))
+	ineqConstraintMthd <- as.character(match.barg(ineqConstraintMthd,c("soft","eqMthd")))
+	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("soft")))
 	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
 						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 						 iniSimplexColnames, validationRestart,
