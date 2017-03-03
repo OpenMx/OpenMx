@@ -15,6 +15,10 @@
 
 library(OpenMx)
 
+#This test script doesn't use any of the GD optimizers, so there's no reason to run it when all 3 are the default:
+if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
+
+
 omxCheckError(
 	mxComputeNelderMead(unrecognizedArgument=3),
 	"mxComputeNelderMead() does not accept values for the '...' argument"
