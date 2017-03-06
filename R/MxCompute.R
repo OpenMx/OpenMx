@@ -1182,7 +1182,7 @@ mxComputeNelderMead <- function(
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
 	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
-	#doPseudoHessian=FALSE,
+	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),
 	eqConstraintMthd=c("soft","backtrack"),
@@ -1235,8 +1235,9 @@ mxComputeNelderMead <- function(
 	stagnCtrl <- as.integer(stagnCtrl[1:2])
 	validationRestart <- as.logical(validationRestart[1])
 	xTolProx <- as.numeric(xTolProx[1])
-	fTolProx <- as.numeric(fTolProx[1])backtrackCtrl=c(0.5,5)
-	#doPseudoHessian <- as.logical(doPseudoHessian[1])
+	fTolProx <- as.numeric(fTolProx[1])
+	backtrackCtrl=c(0.5,5)
+	doPseudoHessian <- as.logical(doPseudoHessian[1])
 	ineqConstraintMthd <- as.character(match.barg(ineqConstraintMthd,c("soft","eqMthd")))
 	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("soft","backtrack")))
 	if(length(backtrackCtrl)<2){stop("'backtrackCtrl' must be a numeric vector of length 2")}
@@ -1246,7 +1247,7 @@ mxComputeNelderMead <- function(
 						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 						 iniSimplexColnames, validationRestart,
 						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
-						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2))
+						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian))
 }
 
 setClass(
@@ -1276,7 +1277,7 @@ setClass(
 		validationRestart="logical",
 		xTolProx="numeric",
 		fTolProx="numeric",
-		#doPseudoHessian="logical",
+		doPseudoHessian="logical",
 		ineqConstraintMthd="character",
 		eqConstraintMthd="character",
 		backtrackCtrl1="numeric",
@@ -1290,7 +1291,7 @@ setMethod(
 					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 					 iniSimplexColnames, validationRestart,
 					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
-					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2){
+					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian){
 		.Object@name <- 'compute'
 		.Object@.persist <- TRUE
 		.Object@freeSet <- freeSet
@@ -1319,7 +1320,7 @@ setMethod(
 		.Object@validationRestart <- validationRestart
 		.Object@xTolProx <- xTolProx
 		.Object@fTolProx <- fTolProx
-		#.Object@pseudoHessian <- ctrl$pseudoHessian
+		.Object@doPseudoHessian <- doPseudoHessian
 		.Object@ineqConstraintMthd <- ineqConstraintMthd
 		.Object@eqConstraintMthd <- eqConstraintMthd
 		.Object@backtrackCtrl1 <- backtrackCtrl1

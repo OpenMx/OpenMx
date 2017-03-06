@@ -17,7 +17,8 @@ library(OpenMx)
 #No need to run this test with other than the on-load default GD optimizer:
 if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 #Need to use stricter convergence tolerances to avoid status Red:
-foo <- mxComputeNelderMead(iniSimplexType="smartRight", nudgeZeroStarts=FALSE, xTolProx=1e-8, fTolProx=1e-8)
+foo <- mxComputeNelderMead(iniSimplexType="smartRight", nudgeZeroStarts=FALSE, xTolProx=1e-8, fTolProx=1e-8,
+													 doPseudoHessian=T)
 #foo$verbose <- 5L
 plan <- omxDefaultComputePlan()
 plan$steps$GD <- foo

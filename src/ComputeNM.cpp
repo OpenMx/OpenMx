@@ -214,11 +214,11 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		Rf_warning("both 'xTolProx' and 'fTolProx' are non-positive; 'fTolProx' will be assigned a value of 1e-14");
 	}
 	
-	/*ScopedProtect p23(slotValue, R_do_slot(rObj, Rf_install("doPseudoHessian")));
+	ScopedProtect p30(slotValue, R_do_slot(rObj, Rf_install("doPseudoHessian")));
 	doPseudoHessian = Rf_asLogical(slotValue);
 	if(verbose){
 		mxLog("omxComputeNM member 'doPseudoHessian' is %d", doPseudoHessian);
-	}*/
+	}
 	
 	ScopedProtect p24(slotValue, R_do_slot(rObj, Rf_install("ineqConstraintMthd")));
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){ineqConstraintMthd = 0;}
@@ -348,12 +348,13 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		fc->iterations += nmoc2.itersElapsed;
 	}
 	
-	//TODO: pseudoHessian, check fit at centroids
-	/*if(doPseudoHessian){
-		nmoc.calculatePseudoHessian();
-	}*/
 	nmoc.est = nmoc.vertices[0];
 	nmoc.bestfit = nmoc.evalFit(nmoc.est);
+	
+	//TODO: pseudoHessian, check fit at centroids
+	if(doPseudoHessian && nmoc.statuscode==0 && !nmoc.vertexInfeas.sum() && !nmoc.numEqC){
+		nmoc.calculatePseudoHessian();
+	}
 	
 	size_t i=0;
 	Eigen::VectorXd xdiffs(nmoc.n);
@@ -384,7 +385,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	omxPopulateFitFunction(fitMatrix, out);
 	
 	MxRList output;
-	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm;
+	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm, phess;
 	size_t i=0;
 	
 	if( fc->varGroup->vars.size() ){
@@ -426,6 +427,11 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 		Rf_protect(vinf = Rf_allocVector( INTSXP, vertexInfeasOut.size() ));
 		memcpy( INTEGER(vinf), vertexInfeasOut.data(), sizeof(int) * vertexInfeasOut.size() );
 		output.add("finalVertexInfeas", vinf); //<--Not sure if CSOLNP and SLSQP have their own constraint state codes.
+	}
+	if( pseudohess.rows() && pseudohess.cols() ){
+		Rf_protect(phess = Rf_allocMatrix( REALSXP, pseudohess.rows(), pseudohess.cols() ));
+		memcpy( REAL(phess), pseudohess.data(), sizeof(double) * pseudohess.rows() * pseudohess.cols() );
+		output.add("pseudoHessian", phess); 
 	}
 	
 	Rf_protect(fpm = Rf_allocVector(REALSXP, 1));
@@ -1302,7 +1308,122 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 
 void NelderMeadOptimizerContext::calculatePseudoHessian()
 {
+	int numpts = (n+1)*(n+2)/2;
+	bool canDoAnalyt=true;//, canDo=true;
+	int i, j, k, pminInfeas;
+	double a0, pminfit;
+	Eigen::MatrixXd phpts(numpts, n);
+	Eigen::MatrixXd phFvals(numpts, 1);
+	Eigen::VectorXi phInfeas(numpts);
+	Eigen::VectorXd currpt(n);
+	Eigen::VectorXd currpt2(n);
+	Eigen::VectorXi jvec(numpts);
+	Eigen::VectorXi kvec(numpts);
+	Eigen::VectorXd a(n), pmin(n);//, xmin(n);
+	Eigen::MatrixXd B(n,n), Q(n, n);
 	
-}
-
+	NMobj->pseudohess(n, n);
+	phpts.setZero(numpts, n);
+	phFvals.setZero(numpts, 1);
+	phInfeas.setZero(numpts);
+	
+	for(i=0; i<n; i++){
+		Q.col(i) = vertices[i+1] - vertices[0];
+	}
+	Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
+	
+	
+	for(i=0; i<n+1; i++){
+		phpts.row(i) = vertices[i];
+		phFvals(i,0) = fvals[i];
+		phInfeas[i] = 0; //<--Assuming that this function is not called if any vertices are infeasible.
+		kvec[i] = -1;
+		jvec[i] = -1;
+	}
+	
+	i=n+1;
+	for(j=0; j<n; j++){
+		for(k=j+1; k<n+1; k++){
+			jvec[i] = j;
+			kvec[i] = k;
+			currpt = (vertices[j] + vertices[k])/2;
+			currpt2 = currpt;
+			evalNewPoint(currpt, vertices[j], phFvals(i,0), phInfeas[i], 0);
+			if(phInfeas[i]){
+				//canDo = false;
+				//TODO: export a message about the pseudohessian for the user
+				NMobj->pseudohess.resize(0,0);
+				return;
+			}
+			//We can't use Nelder & Mead's analytic solution if the midpoints of the edges aren't actually such:
+			if( (currpt.array() != currpt2.array()).any() ){
+				canDoAnalyt = false;
+			}
+			phpts.row(i) = currpt;
+			i++;
+		}
+	}
+	
+	if(canDoAnalyt && luq.isInvertible()){
+		a0 = fvals[0];
+		for(i=0; i<n; i++){
+			a[i] = 2*phFvals(i+(n+1),0) - (fvals[i+1] + 3*a0)/2;
+			B(i,i) = 2*( fvals[i+1] + a0 - 2*phFvals(i+(n+1),0) );
+		}
+		for(i=n+n+1; i<numpts; i++){
+			if(jvec[i] == kvec[i]){continue;}
+			B(jvec[i]-1,kvec[i]-1) = 2*( phFvals(i,0) + a0 - phFvals(jvec[i]+(n+1)-1, 0) - 
+				phFvals(kvec[i]+(n+1)-1, 0) );
+			B(kvec[i]-1,jvec[i]-1) = B(jvec[i]-1,kvec[i]-1);
+		}
+		Eigen::FullPivLU< Eigen::MatrixXd > lub(B);
+		if(lub.isInvertible()){
+			//xmin = -1 * (lu.inverse() * a);
+			pmin = vertices[0] - (Q * lub.inverse() * a);
+			evalNewPoint(pmin, vertices[0], pminfit, pminInfeas, vertexInfeas[0]);
+			if(pminfit<fvals[0] && !pminInfeas){
+				est = pmin;
+				bestfit = pminfit;
+			}
+		}
+		Eigen::MatrixXd Qinv = luq.inverse();
+		//NMobj->pseudohess = luq.inverse().transpose() * B * luq.inverse();
+		NMobj->pseudohess = Qinv.transpose() * B * Qinv;
+	}
+	else{
+		Eigen::MatrixXd X(numpts, numpts), XtX, polynomb;
+		for(i=0; i<numpts; i++){
+			X(i,0) = 1;
+		}
+		for(i=0; i<n; i++){
+			X.col(i+1) = phpts.col(i);
+		}
+		i=n+1;
+		for(j=0; j<n; j++){
+			for(k=j; k<n; k++){
+				X.col(i) = (phpts.row(j).array() * phpts.row(k).array());
+				i++;
+			}
+		}
+		
+		//TODO: do this step with QR
+		XtX = X.transpose() * X;
+		Eigen::FullPivLU< Eigen::MatrixXd > luxtx(XtX);
+		if(!luxtx.isInvertible()){return;}
+		polynomb = luxtx.inverse() * X.transpose() * phFvals;
+		
+		i=n+1;
+		for(j=0; j<n; j++){
+			for(k=j; k<n; k++){
+				NMobj->pseudohess(j,k) = polynomb(i,0);
+				if(j != k){NMobj->pseudohess(k,j) = polynomb(i,0);}
+			}
+		}
+	}
+	if(verbose){
+		mxPrintMat("pseudoHessian is ", NMobj->pseudohess);
+	}
+	return;
+}	
+	
 

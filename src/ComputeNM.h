@@ -53,6 +53,9 @@ public:
 	double fproxOut, xproxOut;
 	Eigen::MatrixXd equalityOut, inequalityOut;
 
+	Eigen::MatrixXd pseudohess, phpts, phFvals, Xout;
+	Eigen::VectorXi phInfeas;
+
 	omxComputeNM();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
@@ -132,8 +135,8 @@ public:
 	Eigen::VectorXd xr, xe, xoc, xic;
 	Eigen::VectorXd oldWorstVertex;
 	Eigen::MatrixXd iniSimplexMat;
-	Eigen::MatrixXd pseudohess;
-	//Eigen::VectorXd pseudograd;
+	//Eigen::MatrixXd pseudohess;
+	Eigen::VectorXd simplexGradient;
 	
 	
 	

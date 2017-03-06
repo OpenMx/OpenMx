@@ -20,6 +20,7 @@ mxComputeNelderMead(
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
 	xTolProx=1e-4, fTolProx=1e-4,
+	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	eqConstraintMthd=c("soft","backtrack"),
 	backtrackCtrl=c(0.5,5))
@@ -46,7 +47,7 @@ mxComputeNelderMead(
   %%\item{validationRestart}
   \item{xTolProx}{Numeric "domain-convergence" criterion; defaults to 1e-4.  See below for details.}
   \item{fTolProx}{Numeric "range-convergence" criterion; defaults to 1e-4.  See below for details.}
-  %%\item{doPseudoHessian}
+  \item{doPseudoHessian}{Logical; defaults to \code{FALSE}.}
   \item{ineqConstraintMthd}{"Inequality constraint method;" character string. Defaults to "soft".}
   \item{eqConstraintMthd}{"Equality constraint method;" character string. Defaults to "soft".}
   \item{backtrackCtrl}{Numeric vector of length two.  See below for details.}
