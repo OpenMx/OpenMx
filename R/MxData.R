@@ -167,7 +167,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	if (type == "sscp") {
 		stop(paste("'sscp' is not yet implemented."))
 	}
-	if (!is.vector(means) || !is.numeric(means)) {
+	if ((!is.vector(means) && !(prod(dim(means)) == length(means))) || !is.numeric(means)) {
 		stop("Means argument must be of numeric vector type")
 	}
 	if (type != "raw" && is.na(numObs)) {
@@ -210,7 +210,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 	numObs <- as.numeric(numObs)
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
-	meanNames <- names(means)
+	if(is.matrix(means)){meanNames <- colnames(means)} else {meanNames <- names(means)}
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
