@@ -1183,9 +1183,10 @@ mxComputeNelderMead <- function(
 	validationRestart=TRUE,
 	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
 	#doPseudoHessian=FALSE,
-	ineqConstraintMthd=c("soft"), 
+	ineqConstraintMthd=c("soft","eqMthd"), 
 	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),
-	eqConstraintMthd=c("soft")
+	eqConstraintMthd=c("soft","backtrack"),
+	backtrackCtrl=c(0.5,5)
 	){
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1234,15 +1235,18 @@ mxComputeNelderMead <- function(
 	stagnCtrl <- as.integer(stagnCtrl[1:2])
 	validationRestart <- as.logical(validationRestart[1])
 	xTolProx <- as.numeric(xTolProx[1])
-	fTolProx <- as.numeric(fTolProx[1])
+	fTolProx <- as.numeric(fTolProx[1])backtrackCtrl=c(0.5,5)
 	#doPseudoHessian <- as.logical(doPseudoHessian[1])
 	ineqConstraintMthd <- as.character(match.barg(ineqConstraintMthd,c("soft","eqMthd")))
-	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("soft")))
+	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("soft","backtrack")))
+	if(length(backtrackCtrl)<2){stop("'backtrackCtrl' must be a numeric vector of length 2")}
+	backtrackCtrl1 <- as.numeric(backtrackCtrl[1])
+	backtrackCtrl2 <- as.integer(backtrackCtrl[2])
 	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
 						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 						 iniSimplexColnames, validationRestart,
 						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
-						 ineqConstraintMthd, eqConstraintMthd))
+						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2))
 }
 
 setClass(
@@ -1274,7 +1278,9 @@ setClass(
 		fTolProx="numeric",
 		#doPseudoHessian="logical",
 		ineqConstraintMthd="character",
-		eqConstraintMthd="character"))
+		eqConstraintMthd="character",
+		backtrackCtrl1="numeric",
+		backtrackCtrl2="integer"))
 
 #TODO: a user or developer might someday want to directly use this low-level 'initialize' method instead of the high-level constructor function,
 #so typecasting should also occur here:
@@ -1284,7 +1290,7 @@ setMethod(
 					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 					 iniSimplexColnames, validationRestart,
 					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
-					 ineqConstraintMthd, eqConstraintMthd){
+					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2){
 		.Object@name <- 'compute'
 		.Object@.persist <- TRUE
 		.Object@freeSet <- freeSet
@@ -1316,6 +1322,8 @@ setMethod(
 		#.Object@pseudoHessian <- ctrl$pseudoHessian
 		.Object@ineqConstraintMthd <- ineqConstraintMthd
 		.Object@eqConstraintMthd <- eqConstraintMthd
+		.Object@backtrackCtrl1 <- backtrackCtrl1
+		.Object@backtrackCtrl2 <- backtrackCtrl2
 		.Object
 	})
 

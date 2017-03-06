@@ -44,11 +44,14 @@ public:
 	bool doPseudoHessian;
 	int ineqConstraintMthd, eqConstraintMthd;
 	double feasTol;
+	double backtrackCtrl1;
+	int backtrackCtrl2;
 
 	Eigen::MatrixXd verticesOut;
 	Eigen::VectorXd fvalsOut;
 	Eigen::VectorXi vertexInfeasOut;
 	double fproxOut, xproxOut;
+	Eigen::MatrixXd equalityOut, inequalityOut;
 
 	omxComputeNM();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -99,7 +102,7 @@ public:
 	double evalFit(Eigen::VectorXd &x);
 	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
 	void evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas);
-	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double &fv, int &newInfeas, int oldInfeas);
+	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd oldpt, double &fv, int &newInfeas, int oldInfeas);
 	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
 	void invokeNelderMead();
 	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart);
@@ -110,6 +113,7 @@ public:
 	bool checkProgress();
 	void printProblemState();
 	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
+	void calculatePseudoHessian();
 	/*void restart();
 	void validationRestart();*/
 	
@@ -128,6 +132,8 @@ public:
 	Eigen::VectorXd xr, xe, xoc, xic;
 	Eigen::VectorXd oldWorstVertex;
 	Eigen::MatrixXd iniSimplexMat;
+	Eigen::MatrixXd pseudohess;
+	//Eigen::VectorXd pseudograd;
 	
 	
 	

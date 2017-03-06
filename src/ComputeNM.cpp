@@ -238,6 +238,17 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'eqConstraintMthd' is %d", eqConstraintMthd);
 	}
 	
+	ScopedProtect p28(slotValue, R_do_slot(rObj, Rf_install("backtrackCtrl1")));
+	backtrackCtrl1 = Rf_asReal(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'backtrackCtrl1' is %f", backtrackCtrl1);
+	}
+	ScopedProtect p29(slotValue, R_do_slot(rObj, Rf_install("backtrackCtrl2")));
+	backtrackCtrl2 = Rf_asInteger(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'backtrackCtrl1' is %d", backtrackCtrl2);
+	}
+	
 	feasTol = Global->feasibilityTolerance;
 	
 	ProtectedSEXP Rexclude(R_do_slot(rObj, Rf_install(".excludeVars")));
@@ -338,6 +349,9 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	}
 	
 	//TODO: pseudoHessian, check fit at centroids
+	/*if(doPseudoHessian){
+		nmoc.calculatePseudoHessian();
+	}*/
 	nmoc.est = nmoc.vertices[0];
 	nmoc.bestfit = nmoc.evalFit(nmoc.est);
 	
@@ -358,6 +372,8 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
 	}
 	xproxOut = xdiffs.array().maxCoeff();
+	equalityOut = nmoc.equality;
+	inequalityOut = nmoc.inequality;
 	
 	
 	return;
@@ -585,6 +601,8 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 	}
 }
 
+//TODO: maybe the user should optionally be able to request that non-finite fit values be treated
+//like violated MxConstraints
 void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr)
 {
 	int i=0;
@@ -634,7 +652,6 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 			return;
 		case 2:
 			//Can't backtrack to someplace else if it's the very first point.
-			//Rf_error("starting values not feasible; re-specify the initial simplex, or consider mxTryHard()");
 			infeas = 1L;
 			fv = bignum;
 			break;
@@ -660,7 +677,7 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 }
 
 //oldpt is used for backtracking:
-void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd &oldpt, double &fv, int &newInfeas, int oldInfeas)
+void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd oldpt, double &fv, int &newInfeas, int oldInfeas)
 {
 	Eigen::Vector2i ifcr;
 	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
@@ -686,7 +703,25 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 				fv = bignum;
 				return;
 			}
-			else{Rf_error("'backtrack' Not Yet Implemented");}
+			//else{Rf_error("'backtrack' Not Yet Implemented");}
+			else{
+				int i;
+				for(i=1; i <= NMobj->backtrackCtrl2; i++){
+					ifcr.setZero();
+					newpt = oldpt + NMobj->backtrackCtrl1*(newpt - oldpt);
+					enforceBounds(newpt);
+					checkNewPointInfeas(newpt, ifcr);
+					if(!ifcr.sum()){
+						newInfeas = 0L;
+						fv = evalFit(newpt);
+						if(fv==bignum){continue;}
+						return;
+					}
+				}
+				fv = bignum;
+				newInfeas = 1L;
+				return;
+			}
 		case 3:
 			Rf_error("'GDsearch' Not Yet Implemented");
 		case 4:
@@ -721,6 +756,7 @@ void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::Vector
 	PutRNGstate();
 }
 
+//TODO: make the different parts of the printing subject to different verbose levels
 void NelderMeadOptimizerContext::printProblemState()
 {
 	int i=0;
@@ -743,6 +779,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 {
 	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
+	//bool ismflag=false;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
 	if(iniSimplexMat.rows() && iniSimplexMat.cols() && !isRestart){
 		Eigen::MatrixXd SiniSupp, iniSimplexMat2;
@@ -802,23 +839,51 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
-		//TODO: None of these except case 4 are OK to use with equality MxConstraints
+		//TODO: case 3 won't work with equality MxConstraints
 		switch(iniSimplexType){
 		case 1:
-			vertices[0].setZero(numFree);
-			for(i=1; i<n+1; i++){
-				vertices[i].setConstant(numFree,shhq);
-				vertices[i][i-1] = shhp;
+			vertices[0] = startpt;
+			if(n==numFree){
+				for(i=1; i<n+1; i++){
+					vertices[i].setConstant(numFree,shhq);
+					vertices[i][i-1] = shhp;
+					vertices[i] += startpt;
+				}
+				/*for(i=0; i<n+1; i++){
+					vertices[i] += startpt;
+				}*/
 			}
-			for(i=0; i<n+1; i++){
-				vertices[i] += startpt;
+			else{
+				for(i=1; i<n+1; i++){
+					vertices[i].setConstant(numFree,shhq);
+					vertices[i] += startpt;
+				}
+				int j=1;
+				for(i=0; i<numFree; i++){
+					vertices[j%(n+1)][i] += (shhp - shhq);
+					j++;
+					if(j==n+1){j = 1;}
+				}
 			}
 			break;
 		case 2:
 			vertices[0] = startpt;
-			for(i=1; i<n+1; i++){
-				vertices[i] = vertices[0];
-				vertices[i][i-1] += edgeLength;
+			if(n==numFree){
+				for(i=1; i<n+1; i++){
+					vertices[i] = startpt;
+					vertices[i][i-1] += edgeLength;
+				}
+			}
+			else{
+				for(i=1; i<n+1; i++){
+					vertices[i] = startpt;
+				}
+				int j=1;
+				for(i=0; i<numFree; i++){
+					vertices[j%(n+1)][i] += edgeLength;
+					j++;
+					if(j==n+1){j = 1;}
+				}
 			}
 			break;
 		case 3:
@@ -989,7 +1054,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 		else{ //<--If fit at reflection point is better than best fit and expansions are turned on
 			//Expansion transformation:
 			xe = subcentroid + NMobj->gamma*(xr - subcentroid);
-			evalNewPoint(xe, subcentroid, fe, bade, badsc);
+			evalNewPoint(xe, xr, fe, bade, badr);
 			if(verbose){
 				mxLog("expansion point...");
 				printNewPoint(xe, fe, bade);
@@ -1231,6 +1296,12 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	} while (!stopflag);
 	
 	if(verbose){mxPrintMat("solution?",vertices[0]);}
+	
+}
+
+
+void NelderMeadOptimizerContext::calculatePseudoHessian()
+{
 	
 }
 
