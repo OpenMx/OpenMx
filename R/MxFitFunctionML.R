@@ -166,7 +166,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 				"of only the variables used in the model, provide the model after it has been run."))
 		}
 		
-		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs)
+		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs, datasource@means)
 	})
 
 mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA),
