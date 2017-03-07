@@ -314,7 +314,12 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 		for (i in 1:nvar){
 			a <- proc.time()
 			# threshold & jacobian
-			startVals <- qnorm(cumsum(table(od[,i]))/sum(!is.na(od[,i])))
+			tab <- table(od[,i])
+			if(any(tab %in% 0)){
+				msg <- paste0("Variable ", omxQuotes(names(od)[i]), " has a zero frequency category ", omxQuotes(names(tab)[tab %in% 0]), ".\nEliminate this level in your mxFactor() or combine categories in some other way.\nDo not pass go. Do not collect $200.")
+				stop(msg, call.=FALSE)
+			}
+			startVals <- qnorm(cumsum(tab)/sum(!is.na(od[,i])))
 			if (length(startVals)>2){
 				uni <- optim(startVals[1:(length(startVals) - 1)], 
 					threshLogLik, return="model", rawData=od[,i], useMinusTwo=useMinusTwo, hessian=TRUE, method="BFGS")
