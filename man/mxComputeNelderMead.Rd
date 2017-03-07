@@ -19,7 +19,7 @@ mxComputeNelderMead(
 	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
-	xTolProx=1e-4, fTolProx=1e-4,
+	xTolProx=1e-8, fTolProx=1e-8,
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	eqConstraintMthd=c("soft","backtrack"),
@@ -30,7 +30,7 @@ mxComputeNelderMead(
   \item{fitfunction}{Character-string name of the fitfunction; defaults to 'fitfunction'.}
   \item{verbose}{Integer level of reporting printed to terminal at \link[mxRun]{runtime}; defaults to 0.}
   \item{nudgeZeroStarts}{Should free parameters with start values of zero be "nudged" to 0.1 at \link[mxRun]{runtime}?  Defaults to the current global value of \link{mxOption} "Nudge zero starts".  May be a logical value, or one of character strings "Yes" or "No".}
-  \item{maxIter}{Integer maximum number of iterations.  Value of \code{NULL} is accepted, in which case the value used at \link[=mxRun]{runtime} will be 5 times the number of iterations specified by the effective value of \link{mxOption} "Major iterations".}
+  \item{maxIter}{Integer maximum number of iterations.  Value of \code{NULL} is accepted, in which case the value used at \link[=mxRun]{runtime} will be 10 times the number of iterations specified by the effective value of \link{mxOption} "Major iterations".}
   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
   \item{alpha}{Numeric reflection coefficient.  Must be positive.  Defaults to 1.0.}
   \item{betao, betai}{Numeric outside- and inside-contraction coefficients, respectively.  Both must be within unit interval (0,1).  Both default to 0.5.}

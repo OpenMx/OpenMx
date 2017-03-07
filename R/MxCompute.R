@@ -1181,7 +1181,7 @@ mxComputeNelderMead <- function(
 	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
-	xTolProx=1e-4, fTolProx=1e-4, #<--MATLAB FMINSEARCH default
+	xTolProx=1e-8, fTolProx=1e-8, #<--MATLAB FMINSEARCH default
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),

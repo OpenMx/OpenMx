@@ -73,7 +73,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	defaultMaxIter = Rf_asLogical(slotValue);
 	
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
-	if(defaultMaxIter){maxIter = Global->majorIterations * 5;}
+	if(defaultMaxIter){maxIter = Global->majorIterations * 10;}
 	else{maxIter = Rf_asInteger(slotValue);}
 	if(verbose){
 		mxLog("omxComputeNM member 'maxIter' is %d", maxIter);
