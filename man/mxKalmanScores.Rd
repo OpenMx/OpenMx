@@ -48,7 +48,9 @@ This is a helper function that computes the results of the classical Kalman filt
 	\item{xSmoothed}{matrix of RTS smoothed scores}
 	\item{PSmoothed}{array of RTS smoothed error covariances}
 	\item{m2ll}{minus 2 log likelihood}
-	\item{L}{likelihood}
+	\item{L}{likelihood, i.e., the multivariate normal probability density}
+	\item{yPredicted}{matrix of Kalman predicted scores for the observed variables, i.e., the predicted means.  Only available for backend scores.}
+	\item{SPredicted}{array of Kalman predicted error covariances for the observed variables, i.e., the predicted covariances.  Only available for backend scores.}
 }
 }
 

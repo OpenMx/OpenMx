@@ -150,7 +150,20 @@ omxCheckEquals(withinCI, rep(TRUE, length(se)))
 #------------------------------------------------------------------------------
 # Compare frontend and backend scores
 
+fstart <- Sys.time()
 ks <- mxKalmanScores(noscr)
+fstop <- Sys.time()
+bstart <- Sys.time()
+ksb <- mxKalmanScores(noscr, frontend=FALSE)
+bstop <- Sys.time()
+
+# Compare time to compute
+fstop-fstart
+bstop-bstart # 70x faster in backend
+
+# Compare values
+omxCheckTrue(all.equal(ks, ksb[1:8]))
+# values equal to roughly 1.5e-8 #.Machine$double.eps ^ 0.5
 
 cor(cbind(ks$xPredicted, noscr$expectation$xPredicted))
 cor(cbind(ks$xUpdated, noscr$expectation$xUpdated))

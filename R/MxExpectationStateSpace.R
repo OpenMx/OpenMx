@@ -522,21 +522,37 @@ KalmanFilter <- function(A, B, C, D, Q, R, x, y, u, P, ct=FALSE, dt=0){
 	}
 }
 
-kalmanBackendScoreHelper <- function(model, data){
+kalmanBackendScoreHelper <- function(model, data=NA){
 	if(!single.na(data)){
-		model@data <- data
+		model@data <- mxData(data, type='raw')
 	}
 	model <- omxSetParameters(model, labels=names(coef(model)), free=FALSE)
+	e <- model@expectation
 	model <- mxModel(model=model, name='KalmanScoring',
-		mxExpectationStateSpace())
+		mxExpectationStateSpace(
+			A=e@A, B=e@B, C=e@C, D=e@D,
+			Q=e@Q, R=e@R, x0=e@x0, P0=e@P0, u=e@u,
+			t=e@t, scores=TRUE),
+		mxFitFunctionML(rowDiagnostics=TRUE))
+	run <- mxRun(model, silent=TRUE)
+	re <- run@expectation
+	L <- c(1, attr(mxEval(fitfunction, run), 'likelihoods'))
+	sp <- vech2array(re@SPredicted)
+	sp[,,1] <- NA
+	yp <- re@yPredicted
+	yp[1,] <- NA
+	
+	return(list(xPredicted=re@xPredicted, PPredicted=vech2array(re@PPredicted), xUpdated=re@xUpdated, PUpdated=vech2array(re@PUpdated), xSmoothed=re@xSmoothed, PSmoothed=vech2array(re@PSmoothed), m2ll=-2*log(L), L=L, yPredicted=yp, SPredicted=sp))
 }
 
-mxKalmanScores <- function(model, data=NA, frontend=TRUE){
-	if(!frontend){
-		stop("Backend Kalman scores are not yet implemented.")
-		#backendScores <- kalmanBackendScoreHelper(model, data)
-		#return(backendScores)
-	}
+vech2array <- function(x){
+	y <- apply(x, 1, vech2full)
+	xdim <- ifelse(is.matrix(y), sqrt(nrow(y)), 1)
+	tdim <- ifelse(is.matrix(y), ncol(y), length(y))
+	array(y, c(xdim, xdim, tdim))
+}
+
+kalmanFrontendScoreHelper <- function(model, data=NA){
 	message("Computing Kalman scores in frontend R.  This may take a few seconds.")
 	if(single.na(data)) {
 		#TODO check that data are raw
@@ -610,6 +626,15 @@ mxKalmanScores <- function(model, data=NA, frontend=TRUE){
 	}
 	
 	return(list(xPredicted=X.pred, PPredicted=P.pred, xUpdated=X.upda, PUpdated=P.upda, xSmoothed=X.smoo, PSmoothed=P.smoo, m2ll=m2ll, L=L))
+}
+
+mxKalmanScores <- function(model, data=NA, frontend=TRUE){
+	if(!frontend){
+		scores <- kalmanBackendScoreHelper(model, data)
+	} else {
+		scores <- kalmanFrontendScoreHelper(model, data)
+	}
+	return(scores)
 }
 
 
