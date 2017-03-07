@@ -39,7 +39,7 @@ This is a helper function that computes the results of the classical Kalman filt
 }
 
 \value{
-    A list with components xPredicted, PPredicted, xUpdated, PUpdated, xSmoothed, PSmoothed, m2ll, and L.  The rows of xPredicted, xUpdated, and xSmoothed correspond to different time points.  The columns are the different latent variables.  The third index of PPredicted, PUpdated, and PSmoothed corresponds to different times.  This works nicely with the R default print method for arrays.  At each time there is a covariance matrix of the latent variable scores.  For all items listed below, the first element goes with the zeroth time point (See example).
+    A list with components xPredicted, PPredicted, xUpdated, PUpdated, xSmoothed, PSmoothed, m2ll, and L.  When using backend scores, this list also has components for yPredicted and SPredicted which have the same number of time points as the other components but relate to the observed variables instead of the latent variables.  The rows of xPredicted, xUpdated, and xSmoothed correspond to different time points.  The columns are the different latent variables.  The third index of PPredicted, PUpdated, and PSmoothed corresponds to different times.  This works nicely with the R default print method for arrays.  At each time there is a covariance matrix of the latent variable scores.  For all items listed below, the first element goes with the zeroth time point (See example).
 \describe{
 	\item{xPredicted}{matrix of Kalman predicted scores}
 	\item{PPredicted}{array of Kalman predicted error covariances}
