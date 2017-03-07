@@ -1312,10 +1312,10 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 	bool canDoAnalyt=true;
 	int i, j, k, pminInfeas;
 	double a0, pminfit;
-	NMobj->pseudohess(n, n);
-	NMobj->phpts(numpts, n);
-	NMobj->phFvals(numpts, 1);
-	NMobj->phInfeas(numpts);
+	NMobj->pseudohess.resize(n, n);
+	NMobj->phpts.resize(numpts, n);
+	NMobj->phFvals.resize(numpts, 1);
+	NMobj->phInfeas.resize(numpts);
 	Eigen::VectorXd currpt(n);
 	Eigen::VectorXd currpt2(n);
 	Eigen::VectorXi jvec(numpts);
