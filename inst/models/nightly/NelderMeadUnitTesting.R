@@ -138,6 +138,13 @@ omxCheckCloseEnough(mxEval(thresh, m6o)[,1], Mx1Threshold[,1], 0.03)
 omxCheckCloseEnough(mxEval(thresh, m6o)[1,2], Mx1Threshold[1,2], 0.01)
 omxCheckCloseEnough(mxEval(R, m6o), Mx1R, 0.01)
 omxCheckCloseEnough(m6o$output$Minus2LogLikelihood, 4081.48, 0.08)
+omxCheckCloseEnough(
+	sqrt(diag(chol2inv(chol(m6o$compute$steps$GD$output$pseudoHessian)))),
+	as.vector(m6o$output$standardErrors),
+	5e-3
+)
+omxCheckTrue(all(eigen(m6o$output$hessian,T,T)$values>0))
+omxCheckTrue(all(eigen(m6o$compute$steps$GD$output$pseudoHessian,T,T)$values>0))
 
 
 #Test altContraction:
@@ -222,6 +229,13 @@ omxCheckCloseEnough(mxEval(thresh, m14o)[,1], Mx1Threshold[,1], 0.03)
 omxCheckCloseEnough(mxEval(thresh, m14o)[1,2], Mx1Threshold[1,2], 0.01)
 omxCheckCloseEnough(mxEval(R, m14o), Mx1R, 0.01)
 omxCheckCloseEnough(m14o$output$Minus2LogLikelihood, 4081.48, 0.08)
+omxCheckCloseEnough(
+	sqrt(diag(chol2inv(chol(m14o$compute$steps$GD$output$pseudoHessian)))),
+	as.vector(m14o$output$standardErrors),
+	5e-3
+)
+omxCheckTrue(all(eigen(m14o$output$hessian,T,T)$values>0))
+omxCheckTrue(all(eigen(m14o$compute$steps$GD$output$pseudoHessian,T,T)$values>0))
 
 #gamma<=0:
 plan$steps$GD <- mxComputeNelderMead(
@@ -236,6 +250,14 @@ omxCheckCloseEnough(mxEval(thresh, m15o)[,1], Mx1Threshold[,1], 0.03)
 omxCheckCloseEnough(mxEval(thresh, m15o)[1,2], Mx1Threshold[1,2], 0.01)
 omxCheckCloseEnough(mxEval(R, m15o), Mx1R, 0.01)
 omxCheckCloseEnough(m15o$output$Minus2LogLikelihood, 4081.48, 0.08)
+omxCheckCloseEnough(
+	sqrt(diag(chol2inv(chol(m15o$compute$steps$GD$output$pseudoHessian)))),
+	as.vector(m15o$output$standardErrors),
+	5e-3
+)
+omxCheckTrue(all(eigen(m15o$output$hessian,T,T)$values>0))
+omxCheckTrue(all(eigen(m15o$compute$steps$GD$output$pseudoHessian,T,T)$values>0))
+
 
 #sigma:
 plan$steps$GD <- mxComputeNelderMead(
