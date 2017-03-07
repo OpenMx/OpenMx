@@ -44,7 +44,7 @@ mxComputeNelderMead(
   \item{altContraction}{Logical; should the optimizer use an "alternate contraction" transformation?  Defaults to \code{FALSE}.  See below for details.}
   \item{degenLimit}{Numeric "degeneracy limit;" defaults to 0.  If positive, the simplex will be restarted if the measure of the angle between any two of its edges is within 0 or pi by less than \code{degenLimit}.}
   \item{stagnCtrl}{"Stagnation control;" integer vector of length 2; defaults to \code{c(-1L,-1L)}.  See below for details.}
-  %%\item{validationRestart}
+  \item{validationRestart}{Logical; defaults to TRUE.}
   \item{xTolProx}{Numeric "domain-convergence" criterion; defaults to 1e-4.  See below for details.}
   \item{fTolProx}{Numeric "range-convergence" criterion; defaults to 1e-4.  See below for details.}
   \item{doPseudoHessian}{Logical; defaults to \code{FALSE}.}
