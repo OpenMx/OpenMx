@@ -93,27 +93,31 @@ summary(modelOut)
 #(providing a matrix for the initial simplex is tested in another script):
 
 plan <- omxDefaultComputePlan()
-plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5)
+plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",
+																		 iniSimplexEdge=0.5, doPseudoHessian=T)
 m2 <- mxModel(model,plan)
 m2o <- mxRun(m2)
 summary(m2o)
 m2o$output$iterations
 
-plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="right",iniSimplexEdge=0.5)
+plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="right",
+																		 iniSimplexEdge=0.5, doPseudoHessian=T)
 m3 <- mxModel(model,plan)
 m3o <- mxRun(m3)
 summary(m3o)
 #^^^Not as good as m2
 m3o$output$iterations
 
-plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="smartRight",iniSimplexEdge=0.5)
+plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,
+																		 iniSimplexType="smartRight",iniSimplexEdge=0.5, doPseudoHessian=T)
 m4 <- mxModel(model,plan)
 m4o <- mxRun(m4)
 summary(m4o)
 m4o$output$iterations
 
 set.seed(170301)
-plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",iniSimplexEdge=0.5)
+plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",
+																		 iniSimplexEdge=0.5, doPseudoHessian=T)
 m5 <- mxModel(model,plan)
 m5o <- mxRun(m5)
 summary(m5o)
@@ -123,7 +127,8 @@ m5o$output$iterations
 
 #Test greedyMinimize:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, greedyMinimize=TRUE)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	greedyMinimize=TRUE, doPseudoHessian=T)
 m6 <- mxModel(model,plan)
 m6o <- mxRun(m6)
 summary(m6o) #<--Nice
@@ -137,7 +142,8 @@ omxCheckCloseEnough(m6o$output$Minus2LogLikelihood, 4081.48, 0.08)
 
 #Test altContraction:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, altContraction=TRUE)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	altContraction=TRUE, doPseudoHessian=T)
 m7 <- mxModel(model,plan)
 m7o <- mxRun(m7)
 summary(m7o)
@@ -146,7 +152,8 @@ m7o$output$iterations
 
 #Test degenLimit:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, degenLimit=pi/180)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	degenLimit=pi/180, doPseudoHessian=T)
 m8 <- mxModel(model,plan)
 m8o <- mxRun(m8)
 summary(m8o)
@@ -155,7 +162,8 @@ m8o$output$iterations
 
 #Test stagnCtrl:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, stagnCtrl=c(10,10))
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	stagnCtrl=c(10,10), doPseudoHessian=T)
 m9 <- mxModel(model,plan)
 m9o <- mxRun(m9)
 summary(m9o)
@@ -164,7 +172,8 @@ m9o$output$iterations
 
 #Try turning off validation restart:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, validationRestart=FALSE)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	validationRestart=FALSE, doPseudoHessian=T)
 m10 <- mxModel(model,plan)
 m10o <- mxRun(m10)
 summary(m10o)
@@ -175,7 +184,8 @@ m10o$output$iterations
 
 #alpha:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9, 
+	doPseudoHessian=T)
 m11 <- mxModel(model,plan)
 m11o <- mxRun(m11)
 summary(m11o)
@@ -183,7 +193,8 @@ m11o$output$iterations #<--maxed out
 
 #betao:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, betao=0.4)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	betao=0.4, doPseudoHessian=T)
 m12 <- mxModel(model,plan)
 m12o <- mxRun(m12)
 summary(m12o)
@@ -191,7 +202,8 @@ m12o$output$iterations #<--maxed out
 
 #betai:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, betai=0.4)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	betai=0.4, doPseudoHessian=T)
 m13 <- mxModel(model,plan)
 m13o <- mxRun(m13)
 summary(m13o)
@@ -199,7 +211,8 @@ m13o$output$iterations
 
 #gamma:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, gamma=1.5)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	gamma=1.5, doPseudoHessian=T)
 m14 <- mxModel(model,plan)
 m14o <- mxRun(m14)
 summary(m14o) #<--Nice
@@ -212,7 +225,8 @@ omxCheckCloseEnough(m14o$output$Minus2LogLikelihood, 4081.48, 0.08)
 
 #gamma<=0:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, gamma=-1.5)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	gamma=-1.5, doPseudoHessian=T)
 m15 <- mxModel(model,plan)
 m15o <- mxRun(m15)
 summary(m15o) #<--Nice
@@ -225,7 +239,8 @@ omxCheckCloseEnough(m15o$output$Minus2LogLikelihood, 4081.48, 0.08)
 
 #sigma:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, sigma=0.4)
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	sigma=0.4, doPseudoHessian=T)
 m16 <- mxModel(model,plan)
 m16o <- mxRun(m16)
 summary(m16o) 
@@ -240,10 +255,12 @@ m16o$output$iterations
 #so far; the user turns off shrinks at his/her own peril:
 if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386"){
 	plan$steps$GD <- mxComputeNelderMead(
-		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",iniSimplexEdge=0.5, sigma=-0.4)
+		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",iniSimplexEdge=0.5, 
+		sigma=-0.4, doPseudoHessian=T)
 } else{
 	plan$steps$GD <- mxComputeNelderMead(
-		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, sigma=-0.4)	
+		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+		sigma=-0.4, doPseudoHessian=T)	
 }
 m17 <- mxModel(model,plan)
 m17o <- mxRun(m17)

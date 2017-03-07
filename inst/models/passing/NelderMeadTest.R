@@ -70,3 +70,7 @@ omxCheckCloseEnough(varrunGD$output$fit, varrun$output$fit, 1e-4)
 varrunGD$output$standardErrors
 varrun$output$standardErrors
 omxCheckCloseEnough(varrunGD$output$standardErrors, varrun$output$standardErrors, 1e-5)
+omxCheckCloseEnough(
+	sqrt(diag(chol2inv(chol(varrun$compute$steps[[1]]$output$pseudoHessian)))),
+	as.vector(varrunGD$output$standardErrors),
+	1e-04)

@@ -1309,23 +1309,24 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 void NelderMeadOptimizerContext::calculatePseudoHessian()
 {
 	int numpts = (n+1)*(n+2)/2;
-	bool canDoAnalyt=true;//, canDo=true;
+	bool canDoAnalyt=true;
 	int i, j, k, pminInfeas;
 	double a0, pminfit;
-	Eigen::MatrixXd phpts(numpts, n);
-	Eigen::MatrixXd phFvals(numpts, 1);
-	Eigen::VectorXi phInfeas(numpts);
+	NMobj->pseudohess(n, n);
+	NMobj->phpts(numpts, n);
+	NMobj->phFvals(numpts, 1);
+	NMobj->phInfeas(numpts);
 	Eigen::VectorXd currpt(n);
 	Eigen::VectorXd currpt2(n);
 	Eigen::VectorXi jvec(numpts);
 	Eigen::VectorXi kvec(numpts);
-	Eigen::VectorXd a(n), pmin(n);//, xmin(n);
+	Eigen::VectorXd a(n), pmin(n);
 	Eigen::MatrixXd B(n,n), Q(n, n);
 	
-	NMobj->pseudohess(n, n);
-	phpts.setZero(numpts, n);
-	phFvals.setZero(numpts, 1);
-	phInfeas.setZero(numpts);
+	NMobj->pseudohess.setZero(n, n);
+	NMobj->phpts.setZero(numpts, n);
+	NMobj->phFvals.setZero(numpts, 1);
+	NMobj->phInfeas.setZero(numpts);
 	
 	for(i=0; i<n; i++){
 		Q.col(i) = vertices[i+1] - vertices[0];
@@ -1334,9 +1335,9 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 	
 	
 	for(i=0; i<n+1; i++){
-		phpts.row(i) = vertices[i];
-		phFvals(i,0) = fvals[i];
-		phInfeas[i] = 0; //<--Assuming that this function is not called if any vertices are infeasible.
+		NMobj->phpts.row(i) = vertices[i];
+		NMobj->phFvals(i,0) = fvals[i];
+		NMobj->phInfeas[i] = 0; //<--Assuming that this function is not called if any vertices are infeasible.
 		kvec[i] = -1;
 		jvec[i] = -1;
 	}
@@ -1348,37 +1349,39 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			kvec[i] = k;
 			currpt = (vertices[j] + vertices[k])/2;
 			currpt2 = currpt;
-			evalNewPoint(currpt, vertices[j], phFvals(i,0), phInfeas[i], 0);
-			if(phInfeas[i]){
-				//canDo = false;
+			evalNewPoint(currpt, vertices[j], NMobj->phFvals(i,0), NMobj->phInfeas[i], 0);
+			if(NMobj->phInfeas[i]){
 				//TODO: export a message about the pseudohessian for the user
 				NMobj->pseudohess.resize(0,0);
+				NMobj->phpts.resize(0,0);
+				NMobj->phFvals(0,0);
+				NMobj->phInfeas.resize(0);
 				return;
 			}
 			//We can't use Nelder & Mead's analytic solution if the midpoints of the edges aren't actually such:
 			if( (currpt.array() != currpt2.array()).any() ){
 				canDoAnalyt = false;
 			}
-			phpts.row(i) = currpt;
+			NMobj->phpts.row(i) = currpt;
 			i++;
 		}
 	}
 	
 	if(canDoAnalyt && luq.isInvertible()){
+		if(verbose){mxLog("analytically calculating pseudoHessian");}
 		a0 = fvals[0];
 		for(i=0; i<n; i++){
-			a[i] = 2*phFvals(i+(n+1),0) - (fvals[i+1] + 3*a0)/2;
-			B(i,i) = 2*( fvals[i+1] + a0 - 2*phFvals(i+(n+1),0) );
+			a[i] = 2*NMobj->phFvals(i+(n+1),0) - (fvals[i+1] + 3*a0)/2;
+			B(i,i) = 2*( fvals[i+1] + a0 - 2*NMobj->phFvals(i+(n+1),0) );
 		}
 		for(i=n+n+1; i<numpts; i++){
 			if(jvec[i] == kvec[i]){continue;}
-			B(jvec[i]-1,kvec[i]-1) = 2*( phFvals(i,0) + a0 - phFvals(jvec[i]+(n+1)-1, 0) - 
-				phFvals(kvec[i]+(n+1)-1, 0) );
+			B(jvec[i]-1,kvec[i]-1) = 2*( NMobj->phFvals(i,0) + a0 - NMobj->phFvals(jvec[i]+(n+1)-1, 0) - 
+				NMobj->phFvals(kvec[i]+(n+1)-1, 0) );
 			B(kvec[i]-1,jvec[i]-1) = B(jvec[i]-1,kvec[i]-1);
 		}
 		Eigen::FullPivLU< Eigen::MatrixXd > lub(B);
 		if(lub.isInvertible()){
-			//xmin = -1 * (lu.inverse() * a);
 			pmin = vertices[0] - (Q * lub.inverse() * a);
 			evalNewPoint(pmin, vertices[0], pminfit, pminInfeas, vertexInfeas[0]);
 			if(pminfit<fvals[0] && !pminInfeas){
@@ -1391,34 +1394,54 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		NMobj->pseudohess = Qinv.transpose() * B * Qinv;
 	}
 	else{
-		Eigen::MatrixXd X(numpts, numpts), XtX, polynomb;
+		if(verbose){mxLog("numerically calculating pseudoHessian");}
+		Eigen::MatrixXd X(numpts, numpts), //XtX, 
+			polynomb(numpts,1);
 		for(i=0; i<numpts; i++){
 			X(i,0) = 1;
 		}
 		for(i=0; i<n; i++){
-			X.col(i+1) = phpts.col(i);
+			X.col(i+1) = NMobj->phpts.col(i);
 		}
 		i=n+1;
 		for(j=0; j<n; j++){
 			for(k=j; k<n; k++){
-				X.col(i) = (phpts.row(j).array() * phpts.row(k).array());
+				X.col(i) = (NMobj->phpts.col(j).array() * NMobj->phpts.col(k).array());
 				i++;
 			}
 		}
+		polynomb.setZero(numpts,1);
 		
-		//TODO: do this step with QR
-		XtX = X.transpose() * X;
+		/*XtX = X.transpose() * X;
 		Eigen::FullPivLU< Eigen::MatrixXd > luxtx(XtX);
-		if(!luxtx.isInvertible()){return;}
-		polynomb = luxtx.inverse() * X.transpose() * phFvals;
+		if(!luxtx.isInvertible()){
+			NMobj->pseudohess.resize(0,0);
+			NMobj->phpts.resize(0,0);
+			NMobj->phFvals(0,0);
+			NMobj->phInfeas.resize(0);	
+			return;
+		}
+		polynomb = luxtx.inverse() * X.transpose() * NMobj->phFvals;*/
+		Eigen::ColPivHouseholderQR< Eigen::MatrixXd > qrx(X);
+		if(qrx.info() != Eigen::Success){
+			NMobj->pseudohess.resize(0,0);
+			NMobj->phpts.resize(0,0);
+			NMobj->phFvals(0,0);
+			NMobj->phInfeas.resize(0);
+			return;
+		}
+		polynomb = qrx.solve(NMobj->phFvals);
+		if(verbose){mxPrintMat("polynomial coefficients:",polynomb);}
 		
 		i=n+1;
 		for(j=0; j<n; j++){
 			for(k=j; k<n; k++){
 				NMobj->pseudohess(j,k) = polynomb(i,0);
 				if(j != k){NMobj->pseudohess(k,j) = polynomb(i,0);}
+				i++;
 			}
 		}
+		NMobj->Xout = X;
 	}
 	if(verbose){
 		mxPrintMat("pseudoHessian is ", NMobj->pseudohess);
