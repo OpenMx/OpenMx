@@ -74,3 +74,12 @@ omxCheckCloseEnough(
 	sqrt(diag(chol2inv(chol(varrun$compute$steps[[1]]$output$pseudoHessian)))),
 	as.vector(varrunGD$output$standardErrors),
 	1e-04)
+
+omxCheckTrue(length(varrun$compute$steps$GD$output$paramNames))
+omxCheckTrue(length(varrun$compute$steps$GD$output$finalSimplexMat))
+omxCheckTrue(length(varrun$compute$steps$GD$output$finalFitValues))
+omxCheckTrue(length(varrun$compute$steps$GD$output$finalVertexInfeas))
+omxCheckTrue(length(varrun$compute$steps$GD$output$pseudoHessian))
+omxCheckTrue(length(varrun$compute$steps$GD$output$simplexGradient))
+omxCheckTrue(length(varrun$compute$steps$GD$output$rangeProximityMeasure))
+omxCheckTrue(length(varrun$compute$steps$GD$output$domainProximityMeasure))

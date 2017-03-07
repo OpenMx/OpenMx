@@ -50,6 +50,7 @@ omxComputeNM::omxComputeNM()
 void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	super::initFromFrontend(globalState, rObj);
 	
+	//TODO: use const defined in Rmath.h:
 	const double myPI	=	3.141592653589793238462643383280;
 	
 	SEXP slotValue;
@@ -358,7 +359,8 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	
 	size_t i=0;
 	Eigen::VectorXd xdiffs(nmoc.n);
-	Eigen::VectorXd fdiffs(nmoc.n);
+	Eigen::MatrixXd fdiffs(nmoc.n,1);
+	Eigen::MatrixXd Q(nmoc.n, nmoc.n);
 	verticesOut.resize(nmoc.vertices.size(), nmoc.vertices[0].size());
 	for(i=0; i < nmoc.vertices.size(); i++){
 		verticesOut.row(i) = nmoc.vertices[i];
@@ -366,13 +368,23 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	fvalsOut = nmoc.fvals;
 	vertexInfeasOut = nmoc.vertexInfeas;
 	for(i=0; i < size_t(nmoc.n); i++){
-		fdiffs[i] = fabs(fvalsOut[i+1] - fvalsOut[0]);
+		fdiffs(i,0) = fabs(fvalsOut[i+1] - fvalsOut[0]);
 	}
 	fproxOut = fdiffs.array().maxCoeff();
 	for(i=0; i < size_t(nmoc.n); i++){
-		xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+		Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
+		xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
 	}
 	xproxOut = xdiffs.array().maxCoeff();
+	if(!nmoc.vertexInfeas.sum() && !nmoc.numEqC){
+		Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
+		if(luq.isInvertible()){
+			Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
+			Qinv = luq.inverse();
+			//This is the "simplex gradient" of Kelley (1999):
+			simplexGradient = Qinv.transpose() * fdiffs;
+		}
+	}
 	equalityOut = nmoc.equality;
 	inequalityOut = nmoc.inequality;
 	
@@ -385,7 +397,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	omxPopulateFitFunction(fitMatrix, out);
 	
 	MxRList output;
-	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm, phess;
+	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm, phess, sg;
 	size_t i=0;
 	
 	if( fc->varGroup->vars.size() ){
@@ -432,6 +444,11 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 		Rf_protect(phess = Rf_allocMatrix( REALSXP, pseudohess.rows(), pseudohess.cols() ));
 		memcpy( REAL(phess), pseudohess.data(), sizeof(double) * pseudohess.rows() * pseudohess.cols() );
 		output.add("pseudoHessian", phess); 
+	}
+	if( simplexGradient.rows() && simplexGradient.cols() ){
+		Rf_protect(sg = Rf_allocVector( REALSXP, simplexGradient.rows() ));
+		memcpy( REAL(sg), simplexGradient.data(), sizeof(double) * simplexGradient.rows() );
+		output.add("simplexGradient", sg); 
 	}
 	
 	Rf_protect(fpm = Rf_allocVector(REALSXP, 1));
@@ -1117,7 +1134,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				return;
 			}
 			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
-				failedContraction = true;
+				//failedContraction = true;
 				//Accept reflection point:
 				fvals[n] = fr;
 				vertices[n] = xr;
@@ -1220,6 +1237,7 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 
 
 bool NelderMeadOptimizerContext::checkProgress(){
+	//TODO: use const defined in Rmath.h:
 	const double myPI	=	3.141592653589793238462643383280;
 	Eigen::VectorXd d1, d2;
 	double t;

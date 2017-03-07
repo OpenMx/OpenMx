@@ -18,7 +18,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-
+//TODO: define functions using Eigen-lib templates
 
 class omxComputeNM : public omxCompute {
 	typedef omxCompute super;
@@ -55,6 +55,8 @@ public:
 
 	Eigen::MatrixXd pseudohess, phpts, phFvals, Xout;
 	Eigen::VectorXi phInfeas;
+
+	Eigen::VectorXd simplexGradient;
 
 	omxComputeNM();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -136,7 +138,6 @@ public:
 	Eigen::VectorXd oldWorstVertex;
 	Eigen::MatrixXd iniSimplexMat;
 	//Eigen::MatrixXd pseudohess;
-	Eigen::VectorXd simplexGradient;
 	
 	
 	

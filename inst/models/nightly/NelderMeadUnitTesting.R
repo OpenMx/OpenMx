@@ -98,6 +98,9 @@ plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L
 m2 <- mxModel(model,plan)
 m2o <- mxRun(m2)
 summary(m2o)
+#Notice how the fit values at all vertices of the final simplex are larger than that reported in summary()
+#output--the reason is that a better point was found during calculation of the pseudoHessian:
+m2o$compute$steps$GD$output$finalFitValues
 m2o$output$iterations
 
 plan$steps$GD <- mxComputeNelderMead(xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="right",
