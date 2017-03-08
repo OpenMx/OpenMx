@@ -353,7 +353,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.bestfit = nmoc.evalFit(nmoc.est);
 	
 	//TODO: pseudoHessian, check fit at centroids
-	if(doPseudoHessian && nmoc.statuscode==0 && !nmoc.vertexInfeas.sum() && !nmoc.numEqC){
+	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.numEqC){
 		nmoc.calculatePseudoHessian();
 	}
 	
@@ -372,8 +372,13 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	}
 	fproxOut = fdiffs.array().maxCoeff();
 	for(i=0; i < size_t(nmoc.n); i++){
-		Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
-		xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
+		if(!nmoc.numEqC){
+			Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
+			xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
+		}
+		else{
+			xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+		}
 	}
 	xproxOut = xdiffs.array().maxCoeff();
 	if(!nmoc.vertexInfeas.sum() && !nmoc.numEqC){
