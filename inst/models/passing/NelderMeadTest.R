@@ -20,8 +20,10 @@ if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 foo <- mxComputeNelderMead(iniSimplexType="smartRight", nudgeZeroStarts=FALSE, xTolProx=1e-8, fTolProx=1e-8,
 													 doPseudoHessian=T)
 #foo$verbose <- 5L
-plan <- omxDefaultComputePlan()
+plan <- omxDefaultComputePlan(intervals=T)
 plan$steps$GD <- foo
+plan$steps$CI$plan <- mxComputeNelderMead()
+plan$steps$CI$constraintType <- "none"
 
 #Simulate data:
 set.seed(1611150)
@@ -40,9 +42,10 @@ varmodGD <- mxModel(
 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
 	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
 	mxAlgebra(sqrt(Sigma2),name="Sigma"),
+	mxCI(c("mu","sigma2")),
 	mxFitFunctionML()
 )
-varrunGD <- mxRun(varmodGD)
+varrunGD <- mxRun(varmodGD,intervals=T)
 
 #Run with custom NM compute plan:
 varmod <- mxModel(
@@ -53,9 +56,10 @@ varmod <- mxModel(
 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
 	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
 	mxAlgebra(sqrt(Sigma2),name="Sigma"),
+	mxCI(c("mu","sigma2")),
 	mxFitFunctionML()
 )
-varrun <- mxRun(varmod)
+varrun <- mxRun(varmod,intervals=T)
 
 #Tests:
 c(mean(x),var(x)*999/1000)
@@ -74,6 +78,14 @@ omxCheckCloseEnough(
 	sqrt(diag(chol2inv(chol(varrun$compute$steps[[1]]$output$pseudoHessian)))),
 	as.vector(varrunGD$output$standardErrors),
 	1e-04)
+
+varrunGD$output$confidenceIntervals
+varrun$output$confidenceIntervals
+omxCheckCloseEnough(
+	varrunGD$output$confidenceIntervals,
+	varrun$output$confidenceIntervals,
+	0.1 #<--This tolerance could be made a lot smaller if SLSQP were used for CIs...
+)
 
 omxCheckTrue(length(varrun$compute$steps$GD$output$paramNames))
 omxCheckTrue(length(varrun$compute$steps$GD$output$finalSimplexMat))
