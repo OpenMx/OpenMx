@@ -415,6 +415,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 				mxMatrix(values=as.matrix(nearPD(wlsData$observed)$mat), name="cov"),
 				mxMatrix(values=wlsData$means, name="mean"),
 				mxExpectationNormal(thresholds = "thresh", covariance = "cov", means = "mean"))
+		if(is.null(nrows)){nrows <- wlsData@numObs}
 		return(mxGenerateData(fake, nrows, returnModel))
 	}
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
