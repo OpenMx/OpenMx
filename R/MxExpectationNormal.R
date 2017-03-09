@@ -410,7 +410,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	if (is(model, 'data.frame')) {
 		wlsData <- mxDataWLS(model)
 		fake <- mxModel("fake",
-				wlsData,
+				mxData(observed=model, type='raw'),
 				mxMatrix(values=wlsData$thresholds, name="thresh"),
 				mxMatrix(values=as.matrix(nearPD(wlsData$observed)$mat), name="cov"),
 				mxMatrix(values=wlsData$means, name="mean"),
