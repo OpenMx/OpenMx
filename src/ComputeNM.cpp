@@ -917,22 +917,46 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		case 3:
 			//TODO: this could be even smarter if it also figured out different edge lengths 
 			//to account for different scaling of the free parameters:
-			//oldpt = vertices.row(0); //<--oldpt
-			vertices[0] = startpt;
-			evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
-			for(i=0; i<n; i++){
-				xu = vertices[0];
-				xu[i] += edgeLength;
-				xd = vertices[0];
-				xd[i] -= edgeLength;
-				evalNewPoint(xu, vertices[0], fu, badu, vertexInfeas[0]);
-				evalNewPoint(xd, vertices[0], fd, badd, vertexInfeas[0]);
-				vertices[i+1] = fu<fd ? xu : xd;
-				fvals[i+1] = fu<fd ? fu : fd;
-				vertexInfeas[i+1] = fu<fd ? badu : badd;
+			if(n==numFree){
+				vertices[0] = startpt;
+				evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
+				for(i=0; i<n; i++){
+					xu = vertices[0];
+					xu[i] += edgeLength;
+					xd = vertices[0];
+					xd[i] -= edgeLength;
+					evalNewPoint(xu, vertices[0], fu, badu, vertexInfeas[0]);
+					evalNewPoint(xd, vertices[0], fd, badd, vertexInfeas[0]);
+					vertices[i+1] = fu<fd ? xu : xd;
+					fvals[i+1] = fu<fd ? fu : fd;
+					vertexInfeas[i+1] = fu<fd ? badu : badd;
+				}
+				if(verbose){printProblemState();}
+				return;
 			}
-			if(verbose){printProblemState();}
-			return;
+			else{
+				vertices[0] = startpt;
+				evalFirstPoint(vertices[0], fvals[0], vertexInfeas[0]);
+				for(i=1; i<n+1; i++){
+					vertices[i] = startpt;
+				}
+				int j=1;
+				for(i=0; i<numFree; i++){
+					xu = vertices[j%(n+1)];
+					xu[i] += edgeLength;
+					xd = vertices[j%(n+1)];
+					xd[i] -= edgeLength;
+					evalNewPoint(xu, vertices[0], fu, badu, vertexInfeas[0]);
+					evalNewPoint(xd, vertices[0], fd, badd, vertexInfeas[0]);
+					vertices[j%(n+1)] = fu<fd ? xu : xd;
+					fvals[j%(n+1)] = fu<fd ? fu : fd;
+					vertexInfeas[j%(n+1)] = fu<fd ? badu : badd;
+					j++;
+					if(j==n+1){j = 1;}
+				}
+				if(verbose){printProblemState();}
+				return;
+			}
 		case 4:
 			vertices[0] = startpt;
 			for(i=1; i<n+1; i++){
