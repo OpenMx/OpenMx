@@ -129,10 +129,10 @@ void omxState::omxCompleteMxFitFunction(SEXP algList, FitContext *fc)
 		}
 		if(!s4) continue;
 		omxMatrix *fm = algebraList[index];
+		omxCompleteFitFunction(fm);
 		if (!fm->fitFunction->freeVarGroup) {
 			setFreeVarGroup(fm->fitFunction, Global->findVarGroup(FREEVARGROUP_ALL));
 		}
-		omxCompleteFitFunction(fm);
 		omxFitFunctionComputeAuto(fm->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }

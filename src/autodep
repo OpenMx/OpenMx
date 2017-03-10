@@ -132,7 +132,7 @@ omxGREMLExpectation.o: Makevars omxGREMLExpectation.cpp omxExpectation.h \
 omxGREMLfitfunction.o: Makevars omxGREMLfitfunction.cpp omxFitFunction.h \
  omxDefines.h  \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxExpectation.h omxData.h omxGREMLfitfunction.h omxGREMLExpectation.h \
+ omxExpectation.h omxData.h omxGREMLExpectation.h \
  Compute.h \
  glue.h EnableWarnings.h
 omxHessianCalculation.o: Makevars omxHessianCalculation.cpp omxDefines.h \

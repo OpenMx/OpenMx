@@ -54,31 +54,13 @@ enum FitStatisticUnits {
 	FIT_UNITS_SQUARED_RESIDUAL  // OK?
 };
 
-struct omxFitFunction {					// A fit function
+struct omxFitFunction {
+	SEXP rObj;
+	omxExpectation* expectation;
 
-	/* Fields unique to FitFunction Functions */
-	void (*initFun)(omxFitFunction *oo);
-	void (*destructFun)(omxFitFunction* oo);									// Wrapper for the destructor object
-
-	void (*computeFun)(omxFitFunction* oo, int ffcompute, FitContext *fc);
-	void (*ciFun)(omxFitFunction* oo, int ffcompute, FitContext *fc);
-
-	omxRListElement* (*setFinalReturns)(omxFitFunction* oo, int *numVals); // DEPRECATED, use addOutput instead
-
-	// addOutput should only be used for returning global results
-	void (*addOutput)(omxFitFunction* oo, MxRList *out);
-
-	// populateAttrFun should be used for returning results specific to fit functions or expectations
-	void (*populateAttrFun)(omxFitFunction* oo, SEXP algebra);
-
-	void (*setVarGroup)(omxFitFunction*, FreeVarGroup *);
-	
-	SEXP rObj;																	// Original r Object Pointer
-	omxExpectation* expectation;												// Data expectation object
-	void* argStruct;															// Arguments needed for fit function
-// This is always a pointer to a static string.
-// We do not need to allocate or free it.
-	const char* fitType;														// Type of FitFunction Function
+	// This is always a pointer to a static string.
+	// We do not need to allocate or free it.
+	const char* fitType;
 
 	omxMatrix* matrix;
 	bool initialized;
@@ -89,6 +71,21 @@ struct omxFitFunction {					// A fit function
 	bool canDuplicate;
 	bool openmpUser; // can decide this in omxAlgebraPreeval
 
+	omxFitFunction() : rObj(0), expectation(0), initialized(false), freeVarGroup(0), gradientAvailable(false),
+		hessianAvailable(false), units(FIT_UNITS_UNINITIALIZED), canDuplicate(false), openmpUser(false) {};
+	virtual ~omxFitFunction() {};
+	virtual omxFitFunction *initMorph();
+	virtual void init()=0;
+	virtual void compute(int ffcompute, FitContext *fc)=0;
+
+	// addOutput should only be used for returning global results
+	virtual void addOutput(MxRList *out) {};
+
+	// populateAttr should be used for returning results specific to fit functions or expectations
+	virtual void populateAttr(SEXP algebra) {};
+
+	virtual void setVarGroup(FreeVarGroup *);
+	
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }
 };
@@ -96,11 +93,11 @@ struct omxFitFunction {					// A fit function
 /* Initialize and Destroy */
 void omxFillMatrixFromMxFitFunction(omxMatrix* om, int matrixNumber, SEXP rObj);
 
-void omxChangeFitType(omxFitFunction *oo, const char *fitType);
+omxFitFunction *omxChangeFitType(omxFitFunction *oo, const char *fitType);
+
 void omxCompleteFitFunction(omxMatrix *om);
 void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 
-	void omxFreeFitFunctionArgs(omxFitFunction* fitFunction);						// Frees all args
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
 /* FitFunction-specific implementations of matrix functions */
@@ -113,19 +110,19 @@ void omxFitFunctionPrint(omxFitFunction *source, const char* d);
 	
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
 
-void omxInitFIMLFitFunction(omxFitFunction* off);
-void omxInitAlgebraFitFunction(omxFitFunction *off);
-void omxInitWLSFitFunction(omxFitFunction *off);
-void omxInitRowFitFunction(omxFitFunction *off);
-void omxInitMLFitFunction(omxFitFunction *off);
-void omxInitRFitFunction(omxFitFunction *off);
-void omxInitFitFunctionBA81(omxFitFunction* oo);
-void InitMarkovFF(omxFitFunction* oo);
+omxFitFunction *omxInitFIMLFitFunction();
+omxFitFunction *omxInitAlgebraFitFunction();
+omxFitFunction *omxInitWLSFitFunction();
+omxFitFunction *omxInitRowFitFunction();
+omxFitFunction *omxInitMLFitFunction();
+omxFitFunction *omxInitRFitFunction();
+omxFitFunction *omxInitFitFunctionBA81();
+omxFitFunction *InitMarkovFF();
+omxFitFunction *omxInitGREMLFitFunction();
+omxFitFunction *InitFellnerFitFunction();
+omxFitFunction *ssMLFitInit();
 
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
-void omxInitGREMLFitFunction(omxFitFunction *oo);
-void InitFellnerFitFunction(omxFitFunction *oo);
-void ssMLFitInit(omxFitFunction* oo);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);

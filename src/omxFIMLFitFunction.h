@@ -58,7 +58,7 @@ struct sufficientSet {
 	Eigen::VectorXd      dataMean;
 };
 
-struct omxFIMLFitFunction {
+struct omxFIMLFitFunction : omxFitFunction {
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
 	omxMatrix* cov;				// Covariance Matrix
@@ -107,6 +107,11 @@ struct omxFIMLFitFunction {
 	int ordSetupCount;
 	int ordDensityCount;
 	int contDensityCount;
+
+	virtual ~omxFIMLFitFunction();
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void populateAttr(SEXP algebra);
 
 	// --- old stuff below
 
@@ -186,7 +191,7 @@ class mvnByRow {
 	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
 		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
 	:
-	ofo((omxFIMLFitFunction*) _localobj->argStruct),
+	ofo((omxFIMLFitFunction*) _localobj),
 		shared_ofo(ofo->parent? ofo->parent : ofo),
 		expectation(_localobj->expectation),
 		ol(ofo->ol),

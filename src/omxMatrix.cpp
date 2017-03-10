@@ -176,7 +176,7 @@ void omxFreeMatrix(omxMatrix *om) {
 	}
 
 	if(om->fitFunction != NULL) {
-		omxFreeFitFunctionArgs(om->fitFunction);
+		delete om->fitFunction;
 		om->fitFunction = NULL;
 	}
 	

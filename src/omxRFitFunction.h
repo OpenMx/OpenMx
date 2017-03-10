@@ -17,7 +17,7 @@
 #ifndef _OMX_R_FITFUNCTION_
 #define _OMX_R_FITFUNCTION_
 
-typedef struct omxRFitFunction {
+struct omxRFitFunction : omxFitFunction {
 
 	SEXP fitfun;
 	SEXP model;
@@ -26,11 +26,9 @@ typedef struct omxRFitFunction {
 	SEXP state;
 	PROTECT_INDEX stateIndex;
 
-} omxRFitFunction;
-
-void omxDestroyRFitFunction(omxFitFunction *oo);
-
-omxRListElement* omxSetFinalReturnsRFitFunction(omxFitFunction *oo, int *numReturns);
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+};
 
 void omxInitRFitFunction(omxFitFunction* oo);
 

@@ -19,11 +19,12 @@
 #include "omxRFitFunction.h"
 #include "EnableWarnings.h"
 
-static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *)
+void omxRFitFunction::compute(int want, FitContext *)
 {
+	auto *oo = this;
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
-	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
+	omxRFitFunction* rFitFunction = this;
 
 	SEXP theCall, theReturn;
 	ScopedProtect p2(theCall, Rf_allocVector(LANGSXP, 3));
@@ -48,29 +49,27 @@ static void omxCallRFitFunction(omxFitFunction *oo, int want, FitContext *)
 	}
 }
 
-void omxInitRFitFunction(omxFitFunction* oo) {
-	FitContext::setRFitFunction(oo);
+omxFitFunction *omxInitRFitFunction()
+{ return new omxRFitFunction; }
+
+void omxRFitFunction::init()
+{
+	FitContext::setRFitFunction(this);
 
 	if(OMX_DEBUG) { mxLog("Initializing R fit function."); }
-	omxRFitFunction *newObj = (omxRFitFunction*) R_alloc(1, sizeof(omxRFitFunction));
+	omxRFitFunction *newObj = this;
 	
-	SEXP rObj = oo->rObj;
-
-	/* Set Fit Function Calls to RFitFunction Calls */
-	oo->computeFun = omxCallRFitFunction;
-	oo->argStruct = (void*) newObj;
 	
 	{
 		SEXP newptr;
 		ScopedProtect p1(newptr, R_do_slot(rObj, Rf_install("units")));
-		oo->setUnitsFromName(CHAR(STRING_ELT(newptr, 0)));
+		setUnitsFromName(CHAR(STRING_ELT(newptr, 0)));
 	}
 
 	Rf_protect(newObj->fitfun = R_do_slot(rObj, Rf_install("fitfun")));
 	R_ProtectWithIndex(newObj->model = R_do_slot(rObj, Rf_install("model")), &(newObj->modelIndex));
 	Rf_protect(newObj->flatModel = R_do_slot(rObj, Rf_install("flatModel")));
 	R_ProtectWithIndex(newObj->state = R_do_slot(rObj, Rf_install("state")), &(newObj->stateIndex));
-
 }
 
 

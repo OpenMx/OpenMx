@@ -19,28 +19,24 @@
 
 namespace MarkovFF {
 
-	struct state {
+	struct state : omxFitFunction {
 		//std::vector< FreeVarGroup* > varGroups;
 		std::vector< omxMatrix* > components;
 		int verbose;
 		omxMatrix *initial;
 		omxMatrix *transition;
+
+		virtual void init();
+		virtual void compute(int ffcompute, FitContext *fc);
 	};
 
-	static void dtor(omxFitFunction* oo)
+	void state::compute(int want, FitContext *fc)
 	{
-		state *mg = (state*) oo->argStruct;
-		delete mg;
-	}
+		state *st = (state*) this;
+		auto *oo = this;
 
-	static void compute(omxFitFunction* oo, int want, FitContext *fc)
-	{
-		state *st = (state*) oo->argStruct;
-
-		omxExpectation* expectation = oo->expectation;
 		omxExpectationCompute(fc, expectation, NULL);
 
-		auto components = st->components;
 		for (auto c1 : components) {
 			if (c1->fitFunction) {
 				omxFitFunctionCompute(c1->fitFunction, want, fc);
@@ -84,48 +80,45 @@ namespace MarkovFF {
 		if (st->verbose >= 2) mxLog("%s: fit=%f", oo->name(), lp);
 	}
 
+	void state::init()
+	{
+		auto *oo = this;
+		auto *ms = this;
+		if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
+
+		oo->units = FIT_UNITS_MINUS2LL;
+		oo->canDuplicate = true;
+
+		omxState *currentState = oo->matrix->currentState;
+		const char *myex = "MxExpectationHiddenMarkov";
+		if (!expectation || !strEQ(expectation->expType, myex))
+			Rf_error("%s must be paired with an %s", oo->name(), myex);
+
+		ProtectedSEXP Rverbose(R_do_slot(oo->rObj, Rf_install("verbose")));
+		ms->verbose = Rf_asInteger(Rverbose);
+
+		ProtectedSEXP Rcomponents(R_do_slot(oo->rObj, Rf_install("components")));
+		int nc = Rf_length(Rcomponents);
+		int *cvec = INTEGER(Rcomponents);
+		for (int cx=0; cx < nc; ++cx) {
+			omxMatrix *fmat = currentState->algebraList[ cvec[cx] ];
+			if (fmat->fitFunction) {
+				omxCompleteFitFunction(fmat);
+				auto ff = fmat->fitFunction;
+				if (ff->units != FIT_UNITS_MINUS2LL) {
+					omxRaiseErrorf("%s: component %s must be in likelihood units",
+						       oo->name(), ff->name());
+					return;
+				}
+			}
+			ms->components.push_back(fmat);
+		}
+
+		ms->initial = expectation->getComponent("initial");
+		ms->transition = expectation->getComponent("transition");
+	}
 };
 
-void InitMarkovFF(omxFitFunction* oo)
-{
-	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
+omxFitFunction *InitMarkovFF()
+{ return new MarkovFF::state; }
 
-	oo->units = FIT_UNITS_MINUS2LL;
-	oo->destructFun = MarkovFF::dtor;
-	oo->computeFun = MarkovFF::compute;
-	oo->canDuplicate = true;
-
-	if (oo->argStruct) Rf_error("double initialization");
-
-	omxState *currentState = oo->matrix->currentState;
-	omxExpectation *expectation = oo->expectation;
-	const char *myex = "MxExpectationHiddenMarkov";
-	if (!expectation || !strEQ(expectation->expType, myex))
-		Rf_error("%s must be paired with an %s", oo->name(), myex);
-
-	auto ms = new MarkovFF::state;
-	oo->argStruct = ms;
-
-	ProtectedSEXP Rverbose(R_do_slot(oo->rObj, Rf_install("verbose")));
-	ms->verbose = Rf_asInteger(Rverbose);
-
-	ProtectedSEXP Rcomponents(R_do_slot(oo->rObj, Rf_install("components")));
-	int nc = Rf_length(Rcomponents);
-	int *cvec = INTEGER(Rcomponents);
-	for (int cx=0; cx < nc; ++cx) {
-		omxMatrix *fmat = currentState->algebraList[ cvec[cx] ];
-		auto ff = fmat->fitFunction;
-		if (ff) {
-			omxCompleteFitFunction(fmat);
-			if (ff->units != FIT_UNITS_MINUS2LL) {
-				omxRaiseErrorf("%s: component %s must be in likelihood units",
-					       oo->name(), ff->name());
-				return;
-			}
-		}
-		ms->components.push_back(fmat);
-	}
-
-	ms->initial = expectation->getComponent("initial");
-	ms->transition = expectation->getComponent("transition");
-}

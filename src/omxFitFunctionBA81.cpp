@@ -24,7 +24,7 @@
 #include "Compute.h"
 #include "EnableWarnings.h"
 
-struct BA81FitState {
+struct BA81FitState : omxFitFunction {
 	//private:
 	void copyEstimates(BA81Expect *estate);
 	//public:
@@ -62,7 +62,9 @@ struct BA81FitState {
 	bool returnRowLikelihoods;
 
 	BA81FitState();
-	~BA81FitState();
+	virtual ~BA81FitState();
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
 };
 
 // writes to upper triangle of full matrix
@@ -91,7 +93,7 @@ void BA81FitState::copyEstimates(BA81Expect *estate)
 static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 {
 	FreeVarGroup *fvg = fc->varGroup;
-	BA81FitState *state = (BA81FitState *) oo->argStruct;
+	BA81FitState *state = (BA81FitState *) oo;
 	std::vector<int> &latentMap = state->latentMap;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	int maxAbilities = estate->grp.itemDims;
@@ -148,7 +150,7 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 {
 	FreeVarGroup *fvg = fc->varGroup;
-	BA81FitState *state = (BA81FitState *) oo->argStruct;
+	BA81FitState *state = (BA81FitState *) oo;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	std::vector<const double*> &itemSpec = estate->grp.spec;
 
@@ -295,7 +297,7 @@ static double
 ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 {
 	const double Scale = Global->llScale;
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81FitState *state = (BA81FitState*) oo;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	omxMatrix *itemParam = estate->itemParam;
 	std::vector<const double*> &itemSpec = estate->grp.spec;
@@ -511,7 +513,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 {
 	const double abScale = fabs(Global->llScale);
 	omxExpectation *expectation = oo->expectation;
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81FitState *state = (BA81FitState*) oo;
 	BA81Expect *estate = (BA81Expect*) expectation;
 	if (estate->verbose >= 1) mxLog("%s: sandwich", oo->name());
 
@@ -596,7 +598,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 static void setLatentStartingValues(omxFitFunction *oo, FitContext *fc) //remove? TODO
 {
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81FitState *state = (BA81FitState*) oo;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	std::vector<int> &latentMap = state->latentMap;
 	ba81NormalQuad &quad = estate->getQuad();
@@ -673,7 +675,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 {
 	const double Scale = Global->llScale;
 	omxExpectation *expectation = oo->expectation;
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	BA81FitState *state = (BA81FitState*) oo;
 	BA81Expect *estate = (BA81Expect*) expectation;
 	if (estate->verbose >= 1) mxLog("%s: cross product approximation", oo->name());
 
@@ -791,10 +793,10 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	}
 }
 
-static void
-ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
+void BA81FitState::compute(int want, FitContext *fc)
 {
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
+	auto *oo = this;
+	BA81FitState *state = (BA81FitState*) this;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
@@ -909,12 +911,6 @@ ba81ComputeFit(omxFitFunction* oo, int want, FitContext *fc)
 	}
 }
 
-static void ba81Compute(omxFitFunction *oo, int want, FitContext *fc)
-{
-	if (!want) return;
-	ba81ComputeFit(oo, want, fc);
-}
-
 BA81FitState::~BA81FitState()
 {
 	omxFreeMatrix(itemParam);
@@ -922,27 +918,18 @@ BA81FitState::~BA81FitState()
 	omxFreeMatrix(latentCov);
 }
 
-static void ba81Destroy(omxFitFunction *oo) {
-	BA81FitState *state = (BA81FitState *) oo->argStruct;
-	delete state;
-}
+omxFitFunction *omxInitFitFunctionBA81()
+{ return new BA81FitState; }
 
-void omxInitFitFunctionBA81(omxFitFunction* oo)
+void BA81FitState::init()
 {
-	if (!oo->argStruct) { // ugh!
-		BA81FitState *state = new BA81FitState;
-		oo->argStruct = state;
-	}
+	auto *oo = this;
+	auto *state = this;
 	omxState *currentState = oo->matrix->currentState;
-	BA81FitState *state = (BA81FitState*) oo->argStruct;
 
-	omxExpectation *expectation = oo->expectation;
 	BA81Expect *estate = (BA81Expect*) expectation;
 	estate->fit = oo;
 
-	oo->computeFun = ba81Compute;
-	oo->setVarGroup = ba81SetFreeVarGroup;
-	oo->destructFun = ba81Destroy;
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 

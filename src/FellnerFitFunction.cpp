@@ -31,26 +31,22 @@
 #include "Compute.h"
 
 namespace FellnerFitFunction {
-	struct state {
+	struct state : omxFitFunction {
 		int verbose;
 		int numProfiledOut;
 		std::vector<int> olsVarNum;     // index into fc->est
 		Eigen::MatrixXd olsDesign;      // a.k.a "X"
 
+		virtual void init();
 		template <typename T1>
 		int computeCov(RelationalRAMExpectation::independentGroup &ig, FitContext *fc, T1 &covDecomp);
-		void compute(omxFitFunction *oo, int want, FitContext *fc);
-		void setupProfiledParam(omxFitFunction *oo, FitContext *fc);
+		virtual void compute(int want, FitContext *fc);
+		void setupProfiledParam(FitContext *fc);
 	};
 
-	static void compute(omxFitFunction *oo, int want, FitContext *fc)
+	void state::setupProfiledParam(FitContext *fc)
 	{
-		state *st = (state *) oo->argStruct;
-		st->compute(oo, want, fc);
-	}
-
-	void state::setupProfiledParam(omxFitFunction *oo, FitContext *fc)
-	{
+		auto *oo = this;
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 
@@ -152,15 +148,16 @@ namespace FellnerFitFunction {
 		return 0;
 	}
 
-	void state::compute(omxFitFunction *oo, int want, FitContext *fc)
+	void state::compute(int want, FitContext *fc)
 	{
+		auto *oo = this;
 		omxExpectation *expectation             = oo->expectation;
 		omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
 			if (fc->isClone()) return;
 			
-			setupProfiledParam(oo, fc);
+			setupProfiledParam(fc);
 
 			RelationalRAMExpectation::state *rram   = ram->rram;
 			if (verbose >= 1) {
@@ -183,7 +180,7 @@ namespace FellnerFitFunction {
 			state *parent = this; // better to cache it TODO
 			if (fc->isClone()) {
 				omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(oo->matrix);
-				parent = (state*) pfitMat->fitFunction->argStruct;
+				parent = (state*) pfitMat->fitFunction;
 			}
 
 			//mxLog("%s: compute fit", oo->name());
@@ -293,35 +290,11 @@ namespace FellnerFitFunction {
 		oo->matrix->data[0] = lpOut;
 	}
 
-	static void popAttr(omxFitFunction *oo, SEXP algebra)
+	void state::init()
 	{
-		// use Eigen_cholmod_wrap to return a sparse matrix? TODO
-		// always return it?
+		auto *oo = this;
+		auto *st = this;
 
-		/*
-		state *st                               = (state *) oo->argStruct;
-		SEXP expCovExt, expMeanExt;
-		if (st->fullCov.rows() > 0) {
-			Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
-			memcpy(REAL(expCovExt), expCovInt->data, sizeof(double) * expCovInt->rows * expCovInt->cols);
-			Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
-		}
-
-		if (expMeanInt && expMeanInt->rows > 0) {
-			Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
-			memcpy(REAL(expMeanExt), expMeanInt->data, sizeof(double) * expMeanInt->rows * expMeanInt->cols);
-			Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-			}   */
-	}
-
-	static void destroy(omxFitFunction *oo)
-	{
-		state *st = (state*) oo->argStruct;
-		delete st;
-	}
-
-	static void init(omxFitFunction *oo)
-	{
 		omxExpectation* expectation = oo->expectation;
 		if(expectation == NULL) {
 			omxRaiseErrorf("%s cannot fit without a model expectation", oo->fitType);
@@ -331,11 +304,6 @@ namespace FellnerFitFunction {
 			Rf_error("%s: only MxExpectationRAM is implemented", oo->matrix->name());
 		}
 
-		oo->computeFun = FellnerFitFunction::compute;
-		oo->destructFun = FellnerFitFunction::destroy;
-		oo->populateAttrFun = FellnerFitFunction::popAttr;
-		FellnerFitFunction::state *st = new FellnerFitFunction::state;
-		oo->argStruct = st;
 		oo->canDuplicate = true;
 
 		ProtectedSEXP Rprofile(R_do_slot(oo->rObj, Rf_install("profileOut")));
@@ -349,7 +317,7 @@ namespace FellnerFitFunction {
 	}
 };
 
-void InitFellnerFitFunction(omxFitFunction *oo)
+omxFitFunction *InitFellnerFitFunction()
 {
-	FellnerFitFunction::init(oo);
+	return new FellnerFitFunction::state;
 }

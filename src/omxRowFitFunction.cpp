@@ -21,7 +21,7 @@
 #include "Compute.h"
 #include "EnableWarnings.h"
 
-typedef struct omxRowFitFunction {
+struct omxRowFitFunction : omxFitFunction {
 
 	/* Parts of the R  MxRowFitFunction Object */
 	omxMatrix* rowAlgebra;		// Row-by-row algebra
@@ -41,15 +41,15 @@ typedef struct omxRowFitFunction {
 	int numDataRowDeps;         // number of algebra/matrix dependencies
 	int *dataRowDeps;           // indices of algebra/matrix dependencies
 
-} omxRowFitFunction;
+	virtual ~omxRowFitFunction();
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+};
 
-void omxDestroyRowFitFunction(omxFitFunction *oo) {
-
-	omxRowFitFunction* argStruct = (omxRowFitFunction*)(oo->argStruct);
-
-	omxFreeMatrix(argStruct->dataRow);
-	omxFreeMatrix(argStruct->dataColumns);
-	delete argStruct;
+omxRowFitFunction::~omxRowFitFunction()
+{
+	omxFreeMatrix(dataRow);
+	omxFreeMatrix(dataColumns);
 }
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
@@ -81,8 +81,8 @@ void markDataRowDependencies(omxState* os, omxRowFitFunction* orff) {
 static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFunction *sharedobj, int rowbegin, int rowcount,
 					     FitContext *fc) {
 
-    omxRowFitFunction* oro = ((omxRowFitFunction*) localobj->argStruct);
-    omxRowFitFunction* shared_oro = ((omxRowFitFunction*) sharedobj->argStruct);
+    omxRowFitFunction* oro = ((omxRowFitFunction*) localobj);
+    omxRowFitFunction* shared_oro = ((omxRowFitFunction*) sharedobj);
 
     omxMatrix *rowAlgebra, *rowResults;
     omxMatrix *filteredDataRow, *dataRow, *existenceVector;
@@ -140,8 +140,9 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	free(zeros);
 }
 
-static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc)
+void omxRowFitFunction::compute(int want, FitContext *fc)
 {
+	auto *oo = this;
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
@@ -149,14 +150,6 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 
 	omxMatrix* objMatrix  = oo->matrix;
 	int numChildren = fc? fc->childList.size() : 0;
-
-    omxMatrix *reduceAlgebra;
-	omxData *data;
-
-    omxRowFitFunction* oro = ((omxRowFitFunction*) oo->argStruct);
-
-	reduceAlgebra   = oro->reduceAlgebra;
-	data		    = oro->data;
 
 	/* Michael Spiegel, 7/31/12
 	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel 
@@ -206,15 +199,18 @@ static void omxCallRowFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 
 }
 
-void omxInitRowFitFunction(omxFitFunction* oo) {
+omxFitFunction *omxInitRowFitFunction()
+{ return new omxRowFitFunction; }
 
+void omxRowFitFunction::init()
+{
 	if(OMX_DEBUG) { mxLog("Initializing Row/Reduce fit function."); }
 
-	SEXP rObj = oo->rObj;
 	SEXP nextMatrix, nextItem;
 	int numDeps;
 
-	omxRowFitFunction *newObj = new omxRowFitFunction;
+	auto *oo = this;
+	auto *newObj = this;
 
 	if(OMX_DEBUG) {mxLog("Accessing data source."); }
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
@@ -308,12 +304,6 @@ void omxInitRowFitFunction(omxFitFunction* oo) {
 	EigenVectorAdaptor dc(newObj->dataColumns);
 	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
 
-	oo->computeFun = omxCallRowFitFunction;
-	oo->destructFun = omxDestroyRowFitFunction;
 	oo->canDuplicate = true;
 	oo->openmpUser = true;
-
-	oo->argStruct = (void*) newObj;
 }
-
-

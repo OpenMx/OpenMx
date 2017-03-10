@@ -920,7 +920,7 @@ static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool fo
 
 static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 {
-	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo->argStruct;
+	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo;
 
 	SEXP theCall, estimate;
 

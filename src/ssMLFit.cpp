@@ -18,7 +18,7 @@
 #include "Compute.h"
 #include "EnableWarnings.h"
 
-struct ssMLFitState {
+struct ssMLFitState : omxFitFunction {
 	bool returnRowLikelihoods;
 	bool populateRowDiagnostics;
 	omxMatrix *cov;
@@ -26,11 +26,16 @@ struct ssMLFitState {
 	omxMatrix *contRow;
 	omxMatrix *rowLikelihoods;
 	omxMatrix *RCX;
+
+	virtual ~ssMLFitState();
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void populateAttr(SEXP algebra);
 };
 
-void populate(omxFitFunction *off, SEXP algebra)
+void ssMLFitState::populateAttr(SEXP algebra)
 {
-	ssMLFitState *argStruct = ((ssMLFitState*)off->argStruct);
+	ssMLFitState *argStruct = this;
 
 	if(argStruct->populateRowDiagnostics){
 		SEXP rowLikelihoodsExt;
@@ -42,20 +47,15 @@ void populate(omxFitFunction *off, SEXP algebra)
 	}
 }
 
-static void compute(omxFitFunction *oo, int want, FitContext *fc)
+void ssMLFitState::compute(int want, FitContext *fc)
 {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
-	ssMLFitState *state = (ssMLFitState *) oo->argStruct;
-	omxExpectation *expectation = oo->expectation;
+	auto *oo = this;
+	ssMLFitState *state = this;
 	auto dataColumns	= expectation->getDataColumns();
 	omxData *data = expectation->data;
 	int rowcount = data->rows;
-	omxMatrix *smallRow = state->smallRow;
-	omxMatrix *contRow = state->contRow;
-	omxMatrix *cov = state->cov;
-	omxMatrix *RCX = state->RCX;
-	omxMatrix *rowLikelihoods = state->rowLikelihoods;
 
 	omxSetExpectationComponent(expectation, "Reset", NULL);
 	Eigen::VectorXi contRemove(cov->cols);
@@ -149,29 +149,27 @@ static void compute(omxFitFunction *oo, int want, FitContext *fc)
 	}
 }
 
-static void destroy(omxFitFunction *oo)
+ssMLFitState::~ssMLFitState()
 {
-	ssMLFitState *state = (ssMLFitState *) oo->argStruct;
+	ssMLFitState *state = this;
 	omxFreeMatrix(state->smallRow);
 	omxFreeMatrix(state->contRow);
 	omxFreeMatrix(state->rowLikelihoods);
-	delete state;
 }
 
-void ssMLFitInit(omxFitFunction* oo)
+omxFitFunction *ssMLFitInit()
+{ return new ssMLFitState; }
+
+void ssMLFitState::init()
 {
-	ssMLFitState *state = new ssMLFitState;
-	oo->argStruct = state;
-	oo->computeFun = compute;
-	oo->destructFun = destroy;
-	oo->populateAttrFun = populate;
+	auto *oo = this;
+	auto *state = this;
+
 	oo->openmpUser = false;
 	oo->canDuplicate = true;
 
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
 	state->populateRowDiagnostics = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("rowDiagnostics")));
-
-	omxExpectation *expectation = oo->expectation;
 
 	omxState *currentState = oo->matrix->currentState;
 	state->rowLikelihoods = omxInitMatrix(expectation->data->rows, 1, TRUE, currentState);
