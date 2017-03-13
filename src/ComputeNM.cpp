@@ -334,6 +334,9 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
 		nmoc2.invokeNelderMead();
 		
+		//TODO: it's possible for nmoc2 to find a better fit than nmoc, but without reaching a final simplex
+		//that satisfies the convergence criteria.  That doesn't matter in itself, but it's likely to confuse
+		//a user that inspects the output slot of the MxComputeNelderMead object
 		if(nmoc2.fvals[0] < nmoc.fvals[0] && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
 			nmoc.fvals = nmoc2.fvals;
 			nmoc.vertices = nmoc2.vertices;
@@ -476,7 +479,6 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());
 	statuscode = -1;
-	backtrackSteps=10; //<--Eventually should be made user-settable
 }
 
 void NelderMeadOptimizerContext::copyBounds()
@@ -1219,39 +1221,30 @@ void NelderMeadOptimizerContext::simplexTransformation()
 
 
 bool NelderMeadOptimizerContext::checkConvergence(){
-	if(!std::isfinite(fit2beat)){
-		int i=0;
-		Eigen::VectorXd xdiffs(n);
-		Eigen::VectorXd fdiffs(n);
-		double fprox, xprox;
-		//Range-convergence test:
-		if(NMobj->fTolProx > 0){
-			for(i=0; i<n; i++){
-				fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
-			}
-			fprox = fdiffs.array().maxCoeff();
-			if(verbose){mxLog("range proximity measure: %f",fprox);}
-			if(fprox < NMobj->fTolProx){
-				statuscode = 0;
-				return(true);
-			}
+	int i=0;
+	Eigen::VectorXd xdiffs(n);
+	Eigen::VectorXd fdiffs(n);
+	double fprox, xprox;
+	//Range-convergence test:
+	if(NMobj->fTolProx > 0){
+		for(i=0; i<n; i++){
+			fdiffs[i] = fabs(fvals[i+1] - fvals[0]);
 		}
-		//Domain-convergence test:
-		if(NMobj->fTolProx > 0){
-			for(i=0; i<n; i++){
-				xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
-			}
-			xprox = xdiffs.array().maxCoeff();
-			if(verbose){mxLog("domain proximity measure: %f",xprox);}
-			if(xprox < NMobj->xTolProx){
-				statuscode = 0;
-				return(true);
-			}
+		fprox = fdiffs.array().maxCoeff();
+		if(verbose){mxLog("range proximity measure: %f",fprox);}
+		if(fprox < NMobj->fTolProx && fvals[0] < fit2beat){
+			statuscode = 0;
+			return(true);
 		}
 	}
-	//If Nelder-Mead is trying to beat a given fit value, it only stops if it does so or runs out of iters:
-	else{
-		if(fvals[0] < fit2beat){
+	//Domain-convergence test:
+	if(NMobj->fTolProx > 0){
+		for(i=0; i<n; i++){
+			xdiffs[i] = (vertices[i+1] - vertices[0]).array().abs().maxCoeff();
+		}
+		xprox = xdiffs.array().maxCoeff();
+		if(verbose){mxLog("domain proximity measure: %f",xprox);}
+		if(xprox < NMobj->xTolProx && fvals[0] < fit2beat){
 			statuscode = 0;
 			return(true);
 		}
@@ -1441,8 +1434,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 	}
 	else{
 		if(verbose){mxLog("numerically calculating pseudoHessian");}
-		Eigen::MatrixXd X(numpts, numpts), //XtX, 
-			polynomb(numpts,1);
+		Eigen::MatrixXd X(numpts, numpts), polynomb(numpts,1), Binv;
 		for(i=0; i<numpts; i++){
 			X(i,0) = 1;
 		}
@@ -1458,16 +1450,6 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		}
 		polynomb.setZero(numpts,1);
 		
-		/*XtX = X.transpose() * X;
-		Eigen::FullPivLU< Eigen::MatrixXd > luxtx(XtX);
-		if(!luxtx.isInvertible()){
-			NMobj->pseudohess.resize(0,0);
-			NMobj->phpts.resize(0,0);
-			NMobj->phFvals(0,0);
-			NMobj->phInfeas.resize(0);	
-			return;
-		}
-		polynomb = luxtx.inverse() * X.transpose() * NMobj->phFvals;*/
 		Eigen::ColPivHouseholderQR< Eigen::MatrixXd > qrx(X);
 		if(qrx.info() != Eigen::Success){
 			NMobj->pseudohess.resize(0,0);
@@ -1485,6 +1467,19 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 				NMobj->pseudohess(j,k) = polynomb(i,0);
 				if(j != k){NMobj->pseudohess(k,j) = polynomb(i,0);}
 				i++;
+			}
+		}
+		Eigen::FullPivLU< Eigen::MatrixXd > lub(NMobj->pseudohess);
+		if(lub.isInvertible()){
+			Binv = lub.inverse();
+			for(i=0; i<n; i++){
+				a[i] = polynomb(i+1,0);
+			}
+			pmin = vertices[0] - (Binv * a);
+			evalNewPoint(pmin, vertices[0], pminfit, pminInfeas, vertexInfeas[0]);
+			if(pminfit<fvals[0] && !pminInfeas){
+				est = pmin;
+				bestfit = pminfit;
 			}
 		}
 		NMobj->Xout = X;
