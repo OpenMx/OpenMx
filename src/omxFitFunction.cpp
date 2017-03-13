@@ -148,7 +148,7 @@ double totalLogLikelihood(omxMatrix *fitMat)
 {
 	if (fitMat->rows != 1) {
 		omxFitFunction *ff = fitMat->fitFunction;
-		if (strEQ(ff->fitType, "MxFitFunctionML") || strEQ(ff->fitType, "imxFitFunctionFIML")) {
+		if (ff->units == FIT_UNITS_MINUS2LL) {
 			// NOTE: Floating-point addition is not
 			// associative. If we compute this in parallel
 			// then we introduce non-determinancy.
@@ -202,7 +202,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
 						 omxExpectation *expect, omxMatrix *matrix, bool rowLik)
 {
-	omxFitFunction *obj;
+	omxFitFunction *obj = 0;
 
 	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
 		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
@@ -212,6 +212,7 @@ static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitTy
 			break;
 		}
 	}
+	if (!obj) Rf_error("omxNewInternalFitFunction: cannot find '%s'", fitType);
 
 	if (!matrix) {
 		obj->matrix = omxInitMatrix(1, 1, TRUE, os);
