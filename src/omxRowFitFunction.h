@@ -24,15 +24,8 @@
 
 void omxDestroyRowFitFunction(omxFitFunction *oo);
 
-omxRListElement* omxSetFinalReturnsRowFitFunction(omxFitFunction *oo, int *numReturns);
-
-
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target);
 
 void omxInitRowFitFunction(omxFitFunction* oo);
-
-
-
-
 
 #endif /* _OMX_ROW_FITFUNCTION_ */

@@ -40,13 +40,6 @@
 #include "omxState.h"
 #include "omxExpectation.h"
 
-typedef struct {
-	char label[250];
-	double* values;
-	int numValues;
-	int rows, cols;
-} omxRListElement;
-
 enum FitStatisticUnits {
 	FIT_UNITS_UNINITIALIZED=0,
 	FIT_UNITS_UNKNOWN,

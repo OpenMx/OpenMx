@@ -135,8 +135,6 @@ struct omxFIMLFitFunction : omxFitFunction {
 	std::vector<int> identicalRows;
 };
 
-omxRListElement* omxSetFinalReturnsFIMLFitFunction(omxFitFunction *oo, int *numReturns);
-
 void omxPopulateFIMLFitFunction(omxFitFunction *oo, SEXP algebra);
 void omxInitFIMLFitFunction(omxFitFunction* oo, SEXP rObj);
 
