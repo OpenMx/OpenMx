@@ -72,7 +72,6 @@ class omxExpectation {					// An Expectation
 	virtual void compute(FitContext *fc, const char *what, const char *how) = 0;
 	virtual void print();
 	virtual void populateAttr(SEXP expectation) {};
-	virtual void setVarGroup(FreeVarGroup *);  // TODO remove
 	
 	// getComponent & mutate probably take encapsulation a little too seriously.
 	// The Fit function should probably just include the structure definition
@@ -99,7 +98,6 @@ omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os);
 
 	void omxCompleteExpectation(omxExpectation *ox);
-void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg);
 
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);

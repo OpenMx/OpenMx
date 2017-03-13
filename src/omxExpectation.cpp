@@ -224,20 +224,6 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	}
 }
 
-void omxExpectation::setVarGroup(FreeVarGroup *fvg)
-{
-	if (OMX_DEBUG && freeVarGroup && freeVarGroup != fvg) {
-		Rf_warning("setFreeVarGroup called with different group (%d vs %d) on %s",
-			name, freeVarGroup->id[0], fvg->id[0]);
-	}
-	freeVarGroup = fvg;
-}
-
-void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
-{
-	ox->setVarGroup(fvg);
-}
-
 const Eigen::Map<omxExpectation::DataColumnType> omxExpectation::getDataColumns()
 {
 	return Eigen::Map<DataColumnType>(dataColumnsPtr, numDataColumns);

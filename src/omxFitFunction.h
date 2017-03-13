@@ -57,14 +57,13 @@ struct omxFitFunction {
 
 	omxMatrix* matrix;
 	bool initialized;
-	FreeVarGroup *freeVarGroup;
 	bool gradientAvailable;
 	bool hessianAvailable;
 	FitStatisticUnits units;
 	bool canDuplicate;
 	bool openmpUser; // can decide this in omxAlgebraPreeval
 
-	omxFitFunction() : rObj(0), expectation(0), initialized(false), freeVarGroup(0), gradientAvailable(false),
+	omxFitFunction() : rObj(0), expectation(0), initialized(false), gradientAvailable(false),
 		hessianAvailable(false), units(FIT_UNITS_UNINITIALIZED), canDuplicate(false), openmpUser(false) {};
 	virtual ~omxFitFunction() {};
 	virtual omxFitFunction *initMorph();
@@ -77,8 +76,6 @@ struct omxFitFunction {
 	// populateAttr should be used for returning results specific to fit functions or expectations
 	virtual void populateAttr(SEXP algebra) {};
 
-	virtual void setVarGroup(FreeVarGroup *);
-	
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }
 };
@@ -89,7 +86,6 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, int matrixNumber, SEXP rObj);
 omxFitFunction *omxChangeFitType(omxFitFunction *oo, const char *fitType);
 
 void omxCompleteFitFunction(omxMatrix *om);
-void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg);
 
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 

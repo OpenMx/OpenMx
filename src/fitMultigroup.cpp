@@ -29,7 +29,6 @@ struct FitMultigroup : omxFitFunction {
 
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
-	virtual void setVarGroup(FreeVarGroup *);
 	virtual void addOutput(MxRList *out);
 };
 
@@ -66,28 +65,6 @@ void FitMultigroup::compute(int want, FitContext *fc)
 	if (want & FF_COMPUTE_FIT) {
 		fitMatrix->data[0] = fit;
 		if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name(), fit); }
-	}
-}
-
-void FitMultigroup::setVarGroup(FreeVarGroup *fvg)
-{
-	//if (!oo->argStruct) initFitMultigroup(oo); // ugh TODO
-
-	FitMultigroup *mg = (FitMultigroup*) this;
-	auto *oo = this;
-
-	if (!mg->fits.size()) {
-		mg->varGroups.push_back(fvg);
-	} else {
-		for (size_t ex=0; ex < mg->fits.size(); ex++) {
-			omxMatrix *f1 = mg->fits[ex];
-			if (!f1->fitFunction) {  // simple algebra
-				oo->freeVarGroup = fvg;
-				continue;
-			}
-			setFreeVarGroup(f1->fitFunction, fvg);
-			oo->freeVarGroup = f1->fitFunction->freeVarGroup;
-		}
 	}
 }
 
@@ -139,10 +116,6 @@ void FitMultigroup::init()
 		if (mat == oo->matrix) Rf_error("Cannot add multigroup to itself");
 		mg->fits.push_back(mat);
 		if (mat->fitFunction) {
-			for (size_t vg=0; vg < mg->varGroups.size(); ++vg) {
-				setFreeVarGroup(mat->fitFunction, mg->varGroups[vg]);
-				oo->freeVarGroup = mat->fitFunction->freeVarGroup;
-			}
 			omxCompleteFitFunction(mat);
 			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);

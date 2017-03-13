@@ -33,15 +33,15 @@ struct AlgebraFitFunction : omxFitFunction {
 	std::vector<int> gradMap;
 	bool vec2diag;
 
-	AlgebraFitFunction() : ff(0), gradient(0), hessian(0), verbose(false) {};
+	AlgebraFitFunction() : ff(0), gradient(0), hessian(0), verbose(false), varGroup(0) {};
 	virtual void init();
-	virtual void setVarGroup(FreeVarGroup *);
 	virtual void compute(int ffcompute, FitContext *fc);
+	void setVarGroup(FreeVarGroup *);
 };
 
-void AlgebraFitFunction::setVarGroup(FreeVarGroup *)
+void AlgebraFitFunction::setVarGroup(FreeVarGroup *vg)
 {
-	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+	varGroup = vg;
 
 	if (verbose) {
 		mxLog("%s: rebuild parameter map for var group %d",
@@ -125,7 +125,6 @@ static void addSymOuterProd(const double weight, const double *vec, const int le
 void AlgebraFitFunction::compute(int want, FitContext *fc)
 {
 	if (fc && varGroup != fc->varGroup) {
-		// remove this once setVarGroup is working reliably TODO
 		setVarGroup(fc->varGroup);
 	}
 
@@ -237,6 +236,5 @@ void AlgebraFitFunction::init()
 
 	Rf_protect(newptr = R_do_slot(rObj, Rf_install("verbose")));
 	aff->verbose = Rf_asInteger(newptr);
-	aff->varGroup = NULL;
 	off->canDuplicate = true;
 }

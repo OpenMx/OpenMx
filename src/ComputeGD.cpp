@@ -401,7 +401,6 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	SEXP slotValue;
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
 
 	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("verbose")));
@@ -793,7 +792,6 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));

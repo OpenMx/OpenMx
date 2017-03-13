@@ -1868,7 +1868,6 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 	for (int wx=0; wx < Rf_length(slotValue); ++wx) {
 		int objNum = INTEGER(slotValue)[wx];
 		omxExpectation *expectation = globalState->expectationList[objNum];
-		setFreeVarGroup(expectation, varGroup);
 		omxCompleteExpectation(expectation);
 		expectations.push_back(expectation);
 	}
@@ -1890,7 +1889,6 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observedFit")));
 	fit3 = globalState->algebraList[ INTEGER(slotValue)[0] ];
 	if (fit3->fitFunction) {
-		setFreeVarGroup(fit3->fitFunction, varGroup);
 		omxCompleteFitFunction(fit3);
 	}
 
@@ -2635,12 +2633,10 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 		if (objNum >= 0) {
 			omxMatrix *algebra = globalState->algebraList[objNum];
 			if (!algebra->fitFunction) Rf_error("ComputeOnce can only handle fit functions");
-			setFreeVarGroup(algebra->fitFunction, varGroup);
 			omxCompleteFitFunction(algebra);
 			algebras.push_back(algebra);
 		} else {
 			omxExpectation *expectation = globalState->expectationList[~objNum];
-			setFreeVarGroup(expectation, varGroup);
 			omxCompleteExpectation(expectation);
 			expectations.push_back(expectation);
 		}

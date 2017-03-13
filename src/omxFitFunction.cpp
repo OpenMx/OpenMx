@@ -48,16 +48,6 @@ omxFitFunction *omxFitFunction::initMorph()
 	return this;
 }
 
-void omxFitFunction::setVarGroup(FreeVarGroup *fvg)
-{
-	auto *ff = this;
-	if (OMX_DEBUG && ff->freeVarGroup && ff->freeVarGroup != fvg) {
-		Rf_warning("%s: setFreeVarGroup called with different group (%d vs %d)",
-			   ff->matrix->name(), ff->freeVarGroup->id[0], fvg->id[0]);
-	}
-	ff->freeVarGroup = fvg;
-}
-
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction},
 	{"MxFitFunctionWLS",				&omxInitWLSFitFunction},
@@ -103,7 +93,6 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	if(ff == NULL) return;
 
 	omxFillMatrixFromMxFitFunction(tgt, src->matrixNumber, ff->rObj);
-	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
 }
 
 static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
@@ -296,7 +285,6 @@ void omxCompleteFitFunction(omxMatrix *om)
 	if (obj->initialized) return;
 
 	if (obj->expectation) {
-		setFreeVarGroup(obj->expectation, obj->freeVarGroup);
 		omxCompleteExpectation(obj->expectation);
 	}
 
@@ -304,11 +292,6 @@ void omxCompleteFitFunction(omxMatrix *om)
 
 	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;
-}
-
-void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
-{
-	ff->setVarGroup(fvg);
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, const char* d) {

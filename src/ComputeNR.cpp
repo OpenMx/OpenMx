@@ -58,7 +58,6 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 	super::initFromFrontend(state, rObj);
 
 	fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
 
 	if (!fitMatrix->fitFunction->hessianAvailable ||

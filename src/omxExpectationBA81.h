@@ -55,7 +55,6 @@ class BA81Expect : public omxExpectation {
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void populateAttr(SEXP expectation);
-	virtual void setVarGroup(FreeVarGroup *) {};
 	virtual omxMatrix *getComponent(const char*);
 
 	class ifaGroup grp;

@@ -277,7 +277,6 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	}
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
-	setFreeVarGroup(fitMat->fitFunction, varGroup);
 
 	SEXP slotValue;
 
