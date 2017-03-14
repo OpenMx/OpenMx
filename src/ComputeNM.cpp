@@ -334,27 +334,24 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
 		nmoc2.invokeNelderMead();
 		
-		//TODO: it's possible for nmoc2 to find a better fit than nmoc, but without reaching a final simplex
-		//that satisfies the convergence criteria.  That doesn't matter in itself, but it's likely to confuse
-		//a user that inspects the output slot of the MxComputeNelderMead object
-		if(nmoc2.fvals[0] < nmoc.fvals[0] && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
-			nmoc.fvals = nmoc2.fvals;
-			nmoc.vertices = nmoc2.vertices;
-			nmoc.vertexInfeas = nmoc2.vertexInfeas;
-			nmoc.subcentroid = nmoc2.subcentroid;
-			nmoc.eucentroidPrev = nmoc2.eucentroidPrev;
-			nmoc.equality = nmoc2.equality;
-			nmoc.inequality = nmoc2.inequality;
+		if(nmoc2.bestfit < nmoc.bestfit && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
+			nmoc.bestfit = nmoc2.bestfit;
+			nmoc.est = nmoc2.est;
+			if(nmoc2.statuscode==0){
+				nmoc.fvals = nmoc2.fvals;
+				nmoc.vertices = nmoc2.vertices;
+				nmoc.vertexInfeas = nmoc2.vertexInfeas;
+				nmoc.subcentroid = nmoc2.subcentroid;
+				nmoc.eucentroidPrev = nmoc2.eucentroidPrev;
+				nmoc.equality = nmoc2.equality;
+				nmoc.inequality = nmoc2.inequality;
+			}
 		}
 		
 		//Not sure about this:
 		fc->iterations += nmoc2.itersElapsed;
 	}
 	
-	nmoc.est = nmoc.vertices[0];
-	nmoc.bestfit = nmoc.evalFit(nmoc.est);
-	
-	//TODO: pseudoHessian, check fit at centroids
 	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.numEqC){
 		nmoc.calculatePseudoHessian();
 	}
@@ -445,7 +442,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	if( vertexInfeasOut.size() ){
 		Rf_protect(vinf = Rf_allocVector( INTSXP, vertexInfeasOut.size() ));
 		memcpy( INTEGER(vinf), vertexInfeasOut.data(), sizeof(int) * vertexInfeasOut.size() );
-		output.add("finalVertexInfeas", vinf); //<--Not sure if CSOLNP and SLSQP have their own constraint state codes.
+		output.add("finalVertexInfeas", vinf); 
 	}
 	if( pseudohess.rows() && pseudohess.cols() ){
 		Rf_protect(phess = Rf_allocMatrix( REALSXP, pseudohess.rows(), pseudohess.cols() ));
@@ -732,7 +729,6 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 				fv = bignum;
 				return;
 			}
-			//else{Rf_error("'backtrack' Not Yet Implemented");}
 			else{
 				int i;
 				for(i=1; i <= NMobj->backtrackCtrl2; i++){
@@ -808,7 +804,6 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 {
 	if(verbose){mxLog("(re-)initializing simplex");}
 	int i=0;
-	//bool ismflag=false;
 	Eigen::VectorXd xin, xout, newpt, oldpt;
 	if(iniSimplexMat.rows() && iniSimplexMat.cols() && !isRestart){
 		Eigen::MatrixXd SiniSupp, iniSimplexMat2;
@@ -868,7 +863,6 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
-		//TODO: case 3 won't work with equality MxConstraints
 		switch(iniSimplexType){
 		case 1:
 			vertices[0] = startpt;
@@ -878,9 +872,6 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 					vertices[i][i-1] = shhp;
 					vertices[i] += startpt;
 				}
-				/*for(i=0; i<n+1; i++){
-					vertices[i] += startpt;
-				}*/
 			}
 			else{
 				for(i=1; i<n+1; i++){
@@ -972,7 +963,6 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 	for(i=1; i<n+1; i++){
 		evalNewPoint(vertices[i], vertices[0], fvals[i], vertexInfeas[i], vertexInfeas[0]);
 	}
-	//if(verbose){printProblemState();}
 }
 
 
@@ -1146,7 +1136,6 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				evalNewPoint(xoc, subcentroid, foc, badoc, badsc);
 			}
 			else{
-				//Eigen::VectorXd oldpt = vertices.row(0);
 				xoc = vertices[0] + NMobj->betao*(xr - vertices[0]);
 				evalNewPoint(xoc, vertices[0], foc, badoc, vertexInfeas[0]);
 			}
@@ -1164,7 +1153,6 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				return;
 			}
 			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
-				//failedContraction = true;
 				//Accept reflection point:
 				fvals[n] = fr;
 				vertices[n] = xr;
@@ -1289,7 +1277,6 @@ bool NelderMeadOptimizerContext::checkProgress(){
 }
 
 
-//TODO: pass optimization status codes to FitContext.
 void NelderMeadOptimizerContext::invokeNelderMead(){
 	n = numFree - numEqC;
 	vertices.resize(n+1);
@@ -1319,7 +1306,6 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 			
 			stopflag = checkConvergence();
 			if(stopflag){
-				//fc->resetIterationError();
 				break;
 			}
 			
@@ -1340,7 +1326,23 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 		itersElapsed++;
 	} while (!stopflag);
 	
-	if(verbose){mxPrintMat("solution?",vertices[0]);}
+	est = vertices[0];
+	bestfit = fvals[0];
+	
+	double centFit;
+	int centInfeas;
+	evalNewPoint(subcentroid, vertices[0], centFit, centInfeas, vertexInfeas[0]);
+	if(centFit < bestfit){
+		est = subcentroid;
+		bestfit = centFit;
+	}
+	evalNewPoint(eucentroidCurr, vertices[0], centFit, centInfeas, vertexInfeas[0]);
+	if(centFit < bestfit){
+		est = eucentroidCurr;
+		bestfit = centFit;
+	}
+	
+	if(verbose){mxPrintMat("solution?",est);}
 	
 }
 
