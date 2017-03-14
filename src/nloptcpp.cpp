@@ -281,24 +281,7 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 			arows++;
 		}
 	}
-	/*if(0){ 
-		//This part, where the gradient is checked, is not yet satisfactory
-		//This threshold might be too strict unless the gradient was calculated with central differences and 4 Richardson extrapolations:
-		double gradThresh = Global->getGradientThreshold(goc.getFit());
-		Eigen::VectorXd tmpGrad = goc.grad;
-		//We set the values of inactive constraint functions to zero, along with all of their elements of the Jacobian.
-		//Therefore, we can use a simple expression for the gradient of the Lagrangian:
-		for(i=0; i<goc.constraintJacobianOut.rows(); i++){
-			tmpGrad += (goc.LagrMultipliersOut[i] * goc.constraintJacobianOut.row(i));
-		}
-		for(i=0; i<tmpGrad.size(); i++){
-			if(fabs(tmpGrad[i])>gradThresh){
-				code=6;
-				break;
-			}
-		}
-	}*/
-	if(arows){
+	if(arows && false){
 		int j=0;
 		double gradThresh = Global->getGradientThreshold(goc.getFit());
 		Eigen::MatrixXd A(arows, goc.constraintJacobianOut.cols()); //<--Jacobian of active constraints
