@@ -309,13 +309,15 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 				j++;
 			}
 		}
-		Eigen::FullPivLU< Eigen::MatrixXd > lua(A);
-		Eigen::MatrixXd Z = lua.kernel();
-		Eigen::VectorXd gz = Z.transpose() * goc.grad;
-		for(i=0; i<gz.size(); i++){
-			if(fabs(gz[i])>gradThresh){
-				code=6;
-				break;
+		if( !((A.array()==0).all()) ){
+			Eigen::FullPivLU< Eigen::MatrixXd > lua(A);
+			Eigen::MatrixXd Z = lua.kernel();
+			Eigen::VectorXd gz = Z.transpose() * goc.grad;
+			for(i=0; i<gz.size(); i++){
+				if(fabs(gz[i])>gradThresh){
+					code=6;
+					break;
+				}
 			}
 		}
 	}
