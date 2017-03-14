@@ -10,6 +10,8 @@
 #include "ComputeGD.h"
 //#include "finiteDifferences.h"
 
+#include <Eigen/LU>
+
 #include "nlopt.h"
 #include "slsqp.h"
 #include "nlopt-internal.h"
@@ -259,23 +261,28 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 //Ideally, this function should recalculate the gradient and Jacobian 
 //to make sure they're as numerically accurate as possible:
 static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const double feasTol){
-	int code = 0, i;
+	int code = 0, i=0, arows=0;
 	//Nothing to do here if there are no MxConstraints:
 	if(!goc.constraintFunValsOut.size()){return(code);}
 	//First see if bounds are satisfied:
 	for(i=0; i<goc.est.size(); i++){
 		if(goc.solLB[i]-goc.est[i] > feasTol || goc.est[i]-goc.solUB[i] > feasTol){
 			code = 3;
+			break;
 		}
 	}
 	//Now see if constraints are satisfied:
 	for(i=0; i<goc.constraintFunValsOut.size(); i++){
 		//This works because we set the values of inactive inequality constraints to zero before SLSQP sees them:
-		if(fabs(goc.constraintFunValsOut[i])>feasTol){
-			code = 3;
+		if(fabs(goc.constraintFunValsOut[i]) > 0){
+			if(fabs(goc.constraintFunValsOut[i])>feasTol){
+				code = 3;
+			}
+			arows++;
 		}
 	}
-	if(0){ //This part, where the gradient is checked, is not yet satisfactory
+	/*if(0){ 
+		//This part, where the gradient is checked, is not yet satisfactory
 		//This threshold might be too strict unless the gradient was calculated with central differences and 4 Richardson extrapolations:
 		double gradThresh = Global->getGradientThreshold(goc.getFit());
 		Eigen::VectorXd tmpGrad = goc.grad;
@@ -290,7 +297,29 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 				break;
 			}
 		}
+	}*/
+	if(arows){
+		int j=0;
+		double gradThresh = Global->getGradientThreshold(goc.getFit());
+		Eigen::MatrixXd A(arows, goc.constraintJacobianOut.cols()); //<--Jacobian of active constraints
+		A.setZero(arows, goc.constraintJacobianOut.cols());
+		for(i=0; i<goc.constraintFunValsOut.size(); i++){
+			if(fabs(goc.constraintFunValsOut[i]) > 0){
+				A.row(j) = goc.constraintJacobianOut.row(i);
+				j++;
+			}
+		}
+		Eigen::FullPivLU< Eigen::MatrixXd > lua(A);
+		Eigen::MatrixXd Z = lua.kernel();
+		Eigen::VectorXd gz = Z.transpose() * goc.grad;
+		for(i=0; i<gz.size(); i++){
+			if(fabs(gz[i])>gradThresh){
+				code=6;
+				break;
+			}
+		}
 	}
+	
 	//Finish:
 	return(code);
 }
