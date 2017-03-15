@@ -2759,7 +2759,7 @@ static void omxRowSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatr
 static void omxColSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	omxResizeMatrix(result, inMat->rows, 1);
+	omxResizeMatrix(result, inMat->cols, 1);
 	result->colMajor = true;
 	EigenVectorAdaptor Eresult(result);
 	EigenMatrixAdaptor src(inMat);
