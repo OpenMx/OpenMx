@@ -73,7 +73,7 @@ static void nameBroadcastAlg(omxMatrix *bc)
 	bc->nameStr = string_snprintf("broadcast%03d", ++BroadcastIndex);
 }
 
-static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *result)
+static void ensureElemConform(const char *opName, FitContext *fc, omxMatrix **matList, omxMatrix *result)
 {
 	omxMatrix *mat0 = matList[0];
 	omxMatrix *mat1 = matList[1];
@@ -122,8 +122,8 @@ static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *re
 			EigenMatrixAdaptor m(mat1);
 			detail += mxStringifyMatrix(mat1->name(), m, empty);
 		}
-		Rf_error("Element-wise matrix op not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
-			 mat0->name(), mat0->rows, mat0->cols,
+		Rf_error("Element-wise '%s' not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
+			 opName, mat0->name(), mat0->rows, mat0->cols,
 			 mat1->name(), mat1->rows, mat1->cols, detail.c_str());
 	}
 }
@@ -183,7 +183,7 @@ static void omxMatrixMult(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxElementPower(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("^", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -212,7 +212,7 @@ static void omxElementPower(FitContext *fc, omxMatrix** matList, int numArgs, om
 
 static void omxMatrixElementMult(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("*", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -315,7 +315,7 @@ static void omxQuadraticProd(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxElementDivide(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("/", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -369,7 +369,7 @@ static void omxUnaryNegation(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxBinaryOr(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxOr", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -408,7 +408,7 @@ static void omxBinaryOr(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 static void omxBinaryAnd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxAnd", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -447,7 +447,7 @@ static void omxBinaryAnd(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 
 static void omxBinaryLessThan(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxLessThan", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -487,7 +487,7 @@ static void omxBinaryLessThan(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxBinaryGreaterThan(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxGreaterThan", fc, matList, result);
 
         omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -579,7 +579,7 @@ static void omxBinaryApproxEquals(FitContext *fc, omxMatrix** matList, int numAr
 
 static void omxMatrixAdd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("+", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -722,7 +722,7 @@ static void omxMatrixExtract(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxMatrixSubtract(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("-", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
