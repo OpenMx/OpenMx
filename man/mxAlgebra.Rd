@@ -31,7 +31,7 @@
 
 \usage{
 mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
-          joinKey=as.character(NA), joinModel=as.character(NA))
+          joinKey=as.character(NA), joinModel=as.character(NA), verbose=0L)
 }
 
 \arguments{
@@ -50,6 +50,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
   is used as a foreign key to match against the primary key in
   joinModel's raw data.}
 \item{joinModel}{The name of the model that this matrix joins against.}
+\item{verbose}{For values greater than zero, enable runtime diagnostics.}
 }
 
 \details{
