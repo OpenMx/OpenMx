@@ -34,17 +34,19 @@ setClass(Class = "MxAlgebra",
 		.dimnames = "MxListOrNull",
 	    result = "matrix",
 	    joinModel = "MxCharOrNumber",
-	    joinKey = "MxCharOrNumber"
+	    joinKey = "MxCharOrNumber",
+	    verbose= "integer"
 	))
 		
 setMethod("initialize", "MxAlgebra",
-	function(.Object, formula, name, fixed, joinKey, joinModel) {
+	function(.Object, formula, name, fixed, joinKey, joinModel, verbose) {
 		.Object@formula <- sys.call(which=-3)[[3]]
 		.Object@name <- name
 		.Object@fixed <- fixed
 		.Object@.dimnames <- NULL
 		.Object@joinKey <- joinKey
 		.Object@joinModel <- joinModel
+		.Object@verbose <- verbose
 		return(.Object)
 	}
 )
@@ -80,7 +82,7 @@ setReplaceMethod("$", "MxAlgebra",
 setMethod("names", "MxAlgebra", slotNames)
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
-		      joinKey=as.character(NA), joinModel=as.character(NA)) {
+		      joinKey=as.character(NA), joinModel=as.character(NA), verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxAlgebra does not accept values for the '...' argument")
@@ -89,7 +91,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 		name <- imxUntitledName()
 	}
 	imxVerifyName(name, 0)
-	retval <- new("MxAlgebra", NA, name, fixed, joinKey, joinModel)
+	retval <- new("MxAlgebra", NA, name, fixed, joinKey, joinModel, as.integer(verbose))
 	formula <- match.call()$expression
 	if(is.character(formula)){
 		stop("mxAlgebra wants an unquoted expression or formula")
@@ -173,7 +175,7 @@ generateAlgebraHelper <- function(algebra, joinModel, joinKey, matrixNumbers, al
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
-	return(list(algebra@.dimnames, joinModel, joinKey, retval))
+	return(list(algebra@.dimnames, algebra@verbose, joinModel, joinKey, retval))
 }
 
 substituteOperators <- function(algebra, name) {

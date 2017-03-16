@@ -77,7 +77,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
-	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL);
+	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL, 0);
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -93,7 +93,7 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 		oa->algArgs[j] = NULL;
 	}
 	omxAlgebraAllocArgs(oa, 0);
-	oa->matrix = NULL;
+	delete oa;
 }
 
 void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
@@ -110,13 +110,14 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
 	omxAlgebra *oa = mat->algebra;
+	if (oa->verbose >= 1) mxLog("recompute algebra '%s'", mat->name());
 
 	if (want & FF_COMPUTE_INITIAL_FIT) {
 		bool fvDep = false;
 		bool dvDep = false;
 		for(int j = 0; j < oa->numArgs; j++) {
 			if (oa->algArgs[j]->dependsOnParameters()) {
-				if (OMX_DEBUG && !fvDep) {
+				if ((oa->verbose + OMX_DEBUG) && !fvDep) {
 					mxLog("Algebra %s depends on free parameters "
 					      "because of argument[%d] %s",
 					      mat->name(), j, oa->algArgs[j]->name());
@@ -124,7 +125,7 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 				fvDep = true;
 			}
 			if (oa->algArgs[j]->dependsOnDefinitionVariables()) {
-				if (OMX_DEBUG && !dvDep) {
+				if ((oa->verbose + OMX_DEBUG) && !dvDep) {
 					mxLog("Algebra %s depends on definition variables "
 					      "because of argument[%d] %s",
 					      mat->name(), j, oa->algArgs[j]->name());
@@ -146,7 +147,7 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 		if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->algArgs[0], "Copy no-op algebra"); }
 		omxCopyMatrix(oa->matrix, oa->algArgs[0]);
 	} else {
-		if(OMX_DEBUG_ALGEBRA) { 
+		if(OMX_DEBUG_ALGEBRA || oa->verbose >= 2) { 
 			std::string buf;
 			for (int ax=0; ax < oa->numArgs; ++ax) {
 				if (ax) buf += ", ";
@@ -158,15 +159,19 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 		(*(algebra_op_t)oa->funWrapper)(fc, oa->algArgs, (oa->numArgs), oa->matrix);
 	}
 
-	if(OMX_DEBUG_ALGEBRA) {
-		std::string name = string_snprintf("Algebra '%s' result", oa->matrix->name());
-		omxAlgebraPrint(oa, name.c_str());
+	if(OMX_DEBUG_ALGEBRA || oa->verbose >= 3) {
+		EigenMatrixAdaptor Emat(oa->matrix);
+		int nr = std::min(10, Emat.rows());
+		int nc = std::min(10, Emat.cols());
+		std::string name = string_snprintf("Algebra '%s' %dx%d", oa->matrix->name(),
+						   Emat.rows(), Emat.cols());
+		mxPrintMat(name.c_str(), Emat.topLeftCorner(nr, nc));
 	}
 }
 
 omxAlgebra::omxAlgebra()
 {
-	Global->algebraList.push_back(this);
+	verbose = 0;
 }
 
 static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, std::string &name)
@@ -176,7 +181,7 @@ static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, std::string 
 	om->hasMatrixNumber = 0;
 	om->matrixNumber = 0;	
 
-	omxFillMatrixFromMxAlgebra(om, alg, name, NULL);
+	omxFillMatrixFromMxAlgebra(om, alg, name, NULL, 0);
 	
 	return om;
 }
@@ -203,7 +208,7 @@ static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::stri
 	return(newMat);
 }
 
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames)
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames, int verbose)
 {
 	int value;
 	omxAlgebra *oa = NULL;
@@ -212,6 +217,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 
 	if(value > 0) { 			// This is an operator.
 		oa = new omxAlgebra;
+		oa->verbose = verbose;
 		omxInitAlgebraWithMatrix(oa, om);
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
 		if(OMX_DEBUG) {mxLog("Table Entry %d is %s.", value, entry->opName);}
@@ -298,7 +304,7 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	
 	if(OMX_DEBUG) {mxLog("Generating new algebra from opcode %d (%s).", opCode, omxAlgebraSymbolTable[opCode].rName);}
 	omxMatrix *om;
-	omxAlgebra *oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
+	omxAlgebra *oa = new omxAlgebra;
 	omxAlgebraTableEntry* entry = (omxAlgebraTableEntry*)&(omxAlgebraSymbolTable[opCode]);
 	if(entry->numArgs >= 0 && entry->numArgs != numArgs) {
 		Rf_error("Internal Rf_error: incorrect number of arguments passed to algebra %s.", entry->rName);

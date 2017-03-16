@@ -738,6 +738,7 @@ class ComputeCI : public omxCompute {
 	void runPlan(FitContext *fc);
 public:
 	ComputeCI();
+	virtual ~ComputeCI();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -751,11 +752,15 @@ omxCompute *newComputeConfidenceInterval()
 
 ComputeCI::ComputeCI()
 {
+	plan = 0;
 	intervals = 0;
 	intervalCodes = 0;
 	detail = 0;
 	useInequality = false;
 }
+
+ComputeCI::~ComputeCI()
+{ if (plan) delete plan; }
 
 void ComputeCI::runPlan(FitContext *fc)
 {
@@ -1725,7 +1730,8 @@ class ComputeTryH : public omxCompute {
 
 	static bool satisfied(FitContext *fc);
 public:
-	//ComputeTryH();
+	ComputeTryH() : plan(0) {};
+	virtual ~ComputeTryH();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -1734,6 +1740,11 @@ public:
 
 omxCompute *newComputeTryHard()
 { return new ComputeTryH(); }
+
+ComputeTryH::~ComputeTryH()
+{
+	if (plan) delete plan;
+}
 
 void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 {

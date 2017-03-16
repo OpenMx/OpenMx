@@ -2523,7 +2523,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
      w = cgradtmp + max_cdim*n;
      jw = (int *) (w + len_w);
      
-     wkspc->realwkspc = (double*)realloc(wkspc->realwkspc, ((w+len_w)-work)*sizeof(double));
+     wkspc->realwkspc = (double*)realloc(wkspc->realwkspc, ((w+len_w)-work)*sizeof(double)); // LEAK TODO
      wkspc->M = mpi;
      wkspc->lengths[0] = c-cgrad; //length of constraint Jacobian, with some uninitialized "padding"
      wkspc->lengths[1] = grad-c; //length of constraint function-value vector(?)

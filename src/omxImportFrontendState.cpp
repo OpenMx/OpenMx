@@ -107,11 +107,16 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 			SEXP dimnames, formula;
 			omxMatrix *amat = algebraList[index];
 			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
+			int verbose;
+			{
+				ProtectedSEXP Rverbose(VECTOR_ELT(nextAlgTuple, 1));
+				verbose = Rf_asInteger(Rverbose);
+			}
 			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
-			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 1), VECTOR_ELT(nextAlgTuple, 2));
-			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 3));
+			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 2), VECTOR_ELT(nextAlgTuple, 3));
+			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 4));
 			std::string name = CHAR(STRING_ELT(algListNames, index));
-			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames);
+			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames, verbose);
 		}
 		if (isErrorRaised()) return;
 	}

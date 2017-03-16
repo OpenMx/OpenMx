@@ -454,7 +454,7 @@ std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, 
 	std::string buf;
 
 	if (mat.rows() * mat.cols() > 1000) {
-		buf = string_snprintf("%s is too large to print # %dx%d",
+		buf = string_snprintf("%s is too large to print # %dx%d\n",
 				name, mat.rows(), mat.cols());
 		return buf;
 	}
