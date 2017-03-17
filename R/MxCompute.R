@@ -1181,10 +1181,10 @@ mxComputeNelderMead <- function(
 	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
-	xTolProx=1e-8, fTolProx=1e-8, #<--MATLAB FMINSEARCH default
+	xTolProx=1e-8, fTolProx=1e-8,
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
-	#eqConstraintMthd=c("soft","backtrack","GDsearch","augLag"),
+	#eqConstraintMthd=c("soft","backtrack","GDsearch","l1p"),
 	eqConstraintMthd=c("soft","backtrack"),
 	backtrackCtrl=c(0.5,5)
 	){
@@ -1239,7 +1239,7 @@ mxComputeNelderMead <- function(
 	backtrackCtrl=c(0.5,5)
 	doPseudoHessian <- as.logical(doPseudoHessian[1])
 	ineqConstraintMthd <- as.character(match.barg(ineqConstraintMthd,c("soft","eqMthd")))
-	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("soft","backtrack")))
+	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("soft","backtrack","l1p")))
 	if(length(backtrackCtrl)<2){stop("'backtrackCtrl' must be a numeric vector of length 2")}
 	backtrackCtrl1 <- as.numeric(backtrackCtrl[1])
 	backtrackCtrl2 <- as.integer(backtrackCtrl[2])

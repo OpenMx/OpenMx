@@ -97,8 +97,11 @@ public:
 	//double avgFitValPrev, avgFitValCurr;
 	int unchangedx0count;
 	double fit2beat, bestfit;
+	int estInfeas;
 	int statuscode;
 	double bignum;
+	double rho;
+	bool addPenalty;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);

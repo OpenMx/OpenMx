@@ -87,3 +87,26 @@ m3 <- mxModel(
 m3run <- mxRun(m3)
 #The backtrack method isn't that helpful in this case:
 summary(m3run)
+
+#l1p:
+foo4 <- mxComputeNelderMead(
+	iniSimplexMat=ism3, nudgeZeroStarts=FALSE, xTolProx=1e-12, fTolProx=1e-8, eqConstraintMthd="l1p")
+#foo3$verbose <- 5L
+plan4 <- omxDefaultComputePlan()
+plan4$steps <- list(foo4,plan4$steps$RE)
+m4 <- mxModel(
+	"MultinomialWithLinearConstraints",
+	plan4,
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.25,labels="pred",name="Pred",lbound=0,ubound=1),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.25,labels="pyellow",name="Pyellow",lbound=0,ubound=1),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.25,labels="pgreen",name="Pgreen",lbound=0,ubound=1),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.25,labels="pblue",name="Pblue",lbound=0,ubound=1),
+	mxAlgebra( -2*(43*log(Pred) + 22*log(Pyellow) + 20*log(Pgreen) + 15*log(Pblue)), name="fitfunc"),
+	mxAlgebra( cbind(-2*43/Pred,-2*22/Pyellow,-2*20/Pgreen,-2*15/Pblue), name="objgrad",
+						 dimnames=list(NULL,c("pred","pyellow","pgreen","pblue"))),
+	mxFitFunctionAlgebra(algebra="fitfunc",gradient="objgrad",numObs=100),
+	mxCI(c("pred","pyellow","pgreen","pblue")),
+	mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying")
+)
+m4run <- mxRun(m4)
+summary(m4run)

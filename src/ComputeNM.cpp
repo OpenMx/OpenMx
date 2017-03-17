@@ -232,7 +232,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){eqConstraintMthd = 1;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"backtrack")){eqConstraintMthd = 2;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"GDsearch")){eqConstraintMthd = 3;}
-	else if(strEQ(CHAR(Rf_asChar(slotValue)),"augLag")){eqConstraintMthd = 4;}
+	else if(strEQ(CHAR(Rf_asChar(slotValue)),"l1p")){eqConstraintMthd = 4;}
 	else{Rf_error("unrecognized character string provided for Nelder-Mead 'eqConstraintMthd'");}
 	if(verbose){
 		mxLog("omxComputeNM member 'eqConstraintMthd' is %d", eqConstraintMthd);
@@ -293,7 +293,6 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	}
 	
 	NelderMeadOptimizerContext nmoc(fc, this);
-	if(eqConstraintMthd==4){Rf_error("'augLag' Not Yet Implemented");}
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;
 	nmoc.iniSimplexType = iniSimplexType;
@@ -302,22 +301,47 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.bignum = bignum;
 	nmoc.iniSimplexMat = iniSimplexMat;
 	nmoc.countConstraintsAndSetupBounds();
-	nmoc.invokeNelderMead();
-	fc->iterations = nmoc.itersElapsed;
-	
-	switch(nmoc.statuscode){
-	case -1:
-		Rf_error("unknown Nelder-Mead optimizer error");
-		break;
-	case 0:
-		fc->setInform(INFORM_CONVERGED_OPTIMUM);
-		break;
-	case 3:
-		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
-		break;
-	case 4:
-		fc->setInform(INFORM_ITERATION_LIMIT);
-		break;
+	if( (nmoc.numIneqC || nmoc.numEqC) && eqConstraintMthd==4 ){
+		if(verbose){mxLog("starting l1-penalty algorithm");}
+		fc->iterations = 0; //<--Not sure about this
+		nmoc.maxIter = maxIter/10;
+		nmoc.addPenalty = true;
+		int k;
+		for(k=0; k<=10; k++){
+			if(verbose){mxLog("l1p iteration %d",k);}
+			if(k>0){
+				//nmoc.iniSimplexEdge = iniSimplexEdge;
+				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
+				if(nmoc.statuscode==3){break;}
+				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
+					if(verbose){mxLog("l1p solution found");}
+					break;
+				}
+				/*if( !nmoc.estInfeas && nmoc.statuscode==4 ){
+					nmoc.iniSimplexEdge = sqrt((nmoc.vertices[0]-nmoc.vertices[1]).dot(nmoc.vertices[0]-nmoc.vertices[1]));
+				}*/
+				if(nmoc.estInfeas){
+					nmoc.rho *= 10;
+					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
+				}
+				/*if(nmoc.estInfeas && nmoc.statuscode==4){
+					nmoc.rho *= 2;
+					nmoc.iniSimplexEdge = sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+				}*/
+				if(fc->iterations >= maxIter){
+					nmoc.statuscode = 4;
+					if(verbose){mxLog("l1p algorithm ended with status 4");}
+					break;
+				}
+			}
+			nmoc.invokeNelderMead();
+			fc->iterations += nmoc.itersElapsed;
+			if(verbose){mxLog("total Nelder-Mead iterations elapsed: %d",fc->iterations);}
+		}
+	}
+	else{
+		nmoc.invokeNelderMead();
+		fc->iterations = nmoc.itersElapsed;
 	}
 	
 	if(validationRestart && nmoc.statuscode==0){
@@ -327,9 +351,11 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.iniSimplexType = 1;
 		nmoc2.iniSimplexEdge = 
 			sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
-		nmoc2.fit2beat = nmoc.fvals[0];
+		nmoc2.fit2beat = nmoc.bestfit;
 		nmoc2.bignum = nmoc.bignum;
-		nmoc2.est = nmoc.vertices[0];
+		nmoc2.est = nmoc.est;
+		nmoc2.rho = nmoc.rho;
+		nmoc2.addPenalty = nmoc.addPenalty;
 		nmoc2.countConstraintsAndSetupBounds();
 		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
 		nmoc2.invokeNelderMead();
@@ -337,6 +363,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		if(nmoc2.bestfit < nmoc.bestfit && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
 			nmoc.bestfit = nmoc2.bestfit;
 			nmoc.est = nmoc2.est;
+			nmoc.estInfeas = nmoc2.estInfeas;
 			if(nmoc2.statuscode==0){
 				nmoc.fvals = nmoc2.fvals;
 				nmoc.vertices = nmoc2.vertices;
@@ -353,7 +380,25 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	}
 	
 	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.numEqC){
+		nmoc.addPenalty = false;
 		nmoc.calculatePseudoHessian();
+	}
+	
+	if(nmoc.estInfeas){nmoc.statuscode = 3;}
+	
+	switch(nmoc.statuscode){
+	case -1:
+		Rf_error("unknown Nelder-Mead optimizer error");
+		break;
+	case 0:
+		fc->setInform(INFORM_CONVERGED_OPTIMUM);
+		break;
+	case 3:
+		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
+		break;
+	case 4:
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
 	}
 	
 	size_t i=0;
@@ -387,6 +432,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 			Qinv = luq.inverse();
 			//This is the "simplex gradient" of Kelley (1999):
 			simplexGradient = Qinv.transpose() * fdiffs;
+			if(verbose){mxPrintMat("simplex gradient: ",simplexGradient);}
 		}
 	}
 	equalityOut = nmoc.equality;
@@ -476,6 +522,8 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());
 	statuscode = -1;
+	addPenalty = false;
+	rho = 1;
 }
 
 void NelderMeadOptimizerContext::copyBounds()
@@ -620,8 +668,16 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 	else{
 		if(fc->fit > bignum){bignum = 10 * fc->fit;}
 		double fv = fc->fit;
-		if(NMobj->eqConstraintMthd==4){
-			//TODO: add terms from augmented Lagrangian to fv
+		if(NMobj->eqConstraintMthd==4 && addPenalty){
+			int i;
+			for(i=0; i < equality.size(); i++){
+				fv += rho * fabs(equality[i]);
+			}
+			if(NMobj->ineqConstraintMthd){
+				for(i=0; i < inequality.size(); i++){
+					fv += rho * fabs(inequality[i]);
+				}
+			}
 		}
 		return(fv);
 	}
@@ -666,7 +722,7 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 	checkNewPointInfeas(x, ifcr);
 	if(!ifcr.sum()){
 		infeas = 0L;
-		fv = (evalFit(x));
+		fv = evalFit(x);
 		if(fv==bignum){infeas=1L;}
 		return;
 	}
@@ -684,14 +740,8 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 		case 3:
 			Rf_error("'GDsearch' Not Yet Implemented");
 		case 4:
-			if(ifcr[0]){
-				fv = bignum;
-				infeas = 1L;
-			}
-			else{
-				fv = evalFit(x);
-				infeas = 0L;
-			}
+			fv = evalFit(x);
+			infeas = 1L;
 			return;
 		}
 	}
@@ -750,15 +800,8 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 		case 3:
 			Rf_error("'GDsearch' Not Yet Implemented");
 		case 4:
-			if(ifcr[0]){
-				fv = bignum;
-				newInfeas = 1L;
-			}
-			else{
-				fv = evalFit(newpt);
-				if(fv==bignum){newInfeas = 1L;}
-				else{newInfeas = 0L;}
-			}
+			fv = evalFit(newpt);
+			newInfeas = 1L;
 			return;
 		}
 	}
@@ -1285,7 +1328,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	subcentroid.resize(numFree);
 	eucentroidCurr.resize(numFree);
 	initializeSimplex(est, iniSimplexEdge, false);
-	if(vertexInfeas.sum()==n+1 || (fvals.array()==bignum).all()){
+	if( (vertexInfeas.sum()==n+1 && NMobj->eqConstraintMthd != 4) || (fvals.array()==bignum).all()){
 		omxRaiseErrorf("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
 		statuscode = 3;
 		return;
@@ -1328,19 +1371,25 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	
 	est = vertices[0];
 	bestfit = fvals[0];
+	estInfeas = vertexInfeas[0];
 	
 	double centFit;
 	int centInfeas;
 	evalNewPoint(subcentroid, vertices[0], centFit, centInfeas, vertexInfeas[0]);
-	if(centFit < bestfit){
+	if(centFit < bestfit && !centInfeas){
 		est = subcentroid;
 		bestfit = centFit;
+		estInfeas = 0;
+		
 	}
 	evalNewPoint(eucentroidCurr, vertices[0], centFit, centInfeas, vertexInfeas[0]);
-	if(centFit < bestfit){
+	if(centFit < bestfit && !centInfeas){
 		est = eucentroidCurr;
 		bestfit = centFit;
-	}
+		estInfeas = 0;
+	}	
+	
+	//if(estInfeas){statuscode = 3;}
 	
 	if(verbose){mxPrintMat("solution?",est);}
 	
@@ -1428,6 +1477,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			if(pminfit<fvals[0] && !pminInfeas){
 				est = pmin;
 				bestfit = pminfit;
+				estInfeas = pminInfeas;
 			}
 		}
 		Eigen::MatrixXd Qinv = luq.inverse();
@@ -1482,6 +1532,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			if(pminfit<fvals[0] && !pminInfeas){
 				est = pmin;
 				bestfit = pminfit;
+				estInfeas = pminInfeas;
 			}
 		}
 		NMobj->Xout = X;
