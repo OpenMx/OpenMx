@@ -5,6 +5,7 @@
 * NEW: Hidden Markov models with mxExpectationHiddenMarkov
 * IMPROVED: Summary table is easier to read and more informative
 * IMPROVED: Rampart uses much less memory on large datasets.
+* IMPROVED: 'one' is now in the list of reserved names (clashes with RAM's 'one' for mean)
 * FIXED: mxKalmanScores are now correct for continuous time state space models.
 * FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization.
 	* If using 2.7.x (older), set expectation$.useSufficientSets = FALSE to avoid athis bug.
