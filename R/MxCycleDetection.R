@@ -18,11 +18,13 @@ cycleDetection <- function(flatModel) {
 	if (length(flatModel@fitfunctions) > 0) {
 		for(i in 1:length(flatModel@fitfunctions)) {
 			dependencies <- addFitFunctionDetection(flatModel@fitfunctions[[i]], flatModel, dependencies)
+#			if (!is(dependencies, "MxDirectedGraph")) stop("Lost dependencies")
 		}	
 	}
 	if (length(flatModel@expectations) > 0) {
 		for(i in 1:length(flatModel@expectations)) {
 			dependencies <- addExpectationDetection(flatModel@expectations[[i]], dependencies)
+#			if (!is(dependencies, "MxDirectedGraph")) stop("Lost dependencies")
 		}	
 	}
 	if (length(flatModel@algebras) > 0) {
