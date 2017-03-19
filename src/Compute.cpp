@@ -972,17 +972,6 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 {
 	size_t numParam = varGroup->vars.size();
 
-	if(OMX_DEBUG) {
-		std::string buf;
-		buf += string_snprintf("copyParamToModel: c(");
-		for(size_t k = 0; k < numParam; k++) {
-			buf += string_snprintf("%g", at[k]);
-			if (k < numParam-1) buf += string_snprintf(", ");
-		}
-		buf += (")\n");
-		mxLogBig(buf);
-	}
-
 	for(size_t k = 0; k < numParam; k++) {
 		omxFreeVar* freeVar = varGroup->vars[k];
 		freeVar->copyToState(os, at[k]);

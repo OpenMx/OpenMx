@@ -332,12 +332,7 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 		}
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 3));
-		int numDeps = LENGTH(nextLoc);
-		fv->numDeps = numDeps;
-		fv->deps = (int*) R_alloc(numDeps, sizeof(int));
-		for (int i = 0; i < numDeps; i++) {
-			fv->deps[i] = INTEGER(nextLoc)[i];
-		}
+		fv->setDeps(Rf_length(nextLoc), INTEGER(nextLoc));
 
 		int numLocs = Rf_length(nextVar) - 5;
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
