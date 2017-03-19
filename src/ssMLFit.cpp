@@ -169,6 +169,8 @@ void ssMLFitState::init()
 	oo->canDuplicate = true;
 
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
+	units = returnRowLikelihoods? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
+
 	state->populateRowDiagnostics = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("rowDiagnostics")));
 
 	omxState *currentState = oo->matrix->currentState;

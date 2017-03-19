@@ -74,11 +74,12 @@ void omxFitFunction::setUnitsFromName(const char *name)
 	}
 }
 
-const char *fitUnitsToName(int units)
+const char *fitUnitsToName(FitStatisticUnits units)
 {
 	switch (units) {
 	case FIT_UNITS_UNINITIALIZED: return "";
 	case FIT_UNITS_UNKNOWN: return "?";
+	case FIT_UNITS_PROBABILITY: return "Pr";
 	case FIT_UNITS_MINUS2LL: return "-2lnL";
 	case FIT_UNITS_SQUARED_RESIDUAL: return "r'Wr";
 	default: Rf_error("Don't know how to stringify units %d", units);
@@ -137,7 +138,7 @@ double totalLogLikelihood(omxMatrix *fitMat)
 {
 	if (fitMat->rows != 1) {
 		omxFitFunction *ff = fitMat->fitFunction;
-		if (ff->units == FIT_UNITS_MINUS2LL) {
+		if (ff->units == FIT_UNITS_PROBABILITY) {
 			// NOTE: Floating-point addition is not
 			// associative. If we compute this in parallel
 			// then we introduce non-determinancy.

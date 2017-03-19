@@ -152,7 +152,7 @@ class FitContext {
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
-	int fitUnits;
+	FitStatisticUnits fitUnits;
 	int skippedRows;
 	double *est;
 	std::vector<bool> profiledOut;

@@ -122,9 +122,9 @@ void FitMultigroup::init()
 			if (oo->units == FIT_UNITS_UNINITIALIZED) {
 				oo->units = mat->fitFunction->units;
 			} else if (oo->units != mat->fitFunction->units) {
-				Rf_error("%s: cannot combine units %d and %d (from %s)",
+				Rf_error("%s: cannot combine units %s and %s (from %s)",
 					 oo->matrix->name(),
-					 oo->units, mat->fitFunction->units, mat->name());
+					 fitUnitsToName(oo->units), fitUnitsToName(mat->fitFunction->units), mat->name());
 			}
 		} else {
 			oo->gradientAvailable = FALSE;

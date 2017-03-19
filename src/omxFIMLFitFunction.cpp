@@ -1081,6 +1081,9 @@ void omxFIMLFitFunction::init()
 	} else { Rf_error("jointConditionOn '%s'?", jointStratName); }
 
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
+
+	units = returnRowLikelihoods? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
+
 	newObj->useSufficientSets = !newObj->returnRowLikelihoods;
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	

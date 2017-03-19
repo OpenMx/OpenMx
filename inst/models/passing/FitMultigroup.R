@@ -80,7 +80,7 @@ if (1) {
 if (1) {
 	obj <- mxFitFunctionMultigroup(c("uniRegModelRaw", paste("model", 1:2, sep="")))
 	model <- mxModel(model="vector", obj, model1, model2, uniRegModelRaw)
-	omxCheckError(mxRun(model, suppressWarnings = TRUE), "The job for model 'vector' exited abnormally with the error message: vector.fitfunction[0]: uniRegModelRaw.fitfunction of type imxFitFunctionFIML does not evaluate to a 1x1 matrix")
+	omxCheckError(mxRun(model, suppressWarnings = TRUE), "vector.fitfunction: cannot combine units Pr and -2lnL (from model1.fitfunction)")
 }
 
 model <- mxModel(model="fail", mxFitFunctionMultigroup("noExisto"))

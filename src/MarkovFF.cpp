@@ -25,6 +25,7 @@ namespace MarkovFF {
 		int verbose;
 		omxMatrix *initial;
 		omxMatrix *transition;
+		FitStatisticUnits componentUnits;
 
 		virtual void init();
 		virtual void compute(int ffcompute, FitContext *fc);
@@ -80,6 +81,7 @@ namespace MarkovFF {
 		if (st->verbose >= 2) mxLog("%s: fit=%f", oo->name(), lp);
 	}
 
+	// Does vector=TRUE mean something sensible? Mixture of mixtures?
 	void state::init()
 	{
 		auto *oo = this;
@@ -100,19 +102,27 @@ namespace MarkovFF {
 		ProtectedSEXP Rcomponents(R_do_slot(oo->rObj, Rf_install("components")));
 		int nc = Rf_length(Rcomponents);
 		int *cvec = INTEGER(Rcomponents);
+		componentUnits = FIT_UNITS_UNINITIALIZED;
 		for (int cx=0; cx < nc; ++cx) {
 			omxMatrix *fmat = currentState->algebraList[ cvec[cx] ];
 			if (fmat->fitFunction) {
 				omxCompleteFitFunction(fmat);
 				auto ff = fmat->fitFunction;
-				if (ff->units != FIT_UNITS_MINUS2LL) {
-					omxRaiseErrorf("%s: component %s must be in likelihood units",
+				if (ff->units != FIT_UNITS_PROBABILITY) {
+					omxRaiseErrorf("%s: component %s must be in probability units",
 						       oo->name(), ff->name());
 					return;
+				}
+				if (componentUnits == FIT_UNITS_UNINITIALIZED) {
+					componentUnits = ff->units;
+				} else if (ff->units != componentUnits) {
+					omxRaiseErrorf("%s: components with heterogenous units %s and %s in same mixture",
+						       oo->name(), fitUnitsToName(ff->units), fitUnitsToName(componentUnits));
 				}
 			}
 			ms->components.push_back(fmat);
 		}
+		if (componentUnits == FIT_UNITS_UNINITIALIZED) componentUnits = FIT_UNITS_PROBABILITY;
 
 		ms->initial = expectation->getComponent("initial");
 		ms->transition = expectation->getComponent("transition");

@@ -40,13 +40,6 @@
 #include "omxState.h"
 #include "omxExpectation.h"
 
-enum FitStatisticUnits {
-	FIT_UNITS_UNINITIALIZED=0,
-	FIT_UNITS_UNKNOWN,
-	FIT_UNITS_MINUS2LL,
-	FIT_UNITS_SQUARED_RESIDUAL  // OK?
-};
-
 struct omxFitFunction {
 	SEXP rObj;
 	omxExpectation* expectation;
@@ -118,6 +111,6 @@ void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 
 double totalLogLikelihood(omxMatrix *fitMat);
 
-const char *fitUnitsToName(int units);
+const char *fitUnitsToName(FitStatisticUnits units);
 
 #endif /* _OMXFITFUNCTION_H_ */

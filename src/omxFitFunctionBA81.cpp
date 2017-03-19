@@ -951,4 +951,6 @@ void BA81FitState::init()
 	state->copyEstimates(estate);
 
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
+
+	units = returnRowLikelihoods? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
 }

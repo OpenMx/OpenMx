@@ -125,6 +125,14 @@ enum omxFFCompute {
 	FF_COMPUTE_FINAL_FIT    = 1<<12
 };
 
+enum FitStatisticUnits {
+	FIT_UNITS_UNINITIALIZED=0,
+	FIT_UNITS_UNKNOWN,
+	FIT_UNITS_PROBABILITY,
+	FIT_UNITS_MINUS2LL,
+	FIT_UNITS_SQUARED_RESIDUAL  // OK?
+};
+
 #define GRADIENT_FUDGE_FACTOR(x) (pow(10.0,x))
 
 typedef struct omxMatrix omxMatrix;
