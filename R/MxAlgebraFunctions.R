@@ -397,3 +397,5 @@ omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
 ##' @param mean mean
 ##' @param sigma sigma
 imxDmvnorm <- function(loc, mean, sigma) .Call(Dmvnorm_wrapper, loc, mean, sigma)
+
+mxEvaluateOnGrid <- function(algebra, abscissa) stop("Not implemented")

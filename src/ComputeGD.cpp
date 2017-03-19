@@ -513,9 +513,12 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	int beforeEval = fc->getLocalComputeCount();
 
-	if (verbose >= 1) mxLog("%s: engine %s (ID %d) gradient=%s tol=%g constraints=%d",
-				name, engineName, engine, gradientAlgoName, optimalityTolerance,
-				int(fitMatrix->currentState->conListX.size()));
+	if (verbose >= 1) {
+		int numConstr = fitMatrix->currentState->conListX.size();
+		mxLog("%s: engine %s (ID %d) #P=%d gradient=%s tol=%g constraints=%d",
+		      name, engineName, engine, numParam, gradientAlgoName, optimalityTolerance,
+		      numConstr);
+	}
 
 	//if (fc->ciobj) verbose=2;
 	double effectiveGradientStepSize = gradientStepSize;

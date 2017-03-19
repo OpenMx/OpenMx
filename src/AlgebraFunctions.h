@@ -2765,3 +2765,53 @@ static void omxColSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatr
 	EigenMatrixAdaptor src(inMat);
 	Eresult.derived() = src.colwise().sum();
 }
+
+static void evaluateOnGrid(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *algebra = matList[0];
+	omxMatrix *abscissa = matList[1];
+
+	if (int(abscissa->rownames.size()) != abscissa->rows) {
+		omxRaiseErrorf("mxEvaluateOnGrid: abscissa '%s' must have rownames",
+			       abscissa->name());
+		return;
+	}
+
+	auto *fvg = fc->varGroup;
+	Eigen::VectorXi abscissaParamMap(abscissa->rows); // nice if we could cache this
+	for (int rx=0; rx < abscissa->rows; ++rx) {
+		int got = fvg->lookupVar(abscissa->rownames[rx]);
+		if (got < 0) {
+			omxRaiseErrorf("mxEvaluateOnGrid: abscissa '%s' row %d, "
+				       "'%s' does not name a free parameter",
+				       abscissa->name(), 1+rx, abscissa->rownames[rx]);
+			return;
+		}
+		abscissaParamMap[rx] = got;
+		fc->profiledOut[got] = true;
+	}
+
+	omxState *os = result->currentState;
+	auto &apm = abscissaParamMap;
+	EigenMatrixAdaptor Eabscissa(abscissa);
+	for (int ax=0; ax < Eabscissa.cols(); ++ax) {
+		for (int px=0; px < apm.size(); ++px) {
+			int pnum = apm[px];
+			omxFreeVar* fv = fc->varGroup->vars[pnum];
+			fv->copyToState(os, Eabscissa(px, ax));
+			fv->markDirty(os);
+		}
+		omxRecompute(algebra, fc);
+		if (ax == 0) {
+			if (algebra->cols != 1) {
+				omxRaiseErrorf("mxEvaluateOnGrid: algebra '%s' returned %d columns instead of 1",
+					       algebra->name(), algebra->cols);
+				return;
+			}
+			omxResizeMatrix(result, algebra->rows, Eabscissa.cols());
+		}
+		EigenVectorAdaptor Ealgebra(algebra);
+		EigenMatrixAdaptor Eresult(result);
+		Eresult.col(ax) = Ealgebra;
+	}
+}

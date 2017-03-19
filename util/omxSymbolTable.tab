@@ -91,3 +91,4 @@
 89    "Cauchy CDF"  "pcauchy"  5  "omxElementPcauchy"
 90    "Row sums"    "rowSums"  1  "omxRowSums"
 91    "Column sums"    "colSums"  1  "omxColSums"
+92    "Evaluate on grid"	  "mxEvaluateOnGrid"	2	"evaluateOnGrid"
