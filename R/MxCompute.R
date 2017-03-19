@@ -1185,7 +1185,7 @@ mxComputeNelderMead <- function(
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	#eqConstraintMthd=c("soft","backtrack","GDsearch","l1p"),
-	eqConstraintMthd=c("soft","backtrack"),
+	eqConstraintMthd=c("soft","backtrack","l1p"),
 	backtrackCtrl=c(0.5,5)
 	){
 	garbageArguments <- list(...)

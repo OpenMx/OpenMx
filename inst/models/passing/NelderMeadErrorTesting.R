@@ -86,7 +86,7 @@ omxCheckError(
 )
 omxCheckError(
 	mxComputeNelderMead(eqConstraintMthd="foo"),
-	"'foo' should be one of 'soft' and 'backtrack'"
+	"'foo' should be one of 'soft', 'backtrack', and 'l1p'"
 )
 
 ##################################################
