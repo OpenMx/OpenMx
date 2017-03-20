@@ -133,7 +133,7 @@ omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=15)
 omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
 
 ciModel <- mxModel(thresholdModelWLSrun, mxCI("L"))
-omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for units 3")
+omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for units r'Wr")
 
 
 #------------------------------------------------------------------------------

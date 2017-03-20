@@ -101,7 +101,8 @@ static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
 	if (ff->units == FIT_UNITS_MINUS2LL) {
 		fc->ciobj->evalFit(ff, want, fc);
 	} else {
-		Rf_error("Confidence intervals are not supported for units %d", ff->units);
+		Rf_error("Confidence intervals are not supported for units %s",
+			 fitUnitsToName(ff->units));
 	}
 }
 
