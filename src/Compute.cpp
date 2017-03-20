@@ -2165,6 +2165,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			FitContext *fc1 = new FitContext(fc, fit1->varGroup);
 			int startIter = fc1->iterations;
 			fit1->compute(fc1);
+			fc1->wanted &= ~FF_COMPUTE_HESSIAN;  // discard garbage
 			mstepIter = fc1->iterations - startIter;
 			totalMstepIter += mstepIter;
 			mstepInform = fc1->getInform();
