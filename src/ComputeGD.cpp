@@ -549,7 +549,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		}
 	}
 	else{
-		if(fc->wanted & FF_COMPUTE_HESSIAN){
+		if(fc->wanted & FF_COMPUTE_HESSIAN && numParam == fc->numParam){
 			rf.hessOut.setZero(numParam,numParam);
 			Eigen::LLT< Eigen::MatrixXd > chol4WS(numParam);
 			fc->refreshDenseHess();
