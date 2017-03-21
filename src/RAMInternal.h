@@ -425,7 +425,6 @@ namespace RelationalRAMExpectation {
 	private:
 		class state &st;
 
-		void refreshModel(FitContext *fc);
 		void refreshUnitA(FitContext *fc, int px);
 		void invertAndFilterA();
 	public:
@@ -476,8 +475,7 @@ namespace RelationalRAMExpectation {
 		void filterFullMean();
 		void finalizeData();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
-		void computeCov1(FitContext *fc);
-		void computeCov2();
+		void computeCov(FitContext *fc);
 		void exportInternalState(MxRList &out, MxRList &dbg);
 		independentGroup &getParent();
 	};

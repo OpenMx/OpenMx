@@ -617,31 +617,6 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
-	void independentGroup::refreshModel(FitContext *fc)
-	{
-		independentGroup &par = getParent();
-		for (int ax=0; ax < clumpSize; ++ax) {
-			placement &pl = par.placements[ax];
-			addr &a1 = par.st.layout[ par.gMap[ax] ];
-			omxExpectation *expectation = a1.getModel(fc);
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
-			expectation->loadDefVars(a1.row);
-			omxRecompute(ram->A, fc);
-			omxRecompute(ram->S, fc);
-
-			refreshUnitA(fc, ax);
-
-			EigenMatrixAdaptor eS(ram->S);
-			for (int cx=0; cx < eS.cols(); ++cx) {
-				for (int rx=cx; rx < eS.rows(); ++rx) {
-					if (eS(rx,cx) != 0) {
-						fullS.coeffRef(pl.modelStart + rx, pl.modelStart + cx) = eS(rx, cx);
-					}
-				}
-			}
-		}
-	}
-
 	// 1st visitor
 	int state::flattenOneRow(omxExpectation *expectation, int frow, int &maxSize)
 	{
@@ -1682,17 +1657,34 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
-	void independentGroup::computeCov1(FitContext *fc)
+	void independentGroup::computeCov(FitContext *fc)
 	{
 		if (0 == getParent().dataVec.size()) return;
 
 		fullS.conservativeResize(clumpVars, clumpVars);
 
-		refreshModel(fc);
-	}
+		independentGroup &par = getParent();
+		for (int ax=0; ax < clumpSize; ++ax) {
+			placement &pl = par.placements[ax];
+			addr &a1 = par.st.layout[ par.gMap[ax] ];
+			omxExpectation *expectation = a1.getModel(fc);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
+			expectation->loadDefVars(a1.row);
+			omxRecompute(ram->A, fc);
+			omxRecompute(ram->S, fc);
 
-	void independentGroup::computeCov2()
-	{
+			refreshUnitA(fc, ax);
+
+			EigenMatrixAdaptor eS(ram->S);
+			for (int cx=0; cx < eS.cols(); ++cx) {
+				for (int rx=cx; rx < eS.rows(); ++rx) {
+					if (eS(rx,cx) != 0) {
+						fullS.coeffRef(pl.modelStart + rx, pl.modelStart + cx) = eS(rx, cx);
+					}
+				}
+			}
+		}
+
 		//{ Eigen::MatrixXd tmp = fullA; mxPrintMat("fullA", tmp); }
 		//{ Eigen::MatrixXd tmp = fullS; mxPrintMat("fullS", tmp); }
 
@@ -1715,8 +1707,7 @@ namespace RelationalRAMExpectation {
 	{
 		for (size_t gx=0; gx < group.size(); ++gx) {
 			independentGroup *ig = group[gx];
-			ig->computeCov1(fc);
-			ig->computeCov2();
+			ig->computeCov(fc);
 		}
 	}
 

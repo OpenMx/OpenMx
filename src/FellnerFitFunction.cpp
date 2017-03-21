@@ -127,8 +127,7 @@ namespace FellnerFitFunction {
 	{
 		if (0 == ig.getParent().dataVec.size()) return 0;
 
-		ig.computeCov1(fc);
-		ig.computeCov2();
+		ig.computeCov(fc);
 
 		/*
 		if (!ig.analyzedCov) {
