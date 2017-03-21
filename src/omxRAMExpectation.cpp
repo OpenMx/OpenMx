@@ -194,7 +194,7 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 			for (auto &qc : quadratic) {
 				Eigen::VectorXd z1(qc.numInput);
 				z1.setZero();
-				z1.head(qc.rank) = Eabscissa.head(qc.rank);  // segment TODO
+				z1.head(qc.rank) = Eabscissa.segment(qc.start, qc.rank);
 				Eigen::VectorXd meanAdj = qc.Ad * z1;
 				for (int lx=0, ax=0; lx < numLatents; ++lx) {
 					if (!qc.input[lx]) continue;
@@ -366,6 +366,7 @@ void omxRAMExpectation::init() {
 	numLatents = F->cols - F->rows;
 	isQuadraticDest.assign(numLatents, false);
 
+	int numQuadratic = 0;
 	ProtectedSEXP Rquadra(R_do_slot(rObj, Rf_install("quadratic")));
 	if (Rf_length(Rquadra)) {
 		if (!Rf_isInteger(Rquadra)) Rf_error("%s: quadratic must be an integer vector", oo->name);
@@ -377,26 +378,40 @@ void omxRAMExpectation::init() {
 			quadraticContext qc;
 			qc.dest = dest[jx];
 			isQuadraticDest[ varToLatentMap[qc.dest] ] = true;
-			//mxLog("dest = %s", F->colnames[qc.dest]);
+			qc.input.assign(numLatents, false);
 			qc.quadratic = currentState->getMatrixFromIndex(qnumber[jx]);
 			EigenMatrixAdaptor qu(qc.quadratic);
 			qc.rank = 0;
-			Eigen::VectorXd rowSums = qu.rowwise().sum(); // need to permute first? TODO
-			for (int sx=0; sx < rowSums.size(); ++sx) if (rowSums[sx]) qc.rank += 1;
+			for (int rx=0; rx < qu.rows(); ++rx) {
+				for (int cx=rx; cx < qu.cols(); ++cx) {
+					// assumption: entries are non-zero TODO
+					if (qu(rx,cx) == 0.0) continue;
+					qc.input[rx] = true;
+					qc.input[cx] = true;
+					qc.rank += 1;
+				}
+			}
+			qc.start = numQuadratic;
+			numQuadratic += qc.rank;
+			qc.numInput = std::accumulate(qc.input.begin(), qc.input.end(), 0);
+			qc.A.resize(qc.numInput, qc.numInput);
+			if (RAMexp->verbose >= 1) {
+				std::string buf;
+				buf += string_snprintf("quadratic[%d:%s] inputs=%d",
+						       jx, F->colnames[qc.dest], qc.numInput);
+				for (int ix=0; ix < numLatents; ++ix) {
+					if (!qc.input[ix]) continue;
+					buf += string_snprintf(" %s", F->colnames[latentToVarMap[ix]]);
+				}
+				buf += "\n";
+				std::string xtra = "";
+				buf += mxStringifyMatrix("omega", qu, xtra);
+				buf += "\n";
+				mxLogBig(buf);
+			}
 			quadratic.push_back(qc);
 		}
-		for (int jx=0; jx < Rf_length(Rquadra); ++jx) {
-			quadraticContext &qc = quadratic[jx];
-			qc.numInput = 0;
-			qc.input.assign(numLatents, false);
-			// search for nonzero entries TODO
-			for (int lx=0; lx < numLatents; ++lx) {
-				bool yes = !isQuadraticDest[lx];
-				qc.input[lx] = yes;
-				if (yes) qc.numInput += 1;
-			}
-			qc.A.resize(qc.numInput, qc.numInput);
-		}
+		// verify input and dest sets do not overlap TODO
 	}
 
 	abscissa = 0;
@@ -405,6 +420,10 @@ void omxRAMExpectation::init() {
 		if (Rf_length(Rabscissa) != 1) Rf_error("%s: abscissa is required for quadratic effects", oo->name);
 		if (!Rf_isInteger(Rabscissa)) Rf_error("%s: abscissa must be an integer vector", oo->name);
 		abscissa = currentState->getMatrixFromIndex(INTEGER(Rabscissa)[0]);
+		if (abscissa->rows != numQuadratic) {
+			Rf_error("%s: %d quadratic effects but abscissa has %d rows",
+				 oo->name, numQuadratic, abscissa->rows);
+		}
 	}
 
 	l = RAMexp->F->rows;

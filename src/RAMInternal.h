@@ -540,8 +540,9 @@ struct quadraticContext {
 	// need to reorder & shrink the quadratic to non-zero entries
 	omxMatrix *quadratic;
 	int dest;
-	int numInput;
-	int rank;
+	int numInput;     // known as 'n' in KM2000
+	int start;
+	int rank;         // known as 'k' in KM2000
 	std::vector<bool> input;
 	Eigen::MatrixXd A;   // t(chol(covariance of input variables))
 	Eigen::MatrixXd Ad;
