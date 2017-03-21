@@ -98,17 +98,24 @@ mxSE <- function(x, model, details=FALSE, ...){
 	freeparams <- omxGetParameters(model)
 	paramnames <- names(freeparams)
 	matrix(NA)
-	zoutMat <- mxEvalByName(x, model, compute=TRUE)
+	zoutMat <- try(mxEvalByName(x, model, compute=TRUE))
+	if(class(zoutMat) %in% "try-error"){
+		stop(paste0("I had a problem evaluating your expression. Check that mxEval works for it.\nRecall that elements of submodels are addressed as submodelName.objectName\nFor example, 'sub1.bob' refers to the object 'bob' in the submodel named 'sub1'."))
+	}
 	zoutVec <- sefun(x=freeparams, model=model, alg=x)
 	
-	if(model@output$infoDefinite){
-		# solve() will fail if Hessian is computationally singular;
-		# chol2inv() will still fail if Hessian is exactly singular.
-		ParamsCov <- 2*chol2inv(chol(model@output$hessian))
-		dimnames(ParamsCov) <- dimnames(model@output$hessian)
-	} else{
-		# An indefinite Hessian usually means some SEs will be NaN:
-		ParamsCov <- 2*solve(model@output$hessian)
+	if(length(model@output) > 0){
+		if(model@output$infoDefinite){
+			# solve() will fail if Hessian is computationally singular;
+			# chol2inv() will still fail if Hessian is exactly singular.
+			ParamsCov <- 2*chol2inv(chol(model@output$hessian))
+			dimnames(ParamsCov) <- dimnames(model@output$hessian)
+		} else{
+			# An indefinite Hessian usually means some SEs will be NaN:
+			ParamsCov <- 2*solve(model@output$hessian)
+		}
+	} else {
+		stop("Model does not have output.  I'm a doctor, not a bricklayer!\nWas this model run with mxRun?")
 	}
 	
 	covParam <- ParamsCov[paramnames,paramnames] # <-- submodel will usually not contain all free param.s
