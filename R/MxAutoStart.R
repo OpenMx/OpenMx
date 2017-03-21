@@ -116,7 +116,7 @@ autoStartDataHelper <- function(model, subname=model@name){
 		mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
 			acov=I, fullWeight=I, means=meanData)
 		mdata@observed <- covData
-	} else if(hasOrdinalData && !isCovData){
+	} else if(hasOrdinal && !isCovData){
 		mdata <- mxDataWLS(data, type="ULS", fullWeight=FALSE)
 	} else {
 		stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
