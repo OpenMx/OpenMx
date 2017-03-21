@@ -23,6 +23,7 @@
 ##' @details
 ##' This function automatically picks very good starting values for many models (RAM, LISREL, Normal), including multiple group versions of these.
 ##' It works for models with algebras. Models of continuous, ordinal, and joint ordinal-continous variables are also acceptable.
+##' It works for model with covariance or raw data.
 ##' However, it does not currently work for models with definition variables, state space models, and item factor analysis models.
 ##' 
 ##' The method used to obtain new starting values is quite simple. The user's model is changed to an unweighted least squares (ULS) model. The ULS model is estimated and its final point estimates are returned as the new starting values.
@@ -99,14 +100,26 @@ autoStartDataHelper <- function(model, subname=model@name){
 	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
 	useVars <- dimnames(exps$covariance)[[1]]
 	data <- model[[subname]]$data$observed[,useVars]
+	isCovData <- model[[subname]]$data$type %in% 'cov'
+	if(isCovData){
+		covData <- data[useVars,]
+		nrowData <- model[[subname]]$data$numObs
+		meanData <- model[[subname]]$data$means
+	} else {
+		covData <- cov(data, use='pair')
+		nrowData <- nrow(data)
+		meanData <- colMeans(data, na.rm=TRUE)
+	}
 	hasOrdinal <- any(sapply(data, is.ordered))
 	I <- diag(1, wsize)
 	if(!hasOrdinal){
-		mdata <- mxData(observed=I, type='acov', numObs=nrow(data), 
-			acov=I, fullWeight=I, means=colMeans(data, na.rm=TRUE))
-		mdata@observed <- cov(data, use='pair')
-	} else {
+		mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
+			acov=I, fullWeight=I, means=meanData)
+		mdata@observed <- covData
+	} else if(hasOrdinalData && !isCovData){
 		mdata <- mxDataWLS(data, type="ULS", fullWeight=FALSE)
+	} else {
+		stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
 	}
 	return(mdata)
 }
