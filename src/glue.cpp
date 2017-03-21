@@ -760,6 +760,8 @@ extern "C" {
 
 void R_init_OpenMx(DllInfo *info) {
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
+	R_useDynamicSymbols(info, FALSE);
+	R_forceSymbols(info, TRUE);
 
 	// There is no code that will change behavior whether openmp
 	// is set for nested or not. I'm just keeping this in case it
