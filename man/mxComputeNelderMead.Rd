@@ -28,8 +28,8 @@ mxComputeNelderMead(
 \arguments{
   \item{freeSet}{Character-string names of \link[=MxMatrix]{MxMatrices} containing free parameters.}
   \item{fitfunction}{Character-string name of the fitfunction; defaults to 'fitfunction'.}
-  \item{verbose}{Integer level of reporting printed to terminal at \link[mxRun]{runtime}; defaults to 0.}
-  \item{nudgeZeroStarts}{Should free parameters with start values of zero be "nudged" to 0.1 at \link[mxRun]{runtime}?  Defaults to the current global value of \link{mxOption} "Nudge zero starts".  May be a logical value, or one of character strings "Yes" or "No".}
+  \item{verbose}{Integer level of reporting printed to terminal at \link[=mxRun]{runtime}; defaults to 0.}
+  \item{nudgeZeroStarts}{Should free parameters with start values of zero be "nudged" to 0.1 at \link[=mxRun]{runtime}?  Defaults to the current global value of \link{mxOption} "Nudge zero starts".  May be a logical value, or one of character strings "Yes" or "No".}
   \item{maxIter}{Integer maximum number of iterations.  Value of \code{NULL} is accepted, in which case the value used at \link[=mxRun]{runtime} will be 10 times the number of iterations specified by the effective value of \link{mxOption} "Major iterations".}
   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
   \item{alpha}{Numeric reflection coefficient.  Must be positive.  Defaults to 1.0.}
@@ -39,34 +39,53 @@ mxComputeNelderMead(
   \item{bignum}{Numeric value with which the fitfunction value is to be replaced if the fit is non-finite or is evaluated at infeasible parameter values.  Defaults to 1e35.}
   \item{iniSimplexType}{Character string naming the method by which to construct the initial simplex from the free-parameter start values.  Defaults to "regular".}
   \item{iniSimplexEdge}{Numeric edge-length of the initial simplex.  Defaults to 1.0.}
-  \item{iniSimplexMat}{Optional numeric matrix providing the vertices of the initial simplex.  The matrix must have as many columns as there are free parameters in the \link{MxModel}.  The matrix's number of rows must be no less than the number of free parameters minus the number of degrees-of-freedom gained from equality \link[=mxConstraint]{constraints}, if any.  If a non-\code{NA} value is provided, argument \code{iniSimplexEdge} is ignored, and argument \code{iniSimplexType} is only used in the case of a restart.}
+  \item{iniSimplexMat}{Optional numeric matrix providing the vertices of the initial simplex.  The matrix must have as many columns as there are free parameters in the \link{MxModel}.  The matrix's number of rows must be no less than the number of free parameters minus the number of degrees-of-freedom gained from equality \link[=mxConstraint]{MxConstraints}, if any.  If a non-\code{NULL} value is provided, argument \code{iniSimplexEdge} is ignored, and argument \code{iniSimplexType} is only used in the case of a restart.}
   \item{greedyMinimize}{Logical; should the optimizer use "greedy minimization?"  Defaults to \code{FALSE}.  See below for details.}
   \item{altContraction}{Logical; should the optimizer use an "alternate contraction" transformation?  Defaults to \code{FALSE}.  See below for details.}
   \item{degenLimit}{Numeric "degeneracy limit;" defaults to 0.  If positive, the simplex will be restarted if the measure of the angle between any two of its edges is within 0 or pi by less than \code{degenLimit}.}
   \item{stagnCtrl}{"Stagnation control;" integer vector of length 2; defaults to \code{c(-1L,-1L)}.  See below for details.}
   \item{validationRestart}{Logical; defaults to TRUE.}
-  \item{xTolProx}{Numeric "domain-convergence" criterion; defaults to 1e-4.  See below for details.}
-  \item{fTolProx}{Numeric "range-convergence" criterion; defaults to 1e-4.  See below for details.}
+  \item{xTolProx}{Numeric "domain-convergence" criterion; defaults to 1e-8.  See below for details.}
+  \item{fTolProx}{Numeric "range-convergence" criterion; defaults to 1e-8.  See below for details.}
   \item{doPseudoHessian}{Logical; defaults to \code{FALSE}.}
   \item{ineqConstraintMthd}{"Inequality constraint method;" character string. Defaults to "soft".}
   \item{eqConstraintMthd}{"Equality constraint method;" character string. Defaults to "soft".}
   \item{backtrackCtrl}{Numeric vector of length two.  See below for details.}
 }
 \details{
-An iteration of the original (1965) Nelder-Mead algorithm proceeds as follows (only displayed in the PDF format of this documentation):
-\if{latex}{
-	%%TODO
-}
+%TODO: embellish with latex
 
+The state of a Nelder-Mead optimization problem is represented by a simplex (polytope) of \eqn{n+1} vertices in the space of the free parameters, where \eqn{n} is the number of free parameters minus the number of degrees-of-freedom gained from equality \link[=mxConstraint]{MxConstraints}.  An iteration of the algorithm first sorts the \eqn{n+1} vertices by their corresponding fitfunction values (i.e., the values of the fitfunction when evaluated at each vertex), in ascending order (i.e., from "best" fit to "worst" fit).  Then, the "subcentroid," which is the centroid of the "best" \eqn{n} vertices, is calculated.  Then, the algorithm attempts to improve upon the worst fit by transforming the simplex; see \href{http://www.scholarpedia.org/article/Nelder-Mead_algorithm}{Singer & Nelder (2009)} for details.
 
-%%other details TODO
+Argument \code{iniSimplexType} dictates how the initial simplex will be constructed from the start values if argument \code{iniSimplexMat} is \code{NULL}, and how the simplex will be re-initialized in the case of a restart.  In all four cases, the vector of start values constitutes the "starting vertex" of the inital simplex.  If \code{iniSimplexType="regular"}, the initial simplex is merely a regular simplex with edge length equal to \code{iniSimplexEdge}.  A \code{"right"} simplex is constructed by incrementing each free parameter by \code{iniSimplexEdge} from its starting value; thus, all the edges that intersect at the starting vertex do so at right angles.  A \code{"smartRight"} simplex is constructed similarly, except that each free parameter is both incremented \emph{and} decremented by \code{iniSimplexEdge}, and of those two points the one with the smaller fitfunction value is retained as a vertex.  A \code{"random"} simplex is constructed by randomly perturbing the start values, in a manner similar to the default for \code{\link{mxTryHard}()}, to generate the coordinates of the other vertices.  The user is advised that bounds on the free parameters may keep the initial simplex from having the requested regularity or edge-length, and that \code{iniSimplexType} is at best a \emph{suggestion} in the presence of equality \link[=mxConstraint]{MxConstraints}.
 
+Note that if argument \code{iniSimplexMat} has nonzero length, the actual start values of the MxModel's free parameters are not used as a vertex of the initial simplex (unless one of the rows of \code{iniSimplexMat} happens to contain those start values).
+
+If the simplex is restarted, a new simplex is constructed per argument \code{iniSimplexType}, with edge length equal to the distance between the current best and second-best vertices, and with the current best vertex used as a starting vertex.
+
+If \code{greedyMinimize=FALSE}, "greedy expansion" (Singer & Singer, 2004) is used: if the expansion point and reflection point both have smaller fitfunction values than the best vertex, the expansion point is accepted.  If \code{greedyMinimize=TRUE}, "greedy minimization" (Singer & Singer, 2004) is used: if the expansion point and the reflection point both have smaller fitfunction values than the best vertex, the better of the two new points is accepted.
+
+If argument \code{altContraction=TRUE}, the "modified contraction step" of Gill et al. (1982, Chapter 4) is used, and the candidate point is contracted toward the best vertex instead of toward the subcentroid.
+
+If positive, the first element of argument \code{stagnCtrl} sets a threshold for the number of successive iterations in which the best vertex of the simplex does not change, after which the algorithm is said to be "stagnant" (in a sense similar to that of Kelley, 1999).  To attempt to remedy the stagnation, the simplex is restarted.  If positive, the second element of argument \code{stagnCtrl} sets threshold for the number of restarts conducted, beyond which stagnation no longer triggers a restart.  The rationale for the second element is that when the optimizer is close to convergence, the best vertex may not change, but restarting may be counterproductive, and in any event requires many function evaluations.
+
+If argument \code{validationRestart=TRUE}, then when the optimizer has successfully converged, it will restart the simplex and attempt to improve upon the tentative solution it already found.  This validation restart (Gill et al., 1982, Chapter 4) always re-initializes the simplex as a regular simplex, with edge-length equal to the distance between the best and worst vertices of the tentative solution.  Optimization proceeds until convergence to a solution with a better fit value, or \eqn{2n} iterations have elapsed.
+
+The Nelder-Mead optimizer is considered to have successfully converged if (1) the largest \emph{l}-infinity norm of the vector-differences between the best vertex and the other vertices is less than argument \code{xTolProx}, or (2) if the largest absolute difference in fit value between the best vertex and the other vertices is less than \code{fTolProx}.
+
+If argument \code{doPseudoHessian=TRUE} and there are no equality \link[=mxConstraint]{MxConstraints}, OpenMx will attempt to calculate the "pseudo-Hessian" or "curvature" matrix as described in the appendix to Nelder & Mead (1965).  If successful, this matrix will be stored in the 'output' slot of the post-\link[=mxRun]{run} MxComputeNelderMead object.  Although crude, its inverse can be used as an estimate of the repeated-sampling covariance matrix of the free parameters when the usual finite-differences Hessian is unreliable.
+
+OpenMx's implementation of Nelder-Mead can handle nonlinear inequality \link[=mxConstraint]{MxConstraints} reasonably well.  Its default method for doing so, with argument \code{ineqConstraintMthd="soft"}, imposes a "soft" feasibility constraint by assigning a fitfunction value of \code{bignum} to points that violate the constraints by more than \link{mxOption} 'Feasibility tolerance'.  Alternately, with argument \code{ineqConstraintMthd="eqMthd"}, inequality \link[=mxConstraint]{MxConstraints} can be handled by the same method provided to argument \code{eqConstraintMthd}, whether or not equality \link[=mxConstraint]{MxConstraints} are present.
+
+OpenMx's implementation of Nelder-Mead respects equality \link[=mxConstraint]{MxConstraints}, but as of this writing handles them rather poorly,  unless \emph{all} vertices of the initial simplex are feasible.  Its default method for equalities is the same as that for inequalities, i.e. a "soft" feasibility constraint.  If argument \code{eqConstraintMthd="backtrack"}, then the optimizer attempts to backtrack from an infeasible point to a feasible point in a manner similar to that of Ghiasi et al. (2008), except that it used with \emph{all} new points, and not just those encountered via reflection, expansion and contraction.  In this case, the displacement from the prior point to the candidate point is reduced by the proportion provided as the first element of argument \code{backtrackCtrl}, and thus a new candidate point is considered.  This process is repeated until feasibility of the candidate point is restored, or the number of attempts exceeds the second element of argument \code{backtrackCtrl}.  If argument \code{eqConstraintMthd="l1p"}, Nelder-Mead is used as part of an \eqn{l_1}-penalty algorithm, which as of this writing is experimental and subject to change in future releases of OpenMx.
 }
 \value{
 Returns an object of class '\link{MxComputeNelderMead}'.
 }
 
 \references{
+Ghiasi, H., Pasini, D., & Lessard, L.  (2008).  Constrained globalized Nelder-Mead method for simultaneous structural and manufacturing optimization of a composite bracket.  \emph{Journal of Composite Materials, 42}(7), p. 717-736.  doi: 10.1177/0021998307088592
+
 Gill, P. E., Murray, W., & Wright, M. H.  (1982).  \emph{Practical Optimization}.  Bingley, UK: Emerald Group Publishing Ltd.
 
 Kelley, C. T.  (1999).  Detection and remediation of stagnation in the Nelder-Mead algorithm using a sufficient decrease condition.  \emph{SIAM Journal of Optimization 10}(1), p. 43-55.
