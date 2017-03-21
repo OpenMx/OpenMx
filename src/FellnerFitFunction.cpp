@@ -60,6 +60,13 @@ namespace FellnerFitFunction {
 			Rf_error("Cannot profile out parameters when problem is split into independent groups");
 		}
 
+		for (auto *exRaw : rram.allEx) {
+			auto *ex = (omxRAMExpectation*)exRaw;
+			if (ex->quadratic.size()) {
+				Rf_error("%s: cannot both profile out parameters and have quadratic effects", ex->name);
+			}
+		}
+
 		RelationalRAMExpectation::independentGroup &ig = *rram.group[0];
 		fc->profiledOut.assign(fc->numParam, false);
 
@@ -182,20 +189,28 @@ namespace FellnerFitFunction {
 				parent = (state*) pfitMat->fitFunction;
 			}
 
-			//mxLog("%s: compute fit", oo->name());
+			// The convoluted control flow is due to the
+			// design to accomodate two similar but
+			// different sets of math.  If we do
+			// lmer-style REML then we cannot compute the
+			// mean until we correct the
+			// covariance. However, if we have quadratic
+			// effects then we cannot compute the
+			// covariance until we have the mean.
 
 			SimpCholesky< Eigen::MatrixXd > covDecomp;
 			bool haveMean = false;
 			double lp = 0.0;
 			for (size_t gx=0; gx < rram.group.size(); ++gx) {
 				RelationalRAMExpectation::independentGroup &ig = *rram.group[gx];
+				bool haveCov = false;
 				double lp1 = 0.0;
 
-				if (computeCov(*rram.group[gx], fc, covDecomp)) {
-					throw std::runtime_error("Cholesky decomposition failed");
-				}
-
 				if (rram.group.size() == 1 && parent->numProfiledOut) {
+					if (computeCov(*rram.group[gx], fc, covDecomp)) {
+						throw std::runtime_error("Cholesky decomposition failed");
+					} else { haveCov = true; }
+
 					double remlAdj = 0.0;
 					const Eigen::MatrixXd &iV = covDecomp.getInverse();
 					Eigen::MatrixXd constCov =
@@ -227,6 +242,11 @@ namespace FellnerFitFunction {
 					// delay until after remlAdj done
 					omxExpectationCompute(fc, expectation, "mean", "flat");
 					haveMean = true;
+				}
+				if (!haveCov) {
+					if (computeCov(*rram.group[gx], fc, covDecomp)) {
+						throw std::runtime_error("Cholesky decomposition failed");
+					}
 				}
 
 				if (0 == ig.getParent().dataVec.size()) continue;

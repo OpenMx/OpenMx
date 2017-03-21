@@ -545,6 +545,7 @@ struct quadraticContext {
 	Eigen::MatrixXd A;   // t(chol(covariance of input variables))
 	Eigen::MatrixXd Ad;
 	Eigen::RowVectorXd qShift;
+	Eigen::MatrixXd newCov;
 };
 
 typedef std::set< std::pair< omxExpectation*, int> > dvScoreboardSetType;
@@ -568,6 +569,8 @@ class omxRAMExpectation : public omxExpectation {
 
 	omxMatrix *getZ(FitContext *fc);
 	void CalculateRAMCovarianceAndMeans(FitContext *fc);
+	void recomputeS(FitContext *fc);
+	void adjustMeanForQuadratics(FitContext *fc, Eigen::Ref<Eigen::VectorXd> M2);
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;

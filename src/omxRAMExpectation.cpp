@@ -141,15 +141,10 @@ omxMatrix *omxRAMExpectation::getZ(FitContext *fc)
  * omxMatrix *Y, *X, *Ax	: Space for computation. NxM, NxM, MxM.  On exit, populated.
  */
 
-void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
+void omxRAMExpectation::recomputeS(FitContext *fc)
 {
-	if (F->rows == 0) return;
-
-	omxRecompute(A, fc);
 	omxRecompute(S, fc);
-	omxRecompute(F, fc);
-	if (M) omxRecompute(M, fc);
-	    
+
 	if (Sversion != omxGetMatrixVersion(S)) {
 		for (auto &qc : quadratic) {
 			EigenMatrixAdaptor eS(S);
@@ -162,7 +157,13 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 			qc.Ad = chol.vectorD().array().sqrt().matrix().asDiagonal();
 			qc.Ad = chol.matrixL() * qc.Ad;
 			qc.Ad = chol.transpositionsP().transpose() * qc.Ad;
-			//mxPrintMat("PLD", qc.Ad);
+			//mxPrintMat("Ad", qc.Ad);
+
+			qc.newCov.resize(qc.numInput, qc.numInput);
+			qc.newCov.setZero();
+			qc.newCov.bottomRightCorner(qc.rank, qc.rank) = qc.Ad.bottomRightCorner(qc.rank, qc.rank);
+			qc.newCov = qc.newCov * qc.newCov.transpose();
+			//mxPrintMat("newCov", qc.newCov);
 		}
 		Sversion = omxGetMatrixVersion(S);
 	}
@@ -170,6 +171,42 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	for (auto &qc : quadratic) {
 		omxRecompute(qc.quadratic, fc);
 	}
+}
+
+void omxRAMExpectation::adjustMeanForQuadratics(FitContext *fc, Eigen::Ref<Eigen::VectorXd> M2)
+{
+	omxRecompute(abscissa, fc);
+	EigenVectorAdaptor Eabscissa(abscissa);
+	for (auto &qc : quadratic) {
+		Eigen::VectorXd z1(qc.numInput);
+		z1.setZero();
+		z1.head(qc.rank) = Eabscissa.segment(qc.start, qc.rank);
+		Eigen::VectorXd meanAdj = qc.Ad * z1;
+		for (int lx=0, ax=0; lx < numLatents; ++lx) {
+			if (!qc.input[lx]) continue;
+			meanAdj[ax++] += M2[ latentToVarMap[lx] ];
+		}
+		EigenMatrixAdaptor Equad(qc.quadratic);
+		Eigen::MatrixXd qCoef;
+		subsetCovariance(Equad, [&](int xx){ return qc.input[xx]; }, qc.numInput, qCoef);
+		qc.qShift = meanAdj.transpose() * qCoef;   // what if no means model? TODO
+		//mxPrintMat("qShift", qc.qShift);
+		M2[ qc.dest ] += qc.qShift * meanAdj;
+		for (int lx=0, ax=0; lx < numLatents; ++lx) {
+			if (!qc.input[lx]) continue;
+			M2[ latentToVarMap[lx] ] = meanAdj[ax++];
+		}
+	}
+}
+
+void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
+{
+	if (F->rows == 0) return;
+
+	omxRecompute(A, fc);
+	if (M) omxRecompute(M, fc);
+
+	recomputeS(fc);
 
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
@@ -189,28 +226,11 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	if (means) {
 		EigenVectorAdaptor Emeans(means);
 		EigenVectorAdaptor eM(M);
-		if (abscissa) {
+		if (quadratic.size()) {
+			// We don't want to modify Emeans inplace because that is the
+			// mean vector of record.
 			Eigen::VectorXd M2 = eM;
-			EigenVectorAdaptor Eabscissa(abscissa);
-			for (auto &qc : quadratic) {
-				Eigen::VectorXd z1(qc.numInput);
-				z1.setZero();
-				z1.head(qc.rank) = Eabscissa.segment(qc.start, qc.rank);
-				Eigen::VectorXd meanAdj = qc.Ad * z1;
-				for (int lx=0, ax=0; lx < numLatents; ++lx) {
-					if (!qc.input[lx]) continue;
-					meanAdj[ax++] += M2[ latentToVarMap[lx] ];
-				}
-				EigenMatrixAdaptor Equad(qc.quadratic);
-				Eigen::MatrixXd qCoef;
-				subsetCovariance(Equad, [&](int xx){ return qc.input[xx]; }, qc.numInput, qCoef);
-				qc.qShift = meanAdj.transpose() * qCoef;   // what if no means model? TODO
-				M2[ qc.dest ] += qc.qShift * meanAdj;
-				for (int lx=0, ax=0; lx < numLatents; ++lx) {
-					if (!qc.input[lx]) continue;
-					M2[ latentToVarMap[lx] ] = meanAdj[ax++];
-				}
-			}
+			adjustMeanForQuadratics(fc, M2);
 			Emeans.derived().noalias() = eY * M2;
 		} else {
 			Emeans.derived().noalias() = eY * eM;
@@ -246,14 +266,10 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 
 		Eigen::MatrixXd adjS = eS;
 		for (auto &qc : quadratic) {
-			Eigen::MatrixXd icov(qc.numInput, qc.numInput);
-			icov.setZero();
-			icov.bottomRightCorner(qc.rank, qc.rank) = qc.Ad.bottomRightCorner(qc.rank, qc.rank);
-			icov = icov * icov.transpose();
 			subsetCovarianceStore(adjS, [&](int xx) {
 					int lx = varToLatentMap[xx];
 					return lx >= 0 && qc.input[lx];
-				}, icov);
+				}, qc.newCov);
 		}
 		EigenMatrixAdaptor Ecov(cov);
 		Ecov.derived().noalias() = eY * adjS.selfadjointView<Eigen::Lower>() * eY.transpose();
@@ -599,6 +615,15 @@ namespace RelationalRAMExpectation {
 					asymT.fullA.coeffRef(pl.modelStart + cx, pl.modelStart + rx) =
 						asymT.getSign() * val;
 				}
+			}
+		}
+
+		for (auto qc : ram->quadratic) {
+			for (int lx=0, ax=0; lx < ram->numLatents; ++lx) {
+				if (!qc.input[lx]) continue;
+				asymT.fullA.coeffRef(pl.modelStart + ram->latentToVarMap[lx],
+						     pl.modelStart + qc.dest) += qc.qShift[ax];
+				ax += 1;
 			}
 		}
 
@@ -1681,16 +1706,30 @@ namespace RelationalRAMExpectation {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
-			omxRecompute(ram->S, fc);
+			ram->recomputeS(fc);
 
 			refreshUnitA(fc, ax);
 
+			// fill lower triangle
 			EigenMatrixAdaptor eS(ram->S);
 			for (int cx=0; cx < eS.cols(); ++cx) {
 				for (int rx=cx; rx < eS.rows(); ++rx) {
 					if (eS(rx,cx) != 0) {
 						fullS.coeffRef(pl.modelStart + rx, pl.modelStart + cx) = eS(rx, cx);
 					}
+				}
+			}
+			// factor out into variant of subsetCovarianceStore TODO
+			for (auto &qc : ram->quadratic) {
+				for (int cx=0, ci=0; cx < ram->numLatents; ++cx) {
+					if (!qc.input[cx]) continue;
+					for (int rx=cx, ri=0; rx < ram->numLatents; ++rx) {
+						if (!qc.input[rx]) continue;
+						fullS.coeffRef(pl.modelStart + ram->latentToVarMap[rx],
+							       pl.modelStart + ram->latentToVarMap[cx]) = qc.newCov(ri,ci);
+						ri += 1;
+					}
+					ci += 1;
 				}
 			}
 		}
@@ -1779,6 +1818,10 @@ namespace RelationalRAMExpectation {
 			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->A, fc);
 			EigenMatrixAdaptor eZ(ram->getZ(fc));
+			if (ram->quadratic.size()) {
+				ram->recomputeS(fc);
+				ram->adjustMeanForQuadratics(fc, tig1.fullMean.segment(a1Start, a1.numVars()));
+			}
 			tig1.fullMean.segment(a1Start, a1.numVars()) =
 				eZ * tig1.fullMean.segment(a1Start, a1.numVars());
 		}
