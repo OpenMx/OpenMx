@@ -141,12 +141,13 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 	gwrContext([&](double *myPars, int thrId)->double{
 			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
 			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+			// Only 1 parameter is different so we could
+			// update only that parameter instead of all
+			// of them.
 			copyFromOptimizer(myPars, fc2);
 			int want = FF_COMPUTE_FIT;
 			ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
 			double fit = fc2->fit;
-			// Really should require the same rows, not just the same
-			// number of rows.
 			if (fc2->outsideFeasibleSet()) {
 				fit = nan("infeasible");
 			}
