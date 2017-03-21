@@ -97,10 +97,6 @@ Singer, S., & Nelder, J.  (2009).  Nelder-Mead algorithm.  \emph{Scholarpedia, 4
 Singer, S., & Singer, S.  (2004).  Efficient implementation of the Nelder-Mead search algorithm.  \emph{Applied Numerical Analysis & Computational Mathematics Journal, 1}(2), p. 524-534.  doi: 10.1002/anac.200410015
 }
 
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}
-
 \examples{
 foo <- mxComputeNelderMead()
 str(foo)
