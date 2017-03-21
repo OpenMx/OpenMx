@@ -74,6 +74,15 @@ omxCheckCloseEnough(cor(cmp[,-c(1:2)]), matrix(1, 3, 3), 1e-6)
 cbind(AutoTime=stop-start, RunFromAutoTime=summary(m1sr)$wallTime, RunFromUserTime=summary(m1r)$wallTime)
 
 
+#------------------------------------------------------------------------------
+# Test for covariance data
+
+m2 <- m1
+m2$data <- mxData(cov(demoOneFactor), type='cov',
+	numObs=nrow(demoOneFactor), means=colMeans(demoOneFactor))
+m2s <- mxAutoStart(m2)
+
+omxCheckCloseEnough(coef(m1s), coef(m2s), 1e-6)
 
 
 #------------------------------------------------------------------------------
