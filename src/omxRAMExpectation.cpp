@@ -18,6 +18,7 @@
 #include "omxFitFunction.h"
 #include "RAMInternal.h"
 #include "Compute.h"
+#include <boost/dynamic_bitset.hpp>
 //#include <Eigen/LU>
 #include "EnableWarnings.h"
 
@@ -364,7 +365,9 @@ void omxRAMExpectation::init() {
 	//mxPrintMat("vtl", vtl);
 
 	numLatents = F->cols - F->rows;
-	isQuadraticDest.assign(numLatents, false);
+	using boost::dynamic_bitset;
+	dynamic_bitset<> isQuadraticDest(numLatents);
+	dynamic_bitset<> isQuadraticInput(numLatents);
 
 	int numQuadratic = 0;
 	ProtectedSEXP Rquadra(R_do_slot(rObj, Rf_install("quadratic")));
@@ -388,6 +391,8 @@ void omxRAMExpectation::init() {
 					if (qu(rx,cx) == 0.0) continue;
 					qc.input[rx] = true;
 					qc.input[cx] = true;
+					isQuadraticInput[rx] = true;
+					isQuadraticInput[cx] = true;
 					qc.rank += 1;
 				}
 			}
@@ -411,7 +416,12 @@ void omxRAMExpectation::init() {
 			}
 			quadratic.push_back(qc);
 		}
-		// verify input and dest sets do not overlap TODO
+		auto badLatent = isQuadraticInput & isQuadraticDest;
+		auto bx = badLatent.find_first();
+		if (bx != badLatent.npos) {
+			omxRaiseErrorf("%s: latent variable '%s' is both an input to and receiver of an interaction",
+				       oo->name, F->colnames[latentToVarMap[bx]]);
+		}
 	}
 
 	abscissa = 0;

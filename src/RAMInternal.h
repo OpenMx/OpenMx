@@ -585,7 +585,6 @@ class omxRAMExpectation : public omxExpectation {
 	int lwork;
 	int numLatents;
 
-	std::vector<bool> isQuadraticDest;
 	std::vector< quadraticContext > quadratic;
 	omxMatrix *abscissa;
 
