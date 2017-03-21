@@ -536,6 +536,7 @@ kalmanBackendScoreHelper <- function(model, data=NA){
 		mxFitFunctionML(rowDiagnostics=TRUE))
 	run <- mxRun(model, silent=TRUE)
 	re <- run@expectation
+	fitfunction <- NULL
 	L <- c(1, attr(mxEval(fitfunction, run), 'likelihoods'))
 	sp <- vech2array(re@SPredicted)
 	sp[,,1] <- NA
