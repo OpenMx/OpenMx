@@ -53,3 +53,5 @@ omxCheckCloseEnough(
 	1e-6
 )
 
+omxCheckCloseEnough(mxSE(sigma^2, sdrun), mxSE(sigma2, varrun), 1e-6)
+
