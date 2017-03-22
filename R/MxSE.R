@@ -67,7 +67,7 @@
 ##' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500)
 ##' )
 ##' m1 = mxRun(m1)
-##' mxSE('lambda5', model = m1)
+##' mxSE(lambda5, model = m1)
 ##' mxSE(lambda1^2, model = m1)
 mxSE <- function(x, model, details=FALSE, ...){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
