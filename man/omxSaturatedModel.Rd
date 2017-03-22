@@ -20,7 +20,7 @@
 \title{Create Reference (Saturated and Independence) Models}
 
 \description{
-   This function creates and optionally runs saturated and independence (null) models of a base model or data set for use with \link{mxSummary} to obtain more fit indices.
+   This function creates and, optionally, runs saturated and independence (null) models of a base model or data set for use with \link{mxSummary} to enable fit indices that depend on these models.
 }
 
 
@@ -30,19 +30,19 @@ mxRefModels(x, run=FALSE)
 
 \arguments{
    \item{x}{A MxModel object, data frame, or matrix.}
-   \item{run}{logical. If TRUE runs the models before returning; otherwise returns built models without running.}
+   \item{run}{logical. If TRUE, runs the models before returning; otherwise returns built models without running.}
 }
 
 \details{
-For typical structural equation models the saturated model is the free-est possible model.  All covariances and, when possilbe, all means are estimated.  In the case of ordinal data, the ordinal means are fixed to zero and the thresholds are estimated.  When the ordinal data are binary, those variances are also constrained to one.  This is the free-est possible model, only constrained for model identification.  The saturated model is used to create the RMSEA, and Chi-squared fit indices.
+For typical structural equation models the saturated model is the free-est possible model.  Not only all variances (and, when possible, all means) are estimated, but also all covariances.  In the case of ordinal data, the ordinal means are fixed to zero and the thresholds are estimated.  For binary variables, those variances are also constrained to one.  This is the free-est possible model that is identified.  The saturated model is used in calculating fit statistics such as the RMSEA, and Chi-squared fit indices.
 
-The independence model, sometimes called the null model, is a model of each variable being completely independent of every other variable.  As such, all the variances and, when possible, all means are estimated.  However, covariances are set to zero.  Ordinal variables are handled the same for the independence and saturated models.  The independence model is used, along with the saturated model, to create CFI and TLI fit indices.
+The independence model, sometimes called the null model, is a model in which each variable is treated as being completely independent of every other variable.  As such, all the variances and, when possible, all means are estimated.  However, covariances are set to zero.  Ordinal variables are handled the same for the independence and saturated models.  The independence model is used, along with the saturated model, to create CFI and TLI fit indices.
 
 The saturated and independence models could be used to create further fit indices.  However, OpenMx does not recommend using GFI, AGFI, NFI (aka Bentler-Bonett), or SRMR.  The page for \code{\link{mxSummary}} has information about why.
 
-When the \link{mxFitFunctionMultigroup} fit function is used, \code{mxRefModels} creates the appropriate multigroup saturated and independence models.  Saturated and independence models are created separately for each group.  Each group has its own saturated and independence model.  The multigroup saturated model is a multigroup model where each group has its own saturated model, and similarly for the independence model.
+When the \link{mxFitFunctionMultigroup} fit function is used, \code{mxRefModels} creates the appropriate multi-group saturated and independence models.  Saturated and independence models are created separately for each group.  Each group has its own saturated and independence model.  The multi-group saturated model is a multi-group model where each group has its own saturated model, and similarly for the independence model.
 
-One potentially important limitation of the \code{mxRefModels} function is for behavioral genetics models.  If variables 'x', 'y', and 'z' are measured on twins 1 and 2 creating the modeled variables 'x1', 'y1', 'z1', 'x2', 'y2', 'z2', then this function may not create the intended saturated or independence models.  In particular, the means of 'x1' and 'x2' are estimated separately.  Similarly, the covariance of 'x1' with 'y1' and 'x2' with 'y2' are allowed be be distinct: \eqn{cov(x1, y1) != cov{x2, y2}}.  Moreover, the cross-twin covariances are estimated: e.g. \eqn{cov(x1, y2) != 0}.
+One potentially important limitation of the \code{mxRefModels} function is for behavior-genetic models.  If variables 'x', 'y', and 'z' are measured on twins 1 and 2 creating the modeled variables 'x1', 'y1', 'z1', 'x2', 'y2', 'z2', then this function may not create the intended saturated or independence models.  In particular, the means of 'x1' and 'x2' are estimated separately.  Similarly, the covariance of 'x1' with 'y1' and 'x2' with 'y2' are allowed be be distinct: \eqn{cov(x1, y1) != cov{x2, y2}}.  Moreover, the cross-twin covariances are estimated: e.g. \eqn{cov(x1, y2) != 0}.
 
 Another potential misuse of this function is for models with definition variables.  If definition variables are used, the saturated and independence model may not be correct because they do not account for the definition variables.
 
@@ -81,16 +81,33 @@ require(OpenMx)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
-factorModel <- mxModel("One Factor", 
-                       type="RAM",
-                       manifestVars=manifests, 
-                       latentVars=latents,
-                       mxPath(from=latents, to=manifests),
-                       mxPath(from=manifests, arrows=2),
-                       mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
-                       mxData(observed=cov(demoOneFactor), type="cov", numObs=500))
-summary(factorRun <- mxRun(factorModel))
+factorModel <- mxModel("OneFactor", type = "RAM",
+    manifestVars = manifests, latentVars = latents,
+    mxPath(from = latents, to=manifests, values = diag(var(demoOneFactor))*.2),
+    mxPath(from = manifests, arrows = 2, values = diag(var(demoOneFactor))*.8),
+    mxPath(from = latents, arrows = 2, free = FALSE, values = 1),
+    mxData(cov(demoOneFactor), type = "cov", numObs = 500)
+)
+factorRun <- mxRun(factorModel)
 factorSat <- mxRefModels(factorRun, run=TRUE)
+summary(factorRun)
 summary(factorRun, refModels=factorSat)
+
+# A raw-data example where using mxRefModels adds fit indices
+\dontrun{
+m1 <- mxModel("OneFactor", type = "RAM",
+    manifestVars = manifests, latentVars = latents,
+    mxPath(latents, to=manifests, values = diag(var(demoOneFactor))*.2),
+    mxPath(manifests, arrows = 2, values = diag(var(demoOneFactor))*.8),
+    mxPath(latents, arrows = 2, free = FALSE, values = 1),
+    mxPath("one", to = latents, free = FALSE, values = 0),
+    mxPath("one", to = manifests, values = 0),
+    mxData(demoOneFactor, type = "raw")
+)
+m1 <- mxRun(m1)
+summary(m1) # CFI, TLI, RMSEA missing
+summary(m1, refModels=mxRefModels(m1, run = TRUE))
+}
+
 }
 
