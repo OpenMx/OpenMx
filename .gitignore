@@ -122,6 +122,7 @@ man/MxBaseFitFunction-class.Rd
 man/MxBaseNamed-class.Rd
 man/MxBaseObjectiveMetaData-class.Rd
 man/MxCharOrList-class.Rd
+man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
@@ -173,7 +174,6 @@ man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
 man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
-man/omxNormalQuantiles.Rd
 man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
