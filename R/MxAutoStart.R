@@ -100,44 +100,27 @@ autoStartDataHelper <- function(model, subname=model@name){
 	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
 	useVars <- dimnames(exps$covariance)[[1]]
 	data <- model[[subname]]$data$observed[,useVars]
+	hasOrdinal <- any(sapply(data, is.ordered))
 	isCovData <- model[[subname]]$data$type %in% 'cov'
+	I <- diag(1, wsize)
 	if(isCovData){
+		if (any(hasOrdinal)) {
+			stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
+		}
 		covData <- data[useVars,]
 		nrowData <- model[[subname]]$data$numObs
 		meanData <- model[[subname]]$data$means
 	} else {
-		covData <- cov(data, use='pair')
-		nrowData <- nrow(data)
-		meanData <- colMeans(data, na.rm=TRUE)
+		if(!hasOrdinal){
+			covData <- cov(data, use='pair')
+			nrowData <- nrow(data)
+			meanData <- colMeans(data, na.rm=TRUE)
+		} else {
+			return(mxDataWLS(data, type="ULS", fullWeight=FALSE))
+		}
 	}
-	hasOrdinal <- any(sapply(data, is.ordered))
-	I <- diag(1, wsize)
-	if(!hasOrdinal){
-		mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
+	mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
 			acov=I, fullWeight=I, means=meanData)
-		mdata@observed <- covData
-	} else if(hasOrdinal && !isCovData){
-		mdata <- mxDataWLS(data, type="ULS", fullWeight=FALSE)
-	} else {
-		stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
-	}
+	mdata@observed <- covData
 	return(mdata)
 }
-
-
-
-#------------------------------------------------------------------------------
-
-
-
-
-
-
-#------------------------------------------------------------------------------
-
-
-
-
-
-
-#------------------------------------------------------------------------------
