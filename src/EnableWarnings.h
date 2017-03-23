@@ -11,4 +11,5 @@
 #pragma GCC diagnostic warning "-Wunused-function"
 #pragma GCC diagnostic warning "-Wunused-local-typedefs"
 #pragma GCC diagnostic warning "-Wdeprecated-declarations"
+#pragma GCC diagnostic warning "-Wignored-attributes"
 #endif
