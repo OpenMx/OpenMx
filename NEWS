@@ -1,4 +1,7 @@
 # OpenMx bleed
+*
+
+# OpenMx 2.7.9 (March 22, 2017)
 * NEW: mxAutoStart Get automatic starting values.
 * NEW: "Auto" mxOption values.
 * NEW: omxNudgeZeroStarts helper function
