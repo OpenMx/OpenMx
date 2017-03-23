@@ -186,7 +186,7 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=m
 		for(amod in submNames){
 			got[[amod]] <- imxGetExpectationComponent(model, component, defvar.row=1, subname=amod)
 		}
-		if(component=='vector'){got <- unlist(got)}
+		if(component=='vector' || tolower(component)=='standvector'){got <- unlist(got)}
 		got
 	} else if (length(component) == 1 && component == 'vector') {
 		genericGetExpectedVector(model[[subname]]$expectation, model, defvar.row, subname)
