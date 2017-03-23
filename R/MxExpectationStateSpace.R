@@ -394,6 +394,41 @@ getAllModelNames <- function(model){
 	return(ret)
 }
 
+#--------------------------------------------------------------------
+
+setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
+		function(.Object, model, what, defvar.row=1, subname=model@name) {
+			ret <- list()
+			if(length(defvar.row) > 1){
+				stop("'defvar.row' must be (1) a single integer, (2) 'all', or (3) Inf")
+			}
+			if(defvar.row == Inf){
+				stop("Frau Bl\u00FCcher! This is not yet implemented.")
+				Aname <- paste(subname, .Object@A, sep=".")
+				Qname <- paste(subname, .Object@Q, sep=".")
+				A <- mxEvalByName(Aname, model, compute=TRUE, defvar.row=defvar.row)
+				Q <- mxEvalByName(Qname, model, compute=TRUE, defvar.row=defvar.row)
+				I <- diag(1, nrow=nrow(A)*nrow(A))
+			}
+			ks <- mxKalmanScores(model, frontend=FALSE)
+			if(defvar.row =="all"){
+				defvar.row <- 1:(nrow(ks$xPredicted)-1)
+			} else {
+				defvar.row <- defvar.row + 1
+			}
+			if ('covariance' %in% what) {
+				ret[['covariance']] <- ks$SPredicted[ , , defvar.row, drop=FALSE]
+			}
+			if ('means' %in% what) {
+				ret[['means']] <- ks$yPredicted[defvar.row, , drop=FALSE]
+			}
+			if ('thresholds' %in% what) {
+				thr <- matrix( , 0, 0)
+				ret[['thresholds']] <- thr
+			}
+			ret
+})
+
 
 #--------------------------------------------------------------------
 checkSSMargument <- function(x, xname) {
