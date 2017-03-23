@@ -235,12 +235,13 @@ imxWlsStandardErrors <- function(model){
 		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(!any(sD), TRUE, FALSE))
 		V <- Matrix::bdiag(sV)
 		W <- Matrix::bdiag(sW)
+		dvd <- MASS::ginv(as.matrix( t(d) %*% V %*% d ))
 	} else {
 		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(single.na(model$data$thresholds), FALSE, TRUE))
 		V <- model$data$acov #used weight matrix
 		W <- MASS::ginv(model$data$fullWeight)
+		dvd <- solve( t(d) %*% V %*% d )
 	}
-	dvd <- solve( t(d) %*% V %*% d )
 	nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
 	wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
 	dimnames(nacov) <- list(names(theParams), names(theParams))
