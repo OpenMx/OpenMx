@@ -126,6 +126,28 @@ class GradientOptimizerContext {
 };
 
 template <typename T1>
+double median(Eigen::MatrixBase<T1> &vec)
+{
+	if (vec.size() < 2) {
+		return vec.array().sum() / vec.size();
+	}
+
+	std::vector<int> ind;
+	ind.resize(vec.size());
+	for (int xx=0; xx < int(vec.size()); ++xx) ind[xx] = xx;
+	std::sort(ind.begin(), ind.end(), [&](int ii, int jj) {
+			return vec[ii] < vec[jj];
+		});
+	if (vec.size() % 2 == 0) {
+		int mid = vec.size() / 2 - 1;
+		return (vec[ind[mid]] + vec[ind[mid+1]]) / 2.0;
+	} else {
+		int mid = vec.size() / 2;
+		return vec[ind[mid]];
+	}
+}
+
+template <typename T1>
 void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint)
 {
 	if (getWanted() & FF_COMPUTE_GRADIENT) {
@@ -153,6 +175,26 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 			}
 			return fit;
 		}, refFit, Epoint, grad);
+
+	if (true) {
+		Eigen::VectorXd absGrad = grad.array().abs();
+		double m1 = std::max(median(absGrad), 1.0);
+		double big = 1e4 * m1;
+		int adj=0;
+		for (int gx=0; gx < grad.size(); ++gx) {
+			if (absGrad[gx] < big) continue;
+			bool neg = grad[gx] < 0;
+			double gg = fabs(m1);
+			if (neg) gg = -gg;
+			grad[gx] = gg;
+			++adj;
+		}
+		if (false && adj) {
+			mxLog("%d grad outlier", adj);
+			mxPrintMat("absGrad", absGrad);
+			mxPrintMat("robust grad", grad);
+		}
+	}
 }
 
 template <typename T1>
