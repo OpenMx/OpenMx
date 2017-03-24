@@ -184,7 +184,7 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 		for (int gx=0; gx < grad.size(); ++gx) {
 			if (absGrad[gx] < big) continue;
 			bool neg = grad[gx] < 0;
-			double gg = fabs(m1);
+			double gg = m1;
 			if (neg) gg = -gg;
 			grad[gx] = gg;
 			++adj;

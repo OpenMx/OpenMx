@@ -1205,6 +1205,24 @@ static void omxElementNaturalLog(FitContext *fc, omxMatrix** matList, int numArg
 
 }
 
+static void omxElementRobustLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+
+	int max = inMat->cols * inMat->rows;
+
+	omxCopyMatrix(result, inMat);
+
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		if (data[j] == 0.0) {
+			data[j] = -745;
+		} else {
+			data[j] = log(data[j]);
+		}
+	}
+}
+
 static void omxElementSquareRoot(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];

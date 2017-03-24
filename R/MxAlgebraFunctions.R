@@ -399,3 +399,9 @@ omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
 imxDmvnorm <- function(loc, mean, sigma) .Call(Dmvnorm_wrapper, loc, mean, sigma)
 
 mxEvaluateOnGrid <- function(algebra, abscissa) stop("Not implemented")
+
+mxRobustLog <- function(pr) {
+	result <- log(pr)
+	result[pr == 0.0] <- -745
+	result
+}
