@@ -252,8 +252,8 @@ runHelper <- function(model, frontendStart,
 		names(parameters), names(constraints), model@compute, output)
 	
 	theFitUnits <- model$output$fitUnits
-	if(options[["Standard Errors"]] == "Yes" && length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
-		if(!imxHasConstraint(model)){
+	if(length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
+		if(options[["Standard Errors"]] == "Yes"){
 			wlsSEs <- imxWlsStandardErrors(model)
 			model@output$standardErrors <- wlsSEs$SE
 			model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
