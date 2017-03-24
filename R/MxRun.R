@@ -255,7 +255,7 @@ runHelper <- function(model, frontendStart,
 	if(options[["Standard Errors"]] == "Yes" && length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
 		wlsSEs <- imxWlsStandardErrors(model)
 		model@output$standardErrors <- wlsSEs$SE
-		model@output$hessian <- 2*MASS::ginv(wlsSEs$Cov) #puts in same units as m2ll Hessian
+		model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
 		wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF
