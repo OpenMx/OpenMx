@@ -232,11 +232,11 @@ imxWlsStandardErrors <- function(model){
 		if( !(all(sD == TRUE) || all(sD == FALSE)) ){
 			stop("I feel like I'm getting mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
 		}
-		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(!any(sD), TRUE, FALSE))
+		d <- omxManifestModelByParameterJacobian(model, standardize=!any(sD))
 		V <- Matrix::bdiag(sV)
 		W <- Matrix::bdiag(sW)
 	} else {
-		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(single.na(model$data$thresholds), FALSE, TRUE))
+		d <- omxManifestModelByParameterJacobian(model, standardize=!single.na(model$data$thresholds))
 		V <- model$data$acov #used weight matrix
 		W <- MASS::ginv(model$data$fullWeight)
 	}
@@ -261,10 +261,12 @@ imxWlsChiSquare <- function(model, J=NA){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		sW <- list()
 		expd.param <- c()
+		sD <- c()
 		for(amod in submNames){
 			cov <- model[[amod]]$data$observed
 			mns <- model[[amod]]$data$means
 			thr <- model[[amod]]$data$thresholds
+			sD[[amod]] <- single.na(thr)
 			if(!single.na(thr)){
 				expd.param <- c(expd.param, .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE))
 				numOrdinal <- numOrdinal + ncol(thr)
@@ -278,6 +280,7 @@ imxWlsChiSquare <- function(model, J=NA){
 		cov <- model$data$observed
 		mns <- model$data$means
 		thr <- model$data$thresholds
+		sD <- single.na(thr)
 		if(!single.na(thr)){
 			expd.param <- .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE)
 			numOrdinal <- numOrdinal + ncol(thr)
@@ -287,11 +290,14 @@ imxWlsChiSquare <- function(model, J=NA){
 		W <- MASS::ginv(model$data$fullWeight)
 	}
 	
+	if( !(all(sD == TRUE) || all(sD == FALSE)) ){
+		stop("I'm getting some mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
+	}
+	
 	e <- samp.param - expd.param
 	
 	if(single.na(J)){
-		# TODO Heal this interface for uses with standardization, outside the mxRun context
-		jac <- omxManifestModelByParameterJacobian(model)
+		jac <- omxManifestModelByParameterJacobian(model, standardize=!any(sD))
 	} else {jac <- J}
 	jacOC <- Null(jac)
 	if(prod(dim(jacOC)) > 0){
