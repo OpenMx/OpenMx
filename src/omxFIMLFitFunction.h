@@ -19,8 +19,8 @@
 #define _OMXFIMLFITFUNCTION_H_
 
 #include "omxFitFunction.h"
-#include "omxSadmvnWrapper.h"
 #include "Compute.h"
+#include "omxSadmvnWrapper.h"
 
 typedef struct omxFIMLRowOutput {  // Output object for each row of estimation.  Mirrors the Mx1 output vector
 	double Minus2LL;		// Minus 2 Log Likelihood
