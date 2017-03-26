@@ -100,8 +100,6 @@ public:
 	int estInfeas;
 	int statuscode;
 	double bignum;
-	double rho;
-	bool addPenalty;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -122,6 +120,8 @@ public:
 	void printProblemState();
 	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
 	void calculatePseudoHessian();
+	omxState *getState() const { return fc->state; };
+	void startRho(double fv);
 	/*void restart();
 	void validationRestart();*/
 	
@@ -142,7 +142,13 @@ public:
 	Eigen::MatrixXd iniSimplexMat;
 	//Eigen::MatrixXd pseudohess;
 	
-	
+	bool addPenalty;
+	double rho;
+	double worstviol;
+	Eigen::VectorXd eqlm;
+	Eigen::VectorXd ineqlm;
+	//Eigen::VectorXd Vk;
+
 	
 	
 };

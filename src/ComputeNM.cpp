@@ -303,36 +303,74 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.countConstraintsAndSetupBounds();
 	if( (nmoc.numIneqC || nmoc.numEqC) && eqConstraintMthd==4 ){
 		if(verbose){mxLog("starting l1-penalty algorithm");}
+		int k, ii, bad0;
+		double worstviol=0, wv2, fv0;
+		Eigen::VectorXd Vk, startpt;
 		fc->iterations = 0; //<--Not sure about this
 		nmoc.maxIter = maxIter/10;
+		nmoc.eqlm.resize(nmoc.numEqC);
+		nmoc.eqlm.setZero(nmoc.numEqC);
+		nmoc.ineqlm.resize(nmoc.numIneqC);
+		nmoc.ineqlm.setZero(nmoc.numIneqC);
+		Vk = nmoc.ineqlm;
+		if(iniSimplexMat.rows() && iniSimplexMat.cols()==nmoc.numFree){nmoc.est = iniSimplexMat.row(0);}
+		startpt = nmoc.est;
+		nmoc.evalFirstPoint(nmoc.est, fv0, bad0);
+		if(fv0 >= bignum){
+			nmoc.rho = 1;
+		}
+		else{
+			nmoc.rho = 0;
+			//Avoid involving zero-length vectors:
+			if(nmoc.numEqC){nmoc.rho += nmoc.equality.dot(nmoc.equality);}
+			if(nmoc.numIneqC){nmoc.rho += nmoc.inequality.dot(nmoc.inequality);}
+			nmoc.rho = 2 * fabs(fv0) / nmoc.rho;
+			nmoc.rho = fmax(1e-6, fmin(10, nmoc.rho));
+			//nmoc.rho = fmax(1e-6, fmin(10, 2*fabs(fv0) / (nmoc.equality.dot(nmoc.equality) + nmoc.inequality.dot(nmoc.inequality))));
+		}
+		if(nmoc.numEqC){worstviol = nmoc.equality.array().abs().maxCoeff();}
+		if(nmoc.numIneqC){worstviol = fmax(worstviol, nmoc.inequality.array().maxCoeff());}
+		//worstviol = fmax(nmoc.equality.array().abs().maxCoeff(), nmoc.inequality.array().maxCoeff());
 		nmoc.addPenalty = true;
-		int k;
 		for(k=0; k<=10; k++){
 			if(verbose){mxLog("l1p iteration %d",k);}
 			if(k>0){
-				//nmoc.iniSimplexEdge = iniSimplexEdge;
 				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
 				if(nmoc.statuscode==3){break;}
 				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
 					if(verbose){mxLog("l1p solution found");}
 					break;
 				}
-				/*if( !nmoc.estInfeas && nmoc.statuscode==4 ){
-					nmoc.iniSimplexEdge = sqrt((nmoc.vertices[0]-nmoc.vertices[1]).dot(nmoc.vertices[0]-nmoc.vertices[1]));
-				}*/
-				if(nmoc.estInfeas){
-					nmoc.rho *= 10;
-					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
-				}
-				/*if(nmoc.estInfeas && nmoc.statuscode==4){
-					nmoc.rho *= 2;
-					nmoc.iniSimplexEdge = sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
-				}*/
 				if(fc->iterations >= maxIter){
 					nmoc.statuscode = 4;
 					if(verbose){mxLog("l1p algorithm ended with status 4");}
 					break;
 				}
+				for(ii=0; ii < nmoc.numIneqC; ii++){
+					Vk[ii] = fmax(nmoc.inequality[ii], nmoc.ineqlm[ii]/nmoc.rho);
+				}
+				wv2 = 0;
+				if(nmoc.numEqC){wv2 = nmoc.equality.array().abs().maxCoeff();}
+				if(nmoc.numIneqC){wv2 = fmax(wv2, Vk.array().maxCoeff());}
+				if(wv2 > 0.5 * worstviol){
+					nmoc.rho *= 10;
+				}
+				worstviol = wv2;
+				//if(nmoc.numEqC){worstviol = nmoc.equality.array().abs().maxCoeff();}
+				//if(nmoc.numIneqC){worstviol = fmax(worstviol, Vk.array().maxCoeff());}
+				//worstviol = fmax(nmoc.equality.array().abs().maxCoeff(), Vk.array().maxCoeff());
+				for(ii=0; ii < nmoc.numEqC; ii++){
+					nmoc.eqlm[ii] += nmoc.rho * nmoc.equality[ii];
+					if(nmoc.eqlm[ii] < -1e20){nmoc.eqlm[ii] = -1e20;}
+					if(nmoc.eqlm[ii] > 1e20){nmoc.eqlm[ii] = 1e20;}
+				}
+				for(ii=0; ii < nmoc.numIneqC; ii++){
+					nmoc.ineqlm[ii] += nmoc.rho * nmoc.inequality[ii];
+					if(nmoc.ineqlm[ii] < 0){nmoc.ineqlm[ii] = 0;}
+					if(nmoc.ineqlm[ii] > 1e20){nmoc.ineqlm[ii] = 1e20;}
+				}
+				startpt = ((startpt * k) + nmoc.est) / (k+1);
+				nmoc.est = startpt;
 			}
 			nmoc.invokeNelderMead();
 			fc->iterations += nmoc.itersElapsed;
@@ -356,6 +394,8 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.est = nmoc.est;
 		nmoc2.rho = nmoc.rho;
 		nmoc2.addPenalty = nmoc.addPenalty;
+		nmoc2.eqlm = nmoc.eqlm;
+		nmoc2.ineqlm = nmoc.ineqlm;
 		nmoc2.countConstraintsAndSetupBounds();
 		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
 		nmoc2.invokeNelderMead();
@@ -523,7 +563,8 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 	copyParamsFromFitContext(est.data());
 	statuscode = -1;
 	addPenalty = false;
-	rho = 1;
+	//TODO initialize rho with the startRho() function:
+	rho = -1;
 }
 
 void NelderMeadOptimizerContext::copyBounds()
@@ -670,13 +711,16 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 		double fv = fc->fit;
 		if(NMobj->eqConstraintMthd==4 && addPenalty){
 			int i;
+			double eqterm=0, ineqterm=0;
 			for(i=0; i < equality.size(); i++){
-				fv += rho * fabs(equality[i]);
+				eqterm += pow(equality[i] + eqlm[i]/rho, 2);
 			}
+			fv += rho * eqterm / 2;
 			if(NMobj->ineqConstraintMthd){
 				for(i=0; i < inequality.size(); i++){
-					fv += rho * fabs(inequality[i]);
+					ineqterm += pow(fmax(0, inequality[i] + ineqlm[i]/rho),2);
 				}
+				fv += rho * ineqterm / 2;
 			}
 		}
 		return(fv);
@@ -1542,5 +1586,4 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 	}
 	return;
 }	
-	
 
