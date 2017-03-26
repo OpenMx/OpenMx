@@ -6,10 +6,15 @@
 * NEW: "Auto" mxOption values.
 * NEW: omxNudgeZeroStarts helper function
 * NEW: Hidden Markov models with mxExpectationHiddenMarkov
+* NEW: "Internal" warm starts for NPSOL
+* NEW: Correct documentation of how NPSOL uses feasibility tolerance
+* NEW: Nelder-Mead
+* IMPROVED: mxEval() works with square brackets.
 * IMPROVED: Summary table is easier to read and more informative
 * IMPROVED: Rampart uses much less memory on large datasets.
 * IMPROVED: 'one' is now in the list of reserved names (clashes with RAM's 'one' for mean)
 * FIXED: mxKalmanScores are now correct for continuous time state space models.
+* FIXED: Bugs in ref models with cov data.
 * FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization.
 	* If using 2.7.x (older), set expectation$.useSufficientSets = FALSE to avoid athis bug.
 
