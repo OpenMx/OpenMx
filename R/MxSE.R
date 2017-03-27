@@ -101,14 +101,20 @@ mxSE <- function(x, model, details=FALSE, ...){
 	zoutVec <- sefun(x=freeparams, model=model, alg=x)
 	
 	if(length(model@output) > 0){
-		if(model@output$infoDefinite){
-			# solve() will fail if Hessian is computationally singular;
-			# chol2inv() will still fail if Hessian is exactly singular.
-			ParamsCov <- 2*chol2inv(chol(model@output$hessian))
-			dimnames(ParamsCov) <- dimnames(model@output$hessian)
-		} else{
-			# An indefinite Hessian usually means some SEs will be NaN:
-			ParamsCov <- 2*solve(model@output$hessian)
+		if(!single.na(model@output$infoDefinite)){
+			if(model@output$infoDefinite){
+				# solve() will fail if Hessian is computationally singular;
+				# chol2inv() will still fail if Hessian is exactly singular.
+				ParamsCov <- 2*chol2inv(chol(model@output$hessian))
+				dimnames(ParamsCov) <- dimnames(model@output$hessian)
+			} else{
+				# An indefinite Hessian usually means some SEs will be NaN:
+				ParamsCov <- 2*solve(model@output$hessian)
+			}
+		} else {
+			msg <- "Model does not have a reasonable Hessian or standard errors."
+			msg <- paste0(msg, ifelse(imxHasConstraint(model), "\nModel has at least one mxConstraint. This prevented standard error computation.\nTry mxCI().", "\nDid you set the mxOption() to turn off standard errors?"))
+			stop(msg)
 		}
 	} else {
 		stop("Model does not have output.  I'm a doctor, not a bricklayer!\nWas this model run with mxRun?")
