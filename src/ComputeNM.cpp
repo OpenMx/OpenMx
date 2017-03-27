@@ -421,9 +421,10 @@ void omxComputeNM::computeImpl(FitContext *fc){
 			if(verbose){mxPrintMat("simplex gradient: ",simplexGradient);}
 		}
 	}
+	
+	nmoc.finalize();
 	equalityOut = nmoc.equality;
 	inequalityOut = nmoc.inequality;
-	
 	
 	return;
 }
@@ -433,7 +434,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	omxPopulateFitFunction(fitMatrix, out);
 	
 	MxRList output;
-	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm, phess, sg;
+	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm, phess, sg, bf;
 	size_t i=0;
 	
 	if( fc->varGroup->vars.size() ){
@@ -456,6 +457,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 		output.add("constraintRows", cr);
 		output.add("constraintCols", cc);
 	}
+	//TODO: figure out why none of the constraint-function values are getting exported to the frontend:
 	if( fc->constraintFunVals.size() ){
 		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
 		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
@@ -495,6 +497,10 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	Rf_protect(xpm = Rf_allocVector(REALSXP, 1));
 	memcpy( REAL(xpm), &xproxOut, sizeof(double) );
 	output.add("domainProximityMeasure", xpm);
+	
+	Rf_protect(bf = Rf_allocVector(REALSXP, 1));
+	memcpy( REAL(bf), &bestfitOut, sizeof(double) );
+	output.add("fit", bf);
 	
 	slots->add("output", output.asR());
 	return;
@@ -1527,6 +1533,16 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		mxPrintMat("pseudoHessian is ", NMobj->pseudohess);
 	}
 	return;
-}	
-	
+}
 
+
+void NelderMeadOptimizerContext::finalize()
+{
+	//The omxComputeNM object stows the possibly penalized fit value; the FitContext here recomputes the unpenalized fit value, at the
+	//best parameter values:
+	NMobj->bestfitOut = bestfit;
+	copyParamsFromOptimizer(est,fc);
+	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
+	evalIneqC();
+	evalEqC();
+}

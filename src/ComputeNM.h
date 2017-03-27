@@ -50,7 +50,7 @@ public:
 	Eigen::MatrixXd verticesOut;
 	Eigen::VectorXd fvalsOut;
 	Eigen::VectorXi vertexInfeasOut;
-	double fproxOut, xproxOut;
+	double fproxOut, xproxOut, bestfitOut;
 	Eigen::MatrixXd equalityOut, inequalityOut;
 
 	Eigen::MatrixXd pseudohess, phpts, phFvals, Xout;
@@ -122,8 +122,7 @@ public:
 	void printProblemState();
 	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
 	void calculatePseudoHessian();
-	/*void restart();
-	void validationRestart();*/
+	void finalize();
 	
 	std::vector<Eigen::VectorXd> vertices;	
 	Eigen::VectorXd est;
