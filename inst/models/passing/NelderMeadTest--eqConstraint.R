@@ -110,3 +110,5 @@ m4 <- mxModel(
 )
 m4run <- mxRun(m4)
 summary(m4run)
+#Penalized fit should be slightly greater than raw fit:
+omxCheckTrue(m4run$compute$steps[[1]]$output$fit > m4run$output$fit)

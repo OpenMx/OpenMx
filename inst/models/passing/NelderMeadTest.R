@@ -95,3 +95,27 @@ omxCheckTrue(length(varrun$compute$steps$GD$output$pseudoHessian))
 omxCheckTrue(length(varrun$compute$steps$GD$output$simplexGradient))
 omxCheckTrue(length(varrun$compute$steps$GD$output$rangeProximityMeasure))
 omxCheckTrue(length(varrun$compute$steps$GD$output$domainProximityMeasure))
+omxCheckTrue(length(varrun$compute$steps$GD$output$fit))
+
+#Try using inequality-constrained formulation of CI problem:
+plan$steps$CI$constraintType <- "ineq"
+varmod2 <- mxModel(
+	"mod",
+	plan,
+	mxData(observed=x,type="raw"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,labels="mu",name="Mu"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
+	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
+	mxAlgebra(sqrt(Sigma2),name="Sigma"),
+	mxCI(c("mu","sigma2")),
+	mxFitFunctionML()
+)
+varrun2 <- mxRun(varmod2,intervals=T)
+varrunGD$output$confidenceIntervals
+varrun2$output$confidenceIntervals
+omxCheckCloseEnough(
+	varrunGD$output$confidenceIntervals,
+	varrun2$output$confidenceIntervals,
+	0.1 #<--This tolerance could be made a lot smaller if SLSQP were used for CIs...
+)
+omxCheckCloseEnough(varrun2$compute$steps$CI$output$detail$fit - varrun2$output$fit - 0.05, rep(3.841,4), 1e-3)
