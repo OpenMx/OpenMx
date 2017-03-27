@@ -286,12 +286,6 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(fitMatrix);
 	
-	//int beforeEval = fc->getLocalComputeCount();
-	
-	if (verbose >= 1){
-		//mxLog something here
-	}
-	
 	NelderMeadOptimizerContext nmoc(fc, this);
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;
@@ -310,24 +304,16 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		for(k=0; k<=10; k++){
 			if(verbose){mxLog("l1p iteration %d",k);}
 			if(k>0){
-				//nmoc.iniSimplexEdge = iniSimplexEdge;
 				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
 				if(nmoc.statuscode==3){break;}
 				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
 					if(verbose){mxLog("l1p solution found");}
 					break;
 				}
-				/*if( !nmoc.estInfeas && nmoc.statuscode==4 ){
-					nmoc.iniSimplexEdge = sqrt((nmoc.vertices[0]-nmoc.vertices[1]).dot(nmoc.vertices[0]-nmoc.vertices[1]));
-				}*/
 				if(nmoc.estInfeas){
 					nmoc.rho *= 10;
 					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
 				}
-				/*if(nmoc.estInfeas && nmoc.statuscode==4){
-					nmoc.rho *= 2;
-					nmoc.iniSimplexEdge = sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
-				}*/
 				if(fc->iterations >= maxIter){
 					nmoc.statuscode = 4;
 					if(verbose){mxLog("l1p algorithm ended with status 4");}
