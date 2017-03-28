@@ -640,7 +640,7 @@ extractNAname <- function(name, subname){
 	if(single.na(name)){
 		return(name)
 	} else {
-		return(paste(subname, name, sep="."))
+		return(.modifyDottedName(subname, name, sep="."))
 	}
 }
 

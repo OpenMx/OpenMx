@@ -285,9 +285,9 @@ setMethod("genericNameToNumber", signature("MxExpectationRAM"),
 setMethod("genericGetExpected", signature("MxExpectationRAM"),
 	  function(.Object, model, what, defvar.row=1, subname=model@name) {
 		  ret <- list()
-		  Aname <- paste(subname, .Object@A, sep=".")
-		  Sname <- paste(subname, .Object@S, sep=".")
-		  Fname <- paste(subname, .Object@F, sep=".")
+		  Aname <- .modifyDottedName(subname, .Object@A, sep=".")
+		  Sname <- .modifyDottedName(subname, .Object@S, sep=".")
+		  Fname <- .modifyDottedName(subname, .Object@F, sep=".")
 		  Mname <- .Object@M
 		  A <- mxEvalByName(Aname, model, compute=TRUE, defvar.row=defvar.row)
 		  S <- mxEvalByName(Sname, model, compute=TRUE, defvar.row=defvar.row)
@@ -302,7 +302,7 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 				if(single.na(Mname)){
 					mean <- matrix( , 0, 0)
 				} else {
-					Mname <- paste(subname, Mname, sep=".")
+					Mname <- .modifyDottedName(subname, Mname, sep=".")
 					M <- mxEvalByName(Mname, model, compute=TRUE, defvar.row=defvar.row)
 					mean <- M %*% t(solve(I-A)) %*% t(F)
 			  }
@@ -311,7 +311,7 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 			if ('thresholds' %in% what) {
 				thrname <- .Object@thresholds
 				if(!single.na(thrname)){
-					thrname <- paste(subname, thrname, sep=".")
+					thrname <- .modifyDottedName(subname, thrname, sep=".")
 					thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
 				} else {thr <- matrix( , 0, 0)}
 				ret[['thresholds']] <- thr

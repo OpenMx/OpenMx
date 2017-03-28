@@ -85,11 +85,21 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 		return(.Object)
 })
 
+.modifyDottedName <- function(sub, obj, sep='.'){
+	if(single.na(obj)) {return(obj)}
+	if(length(obj) > 1) {stop('Please pass me one object name at a time.')}
+	if(length(strsplit(obj, split=sep, fixed=TRUE)[[1]]) > 1 ){
+		return(obj)
+	} else {
+		return(paste(sub, obj, sep=sep))
+	}
+}
+
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	function(.Object, model, what, defvar.row=1, subname=model@name) {
 		ret <- list()
 		if ('covariance' %in% what) {
-			covname <- paste(subname, .Object@covariance, sep=".")
+			covname <- .modifyDottedName(subname, .Object@covariance)
 			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
 			dnames <- .Object$dims
 			if(!single.na(dnames)){
@@ -101,7 +111,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		if ('means' %in% what) {
 			meanname <- .Object@means
 			if(!single.na(meanname)){
-				meanname <- paste(subname, meanname, sep=".")
+				meanname <- .modifyDottedName(subname, meanname, sep=".")
 				mean <- mxEvalByName(meanname, model, compute=TRUE, defvar.row=defvar.row)
 				dnames <- .Object$dims
 				if(!single.na(dnames)){
@@ -113,7 +123,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		if ('thresholds' %in% what) {
 			thrname <- .Object@thresholds
 			if(!single.na(thrname)){
-				thrname <- paste(subname, thrname, sep=".")
+				thrname <- .modifyDottedName(subname, thrname, sep=".")
 				thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
 				tnames <- .Object$threshnames
 				if(!single.na(tnames)){
