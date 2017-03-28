@@ -278,7 +278,7 @@ void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 		if (state->verbose >= 1) {
 			const int numUnique = state->getNumUnique();
 			mxLog("%s: estep<%s, %s> %d/%d rows excluded",
-			      state->name,
+			      oo->name,
 			      (estep && oo->dynamicDataSource? "summary":"fixed"),
 			      (estep? "estep":"omitEstep"),
 			      state->grp.excludedPatterns, numUnique);

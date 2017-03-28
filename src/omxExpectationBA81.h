@@ -64,7 +64,6 @@ class BA81Expect : public omxExpectation {
 	int getNumUnique() { return (int) grp.rowMap.size(); }
 	int itemOutcomes(int ix) { return grp.itemOutcomes[ix]; }
 
-	const char *name;              // from omxExpectation
 	double LogLargestDouble;       // should be const but need constexpr
 	double LargestDouble;          // should be const but need constexpr
 

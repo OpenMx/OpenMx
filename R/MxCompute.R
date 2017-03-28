@@ -939,8 +939,7 @@ setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
 setClass(Class = "MxComputeEM",
 	 contains = "BaseCompute",
 	 representation = representation(
-	     expectation = "MxCharOrNumber",
-	     predict = "character",
+	     estep = "MxCompute",
 	     mstep = "MxCompute",
 	     observedFit = "MxCharOrNumber",
 	     maxIter = "integer",
@@ -955,7 +954,7 @@ setMethod("assignId", signature("MxComputeEM"),
 		.Object <- callNextMethod()
 		defaultFreeSet <- .Object@freeSet
 		id <- .Object@id
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L
 		}
@@ -966,7 +965,7 @@ setMethod("assignId", signature("MxComputeEM"),
 setMethod("getFreeVarGroup", signature("MxComputeEM"),
 	function(.Object) {
 		result <- callNextMethod()
-		for (step in c(.Object@mstep)) {
+		for (step in c(.Object@estep, .Object@mstep)) {
 			got <- getFreeVarGroup(step)
 			if (length(got)) result <- append(result, got)
 		}
@@ -976,10 +975,10 @@ setMethod("getFreeVarGroup", signature("MxComputeEM"),
 setMethod("qualifyNames", signature("MxComputeEM"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('expectation', 'observedFit')) {
+		for (sl in c('observedFit')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
 		.Object@infoArgs$fitfunction <-
@@ -990,15 +989,6 @@ setMethod("qualifyNames", signature("MxComputeEM"),
 setMethod("convertForBackend", signature("MxComputeEM"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (any(!is.integer(.Object@expectation))) {
-			expNum <- match(.Object@expectation, names(flatModel@expectations))
-			if (any(is.na(expNum))) {
-				stop(paste("MxComputeEM: MxExpectation not found:",
-					   omxQuotes(.Object@expectation[is.na(expNum)])))
-			}
-			.Object@expectation <- expNum - 1L
-		}
-		if (length(.Object@expectation) == 0) warning("MxComputeEM with nothing will have no effect")
 		if (length(.Object@observedFit) != 1) stop("MxComputeEM requires a single observedFit function")
 		if (any(!is.integer(.Object@observedFit))) {
 			algNum <- match(.Object@observedFit, append(names(flatModel@algebras),
@@ -1008,7 +998,7 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 			}
 			.Object@observedFit <- algNum - 1L
 		}
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
 		fit <- match(.Object@infoArgs$fitfunction,
@@ -1025,19 +1015,18 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 setMethod("updateFromBackend", signature("MxComputeEM"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
 		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeEM",
-	  function(.Object, expectation, predict, mstep, observedFit, maxIter, tolerance,
+	  function(.Object, estep, mstep, observedFit, maxIter, tolerance,
 		   verbose, accel, information, freeSet, infoArgs) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
-		  .Object@expectation <- expectation
-		  .Object@predict <- predict
+		  .Object@estep <- estep
 		  .Object@mstep <- mstep
 		  .Object@observedFit <- observedFit
 		  .Object@maxIter <- maxIter
@@ -1068,8 +1057,8 @@ setMethod("initialize", "MxComputeEM",
 ##'
 ##' Ramsay (1975) was recommended in Bock, Gibbons, & Muraki (1988).
 ##'
-##' @param expectation a vector of expectation names
-##' @param predict what to predict from the observed data (available options depend on the expectation)
+##' @param expectation a vector of expectation names (DEPRECATED)
+##' @param predict what to predict from the observed data (DEPRECATED)
 ##' @param mstep a compute plan to optimize the completed data model
 ##' @param observedFit the name of the observed data fit function (defaults to "fitfunction")
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -1080,6 +1069,7 @@ setMethod("initialize", "MxComputeEM",
 ##' @param accel name of acceleration method ("varadhan2008" or "ramsay1975")
 ##' @param information name of information matrix approximation method
 ##' @param infoArgs arguments to control the information matrix method
+##' @param estep a compute plan to perform the expectation step
 ##' @aliases
 ##' MxComputeEM-class
 ##' @references
@@ -1106,9 +1096,9 @@ setMethod("initialize", "MxComputeEM",
 ##' Varadhan, R. & Roland, C. (2008). Simple and globally convergent
 ##' methods for accelerating the convergence of any EM
 ##' algorithm. \emph{Scandinavian Journal of Statistics, 35}, 335-353.
-mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ...,
+mxComputeEM <- function(expectation=NULL, predict=NA_character_, mstep, observedFit="fitfunction", ...,
 			maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_,
-			accel="varadhan2008", information=NA_character_, infoArgs=list()) {
+			accel="varadhan2008", information=NA_character_, infoArgs=list(), estep=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")
@@ -1116,7 +1106,15 @@ mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", 
 	verbose <- as.integer(verbose)
 	maxIter <- as.integer(maxIter)
 	accel <- as.character(accel)
-	new("MxComputeEM", expectation, predict, mstep, observedFit, maxIter=maxIter,
+
+	# backward compatibility for original API
+	if (length(expectation)) {
+		if (length(estep)) stop("You cannot provide both 'expectation' and 'estep' arguments")
+		estep <- mxComputeOnce(expectation, predict)
+		mstep <- mxComputeSequence(list(mstep, mxComputeOnce(expectation)))
+	}
+
+	new("MxComputeEM", estep, mstep, observedFit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
 
@@ -1124,8 +1122,8 @@ setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  cat(sp, "$expectation :", omxQuotes(Ob@expectation), '\n')
-		  cat(sp, "$predict :", omxQuotes(Ob@predict), '\n')
+		  cat(sp, "$estep :", '\n')
+		  displayCompute(Ob@estep, indent+1L)
 		  cat(sp, "$mstep :", '\n')
 		  displayCompute(Ob@mstep, indent+1L)
 		  for (sl in c("observedFit", "maxIter", "tolerance", "verbose", "accel")) {

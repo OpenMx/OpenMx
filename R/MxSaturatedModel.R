@@ -192,7 +192,11 @@ generateIFAReferenceModels <- function(model) {
 					 qwidth = expectation$qwidth),
 		       mxFitFunctionML(),
 		       # Only need 1 iteration, but allow 2 to avoid code BLUE warning.
-		       mxComputeEM('expectation', 'scores', mxComputeNewtonRaphson(), maxIter = 2L))
+		       mxComputeEM(estep=mxComputeOnce('expectation', 'scores'),
+				   mstep=mxComputeSequence(list(
+					   mxComputeNewtonRaphson(),
+					   mxComputeOnce('expectation'))),
+				   maxIter = 2L))
 	dimnames(ind$item) = list(paste('p', 1:nrow(ind$item), sep=""), colnames(item))
 	ind$item$free <- !is.na(ind$item$values)
 

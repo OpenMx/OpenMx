@@ -68,8 +68,10 @@ omxCheckCloseEnough(solve(testDeriv$output$hessian), testDeriv$output$ihessian, 
 m2 <- mxModel(m2,
               mxExpectationBA81(ItemSpec=items, qpoints=31),
 	      mxComputeSequence(list(
-		  mxComputeEM('expectation', 'scores',
-	                  mxComputeNewtonRaphson()),
+		  mxComputeEM(estep=mxComputeOnce('expectation', 'scores'),
+			      mstep=mxComputeSequence(list(
+				      mxComputeNewtonRaphson(),
+				      mxComputeOnce('expectation')))),
 		  mxComputeOnce('fitfunction', 'gradient'),
 		  mxComputeReportDeriv())))
 
@@ -96,8 +98,11 @@ omxCheckTrue(all(m2$item$lbound['f1',] == 1e-6))
 omxCheckTrue(all(is.na(m2$item$lbound[2:nrow(m2$item),])))
 omxCheckTrue(all(is.na(m2$item$ubound)))
 
-short <- mxModel(m1, mxComputeEM('expectation', 'scores',
-	                  mxComputeNewtonRaphson(), maxIter=4))
+short <- mxModel(m1, mxComputeEM(estep=mxComputeOnce('expectation', 'scores'),
+			      mstep=mxComputeSequence(list(
+				      mxComputeNewtonRaphson(),
+				      mxComputeOnce('expectation'))),
+			      maxIter=4))
 short <- mxRun(short, suppressWarnings = TRUE)
 omxCheckEquals(short$output$status$code, 4)
 
