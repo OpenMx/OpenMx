@@ -327,3 +327,14 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	
 }
 
+void omxAlgebraMarkDirty(omxMatrix *mat) // is needed?
+{
+       omxAlgebra *oa = mat->algebra;
+       if (!oa) return;
+       for(int j = 0; j < oa->numArgs; j++) {
+               auto *a1 = oa->algArgs[j];
+               if (a1->hasMatrixNumber) continue;
+               omxAlgebraMarkDirty(a1);
+       }
+       omxMarkDirty(mat);
+}

@@ -166,7 +166,6 @@ double totalLogLikelihood(omxMatrix *fitMat)
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
-	bool doFit = want & FF_COMPUTE_FIT;
 	fc->incrComputeCount();
 	fc->skippedRows = 0;
 	omxFitFunction *ff = fitMat->fitFunction;
@@ -177,7 +176,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (fc->ciobj) Rf_error("CIs cannot be computed for unitless algebra");
 		omxRecompute(fitMat, fc);
 	}
-	if (doFit) {
+	if (ff && want & FF_COMPUTE_FIT) {
 		fc->fit = totalLogLikelihood(fitMat);
 		if (std::isfinite(fc->fit)) {
 			fc->resetIterationError();

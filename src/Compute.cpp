@@ -2602,8 +2602,9 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 		int objNum = INTEGER(slotValue)[wx];
 		if (objNum >= 0) {
 			omxMatrix *algebra = globalState->algebraList[objNum];
-			if (!algebra->fitFunction) Rf_error("ComputeOnce can only handle fit functions");
-			omxCompleteFitFunction(algebra);
+			if (algebra->fitFunction) {
+				omxCompleteFitFunction(algebra);
+			}
 			algebras.push_back(algebra);
 		} else {
 			omxExpectation *expectation = globalState->expectationList[~objNum];
@@ -2679,15 +2680,10 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	for (int ax=0; ax < (int) algebras.size(); ++ax) {
 		omxFitFunction *ff = algebras[ax]->fitFunction;
-		if (!ff) {
-			Rf_error("ComputeOnce can only handle fit functions");
-			continue;
-		}
-
-		if (gradient && !ff->gradientAvailable) {
+		if (gradient && (!ff || !ff->gradientAvailable)) {
 			Rf_error("Gradient requested but not available");
 		}
-		if ((hessian || ihessian || hgprod) && !ff->hessianAvailable) {
+		if ((hessian || ihessian || hgprod) && (!ff || !ff->hessianAvailable)) {
 			// add a separate flag for hgprod TODO
 			Rf_error("Hessian requested but not available");
 		}
@@ -2734,10 +2730,16 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
-			omxAlgebraPreeval(algebra, fc);
-			ComputeFit("Once", algebra, want, fc);
-			if (infoMat) {
-				fc->postInfo();
+			if (algebra->fitFunction) {
+				omxAlgebraPreeval(algebra, fc);
+				ComputeFit("Once", algebra, want, fc);
+				if (infoMat) {
+					fc->postInfo();
+				}
+			} else {
+				//omxAlgebraMarkDirty(algebra);
+				omxMarkDirty(algebra);
+				omxRecompute(algebra, fc);
 			}
 		}
 	} else if (expectations.size()) {

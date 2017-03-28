@@ -219,7 +219,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' (one of "default", "hessian", "sandwich", "bread", and "meat").
 ##'
 ##' @param from the object to perform the computation (a vector of expectation or fit function names)
-##' @param what what to compute (default is "nothing")
+##' @param what what to compute (default is "fit")
 ##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
@@ -240,7 +240,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit$output$fit  # 972.15
 
-mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
+mxComputeOnce <- function(from, what="fit", how=NULL, ...,
 			  freeSet=NA_character_, verbose=0L, .is.bestfit=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
