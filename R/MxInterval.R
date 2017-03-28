@@ -382,12 +382,30 @@ omxParallelCI <- function(model, run = TRUE) {
 	intervals <- expandConfidenceIntervals(model, intervals)
 	template <- model
 	template <- removeAllIntervals(template)
+	optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
+	ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
+	ciOpt <- mxComputeGradientDescent(
+		verbose=0L,
+		nudgeZeroStarts=FALSE,
+		gradientAlgo=optionList[['Gradient algorithm']],
+		gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+		gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
+	if (ctype == 'ineq') {
+		ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
+	}
+	pciplan <- mxComputeSequence(
+		steps=list(
+			CI=mxComputeConfidenceInterval(
+				constraintType=ctype,
+				verbose=0L,
+				plan=ciOpt
+			)))
 	modelname <- model@name
 	container <- mxModel(paste(modelname, "container", sep = "_"))
 	submodels <- list()
 	for(i in 1:length(intervals)) {
 		interval <- intervals[[i]]
-		newmodel <- mxModel(template, interval, independent = TRUE)
+		newmodel <- mxModel(template, interval, pciplan, independent = TRUE)
 		newmodel <- mxRename(newmodel, paste("interval", i, sep = ""))
 		newmodel <- mxOption(newmodel, "Number of Threads", 1)
 		submodels <- c(submodels, newmodel)
