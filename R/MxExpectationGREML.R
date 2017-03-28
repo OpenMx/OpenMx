@@ -94,7 +94,8 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
 
 setMethod("genericGetExpected", signature("MxExpectationGREML"),
 	  function(.Object, model, what, defvar.row=1) {
-		  if ('covariance' %in% what) {
+	  	ret <- list()
+	  	if ('covariance' %in% what) {
 			  covname <- .Object@V
 			  cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
 			  ret[['covariance']] <- cov

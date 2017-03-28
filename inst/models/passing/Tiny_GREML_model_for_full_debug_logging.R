@@ -48,6 +48,7 @@ testrun <- mxRun(testmod)
 summary(testrun)
 omxCheckEquals(mxEval(nrow(I),testrun,T), 5)
 omxCheckEquals(mxEval(ncol(I),testrun,T), 5)
+mxGetExpected(testrun, "covariance")
 
 
 testmod2 <- mxModel(
