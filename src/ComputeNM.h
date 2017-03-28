@@ -51,7 +51,7 @@ public:
 	Eigen::VectorXd fvalsOut;
 	Eigen::VectorXi vertexInfeasOut;
 	double fproxOut, xproxOut, bestfitOut;
-	Eigen::MatrixXd equalityOut, inequalityOut;
+	//Eigen::MatrixXd equalityOut, inequalityOut;
 
 	Eigen::MatrixXd pseudohess, phpts, phFvals, Xout;
 	Eigen::VectorXi phInfeas;

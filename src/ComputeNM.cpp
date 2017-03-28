@@ -423,8 +423,6 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	}
 	
 	nmoc.finalize();
-	equalityOut = nmoc.equality;
-	inequalityOut = nmoc.inequality;
 	
 	return;
 }
@@ -1543,6 +1541,17 @@ void NelderMeadOptimizerContext::finalize()
 	NMobj->bestfitOut = bestfit;
 	copyParamsFromOptimizer(est,fc);
 	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
-	evalIneqC();
-	evalEqC();
+	
+	omxState *st = fc->state;
+	int ineqType = omxConstraint::LESS_THAN;
+	int cur=0, j=0;
+	Eigen::VectorXd cfv(numEqC + numIneqC);
+	
+	for (j=0; j < int(st->conListX.size()); j++) {
+		omxConstraint &con = *st->conListX[j];
+		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &cfv(cur));
+		cur += con.size;
+	}
+	
+	fc->constraintFunVals = cfv;
 }
