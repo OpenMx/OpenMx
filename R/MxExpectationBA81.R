@@ -138,6 +138,15 @@ setMethod("qualifyNames", signature("MxExpectationBA81"),
 		return(.Object)
 })
 
+setMethod("genericExpRename", signature("MxExpectationBA81"),
+	function(.Object, oldname, newname) {
+		.Object@item <- renameReference(.Object@item, oldname, newname)
+		.Object@mean <- renameReference(.Object@mean, oldname, newname)
+		.Object@cov <- renameReference(.Object@cov, oldname, newname)
+		.Object@data <- renameReference(.Object@data, oldname, newname)
+		return(.Object)
+})
+
 ##' Create a Bock & Aitkin (1981) expectation
 ##'
 ##' Used in conjuction with \link{mxFitFunctionML}, this expectation
