@@ -13,3 +13,6 @@
 [submodule "revdep/semtree"]
 	path = revdep/semtree
 	url = git@github.com:cran/semtree.git
+[submodule "revdep/ifaTools"]
+	path = revdep/ifaTools
+	url = git@github.com:jpritikin/ifaTools.git

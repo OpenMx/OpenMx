@@ -13,7 +13,7 @@ export _R_CHECK_FORCE_SUGGESTS_=0
 # add --depth=50 later TODO
 git submodule update --init --recursive || exit 1
 
-pkgs="ctsem lvnet metaSEM semtree umx"
+pkgs="ctsem ifaTools lvnet metaSEM semtree umx"
 
 R --no-save -f util/update-dependencies.R --args \
   $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pkgs)
