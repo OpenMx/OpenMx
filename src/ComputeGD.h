@@ -118,6 +118,10 @@ class GradientOptimizerContext {
 		fc->ciobj->gradient(fc, gradOut.derived().data());
 	};
 	omxState *getState() const { return fc->state; };
+	bool doingCI(){ 
+		if(fc->ciobj){return(true);}
+		else{return(false);}
+	};
 
 	GradientWithRef gwrContext;
 
