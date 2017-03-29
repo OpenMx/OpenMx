@@ -3,6 +3,9 @@
 * IMPROVED: WLS improvements
 	* Handling models with constraints
 	* sat models for mxFitFunctionMultigroup fit
+* NEW: mxEvaluateOnGrid algebra op (useful for quadrature integration)
+* NEW: mxRobustLog algebra op (recommended for mixtures)
+* IMPROVED: mxComputeEM is more generic
 
 # OpenMx 2.7.9 (March 22, 2017)
 * NEW: mxAutoStart Get automatic starting values.
