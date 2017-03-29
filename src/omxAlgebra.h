@@ -68,8 +68,4 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc);
 
 void omxAlgebraPrint(omxAlgebra *source, const char* d);
 
-void omxAlgebraMarkDirty(omxMatrix *mat);
-
 #endif /* _OMXALGEBRA_H_ */
-
-

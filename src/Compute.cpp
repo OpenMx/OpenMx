@@ -2737,16 +2737,17 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 					fc->postInfo();
 				}
 			} else {
-				//omxAlgebraMarkDirty(algebra);
 				omxMarkDirty(algebra);
 				omxRecompute(algebra, fc);
 			}
 		}
 	} else if (expectations.size()) {
 		if (predict.size() > 1) Rf_error("Not implemented");
+		const char *pr1 = "nothing"; // better to default to 0 ?
+		if (predict.size()) pr1 = predict[0];
 		for (size_t wx=0; wx < expectations.size(); ++wx) {
 			omxExpectation *expectation = expectations[wx];
-			omxExpectationCompute(fc, expectation, predict[0], how);
+			omxExpectationCompute(fc, expectation, pr1, how);
 		}
 	}
 }
