@@ -2623,6 +2623,9 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("what")));
 	int whatLen = Rf_length(slotValue);
 	if (algebras.size()) {
+		if (whatLen == 0) {
+			fit = true;
+		}
 		for (int wx=0; wx < whatLen; ++wx) {
 			SEXP elem;
 			Rf_protect(elem = STRING_ELT(slotValue, wx));
