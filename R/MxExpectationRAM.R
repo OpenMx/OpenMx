@@ -19,6 +19,7 @@ setClass(Class = "MxExpectationRAM",
 		S = "MxCharOrNumber",
 		F = "MxCharOrNumber",
 		M = "MxCharOrNumber",
+		subtype = "character",
 		quadratic = "MxOptionalCharOrNumber",
 		quadraticDest = "integer",
 		abscissa = "MxOptionalCharOrNumber",
@@ -61,6 +62,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@quadratic <- quadratic
 		.Object@abscissa <- abscissa
 		.Object@verbose <- verbose
+		.Object@subtype <- 'km2000'
 		.Object@.rampartCycleLimit <- as.integer(NA)
 		.Object@.rampartUnitLimit <- as.integer(NA)
 		.Object@.forceSingleGroup <- FALSE
