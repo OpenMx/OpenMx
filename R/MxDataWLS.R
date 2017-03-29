@@ -25,6 +25,9 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 	numRows <- nrow(x)
 	numCols <- ncol(x)
 	numColsStar <- numCols*(numCols+1)/2
+	if(numRows-1 < numColsStar){
+		stop(paste0('Too few rows (', numRows, ') for number of variables (', numCols, ').\nFor WLS, you need at least n*(n+1)/2 + 1 = ', numColsStar+1, ' rows.\nBetter start rubbing two pennies together.'))
+	}
 	
 	if(type=="ULS") {
 		useWeight <- diag(1, numColsStar)
