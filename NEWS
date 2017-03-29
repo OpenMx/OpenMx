@@ -1,5 +1,8 @@
-# OpenMx bleed
-*
+# OpenMx bleed / 2.8.0 in the making
+* IMPROVED: mxAutoStart handles models which refer to parent models.
+* IMPROVED: WLS improvements
+	* Handling models with constraints
+	* sat models for mxFitFunctionMultigroup fit
 
 # OpenMx 2.7.9 (March 22, 2017)
 * NEW: mxAutoStart Get automatic starting values.
