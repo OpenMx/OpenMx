@@ -891,8 +891,8 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 	}
 	else{
 		double k = (double) n;
-		double shhp = edgeLength*(1/k/sqrt(2))*(-1.0 + k + sqrt(1.0+k));
-		double shhq = edgeLength*(1/k/sqrt(2))*(sqrt(1.0+k)-1);
+		double shhp = edgeLength*(1.0/k/sqrt(2.0))*(-1.0 + k + sqrt(1.0+k));
+		double shhq = edgeLength*(1.0/k/sqrt(2.0))*(sqrt(1.0+k)-1);
 		Eigen::VectorXd xu, xd;
 		double fu=0, fd=0;
 		int badu=0, badd=0;
