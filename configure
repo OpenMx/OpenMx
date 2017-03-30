@@ -73,6 +73,9 @@ if [ "$cxx_type" = gcc ]; then
 	xcheck_CXXFLAGS="-fsanitize=undefined"
 	xcheck_LDFLAGS="-fsanitize=undefined"
     fi
+    if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
+	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
+    fi
     if [ "${OPENMP-yes}" = yes ]; then
 	OPENMP_CXXFLAGS="-fopenmp"
 	OPENMP_LDFLAGS="-fopenmp"
