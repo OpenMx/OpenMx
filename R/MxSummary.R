@@ -482,6 +482,13 @@ print.summary.mxmodel <- function(x,...) {
 				params <- cbind(before, 'A'=stars)
 			}
 		}
+		if (!is.null(x$bootstrapQuantile) && nrow(x$bootstrapQuantile) == nrow(params)) {
+			bq <- x$bootstrapQuantile
+			params <- cbind(params, bq)
+		}
+		cmap <- 1:ncol(params)
+		isBound <- colnames(params) %in% paste0(c('l','u'),'bound')
+		params <- params[,c(cmap[!isBound], cmap[isBound]),drop=FALSE]
 		print(params)
 		cat('\n')
 	}
@@ -812,6 +819,9 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	if (!is.null(model@compute$steps[['ND']]) && model@compute$steps[['ND']]$checkGradient &&
 	    !is.null(model@compute$steps[['ND']]$output$gradient)) {
 		retval$seSuspect <- !model@compute$steps[['ND']]$output$gradient[,'symmetric']
+	}
+	if (is(model@compute, "MxComputeBootstrap")) {
+		retval$bootstrapQuantile <- model@compute$output$result
 	}
 	retval$GREMLfixeff <- GREMLFixEffList(model)
 	retval$infoDefinite <- model@output$infoDefinite

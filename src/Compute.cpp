@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <stdarg.h>
 #include <limits>
-
+#include <random>
 //#include <iostream>
 
 #include "glue.h"
@@ -35,6 +35,24 @@
 #include "EnableWarnings.h"
 
 void pda(const double *ar, int rows, int cols);
+
+SEXP allocInformVector(int size)
+{
+	const char *statusCodeLabels[] = { // see ComputeInform type
+		"OK", "OK/green",
+		"infeasible linear constraint",
+		"infeasible non-linear constraint",
+		"iteration limit",
+		"not convex",
+		"nonzero gradient",
+		"bad deriv",
+		"?",
+		"internal error",
+		"infeasible start"
+	};
+	return makeFactor(Rf_allocVector(INTSXP, size),
+			  OMX_STATIC_ARRAY_SIZE(statusCodeLabels), statusCodeLabels);
+}
 
 void FitContext::queue(HessianBlock *hb)
 {
@@ -1621,6 +1639,38 @@ class ComputeReportExpectation : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeBootstrap : public omxCompute {
+	typedef omxCompute super;
+	
+	struct context {
+		omxExpectation *expectation;
+		double *origRowWeights;
+		std::vector<double> origCumSum;
+		std::vector<double> resample;
+	};
+	std::vector< context > contexts;
+	omxCompute *plan;
+	int verbose;
+	int numReplications;
+	int seed;
+	//std::vector<double> quantile;
+	bool parallel;
+	int only;
+
+	int previousNumParam;
+	SEXP previousData;
+	SEXP rawOutput;
+	MxRList onlyWeight;
+
+ public:
+	ComputeBootstrap() : plan(0) {};
+	virtual ~ComputeBootstrap();
+	virtual void initFromFrontend(omxState *, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	virtual void reportResults(FitContext *fc, MxRList *, MxRList *result);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -1645,6 +1695,9 @@ static class omxCompute *newComputeReportDeriv()
 static class omxCompute *newComputeReportExpectation()
 { return new ComputeReportExpectation(); }
 
+static class omxCompute *newComputeBootstrap()
+{ return new ComputeBootstrap(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -1664,7 +1717,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval},
 	{"MxComputeReportExpectation", &newComputeReportExpectation},
 	{"MxComputeTryHard", &newComputeTryHard},
-	{"MxComputeNelderMead", &newComputeNelderMead}
+	{"MxComputeNelderMead", &newComputeNelderMead},
+	{"MxComputeBootstrap", &newComputeBootstrap},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1680,7 +1734,7 @@ omxCompute *omxNewCompute(omxState* os, const char *type)
                 }
         }
 
-        if (!got) Rf_error("Compute %s is not implemented", type);
+        if (!got) Rf_error("Compute plan step '%s' is not implemented", type);
 
         return got;
 }
@@ -2136,7 +2190,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		memcpy(&prevEst[0], fc->est, sizeof(double) * fc->numParam);
 		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);
 		estep->compute(fc);
-		fc->wanted &= ~FF_COMPUTE_HESSIAN;  // discard garbage
+		fc->wanted &= ~FF_COMPUTE_DERIV;
 
 		{
 			if (verbose >= 4) mxLog("ComputeEM[%d]: M-step", EMcycles);
@@ -2891,4 +2945,199 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 	}
 
 	result->add("expectations", expectations);
+}
+
+ComputeBootstrap::~ComputeBootstrap()
+{
+	if (plan) delete plan;
+}
+
+void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	SEXP slotValue;
+	SEXP s4class;
+
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
+	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan->initFromFrontend(globalState, slotValue);
+
+	ProtectedSEXP Rexp(R_do_slot(rObj, Rf_install("expectation")));
+	for (int wx=0; wx < Rf_length(Rexp); ++wx) {
+		if (isErrorRaised()) return;
+		int objNum = INTEGER(Rexp)[wx];
+		context ctx;
+		ctx.expectation = globalState->expectationList[objNum];
+		omxCompleteExpectation(ctx.expectation);
+		if (!ctx.expectation->hasRowWeights()) {
+			Rf_error("%s: expectation '%s' does not have row weights",
+				 name, ctx.expectation->name);
+		}
+		ctx.origRowWeights = ctx.expectation->getRowWeights();
+		ctx.origCumSum.resize(ctx.expectation->getNumRows());
+		ctx.resample.resize(ctx.origCumSum.size());
+		std::partial_sum(ctx.origRowWeights, ctx.origRowWeights + ctx.origCumSum.size(),
+				 ctx.origCumSum.begin());
+		contexts.push_back(ctx);
+	}
+
+	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(Rverbose);
+
+	// ProtectedSEXP Rquantile(R_do_slot(rObj, Rf_install("quantile")));
+	// int numQuantile = Rf_length(Rquantile);
+	// double *rawQuantile = REAL(Rquantile);
+	// quantile.reserve(numQuantile);
+	// for (int qx=0; qx < numQuantile; ++qx) {
+	// 	quantile.push_back(rawQuantile[qx]);
+	// }
+
+	ProtectedSEXP Rrepl(R_do_slot(rObj, Rf_install("replications")));
+	numReplications = Rf_asInteger(Rrepl);
+
+	ProtectedSEXP Rseed(R_do_slot(rObj, Rf_install("seed")));
+	seed = Rf_asInteger(Rseed);
+
+	ProtectedSEXP Rparallel(R_do_slot(rObj, Rf_install("parallel")));
+	parallel = Rf_asLogical(Rparallel);
+
+	ProtectedSEXP Ronly(R_do_slot(rObj, Rf_install("only")));
+	only = Rf_asInteger(Ronly);
+	if (only != NA_INTEGER) {
+		numReplications = 1;
+	}
+
+	previousNumParam = -1;
+	previousData = 0;
+	if (only == NA_INTEGER) {
+		ProtectedSEXP Routput(R_do_slot(rObj, Rf_install("output")));
+		ProtectedSEXP RoutputNames(Rf_getAttrib(Routput, R_NamesSymbol));
+		for (int ax=0; ax < Rf_length(Routput); ++ax) {
+			const char *key = R_CHAR(STRING_ELT(RoutputNames, ax));
+			SEXP val = VECTOR_ELT(Routput, ax);
+			if (strEQ(key, "raw")) {
+				previousData = val;
+			} else if (strEQ(key, "numParam")) {
+				previousNumParam = Rf_asInteger(val);
+			}
+		}
+	}
+}
+
+void ComputeBootstrap::computeImpl(FitContext *fc)
+{
+	if (verbose >= 1) mxLog("%s: %d replications seed=%d parallel=%d",
+				name, numReplications, seed, int(parallel));
+
+	int numCols = fc->numParam + 2;
+	Rf_protect(rawOutput = Rf_allocVector(VECSXP, numCols));
+	SEXP colNames = Rf_allocVector(STRSXP, numCols);
+	Rf_setAttrib(rawOutput, R_NamesSymbol, colNames);
+
+	SET_STRING_ELT(colNames, 0, Rf_mkChar("fit"));
+	SET_VECTOR_ELT(rawOutput, 0, Rf_allocVector(REALSXP, numReplications));
+	for (int px=0; px < int(fc->numParam); ++px) {
+		SET_STRING_ELT(colNames, 1+px, Rf_mkChar(varGroup->vars[px]->name));
+		SET_VECTOR_ELT(rawOutput, 1+px, Rf_allocVector(REALSXP, numReplications));
+	}
+	SET_STRING_ELT(colNames, 1+fc->numParam, Rf_mkChar("statusCode"));
+	SET_VECTOR_ELT(rawOutput, 1+fc->numParam, allocInformVector(numReplications));
+	markAsDataFrame(rawOutput, numReplications);
+
+	if (previousNumParam != int(fc->numParam) ||
+	    Rf_length(previousData) != Rf_length(rawOutput)) previousData = 0;
+
+	for (int repl=0; repl < numReplications; ++repl) {
+		for (int cx=0; cx <= int(fc->numParam); ++cx) {
+			REAL(VECTOR_ELT(rawOutput, cx))[repl] = NA_REAL;
+		}
+		INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam))[repl] = NA_INTEGER;
+	}
+	if (previousData) {
+		int toCopy = std::min(Rf_length(VECTOR_ELT(previousData, 0)),
+				      numReplications);
+		if (verbose >= 1) mxLog("%s: copying %d rows from previous run", name, toCopy);
+		for (int cx=0; cx <= int(fc->numParam); ++cx) {
+			memcpy(REAL(VECTOR_ELT(rawOutput, cx)),
+			       REAL(VECTOR_ELT(previousData, cx)),
+			       toCopy * sizeof(double));
+		}
+		memcpy(INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam)),
+		       INTEGER(VECTOR_ELT(previousData, 1 + fc->numParam)),
+		       toCopy * sizeof(int));
+	}
+
+	// implement parallel TODO
+
+	Eigen::VectorXd origEst = fc->getEst();
+	std::mt19937 generator;
+
+	int onlyAdjust = (only == NA_INTEGER? 0 : only-1);
+	for (int repl=0; repl < numReplications && !isErrorRaised(); ++repl) {
+		if (INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam))[repl] != NA_INTEGER) continue;
+		if (verbose >= 2) mxLog("%s: replication %d", name, repl);
+		generator.seed(seed + repl + onlyAdjust);
+		for (auto &ctx : contexts) {
+			ctx.resample.assign(ctx.origCumSum.size(), 0.0);
+			int last = ctx.origCumSum.size() - 1;
+			int total = ctx.origCumSum[last];
+			std::uniform_int_distribution<int> dist(1, total);
+			for (int sx=0; sx < total; ++sx) {
+				int pick = dist(generator);
+				auto rowPick = std::lower_bound(ctx.origCumSum.begin(), ctx.origCumSum.end(), pick);
+				int row = rowPick - ctx.origCumSum.begin();
+				ctx.resample[row] += 1.0;
+			}
+			if (verbose >= 4) {
+				EigenStdVectorAdaptor<double> rs(ctx.resample);
+				mxPrintMat(ctx.expectation->name, rs);
+			}
+			ctx.expectation->setRowWeights(ctx.resample.data());
+			if (only != NA_INTEGER) {
+				onlyWeight.add(ctx.expectation->name, Rcpp::wrap(ctx.resample));
+			}
+		}
+		fc->getEst() = origEst;
+		plan->compute(fc);
+		fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
+		if (verbose >= 3) {
+			auto est = fc->getEst();
+			mxPrintMat("est", est);
+		}
+		REAL(VECTOR_ELT(rawOutput, 0))[repl] = fc->fit;
+		for (int px=0; px < int(fc->numParam); ++px) {
+			REAL(VECTOR_ELT(rawOutput, 1 + px))[repl] = fc->est[px];
+		}
+		INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam))[repl] = fc->wrapInform();
+		reportProgress(fc);
+	}
+
+	for (auto &ctx : contexts) {
+		ctx.expectation->setRowWeights(ctx.origRowWeights);
+	}
+
+	fc->getEst() = origEst;
+}
+
+void ComputeBootstrap::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan;
+	collectResultsHelper(fc, clist, lcr, out);
+}
+
+void ComputeBootstrap::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	// if only, report actual weights TODO
+
+	MxRList output;
+	output.add("numParam", Rcpp::wrap(int(fc->numParam)));
+	output.add("raw", rawOutput);
+	if (only != NA_INTEGER) {
+		output.add("weight", onlyWeight.asR());
+	}
+	slots->add("output", output.asR());
 }

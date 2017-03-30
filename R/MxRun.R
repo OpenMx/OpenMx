@@ -327,3 +327,41 @@ imxReportProgress <- function(info, eraseLen) {
 	cat(paste0("\r", info))
 	if (origLen == 0) cat("\r")
 }
+
+enumerateExpectations <- function(model) {
+	expectations <- c()
+	if (!is.null(model@expectation)) expectations <- c(expectations, model@name)
+	if (length(model@submodels)) {
+		expectations <- c(expectations, sapply(model@submodels, enumerateExpectations))
+	}
+	return(expectations)
+}
+
+mxBootstrap <- function(model, replications=200, quantile=c(.25,.75), ...,
+                        expectation=NULL, plan=NULL, verbose=0L,
+                        parallel=TRUE, seed=42L, only=as.integer(NA)) {
+  if (!is(model$compute, "MxComputeBootstrap")) {
+    if (!is.null(plan)) {
+      plan <- model$compute
+    }
+    if (missing(expectation)) {
+      expectation <- enumerateExpectations(model)
+    }
+    plan <- mxComputeBootstrap(expectation, plan)
+  } else {
+    if (!missing(plan)) stop(paste("Model", omxQuotes(model@name), "already has",
+                                   "a", omxQuotes(class(model$class)), "plan"))
+    plan <- model$compute
+  }
+
+  plan$replications <- as.integer(replications)
+  plan$quantile <- quantile
+  plan$seed <- as.integer(seed)
+  plan$verbose <- as.integer(verbose)
+  plan$parallel <- as.logical(parallel)
+  plan$seed <- as.integer(seed)
+  plan$only <- as.integer(only)
+  
+  model <- mxModel(model, plan)
+  mxRun(model)
+}

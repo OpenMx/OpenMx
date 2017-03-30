@@ -908,7 +908,7 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 	}
 	INTEGER(VECTOR_ELT(detail, 4+fc.numParam))[detailRow] = meth;
 	INTEGER(VECTOR_ELT(detail, 5+fc.numParam))[detailRow] = diag;
-	INTEGER(VECTOR_ELT(detail, 6+fc.numParam))[detailRow] = 1 + fc.getInform();
+	INTEGER(VECTOR_ELT(detail, 6+fc.numParam))[detailRow] = fc.wrapInform();
 	++detailRow;
 }
 
@@ -1592,21 +1592,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	SET_VECTOR_ELT(detail, 5+mle->numParam,
 		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
 				  OMX_STATIC_ARRAY_SIZE(diagLabels), diagLabels));
-	const char *statusCodeLabels[] = { // see ComputeInform type
-		"OK", "OK/green",
-		"infeasible linear constraint",
-		"infeasible non-linear constraint",
-		"iteration limit",
-		"not convex",
-		"nonzero gradient",
-		"bad deriv",
-		"?",
-		"internal error",
-		"infeasible start"
-	};
-	SET_VECTOR_ELT(detail, 6+mle->numParam,
-		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
-				  OMX_STATIC_ARRAY_SIZE(statusCodeLabels), statusCodeLabels));
+	SET_VECTOR_ELT(detail, 6+mle->numParam, allocInformVector(totalIntervals));
 
 	SEXP detailCols;
 	Rf_protect(detailCols = Rf_allocVector(STRSXP, numDetailCols));

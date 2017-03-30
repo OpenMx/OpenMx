@@ -99,6 +99,11 @@ class BA81Expect : public omxExpectation {
 	const char *getLatentIncompatible(BA81Expect *other);
 
 	void refreshPatternLikelihood(bool hasFreeLatent);
+
+	virtual bool hasRowWeights() { return true; };
+	virtual int getNumRows() { return data->rows; }
+	virtual double *getRowWeights() { return grp.rowWeight; }
+	virtual void setRowWeights(double *rw) { grp.rowWeight = rw; };
 };
 
 template <typename Tmean, typename Tcov>

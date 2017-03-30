@@ -112,6 +112,7 @@ enum omxFFCompute {
 	FF_COMPUTE_GRADIENT     = 1<<5,
 	FF_COMPUTE_HESSIAN      = 1<<6,
 	FF_COMPUTE_IHESSIAN     = 1<<7,
+	FF_COMPUTE_DERIV        = FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN,
 
 	// Use this to obtain a Hessian or Inverse Hessian evaluated at the MLE.
 	// Check FitContext::wanted to see which one you got. It may be
