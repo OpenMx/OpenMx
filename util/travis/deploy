@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -x
 set -o errexit
 
 if [ "$TRAVIS_OS_NAME" != "osx" ]; then exit; fi
 
 scp build/OpenMx_*.tgz jpritikinlocal@openmx.psyc.virginia.edu:/var/openmx/OpenMx2/packages/bin/macosx/travis/
+scp build/OpenMx_*.tgz jpritikinlocal@openmx.psyc.virginia.edu:/var/openmx/OpenMx2/packages/bin/macosx/travis/OpenMx_newest.tgz
 ssh jpritikinlocal@openmx.psyc.virginia.edu cd /var/openmx/OpenMx2/packages/bin/macosx/travis/ && ln -sf $(ls -t | head -1) OpenMx_latest.tgz
