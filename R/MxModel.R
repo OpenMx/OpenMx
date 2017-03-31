@@ -35,7 +35,7 @@ setClass(Class = "MxModel",
 		.resetdata = "logical",
 	        .wasRun = "logical",
 	    .modifiedSinceRun = "logical",
-	    .version = "character"
+	    .version = "MxVersionType"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
