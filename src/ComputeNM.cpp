@@ -424,6 +424,8 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	
 	nmoc.finalize();
 	
+	fc->wanted |= FF_COMPUTE_BESTFIT;
+	
 	return;
 }
 
