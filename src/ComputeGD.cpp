@@ -1733,6 +1733,8 @@ class ComputeTryH : public omxCompute {
 	Eigen::ArrayXd bestEst;
 	int bestStatus;
 	double bestFit;
+	Eigen::VectorXd solLB;
+	Eigen::VectorXd solUB;
 
 	static bool satisfied(FitContext *fc);
 public:
@@ -1742,6 +1744,7 @@ public:
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	void copyBounds(FitContext *fc);
 };
 
 omxCompute *newComputeTryHard()
@@ -1793,6 +1796,10 @@ void ComputeTryH::computeImpl(FitContext *fc)
 	Map< ArrayXd > curEst(fc->est, fc->numParam);
 	ArrayXd origStart = curEst;
 	bestEst = curEst;
+	
+	solLB.resize(curEst.size());
+	solUB.resize(curEst.size());
+	copyBounds(fc);
 
 	++invocations;
 
@@ -1829,6 +1836,8 @@ void ComputeTryH::computeImpl(FitContext *fc)
 				mxLog("%d %g %g", vx, adj1, adj2);
 			}
 			curEst[vx] = curEst[vx] * adj1 + adj2;
+			if(curEst[vx] < solLB[vx]){curEst[vx] = solLB[vx];}
+			if(curEst[vx] > solUB[vx]){curEst[vx] = solUB[vx];}
 		}
 
 		--retriesRemain;
@@ -1871,4 +1880,18 @@ void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	info.add("invocations", Rf_ScalarInteger(invocations));
 	info.add("retries", Rf_ScalarInteger(numRetries));
 	slots->add("debug", info.asR());
+}
+
+void ComputeTryH::copyBounds(FitContext *fc)
+{
+	FreeVarGroup *varGroup = fc->varGroup;
+	int px=0;
+	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		solLB[px] = varGroup->vars[vx]->lbound;
+		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
+		solUB[px] = varGroup->vars[vx]->ubound;
+		if (!std::isfinite(solUB[px])) solUB[px] = INF;
+		++px;
+	}
 }
