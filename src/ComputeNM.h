@@ -123,10 +123,10 @@ public:
 	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
 	void calculatePseudoHessian();
 	void finalize();
+	double gdso(unsigned n, const double *x, double *grad, void *f_data);
 	
 	std::vector<Eigen::VectorXd> vertices;	
 	Eigen::VectorXd est;
-	//Eigen::MatrixXd vertices;
 	Eigen::VectorXd fvals;
 	Eigen::VectorXi vertexInfeas;
 	Eigen::VectorXd solLB;
@@ -139,9 +139,7 @@ public:
 	Eigen::VectorXd xr, xe, xoc, xic;
 	Eigen::VectorXd oldWorstVertex;
 	Eigen::MatrixXd iniSimplexMat;
-	//Eigen::MatrixXd pseudohess;
-	
-	
-	
+	Eigen::VectorXd tentativpt;
+	Eigen::VectorXd gdpt;
 	
 };
