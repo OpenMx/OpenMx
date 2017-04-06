@@ -22,7 +22,7 @@ mxComputeNelderMead(
 	xTolProx=1e-8, fTolProx=1e-8,
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
-	eqConstraintMthd=c("soft","backtrack","l1p"),
+	eqConstraintMthd=c("soft","backtrack","GDsearch","l1p"),
 	backtrackCtrl=c(0.5,5))
 }
 \arguments{
