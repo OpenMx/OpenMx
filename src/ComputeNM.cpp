@@ -509,7 +509,8 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 //-------------------------------------------------------
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
-	: fc(_fc), NMobj(_nmo), numFree(countNumFree())
+	: fc(_fc), NMobj(_nmo), numFree(countNumFree()), 
+   subsidiarygoc(GradientOptimizerContext(_fc, _nmo->verbose,GradientAlgorithm_Forward, 1L, 1e-5))
 {
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());
@@ -551,6 +552,16 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	if(!numEqC){NMobj->eqConstraintMthd = 1;}
 	equality.resize(numEqC);
 	inequality.resize(numIneqC);
+	
+	if(numEqC + numIneqC || NMobj->eqConstraintMthd==3){
+		subsidiarygoc.optName = "SLSQP";
+		subsidiarygoc.ControlTolerance = 2 * Global->optimalityTolerance;
+		subsidiarygoc.useGradient = true;
+		subsidiarygoc.maxMajorIterations = Global->majorIterations;
+		subsidiarygoc.setupSimpleBounds();
+		subsidiarygoc.checkForAnalyticJacobians();
+		//Rf_error("so far, so good");
+	}
 }
 
 int NelderMeadOptimizerContext::countNumFree()
@@ -730,7 +741,21 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 			fv = bignum;
 			break;
 		case 3:
-			Rf_error("'GDsearch' Not Yet Implemented");
+			tentativpt = x;
+			omxInvokeSLSQPfromNelderMead(this, x);
+			checkNewPointInfeas(x, ifcr);
+			if(!ifcr.sum()){
+				infeas = 0L;
+				fv = evalFit(x);
+				if(fv==bignum){infeas=1L;}
+				return;
+			}
+			else{
+				fv = bignum;
+				infeas = 1L;
+				return;
+			}
+			//Rf_error("'GDsearch' Not Yet Implemented");
 		case 4:
 			fv = evalFit(x);
 			infeas = 1L;
@@ -790,7 +815,21 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 				return;
 			}
 		case 3:
-			Rf_error("'GDsearch' Not Yet Implemented");
+			tentativpt = newpt;
+			omxInvokeSLSQPfromNelderMead(this, newpt);
+			checkNewPointInfeas(newpt, ifcr);
+			if(!ifcr.sum()){
+				newInfeas = 0L;
+				fv = evalFit(newpt);
+				if(fv==bignum){newInfeas=1L;}
+				return;
+			}
+			else{
+				fv = bignum;
+				newInfeas = 1L;
+				return;
+			}
+			//Rf_error("'GDsearch' Not Yet Implemented");
 		case 4:
 			fv = evalFit(newpt);
 			newInfeas = 1L;
@@ -1556,4 +1595,19 @@ void NelderMeadOptimizerContext::finalize()
 	}
 	
 	fc->constraintFunVals = cfv;
+}
+
+
+double nmgdfso(unsigned n, const double *x, double *grad, void *f_data)
+{
+	NelderMeadOptimizerContext *nmoc = (NelderMeadOptimizerContext *) f_data;
+	int i;
+	double ssq=0, currdiff=0;
+	for(i=0; i < n; i++){
+		currdiff = x[i] - nmoc->tentativpt[i];
+		if(grad){grad[i] = 2*currdiff;}
+		currdiff *= currdiff;
+		ssq += currdiff;
+	}
+	return(ssq);
 }

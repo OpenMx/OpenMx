@@ -8,6 +8,7 @@
 #include "nloptcpp.h"
 #include "Compute.h"
 #include "ComputeGD.h"
+#include "ComputeNM.h"
 //#include "finiteDifferences.h"
 
 #include <Eigen/LU>
@@ -422,3 +423,52 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	}
 }
 
+
+void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt)
+{
+	double *est = gdpt.data();
+	
+	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, nmoc->numFree);
+	nlopt_set_lower_bounds(opt, nmoc->solLB.data());
+	nlopt_set_upper_bounds(opt, nmoc->solUB.data());
+	nlopt_set_ftol_rel(opt, nmoc->subsidiarygoc.ControlTolerance);
+	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
+	nlopt_set_min_objective(opt, nmgdfso, nmoc);
+	
+	double feasibilityTolerance = nmoc->NMobj->feasTol;
+	SLSQP::context ctx(nmoc->subsidiarygoc);
+	if (nmoc->numEqC + nmoc->numIneqC) {
+		ctx.origeq = nmoc->numEqC;
+		if (nmoc->numIneqC > 0){
+			nmoc->subsidiarygoc.inequality.resize(nmoc->numIneqC);
+			std::vector<double> tol(nmoc->numIneqC, feasibilityTolerance);
+			nlopt_add_inequality_mconstraint(opt, nmoc->numIneqC, SLSQP::nloptInequalityFunction, &(nmoc->subsidiarygoc), tol.data());
+		}
+		
+		if (nmoc->numEqC > 0){
+			nmoc->subsidiarygoc.equality.resize(nmoc->numEqC);
+			std::vector<double> tol(nmoc->numEqC, feasibilityTolerance);
+			nlopt_add_equality_mconstraint(opt, nmoc->numEqC, SLSQP::nloptEqualityFunction, &ctx, tol.data());
+		}
+	}
+	
+	struct nlopt_slsqp_wdump wkspc;
+	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
+	opt->work = (nlopt_slsqp_wdump*)&wkspc;
+	
+	double fit = 0;
+	int code = nlopt_optimize(opt, est, &fit);
+	if (ctx.eqredundent) {
+		nlopt_remove_equality_constraints(opt);
+		int eq = nmoc->numEqC - ctx.eqredundent;
+		std::vector<double> tol(eq, feasibilityTolerance);
+		nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
+		
+		code = nlopt_optimize(opt, est, &fit);
+	}
+	
+	opt->work = NULL;
+	nlopt_destroy(opt);
+	
+	return;
+}

@@ -123,7 +123,6 @@ public:
 	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
 	void calculatePseudoHessian();
 	void finalize();
-	double gdso(unsigned n, const double *x, double *grad, void *f_data);
 	
 	std::vector<Eigen::VectorXd> vertices;	
 	Eigen::VectorXd est;
@@ -140,6 +139,11 @@ public:
 	Eigen::VectorXd oldWorstVertex;
 	Eigen::MatrixXd iniSimplexMat;
 	Eigen::VectorXd tentativpt;
-	Eigen::VectorXd gdpt;
+	//Eigen::VectorXd gdpt;
+
+	GradientOptimizerContext subsidiarygoc;
 	
 };
+
+double nmgdfso(unsigned n, const double *x, double *grad, void *f_data);
+void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt);
