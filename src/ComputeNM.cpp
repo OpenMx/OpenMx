@@ -500,7 +500,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	
 	Rf_protect(bf = Rf_allocVector(REALSXP, 1));
 	memcpy( REAL(bf), &bestfitOut, sizeof(double) );
-	output.add("fit", bf);
+	output.add("penalizedFit", bf);
 	
 	slots->add("output", output.asR());
 	return;
