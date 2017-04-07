@@ -743,6 +743,10 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 		case 3:
 			tentativpt = x;
 			omxInvokeSLSQPfromNelderMead(this, x);
+			if (NMobj->verbose >= 3) {
+				mxPrintMat("tentative point", tentativpt);
+				mxPrintMat("replacement point", x);
+			}
 			checkNewPointInfeas(x, ifcr);
 			if(!ifcr.sum()){
 				infeas = 0L;
@@ -817,6 +821,10 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 		case 3:
 			tentativpt = newpt;
 			omxInvokeSLSQPfromNelderMead(this, newpt);
+			if (NMobj->verbose >= 3) {
+				mxPrintMat("tentative point", tentativpt);
+				mxPrintMat("replacement point", newpt);
+			}
 			checkNewPointInfeas(newpt, ifcr);
 			if(!ifcr.sum()){
 				newInfeas = 0L;

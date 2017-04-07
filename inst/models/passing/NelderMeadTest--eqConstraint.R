@@ -64,6 +64,7 @@ omxCheckCloseEnough(m1run$output$estimate, m2run$output$estimate, 0.01)
 #Run with Nelder-Mead, with different arguments:
 ism3 <- ism
 ism3[4,4] <- 0.46
+#^^^Note that now, it is not the case that all of the initial vertices are feasible
 colnames(ism3) <- c("pred","pyellow","pgreen","pblue")
 foo3 <- mxComputeNelderMead(
 	iniSimplexMat=ism3, nudgeZeroStarts=FALSE, xTolProx=1e-12, fTolProx=1e-8, eqConstraintMthd="backtrack")
@@ -109,6 +110,7 @@ m4 <- mxModel(
 	mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying")
 )
 m4run <- mxRun(m4)
+#The l1p isn't that helpful in this case, either:
 summary(m4run)
 #Penalized fit should be slightly greater than raw fit:
 omxCheckTrue(m4run$compute$steps[[1]]$output$fit > m4run$output$fit)
@@ -134,4 +136,6 @@ m5 <- mxModel(
 	mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying")
 )
 m5run <- mxRun(m5)
+#The GDsearch method actually gets the answer:
 summary(m5run)
+omxCheckCloseEnough(m1run$output$estimate, m5run$output$estimate, 1e-4)
