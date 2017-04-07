@@ -510,7 +510,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
 	: fc(_fc), NMobj(_nmo), numFree(countNumFree()), 
-   subsidiarygoc(GradientOptimizerContext(_fc, _nmo->verbose,GradientAlgorithm_Forward, 1L, 1e-5))
+   subsidiarygoc(GradientOptimizerContext(_fc, 0L, GradientAlgorithm_Forward, 1L, 1e-5))
 {
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());
