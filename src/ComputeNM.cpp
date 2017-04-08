@@ -30,6 +30,8 @@
 #include <Rmath.h>
 #include <R_ext/Utils.h>
 
+#include "nlopt.h"
+#include "nlopt-internal.h"
 #include "EnableWarnings.h"
 
 static const char engineName[] = "NldrMd";
@@ -741,10 +743,13 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 			fv = bignum;
 			break;
 		case 3:
+			gdfsIter = 0;
 			tentativpt = x;
-			omxInvokeSLSQPfromNelderMead(this, x);
 			if (NMobj->verbose >= 3) {
 				mxPrintMat("tentative point", tentativpt);
+			}
+			omxInvokeSLSQPfromNelderMead(this, x);
+			if (NMobj->verbose >= 3) {
 				mxPrintMat("replacement point", x);
 			}
 			checkNewPointInfeas(x, ifcr);
@@ -819,10 +824,13 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 				return;
 			}
 		case 3:
+			gdfsIter = 0;
 			tentativpt = newpt;
-			omxInvokeSLSQPfromNelderMead(this, newpt);
 			if (NMobj->verbose >= 3) {
 				mxPrintMat("tentative point", tentativpt);
+			}
+			omxInvokeSLSQPfromNelderMead(this, newpt);
+			if (NMobj->verbose >= 3) {
 				mxPrintMat("replacement point", newpt);
 			}
 			checkNewPointInfeas(newpt, ifcr);
@@ -1609,8 +1617,15 @@ void NelderMeadOptimizerContext::finalize()
 double nmgdfso(unsigned n, const double *x, double *grad, void *f_data)
 {
 	NelderMeadOptimizerContext *nmoc = (NelderMeadOptimizerContext *) f_data;
+	nlopt_opt opt = (nlopt_opt) nmoc->extraData;
 	int i;
 	double ssq=0, currdiff=0;
+	if(grad){
+		if(nmoc->gdfsIter >= nmoc->subsidiarygoc.maxMajorIterations){
+			nlopt_force_stop(opt);
+		}
+		(nmoc->gdfsIter)++;
+	}
 	for(i=0; i < n; i++){
 		currdiff = x[i] - nmoc->tentativpt[i];
 		if(grad){grad[i] = 2*currdiff;}

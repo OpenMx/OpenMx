@@ -142,6 +142,8 @@ public:
 	//Eigen::VectorXd gdpt;
 
 	GradientOptimizerContext subsidiarygoc;
+	void *extraData;
+	int gdfsIter;
 	
 };
 

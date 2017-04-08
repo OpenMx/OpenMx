@@ -113,7 +113,7 @@ m4run <- mxRun(m4)
 #The l1p isn't that helpful in this case, either:
 summary(m4run)
 #Penalized fit should be slightly greater than raw fit:
-omxCheckTrue(m4run$compute$steps[[1]]$output$fit > m4run$output$fit)
+omxCheckTrue(m4run$compute$steps[[1]]$output$penalizedFit > m4run$output$fit)
 
 #GDsearch:
 foo5 <- mxComputeNelderMead(

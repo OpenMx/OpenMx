@@ -429,6 +429,7 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	double *est = gdpt.data();
 	
 	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, nmoc->numFree);
+	nmoc->extraData = opt;
 	nlopt_set_lower_bounds(opt, nmoc->solLB.data());
 	nlopt_set_upper_bounds(opt, nmoc->solUB.data());
 	nlopt_set_ftol_rel(opt, nmoc->subsidiarygoc.ControlTolerance);
