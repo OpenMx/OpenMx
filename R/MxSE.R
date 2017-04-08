@@ -101,7 +101,7 @@ mxSE <- function(x, model, details=FALSE, ...){
 	zoutVec <- sefun(x=freeparams, model=model, alg=x)
 	
 	if(length(model@output) > 0){
-		if(!single.na(model@output$infoDefinite)){
+		if(length(model@output$infoDefinite) && !single.na(model@output$infoDefinite)){
 			if(model@output$infoDefinite){
 				# solve() will fail if Hessian is computationally singular;
 				# chol2inv() will still fail if Hessian is exactly singular.
