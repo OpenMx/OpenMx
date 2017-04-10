@@ -1414,6 +1414,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 		
 		eucentroidPrev = eucentroidCurr;
 		itersElapsed++;
+		Global->reportProgress("MxComputeNelderMead", fc);
 	} while (!stopflag);
 	
 	est = vertices[0];
