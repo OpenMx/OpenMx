@@ -234,7 +234,7 @@ m13 <- mxModel(
 # m13 <- mxOption(m13,"Always Checkpoint","Yes")
 # m13 <- mxOption(m13,"Checkpoint Units","minutes")
 # m13 <- mxOption(m13,"Checkpoint Count",1)
-m14 <- mxRun(m13, checkpoint=T)
+m14 <- mxRun(m13)
 summary(m14)
 #Evaluations of the feasibility-search object count toward the total number of function evaluations:
 m14$output$evaluations
