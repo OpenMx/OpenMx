@@ -264,7 +264,7 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt
 static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const double feasTol){
 	int code = 0, i=0, arows=0;
 	//Nothing to do here if there are no MxConstraints:
-	if(!goc.constraintFunValsOut.size()){return(code);}
+	if(!goc.constraintFunValsOut.size() || goc.doingCI()){return(code);}
 	//First see if bounds are satisfied:
 	for(i=0; i<goc.est.size(); i++){
 		if(goc.solLB[i]-goc.est[i] > feasTol || goc.est[i]-goc.solUB[i] > feasTol){
@@ -282,9 +282,13 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 			arows++;
 		}
 	}
-	if(arows && false){
+	if(arows){ //&& false){
 		int j=0;
-		double gradThresh = Global->getGradientThreshold(goc.getFit());
+		//Per its documentation, this is NPSOL's criterion for first-order optimality conditions:
+		double gradThresh = sqrt(Global->optimalityTolerance) * ( 1 + fmax(1 + fabs(goc.getFit()), sqrt(goc.grad.dot(goc.grad)) ) );
+		if (goc.verbose >= 2) {
+			mxLog("gradient 'threshold': %f", gradThresh);
+		}
 		Eigen::MatrixXd A(arows, goc.constraintJacobianOut.cols()); //<--Jacobian of active constraints
 		A.setZero(arows, goc.constraintJacobianOut.cols());
 		for(i=0; i<goc.constraintFunValsOut.size(); i++){
@@ -297,12 +301,11 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 			Eigen::FullPivLU< Eigen::MatrixXd > lua(A);
 			Eigen::MatrixXd Z = lua.kernel();
 			Eigen::VectorXd gz = Z.transpose() * goc.grad;
-			for(i=0; i<gz.size(); i++){
-				if(fabs(gz[i])>gradThresh){
-					code=6;
-					break;
-				}
+			double rgnorm = sqrt(gz.dot(gz));
+			if (goc.verbose >= 2) {
+				mxLog("reduced-gradient norm: %f", rgnorm);
 			}
+			if(rgnorm > gradThresh){code=6;}
 		}
 	}
 	
