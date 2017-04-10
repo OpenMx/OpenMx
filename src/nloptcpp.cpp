@@ -462,6 +462,9 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
+	if(nmoc->verbose){
+		mxLog("subsidiary SLSQP job returned NLOPT code %d", code);
+	}
 	if (ctx.eqredundent) {
 		nlopt_remove_equality_constraints(opt);
 		int eq = nmoc->numEqC - ctx.eqredundent;

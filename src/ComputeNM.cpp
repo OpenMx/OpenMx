@@ -1619,7 +1619,7 @@ double nmgdfso(unsigned n, const double *x, double *grad, void *f_data)
 {
 	NelderMeadOptimizerContext *nmoc = (NelderMeadOptimizerContext *) f_data;
 	nlopt_opt opt = (nlopt_opt) nmoc->extraData;
-	int i;
+	unsigned i;
 	double ssq=0, currdiff=0;
 	if(grad){
 		if(nmoc->gdfsIter >= nmoc->subsidiarygoc.maxMajorIterations){
