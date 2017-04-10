@@ -287,7 +287,11 @@ imxWlsChiSquare <- function(model, J=NA){
 		} else {
 			expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
 		}
-		W <- MASS::ginv(model$data$fullWeight)
+		if (single.na(model$data$fullWeight)) {
+			W <- diag(1, nrow(model$data$acov))
+		} else {
+			W <- MASS::ginv(model$data$fullWeight)
+		}
 	}
 	
 	if( !(all(sD == TRUE) || all(sD == FALSE)) ){
