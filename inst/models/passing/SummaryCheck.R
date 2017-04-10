@@ -67,8 +67,7 @@ omxCheckCloseEnough(cmp$diffLL[2], 49.764, 1e-2)
 omxCheckCloseEnough(cmp$diffdf[2], 34)
 omxCheckCloseEnough(cmp$p[2], 0.03961044, 1e-3)
 
-cmp <- omxCheckWarning(mxCompare(raw.fit, raw.fit),
-                       "Model 'Raw Test Model to Check MxSummary' has the same degrees of freedom as Raw Test Model to Check MxSummary which means the models are not nested and should not be compared with the likelihood ratio test. Compare these models using the information criteria statistics")
+cmp <- mxCompare(raw.fit, raw.fit)
 omxCheckTrue(is.na(cmp$p[2]))
 
 cmp <- omxCheckWarning(mxCompare(raw.fit, sat.fit[['Saturated']]),
