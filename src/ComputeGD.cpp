@@ -1884,7 +1884,6 @@ void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 void ComputeTryH::copyBounds(FitContext *fc)
 {
-	FreeVarGroup *varGroup = fc->varGroup;
 	int px=0;
 	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
 		if (fc->profiledOut[vx]) continue;
