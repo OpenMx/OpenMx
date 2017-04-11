@@ -589,7 +589,10 @@ kalmanBackendScoreHelper <- function(model, data=NA){
 	if(!single.na(data)){
 		model@data <- mxData(data, type='raw')
 	}
-	model <- omxSetParameters(model, labels=names(coef(model)), free=FALSE)
+	param <- coef(model)
+	if(length(param) > 0){
+		model <- omxSetParameters(model, labels=names(param), free=FALSE)
+	}
 	e <- model@expectation
 	model <- mxModel(model=model, name='KalmanScoring',
 		mxExpectationStateSpace(
