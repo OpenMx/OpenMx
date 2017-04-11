@@ -378,7 +378,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 			return;
 		}
 
-		Global->reportProgress("MxComputeNewtonRaphson", fc);
+		reportProgress(fc);
 
 		converged = relImprovement(improvement) < tolerance;
 

@@ -2275,7 +2275,7 @@ void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBa
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
 	result = fc->grad;
-	Global->reportProgress("MxComputeEM", fc);
+	reportProgress(fc);
 }
 
 void ComputeEM::Oakes(FitContext *fc)

@@ -215,7 +215,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	Eigen::Map< Eigen::VectorXd > Est(myPars, fc->numParam);
 	if (*mode == 1) {
 		fc->iterations += 1;
-		Global->reportProgress("MxComputeGradientDescent", fc);
+		Global->reportProgress(optName, fc);
 	}
 	copyFromOptimizer(myPars, fc);
 
