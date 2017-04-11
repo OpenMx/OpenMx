@@ -115,7 +115,7 @@ ml.L <- mxEval(L, thresholdModelrun) #should be all 0.7
 ml.T <- mxEval(thresholdMatrix, thresholdModelrun) #should be all quants
 
 auto.L <- mxEval(L, thresholdModelAuto)
-auto.T <- mxEval(thresholdMatrix, thresholdModelAuto)
+auto.T <- mxEval(thresholdMatrix, thresholdModelAuto, compute=TRUE)
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
@@ -125,6 +125,9 @@ omxCheckTrue(rms(ml.L, auto.L) < 0.05)
 
 omxCheckTrue(rms(wls.T, quants) < 0.08)
 rms(ml.T, quants)
+
+omxCheckTrue(rms(wls.L, auto.L) < 1e-6)
+omxCheckTrue(rms(wls.T, auto.T) < 1e-6)
 
 ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
 wls.sum <- summary(thresholdModelWLSrun)
