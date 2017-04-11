@@ -259,7 +259,7 @@ runHelper <- function(model, frontendStart,
 			model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
 			wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
 		} else {
-			wlsChi <- imxWlsChiSquare(model, J=NA)
+			wlsChi <- list(Chi=NA, ChiDoF=NA)
 		}
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF
