@@ -153,11 +153,13 @@ doc.tar.bz2: html pdf
 
 install: code-style
 	./util/prep npsol
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) .
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) . ;\
+	git checkout DESCRIPTION
 
 cran-install: code-style
 	./util/prep cran
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) .
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) . ;\
+	git checkout DESCRIPTION
 
 rproftest:
 	$(REXEC) --vanilla --slave < $(RPROFTESTFILE)
