@@ -331,6 +331,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 		}
 	}
 
+	numParams = 0;
 	totalProbeCount = 0;
 	detail = 0;
 }
