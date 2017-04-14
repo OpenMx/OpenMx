@@ -1693,7 +1693,7 @@ setMethod("updateFromBackend", signature("MxComputeBootstrap"),
 				pct <- round(100*sum(mask) / nrow(raw))
 				warning(paste0("Only ",pct,"% of the bootstrap replications ",
 					       "converged. Accuracy is much less than the ", nrow(raw),
-					       "replications requested"))
+					       " replications requested"), call.=FALSE)
 			}
 			.Object@output$result <- t(sapply(raw[mask,2:(1+np)], quantile, probs=.Object@quantile))
 		}
@@ -1716,7 +1716,7 @@ mxComputeBootstrap <- function(expectation, plan, replications=200, quantile=c(.
 		e1
 	}, "")
 
-	new("MxComputeBootstrap", freeSet, expectation, plan, as.integer(replications), quantile,
+	new("MxComputeBootstrap", freeSet, expectation, plan, as.integer(replications), sort(quantile),
 	    as.integer(verbose), parallel, seed, OK, only)
 }
 

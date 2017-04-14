@@ -54,11 +54,16 @@ enum JointStrategy {
 struct sufficientSet {
 	int                  start;
 	int                  length;
+	int                  rows;   // accounting for row weights
 	Eigen::MatrixXd      dataCov;
 	Eigen::VectorXd      dataMean;
 };
 
-struct omxFIMLFitFunction : omxFitFunction {
+class omxFIMLFitFunction : public omxFitFunction {
+	bool builtCache;
+ public:
+	const int ELAPSED_HISTORY_SIZE = 5;
+
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
 	omxMatrix* cov;				// Covariance Matrix
@@ -112,6 +117,7 @@ struct omxFIMLFitFunction : omxFitFunction {
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
+	virtual void invalidateCache();
 
 	// --- old stuff below
 
@@ -166,6 +172,7 @@ class mvnByRow {
 	omxFIMLFitFunction *parent;
 	int sortedRow;  // it's really the unsorted row (row in the original data); rename TODO
 	bool useSufficientSets;
+	double *rowWeight;
 
 	int rowOrdinal;
 	int rowContinuous;
@@ -222,6 +229,7 @@ class mvnByRow {
 		ordColBuf.resize(numOrdinal);
 		isMissing.resize(dataColumns.size());
 		useSufficientSets = ofiml->useSufficientSets;
+		rowWeight = data->getWeightColumn();
 		verbose = ofiml->verbose;
 
 		if (fc->isClone()) {  // rowwise parallel
@@ -331,6 +339,7 @@ class mvnByRow {
 		if (returnRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
 			double rowLik = exp(contLogLik) * ordLik;
+			if (rowWeight && rowWeight[sortedRow] != 1.0) rowLik = pow(rowLik, rowWeight[sortedRow]);
 			rl[sortedRow] = rowLik;
 			row += 1;
 			while (row < data->rows && sameAsPrevious[row]) {
@@ -340,6 +349,7 @@ class mvnByRow {
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
 			double rowLogLik = contLogLik + log(ordLik);
+			if (rowWeight) rowLogLik *= rowWeight[sortedRow];
 			rl[0] += rowLogLik;
 			row += 1;
 			while (row < data->rows && sameAsPrevious[row]) {

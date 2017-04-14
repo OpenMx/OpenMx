@@ -73,16 +73,12 @@ class omxExpectation {					// An Expectation
 	virtual void print();
 	virtual void populateAttr(SEXP expectation) {};
 
-	virtual bool hasRowWeights() { return false; };
-	virtual int getNumRows() { return 0; }
-	virtual double *getRowWeights() { return 0; }
-	virtual void setRowWeights(double *) {};
-	
 	// getComponent & mutate probably take encapsulation a little too seriously.
 	// The Fit function should probably just include the structure definition
 	// for the expectation and access fields directly or through object methods.
 	virtual omxMatrix *getComponent(const char*) { return 0; }
 	virtual void mutate(const char*, omxMatrix*) {};
+	virtual void invalidateCache() {};
 
 	void loadFromR();
 	bool loadDefVars(int row);

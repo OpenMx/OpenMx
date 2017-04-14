@@ -60,6 +60,7 @@ setClass(Class = "MxDataStatic",
 		.isSorted = "logical",  # never sorted anymore, remove slot? TODO
 	     .needSort = "logical",
 	     primaryKey = "MxCharOrNumber",
+	     weight = "MxCharOrNumber",
 		name   = "character"))
 
 setClass(Class = "MxDataDynamic",
@@ -75,7 +76,7 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds,
-		   sort, primaryKey) {
+		   sort, primaryKey, weight) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -97,6 +98,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@.needSort <- sort
 		.Object@.isSorted <- FALSE
 		.Object@primaryKey <- primaryKey
+		.Object@weight <- weight
 		return(.Object)
 	}
 )
@@ -145,7 +147,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 }
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ...,
-		   sort=NA, primaryKey = as.character(NA)) {
+		   sort=NA, primaryKey = as.character(NA), weight = as.character(NA)) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -156,6 +158,11 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	if (length(thresholds) == 1 && is.na(thresholds)) thresholds <- matrix(as.numeric(NA))
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
+	}
+	dups <- duplicated(colnames(observed))
+	if (any(dups)) {
+		stop(paste("Column names must be unique. Duplicated:",
+			   omxQuotes(colnames(observed)[dups])))
 	}
 	if (missing(type) || (!is.character(type)) || (length(type) > 1) || 
 		is.na(match(type, imxDataTypes))) {
@@ -172,14 +179,6 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
-	}
-	if (type == "raw" && missing(numObs)) {
-		numObs <- nrow(observed)
-		dups <- duplicated(colnames(observed))
-		if (any(dups)) {
-			stop(paste("Column names must be unique. Duplicated:",
-				   omxQuotes(colnames(observed)[dups])))
-		}
 	}
 	if (type == "cov") {
 		verifyCovarianceMatrix(observed)
@@ -208,7 +207,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 			stop("The fullWeight argument to mxData is only allowed for data with type='acov'")
 		}
 	}
-	numObs <- as.numeric(numObs)
+
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
 	if(is.matrix(means)){meanNames <- colnames(means)} else {meanNames <- names(means)}
 	means <- as.matrix(means)
@@ -227,7 +226,38 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		}
 	}
 
-	return(new("MxDataStatic", observed, means, type, numObs, acov, fullWeight, thresholds, sort, primaryKey))
+	if (length(weight) > 1) {
+		stop("Only one weight column can be specified")
+	} else if (!is.na(weight)) {
+		if (type != "raw") {
+			stop(paste("Raw data is required when a weight column is provided"))
+		}
+		if (!(weight %in% colnames(observed))) {
+			stop(paste("Weight column", omxQuotes(weight),
+				   "must be provided in the observed data"))
+		}
+	}
+	if (type == "raw") {
+		if (!is.na(weight)) {
+			obsCount <- sum(observed[[weight]])
+		} else {
+			obsCount <- nrow(observed)
+		}
+
+		if (missing(numObs)) {
+			numObs <- obsCount
+		} else {
+			if (numObs != obsCount) {
+				# stop?
+				warning(paste("numObs of", numObs, "does not match the number of observations",
+					      "found in the observed data", obsCount,
+					      "(maybe specify weight='column' instead of numObs =",numObs,")"))
+			}
+		}
+	}
+
+	return(new("MxDataStatic", observed, means, type, as.numeric(numObs), acov, fullWeight,
+		   thresholds, sort, primaryKey, weight))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -286,6 +316,19 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 				  data@primaryKey <- pk
 			  } else {
 				  data@primaryKey <- 0L
+			  }
+		  }
+		  if (.hasSlot(data, 'weight')) {
+			  if (!is.na(data@weight)) {
+				  wc <- match(data@weight, colnames(data@observed))
+				  if (is.na(wc)) {
+					  msg <- paste("Weight column", omxQuotes(data@weight),
+						       "not found in observed data columns")
+					  stop(msg, call.=FALSE)
+				  }
+				  data@weight <- wc
+			  } else {
+				  data@weight <- 0L
 			  }
 		  }
 

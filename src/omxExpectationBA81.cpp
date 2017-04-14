@@ -501,23 +501,20 @@ void BA81Expect::init() {
 		weightCol = INTEGER(tmp)[0];
 	}
 
-	if (weightCol == NA_INTEGER) {
-		// Should rowMap be part of omxData? This is essentially a
-		// generic compression step that shouldn't be specific to IFA models.
+	if (weightCol == NA_INTEGER && !data->hasWeight()) {
 		state->grp.rowWeight = (double*) R_alloc(data->rows, sizeof(double));
-		rowMap.resize(data->rows);
-		int numUnique = 0;
-		for (int rx=0; rx < data->rows; ) {
-			int rw = 1;
-			state->grp.rowWeight[numUnique] = rw;
-			rowMap[numUnique] = rx;
-			rx += rw;
-			++numUnique;
+		for (int rx=0; rx < data->rows; ++rx) {
+			state->grp.rowWeight[rx] = 1.0;
 		}
-		rowMap.resize(numUnique);
 		state->weightSum = state->data->rows;
-	}
-	else {
+	} else if (data->hasWeight()) {
+		if (weightCol != NA_INTEGER) {
+			Rf_warning("Data '%s' already has a weight column; "
+				   "weight column provided to '%s' ignored", data->name, name);
+		}
+		state->grp.rowWeight = data->getWeightColumn();
+		state->weightSum = omxDataNumObs(data);
+	} else if (weightCol != NA_INTEGER) {
 		if (omxDataColumnIsFactor(data, weightCol)) {
 			omxRaiseErrorf("%s: weightColumn %d is a factor", name, 1 + weightCol);
 			return;
@@ -525,12 +522,14 @@ void BA81Expect::init() {
 		state->grp.rowWeight = omxDoubleDataColumn(data, weightCol);
 		state->weightSum = 0;
 		for (int rx=0; rx < data->rows; ++rx) { state->weightSum += state->grp.rowWeight[rx]; }
-		rowMap.resize(data->rows);
-		for (size_t rx=0; rx < rowMap.size(); ++rx) {
-			rowMap[rx] = rx;
-		}
 	}
+
 	// complain about non-integral rowWeights (EAP can't work) TODO
+
+	rowMap.resize(data->rows);
+	for (size_t rx=0; rx < rowMap.size(); ++rx) {
+		rowMap[rx] = rx;
+	}
 
 	auto colMap = getDataColumns();
 
@@ -610,6 +609,11 @@ void BA81Expect::init() {
 		state->estLatentCov = omxInitMatrix(maxAbilities, maxAbilities, TRUE, currentState);
 		omxCopyMatrix(state->estLatentCov, state->_latentCovOut);
 	}
+}
+
+void BA81Expect::invalidateCache()
+{
+	grp.rowWeight = data->getWeightColumn();
 }
 
 const char *BA81Expect::getLatentIncompatible(BA81Expect *other)

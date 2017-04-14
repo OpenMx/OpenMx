@@ -339,9 +339,10 @@ enumerateExpectations <- function(model) {
 
 mxBootstrap <- function(model, replications=200, quantile=c(.25,.75), ...,
                         expectation=NULL, plan=NULL, verbose=0L,
-                        parallel=TRUE, seed=42L, only=as.integer(NA)) {
+                        parallel=TRUE, seed=42L, only=as.integer(NA),
+			OK=c("OK", "OK/green")) {
   if (!is(model$compute, "MxComputeBootstrap")) {
-    if (!is.null(plan)) {
+    if (missing(plan)) {
       plan <- model$compute
     }
     if (missing(expectation)) {
@@ -361,6 +362,7 @@ mxBootstrap <- function(model, replications=200, quantile=c(.25,.75), ...,
   plan$parallel <- as.logical(parallel)
   plan$seed <- as.integer(seed)
   plan$only <- as.integer(only)
+  plan$OK <- OK
   
   model <- mxModel(model, plan)
   mxRun(model)

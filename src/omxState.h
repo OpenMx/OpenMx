@@ -315,6 +315,7 @@ class omxState {
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out, FitContext *fc);
+	void invalidateCache();
 	~omxState();
 
 	omxMatrix *lookupDuplicate(omxMatrix *element) const;

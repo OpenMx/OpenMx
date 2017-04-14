@@ -2237,6 +2237,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 			observedFit(fc);
 		}
 
+		if (!std::isfinite(fc->fit)) {
+			omxRaiseErrorf("%s: fit not finite in iteration %d", name, EMcycles);
+		}
+
 		double change = 0;
 		if (prevFit != 0) {
 			if (verbose >= 5) {
@@ -2820,6 +2824,8 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+
 	fc->allocStderrs();  // at least report NAs
 
 	const size_t numParams = fc->numParam;
@@ -2850,6 +2856,8 @@ void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
 	if (fc->infoDefinite != NA_LOGICAL || !doubleEQ(fc->infoCondNum, NA_REAL)) {
@@ -2971,15 +2979,25 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 		context ctx;
 		ctx.expectation = globalState->expectationList[objNum];
 		omxCompleteExpectation(ctx.expectation);
-		if (!ctx.expectation->hasRowWeights()) {
-			Rf_error("%s: expectation '%s' does not have row weights",
+		if (!ctx.expectation->data) {
+			Rf_error("%s: '%s' does not have data",
 				 name, ctx.expectation->name);
 		}
-		ctx.origRowWeights = ctx.expectation->getRowWeights();
-		ctx.origCumSum.resize(ctx.expectation->getNumRows());
+		omxData *data = ctx.expectation->data;
+		int numRows = data->numRawRows();
+		if (!numRows) {
+			Rf_error("%s: '%s' cannot have row weights",
+				 name, ctx.expectation->name);
+		}
+		ctx.origRowWeights = data->getWeightColumn();
+		ctx.origCumSum.resize(numRows);
 		ctx.resample.resize(ctx.origCumSum.size());
-		std::partial_sum(ctx.origRowWeights, ctx.origRowWeights + ctx.origCumSum.size(),
-				 ctx.origCumSum.begin());
+		if (ctx.origRowWeights) {
+			std::partial_sum(ctx.origRowWeights, ctx.origRowWeights + ctx.origCumSum.size(),
+					 ctx.origCumSum.begin());
+		} else {
+			for (int rx=0; rx < numRows; ++rx) ctx.origCumSum[rx] = 1+rx;
+		}
 		contexts.push_back(ctx);
 	}
 
@@ -3094,14 +3112,17 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 				EigenStdVectorAdaptor<double> rs(ctx.resample);
 				mxPrintMat(ctx.expectation->name, rs);
 			}
-			ctx.expectation->setRowWeights(ctx.resample.data());
+			ctx.expectation->data->setWeightColumn(ctx.resample.data());
 			if (only != NA_INTEGER) {
 				onlyWeight.add(ctx.expectation->name, Rcpp::wrap(ctx.resample));
 			}
 		}
+		fc->state->invalidateCache();
 		fc->getEst() = origEst;
 		plan->compute(fc);
-		fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
+		if (only == NA_INTEGER) {
+			fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
+		}
 		if (verbose >= 3) {
 			auto est = fc->getEst();
 			mxPrintMat("est", est);
@@ -3115,10 +3136,14 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	}
 
 	for (auto &ctx : contexts) {
-		ctx.expectation->setRowWeights(ctx.origRowWeights);
+		ctx.expectation->data->setWeightColumn(ctx.origRowWeights);
 	}
 
-	fc->getEst() = origEst;
+	if (only == NA_INTEGER) {
+		fc->setInform(INFORM_UNINITIALIZED);
+		fc->getEst() = origEst;
+		fc->copyParamToModel();
+	}
 }
 
 void ComputeBootstrap::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
@@ -3131,8 +3156,6 @@ void ComputeBootstrap::collectResults(FitContext *fc, LocalComputeResult *lcr, M
 
 void ComputeBootstrap::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
-	// if only, report actual weights TODO
-
 	MxRList output;
 	output.add("numParam", Rcpp::wrap(int(fc->numParam)));
 	output.add("raw", rawOutput);
