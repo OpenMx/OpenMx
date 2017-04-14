@@ -582,9 +582,16 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	
 	#TODO Figure out why certain elements of fullJac end up missing when the data are missing.
 	quad <- (n-1)*var(fullJac, use="pairwise.complete.obs") #bc colMeans all zero == t(fullJac) %*% fullJac
+	quad[is.na(quad)] <- 0
 	sel  <- diag(quad)!=0
 	iqj  <- matrix(0, dim(quad)[1], dim(quad)[2])
-	iqj[sel,sel] <- solve(quad[sel, sel])
+	attIqj <- try(solve(quad[sel, sel]))
+	if(class(attIqj) %in% "try-error"){
+		iqj[sel,sel] <- MASS::ginv(quad[sel, sel])
+		warning('First derivative matrix was not intertible. Used pseudo-inverse instead.')
+	} else {
+		iqj[sel,sel] <- attIqj
+	}
 	
 	# make the weight matrix!!!
 	wls <- fullHess %*% iqj %*% fullHess
