@@ -5,6 +5,12 @@
 #
 # Revision History
 #   Hermine Maes -- Wed Sep 25 11:45:52 EDT 2009 UnivariateTwinAnalysis20090925.R
+# 	TBATES: 2017-04-14 04:18PM
+# 	Fixed script bug (DataMZ instead of MZ and DataDZ instead of DZ as the data names)
+# 	Replace out of date mxFIMLObjective calls
+# 	add mxFitFunctionMultigroup(c("MZ", "DZ"))
+#   Gave up as there are additional script errors (like using the model object as a string)
+# 	and no erorr is identified in this script.
 # TODO include equivalent file for mx 1.x 
 # TODO: Add omxCheckCloseEnough() calls
 # -----------------------------------------------------------------------
@@ -21,16 +27,16 @@ c2<-0.3		#Common environment variance component (c squared)
 e2<-0.2		#Specific environment variance component (e squared)
 rMZ <- a2+c2
 rDZ <- .5*a2+c2
-MZ  <- mvrnorm (1000, c(0,0), matrix(c(1,rMZ,rMZ,1),2,2))
-DZ  <- mvrnorm (1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
+DataMZ <- mvrnorm(1000, c(0,0), matrix(c(1,rMZ,rMZ,1),2,2))
+DataDZ <- mvrnorm(1000, c(0,0), matrix(c(1,rDZ,rDZ,1),2,2))
 
 selVars <- c('t1','t2')
 dimnames(DataMZ) <- list(NULL,selVars)
 dimnames(DataDZ) <- list(NULL,selVars)
 summary(DataMZ)
 summary(DataDZ)
-colMeans(DataMZ,na.rm=TRUE)
-colMeans(DataDZ,na.rm=TRUE)
+colMeans(DataMZ, na.rm=TRUE)
+colMeans(DataDZ, na.rm=TRUE)
 cov(DataMZ,use="complete")
 cov(DataDZ,use="complete")
 
@@ -41,18 +47,20 @@ twinSatModel <- mxModel("twinSat",
 		mxMatrix("Full", 1, 2, T, c(0,0), dimnames=list(NULL, selVars), name="expMeanMZ"), 
 		mxMatrix("Lower", 2, 2, T, .5, dimnames=list(selVars, selVars), name="CholMZ"), 
 		mxAlgebra(CholMZ %*% t(CholMZ), name="expCovMZ", dimnames=list(selVars, selVars)), 
-		mxData(DataMZ, type="raw"), 
-		mxFIMLObjective("expCovMZ", "expMeanMZ")
+		mxData(DataMZ, type="raw"),
+		mxExpectationNormal("expCovMZ", "expMeanMZ"),
+		mxFitFunctionML()
+
 	),  
 	mxModel("DZ",
 		mxMatrix("Full", 1, 2, T, c(0,0), dimnames=list(NULL, selVars), name="expMeanDZ"), 
 		mxMatrix("Lower", 2, 2, T, .5, dimnames=list(selVars, selVars), name="CholDZ"), 
 		mxAlgebra(CholDZ %*% t(CholDZ), name="expCovDZ", dimnames=list(selVars, selVars)), 
 		mxData(DataDZ, type="raw"), 
-		mxFIMLObjective("expCovDZ", "expMeanDZ")
+		mxExpectationNormal("expCovDZ", "expMeanDZ"),
+		mxFitFunctionML()
 	),
-	mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-	mxFitFunctionAlgebra("twin")
+	mxFitFunctionMultigroup(c("MZ", "DZ"))
 )
 twinSatFit <- mxRun(twinSatModel)
 
@@ -68,12 +76,8 @@ LL_Sat    <- mxEval(objective,    twinSatFit)
 # Specify and Run Saturated SubModel 1 equating means across twin order
 # -----------------------------------------------------------------------
 twinSatModelSub1 <- mxModel(twinSatModel,
-	mxModel("MZ",
-		mxMatrix("Full", 1, 2, T, 0, "mMZ", dimnames=list(NULL, selVars), name="expMeanMZ")
-	), 
-	mxModel("DZ", 
-		mxMatrix("Full", 1, 2, T, 0, "mDZ", dimnames=list(NULL, selVars), name="expMeanDZ")
-	)
+	mxModel(MZ, mxMatrix("Full", 1, 2, T, 0, "mMZ", dimnames=list(NULL, selVars), name = "expMeanMZ")), 
+	mxModel(DZ, mxMatrix("Full", 1, 2, T, 0, "mDZ", dimnames=list(NULL, selVars), name = "expMeanDZ"))
 )
 twinSatFitSub1 <- mxRun(twinSatModelSub1)
 
