@@ -1,6 +1,9 @@
 # SCRIPT: NTF_design.R - NTF design in OpenMx 
 # Author: Matt Keller & Sarah Medland; edited by Tim Bates
 # History:  Thu Sep 24 17:23:33 BST 2009
+# 	2017-04-14 04:15PM Updated by tbates to use multifgroup. but this code seem to have a bug (missing ALL object),
+# 	and did not check the run model, but rather the un-run model...
+
 # For description of model, see Keller, Medland, Duncan, Hatemi, Neale, Maes, & Eaves (2009) TRHG, 21, p.8 - 18.
 # 2009-09-24: (tb): Use three groups (change MZ and DZ family algebra so that they refer to a common set of matrices in a new "NTF" group); 
 # 2009-09-24: (tb): Simplify/speed algebra using Quadratic operator and pre-calculating variance components i.e., e %*% t(e) = E etc; 
@@ -96,8 +99,9 @@ dzModel <- mxModel(name = "DZNTF",
 )
 
 model <- mxModel(model="NucTwFam", mzModel, dzModel, ntf,
-	mxAlgebra(expression=MZNTF.objective + DZNTF.objective, name="ntffit"), # modelName.objective is the automatic name for the -2LL of modelName
-	mxFitFunctionAlgebra("ntffit")
+	mxFitFunctionMultigroup(c("MZNTF", "DZNTF"))
+	# mxAlgebra(expression=MZNTF.objective + DZNTF.objective, name="ntffit"), # modelName.objective is the automatic name for the -2LL of modelName
+	# mxFitFunctionAlgebra("ntffit")
 )
 
 #Run MX
@@ -107,9 +111,15 @@ summary(fit)
 res <- model$output$estimate
 round(res,3)
 #compare to simulation
-res.mat <- rbind(round(c(res[1:5]^2,res[6:7]),3),round(ALL$track.changes[c('var.U','var.F','var.A','var.S','var.D','cor.spouses','var.cur.phenotype'),'data.t1'],3))
+
+# ============================================================
+# = The ALL object doesn't appear to exist in this script... =
+# ============================================================
+res.mat <- rbind(round(c(res[1:5]^2,res[6:7]),3),
+		round(ALL$track.changes[c('var.U','var.F','var.A','var.S','var.D','cor.spouses','var.cur.phenotype'),'data.t1'],3))
+		
 dimnames(res.mat) <- list(c('OpenMx-Estimated','Simulated'),c('Var.E','Var.F','Var.A','Var.S','Var.D','Cor.Sps','Var.Phen'))
 
-#look at implied Covariances
-round(model$output$algebras$MZNTF.expCovMz,3)
-round(model$output$algebras$DZNTF.expCovDz,3)
+# look at implied Covariances
+round(fit$output$algebras$MZNTF.expCovMz, 3)
+round(fit$output$algebras$DZNTF.expCovDz, 3)

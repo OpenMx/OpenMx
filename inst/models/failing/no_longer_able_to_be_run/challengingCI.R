@@ -6,7 +6,7 @@ if (0) {
   memprobmodel2 <- mxRun(memprobmodel2, intervals=FALSE)
   save(memprobmodel2, file="memprobmodel2.RData")
 }
-
+# load("~/bin/OpenMx/inst/models/failing/memprobmodel2.RData")
 got <- try(load("models/failing/memprobmodel2.RData"))
 if (is(got, "try-error")) {
   load("memprobmodel2.RData")

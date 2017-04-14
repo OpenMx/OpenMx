@@ -36,6 +36,9 @@ omxCheckWithinPercentError(obtainedVars[3], mlexpected[3], percent = 0.1)
 
 mxOption(NULL, "Default optimizer", "CSOLNP")
 m3 = mxRun(m1)
+# In model 'ind' Optimizer returned a non-zero status code 5. The Hessian at the solution does not appear to be convex. See ?mxCheckIdentification for possible diagnosis (Mx status RED).
+omxCheckTrue(mxCheckIdentification(m1)$status)
+
 obtainedVars = summary(m3)$parameters[1:3,5]
 
 omxCheckWithinPercentError(obtainedVars[1], mlexpected[1], percent = 0.01)
