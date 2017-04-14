@@ -1,3 +1,7 @@
+# ===========
+# = HISTORY =
+# ===========
+# 2017-04-14 04:53PM Check by TBATES and still failing checks lines 48 and 49
 # models/failing/CSOLNPmtcars.R
 # CSOLNP Not taking big enough steps?
 
