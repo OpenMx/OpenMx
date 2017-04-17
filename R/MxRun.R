@@ -328,27 +328,27 @@ imxReportProgress <- function(info, eraseLen) {
 	if (origLen == 0) cat("\r")
 }
 
-enumerateExpectations <- function(model) {
-	expectations <- c()
-	if (!is.null(model@expectation)) expectations <- c(expectations, model@name)
+enumerateDatasets <- function(model) {
+	datasets <- c()
+	if (!is.null(model@data)) datasets <- c(datasets, model@name)
 	if (length(model@submodels)) {
-		expectations <- c(expectations, sapply(model@submodels, enumerateExpectations))
+		datasets <- c(datasets, sapply(model@submodels, enumerateDatasets))
 	}
-	return(expectations)
+	return(datasets)
 }
 
-mxBootstrap <- function(model, replications=200, quantile=c(.25,.75), ...,
-                        expectation=NULL, plan=NULL, verbose=0L,
-                        parallel=TRUE, seed=42L, only=as.integer(NA),
+mxBootstrap <- function(model, replications=200, ...,
+                        data=NULL, plan=NULL, verbose=0L,
+                        parallel=TRUE, only=as.integer(NA),
 			OK=c("OK", "OK/green")) {
   if (!is(model$compute, "MxComputeBootstrap")) {
     if (missing(plan)) {
       plan <- model$compute
     }
-    if (missing(expectation)) {
-      expectation <- enumerateExpectations(model)
+    if (missing(data)) {
+      data <- enumerateDatasets(model)
     }
-    plan <- mxComputeBootstrap(expectation, plan)
+    plan <- mxComputeBootstrap(data, plan)
   } else {
     if (!missing(plan)) stop(paste("Model", omxQuotes(model@name), "already has",
                                    "a", omxQuotes(class(model$class)), "plan"))
@@ -356,11 +356,8 @@ mxBootstrap <- function(model, replications=200, quantile=c(.25,.75), ...,
   }
 
   plan$replications <- as.integer(replications)
-  plan$quantile <- quantile
-  plan$seed <- as.integer(seed)
   plan$verbose <- as.integer(verbose)
   plan$parallel <- as.logical(parallel)
-  plan$seed <- as.integer(seed)
   plan$only <- as.integer(only)
   plan$OK <- OK
   

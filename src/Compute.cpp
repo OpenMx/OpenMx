@@ -1643,7 +1643,7 @@ class ComputeBootstrap : public omxCompute {
 	typedef omxCompute super;
 	
 	struct context {
-		omxExpectation *expectation;
+		omxData *data;
 		double *origRowWeights;
 		std::vector<double> origCumSum;
 		std::vector<double> resample;
@@ -2972,24 +2972,18 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
 
-	ProtectedSEXP Rexp(R_do_slot(rObj, Rf_install("expectation")));
-	for (int wx=0; wx < Rf_length(Rexp); ++wx) {
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
+	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
 		if (isErrorRaised()) return;
-		int objNum = INTEGER(Rexp)[wx];
+		int objNum = INTEGER(Rdata)[wx];
 		context ctx;
-		ctx.expectation = globalState->expectationList[objNum];
-		omxCompleteExpectation(ctx.expectation);
-		if (!ctx.expectation->data) {
-			Rf_error("%s: '%s' does not have data",
-				 name, ctx.expectation->name);
-		}
-		omxData *data = ctx.expectation->data;
-		int numRows = data->numRawRows();
+		ctx.data = globalState->dataList[objNum];
+		int numRows = ctx.data->numRawRows();
 		if (!numRows) {
 			Rf_error("%s: '%s' cannot have row weights",
-				 name, ctx.expectation->name);
+				 name, ctx.data->name);
 		}
-		ctx.origRowWeights = data->getWeightColumn();
+		ctx.origRowWeights = ctx.data->getWeightColumn();
 		ctx.origCumSum.resize(numRows);
 		ctx.resample.resize(ctx.origCumSum.size());
 		if (ctx.origRowWeights) {
@@ -3004,19 +2998,8 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
 
-	// ProtectedSEXP Rquantile(R_do_slot(rObj, Rf_install("quantile")));
-	// int numQuantile = Rf_length(Rquantile);
-	// double *rawQuantile = REAL(Rquantile);
-	// quantile.reserve(numQuantile);
-	// for (int qx=0; qx < numQuantile; ++qx) {
-	// 	quantile.push_back(rawQuantile[qx]);
-	// }
-
 	ProtectedSEXP Rrepl(R_do_slot(rObj, Rf_install("replications")));
 	numReplications = Rf_asInteger(Rrepl);
-
-	ProtectedSEXP Rseed(R_do_slot(rObj, Rf_install("seed")));
-	seed = Rf_asInteger(Rseed);
 
 	ProtectedSEXP Rparallel(R_do_slot(rObj, Rf_install("parallel")));
 	parallel = Rf_asLogical(Rparallel);
@@ -3029,17 +3012,16 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	previousNumParam = -1;
 	previousData = 0;
-	if (only == NA_INTEGER) {
-		ProtectedSEXP Routput(R_do_slot(rObj, Rf_install("output")));
-		ProtectedSEXP RoutputNames(Rf_getAttrib(Routput, R_NamesSymbol));
-		for (int ax=0; ax < Rf_length(Routput); ++ax) {
-			const char *key = R_CHAR(STRING_ELT(RoutputNames, ax));
-			SEXP val = VECTOR_ELT(Routput, ax);
-			if (strEQ(key, "raw")) {
-				previousData = val;
-			} else if (strEQ(key, "numParam")) {
-				previousNumParam = Rf_asInteger(val);
-			}
+
+	ProtectedSEXP Routput(R_do_slot(rObj, Rf_install("output")));
+	ProtectedSEXP RoutputNames(Rf_getAttrib(Routput, R_NamesSymbol));
+	for (int ax=0; ax < Rf_length(Routput); ++ax) {
+		const char *key = R_CHAR(STRING_ELT(RoutputNames, ax));
+		SEXP val = VECTOR_ELT(Routput, ax);
+		if (strEQ(key, "raw")) {
+			previousData = val;
+		} else if (strEQ(key, "numParam")) {
+			previousNumParam = Rf_asInteger(val);
 		}
 	}
 }
@@ -3049,54 +3031,83 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	if (verbose >= 1) mxLog("%s: %d replications seed=%d parallel=%d",
 				name, numReplications, seed, int(parallel));
 
-	int numCols = fc->numParam + 2;
+	int numCols = fc->numParam + 3;
 	Rf_protect(rawOutput = Rf_allocVector(VECSXP, numCols));
 	SEXP colNames = Rf_allocVector(STRSXP, numCols);
 	Rf_setAttrib(rawOutput, R_NamesSymbol, colNames);
 
-	SET_STRING_ELT(colNames, 0, Rf_mkChar("fit"));
-	SET_VECTOR_ELT(rawOutput, 0, Rf_allocVector(REALSXP, numReplications));
+	SET_STRING_ELT(colNames, 0, Rf_mkChar("seed"));
+	SET_VECTOR_ELT(rawOutput, 0, Rf_allocVector(INTSXP, numReplications));
+	SET_STRING_ELT(colNames, 1, Rf_mkChar("fit"));
+	SET_VECTOR_ELT(rawOutput, 1, Rf_allocVector(REALSXP, numReplications));
 	for (int px=0; px < int(fc->numParam); ++px) {
-		SET_STRING_ELT(colNames, 1+px, Rf_mkChar(varGroup->vars[px]->name));
-		SET_VECTOR_ELT(rawOutput, 1+px, Rf_allocVector(REALSXP, numReplications));
+		SET_STRING_ELT(colNames, 2+px, Rf_mkChar(varGroup->vars[px]->name));
+		SET_VECTOR_ELT(rawOutput, 2+px, Rf_allocVector(REALSXP, numReplications));
 	}
-	SET_STRING_ELT(colNames, 1+fc->numParam, Rf_mkChar("statusCode"));
-	SET_VECTOR_ELT(rawOutput, 1+fc->numParam, allocInformVector(numReplications));
+	SET_STRING_ELT(colNames, 2+fc->numParam, Rf_mkChar("statusCode"));
+	SET_VECTOR_ELT(rawOutput, 2+fc->numParam, allocInformVector(numReplications));
 	markAsDataFrame(rawOutput, numReplications);
 
-	if (previousNumParam != int(fc->numParam) ||
-	    Rf_length(previousData) != Rf_length(rawOutput)) previousData = 0;
+	if (previousData && (previousNumParam != int(fc->numParam) ||
+			     Rf_length(previousData) != Rf_length(rawOutput))) {
+		if (verbose >= 1) mxLog("%s: discarded mismatching previous data (%d/%d %d/%d)",
+					name, previousNumParam, int(fc->numParam),
+					Rf_length(previousData), Rf_length(rawOutput));
+		previousData = 0;
+	}
 
 	for (int repl=0; repl < numReplications; ++repl) {
+		INTEGER(VECTOR_ELT(rawOutput, 0))[repl] = NA_INTEGER;
 		for (int cx=0; cx <= int(fc->numParam); ++cx) {
-			REAL(VECTOR_ELT(rawOutput, cx))[repl] = NA_REAL;
+			REAL(VECTOR_ELT(rawOutput, 1 + cx))[repl] = NA_REAL;
 		}
-		INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam))[repl] = NA_INTEGER;
+		INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] = NA_INTEGER;
 	}
-	if (previousData) {
+	if (only == NA_INTEGER && previousData) {
 		int toCopy = std::min(Rf_length(VECTOR_ELT(previousData, 0)),
 				      numReplications);
 		if (verbose >= 1) mxLog("%s: copying %d rows from previous run", name, toCopy);
+		memcpy(INTEGER(VECTOR_ELT(rawOutput, 0)),
+		       INTEGER(VECTOR_ELT(previousData, 0)),
+		       toCopy * sizeof(int));
 		for (int cx=0; cx <= int(fc->numParam); ++cx) {
-			memcpy(REAL(VECTOR_ELT(rawOutput, cx)),
-			       REAL(VECTOR_ELT(previousData, cx)),
+			memcpy(REAL(VECTOR_ELT(rawOutput, 1+cx)),
+			       REAL(VECTOR_ELT(previousData, 1+cx)),
 			       toCopy * sizeof(double));
 		}
-		memcpy(INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam)),
-		       INTEGER(VECTOR_ELT(previousData, 1 + fc->numParam)),
+		memcpy(INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam)),
+		       INTEGER(VECTOR_ELT(previousData, 2 + fc->numParam)),
 		       toCopy * sizeof(int));
 	}
 
 	// implement parallel TODO
 
-	Eigen::VectorXd origEst = fc->getEst();
-	std::mt19937 generator;
+	auto *seedVec = INTEGER(VECTOR_ELT(rawOutput, 0));
+	if (only == NA_INTEGER || !previousData) {
+		GetRNGstate();
+		for (int repl=0; repl < numReplications; ++repl) {
+			if (seedVec[repl] != NA_INTEGER) continue;
+			int seed1 = unif_rand() * std::numeric_limits<int>::max();
+			if (seed1 == NA_INTEGER) seed1 = 0; // maybe impossible
+			seedVec[repl] = seed1;
+		}
+		PutRNGstate();
+	} else {
+		if (only <= Rf_length(VECTOR_ELT(previousData, 0))) {
+			if (verbose >= 1) mxLog("%s: using only=%d", name, only);
+			seedVec[0] = INTEGER(VECTOR_ELT(previousData, 0))[only - 1];
+		} else {
+			Rf_error("%s: only=%d but previous data has just %d replications",
+				 name, only, Rf_length(VECTOR_ELT(previousData, 0)));
+		}
+	}
 
-	int onlyAdjust = (only == NA_INTEGER? 0 : only-1);
+	Eigen::VectorXd origEst = fc->getEst();
+
 	for (int repl=0; repl < numReplications && !isErrorRaised(); ++repl) {
-		if (INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam))[repl] != NA_INTEGER) continue;
+		std::mt19937 generator(seedVec[repl]);
+		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
 		if (verbose >= 2) mxLog("%s: replication %d", name, repl);
-		generator.seed(seed + repl + onlyAdjust);
 		for (auto &ctx : contexts) {
 			ctx.resample.assign(ctx.origCumSum.size(), 0.0);
 			int last = ctx.origCumSum.size() - 1;
@@ -3110,11 +3121,11 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 			}
 			if (verbose >= 4) {
 				EigenStdVectorAdaptor<double> rs(ctx.resample);
-				mxPrintMat(ctx.expectation->name, rs);
+				mxPrintMat(ctx.data->name, rs);
 			}
-			ctx.expectation->data->setWeightColumn(ctx.resample.data());
+			ctx.data->setWeightColumn(ctx.resample.data());
 			if (only != NA_INTEGER) {
-				onlyWeight.add(ctx.expectation->name, Rcpp::wrap(ctx.resample));
+				onlyWeight.add(ctx.data->name, Rcpp::wrap(ctx.resample));
 			}
 		}
 		fc->state->invalidateCache();
@@ -3127,16 +3138,16 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 			auto est = fc->getEst();
 			mxPrintMat("est", est);
 		}
-		REAL(VECTOR_ELT(rawOutput, 0))[repl] = fc->fit;
+		REAL(VECTOR_ELT(rawOutput, 1))[repl] = fc->fit;
 		for (int px=0; px < int(fc->numParam); ++px) {
-			REAL(VECTOR_ELT(rawOutput, 1 + px))[repl] = fc->est[px];
+			REAL(VECTOR_ELT(rawOutput, 2 + px))[repl] = fc->est[px];
 		}
-		INTEGER(VECTOR_ELT(rawOutput, 1 + fc->numParam))[repl] = fc->wrapInform();
+		INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] = fc->wrapInform();
 		reportProgress(fc);
 	}
 
 	for (auto &ctx : contexts) {
-		ctx.expectation->data->setWeightColumn(ctx.origRowWeights);
+		ctx.data->setWeightColumn(ctx.origRowWeights);
 	}
 
 	if (only == NA_INTEGER) {

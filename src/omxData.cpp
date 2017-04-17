@@ -166,7 +166,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		}
 
 		ProtectedSEXP Rweight(R_do_slot(dataObj, Rf_install("weight")));
-		weightCol = Rf_asInteger(Rweight) - 1;
+		weightCol = Rf_asInteger(Rweight);
+		if (weightCol != NA_INTEGER) weightCol -= 1;
 	}
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
@@ -334,7 +335,15 @@ double *omxData::getOriginalWeightColumn()
 	if (rawCols.size()) {
 		return rawCols[weightCol].realData;
 	} else {
-		return omxMatrixColumn(dataMat, weightCol);
+		if (dataMat->colMajor) {
+			return omxMatrixColumn(dataMat, weightCol);
+		} else {
+			auto *col = (double*) R_alloc(dataMat->rows, sizeof(double));
+			EigenMatrixAdaptor dm(dataMat);
+			Eigen::Map< Eigen::VectorXd > Ecol(col, dataMat->rows);
+			Ecol.derived() = dm.col(weightCol);
+			return col;
+		}
 	}
 }
 
@@ -699,7 +708,12 @@ bool omxData::loadDefVars(omxState *state, int row)
 {
 	bool changed = false;
 	for (int k=0; k < int(defVars.size()); ++k) {
-		double newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
+		double newDefVar;
+		if (defVars[k].column == weightCol) {
+			newDefVar = getRowWeight(row);
+		} else {
+			newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
+		}
 		if(ISNA(newDefVar)) {
 			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
 		}

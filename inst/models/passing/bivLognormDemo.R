@@ -34,16 +34,17 @@ set.seed(1234)
 x <- rpois(500,1)
 y <- rpois(500,1)
 y[500] <- NA
-dat <- cbind(x,y)
+varNames <- c('x','y')
+dat <- cbind(x,y,weight=1.0)
 
 mymod <- mxModel(
 	"bivlognorm",
-	mxData(dat,"raw",sort=F),
+	mxData(dat, "raw", weight = "weight"),
 	mxMatrix(type="Full",nrow=1,ncol=2,free=T,values=0.1,labels="m",name="Mu",
-					 dimnames=list(NULL,colnames(dat))),
+					 dimnames=list(NULL,varNames)),
 	mxMatrix(type="Symm",nrow=2,ncol=2,free=T,values=c(0.4,0,0.4),labels=c("v","c","v"),name="Sigma",
 					 lbound=c(0.0001,-Inf,0.0001),
-					 dimnames=list(colnames(dat),colnames(dat))),
+					 dimnames=list(varNames,varNames)),
 	mxMatrix(type="Unit",nrow=1,ncol=2,name="ONE"),
 	mxAlgebra(
 		2*log(2*3.1415927*prod(filteredDataRow + omxSelectCols(ONE,existenceVector))) +
@@ -51,7 +52,8 @@ mymod <- mxModel(
 			( (log(filteredDataRow+omxSelectCols(ONE,existenceVector))-omxSelectCols(Mu,existenceVector)) %*% 
 					solve(omxSelectRowsAndCols(Sigma,existenceVector)) %*% 
 					t(log(filteredDataRow+omxSelectCols(ONE,existenceVector))-omxSelectCols(Mu,existenceVector)) ),
-		name="rowAlgebra"),
+		name="unweightedRowAlgebra"),
+	mxAlgebra(data.weight * unweightedRowAlgebra, name="rowAlgebra"),
 	mxAlgebra(sum(rowResults), name="reduceAlgebra"),
 	mxFitFunctionRow(rowAlgebra='rowAlgebra',
 								 reduceAlgebra='reduceAlgebra',
@@ -59,3 +61,7 @@ mymod <- mxModel(
 )
 myrun <- mxRun(mymod)
 omxCheckCloseEnough(myrun$output$fit, 2644.072, .01)
+
+boot <- mxBootstrap(myrun, 10)
+bq1 <- summary(boot)[["bootstrapQuantile"]]
+omxCheckTrue(all(apply(bq1,1,diff) > 0))

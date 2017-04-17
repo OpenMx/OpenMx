@@ -1598,30 +1598,26 @@ mxComputeReportDeriv <- function(freeSet=NA_character_) {
 setClass(Class = "MxComputeBootstrap",
 	 contains = "BaseCompute",
 	 representation = representation(
-		 expectation = "MxCharOrNumber",
+		 data = "MxCharOrNumber",
 	     plan = "MxCompute",
 	     replications = "integer",
-	     quantile = "numeric",
 	     verbose = "integer",
 	     parallel = "logical",
-	     seed = "integer",
 	     OK = "character",
 	     only = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeBootstrap",
-	  function(.Object, freeSet, expectation, plan, replications, quantile,
-		   verbose, parallel, seed, OK, only) {
+	  function(.Object, freeSet, data, plan, replications,
+		   verbose, parallel, OK, only) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
-		  .Object@expectation <- expectation
+		  .Object@data <- data
 		  .Object@plan <- plan
 		  .Object@replications <- replications
-		  .Object@quantile <- quantile
 		  .Object@verbose <- verbose
 		  .Object@parallel <- parallel
-		  .Object@seed <- seed
 		  .Object@OK <- OK
 		  .Object@only <- only
 		  .Object
@@ -1653,7 +1649,7 @@ setMethod("assignId", signature("MxComputeBootstrap"),
 setMethod("qualifyNames", signature("MxComputeBootstrap"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('expectation')) {
+		for (sl in c('data')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
 		for (sl in c('plan')) {
@@ -1665,13 +1661,13 @@ setMethod("qualifyNames", signature("MxComputeBootstrap"),
 setMethod("convertForBackend", signature("MxComputeBootstrap"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (any(!is.integer(.Object@expectation))) {
-			expNum <- match(.Object@expectation, names(flatModel@expectations))
-			if (any(is.na(expNum))) {
-				stop(paste("MxComputeBootstrap:", omxQuotes(.Object@expectation),
-					   "not recognized as MxExpectation"))
+		if (any(!is.integer(.Object@data))) {
+			dataNum <- match(.Object@data, names(flatModel@datasets))
+			if (any(is.na(dataNum))) {
+				stop(paste("MxComputeBootstrap:", omxQuotes(.Object@data),
+					   "not recognized as MxData"))
 			}
-			.Object@expectation <- expNum - 1L
+			.Object@data <- dataNum - 1L
 		}
 		for (sl in c('plan')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
@@ -1685,39 +1681,27 @@ setMethod("updateFromBackend", signature("MxComputeBootstrap"),
 		for (sl in c('plan')) {
 			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
 		}
-		if (!is.null(.Object@output$raw) && is.na(.Object@only)) {
-			np <- .Object@output$numParam
-			raw <- .Object@output$raw
-			mask <- raw[,'statusCode'] %in% .Object@OK
-			if (sum(mask) < .95*nrow(raw)) {
-				pct <- round(100*sum(mask) / nrow(raw))
-				warning(paste0("Only ",pct,"% of the bootstrap replications ",
-					       "converged. Accuracy is much less than the ", nrow(raw),
-					       " replications requested"), call.=FALSE)
-			}
-			.Object@output$result <- t(sapply(raw[mask,2:(1+np)], quantile, probs=.Object@quantile))
-		}
 		.Object
 	})
 
-mxComputeBootstrap <- function(expectation, plan, replications=200, quantile=c(.25,.75), ...,
-			       verbose=0L, parallel=TRUE, seed=42L, freeSet=NA_character_,
+mxComputeBootstrap <- function(data, plan, replications=200, ...,
+			       verbose=0L, parallel=TRUE, freeSet=NA_character_,
 			       OK=c("OK", "OK/green"), only=NA_integer_) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
 	}
 
-	expectation <- vapply(expectation, function(e1) {
+	data <- vapply(data, function(e1) {
 		path <- unlist(strsplit(e1, imxSeparatorChar, fixed = TRUE))
 		if (length(path) == 1) {
-			e1 <- paste(path, "expectation", sep=imxSeparatorChar)
+			e1 <- paste(path, "data", sep=imxSeparatorChar)
 		}
 		e1
 	}, "")
 
-	new("MxComputeBootstrap", freeSet, expectation, plan, as.integer(replications), sort(quantile),
-	    as.integer(verbose), parallel, seed, OK, only)
+	new("MxComputeBootstrap", freeSet, data, plan, as.integer(replications),
+	    as.integer(verbose), parallel, OK, only)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeBootstrap", indent="integer"),
@@ -1726,8 +1710,8 @@ setMethod("displayCompute", signature(Ob="MxComputeBootstrap", indent="integer")
 		  sp <- paste(rep('  ', indent), collapse="")
 		  cat(sp, "$plan :", '\n')
 		  displayCompute(Ob@plan, indent+1L)
-		  for (sl in c("expectation", "replications", "OK", "quantile",
-			       "verbose", "parallel", "seed")) {
+		  for (sl in c("data", "replications", "OK",
+			       "verbose", "parallel")) {
 			  slname <- paste("$", sl, sep="")
 			  if (is.character(slot(Ob, sl))) {
 				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')

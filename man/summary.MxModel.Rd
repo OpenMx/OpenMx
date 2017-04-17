@@ -48,6 +48,8 @@ mxSummary allows the user to set or override the following parameters of the mod
 \item{IndependenceDoF}{Numeric. Specify the degrees of freedom of the independence likelihood for testing.}
 \item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
 \item{verbose}{logical. Changes the printing style for summary (see Details)}
+\item{boot.quantile}{numeric. A vector of quantiles to be used to
+  summarize bootstrap replication.}
 }
 
 The \code{verbose} argument changes the printing style for the \code{summary} of a model.  When \code{verbose=FALSE}, a relatively minimal amount of information is printed: the free parameters, the likelihood, and a few fit indices.  When more information is available, more is printed.  For example, when the model has a saturated likelihood, several additional fit indices are printed.  On the other hand, when \code{verbose=TRUE}, the compute plan, the data summary, and additional timing information are always printed.  Moreover, available fit indices are printed regarless of whether or not they are defined.  The undefined fit indices are printed as \code{NA}.  Running a saturated model and including it with the call to \code{summary} will define these fit indices and they will dislay meaningful values.  It should be noted that the \code{verbose} argument only changes the printing style, all of the same information is calculated and exists in the output of \code{summary}.  More information is displayed when \code{verbose=TRUE}, and less when \code{verbose=FALSE}.
@@ -83,6 +85,10 @@ With regard to RMSEA, it is important to note that OpenMx does not currently mak
 
 OpenMx does not recommend using some fit indices.  These are GFI, AGFI, NFI, and SRMR.  The Goodness of Fit Index (GFI) and Adjusted Goodness of Fit Index (AGFI) are not recommended because they are strongly influeced by sample size and have rather high Type I error rates (Sharma, Mukherjee, Kumar, & Dillon, 2005).  The Normed Fit Index (NFI) has no penalty for model complexity.  That is, adding more parameters to a model always improves the NFI, regardless of how useful those parameters are.  Because the Non-Normed Fit Index (NNFI), also known as the Tucker-Lewis Index (TLI), does adjust for model complexity it is used instead.  Lastly, the Standardized Root Mean Square Residual (SRMR) is not reported because it (1) only applies to covariance models, having no direct extension to missing data, (2) has no penalty for model complexity, similar to the NFI, and (3) is positively biased (Hu & Bentler, 1999).
 
+}
+
+\seealso{
+\code{\link{mxBootstrap}}
 }
 
 \references{

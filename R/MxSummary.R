@@ -821,7 +821,23 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 		retval$seSuspect <- !model@compute$steps[['ND']]$output$gradient[,'symmetric']
 	}
 	if (is(model@compute, "MxComputeBootstrap")) {
-		retval$bootstrapQuantile <- model@compute$output$result
+		bq <- c(.25,.75)
+		if (!is.null(dotArguments[["boot.quantile"]])) {
+			bq <- sort(as.numeric(dotArguments[["boot.quantile"]]))
+		}
+		cb <- model@compute
+		if (!is.null(cb@output$raw) && is.na(cb@only) && cb@output$numParam == nrow(retval$parameters)) {
+			raw <- cb@output$raw
+			mask <- raw[,'statusCode'] %in% cb@OK
+			if (sum(mask) < .95*nrow(raw)) {
+				pct <- round(100*sum(mask) / nrow(raw))
+				warning(paste0("Only ",pct,"% of the bootstrap replications ",
+					       "converged. Accuracy is much less than the ", nrow(raw),
+					       " replications requested"), call.=FALSE)
+			}
+			retval$bootstrapQuantile <- t(sapply(raw[mask, 3:(nrow(retval$parameters)+2)],
+								 quantile, probs=bq))
+		}
 	}
 	retval$GREMLfixeff <- GREMLFixEffList(model)
 	retval$infoDefinite <- model@output$infoDefinite

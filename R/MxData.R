@@ -239,7 +239,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 	if (type == "raw") {
 		if (!is.na(weight)) {
-			obsCount <- sum(observed[[weight]])
+			obsCount <- sum(observed[,weight])
 		} else {
 			obsCount <- nrow(observed)
 		}
