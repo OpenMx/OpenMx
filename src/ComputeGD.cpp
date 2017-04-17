@@ -260,7 +260,7 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 	/*Note that this needs to happen even if no equality constraints have analytic Jacobians, because
 	analyticEqJacTmp is copied to the Jacobian matrix the elements of which are populated by code in
 	finiteDifferences.h, which knows to numerically populate an element if it's NA:*/
-	analyticEqJacTmp.setConstant(analyticEqJacTmp.rows(),analyticEqJacTmp.cols(),NA_REAL);
+	analyticEqJacTmp.setConstant(NA_REAL);
 	
 	int cur=0, j=0, c=0, roffset=0;
 	for(j = 0; j < int(st->conListX.size()); j++) {
@@ -294,7 +294,7 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 
 	if (!ineq_n) return;
 	
-	analyticIneqJacTmp.setConstant(analyticIneqJacTmp.rows(),analyticIneqJacTmp.cols(),NA_REAL);
+	analyticIneqJacTmp.setConstant(NA_REAL);
 	
 	int cur=0, j=0, c=0, roffset=0;
 	for (j=0; j < int(st->conListX.size()); j++) {

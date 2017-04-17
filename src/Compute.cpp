@@ -2301,7 +2301,7 @@ void ComputeEM::Oakes(FitContext *fc)
 
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
 	estep_jacobian_functional ejf(this, fc);
-	fd_jacobian(GradientAlgorithm_Forward, 1, 1e-5, ejf, refGrad, optimumCopy, jacobian);
+	fd_jacobian<false>(GradientAlgorithm_Forward, 1, 1e-5, ejf, refGrad, optimumCopy, jacobian);
 
 	fc->infoMethod = infoMethod;
 	fc->preInfo();

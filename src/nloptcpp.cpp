@@ -99,7 +99,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	else{
 		ff(Epoint, Eresult, jacobian);
 		goc.eqNorm = Eresult.array().abs().sum();
-		fd_jacobian(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,
+		fd_jacobian<true>(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,
               ff, Eresult, Epoint, jacobian);
 		if (ctx.eqmask.size() == 0) {
 			ctx.eqmask.assign(m, false);
@@ -191,7 +191,7 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 			mxPrintMat("major iteration ineq", Eresult);
 		}
 		goc->ineqNorm = Eresult.array().abs().sum();
-		fd_jacobian(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
+		fd_jacobian<true>(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
               ff, Eresult, Epoint, jacobian);
 		if (!std::isfinite(Eresult.sum())) {
 			// infeasible at start of major iteration
