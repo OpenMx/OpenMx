@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,17 +20,18 @@
 Australian twin data with 3,808 observations on the 12 variables including body mass index (BMI) assessed in both MZ and DZ twins.
 
 Questionnaires were mailed to 5,967 pairs age 18 years and over. These data consist of completed questionnaires returned by both members of 3,808 (64 percent) pairs. There are two cohort blocks in the data: a younger group (zyg 1:5), and an older group (zyg 6:10)
- 
+
 It is a wide dataset, with two individuals per line. Families are identified by the variable \dQuote{fam}.
 
 Data include zygosity (zyg), along with heights in metres, weights in
 kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1}
-and \dQuote{htwt2}), as well as the 7 times the log of this variable,
-stored here as bmi1 and bmi2. The logged values are more closely
-normally distributed and scaling by 7 put them into a similar range
-as the original variable.
+and \dQuote{htwt2}), as well as the 7 times the natural log of this variable,
+stored as bmi1 and bmi2. The logged values are more closely
+normally distributed while scaling by 7 places them into a similar range
+to the original variable.
 
-For convenience, zyg is broken out into separate \dQuote{zygosity} and \dQuote{cohort} factors. \dQuote{zygosity} is coded as a 5-level factor.
+For convenience, zyg is broken out into separate \dQuote{zygosity} and \dQuote{cohort} factors. \dQuote{zygosity} is
+coded as a factor with 5-levels: MZFF, MZMM, DZFF, DZMM, DZOS. DZOS are in Female/Male wide order.
 }
 
 \references{
