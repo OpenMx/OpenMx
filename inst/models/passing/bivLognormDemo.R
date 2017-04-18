@@ -58,3 +58,4 @@ mymod <- mxModel(
 								 dimnames=c("x","y"))
 )
 myrun <- mxRun(mymod)
+omxCheckCloseEnough(myrun$output$fit, 2644.072, .01)
