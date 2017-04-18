@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -o nounset
+set -o noclobber
+
+if [ ! -x revdep/testDrive ]; then
+  echo "$0 must be run from the top of the package directory"
+  exit 1
+fi
+
+export _R_CHECK_FORCE_SUGGESTS_=0
+
+# add --depth=50 later TODO
+git submodule update --init --recursive || exit 1
+
+pkgs="ctsem ifaTools lvnet metaSEM semtree umx"
+
+R --no-save -f util/update-dependencies.R --args \
+  $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pkgs)
+
+pushd revdep
+
+# investigate devtools,
+# https://www.rdocumentation.org/packages/devtools/versions/1.12.0/topics/revdep_check_save_summary?
+
+declare -i RESULT=0
+
+for pk in $pkgs; do
+    R CMD build --no-build-vignettes "$pk" && R CMD check --no-manual --no-vignettes ${pk}_*.tar.gz
+    RESULT+=$?
+done
+
+popd
+
+exit $RESULT
