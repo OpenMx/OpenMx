@@ -456,7 +456,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		mxLog("vnormValue %.20f, flag_NormgZ=%d, minr_rec=%d",
 		      vnormValue, flag_NormgZ, minr_rec);
 	}
-        if (vnormValue <= tol && flag_NormgZ == 1 && minr_rec == 1){
+        if (vnormValue <= tol && minr_rec == 1){
 		double iterateConverge = delta * pow(sqrt(sx_Matrix.squaredNorm()),(double)2.0);
 		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(sqrt(p_e.squaredNorm()), (double)2.0));
 		if (verbose >= 1) {
