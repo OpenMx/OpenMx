@@ -327,3 +327,40 @@ imxReportProgress <- function(info, eraseLen) {
 	cat(paste0("\r", info))
 	if (origLen == 0) cat("\r")
 }
+
+enumerateDatasets <- function(model) {
+	datasets <- c()
+	if (!is.null(model@data)) datasets <- c(datasets, model@name)
+	if (length(model@submodels)) {
+		datasets <- c(datasets, sapply(model@submodels, enumerateDatasets))
+	}
+	return(datasets)
+}
+
+mxBootstrap <- function(model, replications=200, ...,
+                        data=NULL, plan=NULL, verbose=0L,
+                        parallel=TRUE, only=as.integer(NA),
+			OK=c("OK", "OK/green")) {
+  if (!is(model$compute, "MxComputeBootstrap")) {
+    if (missing(plan)) {
+      plan <- model$compute
+    }
+    if (missing(data)) {
+      data <- enumerateDatasets(model)
+    }
+    plan <- mxComputeBootstrap(data, plan)
+  } else {
+    if (!missing(plan)) stop(paste("Model", omxQuotes(model@name), "already has",
+                                   "a", omxQuotes(class(model$class)), "plan"))
+    plan <- model$compute
+  }
+
+  plan$replications <- as.integer(replications)
+  plan$verbose <- as.integer(verbose)
+  plan$parallel <- as.logical(parallel)
+  plan$only <- as.integer(only)
+  plan$OK <- OK
+  
+  model <- mxModel(model, plan)
+  mxRun(model)
+}

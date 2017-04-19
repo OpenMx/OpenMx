@@ -166,8 +166,10 @@ omxCheckEquals(names(factorFitCI$compute$steps),c("GD","SE","HQ","RD","RE"))
 omxCheckTrue(!length(factorFitCI$compute$steps$CI$output$detail))
 omxCheckTrue(!length(factorFitCI$output$confidenceIntervals))
 omxCheckTrue(!length(factorFitCI$output$confidenceIntervalCodes))
-omxCheckTrue(length(factorFitCI$output$standardErrors))
-omxCheckTrue(!length(factorFitCI$output$calculatedHessian))
+if (mxOption(NULL, "Default optimizer") == 'NPSOL') {
+  omxCheckTrue(length(factorFitCI$output$standardErrors))
+  omxCheckTrue(!length(factorFitCI$output$calculatedHessian))
+}
 omxCheckTrue(!(factorFitCI$compute$.persist))
 
 omxCheckWarning(
@@ -178,7 +180,9 @@ omxCheckEquals(names(factorFitCI$compute$steps),c("GD","CI","SE","HQ","RD","RE")
 omxCheckTrue(length(factorFitCI$compute$steps$CI$output$detail))
 omxCheckTrue(length(factorFitCI$output$confidenceIntervals))
 omxCheckTrue(length(factorFitCI$output$confidenceIntervalCodes))
-omxCheckTrue(length(factorFitCI$output$standardErrors))
+if (mxOption(NULL, "Default optimizer") == 'NPSOL') {
+  omxCheckTrue(length(factorFitCI$output$standardErrors))
+}
 omxCheckTrue(!length(factorFitCI$output$calculatedHessian))
 omxCheckTrue(!(factorFitCI$compute$.persist))
 

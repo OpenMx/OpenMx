@@ -421,6 +421,18 @@ void omxState::initialRecalc(FitContext *fc)
 	}
 }
 
+void omxState::invalidateCache()
+{
+	for(size_t ex = 0; ex < expectationList.size(); ex++) {
+		expectationList[ex]->invalidateCache();
+	}
+	for (int ax=0; ax < (int) algebraList.size(); ++ax) {
+		omxMatrix *matrix = algebraList[ax];
+		if (!matrix->fitFunction) continue;
+		matrix->fitFunction->invalidateCache();
+	}
+}
+
 omxState::~omxState()
 {
 	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conListX.size());}

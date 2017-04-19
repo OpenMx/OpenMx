@@ -62,6 +62,7 @@ struct omxFitFunction {
 	virtual omxFitFunction *initMorph();
 	virtual void init()=0;
 	virtual void compute(int ffcompute, FitContext *fc)=0;
+	virtual void invalidateCache() {};
 
 	// addOutput should only be used for returning global results
 	virtual void addOutput(MxRList *out) {};

@@ -1,4 +1,5 @@
 # OpenMx bleed / 2.8.0 in the making
+* NEW: mxBootstrap, mxComputeBootstrap
 * IMPROVED: mxAutoStart handles models which refer to parent models.
 * IMPROVED: WLS improvements
 	* Handling models with constraints

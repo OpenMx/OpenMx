@@ -211,8 +211,8 @@ bool condOrdByRow::eval()
 				double logDet = covDecomp.log_determinant();
 				double cterm = M_LN_2PI * ss.dataMean.size();
 				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
-				double ll = ss.length * (iqf + logDet + cterm) + (ss.length-1) * tr1;
-				record(-0.5 * ll + ss.length * log(ordLik), ss.length);
+				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
+				record(-0.5 * ll + ss.rows * log(ordLik), ss.length);
 				contLogLik = 0.0;
 				continue;
 			}
@@ -569,6 +569,7 @@ static void recordGap(int rx, int &prev, std::vector<int> &identical)
 	prev = rx;
 }
 
+// assumes integral row weights TODO
 static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 {
 	omxExpectation *ex = off->expectation;
@@ -587,8 +588,14 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 	if (perRow == 0) return;
 
 	Eigen::VectorXd dvec(perRow * ss.length);
+	Eigen::VectorXi wvec(ss.length);
+	ss.rows = 0;
+	double *rowWeight = data->getWeightColumn();
+
 	for (int row=0; row < ss.length; ++row) {
 		int sortedRow = indexVector[from + row];
+		wvec[row] = rowWeight? rowWeight[sortedRow] : 1;
+		ss.rows += wvec[row];
 		for (int cx=0,dx=0; cx < dc.size(); ++cx) {
 			if (isOrdinal[cx]) continue;
 			int col = dc[cx];
@@ -600,7 +607,7 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 		}
 	}
 
-	computeMeanCov(dvec, perRow, ss.dataMean, ss.dataCov);
+	computeMeanCovWeighted(dvec, perRow, wvec, ss.dataMean, ss.dataCov);
 }
 
 static void addSufficientSet(omxFitFunction *off, int from, int to)
@@ -616,6 +623,7 @@ static void addSufficientSet(omxFitFunction *off, int from, int to)
 
 static void sortData(omxFitFunction *off)
 {
+	//mxLog("%s: sortData", off->matrix->name());
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
 	auto& indexVector = ofiml->indexVector;
 	indexVector.clear();
@@ -837,7 +845,12 @@ static void setParallelism(FitContext *fc, omxData *data, omxFIMLFitFunction *pa
 	parent->curParallelism = parallelism;
 }
 
-#define ELAPSED_HISTORY_SIZE 5
+void omxFIMLFitFunction::invalidateCache()
+{
+	builtCache = false;
+	indexVector.clear();
+	openmpUser = false;
+}
 
 void omxFIMLFitFunction::compute(int want, FitContext *fc)
 {
@@ -845,8 +858,8 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	omxFIMLFitFunction* ofiml = this;
 
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
-	if (want & FF_COMPUTE_PREOPTIMIZE) {
-		ofiml->inUse = true;
+
+	if (!builtCache) {
 		if (fc->isClone()) {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction;
@@ -854,8 +867,13 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			ofiml->curElapsed = NA_INTEGER;
 		} else {
 			off->openmpUser = ofiml->rowwiseParallel != 0;
-			if (!ofiml->indexVector.size()) sortData(off);
+			if (!indexVector.size()) sortData(off);
 		}
+		builtCache = true;
+	}
+
+	if (want & FF_COMPUTE_PREOPTIMIZE) {
+		inUse = true;
 		return;
 	}
 	if (want & FF_COMPUTE_FINAL_FIT && !ofiml->inUse) return;
@@ -1011,6 +1029,7 @@ omxFitFunction *omxInitFIMLFitFunction()
 
 void omxFIMLFitFunction::init()
 {
+	builtCache = false;
 	auto *off = this;
 	auto *newObj = this;
 

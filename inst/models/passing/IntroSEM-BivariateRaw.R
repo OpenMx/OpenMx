@@ -98,3 +98,37 @@ omxCheckCloseEnough(expectMin, biRegModelRawOut$output$minimum, 0.001)
 omxCheckCloseEnough(biRegModelRawOut$output$status$code, 0)
 
 omxCheckCloseEnough(biRegModelRawOut$output$iterations, 30, 10)
+
+set.seed(42)
+biRegModelRawBoot <- mxBootstrap(biRegModelRawOut, 10)
+omxCheckTrue(is.null(biRegModelRawBoot$output[["standardErrors"]]))
+bq1 <- summary(biRegModelRawBoot)[["bootstrapQuantile"]]
+omxCheckCloseEnough(cor(bq1[,2] - bq1[,1],
+                        biRegModelRawOut$output$standardErrors), .7, .01)
+
+biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot)
+bq2 <- summary(biRegModelRawBoot)[["bootstrapQuantile"]]
+# omxCheckCloseEnough(cor(bq2[,2] - bq2[,1],
+#                         biRegModelRawOut$output$standardErrors), 1.0, .05)
+
+set.seed(42)
+biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot, 10)
+bq3 <- summary(biRegModelRawBoot)[["bootstrapQuantile"]]
+omxCheckEquals(bq3, bq1)
+
+repl3 <- biRegModelRawBoot$compute$output$raw[3,]
+biRegModelRawBoot3 <- mxBootstrap(biRegModelRawBoot, only=3)
+omit <- -match('statusCode', colnames(repl3))
+omxCheckEquals(repl3[,omit], biRegModelRawBoot3$compute$output$raw[,omit])
+
+# investigate replication 3
+biRegModelRaw3 <- mxModel(
+  biRegModelRaw,
+  mxData(observed=cbind(multiData1,
+                        weight=biRegModelRawBoot3$compute$output$weight[[1]]),
+         type="raw", weight = "weight"))
+
+biRegModelRaw3 <- mxRun(biRegModelRaw3)
+
+omxCheckCloseEnough(coef(biRegModelRaw3),
+                    c(repl3[,names(coef(biRegModelRaw3))]), 1e-5)

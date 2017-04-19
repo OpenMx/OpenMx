@@ -24,7 +24,7 @@
 
 \usage{
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
-          thresholds=NA, ..., sort=NA, primaryKey = as.character(NA))
+          thresholds=NA, ..., sort=NA, primaryKey = as.character(NA), weight = as.character(NA))
 }
 
 \arguments{
@@ -38,7 +38,8 @@
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
    \item{sort}{Whether to sort raw data prior to use (default NA)}
    \item{primaryKey}{The column name of the primary key used to uniquely
-   identify rows (default NA)}
+     identify rows (default NA)}
+   \item{weight}{The column name containing the row weights}
 }
 
 \details{
@@ -61,6 +62,11 @@ While column names are stored in the \sQuote{observed} slot of MxData objects, t
 The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation  matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
 
 OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
+
+In the case of raw data, the optional \sQuote{weight} argument names a
+column in the \sQuote{observed} data that contains per-row weights. For
+data with many repeated response patterns, model evaluation time can be
+reduced.
 
 When a primary key is provided, sorting is disabled. Otherwise, sort defaults to TRUE.
 }

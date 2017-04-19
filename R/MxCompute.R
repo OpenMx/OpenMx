@@ -1595,6 +1595,135 @@ mxComputeReportDeriv <- function(freeSet=NA_character_) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeBootstrap",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 data = "MxCharOrNumber",
+	     plan = "MxCompute",
+	     replications = "integer",
+	     verbose = "integer",
+	     parallel = "logical",
+	     OK = "character",
+	     only = "integer"
+	 ))
+
+setMethod("initialize", "MxComputeBootstrap",
+	  function(.Object, freeSet, data, plan, replications,
+		   verbose, parallel, OK, only) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@data <- data
+		  .Object@plan <- plan
+		  .Object@replications <- replications
+		  .Object@verbose <- verbose
+		  .Object@parallel <- parallel
+		  .Object@OK <- OK
+		  .Object@only <- only
+		  .Object
+	  })
+
+setMethod("getFreeVarGroup", signature("MxComputeBootstrap"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("assignId", signature("MxComputeBootstrap"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxComputeBootstrap"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('data')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeBootstrap"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (any(!is.integer(.Object@data))) {
+			dataNum <- match(.Object@data, names(flatModel@datasets))
+			if (any(is.na(dataNum))) {
+				stop(paste("MxComputeBootstrap:", omxQuotes(.Object@data),
+					   "not recognized as MxData"))
+			}
+			.Object@data <- dataNum - 1L
+		}
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("updateFromBackend", signature("MxComputeBootstrap"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
+
+mxComputeBootstrap <- function(data, plan, replications=200, ...,
+			       verbose=0L, parallel=TRUE, freeSet=NA_character_,
+			       OK=c("OK", "OK/green"), only=NA_integer_) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
+	}
+
+	data <- vapply(data, function(e1) {
+		path <- unlist(strsplit(e1, imxSeparatorChar, fixed = TRUE))
+		if (length(path) == 1) {
+			e1 <- paste(path, "data", sep=imxSeparatorChar)
+		}
+		e1
+	}, "")
+
+	new("MxComputeBootstrap", freeSet, data, plan, as.integer(replications),
+	    as.integer(verbose), parallel, OK, only)
+}
+
+setMethod("displayCompute", signature(Ob="MxComputeBootstrap", indent="integer"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$plan :", '\n')
+		  displayCompute(Ob@plan, indent+1L)
+		  for (sl in c("data", "replications", "OK",
+			       "verbose", "parallel")) {
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeReportExpectation",
 	 contains = "BaseCompute")
 

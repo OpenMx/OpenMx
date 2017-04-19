@@ -91,3 +91,9 @@ reg2Results1 <- mxRun(mxModel(regModel1, mxData(test2Data, "raw")))
 sum2 <- fivenum(abs(reg2Results1$output$estimate - regResults1$output$estimate))
 omxCheckTrue(sum2[1] > 0)
 omxCheckTrue(sum2[5] < .1)
+
+reg2Results1 <- mxBootstrap(reg2Results1, 10,
+                            OK=c("OK", "OK/green", "nonzero gradient"))
+bq <- summary(reg2Results1)[['bootstrapQuantile']]
+omxCheckCloseEnough(cor(apply(bq,1,diff),
+                        regResults1$output$standardErrors), 1.0, .2)

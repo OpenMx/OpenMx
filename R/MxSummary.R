@@ -482,6 +482,13 @@ print.summary.mxmodel <- function(x,...) {
 				params <- cbind(before, 'A'=stars)
 			}
 		}
+		if (!is.null(x$bootstrapQuantile) && nrow(x$bootstrapQuantile) == nrow(params)) {
+			bq <- x$bootstrapQuantile
+			params <- cbind(params, bq)
+		}
+		cmap <- 1:ncol(params)
+		isBound <- colnames(params) %in% paste0(c('l','u'),'bound')
+		params <- params[,c(cmap[!isBound], cmap[isBound]),drop=FALSE]
 		print(params)
 		cat('\n')
 	}
@@ -812,6 +819,25 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	if (!is.null(model@compute$steps[['ND']]) && model@compute$steps[['ND']]$checkGradient &&
 	    !is.null(model@compute$steps[['ND']]$output$gradient)) {
 		retval$seSuspect <- !model@compute$steps[['ND']]$output$gradient[,'symmetric']
+	}
+	if (is(model@compute, "MxComputeBootstrap")) {
+		bq <- c(.25,.75)
+		if (!is.null(dotArguments[["boot.quantile"]])) {
+			bq <- sort(as.numeric(dotArguments[["boot.quantile"]]))
+		}
+		cb <- model@compute
+		if (!is.null(cb@output$raw) && is.na(cb@only) && cb@output$numParam == nrow(retval$parameters)) {
+			raw <- cb@output$raw
+			mask <- raw[,'statusCode'] %in% cb@OK
+			if (sum(mask) < .95*nrow(raw)) {
+				pct <- round(100*sum(mask) / nrow(raw))
+				warning(paste0("Only ",pct,"% of the bootstrap replications ",
+					       "converged. Accuracy is much less than the ", nrow(raw),
+					       " replications requested"), call.=FALSE)
+			}
+			retval$bootstrapQuantile <- t(sapply(raw[mask, 3:(nrow(retval$parameters)+2)],
+								 quantile, probs=bq))
+		}
 	}
 	retval$GREMLfixeff <- GREMLFixEffList(model)
 	retval$infoDefinite <- model@output$infoDefinite
