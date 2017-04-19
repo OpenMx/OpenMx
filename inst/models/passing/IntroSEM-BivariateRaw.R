@@ -102,18 +102,16 @@ omxCheckCloseEnough(biRegModelRawOut$output$iterations, 30, 10)
 set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawOut, 10)
 omxCheckTrue(is.null(biRegModelRawBoot$output[["standardErrors"]]))
-bq1 <- summary(biRegModelRawBoot)[["bootstrapQuantile"]]
-omxCheckCloseEnough(cor(bq1[,2] - bq1[,1],
-                        biRegModelRawOut$output$standardErrors), .7, .01)
+bq1 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
+omxCheckCloseEnough(cor(bq1, biRegModelRawOut$output$standardErrors), .91, .01)
 
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot)
-bq2 <- summary(biRegModelRawBoot)[["bootstrapQuantile"]]
-# omxCheckCloseEnough(cor(bq2[,2] - bq2[,1],
-#                         biRegModelRawOut$output$standardErrors), 1.0, .05)
+bq2 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
+omxCheckCloseEnough(norm(bq2 - biRegModelRawOut$output$standardErrors,"2"), 0, .02)
 
 set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot, 10)
-bq3 <- summary(biRegModelRawBoot)[["bootstrapQuantile"]]
+bq3 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
 omxCheckEquals(bq3, bq1)
 
 repl3 <- biRegModelRawBoot$compute$output$raw[3,]

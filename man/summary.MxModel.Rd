@@ -50,6 +50,7 @@ mxSummary allows the user to set or override the following parameters of the mod
 \item{verbose}{logical. Changes the printing style for summary (see Details)}
 \item{boot.quantile}{numeric. A vector of quantiles to be used to
   summarize bootstrap replication.}
+\item{boot.SummaryType}{character. One of \sQuote{quantile} or \sQuote{bcbci}.}
 }
 
 The \code{verbose} argument changes the printing style for the \code{summary} of a model.  When \code{verbose=FALSE}, a relatively minimal amount of information is printed: the free parameters, the likelihood, and a few fit indices.  When more information is available, more is printed.  For example, when the model has a saturated likelihood, several additional fit indices are printed.  On the other hand, when \code{verbose=TRUE}, the compute plan, the data summary, and additional timing information are always printed.  Moreover, available fit indices are printed regarless of whether or not they are defined.  The undefined fit indices are printed as \code{NA}.  Running a saturated model and including it with the call to \code{summary} will define these fit indices and they will dislay meaningful values.  It should be noted that the \code{verbose} argument only changes the printing style, all of the same information is calculated and exists in the output of \code{summary}.  More information is displayed when \code{verbose=TRUE}, and less when \code{verbose=FALSE}.
@@ -71,13 +72,22 @@ The summary function can report Error codes as follows:
    \item 9: An input parameter was invalid
    }
 
-When the information matrix is available, standard errors are reported.
+   When the information matrix is available, either approximated by the
+   Hessian or from bootstrap resampling, standard errors are reported.
 If the information matrix was estimated using finite differences then an
 additional diagnostic column 'A' is displayed. An exclamation point in
 the 'A' column indicates that the gradient appears to be asymmetric and
 the standard error may not accurately reflect the variability of that
 parameter. As a precaution, it is recommended that you compare the SEs
-with likelihood-based confidence intervals.
+with likelihood-based or bootstrap confidence intervals.
+
+Summarization of bootstrap replications is controlled by two options:
+\sQuote{boot.quantile} and \sQuote{boot.SummaryType}. To obtain a
+two-sided 95\% width confidence interval, use
+\code{\sQuote{boot.quantile}=c(.025,.975)}.
+Options for \sQuote{boot.SummaryType} are \sQuote{quantile} (using R's
+standard \code{stats::quantile} function) and \sQuote{bcbci} for
+bias-corrected bootstrap confidence intervals.
 
 For many raw data models, OpenMx does not automatically report the absolute fit indices (Chi-Squared, CFI, TLI, and RMSEA).  They are available once you fit reference models.  See the example given in \link{mxRefModels}.
 
