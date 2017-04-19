@@ -95,4 +95,4 @@ omxCheckTrue(sum2[5] < .1)
 reg2Results1 <- mxBootstrap(reg2Results1, 10,
                             OK=c("OK", "OK/green", "nonzero gradient"))
 bq <- summary(reg2Results1)[['bootstrapSE']]
-omxCheckCloseEnough(norm(bq - regResults1$output$standardErrors,"2"), 0, .02)
+omxCheckCloseEnough(sum((bq - regResults1$output$standardErrors)^2), 0, 1e-3)
