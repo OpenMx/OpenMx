@@ -107,7 +107,7 @@ omxCheckCloseEnough(cor(bq1, biRegModelRawOut$output$standardErrors), .91, .01)
 
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot)
 bq2 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
-omxCheckCloseEnough(sum((bq2 - biRegModelRawOut$output$standardErrors)^2), 0, 1e-4)
+omxCheckCloseEnough(sum((bq2 - biRegModelRawOut$output$standardErrors)^2), 0, 1e-3)
 
 set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot, 10)

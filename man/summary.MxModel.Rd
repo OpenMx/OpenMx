@@ -84,7 +84,7 @@ with likelihood-based or bootstrap confidence intervals.
 Summarization of bootstrap replications is controlled by two options:
 \sQuote{boot.quantile} and \sQuote{boot.SummaryType}. To obtain a
 two-sided 95\% width confidence interval, use
-\code{\sQuote{boot.quantile}=c(.025,.975)}.
+\code{boot.quantile=c(.025,.975)}.
 Options for \sQuote{boot.SummaryType} are \sQuote{quantile} (using R's
 standard \code{stats::quantile} function) and \sQuote{bcbci} for
 bias-corrected bootstrap confidence intervals.

@@ -868,7 +868,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 					}
 					retval$bootstrapQuantile <- out
 				} else {
-					warning(paste("boot.SummaryType =", omxQuote(summaryType),
+					warning(paste("boot.SummaryType =", omxQuotes(summaryType),
 						      "is not recognized"))
 				}
 			}
