@@ -27,7 +27,12 @@ declare -i RESULT=0
 
 for pk in $pkgs; do
     R CMD build --no-build-vignettes "$pk" && R CMD check --no-manual --no-vignettes ${pk}_*.tar.gz
-    RESULT+=$?
+    st=$?
+    if [ $st != 0 ]; then
+	echo "cat ${pk}.Rcheck/00install.out"
+	cat ${pk}.Rcheck/00install.out
+    fi
+    RESULT+=$st
 done
 
 popd
