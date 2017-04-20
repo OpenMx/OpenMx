@@ -28,9 +28,8 @@ factorModel <- mxModel("One Factor", type="RAM",
     mxPath(from=latents, to=manifests, free=c(FALSE,TRUE,TRUE,TRUE,TRUE), values=1),
     mxPath(from=manifests, arrows=2, lbound=.0001),
     mxPath(from=latents, arrows=2, free=TRUE, values=1.0),
-    mxData(cov(demoOneFactor), type="cov", numObs=500),
-    # mxPath(from="one", to=manifests, arrows=1, free=T, values=colMeans(demoOneFactor)),
-    # mxData(demoOneFactor, type="raw"),
+    mxPath(from="one", to=manifests, arrows=1, free=T, values=colMeans(demoOneFactor)),
+    mxData(demoOneFactor, type="raw"),
     mxMatrix("Iden", nrow=nVars, name="I"),
     mxMatrix("Full", free=FALSE, values=diag(nrow=nManifest, ncol=nVars), name="Eff"),
     mxAlgebra(Eff%*%solve(I-A), name="Z"),
@@ -39,7 +38,7 @@ factorModel <- mxModel("One Factor", type="RAM",
     mxCI(c("P"))
 )
 factorFit <- mxRun(factorModel, intervals=FALSE)
-omxCheckCloseEnough(factorFit$output$fit, -3660.596, .01)
+omxCheckCloseEnough(factorFit$output$fit, 934.095, .01)
 
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") {ctype = 'none'} else {ctype = 'ineq'}
 
