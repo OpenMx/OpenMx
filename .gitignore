@@ -164,6 +164,7 @@ man/MxRAMModel-class.Rd
 man/mxSE.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
+man/MxVersionType-class.Rd
 man/omxCheckCloseEnough.Rd
 man/omxCheckError.Rd
 man/omxCheckNamespace.Rd

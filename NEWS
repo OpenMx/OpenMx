@@ -1,5 +1,6 @@
 # OpenMx bleed / 2.8.0 in the making
-* NEW: mxBootstrap, mxComputeBootstrap
+* FIXED: Oakes standard errors (ComputeEM) were broken since Feb 2016.
+* NEW: mxBootstrap, mxComputeBootstrap, mxBootstrapEval, mxBootstrapEvalByName
 * IMPROVED: mxAutoStart handles models which refer to parent models.
 * IMPROVED: WLS improvements
 	* Handling models with constraints

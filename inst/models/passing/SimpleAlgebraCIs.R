@@ -40,11 +40,21 @@ factorModel <- mxModel("One Factor", type="RAM",
 factorFit <- mxRun(factorModel, intervals=FALSE)
 omxCheckCloseEnough(factorFit$output$fit, 934.095, .01)
 
+factorBoot <- mxBootstrap(factorFit, 100L, OK=c("OK","OK/green", "nonzero gradient"))
+omxCheckError(mxBootstrapEval(P, factorFit, compute=T),
+	      "Compute plan MxComputeSequence found in model 'One Factor' instead of MxComputeBootstrap. Have you run this model through mxBootstrap already?")
+
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") {ctype = 'none'} else {ctype = 'ineq'}
 
 factorFitCI <- mxRun(mxModel(factorFit, mxComputeConfidenceInterval(plan=mxComputeGradientDescent(), constraintType = ctype)), suppressWarnings = TRUE)
 factorSummCI <- summary(factorFitCI)
 summary(factorFitCI)
+
+bci <- mxBootstrapEval(P, factorBoot, bq=c(.025,.975))
+omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'lbound'] - bci[,"2%"],
+                    rep(0,5), .05)
+omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'ubound'] - bci[,"98%"],
+                    rep(0,5), .01)
 
 omxCheckCloseEnough(coef(factorFit), coef(factorFitCI))
 omxCheckCloseEnough(factorFit$output$fit, factorFitCI$output$fit, 0)

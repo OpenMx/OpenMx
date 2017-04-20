@@ -802,6 +802,29 @@ ecdftable <- function(data){
 	return(cbind(x,Pn))
 }
 
+summarizeBootstrap <- function(mle, bootData, bq, summaryType) {
+	if (summaryType == 'quantile') {
+		t(apply(bootData, 2, quantile, probs=bq))
+	} else if (summaryType == 'bcbci') {
+		zcrit <- qnorm(bq)
+		out <- matrix(NA, nrow=length(mle), ncol=length(bq),
+			      dimnames=list(names(mle),
+					    sapply(bq, function(x) sprintf("%d%%", round(100*min(x), .1)))))
+		for(i in 1:length(mle)) {
+			ecdf.curr <- ecdftable(bootData[,i])
+			z0 <- qnorm(mean(bootData[,i] <= mle[i]))
+			for (qx in 1:length(bq)) {
+				phi <- pnorm(2*z0 + zcrit[qx])
+				out[i,qx] <- max(c(-Inf,subset(ecdf.curr[,1], ecdf.curr[,2]<=phi)))
+			}
+		}
+		out
+	} else {
+		warning(paste("boot.SummaryType =", omxQuotes(summaryType),
+			      "is not recognized"))
+	}
+}
+
 summary.MxModel <- function(object, ..., verbose=FALSE) {
 	model <- object
 	dotArguments <- list(...)
@@ -842,7 +865,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 		if (!is.null(cb@output$raw) && is.na(cb@only) && cb@output$numParam == nrow(retval$parameters)) {
 			raw <- cb@output$raw
 			mask <- raw[,'statusCode'] %in% cb@OK
-			bootData <- raw[mask, 3:(nrow(retval$parameters)+2)]
+			bootData <- raw[mask, 3:(nrow(retval$parameters)+2), drop=FALSE]
 			if (nrow(bootData) >= 3 && sum(mask) < .95*nrow(raw)) {
 				pct <- round(100*sum(mask) / nrow(raw))
 				warning(paste0("Only ",pct,"% of the bootstrap replications ",
@@ -850,27 +873,9 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 					       " replications requested"), call.=FALSE)
 			}
 			if (sum(mask) >= 3) {
-				retval$bootstrapSE <- sapply(bootData, sd)
-				if (summaryType == 'quantile') {
-					retval$bootstrapQuantile <- t(sapply(bootData, quantile, probs=bq))
-				} else if (summaryType == 'bcbci') {
-					zcrit <- qnorm(bq)
-					out <- matrix(NA, nrow=nrow(retval$parameters), ncol=length(bq),
-						      dimnames=list(rownames(retval$parameters),
-								    sapply(bq, function(x) sprintf("%d%%", round(100*min(x), .1)))))
-					for(i in 1:nrow(retval$parameters)) {
-						ecdf.curr <- ecdftable(bootData[,i])
-						z0 <- qnorm(mean(bootData[,i] <= retval$parameters[i, 'Estimate']))
-						for (qx in 1:length(bq)) {
-							phi <- pnorm(2*z0 + zcrit[qx])
-							out[i,qx] <- max(c(-Inf,subset(ecdf.curr[,1], ecdf.curr[,2]<=phi)))
-						}
-					}
-					retval$bootstrapQuantile <- out
-				} else {
-					warning(paste("boot.SummaryType =", omxQuotes(summaryType),
-						      "is not recognized"))
-				}
+				retval$bootstrapSE <- apply(bootData, 2, sd)
+				retval$bootstrapQuantile <-
+					summarizeBootstrap(retval$parameters[, 'Estimate'], bootData, bq, summaryType)
 			}
 		}
 	}
