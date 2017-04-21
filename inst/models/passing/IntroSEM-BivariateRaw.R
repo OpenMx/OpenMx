@@ -117,7 +117,7 @@ omxCheckEquals(bq3, bq1)
 repl3 <- biRegModelRawBoot$compute$output$raw[3,]
 biRegModelRawBoot3 <- mxBootstrap(biRegModelRawBoot, only=3)
 omit <- -match('statusCode', colnames(repl3))
-omxCheckEquals(repl3[,omit], biRegModelRawBoot3$compute$output$raw[,omit], 1e-6)
+omxCheckCloseEnough(repl3[,omit], biRegModelRawBoot3$compute$output$raw[,omit], 1e-6)
 
 # investigate replication 3
 biRegModelRaw3 <- mxModel(
