@@ -62,7 +62,7 @@ struct sufficientSet {
 class omxFIMLFitFunction : public omxFitFunction {
 	bool builtCache;
  public:
-	const int ELAPSED_HISTORY_SIZE = 5;
+	static const int ELAPSED_HISTORY_SIZE = 5;
 
 	omxFIMLFitFunction *parent;
 	int rowwiseParallel;
