@@ -31,6 +31,12 @@
 ##' This function allows you to obtain standard errors for arbitrary
 ##' expressions, named entities, and algebras.
 ##' 
+##' @param x the parameter to get SEs on (reference or expression)
+##' @param model the \code{\link{mxModel}} to use.
+##' @param details logical. Whether to provide further details, e.g. the full sampling covariance matrix of x.
+##' @param cov optional matrix of covariances among the free parameters. If missing, the inverse Hessian from the fitted model is used.
+##' @param ... further named arguments passed to \code{\link{mxEval}}
+##' 
 ##' @details
 ##' x can be the name of an algebra, a bracket address, named entity
 ##' or arbitrary expression. It is a frontend-only file that works
@@ -38,11 +44,9 @@
 ##' sampling covariance matrix of \code{x} is also returned as part of a list.
 ##' The square root of the diagonals of this sampling covariance matrix are
 ##' the standard errors.
-##'
-##' @param x the parameter to get SEs on (reference or expression)
-##' @param model the \code{\link{mxModel}} to use.
-##' @param details logical. Whether to provide further details, e.g. the full sampling covariance matrix of x.
-##' @param ... further named arguments passed to \code{\link{mxEval}}
+##' 
+##' When supplying the \code{cov} argument, take care that the free parameter covariance matrix is given, not the information matrix.  These two are inverses of one another.
+##' 
 ##' @return SE value(s) returned as a matrix when \code{details} is FALSE.
 ##' When \code{details} is TRUE, a list of the SE value(s) and the full sampling covariance matrix.
 ##' @seealso - \code{\link{mxCI}}
@@ -69,7 +73,7 @@
 ##' m1 = mxRun(m1)
 ##' mxSE(lambda5, model = m1)
 ##' mxSE(lambda1^2, model = m1)
-mxSE <- function(x, model, details=FALSE, ...){
+mxSE <- function(x, model, details=FALSE, cov, ...){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	if(isCallEtc){
 		message('Treating first argument as an expression')
@@ -100,24 +104,27 @@ mxSE <- function(x, model, details=FALSE, ...){
 	}
 	zoutVec <- sefun(x=freeparams, model=model, alg=x)
 	
-	if(length(model@output) > 0){
+	if(length(model@output) > 0 && missing(cov)){
 		if(length(model@output$infoDefinite) && !single.na(model@output$infoDefinite)){
-			if(model@output$infoDefinite){
-				# solve() will fail if Hessian is computationally singular;
-				# chol2inv() will still fail if Hessian is exactly singular.
-				ParamsCov <- 2*chol2inv(chol(model@output$hessian))
-				dimnames(ParamsCov) <- dimnames(model@output$hessian)
-			} else{
-				# An indefinite Hessian usually means some SEs will be NaN:
-				ParamsCov <- 2*solve(model@output$hessian)
-			}
+			# An indefinite Hessian usually means some SEs will be NaN:
+			ParamsCov <- 2*solve(model@output$hessian)
+			dimnames(ParamsCov) <- dimnames(model@output$hessian)
 		} else {
 			msg <- "Model does not have a reasonable Hessian or standard errors."
 			msg <- paste0(msg, ifelse(imxHasConstraint(model), "\nModel has at least one mxConstraint. This prevented standard error computation.\nTry mxCI().", "\nDid you set the mxOption() to turn off standard errors?"))
 			stop(msg)
 		}
+	} else if (missing(cov)){
+		stop("Model does not have output and 'cov' argument is missing.  I'm a doctor, not a bricklayer!\nWas this model run with mxRun?")
 	} else {
-		stop("Model does not have output.  I'm a doctor, not a bricklayer!\nWas this model run with mxRun?")
+		ParamsCov <- cov
+		if(is.null(dimnames(ParamsCov))){
+			if(length(paramnames) == nrow(ParamsCov)){
+				dimnames(ParamsCov) <- list(paramnames, paramnames)
+			}else{
+				stop(paste0("dimnames of user-supplied parameter covariance matrix are null\nand the number of rows (",  nrow(ParamsCov), ") do not match the number of free parameters (", length(paramnames), ")."))
+			}
+		}
 	}
 	
 	covParam <- ParamsCov[paramnames,paramnames] # <-- submodel will usually not contain all free param.s
