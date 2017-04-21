@@ -78,7 +78,7 @@ mxBootstrap(model, replications=200, ...,
 }
 
 \seealso{
-\code{\link{mxComputeBootstrap}}, \code{\link{mxSummary}}
+\code{\link{mxBootstrapEval}}, \code{\link{mxComputeBootstrap}}, \code{\link{mxSummary}}
 }
 
 \examples{
