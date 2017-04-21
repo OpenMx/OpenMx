@@ -44,5 +44,5 @@ for (arg in args) {
 pkg <- setdiff(pkg, c('R', 'methods', 'parallel', 'Rmpi',
                       'OpenMx', 'stats', 'utils', 'graphics', 'grDevices'))
 cat(deparse(pkg), fill=TRUE)
-updateDependencies('nloptr')  # some package mysteriously depends on nloptr
+updateDependencies(c('nloptr', 'rjson'))  # mysteriously undeclared dependencies
 updateDependencies(pkg)
