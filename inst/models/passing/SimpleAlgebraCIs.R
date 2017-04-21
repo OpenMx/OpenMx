@@ -50,10 +50,12 @@ factorFitCI <- mxRun(mxModel(factorFit, mxComputeConfidenceInterval(plan=mxCompu
 factorSummCI <- summary(factorFitCI)
 summary(factorFitCI)
 
+set.seed(42L)
 bci <- mxBootstrapEval(P, factorBoot, bq=c(.025,.975))
-omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'lbound'] - bci[,"2%"],
+print(bci)
+omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'lbound'] - bci[,"2.5%"],
                     rep(0,5), .05)
-omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'ubound'] - bci[,"98%"],
+omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'ubound'] - bci[,"97.5%"],
                     rep(0,5), .02)
 
 omxCheckCloseEnough(coef(factorFit), coef(factorFitCI))

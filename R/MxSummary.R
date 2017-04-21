@@ -809,7 +809,7 @@ summarizeBootstrap <- function(mle, bootData, bq, summaryType) {
 		zcrit <- qnorm(bq)
 		out <- matrix(NA, nrow=length(mle), ncol=length(bq),
 			      dimnames=list(names(mle),
-					    sapply(bq, function(x) sprintf("%d%%", round(100*min(x), .1)))))
+					    sapply(bq, function(x) sprintf("%.1f%%", round(100*min(x), 1)))))
 		for(i in 1:length(mle)) {
 			ecdf.curr <- ecdftable(bootData[,i])
 			z0 <- qnorm(mean(bootData[,i] <= mle[i]))
