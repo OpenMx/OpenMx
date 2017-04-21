@@ -56,7 +56,7 @@ print(bci)
 omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'lbound'] - bci[,"2.5%"],
                     rep(0,5), .05)
 omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'ubound'] - bci[,"97.5%"],
-                    rep(0,5), .02)
+                    rep(0,5), .03)
 
 omxCheckCloseEnough(coef(factorFit), coef(factorFitCI))
 omxCheckCloseEnough(factorFit$output$fit, factorFitCI$output$fit, 0)
