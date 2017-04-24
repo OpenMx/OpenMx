@@ -22,10 +22,7 @@
 #include "omxState.h"
 #include "Compute.h"
 #include "omxImportFrontendState.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 struct omxGlobal *Global = NULL;
 static bool mxLogEnabled = false;
@@ -117,9 +114,8 @@ void FreeVarGroup::cacheDependencies(omxState *os)
 
 	for (size_t vx = 0; vx < vars.size(); vx++) {
 		omxFreeVar *fv = vars[vx];
-		int *deps   = fv->deps;
-		int numDeps = fv->numDeps;
-		for (int index = 0; index < numDeps; index++) {
+		auto deps = fv->getDeps();
+		for (int index = 0; index < deps.size(); index++) {
 			dependencies[deps[index] + numMats] = true;
 		}
 		for (size_t lx=0; lx < fv->locations.size(); ++lx) {
@@ -425,6 +421,18 @@ void omxState::initialRecalc(FitContext *fc)
 	}
 }
 
+void omxState::invalidateCache()
+{
+	for(size_t ex = 0; ex < expectationList.size(); ex++) {
+		expectationList[ex]->invalidateCache();
+	}
+	for (int ax=0; ax < (int) algebraList.size(); ++ax) {
+		omxMatrix *matrix = algebraList[ax];
+		if (!matrix->fitFunction) continue;
+		matrix->fitFunction->invalidateCache();
+	}
+}
+
 omxState::~omxState()
 {
 	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conListX.size());}
@@ -467,9 +475,6 @@ omxGlobal::~omxGlobal()
 	}
 	for (size_t cx=0; cx < computeList.size(); ++cx) {
 		delete computeList[cx];
-	}
-	for (size_t cx=0; cx < algebraList.size(); ++cx) {
-		delete algebraList[cx];
 	}
 	for (size_t cx=0; cx < checkpointList.size(); ++cx) {
 		delete checkpointList[cx];
@@ -907,6 +912,23 @@ const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(int matrix, bool &moreT
 const omxFreeVarLocation *omxFreeVar::getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const
 { return getOnlyOneLocation(~mat->matrixNumber, moreThanOne); }
 
+void omxFreeVar::markDirty(omxState *os)
+{
+	auto deps = getDeps();
+	for (int dx=0; dx < deps.size(); ++dx) {
+		int dep = deps[dx];
+		if (dep < 0) {
+			omxMarkDirty(os->matrixList[~dep]);
+		} else {
+			omxMarkDirty(os->algebraList[dep]);
+		}
+	}
+
+	for (int lx=0; lx < int(locations.size()); ++lx) {
+		omxMarkClean(os->matrixList[locations[lx].matrix]);
+	}
+}
+
 void omxFreeVar::copyToState(omxState *os, double val)
 {
 	for(size_t l = 0; l < locations.size(); l++) {
@@ -915,7 +937,7 @@ void omxFreeVar::copyToState(omxState *os, double val)
 		int row = loc->row;
 		int col = loc->col;
 		omxSetMatrixElement(matrix, row, col, val);
-		if (OMX_DEBUG_MATRIX) {
+		if (OMX_DEBUG) {
 			mxLog("free var %s, matrix %s[%d, %d] = %f",
 			      name, matrix->name(), row, col, val);
 		}

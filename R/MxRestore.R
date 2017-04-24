@@ -55,7 +55,9 @@ mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL
 		}
 		# Move the most likely match to the end so those estimates take precedence.
 		matchIndex <- match(paste(model$name, 'omx', sep="."), chkpt.files)
-		chkpt.files <- c(chkpt.files[-matchIndex], paste(model$name, 'omx', sep="."))
+		if (!is.na(matchIndex)) {
+			chkpt.files <- c(chkpt.files[-matchIndex], paste(model$name, 'omx', sep="."))
+		}
 	}
 	if (length(chkpt.files) > 1 && !is.null(line)) {
 		stop(paste("Ambiguous: cannot specify line =", line,

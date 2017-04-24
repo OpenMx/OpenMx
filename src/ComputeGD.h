@@ -42,9 +42,6 @@ class GradientOptimizerContext {
 	double gradientStepSize;
 
 	bool feasible;
-	bool avoidRedundentEvals;
-	Eigen::VectorXd prevPoint;
-	int prevMode;
 	void *extraData;
 	omxMatrix *fitMatrix;
 	int numOptimizerThreads;
@@ -96,14 +93,16 @@ class GradientOptimizerContext {
 
 	double solFun(double *myPars, int* mode);
 	double recordFit(double *myPars, int* mode);
-	void solEqBFun();
-	void myineqFun();
+	void solEqBFun(bool wantAJ);
+	void myineqFun(bool wantAJ);
 	template <typename T1, typename T2, typename T3> void allConstraintsFun(
 			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
 	bool usingAnalyticJacobian;
 	void checkForAnalyticJacobians();
+	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
+	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
 	void copyFromOptimizer(double *myPars, FitContext *fc2);
@@ -119,12 +118,38 @@ class GradientOptimizerContext {
 		fc->ciobj->gradient(fc, gradOut.derived().data());
 	};
 	omxState *getState() const { return fc->state; };
+	bool doingCI(){ 
+		if(fc->ciobj){return(true);}
+		else{return(false);}
+	};
 
 	GradientWithRef gwrContext;
 
 	template <typename T1>
 	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint);
 };
+
+template <typename T1>
+double median(Eigen::MatrixBase<T1> &vec)
+{
+	if (vec.size() < 2) {
+		return vec.array().sum() / vec.size();
+	}
+
+	std::vector<int> ind;
+	ind.resize(vec.size());
+	for (int xx=0; xx < int(vec.size()); ++xx) ind[xx] = xx;
+	std::sort(ind.begin(), ind.end(), [&](int ii, int jj) {
+			return vec[ii] < vec[jj];
+		});
+	if (vec.size() % 2 == 0) {
+		int mid = vec.size() / 2 - 1;
+		return (vec[ind[mid]] + vec[ind[mid+1]]) / 2.0;
+	} else {
+		int mid = vec.size() / 2;
+		return vec[ind[mid]];
+	}
+}
 
 template <typename T1>
 void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint)
@@ -138,22 +163,42 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 
 	// fc assumed to hold the reference fit
 	double refFit = fc->fit;
-	int skippedRows = fc->skippedRows;
 
 	gwrContext([&](double *myPars, int thrId)->double{
 			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
 			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+			// Only 1 parameter is different so we could
+			// update only that parameter instead of all
+			// of them.
 			copyFromOptimizer(myPars, fc2);
 			int want = FF_COMPUTE_FIT;
 			ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
 			double fit = fc2->fit;
-			// Really should require the same rows, not just the same
-			// number of rows.
-			if (fc2->outsideFeasibleSet() || fc2->skippedRows != skippedRows) {
+			if (fc2->outsideFeasibleSet()) {
 				fit = nan("infeasible");
 			}
 			return fit;
 		}, refFit, Epoint, grad);
+
+	if (true) {
+		Eigen::VectorXd absGrad = grad.array().abs();
+		double m1 = std::max(median(absGrad), 1.0);
+		double big = 1e4 * m1;
+		int adj=0;
+		for (int gx=0; gx < grad.size(); ++gx) {
+			if (absGrad[gx] < big) continue;
+			bool neg = grad[gx] < 0;
+			double gg = m1;
+			if (neg) gg = -gg;
+			grad[gx] = gg;
+			++adj;
+		}
+		if (false && adj) {
+			mxLog("%d grad outlier", adj);
+			mxPrintMat("absGrad", absGrad);
+			mxPrintMat("robust grad", grad);
+		}
+	}
 }
 
 template <typename T1>

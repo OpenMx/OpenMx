@@ -94,9 +94,12 @@ class omxData {
 	SEXP rownames;
 	void addDynamicDataSource(omxExpectation *ex);
 	int primaryKey;   // column of primary key
+	int weightCol;
+	double *currentWeightColumn;
 
  public: // move everything to private TODO
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
+	bool hasWeight() const { return weightCol >= 0; };
 	int lookupRowOfKey(int key);
 	int primaryKeyOfRow(int row);
 	void omxPrintData(const char *header, int maxRows, int *permute);
@@ -140,6 +143,14 @@ class omxData {
 	void connectDynamicData(omxState *currentState);
 	void recompute();
 	friend void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey);
+	double *getWeightColumn() { return currentWeightColumn; };
+	void setWeightColumn(double *wc) { currentWeightColumn = wc; }
+	double *getOriginalWeightColumn();
+	double getRowWeight(int row) {
+		if (!hasWeight()) return 1.0;
+		return getWeightColumn()[row];
+	}
+	int numRawRows();
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

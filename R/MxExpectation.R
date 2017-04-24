@@ -80,17 +80,17 @@ setGeneric("genericExpConvertEntities",
 })
 
 setGeneric("genericGetExpected",
-	function(.Object, model, what, defvar.row) {
+	function(.Object, model, what, defvar.row, subname) {
 	return(standardGeneric("genericGetExpected"))
 })
 
 setGeneric("genericGetExpectedVector",
-	function(.Object, model, defvar.row) {
+	function(.Object, model, defvar.row, subname) {
 	return(standardGeneric("genericGetExpectedVector"))
 })
 
 setGeneric("genericGetExpectedStandVector",
-	function(.Object, model, defvar.row) {
+	function(.Object, model, defvar.row, subname) {
 	return(standardGeneric("genericGetExpectedStandVector"))
 })
 
@@ -126,7 +126,7 @@ setMethod("genericExpDependencies", "NULL",
 
 setMethod("genericExpRename", "MxBaseExpectation",
 	function(.Object, oldname, newname) {
-		return(.Object)
+		stop("Not implemented yet")
 })
 
 setMethod("genericExpRename", "NULL",
@@ -135,13 +135,13 @@ setMethod("genericExpRename", "NULL",
 })
 
 setMethod("genericGetExpected", "MxBaseExpectation",
-	function(.Object, model, what, defvar.row) stop("Not implemented"))
+	function(.Object, model, what, defvar.row, subname) stop("Not implemented"))
 
 setMethod("genericGetExpectedVector", "MxBaseExpectation",
-	function(.Object, model, defvar.row) stop("Not implemented"))
+	function(.Object, model, defvar.row, subname) stop("Not implemented"))
 
 setMethod("genericGetExpectedStandVector", "MxBaseExpectation",
-	function(.Object, model, defvar.row) stop("Not implemented"))
+	function(.Object, model, defvar.row, subname) stop("Not implemented"))
 
 setMethod("$", "MxBaseExpectation", imxExtractSlot)
 
@@ -202,11 +202,10 @@ expectationFunctionConvertEntities <- function(flatModel, namespace, labelsData)
 #By the time this function is called, the optionsList will contain any locally set mxOptions:
 getPrecisionPerExpectation <- function(expectation, optionsList){
 	
-	#Assume a value for an option is needed if the option's current value is NA when coerced to numeric
-	#(which will be the case if the current value is "Auto"):
-	needStepSize <- is.na(suppressWarnings(as.numeric(optionsList$"Gradient step size")))
-	needIters <- is.na(suppressWarnings(as.integer(optionsList$"Gradient iterations")))
-	needFuncPrec <- is.na(suppressWarnings(as.numeric(optionsList$"Function precision")))
+	#Which options need a proper numerical value?
+	needStepSize <- as.logical(length(grep(pattern="Auto",x=optionsList$"Gradient step size",ignore.case=T)))
+	needIters <- as.logical(length(grep(pattern="Auto",x=optionsList$"Gradient iterations",ignore.case=T)))
+	needFuncPrec <- as.logical(length(grep(pattern="Auto",x=optionsList$"Function precision",ignore.case=T)))
 	
 	#Do we have an ordinal-thresholds expectation?:
 	isOrdThresh <- (class(expectation) %in% c("MxExpectationNormal","MxExpectationLISREL","MxExpectationRAM")) && 

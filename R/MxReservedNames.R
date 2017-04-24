@@ -16,5 +16,5 @@
 ##' imxReservedNames
 ##'
 ##' Vector of reserved names
-imxReservedNames <- c('data', 'objective', 'likelihood', 'fitfunction', 'expectation', 'compute')
+imxReservedNames <- c('data', 'objective', 'likelihood', 'fitfunction', 'expectation', 'compute', 'one')
 

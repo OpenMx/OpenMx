@@ -21,7 +21,8 @@ setClass(Class = "MxFitFunctionML",
 	     verbose = "integer",
 	     profileOut="MxOptionalChar",
 	     rowwiseParallel="logical",
-	     jointConditionOn="character"),
+	     jointConditionOn="character",
+	     components="MxCharOrNumber"),
 	 )
 
 setMethod("initialize", "MxFitFunctionML",
@@ -82,6 +83,14 @@ setMethod("genericFitFunConvert", "MxFitFunctionML",
 		expectName <- paste(modelname, "expectation", sep=".")
 		if (expectName %in% names(flatModel@expectations)) {
 			expectIndex <- imxLocateIndex(flatModel, expectName, name)
+
+			ex <- flatModel@expectations[[1L + expectIndex]]
+			if (is(ex, "MxExpectationHiddenMarkov")) {
+				.Object@components <-
+					sapply(paste(ex@components, "fitfunction", sep="."),
+					       function(ff) imxLocateIndex(flatModel, ff, name),
+					       USE.NAMES = FALSE)
+			}
 		} else {
 			expectIndex <- as.integer(NA)
 		}
@@ -157,7 +166,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 				"of only the variables used in the model, provide the model after it has been run."))
 		}
 		
-		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs)
+		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs, datasource@means)
 	})
 
 mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA),

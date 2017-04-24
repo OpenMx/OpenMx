@@ -156,7 +156,7 @@ setClass(Class = "MxComputeOnce",
 	 contains = "BaseCompute",
 	 representation = representation(
 	     from = "MxCharOrNumber",
-	     what = "character",
+	     what = "MxOptionalChar",
 	     how = "MxOptionalChar",
 	     verbose = "integer",
 	     .is.bestfit="logical"))
@@ -219,7 +219,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' (one of "default", "hessian", "sandwich", "bread", and "meat").
 ##'
 ##' @param from the object to perform the computation (a vector of expectation or fit function names)
-##' @param what what to compute (default is "nothing")
+##' @param what what to compute
 ##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
@@ -240,7 +240,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' factorModelFit <- mxRun(factorModel)
 ##' factorModelFit$output$fit  # 972.15
 
-mxComputeOnce <- function(from, what="nothing", how=NULL, ...,
+mxComputeOnce <- function(from, what=NULL, how=NULL, ...,
 			  freeSet=NA_character_, verbose=0L, .is.bestfit=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -277,7 +277,7 @@ setClass(Class = "MxComputeGradientDescent",
 	   engine = "character",
 	     availableEngines = "character",
 	     tolerance = "numeric",
-	   nudgeZeroStarts = "logical",
+	   nudgeZeroStarts = "MxCharOrLogical",
 	   .excludeVars = "MxOptionalChar",
 	   verbose = "integer",
 	     maxMajorIter = "integer",
@@ -413,7 +413,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
 				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
-				     nudgeZeroStarts=TRUE, maxMajorIter=NULL,
+				     nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), maxMajorIter=NULL,
 				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
 				     gradientIterations=imxAutoOptionValue("Gradient iterations"),
 				     gradientStepSize=imxAutoOptionValue("Gradient step size")) {
@@ -939,8 +939,7 @@ setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
 setClass(Class = "MxComputeEM",
 	 contains = "BaseCompute",
 	 representation = representation(
-	     expectation = "MxCharOrNumber",
-	     predict = "character",
+	     estep = "MxCompute",
 	     mstep = "MxCompute",
 	     observedFit = "MxCharOrNumber",
 	     maxIter = "integer",
@@ -955,7 +954,7 @@ setMethod("assignId", signature("MxComputeEM"),
 		.Object <- callNextMethod()
 		defaultFreeSet <- .Object@freeSet
 		id <- .Object@id
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L
 		}
@@ -966,7 +965,7 @@ setMethod("assignId", signature("MxComputeEM"),
 setMethod("getFreeVarGroup", signature("MxComputeEM"),
 	function(.Object) {
 		result <- callNextMethod()
-		for (step in c(.Object@mstep)) {
+		for (step in c(.Object@estep, .Object@mstep)) {
 			got <- getFreeVarGroup(step)
 			if (length(got)) result <- append(result, got)
 		}
@@ -976,10 +975,10 @@ setMethod("getFreeVarGroup", signature("MxComputeEM"),
 setMethod("qualifyNames", signature("MxComputeEM"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('expectation', 'observedFit')) {
+		for (sl in c('observedFit')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
 		}
 		.Object@infoArgs$fitfunction <-
@@ -990,15 +989,6 @@ setMethod("qualifyNames", signature("MxComputeEM"),
 setMethod("convertForBackend", signature("MxComputeEM"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (any(!is.integer(.Object@expectation))) {
-			expNum <- match(.Object@expectation, names(flatModel@expectations))
-			if (any(is.na(expNum))) {
-				stop(paste("MxComputeEM: MxExpectation not found:",
-					   omxQuotes(.Object@expectation[is.na(expNum)])))
-			}
-			.Object@expectation <- expNum - 1L
-		}
-		if (length(.Object@expectation) == 0) warning("MxComputeEM with nothing will have no effect")
 		if (length(.Object@observedFit) != 1) stop("MxComputeEM requires a single observedFit function")
 		if (any(!is.integer(.Object@observedFit))) {
 			algNum <- match(.Object@observedFit, append(names(flatModel@algebras),
@@ -1008,7 +998,7 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 			}
 			.Object@observedFit <- algNum - 1L
 		}
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
 		}
 		fit <- match(.Object@infoArgs$fitfunction,
@@ -1025,19 +1015,18 @@ setMethod("convertForBackend", signature("MxComputeEM"),
 setMethod("updateFromBackend", signature("MxComputeEM"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
-		for (sl in c('mstep')) {
+		for (sl in c('estep', 'mstep')) {
 			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
 		}
 		.Object
 	})
 
 setMethod("initialize", "MxComputeEM",
-	  function(.Object, expectation, predict, mstep, observedFit, maxIter, tolerance,
+	  function(.Object, estep, mstep, observedFit, maxIter, tolerance,
 		   verbose, accel, information, freeSet, infoArgs) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
-		  .Object@expectation <- expectation
-		  .Object@predict <- predict
+		  .Object@estep <- estep
 		  .Object@mstep <- mstep
 		  .Object@observedFit <- observedFit
 		  .Object@maxIter <- maxIter
@@ -1068,8 +1057,8 @@ setMethod("initialize", "MxComputeEM",
 ##'
 ##' Ramsay (1975) was recommended in Bock, Gibbons, & Muraki (1988).
 ##'
-##' @param expectation a vector of expectation names
-##' @param predict what to predict from the observed data (available options depend on the expectation)
+##' @param expectation a vector of expectation names (DEPRECATED)
+##' @param predict what to predict from the observed data (DEPRECATED)
 ##' @param mstep a compute plan to optimize the completed data model
 ##' @param observedFit the name of the observed data fit function (defaults to "fitfunction")
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -1080,6 +1069,7 @@ setMethod("initialize", "MxComputeEM",
 ##' @param accel name of acceleration method ("varadhan2008" or "ramsay1975")
 ##' @param information name of information matrix approximation method
 ##' @param infoArgs arguments to control the information matrix method
+##' @param estep a compute plan to perform the expectation step
 ##' @aliases
 ##' MxComputeEM-class
 ##' @references
@@ -1106,9 +1096,9 @@ setMethod("initialize", "MxComputeEM",
 ##' Varadhan, R. & Roland, C. (2008). Simple and globally convergent
 ##' methods for accelerating the convergence of any EM
 ##' algorithm. \emph{Scandinavian Journal of Statistics, 35}, 335-353.
-mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", ...,
+mxComputeEM <- function(expectation=NULL, predict=NA_character_, mstep, observedFit="fitfunction", ...,
 			maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_,
-			accel="varadhan2008", information=NA_character_, infoArgs=list()) {
+			accel="varadhan2008", information=NA_character_, infoArgs=list(), estep=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeEM does not accept values for the '...' argument")
@@ -1116,7 +1106,15 @@ mxComputeEM <- function(expectation, predict, mstep, observedFit="fitfunction", 
 	verbose <- as.integer(verbose)
 	maxIter <- as.integer(maxIter)
 	accel <- as.character(accel)
-	new("MxComputeEM", expectation, predict, mstep, observedFit, maxIter=maxIter,
+
+	# backward compatibility for original API
+	if (length(expectation)) {
+		if (length(estep)) stop("You cannot provide both 'expectation' and 'estep' arguments")
+		estep <- mxComputeOnce(expectation, predict)
+		mstep <- mxComputeSequence(list(mstep, mxComputeOnce(expectation)))
+	}
+
+	new("MxComputeEM", estep, mstep, observedFit, maxIter=maxIter,
 	    tolerance=tolerance, verbose, accel, information, freeSet, infoArgs)
 }
 
@@ -1124,8 +1122,8 @@ setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  cat(sp, "$expectation :", omxQuotes(Ob@expectation), '\n')
-		  cat(sp, "$predict :", omxQuotes(Ob@predict), '\n')
+		  cat(sp, "$estep :", '\n')
+		  displayCompute(Ob@estep, indent+1L)
 		  cat(sp, "$mstep :", '\n')
 		  displayCompute(Ob@mstep, indent+1L)
 		  for (sl in c("observedFit", "maxIter", "tolerance", "verbose", "accel")) {
@@ -1141,6 +1139,210 @@ setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 		  }
 		  invisible(Ob)
 	  })
+
+#----------------------------------------------------
+#Mike Hunter's "better match.arg" function
+match.barg <- function (arg, choices, several.ok = FALSE) 
+{
+	if (missing(choices)) {
+		formal.args <- formals(sys.function(sys.parent()))
+		choices <- eval(formal.args[[deparse(substitute(arg))]])
+	}
+	if (is.null(arg)) 
+		return(choices[1L])
+	else if (!is.character(arg)) 
+		stop("'arg' must be NULL or a character vector")
+	if (!several.ok) {
+		if (identical(arg, choices)) 
+			return(arg[1L])
+		if (length(arg) > 1L) 
+			stop("'arg' must be of length 1")
+	}
+	else if (length(arg) == 0L) 
+		stop("'arg' must be of length >= 1")
+	i <- pmatch(arg, choices, nomatch = 0L, duplicates.ok = TRUE)
+	if (all(i == 0L)) 
+		stop(gettextf("%s should be one of %s", omxQuotes(arg), omxQuotes(choices)
+		), domain = NA)
+	i <- i[i > 0L]
+	if (!several.ok && length(i) > 1) 
+		stop("there is more than one match in 'match.arg'")
+	choices[i]
+}
+
+mxComputeNelderMead <- function(
+	freeSet=NA_character_, fitfunction="fitfunction", verbose=0L, 
+	nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), 
+	maxIter=NULL,	...,
+	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35, 
+	iniSimplexType=c("regular","right","smartRight","random"),
+	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
+	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
+	validationRestart=TRUE,
+	xTolProx=1e-8, fTolProx=1e-8,
+	doPseudoHessian=FALSE,
+	ineqConstraintMthd=c("soft","eqMthd"), 
+	eqConstraintMthd=c("GDsearch","soft","backtrack","l1p"),
+	backtrackCtrl=c(0.5,5)
+	){
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeNelderMead() does not accept values for the '...' argument")
+	}
+	verbose <- as.integer(verbose[1])
+	maxIter <- as.integer(maxIter[1])
+	if(is.character(nudgeZeroStarts[1])){
+		if(substr(nudgeZeroStarts[1],1,1) %in% c("Y","y")){nudgeZeroStarts <- TRUE}
+		else if(substr(nudgeZeroStarts[1],1,1) %in% c("N","n")){nudgeZeroStarts <- FALSE}
+		else{stop("unrecognized character string provided as argument 'nudgeZeroStarts'")}
+	}
+	alpha <- as.numeric(alpha[1])
+	if(alpha<=0){stop("reflection coefficient 'alpha' must be positive")}
+	betao <- as.numeric(betao[1])
+	betai <- as.numeric(betai[1])
+	if(any(betao<=0, betao>=1, betai<=0, betai>=1)){
+		stop("contraction coefficients 'betao' and 'betai' must both be within unit interval (0,1)")
+	}
+	gamma <- as.numeric(gamma[1])
+	#Allow user to provide non-positive gamma to "turn off" expanstion transformations:
+	if(gamma>0 && gamma<=alpha){
+		stop("if positive, expansion coefficient 'gamma' must be greater than reflection coefficient 'alpha'")
+	}
+	sigma <- as.numeric(sigma[1])
+	#Allow user to provide non-positive sigma to "turn off" shrinks:
+	if(sigma>=1){stop("shrink coefficient 'sigma' must be less than 1.0")}
+	bignum <- as.numeric(bignum[1])
+	iniSimplexType <- as.character(match.barg(iniSimplexType,c("regular","right","smartRight","random")))
+	iniSimplexEdge <- as.numeric(iniSimplexEdge[1])
+	if(length(iniSimplexMat)){
+		iniSimplexMat <- as.matrix(iniSimplexMat)
+		iniSimplexColnames <- colnames(iniSimplexMat)
+	}
+	else{
+		iniSimplexColnames <- NULL
+		iniSimplexMat <- NULL
+	}
+	greedyMinimize <- as.logical(greedyMinimize[1])
+	altContraction <- as.logical(altContraction[1])
+	degenLimit <- as.numeric(degenLimit[1])
+	if(degenLimit<0 || degenLimit>pi){
+		stop("'degenLimit' must be within interval [0,pi]")
+	}
+	if(length(stagnCtrl)<2){stop("'stagnCtrl' must be an integer vector of length 2")}
+	stagnCtrl <- as.integer(stagnCtrl[1:2])
+	validationRestart <- as.logical(validationRestart[1])
+	xTolProx <- as.numeric(xTolProx[1])
+	fTolProx <- as.numeric(fTolProx[1])
+	backtrackCtrl=c(0.5,5)
+	doPseudoHessian <- as.logical(doPseudoHessian[1])
+	ineqConstraintMthd <- as.character(match.barg(ineqConstraintMthd,c("soft","eqMthd")))
+	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("GDsearch","soft","backtrack","l1p")))
+	if(length(backtrackCtrl)<2){stop("'backtrackCtrl' must be a numeric vector of length 2")}
+	backtrackCtrl1 <- as.numeric(backtrackCtrl[1])
+	backtrackCtrl2 <- as.integer(backtrackCtrl[2])
+	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
+						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
+						 iniSimplexColnames, validationRestart,
+						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
+						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian))
+}
+
+setClass(
+	Class="MxComputeNelderMead",
+	contains="BaseCompute",
+	representation=representation(
+		fitfunction="MxCharOrNumber",
+		verbose="integer",
+		nudgeZeroStarts="MxCharOrLogical",
+		maxIter="integer",
+		defaultMaxIter="logical",
+		.excludeVars="MxOptionalChar",
+		alpha="numeric",
+		betao="numeric",
+		betai="numeric",
+		gamma="numeric",
+		sigma="numeric",
+		bignum="numeric",
+		iniSimplexType="character",
+		iniSimplexEdge="numeric",
+		iniSimplexMat="MxOptionalMatrix",
+		.iniSimplexColnames="MxOptionalChar",
+		greedyMinimize="logical",
+		altContraction="logical",
+		degenLimit="numeric",
+		stagnCtrl="integer",
+		validationRestart="logical",
+		xTolProx="numeric",
+		fTolProx="numeric",
+		doPseudoHessian="logical",
+		ineqConstraintMthd="character",
+		eqConstraintMthd="character",
+		backtrackCtrl1="numeric",
+		backtrackCtrl2="integer"))
+
+#TODO: a user or developer might someday want to directly use this low-level 'initialize' method instead of the high-level constructor function,
+#so typecasting should also occur here:
+setMethod(
+	"initialize", "MxComputeNelderMead",
+	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
+					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
+					 iniSimplexColnames, validationRestart,
+					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
+					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian){
+		.Object@name <- 'compute'
+		.Object@.persist <- TRUE
+		.Object@freeSet <- freeSet
+		.Object@fitfunction <- fitfunction
+		.Object@verbose <- verbose
+		.Object@nudgeZeroStarts <- nudgeZeroStarts
+		.Object@defaultMaxIter <- ifelse(length(maxIter),FALSE,TRUE)
+		.Object@maxIter <- as.integer(maxIter)
+		.Object@.excludeVars <- c()
+		
+		.Object@alpha <- alpha
+		.Object@betao <- betao
+		.Object@betai <- betai
+		.Object@gamma <- gamma
+		.Object@sigma <- sigma
+		.Object@bignum <- bignum
+		.Object@iniSimplexType <- iniSimplexType
+		.Object@iniSimplexEdge <- iniSimplexEdge
+		if(!length(iniSimplexMat)){.Object@iniSimplexMat <- NULL}
+		else{.Object@iniSimplexMat <- iniSimplexMat}
+		.Object@.iniSimplexColnames <- iniSimplexColnames
+		.Object@greedyMinimize <- greedyMinimize
+		.Object@altContraction <- altContraction
+		.Object@degenLimit <- degenLimit
+		.Object@stagnCtrl <- stagnCtrl
+		.Object@validationRestart <- validationRestart
+		.Object@xTolProx <- xTolProx
+		.Object@fTolProx <- fTolProx
+		.Object@doPseudoHessian <- doPseudoHessian
+		.Object@ineqConstraintMthd <- ineqConstraintMthd
+		.Object@eqConstraintMthd <- eqConstraintMthd
+		.Object@backtrackCtrl1 <- backtrackCtrl1
+		.Object@backtrackCtrl2 <- backtrackCtrl2
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxComputeNelderMead"),
+					function(.Object, modelname, namespace) {
+						.Object <- callNextMethod()
+						for (sl in c('fitfunction')) {
+							slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+						}
+						if(length(.Object@iniSimplexMat)){.Object@.iniSimplexColnames <- colnames(.Object@iniSimplexMat)}
+						.Object
+					})
+
+setMethod("convertForBackend", signature("MxComputeNelderMead"),
+					function(.Object, flatModel, model) {
+						name <- .Object@name
+						if (is.character(.Object@fitfunction)) {
+							.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+						}
+						.Object
+					})
 
 #----------------------------------------------------
 
@@ -1390,6 +1592,135 @@ setMethod("initialize", "MxComputeReportDeriv",
 mxComputeReportDeriv <- function(freeSet=NA_character_) {
 	new("MxComputeReportDeriv", freeSet)
 }
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeBootstrap",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 data = "MxCharOrNumber",
+	     plan = "MxCompute",
+	     replications = "integer",
+	     verbose = "integer",
+	     parallel = "logical",
+	     OK = "character",
+	     only = "integer"
+	 ))
+
+setMethod("initialize", "MxComputeBootstrap",
+	  function(.Object, freeSet, data, plan, replications,
+		   verbose, parallel, OK, only) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@data <- data
+		  .Object@plan <- plan
+		  .Object@replications <- replications
+		  .Object@verbose <- verbose
+		  .Object@parallel <- parallel
+		  .Object@OK <- OK
+		  .Object@only <- only
+		  .Object
+	  })
+
+setMethod("getFreeVarGroup", signature("MxComputeBootstrap"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("assignId", signature("MxComputeBootstrap"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxComputeBootstrap"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('data')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeBootstrap"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (any(!is.integer(.Object@data))) {
+			dataNum <- match(.Object@data, names(flatModel@datasets))
+			if (any(is.na(dataNum))) {
+				stop(paste("MxComputeBootstrap:", omxQuotes(.Object@data),
+					   "not recognized as MxData"))
+			}
+			.Object@data <- dataNum - 1L
+		}
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("updateFromBackend", signature("MxComputeBootstrap"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
+
+mxComputeBootstrap <- function(data, plan, replications=200, ...,
+			       verbose=0L, parallel=TRUE, freeSet=NA_character_,
+			       OK=c("OK", "OK/green"), only=NA_integer_) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeConfidenceInterval does not accept values for the '...' argument")
+	}
+
+	data <- vapply(data, function(e1) {
+		path <- unlist(strsplit(e1, imxSeparatorChar, fixed = TRUE))
+		if (length(path) == 1) {
+			e1 <- paste(path, "data", sep=imxSeparatorChar)
+		}
+		e1
+	}, "")
+
+	new("MxComputeBootstrap", freeSet, data, plan, as.integer(replications),
+	    as.integer(verbose), parallel, OK, only)
+}
+
+setMethod("displayCompute", signature(Ob="MxComputeBootstrap", indent="integer"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$plan :", '\n')
+		  displayCompute(Ob@plan, indent+1L)
+		  for (sl in c("data", "replications", "OK",
+			       "verbose", "parallel")) {
+			  slname <- paste("$", sl, sep="")
+			  if (is.character(slot(Ob, sl))) {
+				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
+			  } else {
+				  cat(sp, slname, ":", slot(Ob, sl), '\n')
+			  }
+		  }
+		  invisible(Ob)
+	  })
 
 #----------------------------------------------------
 

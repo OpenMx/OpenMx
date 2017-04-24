@@ -397,3 +397,15 @@ omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
 ##' @param mean mean
 ##' @param sigma sigma
 imxDmvnorm <- function(loc, mean, sigma) .Call(Dmvnorm_wrapper, loc, mean, sigma)
+
+mxEvaluateOnGrid <- function(algebra, abscissa) {
+	stop(paste("mxEvaluateOnGrid is not compatible with mxEval.",
+		   "It can only be evaluated in an mxRun context.",
+		   "For an example of usage, see the manual ?mxEvaluateOnGrid"))
+}
+
+mxRobustLog <- function(pr) {
+	result <- log(pr)
+	result[pr == 0.0] <- -745
+	result
+}

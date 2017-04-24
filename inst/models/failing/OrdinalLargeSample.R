@@ -1,16 +1,19 @@
-########################################################################
-########################################################################
-########################################################################
+# ===========
+# = HISTORY =
+# ===========
+# 2017-04-14 05:22PM TBATES
+# ISSue script highlights is divergence of Modelled and known tetrachoric correlations
+# round(simpModFit$eC$values, 4)
+# round(obsMat, 3)
+
+# NOTE: WLS fails due to lack of means matrix... line 90
 
 ######################################
-###
 ### Optimization problems in OpenMx
-###
 ######################################
 
-### Libraries used
-library( OpenMx )
-library( polycor ) # For independent calculation of tetrachoric correlation
+library(OpenMx)
+library(polycor) # For independent calculation of tetrachoric correlation
 
 ### Generate data
 datS <- mxFactor( 
@@ -37,35 +40,35 @@ round( obsMat , 3 )
 colMeans( 1*(datS==1) )
 
 ### Problem inverting observed correlation matrix?
-round( solve( obsMat ) , 4 )
+round(solve(obsMat), 4)
 
 ### Very simple model
 simpMod <- mxModel('SimpMod',
-### Expected covariance matrix (variance==1 due to binary variables)
-  mxMatrix(type='Stand',nrow=4,ncol=4,free=T,values=.3,name='eC'),
-### Expected Means 
-  mxMatrix(type='Full',nrow=1,ncol=4,free=F,values=0,name='eM'),
-### Expected thresholds
-  mxMatrix(type='Full',nrow=1,ncol=4,free=T,values=3,name='eT'),
-### Data and likelihood
+	### Expected covariance matrix (variance==1 due to binary variables)
+  mxMatrix(type='Stand',nrow=4,ncol=4,free=TRUE,values=.3,name='eC'),
+	### Expected Means 
+  mxMatrix(type='Full',nrow=1,ncol=4,free=FALSE,values=0,name='eM'),
+	### Expected thresholds
+  mxMatrix(type='Full',nrow=1,ncol=4,free=TRUE,values=3,name='eT'),
+	### Data and likelihood
   mxModel('Datmod',
     mxData(datS , type='raw'),
     mxExpectationNormal(means='SimpMod.eM',covariance='SimpMod.eC',thresholds='SimpMod.eT',threshnames=varNames,dimnames=varNames),
     mxFitFunctionML()
   ),
-### Add the likelihoods (only one)
-  mxFitFunctionMultigroup( c('Datmod.fitfunction') )
+	### Add the likelihoods (only one)
+  mxFitFunctionMultigroup( c('Datmod') )
 )
 ### Fit model
-mxOption( NULL , 'Number of Threads' , 6 )
-simpModFit <- mxRun( simpMod , intervals=F )
+mxOption(NULL, 'Number of Threads', 6)
+simpModFit <- mxRun(simpMod, intervals = FALSE)
 #simpModFit <- mxTryHard( simpMod , intervals=F )
 summary(simpModFit)
 
 # Modelled correlations
-round( simpModFit$eC$values , 4 )
+round(simpModFit$eC$values, 4)
 # Compare with independently calculated tetrachoric correlations
-round( obsMat , 3 )
+round(obsMat, 3)
 
 ########################################################################
 # WLS version works fine
@@ -73,17 +76,22 @@ round( obsMat , 3 )
 a <- Sys.time()
 wdat <- mxDataWLS(datS)
 wimpMod <- mxModel('Datmod',
-### Expected covariance matrix (variance==1 due to binary variables)
+	### Expected covariance matrix (variance==1 due to binary variables)
   mxMatrix(type='Stand',nrow=4,ncol=4,free=T,values=.3,name='eC'),
-### Expected Means 
+	### Expected Means 
   mxMatrix(type='Full',nrow=1,ncol=4,free=F,values=0,name='eM'),
-### Expected thresholds
+	### Expected thresholds
   mxMatrix(type='Full',nrow=1,ncol=4,free=T,values=3,name='eT'),
     wdat,
     mxExpectationNormal(covariance='eC',thresholds='eT',threshnames=varNames,dimnames=varNames),
     mxFitFunctionWLS()
-  )
+)
 wimpModFit <- mxRun(wimpMod)
+# Running Datmod with 10 parameters
+# Error in runHelper(model, frontendStart, intervals, silent, suppressWarnings,  :
+#   Observed means were provided, but an expected means matrix was not specified.
+#   If you provide observed means, you must specify a model for the means.
+
 b <- Sys.time()
 b - a
 
@@ -92,9 +100,4 @@ round( mxEval(eC, wimpModFit) , 4 )
 # WLS Data correlations
 round(wimpMod$data$observed, 4)
 # Compare with independently calculated tetrachoric correlations
-round( obsMat , 3 )
-
-
-########################################################################
-########################################################################
-########################################################################
+round( obsMat, 3)

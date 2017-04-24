@@ -19,6 +19,7 @@
 /oprofile_data
 /src/npsolswitch.h
 /src/Makevars.win
+/src/libnpsol.a
 /inst/no-npsol
 /inst/CITATION
 /DESCRIPTION
@@ -34,6 +35,7 @@ man/BaseCompute-class.Rd
 man/expm.Rd
 man/genericFitDependencies-MxBaseFitFunction-method.Rd
 man/imxAddDependency.Rd
+man/imxAutoOptionValue.Rd
 man/imxCheckMatrices.Rd
 man/imxCheckVariables.Rd
 man/imxConDecMatrixSlots.Rd
@@ -113,12 +115,14 @@ man/imxVerifyReference.Rd
 man/logm.Rd
 man/MxAlgebraFormula-class.Rd
 man/mxAlgebraFromString.Rd
+man/mxAutoStart.Rd
 man/mxAvailableOptimizers.Rd
 man/MxBaseExpectation-class.Rd
 man/MxBaseFitFunction-class.Rd
 man/MxBaseNamed-class.Rd
 man/MxBaseObjectiveMetaData-class.Rd
 man/MxCharOrList-class.Rd
+man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
@@ -160,6 +164,7 @@ man/MxRAMModel-class.Rd
 man/mxSE.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
+man/MxVersionType-class.Rd
 man/omxCheckCloseEnough.Rd
 man/omxCheckError.Rd
 man/omxCheckNamespace.Rd
@@ -170,7 +175,6 @@ man/omxGetNPSOL.Rd
 man/omxGetRAMDepth.Rd
 man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
-man/omxNormalQuantiles.Rd
 man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd

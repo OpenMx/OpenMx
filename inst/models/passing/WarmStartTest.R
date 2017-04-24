@@ -55,7 +55,7 @@ m2 <- mxModel(
 )
 run2 <- mxRun(m2)
 
-if(run2$output$evaluations > run1$output$evaluations){stop("WarmStartTest.R failed")}
+omxCheckTrue(run2$output$evaluations < run1$output$evaluations)
 
 plan2 <- mxComputeSequence(steps=list(
 	mxComputeGradientDescent(engine="NPSOL",warmStart=matrix(1,1,1)),
@@ -77,3 +77,38 @@ m3 <- mxModel(
 )
 omxCheckWarning(mxRun(m3),"MxComputeGradientDescent: warmStart size 1 does not match number of free parameters 2 (ignored)")
 
+
+#Test "internal" warm start:
+plan3 <- mxComputeSequence(steps=list(
+	mxComputeOnce(from="m4.fitfunction",what="hessian"),
+	mxComputeGradientDescent(engine="NPSOL"),
+	mxComputeNumericDeriv(),
+	mxComputeStandardError(),
+	mxComputeHessianQuality(),
+	mxComputeReportDeriv(),
+	mxComputeReportExpectation()
+))
+
+m4 <- mxModel(
+	"m4",
+	mxModel(
+		"sub",
+		mxData(observed=x,type="raw"),
+		mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,labels="mu",name="Mu"),
+		mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=1,labels="sigma2",name="Sigma",lbound=0),
+		mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("x")),
+		mxFitFunctionML()
+	),
+	plan3,
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=1,labels="sigma2",name="Sigma",lbound=0),
+	mxAlgebra(-2*rbind(
+		cbind(-1000/Sigma, 0),
+		cbind(0, -1000/(2*Sigma^2))
+	), name="hess",dimnames=list(c("mu","sigma2"),c("mu","sigma2")) ),
+	mxFitFunctionAlgebra(algebra="sub.fitfunction",hessian="hess",numObs=1000)
+)
+run4 <- mxRun(m4)
+
+omxCheckTrue(run4$output$evaluations < run1$output$evaluations)
+#The 1 additional funeval is, of course, from the MxComputeOnce step:
+omxCheckTrue(run4$output$evaluations == run2$output$evaluations+1)

@@ -20,6 +20,7 @@
 \alias{lgamma1p}
 \alias{omxDnbinom}
 \alias{omxPnbinom}
+\alias{mxRobustLog}
 \alias{\%&\%}
 \alias{\%^\%}
 
@@ -31,7 +32,7 @@
 
 \usage{
 mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
-          joinKey=as.character(NA), joinModel=as.character(NA))
+          joinKey=as.character(NA), joinModel=as.character(NA), verbose=0L)
 }
 
 \arguments{
@@ -50,6 +51,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
   is used as a foreign key to match against the primary key in
   joinModel's raw data.}
 \item{joinModel}{The name of the model that this matrix joins against.}
+\item{verbose}{For values greater than zero, enable runtime diagnostics.}
 }
 
 \details{
@@ -86,6 +88,8 @@ Functions
 \item{\code{chol}}{Cholesky Decomposition}
 \item{\code{cbind}}{Horizontal adhesion}
 \item{\code{rbind}}{Vertical adhesion}
+\item{\code{colSums}}{Matrix column sums as a column vector}
+\item{\code{rowSums}}{Matrix row sums as a column vector}
 \item{\code{det}}{Determinant}
 \item{\code{tr}}{Trace}
 \item{\code{sum}}{Sum}
@@ -108,6 +112,7 @@ Functions
 \item{\code{atanh}}{Inverse hyperbolic tangent}
 \item{\code{exp}}{Exponent}
 \item{\code{log}}{Natural Logarithm}
+\item{\code{mxRobustLog}}{Robust natural logarithm}
 \item{\code{sqrt}}{Square root}
 \item{\code{p2z}}{\emph{Standard}-normal quantile}
 \item{\code{logp2z}}{\emph{Standard}-normal quantile from log probabilities}
@@ -136,7 +141,15 @@ Functions
 \item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectRows}}}{Filter rows from a matrix}
 \item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectCols}}}{Filter columns from a matrix}
 \item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectRowsAndCols}}}{Filter rows and columns from a matrix}
+\item{\code{\link[OpenMx:mxEvaluateOnGrid]{mxEvaluateOnGrid}}}{Evaluate
+  an algebra on an abscissa grid and collect column results}
 }
+
+\code{mxRobustLog} is the same as \code{log} except that it returns -745
+instead of -Inf for an argument of 0. The value -745 is less than
+log(4.94066e-324), a good approximation of negative infinity because the
+log of any number represented as a double will be of smaller absolute
+magnitude.
 
 There are also several multiargument functions usable in MxAlgebras, which apply themselves elementwise to the matrix provided as their first argument.  These functions have slightly different usage from their \R counterparts.  Their result is always a matrix with the same dimensions as that provided for their first argument.  Values must be provided for ALL arguments of these functions, in order.  Provide zeroes as logical values of \code{FALSE}, and non-zero numerical values as logical values of \code{TRUE}.  For most of these functions, OpenMx cycles over values of arguments other than the first, by column (i.e., in column-major order), to the length of the first argument.  Notable exceptions are the \code{log}, \code{log.p}, and \code{lower.tail} arguments to probability-distribution-related functions, for which only the [1,1] element is used.  It is recommended that all arguments after the first be either (1) scalars, or (2) matrices with the same dimensions as the first argument.
 \tabular{ccl}{

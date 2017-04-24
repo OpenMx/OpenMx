@@ -87,7 +87,7 @@ tmat <- mxMatrix('Full', 1, 1, name='time', labels='data.tim')
 
 osc <- mxModel("LinearOscillator", 
 	amat, bmat, cmat, dmat, qmat, rmat, xmat, pmat, umat, tmat,
-	mxExpectationStateSpace('A', 'B', 'C', 'D', 'Q', 'R', 'x0', 'P0', 'u', t='time'),
+	mxExpectationStateSpace('A', 'B', 'C', 'D', 'Q', 'R', 'x0', 'P0', 'u', t='time', scores=TRUE),
 	mxFitFunctionML(),
 	mxData(y, 'raw'))
 
@@ -145,6 +145,42 @@ se <- summary(oscr)$parameters[,6]
 #  all with confidence intervals of one another.
 withinCI <- (coef(noscr) < (coef(oscr) + 1.5*se)) & (coef(noscr) > (coef(oscr) - 1.5*se))
 omxCheckEquals(withinCI, rep(TRUE, length(se)))
+
+
+#------------------------------------------------------------------------------
+# Compare frontend and backend scores
+
+fstart <- Sys.time()
+ks <- mxKalmanScores(noscr)
+fstop <- Sys.time()
+bstart <- Sys.time()
+ksb <- mxKalmanScores(noscr, frontend=FALSE)
+bstop <- Sys.time()
+
+# Compare time to compute
+fstop-fstart
+bstop-bstart # 70x faster in backend
+
+# Compare values
+omxCheckTrue(all.equal(ks, ksb[1:8]))
+# values equal to roughly 1.5e-8 #.Machine$double.eps ^ 0.5
+
+cor(cbind(ks$xPredicted, noscr$expectation$xPredicted))
+cor(cbind(ks$xUpdated, noscr$expectation$xUpdated))
+cor(cbind(ks$xSmoothed, noscr$expectation$xSmoothed))
+
+omxCheckCloseEnough( rms(ks$xPredicted, noscr$expectation$xPredicted), 0, 1e-10)
+omxCheckCloseEnough( rms(ks$xUpdated, noscr$expectation$xUpdated), 0, 1e-10)
+omxCheckCloseEnough( rms(ks$xSmoothed, noscr$expectation$xSmoothed), 0, 1e-10)
+
+
+omxCheckCloseEnough( rms(t(apply(ks$PPredicted, 3, vech)), noscr$expectation$PPredicted), 0, 1e-10)
+omxCheckCloseEnough( rms(t(apply(ks$PUpdated, 3, vech)), noscr$expectation$PUpdated), 0, 1e-10)
+omxCheckCloseEnough( rms(t(apply(ks$PSmoothed, 3, vech)), noscr$expectation$PSmoothed), 0, 1e-10)
+
+
+plot(new_data$tim, new_data$obs, type='l')
+lines(new_data$tim, ks$xSmoothed[-1, 1], col='blue')
 
 
 #------------------------------------------------------------------------------

@@ -22,25 +22,23 @@
 
 // http://openmx.psyc.virginia.edu/issue/2013/01/multigroup-fit-function
 
-struct FitMultigroup {
+struct FitMultigroup : omxFitFunction {
 	std::vector< FreeVarGroup* > varGroups;
 	std::vector< omxMatrix* > fits;
 	int verbose;
+
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void addOutput(MxRList *out);
 };
 
-static void mgDestroy(omxFitFunction* oo)
+void FitMultigroup::compute(int want, FitContext *fc)
 {
-	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
-	delete mg;
-}
-
-static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
-{
-	omxMatrix *fitMatrix  = oo->matrix;
+	omxMatrix *fitMatrix = matrix;
 	double fit = 0;
 	double mac = 0;
 
-	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
+	FitMultigroup *mg = (FitMultigroup*) this;
 
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = mg->fits[ex];
@@ -70,30 +68,9 @@ static void mgCompute(omxFitFunction* oo, int want, FitContext *fc)
 	}
 }
 
-void mgSetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg)
+void FitMultigroup::addOutput(MxRList *out)
 {
-	if (!oo->argStruct) initFitMultigroup(oo); // ugh TODO
-
-	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
-
-	if (!mg->fits.size()) {
-		mg->varGroups.push_back(fvg);
-	} else {
-		for (size_t ex=0; ex < mg->fits.size(); ex++) {
-			omxMatrix *f1 = mg->fits[ex];
-			if (!f1->fitFunction) {  // simple algebra
-				oo->freeVarGroup = fvg;
-				continue;
-			}
-			setFreeVarGroup(f1->fitFunction, fvg);
-			oo->freeVarGroup = f1->fitFunction->freeVarGroup;
-		}
-	}
-}
-
-void mgAddOutput(omxFitFunction* oo, MxRList *out)
-{
-	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
+	FitMultigroup *mg = this;
 
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = mg->fits[ex];
@@ -102,16 +79,13 @@ void mgAddOutput(omxFitFunction* oo, MxRList *out)
 	}
 }
 
-void initFitMultigroup(omxFitFunction *oo)
-{
-	oo->expectation = NULL;  // don't care about this
-	oo->computeFun = mgCompute;
-	oo->destructFun = mgDestroy;
-	oo->setVarGroup = mgSetFreeVarGroup;
-	oo->addOutput = mgAddOutput;
+omxFitFunction *initFitMultigroup()
+{ return new FitMultigroup; }
 
-	if (!oo->argStruct) oo->argStruct = new FitMultigroup;
-	FitMultigroup *mg = (FitMultigroup *) oo->argStruct;
+void FitMultigroup::init()
+{
+	auto *oo = this;
+	FitMultigroup *mg =this;
 
 	SEXP rObj = oo->rObj;
 	if (!rObj) return;
@@ -142,20 +116,15 @@ void initFitMultigroup(omxFitFunction *oo)
 		if (mat == oo->matrix) Rf_error("Cannot add multigroup to itself");
 		mg->fits.push_back(mat);
 		if (mat->fitFunction) {
-			for (size_t vg=0; vg < mg->varGroups.size(); ++vg) {
-				setFreeVarGroup(mat->fitFunction, mg->varGroups[vg]);
-				oo->freeVarGroup = mat->fitFunction->freeVarGroup;
-			}
 			omxCompleteFitFunction(mat);
 			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
 			if (oo->units == FIT_UNITS_UNINITIALIZED) {
 				oo->units = mat->fitFunction->units;
-				oo->ciFun = mat->fitFunction->ciFun;
 			} else if (oo->units != mat->fitFunction->units) {
-				Rf_error("%s: cannot combine units %d and %d (from %s)",
+				Rf_error("%s: cannot combine units %s and %s (from %s)",
 					 oo->matrix->name(),
-					 oo->units, mat->fitFunction->units, mat->name());
+					 fitUnitsToName(oo->units), fitUnitsToName(mat->fitFunction->units), mat->name());
 			}
 		} else {
 			oo->gradientAvailable = FALSE;

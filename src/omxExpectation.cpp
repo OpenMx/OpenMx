@@ -31,16 +31,13 @@
 **********************************************************/
 
 #include "omxExpectation.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 
 struct omxExpectationTableEntry {
 	char name[32];
-	void (*initFun)(omxExpectation*);
+	omxExpectation *(*initFun)();
 };
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
@@ -49,14 +46,13 @@ static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationNormal", 		&omxInitNormalExpectation},
 	{"MxExpectationRAM",			&omxInitRAMExpectation},
 	{"MxExpectationBA81", &omxInitExpectationBA81},
-  {"MxExpectationGREML", &omxInitGREMLExpectation}
+	{"MxExpectationGREML", &omxInitGREMLExpectation},
+	{"MxExpectationHiddenMarkov", &InitHiddenMarkovExpectation},
 };
 
 void omxFreeExpectationArgs(omxExpectation *ox) {
 	if(ox==NULL) return;
-    
-	if (ox->destructFun) ox->destructFun(ox);
-	Free(ox);
+	delete ox;
 }
 
 void omxExpectationRecompute(FitContext *fc, omxExpectation *ox)
@@ -68,22 +64,20 @@ void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what,
 {
 	if (!ox) return;
 
-	ox->data->recompute(); // for dynamic data
-	ox->computeFun(ox, fc, what, how);
+	if (ox->data) ox->data->recompute(); // for dynamic data
+	ox->compute(fc, what, how);
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
 {
 	if(component == NULL) return NULL;
 
-	if(ox->componentFun == NULL) return NULL;
-
-	return(ox->componentFun(ox, component));
+	return(ox->getComponent(component));
 }
 
 void omxSetExpectationComponent(omxExpectation* ox, const char* component, omxMatrix* om)
 {
-	ox->mutateFun(ox, component, om);
+	ox->mutate(component, om);
 }
 
 omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState) {
@@ -125,21 +119,21 @@ void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thre
 	}
 }
 
-static void omxExpectationProcessDataStructures(omxExpectation* ox, SEXP rObj)
+void omxExpectation::loadFromR()
 {
-	int numCols=0;
-	
-	if(rObj == NULL) return;
+	if (!rObj || !data) return;
 
-	omxData *data = ox->data;
+	auto ox = this;
+
+	int numCols=0;
 	bool isRaw = strEQ(omxDataType(data), "raw");
 	if (isRaw || omxDataHasMatrix(data)) {
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
-		if(OMX_DEBUG) mxPrintMat("Variable mapping", ox->getDataColumns());
+		if(OMX_DEBUG) mxPrintMat("Variable mapping", base::getDataColumns());
 		if (isRaw) {
-			auto dc = ox->getDataColumns();
+			auto dc = base::getDataColumns();
 			for (int cx=0; cx < numCols; ++cx) {
 				int var = dc[cx];
 				data->assertColumnIsData(var);
@@ -193,9 +187,9 @@ omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	expect->rObj = rObj;
 	expect->expNum = expNum;
 	
-	SEXP nextMatrix;
-	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
-	expect->data = omxDataLookupFromState(nextMatrix, os);
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
+	if (TYPEOF(Rdata) == INTSXP) {
+		expect->data = omxDataLookupFromState(Rdata, os);
 	}
 
 	return expect;
@@ -206,17 +200,8 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	if(ox->isComplete) return;
 	ox->isComplete = TRUE;
 
-	omxExpectationProcessDataStructures(ox, ox->rObj);
-
-	ox->initFun(ox);
-
-	if(ox->computeFun == NULL) {
-		if (isErrorRaised()) {
-			Rf_error("Failed to initialize '%s' of type %s: %s", ox->name, ox->expType, Global->getBads());
-		} else {
-			Rf_error("Failed to initialize '%s' of type %s", ox->name, ox->expType);
-		}
-	}
+	ox->loadFromR();
+	ox->init();
 
 	if (OMX_DEBUG) {
 		omxData *od = ox->data;
@@ -239,62 +224,48 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	}
 }
 
-static void defaultSetVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
+const Eigen::Map<omxExpectation::DataColumnType> omxExpectation::getDataColumns()
 {
-	if (OMX_DEBUG && ox->freeVarGroup && ox->freeVarGroup != fvg) {
-		Rf_warning("setFreeVarGroup called with different group (%d vs %d) on %s",
-			ox->name, ox->freeVarGroup->id[0], fvg->id[0]);
-	}
-	ox->freeVarGroup = fvg;
+	return Eigen::Map<DataColumnType>(dataColumnsPtr, numDataColumns);
 }
 
-void setFreeVarGroup(omxExpectation *ox, FreeVarGroup *fvg)
+std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
 {
-	(*ox->setVarGroup)(ox, fvg);
+	return thresholds;
 }
-
-int *defaultDataColumnFun(omxExpectation *ex)
-{ return ex->dataColumnsPtr; }
-
-std::vector< omxThresholdColumn > &defaultThresholdInfoFun(omxExpectation *ex)
-{ return ex->thresholds; }
 
 omxExpectation *
 omxNewInternalExpectation(const char *expType, omxState* os)
 {
-	omxExpectation* expect = Calloc(1, omxExpectation);
-	expect->setVarGroup = defaultSetVarGroup;
+	omxExpectation* expect = 0;
 
 	/* Switch based on Expectation type. */ 
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
 		if(strEQ(expType, entry->name)) {
+			expect = entry->initFun();
 		        expect->expType = entry->name;
-			expect->initFun = entry->initFun;
 			break;
 		}
 	}
 
-	if(!expect->initFun) {
-		Free(expect);
-		Rf_error("Expectation %s not implemented", expType);
-	}
+	if (!expect) Rf_error("expectation '%s' not recognized", expType);
 
 	expect->currentState = os;
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
-	expect->dataColumnFun = defaultDataColumnFun;
-	expect->thresholdInfoFun = defaultThresholdInfoFun;
 
 	return expect;
 }
 
-void omxExpectationPrint(omxExpectation* ox, char* d) {
-	if(ox->printFun != NULL) {
-		ox->printFun(ox);
-	} else {
-		mxLog("(Expectation, type %s) ", (ox->expType==NULL?"Untyped":ox->expType));
-	}
+void omxExpectation::print()
+{
+	mxLog("(Expectation, type %s) ", (expType==NULL?"Untyped":expType));
+}
+
+void omxExpectationPrint(omxExpectation* ox, char* d)
+{
+	ox->print();
 }
 
 void complainAboutMissingMeans(omxExpectation *off)

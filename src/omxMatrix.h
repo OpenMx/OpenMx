@@ -452,6 +452,13 @@ template <typename T>
 std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
 {
 	std::string buf;
+
+	if (mat.rows() * mat.cols() > 1000) {
+		buf = string_snprintf("%s is too large to print # %dx%d\n",
+				name, mat.rows(), mat.cols());
+		return buf;
+	}
+
 	bool transpose = mat.rows() > mat.cols();
 	buf += string_snprintf("%s = %s matrix(c(    # %dx%d",
 			       name, transpose? "t(" : "", mat.rows(), mat.cols());
@@ -524,6 +531,30 @@ void computeMeanCov(const Eigen::MatrixBase<T1> &dataVec, int stride,
 	meanOut /= units;
 	covOut -= units * meanOut * meanOut.transpose();
 	covOut /= units-1;
+}
+
+template <typename T1, typename T2, typename T3, typename T4>
+void computeMeanCovWeighted(const Eigen::MatrixBase<T1> &dataVec, int stride,
+			    const Eigen::MatrixBase<T4> &wvec,
+			    Eigen::MatrixBase<T2> &meanOut, Eigen::MatrixBase<T3> &covOut)
+{
+	if (stride == 0) return;
+	int units = dataVec.size() / stride;
+	int wsum = 0;
+	meanOut.derived().resize(stride);
+	meanOut.setZero();
+	covOut.derived().resize(stride, stride);
+	covOut.setZero();
+	// read the data only once to minimize memory thrashing
+	for (int ux=0; ux < units; ++ux) {
+		meanOut +=  wvec[ux] * dataVec.segment(ux * stride, stride);
+		covOut += wvec[ux] * (dataVec.segment(ux * stride, stride) *
+				      dataVec.segment(ux * stride, stride).transpose());
+		wsum += wvec[ux];
+	}
+	meanOut /= wsum;
+	covOut -= wsum * meanOut * meanOut.transpose();
+	covOut /= wsum-1;
 }
 
 template <typename T1, typename T2>

@@ -348,6 +348,7 @@ removeAllIntervals <- function(model) {
 ##' 
 ##' @param model an MxModel with confidence intervals in it
 ##' @param run whether to run the model or just return the parallelized interval models
+##' @param verbose verbosity level to be passed to mxCompute* objects
 ##' @return
 ##' an MxModel object
 ##' @examples
@@ -368,7 +369,7 @@ removeAllIntervals <- function(model) {
 ##'                       mxCI(c('A', 'S')))
 ##' factorRun <- mxRun(factorModel)
 ##' factorCI <- omxParallelCI(factorRun) # Run CIs in parallel
-omxParallelCI <- function(model, run = TRUE) {
+omxParallelCI <- function(model, run = TRUE, verbose=0L) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
 	}
@@ -382,12 +383,30 @@ omxParallelCI <- function(model, run = TRUE) {
 	intervals <- expandConfidenceIntervals(model, intervals)
 	template <- model
 	template <- removeAllIntervals(template)
+	optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
+	ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
+	ciOpt <- mxComputeGradientDescent(
+		verbose=verbose,
+		nudgeZeroStarts=FALSE,
+		gradientAlgo=optionList[['Gradient algorithm']],
+		gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+		gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
+	if (ctype == 'ineq') {
+		ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05, verbose=verbose)
+	}
+	pciplan <- mxComputeSequence(
+		steps=list(
+			CI=mxComputeConfidenceInterval(
+				constraintType=ctype,
+				verbose=verbose,
+				plan=ciOpt
+			)))
 	modelname <- model@name
 	container <- mxModel(paste(modelname, "container", sep = "_"))
 	submodels <- list()
 	for(i in 1:length(intervals)) {
 		interval <- intervals[[i]]
-		newmodel <- mxModel(template, interval, independent = TRUE)
+		newmodel <- mxModel(template, interval, pciplan, independent = TRUE)
 		newmodel <- mxRename(newmodel, paste("interval", i, sep = ""))
 		newmodel <- mxOption(newmodel, "Number of Threads", 1)
 		submodels <- c(submodels, newmodel)

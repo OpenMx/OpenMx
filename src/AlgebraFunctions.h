@@ -30,9 +30,11 @@
 #include <limits>
 #include "omxMatrix.h"
 #include "merge.h"
-#include "omxSadmvnWrapper.h"
 #include "matrix.h"
 #include "omxState.h"
+#include <Eigen/Cholesky>
+#include "omxSadmvnWrapper.h"
+#include "EnableWarnings.h"
 
 // TODO: Implement wrappers for BLAS functions used here.
 
@@ -71,7 +73,7 @@ static void nameBroadcastAlg(omxMatrix *bc)
 	bc->nameStr = string_snprintf("broadcast%03d", ++BroadcastIndex);
 }
 
-static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *result)
+static void ensureElemConform(const char *opName, FitContext *fc, omxMatrix **matList, omxMatrix *result)
 {
 	omxMatrix *mat0 = matList[0];
 	omxMatrix *mat1 = matList[1];
@@ -108,6 +110,21 @@ static void ensureElemConform(FitContext *fc, omxMatrix **matList, omxMatrix *re
 		matList[1] = om;
 		omxAlgebraRecompute(om, FF_COMPUTE_INITIAL_FIT, fc);
 		return;
+	}
+	if (mat0->rows != mat1->rows || mat0->cols != mat1->cols) {
+		std::string detail;
+		std::string empty;
+		if (mat0->rows * mat0->cols < 100) {
+			EigenMatrixAdaptor m(mat0);
+			detail += mxStringifyMatrix(mat0->name(), m, empty);
+		}
+		if (mat1->rows * mat1->cols < 100) {
+			EigenMatrixAdaptor m(mat1);
+			detail += mxStringifyMatrix(mat1->name(), m, empty);
+		}
+		Rf_error("Element-wise '%s' not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
+			 opName, mat0->name(), mat0->rows, mat0->cols,
+			 mat1->name(), mat1->rows, mat1->cols, detail.c_str());
 	}
 }
 
@@ -166,7 +183,7 @@ static void omxMatrixMult(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 static void omxElementPower(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("^", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -195,7 +212,7 @@ static void omxElementPower(FitContext *fc, omxMatrix** matList, int numArgs, om
 
 static void omxMatrixElementMult(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("*", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -298,7 +315,7 @@ static void omxQuadraticProd(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxElementDivide(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("/", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -352,7 +369,7 @@ static void omxUnaryNegation(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxBinaryOr(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxOr", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -391,7 +408,7 @@ static void omxBinaryOr(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 
 static void omxBinaryAnd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxAnd", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -430,7 +447,7 @@ static void omxBinaryAnd(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 
 static void omxBinaryLessThan(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxLessThan", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -470,7 +487,7 @@ static void omxBinaryLessThan(FitContext *fc, omxMatrix** matList, int numArgs, 
 
 static void omxBinaryGreaterThan(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("omxGreaterThan", fc, matList, result);
 
         omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -562,7 +579,7 @@ static void omxBinaryApproxEquals(FitContext *fc, omxMatrix** matList, int numAr
 
 static void omxMatrixAdd(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("+", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -705,7 +722,7 @@ static void omxMatrixExtract(FitContext *fc, omxMatrix** matList, int numArgs, o
 
 static void omxMatrixSubtract(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	ensureElemConform(fc, matList, result);
+	ensureElemConform("-", fc, matList, result);
 
 	omxMatrix* first = matList[0];
 	omxMatrix* second = matList[1];
@@ -1186,6 +1203,24 @@ static void omxElementNaturalLog(FitContext *fc, omxMatrix** matList, int numArg
 		data[j] = log(data[j]);
 	}
 
+}
+
+static void omxElementRobustLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+
+	int max = inMat->cols * inMat->rows;
+
+	omxCopyMatrix(result, inMat);
+
+	double* data = result->data;
+	for(int j = 0; j < max; j++) {
+		if (data[j] == 0.0) {
+			data[j] = -745;
+		} else {
+			data[j] = log(data[j]);
+		}
+	}
 }
 
 static void omxElementSquareRoot(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2046,14 +2081,6 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 
 	double likelihood = ol.likelihood(lBounds, uBounds);
 
-	if (likelihood == 0.0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Improper input to sadmvn.");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
-
 	omxSetMatrixElement(result, 0, 0, likelihood);
 
 	/* And repeat with increments for all other rows. */
@@ -2072,14 +2099,6 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 		}
 
 		likelihood = ol.likelihood(lBounds, uBounds);
-
-		if(likelihood == 0.0) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Improper input to sadmvn.");
-			omxRaiseError(errstr);
-			free(errstr);
-			return;
-		}
 
 		omxSetMatrixElement(result, i, 0, likelihood);
 	}
@@ -2743,4 +2762,74 @@ static void mxMatrixLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 	result->colMajor = true;
 
 	logm_eigen(inMat->rows, inMat->data, result->data);
+}
+
+static void omxRowSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxResizeMatrix(result, inMat->rows, 1);
+	result->colMajor = true;
+	EigenVectorAdaptor Eresult(result);
+	EigenMatrixAdaptor src(inMat);
+	Eresult.derived() = src.rowwise().sum();
+}
+
+static void omxColSums(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+	omxResizeMatrix(result, inMat->cols, 1);
+	result->colMajor = true;
+	EigenVectorAdaptor Eresult(result);
+	EigenMatrixAdaptor src(inMat);
+	Eresult.derived() = src.colwise().sum();
+}
+
+static void evaluateOnGrid(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *algebra = matList[0];
+	omxMatrix *abscissa = matList[1];
+
+	if (int(abscissa->rownames.size()) != abscissa->rows) {
+		omxRaiseErrorf("mxEvaluateOnGrid: abscissa '%s' must have rownames",
+			       abscissa->name());
+		return;
+	}
+
+	auto *fvg = fc->varGroup;
+	Eigen::VectorXi abscissaParamMap(abscissa->rows); // nice if we could cache this
+	for (int rx=0; rx < abscissa->rows; ++rx) {
+		int got = fvg->lookupVar(abscissa->rownames[rx]);
+		if (got < 0) {
+			omxRaiseErrorf("mxEvaluateOnGrid: abscissa '%s' row %d, "
+				       "'%s' does not name a free parameter",
+				       abscissa->name(), 1+rx, abscissa->rownames[rx]);
+			return;
+		}
+		abscissaParamMap[rx] = got;
+		fc->profiledOut[got] = true;
+	}
+
+	omxState *os = result->currentState;
+	auto &apm = abscissaParamMap;
+	EigenMatrixAdaptor Eabscissa(abscissa);
+	for (int ax=0; ax < Eabscissa.cols(); ++ax) {
+		for (int px=0; px < apm.size(); ++px) {
+			int pnum = apm[px];
+			omxFreeVar* fv = fc->varGroup->vars[pnum];
+			fv->copyToState(os, Eabscissa(px, ax));
+			fv->markDirty(os);
+		}
+		omxRecompute(algebra, fc);
+		if (ax == 0) {
+			if (algebra->cols != 1) {
+				omxRaiseErrorf("mxEvaluateOnGrid: algebra '%s' returned %d columns instead of 1",
+					       algebra->name(), algebra->cols);
+				return;
+			}
+			omxResizeMatrix(result, algebra->rows, Eabscissa.cols());
+		}
+		EigenVectorAdaptor Ealgebra(algebra);
+		EigenMatrixAdaptor Eresult(result);
+		Eresult.col(ax) = Ealgebra;
+	}
 }

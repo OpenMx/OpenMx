@@ -17,14 +17,24 @@
 #include "omxExpectation.h"
 #include "omxFitFunction.h"
 #include "omxDefines.h"
-#include "omxNormalExpectation.h"
+#include "EnableWarnings.h"
 
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+struct omxNormalExpectation : public omxExpectation {
 
-void omxComputeNormalExpectation(omxExpectation* ox, FitContext *fc, const char *, const char *) {
-	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
+	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrix *thresholds;
+
+	double logDetObserved;
+	double n;
+
+	virtual void init();
+	virtual void compute(FitContext *fc, const char *what, const char *how);
+	virtual void populateAttr(SEXP expectation);
+	virtual omxMatrix *getComponent(const char*);
+};
+
+void omxNormalExpectation::compute(FitContext *fc, const char *, const char *) {
+	omxNormalExpectation* one = this;
 
 	omxRecompute(one->cov, fc);
 	if(one->means != NULL)
@@ -32,19 +42,8 @@ void omxComputeNormalExpectation(omxExpectation* ox, FitContext *fc, const char 
 	if (one->thresholds) omxRecompute(one->thresholds, fc);
 }
 
-void omxDestroyNormalExpectation(omxExpectation* ox) {
-
-	if(OMX_DEBUG) { mxLog("Destroying Normal Expectation."); }
-
-}
-
-void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
+void omxNormalExpectation::populateAttr(SEXP algebra) {
     if(OMX_DEBUG) { mxLog("Populating Normal Attributes."); }
-
-	omxNormalExpectation* one = (omxNormalExpectation*) (ox->argStruct);
-    
-	omxMatrix *cov = one->cov;
-	omxMatrix *means = one->means;
 
 	omxRecompute(cov, NULL);
 	if(means != NULL) omxRecompute(means, NULL);
@@ -74,24 +73,16 @@ void omxPopulateNormalAttributes(omxExpectation *ox, SEXP algebra) {
 		Rf_setAttrib(algebra, Rf_install("ExpMean"), expMeanExt);
 	}
 
-	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(ox->data)));
+	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(data)));
 }
 
-void omxInitNormalExpectation(omxExpectation* ox) {
-	
-	SEXP rObj = ox->rObj;
-	omxState* currentState = ox->currentState;
+omxExpectation *omxInitNormalExpectation() { return new omxNormalExpectation; }
 
+void omxNormalExpectation::init()
+{
     if(OMX_DEBUG) { mxLog("Initializing Normal expectation."); }
 
-	omxNormalExpectation *one = (omxNormalExpectation*) R_alloc(1, sizeof(omxNormalExpectation));
-	
-	/* Set Expectation Calls and Structures */
-	ox->computeFun = omxComputeNormalExpectation;
-	ox->destructFun = omxDestroyNormalExpectation;
-	ox->componentFun = omxGetNormalExpectationComponent;
-	ox->populateAttrFun = omxPopulateNormalAttributes;
-	ox->argStruct = (void*) one;
+    omxNormalExpectation *one = this;
 	
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Processing cov."); }
@@ -103,11 +94,11 @@ void omxInitNormalExpectation(omxExpectation* ox) {
 	one->thresholds = omxNewMatrixFromSlot(rObj, currentState, "thresholds");
 }
 
-omxMatrix* omxGetNormalExpectationComponent(omxExpectation* ox, const char* component){
+omxMatrix* omxNormalExpectation::getComponent(const char* component){
 /* Return appropriate parts of Expectation to the Fit Function */
 	if(OMX_DEBUG) { mxLog("Normal expectation: %s requested--", component); }
 
-	omxNormalExpectation* one = (omxNormalExpectation*)(ox->argStruct);
+	omxNormalExpectation* one = this;
 	omxMatrix* retval = NULL;
 
 	if(strEQ("cov", component)) {

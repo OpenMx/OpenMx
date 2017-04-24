@@ -112,6 +112,7 @@ enum omxFFCompute {
 	FF_COMPUTE_GRADIENT     = 1<<5,
 	FF_COMPUTE_HESSIAN      = 1<<6,
 	FF_COMPUTE_IHESSIAN     = 1<<7,
+	FF_COMPUTE_DERIV        = FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN,
 
 	// Use this to obtain a Hessian or Inverse Hessian evaluated at the MLE.
 	// Check FitContext::wanted to see which one you got. It may be
@@ -123,6 +124,14 @@ enum omxFFCompute {
 	FF_COMPUTE_STARTING     = 1<<10,   // for special hacks, not for routine use
 	FF_COMPUTE_INITIAL_FIT  = 1<<11,    // omxInitialMatrixAlgebraCompute
 	FF_COMPUTE_FINAL_FIT    = 1<<12
+};
+
+enum FitStatisticUnits {
+	FIT_UNITS_UNINITIALIZED=0,
+	FIT_UNITS_UNKNOWN,
+	FIT_UNITS_PROBABILITY,
+	FIT_UNITS_MINUS2LL,
+	FIT_UNITS_SQUARED_RESIDUAL  // OK?
 };
 
 #define GRADIENT_FUDGE_FACTOR(x) (pow(10.0,x))

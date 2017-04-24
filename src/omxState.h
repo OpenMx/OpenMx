@@ -56,12 +56,13 @@ struct omxFreeVarLocation {
 	int row, col;
 };
 
-struct omxFreeVar {
+class omxFreeVar {
+	int numDeps;            // number of algebra/matrix dependencies
+	int *depsPtr;           // indices of algebra/matrix dependencies
+ public:
 	int id;
 	double lbound, ubound;
 	std::vector<omxFreeVarLocation> locations;
-	int numDeps;            // number of algebra/matrix dependencies
-	int *deps;              // indices of algebra/matrix dependencies
 	const char* name;
 	
 	// Be aware that a free variable might be assigned to more
@@ -73,8 +74,17 @@ struct omxFreeVar {
 	const omxFreeVarLocation *getOnlyOneLocation(int matrix, bool &moreThanOne) const;
 	const omxFreeVarLocation *getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const;
 
+	void setDeps(int _numDeps, int *_deps) {
+		numDeps = _numDeps;
+		depsPtr = _deps;
+	}
+	const Eigen::Map< Eigen::VectorXi > getDeps() {
+		Eigen::Map< Eigen::VectorXi > map(depsPtr, numDeps);
+		return map;
+	}
 	// Warning: copyToState does not mark matrices dirty
 	void copyToState(struct omxState *os, double val);
+	void markDirty(omxState *os);
 };
 
 #define FREEVARGROUP_ALL      0
@@ -243,8 +253,6 @@ class omxGlobal {
 	std::vector< omxCompute* > computeList;
 	void omxProcessMxComputeEntities(SEXP rObj, omxState *currentState);
 
-	std::vector< omxAlgebra* > algebraList;
-
 	std::vector< std::string > bads;
 
 	// Will need revision if multiple optimizers are running in parallel
@@ -307,6 +315,7 @@ class omxState {
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out, FitContext *fc);
+	void invalidateCache();
 	~omxState();
 
 	omxMatrix *lookupDuplicate(omxMatrix *element) const;

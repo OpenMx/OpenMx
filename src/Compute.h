@@ -62,6 +62,8 @@ typedef int ComputeInform;
 	// An input parameter was invalid'
 #define INFORM_STARTING_VALUES_INFEASIBLE 10
 
+SEXP allocInformVector(int size);
+
 enum ComputeInfoMethod {
 	INFO_METHOD_DEFAULT,
 	INFO_METHOD_HESSIAN,
@@ -152,9 +154,13 @@ class FitContext {
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
-	int fitUnits;
+	FitStatisticUnits fitUnits;
 	int skippedRows;
 	double *est;
+	Eigen::Map< Eigen::VectorXd > getEst() {
+		Eigen::Map< Eigen::VectorXd > vec(est, numParam);
+		return vec;
+	}
 	std::vector<bool> profiledOut;
 	Eigen::VectorXd grad;
 	int infoDefinite;
@@ -193,6 +199,10 @@ class FitContext {
 	void log(int what);
 	void setInform(int _in) { inform = _in; };
 	int getInform() { return inform; };
+	int wrapInform() {
+		if (inform == INFORM_UNINITIALIZED) return NA_INTEGER;
+		return 1 + inform;
+	};
 	bool haveReferenceFit(omxMatrix *fitMat) {
 		if (std::isfinite(fit)) return true;
 		if (inform == INFORM_UNINITIALIZED) {
@@ -263,6 +273,7 @@ class omxCompute {
         virtual void computeImpl(FitContext *fc) {}
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
+	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);
@@ -272,6 +283,7 @@ omxCompute *newComputeNumericDeriv();
 omxCompute *newComputeNewtonRaphson();
 omxCompute *newComputeConfidenceInterval();
 omxCompute *newComputeTryHard();
+omxCompute *newComputeNelderMead();
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
@@ -279,15 +291,21 @@ SEXP sparseInvert_wrapper(SEXP mat);
 
 inline double addSkippedRowPenalty(double orig, int skipped) // orig does not have * Global->llScale
 {
-	orig -= skipped * 100;
-	orig += orig * skipped;
+	orig -= 745 * skipped;  // a bit more than log(4.94066e-324) per row
+	//
+	// This is a good approximation of infinity because the
+	// log of any number represented as a double will be
+	// of smaller magnitude.
+	//
+	// http://www.cplusplus.com/forum/general/53760/
+	//
+	orig *= (1+skipped);    // add some extra badness
 	return orig;
 }
 
 template <typename T>
 void printSparse(Eigen::SparseMatrixBase<T> &sm) {
 	typedef typename T::Index Index;
-	typedef typename T::Scalar Scalar;
 	typedef typename T::Storage Storage;
 	// assume column major
 	std::string buf;

@@ -230,7 +230,12 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					steps <- c(steps,CI=mxComputeConfidenceInterval(
 								 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 				}
-				if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
+				if(Hesslater){
+					steps <- c(steps,ND=mxComputeNumericDeriv())
+				} else {
+					steps <- c(steps,ND=mxComputeNumericDeriv(knownHessian=bestfit$output$hessian,
+										  checkGradient=FALSE))
+				}
 				if(SElater){
 					steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
 				}
@@ -271,7 +276,12 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						steps <- c(steps,CI=mxComputeConfidenceInterval(
 									 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 					}
-					if(Hesslater){steps <- c(steps,ND=mxComputeNumericDeriv())}
+					if(Hesslater){
+						steps <- c(steps,ND=mxComputeNumericDeriv())
+					} else {
+						steps <- c(steps,ND=mxComputeNumericDeriv(knownHessian=bestfit$output$hessian,
+											  checkGradient=FALSE))
+					}
 					if(SElater){
 						steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
 					}

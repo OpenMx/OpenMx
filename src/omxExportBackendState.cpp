@@ -21,10 +21,7 @@
 #include "omxNPSOLSpecific.h"
 #include "glue.h"
 #include "omxExportBackendState.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 void omxState::omxExportResults(MxRList *out, FitContext *fc)
 {
@@ -61,10 +58,7 @@ void omxState::omxExportResults(MxRList *out, FitContext *fc)
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;
 		if(currentFit != NULL) {
 			if(OMX_DEBUG) { mxLog("Algebra %d is a fit function.", (int) index); }
-			if(currentFit->populateAttrFun != NULL) {
-				if(OMX_DEBUG) { mxLog("Algebra %d has attribute population.", (int) index); }
-				currentFit->populateAttrFun(currentFit, algebra);
-		    }
+			currentFit->populateAttr(algebra);
 		}
 
 		if(OMX_DEBUG) { mxLog("Final Calculation of Algebra %d Complete.", (int) index); }
@@ -88,28 +82,5 @@ void omxPopulateFitFunction(omxMatrix *om, MxRList *result) // deprecated
 {
 	omxFitFunction* off = om->fitFunction;
 	if (!off) return;
-
-	off->addOutput(off, result);
-
-	if (off->setFinalReturns == NULL) return;
-
-	int numEls;
-	SEXP oElement;
-	omxRListElement* orle = off->setFinalReturns(off, &numEls);
-	if (!orle || numEls == 0) return;
-
-	if(OMX_DEBUG) { mxLog("Adding %d sets of fit function Info....", numEls);}
-	for(int i = 0; i < numEls; i++) {
-		if (!orle[i].values) {
-			Rf_warning("Ignored %s in omxPopulateFitFunction", orle[i].label);
-			continue;
-		}
-		if (orle[i].numValues == -1) {
-			Rf_protect(oElement = Rf_allocMatrix(REALSXP, orle[i].rows, orle[i].cols));
-		} else {
-			Rf_protect(oElement = Rf_allocVector(REALSXP, orle[i].numValues));
-		}
-		memcpy(REAL(oElement), orle[i].values, sizeof(double)*LENGTH(oElement)); // TODO avoid another copy
-		result->add(orle[i].label, oElement);
-	}
+	off->addOutput(result);
 }

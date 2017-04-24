@@ -175,7 +175,8 @@ otherOptions <- list(
     "Gradient iterations" = "Auto",#1L,
     "Gradient step size" = "Auto",#1.0e-7,
     "Parallel diagnostics" = "No",
-    "Debug protect stack" = "No"
+    "Debug protect stack" = "No",
+		"Nudge zero starts" = "Yes"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
@@ -299,10 +300,15 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 		if(optionName=="Gradient iterations"){numcast <- as.integer(numcast)}
 		return(numcast)
 	}
-	#Otherwise, convert to default value for the three motivating cases: 
+	#Otherwise, if the current value is a string and can be matched to "Auto",
+	#convert to default nuermical value for the three motivating cases: 
 	else{
-		if(optionName=="Gradient step size"){return(1.0e-7)}
-		if(optionName=="Gradient iterations"){return(1L)}
-		if(optionName=="Function precision"){return(1e-14)}
+		if(length(grep(pattern="Auto",x=optionList[[optionName]],ignore.case=T))){
+			if(optionName=="Gradient step size"){return(1.0e-7)}
+			if(optionName=="Gradient iterations"){return(1L)}
+			if(optionName=="Function precision"){return(1e-14)}
+		}
+		else{stop(paste("found unrecognized character string '",optionList[[optionName]],"' as value for mxOption '",optionName,"' in argument 'optionList'",sep=""))}
 	}
 }
+

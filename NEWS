@@ -1,12 +1,36 @@
-# OpenMx bleed
-* FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization. If you are using 2.7.x then you have avoid problems with expectation$.useSufficientSets = FALSE.
+# OpenMx bleed / 2.8.0 in the making
+* FIXED: Oakes standard errors (ComputeEM) were broken since Feb 2016.
+* NEW: mxBootstrap, mxComputeBootstrap, mxBootstrapEval, mxBootstrapEvalByName
+* IMPROVED: mxAutoStart handles models which refer to parent models.
+* IMPROVED: WLS improvements
+	* Handling models with constraints
+	* sat models for mxFitFunctionMultigroup fit
+* NEW: mxEvaluateOnGrid algebra op (useful for quadrature integration)
+* NEW: mxRobustLog algebra op (recommended for mixtures)
+* IMPROVED: mxComputeEM is more generic
+
+# OpenMx 2.7.9 (March 22, 2017)
+* NEW: mxAutoStart Get automatic starting values.
+* NEW: "Auto" mxOption values.
+* NEW: omxNudgeZeroStarts helper function
+* NEW: Hidden Markov models with mxExpectationHiddenMarkov
+* NEW: "Internal" warm starts for NPSOL
+* NEW: Correct documentation of how NPSOL uses feasibility tolerance
+* NEW: Nelder-Mead
+* IMPROVED: mxEval() works with square brackets.
+* IMPROVED: Summary table is easier to read and more informative
 * IMPROVED: Rampart uses much less memory on large datasets.
+* IMPROVED: 'one' is now in the list of reserved names (clashes with RAM's 'one' for mean)
+* FIXED: mxKalmanScores are now correct for continuous time state space models.
+* FIXED: Bugs in ref models with cov data.
+* FIXED: Patched 3 bugs in Rampart's sufficient statistic optimization.
+	* If using 2.7.x (older), set expectation$.useSufficientSets = FALSE to avoid athis bug.
 
 # OpenMx 2.7.x: Lots of NEWs
 * NEW: mxSE Calculate standard errors for arbitrary named entities (free parameters, matrices, algebras) and expressions.
 * NEW: mxRun Now gives feedback about optimization progress.
 * NEW: Analytic constraint Jacobians can now be provided to MxConstraints (presently with NPSOL only).
-* NEW: Constraint diagnostics exported to frontend (presently with NPSOL only).
+* NEW: Constraint diagnostics exported to frontend (NPSOL and SLSQP).
 * NEW: omxDefaultComputePlan()
 * CHANGE: CSOLNP is now the default optimizer.
 	* Change this with mxOption(NULL, "Default optimizer", "CSOLNP|NPSOL|SLSQP")
@@ -27,6 +51,10 @@
 	* Use mxCI(..., boundAdj = FALSE) to disable the adjustment.
 * FIXED: mxRefModels Now handles models with one data variable.
 * FIXED: mxTryHard Now no longer computes the Hessian and standard errors when there are MxConstraints in the model, which makes its behavior consistent with mxRun().
+* NEW: Functions now usable in MxAlgebras: dchisq(), pchisq(), dbinom(), pbinom(), dcauchy(), pcauchy().
+* IMPROVED: better man pages for mxOption() and mxComputeGradientDescent().
+* FIXED: bug with omxSetParameters() when matrix has condensed slots.
+* FIXED: Some functions now respect locally set mxOptions, when previously they would ignore them.
 
 # OpenMx 2.6.9
 * UPDATED: Stan header compatibility.

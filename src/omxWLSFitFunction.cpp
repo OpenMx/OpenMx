@@ -17,8 +17,9 @@
 #include "omxData.h"
 #include <Eigen/Core>
 // #include <Eigen/Dense>
+#include "EnableWarnings.h"
 
-struct omxWLSFitFunction {
+struct omxWLSFitFunction : omxFitFunction {
 
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
@@ -35,11 +36,11 @@ struct omxWLSFitFunction {
 	int n;
 
 	omxWLSFitFunction() :standardExpectedMeans(0), standardExpectedThresholds(0) {};
+	virtual ~omxWLSFitFunction();
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void populateAttr(SEXP algebra);
 };
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
 
 static void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector) {
@@ -69,12 +70,11 @@ static void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thr
 	}
 }
 
-static void omxDestroyWLSFitFunction(omxFitFunction *oo) {
-	
+omxWLSFitFunction::~omxWLSFitFunction()
+{
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
-	if(oo->argStruct == NULL) return;
 	
-	omxWLSFitFunction* owo = ((omxWLSFitFunction*)oo->argStruct);
+	omxWLSFitFunction* owo = this;
 	omxFreeMatrix(owo->observedCov);
 	omxFreeMatrix(owo->observedMeans);
 	omxFreeMatrix(owo->weights);
@@ -85,16 +85,12 @@ static void omxDestroyWLSFitFunction(omxFitFunction *oo) {
 	omxFreeMatrix(owo->standardExpectedCov);
 	omxFreeMatrix(owo->standardExpectedMeans);
 	omxFreeMatrix(owo->standardExpectedThresholds);
-	delete owo;
 }
 
 
 static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 			omxMatrix* inThresholdsMat, std::vector< omxThresholdColumn > &thresholds,
 			omxMatrix* outCov, omxMatrix* outMeans, omxMatrix* outThresholdsMat) {
-	//omxMatrix* pass[1];
-	//pass[0] = inCov;
-	//omxCovToCor(fc, pass, 1, outCov);
 	
 	Eigen::ArrayXd stddev;
 	EigenMatrixAdaptor egInCov(inCov);
@@ -147,7 +143,10 @@ static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
 }
 
 
-static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) {
+void omxWLSFitFunction::compute(int want, FitContext *fc)
+{
+	auto *oo = this;
+	auto *owo = this;
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 	
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
@@ -155,10 +154,8 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	double sum = 0.0;
 	
-	omxMatrix *eCov, *eMeans, *P, *B, *weights, *oFlat, *eFlat;
+	omxMatrix *eCov, *eMeans, *oFlat, *eFlat;
 	omxMatrix *seCov, *seMeans, *seThresholdsMat;
-	
-	omxWLSFitFunction *owo = ((omxWLSFitFunction*)oo->argStruct);
 	
 	/* Locals for readability.  Compiler should cut through this. */
 	eCov		= owo->expectedCov;
@@ -166,15 +163,10 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	auto &eThresh   = oo->expectation->getThresholdInfo();
 	oFlat		= owo->observedFlattened;
 	eFlat		= owo->expectedFlattened;
-	weights		= owo->weights;
-	B			= owo->B;
-	P			= owo->P;
 	seCov		= owo->standardExpectedCov;
 	seMeans		= owo->standardExpectedMeans;
 	seThresholdsMat = owo->standardExpectedThresholds;
 	int onei	= 1;
-	
-	omxExpectation* expectation = oo->expectation;
 	
 	/* Recompute and recopy */
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
@@ -182,9 +174,9 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
-	standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
-			seCov, seMeans, seThresholdsMat);
 	if(expThresholdsMat != NULL){
+		standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
+			seCov, seMeans, seThresholdsMat);
 		flattenDataToVector(seCov, seMeans, seThresholdsMat, eThresh, eFlat);
 	} else {
 		flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
@@ -213,10 +205,11 @@ static void omxCallWLSFitFunction(omxFitFunction *oo, int want, FitContext *fc) 
 	
 }
 
-static void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
+void omxWLSFitFunction::populateAttr(SEXP algebra)
+{
 	if(OMX_DEBUG) { mxLog("Populating WLS Attributes."); }
 	
-	omxWLSFitFunction *argStruct = ((omxWLSFitFunction*)oo->argStruct);
+	omxWLSFitFunction *argStruct = this;
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 	omxMatrix *weightInt = argStruct->weights;			// Expected means
@@ -272,27 +265,23 @@ static void omxPopulateWLSAttributes(omxFitFunction *oo, SEXP algebra) {
 	
 	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(0));
 	//Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
-	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(oo->matrix, 0, 0)));
+	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(matrix, 0, 0)));
 }
 
-static void omxSetWLSFitFunctionCalls(omxFitFunction* oo) {
-	
-	/* Set FitFunction Calls to WLS FitFunction Calls */
-	oo->computeFun = omxCallWLSFitFunction;
-	oo->destructFun = omxDestroyWLSFitFunction;
-	oo->populateAttrFun = omxPopulateWLSAttributes;
-}
+omxFitFunction *omxInitWLSFitFunction()
+{ return new omxWLSFitFunction; }
 
-void omxInitWLSFitFunction(omxFitFunction* oo) {
+void omxWLSFitFunction::init()
+{
+	auto *oo = this;
+	auto *newObj = this;
 	
 	omxState *currentState = oo->matrix->currentState;
-	omxMatrix *cov, *means, *weights;
+	omxMatrix *cov, *means;
 	
 	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
 	
 	int vectorSize = 0;
-	
-	omxSetWLSFitFunctionCalls(oo);
 	
 	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
 	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
@@ -310,8 +299,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 		return;
 	}
 	
-	omxWLSFitFunction *newObj = new omxWLSFitFunction;
-	oo->argStruct = (void*)newObj;
 	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	
 	/* Get Expectation Elements */
@@ -406,7 +393,6 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 
 	newObj->observedCov = cov;
 	newObj->observedMeans = means;
-	newObj->weights = weights;
 	newObj->n = omxDataNumObs(dataMat);
 	
 	auto &eThresh = oo->expectation->getThresholdInfo();
@@ -474,5 +460,4 @@ void omxInitWLSFitFunction(omxFitFunction* oo) {
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
-
 }

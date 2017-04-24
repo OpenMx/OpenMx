@@ -23,10 +23,7 @@
 #include "Compute.h"
 #include "ComputeGD.h"
 #include "npsolswitch.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 template <typename T1, typename T2, typename T3>
 void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, 
@@ -177,19 +174,6 @@ void GradientOptimizerContext::linearConstraintCoefficients(Eigen::MatrixBase<T1
 	}
 	if (verbose >= 3) {
 		mxPrintMat("A", lcc);
-	}
-}
-
-void GradientOptimizerContext::checkForAnalyticJacobians()
-{
-	usingAnalyticJacobian = false;
-	omxState *st = fc->state;
-	for(int i=0; i < (int) st->conListX.size(); i++){
-		omxConstraint &cs = *st->conListX[i];
-		if(cs.jacobian){
-			usingAnalyticJacobian = true;
-			return;
-		}
 	}
 }
 

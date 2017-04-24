@@ -1,3 +1,8 @@
+# ===========
+# = History =
+# ===========
+# 2017-04-14 04:50PM TBATES Correct bug in error check - this is now passing.
+
 #
 #   Copyright 2007-2012 The OpenMx Project
 #
@@ -20,9 +25,15 @@ require(OpenMx)
 foo <- mxMatrix(name = 'foo', nrow = 1, ncol = 1, free = TRUE, labels = 'foo')
 bar <- mxAlgebra(foo, name = 'bar')
 model <- mxModel('model', foo, bar)
-omxCheckError(mxRun(model), paste("In model 'model' the following are both named entities and free parameters: 'foo'",
-"\nIf you are trying to set a path using an mxAlgebra, then refer to the Algebra with square-bracket notation.",
-"\ni.,e, instead of labels=\"", omxQuotes(overlap), "\" use: labels=\"", omxQuotes(overlap), "[1,1]\""))
+expErr = "In model 'model' the following are both named entities and free parameters: 'foo' 
+If you are trying to set a path using an mxAlgebra, then refer to the Algebra with square-bracket notation. 
+i.,e, instead of labels=\" 'foo' \" use: labels=\" 'foo' [1,1]\""
+
+omxCheckError(mxRun(model), expErr)
+
+# paste("In model 'model' the following are both named entities and free parameters: 'foo'",
+# "\nIf you are trying to set a path using an mxAlgebra, then refer to the Algebra with square-bracket notation.",
+# "\ni.,e, instead of labels=\"", omxQuotes(overlap), "\" use: labels=\"", omxQuotes(overlap), "[1,1]\"")
 
 foo   <- mxMatrix(name = 'foo',  nrow = 1, ncol = 1, free = TRUE , labels = 'a')
 bar   <- mxMatrix(name = 'bar',  nrow = 1, ncol = 1, free = TRUE , labels = 'a')

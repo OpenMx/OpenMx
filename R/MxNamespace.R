@@ -301,12 +301,10 @@ isLocalDefinitionVariable <- function(name) {
 imxHasDefinitionVariable <- function(model) {
 	# Check submodels for defvar
 	if(length(model$submodels) > 0){
-		for(i in 1:length(model@submodels)){
-			attempt <- sapply(model@submodels[[i]], imxHasDefinitionVariable)
+			attempt <- sapply(model@submodels, imxHasDefinitionVariable)
 			if(any(attempt)){
 				return(TRUE)
 			}
-		}
 	}
 	
 	# Check if the model has data
@@ -745,9 +743,10 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 ##' @param strict strict
 imxConvertIdentifier <- function(identifiers, modelname, namespace, strict=FALSE) {
 	if (length(identifiers) == 0) return(identifiers)
+	origNames <- names(identifiers)
 	identifiers <- as.character(identifiers)
-	if (all(is.na(identifiers))) return(identifiers)
-	vapply(identifiers, function(identifier) {
+	result <- vapply(identifiers, function(identifier) {
+		if (is.na(identifier)) return(identifier)
 		isLocalEntity <- identifier %in% namespace$entities[[modelname]]
 		if (isLocalEntity) {
 			return(imxIdentifier(modelname, identifier))
@@ -760,6 +759,8 @@ imxConvertIdentifier <- function(identifiers, modelname, namespace, strict=FALSE
 			return(identifier)
 		}
 	}, "", USE.NAMES=FALSE)
+	names(result) <- origNames
+	result
 }
 
 getModelName <- function(object) {

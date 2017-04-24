@@ -93,6 +93,7 @@ omxCheckSetEquals <- function(a, b) {
 }
 
 omxCheckTrue <- function(a) {	
+	if (length(a) < 1) stop("What is true? (Nothing tested)")
 	if (any(!a)) {
 		call <- deparse(match.call()$a)
 		stop(paste(call, "is not true"))

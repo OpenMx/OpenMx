@@ -31,10 +31,7 @@
 #include "omxState.h"
 #include <limits>
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 // forward declarations
 static const char *omxMatrixMajorityList[] = {"T", "n"};		// BLAS Column Majority.
@@ -179,7 +176,7 @@ void omxFreeMatrix(omxMatrix *om) {
 	}
 
 	if(om->fitFunction != NULL) {
-		omxFreeFitFunctionArgs(om->fitFunction);
+		delete om->fitFunction;
 		om->fitFunction = NULL;
 	}
 	

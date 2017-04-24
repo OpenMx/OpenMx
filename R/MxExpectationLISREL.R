@@ -42,7 +42,7 @@ setClass(Class = "MxExpectationLISREL",
 		TY = "MxCharOrNumber",
 		KA = "MxCharOrNumber",
 		AL = "MxCharOrNumber",
-	        numStats = "numeric",
+		numStats = "numeric",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		thresholdColumns = "numeric", #Used in FIML
@@ -635,22 +635,31 @@ setMethod("show", "MxExpectationLISREL", function(object) {
 
 
 #------------------------------------------------------------------------------
+
+extractNAname <- function(name, subname){
+	if(single.na(name)){
+		return(name)
+	} else {
+		return(.modifyDottedName(subname, name, sep="."))
+	}
+}
+
 setMethod("genericGetExpected", signature("MxExpectationLISREL"),
-	  function(.Object, model, what, defvar.row=1) {
+	  function(.Object, model, what, defvar.row=1, subname=model@name) {
 		  ret <- list()
-		  LXname <- .Object@LX
-		  LYname <- .Object@LY
-		  BEname <- .Object@BE
-		  GAname <- .Object@GA
-		  PHname <- .Object@PH
-		  PSname <- .Object@PS
-		  TDname <- .Object@TD
-		  TEname <- .Object@TE
-		  THname <- .Object@TH
-		  TXname <- .Object@TX
-		  TYname <- .Object@TY
-		  KAname <- .Object@KA
-		  ALname <- .Object@AL
+		  LXname <- extractNAname(.Object@LX, subname)
+		  LYname <- extractNAname(.Object@LY, subname)
+		  BEname <- extractNAname(.Object@BE, subname)
+		  GAname <- extractNAname(.Object@GA, subname)
+		  PHname <- extractNAname(.Object@PH, subname)
+		  PSname <- extractNAname(.Object@PS, subname)
+		  TDname <- extractNAname(.Object@TD, subname)
+		  TEname <- extractNAname(.Object@TE, subname)
+		  THname <- extractNAname(.Object@TH, subname)
+		  TXname <- extractNAname(.Object@TX, subname)
+		  TYname <- extractNAname(.Object@TY, subname)
+		  KAname <- extractNAname(.Object@KA, subname)
+		  ALname <- extractNAname(.Object@AL, subname)
 		  hasX <- !single.na(LXname)
 		  hasY <- !single.na(LYname)
 		  if(hasX){
@@ -720,7 +729,7 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  ret[['means']] <- mean
 		  }
 		  if ('thresholds' %in% what) {
-			  thrname <- .Object@thresholds
+			  thrname <- extractNAname(.Object@thresholds, subname)
 			  if(!single.na(thrname)){
 				  thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
 			  } else {thr <- matrix( , 0, 0)}

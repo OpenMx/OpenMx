@@ -36,18 +36,17 @@ Description: Facilitates treatment of statistical model specifications
 SystemRequirements: GNU make
 License: @LICENSE@
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
-Depends:
-	R (>= 3.0.2),
-    digest,
+Imports: Rcpp, digest,
     MASS,
     methods,
     Matrix,
-    Rcpp,
     parallel
+Depends: R (>= 3.0.2)
 Suggests:
     mvtnorm,
     numDeriv,
     roxygen2 (>= 3.1),
+    devtools,
     Rmpi,
     rpf (>= 0.45),
     snowfall,
@@ -146,6 +145,7 @@ Collate:
     'omxGetNPSOL.R'
     'MxFitFunctionR.R'
     'MxRObjective.R'
+    'MxExpectationHiddenMarkov.R'
     'MxExpectationStateSpace.R'
     'MxExpectationBA81.R'
     'MxFitFunctionGREML.R'
@@ -156,5 +156,6 @@ Collate:
     'MxAvailableOptimizers.R'
     'MxTryHard.R'
     'MxSE.R'
+    'MxAutoStart.R'
     'zzz.R'
 Version: @VERSION@

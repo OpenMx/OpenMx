@@ -21,10 +21,7 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 #include "matrix.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static const char engineName[] = "NnRn";
 
@@ -61,7 +58,6 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 	super::initFromFrontend(state, rObj);
 
 	fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
-	setFreeVarGroup(fitMatrix->fitFunction, varGroup);
 	omxCompleteFitFunction(fitMatrix);
 
 	if (!fitMatrix->fitFunction->hessianAvailable ||
@@ -382,7 +378,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 			return;
 		}
 
-		Global->reportProgress("MxComputeNewtonRaphson", fc);
+		reportProgress(fc);
 
 		converged = relImprovement(improvement) < tolerance;
 

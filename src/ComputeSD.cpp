@@ -2,10 +2,7 @@
 
 #include "ComputeGD.h"
 #include "ComputeSD.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 struct fit_functional {
 	GradientOptimizerContext &goc;

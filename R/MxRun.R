@@ -19,7 +19,7 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		useOptimizer = TRUE){
 
 	if (.hasSlot(model, '.version')) {
-		mV <- model@.version
+		mV <- package_version(model@.version)
 		curV <- packageVersion('OpenMx')
 		if (curV$major != mV$major ||
 		    curV$minor != mV$minor) {
@@ -252,11 +252,15 @@ runHelper <- function(model, frontendStart,
 		names(parameters), names(constraints), model@compute, output)
 	
 	theFitUnits <- model$output$fitUnits
-	if(options[["Standard Errors"]] == "Yes" && length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
-		wlsSEs <- imxWlsStandardErrors(model)
-		model@output$standardErrors <- wlsSEs$SE
-		model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
-		wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
+	if(length(theFitUnits) > 0 && theFitUnits %in% "r'Wr" ){
+		if(options[["Standard Errors"]] == "Yes"){
+			wlsSEs <- imxWlsStandardErrors(model)
+			model@output$standardErrors <- wlsSEs$SE
+			model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
+			wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
+		} else {
+			wlsChi <- list(Chi=NA, ChiDoF=NA)
+		}
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF
 	}
@@ -300,7 +304,9 @@ updateModelExpectationDims <- function(model, expectations){
 	expectationNames <- names(expectations)
 	for(aname in expectationNames){
 		if(!is.null(model[[aname]])){
-			model[[aname]]@.runDims <- expectations[[aname]]@dims
+			if (.hasSlot(expectations[[aname]], 'dims')) {
+				model[[aname]]@.runDims <- expectations[[aname]]@dims
+			}
 		}
 	}
 	return(model)
@@ -320,4 +326,41 @@ imxReportProgress <- function(info, eraseLen) {
 	}
 	cat(paste0("\r", info))
 	if (origLen == 0) cat("\r")
+}
+
+enumerateDatasets <- function(model) {
+	datasets <- c()
+	if (!is.null(model@data)) datasets <- c(datasets, model@name)
+	if (length(model@submodels)) {
+		datasets <- c(datasets, sapply(model@submodels, enumerateDatasets))
+	}
+	return(datasets)
+}
+
+mxBootstrap <- function(model, replications=200, ...,
+                        data=NULL, plan=NULL, verbose=0L,
+                        parallel=TRUE, only=as.integer(NA),
+			OK=c("OK", "OK/green")) {
+  if (!is(model$compute, "MxComputeBootstrap")) {
+    if (missing(plan)) {
+      plan <- model$compute
+    }
+    if (missing(data)) {
+      data <- enumerateDatasets(model)
+    }
+    plan <- mxComputeBootstrap(data, plan)
+  } else {
+    if (!missing(plan)) stop(paste("Model", omxQuotes(model@name), "already has",
+                                   "a", omxQuotes(class(model$class)), "plan"))
+    plan <- model$compute
+  }
+
+  plan$replications <- as.integer(replications)
+  plan$verbose <- as.integer(verbose)
+  plan$parallel <- as.logical(parallel)
+  plan$only <- as.integer(only)
+  plan$OK <- OK
+  
+  model <- mxModel(model, plan)
+  mxRun(model)
 }

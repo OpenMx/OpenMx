@@ -23,15 +23,11 @@
 #include "RAMInternal.h"
 #include "matrix.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 static const double MIN_VARIANCE = 1e-6;
 
-struct MLFitState {
-
+struct MLFitState : omxFitFunction {
 	bool copiedData;
 	omxMatrix* observedCov;
 	omxMatrix* observedMeans;
@@ -40,22 +36,29 @@ struct MLFitState {
 
 	double n;
 	double logDetObserved;
+
+	MLFitState() : copiedData(false) {};
+	virtual ~MLFitState();
+	virtual omxFitFunction *initMorph();
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void populateAttr(SEXP algebra);
+	virtual void addOutput(MxRList *out);
 };
 
-static void omxDestroyMLFitFunction(omxFitFunction *oo) {
-
+MLFitState::~MLFitState()
+{
 	if(OMX_DEBUG) {mxLog("Freeing ML Fit Function.");}
-	MLFitState* omlo = ((MLFitState*)oo->argStruct);
+	MLFitState* omlo = this;
 	if (omlo->copiedData) {
 		omxFreeMatrix(omlo->observedCov);
 		omxFreeMatrix(omlo->observedMeans);
 	}
-	delete omlo;
 }
 
 static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, double *independence_out)
 {
-	MLFitState *state = (MLFitState*) oo->argStruct;
+	MLFitState *state = (MLFitState*) oo;
 	double det = 0.0;
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
@@ -79,8 +82,9 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	*independence_out = ncols * (state->n - 1) + det * state->n;
 }
 
-static void addOutput(omxFitFunction *oo, MxRList *out)
+void MLFitState::addOutput(MxRList *out)
 {
+	auto *oo = this;
 	// DEPRECATED, use omxPopulateMLAttributes
 	if(OMX_DEBUG) { mxLog("Deprecated ML Attribute Population Code Running."); }
 	double saturated_out;
@@ -141,19 +145,19 @@ struct multi_normal_deriv {
 	}
 };
 
-static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
+void MLFitState::compute(int want, FitContext *fc)
 {
+	auto *oo = this;
 	const double Scale = Global->llScale;
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
-	omxExpectation* expectation = oo->expectation;
 	omxExpectationCompute(fc, expectation, NULL);
 
 	if ((want & FF_COMPUTE_FIT) &&
 	    !(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
 		// works for any multivariate normal expectation (e.g. vanilla, RAM, LISREL, etc)
 
-		MLFitState *omo = (MLFitState*) oo->argStruct;
+		MLFitState *omo = (MLFitState*) oo;
 		EigenMatrixAdaptor obCovAdapter(omo->observedCov);
 		Eigen::MatrixXd obCov = obCovAdapter;
 		EigenMatrixAdaptor exCovAdapter(omo->expectedCov);
@@ -185,7 +189,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 				       fc->infoMethod);
 			return;
 		}
-		MLFitState *omo = (MLFitState*) oo->argStruct;
+		MLFitState *omo = (MLFitState*) oo;
 		// should forward computation to the expectation TODO
 
 		int num_param = 0;
@@ -203,7 +207,7 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 		if (num_param == 0) {
 			// if num_param == 0 then hessian() doesn't compute the fit
 			want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
-			if (want) omxCallMLFitFunction(oo, want, fc);
+			if (want) compute(want, fc);
 			return;
 		}
 
@@ -252,10 +256,11 @@ static void omxCallMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
 	}
 }
 
-static void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
+void MLFitState::populateAttr(SEXP algebra) {
     if(OMX_DEBUG) { mxLog("Populating ML Attributes."); }
 
-	MLFitState *argStruct = ((MLFitState*)oo->argStruct);
+    auto *oo = this;
+    MLFitState *argStruct = this;
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 
@@ -286,34 +291,33 @@ static void omxPopulateMLAttributes(omxFitFunction *oo, SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(independence_out));
 }
 
-void omxInitMLFitFunction(omxFitFunction* oo)
+omxFitFunction *omxInitMLFitFunction()
+{ return new MLFitState; }
+
+omxFitFunction *MLFitState::initMorph()
 {
+	auto *oo = this;
+
 	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
 	oo->units = FIT_UNITS_MINUS2LL;
 
-	omxExpectation *expectation = oo->expectation;
 	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
-		omxInitFitFunctionBA81(oo);
-		return;
+		return omxChangeFitType(oo, "imxFitFunctionBA81");
 	}
 
 	if (strEQ(expectation->expType, "MxExpectationGREML")) {
-		omxInitGREMLFitFunction(oo);
-		return;
+		return omxChangeFitType(oo, "MxFitFunctionGREML");
 	}
 
-	oo->ciFun = loglikelihoodCIFun;
-
 	if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
-		ssMLFitInit(oo);
-		return;
+		return omxChangeFitType(oo, "imxFitFunciontStateSpace");
+	}
+
+	if (strEQ(expectation->expType, "MxExpectationHiddenMarkov")) {
+		return omxChangeFitType(oo, "imxFitFunciontHiddenMarkov");
 	}
 
 	if(OMX_DEBUG) { mxLog("Initializing ML fit function."); }
-
-	oo->computeFun = omxCallMLFitFunction;
-	oo->destructFun = omxDestroyMLFitFunction;
-	oo->addOutput = addOutput;
 
 	omxData* dataMat = oo->expectation->data;
 
@@ -334,7 +338,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 	if (strEQ(omxDataType(dataMat), "raw")) {
 		int useFellner = Rf_asLogical(Rfellner);
 		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation->argStruct;
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 			if (ram->between.size()) {
 				if (useFellner == 0) {
 					Rf_error("%s: fellner=TRUE is required for %s",
@@ -357,19 +361,24 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 			to = "imxFitFunctionFIML";
 		}
 		if(OMX_DEBUG) { mxLog("Raw Data: Converting from %s to %s", oo->fitType, to); }
-		omxChangeFitType(oo, to);
-		omxCompleteFitFunction(oo->matrix);
-		return;
+		return omxChangeFitType(oo, to);
 	}
+
+	init();
+	return this;
+}
+
+void MLFitState::init()
+{
+	auto *oo = this;
+	auto *newObj = this;
+	omxData* dataMat = expectation->data;
 
 	if(!strEQ(omxDataType(dataMat), "cov") && !strEQ(omxDataType(dataMat), "cor")) {
 		omxRaiseErrorf("ML FitFunction unable to handle data type %s", omxDataType(dataMat));
 		return;
 	}
 
-	MLFitState *newObj = new MLFitState;
-	oo->argStruct = (void*)newObj;
-	oo->populateAttrFun = omxPopulateMLAttributes;
 	oo->canDuplicate = true;
 
 	newObj->observedCov = omxDataCovariance(dataMat);
@@ -410,7 +419,7 @@ void omxInitMLFitFunction(omxFitFunction* oo)
 			return;
 		} else {
 			omxRaiseErrorf("%s: Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n", oo->name());
-			return;	        
+			return;
 		}
 	}
 

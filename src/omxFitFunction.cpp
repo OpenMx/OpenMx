@@ -31,47 +31,42 @@
 #include "omxFitFunction.h"
 #include "fitMultigroup.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
 
 struct omxFitFunctionTableEntry {
 
 	char name[32];
-	void (*initFun)(omxFitFunction*);
-	void (*setVarGroup)(omxFitFunction*, FreeVarGroup *);  // TODO ugh, just convert to C++
+	omxFitFunction *(*allocate)();
 
 };
 
-static void defaultSetFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
+omxFitFunction *omxFitFunction::initMorph()
 {
-	if (OMX_DEBUG && ff->freeVarGroup && ff->freeVarGroup != fvg) {
-		Rf_warning("%s: setFreeVarGroup called with different group (%d vs %d)",
-			   ff->matrix->name(), ff->freeVarGroup->id[0], fvg->id[0]);
-	}
-	ff->freeVarGroup = fvg;
+	init();
+	return this;
 }
 
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
-	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction, defaultSetFreeVarGroup},
-	{"MxFitFunctionWLS",				&omxInitWLSFitFunction, defaultSetFreeVarGroup},
-	{"MxFitFunctionRow", 				&omxInitRowFitFunction, defaultSetFreeVarGroup},
-	{"MxFitFunctionML", 				&omxInitMLFitFunction, defaultSetFreeVarGroup},
-	{"imxFitFunctionFIML", &omxInitFIMLFitFunction, defaultSetFreeVarGroup},
-	{"MxFitFunctionR",					&omxInitRFitFunction, defaultSetFreeVarGroup},
-	{"MxFitFunctionMultigroup", &initFitMultigroup, mgSetFreeVarGroup},
-	{"MxFitFunctionGREML", &omxInitGREMLFitFunction, defaultSetFreeVarGroup},
-	{"imxFitFunctionFellner", &InitFellnerFitFunction, defaultSetFreeVarGroup},
+	{"MxFitFunctionAlgebra", 			&omxInitAlgebraFitFunction},
+	{"MxFitFunctionWLS",				&omxInitWLSFitFunction},
+	{"MxFitFunctionRow", 				&omxInitRowFitFunction},
+	{"MxFitFunctionML", 				&omxInitMLFitFunction},
+	{"imxFitFunctionFIML", &omxInitFIMLFitFunction},
+	{"MxFitFunctionR",					&omxInitRFitFunction},
+	{"MxFitFunctionMultigroup", &initFitMultigroup},
+	{"MxFitFunctionGREML", &omxInitGREMLFitFunction},
+	{"imxFitFunctionFellner", &InitFellnerFitFunction},
+	{"imxFitFunctionBA81", &omxInitFitFunctionBA81},
+	{"imxFitFunciontStateSpace", &ssMLFitInit},
+	{"imxFitFunciontHiddenMarkov", &InitMarkovFF},
 };
 
 void omxFitFunction::setUnitsFromName(const char *name)
 {
 	if (strEQ(name, "-2lnL")) {
 		units = FIT_UNITS_MINUS2LL;
-		ciFun = loglikelihoodCIFun;
 	} else {
 		Rf_warning("Unknown units '%s' passed to fit function '%s'",
 			   name, matrix->name());
@@ -79,24 +74,15 @@ void omxFitFunction::setUnitsFromName(const char *name)
 	}
 }
 
-const char *fitUnitsToName(int units)
+const char *fitUnitsToName(FitStatisticUnits units)
 {
 	switch (units) {
 	case FIT_UNITS_UNINITIALIZED: return "";
 	case FIT_UNITS_UNKNOWN: return "?";
+	case FIT_UNITS_PROBABILITY: return "Pr";
 	case FIT_UNITS_MINUS2LL: return "-2lnL";
 	case FIT_UNITS_SQUARED_RESIDUAL: return "r'Wr";
 	default: Rf_error("Don't know how to stringify units %d", units);
-	}
-}
-
-void omxFreeFitFunctionArgs(omxFitFunction *off) {
-	if(off==NULL) return;
-
-	/* Completely destroy the fit function structures */
-	if(off->matrix != NULL) {
-		if (off->destructFun) off->destructFun(off);
-		off->matrix = NULL;
 	}
 }
 
@@ -108,7 +94,16 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	if(ff == NULL) return;
 
 	omxFillMatrixFromMxFitFunction(tgt, src->matrixNumber, ff->rObj);
-	setFreeVarGroup(tgt->fitFunction, src->fitFunction->freeVarGroup);
+}
+
+static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
+{
+	if (ff->units == FIT_UNITS_MINUS2LL) {
+		fc->ciobj->evalFit(ff, want, fc);
+	} else {
+		Rf_error("Confidence intervals are not supported for units %s",
+			 fitUnitsToName(ff->units));
+	}
 }
 
 void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
@@ -116,9 +111,9 @@ void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
 	if (!off->initialized) return;
 
 	if (!fc->ciobj) {
-		off->computeFun(off, want, fc);
+		off->compute(want, fc);
 	} else {
-		off->ciFun(off, want, fc);
+		ciFunction(off, want, fc);
 	}
 
 	if (fc) fc->wanted |= want;
@@ -128,7 +123,7 @@ void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
 	if (!off->initialized) return;
 
-	off->computeFun(off, want, fc);
+	off->compute(want, fc);
 	if (fc) fc->wanted |= want;
 }
 
@@ -136,7 +131,7 @@ void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc)
 {
 	if (!off->initialized) return;
 
-	off->ciFun(off, want, fc);
+	ciFunction(off, want, fc);
 	if (fc) fc->wanted |= want;
 }
 
@@ -144,7 +139,7 @@ double totalLogLikelihood(omxMatrix *fitMat)
 {
 	if (fitMat->rows != 1) {
 		omxFitFunction *ff = fitMat->fitFunction;
-		if (strEQ(ff->fitType, "MxFitFunctionML") || strEQ(ff->fitType, "imxFitFunctionFIML")) {
+		if (ff->units == FIT_UNITS_PROBABILITY) {
 			// NOTE: Floating-point addition is not
 			// associative. If we compute this in parallel
 			// then we introduce non-determinancy.
@@ -171,7 +166,6 @@ double totalLogLikelihood(omxMatrix *fitMat)
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
-	bool doFit = want & FF_COMPUTE_FIT;
 	fc->incrComputeCount();
 	fc->skippedRows = 0;
 	omxFitFunction *ff = fitMat->fitFunction;
@@ -182,7 +176,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (fc->ciobj) Rf_error("CIs cannot be computed for unitless algebra");
 		omxRecompute(fitMat, fc);
 	}
-	if (doFit) {
+	if (ff && want & FF_COMPUTE_FIT) {
 		fc->fit = totalLogLikelihood(fitMat);
 		if (std::isfinite(fc->fit)) {
 			fc->resetIterationError();
@@ -195,31 +189,20 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 	}
 }
 
-void defaultAddOutput(omxFitFunction* oo, MxRList *out)
-{}
-
 static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitType,
 						 omxExpectation *expect, omxMatrix *matrix, bool rowLik)
 {
-	omxFitFunction *obj = (omxFitFunction*) R_alloc(1, sizeof(omxFitFunction));
-	OMXZERO(obj, 1);
+	omxFitFunction *obj = 0;
 
 	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
 		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
 		if(strcmp(fitType, entry->name) == 0) {
+			obj = entry->allocate();
 			obj->fitType = entry->name;
-			obj->initFun = entry->initFun;
-
-			// We need to set up the FreeVarGroup before calling initFun
-			// because older fit functions expect to know the number of
-			// free variables during initFun.
-			obj->setVarGroup = entry->setVarGroup; // ugh!
-			obj->addOutput = defaultAddOutput;
 			break;
 		}
 	}
-
-	if(obj->initFun == NULL) Rf_error("Fit function '%s' not implemented", fitType);
+	if (!obj) Rf_error("omxNewInternalFitFunction: cannot find '%s'", fitType);
 
 	if (!matrix) {
 		obj->matrix = omxInitMatrix(1, 1, TRUE, os);
@@ -268,7 +251,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, int matrixNumber, SEXP rObj)
 	ff->rObj = rObj;
 }
 
-void omxChangeFitType(omxFitFunction *oo, const char *fitType)
+omxFitFunction *omxChangeFitType(omxFitFunction *oo, const char *fitType)
 {
 	if (oo->initialized) {
 		Rf_error("%s: cannot omxChangeFitType from %s to %s; already initialized",
@@ -278,19 +261,23 @@ void omxChangeFitType(omxFitFunction *oo, const char *fitType)
 	for (size_t fx=0; fx < OMX_STATIC_ARRAY_SIZE(omxFitFunctionSymbolTable); fx++) {
 		const omxFitFunctionTableEntry *entry = omxFitFunctionSymbolTable + fx;
 		if (strEQ(fitType, entry->name)) {
-			oo->fitType = entry->name;
-			oo->initFun = entry->initFun;
-			return;
+			auto *newObj = entry->allocate();
+			newObj->rObj = oo->rObj;
+			newObj->expectation = oo->expectation;
+			newObj->fitType = entry->name;
+			newObj->matrix = oo->matrix;
+			newObj->units = oo->units;
+			oo->matrix = 0;
+			newObj->matrix->fitFunction = newObj;
+			delete oo;
+			// Need to call initMorph again? Probably never have 2 levels
+			// of specialization?
+			newObj->init();
+			return newObj;
 		}
 	}
 
 	Rf_error("Cannot find fit type '%s'", fitType);
-}
-
-static void defaultCIFun(omxFitFunction* oo, int want, FitContext *fc)
-{
-	if (want & FF_COMPUTE_INITIAL_FIT) return;
-	Rf_error("Confidence intervals are not supported for units %d", oo->units);
 }
 
 void omxCompleteFitFunction(omxMatrix *om)
@@ -299,22 +286,13 @@ void omxCompleteFitFunction(omxMatrix *om)
 	if (obj->initialized) return;
 
 	if (obj->expectation) {
-		setFreeVarGroup(obj->expectation, obj->freeVarGroup);
 		omxCompleteExpectation(obj->expectation);
 	}
 
-	obj->initFun(obj);
-
-	if(obj->computeFun == NULL) Rf_error("Failed to initialize fit function %s", obj->fitType);
-	if(obj->ciFun == NULL) obj->ciFun = defaultCIFun;
+	obj = obj->initMorph();
 
 	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;
-}
-
-void setFreeVarGroup(omxFitFunction *ff, FreeVarGroup *fvg)
-{
-	(*ff->setVarGroup)(ff, fvg);
 }
 
 void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
@@ -331,7 +309,3 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	return newMatrix;
 }
 
-void loglikelihoodCIFun(omxFitFunction *ff, int want, FitContext *fc)
-{
-	fc->ciobj->evalFit(ff, want, fc);
-}

@@ -24,13 +24,14 @@ This function creates the Kalman predicted, Kalman updated, and Rauch-Tung-Strie
 }
 
 \usage{
-mxKalmanScores(model, data=NA)
+mxKalmanScores(model, data=NA, frontend=TRUE)
 }
 
 
 \arguments{
    \item{model}{An MxModel object with an MxExpectationStateSpace.}
    \item{data}{An optional data.frame or matrix.}
+   \item{frontend}{When TRUE, compute score in the frontend, otherwise use the backend.}
 }
 
 \details{
@@ -38,7 +39,7 @@ This is a helper function that computes the results of the classical Kalman filt
 }
 
 \value{
-    A list with components xPredicted, PPredicted, xUpdated, PUpdated, xSmoothed, PSmoothed, m2ll, and L.  The rows of xPredicted, xUpdated, and xSmoothed correspond to different time points.  The columns are the different latent variables.  The third index of PPredicted, PUpdated, and PSmoothed corresponds to different times.  This works nicely with the R default print method for arrays.  At each time there is a covariance matrix of the latent variable scores.  For all items listed below, the first element goes with the zeroth time point (See example).
+    A list with components xPredicted, PPredicted, xUpdated, PUpdated, xSmoothed, PSmoothed, m2ll, and L.  When using backend scores, this list also has components for yPredicted and SPredicted which have the same number of time points as the other components but relate to the observed variables instead of the latent variables.  The rows of xPredicted, xUpdated, and xSmoothed correspond to different time points.  The columns are the different latent variables.  The third index of PPredicted, PUpdated, and PSmoothed corresponds to different times.  This works nicely with the R default print method for arrays.  At each time there is a covariance matrix of the latent variable scores.  For all items listed below, the first element goes with the zeroth time point (See example).
 \describe{
 	\item{xPredicted}{matrix of Kalman predicted scores}
 	\item{PPredicted}{array of Kalman predicted error covariances}
@@ -47,7 +48,9 @@ This is a helper function that computes the results of the classical Kalman filt
 	\item{xSmoothed}{matrix of RTS smoothed scores}
 	\item{PSmoothed}{array of RTS smoothed error covariances}
 	\item{m2ll}{minus 2 log likelihood}
-	\item{L}{likelihood}
+	\item{L}{likelihood, i.e., the multivariate normal probability density}
+	\item{yPredicted}{matrix of Kalman predicted scores for the observed variables, i.e., the predicted means.  Only available for backend scores.}
+	\item{SPredicted}{array of Kalman predicted error covariances for the observed variables, i.e., the predicted covariances.  Only available for backend scores.}
 }
 }
 

@@ -36,6 +36,7 @@ struct omxAlgebra {						// A matrix
 	int numArgs;						// Length of args
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
+	int verbose;
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
 
 	const omxAlgebraTableEntry *oate;
@@ -49,7 +50,7 @@ void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs);
 void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs);
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
 	void omxFreeAlgebraArgs(omxAlgebra* algebra);						// Frees all args
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames);
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames, int verbose);
 	omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os);		// Create a matrix/algebra from a matrix pointer
 	omxMatrix* omxMatrixLookupFromStateByNumber(int matrix, omxState* os); //Look up extant omxMatrix by its matrix number
 	omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix** args, int numArgs, omxState* os); // For constraints.
@@ -68,5 +69,3 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc);
 void omxAlgebraPrint(omxAlgebra *source, const char* d);
 
 #endif /* _OMXALGEBRA_H_ */
-
-

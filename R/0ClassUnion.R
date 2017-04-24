@@ -47,3 +47,12 @@ setClassUnion("MxOptionalMatrix", c("NULL", "matrix"))
 ##' An optional numeric
 ##' @name MxOptionalNumeric-class
 setClassUnion("MxOptionalNumeric", c("NULL", "numeric"))
+
+##' A character or logical
+##' @name MxCharOrLogical-class
+setClassUnion("MxCharOrLogical", c("character", "logical"))
+
+##' A package_version or character
+##' @name MxVersionType-class
+setOldClass('package_version')
+setClassUnion("MxVersionType", c("package_version", "character"))

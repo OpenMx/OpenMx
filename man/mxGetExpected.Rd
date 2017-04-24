@@ -25,8 +25,8 @@ This function extracts the expected means, covariance, or thresholds from a mode
 }
 
 \usage{
-mxGetExpected(model, component, defvar.row=1)
-imxGetExpectationComponent(model, component, defvar.row=1)
+mxGetExpected(model, component, defvar.row=1, subname=model$name)
+imxGetExpectationComponent(model, component, defvar.row=1, subname=model$name)
 }
 
 
@@ -34,6 +34,7 @@ imxGetExpectationComponent(model, component, defvar.row=1)
    \item{model}{MxModel object from which to extract the expectation component.}
    \item{component}{A character. The name of the component to extract.}
    \item{defvar.row}{A row index. Which row to load for definition variables.}
+   \item{subname}{Name of the submodel to evaluate.}
 }
 
 \details{

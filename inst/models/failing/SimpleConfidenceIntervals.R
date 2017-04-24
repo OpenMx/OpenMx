@@ -1,3 +1,8 @@
+# ===========
+# = history =
+# ===========
+# 2017-04-14 04:35PM TBATES: update for mxFitFunctionMultigroup(c("MZ", "DZ"))
+# CHECK stil FAILING at line 167
 #
 #   Copyright 2007-2017 The OpenMx Project
 #
@@ -24,7 +29,7 @@ require(OpenMx)
 
 if (mxOption(NULL,"Default optimizer") != 'CSOLNP') stop("SKIP")
 
-#mxOption(NULL, "Default optimizer", "NPSOL")
+# mxOption(NULL, "Default optimizer", "NPSOL")
 
 #Prepare Data
 # -----------------------------------------------------------------------
@@ -43,111 +48,53 @@ cov(dzfData,use="complete")
 twinACEModel <- mxModel("twinACE",
 	mxModel("common",
 		# Matrices X, Y, and Z to store a, c, and e path coefficients
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=TRUE,  
-			values=.6, lbound=.1, 
-			label="a", 
-			name="X"
-		), 
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=TRUE,  
-			values=sqrt(.6),
-			label="c", 
-			name="Y"
-		),
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=TRUE,  
-			values=.6, lbound=.1, 
-			label="e", 
-			name="Z"
-		),
+		mxMatrix("Full", nrow=1, ncol=1, free=T, values=.6, lbound=.1, label="a", name="X"), 
+		mxMatrix("Full", nrow=1, ncol=1, free=T, values=sqrt(.6), label="c", name="Y"),
+		mxMatrix("Full", nrow=1, ncol=1, free=T, values=.6, lbound=.1, label="e", name="Z"),
 		# Matrices A, C, and E compute variance components
-		mxAlgebra(
-			expression=X %*% t(X), 
-			name="A"
-		), 
-		mxAlgebra(
-			expression=Y %*% t(Y), 
-			name="C"
-		), 
-		mxAlgebra(
-			expression=Z %*% t(Z), 
-			name="E"
-		),
-		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=2, 
-			free=TRUE, 
-			values= 20, lbound=0, ubound=30,
-			label="mean", 
-			name="expMean"
-		),
+		mxAlgebra(expression=X %*% t(X), name="A"), 
+		mxAlgebra(expression=Y %*% t(Y), name="C"), 
+		mxAlgebra(expression=Z %*% t(Z), name="E"),
+		mxMatrix("Full", nrow=1, ncol=2, free=T, values= 20, lbound=0, ubound=30, label="mean", name="expMean"),
 	    # Algebra for expected variance/covariance matrix in MZ
-	    mxAlgebra(
-			expression= rbind  (cbind(A+C+E , A+C),
-								cbind(A+C   , A+C+E)), 
-			name="expCovMZ"
+	    mxAlgebra(name="expCovMZ",
+					rbind(cbind(A+C+E, A+C),
+								cbind(A+C  , A+C+E))
 		),
 	    # Algebra for expected variance/covariance matrix in DZ
 	    # note use of 0.5, converted to 1*1 matrix
-	    mxAlgebra(
-			expression= rbind  (cbind(A+C+E     , 0.5%x%A+C),
-								cbind(0.5%x%A+C , A+C+E)), 
-			name="expCovDZ"
-		)
+	    mxAlgebra(name="expCovDZ", expression= 
+				rbind(cbind(A+C+E     , 0.5%x%A+C),
+							cbind(0.5%x%A+C , A+C+E))
+			)
 	),
 	mxModel("MZ",
-	    mxData(
-			observed=mzfData, 
-			type="raw"
-		), 
-	    mxFitFunctionML(),mxExpectationNormal(
-			covariance="common.expCovMZ", 
-			means="common.expMean", 
-			dimnames=selVars
-		)
+	    mxData(observed=mzfData, type="raw"), 
+	    mxFitFunctionML(),
+			mxExpectationNormal("common.expCovMZ", means="common.expMean", dimnames=selVars)
 	),
 	mxModel("DZ",
-	    mxData(
-			observed=dzfData, 
-			type="raw"
-		), 
-	    mxFitFunctionML(),mxExpectationNormal(
-			covariance="common.expCovDZ", 
-			means="common.expMean", 
-			dimnames=selVars
-		)
+	    mxData(observed=dzfData, type="raw"), 
+	    mxFitFunctionML(),
+			mxExpectationNormal("common.expCovDZ", means="common.expMean", dimnames=selVars)
 	),
-	mxAlgebra(
-		expression=MZ.objective + DZ.objective, 
-		name="twin"
-	), 
-	mxFitFunctionAlgebra("twin"),
-    mxCI(c("common.A", "common.C[,]", "common.E[1,1]"))
+	mxFitFunctionMultigroup(c("MZ", "DZ")),
+  mxCI(c("common.A", "common.C[,]", "common.E[1,1]"))
 )	
 #Run ACE model
 # -----------------------------------------------------------------------
 twinACENoIntervals <- mxRun(twinACEModel, suppressWarnings = TRUE)
-twinACEFit <- mxRun(twinACEModel, intervals=TRUE, suppressWarnings = TRUE)
+twinACENoIntervals <- mxRun(twinACEModel)
+twinACEFit <- mxRun(twinACEModel, intervals=TRUE)
 
-summary(twinACEFit)
+# summary(twinACEFit)
 detail <- twinACEFit$compute$steps[['CI']]$output[['detail']]
 print(detail)
 omxCheckTrue(is.factor(detail[['side']]))
 omxCheckEquals(levels(detail[['side']]), c('upper', 'lower'))
 
 ci <- twinACEFit$output$confidenceIntervals
-#cat(deparse(round(ci[,'ubound'],4)))
+# cat(deparse(round(ci[,'ubound'],4)))
 omxCheckCloseEnough(ci[-2,'lbound'], c(0.556, 0.1537), .01)
 omxCheckCloseEnough(ci[,'ubound'], c(0.683, 0.052, 0.1956), .005)
 
@@ -176,12 +123,14 @@ maxMisfit <- mxEval(objective, twinACEFit)[1,1] + 3.84
 CIaupper <- mxModel(twinACEIntervals, name = 'A_CIupper',
     mxConstraint(MZ.objective + DZ.objective < maxMisfit),
 		mxAlgebra(- common.A, name="upperCIa"), 
-		mxFitFunctionAlgebra("upperCIa"))
+		mxFitFunctionAlgebra("upperCIa")
+)
 
 CIalower <- mxModel(twinACEIntervals, name = 'A_CIlower',
 		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
 		mxAlgebra(common.A, name="lowerCIa"),
-		mxFitFunctionAlgebra("lowerCIa"))
+		mxFitFunctionAlgebra("lowerCIa")
+)
 
 runCIalower <- suppressWarnings(iterateMxRun(CIalower, 3))
 runCIaupper <- suppressWarnings(iterateMxRun(CIaupper, 3))
@@ -189,19 +138,22 @@ runCIaupper <- suppressWarnings(iterateMxRun(CIaupper, 3))
 CIcupper <- mxModel(twinACEIntervals, name = 'C_CIupper',
 		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
 		mxAlgebra(- common.C,name="upperCIc"), 
-		mxFitFunctionAlgebra("upperCIc"))
+		mxFitFunctionAlgebra("upperCIc")
+)
 
 runCIcupper <- suppressWarnings(iterateMxRun(CIcupper, 3))
 
 CIeupper <- mxModel(twinACEIntervals, name = 'E_CIupper',
 		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
 		mxAlgebra(- common.E,name="upperCIe"), 
-		mxFitFunctionAlgebra("upperCIe"))
+		mxFitFunctionAlgebra("upperCIe")
+)
 
 CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',
 		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
 		mxAlgebra(common.E,name="lowerCIe"),
-		mxFitFunctionAlgebra("lowerCIe"))
+		mxFitFunctionAlgebra("lowerCIe")
+)
 
 runCIelower <- suppressWarnings(iterateMxRun(CIelower, 3))
 runCIeupper <- suppressWarnings(iterateMxRun(CIeupper, 3))
@@ -210,8 +162,9 @@ omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'lbound'], mxEval(c
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(common.A, runCIaupper), .01)
 
 # Can go either way
-#omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
+# omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
 
+# Next check still failing under 2.7.9
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)

@@ -28,7 +28,7 @@ if (is(got, "try-error")) load("data/reisby.long.xxm.RData")
 
 perSubject <- mxModel(
   "perSubject", type="RAM",
-  mxData(response[!duplicated(response$subject),],
+  mxData(response[!duplicated(response$subject),'subject',drop=FALSE],
          "raw", primaryKey="subject"),
   latentVars=c('int', 'slope'),
   mxPath('one', c('int', 'slope')),
@@ -37,12 +37,13 @@ perSubject <- mxModel(
 
 reisby <- mxModel(
   "reisby", type="RAM", perSubject,
-  mxData(response, "raw"),
+  mxData(response[,c('subject','depression','week')], "raw"),
   manifestVars="depression",
   mxPath('depression', arrows=2, values=1),
-  mxPath(paste0('perSubject.', c('int','slope')),
-         'depression', free=FALSE,
-         labels=paste0('data.', c('one','week')), joinKey="subject"),
+  mxPath('perSubject.int', 'depression', free=FALSE,
+         values=1.0, joinKey="subject"),
+  mxPath('perSubject.slope', 'depression', free=FALSE,
+         labels='data.week', joinKey="subject"),
   mxPath('one', 'depression', free=FALSE))
 
 reisby <- mxRun(reisby)

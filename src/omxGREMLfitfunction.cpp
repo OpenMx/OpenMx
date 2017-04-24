@@ -15,7 +15,6 @@
  */
 
 #include "omxFitFunction.h"
-#include "omxGREMLfitfunction.h"
 #include "omxGREMLExpectation.h"
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -24,26 +23,49 @@
 #include <Eigen/Dense>
 #include <Rmath.h>
 #include "Compute.h"
+#include "EnableWarnings.h"
 
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+struct omxGREMLFitState : omxFitFunction {
+	//TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
+	//and could therefore be cut
+	omxMatrix *y, *X, *cov, *invcov, *means, *origVdim_om;
+	std::vector< omxMatrix* > dV;
+	std::vector< const char* > dVnames;
+	std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
+	std::vector<int> origdVdim;
+	void dVupdate(FitContext *fc);
+	void dVupdate_final();
+	int dVlength, usingGREMLExpectation, parallelDerivScheme;
+	double nll, REMLcorrection;
+	Eigen::VectorXd gradient;
+	Eigen::MatrixXd avgInfo; //the Average Information matrix
+	FreeVarGroup *varGroup;
+	std::vector<int> gradMap;
+	void buildParamMap(FreeVarGroup *newVarGroup);
+	std::vector< Eigen::VectorXi > rowbins, AIMelembins;
+	void planParallelDerivs(int nThreadz, int wantHess, int Vrows);
+	omxMatrix *aug, *augGrad, *augHess;
+	std::vector<int> dAugMap;
+	double pullAugVal(int thing, int row, int col);
+	void recomputeAug(int thing, FitContext *fc);
 
- void omxInitGREMLFitFunction(omxFitFunction *oo){
-  
+	virtual void init();
+	virtual void compute(int want, FitContext *fc);
+	virtual void populateAttr(SEXP algebra);
+}; 
+
+omxFitFunction *omxInitGREMLFitFunction()
+{ return new omxGREMLFitState; }
+
+void omxGREMLFitState::init()
+{
+	auto *oo = this;
+	auto *newObj = this;
+
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
-  SEXP rObj = oo->rObj;
-  SEXP augGrad, augHess;
   
   oo->units = FIT_UNITS_MINUS2LL;
-  oo->computeFun = omxCallGREMLFitFunction;
-  oo->ciFun = loglikelihoodCIFun;
-  oo->destructFun = omxDestroyGREMLFitFunction;
-  oo->populateAttrFun = omxPopulateGREMLAttributes;
   
-  omxGREMLFitState *newObj = new omxGREMLFitState;
-  oo->argStruct = (void*)newObj;
-  omxExpectation* expectation = oo->expectation;
   omxState* currentState = expectation->currentState;
   newObj->usingGREMLExpectation = (strcmp(expectation->expType, "MxExpectationGREML")==0 ? 1 : 0);
   if(!newObj->usingGREMLExpectation){
@@ -51,7 +73,7 @@
     Rf_error("GREML fitfunction is currently only compatible with GREML expectation");
   }
   else{
-    omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+    omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
     oge->alwaysComputeMeans = 0;
   }
 
@@ -72,18 +94,18 @@
   //Augmentation:
   newObj->aug = 0;
   if (R_has_slot(rObj, Rf_install("aug"))) {
-	  ProtectedSEXP aug(R_do_slot(rObj, Rf_install("aug")));
-	  if(Rf_length(aug)){
-		  int* augint = INTEGER(aug);
+	  ProtectedSEXP Raug(R_do_slot(rObj, Rf_install("aug")));
+	  if(Rf_length(Raug)){
+		  int* augint = INTEGER(Raug);
 		  newObj->aug = omxMatrixLookupFromStateByNumber(augint[0], currentState);
 	  }
   }
   
   //Derivatives of V:
   if (R_has_slot(rObj, Rf_install("dV"))) {
-	  ProtectedSEXP dV(R_do_slot(rObj, Rf_install("dV")));
-	  ProtectedSEXP dVnames(R_do_slot(rObj, Rf_install("dVnames")));
-	  newObj->dVlength = Rf_length(dV);  
+	  ProtectedSEXP RdV(R_do_slot(rObj, Rf_install("dV")));
+	  ProtectedSEXP RdVnames(R_do_slot(rObj, Rf_install("dVnames")));
+	  newObj->dVlength = Rf_length(RdV);  
 	  newObj->dV.resize(newObj->dVlength);
 	  newObj->indyAlg.resize(newObj->dVlength);
 	  newObj->dVnames.resize(newObj->dVlength);
@@ -94,11 +116,11 @@
 			  Rf_error("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
 		  }
 		  if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
-		  int* dVint = INTEGER(dV);
+		  int* dVint = INTEGER(RdV);
 		  for(int i=0; i < newObj->dVlength; i++){
 			  newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
 			  SEXP elem;
-			  {ScopedProtect p3(elem, STRING_ELT(dVnames, i));
+			  {ScopedProtect p3(elem, STRING_ELT(RdVnames, i));
 				  newObj->dVnames[i] = CHAR(elem);}
 		  }
 	  }
@@ -126,20 +148,20 @@
   //Augmentation derivatives:
 	if(newObj->dVlength && newObj->aug){
 	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied.	
-		ScopedProtect p1(augGrad, R_do_slot(rObj, Rf_install("augGrad")));
-		ScopedProtect p2(augHess, R_do_slot(rObj, Rf_install("augHess")));
-		if(!Rf_length(augGrad)){
-			if(Rf_length(augHess)){
+		ProtectedSEXP RaugGrad(R_do_slot(rObj, Rf_install("augGrad")));
+		ProtectedSEXP RaugHess(R_do_slot(rObj, Rf_install("augHess")));
+		if(!Rf_length(RaugGrad)){
+			if(Rf_length(RaugHess)){
 				Rf_error("if argument 'augHess' has nonzero length, then argument 'augGrad' must as well");
 			}
 			else{
 				Rf_error("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
 		}}
 		else{
-			int* augGradint = INTEGER(augGrad);
+			int* augGradint = INTEGER(RaugGrad);
 			newObj->augGrad = omxMatrixLookupFromStateByNumber(augGradint[0], currentState);
-			if(Rf_length(augHess)){
-				int* augHessint = INTEGER(augHess);
+			if(Rf_length(RaugHess)){
+				int* augHessint = INTEGER(RaugHess);
 				newObj->augHess = omxMatrixLookupFromStateByNumber(augHessint[0], currentState);
 			}
 			else{oo->hessianAvailable = false;}
@@ -147,18 +169,15 @@
 	}
 }
 
-
-
-
- void omxCallGREMLFitFunction(omxFitFunction *oo, int want, FitContext *fc)
+void omxGREMLFitState::compute(int want, FitContext *fc)
  {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
  	
  	//Recompute Expectation:
- 	omxExpectation* expectation = oo->expectation;
  	omxExpectationCompute(fc, expectation, NULL);
  	
- 	omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct; //<--Cast generic omxFitFunction to omxGREMLFitState
+ 	omxGREMLFitState *gff = this;
+	auto *oo = this;
  	
  	//Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup
  	//(not necessary for most compute plans):
@@ -181,7 +200,7 @@
  	
  	if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		if(gff->usingGREMLExpectation){
- 			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+ 			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
  			
  			//Check that factorizations of V and the quadratic form in X succeeded:
  			if(oge->cholV_fail_om->data[0]){
@@ -285,7 +304,7 @@
  	
  	if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		//This part requires GREML expectation:
- 		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation->argStruct);
+ 		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
  		
  		//Recompute derivatives:
  		gff->dVupdate(fc);
@@ -524,21 +543,15 @@
  
 
 
-void omxDestroyGREMLFitFunction(omxFitFunction *oo){
-  if(OMX_DEBUG) {mxLog("Freeing GREML FitFunction.");}
-    if(oo->argStruct == NULL) return;
-    omxGREMLFitState* owo = ((omxGREMLFitState*)oo->argStruct);
-    delete owo;
-}
-
-
-static void omxPopulateGREMLAttributes(omxFitFunction *oo, SEXP algebra){
-	omxGREMLFitState *gff = (omxGREMLFitState*)oo->argStruct;
+void omxGREMLFitState::populateAttr(SEXP algebra)
+{
+	auto *oo = this;
+	omxGREMLFitState *gff = (omxGREMLFitState*)this;
 	gff->dVupdate_final();
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
-  SEXP rObj = oo->rObj;
+
   SEXP nval, mlfitval;
-  int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation->argStruct) )->data2->numObs);
+  int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation) )->data2->numObs);
   
   //Tell the frontend fitfunction counterpart how many observations there are...:
   {

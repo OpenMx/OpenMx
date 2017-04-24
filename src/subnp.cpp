@@ -15,9 +15,7 @@
 //using std::cout;
 //using std::endl;
 
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 struct CSOLNP {
 
@@ -112,7 +110,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     ind[indHasEq] = neq > 0;
     ind[indHasJacobianEq] = 0;
     
-    fit.myineqFun();
+    fit.myineqFun(false);
     Eigen::RowVectorXd ineqv_e(fit.inequality.size());
     ineqv_e= -fit.inequality;
 
@@ -181,11 +179,11 @@ void CSOLNP::solnp(double *solPars, int verbose)
     
     Eigen::MatrixXd constraint_e;
     
-    fit.solEqBFun();
+    fit.solEqBFun(false);
     Eigen::RowVectorXd eqv_e(neq);
     eqv_e = fit.equality;
     
-    fit.myineqFun();
+    fit.myineqFun(false);
     Eigen::RowVectorXd ineqv_e(nineq);
     ineqv_e= -fit.inequality;
     
@@ -256,10 +254,10 @@ void CSOLNP::solnp(double *solPars, int verbose)
     Eigen::MatrixXd ob_e(1, 1 + neq + nineq);
     Eigen::RowVectorXd funvMatrix_e(1);
     funvMatrix_e[0] = funv;
-    fit.solEqBFun();
+    fit.solEqBFun(false);
     eqv_e = fit.equality;
         
-    fit.myineqFun();
+    fit.myineqFun(false);
     ineqv_e = -fit.inequality;
     
     obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
@@ -313,9 +311,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
             temp = p_e.block(0, nineq, 1, np);
             funv = fit.solFun(temp.data(), &mode);
             funvMatrix_e[0] = funv;
-            fit.solEqBFun();
+            fit.solEqBFun(false);
             eqv_e = fit.equality;
-            fit.myineqFun();
+            fit.myineqFun(false);
             ineqv_e = -fit.inequality;
             obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
 
@@ -360,10 +358,10 @@ void CSOLNP::solnp(double *solPars, int verbose)
         
         solnp_nfn = solnp_nfn + 1;
 
-        fit.solEqBFun();
+        fit.solEqBFun(false);
         eqv_e = fit.equality;
         funvMatrix_e[0] = funv;
-        fit.myineqFun();
+        fit.myineqFun(false);
         ineqv_e = -fit.inequality;
 
         obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
@@ -419,7 +417,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
             
             
             if (llist.maxCoeff() <= 0){
-                lambda_e.resize(1, 1); lambda_e(0, 0) = 0;
+                lambda_e.setZero();
                 hessv_e = hessv_e.diagonal().asDiagonal();
             }
             
@@ -458,7 +456,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		mxLog("vnormValue %.20f, flag_NormgZ=%d, minr_rec=%d",
 		      vnormValue, flag_NormgZ, minr_rec);
 	}
-        if (vnormValue <= tol && flag_NormgZ == 1 && minr_rec == 1){
+        if (vnormValue <= tol && minr_rec == 1){
 		double iterateConverge = delta * pow(sqrt(sx_Matrix.squaredNorm()),(double)2.0);
 		double iterateConvergeCond = sqrt(tol) * ((double)1.0 + pow(sqrt(p_e.squaredNorm()), (double)2.0));
 		if (verbose >= 1) {
@@ -541,20 +539,27 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     /*Eigen::Map< Eigen::VectorXd > LB_e(LB.t, LB.cols);
     Eigen::Map< Eigen::VectorXd > UB_e(UB.t, UB.cols);*/
     
+    Eigen::VectorXd minusInf(LB_e.rows());
+    minusInf.setConstant(-2e+20);
+    Eigen::VectorXd plusInf(LB_e.rows());
+    plusInf.setConstant(2e+20);
+
     if(nineq) {
         pb_e.setZero(nineq, 2);
         pb_e.col(1) = Eigen::VectorXd::Constant(pb_e.rows(), INF);
-        Eigen::MatrixXd pb_cont_e;
-        pb_cont_e.setZero(np, 2);
-        pb_cont_e.col(0) = LB_e;
-        pb_cont_e.col(1) = UB_e;
-        pb_e.transposeInPlace();
-        pb_cont_e.transposeInPlace();
-        Eigen::MatrixXd pbJoined(2, nineq + np);
-        pbJoined << pb_e, pb_cont_e;
-        pbJoined.transposeInPlace();
-        pb_e.resize(pbJoined.rows(), pbJoined.cols());
-        pb_e = pbJoined;
+        if (!LB_e.isApprox(minusInf) ||  !UB_e.isApprox(plusInf)){
+		Eigen::MatrixXd pb_cont_e;
+        	pb_cont_e.setZero(np, 2);
+        	pb_cont_e.col(0) = LB_e;
+        	pb_cont_e.col(1) = UB_e;
+        	pb_e.transposeInPlace();
+        	pb_cont_e.transposeInPlace();
+        	Eigen::MatrixXd pbJoined(2, nineq + np);
+        	pbJoined << pb_e, pb_cont_e;
+        	pbJoined.transposeInPlace();
+        	pb_e.resize(pbJoined.rows(), pbJoined.cols());
+        	pb_e = pbJoined;
+	}
     } else {
         pb_e.setZero(np, 2);
         pb_e.col(0) = LB_e;
@@ -568,11 +573,17 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     
     ob_e = ob_e.cwiseQuotient(vscale_e.block(0, 0, 1, nc + 1));
     p0_e = p0_e.cwiseQuotient(vscale_e.block(0, neq + 1, 1, nc + np - neq));
-    
-    int mm = 0;
+     
+    int mm;
+
+    if (!LB_e.isApprox(minusInf) || !UB_e.isApprox(plusInf) || ind[indHasIneq])
     {
-        mm=npic;
-        Eigen::MatrixXd pbCopied;
+	if (LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf))
+		mm = nineq;
+	else
+        	mm=npic;
+        
+	Eigen::MatrixXd pbCopied;
         pbCopied.setZero(pb_e.rows(), pb_e.cols());
         pbCopied.col(0) = vscale_e.block(0, neq + 1, 1, mm).transpose();
         pbCopied.col(1) = vscale_e.block(0, neq + 1, 1, mm).transpose();
@@ -687,8 +698,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             }
             funv = fit.solFun(tmpv_e.data(), &mode);
             
-            fit.solEqBFun();
-            fit.myineqFun();
+            fit.solEqBFun(false);
+            fit.myineqFun(false);
             
             solnp_nfn = solnp_nfn + 1;
             
@@ -739,7 +750,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         if (alp[0] <= 0){
             
             ch = 1;
-            
+	    
+            if ((LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf)) && !ind[indHasIneq])
+            {
+            	p0_e = p0_e - (a_e.transpose() * ((a_e * a_e.transpose()).lu().solve(constraint_e.transpose()))).transpose();
+            	alp[0] = 1;
+
+            }
         } // end if (alp[0][0] <= 0){
         
         if (alp[0] <= 0){
@@ -772,7 +789,16 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 rowSort_e(gap_e);
                 dx_e.transpose().block(0, 0, 1, mm) = gap_e.col(0).transpose().block(0, 0, 1, mm);
                 dx_e(npic_int, 0) = p0_e(0, npic_int);
-                Eigen::MatrixXd argum1_e;
+                
+		if (LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf))
+		{
+			double max_dx = dx_e.transpose().block(0,0,1,mm).array().maxCoeff();
+                	Eigen::MatrixXd subMat (1, LB_e.rows());
+                	subMat.setConstant(std::max(max_dx, (double)100));
+                	dx_e.block(mm, 0, LB_e.rows(), 1) = subMat.transpose();
+		}
+		
+		Eigen::MatrixXd argum1_e;
                 argum1_e = a_e * dx_e.asDiagonal();
                 argum1_e.transposeInPlace();
                 Eigen::MatrixXd argum2_e;
@@ -859,9 +885,9 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             mode = 0;
         }
         
-        fit.solEqBFun();
+        fit.solEqBFun(false);
         
-        fit.myineqFun();
+        fit.myineqFun(false);
         
         solnp_nfn = solnp_nfn + 1;
         Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
@@ -924,8 +950,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     funv = 1e24;
                     mode = 0;
                 }
-                fit.solEqBFun();
-                fit.myineqFun();
+                fit.solEqBFun(false);
+                fit.myineqFun(false);
                 
                 solnp_nfn = solnp_nfn + 1;
                 
@@ -1006,7 +1032,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         Eigen::MatrixXd dx_e(1, npic);
         dx_e.setOnes();
         dx_e *= 0.01;
-        
+        if (!LB_e.isApprox(minusInf) || !UB_e.isApprox(plusInf) || ind[indHasIneq]) 
         {
             Eigen::MatrixXd gap_e(pb_e.rows(), pb_e.cols());
             gap_e.setZero();
@@ -1020,6 +1046,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             gap_e.resize(mm, 1);
             gap_e = gap_eTemp;
             dx_e.block(0, 0, 1, mm) = temp.cwiseQuotient(gap_e).transpose();
+	    if (LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf))
+	    {
+		double min_dx = dx_e.block(0,0,1,mm).array().minCoeff();
+                Eigen::MatrixXd subMat (1, LB_e.rows());
+                subMat.setConstant(std::min(min_dx, (double)0.01));
+                dx_e.block(0, mm, 1, LB_e.rows()) = subMat;
+	    }
         }
         
         go = -1;
@@ -1090,6 +1123,9 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             p0_e.resize(npic);
             p0_e = u_e.block(0, 0, 1, npic) + p_e;
             
+	    if ((LB_e.isApprox(minusInf) && UB_e.isApprox(plusInf)) && !ind[indHasIneq])
+		go = 1;
+	    else    
             {
                 Eigen::MatrixXd listPartOne = p0_e.block(0, 0, 1, mm).transpose() - pb_e.col(0);
                 Eigen::MatrixXd listPartTwo = pb_e.col(1) - p0_e.block(0, 0, 1, mm).transpose();
@@ -1143,8 +1179,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
             mode = 0;
         }
         
-        fit.solEqBFun();
-        fit.myineqFun();
+        fit.solEqBFun(false);
+        fit.myineqFun(false);
         
         solnp_nfn = solnp_nfn + 1;
         
@@ -1204,8 +1240,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 mode = 0;
             }
             
-            fit.solEqBFun();
-            fit.myineqFun();
+            fit.solEqBFun(false);
+            fit.myineqFun(false);
             
             solnp_nfn = solnp_nfn + 1;
             Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);

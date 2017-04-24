@@ -36,10 +36,7 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 #include "omxBuffer.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 class omxComputeNumericDeriv : public omxCompute {
 	typedef omxCompute super;
@@ -59,6 +56,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	int numParams;
 	double *gcentral, *gforward, *gbackward;
 	double *hessian;
+	bool recordDetail;
 	SEXP detail;
 
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
@@ -250,7 +248,7 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 			omxEstimateHessianOnDiagonal(i, hess_work + threadId);
 		}
 
-		Global->reportProgress("MxComputeNumericDeriv", hess_work->fc);
+		reportProgress(hess_work->fc);
 
 #pragma omp parallel for num_threads(parallelism)
 		for(int i = 0; i < int(todo.size()); i++) {
@@ -259,12 +257,12 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 		}
 	} else {
 		for(int i = 0; i < numParams; i++) {
-			Global->reportProgress("MxComputeNumericDeriv", hess_work->fc);
+			reportProgress(hess_work->fc);
 			if (hessian && std::isfinite(hessian[i*numParams + i])) continue;
 			omxEstimateHessianOnDiagonal(i, hess_work);
 		}
 		for(int i = 0; i < int(todo.size()); i++) {
-			Global->reportProgress("MxComputeNumericDeriv", hess_work->fc);
+			reportProgress(hess_work->fc);
 			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work);
 		}
 	}
@@ -280,7 +278,6 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	}
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
-	setFreeVarGroup(fitMat->fitFunction, varGroup);
 
 	SEXP slotValue;
 
@@ -335,7 +332,10 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 		}
 	}
 
+	numParams = 0;
 	totalProbeCount = 0;
+	numParams = 0;
+	recordDetail = true;
 	detail = 0;
 }
 
@@ -350,8 +350,14 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	int newWanted = fc->wanted | FF_COMPUTE_GRADIENT;
 	if (wantHessian) newWanted |= FF_COMPUTE_HESSIAN;
+
+	if (numParams != 0 && numParams != int(fc->numParam)) {
+		Rf_error("%s: number of parameters changed from %d to %d",
+			 name, numParams, int(fc->numParam));
+	}
+
 	numParams = int(fc->numParam);
-	if (numParams <= 0) Rf_error("Model has no free parameters");
+	if (numParams <= 0) Rf_error("%s: model has no free parameters", name);
 
 	optima.resize(numParams);
 	memcpy(optima.data(), fc->est, sizeof(double) * numParams);
@@ -359,7 +365,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMat, fc);
 	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
 
-	// TODO: Check for nonlinear constraints and adjust algorithm accordingly.
+	if(wantHessian && fc->state->conListX.size()){
+		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
+	}
+	// TODO: Adjust algorithm to account for constraints
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 0;
@@ -400,11 +409,31 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 	}
 
-	Rf_protect(detail = Rf_allocVector(VECSXP, 4));
-	SET_VECTOR_ELT(detail, 0, Rf_allocVector(LGLSXP, numParams));
-	for (int gx=0; gx < 3; ++gx) {
-		SET_VECTOR_ELT(detail, 1+gx, Rf_allocVector(REALSXP, numParams));
+	if (detail) {
+		recordDetail = false; // already done it once
+	} else {
+		Rf_protect(detail = Rf_allocVector(VECSXP, 4));
+		SET_VECTOR_ELT(detail, 0, Rf_allocVector(LGLSXP, numParams));
+		for (int gx=0; gx < 3; ++gx) {
+			SET_VECTOR_ELT(detail, 1+gx, Rf_allocVector(REALSXP, numParams));
+		}
+		SEXP detailCols;
+		Rf_protect(detailCols = Rf_allocVector(STRSXP, 4));
+		Rf_setAttrib(detail, R_NamesSymbol, detailCols);
+		SET_STRING_ELT(detailCols, 0, Rf_mkChar("symmetric"));
+		SET_STRING_ELT(detailCols, 1, Rf_mkChar("forward"));
+		SET_STRING_ELT(detailCols, 2, Rf_mkChar("central"));
+		SET_STRING_ELT(detailCols, 3, Rf_mkChar("backward"));
+
+		SEXP detailRowNames;
+		Rf_protect(detailRowNames = Rf_allocVector(STRSXP, numParams));
+		Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
+		for (int nx=0; nx < int(numParams); ++nx) {
+			SET_STRING_ELT(detailRowNames, nx, Rf_mkChar(fc->varGroup->vars[nx]->name));
+		}
+		markAsDataFrame(detail);
 	}
+
 	gforward = REAL(VECTOR_ELT(detail, 1));
 	gcentral = REAL(VECTOR_ELT(detail, 2));
 	gbackward = REAL(VECTOR_ELT(detail, 3));
@@ -414,21 +443,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	Gf.setConstant(NA_REAL);
 	Gc.setConstant(NA_REAL);
 	Gb.setConstant(NA_REAL);
-  
-	SEXP detailCols;
-	Rf_protect(detailCols = Rf_allocVector(STRSXP, 4));
-	Rf_setAttrib(detail, R_NamesSymbol, detailCols);
-	SET_STRING_ELT(detailCols, 0, Rf_mkChar("symmetric"));
-	SET_STRING_ELT(detailCols, 1, Rf_mkChar("forward"));
-	SET_STRING_ELT(detailCols, 2, Rf_mkChar("central"));
-	SET_STRING_ELT(detailCols, 3, Rf_mkChar("backward"));
-
-	SEXP detailRowNames;
-	Rf_protect(detailRowNames = Rf_allocVector(STRSXP, numParams));
-	Rf_setAttrib(detail, R_RowNamesSymbol, detailRowNames);
-	for (int nx=0; nx < int(numParams); ++nx) {
-		SET_STRING_ELT(detailRowNames, nx, Rf_mkChar(fc->varGroup->vars[nx]->name));
-	}
 
 	doHessianCalculation(numChildren, hess_work);
 
@@ -447,7 +461,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		Free(hess_work);
 	}
 
-	markAsDataFrame(detail);
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 	Eigen::ArrayXi Gsmall(numParams);
 	double gradThresh = Global->getGradientThreshold(minimum);
@@ -488,7 +501,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
-	if (numParams == 0) return;
+	if (!numParams || !(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
 	if (wantHessian) {
 		SEXP calculatedHessian;
@@ -499,7 +512,7 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 
 	MxRList out;
 	out.add("probeCount", Rf_ScalarInteger(totalProbeCount));
-	if (detail) {
+	if (detail && recordDetail) {
 		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), fc->numParam);
 		out.add("gradient", detail);
 	}

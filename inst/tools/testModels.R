@@ -13,6 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+beginTravisFold <- function(key, text) {
+  cat(paste0("travis_fold:start:",key,"\033[33;1m",text,"\033[0m"),fill=T)
+}
+
+endTravisFold <- function(key) {
+  cat(paste0("\ntravis_fold:end:",key,"\r"),fill=T)
+}
+
 args <- commandArgs(trailingOnly = TRUE)
 if (any(args == 'gctorture')) {
 	gctorture(TRUE)
@@ -48,8 +56,6 @@ if (any(args == 'failing')) {
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
 	error = function(e) { file('nul', 'w') } )
 
-
-sink(null, type = 'output')
 
 if (any(args == 'gctorture')) {
 	files <- c('models/passing/AlgebraComputePassing.R',
@@ -104,18 +110,24 @@ errorRecover <- function(script, opt, index) {
 	
 	rm(envir=globalenv(), 
 		list=setdiff(ls(envir=globalenv()), 
-			c('warnRec', 'errors', 'errorRecover', 'opt', 'null', 'files', 'directories', 'runtimes')))
+			     c('warnRec', 'errors', 'errorRecover', 'opt', 'null',
+			       'files', 'directories', 'runtimes', 'beginTravisFold', 'endTravisFold')))
 }
 
-optimizers <- c('CSOLNP')
-if (!any(args == 'gctorture')) {
-	optimizers <- c(optimizers, 'SLSQP')
-	if (imxHasNPSOL()) {
-		optimizers <- c(optimizers, 'NPSOL')
+optimizers <- strsplit(Sys.getenv("IMX_OPT_ENGINE"), "\\s")[[1]]
+
+if (length(optimizers) == 0) {
+	optimizers <- c('CSOLNP')
+	if (!any(args == 'gctorture')) {
+		optimizers <- c(optimizers, 'SLSQP')
+		if (imxHasNPSOL()) {
+			optimizers <- c(optimizers, 'NPSOL')
+		}
 	}
 }
 
 for (opt in optimizers) {
+	beginTravisFold(opt, paste("TEST", opt))
 	errors[[opt]] <- list()
 	warnRec[[opt]] <- list()
 	if (length(files) > 0) {
@@ -123,9 +135,10 @@ for (opt in optimizers) {
 			errorRecover(files[[i]], opt, i)
 		}
 	}
+	sink(type = 'output')
+	endTravisFold(opt)
 }	
 
-sink(type = 'output')
 close(null)
 
 totalErrors <- sum(sapply(errors, length))

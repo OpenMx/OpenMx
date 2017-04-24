@@ -16,5 +16,5 @@ m2 <- mxModel("bentDogChain",
               mxConstraint(dog > link[1,1] + link[2,1] + link[3,1] + link[4,1]),
 	      mxConstraint(abs(link[1,1]) == link[2,1] * link[2,1]))
 m2 <- mxRun(m2)
-omxCheckCloseEnough(m1$dog$values, -4, 1e-4)
-omxCheckCloseEnough(m1$link$values[,1], rep(-1, 4), 1e-4) 
+omxCheckCloseEnough(m2$dog$values, -4, 1e-4)
+omxCheckCloseEnough(m2$link$values[,1], rep(-1, 4), 1e-4) 

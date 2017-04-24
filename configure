@@ -62,12 +62,19 @@ fi
 
 if [ "$cxx_type" = gcc ]; then
     cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
-    COMPILER_CXXFLAGS="-Wall -Wextra -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations"
+    COMPILER_CXXFLAGS="-Wall -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function"
+    if [ $(compareVersions $cxx_version 4.6) -lt 0 ]; then
+	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version 4.6"
+	exit 1
+    fi
     if [ $(compareVersions $cxx_version 4.9) -gt -1 ]; then
-	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DSHADOW_DIAG"
+	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
 	xcheck_CXXFLAGS="-fsanitize=undefined"
 	xcheck_LDFLAGS="-fsanitize=undefined"
+    fi
+    if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
+	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
     fi
     if [ "${OPENMP-yes}" = yes ]; then
 	OPENMP_CXXFLAGS="-fopenmp"
@@ -99,9 +106,9 @@ if [ -r inst/npsol/checksum ]; then
 	    npsol_url1="http://$wwwHome/packages/npsol/linux/${omx_arch}/$want"
 	    npsol_url2="http://$wwwHome/packages/npsol/$pick/libnpsol.a"
 	    if [ ! -f src/libnpsol.a ]; then
-		curl -s -o src/libnpsol.a "$npsol_url1"
+		wget -q -O src/libnpsol.a "$npsol_url1" || true
 		if grep -s 'HTML document' src/libnpsol.a; then
-		    curl -s -o src/libnpsol.a "$npsol_url2"
+		    wget -q -O src/libnpsol.a "$npsol_url2" || true
 		fi
 	    fi
 	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')

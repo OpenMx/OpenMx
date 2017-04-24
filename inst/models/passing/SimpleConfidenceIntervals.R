@@ -16,6 +16,7 @@
 require(OpenMx)
 
 if (mxOption(NULL,"Default optimizer") == 'CSOLNP') stop("SKIP")
+set.seed(43L)
 
 #mxOption(NULL, "Default optimizer", "NPSOL")
 

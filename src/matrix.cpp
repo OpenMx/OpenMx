@@ -14,10 +14,7 @@ using std::endl;
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "omxMatrix.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 Matrix::Matrix(omxMatrix *mat)
 : rows(mat->rows), cols(mat->cols), t(mat->data) {}

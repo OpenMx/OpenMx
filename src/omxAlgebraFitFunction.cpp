@@ -19,12 +19,9 @@
 #include "omxBuffer.h"
 #include <algorithm>
 #include "Compute.h"
+#include "EnableWarnings.h"
 
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
-
-struct AlgebraFitFunction {
+struct AlgebraFitFunction : omxFitFunction {
 	omxFitFunction *ff;
 	omxMatrix *algebra;
 	omxMatrix *gradient;
@@ -36,13 +33,16 @@ struct AlgebraFitFunction {
 	std::vector<int> gradMap;
 	bool vec2diag;
 
-	void buildParamMap(FreeVarGroup *varGroup);
-	void compute(FitContext *fc, int want);
+	AlgebraFitFunction() : ff(0), gradient(0), hessian(0), verbose(false), varGroup(0) {};
+	virtual void init();
+	virtual void compute(int ffcompute, FitContext *fc);
+	void setVarGroup(FreeVarGroup *);
 };
 
-void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
+void AlgebraFitFunction::setVarGroup(FreeVarGroup *vg)
 {
-	varGroup = newVarGroup;
+	varGroup = vg;
+
 	if (verbose) {
 		mxLog("%s: rebuild parameter map for var group %d",
 		      ff->matrix->name(), varGroup->id[0]);
@@ -112,14 +112,6 @@ void AlgebraFitFunction::buildParamMap(FreeVarGroup *newVarGroup)
 	}
 }
 
-static void omxCallAlgebraFitFunction(omxFitFunction *off, int want, FitContext *fc)
-{
-	if (!want) return;
-
-	AlgebraFitFunction *aff = (AlgebraFitFunction*)(off->argStruct);
-	aff->compute(fc, want);
-}
-
 // writes to upper triangle of full matrix
 static void addSymOuterProd(const double weight, const double *vec, const int len, double *out)
 {
@@ -130,11 +122,10 @@ static void addSymOuterProd(const double weight, const double *vec, const int le
 	}
 }
 
-void AlgebraFitFunction::compute(FitContext *fc, int want)
+void AlgebraFitFunction::compute(int want, FitContext *fc)
 {
 	if (fc && varGroup != fc->varGroup) {
-		// remove this once setVarGroup is working reliably TODO
-		buildParamMap(fc->varGroup);
+		setVarGroup(fc->varGroup);
 	}
 
 	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
@@ -215,25 +206,16 @@ void AlgebraFitFunction::compute(FitContext *fc, int want)
 	// complain if unimplemented FF_COMPUTE_INFO requested? TODO
 }
 
-static void setVarGroup(omxFitFunction *oo, FreeVarGroup *vg)
-{
-	AlgebraFitFunction *aff = (AlgebraFitFunction*)(oo->argStruct);
-	aff->buildParamMap(vg);
-}
+omxFitFunction *omxInitAlgebraFitFunction()
+{ return new AlgebraFitFunction; }
 
-static void omxDestroyAlgebraFitFunction(omxFitFunction *off)
+void AlgebraFitFunction::init()
 {
-	AlgebraFitFunction *aff = (AlgebraFitFunction*)(off->argStruct);
-	delete aff;
-}
-
-void omxInitAlgebraFitFunction(omxFitFunction* off)
-{
+	auto *off = this;
 	omxState *currentState = off->matrix->currentState;
-	SEXP rObj = off->rObj;
 	SEXP newptr;
 	
-	AlgebraFitFunction *aff = new AlgebraFitFunction;
+	AlgebraFitFunction *aff = this;
 	aff->ff = off;
 
 	Rf_protect(newptr = R_do_slot(rObj, Rf_install("algebra")));
@@ -254,12 +236,5 @@ void omxInitAlgebraFitFunction(omxFitFunction* off)
 
 	Rf_protect(newptr = R_do_slot(rObj, Rf_install("verbose")));
 	aff->verbose = Rf_asInteger(newptr);
-	aff->varGroup = NULL;
-
-	off->computeFun = omxCallAlgebraFitFunction;
-	off->destructFun = omxDestroyAlgebraFitFunction;
-	off->setVarGroup = setVarGroup;
 	off->canDuplicate = true;
-	
-	off->argStruct = (void*) aff;
 }

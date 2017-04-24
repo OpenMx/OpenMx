@@ -1,3 +1,9 @@
+# ===========
+# = HISTORY =
+# ===========
+# 2017-04-14 05:16PM TBATES
+# No longer runs, needs data shifted to mxFactor() format.
+
 #
 #   Copyright 2007-2010 The OpenMx Project
 #
@@ -15,15 +21,17 @@
 
 require(OpenMx)
 
-#Ordinal Data test, based on poly3dz.mx
+# Ordinal Data test, based on poly3dz.mx
 
 # Data
-data <- read.table("../passing/data/mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
 
+# data <- read.table("~/bin/OpenMx/inst/models/passing/data/mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+data <- read.table("../passing/data/mddndzf.dat", na.string=".", col.names=c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l"))
+mxFactor()
 nthresh1 <- 1
 nthresh2 <- 12
-diff <- nthresh2-nthresh1
-nvar <- 4
+diff     <- nthresh2-nthresh1
+nvar     <- 4
 
 Mx1Threshold <- rbind(
 c(-1.9209, 0.3935, -1.9209, 0.3935),
@@ -48,6 +56,7 @@ Mx1R <- rbind(
 nameList <- names(data)
 data$breaking <- rep(1, length(data$t1neur1))  ### <-- This line causes the model to break.
 
+
 # Define the model
 model <- mxModel('model')
 model <- mxModel(model, mxMatrix("Stand", name = "R", nrow = nvar, ncol = nvar, free=TRUE))
@@ -66,16 +75,16 @@ model <- mxModel(model, mxMatrix("Full",
             dimnames = list(c(), nameList), 
             labels = rep(c(paste("neur", 1:nthresh2, sep=""),
                         paste("mddd4l", 1:nthresh1, sep=""), rep(NA, diff))
-                        )))
-
-# Define the objective function
-objective <- mxFIMLObjective(covariance="R", means="M", dimnames=nameList, thresholds="thresh")
-
-# Define the observed covariance matrix
-dataMatrix <- mxData(data, type='raw')
+                     )
+					)
+)
 
 # Add the objective function and the data to the model
-model <- mxModel(model, objective, dataMatrix)
+model <- mxModel(model, 
+	mxExpectationNormal(covariance="R", means="M", dimnames=nameList, thresholds="thresh"),
+	mxFitFunctionML(),
+	mxData(data, type='raw')
+)
 
 # Run the job
 model <- mxRun(model)

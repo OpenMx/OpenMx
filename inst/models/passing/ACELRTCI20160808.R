@@ -50,6 +50,14 @@ if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
 #         It should be the alpha level specified by the user, or be larger.
 #         If it is smaller than the alpha level, the LB/UB cannot be trusted.
 
+isBadStatus <- function(st) {
+	if (st == 0 || st == 6) {
+		return(0)
+	} else {
+		return(6)
+	}
+}
+
 ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
 {
   crit90<-qchisq(p=1-2*alpha,df=1);
@@ -84,7 +92,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
 	##########	Fitting the unconstrained ACE Model 	#############
 
   fit0<-mxRun(ACEModelTwin0,intervals=TRUE,silent=silent);
-	errACE0<-fit0$output$status[[1]];
+	errACE0<- isBadStatus(fit0$output$status[[1]])
   if (errACE0<0||errACE0>1) {warning("ACE model failed to converge.");return(list(CI=c(NA,NA)));}
 
 	LLACE0<-fit0$output$fit # mxEval(objective, fit) does not work here
@@ -104,21 +112,21 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
     
   fitAE<-mxRun(AEModelTwin,silent=silent);
   estAE<-fitAE$output$estimate;
-  errAE<-fitAE$output$status[[1]];
+  errAE<-isBadStatus(fitAE$output$status[[1]])
   LLAE<-mxEval(objective,fitAE);
   
   ##########   Fitting CE Model #############
 
   fitCE<-mxRun(CEModelTwin,silent=silent);
   estCE<-fitCE$output$estimate;
-  errCE<-fitCE$output$status[[1]];
+  errCE<-isBadStatus(fitCE$output$status[[1]])
   LLCE<-mxEval(objective,fitCE);
 
   ##########   Fitting E Model #############
 
   fitE<-mxRun(EModelTwin,silent=silent);
   estE<-fitE$output$estimate;
-  errE<-fitE$output$status[[1]];
+  errE<-isBadStatus(fitE$output$status[[1]])
   LLE<-mxEval(objective,fitE);
 
   ################
@@ -168,7 +176,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
 		LRTUB<-omxSetParameters(LRTUB,labels=parameters,values=startUB);
 
 		fitUB<-mxRun(LRTUB,silent=silent);
-	  errUBlrt.c<-fitUB$output$status[[1]];
+	  errUBlrt.c<-isBadStatus(fitUB$output$status[[1]])
 		UB.c<-UBlrt.c<-mxEval(C,fitUB);
 		pU.c<-mxEval(pUB,fitUB);		
     errUB.c<-!((errUBlrt.c==0||errUBlrt.c==1)&&pU.c>0.0499);
@@ -235,13 +243,13 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
   	    startLB<-(estLB90+estLB95)/2;
         LRTLB<-omxSetParameters(LRTLB,labels=parameters,values=startLB);
     	  fitLB<-mxRun(LRTLB,silent=silent);
-    	  errLBlrt.c<-fitLB$output$status[[1]];
+	errLBlrt.c<-isBadStatus(fitLB$output$status[[1]])
         pL.c<-mxEval(pLB,fitLB)
         if (errLBlrt.c>1||pL.c<0.0499) 
         {
           LRTLB<-omxSetParameters(LRTLB,labels=parameters,values=estLB90);
           fitLB<-mxRun(LRTLB,silent=silent);
-          errLBlrt.c<-fitLB$output$status[[1]];
+          errLBlrt.c<-isBadStatus(fitLB$output$status[[1]])
           pL.c<-mxEval(pLB,fitLB);
         }
         LB.c<-LBlrt.c<-mxEval(C,fitLB);
@@ -297,7 +305,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
     LRTUB<-omxSetParameters(LRTUB,labels=parameters,values=startUB);
   
     fitUB<-mxRun(LRTUB,silent=silent);
-    errUBlrt.a<-fitUB$output$status[[1]];
+    errUBlrt.a<-isBadStatus(fitUB$output$status[[1]])
     UB.a<-UBlrt.a<-mxEval(A,fitUB);
     pU.a<-mxEval(pUB,fitUB);		
     errUB.a<-!((errUBlrt.a==0||errUBlrt.a==1)&&pU.a>0.0499);
@@ -364,13 +372,13 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
         startLB<-(estLB90+estLB95)/2;
         LRTLB<-omxSetParameters(LRTLB,labels=parameters,values=startLB);
         fitLB<-mxRun(LRTLB,silent=silent);
-        errLBlrt.a<-fitLB$output$status[[1]];
+        errLBlrt.a<-isBadStatus(fitLB$output$status[[1]])
         pL.a<-mxEval(pLB,fitLB)
         if (errLBlrt.a>1||pL.a<0.0499) 
         {
          LRTLB<-omxSetParameters(LRTLB,labels=parameters,values=estLB90);
          fitLB<-mxRun(LRTLB,silent=silent);
-         errLBlrt.a<-fitLB$output$status[[1]];
+         errLBlrt.a<-isBadStatus(fitLB$output$status[[1]])
          pL.a<-mxEval(pLB,fitLB);
          }
         LB.a<-LBlrt.a<-mxEval(A,fitLB);
@@ -425,7 +433,7 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
     LRTUB<-omxSetParameters(LRTUB,labels=parameters,values=startUB[parameters]);
   
     fitUB<-mxRun(LRTUB,silent=silent);
-    errUBlrt.r<-fitUB$output$status[[1]];
+    errUBlrt.r<-isBadStatus(fitUB$output$status[[1]])
     UB.r<-UBlrt.r<-mxEval(rMZ,fitUB);
     pU.r<-mxEval(pUB,fitUB);  	
     errUB.r<-!((errUBlrt.r==0||errUBlrt.r==1)&&pU.r>0.0499);
@@ -494,13 +502,13 @@ ACECI<-function(ACEModelTwin0,alpha=0.05,silent=FALSE)
         startLB<-(estLB90+estLB95)/2;
         LRTLB<-omxSetParameters(LRTLB,labels=parameters,values=startLB[parameters]);
         fitLB<-mxRun(LRTLB,silent=silent);
-        errLBlrt.r<-fitLB$output$status[[1]];
+        errLBlrt.r<-isBadStatus(fitLB$output$status[[1]])
         pL.r<-mxEval(pLB,fitLB)
         if (errLBlrt.r>1||pL.r<0.0499) 
         {
           LRTLB<-omxSetParameters(LRTLB,labels=parameters,values=estLB90[parameters]);
           fitLB<-mxRun(LRTLB,silent=silent);
-          errLBlrt.r<-fitLB$output$status[[1]];
+          errLBlrt.r<-isBadStatus(fitLB$output$status[[1]])
           pL.r<-mxEval(pLB,fitLB);
         }
         LB.r<-LBlrt.r<-mxEval(rMZ,fitLB);

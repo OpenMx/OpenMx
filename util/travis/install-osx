@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -ve
+
+cp ./util/gcc.conf ~/.R/Makevars
+
+xcodebuild -version | head -n 1 | cut -d ' ' -f 2
+
+# for macos 10.11 :
+
+curl -Lo /tmp/gcc.tar.gz 'http://prdownloads.sourceforge.net/hpc/gcc-5.3-bin.tar.gz?download'
+curl -Lo /tmp/gfort.tar.gz 'http://prdownloads.sourceforge.net/hpc/gfortran-5.3-bin.tar.gz?download'
+
+sudo rm -rf /usr/local/lib/gcc
+sudo rm -rf /usr/local/include/c++
+
+sudo tar -zxvf /tmp/gcc.tar.gz -C /
+sudo tar -zxvf /tmp/gfort.tar.gz -C /
+
+R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in

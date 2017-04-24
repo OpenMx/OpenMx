@@ -40,7 +40,8 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE)
 \details{
 When given a data.frame as a model, the model is assumed to be
 saturated multivariate Gaussian and the expected distribution
-is obtained using \link{mxDataWLS}.
+is obtained using \link{mxDataWLS}.  In this case, the default number of rows is assumed to be the number of rows in the original data.frame, but any other number of rows can also be requested.
+
 When given an MxModel, 
 the model-implied means and covariance are extracted.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.
 

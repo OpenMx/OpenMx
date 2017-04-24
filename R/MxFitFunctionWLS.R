@@ -122,8 +122,6 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 
 setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 	function(.Object, job, flatJob, labelsData) {
-		job <- mxOption(job, "Calculate Hessian", "No")
-		job <- mxOption(job, "Standard Errors", "No")
 		return(job)
 })
 
@@ -220,6 +218,7 @@ imxWlsStandardErrors <- function(model){
 	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
 	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
+	fwMsg <- "Terribly sorry, master, but you cannot compute standard errors without the full weight matrix."
 	theParams <- omxGetParameters(model)
 	if( isMultiGroupModel ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
@@ -228,19 +227,23 @@ imxWlsStandardErrors <- function(model){
 		sD <- c()
 		for(amod in submNames){
 			sV[[amod]] <- model[[amod]]$data$acov
-			sW[[amod]] <- MASS::ginv(model[[amod]]$data$fullWeight)
+			fullWeight <- model[[amod]]$data$fullWeight
+			if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', amod))}
+			sW[[amod]] <- MASS::ginv(fullWeight)
 			sD[[amod]] <- single.na(model[[amod]]$data$thresholds)
 		}
 		if( !(all(sD == TRUE) || all(sD == FALSE)) ){
 			stop("I feel like I'm getting mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
 		}
-		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(!any(sD), TRUE, FALSE))
+		d <- omxManifestModelByParameterJacobian(model, standardize=!any(sD))
 		V <- Matrix::bdiag(sV)
 		W <- Matrix::bdiag(sW)
 	} else {
-		d <- omxManifestModelByParameterJacobian(model, standardize=ifelse(single.na(model$data$thresholds), FALSE, TRUE))
+		d <- omxManifestModelByParameterJacobian(model, standardize=!single.na(model$data$thresholds))
 		V <- model$data$acov #used weight matrix
-		W <- MASS::ginv(model$data$fullWeight)
+		fullWeight <- model$data$fullWeight
+		if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', model@name))}
+		W <- MASS::ginv(fullWeight)
 	}
 	dvd <- solve( t(d) %*% V %*% d )
 	nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
@@ -259,41 +262,52 @@ imxWlsChiSquare <- function(model, J=NA){
 	theParams <- omxGetParameters(model)
 	numOrdinal <- 0
 	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
+	fwMsg <- "Terribly sorry, master, but you cannot compute chi square without the full weight matrix."
 	if( isMultiGroupModel ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		sW <- list()
 		expd.param <- c()
+		sD <- c()
 		for(amod in submNames){
 			cov <- model[[amod]]$data$observed
 			mns <- model[[amod]]$data$means
 			thr <- model[[amod]]$data$thresholds
+			sD[[amod]] <- single.na(thr)
 			if(!single.na(thr)){
 				expd.param <- c(expd.param, .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE))
 				numOrdinal <- numOrdinal + ncol(thr)
 			} else {
 				expd.param <- c(expd.param, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
 			}
-			sW[[amod]] <- MASS::ginv(model[[amod]]$data$fullWeight)
+			fullWeight <- model[[amod]]$data$fullWeight
+			if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', amod))}
+			sW[[amod]] <- MASS::ginv(fullWeight)
 		}
 		W <- Matrix::bdiag(sW)
 	} else {
 		cov <- model$data$observed
 		mns <- model$data$means
 		thr <- model$data$thresholds
+		sD <- single.na(thr)
 		if(!single.na(thr)){
 			expd.param <- .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE)
 			numOrdinal <- numOrdinal + ncol(thr)
 		} else {
 			expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
 		}
-		W <- MASS::ginv(model$data$fullWeight)
+		fullWeight <- model$data$fullWeight
+		if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', model@name))}
+		W <- MASS::ginv(fullWeight)
+	}
+	
+	if( !(all(sD == TRUE) || all(sD == FALSE)) ){
+		stop("I'm getting some mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
 	}
 	
 	e <- samp.param - expd.param
 	
 	if(single.na(J)){
-		# TODO Heal this interface for uses with standardization, outside the mxRun context
-		jac <- omxManifestModelByParameterJacobian(model)
+		jac <- omxManifestModelByParameterJacobian(model, standardize=!any(sD))
 	} else {jac <- J}
 	jacOC <- Null(jac)
 	if(prod(dim(jacOC)) > 0){

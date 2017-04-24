@@ -15,7 +15,7 @@
 
 
 library(OpenMx)
-#mxOption(NULL,"Default optimizer","NPSOL")
+#mxOption(NULL,"Default optimizer","SLSQP")
 
 powellmod1 <- mxModel(
 	"PowellBenchmarkNoJacobians",
@@ -75,7 +75,6 @@ powellrun2$output$evaluations
 summary(powellrun2)
 
 
-#Right now, only NPSOL knows how to use analytic Jacobians:
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
   #Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
 	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
@@ -128,6 +127,19 @@ if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 			"PowellBenchmarkWithJacobians.c2[1,1]","PowellBenchmarkWithJacobians.c3[1,1]")
 	)
 } else if(mxOption(NULL,"Default optimizer")=="SLSQP"){
+	#Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
+	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
+	
+	#At the solution, equality constraints should be satisfied within feasibility tolerance:
+	omxCheckCloseEnough(powellrun1$compute$steps$GD$output$constraintFunctionValues,c(0,0,0),
+											as.numeric(mxOption(NULL,"Feasibility tolerance")))
+	omxCheckCloseEnough(powellrun2$compute$steps$GD$output$constraintFunctionValues,c(0,0,0),
+											as.numeric(mxOption(NULL,"Feasibility tolerance")))
+	
+	#The numerical and analytic Jacobians should agree closely:
+	omxCheckCloseEnough(a=powellrun1$compute$steps$GD$output$constraintJacobian,b=powellrun2$compute$steps$GD$output$constraintJacobian,
+											epsilon=1e-5)
+	
 	#Check naming of constraint-related information:
 	omxCheckEquals(
 		names(powellrun1$output$constraintFunctionValues),
@@ -356,7 +368,7 @@ powellrun7$output$iterations
 powellrun7$output$evaluations
 summary(powellrun7)
 
-if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+if(mxOption(NULL,"Default optimizer") %in% c("NPSOL","SLSQP")){
 	tbl <- data.frame(
 		c("Yes","Yes","No","No"),c("No","Yes","Yes","No"),
 		c(powellrun1$output$evaluations,powellrun2$output$evaluations,powellrun6$output$evaluations,
@@ -365,4 +377,43 @@ if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 		)
 	colnames(tbl) <- c("Gradient?","Jacobians?","Fitfunction evaluations")
 	print(tbl)
+}
+
+
+if(mxOption(NULL,"Default optimizer") == "SLSQP"){
+	#With GDsearch, Nelder-Mead can get a good solution even though none of its initial vertices is feasible,
+	#but it has to be held to a strict feasibility tolerance:
+	foo <- mxComputeNelderMead(
+		iniSimplexType="smartRight", xTolProx=1e-12, fTolProx=1e-8, eqConstraintMthd="GDsearch", 
+		nudgeZeroStarts=F)
+	plan <- omxDefaultComputePlan()
+	plan$steps <- list(foo, plan$steps$RE)
+	nmpowell <- mxModel(
+		"PowellBenchmarkWithJacobians",
+		plan,
+		mxMatrix(type="Full",nrow=1,ncol=5,free=T,values=c(-2,2,2,-1,-1),labels=paste("x",1:5,sep=""),name="X"),
+		mxAlgebra( exp(prod(X)), name="powellfunc"),
+		mxAlgebra( cbind(powellfunc*X[1,2]*X[1,3]*X[1,4]*X[1,5],
+										 powellfunc*X[1,1]*X[1,3]*X[1,4]*X[1,5],
+										 powellfunc*X[1,1]*X[1,2]*X[1,4]*X[1,5],
+										 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,5],
+										 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]), 
+							 name="objgrad", 
+							 dimnames=list(NULL,paste("x",1:5,sep="")) ),
+		#Nelder-Mead benefits from analytic Jacobians if using eqConstraintMthd="GDsearch":
+		mxConstraint(sum(X%^%2) - 10 == 0, name="c1",jac="jac1" ),
+		mxConstraint(X[1,2]*X[1,3]-5*X[1,4]*X[1,5] == 0, name="c2",jac="jac2" ),
+		mxConstraint(X[1,1]^3 + X[1,2]^3 + 1 == 0, name="c3",jac="jac3" ),
+		mxAlgebra(cbind(2*X[1,1],2*X[1,2],2*X[1,3],2*X[1,4],2*X[1,5]),name="jac1",
+							dimnames=list(NULL,paste("x",1:5,sep=""))
+		),
+		mxAlgebra(cbind(0,X[1,3],X[1,2],-5*X[1,5],-5*X[1,4]),name="jac2",
+							dimnames=list(NULL,paste("x",1:5,sep=""))),
+		mxAlgebra(cbind(3*X[1,1]^2, 3*X[1,2]^2, 0, 0, 0),name="jac3",dimnames=list(NULL,paste("x",1:5,sep=""))),
+		mxFitFunctionAlgebra(algebra="powellfunc",gradient="objgrad")
+	)
+	nmpowell <- mxOption(nmpowell,"Feasibility tolerance",0.001)
+	nmprun <- mxRun(nmpowell)
+	nmprun$compute$steps[[1]]$output$constraintFunctionValues
+	omxCheckCloseEnough(coef(powellrun2),coef(nmprun),0.02)
 }

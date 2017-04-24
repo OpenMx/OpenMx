@@ -22,10 +22,7 @@
 #include "omxState.h"
 #include "omxNPSOLSpecific.h"
 #include "Compute.h"
-
-#ifdef SHADOW_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
-#endif
+#include "EnableWarnings.h"
 
 int matchCaseInsensitive(const char *source, const char *target) {
 	return strcasecmp(source, target) == 0;
@@ -110,11 +107,16 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 			SEXP dimnames, formula;
 			omxMatrix *amat = algebraList[index];
 			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
+			int verbose;
+			{
+				ProtectedSEXP Rverbose(VECTOR_ELT(nextAlgTuple, 1));
+				verbose = Rf_asInteger(Rverbose);
+			}
 			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
-			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 1), VECTOR_ELT(nextAlgTuple, 2));
-			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 3));
+			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 2), VECTOR_ELT(nextAlgTuple, 3));
+			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 4));
 			std::string name = CHAR(STRING_ELT(algListNames, index));
-			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames);
+			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames, verbose);
 		}
 		if (isErrorRaised()) return;
 	}
@@ -132,9 +134,6 @@ void omxState::omxCompleteMxFitFunction(SEXP algList, FitContext *fc)
 		}
 		if(!s4) continue;
 		omxMatrix *fm = algebraList[index];
-		if (!fm->fitFunction->freeVarGroup) {
-			setFreeVarGroup(fm->fitFunction, Global->findVarGroup(FREEVARGROUP_ALL));
-		}
 		omxCompleteFitFunction(fm);
 		omxFitFunctionComputeAuto(fm->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
 	}
@@ -333,12 +332,7 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 		}
 
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 3));
-		int numDeps = LENGTH(nextLoc);
-		fv->numDeps = numDeps;
-		fv->deps = (int*) R_alloc(numDeps, sizeof(int));
-		for (int i = 0; i < numDeps; i++) {
-			fv->deps[i] = INTEGER(nextLoc)[i];
-		}
+		fv->setDeps(Rf_length(nextLoc), INTEGER(nextLoc));
 
 		int numLocs = Rf_length(nextVar) - 5;
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
