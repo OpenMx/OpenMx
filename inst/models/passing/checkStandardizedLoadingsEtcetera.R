@@ -49,8 +49,9 @@ factorModelPath <- mxModel("OneFactorPath",
                                   free=FALSE, values=1.0),
                            mxData(cov(demoOneFactor), type="cov",
                                   numObs=500))
-omxCheckWarning(mxStandardizeRAMpaths(factorModelPath,T),
-                "standard errors will not be computed because model 'OneFactorPath' has not yet been run")
+omxCheckWarning(
+	mxStandardizeRAMpaths(factorModelPath,T),
+  "standard errors will not be computed because model 'OneFactorPath' has not yet been run, and no matrix was provided for argument 'cov'")
 factorPathFit <- mxRun(factorModelPath, suppressWarnings = T)
 
 ( matrixFitPar <- summary(factorMatrixFit)$parameters )
@@ -77,6 +78,28 @@ omxCheckCloseEnough(
   c(0.0097233354792961,0.00640855820968981,0.00551439004191031,0.00400750800616116,0.00327547260416904,
     0.0173329991211512,0.0119526603725942,0.0104094769784555,0.00771335074796404,0.00637115856365944,0),
   5e-5)
+
+
+#Check errors and warnings:
+pointlessAlg <- mxModel(factorPathFit, mxAlgebra(1))
+omxCheckWarning(
+	mxStandardizeRAMpaths(pointlessAlg),
+	"MxModel 'OneFactorPath' was modified since it was run."
+)
+pointlessConstraint <- mxModel(factorModelPath, mxConstraint(1==1))
+pointlessConstraint <- mxRun(pointlessConstraint)
+omxCheckWarning(
+	mxStandardizeRAMpaths(pointlessConstraint,T),
+	"standard errors will not be computed because model 'OneFactorPath' contains at least one mxConstraint"
+)
+plan <- omxDefaultComputePlan()
+plan$steps <- list(plan$steps$GD, plan$steps$RE)
+nohess <- mxModel(factorModelPath, plan)
+nohess <- mxRun(nohess)
+omxCheckWarning(
+	mxStandardizeRAMpaths(nohess,T),
+	"argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
+)
 
 #Make more models and check mxStandardizeRAMpaths()'s output for multigroup:
 data("twinData", package="OpenMx")
