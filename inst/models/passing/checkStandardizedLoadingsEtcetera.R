@@ -92,14 +92,17 @@ omxCheckWarning(
 	mxStandardizeRAMpaths(pointlessConstraint,T),
 	"standard errors will not be computed because model 'OneFactorPath' contains at least one mxConstraint"
 )
-plan <- omxDefaultComputePlan()
-plan$steps <- list(plan$steps$GD, plan$steps$RE)
-nohess <- mxModel(factorModelPath, plan)
-nohess <- mxRun(nohess)
-omxCheckWarning(
-	mxStandardizeRAMpaths(nohess,T),
-	"argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
-)
+#NPSOL populates the 'hessian' slot of the output with its own final Hessian when there is no MxComputeNumericDeriv step:
+if(mxOption(NULL,"Default optimizer") != "NPSOL"){
+	plan <- omxDefaultComputePlan()
+	plan$steps <- list(plan$steps$GD, plan$steps$RE)
+	nohess <- mxModel(factorModelPath, plan)
+	nohess <- mxRun(nohess)
+	omxCheckWarning(
+		mxStandardizeRAMpaths(nohess,T),
+		"argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
+	)
+}
 
 #Make more models and check mxStandardizeRAMpaths()'s output for multigroup:
 data("twinData", package="OpenMx")
