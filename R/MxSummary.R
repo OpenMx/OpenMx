@@ -1124,7 +1124,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   			SE <- FALSE
   		}
   		if(SE){
-  			if(model@output$infoDefinite){
+  			if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
   				#solve() will fail if Hessian is computationally singular;
   				#chol2inv() will still fail if Hessian is exactly singular.
   				covParam <- 2*chol2inv(chol(model@output$hessian))
