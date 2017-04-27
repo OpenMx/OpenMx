@@ -1073,7 +1073,7 @@ logLik.MxModel <- function(object, ...) {
   else{out$Raw.SE <- "not requested"}
   return(out)
 }
-mxStandardizeRAMpaths <- function(model, SE=FALSE){
+mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
 	if (model@.wasRun && model@.modifiedSinceRun){
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run.")
@@ -1099,39 +1099,77 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE){
     inde.subs.flag <- TRUE
   }}
   covParam <- NULL
-  #If user requests SEs, check to be sure they can and should be computed:
   if(SE){
-    if(length(model@constraints)>0){
-      msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
-      warning(msg)
-      SE <- FALSE
-    }
-    if(SE & length(model@output$hessian)==0){
-      if(!model@.wasRun){
-        msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run",sep="")
-        warning(msg)
-        SE <- FALSE
-      }
-      else{
-        warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot; continuing with 'SE' coerced to 'FALSE'")
-        SE <- FALSE
-    }}
-    libraries <- rownames(installed.packages())
-    pkgcheck <- ("numDeriv" %in% libraries)
-    if(SE & !pkgcheck){
-      warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
-      SE <- FALSE
-    }
-    if(SE){
-      if(model@output$infoDefinite){
-        #solve() will fail if Hessian is computationally singular;
-        #chol2inv() will still fail if Hessian is exactly singular.
-        covParam <- 2*chol2inv(chol(model@output$hessian))
-        dimnames(covParam) <- dimnames(model@output$hessian)
-      }
-      #An indefinite Hessian usually means some SEs will be NaN:
-      else{covParam <- 2*solve(model@output$hessian)}
-  }}
+  	#If user requests SEs and provided no covariance matrix, check to be sure SEs can and should be computed:
+  	if(!length(cov)){
+  		if(length(model@constraints)>0){
+  			msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
+  			warning(msg)
+  			SE <- FALSE
+  		}
+  		if(SE & length(model@output$hessian)==0){
+  			if(!model@.wasRun){
+  				msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run, and no matrix was provided for argument 'cov'",sep="")
+  				warning(msg)
+  				SE <- FALSE
+  			}
+  			else{
+  				warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'")
+  				SE <- FALSE
+  			}}
+  		libraries <- rownames(installed.packages())
+  		pkgcheck <- ("numDeriv" %in% libraries)
+  		if(SE & !pkgcheck){
+  			warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
+  			SE <- FALSE
+  		}
+  		if(SE){
+  			if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
+  				#solve() will fail if Hessian is computationally singular;
+  				#chol2inv() will still fail if Hessian is exactly singular.
+  				covParam <- 2*chol2inv(chol(model@output$hessian))
+  				dimnames(covParam) <- dimnames(model@output$hessian)
+  			}
+  			#An indefinite Hessian usually means some SEs will be NaN:
+  			else{covParam <- 2*solve(model@output$hessian)}
+  		}
+  	}
+  	#If user requests SEs and provided a covariance matrix:
+  	else{
+  		#Conceivably, the user could provide a sampling covariance matrix that IS valid in the presence of MxConstraints...
+  		if(length(model@constraints)>0){
+  			msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
+  			warning(msg)
+  		}
+  		#Sanity checks on the value of argument 'cov':
+  		if(!is.matrix(cov)){ #<--Is it a matrix?
+  			cov <- try(as.matrix(cov),silent=T)
+  			if("try-error" %in% class(cov) || !is.matrix(cov)){ #<--If its not a matrix, can it be coerced to one?
+  				stop("non-NULL value to argument 'cov' must be (or be coercible to) a matrix")
+  			}
+  		}
+  		if(nrow(cov)!=ncol(cov)){ #<--Is it square?
+  			msg <- paste("non-NULL value to argument 'cov' must be a square matrix; it has ",nrow(cov)," rows and ",ncol(cov)," columns",sep="")
+  			stop(msg)
+  		}
+  		#Do its row and column names match?:
+  		if(!length(rownames(cov)) || !length(colnames(cov)) || any(rownames(cov) != colnames(cov))){
+  			stop("non-NULL value to argument 'cov' must have matching and complete rownames and colnames")
+  		}
+  		paramnames <- names(omxGetParameters(model))
+  		if(nrow(cov) != length(paramnames)){ #<--Do its dimensions match the number of free parameters?
+  			msg <- paste("value of argument 'cov' has dimension ",nrow(cov),", but '",model@name,"' has ",length(paramnames)," free parameters",sep="")
+  			stop(msg)
+  		}
+  		covnames <- colnames(cov)
+  		#Do its row and column names match the free-parameter labels (ignoring permutations)?:
+  		if(any(sort(covnames) != sort(paramnames))){
+  			msg <- paste("the dimnames of the matrix provided for argument 'cov' do not match the free-parameter labels of '",model@name,"'",sep="")
+  			stop(msg)
+  		}
+  		covParam <- cov[paramnames,paramnames]
+  	}
+  }
   #Check if single-group model uses RAM expectation, and proceed if so:
   if(length(model@submodels)==0){
     if(class(model$expectation)!="MxExpectationRAM"){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
