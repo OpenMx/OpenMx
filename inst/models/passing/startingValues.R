@@ -53,3 +53,7 @@ testm<-mxModel(
   mxFitFunctionML()
 )
 omxCheckEquals(length(omxGetParameters(testm)), 1L)
+
+vn <- omxCheckWarning(mxModel("varName", type="RAM",
+                              manifestVars=':-<', latentVars = ":-)"),
+                      "The name ':-<' is illegal because it contains the characters '-', ':', and '<' in FUN(X[[i]], ...)")

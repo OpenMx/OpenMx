@@ -341,6 +341,16 @@ imxGenericModelBuilder <- function(model, lst, name,
 }
 
 varsToCharacter <- function(vars, vartype) {
+	got <- varsToCharacter2(vars, vartype)
+	fail <- try(lapply(got, imxVerifyName, 1), TRUE)  # should be 2 instead of 1
+	if (is(fail, "try-error")) {
+		# after a few years, convert to actual error TODO
+		warning(attr(fail,'condition')$message)
+	}
+	got
+}
+
+varsToCharacter2 <- function(vars, vartype) {
 	if (is.list(vars)) {
 		varnames <- names(vars)
 		if (length(varnames) == 0) {

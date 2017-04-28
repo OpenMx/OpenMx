@@ -32,7 +32,7 @@ imxModelTypes[['RAM']] <- "MxRAMModel"
 ##' what they are doing.
 ##'
 ##' @details The acceptable variable types
-imxVariableTypes <- c(imxVariableTypes, "exogenous", "endogenous")
+imxVariableTypes <- c("exogenous", "endogenous")
 
 # Define generic functions
 
