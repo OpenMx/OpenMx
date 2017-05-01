@@ -1815,7 +1815,7 @@ static void slsqpb_(int *m, int *meq, int *la, int *
     const double hun = 100.;
     const double ten = 10.;
     const double two = 2.;
-    const int maxLineSearchIterations = 20;
+    const int maxLineSearchIterations = 25;
 
     /* System generated locals */
     int a_dim1, a_offset, i__1, i__2;
