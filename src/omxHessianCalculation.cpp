@@ -462,19 +462,20 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	}
 
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
-	Eigen::ArrayXi Gsmall(numParams);
-	double gradThresh = Global->getGradientThreshold(minimum);
+	bool gradSmallEnough = false;
+	double gradNorm = Gc.matrix().norm();
+	double gradThresh = Global->getGradientThreshold(minimum, gradNorm);
+	if(gradNorm <= gradThresh){gradSmallEnough = true;}
+	
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
 		// factor out simliar code in ComputeNR
 		omxFreeVar &fv = *fc->varGroup->vars[px];
 		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
 		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
-			Gsmall[px] = true;
 			Gsymmetric[px] = false;
 			continue;
 		}
-		Gsmall[px] = fabs(Gc[px]) < gradThresh;
 		double relsym = 2 * fabs(Gf[px] + Gb[px]) / (Gb[px] - Gf[px]);
 		Gsymmetric[px] = (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
 		if (checkGradient && verbose >= 2 && !Gsymmetric[px]) {
@@ -485,9 +486,9 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->grad.resize(numParams);
 	fc->grad = Gc.matrix();
 
-	if (checkGradient && !Gsmall.all()) {
+	if (checkGradient && !gradSmallEnough) {
 		if (verbose >= 1) {
-			mxLog("Some gradient entries are too large, norm %f", Gc.matrix().norm());
+			mxLog("Some gradient entries are too large, norm %f", gradNorm);
 		}
 		if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
 	}
