@@ -374,7 +374,7 @@ void omxWLSFitFunction::init()
 		//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
 
 		int thStart = triangleLoc1(dc.size());
-		if (means) thStart =+ dc.size();
+		if (means) thStart += dc.size();
 		for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
 			int oldIndex = newOrder[t1];
 			auto &th = oThresh[oldIndex];
