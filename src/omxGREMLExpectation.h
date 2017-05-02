@@ -34,7 +34,7 @@ struct omxGREMLExpectation : public omxExpectation {
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);
 
 template <typename T1>
-void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixBase<T1> &em, int num2drop, std::vector< int > todrop,
+void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixBase<T1> &em, int num2drop, std::vector< int > &todrop,
                           int symmetric, int origDim){
 	
 	if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
