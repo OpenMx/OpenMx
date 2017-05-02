@@ -348,7 +348,9 @@ void omxWLSFitFunction::init()
 			tstart[tx+1] = totalThresholds;
 		}
 
-		Eigen::VectorXi wperm(triangleLoc1(dc.size()) + dc.size() + totalThresholds);
+		int wpermSize = triangleLoc1(dc.size()) + totalThresholds;
+		if (means) wpermSize += dc.size();
+		Eigen::VectorXi wperm(wpermSize);
 
 		for (int cx=0, en=0; cx < dc.size(); ++cx) {
 			for (int rx=cx; rx < dc.size(); ++rx) {
@@ -357,7 +359,9 @@ void omxWLSFitFunction::init()
 			}
 		}
 
-		wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
+		if (means) {
+			wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
+		}
 
 		std::vector<int> newOrder;
 		newOrder.reserve(origThresh.size());
@@ -369,7 +373,8 @@ void omxWLSFitFunction::init()
 
 		//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
 
-		int thStart = triangleLoc1(dc.size()) + dc.size();
+		int thStart = triangleLoc1(dc.size());
+		if (means) thStart =+ dc.size();
 		for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
 			int oldIndex = newOrder[t1];
 			auto &th = oThresh[oldIndex];
