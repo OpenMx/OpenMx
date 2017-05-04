@@ -76,6 +76,8 @@ biRegModelRawOut <- mxRun(biRegModelRaw)
 
 summary(biRegModelRawOut)
 
+omxCheckWarning(summary(biRegModelRawOut, boot.quantile=c(.025,.975)),
+	       "No bootstrap data found. See ?mxBootstrap")
 
 # ----------------------------------
 # check for correct values

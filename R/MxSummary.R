@@ -878,6 +878,8 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 					summarizeBootstrap(retval$parameters[, 'Estimate'], bootData, bq, summaryType)
 			}
 		}
+	} else if (any(grep('^boot\\.', names(dotArguments)))) {
+		warning("No bootstrap data found. See ?mxBootstrap")
 	}
 	retval$GREMLfixeff <- GREMLFixEffList(model)
 	retval$infoDefinite <- model@output$infoDefinite
