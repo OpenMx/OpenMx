@@ -64,7 +64,7 @@ The standard output consists of a table of free parameters, tables of model and 
 
 Free parameters in the model are reported in a table with columns for the name (label) of the parameter, the matrix, row and col containing the parameter, the parameter estimate itself, and any lower or upper bounds set for the parameter.
 
-\emph{note:} An exclaimation point ("!") printed after a bound in the lbound or ubound columns indicates the parameter may have been estimated too close to the bound.
+\emph{note:} An exclamation mark ("!") printed after a bound in the lbound or ubound columns indicates that the solution was sufficiently close to the bound that the optimizer could not ignore the bound during its last few iterations.
 
 \strong{Additional columns: standard errors and 'A' (asymmetry) warning column}
 
