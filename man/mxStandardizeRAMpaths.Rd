@@ -66,6 +66,10 @@ Numeric values of the asymptotic standard errors of the standardized path coeffi
 If \code{model} is a multi-group model containing at least one submodel with RAM expectation, then \code{mxStandardizeRAMpaths()} returns a list.  The list has a number of elements equal to the number of submodels that either have RAM expectation or contain a submodel that does.  List elements corresponding to RAM-expectation submodels contain a dataframe, as described above.  List elements corresponding to "container" submodels are themselves lists, of the kind described here.
 }
 
+\seealso{
+\code{\link{mxBootstrapStdizeRAMpaths}()}
+}
+
 \examples{
 library(OpenMx)
 data(demoOneFactor)
