@@ -24,9 +24,11 @@
 }
 
 \usage{
-mxBootstrapEval(expression, model, defvar.row = 1, ..., bq=c(.25,.75), method=c('bcbci','quantile'))
+mxBootstrapEval(expression, model, defvar.row = 1, ...,
+ bq=c(.25,.75), method=c('bcbci','quantile'))
 
-mxBootstrapEvalByName(name, model, defvar.row = 1, ..., bq=c(.25,.75), method=c('bcbci','quantile'))
+mxBootstrapEvalByName(name, model, defvar.row = 1, ...,
+ bq=c(.25,.75), method=c('bcbci','quantile'))
 }
 
 \arguments{
