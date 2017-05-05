@@ -983,15 +983,15 @@ logLik.MxModel <- function(object, ...) {
   if(!give.matrices){return(sparam)}
   else{return(list(sparam=sparam,Az=Az,Sz=Sz))}
 }
-.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov,inde.subs.flag=FALSE){
+.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov,inde.subs.flag=FALSE,ignoreSubmodels=FALSE){
   #Recur the function for the appropriate submodels, if any:
-  if(length(model@submodels)>0){
+  if(length(model@submodels) && !ignoreSubmodels){
     return(lapply(
       model@submodels[which(
         sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
           sapply(model@submodels,function(x){length(x@submodels)>0})  
       )],
-      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov,inde.subs.flag=inde.subs.flag))
+      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov,inde.subs.flag=inde.subs.flag,ignoreSubmodels=FALSE))
   }
   #Get A and S:
   model_A <- model[[model$expectation$A]] #<--Necessary because the A matrix might not be named "A".
