@@ -1243,7 +1243,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 							 "parameters but bootstrap data has", cb@output$numParam,
 							 "parameters. Please mxBootstrap this model again."))
 	}
-	realstdpaths <- OpenMx:::.mxStandardizeRAMhelper(model=model,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
+	realstdpaths <- .mxStandardizeRAMhelper(model=model,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
 	rawParams <- cb@output$raw
 	mask <- rawParams$statusCode %in% cb@OK
 	if (sum(mask) < 3) {
@@ -1264,7 +1264,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 	
 	for(i in 1:nrow(rawParams)){
 		modelcurr <- omxSetParameters(model,labels=colnames(rawParams),values=rawParams[i,])
-		stdpaths <- OpenMx:::.mxStandardizeRAMhelper(model=modelcurr,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
+		stdpaths <- .mxStandardizeRAMhelper(model=modelcurr,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
 		outputlist[[i]] <- stdpaths$Std.Value
 		names(outputlist[[i]]) <- stdpaths$name
 		if(conformableFlag && (nrow(stdpaths)!=nrow(realstdpaths) || !all(stdpaths$name==realstdpaths$name)) ){
@@ -1299,7 +1299,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 	else if(method=="bcbci"){
 		zcrit <- qnorm(bq)
 		for(i in 1:nrow(realstdpaths)){
-			ecdf.curr <- OpenMx:::ecdftable(outmtx[,i])
+			ecdf.curr <- ecdftable(outmtx[,i])
 			z0 <- qnorm(mean(outmtx[,i] <= realstdpaths$Std.Value[i]))
 			for (qx in 1:2){
 				phi <- pnorm(2*z0 + zcrit[qx])
