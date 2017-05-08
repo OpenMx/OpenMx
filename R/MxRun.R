@@ -337,6 +337,30 @@ enumerateDatasets <- function(model) {
 	return(datasets)
 }
 
+as.statusCode <- function(code) {
+	lev <- c("OK", "OK/green",
+		"infeasible linear constraint",
+		"infeasible non-linear constraint",
+		"iteration limit",
+		"not convex",
+		"nonzero gradient",
+		"bad deriv",
+		"internal error",
+		"infeasible start")
+	if (is(code, 'ordered')) {
+		if (all(levels(code) == lev)) return(code)
+		code <- as.character(code)
+	}
+	if (is.numeric(code)) {
+		mxFactor(code, levels=c(0:7,9:10), labels=lev)
+	} else if (is.character(code)) {
+		mxFactor(code, lev)
+	} else {
+		stop(paste("Don't know how to convert type", typeof(code),
+			   "into a status code"))
+	}
+}
+
 mxBootstrap <- function(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
@@ -359,7 +383,7 @@ mxBootstrap <- function(model, replications=200, ...,
   plan$verbose <- as.integer(verbose)
   plan$parallel <- as.logical(parallel)
   plan$only <- as.integer(only)
-  plan$OK <- OK
+  plan$OK <- as.statusCode(OK)
   
   model <- mxModel(model, plan)
   mxRun(model)

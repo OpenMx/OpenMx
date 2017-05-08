@@ -1603,7 +1603,7 @@ setClass(Class = "MxComputeBootstrap",
 	     replications = "integer",
 	     verbose = "integer",
 	     parallel = "logical",
-	     OK = "character",
+	     OK = "ordered",
 	     only = "integer"
 	 ))
 
@@ -1701,7 +1701,7 @@ mxComputeBootstrap <- function(data, plan, replications=200, ...,
 	}, "")
 
 	new("MxComputeBootstrap", freeSet, data, plan, as.integer(replications),
-	    as.integer(verbose), parallel, OK, only)
+	    as.integer(verbose), parallel, as.statusCode(OK), only)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeBootstrap", indent="integer"),

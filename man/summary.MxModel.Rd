@@ -94,21 +94,6 @@ With regard to RMSEA, it is important to note that OpenMx does not currently mak
 OpenMx does not recommend (and does not compute) some fit indices including GFI, AGFI, NFI, and SRMR.  The Goodness of Fit Index (GFI) and Adjusted Goodness of Fit Index (AGFI) are not recommended because they are strongly influeced by sample size and have rather high Type I error rates (Sharma, Mukherjee, Kumar, & Dillon, 2005).  The Normed Fit Index (NFI) has no penalty for model complexity.  That is, adding more parameters to a model always improves the NFI, regardless of how useful those parameters are.  Because the Non-Normed Fit Index (NNFI), also known as the Tucker-Lewis Index (TLI), does adjust for model complexity it is used instead.  Lastly, the Standardized Root Mean Square Residual (SRMR) is not reported because it (1) only applies to covariance models, having no direct extension to missing data, (2) has no penalty for model complexity, similar to the NFI, and (3) is positively biased (Hu & Bentler, 1999).
 
 
-\strong{Error codes}
-
-The summary function can report Error codes as follows:
-
-   \itemize{
-   \item 1: The final iterate satisfies the optimality conditions to the accuracy requested, but the sequence of iterates has not yet converged. NPSOL was terminated because no further improvement could be made in the merit function (Mx status GREEN)
-   \item 2: The linear constraints and bounds could not be satisfied. The problem has no feasible solution.
-   \item 3: The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution.
-   \item 4: The major iteration limit was reached (Mx status BLUE).
-   \item 5: The Hessian at the solution does not appear to be convex (Mx status RED).
-   \item 6: The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)
-   \item 7: The function derivates returned by funcon or funobj appear to be incorrect.
-   \item 9: An input parameter was invalid
-   }
-
 \strong{verbose}
 
 The \code{verbose} argument changes the printing style for the \code{summary} of a model.  When \code{verbose=FALSE}, a relatively minimal amount of information is printed: the free parameters, the likelihood, and a few fit indices. When \code{verbose=TRUE}, the compute plan, data summary, and additional timing information are always printed.  Moreover, available fit indices are printed regardless of whether or not they are defined.  The undefined fit indices are printed as \code{NA}. In addition, the condition number of the information matrix,  and the maximum absolute gradient may also be shown.
@@ -125,6 +110,7 @@ Summarization of bootstrap replications is controlled by two options: \sQuote{bo
 \seealso{
 \code{\link{mxBootstrap}}
 \code{\link{mxCI}}
+\code{\link{as.statusCode}}
 }
 
 \references{
