@@ -1223,40 +1223,8 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 		warning(msg)
 	}
 	method <- match.arg(method)
-	if (is.null(model$compute) || !is(model$compute, "MxComputeBootstrap")) {
-		stop(paste("Compute plan", class(model$compute), "found in model",
-							 omxQuotes(model$name),
-							 "instead of MxComputeBootstrap. Have you run this model",
-							 "through mxBootstrap already?"))
-	}
-	cb <- model@compute
-	if (is.null(cb@output$raw)) {
-		stop(paste("No bootstrap data foudn. Please run this model",
-							 "through mxBootstrap again."))
-	}
-	if (!is.na(cb@only)) {
-		stop(paste("Detected mxBootstrap's only= option. Please mxBootstrap",
-							 "this model without using only="))
-	}
-	if (cb@output$numParam != length(coef(model))) {
-		stop(paste("Model", omxQuotes(model), "has", length(coef(model)),
-							 "parameters but bootstrap data has", cb@output$numParam,
-							 "parameters. Please mxBootstrap this model again."))
-	}
 	realstdpaths <- .mxStandardizeRAMhelper(model=model,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
-	rawParams <- cb@output$raw
-	mask <- rawParams$statusCode %in% cb@OK
-	if (sum(mask) < 3) {
-		stop(paste("Fewer than 3 replications converged acceptably.",
-							 "Use mxBootstrap to increase the number of replications."))
-	}
-	rawParams <- as.matrix(rawParams[mask,3:(ncol(rawParams)-1)])
-	if(nrow(rawParams) >= 3 && sum(mask) < .95*nrow(cb@output$raw)) {
-		pct <- round(100*sum(mask) / nrow(cb@output$raw))
-		warning(paste0("Only ",pct,"% of the bootstrap replications ",
-									 "converged acceptably. Accuracy is much less than the ", nrow(raw),
-									 " replications requested"), call.=FALSE)
-	}
+	rawParams <- as.matrix(omxGetBootstrapReplications(model))
 	
 	#The tricky thing is that the output length of mxStandardizeRAMpaths() is not guaranteed to be the same for every replication...
 	outputlist <- vector("list",nrow(rawParams))

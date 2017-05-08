@@ -388,3 +388,43 @@ mxBootstrap <- function(model, replications=200, ...,
   model <- mxModel(model, plan)
   mxRun(model)
 }
+
+omxGetBootstrapReplications <- function(model) {
+   if(!is(model, "MxModel")) {
+      stop("'model' argument must be a MxModel object")
+   }
+  if (is.null(model$compute) || !is(model$compute, "MxComputeBootstrap")) {
+	  stop(paste("Compute plan", class(model$compute), "found in model",
+		     omxQuotes(model$name),
+		     "instead of MxComputeBootstrap. Have you run this model",
+		     "through mxBootstrap already?"))
+  }
+  cb <- model@compute
+  if (is.null(cb@output$raw)) {
+	  stop(paste("No bootstrap data found. Please run this model",
+		     "through mxBootstrap again."))
+  }
+  if (!is.na(cb@only)) {
+	  stop(paste("Detected mxBootstrap's only= option. Please mxBootstrap",
+		     "this model without using only="))
+  }
+  if (cb@output$numParam != length(coef(model))) {
+	  stop(paste("Model", omxQuotes(model), "has", length(coef(model)),
+		     "parameters but bootstrap data has", cb@output$numParam,
+		     "parameters. Please mxBootstrap this model again."))
+  }
+  raw <- cb@output$raw
+  mask <- raw[,'statusCode'] %in% cb@OK
+  bootData <- raw[mask, 3:(length(coef(model))+2), drop=FALSE]
+  if (sum(mask) < 3) {
+	  stop(paste("Less than 3 replications are available.",
+		     "Use mxBootstrap to increase the number of replications."))
+  }
+   if (sum(mask) < .95*length(mask)) {
+	   pct <- round(100*sum(mask) / length(mask))
+	   warning(paste0("Only ",pct,"% of the bootstrap replications ",
+			  "converged acceptably. Accuracy is much less than the ", nrow(raw),
+			  " replications requested"), call.=FALSE)
+   }
+   bootData
+}
