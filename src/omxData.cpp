@@ -514,14 +514,32 @@ const char *omxDataColumnName(omxData *od, int col)
 	return cd.name;
 }
 
+static const char *ColumnDataTypeToString(enum ColumnDataType cdt)
+{
+	switch (cdt) {
+	case COLUMNDATA_INVALID: return "invalid";
+	case COLUMNDATA_ORDERED_FACTOR: return "ordered factor";
+	case COLUMNDATA_UNORDERED_FACTOR: return "unordered factor";
+	case COLUMNDATA_INTEGER: return "integer";
+	case COLUMNDATA_NUMERIC: return "real";
+	default: Rf_error("type %d unknown", cdt);
+	}
+}
+
 void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey)
 {
-	ColumnData &ucd = upper->rawCols[upper->primaryKey];
 	ColumnData &lcd = lower->rawCols[foreignKey];
+	if (!upper->hasPrimaryKey()) {
+		Rf_error("Attempt to join foreign key '%s' in %s of type '%s' with"
+			 " %s which has no primary key declared",
+			 lcd.name, lower->name, ColumnDataTypeToString(lcd.type), upper->name);
+	}
+	ColumnData &ucd = upper->rawCols[upper->primaryKey];
 	if (ucd.type != lcd.type) {
-		Rf_error("Primary key '%s' in %s is not the same type"
-			 " as foreign key '%s' in %s",
-			 ucd.name, upper->name, lcd.name, lower->name);
+		Rf_error("Primary key '%s' in %s of type '%s' cannot be joined with"
+			 " foreign key '%s' in %s of type '%s'",
+			 ucd.name, upper->name, ColumnDataTypeToString(ucd.type),
+			 lcd.name, lower->name, ColumnDataTypeToString(lcd.type));
 	}
 	if (ucd.type == COLUMNDATA_ORDERED_FACTOR || ucd.type == COLUMNDATA_UNORDERED_FACTOR) {
 		if (Rf_length(ucd.levels) != Rf_length(lcd.levels)) {

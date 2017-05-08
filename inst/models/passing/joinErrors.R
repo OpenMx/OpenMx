@@ -25,8 +25,12 @@ runTest <- function(data) {
 }
 
 omxCheckError(runTest(mxData(data.frame(batch=unique(unclass(Dyestuff$Batch))),
+         'raw')),
+         "Attempt to join foreign key 'Batch' in yield.data of type 'unordered factor' with batch.data which has no primary key declared")
+
+omxCheckError(runTest(mxData(data.frame(batch=unique(unclass(Dyestuff$Batch))),
          'raw', primaryKey='batch')),
-         "Primary key 'batch' in batch.data is not the same type as foreign key 'Batch' in yield.data")
+         "Primary key 'batch' in batch.data of type 'integer' cannot be joined with foreign key 'Batch' in yield.data of type 'unordered factor'")
 
 bad1 <- unique(Dyestuff$Batch)
 levels(bad1)[3] <- 'Z'
