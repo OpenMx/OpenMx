@@ -74,6 +74,8 @@ oneFactorCov1Out <- mxRun(oneFactorCov1, suppressWarnings=TRUE)
 
 summary(oneFactorCov1Out)
 
+omxCheckError(mxBootstrap(oneFactorCov1Out),
+              "MxComputeBootstrap: data 'Single Factor Covariance Model with Fixed Variance.data' of type 'cov' cannot have row weights")
 
 # ----------------------------------
 # check for correct values

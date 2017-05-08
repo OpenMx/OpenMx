@@ -99,7 +99,7 @@ class omxData {
 
  public: // move everything to private TODO
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
-	bool hasWeight() const { return weightCol >= 0; };
+	bool hasWeight() const { return weightCol >= 0 || currentWeightColumn; };
 	int lookupRowOfKey(int key);
 	int primaryKeyOfRow(int row);
 	void omxPrintData(const char *header, int maxRows, int *permute);
