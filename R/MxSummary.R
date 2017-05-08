@@ -866,7 +866,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 			raw <- cb@output$raw
 			mask <- raw[,'statusCode'] %in% cb@OK
 			bootData <- raw[mask, 3:(nrow(retval$parameters)+2), drop=FALSE]
-			if (nrow(bootData) >= 3 && sum(mask) < .95*nrow(raw)) {
+			if (sum(mask) < .95*nrow(raw)) {
 				pct <- round(100*sum(mask) / nrow(raw))
 				warning(paste0("Only ",pct,"% of the bootstrap replications ",
 					       "converged. Accuracy is much less than the ", nrow(raw),

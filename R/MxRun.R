@@ -351,7 +351,7 @@ as.statusCode <- function(code) {
 		if (all(levels(code) == lev)) return(code)
 		code <- as.character(code)
 	}
-	if (is.numeric(code)) {
+	if (is.numeric(code) || is.null(code)) {
 		mxFactor(code, levels=c(0:7,9:10), labels=lev)
 	} else if (is.character(code)) {
 		mxFactor(code, lev)

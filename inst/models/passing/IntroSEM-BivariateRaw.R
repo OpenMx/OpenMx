@@ -101,6 +101,10 @@ omxCheckCloseEnough(biRegModelRawOut$output$status$code, 0)
 
 omxCheckCloseEnough(biRegModelRawOut$output$iterations, 30, 10)
 
+biRegModelRawBoot <- mxBootstrap(biRegModelRawOut, 10, OK=NULL)
+ign <- omxCheckWarning(summary(biRegModelRawBoot),
+               "Only 0% of the bootstrap replications converged. Accuracy is much less than the 10 replications requested")
+
 set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawOut, 10)
 omxCheckTrue(is.null(biRegModelRawBoot$output[["standardErrors"]]))
