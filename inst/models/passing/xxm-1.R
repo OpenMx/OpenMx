@@ -90,7 +90,3 @@ sMod <- mxRun(sMod)
 omxCheckCloseEnough(sMod$output$fit, 445.4331, .01)
 omxCheckCloseEnough(sMod$expectation$debug$numGroups, 2)
 omxCheckCloseEnough(sMod$expectation$debug$rampartUsage, 50)
-
-sModBoot <- omxCheckError(mxBootstrap(sMod),
-                          "student.expectation: row weights provided in 'student.data' are not compatible with joins")
-
