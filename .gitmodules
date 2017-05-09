@@ -18,4 +18,4 @@
 	url = git@github.com:jpritikin/ifaTools.git
 [submodule "revdep/easymx"]
 	path = revdep/easymx
-	url = git@bitbucket.org:mhunter/easymx.git
+	url = https://bitbucket.org/mhunter/easymx.git
