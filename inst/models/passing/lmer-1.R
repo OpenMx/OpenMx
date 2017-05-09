@@ -6,10 +6,6 @@ fm1 <- lmer(Reaction ~ Days + (Days | Subject), sleepstudy, REML=FALSE)
 
 library(OpenMx)
 
-if (is.factor(sleepstudy$Subject)) {
-  sleepstudy$Subject <- as.integer(levels(sleepstudy$Subject)[unclass(sleepstudy$Subject)])
-}
-
 # ------------------- hybrid matrix/path spec
 if(1) {
 m1 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars = "DayEffect",
@@ -78,7 +74,8 @@ bySub <- mxModel(
          observed=data.frame(Subject=unique(sleepstudy$Subject)),
          primaryKey = "Subject"),
   mxPath(c("intercept", "slope"), arrows=2, values=1),
-  mxPath("intercept", "slope", arrows=2, values=.25, labels="cov1"))
+  mxPath("intercept", "slope", arrows=2, values=.25, labels="cov1"),
+  mxPath('one', c("intercept", "slope"), free=FALSE))
 
 m2 <- mxModel(m2, bySub)
 
@@ -107,5 +104,7 @@ m2 <- mxModel(m2,
 m2 <- mxRun(m2)
 omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-6)
 
+oldBetween <- m2$expectation$between
 m2$expectation$between <- c(m2$expectation$between, "whatever")
 omxCheckError(mxRun(m2), "Level transition matrix 'whatever' listed in 'sleep.expectation' is not found")
+m2$expectation$between <- oldBetween
