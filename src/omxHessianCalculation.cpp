@@ -485,7 +485,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->grad = Gc.matrix();
 
 	gradNorm = sqrt(gradNorm);
-	double gradThresh = Global->getGradientThreshold(minimum, gradNorm);
+	double gradThresh = Global->getGradientThreshold(minimum);
 	if (checkGradient && gradNorm > gradThresh) {
 		if (verbose >= 1) {
 			mxLog("Some gradient entries are too large, norm %f", gradNorm);
