@@ -866,7 +866,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 			raw <- cb@output$raw
 			mask <- raw[,'statusCode'] %in% cb@OK
 			bootData <- raw[mask, 3:(nrow(retval$parameters)+2), drop=FALSE]
-			if (nrow(bootData) >= 3 && sum(mask) < .95*nrow(raw)) {
+			if (sum(mask) < .95*nrow(raw)) {
 				pct <- round(100*sum(mask) / nrow(raw))
 				warning(paste0("Only ",pct,"% of the bootstrap replications ",
 					       "converged. Accuracy is much less than the ", nrow(raw),
@@ -878,6 +878,8 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 					summarizeBootstrap(retval$parameters[, 'Estimate'], bootData, bq, summaryType)
 			}
 		}
+	} else if (any(grep('^boot\\.', names(dotArguments)))) {
+		warning("No bootstrap data found. See ?mxBootstrap")
 	}
 	retval$GREMLfixeff <- GREMLFixEffList(model)
 	retval$infoDefinite <- model@output$infoDefinite
@@ -981,15 +983,15 @@ logLik.MxModel <- function(object, ...) {
   if(!give.matrices){return(sparam)}
   else{return(list(sparam=sparam,Az=Az,Sz=Sz))}
 }
-.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov,inde.subs.flag=FALSE){
+.mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov,inde.subs.flag=FALSE,ignoreSubmodels=FALSE){
   #Recur the function for the appropriate submodels, if any:
-  if(length(model@submodels)>0){
+  if(length(model@submodels) && !ignoreSubmodels){
     return(lapply(
       model@submodels[which(
         sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
           sapply(model@submodels,function(x){length(x@submodels)>0})  
       )],
-      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov,inde.subs.flag=inde.subs.flag))
+      .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov,inde.subs.flag=inde.subs.flag,ignoreSubmodels=FALSE))
   }
   #Get A and S:
   model_A <- model[[model$expectation$A]] #<--Necessary because the A matrix might not be named "A".
@@ -1203,5 +1205,81 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
       )])]
       return(out)
 }}}
+
+mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','quantile'), returnRaw=FALSE){
+	bq <- c(min(bq),max(bq))
+	if(!is(model, "MxModel")) {
+		stop("'model' argument must be a MxModel object")
+	}
+	if(!length(model@expectation) || class(model@expectation) != "MxExpectationRAM"){
+		msg <- paste(
+			"MxModel ",omxQuotes(model@name),
+			" does not use RAM expectation\n(to use mxBootstrapStdizeRAMpaths() on a RAM submodel, run the function directly on that submodel",sep="")
+		stop(msg)
+	}
+	if (model@.wasRun && model@.modifiedSinceRun){
+		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
+								 "since it was run.")
+		warning(msg)
+	}
+	method <- match.arg(method)
+	realstdpaths <- .mxStandardizeRAMhelper(model=model,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
+	rawParams <- as.matrix(omxGetBootstrapReplications(model))
+	
+	#The tricky thing is that the output length of mxStandardizeRAMpaths() is not guaranteed to be the same for every replication...
+	outputlist <- vector("list",nrow(rawParams))
+	conformableFlag <- TRUE
+	
+	for(i in 1:nrow(rawParams)){
+		modelcurr <- omxSetParameters(model,labels=colnames(rawParams),values=rawParams[i,])
+		stdpaths <- .mxStandardizeRAMhelper(model=modelcurr,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
+		outputlist[[i]] <- stdpaths$Std.Value
+		names(outputlist[[i]]) <- stdpaths$name
+		if(conformableFlag && (nrow(stdpaths)!=nrow(realstdpaths) || !all(stdpaths$name==realstdpaths$name)) ){
+			conformableFlag <- FALSE
+		}
+	}
+	
+	if( !conformableFlag ){
+		if(returnRaw){
+			warning("names of nonzero paths varied among bootstrap replications; returning raw list of standardized paths")
+			return(outputlist)
+		}
+		else{stop("names of nonzero paths varied among bootstrap replications, and argument 'returnRaw' is FALSE")}
+	}
+	else{
+		outmtx <- matrix(NA_real_,nrow=nrow(rawParams),ncol=nrow(realstdpaths))
+		colnames(outmtx) <- realstdpaths$name
+		for(i in 1:nrow(rawParams)){
+			outmtx[i,] <- as.vector(outputlist[[i]])
+		}
+		if(returnRaw){return(outmtx)}
+	}
+	
+	out <- data.frame(realstdpaths$name,realstdpaths$label,realstdpaths$matrix,realstdpaths$row,realstdpaths$col,
+										realstdpaths$Std.Value,apply(outmtx,2,sd),numeric(length(realstdpaths$name)),numeric(length(realstdpaths$name)))
+	colnames(out) <- c("name","label","matrix","row","col","Std.Value","Boot.SE",
+										 sprintf("%.1f%%", round(100*min(bq), 1)),sprintf("%.1f%%", round(100*max(bq), 1)))
+	if(method=="quantile"){
+		out[,8] <- as.vector(apply(outmtx,2,quantile,probs=min(bq)))
+		out[,9] <- as.vector(apply(outmtx,2,quantile,probs=max(bq)))
+	}
+	else if(method=="bcbci"){
+		zcrit <- qnorm(bq)
+		for(i in 1:nrow(realstdpaths)){
+			ecdf.curr <- ecdftable(outmtx[,i])
+			z0 <- qnorm(mean(outmtx[,i] <= realstdpaths$Std.Value[i]))
+			for (qx in 1:2){
+				phi <- pnorm(2*z0 + zcrit[qx])
+				out[i,7+qx] <- max(c(-Inf,subset(ecdf.curr[,1], ecdf.curr[,2]<=phi)))
+			}
+		}
+	}
+	else{warning("unrecognized value provided for argument 'method'")}
+	rownames(out) <- NULL
+	return(out)
+}
+
+
 
 coef.MxModel <- function(object, ...) omxGetParameters(object)

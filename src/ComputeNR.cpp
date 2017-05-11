@@ -388,12 +388,14 @@ void ComputeNR::computeImpl(FitContext *fc)
 	}
 
 	if (converged) {
-		double gradThresh = Global->getGradientThreshold(fc->fit);
+		double gradNorm = fc->grad.norm();
+		double gradThresh = Global->getGradientThreshold(fc->fit, gradNorm);
 		double feasibilityTolerance = Global->feasibilityTolerance;
 		bool localMin = true;
+		if(gradNorm > gradThresh){localMin = false;}
 		// factor out simliar code in omxHessianCalculation
-		for (int gx=0; gx < int(fc->numParam); ++gx) {
-			if (fabs(fc->grad[gx]) > gradThresh &&
+		for (int gx=0; gx < int(fc->numParam) && localMin; ++gx) {
+			if (
 			    !((fc->grad[gx] > 0 && fabs(fc->est[gx] - lbound[gx]) < feasibilityTolerance) ||
 			      (fc->grad[gx] < 0 && fabs(fc->est[gx] - ubound[gx]) < feasibilityTolerance))) {
 				localMin = false;

@@ -585,6 +585,7 @@ class omxRAMExpectation : public omxExpectation {
 		return Eigen::Map<DataColumnType>(dataCols.data(), numDataColumns);
 	}
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
+	virtual void invalidateCache();
 };
 
 namespace RelationalRAMExpectation {

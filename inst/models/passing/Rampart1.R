@@ -138,7 +138,7 @@ if (!more.noise) {
 }
 #print(student$expectation$debug$rampartUsage)
 
-if (.Platform$OS.type != 'windows' && detectCores() > 1) {
+if (.Platform$OS.type != 'windows' && parallel::detectCores() > 1) {
 	omxCheckTrue(student$compute$steps[['GD']]$output$maxThreads > 1)
 }
 

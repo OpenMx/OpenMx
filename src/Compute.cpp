@@ -2980,8 +2980,8 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 		ctx.data = globalState->dataList[objNum];
 		int numRows = ctx.data->numRawRows();
 		if (!numRows) {
-			Rf_error("%s: '%s' cannot have row weights",
-				 name, ctx.data->name);
+			Rf_error("%s: data '%s' of type '%s' cannot have row weights",
+				 name, ctx.data->name, ctx.data->getType());
 		}
 		ctx.origRowWeights = ctx.data->getWeightColumn();
 		ctx.origCumSum.resize(numRows);

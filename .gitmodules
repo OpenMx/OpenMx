@@ -16,3 +16,6 @@
 [submodule "revdep/ifaTools"]
 	path = revdep/ifaTools
 	url = git@github.com:jpritikin/ifaTools.git
+[submodule "revdep/easymx"]
+	path = revdep/easymx
+	url = https://bitbucket.org/mhunter/easymx.git

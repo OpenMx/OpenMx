@@ -43,6 +43,14 @@ void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *ho
 	oro->CalculateRAMCovarianceAndMeans(fc);
 }
 
+void omxRAMExpectation::invalidateCache()
+{
+	if (rram) {
+		delete rram;
+		rram = 0;
+	}
+}
+
 omxRAMExpectation::~omxRAMExpectation()
 {
 	if(OMX_DEBUG) { mxLog("Destroying RAM Expectation."); }

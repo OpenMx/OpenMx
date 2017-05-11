@@ -24,7 +24,8 @@
 
 \usage{
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
-          thresholds=NA, ..., sort=NA, primaryKey = as.character(NA), weight = as.character(NA))
+          thresholds=NA, ..., sort=NA, primaryKey = as.character(NA),
+          weight = as.character(NA))
 }
 
 \arguments{

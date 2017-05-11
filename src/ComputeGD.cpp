@@ -518,7 +518,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (verbose >= 1) {
 		int numConstr = fitMatrix->currentState->conListX.size();
-		mxLog("%s: engine %s (ID %d) #P=%d gradient=%s tol=%g constraints=%d",
+		mxLog("%s: engine %s (ID %d) #P=%lu gradient=%s tol=%g constraints=%d",
 		      name, engineName, engine, numParam, gradientAlgoName, optimalityTolerance,
 		      numConstr);
 	}

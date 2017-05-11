@@ -50,5 +50,6 @@ mxComputeBootstrap(data, plan, replications=200, ...,
 }
 
 \seealso{
-\code{\link{mxBootstrap}}
+\code{\link{mxBootstrap}},
+  \code{\link{as.statusCode}}
 }

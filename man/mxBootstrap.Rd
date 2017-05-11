@@ -78,7 +78,9 @@ mxBootstrap(model, replications=200, ...,
 }
 
 \seealso{
-\code{\link{mxBootstrapEval}}, \code{\link{mxComputeBootstrap}}, \code{\link{mxSummary}}
+  \code{\link{mxBootstrapEval}}, \code{\link{mxComputeBootstrap}},
+  \code{\link{mxSummary}}, \code{\link{mxBootstrapStdizeRAMpaths}},
+  \code{\link{as.statusCode}}
 }
 
 \examples{
