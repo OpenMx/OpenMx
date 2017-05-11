@@ -150,8 +150,8 @@ round(cmp <- cbind(ML=coef(jointResults1), WLS=coef(jointWlsResults), DLS=coef(j
 plot(cmp[1:5,1], cmp[1:5,2])
 abline(0, 1)
 
-rms(cmp)
-omxCheckTrue(all(rms(cmp) < 0.03))
+print(rms(cmp))
+omxCheckTrue(all(rms(cmp) < 0.035))
 
 
 #------------------------------------------------------------------------------
