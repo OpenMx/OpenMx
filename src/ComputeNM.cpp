@@ -1495,6 +1495,11 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 				NMobj->phInfeas.resize(0);
 				return;
 			}
+			else if(NMobj->phFvals(i,0) < bestfit){
+				est = currpt;
+				bestfit = NMobj->phFvals(i,0);
+				estInfeas = 0;
+			}
 			//We can't use Nelder & Mead's analytic solution if the midpoints of the edges aren't actually such:
 			if( (currpt.array() != currpt2.array()).any() ){
 				canDoAnalyt = false;
@@ -1524,7 +1529,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			if(pminfit<bestfit && !pminInfeas){
 				est = pmin;
 				bestfit = pminfit;
-				estInfeas = pminInfeas;
+				estInfeas = 0;
 			}
 		}
 		Eigen::MatrixXd Qinv = luq.inverse();
