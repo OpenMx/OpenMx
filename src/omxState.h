@@ -264,8 +264,8 @@ class omxGlobal {
 	const char *getBads();
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
 	void checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force);
-	double getGradientThreshold(double fit, double gradnorm) { 
-		return(sqrt(optimalityTolerance) * ( 1 + fmax(1 + fabs(fit), gradnorm) ));
+	double getGradientThreshold(double fit) { 
+		return( pow(optimalityTolerance, 1.0/3.0) * (1.0 + fabs(fit)) );
 	}
 
 	void cacheDependencies(omxState *os) {

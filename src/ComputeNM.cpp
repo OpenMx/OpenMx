@@ -1522,7 +1522,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		if(lub.isInvertible()){
 			pmin = vertices[0] - (Q * lub.inverse() * a);
 			evalNewPoint(pmin, vertices[0], pminfit, pminInfeas, vertexInfeas[0]);
-			if(pminfit<fvals[0] && !pminInfeas){
+			if(pminfit<bestfit && !pminInfeas){
 				est = pmin;
 				bestfit = pminfit;
 				estInfeas = pminInfeas;
@@ -1577,7 +1577,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			}
 			pmin = vertices[0] - (Binv * a);
 			evalNewPoint(pmin, vertices[0], pminfit, pminInfeas, vertexInfeas[0]);
-			if(pminfit<fvals[0] && !pminInfeas){
+			if(pminfit<bestfit && !pminInfeas){
 				est = pmin;
 				bestfit = pminfit;
 				estInfeas = pminInfeas;

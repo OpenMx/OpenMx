@@ -389,7 +389,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 	if (converged) {
 		double gradNorm = fc->grad.norm();
-		double gradThresh = Global->getGradientThreshold(fc->fit, gradNorm);
+		double gradThresh = Global->getGradientThreshold(fc->fit);
 		double feasibilityTolerance = Global->feasibilityTolerance;
 		bool localMin = true;
 		if(gradNorm > gradThresh){localMin = false;}
