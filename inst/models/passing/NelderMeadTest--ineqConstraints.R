@@ -59,7 +59,7 @@ mxEval(X[1,1] - X[2,1] - X[3,1] + 1, testrun2, T)
 
 omxCheckCloseEnough(testrun2$output$fit+mxEval(X[1,1] - X[2,1] - X[3,1] + 1, testrun2, T), testrun1$output$fit, 1e-7)
 
-#Backtracking can help with inequality constraints when the start values aren't feasible:
+#Backtracking:
 foo <- mxComputeNelderMead(iniSimplexType="right", nudgeZeroStarts=FALSE, doPseudoHessian=T,
 													 ineqConstraintMthd="eqMthd", eqConstraintMthd="backtrack")
 #foo$verbose <- 5L
@@ -107,6 +107,8 @@ testmod4 <- mxModel(
 testrun4 <- mxRun(testmod4)
 summary(testrun4)
 omxCheckCloseEnough(testrun4$output$fit+mxEval(X[1,1] - X[2,1] - X[3,1] + 1, testrun4, T), testrun1$output$fit, 1e-7)
+#PseudoHessian shouldn't be calculated when using l1p:
+omxCheckTrue(is.null(testrun4$compute$steps[[1]]$output$pseudoHessian))
 
 
 #GDsearch:
