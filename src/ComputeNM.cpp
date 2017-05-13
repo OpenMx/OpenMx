@@ -297,7 +297,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.bignum = bignum;
 	nmoc.iniSimplexMat = iniSimplexMat;
 	nmoc.countConstraintsAndSetupBounds();
-	if( (nmoc.numIneqC || nmoc.numEqC) && eqConstraintMthd==4 ){
+	if(eqConstraintMthd==4 && (nmoc.numEqC || (ineqConstraintMthd && nmoc.numIneqC))){
 		if(verbose){mxLog("starting l1-penalty algorithm");}
 		fc->iterations = 0; //<--Not sure about this
 		nmoc.maxIter = maxIter/10;
@@ -367,8 +367,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		fc->iterations += nmoc2.itersElapsed;
 	}
 	
-	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.numEqC){
-		nmoc.addPenalty = false;
+	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.numEqC && !nmoc.addPenalty){
 		nmoc.calculatePseudoHessian();
 	}
 	
@@ -413,7 +412,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		}
 	}
 	xproxOut = xdiffs.array().maxCoeff();
-	if(!nmoc.vertexInfeas.sum() && !nmoc.numEqC){
+	if(!nmoc.vertexInfeas.sum() && !nmoc.numEqC && !nmoc.addPenalty){
 		Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
 		if(luq.isInvertible()){
 			Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
@@ -550,8 +549,8 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	//If there aren't any of one of the two constraint types, then the
 	//method for handling them shouldn't matter.  But, switching the
 	//method to the simplest setting helps simplify programming logic:
+	if(!numEqC && !NMobj->ineqConstraintMthd){NMobj->eqConstraintMthd = 1;}
 	if(!numIneqC){NMobj->ineqConstraintMthd = 0;}
-	if(!numEqC){NMobj->eqConstraintMthd = 1;}
 	equality.resize(numEqC);
 	inequality.resize(numIneqC);
 	
@@ -1496,6 +1495,11 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 				NMobj->phInfeas.resize(0);
 				return;
 			}
+			else if(NMobj->phFvals(i,0) < bestfit){
+				est = currpt;
+				bestfit = NMobj->phFvals(i,0);
+				estInfeas = 0;
+			}
 			//We can't use Nelder & Mead's analytic solution if the midpoints of the edges aren't actually such:
 			if( (currpt.array() != currpt2.array()).any() ){
 				canDoAnalyt = false;
@@ -1525,7 +1529,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			if(pminfit<bestfit && !pminInfeas){
 				est = pmin;
 				bestfit = pminfit;
-				estInfeas = pminInfeas;
+				estInfeas = 0;
 			}
 		}
 		Eigen::MatrixXd Qinv = luq.inverse();

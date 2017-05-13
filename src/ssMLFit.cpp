@@ -19,6 +19,7 @@
 #include "EnableWarnings.h"
 
 struct ssMLFitState : omxFitFunction {
+	int verbose;
 	bool returnRowLikelihoods;
 	bool populateRowDiagnostics;
 	omxMatrix *cov;
@@ -64,6 +65,10 @@ void ssMLFitState::compute(int want, FitContext *fc)
 		mxLogSetCurrentRow(row);
 		
 		omxDataRow(data, row, dataColumns, smallRow);
+		if (verbose >= 2) {
+			mxLog("row %d", row);
+			omxPrint(smallRow, "row");
+		}
 		
 		omxSetExpectationComponent(expectation, "y", smallRow);
 
@@ -113,20 +118,28 @@ void ssMLFitState::compute(int want, FitContext *fc)
 
 		omxCopyMatrix(contRow, smallRow);
 		omxRemoveElements(contRow, contRemove.data()); 	// Reduce the row to just continuous.
+		if (verbose >= 2) {
+			omxPrint(contRow, "contRow");
+			omxPrint(smallMeans, "smallMeans");
+		}
 		double minusoned = -1.0;
 		int onei = 1;
 		F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
 
 		/* Calculate Row Likelihood */
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
-		//EigenMatrixAdaptor EsmallCov(smallCov);
-		//mxPrintMat("smallcov", EsmallCov);
-		//omxPrint(contRow, "contRow");
 		double zerod = 0.0;
 		char u = 'U';
 		double oned = 1.0;
 		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
 		double Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei);
+		if (verbose >= 2) {
+			EigenMatrixAdaptor EsmallCov(smallCov);
+			EsmallCov.derived() = EsmallCov.selfadjointView<Eigen::Upper>();
+			mxPrintMat("smallcov", EsmallCov);
+			omxPrint(contRow, "contRow");
+			mxLog("Q=%f", Q);
+		}
 
 		double rowLikelihood = pow(2 * M_PI, -.5 * numCont) * (1.0/exp(determinant)) * exp(-.5 * Q);
 
@@ -167,6 +180,9 @@ void ssMLFitState::init()
 
 	oo->openmpUser = false;
 	oo->canDuplicate = true;
+
+	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(Rverbose);
 
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
 	units = returnRowLikelihoods? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
