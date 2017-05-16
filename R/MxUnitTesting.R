@@ -279,19 +279,18 @@ omxCheckWarning <- function(expression, message) {
 ##' tmsg <- paste("In omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9, 3), 0.01)",
 ##'		": not equal to within 0.01 : '1 2 3' and '1.1 1.9 3'")
 ##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), .01), tmsg)
-.checkErrorState <<- FALSE
 omxCheckError <- function(expression, message) {
 	inputExpression <- match.call()$expression
-	.checkErrorState <<- FALSE
+	pkg_globals$checkErrorState <- FALSE
 	tryCatch(eval(inputExpression), error = function(x) {
 		if(!any(trim(x$message) == trim(message))) {
 			stop(paste("An error was thrown with the wrong message:",
 				x$message), call. = FALSE)
 		} else {
-			.checkErrorState <<- TRUE
+			pkg_globals$checkErrorState <- TRUE
 		}
 	})
-	if (!.checkErrorState) {
+	if (!pkg_globals$checkErrorState) {
 		stop(paste("No error was observed for the expression",
 			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
 	} else if (getOption("mxPrintUnitTests")) {

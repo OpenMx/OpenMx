@@ -15,13 +15,11 @@
 
 gitVersion <- "GIT_VERSION"
 
-.OpenMxVersion <- try(packageVersion("OpenMx"))
-if ("try-error" %in% class(.OpenMxVersion)) {
-        .OpenMxVersion <- gitVersion
-}
-
 mxVersion <- function (model=NULL, verbose=TRUE) {
-    pvers <- .OpenMxVersion
+    pvers <- try(packageVersion("OpenMx"))
+    if ("try-error" %in% class(pvers)) {
+        pvers = gitVersion
+    }
 	if(verbose){
 		msg = paste("OpenMx version: ", pvers, " [GIT ", gitVersion, "]", sep="")
 		msg = paste(msg, "\nR version: ", version$version.string, sep="")

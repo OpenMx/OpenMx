@@ -1,3 +1,5 @@
+pkg_globals <- new.env()
+
 # Copied from Hadley Wickham's memoise package
 
 new_cache <- function() {
