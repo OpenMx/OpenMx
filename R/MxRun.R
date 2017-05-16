@@ -20,7 +20,7 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 
 	if (.hasSlot(model, '.version')) {
 		mV <- package_version(model@.version)
-		curV <- packageVersion('OpenMx')
+		curV <- pkg_globals$myVersion
 		if (curV$major != mV$major ||
 		    curV$minor != mV$minor) {
 			warning(paste0("You are using OpenMx version ", curV,
@@ -30,7 +30,7 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 				       "current version of OpenMx."))
 		}
 	} else {
-		curV <- packageVersion('OpenMx')
+		curV <- pkg_globals$myVersion
 		warning(paste0("You are using OpenMx version ", curV,
 			       " with a model created by an old version of OpenMx. ",
 			       "This may work fine (fingers crossed), but if you run into ",
