@@ -1166,5 +1166,10 @@ void omxFIMLFitFunction::init()
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         omxCopyMatrix(newObj->ordContCov, newObj->cov);
+
+	if (!expectation->thresholdsMat) {
+		omxRaiseErrorf("%s: ordinal data found in %d columns but no thresholds",
+			 expectation->name, numOrdinal);
+	}
     }
 }
