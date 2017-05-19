@@ -202,8 +202,9 @@ generateIFAReferenceModels <- function(model) {
 
 	weightColumn <- expectation$weightColumn
 	if (!is.na(weightColumn)) {
-		ind$expectation$weightColumn <- weightColumn
 		weights <- data[weightColumn]
+	} else if (!is.na(model$data$weight)) {
+		weights <- data[model$data$weight]
 	} else {
 		data <- data[rpf::orderCompletely(data),]
 		weights <- as.numeric(rpf::tabulateRows(data))

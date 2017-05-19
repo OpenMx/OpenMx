@@ -12,7 +12,7 @@ if (is(m2.data, "try-error")) m2.data <- read.table("data/g341-19.dat")
 m2.data <- m2.data + 1
 
 m2.spec <- list()
-m2.spec[1:12] <- rpf.grm(outcomes=2)
+m2.spec[1:12] <- list(rpf.grm(outcomes=2))
 m2.numItems <- length(m2.spec)
 
 for (c in 1:m2.numItems) {

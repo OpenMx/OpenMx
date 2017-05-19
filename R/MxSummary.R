@@ -80,9 +80,12 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		}
 		historySet <- append(data, historySet)
 	} else if (is(expectation, "MxExpectationBA81")) {  # refactor TODO
-		if (is.na(expectation@weightColumn)) return(list(NA, historySet))
-		dof <- nrow(data@observed) - 1
-		historySet <- append(data, historySet)
+		if (!is.na(expectation@weightColumn) || !is.na(data@weight)) {
+			dof <- nrow(data@observed) - 1
+			historySet <- append(data, historySet)
+		} else {
+			return(list(NA, historySet))
+		}
 	} else if (data@type == 'acov') {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
