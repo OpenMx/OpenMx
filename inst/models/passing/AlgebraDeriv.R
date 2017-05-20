@@ -64,7 +64,7 @@ omxCheckCloseEnough(got$output$hessian, 1, 1e-3)
 model3 <- mxModel(model1, mxComputeNewtonRaphson())
 model3 <- mxRun(model3, silent=TRUE)
 omxCheckCloseEnough(model3$output$estimate, 0, 1e-4)
-#omxCheckCloseEnough(model3$output$status$code, 0)
+omxCheckCloseEnough(model3$output$status$code, 0)
 omxCheckCloseEnough(model3$output$iterations, 2L)
 
 model3 <- mxModel(model3, mxComputeSequence(list(

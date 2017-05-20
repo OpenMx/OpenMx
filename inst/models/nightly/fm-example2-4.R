@@ -8,7 +8,7 @@ m2.data <- suppressWarnings(try(read.table("models/nightly/data/NCSsim.dat"), si
 if (is(m2.data, "try-error")) m2.data <- read.table("data/NCSsim.dat")
 
 m2.spec <- list()
-m2.spec[1:18] <- rpf.grm(outcomes=5)
+m2.spec[1:18] <- list(rpf.grm(outcomes=5))
 m2.numItems <- length(m2.spec)
 
 for (c in 1:m2.numItems) {

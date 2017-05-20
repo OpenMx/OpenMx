@@ -12,7 +12,7 @@ if (is(m2.data, "try-error")) m2.data <- read.table("data/g341-19.dat")
 m2.data <- m2.data + 1
 
 m2.spec <- list()
-m2.spec[1:12] <- rpf.grm(outcomes=2)
+m2.spec[1:12] <- list(rpf.grm(outcomes=2))
 m2.numItems <- length(m2.spec)
 
 for (c in 1:m2.numItems) {
@@ -61,13 +61,13 @@ if (0) {
 emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 13, 1)
 omxCheckCloseEnough(emstat$totalMstep, 39, 5)
-#omxCheckCloseEnough(emstat$semProbeCount, 96, 3)
-#omxCheckCloseEnough(m2$output$evaluations, 463, 5)
+omxCheckCloseEnough(emstat$semProbeCount, 96, 3)
+omxCheckCloseEnough(m2$output$evaluations, 463, 5)
 
-#semDebug <- m2$compute$steps[[1]]$debug
-#omxCheckEquals(semDebug$paramHistLen, rep(4, m2.numItems*2))
-#omxCheckCloseEnough(apply(semDebug$probeOffset, 1, mean),
-#                    c(0.001, 0.00101, 0.02768, 0.02769), 1e-4)
+semDebug <- m2$compute$steps[[1]]$debug
+omxCheckEquals(semDebug$paramHistLen, rep(4, m2.numItems*2))
+omxCheckCloseEnough(apply(semDebug$probeOffset, 1, mean),
+                    c(0.001, 0.00101, 0.02768, 0.02769), 1e-4)
 
 omxCheckCloseEnough(m2$output$minimum, Scale * 33408.05/-2, .01)
 omxCheckTrue(m2$output$infoDefinite)
@@ -80,7 +80,7 @@ omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 33598.919, .0
 se <- c(0.071, 0.047, 0.109, 0.113, 0.062, 0.043, 0.073, 0.052, 0.063,
         0.044, 0.098, 0.086, 0.181, 0.233, 0.075, 0.061, 0.153, 0.166,
         0.102, 0.096, 0.064, 0.044, 0.069, 0.045)
-#omxCheckCloseEnough(c(m2$output$standardErrors), se, .01)
+omxCheckCloseEnough(c(m2$output$standardErrors), se, .01)
 #max(abs(c(m2$output$standardErrors) - se))
 
 m3 <- mxModel(m2,
@@ -122,7 +122,7 @@ quantifyAsymmetry <- function(info) {
   max(svd(sym2 %*% asymV %*% sym2, 0, 0)$d)
 }
   
-if(0) {
+if(1) {
   iinfo <- m2$compute$steps[[1]]$debug$inputInfo
 #  print(iinfo[1:5,1:5])
   dm  <- m2$compute$steps[[1]]$debug$rateMatrix
