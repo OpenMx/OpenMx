@@ -420,7 +420,7 @@ mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv
 #Wrapper function faithful to Charlie Driver's SSCT-oriented changes:
 mxTryHardctsem <- function(model, initialGradientStepSize = .00001, initialGradientIterations = 1,
 													initialTolerance=1e-12,	jitterDistrib="rnorm", ...){
-	return(mxTryHard(model=model,initialGradientStepSize==initialGradientStepSize,
+	return(mxTryHard(model=model,initialGradientStepSize=initialGradientStepSize,
 									 initialGradientIterations=initialGradientIterations,
 									 initialTolerance=initialTolerance,jitterDistrib=jitterDistrib,...))
 }
@@ -429,7 +429,7 @@ mxTryHardctsem <- function(model, initialGradientStepSize = .00001, initialGradi
 #Wrapper function that uses mxTryHard() to try to search a wide region of the parameter space:
 mxTryHardWideSearch <- function(model, finetuneGradient=FALSE, jitterDistrib="rcauchy", exhaustive=TRUE,
 	wtgcsv="prev", ...){
-	return(mxTryHard(model=model,finetuneGradient==finetuneGradient,
+	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,
 									 jitterDistrib=jitterDistrib,
 									 exhaustive=exhaustive,wtgcsv=wtgcsv,...))
 }
