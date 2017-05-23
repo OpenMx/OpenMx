@@ -715,7 +715,11 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 					endoMean <- NULL
 					exoMean <- NULL
 					if(hasY){
-						KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+						if(ncol(GA) > 0) {
+							KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+						} else {
+							KA <- matrix( , nrow=ncol(GA), ncol=1)
+						}
 						TY <- mxEvalByName(TYname, model, compute=TRUE, defvar.row=defvar.row)
 						endoMean <- TY + A %*% (AL + GA %*% KA)
 					}
