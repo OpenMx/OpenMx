@@ -224,34 +224,17 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			logdetquadX *= 2;
  			gff->REMLcorrection = Scale*0.5*logdetquadX;
  			
- 			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic derivatives in use;
- 			otherwise, extraneous calculations can be avoided:*/
- 			if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
- 				P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
- 					(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
- 					(EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
- 				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
- 				if(want & FF_COMPUTE_FIT){
- 					ytPy = (Eigy.transpose() * Py)(0,0);
- 					if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
- 					oo->matrix->data[0] = gff->REMLcorrection + 
- 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
- 					gff->nll = oo->matrix->data[0];
- 					if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
- 				}
- 			}
- 			/*ytPy can be calculated so that rate-limiting step is O(2kN^2), where k is the number of covariates, 
- 			and N is the dimension of Vinv (and typically N>>k):*/
- 			else{
- 				ytPy = (( Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * Eigy ) -
- 					( Eigy.transpose() * oge->XtVinv.transpose() * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy ))(0,0);
- 				if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
- 				oo->matrix->data[0] = gff->REMLcorrection + 
- 					Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
- 				gff->nll = oo->matrix->data[0];
- 				if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
- 				return; //<--Since only fit value is wanted.
- 			}
+ 			//Finish computing fit (negative loglikelihood):
+ 			P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
+ 				(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
+ 				(EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
+ 			Py = P.selfadjointView<Eigen::Lower>() * Eigy;
+ 			ytPy = (Eigy.transpose() * Py)(0,0);
+ 			if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
+ 			oo->matrix->data[0] = gff->REMLcorrection + 
+ 				Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
+ 			gff->nll = oo->matrix->data[0];
+ 			if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
  		}
  		else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
  			//Declare locals:
