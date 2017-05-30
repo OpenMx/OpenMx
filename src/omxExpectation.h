@@ -127,6 +127,7 @@ omxExpectation *omxInitRAMExpectation();
 omxExpectation *omxInitExpectationBA81();
 omxExpectation *omxInitGREMLExpectation();
 omxExpectation *InitHiddenMarkovExpectation();
+omxExpectation *InitMixtureExpectation();
 
 void complainAboutMissingMeans(omxExpectation *off);
 

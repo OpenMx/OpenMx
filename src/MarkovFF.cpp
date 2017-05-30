@@ -92,9 +92,11 @@ namespace MarkovFF {
 		oo->canDuplicate = true;
 
 		omxState *currentState = oo->matrix->currentState;
-		const char *myex = "MxExpectationHiddenMarkov";
-		if (!expectation || !strEQ(expectation->expType, myex))
-			Rf_error("%s must be paired with an %s", oo->name(), myex);
+		const char *myex1 = "MxExpectationHiddenMarkov";
+		const char *myex2 = "MxExpectationMixture";
+		if (!expectation || !(strEQ(expectation->expType, myex1) ||
+				      strEQ(expectation->expType, myex2)))
+			Rf_error("%s must be paired with %s or %s", oo->name(), myex1, myex2);
 
 		ProtectedSEXP Rverbose(R_do_slot(oo->rObj, Rf_install("verbose")));
 		ms->verbose = Rf_asInteger(Rverbose);

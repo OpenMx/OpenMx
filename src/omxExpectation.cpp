@@ -48,6 +48,7 @@ static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
 	{"MxExpectationBA81", &omxInitExpectationBA81},
 	{"MxExpectationGREML", &omxInitGREMLExpectation},
 	{"MxExpectationHiddenMarkov", &InitHiddenMarkovExpectation},
+	{"MxExpectationMixture", &InitMixtureExpectation},
 };
 
 void omxFreeExpectationArgs(omxExpectation *ox) {
