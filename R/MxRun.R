@@ -312,13 +312,6 @@ updateModelExpectationDims <- function(model, expectations){
 	return(model)
 }
 
-#' Report backend progress
-#'
-#' Prints a show status string to the console without emitting a
-#' newline.
-#'
-#' @param info the character string to print
-#' @param eraseLen the number of characters to erase
 imxReportProgress <- function(info, eraseLen) {
 	origLen = nchar(info)
 	if (origLen < eraseLen) {
