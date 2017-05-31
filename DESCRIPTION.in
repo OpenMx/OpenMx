@@ -146,6 +146,7 @@ Collate:
     'MxFitFunctionR.R'
     'MxRObjective.R'
     'MxExpectationHiddenMarkov.R'
+    'MxExpectationMixture.R'
     'MxExpectationStateSpace.R'
     'MxExpectationBA81.R'
     'MxFitFunctionGREML.R'

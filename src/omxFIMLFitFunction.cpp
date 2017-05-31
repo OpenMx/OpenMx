@@ -1057,7 +1057,8 @@ void omxFIMLFitFunction::init()
 
 	cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
-		omxRaiseError("No covariance expectation in FIML evaluation.");
+		omxRaiseErrorf("%s: covariance not found in expectation '%s'",
+			       name(), expectation->name);
 		return;
 	}
 

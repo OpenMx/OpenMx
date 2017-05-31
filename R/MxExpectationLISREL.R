@@ -676,7 +676,6 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  BE <- mxEvalByName(BEname, model, compute=TRUE, defvar.row=defvar.row)
 			  PS <- mxEvalByName(PSname, model, compute=TRUE, defvar.row=defvar.row)
 			  TE <- mxEvalByName(TEname, model, compute=TRUE, defvar.row=defvar.row)
-			  AL <- mxEvalByName(ALname, model, compute=TRUE, defvar.row=defvar.row)
 			  I <- diag(1, nrow=nrow(BE))
 			  A <- LY %*% solve(I-BE)
 		  } else {
@@ -684,7 +683,6 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  BE <- matrix( , 0, 0)
 			  PS <- matrix( , 0, 0)
 			  TE <- matrix( , 0, 0)
-			  AL <- matrix( , 0, 1)
 			  A <- matrix( , 0, 0)
 		  }
 		  if(hasX & hasY){
@@ -704,18 +702,24 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 		  }
 		  if ('means' %in% what) {
 			  if(single.na(TXname) & single.na(TYname)){
+					warning("Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or KA matrices to get real means.")
 				  mean <- matrix( , 0, 0)
 			  } else {
-					if(hasX & single.na(TXname)){
-						stop("Model has exogenous variables but not exogenous means.")
+					if(hasX & (single.na(TXname) || single.na(KAname)) ){
+						stop("Model has exogenous variables but not exogenous means.\nNeed TX and/or KA matrices.")
 					}
-					if(hasY & single.na(TYname)){
-						stop("Model has endogenous variables but not endogenous means.")
+					if(hasY & (single.na(TYname) || single.na(ALname)) ){
+						stop("Model has endogenous variables but not endogenous means.\nNeed TY and/or AL matrices.")
 					}
 					endoMean <- NULL
 					exoMean <- NULL
 					if(hasY){
-						KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+						AL <- mxEvalByName(ALname, model, compute=TRUE, defvar.row=defvar.row)
+						if(ncol(GA) > 0) {
+							KA <- mxEvalByName(KAname, model, compute=TRUE, defvar.row=defvar.row)
+						} else {
+							KA <- matrix( , nrow=ncol(GA), ncol=1)
+						}
 						TY <- mxEvalByName(TYname, model, compute=TRUE, defvar.row=defvar.row)
 						endoMean <- TY + A %*% (AL + GA %*% KA)
 					}

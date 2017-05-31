@@ -36,7 +36,9 @@ column sum.}
   column vector and left stochastic transition matrix in probability
   units then examine the expectation's \code{output} slot.
 
-\link{mxGenerateData} is not implemented for this type of expectation.
+  Note that, when the transition matrix is omitted,
+  this expectation is the same as \link{mxExpectationMixture}.
+  \link{mxGenerateData} is not implemented for this type of expectation.
 }
 \examples{
 library(OpenMx)

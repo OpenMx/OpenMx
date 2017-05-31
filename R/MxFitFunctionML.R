@@ -85,7 +85,7 @@ setMethod("genericFitFunConvert", "MxFitFunctionML",
 			expectIndex <- imxLocateIndex(flatModel, expectName, name)
 
 			ex <- flatModel@expectations[[1L + expectIndex]]
-			if (is(ex, "MxExpectationHiddenMarkov")) {
+			if (is(ex, "MxExpectationHiddenMarkov") || is(ex, "MxExpectationMixture")) {
 				.Object@components <-
 					sapply(paste(ex@components, "fitfunction", sep="."),
 					       function(ff) imxLocateIndex(flatModel, ff, name),
