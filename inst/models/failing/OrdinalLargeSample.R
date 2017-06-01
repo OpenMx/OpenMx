@@ -83,7 +83,7 @@ wimpMod <- mxModel('Datmod',
 	### Expected thresholds
   mxMatrix(type='Full',nrow=1,ncol=4,free=T,values=3,name='eT'),
     wdat,
-    mxExpectationNormal(covariance='eC',thresholds='eT',threshnames=varNames,dimnames=varNames),
+    mxExpectationNormal(means='eM', covariance='eC', thresholds='eT', threshnames=varNames, dimnames=varNames),
     mxFitFunctionWLS()
 )
 wimpModFit <- mxRun(wimpMod)
