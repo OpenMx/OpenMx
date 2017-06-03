@@ -521,6 +521,7 @@ namespace RelationalRAMExpectation {
 		as1.fk1 = NA_INTEGER;
 		as1.numJoins = 0;
 		as1.numKids = 0;
+		as1.heterogenousMean = false;
 		a1.rampartScale = 1.0;
 		a1.row = frow;
 		a1.setModel(expectation);
@@ -776,6 +777,10 @@ namespace RelationalRAMExpectation {
 				addr *lp = joinedWith(la, jx);
 				addr *rp = joinedWith(ra, jx);
 				if (!lp && !rp) continue;
+				if (!lp || !rp) {
+					mismatch = true;
+					return !lp;
+				}
 				bool got = compareDeep(*lp, *rp, mismatch);
 				if (mismatch) return got;
 			}
@@ -920,15 +925,18 @@ namespace RelationalRAMExpectation {
 	}
 
 	template <typename T>
-	void state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig)
+	bool state::placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig)
 	{
+		bool heterogenousMean = false;
 		for (std::set<std::vector<int> >::iterator px = toPlace.begin();
 		     px != toPlace.end(); ++px) {
 			const std::vector<int> &clump = *px;
 			for (size_t cx=0; cx < clump.size(); ++cx) {
+				heterogenousMean |= layoutSetup[ clump[cx] ].heterogenousMean;
 				ig->place(clump[cx]);
 			}
 		}
+		return heterogenousMean;
 	}
 
 	// 2nd visitor
@@ -1023,21 +1031,21 @@ namespace RelationalRAMExpectation {
 				}
 				placeSet(mit->second, ig);
 			}
-			ig->sufficientSets.resize(ssCount);
-			int ssIndex = 0;
+			ig->sufficientSets.reserve(ssCount);
 			for (CompatibleMeanMapType::iterator mit = cmm.begin();
 			     mit != cmm.end(); ++mit) {
 				if (mit->second.size() == 1) continue;
 				int from = ig->placements.size();
-				placeSet(mit->second, ig);
+				if (placeSet(mit->second, ig)) continue;
 				if (verbose() >= 3) {
 					mxLog("group %d same mean %d -> %d clumpsize %d",
 					      int(group.size()), from, int(ig->placements.size() - 1),
 					      int(it->second.begin()->size()));
 				}
-				ig->sufficientSets[ssIndex].start = from / ig->clumpSize;
-				ig->sufficientSets[ssIndex].length = (ig->placements.size() - from) / ig->clumpSize;
-				++ssIndex;
+				sufficientSet ss;
+				ss.start = from / ig->clumpSize;
+				ss.length = (ig->placements.size() - from) / ig->clumpSize;
+				ig->sufficientSets.push_back(ss);
 			}
 			if (!ram->useSufficientSets) ig->sufficientSets.clear();
 			ig->prep(fc);
@@ -1303,9 +1311,22 @@ namespace RelationalRAMExpectation {
 	template <typename T>
 	void state::oertzenRotate(std::vector<T> &t1)
 	{
-		// get covariance and sort by mahalanobis distance TODO
 		rotationPlan.push_back(t1);
+
 		addrSetup &specimen = layoutSetup[ t1[0] ];
+		CompatibleMeanCompare cmp(this);
+
+		bool mismatch = false;
+		for (int cx=1; cx < int(t1.size()); ++cx) {
+			cmp.compareDeep(layout[ t1[0] ], layout[ t1[cx] ], mismatch);
+			if (mismatch) break;
+		}
+		if (mismatch) {
+			for (int cx=0; cx < int(t1.size()); ++cx) {
+				layoutSetup[ t1[cx] ].heterogenousMean = true;
+			}
+		}
+
 		for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
 			std::vector<int> t2;
 			t2.reserve(t1.size());
@@ -1760,7 +1781,7 @@ namespace RelationalRAMExpectation {
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
 
-		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, ugroup;
+		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, hmean, ugroup;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(row = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
@@ -1768,6 +1789,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
+		Rf_protect(hmean = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(ugroup = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
@@ -1777,6 +1799,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
+			INTEGER(hmean)[mx] = layoutSetup[mx].heterogenousMean;
 			INTEGER(ugroup)[mx] = layout[mx].ig? 1+layout[mx].ig->arrayIndex : NA_INTEGER;
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
@@ -1786,6 +1809,7 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("rampartScale")=rscale,
+							  Rcpp::Named("hmean")=hmean,
 							  Rcpp::Named("group")=ugroup));
 
 		int digits = ceilf(log10f(group.size()));
