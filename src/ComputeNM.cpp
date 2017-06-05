@@ -866,13 +866,13 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 	}
 }
 
-void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout){
+void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout, double scal){
 	double a,b;
 	int i;
 	GetRNGstate();
 	for(i=0; i < xin.size(); i++){
-		b = Rf_runif(0.75,1.25);
-		a = Rf_runif(-0.25,0.25);
+		b = Rf_runif(1.0-scal,1.0+scal);
+		a = Rf_runif(0.0-scal,0.0+scal);
 		xout[i] = b*xin[i] + a;
 	}
 	PutRNGstate();
@@ -940,7 +940,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 			xin=iniSimplexMat2.row(0);
 			for(i=0; i<SiniSupp.rows(); i++){
 				xout=SiniSupp.row(i);
-				jiggleCoord(xin, xout);
+				jiggleCoord(xin, xout, edgeLength/4.0);
 				SiniSupp.row(i) = xout;
 			}
 		}
@@ -1050,7 +1050,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 			vertices[0] = startpt;
 			for(i=1; i<n+1; i++){
 				vertices[i].setZero(numFree);
-				jiggleCoord(vertices[0],vertices[i]);
+				jiggleCoord(vertices[0],vertices[i],edgeLength/4.0);
 			}
 			break;
 		}

@@ -113,7 +113,7 @@ public:
 	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
 	void evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas);
 	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd oldpt, double &fv, int &newInfeas, int oldInfeas);
-	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
+	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout, double scal);
 	void invokeNelderMead();
 	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart);
 	void fullSort();
