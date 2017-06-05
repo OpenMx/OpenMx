@@ -248,7 +248,13 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	ScopedProtect p29(slotValue, R_do_slot(rObj, Rf_install("backtrackCtrl2")));
 	backtrackCtrl2 = Rf_asInteger(slotValue);
 	if(verbose){
-		mxLog("omxComputeNM member 'backtrackCtrl1' is %d", backtrackCtrl2);
+		mxLog("omxComputeNM member 'backtrackCtrl2' is %d", backtrackCtrl2);
+	}
+	
+	ScopedProtect p31(slotValue, R_do_slot(rObj, Rf_install("centerIniSimplex")));
+	centerIniSimplex = Rf_asLogical(slotValue);
+	if(verbose){
+		mxLog("omxComputeNM member 'centerIniSimplex' is %d", centerIniSimplex);
 	}
 	
 	feasTol = Global->feasibilityTolerance;
@@ -293,6 +299,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.maxIter = maxIter;
 	nmoc.iniSimplexType = iniSimplexType;
 	nmoc.iniSimplexEdge = iniSimplexEdge;
+	nmoc.centerIniSimplex = centerIniSimplex;
 	nmoc.fit2beat = R_PosInf;
 	nmoc.bignum = bignum;
 	nmoc.iniSimplexMat = iniSimplexMat;
@@ -339,6 +346,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.iniSimplexType = 1;
 		nmoc2.iniSimplexEdge = 
 			sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+		nmoc2.centerIniSimplex = true;
 		nmoc2.fit2beat = nmoc.bestfit;
 		nmoc2.bignum = nmoc.bignum;
 		nmoc2.est = nmoc.est;
@@ -1045,6 +1053,15 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 				jiggleCoord(vertices[0],vertices[i]);
 			}
 			break;
+		}
+		if(centerIniSimplex && !isRestart){
+			eucentroidCurr.setZero(numFree);
+			for(i=0; i<n+1; i++){
+				eucentroidCurr += vertices[i] / (n+1.0);
+			}
+			for(i=0; i<n+1; i++){
+				vertices[i] += startpt - eucentroidCurr;
+			}
 		}
 	}
 	//Now evaluate each vertex:

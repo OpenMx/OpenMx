@@ -1183,7 +1183,8 @@ mxComputeNelderMead <- function(
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	eqConstraintMthd=c("GDsearch","soft","backtrack","l1p"),
-	backtrackCtrl=c(0.5,5)
+	backtrackCtrl=c(0.5,5),
+	centerIniSimplex=FALSE
 	){
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -1240,11 +1241,13 @@ mxComputeNelderMead <- function(
 	if(length(backtrackCtrl)<2){stop("'backtrackCtrl' must be a numeric vector of length 2")}
 	backtrackCtrl1 <- as.numeric(backtrackCtrl[1])
 	backtrackCtrl2 <- as.integer(backtrackCtrl[2])
+	centerIniSimplex <- as.logical(centerIniSimplex[1])
 	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
 						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 						 iniSimplexColnames, validationRestart,
 						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
-						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian))
+						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian,
+						 centerIniSimplex))
 }
 
 setClass(
@@ -1278,7 +1281,8 @@ setClass(
 		ineqConstraintMthd="character",
 		eqConstraintMthd="character",
 		backtrackCtrl1="numeric",
-		backtrackCtrl2="integer"))
+		backtrackCtrl2="integer",
+		centerIniSimplex="logical"))
 
 #TODO: a user or developer might someday want to directly use this low-level 'initialize' method instead of the high-level constructor function,
 #so typecasting should also occur here:
@@ -1288,7 +1292,8 @@ setMethod(
 					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
 					 iniSimplexColnames, validationRestart,
 					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
-					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian){
+					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian,
+					 centerIniSimplex){
 		.Object@name <- 'compute'
 		.Object@.persist <- TRUE
 		.Object@freeSet <- freeSet
@@ -1322,6 +1327,7 @@ setMethod(
 		.Object@eqConstraintMthd <- eqConstraintMthd
 		.Object@backtrackCtrl1 <- backtrackCtrl1
 		.Object@backtrackCtrl2 <- backtrackCtrl2
+		.Object@centerIniSimplex <- centerIniSimplex
 		.Object
 	})
 

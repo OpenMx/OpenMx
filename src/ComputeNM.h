@@ -36,6 +36,7 @@ public:
 	double iniSimplexEdge;
 	Eigen::MatrixXd iniSimplexMat;
 	std::vector< const char* > iniSimplexColnames;
+	bool centerIniSimplex;
 	bool greedyMinimize, altContraction;
 	double degenLimit;
 	Eigen::Vector2i stagnCtrl;
@@ -89,6 +90,7 @@ public:
 	int itersElapsed;
 	int iniSimplexType; //regular=1, right=2, smartRight=3, random=4
 	double iniSimplexEdge;
+	bool centerIniSimplex;
 	double fr, fe, foc, fic;
 	int badr, bade, badoc, badic, badsc;
 	int restartsUsed;
