@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 # -----------------------------------------------------------------------------
-# Adapted from demo/UnivariateSaturated_PathRaw.R  
+# Adapted from demo/BivariateSaturated_PathRaw.R  
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
