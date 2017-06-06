@@ -36,6 +36,7 @@ public:
 	double iniSimplexEdge;
 	Eigen::MatrixXd iniSimplexMat;
 	std::vector< const char* > iniSimplexColnames;
+	bool centerIniSimplex;
 	bool greedyMinimize, altContraction;
 	double degenLimit;
 	Eigen::Vector2i stagnCtrl;
@@ -89,6 +90,7 @@ public:
 	int itersElapsed;
 	int iniSimplexType; //regular=1, right=2, smartRight=3, random=4
 	double iniSimplexEdge;
+	bool centerIniSimplex;
 	double fr, fe, foc, fic;
 	int badr, bade, badoc, badic, badsc;
 	int restartsUsed;
@@ -111,7 +113,7 @@ public:
 	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
 	void evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas);
 	void evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd oldpt, double &fv, int &newInfeas, int oldInfeas);
-	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout);
+	void jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout, double scal);
 	void invokeNelderMead();
 	void initializeSimplex(Eigen::VectorXd startpt, double edgeLength, bool isRestart);
 	void fullSort();

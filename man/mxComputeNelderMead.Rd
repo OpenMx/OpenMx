@@ -23,7 +23,8 @@ mxComputeNelderMead(
 	doPseudoHessian=FALSE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	eqConstraintMthd=c("GDsearch","soft","backtrack","l1p"),
-	backtrackCtrl=c(0.5,5))
+	backtrackCtrl=c(0.5,5),
+	centerIniSimplex=FALSE)
 }
 \arguments{
   \item{freeSet}{Character-string names of \link[=MxMatrix]{MxMatrices} containing free parameters.}
@@ -51,6 +52,7 @@ mxComputeNelderMead(
   \item{ineqConstraintMthd}{"Inequality constraint method;" character string. Defaults to "soft".}
   \item{eqConstraintMthd}{"Equality constraint method;" character string. Defaults to "GDsearch".}
   \item{backtrackCtrl}{Numeric vector of length two.  See below for details.}
+  \item{centerIniSimplex}{Logical. If \code{FALSE} (default), the MxModel's start values are used as the "first" vertex of the initial simplex.  If \code{TRUE}, the initial simplex is re-centered so that the MxModel's start values are its eucentroid.  However, if \code{iniSimplexMat} is non-\code{NULL} or if \code{iniSimplexType="smartRight"}, a value of \code{TRUE} is treated as \code{FALSE}.}
 }
 \details{
 %TODO: embellish with latex
@@ -61,7 +63,7 @@ Argument \code{iniSimplexType} dictates how the initial simplex will be construc
 
 Note that if argument \code{iniSimplexMat} has nonzero length, the actual start values of the MxModel's free parameters are not used as a vertex of the initial simplex (unless one of the rows of \code{iniSimplexMat} happens to contain those start values).
 
-If the simplex is restarted, a new simplex is constructed per argument \code{iniSimplexType}, with edge length equal to the distance between the current best and second-best vertices, and with the current best vertex used as a starting vertex.
+If the simplex is restarted, a new simplex is constructed per argument \code{iniSimplexType}, with edge length equal to the distance between the current best and second-best vertices, and with the current best vertex used as the "first" vertex.
 
 If \code{greedyMinimize=FALSE}, "greedy expansion" (Singer & Singer, 2004) is used: if the expansion point and reflection point both have smaller fitfunction values than the best vertex, the expansion point is accepted.  If \code{greedyMinimize=TRUE}, "greedy minimization" (Singer & Singer, 2004) is used: if the expansion point and the reflection point both have smaller fitfunction values than the best vertex, the better of the two new points is accepted.
 
@@ -69,7 +71,7 @@ If argument \code{altContraction=TRUE}, the "modified contraction step" of Gill 
 
 If positive, the first element of argument \code{stagnCtrl} sets a threshold for the number of successive iterations in which the best vertex of the simplex does not change, after which the algorithm is said to be "stagnant" (in a sense similar to that of Kelley, 1999).  To attempt to remedy the stagnation, the simplex is restarted.  If positive, the second element of argument \code{stagnCtrl} sets threshold for the number of restarts conducted, beyond which stagnation no longer triggers a restart.  The rationale for the second element is that the best vertex may not change for many iterations when the optimizer is close to convergence, under which circumstances restarting would be counterproductive, and in any event would require additional fitfunction evaluations.
 
-If argument \code{validationRestart=TRUE}, then when the optimizer has successfully converged, it will restart the simplex and attempt to improve upon the tentative solution it already found.  This validation restart (Gill et al., 1982, Chapter 4) always re-initializes the simplex as a regular simplex, with edge-length equal to the distance between the best and worst vertices of the tentative solution.  Optimization proceeds until convergence to a solution with a better fit value, or \eqn{2n} iterations have elapsed.
+If argument \code{validationRestart=TRUE}, then when the optimizer has successfully converged, it will restart the simplex and attempt to improve upon the tentative solution it already found.  This validation restart (Gill et al., 1982, Chapter 4) always re-initializes the simplex as a regular simplex, centered on the best vertex of the tentative solution, with edge-length equal to the distance between the best and worst vertices of the tentative solution.  Optimization proceeds until convergence to a solution with a better fit value, or \eqn{2n} iterations have elapsed.
 
 The Nelder-Mead optimizer is considered to have successfully converged if (1) the largest \emph{l}-infinity norm of the vector-differences between the best vertex and the other vertices is less than argument \code{xTolProx}, or (2) if the largest absolute difference in fit value between the best vertex and the other vertices is less than \code{fTolProx}.
 

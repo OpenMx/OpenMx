@@ -291,3 +291,11 @@ m17 <- mxModel(model,plan)
 m17o <- mxRun(m17)
 summary(m17o) 
 m17o$output$iterations
+
+plan$steps$GD <- mxComputeNelderMead(
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	doPseudoHessian=T, centerIniSimplex=TRUE)
+m18 <- mxModel(model,plan)
+m18o <- mxRun(m18)
+summary(m18o) 
+m18o$output$iterations
