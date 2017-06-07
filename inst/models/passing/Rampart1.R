@@ -151,8 +151,8 @@ if (0) {
 
 got <- mxGenerateData(student)
 omxCheckEquals(names(got), c("school", "teacher", "student"))
-omxCheckEquals(colnames(got[['school']]),
-	       colnames(student$school$data$observed))
+omxCheckTrue(setequal(colnames(got[['school']]),
+                      colnames(student$school$data$observed)))
 omxCheckTrue(all(got[['school']]$C != student$school$data$observed$C))
 
 omxCheckError(mxGenerateData(student, 10, returnModel=TRUE),

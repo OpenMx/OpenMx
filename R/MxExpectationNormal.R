@@ -351,7 +351,42 @@ ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
 	return(data)
 }
 
-generateRelationalData <- function(model, returnModel) {
+generateRelationalData <- function(model, returnModel, .backend) {
+	if (.backend) {
+		plan <- mxComputeGenerateData()
+		modelE <- mxModel(model, plan)
+		modelE <- mxRun(modelE, silent=TRUE)
+		simData <- modelE$compute$output
+
+		datalist <- modelE@runstate$datalist
+		for (dName in names(datalist)) {
+			if (is.null(simData[[dName]])) {
+				simData[[dName]] <- datalist[[dName]]$observed
+			} else {
+				orig <- datalist[[dName]]$observed
+				toCopy <- setdiff(colnames(orig), colnames(simData[[dName]]))
+				for (col in toCopy) {
+					simData[[dName]][[col]] <- orig[[col]]
+				}
+			}
+		}
+
+		names(simData) <- substr(names(simData), 1, nchar(names(simData))-5) #strip .data
+
+		if (!returnModel) {
+			return(simData)
+		} else {
+			for (modelName in names(simData)) {
+				if (modelName == model$name) {
+					model@data@observed <- simData[[modelName]]
+				} else {
+					model[[modelName]]@data@observed <- simData[[modelName]]
+				}
+			}
+			return(model)
+		}
+	}
+
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('expectation', 'distribution', 'flat'),
 	    mxComputeReportExpectation()
@@ -416,7 +451,12 @@ generateRelationalData <- function(model, returnModel) {
 	}
 }
 
-mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE) {
+mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
+			   ..., .backend=TRUE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxGenerateData does not accept values for the '...' argument")
+	}
 	if (is(model, 'data.frame')) {
 		wlsData <- mxDataWLS(model)
 		fake <- mxModel("fake",
@@ -455,7 +495,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if (!missing(nrows)) {
 			stop("Specification of the number of rows is not supported for relational models")
 		}
-		generateRelationalData(model, returnModel)
+		generateRelationalData(model, returnModel, .backend)
 	}
 }
 

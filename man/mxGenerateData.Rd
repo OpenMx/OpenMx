@@ -24,7 +24,7 @@ This function returns a new (simulated) data set based on the model-implied dist
 }
 
 \usage{
-mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE)
+mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE, ..., .backend=TRUE)
 }
 
 
@@ -35,6 +35,8 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE)
      populated with new data if TRUE.}
    \item{use.miss}{Logical. Whether to approximate the missingness
    pattern of the original data.}
+\item{...}{Not used; forces remaining arguments to be specified by name.}
+\item{.backend}{Whether to use the backend to generate data}
 }
 
 \details{

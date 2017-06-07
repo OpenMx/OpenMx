@@ -21,6 +21,13 @@
 //#include <Eigen/LU>
 #include "EnableWarnings.h"
 
+void omxRAMExpectation::flatten(FitContext *fc)
+{
+	if (rram) return;
+	rram = new RelationalRAMExpectation::state;
+	rram->init(this, fc);
+}
+
 void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
 	omxRAMExpectation* oro = this;
@@ -31,10 +38,7 @@ void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *ho
 		if (strEQ(what, "distribution")) { wantCov = true; wantMean = true; }
 		if (strEQ(what, "covariance")) wantCov = true;
 		if (strEQ(what, "mean")) wantMean = true;
-		if (!oro->rram) {
-			oro->rram = new RelationalRAMExpectation::state;
-			oro->rram->init(this, fc);
-		}
+		flatten(fc);
 		if (wantCov)  oro->rram->computeCov(fc);
 		if (wantMean) oro->rram->computeMean(fc);
 		return;
@@ -357,6 +361,18 @@ omxMatrix* omxRAMExpectation::getComponent(const char* component)
 	}
 	
 	return retval;
+}
+
+
+void omxRAMExpectation::generateData(FitContext *fc, MxRList &out)
+{
+	if (!between.size()) {
+		super::generateData(fc, out);
+	}
+
+	flatten(fc);
+
+	rram->simulate(fc, out);
 }
 
 namespace RelationalRAMExpectation {
@@ -1417,6 +1433,34 @@ namespace RelationalRAMExpectation {
 	};
 
 	template <typename T>
+	void state::unapplyRotationPlan(T accessor)
+	{
+		for (size_t rx=0; rx < rotationPlan.size(); ++rx) {
+			const std::vector<int> &units = rotationPlan[rx];
+			int numUnits = units.size();
+			const addr &specimen = layout[units[0]];
+			for (int ox=0; ox < specimen.numObs(); ++ox) {
+				double p1 = sqrt(1.0/numUnits) * accessor(units[0], ox);
+				for (int ii = 0; ii < numUnits; ii++) {
+					double k = numUnits-ii;
+					if (ii >= 1 && ii < numUnits-1) {
+						p1 += sqrt(1.0/(k*(k+1))) * accessor(units[ii], ox);
+					}
+					double p2;
+					if (ii >= numUnits-2) {
+						p2 = M_SQRT1_2;
+						if (ii == numUnits - 1) p2 = -p2;
+					} else {
+						p2 = -sqrt((k-1.0)/k);
+					}
+					accessor(units[ii], ox) =
+						p1 + p2 * accessor(units[std::min(ii+1, numUnits-1)], ox);
+				}
+			}
+		}
+	}
+
+	template <typename T>
 	void state::applyRotationPlan(T accessor)
 	{
 		// maybe faster to do all observations in parallel
@@ -1533,6 +1577,8 @@ namespace RelationalRAMExpectation {
 		}
 
 		applyRotationPlan(UnitAccessor<false>(this));
+		//unapplyRotationPlan(UnitAccessor<false>(this));
+		//applyRotationPlan(UnitAccessor<false>(this));
 
 		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
 			(*it)->finalizeData();
@@ -1586,6 +1632,109 @@ namespace RelationalRAMExpectation {
 		fullCov = (asymT.IAF.transpose() * fullS.selfadjointView<Eigen::Lower>() * asymT.IAF);
 		//mxLog("fullCov %d%% nonzero", int(fullCov.nonZeros() * 100.0 / (fullCov.rows() * fullCov.cols())));
 		//{ Eigen::MatrixXd tmp = fullCov; mxPrintMat("fullcov", tmp); }
+	}
+
+	void independentGroup::simulate()
+	{
+		if (!dataVec.size()) return;
+
+		simDataVec = expectedVec;
+
+		SimpCholesky< Eigen::MatrixXd > covDecomp;
+		Eigen::MatrixXd denseCov = fullCov;
+		covDecomp.compute(denseCov);
+		if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) {
+			omxRaiseErrorf("%s: covariance is non-positive definite", st.homeEx->name);
+			return;
+		}
+
+		Eigen::MatrixXd res(fullCov.rows(), fullCov.cols());
+		res.setIdentity();
+		res = covDecomp.transpositionsP() * res;
+		// L^* P
+		res = covDecomp.matrixU() * res;
+		// D(L^*P)
+		res = covDecomp.vectorD().array().sqrt().matrix().asDiagonal() * res;
+
+		Eigen::VectorXd sim1(clumpObs);
+		int clumps = placements.size() / clumpSize;
+		for (int cx=0; cx < clumps; ++cx) {
+			for (int ob=0; ob < clumpObs; ++ob) {
+				sim1[ob] = Rf_rnorm(0, 1.0);
+			}
+			simDataVec.segment(cx*clumpObs, clumpObs) += sim1.transpose() * res;
+		}
+	}
+
+	struct SimUnitAccessor {
+		state &st;
+		SimUnitAccessor(state *_st) : st(*_st) {};
+
+		double &operator() (const int unit, const int obs)
+		{
+			addr &ad = st.getParent().layout[unit];
+			independentGroup &ig = *ad.ig;
+			int obsStart = ig.placements[ad.igIndex].obsStart;
+			return ig.simDataVec.coeffRef(obsStart + obs);
+		};
+	};
+
+	void state::simulate(FitContext *fc, MxRList &out)
+	{
+		computeMean(fc);
+
+		for (auto &ig : group) {
+			ig->computeCov1(fc);
+			ig->computeCov2();
+			ig->simulate();
+		}
+
+		unapplyRotationPlan(SimUnitAccessor(this));
+
+		std::map<omxExpectation*, SEXP> DataMap;
+		for (auto &ex1 : allEx) {
+			auto &dc = ex1->getDataColumns();
+			if (dc.size() == 0) continue;
+			omxData *data = ex1->data;
+
+			SEXP df;
+			Rf_protect(df = Rf_allocVector(VECSXP, dc.size()));
+			SEXP colnames = Rf_allocVector(STRSXP, dc.size());
+			Rf_setAttrib(df, R_NamesSymbol, colnames);
+			for (int col=0; col < int(dc.size()); ++col) {
+				SEXP colData = Rf_allocVector(REALSXP, data->rows);
+				SET_VECTOR_ELT(df, col, colData);
+				double *colPtr = REAL(colData);
+				for (int rx=0; rx < data->rows; ++rx) {
+					colPtr[rx] = NA_REAL;
+				}
+				SET_STRING_ELT(colnames, col, Rf_mkChar(omxDataColumnName(data, dc[col])));
+			}
+			markAsDataFrame(df, data->rows);
+
+			DataMap[ex1] = df;
+			out.add(data->name, df);
+		}
+
+		// NOTE: Does not copy foreign and primaryKeys
+
+		for (auto &ig : group) {
+			if (0 == ig->dataVec.size()) continue;
+			for (int px=0; px < int(ig->gMap.size()); ++px) {
+				addr &a1 = layout[ ig->gMap[px] ];
+				omxRAMExpectation *ram = a1.getRAMExpectationReadOnly();
+				SEXP df = DataMap[ram];
+				auto &pl = ig->placements[px];
+				for (int vx=0, ncol=0, dx=0; vx < ram->F->cols; ++vx) {
+					if (!ram->latentFilter[vx]) continue;
+					int col = ncol++;
+					if (!ig->latentFilter[ pl.modelStart + vx ]) continue;
+
+					REAL(VECTOR_ELT(df, col))[a1.row] = ig->simDataVec[dx];
+					dx += 1;
+				}
+			}
+		}
 	}
 
 	void state::computeCov(FitContext *fc)

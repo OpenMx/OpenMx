@@ -175,6 +175,11 @@ void omxExpectation::loadFromR()
 	}
 }
 
+void omxExpectation::generateData(FitContext *, MxRList &out)
+{
+	Rf_error("%s: generateData not implemented for '%s'", name, expType);
+}
+
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
 
 	SEXP ExpectationClass;

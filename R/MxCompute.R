@@ -1755,6 +1755,51 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeGenerateData",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 expectation = "MxCharOrNumber"
+	 ))
+
+setMethod("initialize", "MxComputeGenerateData",
+	  function(.Object, expectation) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- NA_character_
+		  .Object@expectation <- expectation
+		  .Object
+	  })
+
+setMethod("qualifyNames", signature("MxComputeGenerateData"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod();
+		.Object@expectation <- imxConvertIdentifier(.Object@expectation, modelname, namespace)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeGenerateData"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@expectation)) {
+			.Object@expectation <- imxLocateIndex(flatModel, .Object@expectation, .Object)
+		}
+		.Object
+	})
+
+##' Generate data
+##'
+##' Generate data specified by the model expectations.
+##'
+##' @param freeSet names of matrices containing free variables
+##' @aliases
+##' MxComputeGenerateData-class
+
+mxComputeGenerateData <- function(expectation='expectation') {
+	new("MxComputeGenerateData", expectation)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(

@@ -1671,6 +1671,17 @@ class ComputeBootstrap : public omxCompute {
 	virtual void reportResults(FitContext *fc, MxRList *, MxRList *result);
 };
 
+class ComputeGenerateData : public omxCompute {
+	typedef omxCompute super;
+	std::vector< omxExpectation* > expectations;
+	MxRList simData;
+
+ public:
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -1698,6 +1709,9 @@ static class omxCompute *newComputeReportExpectation()
 static class omxCompute *newComputeBootstrap()
 { return new ComputeBootstrap(); }
 
+static class omxCompute *newComputeGenerateData()
+{ return new ComputeGenerateData(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -1719,6 +1733,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeTryHard", &newComputeTryHard},
 	{"MxComputeNelderMead", &newComputeNelderMead},
 	{"MxComputeBootstrap", &newComputeBootstrap},
+	{"MxComputeGenerateData", &newComputeGenerateData},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3174,4 +3189,35 @@ void ComputeBootstrap::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		output.add("weight", onlyWeight.asR());
 	}
 	slots->add("output", output.asR());
+}
+
+void ComputeGenerateData::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	ProtectedSEXP Rexp(R_do_slot(rObj, Rf_install("expectation")));
+	for (int wx=0; wx < Rf_length(Rexp); ++wx) {
+		if (isErrorRaised()) return;
+		int objNum = INTEGER(Rexp)[wx];
+		omxExpectation *expectation = globalState->expectationList[objNum];
+		expectations.push_back(expectation);
+	}
+}
+
+void ComputeGenerateData::computeImpl(FitContext *fc)
+{
+	if (simData.size()) Rf_error("Cannot generate data more than once");
+
+	GetRNGstate();
+
+	for (auto ex : expectations) {
+		ex->generateData(fc, simData);
+	}
+
+	PutRNGstate();
+}
+
+void ComputeGenerateData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	slots->add("output", simData.asR());
 }
