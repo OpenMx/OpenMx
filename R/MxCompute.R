@@ -1790,7 +1790,7 @@ setMethod("convertForBackend", signature("MxComputeGenerateData"),
 ##'
 ##' Generate data specified by the model expectations.
 ##'
-##' @param freeSet names of matrices containing free variables
+##' @param expectation a character vector of expectations to generate data for
 ##' @aliases
 ##' MxComputeGenerateData-class
 
