@@ -418,10 +418,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	nvar <- sum(ords)
 	ntvar <- ncol(data)
 	n <- dim(data)[1]
-
-	message(paste("Calculating asymptotic summary statistics for",
-		      ntvar - nvar, "continuous and", nvar, "ordinal variables ..."))
-
+	
+	
+	msg <- paste("Calculating asymptotic summary statistics for",
+		ntvar - nvar, "continuous and", nvar, "ordinal variables ...")
+	msgLen <- nchar(msg)
+	#message(msg)
+	imxReportProgress(msg, 0)
+	
 	# if no ordinal variables, use continuous-only helper
 	if(nvar ==0){ #N.B. This fails for any missing data
 		wls <- wlsContinuousOnlyHelper(data, type)
@@ -642,7 +646,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	if (type=="XLS"){
 		retVal@acov <- xls
 		}
-	if (debug){return(list(fullJac, fullHess))}	
+	if (debug){return(list(fullJac, fullHess))}
+	imxReportProgress("", msgLen)
 	return(retVal)
 	}
 

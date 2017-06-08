@@ -79,6 +79,7 @@ class omxExpectation {					// An Expectation
 	virtual omxMatrix *getComponent(const char*) { return 0; }
 	virtual void mutate(const char*, omxMatrix*) {};
 	virtual void invalidateCache() {};
+	virtual void generateData(FitContext *fc, MxRList &out);
 
 	void loadFromR();
 	bool loadDefVars(int row);
