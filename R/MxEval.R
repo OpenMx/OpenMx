@@ -423,7 +423,7 @@ mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1L
       list(x = as.symbol(name))))
 }
 
-BootstrapEvalInternval <- function(expression, model, defvar.row, ...) {
+BootstrapEvalInternal <- function(expression, model, modelvariable, defvar.row, ...) {
 	bootData <- omxGetBootstrapReplications(model)
   mle <- cvectorize(EvalInternal(expression, model, modelvariable,
 				 compute=TRUE, show=FALSE, defvar.row, cache=new.env(parent = emptyenv()),
@@ -441,13 +441,13 @@ BootstrapEvalInternval <- function(expression, model, defvar.row, ...) {
 omxBootstrapEval <- function(expression, model, defvar.row = 1L, ...) {
   expression <- match.call()$expression
   modelvariable <- match.call()$model
-  BootstrapEvalInternval(expression, model, defvar.row, ...)$result
+  BootstrapEvalInternal(expression, model, modelvariable, defvar.row, ...)$result
 }
 
 omxBootstrapEvalCov <- function(expression, model, defvar.row = 1L, ...) {
   expression <- match.call()$expression
   modelvariable <- match.call()$model
-  cov(BootstrapEvalInternval(expression, model, defvar.row, ...)$result)
+  cov(BootstrapEvalInternal(expression, model, modelvariable, defvar.row, ...)$result)
 }
 
 mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.75),
@@ -455,7 +455,7 @@ mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.7
   expression <- match.call()$expression
   modelvariable <- match.call()$model
 	method <- match.arg(method)
-  got <- BootstrapEvalInternval(expression, model, defvar.row, ...)
+  got <- BootstrapEvalInternal(expression, model, modelvariable, defvar.row, ...)
 	cbind("SE"=apply(got$result, 2, sd),
 	      summarizeBootstrap(got$mle, got$result, bq, method))
 }

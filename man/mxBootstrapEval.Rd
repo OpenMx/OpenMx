@@ -17,6 +17,7 @@
 \alias{mxBootstrapEval}
 \alias{omxBootstrapEvalCov}
 \alias{omxBootstrapEval}
+\alias{omxBootstrapEvalByName}
 \alias{mxBootstrapEvalByName}
 
 \title{Evaluate Values in a bootstrapped MxModel}
