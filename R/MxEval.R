@@ -423,12 +423,8 @@ mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1L
       list(x = as.symbol(name))))
 }
 
-mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.75),
-			    method=c('bcbci','quantile')) {
+BootstrapEvalInternal <- function(expression, model, modelvariable, defvar.row, ...) {
 	bootData <- omxGetBootstrapReplications(model)
-   method <- match.arg(method)
-  expression <- match.call()$expression
-  modelvariable <- match.call()$model
   mle <- cvectorize(EvalInternal(expression, model, modelvariable,
 				 compute=TRUE, show=FALSE, defvar.row, cache=new.env(parent = emptyenv()),
 						 cacheBack=FALSE, back=2L))
@@ -439,9 +435,29 @@ mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.7
 						 compute=TRUE, show=FALSE, defvar.row, cache=new.env(parent = emptyenv()),
 						 cacheBack=FALSE, back=2L))
   }
+	list(mle=mle, result=result)
+}
 
-  cbind("SE"=apply(result, 2, sd),
-	summarizeBootstrap(mle, result, bq, method))
+omxBootstrapEval <- function(expression, model, defvar.row = 1L, ...) {
+  expression <- match.call()$expression
+  modelvariable <- match.call()$model
+  BootstrapEvalInternal(expression, model, modelvariable, defvar.row, ...)$result
+}
+
+omxBootstrapEvalCov <- function(expression, model, defvar.row = 1L, ...) {
+  expression <- match.call()$expression
+  modelvariable <- match.call()$model
+  cov(BootstrapEvalInternal(expression, model, modelvariable, defvar.row, ...)$result)
+}
+
+mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.75),
+				method=c('bcbci','quantile')) {
+  expression <- match.call()$expression
+  modelvariable <- match.call()$model
+	method <- match.arg(method)
+  got <- BootstrapEvalInternal(expression, model, modelvariable, defvar.row, ...)
+	cbind("SE"=apply(got$result, 2, sd),
+	      summarizeBootstrap(got$mle, got$result, bq, method))
 }
 
 mxBootstrapEvalByName <- function(name, model, defvar.row=1L, ..., bq=c(.25,.75),
@@ -451,5 +467,14 @@ mxBootstrapEvalByName <- function(name, model, defvar.row=1L, ..., bq=c(.25,.75)
    }
    method <- match.arg(method)
    eval(substitute(mxBootstrapEval(x, model, defvar.row, bq, method),
+      list(x = as.symbol(name))))
+}
+
+omxBootstrapEvalByName <- function(name, model, defvar.row=1L, ...) {
+   if((length(name) != 1) || typeof(name) != "character") {
+      stop("'name' argument must be a character argument")
+   }
+   method <- match.arg(method)
+   eval(substitute(omxBootstrapEval(x, model, defvar.row),
       list(x = as.symbol(name))))
 }

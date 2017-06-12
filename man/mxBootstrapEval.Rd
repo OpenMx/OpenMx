@@ -15,6 +15,9 @@
 
 \name{mxBootstrapEval}
 \alias{mxBootstrapEval}
+\alias{omxBootstrapEvalCov}
+\alias{omxBootstrapEval}
+\alias{omxBootstrapEvalByName}
 \alias{mxBootstrapEvalByName}
 
 \title{Evaluate Values in a bootstrapped MxModel}
@@ -29,6 +32,12 @@ mxBootstrapEval(expression, model, defvar.row = 1, ...,
 
 mxBootstrapEvalByName(name, model, defvar.row = 1, ...,
  bq=c(.25,.75), method=c('bcbci','quantile'))
+
+omxBootstrapEval(expression, model, defvar.row = 1L, ...)
+
+omxBootstrapEvalCov(expression, model, defvar.row = 1L, ...)
+
+omxBootstrapEvalByName(name, model, defvar.row=1L, ...)
 }
 
 \arguments{
@@ -47,6 +56,15 @@ The argument \sQuote{expression} is an arbitrary R expression.  Any named entiti
 
 The \code{mxEvalByName} function is a wrapper around \code{mxEval} that takes a character instead of an R expression.
 
+}
+
+\value{
+
+\code{omxBootstrapEval} and \code{omxBootstrapEvalByName} return the raw matrix of
+\code{cvectorize}'d results. \code{omxBootstrapEvalCov} returns the
+covariance matrix of the \code{cvectorize}'d results.
+\code{mxBootstrapEval} and \code{mxBootstrapEvalByName} return
+the \code{cvectorize}'d results summarized by \code{method} at quantiles \code{bq}.
 }
 
 \references{

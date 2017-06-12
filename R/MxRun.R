@@ -421,3 +421,5 @@ omxGetBootstrapReplications <- function(model) {
    }
    bootData
 }
+
+omxBootstrapCov <- function(model) cov(omxGetBootstrapReplications(model))
