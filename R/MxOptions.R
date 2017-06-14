@@ -23,7 +23,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		}
 		return(processDefaultOptionList(key, value))
 	}
-	if (length(value) > 1 && key!="No Sort Data") {
+	if (length(value) > 1 && key!="No Sort Data" && key != "Status OK") {
 		msg <- paste("argument 'value' must be either NULL or of length 1.",
 			"You gave me an object of length", length(value))
 		stop(msg)
@@ -75,6 +75,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 		"mxOption(NULL, '", key, "', '", value,"')", sep = ""))
         # to use NLOPT, use: mxOption(NULL, 'Default optimizer', 'NLOPT')
 	}
+	if (key == "Status OK") value <- as.statusCode(value)
 	model@options[[key]] <- value
 	return(model)
 }
@@ -171,7 +172,8 @@ otherOptions <- list(
     "Gradient step size" = "Auto",#1.0e-7,
     "Parallel diagnostics" = "No",
     "Debug protect stack" = "No",
-		"Nudge zero starts" = "Yes"
+    "Nudge zero starts" = "Yes",
+    "Status OK"= as.statusCode(c("OK", "OK/green"))
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {

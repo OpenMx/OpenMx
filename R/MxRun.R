@@ -346,7 +346,7 @@ as.statusCode <- function(code) {
 	}
 	if (is.numeric(code) || is.null(code)) {
 		mxFactor(code, levels=c(0:7,9:10), labels=lev)
-	} else if (is.character(code)) {
+	} else if (is.character(code) || all(is.na(code))) {
 		mxFactor(code, lev)
 	} else {
 		stop(paste("Don't know how to convert type", typeof(code),
@@ -357,7 +357,7 @@ as.statusCode <- function(code) {
 mxBootstrap <- function(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
-			OK=c("OK", "OK/green")) {
+			OK=mxOption(model, "Status OK")) {
   if (!is(model$compute, "MxComputeBootstrap")) {
     if (missing(plan)) {
       plan <- model$compute
