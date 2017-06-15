@@ -471,10 +471,11 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {
 		origData <- NULL
-		if (!is.null(model@data)) {
+		if (!is.null(model@data) && model@data@type == 'raw') {
 			origData <- model@data@observed
 			if (missing(nrows)) nrows <- nrow(origData)
 		}
+		if (is.null(nrows)) stop("You must specify nrows")
 		data <- genericGenerateData(model$expectation, model, nrows)
 		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
 			del <- is.na(origData[,colnames(data),drop=FALSE])

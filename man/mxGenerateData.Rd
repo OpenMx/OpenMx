@@ -59,6 +59,8 @@ For state space models (i.e. models with an \link{mxExpectationStateSpace} or \l
 \value{
     A data.frame, list of data.frames, or model populated with the new data
     (depending on the \code{returnModel} parameter).
+    Raw data is always returned even if the original model contained
+    covariance or some other non-raw data.
 }
 
 
