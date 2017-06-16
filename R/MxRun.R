@@ -334,9 +334,9 @@ as.statusCode <- function(code) {
 	lev <- c("OK", "OK/green",
 		"infeasible linear constraint",
 		"infeasible non-linear constraint",
-		"iteration limit",
-		"not convex",
-		"nonzero gradient",
+		"iteration limit/blue",
+		"not convex/red",
+		"nonzero gradient/red",
 		"bad deriv",
 		"internal error",
 		"infeasible start")
