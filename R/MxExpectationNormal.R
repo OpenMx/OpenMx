@@ -336,12 +336,12 @@ ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
 		for(avar in ordvars){
 			delthr <- thresh[,avar]
 			usethr <- 1:sum(!is.na(delthr))  # assumes NA indicates unused threshold
-			if (!is.null(origData)) {
+			if (!is.null(origData) && !is.null(origData[[avar]])) {
 				usethr <- 1:(length(levels(origData[[avar]])) - 1L)
 			}
 			delthr <- delthr[usethr]
 			levthr <- 1L:(length(usethr)+1L)
-			if (!is.null(origData)) {
+			if (!is.null(origData)  && !is.null(origData[[avar]])) {
 				levthr <- levels(origData[[avar]])
 			}
 			delvar <- cut(as.vector(data[,avar]), c(-Inf, delthr, Inf), labels=levthr)

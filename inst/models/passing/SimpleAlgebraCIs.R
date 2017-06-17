@@ -40,7 +40,7 @@ factorModel <- mxModel("One Factor", type="RAM",
 factorFit <- mxRun(factorModel, intervals=FALSE)
 omxCheckCloseEnough(factorFit$output$fit, 934.095, .01)
 
-factorBoot <- mxBootstrap(factorFit, 100L, OK=c("OK","OK/green", "nonzero gradient"))
+factorBoot <- mxBootstrap(factorFit, 100L, OK=c("OK","OK/green", "nonzero gradient/red"))
 omxCheckError(mxBootstrapEval(P, factorFit, compute=T),
 	      "Compute plan MxComputeSequence found in model 'One Factor' instead of MxComputeBootstrap. Have you run this model through mxBootstrap already?")
 
@@ -56,7 +56,7 @@ print(bci)
 omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'lbound'] - bci[,"2.5%"],
                     rep(0,5), .05)
 omxCheckCloseEnough(factorFitCI$output$confidenceIntervals[,'ubound'] - bci[,"97.5%"],
-                    rep(0,5), .02)
+                    rep(0,5), .03)
 
 omxCheckCloseEnough(coef(factorFit), coef(factorFitCI))
 omxCheckCloseEnough(factorFit$output$fit, factorFitCI$output$fit, 0)
