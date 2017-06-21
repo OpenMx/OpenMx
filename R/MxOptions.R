@@ -183,6 +183,25 @@ limitMajorIterations <- function(options, numParam, numConstraints) {
 	options
 }
 
+imxGetNumThreads <- function() {
+	if (imxSfClient()) {
+		return(1L)
+	} else {
+		thrlimit <- as.integer(Sys.getenv("OMP_NUM_THREADS"))
+		if (!is.na(thrlimit)) {
+			return(thrlimit)
+		} else {
+			detect <- omxDetectCores()
+			if(is.na(detect)) detect <- 1L
+					# Due to demand by CRAN maintainers, we default to 2 cores
+					# when OMP_NUM_THREADS is not set. This seems like a bad
+					# policy to the OpenMx team, but we have no choice.
+			else detect <- 2L
+			return(detect)
+		}
+	}
+}
+
 generateOptionsList <- function(model, constraints, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
@@ -210,22 +229,7 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 		options[["useOptimizer"]] <- "No"
 	}
 	if (is.null(options[["Number of Threads"]]) || options[["Number of Threads"]] == 0) {
-		if (imxSfClient()) {
- 			options[["Number of Threads"]] <- 1L 
-		} else {
-			thrlimit <- as.integer(Sys.getenv("OMP_NUM_THREADS"))
-			if (!is.na(thrlimit)) {
-				options[["Number of Threads"]] <- thrlimit
-			} else {
-				detect <- omxDetectCores()
-				if(is.na(detect)) detect <- 1L
-				# Due to demand by CRAN maintainers, we default to 2 cores
-				# when OMP_NUM_THREADS is not set. This seems like a bad
-				# policy to the OpenMx team, but we have no choice.
-				else detect <- 2L
-				options[["Number of Threads"]] <- detect 
-			}
-		}
+		options[["Number of Threads"]] <- imxGetNumThreads()
 	}
 	if (identical(options[["Standard Errors"]], "Yes") &&
 		identical(options[["Calculate Hessian"]], "No")) {
