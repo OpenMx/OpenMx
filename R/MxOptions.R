@@ -89,12 +89,7 @@ processDefaultOptionList <- function(key, value) {
 			omxQuotes(key), "that cannot be found in",
 			"getOption('mxOptions')"))
 	}
-	if (!identical(optionsNames[[match]], key)) {
-		stop(paste("argument 'key' has a value",
-			omxQuotes(key), "but the option is named",
-			omxQuotes(optionsNames[[match]]), ": please correct",
-			"the capitalization and re-run mxOption()."))
-	}
+	key <- optionsNames[[match]] # repair capitalization
 	if (missing(value)) return(defaultOptions[[key]])
 	defaultOptions[[key]] <- value
 	options('mxOptions' = defaultOptions)
