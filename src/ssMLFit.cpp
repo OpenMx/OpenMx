@@ -51,16 +51,15 @@ void ssMLFitState::populateAttr(SEXP algebra)
 void ssMLFitState::compute(int want, FitContext *fc)
 {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
-
+	
 	auto *oo = this;
 	ssMLFitState *state = this;
 	auto dataColumns	= expectation->getDataColumns();
 	omxData *data = expectation->data;
 	int rowcount = data->rows;
-
-	omxSetExpectationComponent(expectation, "Reset", NULL);
+	
 	Eigen::VectorXi contRemove(cov->cols);
-
+	
 	for (int row=0; row < rowcount; ++row) {
 		mxLogSetCurrentRow(row);
 		
@@ -71,11 +70,14 @@ void ssMLFitState::compute(int want, FitContext *fc)
 		}
 		
 		omxSetExpectationComponent(expectation, "y", smallRow);
-
+		
 		expectation->loadDefVars(row);
-
+		if(row == 0){
+			omxSetExpectationComponent(expectation, "Reset", NULL);
+		}
+		
 		omxExpectationCompute(fc, expectation, NULL);
-
+		
 		int numCont = 0;
 		for(int j = 0; j < dataColumns.size(); j++) {
 			if (omxDataElementMissing(data, row, dataColumns[j])) {
