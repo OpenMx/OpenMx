@@ -32,6 +32,10 @@ cmp3 <- mxRun(cmp3)
 
 mxCompare(base, cmp1)  # p=0
 
+pgot <- anova(cmp1, cmp2, cmp3, base)
+omxCheckEquals(is.na(pgot[,'p']), c(T,F,T,T))
+
+set.seed(170623)
 got <-  mxCompare(base, cmp1, boot=TRUE)
 omxCheckCloseEnough(got[2,'p'], 0, 1/nrow(attr(got,'bootData')[[1]]))
 
@@ -44,6 +48,7 @@ got <-  mxCompare(base, cmp2, previousRun = got, replications=500)
 omxCheckCloseEnough(got[2,'p'], pgot[2,'p'], .01)
 
 pgot <- mxCompareMatrix(list(base, cmp2, cmp3), 'p')
-got <- mxCompareMatrix(list(base, cmp2, cmp3), 'p', boot=TRUE)
+got <- mxCompareMatrix(list(base, cmp2, cmp3), 'p', replications=500)
 omxCheckCloseEnough(cor(pgot[lower.tri(got)],
-                        got[lower.tri(got)]), 1, 1e-4)
+                        got[lower.tri(got)]), 1, .01)
+

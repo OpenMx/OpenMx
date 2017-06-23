@@ -16,6 +16,7 @@
 \name{mxCompare}
 \alias{mxCompare}
 \alias{mxCompareMatrix}
+\alias{anova.MxModel}
 
 \title{Likelihood ratio test}
 
@@ -25,18 +26,20 @@
 
 \usage{
 mxCompare(base, comparison, ..., all = FALSE,
-  boot=FALSE, replications=200, previousRun=NULL)
+  boot=FALSE, replications=400, previousRun=NULL)
 mxCompareMatrix(models, statistic, ...,
-  boot=FALSE, replications=200, previousRun=NULL)
+  boot=FALSE, replications=400, previousRun=NULL)
+anova(object, ...)
 }
 
 \arguments{
    \item{base}{A MxModel object or list of MxModel objects.}
+   \item{object}{An MxModel object.}
    \item{comparison}{A MxModel object or list of MxModel objects.}
    \item{models}{A MxModel object or list of MxModel objects.}
    \item{statistic}{A vector of up to two statistics with which to populate the
    returned matrix.}
-   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{...}{Not used except for anova.}
    \item{all}{A boolean value on whether to compare all bases with all
      comparisons. Defaults to FALSE.}
    \item{boot}{Whether to use the bootstrap distribution to compute the
@@ -88,7 +91,10 @@ specifically that the two models being compared are nested. The
 likelihood ratio test and associated p-values are not valid when the
 comparison model is not nested in the referenced base model. For a more
 accurate p-value, the empirical bootstrap distribution can be computed
-(\sQuote{boot=TRUE}).
+(\sQuote{boot=TRUE}). However, \sQuote{replications} must be set high
+enough for an accurate approximation. The Monte Carlo SE of a proportion
+for B replications is \eqn{\sqrt(p*(1-p)/B)}, but this will be zero if p
+is zero, which is nonsense.
 
 Use options('digits' = N) to set the minimum number of significant digits to be printed in values. The mxCompare function does not directly accept a digits argument, and depends on the value of the 'digits' option.
 }

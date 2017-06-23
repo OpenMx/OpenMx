@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 mxCompare <- function(base, comparison, ..., all = FALSE,
-		      boot=FALSE, replications=200, previousRun=NULL) {
+		      boot=FALSE, replications=400, previousRun=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxCompare does not accept values for the '...' argument")
@@ -51,7 +51,7 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 }
 
 mxCompareMatrix <- function(models, statistic, ...,
-			    boot=FALSE, replications=200, previousRun=NULL) {
+			    boot=FALSE, replications=400, previousRun=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxCompareMatrix does not accept values for the '...' argument")
@@ -99,6 +99,80 @@ mxCompareMatrix <- function(models, statistic, ...,
 }
 
 print.result.mxCompareMatrix <- function(x,...) print(x[,])
+
+anova.MxModel <- function(object, ...) {
+	args <- list(...)
+	boot <- FALSE
+
+	replications <- 400L
+	ap <- match('replications', names(args))
+	if (!is.na(ap)) {
+		boot <- TRUE
+		replications <- args[[ap]]
+		args <- args[-ap]
+	}
+	
+	previousRun <- NULL
+	ap <- match('previousRun', names(args))
+	if (!is.na(ap)) {
+		boot <- TRUE
+		previousRun <- args[[ap]]
+		args <- args[-ap]
+	}
+
+	ap <- match('boot', names(args))
+	if (!is.na(ap)) {
+		boot <- args[[ap]]
+		args <- args[-ap]
+	}
+
+	comparison <- args
+	if(!all(sapply(comparison, is, "MxModel"))) {
+		stop("The '...' argument must consist of MxModel objects")
+	}
+	models <- c(list(object), comparison)
+	summaries <- lapply(models, summary)
+	stats <- data.frame(m2ll=unlist(Map(function(x) x$Minus2LogLikelihood, summaries)),
+			    df  =unlist(Map(function(x) x$degreesOfFreedom, summaries)))
+	mo <- with(stats, order(df, m2ll))
+	models <- models[mo]
+	stats <- stats[mo,]
+
+	bootData <- NULL
+	if (boot) {
+		bootTodo <- list()
+		for (rx in 2:length(models)) {
+			if (stats[rx-1,'m2ll'] >= stats[rx,'m2ll'] ||
+			    stats[rx-1,'df'] >= stats[rx,'df']) next
+			nChar <- as.character(rx)
+			bootTodo[[ nChar ]] <- rx-1
+		}
+		bootData <- setupBootData(models, models, bootTodo, replications, previousRun)
+		bootData <- fillBootData(models, models, bootTodo, bootData)
+	}
+
+	result <- list()
+
+	result[[ length(result) + 1L ]] <- 
+		collectBaseStatistics(newEmptyCompareRow(), models[[1]])
+
+	for (i in 2:length(models)) {
+		if (stats[i-1,'m2ll'] > stats[i,'m2ll']) {
+			result[[ length(result) + 1L ]] <-
+				collectBaseStatistics(newEmptyCompareRow(), models[[i]])
+			next
+		}
+		boot1 <- extractLRTBootstrapPair(bootData, i, i-1)
+		result[[ length(result) + 1L ]] <-
+			collectStatistics(newEmptyCompareRow(), models[[i-1]], models[[i]], boot1)
+	}
+
+	ret <- do.call(rbind, result)
+	if (boot) {
+		attr(ret, "bootData") <- bootData
+	}
+	ret
+}
 
 newEmptyCompareRow <- function() {
 	data.frame(stringsAsFactors = FALSE,
@@ -172,7 +246,7 @@ loadDataIntoModel <- function(model, dataList) {
 }
 
 setupBootData <- function(nullHyp, comparison, todo,
-                                  replications=200, previousRun) {
+			  replications, previousRun) {
   
   # pre-check data compatibility of nullHyp and comparison? TODO
 
@@ -258,7 +332,6 @@ fillBootData <- function(nullHyp, comparison, todo, bootData) {
 				  cmp1 <- mxRun(cmp1, silent=TRUE)
 
 				  cmpData[repl, 'fit'] <- cmp1$output$fit
-				  if (cmp1$output$fit > null1$output$fit) stop("backwards")
 				  cmpData[repl, names(coef(cmp1))] <- coef(cmp1)
 				  cmpData[repl, 'statusCode'] <- as.statusCode(cmp1$output$status$code)
 				  
@@ -399,8 +472,11 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 				stop("Some seeds do not match")
 			}
 			
+			# If optimization goes wrong, the null model could fit better than
+			# the alternative model. We exclude these replications.
 			mask <- (baseData[,'statusCode'] %in% mxOption(other, "Status OK") &
-				 cmpData[,'statusCode'] %in% mxOption(ref, "Status OK"))
+				 cmpData[,'statusCode'] %in% mxOption(ref, "Status OK") &
+				 baseData[,'fit'] - cmpData[,'fit'] > 0)
 			if (sum(mask) < 3) {
 				stop(paste("Less than 3 replications are available.",
 					   "Use mxParametricBootstrap to increase the number of replications."))
