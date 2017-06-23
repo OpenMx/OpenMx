@@ -48,7 +48,7 @@ mxCompareMatrix(models, statistic, ...,
 
 \details{
 The mxCompare function is used to compare the fit of one or more
-\link{MxMatrix} objects with output to one or more comparison
+\link{MxModel} objects with output to one or more comparison
 models. \code{mxCompareMatrix} compares all the models provided against
 each other. Fit statistics for the comparison model or models are subtracted from the fit statistics for the base model or models. All models included in the \sQuote{base} argument are also listed without comparison (compared to a <NA> model) to present their raw fit statistics.
 
