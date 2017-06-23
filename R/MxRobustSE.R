@@ -69,13 +69,21 @@ imxRowGradients <- function(model){
 ##' errors throughout OpenMx.  The "meat" of the sandwich is the covariance
 ##' matrix of the numerically computed row derivatives of the likelihood function
 ##' (i.e. row gradients).
+##' 
+##' When \code{details=FALSE}, only the standard errors are returned.  When \code{details=TRUE},
+##' a list with named elements \code{SE} and \code{cov} is returned.  The \code{SE} element is the vector of standard errors that is also returned when \code{details=FALSE}.  The \code{cov} element is the full covariance matrix of the parameter estimates.  The square root of the diagonal of \code{cov} gives the standard errors.
 ##'
 ##' @param model An OpenMx model object that has been run
-imxRobustSE <- function(model){
+##' @param details logical. whether to return the full parameter covariance matrix
+imxRobustSE <- function(model, details=FALSE){
 	grads <- imxRowGradients(model)/-2
 	hess <- model@output$hessian/2
 	ret <- OpenMx::"%&%"(solve(hess), nrow(grads)*var(grads))
-	return(sqrt(diag(ret)))
+	if(details){
+		return(list(SE=sqrt(diag(ret)), cov=ret))
+	} else {
+		return(sqrt(diag(ret)))
+	}
 }
 
 #robse <- imxRobustSE(thresholdModelrun)
