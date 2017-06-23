@@ -258,3 +258,54 @@ omxCheckTrue(is.na(regsl[100,1,1]))
 omxCheckTrue(is.na(regsl[100,1,2]))
 omxCheckTrue(cor(regsl[,,1], r2[,,1], use="complete.obs") > 0.95)
 
+
+#------------------------------------------------------------------------------
+# Check some data generation for LISREL too
+
+
+nvar <- 6
+varnames <- paste("x",1:nvar,sep="")
+
+# specify model with out means and try to generate data
+ssModelLisrel <- mxModel(model="lisrel",
+	mxMatrix("Full",6,6,TRUE,.2,name="BE"),
+	mxMatrix("Full",6,6,TRUE,.5,name="LY",dimnames=list(varnames,varnames)),
+	mxMatrix("Diag",6,6,FALSE,1,name="PS"),
+	mxMatrix("Diag",6,6,FALSE,1,name="TE"),
+	mxExpectationLISREL(BE="BE",LY="LY",PS="PS",TE="TE"),
+	mxFitFunctionML()
+	)
+
+omxCheckWarning(mxGetExpected(ssModelLisrel, 'means'),
+	"Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or KA matrices to get real means.")
+
+omxCheckWarning(
+	omxCheckError(ssDataLisrel <- mxGenerateData(ssModelLisrel,200),
+		"mean and sigma have non-conforming size"),
+	"Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or KA matrices to get real means."
+)
+# Causes error/warning
+
+
+# Add means and it works fine
+ssModelLisrel <- mxModel(ssModelLisrel, name="lisrel",
+	mxMatrix("Full",6,1,FALSE,2,name="AL"),
+	mxMatrix("Full",6,1,FALSE,2,name="TY"),
+	mxExpectationLISREL(BE="BE",LY="LY",PS="PS",TE="TE",AL="AL",TY="TY")
+)
+
+# Check expectations
+omxCheckCloseEnough(mxGetExpected(ssModelLisrel, 'means'), matrix(-28, 6), 1e-10)
+cc <- matrix(37.5, 6, 6)
+diag(cc) <- 38.5
+omxCheckCloseEnough(mxGetExpected(ssModelLisrel, 'covariance'), cc, 1e-10)
+
+
+# Check data generation
+set.seed(72)
+ssDataLisrel <- mxGenerateData(ssModelLisrel, 200)
+omxCheckEquals(dim(ssDataLisrel), c(200, 6))
+rms <- function(x, y){sqrt(mean((x-y)^2))}
+omxCheckTrue(rms(colMeans(ssDataLisrel), rep(-28, 6)) < 1)
+
+
