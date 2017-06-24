@@ -77,6 +77,9 @@ for(i in 1:length(multiSubjGrowthRun$submodels)){
 	ksAll[i,] <- mxKalmanScores(multiSubjGrowthRun$submodels[[i]], frontend=TRUE)$xSmoothed[1,]
 }
 
+# TODO Bug fix: when frontend=FALSE the results are different
+#  and incorrect
+
 
 #------------------------------------------------------------------------------
 # Run the linear mixed effects model for comparison
