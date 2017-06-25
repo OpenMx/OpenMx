@@ -16,7 +16,6 @@
 \name{mxCompare}
 \alias{mxCompare}
 \alias{mxCompareMatrix}
-\alias{anova.MxModel}
 
 \title{Likelihood ratio test}
 
@@ -29,17 +28,15 @@ mxCompare(base, comparison, ..., all = FALSE,
   boot=FALSE, replications=400, previousRun=NULL)
 mxCompareMatrix(models, statistic, ...,
   boot=FALSE, replications=400, previousRun=NULL)
-anova(object, ...)
 }
 
 \arguments{
    \item{base}{A MxModel object or list of MxModel objects.}
-   \item{object}{An MxModel object.}
    \item{comparison}{A MxModel object or list of MxModel objects.}
    \item{models}{A MxModel object or list of MxModel objects.}
    \item{statistic}{A vector of up to two statistics with which to populate the
    returned matrix.}
-   \item{...}{Not used except for anova.}
+   \item{...}{Not used.}
    \item{all}{A boolean value on whether to compare all bases with all
      comparisons. Defaults to FALSE.}
    \item{boot}{Whether to use the bootstrap distribution to compute the
@@ -51,7 +48,7 @@ anova(object, ...)
 
 \details{
 The mxCompare function is used to compare the fit of one or more
-\link{MxModel} objects with output to one or more comparison
+\link{MxMatrix} objects with output to one or more comparison
 models. \code{mxCompareMatrix} compares all the models provided against
 each other. Fit statistics for the comparison model or models are subtracted from the fit statistics for the base model or models. All models included in the \sQuote{base} argument are also listed without comparison (compared to a <NA> model) to present their raw fit statistics.
 
