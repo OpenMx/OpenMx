@@ -52,7 +52,11 @@ oneFactorModel <- mxModel("Common Factor Model Path Specification", type="RAM",
                         dataRaw, resVars, latVar, facLoads, means)
 oneFactorFit <- mxRun(oneFactorModel)    
 set.seed(170505)
-oneFactorBoot <- mxBootstrap(oneFactorFit,plan=mxComputeGradientDescent())
+
+# replications=20 is only here to make the example run quickly.
+# You should use many more replications for higher accuracy.
+
+oneFactorBoot <- mxBootstrap(oneFactorFit,plan=mxComputeGradientDescent(),replications=20)
 mxBootstrapStdizeRAMpaths(oneFactorBoot)
 }
 
