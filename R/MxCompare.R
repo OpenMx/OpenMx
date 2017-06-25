@@ -35,7 +35,10 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 		stop("The 'base' argument must consist of MxModel objects")
 	}
 	
-	if(!missing(comparison)) {
+	if (missing(comparison)) {
+		# no comparison models, just make a dummy list to feed to showFitStatistics
+		comparison <- list()
+	} else {
 		if (is.list(comparison)) {
 			comparison <- unlist(comparison)
 		} else {
