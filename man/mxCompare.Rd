@@ -15,29 +15,55 @@
 
 \name{mxCompare}
 \alias{mxCompare}
+\alias{mxCompareMatrix}
 
-\title{Assign Model Parameters}
+\title{Likelihood ratio test}
 
 \description{
     Compare the fit of a model or set of models to a reference model or set of reference models.
-    The output is a table with one row per model comparison.
 }
 
 \usage{
-mxCompare(base, comparison, ..., all = FALSE)
+mxCompare(base, comparison, ..., all = FALSE,
+  boot=FALSE, replications=400, previousRun=NULL)
+mxCompareMatrix(models, statistic, ...,
+  boot=FALSE, replications=400, previousRun=NULL)
 }
 
 \arguments{
    \item{base}{A MxModel object or list of MxModel objects.}
    \item{comparison}{A MxModel object or list of MxModel objects.}
-   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
-   \item{all}{A boolean value on whether to compare all bases with all comparisons. Defaults to FALSE.}
+   \item{models}{A MxModel object or list of MxModel objects.}
+   \item{statistic}{A vector of up to two statistics with which to populate the
+   returned matrix.}
+   \item{...}{Not used.}
+   \item{all}{A boolean value on whether to compare all bases with all
+     comparisons. Defaults to FALSE.}
+   \item{boot}{Whether to use the bootstrap distribution to compute the
+     p-value.}
+   \item{replications}{How many replications to use to approximate the
+     bootstrap distribution.}
+   \item{previousRun}{Results to re-use from a previous bootstrap.}
 }
 
 \details{
-The mxCompare function is used to compare the fit of one or more \link{MxMatrix} objects with output to one or more comparison models. Fit statistics for the comparison model or models are subtracted from the fit statistics for the base model or models. All models included in the \sQuote{base} argument are also listed without comparison (compared to a <NA> model) to present their raw fit statistics.
+The mxCompare function is used to compare the fit of one or more
+\link{MxMatrix} objects with output to one or more comparison
+models. \code{mxCompareMatrix} compares all the models provided against
+each other. Fit statistics for the comparison model or models are subtracted from the fit statistics for the base model or models. All models included in the \sQuote{base} argument are also listed without comparison (compared to a <NA> model) to present their raw fit statistics.
 
-Model comparisons are made by subtracting the fit of the comparison model from the fit of a base model. To make sure that the differences between models are positive and yield p-values for likelihood ratio tests, the model or models listed in the \sQuote{base} argument should be more saturated (i.e., more estimated parameters and fewer degrees of freedom) than models listed in the \sQuote{comparison} argument. If a comparison is made where the comparison model has a higher minus 2 log likelihood (-2LL) than the base model, then the difference in their -2LLs will be negative. P-values for likelihood ratio tests will not be reported when either the -2LL or degrees of freedom for the comparison are negative.
+Model comparisons are made by subtracting the fit of the comparison
+model from the fit of a base model. To make sure that the differences
+between models are positive and yield p-values for likelihood ratio
+tests, the model or models listed in the \sQuote{base} argument should
+be more saturated (i.e., more estimated parameters and fewer degrees of
+freedom) than models listed in the \sQuote{comparison} argument. For
+\code{mxCompareMatrix} only the comparisons that make sense will be
+included. If a comparison is made where the comparison model has a
+higher minus 2 log likelihood (-2LL) than the base model, then the
+difference in their -2LLs will be negative. P-values for likelihood
+ratio tests will not be reported when either the -2LL or degrees of
+freedom for the comparison are negative.
 
 When multiple models are included in both the \sQuote{base} and \sQuote{comparison} arguments, then comparisons are made between the two lists of models based on the value of the \sQuote{all} argument. If \sQuote{all} is set to FALSE (default), then the first model in the \sQuote{base} list is compared to the first model in the \sQuote{comparison} list, second with second, and so on. If there are an unequal number of \sQuote{base} and \sQuote{comparison} models, then the shorter list of models is repeated to match the length of the longer list. For example, comparing base models \sQuote{B1} and \sQuote{B2} with comparison models \sQuote{C1}, \sQuote{C2} and \sQuote{C3} will yield three comparisons: \sQuote{B1} with \sQuote{C1}, \sQuote{B2} with \sQuote{C2}, and \sQuote{B1} with \sQuote{C3}. Each of those comparisons are prefaced by a comparison between the base model and a missing comparison model to present the fit of the base model.
 
@@ -55,7 +81,17 @@ The following columns appear in the output:
 \item{diffdf}{Difference in degrees of freedoms of the base and comparison models. Will be positive when base model DF is lower than comparison model DF (base model estimated parameters is higher than comparison model estimated parameters)}
 \item{p}{P-value for likelihood ratio test based on diffLL and diffdf values.}}
 
-The mxCompare function will give a p-value for any comparison in which both \sQuote{diffLL} and \sQuote{diffdf} are non-negative. However, this p-value is based on the assumptions of the likelihood ratio test, specifically that the two models being compared are nested. The likelihood ratio test and associated p-values are not valid when the comparison model is not nested in the referenced base model.
+The mxCompare function will give a p-value for any comparison in which
+both \sQuote{diffLL} and \sQuote{diffdf} are non-negative. However, this
+p-value is based on the assumptions of the likelihood ratio test,
+specifically that the two models being compared are nested. The
+likelihood ratio test and associated p-values are not valid when the
+comparison model is not nested in the referenced base model. For a more
+accurate p-value, the empirical bootstrap distribution can be computed
+(\sQuote{boot=TRUE}). However, \sQuote{replications} must be set high
+enough for an accurate approximation. The Monte Carlo SE of a proportion
+for B replications is \eqn{\sqrt(p*(1-p)/B)}, but this will be zero if p
+is zero, which is nonsense.
 
 Use options('digits' = N) to set the minimum number of significant digits to be printed in values. The mxCompare function does not directly accept a digits argument, and depends on the value of the 'digits' option.
 }

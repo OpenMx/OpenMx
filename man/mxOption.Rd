@@ -84,7 +84,9 @@ Analytic Gradients \tab [Yes | No] \tab should the optimizer use analytic gradie
 loglikelihoodScale \tab \var{i} \tab factor by which the loglikelihood is scaled. \cr
 Parallel diagnostics \tab [Yes | No] \tab whether to issue diagnostic
 messages about use of multiple threads \cr
-Nudge zero starts \tab [TRUE | FALSE] \tab Should OpenMx "nudge"" starting values of zero to 0.1 at runtime?
+Nudge zero starts \tab [TRUE | FALSE] \tab Should OpenMx
+"nudge"" starting values of zero to 0.1 at runtime? \cr
+Status OK \tab character vector \tab Status codes that are considered to indicate a successful optimization
 }
 
 
@@ -150,7 +152,7 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 }
 
 \seealso{
-See \code{\link{mxModel}()}, as almost all uses of \code{mxOption()} are via an mxModel whose options are set or cleared.  See \code{\link{mxComputeGradientDescent}()} for details on how different optimizers are affected by different options.
+See \code{\link{mxModel}()}, as almost all uses of \code{mxOption()} are via an mxModel whose options are set or cleared.  See \code{\link{mxComputeGradientDescent}()} for details on how different optimizers are affected by different options. See \link{as.statusCode} for information about the \code{Status OK} option.
 }
 
 

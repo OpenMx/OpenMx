@@ -34,9 +34,11 @@ exportMethods(nrow, ncol, length, names, dimnames, show, print)
 
 # export S3 methods in the OpenMx library
 S3method(print, summary.mxmodel)
+S3method(print, result.mxCompareMatrix)
 S3method(logLik, MxModel)
 S3method(coef, MxModel)
 S3method(summary, MxModel)
+S3method(anova, MxModel)
 
 # Export S3 .DollarNames functions
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function

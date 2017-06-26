@@ -15,7 +15,7 @@
 mxBootstrap(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
-			OK=c("OK", "OK/green"))
+			OK=mxOption(model, "Status OK"))
 }
 
 \arguments{
