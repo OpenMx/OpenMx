@@ -91,7 +91,9 @@ accurate p-value, the empirical bootstrap distribution can be computed
 (\sQuote{boot=TRUE}). However, \sQuote{replications} must be set high
 enough for an accurate approximation. The Monte Carlo SE of a proportion
 for B replications is \eqn{\sqrt(p*(1-p)/B)}, but this will be zero if p
-is zero, which is nonsense.
+is zero, which is nonsense.  Note that a parametric-bootstrap p-value of
+zero must be interpreted as \eqn{p < 1/B}, which, depending on \eqn{B}
+and the desired Type I error rate, may not be "statistically significant."
 
 Use options('digits' = N) to set the minimum number of significant digits to be printed in values. The mxCompare function does not directly accept a digits argument, and depends on the value of the 'digits' option.
 }

@@ -74,7 +74,7 @@ mxBootstrap(model, replications=200, ...,
   the compute plan modified to consist of
   \code{mxComputeBootstrap}. Results of the bootstrap replications are
   stored inside the compute plan. \code{\link{mxSummary}} can be used to
-  obtain per-parameter quantiles.
+  obtain per-parameter quantiles and standard errors.
 }
 
 \seealso{
