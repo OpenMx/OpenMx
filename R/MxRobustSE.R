@@ -72,6 +72,8 @@ imxRowGradients <- function(model){
 ##' 
 ##' When \code{details=FALSE}, only the standard errors are returned.  When \code{details=TRUE},
 ##' a list with named elements \code{SE} and \code{cov} is returned.  The \code{SE} element is the vector of standard errors that is also returned when \code{details=FALSE}.  The \code{cov} element is the full covariance matrix of the parameter estimates.  The square root of the diagonal of \code{cov} gives the standard errors.
+##' 
+##' This function may not work correctly if 'model' is a multigroup model.  This function also does not correctly handle multilevel data.
 ##'
 ##' @param model An OpenMx model object that has been run
 ##' @param details logical. whether to return the full parameter covariance matrix
