@@ -481,8 +481,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 				 cmpData[,'statusCode'] %in% mxOption(ref, "Status OK") &
 				 baseData[,'fit'] - cmpData[,'fit'] > 0)
 			if (sum(mask) < 3) {
-				stop(paste("Less than 3 replications are available.",
-					   "Use mxParametricBootstrap to increase the number of replications."))
+				stop(paste("Less than 3 replications are available."))
 			}
 			if (sum(mask) < .95*length(mask)) {
 				pct <- round(100*sum(mask) / length(mask))
