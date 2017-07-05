@@ -415,6 +415,12 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 		
 	# select ordinal variables
 	ords <- unlist(lapply(data, is.ordered))
+	badFactors <- !ords & unlist(lapply(data, is.factor))
+	if (any(badFactors)) {
+		stop(paste("Factors", omxQuotes(colnames(data)[badFactors]),
+			   "must be ordered and are not"))
+	}
+
 	nvar <- sum(ords)
 	ntvar <- ncol(data)
 	n <- dim(data)[1]
