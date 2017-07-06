@@ -451,6 +451,13 @@ generateRelationalData <- function(model, returnModel, .backend) {
 	}
 }
 
+simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
+	if (!is.null(seed)) {
+		set.seed(seed)
+	}
+	mxGenerateData(object, nsim)
+}
+
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
 			   ..., .backend=TRUE) {
 	garbageArguments <- list(...)

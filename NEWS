@@ -1,4 +1,5 @@
 # OpenMx bleed / 2.8.0 in the making
+* NEW: Add simulate S3 alias for mxGenerateData
 * FIXED: Rampart sufficient statistic optimization no longer interferes with zero variance predictors.
 * NEW: Add MxExpectationMixture interface.
 * Nelder-Mead: "GDsearch" method for handling equality constraints.

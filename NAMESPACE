@@ -7,7 +7,7 @@ importFrom(Matrix, nearPD)
 importFrom(utils, .DollarNames, installed.packages, packageVersion, read.table)
 importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize, quantile,
 	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var, sd)
-importFrom("stats", "coef", "rcauchy")
+importFrom("stats", "coef", "rcauchy", simulate)
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -39,6 +39,7 @@ S3method(logLik, MxModel)
 S3method(coef, MxModel)
 S3method(summary, MxModel)
 S3method(anova, MxModel)
+S3method(simulate, MxModel)
 
 # Export S3 .DollarNames functions
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function
