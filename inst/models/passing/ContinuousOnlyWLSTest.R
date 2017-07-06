@@ -35,6 +35,10 @@
 require(OpenMx)
 data(Bollen)
 
+Bollen1 <- Bollen
+Bollen1[1,'y1'] <- NA
+omxCheckError(mxDataWLS(Bollen1[, 1:8]),
+              "All continuous data with missingness cannot be handled in the WLS framework. Use na.omit(yourDataFrame) to remove rows with missing values or use maximum likelihood instead")
 
 #--------------------------------------
 # Set up  model matrices
