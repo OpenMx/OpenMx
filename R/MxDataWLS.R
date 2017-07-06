@@ -46,7 +46,7 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 		row <- row+numCols-j+1
 	}
 	
-	if(type=="DWLS") {
+	if(type=="DLS" || type=="DWLS") {
 		for(i in 1:numColsStar){
 			U[i,i] <- 1/(sum((x[,M[i, 1]]**2) * (x[,M[i, 2]]**2)) / numRows - V[M[i, 1], M[i, 2]]**2)
 		}
@@ -397,7 +397,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	# version 0.2
 	#
 	#available types
-	wlsTypes <- c("ULS", "DLS", "WLS", "XLS")
+	wlsTypes <- c("ULS", "DLS", "DWLS", "WLS", "XLS")
 	
 	# error checking
 	if (!is.data.frame(data)){
@@ -643,7 +643,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}
-	if (type=="DLS"){
+	if (type=="DLS" || type=="DWLS"){
 		retVal@acov <- dls
 		}	
 	if (type=="WLS"){

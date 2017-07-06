@@ -16,12 +16,12 @@
 \name{mxDataWLS}
 \alias{mxDataWLS}
 
-\title{Create MxData Object for Least Squares (WLS, DLS, ULS) Analyses}
+\title{Create MxData Object for Least Squares (WLS, DWLS, ULS) Analyses}
 
 \description{
    This function creates a new \link{MxData} object of type 
    \dQuote{ULS} (unweighted least squares), \dQuote{WLS} (weighted least squares) 
-   or \dQuote{DLS} (diagonally-weighted least squares). The appropriate
+   or \dQuote{DWLS} (diagonally-weighted least squares). The appropriate
    fit function to include with these models is \code{\link{mxFitFunctionWLS}}
 }
 
@@ -32,7 +32,8 @@
 
 \arguments{
    \item{data}{A matrix or data.frame which provides raw data to be used for WLS.}
-   \item{type}{A character string 'WLS' (default), 'DLS', or 'ULS' for weighted, diagonal, or unweighted least squares}
+   \item{type}{A character string 'WLS' (default), 'DWLS', or 'ULS' for
+   weighted, diagonally weighted, or unweighted least squares, respectively}
    \item{useMinusTwo}{Logical indicating whether to use -2LL (default) or -LL.}
    \item{returnInverted}{Logical indicating whether to return the information matrix (default) or the covariance matrix.}
    \item{debug}{Logical to set debugging on or off (default)}
@@ -46,7 +47,7 @@ an \code{MxData} object to be used in a model to fit with weighted least squares
 
 Both Ordinal and continuous data are supported.  A combination of these data 
 types also succeeds. Early tests suggested that full 'WLS' might be biased in 
-this joint ordinal and continuous case, whereas 'ULS' and 'DLS' were unbiased.
+this joint ordinal and continuous case, whereas 'ULS' and 'DWLS' were unbiased.
 However further investigation revealed that all of these were unbiased when the model is correct, but full
 'WLS' is highly sensitive to model misspecification. Full 'WLS' can heavily weight the
 fourth-order moments of the distribution, so small deviations between the observed 
