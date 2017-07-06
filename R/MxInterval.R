@@ -437,3 +437,25 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L) {
 	model@output$cpuTime <- container@output$cpuTime
 	return(model)
 }
+
+confint.MxModel <- function(object, parm, level = 0.95, ...) {
+	allParam <- names(coef(object))
+	if (missing(parm)) parm <- allParam
+	if (!object@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+	assertModelFreshlyRun(object)
+	se <- c(object$output[['standardErrors']])
+	if (is.null(se)) stop("No standard errors are available")
+	names(se) <- allParam
+	se <- se[parm]
+	if (any(is.na(se))) stop(paste("Some standard errors are NA:",
+				       omxQuotes(names(se)[is.na(se)])))
+	est <- coef(object)[parm]
+	alpha <- (1-level)/2
+	thresh <- qnorm(1 - alpha)
+	df <- data.frame(lower=est - se * thresh,
+			 upper=est + se * thresh)
+	rownames(df) <- names(est)
+	colnames(df) <- sapply(c(alpha, 1-alpha),
+			       function(x) sprintf("%.1f%%", round(100*min(x), 1)))
+	df
+}

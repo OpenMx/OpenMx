@@ -1539,7 +1539,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 		return;
 	}
 
-	Global->unpackConfidenceIntervals(mle->state);
+	omxState *state = fitMatrix->currentState;
+	Global->unpackConfidenceIntervals(state);
 
 	// Not strictly necessary, but makes it easier to run
 	// mxComputeConfidenceInterval alone without other compute
@@ -1565,9 +1566,16 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
 	int totalIntervals = 0;
-	for(int j = 0; j < numInts; j++) {
-		ConfidenceInterval *oCI = Global->intervalList[j];
-		totalIntervals += (oCI->bound != 0.0).count();
+	{
+		Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
+		interval.fill(NA_REAL);
+		for(int j = 0; j < numInts; j++) {
+			ConfidenceInterval *oCI = Global->intervalList[j];
+			omxMatrix *ciMat = oCI->getMatrix(state);
+			omxRecompute(ciMat, mle);
+			interval(j, 1) = omxMatrixElement(ciMat, oCI->row, oCI->col);
+			totalIntervals += (oCI->bound != 0.0).count();
+		}
 	}
 
 	int numDetailCols = 7 + mle->numParam;
@@ -1610,7 +1618,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	markAsDataFrame(detail, totalIntervals);
 
-	omxState *state = fitMatrix->currentState;
 	FitContext fc(mle, mle->varGroup);
 	FreeVarGroup *freeVarGroup = fc.varGroup;
 
@@ -1640,13 +1647,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 	mle->copyParamToModel();
 
 	Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
-	interval.fill(NA_REAL);
 	int* intervalCode = INTEGER(intervalCodes);
 	for(int j = 0; j < numInts; j++) {
 		ConfidenceInterval *oCI = Global->intervalList[j];
-		omxMatrix *ciMat = oCI->getMatrix(state);
-		omxRecompute(ciMat, mle);
-		interval(j, 1) = omxMatrixElement(ciMat, oCI->row, oCI->col);
 		interval(j, 0) = std::min(oCI->val[ConfidenceInterval::Lower], interval(j, 1));
 		interval(j, 2) = std::max(oCI->val[ConfidenceInterval::Upper], interval(j, 1));
 		intervalCode[j] = oCI->code[ConfidenceInterval::Lower];

@@ -392,6 +392,7 @@ omxGetBootstrapReplications <- function(model) {
 		     "instead of MxComputeBootstrap. Have you run this model",
 		     "through mxBootstrap already?"))
   }
+   assertModelFreshlyRun(model)
   cb <- model@compute
   if (is.null(cb@output$raw)) {
 	  stop(paste("No bootstrap data found. Please run this model",
