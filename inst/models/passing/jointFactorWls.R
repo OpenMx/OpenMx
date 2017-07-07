@@ -52,6 +52,13 @@ rms <- function(x, y=NA){
 jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
 jointData <- read.table("data/jointdata.txt", header=TRUE)
 
+badJointData <- jointData
+badJointData[,c(2,4,5)] <- data.frame(mapply(factor, jointData[,c(2,4,5)],
+					     levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)),
+		  SIMPLIFY=FALSE), check.names = FALSE, row.names=rownames(jointData))
+omxCheckError(mxDataWLS(badJointData),
+              "Factors 'z2', 'z4', and 'z5' must be ordered and are not")
+
 # specify ordinal columns as ordered factors
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))

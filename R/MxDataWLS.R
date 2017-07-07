@@ -46,7 +46,7 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 		row <- row+numCols-j+1
 	}
 	
-	if(type=="DWLS") {
+	if(type=="DLS" || type=="DWLS") {
 		for(i in 1:numColsStar){
 			U[i,i] <- 1/(sum((x[,M[i, 1]]**2) * (x[,M[i, 2]]**2)) / numRows - V[M[i, 1], M[i, 2]]**2)
 		}
@@ -397,7 +397,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	# version 0.2
 	#
 	#available types
-	wlsTypes <- c("ULS", "DLS", "WLS", "XLS")
+	wlsTypes <- c("ULS", "DLS", "DWLS", "WLS", "XLS")
 	
 	# error checking
 	if (!is.data.frame(data)){
@@ -415,6 +415,12 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 		
 	# select ordinal variables
 	ords <- unlist(lapply(data, is.ordered))
+	badFactors <- !ords & unlist(lapply(data, is.factor))
+	if (any(badFactors)) {
+		stop(paste("Factors", omxQuotes(colnames(data)[badFactors]),
+			   "must be ordered and are not"))
+	}
+
 	nvar <- sum(ords)
 	ntvar <- ncol(data)
 	n <- dim(data)[1]
@@ -427,7 +433,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	imxReportProgress(msg, 0)
 	
 	# if no ordinal variables, use continuous-only helper
-	if(nvar ==0){ #N.B. This fails for any missing data
+	if(nvar ==0){
+		if (any(is.na(data))) {
+			imxReportProgress("", msgLen)
+			stop(paste("All continuous data with missingness cannot be",
+				   "handled in the WLS framework.",
+				   "Use na.omit(yourDataFrame) to remove rows with missing values",
+				   "or use maximum likelihood instead"))
+		}
 		wls <- wlsContinuousOnlyHelper(data, type)
 		return(mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n))
 	}
@@ -637,7 +650,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	if (type=="ULS"){
 		retVal@acov <- uls
 		}
-	if (type=="DLS"){
+	if (type=="DLS" || type=="DWLS"){
 		retVal@acov <- dls
 		}	
 	if (type=="WLS"){

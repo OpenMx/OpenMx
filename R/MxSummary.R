@@ -936,13 +936,17 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	return(retval)
 }
 
-logLik.MxModel <- function(object, ...) {
-	model <- object
+assertModelFreshlyRun <- function(model) {
 	if (model@.wasRun && model@.modifiedSinceRun) {
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
-			     "since it was run. The log likelihood may be out-of-date.")
+			     "since it was run.")
 		warning(msg)
 	}
+}
+
+logLik.MxModel <- function(object, ...) {
+	model <- object
+	assertModelFreshlyRun(model)
 	ll <- NA
 	if (!is.null(model@output) & !is.null(model@output$Minus2LogLikelihood)) {
 		ll <- -0.5*model@output$Minus2LogLikelihood
@@ -1079,11 +1083,8 @@ logLik.MxModel <- function(object, ...) {
   return(out)
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
-	if (model@.wasRun && model@.modifiedSinceRun){
-		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
-			     "since it was run.")
-		warning(msg)
-	}
+	assertModelFreshlyRun(model)
+
   #If SE=T,need to check for independent submodels because they will have their own Hessians;
   #recur main function as appropriate:
   inde.subs.flag <- FALSE
@@ -1219,11 +1220,6 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 			"MxModel ",omxQuotes(model@name),
 			" does not use RAM expectation\n(to use mxBootstrapStdizeRAMpaths() on a RAM submodel, run the function directly on that submodel",sep="")
 		stop(msg)
-	}
-	if (model@.wasRun && model@.modifiedSinceRun){
-		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
-								 "since it was run.")
-		warning(msg)
 	}
 	method <- match.arg(method)
 	realstdpaths <- .mxStandardizeRAMhelper(model=model,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)

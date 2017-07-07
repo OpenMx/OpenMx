@@ -40,6 +40,7 @@ S3method(coef, MxModel)
 S3method(summary, MxModel)
 S3method(anova, MxModel)
 S3method(simulate, MxModel)
+S3method(confint, MxModel)
 
 # Export S3 .DollarNames functions
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function
