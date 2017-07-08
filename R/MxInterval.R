@@ -457,5 +457,6 @@ confint.MxModel <- function(object, parm, level = 0.95, ...) {
 	rownames(df) <- names(est)
 	colnames(df) <- sapply(c(alpha, 1-alpha),
 			       function(x) sprintf("%.1f%%", round(100*min(x), 1)))
+	message("Wald type confidence intervals (see ?mxCI for likelihood-based CIs)")
 	df
 }
