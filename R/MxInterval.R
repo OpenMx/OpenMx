@@ -186,7 +186,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			free <- entity@free
 			for(i in 1:rows) {
 				for(j in 1:cols) {
-					if (is(entity, "SymmMatrix") && i < j) next
+					if (imxSymmetricMatrix(entity) && i > j) next
 					if (!free[i, j]) next
 					if(!is.na(entity@labels[i,j]) ){
 						newName <- entity@labels[i,j]
@@ -447,6 +447,11 @@ confint.MxModel <- function(object, parm, level = 0.95, ...) {
 	se <- c(object$output[['standardErrors']])
 	if (is.null(se)) stop("No standard errors are available")
 	names(se) <- allParam
+	notFound <- is.na(match(parm, allParam))
+	if (any(notFound)) {
+		stop(paste("Parameter", omxQuotes(parm[notFound]),
+			   "not recognized"))
+	}
 	se <- se[parm]
 	if (any(is.na(se))) stop(paste("Some standard errors are NA:",
 				       omxQuotes(names(se)[is.na(se)])))
