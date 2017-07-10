@@ -186,6 +186,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			free <- entity@free
 			for(i in 1:rows) {
 				for(j in 1:cols) {
+					if (is(entity, "SymmMatrix") && i < j) next
 					if (!free[i, j]) next
 					if(!is.na(entity@labels[i,j]) ){
 						newName <- entity@labels[i,j]
