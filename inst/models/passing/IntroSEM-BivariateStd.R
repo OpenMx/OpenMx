@@ -64,6 +64,8 @@ biRegModel <- mxModel("Bivariate Regression of y on x1 and x2",
 
 biRegModelOut <- mxRun(biRegModel)
 
+omxCheckError(confint(biRegModelOut, parm="foobar"), "Parameter 'foobar' not recognized")
+
 ci <- confint(biRegModelOut)
 
 # ensure summary looks in model's runstate
