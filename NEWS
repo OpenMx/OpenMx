@@ -1,4 +1,6 @@
 # OpenMx bleed / 2.8.0 in the making
+* NEW: Add mxParametricBootstrap
+* CHANGE: mxBootstrap no longer accepts a plan= parameter.
 * NEW: Add simulate S3 alias for mxGenerateData
 * FIXED: Rampart sufficient statistic optimization no longer interferes with zero variance predictors.
 * NEW: Add MxExpectationMixture interface.

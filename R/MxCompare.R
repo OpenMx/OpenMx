@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 mxCompare <- function(base, comparison, ..., all = FALSE,
-		      boot=FALSE, replications=400, previousRun=NULL) {
+		      boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxCompare does not accept values for the '...' argument")
@@ -48,13 +48,14 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 			stop("The 'comparison' argument must consist of MxModel objects")
 		}
 	}
+	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
-	resultsTable <- showFitStatistics(base, comparison, all, boot, replications, previousRun)
+	resultsTable <- showFitStatistics(base, comparison, all, boot, replications, previousRun, checkHess)
 	return(resultsTable)
 }
 
 mxCompareMatrix <- function(models, statistic, ...,
-			    boot=FALSE, replications=400, previousRun=NULL) {
+			    boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxCompareMatrix does not accept values for the '...' argument")
@@ -68,9 +69,10 @@ mxCompareMatrix <- function(models, statistic, ...,
 		stop("The 'base' argument must consist of MxModel objects")
 	}
 	
+	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
 
-	resultsTable <- iterateNestedModels(models, boot, replications, previousRun)
+	resultsTable <- iterateNestedModels(models, boot, replications, previousRun, checkHess)
 
 	if (missing(statistic)) stop(paste("Available statistics are:", omxQuotes(colnames(resultsTable))))
 
@@ -123,6 +125,13 @@ anova.MxModel <- function(object, ...) {
 		args <- args[-ap]
 	}
 
+	checkHess <- as.logical(NA)
+	ap <- match('checkHess', names(args))
+	if (!is.na(ap)) {
+		checkHess <- args[[ap]]
+		args <- args[-ap]
+	}
+
 	ap <- match('boot', names(args))
 	if (!is.na(ap)) {
 		boot <- args[[ap]]
@@ -151,7 +160,7 @@ anova.MxModel <- function(object, ...) {
 			bootTodo[[ nChar ]] <- rx-1
 		}
 		bootData <- setupBootData(models, models, bootTodo, replications, previousRun)
-		bootData <- fillBootData(models, models, bootTodo, bootData)
+		bootData <- fillBootData(models, models, bootTodo, bootData, checkHess)
 	}
 
 	result <- list()
@@ -190,7 +199,7 @@ newEmptyCompareRow <- function() {
 		   p=as.numeric(NA))
 }
 
-iterateNestedModels <- function(models, boot, replications, previousRun) {
+iterateNestedModels <- function(models, boot, replications, previousRun, checkHess) {
 	result <- list()
 	
 	summaries <- lapply(models, summary)
@@ -208,7 +217,7 @@ iterateNestedModels <- function(models, boot, replications, previousRun) {
 		}
 
 		bd <- setupBootData(models, models, bootTodo, replications, previousRun)
-		bd <- fillBootData(models, models, bootTodo, bd)
+		bd <- fillBootData(models, models, bootTodo, bd, checkHess)
 	}
 
 	for (rx in seq_along(models)) {
@@ -293,7 +302,7 @@ setupBootData <- function(nullHyp, comparison, todo,
   bootData
 }
 
-fillBootData <- function(nullHyp, comparison, todo, bootData) {
+fillBootData <- function(nullHyp, comparison, todo, bootData, checkHess) {
   replications <- nrow(bootData[[1]])
   numThreads <- imxGetNumThreads()
   if (numThreads < 2L) {
@@ -309,14 +318,14 @@ fillBootData <- function(nullHyp, comparison, todo, bootData) {
 
 			  set.seed(nullHypData[repl, 'seed'])
 			  nullModel <- nullHyp[[ as.integer(i) ]]
-			  simData <- mxGenerateData(nullModel, returnModel=FALSE)  # wrong model
+			  simData <- mxGenerateData(nullModel, returnModel=FALSE)
 			  if (is(simData, "data.frame")) {
 				  simData <- list(simData)
 				  names(simData) <- nullModel$name
 			  }
 			  null1 <- loadDataIntoModel(nullModel, simData)
-			  
-			  null1 <- mxRun(null1, silent=TRUE)
+			  null1 <- ProcessCheckHess(null1, checkHess)
+			  null1 <- mxRun(null1, silent=TRUE, suppressWarnings = TRUE)
 			  nullHypData[repl, 'fit'] <- null1$output$fit
 			  nullHypData[repl, names(coef(null1))] <- coef(null1)
 			  nullHypData[repl, 'statusCode'] <- as.statusCode(null1$output$status$code)
@@ -332,7 +341,8 @@ fillBootData <- function(nullHyp, comparison, todo, bootData) {
 				  cmpModel <- comparison[[j]]
 				  names(simData)[topDataIndex] <- cmpModel$name
 				  cmp1 <- loadDataIntoModel(cmpModel, simData)
-				  cmp1 <- mxRun(cmp1, silent=TRUE)
+				  cmp1 <- ProcessCheckHess(cmp1, checkHess)
+				  cmp1 <- mxRun(cmp1, silent=TRUE, suppressWarnings = TRUE)
 
 				  cmpData[repl, 'fit'] <- cmp1$output$fit
 				  cmpData[repl, names(coef(cmp1))] <- coef(cmp1)
@@ -362,7 +372,7 @@ extractLRTBootstrapPair <- function(bootData, i, j) {
 	NULL
 }
 
-showFitStatistics <- function(base, compare, all, boot, replications, previousRun)  {
+showFitStatistics <- function(base, compare, all, boot, replications, previousRun, checkHess)  {
 	bootData <- NULL
 	if (boot) {
 		bootTodo <- list()
@@ -384,7 +394,7 @@ showFitStatistics <- function(base, compare, all, boot, replications, previousRu
 		}
 
 		bootData <- setupBootData(compare, base, bootTodo, replications, previousRun)
-		bootData <- fillBootData(compare, base, bootTodo, bootData)
+		bootData <- fillBootData(compare, base, bootTodo, bootData, checkHess)
 	}
 
     statistics <- list()
@@ -481,7 +491,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 				 cmpData[,'statusCode'] %in% mxOption(ref, "Status OK") &
 				 baseData[,'fit'] - cmpData[,'fit'] > 0)
 			if (sum(mask) < 3) {
-				stop(paste("Less than 3 replications are available."))
+				stop(paste("Fewer than 3 replications are available."))
 			}
 			if (sum(mask) < .95*length(mask)) {
 				pct <- round(100*sum(mask) / length(mask))
@@ -497,3 +507,95 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	}
 	return(otherStats)
 }
+
+mxParametricBootstrap <- function(nullModel, labels,
+                                  alternative=c("two.sided", "greater", "less"),
+				  ...,
+                                  alpha=0.05,
+                                  correction=p.adjust.methods,
+                                  previousRun=NULL, replications=400,
+                                  checkHess=FALSE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxParametricBootstrap does not accept values for the '...' argument")
+	}
+	if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1")
+	if (missing(checkHess)) checkHess <- as.logical(NA)
+	nullModel <- ProcessCheckHess(nullModel, checkHess)
+  alternative <- match.arg(alternative)
+  correction <- match.arg(correction)
+  seedVec <- as.integer(runif(replications, min = -2e9, max=2e9))
+  bootData <- data.frame(seed=seedVec, fit=NA,
+                         statusCode=as.statusCode(NA))
+  for (par in c(names(coef(nullModel)), labels)) bootData[[par]] <- NA
+  
+	if (!is.null(previousRun)) {
+		previousRun <- attr(previousRun, "bootData")
+		if (ncol(previousRun) != ncol(bootData) || any(colnames(previousRun) != colnames(bootData))) {
+			warning("Data from previousRun does not match current model (ignored)")
+		} else {
+			rows <- min(nrow(previousRun), replications)
+			bootData[1:rows,] <- previousRun[1:rows,]
+		}
+	}
+
+  for (repl in 1:replications) {
+    set.seed(bootData[repl, 'seed'])
+    if (!is.na(bootData[repl, 'fit'])) next
+    base1 <- mxGenerateData(nullModel, returnModel=TRUE)
+    base1 <- omxSetParameters(base1, labels=labels, free=TRUE)
+    base1 <- mxRun(base1, silent=TRUE, suppressWarnings = TRUE)
+    bootData[repl, 'fit'] <- base1$output$fit
+    bootData[repl, names(coef(base1))] <- coef(base1)
+    bootData[repl, 'statusCode'] <- as.statusCode(base1$output$status$code)
+  }
+  
+  nullParam <- omxGetParameters(nullModel, free=NA)[labels]
+  model <- omxSetParameters(nullModel, labels=labels, free=TRUE)
+  model <- mxRun(model, silent = TRUE, suppressWarnings = TRUE)
+  
+  mask <- bootData[,'statusCode'] %in% mxOption(nullModel, "Status OK")
+  if (sum(mask) < 3) {
+    stop(paste("Fewer than 3 replications are available."))
+  }
+  if (sum(mask) < .95*length(mask)) {
+    pct <- round(100*sum(mask) / length(mask))
+    warning(paste0("Only ",pct,"% of the bootstrap replications ",
+                   "converged acceptably. Accuracy is much less than the ",
+                   replications,
+                   " replications requested"), call.=FALSE)
+  }
+  
+  est <- coef(model)[labels]
+  pval <- rep(NA, length(labels))
+  for (lx in seq_along(labels)) {
+    if (alternative == "two.sided") {
+      pval[lx] <- sum(abs(bootData[mask,labels[lx]]) > abs(est[labels[lx]]))
+    } else if (alternative == "greater") {
+      pval[lx] <- sum(bootData[mask,labels[lx]] > est[labels[lx]])
+    } else {  # less
+      pval[lx] <- sum(bootData[mask,labels[lx]] < est[labels[lx]])
+    }
+  }
+  pval <- pval / sum(mask)
+  
+  sig <- rep('', length(labels))
+  
+  pzero <- pval == 0
+  pval[!pzero] <- p.adjust(pval[!pzero], method=correction)
+  pval[pzero] <- 1/sum(mask)
+
+  sig[pval < alpha] <- '*'
+  sig[pval < alpha/5] <- '**'
+  sig[pval < alpha/50] <- '***'
+  
+  ret <- data.frame(est=est,
+             null=nullParam,
+             p=pval,
+             sig=sig,
+             note="", stringsAsFactors = FALSE)
+  ret[pzero,'note'] <- paste0('< 1/',sum(mask))
+  attr(ret,'bootData') <- bootData
+  ret
+}
+

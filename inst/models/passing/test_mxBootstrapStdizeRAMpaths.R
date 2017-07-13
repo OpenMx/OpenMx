@@ -81,6 +81,6 @@ omxCheckCloseEnough(c(EM2),c(0.058, 0.006),.001)
 
 
 #Now, make sure the following runs:
-bivSatFit2 <- mxBootstrap(bivSatFit2, plan=mxComputeGradientDescent())
+bivSatFit2 <- mxBootstrap(bivSatFit2)
 mxBootstrapStdizeRAMpaths(bivSatFit2)
 

@@ -34,7 +34,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	else if( !(0 %in% OKstatuscodes) ){OKstatuscodes <- c(OKstatuscodes,0)}
 	#if( !("MxModel" %in% class(model)) ){stop("argument 'model' must be an object of class 'MxModel'")}
 	if(initialTolerance<0){stop("value for argument 'initialTolerance' cannot be negative")}
-	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {
+	if (omxHasDefaultComputePlan(model)) {
 		model@compute <- NULL
 	}
 	lackOfConstraints <- verifyNoConstraints(model)

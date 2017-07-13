@@ -15,7 +15,7 @@
 mxBootstrap(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
-			OK=mxOption(model, "Status OK"))
+			OK=mxOption(model, "Status OK"), checkHess=FALSE)
 }
 
 \arguments{
@@ -24,13 +24,13 @@ mxBootstrap(model, replications=200, ...,
     available, replications from prior mxBootstrap invocations will be reused.}
   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
   \item{data}{A character vector of data or model names}
-  \item{plan}{The compute plan used to optimize the model for each data
-    set.}
+  \item{plan}{Deprecated}
   \item{verbose}{For levels greater than 0, enables runtime diagnostics}
   \item{parallel}{Whether to process the replications in parallel}
   \item{only}{When provided, only the given replication from a prior
     run of \code{mxBootstrap} will be performed. See details.}
   \item{OK}{The set of status code that are considered successful}
+  \item{checkHess}{Whether to approximate the Hessian in each replication}
 }
 
 \details{
@@ -39,19 +39,15 @@ mxBootstrap(model, replications=200, ...,
   the datasets then the models containing them can be listed in the
   \sQuote{data} parameter.
 
-  The \sQuote{plan} option defaults to using whatever compute plan is found in
-  the given model (typically the output of
-  \code{\link{omxDefaultComputePlan}}). Note, however, that the default
-  plan often includes \code{\link{mxComputeNumericDeriv}}. This means
-  that, after optimization, the Hessian will be approximated by finite
-  differences. This procedure is of some value because it can be
-  informative to check whether the Hessian is positive
-  definite (see \code{\link{mxComputeHessianQuality}}).
-  However, approximating the Hessian is often costly in terms
-  of CPU time. For bootstrapping, the parameter estimates derived from
-  the resampled data are typically of primary interest. Therefore, it is
-  possible to specify a custom compute plan for bootstrap replications.
-  For many models, \code{\link{mxComputeGradientDescent}} alone will suffice.
+  When the model has a default compute plan and \sQuote{checkHess} is
+  kept at FALSE then the Hessian will not be approximated or checked.
+  On the other hand, \sQuote{checkHess} is TRUE then the Hessian will be
+  approximated by finite differences. This procedure is of some value
+  because it can be informative to check whether the Hessian is positive
+  definite (see \code{\link{mxComputeHessianQuality}}).  However,
+  approximating the Hessian is often costly in terms of CPU time. For
+  bootstrapping, the parameter estimates derived from the resampled data
+  are typically of primary interest.
 
   On occasion, replications will fail. Sometimes it can be helpful to
   exactly reproduce a failed replication to attempt to pinpoint the
