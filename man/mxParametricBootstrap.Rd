@@ -14,7 +14,8 @@
 mxParametricBootstrap(nullModel, labels,
    alternative=c("two.sided", "greater", "less"),
    ..., alpha=0.05, correction=p.adjust.methods,
-   previousRun=NULL, replications=400, checkHess=FALSE)
+   previousRun=NULL, replications=400, checkHess=FALSE,
+   signif.stars = getOption("show.signif.stars"))
 }
 
 \arguments{
@@ -29,7 +30,10 @@ mxParametricBootstrap(nullModel, labels,
   \item{replications}{The number of resampling replications. If
     available, replications from prior invocation will be reused.}
   \item{previousRun}{Results to re-use from a previous bootstrap.}
-  \item{checkHess}{Whether to approximate the Hessian in each replication}
+  \item{checkHess}{Whether to approximate the Hessian in each
+    replication}
+  \item{signif.stars}{logical. If TRUE, \sQuote{significance stars} are
+  printed for each coefficient.}
 }
 
 \details{

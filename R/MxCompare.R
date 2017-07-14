@@ -514,7 +514,8 @@ mxParametricBootstrap <- function(nullModel, labels,
                                   alpha=0.05,
                                   correction=p.adjust.methods,
                                   previousRun=NULL, replications=400,
-                                  checkHess=FALSE) {
+                                  checkHess=FALSE,
+				  signif.stars = getOption("show.signif.stars")) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxParametricBootstrap does not accept values for the '...' argument")
@@ -579,23 +580,22 @@ mxParametricBootstrap <- function(nullModel, labels,
   }
   pval <- pval / sum(mask)
   
-  sig <- rep('', length(labels))
-  
   pzero <- pval == 0
-  pval[!pzero] <- p.adjust(pval[!pzero], method=correction)
   pval[pzero] <- 1/sum(mask)
+  pval <- p.adjust(pval, method=correction)
 
-  sig[pval < alpha] <- '*'
-  sig[pval < alpha/5] <- '**'
-  sig[pval < alpha/50] <- '***'
-  
   ret <- data.frame(est=est,
              null=nullParam,
-             p=pval,
-             sig=sig,
-             note="", stringsAsFactors = FALSE)
+             p=pval)
+  if (signif.stars) {
+    sig <- rep('', length(labels))
+    sig[pval < alpha] <- '*'
+    sig[pval < alpha/5] <- '**'
+    sig[pval < alpha/50] <- '***'
+    ret$sig <- sig
+  }
+  ret$note <- ''
   ret[pzero,'note'] <- paste0('< 1/',sum(mask))
   attr(ret,'bootData') <- bootData
   ret
 }
-
