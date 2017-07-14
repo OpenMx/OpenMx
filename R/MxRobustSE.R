@@ -78,6 +78,12 @@ imxRowGradients <- function(model){
 ##' @param model An OpenMx model object that has been run
 ##' @param details logical. whether to return the full parameter covariance matrix
 imxRobustSE <- function(model, details=FALSE){
+	if(is(model@expectation, "MxExpectationGREML")){
+		stop("imxRobuseSE() is incompatible with GREML expectation")
+	}
+	if(is(model@fitfunction, "MxFitFunctionWLS")){
+		stop("imxRobuseSE() is incompatible with WLS fitfunction")
+	}
 	grads <- imxRowGradients(model)/-2
 	hess <- model@output$hessian/2
 	ret <- OpenMx::"%&%"(solve(hess), nrow(grads)*var(grads))
