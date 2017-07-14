@@ -79,10 +79,10 @@ imxRowGradients <- function(model){
 ##' @param details logical. whether to return the full parameter covariance matrix
 imxRobustSE <- function(model, details=FALSE){
 	if(is(model@expectation, "MxExpectationGREML")){
-		stop("imxRobuseSE() is incompatible with GREML expectation")
+		stop("imxRobustSE() is incompatible with GREML expectation")
 	}
 	if(is(model@fitfunction, "MxFitFunctionWLS")){
-		stop("imxRobuseSE() is incompatible with WLS fitfunction")
+		stop("imxRobustSE() is incompatible with WLS fitfunction")
 	}
 	grads <- imxRowGradients(model)/-2
 	hess <- model@output$hessian/2
