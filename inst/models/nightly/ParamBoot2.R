@@ -27,7 +27,7 @@ omxCheckEquals(got['l2', 'note'], "< 1/10")
 got2 <- mxParametricBootstrap(base, paste0('l', 1:length(manifests)), "two.sided",
                              replications=100,
                              previousRun=got)
-omxCheckCloseEnough(got2[,'p'], c(.32,.32,.32,.25,.32), .01)
+omxCheckCloseEnough(got2[,'p'], c(.32,.32,.32,.25,.32), .06)
 
 omxCheckEquals(attr(got,'bootData')[5,],
                attr(got2,'bootData')[5,])
