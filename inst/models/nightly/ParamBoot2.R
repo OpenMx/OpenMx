@@ -34,8 +34,9 @@ omxCheckEquals(attr(got,'bootData')[5,],
 
 got3 <- mxParametricBootstrap(base, paste0('l', 1:length(manifests)), "two.sided",
                               previousRun=got2)
-omxCheckCloseEnough(got3[,'p'], c(.36,.36,.36,.325,.36), .06)
+omxCheckCloseEnough(got3[,'p'], c(.36,.36,.36,.325,.36), .08)
 
+gc()
 before <- proc.time()[['elapsed']]
 got4 <- mxParametricBootstrap(base, paste0('l', 1:length(manifests)), "two.sided",
                               previousRun=got3)
