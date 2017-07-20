@@ -475,12 +475,21 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if(is.null(nrows)){nrows <- wlsData@numObs}
 		return(mxGenerateData(fake, nrows, returnModel))
 	}
+	if (is.null(model$expectation) && is(model$fitfunction, 'MxFitFunctionMultigroup')) {
+		if (!returnModel) stop("Must employ returnModel=TRUE for multigroup models")
+		todo <- sub(".fitfunction", "", model$fitfunction$groups, fixed=TRUE)
+		for (s1 in todo) {
+			model <- mxModel(model, mxGenerateData(model[[s1]], returnModel=TRUE, nrows=nrows,
+							       use.miss=use.miss, .backend=.backend))
+		}
+		return(model)
+	}
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {
 		origData <- NULL
 		if (!is.null(model@data) && model@data@type == 'raw') {
 			origData <- model@data@observed
-			if (missing(nrows)) nrows <- nrow(origData)
+			if (length(nrows)==0) nrows <- nrow(origData)
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
 		data <- genericGenerateData(model$expectation, model, nrows)
@@ -500,7 +509,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if (!use.miss) {
 			stop("use.miss=FALSE is not implemented for relational models")
 		}
-		if (!missing(nrows)) {
+		if (length(nrows)) {
 			stop("Specification of the number of rows is not supported for relational models")
 		}
 		generateRelationalData(model, returnModel, .backend)
