@@ -258,7 +258,7 @@ omxCheckEquals(names(zpath4[[2]]),c("MZ","DZ"))
 littlemod <- mxModel(factorModelPath, mxModel(growthCurveModel, independent=T))
 littlerun <- mxRun(littlemod)
 zpath5 <- mxStandardizeRAMpaths(littlerun)
-omxCheckEquals(names(zpath5)[1],factorModelPath@name)
+omxCheckEquals(names(zpath5)[1],factorModelPath$name)
 omxCheckEquals(zpath4$OneFactorPath$Std.Value,zpath5$OneFactorPath$Std.Value)
 omxCheckEquals(zpath4$LinearGrowthCurveModel_MatrixSpecification$Std.Value,zpath5$LinearGrowthCurveModel_MatrixSpecification$Std.Value)
 
