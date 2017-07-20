@@ -25,9 +25,9 @@
 
 \usage{
 mxCompare(base, comparison, ..., all = FALSE,
-  boot=FALSE, replications=400, previousRun=NULL)
+  boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE)
 mxCompareMatrix(models, statistic, ...,
-  boot=FALSE, replications=400, previousRun=NULL)
+  boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE)
 }
 
 \arguments{
@@ -44,6 +44,7 @@ mxCompareMatrix(models, statistic, ...,
    \item{replications}{How many replications to use to approximate the
      bootstrap distribution.}
    \item{previousRun}{Results to re-use from a previous bootstrap.}
+  \item{checkHess}{Whether to approximate the Hessian in each replication}
 }
 
 \details{
@@ -94,6 +95,17 @@ for B replications is \eqn{\sqrt(p*(1-p)/B)}, but this will be zero if p
 is zero, which is nonsense.  Note that a parametric-bootstrap p-value of
 zero must be interpreted as \eqn{p < 1/B}, which, depending on \eqn{B}
 and the desired Type I error rate, may not be "statistically significant."
+
+When \sQuote{boot=TRUE}, the model has a default compute plan, and
+\sQuote{checkHess} is kept at FALSE then the Hessian will not be
+approximated or checked.  On the other hand, \sQuote{checkHess} is TRUE
+then the Hessian will be approximated by finite differences. This
+procedure is of some value because it can be informative to check
+whether the Hessian is positive definite (see
+\code{\link{mxComputeHessianQuality}}).  However, approximating the
+Hessian is often costly in terms of CPU time. For bootstrapping, the
+parameter estimates derived from the resampled data are typically of
+primary interest.
 
 Use options('digits' = N) to set the minimum number of significant digits to be printed in values. The mxCompare function does not directly accept a digits argument, and depends on the value of the 'digits' option.
 }

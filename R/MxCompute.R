@@ -1899,10 +1899,36 @@ updateModelCompute <- function(model, computes) {
 ##' @param mat the matrix to invert
 imxSparseInvert <- function(mat) .Call(sparseInvert_wrapper, mat)
 
+ProcessCheckHess <- function(model, checkHess) {
+  if (omxHasDefaultComputePlan(model)) {
+    optList <- options()$mxOption
+    if (is.na(checkHess)) checkHess <- FALSE
+    checkHessYes <- ifelse(checkHess, 'Yes', 'No')
+    optList[['Calculate Hessian']] <- checkHessYes
+    optList[['Standard Errors']] <- checkHessYes
+    model <- mxModel(model, omxDefaultComputePlan(optionList=optList))
+  } else {
+    if (!is.na(checkHess)) {
+      stop(paste("Model", model$name, "has a custom compute plan.",
+                 "Cannot act on checkHess=",checkHess))
+    }
+  }
+  model
+}
 
+##' omxHasDefaultComputePlan
+##'
+##' Determine whether the model has a default complete plan (i.e., not custom).
+##'
+##' @param model model
+omxHasDefaultComputePlan <- function(model) {
+	if (is.null(model@compute)) return(TRUE)
+	if (!.hasSlot(model@compute, '.persist') || !model@compute@.persist) return(TRUE)
+	FALSE
+}
 
-omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE, 
-																	optionList=options()$mxOption){
+omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE,
+				  optionList=options()$mxOption) {
 	if(length(modelName) && !is.character(modelName[1])){stop("argument 'modelName' must be a character string")}
 	compute <- NULL
 	fitNum <- ifelse(length(modelName), paste(modelName, 'fitfunction', sep="."), "fitfunction")

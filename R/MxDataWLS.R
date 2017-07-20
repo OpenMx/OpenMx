@@ -434,8 +434,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	
 	# if no ordinal variables, use continuous-only helper
 	if(nvar ==0){
+		imxReportProgress("", msgLen)
 		if (any(is.na(data))) {
-			imxReportProgress("", msgLen)
 			stop(paste("All continuous data with missingness cannot be",
 				   "handled in the WLS framework.",
 				   "Use na.omit(yourDataFrame) to remove rows with missing values",

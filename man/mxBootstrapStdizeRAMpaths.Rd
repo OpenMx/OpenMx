@@ -56,7 +56,7 @@ set.seed(170505)
 # replications=20 is only here to make the example run quickly.
 # You should use many more replications for higher accuracy.
 
-oneFactorBoot <- mxBootstrap(oneFactorFit,plan=mxComputeGradientDescent(),replications=20)
+oneFactorBoot <- mxBootstrap(oneFactorFit, replications=20)
 mxBootstrapStdizeRAMpaths(oneFactorBoot)
 }
 
