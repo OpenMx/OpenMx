@@ -329,7 +329,9 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 	if (do_deriv) {
 		thrDeriv.resize(thrDerivSize * Global->numThreads);
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(Global->numThreads)
+#endif
 		for (int ix=0; ix < numItems; ix++) {
 			int thrId = omx_absolute_thread_num();
 			double *myDeriv = thrDeriv.data() + thrDerivSize * thrId + ix * state->itemDerivPadSize;
@@ -536,7 +538,9 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 	quad.allocBuffers(numThreads);
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(numThreads)
+#endif
 	for (int px=0; px < numUnique; px++) {
 		if (rowSkip[px]) continue;
 		int thrId = omx_absolute_thread_num();
@@ -712,7 +716,9 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 
 	quad.allocBuffers(numThreads);
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(numThreads)
+#endif
 	for (int px=0; px < numUnique; px++) {
 		if (rowSkip[px]) continue;
 		int thrId = omx_absolute_thread_num();
@@ -890,7 +896,9 @@ void BA81FitState::compute(int want, FitContext *fc)
 				double *rowWeight = estate->grp.rowWeight;
 				const double LogLargest = estate->LogLargestDouble;
 				double got = 0;
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:got)
+#endif
 				for (int ux=0; ux < numUnique; ux++) {
 					if (patternLik[ux] == 0) continue;
 					got += rowWeight[ux] * (log(patternLik[ux]) - LogLargest);

@@ -69,7 +69,9 @@ void ba81NormalQuad::cacheOutcomeProb(double *param, bool wantLog)
 		l1.outcomeProbX.resize(ig.totalOutcomes * l1.totalQuadPoints);
 	}
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(ig.numThreads)
+#endif
 	for (int ix=0; ix < ig.numItems(); ix++) {
 		const double *ispec = ig.spec[ix];
 		int id = ispec[RPF_ISpecID];

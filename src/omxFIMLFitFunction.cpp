@@ -929,7 +929,9 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, tx);
 			ofo->skippedRows = 0;
 		}
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(myParent->curParallelism) reduction(||:failed)
+#endif
 		for(int i = 0; i < myParent->curParallelism; i++) {
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);

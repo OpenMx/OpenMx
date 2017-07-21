@@ -60,6 +60,8 @@ else
     echo "Compiler '$CXX' unrecognized; using defaults"
 fi
 
+WANT_OPENMP=0
+
 if [ "$cxx_type" = gcc ]; then
     cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
     COMPILER_CXXFLAGS="-Wall -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function"
@@ -77,6 +79,7 @@ if [ "$cxx_type" = gcc ]; then
 	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
     fi
     if [ "${OPENMP-yes}" = yes ]; then
+	WANT_OPENMP=1
 	OPENMP_CXXFLAGS="-fopenmp"
 	OPENMP_LDFLAGS="-fopenmp"
     fi
@@ -162,6 +165,7 @@ echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars
 echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars
 echo "COMPILER_LDFLAGS=$COMPILER_LDFLAGS" >> src/Makevars
+echo "WANT_OPENMP=$WANT_OPENMP" >> src/Makevars
 echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars
 echo "OPENMP_LDFLAGS=$OPENMP_LDFLAGS" >> src/Makevars
 echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars
