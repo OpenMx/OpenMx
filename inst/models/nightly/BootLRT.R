@@ -32,6 +32,9 @@ cmp3 <- mxRun(cmp3)
 
 mxCompare(base, cmp1)  # p=0
 
+omxCheckError(anova(cmp1),
+	      "Compare model 'cmp1' with which other models?")
+
 pgot <- anova(cmp1, cmp2, cmp3, base)
 omxCheckEquals(is.na(pgot[,'p']), c(T,F,T,T))
 

@@ -139,6 +139,10 @@ anova.MxModel <- function(object, ...) {
 	}
 
 	comparison <- args
+	if (length(comparison) == 0) {
+		stop(paste("Compare model",omxQuotes(object$name),
+			   "with which other models?"))
+	}
 	if(!all(sapply(comparison, is, "MxModel"))) {
 		stop("The '...' argument must consist of MxModel objects")
 	}
