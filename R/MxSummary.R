@@ -1095,6 +1095,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
       (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
          sapply(model@submodels,function(x){length(x@submodels)>0}))
     if(sum(inde.subs)>0){
+    	out2 <- NULL
       #if ALL submodels are either independent RAM models or non-RAM models:
       if(all(RAM.subs==inde.subs)){ 
         out <- lapply(model@submodels[which(inde.subs)],mxStandardizeRAMpaths,SE=T)
@@ -1183,13 +1184,18 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   }
   #Handle multi-group model:
   if(length(model@submodels)>0){
+  	out <- NULL
+  	if(class(model$expectation)=="MxExpectationRAM"){
+  		out <- list(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam,ignoreSubmodels=TRUE))
+  		names(out)[1] <- model@name
+  	}
     if(!inde.subs.flag){
-      out <- lapply(
+      out <- c(out,lapply(
         model@submodels[which(
           (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
           sapply(model@submodels,function(x){length(x@submodels)>0}))
           )],
-        .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
+        .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam))
       if(length(out)==0){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
       return(out)
     }
@@ -1201,7 +1207,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
             !sapply(model@submodels,function(x){x@independent})
         )],
         .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
-      out <- as.list(c(out1,out2))
+      out <- c(out,out1,out2)
       if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use RAM expectation",sep=""))}
       out <- out[names(model@submodels[which(
         (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 

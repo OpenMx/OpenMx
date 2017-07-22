@@ -178,7 +178,9 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 	if (parallelism > 1) {
 		int stride = (data->rows / parallelism);
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(parallelism) 
+#endif
 		for(int i = 0; i < parallelism; i++) {
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(objMatrix);

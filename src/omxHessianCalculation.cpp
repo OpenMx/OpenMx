@@ -241,7 +241,9 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 	}
 
 	if (numChildren) {
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(parallelism)
+#endif
 		for(int i = 0; i < numParams; i++) {
 			if (hessian && std::isfinite(hessian[i*numParams + i])) continue;
 			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
@@ -250,7 +252,9 @@ void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_s
 
 		reportProgress(hess_work->fc);
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(parallelism)
+#endif
 		for(int i = 0; i < int(todo.size()); i++) {
 			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
 			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);

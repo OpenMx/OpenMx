@@ -247,7 +247,7 @@ static SEXP has_NPSOL()
 
 static SEXP has_openmp()
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP) && WANT_OPENMP
 	bool opm = true;
 #else
 	bool opm = false;
@@ -350,7 +350,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 			} else if(matchCaseInsensitive(nextOptionName, "debug protect stack")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->debugProtectStack);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
-#ifdef _OPENMP
+#if defined(_OPENMP) && WANT_OPENMP
 				*numThreads = atoi(nextOptionValue);
 				if (*numThreads < 1) {
 					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
@@ -766,7 +766,7 @@ void R_init_OpenMx(DllInfo *info) {
 	// There is no code that will change behavior whether openmp
 	// is set for nested or not. I'm just keeping this in case it
 	// makes a difference with older versions of openmp. 2012-12-24 JNP
-#if defined(_OPENMP) && _OPENMP <= 200505
+#if defined(_OPENMP) && _OPENMP <= 200505 && WANT_OPENMP
 	omp_set_nested(0);
 #endif
 }

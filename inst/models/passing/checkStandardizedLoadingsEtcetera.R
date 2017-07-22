@@ -253,6 +253,15 @@ omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),93)
 omxCheckEquals(names(zpath4),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath4[[2]]),c("MZ","DZ"))
 
+#Regression test to ensure (1) that if the "container" model uses RAM expectation, its results are included in the standardized-paths output,
+#and (2) that its element of the output list is named after it:
+littlemod <- mxModel(factorModelPath, mxModel(growthCurveModel, independent=T))
+littlerun <- mxRun(littlemod)
+zpath5 <- mxStandardizeRAMpaths(littlerun)
+omxCheckEquals(names(zpath5)[1],factorModelPath$name)
+omxCheckEquals(zpath4$OneFactorPath$Std.Value,zpath5$OneFactorPath$Std.Value)
+omxCheckEquals(zpath4$LinearGrowthCurveModel_MatrixSpecification$Std.Value,zpath5$LinearGrowthCurveModel_MatrixSpecification$Std.Value)
+
 # #Test mxTryHard(), since the initial run of 'bigmod' gets Code Red:
 # set.seed(420)
 # bigrun_again <- mxTryHard(bigmod)

@@ -91,7 +91,9 @@ class GradientWithRef {
 		thrPoint.resize(point.size(), curNumThreads);
 		thrPoint.colwise() = point;
 
+#if WANT_OPENMP
 #pragma omp parallel for num_threads(curNumThreads)
+#endif
 		for (int px=0; px < int(point.size()); ++px) {
 			int thrId = omp_get_thread_num();
 			int thrSelect = curNumThreads==1? -1 : thrId;
