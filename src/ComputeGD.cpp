@@ -1792,8 +1792,6 @@ void ComputeTryH::computeImpl(FitContext *fc)
 
 	++invocations;
 
-	GetRNGstate();
-
 	// return record of attempted starting vectors? TODO
 
 	int retriesRemain = maxRetries - 1;
@@ -1818,6 +1816,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		}
 
 		curEst = origStart;
+		GetRNGstate();
 		for (int vx=0; vx < curEst.size(); ++vx) {
 			double adj1 = loc + unif_rand() * 2.0 * scale - scale;
 			double adj2 = 0.0 + unif_rand() * 2.0 * scale - scale;
@@ -1828,6 +1827,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 			if(curEst[vx] < solLB[vx]){curEst[vx] = solLB[vx];}
 			if(curEst[vx] > solUB[vx]){curEst[vx] = solUB[vx];}
 		}
+		PutRNGstate();
 
 		--retriesRemain;
 
@@ -1851,8 +1851,6 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		mxLog("%s: fit %.2f inform %d after %d attempt(s)", name, fc->fit, fc->getInform(),
 		      maxRetries - retriesRemain);
 	}
-
-	PutRNGstate();
 }
 
 void ComputeTryH::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
