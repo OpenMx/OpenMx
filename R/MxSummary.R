@@ -1084,6 +1084,10 @@ logLik.MxModel <- function(object, ...) {
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
 	assertModelFreshlyRun(model)
+	
+	if(imxHasDefinitionVariable(model)){
+		warning("'model' (or one of its submodels) contains definition variables; interpret results of mxStandardizeRAMpaths() cautiously")
+	}
 
   #If SE=T,need to check for independent submodels because they will have their own Hessians;
   #recur main function as appropriate:
