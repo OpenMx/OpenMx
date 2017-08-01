@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Standardize RAM models' path coefficients}
 \description{
-Provides a dataframe containing the standardized values of all nonzero path coefficients appearing in the \code{A} and \code{S} matrices of models that use RAM expectation (either of \code{type="RAM"} or containing an explicit \code{\link{mxExpectationRAM}()} statement).  These standardized values are what the path coefficients would be if all variables in the analysis--both manifest and latent--were standardized to unit variance.  Can optionally include asymptotic standard errors for those standardized coefficients, computed via the delta method.
+Provides a dataframe containing the standardized values of all nonzero path coefficients appearing in the \code{A} and \code{S} matrices of models that use RAM expectation (either of \code{type="RAM"} or containing an explicit \code{\link{mxExpectationRAM}()} statement).  These standardized values are what the path coefficients would be if all variables in the analysis--both manifest and latent--were standardized to unit variance.  Can optionally include asymptotic standard errors for those standardized coefficients, computed via the delta method.  Not intended for use with models that contain definition variables.
 }
 \usage{
 mxStandardizeRAMpaths(model,SE=FALSE,cov=NULL)
@@ -31,7 +31,7 @@ In any event, using these standard errors for hypothesis-testing or forming conf
 
 The user should note that \code{mxStandardizeRAMpaths()} only cares whether an element of \code{A} or \code{S} is nonzero, and not whether it is a fixed or free parameter. So, for instance, if the function is used on a model not yet run, any free parameters in \code{A} or \code{S} initialized at zero will not appear in the function's output.
 
-The user is warned to interpret the output of \code{mxStandardizeRAMpaths()} cautiously if any elements of \code{A} or \code{S} depend upon "definition variables."  You have definition variables in your model if the \code{labels} of any \code{\link[=mxPath]{MxPath}} or \code{\link[=mxMatrix]{MxMatrix}} begin with \code{"data."}.
+The user is warned to interpret the output of \code{mxStandardizeRAMpaths()} cautiously if any elements of \code{A} or \code{S} depend upon "definition variables" (you have definition variables in your model if the \code{labels} of any \code{\link[=mxPath]{MxPath}} or \code{\link[=mxMatrix]{MxMatrix}} begin with \code{"data."}).  Typically, either \code{mxStandardizeRAMpaths()}'s results will be valid only for the first row of the raw dataset (and any rows identical to it), or some of the standardized coefficients will be incorrectly reported as zero.
 }
 \value{
 If argument \code{model} is a single-group model that uses RAM expecation, then \code{mxStandardizeRAMpaths()} returns a dataframe, with one row for each nonzero path coefficient in \code{A} and \code{S}, and with the following columns:
