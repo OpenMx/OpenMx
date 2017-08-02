@@ -178,7 +178,7 @@ static inline bool doubleEQ(double d1, double d2)
 	return memcmp(&d1, &d2, sizeof(double)) == 0;
 }
 
-#if defined(_OPENMP) && WANT_OPENMP
+#ifdef _OPENMP
 
 #include <omp.h>
 
@@ -235,9 +235,13 @@ static OMXINLINE void omx_omp_set_lock(omp_lock_t* __attribute__((unused)) lock)
 
 static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) lock) {}
 
-static inline int omp_get_thread_num() { return 0; }
 
 #endif // #ifdef _OPENMP
+
+
+#ifndef _OPENMP
+static inline int omp_get_thread_num() { return 0; }
+#endif
 
 #include <Eigen/Core>
 
