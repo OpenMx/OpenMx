@@ -1261,7 +1261,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 
 	bool boundActive = fabs(Mle[currentCI->varIndex] - nearBox) < sqrt(std::numeric_limits<double>::epsilon());
-	if (currentCI->bound[!side]) {	// ------------------------------ away from bound side --
+	if (currentCI->bound[!side] > 0.0) {	// ------------------------------ away from bound side --
 		if (!boundActive) {
 			Diagnostic diag;
 			double val;
@@ -1317,7 +1317,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 	}
 
  part2:
-	if (currentCI->bound[side]) {     // ------------------------------ near to bound side --
+	if (currentCI->bound[side] > 0.0) {     // ------------------------------ near to bound side --
 		double boundLL = NA_REAL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (!boundActive) {

@@ -347,9 +347,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		//Begin parallelized evaluation of fitfunction derivatives:
  		switch(gff->parallelDerivScheme){
  		case 2: //bin by row
-#if WANT_OPENMP
 #pragma omp parallel num_threads(nThreadz)
-#endif
 {
 	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
 	double tr=0;
@@ -405,9 +403,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 }
  			break;
  		case 3: //bin by cell
-#if WANT_OPENMP
 #pragma omp parallel num_threads(nThreadz)
-#endif
 {
 	int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0;
 	double tr=0;
@@ -471,9 +467,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 }
  			break;
  		default: //bin naively (which is perfectly adequate for gradient-only, or for a single thread)
-#if WANT_OPENMP
 #pragma omp parallel num_threads(nThreadz)
-#endif
 {
 	int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
 	double tr=0;

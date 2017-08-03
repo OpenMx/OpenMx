@@ -938,9 +938,7 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 	quad.allocBuffers(numThreads);
 	if (LatentPolicy<T>::wantSummary()) quad.allocSummary(numThreads);
 
-#if WANT_OPENMP
 #pragma omp parallel for num_threads(numThreads)
-#endif
 	for (int px=0; px < numUnique; px++) {
 		if (rowSkip[px]) {
 			patternLik[px] = 0;
@@ -969,14 +967,10 @@ void BA81Engine<T, LatentPolicy, EstepPolicy>::ba81Estep1(class ifaGroup *state,
 	}
 
 	if (EstepPolicy<T>::hasEnd() && LatentPolicy<T>::hasEnd()) {
-#if WANT_OPENMP
 #pragma omp parallel sections
-#endif
 		{
 			{ EstepPolicy<T>::recordTable(state); }
-#if WANT_OPENMP
 #pragma omp section
-#endif
 			{ LatentPolicy<T>::end(state, extraData); }
 		}
 	} else {
