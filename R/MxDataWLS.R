@@ -612,6 +612,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	
 	# make the weight matrix!!!
 	wls <- fullHess %*% iqj %*% fullHess
+	fullNames <- c(parName, colnames(data),
+		       unlist(mapply(function(vn,hess) paste0(vn,'t',1:ncol(hess)),
+				     names(threshHess),
+				     threshHess)))
+	dimnames(wls) <- list(fullNames, fullNames)
 	dls <- diag(diag(wls))
 	uls <- (dls>0)*1
 	
