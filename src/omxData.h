@@ -35,7 +35,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h> 
 
-typedef struct omxData omxData;
+class omxData;
 typedef struct omxContiguousData omxContiguousData;
 typedef struct omxThresholdColumn omxThresholdColumn;
 

@@ -42,7 +42,7 @@
 
 /* Forward declarations for later includes */
 typedef struct omxState omxState;
-typedef struct omxFreeVar omxFreeVar;
+class omxFreeVar;
 struct ConfidenceInterval;
 
 #include "omxMatrix.h"
@@ -279,7 +279,7 @@ class omxGlobal {
 };
 
 // Use a pointer to ensure correct initialization and destruction
-extern struct omxGlobal *Global;
+extern class omxGlobal *Global;
 
 // omxState is for stuff that must be duplicated for thread safety.
 class omxState {

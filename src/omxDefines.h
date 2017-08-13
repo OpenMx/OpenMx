@@ -136,13 +136,13 @@ enum FitStatisticUnits {
 
 #define GRADIENT_FUDGE_FACTOR(x) (pow(10.0,x))
 
-typedef struct omxMatrix omxMatrix;
-typedef struct omxState omxState;
+class omxMatrix;
+class omxState;
 typedef struct omxAlgebra omxAlgebra;
 class FitContext;
 struct FreeVarGroup;
 typedef struct omxFitFunction omxFitFunction;
-typedef struct omxExpectation omxExpectation;
+class omxExpectation;
 typedef struct omxDefinitionVar omxDefinitionVar;
 typedef struct omxRFitFunction omxRFitFunction;
 typedef struct SEXPREC *SEXP;
