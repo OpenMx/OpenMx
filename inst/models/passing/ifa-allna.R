@@ -15,7 +15,7 @@ set.seed(1)
 
 numItems <- 12
 items <- list()
-items[1:numItems] <- rpf.grm()
+items[1:numItems] <- list(rpf.grm())
 correct.mat <- sapply(items, rpf.rparam, version=1)
 
 slicen <- 50

@@ -4,7 +4,7 @@ library(rpf)
 
 numItems <- 12
 spec <- list()
-spec[1:numItems] <- rpf.drm()
+spec[1:numItems] <- list(rpf.drm())
 
 g341 <- suppressWarnings(try(read.table("models/passing/data/g341-19.dat"), silent=TRUE))
 if (is(g341, "try-error")) g341 <- read.table("data/g341-19.dat")

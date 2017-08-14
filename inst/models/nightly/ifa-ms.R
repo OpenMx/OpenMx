@@ -13,11 +13,11 @@ gpcm <- function(outcomes) {
 }
 
 m2.spec <- list()
-m2.spec[1:22] <- gpcm(5)
-m2.spec[2] <- gpcm(4)
-m2.spec[5] <- gpcm(3)
-m2.spec[6] <- gpcm(4)
-m2.spec[13:14] <- gpcm(4)
+m2.spec[1:22] <- list(gpcm(5))
+m2.spec[2] <- list(gpcm(4))
+m2.spec[5] <- list(gpcm(3))
+m2.spec[6] <- list(gpcm(4))
+m2.spec[13:14] <- list(gpcm(4))
 
 m2.numItems <- length(m2.spec)
 

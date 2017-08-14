@@ -35,7 +35,7 @@ numItems <- 128  # need lots of items to get precise factor scores
 numPeople <- 100
 
 items <- list()
-items[1:numItems] <- rpf.grm(factors=2, outcomes=5)
+items[1:numItems] <- list(rpf.grm(factors=2, outcomes=5))
 correct.mat <- sapply(items, rpf.rparam, version=1)
 
 maxParam <- max(vapply(items, function(i) rpf.numParam(i), 0))

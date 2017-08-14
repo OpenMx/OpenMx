@@ -6,7 +6,7 @@ library(rpf)
 set.seed(9)
 
 numItems <- 10
-i1 <- rpf.drm(multidimensional=TRUE)
+i1 <- list(rpf.drm(multidimensional=TRUE))
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {

@@ -14,7 +14,7 @@ numPeople <- 1000
 
 items <- list()
 correct <- list()
-items[1:numItems] <- rpf.grm(factor=6)
+items[1:numItems] <- list(rpf.grm(factor=6))
 correct <- sapply(items, rpf.rparam, version=1)
 correct['a1', 12:16] <- 0
 correct['a2', 1:5] <- 0
