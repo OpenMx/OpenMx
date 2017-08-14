@@ -4,9 +4,9 @@ library(rpf)
 set.seed(9)
 
 numItems <- 30
-i1 <- list(rpf.drm(multidimensional=TRUE))
+i1 <- rpf.drm(multidimensional=TRUE)
 items <- list()
-items[1:numItems] <- i1
+items[1:numItems] <- list(i1)
 correct <- matrix(NA, 4, numItems)
 for (x in 1:numItems) correct[,x] <- rpf.rparam(i1, version=1)
 correct[1,] <- 1

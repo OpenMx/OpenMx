@@ -6,11 +6,11 @@ library(rpf)
 set.seed(9)
 
 numItems <- 10
-i1 <- list(rpf.drm(multidimensional=TRUE))
+i1 <- rpf.drm(multidimensional=TRUE)
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
-  items[[ix]] <- i1
+  items[[ix]] <- list(i1)
   correct[[ix]] <- rpf.rparam(i1, version=1)
   correct[[ix]][3] <- logit(0)
   correct[[ix]][4] <- logit(1)
