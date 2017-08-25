@@ -375,6 +375,9 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 			univEst <- optim(par=startEst, fn=normLogLik, rawData=data[,i],
 				return="model", useMinusTwo=useMinusTwo,
 				method="BFGS", gr=normLogLikGrad, hessian=FALSE)
+			# Re-set variance to be positive, if needed.
+			if(univEst$par[2] < 0) univEst$par[2] <- -univEst$par[2]
+			# N.B. The normal LL function takes the abs() of the variance, so sign flips are possible.
 			univHess <- normLogLikHess(pars=univEst$par, rawData=data[,i], return="model", useMinusTwo=useMinusTwo)
 			meanEst[i] <- univEst$par[1]
 			varEst[i] <- univEst$par[2]
