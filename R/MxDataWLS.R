@@ -310,6 +310,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 	counts <- lapply(od, table)
 	thresh <- matrix(NA, ifelse(nvar > 0, max(nlevel)-1, 0), nvar)
 	threshHess <- list(NULL)
+	threshWarn <- rep(0, nvar)
 	if(nvar > 0) {threshJac <- list(NULL)} else threshJac <- NULL
 	
 	# get the thresholds, their hessians & their jacobians
@@ -327,8 +328,10 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 				uni <- optim(startVals[1:(length(startVals) - 1)], 
 					threshLogLik, return="model", rawData=od[,i], useMinusTwo=useMinusTwo, hessian=TRUE, method="BFGS")
 			} else {
-				tHold <- optimize(threshLogLik, lower=-6.28, upper=6.28,
-					return="model", rawData=od[,i])
+				result <- tryCatch.W(optimize(threshLogLik, lower=-6.28, upper=6.28,
+							     return="model", rawData=od[,i]))
+				threshWarn[i] <- length(result$warning)
+				tHold <- result$value
 				hHold <- numDeriv::hessian(threshLogLik, x=tHold$minimum, 
 					return="model", rawData=od[,i])
 				uni <- list(par=tHold$minimum, hessian=hHold)
@@ -347,7 +350,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 	}
 	names(threshHess) <- names(od)
 	colnames(thresh)  <- names(od)
-	return(list(thresh, threshHess, threshJac))
+	return(list(thresh, threshHess, threshJac, threshWarn))
 }
 
 univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinusTwo){
@@ -393,7 +396,8 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 	return(list(meanEst, varEst, meanHess, varHess, meanJac, varJac))
 }
 
-mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE, fullWeight=TRUE){
+mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE, fullWeight=TRUE,
+		      suppressWarnings = TRUE){
 	# version 0.2
 	#
 	#available types
@@ -454,6 +458,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	thresh <- utsList[[1]]
 	threshHess <- utsList[[2]]
 	threshJac <- utsList[[3]]
+	threshWarn <- utsList[[4]]
 	
 	# means and variances with their hessians & their jacobians
 	umvsList <- univariateMeanVarianceStatisticsHelper(ntvar, n, ords, data, useMinusTwo)
@@ -469,6 +474,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	diag(pcMatrix) <- 1
 	pcJac    <- matrix(NA, nrow=n, ncol=ntvar*(ntvar+1)/2)
 	hessHold <- numeric(ntvar*(ntvar+1)/2)
+	hessWarn <- rep(0, length(hessHold))
 	parName  <- NULL
 	r3hess <- array(NA, dim=c(3, 3, ntvar*(ntvar+1)/2))
 	covHess <- matrix(0, nrow=ntvar*(ntvar+1)/2, ncol=ntvar*(ntvar+1)/2)
@@ -511,8 +517,10 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				# parameter name
 				parName <- c(parName, paste("poly", names(pcData)[1], names(pcData)[2], sep="_"))
 				# get polychoric
-				pc <- optimize(logLikFUN, lower=pcBounds[1], upper=pcBounds[2],
-					means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+				optResult <- tryCatch.W(optimize(logLikFUN, lower=pcBounds[1], upper=pcBounds[2],
+							means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo))
+				pc <- optResult$value
+				hessWarn[indexCov2to1(i, j, ntvar)] <- length(optResult$warning)
 				# assign polychoric
 				pcMatrix[j, i] <- pc$minimum
 				pcMatrix[i, j] <- pc$minimum
@@ -617,6 +625,12 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				     names(threshHess),
 				     threshHess)))
 	dimnames(wls) <- list(fullNames, fullNames)
+	fullWarn <- c(hessWarn, threshWarn)
+	names(fullWarn) <- c(parName, colnames(data)[ords])
+	if (!suppressWarnings && any(fullWarn > 0)) {
+		warning(paste("Encountered warnings during optimization of",
+			      omxQuotes(fullWarn[fullWarn > 0])))
+	}
 	dls <- diag(diag(wls))
 	uls <- (dls>0)*1
 	
