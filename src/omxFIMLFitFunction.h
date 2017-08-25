@@ -278,13 +278,11 @@ class mvnByRow {
 			omxExpectationCompute(fc, expectation, NULL);
 			INCR_COUNTER(expectationCompute);
 
-			if (rowOrdinal) {
-				omxRecompute(thresholdsMat, fc);
-				for (int jx=0; jx < rowOrdinal; jx++) {
-					int j = ordColBuf[jx];
-					if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
-								  thresholdCols[j].numThresholds, fc)) return false;
-				}
+			for (int jx=0; jx < rowOrdinal; jx++) {
+				int j = ordColBuf[jx];
+				// WLS also needs this check? Refactor? TODO
+				if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
+							  thresholdCols[j].numThresholds, fc)) return false;
 			}
 		}
 		return true;

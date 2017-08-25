@@ -66,6 +66,7 @@ void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what,
 	if (!ox) return;
 
 	if (ox->data) ox->data->recompute(); // for dynamic data
+	if (ox->thresholdsMat) omxRecompute(ox->thresholdsMat, fc);
 	ox->compute(fc, what, how);
 }
 
