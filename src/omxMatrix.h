@@ -459,7 +459,7 @@ std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, 
 		return buf;
 	}
 
-	bool transpose = mat.rows() > mat.cols();
+	bool transpose = false; // maybe easier for debugging use: mat.rows() > mat.cols();
 	buf += string_snprintf("%s = %s matrix(c(    # %dx%d",
 			       name, transpose? "t(" : "", mat.rows(), mat.cols());
 
