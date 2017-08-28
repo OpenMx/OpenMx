@@ -317,8 +317,8 @@ imxReportProgress <- function(info, eraseLen) {
 	if (origLen < eraseLen) {
 		info <- paste0(info, paste0(rep(' ', eraseLen - nchar(info)), collapse=""))
 	}
-	cat(paste0("\r", info))
-	if (origLen == 0) cat("\r")
+	message(paste0("\r", info), appendLF=FALSE)
+	if (origLen == 0) message("\r", appendLF=FALSE)
 }
 
 enumerateDatasets <- function(model) {
