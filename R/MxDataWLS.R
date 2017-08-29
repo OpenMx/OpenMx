@@ -528,8 +528,16 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				pcMatrix[j, i] <- pc$minimum
 				pcMatrix[i, j] <- pc$minimum
 				# get and assign hessian
+				# Stop Hessian from walking outside of bounds
+				small <- 0.1
+				step <- pc$minimum + c(-1, 1)*.1
+				if(pcBounds[1] > step[1] || pcBounds[2] < step[2]){
+					# if we're within 0.1 of the bound then only walk halfway to it.
+					small <- min(abs(pcBounds - pc$minimum))/2
+				}
+				# Compute actual Hessian
 				hessHold[indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(logLikFUN, x=pc$minimum, 
-						means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+						means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo, method.args=list(d=small))
 #				if(ordPair==0){ #Continuous variables
 #					r3hess[,,indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(rc3LogLik, x=c(pcVars[1], pc$minimum, pcVars[2]),
 #						means=meanEst[c(i, j)], thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
