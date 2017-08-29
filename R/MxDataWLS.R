@@ -147,7 +147,7 @@ rcLogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="mod
 	if (return=="individual") { return( (-1-useMinusTwo)*log(lik) ) }
 	}
 
-psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTwo=TRUE){
+psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTwo=TRUE, print.res=FALSE){
 	if (ncol(rawData)!=2)stop("Raw data must contain two variables.")
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
 	isOrd <- unlist(lapply(rawData, is.ordered))
@@ -180,6 +180,10 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	llO <- log(llO)
 	
 	if(return=="model"){
+		if(print.res) {
+			print(paste('k =', k))
+			print(paste('-2LL =', (- 1 - useMinusTwo) * sum(llC+llO, na.rm=TRUE)))
+		}
 		return((- 1 - useMinusTwo) * sum(llC+llO, na.rm=TRUE))
 	} else if(return=="individual"){
 		return((- 1 - useMinusTwo) * (llC+llO))
