@@ -151,6 +151,7 @@ class omxData {
 		return getWeightColumn()[row];
 	}
 	int numRawRows();
+	void prohibitNAs(int col);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

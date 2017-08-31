@@ -53,6 +53,8 @@ void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 		dvar.row = ilist[3];
 		dvar.col = ilist[4];
 
+		od->prohibitNAs(dvar.column);
+
 		int numDeps = Rf_length(itemList) - 5;
 		dvar.numDeps = numDeps;
 		dvar.deps = (int*) R_alloc(numDeps, sizeof(int));

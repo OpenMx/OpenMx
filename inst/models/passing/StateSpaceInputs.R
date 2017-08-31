@@ -234,7 +234,7 @@ naData <- cbind(t(ty), t(tu))
 naData[10,11] <- NA
 naModel <- mxModel(smod, name='missingDef', mxData(observed=naData, type='raw'))
 
-omxCheckError(naRun <- mxRun(naModel), 'Error: NA value for a definition variable is Not Yet Implemented.')
+omxCheckError(naRun <- mxRun(naModel), "missingDef.data: NA in definition variable 'u2' row 10")
 
 # Check for proper error message when there exist missing definition variables.
 

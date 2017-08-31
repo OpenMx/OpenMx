@@ -732,13 +732,44 @@ bool omxData::loadDefVars(omxState *state, int row)
 		} else {
 			newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
 		}
-		if(ISNA(newDefVar)) {
-			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
-		}
 		changed |= defVars[k].loadData(state, newDefVar);
 	}
 	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
 	return changed;
+}
+
+void omxData::prohibitNAs(int col)
+{
+	if(dataMat != NULL) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(omxMatrixElement(dataMat, rx, col))) continue;
+			Rf_error("%s: NA in definition variable '%s' row %d",
+				 name, omxDataColumnName(this, col), 1+rx);
+		}
+		return;
+	}
+	if (col == weightCol) {
+		double *wc = getWeightColumn();
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(wc[rx])) continue;
+			Rf_error("%s: NA in row weight %d", name, 1+rx);
+		}
+		return;
+	}
+	ColumnData &cd = rawCols[col];
+	if (cd.realData) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(cd.realData[rx])) continue;
+			Rf_error("%s: NA in definition variable '%s' row %d",
+				 name, omxDataColumnName(this, col), 1+rx);
+		}
+	} else {
+		for (int rx=0; rx < rows; ++rx) {
+			if (cd.intData[rx] != NA_INTEGER) continue;
+			Rf_error("%s: NA in definition variable '%s' row %d",
+				 name, omxDataColumnName(this, col), 1+rx);
+		}
+	}
 }
 
 void omxData::loadFakeData(omxState *state, double fake)
