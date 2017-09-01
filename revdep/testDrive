@@ -11,13 +11,26 @@ fi
 
 export _R_CHECK_FORCE_SUGGESTS_=0
 
-# add --depth=50 later TODO
-git submodule update --init --recursive || exit 1
+pkgs="ctsem_2.4.0.tar.gz EasyMx_0.1-3.tar.gz ifaTools_0.14.tar.gz
+  lvnet_0.3.1.tar.gz metaSEM_0.9.14.tar.gz semtree_0.9.10.tar.gz umx_1.7.5.tar.gz"
 
-pkgs="ctsem easymx ifaTools lvnet metaSEM semtree umx"
+pdir=""
+
+for pk in $pkgs; do
+    tarball="https://cran.r-project.org/src/contrib/$pk"
+    if [ -f "$REVDEP_CACHE/$pk" ]; then
+	echo "found $pk"
+    else
+	wget "$tarball" -P "$REVDEP_CACHE"
+    fi
+    dir=$(echo $pk | cut -d_ -f1 )
+    rm -r ./revdep/$dir
+    tar --extract --directory=./revdep --gunzip --file=$REVDEP_CACHE/$pk
+    pdir="$dir $pdir"
+done
 
 R --no-save -f util/update-dependencies.R --args \
-  $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pkgs)
+  $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pdir)
 
 pushd revdep
 
@@ -26,7 +39,7 @@ pushd revdep
 
 declare -i RESULT=0
 
-for pk in $pkgs; do
+for pk in $pdir; do
     R CMD build --no-build-vignettes "$pk" && R CMD check --no-manual --no-vignettes ${pk}_*.tar.gz
     st=$?
     if [ $st != 0 ]; then
