@@ -764,6 +764,12 @@ void omxData::prohibitNAs(int col)
 				 name, omxDataColumnName(this, col), 1+rx);
 		}
 	} else {
+		if (cd.type != COLUMNDATA_INTEGER) {
+			Rf_warning("%s: definition variable '%s' is a factor;"
+				   " note that it will be treated as integer (as is done by ?unclass)."
+				   " Is this really what you want to do? Really?",
+				   name, omxDataColumnName(this, col));
+		}
 		for (int rx=0; rx < rows; ++rx) {
 			if (cd.intData[rx] != NA_INTEGER) continue;
 			Rf_error("%s: NA in definition variable '%s' row %d",
