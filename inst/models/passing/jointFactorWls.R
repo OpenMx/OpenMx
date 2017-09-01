@@ -160,8 +160,6 @@ jointDlsModel <- mxModel(jointModel1, name='dlsModel', dd, mxFitFunctionWLS())
 jointUlsModel <- mxModel(jointModel1, name='ulsModel', ud, mxFitFunctionWLS())
 
 ramWlsModel <- mxModel(ramModel1, name='wlsModel', wd, mxFitFunctionWLS())
-ramDlsModel <- mxModel(ramModel1, name='dlsModel', dd, mxFitFunctionWLS())
-ramUlsModel <- mxModel(ramModel1, name='ulsModel', ud, mxFitFunctionWLS())
 
 # Run 'em
 jointWlsResults <- mxRun(jointWlsModel)
@@ -169,15 +167,9 @@ jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
 ramWlsResults <- mxRun(ramWlsModel)
-ramDlsResults <- mxRun(ramDlsModel)
-ramUlsResults <- mxRun(ramUlsModel)
 
 omxCheckCloseEnough(coef(jointWlsResults) - coef(ramWlsResults),
-                    rep(0,15), 1e-5)
-omxCheckCloseEnough(coef(jointDlsResults) - coef(ramDlsResults),
-                    rep(0,15), 1e-5)
-omxCheckCloseEnough(coef(jointUlsResults) - coef(ramUlsResults),
-                    rep(0,15), 1e-5)
+                    rep(0,15), 1e-3)
 
 #------------------------------------------------------------------------------
 # Compare ML and WLS estimates
