@@ -70,11 +70,14 @@ if [ "$cxx_type" = gcc ]; then
     if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
 	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
-	xcheck_CXXFLAGS="-fsanitize=undefined"
-	xcheck_LDFLAGS="-fsanitize=undefined"
+	xcheck_CXXFLAGS="-fsanitize=undefined,address -fno-omit-frame-pointer"
+	xcheck_LDFLAGS="-fsanitize=undefined,address"
     fi
     if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
 	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
+    fi
+    if [ $(compareVersions $cxx_version 7.0) -gt -1 ]; then
+	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
     fi
     if [ "${OPENMP-yes}" = yes ]; then
 	OPENMP_CXXFLAGS="-fopenmp"

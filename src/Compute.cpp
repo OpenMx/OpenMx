@@ -1049,7 +1049,9 @@ void FitContext::preInfo()
 	switch (infoMethod) {
 	case INFO_METHOD_SANDWICH:
 	case INFO_METHOD_MEAT:
+		OMXZERO(infoA, npsq);
 		OMXZERO(infoB, npsq);
+		break;
 	case INFO_METHOD_BREAD:
 		OMXZERO(infoA, npsq);
 		break;
