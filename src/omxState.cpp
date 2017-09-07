@@ -490,33 +490,34 @@ omxGlobal::~omxGlobal()
 	}
 }
 
-std::string string_vsnprintf(const char *fmt, va_list orig_ap)
+void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest)
 {
+	// Cannot stack allocate std::string due to compiler bug that
+	// causes clash with va_list when optimization (-O2) is enabled.
     int size = 100;
-    std::string str;
     while (1) {
-        str.resize(size);
+        dest.resize(size);
 	va_list ap;
 	va_copy(ap, orig_ap);
-        int n = vsnprintf((char *)str.c_str(), size, fmt, ap);
+        int n = vsnprintf((char *)dest.c_str(), size, fmt, ap);
 	va_end(ap);
         if (n > -1 && n < size) {
-            str.resize(n);
-            return str;
+            dest.resize(n);
+            return;
         }
         if (n > -1)
             size = n + 1;
         else
             size *= 2;
     }
-    return str;
 }
 
 std::string string_snprintf(const char *fmt, ...)
 {
+	std::string str;
 	va_list ap;
         va_start(ap, fmt);
-	std::string str = string_vsnprintf(fmt, ap);
+	string_vsnprintf(fmt, ap, str);
         va_end(ap);
 	return str;
 }
@@ -670,9 +671,10 @@ void _omxRaiseError()
 
 void omxRaiseErrorf(const char* msg, ...)
 {
+	std::string str;
 	va_list ap;
 	va_start(ap, msg);
-	std::string str = string_vsnprintf(msg, ap);
+	string_vsnprintf(msg, ap, str);
 	va_end(ap);
 	_omxRaiseError();
 
@@ -719,9 +721,10 @@ void omxRaiseError(const char* msg) { // DEPRECATED
 
 void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, ...)
 {
+	std::string str;
 	va_list ap;
         va_start(ap, fmt);
-	std::string str = string_vsnprintf(fmt, ap);
+	string_vsnprintf(fmt, ap, str);
         va_end(ap);
 
 	if (OMX_DEBUG) mxLog("checkpointMessage: %s", str.c_str());

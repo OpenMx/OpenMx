@@ -359,7 +359,7 @@ inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
 
-std::string string_vsnprintf(const char *fmt, va_list ap);
+void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);
 
 void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 SEXP enableMxLog();

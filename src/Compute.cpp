@@ -897,7 +897,7 @@ void FitContext::recordIterationError(const char* msg, ...)
 	// Can avoid overhead of setting error if one is already set TODO
 	va_list ap;
 	va_start(ap, msg);
-	IterationError = string_vsnprintf(msg, ap);
+	string_vsnprintf(msg, ap, IterationError);
 	va_end(ap);
 }
 
