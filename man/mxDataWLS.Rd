@@ -27,7 +27,7 @@
 
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
-    fullWeight = TRUE, suppressWarnings = TRUE)
+    fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod = "cumulants")
 }
 
 \arguments{
@@ -41,6 +41,7 @@
    calculation.}
  \item{suppressWarnings}{Logical that determines whether to suppress
    diagnostic warnings. These warnings are likely only helpful to developers.}
+ \item{allContinuousMethod}{A character string 'cumulants' (default) or 'marginals'. See Details.}
 }
 
 \details{
@@ -55,6 +56,8 @@ However further investigation revealed that all of these were unbiased when the 
 'WLS' is highly sensitive to model misspecification. Full 'WLS' can heavily weight the
 fourth-order moments of the distribution, so small deviations between the observed 
 fourth-order moments and those implied by the model can lead to poor estimates.
+
+By default when only continuous variables are present, the argument \code{allContinuousMethod} dictates that the asymptotically distribution free (ADF) method of Browne (1984) is used.  This method computes the fourth order \emph{cumulants} for the weight matrix: thus, the name.  The method does not readily handle missing data and does not return weights or summary statistics for the means, but it is generally fast and ADF up to elliptical distributions.  The other option, 'marginals', uses similar methods to the ordinal and joint ordinal-continuous cases.  It does return weights and summary statistics for the means.  When there are any ordinal variables present, \code{allContinuousMethod} is ignored.
 }
 
 \value{
@@ -63,6 +66,8 @@ fourth-order moments and those implied by the model can lead to poor estimates.
 
 \references{
 The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+
+Browne, M. W. (1984). Asymptotically distribution‐free methods for the analysis of covariance structures. British Journal of Mathematical and Statistical Psychology, 37, p. 62-83.
 }
 
 \seealso{

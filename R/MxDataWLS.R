@@ -404,7 +404,7 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 }
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
-		      suppressWarnings = TRUE){
+		      suppressWarnings = TRUE, allContinuousMethod="cumulants"){
 	debug <- FALSE
 	# version 0.2
 	#
@@ -423,7 +423,13 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				paste(wlsTypes[-length(wlsTypes)], collapse="', '"),
 				"', or '", wlsTypes[length(wlsTypes)], "'.", sep="")
 			)
-		}
+	}
+	if (!(tolower(allContinuousMethod) %in% c('cumulant', 'cumulants', 'marginal', 'marginals'))){
+		stop(
+			paste("'allContinuousMethod' must be one of ",
+				"'cumulants' or 'marginals'.\nBoth plural and singular forms are allowed.", sep="")
+			)
+	}
 		
 	# select ordinal variables
 	ords <- unlist(lapply(data, is.ordered))
@@ -445,7 +451,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	imxReportProgress(msg, 0)
 	
 	# if no ordinal variables, use continuous-only helper
-	if(nvar ==0){
+	if(nvar == 0 && tolower(allContinuousMethod) %in% c("cumulant", "cumulants")){
 		imxReportProgress("", msgLen)
 		if (any(is.na(data))) {
 			stop(paste("All continuous data with missingness cannot be",
@@ -586,6 +592,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 	# nparam <- nvar*(nvar+1)/2 + length(threshHess) #N.B. not used anywhere
 	
+	
 	covHess[lower.tri(covHess)] <- t(covHess)[lower.tri(covHess)]
 	diag(covHess) <- hessHold
 	colnames(covHess) <- parName
@@ -603,7 +610,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	names(hessHold) <- parName
 	
 	# put it all together
-	if(nvar == 0){ #jumps to continuousonly ADF code.
+	if(nvar == 0 && debug){ #jumps to continuousonly ADF code.
 		w3 <- diag(hessHold) %*% solve(t(pcJac)%*%pcJac) %*% diag(hessHold)
 		w2 <- covHess %*% solve(t(pcJac)%*%pcJac) %*% covHess
 		w <- wlsContinuousOnlyHelper(cd)
@@ -636,10 +643,13 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	
 	# make the weight matrix!!!
 	wls <- fullHess %*% iqj %*% fullHess
-	fullNames <- c(parName, colnames(data),
-		       unlist(mapply(function(vn,hess) paste0(vn,'t',1:ncol(hess)),
-				     names(threshHess),
-				     threshHess)))
+	fullNames <- c(parName, colnames(data))
+	if(nvar > 0){
+		fullNames <- c(fullNames,
+				unlist(mapply(function(vn,hess) paste0(vn,'t',1:ncol(hess)),
+					names(threshHess),
+					threshHess)))
+	}
 	dimnames(wls) <- list(fullNames, fullNames)
 	fullWarn <- c(hessWarn, threshWarn)
 	names(fullWarn) <- c(parName, colnames(data)[ords])
@@ -674,8 +684,13 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	}
 	dummy <- diag(1, nrow=nrow(pcMatrix))
 	dimnames(dummy) <- dimnames(pcMatrix)
-	retVal <- mxData(dummy, type="acov", numObs=n, 
-		acov=diag(1), fullWeight=NA, thresholds=thresh)
+	if(nvar > 0){
+		retVal <- mxData(dummy, type="acov", numObs=n, 
+			acov=diag(1), fullWeight=NA, thresholds=thresh)
+	} else {
+		retVal <- mxData(dummy, type="acov", numObs=n, 
+			acov=diag(1), fullWeight=NA, thresholds=NA)
+	}
 	retVal@observed <- pcMatrix
 	if(fullWeight==TRUE){
 		retVal@fullWeight <- wls
