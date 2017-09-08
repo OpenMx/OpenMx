@@ -160,10 +160,18 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 })
 
 .standardizeCovMeansThresholds <- function(cov, means, thresholds, vector=FALSE){
-	if(is.null(colnames(means))){ mnames <- names(means) } else {mnames <- colnames(means)}
+	if(!is.null(names(means))){
+		mnames <- names(means)
+	} else if(!is.null(colnames(means)) && length(means) == length(colnames(means))) {
+		mnames <- colnames(means)
+	} else if(!is.null(rownames(means)) && length(means) == length(rownames(means))){
+		mnames <- rownames(means)
+	} else {
+		stop("I give up. Have no idea how to standardize this expectation.\nYour means must have rownames(), colnames(), or names().")
+	}
 	ordInd <- match(colnames(thresholds), mnames)
 	thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)[ordInd]), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
-	means[,ordInd] <- means[,ordInd] - means[,ordInd]
+	means[ordInd] <- means[ordInd] - means[ordInd]
 	cov <- .ordinalCov2Cor(cov, ordInd)
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
