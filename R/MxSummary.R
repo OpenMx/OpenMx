@@ -420,10 +420,23 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 	} else {
 		retval[['saturatedDoF']] <- saturatedDoF
 	}
+	#The "saturated model" has no sensible definiton with GREML expectation:
+	if(any(sapply(obj,function(x){"MxExpectationGREML" %in% class(x)}))){
+		retval[['saturatedDoF']] <- NA
+	}
 	# calculate or populate independence degrees of freedom
 	if(is.null(independenceDoF)) {
-		# indDoF = 1 df per continuous variable variance + 1 df per continuous mean + 1 df per threshold
-		retval[['independenceDoF']] <- retval$observedStatistics - (continuous*(1+useMeans) + thresh)
+		if(!any(sapply(obj,function(x){"MxExpectationGREML" %in% class(x)}))){
+			# indDoF = 1 df per continuous variable variance + 1 df per continuous mean + 1 df per threshold
+			retval[['independenceDoF']] <- retval$observedStatistics - (continuous*(1+useMeans) + thresh)
+		} else{
+			#TODO: the GREML expectation doesn't currently have a way to know how many phenotypes there are in every case.
+			#For now, leave the GREML independence model undefined
+			# #With GREML expectation, the independence model has a variance for each phenotype, and the same fixed effects as the fitted model:
+			# retval[['independenceDoF']] <- 
+			# 	retval$observedStatistics - sum(sapply(obj,function(x){length(x@yvars)})) - sum(sapply(obj,imxExtractSlot,name="numFixEff"))
+			retval[['independenceDoF']] <- NA
+		}
 	} else {
 		retval[['independenceDoF']] <- independenceDoF
 	}
