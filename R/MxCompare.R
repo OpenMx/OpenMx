@@ -48,87 +48,6 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 			stop("The 'comparison' argument must consist of MxModel objects")
 		}
 	}
-	
-	#Begin checks on validity of comparisons.
-	#The comparisons that will actually be made depend upon 'all':
-	if(all){
-		for(i in seq_along(base)){
-			currBase <- base[[i]]
-			cbfu <- currBase$output$fitUnits #<--NULL if output slot is empty.
-			if(!length(cbfu)){
-				warning(paste("MxModel '",currBase$name,"' (element ",i," in argument 'base') has no 'fitUnits' element in its output slot; has it been run?",sep=""))
-			}
-			cbgfe <- GREMLFixEffList(currBase)
-			if(length(cbgfe)){cbgfe <- paste(cbgfe$name,collapse=",")}
-			for(j in seq_along(comparison)){
-				currCompare <- comparison[[j]]
-				ccfu <- currCompare$output$fitUnits
-				if(!length(ccfu)){
-					warning(paste("MxModel '",currCompare$name,"' (element ",j," in argument 'comparison') has no 'fitUnits' element in its output slot; has it been run?",sep=""))
-				}
-				#Only stop if there's a definite mismatch in fit units:
-				if(length(cbfu) && length(ccfu) && cbfu!=ccfu){
-					stop(paste("MxModel '",currBase$name,"' (element ",i," in argument 'base') has ",cbfu," fit units, but MxModel '",currCompare$name,"' (element ",j," in argument 'comparison') has ",ccfu," fit units",sep=""))
-				}
-				#Even though the fit units match, the restricted ML and ordinary ML fit values can't be validly compared:
-				if( is(currBase$fitfunction,"MxFitFunctionGREML")!=is(currCompare$fitfunction,"MxFitFunctionGREML") ){
-					stop(paste("MxModel '",currBase$name,"' (element ",i," in argument 'base') has a fitfunction of class '",class(currBase$fitfunction),"', but MxModel '",currCompare$name,"' (element ",j," in argument 'comparison') has a fitfunction of class '",class(currCompare$fitfunction),"'",sep=""))
-				}
-				ccgfe <- GREMLFixEffList(currCompare)
-				if(length(ccgfe)){ccgfe <- paste(ccgfe$name,collapse=",")}
-				if( length(cbgfe)!=length(ccgfe) || (length(cbgfe)==length(ccgfe) && cbgfe!=ccgfe) ){
-					#This is a warning, not an error, because it's possible that the user is indeed using the same covariates in both models, but with
-					#different column names.  (If one of the models hasn't been run yet, GREMLFixEffList() will return NULL, but the fit value will 
-					#be NA, so the output for the comparison won't even look valid):
-					warning(paste("the names of the fixed effects in MxModels '",currBase$name,"' and '",currCompare$name,"' do not match; comparison of REML fit values is only valid for models that use the same covariates",sep=""))
-				}
-			}
-		}
-	}
-	else{
-		#If comparison is empty, then no comparisons are actually reported:
-		if(length(comparison)){
-			maxLength <- max(length(base), length(comparison))
-			bi <- 1
-			ci <- 1
-			ii <- 1
-			while(ii <= maxLength){
-				currBase <- base[[bi]]
-				cbfu <- currBase$output$fitUnits #<--NULL if output slot is empty.
-				if(!length(cbfu)){
-					warning(paste("MxModel '",currBase$name,"' (element ",bi," in argument 'base') has no 'fitUnits' element in its output slot; has it been run?",sep=""))
-				}
-				cbgfe <- GREMLFixEffList(currBase)
-				if(length(cbgfe)){cbgfe <- paste(cbgfe$name,collapse=",")}
-				currCompare <- comparison[[ci]]
-				ccfu <- currCompare$output$fitUnits
-				if(!length(ccfu)){
-					warning(paste("MxModel '",currCompare$name,"' (element ",ci," in argument 'comparison') has no 'fitUnits' element in its output slot; has it been run?",sep=""))
-				}
-				#Only stop if there's a definite mismatch in fit units:
-				if(length(cbfu) && length(ccfu) && cbfu!=ccfu){
-					stop(paste("MxModel '",currBase$name,"' (element ",bi," in argument 'base') has ",cbfu," fit units, but MxModel '",currCompare$name,"' (element ",ci," in argument 'comparison') has ",ccfu," fit units",sep=""))
-				}
-				#Even though the fit units match, the restricted ML and ordinary ML fit values can't be validly compared:
-				if( is(currBase$fitfunction,"MxFitFunctionGREML")!=is(currCompare$fitfunction,"MxFitFunctionGREML") ){
-					stop(paste("MxModel '",currBase$name,"' (element ",bi," in argument 'base') has a fitfunction of class '",class(currBase$fitfunction),"', but MxModel '",currCompare$name,"' (element ",ci," in argument 'comparison') has a fitfunction of class '",class(currCompare$fitfunction),"'",sep=""))
-				}
-				ccgfe <- GREMLFixEffList(currCompare)
-				if(length(ccgfe)){ccgfe <- paste(ccgfe$name,collapse=",")}
-				if( length(cbgfe)!=length(ccgfe) || (length(cbgfe)==length(ccgfe) && cbgfe!=ccgfe) ){
-					#This is a warning, not an error, because it's possible that the user is indeed using the same covariates in both models, but with
-					#different column names.  (If one of the models hasn't been run yet, GREMLFixEffList() will return NULL, but the fit value will 
-					#be NA, so the output for the comparison won't even look valid):
-					warning(paste("the names of the fixed effects in MxModels '",currBase$name,"' and '",currCompare$name,"' do not match; comparison of REML fit values is only valid for models that use the same covariates",sep=""))
-				}
-				bi <- bi+1
-				if(bi>length(base)){bi <- 1}
-				ci <- ci+1
-				if(ci>length(comparison)){ci <- 1}
-				ii <- ii+1
-			}
-		}
-	}
 		
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
@@ -552,6 +471,36 @@ collectStatistics <- function(otherStats, ref, other, bootPair) {
 collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	refSummary <- summary(ref)
 	otherSummary <- summary(other)
+	
+	#Check for validity of the comparison ###
+	rfu <- ref$output$fitUnits #<--NULL if output slot is empty.
+	if(!length(rfu)){
+		warning(paste("MxModel '",ref$name,"' has no 'fitUnits' element in its output slot; has it been run?",sep=""))
+	}
+	ofu <- other$output$fitUnits #<--NULL if output slot is empty.
+	if(!length(ofu)){
+		warning(paste("MxModel '",other$name,"' has no 'fitUnits' element in its output slot; has it been run?",sep=""))
+	}
+	#Only stop if there's a definite mismatch in fit units:
+	if(length(rfu) && length(ofu) && rfu!=ofu){
+		stop(paste("MxModel '",ref$name,"' has '",rfu,"' fit units, but MxModel '",other$name,"' has '",ofu,"' fit units",sep=""))
+	}
+	#Even though the fit units match, the restricted ML and ordinary ML fit values can't be validly compared:
+	if( is(ref$fitfunction,"MxFitFunctionGREML")!=is(other$fitfunction,"MxFitFunctionGREML") ){
+		stop(paste("MxModel '",ref$name,"' has a fitfunction of class '",class(ref$fitfunction),"', but MxModel '",other$name,"' has a fitfunction of class '",class(other$fitfunction),"'",sep=""))
+	}
+	rgfe <- refSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
+	if(length(rgfe)){rgfe <- paste(rgfe$name,collapse=",")}
+	ogfe <- otherSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
+	if(length(ogfe)){ogfe <- paste(ogfe$name,collapse=",")}
+	if( length(rgfe)!=length(ogfe) || (length(rgfe)==length(ogfe) && rgfe!=ogfe) ){
+		#This is a warning, not an error, because it's possible that the user is indeed using the same covariates in both models, but with
+		#different column names.  (If one of the models hasn't been run yet, GREMLFixEffList() will return NULL, but the fit value will 
+		#be NA, so the output for the comparison won't even look valid):
+		warning(paste("the names of the fixed effects in MxModels '",ref$name,"' and '",other$name,"' do not match; comparison of REML fit values is only valid for models that use the same covariates",sep=""))
+	}
+	#End validity checks
+	
 	otherStats[,c('base','comparison')] <-
 		c(refSummary$modelName,
 		  otherSummary$modelName)
