@@ -493,7 +493,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	if(length(rgfe)){rgfe <- paste(rgfe$name,collapse=",")}
 	ogfe <- otherSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
 	if(length(ogfe)){ogfe <- paste(ogfe$name,collapse=",")}
-	if( length(rgfe)!=length(ogfe) || (length(rgfe)==length(ogfe) && rgfe!=ogfe) ){
+	if( length(rgfe)!=length(ogfe) || (length(rgfe) && length(ogfe) && rgfe!=ogfe) ){
 		#This is a warning, not an error, because it's possible that the user is indeed using the same covariates in both models, but with
 		#different column names.  (If one of the models hasn't been run yet, GREMLFixEffList() will return NULL, but the fit value will 
 		#be NA, so the output for the comparison won't even look valid):
