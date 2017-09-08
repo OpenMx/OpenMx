@@ -144,7 +144,7 @@ for (i in 1:(nregime^nocc))
         }
     temp <- mxModel(name=paste("Regime",i,sep=""), temp)
     modelNames[i] <- paste("Regime",i,sep="")
-    modelList[i] <- temp
+    modelList[i] <- list(temp)
 }
 # -----------------------------------------------------------------------------
 # Now we construct the weight matrix algebra

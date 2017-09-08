@@ -27,7 +27,7 @@
 
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
-    debug = FALSE, fullWeight = TRUE)
+    fullWeight = TRUE, suppressWarnings = TRUE)
 }
 
 \arguments{
@@ -36,8 +36,11 @@
    weighted, diagonally weighted, or unweighted least squares, respectively}
    \item{useMinusTwo}{Logical indicating whether to use -2LL (default) or -LL.}
    \item{returnInverted}{Logical indicating whether to return the information matrix (default) or the covariance matrix.}
-   \item{debug}{Logical to set debugging on or off (default)}
-   \item{fullWeight}{Logical determining if the full weight matrix is returned (default). Needed for standard error and quasi-chi-squared calculation.}
+   \item{fullWeight}{Logical determining if the full weight matrix is
+   returned (default). Needed for standard error and quasi-chi-squared
+   calculation.}
+ \item{suppressWarnings}{Logical that determines whether to suppress
+   diagnostic warnings. These warnings are likely only helpful to developers.}
 }
 
 \details{

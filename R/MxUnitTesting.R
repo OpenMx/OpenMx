@@ -196,7 +196,7 @@ tryCatch.W <- function(expr) {
 	# see demo(error.catching)
 	W <- NULL
 	w.handler <- function(w) {
-		W <<- w
+		W <<- c(W,w)
 		invokeRestart("muffleWarning")
 	}
 	list(value = withCallingHandlers(tryCatch(expr), warning = w.handler),
@@ -240,9 +240,23 @@ omxCheckWarning <- function(expression, message) {
 		stop(paste("No warning was observed for the expression",
 			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
 	}
-	if (trim(result$warning$message) != trim(message)) {
-		stop(paste("A warning was thrown with the wrong message:",
-			   result$warning$message), call. = FALSE)
+	if (length(result$warning)) {
+		msgs <- unlist(result$warning[seq(1,length(result$warning),2)])
+		#ctxt <- result$warning[seq(2,length(result$warning),2)]  # maybe helpful?
+		if (length(msgs) < length(message)) {
+			stop(paste("Got",length(msgs),"warnings but expected",length(message)))
+		}
+		expWarn <- c()
+		for (mx in 1:length(msgs)) {
+			expWarn[mx] <- message[1L+((mx-1L) %% length(message))]
+		}
+		mismatch <- trim(msgs) != trim(expWarn)
+		if (any(mismatch)) {
+			stop(paste("A warning was thrown with the wrong message:",
+				   paste(apply(data.frame(n=which(mismatch),
+							  msg=msgs[mismatch]),
+					       1, paste, collapse=":"), collapse="\n")), call. = FALSE)
+		}
 	}
 	if (getOption("mxPrintUnitTests")) {
 		cat(paste("The expected warning was observed for the expression",

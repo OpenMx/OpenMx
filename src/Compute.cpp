@@ -897,7 +897,7 @@ void FitContext::recordIterationError(const char* msg, ...)
 	// Can avoid overhead of setting error if one is already set TODO
 	va_list ap;
 	va_start(ap, msg);
-	IterationError = string_vsnprintf(msg, ap);
+	string_vsnprintf(msg, ap, IterationError);
 	va_end(ap);
 }
 
@@ -1049,7 +1049,9 @@ void FitContext::preInfo()
 	switch (infoMethod) {
 	case INFO_METHOD_SANDWICH:
 	case INFO_METHOD_MEAT:
+		OMXZERO(infoA, npsq);
 		OMXZERO(infoB, npsq);
+		break;
 	case INFO_METHOD_BREAD:
 		OMXZERO(infoA, npsq);
 		break;

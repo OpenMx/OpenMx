@@ -35,7 +35,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h> 
 
-typedef struct omxData omxData;
+class omxData;
 typedef struct omxContiguousData omxContiguousData;
 typedef struct omxThresholdColumn omxThresholdColumn;
 
@@ -151,6 +151,7 @@ class omxData {
 		return getWeightColumn()[row];
 	}
 	int numRawRows();
+	void prohibitNAs(int col);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

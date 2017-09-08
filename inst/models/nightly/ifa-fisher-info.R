@@ -12,7 +12,7 @@ mxOption(NULL, 'loglikelihoodScale', -1)
 sample.size <- 1000
 numItems <- 5
 spec <- list()
-spec[1:numItems] <- rpf.grm()
+spec[1:numItems] <- list(rpf.grm())
 param <- structure(c(1.76438, -1.02925, 0.676778, -0.639092, 0.832068,  1.44757, 2.01329, -1.52509, 1.00949, 0.10616),
                    .Dim = c(2L, 5L ), .Dimnames = list(NULL, c("i1", "i2", "i3", "i4", "i5")))
 

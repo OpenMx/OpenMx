@@ -22,7 +22,7 @@
 struct omxNormalExpectation : public omxExpectation {
 
 	omxMatrix *cov, *means; // observed covariance and means
-	omxMatrix *thresholds;
+	omxMatrix *thresholds; // same as thresholdsMat? TODO
 
 	double logDetObserved;
 	double n;

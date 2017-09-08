@@ -42,7 +42,7 @@
 
 /* Forward declarations for later includes */
 typedef struct omxState omxState;
-typedef struct omxFreeVar omxFreeVar;
+class omxFreeVar;
 struct ConfidenceInterval;
 
 #include "omxMatrix.h"
@@ -279,7 +279,7 @@ class omxGlobal {
 };
 
 // Use a pointer to ensure correct initialization and destruction
-extern struct omxGlobal *Global;
+extern class omxGlobal *Global;
 
 // omxState is for stuff that must be duplicated for thread safety.
 class omxState {
@@ -359,7 +359,7 @@ inline bool isErrorRaised() { return Global->bads.size() != 0; }
 void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
 void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
 
-std::string string_vsnprintf(const char *fmt, va_list ap);
+void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);
 
 void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 SEXP enableMxLog();

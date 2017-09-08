@@ -111,7 +111,7 @@ thresh$labels[,2] <- c("z4t1", "z4t2", "z4t3")
 thresh$free[,3] <- c(TRUE, TRUE, FALSE)
 thresh$values[,3] <- c(-1, 1, NA)
 thresh$labels[,3] <- c("z5t1", "z5t2", NA)
-
+colnames(thresh) <- paste0('z', c(2,4,5))
 
 #------------------------------------------------------------------------------
 # Model definition
@@ -133,6 +133,22 @@ jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)
 
 summary(jointResults1)
 
+ramModel1 <- jointRAM <- mxModel(
+  "JointRAM", type="RAM", thresh,
+  manifestVars = paste0('z', 1:5),
+  latentVars = 'G',
+  mxData(jointData, "raw"),
+  mxPath('one', paste0('z', c(1,3)), free=TRUE),
+  mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
+  mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
+  mxPath('G', arrows=2, values=1, free=FALSE),
+  mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0))
+
+ramModel1$expectation$thresholds <- 'T'
+
+ramResult1 <- mxRun(ramModel1)
+summary(ramResult1)
+
 # Create WLS Data
 wd <- mxDataWLS(jointData, "WLS")
 dd <- mxDataWLS(jointData, "DLS")
@@ -143,11 +159,17 @@ jointWlsModel <- mxModel(jointModel1, name='wlsModel', wd, mxFitFunctionWLS())
 jointDlsModel <- mxModel(jointModel1, name='dlsModel', dd, mxFitFunctionWLS())
 jointUlsModel <- mxModel(jointModel1, name='ulsModel', ud, mxFitFunctionWLS())
 
+ramWlsModel <- mxModel(ramModel1, name='wlsModel', wd, mxFitFunctionWLS())
+
 # Run 'em
 jointWlsResults <- mxRun(jointWlsModel)
 jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
+ramWlsResults <- mxRun(ramWlsModel)
+
+omxCheckCloseEnough(coef(jointWlsResults) - coef(ramWlsResults),
+                    rep(0,15), 1e-3)
 
 #------------------------------------------------------------------------------
 # Compare ML and WLS estimates

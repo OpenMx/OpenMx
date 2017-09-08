@@ -19,7 +19,7 @@ colnames(dat)<-paste("X",1:ni,sep="")
 k<-0
 par<-c(.1,0)
 spec<-list()
-spec[1:ni]<-rpf.lmp(k=k)
+spec[1:ni]<- list(rpf.lmp(k=k))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))

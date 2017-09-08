@@ -147,7 +147,7 @@ rcLogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="mod
 	if (return=="individual") { return( (-1-useMinusTwo)*log(lik) ) }
 	}
 
-psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTwo=TRUE){
+psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTwo=TRUE, print.res=FALSE){
 	if (ncol(rawData)!=2)stop("Raw data must contain two variables.")
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
 	isOrd <- unlist(lapply(rawData, is.ordered))
@@ -167,7 +167,7 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	#oVar <- vars[isOrd] - k*(1/vars[!isOrd])*k
 	z <- ( rawData[,!isOrd] - means[!isOrd] ) / sqrt(vars[!isOrd])
 	oMean <- k*z
-	oVar <- vars[isOrd] - k*k
+	oVar <- max(c(vars[isOrd] - k*k, 1e-10))
 	cumProb <- sapply(thresh, pnorm, mean=oMean, sd=sqrt(oVar))
 	cumProb <- cbind(cumProb, 1)
 	levProb <- cbind(cumProb[,1], cumProb[,-1] - cumProb[,-(length(thresh)+1)])
@@ -180,6 +180,10 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	llO <- log(llO)
 	
 	if(return=="model"){
+		if(print.res) {
+			print(paste('k =', k))
+			print(paste('-2LL =', (- 1 - useMinusTwo) * sum(llC+llO, na.rm=TRUE)))
+		}
 		return((- 1 - useMinusTwo) * sum(llC+llO, na.rm=TRUE))
 	} else if(return=="individual"){
 		return((- 1 - useMinusTwo) * (llC+llO))
@@ -310,6 +314,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 	counts <- lapply(od, table)
 	thresh <- matrix(NA, ifelse(nvar > 0, max(nlevel)-1, 0), nvar)
 	threshHess <- list(NULL)
+	threshWarn <- rep(0, nvar)
 	if(nvar > 0) {threshJac <- list(NULL)} else threshJac <- NULL
 	
 	# get the thresholds, their hessians & their jacobians
@@ -327,8 +332,10 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 				uni <- optim(startVals[1:(length(startVals) - 1)], 
 					threshLogLik, return="model", rawData=od[,i], useMinusTwo=useMinusTwo, hessian=TRUE, method="BFGS")
 			} else {
-				tHold <- optimize(threshLogLik, lower=-6.28, upper=6.28,
-					return="model", rawData=od[,i])
+				result <- tryCatch.W(optimize(threshLogLik, lower=-6.28, upper=6.28,
+							     return="model", rawData=od[,i]))
+				threshWarn[i] <- length(result$warning)
+				tHold <- result$value
 				hHold <- numDeriv::hessian(threshLogLik, x=tHold$minimum, 
 					return="model", rawData=od[,i])
 				uni <- list(par=tHold$minimum, hessian=hHold)
@@ -347,7 +354,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 	}
 	names(threshHess) <- names(od)
 	colnames(thresh)  <- names(od)
-	return(list(thresh, threshHess, threshJac))
+	return(list(thresh, threshHess, threshJac, threshWarn))
 }
 
 univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinusTwo){
@@ -372,6 +379,9 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 			univEst <- optim(par=startEst, fn=normLogLik, rawData=data[,i],
 				return="model", useMinusTwo=useMinusTwo,
 				method="BFGS", gr=normLogLikGrad, hessian=FALSE)
+			# Re-set variance to be positive, if needed.
+			if(univEst$par[2] < 0) univEst$par[2] <- -univEst$par[2]
+			# N.B. The normal LL function takes the abs() of the variance, so sign flips are possible.
 			univHess <- normLogLikHess(pars=univEst$par, rawData=data[,i], return="model", useMinusTwo=useMinusTwo)
 			meanEst[i] <- univEst$par[1]
 			varEst[i] <- univEst$par[2]
@@ -393,7 +403,9 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 	return(list(meanEst, varEst, meanHess, varHess, meanJac, varJac))
 }
 
-mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, debug=FALSE, fullWeight=TRUE){
+mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
+		      suppressWarnings = TRUE){
+	debug <- FALSE
 	# version 0.2
 	#
 	#available types
@@ -454,6 +466,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	thresh <- utsList[[1]]
 	threshHess <- utsList[[2]]
 	threshJac <- utsList[[3]]
+	threshWarn <- utsList[[4]]
 	
 	# means and variances with their hessians & their jacobians
 	umvsList <- univariateMeanVarianceStatisticsHelper(ntvar, n, ords, data, useMinusTwo)
@@ -469,6 +482,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	diag(pcMatrix) <- 1
 	pcJac    <- matrix(NA, nrow=n, ncol=ntvar*(ntvar+1)/2)
 	hessHold <- numeric(ntvar*(ntvar+1)/2)
+	hessWarn <- rep(0, length(hessHold))
 	parName  <- NULL
 	r3hess <- array(NA, dim=c(3, 3, ntvar*(ntvar+1)/2))
 	covHess <- matrix(0, nrow=ntvar*(ntvar+1)/2, ncol=ntvar*(ntvar+1)/2)
@@ -511,14 +525,24 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 				# parameter name
 				parName <- c(parName, paste("poly", names(pcData)[1], names(pcData)[2], sep="_"))
 				# get polychoric
-				pc <- optimize(logLikFUN, lower=pcBounds[1], upper=pcBounds[2],
-					means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+				optResult <- tryCatch.W(optimize(logLikFUN, lower=pcBounds[1], upper=pcBounds[2],
+							means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo))
+				pc <- optResult$value
+				hessWarn[indexCov2to1(i, j, ntvar)] <- length(optResult$warning)
 				# assign polychoric
 				pcMatrix[j, i] <- pc$minimum
 				pcMatrix[i, j] <- pc$minimum
 				# get and assign hessian
+				# Stop Hessian from walking outside of bounds
+				small <- 0.1
+				step <- pc$minimum + c(-1, 1)*.1
+				if(pcBounds[1] > step[1] || pcBounds[2] < step[2]){
+					# if we're within 0.1 of the bound then only walk halfway to it.
+					small <- min(abs(pcBounds - pc$minimum))/2
+				}
+				# Compute actual Hessian
 				hessHold[indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(logLikFUN, x=pc$minimum, 
-						means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
+						means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo, method.args=list(d=small))
 #				if(ordPair==0){ #Continuous variables
 #					r3hess[,,indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(rc3LogLik, x=c(pcVars[1], pc$minimum, pcVars[2]),
 #						means=meanEst[c(i, j)], thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo)
@@ -612,6 +636,17 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, d
 	
 	# make the weight matrix!!!
 	wls <- fullHess %*% iqj %*% fullHess
+	fullNames <- c(parName, colnames(data),
+		       unlist(mapply(function(vn,hess) paste0(vn,'t',1:ncol(hess)),
+				     names(threshHess),
+				     threshHess)))
+	dimnames(wls) <- list(fullNames, fullNames)
+	fullWarn <- c(hessWarn, threshWarn)
+	names(fullWarn) <- c(parName, colnames(data)[ords])
+	if (!suppressWarnings && any(fullWarn > 0)) {
+		warning(paste("Encountered warnings during optimization of",
+			      omxQuotes(fullWarn[fullWarn > 0])))
+	}
 	dls <- diag(diag(wls))
 	uls <- (dls>0)*1
 	

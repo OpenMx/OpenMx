@@ -245,9 +245,15 @@ imxWlsStandardErrors <- function(model){
 		if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', model@name))}
 		W <- MASS::ginv(fullWeight)
 	}
-	dvd <- solve( t(d) %*% V %*% d )
-	nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
-	wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
+	dvd <- try(solve( t(d) %*% V %*% d ), silent=TRUE)
+	if(class(dvd) != "try-error"){
+		nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
+		wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
+	} else {
+		nacov <- matrix(NA, nrow=length(theParams), ncol=length(theParams))
+		wls.se <- matrix(NA, nrow=length(theParams), ncol=1)
+		warning("Standard error matrix is not inveritble.\nIs your model not identified or in need of a constraint?\nCheck for identification with mxCheckIdentification.\nReturning model with all NA standard errors.")
+	}
 	dimnames(nacov) <- list(names(theParams), names(theParams))
 	rownames(wls.se) <- names(theParams)
 	#SE is the standard errors

@@ -1,19 +1,20 @@
 # OpenMx bleed / 2.8.0 in the making
 * NEW: Add mxParametricBootstrap
-* CHANGE: mxBootstrap no longer accepts a plan= parameter.
 * NEW: Add simulate S3 alias for mxGenerateData
-* FIXED: Rampart sufficient statistic optimization no longer interferes with zero variance predictors.
 * NEW: Add MxExpectationMixture interface.
-* Nelder-Mead: "GDsearch" method for handling equality constraints.
-* FIXED: Oakes standard errors (ComputeEM) were broken since Feb 2016.
 * NEW: mxBootstrap, mxComputeBootstrap, mxBootstrapEval, mxBootstrapEvalByName
+* NEW: mxEvaluateOnGrid algebra op (useful for quadrature integration)
+* NEW: mxRobustLog algebra op (recommended for mixtures)
+* IMPROVED: Nelder-Mead "GDsearch" method for handling equality constraints.
 * IMPROVED: mxAutoStart handles models which refer to parent models.
 * IMPROVED: WLS improvements
 	* Handling models with constraints
 	* sat models for mxFitFunctionMultigroup fit
-* NEW: mxEvaluateOnGrid algebra op (useful for quadrature integration)
-* NEW: mxRobustLog algebra op (recommended for mixtures)
 * IMPROVED: mxComputeEM is more generic
+* CHANGE: mxBootstrap no longer accepts a plan= parameter.
+* FIXED: Oakes standard errors (ComputeEM) were broken since Feb 2016.
+* FIXED: Bug in which NAs were allowed in integer definition variables.
+* FIXED: Rampart sufficient statistic optimization no longer interferes with zero variance predictors.
 
 # OpenMx 2.7.9 (March 22, 2017)
 * NEW: mxAutoStart Get automatic starting values.

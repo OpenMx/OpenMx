@@ -164,10 +164,8 @@ static void omxMatrixMult(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 	/* Conformability Check! */
 	if(preMul->cols != postMul->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-conformable matrices [(%d x %d) and (%d x %d)] in Matrix Multiply.", preMul->rows, preMul->cols, postMul->rows, postMul->cols);
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("Non-conformable matrices '%s' %dx%d and '%s' %dx%d in matrix multiply",
+			       preMul->name(), preMul->rows, preMul->cols, postMul->name(), postMul->rows, postMul->cols);
 		return;
 	}
 

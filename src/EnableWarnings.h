@@ -12,4 +12,5 @@
 #pragma GCC diagnostic warning "-Wunused-local-typedefs"
 #pragma GCC diagnostic warning "-Wdeprecated-declarations"
 #pragma GCC diagnostic warning "-Wignored-attributes"
+#pragma GCC diagnostic warning "-Wint-in-bool-context"
 #endif

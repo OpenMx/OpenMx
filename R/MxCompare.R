@@ -322,7 +322,11 @@ fillBootData <- function(nullHyp, comparison, todo, bootData, checkHess) {
 
 			  set.seed(nullHypData[repl, 'seed'])
 			  nullModel <- nullHyp[[ as.integer(i) ]]
-			  simData <- mxGenerateData(nullModel, returnModel=FALSE)
+			  simData <- try(mxGenerateData(nullModel, returnModel=FALSE), silent=TRUE)
+			  if (is(simData, "try-error")) {
+				  stop(paste("Cannot bootstrap null model", omxQuotes(nullModel$name),
+					     "; Does this model contain raw data?"), call.=FALSE)
+			  }
 			  if (is(simData, "data.frame")) {
 				  simData <- list(simData)
 				  names(simData) <- nullModel$name
