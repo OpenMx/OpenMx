@@ -322,6 +322,10 @@ generateNormalData <- function(model, nrows){
 		theMeans <- imxGetExpectationComponent(model, "means")
 		theCov <- imxGetExpectationComponent(model, "covariance")
 		theThresh <- imxGetExpectationComponent(model, "thresholds")
+		if (length(theMeans) == 0) {
+			stop(paste("Cannot generate data from model", omxQuotes(model$name),
+				   "where means are not specified"))
+		}
 		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
@@ -487,9 +491,13 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {
 		origData <- NULL
-		if (!is.null(model@data) && model@data@type == 'raw') {
-			origData <- model@data@observed
-			if (length(nrows)==0) nrows <- nrow(origData)
+		if (!is.null(model@data)) {
+			if (model@data@type == 'raw') {
+				origData <- model@data@observed
+				if (length(nrows)==0) nrows <- nrow(origData)
+			} else if (model@data@type %in% c('cov','cor')) {
+				if (length(nrows)==0) nrows <- model@data@numObs
+			}
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
 		data <- genericGenerateData(model$expectation, model, nrows)

@@ -252,10 +252,11 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 
 loadDataIntoModel <- function(model, dataList) {
   for (modelName in names(dataList)) {
+	  dataobj <- mxData(dataList[[modelName]], type='raw')
     if (modelName == model$name) {
-      model@data@observed <- dataList[[modelName]]
+	    model <- mxModel(model, dataobj)
     } else {
-      model[[modelName]]@data@observed <- dataList[[modelName]]
+	    model <- mxModel(model, mxModel(model[[modelName]], dataobj))
     }
   }
   model
@@ -322,10 +323,9 @@ fillBootData <- function(nullHyp, comparison, todo, bootData, checkHess) {
 
 			  set.seed(nullHypData[repl, 'seed'])
 			  nullModel <- nullHyp[[ as.integer(i) ]]
-			  simData <- try(mxGenerateData(nullModel, returnModel=FALSE), silent=TRUE)
+			  simData <- try(mxGenerateData(nullModel, returnModel=FALSE))
 			  if (is(simData, "try-error")) {
-				  stop(paste("Cannot bootstrap null model", omxQuotes(nullModel$name),
-					     "; Does this model contain raw data?"), call.=FALSE)
+				  stop(paste("Cannot bootstrap null model", omxQuotes(nullModel$name)), call.=FALSE)
 			  }
 			  if (is(simData, "data.frame")) {
 				  simData <- list(simData)
