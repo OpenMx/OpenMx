@@ -139,7 +139,7 @@ mlrun <- mxRun(mlmod)
 
 omxCheckError(
 	mxCompare(remlrun,mlrun),
-	"MxModel 'GREMLtest' (element 1 in argument 'base') has a fitfunction of class 'MxFitFunctionGREML', but MxModel 'MLtest' (element 1 in argument 'comparison') has a fitfunction of class 'MxFitFunctionML'"
+	"MxModel 'GREMLtest' has a fitfunction of class 'MxFitFunctionGREML', but MxModel 'MLtest' has a fitfunction of class 'MxFitFunctionML'"
 )
 
 
@@ -183,5 +183,5 @@ oneFactorCovWLSOut <- mxRun(oneFactorCovWLS)
 
 omxCheckError(
 	mxCompare(oneFactorCov1Out,oneFactorCovWLSOut),
-	"MxModel 'Single Factor Covariance Model with Fixed Variance' (element 1 in argument 'base') has -2lnL fit units, but MxModel 'WLS' (element 1 in argument 'comparison') has r'Wr fit units"
+	" MxModel 'Single Factor Covariance Model with Fixed Variance' has '-2lnL' fit units, but MxModel 'WLS' has 'r'Wr' fit units"
 )
