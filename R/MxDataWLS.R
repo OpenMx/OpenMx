@@ -165,9 +165,9 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	llC <- log(dnorm(rawData[,!isOrd], means[!isOrd], sqrt(vars[!isOrd])))
 	#oMean <- (rawData[,!isOrd] - means[!isOrd]) * k / vars[!isOrd]
 	#oVar <- vars[isOrd] - k*(1/vars[!isOrd])*k
-	z <- ( rawData[,!isOrd] - means[!isOrd] ) / sqrt(vars[!isOrd])
+	z <- ( rawData[,!isOrd] - means[!isOrd] ) / (vars[!isOrd])
 	oMean <- k*z
-	oVar <- max(c(vars[isOrd] - k*k, 1e-10))
+	oVar <- max(c(vars[isOrd] - k*k/vars[!isOrd], 1e-10))
 	cumProb <- sapply(thresh, pnorm, mean=oMean, sd=sqrt(oVar))
 	cumProb <- matrix(cumProb, nrow=nrow(rawData), ncol=length(thresh))
 	cumProb <- cbind(cumProb, 1)
