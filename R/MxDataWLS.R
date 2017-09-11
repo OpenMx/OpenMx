@@ -171,7 +171,7 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	cumProb <- sapply(thresh, pnorm, mean=oMean, sd=sqrt(oVar))
 	cumProb <- cbind(cumProb, 1)
 	levProb <- cbind(cumProb[,1], cumProb[,-1] - cumProb[,-(length(thresh)+1)])
-	sel <- as.numeric(rawData[,isOrd])
+	sel <- unclass(rawData[,isOrd])
 	
 	llO <- rep(NA, length(llC))
 	for (i in 1:(length(thresh)+1)){
