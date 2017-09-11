@@ -235,7 +235,7 @@ ml.sat <- mxGetExpected(jointResults2, 'vector')
 wls.sat <- c(vech(wd$observed), wd$means, na.omit(c(wd$thresholds)))
 
 omxCheckTrue(rms(ml.sat, wls.sat) < .01)
-omxCheckCloseEnough(ml.sat, wls.sat, .03)
+omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009
 
 
 #------------------------------------------------------------------------------
