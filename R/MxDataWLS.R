@@ -169,8 +169,9 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	oMean <- k*z
 	oVar <- max(c(vars[isOrd] - k*k, 1e-10))
 	cumProb <- sapply(thresh, pnorm, mean=oMean, sd=sqrt(oVar))
+	cumProb <- matrix(cumProb, nrow=nrow(rawData), ncol=length(thresh))
 	cumProb <- cbind(cumProb, 1)
-	levProb <- cbind(cumProb[,1], cumProb[,-1] - cumProb[,-(length(thresh)+1)])
+	levProb <- cbind(cumProb[,1,drop=F], cumProb[,-1,drop=F] - cumProb[,-(length(thresh)+1),drop=F])
 	sel <- unclass(rawData[,isOrd])
 	
 	llO <- rep(NA, length(llC))
