@@ -67,7 +67,7 @@ By default when only continuous variables are present, the argument \code{allCon
 \references{
 The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 
-Browne, M. W. (1984). Asymptotically distribution‐free methods for the analysis of covariance structures. British Journal of Mathematical and Statistical Psychology, 37, p. 62-83.
+Browne, M. W. (1984). Asymptotically distribution-free methods for the analysis of covariance structures. British Journal of Mathematical and Statistical Psychology, 37, p. 62-83.
 }
 
 \seealso{
