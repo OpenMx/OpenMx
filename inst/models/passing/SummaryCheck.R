@@ -318,7 +318,6 @@ fit1 <- mxRun(mxModel(model="One Factor", type="RAM",
                              type = "cov", numObs = 500)
 ))
 
-latents <- c("G1", "G2")
 fit2 <- mxRun(mxModel(model="One Factor", type="RAM",
                       manifestVars = manifests, latentVars = latents,
                       mxPath(from = latents, to=manifests, values=0, free=c(F,T,T,T,T)),
