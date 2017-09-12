@@ -187,7 +187,7 @@ checkLISRELmeansHelper <- function(Lam, Mean, Latent, matrixname, lamname, model
 		stop(msg, call. = FALSE)
 	}
 	#Check if means exactly match Lambda matrix (including order)
-	if (!identical(dimnames(Lam)[[checkInd]], meanRownames)) {
+	if (!all(dimnames(Lam)[[checkInd]] == meanRownames)) {
 		msg <- paste("The", checkStg, "names of the", lamname, "matrix",
 			"and the row names of the", matrixname, "matrix",
 			"in model", 
