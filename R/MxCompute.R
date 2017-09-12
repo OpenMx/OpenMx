@@ -942,7 +942,7 @@ setClass(Class = "MxComputeBenchmark",
 	   maxDuration = "numeric"))
 
 setMethod("initialize", "MxComputeBenchmark",
-	  function(.Object, steps, maxIter, tolerance, freeSet, maxDuration) {
+	  function(.Object, steps, maxIter, freeSet, maxDuration) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
@@ -969,7 +969,7 @@ mxComputeBenchmark <- function(steps, ..., maxIter=500L, freeSet=NA_character_,
 	}
 
 	maxIter <- as.integer(maxIter)
-	new("MxComputeBenchmark", steps=steps, maxIter=maxIter, tolerance=tolerance,
+	new("MxComputeBenchmark", steps=steps, maxIter=maxIter,
 	    freeSet, maxDuration)
 }
 
