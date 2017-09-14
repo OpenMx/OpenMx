@@ -304,6 +304,7 @@ omxCheckCloseEnough(mg.sum$informationCriteria[c(1:4,6)], c(-6936.958, -28889.34
 
 # -----------------------------------
 
+library(OpenMx)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G1")
@@ -312,19 +313,20 @@ fit1 <- mxRun(mxModel(model="One Factor", type="RAM",
                       mxPath(from = latents, to=manifests),
                       mxPath(from = manifests, arrows = 2),
                       mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
-                      mxData(cov(demoOneFactor), type = "cov", numObs = 500)
+                      mxPath(from = 'one', manifests, free=FALSE),
+                      mxData(cov(demoOneFactor), colMeans(demoOneFactor),
+                             type = "cov", numObs = 500)
 ))
 
-latents <- c("G1", "G2")
-fit2 <- mxModel(model="Two Factor", type="RAM",
-                manifestVars = manifests, latentVars = latents,
-                mxPath(from = latents[1], to=manifests[1:3]),
-                mxPath(from = latents[2], to=manifests[4:5]),
-                mxPath(from = manifests, arrows = 2),
-                mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
-                mxData(cov(demoOneFactor), type = "cov", numObs=500)
-)
+fit2 <- mxRun(mxModel(model="One Factor", type="RAM",
+                      manifestVars = manifests, latentVars = latents,
+                      mxPath(from = latents, to=manifests, values=0, free=c(F,T,T,T,T)),
+                      mxPath(from = manifests, arrows = 2),
+                      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+                      mxPath(from = 'one', manifests, free=FALSE),
+                      mxData(cov(demoOneFactor), colMeans(demoOneFactor),
+                             type = "cov", numObs = 500)
+))
 
-omxCheckError(mxCompare(fit1, fit2, boot=T),
-              "Cannot bootstrap null model 'Two Factor' ; Does this model contain raw data?")
-
+got <- mxCompare(fit1, fit2, boot=T, replications = 10)
+omxCheckCloseEnough(got[2,'p'], 0, .01)

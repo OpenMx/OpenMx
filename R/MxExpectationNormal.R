@@ -160,10 +160,18 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 })
 
 .standardizeCovMeansThresholds <- function(cov, means, thresholds, vector=FALSE){
-	if(is.null(colnames(means))){ mnames <- names(means) } else {mnames <- colnames(means)}
+	if(!is.null(names(means))){
+		mnames <- names(means)
+	} else if(!is.null(colnames(means)) && length(means) == length(colnames(means))) {
+		mnames <- colnames(means)
+	} else if(!is.null(rownames(means)) && length(means) == length(rownames(means))){
+		mnames <- rownames(means)
+	} else {
+		stop("I give up. Have no idea how to standardize this expectation.\nYour means must have rownames(), colnames(), or names().")
+	}
 	ordInd <- match(colnames(thresholds), mnames)
 	thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)[ordInd]), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
-	means[,ordInd] <- means[,ordInd] - means[,ordInd]
+	means[ordInd] <- means[ordInd] - means[ordInd]
 	cov <- .ordinalCov2Cor(cov, ordInd)
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
@@ -322,6 +330,10 @@ generateNormalData <- function(model, nrows){
 		theMeans <- imxGetExpectationComponent(model, "means")
 		theCov <- imxGetExpectationComponent(model, "covariance")
 		theThresh <- imxGetExpectationComponent(model, "thresholds")
+		if (length(theMeans) == 0) {
+			stop(paste("Cannot generate data from model", omxQuotes(model$name),
+				   "where means are not specified"))
+		}
 		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
@@ -487,9 +499,13 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {
 		origData <- NULL
-		if (!is.null(model@data) && model@data@type == 'raw') {
-			origData <- model@data@observed
-			if (length(nrows)==0) nrows <- nrow(origData)
+		if (!is.null(model@data)) {
+			if (model@data@type == 'raw') {
+				origData <- model@data@observed
+				if (length(nrows)==0) nrows <- nrow(origData)
+			} else if (model@data@type %in% c('cov','cor')) {
+				if (length(nrows)==0) nrows <- model@data@numObs
+			}
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
 		data <- genericGenerateData(model$expectation, model, nrows)

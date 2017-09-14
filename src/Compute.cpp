@@ -1515,6 +1515,19 @@ class omxComputeIterate : public ComputeContainer {
 	virtual ~omxComputeIterate();
 };
 
+class ComputeBenchmark : public ComputeContainer {
+	typedef ComputeContainer super;
+	int maxIter;
+	double maxDuration;
+	int iterations;
+
+ public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
+        virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual ~ComputeBenchmark();
+};
+
 class omxComputeOnce : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > algebras;
@@ -1690,6 +1703,9 @@ static class omxCompute *newComputeSequence()
 static class omxCompute *newComputeIterate()
 { return new omxComputeIterate(); }
 
+static class omxCompute *newComputeBenchmark()
+{ return new ComputeBenchmark(); }
+
 static class omxCompute *newComputeOnce()
 { return new omxComputeOnce(); }
 
@@ -1724,6 +1740,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeGradientDescent", &newComputeGradientDescent},
 	{"MxComputeSequence", &newComputeSequence },
 	{"MxComputeIterate", &newComputeIterate },
+	{"MxComputeBenchmark", &newComputeBenchmark },
 	{"MxComputeOnce", &newComputeOnce },
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
@@ -1909,6 +1926,69 @@ void omxComputeIterate::reportResults(FitContext *fc, MxRList *slots, MxRList *o
 }
 
 omxComputeIterate::~omxComputeIterate()
+{
+	for (size_t cx=0; cx < clist.size(); ++cx) {
+		delete clist[cx];
+	}
+}
+
+void ComputeBenchmark::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	SEXP slotValue;
+
+	super::initFromFrontend(globalState, rObj);
+
+	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("maxIter")));
+	maxIter = INTEGER(slotValue)[0];
+	}
+
+	{
+		ProtectedSEXP RmaxDur(R_do_slot(rObj, Rf_install("maxDuration")));
+		maxDuration = Rf_asReal(RmaxDur);
+	}
+
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
+
+	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
+		SEXP step = VECTOR_ELT(slotValue, cx);
+		SEXP s4class;
+		const char *s4name;
+		{
+			ScopedProtect p1(s4class, STRING_ELT(Rf_getAttrib(step, R_ClassSymbol), 0));
+			s4name = CHAR(s4class);
+		}
+		omxCompute *compute = omxNewCompute(globalState, s4name);
+		compute->initFromFrontend(globalState, step);
+		if (isErrorRaised()) break;
+		clist.push_back(compute);
+	}
+
+	iterations = 0;
+}
+
+void ComputeBenchmark::computeImpl(FitContext *fc)
+{
+	time_t startTime = time(0);
+	while (1) {
+		++iterations;
+		++fc->iterations;
+		for (size_t cx=0; cx < clist.size(); ++cx) {
+			clist[cx]->compute(fc);
+			if (isErrorRaised()) break;
+		}
+		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
+		if (isErrorRaised() || iterations >= maxIter) break;
+	}
+}
+
+void ComputeBenchmark::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
+	MxRList output;
+	output.add("iterations", Rf_ScalarInteger(iterations));
+	slots->add("output", output.asR());
+}
+
+ComputeBenchmark::~ComputeBenchmark()
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		delete clist[cx];

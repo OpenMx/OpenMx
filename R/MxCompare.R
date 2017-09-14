@@ -48,6 +48,7 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 			stop("The 'comparison' argument must consist of MxModel objects")
 		}
 	}
+		
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
 	resultsTable <- showFitStatistics(base, comparison, all, boot, replications, previousRun, checkHess)
@@ -252,10 +253,11 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 
 loadDataIntoModel <- function(model, dataList) {
   for (modelName in names(dataList)) {
+	  dataobj <- mxData(dataList[[modelName]], type='raw')
     if (modelName == model$name) {
-      model@data@observed <- dataList[[modelName]]
+	    model <- mxModel(model, dataobj)
     } else {
-      model[[modelName]]@data@observed <- dataList[[modelName]]
+	    model <- mxModel(model, mxModel(model[[modelName]], dataobj))
     }
   }
   model
@@ -322,10 +324,9 @@ fillBootData <- function(nullHyp, comparison, todo, bootData, checkHess) {
 
 			  set.seed(nullHypData[repl, 'seed'])
 			  nullModel <- nullHyp[[ as.integer(i) ]]
-			  simData <- try(mxGenerateData(nullModel, returnModel=FALSE), silent=TRUE)
+			  simData <- try(mxGenerateData(nullModel, returnModel=FALSE))
 			  if (is(simData, "try-error")) {
-				  stop(paste("Cannot bootstrap null model", omxQuotes(nullModel$name),
-					     "; Does this model contain raw data?"), call.=FALSE)
+				  stop(paste("Cannot bootstrap null model", omxQuotes(nullModel$name)), call.=FALSE)
 			  }
 			  if (is(simData, "data.frame")) {
 				  simData <- list(simData)
@@ -470,6 +471,36 @@ collectStatistics <- function(otherStats, ref, other, bootPair) {
 collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	refSummary <- summary(ref)
 	otherSummary <- summary(other)
+	
+	#Check for validity of the comparison ###
+	rfu <- ref$output$fitUnits #<--NULL if output slot is empty.
+	if(!length(rfu)){
+		warning(paste("MxModel '",ref$name,"' has no 'fitUnits' element in its output slot; has it been run?",sep=""))
+	}
+	ofu <- other$output$fitUnits #<--NULL if output slot is empty.
+	if(!length(ofu)){
+		warning(paste("MxModel '",other$name,"' has no 'fitUnits' element in its output slot; has it been run?",sep=""))
+	}
+	#Only stop if there's a definite mismatch in fit units:
+	if(length(rfu) && length(ofu) && rfu!=ofu){
+		stop(paste("MxModel '",ref$name,"' has '",rfu,"' fit units, but MxModel '",other$name,"' has '",ofu,"' fit units",sep=""))
+	}
+	#Even though the fit units match, the restricted ML and ordinary ML fit values can't be validly compared:
+	if( is(ref$fitfunction,"MxFitFunctionGREML")!=is(other$fitfunction,"MxFitFunctionGREML") ){
+		stop(paste("MxModel '",ref$name,"' has a fitfunction of class '",class(ref$fitfunction),"', but MxModel '",other$name,"' has a fitfunction of class '",class(other$fitfunction),"'",sep=""))
+	}
+	rgfe <- refSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
+	if(length(rgfe)){rgfe <- paste(rgfe$name,collapse=",")}
+	ogfe <- otherSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
+	if(length(ogfe)){ogfe <- paste(ogfe$name,collapse=",")}
+	if( length(rgfe)!=length(ogfe) || (length(rgfe) && length(ogfe) && rgfe!=ogfe) ){
+		#This is a warning, not an error, because it's possible that the user is indeed using the same covariates in both models, but with
+		#different column names.  (If one of the models hasn't been run yet, GREMLFixEffList() will return NULL, but the fit value will 
+		#be NA, so the output for the comparison won't even look valid):
+		warning(paste("the names of the fixed effects in MxModels '",ref$name,"' and '",other$name,"' do not match; comparison of REML fit values is only valid for models that use the same covariates",sep=""))
+	}
+	#End validity checks
+	
 	otherStats[,c('base','comparison')] <-
 		c(refSummary$modelName,
 		  otherSummary$modelName)

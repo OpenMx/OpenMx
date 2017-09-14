@@ -74,7 +74,7 @@ tabe <- table(jointData$z2, jointData$z4)
 # Chi-square-ish test
 # That is, the vectorized joint distributions are near
 #  the expected value of the chi-square
-omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.5)
+omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.6)
 
 omxCheckTrue(all.equal(sapply(jointData, levels), sapply(simData, levels)))
 
@@ -235,7 +235,7 @@ ml.sat <- mxGetExpected(jointResults2, 'vector')
 wls.sat <- c(vech(wd$observed), wd$means, na.omit(c(wd$thresholds)))
 
 omxCheckTrue(rms(ml.sat, wls.sat) < .01)
-omxCheckCloseEnough(ml.sat, wls.sat, .03)
+omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009
 
 
 #------------------------------------------------------------------------------

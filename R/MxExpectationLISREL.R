@@ -187,7 +187,7 @@ checkLISRELmeansHelper <- function(Lam, Mean, Latent, matrixname, lamname, model
 		stop(msg, call. = FALSE)
 	}
 	#Check if means exactly match Lambda matrix (including order)
-	if (!identical(dimnames(Lam)[[checkInd]], meanRownames)) {
+	if (!all(dimnames(Lam)[[checkInd]] == meanRownames)) {
 		msg <- paste("The", checkStg, "names of the", lamname, "matrix",
 			"and the row names of the", matrixname, "matrix",
 			"in model", 
@@ -454,7 +454,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		#  Set the canonical order of observed variable names.
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 		.Object@depth <- generateLISRELDepth(flatModel, beMatrix2, model@options) #Find out how many iterations of I + BE + BE^2 + ... are need until nilpotency.
-		if (mxDataObject@type == 'raw') {
+		if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
 			threshName <- .Object@thresholds
 			checkNumberOrdinalColumns(mxDataObject)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)

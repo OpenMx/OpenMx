@@ -935,6 +935,58 @@ setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
 	  })
 
 #----------------------------------------------------
+setClass(Class = "MxComputeBenchmark",
+	 contains = "ComputeSteps",
+	 representation = representation(
+	   maxIter = "integer",
+	   maxDuration = "numeric"))
+
+setMethod("initialize", "MxComputeBenchmark",
+	  function(.Object, steps, maxIter, freeSet, maxDuration) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@steps <- steps
+		  .Object@maxIter <- maxIter
+		  .Object@freeSet <- freeSet
+		  .Object@maxDuration <- maxDuration
+		  .Object
+	  })
+
+##' Repeatedly invoke a series of compute objects
+##'
+##' @param steps a list of compute objects
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param maxIter the maximum number of iterations
+##' @param freeSet Names of matrices containing free variables.
+##' @param maxDuration the maximum amount of time (in seconds) to iterate
+##' @aliases
+##' MxComputeBenchmark-class
+mxComputeBenchmark <- function(steps, ..., maxIter=500L, freeSet=NA_character_,
+			     maxDuration=as.numeric(NA)) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeBenchmark does not accept values for the '...' argument")
+	}
+
+	maxIter <- as.integer(maxIter)
+	new("MxComputeBenchmark", steps=steps, maxIter=maxIter,
+	    freeSet, maxDuration)
+}
+
+setMethod("displayCompute", signature(Ob="MxComputeBenchmark", indent="integer"),
+	  function(Ob, indent) {
+		  callNextMethod();
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "maxIter :", Ob@maxIter, '\n')
+		  cat(sp, "maxDuration :", Ob@maxDuration, '\n')
+		  for (step in 1:length(Ob@steps)) {
+			  cat(sp, "steps[[", step, "]] :", '\n')
+			  displayCompute(Ob@steps[[step]], indent+1L)
+		  }
+		  invisible(Ob)
+	  })
+
+#----------------------------------------------------
 
 setClass(Class = "MxComputeEM",
 	 contains = "BaseCompute",
