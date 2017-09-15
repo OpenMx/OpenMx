@@ -101,8 +101,8 @@ void MarkovExpectation::compute(FitContext *fc, const char *what, const char *ho
 		}
 	}
 
+	omxRecompute(initial, fc);
 	if (initialV != omxGetMatrixVersion(initial)) {
-		omxRecompute(initial, fc);
 		omxCopyMatrix(scaledInitial, initial);
 		EigenVectorAdaptor Ei(scaledInitial);
 		if (scale == SCALE_SOFTMAX) Ei.derived() = Ei.array().exp();
@@ -111,15 +111,17 @@ void MarkovExpectation::compute(FitContext *fc, const char *what, const char *ho
 		initialV = omxGetMatrixVersion(initial);
 	}
 
-	if (transition && transitionV != omxGetMatrixVersion(transition)) {
+	if (transition) {
 		omxRecompute(transition, fc);
-		omxCopyMatrix(scaledTransition, transition);
-		EigenArrayAdaptor Et(scaledTransition);
-		if (scale == SCALE_SOFTMAX) Et.derived() = Et.array().exp();
-		Eigen::ArrayXd v = Et.colwise().sum();
-		Et.rowwise() /= v.transpose();
-		if (verbose >= 2) mxPrintMat("transition", Et);
-		transitionV = omxGetMatrixVersion(transition);
+		if (transitionV != omxGetMatrixVersion(transition)) {
+			omxCopyMatrix(scaledTransition, transition);
+			EigenArrayAdaptor Et(scaledTransition);
+			if (scale == SCALE_SOFTMAX) Et.derived() = Et.array().exp();
+			Eigen::ArrayXd v = Et.colwise().sum();
+			Et.rowwise() /= v.transpose();
+			if (verbose >= 2) mxPrintMat("transition", Et);
+			transitionV = omxGetMatrixVersion(transition);
+		}
 	}
 }
 

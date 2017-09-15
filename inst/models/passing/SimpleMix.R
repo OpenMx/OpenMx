@@ -6,7 +6,7 @@ start_prob <- c(.2,.3,.4)
 
 state <- sample.int(3, 1, prob=start_prob)
 trail <- c(state)
-for (rep in 1:1000) {
+for (rep in 1:200) {
 	state <- sample.int(3, 1, prob=start_prob)
 	trail <- c(trail, state)
 }
@@ -37,6 +37,30 @@ mix1 <- mxModel(
 mix1Fit <- mxRun(mix1)
 
 omxCheckEquals(round(mix1Fit$expectation$output$weights,1), c(0,1,0))
+
+# ------------------
+
+mix3 <- mxModel(
+	"mix3", classes,
+	mxData(data.frame(ob=trailN, row=1:length(trailN)), "raw"),
+	mxMatrix(values=runif(3*length(trailN)),
+		 nrow=length(trailN), ncol=3, free=TRUE, name="rowWeight"),
+	mxAlgebra(rowWeight[data.row,], name="weights"),
+	mxExpectationMixture(paste0("class",1:3), scale="softmax"),
+	mxFitFunctionML(),
+	mxComputeSequence(list(
+		mxComputeGradientDescent(),
+		mxComputeReportExpectation())))
+
+mix3$rowWeight$free[,1] <- FALSE
+
+mix3Fit <- mxRun(mix3)
+
+omxCheckCloseEnough(sum(apply(mix3Fit$rowWeight$values, 1, function(x) {
+  which(x == max(x))
+}) != trail) / length(trail), 0, .17)
+
+# ------------------
 
 mix2 <- mxModel(
   "mix2", classes,
