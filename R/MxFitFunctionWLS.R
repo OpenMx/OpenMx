@@ -331,7 +331,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	} else {
 		U <- matrix(NA, nrow=nrow(W), ncol=ncol(W))
 	}
-	UW <- U %*% W
+	UW <- as.matrix(U %*% W) # For multigroup case, convert Matrix type to matrix
 	UW2 <- UW %*% UW # unclear if this should be UW^2 i.e. elementwise power
 	trUW <- sum(diag(UW))
 	madj <- trUW/df
