@@ -271,6 +271,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	fwMsg <- "Terribly sorry, master, but you cannot compute chi square without the full weight matrix."
 	if( isMultiGroupModel ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		sV <- list()
 		sW <- list()
 		expd.param <- c()
 		sD <- c()
@@ -285,10 +286,12 @@ imxWlsChiSquare <- function(model, J=NA){
 			} else {
 				expd.param <- c(expd.param, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
 			}
+			sV[[amod]] <- model[[amod]]$data$acov
 			fullWeight <- model[[amod]]$data$fullWeight
 			if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', amod))}
 			sW[[amod]] <- MASS::ginv(fullWeight)
 		}
+		V <- Matrix::bdiag(sV)
 		W <- Matrix::bdiag(sW)
 	} else {
 		cov <- model$data$observed
@@ -301,6 +304,7 @@ imxWlsChiSquare <- function(model, J=NA){
 		} else {
 			expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
 		}
+		V <- model$data$acov #used weight matrix
 		fullWeight <- model$data$fullWeight
 		if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', model@name))}
 		W <- MASS::ginv(fullWeight)
@@ -320,7 +324,23 @@ imxWlsChiSquare <- function(model, J=NA){
 		x2 <- t(e) %*% jacOC %*% ginv( as.matrix(t(jacOC) %*% W %*% jacOC) ) %*% t(jacOC) %*% e
 	} else {x2 <- 0}
 	df <- qr(jacOC)$rank - numOrdinal*2 #subtract the number of ordinal means and variances
-	return(list(Chi=x2, ChiDoF=df))
+	
+	dvd <- try(solve( t(jac) %*% V %*% jac ), silent=TRUE)
+	if(class(dvd) != "try-error"){
+		U <- V - V %*% jac %*% dvd %*% t(jac) %*% V
+	} else {
+		U <- matrix(NA, nrow=nrow(W), ncol=ncol(W))
+	}
+	UW <- U %*% W
+	UW2 <- UW %*% UW # unclear if this should be UW^2 i.e. elementwise power
+	trUW <- sum(diag(UW))
+	madj <- trUW/df
+	x2m <- as.numeric(model$fitfunction$result)/madj
+	dstar <- round((trUW^2) / sum(diag(UW2)))
+	mvadj <-  trUW^2/dstar
+	x2mv <- as.numeric(model$fitfunction$result)/mvadj
+	# N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
+	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, dstar=dstar))
 }
 
 
