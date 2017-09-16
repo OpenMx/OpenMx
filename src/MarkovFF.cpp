@@ -55,20 +55,36 @@ namespace MarkovFF {
 			}
 		}
 
-		EigenVectorAdaptor Einitial(st->initial);
-		Eigen::VectorXd expect(Einitial);
-		Eigen::VectorXd tp(components.size());
+		Eigen::VectorXd expect;
+		int numC = components.size();
+		Eigen::VectorXd tp(numC);
 		double lp=0;
 		for (int rx=0; rx < nrow; ++rx) {
+			if (expectation->loadDefVars(rx) || rx == 0) {
+				omxExpectationCompute(fc, expectation, NULL);
+				if (!st->transition || rx == 0) {
+					EigenVectorAdaptor Einitial(st->initial);
+					expect = Einitial;
+					if (expect.rows() != numC || expect.cols() != 1) {
+						omxRaiseErrorf("%s: initial prob matrix must be %dx%d not %dx%d",
+							       name(), numC, 1, expect.rows(), expect.cols());
+						return;
+					}
+				}
+				if (st->transition && (st->transition->rows != numC || st->transition->cols != numC)) {
+					omxRaiseErrorf("%s: transition prob matrix must be %dx%d not %dx%d",
+						       name(), numC, numC, st->transition->rows, st->transition->cols);
+					return;
+				}
+			}
 			for (int cx=0; cx < int(components.size()); ++cx) {
 				EigenVectorAdaptor Ecomp(components[cx]);
 				tp[cx] = Ecomp[rx];
 			}
-			if (st->verbose >= 4) mxPrintMat("tp", tp);
+			if (st->verbose >= 4) {
+				mxPrintMat("tp", tp);
+			}
 			if (st->transition) {
-				if (expectation->loadDefVars(rx)) {
-					omxExpectationCompute(fc, expectation, NULL);
-				}
 				EigenMatrixAdaptor Etransition(st->transition);
 				expect = (Etransition * expect).eval();
 			}

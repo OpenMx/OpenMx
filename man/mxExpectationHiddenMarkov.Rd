@@ -36,6 +36,11 @@ column sum.}
   column vector and left stochastic transition matrix in probability
   units then examine the expectation's \code{output} slot.
 
+  Definition variables can be used to assign a separate set of mixture
+  probabilities to each row of data.
+  Definition variables can be used in the initial column vector or in
+  the transition matrix, but not in both at the same time.
+
   Note that, when the transition matrix is omitted,
   this expectation is the same as \link{mxExpectationMixture}.
   \link{mxGenerateData} is not implemented for this type of expectation.
