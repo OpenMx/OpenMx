@@ -659,3 +659,20 @@ setMethod("imxVerifyModel", "MxModel",
         return(TRUE)
     }
 )
+
+vcov.MxModel <- function(model) {
+  fu <- model$output$fitUnits
+  if (fu == "-2lnL") {
+	  if (!is.null(model$output[['ihessian']])) {
+		  2 * model$output[['ihessian']]
+	  } else if (!is.null(model$output[['hessian']])) {
+		  2 * solve(model$output$hessian)
+	  } else {
+		  stop(paste("Parameter variance covariance matrix is not available.",
+			     "Did you estimate the Hessian?"))
+	  }
+  } else {
+    stop(paste("Don't know how to extract vcov from model",
+               omxQuotes(model$name), "fit in", omxQuotes(fu), "units"))
+  }
+}
