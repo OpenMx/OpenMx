@@ -665,16 +665,21 @@ vcov.MxModel <- function(object, ...) {
 	assertModelFreshlyRun(object)
   fu <- object$output$fitUnits
   if (fu == "-2lnL") {
-	  if (mxOption(object, "Calculate Hessian")== "No") {
-		  warning(paste("The 'Calculate Hessian' option is disabled. This may result in a poor accuracy vcov matrix.",
-				"Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))
-	  }
+	  got <- NULL
 	  if (!is.null(object$output[['ihessian']])) {
-		  2 * object$output[['ihessian']]
+		  got <- 2 * object$output[['ihessian']]
 	  } else if (!is.null(object$output[['hessian']])) {
-		  2 * solve(object$output$hessian)
+		  got <- 2 * solve(object$output$hessian)
+	  }
+	  if (is.null(got)) {
+		  stop(paste("Parameter variance covariance matrix is not available.",
+			     "Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))
 	  } else {
-		  stop(paste("Parameter variance covariance matrix is not available"))
+		  if (mxOption(object, "Calculate Hessian")== "No") {
+			  warning(paste("The 'Calculate Hessian' option is disabled. This may result in a poor accuracy vcov matrix.",
+					"Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))
+		  }
+		  got
 	  }
   } else {
     stop(paste("Don't know how to extract vcov from object",
