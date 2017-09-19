@@ -321,7 +321,7 @@ expandConfidenceIntervalsHelper <- function(interval, model) {
 				free[lower.tri(free, diag=FALSE)] <- FALSE
 			}
 		} else {
-			free <- matrix(TRUE, rows, cols)
+			free <- matrix(TRUE, max(rows), max(cols))
 		}
 		for(i in rows) {
 			for(j in cols) {
