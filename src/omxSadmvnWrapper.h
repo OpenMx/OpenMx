@@ -328,7 +328,6 @@ double OrdinalLikelihood::block::likelihood(const Eigen::MatrixBase<T1> &lbound,
 	omxSadmvnWrapper(mean.size(), corList.data(),
 			 lThresh.data(), uThresh.data(),
 			 Infin.data(), &ordLik, &inform);
-	// if inform == 1, retry? TODO
 	if (inform == 2) {
 		return 0.0;
 	}
@@ -372,7 +371,6 @@ double OrdinalLikelihood::block::likelihood(FitContext *fc, int row)
 	omxSadmvnWrapper(varMap.size(), corList.data(),
 			 lThresh.data(), uThresh.data(),
 			 Infin.data(), &ordLik, &inform);
-	if (inform == 1 && OMX_DEBUG) mxLog("Sadmvn error larger than epsilon");
 	if (ordLik <= 0.0 || inform == 2) {
 		Eigen::MatrixXd corMat(varMap.size(), varMap.size());
 		corMat.setIdentity();

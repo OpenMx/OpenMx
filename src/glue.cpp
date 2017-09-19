@@ -204,7 +204,6 @@ void omxSadmvnWrapper(int numVars,
    	//	Error	&double		On return: absolute real Rf_error, 99% confidence
    	//	Value	&double		On return: evaluated value
    	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
-   	// TODO: Separate block diagonal covariance matrices into pieces for integration separately
    	double Error;
 	double absEps = Global->absEps;
 	double relEps = Global->relEps;
@@ -221,6 +220,13 @@ void omxSadmvnWrapper(int numVars,
    	smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
    	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
 		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
+
+	double relErr = Error / *likelihood;
+
+	if (relErr > Global->ordError) {
+#pragma openmp atomic
+		Global->ordError = relErr;
+	}
 
    	if (0) {
    		char infinCodes[3][20];
@@ -692,6 +698,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	result.add("status", backwardCompatStatus.asR());
 	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
+	result.add("maxRelativeOrdinalError", Rf_ScalarReal(Global->ordError));
 
 	// Data are not modified and not copied. The same memory
 	// is shared across all instances of state.
