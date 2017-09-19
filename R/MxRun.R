@@ -256,6 +256,7 @@ runHelper <- function(model, frontendStart,
 		if(options[["Standard Errors"]] == "Yes"){
 			wlsSEs <- imxWlsStandardErrors(model)
 			model@output$standardErrors <- wlsSEs$SE
+			model@output$ihessian <- 0.5*wlsSEs$Cov
 			model@output$hessian <- 2*solve(wlsSEs$Cov) #puts in same units as m2ll Hessian
 			wlsChi <- imxWlsChiSquare(model, J=wlsSEs$Jac)
 		} else {
