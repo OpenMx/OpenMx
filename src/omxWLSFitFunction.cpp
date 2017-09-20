@@ -30,41 +30,84 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* weights;
 	omxMatrix* P;
 	omxMatrix* B;
-	omxMatrix* standardExpectedCov;
-	omxMatrix* standardExpectedMeans;
-	omxMatrix* standardExpectedThresholds;
 	int n;
 
-	omxWLSFitFunction() :standardExpectedMeans(0), standardExpectedThresholds(0) {};
+	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
+
+	// 'standard' prefix variables are temp space used by flattenDataToVector
+	omxMatrix* standardCov;
+	omxMatrix* standardMeans;
+	omxMatrix* standardThresholds;
+	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
+				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
 };
 
-static void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
-			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector) {
+void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
+			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector)
+{
 	// TODO: vectorize data flattening
-	// if(OMX_DEBUG) { mxLog("Flattening out data vectors: cov 0x%x, mean 0x%x, thresh 0x%x[n=%d] ==> 0x%x", 
-	//         cov, means, thresholds, nThresholds, vector); }
+
+	Eigen::ArrayXd stddev;
+	EigenMatrixAdaptor egInCov(cov);
+	EigenMatrixAdaptor egOutCov(standardCov);
+
+	stddev = egInCov.diagonal().array().sqrt();
+	Eigen::ArrayXd stddevUse = Eigen::ArrayXd::Ones(egInCov.rows());
+
+	// standardize thresholds with corresponding transform to mean and covarinace
+	if (means) {
+		EigenMatrixAdaptor egInM(means);
+		EigenMatrixAdaptor egOutM(standardMeans);
+		egOutM = egInM;
+
+		if (thresholdMat) {
+			EigenMatrixAdaptor egInThr(thresholdMat);
+			EigenMatrixAdaptor egOutThr(standardThresholds);
+			for(int j = 0; j < int(thresholds.size()); j++) {
+				omxThresholdColumn* thresh = &thresholds[j];
+				if (thresh->numThresholds == 0) continue;
+				int dcol = thresh->dColumn;
+				for(int k = 0; k < thresh->numThresholds; k++) {
+					egOutThr(k, thresh->column) =
+						( egInThr(k, thresh->column) - egInM(0, dcol) ) / stddev[dcol];
+				}
+				egOutM(0, dcol) = 0.0;
+				stddevUse[dcol] = stddev[dcol];
+			}
+		}
+	}
+
+	// standardize covariance of ordinal indicators
+	for(int i = 0; i < egInCov.rows(); i++) {
+		for(int j = 0; j <= i; j++) {
+			egOutCov(i,j) = egInCov(i, j) / (stddevUse[i] * stddevUse[j]);
+			egOutCov(j,i) = egOutCov(i,j);
+		}
+	}
 	
 	int nextLoc = 0;
 	for(int j = 0; j < cov->rows; j++) {
 		for(int k = j; k < cov->rows; k++) {
-			omxSetVectorElement(vector, nextLoc, omxMatrixElement(cov, j, k)); // Use upper triangle in case of SYMM-style mat.
+			omxSetVectorElement(vector, nextLoc, egOutCov(j, k));
 			nextLoc++;
 		}
 	}
-	if (means != NULL) {
+	if (means) {
+		EigenMatrixAdaptor egOutM(standardMeans);
 		for(int j = 0; j < cov->rows; j++) {
-			omxSetVectorElement(vector, nextLoc, omxVectorElement(means, j));
+			omxSetVectorElement(vector, nextLoc, egOutM(j));
 			nextLoc++;
 		}
 	}
 	for(int j = 0; j < int(thresholds.size()); j++) {
+		EigenMatrixAdaptor egOutThr(standardThresholds);
 		omxThresholdColumn* thresh = &thresholds[j];
 		for(int k = 0; k < thresh->numThresholds; k++) {
-			omxSetVectorElement(vector, nextLoc, omxMatrixElement(thresholdMat, k, thresh->column));
+			omxSetVectorElement(vector, nextLoc, egOutThr(k, thresh->column));
 			nextLoc++;
 		}
 	}
@@ -82,64 +125,9 @@ omxWLSFitFunction::~omxWLSFitFunction()
 	omxFreeMatrix(owo->expectedFlattened);
 	omxFreeMatrix(owo->B);
 	omxFreeMatrix(owo->P);
-	omxFreeMatrix(owo->standardExpectedCov);
-	omxFreeMatrix(owo->standardExpectedMeans);
-	omxFreeMatrix(owo->standardExpectedThresholds);
-}
-
-
-static void standardizeCovMeansThresholds(omxMatrix* inCov, omxMatrix* inMeans,
-			omxMatrix* inThresholdsMat, std::vector< omxThresholdColumn > &thresholds,
-			omxMatrix* outCov, omxMatrix* outMeans, omxMatrix* outThresholdsMat) {
-	
-	Eigen::ArrayXd stddev;
-	EigenMatrixAdaptor egInCov(inCov);
-	EigenMatrixAdaptor egOutCov(outCov);
-	
-	stddev = egInCov.diagonal().array().sqrt();
-	Eigen::ArrayXd stddevUse = Eigen::ArrayXd::Ones(egInCov.rows());
-	
-	// standardize mean and thresholds
-	if(inMeans) {
-		EigenMatrixAdaptor egInM(inMeans);
-		EigenMatrixAdaptor egOutM(outMeans);
-		// means
-		egOutM = egInM;
-		
-		// thresholds
-		if(inThresholdsMat != NULL){
-			EigenMatrixAdaptor egInThr(inThresholdsMat);
-			EigenMatrixAdaptor egOutThr(outThresholdsMat);
-			if(OMX_DEBUG) {
-				mxLog("Expected thresholds have size %d.", int(thresholds.size()));
-			}
-			for(int j = 0; j < int(thresholds.size()); j++) {
-				omxThresholdColumn* thresh = &thresholds[j];
-				if(OMX_DEBUG) {
-					mxLog("Data column %d has %d thresholds stored in threshold column %d",
-					      thresh->dColumn, thresh->numThresholds, thresh->column);
-				}
-				int dcol = thresh->dColumn;
-				for(int k = 0; k < thresh->numThresholds; k++) {
-					egOutThr(k, thresh->column) =
-						( egInThr(k, thresh->column) - egInM(0, dcol) ) / stddev[dcol];
-				}
-				if(thresh->numThresholds > 0){
-					egOutM(0, dcol) = 0.0;
-					stddevUse[dcol] = stddev[dcol];
-				}
-			}
-		}
-	}
-
-	// standardize covariance
-	for(int i = 0; i < egInCov.rows(); i++) {
-		for(int j = 0; j <= i; j++) {
-			egOutCov(i,j) = egInCov(i, j) / (stddevUse[i] * stddevUse[j]);
-			egOutCov(j,i) = egOutCov(i,j);
-		}
-	}
-	
+	omxFreeMatrix(owo->standardCov);
+	omxFreeMatrix(owo->standardMeans);
+	omxFreeMatrix(owo->standardThresholds);
 }
 
 
@@ -155,7 +143,6 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	double sum = 0.0;
 	
 	omxMatrix *eCov, *eMeans, *oFlat, *eFlat;
-	omxMatrix *seCov, *seMeans, *seThresholdsMat;
 	
 	/* Locals for readability.  Compiler should cut through this. */
 	eCov		= owo->expectedCov;
@@ -163,9 +150,6 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	auto &eThresh   = oo->expectation->getThresholdInfo();
 	oFlat		= owo->observedFlattened;
 	eFlat		= owo->expectedFlattened;
-	seCov		= owo->standardExpectedCov;
-	seMeans		= owo->standardExpectedMeans;
-	seThresholdsMat = owo->standardExpectedThresholds;
 	int onei	= 1;
 	
 	/* Recompute and recopy */
@@ -174,13 +158,7 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
-	if(expThresholdsMat != NULL){
-		standardizeCovMeansThresholds(eCov, eMeans, expThresholdsMat, eThresh,
-			seCov, seMeans, seThresholdsMat);
-		flattenDataToVector(seCov, seMeans, seThresholdsMat, eThresh, eFlat);
-	} else {
-		flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
-	}
+	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
 	
 	omxCopyMatrix(B, oFlat);
 	
@@ -428,6 +406,12 @@ void omxWLSFitFunction::init()
 			return;
 		}
 	}
+	if (OMX_DEBUG) {
+		mxLog("expected thresholds:");
+		for (auto &th : eThresh) { th.log(); }
+		mxLog("observed thresholds:");
+		for (auto &th : oThresh) { th.log(); }
+	}
 	
 	/* Error check weight matrix size */
 	int ncol = newObj->observedCov->cols;
@@ -453,12 +437,12 @@ void omxWLSFitFunction::init()
 	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
-	newObj->standardExpectedCov = omxInitMatrix(ncol, ncol, TRUE, currentState);
+	newObj->standardCov = omxInitMatrix(ncol, ncol, TRUE, currentState);
 	if (oo->expectation->thresholdsMat) {
-		newObj->standardExpectedThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, currentState);
+		newObj->standardThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, currentState);
 	}
 	if(means){
-		newObj->standardExpectedMeans = omxInitMatrix(1, ncol, TRUE, currentState);
+		newObj->standardMeans = omxInitMatrix(1, ncol, TRUE, currentState);
 	}
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	
