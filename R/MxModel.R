@@ -660,19 +660,29 @@ setMethod("imxVerifyModel", "MxModel",
     }
 )
 
-vcov.MxModel <- function(model) {
-  fu <- model$output$fitUnits
-  if (fu == "-2lnL") {
-	  if (!is.null(model$output[['ihessian']])) {
-		  2 * model$output[['ihessian']]
-	  } else if (!is.null(model$output[['hessian']])) {
-		  2 * solve(model$output$hessian)
-	  } else {
+vcov.MxModel <- function(object, ...) {
+	if (!object@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+	assertModelFreshlyRun(object)
+  fu <- object$output$fitUnits
+  if (fu %in% c("-2lnL", "r'Wr")) {
+	  got <- NULL
+	  if (!is.null(object$output[['ihessian']])) {
+		  got <- 2 * object$output[['ihessian']]
+	  } else if (!is.null(object$output[['hessian']])) {
+		  got <- 2 * solve(object$output$hessian)
+	  }
+	  if (is.null(got)) {
 		  stop(paste("Parameter variance covariance matrix is not available.",
-			     "Did you estimate the Hessian?"))
+			     "Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))
+	  } else {
+		  if (mxOption(object, "Calculate Hessian")== "No") {
+			  warning(paste("The 'Calculate Hessian' option is disabled. This may result in a poor accuracy vcov matrix.",
+					"Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))
+		  }
+		  got
 	  }
   } else {
-    stop(paste("Don't know how to extract vcov from model",
-               omxQuotes(model$name), "fit in", omxQuotes(fu), "units"))
+    stop(paste("Don't know how to extract vcov from object",
+               omxQuotes(object$name), "fit in", omxQuotes(fu), "units"))
   }
 }
