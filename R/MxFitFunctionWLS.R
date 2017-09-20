@@ -252,7 +252,7 @@ imxWlsStandardErrors <- function(model){
 	} else {
 		nacov <- matrix(NA, nrow=length(theParams), ncol=length(theParams))
 		wls.se <- matrix(NA, nrow=length(theParams), ncol=1)
-		warning("Standard error matrix is not inveritble.\nIs your model not identified or in need of a constraint?\nCheck for identification with mxCheckIdentification.\nReturning model with all NA standard errors.")
+		warning("Standard error matrix is not invertible.\nIs your model not identified or in need of a constraint?\nCheck for identification with mxCheckIdentification.\nReturning model with all NA standard errors.")
 	}
 	dimnames(nacov) <- list(names(theParams), names(theParams))
 	rownames(wls.se) <- names(theParams)
