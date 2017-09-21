@@ -343,100 +343,107 @@ removeAllIntervals <- function(model) {
 	return(model)
 }
 
-##' omxParallelCI
-##'
-##' Create parallel models for parallel confidence intervals
-##' 
-##' @param model an MxModel with confidence intervals in it
-##' @param run whether to run the model or just return the parallelized interval models
-##' @param verbose verbosity level to be passed to mxCompute* objects
-##' @return
-##' an MxModel object
-##' @examples
-##' require(OpenMx)
-##' data(demoOneFactor)
-##' manifests <- names(demoOneFactor)
-##' latents <- c("G")
-##' factorModel <- mxModel("One Factor", 
-##'                       type="RAM",
-##'                       manifestVars=manifests, 
-##'                       latentVars=latents,
-##'                       mxPath(from=latents, to=manifests),
-##'                       mxPath(from=manifests, arrows=2),
-##'                       mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
-##'                       mxData(observed=cov(demoOneFactor), type="cov",
-##'                       numObs=500),
-##'      # add confidence intervals for free params in A and S matrices
-##'                       mxCI(c('A', 'S')))
-##' factorRun <- mxRun(factorModel)
-##' factorCI <- omxParallelCI(factorRun) # Run CIs in parallel
-omxParallelCI <- function(model, run = TRUE, verbose=0L) {
+omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TRUE) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
 	}
 	if(length(model@output) == 0) {
 		stop("'model' argument to omxParallelCI must be a fitted model")
 	}
-	namespace <- imxGenerateNamespace(model)
-	flatModel <- imxFlattenModel(model, namespace)
-	intervals <- flatModel@intervals
-	if (length(intervals) == 0) return(model)
-	intervals <- expandConfidenceIntervals(model, intervals)
-	template <- model
-	template <- removeAllIntervals(template)
-	optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
-	ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
-	ciOpt <- mxComputeGradientDescent(
-		verbose=verbose,
-		nudgeZeroStarts=FALSE,
-		gradientAlgo=optionList[['Gradient algorithm']],
-		gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
-		gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
-	if (ctype == 'ineq') {
-		ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05, verbose=verbose)
+	if(!independentSubmodels){
+		optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
+		ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
+		ciOpt <- mxComputeGradientDescent(
+			verbose=verbose,
+			nudgeZeroStarts=FALSE,
+			gradientAlgo=optionList[['Gradient algorithm']],
+			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
+		if (ctype == 'ineq') {
+			ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05, verbose=verbose)
+		}
+		pciplan <- mxComputeSequence(
+			steps=list(
+				CI=mxComputeConfidenceInterval(
+					constraintType=ctype,
+					verbose=verbose,
+					plan=ciOpt
+				)))
+		pciplan
+		model <- mxModel(model, pciplan)
+		if(!run){
+			return(model)
+		}
+		model <- mxRun(model, suppressWarnings=TRUE)
+		model@compute@.persist <- FALSE
+		return(model)
 	}
-	pciplan <- mxComputeSequence(
-		steps=list(
-			CI=mxComputeConfidenceInterval(
-				constraintType=ctype,
-				verbose=verbose,
-				plan=ciOpt
-			)))
-	modelname <- model@name
-	container <- mxModel(paste(modelname, "container", sep = "_"))
-	submodels <- list()
-	for(i in 1:length(intervals)) {
-		interval <- intervals[[i]]
-		newmodel <- mxModel(template, interval, pciplan, independent = TRUE)
-		newmodel <- mxRename(newmodel, paste("interval", i, sep = ""))
-		newmodel <- mxOption(newmodel, "Number of Threads", 1)
-		submodels <- c(submodels, newmodel)
+	else{
+		namespace <- imxGenerateNamespace(model)
+		flatModel <- imxFlattenModel(model, namespace)
+		intervals <- flatModel@intervals
+		if (length(intervals) == 0) return(model)
+		intervals <- expandConfidenceIntervals(model, intervals)
+		template <- model
+		template <- removeAllIntervals(template)
+		optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
+		ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
+		ciOpt <- mxComputeGradientDescent(
+			verbose=verbose,
+			nudgeZeroStarts=FALSE,
+			gradientAlgo=optionList[['Gradient algorithm']],
+			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
+			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
+		if (ctype == 'ineq') {
+			ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05, verbose=verbose)
+		}
+		pciplan <- mxComputeSequence(
+			steps=list(
+				CI=mxComputeConfidenceInterval(
+					constraintType=ctype,
+					verbose=verbose,
+					plan=ciOpt
+				)))
+		modelname <- model@name
+		container <- mxModel(paste(modelname, "container", sep = "_"))
+		submodels <- list()
+		for(i in 1:length(intervals)) {
+			interval <- intervals[[i]]
+			newmodel <- mxModel(template, interval, pciplan, independent = TRUE)
+			newmodel <- mxRename(newmodel, paste("interval", i, sep = ""))
+			newmodel <- mxOption(newmodel, "Number of Threads", 1)
+			submodels <- c(submodels, newmodel)
+		}
+		container <- mxModel(container, submodels)
+		if (!run) {
+			return(container)
+		}
+		container <- mxRun(container, intervals = TRUE, suppressWarnings = TRUE)
+		tableCI <- matrix(as.numeric(NA), 0, 3)
+		tableCodes <- matrix(0, 0, 2)
+		dimnames(tableCI) <- list(NULL, c('lbound', 'estimate', 'ubound'))
+		dimnames(tableCodes) <- list(NULL, c('lbound', 'ubound'))
+		submodels <- container@submodels
+		for(i in 1:length(submodels)) {
+			submodel <- submodels[[i]]
+			submodel <- mxRename(submodel, modelname)
+			tableCI <- rbind(tableCI, submodel@output$confidenceIntervals)
+			tableCodes <- rbind(tableCodes, submodel@output$confidenceIntervalCodes)
+		}
+		model@output$confidenceIntervals <- tableCI
+		model@output$confidenceIntervalCodes <- tableCodes
+		model@output$frontendTime <- container@output$frontendTime
+		model@output$backendTime <- container@output$backendTime
+		model@output$independentTime <- container@output$independentTime
+		model@output$wallTime <- container@output$wallTime
+		model@output$timestamp <- container@output$timestamp
+		model@output$cpuTime <- container@output$cpuTime
+		return(model)
 	}
-	container <- mxModel(container, submodels)
-	if (!run) {
-		return(container)
-	}
-	container <- mxRun(container, intervals = TRUE, suppressWarnings = TRUE)
-	tableCI <- matrix(as.numeric(NA), 0, 3)
-	tableCodes <- matrix(0, 0, 2)
-	dimnames(tableCI) <- list(NULL, c('lbound', 'estimate', 'ubound'))
-	dimnames(tableCodes) <- list(NULL, c('lbound', 'ubound'))
-	submodels <- container@submodels
-	for(i in 1:length(submodels)) {
-		submodel <- submodels[[i]]
-		submodel <- mxRename(submodel, modelname)
-		tableCI <- rbind(tableCI, submodel@output$confidenceIntervals)
-		tableCodes <- rbind(tableCodes, submodel@output$confidenceIntervalCodes)
-	}
-	model@output$confidenceIntervals <- tableCI
-	model@output$confidenceIntervalCodes <- tableCodes
-	model@output$frontendTime <- container@output$frontendTime
-	model@output$backendTime <- container@output$backendTime
-	model@output$independentTime <- container@output$independentTime
-	model@output$wallTime <- container@output$wallTime
-	model@output$timestamp <- container@output$timestamp
-	model@output$cpuTime <- container@output$cpuTime
-	return(model)
+}
+
+omxRunCI <- function(model, verbose=0L){
+	return(omxParallelCI(model=model, run=TRUE, verbose=verbose, independentSubmodels=FALSE))
 }
 
 confint.MxModel <- function(object, parm, level = 0.95, ...) {
