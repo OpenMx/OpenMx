@@ -22,7 +22,7 @@ Dedicated functions for calculating confidence intervals without redoing the pri
 }
 
 \description{
-\code{omxParallelCI()} calculates confidence intervals for an already-\link[=mxRun]{run} \link{MxModel} object that contains an \link{MxInterval} object (i.e., an \code{\link{mxCI}()} statement), without recalculating point estimates, fitfunction derivatives, or expectations.  The "parallel" in the functions name refers to the not-yet-implemented feature of running independent \link[=mxModel]{submodels} in parallel.  \code{omxRunCI()} is a wrapper for \code{omxParallelCI()} with arguments \code{run=TRUE} and \code{independentSubmodels=FALSE}, and is the recommended interface.
+\code{omxParallelCI()} calculates confidence intervals for an already-\link[=mxRun]{run} \link{MxModel} object that contains an \link{MxInterval} object (i.e., an \code{\link{mxCI}()} statement), without recalculating point estimates, fitfunction derivatives, or expectations.  The "parallel" in the function's name refers to the not-yet-implemented feature of running independent \link[=mxModel]{submodels} in parallel.  \code{omxRunCI()} is a wrapper for \code{omxParallelCI()} with arguments \code{run=TRUE} and \code{independentSubmodels=FALSE}, and is the recommended interface.
 }
 \usage{
 omxParallelCI(model, run = TRUE, verbose=0L, independentSubmodels=TRUE)
@@ -37,14 +37,14 @@ omxRunCI(model, verbose=0L)
   \item{independentSubmodels}{Logical; defaults to \code{TRUE} (for \code{omxParallelCI()}).  See below under "Details."}
 }
 \details{
-When \code{independentSubmodels=TRUE}, \code{omxParallelCI()} creates an independent MxModel object for each quantity specified in the 'reference' slot of \code{model}'s \link{MxInterval} object, and places these independent MxModels inside \code{model}.  Each of these independent submodels calculates the confidence limits of its own quantity when the container is run.  When \code{independentSubmodels=FALSE}, no submodels are added to \code{model}.  Instead, \code{model} is provided with a dedicated \link[=mxComputeSequence]{compute plan} consisting only of an \link[=mxComputeConfidenceInterval][MxComputeConfidenceInterval] step.  Note that using \code{independentSubmodels=FALSE} will overwrite any compute plan already inside \code{model}.
+When \code{independentSubmodels=TRUE}, \code{omxParallelCI()} creates an independent MxModel object for each quantity specified in the 'reference' slot of \code{model}'s \link{MxInterval} object, and places these independent MxModels inside \code{model}.  Each of these independent submodels calculates the confidence limits of its own quantity when the container model is run.  When \code{independentSubmodels=FALSE}, no submodels are added to \code{model}.  Instead, \code{model} is provided with a dedicated \link[=mxComputeSequence]{compute plan} consisting only of an \link[=mxComputeConfidenceInterval]{MxComputeConfidenceInterval} step.  Note that using \code{independentSubmodels=FALSE} will overwrite any compute plan already inside \code{model}.
 }
 \value{
 The functions return \code{model}, augmented with independent submodels (if \code{independentSubmodels=TRUE}) or with a non-default compute plan (if \code{independentSubmodels=FALSE}), and possibly having been passed through \code{\link{mxRun}()} (if \code{run=TRUE}).  Naturally, if \code{run=FALSE}, the user can subsequently \link[=mxRun]{run} the returned model to obtain confidence intervals.  Users are cautioned that the returned model may not be very amenable to being further modified and re-fitted (e.g., having some free parameters fixed via \code{\link{omxSetParameters}()} and passed through \code{\link{mxRun}()} to get new point estimates) unless the added submodels or the non-default compute plan are eliminated.  The exception is if \code{run=TRUE} and \code{independentSubmodels=TRUE} (which is always the case with \code{omxRunCI()}), since the non-default compute plan is set to be non-persistent, and will automatically be replaced with a default compute plan the next time the model is passed to \code{\link{mxRun}()}.
 }
 
 \seealso{
-\code{\link{mxCI}()}, \link{MxInterval}, \code{\link{mxComputeConfidenceInterval}}
+\code{\link{mxCI}()}, \link{MxInterval}, \code{\link{mxComputeConfidenceInterval}()}
 }
 \examples{
 require(OpenMx)
