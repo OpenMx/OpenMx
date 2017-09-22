@@ -176,7 +176,6 @@ man/omxGetRAMDepth.Rd
 man/omxHasDefaultComputePlan.Rd
 man/omxManifestModelByParameterJacobian.Rd
 man/omxNameAnonymousParameters.Rd
-man/omxParallelCI.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
