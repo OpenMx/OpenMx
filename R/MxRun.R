@@ -18,6 +18,7 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
 		useOptimizer = TRUE){
 
+	if (!is(model, "MxModel")) stop("mxRun can only act on MxModel objects")
 	if (.hasSlot(model, '.version')) {
 		mV <- package_version(model@.version)
 		curV <- pkg_globals$myVersion
