@@ -29,7 +29,7 @@ citEntry(entry="article",
 		  "Robert M. Kickpatrick,", "Ryne Estabrook,", "Timothy C. Bates,",
 		  "Hermine H. Maes,", "Steven M. Boker.",
 		  "(2016). OpenMx 2.0: Extended structural equation and statistical modeling. Psychometrika,",
-		  "80(2), 535-549. DOI:10.1007/s11336-014-9435-8"))
+		  "81(2), 535-549. DOI:10.1007/s11336-014-9435-8"))
 
 citEntry(entry="article",
 	 title = "Modular open-source software for {I}tem {F}actor {A}nalysis",
