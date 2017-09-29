@@ -273,12 +273,13 @@ runHelper <- function(model, frontendStart,
 			model@output$status$code <- 5   # INFORM_NOT_CONVEX
 		}
 	}
-	if (model@output[['maxRelativeOrdinalError']] > .01) {
+	mroe <- model@output[['maxRelativeOrdinalError']]
+	if (!is.null(mroe)) { if (mroe > .01) {
 		warning(paste("model$output[['maxRelativeOrdinalError']] is larger than 1%.\n",
 			      "Standardized ordinal thresholds are too far from zero or",
 			      "you have too many ordinal variables with nonzero covariance.\n",
 			      "Model is unlikely to converge and standard errors are unlikely to be accurate."))
-	}
+	}}
 
 	# Currently runstate preserves the pre-backend state of the model.
 	# Eventually this needs to capture the post-backend state,

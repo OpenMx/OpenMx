@@ -157,6 +157,7 @@ void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *max
 	const size_t numParam = varGroup->vars.size();
 	bool steepestDescent = false;
 
+	fc->resetOrdinalRelativeError();
 	Eigen::VectorXd prevEst(numParam);
 	memcpy(prevEst.data(), fc->est, numParam * sizeof(double));
 

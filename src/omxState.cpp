@@ -233,7 +233,6 @@ omxGlobal::omxGlobal()
 	boundsUpdated = false;
 	dataTypeWarningCount = 0;
 
-	ordError = 0.0;
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
 

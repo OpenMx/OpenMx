@@ -138,7 +138,12 @@ SEXP dtmvnorm_marginal2(SEXP Rxq, SEXP Rxr, SEXP Rq, SEXP Rr,
 	const Map<VectorXd> upper(as<Map<VectorXd> >(Rupper));
 	VectorXd density(4);
 
-	_dtmvnorm_marginal2(NA_REAL, xq, xr, qq, rr, sigma, lower, upper, density);
+	omxState *globalState = new omxState;
+	std::vector<double> startingValues;
+	FitContext *fc = new FitContext(globalState, startingValues);
+	_dtmvnorm_marginal2(fc, NA_REAL, xq, xr, qq, rr, sigma, lower, upper, density);
+	delete fc;
+	delete globalState;
 
 	return Rcpp::wrap(density);
 }
@@ -156,7 +161,12 @@ SEXP dtmvnorm_marginal(SEXP Rxn, SEXP Rn, SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	const Map<VectorXd> upper(as<Map<VectorXd> >(Rupper));
 	VectorXd density(2);
 
-	_dtmvnorm_marginal(NA_REAL, xn, nn, sigma, lower, upper, density);
+	omxState *globalState = new omxState;
+	std::vector<double> startingValues;
+	FitContext *fc = new FitContext(globalState, startingValues);
+	_dtmvnorm_marginal(fc, NA_REAL, xn, nn, sigma, lower, upper, density);
+	delete fc;
+	delete globalState;
 
 	return Rcpp::wrap(density);
 }
@@ -173,7 +183,12 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 
 	VectorXd tmean;
 	MatrixXd tcov;
-	_mtmvnorm(NA_REAL, sigma, fullLower, fullUpper, tmean, tcov);
+	omxState *globalState = new omxState;
+	std::vector<double> startingValues;
+	FitContext *fc = new FitContext(globalState, startingValues);
+	_mtmvnorm(fc, NA_REAL, sigma, fullLower, fullUpper, tmean, tcov);
+	delete fc;
+	delete globalState;
 
 	omxManageProtectInsanity mpi;
 	MxRList result;
@@ -182,7 +197,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	return result.asR();
 }
 
-void omxSadmvnWrapper(int numVars, 
+void omxSadmvnWrapper(FitContext *fc, int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform)
 {
 	// Eigen::Map< Eigen::ArrayXd > elt(lThresh, numVars);
@@ -221,12 +236,7 @@ void omxSadmvnWrapper(int numVars,
    	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
 		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
 
-	double relErr = Error / *likelihood;
-
-	if (relErr > Global->ordError) {
-#pragma openmp atomic
-		Global->ordError = relErr;
-	}
+	if (fc) fc->recordOrdinalRelativeError(Error / *likelihood);
 
    	if (0) {
    		char infinCodes[3][20];
@@ -642,6 +652,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				result.add("fitUnits", units);
 			}
 			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
+			result.add("maxRelativeOrdinalError",
+				   Rf_ScalarReal(fc->getOrdinalRelativeError()));
 		}
 		if (fc->wanted & FF_COMPUTE_BESTFIT) {
 			result.add("minimum", Rf_ScalarReal(fc->fit));
@@ -698,7 +710,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	result.add("status", backwardCompatStatus.asR());
 	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
-	result.add("maxRelativeOrdinalError", Rf_ScalarReal(Global->ordError));
 
 	// Data are not modified and not copied. The same memory
 	// is shared across all instances of state.

@@ -136,7 +136,7 @@ bool condOrdByRow::eval()
 					}
 
 					if (ordLik == 0.0 ||
-					    !_mtmvnorm(ordLik, ordCov, lThresh, uThresh, xi, U11)) {
+					    !_mtmvnorm(fc, ordLik, ordCov, lThresh, uThresh, xi, U11)) {
 						reportBadOrdLik(1);
 						return true;
 					}

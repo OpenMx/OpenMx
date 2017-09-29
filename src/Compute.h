@@ -142,6 +142,7 @@ class FitContext {
 	void testMerge();
 
 	std::string IterationError;
+	double ordinalRelativeError;
 	int computeCount;
 	ComputeInform inform;
 
@@ -238,6 +239,13 @@ class FitContext {
 	void postInfo();
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
+	void recordOrdinalRelativeError(double re) {
+		if (re < ordinalRelativeError ) return;
+		ordinalRelativeError = re;
+	};
+	void resetOrdinalRelativeError();
+	double getOrdinalRelativeError() const { return ordinalRelativeError; }
+
 	int getGlobalComputeCount(); //approximate
 	int getLocalComputeCount(); //approximate
 	void incrComputeCount() { ++computeCount; };
