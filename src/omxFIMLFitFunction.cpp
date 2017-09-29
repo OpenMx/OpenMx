@@ -651,7 +651,7 @@ static void sortData(omxFitFunction *off)
 		}
 		double rowsPerOrdinalPattern = data->rows / (double)numUnique;
 		// magic numbers from logistic regression
-		double prediction = -4.73 + 0.48 * rowsPerOrdinalPattern - 0.06 * ofiml->numContinuous;
+		double prediction = -3.58 + 0.36 * rowsPerOrdinalPattern - 0.06 * ofiml->numContinuous;
 		if (prediction > 0.0) {
 			ofiml->jointStrat = JOINT_CONDORD;
 		} else {
