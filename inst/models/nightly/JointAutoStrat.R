@@ -69,6 +69,6 @@ for (trial in 1:nrow(todo)) {
 }
 
 omxCheckTrue(todo$numUnique <= todo$numPat)
-pred <- -4.73 + 0.48 * 1000/todo$numUnique - 0.06 * todo$numContinuous
+pred <- -3.58 + 0.36 * 1000/todo$numUnique - 0.06 * todo$numContinuous
 omxCheckEquals(todo[pred<0, 'strat'], 'continuous')
 omxCheckEquals(todo[pred>0, 'strat'], 'ordinal')

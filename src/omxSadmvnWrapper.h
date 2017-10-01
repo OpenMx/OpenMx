@@ -39,7 +39,7 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 }
 #endif
 
-void omxSadmvnWrapper(int numVars, 
+void omxSadmvnWrapper(FitContext *fc, int numVars, 
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
 
 using namespace UndirectedGraph;
@@ -110,7 +110,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		inline void loadRow(int row);
 		inline double likelihood(FitContext *fc, int row);
 		template <typename T1, typename T2>
-		double likelihood(const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound);
+		double likelihood(FitContext *fc, const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound);
 	};
 
 	Eigen::ArrayXd stddev;
@@ -283,11 +283,11 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 	};
 
 	template <typename T1, typename T2>
-	double likelihood(const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound)
+	double likelihood(FitContext *fc, const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound)
 	{
 		double lk = 1.0;
 		for (int bx=0; bx < int(blocks.size()); ++bx) {
-			double l1 = blocks[bx].likelihood(lbound, ubound);
+			double l1 = blocks[bx].likelihood(fc, lbound, ubound);
 			//mxLog("%g %g", lk, l1);
 			lk *= l1;
 		}
@@ -306,7 +306,8 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 };
 
 template <typename T1, typename T2>
-double OrdinalLikelihood::block::likelihood(const Eigen::MatrixBase<T1> &lbound,
+double OrdinalLikelihood::block::likelihood(FitContext *fc,
+					    const Eigen::MatrixBase<T1> &lbound,
 					    const Eigen::MatrixBase<T2> &ubound)
 {
 	for (int ox=0, vx=0; ox < (int)varMask.size(); ++ox) {
@@ -325,10 +326,9 @@ double OrdinalLikelihood::block::likelihood(const Eigen::MatrixBase<T1> &lbound,
 	}
 	int inform;
 	double ordLik;
-	omxSadmvnWrapper(mean.size(), corList.data(),
+	omxSadmvnWrapper(fc, mean.size(), corList.data(),
 			 lThresh.data(), uThresh.data(),
 			 Infin.data(), &ordLik, &inform);
-	// if inform == 1, retry? TODO
 	if (inform == 2) {
 		return 0.0;
 	}
@@ -369,10 +369,9 @@ double OrdinalLikelihood::block::likelihood(FitContext *fc, int row)
 	loadRow(row);
 	int inform;
 	double ordLik;
-	omxSadmvnWrapper(varMap.size(), corList.data(),
+	omxSadmvnWrapper(fc, varMap.size(), corList.data(),
 			 lThresh.data(), uThresh.data(),
 			 Infin.data(), &ordLik, &inform);
-	if (inform == 1 && OMX_DEBUG) mxLog("Sadmvn error larger than epsilon");
 	if (ordLik <= 0.0 || inform == 2) {
 		Eigen::MatrixXd corMat(varMap.size(), varMap.size());
 		corMat.setIdentity();
@@ -417,7 +416,7 @@ double OrdinalLikelihood::block::likelihood(FitContext *fc, int row)
 */
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-bool _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
+bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 			const Eigen::MatrixBase<T2> &sigma,
 			const Eigen::MatrixBase<T3> &lower, const Eigen::MatrixBase<T4> &upper,
 			Eigen::MatrixBase<T5> &density)
@@ -463,7 +462,7 @@ bool _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 	if (!std::isfinite(prob)) {
 		ol.setCovarianceUnsafe(sigma);
 		ol.setZeroMean();
-		prob = ol.likelihood(lower, upper);
+		prob = ol.likelihood(fc, lower, upper);
 	}
 
 	ol.setCovarianceUnsafe(A_1);
@@ -482,7 +481,7 @@ bool _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 		}
 		VectorXd mu = xn[dx] * cc.array() * c_nn;
 		ol.setMean(mu);
-		density[dx] = exp(-0.5*xn[dx]*xn[dx]*c_nn) * ol.likelihood(lower_n, upper_n);
+		density[dx] = exp(-0.5*xn[dx]*xn[dx]*c_nn) * ol.likelihood(fc, lower_n, upper_n);
 	}
 
 	density.array() /= prob * sqrt(M_2PI * sigma(nn, nn));
@@ -516,7 +515,7 @@ bool _dtmvnorm_marginal(double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 # pmvnorm(corr=) kann ich verwenden
  */
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-bool _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
+bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
 			 int qq, int rr,
 			 const Eigen::MatrixBase<T3> &sigma,
 			 const Eigen::MatrixBase<T4> &lower, const Eigen::MatrixBase<T5> &upper,
@@ -540,7 +539,7 @@ bool _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 	if (!std::isfinite(alpha)) {
 		ol.setCovarianceUnsafe(sigma);
 		ol.setZeroMean();
-		alpha = ol.likelihood(lower, upper);
+		alpha = ol.likelihood(fc, lower, upper);
 	}
 	
 	struct subset1 {
@@ -627,7 +626,7 @@ bool _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 			ol.setCorrelation(RQR);
 		}
 		ol.setZeroMean();
-		double prob = ol.likelihood(AQR.row(ii), BQR.row(ii));
+		double prob = ol.likelihood(fc, AQR.row(ii), BQR.row(ii));
 		density[ii] *= prob;
 	}
 	return true;
@@ -640,7 +639,7 @@ bool _dtmvnorm_marginal2(double alpha, const Eigen::MatrixBase<T1> &xq, const Ei
 // are a large number of ordinal patterns.
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-bool _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
+bool _mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
 	       const Eigen::MatrixBase<T2> &lower, const Eigen::MatrixBase<T3> &upper,
 	       Eigen::MatrixBase<T4> &xi, Eigen::MatrixBase<T5> &U11)
 {
@@ -659,7 +658,7 @@ bool _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 	for (int qq=0; qq < kk; ++qq) {
 		marginalBounds[0] = lower[qq];
 		marginalBounds[1] = upper[qq];
-		if (!_dtmvnorm_marginal(prob, marginalBounds, qq, sigma, lower, upper, marginalOut)) return false;
+		if (!_dtmvnorm_marginal(fc, prob, marginalBounds, qq, sigma, lower, upper, marginalOut)) return false;
 		F_a[qq] = marginalOut[0];
 		F_b[qq] = marginalOut[1];
 	}
@@ -674,7 +673,7 @@ bool _mtmvnorm(double prob, const Eigen::MatrixBase<T1> &sigma,
 		for (int ss=qq+1; ss < kk; ++ss) { //row
 			xq << lower[qq], upper[qq], lower[qq], upper[qq];
 			xr << lower[ss], lower[ss], upper[ss], upper[ss];
-			if (!_dtmvnorm_marginal2(prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out)) return false;
+			if (!_dtmvnorm_marginal2(fc, prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out)) return false;
 			F2(qq,ss) = (marginal2Out[0] - marginal2Out[1]) - (marginal2Out[2] - marginal2Out[3]);
 		}
 	}

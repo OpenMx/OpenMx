@@ -1987,7 +1987,7 @@ static void omxMultivariateNormalIntegration(FitContext *fc, omxMatrix** matList
 		return;
 	}
 
-	omxSetMatrixElement(result, 0, 0, ol.likelihood(elb, eub));
+	omxSetMatrixElement(result, 0, 0, ol.likelihood(fc, elb, eub));
 }
 
 static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2077,7 +2077,7 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 		uBounds[j] = omxMatrixElement(thresholdMats[matNums[j]], currentThresholds[j], thresholdCols[j]);
 	}
 
-	double likelihood = ol.likelihood(lBounds, uBounds);
+	double likelihood = ol.likelihood(fc, lBounds, uBounds);
 
 	omxSetMatrixElement(result, 0, 0, likelihood);
 
@@ -2096,7 +2096,7 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 			if (currentThresholds[j] != 1) break;
 		}
 
-		likelihood = ol.likelihood(lBounds, uBounds);
+		likelihood = ol.likelihood(fc, lBounds, uBounds);
 
 		omxSetMatrixElement(result, i, 0, likelihood);
 	}

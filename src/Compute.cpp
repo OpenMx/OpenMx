@@ -690,6 +690,7 @@ void FitContext::init()
 	iterations = 0;
 	ciobj = 0;
 	openmpUser = false;
+	ordinalRelativeError = 0;
 	computeCount = 0;
 
 	hess.resize(numParam, numParam);
@@ -793,6 +794,7 @@ void FitContext::updateParent()
 	parent->infoDefinite = infoDefinite;
 	parent->infoCondNum = infoCondNum;
 	parent->iterations = iterations;
+	parent->recordOrdinalRelativeError(getOrdinalRelativeError());
 
 	// rewrite using mapToParent TODO
 
@@ -890,6 +892,19 @@ void FitContext::log(int what)
 void FitContext::resetIterationError()
 {
 	IterationError.clear();
+}
+
+void FitContext::resetOrdinalRelativeError()
+{
+	if (childList.size()) {
+		for (size_t cx=0; cx < childList.size(); ++cx) {
+			childList[cx]->resetOrdinalRelativeError();
+		}
+	}
+	if (OMX_DEBUG && ordinalRelativeError > .01) {
+		mxLog("reset ordinalRelativeError %g back to zero", ordinalRelativeError);
+	}
+	ordinalRelativeError = 0;
 }
 
 void FitContext::recordIterationError(const char* msg, ...)
@@ -1156,6 +1171,7 @@ void FitContext::destroyChildren()
 	if (0 == childList.size()) return;
 	IterationError = getIterationError();
 	for (int cx=0; cx < int(childList.size()); ++cx) {
+		recordOrdinalRelativeError(childList[cx]->getOrdinalRelativeError());
 		delete childList[cx];
 	}
 	childList.clear();
