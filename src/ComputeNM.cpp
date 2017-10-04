@@ -1408,6 +1408,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 		if(verbose){
 			mxLog("Nelder-Mead iteration %d / %d",itersElapsed,maxIter);
 		}
+		fc->resetOrdinalRelativeError();
 		if(itersElapsed){
 			//Order the vertices by fit value:
 			if(needFullSort){fullSort();}

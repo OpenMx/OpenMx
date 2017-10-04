@@ -178,7 +178,7 @@ oneFactorThresholdModel01 <- mxModel("oneFactorThresholdModel01",
 # Create Factor Model with Raw Ordinal Data and Matrices Input
 # -----------------------------------------------------------------------------
 
-oneFactorThresholdFit01 <- mxRun(oneFactorThresholdModel01, suppressWarnings=TRUE)
+oneFactorThresholdFit01 <- mxTryHardOrdinal(oneFactorThresholdModel01, silent=TRUE)
 # Fit the model with mxRun
 # -----------------------------------------------------------------------------
 
