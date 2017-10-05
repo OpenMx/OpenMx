@@ -151,7 +151,7 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
-		if (is.null(thr)) {
+		if (prod(dim(thr)) == 0) {
 			return(c(vech(cov), mns[!is.na(mns)]))
 		} else {
 			dth <- getObservedThresholds(model)
@@ -166,7 +166,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
-		if (is.null(thr)) {
+		if (prod(dim(thr)) == 0) {
 			return(c(vech(cov), mns[!is.na(mns)]))
 		} else {
 			dth <- getObservedThresholds(model)
