@@ -445,9 +445,11 @@ void omxWLSFitFunction::init()
 		newObj->standardMeans = omxInitMatrix(1, ncol, TRUE, currentState);
 	}
 	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
-	if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
-	    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
-		omxRaiseError("Observed and expected threshold matrices must have the same number of rows and columns");
+	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
+		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
+		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
+			omxRaiseError("Observed and expected threshold matrices must have the same number of rows and columns");
+		}
 	}
 	
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
