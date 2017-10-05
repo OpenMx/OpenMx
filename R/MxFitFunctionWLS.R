@@ -281,7 +281,7 @@ imxWlsChiSquare <- function(model, J=NA){
 			thr <- model[[amod]]$data$thresholds
 			sD[[amod]] <- single.na(thr)
 			if(!single.na(thr)){
-				expd.param <- c(expd.param, .standardizeCovMeansThresholds(cov, mns, thr, thr, vector=TRUE))
+				expd.param <- c(expd.param, .standardizeCovMeansThresholds(cov, mns, thr, !is.na(thr), vector=TRUE))
 				numOrdinal <- numOrdinal + ncol(thr)
 			} else {
 				expd.param <- c(expd.param, cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])
@@ -299,7 +299,7 @@ imxWlsChiSquare <- function(model, J=NA){
 		thr <- model$data$thresholds
 		sD <- single.na(thr)
 		if(!single.na(thr)){
-			expd.param <- .standardizeCovMeansThresholds(cov, mns, thr, thr, vector=TRUE)
+			expd.param <- .standardizeCovMeansThresholds(cov, mns, thr, !is.na(thr), vector=TRUE)
 			numOrdinal <- numOrdinal + ncol(thr)
 		} else {
 			expd.param <- c(cov[lower.tri(cov, TRUE)], mns[!is.na(mns)], thr[!is.na(thr)])

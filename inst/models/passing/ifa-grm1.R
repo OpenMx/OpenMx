@@ -161,11 +161,6 @@ m3 <- mxModel(
 omxCheckError(mxGetExpected(m3, 'vector'),
               "Cannot find observed thresholds, model 'grm1WLS' has no data")
 
-m3 <- mxModel(m3, mxData(data, type='raw'))
-
-omxCheckError(mxGetExpected(m3, 'vector'),
-              "Observed data in model 'grm1WLS' has no thresholds")
-
 m3 <- mxModel(m3, mxDataWLS(data))
 
 m3$expectation$thresholds <- 'T'
