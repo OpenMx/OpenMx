@@ -158,12 +158,12 @@ m3 <- mxModel(
            dimnames=list(NULL, colnames(correct.mat)))
 )
 
+m3$expectation$thresholds <- 'T'
+
 omxCheckError(mxGetExpected(m3, 'vector'),
               "Cannot find observed thresholds, model 'grm1WLS' has no data")
 
 m3 <- mxModel(m3, mxDataWLS(data))
-
-m3$expectation$thresholds <- 'T'
 
 for (ix in 1:numItems) {
   nth <- spec[[ix]]$outcomes - 1L
