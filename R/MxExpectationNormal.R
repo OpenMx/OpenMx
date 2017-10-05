@@ -135,6 +135,15 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		ret
 	})
 
+getObservedThresholds <- function(model) {
+	if (is.null(model@data)) stop(paste("Cannot find observed thresholds, model",
+					    omxQuotes(model$name), "has no data"))
+	d1 <- model@data
+	th <- d1@thresholds
+	if (single.na(th)) stop(paste("Observed data in model", omxQuotes(model$name), "has no thresholds"))
+	th
+}
+
 setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 	function(.Object, model, defvar.row=1, subname=model@name) {
 		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname)
@@ -142,9 +151,12 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
-		if (is.null(thr)) stop("thresholds is null")
-		v <- c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
-		return(v)
+		if (is.null(thr)) {
+			return(c(vech(cov), mns[!is.na(mns)]))
+		} else {
+			dth <- getObservedThresholds(model)
+			return(c(vech(cov), mns[!is.na(mns)], thr[!is.na(dth)]))
+		}
 })
 
 setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
@@ -154,12 +166,16 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
-		if (is.null(thr)) stop("thresholds is null")
-		v <- .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE)
-		return(v)
+		if (is.null(thr)) {
+			return(c(vech(cov), mns[!is.na(mns)]))
+		} else {
+			dth <- getObservedThresholds(model)
+			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
+			return(v)
+		}
 })
 
-.standardizeCovMeansThresholds <- function(cov, means, thresholds, vector=FALSE){
+.standardizeCovMeansThresholds <- function(cov, means, thresholds, dth, vector=FALSE){
 	if(!is.null(names(means))){
 		mnames <- names(means)
 	} else if(!is.null(colnames(means)) && length(means) == length(colnames(means))) {
@@ -176,7 +192,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
-		return(c(vech(cov), means[!is.na(means)], thresholds[!is.na(thresholds)]))
+		return(c(vech(cov), means[!is.na(means)], thresholds[!is.na(dth)]))
 	}
 }
 

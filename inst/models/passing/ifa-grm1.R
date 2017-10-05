@@ -145,3 +145,51 @@ refModels <- mxRefModels(m2, run=TRUE)
 
 omxCheckCloseEnough(refModels[['Independence']]$output$fit, 14810.21, .01)
 #summary(m2, refModels=refModels)
+
+# ---------------------------------- WLS
+
+m3 <- mxModel(
+  "grm1WLS", type="RAM",
+  manifestVars = colnames(correct.mat), latentVars = "G",
+  mxPath(c("G", colnames(correct.mat)), arrows=2, values=1, free=FALSE),
+  mxPath('one', c("G", colnames(correct.mat)), values=0, free=FALSE),
+  mxPath('G', colnames(correct.mat), values=1),
+  mxMatrix(nrow=6, ncol=ncol(correct.mat), name="T", values=NA,
+           dimnames=list(NULL, colnames(correct.mat)))
+)
+
+omxCheckError(mxGetExpected(m3, 'vector'),
+              "Cannot find observed thresholds, model 'grm1WLS' has no data")
+
+m3 <- mxModel(m3, mxData(data, type='raw'))
+
+omxCheckError(mxGetExpected(m3, 'vector'),
+              "Observed data in model 'grm1WLS' has no thresholds")
+
+m3 <- mxModel(m3, mxDataWLS(data))
+
+m3$expectation$thresholds <- 'T'
+
+for (ix in 1:numItems) {
+  nth <- spec[[ix]]$outcomes - 1L
+  th <- rep(.2, nth)
+  th[1] <- .1-sum(th)/2
+  m3$T$values[1:nth,ix] <- cumsum(th)
+  m3$T$free[1:nth,ix] <- TRUE
+  if (nth < nrow(m3$T)) {
+    m3$T$values[(nth+1):nrow(m3$T),ix] <- ifelse(as.integer(ix) %% 2L == 0L, NA, 0)
+  }
+}
+
+m3 <- mxRun(m3)
+
+omxCheckCloseEnough(cor(toFactorLoading(m2$item$values['f1',,drop=FALSE]),
+                        m3$A$values[1:numItems,'G',drop=FALSE]),
+                    1, .04)
+
+tmask <- !is.na(m3$data$thresholds)
+
+omxCheckCloseEnough(cor(toFactorThreshold(m2$item$values[-1,],
+                                          m2$item$values['f1',,drop=FALSE])[tmask],
+                        m3$T$values[tmask]),
+                    1, .01)
