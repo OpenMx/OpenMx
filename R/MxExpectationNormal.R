@@ -135,6 +135,23 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		ret
 	})
 
+getThresholdMask <- function(model, cols) {
+	if (is.null(model@data)) stop(paste("Cannot find observed thresholds, model",
+					    omxQuotes(model$name), "has no data"))
+	d1 <- model@data
+	if (d1@type == 'raw') {
+		lev <- sapply(d1$observed[,cols], function(x) length(levels(x)))
+		mask <- matrix(FALSE, length(cols), max(lev)-1)
+		colnames(mask) <- cols
+		for (lx in 1:length(cols)) mask[1:(lev[lx]-1), lx] <- TRUE
+		mask
+	} else {
+		th <- d1@thresholds
+		if (single.na(th)) stop(paste("Observed data in model", omxQuotes(model$name), "has no thresholds"))
+		!is.na(th)
+	}
+}
+
 setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 	function(.Object, model, defvar.row=1, subname=model@name) {
 		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname)
@@ -142,9 +159,12 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
-		if (is.null(thr)) stop("thresholds is null")
-		v <- c(vech(cov), mns[!is.na(mns)], thr[!is.na(thr)])
-		return(v)
+		if (prod(dim(thr)) == 0) {
+			return(c(vech(cov), mns[!is.na(mns)]))
+		} else {
+			dth <- getThresholdMask(model, colnames(thr))
+			return(c(vech(cov), mns[!is.na(mns)], thr[dth]))
+		}
 })
 
 setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
@@ -154,12 +174,16 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		thr <- ret[['thresholds']]
-		if (is.null(thr)) stop("thresholds is null")
-		v <- .standardizeCovMeansThresholds(cov, mns, thr, vector=TRUE)
-		return(v)
+		if (prod(dim(thr)) == 0) {
+			return(c(vech(cov), mns[!is.na(mns)]))
+		} else {
+			dth <- getThresholdMask(model, colnames(thr))
+			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
+			return(v)
+		}
 })
 
-.standardizeCovMeansThresholds <- function(cov, means, thresholds, vector=FALSE){
+.standardizeCovMeansThresholds <- function(cov, means, thresholds, dth, vector=FALSE){
 	if(!is.null(names(means))){
 		mnames <- names(means)
 	} else if(!is.null(colnames(means)) && length(means) == length(colnames(means))) {
@@ -176,7 +200,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
-		return(c(vech(cov), means[!is.na(means)], thresholds[!is.na(thresholds)]))
+		return(c(vech(cov), means[!is.na(means)], thresholds[dth]))
 	}
 }
 
