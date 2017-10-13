@@ -729,7 +729,6 @@ class ComputeCI : public omxCompute {
 	SEXP intervals, intervalCodes, detail;
 	const char *ctypeName;
 	bool useInequality;
-	double referenceFit;
 
 	enum Method {
 		NEALE_MILLER_1997=1,
@@ -904,14 +903,13 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 	REAL(VECTOR_ELT(detail, 1))[detailRow] = val;
 	INTEGER(VECTOR_ELT(detail, 2))[detailRow] = 1+lower;
 	REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.fit;
-	REAL(VECTOR_ELT(detail, 4))[detailRow] = fc.fit - referenceFit;
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 	for (int px=0; px < int(fc.numParam); ++px) {
-		REAL(VECTOR_ELT(detail, 5+px))[detailRow] = Est[px];
+		REAL(VECTOR_ELT(detail, 4+px))[detailRow] = Est[px];
 	}
-	INTEGER(VECTOR_ELT(detail, 5+fc.numParam))[detailRow] = meth;
-	INTEGER(VECTOR_ELT(detail, 6+fc.numParam))[detailRow] = diag;
-	INTEGER(VECTOR_ELT(detail, 7+fc.numParam))[detailRow] = fc.wrapInform();
+	INTEGER(VECTOR_ELT(detail, 4+fc.numParam))[detailRow] = meth;
+	INTEGER(VECTOR_ELT(detail, 5+fc.numParam))[detailRow] = diag;
+	INTEGER(VECTOR_ELT(detail, 6+fc.numParam))[detailRow] = fc.wrapInform();
 	++detailRow;
 }
 
@@ -1557,7 +1555,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 	if (!numInts) return;
 
 	if (!mle->haveReferenceFit(fitMatrix)) return;
-	referenceFit = mle->fit;
 
 	// I'm not sure why INFORM_NOT_AT_OPTIMUM is okay, but that's how it was.
 	if (mle->getInform() >= INFORM_LINEAR_CONSTRAINTS_INFEASIBLE && mle->getInform() != INFORM_NOT_AT_OPTIMUM) {
@@ -1582,17 +1579,17 @@ void ComputeCI::computeImpl(FitContext *mle)
 		}
 	}
 
-	int numDetailCols = 8 + mle->numParam;
+	int numDetailCols = 7 + mle->numParam;
 	Rf_protect(detail = Rf_allocVector(VECSXP, numDetailCols));
 	SET_VECTOR_ELT(detail, 0, Rf_allocVector(STRSXP, totalIntervals));
 	SET_VECTOR_ELT(detail, 1, Rf_allocVector(REALSXP, totalIntervals));
 	const char *sideLabels[] = { "upper", "lower" };
 	SET_VECTOR_ELT(detail, 2, makeFactor(Rf_allocVector(INTSXP, totalIntervals), 2, sideLabels));
-	for (int cx=0; cx < 2+int(mle->numParam); ++cx) {
+	for (int cx=0; cx < 1+int(mle->numParam); ++cx) {
 		SET_VECTOR_ELT(detail, 3+cx, Rf_allocVector(REALSXP, totalIntervals));
 	}
 	const char *methodLabels[] = { "neale-miller-1997", "wu-neale-2012" };
-	SET_VECTOR_ELT(detail, 5+mle->numParam,
+	SET_VECTOR_ELT(detail, 4+mle->numParam,
 		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
 				  OMX_STATIC_ARRAY_SIZE(methodLabels), methodLabels));
 	const char *diagLabels[] = {
@@ -1601,10 +1598,10 @@ void ComputeCI::computeImpl(FitContext *mle)
 		"bound-near lower distance", "bound-near upper distance",
 		"bound infeasible", "active box constraint"
 	};
-	SET_VECTOR_ELT(detail, 6+mle->numParam,
+	SET_VECTOR_ELT(detail, 5+mle->numParam,
 		       makeFactor(Rf_allocVector(INTSXP, totalIntervals),
 				  OMX_STATIC_ARRAY_SIZE(diagLabels), diagLabels));
-	SET_VECTOR_ELT(detail, 7+mle->numParam, allocInformVector(totalIntervals));
+	SET_VECTOR_ELT(detail, 6+mle->numParam, allocInformVector(totalIntervals));
 
 	SEXP detailCols;
 	Rf_protect(detailCols = Rf_allocVector(STRSXP, numDetailCols));
@@ -1613,13 +1610,12 @@ void ComputeCI::computeImpl(FitContext *mle)
 	SET_STRING_ELT(detailCols, 1, Rf_mkChar("value"));
 	SET_STRING_ELT(detailCols, 2, Rf_mkChar("side"));
 	SET_STRING_ELT(detailCols, 3, Rf_mkChar("fit"));
-	SET_STRING_ELT(detailCols, 4, Rf_mkChar("fitDiff"));
 	for (int nx=0; nx < int(mle->numParam); ++nx) {
-		SET_STRING_ELT(detailCols, 5+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
+		SET_STRING_ELT(detailCols, 4+nx, Rf_mkChar(mle->varGroup->vars[nx]->name));
 	}
-	SET_STRING_ELT(detailCols, 5 + mle->numParam, Rf_mkChar("method"));
-	SET_STRING_ELT(detailCols, 6 + mle->numParam, Rf_mkChar("diagnostic"));
-	SET_STRING_ELT(detailCols, 7 + mle->numParam, Rf_mkChar("statusCode"));
+	SET_STRING_ELT(detailCols, 4 + mle->numParam, Rf_mkChar("method"));
+	SET_STRING_ELT(detailCols, 5 + mle->numParam, Rf_mkChar("diagnostic"));
+	SET_STRING_ELT(detailCols, 6 + mle->numParam, Rf_mkChar("statusCode"));
 
 	markAsDataFrame(detail, totalIntervals);
 
