@@ -32,7 +32,8 @@ Description: Facilitates treatment of statistical model specifications
     maximum likelihood, and weighted least squares.
     Example models include confirmatory factor, multiple group, mixture
     distribution, categorical threshold, modern test theory, differential
-    equations, state space, and many others.
+    equations, state space, and many others. See Neale, Hunter, Pritikin, Zahery, Brick,
+    Kirkpatrick, Estabrook, Bates, Maes, & Boker (2016) <doi:10.1007/s11336-014-9435-8>.
 SystemRequirements: GNU make
 Byte-Compile: yes
 License: @LICENSE@
