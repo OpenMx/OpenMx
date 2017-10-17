@@ -2186,14 +2186,10 @@ static void omxRealEigenvalues(FitContext *fc, omxMatrix** matList, int numArgs,
 
 	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), A->data, WI, NULL, &One, NULL, &One, work, &lwork, &info);
 	if(info != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "DGEEV returned %d in (real) eigenvalue decomposition:", info);
-		if(info > 0)
-			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
+		if(info < 0)
+			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
 		else
-			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
-		omxRaiseError(errstr);
-		free(errstr);
+			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
 		goto RealEigenValCleanup;
 	}
 
@@ -2261,14 +2257,10 @@ static void omxRealEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs
 
 	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "DGEEV returned %d in eigenvalue decomposition:", info);
-		if(info > 0)
-			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
+		if(info < 0)
+			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
 		else
-			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
-		omxRaiseError(errstr);
-		free(errstr);
+			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
 		goto RealEigenVecCleanup;
 	}
 
@@ -2333,14 +2325,10 @@ static void omxImaginaryEigenvalues(FitContext *fc, omxMatrix** matList, int num
 
 	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), WR, A->data, NULL, &One, NULL, &One, work, &lwork, &info);
 	if(info != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "DGEEV returned %d in (real) eigenvalue decomposition:", info);
-		if(info > 0)
-			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
+		if(info < 0)
+			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
 		else
-			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
-		omxRaiseError(errstr);
-		free(errstr);
+			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
 		goto ImagEigenValCleanup;
 	}
 
@@ -2405,14 +2393,10 @@ static void omxImaginaryEigenvectors(FitContext *fc, omxMatrix** matList, int nu
 
 	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
 	if(info != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "DGEEV returned %d in eigenvalue decomposition:", info);
-		if(info > 0)
-			sprintf(errstr, "%s argument %d had an illegal value.  Post this to the OpenMx wiki.\n", errstr, info);
+		if(info < 0)
+			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
 		else
-			sprintf(errstr, "%s Unable to decompose matrix: Not of full rank.\n", errstr);
-		omxRaiseError(errstr);
-		free(errstr);
+			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
 		goto ImagEigenVecCleanup;
 	}
 

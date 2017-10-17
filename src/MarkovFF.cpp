@@ -36,8 +36,6 @@ namespace MarkovFF {
 		state *st = (state*) this;
 		auto *oo = this;
 
-		omxExpectationCompute(fc, expectation, NULL);
-
 		for (auto c1 : components) {
 			if (c1->fitFunction) {
 				omxFitFunctionCompute(c1->fitFunction, want, fc);
