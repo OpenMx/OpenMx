@@ -232,8 +232,15 @@ class omxGlobal {
 	double maxptsa;
 	double maxptsb;
 	double maxptsc;
-	int calcNumIntegrationPoints(int numVars) { return maxptsa + maxptsb * numVars + maxptsc * numVars * numVars; };
-	double absEps;
+	double maxptsd;
+	double maxptse;
+	int calcNumIntegrationPoints(int numVars) {
+		int pts = (maxptsa + maxptsb * numVars + maxptsc * numVars * numVars +
+			   exp(maxptsd + maxptse * numVars * log(relEps)));
+		if (pts < 0) Rf_error("%f + %f * %d + %f * %d * %d + exp(%f + %f * %d * log(%f)) is too large (or non-positive)",
+				      maxptsa, maxptsb, numVars, maxptsc, numVars, numVars, relEps);
+		return pts;
+	};
 	double relEps;
 
 	int RAMInverseOpt;

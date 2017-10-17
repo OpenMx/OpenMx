@@ -220,7 +220,7 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
    	//	Value	&double		On return: evaluated value
    	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
    	double Error;
-	double absEps = Global->absEps;
+	double absEps = 0.0;  // Inappropriate to use for our application
 	double relEps = Global->relEps;
 	int MaxPts = Global->calcNumIntegrationPoints(numVars);
 	int fortranThreadId = omx_absolute_thread_num() + 1;
@@ -384,8 +384,13 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				Global->maxptsb = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsC")) {
 				Global->maxptsc = atof(nextOptionValue);
+			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsD")) {
+				Global->maxptsd = atof(nextOptionValue);
+			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsE")) {
+				Global->maxptse = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnAbsEps")) {
-				Global->absEps = atof(nextOptionValue);
+				double absEps = atof(nextOptionValue);
+				if (absEps != 0.0) Rf_warning("mxOption mvnAbsEps ignored");
 			} else if(matchCaseInsensitive(nextOptionName, "mvnRelEps")) {
 				Global->relEps = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "maxStackDepth")) {
