@@ -16,14 +16,14 @@
 
 omxBrownie <- function(quantity=1, walnuts=TRUE){
 	if (walnuts==FALSE)stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
-	amt <- c(4, 2, 8, 1.25, 1, 0.75, 0.5, 1.5)
+	amt <- c(4, 10, 2, 8, 1.25, 1, 0.75, 0.5, 1.5)
 	amt <- round(amt*quantity, 3)
-	unit <- c("whole", "cup", "oz", "cup",
+	unit <- c("tbsp", "tbsp", "cup", "oz", "cup",
 		"tsp", "cup", "tsp", "cup")
-	ing <- c("eggs", "granulated sugar",
-			"butter (room temperature)",
+	ing <- c("ground flax", "water", "erythritol",
+			"coconut butter (gently warmed to 90F)",
 			"cocoa powder", "vanilla extract",
-			"all-purpose flour", "salt",
+			"whole wheat flour", "salt",
 			"chopped walnuts")
 	brown <- list(
 		matrix(c(amt, unit, ing), 
@@ -44,8 +44,7 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 			),
 		matrix(c(
 		"Preheat oven to 350 degrees Fahrenheit.", 
-		"Lightly butter baking pan(s), then insert parchment sling.",
-		"Beat eggs using mixer until homogonous. Beat in sugar until 'ribbon stage' is reached.",
+		"Combine flax and water. Allow a few minutes for the flax to gel. Beat in erythritol.",
 		"Mix in other ingredients, stirring until just combined.",
 		"Bake at 350 for 25 to 30 minutes. Brownies are done when toothpick inserted in brownies comes out clean.",
 		"Place on rack to cool. When nearly at room temperature, brownies may be removed by picking up parchment sling for easy cutting."), ncol=1)

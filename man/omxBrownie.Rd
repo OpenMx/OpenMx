@@ -32,7 +32,20 @@ omxBrownie(quantity=1, walnuts=TRUE)
 }
 
 \details{
-    Returns a brownie recipe. Alter the `quantity` variable to make more pans of brownies. Ingredients, equipment and procedure are listed, but neither ingredients nor equipment are provided.
+    Returns a brownie recipe. Alter the `quantity` variable to make more
+    pans of brownies. Ingredients, equipment and procedure are listed,
+    but neither ingredients nor equipment are provided.
+
+    We substitute flax for eggs because the choline in eggs is
+    associated with prostate cancer (Richman et al, 2012).
+    We substitute coconut butter for dairy butter because dairy butter
+    contains a large proportion of saturated fat that raises deadly LDL
+    cholesterol (Trumbo & Shimakawa, 2011). We substitute erythritol
+    (den Hartog et al, 2010) for sugar (Lustig, Schmidt, & Brindis,
+    2012) to improve the glycemic index and calorie density. We
+    substitute whole wheat flour for all-purpose wheat flour because
+    whole grains are associated with improvement in blood pressure
+    (Tighe et al, 2010).
 }
 
 \value{
@@ -40,6 +53,29 @@ omxBrownie(quantity=1, walnuts=TRUE)
 }
 
 \references{
+
+Tighe P, Duthie G, Vaughan N, Brittenden J, Simpson WG, Duthie S, Mutch
+W, Wahle K, Horgan G, Thies F. (2010). Effect of increased consumption of
+whole-grain foods on blood pressure and other cardiovascular risk
+markers in healthy middle-aged persons: a randomized controlled
+trial. Am J Clin Nutr. 92(4), 733-40.
+
+R H Lustig, L A Schmidt, C D Brindis. (2012). Public health: The toxic truth
+about sugar. Nature. 482 27–29.
+
+den Hartog GJ, Boots AW, Adam-Perrot A, Brouns F, Verkooijen IW, Weseler
+AR, Haenen GR, Bast A. (2010). Erythritol is a sweet
+antioxidant. Nutrition. 26(4), 449-58.
+
+Trumbo PR, Shimakawa T. (2011). Tolerable upper intake levels for trans
+fat, saturated fat, and cholesterol. Nutr Rev. 69(5), 270-8. doi:
+10.1111/j.1753-4887.2011.00389.x.
+
+E. L. Richman, S. A. Kenfield, M. J. Stampfer,
+E. L. Giovannucci, S. H. Zeisel, W. C. Willett, J. M. Chan. (2012). Choline
+intake and risk of lethal prostate cancer: Incidence and
+survival. Am. J. Clin. Nutr. 96(4), 855 - 863.
+
 The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 }
 
