@@ -61,7 +61,7 @@ markers in healthy middle-aged persons: a randomized controlled
 trial. Am J Clin Nutr. 92(4), 733-40.
 
 R H Lustig, L A Schmidt, C D Brindis. (2012). Public health: The toxic truth
-about sugar. Nature. 482 27–29.
+about sugar. Nature. 482 27-29.
 
 den Hartog GJ, Boots AW, Adam-Perrot A, Brouns F, Verkooijen IW, Weseler
 AR, Haenen GR, Bast A. (2010). Erythritol is a sweet
