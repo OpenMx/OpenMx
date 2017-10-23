@@ -135,10 +135,14 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		ret
 	})
 
-getThresholdMask <- function(model, cols) {
-	if (is.null(model@data)) stop(paste("Cannot find observed thresholds, model",
-					    omxQuotes(model$name), "has no data"))
-	d1 <- model@data
+getThresholdMask <- function(model, cols, subname) {
+	if (subname != model$name) {
+		d1 <- model[[subname]]@data
+	} else {
+		d1 <- model@data
+	}
+	if (is.null(d1)) stop(paste("Cannot find observed thresholds, model",
+				    omxQuotes(subname), "has no data"))
 	if (d1@type == 'raw') {
 		lev <- sapply(d1$observed[,cols], function(x) length(levels(x)))
 		mask <- matrix(FALSE, length(cols), max(lev)-1)
@@ -162,7 +166,7 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		if (prod(dim(thr)) == 0) {
 			return(c(vech(cov), mns[!is.na(mns)]))
 		} else {
-			dth <- getThresholdMask(model, colnames(thr))
+			dth <- getThresholdMask(model, colnames(thr), subname)
 			return(c(vech(cov), mns[!is.na(mns)], thr[dth]))
 		}
 })
@@ -177,7 +181,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		if (prod(dim(thr)) == 0) {
 			return(c(vech(cov), mns[!is.na(mns)]))
 		} else {
-			dth <- getThresholdMask(model, colnames(thr))
+			dth <- getThresholdMask(model, colnames(thr), subname)
 			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
 			return(v)
 		}
