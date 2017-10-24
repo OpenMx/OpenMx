@@ -429,6 +429,7 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 
 struct FIMLCompare {
 	omxData *data;
+	double *rowWeight;
 	omxExpectation *ex;
 	std::vector<bool> ordinal;
 	bool ordinalFirst;
@@ -437,6 +438,7 @@ struct FIMLCompare {
 		ex = _ex;
 		ordinalFirst = true;
 		data = ex->data;
+		rowWeight = data->getWeightColumn();
 
 		auto dc = ex->getDataColumns();
 		ordinal.resize(dc.size());
@@ -529,6 +531,8 @@ struct FIMLCompare {
 			if (doubleEQ(lv, rv)) continue;
 			return lv < rv;
 		}
+		if (rowWeight && !doubleEQ(rowWeight[la], rowWeight[ra]))
+			return rowWeight[la] < rowWeight[ra];
 
 		mismatch = false;
 		return false;
