@@ -292,7 +292,9 @@ class mvnByRow {
 	{
 		if (returnRowLikelihoods) Rf_error("oops");
 		if (!std::isfinite(logLik)) {
-			ofiml->skippedRows += rows;
+			if (!rowWeight || rowWeight[sortedRow] > 0.0) {
+				ofiml->skippedRows += rows;
+			}
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
 			//mxLog("%g += record(%g)", rl[0], lik);
@@ -321,7 +323,10 @@ class mvnByRow {
 				row += 1;
 			}
 		}
-		ofiml->skippedRows += row - oldRow;
+
+		if (!rowWeight || rowWeight[sortedRow] > 0.0) {
+			ofiml->skippedRows += row - oldRow;
+		}
 		firstRow = false;
 	}
 

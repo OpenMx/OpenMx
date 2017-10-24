@@ -1,5 +1,6 @@
 library(OpenMx)
 
+set.seed(1)
 data(myFADataRaw)
 
 myFADataRaw <- myFADataRaw[,c("x1","x2","x3","x4","x5","x6")]
@@ -35,5 +36,4 @@ f2 <- mxRun(oneFactorModel)
 
 omxCheckCloseEnough(f1$output$fit, f2$output$fit, 1e-6)
 
-# should be a small number, add test TODO
-print(f1$output$fit)
+omxCheckCloseEnough(f1$output$fit, 10013.433, .01)
