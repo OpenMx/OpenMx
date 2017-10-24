@@ -22,7 +22,7 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 		"tsp", "cup", "tsp", "cup")
 	ing <- c("ground flax", "water", "erythritol",
 			"coconut butter (gently warmed to 90F)",
-			"cocoa powder", "vanilla extract",
+			"Dutched cocoa powder", "vanilla extract",
 			"whole wheat flour", "salt",
 			"chopped walnuts")
 	brown <- list(

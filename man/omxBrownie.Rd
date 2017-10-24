@@ -37,22 +37,27 @@ omxBrownie(quantity=1, walnuts=TRUE)
     but neither ingredients nor equipment are provided.
 
     We substitute flax for eggs because the choline in eggs is
-    associated with prostate cancer (Richman et al, 2012).
-    We substitute coconut butter for dairy butter because dairy butter
+    associated with prostate cancer (Richman et al, 2012).  We
+    substitute coconut butter for dairy butter because dairy butter
     contains a large proportion of saturated fat that raises deadly LDL
-    cholesterol (Trumbo & Shimakawa, 2011). We substitute erythritol
-    (den Hartog et al, 2010) for sugar (Lustig, Schmidt, & Brindis,
-    2012) to improve the glycemic index and calorie density. We
-    substitute whole wheat flour for all-purpose wheat flour because
-    whole grains are associated with improvement in blood pressure
-    (Tighe et al, 2010).
-}
+    cholesterol (Trumbo & Shimakawa, 2011). In contrast, coconut butter
+    has so much fiber that the considerable saturated fat that it
+    contains is mostly not absorbed (Padmakumaran, Rajamohan & Kurup,
+    1999). We substitute erythritol (den Hartog et al, 2010) for sugar
+    (Lustig, Schmidt, & Brindis, 2012) to improve the glycemic index and
+    calorie density. We substitute whole wheat flour for all-purpose
+    wheat flour because whole grains are associated with improvement in
+    blood pressure (Tighe et al, 2010).  }
 
 \value{
   Returns a brownie recipe. 
 }
 
 \references{
+
+Padmakumaran Nair KG, Rajamohan T, Kurup PA. (1999). Coconut kernel protein
+modifies the effect of coconut oil on serum lipids. Plant Foods Hum
+Nutr. 53(2):133-44.
 
 Tighe P, Duthie G, Vaughan N, Brittenden J, Simpson WG, Duthie S, Mutch
 W, Wahle K, Horgan G, Thies F. (2010). Effect of increased consumption of
