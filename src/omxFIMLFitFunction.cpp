@@ -429,6 +429,7 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 
 struct FIMLCompare {
 	omxData *data;
+	double *rowWeight;
 	omxExpectation *ex;
 	std::vector<bool> ordinal;
 	bool ordinalFirst;
@@ -437,6 +438,7 @@ struct FIMLCompare {
 		ex = _ex;
 		ordinalFirst = true;
 		data = ex->data;
+		rowWeight = data->getWeightColumn();
 
 		auto dc = ex->getDataColumns();
 		ordinal.resize(dc.size());
@@ -529,6 +531,8 @@ struct FIMLCompare {
 			if (doubleEQ(lv, rv)) continue;
 			return lv < rv;
 		}
+		if (rowWeight && !doubleEQ(rowWeight[la], rowWeight[ra]))
+			return rowWeight[la] < rowWeight[ra];
 
 		mismatch = false;
 		return false;
@@ -569,7 +573,6 @@ static void recordGap(int rx, int &prev, std::vector<int> &identical)
 	prev = rx;
 }
 
-// assumes integral row weights TODO
 static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 {
 	omxExpectation *ex = off->expectation;
@@ -588,14 +591,11 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 	if (perRow == 0) return;
 
 	Eigen::VectorXd dvec(perRow * ss.length);
-	Eigen::VectorXi wvec(ss.length);
 	ss.rows = 0;
-	double *rowWeight = data->getWeightColumn();
 
 	for (int row=0; row < ss.length; ++row) {
 		int sortedRow = indexVector[from + row];
-		wvec[row] = rowWeight? rowWeight[sortedRow] : 1;
-		ss.rows += wvec[row];
+		ss.rows += 1;
 		for (int cx=0,dx=0; cx < dc.size(); ++cx) {
 			if (isOrdinal[cx]) continue;
 			int col = dc[cx];
@@ -607,13 +607,15 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 		}
 	}
 
-	computeMeanCovWeighted(dvec, perRow, wvec, ss.dataMean, ss.dataCov);
+	computeMeanCov(dvec, perRow, ss.dataMean, ss.dataCov);
 }
 
 static void addSufficientSet(omxFitFunction *off, int from, int to)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
-	//mxLog("ss from %d to %d length %d", from, to, 1 + to - from);
+	if (ofiml->verbose >= 3) {
+		mxLog("ss from %d to %d length %d", from, to, 1 + to - from);
+	}
 	sufficientSet ss1;
 	ss1.start = from;
 	ss1.length = 1 + to - from;
