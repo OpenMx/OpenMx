@@ -533,6 +533,30 @@ void computeMeanCov(const Eigen::MatrixBase<T1> &dataVec, int stride,
 	covOut /= units-1;
 }
 
+template <typename T1, typename T2, typename T3, typename T4>
+void computeMeanCovWeighted(const Eigen::MatrixBase<T1> &dataVec, int stride,
+			    const Eigen::MatrixBase<T4> &wvec,
+			    Eigen::MatrixBase<T2> &meanOut, Eigen::MatrixBase<T3> &covOut)
+{
+	if (stride == 0) return;
+	int units = dataVec.size() / stride;
+	int wsum = 0;
+	meanOut.derived().resize(stride);
+	meanOut.setZero();
+	covOut.derived().resize(stride, stride);
+	covOut.setZero();
+	// read the data only once to minimize memory thrashing
+	for (int ux=0; ux < units; ++ux) {
+		meanOut +=  wvec[ux] * dataVec.segment(ux * stride, stride);
+		covOut += wvec[ux] * (dataVec.segment(ux * stride, stride) *
+				      dataVec.segment(ux * stride, stride).transpose());
+		wsum += wvec[ux];
+	}
+	meanOut /= wsum;
+	covOut -= wsum * meanOut * meanOut.transpose();
+	covOut /= wsum-1;
+}
+
 template <typename T1, typename T2>
 double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &t2)
 {
