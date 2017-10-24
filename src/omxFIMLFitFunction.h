@@ -321,7 +321,9 @@ class mvnByRow {
 				row += 1;
 			}
 		}
-		ofiml->skippedRows += row - oldRow;
+		if (rowWeight && rowWeight[sortedRow] > 0.0) {
+			ofiml->skippedRows += row - oldRow;
+		}
 		firstRow = false;
 	}
 
