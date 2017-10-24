@@ -253,6 +253,8 @@ class FitContext {
 	// If !std::isfinite(fit) then IterationError.size() should be nonzero but not all of
 	// the code is audited to ensure that this condition is true.
 	bool outsideFeasibleSet() const { return !std::isfinite(fit) || IterationError.size() > 0; }
+	// Only check at the end of optimization
+	bool insideFeasibleSet() const { return !outsideFeasibleSet() && skippedRows == 0; }
 
 	std::string getIterationError();
 

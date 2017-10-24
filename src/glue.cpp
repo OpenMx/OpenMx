@@ -617,7 +617,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			} else if (fc->skippedRows) {
 				Rf_warning("%d rows obtained probability of exactly zero; "
 					   "You may wish to try again with better starting values.", fc->skippedRows);
-				fc->fit = NA_REAL;
 			}
 		}
 	}
