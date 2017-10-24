@@ -80,7 +80,7 @@ thresholdModel <- mxModel("thresholdModel",
 )
 
 summary(thresholdModelrun <- mxRun(thresholdModel))
-omxCheckCloseEnough(thresholdModelrun$output$fit, 6282.134, .1)
+omxCheckCloseEnough(thresholdModelrun$output$fit, 6281.996, .1)
 
 #cat(deparse(round(thresholdModelrun$output$standardErrors, 3)))
 prevSE <- c(0.035, 0.035, 0.035, 0.034, 0.032, 0.06, 0.052, 0.051, 0.061,

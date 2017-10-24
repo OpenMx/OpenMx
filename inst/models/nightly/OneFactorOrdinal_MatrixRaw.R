@@ -160,4 +160,4 @@ summary(oneFactorThresholdFit)
 # Print a summary of the results
 # -----------------------------------------------------------------------------
 
-omxCheckCloseEnough(oneFactorThresholdFit$output$fit, 6282.134, .1)
+omxCheckCloseEnough(oneFactorThresholdFit$output$fit, 6281.996, .1)
