@@ -71,7 +71,8 @@ thresholdModel <- mxModel("thresholdModel",
             name="thresholdDeviations", nrow=nThresholds, ncol=nVariables,
             values=.2,
             free = TRUE, 
-            lbound = rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
+            lbound = rep( c(-100,rep(.01,(nThresholds-1))) , nVariables),
+	         ubound=100,
             dimnames = list(c(), fruitynames)),
     mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
@@ -83,8 +84,6 @@ summary(thresholdModelrun <- mxRun(thresholdModel))
 omxCheckCloseEnough(thresholdModelrun$output$fit, 3921.713, .02)
 
 #cat(deparse(round(thresholdModelrun$output$standardErrors, 3)))
-prevSE <- c(0.047, 0.049, 0.047, 0.06, 0.053, 0.053, 0.062, 0.053,
-            0.052,  0.058, 0.052, 0.051)
+prevSE <- c(0.022, 0.021, 0.022, 0.022, 0.022, 0.021, 0.022,  0.022, 0.023,
+            0.023, 0.024, 0.024)
 omxCheckCloseEnough(c(thresholdModelrun$output$standardErrors), prevSE, .01)
-
-
