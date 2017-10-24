@@ -240,7 +240,8 @@ class FitContext {
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
 	void recordOrdinalRelativeError(double re) {
-		if (re < ordinalRelativeError ) return;
+		// Could obtain NaN if density is exactly zero
+		if (!std::isfinite(re) || re < ordinalRelativeError) return;
 		ordinalRelativeError = re;
 	};
 	void resetOrdinalRelativeError();
