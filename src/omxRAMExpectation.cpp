@@ -1720,12 +1720,12 @@ namespace RelationalRAMExpectation {
 
 		for (auto &ig : group) {
 			if (0 == ig->dataVec.size()) continue;
-			for (int px=0; px < int(ig->gMap.size()); ++px) {
+			for (int px=0, dx=0; px < int(ig->gMap.size()); ++px) {
 				addr &a1 = layout[ ig->gMap[px] ];
 				omxRAMExpectation *ram = a1.getRAMExpectationReadOnly();
 				SEXP df = DataMap[ram];
 				auto &pl = ig->placements[px];
-				for (int vx=0, ncol=0, dx=0; vx < ram->F->cols; ++vx) {
+				for (int vx=0, ncol=0; vx < ram->F->cols; ++vx) {
 					if (!ram->latentFilter[vx]) continue;
 					int col = ncol++;
 					if (!ig->latentFilter[ pl.modelStart + vx ]) continue;
