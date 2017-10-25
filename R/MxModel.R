@@ -661,8 +661,7 @@ setMethod("imxVerifyModel", "MxModel",
 )
 
 vcov.MxModel <- function(object, ...) {
-	if (!object@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
-	assertModelFreshlyRun(object)
+	assertModelRunAndFresh(object)
   fu <- object$output$fitUnits
   if (fu %in% c("-2lnL", "r'Wr")) {
 	  got <- NULL

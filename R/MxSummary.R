@@ -949,6 +949,11 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	return(retval)
 }
 
+assertModelRunAndFresh <- function(model) {
+	if (!model@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+	assertModelFreshlyRun(model)
+}
+
 assertModelFreshlyRun <- function(model) {
 	if (model@.wasRun && model@.modifiedSinceRun) {
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",

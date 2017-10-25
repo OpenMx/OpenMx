@@ -469,6 +469,8 @@ collectStatistics <- function(otherStats, ref, other, bootPair) {
 }
 
 collectStatistics1 <- function(otherStats, ref, other, bootPair) {
+	assertModelRunAndFresh(ref)
+	assertModelRunAndFresh(other)
 	refSummary <- summary(ref)
 	otherSummary <- summary(other)
 	

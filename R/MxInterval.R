@@ -449,8 +449,7 @@ omxRunCI <- function(model, verbose=0L){
 confint.MxModel <- function(object, parm, level = 0.95, ...) {
 	allParam <- names(coef(object))
 	if (missing(parm)) parm <- allParam
-	if (!object@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
-	assertModelFreshlyRun(object)
+	assertModelRunAndFresh(object)
 	se <- c(object$output[['standardErrors']])
 	if (is.null(se)) stop("No standard errors are available")
 	names(se) <- allParam
