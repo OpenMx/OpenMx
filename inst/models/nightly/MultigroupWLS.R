@@ -52,7 +52,7 @@ container <- mxGenerateData(container, nrows=300, returnModel = TRUE)
 ml <- mxModel(name="ml", container)
 ml <- mxRun(ml)
 
-omxCheckCloseEnough(max(abs(coef(ml) - trueCoef)), 0, .18)
+omxCheckCloseEnough(max(abs(coef(ml) - trueCoef)), 0, .2)
 
 wls <- mxModel(name="wls", container)
 
@@ -63,6 +63,6 @@ for (gx in 1:nGroups) {
 }
 wls <- mxRun(wls)
 
-omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .18)
+omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .2)
 
 omxCheckCloseEnough(cor(coef(ml), coef(wls)), 1, .01)
