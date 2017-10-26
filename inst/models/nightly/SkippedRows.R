@@ -74,6 +74,6 @@ mixtureModelFit <- mxRun(mixtureModel)
 print(summary(mixtureModelFit))
 
 omxCheckCloseEnough(mixtureModelFit$group1$expCov$values, diag(3), .1)
-omxCheckCloseEnough(mixtureModelFit$group1$expMean$values[1,], rep(50,3), .12)
-omxCheckCloseEnough(mixtureModelFit$group2$expMean$values[1,], rep(0,3), .12)
+omxCheckCloseEnough(mixtureModelFit$group1$expMean$values[1,], rep(50,3), .2)
+omxCheckCloseEnough(mixtureModelFit$group2$expMean$values[1,], rep(0,3), .2)
 omxCheckCloseEnough(mixtureModelFit$pRaw$values[2,1], 1, 1e-4)
