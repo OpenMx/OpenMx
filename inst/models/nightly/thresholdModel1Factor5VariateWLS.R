@@ -119,11 +119,11 @@ auto.T <- mxEval(thresholdMatrix, thresholdModelAuto, compute=TRUE)
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
-omxCheckTrue(rms(wls.L, .7) < 0.05)
+omxCheckTrue(rms(wls.L, .7) < 0.025)
 rms(ml.L, .7)
-omxCheckTrue(rms(ml.L, auto.L) < 0.05)
+omxCheckTrue(rms(ml.L, auto.L) < 0.01)
 
-omxCheckTrue(rms(wls.T, quants) < 0.08)
+omxCheckTrue(rms(wls.T, quants) < 0.05)
 rms(ml.T, quants)
 
 omxCheckTrue(rms(wls.L, auto.L) < 1e-6)
@@ -132,7 +132,7 @@ omxCheckTrue(rms(wls.T, auto.T) < 1e-6)
 ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
 wls.sum <- summary(thresholdModelWLSrun)
 omxCheckWithinPercentError(wls.sum$Chi, 0.653, percent=10)
-omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=15)
+omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=16)
 omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
 
 ciModel <- mxModel(thresholdModelWLSrun, mxCI("L"))
