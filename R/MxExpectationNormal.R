@@ -498,6 +498,15 @@ simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
 	mxGenerateData(object, nsim)
 }
 
+extractObservedData <- function(model) {
+	datasets <- list()
+	if (!is.null(model@data)) datasets <- c(datasets, model@data@observed)
+	if (length(model@submodels)) {
+		datasets <- c(datasets, lapply(model@submodels, extractObservedData))
+	}
+	return(datasets)
+}
+
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
 			   ..., .backend=TRUE) {
 	garbageArguments <- list(...)
@@ -516,13 +525,16 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		return(mxGenerateData(fake, nrows, returnModel))
 	}
 	if (is.null(model$expectation) && is(model$fitfunction, 'MxFitFunctionMultigroup')) {
-		if (!returnModel) stop("Must employ returnModel=TRUE for multigroup models")
 		todo <- sub(".fitfunction", "", model$fitfunction$groups, fixed=TRUE)
 		for (s1 in todo) {
 			model <- mxModel(model, mxGenerateData(model[[s1]], returnModel=TRUE, nrows=nrows,
 							       use.miss=use.miss, .backend=.backend))
 		}
-		return(model)
+		if (!returnModel) {
+			return(extractObservedData(model))
+		} else {
+			return(model)
+		}
 	}
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {
