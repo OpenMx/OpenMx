@@ -32,9 +32,23 @@ column sum.}
   or a Hidden Markov model.
 }
 \details{
+  The initial probabilities given in \code{initial} must sum to one.  So too must the \emph{columns} of the transition matrix given in \code{transition}.  The transitions go from a column to a row, similar to how regression effects in the RAM structural equation models go from the column variable to the row variable.  This means \code{transition} is a left stochastic matrix.
+  
+  For ease of use the raw free parameters of these matrices are rescaled by OpenMx according to the \code{scale} argument.  When \code{scale} is set to "softmax" the softmax function is applied to the initial probabilities and the columns of the transition matrix.  The softmax function is also sometimes called multinomial logistic regression.  Softmax exponentiates each element in a vector and then divides each element by the sum of the exponentiated elements.  In equation form the softmax function is
+  
+  \deqn{ softmax(x_i) = \frac{e^{x_i}}{\sum_{k=1}^{K} } e^{x_k} }{
+    softmax(x_i) = exp(x_i) / sum(exp(x_i))}
+  
+  When using the softmax scaling no free parameter bounds or constraints are needed.  However, for model identification, one element of the initial probabilities vector must be fixed.  If the softmax scaling is used, then the usual choise for the fixed parameter value is zero.  The regime (or latent class or mixture component) that has its initial probability set to zero becomes the comparison against which other probabilities are evaluated.  Likewise for model identification, one element in each column of the transision matrix must be fixed.  When the softmax scaling is used, the typical choice is to fix one element in each column to zero.  Generally, one row of the transition matrix is fixed to zero, or the diagonal elements of the transition matrix are fixed to zero.
+  
+  When \code{scale} is set to "sum" then each element of the initial probabilities and each column of the transition matrix is internally divided by its sum.  When using the sum scaling, the same model identification requirements are present.  In particular, one element of the initial probabilites must be fixed and one element in each column of the transition matrix must be fixed.  The typical value to fix these values at for sum scaling is one.  Additionally when using sum scaling, all free parameters in the initial and transition probabilities must have lower bounds of zero.  In equation form the sum scaling does the following:
+  
+  \deqn{ sumscale(x_i) = \frac{x_i}{\sum_{k=1}^{K} } x_k }{
+    sumscale(x_i) = x_i / sum(x_i)}
+  
   Parameters are estimated in the given scale. To obtain the initial
   column vector and left stochastic transition matrix in probability
-  units then examine the expectation's \code{output} slot.
+  units then examine the expectation's \code{output} slot with for example \code{yourModel$expectation$output}
 
   Definition variables can be used to assign a separate set of mixture
   probabilities to each row of data.
