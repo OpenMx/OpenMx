@@ -339,8 +339,16 @@ imxGenericModelBuilder <- function(model, lst, name,
 
 varsToCharacter <- function(vars, vartype) {
 	got <- varsToCharacter2(vars, vartype)
-	fail <- try(lapply(got, imxVerifyName, 1), TRUE)  # should be 2 instead of 1
-	if (is(fail, "try-error")) {
+	if(is.list(got)){
+		fail <- lapply(got, function(x){lapply(x, imxVerifyName, 1)})
+		whichFail <- sapply(fail, is, "try-error")
+		verifyFail <- any(whichFail)
+		fail <- ifelse(verifyFail, fail[which(whichFail)][1], 0)
+	} else {
+		fail <- try(lapply(got, imxVerifyName, 1), TRUE)  # should be 2 instead of 1
+		verifyFail <- is(fail, "try-error")
+	}
+	if (verifyFail) {
 		# after a few years, convert to actual error TODO
 		warning(attr(fail,'condition')$message)
 	}
