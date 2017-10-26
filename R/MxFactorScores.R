@@ -128,10 +128,10 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		} else{
 			ss <- mxModel(model=model,
 				mxMatrix('Zero', nksi, nksi, name='stateSpaceA'),
-				mxMatrix('Zero', nksi, nx, name='stateSpaceB'),
-				mxMatrix('Iden', nx, nx, name='stateSpaceD'),
+				mxMatrix('Zero', nksi, 1, name='stateSpaceX0'),
 				mxMatrix('Iden', nksi, nksi, name='stateSpaceP0'),
-				mxExpectationStateSpace(A='stateSpaceA', B='stateSpaceB', C=model$expectation$LX, D='stateSpaceD', Q=model$expectation$PH, R=model$expectation$TD, x0=model$expectation$KA, P0='stateSpaceP0', u=model$expectation$TX))
+				mxMatrix('Full', 1, 1, values=1, name='stateSpaceU'),
+				mxExpectationStateSpace(A='stateSpaceA', B=model$expectation$KA, C=model$expectation$LX, D=model$expectation$TX, Q=model$expectation$PH, R=model$expectation$TD, x0='stateSpaceX0', P0='stateSpaceP0', u='stateSpaceU'))
 			resDel <- mxKalmanScores(ss)
 			res[,,1] <- resDel$xUpdated[-1,, drop=FALSE]
 			res[,,2] <- apply(resDel$PUpdated[,,-1, drop=FALSE], 3, function(x){sqrt(diag(x))})
