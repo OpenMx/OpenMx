@@ -57,7 +57,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		nksix <- dim(lx)
 		nksi <- nksix[2]
 		nx <- nksix[1]
-		factorNames <- dimnames(lx)[2]
+		factorNames <- dimnames(lx)[[2]]
 		factorScoreHelperFUN <- lisrelFactorScoreHelper
 	} else if(classExpect %in% "MxExpectationRAM"){
 		fm <- mxEvalByName(model$expectation$F, model, compute=TRUE)
