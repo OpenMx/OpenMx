@@ -19,6 +19,11 @@ means        <- mxPath( from="one", to=c("x1","x2","x3","x4","x5","x6","F1"), ar
                         free=c(F,T,T,T,T,T,FALSE), values=c(0,1,1,1,1,1,0),
                         labels =c("rowMean1[1,1]","meanx2","meanx3",
                                   "meanx4","meanx5","meanx6",NA) ) 
+means2       <- mxPath( from="one", to=c("x1","x2","x3","x4","x5","x6","F1"), arrows=1,
+                        free=c(F,T,T,T,T,T,FALSE), values=c(0,1,1,1,1,1,0),
+                        labels =c("meanx1","meanx2","meanx3",
+                                  "meanx4","meanx5","meanx6",NA) ) 
+
 
 oneFactorModel <- mxModel(
   "zws", type="RAM",
@@ -37,3 +42,28 @@ f2 <- mxRun(oneFactorModel)
 omxCheckCloseEnough(f1$output$fit, f2$output$fit, 1e-6)
 
 omxCheckCloseEnough(f1$output$fit, 10013.433, .01)
+
+
+#------------------------------------------------------------------------------
+# Check non-integer weights work
+
+oneFactorModel <- mxModel(
+  "zws", type="RAM",
+  manifestVars=c("x1","x2","x3","x4","x5","x6"), latentVars="F1",
+  dataRaw, resVars, latVar, facLoads, means2,
+  mxComputeOnce('fitfunction', 'fit'))
+
+myFADataRaw$weight <- rep(0.5, nrow(myFADataRaw))
+dataRaw      <- mxData( observed=myFADataRaw, type="raw", weight="weight" )
+oneFactorModel <- mxModel(oneFactorModel, dataRaw)
+
+f3 <- mxRun(oneFactorModel)
+
+dataRaw      <- mxData( observed=myFADataRaw, type="raw")
+oneFactorModel <- mxModel(oneFactorModel, dataRaw)
+
+f4 <- mxRun(oneFactorModel)
+
+omxCheckCloseEnough(logLik(f3), logLik(f4)/2, 1e-9)
+
+
