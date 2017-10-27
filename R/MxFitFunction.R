@@ -78,13 +78,14 @@ setGeneric("genericFitFunConvert",
 })
 
 setGeneric("generateReferenceModels", 
-	function(.Object, model) {
+	function(.Object, model, distribution) {
 	return(standardGeneric("generateReferenceModels"))
 })
 
 setMethod("generateReferenceModels", "MxBaseFitFunction",
-	function(.Object, model) {
-		msg <- paste("Don't know how to make reference models for a model with a ",
+	function(.Object, model, distribution) {
+		msg <- paste("Don't know how to make", distribution, "distribution",
+			     "reference models for a model with a ",
 			     class(.Object), " fit function.", sep="")
 		stop(msg)
 	})

@@ -132,7 +132,7 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionML",
 })
 
 setMethod("generateReferenceModels", "MxFitFunctionML",
-	function(.Object, model) {
+	function(.Object, model, distribution) {
 		modelName <- model@name
 		datasource <- model$data
 		if (is.null(datasource)) {
@@ -141,10 +141,10 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 
 		expectation <- model@expectation
 		if (is(expectation, "MxExpectationBA81")) {
-			return(generateIFAReferenceModels(model))
+			return(generateIFAReferenceModels(model, distribution))
 		}
 		if(is(expectation, "MxExpectationGREML")){
-			stop("reference models for GREML expectation not implemented")
+			stop("Reference models for GREML expectation are not implemented")
 		}
 		# assume it's multivariate Normal
 
@@ -166,7 +166,8 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 				"of only the variables used in the model, provide the model after it has been run."))
 		}
 		
-		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)), datanobs, datasource@means)
+		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)),
+					      datanobs, datasource@means, distribution=distribution)
 	})
 
 mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA),

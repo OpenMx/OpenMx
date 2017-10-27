@@ -123,7 +123,7 @@ testmod <- mxModel(
 	mxFitFunctionGREML()
 )
 omxCheckError(mxRefModels(testmod),
-							"reference models for GREML expectation not implemented")
+							"Reference models for GREML expectation are not implemented")
 
 
 

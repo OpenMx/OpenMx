@@ -48,7 +48,8 @@
 #-------------------------------------------------------------------------------------
 # Saturated Model function definition
 
-generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE, numObs, means=NA) {
+generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE, numObs, means=NA,
+					  distribution) {
 	datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs, means=means)
 	numVar <- ncol(obsdata)
 	varnam <- colnames(obsdata)
@@ -157,10 +158,51 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			)
 		}
 	}
+	if (all(ordinalCols)) {
+		if (distribution == 'multinomial') {
+			if (any(is.na(obsdata))) {
+				stop(paste("Saturated model for the multinomial",
+					   "distribution is not implemented"))
+			}
+			weights <- ordinalRowWeights(saturatedModel)
+			saturatedModel <- list(fit=-2 * sum(weights * log(weights / sum(weights))), df=0)
+		} else if (distribution == 'default') {
+			if (length(ordinalCols) >= 12) {
+				message(paste("Your model has many ordinal variables.",
+					      "It will take a long time to estimate the multivariate normal saturated model.",
+					      "Consider using distribution='multinomial'"))
+			}
+		} else {
+			stop(paste("Don't know how to build reference models for the",
+				   distribution, "distribution"))
+		}
+	} else {
+		if (distribution != 'default') {
+			stop(paste("Don't know how to build reference models for the",
+				   distribution, "distribution"))
+		}
+	}
 	return(list(Saturated=saturatedModel, Independence=independenceModel))
 }
 
-generateIFAReferenceModels <- function(model) {
+ordinalRowWeights <- function(model) {
+	obs <- model$data$observed
+	weightColumn <- model$expectation$weightColumn # old API
+	if (is.na(weightColumn)) weightColumn <- model$data$weight # new API
+	if (!is.na(weightColumn)) {
+		weights <- obs[weightColumn]
+	} else {
+		obs <- obs[rpf::orderCompletely(obs),]
+		weights <- as.numeric(rpf::tabulateRows(obs))
+	}
+	weights
+}
+
+generateIFAReferenceModels <- function(model, distribution) {
+	if (distribution != 'default') {
+		stop(paste("Don't know how to build reference models for the",
+			   distribution, "distribution"))
+	}
 	modelName <- model@name
 	expectation <- model@expectation
 
@@ -200,15 +242,7 @@ generateIFAReferenceModels <- function(model) {
 	dimnames(ind$item) = list(paste('p', 1:nrow(ind$item), sep=""), colnames(item))
 	ind$item$free <- !is.na(ind$item$values)
 
-	weightColumn <- expectation$weightColumn
-	if (!is.na(weightColumn)) {
-		weights <- data[weightColumn]
-	} else if (!is.na(model$data$weight)) {
-		weights <- data[model$data$weight]
-	} else {
-		data <- data[rpf::orderCompletely(data),]
-		weights <- as.numeric(rpf::tabulateRows(data))
-	}
+	weights <- ordinalRowWeights(model)
 	saturated <- NA
 	if (!any(is.na(data[1,]))) {  # Not sure how to handle missingness
 		saturated <- -2 * sum(weights * log(weights / sum(weights)))
@@ -218,7 +252,7 @@ generateIFAReferenceModels <- function(model) {
 		    Independence=ind))
 }
 
-ReferenceModelHelper <- function(x) {
+ReferenceModelHelper <- function(x, distribution) {
 	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
 		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
 	}
@@ -226,19 +260,23 @@ ReferenceModelHelper <- function(x) {
 		if (is.null(x$fitfunction)) {
 			stop("Model", omxQuotes(x$name), "has no fitfunction")
 		}
-		generateReferenceModels(x$fitfunction, x)
+		generateReferenceModels(x$fitfunction, x, distribution)
 	} else {
 		obsdata <- x
 		if(ncol(obsdata) != nrow(obsdata)) {
 			datatype <- "raw"
 		}
 		else {datatype <- "cov"}
-		generateNormalReferenceModels("Data Model", obsdata, datatype)
+		generateNormalReferenceModels("Data Model", obsdata, datatype, distribution=distribution)
 	}
 }
 
-mxRefModels <- function(x, run=FALSE) {
-	models <- lapply(ReferenceModelHelper(x), function(model) {
+mxRefModels <- function(x, run=FALSE, ..., distribution="default") {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxRefModels does not accept values for the '...' argument")
+	}
+	models <- lapply(ReferenceModelHelper(x, distribution), function(model) {
 		if (!isS4(model)) return(model)
 		model <- omxAssignFirstParameters(model)
 		model <- mxOption(model, "Standard Errors", "No")
