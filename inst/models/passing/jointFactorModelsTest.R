@@ -97,7 +97,6 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	jointModel3 <- mxModel(jointResults2)
 	jointModel3$data$weight <- 'weight'
 	weightedFit <- mxRun(mxModel(jointModel3, mxComputeOnce('fitfunction','fit')))
-	omxCheckCloseEnough(weightedFit, 2672.45, .04)
 	weightedFits <- c(weightedFits, weightedFit$output$fit)
 }
 
