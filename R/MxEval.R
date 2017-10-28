@@ -118,9 +118,15 @@ evaluateExpression <- function(formula, contextString, model, labelsData,
 		}
 	}
 	operator <- as.character(formula[1])
+	# N.B. Only use as.matrix on objects that are not numeric or have length greater than 1
+	#  AKA do NOT use as.matrix on numeric length 1 objects, i.e. scalar constants.
 	if (len == 3 && operator %in% c('*', '^', '/')) {
-		formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))
-		formula[[3]] <- substitute(as.matrix(x), list(x = formula[[3]]))
+		if(!is.numeric(formula[[2]]) || length(formula[[2]]) > 1){
+			formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))
+		}
+		if(!is.numeric(formula[[3]]) || length(formula[[3]]) > 1){
+			formula[[3]] <- substitute(as.matrix(x), list(x = formula[[3]]))
+		}
 	}
 	if (show) {
 		return(list(result, cache))
