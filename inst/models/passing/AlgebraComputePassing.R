@@ -311,6 +311,7 @@ model <- mxModel(model, mxAlgebra(pcauchy(H,A,D,0,1),name="test91a"))
 model <- mxModel(model, mxAlgebra(pcauchy(H,A,D,1,0),name="test91b"))
 model <- mxModel(model, mxAlgebra(rowSums(C),name="test92"))
 model <- mxModel(model, mxAlgebra(colSums(C),name="test93"))
+model <- mxModel(model, mxAlgebra(1/(1+N), name='test94'))
 modelOut <- mxRun(model)
 
 # Check passing tests
@@ -606,6 +607,10 @@ omxCheckCloseEnough(modelOut[["test85b"]]$result, mxEval(omxPnbinom(D,D,-1,C,1,0
 omxCheckCloseEnough(modelOut[["test85c"]]$result, mxEval(omxPnbinom(D,D,-1,C,0,1),modelOut,T))
 omxCheckCloseEnough(c(modelOut[["test92"]]$result), mxEval(rowSums(C),modelOut,T))
 omxCheckCloseEnough(c(modelOut[["test93"]]$result), mxEval(colSums(C),modelOut,T))
+
+# Test for allowable scalar multiplication in frontend and backend.
+omxCheckCloseEnough(modelOut[['test94']]$result, mxEval(test94,model,T), .001)
+omxCheckCloseEnough(modelOut[['test94']]$result, 1/(1+N$values), 0.001)
 
 
 # Check internal function for definition variables
