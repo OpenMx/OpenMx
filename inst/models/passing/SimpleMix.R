@@ -36,7 +36,8 @@ mix1 <- mxModel(
 
 mix1Fit <- mxRun(mix1)
 
-omxCheckEquals(round(mix1Fit$expectation$output$weights,1), c(0,1,0))
+omxCheckCloseEnough(mix1Fit$expectation$output$weights,
+                    start_prob/sum(start_prob), .03)
 
 # ------------------
 

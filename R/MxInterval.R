@@ -343,18 +343,22 @@ removeAllIntervals <- function(model) {
 	return(model)
 }
 
-omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TRUE) {
+omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TRUE, 
+													optimizer=mxOption(NULL,"Default optimizer")) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
 	}
 	if(length(model@output) == 0) {
 		stop("'model' argument to omxParallelCI must be a fitted model")
 	}
+	if( !(optimizer %in%c("NPSOL","CSOLNP","SLSQP")) ){
+		stop("argument 'optimizer' must be one of 'NPSOL', 'CSOLNP', or 'SLSQP'")
+	}
 	if(!independentSubmodels){
 		optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
-		ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
+		ctype <- ifelse(optimizer=="SLSQP","ineq","none")
 		ciOpt <- mxComputeGradientDescent(
-			verbose=verbose,
+			verbose=verbose, engine=optimizer,
 			nudgeZeroStarts=FALSE,
 			gradientAlgo=optionList[['Gradient algorithm']],
 			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
@@ -387,9 +391,9 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 		template <- model
 		template <- removeAllIntervals(template)
 		optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
-		ctype <- ifelse(mxOption(NULL,"Default optimizer")=="SLSQP","ineq","none")
+		ctype <- ifelse(optimizer=="SLSQP","ineq","none")
 		ciOpt <- mxComputeGradientDescent(
-			verbose=verbose,
+			verbose=verbose, engine=optimizer,
 			nudgeZeroStarts=FALSE,
 			gradientAlgo=optionList[['Gradient algorithm']],
 			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
@@ -442,15 +446,14 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 	}
 }
 
-omxRunCI <- function(model, verbose=0L){
-	return(omxParallelCI(model=model, run=TRUE, verbose=verbose, independentSubmodels=FALSE))
+omxRunCI <- function(model, verbose=0L, optimizer="SLSQP"){
+	return(omxParallelCI(model=model, run=TRUE, verbose=verbose, independentSubmodels=FALSE, optimizer=optimizer))
 }
 
 confint.MxModel <- function(object, parm, level = 0.95, ...) {
 	allParam <- names(coef(object))
 	if (missing(parm)) parm <- allParam
-	if (!object@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
-	assertModelFreshlyRun(object)
+	assertModelRunAndFresh(object)
 	se <- c(object$output[['standardErrors']])
 	if (is.null(se)) stop("No standard errors are available")
 	names(se) <- allParam

@@ -6,7 +6,7 @@ set.seed(9)
 
 numItems <- 20
 items <- list()
-items[1:numItems] <- rpf.grm(outcomes=2)  # equivalent to 2PL
+items[1:numItems] <- list(rpf.grm(outcomes=2))  # equivalent to 2PL
 
 # create random item parameters
 correct <- sapply(items, rpf.rparam, version=1)

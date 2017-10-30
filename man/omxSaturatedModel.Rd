@@ -25,12 +25,15 @@
 
 
 \usage{
-mxRefModels(x, run=FALSE)
+mxRefModels(x, run=FALSE, ..., distribution="default")
 }
 
 \arguments{
    \item{x}{A MxModel object, data frame, or matrix.}
-   \item{run}{logical. If TRUE, runs the models before returning; otherwise returns built models without running.}
+   \item{run}{logical. If TRUE, runs the models before returning;
+     otherwise returns built models without running.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{distribution}{character. Which distribution to assume.}
 }
 
 \details{
@@ -69,7 +72,14 @@ in the independence model because there are no latent factors.
 Therefore, exercise caution when comparing the independence model
 to a model that includes Bayesian priors.
 
-\code{mxRefModels()} is not compatible with \link[OpenMx:mxExpectationGREML]{GREML expectation}, as there is no sensible general definition for a saturated GREML-type model.
+Multivariate normal models with all ordinal data and no missing values
+can use the saturated multinomial distribution. This is much faster than
+estimation of the saturated multivariate normal model. Use
+\code{distribution='multinomial'} to avail this option.
+
+\code{mxRefModels()} is not compatible with
+\link[OpenMx:mxExpectationGREML]{GREML expectation}, as there is no
+sensible general definition for a saturated GREML-type model.
 }
 
 \references{

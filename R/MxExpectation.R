@@ -212,7 +212,7 @@ getPrecisionPerExpectation <- function(expectation, optionsList){
 		!single.na(expectation@thresholds)
 	
 	if(needStepSize){
-		if(isOrdThresh){stepSize <- 1.0e-4} #<--Default value, times 1e3
+		if(isOrdThresh){stepSize <- 1.0e-5} #<--Default value, times 1e3
 		else{stepSize <- 1.0e-7} #<--Default value
 	} 
 	else{stepSize <- as.numeric(optionsList$"Gradient step size")}
@@ -226,7 +226,7 @@ getPrecisionPerExpectation <- function(expectation, optionsList){
 	else{iterations <- as.integer(optionsList$"Gradient iterations")}
 	
 	if(needFuncPrec){
-		if(isOrdThresh){functionPrecision <- 1e-9}
+		if(isOrdThresh){functionPrecision <- 1e-10}
 		else{functionPrecision <- 1e-14} #<--Default value
 	}
 	else{functionPrecision <- as.numeric(optionsList$"Function precision")}

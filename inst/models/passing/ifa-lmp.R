@@ -42,7 +42,7 @@ k0Model<-mxRun(k0Model)
 ## Try 2PL Model
 par<-c(1,0)
 spec<-list()
-spec[1:ni]<-rpf.grm(2)
+spec[1:ni]<-list(rpf.grm(2))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))
@@ -77,7 +77,7 @@ pmtau<- -1
 pvar<-50
 
 spec<-list()
-spec[1:ni]<-rpf.lmp(k=k)
+spec[1:ni]<-list(rpf.lmp(k=k))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))

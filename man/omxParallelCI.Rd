@@ -25,9 +25,10 @@ Dedicated functions for calculating confidence intervals without redoing the pri
 \code{omxParallelCI()} calculates confidence intervals for an already-\link[=mxRun]{run} \link{MxModel} object that contains an \link{MxInterval} object (i.e., an \code{\link{mxCI}()} statement), without recalculating point estimates, fitfunction derivatives, or expectations.  The "parallel" in the function's name refers to the not-yet-implemented feature of running independent \link[=mxModel]{submodels} in parallel.  \code{omxRunCI()} is a wrapper for \code{omxParallelCI()} with arguments \code{run=TRUE} and \code{independentSubmodels=FALSE}, and is the recommended interface.
 }
 \usage{
-omxParallelCI(model, run = TRUE, verbose=0L, independentSubmodels=TRUE)
+omxParallelCI(model, run = TRUE, verbose=0L, independentSubmodels=TRUE,
+optimizer=mxOption(NULL,"Default optimizer"))
 
-omxRunCI(model, verbose=0L)
+omxRunCI(model, verbose=0L, optimizer="SLSQP")
 }
 
 \arguments{
@@ -35,6 +36,7 @@ omxRunCI(model, verbose=0L)
   \item{run}{Logical; should the resulting MxModel object be passed through \code{\link{mxRun}()} before being returned?  Defaults to \code{TRUE} (for \code{omxParallelCI()}).}
   \item{verbose}{Integer; defaults to zero; verbosity level passed to MxCompute* objects.}
   \item{independentSubmodels}{Logical; defaults to \code{TRUE} (for \code{omxParallelCI()}).  See below under "Details."}
+  \item{optimizer}{Character string selecting the gradient-descent optimizer to be used to find confidence limits; one of "NPSOL", "CSOLNP", or "SLSQP".  The default for \code{omxParallelCI()} is the current value of \link{mxOption} "Default optimizer", and for \code{omxRunCI()}, is "SLSQP".}
 }
 \details{
 When \code{independentSubmodels=TRUE}, \code{omxParallelCI()} creates an independent MxModel object for each quantity specified in the 'reference' slot of \code{model}'s \link{MxInterval} object, and places these independent MxModels inside \code{model}.  Each of these independent submodels calculates the confidence limits of its own quantity when the container model is run.  When \code{independentSubmodels=FALSE}, no submodels are added to \code{model}.  Instead, \code{model} is provided with a dedicated \link[=mxComputeSequence]{compute plan} consisting only of an \link[=mxComputeConfidenceInterval]{MxComputeConfidenceInterval} step.  Note that using \code{independentSubmodels=FALSE} will overwrite any compute plan already inside \code{model}.

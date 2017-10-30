@@ -44,6 +44,9 @@ omxCheckError(mxExpectationNormal("C", "M", dimnames=names(jointData),
               (paste("'threshnames' argument contains 'z2' more than once. \nIf you are having problems with Doppelgangers",
                            "perhaps you should check the basement for pods :)")))
 
+jointData$weight <- runif(nrow(jointData), min=.98,max=1.02)
+weightedFits <- c()
+
 for (strat in c('auto', 'ordinal', 'continuous')) {
 	print(paste('***',strat,'***'))
 					# run factor and saturated models
@@ -53,7 +56,7 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 			       mxAlgebra(t(L) %*% L + U, name="C"),
 			       mxFitFunctionML(jointConditionOn=strat),
 			       mxExpectationNormal("C", "M",
-						   dimnames=names(jointData),
+						   dimnames=names(jointData)[1:5],
 						   thresholds="T",
 						   threshnames=c("z2", "z4", "z5"))
 			       )
@@ -75,7 +78,7 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 			       satCov, means, thresh,
 			       mxFitFunctionML(jointConditionOn=strat),
 			       mxExpectationNormal("C", "M",
-						   dimnames=names(jointData),
+						   dimnames=names(jointData)[1:5],
 						   thresholds="T",
 						   threshnames=c("z2", "z4", "z5"))
 			       )
@@ -90,4 +93,11 @@ for (strat in c('auto', 'ordinal', 'continuous')) {
 	omxCheckCloseEnough(coef(jointResults2), c2, 0.005)
 	
 	omxCheckCloseEnough(jointResults2$output$Minus2LogLikelihood, 2674.235, 0.1)
+
+	jointModel3 <- mxModel(jointResults2)
+	jointModel3$data$weight <- 'weight'
+	weightedFit <- mxRun(mxModel(jointModel3, mxComputeOnce('fitfunction','fit')))
+	weightedFits <- c(weightedFits, weightedFit$output$fit)
 }
+
+omxCheckCloseEnough(diff(weightedFits), rep(0,2), .04)

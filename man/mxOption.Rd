@@ -58,7 +58,11 @@ Options \dQuote{Gradient step size}, \dQuote{Gradient iterations}, and \dQuote{F
 Some options only affect certain optimizers.  Currently, options \dQuote{Gradient algorithm} and \dQuote{Gradient iterations} are ignored by all optimizers other than SLSQP.  Also, currently option \dQuote{Analytic Gradients} only affects SLSQP and NPSOL.  Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).  If the MxModel contains\link[=MxConstraint]{MxConstraints}, OpenMx's interface to NPSOL scales \dQuote{Feasibility tolerance} by multiplying it by 0.02 and dividing it by 0.05 before passing it to NPSOL; if there are no MxConstraints, OpenMx passes NPSOL a hardcoded value of 1e-5.  Note that NPSOL's criterion for returning a status code of 0 versus 1 for a given solution depends partly on \dQuote{Optimality tolerance}.
 
 For a block of \code{n} ordinal variables, the maximum number of integration points that OpenMx may use to calculate multivariate-normal probability integrals is given by
-\code{mvnMaxPointsA + mvnMaxPointsB*n + mvnMaxPointsC*n*n}
+\code{mvnMaxPointsA + mvnMaxPointsB*n + mvnMaxPointsC*n*n +
+  exp(mvnMaxPointsD + mvnMaxPointsE * n * log(mvnRelEps))}.
+Integral approximation is stopped once either \sQuote{mvnAbsEps} or
+\sQuote{mvnRelEps} is satisfied.
+Use of \sQuote{mvnAbsEps} is deprecated.
 
 The maximum number of major iterations (the option  \dQuote{Major iterations}) 
 for optimization for NPSOL  can be specified either by using a 
@@ -134,8 +138,10 @@ Multivariate normal integration parameters
 maxOrdinalPerBlock \tab \var{i} \tab maximum number of ordinal variables
 to evaluate together \cr
 mvnMaxPointsA \tab \var{i} \tab base number of integration points \cr
-mvnMaxPointsB \tab \var{i} \tab number of integration points per row \cr
-mvnMaxPointsC \tab \var{i} \tab number of integration points per rows^2 \cr
+mvnMaxPointsB \tab \var{i} \tab number of integration points per ordinal variable \cr
+mvnMaxPointsC \tab \var{i} \tab number of integration points per squared ordinal variables \cr
+mvnMaxPointsD \tab \var{i} \tab see details \cr
+mvnMaxPointsE \tab \var{i} \tab see details \cr
 mvnAbsEps     \tab \var{i} \tab absolute error tolerance \cr
 mvnRelEps     \tab \var{i} \tab relative error tolerance \cr
 }

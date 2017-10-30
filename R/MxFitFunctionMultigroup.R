@@ -70,11 +70,11 @@ aggregateSubrefmodels <- function(modelName, submodels) {
 }
 
 setMethod("generateReferenceModels", "MxFitFunctionMultigroup",
-	function(.Object, model) {
+	function(.Object, model, distribution) {
 		grpnames <- unlist(strsplit(model$fitfunction$groups, split=".fitfunction", fixed=TRUE))
 		grpmodels <- list()
 		for(i in 1:length(grpnames)){
-			grpmodels[[i]] <- ReferenceModelHelper(model[[ grpnames[i] ]])
+			grpmodels[[i]] <- ReferenceModelHelper(model[[ grpnames[i] ]], distribution)
 		}
 		sgrpmodels <- sapply(grpmodels, "[[", 1)
 		saturatedModel <- aggregateSubrefmodels(paste("Saturated", model@name), sgrpmodels)

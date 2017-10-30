@@ -135,10 +135,14 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		ret
 	})
 
-getThresholdMask <- function(model, cols) {
-	if (is.null(model@data)) stop(paste("Cannot find observed thresholds, model",
-					    omxQuotes(model$name), "has no data"))
-	d1 <- model@data
+getThresholdMask <- function(model, cols, subname) {
+	if (subname != model$name) {
+		d1 <- model[[subname]]@data
+	} else {
+		d1 <- model@data
+	}
+	if (is.null(d1)) stop(paste("Cannot find observed thresholds, model",
+				    omxQuotes(subname), "has no data"))
 	if (d1@type == 'raw') {
 		lev <- sapply(d1$observed[,cols], function(x) length(levels(x)))
 		mask <- matrix(FALSE, length(cols), max(lev)-1)
@@ -162,7 +166,7 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		if (prod(dim(thr)) == 0) {
 			return(c(vech(cov), mns[!is.na(mns)]))
 		} else {
-			dth <- getThresholdMask(model, colnames(thr))
+			dth <- getThresholdMask(model, colnames(thr), subname)
 			return(c(vech(cov), mns[!is.na(mns)], thr[dth]))
 		}
 })
@@ -177,7 +181,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		if (prod(dim(thr)) == 0) {
 			return(c(vech(cov), mns[!is.na(mns)]))
 		} else {
-			dth <- getThresholdMask(model, colnames(thr))
+			dth <- getThresholdMask(model, colnames(thr), subname)
 			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
 			return(v)
 		}
@@ -494,6 +498,15 @@ simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
 	mxGenerateData(object, nsim)
 }
 
+extractObservedData <- function(model) {
+	datasets <- list()
+	if (!is.null(model@data)) datasets <- c(datasets, model@data@observed)
+	if (length(model@submodels)) {
+		datasets <- c(datasets, lapply(model@submodels, extractObservedData))
+	}
+	return(datasets)
+}
+
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
 			   ..., .backend=TRUE) {
 	garbageArguments <- list(...)
@@ -512,13 +525,16 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		return(mxGenerateData(fake, nrows, returnModel))
 	}
 	if (is.null(model$expectation) && is(model$fitfunction, 'MxFitFunctionMultigroup')) {
-		if (!returnModel) stop("Must employ returnModel=TRUE for multigroup models")
 		todo <- sub(".fitfunction", "", model$fitfunction$groups, fixed=TRUE)
 		for (s1 in todo) {
 			model <- mxModel(model, mxGenerateData(model[[s1]], returnModel=TRUE, nrows=nrows,
 							       use.miss=use.miss, .backend=.backend))
 		}
-		return(model)
+		if (!returnModel) {
+			return(extractObservedData(model))
+		} else {
+			return(model)
+		}
 	}
 	fellner <- is(model$expectation, "MxExpectationRAM") && length(model$expectation$between);
 	if (!fellner) {

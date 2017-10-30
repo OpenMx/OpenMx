@@ -1,5 +1,6 @@
 library(OpenMx)
 library(mvtnorm)
+library(MASS)
 
 set.seed(1)
 nVar <- 3
@@ -73,6 +74,6 @@ mixtureModelFit <- mxRun(mixtureModel)
 print(summary(mixtureModelFit))
 
 omxCheckCloseEnough(mixtureModelFit$group1$expCov$values, diag(3), .15)
-omxCheckCloseEnough(mixtureModelFit$group1$expMean$values[1,], rep(50,3), .25)
-omxCheckCloseEnough(mixtureModelFit$group2$expMean$values[1,], rep(0,3), .25)
+omxCheckCloseEnough(mixtureModelFit$group1$expMean$values[1,], rep(50,3), .22)
+omxCheckCloseEnough(mixtureModelFit$group2$expMean$values[1,], rep(0,3), .22)
 omxCheckCloseEnough(mixtureModelFit$pRaw$values[2,1], 1, 1e-4)

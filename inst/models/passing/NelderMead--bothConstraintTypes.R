@@ -209,7 +209,9 @@ m2$output$fit
 m12$output$fit
 m12$compute$steps[[1]]$output$penalizedFit
 
-#Holding the other Nelder-Mead arguments at their defaults, only GDsearch gets good results:
+#Holding the other Nelder-Mead arguments at their defaults, only GDsearch gets good results, and only with a stricter feasibility tolerance:
+
+mxOption(NULL,"Feasibility tolerance",0.001)
 
 plan <- omxDefaultComputePlan()
 plan$steps <- list(
@@ -241,10 +243,10 @@ m14$output$evaluations
 mxEval(Sigma,m14,T)
 m2$output$estimate
 m14$output$estimate
-omxCheckCloseEnough(m2$output$estimate, m14$output$estimate, 0.06)
+omxCheckCloseEnough(m2$output$estimate, m14$output$estimate, 5e-4)
 m2$output$fit
 m14$output$fit
-omxCheckCloseEnough(m2$output$fit, m14$output$fit, 0.5)
+omxCheckCloseEnough(m2$output$fit, m14$output$fit, 5e-4)
 
 #Changing ineqConstraintMthd from "soft" to "eqMthd" doesn't change anything in this case:
 plan <- omxDefaultComputePlan()
@@ -273,7 +275,7 @@ m16$output$evaluations
 mxEval(Sigma,m16,T)
 m2$output$estimate
 m16$output$estimate
-omxCheckCloseEnough(m2$output$estimate, m16$output$estimate, 0.06)
+omxCheckCloseEnough(m2$output$estimate, m16$output$estimate, 5e-4)
 m2$output$fit
 m16$output$fit
-omxCheckCloseEnough(m2$output$fit, m16$output$fit, 0.5)
+omxCheckCloseEnough(m2$output$fit, m16$output$fit, 1e-4)

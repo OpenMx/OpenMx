@@ -240,7 +240,8 @@ class FitContext {
 	void resetIterationError();
 	void recordIterationError(const char* msg, ...) __attribute__((format (printf, 2, 3)));
 	void recordOrdinalRelativeError(double re) {
-		if (re < ordinalRelativeError ) return;
+		// Could obtain NaN if density is exactly zero
+		if (!std::isfinite(re) || re < ordinalRelativeError) return;
 		ordinalRelativeError = re;
 	};
 	void resetOrdinalRelativeError();
@@ -253,6 +254,8 @@ class FitContext {
 	// If !std::isfinite(fit) then IterationError.size() should be nonzero but not all of
 	// the code is audited to ensure that this condition is true.
 	bool outsideFeasibleSet() const { return !std::isfinite(fit) || IterationError.size() > 0; }
+	// Only check at the end of optimization
+	bool insideFeasibleSet() const { return !outsideFeasibleSet() && skippedRows == 0; }
 
 	std::string getIterationError();
 

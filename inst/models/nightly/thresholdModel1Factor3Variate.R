@@ -22,6 +22,7 @@
 
 # Step 1: load libraries
 require(OpenMx)
+mxOption(NULL, "mvnRelEps", 1e-4)
 
 #
 # Step 2: set up simulation parameters 
@@ -71,7 +72,8 @@ thresholdModel <- mxModel("thresholdModel",
             name="thresholdDeviations", nrow=nThresholds, ncol=nVariables,
             values=.2,
             free = TRUE, 
-            lbound = rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
+            lbound = rep( c(-100,rep(.01,(nThresholds-1))) , nVariables),
+	         ubound=100,
             dimnames = list(c(), fruitynames)),
     mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
@@ -79,12 +81,10 @@ thresholdModel <- mxModel("thresholdModel",
             mxData(observed=ordinalData, type='raw')
 )
 
-summary(thresholdModelrun <- mxRun(thresholdModel))
-omxCheckCloseEnough(thresholdModelrun$output$fit, 3921.713, .02)
+summary(thresholdModelrun <- mxTryHard(thresholdModel))
+omxCheckCloseEnough(thresholdModelrun$output$fit, 3921.706, .02)
 
 #cat(deparse(round(thresholdModelrun$output$standardErrors, 3)))
-prevSE <- c(0.047, 0.049, 0.047, 0.06, 0.053, 0.053, 0.062, 0.053,
-            0.052,  0.058, 0.052, 0.051)
+prevSE <- c(0.047, 0.049, 0.047, 0.061, 0.053, 0.054, 0.062,  0.053,
+            0.052, 0.061, 0.055, 0.053)
 omxCheckCloseEnough(c(thresholdModelrun$output$standardErrors), prevSE, .01)
-
-

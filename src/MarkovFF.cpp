@@ -54,6 +54,7 @@ namespace MarkovFF {
 		}
 
 		Eigen::VectorXd expect;
+		Eigen::VectorXd rowResult;
 		int numC = components.size();
 		Eigen::VectorXd tp(numC);
 		double lp=0;
@@ -86,10 +87,11 @@ namespace MarkovFF {
 				EigenMatrixAdaptor Etransition(st->transition);
 				expect = (Etransition * expect).eval();
 			}
-			expect = tp.array() * expect.array();
-			double rowp = expect.sum();
-			expect /= rowp;
+			rowResult = tp.array() * expect.array();
+			double rowp = rowResult.sum();
+			rowResult /= rowp;
 			lp += log(rowp);
+			if (st->transition) expect = rowResult;
 		}
 		oo->matrix->data[0] = Global->llScale * lp;
 		if (st->verbose >= 2) mxLog("%s: fit=%f", oo->name(), lp);
