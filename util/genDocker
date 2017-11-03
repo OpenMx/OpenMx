@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use IO::File;
+use File::Path qw(make_path);
+
+our %From = (
+	     prod => 'r-base',
+	     'dev-gcc' => 'rocker/r-devel-san',
+	     'dev-clang' => 'rocker/r-devel-ubsan-clang'
+	    );
+
+use constant HEADER => <<'EOF'
+## Emacs, make this -*- mode: sh; -*-
+
+MAINTAINER "Joshua N. Pritikin" jpritikin@pobox.com
+
+EOF
+  ;
+
+sub INSTALL {
+    my ($branch) = @_;
+<<"EOF"
+RUN apt-get update && apt-get install -y --no-install-suggests \
+			      git \
+			      libcurl4-gnutls-dev \
+			      libssl-dev \
+			      libxml2-dev
+
+WORKDIR /opt/github.org/
+
+RUN git clone -b $branch https://github.com/OpenMx/OpenMx.git && \
+    cd OpenMx && \
+    R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in && \
+    make cran-install && \
+    rm -rf /opt/github.org/
+
+WORKDIR /root
+
+EOF
+  ;
+}
+
+sub doBranch {
+    my ($branch) = @_;
+
+    make_path("util/docker/$branch");
+    my $fh = IO::File->new("> util/docker/$branch/Dockerfile");
+    die "Failed to open $branch: $!" if !defined $fh;
+    select $fh;
+    print HEADER;
+
+    if ($branch eq 'master') {
+	for my $flavor (keys %From) {
+	    print "#-------------- $flavor\n";
+	    print "FROM $From{$flavor} as $flavor\n\n";
+	    print(INSTALL($branch));
+	    if ($flavor =~ /^dev/) {
+		print qq(ENV ASAN_OPTIONS abort_on_error=1\n\n);
+	    }
+	    print qq(CMD ["R"]\n\n);
+	}
+    } else {
+	print "FROM $From{prod}\n\n";
+	print(INSTALL($branch));
+	print qq(CMD ["R"]\n\n);
+    }
+}
+
+die "Must be run from top directory" if !-r "./util/genDocker";
+
+doBranch('master');
+doBranch('stable');
+doBranch('release');
+
