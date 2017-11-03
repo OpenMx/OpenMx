@@ -52,7 +52,7 @@ sub doBranch {
     print HEADER;
 
     if ($branch eq 'master') {
-	for my $flavor (keys %From) {
+	for my $flavor (sort keys %From) {
 	    print "#-------------- $flavor\n";
 	    print "FROM $From{$flavor} as $flavor\n\n";
 	    print(INSTALL($branch));
