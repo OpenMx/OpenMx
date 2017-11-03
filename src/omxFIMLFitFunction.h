@@ -153,6 +153,7 @@ class mvnByRow {
 	omxData *data;
 	OrdinalLikelihood &ol;
 	std::vector<int> &indexVector;
+	int rows;
 	std::vector<bool> &sameAsPrevious;
 	int row;
 	int lastrow;
@@ -201,6 +202,7 @@ class mvnByRow {
 		expectation(_localobj->expectation),
 		ol(ofo->ol),
 		indexVector(shared_ofo->indexVector),
+		rows(int(indexVector.size())),
 		sameAsPrevious(shared_ofo->sameAsPrevious),
 		thresholdCols(expectation->getThresholdInfo()),
 		dataColumns(expectation->getDataColumns()),
@@ -288,20 +290,18 @@ class mvnByRow {
 		return true;
 	}
 
-	void record(double logLik, int rows)
+	void record(double logLik, int nrows)
 	{
 		if (returnRowLikelihoods) Rf_error("oops");
 		if (!std::isfinite(logLik)) {
-			if (!rowWeight || rowWeight[sortedRow] > 0.0) {
-				ofiml->skippedRows += rows;
-			}
+			ofiml->skippedRows += nrows;
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
 			//mxLog("%g += record(%g)", rl[0], lik);
 			rl[0] += logLik;
 		}
 		firstRow = false;
-		row += rows;
+		row += nrows;
 	}
 
 	void skipRow()
@@ -312,21 +312,19 @@ class mvnByRow {
 			double rowLik = 0.0;
 			rl[sortedRow] = rowLik;
 			row += 1;
-			while (row < data->rows && sameAsPrevious[row]) {
+			while (row < rows && sameAsPrevious[row]) {
 				int index = indexVector[row];
 				rl[index] = rowLik;
 				row += 1;
 			}
 		} else {
 			row += 1;
-			while (row < data->rows && sameAsPrevious[row]) {
+			while (row < rows && sameAsPrevious[row]) {
 				row += 1;
 			}
 		}
 
-		if (!rowWeight || rowWeight[sortedRow] > 0.0) {
-			ofiml->skippedRows += row - oldRow;
-		}
+		ofiml->skippedRows += row - oldRow;
 		firstRow = false;
 	}
 
@@ -342,21 +340,41 @@ class mvnByRow {
 		if (returnRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
 			double rowLik = exp(contLogLik) * ordLik;
-			if (rowWeight && rowWeight[sortedRow] != 1.0) rowLik = pow(rowLik, rowWeight[sortedRow]);
-			rl[sortedRow] = rowLik;
+			double rowLik1 = rowLik;
+			double prevWeight = 1.0;
+			if (rowWeight && rowWeight[sortedRow] != 1.0) {
+				rowLik1 = pow(rowLik, rowWeight[sortedRow]);
+				prevWeight = rowWeight[sortedRow];
+			}
+			rl[sortedRow] = rowLik1;
 			row += 1;
-			while (row < data->rows && sameAsPrevious[row]) {
-				rl[ indexVector[row] ] = rowLik;
+			while (row < rows && sameAsPrevious[row]) {
+				sortedRow = indexVector[row];
+				if (rowWeight && prevWeight != rowWeight[sortedRow]) {
+					rowLik1 = pow(rowLik, rowWeight[sortedRow]);
+					prevWeight = rowWeight[sortedRow];
+				}
+				rl[sortedRow] = rowLik1;
 				row += 1;
 			}
 		} else {
 			EigenVectorAdaptor rl(localobj->matrix);
 			double rowLogLik = contLogLik + log(ordLik);
-			if (rowWeight) rowLogLik *= rowWeight[sortedRow];
-			rl[0] += rowLogLik;
+			double rowLogLik1 = rowLogLik;
+			double prevWeight = 1.0;
+			if (rowWeight) {
+				rowLogLik1 *= rowWeight[sortedRow];
+				prevWeight = rowWeight[sortedRow];
+			}
+			rl[0] += rowLogLik1;
 			row += 1;
-			while (row < data->rows && sameAsPrevious[row]) {
-				rl[0] += rowLogLik;
+			while (row < rows && sameAsPrevious[row]) {
+				sortedRow = indexVector[row];
+				if (rowWeight && prevWeight != rowWeight[sortedRow]) {
+					rowLogLik1 = rowLogLik * rowWeight[sortedRow];
+					prevWeight = rowWeight[sortedRow];
+				}
+				rl[0] += rowLogLik1;
 				row += 1;
 			}
 		}
