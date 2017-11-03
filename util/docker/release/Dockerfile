@@ -1,8 +1,8 @@
 ## Emacs, make this -*- mode: sh; -*-
 
-MAINTAINER "Joshua N. Pritikin" jpritikin@pobox.com
-
 FROM r-base
+
+MAINTAINER "Joshua N. Pritikin" jpritikin@pobox.com
 
 RUN apt-get update && apt-get install -y --no-install-suggests \
 			      git \
