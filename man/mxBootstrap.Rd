@@ -112,7 +112,7 @@ boot <- mxBootstrap(biRegModelRawOut, 10)   # start with 10
 summary(boot)
 
 # Looks good, now do the rest
-boot <- mxBootstrap(boot)
+\dontrun{boot <- mxBootstrap(boot)}
 summary(boot)
 
 # examine replication 3
