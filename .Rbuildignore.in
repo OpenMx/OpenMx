@@ -24,6 +24,7 @@ cachegrind.out.*
 ^src/Makevars.win.in
 ^src/Makevars$
 ^src/libnpsol.a$
+^src/autodep$
 ^.Rbuildignore*
 ^man/README$
 .*\.omx$
