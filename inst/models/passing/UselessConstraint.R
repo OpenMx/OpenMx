@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 
-# http://openmx.psyc.virginia.edu/issue/2014/05/memory-leak-when-running-ram-model-constraint
+# http://openmx.ssri.psu.edu/issue/2014/05/memory-leak-when-running-ram-model-constraint
 
 library(OpenMx)
 

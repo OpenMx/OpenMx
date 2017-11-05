@@ -36,7 +36,7 @@ omxGetNPSOL <- function() {
 			paste("Windows users should either restart R or run\n",
 						"detach('package:OpenMx',unload=TRUE)\n",
 						", and then run\n",
-						"source('http://openmx.psyc.virginia.edu/getOpenMx.R')\n")
+						"source('http://openmx.ssri.psu.edu/getOpenMx.R')\n")
 		)
 		return()
 	}
@@ -44,10 +44,10 @@ omxGetNPSOL <- function() {
         message(paste0("You are using R 2.15 or earlier.  ",
             "OpenMx 2.0 and higher do not support versions ",
             "of R before 3.0, so I'm fetching OpenMx 1.4 instead.\n",
-            "Getting OpenMx 1.4 from http://openmx.psyc.virginia.edu/."))
-        source("http://openmx.psyc.virginia.edu/getOpenMx1.4.R")
+            "Getting OpenMx 1.4 from http://openmx.ssri.psu.edu/."))
+        source("http://openmx.ssri.psu.edu/getOpenMx1.4.R")
     } else {
-        message("Getting OpenMx from http://openmx.psyc.virginia.edu/.")
-        source("http://openmx.psyc.virginia.edu/getOpenMx.R")
+        message("Getting OpenMx from http://openmx.ssri.psu.edu/.")
+        source("http://openmx.ssri.psu.edu/getOpenMx.R")
     }
 }

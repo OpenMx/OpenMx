@@ -20,7 +20,7 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 
-// http://openmx.psyc.virginia.edu/issue/2013/01/multigroup-fit-function
+// http://openmx.ssri.psu.edu/issue/2013/01/multigroup-fit-function
 
 struct FitMultigroup : omxFitFunction {
 	std::vector< FreeVarGroup* > varGroups;
