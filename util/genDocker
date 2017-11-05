@@ -6,7 +6,7 @@ use IO::File;
 use File::Path qw(make_path);
 
 our %From = (
-	     prod => 'r-base',
+	     latest => 'r-base',
 	     'dev-gcc' => 'rocker/r-devel-san',
 	     'dev-clang' => 'rocker/r-devel-ubsan-clang'
 	    );
@@ -42,17 +42,22 @@ EOF
   ;
 }
 
-sub doBranch {
+sub openDockerfile {
     my ($branch) = @_;
-
     make_path("util/docker/$branch");
     my $fh = IO::File->new("> util/docker/$branch/Dockerfile");
     die "Failed to open $branch: $!" if !defined $fh;
     select $fh;
     print HEADER;
+    $fh
+}
+
+sub doBranch {
+    my ($branch) = @_;
 
     if ($branch eq 'master') {
 	for my $flavor (sort keys %From) {
+	    my $fh = openDockerfile($flavor);
 	    print "#-------------- $flavor\n";
 	    print "FROM $From{$flavor} as $flavor\n\n";
 	    print(INSTALL($branch));
@@ -62,7 +67,8 @@ sub doBranch {
 	    print qq(CMD ["R"]\n\n);
 	}
     } else {
-	print "FROM $From{prod}\n\n";
+	my $fh = openDockerfile($branch);
+	print "FROM $From{latest}\n\n";
 	print(INSTALL($branch));
 	print qq(CMD ["R"]\n\n);
     }
