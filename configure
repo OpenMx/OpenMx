@@ -85,7 +85,7 @@ if [ "$cxx_type" = gcc ]; then
     fi
 fi
 
-if [ -r inst/npsol/checksum ]; then
+if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
     host_cpu=$(uname -p)
     if [ "x$host_cpu" = xunknown ]; then
 	# tanglu 1 has the machine architecture here
