@@ -241,9 +241,11 @@ void omxWLSFitFunction::populateAttr(SEXP algebra)
 	if (weightExt) Rf_setAttrib(algebra, Rf_install("weights"), weightExt);
 	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
 	
-	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rf_ScalarReal(0));
+	ProtectedSEXP Rsat(Rf_ScalarReal(0));
+	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rsat);
 	//Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
-	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rf_ScalarReal(omxMatrixElement(matrix, 0, 0)));
+	ProtectedSEXP Rmisfit(Rf_ScalarReal(omxMatrixElement(matrix, 0, 0)));
+	Rf_setAttrib(algebra, Rf_install("ADFMisfit"), Rmisfit);
 }
 
 omxFitFunction *omxInitWLSFitFunction()

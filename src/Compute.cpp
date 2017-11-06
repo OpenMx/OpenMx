@@ -3027,8 +3027,7 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 		if (!fc->grad.data()) {
 			// oh well
 		} else {
-			SEXP Rgradient;
-			Rgradient = Rf_allocVector(REALSXP, numFree);
+			SEXP Rgradient = Rf_allocVector(REALSXP, numFree);
 			result->add("gradient", Rgradient);
 			memcpy(REAL(Rgradient), fc->grad.data(), sizeof(double) * numFree);
 		}
@@ -3146,8 +3145,12 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 
 	int numCols = fc->numParam + 3;
 	Rf_protect(rawOutput = Rf_allocVector(VECSXP, numCols));
-	SEXP colNames = Rf_allocVector(STRSXP, numCols);
-	Rf_setAttrib(rawOutput, R_NamesSymbol, colNames);
+	SEXP colNames;
+	{
+		ProtectedSEXP colNamesP(Rf_allocVector(STRSXP, numCols));
+		Rf_setAttrib(rawOutput, R_NamesSymbol, colNamesP);
+		colNames = colNamesP;
+	}
 
 	SET_STRING_ELT(colNames, 0, Rf_mkChar("seed"));
 	SET_VECTOR_ELT(rawOutput, 0, Rf_allocVector(INTSXP, numReplications));

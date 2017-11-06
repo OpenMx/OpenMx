@@ -343,9 +343,9 @@ class MxRList : private MxRListBase {
 	size_t size() const { return MxRListBase::size(); }
 	SEXP asR();
 	void add(const char *key, SEXP val) {
+		Rf_protect(val);
 		SEXP rkey = Rf_mkChar(key);
 		Rf_protect(rkey);
-		Rf_protect(val);
 		push_back(std::make_pair(rkey, val));
 	};
 };

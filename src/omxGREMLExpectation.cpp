@@ -228,8 +228,12 @@ void omxGREMLExpectation::populateAttr(SEXP algebra) {
 
   omxGREMLExpectation* oge = this;
   
-  Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(oge->y->dataMat->cols));
-  Rf_setAttrib(algebra, Rf_install("numFixEff"), Rf_ScalarInteger(oge->X->cols));
+  {
+  ProtectedSEXP RnumStat(Rf_ScalarReal(oge->y->dataMat->cols));
+  Rf_setAttrib(algebra, Rf_install("numStats"), RnumStat);
+  ProtectedSEXP RnumFixEff(Rf_ScalarInteger(oge->X->cols));
+  Rf_setAttrib(algebra, Rf_install("numFixEff"), RnumFixEff);
+  }
   
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   SEXP b_ext, bcov_ext, RyXcolnames;
