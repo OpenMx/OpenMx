@@ -73,7 +73,8 @@ void omxNormalExpectation::populateAttr(SEXP algebra) {
 		Rf_setAttrib(algebra, Rf_install("ExpMean"), expMeanExt);
 	}
 
-	Rf_setAttrib(algebra, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(data)));
+	ProtectedSEXP RnumStats(Rf_ScalarReal(omxDataDF(data)));
+	Rf_setAttrib(algebra, Rf_install("numStats"), RnumStats);
 }
 
 omxExpectation *omxInitNormalExpectation() { return new omxNormalExpectation; }

@@ -17,7 +17,7 @@
 # Purpose: Generate a script that causes an error by simply switching the fit function
 #  from vector=FALSE to vector=TRUE.
 #  The source of the script is Tim Bates' post here
-# 	http://openmx.psyc.virginia.edu/thread/861
+# 	http://openmx.ssri.psu.edu/thread/861
 
 require(OpenMx)
 

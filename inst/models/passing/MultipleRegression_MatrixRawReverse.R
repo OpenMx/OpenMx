@@ -18,7 +18,7 @@
 # Author: 
 # History:  Sat 26 Sep 2009 14:57:38 BST
 # (tb) updated to use data(), addded var name array, added summary statement... 
-# OpenMx: http://openmx.psyc.virginia.edu
+# OpenMx: http://openmx.ssri.psu.edu
 ##########################################
 require(OpenMx)
 data("myRegDataRaw", package="OpenMx")

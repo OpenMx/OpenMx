@@ -1,4 +1,4 @@
-# http://openmx.psyc.virginia.edu/thread/2363
+# http://openmx.ssri.psu.edu/thread/2363
 
 set.seed(1)
 

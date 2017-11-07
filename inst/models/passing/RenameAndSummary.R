@@ -1,4 +1,4 @@
-# http://openmx.psyc.virginia.edu/issue/2013/10/mxrename-fitted-model-objects-leaves-mxconstraint-objects-unrenamed
+# http://openmx.ssri.psu.edu/issue/2013/10/mxrename-fitted-model-objects-leaves-mxconstraint-objects-unrenamed
 
 require(OpenMx)
  

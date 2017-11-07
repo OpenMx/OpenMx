@@ -33,7 +33,7 @@ void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 	SEXP nextLoc;
 	if(OMX_DEBUG) { mxLog("Processing %d data source(s).", Rf_length(data));}
 
-	SEXP listNames = Rf_getAttrib(data, R_NamesSymbol);
+	ProtectedSEXP listNames(Rf_getAttrib(data, R_NamesSymbol));
 
 	for(int index = 0; index < Rf_length(data); index++) {
 		ScopedProtect p1(nextLoc, VECTOR_ELT(data, index));			// Retrieve the data object

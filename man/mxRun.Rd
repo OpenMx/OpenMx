@@ -66,7 +66,7 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 }
 
 \examples{
-# Create and run the 1-factor CFA on the openmx.psyc.virginia.edu front page
+# Create and run the 1-factor CFA on the openmx.ssri.psu.edu front page
 
 library(OpenMx)
 

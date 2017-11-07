@@ -56,7 +56,7 @@ mj_nssi <- data.frame(df, stringsAsFactors=F)
 require(OpenMx)
 
 # --- this from Brooke's post 
-#     http://openmx.psyc.virginia.edu/thread/3996
+#     http://openmx.ssri.psu.edu/thread/3996
 #     note that start values have been changed to
 #     reflect the parameters for the simulated data
 

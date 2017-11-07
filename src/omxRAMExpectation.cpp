@@ -105,8 +105,9 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 		ProtectedSEXP expCovExt(Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
 		memcpy(REAL(expCovExt), Ax->data, sizeof(double) * Ax->rows * Ax->cols);
 		Rf_setAttrib(robj, Rf_install("UnfilteredExpCov"), expCovExt);
+		ProtectedSEXP RnumStats(Rf_ScalarReal(omxDataDF(data)));
+		Rf_setAttrib(robj, Rf_install("numStats"), RnumStats);
 	}
-	Rf_setAttrib(robj, Rf_install("numStats"), Rf_ScalarReal(omxDataDF(data)));
 
 	MxRList out;
 	MxRList dbg;

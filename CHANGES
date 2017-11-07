@@ -513,9 +513,9 @@ Release 1.2.5-2156 (September 5, 2012)
 * fixing memory leak in cleaning up algebras when optimization is complete
 * fixing memory leak in omxImaginaryEigenvalues()
 * fixed a bug that manifests in confidence intervals with definition variables
-  (see http://openmx.psyc.virginia.edu/thread/1505)
+  (see http://openmx.ssri.psu.edu/thread/1505)
 * fixed a bug in the identification of NA definition variables
-  (see http://openmx.psyc.virginia.edu/thread/1521)
+  (see http://openmx.ssri.psu.edu/thread/1521)
 
 Release 1.2.4-2063 (May 22, 2012)
 =================================
@@ -563,7 +563,7 @@ Release 1.2.0-1926 (February 04, 2012)
 
 Release  1.1.2-1818 (October 24, 2011)
 ======================================
-* fixed bug in summary() function, see http://openmx.psyc.virginia.edu/thread/1104
+* fixed bug in summary() function, see http://openmx.ssri.psu.edu/thread/1104
 * fixed bug in independence model likelihood calculation for ML objective
 * included support for gcc 4.5 and 4.6 under 32-bit x86
 
@@ -587,7 +587,7 @@ Release  1.1.0-1764 (August 22, 2011)
 * no longer explicitly transforming RAM + raw data models into FIML models
 * fixed bug in MxMatrix indexing operator
 * added argument 'threshnames' to mxFIMLObjective() and mxRAMObjective()
-* renaming majority of omx* functions to imx* functions. See http://openmx.psyc.virginia.edu/thread/761
+* renaming majority of omx* functions to imx* functions. See http://openmx.ssri.psu.edu/thread/761
 * added error checking to mxOption() function
 * added "Optimality tolerance" to mxOption() selection
 * added 'lbound' and 'ubound' columns to summary() output of free parameters
@@ -787,7 +787,7 @@ Release 0.3.0-1217 (Apr 20, 2010)
 
 new features
 ------------
-* implemented new ordinal data interface http://openmx.psyc.virginia.edu/thread/416#comment-1421 (except for 'means=0' component)
+* implemented new ordinal data interface http://openmx.ssri.psu.edu/thread/416#comment-1421 (except for 'means=0' component)
 * added mxFactor() function (see ?mxFactor for help)
 * added R documentation for rvectorize() and cvectorize()
 * implemented eigenvalues and eigenvectors

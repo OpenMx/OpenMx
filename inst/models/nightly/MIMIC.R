@@ -1,4 +1,4 @@
-# From http://openmx.psyc.virginia.edu/wiki/example-models#MIMIC
+# From http://openmx.ssri.psu.edu/wiki/example-models#MIMIC
 require(OpenMx)
 
 data = structure(c(1, 0.304, 0.305, 0.1, 0.284, 0.176, 0, 1, 0.344,
