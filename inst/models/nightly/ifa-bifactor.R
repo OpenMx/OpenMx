@@ -110,7 +110,7 @@ omxCheckCloseEnough(cor(c(scores[,2]), c(theta[2,])), .781, .01)
 omxCheckCloseEnough(cor(c(scores[,3]), c(theta[3,])), .679, .01)
 
 omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 2*scores[,5]), 933, 5)
-omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 3*scores[,5]), 1000, 2)
+omxCheckCloseEnough(sum(abs(scores[,2] - theta[2,]) < 3*scores[,5]), 1000, 3)
 
 i1 <- mxModel(m1,
               mxComputeSequence(steps=list(
