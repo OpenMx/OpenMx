@@ -500,9 +500,9 @@ simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
 
 extractObservedData <- function(model) {
 	datasets <- list()
-	if (!is.null(model@data)) datasets <- c(datasets, model@data@observed)
+	if (!is.null(model@data)) datasets <- c(datasets, list(model@data@observed))
 	if (length(model@submodels)) {
-		datasets <- c(datasets, lapply(model@submodels, extractObservedData))
+		datasets <- c(datasets, unlist(lapply(model@submodels, extractObservedData), recursive=FALSE))
 	}
 	return(datasets)
 }
