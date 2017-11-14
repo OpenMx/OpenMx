@@ -548,6 +548,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 			}
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
+		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:",nrows))
 		data <- genericGenerateData(model$expectation, model, nrows)
 		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
 			del <- is.na(origData[,colnames(data),drop=FALSE])
