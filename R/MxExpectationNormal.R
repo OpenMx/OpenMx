@@ -500,9 +500,9 @@ simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
 
 extractObservedData <- function(model) {
 	datasets <- list()
-	if (!is.null(model@data)) datasets <- c(datasets, model@data@observed)
+	if (!is.null(model@data)) datasets <- c(datasets, list(model@data@observed))
 	if (length(model@submodels)) {
-		datasets <- c(datasets, lapply(model@submodels, extractObservedData))
+		datasets <- c(datasets, unlist(lapply(model@submodels, extractObservedData), recursive=FALSE))
 	}
 	return(datasets)
 }
@@ -548,6 +548,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 			}
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
+		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:",nrows))
 		data <- genericGenerateData(model$expectation, model, nrows)
 		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
 			del <- is.na(origData[,colnames(data),drop=FALSE])

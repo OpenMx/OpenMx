@@ -55,7 +55,7 @@ sub openDockerfile {
 sub doBranch {
     my ($branch) = @_;
 
-    if ($branch eq 'master') {
+    if ($branch eq 'stable') {
 	for my $flavor (sort keys %From) {
 	    my $fh = openDockerfile($flavor);
 	    print "#-------------- $flavor\n";

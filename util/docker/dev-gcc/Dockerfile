@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-suggests \
 
 WORKDIR /opt/github.org/
 
-RUN git clone -b master https://github.com/OpenMx/OpenMx.git && \
+RUN git clone -b stable https://github.com/OpenMx/OpenMx.git && \
     cd OpenMx && \
     R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in && \
     make cran-install && \
