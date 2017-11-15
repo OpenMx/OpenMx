@@ -7,10 +7,11 @@
 }
 \usage{
 mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=250L, prevOutput=NULL,
+                    probes=250L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
-                    grid=NULL)
+                    grid=NULL,
+		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE)
 }
 \arguments{
   \item{trueModel}{The true generating model for the data.}
@@ -23,7 +24,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   \item{...}{Not used.}
   \item{probes}{The number of probes to use when
     method=\sQuote{empirical}.}
-  \item{prevOutput}{Output from a prior run of \sQuote{mxPower} to extend.}
+  \item{previousRun}{Output from a prior run of \sQuote{mxPower} to extend.}
   \item{gdFun}{The function invoked to generate new data for each Monte
     Carlo probe.}
   \item{method}{To estimate power using the Monte Carlo method
@@ -31,8 +32,45 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     (\sQuote{ncp}).}
   \item{grid}{A vector of locations at which to evaluate the power. If
     not provided, a reasonable default will be chosen.}
+  \item{OK}{The set of status code that are considered successful}
+  \item{checkHess}{Whether to approximate the Hessian in each replication}
 }
 \details{
+
+  To reduce the number of simulation probes,
+  \code{method=\sQuote{empirical}} ultimately employs a binomial family
+  generalized linear model with a logit link to predict the power curve
+  across the sample sizes of interest. The algorithm works in 3
+  stages. Without loss of generality, our description will assume a
+  sample size to power relationship, but a similar process is used for
+  the parameter value to power relationship. In the first stage, a crude
+  binary search is used to find the range reasonable values for N. This
+  stage is complete once we have at least one rejection and at least one
+  non-rejection. At this point, the binomial intercept and slope model
+  is fit to these data. If the \emph{p}-value for the slope is less than
+  0.25 then we jump to stage 3. Otherwise, we fit an intercept only
+  binomial model. Our goal is to nail down the intercept (where
+  power=0.5) because this is the easiest point to find and is a
+  necessary prerequisite to estimate the variance (or slope).
+  Therefore, we probe at the median of previous probes stepping by 10\%
+  in the direction of the model's intercept. Eventually, after enough
+  probes, we reach stage 3 where the \emph{p}-value for the slope is
+  less than 0.25. At stage 3, our goal is to nail down the interesting
+  part of the power curve. Therefore, we cycle serially through probes
+  at 0, 1, and 2 logits from the intercept. This process is continued
+  for the permitted number of \code{probes}. There is no other
+  convergence criteria. Accuracy continues to improves until the probe
+  limit is reached. After \code{mxPower} returns, additional probes can
+  be run by passing the previous result back into the function as the
+  \code{previousRun} argument.
+
+  Note that the default \code{grid} is chosen to exhibit the interesting
+  part of the power curve (from 0.25 to 0.97 for \code{sig.level} of
+  0.05). Especially for \code{method=\sQuote{ncp}}, this curve is practically
+  identical for any pair of models (but located at a different range of
+  sample sizes). You should select your own \code{grid} points if you
+  wish to compare power curves from more than one power analyses.
+
 }
 
 \value{
@@ -42,7 +80,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   2 SE confidence interval for the power as estimated by the binomial
   logit linear model.
 
-  When method=\sQuote{empirical} then the \sQuote{probes} attribute
+  When \code{method=\sQuote{empirical}} then the \sQuote{probes} attribute
   contains a data.frame record of the activity of the power estimation
   process.
 

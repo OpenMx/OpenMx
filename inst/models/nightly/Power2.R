@@ -56,7 +56,7 @@ ceFit2 <- omxSetParameters(modA2, labels = "A11", free = F, values = 0)
 ceFit2 <- mxRun(ceFit2)
 
 got <- mxPower(modA2, ceFit2, probes = 50)
-got <- mxPower(modA2, ceFit2, prevOutput = got)
+got <- mxPower(modA2, ceFit2, previousRun = got)
 
 got2 <- mxPower(modA2, ceFit2, method = "ncp")
 

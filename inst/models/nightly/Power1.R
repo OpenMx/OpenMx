@@ -25,7 +25,7 @@ set.seed(1)
 
 got <- mxPower(factorModelFit, indModel)
 
-got <- mxPower(factorModelFit, indModel, prevOutput = got,
+got <- mxPower(factorModelFit, indModel, previousRun = got,
                grid=seq(15,160,length.out = 20))
 
 got2 <- mxPower(factorModelFit, indModel, method='ncp',
@@ -43,6 +43,6 @@ indModel$A$free['x1','G'] <- FALSE
 indModel <- mxRun(indModel)
 
 got <- mxPower(factorModelFit, indModel, probes = 50, n=100)
-got <- mxPower(factorModelFit, indModel, n=100, prevOutput = got)
+got <- mxPower(factorModelFit, indModel, n=100, previousRun = got)
 omxCheckCloseEnough(got[findInterval(.8, got$p), 'loading1'],
                     .1285, .005)

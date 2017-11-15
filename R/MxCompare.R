@@ -679,10 +679,11 @@ fitPowerModel <- function(rx, result, isN) {
 }
 
 mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=250L, prevOutput=NULL,
+                    probes=250L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
-                    grid=NULL)
+                    grid=NULL,
+		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE)
 {
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
@@ -716,7 +717,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   interest <- setdiff(names(coef(trueModel)), names(coef(falseModel)))
   if (!is.null(n) && length(interest) != 1) {
     stop(paste("Specify only 1 parameter (not", omxQuotes(interest),
-               ") to search the different:power relationship"))
+               ") to search a parameter:power relationship"))
   }
   xLabel <- ''
   if (is.null(n)) {
@@ -727,9 +728,9 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     message(paste0("Search ",interest,":power relationship for n=", n))
   }
 
-  result <- data.frame(rep=1:probes,
-		       seed=as.integer(runif(probes, min = -2e9, max=2e9)),
-		       reject=NA, x=NA, alg=NA)
+  result <- data.frame(seed=as.integer(runif(probes, min = -2e9, max=2e9)),
+		       reject=NA, x=NA, alg=NA, mseTrue=NA,
+		       statusTrue=as.statusCode(NA), statusFalse=as.statusCode(NA))
   if (is.null(n)) {
     nullInterestValue <- 0
     curX <- meanSampleSize(trueModel) # add default if no data TODO
@@ -748,19 +749,19 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   nextTrial <- 1L
   alg <- 'init'
 
-  if (!is.null(prevOutput)) {
-      prevArgs <- attr(prevOutput, "arguments")
-      oldProbes <- attr(prevOutput, 'probes')
+  if (!is.null(previousRun)) {
+      prevArgs <- attr(previousRun, "arguments")
+      oldProbes <- attr(previousRun, 'probes')
       if (is.null(prevArgs$n) != is.null(n)) {
-          warning("prevOutput references a different kind of search (ignored)")
+          warning("previousRun references a different kind of search (ignored)")
       } else if (!is.null(n) && prevArgs$n != n) {
-          warning("prevOutput searched a different sample size (ignored)")
+          warning("previousRun searched a different sample size (ignored)")
       } else if (prevArgs$sig.level != sig.level) {
-          warning("prevOutput used a different sig.level (ignored)")
+          warning("previousRun used a different sig.level (ignored)")
       } else if (is.null(oldProbes)) {
-        warning("prevOutput did not contain old probes (ignored)")
+        warning("previousRun did not contain old probes (ignored)")
       } else if (!all(colnames(oldProbes) == colnames(result))) {
-        warning("prevOutput old probes in wrong format (ignored)")
+        warning("previousRun old probes in wrong format (ignored)")
       } else {
         toCopy <- min(probes, nrow(oldProbes))
         result[1:toCopy,] <- oldProbes[1:toCopy,]
@@ -770,6 +771,9 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 	curX <- pm$curX
       }
   }
+
+    trueModel <- ProcessCheckHess(trueModel, checkHess)
+    falseModel <- ProcessCheckHess(falseModel, checkHess)
 
   prevProgressLen <- 0L
   if (!is.na(nextTrial)) for (rx in nextTrial:probes) {
@@ -794,10 +798,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     
     true1  <- loadDataIntoModel(trueModel,  simData)
     true1  <- mxRun(true1,  silent=TRUE, suppressWarnings = TRUE)
-    # measure distance between recovered and simulated parameters
-    # record it, warn if beyond some threshold TODO
     # complain about parameters at box constraints TODO
-    # record optimizer status codes, exclude bad probes like bootstrap TODO
     
     topDataIndex <- match(trueModel$name, names(simData))
     names(simData)[topDataIndex] <- falseModel$name
@@ -808,8 +809,12 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     result[rx, 'reject'] <- cmp1[2,'p'] < sig.level
     result[rx, 'x'] <- curX
     result[rx, 'alg'] <- alg
+    result[rx, 'mseTrue'] <- sum((coef(true1) - coef(trueModel))^2)
+    result[rx, 'statusTrue'] <- as.statusCode(true1$output$status$code)
+    result[rx, 'statusFalse'] <- as.statusCode(false1$output$status$code)
 
-    rej <- table(result$reject)
+    okResult <- result[result$statusTrue %in% OK & result$statusFalse %in% OK,]
+    rej <- table(okResult$reject)
     if (dim(rej) == 1) {
       if (names(rej)[1] == "TRUE") {
         curX <- curX / 2
@@ -821,7 +826,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
       }
       alg <- 'init'
     } else {
-      pm <- fitPowerModel(rx, result, is.null(n))
+      pm <- fitPowerModel(rx, okResult, is.null(n))
       m1 <- pm$m1
       curX <- pm$curX
       alg <- pm$alg
