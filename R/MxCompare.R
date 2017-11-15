@@ -653,7 +653,7 @@ meanSampleSize <- function(model) {
 
 fitPowerModel <- function(rx, result, isN) {
   # rx is which(is.na(result$reject))[1] - 1L
-  result <- subset(result, !is.na(x))
+  result <- result[!is.na(result$x),]
   algRle <- rle(result$alg)
   if (algRle$values[1] == 'init') {
     # skip outliers from early probe sequence
