@@ -498,13 +498,20 @@ simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
 	mxGenerateData(object, nsim)
 }
 
-extractObservedData <- function(model) {
+extractData <- function(model) {
 	datasets <- list()
-	if (!is.null(model@data)) datasets <- c(datasets, list(model@data@observed))
+	if (!is.null(model@data)) datasets <- c(datasets, list(model@data))
 	if (length(model@submodels)) {
-		datasets <- c(datasets, unlist(lapply(model@submodels, extractObservedData), recursive=FALSE))
+		datasets <- c(datasets, unlist(lapply(model@submodels, extractData), recursive=FALSE))
 	}
 	return(datasets)
+}
+
+extractObservedData <- function(model) {
+	lapply(extractData(model), function(mxd) {
+		if (mxd@type != 'raw') stop(paste("Cannot extract observed data when type=", mxd@type))
+		mxd@observed
+	})
 }
 
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
