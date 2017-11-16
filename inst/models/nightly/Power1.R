@@ -33,7 +33,7 @@ got2 <- mxPower(factorModelFit, indModel, method='ncp',
 
 omxCheckCloseEnough(c(pmin(got2[,'p'] - got[,'pmin'], 0),
                       pmin(got[,'pmax'] - got2[,'p'], 0)),
-                    rep(0,40), .01)
+                    rep(0,40), .05)
 
 # --------------------
 

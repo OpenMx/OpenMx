@@ -666,7 +666,8 @@ fitPowerModel <- function(rx, result, isN) {
     alg <- '2p'
   } else {
     m2 <- glm(reject ~ 1, data = result, family = binomial)
-    curX <- median(result$x) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
+    from <- max(nrow(result)-9, 1)
+    curX <- mean(result$x[from:nrow(result)]) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
     alg <- '1p'
   }
   if (isN) {

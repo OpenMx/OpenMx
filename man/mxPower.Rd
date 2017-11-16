@@ -49,7 +49,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   approach, \code{method=ncp}, is much more efficient and takes
   advantage of the fact that the non-null distribution of likelihood
   ratio test statistic is often \eqn{\chi^2(df_1 - df_0, N \lambda),
-  chi^2(df1 − df0, N lambda)}. That is, the non-centrality parameter,
+  chi^2(df1 - df0, N lambda)}. That is, the non-centrality parameter,
   \eqn{\lambda,lambda}, can be assumed, on average, to be the same
   contribution per row. This permits essentially instant power curves
   without the burden of tedious simulation. However, definition
@@ -87,8 +87,8 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   sample size to power relationship, but a similar process is used for
   the parameter value to power relationship. In the first stage, a crude
   binary search is used to find the range reasonable values for N. This
-  stage is complete once we have at least one rejection and at least one
-  non-rejection. At this point, the binomial intercept and slope model
+  stage is complete once we have at least two rejections and at least two
+  non-rejections. At this point, the binomial intercept and slope model
   is fit to these data. If the \emph{p}-value for the slope is less than
   0.25 then we jump to stage 3. Otherwise, we fit an intercept only
   binomial model. Our goal is to nail down the intercept (where
@@ -115,7 +115,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   0.05). Especially for \code{method=ncp}, this curve is practically
   identical for any pair of models (but located at a different range of
   sample sizes). You should select your own \code{grid} points if you
-  wish to compare power curves from more than one power analyses.
+  wish to compare power curves from more than one power analysis.
 
 }
 
