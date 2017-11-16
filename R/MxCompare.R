@@ -657,7 +657,7 @@ fitPowerModel <- function(rx, result, isN) {
   algRle <- rle(result$alg)
   if (algRle$values[1] == 'init') {
     # skip outliers from early probe sequence
-    newFirst <- max(1, algRle$lengths[1] - 1L)
+    newFirst <- max(1, algRle$lengths[1] - 3L)
     result <- result[newFirst:nrow(result),]
   }
   m1 <- suppressWarnings(glm(reject ~ x, data = result, family = binomial))
@@ -679,11 +679,12 @@ fitPowerModel <- function(rx, result, isN) {
 }
 
 mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=250L, previousRun=NULL,
+                    probes=300L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
                     grid=NULL,
 		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE)
+# add plot=TRUE? or return S3 object that responds to plot(obj) ? TODO
 {
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
@@ -697,17 +698,19 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     assertModelRunAndFresh(trueModel)
     assertModelRunAndFresh(falseModel)
     avgNcp <- (falseModel$output$Minus2LogLikelihood -
-                 trueModel$output$Minus2LogLikelihood)/meanSampleSize(trueModel)
+	       trueModel$output$Minus2LogLikelihood)/meanSampleSize(trueModel)
+    # if diffdf>1 ever a good approx? TODO
+    diffdf <- summary(falseModel)[['degreesOfFreedom']] - summary(trueModel)[['degreesOfFreedom']]
     if (avgNcp < 0) stop("falseModel fit better than trueModel?")
     
     if (is.null(grid)) {
       width <- 2.75/avgNcp
-      center <- 1.15*qchisq(1 - sig.level, 1)/avgNcp
+      center <- 1.15*qchisq(1 - sig.level, diffdf)/avgNcp
       grid <- seq(center-1*width,
                   center+4*width, length.out = 20)
     }
     out <- data.frame(x=grid)
-    out$p <- 1 - pchisq(qchisq(1 - sig.level, 1), 1, avgNcp * out$x)
+    out$p <- 1 - pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x)
     out$pmin <- NA
     out$pmax <- NA
     colnames(out)[1] <- 'N'
@@ -815,8 +818,8 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 
     okResult <- result[result$statusTrue %in% OK & result$statusFalse %in% OK,]
     rej <- table(okResult$reject)
-    if (dim(rej) == 1) {
-      if (names(rej)[1] == "TRUE") {
+    if (dim(rej) == 1 || any(rej < 2)) {
+      if (names(sort(rej, decreasing=TRUE))[1] == "TRUE") {
         curX <- curX / 2
         if (is.null(n)) {
           curX <- round(max(curX, 10))

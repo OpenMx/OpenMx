@@ -111,6 +111,7 @@ Use options('digits' = N) to set the minimum number of significant digits to be 
 }
 
 \seealso{
+\code{\link{mxPower}};
 \code{\link{mxModel}};  \code{\link{options}} (use options('mxOptions') to see all the OpenMx-specific options) 
 }
 
