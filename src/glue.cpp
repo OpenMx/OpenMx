@@ -518,6 +518,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
 	Global->silent = silent;
+	Global->mpi = &protectManager;
 
 	/* Create new omxState for current state storage and initialize it. */
 	omxState *globalState = new omxState;

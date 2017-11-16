@@ -28,25 +28,6 @@
 //#undef PROTECT_WITH_INDEX
 //#undef UNPROTECT
 
-class omxManageProtectInsanity {
-	PROTECT_INDEX initialpix;
- public:
-	omxManageProtectInsanity() {
-		R_ProtectWithIndex(R_NilValue, &initialpix);
-		Rf_unprotect(1);
-	}
-	PROTECT_INDEX getDepth() {
-		PROTECT_INDEX pix;
-		R_ProtectWithIndex(R_NilValue, &pix);
-		PROTECT_INDEX diff = pix - initialpix;
-		Rf_unprotect(1);
-		return diff;
-	}
-	~omxManageProtectInsanity() {
-		Rf_unprotect(getDepth());
-	}
-};
-
 void string_to_try_Rf_error( const std::string& str) __attribute__ ((noreturn));
 
 void exception_to_try_Rf_error( const std::exception& ex ) __attribute__ ((noreturn));

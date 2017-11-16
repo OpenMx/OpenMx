@@ -1484,10 +1484,12 @@ void omxCompute::computeWithVarGroup(FitContext *fc)
 {
 	ComputeInform origInform = fc->getInform();
 	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
+	if (Global->debugProtectStack) mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
 	fc->setInform(INFORM_UNINITIALIZED);
 	computeImpl(fc);
 	fc->setInform(std::max(origInform, fc->getInform()));
 	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
+	if (Global->debugProtectStack) mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
 	fc->destroyChildren();
 	Global->checkpointMessage(fc, fc->est, "%s", name);
 }

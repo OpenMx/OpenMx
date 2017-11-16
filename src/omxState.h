@@ -213,6 +213,7 @@ class omxGlobal {
 	void reportProgressStr(const char *msg);
 
  public:
+	omxManageProtectInsanity *mpi;
 	bool silent;
 	int numThreads;
 	int parallelDiag;
