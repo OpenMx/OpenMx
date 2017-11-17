@@ -213,28 +213,25 @@ void AlgebraFitFunction::init()
 {
 	auto *off = this;
 	omxState *currentState = off->matrix->currentState;
-	SEXP newptr;
 	
 	AlgebraFitFunction *aff = this;
 	aff->ff = off;
 
-	Rf_protect(newptr = R_do_slot(rObj, Rf_install("algebra")));
-	aff->algebra = omxMatrixLookupFromState1(newptr, currentState);
+	ProtectedSEXP Ralg(R_do_slot(rObj, Rf_install("algebra")));
+	aff->algebra = omxMatrixLookupFromState1(Ralg, currentState);
 
-	{
-		ScopedProtect p1(newptr, R_do_slot(rObj, Rf_install("units")));
-		off->setUnitsFromName(CHAR(STRING_ELT(newptr, 0)));
-	}
+	ProtectedSEXP Runit(R_do_slot(rObj, Rf_install("units")));
+	off->setUnitsFromName(CHAR(STRING_ELT(Runit, 0)));
 
-	Rf_protect(newptr = R_do_slot(rObj, Rf_install("gradient")));
-	aff->gradient = omxMatrixLookupFromState1(newptr, currentState);
+	ProtectedSEXP Rgr(R_do_slot(rObj, Rf_install("gradient")));
+	aff->gradient = omxMatrixLookupFromState1(Rgr, currentState);
 	if (aff->gradient) off->gradientAvailable = TRUE;
 
-	Rf_protect(newptr = R_do_slot(rObj, Rf_install("hessian")));
-	aff->hessian = omxMatrixLookupFromState1(newptr, currentState);
+	ProtectedSEXP Rh(R_do_slot(rObj, Rf_install("hessian")));
+	aff->hessian = omxMatrixLookupFromState1(Rh, currentState);
 	if (aff->hessian) off->hessianAvailable = TRUE;
 
-	Rf_protect(newptr = R_do_slot(rObj, Rf_install("verbose")));
-	aff->verbose = Rf_asInteger(newptr);
+	ProtectedSEXP Rverb(R_do_slot(rObj, Rf_install("verbose")));
+	aff->verbose = Rf_asInteger(Rverb);
 	off->canDuplicate = true;
 }

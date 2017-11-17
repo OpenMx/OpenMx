@@ -955,15 +955,13 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 {
 	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo;
 
-	SEXP theCall, estimate;
-
-	ScopedProtect(estimate, Rf_allocVector(REALSXP, n));
+	ProtectedSEXP estimate(Rf_allocVector(REALSXP, n));
 	double *est = REAL(estimate);
 	for(int i = 0; i < n ; i++) {
 		est[i] = x[i];
 	}
 
-	{ScopedProtect p1(theCall, Rf_allocVector(LANGSXP, 4));
+	ProtectedSEXP theCall(Rf_allocVector(LANGSXP, 4));
 
 		// imxUpdateModelValues does not handle parameters with equality
 		// constraints. This is a bug.
@@ -972,8 +970,9 @@ static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
 	SETCADDR(theCall, rFitFunction->flatModel);
 	SETCADDDR(theCall, estimate);
 
-	R_Reprotect(rFitFunction->model = Rf_eval(theCall, R_GlobalEnv), rFitFunction->modelIndex);
-	}
+	rFitFunction->model = Rf_eval(theCall, R_GlobalEnv);
+
+	Rf_setAttrib(rFitFunction->rObj, Rf_install("model"), rFitFunction->model);
 
 	omxMarkDirty(oo->matrix);
 }
@@ -1154,13 +1153,11 @@ void FitContext::createChildren(omxMatrix *alg)
 	childList.reserve(numThreads);
 
 	for(int ii = 0; ii < numThreads; ii++) {
-		//omxManageProtectInsanity mpi;
 		FitContext *kid = new FitContext(this, varGroup);
 		kid->state = new omxState(state);
 		kid->state->initialRecalc(kid);
 		omxAlgebraPreeval(alg, kid);
 		childList.push_back(kid);
-		//if (OMX_DEBUG) mxLog("Protect depth at line %d: %d", __LINE__, mpi.getDepth());
 	}
 
 	if (OMX_DEBUG) mxLog("FitContext::createChildren: done creating %d omxState", Global->numThreads);
