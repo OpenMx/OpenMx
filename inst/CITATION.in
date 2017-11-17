@@ -46,6 +46,21 @@ citEntry(entry="article",
 	     "(2015). Modular open-source software for Item Factor Analysis.",
 	     "Educational and Psychological Measurement, 75(3), 458-474"))
 
+citEntry(entry="article",
+	title="State Space Modeling in an Open Source, Modular, Structural Equation Modeling Environment",
+	author=c(person(c("Michael", "D."), "Hunter")),
+	journal="Structural Equation Modeling",
+	year="in press",
+	volume="",
+	number="",
+	pages="1-18",
+	doi="10.1080/10705511.2017.1369354",
+	textVersion=paste("Hunter, M. D.",
+		"(in press). State space modeling in an open source, modular,",
+		"structural equation modeling environment.",
+		"Structural Equation Modeling, 1-18. DOI: 10.1080/10705511.2017.1369354")
+)
+
 year <- @YEAR@
 revision <- "@VERSION@"
 authors <- @AUTHORS@
