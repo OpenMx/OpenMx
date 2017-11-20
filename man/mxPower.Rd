@@ -11,7 +11,10 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
                     grid=NULL,
-		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE)
+                    statistic=c('LRT','AIC','BIC'),
+		    OK=mxOption(trueModel, "Status OK"),
+		checkHess=FALSE,
+		silent=!interactive())
 }
 \arguments{
   \item{trueModel}{The true generating model for the data.}
@@ -32,14 +35,17 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     (\sQuote{ncp}).}
   \item{grid}{A vector of locations at which to evaluate the power. If
     not provided, a reasonable default will be chosen.}
+  \item{statistic}{Which test to use to compare models.}
   \item{OK}{The set of status code that are considered successful}
-  \item{checkHess}{Whether to approximate the Hessian in each replication}
+  \item{checkHess}{Whether to approximate the Hessian in each
+    replication}
+  \item{silent}{Whether to output a progress indicator.}
 }
 \details{
 
   Power is the chance of obtaining a significant difference when there
-  is a significant difference (1 - false negative rate). In OpenMx,
-  power is estimated using the likelihood ratio test. There are two
+  is a significant difference (1 - false negative rate).
+  Power uses the likelihood ratio test by default. There are two
   methods available to produce a power curve. The default,
   \code{method=empirical}, works for any model where the likelihood
   ratio test works. For example, definition variables and missing data
@@ -60,6 +66,23 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   \code{method=ncp}. Unlike \code{method=empirical}, \code{method=ncp}
   does not use the \code{gdFun} argument and works with models that
   only have summary statistics.
+
+  When \code{method=ncp}, both \sQuote{trueModel} and
+  \sQuote{falseModel} must already be run and converged.
+  In contrast, when \code{method=empirical}, \sQuote{trueModel}
+  need not be run or even contain data. On each replication,
+  data are generated from \sQuote{trueModel} at the given parameter
+  vector. Both \sQuote{trueModel} and \sQuote{falseModel} are
+  fit against these data.
+
+  When \code{statistic='LRT'} then the models must be nested and
+  \code{sig.level} is used to determine whether the test is rejected.
+  For \sQuote{AIC} and \sQuote{BIC}, the test is regarded as rejected
+  when the \sQuote{trueModel} obtains a lower score than the
+  \sQuote{falseModel}. In contrast to \code{statistic='LRT'}, there is
+  no nesting requirement. For example, \sQuote{AIC} can be used to
+  compare a \sQuote{trueModel} against its corresponding saturated
+  model.
 
 % discuss more than 1 parameter difference? (like an omnibus test)
 
@@ -142,7 +165,7 @@ size for planned missing designs. \emph{International Journal of
 }
 
 \seealso{
-\code{\link{mxCompare}}
+\code{\link{mxCompare}}, \code{\link{mxRefModels}}
 }
 
 \examples{
