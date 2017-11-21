@@ -2,8 +2,7 @@
 \alias{mxPower}
 \title{Power curve}
 \description{
-  Determine the power curve between true and false models using
- the likelihood ratio test
+  Determine the power curve between true and false models
 }
 \usage{
 mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
@@ -56,8 +55,8 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   advantage of the fact that the non-null distribution of likelihood
   ratio test statistic is often \eqn{\chi^2(df_1 - df_0, N \lambda),
   chi^2(df1 - df0, N lambda)}. That is, the non-centrality parameter,
-  \eqn{\lambda,lambda}, can be assumed, on average, to be the same
-  contribution per row. This permits essentially instant power curves
+  \eqn{\lambda,lambda}, can be assumed, on average, to
+  contribute equally per row. This permits essentially instant power curves
   without the burden of tedious simulation. However, definition
   variables, missing data, or unconventional models (e.g., mixture
   distributions) can violate this assumption. Therefore, we recommend
@@ -65,10 +64,11 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   \code{method=ncp} on the model of interest before relying on
   \code{method=ncp}. Unlike \code{method=empirical}, \code{method=ncp}
   does not use the \code{gdFun} argument and works with models that
-  only have summary statistics.
+  only have summary statistics for data.
 
-  When \code{method=ncp}, both \sQuote{trueModel} and
-  \sQuote{falseModel} must already be run and converged.
+  When \code{method=ncp}, parameters of both \sQuote{trueModel} and
+  \sQuote{falseModel} are assumed to be converged to
+  their desired values.
   In contrast, when \code{method=empirical}, \sQuote{trueModel}
   need not be run or even contain data. On each replication,
   data are generated from \sQuote{trueModel} at the given parameter
@@ -92,13 +92,13 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   a time.  The way the simulation works is that a candidate value for
   the parameter of interest is loaded into the \code{trueModel}, data
   are generated, then both the true and false model are fit to the data to
-  obtain the difference in fit. This difference is fed to the likelihood
-  ratio test. The candidate parameter is initially set
+  obtain the difference in fit. The candidate parameter is initially set
   to halfway between the \code{trueModel} and \code{falseModel}.  The
   power curve will reflect the smallest distance, relative to the false
-  model, required to have a good chance to reject the false model.
+  model, required to have a good chance to reject the false model
+  according to the chosen statistic.
 
-  The naive Monte Carlo approach to estimate power can only examine
+  A naive Monte Carlo estimate of power examines
   a single candidate sample size at a time.
   To obtain the whole curve, and simultaneously,
   to reduce the number of simulation probes,
@@ -118,7 +118,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   power=0.5) because this is the easiest point to find and is a
   necessary prerequisite to estimate the variance (a.k.a. slope).
   Therefore, we probe at the median of previous probes stepping by 10\%
-  in the direction of the model's intercept. Eventually, after enough
+  in the direction of the model's predicted intercept. Eventually, after enough
   probes, we reach stage 3 where the \emph{p}-value for the slope is
   less than 0.25. At stage 3, our goal is to nail down the interesting
   part of the power curve. Therefore, we cycle serially through probes
@@ -134,11 +134,11 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   \code{previousRun} argument.
 
   Note that the default \code{grid} is chosen to exhibit the interesting
-  part of the power curve (from 0.25 to 0.97 for \code{sig.level} of
-  0.05). Especially for \code{method=ncp}, this curve is practically
+  part of the power curve (from 0.25 to 0.97).
+  Especially for \code{method=ncp}, this curve is practically
   identical for any pair of models (but located at a different range of
   sample sizes). You should select your own \code{grid} points if you
-  wish to compare power curves from more than one power analysis.
+  wish to align power curves from more than one power analysis.
 
 }
 
@@ -146,7 +146,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   Returns a data.frame with one row for each \sQuote{grid} point. The
   first column is either the sample size \sQuote{N} or the parameter
   label. The second column is the power. The next two columns provide a
-  2 SE confidence interval for the power as estimated by the binomial
+  +/-2 SE confidence interval for the power as estimated by the binomial
   logit linear model.
 
   When \code{method=empirical} then the \sQuote{probes} attribute

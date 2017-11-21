@@ -779,7 +779,9 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
           warning("previousRun references a different kind of search (ignored)")
       } else if (!is.null(n) && prevArgs$n != n) {
           warning("previousRun searched a different sample size (ignored)")
-      } else if (prevArgs$sig.level != sig.level) {
+      } else if (prevArgs$statistic != statistic) {
+          warning("previousRun used a different statistic (ignored)")
+      } else if (statistic == 'LRT' && prevArgs$sig.level != sig.level) {
           warning("previousRun used a different sig.level (ignored)")
       } else if (is.null(oldProbes)) {
         warning("previousRun did not contain old probes (ignored)")
@@ -882,7 +884,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   out$lower <- plogis(pr$fit - 2*pr$se.fit)
   out$upper <- plogis(pr$fit + 2*pr$se.fit)
   attr(out, "probes") <- result
-  attr(out, "arguments") <- list(n=n, sig.level=sig.level)
+  attr(out, "arguments") <- list(n=n, sig.level=sig.level, statistic=statistic)
   out$x <- out$x + nullInterestValue
   colnames(out)[1] <- xLabel
   out
