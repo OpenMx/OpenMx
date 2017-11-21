@@ -60,6 +60,6 @@ got <- mxPower(modA2, ceFit2, previousRun = got)
 
 got2 <- mxPower(modA2, ceFit2, method = "ncp")
 
-omxCheckCloseEnough(c(pmin(got2[,'p'] - got[,'pmin'], 0),
-                      pmin(got[,'pmax'] - got2[,'p'], 0)),
+omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
+                      pmin(got[,'upper'] - got2[,'power'], 0)),
                     rep(0,40), .01)

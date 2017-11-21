@@ -21,10 +21,8 @@ struct omxRFitFunction : omxFitFunction {
 
 	SEXP fitfun;
 	SEXP model;
-	PROTECT_INDEX modelIndex;
 	SEXP flatModel;
 	SEXP state;
-	PROTECT_INDEX stateIndex;
 
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);

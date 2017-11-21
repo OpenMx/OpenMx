@@ -26,14 +26,13 @@ void omxRFitFunction::compute(int want, FitContext *)
 
 	omxRFitFunction* rFitFunction = this;
 
-	SEXP theCall, theReturn;
+	SEXP theCall;
 	ScopedProtect p2(theCall, Rf_allocVector(LANGSXP, 3));
 	SETCAR(theCall, rFitFunction->fitfun);
 	SETCADR(theCall, rFitFunction->model);
 	SETCADDR(theCall, rFitFunction->state);
 
-	{
-		ScopedProtect p1(theReturn, Rf_eval(theCall, R_GlobalEnv));
+	ProtectedSEXP theReturn(Rf_eval(theCall, R_GlobalEnv));
 
 	if (LENGTH(theReturn) < 1) {
 		// seems impossible, but report it if it happens
@@ -42,10 +41,10 @@ void omxRFitFunction::compute(int want, FitContext *)
 		oo->matrix->data[0] = Rf_asReal(theReturn);
 	} else if (LENGTH(theReturn) == 2) {
 		oo->matrix->data[0] = Rf_asReal(VECTOR_ELT(theReturn, 0));
-		R_Reprotect(rFitFunction->state = VECTOR_ELT(theReturn, 1), rFitFunction->stateIndex);
+		rFitFunction->state = VECTOR_ELT(theReturn, 1);
+		Rf_setAttrib(rObj, Rf_install("state"), rFitFunction->state); //protect it
 	} else if (LENGTH(theReturn) > 2) {
 		omxRaiseErrorf("FitFunction returned more than 2 arguments");
-	}
 	}
 }
 
@@ -60,16 +59,11 @@ void omxRFitFunction::init()
 	omxRFitFunction *newObj = this;
 	
 	
-	{
-		SEXP newptr;
-		ScopedProtect p1(newptr, R_do_slot(rObj, Rf_install("units")));
-		setUnitsFromName(CHAR(STRING_ELT(newptr, 0)));
-	}
+	ProtectedSEXP Runit(R_do_slot(rObj, Rf_install("units")));
+	setUnitsFromName(CHAR(STRING_ELT(Runit, 0)));
 
-	Rf_protect(newObj->fitfun = R_do_slot(rObj, Rf_install("fitfun")));
-	R_ProtectWithIndex(newObj->model = R_do_slot(rObj, Rf_install("model")), &(newObj->modelIndex));
-	Rf_protect(newObj->flatModel = R_do_slot(rObj, Rf_install("flatModel")));
-	R_ProtectWithIndex(newObj->state = R_do_slot(rObj, Rf_install("state")), &(newObj->stateIndex));
+	newObj->fitfun = R_do_slot(rObj, Rf_install("fitfun"));
+	newObj->model = R_do_slot(rObj, Rf_install("model"));
+	newObj->flatModel = R_do_slot(rObj, Rf_install("flatModel"));
+	newObj->state = R_do_slot(rObj, Rf_install("state"));
 }
-
-

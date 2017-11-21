@@ -641,14 +641,16 @@ mxParametricBootstrap <- function(nullModel, labels,
   ret
 }
 
-meanSampleSize <- function(model) {
-    mean(sapply(extractData(model), function(mxd) {
+meanSampleSize <- function(model, default=100L) {
+    sizes <- sapply(extractData(model), function(mxd) {
         if (mxd@type == 'raw') {
             nrow(mxd@observed)
         } else {
             mxd@numObs
         }
-    }))
+    })
+    if (length(sizes) == 0) sizes <- default
+    mean(sizes)
 }
 
 fitPowerModel <- function(rx, result, isN) {
@@ -657,16 +659,17 @@ fitPowerModel <- function(rx, result, isN) {
   algRle <- rle(result$alg)
   if (algRle$values[1] == 'init') {
     # skip outliers from early probe sequence
-    newFirst <- max(1, algRle$lengths[1] - 1L)
+    newFirst <- max(1, algRle$lengths[1] - 3L)
     result <- result[newFirst:nrow(result),]
   }
   m1 <- suppressWarnings(glm(reject ~ x, data = result, family = binomial))
-  if (summary(m1)$coefficients['x','Pr(>|z|)'] < .25) {
+  if (all(!is.na(coef(m1))) && summary(m1)$coefficients['x','Pr(>|z|)'] < .25) {
     curX <- as.numeric(((rx %% 3) - coef(m1)[1]) / coef(m1)[2])
     alg <- '2p'
   } else {
     m2 <- glm(reject ~ 1, data = result, family = binomial)
-    curX <- median(result$x) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
+    from <- max(nrow(result)-9, 1)
+    curX <- mean(result$x[from:nrow(result)]) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
     alg <- '1p'
   }
   if (isN) {
@@ -679,37 +682,57 @@ fitPowerModel <- function(rx, result, isN) {
 }
 
 mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=250L, previousRun=NULL,
+                    probes=300L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
                     grid=NULL,
-		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE)
+                    statistic=c('LRT','AIC','BIC'),
+		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE,
+		    silent=!interactive())
+# add plot=TRUE? or return S3 object that responds to plot(obj) ? TODO
 {
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
         stop("mxPower does not accept values for the '...' argument")
     }
   method <- match.arg(method)
+  statistic <- match.arg(statistic)
   if (method == 'ncp') {
     if (!is.null(n)) stop(paste("method='ncp' does not work for fixed n =", n))
-    # generate data and run models if needed TODO
-    # check for def vars, missingness TODO
-    assertModelRunAndFresh(trueModel)
-    assertModelRunAndFresh(falseModel)
+    if (statistic != 'LRT') stop(paste("method='ncp' does not work for statistic =", statistic))
+    warnModelCreatedByOldVersion(trueModel)
+    warnModelCreatedByOldVersion(falseModel)
+    if (!trueModel@.wasRun || trueModel@.modifiedSinceRun) {
+	    trueModel <- mxRun(mxModel(trueModel, mxComputeOnce('fitfunction','fit')))
+    }
+    if (!falseModel@.wasRun || falseModel@.modifiedSinceRun) {
+	    falseModel <- mxRun(mxModel(falseModel, mxComputeOnce('fitfunction','fit')))
+    }
+    if (trueModel$output[['fitUnits']] != '-2lnL') {
+	    stop(paste(trueModel$name, "measured in terms of", trueModel$output[['fitUnits']],
+		       "instead of -2lnL"))
+    }
+    if (falseModel$output[['fitUnits']] != '-2lnL') {
+	    stop(paste(falseModel$name, "measured in terms of", falseModel$output[['fitUnits']],
+		       "instead of -2lnL"))
+    }
     avgNcp <- (falseModel$output$Minus2LogLikelihood -
-                 trueModel$output$Minus2LogLikelihood)/meanSampleSize(trueModel)
+	       trueModel$output$Minus2LogLikelihood)/meanSampleSize(trueModel)
     if (avgNcp < 0) stop("falseModel fit better than trueModel?")
+    if (avgNcp == 0.0) stop("falseModel and trueModel are identical?")
+    # is diffdf>1 ever a good approx? TODO
+    diffdf <- summary(falseModel)[['degreesOfFreedom']] - summary(trueModel)[['degreesOfFreedom']]
     
     if (is.null(grid)) {
       width <- 2.75/avgNcp
-      center <- 1.15*qchisq(1 - sig.level, 1)/avgNcp
+      center <- 1.15*qchisq(1 - sig.level, diffdf)/avgNcp
       grid <- seq(center-1*width,
                   center+4*width, length.out = 20)
     }
     out <- data.frame(x=grid)
-    out$p <- 1 - pchisq(qchisq(1 - sig.level, 1), 1, avgNcp * out$x)
-    out$pmin <- NA
-    out$pmax <- NA
+    out$power <- 1 - pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x)
+    out$lower <- NA
+    out$upper <- NA
     colnames(out)[1] <- 'N'
     return(out)
   }
@@ -722,10 +745,10 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   xLabel <- ''
   if (is.null(n)) {
     xLabel <- 'N'
-    message(paste("Search n:power relationship for", omxQuotes(interest)))
+    if (!silent) message(paste("Search n:power relationship for", omxQuotes(interest)))
   } else {
     xLabel <- interest
-    message(paste0("Search ",interest,":power relationship for n=", n))
+    if (!silent) message(paste0("Search ",interest,":power relationship for n=", n))
   }
 
   result <- data.frame(seed=as.integer(runif(probes, min = -2e9, max=2e9)),
@@ -733,7 +756,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 		       statusTrue=as.statusCode(NA), statusFalse=as.statusCode(NA))
   if (is.null(n)) {
     nullInterestValue <- 0
-    curX <- meanSampleSize(trueModel) # add default if no data TODO
+    curX <- meanSampleSize(trueModel)
   } else {
     origSampleSize <- meanSampleSize(trueModel)
     par <- omxGetParameters(falseModel, free=FALSE)
@@ -779,7 +802,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   if (!is.na(nextTrial)) for (rx in nextTrial:probes) {
     set.seed(result[rx,'seed'])
     info <- paste("R", rx, alg, xLabel, nullInterestValue + curX)
-    imxReportProgress(info, prevProgressLen)
+    if (!silent) imxReportProgress(info, prevProgressLen)
     prevProgressLen <- nchar(info)
     if (!is.null(n)) {
       trueModel <- omxSetParameters(trueModel, labels=interest,
@@ -805,8 +828,20 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     false1 <- loadDataIntoModel(falseModel, simData)
     false1 <- mxRun(false1, silent=TRUE, suppressWarnings = TRUE)
     
-    cmp1 <- mxCompare(true1, false1)
-    result[rx, 'reject'] <- cmp1[2,'p'] < sig.level
+    if (statistic == 'LRT') {
+	    cmp1 <- mxCompare(true1, false1)
+	    pval <- cmp1[2,'p']
+	    if (is.na(pval)) stop("falseModel fit better than trueModel?")
+	    result[rx, 'reject'] <- pval < sig.level
+    } else if (statistic == 'AIC') {
+	    rej <- summary(true1)[['informationCriteria']]['AIC:','df'] <
+		    summary(false1)[['informationCriteria']]['AIC:','df']
+	    result[rx, 'reject'] <- rej
+    } else if (statistic == 'BIC') {
+	    rej <- summary(true1)[['informationCriteria']]['BIC:','df'] <
+		    summary(false1)[['informationCriteria']]['BIC:','df']
+	    result[rx, 'reject'] <- rej
+    } else { stop(statistic) }
     result[rx, 'x'] <- curX
     result[rx, 'alg'] <- alg
     result[rx, 'mseTrue'] <- sum((coef(true1) - coef(trueModel))^2)
@@ -815,8 +850,8 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 
     okResult <- result[result$statusTrue %in% OK & result$statusFalse %in% OK,]
     rej <- table(okResult$reject)
-    if (dim(rej) == 1) {
-      if (names(rej)[1] == "TRUE") {
+    if (dim(rej) == 1 || any(rej < 2)) {
+      if (names(sort(rej, decreasing=TRUE))[1] == "TRUE") {
         curX <- curX / 2
         if (is.null(n)) {
           curX <- round(max(curX, 10))
@@ -832,7 +867,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
       alg <- pm$alg
     }
   }
-  imxReportProgress('', prevProgressLen)
+  if (!silent) imxReportProgress('', prevProgressLen)
   if (is.null(m1)) stop("Logistic model failed to converge")
   if (is.null(grid)) {
     width <- 1/coef(m1)[2]
@@ -843,9 +878,9 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   out <- data.frame(x=grid)
 #  out$p <- plogis(out$N, center, 1/coef(m1)[2])
   pr <- predict(m1, newdata=out, type="link", se.fit=TRUE)
-  out$p <- plogis(pr$fit)
-  out$pmin <- plogis(pr$fit - 2*pr$se.fit)
-  out$pmax <- plogis(pr$fit + 2*pr$se.fit)
+  out$power <- plogis(pr$fit)
+  out$lower <- plogis(pr$fit - 2*pr$se.fit)
+  out$upper <- plogis(pr$fit + 2*pr$se.fit)
   attr(out, "probes") <- result
   attr(out, "arguments") <- list(n=n, sig.level=sig.level)
   out$x <- out$x + nullInterestValue

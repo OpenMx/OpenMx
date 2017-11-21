@@ -99,13 +99,12 @@ void FitMultigroup::init()
 
 	omxState *os = oo->matrix->currentState;
 
-	SEXP slotValue;
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
-	mg->verbose = Rf_asInteger(slotValue);
+	ProtectedSEXP Rverb(R_do_slot(rObj, Rf_install("verbose")));
+	mg->verbose = Rf_asInteger(Rverb);
 
-	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("groups")));
-	int *fits = INTEGER(slotValue);
-	for(int gx = 0; gx < Rf_length(slotValue); gx++) {
+	ProtectedSEXP Rgroups(R_do_slot(rObj, Rf_install("groups")));
+	int *fits = INTEGER(Rgroups);
+	for(int gx = 0; gx < Rf_length(Rgroups); gx++) {
 		if (isErrorRaised()) break;
 		omxMatrix *mat;
 		if (fits[gx] >= 0) {

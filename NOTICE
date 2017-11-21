@@ -1,5 +1,5 @@
 	OpenMx Statistical Modeling
-	Copyright 2007-2016 The OpenMx Project.
+	Copyright 2007-2017 The OpenMx Project.
 	http://www.openmx-project.org/
 	
 	This project was initially funded by the Interdisciplinary Program of the
@@ -14,3 +14,15 @@
 	
 	Multiprocessing and Grid-enabled features are provided by Swift (formerly
 	VDL), from the University of Chicago. (http://www.ci.uchicago.edu/swift/)
+
+	Publication for OpenMx version 2:
+	Michael C. Neale, Michael D. Hunter, Joshua N. Pritikin, Mahsa Zahery, Timothy R. Brick, Robert M.
+	Kirkpatrick, Ryne Estabrook, Timothy C. Bates, Hermine H. Maes, Steven M. Boker. (2016).
+	OpenMx 2.0: Extended structural equation and statistical modeling. Psychometrika 81(2), 535-549. 
+	DOI: 10.1007/s11336-014-9435-8
+
+	Publication for OpenMx version 1:
+	Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick,
+	Jeffrey Spies, Ryne Estabrook, Sarah Kenny, Timothy C. Bates, Paras Mehta, and John Fox. (2011).
+	OpenMx: An Open Source Extended Structural Equation Modeling Framework. 
+	Psychometrika 76(2), 306-317. DOI:10.1007/s11336-010-9200-6

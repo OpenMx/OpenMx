@@ -214,6 +214,7 @@ void FreeVarGroup::log(omxState *os)
 
 omxGlobal::omxGlobal()
 {
+	mpi = 0;
 	silent = true;
 	lastProgressReport = time(0);
 	previousReportLength = 0;

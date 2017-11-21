@@ -7,11 +7,14 @@
 }
 \usage{
 mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=250L, previousRun=NULL,
+                    probes=300L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
                     grid=NULL,
-		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE)
+                    statistic=c('LRT','AIC','BIC'),
+		    OK=mxOption(trueModel, "Status OK"),
+		checkHess=FALSE,
+		silent=!interactive())
 }
 \arguments{
   \item{trueModel}{The true generating model for the data.}
@@ -32,33 +35,99 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     (\sQuote{ncp}).}
   \item{grid}{A vector of locations at which to evaluate the power. If
     not provided, a reasonable default will be chosen.}
+  \item{statistic}{Which test to use to compare models.}
   \item{OK}{The set of status code that are considered successful}
-  \item{checkHess}{Whether to approximate the Hessian in each replication}
+  \item{checkHess}{Whether to approximate the Hessian in each
+    replication}
+  \item{silent}{Whether to output a progress indicator.}
 }
 \details{
 
-  To reduce the number of simulation probes,
-  \code{method=\sQuote{empirical}} ultimately employs a binomial family
+  Power is the chance of obtaining a significant difference when there
+  is a significant difference (1 - false negative rate).
+  Power uses the likelihood ratio test by default. There are two
+  methods available to produce a power curve. The default,
+  \code{method=empirical}, works for any model where the likelihood
+  ratio test works. For example, definition variables and missing data
+  are fine, but parameters estimated at upper or lower bounds will cause
+  problems. The \code{method=empirical} can require a lot of time
+  because the models need to be fit 100s of times. An alternate
+  approach, \code{method=ncp}, is much more efficient and takes
+  advantage of the fact that the non-null distribution of likelihood
+  ratio test statistic is often \eqn{\chi^2(df_1 - df_0, N \lambda),
+  chi^2(df1 - df0, N lambda)}. That is, the non-centrality parameter,
+  \eqn{\lambda,lambda}, can be assumed, on average, to be the same
+  contribution per row. This permits essentially instant power curves
+  without the burden of tedious simulation. However, definition
+  variables, missing data, or unconventional models (e.g., mixture
+  distributions) can violate this assumption. Therefore, we recommend
+  verifying that the output from \code{method=empirical} roughly matches
+  \code{method=ncp} on the model of interest before relying on
+  \code{method=ncp}. Unlike \code{method=empirical}, \code{method=ncp}
+  does not use the \code{gdFun} argument and works with models that
+  only have summary statistics.
+
+  When \code{method=ncp}, both \sQuote{trueModel} and
+  \sQuote{falseModel} must already be run and converged.
+  In contrast, when \code{method=empirical}, \sQuote{trueModel}
+  need not be run or even contain data. On each replication,
+  data are generated from \sQuote{trueModel} at the given parameter
+  vector. Both \sQuote{trueModel} and \sQuote{falseModel} are
+  fit against these data.
+
+  When \code{statistic='LRT'} then the models must be nested and
+  \code{sig.level} is used to determine whether the test is rejected.
+  For \sQuote{AIC} and \sQuote{BIC}, the test is regarded as rejected
+  when the \sQuote{trueModel} obtains a lower score than the
+  \sQuote{falseModel}. In contrast to \code{statistic='LRT'}, there is
+  no nesting requirement. For example, \sQuote{AIC} can be used to
+  compare a \sQuote{trueModel} against its corresponding saturated
+  model.
+
+% discuss more than 1 parameter difference? (like an omnibus test)
+
+  When \sQuote{n} is fixed then \code{mxPower} helps answer the
+  question, \dQuote{how small of a true effect is likely to be detected
+  at a particular sample size?} Only one parameter can be considered at
+  a time.  The way the simulation works is that a candidate value for
+  the parameter of interest is loaded into the \code{trueModel}, data
+  are generated, then both the true and false model are fit to the data to
+  obtain the difference in fit. This difference is fed to the likelihood
+  ratio test. The candidate parameter is initially set
+  to halfway between the \code{trueModel} and \code{falseModel}.  The
+  power curve will reflect the smallest distance, relative to the false
+  model, required to have a good chance to reject the false model.
+
+  The naive Monte Carlo approach to estimate power can only examine
+  a single candidate sample size at a time.
+  To obtain the whole curve, and simultaneously,
+  to reduce the number of simulation probes,
+  \code{method=empirical} employs a binomial family
   generalized linear model with a logit link to predict the power curve
-  across the sample sizes of interest. The algorithm works in 3
+  across the sample sizes of interest (similar to Schoemann et al,
+  2014). The algorithm works in 3
   stages. Without loss of generality, our description will assume a
   sample size to power relationship, but a similar process is used for
   the parameter value to power relationship. In the first stage, a crude
   binary search is used to find the range reasonable values for N. This
-  stage is complete once we have at least one rejection and at least one
-  non-rejection. At this point, the binomial intercept and slope model
+  stage is complete once we have at least two rejections and at least two
+  non-rejections. At this point, the binomial intercept and slope model
   is fit to these data. If the \emph{p}-value for the slope is less than
   0.25 then we jump to stage 3. Otherwise, we fit an intercept only
   binomial model. Our goal is to nail down the intercept (where
   power=0.5) because this is the easiest point to find and is a
-  necessary prerequisite to estimate the variance (or slope).
+  necessary prerequisite to estimate the variance (a.k.a. slope).
   Therefore, we probe at the median of previous probes stepping by 10\%
   in the direction of the model's intercept. Eventually, after enough
   probes, we reach stage 3 where the \emph{p}-value for the slope is
   less than 0.25. At stage 3, our goal is to nail down the interesting
   part of the power curve. Therefore, we cycle serially through probes
   at 0, 1, and 2 logits from the intercept. This process is continued
-  for the permitted number of \code{probes}. There is no other
+  for the permitted number of \code{probes}.
+  Occasionally, the \emph{p}-value for the slope in the stage 3 model
+  grows larger than 0.25. In this case, we switch back to stage 2
+  (intercept only) until the stage 3 model start working again.
+  There is no other
   convergence criteria. Accuracy continues to improves until the probe
   limit is reached. After \code{mxPower} returns, additional probes can
   be run by passing the previous result back into the function as the
@@ -66,10 +135,10 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 
   Note that the default \code{grid} is chosen to exhibit the interesting
   part of the power curve (from 0.25 to 0.97 for \code{sig.level} of
-  0.05). Especially for \code{method=\sQuote{ncp}}, this curve is practically
+  0.05). Especially for \code{method=ncp}, this curve is practically
   identical for any pair of models (but located at a different range of
   sample sizes). You should select your own \code{grid} points if you
-  wish to compare power curves from more than one power analyses.
+  wish to compare power curves from more than one power analysis.
 
 }
 
@@ -80,7 +149,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   2 SE confidence interval for the power as estimated by the binomial
   logit linear model.
 
-  When \code{method=\sQuote{empirical}} then the \sQuote{probes} attribute
+  When \code{method=empirical} then the \sQuote{probes} attribute
   contains a data.frame record of the activity of the power estimation
   process.
 
@@ -93,6 +162,10 @@ W. (2014). Using Monte Carlo simulations to determine power and sample
 size for planned missing designs. \emph{International Journal of
   Behavioral Development, 38}(5), 471-479.
 
+}
+
+\seealso{
+\code{\link{mxCompare}}, \code{\link{mxRefModels}}
 }
 
 \examples{

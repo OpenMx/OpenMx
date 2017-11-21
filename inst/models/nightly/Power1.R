@@ -19,6 +19,11 @@ factorModelFit <- mxRun(factorModel)
 indModel <- factorModelFit
 indModel$A$values['x1','G'] <- 0.3
 indModel$A$free['x1','G'] <- FALSE
+
+got4 <- mxPower(factorModelFit, indModel, method = 'ncp')
+omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'],
+                    34.67, 1)
+
 indModel <- mxRun(indModel)
 
 set.seed(1)
@@ -31,9 +36,18 @@ got <- mxPower(factorModelFit, indModel, previousRun = got,
 got2 <- mxPower(factorModelFit, indModel, method='ncp',
                 grid=seq(15,160,length.out = 20))
 
-omxCheckCloseEnough(c(pmin(got2[,'p'] - got[,'pmin'], 0),
-                      pmin(got[,'pmax'] - got2[,'p'], 0)),
+omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
+                      pmin(got[,'upper'] - got2[,'power'], 0)),
                     rep(0,40), .05)
+
+# --------------------
+
+refs <- mxRefModels(factorModelFit, run = TRUE)
+mxCompare(refs[['Saturated']], factorModelFit)
+got3 <- mxPower(factorModelFit, refs[['Saturated']],
+                statistic = 'AIC', probes = 300)
+omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'],
+                    16.45, 3)
 
 # --------------------
 
@@ -44,5 +58,5 @@ indModel <- mxRun(indModel)
 
 got <- mxPower(factorModelFit, indModel, probes = 50, n=100)
 got <- mxPower(factorModelFit, indModel, n=100, previousRun = got)
-omxCheckCloseEnough(got[findInterval(.8, got$p), 'loading1'],
+omxCheckCloseEnough(got[findInterval(.8, got$power), 'loading1'],
                     .1285, .005)

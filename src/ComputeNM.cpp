@@ -314,7 +314,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 			if(verbose){mxLog("l1p iteration %d",k);}
 			if(k>0){
 				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
-				if(nmoc.statuscode==3){break;}
+				if(nmoc.statuscode==10){break;}
 				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
 					if(verbose){mxLog("l1p solution found");}
 					break;
@@ -353,7 +353,6 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.rho = nmoc.rho;
 		nmoc2.addPenalty = nmoc.addPenalty;
 		nmoc2.countConstraintsAndSetupBounds();
-		//TODO: ideally, the simplex for the validation should be *centered* on the previous best vertex
 		nmoc2.invokeNelderMead();
 		
 		if(nmoc2.bestfit < nmoc.bestfit && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
@@ -393,6 +392,9 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		break;
 	case 4:
 		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	case 10:
+		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		break;
 	}
 	
@@ -1393,7 +1395,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	initializeSimplex(est, iniSimplexEdge, false);
 	if( (vertexInfeas.sum()==n+1 && NMobj->eqConstraintMthd != 4) || (fvals.array()==bignum).all()){
 		omxRaiseErrorf("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
-		statuscode = 3;
+		statuscode = 10;
 		return;
 	}
 	fullSort();
@@ -1624,6 +1626,10 @@ void NelderMeadOptimizerContext::finalize()
 	NMobj->bestfitOut = bestfit;
 	copyParamsFromOptimizer(est,fc);
 	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
+	/*Doing this here ensures (1) that the fit has just been freshly evaluated at the solution, (2) that this check is done as part of the
+	MxComputeNelderMead step (necessary for bootstrapping), and (3) that Nelder-Mead reports status code 3 for solutions that violate 
+	MxConstraints, and status code 10 for	all other kinds of infeasible solutions:*/
+	if(!fc->insideFeasibleSet()){fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);}
 	
 	omxState *st = fc->state;
 	int ineqType = omxConstraint::LESS_THAN;

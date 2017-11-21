@@ -285,11 +285,15 @@ void omxCompleteFitFunction(omxMatrix *om)
 	omxFitFunction *obj = om->fitFunction;
 	if (obj->initialized) return;
 
+	int depth = Global->mpi->getDepth();
+
 	if (obj->expectation) {
 		omxCompleteExpectation(obj->expectation);
 	}
 
 	obj = obj->initMorph();
+
+	if (Global->mpi->getDepth() != depth) Rf_error("%s improperly used the R protect stack", om->name());
 
 	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;
