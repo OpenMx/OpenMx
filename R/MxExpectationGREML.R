@@ -93,21 +93,73 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
           })
 
 setMethod("genericGetExpected", signature("MxExpectationGREML"),
-	  function(.Object, model, what, defvar.row=1) {
-	  	ret <- list()
-	  	if ('covariance' %in% what) {
-			  covname <- .Object@V
-			  cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
-			  ret[['covariance']] <- cov
-		  }
-		  if ('means' %in% what) {
-			  ret[['means']] <- NA
-		  }
-		  if ('thresholds' %in% what) {
-			  ret[['thresholds']] <- NA
-		  }
-		  ret
-	  })
+					function(.Object, model, what, defvar.row=1) {
+						ret <- list()
+						
+						if ( ('covariance' %in% what) || ('means' %in% what) ) {
+							mxDataObject <- model@data
+							if(!length(mxDataObject)){
+								msg <- paste("the GREML expectation function",
+														 "does not have a dataset associated with it in model",
+														 omxQuotes(model@name))
+								stop(msg, call. = FALSE)
+							}
+							checkNumericData(mxDataObject)
+							if (mxDataObject@type != "raw") {
+								stop("GREML expectation only compatible with raw data",call.=F)
+							}
+							if(sum(apply(mxDataObject@observed, 2, is.factor))>0){
+								stop("GREML expectation not compatible with ordinal data", call.=F)
+							}
+							if(!length(colnames(mxDataObject@observed))){
+								msg <- paste("dataset does not have column names in model",omxQuotes(modelname))
+								stop(msg, call. = FALSE)
+							}
+							if(.Object@dataset.is.yX){
+								casesToDrop <- .Object@casesToDrop
+								y <- as.matrix(model@data@observed[,1])
+								X <- as.matrix(model@data@observed[,-1])
+							}
+							else{
+								mm <- mxGREMLDataHandler(
+									data=mxDataObject@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
+									addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
+									staggerZeroes=.Object@staggerZeroes)
+								casesToDrop <- mm$casesToDrop
+								y <- as.matrix(mm$yX[,1])
+								X <- as.matrix(mm$yX[,-1])
+								rm(mm)
+							}
+							covname <- .Object@V
+							V <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
+							if(length(casesToDrop)){V <- V[-casesToDrop, -casesToDrop]}
+						}
+						
+						if('covariance' %in% what){
+							ret[['covariance']] <- V
+						}
+						
+						if ('means' %in% what) {
+							Vinv <- try(chol2inv(chol(V)))
+							rm(V)
+							if(is(Vinv,"try-error")){
+								ret[['means']] <- NA
+								rm(y,X)
+							}
+							else{
+								C <- chol(Vinv)
+								rm(Vinv)
+								ret[['means']] <- X %*% matrix(qr.solve(C%*%X,C%*%y),ncol=1)
+								rm(C,y,X)
+							}
+						}
+						
+						if ('thresholds' %in% what) {
+							ret[['thresholds']] <- NA
+						}
+						
+						return(ret)
+					})
 
 mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
                                staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0)){
