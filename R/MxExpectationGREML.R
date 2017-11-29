@@ -112,7 +112,7 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 								stop("GREML expectation not compatible with ordinal data", call.=F)
 							}
 							if(!length(colnames(mxDataObject@observed))){
-								msg <- paste("dataset does not have column names in model",omxQuotes(modelname))
+								msg <- paste("dataset does not have column names in model",omxQuotes(model@name))
 								stop(msg, call. = FALSE)
 							}
 							if(.Object@dataset.is.yX){
