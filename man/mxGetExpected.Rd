@@ -32,7 +32,7 @@ imxGetExpectationComponent(model, component, defvar.row=1, subname=model$name)
 
 \arguments{
    \item{model}{MxModel object from which to extract the expectation component.}
-   \item{component}{A character. The name of the component to extract.}
+   \item{component}{Character vector. The name(s) of the component(s) to extract.  Recognized names are \dQuote{covariance}, \dQuote{means}, and \dQuote{thresholds}.}
    \item{defvar.row}{A row index. Which row to load for definition variables.}
    \item{subname}{Name of the submodel to evaluate.}
 }
