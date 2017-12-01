@@ -1,11 +1,11 @@
-\name{mxPower}
-\alias{mxPower}
+\name{mxPowerSearch}
+\alias{mxPowerSearch}
 \title{Power curve}
 \description{
   Determine the power curve between true and false models
 }
 \usage{
-mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
+mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                     probes=300L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
@@ -26,7 +26,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   \item{...}{Not used.}
   \item{probes}{The number of probes to use when
     method=\sQuote{empirical}.}
-  \item{previousRun}{Output from a prior run of \sQuote{mxPower} to extend.}
+  \item{previousRun}{Output from a prior run of \sQuote{mxPowerSearch} to extend.}
   \item{gdFun}{The function invoked to generate new data for each Monte
     Carlo probe.}
   \item{method}{To estimate power using the Monte Carlo method
@@ -86,7 +86,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 
 % discuss more than 1 parameter difference? (like an omnibus test)
 
-  When \sQuote{n} is fixed then \code{mxPower} helps answer the
+  When \sQuote{n} is fixed then \code{mxPowerSearch} helps answer the
   question, \dQuote{how small of a true effect is likely to be detected
   at a particular sample size?} Only one parameter can be considered at
   a time.  The way the simulation works is that a candidate value for
@@ -129,7 +129,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   (intercept only) until the stage 3 model start working again.
   There is no other
   convergence criteria. Accuracy continues to improves until the probe
-  limit is reached. After \code{mxPower} returns, additional probes can
+  limit is reached. After \code{mxPowerSearch} returns, additional probes can
   be run by passing the previous result back into the function as the
   \code{previousRun} argument.
 
@@ -191,5 +191,5 @@ indModel$A$values['x1','G'] <- 0.3
 indModel$A$free['x1','G'] <- FALSE
 indModel <- mxRun(indModel)
 
-mxPower(factorModelFit, indModel, method='ncp')
+mxPowerSearch(factorModelFit, indModel, method='ncp')
 }

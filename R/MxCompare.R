@@ -681,7 +681,7 @@ fitPowerModel <- function(rx, result, isN) {
   list(curX=curX, m1=m1, alg=alg)
 }
 
-mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
+mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                     probes=300L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
@@ -693,7 +693,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 {
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
-        stop("mxPower does not accept values for the '...' argument")
+        stop("mxPowerSearch does not accept values for the '...' argument")
     }
   method <- match.arg(method)
   statistic <- match.arg(statistic)
