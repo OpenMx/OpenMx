@@ -27,7 +27,8 @@
 
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
-    fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod = "cumulants")
+    fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
+   "cumulants", silent=!interactive())
 }
 
 \arguments{
@@ -41,7 +42,10 @@
    calculation.}
  \item{suppressWarnings}{Logical that determines whether to suppress
    diagnostic warnings. These warnings are likely only helpful to developers.}
- \item{allContinuousMethod}{A character string 'cumulants' (default) or 'marginals'. See Details.}
+ \item{allContinuousMethod}{A character string 'cumulants' (default) or
+   'marginals'. See Details.}
+\item{...}{Not used.  Forces remaining arguments to be specified by name.}
+ \item{silent}{Whether to report progress}
 }
 
 \details{
