@@ -409,7 +409,7 @@ omxGetBootstrapReplications <- function(model) {
 	   pct <- round(100*sum(mask) / length(mask))
 	   warning(paste0("Only ",pct,"% of the bootstrap replications ",
 			  "converged acceptably. Accuracy is much less than the ", nrow(raw),
-			  " replications requested"), call.=FALSE)
+			  " replications requested. Examine table(model$compute$output$raw$statusCode)"), call.=FALSE)
    }
    bootData
 }
