@@ -681,7 +681,7 @@ fitPowerModel <- function(rx, result, isN) {
   list(curX=curX, m1=m1, alg=alg)
 }
 
-mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
+mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                     probes=300L, previousRun=NULL,
                     gdFun=mxGenerateData,
                     method=c('empirical', 'ncp'),
@@ -693,7 +693,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 {
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
-        stop("mxPower does not accept values for the '...' argument")
+        stop("mxPowerSearch does not accept values for the '...' argument")
     }
   method <- match.arg(method)
   statistic <- match.arg(statistic)
@@ -779,7 +779,9 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
           warning("previousRun references a different kind of search (ignored)")
       } else if (!is.null(n) && prevArgs$n != n) {
           warning("previousRun searched a different sample size (ignored)")
-      } else if (prevArgs$sig.level != sig.level) {
+      } else if (prevArgs$statistic != statistic) {
+          warning("previousRun used a different statistic (ignored)")
+      } else if (statistic == 'LRT' && prevArgs$sig.level != sig.level) {
           warning("previousRun used a different sig.level (ignored)")
       } else if (is.null(oldProbes)) {
         warning("previousRun did not contain old probes (ignored)")
@@ -882,7 +884,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   out$lower <- plogis(pr$fit - 2*pr$se.fit)
   out$upper <- plogis(pr$fit + 2*pr$se.fit)
   attr(out, "probes") <- result
-  attr(out, "arguments") <- list(n=n, sig.level=sig.level)
+  attr(out, "arguments") <- list(n=n, sig.level=sig.level, statistic=statistic)
   out$x <- out$x + nullInterestValue
   colnames(out)[1] <- xLabel
   out

@@ -55,10 +55,10 @@ modA2 <- acePow2(add = .33, com = .3, Nmz = 1000, Ndz = 1000)
 ceFit2 <- omxSetParameters(modA2, labels = "A11", free = F, values = 0)
 ceFit2 <- mxRun(ceFit2)
 
-got <- mxPower(modA2, ceFit2, probes = 50)
-got <- mxPower(modA2, ceFit2, previousRun = got)
+got <- mxPowerSearch(modA2, ceFit2, probes = 50)
+got <- mxPowerSearch(modA2, ceFit2, previousRun = got)
 
-got2 <- mxPower(modA2, ceFit2, method = "ncp")
+got2 <- mxPowerSearch(modA2, ceFit2, method = "ncp")
 
 omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
                       pmin(got[,'upper'] - got2[,'power'], 0)),
