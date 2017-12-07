@@ -405,7 +405,11 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 }
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
-		      suppressWarnings = TRUE, allContinuousMethod="cumulants"){
+		      suppressWarnings = TRUE, allContinuousMethod="cumulants", ..., silent=!interactive()) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxDataWLS does not accept values for the '...' argument")
+	}
 	debug <- FALSE
 	# version 0.2
 	#
@@ -449,11 +453,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		ntvar - nvar, "continuous and", nvar, "ordinal variables ...")
 	msgLen <- nchar(msg)
 	#message(msg)
-	imxReportProgress(msg, 0)
+	if (!silent) imxReportProgress(msg, 0)
 	
 	# if no ordinal variables, use continuous-only helper
 	if(nvar == 0 && tolower(allContinuousMethod) %in% c("cumulant", "cumulants")){
-		imxReportProgress("", msgLen)
+		if (!silent) imxReportProgress("", msgLen)
 		if (any(is.na(data))) {
 			stop(paste("All continuous data with missingness cannot be",
 				   "handled in the WLS framework.",
@@ -711,7 +715,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		retVal@acov <- xls
 		}
 	if (debug){return(list(fullJac, fullHess))}
-	imxReportProgress("", msgLen)
+	if (!silent) imxReportProgress("", msgLen)
 	return(retVal)
 	}
 
