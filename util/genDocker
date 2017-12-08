@@ -18,7 +18,7 @@ EOF
   ;
 
 sub INSTALL {
-    my ($branch) = @_;
+    my ($branch, $Rname) = @_;
 <<"EOF"
 MAINTAINER "Joshua N. Pritikin" jpritikin\@pobox.com
 
@@ -32,8 +32,8 @@ WORKDIR /opt/github.org/
 
 RUN git clone -b $branch https://github.com/OpenMx/OpenMx.git && \\
     cd OpenMx && \\
-    R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in && \\
-    make cran-install && \\
+    $Rname --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in && \\
+    make cran-install REXEC=$Rname && \\
     rm -rf /opt/github.org/
 
 WORKDIR /root
@@ -60,7 +60,7 @@ sub doBranch {
 	    my $fh = openDockerfile($flavor);
 	    print "#-------------- $flavor\n";
 	    print "FROM $From{$flavor} as $flavor\n\n";
-	    print(INSTALL($branch));
+	    print(INSTALL($branch, $flavor =~ /^dev/ ? 'RD' : 'R'));
 	    if ($flavor =~ /^dev/) {
 		print qq(ENV ASAN_OPTIONS abort_on_error=1\n\n);
 	    }
@@ -69,7 +69,7 @@ sub doBranch {
     } else {
 	my $fh = openDockerfile($branch);
 	print "FROM $From{latest}\n\n";
-	print(INSTALL($branch));
+	print(INSTALL($branch, 'R'));
 	print qq(CMD ["R"]\n\n);
     }
 }

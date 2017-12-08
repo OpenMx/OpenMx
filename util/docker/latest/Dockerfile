@@ -16,7 +16,7 @@ WORKDIR /opt/github.org/
 RUN git clone -b stable https://github.com/OpenMx/OpenMx.git && \
     cd OpenMx && \
     R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in && \
-    make cran-install && \
+    make cran-install REXEC=R && \
     rm -rf /opt/github.org/
 
 WORKDIR /root
