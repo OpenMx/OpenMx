@@ -605,8 +605,8 @@ omxCheckCloseEnough(modelOut[["test84b"]]$result, mxEval(omxDnbinom(D,D,-1,C,C),
 omxCheckCloseEnough(modelOut[["test85a"]]$result, mxEval(omxPnbinom(D,D,-1,C,C,0),modelOut,T))
 omxCheckCloseEnough(modelOut[["test85b"]]$result, mxEval(omxPnbinom(D,D,-1,C,1,0),modelOut,T))
 omxCheckCloseEnough(modelOut[["test85c"]]$result, mxEval(omxPnbinom(D,D,-1,C,0,1),modelOut,T))
-omxCheckCloseEnough(c(modelOut[["test92"]]$result), mxEval(rowSums(C),modelOut,T))
-omxCheckCloseEnough(c(modelOut[["test93"]]$result), mxEval(colSums(C),modelOut,T))
+omxCheckCloseEnough(modelOut[["test92"]]$result, mxEval(rowSums(C),modelOut,T))
+omxCheckCloseEnough(modelOut[["test93"]]$result, mxEval(colSums(C),modelOut,T))
 
 # Test for allowable scalar multiplication in frontend and backend.
 omxCheckCloseEnough(modelOut[['test94']]$result, mxEval(test94,model,T), .001)
