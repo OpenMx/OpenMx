@@ -885,7 +885,133 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   out$upper <- plogis(pr$fit + 2*pr$se.fit)
   attr(out, "probes") <- result
   attr(out, "arguments") <- list(n=n, sig.level=sig.level, statistic=statistic)
+  attr(out, "model") <- m1
   out$x <- out$x + nullInterestValue
   colnames(out)[1] <- xLabel
   out
 }
+
+mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
+                    probes=300L, gdFun=mxGenerateData,
+                    method=c('empirical', 'ncp'),
+                    statistic=c('LRT','AIC','BIC'),
+                    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE,
+                    silent=!interactive())
+{
+  garbageArguments <- list(...)
+  if (length(garbageArguments) > 0) {
+    stop("mxPower does not accept values for the '...' argument")
+  }
+  if (length(falseModel) > 1) {
+    if (length(n) > 1 || length(power) > 1) {
+      stop(paste("You cannot pass more than 1 falseModel at the same time",
+	"that you pass more than 1 sample size or power"))
+    }
+    got <- sapply(falseModel,
+                  function(x) mxPower(trueModel, x, n, sig.level=sig.level,
+                                      power=power, probes=probes,
+                                      gdFun=gdFun, method=method, statistic=statistic, OK=OK,
+                                      checkHess=checkHess))
+    return(got)
+  }
+  if (length(n) > 1) {
+    if (length(falseModel) > 1 || length(power) > 1) {
+      stop(paste("You cannot pass more than 1 sample size at the same time",
+	"that you pass more than 1 falseModel or power"))
+    }
+    got <- sapply(n,
+                  function(x) mxPower(trueModel, falseModel, x, sig.level=sig.level,
+                                      power=power, probes=probes,
+                                      gdFun=gdFun, method=method, statistic=statistic, OK=OK,
+                                      checkHess=checkHess))
+    return(got)
+  }
+  
+  method <- match.arg(method)
+  statistic <- match.arg(statistic)
+  
+  if (is.null(power)) {
+    if (is.null(n)) stop("To estimate power, it is necessary to fix sample size")
+    if (method == 'ncp') {
+      got <- mxPowerSearch(trueModel, falseModel, sig.level=sig.level, method=method,
+                           grid=n, statistic=statistic)
+      got[,'power']
+    } else {
+      result <- data.frame(seed=as.integer(runif(probes, min = -2e9, max=2e9)),
+        reject=NA, mseTrue=NA,
+        statusTrue=as.statusCode(NA), statusFalse=as.statusCode(NA))
+      
+      trueModel <- ProcessCheckHess(trueModel, checkHess)
+      falseModel <- ProcessCheckHess(falseModel, checkHess)
+
+      prevProgressLen <- 0L
+
+      for (rx in 1:probes) {
+        set.seed(result[rx,'seed'])
+        info <- paste(rx, "/", probes)
+        if (!silent) imxReportProgress(info, prevProgressLen)
+        prevProgressLen <- nchar(info)
+        simData <- try(gdFun(trueModel, returnModel=FALSE, nrows=n))
+        if (is(simData, "try-error")) {
+          stop(paste("Cannot generate data with trueModel",
+            omxQuotes(trueModel$name)), call.=FALSE)
+        }
+        if (is(simData, "data.frame")) {
+          simData <- list(simData)
+          names(simData) <- trueModel$name
+        }
+        
+        true1  <- loadDataIntoModel(trueModel,  simData)
+        true1  <- mxRun(true1,  silent=TRUE, suppressWarnings = TRUE)
+        # complain about parameters at box constraints TODO
+        
+        topDataIndex <- match(trueModel$name, names(simData))
+        names(simData)[topDataIndex] <- falseModel$name
+        false1 <- loadDataIntoModel(falseModel, simData)
+        false1 <- mxRun(false1, silent=TRUE, suppressWarnings = TRUE)
+        if (statistic == 'LRT') {
+          cmp1 <- mxCompare(true1, false1)
+          pval <- cmp1[2,'p']
+          if (is.na(pval)) stop("falseModel fit better than trueModel?")
+          result[rx, 'reject'] <- pval < sig.level
+        } else if (statistic == 'AIC') {
+          rej <- summary(true1)[['informationCriteria']]['AIC:','df'] <
+            summary(false1)[['informationCriteria']]['AIC:','df']
+          result[rx, 'reject'] <- rej
+        } else if (statistic == 'BIC') {
+          rej <- summary(true1)[['informationCriteria']]['BIC:','df'] <
+            summary(false1)[['informationCriteria']]['BIC:','df']
+          result[rx, 'reject'] <- rej
+        } else { stop(statistic) }
+        result[rx, 'mseTrue'] <- sum((coef(true1) - coef(trueModel))^2)
+        result[rx, 'statusTrue'] <- as.statusCode(true1$output$status$code)
+        result[rx, 'statusFalse'] <- as.statusCode(false1$output$status$code)
+      }
+      if (!silent) imxReportProgress('', prevProgressLen)
+      # return detailed results somehow? TODO
+      okResult <- result[result$statusTrue %in% OK & result$statusFalse %in% OK,]
+      sum(okResult$reject) / nrow(okResult)
+    }
+  } else {
+    # length(power) > 0
+    if (is.null(n)) {
+      # search n:power relationship
+      result <- mxPowerSearch(trueModel, falseModel, probes=probes, gdFun=gdFun,
+                              method=method, statistic=statistic, OK=OK, checkHess=checkHess)
+    } else {
+      # search parameter:power relationship
+      result <- mxPowerSearch(trueModel, falseModel, n=n, probes=probes, gdFun=gdFun,
+                              method=method, statistic=statistic, OK=OK, checkHess=checkHess)
+    }
+    model <- attr(result, "model")
+    if (is.null(model)) {
+      sapply(power, function(p1) {
+        ind <- min(1 + findInterval(p1, result$power, all.inside = TRUE), nrow(result))
+        ceiling(result[ind, 'N'])
+      })
+    } else {
+      qlogis(power, -coef(model)[1]/coef(model)[2], 1/coef(model)[2])
+    }
+  }
+}
+
