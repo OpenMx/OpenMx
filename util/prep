@@ -4,6 +4,8 @@ set -o errexit
 set -o nounset
 
 flavor=$1
+for=$2
+
 case "$flavor" in
   npsol)
     echo "* NPSOL build selected"
@@ -19,12 +21,25 @@ case "$flavor" in
     ;;
 esac
 
+case "$for" in
+  install)
+    BC="no"
+    ;;
+  build)
+    BC="yes"
+    ;;
+  *)
+    echo "$0: build for '$for' unrecognized (try 'install' or 'build')"
+    exit 1
+    ;;
+esac
+
 VERSION=$(./inst/tools/findBuildNum.sh)
 AUTHORS=$(cat DESCRIPTION.in | perl -0pe 's,\n\s+, ,sg' |grep '^Author' | cut -d ':' -f 2)
 DATE=$(git log -n 1 --date=short --format=%cd)
 YEAR=$(echo $DATE | cut -d '-' -f 1)
 
-cat DESCRIPTION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$DATE/" -e "s/@LICENSE@/$LICENSE/" > DESCRIPTION
+cat DESCRIPTION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$DATE/" -e "s/@LICENSE@/$LICENSE/" -e "s/@BC@/$BC/" > DESCRIPTION
 cat inst/CITATION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@YEAR@/$YEAR/" -e "s/@AUTHORS@/$AUTHORS/" > inst/CITATION
 
 mxV=R/MxVersion.R
