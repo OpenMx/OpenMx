@@ -56,6 +56,7 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 	if (!is.vector(result)) {
 		result <- eval(result, envir = env)
 	}
+	if (!is.matrix(result)) result <- as.matrix(result)
 	if (cacheBack) {
 		return(list(result, cache))
 	} else {
