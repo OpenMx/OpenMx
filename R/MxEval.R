@@ -37,7 +37,7 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 		model <- imxPreprocessModel(model)
 		expression <- formulaEliminateObjectiveFunctions(expression)
 		namespace <- imxGenerateNamespace(model)
-		model <- imxFlattenModel(model, namespace)
+		model <- imxFlattenModel(model, namespace, FALSE)
 		expression <- qualifyNamesFormula(expression, model@name, namespace)
 	}
 	if (show) {
@@ -317,6 +317,10 @@ computeAlgebra <- function(algebra, model, labelsData, show, defvar.row, env, ca
 }
 
 evaluateMxObject <- function(objname, flatModel, labelsData, cache) {
+	if (flatModel@unsafe) {
+		# need to reimplmement generateThresholdColumns in backend
+		#stop("evaluateMxObject must be avoided in unsafe context")
+	}
 	return(eval(substitute(evaluateSymbol(x, objname, flatModel, 
 			labelsData, globalenv(), compute = TRUE, 
 			show = FALSE, outsideAlgebra = FALSE, defvar.row = 1, 

@@ -781,7 +781,7 @@ updateThresholdDimnames <- function(flatExpectation, flatModel, labelsData) {
 		"the expectation function has specified non-identical threshnames.")
 		stop(msg, call.=FALSE)      
 	}
-	if (is.null(colnames(thresholds)) && !single.na(dims)) {
+	if (!flatModel@unsafe && is.null(colnames(thresholds)) && !single.na(dims)) {
 		tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 		threshMatrix <- tuple[[1]]
 		if (ncol(threshMatrix) != length(dims)) {
@@ -800,7 +800,8 @@ updateThresholdDimnames <- function(flatExpectation, flatModel, labelsData) {
 }
 
 updateExpectationDimnames <- function(flatExpectation, flatModel,
-		labelsData, unsafe = FALSE) {
+		labelsData) {
+	unsafe <- flatModel@unsafe
 	covName <- flatExpectation@covariance
 	meansName <- flatExpectation@means
 	if (is.na(meansName)) {

@@ -84,7 +84,7 @@ runHelper <- function(model, frontendStart,
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
-	flatModel <- imxFlattenModel(model, namespace)	
+	flatModel <- imxFlattenModel(model, namespace, unsafe)
 	options <- generateOptionsList(model, length(flatModel@constraints), useOptimizer)
 	options[['intervals']] <- intervals
 
@@ -127,7 +127,7 @@ runHelper <- function(model, frontendStart,
 
 	if (model@.newobjects) {
 		namespace <- imxGenerateNamespace(model)
-		flatModel <- imxFlattenModel(model, namespace)
+		flatModel <- imxFlattenModel(model, namespace, unsafe)
 		labelsData <- imxGenerateLabels(model)
 	}
 

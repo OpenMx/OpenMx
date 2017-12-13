@@ -34,7 +34,8 @@ setClass(Class = "MxFlatModel",
 		datasets = "list",
 		constMatrices = "list",
 		freeMatrices = "list",
-		parameters = "list"
+		parameters = "list",
+		unsafe = "logical"
 	),
 	contains = "MxModel")
 	
