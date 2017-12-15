@@ -343,6 +343,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	mvadj <-  trUW^2/dstar
 	x2mv <- as.numeric(model$fitfunction$result)/mvadj
 	# N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
+	V <- as.matrix(V)
 	I <- diag(1, nrow=nrow(V))
 	x2mv <- x2mv*ifelse(all(V[V!=0] == I[V != 0]), 1/numObs, 1)
 	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, dstar=dstar))
