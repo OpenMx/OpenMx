@@ -91,6 +91,7 @@ imxFreezeModel <- function(model) {
 ##'
 ##' @param model model
 ##' @param namespace namespace
+##' @param unsafe whether to skip sanity checks
 imxFlattenModel <- function(model, namespace, unsafe=FALSE) {
 	flatModel <- new("MxFlatModel", model)
 	name <- model@name
