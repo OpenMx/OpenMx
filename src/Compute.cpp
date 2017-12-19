@@ -3098,6 +3098,12 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 		ctx.origCumSum.resize(numRows);
 		ctx.resample.resize(ctx.origCumSum.size());
 		if (ctx.origRowWeights) {
+			for (int rx=0; rx < numRows; ++rx) {
+				if (fabs(ctx.origRowWeights[rx] - trunc(ctx.origRowWeights[rx])) > 1e-6) {
+					Rf_error("%s: cannot proceed with non-integral weight %f for row %d",
+						 name, ctx.origRowWeights[rx], 1+rx);
+				}
+			}
 			std::partial_sum(ctx.origRowWeights, ctx.origRowWeights + ctx.origCumSum.size(),
 					 ctx.origCumSum.begin());
 		} else {

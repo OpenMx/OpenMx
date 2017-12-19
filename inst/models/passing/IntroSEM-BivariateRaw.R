@@ -136,3 +136,13 @@ biRegModelRaw3 <- mxRun(biRegModelRaw3)
 
 omxCheckCloseEnough(coef(biRegModelRaw3),
                     c(repl3[,names(coef(biRegModelRaw3))]), 1e-5)
+
+# investigate replication 3
+biRegModelRaw4 <- mxModel(
+  biRegModelRaw,
+  mxData(observed=cbind(multiData1,
+                        weight=runif(nrow(multiData1))),
+         type="raw", weight = "weight"))
+
+omxCheckError(mxBootstrap(biRegModelRaw4, 10, OK=NULL),
+	'MxComputeBootstrap: cannot proceed with non-integral weight 0.914806 for row 1')
