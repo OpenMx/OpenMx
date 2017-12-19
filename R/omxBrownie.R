@@ -15,43 +15,50 @@
 
 
 omxBrownie <- function(quantity=1, walnuts=TRUE){
-	if (walnuts==FALSE)stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
-	amt <- c(4, 10, 2, 8, 1.25, 1, 0.75, 0.5, 1.5)
+	if (walnuts == TRUE || walnuts == 'allergic') {
+		# OK
+	} else {
+		stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
+	}
+	amt <- c(.5, .5, .75, .66, 1/4, 1, 2, 10, 200, 1)
 	amt <- round(amt*quantity, 3)
-	unit <- c("tbsp", "tbsp", "cup", "oz", "cup",
-		"tsp", "cup", "tsp", "cup")
-	ing <- c("ground flax", "water", "erythritol",
-			"coconut butter (gently warmed to 90F)",
-			"Dutched cocoa powder", "vanilla extract",
-			"whole wheat flour", "salt",
-			"chopped walnuts")
+	unit <- c("cup", "cup", "cup", "cup", "tsp",
+		'cup', "cup", "dates", "grams", "tsp")
+	ing <- c("whole wheat flour",
+		"black bean flour",
+		"sucanat",
+		"Dutched cocoa powder",
+		"salt",
+		"chopped walnuts",
+		"water",
+		"deglet nour dates",
+		"coconut butter (gently warmed to 90F)",
+		"vanilla extract")
 	brown <- list(
-		matrix(c(amt, unit, ing), 
-			ncol=3,
-			dimnames=list(NULL, c("Qty.", "Unit", "Ingredient"))
-			),
-		matrix(c(quantity, quantity, 1, 1, 1, 1,
-			"13 x 9 inch baking dish", 
+		data.frame("Qty."=amt, "Unit"=unit, "Ingredient"=ing),
+		matrix(c(quantity, quantity, 1, 1, 1, 1, quantity, 1,
+			"13 x 9 inch baking dish",
 			"24 inch piece of standard-width parchment paper",
 			"Large metal or glass bowl",
 			"Hand Mixer",
 			"Spoon, Spatula or Other Similar Implement",
 			"Toothpick",
 			"Cooling Rack",
-			"Standard Oven"), 
+			"Standard Oven"),
 			ncol=2,
 			dimnames=list(NULL, c("Qty.", "Object"))
 			),
 		matrix(c(
 		"Preheat oven to 350 degrees Fahrenheit.", 
-		"Combine flax and water. Allow a few minutes for the flax to gel. Beat in erythritol.",
-		"Mix in other ingredients, stirring until just combined.",
+		"Mix dry ingredients with a fork.",
+		"Puree water and dates in a high speed blender.",
+		"Combine all ingredients and mix thoroughly.",
 		"Bake at 350 for 25 to 30 minutes. Brownies are done when toothpick inserted in brownies comes out clean.",
 		"Place on rack to cool. When nearly at room temperature, brownies may be removed by picking up parchment sling for easy cutting."), ncol=1)
 		)
 	names(brown) <- c("Ingredients", "Equipment", "Procedure")
 	if (walnuts=="allergic") {
-		brown$Ingredients <- brown$Ingredients[1:7,]
+		brown$Ingredients <- brown$Ingredients[-match("chopped walnuts", ing),]
 	}
 	return(brown)
 }
