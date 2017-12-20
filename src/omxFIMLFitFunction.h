@@ -35,8 +35,7 @@ typedef struct omxFIMLRowOutput {  // Output object for each row of estimation. 
 enum JointStrategy {
 	JOINT_AUTO,
 	JOINT_CONDCONT,
-	JOINT_CONDORD,
-	JOINT_OLD
+	JOINT_CONDORD
 };
 
 #if !_OPENMP && OMX_DEBUG
