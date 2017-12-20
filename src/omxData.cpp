@@ -31,6 +31,7 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : rownames(0), primaryKey(-1), weightCol(-1), currentWeightColumn(0),
+		     freqCol(-1), currentFreqColumn(0),
 		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -82,7 +83,7 @@ void omxData::connectDynamicData(omxState *currentState)
 	if (Rf_length(dataLoc) == 1) {
 		omxExpectation *ex = omxExpectationFromIndex(INTEGER(dataLoc)[0], currentState);
 		BA81Expect *other = (BA81Expect *) ex;
-		numObs = other->weightSum;
+		numObs = other->freqSum;
 		addDynamicDataSource(ex);
 		// nothing special to do
 	} else {
@@ -92,7 +93,7 @@ void omxData::connectDynamicData(omxState *currentState)
 
 		omxExpectation *refE = NULL;
 		BA81Expect *refBA81;
-		double weightSum = 0;
+		double freqSum = 0;
 
 		for (int sx=0; sx < num; ++sx) {
 			omxExpectation *ex = omxExpectationFromIndex(evec[sx], currentState);
@@ -102,7 +103,7 @@ void omxData::connectDynamicData(omxState *currentState)
 				continue;
 			}
 			BA81Expect *other = (BA81Expect *) ex;
-			weightSum += other->weightSum;
+			freqSum += other->freqSum;
 			if (!refE) {
 				refE = ex;
 				refBA81 = other;
@@ -117,7 +118,7 @@ void omxData::connectDynamicData(omxState *currentState)
 
 			addDynamicDataSource(ex);
 		}
-		numObs = weightSum;
+		numObs = freqSum;
 		if (!refE) return;
 
 		int dims = refBA81->grp.quad.abilities();
@@ -168,6 +169,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		ProtectedSEXP Rweight(R_do_slot(dataObj, Rf_install("weight")));
 		weightCol = Rf_asInteger(Rweight);
 		if (weightCol != NA_INTEGER) weightCol -= 1;
+
+		ProtectedSEXP Rfrequency(R_do_slot(dataObj, Rf_install("frequency")));
+		freqCol = Rf_asInteger(Rfrequency);
+		if (freqCol != NA_INTEGER) freqCol -= 1;
 	}
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
@@ -233,6 +238,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if (od->hasWeight() && od->rawCols.size() && od->rawCols[weightCol].type != COLUMNDATA_NUMERIC) {
 		Rf_error("%s: weight must be a numeric column in raw observed data", od->name);
+	}
+
+	if (od->hasFreq() && od->rawCols.size() && od->rawCols[freqCol].type != COLUMNDATA_INTEGER) {
+		Rf_error("%s: frequency must be an integer column in raw observed data", od->name);
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
@@ -326,10 +335,19 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		}
 	}
 
-	currentWeightColumn = getOriginalWeightColumn();
+	currentWeightColumn = getWeightColumn();
+	currentFreqColumn = getOriginalFreqColumn();
+	
+	if (currentFreqColumn) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (currentFreqColumn[rx] >= 0) continue;
+			Rf_error("%s: cannot proceed with non-positive weight %d for row %d",
+				 name, currentFreqColumn[rx], 1+rx);
+		}
+	}
 }
 
-double *omxData::getOriginalWeightColumn()
+double *omxData::getWeightColumn()
 {
 	if (!hasWeight()) return 0;
 	if (rawCols.size()) {
@@ -344,6 +362,20 @@ double *omxData::getOriginalWeightColumn()
 			Ecol.derived() = dm.col(weightCol);
 			return col;
 		}
+	}
+}
+
+int *omxData::getOriginalFreqColumn()
+{
+	if (!hasFreq()) return 0;
+	if (rawCols.size()) {
+		return rawCols[freqCol].intData;
+	} else {
+		auto *col = (int*) R_alloc(dataMat->rows, sizeof(int));
+		EigenMatrixAdaptor dm(dataMat);
+		Eigen::Map< Eigen::VectorXi > Ecol(col, dataMat->rows);
+		Ecol.derived() = dm.col(freqCol).cast<int>();
+		return col;
 	}
 }
 
@@ -729,6 +761,8 @@ bool omxData::loadDefVars(omxState *state, int row)
 		double newDefVar;
 		if (defVars[k].column == weightCol) {
 			newDefVar = getRowWeight(row);
+		} else if (defVars[k].column == freqCol) {
+			newDefVar = getRowFreq(row);
 		} else {
 			newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
 		}
@@ -753,6 +787,14 @@ void omxData::prohibitNAs(int col)
 		for (int rx=0; rx < rows; ++rx) {
 			if (std::isfinite(wc[rx])) continue;
 			Rf_error("%s: NA in row weight %d", name, 1+rx);
+		}
+		return;
+	}
+	if (col == freqCol) {
+		int *wc = getFreqColumn();
+		for (int rx=0; rx < rows; ++rx) {
+			if (wc[rx] != NA_INTEGER) continue;
+			Rf_error("%s: NA in row frequency %d", name, 1+rx);
 		}
 		return;
 	}

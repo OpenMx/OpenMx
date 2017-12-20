@@ -108,8 +108,8 @@ ifaGroup::ifaGroup(int cores, bool _twotier) :
 	Rdata(NULL), numThreads(cores), qwidth(6.0), qpoints(49), quad(this),
 	detectIndependence(true),
 	twotier(_twotier), mean(0), cov(0), dataRowNames(0),
-	weightColumnName(0), rowWeight(0), minItemsPerScore(NA_INTEGER),
-	excludedPatterns(-1)
+	weightColumnName(0), rowWeight(0), freqColumnName(0), rowFreq(0),
+	minItemsPerScore(NA_INTEGER), excludedPatterns(-1)
 {}
 
 // The idea here is to avoid denormalized values if they are
@@ -273,9 +273,14 @@ void ifaGroup::import(SEXP Rlist)
 			Rf_protect(dataRowNames = Rf_getAttrib(Rdata, R_RowNamesSymbol));
 		} else if (strEQ(key, "weightColumn")) {
 			if (Rf_length(slotValue) != 1) {
-				Rf_error("You can only have one weightColumn");
+				Rf_error("You can only have one %s", key);
 			}
 			weightColumnName = CHAR(STRING_ELT(slotValue, 0));
+		} else if (strEQ(key, "freqColumn")) {
+			if (Rf_length(slotValue) != 1) {
+				Rf_error("You can only have one %s", key);
+			}
+			freqColumnName = CHAR(STRING_ELT(slotValue, 0));
 		} else if (strEQ(key, "qwidth")) {
 			qwidth = Rf_asReal(slotValue);
 		} else if (strEQ(key, "qpoints")) {
@@ -384,6 +389,22 @@ void ifaGroup::import(SEXP Rlist)
 			}
 			if (!rowWeight) {
 				Rf_error("Cannot find weight column '%s'", weightColumnName);
+			}
+		}
+		if (freqColumnName) {
+			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
+				if (strEQ(freqColumnName, dataColNames[dc])) {
+					SEXP col = VECTOR_ELT(Rdata, dc);
+					if (TYPEOF(col) != INTSXP) {
+						Rf_error("Column '%s' is of type %s; expecting type integer",
+							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
+					}
+					rowFreq = INTEGER(col);
+					break;
+				}
+			}
+			if (!rowFreq) {
+				Rf_error("Cannot find frequency column '%s'", freqColumnName);
 			}
 		}
 		rowMap.reserve(dataRows);
@@ -602,6 +623,19 @@ void ifaGroup::setMinItemsPerScore(int mips)
 			 mips, numItems());
 	}
 	minItemsPerScore = mips;
+}
+
+void ifaGroup::buildRowMult()
+{
+	weightSum = 0.0;
+	rowMult.resize(rowMap.size());
+	for (int rx=0; rx < int(rowMap.size()); ++rx) {
+		double mm = 1.0;
+		if (rowWeight) mm *= rowWeight[rx];
+		if (rowFreq) mm *= rowFreq[rx];
+		weightSum += mm;
+		rowMult[rx] = mm;
+	}
 }
 
 void ifaGroup::buildRowSkip()

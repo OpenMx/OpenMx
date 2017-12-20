@@ -617,14 +617,21 @@ static void sortData(omxFitFunction *off)
 {
 	//mxLog("%s: sortData", off->matrix->name());
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
+	auto &rowMult = ofiml->rowMult;
 	auto& indexVector = ofiml->indexVector;
 	indexVector.clear();
 	ofiml->sufficientSets.clear();
 	omxData *data = ofiml->data;
 	double *rowWeight = data->getWeightColumn();
+	int *rowFreq = data->getFreqColumn();
 	indexVector.reserve(data->rows);
+	rowMult.resize(data->rows);
 	for (int rx=0; rx < data->rows; ++rx) {
-		if (rowWeight && rowWeight[rx] == 0.0) continue;
+		double ww = 1.0;
+		if (rowWeight) ww *= rowWeight[rx];
+		if (rowFreq) ww *= rowFreq[rx];
+		rowMult[rx] = ww;
+		if (ww == 0.0) continue;
 		indexVector.push_back(rx);
 	}
 	int rows = int(indexVector.size());

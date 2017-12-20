@@ -61,6 +61,7 @@ setClass(Class = "MxDataStatic",
 	     .needSort = "logical",
 	     primaryKey = "MxCharOrNumber",
 	     weight = "MxCharOrNumber",
+	     frequency = "MxCharOrNumber",
 		name   = "character"))
 
 setClass(Class = "MxDataDynamic",
@@ -76,7 +77,7 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds,
-		   sort, primaryKey, weight) {
+		   sort, primaryKey, weight, frequency) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -99,6 +100,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@.isSorted <- FALSE
 		.Object@primaryKey <- primaryKey
 		.Object@weight <- weight
+		.Object@frequency <- frequency
 		return(.Object)
 	}
 )
@@ -147,7 +149,8 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 }
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ...,
-		   sort=NA, primaryKey = as.character(NA), weight = as.character(NA)) {
+		   sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
+		   frequency = as.character(NA)) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -237,9 +240,20 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 				   "must be provided in the observed data"))
 		}
 	}
+	if (length(frequency) > 1) {
+		stop("Only one frequency column can be specified")
+	} else if (!is.na(frequency)) {
+		if (type != "raw") {
+			stop(paste("Raw data is required when a frequency column is provided"))
+		}
+		if (!(frequency %in% colnames(observed))) {
+			stop(paste("Frequency column", omxQuotes(frequency),
+				   "must be provided in the observed data"))
+		}
+	}
 	if (type == "raw") {
-		if (!is.na(weight)) {
-			obsCount <- sum(observed[,weight])
+		if (!is.na(frequency)) {
+			obsCount <- sum(observed[,frequency])
 		} else {
 			obsCount <- nrow(observed)
 		}
@@ -251,13 +265,13 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 				# stop?
 				warning(paste("numObs of", numObs, "does not match the number of observations",
 					      "found in the observed data", obsCount,
-					      "(maybe specify weight='column' instead of numObs =",numObs,")"))
+					      "(maybe specify weight='frequency' instead of numObs =",numObs,")"))
 			}
 		}
 	}
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs), acov, fullWeight,
-		   thresholds, sort, primaryKey, weight))
+		   thresholds, sort, primaryKey, weight, frequency))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -329,6 +343,19 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 				  data@weight <- wc
 			  } else {
 				  data@weight <- 0L
+			  }
+		  }
+		  if (.hasSlot(data, 'frequency')) {
+			  if (!is.na(data@frequency)) {
+				  wc <- match(data@frequency, colnames(data@observed))
+				  if (is.na(wc)) {
+					  msg <- paste("Frequency column", omxQuotes(data@frequency),
+						       "not found in observed data columns")
+					  stop(msg, call.=FALSE)
+				  }
+				  data@frequency <- wc
+			  } else {
+				  data@frequency <- 0L
 			  }
 		  }
 

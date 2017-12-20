@@ -422,7 +422,7 @@ struct ba81sandwichOp {
 	omxMatrix *itemParam;
 	const int itemDerivPadSize;
 	const double abScale;
-	double *rowWeight;
+	Eigen::ArrayXd &rowWeight;
 
 	Eigen::ArrayXXd gradBuf;
 	Eigen::ArrayXd patternLik1;
@@ -440,7 +440,7 @@ struct ba81sandwichOp {
 		dataColumns(estate->grp.dataColumns), itemOutcomes(estate->grp.itemOutcomes),
 		rowMap(estate->grp.rowMap), spec(estate->grp.spec), itemParam(_itemParam),
 		itemDerivPadSize(_state->itemDerivPadSize), abScale(_abScale),
-		rowWeight(estate->grp.rowWeight)
+		rowWeight(estate->grp.rowMult)
 	{
 		gradBuf.resize(numParam, numThreads);
 		patternLik1.resize(numThreads);
@@ -526,7 +526,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	std::vector<bool> &rowSkip = estate->grp.rowSkip;
 	const int numParam = (int) fc->varGroup->vars.size();
 	std::vector<double> thrMeat(numThreads * numParam * numParam);
-	double *rowWeight = estate->grp.rowWeight;
+	Eigen::ArrayXd &rowWeight = estate->grp.rowMult;
 
 	if (quad.hasBifactorStructure) {
 		Rf_error("Sandwich information matrix method is not implemented for bifactor-optimized models");
@@ -685,7 +685,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	const int numThreads = Global->numThreads;
 	const int numUnique = estate->getNumUnique();
 	ba81NormalQuad &quad = estate->getQuad();
-	double *rowWeight = estate->grp.rowWeight;
+	Eigen::ArrayXd &rowWeight = estate->grp.rowMult;
 	std::vector<bool> &rowSkip = estate->grp.rowSkip;
 	const int itemDerivSize = itemParam->cols * state->itemDerivPadSize;
 	const size_t numParam = fc->varGroup->vars.size();
@@ -887,7 +887,7 @@ void BA81FitState::compute(int want, FitContext *fc)
 					oo->matrix->data[dest] = patternLik[rx] * OneOverLargest;
 				}
 			} else {
-				double *rowWeight = estate->grp.rowWeight;
+				Eigen::ArrayXd &rowWeight = estate->grp.rowMult;
 				const double LogLargest = estate->LogLargestDouble;
 				double got = 0;
 #pragma omp parallel for num_threads(Global->numThreads) reduction(+:got)

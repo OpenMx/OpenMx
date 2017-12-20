@@ -90,6 +90,7 @@ class omxFIMLFitFunction : public omxFitFunction {
 	int verbose;
 	bool inUse;
 	std::vector<int> indexVector;
+	Eigen::ArrayXd rowMult;
 	std::vector<bool> sameAsPrevious;
 	std::vector<bool> continuousMissingSame;
 	std::vector<bool> continuousSame;
@@ -172,7 +173,7 @@ class mvnByRow {
 	omxFIMLFitFunction *parent;
 	int sortedRow;  // it's really the unsorted row (row in the original data); rename TODO
 	bool useSufficientSets;
-	double *rowWeight;
+	Eigen::ArrayXd &rowMult;
 
 	int rowOrdinal;
 	int rowContinuous;
@@ -206,6 +207,7 @@ class mvnByRow {
 		thresholdCols(expectation->getThresholdInfo()),
 		dataColumns(expectation->getDataColumns()),
 		isOrdinal(_ofiml->isOrdinal),
+		rowMult(_ofiml->rowMult),
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
@@ -230,7 +232,6 @@ class mvnByRow {
 		ordColBuf.resize(numOrdinal);
 		isMissing.resize(dataColumns.size());
 		useSufficientSets = ofiml->useSufficientSets;
-		rowWeight = data->getWeightColumn();
 		verbose = ofiml->verbose;
 
 		if (fc->isClone()) {  // rowwise parallel
@@ -327,6 +328,11 @@ class mvnByRow {
 		firstRow = false;
 	}
 
+	double rowWeightAndFreq(int row1)
+	{
+		return rowMult[row1];
+	}
+
 	void recordRow(double contLogLik, double ordLik)
 	{
 		if (ordLik == 0.0 || !std::isfinite(contLogLik)) {
@@ -341,17 +347,19 @@ class mvnByRow {
 			double rowLik = exp(contLogLik) * ordLik;
 			double rowLik1 = rowLik;
 			double prevWeight = 1.0;
-			if (rowWeight && rowWeight[sortedRow] != 1.0) {
-				rowLik1 = pow(rowLik, rowWeight[sortedRow]);
-				prevWeight = rowWeight[sortedRow];
+			double curWeight = rowWeightAndFreq(sortedRow);
+			if (curWeight != 1.0) {
+				rowLik1 = pow(rowLik, curWeight);
+				prevWeight = curWeight;
 			}
 			rl[sortedRow] = rowLik1;
 			row += 1;
 			while (row < rows && sameAsPrevious[row]) {
 				sortedRow = indexVector[row];
-				if (rowWeight && prevWeight != rowWeight[sortedRow]) {
-					rowLik1 = pow(rowLik, rowWeight[sortedRow]);
-					prevWeight = rowWeight[sortedRow];
+				curWeight = rowWeightAndFreq(sortedRow);
+				if (curWeight != prevWeight) {
+					rowLik1 = pow(rowLik, curWeight);
+					prevWeight = curWeight;
 				}
 				rl[sortedRow] = rowLik1;
 				row += 1;
@@ -361,17 +369,19 @@ class mvnByRow {
 			double rowLogLik = contLogLik + log(ordLik);
 			double rowLogLik1 = rowLogLik;
 			double prevWeight = 1.0;
-			if (rowWeight) {
-				rowLogLik1 *= rowWeight[sortedRow];
-				prevWeight = rowWeight[sortedRow];
+			double curWeight = rowWeightAndFreq(sortedRow);
+			if (curWeight != 1.0) {
+				rowLogLik1 *= curWeight;
+				prevWeight = curWeight;
 			}
 			rl[0] += rowLogLik1;
 			row += 1;
 			while (row < rows && sameAsPrevious[row]) {
 				sortedRow = indexVector[row];
-				if (rowWeight && prevWeight != rowWeight[sortedRow]) {
-					rowLogLik1 = rowLogLik * rowWeight[sortedRow];
-					prevWeight = rowWeight[sortedRow];
+				curWeight = rowWeightAndFreq(sortedRow);
+				if (curWeight != prevWeight) {
+					rowLogLik1 = rowLogLik * curWeight;
+					prevWeight = curWeight;
 				}
 				rl[0] += rowLogLik1;
 				row += 1;

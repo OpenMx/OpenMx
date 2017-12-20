@@ -109,11 +109,11 @@ set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawOut, 10)
 omxCheckTrue(is.null(biRegModelRawBoot$output[["standardErrors"]]))
 bq1 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
-omxCheckCloseEnough(cor(bq1, biRegModelRawOut$output$standardErrors), .91, .01)
+omxCheckCloseEnough(cor(bq1, biRegModelRawOut$output$standardErrors), .89, .01)
 
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot)
 bq2 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
-omxCheckCloseEnough(sum((bq2 - biRegModelRawOut$output$standardErrors)^2), 0, 1e-3)
+omxCheckCloseEnough(sum((bq2 - biRegModelRawOut$output$standardErrors)^2), 0, 3e-3)
 
 set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot, 10)
@@ -129,20 +129,10 @@ omxCheckCloseEnough(repl3[,omit], biRegModelRawBoot3$compute$output$raw[,omit], 
 biRegModelRaw3 <- mxModel(
   biRegModelRaw,
   mxData(observed=cbind(multiData1,
-                        weight=biRegModelRawBoot3$compute$output$weight[[1]]),
-         type="raw", weight = "weight"))
+                        freq=biRegModelRawBoot3$compute$output$frequency[[1]]),
+         type="raw", frequency = "freq"))
 
 biRegModelRaw3 <- mxRun(biRegModelRaw3)
 
 omxCheckCloseEnough(coef(biRegModelRaw3),
                     c(repl3[,names(coef(biRegModelRaw3))]), 1e-5)
-
-# investigate replication 3
-biRegModelRaw4 <- mxModel(
-  biRegModelRaw,
-  mxData(observed=cbind(multiData1,
-                        weight=runif(nrow(multiData1))),
-         type="raw", weight = "weight"))
-
-omxCheckError(mxBootstrap(biRegModelRaw4, 10, OK=NULL),
-	'MxComputeBootstrap: cannot proceed with non-integral weight 0.914806 for row 1')
