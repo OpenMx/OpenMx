@@ -20,7 +20,7 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 	} else {
 		stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
 	}
-	amt <- c(.5, .5, .75, .66, 1/4, 1, 2, 10, 200, 1)
+	amt <- c(.5, .5, .66, .66, 1/4, .5, 3, 16, 200, 1)
 	amt <- round(amt*quantity, 3)
 	unit <- c("cup", "cup", "cup", "cup", "tsp",
 		'cup', "cup", "dates", "grams", "tsp")
