@@ -562,13 +562,6 @@ struct FIMLCompare {
 	}
 };
 
-static void recordGap(int rx, int &prev, std::vector<int> &identical)
-{
-	int gap = rx - prev;
-	for (int gx=0; gx < gap; ++gx) identical[prev + gx] = gap - gx;
-	prev = rx;
-}
-
 static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 {
 	omxExpectation *ex = off->expectation;
