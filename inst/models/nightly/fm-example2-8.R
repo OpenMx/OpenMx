@@ -31,7 +31,7 @@ omxCheckCloseEnough(m1$output$fit, 2766.688, .01)
 m1Sum <- summary(m1)
 omxCheckCloseEnough(m1Sum$observedStatistics, 15, .1)
 omxCheckCloseEnough(m1Sum$informationCriteria['AIC:','par'], 2784.69, .01)
-omxCheckCloseEnough(summary(m1)$informationCriteria['BIC:','par'], 2824.14, .01)
+omxCheckCloseEnough(m1Sum$informationCriteria['BIC:','par'], 2791.64, .01)
 
 fitstat <- m1$compute$steps[[1]]$output
 omxCheckCloseEnough(m1$output$evaluations, 136, 5)
@@ -43,16 +43,16 @@ omxCheckCloseEnough(refModels[[1]], c(2758.23, 0), .01)  #saturated
 nullm1 <- refModels$Independence
 omxCheckCloseEnough(nullm1$output$fit, 2885.665, .01)
 omxCheckCloseEnough(summary(nullm1)$informationCriteria['AIC:','par'], 2895.67, .01)
-omxCheckCloseEnough(summary(nullm1)$informationCriteria['BIC:','par'], 2917.58, .01)
+omxCheckCloseEnough(summary(nullm1)$informationCriteria['BIC:','par'], 2899.52, .01)
 
 # These fit indices are approximate because we use the number of
 # statistics (30) for the df instead of the number of multinomial
 # cells (32). This doesn't really matter though because the these
 # statistics become inaccurate when the multinomial table is sparse
-# and there is no known correction (Bock, Giibons, & Muraki, 1998,
+# and there is no known correction (Bock, Gibbons, & Muraki, 1998,
 # p. 265).
 
 m1Sum <- summary(m1, refModels=refModels)
 omxCheckCloseEnough(m1Sum$CFI, .979, .01)
 omxCheckCloseEnough(m1Sum$TLI, .965, .01)
-omxCheckCloseEnough(m1Sum$RMSEA, .026, .01)
+omxCheckCloseEnough(m1Sum$RMSEA, .159, .01)

@@ -97,6 +97,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		dof <- numThresh + numMeans + ifelse(numThresh > 0, n*(n-1)/2, n*(n+1)/2)
 		historySet <- append(data, historySet)
 	} else {
+		# Incorporate row frequency and weight information? TODO
 		dof <- 0
 		observed <- data@observed
 		for (i in 1:ncol(observed)) {
