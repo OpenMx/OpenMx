@@ -223,16 +223,13 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 		if(OMX_DEBUG) {mxLog("Table Entry %d is %s.", value, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
-			SEXP algebraArg;
-			{
-				ScopedProtect p1(algebraArg, VECTOR_ELT(algebra, j+1));
-				auto name2 = string_snprintf("%s arg %d", om->name(), j);
-				oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name2);
-			}
-			if (oa->algArgs[j]->nameStr.size() == 0) {
+			if (om->nameStr.compare("?") == 0) {
 				// A bit inefficient but invaluable for debugging
-				oa->algArgs[j]->nameStr = string_snprintf("alg%03d", ++Global->anonAlgebra);
+				om->nameStr = string_snprintf("alg%03d", ++Global->anonAlgebra);
 			}
+			ProtectedSEXP algebraArg(VECTOR_ELT(algebra, j+1));
+			auto name2 = string_snprintf("%s arg %d", om->name(), j);
+			oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name2);
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
