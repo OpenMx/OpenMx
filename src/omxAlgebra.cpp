@@ -145,7 +145,12 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 	if(oa->funWrapper == NULL) {
 		if(oa->numArgs != 1) Rf_error("Internal Error: Empty algebra evaluated");
 		if(OMX_DEBUG_ALGEBRA) { omxPrint(oa->algArgs[0], "Copy no-op algebra"); }
-		omxCopyMatrix(oa->matrix, oa->algArgs[0]);
+		if (oa->algArgs[0]->canDiscard()) {
+			oa->matrix->take(oa->algArgs[0]);
+			if(OMX_DEBUG_ALGEBRA) mxLog("Take algebra '%s'", oa->algArgs[0]->name());
+		} else {
+			omxCopyMatrix(oa->matrix, oa->algArgs[0]);
+		}
 	} else {
 		if(OMX_DEBUG_ALGEBRA || oa->verbose >= 2) { 
 			std::string buf;
@@ -157,6 +162,14 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 			mxLog("Algebra '%s' %s(%s)", oa->matrix->name(), oa->oate->rName, buf.c_str());
 		}
 		(*(algebra_op_t)oa->funWrapper)(fc, oa->algArgs, (oa->numArgs), oa->matrix);
+		for(int j = 0; j < oa->numArgs; j++) {
+			auto *mat1 = oa->algArgs[j];
+			if (!mat1->canDiscard()) continue;
+			// skip if smaller than 10x10? TODO
+			if (OMX_DEBUG_ALGEBRA) mxLog("Set arg[%d] '%s' to 0x0 dim", j, mat1->name());
+			omxZeroByZeroMatrix(mat1);
+			omxMarkDirty(mat1);
+		}
 	}
 
 	if(OMX_DEBUG_ALGEBRA || oa->verbose >= 3) {
