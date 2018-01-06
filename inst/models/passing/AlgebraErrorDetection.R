@@ -59,7 +59,7 @@ A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')
 model <- mxModel('model', A, B)
 omxCheckError(mxRun(model), 
-              "Requested improper value (0, 0) from (1, 1) matrix")
+              "Requested improper value (0, 0) from (1, 1) matrix 'model.A'")
 kevin <- 'bacon'
 B <- mxAlgebra(A[kevin, ], name = 'B')
 dimnames(A) <- list('Tom', 'Cruise')
