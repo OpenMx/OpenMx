@@ -813,26 +813,20 @@ refToDof <- function(model) {
 	}
 }
 
-ecdftable <- function(data){
-	x <- sort(unique(data))
-	Pn <- sapply(x,function(z){mean(data<=z,na.rm=T)})
-	return(cbind(x,Pn))
-}
 
 summarizeBootstrap <- function(mle, bootData, bq, summaryType) {
 	if (summaryType == 'quantile') {
-		t(apply(bootData, 2, quantile, probs=bq))
+		t(apply(bootData, 2, quantile, probs=bq, type=1))
 	} else if (summaryType == 'bcbci') {
 		zcrit <- qnorm(bq)
 		out <- matrix(NA, nrow=length(mle), ncol=length(bq),
 			      dimnames=list(names(mle),
 					    sapply(bq, function(x) sprintf("%.1f%%", round(100*min(x), 1)))))
 		for(i in 1:length(mle)) {
-			ecdf.curr <- ecdftable(bootData[,i])
 			z0 <- qnorm(mean(bootData[,i] <= mle[i]))
 			for (qx in 1:length(bq)) {
 				phi <- pnorm(2*z0 + zcrit[qx])
-				out[i,qx] <- max(c(-Inf,subset(ecdf.curr[,1], ecdf.curr[,2]<=phi)))
+				out[i,qx] <- quantile(bootData[,i], probs=phi, type=1)
 			}
 		}
 		out
@@ -1295,17 +1289,16 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 	colnames(out) <- c("name","label","matrix","row","col","Std.Value","Boot.SE",
 										 sprintf("%.1f%%", round(100*min(bq), 1)),sprintf("%.1f%%", round(100*max(bq), 1)))
 	if(method=="quantile"){
-		out[,8] <- as.vector(apply(outmtx,2,quantile,probs=min(bq)))
-		out[,9] <- as.vector(apply(outmtx,2,quantile,probs=max(bq)))
+		out[,8] <- as.vector(apply(outmtx,2,quantile,probs=min(bq),type=1))
+		out[,9] <- as.vector(apply(outmtx,2,quantile,probs=max(bq),type=1))
 	}
 	else if(method=="bcbci"){
 		zcrit <- qnorm(bq)
 		for(i in 1:nrow(realstdpaths)){
-			ecdf.curr <- ecdftable(outmtx[,i])
 			z0 <- qnorm(mean(outmtx[,i] <= realstdpaths$Std.Value[i]))
 			for (qx in 1:2){
 				phi <- pnorm(2*z0 + zcrit[qx])
-				out[i,7+qx] <- max(c(-Inf,subset(ecdf.curr[,1], ecdf.curr[,2]<=phi)))
+				out[i,7+qx] <- quantile(outmtx[,i], probs=phi, type=1)
 			}
 		}
 	}
