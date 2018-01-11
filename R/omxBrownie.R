@@ -15,12 +15,17 @@
 
 
 omxBrownie <- function(quantity=1, walnuts=TRUE){
-	if (walnuts == TRUE || walnuts == 'allergic') {
-		# OK
+	if ((is.character(walnuts) && walnuts == 'allergic') ||
+		    (is.logical(walnuts) && walnuts == TRUE)) {
+		if (is.character(walnuts)) walnuts <- FALSE
 	} else {
 		stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
 	}
-	amt <- c(.5, .5, .66, .66, 1/4, .5, 3, 16, 200, 1)
+	if (walnuts) {
+		amt <- c(.5, .5, 4/3,   1, 1/4, 2/3, 3, 16, 180, 1)
+	} else {
+		amt <- c(.5, .5, 2/3, 2/3, 1/4,   0, 3, 16, 180, 1)
+	}
 	amt <- round(amt*quantity, 3)
 	unit <- c("cup", "cup", "cup", "cup", "tsp",
 		'cup', "cup", "dates", "grams", "tsp")
@@ -57,7 +62,7 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 		"Place on rack to cool. When nearly at room temperature, brownies may be removed by picking up parchment sling for easy cutting."), ncol=1)
 		)
 	names(brown) <- c("Ingredients", "Equipment", "Procedure")
-	if (walnuts=="allergic") {
+	if (!walnuts) {
 		brown$Ingredients <- brown$Ingredients[-match("chopped walnuts", ing),]
 	}
 	return(brown)
