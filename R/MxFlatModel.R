@@ -255,7 +255,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						omxQuotes(simplifyName(loc[[1]], modelname)), 
 						"at location", 
 						rowColToString(loc[[2]], loc[[3]]),
-						"Equate the values manually, or free the parameters and call",
+						"Equate the values manually, give them distinct labels, or free the parameters and call",
 						"model <- omxAssignFirstParameters(model)",
 						"before running again."), call. = FALSE)
 				} else {
