@@ -404,9 +404,6 @@ insertAllPathsRAM <- function(model, paths) {
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
 	
-		missingvalues <- is.na(path@values)
-		path@values[missingvalues] <- 0
-		
 		if ("one" %in% path@from && is.null(model[['M']])) {
 			model[['M']] <- createMatrixM(model) 
 			if(expectationIsMissingMeans(model)) {
@@ -414,19 +411,7 @@ insertAllPathsRAM <- function(model, paths) {
 			}
 		}
 
-		if (single.na(path@to)) {
-			# convert model.var -> var
-			path@to <- sapply(path@from, function(x) {
-				pieces <- strsplit(x, imxSeparatorChar, fixed = TRUE)[[1]]
-				ifelse(length(pieces) == 2, pieces[2], pieces[1])
-			}, USE.NAMES = FALSE)
-		}
-		
-		expanded <- expandPathConnect(path@from, path@to, path@connect)
-		path@from <- expanded$from
-		path@to   <- expanded$to
-
-		model <- insertPathRAM(path, model)
+		model <- insertPathRAM(prepPath(path), model)
 	}
 	return(model)
 }
