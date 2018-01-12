@@ -255,7 +255,7 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						omxQuotes(simplifyName(loc[[1]], modelname)), 
 						"at location", 
 						rowColToString(loc[[2]], loc[[3]]),
-						"If you want to randomly select one of these values, call",
+						"Equate the values manually, or free the parameters and call",
 						"model <- omxAssignFirstParameters(model)",
 						"before running again."), call. = FALSE)
 				} else {
