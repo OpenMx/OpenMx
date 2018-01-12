@@ -207,7 +207,7 @@ class mvnByRow {
 		thresholdCols(expectation->getThresholdInfo()),
 		dataColumns(expectation->getDataColumns()),
 		isOrdinal(_ofiml->isOrdinal),
-		rowMult(_ofiml->rowMult),
+		rowMult(shared_ofo->rowMult),
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
