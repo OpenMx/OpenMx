@@ -384,7 +384,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 	}
 	else{
 		namespace <- imxGenerateNamespace(model)
-		flatModel <- imxFlattenModel(model, namespace)
+		flatModel <- imxFlattenModel(model, namespace, FALSE)
 		intervals <- flatModel@intervals
 		if (length(intervals) == 0) return(model)
 		intervals <- expandConfidenceIntervals(model, intervals)

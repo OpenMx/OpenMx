@@ -1539,8 +1539,8 @@ namespace RelationalRAMExpectation {
 			if (isErrorRaised()) return;
 		}
 		for (auto *ex : allEx) {
-			if (!ex->data->hasWeight()) continue;
-			Rf_error("%s: row weights provided in '%s' are not compatible with joins",
+			if (!ex->data->hasWeight() && !ex->data->hasFreq()) continue;
+			Rf_error("%s: row frequencies or weights provided in '%s' are not compatible with joins",
 				 expectation->name, ex->data->name);
 		}
 

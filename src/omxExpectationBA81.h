@@ -68,7 +68,7 @@ class BA81Expect : public omxExpectation {
 	double LargestDouble;          // should be const but need constexpr
 
 	// data characteristics
-	double weightSum;                // sum of rowWeight
+	double freqSum;                // sum of rowFreq
 
 	// quadrature related
 	struct ba81NormalQuad &getQuad() { return grp.quad; }

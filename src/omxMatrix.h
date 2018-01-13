@@ -88,6 +88,7 @@ class omxMatrix {
 	unsigned version;
 
 /* For Algebra Functions */				// At most, one of these may be non-NULL.
+	bool canDiscard();
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxFitFunction* fitFunction;		// If it's not a fit function, this is NULL.
 
@@ -99,6 +100,8 @@ class omxMatrix {
 	std::vector<const char *> colnames;
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
+	void take(omxMatrix *orig);
+
 	void unshareMemroyWithR();
 	void loadDimnames(SEXP dimnames);
 	const char *getType() const {
@@ -192,7 +195,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header);  // deprecated, use 
 
 void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol);
 void setVectorError(int index, int numrow, int numcol);
-void matrixElementError(int row, int col, int numrow, int numcol);
+void matrixElementError(int row, int col, omxMatrix *om);
 void vectorElementError(int index, int numrow, int numcol);
 
 bool omxNeedsUpdate(omxMatrix *matrix);
@@ -238,7 +241,7 @@ static OMXINLINE void omxAccumulateMatrixElement(omxMatrix *om, int row, int col
 static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
 	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
-		matrixElementError(row + 1, col + 1, om->rows, om->cols);
+		matrixElementError(row + 1, col + 1, om);
         return (NA_REAL);
 	}
 	if(om->colMajor) {

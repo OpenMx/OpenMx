@@ -1,5 +1,6 @@
 \name{mxPowerSearch}
 \alias{mxPowerSearch}
+\alias{mxPower}
 \title{Power curve}
 \description{
   Determine the power curve between true and false models
@@ -14,6 +15,13 @@ mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 		    OK=mxOption(trueModel, "Status OK"),
 		checkHess=FALSE,
 		silent=!interactive())
+
+mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
+                    probes=300L, gdFun=mxGenerateData,
+                    method=c('empirical', 'ncp'),
+                    statistic=c('LRT','AIC','BIC'),
+                    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE,
+                    silent=!interactive())
 }
 \arguments{
   \item{trueModel}{The true generating model for the data.}
@@ -23,6 +31,7 @@ mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     between sample size and power. When given, finds the relationship
     between a parameter and power (at the given sample size).}
   \item{sig.level}{The false positive rate (a.k.a. type 1 error).}
+  \item{power}{The power (a.k.a. 1 - type 2 error).}
   \item{...}{Not used.}
   \item{probes}{The number of probes to use when
     method=\sQuote{empirical}.}
@@ -44,7 +53,7 @@ mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 
   Power is the chance of obtaining a significant difference when there
   is a significant difference (1 - false negative rate).
-  Power uses the likelihood ratio test by default. There are two
+  The likelihood ratio test is used by default. There are two
   methods available to produce a power curve. The default,
   \code{method=empirical}, works for any model where the likelihood
   ratio test works. For example, definition variables and missing data
@@ -86,26 +95,26 @@ mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 
 % discuss more than 1 parameter difference? (like an omnibus test)
 
-  When \sQuote{n} is fixed then \code{mxPowerSearch} helps answer the
-  question, \dQuote{how small of a true effect is likely to be detected
-  at a particular sample size?} Only one parameter can be considered at
-  a time.  The way the simulation works is that a candidate value for
-  the parameter of interest is loaded into the \code{trueModel}, data
-  are generated, then both the true and false model are fit to the data to
-  obtain the difference in fit. The candidate parameter is initially set
-  to halfway between the \code{trueModel} and \code{falseModel}.  The
-  power curve will reflect the smallest distance, relative to the false
-  model, required to have a good chance to reject the false model
-  according to the chosen statistic.
+\code{mxPower} operates in many modes.
+When power is passed as \code{NULL} then power is calculated
+and returned.
+When power (as a scalar or vector) is given then sample or effect size
+is (are) returned.
+If you pass a list of models for \sQuote{falseModel}, each model
+will be checked in turn and the results returned as a vector.
+If you pass a vector of sample sizes, each sample size will
+be checked in turn and the results returns as a vector.
 
-  A naive Monte Carlo estimate of power examines
-  a single candidate sample size at a time.
-  To obtain the whole curve, and simultaneously,
-  to reduce the number of simulation probes,
-  \code{method=empirical} employs a binomial family
-  generalized linear model with a logit link to predict the power curve
-  across the sample sizes of interest (similar to Schoemann et al,
-  2014). The algorithm works in 3
+In constrast to \code{mxPower}, \code{mxPowerSearch} attempts to model
+the whole relationship between sample size or effect size and power.
+  A naive Monte Carlo estimate of power examines a single candidate
+  sample size at a time.  To obtain the whole curve, and simultaneously,
+  to reduce the number of simulation probes, \code{mxPowerSearch}
+  employs a binomial family generalized linear model with a logit link
+  to predict the power curve across the sample sizes of interest
+  (similar to Schoemann et al, 2014).
+
+  The \code{mxPowerSearch} algorithm works in 3
   stages. Without loss of generality, our description will assume a
   sample size to power relationship, but a similar process is used for
   the parameter value to power relationship. In the first stage, a crude
@@ -133,6 +142,18 @@ mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   be run by passing the previous result back into the function as the
   \code{previousRun} argument.
 
+  When \sQuote{n} is fixed then \code{mxPowerSearch} helps answer the
+  question, \dQuote{how small of a true effect is likely to be detected
+  at a particular sample size?} Only one parameter can be considered at
+  a time.  The way the simulation works is that a candidate value for
+  the parameter of interest is loaded into the \code{trueModel}, data
+  are generated, then both the true and false model are fit to the data to
+  obtain the difference in fit. The candidate parameter is initially set
+  to halfway between the \code{trueModel} and \code{falseModel}.  The
+  power curve will reflect the smallest distance, relative to the false
+  model, required to have a good chance to reject the false model
+  according to the chosen statistic.
+
   Note that the default \code{grid} is chosen to exhibit the interesting
   part of the power curve (from 0.25 to 0.97).
   Especially for \code{method=ncp}, this curve is practically
@@ -143,12 +164,13 @@ mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 }
 
 \value{
-  Returns a data.frame with one row for each \sQuote{grid} point. The
+  \code{mxPower} returns a vector of sample sizes, powers, or effect sizes.
+
+  \code{mxPowerSearch} returns a data.frame with one row for each \sQuote{grid} point. The
   first column is either the sample size \sQuote{N} or the parameter
   label. The second column is the power. The next two columns provide a
   +/-2 SE confidence interval for the power as estimated by the binomial
   logit linear model.
-
   When \code{method=empirical} then the \sQuote{probes} attribute
   contains a data.frame record of the activity of the power estimation
   process.
@@ -192,4 +214,6 @@ indModel$A$free['x1','G'] <- FALSE
 indModel <- mxRun(indModel)
 
 mxPowerSearch(factorModelFit, indModel, method='ncp')
+
+mxPower(factorModelFit, indModel, method='ncp')
 }

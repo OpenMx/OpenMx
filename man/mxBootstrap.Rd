@@ -39,6 +39,11 @@ mxBootstrap(model, replications=200, ...,
   the datasets then the models containing them can be listed in the
   \sQuote{data} parameter.
 
+  The \code{frequency} column in the \code{\link{mxData}} object is used
+  represent a resampled dataset. When resampling, the original row
+  proportions, as given by the original \code{frequency} column, are
+  respected.
+
   When the model has a default compute plan and \sQuote{checkHess} is
   kept at FALSE then the Hessian will not be approximated or checked.
   On the other hand, \sQuote{checkHess} is TRUE then the Hessian will be

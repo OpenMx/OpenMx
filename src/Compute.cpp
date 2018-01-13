@@ -1674,9 +1674,9 @@ class ComputeBootstrap : public omxCompute {
 	
 	struct context {
 		omxData *data;
-		double *origRowWeights;
-		std::vector<double> origCumSum;
-		std::vector<double> resample;
+		int *origRowFreq;
+		std::vector<int> origCumSum;
+		std::vector<int> resample;
 	};
 	std::vector< context > contexts;
 	omxCompute *plan;
@@ -3094,11 +3094,11 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 			Rf_error("%s: data '%s' of type '%s' cannot have row weights",
 				 name, ctx.data->name, ctx.data->getType());
 		}
-		ctx.origRowWeights = ctx.data->getWeightColumn();
+		ctx.origRowFreq = ctx.data->getFreqColumn();
 		ctx.origCumSum.resize(numRows);
 		ctx.resample.resize(ctx.origCumSum.size());
-		if (ctx.origRowWeights) {
-			std::partial_sum(ctx.origRowWeights, ctx.origRowWeights + ctx.origCumSum.size(),
+		if (ctx.origRowFreq) {
+			std::partial_sum(ctx.origRowFreq, ctx.origRowFreq + ctx.origCumSum.size(),
 					 ctx.origCumSum.begin());
 		} else {
 			for (int rx=0; rx < numRows; ++rx) ctx.origCumSum[rx] = 1+rx;
@@ -3224,7 +3224,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
 		if (verbose >= 2) mxLog("%s: replication %d", name, repl);
 		for (auto &ctx : contexts) {
-			ctx.resample.assign(ctx.origCumSum.size(), 0.0);
+			ctx.resample.assign(ctx.origCumSum.size(), 0);
 			int last = ctx.origCumSum.size() - 1;
 			int total = ctx.origCumSum[last];
 			std::uniform_int_distribution<int> dist(1, total);
@@ -3232,13 +3232,9 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 				int pick = dist(generator);
 				auto rowPick = std::lower_bound(ctx.origCumSum.begin(), ctx.origCumSum.end(), pick);
 				int row = rowPick - ctx.origCumSum.begin();
-				ctx.resample[row] += 1.0;
+				ctx.resample[row] += 1;
 			}
-			if (verbose >= 4) {
-				EigenStdVectorAdaptor<double> rs(ctx.resample);
-				mxPrintMat(ctx.data->name, rs);
-			}
-			ctx.data->setWeightColumn(ctx.resample.data());
+			ctx.data->setFreqColumn(ctx.resample.data());
 			if (only != NA_INTEGER) {
 				onlyWeight.add(ctx.data->name, Rcpp::wrap(ctx.resample));
 			}
@@ -3262,7 +3258,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	}
 
 	for (auto &ctx : contexts) {
-		ctx.data->setWeightColumn(ctx.origRowWeights);
+		ctx.data->setFreqColumn(ctx.origRowFreq);
 	}
 
 	if (only == NA_INTEGER) {
@@ -3286,7 +3282,7 @@ void ComputeBootstrap::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	output.add("numParam", Rcpp::wrap(int(fc->numParam)));
 	output.add("raw", rawOutput);
 	if (only != NA_INTEGER) {
-		output.add("weight", onlyWeight.asR());
+		output.add("frequency", onlyWeight.asR());
 	}
 	slots->add("output", output.asR());
 }

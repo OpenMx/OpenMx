@@ -35,11 +35,11 @@ x <- rpois(500,1)
 y <- rpois(500,1)
 y[500] <- NA
 varNames <- c('x','y')
-dat <- cbind(x,y,weight=1.0)
+dat <- cbind(x,y,freq=1L)
 
 mymod <- mxModel(
 	"bivlognorm",
-	mxData(dat, "raw", weight = "weight"),
+	mxData(dat, "raw", frequency = "freq"),
 	mxMatrix(type="Full",nrow=1,ncol=2,free=T,values=0.1,labels="m",name="Mu",
 					 dimnames=list(NULL,varNames)),
 	mxMatrix(type="Symm",nrow=2,ncol=2,free=T,values=c(0.4,0,0.4),labels=c("v","c","v"),name="Sigma",
@@ -53,7 +53,7 @@ mymod <- mxModel(
 					solve(omxSelectRowsAndCols(Sigma,existenceVector)) %*% 
 					t(log(filteredDataRow+omxSelectCols(ONE,existenceVector))-omxSelectCols(Mu,existenceVector)) ),
 		name="unweightedRowAlgebra"),
-	mxAlgebra(data.weight * unweightedRowAlgebra, name="rowAlgebra"),
+	mxAlgebra(data.freq * unweightedRowAlgebra, name="rowAlgebra"),
 	mxAlgebra(sum(rowResults), name="reduceAlgebra"),
 	mxFitFunctionRow(rowAlgebra='rowAlgebra',
 								 reduceAlgebra='reduceAlgebra',

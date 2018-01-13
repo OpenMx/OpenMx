@@ -562,13 +562,6 @@ struct FIMLCompare {
 	}
 };
 
-static void recordGap(int rx, int &prev, std::vector<int> &identical)
-{
-	int gap = rx - prev;
-	for (int gx=0; gx < gap; ++gx) identical[prev + gx] = gap - gx;
-	prev = rx;
-}
-
 static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 {
 	omxExpectation *ex = off->expectation;
@@ -624,14 +617,21 @@ static void sortData(omxFitFunction *off)
 {
 	//mxLog("%s: sortData", off->matrix->name());
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
+	auto &rowMult = ofiml->rowMult;
 	auto& indexVector = ofiml->indexVector;
 	indexVector.clear();
 	ofiml->sufficientSets.clear();
 	omxData *data = ofiml->data;
 	double *rowWeight = data->getWeightColumn();
+	int *rowFreq = data->getFreqColumn();
 	indexVector.reserve(data->rows);
+	rowMult.resize(data->rows);
 	for (int rx=0; rx < data->rows; ++rx) {
-		if (rowWeight && rowWeight[rx] == 0.0) continue;
+		double ww = 1.0;
+		if (rowWeight) ww *= rowWeight[rx];
+		if (rowFreq) ww *= rowFreq[rx];
+		rowMult[rx] = ww;
+		if (ww == 0.0) continue;
 		indexVector.push_back(rx);
 	}
 	int rows = int(indexVector.size());
@@ -673,107 +673,65 @@ static void sortData(omxFitFunction *off)
 		//data->omxPrintData("sorted", 1000, indexVector.data());
 	}
 
-	switch (ofiml->jointStrat) {
-	case JOINT_OLD:{
-		auto& identicalDefs = ofiml->identicalDefs;
-		auto& identicalMissingness = ofiml->identicalMissingness;
-		auto& identicalRows = ofiml->identicalRows;
-		identicalDefs.resize(rows);
-		identicalMissingness.resize(rows);
-		identicalRows.resize(rows);
+	cmp.ordinalFirst = true;
+	ofiml->ordinalMissingSame.assign(rows, false);
+	ofiml->continuousMissingSame.assign(rows, false);
+	ofiml->missingSameOrdinalSame.assign(rows, false);
+	ofiml->missingSameContinuousSame.assign(rows, false);
+	ofiml->continuousSame.assign(rows, false);
+	ofiml->missingSame.assign(rows, false);
+	ofiml->ordinalSame.assign(rows, false);
+	int prevSS = -1;
+	for (int rx=1; rx < rows; ++rx) {
+		bool m1;
+		cmp.compareAllDefVars(indexVector[rx-1], indexVector[rx], m1);
+		bool m2;
+		cmp.compareMissingnessPart(false, indexVector[rx-1], indexVector[rx], m2);
+		if (!m1 && !m2) ofiml->ordinalMissingSame[rx] = true;
+		bool m3;
+		cmp.compareMissingnessPart(true, indexVector[rx-1], indexVector[rx], m3);
+		if (!m1 && !m3) ofiml->continuousMissingSame[rx] = true;
+		bool m4;
+		cmp.compareMissingness(indexVector[rx-1], indexVector[rx], m4);
+		if (!m1 && !m4) ofiml->missingSame[rx] = true;
+		bool m7;
+		cmp.compareDataPart(false, indexVector[rx-1], indexVector[rx], m7);
+		if (!m1 && !m2 && !m7) ofiml->ordinalSame[rx] = true;
+		if (!m1 && !m4 && !m7) {
+			ofiml->missingSameOrdinalSame[rx] = true;
+			if (prevSS == -1 && !cmp.isAllMissingnessPart(true, indexVector[rx-1])) {
+				prevSS = rx-1;
+			}
+		} else {
+			if (prevSS != -1) {
+				addSufficientSet(off, prevSS, rx-1);
+				prevSS = -1;
+			}
+		}
+		bool m5;
+		cmp.compareDataPart(true, indexVector[rx-1], indexVector[rx], m5);
+		if (!m1 && !m3 && !m5) ofiml->continuousSame[rx] = true;
+		if (!m1 && !m4 && !m5) ofiml->missingSameContinuousSame[rx] = true;
 
-		int prevDefs=0;
-		int prevMissingness=0;
-		int prevRows=0;
-		for (int rx=1; rx < rows; ++rx) {
-			bool mismatch;
-			cmp.compareAllDefVars(indexVector[prevDefs], indexVector[rx], mismatch);
-			if (mismatch) recordGap(rx, prevDefs, identicalDefs);
-			cmp.compareMissingness(indexVector[prevMissingness], indexVector[rx], mismatch);
-			if (mismatch) {
-				recordGap(rx, prevMissingness, identicalMissingness);
-			}
-			cmp.compareData(indexVector[prevRows], indexVector[rx], mismatch);
-			if (mismatch) recordGap(rx, prevRows, identicalRows);
+		if (m1 || m4) continue;
+		bool m6;
+		cmp.compareData(indexVector[rx-1], indexVector[rx], m6);
+		if (m6) continue;
+		ofiml->sameAsPrevious[rx] = true;
+	}
+	if (prevSS != -1) addSufficientSet(off, prevSS, rows-1);
+	if (ofiml->verbose >= 3) {
+		mxLog("key: row ordinalMissingSame continuousMissingSame missingSameOrdinalSame missingSameContinuousSame continuousSame missingSame ordinalSame");
+		for (int rx=0; rx < rows; ++rx) {
+			mxLog("row=%d sortedrow=%d %d %d %d %d %d %d %d", rx, indexVector[rx],
+			      bool(ofiml->ordinalMissingSame[rx]),
+			      bool(ofiml->continuousMissingSame[rx]),
+			      bool(ofiml->missingSameOrdinalSame[rx]),
+			      bool(ofiml->missingSameContinuousSame[rx]),
+			      bool(ofiml->continuousSame[rx]),
+			      bool(ofiml->missingSame[rx]),
+			      bool(ofiml->ordinalSame[rx]));
 		}
-		recordGap(rows - 1, prevDefs, identicalDefs);
-		recordGap(rows - 1, prevMissingness, identicalMissingness);
-		recordGap(rows - 1, prevRows, identicalRows);
-		identicalRows[rows - 1] = 1;
-		if (0) {
-			Eigen::Map< Eigen::VectorXi > m1(identicalDefs.data(), rows);
-			Eigen::Map< Eigen::VectorXi > m2(identicalMissingness.data(), rows);
-			Eigen::Map< Eigen::VectorXi > m3(identicalRows.data(), rows);
-			mxPrintMat("m1", m1);
-			mxPrintMat("m2", m2);
-			mxPrintMat("m3", m3);
-		}
-		break;
-	};
-	case JOINT_AUTO:
-	case JOINT_CONDORD:
-	case JOINT_CONDCONT:{
-		cmp.ordinalFirst = true;
-		ofiml->ordinalMissingSame.assign(rows, false);
-		ofiml->continuousMissingSame.assign(rows, false);
-		ofiml->missingSameOrdinalSame.assign(rows, false);
-		ofiml->missingSameContinuousSame.assign(rows, false);
-		ofiml->continuousSame.assign(rows, false);
-		ofiml->missingSame.assign(rows, false);
-		ofiml->ordinalSame.assign(rows, false);
-		int prevSS = -1;
-		for (int rx=1; rx < rows; ++rx) {
-			bool m1;
-			cmp.compareAllDefVars(indexVector[rx-1], indexVector[rx], m1);
-			bool m2;
-			cmp.compareMissingnessPart(false, indexVector[rx-1], indexVector[rx], m2);
-			if (!m1 && !m2) ofiml->ordinalMissingSame[rx] = true;
-			bool m3;
-			cmp.compareMissingnessPart(true, indexVector[rx-1], indexVector[rx], m3);
-			if (!m1 && !m3) ofiml->continuousMissingSame[rx] = true;
-			bool m4;
-			cmp.compareMissingness(indexVector[rx-1], indexVector[rx], m4);
-			if (!m1 && !m4) ofiml->missingSame[rx] = true;
-			bool m7;
-			cmp.compareDataPart(false, indexVector[rx-1], indexVector[rx], m7);
-			if (!m1 && !m2 && !m7) ofiml->ordinalSame[rx] = true;
-			if (!m1 && !m4 && !m7) {
-				ofiml->missingSameOrdinalSame[rx] = true;
-				if (prevSS == -1 && !cmp.isAllMissingnessPart(true, indexVector[rx-1])) {
-					prevSS = rx-1;
-				}
-			} else {
-				if (prevSS != -1) {
-					addSufficientSet(off, prevSS, rx-1);
-					prevSS = -1;
-				}
-			}
-			bool m5;
-			cmp.compareDataPart(true, indexVector[rx-1], indexVector[rx], m5);
-			if (!m1 && !m3 && !m5) ofiml->continuousSame[rx] = true;
-			if (!m1 && !m4 && !m5) ofiml->missingSameContinuousSame[rx] = true;
-
-			if (m1 || m4) continue;
-			bool m6;
-			cmp.compareData(indexVector[rx-1], indexVector[rx], m6);
-			if (m6) continue;
-			ofiml->sameAsPrevious[rx] = true;
-		}
-		if (prevSS != -1) addSufficientSet(off, prevSS, rows-1);
-		if (ofiml->verbose >= 3) {
-			mxLog("key: row ordinalMissingSame continuousMissingSame missingSameOrdinalSame missingSameContinuousSame continuousSame missingSame ordinalSame");
-			for (int rx=0; rx < rows; ++rx) {
-				mxLog("row=%d sortedrow=%d %d %d %d %d %d %d %d", rx, indexVector[rx],
-				      bool(ofiml->ordinalMissingSame[rx]),
-				      bool(ofiml->continuousMissingSame[rx]),
-				      bool(ofiml->missingSameOrdinalSame[rx]),
-				      bool(ofiml->missingSameContinuousSame[rx]),
-				      bool(ofiml->continuousSame[rx]),
-				      bool(ofiml->missingSame[rx]),
-				      bool(ofiml->ordinalSame[rx]));
-			}
-		}
-		break;}
 	}
 }
 
@@ -781,10 +739,6 @@ static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml)
 {
 	switch (ofiml->jointStrat) {
-	case JOINT_OLD:{
-		oldByRow batch(_fc, _localobj, parent, ofiml);
-		return batch.eval();
-	}
 	case JOINT_CONDORD:{
 		condOrdByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
@@ -1102,8 +1056,6 @@ void omxFIMLFitFunction::init()
 		newObj->jointStrat = JOINT_CONDORD;
 	} else if (strEQ(jointStratName, "continuous")) {
 		newObj->jointStrat = JOINT_CONDCONT;
-	} else if (strEQ(jointStratName, "old")) {
-		newObj->jointStrat = JOINT_OLD;
 	} else { Rf_error("jointConditionOn '%s'?", jointStratName); }
 
 	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));

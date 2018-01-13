@@ -651,10 +651,13 @@ class ifaGroup {
 	std::vector<const int*> dataColumns;
 	std::vector<int> rowMap;       // row index into MxData
 	int getNumUnique() const { return (int) rowMap.size(); }
+ private:
 	const char *weightColumnName;
 	double *rowWeight;
- private:
+	const char *freqColumnName;
+	int *rowFreq;
 	int minItemsPerScore;
+	double weightSum;
  public:
 	void setMinItemsPerScore(int mips);
 	std::vector<bool> rowSkip;     // whether to treat the row as NA
@@ -662,6 +665,8 @@ class ifaGroup {
 	// workspace
 	static const double SmallestPatternLik;
 	int excludedPatterns;
+	double getWeightSum() { return weightSum; }
+	Eigen::ArrayXd rowMult;               // numUnique
 	Eigen::ArrayXd patternLik;            // numUnique
 
 	inline static bool validPatternLik(double pl)
@@ -669,6 +674,8 @@ class ifaGroup {
 
 	ifaGroup(int cores, bool _twotier);
 	~ifaGroup();
+	void setRowWeight(double *_in) { rowWeight = _in; }
+	void setRowFreq(int *_in) { rowFreq = _in; }
 	void setGridFineness(double width, int points);
 	void import(SEXP Rlist);
 	void importSpec(SEXP slotValue);
@@ -677,6 +684,7 @@ class ifaGroup {
 	inline double *getItemParam(int ix) { return param + paramRows * ix; }
 	inline const int *dataColumn(int col) { return dataColumns[col]; };
 	void buildRowSkip();
+	void buildRowMult();
 	void ba81OutcomeProb(double *param, bool wantLog);
 	void setFactorNames(std::vector<const char *> &names);
 };

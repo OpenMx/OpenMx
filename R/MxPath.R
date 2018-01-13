@@ -353,18 +353,64 @@ mxPath <- function(from, to = NA,
 		lbound, ubound, joinKey)
 }
 
+prepPath <- function(path) {
+	path@values[ is.na(path@values) ] <- 0
+	
+	if (single.na(path@to)) {
+		# convert model.var -> var
+		path@to <- sapply(path@from, function(x) {
+			pieces <- strsplit(x, imxSeparatorChar, fixed = TRUE)[[1]]
+			ifelse(length(pieces) == 2, pieces[2], pieces[1])
+		}, USE.NAMES = FALSE)
+	}
+	
+	expanded <- expandPathConnect(path@from, path@to, path@connect)
+	path@from <- expanded$from
+	path@to   <- expanded$to
+	path
+}
+
 displayPath <- function(object) {
-	cat("mxPath", '\n')
-	cat("$from: ", omxQuotes(object@from), '\n')
-	cat("$to: ", omxQuotes(object@to), '\n')
-	cat("$arrows: ", object@arrows, '\n')
-	cat("$values: ", object@values, '\n')
-	cat("$free: ", object@free, '\n')
-	cat("$labels: ", object@labels, '\n')
-	cat("$lbound: ", object@lbound, '\n')
-	cat("$ubound: ", object@ubound, '\n')
-    cat("$connect: ", object@connect, '\n')
-    cat("$joinKey: ", object@joinKey, '\n')
+	cat(paste0("mxPath", '\n'))
+
+	path <- prepPath(object)
+	allfrom <- path@from
+	allto <- path@to
+	allarrows <- path@arrows
+	allfree <- path@free
+	allvalues <- path@values
+	alllabels <- path@labels
+	alllbound <- path@lbound
+	allubound <- path@ubound
+	maxlength <- max(length(allfrom), length(allto))
+	
+	for(i in 0:(maxlength - 1)) {
+		from <- allfrom[[i %% length(allfrom) + 1]]
+		to <- allto[[i %% length(allto) + 1]]
+		arrows <- allarrows[[i %% length(allarrows) + 1]]
+		nextvalue <- allvalues[[i %% length(allvalues) + 1]]
+		nextfree <- allfree[[i %% length(allfree) + 1]]
+		nextlabel <- alllabels[[i %% length(alllabels) + 1]]
+		nextubound <- allubound[[i %% length(allubound) + 1]]
+		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
+
+		cat(from)
+		cat(paste0(' ', ifelse(arrows==1, "->", "<->"), ' '))
+		cat(to)
+		cat(paste0(" [value=",nextvalue))
+		cat(paste0(", free=",nextfree))
+		if (!is.na(nextlabel)) {
+			cat(paste0(", label='", nextlabel,"'"))
+		}
+		if (!is.na(nextlbound)) {
+			cat(paste0(", lbound=", nextlbound))
+		}
+		if (!is.na(nextubound)) {
+			cat(paste0(", ubound=", nextubound))
+		}
+		cat("]")
+		cat('\n')
+	}
 }
 
 setMethod("print", "MxPath", function(x,...) { displayPath(x) })

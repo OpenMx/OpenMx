@@ -101,16 +101,16 @@ build-prep:
 	git archive --format=tar HEAD | (cd build; tar -xf -)
 
 cran-build: build-prep
-	cd build && ./util/prep cran && $(REXEC) CMD build .
+	cd build && ./util/prep cran build && $(REXEC) CMD build .
 
 build: build-prep
-	cd build && ./util/prep npsol && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	cd build && ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 build-simple: build-prep
-	cd build && ./util/prep npsol && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	cd build && ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 srcbuild: build-prep
-	cd build && ./util/prep npsol && $(REXEC) CMD build .
+	cd build && ./util/prep npsol build && $(REXEC) CMD build .
 	@echo 'To generate a PACKAGES file, use:'
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='source'"')" | R --vanilla'
 
@@ -127,14 +127,14 @@ cran-check-strict: cran-build
 pdf:
 	-[ -d build ] && rm -r ./build
 	mkdir build
-	./util/prep npsol
+	./util/prep npsol install
 	rm -f $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
 html:
 	-[ -d build ] && rm -r ./build
 	mkdir build
-	./util/prep npsol
+	./util/prep npsol install
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
@@ -152,12 +152,12 @@ doc.tar.bz2: html pdf
 	cd build && tar jcf ../doc.tar.bz2 $(VERSION)
 
 install: code-style
-	./util/prep npsol
+	./util/prep npsol install
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 
 cran-install: code-style
-	./util/prep cran
+	./util/prep cran install
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 

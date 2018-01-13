@@ -107,13 +107,6 @@ omxFIMLFitFunction.o: Makevars omxFIMLFitFunction.cpp omxDefines.h \
  EnableWarnings.h omxFIMLFitFunction.h omxSadmvnWrapper.h Connectedness.h \
  matrix.h Compute.h \
  glue.h
-omxFIMLSingleIteration.o: Makevars omxFIMLSingleIteration.cpp omxDefines.h \
- omxSymbolTable.h omxMatrix.h  \
-  algebraOp.h omxData.h omxAlgebra.h \
- omxState.h omxExpectation.h omxFitFunction.h \
- omxFIMLFitFunction.h omxSadmvnWrapper.h Connectedness.h matrix.h \
- Compute.h \
- glue.h EnableWarnings.h
 omxFitFunction.o: Makevars omxFitFunction.cpp omxFitFunction.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxExpectation.h omxData.h fitMultigroup.h Compute.h \

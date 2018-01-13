@@ -191,8 +191,14 @@ void ssMLFitState::init()
 	
 	state->populateRowDiagnostics = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("rowDiagnostics")));
 	
+	auto *data = expectation->data;
+	if (data->hasWeight() || data->hasFreq()) {
+		Rf_error("%s: row frequencies or weights provided in '%s' are not supported",
+			 expectation->name, data->name);
+	}
+
 	omxState *currentState = oo->matrix->currentState;
-	state->rowLikelihoods = omxInitMatrix(expectation->data->rows, 1, TRUE, currentState);
+	state->rowLikelihoods = omxInitMatrix(data->rows, 1, TRUE, currentState);
 	state->cov = omxGetExpectationComponent(expectation, "cov");
 	
 	int covCols = state->cov->cols;

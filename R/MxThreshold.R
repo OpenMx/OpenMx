@@ -232,7 +232,7 @@ generateDataThresholdColumns <- function(covarianceColumnNames, thresholdsMatrix
 }
 
 verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, threshName) {
-	if (single.na(threshName)) {
+	if (single.na(threshName) || flatModel@unsafe) {
 		return()
 	}
 	

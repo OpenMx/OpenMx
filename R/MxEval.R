@@ -37,7 +37,7 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 		model <- imxPreprocessModel(model)
 		expression <- formulaEliminateObjectiveFunctions(expression)
 		namespace <- imxGenerateNamespace(model)
-		model <- imxFlattenModel(model, namespace)
+		model <- imxFlattenModel(model, namespace, FALSE)
 		expression <- qualifyNamesFormula(expression, model@name, namespace)
 	}
 	if (show) {
@@ -56,6 +56,7 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 	if (!is.vector(result)) {
 		result <- eval(result, envir = env)
 	}
+	if (!is.matrix(result)) result <- as.matrix(result)
 	if (cacheBack) {
 		return(list(result, cache))
 	} else {
@@ -118,14 +119,16 @@ evaluateExpression <- function(formula, contextString, model, labelsData,
 		}
 	}
 	operator <- as.character(formula[1])
-	# N.B. Only use as.matrix on objects that are not numeric or have length greater than 1
-	#  AKA do NOT use as.matrix on numeric length 1 objects, i.e. scalar constants.
-	if (len == 3 && operator %in% c('*', '^', '/')) {
-		if(!is.numeric(formula[[2]]) || length(formula[[2]]) > 1){
+	if (len == 3 && operator %in% c('*', '^', '/', '+', '-')) {
+		if (!is.numeric(formula[[2]]) || length(formula[[2]]) > 1){
 			formula[[2]] <- substitute(as.matrix(x), list(x = formula[[2]]))
+		} else if (is.matrix(formula[[2]]) && length(formula[[2]]) == 1) {
+			formula[[2]] <- substitute(as.numeric(x), list(x = formula[[2]]))
 		}
-		if(!is.numeric(formula[[3]]) || length(formula[[3]]) > 1){
+		if (!is.numeric(formula[[3]]) || length(formula[[3]]) > 1){
 			formula[[3]] <- substitute(as.matrix(x), list(x = formula[[3]]))
+		} else if (is.matrix(formula[[3]]) && length(formula[[3]]) == 1) {
+			formula[[3]] <- substitute(as.numeric(x), list(x = formula[[3]]))
 		}
 	}
 	if (show) {
@@ -314,6 +317,10 @@ computeAlgebra <- function(algebra, model, labelsData, show, defvar.row, env, ca
 }
 
 evaluateMxObject <- function(objname, flatModel, labelsData, cache) {
+	if (flatModel@unsafe) {
+		# need to reimplmement generateThresholdColumns in backend
+		#stop("evaluateMxObject must be avoided in unsafe context")
+	}
 	return(eval(substitute(evaluateSymbol(x, objname, flatModel, 
 			labelsData, globalenv(), compute = TRUE, 
 			show = FALSE, outsideAlgebra = FALSE, defvar.row = 1, 

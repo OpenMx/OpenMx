@@ -59,7 +59,7 @@ A <- mxMatrix('Full', 1, 1, name = 'A')
 B <- mxMatrix('Full', 1, 1, name = 'B', labels = 'A[0,0]')
 model <- mxModel('model', A, B)
 omxCheckError(mxRun(model), 
-              "Requested improper value (0, 0) from (1, 1) matrix")
+              "Requested improper value (0, 0) from (1, 1) matrix 'model.A'")
 kevin <- 'bacon'
 B <- mxAlgebra(A[kevin, ], name = 'B')
 dimnames(A) <- list('Tom', 'Cruise')
@@ -71,8 +71,6 @@ omxCheckError(mxRun(model),
 	      "A cycle has been detected in model 'model' . It involved the following elements: 'model2.Obj' and 'model2.fitfunction'
 A common trigger for this error is not providing a name string as the first parameter to mxModel.")
 mod <- mxModel("amodel", mxMatrix("Full", 4, 1, values=7, name="M"), mxMatrix("Full", 4, 1, values=1:4, name="Thr"))
-omxCheckError(mxEval(M-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
-omxCheckError(mxEval(M[,1]-Thr[1,1], mod), "The following error occurred while evaluating the expression 'M[, 1] - Thr[1, 1]' in model 'amodel' : non-conformable arrays")
 omxCheckError(mxAlgebra(expression="minG", name="blah"), "mxAlgebra wants an unquoted expression or formula")
 omxCheckWarning(omxMnor(matrix(c(1,90,90,1),2,2), c(0, 0), c(-Inf, -Inf), c(1.282,1.282)), "Correlation with absolute value greater than one found.")
 

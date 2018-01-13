@@ -96,10 +96,13 @@ class omxData {
 	int primaryKey;   // column of primary key
 	int weightCol;
 	double *currentWeightColumn;
+	int freqCol;
+	int *currentFreqColumn;
 
  public: // move everything to private TODO
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
-	bool hasWeight() const { return weightCol >= 0 || currentWeightColumn; };
+	bool hasWeight() const { return weightCol >= 0; };
+	bool hasFreq() const { return freqCol >= 0 || currentFreqColumn; };
 	int lookupRowOfKey(int key);
 	int primaryKeyOfRow(int row);
 	void omxPrintData(const char *header, int maxRows, int *permute);
@@ -143,12 +146,18 @@ class omxData {
 	void connectDynamicData(omxState *currentState);
 	void recompute();
 	friend void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey);
-	double *getWeightColumn() { return currentWeightColumn; };
-	void setWeightColumn(double *wc) { currentWeightColumn = wc; }
-	double *getOriginalWeightColumn();
+
+	double *getWeightColumn();
 	double getRowWeight(int row) {
 		if (!hasWeight()) return 1.0;
 		return getWeightColumn()[row];
+	}
+	int *getFreqColumn() { return currentFreqColumn; };
+	void setFreqColumn(int *wc) { currentFreqColumn = wc; }
+	int *getOriginalFreqColumn();
+	int getRowFreq(int row) {
+		if (!hasFreq()) return 1;
+		return getFreqColumn()[row];
 	}
 	int numRawRows();
 	void prohibitNAs(int col);

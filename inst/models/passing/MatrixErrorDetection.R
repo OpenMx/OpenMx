@@ -56,7 +56,7 @@ D <- mxMatrix('Full', 1, 1, labels = 'C[2,3]', name = 'D')
 model <- mxModel('model', A, B, C, D,
                  mxFitFunctionAlgebra("D"))
 omxCheckError(mxRun(model), 
-	"Requested improper value (2, 3) from (2, 2) matrix")
+	"Requested improper value (2, 3) from (2, 2) matrix 'model.C'")
 
 # Error Detection at Construction, by argument to function mxMatrix():  ###
 

@@ -12,19 +12,11 @@ directly in matrix algebra.
 
 Fit functions include ML (summary and full information) and WLS.
 
-The `stable` branch can be considered our
-current alpha release.
-
-An easy way to install the `stable` branch is
-to use `devtools`:
-
-```R
-require(devtools)
-install_github("OpenMx/OpenMx", ref="stable")
-```
-
 Developers commit to the `master` branch.  Intrepid users are
 encouraged to install the `master` branch.
+
+The `stable` branch can be considered our
+current alpha release.
 
 The `stable` branch is updated automatically when all `models/passing`
 and `models/nightly` tests pass along with `make cran-check`.

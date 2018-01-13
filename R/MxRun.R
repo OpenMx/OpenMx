@@ -84,7 +84,7 @@ runHelper <- function(model, frontendStart,
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
-	flatModel <- imxFlattenModel(model, namespace)	
+	flatModel <- imxFlattenModel(model, namespace, unsafe)
 	options <- generateOptionsList(model, length(flatModel@constraints), useOptimizer)
 	options[['intervals']] <- intervals
 
@@ -127,7 +127,7 @@ runHelper <- function(model, frontendStart,
 
 	if (model@.newobjects) {
 		namespace <- imxGenerateNamespace(model)
-		flatModel <- imxFlattenModel(model, namespace)
+		flatModel <- imxFlattenModel(model, namespace, unsafe)
 		labelsData <- imxGenerateLabels(model)
 	}
 
@@ -409,7 +409,7 @@ omxGetBootstrapReplications <- function(model) {
 	   pct <- round(100*sum(mask) / length(mask))
 	   warning(paste0("Only ",pct,"% of the bootstrap replications ",
 			  "converged acceptably. Accuracy is much less than the ", nrow(raw),
-			  " replications requested"), call.=FALSE)
+			  " replications requested. Examine table(model$compute$output$raw$statusCode)"), call.=FALSE)
    }
    bootData
 }

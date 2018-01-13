@@ -164,6 +164,35 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	omxMatrixLeadingLagging(dest);
 }
 
+void omxMatrix::take(omxMatrix *orig)
+{
+	omxFreeInternalMatrixData(this);
+
+	this->rows = orig->rows;
+	this->cols = orig->cols;
+	this->colMajor = orig->colMajor;
+	this->populate = orig->populate;
+
+	this->data = orig->data;
+	this->owner = orig->owner;
+	orig->data = 0;
+	orig->owner = 0;
+
+	omxMatrixLeadingLagging(this);
+
+	omxMarkDirty(orig);
+}
+
+bool omxMatrix::canDiscard()
+{
+	if (hasMatrixNumber ||             // can be referenced from the front-end
+	    populate.size() ||             // has populations from elsewhere
+	    (!algebra && !fitFunction) ||  // any simple matrix that we can't recreate
+	    (algebra && algebra->oate == &(omxAlgebraSymbolTable[62])))   // broadcast
+		return false;
+	return true;
+}
+
 void omxFreeMatrix(omxMatrix *om) {
     
     if(om == NULL) return;
@@ -310,8 +339,9 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	free(errstr);  // TODO not reached
 }
 
-void matrixElementError(int row, int col, int numrow, int numcol) {
-	Rf_error("Requested improper value (%d, %d) from (%d, %d) matrix", row, col, numrow, numcol);
+void matrixElementError(int row, int col, omxMatrix *om) {
+	Rf_error("Requested improper value (%d, %d) from (%d, %d) matrix '%s'",
+		 row, col, om->rows, om->cols, om->name());
 }
 
 void setVectorError(int index, int numrow, int numcol) {

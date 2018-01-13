@@ -60,7 +60,7 @@ template <typename T>
 void BA81LatentFixed<T>::normalizeWeights(class ifaGroup *grp, T extraData,
 					  int px, double patternLik1, int thrId)
 {
-	double weight = grp->rowWeight[px] / patternLik1;
+	double weight = grp->rowMult[px] / patternLik1;
 	grp->quad.weightBy(thrId, weight);
 }
 
@@ -68,7 +68,7 @@ template <typename T>
 void BA81LatentSummary<T>::normalizeWeights(class ifaGroup *grp, T extraData,
 					    int px, double patternLik1, int thrId)
 {
-	double weight = grp->rowWeight[px] / patternLik1;
+	double weight = grp->rowMult[px] / patternLik1;
 	grp->quad.weightByAndSummarize(thrId, weight);
 }
 
@@ -102,9 +102,9 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 	int dim = quad.abilities();
 	int numLatents = dim + triangleLoc1(dim);
 	Eigen::ArrayXd latentDist(numLatents);
-	quad.EAP(extraData->weightSum, latentDist);
+	quad.EAP(extraData->freqSum, latentDist);
 	for (int d1=quad.abilities(); d1 < numLatents; d1++) {
-		latentDist[d1] *= extraData->weightSum / (extraData->weightSum - 1.0);
+		latentDist[d1] *= extraData->freqSum / (extraData->freqSum - 1.0);
 	}
 	exportLatentDistToOMX(quad, latentDist.data(), extraData->estLatentMean, extraData->estLatentCov);
 
@@ -129,7 +129,7 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 	int got = 0;
 	for (size_t ex=0; ex < expectation.size(); ++ex) {
 		BA81Expect *ba81 = (BA81Expect *) expectation[ex];
-		// double weight = 1/ba81->weightSum; ?
+		// double weight = 1/ba81->freqSum; ?
 		combined.addSummary(ba81->grp.quad);
 		++got;
 	}
@@ -214,7 +214,7 @@ void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 			omxCopyMatrix(state->_latentMeanOut, state->estLatentMean);
 			omxCopyMatrix(state->_latentCovOut, state->estLatentCov);
 
-			double sampleSizeAdj = (state->weightSum - 1.0) / state->weightSum;
+			double sampleSizeAdj = (state->freqSum - 1.0) / state->freqSum;
 			int covSize = state->_latentCovOut->rows * state->_latentCovOut->cols;
 			for (int cx=0; cx < covSize; ++cx) {
 				state->_latentCovOut->data[cx] *= sampleSizeAdj;
@@ -502,34 +502,32 @@ void BA81Expect::init() {
 	}
 
 	if (weightCol == NA_INTEGER && !data->hasWeight()) {
-		state->grp.rowWeight = (double*) R_alloc(data->rows, sizeof(double));
-		for (int rx=0; rx < data->rows; ++rx) {
-			state->grp.rowWeight[rx] = 1.0;
-		}
-		state->weightSum = state->data->rows;
+		// OK
 	} else if (data->hasWeight()) {
 		if (weightCol != NA_INTEGER) {
 			Rf_warning("Data '%s' already has a weight column; "
 				   "weight column provided to '%s' ignored", data->name, name);
 		}
-		state->grp.rowWeight = data->getWeightColumn();
-		state->weightSum = omxDataNumObs(data);
+		state->grp.setRowWeight(data->getWeightColumn());
 	} else if (weightCol != NA_INTEGER) {
 		if (omxDataColumnIsFactor(data, weightCol)) {
 			omxRaiseErrorf("%s: weightColumn %d is a factor", name, 1 + weightCol);
 			return;
 		}
-		state->grp.rowWeight = omxDoubleDataColumn(data, weightCol);
-		state->weightSum = 0;
-		for (int rx=0; rx < data->rows; ++rx) { state->weightSum += state->grp.rowWeight[rx]; }
+		state->grp.setRowWeight(omxDoubleDataColumn(data, weightCol));
 	}
-
-	// complain about non-integral rowWeights (EAP can't work) TODO
+	if (data->hasFreq()) {
+		state->grp.setRowFreq(data->getFreqColumn());
+	}
 
 	rowMap.resize(data->rows);
 	for (size_t rx=0; rx < rowMap.size(); ++rx) {
 		rowMap[rx] = rx;
 	}
+
+	// complain about non-integral rowWeights (EAP can't work) TODO
+	state->grp.buildRowMult();
+	state->freqSum = state->grp.getWeightSum();
 
 	auto colMap = getDataColumns();
 
@@ -613,7 +611,8 @@ void BA81Expect::init() {
 
 void BA81Expect::invalidateCache()
 {
-	grp.rowWeight = data->getWeightColumn();
+	grp.setRowFreq(data->getFreqColumn());
+	grp.buildRowMult();
 }
 
 const char *BA81Expect::getLatentIncompatible(BA81Expect *other)
