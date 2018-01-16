@@ -468,7 +468,6 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 		output.add("constraintRows", cr);
 		output.add("constraintCols", cc);
 	}
-	//TODO: figure out why none of the constraint-function values are getting exported to the frontend:
 	if( fc->constraintFunVals.size() ){
 		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
 		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
@@ -697,8 +696,7 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 	}
 }
 
-//TODO: maybe the user should optionally be able to request that non-finite fit values be treated
-//like violated MxConstraints
+
 void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr)
 {
 	int i=0;
