@@ -238,7 +238,7 @@ void omxGREMLExpectation::populateAttr(SEXP algebra) {
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   SEXP b_ext, bcov_ext, RyXcolnames;
   oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
-  Eigen::MatrixXd GREML_b = oge->quadXinv * oge->XtVinv * Eigy;
+  Eigen::MatrixXd GREML_b = oge->quadXinv * (oge->XtVinv * Eigy);
   
   {
   ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
