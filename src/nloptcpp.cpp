@@ -383,6 +383,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
 	SLSQP::omxExtractSLSQPConstraintInfo(wkspc, opt, goc);
 	opt->work = NULL;
+	free(wkspc.realwkspc);
 	
 	nlopt_destroy(opt);
 	
