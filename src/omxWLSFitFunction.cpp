@@ -31,13 +31,14 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* P;
 	omxMatrix* B;
 	int n;
-
+	int fullWls;
+	
 	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
-
+	
 	// 'standard' prefix variables are temp space used by flattenDataToVector
 	omxMatrix* standardCov;
 	omxMatrix* standardMeans;
@@ -453,6 +454,9 @@ void omxWLSFitFunction::init()
 			omxRaiseError("Observed and expected threshold matrices must have the same number of rows and columns");
 		}
 	}
+	
+	// Pull 'weights' from frontend mxFitFunctionWLS()
+	newObj->fullWls = strEQ("WLS", CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("weights")))));
 	
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
