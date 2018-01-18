@@ -122,6 +122,17 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 
 setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 	function(.Object, job, flatJob, labelsData) {
+		if(!is.null(flatJob$data) && flatJob$data$type %in% 'acov'){
+			W <- flatJob$data$acov
+			if(any(W[row(W) != col(W)] != 0)){ # any off-diagonals are non-zero
+				job@fitfunction@weights <- 'WLS'
+			} else if(any(!(W %in% c(0, 1)))){ # any diagonals are non-zero non-unity
+				job@fitfunction@weights <- 'DLS'
+			} else {
+				job@fitfunction@weights <- 'ULS'
+			}
+			job@.newobjects <- TRUE
+		}
 		return(job)
 })
 
