@@ -74,6 +74,11 @@ void omxFitFunction::setUnitsFromName(const char *name)
 	}
 }
 
+bool fitUnitsIsChiSq(FitStatisticUnits units)
+{
+	return units == FIT_UNITS_MINUS2LL || units == FIT_UNITS_SQUARED_RESIDUAL_CHISQ;
+}
+
 const char *fitUnitsToName(FitStatisticUnits units)
 {
 	switch (units) {
@@ -82,6 +87,7 @@ const char *fitUnitsToName(FitStatisticUnits units)
 	case FIT_UNITS_PROBABILITY: return "Pr";
 	case FIT_UNITS_MINUS2LL: return "-2lnL";
 	case FIT_UNITS_SQUARED_RESIDUAL: return "r'Wr";
+	case FIT_UNITS_SQUARED_RESIDUAL_CHISQ: return "r'Wr";
 	default: Rf_error("Don't know how to stringify units %d", units);
 	}
 }
@@ -98,7 +104,7 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 
 static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
 {
-	if (ff->units == FIT_UNITS_MINUS2LL) {
+	if (fitUnitsIsChiSq(ff->units)) {
 		fc->ciobj->evalFit(ff, want, fc);
 	} else {
 		Rf_error("Confidence intervals are not supported for units %s",

@@ -341,7 +341,8 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
-	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL) {
+	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
+	    fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ) {  // refactor TODO
 		numParams = 0;
 		if (verbose >= 1) mxLog("%s: derivatives %s units are meaningless",
 					name, fitUnitsToName(fc->fitUnits));

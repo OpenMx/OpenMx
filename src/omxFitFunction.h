@@ -113,5 +113,6 @@ void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 double totalLogLikelihood(omxMatrix *fitMat);
 
 const char *fitUnitsToName(FitStatisticUnits units);
+bool fitUnitsIsChiSq(FitStatisticUnits units);
 
 #endif /* _OMXFITFUNCTION_H_ */

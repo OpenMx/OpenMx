@@ -280,7 +280,9 @@ void omxWLSFitFunction::init()
 		return;
 	}
 	
-	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
+	fullWls = strEQ("WLS", CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("weights")))));
+
+	oo->units = fullWls? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
 	
 	/* Get Expectation Elements */
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
@@ -454,9 +456,6 @@ void omxWLSFitFunction::init()
 			omxRaiseError("Observed and expected threshold matrices must have the same number of rows and columns");
 		}
 	}
-	
-	// Pull 'weights' from frontend mxFitFunctionWLS()
-	newObj->fullWls = strEQ("WLS", CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("weights")))));
 	
 	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
