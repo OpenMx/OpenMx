@@ -5,8 +5,8 @@ set -o errexit
 
 if [ "$TRAVIS_OS_NAME" != "osx" ]; then exit; fi
 
-dhost=jpritikinlocal@openmx.psyc.virginia.edu
-ddir=/var/openmx/OpenMx2/packages/bin/macosx/travis/
+dhost=root@144.172.84.99
+ddir=/var/www/html/
 
 scp build/OpenMx_*.tgz $dhost:$ddir
 ssh $dhost "cd $ddir"' && ln -sf $(ls -t | head -1) OpenMx_latest.tgz'
