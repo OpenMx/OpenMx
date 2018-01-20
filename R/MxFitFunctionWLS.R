@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2017 The OpenMx Project
+#   Copyright 2007-2018 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -122,6 +122,18 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 
 setMethod("genericFitAddEntities", "MxFitFunctionWLS",
 	function(.Object, job, flatJob, labelsData) {
+		modName <- strsplit(.Object@name, split='.', fixed=TRUE)[[1]][1]
+		if(!is.null(job[[modName]]$data) && job[[modName]]$data$type %in% 'acov'){
+			W <- job[[modName]]$data$acov
+			if(any(W[row(W) != col(W)] != 0)){ # any off-diagonals are non-zero
+				job[[modName]]@fitfunction@weights <- 'WLS'
+			} else if(any(!(W %in% c(0, 1)))){ # any diagonals are non-zero non-unity
+				job[[modName]]@fitfunction@weights <- 'DLS'
+			} else {
+				job[[modName]]@fitfunction@weights <- 'ULS'
+			}
+			job@.newobjects <- TRUE
+		}
 		return(job)
 })
 

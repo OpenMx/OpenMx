@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2017 The OpenMx Project
+%   Copyright 2007-2018 The OpenMx Project
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ The argument \sQuote{expression} is an arbitrary R expression.  Any named entiti
 
 The \code{mxEvalByName} function is a wrapper around \code{mxEval} that takes a character instead of an R expression.
 
-The default behavior is to use the \sQuote{bcbci} \code{method}, due to its superior theoretical properties.  However, its bias-correction can lead to nonsensical results if the number of bootstrap replications is too small for the desired coverage probability.  For example, a lower confidence limit of \code{-Inf}, or an upper confidence limit smaller than the point estimate, are signals that more replications are needed.
+The default behavior is to use the \sQuote{bcbci} \code{method}, due to its superior theoretical properties.
 
 }
 

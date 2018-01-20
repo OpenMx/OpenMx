@@ -1,5 +1,5 @@
  /*
- *  Copyright 2007-2017 The OpenMx Project
+ *  Copyright 2007-2018 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,13 +31,14 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* P;
 	omxMatrix* B;
 	int n;
-
+	int fullWls;
+	
 	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
-
+	
 	// 'standard' prefix variables are temp space used by flattenDataToVector
 	omxMatrix* standardCov;
 	omxMatrix* standardMeans;
@@ -279,7 +280,9 @@ void omxWLSFitFunction::init()
 		return;
 	}
 	
-	oo->units = FIT_UNITS_SQUARED_RESIDUAL;
+	fullWls = strEQ("WLS", CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("weights")))));
+
+	oo->units = fullWls? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
 	
 	/* Get Expectation Elements */
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");

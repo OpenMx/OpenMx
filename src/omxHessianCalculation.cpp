@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2017 The OpenMx Project
+ *  Copyright 2007-2018 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -341,7 +341,8 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
-	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL) {
+	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
+	    fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ) {  // refactor TODO
 		numParams = 0;
 		if (verbose >= 1) mxLog("%s: derivatives %s units are meaningless",
 					name, fitUnitsToName(fc->fitUnits));

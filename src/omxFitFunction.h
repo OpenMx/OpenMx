@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2017 The OpenMx Project
+ *  Copyright 2007-2018 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -113,5 +113,6 @@ void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 double totalLogLikelihood(omxMatrix *fitMat);
 
 const char *fitUnitsToName(FitStatisticUnits units);
+bool fitUnitsIsChiSq(FitStatisticUnits units);
 
 #endif /* _OMXFITFUNCTION_H_ */

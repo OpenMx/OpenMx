@@ -4,7 +4,7 @@
 # 2017-04-14 04:35PM TBATES: update for mxFitFunctionMultigroup(c("MZ", "DZ"))
 # CHECK stil FAILING at line 167
 #
-#   Copyright 2007-2017 The OpenMx Project
+#   Copyright 2007-2018 The OpenMx Project
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.

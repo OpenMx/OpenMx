@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2017 The OpenMx Project
+ *  Copyright 2007-2018 The OpenMx Project
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -131,7 +131,8 @@ enum FitStatisticUnits {
 	FIT_UNITS_UNKNOWN,
 	FIT_UNITS_PROBABILITY,
 	FIT_UNITS_MINUS2LL,
-	FIT_UNITS_SQUARED_RESIDUAL  // OK?
+	FIT_UNITS_SQUARED_RESIDUAL,
+	FIT_UNITS_SQUARED_RESIDUAL_CHISQ,  // full weight matrix
 };
 
 #define GRADIENT_FUDGE_FACTOR(x) (pow(10.0,x))
