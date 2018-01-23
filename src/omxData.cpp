@@ -28,6 +28,10 @@
 #include "glue.h"
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
+#include <ncFile.h>
+#include <ncDim.h>
+#include <ncVar.h>
+#include <ncType.h>
 #include "EnableWarnings.h"
 
 omxData::omxData() : rownames(0), primaryKey(-1), weightCol(-1), currentWeightColumn(0),
@@ -145,6 +149,7 @@ void omxData::recompute()
 
 void omxData::newDataStatic(omxState *state, SEXP dataObj)
 {
+	owner = dataObj;
 	omxData *od = this;
 	SEXP dataLoc, dataVal;
 	int numCols;
@@ -406,7 +411,27 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	return od;
 }
 
-void omxFreeData(omxData* od) {
+void omxData::freeInternal()
+{
+	if (owner) {
+		owner = 0;
+		for (auto &cd : rawCols) {
+			cd.realData = 0;
+			cd.intData = 0;
+		}
+	} else {
+		for (auto &cd : rawCols) {
+			if (cd.realData) delete [] cd.realData;
+			if (cd.intData) delete [] cd.intData;
+			cd.realData = 0;
+			cd.intData = 0;
+		}
+	}
+}
+
+void omxFreeData(omxData* od)
+{
+	od->freeInternal();
 	omxFreeMatrix(od->dataMat);
 	omxFreeMatrix(od->meansMat);
 	omxFreeMatrix(od->acovMat);
@@ -856,3 +881,54 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	return true;
 }
 
+void omxData::reloadFromFile(const std::string &path)
+{
+	using namespace netCDF;
+
+	NcFile nc;
+	try {
+		nc.open(path, NcFile::FileMode::read);
+	} catch (std::exception& e) {
+		mxLog("open('%s'): %s", path.c_str(), e.what());
+		return;
+	}
+
+	NcGroupAtt typeAtt = nc.getAtt("type");
+	std::string type;
+	typeAtt.getValues(type);
+	if (type != "raw") Rf_error("omxData::reloadFromFile: type '%s' not implemented", type.c_str());
+
+	if (dataMat) Rf_error("omxData::reloadFromFile: only data.frame storage is implemented");
+
+	freeInternal();
+
+	auto rowsDim = nc.getDim("rows");
+	rows = rowsDim.getSize();
+
+	for (auto &cd : rawCols) {
+		NcVar nv = nc.getVar(cd.name);
+		NcDim nd = nv.getDim(0);
+		if (int(nd.getSize()) != rows) {
+			Rf_error("Column '%s' is the wrong length (%d != %d)",
+				 rows, int(nd.getSize()));
+		}
+		NcType nt = nv.getType();
+		NcType::ncType t1 = nt.getTypeClass();
+		switch (cd.type) {
+		case COLUMNDATA_ORDERED_FACTOR:
+		case COLUMNDATA_UNORDERED_FACTOR:
+		case COLUMNDATA_INTEGER:
+			if (t1 != NcType::nc_INT) Rf_error("Column '%s' must be integer type", cd.name);
+			cd.intData = new int[rows];
+			nv.getVar(cd.intData);
+			// verify identical factor levels TODO
+			break;
+		case COLUMNDATA_NUMERIC:
+			if (t1 != NcType::nc_DOUBLE) Rf_error("Column '%s' must be double type", cd.name);
+			cd.realData = new double[rows];
+			nv.getVar(cd.realData);
+			break;
+		default: Rf_error("Unknown type"); break;
+		}
+	}
+}
