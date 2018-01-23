@@ -476,6 +476,7 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	}
 	
 	opt->work = NULL;
+	free(wkspc.realwkspc);
 	nlopt_destroy(opt);
 	
 	return;
