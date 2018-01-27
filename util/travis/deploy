@@ -8,5 +8,5 @@ if [ "$TRAVIS_OS_NAME" != "osx" ]; then exit; fi
 dhost=root@144.172.84.99
 ddir=/var/www/html/
 
-scp build/OpenMx_*.tgz $dhost:$ddir
-ssh $dhost "cd $ddir"' && ln -sf $(ls -t | head -1) OpenMx_latest.tgz'
+scp -o CheckHostIP=no build/OpenMx_*.tgz $dhost:$ddir
+ssh -o CheckHostIP=no $dhost "cd $ddir"' && ln -sf $(ls -t | head -1) OpenMx_latest.tgz'
