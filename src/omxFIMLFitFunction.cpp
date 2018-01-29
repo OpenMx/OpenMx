@@ -815,6 +815,9 @@ void omxFIMLFitFunction::invalidateCache()
 	builtCache = false;
 	indexVector.clear();
 	openmpUser = false;
+
+	rowCount = data->rows;
+	omxResizeMatrix(rowLikelihoods, data->rows, 1);
 }
 
 void omxFIMLFitFunction::compute(int want, FitContext *fc)
