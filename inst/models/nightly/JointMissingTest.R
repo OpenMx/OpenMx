@@ -79,7 +79,11 @@ twinmod2 <- mxModel(
 	mxFitFunctionML(jointConditionOn="continuous")
 )
 #Works:
-twinmod2 <- mxModel(twinmod2,mxComputeOnce('fitfunction','fit'))
+twinmod2 <- mxModel(twinmod2,
+	mxComputeSequence(list(
+		mxComputeOnce('fitfunction','fit'),
+		mxComputeNumericDeriv(),
+		mxComputeReportDeriv(checkGradient=FALSE))))
 twinmod3 <- twinmod2
 
 twinmod2 <- mxRun(twinmod2)
@@ -89,4 +93,5 @@ twinmod3 <- mxRun(twinmod3)
 
 print(twinmod2$output$fit - twinmod3$output$fit)
 omxCheckCloseEnough(twinmod2$output$fit, twinmod3$output$fit, 1e-3)
-
+omxCheckCloseEnough(cor(twinmod2$output$gradient, twinmod3$output$gradient), 1, 1e-6)
+omxCheckCloseEnough(cor(vech(twinmod2$output$hessian), vech(twinmod3$output$hessian)), 1, 1e-5)
