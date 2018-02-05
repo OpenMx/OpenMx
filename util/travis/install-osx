@@ -25,8 +25,7 @@ sudo tar -zxf /tmp/gcc.tar.gz -C /
 sudo tar -zxf /tmp/gfort.tar.gz -C /
 
 sudo chown -R `whoami`:admin /usr/local
-brew reinstall gmp
-brew install netcdf
+brew install --force netcdf
 
 echo "netcdf installed"
 
