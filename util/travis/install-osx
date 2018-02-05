@@ -2,6 +2,12 @@
 
 set -ve
 
+#command curl -sSL https://rvm.io/mpapis.asc | gpg --import -
+rvm get stable
+
+# Workaround for travis-ci/travis-ci#8973
+python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
+
 cp ./util/gcc.conf ~/.R/Makevars
 
 xcodebuild -version | head -n 1 | cut -d ' ' -f 2
@@ -14,11 +20,11 @@ curl -Lo /tmp/gfort.tar.gz 'http://prdownloads.sourceforge.net/hpc/gfortran-5.3-
 sudo rm -rf /usr/local/lib/gcc
 sudo rm -rf /usr/local/include/c++
 
-sudo tar -zxvf /tmp/gcc.tar.gz -C /
+sudo tar -zxf /tmp/gcc.tar.gz -C /
 
 echo "gcc installed"
 
-sudo tar -zxvf /tmp/gfort.tar.gz -C /
+sudo tar -zxf /tmp/gfort.tar.gz -C /
 
 echo "gfort installed"
 

@@ -22,8 +22,6 @@ latex: true
 language: r
 git:
   submodules: false
-before_install:
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rvm get stable; fi
 install:
 - mkdir -p ~/.R
 - ./util/travis/install-$TRAVIS_OS_NAME
