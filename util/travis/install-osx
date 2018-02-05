@@ -15,9 +15,16 @@ sudo rm -rf /usr/local/lib/gcc
 sudo rm -rf /usr/local/include/c++
 
 sudo tar -zxvf /tmp/gcc.tar.gz -C /
+
+echo "gcc installed"
+
 sudo tar -zxvf /tmp/gfort.tar.gz -C /
 
+echo "gfort installed"
+
 sudo brew install netcdf
+
+echo "netcdf installed"
 
 curl -L https://github.com/Unidata/netcdf-cxx4/archive/v4.3.0.tar.gz | tar -C /tmp --extract --gunzip --file -
 (cd /tmp/netcdf-cxx4-4.3.0 && ./configure && sudo make install)
