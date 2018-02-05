@@ -28,6 +28,8 @@ sudo tar -zxf /tmp/gfort.tar.gz -C /
 
 echo "gfort installed"
 
+brew deps --installed
+brew reinstall gmp
 brew install netcdf
 
 echo "netcdf installed"
