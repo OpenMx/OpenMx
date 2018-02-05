@@ -17,6 +17,12 @@ sudo rm -rf /usr/local/include/c++
 sudo tar -zxvf /tmp/gcc.tar.gz -C /
 sudo tar -zxvf /tmp/gfort.tar.gz -C /
 
+curl -L https://github.com/Unidata/netcdf-c/archive/v4.6.0.tar.gz | tar -C /tmp --extract --gunzip --file -
+(cd /tmp/netcdf-c-4.6.0/ && ./configure --disable-netcdf-4 && sudo make install)
+
+curl -L https://github.com/Unidata/netcdf-cxx4/archive/v4.3.0.tar.gz | tar -C /tmp --extract --gunzip --file -
+(cd /tmp/netcdf-cxx4-4.3.0 && ./configure && sudo make install)
+
 R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in
 
 which otool
