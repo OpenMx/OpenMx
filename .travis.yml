@@ -9,6 +9,8 @@ addons:
     - gcc-6
     - g++-6
     - gfortran-6
+    - libnetcdf-c++4-dev
+    - libnetcdf-dev
 matrix:
   include:
   - os: osx
