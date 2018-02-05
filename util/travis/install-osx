@@ -22,13 +22,9 @@ sudo rm -rf /usr/local/include/c++
 
 sudo tar -zxf /tmp/gcc.tar.gz -C /
 
-echo "gcc installed"
-
 sudo tar -zxf /tmp/gfort.tar.gz -C /
 
-echo "gfort installed"
-
-brew deps --installed
+sudo chown -R `whoami`:admin /usr/local
 brew reinstall gmp
 brew install netcdf
 
