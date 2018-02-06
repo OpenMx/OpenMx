@@ -78,6 +78,11 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
 	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL, 0);
+	    tgt->algebra->calcDimnames = src->algebra->calcDimnames;
+	    if (!src->algebra->calcDimnames) {
+		    tgt->rownames = src->rownames;
+		    tgt->colnames = src->colnames;
+	    }
     } else if(src->fitFunction != NULL) {
         omxDuplicateFitMatrix(tgt, src, newState);
     }
@@ -105,6 +110,29 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 	auto ff = mat->fitFunction;
 	if (ff) fc->fitUnits = ff->units;
 	st->setWantStage(FF_COMPUTE_FIT);
+}
+
+void CheckAST(omxAlgebra *oa, FitContext *fc)
+{
+	if (!oa->calcDimnames) {
+		if (OMX_DEBUG) mxLog("CheckAST: %s has user assigned dimnames", oa->matrix->name());
+		return;
+	}
+
+	for(int j = 0; j < oa->numArgs; j++) {
+		CheckAST(oa->algArgs[j], fc);
+	}
+
+	if (oa->oate) {
+		if (OMX_DEBUG) mxLog("CheckAST: processing op %s for %s", oa->oate->rName, oa->matrix->name());
+		(*(algebra_op_t)oa->oate->check)(fc, oa->algArgs, oa->numArgs, oa->matrix);
+	} else {
+		// null op
+		auto &arg = oa->algArgs[0];
+		auto &mat = oa->matrix;
+		mat->rownames = arg->rownames;
+		mat->colnames = arg->colnames;
+	}
 }
 
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
@@ -205,7 +233,7 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 	if(oa == NULL) Rf_error("Internal Error: Null Algebra Detected in fillAlgebra.");
 
 	oa->oate = oate;
-	oa->funWrapper = oate->funWrapper;
+	oa->funWrapper = oate->calc;
 	omxAlgebraAllocArgs(oa, oate->numArgs==-1? realNumArgs : oate->numArgs);
 }
 
@@ -269,7 +297,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 	}
 	om->nameStr     = name;
 	oa->sexpAlgebra = algebra;
-	om->loadDimnames(dimnames);
+	oa->calcDimnames = !dimnames || Rf_isNull(dimnames);
+	if (!oa->calcDimnames) om->loadDimnames(dimnames);
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {

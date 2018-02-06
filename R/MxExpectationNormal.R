@@ -22,8 +22,6 @@ setClass(Class = "MxExpectationNormal",
 		means = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		thresholdColumns = "numeric",
-		thresholdLevels = "numeric",
 		threshnames = "character",
 		ExpCov = "matrix",
 		ExpMean = "matrix",
@@ -647,9 +645,6 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		verifyMvnNames(covName, meansName, "expected", flatModel, modelname, class(.Object))
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
 		verifyThresholds(flatModel, model, labelsData, dataName, covNames, threshName)
-		retval <- generateThresholdColumns(flatModel, model, labelsData, covNames, dataName, threshName)
-		.Object@thresholdColumns <- retval[[1]] 
-		.Object@thresholdLevels <- retval[[2]]
 		if (single.na(.Object@dims)) {
 			.Object@dims <- covNames
 		}

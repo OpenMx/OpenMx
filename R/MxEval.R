@@ -318,8 +318,7 @@ computeAlgebra <- function(algebra, model, labelsData, show, defvar.row, env, ca
 
 evaluateMxObject <- function(objname, flatModel, labelsData, cache) {
 	if (flatModel@unsafe) {
-		# need to reimplmement generateThresholdColumns in backend
-		#stop("evaluateMxObject must be avoided in unsafe context")
+		stop("evaluateMxObject must be avoided in unsafe context")
 	}
 	return(eval(substitute(evaluateSymbol(x, objname, flatModel, 
 			labelsData, globalenv(), compute = TRUE, 

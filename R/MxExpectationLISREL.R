@@ -45,8 +45,6 @@ setClass(Class = "MxExpectationLISREL",
 		numStats = "numeric",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		thresholdColumns = "numeric", #Used in FIML
-		thresholdLevels = "numeric", # Used in FIML
 		threshnames = "character",
 		depth = "integer"), #Used to speed up I-A inverse in RAM, could be used to speed up I-B inverse in LISREL
 	contains = "BaseExpectationNormal")
@@ -460,9 +458,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-			retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
-			.Object@thresholdColumns <- retval[[1]]
-			.Object@thresholdLevels <- retval[[2]]
 			if (length(mxDataObject@observed) == 0) {
 				.Object@data <- as.integer(NA)
 			}

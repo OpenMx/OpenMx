@@ -53,6 +53,33 @@ void expm_eigen(int n, double *rz, double *out)
     outMat = inMat.exp();
 }
 
+std::string stringifyDimnames(omxMatrix *source)
+{
+	std::string buf;
+	auto &rownames = source->rownames;
+	auto &colnames = source->colnames;
+	if (rownames.size() || colnames.size()) {
+		buf += "dimnames=list(";
+		if (!rownames.size()) {
+			buf += "NULL";
+		} else {
+			buf += "c(";
+			for (auto &nn : rownames) buf += string_snprintf("'%s', ", nn);
+			buf += ")";
+		}
+		buf += ", ";
+		if (!colnames.size()) {
+			buf += "NULL";
+		} else {
+			buf += "c(";
+			for (auto &nn : colnames) buf += string_snprintf("'%s', ", nn);
+			buf += ")";
+		}
+		buf += ")";
+	}
+	return buf;
+}
+
 void omxPrintMatrix(omxMatrix *source, const char* header) // make static TODO
 {
 	EigenMatrixAdaptor Esrc(source);
@@ -63,23 +90,8 @@ void omxPrintMatrix(omxMatrix *source, const char* header) // make static TODO
 	auto &rownames = source->rownames;
 	auto &colnames = source->colnames;
 	if (rownames.size() || colnames.size()) {
-		buf += ", dimnames=list(";
-		if (!rownames.size()) {
-			buf += "NULL";
-		} else {
-			buf += "c(";
-			for (auto &nn : rownames) buf += string_snprintf("'%s', ", nn);
-			buf += "),";
-		}
-		buf += " ";
-		if (!colnames.size()) {
-			buf += "NULL";
-		} else {
-			buf += "c(";
-			for (auto &nn : colnames) buf += string_snprintf("'%s', ", nn);
-			buf += ")";
-		}
-		buf += ")";
+		buf += ", ";
+		buf += stringifyDimnames(source);
 	}
 
 	mxPrintMatX(header, Esrc, buf);
@@ -277,6 +289,15 @@ void omxMatrix::copyAttr(omxMatrix *src)
 	}
 }
 
+// could build index and binary search
+int omxMatrix::lookupColumnByName(const char *target)
+{
+	for (int cx=0; cx < int(colnames.size()); ++cx) {
+		if (strEQ(colnames[cx], target)) return cx;
+	}
+	return -1;
+}
+
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 {
 	// Always Recompute() before you Resize().
@@ -465,6 +486,11 @@ void omxMatrix::loadDimnames(SEXP dimnames)
 			}
 		}
 	}
+
+	if (OMX_DEBUG) {
+		std::string buf = stringifyDimnames(this);
+		mxLog("matrix %s loaded %s", name(), buf.c_str());
+	}
 }
 
 void omxMatrix::setJoinInfo(SEXP Rmodel, SEXP Rkey)
@@ -548,6 +574,7 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 	omxFreeInternalMatrixData(mat);
 	mat->data = newdata;
 	mat->colMajor = !mat->colMajor;
+	std::swap(mat->colnames, mat->rownames);
 }
 
 void omxTransposeMatrix(omxMatrix *mat) {
@@ -719,6 +746,11 @@ bool omxNeedsUpdate(omxMatrix *matrix)
 		mxLog("%s %s is %s", matrix->getType(), matrix->name(), yes? "dirty" : "clean");
 	}
 	return yes;
+}
+
+void CheckAST(omxMatrix *matrix, FitContext *fc)
+{
+	if (matrix->algebra) CheckAST(matrix->algebra, fc);
 }
 
 void omxRecompute(omxMatrix *matrix, FitContext *fc)

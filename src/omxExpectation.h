@@ -93,7 +93,7 @@ class omxExpectation {					// An Expectation
 	virtual const Eigen::Map<DataColumnType> getDataColumns();
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo();
 
-	void loadThresholds(int numCols, int *thresholdColumn, int *thresholdNumber);
+	void loadThresholds();
 };
 
 omxExpectation *

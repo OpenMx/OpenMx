@@ -45,8 +45,6 @@ setClass(Class = "MxExpectationStateSpace",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		definitionVars = "list",
-		thresholdColumns = "numeric",
-		thresholdLevels = "numeric",
 		threshnames = "character",
 		t = "MxCharOrNumber",
 		scores = "logical",
@@ -337,9 +335,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-			retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
-			.Object@thresholdColumns <- retval[[1]]
-			.Object@thresholdLevels <- retval[[2]]
 			if (length(mxDataObject@observed) == 0) {
 				.Object@data <- as.integer(NA)
 			}
