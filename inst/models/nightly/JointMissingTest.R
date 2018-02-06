@@ -82,8 +82,8 @@ twinmod2 <- mxModel(
 twinmod2 <- mxModel(twinmod2,
 	mxComputeSequence(list(
 		mxComputeOnce('fitfunction','fit'),
-		mxComputeNumericDeriv(),
-		mxComputeReportDeriv(checkGradient=FALSE))))
+		mxComputeNumericDeriv(checkGradient=FALSE),
+		mxComputeReportDeriv())))
 twinmod3 <- twinmod2
 
 twinmod2 <- mxRun(twinmod2)
