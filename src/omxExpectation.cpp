@@ -99,6 +99,8 @@ void omxExpectation::loadThresholds()
 	CheckAST(thresholdsMat, 0);
 	numOrdinal = 0;
 
+	//omxPrint(thresholdsMat, "loadThr");
+
 	auto dc = base::getDataColumns();
 	thresholds.reserve(dc.size());
 	for(int dx = 0; dx < int(dc.size()); dx++) {

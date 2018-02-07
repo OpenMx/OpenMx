@@ -114,8 +114,9 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 
 void CheckAST(omxAlgebra *oa, FitContext *fc)
 {
+	bool debug = false;
 	if (!oa->calcDimnames) {
-		if (OMX_DEBUG) mxLog("CheckAST: %s has user assigned dimnames", oa->matrix->name());
+		if (debug || OMX_DEBUG) mxLog("CheckAST: %s has user assigned dimnames", oa->matrix->name());
 		return;
 	}
 
@@ -124,7 +125,7 @@ void CheckAST(omxAlgebra *oa, FitContext *fc)
 	}
 
 	if (oa->oate) {
-		if (OMX_DEBUG) mxLog("CheckAST: processing op %s for %s", oa->oate->rName, oa->matrix->name());
+		if (debug || OMX_DEBUG) mxLog("CheckAST: processing op %s for %s", oa->oate->rName, oa->matrix->name());
 		(*(algebra_op_t)oa->oate->check)(fc, oa->algArgs, oa->numArgs, oa->matrix);
 	} else {
 		// null op

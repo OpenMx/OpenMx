@@ -776,18 +776,20 @@ updateThresholdDimnames <- function(flatExpectation, flatModel, labelsData) {
 		"the expectation function has specified non-identical threshnames.")
 		stop(msg, call.=FALSE)      
 	}
-	if (!flatModel@unsafe && is.null(colnames(thresholds)) && !single.na(dims)) {
-		tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
-		threshMatrix <- tuple[[1]]
-		if (ncol(threshMatrix) != length(dims)) {
-			modelname <- getModelName(flatExpectation)
-			msg <- paste("The thresholds matrix associated",
-			"with the expectation function in model", 
-			omxQuotes(modelname), "is not of the same length as the 'threshnames'",
-			"argument provided by the expectation function. The 'threshnames' argument is",
-			"of length", length(dims), "and the expected covariance matrix",
-			"has", ncol(threshMatrix), "columns.")
-			stop(msg, call.=FALSE)      
+	if (is.null(colnames(thresholds)) && !single.na(dims)) {
+		if (!flatModel@unsafe) {
+			tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
+			threshMatrix <- tuple[[1]]
+			if (ncol(threshMatrix) != length(dims)) {
+				modelname <- getModelName(flatExpectation)
+				msg <- paste("The thresholds matrix associated",
+					"with the expectation function in model", 
+					omxQuotes(modelname), "is not of the same length as the 'threshnames'",
+					"argument provided by the expectation function. The 'threshnames' argument is",
+					"of length", length(dims), "and the expected covariance matrix",
+					"has", ncol(threshMatrix), "columns.")
+				stop(msg, call.=FALSE)      
+			}
 		}
 		dimnames(flatModel[[threshName]]) <- list(NULL, dims)
 	}
