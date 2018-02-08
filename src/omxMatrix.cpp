@@ -574,10 +574,11 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 	omxFreeInternalMatrixData(mat);
 	mat->data = newdata;
 	mat->colMajor = !mat->colMajor;
-	std::swap(mat->colnames, mat->rownames);
 }
 
-void omxTransposeMatrix(omxMatrix *mat) {
+void omxTransposeMatrix(omxMatrix *mat)
+{
+	std::swap(mat->colnames, mat->rownames);
 	mat->colMajor = !mat->colMajor;
 	
 	if(mat->rows != mat->cols){
