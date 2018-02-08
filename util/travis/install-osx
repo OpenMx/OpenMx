@@ -18,7 +18,6 @@ sudo rm -rf /usr/local/include/c++
 sudo chown -R `whoami`:admin /usr/local
 brew install --force netcdf || echo "continuing anyway"
 
-sudo rm -rf /usr/local/opt/hdf5  # remove extra copy
 sudo rm -rf /usr/local/lib/gcc
 sudo rm -rf /usr/local/include/c++
 
