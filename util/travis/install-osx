@@ -2,9 +2,6 @@
 
 set -ve
 
-#command curl -sSL https://rvm.io/mpapis.asc | gpg --import -
-rvm get stable
-
 # Workaround for travis-ci/travis-ci#8973
 python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
 
@@ -15,20 +12,19 @@ xcodebuild -version | head -n 1 | cut -d ' ' -f 2
 sudo rm -rf /usr/local/lib/gcc
 sudo rm -rf /usr/local/include/c++
 
-sudo chown -R `whoami`:admin /usr/local
-brew install --force netcdf || echo "continuing anyway"
-
-sudo rm -rf /usr/local/lib/gcc
-sudo rm -rf /usr/local/include/c++
-
 # for macos 10.11 :
 
 curl -Lo /tmp/gcc.tar.gz 'http://prdownloads.sourceforge.net/hpc/gcc-5.3-bin.tar.gz?download'
 curl -Lo /tmp/gfort.tar.gz 'http://prdownloads.sourceforge.net/hpc/gfortran-5.3-bin.tar.gz?download'
 
 sudo tar -zxf /tmp/gcc.tar.gz -C /
-
 sudo tar -zxf /tmp/gfort.tar.gz -C /
+
+curl -L https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.20/src/hdf5-1.8.20.tar.bz2 | tar -C /tmp --extract --bzip2 --file -
+(cd /tmp/hdf5-1.8.20 && ./configure --enable-shared && make install)
+
+curl -L ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.3.3.1.tar.gz | tar -C /tmp --extract --gunzip --file -
+(cd /tmp/netcdf-4.3.3.1 && ./configure && make install)
 
 R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in
 
