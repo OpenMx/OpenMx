@@ -2,10 +2,6 @@
 
 set -ve
 
-# can replace with a package once travis moves to a newer image
-wget https://github.com/Unidata/netcdf-cxx4/archive/v4.3.0.tar.gz -O - | tar -C /tmp --extract --gunzip --file -
-(cd /tmp/netcdf-cxx4-4.3.0 && ./configure && sudo make install)
-
 cp ./util/gcc6.conf ~/.R/Makevars
 
 sudo apt-get install -yq --no-install-suggests --no-install-recommends r-cran-digest r-cran-rcpp r-cran-rcppeigen r-cran-stanheaders r-cran-bh r-cran-rpf r-cran-mvtnorm r-cran-numderiv r-cran-roxygen2 r-cran-snowfall r-cran-lme4 r-cran-devtools

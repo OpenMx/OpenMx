@@ -31,9 +31,6 @@ sudo tar -zxf /tmp/gcc.tar.gz -C /
 
 sudo tar -zxf /tmp/gfort.tar.gz -C /
 
-curl -L https://github.com/Unidata/netcdf-cxx4/archive/v4.3.0.tar.gz | tar -C /tmp --extract --gunzip --file -
-(cd /tmp/netcdf-cxx4-4.3.0 && ./configure && sudo make install)
-
 R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in
 
 which otool
