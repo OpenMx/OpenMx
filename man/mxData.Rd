@@ -73,6 +73,8 @@ Frequencies must be integral but weights can be arbitrary real numbers.
 For data with many repeated response patterns, organizing the data into
 unique patterns and frequencies can reduce model evaluation time.
 
+In some cases, the fit function can be evaluated more efficiently when
+data are sorted.
 When a primary key is provided, sorting is disabled. Otherwise, sort defaults to TRUE.
 }
 

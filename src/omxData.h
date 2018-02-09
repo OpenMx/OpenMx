@@ -126,6 +126,8 @@ class omxData {
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
 	bool needSort;
 
+	SEXP owner;	// The R object owning data or NULL if we own it.
+
 	std::vector<omxDefinitionVar> defVars;
  public:
 	int rows, cols;						// Matrix size 
@@ -161,6 +163,8 @@ class omxData {
 	}
 	int numRawRows();
 	void prohibitNAs(int col);
+	void reloadFromFile(const std::string &path);
+	void freeInternal();
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

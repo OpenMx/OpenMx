@@ -98,6 +98,7 @@ class omxMatrix {
 	// char pointers are from R and should not be freed
 	std::vector<const char *> rownames;
 	std::vector<const char *> colnames;
+	int lookupColumnByName(const char *target);
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
 	void take(omxMatrix *orig);
@@ -182,7 +183,7 @@ void omxResizeMatrix(omxMatrix *source, int nrows, int ncols);
 	void omxPrint(omxMatrix *source, const char* d);
 
 void omxRecompute(omxMatrix *matrix, FitContext *fc);
-
+void CheckAST(omxMatrix *matrix, FitContext *fc);
 
 void omxRemoveElements(omxMatrix *om, int removed[]);
 void omxRemoveRowsAndColumns(omxMatrix *om, int rowsRemoved[], int colsRemoved[]);

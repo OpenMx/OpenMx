@@ -124,6 +124,7 @@ man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
+man/mxComputeBenchmark.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
 man/mxComputeEM.Rd

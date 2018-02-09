@@ -93,30 +93,47 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
 	return ox;
 }
 
-void omxExpectation::loadThresholds(int numCols, int *thresholdColumn, int *thresholdNumber)
+void omxExpectation::loadThresholds()
 {
+	bool debug = false;
+	CheckAST(thresholdsMat, 0);
 	numOrdinal = 0;
-	thresholds.reserve(numCols);
-	for(int index = 0; index < numCols; index++) {
+
+	//omxPrint(thresholdsMat, "loadThr");
+
+	auto dc = base::getDataColumns();
+	thresholds.reserve(dc.size());
+	for(int dx = 0; dx < int(dc.size()); dx++) {
+		int index = dc[dx];
 		omxThresholdColumn col;
 		col.dColumn = index;
-		if(thresholdColumn[index] == NA_INTEGER) {	// Continuous variable
-			if(OMX_DEBUG) {
-				mxLog("Column %d is continuous.", index);
+
+		const char *colname = omxDataColumnName(data, index);
+		int tc = thresholdsMat->lookupColumnByName(colname);
+
+		if (tc < 0 || (data->rawCols.size() && !omxDataColumnIsFactor(data, index))) {	// Continuous variable
+			if(debug || OMX_DEBUG) {
+				mxLog("%s: column[%d] '%s' is continuous (tc=%d isFactor=%d)",
+				      name, index, colname, tc, omxDataColumnIsFactor(data, index));
 			}
 			thresholds.push_back(col);
 		} else {
-			col.column = thresholdColumn[index];
-			col.numThresholds = thresholdNumber[index];
+			col.column = tc;
+			if (data->rawCols.size()) {
+				col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
+			} else {
+				// WLS
+			}
+
 			thresholds.push_back(col);
-			if(OMX_DEBUG) {
-				mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
-				      name, index, thresholdNumber[index], thresholdColumn[index]);
+			if(debug || OMX_DEBUG) {
+				mxLog("%s: column[%d] '%s' is ordinal with %d thresholds in threshold column %d.", 
+				      name, index, colname, col.numThresholds, tc);
 			}
 			numOrdinal++;
 		}
 	}
-	if(OMX_DEBUG) {
+	if(debug || OMX_DEBUG) {
 		mxLog("%d threshold columns processed.", numOrdinal);
 	}
 }
@@ -150,23 +167,8 @@ void omxExpectation::loadFromR()
 		ProtectedSEXP threshMatrix(R_do_slot(rObj, Rf_install("thresholds")));
 
 		if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-			if(OMX_DEBUG) {
-				mxLog("Accessing Threshold Mappings.");
-			}
-        
 			ox->thresholdsMat = omxMatrixLookupFromState1(threshMatrix, ox->currentState);
-
-			/* Process the data and threshold mapping structures */
-			/* if (threshMatrix == NA_INTEGER), then we could ignore the slot "thresholdColumns"
-			 * and fill all the thresholds with {NULL, 0, 0}.
-			 * However the current path does not have a lot of overhead. */
-			int* thresholdColumn, *thresholdNumber;
-			ProtectedSEXP nextMatrix (R_do_slot(rObj, Rf_install("thresholdColumns")));
-			thresholdColumn = INTEGER(nextMatrix);
-			ProtectedSEXP itemList(R_do_slot(rObj, Rf_install("thresholdLevels")));
-			thresholdNumber = INTEGER(itemList);
-
-			ox->loadThresholds(numCols, thresholdColumn, thresholdNumber);
+			ox->loadThresholds();
 		} else {
 			if (OMX_DEBUG) {
 				mxLog("No thresholds matrix; not processing thresholds.");

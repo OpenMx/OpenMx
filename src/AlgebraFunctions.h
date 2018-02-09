@@ -40,6 +40,137 @@
 
 /* omxAlgebraFunction Wrappers */
 
+static void omxSkipCheck(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+}
+
+static void omxUnaryCheck(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	result->rownames = matList[0]->rownames;
+	result->colnames = matList[0]->colnames;
+}
+
+static void omxMatrixMultCheck(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxEnsureColumnMajor(matList[0]);
+	omxEnsureColumnMajor(matList[1]);
+	result->rownames = matList[0]->rownames;
+	result->colnames = matList[1]->colnames;
+}
+
+static void omxMatrixHorizCatOpCheck(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	result->rownames = matList[0]->rownames;
+	auto &cn = result->colnames;
+	cn.clear();
+	for (int ax=0; ax < numArgs; ++ax) {
+		auto &a1 = matList[ax]->colnames;
+		cn.insert(cn.end(), a1.begin(), a1.end());
+	}
+}
+
+static void omxMatrixVertCatOpCheck(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	result->colnames = matList[0]->colnames;
+	auto &rn = result->rownames;
+	rn.clear();
+	for (int ax=0; ax < numArgs; ++ax) {
+		auto &a1 = matList[ax]->rownames;
+		rn.insert(rn.end(), a1.begin(), a1.end());
+	}
+}
+
+#define omxMatrixInvertCheck omxUnaryCheck
+#define omxMatrixTransposeCheck omxSkipCheck
+#define omxElementPowerCheck omxUnaryCheck
+#define omxMatrixElementMultCheck omxUnaryCheck
+#define omxKroneckerProdCheck omxSkipCheck
+#define omxQuadraticProdCheck omxSkipCheck
+#define omxElementDivideCheck omxUnaryCheck
+#define omxMatrixAddCheck omxUnaryCheck
+#define omxMatrixSubtractCheck omxUnaryCheck
+#define omxUnaryMinusCheck omxUnaryCheck
+#define omxMatrixDeterminantCheck omxSkipCheck
+#define omxMatrixTraceOpCheck omxSkipCheck
+#define omxMatrixTotalSumCheck omxSkipCheck
+#define omxMatrixTotalProductCheck omxSkipCheck
+#define omxMatrixMaximumCheck omxSkipCheck
+#define omxMatrixMinimumCheck omxSkipCheck
+#define omxMatrixAbsoluteCheck omxSkipCheck
+#define omxElementCosineCheck omxUnaryCheck
+#define omxElementCoshCheck omxUnaryCheck
+#define omxElementSineCheck omxUnaryCheck
+#define omxElementSinhCheck omxUnaryCheck
+#define omxElementTangentCheck omxUnaryCheck
+#define omxElementTanhCheck omxUnaryCheck
+#define omxElementExponentCheck omxUnaryCheck
+#define omxElementNaturalLogCheck omxUnaryCheck
+#define omxElementSquareRootCheck omxUnaryCheck
+#define omxMatrixExtractCheck omxSkipCheck
+#define omxMatrixVechCheck omxSkipCheck
+#define omxMatrixVechsCheck omxSkipCheck
+#define omxMatrixDiagonalCheck omxSkipCheck
+#define omxMatrixFromDiagonalCheck omxSkipCheck
+#define omxMultivariateNormalIntegrationCheck omxSkipCheck
+#define omxAllIntegrationNormsCheck omxSkipCheck
+#define omxSequenceGeneratorCheck omxSkipCheck
+#define omxKroneckerPowerCheck omxSkipCheck
+#define omxRowVectorizeCheck omxSkipCheck
+#define omxColVectorizeCheck omxSkipCheck
+#define omxRealEigenvectorsCheck omxSkipCheck
+#define omxRealEigenvaluesCheck omxSkipCheck
+#define omxImaginaryEigenvectorsCheck omxSkipCheck
+#define omxImaginaryEigenvaluesCheck omxSkipCheck
+#define omxUnaryNegationCheck omxUnaryCheck
+#define omxSelectRowsCheck omxSkipCheck
+#define omxSelectColsCheck omxSkipCheck
+#define omxSelectRowsAndColsCheck omxSkipCheck
+#define omxMatrixArithmeticMeanCheck omxSkipCheck
+#define omxBinaryGreaterThanCheck omxSkipCheck
+#define omxBinaryLessThanCheck omxSkipCheck
+#define omxBinaryAndCheck omxSkipCheck
+#define omxBinaryOrCheck omxSkipCheck
+#define omxBinaryApproxEqualsCheck omxSkipCheck
+#define omxExponentialCheck omxSkipCheck
+#define omxExponentialCheck omxSkipCheck
+#define omxCholeskyCheck omxSkipCheck
+#define omxCovToCorCheck omxSkipCheck
+#define omxVechToMatrixCheck omxSkipCheck
+#define omxVechsToMatrixCheck omxSkipCheck
+#define mxMatrixLogCheck omxSkipCheck
+#define omxBroadcastCheck omxSkipCheck
+#define omxExponentialCheck omxSkipCheck
+#define omxElementPtoZCheck omxSkipCheck
+#define omxElementLgammaCheck omxSkipCheck
+#define omxElementArcSineCheck omxSkipCheck
+#define omxElementArcCosineCheck omxSkipCheck
+#define omxElementArcTangentCheck omxSkipCheck
+#define omxElementAsinhCheck omxSkipCheck
+#define omxElementAcoshCheck omxSkipCheck
+#define omxElementAtanhCheck omxSkipCheck
+#define omxElementLgamma1pCheck omxSkipCheck
+#define omxElementLogPtoZCheck omxSkipCheck
+#define omxElementDbetaCheck omxSkipCheck
+#define omxElementPbetaCheck omxSkipCheck
+#define omxElementBesselICheck omxSkipCheck
+#define omxElementBesselJCheck omxSkipCheck
+#define omxElementBesselKCheck omxSkipCheck
+#define omxElementBesselYCheck omxSkipCheck
+#define omxElementDpoisCheck omxSkipCheck
+#define omxElementPpoisCheck omxSkipCheck
+#define omxElementDnbinomCheck omxSkipCheck
+#define omxElementPnbinomCheck omxSkipCheck
+#define omxElementDchisqCheck omxSkipCheck
+#define omxElementPchisqCheck omxSkipCheck
+#define omxElementDbinomCheck omxSkipCheck
+#define omxElementPbinomCheck omxSkipCheck
+#define omxElementDcauchyCheck omxSkipCheck
+#define omxElementPcauchyCheck omxSkipCheck
+#define omxRowSumsCheck omxSkipCheck
+#define omxColSumsCheck omxSkipCheck
+#define evaluateOnGridCheck omxSkipCheck
+#define omxElementRobustLogCheck omxSkipCheck
+
 static void omxMatrixTranspose(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];

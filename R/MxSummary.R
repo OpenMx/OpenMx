@@ -1078,6 +1078,13 @@ logLik.MxModel <- function(object, ...) {
   zout <- .standardizeParams(x=freeparams,model=model,Apos=Apos,Spos=Spos)
   #Compute SEs, or assign them 'not requested' values, as the case may be:
   if(SE){ 
+  	if(!all(paramnames %in% rownames(ParamsCov))){
+  		stop(paste(
+  			"some free parameter labels do not appear in the dimnames of the parameter estimates' covariance matrix;\n",
+  			"are you running mxStandardizeRAMpaths() on a dependent submodel instead of on its multigroup container model?\n",
+  			"the missing parameter labels are:\n",
+  			paste(paramnames[!(paramnames %in% rownames(ParamsCov))],collapse=", "),sep=""))
+  	}
     #From Mike Hunter's delta method example:
     covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
     jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)

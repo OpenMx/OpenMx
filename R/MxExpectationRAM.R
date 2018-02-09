@@ -21,8 +21,6 @@ setClass(Class = "MxExpectationRAM",
 		M = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		thresholdColumns = "numeric",
-		thresholdLevels = "numeric",
 		depth = "integer",
 		threshnames = "character",
 		usePPML = "logical",
@@ -232,9 +230,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				checkNumberOrdinalColumns(mxDataObject)
 				verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 				.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
-				retval <- generateThresholdColumns(flatModel, model, labelsData, translatedNames, data, threshName)
-				.Object@thresholdColumns <- retval[[1]]
-				.Object@thresholdLevels <- retval[[2]]
 				if (length(mxDataObject@observed) == 0) {
 					.Object@data <- as.integer(NA)
 				}
@@ -261,8 +256,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			}
 		} else {
 			.Object@thresholds <- as.integer(NA)
-			.Object@thresholdColumns <- as.integer(NA)
-			.Object@thresholdLevels <- as.integer(NA)
 		}
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames

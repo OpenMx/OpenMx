@@ -424,7 +424,9 @@ void omxWLSFitFunction::init()
 	if(newObj->expectedMeans != NULL) {
 		vectorSize = vectorSize + ncol;
 	}
-	for(int i = 0; i < int(oThresh.size()); i++) {
+	for(int i = 0, ei=0; i < int(oThresh.size()); i++) {
+		while (ei < int(eThresh.size()) && eThresh[ei].dColumn != oThresh[i].dColumn) ++ei;
+		eThresh[ei].numThresholds = oThresh[i].numThresholds;  // assume
 		vectorSize = vectorSize + oThresh[i].numThresholds;
 	}
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }

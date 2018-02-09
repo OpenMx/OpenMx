@@ -36,6 +36,7 @@ struct omxAlgebra {						// A matrix
 	int numArgs;						// Length of args
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
+	bool calcDimnames;
 	int verbose;
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
 
@@ -61,6 +62,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 																		// NOTE: Duplicates.
 
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc);
+
+void CheckAST(omxAlgebra *matrix, FitContext *fc);
 
 void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc);
 

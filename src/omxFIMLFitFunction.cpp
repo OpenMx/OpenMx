@@ -62,7 +62,8 @@ bool condOrdByRow::eval()
 	VectorXd xi;
 	MatrixXd U11;
 	MatrixXd invOrdCov;
-		
+	int prevRowContinuous = 0;
+
 	int ssx = parent->sufficientSets.size() + 1;
 	if (useSufficientSets && parent->sufficientSets.size()) {
 		auto &sufficientSets = parent->sufficientSets;
@@ -107,7 +108,8 @@ bool condOrdByRow::eval()
 			}
 
 			if (rowContinuous) {
-				if (!parent->ordinalSame[row] || firstRow) {
+				bool firstContinuous = prevRowContinuous == 0;
+				if (!parent->ordinalSame[row] || firstContinuous) {
 					std::vector< omxThresholdColumn > &colInfo = expectation->getThresholdInfo();
 					EigenMatrixAdaptor tMat(thresholdsMat);
 					VectorXd uThresh(rowOrdinal);
@@ -142,7 +144,7 @@ bool condOrdByRow::eval()
 					}
 					U11 = U11.selfadjointView<Eigen::Upper>();
 				}
-				if (!parent->ordinalMissingSame[row] || firstRow) {
+				if (!parent->ordinalMissingSame[row] || firstContinuous) {
 					invOrdCov = ordCov;
 					if (InvertSymmetricPosDef(invOrdCov, 'L')) {
 						reportBadOrdLik(2);
@@ -150,7 +152,7 @@ bool condOrdByRow::eval()
 					}
 					invOrdCov = invOrdCov.selfadjointView<Eigen::Lower>();
 				}
-				if (!parent->missingSameOrdinalSame[row] || firstRow) {
+				if (!parent->missingSameOrdinalSame[row] || firstContinuous) {
 					// Aitken (1934) "Note on Selection from a Multivariate Normal Population"
 					// Or Johnson/Kotz (1972), p.70
 					MatrixXd V22;  //cont
@@ -228,6 +230,7 @@ bool condOrdByRow::eval()
 		} else { contLogLik = 0.0; }
 
 		recordRow(contLogLik, ordLik);
+		prevRowContinuous = rowContinuous;
 	}
 
 	return false;
@@ -249,6 +252,7 @@ bool condContByRow::eval()
 	SimpCholesky< Eigen::MatrixXd >  covDecomp;
 	double contLogLik = 0.0;
 	double ordLik = 1.0;
+	bool ordConditioned = false;
 
 	while(row < lastrow) {
 		if (!loadRow()) return true;
@@ -291,11 +295,13 @@ bool condContByRow::eval()
 				ordMean += ordAdj * (cData - contMean);
 				INCR_COUNTER(conditionMean);
 			}
+			ordConditioned = true;
 		} else if (rowOrdinal) {
-			if (!parent->ordinalMissingSame[row] || firstRow) {
+			if (!parent->ordinalMissingSame[row] || firstRow || ordConditioned) {
 				op.wantOrdinal = true;
 				subsetNormalDist(jointMeans, jointCov, op, rowOrdinal, ordMean, ordCov);
 				newOrdCov = true;
+				ordConditioned = false;
 			}
 		} else if (rowContinuous) {
 			if (!parent->continuousMissingSame[row] || firstRow) {
@@ -809,6 +815,9 @@ void omxFIMLFitFunction::invalidateCache()
 	builtCache = false;
 	indexVector.clear();
 	openmpUser = false;
+
+	rowCount = data->rows;
+	omxResizeMatrix(rowLikelihoods, data->rows, 1);
 }
 
 void omxFIMLFitFunction::compute(int want, FitContext *fc)
