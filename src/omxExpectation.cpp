@@ -103,6 +103,7 @@ void omxExpectation::loadThresholds()
 
 	auto dc = base::getDataColumns();
 	thresholds.reserve(dc.size());
+	std::vector<bool> found(thresholdsMat->cols, false);
 	for(int dx = 0; dx < int(dc.size()); dx++) {
 		int index = dc[dx];
 		omxThresholdColumn col;
@@ -118,6 +119,7 @@ void omxExpectation::loadThresholds()
 			}
 			thresholds.push_back(col);
 		} else {
+			found[tc] = true;
 			col.column = tc;
 			if (data->rawCols.size()) {
 				col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
@@ -133,6 +135,16 @@ void omxExpectation::loadThresholds()
 			numOrdinal++;
 		}
 	}
+
+	if (numOrdinal != thresholdsMat->cols) {
+		std::string buf;
+		for (int cx=0; cx < thresholdsMat->cols; ++cx) {
+			if (found[cx]) continue;
+			buf += string_snprintf(" %d", 1+cx);
+		}
+		omxRaiseErrorf("%s: cannot find data for threshold columns:%s\n(Do appropriate threshold column names match data column names?)", name, buf.c_str());
+	}
+
 	if(debug || OMX_DEBUG) {
 		mxLog("%d threshold columns processed.", numOrdinal);
 	}
