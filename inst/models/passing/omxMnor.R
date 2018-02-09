@@ -35,19 +35,9 @@ lk2 <- omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1))
 omxCheckCloseEnough(lk1, lk2, 1e-7)
 
 mxOption(NULL, "maxOrdinalPerBlock", 3)
-lk3 <- omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1))
-omxCheckTrue(lk1 != lk3)
-omxCheckCloseEnough(lk1, lk3, 5e-6)
-
-mxOption(NULL, "maxOrdinalPerBlock", 2)
-lk4 <- omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1))
-omxCheckTrue(lk1 != lk4)
-omxCheckCloseEnough(lk1, lk4, 1e-5)
-
-mxOption(NULL, "maxOrdinalPerBlock", 1)
-lk5 <- omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1))
-omxCheckTrue(lk1 != lk5)
-omxCheckCloseEnough(lk1, lk5, 1e-4)
+foo <- try(omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1)))
+omxCheckTrue(is(foo, 'try-error'))
+omxCheckTrue(foo[1] == "Error in omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1)) : \n  Ordinal covariance has dependent block larger than 3x3. You must increase mxOption maxOrdinalPerBlock\n")
 
 # ----------------
 

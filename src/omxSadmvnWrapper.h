@@ -179,6 +179,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 
 	void setupCorrelation()
 	{
+		bool debug = false;
 		std::vector<int> cells;
 		for(int i = 1; i < cor.rows(); i++) {
 			for(int j = 0; j < i; j++) {
@@ -188,9 +189,12 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		}
 
 		std::sort(cells.begin(), cells.end(), CorCmp(&cor));
-		//Eigen::VectorXd ec(cells.size());
-		//for (int ex=0; ex < ec.size(); ex++) ec[ex] = cor.data()[cells[ex]];
-		//mxPrintMat("ec", ec);
+
+		if (debug) {
+			Eigen::VectorXd ec(cells.size());
+			for (int ex=0; ex < ec.size(); ex++) ec[ex] = cor.data()[cells[ex]];
+			mxPrintMat("ec", ec);
+		}
 
 		std::vector<int> region;
 		Connectedness::SubgraphType subgraph;
@@ -201,10 +205,18 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 			int row = offset % cor.rows();
 			if (cc.getSizeIfConnected(row, col) <= Global->maxOrdinalPerBlock) {
 				cc.connect(row, col);
+			} else {
+				int opb = Global->maxOrdinalPerBlock;
+				omxRaiseErrorf("Ordinal covariance has dependent block larger than %dx%d. "
+					       "You must increase mxOption maxOrdinalPerBlock",
+					       opb, opb);
+				break;
 			}
 		}
 
-		//mxLog("split %d vars into %d blocks", stddev.size(), cc.numSubgraphs());
+		if (debug) {
+			mxLog("split %d vars into %d blocks", stddev.size(), cc.numSubgraphs());
+		}
 		blocks.clear();
 		blocks.resize(cc.numSubgraphs());
 		int bx = 0;
