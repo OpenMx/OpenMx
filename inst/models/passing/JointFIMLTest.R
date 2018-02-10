@@ -320,8 +320,7 @@ contModel1A <- mxModel("contModel1A",
     mxData(continuousData1, type="raw"),
     mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
     mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
-    mxMatrix("Full", 1, 1, values=c(0), free=FALSE, name="Thresh"),
-    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames=cNames1, thresholds="Thresh", threshnames=c("Ona"))
+    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames=cNames1)
 )
 
 contModel1 <- mxOption(contModel1, "Function precision", 1e-9)
@@ -342,7 +341,7 @@ for(i in 1:nVars) {
    ordinalData1[,i] <- cut(as.vector(ordinalData1[,i]),c(-Inf,quants,Inf), labels=c(0:nThresh))
 }
 ordinalData1 <- mxFactor(ordinalData1, levels=c(0:nThresh))
-ordinalData1[,nVars] <- as.numeric(NA)
+ordinalData1[,nVars] <- mxFactor(NA, levels=1:2)
 names(ordinalData1) <- oNames1
 str(ordinalData1)
 

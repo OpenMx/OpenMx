@@ -54,8 +54,7 @@ Suggests:
     Rmpi,
     rpf (>= 0.45),
     snowfall,
-    lme4,
-    ncdf4
+    lme4
 LazyLoad: yes
 LazyData: yes
 Collate:
