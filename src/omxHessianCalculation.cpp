@@ -78,14 +78,22 @@ struct hess_struct {
 	double *Gbackward;
 	FitContext *fc;
 	omxMatrix* fitMatrix;
+
+	~hess_struct() {
+		delete [] Haprox;
+		delete [] Gcentral;
+		delete [] Gforward;
+		delete [] Gbackward;
+	}
 };
 
 void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc)
 {
-	hess_work->Haprox = (double*) Calloc(numIter, double);		// Hessian Workspace
-	hess_work->Gcentral = (double*) Calloc(numIter, double);		// Gradient Workspace
-	hess_work->Gforward = (double*) Calloc(numIter, double);
-	hess_work->Gbackward = (double*) Calloc(numIter, double);
+	hess_work->probeCount = 0;
+	hess_work->Haprox = new double[numIter];
+	hess_work->Gcentral = new double[numIter];
+	hess_work->Gforward = new double[numIter];
+	hess_work->Gbackward = new double[numIter];
 	hess_work->fitMatrix = fc->lookupDuplicate(fitMat);
 	hess_work->fc = fc;
 	memcpy(fc->est, optima.data(), numParams * sizeof(double));
@@ -381,10 +389,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	struct hess_struct* hess_work;
 	if (numChildren < 2) {
-		hess_work = Calloc(1, struct hess_struct);
+		hess_work = new hess_struct[1];
 		omxPopulateHessianWork(hess_work, fc);
 	} else {
-		hess_work = Calloc(numChildren, struct hess_struct);
+		hess_work = new hess_struct[numChildren];
 		for(int i = 0; i < numChildren; i++) {
 			omxPopulateHessianWork(hess_work + i, fc->childList[i]);
 		}
@@ -449,18 +457,13 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	if (numChildren < 2) {
 		totalProbeCount = hess_work->probeCount;
-		Free(hess_work->Haprox);
-		Free(hess_work->Gcentral);
-	    Free(hess_work);
 	} else {
 		for(int i = 0; i < numChildren; i++) {
 			struct hess_struct *hw = hess_work + i;
 			totalProbeCount += hw->probeCount;
-			Free(hw->Haprox);
-			Free(hw->Gcentral);
 		}
-		Free(hess_work);
 	}
+	delete [] hess_work;
 
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 	double gradNorm = 0.0;
