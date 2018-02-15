@@ -143,12 +143,6 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		this->colInfoPtr = &colInfo;
 	};
 
-	struct CorCmp {
-		Eigen::MatrixXd &cor;
-		CorCmp(Eigen::MatrixXd *_cor) : cor(*_cor) {};
-		bool operator()(int i, int j) { return fabs(cor.data()[i]) > fabs(cor.data()[j]); };
-	};
-
 	template <typename T1>
 	void setCovariance(Eigen::MatrixBase<T1> &cov, FitContext *fc)
 	{
@@ -187,8 +181,6 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 				cells.push_back(&cor.coeffRef(i,j) - &cor.coeffRef(0,0));
 			}
 		}
-
-		std::sort(cells.begin(), cells.end(), CorCmp(&cor));
 
 		if (debug) {
 			Eigen::VectorXd ec(cells.size());
