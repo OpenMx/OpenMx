@@ -64,4 +64,5 @@ goodEntry <- !is.na(ci1) & !is.na(ci2)
 
 omxCheckCloseEnough(sum(goodEntry), 15, 2)
 
+print(max(abs(ci1[goodEntry] - ci2[goodEntry])))
 omxCheckCloseEnough(ci1[goodEntry], ci2[goodEntry], .08)
