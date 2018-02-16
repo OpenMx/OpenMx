@@ -170,6 +170,7 @@ ssMLFitState::~ssMLFitState()
 	omxFreeMatrix(state->smallRow);
 	omxFreeMatrix(state->contRow);
 	omxFreeMatrix(state->rowLikelihoods);
+	omxFreeMatrix(state->RCX);
 }
 
 omxFitFunction *ssMLFitInit()
