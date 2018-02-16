@@ -17,7 +17,7 @@ satCov$free[5,5] <- FALSE
 
 loadings <- mxMatrix("Full", 1, 5,
 	free=TRUE, values=1, name="L", lbound=0)
-loadings$ubound[1,5] <- 2
+loadings$ubound[1,] <- 2
 	
 resid <- mxMatrix("Diag", 5, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
@@ -64,4 +64,5 @@ goodEntry <- !is.na(ci1) & !is.na(ci2)
 
 omxCheckCloseEnough(sum(goodEntry), 15, 2)
 
+print(max(abs(ci1[goodEntry] - ci2[goodEntry])))
 omxCheckCloseEnough(ci1[goodEntry], ci2[goodEntry], .08)

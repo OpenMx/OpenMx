@@ -1,4 +1,19 @@
-# OpenMx bleed / 2.8.0 in the making
+# OpenMx bleed / 2.9.0 in the making (Spring 2018)
+*
+
+# OpenMx 2.8.3 (November 20, 2017)
+* IMPROVED: `mxEval` can use scalar multiplication, division, and powering of matrices.
+* IMPROVED: Ordinal data fit should often be better, and fewer status Reds.
+* FIXED: mxBootstrap bug where replications reported incorrect optimizer status codes
+* IMPROVED: Parametric bootstrapping compatible with multigroup models.
+* IMPROVED: error checking in `mxCompare`, `mxCompareMatrix`, `confint`, `vcov`
+	* Catch case where MxModel hasn't been run or has been modified since it was run.
+* IMPROVED: `omxParallelCI` and `omxRunCI` accept new 'optimizer' argument for calculating CIs
+* IMPROVED: All-ordinal models with complete data can return saturated multinomial model from `mxRefModels`.
+* FIXED: Bug in `mxGetExpected`
+* HELPFUL: OpenMx shows how to set the number of processor threads.
+* NOTE: `mxBootstrap` may incorrectly report optimizer status codes for models using Nelder-Mead.
+* NOTE: large number of replications with `mxBootstrap` may cause protect-stack errors.
 * NEW: Add mxParametricBootstrap
 * NEW: Add simulate S3 alias for mxGenerateData
 * NEW: Add MxExpectationMixture interface.
