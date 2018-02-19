@@ -697,7 +697,7 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 		  }
 		  if ('means' %in% what) {
 			  if(single.na(TXname) & single.na(TYname)){
-					warning("Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or KA matrices to get real means.")
+					warning("Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")
 				  mean <- matrix( , 0, 0)
 			  } else {
 					if(hasX & (single.na(TXname) || single.na(KAname)) ){
