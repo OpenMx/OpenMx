@@ -248,6 +248,8 @@ class mvnByRow {
 			double el1 = get_nanotime() - startTime;
 			ofo->elapsed[shared_ofo->curElapsed] = el1;
 			if (verbose >= 3) mxLog("%d--%d %.2fms", ofo->rowBegin, ofo->rowCount, el1/1000000.0);
+		} else {
+			if (verbose >= 3) mxLog("%d--%d", ofo->rowBegin, ofo->rowCount);
 		}
 	};
 

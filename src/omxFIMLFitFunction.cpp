@@ -20,6 +20,7 @@
 #include <Eigen/Cholesky>
 #include "EnableWarnings.h"
 #include "omxFIMLFitFunction.h"
+#include <limits>
 
 nanotime_t omxFIMLFitFunction::getMedianElapsedTime()
 {
@@ -789,7 +790,7 @@ static void recalcRowBegin(FitContext *fc, omxMatrix *fitMatrix, int parallelism
 	}
 }
 
-static void setParallelism(FitContext *fc, omxData *data, omxFIMLFitFunction *parent,
+static void setParallelism(FitContext *fc, omxFIMLFitFunction *parent,
 			   omxMatrix *fitMatrix, int parallelism)
 {
 	int rows = parent->indexVector.size();
@@ -816,7 +817,7 @@ void omxFIMLFitFunction::invalidateCache()
 	indexVector.clear();
 	openmpUser = false;
 
-	rowCount = data->rows;
+	rowCount = std::numeric_limits<typeof(rowCount)>::max();
 	omxResizeMatrix(rowLikelihoods, data->rows, 1);
 }
 
@@ -860,8 +861,8 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 
 	bool failed = false;
 
-	if (myParent->curParallelism > 1 && fc->childList.size() == 0) {
-		setParallelism(fc, data, myParent, fitMatrix, 1);
+	if (fc->childList.size() == 0) {
+		setParallelism(fc, myParent, fitMatrix, 1);
 	}
 
 	int childStateId = 0;
@@ -874,7 +875,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		int parallelism = (numChildren == 0 || !off->openmpUser) ? 1 : numChildren;
 		if (OMX_DEBUG_FIML_STATS) parallelism = 1;
 		if (parallelism > rows) parallelism = rows;
-		setParallelism(fc, data, myParent, fitMatrix, parallelism);
+		setParallelism(fc, myParent, fitMatrix, parallelism);
 		myParent->origStateId = childStateId;
 		myParent->curElapsed = 0;
 	}
@@ -986,7 +987,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		}
 	}
 	if (reduceParallelism) {
-		setParallelism(fc, data, myParent, fitMatrix, myParent->curParallelism - 1);
+		setParallelism(fc, myParent, fitMatrix, myParent->curParallelism - 1);
 		if (ofiml->verbose >= 2) {
 			mxLog("reducing number of threads to %d", myParent->curParallelism);
 		}
@@ -1046,7 +1047,7 @@ void omxFIMLFitFunction::init()
 	}
 	newObj->data = off->expectation->data;
 	newObj->rowBegin = 0;
-	newObj->rowCount = newObj->data->rows;
+	newObj->rowCount = std::numeric_limits<typeof(rowCount)>::max();
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
