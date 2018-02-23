@@ -368,7 +368,6 @@ class omxComputeGD : public omxCompute {
 	int verbose;
 	double optimalityTolerance;
 	int maxIter;
-	std::vector<int> excludeVars;
 
 	bool useGradient;
 	SEXP hessChol;
@@ -477,14 +476,6 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p10(slotValue, R_do_slot(rObj, Rf_install("gradientStepSize")));
 	gradientStepSize = Rf_asReal(slotValue);
-
-	ProtectedSEXP Rexclude(R_do_slot(rObj, Rf_install(".excludeVars")));
-	excludeVars.reserve(Rf_length(Rexclude));
-	for (int ex=0; ex < Rf_length(Rexclude); ++ex) {
-		int got = varGroup->lookupVar(CHAR(STRING_ELT(Rexclude, ex)));
-		if (got < 0) continue;
-		excludeVars.push_back(got);
-	}
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -493,13 +484,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	if (isErrorRaised()) return;
 
 	size_t numParam = fc->varGroup->vars.size();
-	if (excludeVars.size()) {
-		fc->profiledOut.assign(fc->numParam, false);
-		for (auto vx : excludeVars) {
-			fc->profiledOut[vx] = true;
-			if (OMX_DEBUG + verbose >= 1) mxLog("excludeVar %s", fc->varGroup->vars[vx]->name);
-		}
-	}
 	if (fc->profiledOut.size()) {
 		if (fc->profiledOut.size() != fc->numParam) Rf_error("Fail");
 		for (size_t vx=0; vx < fc->varGroup->vars.size(); ++vx) {
