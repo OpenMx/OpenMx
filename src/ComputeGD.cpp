@@ -118,12 +118,7 @@ void GradientOptimizerContext::reset()
 
 int GradientOptimizerContext::countNumFree()
 {
-	int nf = 0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		++nf;
-	}
-	return nf;
+	return fc->calcNumFree();
 }
 
 GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
@@ -483,13 +478,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMatrix, fc);
 	if (isErrorRaised()) return;
 
-	size_t numParam = fc->varGroup->vars.size();
-	if (fc->profiledOut.size()) {
-		if (fc->profiledOut.size() != fc->numParam) Rf_error("Fail");
-		for (size_t vx=0; vx < fc->varGroup->vars.size(); ++vx) {
-			if (fc->profiledOut[vx]) --numParam;
-		}
-	}
+	size_t numParam = fc->calcNumFree();
 
 	if (numParam <= 0) {
 		omxRaiseErrorf("%s: model has no free parameters", name);
