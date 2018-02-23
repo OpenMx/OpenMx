@@ -33,8 +33,6 @@
 #options(error = utils::recover)
 require(OpenMx)
 
-if (mxOption(NULL, "Default optimizer") == 'NLOPT') stop("SKIP")
-
 lambda <- matrix(c(.8, .5, .7, 0), 4, 1)
 nObs <- 500
 nReps <- 30
