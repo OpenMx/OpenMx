@@ -163,6 +163,10 @@ class FitContext {
 		return vec;
 	}
 	std::vector<bool> profiledOut;
+	int calcNumFree() {
+		std::vector<bool> &po = profiledOut;
+		return numParam - std::count(po.begin(), po.end(), true);
+	};
 	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;

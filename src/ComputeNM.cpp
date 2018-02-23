@@ -500,7 +500,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 //-------------------------------------------------------
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
-	: fc(_fc), NMobj(_nmo), numFree(countNumFree()), 
+	: fc(_fc), NMobj(_nmo), numFree(_fc->calcNumFree()),
    subsidiarygoc(GradientOptimizerContext(_fc, 0L, GradientAlgorithm_Forward, 1L, 1e-5))
 {
 	est.resize(numFree);
@@ -553,16 +553,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		subsidiarygoc.checkForAnalyticJacobians();
 		//Rf_error("so far, so good");
 	}
-}
-
-int NelderMeadOptimizerContext::countNumFree()
-{
-	int nf = 0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		++nf;
-	}
-	return nf;
 }
 
 void NelderMeadOptimizerContext::copyParamsFromFitContext(double *ocpars)
