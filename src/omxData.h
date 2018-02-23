@@ -138,7 +138,7 @@ class omxData {
 	bool loadDefVars(omxState *state, int row); // prefer omxExpectation member fn
 
 	// Used when the expectation provides the observed data (DataDynamic)
-	std::vector<struct omxExpectation *> expectation;   // weak pointers
+	std::vector<class omxExpectation *> expectation;   // weak pointers
 	int version;
 
 	omxData();
