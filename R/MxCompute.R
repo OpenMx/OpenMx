@@ -278,7 +278,6 @@ setClass(Class = "MxComputeGradientDescent",
 	     availableEngines = "character",
 	     tolerance = "numeric",
 	   nudgeZeroStarts = "MxCharOrLogical",
-	   .excludeVars = "MxOptionalChar",
 	   verbose = "integer",
 	     maxMajorIter = "integer",
 	     gradientAlgo = "character",
@@ -328,7 +327,6 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
 		  }
-		  .Object@.excludeVars <- c()
 		  .Object
 	  })
 
@@ -1311,7 +1309,6 @@ setClass(
 		nudgeZeroStarts="MxCharOrLogical",
 		maxIter="integer",
 		defaultMaxIter="logical",
-		.excludeVars="MxOptionalChar",
 		alpha="numeric",
 		betao="numeric",
 		betai="numeric",
@@ -1354,7 +1351,6 @@ setMethod(
 		.Object@nudgeZeroStarts <- nudgeZeroStarts
 		.Object@defaultMaxIter <- ifelse(length(maxIter),FALSE,TRUE)
 		.Object@maxIter <- as.integer(maxIter)
-		.Object@.excludeVars <- c()
 		
 		.Object@alpha <- alpha
 		.Object@betao <- betao

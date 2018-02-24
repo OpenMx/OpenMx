@@ -258,14 +258,6 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	}
 	
 	feasTol = Global->feasibilityTolerance;
-	
-	ProtectedSEXP Rexclude(R_do_slot(rObj, Rf_install(".excludeVars")));
-	excludeVars.reserve(Rf_length(Rexclude));
-	for (int ex=0; ex < Rf_length(Rexclude); ++ex) {
-		int got = varGroup->lookupVar(CHAR(STRING_ELT(Rexclude, ex)));
-		if (got < 0) continue;
-		excludeVars.push_back(got);
-	}
 }
 
 
@@ -274,27 +266,16 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	omxAlgebraPreeval(fitMatrix, fc);
 	if (isErrorRaised()) return;
 	
-	size_t numParam = fc->varGroup->vars.size();
-	if (excludeVars.size()) {
-		fc->profiledOut.assign(fc->numParam, false);
-		for (auto vx : excludeVars) fc->profiledOut[vx] = true;
-	}
-	if (fc->profiledOut.size()) {
-		if (fc->profiledOut.size() != fc->numParam) Rf_error("Fail");
-		for (size_t vx=0; vx < fc->varGroup->vars.size(); ++vx) {
-			if (fc->profiledOut[vx]) --numParam;
-		}
-	}
-	
-	if (numParam <= 0) {
-		omxRaiseErrorf("%s: model has no free parameters", name);
-		return;
-	}
-	
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(fitMatrix);
 	
 	NelderMeadOptimizerContext nmoc(fc, this);
+
+	if (nmoc.numFree <= 0) {
+		omxRaiseErrorf("%s: model has no free parameters", name);
+		return;
+	}
+	
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;
 	nmoc.iniSimplexType = iniSimplexType;
@@ -519,7 +500,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 //-------------------------------------------------------
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
-	: fc(_fc), NMobj(_nmo), numFree(countNumFree()), 
+	: fc(_fc), NMobj(_nmo), numFree(_fc->calcNumFree()),
    subsidiarygoc(GradientOptimizerContext(_fc, 0L, GradientAlgorithm_Forward, 1L, 1e-5))
 {
 	est.resize(numFree);
@@ -572,16 +553,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		subsidiarygoc.checkForAnalyticJacobians();
 		//Rf_error("so far, so good");
 	}
-}
-
-int NelderMeadOptimizerContext::countNumFree()
-{
-	int nf = 0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		++nf;
-	}
-	return nf;
 }
 
 void NelderMeadOptimizerContext::copyParamsFromFitContext(double *ocpars)

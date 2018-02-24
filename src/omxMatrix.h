@@ -51,7 +51,7 @@ class omxMatrix {
 	bool dependsOnParametersCache;    // Ignores free variable groups
 	bool dependsOnDefVarCache;
 	int joinKey;
-	struct omxExpectation *joinModel;
+	class omxExpectation *joinModel;
  public:
 	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1), joinModel(0) {};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
@@ -65,7 +65,7 @@ class omxMatrix {
 	void omxPopulateSubstitutions(int want, FitContext *fc);
 	void markPopulatedEntries();
 	int getJoinKey() const { return joinKey; }
-	struct omxExpectation *getJoinModel() const { return joinModel; }
+	class omxExpectation *getJoinModel() const { return joinModel; }
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
