@@ -93,6 +93,11 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		}
 		data <- cdata[[1]]
 
+		# This is an inefficient way to generate data. It would be
+		# better to generate cpick first and then generate 1 row
+		# at a time from the component expectations. I didn't code
+		# it that way because the API is not really set up for
+		# generating data 1 row at a time.
 		cpick <- NULL
 		if(imxHasDefinitionVariable(model)){
 			if(nrows != nrow(origData)){
