@@ -78,7 +78,7 @@ mix3Fit <- mxRun(mix3)
 # Not a very good test
 omxCheckCloseEnough(sum(apply(mix3Fit$rowWeight$values, 1, function(x) {
   which(x == max(x))
-}) != trail) / length(trail), 0, .33)
+}) != trail) / length(trail), 0, .34)
 
 # ------------------
 
