@@ -43,8 +43,8 @@ omxCheckCloseEnough(mix1Fit$expectation$output$weights,
                     c(mxGetExpected(mix1Fit, 'weights')), 1e-9)
 
 mix1$data$observed <- mxGenerateData(mix1Fit)
-mix1Fit <- mxRun(mix1)
-omxCheckCloseEnough(mix1Fit$expectation$output$weights,
+mix4Fit <- mxRun(mix1)
+omxCheckCloseEnough(mix4Fit$expectation$output$weights,
                     start_prob/sum(start_prob), .04)
 
 # ------------------
