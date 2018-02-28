@@ -265,6 +265,59 @@ class FitContext {
 
 	static void cacheFreeVarDependencies();
 	static void setRFitFunction(omxFitFunction *rff);
+
+	// profiledOut parameters are not subject to optimization
+	template<typename T> void copyEstToOptimizer(Eigen::MatrixBase<T> &out) {
+		int px=0;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			if (profiledOut[vx]) continue;
+			out[px] = est[vx];
+			++px;
+		}
+	};
+	template<typename T> void copyGradToOptimizer(Eigen::MatrixBase<T> &out) {
+		int px=0;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			if (profiledOut[vx]) continue;
+			out[px] = grad[vx];
+			++px;
+		}
+	};
+	template<typename T> void setEstFromOptimizer(Eigen::MatrixBase<T> &in) {
+		int px=0;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			if (profiledOut[vx]) continue;
+			est[vx] = in[px];
+			++px;
+		}
+		copyParamToModel();
+	};
+	template<typename T1, typename T2>
+	void setEstGradFromOptimizer(Eigen::MatrixBase<T1> &ein, Eigen::MatrixBase<T2> &gin) {
+		grad.resize(numParam);
+		grad.setConstant(nan("unset"));
+		int px=0;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			if (profiledOut[vx]) continue;
+			est[vx] = ein[px];
+			grad[vx] = gin[px];
+			++px;
+		}
+		copyParamToModel();
+	};
+	template<typename T1, typename T2>
+	void copyBoxConstraintToOptimizer(Eigen::MatrixBase<T1> &lb, Eigen::MatrixBase<T2> &ub)
+	{
+		int px=0;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			if (profiledOut[vx]) continue;
+			lb[px] = varGroup->vars[vx]->lbound;
+			if (!std::isfinite(lb[px])) lb[px] = NEG_INF;
+			ub[px] = varGroup->vars[vx]->ubound;
+			if (!std::isfinite(ub[px])) ub[px] = INF;
+			++px;
+		}
+	}
 };
 
 void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at);
