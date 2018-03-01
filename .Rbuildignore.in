@@ -9,6 +9,7 @@
 ^.dir-locals.el
 ^.gdbinit
 ^.travis.yml$
+^.devmode$
 .*\.log$
 oprofile_data
 annotated
