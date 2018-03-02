@@ -719,7 +719,7 @@ vcov.MxModel <- function(object, ...) {
 
 omxModelDeleteData <- function(model) {
   if (length(names(model$submodels))) for (sm in names(model$submodels)) {
-    model <- mxModel(model, omxModelDivestData(model[[sm]]))
+    model <- mxModel(model, omxModelDeleteData(model[[sm]]))
   }
   
   if (!is.null(model@data)) {
