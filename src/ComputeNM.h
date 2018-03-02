@@ -29,7 +29,6 @@ public:
 	int verbose;
 	int maxIter;
 	bool defaultMaxIter;
-	std::vector<int> excludeVars;
 	double alpha, betao, betai, gamma, sigma;
 	double bignum;
 	int iniSimplexType; //regular=1, right=2, smartRight=3, random=4
@@ -70,7 +69,6 @@ public:
 class NelderMeadOptimizerContext{
 private:
 	void copyBounds();
-	int countNumFree();
 	FitContext *fc;
 public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);

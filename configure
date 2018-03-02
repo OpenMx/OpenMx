@@ -43,6 +43,11 @@ if test -z "${R_HOME}"; then
    exit 1 
 fi 
 
+devmode=0
+if [ -e .devmode ]; then
+    devmode=1
+fi
+
 REXEC=${R_HOME}/bin/R
 
 echo 'NOTE: ./configure is not an autoconf generated script.'
@@ -67,17 +72,19 @@ if [ "$cxx_type" = gcc ]; then
 	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version 4.6"
 	exit 1
     fi
-    if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
-	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
-	COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
-	xcheck_CXXFLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
-	xcheck_LDFLAGS="-fsanitize=undefined"
-    fi
-    if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
-	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
-    fi
-    if [ $(compareVersions $cxx_version 7.0) -gt -1 ]; then
-	COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
+    if [ $devmode = 1 ]; then
+	if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
+	    COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
+	    xcheck_CXXFLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
+	    xcheck_LDFLAGS="-fsanitize=undefined"
+	fi
+	if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
+	fi
+	if [ $(compareVersions $cxx_version 7.0) -gt -1 ]; then
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
+	fi
     fi
     if [ "${OPENMP-yes}" = yes ]; then
 	OPENMP_CXXFLAGS="-fopenmp"

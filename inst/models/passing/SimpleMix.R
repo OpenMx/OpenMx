@@ -39,6 +39,14 @@ mix1Fit <- mxRun(mix1)
 omxCheckCloseEnough(mix1Fit$expectation$output$weights,
                     start_prob/sum(start_prob), .03)
 
+omxCheckCloseEnough(mix1Fit$expectation$output$weights,
+                    c(mxGetExpected(mix1Fit, 'weights')), 1e-9)
+
+mix1$data$observed <- mxGenerateData(mix1Fit)
+mix4Fit <- mxRun(mix1)
+omxCheckCloseEnough(mix4Fit$expectation$output$weights,
+                    start_prob/sum(start_prob), .04)
+
 # ------------------
 
 mix3 <- mxModel(
@@ -60,6 +68,17 @@ mix3Fit <- mxRun(mix3)
 omxCheckCloseEnough(sum(apply(mix3Fit$rowWeight$values, 1, function(x) {
   which(x == max(x))
 }) != trail) / length(trail), 0, .17)
+
+omxCheckCloseEnough(mix3Fit$expectation$output$weights,
+                    c(mxGetExpected(mix3Fit, 'weights', defvar.row = length(trailN))), 1e-9)
+
+mix3$data$observed <- mxGenerateData(mix3Fit)
+mix3Fit <- mxRun(mix3)
+
+# Not a very good test
+omxCheckCloseEnough(sum(apply(mix3Fit$rowWeight$values, 1, function(x) {
+  which(x == max(x))
+}) != trail) / length(trail), 0, .34)
 
 # ------------------
 

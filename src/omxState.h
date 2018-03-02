@@ -41,7 +41,7 @@
 #include <stdarg.h>
 
 /* Forward declarations for later includes */
-typedef struct omxState omxState;
+typedef class omxState omxState;
 class omxFreeVar;
 struct ConfidenceInterval;
 
@@ -83,7 +83,7 @@ class omxFreeVar {
 		return map;
 	}
 	// Warning: copyToState does not mark matrices dirty
-	void copyToState(struct omxState *os, double val);
+	void copyToState(omxState *os, double val);
 	void markDirty(omxState *os);
 };
 

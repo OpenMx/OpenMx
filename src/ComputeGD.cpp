@@ -36,16 +36,7 @@
 
 void GradientOptimizerContext::copyBounds()
 {
-	FreeVarGroup *varGroup = fc->varGroup;
-	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		solLB[px] = varGroup->vars[vx]->lbound;
-		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
-		solUB[px] = varGroup->vars[vx]->ubound;
-		if (!std::isfinite(solUB[px])) solUB[px] = INF;
-		++px;
-	}
+	fc->copyBoxConstraintToOptimizer(solLB, solUB);
 }
 
 void GradientOptimizerContext::setupSimpleBounds()
@@ -118,12 +109,7 @@ void GradientOptimizerContext::reset()
 
 int GradientOptimizerContext::countNumFree()
 {
-	int nf = 0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		++nf;
-	}
-	return nf;
+	return fc->calcNumFree();
 }
 
 GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
@@ -169,12 +155,8 @@ bool GradientOptimizerContext::hasKnownGradient() const
 
 void GradientOptimizerContext::copyToOptimizer(double *myPars)
 {
-	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		myPars[px] = fc->est[vx];
-		++px;
-	}
+	Eigen::Map<Eigen::VectorXd> vec(myPars, numFree);
+	fc->copyEstToOptimizer(vec);
 }
 
 void GradientOptimizerContext::useBestFit()
@@ -186,28 +168,13 @@ void GradientOptimizerContext::useBestFit()
 
 void GradientOptimizerContext::copyFromOptimizer(double *myPars, FitContext *fc2)
 {
-	int px=0;
-	for (size_t vx=0; vx < fc2->profiledOut.size(); ++vx) {
-		if (fc2->profiledOut[vx]) continue;
-		fc2->est[vx] = myPars[px];
-		++px;
-	}
-	fc2->copyParamToModel();
+	Eigen::Map<Eigen::VectorXd> vec(myPars, numFree);
+	fc2->setEstFromOptimizer(vec);
 }
 
 void GradientOptimizerContext::finish()
 {
-	fc->grad.resize(fc->numParam);
-	fc->grad.setConstant(nan("unset"));
-
-	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		fc->est[vx] = est[px];
-		fc->grad[vx] = grad[px];
-		++px;
-	}
-	fc->copyParamToModel();
+	fc->setEstGradFromOptimizer(est, grad);
 }
 
 double GradientOptimizerContext::solFun(double *myPars, int* mode)
@@ -234,11 +201,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	} else {
 		feasible = true;
 		if (want & FF_COMPUTE_GRADIENT) {
-			int px=0;
-			for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-				if (fc->profiledOut[vx]) continue;
-				grad[px++] = fc->grad[vx];
-			}
+			fc->copyGradToOptimizer(grad);
 		}
 	}
 
@@ -368,7 +331,6 @@ class omxComputeGD : public omxCompute {
 	int verbose;
 	double optimalityTolerance;
 	int maxIter;
-	std::vector<int> excludeVars;
 
 	bool useGradient;
 	SEXP hessChol;
@@ -477,14 +439,6 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p10(slotValue, R_do_slot(rObj, Rf_install("gradientStepSize")));
 	gradientStepSize = Rf_asReal(slotValue);
-
-	ProtectedSEXP Rexclude(R_do_slot(rObj, Rf_install(".excludeVars")));
-	excludeVars.reserve(Rf_length(Rexclude));
-	for (int ex=0; ex < Rf_length(Rexclude); ++ex) {
-		int got = varGroup->lookupVar(CHAR(STRING_ELT(Rexclude, ex)));
-		if (got < 0) continue;
-		excludeVars.push_back(got);
-	}
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -492,20 +446,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMatrix, fc);
 	if (isErrorRaised()) return;
 
-	size_t numParam = fc->varGroup->vars.size();
-	if (excludeVars.size()) {
-		fc->profiledOut.assign(fc->numParam, false);
-		for (auto vx : excludeVars) {
-			fc->profiledOut[vx] = true;
-			if (OMX_DEBUG + verbose >= 1) mxLog("excludeVar %s", fc->varGroup->vars[vx]->name);
-		}
-	}
-	if (fc->profiledOut.size()) {
-		if (fc->profiledOut.size() != fc->numParam) Rf_error("Fail");
-		for (size_t vx=0; vx < fc->varGroup->vars.size(); ++vx) {
-			if (fc->profiledOut[vx]) --numParam;
-		}
-	}
+	size_t numParam = fc->calcNumFree();
 
 	if (numParam <= 0) {
 		omxRaiseErrorf("%s: model has no free parameters", name);
@@ -519,8 +460,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (verbose >= 1) {
 		int numConstr = fitMatrix->currentState->conListX.size();
-		mxLog("%s: engine %s (ID %d) #P=%lu gradient=%s tol=%g constraints=%d",
-		      name, engineName, engine, numParam, gradientAlgoName, optimalityTolerance,
+		mxLog("%s: engine %s (ID %d) #P=%d gradient=%s tol=%g constraints=%d",
+		      name, engineName, engine, int(numParam), gradientAlgoName, optimalityTolerance,
 		      numConstr);
 	}
 
@@ -1872,13 +1813,5 @@ void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 void ComputeTryH::copyBounds(FitContext *fc)
 {
-	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		solLB[px] = varGroup->vars[vx]->lbound;
-		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
-		solUB[px] = varGroup->vars[vx]->ubound;
-		if (!std::isfinite(solUB[px])) solUB[px] = INF;
-		++px;
-	}
+	fc->copyBoxConstraintToOptimizer(solLB, solUB);
 }
