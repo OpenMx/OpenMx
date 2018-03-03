@@ -19,7 +19,6 @@ myDataRaw<-read.table("data/myAutoregressiveData.txt",header=T)
 
 model<-mxModel("Autoregressive Model Path", 
       type="RAM",
-      mxData(myDataRaw,type="raw"),
       #mxData(myDataCov,type="cov", means=myDataMeans, numObs=100),
       manifestVars=c("x1","x2","x3","x4","x5"),
       mxPath(from=c("x1","x2","x3","x4"),
@@ -44,9 +43,17 @@ model<-mxModel("Autoregressive Model Path",
             )
       ) # close model
        
+mxd <- mxData(myDataRaw,type="raw")
+dataSize <- object.size(mxd)
+
+model <- mxModel(model, mxd)
+
 autoregressivePathRaw <-mxRun(model)
 
-autoregressivePathRaw$output
+afterRunSize <- object.size(autoregressivePathRaw)
+bareRunSize <- object.size(omxModelDeleteData(autoregressivePathRaw))
+
+omxCheckCloseEnough(afterRunSize - 2*dataSize, bareRunSize, 310)
 
 # Comparing to old Mx Output
 omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["beta"]], 0.4267, 0.001)
