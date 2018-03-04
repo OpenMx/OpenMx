@@ -512,16 +512,7 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 
 void NelderMeadOptimizerContext::copyBounds()
 {
-	FreeVarGroup *varGroup = fc->varGroup;
-	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		solLB[px] = varGroup->vars[vx]->lbound;
-		if (!std::isfinite(solLB[px])) solLB[px] = NEG_INF;
-		solUB[px] = varGroup->vars[vx]->ubound;
-		if (!std::isfinite(solUB[px])) solUB[px] = INF;
-		++px;
-	}
+	fc->copyBoxConstraintToOptimizer(solLB, solUB);
 }
 
 void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
@@ -557,23 +548,13 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 
 void NelderMeadOptimizerContext::copyParamsFromFitContext(double *ocpars)
 {
-	int px=0;
-	for (size_t vx=0; vx < fc->profiledOut.size(); ++vx) {
-		if (fc->profiledOut[vx]) continue;
-		ocpars[px] = fc->est[vx];
-		++px;
-	}
+	Eigen::Map<Eigen::VectorXd> vec(ocpars, numFree);
+	fc->copyEstToOptimizer(vec);
 }
 
 void NelderMeadOptimizerContext::copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2)
 {
-	int px=0;
-	for (size_t vx=0; vx < fc2->profiledOut.size(); ++vx) {
-		if (fc2->profiledOut[vx]) continue;
-		fc2->est[vx] = x[px];
-		++px;
-	}
-	fc2->copyParamToModel();
+	fc2->setEstFromOptimizer(x);
 }
 
 //----------------------------------------------------------------------

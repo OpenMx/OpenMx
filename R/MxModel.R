@@ -716,3 +716,18 @@ vcov.MxModel <- function(object, ...) {
                omxQuotes(object$name), "fit in", omxQuotes(fu), "units"))
   }
 }
+
+omxModelDeleteData <- function(model) {
+  if (length(names(model$submodels))) for (sm in names(model$submodels)) {
+    model <- mxModel(model, omxModelDeleteData(model[[sm]]))
+  }
+  
+  if (!is.null(model@data)) {
+    model@data <- NULL
+  }
+  
+  if (!is.null(model@runstate) && !is.null(model@runstate$datalist)) {
+    model@runstate$datalist <- NULL
+  }
+  model
+}

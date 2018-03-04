@@ -69,7 +69,6 @@ public:
 class NelderMeadOptimizerContext{
 private:
 	void copyBounds();
-	int countNumFree();
 	FitContext *fc;
 public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);

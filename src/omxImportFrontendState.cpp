@@ -420,9 +420,16 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
 		omxMatrix *arg2 = omxMatrixLookupFromState1(nextLoc, this);
 		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 3));
+		const char *cname = CHAR(Rf_asChar(STRING_ELT(names, ci)));
+		if (arg1->dependsOnDefinitionVariables() ||
+		    arg2->dependsOnDefinitionVariables()) {
+			Rf_warning("Constraint '%s' depends on definition variables;"
+				   " This may not do what you expect. See ?mxConstraint",
+				   cname);
+		}
 		omxMatrix *jac = omxMatrixLookupFromState1(nextLoc, this);
 		int lin = INTEGER(VECTOR_ELT(nextVar,4))[0];
-		omxConstraint *constr = new UserConstraint(fc, CHAR(Rf_asChar(STRING_ELT(names, ci))), arg1, arg2, jac, lin);
+		omxConstraint *constr = new UserConstraint(fc, cname, arg1, arg2, jac, lin);
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
 		constr->prep(fc);

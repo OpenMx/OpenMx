@@ -65,6 +65,64 @@ setMethod("genericNameToNumber", signature("MxExpectationMixture"),
 		  .Object
 	  })
 
+setMethod("genericGetExpected", signature("MxExpectationMixture"),
+	function(.Object, model, what, defvar.row=1, subname=model@name) {
+		ret <- list()
+		if ('weights' %in% what) {
+			wname <- .modifyDottedName(model@name, .Object@weights)
+			weights <- mxEvalByName(wname, model, compute=TRUE, defvar.row=defvar.row)
+			if (.Object@scale == 'softmax') {
+				weights <- exp(weights)
+			} else if (.Object@scale == 'sum') {
+				#OK
+			} else { stop(.Object@scale) }
+			weights <- weights / rowSums(weights)
+			ret[['weights']] <- weights
+		}
+		ret
+	})
+
+setMethod("genericGenerateData", signature("MxExpectationMixture"),
+	function(.Object, model, nrows) {
+		origData <- NULL
+		if (!is.null(model$data) && model$data$type == 'raw') origData <- model$data$observed
+
+		cdata <- list()
+		for (c1 in .Object@components) {
+			cdata[[c1]] <- mxGenerateData(model[[c1]], returnModel=FALSE, nrows=nrows, use.miss=FALSE)
+		}
+		data <- cdata[[1]]
+
+		# This is an inefficient way to generate data. It would be
+		# better to generate cpick first and then generate 1 row
+		# at a time from the component expectations. I didn't code
+		# it that way because the API is not really set up for
+		# generating data 1 row at a time.
+		cpick <- NULL
+		if(imxHasDefinitionVariable(model)){
+			if(nrows != nrow(origData)){
+				stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
+			}
+			cpick <- rep(NA, nrows)
+			for (rx in 1:nrows) {
+				weights <- mxGetExpected(model, "weights", defvar.row=rx)
+				cpick[rx] <- sample.int(length(.Object@components), 1, prob=weights)
+			}
+		} else {
+			weights <- mxGetExpected(model, "weights")
+			cpick <- sample.int(length(.Object@components), nrows, replace=TRUE, prob=weights)
+		}
+		if (length(.Object@components) > 1) for (cx in 2:length(.Object@components)) {
+			data[cpick==cx,] <- cdata[[cx]][cpick == cx,]
+		}
+		if(imxHasDefinitionVariable(model)){
+			for (dcol in setdiff(colnames(origData), colnames(data))) {
+				data[[dcol]] <- origData[[dcol]]
+			}
+		}
+		data
+	})
+
 mxExpectationMixture <- function(components, weights="weights",
 				      ..., verbose=0L, scale=c('softmax','sum')) {
 	if (length(list(...)) > 0) {
