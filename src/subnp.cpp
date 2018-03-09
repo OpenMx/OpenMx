@@ -1369,14 +1369,19 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 
     resP = p_e;
     resY = y_e.block(0, 0, 1, yyRows).transpose();
-    fit.LagrMultipliersOut = resY;
     resHessv = hessv_e;
     resLambda = lambdaValue;
     resGrad = g_e;
-    fit.constraintJacobianOut = a_e;
-    fit.constraintFunValsOut = constraint_e.block(0,0,1,neq);
-    fit.LagrHessianOut = resHessv;
-    
+    if (nc){
+        fit.LagrMultipliersOut.resize(resY.cols());
+        fit.LagrMultipliersOut = resY;
+        fit.constraintJacobianOut.resize(neq+nineq, np);
+        fit.constraintJacobianOut = a_e.block(0,nineq,nc,np);
+        fit.constraintFunValsOut.resize(nc);
+        fit.constraintFunValsOut = constraint_e.block(0,0,1,neq).transpose();
+        fit.LagrHessianOut.resize(resHessv.rows(), resHessv.cols());
+        fit.LagrHessianOut = resHessv;
+    }
 } // end subnp
 
 template <typename T1, typename T2>
@@ -1524,13 +1529,18 @@ void CSOLNP::calculateJac(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eig
 
         fit.copyFromOptimizer(tmpv_e.derived().data());
         if (std::isnan(fit.analyticEqJacTmp.col(i).sum()))
-            fit.solEqBFun(jacFlag);
+            fit.solEqBFun(false);
         if (std::isnan(fit.analyticIneqJacTmp.col(i).sum()))
-            fit.myineqFun(jacFlag);
+            fit.myineqFun(false);
         Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
         Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
         Eigen::RowVectorXd firstPart_e(1, neq + nineq);
-        firstPart_e << eqv_e, ineqv_e;
+        if (neq && nineq)
+            firstPart_e << eqv_e, ineqv_e;
+        else if (neq)
+            firstPart_e << eqv_e;
+        else if (nineq)
+            firstPart_e << ineqv_e;
         Eigen::RowVectorXd secondPart_e;
         secondPart_e = vscale_e.block(0, 1, 1, neq+nineq);
         firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
