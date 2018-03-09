@@ -162,5 +162,6 @@ Collate:
     'MxTryHard.R'
     'MxSE.R'
     'MxAutoStart.R'
+    'MxRetro.R'
     'zzz.R'
 Version: @VERSION@

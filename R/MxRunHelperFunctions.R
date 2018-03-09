@@ -152,7 +152,7 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 			output$istate <- GDstep@output$istate
 		}
 	}
-	else if(GDstep@engine=="SLSQP"){
+	else if(GDstep@engine=="CSOLNP" || GDstep@engine=="SLSQP"){
 		
 		#Initialize variables:
 		cfvNames <- NULL

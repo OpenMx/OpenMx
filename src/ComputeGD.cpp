@@ -243,7 +243,7 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 		}
 		cur += con.size;
 	}
-	
+
 	if (verbose >= 3) {
 		mxPrintMat("equality", equality);
 	}
@@ -536,6 +536,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		rf.CSOLNP_HACK = true;
+		rf.checkForAnalyticJacobians();
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
@@ -544,6 +545,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
 			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 		}
+		fc->constraintFunVals = rf.constraintFunValsOut;
+                fc->LagrMultipliers = rf.LagrMultipliersOut;
+                fc->constraintJacobian = rf.constraintJacobianOut;
+                fc->LagrHessian = rf.LagrHessianOut;
 		break;
         case OptEngine_NLOPT:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;

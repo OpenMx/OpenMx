@@ -1,7 +1,5 @@
 require(OpenMx)
 
-if (mxOption(NULL,"Default optimizer")=='CSOLNP') stop("SKIP")
-
 options(mxCondenseMatrixSlots=TRUE)  #<--Saves memory
 require(mvtnorm)
 
