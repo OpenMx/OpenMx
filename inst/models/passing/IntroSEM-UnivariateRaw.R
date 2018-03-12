@@ -45,7 +45,7 @@ data(multiData1)
 
 manifests <- c("x1", "y")
 
-uniRegModelRaw <- mxModel("FIML Univariate Regression of y on x1",
+uniRegModelRaw <- mxModel("ur",
     type="RAM",
     manifestVars=manifests,
     mxPath(from="x1", to="y", arrows=1, 
@@ -59,7 +59,7 @@ uniRegModelRaw <- mxModel("FIML Univariate Regression of y on x1",
     mxData(observed=multiData1, type="raw")
     )
 
-uniRegModelRawOut <- mxRun(uniRegModelRaw, suppressWarnings=TRUE)
+uniRegModelRawOut <- mxRun(uniRegModelRaw)
 
 summary(uniRegModelRawOut)
 
@@ -80,8 +80,23 @@ omxCheckCloseEnough(expectSE,
 
 omxCheckCloseEnough(expectMin, uniRegModelRawOut$output$minimum, 0.001)
 
+# -----------------
 
+uniRegModelRaw$fitfunction$rowDiagnostics <- TRUE
+urm1 <- mxRun(uniRegModelRaw)
+lk <- attr(urm1$fitfunction$result, 'likelihoods')
 
+omxCheckCloseEnough(urm1$output$fit, expectMin, 1e-3)
+omxCheckCloseEnough(-2 * sum(log(lk)), expectMin, 1e-3)
 
-    
+algModel <- mxModel("wrap",
+	mxModel(uniRegModelRaw, mxFitFunctionML(vector=TRUE, rowDiagnostics=TRUE)),
+	mxAlgebra(-2*sum(log(ur.fitfunction)), 'm2ll'),
+	mxFitFunctionAlgebra('m2ll'))
 
+urm2 <- mxRun(algModel)
+
+omxCheckCloseEnough(urm2$output$fit, expectMin, 1e-3)
+
+omxCheckEquals(max(abs(urm2$ur$fitfunction$info$likelihoods -
+                         urm2$ur$fitfunction$result)),0)

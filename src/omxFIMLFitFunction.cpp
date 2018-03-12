@@ -66,7 +66,7 @@ bool condOrdByRow::eval()
 	int prevRowContinuous = 0;
 
 	int ssx = parent->sufficientSets.size() + 1;
-	if (useSufficientSets && parent->sufficientSets.size()) {
+	if (parent->sufficientSets.size()) {
 		auto &sufficientSets = parent->sufficientSets;
 		sufficientSet ssRef;
 		ssRef.start = row;
@@ -196,7 +196,7 @@ bool condOrdByRow::eval()
 			const MatrixXd &iV = covDecomp.getInverse();
 
 			if (row < rows-1 && parent->missingSameOrdinalSame[row+1] &&
-			    useSufficientSets && ssx < (int)parent->sufficientSets.size()) {
+			    ssx < (int)parent->sufficientSets.size()) {
 				INCR_COUNTER(contDensity);
 				sufficientSet &ss = parent->sufficientSets[ssx++];
 				if (ss.start != row) Rf_error("oops");
@@ -609,6 +609,7 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 static void addSufficientSet(omxFitFunction *off, int from, int to)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
+	if (!ofiml->useSufficientSets) return;
 	//mxLog("ss from %d to %d length %d", from, to, 1 + to - from);
 	omxData *data = ofiml->data;
 	double *rowWeight = data->getWeightColumn();
@@ -947,12 +948,12 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 
 	if (ofiml->verbose >= 3) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
 
-	if (!returnRowLikelihoods && ofiml->skippedRows == rows) {
+	if (!returnVector && ofiml->skippedRows == rows) {
 		// all rows skipped
 		failed = true;
 	}
 	if (failed) {
-		if(!returnRowLikelihoods) {
+		if(!returnVector) {
 			omxSetMatrixElement(off->matrix, 0, 0, NA_REAL);
 		} else {
 			EigenArrayAdaptor got(off->matrix);
@@ -961,8 +962,13 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		return;
 	}
 
-	if(!returnRowLikelihoods) {
-		if (myParent->curParallelism > 1) {
+	if (!returnVector) {
+		if (wantRowLikelihoods) {
+			double sum = 0.0;
+			EigenVectorAdaptor rl(ofiml->rowLikelihoods);
+			sum = rl.array().log().sum();
+			omxSetMatrixElement(off->matrix, 0, 0, sum);
+		} else if (myParent->curParallelism > 1) {
 			double sum = 0.0;
 			for(int i = 0; i < myParent->curParallelism; i++) {
 				FitContext *kid = fc->childList[i];
@@ -1024,6 +1030,7 @@ void omxFIMLFitFunction::init()
 	newObj->ordSetupCount = 0;
 	newObj->ordDensityCount = 0;
 	newObj->contDensityCount = 0;
+	newObj->wantRowLikelihoods = false;
 
 	cov = omxGetExpectationComponent(expectation, "cov");
 	if(cov == NULL) { 
@@ -1068,19 +1075,21 @@ void omxFIMLFitFunction::init()
 		newObj->jointStrat = JOINT_CONDCONT;
 	} else { Rf_error("jointConditionOn '%s'?", jointStratName); }
 
-	newObj->returnRowLikelihoods = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
+	returnVector = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 
-	units = returnRowLikelihoods? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
+	units = returnVector? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
+	if (returnVector) wantRowLikelihoods = true;
 
-	newObj->useSufficientSets = !newObj->returnRowLikelihoods;
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
 	
 	
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood population option.");
 	}
-	newObj->populateRowDiagnostics = Rf_asInteger(R_do_slot(rObj, Rf_install("rowDiagnostics")));
+	populateRowDiagnostics = Rf_asInteger(R_do_slot(rObj, Rf_install("rowDiagnostics")));
+	if (populateRowDiagnostics) wantRowLikelihoods = true;
 
+	newObj->useSufficientSets = !newObj->wantRowLikelihoods;
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing variable mapping structure.");
