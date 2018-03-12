@@ -426,7 +426,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gradientAlgo")));
 	if (Rf_isNull(slotValue)) {
-		if (engine == OptEngine_CSOLNP) {
+		if (engine == OptEngine_CSOLNP || engine == OptEngine_SD) {
 			gradientAlgo = GradientAlgorithm_Forward;
 			gradientAlgoName = "forward";
 		} else if (engine == OptEngine_NLOPT) {
