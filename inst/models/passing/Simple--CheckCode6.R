@@ -15,7 +15,6 @@
 
 require(OpenMx)
 #mxOption(NULL, "Default optimizer", "NPSOL")
-omxCheckEquals(mxOption(NULL, "Gradient algorithm"), "central")
 
 m1 <- mxModel(
   mxMatrix(nrow=1,ncol=1,free=TRUE,name="x", values=.5),

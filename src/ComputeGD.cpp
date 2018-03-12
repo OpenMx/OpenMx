@@ -425,13 +425,23 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gradientAlgo")));
-	gradientAlgoName = CHAR(Rf_asChar(slotValue));
-	if (strEQ(gradientAlgoName, "forward")) {
-		gradientAlgo = GradientAlgorithm_Forward;
-	} else if (strEQ(gradientAlgoName, "central")) {
-		gradientAlgo = GradientAlgorithm_Central;
+	if (Rf_isNull(slotValue)) {
+		if (engine == OptEngine_CSOLNP) {
+			gradientAlgo = GradientAlgorithm_Forward;
+			gradientAlgoName = "forward";
+		} else if (engine == OptEngine_NLOPT) {
+			gradientAlgo = GradientAlgorithm_Central;
+			gradientAlgoName = "central";
+		} 
 	} else {
+		gradientAlgoName = CHAR(Rf_asChar(slotValue));
+		if (strEQ(gradientAlgoName, "forward")) {
+			gradientAlgo = GradientAlgorithm_Forward;
+		} else if (strEQ(gradientAlgoName, "central")) {
+			gradientAlgo = GradientAlgorithm_Central;
+		} else {
 		Rf_error("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
+		}
 	}
 
 	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("gradientIterations")));
