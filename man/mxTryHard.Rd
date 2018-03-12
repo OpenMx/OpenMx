@@ -4,6 +4,7 @@
 \alias{mxTryHardctsem}
 \alias{mxTryHardWideSearch}
 \alias{mxTryHardOrdinal}
+\alias{THard}
 
 \title{Make multiple attempts to run a model}
 
