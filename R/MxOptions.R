@@ -169,7 +169,7 @@ otherOptions <- list(
     "mvnAbsEps" = 0,
     "mvnRelEps" = 1e-3,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
-    "Gradient algorithm" = "central",
+    "Gradient algorithm" = NULL,
     "Gradient iterations" = "Auto",#1L,
     "Gradient step size" = "Auto",#1.0e-7,
     "Parallel diagnostics" = "No",

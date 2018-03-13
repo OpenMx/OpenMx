@@ -70,8 +70,9 @@ class omxFIMLFitFunction : public omxFitFunction {
 	omxData* data;				// The data
 
 	omxMatrix* rowLikelihoods;     // The row-by-row likelihoods
-	int returnRowLikelihoods;   // Whether or not to return row-by-row likelihoods
-	int populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
+	bool wantRowLikelihoods;
+	bool returnVector;   // Whether or not to return row-by-row likelihoods
+	bool populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
 
 	int skippedRows;
 	int origStateId;
@@ -165,7 +166,8 @@ class mvnByRow {
 	FitContext *fc;
 	const Eigen::Map<Eigen::VectorXi> dataColumns;
 	omxMatrix *rowLikelihoods;
-	bool returnRowLikelihoods;
+	bool returnVector;
+	bool wantRowLikelihoods;
 	std::vector<bool> &isOrdinal;
 	int numOrdinal;
 	int numContinuous;
@@ -222,7 +224,8 @@ class mvnByRow {
 		ofiml = _ofiml;
 		parent = _parent;
 		rowLikelihoods = ofiml->rowLikelihoods;
-		returnRowLikelihoods = ofiml->returnRowLikelihoods;
+		returnVector = ofiml->returnVector;
+		wantRowLikelihoods = ofiml->wantRowLikelihoods;
 		localobj = _localobj;
 		omxSetMatrixElement(localobj->matrix, 0, 0, 0.0);
 		numOrdinal = ofiml->numOrdinal;
@@ -294,7 +297,7 @@ class mvnByRow {
 
 	void record(double logLik, int nrows)
 	{
-		if (returnRowLikelihoods) Rf_error("oops");
+		if (wantRowLikelihoods) Rf_error("oops");
 		if (!std::isfinite(logLik)) {
 			ofiml->skippedRows += nrows;
 		} else {
@@ -309,7 +312,7 @@ class mvnByRow {
 	void skipRow()
 	{
 		int oldRow = row;
-		if (returnRowLikelihoods) {
+		if (wantRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
 			double rowLik = 0.0;
 			rl[sortedRow] = rowLik;
@@ -344,7 +347,7 @@ class mvnByRow {
 		if (OMX_DEBUG_ROWS(sortedRow)) {
 			mxLog("%d/%d ordLik %g contLogLik %g", row, sortedRow, ordLik, contLogLik);
 		}
-		if (returnRowLikelihoods) {
+		if (wantRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
 			double rowLik = exp(contLogLik) * ordLik;
 			double rowLik1 = rowLik;
@@ -389,24 +392,6 @@ class mvnByRow {
 				row += 1;
 			}
 		}
-		firstRow = false;
-	}
-
-	void recordRowOld(double rowLik) // TODO remove
-	{
-		auto &identicalRows = shared_ofo->identicalRows;
-		int numIdentical = identicalRows[row];
-                if (returnRowLikelihoods) {
-                        EigenVectorAdaptor rl(rowLikelihoods);
-			for(int nid = 0; nid < numIdentical; nid++) {
-				int to = indexVector[row+nid];
-				rl[to] = rowLik;
-                        }
-                } else {
-                        EigenVectorAdaptor rl(localobj->matrix);
-			rl[0] += numIdentical * log(rowLik);
-                }
-		row += numIdentical;
 		firstRow = false;
 	}
 
