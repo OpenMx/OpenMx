@@ -229,12 +229,14 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	AIC.p <- Fvalue + 2 * nParam
 	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) 
 	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24))
+	AICc <- Fvalue + 2*nParam + (2*nParam*(nParam+1))/(retval[['numObs']]-nParam-1)
 	retval[['satDoF']] <- satDoF
 	retval[['indDoF']] <- indDoF
 	IC <- matrix(NA, nrow=2, ncol=3, dimnames=list(c("AIC:", "BIC:"), c('df', 'par', 'sample')))
 	IC[,'df'] <- c(retval$AIC.Mx, retval$BIC.Mx)
 	IC[,'par'] <- c(AIC.p, BIC.p)
 	IC['BIC:','sample'] <- sBIC
+	IC['AIC:','sample'] <- AICc
 	retval[['informationCriteria']] <- IC
 	
 	retval$fitUnits <- model@output$fitUnits
