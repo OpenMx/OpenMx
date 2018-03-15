@@ -135,14 +135,22 @@ imxRowGradients <- function(model, robustSE=FALSE){
 ##' This function computes robust standard errors via a sandwich estimator.
 ##' The "bread" of the sandwich is the numerically computed inverse Hessian
 ##' of the likelihood function.  This is what is typically used for standard
-##' errors throughout OpenMx.  The "meat" of the sandwich is the covariance
+##' errors throughout OpenMx.  The "meat" of the sandwich is proportional the covariance
 ##' matrix of the numerically computed row derivatives of the likelihood function
 ##' (i.e. row gradients).
 ##' 
-##' When \code{details=FALSE}, only the standard errors are returned.  When \code{details=TRUE},
-##' a list with named elements \code{SE} and \code{cov} is returned.  The \code{SE} element is the vector of standard errors that is also returned when \code{details=FALSE}.  The \code{cov} element is the full covariance matrix of the parameter estimates.  The square root of the diagonal of \code{cov} gives the standard errors.
+##' When \code{details=FALSE}, only the standard errors are returned.
 ##' 
-##' This function may not work correctly if 'model' is a multigroup model.  This function also does not correctly handle multilevel data.
+##' When \code{details=TRUE},
+##' a list with five named elements is returned.  Element \code{SE} is the vector of standard errors that is also 
+##' returned when \code{details=FALSE}.  Element \code{cov} is the full robust covariance matrix of the parameter estimates; 
+##' the square root of the diagonal of \code{cov} gives the standard errors.  Element \code{bread} is the aforementioned "bread"--the naive
+##' (non-robust) covariance matrix of the parameter estimates.  Element \code{meat} is the aforementioned "meat," proportional to the covvariance matrix
+##'  of the row gradients.  Element \code{TIC} is the model's Takeuchi Information Criterion, which is a generalization of AIC calculated from the 
+##' "bread," the "meat," and the loglikelihood at the maximum-likelihood solution.
+##' 
+##' This function does not work correctly with multigroup models in which the groups themselves contain subgroups.  This function also does not 
+##' correctly handle multilevel data.
 ##'
 ##' @param model An OpenMx model object that has been run
 ##' @param details logical. whether to return the full parameter covariance matrix
@@ -156,11 +164,29 @@ imxRobustSE <- function(model, details=FALSE){
 	if(!is(model@fitfunction, "MxFitFunctionML") && !is(model@fitfunction, "MxFitFunctionMultigroup")){
 		warning(paste("imxRobustSE() requires a maximum-likelihood fit, but 'model' uses ",class(model@fitfunction),"; robust standard errors will only be correct if the fitfunction units are -2lnL",sep=""))
 	}
+	if(!length(model@output$hessian)){
+		stop("imxRobustSE() requires model to have a nonempty 'hessian' output slot (has the model been run?)")
+	}
+	parnames <- dimnames(model@output$hessian)
+	if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
+		#solve() will fail if Hessian is computationally singular;
+		#chol2inv() will only fail if Hessian is exactly singular.
+		bread <- chol2inv(chol(model@output$hessian/2))
+	}
+	#An indefinite Hessian usually means some SEs will be NaN:
+	else{bread <- solve(model@output$hessian/2)}
+	dimnames(bread) <- parnames
+	#The row gradients are the slowest part, so only do them now that we know the bread is good:
 	grads <- imxRowGradients(model, robustSE=TRUE)/-2
-	hess <- model@output$hessian/2
-	ret <- OpenMx::"%&%"(solve(hess), nrow(grads)*var(grads))
+	meat <- nrow(grads)*var(grads)
+	rm(grads) #<--Could be huge in Big Data contexts...
+	dimnames(meat) <- parnames
+	ret <- OpenMx::"%&%"(bread, meat)
+	dimnames(ret) <- parnames
+	TIC <- NA
+	if(length(model@output$Minus2LogLikelihood)){TIC <- model@output$Minus2LogLikelihood + 2*sum(diag(meat%*%bread))}
 	if(details){
-		return(list(SE=sqrt(diag(ret)), cov=ret))
+		return(list(SE=sqrt(diag(ret)), cov=ret, bread=bread, meat=meat, TIC=TIC))
 	} else {
 		return(sqrt(diag(ret)))
 	}
