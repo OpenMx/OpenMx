@@ -106,7 +106,7 @@ struct multi_normal_deriv {
 		fc(_fc), fvMask(_fvMask), omo(_omo) {};
 
 	template <typename T>
-	T operator()(Eigen::Matrix<T, Eigen::Dynamic, 1>& x) const {
+	T operator()(const Eigen::Matrix<T, Eigen::Dynamic, 1>& x) const {
 		EigenMatrixAdaptor obCovAdapter(omo->observedCov);
 		Eigen::MatrixXd obCov = obCovAdapter;
 		EigenMatrixAdaptor exCovAdapter(omo->expectedCov);
