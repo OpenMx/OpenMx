@@ -67,12 +67,12 @@ fi
 
 if [ "$cxx_type" = gcc ]; then
     cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
-    COMPILER_CXXFLAGS="-Wall -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function"
     if [ $(compareVersions $cxx_version 4.6) -lt 0 ]; then
 	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version 4.6"
 	exit 1
     fi
     if [ $devmode = 1 ]; then
+	COMPILER_CXXFLAGS="-Wall -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function"
 	if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	    COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
