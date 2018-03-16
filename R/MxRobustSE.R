@@ -135,7 +135,7 @@ imxRowGradients <- function(model, robustSE=FALSE){
 ##' This function computes robust standard errors via a sandwich estimator.
 ##' The "bread" of the sandwich is the numerically computed inverse Hessian
 ##' of the likelihood function.  This is what is typically used for standard
-##' errors throughout OpenMx.  The "meat" of the sandwich is proportional the covariance
+##' errors throughout OpenMx.  The "meat" of the sandwich is proportional to the covariance
 ##' matrix of the numerically computed row derivatives of the likelihood function
 ##' (i.e. row gradients).
 ##' 
