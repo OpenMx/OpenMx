@@ -443,7 +443,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
             
             if (llist.maxCoeff() <= 0){
                 lambda_e.setZero();
-                hessv_e = hessv_e.diagonal().asDiagonal();
+                Eigen::MatrixXd hessvD = hessv_e.diagonal();
+                Eigen::MatrixXd hessvIdent (hessv_e.rows(), hessv_e.cols()); hessvIdent.setIdentity();
+                hessv_e = hessvD.asDiagonal() * hessvIdent;
             }
             
             tt_e[1] = tt_e[2];
@@ -820,7 +822,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 	subMat.setConstant(std::max(max_dx, (double)100));
                 	dx_e.block(mm, 0, LB_e.rows(), 1) = subMat.transpose();
 		}
-		
+
+        for (int i = 0; i < dx_e.rows(); i++) {
+            if (dx_e(i) < tol) dx_e(i) = 0;
+        }
+
 		Eigen::MatrixXd argum1_e;
                 argum1_e = a_e * dx_e.asDiagonal();
                 argum1_e.transposeInPlace();
