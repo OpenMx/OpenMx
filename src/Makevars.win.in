@@ -2,6 +2,10 @@ CXX_STD = CXX11
 
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 
+# Uncomment the following two lines to try parallel
+# PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS) $(SHLIB_OPENMP_CXXFLAGS)
+# PKG_CXXFLAGS=$(SHLIB_OPENMP_CXXFLAGS)
+
 # Uncomment one of the following lines to turn on all debugging output in the backend
 # PKG_CFLAGS=-DDEBUGMX                     # DEBUGMX gives Setup, cleanup, and per-iteration details
 # PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA   # DEBUGMX_ALGEBRA gives per-compute calculation output (be careful with FIML)
