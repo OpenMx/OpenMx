@@ -238,7 +238,7 @@ mxModelavgEstimates <- 	function(
 					}
 					xv <- xv$Cov
 					for(k in 1:nrow(xv)){
-						if(xv[k] < .Machine$double.eps && include=="onlyFree"){next}
+						if(xv[k,k] < .Machine$double.eps && include=="onlyFree"){next}
 						thetamtx[rownumcurr+(k-1),i] <- x[k]
 						wivmtx[rownumcurr+(k-1),i] <- xv[k,k]
 					}
