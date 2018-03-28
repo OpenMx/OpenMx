@@ -75,7 +75,7 @@ factorModel1 <- mxModel(
 		"Symm", 1, 1, values=1,
 		free=FALSE, name="L"),
 	mxAlgebra(vec2diag(Udiag),name="U"),
-	mxAlgebra(A %*% L %*% t(A) + U, name="R"),
+	mxAlgebra(A \%*\% L \%*\% t(A) + U, name="R"),
 	mxExpectationNormal(
 		covariance = "R",
 		dimnames = names(demoOneFactor)),
