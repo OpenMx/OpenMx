@@ -33,8 +33,14 @@
 ##' 
 ##' @param x the parameter to get SEs on (reference or expression)
 ##' @param model the \code{\link{mxModel}} to use.
-##' @param details logical. Whether to provide further details, e.g. the full sampling covariance matrix of x.
-##' @param cov optional matrix of covariances among the free parameters. If missing, the inverse Hessian from the fitted model is used.
+##' @param details logical. Whether to provide further details, e.g. the full
+##' sampling covariance matrix of x.
+##' @param cov optional matrix of covariances among the free parameters. If 
+##' missing, the inverse Hessian from the fitted model is used.
+##' @param forceName logical; defaults to \code{FALSE}.  Set to \code{TRUE}
+##' if \code{x} is an R symbol that refers to a character string.
+##' @param silent logical; defaults to \code{FALSE}.  If \code{TRUE},
+##' message-printing is suppressed.
 ##' @param ... further named arguments passed to \code{\link{mxEval}}
 ##' 
 ##' @details
@@ -45,10 +51,13 @@
 ##' The square root of the diagonals of this sampling covariance matrix are
 ##' the standard errors.
 ##' 
-##' When supplying the \code{cov} argument, take care that the free parameter covariance matrix is given, not the information matrix.  These two are inverses of one another.
+##' When supplying the \code{cov} argument, take care that the free parameter
+##' covariance matrix is given, not the information matrix.  These 
+##' two are inverses of one another.
 ##' 
 ##' @return SE value(s) returned as a matrix when \code{details} is FALSE.
-##' When \code{details} is TRUE, a list of the SE value(s) and the full sampling covariance matrix.
+##' When \code{details} is TRUE, a list of the SE value(s) and the full 
+##' sampling covariance matrix.
 ##' @seealso - \code{\link{mxCI}}
 ##' @references - \url{https://en.wikipedia.org/wiki/Standard_error}
 ##' @examples
@@ -73,15 +82,15 @@
 ##' m1 = mxRun(m1)
 ##' mxSE(lambda5, model = m1)
 ##' mxSE(lambda1^2, model = m1)
-mxSE <- function(x, model, details=FALSE, cov, ...){
+mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ...){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
-	if(isCallEtc){
-		message('Treating first argument as an expression')
+	if(isCallEtc && !forceName){
+		if(!silent){message('Treating first argument as an expression')}
 		xalg <- mxAlgebraFromString(Reduce(paste, deparse(match.call()$x)), name='onTheFlyAlgebra')
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else if('character' %in% is(x)){
-		message('Treating first argument as character named entity in the model')
+		if(!silent){message('Treating first argument as character named entity in the model')}
 	} else {
 		stop("Please, sir.  'x' must be either the name of an entity in the model, or an expression for an MxAlgebra.")
 	}
@@ -98,7 +107,7 @@ mxSE <- function(x, model, details=FALSE, cov, ...){
 	freeparams <- omxGetParameters(model)
 	paramnames <- names(freeparams)
 	matrix(NA)
-	zoutMat <- try(mxEvalByName(x, model, compute=TRUE))
+	zoutMat <- try(mxEvalByName(x, model, compute=TRUE),silent=silent)
 	if(class(zoutMat) %in% "try-error"){
 		stop(paste0("I had a problem evaluating your expression. Check that mxEval works for it.\nRecall that elements of submodels are addressed as submodelName.objectName\nFor example, 'sub1.bob' refers to the object 'bob' in the submodel named 'sub1'."))
 	}
