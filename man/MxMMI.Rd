@@ -41,6 +41,7 @@ The matrices in \code{covariances} must have complete row and column names, equa
 	\item \code{"AkaikeWeight"}: Numeric.  The MxModel's Akaike weight.  This column will sum to unity.
 	\item \code{"inConfidenceSet"}: Character.  Will contain an asterisk if the MxModel is in the confidence set for best-approximating model.
 }
+The dataframe also has an attribute, \code{"unsortedModelNames"}, which contains the names of the MxModels in the same order as they appear in \code{models} (i.e., without sorting them by their AIC). 
 
 If a zero-length value is provided for argument \code{reference}, then \code{mxModelavgEstimates()} returns only the output of \code{omxAkaikeWeights()}, with a warning.  Otherwise, \code{mxModelavgEstimates()} returns a list with four elements:
 \enumerate{
