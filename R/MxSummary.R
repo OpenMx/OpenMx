@@ -979,6 +979,7 @@ logLik.MxModel <- function(object, ...) {
 	}
 
 	if (!is.null(model@output))
+		#TODO: this doesn't count "implicit" free parameters that are "profiled out":
 		attr(ll,"df")<- length(model@output$estimate)
 	else
 		attr(ll,"df") <- NA
