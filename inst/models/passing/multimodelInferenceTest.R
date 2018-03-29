@@ -110,3 +110,10 @@ mxModelavgEstimates(reference=c("V","b11","b0","A11","C11","E11"),models=list(fi
 mxModelavgEstimates(reference=c("b11","b0","A11","C11","E11","V"),models=list(fitACE,fitAE,fitCE,fitE),include="all")
 mxModelavgEstimates(reference=c("MZ.expCovMZ"),models=list(fitACE,fitAE))
 mxModelavgEstimates(reference=c("MZ.expCovMZ[1,1]"),models=list(fitACE,fitAE))
+mxModelavgEstimates(reference=c("MZ.expCovMZ[1,1]","MZ.expCovMZ[2,1]","MZ.expCovMZ[2,2]"),models=list(fitACE,fitAE))
+
+mxModelavgEstimates(reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",refAsBlock=T)
+mxModelavgEstimates(reference=c("b11","b0","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",refAsBlock=T)
+omxCheckError(
+	mxModelavgEstimates(reference=c("b11","C11","b0","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",refAsBlock=T),
+	"when 'refAsBlock=TRUE' and 'onlyFree=TRUE', no references may be fixed in any model")
