@@ -21,7 +21,7 @@ omxAkaikeWeights <- function(models=list(), type=c("AIC","AICc"), confidLvl=0.95
 	}
 	confidLvl <- confidLvl[1]
 	if(confidLvl>=1 || confidLvl<=0){stop("argument 'confidLvl' must be a proportion strictly between 0 and 1")}
-
+	
 	modelNames <- rep(NA_character_, length(models))
 	AICs <- rep(NA_real_, length(models))
 	isGREML <- NULL
@@ -124,9 +124,6 @@ mxModelavgEstimates <- 	function(
 			}
 		}
 	}
-	if(refAsBlock){
-		stop("Not Yet Implemented")
-	} 
 	
 	#Now, we need to find out how many elements long each reference is, and make sure that each reference refers to a matrix of the same
 	#dimensions in all models in which it can be evaluated.  We'll store the results of mxEvalByName() and later put them into a matrix:
@@ -176,7 +173,56 @@ mxModelavgEstimates <- 	function(
 	
 	thetamtx <- matrix(NA_real_,nrow=length(longlabels),ncol=nrow(tabl1),dimnames=list(longlabels,names(models)))
 	if(refAsBlock){
-		stop("Not Yet Implemented")
+		#stop("Not Yet Implemented")
+		refcovlist <- vector("list",length(models))
+		for(i in 1:length(models)){
+			currmod <- models[[i]]
+			currmodparams <- list(fre=omxGetParameters(currmod,free=TRUE),fix=omxGetParameters(currmod,free=FALSE))
+			if(currmod@name %in% names(covariances)){
+				currmodcovm <- covariances[[currmod@name]]
+				#Sanity checks on user-supplied covariance matrices:
+				if(!isSymmetric(currmodcovm)){ #<--Returns FALSE for non-square matrices
+					stop(paste("covariance matrix for model",omxQuotes(currmod@name),"is not symmetric"))
+				}
+				if( !length(rownames(currmodcovm)) || !length(colnames(currmodcovm)) ){
+					stop(paste("covariance matrix for model",omxQuotes(currmod@name),"does not have both row names and column names"))
+				}
+				if( !all(rownames(currmodcovm) == colnames(currmodcovm)) ){
+					stop(paste("the row names and column names of covariance matrix for model",omxQuotes(currmod@name),"are not equal"))
+				}
+				if( !all(rownames(currmodcovm) %in% names(currmodparams$fre)) ||  
+						!all(names(currmodparams$fre) %in% rownames(currmodcovm)) ){
+					stop(paste("the dimnames of the covariance matrix for model",omxQuotes(currmod@name),"do not match the labels of the model's free parameters"))
+				}
+			}
+			else{
+				if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
+					currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
+					dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
+				}
+				else{currmodcovm <- 2*solve(currmod@output$hessian)}
+			}
+			currmod <- mxModel(
+				currmod,
+				mxAlgebraFromString(algString=paste("rbind(",paste(longlabels,collapse=","),")",sep=""),name="onTheFlyAlgebra"))
+			thetamtx[,i] <- mxEvalByName(name="onTheFlyAlgebra",model=currmod,compute=T)[,1]
+			refcov <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=T)$Cov
+			#TODO more informative error message:
+			if(include=="onlyFree" && any(diag(refcov)<.Machine$double.eps)){
+				stop("when 'refAsBlock=TRUE' and 'onlyFree=TRUE', no references may be fixed in any model")
+			}
+			refcovlist[[i]] <- refcov
+		}
+		tabl2 <- matrix(0.0,ncol=2,nrow=nrow(thetamtx),dimnames=list(longlabels,c("Estimate","SE")))
+		uncondcovm <- matrix(0.0,nrow=nrow(thetamtx),ncol=nrow(thetamtx),dimnames=list(longlabels,longlabels))
+		w <- tabl1$AkaikeWeight
+		tabl2[,1] <- thetamtx%*%matrix(tabl1$AkaikeWeight,ncol=1)
+		for(i in 1:length(refcovlist)){
+			bw <- as.vector(thetamtx[,i]-tabl2[,1])
+			uncondcovm <- uncondcovm + tabl1$AkaikeWeight[i]*(refcovlist[[i]] + outer(bw,bw))
+		}
+		tabl2[,2] <- sqrt(diag(uncondcovm))
+		return(list(tabl2,thetamtx,uncondcovm,tabl1))	
 	}
 	else{
 		wivmtx <- matrix(NA_real_,nrow=length(longlabels),ncol=nrow(tabl1),dimnames=list(longlabels,names(models)))
@@ -247,7 +293,6 @@ mxModelavgEstimates <- 	function(
 			}
 		}
 		#return(list(thetamtx,wivmtx))
-		
 		tabl2 <- matrix(NA_real_,ncol=2,nrow=nrow(thetamtx),dimnames=list(longlabels,c("Estimate","SE")))
 		for(i in 1:nrow(tabl2)){
 			thetacurr <- thetamtx[i,]

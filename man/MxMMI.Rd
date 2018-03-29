@@ -20,7 +20,7 @@ omxAkaikeWeights(models=list(), type=c("AIC","AICc"), confidLvl=0.95)
   \item{reference}{Vector of character strings referring to \link[=omxGetParameters]{parameters}, \link[=MxMatrix]{MxMatrices}, or \link[=MxAlgebra]{MxAlgebras} for which model-average estimates are to be computed. Defaults to \code{NULL}.  If a zero-length value is provided, only the output of \code{omxAkaikeWeights()} is returned, with a warning.}
   \item{models}{List of at least two \link[=MxModel]{MxModel} objects, each of which must be uniquely identified by the value of its \code{name} slot.  Defaults to an empty list.}
   \item{include}{Character string, either \code{"onlyFree"} (default) or \code{"all"}.  When calculating model-average estimates for a given reference quantity, should all the MxModels in \code{models} be included in the calculations, or only those in which the quantity is freely estimated?  See below, under "Details," for additional information.}
-  \item{refAsBlock}{Logical; defaults to \code{FALSE}.  Function behavior when \code{TRUE} is Not Yet Implemented.}
+  \item{refAsBlock}{Logical. If \code{FALSE} (default), \code{mxModelavgEstimates()} will include a matrix of model-conditional sampling variances for the reference quantities in it output, and model-average results may be based on different subsets of \code{models} if \code{include="onlyFree"}.  If \code{TRUE}, \code{mxModelavgEstimates()} will instead include a joint sampling covariance matrix for all reference quantities, and will throw an error if \code{include="onlyFree"} and if it is not the case that all reference quantities are freely estimated in all \code{models}.}
   \item{covariances}{Optional list of repeated-sampling covariance matrices of free parameter estimates (possibly from bootstrapping or the sandwich estimator); defaults to an empty list.  A non-empty list must either be of the same length as \code{models}, or have named elements corresponding to MxModel names.  See below, under "Details," for additional information.}
   \item{type}{Character string specifying which information criterion to use: either \code{"AIC"} for the ordinary AIC (default), or \code{"AICc"} for Hurvich & Tsai's (1984) sample-size corrected AIC.}
   \item{confidLvl}{Numeric proportion specifying the desired coverage probability of the confidence set for best-approximating model among \code{models} (Burnham & Anderson, 2002).  Defaults to 0.95.}
@@ -47,9 +47,10 @@ If a zero-length value is provided for argument \code{reference}, then \code{mxM
 \enumerate{
 	\item A numeric matrix with one row for each distinct quantity specified by \code{reference}, and two columns.  Its rows are named for the corresponding reference quantities.  Its first column, \code{"Estimate"}, contains the model-average point estimates.  Its second column, \code{"SE"}, contains the "model-unconditional" standard errors of the model-average point estimates.
 	\item A numeric matrix with one row for each distinct quantity specified by \code{reference} (indicated by row name), and one column for each MxModel (indicated by column name).  Each element is an estimate of the given quantity, from the given MxModel.  Quantities that cannot be evaluated for a given MxModel are reported as \code{NA}.
-	\item A numeric matrix just like the one in list element 2, except that its elements are the esimated sampling variances of the corresponding model-conditional point estimates in list element 2.  Variances for fixed quantities are reported as 0 if \code{include="all"}, and as \code{NA} if \code{include="onlyFree"}.
-	\item The output from \code{omxAkaikeWeights()} .
+	\item If \code{refAsBlock=FALSE} (default), a numeric matrix just like the one in list element 2, except that its elements are the esimated sampling variances of the corresponding model-conditional point estimates in list element 2.  Variances for fixed quantities are reported as 0 if \code{include="all"}, and as \code{NA} if \code{include="onlyFree"}.
+	\item The output from \code{omxAkaikeWeights()}.
 }
+If \code{refAsBlock=TRUE}, list element 3 will instead contain the joint sampling covariance matrix for the model-average point estimates.
 
 }
 \references{
