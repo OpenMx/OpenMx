@@ -484,7 +484,9 @@ matrixCheckDims <- function(type, values, free, labels, lbound, ubound, nrow, nc
 	return(c(nrow, ncol))
 }
 
-mxMatrix <- function(type = "Full", nrow = NA, ncol = NA, 
+mxMatrix <- function(type = c("Full", 'Diag', 'Iden', 'Lower',
+	'Sdiag', 'Stand', 'Symm', 'Unit', 'Zero'),
+		     nrow = NA, ncol = NA, 
 	free = FALSE, values = NA, labels = NA, 
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
 		     dimnames = NA, name = NA, condenseSlots=getOption('mxCondenseMatrixSlots'),
@@ -492,6 +494,7 @@ mxMatrix <- function(type = "Full", nrow = NA, ncol = NA,
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
 	}
+	type <- match.barg(type)
 	if (missing(dimnames) && !missing(values) && !is.null(dimnames(values))) {
 		dimnames <- dimnames(values)
 	}

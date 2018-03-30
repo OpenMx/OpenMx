@@ -23,7 +23,8 @@
 }
 
 \usage{
-mxMatrix(type = "Full", nrow = NA, ncol = NA, 
+mxMatrix(type = c('Full', 'Diag', 'Iden', 'Lower',
+	'Sdiag', 'Stand', 'Symm', 'Unit', 'Zero'), nrow = NA, ncol = NA, 
     free = FALSE, values = NA, labels = NA, lbound = NA, 
     ubound = NA, byrow = getOption('mxByrow'), dimnames = NA, name = NA, 
     condenseSlots=getOption('mxCondenseMatrixSlots'),
