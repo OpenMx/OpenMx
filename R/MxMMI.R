@@ -12,15 +12,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#mxMMI <- function(reference=character(0), models=list(), covariances=NULL, include=c("onlyFree","all"), AICc=FALSE, confidLvl=0.95){
-omxAkaikeWeights <- function(models=list(), type=c("AIC","AICc"), confidLvl=0.95){	
+#mxMMI <- function(reference=character(0), models=list(), covariances=NULL, include=c("onlyFree","all"), AICc=FALSE, conf.level=0.95){
+omxAkaikeWeights <- function(models=list(), type=c("AIC","AICc"), conf.level=0.95){	
 	#Input checking:
 	type <- match.arg(type,c("AIC","AICc"))
 	if(length(models)<2 || !all(sapply(models,is,"MxModel"))){
 		stop("argument 'models' must be a list of at least 2 MxModel objects")
 	}
-	confidLvl <- confidLvl[1]
-	if(confidLvl>=1 || confidLvl<=0){stop("argument 'confidLvl' must be a proportion strictly between 0 and 1")}
+	conf.level <- conf.level[1]
+	if(conf.level>=1 || conf.level<=0){stop("argument 'conf.level' must be a proportion strictly between 0 and 1")}
 	
 	modelNames <- rep(NA_character_, length(models))
 	AICs <- rep(NA_real_, length(models))
@@ -82,22 +82,25 @@ omxAkaikeWeights <- function(models=list(), type=c("AIC","AICc"), confidLvl=0.95
 	for(i in 1:length(models)){
 		tabl1$inConfidenceSet[i] <- "*"
 		cump <- cump + tabl1$AkaikeWeight[i]
-		if(cump >= confidLvl){break}
+		if(cump >= conf.level){break}
 	}
 	attr(tabl1,"unsortedModelNames") <- modelNames
 	return(tabl1)
 }
 
 
-mxModelavgEstimates <- 	function(
-	reference=character(0), models=list(), include=c("onlyFree","all"), refAsBlock=FALSE, covariances=list(), type=c("AIC","AICc"), 
-	confidLvl=0.95)
+mxModelAverage <- function(
+	reference=character(0), models=list(), include=c("onlyFree","all"), SE=NULL, refAsBlock=FALSE, covariances=list(), type=c("AIC","AICc"), 
+	conf.level=0.95)
 {
 	#Input checking:
 	include <- match.arg(include,c("onlyFree","all"))
 	type <- match.arg(type,c("AIC","AICc"))
+	if(!length(SE)){
+		SE <- ifelse(include=="onlyFree",TRUE,FALSE)
+	}
 	#The list of models is thoroughly checked as part of this function call:
-	tabl1 <- omxAkaikeWeights(models=models, type=type, confidLvl=confidLvl)
+	tabl1 <- omxAkaikeWeights(models=models, type=type, conf.level=conf.level)
 	#If 'reference' is empty, return tabl1, with a warning:
 	if(!length(reference)){
 		warning("argument 'reference' is NULL; vector of character strings was expected")
@@ -214,15 +217,21 @@ mxModelavgEstimates <- 	function(
 			refcovlist[[i]] <- refcov
 		}
 		tabl2 <- matrix(0.0,ncol=2,nrow=nrow(thetamtx),dimnames=list(longlabels,c("Estimate","SE")))
-		uncondcovm <- matrix(0.0,nrow=nrow(thetamtx),ncol=nrow(thetamtx),dimnames=list(longlabels,longlabels))
-		w <- tabl1$AkaikeWeight
 		tabl2[,1] <- thetamtx%*%matrix(tabl1$AkaikeWeight,ncol=1)
-		for(i in 1:length(refcovlist)){
-			bw <- as.vector(thetamtx[,i]-tabl2[,1])
-			uncondcovm <- uncondcovm + tabl1$AkaikeWeight[i]*(refcovlist[[i]] + outer(bw,bw))
+		if(SE){
+			uncondcovm <- matrix(0.0,nrow=nrow(thetamtx),ncol=nrow(thetamtx),dimnames=list(longlabels,longlabels))
+			w <- tabl1$AkaikeWeight
+			for(i in 1:length(refcovlist)){
+				bw <- as.vector(thetamtx[,i]-tabl2[,1])
+				uncondcovm <- uncondcovm + tabl1$AkaikeWeight[i]*(refcovlist[[i]] + outer(bw,bw))
+			}
+			tabl2[,2] <- sqrt(diag(uncondcovm))
+			return(list(tabl2,thetamtx,uncondcovm,tabl1))	
 		}
-		tabl2[,2] <- sqrt(diag(uncondcovm))
-		return(list(tabl2,thetamtx,uncondcovm,tabl1))	
+		else{
+			tabl2 <- matrix(tabl2[,1],nrow=nrow(tabl2),ncol=1,dimnames=list(longlabels,"Estimate"))
+			return(list(tabl2,thetamtx,NULL,tabl1))
+		}
 	}
 	else{
 		wivmtx <- matrix(NA_real_,nrow=length(longlabels),ncol=nrow(tabl1),dimnames=list(longlabels,names(models)))
@@ -293,19 +302,34 @@ mxModelavgEstimates <- 	function(
 			}
 		}
 		#return(list(thetamtx,wivmtx))
-		tabl2 <- matrix(NA_real_,ncol=2,nrow=nrow(thetamtx),dimnames=list(longlabels,c("Estimate","SE")))
-		for(i in 1:nrow(tabl2)){
-			thetacurr <- thetamtx[i,]
-			wivcurr <- wivmtx[i,]
-			wcurr <- tabl1$AkaikeWeight
-			if(any(is.na(thetacurr))){
-				thetacurr <- thetacurr[which(!is.na(thetamtx[i,]))]
-				wivcurr <- wivcurr[which(!is.na(thetamtx[i,]))]
-				wcurr <- wcurr[which(!is.na(thetamtx[i,]))]
-				wcurr <- wcurr/sum(wcurr)
+		if(SE){
+			tabl2 <- matrix(NA_real_,ncol=2,nrow=nrow(thetamtx),dimnames=list(longlabels,c("Estimate","SE")))
+			for(i in 1:nrow(tabl2)){
+				thetacurr <- thetamtx[i,]
+				wivcurr <- wivmtx[i,]
+				wcurr <- tabl1$AkaikeWeight
+				if(any(is.na(thetacurr))){
+					thetacurr <- thetacurr[which(!is.na(thetamtx[i,]))]
+					wivcurr <- wivcurr[which(!is.na(thetamtx[i,]))]
+					wcurr <- wcurr[which(!is.na(thetamtx[i,]))]
+					wcurr <- wcurr/sum(wcurr)
+				}
+				tabl2[i,1] <- t(wcurr) %*% thetacurr
+				tabl2[i,2] <- sqrt( t(wcurr) %*% (wivcurr + (tabl2[i,1]-thetacurr)^2) )
 			}
-			tabl2[i,1] <- t(wcurr) %*% thetacurr
-			tabl2[i,2] <- sqrt( t(wcurr) %*% (wivcurr + (tabl2[i,1]-thetacurr)^2) )
+		}
+		else{
+			tabl2 <- matrix(NA_real_,ncol=1,nrow=nrow(thetamtx),dimnames=list(longlabels,c("Estimate")))
+			for(i in 1:nrow(tabl2)){
+				thetacurr <- thetamtx[i,]
+				wcurr <- tabl1$AkaikeWeight
+				if(any(is.na(thetacurr))){
+					thetacurr <- thetacurr[which(!is.na(thetamtx[i,]))]
+					wcurr <- wcurr[which(!is.na(thetamtx[i,]))]
+					wcurr <- wcurr/sum(wcurr)
+				}
+				tabl2[i,1] <- t(wcurr) %*% thetacurr
+			}
 		}
 		return(list(tabl2,thetamtx,wivmtx,tabl1))
 	}
