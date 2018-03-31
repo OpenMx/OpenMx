@@ -102,18 +102,110 @@ fitCE     <- mxRun( modelCE, intervals=F )
 modelE    <- omxSetParameters( fitAE, labels="A11", free=FALSE, values=0, name="oneEvca" )
 fitE <- mxRun(modelE)
 
+#Test omxAkaikeWeights():
 omxAkaikeWeights(models=list(fitACE,fitAE,fitCE,fitE))
-mxModelavgEstimates(reference="C11",models=list(fitACE,fitAE,fitCE,fitE))
-mxModelavgEstimates(reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE))
-mxModelavgEstimates(reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all")
-mxModelavgEstimates(reference=c("V","b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE))
-mxModelavgEstimates(reference=c("b11","b0","A11","C11","E11","V"),models=list(fitACE,fitAE,fitCE,fitE),include="all")
-mxModelavgEstimates(reference=c("MZ.expCovMZ"),models=list(fitACE,fitAE))
-mxModelavgEstimates(reference=c("MZ.expCovMZ[1,1]"),models=list(fitACE,fitAE))
-mxModelavgEstimates(reference=c("MZ.expCovMZ[1,1]","MZ.expCovMZ[2,1]","MZ.expCovMZ[2,2]"),models=list(fitACE,fitAE))
 
-mxModelavgEstimates(reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",refAsBlock=T)
-mxModelavgEstimates(reference=c("b11","b0","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",refAsBlock=T)
-omxCheckError(
-	mxModelavgEstimates(reference=c("b11","C11","b0","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",refAsBlock=T),
-	"when 'refAsBlock=TRUE' and 'onlyFree=TRUE', no references may be fixed in any model")
+#Test mxModelAverage():
+mxModelAverage(reference="C11",models=list(fitACE,fitAE,fitCE,fitE))
+
+#Test mxModelAverage(), with free parameters only (which is faster), 
+#for all permutations of arguments `include`, `SE`, `refAsBlock`, & `type`:
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=FALSE,type="AIC")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=FALSE,type="AIC")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=FALSE,type="AIC")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=FALSE,type="AIC")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AIC")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AIC")
+omxCheckError(mxModelAverage(
+		reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AIC"),
+		"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AIC")
+omxCheckError(mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AIC"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AIC")
+omxCheckError(mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AIC"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AIC")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AICc")
+omxCheckError(mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AICc"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AICc")
+omxCheckError(mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AICc"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AICc")
+omxCheckError(mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AICc"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AICc")
+
+#Test with MxAlgebra elements:
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=FALSE,type="AIC")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=FALSE,type="AIC")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=FALSE,type="AIC")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=FALSE,type="AIC")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AIC")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AIC")
+omxCheckError(mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AIC"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AIC")
+omxCheckError(mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AIC"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AIC")
+omxCheckError(mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AIC"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AIC")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=FALSE,type="AICc")
+mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AICc")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AICc")
+omxCheckError(mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AICc"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AICc")
+omxCheckError(mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AICc"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AICc")
+omxCheckError(mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AICc"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+mxModelAverage(
+	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AICc")
