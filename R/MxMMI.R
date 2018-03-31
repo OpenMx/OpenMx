@@ -226,11 +226,15 @@ mxModelAverage <- function(
 				uncondcovm <- uncondcovm + tabl1$AkaikeWeight[i]*(refcovlist[[i]] + outer(bw,bw))
 			}
 			tabl2[,2] <- sqrt(diag(uncondcovm))
-			return(list(tabl2,thetamtx,uncondcovm,tabl1))	
+			outlist <- list(tabl2,thetamtx,uncondcovm,tabl1)
+			names(outlist) <- c("Model-Average Estimates","Model-wise Estimates","Joint Covariance Matrix","Akaike-Weights Table")
+			return(outlist)
 		}
 		else{
 			tabl2 <- matrix(tabl2[,1],nrow=nrow(tabl2),ncol=1,dimnames=list(longlabels,"Estimate"))
-			return(list(tabl2,thetamtx,NULL,tabl1))
+			outlist <- list(tabl2,thetamtx,NULL,tabl1)
+			names(outlist) <- c("Model-Average Estimates","Model-wise Estimates","Joint Covariance Matrix","Akaike-Weights Table")
+			return(outlist)
 		}
 	}
 	else{
@@ -331,7 +335,9 @@ mxModelAverage <- function(
 				tabl2[i,1] <- t(wcurr) %*% thetacurr
 			}
 		}
-		return(list(tabl2,thetamtx,wivmtx,tabl1))
+		outlist <- list(tabl2,thetamtx,wivmtx,tabl1)
+		names(outlist) <- c("Model-Average Estimates","Model-wise Estimates","Model-wise Sampling Variances","Akaike-Weights Table")
+		return(outlist)
 	}
 }
 
