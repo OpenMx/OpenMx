@@ -44,14 +44,14 @@ The matrices in \code{covariances} must have complete row and column names, equa
 }
 The dataframe also has an attribute, \code{"unsortedModelNames"}, which contains the names of the MxModels in the same order as they appear in \code{models} (i.e., without sorting them by their AIC). 
 
-If a zero-length value is provided for argument \code{reference}, then \code{mxModelAverage()} returns only the output of \code{omxAkaikeWeights()}, with a warning.  Otherwise, \code{mxModelAverage()} returns a list with four elements:
+If a zero-length value is provided for argument \code{reference}, then \code{mxModelAverage()} returns only the output of \code{omxAkaikeWeights()}, with a warning.  Otherwise, for the default values of its arguments, \code{mxModelAverage()} returns a list with four elements:
 \enumerate{
-	\item A numeric matrix with one row for each distinct quantity specified by \code{reference}, and two columns.  Its rows are named for the corresponding reference quantities.  Its first column, \code{"Estimate"}, contains the model-average point estimates.  Its second column, \code{"SE"}, contains the "model-unconditional" standard errors of the model-average point estimates.
-	\item A numeric matrix with one row for each distinct quantity specified by \code{reference} (indicated by row name), and one column for each MxModel (indicated by column name).  Each element is an estimate of the given quantity, from the given MxModel.  Quantities that cannot be evaluated for a given MxModel are reported as \code{NA}.
-	\item If \code{refAsBlock=FALSE} (default), a numeric matrix just like the one in list element 2, except that its elements are the esimated sampling variances of the corresponding model-conditional point estimates in list element 2.  Variances for fixed quantities are reported as 0 if \code{include="all"}, and as \code{NA} if \code{include="onlyFree"}.
-	\item The output from \code{omxAkaikeWeights()}.
+	\item \code{"Model-Average Estimates"}: A numeric matrix with one row for each distinct quantity specified by \code{reference}, and as many as two columns.  Its rows are named for the corresponding reference quantities.  Its first column, \code{"Estimate"}, contains the model-average point estimates.  If standard errors are being calculated, then its second column, \code{"SE"}, contains the "model-unconditional" standard errors of the model-average point estimates.  Otherwise, there is no second column.
+	\item \code{"Model-wise Estimates"}: A numeric matrix with one row for each distinct quantity specified by \code{reference} (indicated by row name), and one column for each MxModel (indicated by column name).  Each element is an estimate of the given quantity, from the given MxModel.  Quantities that cannot be evaluated for a given MxModel are reported as \code{NA}.
+	\item \code{"Model-wise Sampling Variances"}: A numeric matrix just like the one in list element 2, except that its elements are the esimated sampling variances of the corresponding model-conditional point estimates in list element 2.  Variances for fixed quantities are reported as 0 if \code{include="all"}, and as \code{NA} if \code{include="onlyFree"}.
+	\item \code{"Akaike-Weights Table"}: The output from \code{omxAkaikeWeights()}.
 }
-If \code{refAsBlock=TRUE}, list element 3 will instead contain the joint sampling covariance matrix for the model-average point estimates.
+If \code{refAsBlock=TRUE}, list element 3 will instead contain be named \code{"Joint Covariance Matrix"}, and contain the joint sampling covariance matrix for the model-average point estimates.
 
 }
 \references{
