@@ -212,7 +212,7 @@ mxModelAverage <- function(
 			refcov <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=T)$Cov
 			#TODO more informative error message:
 			if(include=="onlyFree" && any(diag(refcov)<.Machine$double.eps)){
-				stop("when 'refAsBlock=TRUE' and 'onlyFree=TRUE', no references may be fixed in any model")
+				stop("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
 			}
 			refcovlist[[i]] <- refcov
 		}
