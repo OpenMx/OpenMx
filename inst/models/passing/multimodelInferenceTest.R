@@ -13,6 +13,8 @@
 #   limitations under the License.
 
 library(OpenMx)
+#This test script doesn't need to be run with all 3 optimizers, and it runs fine with CSOLNP:
+if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 
 data(twinData)
 
