@@ -1,5 +1,28 @@
-# OpenMx bleed / 2.9.0 in the making (Spring 2018)
-*
+# OpenMx bleed / 2.9.7 in the making (Summer 2018)
+
+# OpenMx CRAN 2.9.6 (R 3.4.4)
+* BUGFIX: Starting in version 2.7.0 (released January 10th, 2017), and ONLY in joint FIML analysis of both ordinal-threshold and continuous variables: if there was at least one row of the dataset in which all of the continuous variables had missing scores, then OpenMx could incorrectly evaluate the fit function, which would result in OpenMx silently returning numerically incorrect results. If you have run a joint ordinal/continuous FIML analysis with OpenMx versions 2.7.x thru 2.8.x, check your dataset to see if there are any rows in which all the continuous endogenous variables are missing (and at least one endogenous binary or ordinal variable is non-missing). If so, re-run your analysis using OpenMx v2.9. We apologize for any inconvenience this serious, but now-repaired, bug may have caused.
+* IMPROVED:  CSOLNP. This bug would cause CSOLNP to enter an endless loop when optimizing an MxModel containing MxConstraints.
+* IMPROVED:  Four memory leaks have been closed: one in OpenMx's interface to SLSQP, one in OpenMx's Nelder-Mead implementation, one in the MxComputeNumericDeriv step, and one in the FIML fitfunction backend for state-space models.
+* BUGFIX: OpenMx's interface to SLSQP has been repaired. This bug caused SLSQP to always use the value of the 'Optimality tolerance' mxOption when checking the optimality conditions of a solution subject to MxConstraints. Now, as designed, if a user creating a custom compute plan passes a value for the optimality tolerance to mxComputeGradientDescent() that differs from the option, that different value controls.
+* BUGFIX: All the known issues in the v2.8.3 release announcement have been resolved.
+
+* NEW: Two new functions for power analysis, mxPower() and mxPowerSearch(), have been implemented.
+* NEW: CSOLNP can now use analytic gradients and analytic constraint Jacobians, and can now numerically calculate gradients using the central-differences approximation.
+* IMPROVED: `mxGenerateData` and parametric bootstrapping (including the bootstrap LRT) are now compatible with MxExpectationMixture.
+* IMPROVED: Previously, nonparametric bootstrapping was incompatible with the FIML fitfunction when running on a single thread, or when using argument rowwiseParallel=FALSE to mxFitFunctionML().
+* IMPROVED: When the 'maxOrdinalPerBlock' mxOption is too small, the FIML fitfunction backend no longer silently ignores nonzero covariance elements in order to coerce the dimension of a block of correlated ordinal variables to 'maxOrdinalPerBlock' or smaller.
+* IMPROVED: When used on an MxModel that uses GREML expectation, mxGetExpected() now returns a vector of fitted values ("yhats" from feasible-generalized-least-squares regression) for "means", and now filters out rows and columns in the "covariance" matrix that correspond to missing observations.
+* IMPROVED: Bias-corrected bootstrap-quantile confidence intervals will no longer sporadically have a lower limit of -Inf when the number of replications is too small for the desired coverage probability.
+* IMPROVED: The print method for MxPaths has been improved.
+* IMPROVED: `mxStandardizeRAMpaths` now throws a helpful error message if it detects that the MxModel contains free parameters the labels of which do not appear in the dimnames of the Hessian matrix.
+* IMPROVED: `mxConstraint` documentation has been clarified regarding analytic constraint Jacobians for inequality constraints, and how MxConstraints interact with definition variables. Additionally, creating a constraint function that depends upon definition variables now raises a warning at runtime.
+* IMPROVED: A potentially confusing typo in an MxExpectationLISREL warning message has been corrected.
+* FIXED: It is now possible to build an NPSOL-enabled OpenMx binary with gcc version 7.x.
+* NEW:  `omxModelDeleteData` which deletes data from an MxModel and all of its submodels recursively.
+* IMPROVED: The RAM expectation no longer throws a runtime error if all of the diagonal elements of an 'S' matrix are zero (as that can be a reasonable scenario when conducting likelihood-ratio tests with multilevel models).
+* IMPROVED: MxModel summary() output now includes the sample-size corrected AIC.
+* IMPROVED: With argument details=TRUE, imxRobustSE() includes additional details in its output.
 
 # OpenMx 2.8.3 (November 20, 2017)
 * IMPROVED: `mxEval` can use scalar multiplication, division, and powering of matrices.
