@@ -160,13 +160,20 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
+		nv <- nrow(cov)
+		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
+		mnsNames <- paste0('mean', 1:nv)
 		thr <- ret[['thresholds']]
 		if (prod(dim(thr)) == 0) {
-			return(c(vech(cov), mns[!is.na(mns)]))
+			v <- c(vech(cov), mns[!is.na(mns)])
+			names(v) <- c(covNames, mnsNames[!is.na(mns)])
 		} else {
+			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
-			return(c(vech(cov), mns[!is.na(mns)], thr[dth]))
+			v <- c(vech(cov), mns[!is.na(mns)], thr[dth])
+			names(v) <- c(covNames, mnsNames[!is.na(mns)], thrNames[dth])
 		}
+		return(v)
 })
 
 setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
@@ -175,14 +182,19 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
+		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
+		mnsNames <- paste0('mean', 1:nv)
 		thr <- ret[['thresholds']]
 		if (prod(dim(thr)) == 0) {
-			return(c(vech(cov), mns[!is.na(mns)]))
+			v <- c(vech(cov), mns[!is.na(mns)])
+			names(v) <- c(covNames, mnsNames[!is.na(mns)])
 		} else {
+			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
 			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
-			return(v)
+			names(v) <- c(covNames, mnsNames[!is.na(mns)], thrNames[dth])
 		}
+		return(v)
 })
 
 .standardizeCovMeansThresholds <- function(cov, means, thresholds, dth, vector=FALSE){
@@ -270,7 +282,10 @@ sse <- function(x){sum(x^2)}
 #' @seealso \link{mxGetExpected}
 omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize=FALSE) {
 	theParams <- omxGetParameters(model)
-	numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
+	theVec <- mxGetExpected(model, 'vector')
+	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
+	dimnames(jac) <- list(names(theVec), names(theParams))
+	return(jac)
 }
 
 mxCheckIdentification <- function(model, details=TRUE){
@@ -314,7 +329,7 @@ mxCheckIdentification <- function(model, details=TRUE){
   } else {
     got <- mxGetExpected(model, 'standVector', defvar.row)
   }
-  got
+  return(got)
 }
 
 setGeneric("genericGenerateData",
