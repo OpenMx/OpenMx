@@ -723,20 +723,20 @@ mxKalmanScores <- function(model, data=NA, frontend=TRUE){
 
 #--------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
-	function(.Object, model, nrows) {
-		A <- mxEvalByName(model@expectation@A, model, compute=TRUE)
-		B <- mxEvalByName(model@expectation@B, model, compute=TRUE)
-		C <- mxEvalByName(model@expectation@C, model, compute=TRUE)
-		D <- mxEvalByName(model@expectation@D, model, compute=TRUE)
-		Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE)
-		R <- mxEvalByName(model@expectation@R, model, compute=TRUE)
-		u <- mxEvalByName(model@expectation@u, model, compute=TRUE)
+	function(.Object, model, nrows, subname) {
+		A <- mxEvalByName(model[[subname]]@expectation@A, model, compute=TRUE)
+		B <- mxEvalByName(model[[subname]]@expectation@B, model, compute=TRUE)
+		C <- mxEvalByName(model[[subname]]@expectation@C, model, compute=TRUE)
+		D <- mxEvalByName(model[[subname]]@expectation@D, model, compute=TRUE)
+		Q <- mxEvalByName(model[[subname]]@expectation@Q, model, compute=TRUE)
+		R <- mxEvalByName(model[[subname]]@expectation@R, model, compute=TRUE)
+		u <- mxEvalByName(model[[subname]]@expectation@u, model, compute=TRUE)
 		
 		hasDefVars <- imxHasDefinitionVariable(model)
-		continuousTime <- !single.na(model@expectation@t)
+		continuousTime <- !single.na(model[[subname]]@expectation@t)
 		
-		x0 <- mxEvalByName(model@expectation@x0, model, compute=TRUE)
-		P0 <- mxEvalByName(model@expectation@P0, model, compute=TRUE)
+		x0 <- mxEvalByName(model[[subname]]@expectation@x0, model, compute=TRUE)
+		P0 <- mxEvalByName(model[[subname]]@expectation@P0, model, compute=TRUE)
 		
 		tdim <- nrows
 		ydim <- nrow(C)
@@ -750,14 +750,14 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		oldT <- 0
 		for(i in 2:(tdim+1)){
 			if(hasDefVars){
-				A <- mxEvalByName(model@expectation@A, model, compute=TRUE, defvar.row=i-1)
-				B <- mxEvalByName(model@expectation@B, model, compute=TRUE, defvar.row=i-1)
-				C <- mxEvalByName(model@expectation@C, model, compute=TRUE, defvar.row=i-1)
-				D <- mxEvalByName(model@expectation@D, model, compute=TRUE, defvar.row=i-1)
-				Q <- mxEvalByName(model@expectation@Q, model, compute=TRUE, defvar.row=i-1)
-				R <- mxEvalByName(model@expectation@R, model, compute=TRUE, defvar.row=i-1)
-				u <- mxEvalByName(model@expectation@u, model, compute=TRUE, defvar.row=i-1)
-				newT <- mxEvalByName(model@expectation@t, model, compute=TRUE, defvar.row=i-1)
+				A <- mxEvalByName(model[[subname]]@expectation@A, model, compute=TRUE, defvar.row=i-1)
+				B <- mxEvalByName(model[[subname]]@expectation@B, model, compute=TRUE, defvar.row=i-1)
+				C <- mxEvalByName(model[[subname]]@expectation@C, model, compute=TRUE, defvar.row=i-1)
+				D <- mxEvalByName(model[[subname]]@expectation@D, model, compute=TRUE, defvar.row=i-1)
+				Q <- mxEvalByName(model[[subname]]@expectation@Q, model, compute=TRUE, defvar.row=i-1)
+				R <- mxEvalByName(model[[subname]]@expectation@R, model, compute=TRUE, defvar.row=i-1)
+				u <- mxEvalByName(model[[subname]]@expectation@u, model, compute=TRUE, defvar.row=i-1)
+				newT <- mxEvalByName(model[[subname]]@expectation@t, model, compute=TRUE, defvar.row=i-1)
 			}
 			if(continuousTime){
 				#browser()
