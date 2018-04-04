@@ -576,7 +576,7 @@ setMethod("show", "MxExpectationRAM", function(object) {
 
 #------------------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationRAM"),
-	function(.Object, model, nrows) {
-		return(generateNormalData(model, nrows))
+	function(.Object, model, nrows, subname) {
+		return(generateNormalData(model, nrows, subname))
 })
 
