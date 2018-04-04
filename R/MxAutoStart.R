@@ -19,6 +19,7 @@
 ##' Automatically set starting values for an MxModel
 ##' 
 ##' @param model The MxModel for which starting values are desired
+##' @param type The type of starting values to obtain, currently unweighted or diagonally weighted least squares, ULS or DWLS
 ##' 
 ##' @details
 ##' This function automatically picks very good starting values for many models (RAM, LISREL, Normal), including multiple group versions of these.
@@ -26,9 +27,9 @@
 ##' It works for model with covariance or raw data.
 ##' However, it does not currently work for models with definition variables, state space models, and item factor analysis models.
 ##' 
-##' The method used to obtain new starting values is quite simple. The user's model is changed to an unweighted least squares (ULS) model. The ULS model is estimated and its final point estimates are returned as the new starting values.
+##' The method used to obtain new starting values is quite simple. The user's model is changed to an unweighted least squares (ULS) model. The ULS model is estimated and its final point estimates are returned as the new starting values. Optionally, diagonally weighted least squares (DWLS) can be used instead with the \code{type} argument.
 ##' 
-##' Please note that ULS is sensitive to the scales of your variables. For example, if you have variables with means of 20 and variances of 0.001, then ULS will "weight" the means 20,000 times more than the variances and might result in zero variance estimates. Likewise if one variable has a variance of 20 and another has a variance of 0.001, the same problem may arise. To avoid this, make sure your variables are scaled accordingly. You could also use diagonally weighted least squares to obtain your own starting values.
+##' Please note that ULS is sensitive to the scales of your variables. For example, if you have variables with means of 20 and variances of 0.001, then ULS will "weight" the means 20,000 times more than the variances and might result in zero variance estimates. Likewise if one variable has a variance of 20 and another has a variance of 0.001, the same problem may arise. To avoid this, make sure your variables are scaled accordingly. You could also use \code{type='DWLS'} to have the function use diagonally weighted least squares to obtain starting values.  Of course, using diagonally weighted least squares will take much much longer and will usually not provide better starting values than unweighted least squares.
 ##' 
 ##' @return
 ##' an MxModel with new free parameter values
@@ -57,7 +58,8 @@
 ##' # Use mxAutoStart to get much better starting values
 ##' m1s <- mxAutoStart(m1)
 ##' mxGetExpected(m1s, 'covariance')
-mxAutoStart <- function(model){
+mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
+	type <- match.barg(type)
 	if(is.null(model@fitfunction)){
 		stop("I don't work with null fit functions.")
 	}
@@ -72,12 +74,12 @@ mxAutoStart <- function(model){
 		sD <- list()
 		wmodel <- model
 		for(amod in submNames){
-			sD[[amod]] <- autoStartDataHelper(model, subname=amod)
+			sD[[amod]] <- autoStartDataHelper(model, subname=amod, type=type)
 			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), sD[[amod]], mxFitFunctionWLS())
 		}
 		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
 	} else {
-		mdata <- autoStartDataHelper(model)
+		mdata <- autoStartDataHelper(model, type=type)
 		wmodel <- mxModel(model, name='AutoStart', mdata, mxFitFunctionWLS())
 	}
 	wmodel <- mxOption(wmodel, "Calculate Hessian", "No")
@@ -92,7 +94,7 @@ mxAutoStart <- function(model){
 
 #------------------------------------------------------------------------------
 
-autoStartDataHelper <- function(model, subname=model@name){
+autoStartDataHelper <- function(model, subname=model@name, type){
 	if(is.null(model[[subname]]@data)){
 		stop(paste("Your model named", model[[subname]]@name, "doesn't have any data?  Sad."))
 	}
@@ -116,11 +118,15 @@ autoStartDataHelper <- function(model, subname=model@name){
 			nrowData <- nrow(data)
 			meanData <- colMeans(data, na.rm=TRUE)
 		} else {
-			return(mxDataWLS(data, type="ULS", fullWeight=FALSE))
+			return(mxDataWLS(data, type=type, fullWeight=FALSE))
 		}
 	}
-	mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
+	if(type != 'ULS'){
+		mdata <- mxDataWLS(as.data.frame(data), type=type, allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'), fullWeight=FALSE)
+	} else {
+		mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
 			acov=I, fullWeight=I, means=meanData)
-	mdata@observed <- covData
+		mdata@observed <- covData
+	}
 	return(mdata)
 }
