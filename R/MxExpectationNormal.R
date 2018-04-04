@@ -182,6 +182,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
+		nv <- nrow(cov)
 		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
 		mnsNames <- paste0('mean', 1:nv)
 		thr <- ret[['thresholds']]
