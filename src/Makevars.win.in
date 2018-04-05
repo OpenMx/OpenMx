@@ -1,6 +1,6 @@
 CXX_STD = CXX11
 
-PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS) -lnetcdfdll
+PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 
 # Uncomment the following two lines to try parallel
 # PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS) $(SHLIB_OPENMP_CXXFLAGS)
