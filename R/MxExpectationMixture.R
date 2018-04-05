@@ -83,13 +83,13 @@ setMethod("genericGetExpected", signature("MxExpectationMixture"),
 	})
 
 setMethod("genericGenerateData", signature("MxExpectationMixture"),
-	function(.Object, model, nrows) {
+	function(.Object, model, nrows, subname) {
 		origData <- NULL
 		if (!is.null(model$data) && model$data$type == 'raw') origData <- model$data$observed
 
 		cdata <- list()
 		for (c1 in .Object@components) {
-			cdata[[c1]] <- mxGenerateData(model[[c1]], returnModel=FALSE, nrows=nrows, use.miss=FALSE)
+			cdata[[c1]] <- mxGenerateData(model, returnModel=FALSE, nrows=nrows, use.miss=FALSE, subname=c1)
 		}
 		data <- cdata[[1]]
 

@@ -165,4 +165,5 @@ Collate:
     'MxRetro.R'
     'MxMMI.R'
     'zzz.R'
+Biarch: true
 Version: @VERSION@
