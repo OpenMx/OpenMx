@@ -37,6 +37,7 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE, ..., .backend=T
    pattern of the original data.}
 \item{...}{Not used; forces remaining arguments to be specified by name.}
 \item{.backend}{Whether to use the backend to generate data}
+\item{subname}{Submodel name}
 }
 
 \details{
@@ -54,6 +55,11 @@ Thresholds and ordinal data are implemented by generating continuous data and th
 If the model has definition variables, then a data set must be included in the model object and the number of rows requested must match the number of rows in the model data.  In this case the means, covariance, and thresholds are reevaluated for each row of data, potentially creating a a different mean, covariance, and threshold structure for every generated row of data.
 
 For state space models (i.e. models with an \link{mxExpectationStateSpace} or \link{mxExpectationStateSpaceContinuousTime} expectation), the data are generated based on the autoregressive structure of the model.  The rows of data in a state space model are not independent replicates of a stationary process.  Rather, they are the result of a latent (possibly non-stationary) autoregressive process.  For state space models different rows of data often correspond to different times.  As alluded to above, data generation works for discrete time state space models and hybrid continuous-discrete time state space models.  The latter have a continous process that is measured as discrete times.
+
+The \code{subname} parameter is used to limit data generation to
+the given submodel. The reason you wouldn't pass the submodel in
+the \code{model} argument is that some parts of the submodel might
+depend on objects in other submodels that are part of the model.
 }
 
 \value{
