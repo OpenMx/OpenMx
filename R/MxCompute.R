@@ -1840,6 +1840,46 @@ mxComputeGenerateData <- function(expectation='expectation') {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeLoadData",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 data = "MxCharOrNumber",
+		 path = "character"
+	 ))
+
+setMethod("initialize", "MxComputeLoadData",
+	  function(.Object, data, path) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- NA_character_
+		  .Object@data <- data
+		  .Object@path <- path
+		  .Object
+	  })
+
+setMethod("convertForBackend", signature("MxComputeLoadData"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@data)) {
+			.Object@data <- imxLocateIndex(flatModel, .Object@data, .Object)
+		}
+		.Object
+	})
+
+##' Load data
+##'
+##' Load data from a series of NetCDF files
+##'
+##' @param expectation a character vector of expectations to generate data for
+##' @aliases
+##' MxComputeLoadData-class
+
+mxComputeLoadData <- function(data, path) {
+	new("MxComputeLoadData", data, path)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeSequence",
 	 contains = "ComputeSteps",
 	 representation = representation(

@@ -1712,6 +1712,17 @@ class ComputeGenerateData : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeLoadData : public omxCompute {
+	typedef omxCompute super;
+	std::vector< omxData* > data;
+	std::vector< std::string > path;
+	int counter;
+
+ public:
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -1745,6 +1756,9 @@ static class omxCompute *newComputeBootstrap()
 static class omxCompute *newComputeGenerateData()
 { return new ComputeGenerateData(); }
 
+static class omxCompute *newComputeLoadData()
+{ return new ComputeLoadData(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -1768,6 +1782,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeNelderMead", &newComputeNelderMead},
 	{"MxComputeBootstrap", &newComputeBootstrap},
 	{"MxComputeGenerateData", &newComputeGenerateData},
+	{"MxComputeLoadData", &newComputeLoadData},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3316,4 +3331,43 @@ void ComputeGenerateData::computeImpl(FitContext *fc)
 void ComputeGenerateData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	slots->add("output", simData.asR());
+}
+
+void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	counter = 0;
+
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
+		if (isErrorRaised()) return;
+		int objNum = INTEGER(Rdata)[wx];
+		omxData *d1 = globalState->dataList[objNum];
+		data.push_back(d1);
+
+		const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
+		path.push_back(p1);
+
+		//mxLog("ld %s %s", d1->name, p1);
+	}
+}
+
+void ComputeLoadData::computeImpl(FitContext *fc)
+{
+	if (counter == 0) {
+		// probably want an option? TODO
+		counter = 1;
+		return;
+	}
+
+	for (int dx=0; dx < int(data.size()); ++dx) {
+		std::string p1 = string_snprintf(path[dx].c_str(), counter);
+		data[dx]->reloadFromFile(p1);
+	}
+
+	fc->state->invalidateCache();
+
+	counter += 1;
 }
