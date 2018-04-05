@@ -14,6 +14,9 @@ xcodebuild -version | head -n 1 | cut -d ' ' -f 2
 curl -Lo /tmp/gcc.tar.gz 'https://sourceforge.net/projects/hpc/files/hpc/gcc/gcc-7.1-bin.tar.gz/download'
 curl -Lo /tmp/gfort.tar.gz 'https://sourceforge.net/projects/hpc/files/hpc/g95/gfortran-7.1-bin.tar.gz/download'
 
+sudo rm -rf /usr/local/lib/gcc
+sudo rm -rf /usr/local/include/c++
+
 sudo tar -zxvf /tmp/gcc.tar.gz -C /
 sudo tar -zxvf /tmp/gfort.tar.gz -C /
 
