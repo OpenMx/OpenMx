@@ -24,6 +24,7 @@
  *   omxData objects hold data in whatever form it takes
  *
  **********************************************************/
+#include <netcdf.h>
 #include "omxData.h"
 #include "glue.h"
 #include "omxState.h"
@@ -145,6 +146,7 @@ void omxData::recompute()
 
 void omxData::newDataStatic(omxState *state, SEXP dataObj)
 {
+	owner = dataObj;
 	omxData *od = this;
 	SEXP dataLoc, dataVal;
 	int numCols;
@@ -406,7 +408,27 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	return od;
 }
 
-void omxFreeData(omxData* od) {
+void omxData::freeInternal()
+{
+	if (owner) {
+		owner = 0;
+		for (auto &cd : rawCols) {
+			cd.realData = 0;
+			cd.intData = 0;
+		}
+	} else {
+		for (auto &cd : rawCols) {
+			if (cd.realData) delete [] cd.realData;
+			if (cd.intData) delete [] cd.intData;
+			cd.realData = 0;
+			cd.intData = 0;
+		}
+	}
+}
+
+void omxFreeData(omxData* od)
+{
+	od->freeInternal();
 	omxFreeMatrix(od->dataMat);
 	omxFreeMatrix(od->meansMat);
 	omxFreeMatrix(od->acovMat);
@@ -860,3 +882,79 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	return true;
 }
 
+void omxData::reloadFromFile(const std::string &path)
+{
+	int ncid;
+	int retval;
+	if ((retval = nc_open(path.c_str(), NC_NOWRITE, &ncid)))
+		throw std::runtime_error(nc_strerror(errno));
+
+	size_t typeLen;
+	if ((retval = nc_inq_attlen (ncid, NC_GLOBAL, "type", &typeLen)))
+		throw std::runtime_error(nc_strerror(errno));
+
+	Eigen::Array<char, Eigen::Dynamic, 1> type(typeLen+1);
+	if ((retval = nc_get_att_text(ncid, NC_GLOBAL, "type", type.data())))
+		throw std::runtime_error(nc_strerror(errno));
+	type[typeLen] = 0;
+
+	if (!strEQ(type.data(), "raw")) Rf_error("omxData::reloadFromFile: type '%s' not implemented", type.data());
+
+	if (dataMat) Rf_error("omxData::reloadFromFile: only data.frame storage is implemented");
+
+	freeInternal();
+
+	int rowsDim;
+	if ((retval = nc_inq_dimid(ncid, "rows", &rowsDim)))
+		throw std::runtime_error(nc_strerror(errno));
+
+	size_t rowsInSizeT;
+	if ((retval = nc_inq_dimlen(ncid, rowsDim, &rowsInSizeT)))
+		throw std::runtime_error(nc_strerror(errno));
+	rows = rowsInSizeT;
+
+	for (auto &cd : rawCols) {
+		int varid;
+		if ((retval = nc_inq_varid (ncid, cd.name, &varid)))
+			throw std::runtime_error(nc_strerror(errno));
+
+		int ndimsp;
+		if ((retval = nc_inq_varndims(ncid, varid, &ndimsp)))
+			throw std::runtime_error(nc_strerror(errno));
+
+		if (ndimsp != 1) Rf_error("Column '%s' must be a vector (have 1 dimension not %d)",
+					  cd.name, ndimsp);
+
+		int dimidsp;
+		if ((retval = nc_inq_vardimid(ncid, varid, &dimidsp)))
+			throw std::runtime_error(nc_strerror(errno));
+
+		if (dimidsp != rowsDim) {
+			Rf_error("Column '%s' must have dimension 'rows'", cd.name);
+		}
+
+		nc_type typep;
+		if ((retval = nc_inq_vartype(ncid, varid, &typep)))
+			throw std::runtime_error(nc_strerror(errno));
+
+		switch (cd.type) {
+		case COLUMNDATA_ORDERED_FACTOR:
+		case COLUMNDATA_UNORDERED_FACTOR:
+		case COLUMNDATA_INTEGER:
+			if (typep != NC_INT) Rf_error("Column '%s' must be integer type", cd.name);
+			cd.intData = new int[rows];
+			if ((nc_get_var_int(ncid, varid, cd.intData)))
+				throw std::runtime_error(nc_strerror(errno));
+
+			// verify identical factor levels TODO
+			break;
+		case COLUMNDATA_NUMERIC:
+			if (typep != NC_DOUBLE) Rf_error("Column '%s' must be double type", cd.name);
+			cd.realData = new double[rows];
+			if ((nc_get_var_double(ncid, varid, cd.realData)))
+				throw std::runtime_error(nc_strerror(errno));
+			break;
+		default: Rf_error("Unknown type"); break;
+		}
+	}
+}
