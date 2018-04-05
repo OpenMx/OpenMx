@@ -30,12 +30,12 @@ sudo tar -zxf /tmp/gfort.tar.gz -C /
 
 fold_start hdf5 hdf5
 curl -L https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.20/src/hdf5-1.8.20.tar.bz2 | tar -C /tmp --extract --bzip2 --file -
-(cd /tmp/hdf5-1.8.20 && CC=gcc CXX=g++ ./configure --prefix=/usr/local --enable-shared && sudo make install)
+(cd /tmp/hdf5-1.8.20 && CC=gcc CXX=g++ ./configure --prefix=/usr/local --enable-shared && sudo make install 2>/dev/null)
 fold_end hdf5
 
 fold_start netcdf netcdf
 curl -L ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.3.3.1.tar.gz | tar -C /tmp --extract --gunzip --file -
-(cd /tmp/netcdf-4.3.3.1 && CC=gcc ./configure && sudo make install)
+(cd /tmp/netcdf-4.3.3.1 && CC=gcc ./configure && sudo make install 2>/dev/null)
 fold_end netcdf
 
 fold_start deps deps
