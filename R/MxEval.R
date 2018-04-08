@@ -479,7 +479,7 @@ mxBootstrapEvalByName <- function(name, model, defvar.row=1L, ..., bq=c(.25,.75)
       stop("'name' argument must be a character argument")
    }
    method <- match.arg(method)
-   eval(substitute(mxBootstrapEval(x, model, defvar.row, bq, method),
+   eval(substitute(mxBootstrapEval(x, model, defvar.row, bq=bq, method=method),
       list(x = as.symbol(name))))
 }
 
