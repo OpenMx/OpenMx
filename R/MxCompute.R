@@ -925,17 +925,19 @@ setMethod("displayCompute", signature(Ob="MxComputeIterate", indent="integer"),
 	  })
 
 #----------------------------------------------------
-setClass(Class = "MxComputeBenchmark",
+setClass(Class = "MxComputeLoop",
 	 contains = "ComputeSteps",
 	 representation = representation(
+		 indices = "integer",
 	   maxIter = "integer",
 	   maxDuration = "numeric"))
 
-setMethod("initialize", "MxComputeBenchmark",
-	  function(.Object, steps, maxIter, freeSet, maxDuration) {
+setMethod("initialize", "MxComputeLoop",
+	  function(.Object, steps, indices, maxIter, freeSet, maxDuration) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
+		  .Object@indices <- indices
 		  .Object@maxIter <- maxIter
 		  .Object@freeSet <- freeSet
 		  .Object@maxDuration <- maxDuration
@@ -945,28 +947,36 @@ setMethod("initialize", "MxComputeBenchmark",
 ##' Repeatedly invoke a series of compute objects
 ##'
 ##' @param steps a list of compute objects
-##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param ...  Not used.  Forces remaining arguments to be specified
+##'         by name.
+##' @param i the values to iterate over
 ##' @param maxIter the maximum number of iterations
 ##' @param freeSet Names of matrices containing free variables.
-##' @param maxDuration the maximum amount of time (in seconds) to iterate
-##' @aliases
-##' MxComputeBenchmark-class
-mxComputeBenchmark <- function(steps, ..., maxIter=500L, freeSet=NA_character_,
+##' @param maxDuration the maximum amount of time (in seconds) to
+##'         iterate
+##' @description When \code{i} is given then these values are iterated
+##'         over instead of the sequence 1 to the number of
+##'         iterations.  If \code{i} is not given then \code{maxIter}
+##'         is set to 500 to prevent infinite loops.
+##' @aliases MxComputeLoop-class mxComputeBenchmark
+mxComputeLoop <- function(steps, ..., i=NULL, maxIter=as.integer(NA), freeSet=NA_character_,
 			     maxDuration=as.numeric(NA)) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeBenchmark does not accept values for the '...' argument")
 	}
 
+	if (is.null(i)) maxIter <- 500L
 	maxIter <- as.integer(maxIter)
-	new("MxComputeBenchmark", steps=steps, maxIter=maxIter,
+	new("MxComputeLoop", steps=steps, indices=as.integer(i), maxIter=maxIter,
 	    freeSet, maxDuration)
 }
 
-setMethod("displayCompute", signature(Ob="MxComputeBenchmark", indent="integer"),
+setMethod("displayCompute", signature(Ob="MxComputeLoop", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "indices :", Ob@indices, '\n')
 		  cat(sp, "maxIter :", Ob@maxIter, '\n')
 		  cat(sp, "maxDuration :", Ob@maxDuration, '\n')
 		  for (step in 1:length(Ob@steps)) {
@@ -975,6 +985,8 @@ setMethod("displayCompute", signature(Ob="MxComputeBenchmark", indent="integer")
 		  }
 		  invisible(Ob)
 	  })
+
+mxComputeBenchmark <- mxComputeLoop
 
 #----------------------------------------------------
 
@@ -1843,31 +1855,38 @@ mxComputeGenerateData <- function(expectation='expectation') {
 setClass(Class = "MxComputeLoadData",
 	 contains = "BaseCompute",
 	 representation = representation(
-		 data = "MxCharOrNumber",
-		 path = "character"
+		 dest = "MxCharOrNumber",
+		 path = "character",
+		 originalDataIsIndexOne = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
-	  function(.Object, data, path) {
+	  function(.Object, dest, path, originalDataIsIndexOne) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
-		  .Object@data <- data
+		  .Object@dest <- dest
 		  .Object@path <- path
+		  .Object@originalDataIsIndexOne <- originalDataIsIndexOne
 		  .Object
 	  })
 
 setMethod("convertForBackend", signature("MxComputeLoadData"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (is.character(.Object@data)) {
-			.Object@data <- imxLocateIndex(flatModel, .Object@data, .Object)
+		if (is.character(.Object@dest)) {
+			full <- grepl('.', .Object@dest, fixed=TRUE)
+			for (dx in 1:length(.Object@dest)) {
+				if (full[dx]) next
+				.Object@dest[dx] <- paste0(.Object@dest[dx], '.data')
+			}
+			.Object@dest <- imxLocateIndex(flatModel, .Object@dest, .Object)
 		}
 		.Object
 	})
 
-mxComputeLoadData <- function(data, path) {
-	new("MxComputeLoadData", data, path)
+mxComputeLoadData <- function(dest, path, ..., originalDataIsIndexOne=FALSE) {
+	new("MxComputeLoadData", dest, path, originalDataIsIndexOne)
 }
 
 #----------------------------------------------------
