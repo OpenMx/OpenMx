@@ -1530,8 +1530,10 @@ class omxComputeIterate : public ComputeContainer {
 	virtual ~omxComputeIterate();
 };
 
-class ComputeBenchmark : public ComputeContainer {
+class ComputeLoop : public ComputeContainer {
 	typedef ComputeContainer super;
+	int indicesLength;
+	int *indices;
 	int maxIter;
 	double maxDuration;
 	int iterations;
@@ -1540,7 +1542,7 @@ class ComputeBenchmark : public ComputeContainer {
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-	virtual ~ComputeBenchmark();
+	virtual ~ComputeLoop();
 };
 
 class omxComputeOnce : public omxCompute {
@@ -1716,7 +1718,7 @@ class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxData* > data;
 	std::vector< std::string > path;
-	int counter;
+	bool useOriginalData;
 
  public:
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
@@ -1729,8 +1731,8 @@ static class omxCompute *newComputeSequence()
 static class omxCompute *newComputeIterate()
 { return new omxComputeIterate(); }
 
-static class omxCompute *newComputeBenchmark()
-{ return new ComputeBenchmark(); }
+static class omxCompute *newComputeLoop()
+{ return new ComputeLoop(); }
 
 static class omxCompute *newComputeOnce()
 { return new omxComputeOnce(); }
@@ -1769,7 +1771,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
         {"MxComputeGradientDescent", &newComputeGradientDescent},
 	{"MxComputeSequence", &newComputeSequence },
 	{"MxComputeIterate", &newComputeIterate },
-	{"MxComputeBenchmark", &newComputeBenchmark },
+	{"MxComputeLoop", &newComputeLoop },
 	{"MxComputeOnce", &newComputeOnce },
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
@@ -1962,7 +1964,7 @@ omxComputeIterate::~omxComputeIterate()
 	}
 }
 
-void ComputeBenchmark::initFromFrontend(omxState *globalState, SEXP rObj)
+void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	SEXP slotValue;
 
@@ -1973,6 +1975,9 @@ void ComputeBenchmark::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	{
+		ProtectedSEXP Rindices(R_do_slot(rObj, Rf_install("indices")));
+		indicesLength = Rf_length(Rindices);
+		indices = INTEGER(Rindices);
 		ProtectedSEXP RmaxDur(R_do_slot(rObj, Rf_install("maxDuration")));
 		maxDuration = Rf_asReal(RmaxDur);
 	}
@@ -1996,29 +2001,34 @@ void ComputeBenchmark::initFromFrontend(omxState *globalState, SEXP rObj)
 	iterations = 0;
 }
 
-void ComputeBenchmark::computeImpl(FitContext *fc)
+void ComputeLoop::computeImpl(FitContext *fc)
 {
+	bool hasIndices = indicesLength != 0;
+	bool hasMaxIter = maxIter != NA_INTEGER;
 	time_t startTime = time(0);
 	while (1) {
+		Global->computeLoopContext.push_back(hasIndices? indices[iterations] : 1+iterations);
 		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
 			if (isErrorRaised()) break;
 		}
+		Global->computeLoopContext.pop_back();
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
-		if (isErrorRaised() || iterations >= maxIter) break;
+		if (hasMaxIter && iterations >= maxIter) break;
+		if (hasIndices && iterations >= indicesLength) break;
 	}
 }
 
-void ComputeBenchmark::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+void ComputeLoop::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	MxRList output;
 	output.add("iterations", Rf_ScalarInteger(iterations));
 	slots->add("output", output.asR());
 }
 
-ComputeBenchmark::~ComputeBenchmark()
+ComputeLoop::~ComputeLoop()
 {
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		delete clist[cx];
@@ -3337,9 +3347,10 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
 
-	counter = 0;
+	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
+	useOriginalData = Rf_asLogical(RoriginalData);
 
-	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
 	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
 		if (isErrorRaised()) return;
@@ -3356,18 +3367,15 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void ComputeLoadData::computeImpl(FitContext *fc)
 {
-	if (counter == 0) {
-		// probably want an option? TODO
-		counter = 1;
-		return;
-	}
+	std::vector<int> &clc = Global->computeLoopContext;
+	if (clc.size() == 0) Rf_error("%s: must be used within a loop", name);
+	int index = clc[clc.size()-1];  // innermost loop index
+	if (useOriginalData && index == 1) return;
 
 	for (int dx=0; dx < int(data.size()); ++dx) {
-		std::string p1 = string_snprintf(path[dx].c_str(), counter);
+		std::string p1 = string_snprintf(path[dx].c_str(), index);
 		data[dx]->reloadFromFile(p1);
 	}
 
 	fc->state->invalidateCache();
-
-	counter += 1;
 }
