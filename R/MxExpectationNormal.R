@@ -348,24 +348,22 @@ generateNormalData <- function(model, nrows, subname){
 	if (!is.null(model[[subname]]$data) && model[[subname]]$data$type == 'raw') origData <- model[[subname]]$data$observed
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model[[subname]])){
-		if(nrows == nrow(origData)){
-			# Generate data row by row
-			theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
-			data <- matrix(NA, nrow=nrows, ncol=ncol(theCov))
-			colnames(data) <- colnames(theCov)
-			data <- as.data.frame(data)
-			for(i in 1:nrows){
-				theMeans <- imxGetExpectationComponent(model, "means", defvar.row=i, subname=subname)
-				theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i, subname=subname)
-				theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i, subname=subname)
-				data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
-			}
-			data <- ordinalizeDataHelper(data, theThresh, origData=origData)
+		# Generate data row by row
+		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
+		data <- matrix(NA, nrow=nrows, ncol=ncol(theCov))
+		colnames(data) <- colnames(theCov)
+		data <- as.data.frame(data)
+		for(i in 1:nrows){
+			theMeans <- imxGetExpectationComponent(model, "means", defvar.row=i, subname=subname)
+			theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i, subname=subname)
+			theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i, subname=subname)
+			data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
+		}
+		data <- ordinalizeDataHelper(data, theThresh, origData=findDataForSubmodel(model, subname))
+		if (!is.null(origData)) {
 			for (dcol in setdiff(colnames(origData), colnames(data))) {
 				data[[dcol]] <- origData[[dcol]]
 			}
-		} else{
-			stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
 		}
 	} else{
 		#use generic functions and mvtnorm::rmvnorm() to generate data
@@ -379,7 +377,7 @@ generateNormalData <- function(model, nrows, subname){
 		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
-		data <- ordinalizeDataHelper(data, theThresh, origData=origData)
+		data <- ordinalizeDataHelper(data, theThresh, origData=findDataForSubmodel(model, subname))
 	}
 	return(data)
 }
