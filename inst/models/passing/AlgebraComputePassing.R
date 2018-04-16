@@ -617,11 +617,11 @@ omxCheckCloseEnough(modelOut[['test94']]$result, 1/(1+N$values), 0.001)
 m0 <- mxModel()
 omxCheckTrue(!imxHasDefinitionVariable(m0))
 m1 <- mxModel(mxMatrix('Full', 1, 1, labels='data.blah'))
-omxCheckTrue(!imxHasDefinitionVariable(m1)) # still has no data
+omxCheckTrue(imxHasDefinitionVariable(m1)) # still has no data
 m2 <- mxModel(m1, mxData(matrix(0, 1, 1), 'raw'))
 omxCheckTrue(imxHasDefinitionVariable(m2))
 m3 <- mxModel(name='b', m1)
-omxCheckTrue(!imxHasDefinitionVariable(m3)) # submodel behavior
+omxCheckTrue(imxHasDefinitionVariable(m3)) # submodel behavior
 m3 <- mxModel(name='b', m2)
 omxCheckTrue(imxHasDefinitionVariable(m3))
 m4 <- mxModel(mxAlgebra(data.x1 %x% V, name='bob'), mxData(matrix(0, 1, 1), 'raw'))
