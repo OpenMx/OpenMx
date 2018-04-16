@@ -99,7 +99,8 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		# it that way because the API is not really set up for
 		# generating data 1 row at a time.
 		cpick <- NULL
-		if(imxHasDefinitionVariable(model)){
+		doDefVar <- !is.null(origData) && imxHasDefinitionVariable(model)
+		if(doDefVar){
 			if(nrows != nrow(origData)){
 				stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
 			}
@@ -115,7 +116,7 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		if (length(.Object@components) > 1) for (cx in 2:length(.Object@components)) {
 			data[cpick==cx,] <- cdata[[cx]][cpick == cx,]
 		}
-		if(imxHasDefinitionVariable(model)){
+		if(doDefVar){
 			for (dcol in setdiff(colnames(origData), colnames(data))) {
 				data[[dcol]] <- origData[[dcol]]
 			}
