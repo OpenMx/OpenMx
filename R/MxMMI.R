@@ -194,6 +194,7 @@ mxModelAverage <- function(
 		for(i in 1:length(models)){
 			currmod <- models[[i]]
 			currmodparams <- list(fre=omxGetParameters(currmod,free=TRUE),fix=omxGetParameters(currmod,free=FALSE))
+			covmAvailable <- FALSE
 			if(SE){
 				if(currmod@name %in% names(covariances)){
 					currmodcovm <- covariances[[currmod@name]]
@@ -211,23 +212,33 @@ mxModelAverage <- function(
 							!all(names(currmodparams$fre) %in% rownames(currmodcovm)) ){
 						stop(paste("the dimnames of the covariance matrix for model",omxQuotes(currmod@name),"do not match the labels of the model's free parameters"))
 					}
+					covmAvailable <- TRUE
 				}
 				else{
-					if(imxHasConstraint(currmod)){
-						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix for model-average point estimates may not be valid"))
-					}
 					if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
 						currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
 						dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
+						covmAvailable <- TRUE
 					}
-					else{currmodcovm <- 2*solve(currmod@output$hessian)}
+					else{
+						currmodcovm <- try(solve(currmod@output$hessian/2))
+						if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
+					}
+					if(imxHasConstraint(currmod) && covmAvailable){
+						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix and standard errors for model-average point estimates may not be valid"))
+					}
 				}
 			}
 			currmod <- mxModel(
 				currmod,
 				mxAlgebraFromString(algString=paste("rbind(",paste(longlabels,collapse=","),")",sep=""),name="onTheFlyAlgebra"))
 			thetamtx[,i] <- mxEvalByName(name="onTheFlyAlgebra",model=currmod,compute=T)[,1]
-			if(SE){
+			if(!covmAvailable && SE){
+				#Not sure what else to do in this case:
+				warning(paste("model",omxQuotes(currmod@name),"has no covariance matrix for its free parameters; continuing with argument 'SE' coerced to FALSE"))
+				SE <- FALSE
+			}
+			if(covmAvailable && SE){
 				refcov <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=T)$Cov
 				#TODO more informative error message:
 				if(include=="onlyFree" && any(diag(refcov) <= .Machine$double.eps)){
@@ -269,40 +280,55 @@ mxModelAverage <- function(
 		for(i in 1:length(models)){
 			currmod <- models[[i]]
 			currmodparams <- list(fre=omxGetParameters(currmod,free=TRUE),fix=omxGetParameters(currmod,free=FALSE))
-			if(SE){
-				if(currmod@name %in% names(covariances)){
-					currmodcovm <- covariances[[currmod@name]]
-					#Sanity checks on user-supplied covariance matrices:
-					if(!isSymmetric(currmodcovm)){ #<--Returns FALSE for non-square matrices
-						stop(paste("covariance matrix for model",omxQuotes(currmod@name),"is not symmetric"))
-					}
-					if( !length(rownames(currmodcovm)) || !length(colnames(currmodcovm)) ){
-						stop(paste("covariance matrix for model",omxQuotes(currmod@name),"does not have both row names and column names"))
-					}
-					if( !all(rownames(currmodcovm) == colnames(currmodcovm)) ){
-						stop(paste("the row names and column names of covariance matrix for model",omxQuotes(currmod@name),"are not equal"))
-					}
-					if( !all(rownames(currmodcovm) %in% names(currmodparams$fre)) ||  
-							!all(names(currmodparams$fre) %in% rownames(currmodcovm)) ){
-						stop(paste("the dimnames of the covariance matrix for model",omxQuotes(currmod@name),"do not match the labels of the model's free parameters"))
-					}
+			covmAvailable <- FALSE
+			if(currmod@name %in% names(covariances)){
+				currmodcovm <- covariances[[currmod@name]]
+				#Sanity checks on user-supplied covariance matrices:
+				if(!isSymmetric(currmodcovm)){ #<--Returns FALSE for non-square matrices
+					stop(paste("covariance matrix for model",omxQuotes(currmod@name),"is not symmetric"))
+				}
+				if( !length(rownames(currmodcovm)) || !length(colnames(currmodcovm)) ){
+					stop(paste("covariance matrix for model",omxQuotes(currmod@name),"does not have both row names and column names"))
+				}
+				if( !all(rownames(currmodcovm) == colnames(currmodcovm)) ){
+					stop(paste("the row names and column names of covariance matrix for model",omxQuotes(currmod@name),"are not equal"))
+				}
+				if( !all(rownames(currmodcovm) %in% names(currmodparams$fre)) ||  
+						!all(names(currmodparams$fre) %in% rownames(currmodcovm)) ){
+					stop(paste("the dimnames of the covariance matrix for model",omxQuotes(currmod@name),"do not match the labels of the model's free parameters"))
+				}
+				covmAvailable <- TRUE
+			}
+			else{
+				if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
+					currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
+					dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
+					covmAvailable <- TRUE
 				}
 				else{
-					if(imxHasConstraint(currmod)){
-						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"standard errors for model-average point estimates may not be valid"))
-					}
-					if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
-						currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
-						dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
-					}
-					else{currmodcovm <- 2*solve(currmod@output$hessian)}
+					currmodcovm <- try(solve(currmod@output$hessian/2))
+					if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
 				}
+				if(imxHasConstraint(currmod) && covmAvailable){
+					if(SE){
+						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances, as well as the standard errors for model-average point estimates, may not be valid"))
+					}
+					else{
+						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances may not be valid"))
+					}
+				}
+			}
+			if(!covmAvailable && SE){
+				#We don't want the subset of models contributing to the model-average point estimates to be different from the subset of models 
+				#contributing to their standard errors:
+				warning(paste("model",omxQuotes(currmod@name),"has no covariance matrix for its free parameters; continuing with argument 'SE' coerced to FALSE"))
+				SE <- FALSE
 			}
 			rownumcurr <- 1
 			for(j in 1:length(reference)){
 				if(reference[j] %in% names(currmodparams$fre)){
 					thetamtx[rownumcurr,i] <- currmodparams$fre[reference[j]]
-					if(SE){wivmtx[rownumcurr,i] <- currmodcovm[reference[j],reference[j]]}
+					if(covmAvailable){wivmtx[rownumcurr,i] <- currmodcovm[reference[j],reference[j]]}
 					rownumcurr <- rownumcurr + 1
 					next
 				} 
@@ -312,7 +338,7 @@ mxModelAverage <- function(
 						next
 					}
 					thetamtx[rownumcurr,i] <- currmodparams$fix[reference[j]]
-					if(SE){wivmtx[rownumcurr,i] <- 0}
+					if(covmAvailable){wivmtx[rownumcurr,i] <- 0}
 					rownumcurr <- rownumcurr + 1
 					next
 				}
@@ -322,11 +348,11 @@ mxModelAverage <- function(
 						rownumcurr <- rownumcurr + reflengths[j]
 						next
 					}
-					if(SE){
-						xv <- try(mxSE(x=reference[j],model=currmod,details=T,cov=currmodcovm,forceName=T,silent=TRUE),silent=TRUE)
+					if(covmAvailable){
+						xv <- try(mxSE(x=reference[j],model=currmod,details=T,cov=currmodcovm,forceName=T,silent=T),silent=T)
 						if(is(xv,"try-error")){
 							currmod <- mxModel(currmod,mxAlgebraFromString(algString=reference[j],name="onTheFlyAlgebra"))
-							xv <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=TRUE)
+							xv <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=T)
 						}
 						xv <- xv$Cov
 						for(k in 1:nrow(xv)){
@@ -340,6 +366,7 @@ mxModelAverage <- function(
 						if(include=="all"){jac <- matrix(1,ncol=1,nrow=reflengths[j])}
 						else{jac <- numDeriv::jacobian(func=sefun,x=omxGetParameters(currmod),model=currmod,alg=reference[j])}
 						for(k in 1:reflengths[j]){
+							#A row of the Jacobian matrix can only be all zeroes if include="onlyFree":
 							if(all(jac[k,]==0)){next}
 							thetamtx[rownumcurr+(k-1),i] <- x[k]
 						}
