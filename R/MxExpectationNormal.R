@@ -359,7 +359,7 @@ generateNormalData <- function(model, nrows, subname){
 			theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i, subname=subname)
 			data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
 		}
-		data <- ordinalizeDataHelper(data, theThresh, origData=findDataForSubmodel(model, subname))
+		data <- ordinalizeDataHelper(data, theThresh, origData=findDataForSubmodel(model, subname)$observed)
 		if (!is.null(origData)) {
 			for (dcol in setdiff(colnames(origData), colnames(data))) {
 				data[[dcol]] <- origData[[dcol]]
@@ -377,7 +377,7 @@ generateNormalData <- function(model, nrows, subname){
 		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
-		data <- ordinalizeDataHelper(data, theThresh, origData=findDataForSubmodel(model, subname))
+		data <- ordinalizeDataHelper(data, theThresh, origData=findDataForSubmodel(model, subname)$observed)
 	}
 	return(data)
 }
