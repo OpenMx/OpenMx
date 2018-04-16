@@ -6,7 +6,7 @@
 Information-Theoretic Model-Averaging and Multimodel Inference
 }
 \description{
-\code{omxAkaikeWeights()} orders a list of \link[=MxModel]{MxModels} (hereinafter, the "candidate set" of models) from best to worst AIC, reports their Akaike weights, and indicates which are in the confidence set for best-approximating model.  \code{mxModelAverage()} calls \code{omxAkaikeWeights()} and includes its output, and also reports model-average point estimates and their standard errors.
+\code{omxAkaikeWeights()} orders a list of \link[=MxModel]{MxModels} (hereinafter, the "candidate set" of models) from best to worst AIC, reports their Akaike weights, and indicates which are in the confidence set for best-approximating model.  \code{mxModelAverage()} calls \code{omxAkaikeWeights()} and includes its output, and also reports model-average point estimates and (if requested) their standard errors.
 }
 \usage{
 mxModelAverage(reference=character(0), models=list(),
@@ -30,7 +30,7 @@ omxAkaikeWeights(models=list(), type=c("AIC","AICc"), conf.level=0.95)
 \details{
 If statistical inferences (hypothesis tests and confidence intervals) are the motivation for calculating model-average point estimates and their standard errors, then \code{include="onlyFree"} (the default) is recommended.  Note that, if models in which a quantity is held fixed are included in calculating the quantity's model-average estimate, then that estimate cannot even asymptotically be normally distributed (Bartels, 1997).
 
-If argument \code{covariances} is non-empty, then either it must be of the same length as argument \code{models}, or all of its elements must be named after an MxModel in \code{models} (an MxModel's name is the character string in its \code{name} slot).  If \code{covariances} is of the same length as \code{models} but lacks element names, \code{mxModelAverage()} will assume that they are ordered so that the first element of \code{covariances} is to be used with the first MxModel, the second element is to be used with the second MxModel, and so on.  Otherwise, \code{mxModelAverage()} assigns the elements of \code{covariances} to the MxModels by matching element names to MxModel names.  If \code{covariances} doesn't provide a covariance matrix for a given MxModel--perhaps because it is empty, or only provides matrices for a nonempty proper subset of the candidate set--\code{mxModelAverage()} will fall back to its default behavior of calculating a covariance matrix from the Hessian matrix in the MxModel's output slot.
+If argument \code{covariances} is non-empty, then either it must be of the same length as argument \code{models}, or all of its elements must be named after an MxModel in \code{models} (an MxModel's name is the character string in its \code{name} slot).  If \code{covariances} is of the same length as \code{models} but lacks element names, \code{mxModelAverage()} will assume that they are ordered so that the first element of \code{covariances} is to be used with the first MxModel, the second element is to be used with the second MxModel, and so on.  Otherwise, \code{mxModelAverage()} assigns the elements of \code{covariances} to the MxModels by matching element names to MxModel names.  If \code{covariances} doesn't provide a covariance matrix for a given MxModel--perhaps because it is empty, or only provides matrices for a nonempty proper subset of the candidate set--\code{mxModelAverage()} will fall back to its default behavior of calculating a covariance matrix from the Hessian matrix in the MxModel's output slot.  If a covariance matrix cannot be thus calculated and \code{SE=TRUE}, \code{SE} is coerced to \code{FALSE}, with a warning.
 
 The matrices in \code{covariances} must have complete row and column names, equal to the free parameter labels of the corresponding MxModel.  These names indicate to which free parameter a given row or column corresponds.
 }
@@ -40,7 +40,7 @@ The matrices in \code{covariances} must have complete row and column names, equa
 \enumerate{
 	\item \code{"model"}: Character string. The name of the MxModel.
 	\item \code{"AIC"} or \code{"AICc"}: Numeric.  The MxModel's AIC or AICc.
-	\item \code{"delta"}: Numeric.  The MxModel's AIC(c) minus the best (smallest) AIC(c) in the set of MxModels.
+	\item \code{"delta"}: Numeric.  The MxModel's AIC (or AICc) minus the best (smallest) AIC (or AICc) in the candidate set.
 	\item \code{"AkaikeWeight"}: Numeric.  The MxModel's Akaike weight.  This column will sum to unity.
 	\item \code{"inConfidenceSet"}: Character.  Will contain an asterisk if the MxModel is in the confidence set for best-approximating model.
 }
@@ -50,10 +50,10 @@ If a zero-length value is provided for argument \code{reference}, then \code{mxM
 \enumerate{
 	\item \code{"Model-Average Estimates"}: A numeric matrix with one row for each distinct quantity specified by \code{reference}, and as many as two columns.  Its rows are named for the corresponding reference quantities.  Its first column, \code{"Estimate"}, contains the model-average point estimates.  If standard errors are being calculated, then its second column, \code{"SE"}, contains the "model-unconditional" standard errors of the model-average point estimates.  Otherwise, there is no second column.
 	\item \code{"Model-wise Estimates"}: A numeric matrix with one row for each distinct quantity specified by \code{reference} (indicated by row name), and one column for each MxModel (indicated by column name).  Each element is an estimate of the given reference quantity, from the given MxModel.  Quantities that cannot be evaluated for a given MxModel are reported as \code{NA}.
-	\item \code{"Model-wise Sampling Variances"}: A numeric matrix just like the one in list element 2, except that its elements are the esimated sampling variances of the corresponding model-conditional point estimates in list element 2.  Variances for fixed quantities are reported as 0 if \code{include="all"}, and as \code{NA} if \code{include="onlyFree"}.
+	\item \code{"Model-wise Sampling Variances"}: A numeric matrix just like the one in list element 2, except that its elements are the esimated sampling variances of the corresponding model-conditional point estimates in list element 2.  Variances for fixed quantities are reported as 0 if \code{include="all"}, and as \code{NA} if \code{include="onlyFree"}; however, if no covariance matrix is available for a model, all of that model's sampling variances will be reported as \code{NA}.
 	\item \code{"Akaike-Weights Table"}: The output from \code{omxAkaikeWeights()}.
 }
-If \code{refAsBlock=TRUE}, list element 3 will instead contain be named \code{"Joint Covariance Matrix"}, and contain the joint sampling covariance matrix for the model-average point estimates.
+If \code{refAsBlock=TRUE}, list element 3 will instead contain be named \code{"Joint Covariance Matrix"}, and if \code{SE=TRUE}, it will contain the joint sampling covariance matrix for the model-average point estimates.
 }
 
 \note{
