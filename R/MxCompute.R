@@ -1886,7 +1886,71 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 	})
 
 mxComputeLoadData <- function(dest, path, ..., originalDataIsIndexOne=FALSE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeLoadData does not accept values for the '...' argument")
+	}
 	new("MxComputeLoadData", dest, path, originalDataIsIndexOne)
+}
+
+#----------------------------------------------------
+
+setClass(Class = "MxComputeCheckpoint",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 what = "MxCharOrNumber",
+		 toReturn = "logical",
+		 path = "MxOptionalChar",
+		 log = "MxListOrNull",
+		 parameters = "logical",
+		 loopIndices = "logical",
+		 fit = "logical",
+		 counters = "logical"
+	 ))
+
+setMethod("initialize", "MxComputeCheckpoint",
+	  function(.Object, what, path, toReturn, parameters, loopIndices, fit, counters) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- NA_character_
+		  .Object@what <- what
+		  .Object@path <- path
+		  .Object@toReturn <- toReturn
+		  .Object@parameters <- parameters
+		  .Object@loopIndices <- loopIndices
+		  .Object@fit <- fit
+		  .Object@counters <- counters
+		  .Object
+	  })
+
+setMethod("qualifyNames", signature("MxComputeCheckpoint"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('what')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeCheckpoint"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@what)) {
+			.Object@what <- imxLocateIndex(flatModel, .Object@what, .Object)
+		}
+		.Object
+	})
+
+mxComputeCheckpoint <- function(what, ..., path=NULL, toReturn=TRUE,
+				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeCheckpoint does not accept values for the '...' argument")
+	}
+	what <- as.character(what)
+	path <- as.character(path)
+	new("MxComputeCheckpoint", what, path, as.logical(toReturn),
+		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters))
 }
 
 #----------------------------------------------------
