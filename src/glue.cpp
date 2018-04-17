@@ -605,6 +605,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
+		if (Global->computeLoopContext.size() != 0) Rf_error("computeLoopContext imbalance");
 
 		if (fc->wanted & FF_COMPUTE_FIT) {
 			if (!std::isfinite(fc->fit)) {

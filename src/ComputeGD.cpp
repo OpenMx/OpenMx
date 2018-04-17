@@ -762,11 +762,15 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	omxCompleteFitFunction(fitMatrix);
 
+	Global->computeLoopContext.push_back(NA_INTEGER);
+
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
+
+	Global->computeLoopContext.pop_back();
 }
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
@@ -1580,6 +1584,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	int detailRow = 0;
 	for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
+		Global->computeLoopContext.push_back(ii);
 		ConfidenceInterval *currentCI = Global->intervalList[ii];
 		omxMatrix *ciMatrix = currentCI->getMatrix(state);
 
@@ -1599,6 +1604,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		} else {
 			regularCI2(mle, fc, currentCI, detailRow);
 		}
+		Global->computeLoopContext.pop_back();
 	}
 
 	mle->copyParamToModel();
@@ -1720,12 +1726,16 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	invocations = 0;
 	numRetries = 0;
 
+	Global->computeLoopContext.push_back(NA_INTEGER);
+
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
+
+	Global->computeLoopContext.pop_back();
 }
 
 bool ComputeTryH::satisfied(FitContext *fc)
@@ -1756,6 +1766,8 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		mxLog("%s: at most %d attempts (Welcome)", name, retriesRemain);
 	}
 
+	Global->computeLoopContext.push_back(1);
+
 	bestStatus = INFORM_UNINITIALIZED;
 	bestFit = NA_REAL;
 	fc->setInform(INFORM_UNINITIALIZED);
@@ -1765,6 +1777,8 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		bestEst = curEst;
 		bestFit = fc->fit;
 	}
+
+	Global->computeLoopContext.pop_back();
 
 	while (!satisfied(fc) && retriesRemain > 0) {
 		if (verbose >= 2) {
@@ -1787,6 +1801,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		PutRNGstate();
 
 		--retriesRemain;
+		Global->computeLoopContext.push_back(maxRetries - retriesRemain);
 
 		fc->setInform(INFORM_UNINITIALIZED);
 		fc->wanted &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
@@ -1797,6 +1812,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 			bestEst = curEst;
 			bestFit = fc->fit;
 		}
+		Global->computeLoopContext.pop_back();
 	}
 
 	fc->setInform(bestStatus);
