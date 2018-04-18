@@ -84,8 +84,7 @@ setMethod("genericGetExpected", signature("MxExpectationMixture"),
 
 setMethod("genericGenerateData", signature("MxExpectationMixture"),
 	function(.Object, model, nrows, subname) {
-		origData <- NULL
-		if (!is.null(model$data) && model$data$type == 'raw') origData <- model$data$observed
+		origData <- findDataForSubmodel(model, subname)
 
 		cdata <- list()
 		for (c1 in .Object@components) {
@@ -99,7 +98,13 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		# it that way because the API is not really set up for
 		# generating data 1 row at a time.
 		cpick <- NULL
-		if(imxHasDefinitionVariable(model)){
+		doDefVar <- imxHasDefinitionVariable(model)
+		if(doDefVar){
+			if (origData$type != 'raw') {
+				stop(paste("Definition variable(s) found, but original data is type",
+					omxQuotes(origData$type)))
+			}
+			origData <- origData$observed
 			if(nrows != nrow(origData)){
 				stop("Definition variable(s) found, but the number of rows in the data do not match the number of rows requested for data generation.")
 			}
@@ -115,7 +120,7 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		if (length(.Object@components) > 1) for (cx in 2:length(.Object@components)) {
 			data[cpick==cx,] <- cdata[[cx]][cpick == cx,]
 		}
-		if(imxHasDefinitionVariable(model)){
+		if(doDefVar){
 			for (dcol in setdiff(colnames(origData), colnames(data))) {
 				data[[dcol]] <- origData[[dcol]]
 			}

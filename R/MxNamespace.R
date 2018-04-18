@@ -307,11 +307,6 @@ imxHasDefinitionVariable <- function(model) {
 			}
 	}
 	
-	# Check if the model has data
-	if(length(model@data) == 0){
-		return(FALSE)
-	}
-	
 	# Check the matrices for defvar
 	if(length(model@matrices) > 0){
 		for(i in 1:length(model@matrices)){

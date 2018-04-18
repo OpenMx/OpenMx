@@ -87,6 +87,18 @@ imxFreezeModel <- function(model) {
 	return(model)
 }
 
+findDataForSubmodel <- function(model, subname, defaultData=NULL) {
+	if (!is.null(model$data)) defaultData <- model$data
+	if (model$name == subname) {
+		return(defaultData)
+	}
+	if (length(model@submodels) > 0) for (mx in 1:length(model@submodels)) {
+		got <- findDataForSubmodel(model@submodels[[mx]], subname, defaultData)
+		if (!is.null(got)) return(got)
+	}
+	c()
+}
+
 ##' Remove heirarchical structure from model
 ##'
 ##' @param model model

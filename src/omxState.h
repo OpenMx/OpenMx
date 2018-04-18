@@ -261,6 +261,7 @@ class omxGlobal {
 	std::vector< omxCompute* > computeList;
 	void omxProcessMxComputeEntities(SEXP rObj, omxState *currentState);
 
+	std::vector<int> computeLoopContext;
 	std::vector< std::string > bads;
 
 	// Will need revision if multiple optimizers are running in parallel
