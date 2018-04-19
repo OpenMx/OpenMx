@@ -18,24 +18,28 @@
 \alias{omxRunCI}
 
 \title{
-Dedicated functions for calculating confidence intervals without redoing the primary optimization.
+Calculate confidence intervals without re-doing the primary optimization.
 }
 
 \description{
-\code{omxParallelCI()} calculates confidence intervals for an already-\link[=mxRun]{run} \link{MxModel} object that contains an \link{MxInterval} object (i.e., an \code{\link{mxCI}()} statement), without recalculating point estimates, fitfunction derivatives, or expectations.  The "parallel" in the function's name refers to the not-yet-implemented feature of running independent \link[=mxModel]{submodels} in parallel.  \code{omxRunCI()} is a wrapper for \code{omxParallelCI()} with arguments \code{run=TRUE} and \code{independentSubmodels=FALSE}, and is the recommended interface.
+OpenMx provides two functions to calculate confidence intervals for already-\link[=mxRun]{run} \link{MxModel} objects that contain an \link{MxInterval} object (i.e., an \code{\link{mxCI}()} statement), without recalculating point estimates, fitfunction derivatives, or expectations.
+
+The primary function is \code{omxRunCI()}. This is a wrapper for \code{omxParallelCI()} with arguments \code{run=TRUE} and \code{independentSubmodels=FALSE}, and is the recommended interface.
+
+\code{omxParallelCI()} does the work of calculating confidence intervals. The "parallel" in the function's name refers to the not-yet-implemented feature of running independent \link[=mxModel]{submodels} in parallel.  
 }
 \usage{
-omxParallelCI(model, run = TRUE, verbose=0L, independentSubmodels=TRUE,
-optimizer=mxOption(NULL,"Default optimizer"))
+omxRunCI(model, verbose = 0, optimizer = "SLSQP")
 
-omxRunCI(model, verbose=0L, optimizer="SLSQP")
+omxParallelCI(model, run = TRUE, verbose = 0, independentSubmodels = TRUE,
+optimizer = mxOption(NULL, "Default optimizer"))
 }
 
 \arguments{
   \item{model}{An \link{MxModel} object that contains an \link{MxInterval} object (i.e., an \code{\link{mxCI}()} statement).}
-  \item{run}{Logical; should the resulting MxModel object be passed through \code{\link{mxRun}()} before being returned?  Defaults to \code{TRUE} (for \code{omxParallelCI()}).}
+  \item{run}{Logical; For \code{omxParallelCI()}, determines if the model with its new compute plan is \code{\link{mxRun}()} before being returned. Hard-coded \code{TRUE} for omxRunCI.}
   \item{verbose}{Integer; defaults to zero; verbosity level passed to MxCompute* objects.}
-  \item{independentSubmodels}{Logical; defaults to \code{TRUE} (for \code{omxParallelCI()}).  See below under "Details."}
+  \item{independentSubmodels}{Logical; For \code{omxParallelCI()} defaults to \code{TRUE}. Hard coded FALSE for \code{omxRunCI()}. Also see "Details."}
   \item{optimizer}{Character string selecting the gradient-descent optimizer to be used to find confidence limits; one of "NPSOL", "CSOLNP", or "SLSQP".  The default for \code{omxParallelCI()} is the current value of \link{mxOption} "Default optimizer", and for \code{omxRunCI()}, is "SLSQP".}
 }
 \details{
@@ -50,21 +54,29 @@ The functions return \code{model}, augmented with independent submodels (if \cod
 }
 \examples{
 require(OpenMx)
+# 1. Build and run a model, don't compute intervals yet
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
-factorModel <- mxModel("One Factor", 
-	type="RAM",
+factorModel <- mxModel("One Factor", type="RAM",
 	manifestVars=manifests, 
 	latentVars=latents,
 	mxPath(from=latents, to=manifests),
  	mxPath(from=manifests, arrows=2),
 	mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
-	mxData(observed=cov(demoOneFactor), type="cov",
-		numObs=500),
-# add confidence intervals for free params in A and S matrices
-	mxCI(c('A', 'S')))
+	mxData(observed=cov(demoOneFactor), type="cov", numObs=500),
+	# Add confidence intervals for (free) params in A and S matrices.
+	mxCI(c('A', 'S'))
+)
 factorRun <- mxRun(factorModel)
-factorCI <- omxParallelCI(factorRun) 
-factorCI2 <- omxRunCI(factorRun)
+
+# 2. Compute the CIs on factorRun, and view summary
+factorCI1 <- omxRunCI(factorRun)
+summary(factorCI1)$CI
+
+# 3. Use low-level omxParallelCI interface
+factorCI2 <- omxParallelCI(factorRun) 
+
+# 4. Build, but don't run the newly-created model
+factorCI3 <- omxParallelCI(factorRun, run= FALSE)  
 }
