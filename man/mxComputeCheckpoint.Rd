@@ -22,7 +22,7 @@ mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=FALSE,
 \item{fit}{logical. Whether to include the fit value}
 \item{counters}{logical. Whether to include counters (number of
   evaluations and iterations)}
-\item{counters}{logical. Whether to include the status code}
+\item{status}{logical. Whether to include the status code}
 }
 \description{
 Captures the current state of the backend. When \code{path} is set, the
