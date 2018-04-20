@@ -1905,11 +1905,12 @@ setClass(Class = "MxComputeCheckpoint",
 		 parameters = "logical",
 		 loopIndices = "logical",
 		 fit = "logical",
-		 counters = "logical"
+		 counters = "logical",
+		 status = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
-	  function(.Object, what, path, toReturn, parameters, loopIndices, fit, counters) {
+	  function(.Object, what, path, toReturn, parameters, loopIndices, fit, counters, status) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -1920,6 +1921,7 @@ setMethod("initialize", "MxComputeCheckpoint",
 		  .Object@loopIndices <- loopIndices
 		  .Object@fit <- fit
 		  .Object@counters <- counters
+		  .Object@status <- status
 		  .Object
 	  })
 
@@ -1942,7 +1944,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 	})
 
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, toReturn=FALSE,
-				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE) {
+				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE, status=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeCheckpoint does not accept values for the '...' argument")
@@ -1950,7 +1952,8 @@ mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, toReturn=FALSE,
 	what <- as.character(what)
 	path <- as.character(path)
 	new("MxComputeCheckpoint", what, path, as.logical(toReturn),
-		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters))
+		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
+		as.logical(status))
 }
 
 #----------------------------------------------------
