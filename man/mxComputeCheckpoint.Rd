@@ -4,7 +4,8 @@
 \title{Log parameters and state to disk or memory}
 \usage{
 mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=FALSE,
-				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE)
+				parameters=TRUE, loopIndices=TRUE,
+  fit=TRUE, counters=TRUE, status=TRUE)
 }
 \arguments{
 \item{what}{a character vector of algebra names to include in each checkpoint}
@@ -21,6 +22,7 @@ mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=FALSE,
 \item{fit}{logical. Whether to include the fit value}
 \item{counters}{logical. Whether to include counters (number of
   evaluations and iterations)}
+\item{counters}{logical. Whether to include the status code}
 }
 \description{
 Captures the current state of the backend. When \code{path} is set, the
