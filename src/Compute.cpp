@@ -37,9 +37,7 @@
 
 void pda(const double *ar, int rows, int cols);
 
-SEXP allocInformVector(int size)
-{
-	const char *statusCodeLabels[] = { // see ComputeInform type
+static const char *statusCodeLabels[] = { // see ComputeInform type
 		"OK", "OK/green",
 		"infeasible linear constraint",
 		"infeasible non-linear constraint",
@@ -50,7 +48,10 @@ SEXP allocInformVector(int size)
 		"?",
 		"internal error",
 		"infeasible start"
-	};
+};
+
+SEXP allocInformVector(int size)
+{
 	return makeFactor(Rf_allocVector(INTSXP, size),
 			  OMX_STATIC_ARRAY_SIZE(statusCodeLabels), statusCodeLabels);
 }
@@ -1495,9 +1496,9 @@ void omxCompute::computeWithVarGroup(FitContext *fc)
 	ComputeInform origInform = fc->getInform();
 	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
 	if (Global->debugProtectStack) mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
-	fc->setInform(INFORM_UNINITIALIZED);
+	if (resetInform()) fc->setInform(INFORM_UNINITIALIZED);
 	computeImpl(fc);
-	fc->setInform(std::max(origInform, fc->getInform()));
+	if (resetInform()) fc->setInform(std::max(origInform, fc->getInform()));
 	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
 	if (Global->debugProtectStack) mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
 	fc->destroyChildren();
@@ -1688,6 +1689,7 @@ class ComputeCheckpoint : public omxCompute {
 		std::vector<int> computeLoopIndex;
 		Eigen::VectorXd est;
 		double fit;
+		int inform;
 		Eigen::VectorXd extra;
 	};
 
@@ -1700,9 +1702,10 @@ class ComputeCheckpoint : public omxCompute {
 	std::vector<std::string> colnames;
 	std::forward_list<snap> snaps;
 	int numSnaps;
-	bool inclPar, inclLoop, inclFit, inclCounters;
+	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
 
  public:
+	virtual bool resetInform() { return false; };
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -3461,6 +3464,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rcounters(R_do_slot(rObj, Rf_install("counters")));
 	inclCounters = Rf_asLogical(Rcounters);
 
+	ProtectedSEXP Rstatus(R_do_slot(rObj, Rf_install("status")));
+	inclStatus = Rf_asLogical(Rstatus);
+
 	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
 	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
 		if (isErrorRaised()) return;
@@ -3493,6 +3499,7 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	if (inclFit) colnames.push_back("objective");
+	if (inclStatus) colnames.push_back("statusCode");
 
 	numExtra = 0;
 	for (auto &mat : algebras) {
@@ -3524,6 +3531,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		s1.est = Eest;
 	}
 	s1.fit = fc->fit;
+	s1.inform = fc->wrapInform();
 	s1.extra.resize(numExtra);
 
 	{int xx=0;
@@ -3578,6 +3586,13 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			}
 		}
 		if (inclFit) ofs << '\t' << std::setprecision(digits) << s1.fit;
+		if (inclStatus) {
+			if (s1.inform == NA_INTEGER) {
+				ofs << '\t' << "NA";
+			} else {
+				ofs << '\t' << statusCodeLabels[s1.inform - 1];
+			}
+		}
 		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
 			ofs << '\t' << std::setprecision(digits) << s1.extra[x1];
 		}
@@ -3657,6 +3672,13 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto *v = REAL(col);
 		int sx=0;
 		for (auto &s1 : snaps) v[sx++] = s1.fit;
+	}
+	if (inclStatus) {
+		SEXP col = allocInformVector(numSnaps);
+		SET_VECTOR_ELT(log, curCol++, col);
+		auto *v = INTEGER(col);
+		int sx=0;
+		for (auto &s1 : snaps) v[sx++] = s1.inform;
 	}
 	for (int x1=0; x1 < numExtra; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);

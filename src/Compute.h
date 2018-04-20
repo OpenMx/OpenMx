@@ -335,6 +335,7 @@ class omxCompute {
 	const char *name;
 	FreeVarGroup *varGroup;
 	omxCompute();
+	virtual bool resetInform() { return true; };
         virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
 	void computeWithVarGroup(FitContext *fc);
