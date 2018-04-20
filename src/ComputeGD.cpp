@@ -762,7 +762,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	omxCompleteFitFunction(fitMatrix);
 
-	Global->computeLoopContext.push_back(NA_INTEGER);
+	pushIndex(NA_INTEGER);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
@@ -770,7 +770,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
 
-	Global->computeLoopContext.pop_back();
+	popIndex();
 }
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
@@ -871,6 +871,7 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 	INTEGER(VECTOR_ELT(detail, 5+fc.numParam))[detailRow] = diag;
 	INTEGER(VECTOR_ELT(detail, 6+fc.numParam))[detailRow] = fc.wrapInform();
 	++detailRow;
+	popIndex();
 }
 
 struct regularCIobj : CIobjective {
@@ -1223,15 +1224,18 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 	bool boundActive = fabs(Mle[currentCI->varIndex] - nearBox) < sqrt(std::numeric_limits<double>::epsilon());
 	if (currentCI->bound[!side] > 0.0) {	// ------------------------------ away from bound side --
+		pushIndex(detailRow);
 		if (!boundActive) {
 			Diagnostic diag;
 			double val;
 			regularCI(mle, fc, currentCI, side, val, diag);
 			recordCI(NEALE_MILLER_1997, currentCI, side, fc, detailRow, val, diag);
 			goto part2;
-		} else {
-			Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
-						  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
+		}
+
+		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] unbounded fit",
+					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
+		{
 			double boxSave = nearBox;
 			nearBox = NA_REAL;
 			Est = Mle;
@@ -1279,6 +1283,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
  part2:
 	if (currentCI->bound[side] > 0.0) {     // ------------------------------ near to bound side --
+		pushIndex(detailRow);
 		double boundLL = NA_REAL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (!boundActive) {
@@ -1482,6 +1487,7 @@ void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		int lower = 1-upper;
 		if (!(currentCI->bound[upper])) continue;
 
+		pushIndex(detailRow);
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
 					  upper? "upper" : "lower");
@@ -1584,7 +1590,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	int detailRow = 0;
 	for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
-		Global->computeLoopContext.push_back(ii);
 		ConfidenceInterval *currentCI = Global->intervalList[ii];
 		omxMatrix *ciMatrix = currentCI->getMatrix(state);
 
@@ -1604,7 +1609,6 @@ void ComputeCI::computeImpl(FitContext *mle)
 		} else {
 			regularCI2(mle, fc, currentCI, detailRow);
 		}
-		Global->computeLoopContext.pop_back();
 	}
 
 	mle->copyParamToModel();
@@ -1726,7 +1730,7 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	invocations = 0;
 	numRetries = 0;
 
-	Global->computeLoopContext.push_back(NA_INTEGER);
+	pushIndex(NA_INTEGER);
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -1735,7 +1739,7 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
 
-	Global->computeLoopContext.pop_back();
+	popIndex();
 }
 
 bool ComputeTryH::satisfied(FitContext *fc)
@@ -1766,7 +1770,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		mxLog("%s: at most %d attempts (Welcome)", name, retriesRemain);
 	}
 
-	Global->computeLoopContext.push_back(1);
+	pushIndex(1);
 
 	bestStatus = INFORM_UNINITIALIZED;
 	bestFit = NA_REAL;
@@ -1778,7 +1782,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		bestFit = fc->fit;
 	}
 
-	Global->computeLoopContext.pop_back();
+	popIndex();
 
 	while (!satisfied(fc) && retriesRemain > 0) {
 		if (verbose >= 2) {
@@ -1801,7 +1805,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		PutRNGstate();
 
 		--retriesRemain;
-		Global->computeLoopContext.push_back(maxRetries - retriesRemain);
+		pushIndex(maxRetries - retriesRemain);
 
 		fc->setInform(INFORM_UNINITIALIZED);
 		fc->wanted &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
@@ -1812,7 +1816,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 			bestEst = curEst;
 			bestFit = fc->fit;
 		}
-		Global->computeLoopContext.pop_back();
+		popIndex();
 	}
 
 	fc->setInform(bestStatus);
