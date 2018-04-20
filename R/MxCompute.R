@@ -1941,7 +1941,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 		.Object
 	})
 
-mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, toReturn=TRUE,
+mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
