@@ -198,7 +198,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	}
 	if (rf.maxMajorIterations != -1) {
 		std::string opt = string_snprintf("Major iterations %d",
-						  rf.maxMajorIterations - rf.getIteration());
+						  rf.maxMajorIterations);
 		F77_CALL(npoptn)((char*) opt.c_str(), opt.size());
 	}
 	if (rf.warmStart) {
