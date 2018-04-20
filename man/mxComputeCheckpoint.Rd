@@ -3,7 +3,7 @@
 \alias{MxComputeCheckpoint-class}
 \title{Log parameters and state to disk or memory}
 \usage{
-mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=TRUE,
+mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE)
 }
 \arguments{
