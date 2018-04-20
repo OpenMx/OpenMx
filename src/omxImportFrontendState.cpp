@@ -176,6 +176,9 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 	omxCompute *compute = omxNewCompute(currentState, CHAR(s4class));
 	compute->initFromFrontend(currentState, rObj);
 	computeList.push_back(compute);
+
+	if (Global->computeLoopContext.size())
+		Rf_error("computeLoopContext imbalance in initFromFrontend");
 }
 
 // This is called at initialization and when we copy

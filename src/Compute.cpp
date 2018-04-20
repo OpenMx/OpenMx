@@ -20,7 +20,8 @@
 #include <stdarg.h>
 #include <limits>
 #include <random>
-//#include <iostream>
+#include <fstream>
+#include <forward_list>
 
 #include "glue.h"
 #include "Compute.h"
@@ -1665,6 +1666,36 @@ class ComputeReportDeriv : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeCheckpoint : public omxCompute {
+	typedef omxCompute super;
+
+	struct snap {
+		int evaluations;
+		int iterations;
+		time_t timestamp;
+		std::vector<int> computeLoopContext;
+		Eigen::VectorXd est;
+		double fit;
+		Eigen::VectorXd extra;
+	};
+
+	const char *path;
+	std::ofstream ofs;
+	bool toReturn;
+	std::vector<omxMatrix*> algebras;
+	int numExtra;
+	bool wroteHeader;
+	std::vector<std::string> colnames;
+	std::forward_list<snap> snaps;
+	int numSnaps;
+	bool inclPar, inclLoop, inclFit, inclCounters;
+
+ public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
+        virtual void computeImpl(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
 class ComputeReportExpectation : public omxCompute {
 	typedef omxCompute super;
  public:
@@ -1761,6 +1792,9 @@ static class omxCompute *newComputeGenerateData()
 static class omxCompute *newComputeLoadData()
 { return new ComputeLoadData(); }
 
+static class omxCompute *newComputeCheckpoint()
+{ return new ComputeCheckpoint(); }
+
 struct omxComputeTableEntry {
         char name[32];
         omxCompute *(*ctor)();
@@ -1785,6 +1819,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeBootstrap", &newComputeBootstrap},
 	{"MxComputeGenerateData", &newComputeGenerateData},
 	{"MxComputeLoadData", &newComputeLoadData},
+	{"MxComputeCheckpoint", newComputeCheckpoint},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -1984,6 +2019,8 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
+	Global->computeLoopContext.push_back(NA_INTEGER);
+
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
 		SEXP s4class;
@@ -1997,6 +2034,8 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
 	}
+
+	Global->computeLoopContext.pop_back();
 
 	iterations = 0;
 }
@@ -3378,4 +3417,250 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 	}
 
 	fc->state->invalidateCache();
+}
+
+void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	wroteHeader = false;
+	path = 0;
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	if (Rf_length(Rpath) == 1) {
+		path = R_CHAR(STRING_ELT(Rpath, 0));
+		ofs.open(path, std::ofstream::trunc);
+		if (!ofs.is_open()) {
+			Rf_error("Failed to open '%s' for writing", path);
+		}
+	}
+
+	ProtectedSEXP RtoReturn(R_do_slot(rObj, Rf_install("toReturn")));
+	toReturn = Rf_asLogical(RtoReturn);
+
+	ProtectedSEXP Rpar(R_do_slot(rObj, Rf_install("parameters")));
+	inclPar = Rf_asLogical(Rpar);
+
+	ProtectedSEXP RloopInd(R_do_slot(rObj, Rf_install("loopIndices")));
+	inclLoop = Rf_asLogical(RloopInd);
+
+	ProtectedSEXP Rfit(R_do_slot(rObj, Rf_install("fit")));
+	inclFit = Rf_asLogical(Rfit);
+
+	ProtectedSEXP Rcounters(R_do_slot(rObj, Rf_install("counters")));
+	inclCounters = Rf_asLogical(Rcounters);
+
+	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
+	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
+		if (isErrorRaised()) return;
+		int objNum = INTEGER(Rwhat)[wx];
+		omxMatrix *algebra = globalState->algebraList[objNum];
+		if (algebra->fitFunction) {
+			omxCompleteFitFunction(algebra);
+		}
+		algebras.push_back(algebra);
+	}
+
+	if (inclCounters) {
+		colnames.push_back("OpenMxEvals");
+		colnames.push_back("iterations");
+	}
+	colnames.push_back("timestamp");
+	if (inclLoop) {
+		auto &clc = Global->computeLoopContext;
+		for (int lx=0; lx < int(clc.size()); ++lx) {
+			colnames.push_back(string_snprintf("LoopIndex%d", 1+lx));
+		}
+	}
+
+	if (inclPar) {
+		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
+		int numParam = vars.size();
+		for(int j = 0; j < numParam; j++) {
+			colnames.push_back(vars[j]->name);
+		}
+	}
+
+	if (inclFit) colnames.push_back("objective");
+
+	numExtra = 0;
+	for (auto &mat : algebras) {
+		for (int cx=0; cx < mat->cols; ++cx) {
+			for (int rx=0; rx < mat->rows; ++rx) {
+				colnames.push_back(string_snprintf("%s[%d,%d]", mat->name(), 1+rx, 1+cx));
+			}
+		}
+		numExtra += mat->cols * mat->rows;
+	}
+	// TODO: confidence intervals, standard errors, hessian, constraint algebras, inform code
+	// what does Eric Schmidt include in per-voxel output?
+	// remove old checkpoint code
+}
+
+void ComputeCheckpoint::computeImpl(FitContext *fc)
+{
+	// if ((timePerCheckpoint && timePerCheckpoint <= now - lastCheckpoint) ||
+	//     (iterPerCheckpoint && iterPerCheckpoint <= fc->iterations - lastIterations) ||
+	//     (evalsPerCheckpoint && evalsPerCheckpoint <= curEval - lastEvaluation)) {
+
+	snap s1;
+	s1.evaluations = fc->getGlobalComputeCount();
+	s1.iterations = fc->iterations;
+	s1.timestamp = time(0);
+	if (inclLoop) s1.computeLoopContext = Global->computeLoopContext;
+	if (inclPar) {
+		Eigen::Map< Eigen::VectorXd > Eest(fc->est, fc->numParam);
+		s1.est = Eest;
+	}
+	s1.fit = fc->fit;
+	s1.extra.resize(numExtra);
+
+	{int xx=0;
+	for (auto &mat : algebras) {
+		for (int cx=0; cx < mat->cols; ++cx) {
+			for (int rx=0; rx < mat->rows; ++rx) {
+				EigenMatrixAdaptor eM(mat);
+				s1.extra[xx] = eM(rx, cx);
+				xx += 1;
+			}
+		}
+	}}
+
+	if (ofs.is_open()) {
+		const int digits = std::numeric_limits<double>::digits10 + 1;
+		if (!wroteHeader) {
+			bool first = true;
+			for (auto &cn : colnames) {
+				if (first) { first=false; }
+				else       { ofs << '\t'; }
+				ofs << cn;
+			}
+			ofs << '\n';
+			wroteHeader = true;
+		}
+
+		bool first = true;
+		if (inclCounters) {
+			if (first) { first=false; }
+			else       { ofs << '\t'; }
+			ofs << s1.evaluations;
+			ofs << '\t' << s1.iterations;
+		}
+		if (1) {
+			if (first) { first=false; }
+			else       { ofs << '\t'; }
+			const int timeBufSize = 32;
+			char timeBuf[timeBufSize];
+			struct tm *nowTime = localtime(&s1.timestamp);
+			strftime(timeBuf, timeBufSize, "%b %d %Y %I:%M:%S %p", nowTime);
+			ofs << timeBuf;
+		}
+		if (inclLoop) {
+			auto &clc = s1.computeLoopContext;
+			for (int lx=0; lx < int(clc.size()); ++lx) {
+				ofs << '\t' << clc[lx];
+			}
+		}
+		if (inclPar) {
+			for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+				ofs << '\t' << std::setprecision(digits) << s1.est[x1];
+			}
+		}
+		if (inclFit) ofs << '\t' << std::setprecision(digits) << s1.fit;
+		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
+			ofs << '\t' << std::setprecision(digits) << s1.extra[x1];
+		}
+		ofs << '\n';
+		ofs.flush();
+	}
+
+	if (toReturn) {
+		snaps.push_front(s1);
+		numSnaps += 1;
+	}
+}
+
+void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	if (ofs.is_open()) {
+		ofs.close();
+	}
+	if (!toReturn) return;
+
+	snaps.reverse();
+
+	SEXP log;
+	Rf_protect(log = Rf_allocVector(VECSXP, colnames.size()));
+	int curCol=0;
+	if (inclCounters) {
+		{
+			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = INTEGER(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.evaluations;
+		}
+		{
+			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = INTEGER(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.iterations;
+		}
+	}
+	{
+		SEXP POSIXct;
+		Rf_protect(POSIXct = Rf_allocVector(STRSXP, 2));
+		SET_STRING_ELT(POSIXct, 0, Rf_mkChar("POSIXct"));
+		SET_STRING_ELT(POSIXct, 1, Rf_mkChar("POSIXt"));
+		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		Rf_setAttrib(col, R_ClassSymbol, POSIXct);
+		SET_VECTOR_ELT(log, curCol++, col);
+		auto *v = REAL(col);
+		int sx=0;
+		for (auto &s1 : snaps) v[sx++] = s1.timestamp;
+	}
+	if (inclLoop) {
+		auto &clc = snaps.front().computeLoopContext;
+		for (int lx=0; lx < int(clc.size()); ++lx) {
+			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = INTEGER(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.computeLoopContext[lx];
+		}
+	}
+	if (inclPar) {
+		auto numEst = int(snaps.front().est.size());
+		for (int x1=0; x1 < numEst; ++x1) {
+			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = REAL(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.est[x1];
+		}
+	}
+	if (inclFit) {
+		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		SET_VECTOR_ELT(log, curCol++, col);
+		auto *v = REAL(col);
+		int sx=0;
+		for (auto &s1 : snaps) v[sx++] = s1.fit;
+	}
+	for (int x1=0; x1 < numExtra; ++x1) {
+		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		SET_VECTOR_ELT(log, curCol++, col);
+		auto *v = REAL(col);
+		int sx=0;
+		for (auto &s1 : snaps) v[sx++] = s1.extra[x1];
+	}
+
+	markAsDataFrame(log, numSnaps);
+	SEXP logCols;
+	Rf_protect(logCols = Rf_allocVector(STRSXP, colnames.size()));
+	Rf_setAttrib(log, R_NamesSymbol, logCols);
+	for (int cx=0; cx < int(colnames.size()); ++cx) {
+		SET_STRING_ELT(logCols, cx, Rf_mkChar(colnames[cx].c_str()));
+	}
+
+	slots->add("log", log);
 }
