@@ -342,6 +342,8 @@ class omxCompute {
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
 	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
+	void pushIndex(int ix);
+	void popIndex();
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);

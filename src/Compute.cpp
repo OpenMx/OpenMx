@@ -1470,6 +1470,18 @@ void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 }
 
+void omxCompute::pushIndex(int ix)
+{
+	Global->computeLoopContext.push_back(name);
+	Global->computeLoopIndex.push_back(ix);
+}
+
+void omxCompute::popIndex()
+{
+	Global->computeLoopContext.pop_back();
+	Global->computeLoopIndex.pop_back();
+}
+
 void omxCompute::compute(FitContext *fc)
 {
 	FitContext *narrow = fc;
@@ -1673,7 +1685,7 @@ class ComputeCheckpoint : public omxCompute {
 		int evaluations;
 		int iterations;
 		time_t timestamp;
-		std::vector<int> computeLoopContext;
+		std::vector<int> computeLoopIndex;
 		Eigen::VectorXd est;
 		double fit;
 		Eigen::VectorXd extra;
@@ -2019,7 +2031,7 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
-	Global->computeLoopContext.push_back(NA_INTEGER);
+	pushIndex(NA_INTEGER);
 
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
@@ -2035,7 +2047,7 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 		clist.push_back(compute);
 	}
 
-	Global->computeLoopContext.pop_back();
+	popIndex();
 
 	iterations = 0;
 }
@@ -2046,14 +2058,14 @@ void ComputeLoop::computeImpl(FitContext *fc)
 	bool hasMaxIter = maxIter != NA_INTEGER;
 	time_t startTime = time(0);
 	while (1) {
-		Global->computeLoopContext.push_back(hasIndices? indices[iterations] : 1+iterations);
+		pushIndex(hasIndices? indices[iterations] : 1+iterations);
 		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
 			if (isErrorRaised()) break;
 		}
-		Global->computeLoopContext.pop_back();
+		popIndex();
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
 		if (hasMaxIter && iterations >= maxIter) break;
 		if (hasIndices && iterations >= indicesLength) break;
@@ -3406,7 +3418,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void ComputeLoadData::computeImpl(FitContext *fc)
 {
-	std::vector<int> &clc = Global->computeLoopContext;
+	std::vector<int> &clc = Global->computeLoopIndex;
 	if (clc.size() == 0) Rf_error("%s: must be used within a loop", name);
 	int index = clc[clc.size()-1];  // innermost loop index
 	if (useOriginalData && index == 1) return;
@@ -3468,7 +3480,7 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	if (inclLoop) {
 		auto &clc = Global->computeLoopContext;
 		for (int lx=0; lx < int(clc.size()); ++lx) {
-			colnames.push_back(string_snprintf("LoopIndex%d", 1+lx));
+			colnames.push_back(string_snprintf("%s%d", clc[lx], 1+lx));
 		}
 	}
 
@@ -3506,7 +3518,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	s1.evaluations = fc->getGlobalComputeCount();
 	s1.iterations = fc->iterations;
 	s1.timestamp = time(0);
-	if (inclLoop) s1.computeLoopContext = Global->computeLoopContext;
+	if (inclLoop) s1.computeLoopIndex = Global->computeLoopIndex;
 	if (inclPar) {
 		Eigen::Map< Eigen::VectorXd > Eest(fc->est, fc->numParam);
 		s1.est = Eest;
@@ -3555,7 +3567,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			ofs << timeBuf;
 		}
 		if (inclLoop) {
-			auto &clc = s1.computeLoopContext;
+			auto &clc = s1.computeLoopIndex;
 			for (int lx=0; lx < int(clc.size()); ++lx) {
 				ofs << '\t' << clc[lx];
 			}
@@ -3620,13 +3632,13 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		for (auto &s1 : snaps) v[sx++] = s1.timestamp;
 	}
 	if (inclLoop) {
-		auto &clc = snaps.front().computeLoopContext;
+		auto &clc = snaps.front().computeLoopIndex;
 		for (int lx=0; lx < int(clc.size()); ++lx) {
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
-			for (auto &s1 : snaps) v[sx++] = s1.computeLoopContext[lx];
+			for (auto &s1 : snaps) v[sx++] = s1.computeLoopIndex[lx];
 		}
 	}
 	if (inclPar) {
