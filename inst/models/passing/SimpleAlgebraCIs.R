@@ -16,9 +16,6 @@
 
 require(OpenMx)
 
-# give SLSQP plenty of time to converge
-mxOption(NULL, "major iterations", 3000)
-
 data(demoOneFactor)
 
 manifests <- names(demoOneFactor)

@@ -37,7 +37,8 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	int mode = grad != 0;
 	double fit = goc->solFun((double*) x, &mode);
 	if (grad) {
-		if (goc->maxMajorIterations != -1 && goc->getIteration() >= goc->maxMajorIterations) {
+		goc->iterations += 1;
+		if (goc->maxMajorIterations != -1 && goc->iterations >= goc->maxMajorIterations) {
 			nlopt_force_stop(opt);
 		}
 	}
@@ -367,8 +368,6 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = (nlopt_slsqp_wdump*)&wkspc;
 	
-	int priorIterations = goc.getIteration();
-	
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
 	if (ctx.eqredundent) {
@@ -404,7 +403,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
 		if (goc.eqNorm > feasibilityTolerance || goc.ineqNorm > feasibilityTolerance) {
 			goc.informOut = INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE;
-		} else if (goc.getIteration() - priorIterations <= 2) {
+		} else if (goc.iterations <= 2) {
 			Rf_error("%s: Failed due to singular matrix E or C in LSQ subproblem or "
               "rank-deficient equality constraint subproblem or "
               "positive directional derivative in line search "

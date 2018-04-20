@@ -105,6 +105,7 @@ void GradientOptimizerContext::reset()
 	bestFit = std::numeric_limits<double>::max();
 	eqNorm = 0;
 	ineqNorm = 0;
+	iterations = 0;
 }
 
 int GradientOptimizerContext::countNumFree()
