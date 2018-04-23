@@ -71,10 +71,10 @@ A$free
 # [1,]  TRUE TRUE
 # [2,] FALSE TRUE
 
-A$labels
-#      [,1]  [,2] 
-# [1,] "A11" "A12"
-# [2,] "A21" NA   
+A$values
+#      [,1] [,2]
+# [1,]    1    2
+# [2,]    3    4
 
 # Example using un-labelled parameters
 
