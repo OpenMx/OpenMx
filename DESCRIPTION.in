@@ -36,7 +36,7 @@ Description: Facilitates treatment of statistical model specifications
     package binaries from <http://openmx.ssri.psu.edu>.
     See Neale, Hunter, Pritikin, Zahery, Brick,
     Kirkpatrick, Estabrook, Bates, Maes, & Boker (2016) <doi:10.1007/s11336-014-9435-8>.
-SystemRequirements: GNU make, netcdf library version 4.1 or later
+SystemRequirements: GNU make
 ByteCompile: @BC@
 License: @LICENSE@
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
@@ -44,7 +44,6 @@ Imports: Rcpp, digest,
     MASS,
     methods,
     Matrix,
-    ncdf4,
     parallel
 Depends: R (>= 3.1.0)
 Suggests:

@@ -9,7 +9,6 @@ importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize, quantile,
 	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var, sd)
 importFrom("stats", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.methods")
 importFrom("stats", "binomial", "glm", "median", "plogis", 'qlogis', "predict")
-importFrom('ncdf4', 'nc_close', 'nc_create', 'ncatt_put', 'ncdim_def', 'ncvar_def', 'ncvar_put')
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -25,7 +24,6 @@ exportPattern("^imx.+")
 # matrix algebra functions exported by the library
 export(tr, "%&%", "%^%", rvectorize, cvectorize, vech, vechs, diag2vec, vec2diag, eigenvec, eigenval, ieigenvec, 
 	ieigenval, vech2full, vechs2full, logm, expm, p2z, logp2z, lgamma1p, as.statusCode)
-export(write.nc)
 
 # export S4 classes in the OpenMx library
 exportClassPattern("^.+Matrix")
