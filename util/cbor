@@ -1,0 +1,7 @@
+#!/usr/bin/perl
+
+use strict;
+use CBOR::XS;
+use Data::Dumper;
+
+print Dumper(decode_cbor join('', <>));

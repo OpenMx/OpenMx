@@ -28,10 +28,12 @@
 #include "glue.h"
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
+#include "json.hpp"
+#include <fstream>
 #include "EnableWarnings.h"
 
-omxData::omxData() : rownames(0), primaryKey(-1), weightCol(-1), currentWeightColumn(0),
-		     freqCol(-1), currentFreqColumn(0),
+omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
+		     freqCol(NA_INTEGER), currentFreqColumn(0),
 		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -143,6 +145,11 @@ void omxData::recompute()
 	}
 }
 
+static int carefulMinusOne(int val)
+{
+	return val != NA_INTEGER? val - 1 : val;
+}
+
 void omxData::newDataStatic(omxState *state, SEXP dataObj)
 {
 	owner = dataObj;
@@ -162,25 +169,19 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		od->needSort = Rf_asLogical(needsort);
 
 		ScopedProtect p2(dataLoc, R_do_slot(dataObj, Rf_install("primaryKey")));
-		int pk = Rf_asInteger(dataLoc);
-		if (pk != NA_INTEGER) {
-			primaryKey = pk - 1;
-		}
+		primaryKey = carefulMinusOne(Rf_asInteger(dataLoc));
 
 		ProtectedSEXP Rweight(R_do_slot(dataObj, Rf_install("weight")));
-		weightCol = Rf_asInteger(Rweight);
-		if (weightCol != NA_INTEGER) weightCol -= 1;
+		weightCol = carefulMinusOne(Rf_asInteger(Rweight));
 
 		ProtectedSEXP Rfrequency(R_do_slot(dataObj, Rf_install("frequency")));
-		freqCol = Rf_asInteger(Rfrequency);
-		if (freqCol != NA_INTEGER) freqCol -= 1;
+		freqCol = carefulMinusOne(Rf_asInteger(Rfrequency));
 	}
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if (Rf_isFrame(dataLoc)) {
 		if(OMX_DEBUG) {mxLog("Data is a frame.");}
 		// Process Data Frame into Columns
-		od->rownames = Rf_getAttrib(dataLoc, R_RowNamesSymbol);
 		od->cols = Rf_length(dataLoc);
 		if(OMX_DEBUG) {mxLog("Data has %d columns.", od->cols);}
 		numCols = od->cols;
@@ -189,14 +190,17 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		od->rawCols.reserve(numCols);
 		for(int j = 0; j < numCols; j++) {
 			const char *colname = CHAR(STRING_ELT(colnames, j));
-			ColumnData cd = { colname, COLUMNDATA_INVALID, NULL, NULL, NULL };
+			ColumnData cd = { colname, COLUMNDATA_INVALID, NULL, NULL, {} };
 			SEXP rcol;
 			ScopedProtect p1(rcol, VECTOR_ELT(dataLoc, j));
 			if(Rf_isFactor(rcol)) {
 				cd.type = Rf_isUnordered(rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
 				if(OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
 				cd.intData = INTEGER(rcol);
-				cd.levels = Rf_getAttrib(rcol, R_LevelsSymbol);
+				ProtectedSEXP Rlevels(Rf_getAttrib(rcol, R_LevelsSymbol));
+				for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
+					cd.levels.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
+				}
 				od->numFactor++;
 			} else if (Rf_isInteger(rcol)) {
 				if (j == primaryKey) {
@@ -464,8 +468,8 @@ double *omxDoubleDataColumn(omxData *od, int col)
 int omxDataGetNumFactorLevels(omxData *od, int col)
 {
 	ColumnData &cd = od->rawCols[col];
-	if (!cd.levels) Rf_error("omxDataGetNumFactorLevels attempt on non-factor");
-	return Rf_length(cd.levels);
+	if (cd.levels.size() == 0) Rf_error("omxDataGetNumFactorLevels attempt on non-factor");
+	return cd.levels.size();
 }
 
 int omxIntDataElement(omxData *od, int row, int col) {
@@ -499,7 +503,7 @@ bool omxDataColumnIsFactor(omxData *od, int col)
 {
 	if(od->dataMat != NULL) return FALSE;
 	ColumnData &cd = od->rawCols[col];
-	return cd.intData && cd.levels;
+	return cd.intData && cd.levels.size();
 }
 
 bool omxDataColumnIsKey(omxData *od, int col)
@@ -599,18 +603,18 @@ void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey)
 			 lcd.name, lower->name, ColumnDataTypeToString(lcd.type));
 	}
 	if (ucd.type == COLUMNDATA_ORDERED_FACTOR || ucd.type == COLUMNDATA_UNORDERED_FACTOR) {
-		if (Rf_length(ucd.levels) != Rf_length(lcd.levels)) {
+		if (ucd.levels.size() != lcd.levels.size()) {
 			Rf_error("Primary key '%s' in %s has a different number of factor"
 				 " levels compared to foreign key '%s' in %s",
 				 ucd.name, upper->name, lcd.name, lower->name);
 		}
-		for (int lx=0; lx < Rf_length(ucd.levels); ++lx) {
-			const char *ul = CHAR(STRING_ELT(ucd.levels, lx));
-			const char *ll = CHAR(STRING_ELT(lcd.levels, lx));
-			if (strEQ(ul, ll)) continue;
+		for (int lx=0; lx < int(ucd.levels.size()); ++lx) {
+			auto &ul = ucd.levels[lx];
+			auto &ll = lcd.levels[lx];
+			if (ul == ll) continue;
 			Rf_error("Primary key '%s' in %s has different factor levels ('%s' != '%s')"
 				 " compared to foreign key '%s' in %s",
-				 ucd.name, upper->name, ul, ll, lcd.name, lower->name);
+				 ucd.name, upper->name, ul.c_str(), ll.c_str(), lcd.name, lower->name);
 		}
 	}
 }
@@ -881,7 +885,157 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	return true;
 }
 
-void omxData::reloadFromFile(const std::string &path)
+void omxData::reloadFromFile(const std::string &file)
 {
-	Rf_error("Not implemented");
+	using json = nlohmann::json;
+	std::ifstream ifs;
+	ifs.open(file.c_str());
+	if (!ifs.is_open()) {
+		Rf_error("Failed to open '%s' for reading", file.c_str());
+	}
+	try {
+		json jd = json::from_cbor(ifs);
+
+		if (jd["version"] != 1) Rf_error("%s: version %d is unknown", name, jd["version"]);
+
+		if (jd["type"] != "raw") Rf_error("%s: type '%s' not implemented", name, jd["type"]);
+
+		if (dataMat) Rf_error("%s: only data.frame storage is implemented", name);
+
+		freeInternal();
+
+		needSort = jd["needSort"];
+		if (primaryKey != jd["primaryKey"]) Rf_error("%s: cannot change primaryKey", name);
+		weightCol = jd["weight"];
+		freqCol = jd["frequency"];
+
+		numObs = 0;
+		// if (!is.na(frequency)) {
+		// 	obsCount <- sum(observed[,frequency])
+		// } else {
+		// 	obsCount <- nrow(observed)
+		// }
+
+		rows = -1;
+		auto &observed = jd["observed"];
+		if (rawCols.size() != observed.size()) Rf_error("%s: %d columns but %d columns loaded",
+								int(rawCols.size()), int(observed.size()));
+		for (int cx=0; cx < int(rawCols.size()); ++cx) {
+			auto &cd = rawCols[cx];
+			auto &col = observed[cx];
+			if (rows == -1) rows = col["data"].size();
+			// col["name"] == cd.name ?
+			switch (cd.type) {
+			case COLUMNDATA_ORDERED_FACTOR:
+			case COLUMNDATA_UNORDERED_FACTOR:
+			case COLUMNDATA_INTEGER:{
+				if (cd.type != COLUMNDATA_INTEGER) {
+					auto &levelNames = col["levels"];  // check for mismatch TODO
+					if (levelNames.size() != cd.levels.size()) {
+						Rf_error("%s: column %s levels mismatch", name, cd.name);
+					}
+				}
+				auto &dd = col["data"];
+				if (int(dd.size()) != rows) Rf_error("%s: column %s length mismatch %d != %d",
+								     name, cd.name, rows, int(dd.size()));
+				cd.intData = new int[rows];
+				for (int rx=0; rx < rows; ++rx) cd.intData[rx] = dd[rx];
+				break;}
+			case COLUMNDATA_NUMERIC:{
+				auto &dd = col["data"];
+				if (int(dd.size()) != rows) Rf_error("%s: column %s length mismatch %d != %d",
+								     name, cd.name, rows, int(dd.size()));
+				cd.realData = new double[rows];
+				for (int rx=0; rx < rows; ++rx) cd.realData[rx] = dd[rx];
+				break;}
+			default: Rf_error("Unknown type"); break;
+			}
+		}
+	} catch (const std::exception &ex) {
+		Rf_error("%s: %s", name, ex.what());
+	};
+}
+
+SEXP storeData(SEXP Rmxd, SEXP Rfile)
+{
+	using json = nlohmann::json;
+	omxManageProtectInsanity mpi;
+
+	if (Rf_length(Rfile) == 0) Rf_error("Write to which file?");
+	if (Rf_length(Rfile) != 1) Rf_error("Can only write to 1 file");
+
+	const char *file = R_CHAR(STRING_ELT(Rfile, 0));
+	std::ofstream ofs;
+	ofs.open(file, std::ofstream::trunc);
+	if (!ofs.is_open()) {
+		Rf_error("Failed to open '%s' for writing", file);
+	}
+
+	json jd = R"({"version": 1, "class": "MxData"})"_json;
+
+	ProtectedSEXP Rtype(R_do_slot(Rmxd, Rf_install("type")));
+	jd["type"] = R_CHAR(STRING_ELT(Rtype, 0));
+	ProtectedSEXP needsort(R_do_slot(Rmxd, Rf_install(".needSort")));
+	jd["needSort"] = bool(Rf_asLogical(needsort));
+	ProtectedSEXP RprimaryKey(R_do_slot(Rmxd, Rf_install("primaryKey")));
+	jd["primaryKey"] = carefulMinusOne(Rf_asInteger(RprimaryKey));
+	ProtectedSEXP Rweight(R_do_slot(Rmxd, Rf_install("weight")));
+	jd["weight"] = carefulMinusOne(Rf_asInteger(Rweight));
+	ProtectedSEXP Rfrequency(R_do_slot(Rmxd, Rf_install("frequency")));
+	jd["frequency"] = carefulMinusOne(Rf_asInteger(Rfrequency));
+	ProtectedSEXP RnumObs(R_do_slot(Rmxd, Rf_install("numObs")));
+	jd["numObs"] = Rf_asReal(RnumObs);
+	ProtectedSEXP Robs(R_do_slot(Rmxd, Rf_install("observed")));
+	if (Rf_isFrame(Robs)) {
+		int rows = jd["numObs"];
+		json obs;
+		ProtectedSEXP colnames(Rf_getAttrib(Robs, R_NamesSymbol));
+		int cols = Rf_length(Robs);
+		for (int cx=0; cx < cols; ++cx) {
+			ProtectedSEXP Rcol(VECTOR_ELT(Robs, cx));
+			json col;
+			col["name"] = R_CHAR(STRING_ELT(colnames, cx));
+			if (Rf_length(Rcol) != rows) Rf_error("Found %d rows in colunn %s instead of %s",
+								    Rf_length(Rcol), col["name"], rows);
+			if (Rf_isFactor(Rcol)) {
+				col["type"] = Rf_isUnordered(Rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
+				ProtectedSEXP Rlevels(Rf_getAttrib(Rcol, R_LevelsSymbol));
+				json levels;
+				for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
+					levels.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
+				}
+				col["levels"] = levels;
+				auto *val = INTEGER(Rcol);
+				json intData;
+				for (int dx=0; dx < rows; ++dx) intData.push_back(val[dx]);
+				col["data"] = intData;
+			} else if (Rf_isInteger(Rcol)) {
+				col["type"] = COLUMNDATA_INTEGER;
+				auto *val = INTEGER(Rcol);
+				json intData;
+				for (int dx=0; dx < rows; ++dx) intData.push_back(val[dx]);
+				col["data"] = intData;
+			} else if (Rf_isNumeric(Rcol)) {
+				col["type"] = COLUMNDATA_NUMERIC;
+				auto *val = REAL(Rcol);
+				json realData;
+				for (int dx=0; dx < rows; ++dx) realData.push_back(val[dx]);
+				col["data"] = realData;
+			} else {
+				col["type"] = COLUMNDATA_INVALID;
+			}
+			obs.push_back(col);
+		}
+		jd["observed"] = obs;
+	} else {
+		Rf_error("Not implemented");
+	}
+
+	// WLS related stuff? TODO
+
+	auto v = json::to_cbor(jd);
+	for (auto b1 : v) ofs << b1;
+	ofs.close();
+
+	return Rf_ScalarLogical(true);
 }
