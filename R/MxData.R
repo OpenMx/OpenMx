@@ -328,8 +328,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 						     "not found in", omxQuotes(data@name)))
 				  }
 				  data@primaryKey <- pk
-			  } else {
-				  data@primaryKey <- 0L
 			  }
 		  }
 		  if (.hasSlot(data, 'weight')) {
@@ -341,8 +339,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					  stop(msg, call.=FALSE)
 				  }
 				  data@weight <- wc
-			  } else {
-				  data@weight <- 0L
 			  }
 		  }
 		  if (.hasSlot(data, 'frequency')) {
@@ -354,8 +350,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					  stop(msg, call.=FALSE)
 				  }
 				  data@frequency <- wc
-			  } else {
-				  data@frequency <- 0L
 			  }
 		  }
 
@@ -616,3 +610,8 @@ setMethod("print", "MxDataDynamic", function(x,...) {
 setMethod("show", "MxDataDynamic", function(object) {
 	displayMxDataDynamic(object) 
 })
+
+write.cbor <- function(mxd, file) {
+	if (!is(mxd, "MxData")) stop("write.cbor only accepts MxData objects")
+	.Call(.storeData, mxd, file)
+}
