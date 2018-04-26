@@ -18,6 +18,7 @@ dist: trusty
 sudo: required
 latex: true
 language: r
+r_packages: devtools
 git:
   submodules: false
 install:
