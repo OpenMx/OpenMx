@@ -246,6 +246,11 @@ runHelper <- function(model, frontendStart,
 		}
 		model@output$chi <- wlsChi$Chi
 		model@output$chiDoF <- wlsChi$ChiDoF
+		model@output$chiM <- wlsChi$ChiM
+		model@output$chiMV <- wlsChi$ChiMV
+		model@output$chiMadjust <- wlsChi$mAdjust
+		model@output$chiMVadjust <- wlsChi$mvAdjust
+		model@output$chiDoFstar <- wlsChi$dstar
 	}
 	if (is.na(model@output$status$code) ||
 	    (!is.na(model@output$status$code) && model@output$status$code < 5)) {
