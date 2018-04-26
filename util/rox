@@ -17,13 +17,11 @@ if [ ! -x util/rox ]; then
   exit 1
 fi
 
-# https://github.com/klutometis/roxygen/issues/585
-
 fold_start roxygenize "roxygenize"
 
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
-library(devtools)
-devtools::document('.', roclets=c('rd'))
+library(roxygen2)
+roxygenize('.', roclets=c('rd'))
 EOF
 
 fold_end roxygenize
