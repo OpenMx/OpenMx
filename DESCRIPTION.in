@@ -49,7 +49,8 @@ Depends: R (>= 3.1.0)
 Suggests:
     mvtnorm,
     numDeriv,
-    roxygen2 (>= 6.0.1),
+    roxygen2 (>= 3.1),
+    devtools,
     Rmpi,
     rpf (>= 0.45),
     snowfall,
