@@ -28,7 +28,8 @@
 #include "glue.h"
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
-#include "json.hpp"
+#include <jsoncons/json.hpp>
+#include <jsoncons_ext/cbor/cbor.hpp>
 #include <fstream>
 #include "EnableWarnings.h"
 
@@ -887,14 +888,20 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 
 void omxData::reloadFromFile(const std::string &file)
 {
-	using json = nlohmann::json;
+	using json = jsoncons::json;
 	std::ifstream ifs;
-	ifs.open(file.c_str());
+	ifs.open(file.c_str(), std::ios::binary | std::ios::ate);
 	if (!ifs.is_open()) {
 		Rf_error("Failed to open '%s' for reading", file.c_str());
 	}
 	try {
-		json jd = json::from_cbor(ifs);
+		auto size = ifs.tellg();
+		ifs.seekg(0, std::ios::beg);
+		std::vector<char> buffer(size);
+		ifs.read(buffer.data(), size);
+
+		jsoncons::cbor::cbor_view cbv((const uint8_t*) buffer.data(), size);
+		json jd = jsoncons::cbor::decode_cbor<json>(cbv);
 
 		if (jd["version"] != 1) Rf_error("%s: version %d is unknown", name, jd["version"]);
 
@@ -904,10 +911,11 @@ void omxData::reloadFromFile(const std::string &file)
 
 		freeInternal();
 
-		needSort = jd["needSort"];
-		if (primaryKey != jd["primaryKey"]) Rf_error("%s: cannot change primaryKey", name);
-		weightCol = jd["weight"];
-		freqCol = jd["frequency"];
+		needSort = jd["needSort"].as<bool>();
+		int pk = jd["primaryKey"].as<int>();
+		if (primaryKey != pk) Rf_error("%s: cannot change primaryKey", name);
+		weightCol = jd["weight"].as<int>();
+		freqCol = jd["frequency"].as<int>();
 
 		numObs = 0;
 		// if (!is.na(frequency)) {
@@ -917,7 +925,7 @@ void omxData::reloadFromFile(const std::string &file)
 		// }
 
 		rows = -1;
-		auto &observed = jd["observed"];
+		auto observed = jd["observed"];
 		if (rawCols.size() != observed.size()) Rf_error("%s: %d columns but %d columns loaded",
 								int(rawCols.size()), int(observed.size()));
 		for (int cx=0; cx < int(rawCols.size()); ++cx) {
@@ -930,23 +938,23 @@ void omxData::reloadFromFile(const std::string &file)
 			case COLUMNDATA_UNORDERED_FACTOR:
 			case COLUMNDATA_INTEGER:{
 				if (cd.type != COLUMNDATA_INTEGER) {
-					auto &levelNames = col["levels"];  // check for mismatch TODO
+					auto levelNames = col["levels"];  // check for mismatch TODO
 					if (levelNames.size() != cd.levels.size()) {
 						Rf_error("%s: column %s levels mismatch", name, cd.name);
 					}
 				}
-				auto &dd = col["data"];
+				auto dd = col["data"];
 				if (int(dd.size()) != rows) Rf_error("%s: column %s length mismatch %d != %d",
 								     name, cd.name, rows, int(dd.size()));
 				cd.intData = new int[rows];
-				for (int rx=0; rx < rows; ++rx) cd.intData[rx] = dd[rx];
+				for (int rx=0; rx < rows; ++rx) cd.intData[rx] = dd[rx].as<int>();
 				break;}
 			case COLUMNDATA_NUMERIC:{
-				auto &dd = col["data"];
+				auto dd = col["data"];
 				if (int(dd.size()) != rows) Rf_error("%s: column %s length mismatch %d != %d",
 								     name, cd.name, rows, int(dd.size()));
 				cd.realData = new double[rows];
-				for (int rx=0; rx < rows; ++rx) cd.realData[rx] = dd[rx];
+				for (int rx=0; rx < rows; ++rx) cd.realData[rx] = dd[rx].as<double>();
 				break;}
 			default: Rf_error("Unknown type"); break;
 			}
@@ -958,7 +966,7 @@ void omxData::reloadFromFile(const std::string &file)
 
 SEXP storeData(SEXP Rmxd, SEXP Rfile)
 {
-	using json = nlohmann::json;
+	using json = jsoncons::json;
 	omxManageProtectInsanity mpi;
 
 	if (Rf_length(Rfile) == 0) Rf_error("Write to which file?");
@@ -971,7 +979,9 @@ SEXP storeData(SEXP Rmxd, SEXP Rfile)
 		Rf_error("Failed to open '%s' for writing", file);
 	}
 
-	json jd = R"({"version": 1, "class": "MxData"})"_json;
+	json jd;
+	jd["version"] = 1;
+	jd["class"] = "MxData";
 
 	ProtectedSEXP Rtype(R_do_slot(Rmxd, Rf_install("type")));
 	jd["type"] = R_CHAR(STRING_ELT(Rtype, 0));
@@ -987,8 +997,8 @@ SEXP storeData(SEXP Rmxd, SEXP Rfile)
 	jd["numObs"] = Rf_asReal(RnumObs);
 	ProtectedSEXP Robs(R_do_slot(Rmxd, Rf_install("observed")));
 	if (Rf_isFrame(Robs)) {
-		int rows = jd["numObs"];
-		json obs;
+		int rows = jd["numObs"].as<double>();
+		json::array obs;
 		ProtectedSEXP colnames(Rf_getAttrib(Robs, R_NamesSymbol));
 		int cols = Rf_length(Robs);
 		for (int cx=0; cx < cols; ++cx) {
@@ -997,33 +1007,30 @@ SEXP storeData(SEXP Rmxd, SEXP Rfile)
 			col["name"] = R_CHAR(STRING_ELT(colnames, cx));
 			if (Rf_length(Rcol) != rows) Rf_error("Found %d rows in colunn %s instead of %s",
 								    Rf_length(Rcol), col["name"], rows);
+			json::array jdata;
 			if (Rf_isFactor(Rcol)) {
-				col["type"] = Rf_isUnordered(Rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
+				int t1 = Rf_isUnordered(Rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
+				col["type"] = t1;
 				ProtectedSEXP Rlevels(Rf_getAttrib(Rcol, R_LevelsSymbol));
-				json levels;
+				json::array levels;
 				for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
 					levels.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
 				}
 				col["levels"] = levels;
 				auto *val = INTEGER(Rcol);
-				json intData;
-				for (int dx=0; dx < rows; ++dx) intData.push_back(val[dx]);
-				col["data"] = intData;
+				for (int dx=0; dx < rows; ++dx) jdata.push_back(val[dx]);
 			} else if (Rf_isInteger(Rcol)) {
-				col["type"] = COLUMNDATA_INTEGER;
+				col["type"] = (int) COLUMNDATA_INTEGER;
 				auto *val = INTEGER(Rcol);
-				json intData;
-				for (int dx=0; dx < rows; ++dx) intData.push_back(val[dx]);
-				col["data"] = intData;
+				for (int dx=0; dx < rows; ++dx) jdata.push_back(val[dx]);
 			} else if (Rf_isNumeric(Rcol)) {
-				col["type"] = COLUMNDATA_NUMERIC;
+				col["type"] = (int) COLUMNDATA_NUMERIC;
 				auto *val = REAL(Rcol);
-				json realData;
-				for (int dx=0; dx < rows; ++dx) realData.push_back(val[dx]);
-				col["data"] = realData;
+				for (int dx=0; dx < rows; ++dx) jdata.push_back(val[dx]);
 			} else {
-				col["type"] = COLUMNDATA_INVALID;
+				col["type"] = (int) COLUMNDATA_INVALID;
 			}
+			col["data"] = jdata;
 			obs.push_back(col);
 		}
 		jd["observed"] = obs;
@@ -1033,7 +1040,8 @@ SEXP storeData(SEXP Rmxd, SEXP Rfile)
 
 	// WLS related stuff? TODO
 
-	auto v = json::to_cbor(jd);
+	std::vector<uint8_t> v;
+	jsoncons::cbor::encode_cbor(jd, v);
 	for (auto b1 : v) ofs << b1;
 	ofs.close();
 
