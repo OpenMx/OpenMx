@@ -355,6 +355,7 @@ omxCompute *newComputeNewtonRaphson();
 omxCompute *newComputeConfidenceInterval();
 omxCompute *newComputeTryHard();
 omxCompute *newComputeNelderMead();
+omxCompute *newComputeGenSA();
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
