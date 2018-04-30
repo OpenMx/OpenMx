@@ -810,6 +810,111 @@ setMethod("displayCompute", signature(Ob="MxComputeNewtonRaphson", indent="integ
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeGenSA",
+	 contains = "BaseCompute",
+	 representation = representation(
+	   fitfunction = "MxCharOrNumber",
+	   verbose = "integer",
+	   plan = "MxCompute",
+	   qv = "numeric",
+	   qaInit = "numeric",
+	   lambda = "numeric",
+	   tempStart = "numeric",
+	   tempEnd = "numeric",
+	   stepsPerTemp = "integer"))
+
+setMethod("assignId", signature("MxComputeGenSA"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeGenSA"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("qualifyNames", signature("MxComputeGenSA"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('fitfunction')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeGenSA"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+		}
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("updateFromBackend", signature("MxComputeTryHard"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeGenSA",
+	function(.Object, freeSet, fit, verbose, plan,
+		 qv, qaInit, lambda, tempStart, tempEnd, stepsPerTemp) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@fitfunction <- fit
+		  .Object@verbose <- verbose
+		  .Object@plan <- plan
+		  .Object@qv <- qv
+		  .Object@qaInit <- qaInit
+		  .Object@lambda <- lambda
+		  .Object@tempStart <- tempStart
+		  .Object@tempEnd <- tempEnd
+		  .Object@stepsPerTemp <- stepsPerTemp
+		  .Object
+	  })
+
+mxComputeGenSA <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
+			   plan=mxComputeOnce('fitfunction','fit'),
+			   verbose=0L,
+			   qv=2.62, qaInit=-3., lambda=0.85, tempStart=5230., tempEnd=0.1, stepsPerTemp=1L)
+{
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeGenSA does not accept values for the '...' argument")
+	}
+
+	verbose <- as.integer(verbose)
+	new("MxComputeGenSA", freeSet, fitfunction, verbose, plan,
+		as.numeric(qv), as.numeric(qaInit), as.numeric(lambda),
+		as.numeric(tempStart), as.numeric(tempEnd), as.integer(stepsPerTemp))
+}
+
+#----------------------------------------------------
+
 setClass(Class = "ComputeSteps",
 	 contains = "BaseCompute",
 	 representation = representation(

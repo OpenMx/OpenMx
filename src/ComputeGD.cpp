@@ -1681,6 +1681,7 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 class ComputeTryH : public omxCompute {
 	typedef omxCompute super;
 	omxCompute *plan;
+	int numFree;
 	int verbose;
 	double loc;
 	double scale;
@@ -1701,7 +1702,6 @@ public:
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
-	void copyBounds(FitContext *fc);
 };
 
 omxCompute *newComputeTryHard()
@@ -1754,17 +1754,16 @@ void ComputeTryH::computeImpl(FitContext *fc)
 {
 	using Eigen::Map;
 	using Eigen::ArrayXd;
-	Map< ArrayXd > curEst(fc->est, fc->numParam);
+	numFree = fc->calcNumFree();
+	Map< ArrayXd > curEst(fc->est, numFree);
 	ArrayXd origStart = curEst;
 	bestEst = curEst;
 	
 	solLB.resize(curEst.size());
 	solUB.resize(curEst.size());
-	copyBounds(fc);
+	fc->copyBoxConstraintToOptimizer(solLB, solUB);
 
 	++invocations;
-
-	// return record of attempted starting vectors? TODO
 
 	int retriesRemain = maxRetries - 1;
 	if (verbose >= 1) {
@@ -1847,7 +1846,234 @@ void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	slots->add("debug", info.asR());
 }
 
-void ComputeTryH::copyBounds(FitContext *fc)
+// ---------------------------------------------------------------
+
+class ComputeGenSA : public omxCompute {
+	typedef omxCompute super;
+	omxCompute *plan;
+	static const char *optName;
+	int numFree;
+	omxMatrix *fitMatrix;
+	double tolerance;
+	int verbose;
+	Eigen::VectorXd lbound;
+	Eigen::VectorXd ubound;
+	Eigen::VectorXd range;
+	Eigen::VectorXd xMini;
+	Eigen::VectorXd curBest;
+	double curBestFit;
+	double qv;
+	double qaInit;
+	double lambda;
+	double temSta;
+	double temEnd;
+	int stepsPerTemp;
+	double visita(double temp);
+
+ public:
+	ComputeGenSA() : plan(0) {};
+	virtual ~ComputeGenSA();
+        virtual void initFromFrontend(omxState *, SEXP rObj);
+        virtual void computeImpl(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
+const char *ComputeGenSA::optName = "GenSA";
+
+class omxCompute *newComputeGenSA()
+{ return new ComputeGenSA(); }
+
+ComputeGenSA::~ComputeGenSA()
 {
-	fc->copyBoxConstraintToOptimizer(solLB, solUB);
+	if (plan) delete plan;
+}
+
+void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
+{
+	super::initFromFrontend(state, rObj);
+
+	{
+		fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
+		omxCompleteFitFunction(fitMatrix);
+
+		ProtectedSEXP Rqv(R_do_slot(rObj, Rf_install("qv")));
+		qv = Rf_asReal(Rqv);
+
+		ProtectedSEXP RqaInit(R_do_slot(rObj, Rf_install("qaInit")));
+		qaInit = Rf_asReal(RqaInit);
+
+		ProtectedSEXP Rlambda(R_do_slot(rObj, Rf_install("lambda")));
+		lambda = Rf_asReal(Rlambda);
+
+		ProtectedSEXP RtempStart(R_do_slot(rObj, Rf_install("tempStart")));
+		temSta = Rf_asReal(RtempStart);
+
+		ProtectedSEXP RtempEnd(R_do_slot(rObj, Rf_install("tempEnd")));
+		temEnd = Rf_asReal(RtempEnd);
+
+		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(Rverbose);
+
+		ProtectedSEXP RstepsPerTemp(R_do_slot(rObj, Rf_install("stepsPerTemp")));
+		stepsPerTemp = Rf_asInteger(RstepsPerTemp);
+	}
+
+	pushIndex(NA_INTEGER);
+
+	SEXP slotValue;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
+	SEXP s4class;
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
+	plan = omxNewCompute(state, CHAR(s4class));
+	plan->initFromFrontend(state, slotValue);
+
+	popIndex();
+}
+
+double ComputeGenSA::visita(double temp)
+{
+	// This code is copied from the Appendix of Tsallis and Stariolo (1996)
+	const double pi = M_PI;
+	double fator1 = exp(log(temp) / (qv - 1.));
+	double fator2 = exp((4. - qv) * log(qv - 1.));
+	double fator3 = exp((2. - qv) * M_LN2 / (qv - 1.));
+	double fator4 = M_SQRT_PI * fator1 * fator2 / (fator3 * (3. - qv));
+	double fator5 = 1. / (qv - 1.) - .5;
+	// calculates the gamma function using the reflection formula for
+	// 0<arg<1
+	double fator6 = pi * (1. - fator5) / sin(pi * (1. - fator5))
+		/ fabs(R::gammafn(2.-fator5));
+	double sigmax = exp(-(qv - 1.) * log(fator6 / fator4) / (3. - qv));
+	double x = sigmax * norm_rand();
+	double y = norm_rand();
+	double den = exp((qv - 1.) * log((fabs(y))) / (3. - qv));
+	double ret_val = x / den;
+	if (ret_val > INF) {
+		return INF * unif_rand();
+	} else if (ret_val < NEG_INF) {
+		return NEG_INF * unif_rand();
+	}
+	return ret_val;
+}
+
+void ComputeGenSA::computeImpl(FitContext *fc)
+{
+	// deal with constraints TODO
+
+	using Eigen::Map;
+	using Eigen::VectorXd;
+
+	numFree = fc->calcNumFree();
+	if (numFree <= 0) {
+		Rf_error("Model has no free parameters");
+		return;
+	}
+	Map< VectorXd > curEst(fc->est, numFree);
+
+	omxAlgebraPreeval(fitMatrix, fc);
+
+	lbound.resize(numFree);
+	ubound.resize(numFree);
+	fc->copyBoxConstraintToOptimizer(lbound, ubound);
+	range = ubound - lbound;
+
+	if (verbose >= 1) {
+		mxLog("Welcome to GenSA (%d param, tolerance %.3g)",
+		      numFree, tolerance);
+	}
+
+	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
+	GetRNGstate();
+	int retries = 5;
+	while (fc->outsideFeasibleSet() && retries-- > 0) {
+		for (int vx=0; vx < curEst.size(); ++vx) {
+			curEst[vx] = lbound[vx] + unif_rand() * (ubound[vx] - lbound[vx]);
+		}
+		ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
+	}
+	PutRNGstate();
+	if (fc->outsideFeasibleSet()) {
+		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
+		return;
+	}
+
+	int markovLength = stepsPerTemp * numFree;
+	double eMini = fc->fit;
+	xMini = curEst;
+	curBest = xMini;
+	curBestFit = eMini;
+
+	GetRNGstate();
+	const double t1 = exp((qv - 1.) * M_LN2) - 1.;
+
+	// Tsallis & Stariolo (1995) start at t=1 (see around Eqn 4)
+	for (int tt = 1; !isErrorRaised(); ++tt) {
+		// Equation 14' from Tsallis & Stariolo (1995)
+		double t2 = exp((qv - 1.) * log(tt + 1.));
+		double tem = temSta * t1 / t2;
+		if (tem < temEnd) break;
+
+		for (int jj = 0; jj < markovLength; ++jj) {
+			int vx = jj % numFree;
+			double va = visita(tem);
+			double a = xMini[vx] + va;
+			if (a > ubound[vx] || lbound[vx] > a) {
+				// This will truncate some significant digits
+				// so we want to avoid it if possible.
+				a = fmod(a - lbound[vx], range[vx]) + lbound[vx];
+			}
+			curEst[vx] = a;
+
+			PutRNGstate();
+			pushIndex(jj);
+			fc->setInform(INFORM_UNINITIALIZED);
+			fc->copyParamToModel();
+			fc->wanted = FF_COMPUTE_FIT;
+			plan->compute(fc);
+			popIndex();
+			GetRNGstate();
+
+			if (fc->outsideFeasibleSet()) {
+				curEst[vx] = xMini[vx];
+				continue;
+			}
+
+			// Equation 5 from Tsallis & Stariolo (1995)
+			if (fc->fit < eMini) {
+				eMini = fc->fit;
+				xMini = curEst;
+				if (verbose >= 2) mxLog("%s: temp %f downhill to %f", name, tem, eMini);
+				if (eMini < curBestFit) {
+					curBest = xMini;
+					curBestFit = eMini;
+				}
+			} else {
+				double worse1 = fc->fit - eMini;
+				double qa = qaInit - lambda * tt;
+				double worse2 = (1. + (qa-1.) * worse1);
+				if (worse2 > 0) {
+					double thresh = pow(worse2 / tem, -1./(qa-1.));
+					if (thresh >= 1.0 || thresh > unif_rand()) {
+						eMini = fc->fit;
+						xMini = curEst;
+						if (verbose >= 2) mxLog("%s: temp %f uphill to %f", name, tem, eMini);
+					}
+				}
+			}
+			if (eMini != fc->fit) curEst[vx] = xMini[vx];
+		}
+	}
+
+	PutRNGstate();
+
+	if (isErrorRaised()) return;
+
+	curEst = curBest;
+	fc->copyParamToModel();
+	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
+	fc->wanted |= FF_COMPUTE_BESTFIT;
+}
+
+void ComputeGenSA::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
 }
