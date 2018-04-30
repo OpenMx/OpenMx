@@ -72,7 +72,8 @@ if [ "$cxx_type" = gcc ]; then
 	exit 1
     fi
     if [ $devmode = 1 ]; then
-	COMPILER_CXXFLAGS="-Wall -Wno-unknown-pragmas -Wno-unused-parameter -Wvla -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function"
+	COMPILER_CXXFLAGS="-Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function -Wno-unused-variable"
+
 	if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	    COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
