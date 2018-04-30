@@ -178,20 +178,24 @@ plan <- plan2
 ism <- matrix(c(2,4,1,4,3,5),3,2,byrow=T)
 colnames(ism) <- c("mu","sigma2")
 plan$steps$GD$iniSimplexMat <- ism
+plan$steps$GD$validationRestart <- FALSE
+plan$steps <- list(GD=plan$steps$GD)
 #plan$steps$GD$verbose <- 5L
-omxCheckError(
+omxCheckWarning(
 	mxRun(mxModel(m,plan,mxConstraint(Mu<0))),
-	"The job for model 'mod' exited abnormally with the error message: initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()"
+	"In model 'mod' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution. "
 )
 plan <- plan2
 
 ism <- matrix(c(-2,4,-1,4,-3,5),3,2,byrow=T)
 colnames(ism) <- c("mu","sigma2")
 plan$steps$GD$iniSimplexMat <- ism
+plan$steps$GD$validationRestart <- FALSE
+plan$steps <- list(GD=plan$steps$GD)
 #plan$steps$GD$verbose <- 5L
-omxCheckError(
+omxCheckWarning(
 	mxRun(mxModel(m,plan,mxConstraint(Mu>0))),
-	"The job for model 'mod' exited abnormally with the error message: initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()"
+	"In model 'mod' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution. "
 )
 plan <- plan2
 
