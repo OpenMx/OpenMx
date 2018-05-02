@@ -206,7 +206,7 @@ plan$steps$GD <- mxComputeNelderMead(
 m12 <- mxModel(model,plan)
 m12o <- mxRun(m12)
 summary(m12o)
-m12o$output$iterations #<--maxed out
+m12o$output$iterations
 
 #betai:
 plan$steps$GD <- mxComputeNelderMead(
@@ -297,3 +297,16 @@ m18 <- mxModel(model,plan)
 m18o <- mxRun(m18)
 summary(m18o) 
 m18o$output$iterations
+
+#Test for Nelder-Mead status code 4:
+plan$steps$GD <- mxComputeNelderMead(
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9, 
+	doPseudoHessian=T)
+plan$steps <- list(GD=plan$steps$GD)
+m19 <- mxModel(model,plan)
+m19o <- omxCheckWarning(
+	mxRun(m19),
+	"In model 'untitled1' Optimizer returned a non-zero status code 4. The major iteration limit was reached (Mx status BLUE).")
+summary(m19o)
+omxCheckEquals(m19o$output$status$code,4)
+omxCheckEquals(m19o$output$iterations, 10000)

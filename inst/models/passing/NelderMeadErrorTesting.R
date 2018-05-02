@@ -197,6 +197,8 @@ omxCheckWarning(
 )
 plan <- plan2
 
+#Note: status code 3 is tested in models/passing/UselessConstraint.R; status code 4 is tested in models/nightly/NelderMeadUnitTesting.R.
+
 ism <- matrix(c(0,4,-1,4,0,5),3,2,byrow=T)
 plan$steps$GD$iniSimplexMat <- ism
 omxCheckError(mxRun(mxModel(m,plan)), "'iniSimplexMat' has 0 column names, but 2 column names expected")

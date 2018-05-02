@@ -57,4 +57,14 @@ if (mxOption(NULL, "Default optimizer") != 'CSOLNP') {  # TODO
 	broken <- omxCheckWarning(mxRun(broken, silent=TRUE),
 				  "In model 'OneFactorPath' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution.")
 	omxCheckEquals(broken$output$status$code, 3)
+} else{
+	plan <- omxDefaultComputePlan()
+	plan$steps$GD <- mxComputeNelderMead(ineqConstraintMthd="eqMthd",eqConstraintMthd="l1p")
+	plan$steps <- list(GD=plan$steps$GD)
+	broken <- mxModel(factorModelPath, remove=TRUE, names(factorModelPath$constraints))
+	broken <- mxModel(broken, mxConstraint(GV>2, "infeasible"), plan);
+	broken <- omxCheckWarning(
+		mxRun(broken, silent=TRUE),
+		"In model 'OneFactorPath' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution.")
+	omxCheckEquals(broken$output$status$code, 3)
 }
