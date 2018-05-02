@@ -180,10 +180,9 @@ colnames(ism) <- c("mu","sigma2")
 plan$steps$GD$iniSimplexMat <- ism
 plan$steps$GD$validationRestart <- FALSE
 plan$steps <- list(GD=plan$steps$GD)
-#plan$steps$GD$verbose <- 5L
 omxCheckWarning(
 	mxRun(mxModel(m,plan,mxConstraint(Mu<0))),
-	"In model 'mod' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution. "
+	"In model 'mod' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()"
 )
 plan <- plan2
 
@@ -192,14 +191,35 @@ colnames(ism) <- c("mu","sigma2")
 plan$steps$GD$iniSimplexMat <- ism
 plan$steps$GD$validationRestart <- FALSE
 plan$steps <- list(GD=plan$steps$GD)
-#plan$steps$GD$verbose <- 5L
 omxCheckWarning(
 	mxRun(mxModel(m,plan,mxConstraint(Mu>0))),
-	"In model 'mod' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution. "
+	"In model 'mod' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()"
 )
 plan <- plan2
 
 ism <- matrix(c(0,4,-1,4,0,5),3,2,byrow=T)
 plan$steps$GD$iniSimplexMat <- ism
 omxCheckError(mxRun(mxModel(m,plan)), "'iniSimplexMat' has 0 column names, but 2 column names expected")
+plan <- plan2
+
+#Test that the l1p method can tolerate every point of the initial simplex violating a constraint:
+
+ism <- matrix(c(2,4,1,4,3,5),3,2,byrow=T)
+colnames(ism) <- c("mu","sigma2")
+plan$steps$GD$iniSimplexMat <- ism
+plan$steps$GD$validationRestart <- FALSE
+plan$steps$GD$ineqConstraintMthd <- "eqMthd"
+plan$steps$GD$eqConstraintMthd <- "l1p"
+plan$steps <- list(GD=plan$steps$GD)
+mxRun(mxModel(m,plan,mxConstraint(Mu<0)))
+plan <- plan2
+
+ism <- matrix(c(-2,4,-1,4,-3,5),3,2,byrow=T)
+colnames(ism) <- c("mu","sigma2")
+plan$steps$GD$iniSimplexMat <- ism
+plan$steps$GD$validationRestart <- FALSE
+plan$steps$GD$ineqConstraintMthd <- "eqMthd"
+plan$steps$GD$eqConstraintMthd <- "l1p"
+plan$steps <- list(GD=plan$steps$GD)
+mxRun(mxModel(m,plan,mxConstraint(Mu>0)))
 plan <- plan2
