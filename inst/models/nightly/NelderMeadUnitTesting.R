@@ -54,7 +54,7 @@ Mx1R <- rbind(
 
 nameList <- names(data)
 # Define the model
-model <- mxModel()
+model <- mxModel(name="m")
 model <- mxModel(model, mxMatrix("Stand", name = "R", # values=c(.2955, .1268, -.0011, .0760, .1869, .4377), 
 																 nrow = nvar, ncol = nvar, free=TRUE))
 model <- mxModel(model, mxMatrix("Zero", name = "M", nrow = 1, ncol = nvar, free=FALSE))
@@ -306,7 +306,7 @@ plan$steps <- list(GD=plan$steps$GD)
 m19 <- mxModel(model,plan)
 m19o <- omxCheckWarning(
 	mxRun(m19),
-	"In model 'untitled1' Optimizer returned a non-zero status code 4. The major iteration limit was reached (Mx status BLUE).")
+	"In model 'm' Optimizer returned a non-zero status code 4. The major iteration limit was reached (Mx status BLUE).")
 summary(m19o)
 omxCheckEquals(m19o$output$status$code,4)
 omxCheckEquals(m19o$output$iterations, 10000)
