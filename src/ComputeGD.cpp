@@ -1958,7 +1958,9 @@ double ComputeGenSA::visita(double temp)
 
 void ComputeGenSA::computeImpl(FitContext *fc)
 {
-	// deal with constraints TODO
+	int eqn, nineqn;
+	fc->state->countNonlinearConstraints(eqn, nineqn, false);
+	if (eqn > 0 || nineqn > 0) Rf_error("%s: non-linear constraints are not supported", name);
 
 	using Eigen::Map;
 	using Eigen::VectorXd;
