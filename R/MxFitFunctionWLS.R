@@ -357,7 +357,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	V <- as.matrix(V)
 	I <- diag(1, nrow=nrow(V))
 	x2mv <- x2mv*ifelse(all(V[V!=0] == I[V != 0]), 1/numObs, 1)
-	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, mAdjust=madj, mvAdjust=mcadj, dstar=dstar))
+	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, mAdjust=madj, mvAdjust=mvadj, dstar=dstar))
 }
 
 
