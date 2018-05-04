@@ -3,7 +3,7 @@
 \alias{MxComputeCheckpoint-class}
 \title{Log parameters and state to disk or memory}
 \usage{
-mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=FALSE,
+mxComputeCheckpoint(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE,
   fit=TRUE, counters=TRUE, status=TRUE)
 }
@@ -13,6 +13,12 @@ mxComputeCheckpoint(what=NULL, ..., path=NULL, toReturn=FALSE,
 \item{...}{Not used.  Forces remaining arguments to be specified by name.}
 
 \item{path}{a character vector of where to write the checkpoint file}
+
+\item{append}{if FALSE, truncates the checkpoint file upon open. If
+  TRUE, existing data is preserved and checkpoints are appended.}
+
+\item{header}{whether to write the header that describes the content of
+  each column}
 
 \item{toReturn}{logical. Whether to store the checkpoint in memory and
   return it after the model is run}
