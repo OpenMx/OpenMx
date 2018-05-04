@@ -3439,12 +3439,17 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
 
-	wroteHeader = false;
+	ProtectedSEXP Rappend(R_do_slot(rObj, Rf_install("append")));
+	bool append = Rf_asLogical(Rappend);
+
+	ProtectedSEXP Rheader(R_do_slot(rObj, Rf_install("header")));
+	wroteHeader = !Rf_asLogical(Rheader);
+
 	path = 0;
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
 	if (Rf_length(Rpath) == 1) {
 		path = R_CHAR(STRING_ELT(Rpath, 0));
-		ofs.open(path, std::ofstream::trunc);
+		ofs.open(path, append? std::ofstream::app : std::ofstream::trunc);
 		if (!ofs.is_open()) {
 			Rf_error("Failed to open '%s' for writing", path);
 		}
