@@ -328,8 +328,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 						     "not found in", omxQuotes(data@name)))
 				  }
 				  data@primaryKey <- pk
-			  } else {
-				  data@primaryKey <- 0L
 			  }
 		  }
 		  if (.hasSlot(data, 'weight')) {
@@ -341,8 +339,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					  stop(msg, call.=FALSE)
 				  }
 				  data@weight <- wc
-			  } else {
-				  data@weight <- 0L
 			  }
 		  }
 		  if (.hasSlot(data, 'frequency')) {
@@ -354,8 +350,6 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					  stop(msg, call.=FALSE)
 				  }
 				  data@frequency <- wc
-			  } else {
-				  data@frequency <- 0L
 			  }
 		  }
 
@@ -617,58 +611,7 @@ setMethod("show", "MxDataDynamic", function(object) {
 	displayMxDataDynamic(object) 
 })
 
-write.nc <- function(mxd, file) {
-	if (mxd@type != 'raw') stop(paste0("write.nc with type='",
-		mxd@type, "' is not implemented yet"))
-	df <- mxd@observed
-
-	# avoid creating 1:nrow(df) TODO
-	dimRows <- ncdim_def( "rows", "", 1:nrow(df), create_dimvar=FALSE )
-
-	levList <- list()
-	varList <- list()
-	for (vx in 1:ncol(df)) {
-		col <- df[[vx]]
-		if (is.factor(col)) {
-			levList[[ colnames(df)[vx] ]] <- levels(col)
-			col <- unclass(col)
-		}
-		varList[[vx]] <- ncvar_def(colnames(df)[vx], "", dimRows,
-			prec=typeof(col))
-	}
-
-	levVars <- NULL
-	if (length(levList)) {
-		dimnchar   <- ncdim_def("nchar", "",
-			1:max(nchar(unlist(levList))),
-			create_dimvar=FALSE )
-
-		for (lx in 1:length(levList)) {
-			levDim <- ncdim_def(paste0(names(levList)[lx],'.levelCount'),
-				units="", vals=1L:length(levList[[lx]]),
-				create_dimvar=FALSE )
-			levVars[[lx]]  <- ncvar_def(paste0(names(levList)[lx],'.levels'),
-				"", list(dimnchar, levDim), 
-				prec="char" )
-		}
-	}
-
-	nc <- nc_create( file, c(varList, levVars) )
-
-	for (vx in 1:ncol(df)) {
-		col <- df[[vx]]
-		if (is.factor(col)) {
-			ncvar_put( nc, paste0(colnames(df)[vx], '.levels'),
-				levels(col))
-			col <- unclass(col)
-		}
-		ncvar_put( nc, varList[[vx]], col, count=nrow(df))
-	}
-
-	for (attr in c("type", "primaryKey", "weight", "frequency")) {
-		if (is.na(slot(mxd, attr))) next
-		ncatt_put( nc, 0, attr, slot(mxd, attr) )
-	}
-
-	nc_close(nc)
+write.cbor <- function(mxd, file) {
+	if (!is(mxd, "MxData")) stop("write.cbor only accepts MxData objects")
+	.Call(.storeData, mxd, file)
 }

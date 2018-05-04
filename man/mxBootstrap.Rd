@@ -5,7 +5,7 @@
 
 \description{
   Bootstrapping can help to assess the variability in parameter estimates.
-  A new sample is draw from current data by unformly sampling the
+  A new sample is drawn from current data by unformly sampling the
   original data with replacement. Then the model is fit to these new
   data. This process is repeated many times. Quantiles of the estimates from all
   these replications can be used to assess the variability of parameters.
@@ -62,7 +62,7 @@ mxBootstrap(model, replications=200, ...,
   seed is used to seed an internal pseudorandom number generator
   (currently the Mersenne Twister algorithm). These
   per-replication seeds are stored as part of the bootstrap output. When
-  \sQuote{only} is specified, the associated stored seed is use to seed the
+  \sQuote{only} is specified, the associated stored seed is used to seed the
   internal random number generator so that identical weights can be
   regenerated.
 

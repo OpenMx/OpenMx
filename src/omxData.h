@@ -86,12 +86,11 @@ struct ColumnData {
 	// exactly one of these is non-null
 	double *realData;
 	int    *intData;
-	SEXP levels;       // factors only
+	std::vector<std::string> levels;       // factors only
 };
 
 class omxData {
  private:
-	SEXP rownames;
 	void addDynamicDataSource(omxExpectation *ex);
 	int primaryKey;   // column of primary key
 	int weightCol;
@@ -264,5 +263,6 @@ int omxDataNumFactor(omxData *od);                    // Number of factor column
 /* Function wrappers that switch based on inclusion of algebras */
 
 double omxDataDF(omxData *od);
+SEXP storeData(SEXP Rmxd, SEXP Rfile);
 
 #endif /* _OMXDATA_H_ */

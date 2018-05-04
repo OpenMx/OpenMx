@@ -335,6 +335,9 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.addPenalty = nmoc.addPenalty;
 		nmoc2.countConstraintsAndSetupBounds();
 		nmoc2.invokeNelderMead();
+		if(nmoc2.statuscode==10){
+			fc->resetIterationError();
+		}
 		
 		if(nmoc2.bestfit < nmoc.bestfit && (nmoc2.statuscode==0 || nmoc2.statuscode==4)){
 			nmoc.bestfit = nmoc2.bestfit;
@@ -359,7 +362,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc.calculatePseudoHessian();
 	}
 	
-	if(nmoc.estInfeas){nmoc.statuscode = 3;}
+	if(nmoc.estInfeas && nmoc.statuscode!=10){nmoc.statuscode = 3;}
 	
 	switch(nmoc.statuscode){
 	case -1:
@@ -1344,7 +1347,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	eucentroidCurr.resize(numFree);
 	initializeSimplex(est, iniSimplexEdge, false);
 	if( (vertexInfeas.sum()==n+1 && NMobj->eqConstraintMthd != 4) || (fvals.array()==bignum).all()){
-		omxRaiseErrorf("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
+		fc->recordIterationError("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
 		statuscode = 10;
 		return;
 	}
@@ -1579,7 +1582,7 @@ void NelderMeadOptimizerContext::finalize()
 	/*Doing this here ensures (1) that the fit has just been freshly evaluated at the solution, (2) that this check is done as part of the
 	MxComputeNelderMead step (necessary for bootstrapping), and (3) that Nelder-Mead reports status code 3 for solutions that violate 
 	MxConstraints, and status code 10 for	all other kinds of infeasible solutions:*/
-	if(!fc->insideFeasibleSet()){fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);}
+	if(!fc->insideFeasibleSet() && (statuscode==0 || statuscode==4)){fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);}
 	
 	omxState *st = fc->state;
 	int ineqType = omxConstraint::LESS_THAN;

@@ -109,7 +109,9 @@ class GradientOptimizerContext {
 	void copyFromOptimizer(double *myPars) { copyFromOptimizer(myPars, fc); };
 	void finish();
 	double getFit() const { return fc->fit; };
-	int getIteration() const { return fc->iterations; };
+	// fc->iterations is a global counter that includes multiple optimizer runs
+	//int getIteration() const { return fc->iterations; };
+	int iterations;
 	int getWanted() const { return fc->wanted; };
 	void setWanted(int nw) { fc->wanted = nw; };
 	bool hasKnownGradient() const;

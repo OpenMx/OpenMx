@@ -335,6 +335,7 @@ class omxCompute {
 	const char *name;
 	FreeVarGroup *varGroup;
 	omxCompute();
+	virtual bool resetInform() { return true; };
         virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
 	void computeWithVarGroup(FitContext *fc);
@@ -342,6 +343,8 @@ class omxCompute {
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
 	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
+	void pushIndex(int ix);
+	void popIndex();
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);
@@ -352,6 +355,7 @@ omxCompute *newComputeNewtonRaphson();
 omxCompute *newComputeConfidenceInterval();
 omxCompute *newComputeTryHard();
 omxCompute *newComputeNelderMead();
+omxCompute *newComputeGenSA();
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress);
 void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHess, double *stress);
