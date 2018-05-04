@@ -41,11 +41,15 @@ has converged.
 \details{
 If the original starting values are outside of the feasible set,
 a few attempts are made to find viable starting values.
+Non-linear constraints are accommodated by a penalty function.
+The sum of constraint violation is divided by the square
+of the temperature.
 
 Classical simulated annealing (CSA) can be obtained with
-\code{qv=qa=1}. Fast simulated annealing (FSA) can be obtained with
-\code{qv=2} and \code{qa=1}. FSA is faster than CSA, but GSA is
-faster than FSA.
+\code{qv=qa=1} and \code{lambda=0}.
+Fast simulated annealing (FSA) can be obtained with
+\code{qv=2}, \code{qa=1}, and \code{lambda=0}.
+FSA is faster than CSA, but GSA is faster than FSA.
 GenSA default parameters are set to those identified in 
 Xiang, Sun, Fan & Gong (1997).  
 }
