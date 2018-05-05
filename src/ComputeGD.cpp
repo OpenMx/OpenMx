@@ -1853,6 +1853,10 @@ class ComputeGenSA : public omxCompute {
 	omxCompute *plan;
 	static const char *optName;
 	int numFree;
+	int numIneqC;
+	int numEqC;
+	Eigen::ArrayXd equality;
+	Eigen::ArrayXd inequality;
 	omxMatrix *fitMatrix;
 	double tolerance;
 	int verbose;
@@ -1869,6 +1873,7 @@ class ComputeGenSA : public omxCompute {
 	double temEnd;
 	int stepsPerTemp;
 	double visita(double temp);
+	double getConstraintPenalty(FitContext *fc);
 
  public:
 	ComputeGenSA() : plan(0) {};
@@ -1956,11 +1961,38 @@ double ComputeGenSA::visita(double temp)
 	return ret_val;
 }
 
+double ComputeGenSA::getConstraintPenalty(FitContext *fc)
+{
+	omxState *st = fc->state;
+	double penalty = 0;
+
+	if (numIneqC) {
+		for (int cur=0, j=0; j < int(st->conListX.size()); j++) {
+			omxConstraint &con = *st->conListX[j];
+			if (con.opCode == omxConstraint::EQUALITY) continue;
+			con.refreshAndGrab(fc, omxConstraint::LESS_THAN, &inequality(cur));
+			cur += con.size;
+		}
+		penalty += inequality.max(0.0).sum();
+	}
+	
+	if (numEqC) {
+		for(int cur=0, j = 0; j < int(st->conListX.size()); j++) {
+			omxConstraint &con = *st->conListX[j];
+			if (con.opCode != omxConstraint::EQUALITY) continue;
+			con.refreshAndGrab(fc, &equality(cur));
+			cur += con.size;
+		}
+		penalty += equality.abs().sum();
+	}
+	return penalty;
+}
+
 void ComputeGenSA::computeImpl(FitContext *fc)
 {
-	int eqn, nineqn;
-	fc->state->countNonlinearConstraints(eqn, nineqn, false);
-	if (eqn > 0 || nineqn > 0) Rf_error("%s: non-linear constraints are not supported", name);
+	fc->state->countNonlinearConstraints(numEqC, numIneqC, false);
+	equality.resize(numEqC);
+	inequality.resize(numIneqC);
 
 	using Eigen::Map;
 	using Eigen::VectorXd;
@@ -1998,6 +2030,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		return;
 	}
+	fc->fit += getConstraintPenalty(fc) / (temSta*temSta);
 
 	int markovLength = stepsPerTemp * numFree;
 	double eMini = fc->fit;
@@ -2039,6 +2072,12 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 				curEst[vx] = xMini[vx];
 				continue;
 			}
+			double penalty = getConstraintPenalty(fc);
+			if (verbose >= 3) {
+				mxLog("%s: raw penalty %f, temp penalty %f",
+				      name, penalty, penalty / (tem*tem));
+			}
+			fc->fit += penalty / (tem*tem);
 
 			// Equation 5 from Tsallis & Stariolo (1995)
 			if (fc->fit < eMini) {

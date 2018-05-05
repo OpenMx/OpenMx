@@ -2006,6 +2006,8 @@ setClass(Class = "MxComputeCheckpoint",
 		 what = "MxCharOrNumber",
 		 toReturn = "logical",
 		 path = "MxOptionalChar",
+		 append = "logical",
+		 header = "logical",
 		 log = "MxListOrNull",
 		 parameters = "logical",
 		 loopIndices = "logical",
@@ -2015,12 +2017,14 @@ setClass(Class = "MxComputeCheckpoint",
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
-	  function(.Object, what, path, toReturn, parameters, loopIndices, fit, counters, status) {
+	  function(.Object, what, path, append, header, toReturn, parameters, loopIndices, fit, counters, status) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
 		  .Object@what <- what
 		  .Object@path <- path
+		  .Object@append <- append
+		  .Object@header <- header
 		  .Object@toReturn <- toReturn
 		  .Object@parameters <- parameters
 		  .Object@loopIndices <- loopIndices
@@ -2048,7 +2052,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 		.Object
 	})
 
-mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, toReturn=FALSE,
+mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE, status=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -2056,7 +2060,7 @@ mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, toReturn=FALSE,
 	}
 	what <- as.character(what)
 	path <- as.character(path)
-	new("MxComputeCheckpoint", what, path, as.logical(toReturn),
+	new("MxComputeCheckpoint", what, path, as.logical(append), as.logical(header), as.logical(toReturn),
 		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
 		as.logical(status))
 }
