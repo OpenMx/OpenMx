@@ -2052,10 +2052,12 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 			int vx = jj % numFree;
 			double va = visita(tem);
 			double a = xMini[vx] + va;
-			if (a > ubound[vx] || lbound[vx] > a) {
-				// This will truncate some significant digits
-				// so we want to avoid it if possible.
-				a = fmod(a - lbound[vx], range[vx]) + lbound[vx];
+			// fmod will truncate some significant digits
+			// so we want to avoid it if possible.
+			if (a > ubound[vx]) {
+				a = ubound[vx] - fmod(a - ubound[vx], range[vx]);
+			} else if (lbound[vx] > a) {
+				a = fmod(lbound[vx] - a, range[vx]) + lbound[vx];
 			}
 			curEst[vx] = a;
 
