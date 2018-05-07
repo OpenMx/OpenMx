@@ -64,7 +64,8 @@ omxLocateParameters(model)
 omxLocateParameters(model, c("A11", NA))
 
 # Works with submodel
-B = mxMatrix(name = 'B', 'Full', 1, 2, labels = c("B11", "notme"), free = c(TRUE, FALSE), values= pi)
+B = mxMatrix(name = 'B', 'Full', 1, 2, labels = c("B11", "notme"),
+  free = c(TRUE, FALSE), values= pi)
 model <- mxModel(model, mxModel(B, name = 'subB'))
 
 # nb: only returns free parameters ('notme' not shown)
