@@ -43,4 +43,6 @@ deploy:
   provider: script
   skip_cleanup: true
   script: ./util/travis/deploy
-  on: master
+  on:
+  - master
+  - release
