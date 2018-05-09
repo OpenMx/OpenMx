@@ -409,3 +409,38 @@ mxRobustLog <- function(pr) {
 	result[pr == 0.0] <- -745
 	result
 }
+
+mxPearsonSelCov <- function(origCov, newCov) {
+  m1 <- match(colnames(newCov), colnames(origCov))
+
+  if (any(is.na(m1))) {
+	  stop(paste("schurComplementC: cannot find variables",
+		  omxQuotes(colnames(newCov)[is.na(m1)])))
+  }
+
+  rpp <- origCov[m1,m1,drop=F]
+  rpq <- origCov[m1,-m1,drop=F]
+  rqq <- origCov[-m1,-m1,drop=F]
+  irpp <- solve(rpp)
+  origCov[m1,m1] <- newCov
+  tmp <- newCov %*% irpp %*% rpq
+  origCov[-m1,m1] <- t(tmp)
+  origCov[m1,-m1] <- tmp
+  origCov[-m1,-m1] <- rqq - t(rpq) %*% (irpp - irpp %*% newCov %*% irpp) %*% rpq
+  origCov
+}
+
+mxPearsonSelMean <- function(origCov, newCov, origMean) {
+  m1 <- match(colnames(newCov), colnames(origCov))
+  
+  if (any(is.na(m1))) {
+    stop(paste("schurComplementC: cannot find variables",
+               omxQuotes(colnames(newCov)[is.na(m1)])))
+  }
+  
+  rpp <- origCov[m1,m1,drop=F]
+  rqp <- origCov[-m1,m1,drop=F]
+  irpp <- solve(rpp)
+  origMean[-m1,] <- origMean[-m1,] + rqp %*% irpp %*% origMean[m1,,drop=F]
+  origMean
+}

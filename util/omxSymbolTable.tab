@@ -93,3 +93,5 @@
 91    "Column sums"    "colSums"  1  "omxColSums"
 92    "Evaluate on grid"	  "mxEvaluateOnGrid"	2	"evaluateOnGrid"
 93	"Element-wise robust log"	"mxRobustLog"		1	"omxElementRobustLog"
+94	"Pearson Selection covariance"   "mxPearsonSelCov"		2	"pearsonSelCov"
+95	"Pearson Selection mean"   "mxPearsonSelMean"		3	"pearsonSelMean"
