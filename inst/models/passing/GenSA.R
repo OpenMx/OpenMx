@@ -14,7 +14,7 @@ m1 <- mxModel(
 		ncol=1, nrow=dimension, free=TRUE, name='x'),
 	mxAlgebra(sum(x*x - 10 * cos(2 * pi * x)) + 10 * dimension, name="fit"),
 	mxFitFunctionAlgebra('fit'),
-	mxComputeGenSA(verbose=0L))
+	mxComputeSimAnnealing(verbose=0L))
 
 m1 <- mxRun(m1)
 
@@ -58,7 +58,7 @@ m1 <- mxModel(
 	mxAlgebra(sum(x*x - 10 * cos(2 * pi * x)) + 10 * dimension, name="fit"),
 	mxConstraint(x[1,1] > .5, "con1"),
 	mxFitFunctionAlgebra('fit'),
-	mxComputeGenSA()
+	mxComputeSimAnnealing()
 )
 
 m1 <- mxRun(m1)
@@ -71,7 +71,7 @@ m1 <- mxModel(
 	mxAlgebra(sum(x*x - 10 * cos(2 * pi * x)) + 10 * dimension, name="fit"),
 	mxConstraint(x[1,1] == -1, "con1"),
 	mxFitFunctionAlgebra('fit'),
-	mxComputeGenSA()
+	mxComputeSimAnnealing()
 )
 
 m1 <- mxRun(m1)

@@ -1835,7 +1835,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeGenerateData", &newComputeGenerateData},
 	{"MxComputeLoadData", &newComputeLoadData},
 	{"MxComputeCheckpoint", newComputeCheckpoint},
-	{"MxComputeGenSA", &newComputeGenSA},
+	{"MxComputeSimAnnealing", &newComputeGenSA},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)

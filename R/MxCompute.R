@@ -810,20 +810,16 @@ setMethod("displayCompute", signature(Ob="MxComputeNewtonRaphson", indent="integ
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeGenSA",
+setClass(Class = "MxComputeSimAnnealing",
 	 contains = "BaseCompute",
 	 representation = representation(
 	   fitfunction = "MxCharOrNumber",
 	   verbose = "integer",
 	   plan = "MxCompute",
-	   qv = "numeric",
-	   qaInit = "numeric",
-	   lambda = "numeric",
-	   tempStart = "numeric",
-	   tempEnd = "numeric",
-	   stepsPerTemp = "integer"))
+	   method = "character",
+	   control = "list"))
 
-setMethod("assignId", signature("MxComputeGenSA"),
+setMethod("assignId", signature("MxComputeSimAnnealing"),
 	function(.Object, id, defaultFreeSet) {
 		.Object <- callNextMethod()
 		defaultFreeSet <- .Object@freeSet
@@ -836,7 +832,7 @@ setMethod("assignId", signature("MxComputeGenSA"),
 		.Object
 	})
 
-setMethod("getFreeVarGroup", signature("MxComputeGenSA"),
+setMethod("getFreeVarGroup", signature("MxComputeSimAnnealing"),
 	function(.Object) {
 		result <- callNextMethod()
 		for (step in c(.Object@plan)) {
@@ -846,7 +842,7 @@ setMethod("getFreeVarGroup", signature("MxComputeGenSA"),
 		result
 	})
 
-setMethod("qualifyNames", signature("MxComputeGenSA"),
+setMethod("qualifyNames", signature("MxComputeSimAnnealing"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
 		for (sl in c('fitfunction')) {
@@ -858,7 +854,7 @@ setMethod("qualifyNames", signature("MxComputeGenSA"),
 		.Object
 	})
 
-setMethod("convertForBackend", signature("MxComputeGenSA"),
+setMethod("convertForBackend", signature("MxComputeSimAnnealing"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		if (is.character(.Object@fitfunction)) {
@@ -870,7 +866,7 @@ setMethod("convertForBackend", signature("MxComputeGenSA"),
 		.Object
 	})
 
-setMethod("updateFromBackend", signature("MxComputeTryHard"),
+setMethod("updateFromBackend", signature("MxComputeSimAnnealing"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
 		for (sl in c('plan')) {
@@ -879,38 +875,30 @@ setMethod("updateFromBackend", signature("MxComputeTryHard"),
 		.Object
 	})
 
-setMethod("initialize", "MxComputeGenSA",
-	function(.Object, freeSet, fit, verbose, plan,
-		 qv, qaInit, lambda, tempStart, tempEnd, stepsPerTemp) {
+setMethod("initialize", "MxComputeSimAnnealing",
+	function(.Object, freeSet, fit, verbose, plan, method, control) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@fitfunction <- fit
 		  .Object@verbose <- verbose
 		  .Object@plan <- plan
-		  .Object@qv <- qv
-		  .Object@qaInit <- qaInit
-		  .Object@lambda <- lambda
-		  .Object@tempStart <- tempStart
-		  .Object@tempEnd <- tempEnd
-		  .Object@stepsPerTemp <- stepsPerTemp
+		  .Object@method <- method
+		  .Object@control <- control
 		  .Object
 	  })
 
-mxComputeGenSA <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
+mxComputeSimAnnealing <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 			   plan=mxComputeOnce('fitfunction','fit'),
-			   verbose=0L,
-			   qv=2.62, qaInit=-3., lambda=0.85, tempStart=5230., tempEnd=0.1, stepsPerTemp=1L)
+			   verbose=0L, method="tsallis1996", control=list())
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("mxComputeGenSA does not accept values for the '...' argument")
+		stop("mxComputeSimAnnealing does not accept values for the '...' argument")
 	}
 
 	verbose <- as.integer(verbose)
-	new("MxComputeGenSA", freeSet, fitfunction, verbose, plan,
-		as.numeric(qv), as.numeric(qaInit), as.numeric(lambda),
-		as.numeric(tempStart), as.numeric(tempEnd), as.integer(stepsPerTemp))
+	new("MxComputeSimAnnealing", freeSet, fitfunction, verbose, plan, method, control)
 }
 
 #----------------------------------------------------

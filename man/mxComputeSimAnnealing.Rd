@@ -5,8 +5,7 @@
 \usage{
 mxComputeGenSA(freeSet=NA_character_, ..., fitfunction='fitfunction',
  plan=mxComputeOnce('fitfunction','fit'),
- verbose=0L, qv=2.62, qaInit=-3., lambda=0.85,
- tempStart=5230., tempEnd=0.1, stepsPerTemp=1L)
+ verbose=0L, method="tsallis1996", control=list())
 }
 \arguments{
 \item{freeSet}{names of matrices containing free variables}
@@ -19,31 +18,36 @@ mxComputeGenSA(freeSet=NA_character_, ..., fitfunction='fitfunction',
 
 \item{verbose}{level of debugging output}
 
-\item{qv}{Controls the shape of the visiting distribution}
+\item{method}{which algorithm to use}
 
-\item{qaInit}{Controls the shape of the initial acceptance distribution}
-
-\item{lambda}{When nonzero, reduces the probability of acceptance in time}
-
-\item{tempStart}{Starting temperature}
-
-\item{tempEnd}{Ending temperature}
-
-\item{stepsPerTemp}{Number of Markov steps per temperature step}
+\item{control}{control parameters specific to the chosen method}
 }
 \description{
-Performs generalized simulated annealing (GSA) to minimize the fit
-function. The number of function evaluations are determined by the
-\code{tempStart} and \code{tempEnd} parameters. There is no provision to
-stop early because there is no way to determine whether the algorithm
-has converged.
-}
-\details{
+Performs simulated annealing to minimize the fit function.
 If the original starting values are outside of the feasible set,
 a few attempts are made to find viable starting values.
+Currently the only method available is \sQuote{tsallis1996}.
+}
+\details{
+For method \sQuote{tsallis1996},
+the number of function evaluations are determined by the
+\code{tempStart} and \code{tempEnd} parameters. There is no provision to
+stop early because there is no way to determine whether the algorithm
+has converged. The Markov step is implemented by cycling through each
+parameters in turn and considering a univariate jump (like a Gibbs sampler).
+
+Control parameters include \code{qv} to control the shape of the
+visiting distribution, \code{qaInit} to control the shape of the initial
+acceptance distribution, \code{lambda} to reduce the probability of
+acceptance in time, \code{tempStart} to specify starting temperature,
+\code{tempEnd} to specify ending temperature, and \code{stepsPerTemp} to
+set the number of Markov steps per temperature step.
+
 Non-linear constraints are accommodated by a penalty function.
-The sum of constraint violation is divided by the square
-of the temperature.
+Constrained optimization does not work very well.
+Inequality constraints work best when no constraints
+are active at the starting values. Equality constraints
+do not work very well at all.
 
 Classical simulated annealing (CSA) can be obtained with
 \code{qv=qa=1} and \code{lambda=0}.
