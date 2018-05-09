@@ -1858,7 +1858,6 @@ class ComputeGenSA : public omxCompute {
 	Eigen::ArrayXd equality;
 	Eigen::ArrayXd inequality;
 	omxMatrix *fitMatrix;
-	double tolerance;
 	int verbose;
 	Eigen::VectorXd lbound;
 	Eigen::VectorXd ubound;
@@ -2026,8 +2025,8 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 	range = ubound - lbound;
 
 	if (verbose >= 1) {
-		mxLog("Welcome to GenSA (%d param, tolerance %.3g)",
-		      numFree, tolerance);
+		mxLog("Welcome to GenSA (%d param)",
+		      numFree);
 	}
 
 	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
@@ -2044,7 +2043,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		return;
 	}
-	fc->fit += getConstraintPenalty(fc) / (temSta*temSta);
+	fc->fit += getConstraintPenalty(fc);
 
 	int markovLength = stepsPerTemp * numFree;
 	double eMini = fc->fit;
@@ -2090,10 +2089,10 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 			}
 			double penalty = getConstraintPenalty(fc);
 			if (verbose >= 3) {
-				mxLog("%s: raw penalty %f, temp penalty %f",
-				      name, penalty, penalty / (tem*tem));
+				mxLog("%s: [%d] raw penalty %f",
+				      name, tt, penalty);
 			}
-			fc->fit += penalty / (tem*tem);
+			fc->fit += penalty * pow(1.1, tt);
 
 			// Equation 5 from Tsallis & Stariolo (1995)
 			if (fc->fit < eMini) {
