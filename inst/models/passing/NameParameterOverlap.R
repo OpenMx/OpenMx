@@ -4,7 +4,7 @@
 # 2017-04-14 04:50PM TBATES Correct bug in error check - this is now passing.
 
 #
-#   Copyright 2007-2012 The OpenMx Project
+#   Copyright 2007-2012 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
