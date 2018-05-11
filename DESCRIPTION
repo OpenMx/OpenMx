@@ -1,5 +1,5 @@
 Package: OpenMx
-Date: 2017-03-29
+Date: 2018-05-11
 Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -20,7 +20,11 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Association for Computing Machinery", role="cph"),
     person("Dieter", "Kraft", role="cph"),
     person("Stefan", "Wilhelm", role="cph"),
-    person("Manjunath B G", role="cph"))
+    person("Sarah", "Medland", role="cph"),
+    person(c("Carl", 'F.'), "Falk", role="cph"),
+    person("Matt", "Keller", role="cph"),
+    person("Manjunath B G", role="cph"),
+    person("The Regents of the University of California.", role="cph"))
 URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
 BugReports: http://openmx.ssri.psu.edu/forums
 Description: Facilitates treatment of statistical model specifications
@@ -32,8 +36,12 @@ Description: Facilitates treatment of statistical model specifications
     maximum likelihood, and weighted least squares.
     Example models include confirmatory factor, multiple group, mixture
     distribution, categorical threshold, modern test theory, differential
-    equations, state space, and many others.
+    equations, state space, and many others.  MacOS users can download the most up-to-date 
+    package binaries from <http://openmx.ssri.psu.edu>.
+    See Neale, Hunter, Pritikin, Zahery, Brick,
+    Kirkpatrick, Estabrook, Bates, Maes, & Boker (2016) <doi:10.1007/s11336-014-9435-8>.
 SystemRequirements: GNU make
+ByteCompile: yes
 License: Apache License (== 2.0)
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
 Imports: Rcpp, digest,
@@ -41,7 +49,7 @@ Imports: Rcpp, digest,
     methods,
     Matrix,
     parallel
-Depends: R (>= 3.0.2)
+Depends: R (>= 3.1.0)
 Suggests:
     mvtnorm,
     numDeriv,
@@ -158,5 +166,7 @@ Collate:
     'MxTryHard.R'
     'MxSE.R'
     'MxAutoStart.R'
+    'MxRetro.R'
     'zzz.R'
-Version: 2.7.9
+Biarch: true
+Version: 2.9.8-5

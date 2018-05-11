@@ -20,7 +20,11 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Association for Computing Machinery", role="cph"),
     person("Dieter", "Kraft", role="cph"),
     person("Stefan", "Wilhelm", role="cph"),
-    person("Manjunath B G", role="cph"))
+    person("Sarah", "Medland", role="cph"),
+    person(c("Carl", 'F.'), "Falk", role="cph"),
+    person("Matt", "Keller", role="cph"),
+    person("Manjunath B G", role="cph"),
+    person("The Regents of the University of California.", role="cph"))
 URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
 BugReports: http://openmx.ssri.psu.edu/forums
 Description: Facilitates treatment of statistical model specifications
