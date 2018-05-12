@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 The OpenMx Project
+ *  Copyright 2007-2018 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1858,7 +1858,6 @@ class ComputeGenSA : public omxCompute {
 	Eigen::ArrayXd equality;
 	Eigen::ArrayXd inequality;
 	omxMatrix *fitMatrix;
-	double tolerance;
 	int verbose;
 	Eigen::VectorXd lbound;
 	Eigen::VectorXd ubound;
@@ -1897,30 +1896,44 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
+	qv=2.62;
+	qaInit=-3.;
+	lambda=0.85;
+	temSta=5230.;
+	temEnd=0.1;
+	stepsPerTemp=1;
 	{
 		fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 		omxCompleteFitFunction(fitMatrix);
 
-		ProtectedSEXP Rqv(R_do_slot(rObj, Rf_install("qv")));
-		qv = Rf_asReal(Rqv);
-
-		ProtectedSEXP RqaInit(R_do_slot(rObj, Rf_install("qaInit")));
-		qaInit = Rf_asReal(RqaInit);
-
-		ProtectedSEXP Rlambda(R_do_slot(rObj, Rf_install("lambda")));
-		lambda = Rf_asReal(Rlambda);
-
-		ProtectedSEXP RtempStart(R_do_slot(rObj, Rf_install("tempStart")));
-		temSta = Rf_asReal(RtempStart);
-
-		ProtectedSEXP RtempEnd(R_do_slot(rObj, Rf_install("tempEnd")));
-		temEnd = Rf_asReal(RtempEnd);
-
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(Rverbose);
 
-		ProtectedSEXP RstepsPerTemp(R_do_slot(rObj, Rf_install("stepsPerTemp")));
-		stepsPerTemp = Rf_asInteger(RstepsPerTemp);
+		ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
+		const char *method = R_CHAR(STRING_ELT(Rmethod, 0));
+		if (!strEQ(method, "tsallis1996")) Rf_error("%s: unknown method '%s'", name, method);
+
+		ProtectedSEXP Rcontrol(R_do_slot(rObj, Rf_install("control")));
+		ProtectedSEXP RcontrolName(Rf_getAttrib(Rcontrol, R_NamesSymbol));
+		for (int ax=0; ax < Rf_length(Rcontrol); ++ax) {
+			const char *key = R_CHAR(STRING_ELT(RcontrolName, ax));
+			ProtectedSEXP Rval(VECTOR_ELT(Rcontrol, ax));
+			if (strEQ(key, "qv")) {
+				qv = Rf_asReal(Rval);
+			} else if (strEQ(key, "qaInit")) {
+				qaInit = Rf_asReal(Rval);
+			} else if (strEQ(key, "lambda")) {
+				lambda = Rf_asReal(Rval);
+			} else if (strEQ(key, "tempStart")) {
+				temSta = Rf_asReal(Rval);
+			} else if (strEQ(key, "tempEnd")) {
+				temEnd = Rf_asReal(Rval);
+			} else if (strEQ(key, "stepsPerTemp")) {
+				stepsPerTemp = Rf_asInteger(Rval);
+			} else {
+				Rf_warning("%s: unknown key '%s' for method '%s'", name, key, method);
+			}
+		}
 	}
 
 	pushIndex(NA_INTEGER);
@@ -2012,8 +2025,8 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 	range = ubound - lbound;
 
 	if (verbose >= 1) {
-		mxLog("Welcome to GenSA (%d param, tolerance %.3g)",
-		      numFree, tolerance);
+		mxLog("Welcome to GenSA (%d param)",
+		      numFree);
 	}
 
 	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
@@ -2030,7 +2043,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		return;
 	}
-	fc->fit += getConstraintPenalty(fc) / (temSta*temSta);
+	fc->fit += getConstraintPenalty(fc);
 
 	int markovLength = stepsPerTemp * numFree;
 	double eMini = fc->fit;
@@ -2076,10 +2089,10 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 			}
 			double penalty = getConstraintPenalty(fc);
 			if (verbose >= 3) {
-				mxLog("%s: raw penalty %f, temp penalty %f",
-				      name, penalty, penalty / (tem*tem));
+				mxLog("%s: [%d] raw penalty %f",
+				      name, tt, penalty);
 			}
-			fc->fit += penalty / (tem*tem);
+			fc->fit += penalty * pow(1.1, tt);
 
 			// Equation 5 from Tsallis & Stariolo (1995)
 			if (fc->fit < eMini) {

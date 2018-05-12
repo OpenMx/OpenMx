@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 The OpenMx Project
+ *  Copyright 2007-2018 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -903,9 +903,10 @@ void omxData::reloadFromFile(const std::string &file)
 		jsoncons::cbor::cbor_view cbv((const uint8_t*) buffer.data(), size);
 		json jd = jsoncons::cbor::decode_cbor<json>(cbv);
 
-		if (jd["version"] != 1) Rf_error("%s: version %d is unknown", name, jd["version"]);
+		if (jd["version"].as<int>() != 1) Rf_error("%s: version %d is unknown", name, jd["version"].as<int>());
 
-		if (jd["type"] != "raw") Rf_error("%s: type '%s' not implemented", name, jd["type"]);
+		std::string type = jd["type"].as<std::string>();
+		if (type != "raw") Rf_error("%s: type '%s' not implemented", name, type.c_str());
 
 		if (dataMat) Rf_error("%s: only data.frame storage is implemented", name);
 

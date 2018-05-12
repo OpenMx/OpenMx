@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 The OpenMx Project
+ *  Copyright 2007-2018 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -170,6 +170,8 @@ static void omxMatrixVertCatOpCheck(FitContext *fc, omxMatrix** matList, int num
 #define omxColSumsCheck omxSkipCheck
 #define evaluateOnGridCheck omxSkipCheck
 #define omxElementRobustLogCheck omxSkipCheck
+#define pearsonSelCovCheck omxSkipCheck
+#define pearsonSelMeanCheck omxSkipCheck
 
 static void omxMatrixTranspose(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
@@ -2944,5 +2946,158 @@ static void evaluateOnGrid(FitContext *fc, omxMatrix** matList, int numArgs, omx
 		EigenVectorAdaptor Ealgebra(algebra);
 		EigenMatrixAdaptor Eresult(result);
 		Eresult.col(ax) = Ealgebra;
+	}
+}
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void partitionCovariance(const Eigen::MatrixBase<T1> &gcov,
+		     T2 filterTest,
+		     Eigen::MatrixBase<T3> &v11,
+		     Eigen::MatrixBase<T4> &v12,
+		     Eigen::MatrixBase<T5> &v22)
+{
+	for (int gcx=0, c1=0,c2=0,c3=0; gcx < gcov.cols(); gcx++) {
+		for (int grx=0, r1=0,r2=0,r3=0; grx < gcov.rows(); grx++) {
+			if (filterTest(grx)) {
+				if (filterTest(gcx)) {
+					v11(r1++, c1) = gcov(grx, gcx);
+				} else {
+					v12(r2++, c2) = gcov(grx, gcx);
+				}
+			} else {
+				if (!filterTest(gcx)) {
+					v22(r3++, c3) = gcov(grx, gcx);
+				}
+			}
+		}
+		if (filterTest(gcx)) {
+			c1 += 1;
+		} else {
+			c2 += 1;
+			c3 += 1;
+		}
+	}
+}
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
+			    T2 filterTest,
+			    const Eigen::MatrixBase<T3> &v11,
+			    const Eigen::MatrixBase<T4> &v12,
+			    const Eigen::MatrixBase<T5> &v22)
+{
+	for (int gcx=0, c1=0,c2=0,c3=0,c4=0; gcx < gcov.cols(); gcx++) {
+		for (int grx=0, r1=0,r2=0,r3=0,r4=0; grx < gcov.rows(); grx++) {
+			if (filterTest(grx)) {
+				if (filterTest(gcx)) {
+					gcov(grx, gcx) = v11(r1++, c1);
+				} else {
+					gcov(grx, gcx) = v12(r2++, c2);
+				}
+			} else {
+				if (!filterTest(gcx)) {
+					gcov(grx, gcx) = v22(r3++, c3);
+				} else {
+					gcov(grx, gcx) = v12(c4, r4++);
+				}
+			}
+		}
+		if (filterTest(gcx)) {
+			c1 += 1;
+			c4 += 1;
+		} else {
+			c2 += 1;
+			c3 += 1;
+		}
+	}
+}
+
+static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *origCov = matList[0];
+	omxMatrix *newCov = matList[1];
+	EigenMatrixAdaptor EorigCov(origCov);
+	EigenMatrixAdaptor EnewCov(newCov);
+
+	omxResizeMatrix(result, origCov->rows, origCov->cols);
+	EigenMatrixAdaptor Eresult(result);
+	
+	// cache this in the result matrix somehow? TODO
+	std::vector<bool> filter(origCov->rows, false);
+	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
+		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
+			if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
+				filter[r2] = true;
+				break;
+			}
+		}
+	}
+
+	Eigen::MatrixXd v11(EnewCov.rows(), EnewCov.cols());
+	Eigen::MatrixXd v12(EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
+	Eigen::MatrixXd v22(EorigCov.rows() - EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
+	partitionCovariance(EorigCov, [&](int xx){ return filter[xx]; },
+			    v11, v12, v22);
+
+	Eigen::MatrixXd iv11(v11);
+	if (InvertSymmetricPosDef(iv11, 'L')) {
+		// complain TODO
+		return;
+	}
+	iv11 = iv11.selfadjointView<Eigen::Lower>();
+	Eigen::MatrixXd n12 = EnewCov * iv11 * v12;
+	Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * EnewCov * iv11) * v12;
+	
+	partitionCovarianceSet(Eresult, [&](int xx){ return filter[xx]; },
+			       EnewCov, n12, n22);
+}
+
+static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix *origCov = matList[0];
+	omxMatrix *newCov = matList[1];
+	omxMatrix *origMean = matList[2];
+	EigenMatrixAdaptor EorigCov(origCov);
+	EigenMatrixAdaptor EnewCov(newCov);
+	EigenVectorAdaptor EorigMean(origMean);
+
+	omxResizeMatrix(result, EorigMean.size(), 1);
+	EigenVectorAdaptor Eresult(result);
+
+	// cache this in the result matrix somehow? TODO
+	std::vector<bool> filter(origCov->rows, false);
+	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
+		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
+			if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
+				filter[r2] = true;
+				break;
+			}
+		}
+	}
+
+	Eigen::MatrixXd v11(EnewCov.rows(), EnewCov.cols());
+	Eigen::MatrixXd v12(EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
+	Eigen::MatrixXd v22(EorigCov.rows() - EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
+	partitionCovariance(EorigCov, [&](int xx){ return filter[xx]; },
+			    v11, v12, v22);
+
+	Eigen::MatrixXd iv11(v11);
+	if (InvertSymmetricPosDef(iv11, 'L')) {
+		// complain TODO
+		return;
+	}
+	iv11 = iv11.selfadjointView<Eigen::Lower>();
+	
+	Eigen::VectorXd obsMean;
+	subsetVector(EorigMean, [&](int xx){ return filter[xx]; },
+		     EnewCov.rows(), obsMean);
+
+	Eigen::VectorXd adj = v12.transpose() * iv11 * obsMean;
+	for (int v1=0, a1=0; v1 < EorigMean.rows(); ++v1) {
+		if (filter[v1]) {
+			Eresult(v1) = EorigMean(v1);
+		} else {
+			Eresult(v1) = EorigMean(v1) + adj(a1++);
+		}
 	}
 }
