@@ -167,7 +167,7 @@ otherOptions <- list(
     "mvnMaxPointsD" = 3.606464,
     "mvnMaxPointsE" = -0.126859,
     "mvnAbsEps" = 0,
-    "mvnRelEps" = 1e-3,
+    "mvnRelEps" = .005,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = NULL,
     "Gradient iterations" = "Auto",#1L,

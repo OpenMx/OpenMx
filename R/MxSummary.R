@@ -472,6 +472,11 @@ print.summary.mxmodel <- function(x,...) {
 	}
 	if (!is.null(x$npsolMessage)) {
 		cat(x$npsolMessage,'\n','\n')
+		if ((x$statusCode == "not convex/red" || x$statusCode == "nonzero gradient/red") &&
+			    (is.na(x$maxRelativeOrdinalError) || x$maxRelativeOrdinalError > 0)) {
+			cat(paste("Your ordinal model may converge if you reduce mvnRelEps\n",
+				"  try: model <- mxOption(model, 'mvnRelEps', mxOption(model, 'mvnRelEps')/5)\n\n"))
+		}
 	}
 	params <- x$parameters
 	if (!is.null(params) && nrow(params)) {
@@ -919,9 +924,12 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 		}))
 	}
 	retval$CIcodes <- model@output$confidenceIntervalCodes
-	if (!is.null(model@output$status$code)) {
-		message <- optimizerMessages[[as.character(model@output$status$code)]]
+	statusCode <- model@output$status$code
+	if (!is.null(statusCode)) {
+		message <- optimizerMessages[[as.character(statusCode)]]
 		retval[['npsolMessage']] <- message
+		retval[['statusCode']] <- as.statusCode(statusCode)
+		retval[['maxRelativeOrdinalError']] <- model@output[['maxRelativeOrdinalError']]
 	}
 	if( .hasSlot(model,"compute") && length(model$compute$steps$CI) ){
 		retval$CIdetail <- model$compute$steps$CI$output$detail

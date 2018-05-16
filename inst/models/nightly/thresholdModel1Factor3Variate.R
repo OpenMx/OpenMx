@@ -22,7 +22,6 @@
 
 # Step 1: load libraries
 require(OpenMx)
-mxOption(NULL, "mvnRelEps", 1e-4)
 
 #
 # Step 2: set up simulation parameters 
@@ -81,7 +80,13 @@ thresholdModel <- mxModel("thresholdModel",
             mxData(observed=ordinalData, type='raw')
 )
 
-summary(thresholdModelrun <- mxTryHard(thresholdModel))
+thresholdModel <- mxOption(thresholdModel, 'mvnRelEps', .1)
+thresholdModelrun <- mxRun(thresholdModel)
+omxCheckTrue(thresholdModelrun$output$status$code > 3)
+
+thresholdModel <- mxOption(thresholdModel, 'mvnRelEps', 1e-4)
+thresholdModelrun <- mxRun(thresholdModel)
+summary(thresholdModelrun)
 omxCheckCloseEnough(thresholdModelrun$output$fit, 3921.706, .02)
 
 #cat(deparse(round(thresholdModelrun$output$standardErrors, 3)))
