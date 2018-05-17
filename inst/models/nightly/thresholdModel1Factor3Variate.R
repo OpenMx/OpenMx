@@ -85,7 +85,7 @@ thresholdModelrun <- mxRun(thresholdModel)
 omxCheckTrue(thresholdModelrun$output$status$code > 3)
 
 thresholdModel <- mxOption(thresholdModel, 'mvnRelEps', 1e-4)
-thresholdModelrun <- mxRun(thresholdModel)
+thresholdModelrun <- mxTryHard(thresholdModel)
 summary(thresholdModelrun)
 omxCheckCloseEnough(thresholdModelrun$output$fit, 3921.706, .02)
 
