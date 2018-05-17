@@ -3015,6 +3015,10 @@ void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
 template <typename T> 
 void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
 {
+	if (origCov->rows != origCov->cols) Rf_error("'%s' must be square", origCov->name());
+	if (origCov->rows != int(origCov->rownames.size())) Rf_error("'%s' must have dimnames", origCov->name());
+	if (newCov->rows != newCov->cols) Rf_error("'%s' must be square", newCov->name());
+	if (newCov->rows != int(newCov->rownames.size())) Rf_error("'%s' must have dimnames", newCov->name());
 	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
 		bool found = false;
 		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
@@ -3072,6 +3076,11 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	omxMatrix *origCov = matList[0];
 	omxMatrix *newCov = matList[1];
 	omxMatrix *origMean = matList[2];
+	if (origMean->cols > 1) Rf_error("'%s' must be a column vector", origMean->name());
+	if (origMean->rows != origCov->rows) {
+		Rf_error("'%s' of dimension %d must have same dimension as '%s' (%d)",
+			 origMean->name(), origMean->rows, origCov->name(), origCov->rows);
+	}
 	EigenMatrixAdaptor EorigCov(origCov);
 	EigenMatrixAdaptor EnewCov(newCov);
 	EigenVectorAdaptor EorigMean(origMean);
