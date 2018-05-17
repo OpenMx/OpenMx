@@ -33,6 +33,7 @@ struct CSOLNP {
     bool optimize_initial_inequality_constraints;
     bool gradFlag;
     bool jacFlag;
+    bool noFeasibleFlag;
     int numCallsToCSOLNP;
     GradientOptimizerContext &fit;
 
@@ -96,7 +97,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
     //verbose = 3;
     flag = 0;
     flag_NormgZ = 0; minr_rec = 0;
-    
+    noFeasibleFlag = FALSE;
     double funv;
     double resultForTT;
     double solnp_nfn = 0;
@@ -457,7 +458,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
         tempTTVals[1] = tt_e[1];
         double vnormValue = sqrt(tempTTVals.squaredNorm());
         
-        if (vnormValue <= tol){
+        if (vnormValue <= tol || noFeasibleFlag){
             maxit_trace = maxit;
             maxit = solnp_iter;
         }
@@ -873,10 +874,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 }
             }// end while(go >= tol)
             
-            if (verbose >= 3 && minit >= 10){
-                mxLog("The linearized problem has no feasible solution. The problem may not be feasible.");
-            }
-            
+           if (minit >= 10)
+           {
+              noFeasibleFlag = TRUE;
+              if (verbose >= 3)
+                  mxLog("The linearized problem has no feasible solution. The problem may not be feasible.");
+           }
+
             int h;
             Eigen::MatrixXd a_e_c(nc, npic);
             
@@ -1107,6 +1111,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                 Eigen::MatrixXd llist(listPartOne.rows(), listPartOne.cols() + listPartTwo.cols());
                 llist << listPartOne, listPartTwo;
                 go = llist.minCoeff();
+                if (go < minusInf[0] && noFeasibleFlag) return;
                 lambdaValue = 3 * lambdaValue;
                 if (verbose >= 3){
                     mxLog("go is: \n");
