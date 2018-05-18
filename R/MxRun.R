@@ -262,7 +262,7 @@ runHelper <- function(model, frontendStart,
 	mroe <- model@output[['maxRelativeOrdinalError']]
 	if (!is.null(mroe) && mroe > options[["mvnRelEps"]]) {
 		warning(paste("model$output[['maxRelativeOrdinalError']] is larger than mvnRelEps (",
-			      options[["mvnRelEps"]],").\n",
+			      options[["mvnRelEps"]],") at the optimum.\n",
 			      "Standardized ordinal thresholds are too far from zero or",
 			      "you have too many ordinal variables with nonzero covariance.\n",
 			      "Increase the maximum number of integration points or reduce mvnRelEps."))
