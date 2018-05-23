@@ -13,3 +13,15 @@ omxCheckWarning(logLik(rTomRun), "MxModel 'Tom' was modified since it was run.")
 
 rNeal  <- mxRename(rTomRun, newname="Neal")
 summary(rNeal)
+
+# ----
+
+ade <- mxModel("ADE",
+             mxModel('s1',
+                   mxAlgebra(1, name="ACE")))
+
+ace <- mxRename(ade, "ACE")
+omxCheckEquals(ace$name, "ACE")
+
+omxCheckError(mxRename(ade, "s1"),
+            "There is already a model named 's1'")

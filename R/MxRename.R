@@ -13,6 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+getAllModelNames <- function(model) {
+	ret <- c(model@name)
+	if (length(model@submodels)) ret <- c(ret, sapply(model@submodels, getAllModelNames))
+	ret
+}
+
 mxRename <- function(model, newname, oldname = NA) {
 	if( !is(model, "MxModel")) {
 		stop("'model' argument is not a MxModel object")
@@ -24,32 +30,12 @@ mxRename <- function(model, newname, oldname = NA) {
 		stop("'oldname' argument is not either NA or character string")
 	}	
 	imxVerifyName(newname, 0)
-	namespace <- imxGenerateNamespace(model)	
-	entities <- namespace$entities
-	parameters <- namespace$parameters
-	values <- namespace$values
-	if (newname %in% entities) {
-		stop(paste("The name",
-			omxQuotes(newname),
-			"is already used as a model name"))
-	}
-	if (newname %in% parameters) {
-		stop(paste("The name",
-			omxQuotes(newname),
-			"is already the name of a free parameter"))
-	}
-	if (newname %in% values) {
-		stop(paste("The name",
-			omxQuotes(newname),
-			"is already the name of a fixed parameter"))
-	}
-	if (any(sapply(entities, function(x) { newname %in% x }))) {
-		stop(paste("The name",
-			omxQuotes(newname),
-			"is already used in the model"))
-	}
 	if (is.na(oldname)) {
 		oldname <- model@name
+	}
+	existing <- getAllModelNames(model)
+	if (newname %in% existing) {
+		stop(paste("There is already a model named", omxQuotes(newname)))
 	}
 	model <- propagateModelName(model, oldname, newname)
 	return(model)
