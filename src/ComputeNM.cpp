@@ -295,7 +295,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 			if(verbose){mxLog("l1p iteration %d",k);}
 			if(k>0){
 				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
-				if(nmoc.statuscode==10){break;}
+				if(nmoc.statuscode==10 || Global->timedout){break;}
 				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
 					if(verbose){mxLog("l1p solution found");}
 					break;
@@ -356,6 +356,9 @@ void omxComputeNM::computeImpl(FitContext *fc){
 				nmoc.eucentroidPrev = nmoc2.eucentroidPrev;
 				nmoc.equality = nmoc2.equality;
 				nmoc.inequality = nmoc2.inequality;
+			}
+			else if(Global->timedOut){ //i.e., if time ran out during the validation restart
+				nmoc.statuscode = 4;
 			}
 		}
 		
