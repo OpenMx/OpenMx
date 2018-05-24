@@ -63,12 +63,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 			omxQuotes(key), "and cannot be found in",
 			"getOption('mxOptions')"))
 	}
-	if (!identical(optionsNames[[match]], key)) {
-		stop(paste("argument 'key' is the character string",
-			omxQuotes(key), "but the option is named",
-			omxQuotes(optionsNames[[match]]), ": please correct",
-			"the capitalization and re-run mxOption()."))
-	}
+	key <- optionsNames[[match]] # repair capitalization
 	if (key == "Default optimizer" || key == "Gradient algorithm" || key == "Gradient iterations") {
 		stop(paste(omxQuotes(key), " is a global option and cannot be set on models.\n",
 		"To change ", omxQuotes(key) ," globally, use, e.g.:\n",
