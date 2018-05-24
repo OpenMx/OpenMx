@@ -170,7 +170,8 @@ otherOptions <- list(
     "Parallel diagnostics" = "No",
     "Debug protect stack" = "No",
     "Nudge zero starts" = "Yes",
-    "Status OK"= as.statusCode(c("OK", "OK/green"))
+    "Status OK"= as.statusCode(c("OK", "OK/green")),
+    "Max minutes"=0
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {

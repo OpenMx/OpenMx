@@ -354,7 +354,10 @@ etc88Model <- mxModel("et",
 # -----------------------------------------------------------------------
 etc88Model <- mxOption(etc88Model,"Standard Errors", "No")
 etc88Model <- mxOption(etc88Model,"Calculate Hessian", "No")
-etc88Fit <-  mxRun(etc88Model)
+etc88Model <- mxOption(etc88Model,"max minutes", 5/60)
+etc88Fit <-  omxCheckWarning(mxRun(etc88Model), "Time limit of 0 minutes 5 seconds exceeded")
+etc88Fit <- mxOption(etc88Fit,"max minutes", 0)
+etc88Fit <-  mxRun(etc88Fit)
 summary(etc88Fit)
 
 

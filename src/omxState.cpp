@@ -216,7 +216,10 @@ omxGlobal::omxGlobal()
 {
 	mpi = 0;
 	silent = true;
-	lastProgressReport = time(0);
+	startTime = time(0);
+	maxSeconds = 0;
+	timedOut = false;
+	lastProgressReport = startTime;
 	previousReportLength = 0;
 	previousReportFit = 0;
 	previousComputeCount = 0;
@@ -622,6 +625,11 @@ void omxGlobal::reportProgress(const char *context, FitContext *fc)
 	R_CheckUserInterrupt();
 
 	time_t now = time(0);
+	if (Global->maxSeconds > 0 && now > Global->startTime + Global->maxSeconds && !Global->timedOut) {
+		Global->timedOut = true;
+		Rf_warning("Time limit of %d minutes %d seconds exceeded",
+			   Global->maxSeconds/60, Global->maxSeconds % 60);
+	}
 	if (silent || now - lastProgressReport < 1 || fc->getGlobalComputeCount() == previousComputeCount) return;
 
 	lastProgressReport = now;

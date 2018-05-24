@@ -197,7 +197,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	}
 	ComputeFit(optName, fitMatrix, want, fc);
 
-	if (fc->outsideFeasibleSet() || isErrorRaised()) {
+	if (fc->outsideFeasibleSet() || isErrorRaised() || Global->timedOut) {
 		*mode = -1;
 	} else {
 		feasible = true;
@@ -2055,7 +2055,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 	const double t1 = exp((qv - 1.) * M_LN2) - 1.;
 
 	// Tsallis & Stariolo (1995) start at t=1 (see around Eqn 4)
-	for (int tt = 1; !isErrorRaised(); ++tt) {
+	for (int tt = 1; !isErrorRaised() && !Global->timedOut; ++tt) {
 		// Equation 14' from Tsallis & Stariolo (1995)
 		double t2 = exp((qv - 1.) * log(tt + 1.));
 		double tem = temSta * t1 / t2;

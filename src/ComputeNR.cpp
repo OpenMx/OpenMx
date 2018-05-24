@@ -385,7 +385,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 		fc->copyParamToModel();
 
-		if (converged || iter >= maxIter || isErrorRaised()) break;
+		if (converged || iter >= maxIter || isErrorRaised() || Global->timedOut) break;
 	}
 
 	if (converged) {

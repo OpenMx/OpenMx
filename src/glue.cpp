@@ -397,6 +397,8 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				Global->maxStackDepth = atoi(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Feasibility tolerance")) {
 				Global->feasibilityTolerance = atof(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "max minutes")) {
+				Global->maxSeconds = nearbyint(atof(nextOptionValue) * 60);
 			} else if (matchCaseInsensitive(nextOptionName, "Optimality tolerance")) {
 				Global->optimalityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Major iterations")) {

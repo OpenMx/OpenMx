@@ -1995,7 +1995,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 			if (mac < tolerance) break;
 		}
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
-		if (isErrorRaised() || iterations >= maxIter) break;
+		if (isErrorRaised() || iterations >= maxIter || Global->timedOut) break;
 	}
 }
 
@@ -2065,7 +2065,7 @@ void ComputeLoop::computeImpl(FitContext *fc)
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
-			if (isErrorRaised()) break;
+			if (isErrorRaised() || Global->timedOut) break;
 		}
 		popIndex();
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
@@ -2458,7 +2458,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		prevFit = fc->fit;
 		converged = mac < tolerance;
 		++fc->iterations;
-		if (isErrorRaised() || converged) break;
+		if (isErrorRaised() || converged || Global->timedOut) break;
 
 		if (semMethod == ClassicSEM || ((semMethod == TianSEM || semMethod == AgileSEM) && in_middle)) {
 			double *estCopy = new double[freeVars];
@@ -3297,7 +3297,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 
 	Eigen::VectorXd origEst = fc->getEst();
 
-	for (int repl=0; repl < numReplications && !isErrorRaised(); ++repl) {
+	for (int repl=0; repl < numReplications && !isErrorRaised() && !Global->timedOut; ++repl) {
 		std::mt19937 generator(seedVec[repl]);
 		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
 		if (verbose >= 2) mxLog("%s: replication %d", name, repl);

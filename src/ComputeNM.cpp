@@ -1303,7 +1303,7 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 			return(true);
 		}
 	}
-	if(itersElapsed >= maxIter){
+	if(itersElapsed >= maxIter || isErrorRaised() || Global->timedOut){
 		statuscode = 4;
 		return(true);
 	}
