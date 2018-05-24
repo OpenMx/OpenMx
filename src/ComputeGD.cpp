@@ -459,10 +459,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	size_t numParam = fc->calcNumFree();
 
-	if (numParam <= 0) {
-		omxRaiseErrorf("%s: model has no free parameters", name);
-		return;
-	}
+	if (numParam <= 0) { complainNoFreeParam(); return; }
 
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(fitMatrix);
@@ -2011,10 +2008,8 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 	using Eigen::VectorXd;
 
 	numFree = fc->calcNumFree();
-	if (numFree <= 0) {
-		Rf_error("Model has no free parameters");
-		return;
-	}
+	if (numFree <= 0) { complainNoFreeParam(); return; }
+
 	Map< VectorXd > curEst(fc->est, numFree);
 
 	omxAlgebraPreeval(fitMatrix, fc);

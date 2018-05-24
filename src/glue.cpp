@@ -591,7 +591,10 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	globalState->loadDefinitionVariables(true);
 
 	omxCompute *topCompute = NULL;
-	if (Global->computeList.size()) topCompute = Global->computeList[0];
+	if (Global->computeList.size()) {
+		topCompute = Global->computeList[0];
+		Global->ComputePersist = topCompute->isPersist();
+	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessConfidenceIntervals(intervalList, globalState);

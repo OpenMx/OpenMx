@@ -319,10 +319,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 	// complain if there are non-linear constraints TODO
 
 	size_t numParam = varGroup->vars.size();
-	if (numParam <= 0) {
-		Rf_error("Model has no free parameters");
-		return;
-	}
+	if (numParam <= 0) { complainNoFreeParam(); return; }
 
 	fc->setInform(INFORM_UNINITIALIZED);
 

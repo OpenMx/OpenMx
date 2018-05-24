@@ -324,11 +324,13 @@ typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
 
 class omxCompute {
 	int computeId;
+	bool dotPersist;
  protected:
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *glob) {};
 	void collectResultsHelper(FitContext *fc, std::vector< omxCompute* > &clist,
 				  LocalComputeResult *lcr, MxRList *out);
 	static enum ComputeInfoMethod stringToInfoMethod(const char *iMethod);
+	void complainNoFreeParam();
  public:
 	const char *name;
 	FreeVarGroup *varGroup;
@@ -343,6 +345,7 @@ class omxCompute {
 	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
 	void pushIndex(int ix);
 	void popIndex();
+	bool isPersist() { return dotPersist; };
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);

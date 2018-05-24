@@ -271,10 +271,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	
 	NelderMeadOptimizerContext nmoc(fc, this);
 
-	if (nmoc.numFree <= 0) {
-		omxRaiseErrorf("%s: model has no free parameters", name);
-		return;
-	}
+	if (nmoc.numFree <= 0) { complainNoFreeParam(); return; }
 	
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;

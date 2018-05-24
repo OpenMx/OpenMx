@@ -216,6 +216,7 @@ omxGlobal::omxGlobal()
 {
 	mpi = 0;
 	silent = true;
+	ComputePersist = false;
 	startTime = time(0);
 	maxSeconds = 0;
 	timedOut = false;

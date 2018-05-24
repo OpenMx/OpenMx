@@ -366,7 +366,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	}
 
 	numParams = int(fc->numParam);
-	if (numParams <= 0) Rf_error("%s: model has no free parameters", name);
+	if (numParams <= 0) { complainNoFreeParam(); return; }
 
 	optima.resize(numParams);
 	memcpy(optima.data(), fc->est, sizeof(double) * numParams);

@@ -1443,29 +1443,43 @@ omxCompute::~omxCompute()
 
 void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	SEXP slotValue;
-	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("id")));
-	if (Rf_length(slotValue) != 1) Rf_error("MxCompute has no ID");
-	computeId = INTEGER(slotValue)[0];
-	}
+	ProtectedSEXP Rid(R_do_slot(rObj, Rf_install("id")));
+	if (Rf_length(Rid) != 1) Rf_error("MxCompute has no ID");
+	computeId = INTEGER(Rid)[0];
+
+	ProtectedSEXP Rpersist(R_do_slot(rObj, Rf_install(".persist")));
+	dotPersist = Rf_asLogical(Rpersist);
 
 	varGroup = Global->findVarGroup(computeId);
 
 	if (!varGroup) {
-		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("freeSet")));
-		if (Rf_length(slotValue) == 0) {
+		ProtectedSEXP Rfreeset(R_do_slot(rObj, Rf_install("freeSet")));
+		if (Rf_length(Rfreeset) == 0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
-		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
+		} else if (strcmp(CHAR(STRING_ELT(Rfreeset, 0)), ".")==0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 		} else {
 			Rf_warning("MxCompute ID %d references matrix '%s' in its freeSet "
 				"but this matrix contains no free parameters",
-				computeId, CHAR(STRING_ELT(slotValue, 0)));
+				computeId, CHAR(STRING_ELT(Rfreeset, 0)));
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		}
 	}
 	if (OMX_DEBUG) {
 		mxLog("MxCompute id %d assigned to var group %d", computeId, varGroup->id[0]);
+	}
+}
+
+void omxCompute::complainNoFreeParam()
+{
+	if (Global->ComputePersist) {
+		omxRaiseErrorf("%s: model has no free parameters; "
+			       "You may want to reset your model's "
+			       "compute plan with model$compute <- mxComputeDefault() "
+			       "and try again", name);
+	} else {
+		// should never happen, see MxRun.R
+		omxRaiseErrorf("%s: model has no free parameters", name);
 	}
 }
 
