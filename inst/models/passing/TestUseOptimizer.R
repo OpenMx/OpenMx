@@ -64,5 +64,8 @@ omxCheckEquals(model$name, "model")
 omxCheckEquals(fixedModel$name, "modelFixed")
 fixedModelOut <- mxRun(fixedModel)
 
+omxCheckError(mxRun(mxModel(fixedModel, mxComputeGradientDescent())),
+	"The job for model 'modelFixed' exited abnormally with the error message: MxComputeGradientDescent: model has no free parameters; You may want to reset your model's compute plan with model$compute <- mxComputeDefault() and try again")
+
 modelUnfitted <- mxRun(model, useOptimizer=FALSE)
 omxCheckCloseEnough(mxEval(objective, fixedModelOut), mxEval(objective, modelUnfitted), 0.0001)

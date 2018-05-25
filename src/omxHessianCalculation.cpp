@@ -366,7 +366,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	}
 
 	numParams = int(fc->numParam);
-	if (numParams <= 0) Rf_error("%s: model has no free parameters", name);
+	if (numParams <= 0) { complainNoFreeParam(); return; }
 
 	optima.resize(numParams);
 	memcpy(optima.data(), fc->est, sizeof(double) * numParams);
@@ -383,7 +383,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	int numChildren = 0;
 	if (parallel && !fc->openmpUser) numChildren = fc->childList.size();
 
-	if (!fc->haveReferenceFit(fitMat)) return;
+	if (!fc->haveReferenceFit(fitMat) || Global->timedOut) return;
 
 	minimum = fc->fit;
 

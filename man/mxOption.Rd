@@ -89,8 +89,9 @@ loglikelihoodScale \tab \var{i} \tab factor by which the loglikelihood is scaled
 Parallel diagnostics \tab [Yes | No] \tab whether to issue diagnostic
 messages about use of multiple threads \cr
 Nudge zero starts \tab [TRUE | FALSE] \tab Should OpenMx
-"nudge"" starting values of zero to 0.1 at runtime? \cr
-Status OK \tab character vector \tab Status codes that are considered to indicate a successful optimization
+"nudge" starting values of zero to 0.1 at runtime? \cr
+Status OK \tab character vector \tab Status codes that are considered to indicate a successful optimization \cr
+Max minutes \tab numeric \tab Maximum backend elapsed time, in minutes
 }
 
 

@@ -63,12 +63,7 @@ mxOption <- function(model, key, value, reset = FALSE) {
 			omxQuotes(key), "and cannot be found in",
 			"getOption('mxOptions')"))
 	}
-	if (!identical(optionsNames[[match]], key)) {
-		stop(paste("argument 'key' is the character string",
-			omxQuotes(key), "but the option is named",
-			omxQuotes(optionsNames[[match]]), ": please correct",
-			"the capitalization and re-run mxOption()."))
-	}
+	key <- optionsNames[[match]] # repair capitalization
 	if (key == "Default optimizer" || key == "Gradient algorithm" || key == "Gradient iterations") {
 		stop(paste(omxQuotes(key), " is a global option and cannot be set on models.\n",
 		"To change ", omxQuotes(key) ," globally, use, e.g.:\n",
@@ -167,7 +162,7 @@ otherOptions <- list(
     "mvnMaxPointsD" = 3.606464,
     "mvnMaxPointsE" = -0.126859,
     "mvnAbsEps" = 0,
-    "mvnRelEps" = 1e-3,
+    "mvnRelEps" = .005,
     "maxStackDepth" = 25000L,   # R_PPSSIZE/2
     "Gradient algorithm" = NULL,
     "Gradient iterations" = "Auto",#1L,
@@ -175,7 +170,8 @@ otherOptions <- list(
     "Parallel diagnostics" = "No",
     "Debug protect stack" = "No",
     "Nudge zero starts" = "Yes",
-    "Status OK"= as.statusCode(c("OK", "OK/green"))
+    "Status OK"= as.statusCode(c("OK", "OK/green")),
+    "Max minutes"=0
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {

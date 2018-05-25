@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2013-2018 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-/*File created 2013*/
 
 #include <algorithm>
 #include <stdarg.h>
@@ -1445,29 +1443,43 @@ omxCompute::~omxCompute()
 
 void omxCompute::initFromFrontend(omxState *globalState, SEXP rObj)
 {
-	SEXP slotValue;
-	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("id")));
-	if (Rf_length(slotValue) != 1) Rf_error("MxCompute has no ID");
-	computeId = INTEGER(slotValue)[0];
-	}
+	ProtectedSEXP Rid(R_do_slot(rObj, Rf_install("id")));
+	if (Rf_length(Rid) != 1) Rf_error("MxCompute has no ID");
+	computeId = INTEGER(Rid)[0];
+
+	ProtectedSEXP Rpersist(R_do_slot(rObj, Rf_install(".persist")));
+	dotPersist = Rf_asLogical(Rpersist);
 
 	varGroup = Global->findVarGroup(computeId);
 
 	if (!varGroup) {
-		ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("freeSet")));
-		if (Rf_length(slotValue) == 0) {
+		ProtectedSEXP Rfreeset(R_do_slot(rObj, Rf_install("freeSet")));
+		if (Rf_length(Rfreeset) == 0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
-		} else if (strcmp(CHAR(STRING_ELT(slotValue, 0)), ".")==0) {
+		} else if (strcmp(CHAR(STRING_ELT(Rfreeset, 0)), ".")==0) {
 			varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 		} else {
 			Rf_warning("MxCompute ID %d references matrix '%s' in its freeSet "
 				"but this matrix contains no free parameters",
-				computeId, CHAR(STRING_ELT(slotValue, 0)));
+				computeId, CHAR(STRING_ELT(Rfreeset, 0)));
 			varGroup = Global->findVarGroup(FREEVARGROUP_NONE);
 		}
 	}
 	if (OMX_DEBUG) {
 		mxLog("MxCompute id %d assigned to var group %d", computeId, varGroup->id[0]);
+	}
+}
+
+void omxCompute::complainNoFreeParam()
+{
+	if (Global->ComputePersist) {
+		omxRaiseErrorf("%s: model has no free parameters; "
+			       "You may want to reset your model's "
+			       "compute plan with model$compute <- mxComputeDefault() "
+			       "and try again", name);
+	} else {
+		// should never happen, see MxRun.R
+		omxRaiseErrorf("%s: model has no free parameters", name);
 	}
 }
 
@@ -1997,7 +2009,7 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 			if (mac < tolerance) break;
 		}
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
-		if (isErrorRaised() || iterations >= maxIter) break;
+		if (isErrorRaised() || iterations >= maxIter || Global->timedOut) break;
 	}
 }
 
@@ -2067,7 +2079,7 @@ void ComputeLoop::computeImpl(FitContext *fc)
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
-			if (isErrorRaised()) break;
+			if (isErrorRaised() || Global->timedOut) break;
 		}
 		popIndex();
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
@@ -2460,7 +2472,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		prevFit = fc->fit;
 		converged = mac < tolerance;
 		++fc->iterations;
-		if (isErrorRaised() || converged) break;
+		if (isErrorRaised() || converged || Global->timedOut) break;
 
 		if (semMethod == ClassicSEM || ((semMethod == TianSEM || semMethod == AgileSEM) && in_middle)) {
 			double *estCopy = new double[freeVars];
@@ -3299,7 +3311,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 
 	Eigen::VectorXd origEst = fc->getEst();
 
-	for (int repl=0; repl < numReplications && !isErrorRaised(); ++repl) {
+	for (int repl=0; repl < numReplications && !isErrorRaised() && !Global->timedOut; ++repl) {
 		std::mt19937 generator(seedVec[repl]);
 		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
 		if (verbose >= 2) mxLog("%s: replication %d", name, repl);

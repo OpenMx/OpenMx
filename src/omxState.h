@@ -215,6 +215,7 @@ class omxGlobal {
  public:
 	omxManageProtectInsanity *mpi;
 	bool silent;
+	bool ComputePersist;
 	int numThreads;
 	int parallelDiag;
 	int analyticGradients;
@@ -225,6 +226,9 @@ class omxGlobal {
 	double feasibilityTolerance;
 	double optimalityTolerance;
 	int majorIterations;
+	time_t startTime;
+	int maxSeconds;
+	bool timedOut;
 	bool intervals;
 	double gradientTolerance;
 	int dataTypeWarningCount;

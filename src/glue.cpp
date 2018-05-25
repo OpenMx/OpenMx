@@ -397,6 +397,8 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				Global->maxStackDepth = atoi(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Feasibility tolerance")) {
 				Global->feasibilityTolerance = atof(nextOptionValue);
+			} else if (matchCaseInsensitive(nextOptionName, "max minutes")) {
+				Global->maxSeconds = nearbyint(atof(nextOptionValue) * 60);
 			} else if (matchCaseInsensitive(nextOptionName, "Optimality tolerance")) {
 				Global->optimalityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Major iterations")) {
@@ -589,7 +591,10 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	globalState->loadDefinitionVariables(true);
 
 	omxCompute *topCompute = NULL;
-	if (Global->computeList.size()) topCompute = Global->computeList[0];
+	if (Global->computeList.size()) {
+		topCompute = Global->computeList[0];
+		Global->ComputePersist = topCompute->isPersist();
+	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessConfidenceIntervals(intervalList, globalState);

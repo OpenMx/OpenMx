@@ -271,10 +271,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	
 	NelderMeadOptimizerContext nmoc(fc, this);
 
-	if (nmoc.numFree <= 0) {
-		omxRaiseErrorf("%s: model has no free parameters", name);
-		return;
-	}
+	if (nmoc.numFree <= 0) { complainNoFreeParam(); return; }
 	
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;
@@ -295,7 +292,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 			if(verbose){mxLog("l1p iteration %d",k);}
 			if(k>0){
 				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
-				if(nmoc.statuscode==10){break;}
+				if(nmoc.statuscode==10 || Global->timedOut){break;}
 				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
 					if(verbose){mxLog("l1p solution found");}
 					break;
@@ -303,6 +300,11 @@ void omxComputeNM::computeImpl(FitContext *fc){
 				if(nmoc.estInfeas){
 					nmoc.rho *= 10;
 					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
+					nmoc.iniSimplexEdge = iniSimplexEdge;
+				}
+				else{ //It's making progress w/r/t the constraints, so re-initialize the simplex with a smaller edge:
+					nmoc.iniSimplexEdge = 
+						sqrt((nmoc.vertices[1] - nmoc.vertices[0]).dot(nmoc.vertices[1] - nmoc.vertices[0]));
 				}
 				if(fc->iterations >= maxIter){
 					nmoc.statuscode = 4;
@@ -351,6 +353,9 @@ void omxComputeNM::computeImpl(FitContext *fc){
 				nmoc.eucentroidPrev = nmoc2.eucentroidPrev;
 				nmoc.equality = nmoc2.equality;
 				nmoc.inequality = nmoc2.inequality;
+			}
+			else if(Global->timedOut){ //i.e., if time ran out during the validation restart
+				nmoc.statuscode = 4;
 			}
 		}
 		
@@ -1298,7 +1303,7 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 			return(true);
 		}
 	}
-	if(itersElapsed >= maxIter){
+	if(itersElapsed >= maxIter || isErrorRaised() || Global->timedOut){
 		statuscode = 4;
 		return(true);
 	}

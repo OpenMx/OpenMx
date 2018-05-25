@@ -3012,6 +3012,31 @@ void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
 	}
 }
 
+template <typename T> 
+void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
+{
+	if (origCov->rows != origCov->cols) Rf_error("'%s' must be square", origCov->name());
+	if (origCov->rows != int(origCov->rownames.size())) Rf_error("'%s' must have dimnames", origCov->name());
+	if (newCov->rows != newCov->cols) Rf_error("'%s' must be square", newCov->name());
+	if (newCov->rows != int(newCov->rownames.size())) Rf_error("'%s' must have dimnames", newCov->name());
+	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
+		bool found = false;
+		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
+			if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
+				if (filter[r2]) {
+					omxRaiseErrorf("Cannot filter row '%s' in '%s' more than once",
+						       newCov->rownames[r1], origCov->name());
+				}
+				filter[r2] = true;
+				found = true;
+				break;
+			}
+		}
+		if (!found) omxRaiseErrorf("Cannot find row '%s' in '%s'",
+				     newCov->rownames[r1], origCov->name());
+	}
+}
+
 static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *origCov = matList[0];
@@ -3024,14 +3049,8 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	
 	// cache this in the result matrix somehow? TODO
 	std::vector<bool> filter(origCov->rows, false);
-	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
-		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
-			if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
-				filter[r2] = true;
-				break;
-			}
-		}
-	}
+	buildFilterVec(origCov, newCov, filter);
+	if (isErrorRaised()) return;
 
 	Eigen::MatrixXd v11(EnewCov.rows(), EnewCov.cols());
 	Eigen::MatrixXd v12(EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
@@ -3057,6 +3076,11 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	omxMatrix *origCov = matList[0];
 	omxMatrix *newCov = matList[1];
 	omxMatrix *origMean = matList[2];
+	if (origMean->cols > 1) Rf_error("'%s' must be a column vector", origMean->name());
+	if (origMean->rows != origCov->rows) {
+		Rf_error("'%s' of dimension %d must have same dimension as '%s' (%d)",
+			 origMean->name(), origMean->rows, origCov->name(), origCov->rows);
+	}
 	EigenMatrixAdaptor EorigCov(origCov);
 	EigenMatrixAdaptor EnewCov(newCov);
 	EigenVectorAdaptor EorigMean(origMean);
@@ -3066,14 +3090,8 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 	// cache this in the result matrix somehow? TODO
 	std::vector<bool> filter(origCov->rows, false);
-	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
-		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
-			if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
-				filter[r2] = true;
-				break;
-			}
-		}
-	}
+	buildFilterVec(origCov, newCov, filter);
+	if (isErrorRaised()) return;
 
 	Eigen::MatrixXd v11(EnewCov.rows(), EnewCov.cols());
 	Eigen::MatrixXd v12(EnewCov.rows(), EorigCov.cols() - EnewCov.cols());

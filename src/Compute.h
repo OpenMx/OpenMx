@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2013-2018 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-/*File created 2013*/
 
 #ifndef _OMX_COMPUTE_H_
 #define _OMX_COMPUTE_H_
@@ -326,11 +324,13 @@ typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
 
 class omxCompute {
 	int computeId;
+	bool dotPersist;
  protected:
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *glob) {};
 	void collectResultsHelper(FitContext *fc, std::vector< omxCompute* > &clist,
 				  LocalComputeResult *lcr, MxRList *out);
 	static enum ComputeInfoMethod stringToInfoMethod(const char *iMethod);
+	void complainNoFreeParam();
  public:
 	const char *name;
 	FreeVarGroup *varGroup;
@@ -345,6 +345,7 @@ class omxCompute {
 	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
 	void pushIndex(int ix);
 	void popIndex();
+	bool isPersist() { return dotPersist; };
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);
