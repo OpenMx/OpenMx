@@ -390,6 +390,8 @@ void MLFitState::init()
 
 	auto dc = oo->expectation->getDataColumns();
 	if (dc.size()) {
+		if (dataMat->isDynamic()) Rf_error("%s: dynamic data & column reordering"
+						   " is not implemented yet", name());
 		newObj->copiedData = true;
 		newObj->observedCov = omxCreateCopyOfMatrix(newObj->observedCov, oo->matrix->currentState);
 		newObj->observedMeans = omxCreateCopyOfMatrix(newObj->observedMeans, oo->matrix->currentState);
