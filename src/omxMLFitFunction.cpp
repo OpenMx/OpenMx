@@ -428,8 +428,8 @@ void MLFitState::init()
 
 	// add expectation API for derivs TODO
 	if (strEQ(expectation->expType, "MxExpectationNormal") &&
-	    !newObj->expectedCov->algebra &&
-	    (!newObj->expectedMeans || !newObj->expectedMeans->algebra)) {
+	    newObj->expectedCov->isSimple() &&
+	    (!newObj->expectedMeans || newObj->expectedMeans->isSimple())) {
 		oo->gradientAvailable = true;
 		oo->hessianAvailable = true;
 	}
