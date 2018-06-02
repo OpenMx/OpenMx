@@ -817,7 +817,9 @@ setClass(Class = "MxComputeSimAnnealing",
 	   verbose = "integer",
 	   plan = "MxCompute",
 	   method = "character",
-	   control = "list"))
+	   control = "list",
+	   defaultGradientStepSize = "numeric",
+	   defaultFunctionPrecision = "numeric"))
 
 setMethod("assignId", signature("MxComputeSimAnnealing"),
 	function(.Object, id, defaultFreeSet) {
@@ -876,7 +878,8 @@ setMethod("updateFromBackend", signature("MxComputeSimAnnealing"),
 	})
 
 setMethod("initialize", "MxComputeSimAnnealing",
-	function(.Object, freeSet, fit, verbose, plan, method, control) {
+	function(.Object, freeSet, fit, verbose, plan, method, control,
+		 defaultGradientStepSize, defaultFunctionPrecision) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -885,20 +888,27 @@ setMethod("initialize", "MxComputeSimAnnealing",
 		  .Object@plan <- plan
 		  .Object@method <- method
 		  .Object@control <- control
+		  .Object@defaultGradientStepSize <- defaultGradientStepSize
+		  .Object@defaultFunctionPrecision <- defaultFunctionPrecision
 		  .Object
 	  })
 
 mxComputeSimAnnealing <- function(freeSet=NA_character_, ..., fitfunction='fitfunction',
 			   plan=mxComputeOnce('fitfunction','fit'),
-			   verbose=0L, method="tsallis1996", control=list())
+			   verbose=0L, method=c("tsallis1996", "ingber2012"),
+			   control=list(),
+			   defaultGradientStepSize=imxAutoOptionValue("Gradient step size"),
+			   defaultFunctionPrecision=imxAutoOptionValue("Function precision"))
 {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeSimAnnealing does not accept values for the '...' argument")
 	}
 
+	method <- match.arg(method)
 	verbose <- as.integer(verbose)
-	new("MxComputeSimAnnealing", freeSet, fitfunction, verbose, plan, method, control)
+	new("MxComputeSimAnnealing", freeSet, fitfunction, verbose, plan, method, control,
+		defaultGradientStepSize, defaultFunctionPrecision)
 }
 
 #----------------------------------------------------

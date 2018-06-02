@@ -1,11 +1,11 @@
-\name{mxComputeGenSA}
-\alias{mxComputeGenSA}
-\alias{MxComputeGenSA-class}
+\name{mxComputeSimAnnealing}
+\alias{mxComputeSimAnnealing}
+\alias{MxComputeSimAnnealing-class}
 \title{Optimization using generalized simulated annealing}
 \usage{
-mxComputeGenSA(freeSet=NA_character_, ..., fitfunction='fitfunction',
+mxComputeSimAnnealing(freeSet=NA_character_, ..., fitfunction='fitfunction',
  plan=mxComputeOnce('fitfunction','fit'),
- verbose=0L, method="tsallis1996", control=list())
+ verbose=0L, method=c("tsallis1996", "ingber2012"), control=list())
 }
 \arguments{
 \item{freeSet}{names of matrices containing free variables}
@@ -26,7 +26,6 @@ mxComputeGenSA(freeSet=NA_character_, ..., fitfunction='fitfunction',
 Performs simulated annealing to minimize the fit function.
 If the original starting values are outside of the feasible set,
 a few attempts are made to find viable starting values.
-Currently the only method available is \sQuote{tsallis1996}.
 }
 \details{
 For method \sQuote{tsallis1996},
@@ -44,10 +43,9 @@ acceptance in time, \code{tempStart} to specify starting temperature,
 set the number of Markov steps per temperature step.
 
 Non-linear constraints are accommodated by a penalty function.
-Constrained optimization does not work very well.
-Inequality constraints work best when no constraints
-are active at the starting values. Equality constraints
-do not work very well at all.
+Inequality constraints work reasonably well, but
+equality constraints do not work very well.
+Constrained optimization will likely require increasing \code{stepsPerTemp}.
 
 Classical simulated annealing (CSA) can be obtained with
 \code{qv=qa=1} and \code{lambda=0}.
@@ -56,8 +54,24 @@ Fast simulated annealing (FSA) can be obtained with
 FSA is faster than CSA, but GSA is faster than FSA.
 GenSA default parameters are set to those identified in 
 Xiang, Sun, Fan & Gong (1997).  
+
+Method \sQuote{ingber2012} has spawned a cultural tradition over more
+than 30 years that is documented in Aguiar e Oliveira et al (2012).
+Options are specified using the traditional option names in the
+\code{control} list. However, there are a few option changes to
+make ASA fit better with OpenMx.
+Instead of option \code{Curvature_0}, use \link{mxComputeNumericDeriv}.
+ASA_PRINT output is directed to \code{/dev/null} by default.
+To direct ASA_PRINT output to console use \code{control=list('Asa_Out_File'= '/dev/fd/1')}.
+ASA's option to control the finite differences gradient step size,
+\code{Delta_X}, defaults to \link{mxOption}'s \sQuote{Gradient step
+  size} instead of ASA's traditional 0.001.
+Similarly, \code{Cost_Precision} defaults to \link{mxOption}'s
+\sQuote{Function Precision} instead of ASA's traditional 1e-18.
 }
 \references{
+Aguiar e Oliveira, H., Ingber, L., Petraglia, A., Petraglia, M. R., & Machado, M. A. S. (2012). \emph{Stochastic global optimization and its applications with fuzzy adaptive simulated annealing.} Springer Publishing Company, Incorporated.
+
 Tsallis, C., & Stariolo, D. A. (1996). Generalized simulated
 annealing. \emph{Physica A: Statistical Mechanics and its Applications,
 233}(1-2), 395-406.
@@ -77,7 +91,7 @@ m1 <- mxModel(
 		ncol=1, nrow=4, free=TRUE, name='x'),
 	mxAlgebra(sum((x*x-8)^2) + 5*sum(x) + 57.3276, name="fit"),
 	mxFitFunctionAlgebra('fit'),
-	mxComputeGenSA())
+	mxComputeSimAnnealing())
 
 m1 <- mxRun(m1)
 summary(m1)

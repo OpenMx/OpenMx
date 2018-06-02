@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2013-2018 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-/*File create 2013*/
 
 #include "omxDefines.h"
 #include "omxState.h"
@@ -31,6 +29,9 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
+#include <Eigen/CholmodSupport>
+#include <RcppEigenWrap.h>
+#include "asa.h"
 
 #include "EnableWarnings.h"
 
@@ -1849,6 +1850,7 @@ class ComputeGenSA : public omxCompute {
 	typedef omxCompute super;
 	omxCompute *plan;
 	static const char *optName;
+	const char *methodName;
 	int numFree;
 	int numIneqC;
 	int numEqC;
@@ -1870,6 +1872,17 @@ class ComputeGenSA : public omxCompute {
 	int stepsPerTemp;
 	double visita(double temp);
 	double getConstraintPenalty(FitContext *fc);
+	std::string asaOut;
+	Eigen::VectorXd quenchParamScale;
+	Eigen::VectorXd quenchCostScale;
+	USER_DEFINES *OPTIONS;
+	enum algo {
+		ALGO_TSALLIS1996,
+		ALGO_INGBER2012,
+	} method;
+	FitContext *_fc;
+	void tsallis1996(FitContext *fc);
+	void ingber2012(FitContext *fc);
 
  public:
 	ComputeGenSA() : plan(0) {};
@@ -1877,6 +1890,8 @@ class ComputeGenSA : public omxCompute {
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+
+	double asa_cost(double *x, int *cost_flag, int *exit_code, USER_DEFINES *opt);
 };
 
 const char *ComputeGenSA::optName = "GenSA";
@@ -1887,12 +1902,35 @@ class omxCompute *newComputeGenSA()
 ComputeGenSA::~ComputeGenSA()
 {
 	if (plan) delete plan;
+	delete OPTIONS;
 }
 
 void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
+	// ingber2012 defaults
+	OPTIONS = new USER_DEFINES;
+	OMXZERO(OPTIONS, 1);
+	OPTIONS->Limit_Acceptances = 10000;
+	OPTIONS->Limit_Generated = 99999;
+	OPTIONS->Limit_Invalid_Generated_States = 1000;
+	OPTIONS->Accepted_To_Generated_Ratio = 1.0E-6;
+	OPTIONS->Maximum_Cost_Repeat = 5;
+	OPTIONS->Number_Cost_Samples = 5;
+	OPTIONS->Temperature_Ratio_Scale = 1.0E-5;
+	OPTIONS->Temperature_Anneal_Scale = 100.;
+	OPTIONS->Cost_Parameter_Scale_Ratio = 1;
+	OPTIONS->Sequential_Parameters = -1;
+	OPTIONS->Initial_Parameter_Temperature = 1.0;
+	OPTIONS->Acceptance_Frequency_Modulus = 100;
+	OPTIONS->Generated_Frequency_Modulus = 10000;
+	OPTIONS->Reanneal_Cost = 1;
+	OPTIONS->Reanneal_Parameters = TRUE;
+	asaOut = "/dev/null";
+	OPTIONS->Asa_Out_File = asaOut.c_str();
+
+	// tsallis1996 defaults
 	qv=2.62;
 	qaInit=-3.;
 	lambda=0.85;
@@ -1903,33 +1941,89 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 		fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 		omxCompleteFitFunction(fitMatrix);
 
+		ProtectedSEXP Rdgss(R_do_slot(rObj, Rf_install("defaultGradientStepSize")));
+		OPTIONS->Delta_X = Rf_asReal(Rdgss);
+
+		ProtectedSEXP Rdfp(R_do_slot(rObj, Rf_install("defaultFunctionPrecision")));
+		OPTIONS->Cost_Precision = Rf_asReal(Rdfp);
+
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(Rverbose);
 
 		ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
-		const char *method = R_CHAR(STRING_ELT(Rmethod, 0));
-		if (!strEQ(method, "tsallis1996")) Rf_error("%s: unknown method '%s'", name, method);
+		methodName = R_CHAR(STRING_ELT(Rmethod, 0));
+		if (strEQ(methodName, "tsallis1996")) method = ALGO_TSALLIS1996;
+		else if (strEQ(methodName, "ingber2012")) method = ALGO_INGBER2012;
+		else Rf_error("%s: unknown method '%s'", name, methodName);
 
 		ProtectedSEXP Rcontrol(R_do_slot(rObj, Rf_install("control")));
 		ProtectedSEXP RcontrolName(Rf_getAttrib(Rcontrol, R_NamesSymbol));
 		for (int ax=0; ax < Rf_length(Rcontrol); ++ax) {
 			const char *key = R_CHAR(STRING_ELT(RcontrolName, ax));
 			ProtectedSEXP Rval(VECTOR_ELT(Rcontrol, ax));
-			if (strEQ(key, "qv")) {
-				qv = Rf_asReal(Rval);
-			} else if (strEQ(key, "qaInit")) {
-				qaInit = Rf_asReal(Rval);
-			} else if (strEQ(key, "lambda")) {
-				lambda = Rf_asReal(Rval);
-			} else if (strEQ(key, "tempStart")) {
-				temSta = Rf_asReal(Rval);
-			} else if (strEQ(key, "tempEnd")) {
-				temEnd = Rf_asReal(Rval);
-			} else if (strEQ(key, "stepsPerTemp")) {
-				stepsPerTemp = Rf_asInteger(Rval);
-			} else {
-				Rf_warning("%s: unknown key '%s' for method '%s'", name, key, method);
-			}
+			if (method == ALGO_TSALLIS1996) {
+				if (strEQ(key, "qv")) {
+					qv = Rf_asReal(Rval);
+				} else if (strEQ(key, "qaInit")) {
+					qaInit = Rf_asReal(Rval);
+				} else if (strEQ(key, "lambda")) {
+					lambda = Rf_asReal(Rval);
+				} else if (strEQ(key, "tempStart")) {
+					temSta = Rf_asReal(Rval);
+				} else if (strEQ(key, "tempEnd")) {
+					temEnd = Rf_asReal(Rval);
+				} else if (strEQ(key, "stepsPerTemp")) {
+					stepsPerTemp = Rf_asInteger(Rval);
+				} else {
+					Rf_warning("%s: unknown key '%s' for method '%s'",
+						   name, key, methodName);
+				}
+			} else if (method == ALGO_INGBER2012) {
+				if (strEQ(key, "Limit_Acceptances")) {
+					OPTIONS->Limit_Acceptances = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Limit_Generated")) {
+					OPTIONS->Limit_Generated = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Limit_Invalid_Generated_States")) {
+					OPTIONS->Limit_Invalid_Generated_States = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Accepted_To_Generated_Ratio")) {
+					OPTIONS->Accepted_To_Generated_Ratio = Rf_asReal(Rval);
+				} else if (strEQ(key, "Cost_Precision")) {
+					OPTIONS->Cost_Precision = Rf_asReal(Rval);
+				} else if (strEQ(key, "Maximum_Cost_Repeat")) {
+					OPTIONS->Maximum_Cost_Repeat = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Number_Cost_Samples")) {
+					OPTIONS->Number_Cost_Samples = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Temperature_Ratio_Scale")) {
+					OPTIONS->Temperature_Ratio_Scale = Rf_asReal(Rval);
+				} else if (strEQ(key, "Temperature_Anneal_Scale")) {
+					OPTIONS->Temperature_Anneal_Scale = Rf_asReal(Rval);
+				} else if (strEQ(key, "Cost_Parameter_Scale_Ratio")) {
+					OPTIONS->Cost_Parameter_Scale_Ratio = Rf_asReal(Rval);
+				} else if (strEQ(key, "Initial_Parameter_Temperature")) {
+					OPTIONS->Initial_Parameter_Temperature = Rf_asReal(Rval);
+				} else if (strEQ(key, "Acceptance_Frequency_Modulus")) {
+					OPTIONS->Acceptance_Frequency_Modulus = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Generated_Frequency_Modulus")) {
+					OPTIONS->Generated_Frequency_Modulus = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Reanneal_Cost")) {
+					OPTIONS->Reanneal_Cost = Rf_asInteger(Rval);
+				} else if (strEQ(key, "Reanneal_Parameters")) {
+					OPTIONS->Reanneal_Parameters = Rf_asLogical(Rval);
+				} else if (strEQ(key, "Delta_X")) {
+					OPTIONS->Delta_X = Rf_asReal(Rval);
+				} else if (strEQ(key, "Asa_Out_File")) {
+					OPTIONS->Asa_Out_File = R_CHAR(STRING_ELT(Rval, 0));
+				} else if (strEQ(key, "User_Quench_Param_Scale")) {
+					const auto &ev(Rcpp::as<Eigen::Map<Eigen::VectorXd> >(Rval));
+					quenchParamScale = ev;
+				} else if (strEQ(key, "User_Quench_Cost_Scale")) {
+					const auto &ev(Rcpp::as<Eigen::Map<Eigen::VectorXd> >(Rval));
+					quenchCostScale = ev;
+				} else {
+					Rf_warning("%s: unknown key '%s' for method '%s'",
+						   name, key, methodName);
+				}
+			} else Rf_error("%s: method %d unimplemented", name, method);
 		}
 	}
 
@@ -1998,47 +2092,134 @@ double ComputeGenSA::getConstraintPenalty(FitContext *fc)
 	return penalty;
 }
 
-void ComputeGenSA::computeImpl(FitContext *fc)
+static double
+asa_cost_function_stub(double *x, double *lower, double *upper,
+		       double *tangents, double *curvature,
+		       ALLOC_INT *par_dim, int *par_int_real,
+		       int *cost_flag, int *exit_code, USER_DEFINES *opt)
 {
-	fc->state->countNonlinearConstraints(numEqC, numIneqC, false);
-	equality.resize(numEqC);
-	inequality.resize(numIneqC);
+	return opt->Asa_Data_Ptr->asa_cost(x, cost_flag, exit_code, opt);
+}
 
+double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DEFINES *opt)
+{
 	using Eigen::Map;
 	using Eigen::VectorXd;
 
-	numFree = fc->calcNumFree();
-	if (numFree <= 0) { complainNoFreeParam(); return; }
+	FitContext *fc = _fc;
+	Map< VectorXd > curEst(fc->est, numFree);
+	Map< VectorXd > proposal(x, numFree);
+
+	PutRNGstate();
+	pushIndex(opt->N_Generated);
+	fc->setInform(INFORM_UNINITIALIZED);
+	curEst = proposal;
+	fc->copyParamToModel();
+	fc->wanted = FF_COMPUTE_FIT;
+	plan->compute(fc);
+	popIndex();
+	GetRNGstate();
+
+	if (fc->outsideFeasibleSet()) {
+		return std::numeric_limits<double>::max();
+	}
+	double penalty = getConstraintPenalty(fc);
+	fc->fit += penalty * round(opt->N_Generated / 100); //OK? TODO
+	return fc->fit;
+}
+
+static double
+asa_random_generator(LONG_INT *)
+{ return unif_rand(); }
+
+void ComputeGenSA::ingber2012(FitContext *fc)
+{
+	_fc = fc;
+	LONG_INT seed = 0; //unused
+	ALLOC_INT num_parameters = numFree;
+	Eigen::VectorXd tangents(numFree);
+	tangents.setZero();
+	Eigen::VectorXi paramType(numFree);
+	paramType.setConstant(REAL_TYPE); // OpenMx doesn't offer integral parameters
+	int valid_state_generated_flag=0;
+	int exit_status=0;
+
+	if (quenchParamScale.size() == 0) {
+		quenchParamScale.resize(numFree);
+		quenchParamScale.setConstant(1.);
+	}
+	if (quenchParamScale.size() != numFree) {
+		Rf_error("%s: quenchParamScale must have %d entries instead of %d",
+			 numFree, quenchParamScale.size());
+	}
+	OPTIONS->User_Quench_Param_Scale = quenchParamScale.data();
+
+	if (quenchCostScale.size() == 0) {
+		quenchCostScale.resize(numFree);
+		quenchCostScale.setConstant(1.);
+	}
+	if (quenchCostScale.size() != numFree) {
+		Rf_error("%s: quenchCostScale must have %d entries instead of %d",
+			 numFree, quenchCostScale.size());
+	}
+	OPTIONS->User_Quench_Cost_Scale = quenchCostScale.data();
+
+	OPTIONS->User_Initial_Parameters = 1;
+	OPTIONS->Curvature_0 = 1; // can always use ComputeNumericDeriv later
+	OPTIONS->Asa_Data_Dim_Ptr = 1;
+	OPTIONS->Asa_Data_Ptr = this;
+
+	GetRNGstate();
+	(void) asa(asa_cost_function_stub, asa_random_generator, &seed,
+		   fc->est, lbound.data(), ubound.data(), tangents.data(),
+		   0, &num_parameters, paramType.data(), &valid_state_generated_flag,
+		   &exit_status, OPTIONS);
+	PutRNGstate();
+
+	if (!valid_state_generated_flag && verbose) mxLog("invalid state generated");
+
+	switch (exit_status) {
+	case NORMAL_EXIT: break; //OK
+	case P_TEMP_TOO_SMALL:
+		if (verbose >= 1) mxLog("%s: P_TEMP_TOO_SMALL", name);
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	case C_TEMP_TOO_SMALL:
+		if (verbose >= 1) mxLog("%s: C_TEMP_TOO_SMALL", name);
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	case COST_REPEATING:
+		if (verbose >= 1) mxLog("%s: COST_REPEATING", name);
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	case TOO_MANY_INVALID_STATES:
+		if (verbose >= 1) mxLog("%s: TOO_MANY_INVALID_STATES", name);
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	case IMMEDIATE_EXIT:
+		if (verbose >= 1) mxLog("%s: IMMEDIATE_EXIT", name);
+		fc->setInform(INFORM_ITERATION_LIMIT);
+		break;
+	case INVALID_USER_INPUT:
+	case INVALID_COST_FUNCTION:
+	case INVALID_COST_FUNCTION_DERIV:
+		Rf_error("%s: ASA error %d", name, exit_status);
+		break;
+	case CALLOC_FAILED:
+		Rf_error("%s: out of memory", name);
+		break;
+	default:
+		Rf_warning("%s: unknown exit_status %d", name, exit_status);
+		break;
+	}
+}
+
+void ComputeGenSA::tsallis1996(FitContext *fc)
+{
+	using Eigen::Map;
+	using Eigen::VectorXd;
 
 	Map< VectorXd > curEst(fc->est, numFree);
-
-	omxAlgebraPreeval(fitMatrix, fc);
-
-	lbound.resize(numFree);
-	ubound.resize(numFree);
-	fc->copyBoxConstraintToOptimizer(lbound, ubound);
-	range = ubound - lbound;
-
-	if (verbose >= 1) {
-		mxLog("Welcome to GenSA (%d param)",
-		      numFree);
-	}
-
-	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
-	GetRNGstate();
-	int retries = 5;
-	while (fc->outsideFeasibleSet() && retries-- > 0) {
-		for (int vx=0; vx < curEst.size(); ++vx) {
-			curEst[vx] = lbound[vx] + unif_rand() * (ubound[vx] - lbound[vx]);
-		}
-		ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
-	}
-	PutRNGstate();
-	if (fc->outsideFeasibleSet()) {
-		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
-		return;
-	}
-	fc->fit += getConstraintPenalty(fc);
 
 	int markovLength = stepsPerTemp * numFree;
 	double eMini = fc->fit;
@@ -2117,12 +2298,64 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 
 	PutRNGstate();
 
-	if (isErrorRaised()) return;
-
 	curEst = curBest;
+}
+
+void ComputeGenSA::computeImpl(FitContext *fc)
+{
+	fc->state->countNonlinearConstraints(numEqC, numIneqC, false);
+	equality.resize(numEqC);
+	inequality.resize(numIneqC);
+
+	using Eigen::Map;
+	using Eigen::VectorXd;
+
+	numFree = fc->calcNumFree();
+	if (numFree <= 0) { complainNoFreeParam(); return; }
+
+	Map< VectorXd > curEst(fc->est, numFree);
+
+	omxAlgebraPreeval(fitMatrix, fc);
+
+	lbound.resize(numFree);
+	ubound.resize(numFree);
+	fc->copyBoxConstraintToOptimizer(lbound, ubound);
+	range = ubound - lbound;
+
+	if (verbose >= 1) {
+		mxLog("Welcome to %s/%s (%d param)", name, methodName, numFree);
+	}
+
+	// ----------
+
+	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
+	GetRNGstate();
+	int retries = 5;
+	while (fc->outsideFeasibleSet() && retries-- > 0) {
+		for (int vx=0; vx < curEst.size(); ++vx) {
+			curEst[vx] = lbound[vx] + unif_rand() * range[vx];
+		}
+		ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
+	}
+	PutRNGstate();
+	if (fc->outsideFeasibleSet()) {
+		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
+		return;
+	}
+	fc->fit += getConstraintPenalty(fc);
+
+	switch (method) {
+	case ALGO_TSALLIS1996: tsallis1996(fc); break;
+	case ALGO_INGBER2012: ingber2012(fc); break;
+	default: Rf_error("%s: unknown method %d", name, method);
+	}
+
 	fc->copyParamToModel();
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
+
+	if (fc->getInform() != INFORM_UNINITIALIZED || isErrorRaised()) return;
 	fc->wanted |= FF_COMPUTE_BESTFIT;
+	fc->setInform(INFORM_CONVERGED_OPTIMUM);
 }
 
 void ComputeGenSA::reportResults(FitContext *fc, MxRList *slots, MxRList *out)

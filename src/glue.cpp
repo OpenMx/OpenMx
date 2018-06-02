@@ -415,7 +415,6 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 					Global->RAMMaxDepth = atoi(nextOptionValue);
 				}
 				//mxLog("ram max depth = %s %d", nextOptionValue, Global->RAMMaxDepth);
-			} else if (matchCaseInsensitive(nextOptionName, "Function precision_CSOLNP")) {
 			} else {
 				// ignore
 			}
