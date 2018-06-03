@@ -397,11 +397,9 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 		Rf_error("Null Data Object detected.  This is an internal Rf_error, and should be reported on the forums.\n");
 	}
 
-	SEXP DataClass;
 	const char* dclass;
-	{ScopedProtect p1(DataClass, STRING_ELT(Rf_getAttrib(dataObj, R_ClassSymbol), 0));
-		dclass = CHAR(DataClass);
-	}
+	ProtectedSEXP DataClass(STRING_ELT(Rf_getAttrib(dataObj, R_ClassSymbol), 0));
+	dclass = CHAR(DataClass);
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData();
 	od->name = name;

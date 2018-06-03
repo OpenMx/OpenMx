@@ -164,6 +164,7 @@ class omxData {
 	void prohibitNAs(int col);
 	void reloadFromFile(const std::string &path);
 	void freeInternal();
+	bool isDynamic() { return expectation.size() != 0; };
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

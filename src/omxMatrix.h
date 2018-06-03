@@ -112,6 +112,7 @@ class omxMatrix {
 		return what;
 	}
 	void copyAttr(omxMatrix *src);
+	bool isSimple() { return !algebra && !fitFunction && populate.size()==0; };
 };
 
 void omxEnsureColumnMajor(omxMatrix *mat);

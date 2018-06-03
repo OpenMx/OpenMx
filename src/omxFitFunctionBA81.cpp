@@ -930,6 +930,11 @@ void BA81FitState::init()
 	BA81Expect *estate = (BA81Expect*) expectation;
 	estate->fit = oo;
 
+	if (!estate->itemParam->isSimple()) {
+		omxRaiseErrorf("%s: non-simple item param matrices are not supported yet",
+			       name());
+	}
+
 	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 
