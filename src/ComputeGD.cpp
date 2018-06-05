@@ -1864,6 +1864,7 @@ class ComputeGenSA : public omxCompute {
 	Eigen::VectorXd xMini;
 	Eigen::VectorXd curBest;
 	double curBestFit;
+	double curBestPenalty;
 	double qv;
 	double qaInit;
 	double lambda;
@@ -2222,17 +2223,19 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 	Map< VectorXd > curEst(fc->est, numFree);
 
 	int markovLength = stepsPerTemp * numFree;
-	double eMini = fc->fit;
+	curBestFit = fc->fit;
+	curBestPenalty = getConstraintPenalty(fc);
+	curBest = curEst;
 	xMini = curEst;
-	curBest = xMini;
-	curBestFit = eMini;
+	double curFit = curBestFit;
+	double curPenalty = curBestPenalty;
 
 	GetRNGstate();
 	const double t1 = exp((qv - 1.) * M_LN2) - 1.;
 
-	// Tsallis & Stariolo (1995) start at t=1 (see around Eqn 4)
+	// Tsallis & Stariolo (1996) start at t=1 (see around Eqn 4)
 	for (int tt = 1; !isErrorRaised() && !Global->timedOut; ++tt) {
-		// Equation 14' from Tsallis & Stariolo (1995)
+		// Equation 14' from Tsallis & Stariolo (1996)
 		double t2 = exp((qv - 1.) * log(tt + 1.));
 		double tem = temSta * t1 / t2;
 		if (tem < temEnd) break;
@@ -2263,36 +2266,46 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 				curEst[vx] = xMini[vx];
 				continue;
 			}
-			double penalty = getConstraintPenalty(fc);
+			double candidateFit = fc->fit;
+			double candidatePenalty = getConstraintPenalty(fc);
 			if (verbose >= 3) {
 				mxLog("%s: [%d] raw penalty %f",
-				      name, tt, penalty);
+				      name, tt, candidatePenalty);
 			}
-			fc->fit += penalty * pow(1.1, tt);
+			double candidateMini = candidateFit + tt * candidatePenalty;
+			double eMini = curFit + tt * curPenalty;
+			double curBestMini = curBestFit + tt * curBestPenalty;
 
-			// Equation 5 from Tsallis & Stariolo (1995)
-			if (fc->fit < eMini) {
-				eMini = fc->fit;
+			// Equation 5 from Tsallis & Stariolo (1996)
+			if (candidateMini < eMini) {
 				xMini = curEst;
-				if (verbose >= 2) mxLog("%s: temp %f downhill to %f", name, tem, eMini);
-				if (eMini < curBestFit) {
-					curBest = xMini;
-					curBestFit = eMini;
-				}
+				curFit = candidateFit;
+				curPenalty = candidatePenalty;
+				if (verbose >= 2) mxLog("%s: temp %f downhill to %f",
+							name, tem, candidateMini);
 			} else {
-				double worse1 = fc->fit - eMini;
+				double worse1 = candidateMini - eMini;
 				double qa = qaInit - lambda * tt;
 				double worse2 = (1. + (qa-1.) * worse1);
 				if (worse2 > 0) {
 					double thresh = pow(worse2 / tem, -1./(qa-1.));
 					if (thresh >= 1.0 || thresh > unif_rand()) {
-						eMini = fc->fit;
 						xMini = curEst;
+						curFit = candidateFit;
+						curPenalty = candidatePenalty;
 						if (verbose >= 2) mxLog("%s: temp %f uphill to %f", name, tem, eMini);
 					}
 				}
 			}
-			if (eMini != fc->fit) curEst[vx] = xMini[vx];
+			if (eMini < curBestMini) {
+				curBest = xMini;
+				curBestFit = curFit;
+				curBestPenalty = curPenalty;
+			}
+			if (curFit != candidateFit) {
+				// candidate rejected
+				curEst[vx] = xMini[vx];
+			}
 		}
 	}
 
@@ -2342,7 +2355,6 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		return;
 	}
-	fc->fit += getConstraintPenalty(fc);
 
 	switch (method) {
 	case ALGO_TSALLIS1996: tsallis1996(fc); break;
