@@ -5,6 +5,12 @@ m1 <- mxModel("dogChain",
               mxMatrix(name="dog", nrow=1, ncol=1, free=TRUE, values=-1), # violate constraint
               mxFitFunctionAlgebra("dog"),
               mxConstraint(dog > link[1,1] + link[2,1] + link[3,1] + link[4,1]))
+
+m1sa <- mxModel(m1, mxComputeSimAnnealing(method='tsallis1996', control=list(stepsPerTemp=5)))
+m1sa <- mxRun(m1sa)
+omxCheckCloseEnough(m1sa$dog$values, -4, .4)
+omxCheckCloseEnough(m1sa$link$values[,1], rep(-1, 4), .1)
+
 m1 <- mxRun(m1)
 omxCheckCloseEnough(m1$dog$values, -4, 1e-4)
 omxCheckCloseEnough(m1$link$values[,1], rep(-1, 4), 1e-4) 
