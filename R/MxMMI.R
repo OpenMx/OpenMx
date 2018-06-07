@@ -176,6 +176,10 @@ mxModelAverage <- function(
 	#Make labels for elements of matrices and algebras:
 	longlabels <- NULL
 	for(i in 1:nrow(refdims)){
+		#Possible TODO--instead of this error, drop the bad reference and carry on:
+		if(any(is.na(refdims[i,]))){
+			stop(paste("reference ",omxQuotes(rownames(refdims)[i])," could not be evaluated in any model",sep=""))
+		}
 		if(refdims[i,1]==1 && refdims[i,2]==1){
 			longlabels <- c(longlabels, reference[i])
 		}
