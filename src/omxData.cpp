@@ -1004,8 +1004,11 @@ SEXP storeData(SEXP Rmxd, SEXP Rfile)
 			ProtectedSEXP Rcol(VECTOR_ELT(Robs, cx));
 			json col;
 			col["name"] = R_CHAR(STRING_ELT(colnames, cx));
-			if (Rf_length(Rcol) != rows) Rf_error("Found %d rows in colunn %s instead of %s",
-								    Rf_length(Rcol), col["name"], rows);
+			if (Rf_length(Rcol) != rows) {
+				std::string colName = col["name"].as<std::string>();
+				Rf_error("Found %d rows in colunn %s instead of %s",
+					 Rf_length(Rcol), colName.c_str(), rows);
+			}
 			json::array jdata;
 			if (Rf_isFactor(Rcol)) {
 				int t1 = Rf_isUnordered(Rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
