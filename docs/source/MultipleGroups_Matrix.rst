@@ -129,7 +129,7 @@ To evaluate both models together, we use an ``mxFitFunctionMultigroup`` command 
 
 .. code-block:: r
 
-     fun           <- mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
+     fun           <- mxFitFunctionMultigroup(c("group1", "group2"))
      
 
 Model Fitting

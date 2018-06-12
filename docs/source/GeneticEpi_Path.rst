@@ -106,10 +106,8 @@ Let's go through the paths specification step by step.  First, we start with the
                             latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
     modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
                             latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
-    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, 
-                               name="minus2loglikelihood" )
-    obj          <- mxFitFunctionAlgebra( "minus2loglikelihood" )
-    modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, minus2ll, obj )
+	obj          <- mxFitFunctionMultigroup(c("MZ", "DZ"))
+    modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, obj )
 
     # Run Model
     fitACE       <- mxRun(modelACE)
@@ -226,17 +224,15 @@ As we indicated earlier, we're collecting all the mxPaths objects that are in co
     modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
                             latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
 
-Finally, both models need to be evaluated simultaneously.  We generate the sum of the fit functions for the two groups, using ``mxAlgebra``, and use the result (*minus2loglikelihood*) as argument of the ``mxFitFunctionAlgebra`` command.  We specify a new ``mxModel`` - with a new name using the ``model=""`` notation, which has the *modelMZ* and *modelDZ* as its arguments.  We also include the objects summing the likelihood and evaluating it.
+Finally, both models need to be evaluated simultaneously.  We generate the sum of the fit functions for the two groups, using ``mxFitFunctionMultigroup``.  We specify a new ``mxModel`` - with a new name using the ``model=""`` notation, which has the *modelMZ* and *modelDZ* as its arguments.  We also include the objective summing the likelihood and evaluating it.
 
 .. cssclass:: input
 ..
 
 .. code-block:: r        
 
-    minus2ll     <- mxAlgebra( expression=MZ.fitfunction + DZ.fitfunction, 
-                               name="minus2loglikelihood" )
-    obj          <- mxFitFunctionAlgebra( "minus2loglikelihood" )
-    modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, minus2ll, obj ) 
+	obj          <- mxFitFunctionMultigroup(c("MZ", "DZ"))
+    modelACE     <- mxModel(model="ACE", modelMZ, modelDZ, obj ) 
     
 
 Model Fitting
