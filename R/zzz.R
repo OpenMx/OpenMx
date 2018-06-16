@@ -102,7 +102,7 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' To cite package 'OpenMx' in publications use:
 #' 
 #' Michael C. Neale, Michael D. Hunter, Joshua N. Pritikin, Mahsa Zahery, Timothy R. Brick Robert M.
-#' Kickpatrick, Ryne Estabrook, Timothy C. Bates, Hermine H. Maes, Steven M. Boker. (in press).
+#' Kirkpatrick, Ryne Estabrook, Timothy C. Bates, Hermine H. Maes, Steven M. Boker. (in press).
 #' OpenMx 2.0: Extended structural equation and statistical modeling. \emph{Psychometrika}. 
 #' DOI: 10.1007/s11336-014-9435-8
 #' 
