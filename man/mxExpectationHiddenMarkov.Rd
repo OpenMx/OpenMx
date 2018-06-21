@@ -6,7 +6,7 @@
 \title{Hidden Markov expectation}
 \usage{
 mxExpectationHiddenMarkov(components, initial="initial", transition=NULL,
-		      ..., verbose=0L, scale=c('softmax','sum'))
+		      ..., verbose=0L, scale=c('softmax', 'sum', 'none'))
 }
 \arguments{
   \item{components}{A character vector of model names.}
@@ -24,7 +24,7 @@ mxExpectationHiddenMarkov(components, initial="initial", transition=NULL,
 \item{scale}{How the probabilities are rescaled. For 'softmax',
 the coefficient-wise exponential is taken and then each column is
 divided by its column sum. For 'sum', each column is divided by its
-column sum.}
+column sum. For 'none', no scaling is done.}
 }
 \description{
   Used in conjuction with \link{mxFitFunctionML}, this expectation
@@ -45,6 +45,8 @@ column sum.}
   
   \deqn{ sumscale(x_i) = \frac{x_i}{\sum_{k=1}^{K} } x_k }{
     sumscale(x_i) = x_i / sum(x_i)}
+  
+  When \code{scale} is set to "none" then no re-scaling is done. The parameters of \code{initial} and \code{transition} are left "as is".  This can be dangerous and is not recommended for novice users.  It might produce nonsensical results particularly for hidden Markov models.  However, some advanced users may find no scaling to be advantageous for certain applications (e.g., they are providing their own scaling), and thus it is provided as an option.
   
   Parameters are estimated in the given scale. To obtain the initial
   column vector and left stochastic transition matrix in probability

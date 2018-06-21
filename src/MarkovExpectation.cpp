@@ -22,7 +22,7 @@
 
 class MarkovExpectation : public omxExpectation {
 public:
-	enum ScaleType { SCALE_SOFTMAX, SCALE_SUM };
+	enum ScaleType { SCALE_SOFTMAX, SCALE_SUM, SCALE_NONE };
 
 	std::vector< omxExpectation* > components;
 	omxMatrix *initial;
@@ -82,6 +82,8 @@ void MarkovExpectation::init()
 		scale = SCALE_SOFTMAX;
 	} else if (strEQ(scaleName, "sum")) {
 		scale = SCALE_SUM;
+	} else if (strEQ(scaleName, "none")) {
+		scale = SCALE_NONE;
 	} else {
 		Rf_error("%s: unknown scale '%s'", name, scaleName);
 	}
@@ -106,7 +108,9 @@ void MarkovExpectation::compute(FitContext *fc, const char *what, const char *ho
 		omxCopyMatrix(scaledInitial, initial);
 		EigenVectorAdaptor Ei(scaledInitial);
 		if (scale == SCALE_SOFTMAX) Ei.derived() = Ei.array().exp();
-		Ei /= Ei.sum();
+		if (scale != SCALE_NONE) {
+			Ei /= Ei.sum();
+		}
 		if (verbose >= 2) mxPrintMat("initial", Ei);
 		initialV = omxGetMatrixVersion(initial);
 	}
@@ -117,8 +121,10 @@ void MarkovExpectation::compute(FitContext *fc, const char *what, const char *ho
 			omxCopyMatrix(scaledTransition, transition);
 			EigenArrayAdaptor Et(scaledTransition);
 			if (scale == SCALE_SOFTMAX) Et.derived() = Et.array().exp();
-			Eigen::ArrayXd v = Et.colwise().sum();
-			Et.rowwise() /= v.transpose();
+			if (scale != SCALE_NONE) {
+				Eigen::ArrayXd v = Et.colwise().sum();
+				Et.rowwise() /= v.transpose();
+			}
 			if (verbose >= 2) mxPrintMat("transition", Et);
 			transitionV = omxGetMatrixVersion(transition);
 		}

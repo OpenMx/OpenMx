@@ -6,7 +6,7 @@
 \title{Mixture expectation}
 \usage{
 mxExpectationMixture(components, weights="weights",
-		      ..., verbose=0L, scale=c('softmax','sum'))
+		      ..., verbose=0L, scale=c('softmax', 'sum', 'none'))
 }
 \arguments{
   \item{components}{A character vector of model names.}
@@ -21,16 +21,16 @@ mxExpectationMixture(components, weights="weights",
 \item{scale}{How the probabilities are rescaled. For 'softmax',
 the coefficient-wise exponential is taken and then each column is
 divided by its column sum. For 'sum', each column is divided by its
-column sum.}
+column sum. For 'none', no scaling is done.}
 }
 \description{
   Used in conjuction with \link{mxFitFunctionML}, this expectation
   can express a mixture model.
 }
 \details{
-  The mixture probabilities given in \code{weights} must sum to one.  As such for \eqn{K} mixture components, only \eqn{K-1} of the elements of \code{weights} can be estimated.
+  The mixture probabilities given in \code{weights} must sum to one.  As such for \eqn{K} mixture components, only \eqn{K-1} of the elements of \code{weights} can be estimated. The mixture probabilities in \code{weights} should be a column vector (i.e., a \eqn{K} by 1 matrix, or algebra with a \eqn{K} by 1 result).
   
-  For ease of use the raw free parameters of weights are rescaled by OpenMx according to the \code{scale} argument.  When \code{scale} is set to "softmax" the softmax function is applied to the weights.  The softmax function is also sometimes called multinomial logistic regression.  Softmax exponentiates each element in a vector and then divides each element by the sum of the exponentiated elements.  In equation form the softmax function is
+  For ease of use the raw free parameters of weights can be rescaled by OpenMx according to the \code{scale} argument.  When \code{scale} is set to "softmax" the softmax function is applied to the weights.  The softmax function is also sometimes called multinomial logistic regression.  Softmax exponentiates each element in a vector and then divides each element by the sum of the exponentiated elements.  In equation form the softmax function is
   
   \deqn{ softmax(x_i) = \frac{e^{x_i}}{\sum_{k=1}^{K} } e^{x_k} }{
     softmax(x_i) = exp(x_i) / sum(exp(x_i))}
@@ -41,6 +41,8 @@ column sum.}
   
   \deqn{ sumscale(x_i) = \frac{x_i}{\sum_{k=1}^{K} } x_k }{
     sumscale(x_i) = x_i / sum(x_i)}
+  
+  When \code{scale} is set to "none" then no re-scaling is done. The weights are left "as is".  This can be dangerous and is not recommended for novice users.  However, some advanced users may find no scaling to be advantageous for certain applications (e.g., they are providing their own scaling), and thus it is provided as an option.
   
   Parameters are estimated in the given scale. To obtain the weights
   column vector, examine the expectation's \code{output} slot with for example \code{yourModel$expectation$output}
