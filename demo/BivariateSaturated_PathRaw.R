@@ -54,7 +54,7 @@ bivSatModel2 <- mxModel("bivSat2",
     mxPath(
         from=c("X", "Y"), 
         arrows=2, 
-        free=T, 
+        free = TRUE, 
         values=1, 
         lbound=.01, 
         labels=c("varX","varY")
@@ -63,7 +63,7 @@ bivSatModel2 <- mxModel("bivSat2",
         from="X", 
         to="Y", 
         arrows=2, 
-        free=T, 
+        free = TRUE, 
         values=.2, 
         lbound=.01, 
         labels="covXY"

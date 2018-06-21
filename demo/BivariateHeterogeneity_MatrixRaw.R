@@ -69,11 +69,11 @@ dimnames(xy2) <- list(NULL, selVars)
 # -----------------------------------------------------------------------------
 
 chol1        <- mxMatrix( type="Lower", nrow=2,  ncol=2, 
-                          free=T, values=.5, labels=c("Ch11","Ch21","Ch31"), 
+                          free = TRUE, values=.5, labels=c("Ch11","Ch21","Ch31"), 
                           name="chol1" )
 expCov1      <- mxAlgebra( expression=chol1 %*% t(chol1), name="expCov1" )
 expMean1     <- mxMatrix( type="Full", nrow=1, ncol=2, 
-                          free=T, values=c(0,0), labels=c("mX1","mY1"), 
+                          free = TRUE, values=c(0,0), labels=c("mX1","mY1"), 
                           name="expMean1" )
 dataRaw1     <- mxData( xy1, type="raw" ) 
 exp1         <- mxExpectationNormal( covariance="expCov1", means="expMean1", selVars)
@@ -82,11 +82,11 @@ model1       <- mxModel("group1",
                          dataRaw1, chol1, expCov1, expMean1, exp1, funML)
 
 chol2        <- mxMatrix( type="Lower", nrow=2,  ncol=2, 
-                          free=T, values=.5, labels=c("Ch12","Ch22","Ch32"), 
+                          free = TRUE, values=.5, labels=c("Ch12","Ch22","Ch32"), 
                           name="chol2" )
 expCov2      <- mxAlgebra( expression=chol2 %*% t(chol2), name="expCov2" )
 expMean2     <- mxMatrix( type="Full", nrow=1, ncol=2, 
-                          free=T, values=c(0,0), labels=c("mX2","mY2"), 
+                          free = TRUE, values=c(0,0), labels=c("mX2","mY2"), 
                           name="expMean2" )
 dataRaw2     <- mxData( xy2, type="raw" ) 
 exp2         <- mxExpectationNormal( covariance="expCov2", means="expMean2", selVars)

@@ -76,22 +76,22 @@ dimnames(xy2) <- list(NULL, selVars)
 
 dataRaw1     <- mxData( observed=xy1, type="raw")
 variances1   <- mxPath( from=selVars, arrows=2, 
-          	            free=T, values=1, lbound=.01, labels=c("vX1","vY1") )
+          	            free = TRUE, values=1, lbound=.01, labels=c("vX1","vY1") )
 covariance1  <- mxPath( from="X", to="Y", arrows=2, 
-            	        free=T, values=.2, lbound=.01, labels="cXY1")
+            	        free = TRUE, values=.2, lbound=.01, labels="cXY1")
 means1       <- mxPath( from="one", to=selVars, arrows=1, 
-        		        free=T, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
+        		        free = TRUE, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
         		        labels=c("mX1","mY1") )
 model1       <- mxModel("group1", type="RAM", manifestVars= selVars,
                          dataRaw1, variances1, covariance1, means1)
 
 dataRaw2     <- mxData( observed=xy2, type="raw")
 variances2   <- mxPath( from=selVars, arrows=2, 
-          	            free=T, values=1, lbound=.01, labels=c("vX2","vY2") )
+          	            free = TRUE, values=1, lbound=.01, labels=c("vX2","vY2") )
 covariance2  <- mxPath( from="X", to="Y", arrows=2, 
-            	        free=T, values=.2, lbound=.01, labels="cXY2")
+            	        free = TRUE, values=.2, lbound=.01, labels="cXY2")
 means2       <- mxPath( from="one", to=selVars, arrows=1, 
-        		        free=T, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
+        		        free = TRUE, values=c(0.1,-0.1), ubound=c(NA,0), lbound=c(0,NA), 
         		        labels=c("mX2","mY2") )
 model2       <- mxModel("group2", type="RAM", manifestVars= selVars,
                          dataRaw2, variances2, covariance2, means2)

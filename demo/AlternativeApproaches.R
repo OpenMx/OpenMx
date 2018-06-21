@@ -99,7 +99,7 @@ Chi1
 summary(univSatFit1)
  	
 # Fit saturated model to covariance matrices and means using the path method
-expMean <- mxPath(from="one", to="X", arrows=1, free=T, values=0, labels="mX")
+expMean <- mxPath(from="one", to="X", arrows=1, free = TRUE, values=0, labels="mX")
 expMean
 obsCovMeanData <- mxData( observed=var(univData),  type="cov", numObs=1000, means=colMeans(univData) )
 univSatModel1M <- mxModel(univSatModel1, name="univSat1M", expMean, obsCovMeanData )
