@@ -103,11 +103,12 @@ bivHetModel   <- mxModel("bivariate Heterogeneity Path Specification",
                         model1, model2, fun )
 
 bivHetFit <- mxRun(bivHetModel)
-EM1Het <- bivHetFit$group1.fitfunction$info$expMean
-EM2Het <- bivHetFit$group2.fitfunction$info$expMean
-EC1Het <- bivHetFit$group1.fitfunction$info$expCov
-EC2Het <- bivHetFit$group2.fitfunction$info$expCov
-LLHet <- bivHetFit$output$fit
+hetExp <- mxGetExpected(bivHetFit, c('covariance', 'means'))
+EM1Het <- hetExp$group1$means
+EM2Het <- hetExp$group2$means
+EC1Het <- hetExp$group1$covariance
+EC2Het <- hetExp$group2$covariance
+LLHet <- -2*logLik(bivHetFit)
 
 EM1Het; EM2Het; EC1Het; EC2Het; LLHet
 
@@ -119,16 +120,17 @@ bivHomModel[['group2.S']]$labels <- bivHomModel[['group1.S']]$labels
 bivHomModel[['group2.M']]$labels <- bivHomModel[['group1.M']]$labels
 
 bivHomFit <- mxRun(bivHomModel)
-EM1Hom <- bivHomFit$group1.fitfunction$info$expMean
-EM2Hom <- bivHomFit$group2.fitfunction$info$expMean
-EC1Hom <- bivHomFit$group1.fitfunction$info$expCov
-EC2Hom <- bivHomFit$group2.fitfunction$info$expCov
-LLHom <- bivHomFit$output$fit
+homExp <- mxGetExpected(bivHomFit, c('covariance', 'means'))
+EM1Hom <- homExp$group1$means
+EM2Hom <- homExp$group2$means
+EC1Hom <- homExp$group1$covariance
+EC2Hom <- homExp$group2$covariance
+LLHom <- -2*logLik(bivHomFit)
 
 EM1Hom; EM2Hom; EC1Hom; EC2Hom; LLHom
 
-Chi= LLHom-LLHet
-LRT= rbind(LLHet,LLHom,Chi)
+Chi <- LLHom-LLHet
+LRT <- rbind(LLHet,LLHom,Chi)
 LRT
 # Fit Homnogeneity Model
 # -----------------------------------------------------------------------------
