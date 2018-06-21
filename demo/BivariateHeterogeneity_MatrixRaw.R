@@ -103,8 +103,7 @@ expMean1Het <- mxEval(group1.expMean1, bivHetFit)
 expMean2Het <- mxEval(group2.expMean2, bivHetFit)
 expCov1Het <- mxEval(group1.expCov1, bivHetFit)
 expCov2Het <- mxEval(group2.expCov2, bivHetFit)
-LLHet <- bivHetFit$output$fit
-
+LLHet <- -2*logLik(bivHetFit)
 expMean1Het; expMean2Het; expCov1Het; expCov2Het; LLHet
 
 # Fit Heterogeneity Model
@@ -119,15 +118,15 @@ expMean1Hom <- mxEval(group1.expMean1, bivHomFit)
 expMean2Hom <- mxEval(group2.expMean2, bivHomFit)
 expCov1Hom <- mxEval(group1.expCov1, bivHomFit)
 expCov2Hom <- mxEval(group2.expCov2, bivHomFit)
-LLHom <- bivHomFit$output$fit
-
+LLHom <- -2*logLik(bivHomFit)
 expMean1Hom; expMean2Hom; expCov1Hom; expCov2Hom; LLHom
 
-Chi= LLHom-LLHet
-LRT= rbind(LLHet,LLHom,Chi)
-LRT
-# Fit Homnogeneity Model
-# -----------------------------------------------------------------------------
+Chi = (LLHom - LLHet)
+# LRT
+rbind(LLHet, LLHom, Chi)
+# =========================
+# = Fit Homogeneity Model =
+# =========================
 
 omxCheckCloseEnough(LLHet, 10927.4024, .001)
 omxCheckCloseEnough(c(expCov1Het), c(1.0656, 0.4752, 0.4752, 0.9292), .001)
