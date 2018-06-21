@@ -258,7 +258,7 @@ Jor82Ex1 <- mxModel(
     mxMatrix(
         name='LambdaY',
         type='Iden',
-        free=F,
+        free = FALSE,
         nrow=numManEnd,
         ncol=numLatEnd
         ),
@@ -299,14 +299,14 @@ Jor82Ex1 <- mxModel(
         name='Phi',
         nrow=numLatExo,
         ncol=numLatExo,
-        free=F,
+        free = FALSE,
         values=1
         ),
     mxMatrix(
         name='ThetaEpsilon',
         nrow=numManEnd,
         ncol=numManEnd,
-        free=F,
+        free = FALSE,
         values=0
         ),
     mxMatrix(
@@ -322,7 +322,7 @@ Jor82Ex1 <- mxModel(
         name='ThetaDeltaEpsilon',
         nrow=numManExo,
         ncol=numManEnd,
-        free=F,
+        free = FALSE,
         values=0
         ),
     mxFitFunctionR(lisrelCovMx)

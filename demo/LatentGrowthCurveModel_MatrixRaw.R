@@ -42,7 +42,7 @@ data(myLongitudinalData)
 
 dataRaw      <- mxData( observed=myLongitudinalData, type="raw" )
 matrA        <- mxMatrix( type="Full", nrow=7, ncol=7,
-                          free=F,
+                          free = FALSE,
                           values=c(0,0,0,0,0,1,0,
                                    0,0,0,0,0,1,1,
                                    0,0,0,0,0,1,2,
@@ -75,13 +75,13 @@ matrS        <- mxMatrix( type="Symm", nrow=7, ncol=7,
                                    NA, NA, NA, NA, NA, "cov", "vars"),
                           byrow= TRUE, name="S" )
 matrF        <- mxMatrix( type="Full", nrow=5, ncol=7,
-                          free=F,
+                          free = FALSE,
                           values=c(1,0,0,0,0,0,0,
                                    0,1,0,0,0,0,0,
                                    0,0,1,0,0,0,0,
                                    0,0,0,1,0,0,0,
                                    0,0,0,0,1,0,0),
-                          byrow=T, name="F" )
+                          byrow=TRUE, name="F" )
 matrM        <- mxMatrix( type="Full", nrow=1, ncol=7,
                           free=c(F,F,F,F,F,T,T), values=c(0,0,0,0,0,1,1),
                           labels=c(NA,NA,NA,NA,NA,"meani","means"), name="M" )

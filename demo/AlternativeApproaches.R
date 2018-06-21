@@ -38,14 +38,14 @@ cov(bivData)
 # hist(univData)
     
 # Create ordinal and binary data from continuous data
-univDataOrd <- data.frame(X=cut(univData[,1], breaks=5, ordered_result=T, labels=c(0,1,2,3,4)) )
+univDataOrd <- data.frame(X=cut(univData[,1], breaks=5, ordered_result=TRUE, labels=c(0,1,2,3,4)) )
 table(univDataOrd)
 univDataBin <- data.frame(X=ifelse(univData[,1] >.5,1,0))
 table(univDataBin)
 
 bivDataOrd <- data.frame(bivData)
 for (i in 1:2) {
-	bivDataOrd[,i] <- cut(bivData[,i], breaks=5, ordered_result=T, labels=c(0,1,2,3,4))
+	bivDataOrd[,i] <- cut(bivData[,i], breaks=5, ordered_result=TRUE, labels=c(0,1,2,3,4))
 }
 table(bivDataOrd[,1],bivDataOrd[,2])
 bivDataBin <- data.frame(bivData)

@@ -42,7 +42,7 @@ data(myGrowthMixtureData)
 # -----------------------------------------------------------------------------
 
 matrA        <- mxMatrix( type="Full", nrow=7, ncol=7,
-                          free=F, values=rbind(cbind(matrix(0,5,5),
+                          free = FALSE, values=rbind(cbind(matrix(0,5,5),
                           matrix(c(rep(1,5),0:4),5,2)),matrix(0,2,7)),
                           byrow=TRUE, name="A" )
 labelsS      <- matrix(NA,5,5); diag(labelsS) <- "residual"
@@ -55,8 +55,8 @@ matrS        <- mxMatrix( type="Symm", nrow=7, ncol=7,
                           matrix(c("vari1","cov1","cov1","vars1"),2,2))),
                           byrow= TRUE, name="S" )
 matrF        <- mxMatrix( type="Full", nrow=5, ncol=7,
-                          free=F, values=cbind(diag(5),matrix(0,5,2)),
-                          byrow=T, name="F" )
+                          free = FALSE, values=cbind(diag(5),matrix(0,5,2)),
+                          byrow=TRUE, name="F" )
 matrM        <- mxMatrix( type="Full", nrow=1, ncol=7,
                           free=c(F,F,F,F,F,T,T),
                           values=c(0,0,0,0,0,0,-1),
