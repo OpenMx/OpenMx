@@ -76,11 +76,11 @@ summary(growthCurveFit)
 coef(growthCurveFit)
 
 
-omxCheckCloseEnough(coef(growthCurveFit))[["meani"]], 9.930, 0.01)
-omxCheckCloseEnough(coef(growthCurveFit))[["means"]], 1.813, 0.01)
-omxCheckCloseEnough(coef(growthCurveFit))[["vari"]], 3.886, 0.01)
-omxCheckCloseEnough(coef(growthCurveFit))[["vars"]], 0.258, 0.01)
-omxCheckCloseEnough(coef(growthCurveFit))[["cov"]], 0.460, 0.01)
-omxCheckCloseEnough(coef(growthCurveFit))[["residual"]], 2.316, 0.01)
+omxCheckCloseEnough(coef(growthCurveFit)[["meani"]], 9.930, 0.01)
+omxCheckCloseEnough(coef(growthCurveFit)[["means"]], 1.813, 0.01)
+omxCheckCloseEnough(coef(growthCurveFit)[["vari"]], 3.886, 0.01)
+omxCheckCloseEnough(coef(growthCurveFit)[["vars"]], 0.258, 0.01)
+omxCheckCloseEnough(coef(growthCurveFit)[["cov"]], 0.460, 0.01)
+omxCheckCloseEnough(coef(growthCurveFit)[["residual"]], 2.316, 0.01)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------
