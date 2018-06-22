@@ -84,27 +84,25 @@ class2       <- mxModel(class1, name="Class2", latVars2, latMeans2)
 classP       <- mxMatrix( type="Full", nrow=2, ncol=1, 
                         free=c(TRUE, FALSE), values=1, lbound=0.001, 
                         labels = c("p1","p2"), name="Props" )
-# make a matrix of class probabilities
-classS       <- mxAlgebra( Props%x%(1/sum(Props)), name="classProbs" )
-
-algFit       <- mxAlgebra( -2*sum(log(classProbs[1,1]%x%Class1.fitfunction 
-                           + classProbs[2,1]%x%Class2.fitfunction)), 
-                           name="mixtureObj")
-fit          <- mxFitFunctionAlgebra("mixtureObj")
+mixExp       <- mxExpectationMixture(components=c('Class1', 'Class2'), weights='Props', scale='sum')
+fit          <- mxFitFunctionML()
 dataRaw      <- mxData( observed=myGrowthMixtureData, type="raw" )
       
 gmm          <- mxModel("Growth Mixture Model",
-                        dataRaw, class1, class2, classP, classS, algFit, fit )      
+                        dataRaw, class1, class2, classP, mixExp, fit)
 
 gmmFit       <- mxRun(gmm, suppressWarnings=TRUE)
 
 summary(gmmFit)
 
-gmmFit$classProbs
+# Unscaled mixture proportions
+mxEval(Props, gmmFit)
 
+# Scaled mixture proportions
+gmmFit$expectation$output$weights
 
-omxCheckCloseEnough(gmmFit$output$Minus2LogLikelihood, 8739.05, 0.01)
-omxCheckCloseEnough(max(mxEval(classProbs, gmmFit)), 0.6009, 0.01)
-omxCheckCloseEnough(min(mxEval(classProbs, gmmFit)), 0.3991, 0.01)
+omxCheckCloseEnough(-2*logLik(gmmFit), 8739.05, 0.01)
+omxCheckCloseEnough(max(gmmFit$expectation$output$weights), 0.6009, 0.01)
+omxCheckCloseEnough(min(gmmFit$expectation$output$weights), 0.3991, 0.01)
 # Check to see if results match within the specified bounds
 # -----------------------------------------------------------------------------
