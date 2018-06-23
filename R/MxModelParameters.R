@@ -79,7 +79,8 @@ locateParametersHelper <- function(matrix, modelname, target) {
 }
 
 omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA), 
-	fetch = c('values', 'free', 'lbound', 'ubound', 'all')) {
+			     fetch = c('values', 'free', 'lbound', 'ubound', 'all'),
+			     labels=c()) {
 	if (identical(free, c(TRUE, FALSE, NA))) {
 		free <- TRUE
 	}
@@ -94,9 +95,9 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 		stop("argument 'fetch' must be one of c('values', 'free', 'lbound', 'ubound', 'all')")
 	}
 	if (fetch == 'all') {
-		values <- omxGetParameters(model, indep, free, 'values')
-		lbound <- omxGetParameters(model, indep, free, 'lbound')
-		ubound <- omxGetParameters(model, indep, free, 'ubound')
+		values <- omxGetParameters(model, indep, free, 'values', labels)
+		lbound <- omxGetParameters(model, indep, free, 'lbound', labels)
+		ubound <- omxGetParameters(model, indep, free, 'ubound', labels)
 		if (!is.na(free) && free) {
 			free <- rep.int(TRUE, length(values))
 		} else if (!is.na(free) && !free) {
@@ -106,7 +107,7 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 		}
 		return(data.frame(values, free, lbound, ubound))
 	}
-	parameters <- lapply(model@matrices, getParametersHelper, model@name, free, fetch)
+	parameters <- lapply(names(model@matrices), getParametersHelper, model, free, fetch, labels)
 	plen <- lapply(parameters, length)
 	parameters[plen == 0] <- NULL
 	names(parameters) <- NULL
@@ -117,7 +118,7 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 		submodels <- imxDependentModels(model)
 	}
 	if (length(submodels) > 0) {
-		subparams <- lapply(submodels, omxGetParameters, indep, free, fetch)
+		subparams <- lapply(submodels, omxGetParameters, indep, free, fetch, labels)
 		plen <- lapply(subparams, length)
 		subparams[plen == 0] <- NULL
 		names(subparams) <- NULL
@@ -324,13 +325,27 @@ omxAssignFirstParameters <- function(model, indep = FALSE) {
 	return(model)
 }
 
-getParametersHelper <- function(amatrix, modelname, selection, fetch) {
+getParametersHelper <- function(matName, model, selection, fetch, labels) {
+	amatrix <- model@matrices[[matName]]
+	modelname <- model@name
 	if (single.na(selection)) {
 		select <- amatrix@free | !apply(amatrix@labels, c(1,2), is.na)
 	} else if (selection) {
 		select <- amatrix@free
 	} else {
 		select <- !amatrix@free & !apply(amatrix@labels, c(1,2), is.na)
+	}
+	if (length(labels)) for (lx in 1:length(labels)) {
+		l1 <- labels[lx]
+		if (hasSquareBrackets(l1)) {
+			loc <- splitSubstitution(l1)
+			fullname <- unlist(strsplit(loc[[1]], imxSeparatorChar, fixed = TRUE))
+			if (fullname[[1]] == modelname && fullname[[2]] == matName) {
+				select[as.integer(loc[2]), as.integer(loc[3])] <- TRUE
+			}
+		} else {
+			select <- select | amatrix@labels == l1
+		}
 	}
 	if (all(!select)) {
 		return(numeric())
@@ -341,8 +356,8 @@ getParametersHelper <- function(amatrix, modelname, selection, fetch) {
 	} 
 	theNames <- amatrix@labels[select]
 	if (any(is.na(theNames))) {
-		rows <- row(amatrix@labels)[select]
-		cols <- col(amatrix@labels)[select]
+		rows <- row(select)[select]
+		cols <- col(select)[select]
 		for(i in 1:length(theNames)) {
 			if (is.na(theNames[[i]])) {
 				theNames[[i]] <- paste(modelname, ".", amatrix@name, 
