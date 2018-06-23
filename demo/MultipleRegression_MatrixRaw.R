@@ -71,14 +71,14 @@ summary(multiRegFit)
 multiRegFit$output
 
 
-omxCheckCloseEnough(coef(multiRegFit))[["beta0"]], 1.6332, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["betax"]], 0.4246, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["betaz"]], 0.2260, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["residual"]], 0.6267, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["varx"]], 1.1053, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["varz"]], 0.8275, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["covxz"]], 0.2862, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["meanx"]], 0.0542, 0.001)
-omxCheckCloseEnough(coef(multiRegFit))[["meanz"]], 4.0611, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["beta0"]], 1.6332, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["betax"]], 0.4246, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["betaz"]], 0.2260, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["residual"]], 0.6267, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["varx"]], 1.1053, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["varz"]], 0.8275, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["covxz"]], 0.2862, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["meanx"]], 0.0542, 0.001)
+omxCheckCloseEnough(coef(multiRegFit)[["meanz"]], 4.0611, 0.001)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------

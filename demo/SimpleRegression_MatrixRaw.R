@@ -73,10 +73,10 @@ uniRegFit$output
 # Print the outputs populated by mxRun
 # -----------------------------------------------------------------------------
 
-omxCheckCloseEnough(coef(uniRegFit))[["beta0"]], 2.5478, 0.001)
-omxCheckCloseEnough(coef(uniRegFit))[["beta1"]], 0.4831, 0.001)
-omxCheckCloseEnough(coef(uniRegFit))[["residual"]], 0.6652, 0.001)
-omxCheckCloseEnough(coef(uniRegFit))[["meanx"]], 0.0542, 0.001)
-omxCheckCloseEnough(coef(uniRegFit))[["varx"]], 1.1053, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["beta0"]], 2.5478, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["beta1"]], 0.4831, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["residual"]], 0.6652, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["meanx"]], 0.0542, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["varx"]], 1.1053, 0.001)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------
