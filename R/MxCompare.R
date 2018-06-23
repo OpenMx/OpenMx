@@ -759,10 +759,10 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     curX <- meanSampleSize(trueModel)
   } else {
     origSampleSize <- meanSampleSize(trueModel)
-    par <- omxGetParameters(falseModel, free=FALSE)
+    par <- omxGetParameters(falseModel, free=FALSE, labels=interest)
     if (!(interest %in% names(par))) {
       stop(paste("Cannot find", omxQuotes(interest),
-                 "in falseModel. Please label it and try again"))
+                 "in falseModel. Please label it in both models and try again"))
     }
     nullInterestValue <- par[interest]
     curX <- (coef(trueModel)[interest] - nullInterestValue)/2
