@@ -329,11 +329,11 @@ getParametersHelper <- function(matName, model, selection, fetch, labels) {
 	amatrix <- model@matrices[[matName]]
 	modelname <- model@name
 	if (single.na(selection)) {
-		select <- amatrix@free | !apply(amatrix@labels, c(1,2), is.na)
+		select <- amatrix@free | !is.na(amatrix@labels)
 	} else if (selection) {
 		select <- amatrix@free
 	} else {
-		select <- !amatrix@free & !apply(amatrix@labels, c(1,2), is.na)
+		select <- !amatrix@free & !is.na(amatrix@labels)
 	}
 	if (length(labels)) for (lx in 1:length(labels)) {
 		l1 <- labels[lx]
@@ -344,7 +344,7 @@ getParametersHelper <- function(matName, model, selection, fetch, labels) {
 				select[as.integer(loc[2]), as.integer(loc[3])] <- TRUE
 			}
 		} else {
-			select <- select | amatrix@labels == l1
+			select <- select | (!is.na(amatrix@labels) & amatrix@labels == l1)
 		}
 	}
 	if (all(!select)) {
