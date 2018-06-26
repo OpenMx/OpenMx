@@ -431,7 +431,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		if (engine == OptEngine_CSOLNP || engine == OptEngine_SD) {
 			gradientAlgo = GradientAlgorithm_Forward;
 			gradientAlgoName = "forward";
-		} else if (engine == OptEngine_NLOPT) {
+		} else {
 			gradientAlgo = GradientAlgorithm_Central;
 			gradientAlgoName = "central";
 		} 
