@@ -17,7 +17,7 @@
 #include <system_error>
 #include <ios>
 #include <jsoncons/json_exception.hpp>
-#include <jsoncons/json_input_handler.hpp>
+#include <jsoncons/json_content_handler.hpp>
 #include <jsoncons/parse_error_handler.hpp>
 #include <jsoncons/json_parser.hpp>
 
@@ -26,26 +26,26 @@ namespace jsoncons {
 // utf8_other_json_input_adapter
 
 template <class CharT>
-class json_utf8_other_input_handler_adapter : public json_input_handler
+class json_utf8_other_content_handler_adapter : public json_content_handler
 {
 public:
-    using json_input_handler::string_view_type;
+    using json_content_handler::string_view_type;
 private:
-    basic_null_json_input_handler<CharT> default_input_handler_;
-    basic_json_input_handler<CharT>& other_handler_;
+    basic_null_json_content_handler<CharT> default_content_handler_;
+    basic_json_content_handler<CharT>& other_handler_;
     //parse_error_handler& err_handler_;
 
     // noncopyable and nonmoveable
-    json_utf8_other_input_handler_adapter<CharT>(const json_utf8_other_input_handler_adapter<CharT>&) = delete;
-    json_utf8_other_input_handler_adapter<CharT>& operator=(const json_utf8_other_input_handler_adapter<CharT>&) = delete;
+    json_utf8_other_content_handler_adapter<CharT>(const json_utf8_other_content_handler_adapter<CharT>&) = delete;
+    json_utf8_other_content_handler_adapter<CharT>& operator=(const json_utf8_other_content_handler_adapter<CharT>&) = delete;
 
 public:
-    json_utf8_other_input_handler_adapter()
-        : other_handler_(default_input_handler_)
+    json_utf8_other_content_handler_adapter()
+        : other_handler_(default_content_handler_)
     {
     }
 
-    json_utf8_other_input_handler_adapter(basic_json_input_handler<CharT>& other_handler/*,
+    json_utf8_other_content_handler_adapter(basic_json_content_handler<CharT>& other_handler/*,
                                           parse_error_handler& err_handler*/)
         : other_handler_(other_handler)/*,
           err_handler_(err_handler)*/
@@ -64,27 +64,27 @@ private:
         other_handler_.end_json();
     }
 
-    void do_begin_object(const parsing_context& context) override
+    void do_begin_object(const serializing_context& context) override
     {
         other_handler_.begin_object(context);
     }
 
-    void do_end_object(const parsing_context& context) override
+    void do_end_object(const serializing_context& context) override
     {
         other_handler_.end_object(context);
     }
 
-    void do_begin_array(const parsing_context& context) override
+    void do_begin_array(const serializing_context& context) override
     {
         other_handler_.begin_array(context);
     }
 
-    void do_end_array(const parsing_context& context) override
+    void do_end_array(const serializing_context& context) override
     {
         other_handler_.end_array(context);
     }
 
-    void do_name(const string_view_type& name, const parsing_context& context) override
+    void do_name(const string_view_type& name, const serializing_context& context) override
     {
         std::basic_string<CharT> target;
         auto result = unicons::convert(
@@ -97,7 +97,7 @@ private:
         other_handler_.name(target, context);
     }
 
-    void do_string_value(const string_view_type& value, const parsing_context& context) override
+    void do_string_value(const string_view_type& value, const serializing_context& context) override
     {
         std::basic_string<CharT> target;
         auto result = unicons::convert(
@@ -110,27 +110,27 @@ private:
         other_handler_.string_value(target, context);
     }
 
-    void do_integer_value(int64_t value, const parsing_context& context) override
+    void do_integer_value(int64_t value, const serializing_context& context) override
     {
         other_handler_.integer_value(value, context);
     }
 
-    void do_uinteger_value(uint64_t value, const parsing_context& context) override
+    void do_uinteger_value(uint64_t value, const serializing_context& context) override
     {
         other_handler_.uinteger_value(value, context);
     }
 
-    void do_double_value(double value, const number_format& fmt, const parsing_context& context) override
+    void do_double_value(double value, const floating_point_options& fmt, const serializing_context& context) override
     {
         other_handler_.double_value(value, fmt, context);
     }
 
-    void do_bool_value(bool value, const parsing_context& context) override
+    void do_bool_value(bool value, const serializing_context& context) override
     {
         other_handler_.bool_value(value, context);
     }
 
-    void do_null_value(const parsing_context& context) override
+    void do_null_value(const serializing_context& context) override
     {
         other_handler_.null_value(context);
     }
@@ -180,7 +180,7 @@ public:
     }
 
     basic_json_reader(std::basic_istream<CharT>& is, 
-                      basic_json_input_handler<CharT>& handler)
+                      basic_json_content_handler<CharT>& handler)
         : parser_(handler),
           is_(is),
           eof_(false),
@@ -191,9 +191,57 @@ public:
     }
 
     basic_json_reader(std::basic_istream<CharT>& is,
-                      basic_json_input_handler<CharT>& handler,
+                      basic_json_content_handler<CharT>& handler,
                       parse_error_handler& err_handler)
        : parser_(handler,err_handler),
+         is_(is),
+         eof_(false),
+         buffer_length_(default_max_buffer_length),
+         begin_(true)
+    {
+        buffer_.reserve(buffer_length_);
+    }
+
+    basic_json_reader(std::basic_istream<CharT>& is, 
+                      const basic_json_serializing_options<CharT>& options)
+        : parser_(options),
+          is_(is),
+          eof_(false),
+          buffer_length_(default_max_buffer_length),
+          begin_(true)
+    {
+        buffer_.reserve(buffer_length_);
+    }
+
+    basic_json_reader(std::basic_istream<CharT>& is, 
+                      const basic_json_serializing_options<CharT>& options,
+                      parse_error_handler& err_handler)
+       : parser_(options,err_handler),
+         is_(is),
+         eof_(false),
+         buffer_length_(default_max_buffer_length),
+         begin_(true)
+    {
+        buffer_.reserve(buffer_length_);
+    }
+
+    basic_json_reader(std::basic_istream<CharT>& is, 
+                      const basic_json_serializing_options<CharT>& options, 
+                      basic_json_content_handler<CharT>& handler)
+        : parser_(handler,options),
+          is_(is),
+          eof_(false),
+          buffer_length_(default_max_buffer_length),
+          begin_(true)
+    {
+        buffer_.reserve(buffer_length_);
+    }
+
+    basic_json_reader(std::basic_istream<CharT>& is,
+                      basic_json_content_handler<CharT>& handler, 
+                      const basic_json_serializing_options<CharT>& options,
+                      parse_error_handler& err_handler)
+       : parser_(handler,options,err_handler),
          is_(is),
          eof_(false),
          buffer_length_(default_max_buffer_length),
@@ -212,7 +260,7 @@ public:
         buffer_length_ = length;
         buffer_.reserve(buffer_length_);
     }
-
+#if !defined(JSONCONS_NO_DEPRECATED)
     size_t max_nesting_depth() const
     {
         return parser_.max_nesting_depth();
@@ -222,7 +270,7 @@ public:
     {
         parser_.max_nesting_depth(depth);
     }
-
+#endif
     void read_next()
     {
         std::error_code ec;

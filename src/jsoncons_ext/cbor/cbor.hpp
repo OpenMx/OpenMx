@@ -656,9 +656,11 @@ void walk_array(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
             }
         case 0x9f: // array (indefinite length)
             {
+                std::cout << "CHECK 10 " << std::hex << 0x9f << std::endl;
                 *endp = p;
                 while (*p != 0xff)
                 {
+                    std::cout << "Not empty" << std::endl;
                     walk_array(p, last, endp);
                     if (*endp == p)
                     {
@@ -1292,6 +1294,7 @@ void walk(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
             // FALLTHRU
         case 0x9f: // array (indefinite length)
             {
+                std::cout << "CHECK 20 " << std::hex << 0x9f << std::endl;
                 walk_array(first,last,endp);
                 break;
             }
@@ -1446,6 +1449,7 @@ size_t get_size(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
     // array (indefinite length)
     case 0x9f: 
     {
+        std::cout << "CHECK 30 " << std::hex << 0x9f << std::endl;
         size_t len = 0;
         while (*p != 0xff)
         {
@@ -1739,7 +1743,7 @@ public:
     typedef std::string string_type;
     typedef char char_type;
     typedef std::char_traits<char_type> char_traits_type;
-    typedef basic_string_view_ext<char_type> string_view_type;
+    typedef basic_string_view<char_type> string_view_type;
     typedef detail::const_object_iterator<cbor_view> object_iterator;
     typedef detail::const_object_iterator<cbor_view> const_object_iterator;
     typedef detail::const_array_iterator<cbor_view> array_iterator;
@@ -1795,6 +1799,7 @@ public:
         case 0x9b: // array (eight-byte uint64_t for n follow)
             // FALLTHRU
         case 0x9f: // array (indefinite length)
+            std::cout << "CHECK 40 " << std::hex << 0x9f << std::endl;
             detail::get_size(first_,last_,&begin);
             break;
         default:
@@ -2114,6 +2119,42 @@ public:
         }
         return val;
     }
+protected:
+
+    void set_data(const uint8_t* data, size_t length)
+    {
+        first_ = data;
+        last_ = data + length;
+    }    
+};
+
+class cbor_value : public cbor_view
+{
+    std::vector<uint8_t> data_;
+public:
+
+    cbor_value() = default;
+    cbor_value(const cbor_value& val)
+        : data_(val.data_)
+    {
+        this->set_data(data_.data(),data_.size());
+    }
+    cbor_value(cbor_value&& val)
+        : data_(std::move(val.data_))
+    {
+        this->set_data(data_.data(),data_.size());
+    }
+    cbor_value(const std::vector<uint8_t>& val)
+        : data_(val)
+    {
+        this->set_data(data_.data(),data_.size());
+    }
+    cbor_value(std::vector<uint8_t>&& val)
+        : data_(val)
+    {
+        this->set_data(data_.data(),data_.size());
+    }
+
 };
 
 struct Encode_cbor_
@@ -2267,19 +2308,23 @@ struct cbor_Encoder_
                 if (length <= 0x17)
                 {
                     action(static_cast<uint8_t>(static_cast<uint8_t>(0x80 + length)), v);
-                } else if (length <= 0xff)
+                } 
+                else if (length <= 0xff)
                 {
                     action(static_cast<uint8_t>(0x98), v);
                     action(static_cast<uint8_t>(static_cast<uint8_t>(length)), v);
-                } else if (length <= 0xffff)
+                } 
+                else if (length <= 0xffff)
                 {
                     action(static_cast<uint8_t>(0x99), v);
                     action(static_cast<uint16_t>(length),v);
-                } else if (length <= 0xffffffff)
+                } 
+                else if (length <= 0xffffffff)
                 {
                     action(static_cast<uint8_t>(0x9a), v);
                     action(static_cast<uint32_t>(length),v);
-                } else if (length <= 0xffffffffffffffff)
+                } 
+                else if (length <= 0xffffffffffffffff)
                 {
                     action(static_cast<uint8_t>(0x9b), v);
                     action(static_cast<uint64_t>(length),v);
@@ -2318,10 +2363,10 @@ struct cbor_Encoder_
                 }
 
                 // append each element
-                for (const auto& kv: jval.object_range())
+                for (const auto& member: jval.object_range())
                 {
-                    encode_string(kv.key(), action, v);
-                    encode(kv.value(), action, v);
+                    encode_string(member.key(), action, v);
+                    encode(member.value(), action, v);
                 }
                 break;
             }
@@ -2601,7 +2646,7 @@ public:
         case 0x9f:
             {
                 Json result = typename Json::array();
-                while (*pos != 0xff)
+                while (*it_ != 0xff)
                 {
                     result.push_back(decode());
                     pos = it_;
@@ -2683,7 +2728,7 @@ public:
         case 0xbf:
             {
                 Json result = typename Json::object();
-                while (*pos != 0xff)
+                while (*it_ != 0xff)
                 {
                     auto j = decode();
                     result.set(j.as_string_view(),decode());

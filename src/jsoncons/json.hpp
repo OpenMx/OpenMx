@@ -17,12 +17,13 @@
 #include <memory>
 #include <typeinfo>
 #include <cstring>
+#include <jsoncons/json_fwd.hpp>
 #include <jsoncons/version.hpp>
 #include <jsoncons/json_exception.hpp>
 #include <jsoncons/jsoncons_utilities.hpp>
 #include <jsoncons/json_structures.hpp>
-#include <jsoncons/json_output_handler.hpp>
-#include <jsoncons/serialization_options.hpp>
+#include <jsoncons/json_content_handler.hpp>
+#include <jsoncons/json_serializing_options.hpp>
 #include <jsoncons/json_serializer.hpp>
 #include <jsoncons/json_decoder.hpp>
 #include <jsoncons/json_reader.hpp>
@@ -98,9 +99,7 @@ enum class json_type_tag : uint8_t
     object_t
 };
                         
-template <class CharT, 
-          class ImplementationPolicy = sorted_policy, 
-          class Allocator = std::allocator<CharT>>
+template <class CharT, class ImplementationPolicy, class Allocator>
 class basic_json
 {
 public:
@@ -114,7 +113,7 @@ public:
     typedef CharT char_type;
     typedef typename std::char_traits<char_type> char_traits_type;
 
-    typedef basic_string_view_ext<char_type,char_traits_type> string_view_type;
+    typedef basic_string_view<char_type,char_traits_type> string_view_type;
 
     typedef typename std::allocator_traits<allocator_type>:: template rebind_alloc<char_type> char_allocator_type;
     using string_storage_type = typename implementation_policy::template string_storage<CharT,char_traits_type,char_allocator_type>;
@@ -257,14 +256,15 @@ public:
         public:
             double_data(double val)
                 : data_base(json_type_tag::double_t), 
+                  format_(chars_format::general),
                   precision_(0), 
                   decimal_places_(0), 
                   val_(val)
             {
             }
-            double_data(double val, const number_format& fmt)
+            double_data(double val, const floating_point_options& fmt)
                 : data_base(json_type_tag::double_t), 
-                  format_(fmt.floating_point_format()), 
+                  format_(fmt.format()), 
                   precision_(fmt.precision()), 
                   decimal_places_(fmt.decimal_places()), 
                   val_(val)
@@ -273,8 +273,9 @@ public:
 
             double_data(const double_data& val)
                 : data_base(json_type_tag::double_t),
-                  precision_(val.precision_), 
-                  decimal_places_(val.decimal_places_), 
+                  format_(val.format()),
+                  precision_(val.precision()), 
+                  decimal_places_(val.decimal_places()), 
                   val_(val.val_)
             {
             }
@@ -284,6 +285,11 @@ public:
                 return val_;
             }
 
+            chars_format format() const
+            {
+                return format_;
+            }
+
             uint8_t precision() const
             {
                 return precision_;
@@ -291,7 +297,7 @@ public:
 
             uint8_t decimal_places() const
             {
-                return precision_;
+                return decimal_places_;
             }
         };
 
@@ -712,7 +718,7 @@ public:
         {
             new(reinterpret_cast<void*>(&data_))double_data(val);
         }
-        variant(double val, const number_format& fmt)
+        variant(double val, const floating_point_options& fmt)
         {
             new(reinterpret_cast<void*>(&data_))double_data(val, fmt);
         }
@@ -2142,13 +2148,13 @@ public:
             return evaluate().as_string(allocator);
         }
 
-        string_type as_string(const basic_serialization_options<char_type>& options) const
+        string_type as_string(const basic_json_serializing_options<char_type>& options) const
         {
             return evaluate().as_string(options);
         }
 
         template <class SAllocator>
-        string_type as_string(const basic_serialization_options<char_type>& options,
+        string_type as_string(const basic_json_serializing_options<char_type>& options,
                               const SAllocator& allocator) const
         {
             return evaluate().as_string(options,allocator);
@@ -2267,12 +2273,13 @@ public:
         template <class T>
         T get_with_default(const string_view_type& name, const T& default_val) const
         {
-            return evaluate().get_with_default(name,default_val);
+            return evaluate().template get_with_default<T>(name,default_val);
         }
 
-        const CharT* get_with_default(const string_view_type& name, const CharT* default_val) const
+        template <class T = std::basic_string<CharT>>
+        T get_with_default(const string_view_type& name, const CharT* default_val) const
         {
-            return evaluate().get_with_default(name,default_val);
+            return evaluate().template get_with_default<T>(name,default_val);
         }
 
         void shrink_to_fit()
@@ -2461,11 +2468,27 @@ public:
 
         template <class SAllocator>
         void dump(std::basic_string<char_type,char_traits_type,SAllocator>& s,
-                  const basic_serialization_options<char_type>& options) const
+                  indenting line_indent) const
+        {
+            evaluate().dump(s, line_indent);
+        }
+
+        template <class SAllocator>
+        void dump(std::basic_string<char_type,char_traits_type,SAllocator>& s,
+                  const basic_json_serializing_options<char_type>& options) const
         {
             evaluate().dump(s,options);
         }
-        void dump(basic_json_output_handler<char_type>& handler) const
+
+        template <class SAllocator>
+        void dump(std::basic_string<char_type,char_traits_type,SAllocator>& s,
+                  const basic_json_serializing_options<char_type>& options,
+                  indenting line_indent) const
+        {
+            evaluate().dump(s,options,line_indent);
+        }
+
+        void dump(basic_json_content_handler<char_type>& handler) const
         {
             evaluate().dump(handler);
         }
@@ -2475,27 +2498,37 @@ public:
             evaluate().dump(os);
         }
 
+        void dump(std::basic_ostream<char_type>& os, indenting line_indent) const
+        {
+            evaluate().dump(os, line_indent);
+        }
+
+        void dump(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options) const
+        {
+            evaluate().dump(os,options);
+        }
+
+        void dump(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, indenting line_indent) const
+        {
+            evaluate().dump(os,options,line_indent);
+        }
+#if !defined(JSONCONS_NO_DEPRECATED)
+
+        void dump(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, bool pprint) const
+        {
+            evaluate().dump(os,options,pprint);
+        }
+
         void dump(std::basic_ostream<char_type>& os, bool pprint) const
         {
             evaluate().dump(os, pprint);
         }
 
-        void dump(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options) const
-        {
-            evaluate().dump(os,options);
-        }
-
-        void dump(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options, bool pprint) const
-        {
-            evaluate().dump(os,options,pprint);
-        }
-#if !defined(JSONCONS_NO_DEPRECATED)
-
         string_type to_string(const char_allocator_type& allocator = char_allocator_type()) const JSONCONS_NOEXCEPT
         {
             return evaluate().to_string(allocator);
         }
-        void write(basic_json_output_handler<char_type>& handler) const
+        void write(basic_json_content_handler<char_type>& handler) const
         {
             evaluate().write(handler);
         }
@@ -2505,17 +2538,17 @@ public:
             evaluate().write(os);
         }
 
-        void write(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options) const
+        void write(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options) const
         {
             evaluate().write(os,options);
         }
 
-        void write(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options, bool pprint) const
+        void write(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, bool pprint) const
         {
             evaluate().write(os,options,pprint);
         }
 
-        string_type to_string(const basic_serialization_options<char_type>& options, char_allocator_type& allocator = char_allocator_type()) const
+        string_type to_string(const basic_json_serializing_options<char_type>& options, char_allocator_type& allocator = char_allocator_type()) const
         {
             return evaluate().to_string(options,allocator);
         }
@@ -2539,7 +2572,7 @@ public:
         {
             return evaluate().elements();
         }
-        void to_stream(basic_json_output_handler<char_type>& handler) const
+        void to_stream(basic_json_content_handler<char_type>& handler) const
         {
             evaluate().to_stream(handler);
         }
@@ -2549,12 +2582,12 @@ public:
             evaluate().to_stream(os);
         }
 
-        void to_stream(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options) const
+        void to_stream(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options) const
         {
             evaluate().to_stream(os,options);
         }
 
-        void to_stream(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options, bool pprint) const
+        void to_stream(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, bool pprint) const
         {
             evaluate().to_stream(os,options,pprint);
         }
@@ -2703,8 +2736,24 @@ public:
 #endif
     };
 
-    static basic_json parse(std::basic_istream<char_type>& is);
-    static basic_json parse(std::basic_istream<char_type>& is, parse_error_handler& err_handler);
+    static basic_json parse(std::basic_istream<char_type>& is)
+    {
+        parse_error_handler_type err_handler;
+        return parse(is,err_handler);
+    }
+
+    static basic_json parse(std::basic_istream<char_type>& is, parse_error_handler& err_handler)
+    {
+        json_decoder<basic_json<CharT,ImplementationPolicy,Allocator>> handler;
+        basic_json_reader<char_type> reader(is, handler, err_handler);
+        reader.read_next();
+        reader.check_done();
+        if (!handler.is_valid())
+        {
+            JSONCONS_THROW(json_exception_impl<std::runtime_error>("Failed to parse json stream"));
+        }
+        return handler.get_result();
+    }
 
     static basic_json parse(const string_view_type& s)
     {
@@ -2712,6 +2761,7 @@ public:
         return parse(s,err_handler);
     }
 
+#if !defined(JSONCONS_NO_DEPRECATED)
     static basic_json parse(const char_type* s, size_t length)
     {
         parse_error_handler_type err_handler;
@@ -2722,11 +2772,59 @@ public:
     {
         return parse(string_view_type(s,length),err_handler);
     }
+#endif
 
     static basic_json parse(const string_view_type& s, parse_error_handler& err_handler)
     {
         json_decoder<basic_json> decoder;
         basic_json_parser<char_type> parser(decoder,err_handler);
+
+        auto result = unicons::skip_bom(s.begin(), s.end());
+        if (result.ec != unicons::encoding_errc())
+        {
+            throw parse_error(result.ec,1,1);
+        }
+        size_t offset = result.it - s.begin();
+        parser.set_source(s.data()+offset,s.size()-offset);
+        parser.parse_some();
+        parser.end_parse();
+        parser.check_done();
+        if (!decoder.is_valid())
+        {
+            JSONCONS_THROW(json_exception_impl<std::runtime_error>("Failed to parse json string"));
+        }
+        return decoder.get_result();
+    }
+
+    static basic_json parse(std::basic_istream<char_type>& is, const basic_json_serializing_options<CharT>& options)
+    {
+        parse_error_handler_type err_handler;
+        return parse(is,options,err_handler);
+    }
+
+    static basic_json parse(std::basic_istream<char_type>& is, const basic_json_serializing_options<CharT>& options, parse_error_handler& err_handler)
+    {
+        json_decoder<basic_json<CharT,ImplementationPolicy,Allocator>> handler;
+        basic_json_reader<char_type> reader(is, handler, options, err_handler);
+        reader.read_next();
+        reader.check_done();
+        if (!handler.is_valid())
+        {
+            JSONCONS_THROW(json_exception_impl<std::runtime_error>("Failed to parse json stream"));
+        }
+        return handler.get_result();
+    }
+
+    static basic_json parse(const string_view_type& s, const basic_json_serializing_options<CharT>& options)
+    {
+        parse_error_handler_type err_handler;
+        return parse(s,options,err_handler);
+    }
+
+    static basic_json parse(const string_view_type& s, const basic_json_serializing_options<CharT>& options, parse_error_handler& err_handler)
+    {
+        json_decoder<basic_json> decoder;
+        basic_json_parser<char_type> parser(decoder,options,err_handler);
 
         auto result = unicons::skip_bom(s.begin(), s.end());
         if (result.ec != unicons::encoding_errc())
@@ -2905,11 +3003,11 @@ public:
     }
 
     basic_json(double val, uint8_t precision)
-        : var_(val, number_format(precision, 0))
+        : var_(val, floating_point_options(chars_format::general, precision, 0))
     {
     }
 
-    basic_json(double val, const number_format& fmt)
+    basic_json(double val, const floating_point_options& fmt)
         : var_(val, fmt)
     {
     }
@@ -3045,20 +3143,36 @@ public:
     }
 
     template <class SAllocator>
+    void dump(std::basic_string<char_type,char_traits_type,SAllocator>& s, indenting line_indent) const
+    {
+        basic_json_serializer<char_type,detail::string_writer<char_type>> serializer(s, line_indent);
+        dump(serializer);
+    }
+
+    template <class SAllocator>
     void dump(std::basic_string<char_type,char_traits_type,SAllocator>& s,
-              const basic_serialization_options<char_type>& options) const
+              const basic_json_serializing_options<char_type>& options) const
     {
         basic_json_serializer<char_type,detail::string_writer<char_type>> serializer(s, options);
         dump(serializer);
     }
 
+    template <class SAllocator>
+    void dump(std::basic_string<char_type,char_traits_type,SAllocator>& s,
+              const basic_json_serializing_options<char_type>& options, 
+              indenting line_indent) const
+    {
+        basic_json_serializer<char_type,detail::string_writer<char_type>> serializer(s, options, line_indent);
+        dump(serializer);
+    }
+
 #if !defined(JSONCONS_NO_DEPRECATED)
-    void dump_body(basic_json_output_handler<char_type>& handler) const
+    void dump_body(basic_json_content_handler<char_type>& handler) const
     {
         dump_fragment(handler);
     }
 #endif
-    void dump_fragment(basic_json_output_handler<char_type>& handler) const
+    void dump_fragment(basic_json_content_handler<char_type>& handler) const
     {
         switch (var_.type_id())
         {
@@ -3070,7 +3184,10 @@ public:
             handler.byte_string_value(var_.byte_string_data_cast()->data(), var_.byte_string_data_cast()->length());
             break;
         case json_type_tag::double_t:
-            handler.double_value(var_.double_data_cast()->value(), number_format(var_.double_data_cast()->precision(), var_.double_data_cast()->decimal_places()));
+            handler.double_value(var_.double_data_cast()->value(), 
+                                 floating_point_options(var_.double_data_cast()->format(),
+                                                        var_.double_data_cast()->precision(), 
+                                                        var_.double_data_cast()->decimal_places()));
             break;
         case json_type_tag::integer_t:
             handler.integer_value(var_.integer_data_cast()->value());
@@ -3115,7 +3232,7 @@ public:
             break;
         }
     }
-    void dump(basic_json_output_handler<char_type>& handler) const
+    void dump(basic_json_content_handler<char_type>& handler) const
     {
         handler.begin_json();
         dump_fragment(handler);
@@ -3128,21 +3245,21 @@ public:
         dump(serializer);
     }
 
-    void dump(std::basic_ostream<char_type>& os, bool pprint) const
+    void dump(std::basic_ostream<char_type>& os, indenting line_indent) const
     {
-        basic_json_serializer<char_type> serializer(os, pprint);
+        basic_json_serializer<char_type> serializer(os, line_indent);
         dump(serializer);
     }
 
-    void dump(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options) const
+    void dump(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options) const
     {
         basic_json_serializer<char_type> serializer(os, options);
         dump(serializer);
     }
 
-    void dump(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options, bool pprint) const
+    void dump(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, indenting line_indent) const
     {
-        basic_json_serializer<char_type> serializer(os, options, pprint);
+        basic_json_serializer<char_type> serializer(os, options, line_indent);
         dump(serializer);
     }
 
@@ -3154,7 +3271,7 @@ public:
         return s;
     }
 
-    string_type to_string(const basic_serialization_options<char_type>& options,
+    string_type to_string(const basic_json_serializing_options<char_type>& options,
                           const char_allocator_type& allocator=char_allocator_type()) const
     {
         string_type s(allocator);
@@ -3165,11 +3282,23 @@ public:
 
 #if !defined(JSONCONS_NO_DEPRECATED)
 
-    void write_body(basic_json_output_handler<char_type>& handler) const
+    void dump(std::basic_ostream<char_type>& os, bool pprint) const
+    {
+        basic_json_serializer<char_type> serializer(os, pprint);
+        dump(serializer);
+    }
+
+    void dump(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, bool pprint) const
+    {
+        basic_json_serializer<char_type> serializer(os, options, pprint);
+        dump(serializer);
+    }
+
+    void write_body(basic_json_content_handler<char_type>& handler) const
     {
         dump(handler);
     }
-    void write(basic_json_output_handler<char_type>& handler) const
+    void write(basic_json_content_handler<char_type>& handler) const
     {
         dump(handler);
     }
@@ -3179,17 +3308,17 @@ public:
         dump(os);
     }
 
-    void write(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options) const
+    void write(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options) const
     {
         dump(os,options);
     }
 
-    void write(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options, bool pprint) const
+    void write(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, bool pprint) const
     {
         dump(os,options,pprint);
     }
 
-    void to_stream(basic_json_output_handler<char_type>& handler) const
+    void to_stream(basic_json_content_handler<char_type>& handler) const
     {
         handler.begin_json();
         dump_fragment(handler);
@@ -3202,13 +3331,13 @@ public:
         to_stream(serializer);
     }
 
-    void to_stream(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options) const
+    void to_stream(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options) const
     {
         basic_json_serializer<char_type> serializer(os, options);
         to_stream(serializer);
     }
 
-    void to_stream(std::basic_ostream<char_type>& os, const basic_serialization_options<char_type>& options, bool pprint) const
+    void to_stream(std::basic_ostream<char_type>& os, const basic_json_serializing_options<char_type>& options, bool pprint) const
     {
         basic_json_serializer<char_type> serializer(os, options, pprint);
         to_stream(serializer);
@@ -3425,7 +3554,7 @@ public:
         case json_type_tag::string_t:
             try
             {
-                basic_json j = basic_json::parse(as_string_view().data(),as_string_view().length());
+                basic_json j = basic_json::parse(as_string_view());
                 return j.as_bool();
             }
             catch (...)
@@ -3454,7 +3583,7 @@ public:
         case json_type_tag::string_t:
             try
             {
-                basic_json j = basic_json::parse(as_string_view().data(),as_string_view().length());
+                basic_json j = basic_json::parse(as_string_view());
                 return j.as<int64_t>();
             }
             catch (...)
@@ -3483,7 +3612,7 @@ public:
         case json_type_tag::string_t:
             try
             {
-                basic_json j = basic_json::parse(as_string_view().data(),as_string_view().length());
+                basic_json j = basic_json::parse(as_string_view());
                 return j.as<uint64_t>();
             }
             catch (...)
@@ -3534,7 +3663,7 @@ public:
         case json_type_tag::string_t:
             try
             {
-                basic_json j = basic_json::parse(as_string_view().data(),as_string_view().length());
+                basic_json j = basic_json::parse(as_string_view());
                 return j.as<double>();
             }
             catch (...)
@@ -3590,7 +3719,7 @@ public:
         }
     }
 
-    string_type as_string(const basic_serialization_options<char_type>& options) const 
+    string_type as_string(const basic_json_serializing_options<char_type>& options) const 
     {
         switch (var_.type_id())
         {
@@ -3603,7 +3732,7 @@ public:
     }
 
     template <class SAllocator>
-    string_type as_string(const basic_serialization_options<char_type>& options,
+    string_type as_string(const basic_json_serializing_options<char_type>& options,
                           const SAllocator& allocator) const 
     {
         switch (var_.type_id())
@@ -3616,6 +3745,7 @@ public:
         }
     }
 
+#if !defined(JSONCONS_NO_DEPRECATED)
     const char_type* as_cstring() const
     {
         switch (var_.type_id())
@@ -3629,7 +3759,6 @@ public:
         }
     }
 
-#if !defined(JSONCONS_NO_DEPRECATED)
 
     size_t double_precision() const
     {
@@ -3833,24 +3962,25 @@ public:
         }
     }
 
-    const CharT* get_with_default(const string_view_type& name, const CharT* default_val) const
+    template<class T = std::basic_string<CharT>>
+    T get_with_default(const string_view_type& name, const CharT* default_val) const
     {
         switch (var_.type_id())
         {
         case json_type_tag::empty_object_t:
             {
-                return default_val;
+                return T(default_val);
             }
         case json_type_tag::object_t:
             {
                 const_object_iterator it = object_value().find(name);
                 if (it != object_range().end())
                 {
-                    return it->value().as_cstring();
+                    return it->value().template as<T>();
                 }
                 else
                 {
-                    return default_val;
+                    return T(default_val);
                 }
             }
         default:
@@ -4805,28 +4935,6 @@ void swap(typename Json::key_value_pair_type& a, typename Json::key_value_pair_t
     a.swap(b);
 }
 
-template<class CharT,class ImplementationPolicy,class Allocator>
-basic_json<CharT,ImplementationPolicy,Allocator> basic_json<CharT,ImplementationPolicy,Allocator>::parse(std::basic_istream<char_type>& is)
-{
-    parse_error_handler_type err_handler;
-    return parse(is,err_handler);
-}
-
-template<class CharT,class ImplementationPolicy,class Allocator>
-basic_json<CharT,ImplementationPolicy,Allocator> basic_json<CharT,ImplementationPolicy,Allocator>::parse(std::basic_istream<char_type>& is, 
-                                                                                            parse_error_handler& err_handler)
-{
-    json_decoder<basic_json<CharT,ImplementationPolicy,Allocator>> handler;
-    basic_json_reader<char_type> reader(is, handler, err_handler);
-    reader.read_next();
-    reader.check_done();
-    if (!handler.is_valid())
-    {
-        JSONCONS_THROW(json_exception_impl<std::runtime_error>("Failed to parse json stream"));
-    }
-    return handler.get_result();
-}
-
 template <class Json>
 std::basic_istream<typename Json::char_type>& operator>>(std::basic_istream<typename Json::char_type>& is, Json& o)
 {
@@ -4848,23 +4956,21 @@ class json_printable
 public:
     typedef typename Json::char_type char_type;
 
-    json_printable(const Json& o,
-                   bool is_pretty_print)
-       : o_(&o), is_pretty_print_(is_pretty_print)
+    json_printable(const Json& o, indenting line_indent)
+       : o_(&o), indenting_(line_indent)
     {
     }
 
     json_printable(const Json& o,
-                   bool is_pretty_print,
-                   const basic_serialization_options<char_type>& options)
-       : o_(&o), is_pretty_print_(is_pretty_print), options_(options)
+                   const basic_json_serializing_options<char_type>& options,
+                   indenting line_indent)
+       : o_(&o), options_(options), indenting_(line_indent)
     {
-        ;
     }
 
     void dump(std::basic_ostream<char_type>& os) const
     {
-        o_->dump(os, options_, is_pretty_print_);
+        o_->dump(os, options_, indenting_);
     }
 
     friend std::basic_ostream<char_type>& operator<<(std::basic_ostream<char_type>& os, const json_printable<Json>& o)
@@ -4874,8 +4980,8 @@ public:
     }
 
     const Json *o_;
-    bool is_pretty_print_;
-    basic_serialization_options<char_type> options_;
+    basic_json_serializing_options<char_type> options_;
+    indenting indenting_;
 private:
     json_printable();
 };
@@ -4883,27 +4989,27 @@ private:
 template<class Json>
 json_printable<Json> print(const Json& val)
 {
-    return json_printable<Json>(val,false);
+    return json_printable<Json>(val, indenting::no_indent);
 }
 
 template<class Json>
 json_printable<Json> print(const Json& val,
-                            const basic_serialization_options<typename Json::char_type>& options)
+                           const basic_json_serializing_options<typename Json::char_type>& options)
 {
-    return json_printable<Json>(val, false, options);
+    return json_printable<Json>(val, options, indenting::no_indent);
 }
 
 template<class Json>
 json_printable<Json> pretty_print(const Json& val)
 {
-    return json_printable<Json>(val,true);
+    return json_printable<Json>(val, indenting::indent);
 }
 
 template<class Json>
 json_printable<Json> pretty_print(const Json& val,
-                                   const basic_serialization_options<typename Json::char_type>& options)
+                                  const basic_json_serializing_options<typename Json::char_type>& options)
 {
-    return json_printable<Json>(val, true, options);
+    return json_printable<Json>(val, options, indenting::indent);
 }
 
 typedef basic_json<char,sorted_policy,std::allocator<char>> json;
@@ -4925,25 +5031,25 @@ namespace literals {
 inline 
 jsoncons::json operator "" _json(const char* s, std::size_t n)
 {
-    return jsoncons::json::parse(s, n);
+    return jsoncons::json::parse(jsoncons::json::string_view_type(s, n));
 }
 
 inline 
 jsoncons::wjson operator "" _json(const wchar_t* s, std::size_t n)
 {
-    return jsoncons::wjson::parse(s, n);
+    return jsoncons::wjson::parse(jsoncons::wjson::string_view_type(s, n));
 }
 
 inline
 jsoncons::ojson operator "" _ojson(const char* s, std::size_t n)
 {
-    return jsoncons::ojson::parse(s, n);
+    return jsoncons::ojson::parse(jsoncons::ojson::string_view_type(s, n));
 }
 
 inline
 jsoncons::wojson operator "" _ojson(const wchar_t* s, std::size_t n)
 {
-    return jsoncons::wojson::parse(s, n);
+    return jsoncons::wojson::parse(jsoncons::wojson::string_view_type(s, n));
 }
 
 }
@@ -4951,6 +5057,7 @@ jsoncons::wojson operator "" _ojson(const wchar_t* s, std::size_t n)
 
 }
 
+#include <jsoncons/json_convert_traits.hpp>
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
