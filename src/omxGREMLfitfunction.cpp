@@ -167,6 +167,10 @@ void omxGREMLFitState::init()
 			else{oo->hessianAvailable = false;}
 		}
 	}
+	
+	//Parallel numeric derivative calculation?
+	ProtectedSEXP RparallelNumDerivs(R_do_slot(rObj, Rf_install("parallelNumDerivs")));
+	oo->canDuplicate = Rf_asLogical(RparallelNumDerivs);
 }
 
 void omxGREMLFitState::compute(int want, FitContext *fc)

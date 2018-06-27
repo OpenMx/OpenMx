@@ -20,6 +20,7 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(dV)}.
     \item{\code{aug}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object used to "augment" the fitfunction value at each function evaluation during optimization.}
     \item{\code{augGrad}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the first derivatives of \code{aug} with respect to free parameters.}
     \item{\code{augHess}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the second derivatives of \code{aug} with respect to free parameters.}
+    \item{\code{parallelNumDerivs}:}{Object of class \code{"logical"}.  Should computation of numeric fitfunction derivatives be parallelized over multiple threads?}
     \item{\code{info}:}{Object of class \code{"list"}.}
     \item{\code{dependencies}:}{Object of class \code{"integer"}.}
     \item{\code{expectation}:}{Object of class \code{"integer"}.}
