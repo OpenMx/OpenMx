@@ -31,7 +31,7 @@ Cmod <- mxModel(
 	"GREMLtest",
 	mxData(observed = Dat, type="raw", sort=FALSE),
 	ge,
-	mxFitFunctionML(),
+	mxFitFunctionGREML(),
 	mxMatrix(type = "Diag", nrow = 104, ncol=104, free=T, values = 0.5, labels = "ve", 
 					 lbound = 0.0001, name = "Ve"),
 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.5,labels="vc",name="Vc"),

@@ -307,10 +307,6 @@ omxFitFunction *MLFitState::initMorph()
 		return omxChangeFitType(oo, "imxFitFunctionBA81");
 	}
 
-	if (strEQ(expectation->expType, "MxExpectationGREML")) {
-		return omxChangeFitType(oo, "MxFitFunctionGREML");
-	}
-
 	if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
 		return omxChangeFitType(oo, "imxFitFunciontStateSpace");
 	}
