@@ -378,8 +378,7 @@ generateNormalData <- function(model, nrows, subname){
 		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
 		theThresh <- imxGetExpectationComponent(model, "thresholds", subname=subname)
 		if (length(theMeans) == 0) {
-			stop(paste("Cannot generate data from model", omxQuotes(model[[subname]]$name),
-				   "where means are not specified"))
+			theMeans <- rep(0, nrow(theCov))
 		}
 		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
 		colnames(data) <- colnames(theCov)
