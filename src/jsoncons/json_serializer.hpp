@@ -169,7 +169,6 @@ public:
     basic_json_serializer(output_type& os, bool pprint)
        : indent_(0), 
          indenting_(pprint),
-         fp_(options_.precision()),
          writer_(os)
     {
     }
