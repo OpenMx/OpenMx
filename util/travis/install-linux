@@ -2,7 +2,7 @@
 
 set -ve
 
-cp ./util/gcc6.conf ~/.R/Makevars
+cp ./util/gcc7.conf ~/.R/Makevars
 
 sudo apt-get install -yq --no-install-suggests --no-install-recommends r-cran-rcpp r-cran-rcppeigen r-cran-stanheaders r-cran-bh r-cran-rpf r-cran-mvtnorm r-cran-numderiv r-cran-snowfall r-cran-lme4 r-cran-git2r r-cran-memoise r-cran-roxygen2 r-cran-devtools
 
