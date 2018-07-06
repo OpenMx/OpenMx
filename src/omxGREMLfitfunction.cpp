@@ -65,7 +65,7 @@ void omxGREMLFitState::init()
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   
   oo->units = FIT_UNITS_MINUS2LL;
-  oo->canDuplicate = false;
+  oo->canDuplicate = true;
   
   omxState* currentState = expectation->currentState;
   newObj->usingGREMLExpectation = (strcmp(expectation->expType, "MxExpectationGREML")==0 ? 1 : 0);
@@ -167,18 +167,6 @@ void omxGREMLFitState::init()
 			}
 			else{oo->hessianAvailable = false;}
 		}
-	}
-	
-	//Parallel numeric derivative calculation?
-	if(R_has_slot(rObj, Rf_install("parallelNumDerivs"))){
-		ProtectedSEXP RparallelNumDerivs(R_do_slot(rObj, Rf_install("parallelNumDerivs")));
-		oo->canDuplicate = Rf_asLogical(RparallelNumDerivs);
-	}
-	else if(R_has_slot(rObj, Rf_install("rowwiseParallel"))){
-		//If user has provided rowwiseParallel=FALSE to frontend mxFitFunctionML(), then assume they want parallelized
-		//numeric derivatives:
-		ProtectedSEXP RrowwiseParallel(R_do_slot(rObj, Rf_install("rowwiseParallel")));
-		oo->canDuplicate = !Rf_asLogical(RrowwiseParallel);
 	}
 }
 

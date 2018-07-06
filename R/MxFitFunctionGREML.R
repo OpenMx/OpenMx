@@ -21,14 +21,13 @@ setClass(Class = "MxFitFunctionGREML",
            numObs = "integer",
            aug = "MxCharOrNumber",
            augGrad = "MxCharOrNumber",
-           augHess = "MxCharOrNumber",
-           parallelNumDerivs = "logical"),
+           augHess = "MxCharOrNumber"),
          contains = "MxBaseFitFunction")
 
 
 setMethod("initialize", "MxFitFunctionGREML",
           function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0L, aug=character(0),
-          				 augGrad=character(0), augHess=character(0), parallelNumDerivs=FALSE) {
+          				 augGrad=character(0), augHess=character(0)) {
             .Object@name <- name
             .Object@dV <- dV
             .Object@dVnames <- as.character(names(dV))
@@ -38,7 +37,6 @@ setMethod("initialize", "MxFitFunctionGREML",
             .Object@aug <- aug
             .Object@augGrad <- augGrad
             .Object@augHess <- augHess
-            .Object@parallelNumDerivs <- parallelNumDerivs
             return(.Object)
           }
 )
@@ -124,6 +122,6 @@ setMethod("generateReferenceModels", "MxFitFunctionGREML",
 					})
 
 
-mxFitFunctionGREML <- function(dV=character(0), aug=character(0), augGrad=character(0), augHess=character(0), parallelNumDerivs=FALSE){
-  return(new("MxFitFunctionGREML",dV=dV,aug=aug,augGrad=augGrad,augHess=augHess,parallelNumDerivs=parallelNumDerivs))
+mxFitFunctionGREML <- function(dV=character(0), aug=character(0), augGrad=character(0), augHess=character(0)){
+  return(new("MxFitFunctionGREML",dV=dV,aug=aug,augGrad=augGrad,augHess=augHess))
 }
