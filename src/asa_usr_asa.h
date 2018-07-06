@@ -50,6 +50,7 @@ extern "C" {
 #define SMALL_FLOAT MIN_DOUBLE
 #define EPS_DOUBLE DBL_EPSILON
 #define USER_ASA_OUT TRUE
+#define INCL_STDOUT FALSE
 	//#define ASA_OUT "STDOUT"
 #endif                          /* MY_TEMPLATE */
 
