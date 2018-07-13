@@ -1,5 +1,7 @@
 library(OpenMx)
 
+if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
+
 # get data
 fp <- system.file("models/passing/data/jointdata.txt", package = "OpenMx", mustWork = TRUE)
 jointData <- read.table(fp, header=TRUE)
