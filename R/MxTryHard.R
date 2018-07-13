@@ -24,7 +24,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 											checkHess = TRUE, fit2beat = Inf, paste = TRUE,
 											iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
 											finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
-											maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=FALSE
+											maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive()
 ){
 	
 	#Initialize stuff & check inputs:
@@ -71,6 +71,8 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	numdone <- 0
 	lowestminsofar<-Inf 
 	finalfit<- NULL
+	previousLen <- 0L
+	msg <- ""
 	inits <- omxGetParameters(model)
 	params <- inits
 	if(is.na(maxMajorIter)){maxMajorIter <- max(1000, (3*length(inits)) + (10*length(model@constraints)))}
@@ -82,8 +84,24 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	
 	#Begin main 'while' loop.
 	while (!stopflag) {
+		if(numdone==0){
+			if(!silent){
+				message("\nBeginning initial fit attempt")
+			} else{
+				msg <- "Beginning initial fit attempt"
+				imxReportProgress(msg, previousLen)
+				previousLen <- nchar(msg)
+			}
+		} else{
+			if(!silent){
+				message(paste0('\nBeginning fit attempt ', numdone, ' of at maximum ', extraTries, ' extra tries'))
+			} else{
+				msg <- paste0('Beginning fit attempt ', numdone, ' of at maximum ', extraTries, ' extra tries')
+				imxReportProgress(msg, previousLen)
+				previousLen <- nchar(msg)
+			}
+		}
 		
-		if(!silent){message(paste0('\nBegin fit attempt ', numdone+1, ' of at maximum ', extraTries +1, ' tries'))}
 		if(lastNoError && ("prev" %in% wtgcsv)){params <- omxGetParameters(fit)}
 		
 		
@@ -140,8 +158,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				model,
 				mxComputeSequence(c( steps,RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation() )))
 		}
-		if(showInits && !silent) {
-			message('Starting values:  ')
+		#showInits=FALSE by default for mxTryHard() and its 4 specialized wrappers, and the extra printing that occurs when showInits=TRUE
+		#is too much to summarize in one line.  Therefore, if the user has provided showInits=TRUE, then give him/her the extra printing 
+		#requested notwithstanding the value of argument 'silent' (which by default is TRUE in an interactive session):
+		if(showInits) {
+			message('\nStarting values:  ')
 			message(paste0(names(omxGetParameters(model)),' : ', omxGetParameters(model),'\n'))
 		}
 		fit <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
@@ -154,6 +175,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			lastBestFitCount <- 0
 			lastNoError<-FALSE
 			if(!silent){message('\n Fit attempt generated errors')}
+			else{
+				msg <- 'Fit attempt generated errors'
+				imxReportProgress(msg, previousLen)
+				previousLen <- nchar(msg)
+			}
 		}
 		
 		
@@ -162,14 +188,24 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			lastNoError <- TRUE
 			if(fit$output$minimum >= lowestminsofar){
 				lastBestFitCount <- 0
-				if(fit$output$minimum >= lowestminsofar + generalTolerance && !silent){
-					message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar )) 
-			}}
+				if(fit$output$minimum >= lowestminsofar + generalTolerance){
+					if(!silent){message(paste0('\n Fit attempt worse than current best:  ',fit$output$minimum ,' vs ', lowestminsofar ))}
+					else{
+						msg <- paste0('Fit attempt ',numdone-1,', fit=',fit$output$minimum,', worse than previous best (',lowestminsofar,')')
+						imxReportProgress(msg, previousLen)
+						previousLen <- nchar(msg)
+					}
+				}}
 			#Current fit will become bestfit if (1) its fitvalue is strictly less than lowestminsofar, or
 			#(2) its fitvalue is no greater than lowestminsofar (within tolerance) AND it satisfies the criteria for 
 			#an acceptable result (i.e., goodflag gets set to TRUE):
 			if(fit$output$minimum < lowestminsofar){ #<--If this is the best fit so far
 				if(!silent){message(paste0('\n Lowest minimum so far:  ',fit$output$minimum))}
+				else{
+					msg <- paste0('Fit attempt ',numdone-1,', fit=',fit$output$minimum,', new current best! (was',lowestminsofar,')')
+					imxReportProgress(msg, previousLen)
+					previousLen <- nchar(msg)
+				}
 				lastBestFitCount<-lastBestFitCount+1 
 				lowestminsofar <- fit$output$minimum
 				bestfit <- fit
@@ -180,22 +216,46 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				goodflag <- TRUE
 				if( !(fit$output$status[[1]] %in% OKstatuscodes) ){
 					goodflag <- FALSE
-					if(!silent){message(paste0('\n OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', OKstatuscodes))}
+					if(!silent){
+						message(paste('\n OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', 
+													paste("(",paste(OKstatuscodes,collapse=","),")",sep=""), sep=""))
+					}
+					else{
+						msg <- paste('OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', 
+												 paste("(",paste(OKstatuscodes,collapse=","),")",sep=""), sep="")
+						imxReportProgress(msg, previousLen)
+						previousLen <- nchar(msg)
+					}
 				}
 				if(fit$output$minimum > fit2beat) {
 					if(!silent){message(paste0('\n Fit value of ', fit$output$minimum, ' greater than fit2beat of ', fit2beat))}
+					else{
+						msg <- paste0('Fit value of ', fit$output$minimum, ' greater than fit2beat of ', fit2beat)
+						imxReportProgress(msg, previousLen)
+						previousLen <- nchar(msg)
+					}
 					goodflag <- FALSE
 				}
 				if(checkHess==TRUE) {
 					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
 					if(class(hessEigenval)=='try-error') {
 						if(!silent){message(paste0('\n Eigenvalues of Hessian could not be calculated'))}
+						else{
+							msg <- paste0('Eigenvalues of Hessian could not be calculated')
+							imxReportProgress(msg, previousLen)
+							previousLen <- nchar(msg)
+						}
 						goodflag <- FALSE
 					}
 					if(class(hessEigenval)!='try-error' && any(hessEigenval < 0)) {
 						if(!silent){message(paste0('\n Not all eigenvalues of Hessian are greater than ', 0,': ', paste(hessEigenval,collapse=', ')))}
+						else{
+							msg <- paste0('Not all eigenvalues of Hessian are greater than ', 0,': ', paste(hessEigenval,collapse=', '))
+							imxReportProgress(msg, previousLen)
+							previousLen <- nchar(msg)
+						}
 						goodflag <- FALSE
-				}}
+					}}
 				if(goodflag){ 
 					bestfit <- fit
 					bestfit.params <- omxGetParameters(bestfit)
@@ -203,23 +263,41 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				stopflag <- goodflag && !exhaustive
 			} #end goodflag checks
 			
-			if(iterationSummary && !silent){
-				message(paste0("\n Attempt ",numdone," fit:  "))
+			#iterationSummary=FALSE by default for mxTryHard() and its 4 specialized wrappers, and the extra printing that occurs when 
+			#iterationSummary=TRUE is too much to summarize in one line.  Therefore, if the user has provided showInits=TRUE, then give him/her 
+			#the extra printing requested notwithstanding the value of argument 'silent' (which by default is TRUE in an interactive session):
+			if(iterationSummary){
+				message(paste0("\n Attempt ",numdone," result:  "))
 				message(paste(names(params),": ", fit$output$estimate,"\n"))
-				message(paste0("-2LL = ", fit$output$Minus2LogLikelihood))
+				message(paste0("fit value = ", fit$output$minimum))
 			}
 		} #end 'if fit did not result in error' section
 		
-		if(numdone > extraTries){
+		if(numdone == extraTries){
 			if(!silent){message('\nRetry limit reached')}
+			else{
+				msg <- 'Retry limit reached'
+				imxReportProgress(msg, previousLen)
+				previousLen <- nchar(msg)
+			}
 			stopflag <- TRUE
 		}
 	} #end while loop
 	
 	if(goodflag){
 		if(!silent){message('\nSolution found\n')}
+		else{
+			msg <- 'Solution found'
+			imxReportProgress(msg, previousLen)
+			previousLen <- nchar(msg)
+		}
 		if(any(Hesslater,SElater,doIntervals)){
-			if(!silent){message("Running final fit, for Hessian and/or standard errors and/or confidence intervals\n")}
+			if(!silent){message("Final run, for Hessian and/or standard errors and/or confidence intervals\n")}
+			else{
+				msg <- 'Final run, for Hessian and/or standard errors and/or confidence intervals'
+				imxReportProgress(msg, previousLen)
+				previousLen <- nchar(msg)
+			}
 			finalfit <- bestfit
 			if(defaultComputePlan){
 				steps <- list()
@@ -228,13 +306,13 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						nudgeZeroStarts=FALSE,gradientIterations=gradientIterations,
 						tolerance=tolerance, maxMajorIter=maxMajorIter, gradientAlgo=relevantOptions[[4]])
 					steps <- c(steps,CI=mxComputeConfidenceInterval(
-								 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
+						plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 				}
 				if(Hesslater){
 					steps <- c(steps,ND=mxComputeNumericDeriv())
 				} else {
 					steps <- c(steps,ND=mxComputeNumericDeriv(knownHessian=bestfit$output$hessian,
-										  checkGradient=FALSE))
+																										checkGradient=FALSE))
 				}
 				if(SElater){
 					steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
@@ -244,19 +322,29 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			}
 			finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
 			if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
-					message('Errors during final fit for Hessian/SEs/CIs\n')
+				if(!silent){message('Errors during final fit for Hessian/SEs/CIs\n')}
+				else{
+					msg <- 'Errors during final fit for Hessian/SEs/CIs'
+					imxReportProgress(msg, previousLen)
+					previousLen <- nchar(msg)
+				}
 			} else {
 				if (length(summary(finalfit)$npsolMessage) > 0){
-					message('Warning messages generated from final fit for final fit for Hessian/SEs/CIs\n')
+					if(!silent){message('Warning messages generated from final run for Hessian/SEs/CIs\n')}
+					else{
+						msg <- 'Warning messages generated from final run for Hessian/SEs/CIs'
+						imxReportProgress(msg, previousLen)
+						previousLen <- nchar(msg)
+					}
 				}
 			}
 		}
 		if (length(summary(bestfit)$npsolMessage) > 0) {
 			warning(summary(bestfit)$npsolMessage)
 		}
-		if(iterationSummary && !silent){
+		if(iterationSummary){
 			message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-			message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
+			message(paste0("fit value = ", bestfit$output$minimum))
 		}
 		bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
 	} #end 'if goodflag' section
@@ -266,6 +354,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		if (exists("bestfit")) {
 			if(any(Hesslater,SElater,doIntervals)){
 				if(!silent){message("Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution\n")}
+				else{
+					msg <- "Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution"
+					imxReportProgress(msg, previousLen)
+					previousLen <- nchar(msg)
+				}
 				finalfit <- bestfit
 				if(defaultComputePlan){
 					steps <- list()
@@ -274,13 +367,13 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 							nudgeZeroStarts=FALSE,gradientIterations=gradientIterations,
 							tolerance=tolerance, maxMajorIter=maxMajorIter, gradientAlgo=relevantOptions[[4]])
 						steps <- c(steps,CI=mxComputeConfidenceInterval(
-									 plan=ciOpt, constraintType=ciOpt$defaultCImethod))
+							plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 					}
 					if(Hesslater){
 						steps <- c(steps,ND=mxComputeNumericDeriv())
 					} else {
 						steps <- c(steps,ND=mxComputeNumericDeriv(knownHessian=bestfit$output$hessian,
-											  checkGradient=FALSE))
+																											checkGradient=FALSE))
 					}
 					if(SElater){
 						steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
@@ -290,17 +383,27 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				}
 				finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
 				if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
-					message('Errors occurred during final fit for Hessian/SEs/CIs; returning best fit as-is\n')
+					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
+					else{
+						msg <- 'Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is'
+						imxReportProgress(msg, previousLen)
+						previousLen <- nchar(msg)
+					}
 				}
 				if (length(bestfit$output$status$statusMsg) > 0) { 
 					warning(bestfit$output$status$statusMsg)
 				}
 				if(bestfit$output$status$code==6 && !(6 %in% OKstatuscodes)){
-					message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')
+					if(!silent){message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')}
+					else{
+						msg <- 'Uncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!'
+						imxReportProgress(msg, previousLen)
+						previousLen <- nchar(msg)
+					}
 				}
-				if(iterationSummary && !silent){
+				if(iterationSummary){
 					message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-					message(paste0("-2LL = ", bestfit$output$Minus2LogLikelihood))
+					message(paste0("fit value = ", bestfit$output$Minus2LogLikelihood))
 				}
 				bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
 			}}}
@@ -317,12 +420,18 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	
 	if (!exists("bestfit")) {
 		if(class(fit) == 'try-error') warning(fit[[length(fit)]])
-		message('All fit attempts resulted in errors - check starting values or model specification')
+		if(!silent){message('All fit attempts resulted in errors - check starting values or model specification')}
+		else{
+			msg <- 'All fit attempts resulted in errors - check starting values or model specification'
+			imxReportProgress(msg, previousLen)
+			previousLen <- nchar(msg)
+		}
 		bestfit<-fit
 	}
 	
 	if( defaultComputePlan && !("try-error" %in% class(bestfit)) ){bestfit@compute@.persist <- FALSE}
 	
+	imxReportProgress("", previousLen)
 	return(bestfit)
 }
 
@@ -384,11 +493,11 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 	}
 	else{
 		if( doIntervals && ("MxComputeConfidenceInterval" %in% unlist(lapply(bestfit@compute@steps,class))) &&
-			 ("MxComputeConfidenceInterval" %in% unlist(lapply(finalfit@compute@steps,class))) ){
+				("MxComputeConfidenceInterval" %in% unlist(lapply(finalfit@compute@steps,class))) ){
 			f <- which("MxComputeConfidenceInterval"==unlist(lapply(finalfit@compute@steps,class)))
 			t <- which("MxComputeConfidenceInterval"==unlist(lapply(bestfit@compute@steps,class)))
 			bestfit@compute@steps[t] <- finalfit@compute@steps[f]
-	}}
+		}}
 	bestfit@output$timestamp <- finalfit@output$timestamp
 	if(doIntervals){
 		bestfit@output$confidenceIntervals <- finalfit@output$confidenceIntervals
@@ -415,13 +524,13 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 #Wrapper function to imitate original implementation of mxTryHard()--attempts to find good start values:
 mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv=c("prev","best"), ...){
 	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,
-									 maxMajorIter=maxMajorIter,wtgcsv=wtgcsv,...))
+									 maxMajorIter=maxMajorIter,wtgcsv=wtgcsv,silent=FALSE,...))
 }
 
 
 #Wrapper function faithful to Charlie Driver's SSCT-oriented changes:
 mxTryHardctsem <- function(model, initialGradientStepSize = .00001, initialGradientIterations = 1,
-													initialTolerance=1e-12,	jitterDistrib="rnorm", ...){
+													 initialTolerance=1e-12,	jitterDistrib="rnorm", ...){
 	return(mxTryHard(model=model,initialGradientStepSize=initialGradientStepSize,
 									 initialGradientIterations=initialGradientIterations,
 									 initialTolerance=initialTolerance,jitterDistrib=jitterDistrib,...))
@@ -430,7 +539,7 @@ mxTryHardctsem <- function(model, initialGradientStepSize = .00001, initialGradi
 
 #Wrapper function that uses mxTryHard() to try to search a wide region of the parameter space:
 mxTryHardWideSearch <- function(model, finetuneGradient=FALSE, jitterDistrib="rcauchy", exhaustive=TRUE,
-	wtgcsv="prev", ...){
+																wtgcsv="prev", ...){
 	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,
 									 jitterDistrib=jitterDistrib,
 									 exhaustive=exhaustive,wtgcsv=wtgcsv,...))
@@ -439,11 +548,11 @@ mxTryHardWideSearch <- function(model, finetuneGradient=FALSE, jitterDistrib="rc
 
 #Wrapper function tailored toward ordinal-threshold analyses (not too sure about this function...): 
 mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneGradient=FALSE, exhaustive=TRUE,
-	OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...){
+														 OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...){
 	return(mxTryHard(model=model,greenOK=greenOK,checkHess=checkHess,finetuneGradient=finetuneGradient,
 									 exhaustive=exhaustive,OKstatuscodes=OKstatuscodes,wtgcsv=wtgcsv,...))
 }
-	
+
 
 
 verifyNoConstraints <- function(model){
