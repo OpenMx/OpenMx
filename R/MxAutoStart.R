@@ -60,6 +60,10 @@
 ##' mxGetExpected(m1s, 'covariance')
 mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
 	type <- match.barg(type)
+	# Run the model through all the frontend processing to check for errors
+	blah <- mxRun(model, silent=TRUE, suppressWarnings=FALSE, onlyFrontend=TRUE)
+	blah <- NULL
+	# If no errors found, continue with processing for autostart.
 	if(is.null(model@fitfunction)){
 		stop("I don't work with null fit functions.")
 	}

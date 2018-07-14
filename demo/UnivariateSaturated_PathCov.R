@@ -51,7 +51,7 @@ univSatModel1 <- mxModel("univSat1",
     mxPath(
 		from=c("X"), 
 		arrows=2, 
-		free=T, 
+		free = TRUE, 
 		values=1, 
 		lbound=.01, 
 		labels="vX"
@@ -77,7 +77,7 @@ univSatModel1m <- mxModel("univSat1m",
     mxPath(
 		from=c("X"), 
 		arrows=2, 
-		free=T, 
+		free = TRUE, 
 		values=1, 
 		lbound=.01, 
 		labels="vX"
@@ -86,7 +86,7 @@ univSatModel1m <- mxModel("univSat1m",
 		from="one", 
 		to="X", 
 		arrows=1, 
-		free=T, 
+		free = TRUE, 
 		values=0, 
 		labels="mX"
 	),

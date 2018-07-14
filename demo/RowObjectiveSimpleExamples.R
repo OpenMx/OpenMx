@@ -121,8 +121,8 @@ adat <- data.frame(x=rnorm(nobs))
 
 dmod <- mxModel(
 	name='I will run fast on OpenMx',
-	mxMatrix(name='A', nrow=nobs, ncol=1, free=T, values=0.1),
-	mxMatrix(name='X', nrow=nobs, ncol=1, free=F, values=as.matrix(adat)),
+	mxMatrix(name='A', nrow=nobs, ncol=1, free = TRUE, values=0.1),
+	mxMatrix(name='X', nrow=nobs, ncol=1, free = FALSE, values=as.matrix(adat)),
 	mxAlgebra((X-A) %^% 2, name='Row'),
 	mxAlgebra(sum(Row), name='Red'),
 	mxFitFunctionAlgebra('Red')
@@ -142,8 +142,8 @@ robj1 <- function(model, state) {
 
 emod <- mxModel(
 	name='I will run slow on OpenMx',
-	mxMatrix(name='A', nrow=nobs, ncol=1, free=T, values=0.1),
-	mxMatrix(name='X', nrow=nobs, ncol=1, free=F, values=as.matrix(adat)),
+	mxMatrix(name='A', nrow=nobs, ncol=1, free = TRUE, values=0.1),
+	mxMatrix(name='X', nrow=nobs, ncol=1, free = FALSE, values=as.matrix(adat)),
 	mxFitFunctionR(robj1)
 )
 

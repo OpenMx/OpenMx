@@ -18,6 +18,7 @@
 #include <iterator>
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/binary/binary_utilities.hpp>
+#include <jsoncons_ext/cbor/cbor_serializer.hpp>
 
 // Positive integer 0x00..0x17 (0..23)
 #define JSONCONS_CBOR_0x00_0x17 \
@@ -1739,7 +1740,7 @@ public:
     typedef std::string string_type;
     typedef char char_type;
     typedef std::char_traits<char_type> char_traits_type;
-    typedef basic_string_view_ext<char_type> string_view_type;
+    typedef basic_string_view<char_type> string_view_type;
     typedef detail::const_object_iterator<cbor_view> object_iterator;
     typedef detail::const_object_iterator<cbor_view> const_object_iterator;
     typedef detail::const_array_iterator<cbor_view> array_iterator;
@@ -2114,305 +2115,13 @@ public:
         }
         return val;
     }
-};
+protected:
 
-struct Encode_cbor_
-{
-    template <typename T>
-    void operator()(T val, std::vector<uint8_t>& v)
+    void set_data(const uint8_t* data, size_t length)
     {
-        binary::to_big_endian(val,v);
-    }
-};
-
-struct Calculate_size_
-{
-    template <typename T>
-    void operator()(T, size_t& size)
-    {
-        size += sizeof(T);
-    }
-};
-  
-template<class Json>
-struct cbor_Encoder_
-{
-    typedef typename Json::string_view_type string_view_type;
-
-    static size_t calculate_size(const Json& j)
-    {
-        size_t n = 0;
-        cbor_Encoder_<Json>::encode(j,Calculate_size_(),n);
-        return n;
-    }
-
-    template <class Action, class Result>
-    static void encode(const Json& jval, Action action, Result& v)
-    {
-        switch (jval.type_id())
-        {
-        case json_type_tag::null_t:
-            {
-                action(static_cast<uint8_t>(0xf6), v);
-                break;
-            }
-
-        case json_type_tag::bool_t:
-            {
-                action(static_cast<uint8_t>(jval.as_bool() ? 0xf5 : 0xf4), v);
-                break;
-            }
-
-        case json_type_tag::integer_t:
-            {
-                int64_t val = jval.as_integer();
-                if (val >= 0)
-                {
-                    if (val <= 0x17)
-                    {
-                        action(static_cast<uint8_t>(val), v);
-                    } else if (val <= (std::numeric_limits<uint8_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x18), v);
-                        action(static_cast<uint8_t>(val), v);
-                    } else if (val <= (std::numeric_limits<uint16_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x19), v);
-                        action(static_cast<uint16_t>(val), v);
-                    } else if (val <= (std::numeric_limits<uint32_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x1a), v);
-                        action(static_cast<uint32_t>(val), v);
-                    } else if (val <= (std::numeric_limits<int64_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x1b), v);
-                        action(static_cast<int64_t>(val), v);
-                    }
-                } else
-                {
-                    const auto posnum = -1 - val;
-                    if (val >= -24)
-                    {
-                        action(static_cast<uint8_t>(0x20 + posnum), v);
-                    } else if (posnum <= (std::numeric_limits<uint8_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x38), v);
-                        action(static_cast<uint8_t>(posnum), v);
-                    } else if (posnum <= (std::numeric_limits<uint16_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x39), v);
-                        action(static_cast<uint16_t>(posnum), v);
-                    } else if (posnum <= (std::numeric_limits<uint32_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x3a), v);
-                        action(static_cast<uint32_t>(posnum), v);
-                    } else if (posnum <= (std::numeric_limits<int64_t>::max)())
-                    {
-                        action(static_cast<uint8_t>(0x3b), v);
-                        action(static_cast<int64_t>(posnum), v);
-                    }
-                }
-                break;
-            }
-
-        case json_type_tag::uinteger_t:
-            {
-                uint64_t val = jval.as_uinteger();
-                if (val <= 0x17)
-                {
-                    action(static_cast<uint8_t>(val),v);
-                } else if (val <=(std::numeric_limits<uint8_t>::max)())
-                {
-                    action(static_cast<uint8_t>(0x18), v);
-                    action(static_cast<uint8_t>(val),v);
-                } else if (val <=(std::numeric_limits<uint16_t>::max)())
-                {
-                    action(static_cast<uint8_t>(0x19), v);
-                    action(static_cast<uint16_t>(val),v);
-                } else if (val <=(std::numeric_limits<uint32_t>::max)())
-                {
-                    action(static_cast<uint8_t>(0x1a), v);
-                    action(static_cast<uint32_t>(val),v);
-                } else if (val <=(std::numeric_limits<uint64_t>::max)())
-                {
-                    action(static_cast<uint8_t>(0x1b), v);
-                    action(static_cast<uint64_t>(val),v);
-                }
-                break;
-            }
-
-        case json_type_tag::double_t:
-            {
-                action(static_cast<uint8_t>(0xfb), v);
-                action(jval.as_double(),v);
-                break;
-            }
-
-        case json_type_tag::byte_string_t:
-            {
-                encode_byte_string(jval. template as<std::vector<uint8_t>>(), action, v);
-                break;
-            }
-
-        case json_type_tag::small_string_t:
-        case json_type_tag::string_t:
-            {
-                encode_string(jval.as_string_view(), action, v);
-                break;
-            }
-
-        case json_type_tag::array_t:
-            {
-                const auto length = jval.array_value().size();
-                if (length <= 0x17)
-                {
-                    action(static_cast<uint8_t>(static_cast<uint8_t>(0x80 + length)), v);
-                } else if (length <= 0xff)
-                {
-                    action(static_cast<uint8_t>(0x98), v);
-                    action(static_cast<uint8_t>(static_cast<uint8_t>(length)), v);
-                } else if (length <= 0xffff)
-                {
-                    action(static_cast<uint8_t>(0x99), v);
-                    action(static_cast<uint16_t>(length),v);
-                } else if (length <= 0xffffffff)
-                {
-                    action(static_cast<uint8_t>(0x9a), v);
-                    action(static_cast<uint32_t>(length),v);
-                } else if (length <= 0xffffffffffffffff)
-                {
-                    action(static_cast<uint8_t>(0x9b), v);
-                    action(static_cast<uint64_t>(length),v);
-                }
-
-                // append each element
-                for (const auto& el : jval.array_range())
-                {
-                    encode(el,action,v);
-                }
-                break;
-            }
-
-        case json_type_tag::object_t:
-            {
-                const auto length = jval.object_value().size();
-                if (length <= 0x17)
-                {
-                    action(static_cast<uint8_t>(static_cast<uint8_t>(0xa0 + length)), v);
-                } else if (length <= 0xff)
-                {
-                    action(static_cast<uint8_t>(0xb8), v);
-                    action(static_cast<uint8_t>(static_cast<uint8_t>(length)), v);
-                } else if (length <= 0xffff)
-                {
-                    action(static_cast<uint8_t>(0xb9), v);
-                    action(static_cast<uint16_t>(length),v);
-                } else if (length <= 0xffffffff)
-                {
-                    action(static_cast<uint8_t>(0xba), v);
-                    action(static_cast<uint32_t>(length),v);
-                } else if (length <= 0xffffffffffffffff)
-                {
-                    action(static_cast<uint8_t>(0xbb), v);
-                    action(static_cast<uint64_t>(length),v);
-                }
-
-                // append each element
-                for (const auto& kv: jval.object_range())
-                {
-                    encode_string(kv.key(), action, v);
-                    encode(kv.value(), action, v);
-                }
-                break;
-            }
-
-        default:
-            {
-                break;
-            }
-        }
-    }
-
-    template <class Action,class Result>
-    static void encode_string(const string_view_type& sv, Action action, Result& v)
-    {
-        std::basic_string<uint8_t> target;
-        auto result = unicons::convert(
-            sv.begin(), sv.end(), std::back_inserter(target), 
-            unicons::conv_flags::strict);
-        if (result.ec != unicons::conv_errc())
-        {
-            JSONCONS_THROW(json_exception_impl<std::runtime_error>("Illegal unicode"));
-        }
-
-        const size_t length = target.length();
-        if (length <= 0x17)
-        {
-            // fixstr stores a byte array whose length is upto 31 bytes
-            action(static_cast<uint8_t>(static_cast<uint8_t>(0x60 + length)), v);
-        }
-        else if (length <= 0xff)
-        {
-            action(static_cast<uint8_t>(0x78), v);
-            action(static_cast<uint8_t>(static_cast<uint8_t>(length)), v);
-        }
-        else if (length <= 0xffff)
-        {
-            action(static_cast<uint8_t>(0x79), v);
-            action(static_cast<uint16_t>(length), v);
-        }
-        else if (length <= 0xffffffff)
-        {
-            action(static_cast<uint8_t>(0x7a), v);
-            action(static_cast<uint32_t>(length), v);
-        }
-        else if (length <= 0xffffffffffffffff)
-        {
-            action(static_cast<uint8_t>(0x7b), v);
-            action(static_cast<uint64_t>(length),v);
-        }
-
-        for (size_t i = 0; i < length; ++i)
-        {
-            action(static_cast<uint8_t>(target.data()[i]), v);
-        }
-    }
-
-    template <class Action,class Result>
-    static void encode_byte_string(const std::vector<uint8_t>& target, Action action, Result& v)
-    {
-        const size_t length = target.size();
-        if (length <= 0x17)
-        {
-            // fixstr stores a byte array whose length is upto 31 bytes
-            action(static_cast<uint8_t>(static_cast<uint8_t>(0x40 + length)), v);
-        }
-        else if (length <= 0xff)
-        {
-            action(static_cast<uint8_t>(0x58), v);
-            action(static_cast<uint8_t>(static_cast<uint8_t>(length)), v);
-        }
-        else if (length <= 0xffff)
-        {
-            action(static_cast<uint8_t>(0x59), v);
-            action(static_cast<uint16_t>(length), v);
-        }
-        else if (length <= 0xffffffff)
-        {
-            action(static_cast<uint8_t>(0x5a), v);
-            action(static_cast<uint32_t>(length), v);
-        }
-        else if (length <= 0xffffffffffffffff)
-        {
-            action(static_cast<uint8_t>(0x5b), v);
-            action(static_cast<uint64_t>(length),v);
-        }
-
-        for (size_t i = 0; i < length; ++i)
-        {
-            action(static_cast<uint8_t>(target.data()[i]), v);
-        }
-    }
+        first_ = data;
+        last_ = data + length;
+    }    
 };
 
 // decode_cbor
@@ -2601,7 +2310,7 @@ public:
         case 0x9f:
             {
                 Json result = typename Json::array();
-                while (*pos != 0xff)
+                while (*it_ != 0xff)
                 {
                     result.push_back(decode());
                     pos = it_;
@@ -2683,7 +2392,7 @@ public:
         case 0xbf:
             {
                 Json result = typename Json::object();
-                while (*pos != 0xff)
+                while (*it_ != 0xff)
                 {
                     auto j = decode();
                     result.set(j.as_string_view(),decode());
@@ -2761,19 +2470,40 @@ public:
 };
 
 template<class Json>
+void encode_cbor(const Json& j, std::basic_ostream<typename Json::char_type>& os)
+{
+    typedef typename Json::char_type char_type;
+    basic_cbor_serializer<char_type> serializer(os);
+    j.dump(serializer);
+}
+
+template<class Json>
 void encode_cbor(const Json& j, std::vector<uint8_t>& v)
 {
-    size_t n = 0;
-    cbor_Encoder_<Json>::encode(j,Calculate_size_(),n);
-
-    v.reserve(n);
-    cbor_Encoder_<Json>::encode(j,Encode_cbor_(),v);
+    typedef typename Json::char_type char_type;
+    basic_cbor_serializer<char_type,jsoncons::detail::bytes_writer<uint8_t>> serializer(v);
+    j.dump(serializer);
 }
 
 template<class Json>
 Json decode_cbor(const cbor_view& v)
 {
     Decode_cbor_<Json> decoder(v.buffer(),v.buffer()+v.buflen());
+    return decoder.decode();
+}
+
+template<class Json>
+Json decode_cbor(std::basic_istream<typename Json::char_type>& is)
+{
+    typedef typename Json::char_type char_type;
+
+    std::vector<uint8_t> v;
+    is.seekg(0, std::ios::end);   
+    v.resize(is.tellg());
+    is.seekg(0, std::ios::beg);    
+    is.read((char_type*)&v[0],v.size());
+
+    Decode_cbor_<Json> decoder(v.data(),v.data()+v.size());
     return decoder.decode();
 }
   

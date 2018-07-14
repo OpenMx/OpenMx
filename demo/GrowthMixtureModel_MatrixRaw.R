@@ -42,7 +42,7 @@ data(myGrowthMixtureData)
 # -----------------------------------------------------------------------------
 
 matrA        <- mxMatrix( type="Full", nrow=7, ncol=7,
-                          free=F, values=rbind(cbind(matrix(0,5,5),
+                          free = FALSE, values=rbind(cbind(matrix(0,5,5),
                           matrix(c(rep(1,5),0:4),5,2)),matrix(0,2,7)),
                           byrow=TRUE, name="A" )
 labelsS      <- matrix(NA,5,5); diag(labelsS) <- "residual"
@@ -55,8 +55,8 @@ matrS        <- mxMatrix( type="Symm", nrow=7, ncol=7,
                           matrix(c("vari1","cov1","cov1","vars1"),2,2))),
                           byrow= TRUE, name="S" )
 matrF        <- mxMatrix( type="Full", nrow=5, ncol=7,
-                          free=F, values=cbind(diag(5),matrix(0,5,2)),
-                          byrow=T, name="F" )
+                          free = FALSE, values=cbind(diag(5),matrix(0,5,2)),
+                          byrow=TRUE, name="F" )
 matrM        <- mxMatrix( type="Full", nrow=1, ncol=7,
                           free=c(F,F,F,F,F,T,T),
                           values=c(0,0,0,0,0,0,-1),
@@ -89,29 +89,28 @@ class2       <- mxModel( class1, name="Class2", matrS2, matrM2, exp )
 # required for correct parameterization of class probabilities
 classP       <- mxMatrix( type="Full", nrow=2, ncol=1, 
                         free=c(TRUE, FALSE), values=1, lbound=0.001, 
-                        labels = c("p1","p2"), name="Props" )
-# make a matrix of class probabilities
-classS       <- mxAlgebra( Props%x%(1/sum(Props)), name="classProbs" )
+                        labels = c("p1","p2"), name="unclassProps" )
 
-algFit       <- mxAlgebra( -2*sum(log(classProbs[1,1]%x%Class1.fitfunction 
-                           + classProbs[2,1]%x%Class2.fitfunction)), 
-                           name="mixtureObj")
-fit          <- mxFitFunctionAlgebra("mixtureObj")
+mixExp       <- mxExpectationMixture(components=c('Class1', 'Class2'), weights='unclassProps', scale='sum')
+fit          <- mxFitFunctionML()
 dataRaw      <- mxData( observed=myGrowthMixtureData, type="raw" )
       
 gmm          <- mxModel("Growth Mixture Model",
-                        dataRaw, class1, class2, classP, classS, algFit, fit )     
+                        dataRaw, class1, class2, classP, mixExp, fit)
 
 gmmFit <- mxRun(gmm, suppressWarnings=TRUE)
 
 summary(gmmFit)
 
-gmmFit$classProbs
+# Unscaled mixture proportions
+mxEval(unclassProps, gmmFit)
 
+# Scaled mixture proportions
+gmmFit$expectation$output$weights
 
-omxCheckCloseEnough(gmmFit$output$Minus2LogLikelihood, 8739.05, 0.01)
-omxCheckCloseEnough(max(mxEval(classProbs, gmmFit)), 0.6009, 0.01)
-omxCheckCloseEnough(min(mxEval(classProbs, gmmFit)), 0.3991, 0.01)
+omxCheckCloseEnough(-2*logLik(gmmFit), 8739.05, 0.01)
+omxCheckCloseEnough(max(gmmFit$expectation$output$weights), 0.6009, 0.01)
+omxCheckCloseEnough(min(gmmFit$expectation$output$weights), 0.3991, 0.01)
 # Check results to see if they are within specified bounds
 # -----------------------------------------------------------------------------
 

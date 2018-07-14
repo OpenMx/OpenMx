@@ -81,10 +81,10 @@ summary(uniRegFit)
 uniRegFit$output
 
 
-omxCheckCloseEnough(uniRegFit$output$estimate[["beta0"]], 2.54776, 0.001)
-omxCheckCloseEnough(uniRegFit$output$estimate[["beta1"]], 0.48312, 0.001)
-omxCheckCloseEnough(uniRegFit$output$estimate[["residual"]], 0.672, 0.01)
-omxCheckCloseEnough(uniRegFit$output$estimate[["meanx"]], 0.05412, 0.001)
-omxCheckCloseEnough(uniRegFit$output$estimate[["varx"]], 1.10484, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["beta0"]], 2.54776, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["beta1"]], 0.48312, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["residual"]], 0.672, 0.01)
+omxCheckCloseEnough(coef(uniRegFit)[["meanx"]], 0.05412, 0.001)
+omxCheckCloseEnough(coef(uniRegFit)[["varx"]], 1.10484, 0.001)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------------

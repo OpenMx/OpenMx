@@ -65,6 +65,7 @@ void omxGREMLFitState::init()
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
   
   oo->units = FIT_UNITS_MINUS2LL;
+  oo->canDuplicate = true;
   
   omxState* currentState = expectation->currentState;
   newObj->usingGREMLExpectation = (strcmp(expectation->expType, "MxExpectationGREML")==0 ? 1 : 0);

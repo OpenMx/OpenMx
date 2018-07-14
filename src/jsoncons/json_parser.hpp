@@ -16,10 +16,12 @@
 #include <stdexcept>
 #include <system_error>
 #include <jsoncons/json_exception.hpp>
-#include <jsoncons/json_input_handler.hpp>
+#include <jsoncons/json_filter.hpp>
+#include <jsoncons/json_content_handler.hpp>
+#include <jsoncons/json_serializing_options.hpp>
 #include <jsoncons/parse_error_handler.hpp>
 #include <jsoncons/json_error_category.hpp>
-#include <jsoncons/detail/number_parsers.hpp>
+#include <jsoncons/detail/parse_number.hpp>
 
 #define JSONCONS_ILLEGAL_CONTROL_CHARACTER \
         case 0x00:case 0x01:case 0x02:case 0x03:case 0x04:case 0x05:case 0x06:case 0x07:case 0x08:case 0x0b: \
@@ -27,6 +29,50 @@
         case 0x17:case 0x18:case 0x19:case 0x1a:case 0x1b:case 0x1c:case 0x1d:case 0x1e:case 0x1f 
 
 namespace jsoncons {
+
+namespace detail {
+
+template <class CharT>
+class replacement_filter : public basic_json_filter<CharT>
+{
+    typedef typename basic_json_content_handler<CharT>::string_view_type string_view_type;
+
+    basic_null_json_content_handler<CharT> default_content_handler_;
+    basic_json_serializing_options<CharT> options_;
+public:
+    replacement_filter()
+        : basic_json_filter<CharT>(default_content_handler_)
+    {
+    }
+
+    replacement_filter(basic_json_content_handler<CharT>& handler, const basic_json_serializing_options<CharT>& options)
+        : basic_json_filter<CharT>(handler), options_(options)
+    {
+    }
+
+    void do_string_value(const string_view_type& s, const serializing_context& context) override
+    {
+        if (options_.can_read_nan_replacement() && s == options_.nan_replacement().substr(1,options_.nan_replacement().length()-2))
+        {
+            this->downstream_handler().double_value(std::nan(""), context);
+        }
+        else if (options_.can_read_pos_inf_replacement() && s == options_.pos_inf_replacement().substr(1,options_.pos_inf_replacement().length()-2))
+        {
+            this->downstream_handler().double_value(std::numeric_limits<double>::infinity(), context);
+        }
+        else if (options_.can_read_neg_inf_replacement() && s == options_.neg_inf_replacement().substr(1,options_.neg_inf_replacement().length()-2))
+        {
+            this->downstream_handler().double_value(-std::numeric_limits<double>::infinity(), context);
+        }
+        else
+        {
+            this->downstream_handler().string_value(s, context);
+        }
+    }
+
+};
+
+}
 
 enum class parse_state : uint8_t 
 {
@@ -81,17 +127,18 @@ enum class parse_state : uint8_t
 };
 
 template <class CharT, class Allocator = std::allocator<char>>
-class basic_json_parser : private parsing_context
+class basic_json_parser : private serializing_context
 {
     static const size_t initial_string_buffer_capacity_ = 1024;
     static const size_t initial_number_buffer_capacity_ = 64;
     static const int default_initial_stack_capacity_ = 100;
-    typedef typename basic_json_input_handler<CharT>::string_view_type string_view_type;
+    typedef typename basic_json_content_handler<CharT>::string_view_type string_view_type;
 
-    basic_null_json_input_handler<CharT> default_input_handler_;
+    detail::replacement_filter<CharT> replacement_filter_;
+    basic_null_json_content_handler<CharT> default_content_handler_;
     default_parse_error_handler default_err_handler_;
 
-    basic_json_input_handler<CharT>& handler_;
+    basic_json_content_handler<CharT>& handler_;
     parse_error_handler& err_handler_;
     uint32_t cp_;
     uint32_t cp2_;
@@ -103,16 +150,15 @@ class basic_json_parser : private parsing_context
     std::basic_string<CharT,std::char_traits<CharT>,char_allocator_type> string_buffer_;
     std::basic_string<char,std::char_traits<char>,numeral_allocator_type> number_buffer_;
 
-    bool is_negative_;
     uint8_t precision_;
     uint8_t decimal_places_;
 
     size_t line_;
     size_t column_;
-    int nesting_depth_;
+    size_t nesting_depth_;
     int initial_stack_capacity_;
 
-    int max_depth_;
+    size_t max_nesting_depth_;
     detail::string_to_double to_double_;
     const CharT* begin_input_;
     const CharT* input_end_;
@@ -129,11 +175,10 @@ class basic_json_parser : private parsing_context
 public:
 
     basic_json_parser()
-       : handler_(default_input_handler_),
+       : handler_(default_content_handler_),
          err_handler_(default_err_handler_),
          cp_(0),
          cp2_(0),
-         is_negative_(false),
          precision_(0), 
          decimal_places_(0), 
          line_(1),
@@ -147,18 +192,17 @@ public:
     {
         string_buffer_.reserve(initial_string_buffer_capacity_);
         number_buffer_.reserve(initial_number_buffer_capacity_);
-        max_depth_ = (std::numeric_limits<int>::max)();
+        max_nesting_depth_ = (std::numeric_limits<size_t>::max)();
 
         state_stack_.reserve(initial_stack_capacity_);
         push_state(parse_state::root);
     }
 
     basic_json_parser(parse_error_handler& err_handler)
-       : handler_(default_input_handler_),
+       : handler_(default_content_handler_),
          err_handler_(err_handler),
          cp_(0),
          cp2_(0),
-         is_negative_(false),
          precision_(0), 
          decimal_places_(0), 
          line_(1),
@@ -172,18 +216,17 @@ public:
     {
         string_buffer_.reserve(initial_string_buffer_capacity_);
         number_buffer_.reserve(initial_number_buffer_capacity_);
-        max_depth_ = (std::numeric_limits<int>::max)();
+        max_nesting_depth_ = (std::numeric_limits<size_t>::max)();
 
         state_stack_.reserve(initial_stack_capacity_);
         push_state(parse_state::root);
     }
 
-    basic_json_parser(basic_json_input_handler<CharT>& handler)
+    basic_json_parser(basic_json_content_handler<CharT>& handler)
        : handler_(handler),
          err_handler_(default_err_handler_),
          cp_(0),
          cp2_(0),
-         is_negative_(false),
          precision_(0), 
          decimal_places_(0), 
          line_(1),
@@ -197,19 +240,18 @@ public:
     {
         string_buffer_.reserve(initial_string_buffer_capacity_);
         number_buffer_.reserve(initial_number_buffer_capacity_);
-        max_depth_ = (std::numeric_limits<int>::max)();
+        max_nesting_depth_ = (std::numeric_limits<size_t>::max)();
 
         state_stack_.reserve(initial_stack_capacity_);
         push_state(parse_state::root);
     }
 
-    basic_json_parser(basic_json_input_handler<CharT>& handler,
+    basic_json_parser(basic_json_content_handler<CharT>& handler,
                       parse_error_handler& err_handler)
        : handler_(handler),
          err_handler_(err_handler),
          cp_(0),
          cp2_(0),
-         is_negative_(false),
          precision_(0), 
          decimal_places_(0), 
          line_(1),
@@ -223,7 +265,109 @@ public:
     {
         string_buffer_.reserve(initial_string_buffer_capacity_);
         number_buffer_.reserve(initial_number_buffer_capacity_);
-        max_depth_ = (std::numeric_limits<int>::max)();
+        max_nesting_depth_ = (std::numeric_limits<size_t>::max)();
+
+        state_stack_.reserve(initial_stack_capacity_);
+        push_state(parse_state::root);
+    }
+
+    basic_json_parser(const basic_json_serializing_options<CharT>& options)
+       : handler_((options.can_read_nan_replacement() || options.can_read_pos_inf_replacement() || options.can_read_neg_inf_replacement()) ? replacement_filter_(default_content_handler_,options) : default_content_handler_),
+         err_handler_(default_err_handler_),
+         cp_(0),
+         cp2_(0),
+         precision_(0), 
+         decimal_places_(0), 
+         line_(1),
+         column_(1),
+         nesting_depth_(0), 
+         initial_stack_capacity_(default_initial_stack_capacity_),
+         begin_input_(nullptr),
+         input_end_(nullptr),
+         input_ptr_(nullptr),
+         state_(parse_state::start)
+    {
+        string_buffer_.reserve(initial_string_buffer_capacity_);
+        number_buffer_.reserve(initial_number_buffer_capacity_);
+        max_nesting_depth_ = options.max_nesting_depth();
+
+        state_stack_.reserve(initial_stack_capacity_);
+        push_state(parse_state::root);
+    }
+
+    basic_json_parser(const basic_json_serializing_options<CharT>& options, 
+                      parse_error_handler& err_handler)
+       : handler_((options.can_read_nan_replacement() || options.can_read_pos_inf_replacement() || options.can_read_neg_inf_replacement()) ? replacement_filter_(default_content_handler_,options) : default_content_handler_),
+         err_handler_(err_handler),
+         cp_(0),
+         cp2_(0),
+         precision_(0), 
+         decimal_places_(0), 
+         line_(1),
+         column_(1),
+         nesting_depth_(0), 
+         initial_stack_capacity_(default_initial_stack_capacity_),
+         begin_input_(nullptr),
+         input_end_(nullptr),
+         input_ptr_(nullptr),
+         state_(parse_state::start)
+    {
+        string_buffer_.reserve(initial_string_buffer_capacity_);
+        number_buffer_.reserve(initial_number_buffer_capacity_);
+        max_nesting_depth_ = options.max_nesting_depth();
+
+        state_stack_.reserve(initial_stack_capacity_);
+        push_state(parse_state::root);
+    }
+
+    basic_json_parser(basic_json_content_handler<CharT>& handler,
+                      const basic_json_serializing_options<CharT>& options)
+       : replacement_filter_(handler,options),
+         handler_((options.can_read_nan_replacement() || options.can_read_pos_inf_replacement() || options.can_read_neg_inf_replacement()) ? replacement_filter_ : handler),
+         err_handler_(default_err_handler_),
+         cp_(0),
+         cp2_(0),
+         precision_(0), 
+         decimal_places_(0), 
+         line_(1),
+         column_(1),
+         nesting_depth_(0), 
+         initial_stack_capacity_(default_initial_stack_capacity_),
+         begin_input_(nullptr),
+         input_end_(nullptr),
+         input_ptr_(nullptr),
+         state_(parse_state::start)
+    {
+        string_buffer_.reserve(initial_string_buffer_capacity_);
+        number_buffer_.reserve(initial_number_buffer_capacity_);
+        max_nesting_depth_ = options.max_nesting_depth();
+
+        state_stack_.reserve(initial_stack_capacity_);
+        push_state(parse_state::root);
+    }
+
+    basic_json_parser(basic_json_content_handler<CharT>& handler, 
+                      const basic_json_serializing_options<CharT>& options,
+                      parse_error_handler& err_handler)
+       : replacement_filter_(handler,options),
+         handler_((options.can_read_nan_replacement() || options.can_read_pos_inf_replacement() || options.can_read_neg_inf_replacement()) ? replacement_filter_ : handler),
+         err_handler_(err_handler),
+         cp_(0),
+         cp2_(0),
+         precision_(0), 
+         decimal_places_(0), 
+         line_(1),
+         column_(1),
+         nesting_depth_(0), 
+         initial_stack_capacity_(default_initial_stack_capacity_),
+         begin_input_(nullptr),
+         input_end_(nullptr),
+         input_ptr_(nullptr),
+         state_(parse_state::start)
+    {
+        string_buffer_.reserve(initial_string_buffer_capacity_);
+        number_buffer_.reserve(initial_number_buffer_capacity_);
+        max_nesting_depth_ = options.max_nesting_depth();
 
         state_stack_.reserve(initial_stack_capacity_);
         push_state(parse_state::root);
@@ -249,25 +393,21 @@ public:
         return input_ptr_ == input_end_;
     }
 
-    const parsing_context& parsing_context() const
-    {
-        return *this;
-    }
-
     ~basic_json_parser()
     {
     }
 
+#if !defined(JSONCONS_NO_DEPRECATED)
     size_t max_nesting_depth() const
     {
-        return static_cast<size_t>(max_depth_);
+        return max_nesting_depth_;
     }
 
-    void max_nesting_depth(size_t max_nesting_depth)
+    void max_nesting_depth(size_t value)
     {
-        max_depth_ = static_cast<int>((std::min)(max_nesting_depth,static_cast<size_t>((std::numeric_limits<int>::max)())));
+        max_nesting_depth_ = value;
     }
-
+#endif
     parse_state parent() const
     {
         JSONCONS_ASSERT(state_stack_.size() >= 1);
@@ -300,9 +440,9 @@ public:
         }
     }
 
-    void do_begin_object(std::error_code& ec)
+    void begin_object(std::error_code& ec)
     {
-        if (++nesting_depth_ >= max_depth_)
+        if (++nesting_depth_ > max_nesting_depth_)
         {
             if (err_handler_.error(json_parser_errc::max_depth_exceeded, *this))
             {
@@ -315,8 +455,9 @@ public:
         handler_.begin_object(*this);
     }
 
-    void do_end_object(std::error_code& ec)
+    void end_object(std::error_code& ec)
     {
+        JSONCONS_ASSERT(nesting_depth_ >= 1);
         --nesting_depth_;
         state_ = pop_state();
         if (state_ == parse_state::object)
@@ -347,9 +488,9 @@ public:
         }
     }
 
-    void do_begin_array(std::error_code& ec)
+    void begin_array(std::error_code& ec)
     {
-        if (++nesting_depth_ >= max_depth_)
+        if (++nesting_depth_ > max_nesting_depth_)
         {
             if (err_handler_.error(json_parser_errc::max_depth_exceeded, *this))
             {
@@ -363,8 +504,9 @@ public:
         handler_.begin_array(*this);
     }
 
-    void do_end_array(std::error_code& ec)
+    void end_array(std::error_code& ec)
     {
+        JSONCONS_ASSERT(nesting_depth_ >= 1);
         --nesting_depth_;
         state_ = pop_state();
         if (state_ == parse_state::array)
@@ -507,13 +649,13 @@ public:
                             state_ = parse_state::slash;
                             break;
                         case '{':
-                            do_begin_object(ec);
+                            begin_object(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
                             break;
                         case '[':
-                            do_begin_array(ec);
+                            begin_array(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
@@ -525,7 +667,7 @@ public:
                             break;
                         case '-':
                             number_buffer_.clear();
-                            is_negative_ = true;
+                            number_buffer_.push_back('-');
                             precision_ = 0;
                             ++input_ptr_;
                             ++column_;
@@ -535,7 +677,6 @@ public:
                             break;
                         case '0': 
                             number_buffer_.clear();
-                            is_negative_ = false;
                             precision_ = 1;
                             number_buffer_.push_back(static_cast<char>(*input_ptr_));
                             state_ = parse_state::zero;
@@ -546,7 +687,6 @@ public:
                             break;
                         case '1':case '2':case '3':case '4':case '5':case '6':case '7':case '8': case '9':
                             number_buffer_.clear();
-                            is_negative_ = false;
                             precision_ = 1;
                             number_buffer_.push_back(static_cast<char>(*input_ptr_));
                             ++input_ptr_;
@@ -618,13 +758,13 @@ public:
                             state_ = parse_state::slash;
                             break;
                         case '}':
-                            do_end_object(ec);
+                            end_object(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
                             break;
                         case ']':
-                            do_end_array(ec);
+                            end_array(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
@@ -693,7 +833,7 @@ public:
                             state_ = parse_state::slash;
                             break;
                         case '}':
-                            do_end_object(ec);
+                            end_object(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
@@ -771,7 +911,7 @@ public:
                                 ec = json_parser_errc::extra_comma;
                                 return;
                             }
-                            do_end_object(ec);  // Recover
+                            end_object(ec);  // Recover
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
@@ -884,13 +1024,13 @@ public:
                             state_ = parse_state::slash;
                             break;
                         case '{':
-                            do_begin_object(ec);
+                            begin_object(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
                             break;
                         case '[':
-                            do_begin_array(ec);
+                            begin_array(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
@@ -902,7 +1042,7 @@ public:
                             break;
                         case '-':
                             number_buffer_.clear();
-                            is_negative_ = true;
+                            number_buffer_.push_back('-');
                             precision_ = 0;
                             ++input_ptr_;
                             ++column_;
@@ -912,7 +1052,6 @@ public:
                             break;
                         case '0': 
                             number_buffer_.clear();
-                            is_negative_ = false;
                             precision_ = 1;
                             number_buffer_.push_back(static_cast<char>(*input_ptr_));
                             ++input_ptr_;
@@ -923,7 +1062,6 @@ public:
                             break;
                         case '1':case '2':case '3':case '4':case '5':case '6':case '7':case '8': case '9':
                             number_buffer_.clear();
-                            is_negative_ = false;
                             precision_ = 1;
                             number_buffer_.push_back(static_cast<char>(*input_ptr_));
                             ++input_ptr_;
@@ -952,7 +1090,7 @@ public:
                                     ec = json_parser_errc::extra_comma;
                                     return;
                                 }
-                                do_end_array(ec);  // Recover
+                                end_array(ec);  // Recover
                                 if (ec) return;
                             }
                             else
@@ -1022,19 +1160,19 @@ public:
                             state_ = parse_state::slash;
                             break;
                         case '{':
-                            do_begin_object(ec);
+                            begin_object(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
                             break;
                         case '[':
-                            do_begin_array(ec);
+                            begin_array(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
                             break;
                         case ']':
-                            do_end_array(ec);
+                            end_array(ec);
                             if (ec) return;
                             ++input_ptr_;
                             ++column_;
@@ -1046,7 +1184,7 @@ public:
                             break;
                         case '-':
                             number_buffer_.clear();
-                            is_negative_ = true;
+                            number_buffer_.push_back('-');
                             precision_ = 0;
                             ++input_ptr_;
                             ++column_;
@@ -1056,7 +1194,6 @@ public:
                             break;
                         case '0': 
                             number_buffer_.clear();
-                            is_negative_ = false;
                             precision_ = 1;
                             number_buffer_.push_back(static_cast<char>(*input_ptr_));
                             ++input_ptr_;
@@ -1067,7 +1204,6 @@ public:
                             break;
                         case '1':case '2':case '3':case '4':case '5':case '6':case '7':case '8': case '9':
                             number_buffer_.clear();
-                            is_negative_ = false;
                             precision_ = 1;
                             number_buffer_.push_back(static_cast<char>(*input_ptr_));
                             ++input_ptr_;
@@ -1584,7 +1720,7 @@ zero:
             case '}':
                 end_integer_value(ec);
                 if (ec) return;
-                do_end_object(ec);
+                end_object(ec);
                 ++input_ptr_;
                 ++column_;
                 if (ec) return;
@@ -1592,20 +1728,18 @@ zero:
             case ']':
                 end_integer_value(ec);
                 if (ec) return;
-                do_end_array(ec);
+                end_array(ec);
                 ++input_ptr_;
                 ++column_;
                 if (ec) return;
                 return;
             case '.':
                 decimal_places_ = 0; 
-                JSONCONS_ASSERT(precision_ == number_buffer_.length());
                 number_buffer_.push_back(to_double_.get_decimal_point());
                 ++input_ptr_;
                 ++column_;
                 goto fraction1;
             case 'e':case 'E':
-                JSONCONS_ASSERT(precision_ == number_buffer_.length());
                 number_buffer_.push_back(static_cast<char>(*input_ptr_));
                 ++input_ptr_;
                 ++column_;
@@ -1669,7 +1803,7 @@ integer:
             case '}':
                 end_integer_value(ec);
                 if (ec) return;
-                do_end_object(ec);
+                end_object(ec);
                 if (ec) return;
                 ++input_ptr_;
                 ++column_;
@@ -1677,7 +1811,7 @@ integer:
             case ']':
                 end_integer_value(ec);
                 if (ec) return;
-                do_end_array(ec);
+                end_array(ec);
                 if (ec) return;
                 ++input_ptr_;
                 ++column_;
@@ -1690,13 +1824,11 @@ integer:
                 goto integer;
             case '.':
                 decimal_places_ = 0; 
-                JSONCONS_ASSERT(precision_ == number_buffer_.length());
                 number_buffer_.push_back(to_double_.get_decimal_point());
                 ++input_ptr_;
                 ++column_;
                 goto fraction1;
             case 'e':case 'E':
-                JSONCONS_ASSERT(precision_ == number_buffer_.length());
                 number_buffer_.push_back(static_cast<char>(*input_ptr_));
                 ++input_ptr_;
                 ++column_;
@@ -1776,7 +1908,7 @@ fraction2:
             case '}':
                 end_fraction_value(chars_format::fixed,ec);
                 if (ec) return;
-                do_end_object(ec);
+                end_object(ec);
                 if (ec) return;
                 ++input_ptr_;
                 ++column_;
@@ -1784,7 +1916,7 @@ fraction2:
             case ']':
                 end_fraction_value(chars_format::fixed,ec);
                 if (ec) return;
-                do_end_array(ec);
+                end_array(ec);
                 if (ec) return;
                 ++input_ptr_;
                 ++column_;
@@ -1903,7 +2035,7 @@ exp3:
             case '}':
                 end_fraction_value(chars_format::scientific,ec);
                 if (ec) return;
-                do_end_object(ec);
+                end_object(ec);
                 if (ec) return;
                 ++input_ptr_;
                 ++column_;
@@ -1911,7 +2043,7 @@ exp3:
             case ']':
                 end_fraction_value(chars_format::scientific,ec);
                 if (ec) return;
-                do_end_array(ec);
+                end_array(ec);
                 if (ec) return;
                 ++input_ptr_;
                 ++column_;
@@ -2508,7 +2640,7 @@ private:
 
     void end_integer_value(std::error_code& ec)
     {
-        if (is_negative_)
+        if (number_buffer_[0] == '-')
         {
             end_negative_value(ec);
         }
@@ -2520,54 +2652,11 @@ private:
 
     void end_negative_value(std::error_code& ec)
     {
-        static const int64_t min_value = (std::numeric_limits<int64_t>::min)();
-        static const int64_t min_value_div_10 = min_value / 10;
-
-        const char* s = number_buffer_.data();
-        size_t length = number_buffer_.length();
-        int64_t n = 0;
-        bool overflow = false;
-        const char* end = s + length; 
-        for (; s < end; ++s)
+        jsoncons::detail::to_integer_result result = jsoncons::detail::to_integer(number_buffer_.data(), number_buffer_.length());
+        if (!result.overflow)
         {
-            int64_t x = *s - '0';
-            if (n < min_value_div_10)
-            {
-                overflow = true;
-                break;
-            }
-            n = n * 10;
-            if (n < min_value + x)
-            {
-                overflow = true;
-                break;
-            }
-
-            n -= x;
-        }        
-
-        if (!overflow)
-        {
-            handler_.integer_value(n, *this);
-
-            switch (parent())
-            {
-            case parse_state::array:
-            case parse_state::object:
-                state_ = parse_state::expect_comma_or_end;
-                break;
-            case parse_state::root:
-                state_ = parse_state::done;
-                handler_.end_json();
-                break;
-            default:
-                if (err_handler_.error(json_parser_errc::invalid_json_text, *this))
-                {
-                    ec = json_parser_errc::invalid_json_text;
-                    return;
-                }
-                break;
-            }
+            handler_.integer_value(result.value, *this);
+            after_value(ec);
         }
         else
         {
@@ -2577,54 +2666,11 @@ private:
 
     void end_positive_value(std::error_code& ec)
     {
-        static const uint64_t max_value = (std::numeric_limits<uint64_t>::max)();
-        static const uint64_t max_value_div_10 = max_value / 10;
-        uint64_t n = 0;
-        bool overflow = false;
-        const char* s = number_buffer_.data();
-        size_t length = number_buffer_.length();
-
-        const char* end = s + length; 
-        for (; s < end; ++s)
+        jsoncons::detail::to_uinteger_result result = jsoncons::detail::to_uinteger(number_buffer_.data(), number_buffer_.length());
+        if (!result.overflow)
         {
-            uint64_t x = *s - '0';
-            if (n > max_value_div_10)
-            {
-                overflow = true;
-                break;
-            }
-            n = n * 10;
-            if (n > max_value - x)
-            {
-                overflow = true;
-                break;
-            }
-
-            n += x;
-        }
-
-        if (!overflow)
-        {
-            handler_.uinteger_value(n, *this);
-
-            switch (parent())
-            {
-            case parse_state::array:
-            case parse_state::object:
-                state_ = parse_state::expect_comma_or_end;
-                break;
-            case parse_state::root:
-                state_ = parse_state::done;
-                handler_.end_json();
-                break;
-            default:
-                if (err_handler_.error(json_parser_errc::invalid_json_text, *this))
-                {
-                    ec = json_parser_errc::invalid_json_text;
-                    return;
-                }
-                break;
-            }
+            handler_.uinteger_value(result.value, *this);
+            after_value(ec);
         }
         else
         {
@@ -2637,16 +2683,14 @@ private:
         try
         {
             double d = to_double_(number_buffer_.c_str(), number_buffer_.length());
-            if (is_negative_)
-                d = -d;
 
             if (precision_ > std::numeric_limits<double>::max_digits10)
             {
-                handler_.double_value(d, number_format(format,std::numeric_limits<double>::max_digits10, decimal_places_), *this);
+                handler_.double_value(d, floating_point_options(format,std::numeric_limits<double>::max_digits10, decimal_places_), *this);
             }
             else
             {
-                handler_.double_value(d, number_format(format,static_cast<uint8_t>(precision_), decimal_places_), *this);
+                handler_.double_value(d, floating_point_options(format,static_cast<uint8_t>(precision_), decimal_places_), *this);
             }
         }
         catch (...)
@@ -2659,24 +2703,7 @@ private:
             handler_.null_value(*this); // recovery
         }
 
-        switch (parent())
-        {
-        case parse_state::array:
-        case parse_state::object:
-            state_ = parse_state::expect_comma_or_end;
-            break;
-        case parse_state::root:
-            state_ = parse_state::done;
-            handler_.end_json();
-            break;
-        default:
-            if (err_handler_.error(json_parser_errc::invalid_json_text, *this))
-            {
-                ec = json_parser_errc::invalid_json_text;
-                return;
-            }
-            break;
-        }
+        after_value(ec);
     }
 
     void append_codepoint(int c, std::error_code& ec)
@@ -2760,6 +2787,28 @@ private:
             state_ = parse_state::expect_value;
             break;
         case parse_state::root:
+            break;
+        default:
+            if (err_handler_.error(json_parser_errc::invalid_json_text, *this))
+            {
+                ec = json_parser_errc::invalid_json_text;
+                return;
+            }
+            break;
+        }
+    }
+
+    void after_value(std::error_code& ec) 
+    {
+        switch (parent())
+        {
+        case parse_state::array:
+        case parse_state::object:
+            state_ = parse_state::expect_comma_or_end;
+            break;
+        case parse_state::root:
+            state_ = parse_state::done;
+            handler_.end_json();
             break;
         default:
             if (err_handler_.error(json_parser_errc::invalid_json_text, *this))

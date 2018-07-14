@@ -119,3 +119,4 @@ omxCheckEquals(testrun3summ$degreesOfFreedom,98)
 omxCheckEquals(testrun3summ$GREMLfixeff$name,"x")
 omxCheckCloseEnough(testrun3summ$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun3summ$GREMLfixeff$se,sqrt(var(dat[,1])/100),epsilon=10^-5)
+

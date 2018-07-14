@@ -254,13 +254,17 @@ to_big_endian(T val, std::vector<uint8_t>& v)
 inline
 void to_big_endian(float val, std::vector<uint8_t>& v)
 {
-    to_big_endian(*reinterpret_cast<uint32_t*>(&val), v);
+    uint32_t where;
+    std::memcpy(&where,&val,sizeof(val));
+    to_big_endian(where, v);
 }
 
 inline
 void to_big_endian(double val, std::vector<uint8_t>& v)
 {
-    to_big_endian(*reinterpret_cast<uint64_t*>(&val), v);
+    uint64_t where;
+    std::memcpy(&where,&val,sizeof(val));
+    to_big_endian(where, v);
 }
 
 // from_big_endian
@@ -295,7 +299,9 @@ from_big_endian(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
     else
     {
         *endp = first + sizeof(T);
-        return JSONCONS_BINARY_TO_BE16(*reinterpret_cast<const uint16_t*>(first));
+        T val;
+        std::memcpy(&val,first,sizeof(T));
+        return JSONCONS_BINARY_TO_BE16(val);
     }
 }
 
@@ -311,7 +317,9 @@ from_big_endian(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
     else
     {
         *endp = first + sizeof(T);
-        return JSONCONS_BINARY_TO_BE32(*reinterpret_cast<const uint32_t*>(first));
+        T val;
+        std::memcpy(&val,first,sizeof(T));
+        return JSONCONS_BINARY_TO_BE32(val);
     }
 }
 
@@ -327,7 +335,9 @@ from_big_endian(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
     else
     {
         *endp = first + sizeof(T);
-        return JSONCONS_BINARY_TO_BE64(*reinterpret_cast<const uint64_t*>(first));
+        T val;
+        std::memcpy(&val,first,sizeof(T));
+        return JSONCONS_BINARY_TO_BE64(val);
     }
 }
 
@@ -337,7 +347,9 @@ sizeof(T) == sizeof(uint32_t),T>::type
 from_big_endian(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
 {
     uint32_t data = from_big_endian<uint32_t>(first,last,endp);
-    return *reinterpret_cast<T*>(&data);
+    T val;
+    std::memcpy(&val,&data,sizeof(T));
+    return val;
 }
 
 template<class T>
@@ -346,7 +358,9 @@ sizeof(T) == sizeof(uint64_t),T>::type
 from_big_endian(const uint8_t* first, const uint8_t* last, const uint8_t** endp)
 {
     uint64_t data = from_big_endian<uint64_t>(first,last,endp);
-    return *reinterpret_cast<T*>(&data);
+    T val;
+    std::memcpy(&val,&data,sizeof(T));
+    return val;
 }
 
 }}

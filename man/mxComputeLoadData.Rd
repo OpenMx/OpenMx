@@ -1,9 +1,11 @@
 \name{mxComputeLoadData}
 \alias{mxComputeLoadData}
+\alias{write.cbor}
 \alias{MxComputeLoadData-class}
 \title{Load data from netcdf files directly into the backend}
 \usage{
 mxComputeLoadData(dest, path, ..., originalDataIsIndexOne=FALSE)
+write.cbor(mxd, file)
 }
 \arguments{
 \item{dest}{a character vector of model names containing MxData objects}
@@ -14,9 +16,15 @@ mxComputeLoadData(dest, path, ..., originalDataIsIndexOne=FALSE)
 
 \item{originalDataIsIndexOne}{logical. Whether to use the initial data
 for index 1}
+
+\item{mxd}{an mxData object}
+\item{file}{a character string naming a file}
 }
 \description{
-  Paths templates should be of the form \code{dataset-\%02d.nc}.
+  Use \code{write.cbor} to store mxData objects containing datasets
+  to files in cbor format.
+
+  Paths templates should be of the form \code{dataset-\%02d.cbor}.
   The innermost \link{mxComputeLoop} index is substituted into this
   template using a printf-style format.
   During normal operation, the path template is formatted

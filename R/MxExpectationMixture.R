@@ -75,8 +75,12 @@ setMethod("genericGetExpected", signature("MxExpectationMixture"),
 				weights <- exp(weights)
 			} else if (.Object@scale == 'sum') {
 				#OK
+			} else if(.Object@scale == 'none') {
+				#OK
 			} else { stop(.Object@scale) }
-			weights <- weights / rowSums(weights)
+			if(.Object@scale != 'none'){
+				weights <- weights / rowSums(weights)
+			}
 			ret[['weights']] <- weights
 		}
 		ret
@@ -129,7 +133,7 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 	})
 
 mxExpectationMixture <- function(components, weights="weights",
-				      ..., verbose=0L, scale=c('softmax','sum')) {
+				      ..., verbose=0L, scale=c('softmax', 'sum', 'none')) {
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
 	}

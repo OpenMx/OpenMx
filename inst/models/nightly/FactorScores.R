@@ -279,14 +279,6 @@ ssModelLisrel <- mxModel(model="lisrel",
 omxCheckWarning(mxGetExpected(ssModelLisrel, 'means'),
 	"Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")
 
-omxCheckWarning(
-	omxCheckError(ssDataLisrel <- mxGenerateData(ssModelLisrel,200),
-		"Cannot generate data from model 'lisrel' where means are not specified"),
-	"Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means."
-)
-# Causes error/warning
-
-
 # Add means and it works fine
 ssModelLisrel <- mxModel(ssModelLisrel, name="lisrel",
 	mxMatrix("Full",6,1,FALSE,2,name="AL"),

@@ -59,7 +59,7 @@ R_{qp}R_{pp}^{-1}V_{pp} & R_{qq}-R_{qp} (R_{pp}^{-1} - R_{pp}^{-1} V_{pp} R_{pp}
 
 \references{
 Aitken, A. (1935). Note on selection from a multivariate normal population. \emph{Proceedings of
-the Edinburgh Mathematical Society (Series 2), 4}(2), 106–110.
+the Edinburgh Mathematical Society (Series 2), 4}(2), 106-110.
 doi:10.1017/S0013091500008063
 }
 

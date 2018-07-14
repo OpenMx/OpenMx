@@ -18,32 +18,38 @@
 #include <memory>
 #include <jsoncons/json_exception.hpp>
 #include <jsoncons/jsoncons_utilities.hpp>
-#include <jsoncons/serialization_options.hpp>
-#include <jsoncons/json_output_handler.hpp>
+#include <jsoncons/json_serializing_options.hpp>
+#include <jsoncons/json_content_handler.hpp>
 #include <jsoncons/detail/writer.hpp>
-#include <jsoncons/detail/number_printers.hpp>
+#include <jsoncons/detail/print_number.hpp>
 
 namespace jsoncons {
 
 template<class CharT,class Writer=detail::ostream_buffered_writer<CharT>>
-class basic_json_serializer final : public basic_json_output_handler<CharT>
+class basic_json_serializer final : public basic_json_content_handler<CharT>
 {
 public:
-    using typename basic_json_output_handler<CharT>::string_view_type;
+    using typename basic_json_content_handler<CharT>::string_view_type;
     typedef Writer writer_type;
     typedef typename Writer::output_type output_type;
 
 private:
-    static const size_t default_buffer_length = 16384;
+    enum class structure_type {object, array};
 
-    struct stack_item
+    class line_split_context
     {
-        stack_item(bool is_object)
-           : is_object_(is_object), count_(0), split_lines_(line_split_kind::same_line), indent_once_(false), unindent_at_end_(false)
+        structure_type type_;
+        size_t count_;
+        line_split_kind split_lines_;
+        bool indent_before_;
+        bool unindent_after_;
+    public:
+        line_split_context(structure_type type)
+           : type_(type), count_(0), split_lines_(line_split_kind::same_line), indent_before_(false), unindent_after_(false)
         {
         }
-        stack_item(bool is_object, line_split_kind split_lines, bool indent_once = false)
-           : is_object_(is_object), count_(0), split_lines_(split_lines), indent_once_(indent_once), unindent_at_end_(false)
+        line_split_context(structure_type type, line_split_kind split_lines, bool indent_once)
+           : type_(type), count_(0), split_lines_(split_lines), indent_before_(indent_once), unindent_after_(false)
         {
         }
 
@@ -52,19 +58,39 @@ private:
             return count_;
         }
 
-        bool unindent_at_end() const
+        void increment_count()
         {
-            return unindent_at_end_;
+            ++count_;
+        }
+
+        bool unindent_after() const
+        {
+            return unindent_after_;
+        }
+
+        void unindent_after(bool value) 
+        {
+            unindent_after_ = value;
         }
 
         bool is_object() const
         {
-            return is_object_;
+            return type_ == structure_type::object;
+        }
+
+        bool is_array() const
+        {
+            return type_ == structure_type::array;
+        }
+
+        bool is_same_line() const
+        {
+            return split_lines_ == line_split_kind::same_line;
         }
 
         bool is_new_line() const
         {
-            return split_lines_ != line_split_kind::same_line;
+            return split_lines_ == line_split_kind::new_line;
         }
 
         bool is_multi_line() const
@@ -74,17 +100,12 @@ private:
 
         bool is_indent_once() const
         {
-            return count_ == 0 ? indent_once_ : false;
+            return count_ == 0 ? indent_before_ : false;
         }
 
-        bool is_object_;
-        size_t count_;
-        line_split_kind split_lines_;
-        bool indent_once_;
-        bool unindent_at_end_;
     };
-    basic_serialization_options<CharT> options_;
-    std::vector<stack_item> stack_;
+    basic_json_serializing_options<CharT> options_;
+    std::vector<line_split_context> stack_;
     int indent_;
     bool indenting_;
     detail::print_double fp_;
@@ -97,32 +118,43 @@ public:
     basic_json_serializer(output_type& os)
        : indent_(0), 
          indenting_(false),
-         fp_(options_.precision()),
+         fp_(floating_point_options(options_.floating_point_format(), 
+                                    options_.precision(),
+                                    0)),
          writer_(os)
     {
     }
 
-    basic_json_serializer(output_type& os, bool pprint)
+    basic_json_serializer(output_type& os, indenting line_indent)
        : indent_(0), 
-         indenting_(pprint),
-         fp_(options_.precision()),
+         indenting_(line_indent == indenting::indent),
+         fp_(floating_point_options(options_.floating_point_format(), 
+                                    options_.precision(),
+                                    0)),
          writer_(os)
     {
     }
 
-    basic_json_serializer(output_type& os, const basic_serialization_options<CharT>& options)
+    basic_json_serializer(output_type& os, const basic_json_serializing_options<CharT>& options)
        : options_(options), 
          indent_(0), 
          indenting_(false),  
-         fp_(options_.precision()),
+         fp_(floating_point_options(options.floating_point_format(), 
+                                    options.precision(),
+                                    0)),
          writer_(os)
     {
     }
-    basic_json_serializer(output_type& os, const basic_serialization_options<CharT>& options, bool pprint)
+
+    basic_json_serializer(output_type& os, 
+                          const basic_json_serializing_options<CharT>& options, 
+                          indenting line_indent)
        : options_(options), 
          indent_(0), 
-         indenting_(pprint),  
-         fp_(options_.precision()),
+         indenting_(line_indent == indenting::indent),  
+         fp_(floating_point_options(options.floating_point_format(), 
+                                    options.precision(),
+                                    0)),
          writer_(os)
     {
     }
@@ -131,10 +163,30 @@ public:
     {
     }
 
+
+#if !defined(JSONCONS_NO_DEPRECATED)
+
+    basic_json_serializer(output_type& os, bool pprint)
+       : indent_(0), 
+         indenting_(pprint),
+         writer_(os)
+    {
+    }
+
+    basic_json_serializer(output_type& os, const basic_json_serializing_options<CharT>& options, bool pprint)
+       : options_(options), 
+         indent_(0), 
+         indenting_(pprint),  
+         fp_(options_.precision()),
+         writer_(os)
+    {
+    }
+#endif
+
 private:
     void escape_string(const CharT* s,
                        size_t length,
-                       const basic_serialization_options<CharT>& options,
+                       const basic_json_serializing_options<CharT>& options,
                        writer_type& writer)
     {
         const CharT* begin = s;
@@ -242,13 +294,13 @@ private:
         writer_.flush();
     }
 
-    void do_begin_object() override
+    void do_begin_object(const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             if (!stack_.empty())
             {
-                if (stack_.back().count_ > 0)
+                if (stack_.back().count() > 0)
                 {
                     writer_. put(',');
                 }
@@ -259,41 +311,41 @@ private:
         {
             if (!stack_.empty() && stack_.back().is_object())
             {
-                stack_.push_back(stack_item(true,options_.object_object_split_lines(), false));
+                stack_.push_back(line_split_context(structure_type::object,options_.object_object_split_lines(), false));
             }
             else if (!stack_.empty())
             {
                 if (options_.array_object_split_lines() != line_split_kind::same_line)
                 {
-                    stack_.back().unindent_at_end_ = true;
-                    stack_.push_back(stack_item(true,options_.array_object_split_lines(), false));
+                    stack_.back().unindent_after(true);
+                    stack_.push_back(line_split_context(structure_type::object,options_.array_object_split_lines(), false));
                     write_indent1();
                 }
                 else
                 {
-                    stack_.push_back(stack_item(true,options_.array_object_split_lines(), false));
+                    stack_.push_back(line_split_context(structure_type::object,options_.array_object_split_lines(), false));
                 }
             }
             else 
             {
-                stack_.push_back(stack_item(true, line_split_kind::multi_line, false));
+                stack_.push_back(line_split_context(structure_type::object, line_split_kind::multi_line, false));
             }
             indent();
         }
         else
         {
-            stack_.push_back(stack_item(true));
+            stack_.push_back(line_split_context(structure_type::object));
         }
         writer_.put('{');
     }
 
-    void do_end_object() override
+    void do_end_object(const serializing_context&) override
     {
         JSONCONS_ASSERT(!stack_.empty());
         if (indenting_)
         {
             unindent();
-            if (stack_.back().unindent_at_end())
+            if (stack_.back().unindent_after())
             {
                 write_indent();
             }
@@ -305,13 +357,13 @@ private:
     }
 
 
-    void do_begin_array() override
+    void do_begin_array(const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             if (!stack_.empty())
             {
-                if (stack_.back().count_ > 0)
+                if (stack_.back().count() > 0)
                 {
                     writer_. put(',');
                 }
@@ -319,50 +371,68 @@ private:
         }
         if (indenting_)
         {
-            if (!stack_.empty() && stack_.back().is_object())
+            if (!stack_.empty())
             {
-                writer_.put('[');
-                indent();
-                if (options_.object_array_split_lines() != line_split_kind::same_line)
+                if (stack_.back().is_object())
                 {
-                    stack_.push_back(stack_item(false,options_.object_array_split_lines(),true));
+                    writer_.put('[');
+                    indent();
+                    if (options_.object_array_split_lines() != line_split_kind::same_line)
+                    {
+                        stack_.push_back(line_split_context(structure_type::array,options_.object_array_split_lines(),true));
+                    }
+                    else
+                    {
+                        stack_.push_back(line_split_context(structure_type::array,options_.object_array_split_lines(),false));
+                    }
                 }
-                else
+                else // array
                 {
-                    stack_.push_back(stack_item(false,options_.object_array_split_lines(),false));
+                    if (options_.array_array_split_lines() == line_split_kind::same_line)
+                    {
+                        if (stack_.back().is_multi_line())
+                        {
+                            write_indent();
+                        }
+                        stack_.push_back(line_split_context(structure_type::array,line_split_kind::same_line, false));
+                        indent();
+                    }
+                    else if (options_.array_array_split_lines() == line_split_kind::multi_line)
+                    {
+                        write_indent();
+                        stack_.push_back(line_split_context(structure_type::array,options_.array_array_split_lines(), false));
+                        indent();
+                    }
+                    else // new_line
+                    {
+                        write_indent();
+                        stack_.push_back(line_split_context(structure_type::array,options_.array_array_split_lines(), false));
+                        indent();
+                    }
+                    writer_.put('[');
                 }
-            }
-            else if (!stack_.empty())
-            {
-                if (options_.array_array_split_lines() != line_split_kind::same_line)
-                {
-                    write_indent();
-                }
-                stack_.push_back(stack_item(false,options_.array_array_split_lines(), false));
-                indent();
-                writer_.put('[');
             }
             else 
             {
-                stack_.push_back(stack_item(false, line_split_kind::multi_line, false));
-                indent();
+                stack_.push_back(line_split_context(structure_type::array, line_split_kind::multi_line, false));
                 writer_.put('[');
+                indent();
             }
         }
         else
         {
-            stack_.push_back(stack_item(false));
+            stack_.push_back(line_split_context(structure_type::array));
             writer_.put('[');
         }
     }
 
-    void do_end_array() override
+    void do_end_array(const serializing_context&) override
     {
         JSONCONS_ASSERT(!stack_.empty());
         if (indenting_)
         {
             unindent();
-            if (stack_.back().unindent_at_end())
+            if (stack_.back().unindent_after())
             {
                 write_indent();
             }
@@ -372,11 +442,11 @@ private:
         end_value();
     }
 
-    void do_name(const string_view_type& name) override
+    void do_name(const string_view_type& name, const serializing_context&) override
     {
         if (!stack_.empty())
         {
-            if (stack_.back().count_ > 0)
+            if (stack_.back().count() > 0)
             {
                 writer_. put(',');
             }
@@ -399,22 +469,22 @@ private:
         }
     }
 
-    void do_null_value() override
+    void do_null_value(const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             begin_scalar_value();
         }
 
-        auto buf = detail::null_literal<CharT>();
-        writer_.write(buf, 4);
+        writer_.write(detail::null_literal<CharT>().data(), 
+                      detail::null_literal<CharT>().size());
 
         end_value();
     }
 
-    void do_string_value(const string_view_type& value) override
+    void do_string_value(const string_view_type& value, const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             begin_scalar_value();
         }
@@ -426,43 +496,70 @@ private:
         end_value();
     }
 
-    void do_byte_string_value(const uint8_t* data, size_t length) override
+    void do_byte_string_value(const uint8_t* data, size_t length, const serializing_context& context) override
     {
         std::basic_string<CharT> s;
         encode_base64url(data,data+length,s);
-        do_string_value(s);
+        do_string_value(s, context);
     }
 
-    void do_double_value(double value, const number_format& fmt) override
+    void do_double_value(double value, const floating_point_options& fmt, const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             begin_scalar_value();
         }
 
         if ((std::isnan)(value))
         {
-            writer_.write(options_.nan_replacement());
+            if (options_.can_write_nan_replacement())
+            {
+                writer_.write(options_.nan_replacement().data(),
+                              options_.nan_replacement().length());
+            }
+            else
+            {
+                writer_.write(detail::null_literal<CharT>().data(),
+                              detail::null_literal<CharT>().length());
+            }
         }
         else if (value == std::numeric_limits<double>::infinity())
         {
-            writer_.write(options_.pos_inf_replacement());
+            if (options_.can_write_pos_inf_replacement())
+            {
+                writer_.write(options_.pos_inf_replacement().data(),
+                              options_.pos_inf_replacement().length());
+            }
+            else
+            {
+                writer_.write(detail::null_literal<CharT>().data(),
+                              detail::null_literal<CharT>().length());
+            }
         }
         else if (!(std::isfinite)(value))
         {
-            writer_.write(options_.neg_inf_replacement());
+            if (options_.can_write_neg_inf_replacement())
+            {
+                writer_.write(options_.neg_inf_replacement().data(),
+                              options_.neg_inf_replacement().length());
+            }
+            else
+            {
+                writer_.write(detail::null_literal<CharT>().data(),
+                              detail::null_literal<CharT>().length());
+            }
         }
         else
         {
-            fp_(value, fmt.precision(), writer_);
+            fp_(value, fmt, writer_);
         }
 
         end_value();
     }
 
-    void do_integer_value(int64_t value) override
+    void do_integer_value(int64_t value, const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             begin_scalar_value();
         }
@@ -470,9 +567,9 @@ private:
         end_value();
     }
 
-    void do_uinteger_value(uint64_t value) override
+    void do_uinteger_value(uint64_t value, const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             begin_scalar_value();
         }
@@ -480,22 +577,22 @@ private:
         end_value();
     }
 
-    void do_bool_value(bool value) override
+    void do_bool_value(bool value, const serializing_context&) override
     {
-        if (!stack_.empty() && !stack_.back().is_object())
+        if (!stack_.empty() && stack_.back().is_array())
         {
             begin_scalar_value();
         }
 
         if (value)
         {
-            auto buf = detail::true_literal<CharT>();
-            writer_.write(buf,4);
+            writer_.write(detail::true_literal<CharT>().data(),
+                          detail::true_literal<CharT>().length());
         }
         else
         {
-            auto buf = detail::false_literal<CharT>();
-            writer_.write(buf,5);
+            writer_.write(detail::false_literal<CharT>().data(),
+                          detail::false_literal<CharT>().length());
         }
 
         end_value();
@@ -505,7 +602,7 @@ private:
     {
         if (!stack_.empty())
         {
-            if (stack_.back().count_ > 0)
+            if (stack_.back().count() > 0)
             {
                 writer_. put(',');
             }
@@ -519,29 +616,11 @@ private:
         }
     }
 
-    void begin_value()
-    {
-        if (!stack_.empty())
-        {
-            if (stack_.back().count_ > 0)
-            {
-                writer_. put(',');
-            }
-            if (indenting_)
-            {
-                if (stack_.back().is_new_line())
-                {
-                    write_indent();
-                }
-            }
-        }
-    }
-
     void end_value()
     {
         if (!stack_.empty())
         {
-            ++stack_.back().count_;
+            stack_.back().increment_count();
         }
     }
 
@@ -559,7 +638,7 @@ private:
     {
         if (!stack_.empty())
         {
-            stack_.back().unindent_at_end_ = true;
+            stack_.back().unindent_after(true);
         }
         writer_. put('\n');
         for (int i = 0; i < indent_; ++i)
@@ -579,7 +658,10 @@ private:
 };
 
 typedef basic_json_serializer<char,detail::ostream_buffered_writer<char>> json_serializer;
-typedef basic_json_serializer<wchar_t, detail::ostream_buffered_writer<wchar_t>> wjson_serializer;
+typedef basic_json_serializer<wchar_t,detail::ostream_buffered_writer<wchar_t>> wjson_serializer;
+
+typedef basic_json_serializer<char,detail::string_writer<char>> json_string_serializer;
+typedef basic_json_serializer<wchar_t,detail::string_writer<wchar_t>> wjson_string_serializer;
 
 }
 #endif

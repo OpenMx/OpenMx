@@ -5,7 +5,9 @@
 \usage{
 mxComputeSimAnnealing(freeSet=NA_character_, ..., fitfunction='fitfunction',
  plan=mxComputeOnce('fitfunction','fit'),
- verbose=0L, method=c("tsallis1996", "ingber2012"), control=list())
+ verbose=0L, method=c("tsallis1996", "ingber2012"), control=list(),
+ defaultGradientStepSize=imxAutoOptionValue("Gradient step size"),
+ defaultFunctionPrecision=imxAutoOptionValue("Function precision"))
 }
 \arguments{
 \item{freeSet}{names of matrices containing free variables}
@@ -21,6 +23,10 @@ mxComputeSimAnnealing(freeSet=NA_character_, ..., fitfunction='fitfunction',
 \item{method}{which algorithm to use}
 
 \item{control}{control parameters specific to the chosen method}
+
+\item{defaultGradientStepSize}{the default gradient step size}
+
+\item{defaultFunctionPrecision}{the default function precision}
 }
 \description{
 Performs simulated annealing to minimize the fit function.

@@ -34,7 +34,7 @@ do_cran_check() {
 if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
     if [ "x$MODE" = xtest ]; then
 	fold_start make.install "make install"
-	IMX_SAFE=1 make install
+	make install
 	fold_end make.install
     fi
 

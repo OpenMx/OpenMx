@@ -69,7 +69,7 @@ setMethod("genericNameToNumber", signature("MxExpectationHiddenMarkov"),
 	  })
 
 mxExpectationHiddenMarkov <- function(components, initial="initial", transition=NULL,
-				      ..., verbose=0L, scale=c('softmax','sum')) {
+				      ..., verbose=0L, scale=c('softmax', 'sum', 'none')) {
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
 	}
