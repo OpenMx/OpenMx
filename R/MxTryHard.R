@@ -73,6 +73,8 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	finalfit<- NULL
 	previousLen <- 0L
 	msg <- ""
+	validcount <- 0
+	errorcount <- 0
 	inits <- omxGetParameters(model)
 	params <- inits
 	if(is.na(maxMajorIter)){maxMajorIter <- max(1000, (3*length(inits)) + (10*length(model@constraints)))}
@@ -174,6 +176,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			#^^^is.finite() returns FALSE for Inf, -Inf, NA, and NaN
 			lastBestFitCount <- 0
 			lastNoError<-FALSE
+			errorcount <- errorcount + 1
 			if(!silent){message('\n Fit attempt generated errors')}
 		}
 		
@@ -181,6 +184,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		#If fit did NOT result in error:
 		if(class(fit) != "try-error" && is.finite(fit$output$minimum) && fit$output$status$status != -1){
 			lastNoError <- TRUE
+			validcount <- validcount + 1
 			if(fit$output$minimum >= lowestminsofar){
 				lastBestFitCount <- 0
 				if(fit$output$minimum >= lowestminsofar + generalTolerance){
@@ -247,7 +251,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			}
 		} #end 'if fit did not result in error' section
 		
-		if(numdone == extraTries){
+		if(numdone > extraTries){
 			if(!silent){message('\nRetry limit reached')}
 			stopflag <- TRUE
 		}
@@ -293,6 +297,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				}
 			}
 		}
+		if(silent){
+			msg <- paste0("Solution found!  Final fit=", bestfit$output$minimum, "  (", numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
+			imxReportProgress(msg, previousLen)
+			previousLen <- nchar(msg)
+		}
 		if (length(summary(bestfit)$npsolMessage) > 0) {
 			warning(summary(bestfit)$npsolMessage)
 		}
@@ -308,6 +317,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		if (exists("bestfit")) {
 			if(any(Hesslater,SElater,doIntervals)){
 				if(!silent){message("Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution\n")}
+				else{
+					msg <- "Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution"
+					imxReportProgress(msg, previousLen)
+					previousLen <- nchar(msg)
+				}
 				finalfit <- bestfit
 				if(defaultComputePlan){
 					steps <- list()
@@ -333,6 +347,11 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
 				if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
 					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
+				}
+				if(silent){
+					msg <- paste0("Retry limit reached; solution not found.  Best fit=", bestfit$output$minimum, "  (", numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
+					imxReportProgress(msg, previousLen)
+					previousLen <- nchar(msg)
 				}
 				if (length(bestfit$output$status$statusMsg) > 0) { 
 					warning(bestfit$output$status$statusMsg)
