@@ -225,17 +225,17 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					goodflag <- FALSE
 				}
 				if(checkHess==TRUE) {
-					fit$output$infoDefinite <- TRUE
+					fit@output["infoDefinite"] <- TRUE
 					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
 					if(class(hessEigenval)=='try-error') {
 						if(!silent){message(paste0('\n Eigenvalues of Hessian could not be calculated'))}
 						goodflag <- FALSE
-						fit$output$infoDefinite <- FALSE
+						fit@output["infoDefinite"] <- FALSE
 					}
 					if(class(hessEigenval)!='try-error' && any(hessEigenval < 0)) {
 						if(!silent){message(paste0('\n Not all eigenvalues of Hessian are greater than ', 0,': ', paste(hessEigenval,collapse=', ')))}
 						goodflag <- FALSE
-						fit$output$infoDefinite <- FALSE
+						fit@output["infoDefinite"] <- FALSE
 					}}
 				if(goodflag){ 
 					bestfit <- fit
