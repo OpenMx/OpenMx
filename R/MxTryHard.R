@@ -175,11 +175,6 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			lastBestFitCount <- 0
 			lastNoError<-FALSE
 			if(!silent){message('\n Fit attempt generated errors')}
-			else{
-				msg <- 'Fit attempt generated errors'
-				imxReportProgress(msg, previousLen)
-				previousLen <- nchar(msg)
-			}
 		}
 		
 		
@@ -220,40 +215,19 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						message(paste('\n OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', 
 													paste("(",paste(OKstatuscodes,collapse=","),")",sep=""), sep=""))
 					}
-					else{
-						msg <- paste('OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', 
-												 paste("(",paste(OKstatuscodes,collapse=","),")",sep=""), sep="")
-						imxReportProgress(msg, previousLen)
-						previousLen <- nchar(msg)
-					}
 				}
 				if(fit$output$minimum > fit2beat) {
 					if(!silent){message(paste0('\n Fit value of ', fit$output$minimum, ' greater than fit2beat of ', fit2beat))}
-					else{
-						msg <- paste0('Fit value of ', fit$output$minimum, ' greater than fit2beat of ', fit2beat)
-						imxReportProgress(msg, previousLen)
-						previousLen <- nchar(msg)
-					}
 					goodflag <- FALSE
 				}
 				if(checkHess==TRUE) {
 					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
 					if(class(hessEigenval)=='try-error') {
 						if(!silent){message(paste0('\n Eigenvalues of Hessian could not be calculated'))}
-						else{
-							msg <- paste0('Eigenvalues of Hessian could not be calculated')
-							imxReportProgress(msg, previousLen)
-							previousLen <- nchar(msg)
-						}
 						goodflag <- FALSE
 					}
 					if(class(hessEigenval)!='try-error' && any(hessEigenval < 0)) {
 						if(!silent){message(paste0('\n Not all eigenvalues of Hessian are greater than ', 0,': ', paste(hessEigenval,collapse=', ')))}
-						else{
-							msg <- paste0('Not all eigenvalues of Hessian are greater than ', 0,': ', paste(hessEigenval,collapse=', '))
-							imxReportProgress(msg, previousLen)
-							previousLen <- nchar(msg)
-						}
 						goodflag <- FALSE
 					}}
 				if(goodflag){ 
@@ -267,7 +241,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			#iterationSummary=TRUE is too much to summarize in one line.  Therefore, if the user has provided showInits=TRUE, then give him/her 
 			#the extra printing requested notwithstanding the value of argument 'silent' (which by default is TRUE in an interactive session):
 			if(iterationSummary){
-				message(paste0("\n Attempt ",numdone," result:  "))
+				message(paste0("\n Attempt ",numdone-1," result:  "))
 				message(paste(names(params),": ", fit$output$estimate,"\n"))
 				message(paste0("fit value = ", fit$output$minimum))
 			}
@@ -275,22 +249,12 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		
 		if(numdone == extraTries){
 			if(!silent){message('\nRetry limit reached')}
-			else{
-				msg <- 'Retry limit reached'
-				imxReportProgress(msg, previousLen)
-				previousLen <- nchar(msg)
-			}
 			stopflag <- TRUE
 		}
 	} #end while loop
 	
 	if(goodflag){
 		if(!silent){message('\nSolution found\n')}
-		else{
-			msg <- 'Solution found'
-			imxReportProgress(msg, previousLen)
-			previousLen <- nchar(msg)
-		}
 		if(any(Hesslater,SElater,doIntervals)){
 			if(!silent){message("Final run, for Hessian and/or standard errors and/or confidence intervals\n")}
 			else{
@@ -323,19 +287,9 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
 			if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
 				if(!silent){message('Errors during final fit for Hessian/SEs/CIs\n')}
-				else{
-					msg <- 'Errors during final fit for Hessian/SEs/CIs'
-					imxReportProgress(msg, previousLen)
-					previousLen <- nchar(msg)
-				}
 			} else {
 				if (length(summary(finalfit)$npsolMessage) > 0){
 					if(!silent){message('Warning messages generated from final run for Hessian/SEs/CIs\n')}
-					else{
-						msg <- 'Warning messages generated from final run for Hessian/SEs/CIs'
-						imxReportProgress(msg, previousLen)
-						previousLen <- nchar(msg)
-					}
 				}
 			}
 		}
@@ -354,11 +308,6 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		if (exists("bestfit")) {
 			if(any(Hesslater,SElater,doIntervals)){
 				if(!silent){message("Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution\n")}
-				else{
-					msg <- "Computing Hessian and/or standard errors and/or confidence intervals from imperfect solution"
-					imxReportProgress(msg, previousLen)
-					previousLen <- nchar(msg)
-				}
 				finalfit <- bestfit
 				if(defaultComputePlan){
 					steps <- list()
@@ -384,26 +333,16 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
 				if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
 					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
-					else{
-						msg <- 'Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is'
-						imxReportProgress(msg, previousLen)
-						previousLen <- nchar(msg)
-					}
 				}
 				if (length(bestfit$output$status$statusMsg) > 0) { 
 					warning(bestfit$output$status$statusMsg)
 				}
 				if(bestfit$output$status$code==6 && !(6 %in% OKstatuscodes)){
 					if(!silent){message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')}
-					else{
-						msg <- 'Uncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!'
-						imxReportProgress(msg, previousLen)
-						previousLen <- nchar(msg)
-					}
 				}
 				if(iterationSummary){
 					message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-					message(paste0("fit value = ", bestfit$output$Minus2LogLikelihood))
+					message(paste0("fit value = ", bestfit$output$minimum))
 				}
 				bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
 			}}}
