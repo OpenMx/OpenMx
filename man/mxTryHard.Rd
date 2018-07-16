@@ -20,10 +20,10 @@ initialTolerance=as.numeric(mxOption(NULL,'Optimality tolerance')),
 checkHess = TRUE, fit2beat = Inf, paste = TRUE,	iterationSummary=FALSE, 
 bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
 finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
-maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=FALSE)
+maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive)
 
 mxTryHardOrig(model, finetuneGradient=FALSE, maxMajorIter=NA, 
-wtgcsv=c("prev","best"), ...)
+wtgcsv=c("prev","best"), silent=FALSE ...)
 
 mxTryHardctsem(model, initialGradientStepSize = .00001, 
 initialGradientIterations = 1,

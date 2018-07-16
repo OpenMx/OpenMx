@@ -483,9 +483,9 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 
 
 #Wrapper function to imitate original implementation of mxTryHard()--attempts to find good start values:
-mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv=c("prev","best"), ...){
+mxTryHardOrig <- function(model, finetuneGradient=FALSE, maxMajorIter=NA, wtgcsv=c("prev","best"), silent=FALSE, ...){
 	return(mxTryHard(model=model,finetuneGradient=finetuneGradient,
-									 maxMajorIter=maxMajorIter,wtgcsv=wtgcsv,silent=FALSE,...))
+									 maxMajorIter=maxMajorIter,wtgcsv=wtgcsv,silent=silent,...))
 }
 
 
