@@ -61,6 +61,7 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 	{"imxFitFunctionBA81", &omxInitFitFunctionBA81},
 	{"imxFitFunciontStateSpace", &ssMLFitInit},
 	{"imxFitFunciontHiddenMarkov", &InitMarkovFF},
+	{"imxFitFunciontGRMFIML", &GRMFIMLFitInit},
 };
 
 void omxFitFunction::setUnitsFromName(const char *name)

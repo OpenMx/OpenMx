@@ -104,6 +104,7 @@ omxFitFunction *InitMarkovFF();
 omxFitFunction *omxInitGREMLFitFunction();
 omxFitFunction *InitFellnerFitFunction();
 omxFitFunction *ssMLFitInit();
+omxFitFunction *GRMFIMLFitInit();
 
 void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 

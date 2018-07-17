@@ -800,4 +800,75 @@ void omxGREMLFitState::dVupdate_final(){
 		}
 	}
 }
- 
+
+
+
+struct GRMFIMLFitState : omxFitFunction{
+	int verbose;
+	omxMatrix *y, *invcov, *means;
+	
+	virtual void init();
+	virtual void compute(int want, FitContext *fc);
+	virtual void populateAttr(SEXP algebra);
+};
+
+omxFitFunction *GRMFIMLFitInit()
+{ return new GRMFIMLFitState; }
+
+void GRMFIMLFitState::init()
+{
+	auto *oo = this;
+	oo->openmpUser = false;
+	oo->units = FIT_UNITS_MINUS2LL;
+	
+	//If user has provided rowwiseParallel=FALSE to frontend mxFitFunctionML(), then assume they want parallelized
+	//numeric derivatives:
+	ProtectedSEXP RrowwiseParallel(R_do_slot(rObj, Rf_install("rowwiseParallel")));
+	oo->canDuplicate = !Rf_asLogical(RrowwiseParallel);
+	
+	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(Rverbose);
+	
+	oo->y = omxGetExpectationComponent(expectation, "y");
+	oo->invcov = omxGetExpectationComponent(expectation, "invcov");
+	oo->means = omxGetExpectationComponent(expectation, "means");
+	
+}
+
+void GRMFIMLFitState::compute(int want, FitContext* fc){
+	auto *oo = this;
+	const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
+	const double Scale = fabs(Global->llScale);
+	omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
+	Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(y), y->cols, 1);
+	Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(invcov), invcov->rows, invcov->cols);
+	Eigen::Map< Eigen::MatrixXd > Yhat(omxMatrixDataColumnMajor(means), means->rows, 1);
+	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
+	if(want & FF_COMPUTE_FIT){
+		omxExpectationCompute(fc, expectation, NULL);
+		//Check for PD covariance matrix:
+		if(oge->cholV_fail_om->data[0]){
+			oo->matrix->data[0] = NA_REAL;
+			if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
+			return;
+		}
+		/*This function doesn't use the quadratic form in X, but if it's non-PD, then the yhats won't have been recalculated
+		  at the current parameter values:*/
+		if(oge->cholquadX_fail){
+			oo->matrix->data[0] = NA_REAL;
+			if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
+			return;
+		}
+		Eigen::MatrixXd resids(means->rows,1);
+		resids = Eigy - Yhat;
+		//Compute ML fit:
+		oo->matrix->data[0] = Scale*0.5*( (((double)oo->y->cols)*NATLOG_2PI) + oge->logdetV_om->data[0] + 
+			(resids.transpose() * Vinv.selfadjointView<Eigen::Lower>() * resids)(0,0) );
+	}
+	return;
+}
+
+void GRMFIMLFitState::populateAttr(SEXP algebra){
+	//Not really anything to pass to the frontend fitfunction object.
+	return;
+}
