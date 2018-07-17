@@ -23,7 +23,7 @@ finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FA
 maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive())
 
 mxTryHardOrig(model, finetuneGradient=FALSE, maxMajorIter=NA, 
-wtgcsv=c("prev","best"), silent=FALSE ...)
+wtgcsv=c("prev","best"), silent=FALSE, ...)
 
 mxTryHardctsem(model, initialGradientStepSize = .00001, 
 initialGradientIterations = 1,
