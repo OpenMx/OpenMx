@@ -15,7 +15,6 @@
 
 #TODO:
 #Need more input checking?  For instance, initialGradientIterations should be a positive integer, right?
-#How can mxTryHard() be improved for ordinal-threshold analyses?
 
 mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1, 
 											scale = 0.25,  initialGradientStepSize = imxAutoOptionValue("Gradient step size"), 
@@ -75,6 +74,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	msg <- ""
 	validcount <- 0
 	errorcount <- 0
+	fitvalAtStarts <- NA
 	inits <- omxGetParameters(model)
 	params <- inits
 	if(is.na(maxMajorIter)){maxMajorIter <- max(1000, (3*length(inits)) + (10*length(model@constraints)))}
@@ -82,6 +82,18 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	parlbounds[is.na(parlbounds)] <- -Inf
 	parubounds <- omxGetParameters(model=model,fetch="ubound")
 	parubounds[is.na(parubounds)] <- Inf
+	
+	
+	#Get fit at start values:
+	inputCompute <- model@compute
+	model@compute <- mxComputeSequence(
+		list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+		RE=mxComputeReportExpectation()))
+	model@compute@.persist <- TRUE
+	modelAtStartValues <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T, intervals=FALSE)))
+	if(class(modelAtStartValues) != "try-error"){ fitvalAtStarts <- modelAtStartValues@output$fit }
+	model@compute <- inputCompute
+	rm(modelAtStartValues, inputCompute)
 	
 	
 	#Begin main 'while' loop.
@@ -301,7 +313,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			}
 		}
 		if(silent){
-			msg <- paste0("Solution found!  Final fit=", bestfit$output$minimum, "  (", numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
+			msg <- paste0("Solution found!  Final fit=", bestfit$output$minimum, " (started at", fitvalAtStarts, ")  (" ,numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
 			imxReportProgress(msg, previousLen)
 			previousLen <- nchar(msg)
 		}
@@ -352,7 +364,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
 				}
 				if(silent){
-					msg <- paste0("Retry limit reached; solution not found.  Best fit=", bestfit$output$minimum, "  (", numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
+					msg <- paste0("Retry limit reached; solution not found.  Best fit=", bestfit$output$minimum, " (started at", fitvalAtStarts, ")  (", numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
 					imxReportProgress(msg, previousLen)
 					previousLen <- nchar(msg)
 				}
