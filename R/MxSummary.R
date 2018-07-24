@@ -979,7 +979,7 @@ logLik.MxModel <- function(object, ...) {
 	model <- object
 	assertModelFreshlyRun(model)
 	ll <- NA
-	if (!is.null(model@output) && !is.null(model@output$Minus2LogLikelihood) && model@output$fitUnits=="-2lnL") {
+	if (length(model@output) && !is.null(model@output$Minus2LogLikelihood) && model@output$fitUnits=="-2lnL") {
 		ll <- -0.5*model@output$Minus2LogLikelihood
 	}
 
