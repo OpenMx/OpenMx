@@ -87,7 +87,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	#Get fit at start values:
 	inputCompute <- model@compute
 	model@compute <- mxComputeSequence(
-		list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
+		list(CO=mxComputeOnce(from="fitfunction", what="fit", .is.bestfit=TRUE),
 		RE=mxComputeReportExpectation()))
 	model@compute@.persist <- TRUE
 	modelAtStartValues <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T, intervals=FALSE)))
