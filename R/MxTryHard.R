@@ -91,7 +91,10 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		RE=mxComputeReportExpectation()))
 	model@compute@.persist <- TRUE
 	modelAtStartValues <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T, intervals=FALSE)))
-	if(class(modelAtStartValues) != "try-error"){ fitvalAtStarts <- modelAtStartValues@output$fit }
+	if(class(modelAtStartValues) != "try-error"){ 
+		fitvalAtStarts <- modelAtStartValues@output$fit
+		lowestminsofar <- modelAtStartValues@output$fit
+	}
 	model@compute <- inputCompute
 	rm(modelAtStartValues, inputCompute)
 	
@@ -213,7 +216,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			if(fit$output$minimum < lowestminsofar){ #<--If this is the best fit so far
 				if(!silent){message(paste0('\n Lowest minimum so far:  ',fit$output$minimum))}
 				else{
-					msg <- paste0('Fit attempt ',numdone-1,', fit=',fit$output$minimum,', new current best! (was',lowestminsofar,')')
+					msg <- paste0('Fit attempt ',numdone-1,', fit=',fit$output$minimum,', new current best! (was ',lowestminsofar,')')
 					imxReportProgress(msg, previousLen)
 					previousLen <- nchar(msg)
 				}
@@ -312,11 +315,8 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				}
 			}
 		}
-		if(silent){
-			msg <- paste0("Solution found!  Final fit=", bestfit$output$minimum, " (started at", fitvalAtStarts, ")  (" ,numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
-			imxReportProgress(msg, previousLen)
-			previousLen <- nchar(msg)
-		}
+		imxReportProgress("", previousLen)
+		message(paste0("\nSolution found!  Final fit=", bestfit$output$minimum, " (started at ", fitvalAtStarts, ")  (" ,numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
 		if (length(summary(bestfit)$npsolMessage) > 0) {
 			warning(summary(bestfit)$npsolMessage)
 		}
@@ -363,23 +363,22 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
 					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
 				}
-				if(silent){
-					msg <- paste0("Retry limit reached; solution not found.  Best fit=", bestfit$output$minimum, " (started at", fitvalAtStarts, ")  (", numdone+1, " attempts: ", validcount, " valid, ", errorcount," errors)")
-					imxReportProgress(msg, previousLen)
-					previousLen <- nchar(msg)
-				}
-				if (length(bestfit$output$status$statusMsg) > 0) { 
-					warning(bestfit$output$status$statusMsg)
-				}
-				if(bestfit$output$status$code==6 && !(6 %in% OKstatuscodes)){
-					if(!silent){message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')}
-				}
-				if(iterationSummary){
-					message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
-					message(paste0("fit value = ", bestfit$output$minimum))
-				}
-				bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
-			}}}
+			}
+			imxReportProgress("", previousLen)
+			message(paste0("\nRetry limit reached; solution not found.  Best fit=", bestfit$output$minimum, " (started at ", fitvalAtStarts, ")  (", numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
+			if (length(bestfit$output$status$statusMsg) > 0) { 
+				warning(bestfit$output$status$statusMsg)
+			}
+			if(bestfit$output$status$code==6 && !(6 %in% OKstatuscodes)){
+				if(!silent){message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')}
+			}
+			if(iterationSummary){
+				message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
+				message(paste0("fit value = ", bestfit$output$minimum))
+			}
+			bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
+		}
+	}
 	
 	
 	if(bestInitsOutput && exists("bestfit")){
@@ -393,18 +392,14 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	
 	if (!exists("bestfit")) {
 		if(class(fit) == 'try-error') warning(fit[[length(fit)]])
-		if(!silent){message('All fit attempts resulted in errors - check starting values or model specification')}
-		else{
-			msg <- 'All fit attempts resulted in errors - check starting values or model specification'
-			imxReportProgress(msg, previousLen)
-			previousLen <- nchar(msg)
-		}
+		imxReportProgress("", previousLen)
+		message('\nAll fit attempts resulted in errors - check starting values or model specification\n')
 		bestfit<-fit
 	}
 	
 	if( defaultComputePlan && !("try-error" %in% class(bestfit)) ){bestfit@compute@.persist <- FALSE}
 	
-	imxReportProgress("", previousLen)
+	#imxReportProgress("", previousLen)
 	return(bestfit)
 }
 
