@@ -237,7 +237,9 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC[,'par'] <- c(AIC.p, BIC.p)
 	IC['BIC:','sample'] <- sBIC
 	IC['AIC:','sample'] <- AICc
-	if(length(model@output) && model@output$fitUnits=="-2lnL"){retval[['informationCriteria']] <- IC}
+	if(length(model@output) && (is.null(model@output$fitUnits) || model@output$fitUnits=="-2lnL")){
+		retval[['informationCriteria']] <- IC
+	}
 	
 	retval$fitUnits <- model@output$fitUnits
 	
