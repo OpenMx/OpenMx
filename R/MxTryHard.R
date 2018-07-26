@@ -260,7 +260,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			} #end goodflag checks
 			
 			#iterationSummary=FALSE by default for mxTryHard() and its 4 specialized wrappers, and the extra printing that occurs when 
-			#iterationSummary=TRUE is too much to summarize in one line.  Therefore, if the user has provided showInits=TRUE, then give him/her 
+			#iterationSummary=TRUE is too much to summarize in one line.  Therefore, if the user has provided iterationSummary=TRUE, then give him/her 
 			#the extra printing requested notwithstanding the value of argument 'silent' (which by default is TRUE in an interactive session):
 			if(iterationSummary){
 				message(paste0("\n Attempt ",numdone-1," result:  "))
@@ -316,7 +316,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			}
 		}
 		imxReportProgress("", previousLen)
-		message(paste0("\nSolution found!  Final fit=", bestfit@fitfunction@result[1,1], " (started at ", fitvalAtStarts, ")  (" ,numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
+		message(paste0("\nSolution found!  Final fit=", signif(bestfit@fitfunction@result[1,1],8), " (started at ", signif(fitvalAtStarts,8), ")  (" ,numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
 		if (length(summary(bestfit)$npsolMessage) > 0) {
 			warning(summary(bestfit)$npsolMessage)
 		}
@@ -365,7 +365,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				}
 			}
 			imxReportProgress("", previousLen)
-			message(paste0("\nRetry limit reached; solution not found.  Best fit=", bestfit@fitfunction@result[1,1], " (started at ", fitvalAtStarts, ")  (", numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
+			message(paste0("\nRetry limit reached; solution not found.  Best fit=", signif(bestfit@fitfunction@result[1,1],8), " (started at ", signif(fitvalAtStarts,8), ")  (", numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
 			if (length(bestfit$output$status$statusMsg) > 0) { 
 				warning(bestfit$output$status$statusMsg)
 			}
