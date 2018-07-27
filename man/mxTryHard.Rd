@@ -20,10 +20,10 @@ initialTolerance=as.numeric(mxOption(NULL,'Optimality tolerance')),
 checkHess = TRUE, fit2beat = Inf, paste = TRUE,	iterationSummary=FALSE, 
 bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
 finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
-maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=FALSE)
+maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive())
 
 mxTryHardOrig(model, finetuneGradient=FALSE, maxMajorIter=NA, 
-wtgcsv=c("prev","best"), ...)
+wtgcsv=c("prev","best"), silent=FALSE, ...)
 
 mxTryHardctsem(model, initialGradientStepSize = .00001, 
 initialGradientIterations = 1,
@@ -46,9 +46,9 @@ OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...)
   \item{checkHess}{Logical; is a positive-definite Hessian a requirement for an acceptable solution?  Defaults to \code{TRUE} (for \code{mxTryHard()}).  If \code{TRUE}, the Hessian and standard errors are calculated with each fit attempt, irrespective of the value of relevant \link[=mxOption]{options}.  The exception is if \code{model} or any of its submodels contains \code{\link{MxConstraint}s}, in which case \code{checkHess} is coerced to \code{FALSE}. }
   \item{fit2beat}{Numeric upper limit to the fitfunction value that an acceptable solution may have.  Useful if a nested submodel of \code{model} has already been fitted, since \code{model}, with its additional free parameters, should not yield a fitfunction value any greater than that of the submodel.}
   \item{paste}{Logical.  If \code{TRUE} (default), start values for the returned fitted model are printed to console as a comma-separated string.  This is useful if the user wants to copy-paste these values into an \R script, say, in an \code{\link{omxSetParameters}()} statement. If \code{FALSE}, the vector of start values is printed as-is.  Note that this vector, from \code{\link{omxGetParameters}()}, has names corresponding to the free parameters; these names are not displayed when \code{paste=TRUE}.}
-  \item{iterationSummary}{Logical. If \code{TRUE}, displays parameter estimates and fit values for every fit attempt. Defaults to \code{FALSE}.  Value of \code{TRUE} is overridden by \code{silent=TRUE}.}
-  \item{bestInitsOutput}{Logical. If \code{TRUE}, displays starting values that resulted in best fit, according to format specified by \code{paste} argument. Defaults to \code{TRUE}.  Value of \code{TRUE} is overridden by \code{silent=TRUE}.}
-  \item{showInits}{Logical. If \code{TRUE}, displays starting values for every fit attempt. Defaults to \code{FALSE}.  Value of \code{TRUE} is overridden by \code{silent=TRUE}.}
+  \item{iterationSummary}{Logical. If \code{TRUE}, displays parameter estimates and fit values for every fit attempt, even if \code{silent=TRUE}. Defaults to \code{FALSE}.}
+  \item{bestInitsOutput}{Logical. If \code{TRUE} and if \code{silent=FALSE}, \code{mxTryHard()} displays the starting values that resulted in the best fit, according to format specified by \code{paste} argument. Defaults to \code{TRUE}.}
+  \item{showInits}{Logical. If \code{TRUE}, displays starting values for every fit attempt, even if \code{silent=TRUE}.  Defaults to \code{FALSE}.}
   \item{verbose}{If \code{model} is using the default compute plan, is passed to \code{\link{mxComputeGradientDescent}()} to specify level of output printed to console during optimization.}
   \item{intervals}{Logical. If TRUE, OpenMx will estimate any specified confidence intervals.}
   \item{finetuneGradient}{Logical.  If \code{TRUE} (default for \code{mxTryHard()}), then as repeated fit attempts appear to be improving, \code{mxTryHard()} will adjust optimization-control parameters \code{\link[OpenMx:mxComputeGradientDescent]{gradientStepSize}}, \code{\link[OpenMx:mxComputeGradientDescent]{gradientIterations}}, and \code{\link[OpenMx:mxComputeGradientDescent]{tolerance}}, as well as argument \code{scale}, to "fine-tune" its convergence toward an optimal solution.  \code{finetuneGradient=FALSE} is recommended for analyses involving thresholds.}
@@ -57,7 +57,7 @@ OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...)
   \item{maxMajorIter}{Integer; passed to \code{\link{mxComputeGradientDescent}()}.  Defaults to 3000, which was the internally hardcoded value \code{mxTryHard()} used in at least one prior version of OpenMx.  Value of \code{NA} is permitted, in which case \code{mxTryHard()} will calculate a value via the on-load default formula for the "Major iterations" \link[=mxOption]{option}.}
   \item{OKstatuscodes}{Optional integer vector containing optimizer status codes that an acceptable solution is permitted to have.  \code{mxTryHard()} always considers a status code of 0 to be acceptable, this argument notwithstanding. By default, \code{mxTryHard()} will consider status code 0 acceptable, and, if \code{greenOK=TRUE}, status code 1 as well.  If a value is supplied for \code{OKstatuscodes} that conflicts with \code{greenOK}, \code{OKstatuscodes} controls.}
   \item{wtgcsv}{Character vector.  "Where to get current start values."  See below, under "Details," for additional information.}
-  \item{silent}{Logical; defaults to \code{FALSE}.  If \code{TRUE}, most \link[base:message]{message-printing} is suppressed, except for those which advise the user of errors, warnings, or a poor solution from the MxModel object to be returned; this overrides \code{iterationSummary}, \code{bestInitsOutput}, and \code{showInits}.}
+  \item{silent}{Logical; for \code{mxTryHard()}, defaults to \code{TRUE} if running interactively, and to \code{FALSE} otherwise.  If \code{TRUE}, persistent \link[base:message]{message-printing} during execution of \code{mxTryHard()} is suppressed, and non-persistent printing is used instead. The two exceptions are the persistent printing requested by \code{TRUE} values of \code{iterationSummary} and \code{showInits}.}
   \item{...}{Additional arguments to be passed to \code{mxTryHard()}.}
 }
 

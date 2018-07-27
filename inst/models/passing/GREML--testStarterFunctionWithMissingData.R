@@ -152,3 +152,22 @@ omxCheckCloseEnough(testrun4$expectation$b,
 omxCheckCloseEnough(testrun4$expectation$bcov,
                     var(dat[-c(42,57),1])/98,epsilon=10^-5)
 omxCheckEquals(dim(testrun4$V$result),c(98,98))
+
+#Make sure that the backend correctly handles missingness when using the ML fitfunction:
+testmod5 <- mxModel(
+	mxData(observed=dat, type="raw"),
+	mxExpectationGREML(V="V",Xvars="x",yvars="y",addOnes = F),
+	mxFitFunctionML(),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V")
+)
+testrun5 <- mxRun(testmod5)
+omxCheckCloseEnough(testrun5$output$estimate[1],
+										var(dat[-c(42,57),1])*97/98,epsilon=10^-5)
+omxCheckCloseEnough(testrun5$expectation$b,
+										mean(dat[-c(42,57),1]),epsilon=10^-5)
+omxCheckCloseEnough(testrun5$expectation$bcov,
+										var(dat[-c(42,57),1])*97/98/98,epsilon=10^-5)
+omxCheckCloseEnough(testrun5$output$fit, testrun4$fitfunction$MLfit,1e-2)
+omxCheckEquals(dim(testrun5$V$result),c(100,100))

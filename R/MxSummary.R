@@ -237,7 +237,9 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	IC[,'par'] <- c(AIC.p, BIC.p)
 	IC['BIC:','sample'] <- sBIC
 	IC['AIC:','sample'] <- AICc
-	retval[['informationCriteria']] <- IC
+	if(length(model@output) && (is.null(model@output$fitUnits) || model@output$fitUnits=="-2lnL")){
+		retval[['informationCriteria']] <- IC
+	}
 	
 	retval$fitUnits <- model@output$fitUnits
 	
@@ -583,10 +585,12 @@ print.summary.mxmodel <- function(x,...) {
 		cat("chi-square:  ", "\U03C7\U00B2 ( df=", chidof, " ) = ", chival, ",  p = ", chipee, '\n', sep="")
 	}
 	#
-	cat("Information Criteria: \n")
-	IC <- x$informationCriteria
-	colnames(IC) <- c(" |  df Penalty", " |  Parameters Penalty", " |  Sample-Size Adjusted")
-	print(IC)
+	if(length(x$informationCriteria)){
+		cat("Information Criteria: \n")
+		IC <- x$informationCriteria
+		colnames(IC) <- c(" |  df Penalty", " |  Parameters Penalty", " |  Sample-Size Adjusted")
+		print(IC)
+	}
 	#
 	# Absolute fit indices
 	if(x$verbose==TRUE || any(!is.na(c(x$CFI, x$TLI, x$RMSEA)))){
@@ -977,7 +981,8 @@ logLik.MxModel <- function(object, ...) {
 	model <- object
 	assertModelFreshlyRun(model)
 	ll <- NA
-	if (!is.null(model@output) & !is.null(model@output$Minus2LogLikelihood)) {
+	if (length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
+			!is.null(model@output$fitUnits) && model@output$fitUnits=="-2lnL") {
 		ll <- -0.5*model@output$Minus2LogLikelihood
 	}
 
