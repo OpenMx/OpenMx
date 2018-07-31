@@ -999,7 +999,7 @@ logLik.MxModel <- function(object, ...) {
 		attr(ll,"df") <- NA
 	class(ll) <- "logLik"
 	if (length(moreModels)) {
-		c(list(ll), lapply(moreModels, logLik))
+		c(list(ll), lapply(moreModels, logLik.MxModel))
 	} else {
 		ll
 	}
