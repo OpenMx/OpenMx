@@ -45,6 +45,12 @@ struct populateLocation {
 	void transpose() { std::swap(destRow, destCol); }
 };
 
+namespace mini {
+	namespace csv {
+		class ifstream;
+	}
+}
+
 class omxMatrix {
 	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
 	// Note: some overlap with FreeVarGroup::cacheDependencies
@@ -52,8 +58,9 @@ class omxMatrix {
 	bool dependsOnDefVarCache;
 	int joinKey;
 	class omxExpectation *joinModel;
+	int shape;
  public:
-	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1), joinModel(0) {};
+   omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1), joinModel(0), shape(0) {};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
@@ -113,6 +120,7 @@ class omxMatrix {
 	}
 	void copyAttr(omxMatrix *src);
 	bool isSimple() { return !algebra && !fitFunction && populate.size()==0; };
+	void loadFromStream(mini::csv::ifstream &st);
 };
 
 void omxEnsureColumnMajor(omxMatrix *mat);

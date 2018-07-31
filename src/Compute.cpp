@@ -31,6 +31,7 @@
 #include "omxState.h"
 #include <Eigen/Cholesky>
 #include "finiteDifferences.h"
+#include "minicsv.h"
 #include "EnableWarnings.h"
 
 void pda(const double *ar, int rows, int cols);
@@ -1783,6 +1784,19 @@ class ComputeLoadData : public omxCompute {
 	virtual void computeImpl(FitContext *fc);
 };
 
+class ComputeLoadMatrix : public omxCompute {
+	typedef omxCompute super;
+	std::vector< omxMatrix* > mat;
+	std::vector< mini::csv::ifstream* > streams;
+	bool useOriginalData;
+	int line;
+
+ public:
+	virtual ~ComputeLoadMatrix();
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -1819,6 +1833,9 @@ static class omxCompute *newComputeGenerateData()
 static class omxCompute *newComputeLoadData()
 { return new ComputeLoadData(); }
 
+static class omxCompute *newComputeLoadMatrix()
+{ return new ComputeLoadMatrix(); }
+
 static class omxCompute *newComputeCheckpoint()
 { return new ComputeCheckpoint(); }
 
@@ -1846,6 +1863,7 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeBootstrap", &newComputeBootstrap},
 	{"MxComputeGenerateData", &newComputeGenerateData},
 	{"MxComputeLoadData", &newComputeLoadData},
+	{"MxComputeLoadMatrix", &newComputeLoadMatrix},
 	{"MxComputeCheckpoint", newComputeCheckpoint},
 	{"MxComputeSimAnnealing", &newComputeGenSA},
 };
@@ -3445,6 +3463,78 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 	}
 
 	fc->state->invalidateCache();
+}
+
+void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
+	useOriginalData = Rf_asLogical(RoriginalData);
+
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
+		if (isErrorRaised()) return;
+		int objNum = ~INTEGER(Rdata)[wx];
+		omxMatrix *m1 = globalState->matrixList[objNum];
+		if (m1->hasPopulateSubstitutions()) {
+			omxRaiseErrorf("%s: matrix '%s' has populate substitutions",
+				       name, m1->name());
+		}
+		mat.push_back(m1);
+
+		const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
+		// convert to std::string to work around mini::csv constructor bug
+		// https://github.com/shaovoon/minicsv/issues/8
+		streams.push_back(new mini::csv::ifstream(std::string(p1)));
+		streams[wx]->set_delimiter(' ', "##");
+
+		//mxLog("ld %s %s", d1->name, p1);
+	}
+	line = 1;
+}
+
+ComputeLoadMatrix::~ComputeLoadMatrix()
+{
+	for (auto st : streams) delete st;
+	streams.clear();
+}
+
+void ComputeLoadMatrix::computeImpl(FitContext *fc)
+{
+	std::vector<int> &clc = Global->computeLoopIndex;
+	if (clc.size() == 0) Rf_error("%s: must be used within a loop", name);
+	int index = clc[clc.size()-1];  // innermost loop index
+	if (useOriginalData && index == 1) return;
+
+	if (line > index - useOriginalData) {
+		Rf_error("%s: at line %d, cannot seek backwards to line %d",
+			 name, line, index - useOriginalData);
+	}
+	while (line < index - useOriginalData) {
+		for (int dx=0; dx < int(mat.size()); ++dx) {
+			mini::csv::ifstream &st = *streams[dx];
+			st.skip_line();
+		}
+		line += 1;
+	}
+	for (int dx=0; dx < int(mat.size()); ++dx) {
+		mini::csv::ifstream &st = *streams[dx];
+		if (!st.read_line()) {
+			Rf_error("%s: ran out of data for matrix '%s'",
+				 name, mat[dx]->name());
+		}
+		mat[dx]->loadFromStream(st);
+	}
+	line += 1;
+
+	fc->state->invalidateCache();
+
+	fc->state->omxInitialMatrixAlgebraCompute(fc);
+	if (isErrorRaised()) {
+		Rf_error(Global->getBads());
+	}
 }
 
 void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)

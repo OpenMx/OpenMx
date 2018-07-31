@@ -44,6 +44,18 @@ extractJoinKey <- function(model, matList) {
 	})
 }
 
+generateMatrixTypes <- function(matList) {
+	got <- match(sapply(matList, class),
+		c("DiagMatrix", "FullMatrix", "IdenMatrix", "LowerMatrix",
+			"SdiagMatrix", "StandMatrix", "SymmMatrix",
+			"UnitMatrix", "ZeroMatrix"))
+	if (any(is.na(got))) {
+		stop(paste("Unknown matrix class",
+			got[is.na(got)]))
+	}
+	got
+}
+
 generateMatrixList <- function(model) {
 	matvalues <- lapply(model@matrices, generateMatrixValuesHelper)
 	if (!length(matvalues)) return(NULL)
@@ -51,8 +63,10 @@ generateMatrixList <- function(model) {
 	joinModel <- extractJoinModel(model, model@matrices)
 	joinKey <- extractJoinKey(model, model@matrices)
 	references <- generateMatrixReferences(model)
-	retval <- mapply(function(x1,x2,x3,x4) { c(list(x1), x2, x3, x4) }, 
-			matvalues, joinModel, joinKey, references, SIMPLIFY = FALSE)
+	types <- generateMatrixTypes(model@matrices)
+	retval <- mapply(function(x1,x2,x3,x4,x5) { c(list(x1), x2, x3, x4, x5) }, 
+		matvalues, joinModel, joinKey, types, references,
+		SIMPLIFY = FALSE)
 	return(retval)
 }
 
