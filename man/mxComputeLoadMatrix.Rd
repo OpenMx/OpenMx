@@ -14,8 +14,6 @@ mxComputeLoadMatrix(dest, path, ..., originalDataIsIndexOne=FALSE)
 
 \item{originalDataIsIndexOne}{logical. Whether to use the initial data
 for index 1}
-
-\item{file}{a character string naming a file}
 }
 \description{
   The CSV file must be formatted in a specific way.
@@ -44,7 +42,7 @@ library(OpenMx)
 Cov <- rWishart(4, 20, toeplitz(c(2,1)/20))
 write.table(t(apply(Cov, 3, vech)),
             file="cov.csv", col.names=FALSE, row.names=FALSE)
-Mean <- rmvnorm(4, sigma = diag(2))
+Mean <- matrix(rnorm(8),4,2)
 write.table(Mean, file="mean.csv", col.names=FALSE, row.names=FALSE)
 
 m1 <- mxModel(
