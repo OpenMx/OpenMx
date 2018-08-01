@@ -979,6 +979,7 @@ assertModelFreshlyRun <- function(model) {
 
 logLik.MxModel <- function(object, ...) {
 	model <- object
+	moreModels <- list(...)
 	assertModelFreshlyRun(model)
 	ll <- NA
 	if (length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
@@ -997,7 +998,11 @@ logLik.MxModel <- function(object, ...) {
 	else
 		attr(ll,"df") <- NA
 	class(ll) <- "logLik"
-	return(ll)
+	if (length(moreModels)) {
+		c(list(ll), lapply(moreModels, logLik.MxModel))
+	} else {
+		ll
+	}
 }
 
 

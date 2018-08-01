@@ -66,4 +66,6 @@ f4 <- mxRun(oneFactorModel)
 
 omxCheckCloseEnough(logLik(f3), logLik(f4)/2, 1e-9)
 
-
+got <- logLik(f3,f4)
+omxCheckEquals(got[[1]], logLik(f3))
+omxCheckEquals(got[[2]], logLik(f4))
