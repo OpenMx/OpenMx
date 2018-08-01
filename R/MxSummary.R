@@ -1006,7 +1006,7 @@ logLik.MxModel <- function(object, ...) {
 }
 
 
-.standardizeParams <- function(x=NULL, model, Apos, Spos, give.matrices=FALSE){
+.standardizeParams <- function(x=NULL, model, Apos, Spos, Mpos, give.matrices=FALSE){
   if(is.null(x)){x <- omxGetParameters(model)}
   param <- omxGetParameters(model)
   paramNames <- names(param)
@@ -1017,6 +1017,13 @@ logLik.MxModel <- function(object, ...) {
   model_S <- model[[model$expectation$S]] #<--Likewise for S
   S <- list( model_S$values, model_S$result )
   S <- S[[which.max(c( length(S[[1]]), length(S[[2]]) ))]]
+  M <- NULL
+  if(!is.null(Mpos)){
+  	model_M <- model[[model$expectation$M]]
+  	M <- list( model_M$values, model_M$result )
+  	M <- M[[which.max(c( length(M[[1]]), length(M[[2]]) ))]]
+  }
+  else{model_M <- NULL}
   I <- diag(1, nrow(A))
   ImAInv <- solve(I-A)
   SD <- sqrt(diag(ImAInv %*% S %*% t(ImAInv)))
@@ -1025,10 +1032,19 @@ logLik.MxModel <- function(object, ...) {
   InvSD <- diag(InvSD,nrow=length(InvSD))
   Az <- InvSD %*% A %*% SD
   Sz <- InvSD %*% S %*% InvSD
-  sparam <- c(Az[!is.na(Apos)],Sz[!is.na(Spos)])
-  names(sparam) <- c(Apos[!is.na(Apos)],Spos[!is.na(Spos)])
-  if(!give.matrices){return(sparam)}
-  else{return(list(sparam=sparam,Az=Az,Sz=Sz))}
+  if(!is.null(M)){
+  	Mz <- M %*% InvSD
+  	sparam <- c(Az[!is.na(Apos)],Sz[!is.na(Spos)],Mz[!is.na(Mpos)])
+  	names(sparam) <- c(Apos[!is.na(Apos)],Spos[!is.na(Spos)],Mpos[!is.na(Mpos)])
+  	if(!give.matrices){return(sparam)}
+  	else{return(list(sparam=sparam,Az=Az,Sz=Sz,Mz=Mz))}
+  }
+  else{
+  	sparam <- c(Az[!is.na(Apos)],Sz[!is.na(Spos)])
+  	names(sparam) <- c(Apos[!is.na(Apos)],Spos[!is.na(Spos)])
+  	if(!give.matrices){return(sparam)}
+  	else{return(list(sparam=sparam,Az=Az,Sz=Sz))}
+  }
 }
 .mxStandardizeRAMhelper <- function(model,SE=FALSE,ParamsCov,inde.subs.flag=FALSE,ignoreSubmodels=FALSE){
   #Recur the function for the appropriate submodels, if any:
@@ -1047,13 +1063,27 @@ logLik.MxModel <- function(object, ...) {
   model_S <- model[[model$expectation$S]] #<--Likewise for S
   S <- list( model_S$values, model_S$result )
   S <- S[[which.max(c( length(S[[1]]), length(S[[2]]) ))]]
+  M <- NULL
+  if(!is.na(model$expectation$M)){
+  	model_M <- model[[model$expectation$M]]
+  	M <- list( model_M$values, model_M$result )
+  	M <- M[[which.max(c( length(M[[1]]), length(M[[2]]) ))]]
+  }
   #Find positions of nonzero paths:
   Apos <- matrix(NA,nrow=nrow(A),ncol=ncol(A),dimnames=dimnames(A))
   Spos <- matrix(NA,nrow=nrow(S),ncol=ncol(S),dimnames=dimnames(S))
   A_need_pos <- which(A!=0,arr.ind=T)
   S_need_pos <- which(S!=0,arr.ind=T)
   S_need_pos <- subset(S_need_pos, S_need_pos[,1]>=S_need_pos[,2]) #<--Lower tri only
-  numelem <- nrow(A_need_pos)+nrow(S_need_pos)
+  if(!is.null(M)){
+  	Mpos <- matrix(NA,nrow=1,ncol=ncol(M),dimnames=dimnames(M))
+  	M_need_pos <- which(M!=0)
+  }
+  else{
+  	Mpos <- NULL
+  	M_need_pos <- NULL
+  }
+  numelem <- nrow(A_need_pos)+nrow(S_need_pos)+length(M_need_pos)
   #Create output object:
   out <- data.frame(name=vector(mode="character",length=numelem),label=vector(mode="character",length=numelem),
                     matrix=vector(mode="character",length=numelem),
@@ -1093,10 +1123,24 @@ logLik.MxModel <- function(object, ...) {
       j <- j+1
     }
   }
+  if(length(M_need_pos)){
+  	for(i in 1:length(M_need_pos)){
+  		Mpos[1,M_need_pos[i]] <- out$name[j] <- paste(
+  			model@name,".M[1,",M_need_pos[i],"]",sep="")
+  		if(!all.na(model_M$labels)){
+  			out$label[j] <- model_M$labels[1,M_need_pos[i]]
+  		}
+  		out$matrix[j] <- "M"
+  		out$Raw.Value[j] <- M[1,M_need_pos[i]]
+  		out$row[j] <- 1
+  		out$col[j] <- ifelse(length(colnames(M))>0,colnames(M)[M_need_pos[i]],M_need_pos[i])
+  		j <- j+1
+  	}
+  }
   #Get standardized values:
   freeparams <- omxGetParameters(model)
   paramnames <- names(freeparams)
-  zout <- .standardizeParams(x=freeparams,model=model,Apos=Apos,Spos=Spos)
+  zout <- .standardizeParams(x=freeparams,model=model,Apos=Apos,Spos=Spos,Mpos=Mpos)
   #Compute SEs, or assign them 'not requested' values, as the case may be:
   if(SE){ 
   	if(!all(paramnames %in% rownames(ParamsCov))){
@@ -1108,7 +1152,7 @@ logLik.MxModel <- function(object, ...) {
   	}
     #From Mike Hunter's delta method example:
     covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
-    jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos)
+    jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos, Mpos=Mpos)
     covSparam <- jacStand %*% covParam %*% t(jacStand)
     dimnames(covSparam) <- list(names(zout),names(zout))
     SEs <- sqrt(diag(covSparam))
