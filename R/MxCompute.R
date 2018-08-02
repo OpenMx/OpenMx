@@ -1998,6 +1998,52 @@ mxComputeLoadData <- function(dest, path, ..., originalDataIsIndexOne=FALSE) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeLoadMatrix",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 dest = "MxCharOrNumber",
+		 path = "character",
+		 originalDataIsIndexOne = "logical"
+	 ))
+
+setMethod("initialize", "MxComputeLoadMatrix",
+	  function(.Object, dest, path, originalDataIsIndexOne) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- NA_character_
+		  .Object@dest <- dest
+		  .Object@path <- path
+		  .Object@originalDataIsIndexOne <- originalDataIsIndexOne
+		  .Object
+	  })
+
+setMethod("qualifyNames", signature("MxComputeLoadMatrix"), 
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod();
+		.Object@dest <- imxConvertIdentifier(.Object@dest, modelname, namespace)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeLoadMatrix"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (any(is.character(.Object@dest))) {
+			.Object@dest <- sapply(.Object@dest,
+				function(dd) imxLocateIndex(flatModel, dd, .Object))
+		}
+		.Object
+	})
+
+mxComputeLoadMatrix <- function(dest, path, ..., originalDataIsIndexOne=FALSE) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeLoadMatrix does not accept values for the '...' argument")
+	}
+	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeCheckpoint",
 	 contains = "BaseCompute",
 	 representation = representation(

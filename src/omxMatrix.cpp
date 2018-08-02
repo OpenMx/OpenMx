@@ -31,6 +31,7 @@
 #include "omxState.h"
 #include <limits>
 #include "Compute.h"
+#include "minicsv.h"
 #include "EnableWarnings.h"
 
 // forward declarations
@@ -509,8 +510,9 @@ void omxMatrix::setJoinInfo(SEXP Rmodel, SEXP Rkey)
 void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 {
 	setJoinInfo(VECTOR_ELT(matStruct, 1), VECTOR_ELT(matStruct, 2));
+	shape = Rf_asInteger(VECTOR_ELT(matStruct, 3));
 
-	const int offsetToPopulationList = 3;
+	const int offsetToPopulationList = 4;
 	const int numPopLocs = Rf_length(matStruct) - offsetToPopulationList;
 
 	if(OMX_DEBUG) { mxLog("Processing Population List: %d elements.", numPopLocs); }
@@ -1016,3 +1018,76 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
     }
 }
 
+void omxMatrix::loadFromStream(mini::csv::ifstream &st)
+{
+	EigenMatrixAdaptor v(this);
+
+	switch(shape) {
+	case 0:
+		Rf_error("loadFromStream: matrix '%s' has unknown shape", name());
+		break;
+	case 1: //Diag
+		for (int rx=0; rx < rows; ++rx) {
+			st >> v(rx, rx);
+		}
+		break;
+
+	case 2: //Full
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=0; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+		
+	case 4: //Lower
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=cx; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+
+	case 5: //Sdiag
+		for (int cx=0; cx < cols-1; ++cx) {
+			for (int rx=cx+1; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+
+	case 6: //Stand
+		for (int cx=0; cx < cols-1; ++cx) {
+			for (int rx=cx+1; rx < rows; ++rx) {
+				double tmp;
+				st >> tmp;
+				v(rx,cx) = tmp;
+				v(cx,rx) = tmp;
+			}
+		}
+		break;
+
+	case 7: //Symm
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=cx; rx < rows; ++rx) {
+				double tmp;
+				st >> tmp;
+				v(rx,cx) = tmp;
+				v(cx,rx) = tmp;
+			}
+		}
+		break;
+
+	case 8: //Unit
+	case 9: //Zero
+	case 3: //Iden
+		Rf_error("loadFromStream: matrix '%s' is constant (type %d);"
+			 " use a Full matrix if you wish to update it", name(), shape);
+		break;
+
+	default:
+		Rf_error("loadFromStream: matrix '%s' with shape %d is unimplemented",
+			 name(), shape);
+		break;
+	}
+}

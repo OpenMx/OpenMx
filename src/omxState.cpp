@@ -431,10 +431,17 @@ void omxState::invalidateCache()
 	for(size_t ex = 0; ex < expectationList.size(); ex++) {
 		expectationList[ex]->invalidateCache();
 	}
+	for (int ax=0; ax < (int) matrixList.size(); ++ax) {
+		omxMatrix *matrix = matrixList[ax];
+		omxMarkDirty(matrix);
+	}
 	for (int ax=0; ax < (int) algebraList.size(); ++ax) {
 		omxMatrix *matrix = algebraList[ax];
-		if (!matrix->fitFunction) continue;
-		matrix->fitFunction->invalidateCache();
+		if (!matrix->fitFunction) {
+			omxMarkDirty(matrix);
+		} else {
+			matrix->fitFunction->invalidateCache();
+		}
 	}
 }
 

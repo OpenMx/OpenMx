@@ -230,6 +230,29 @@ bigrun <- mxRun(bigmod, suppressWarnings = T)
 zpath2 <- mxStandardizeRAMpaths(bigrun,T)
 omxCheckEquals(names(zpath2),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath2[[2]]),c("MZ","DZ"))
+#Tests for scaled elements of M matrix:
+omxCheckCloseEnough(
+	bigrun$twinACE$MZ$M$values[1,1] / sqrt(mxGetExpected(bigrun$twinACE$MZ,"covariance")[1,1]),
+	zpath2$twinACE$MZ$Std.Value[15],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun$twinACE$DZ$M$values[1,1] / sqrt(mxGetExpected(bigrun$twinACE$DZ,"covariance")[1,1]),
+	zpath2$twinACE$DZ$Std.Value[15],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun$LinearGrowthCurveModel_MatrixSpecification$M$values[6] / 
+		sqrt(bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[6,6]),
+	zpath2$LinearGrowthCurveModel_MatrixSpecification$Std.Value[18],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun$LinearGrowthCurveModel_MatrixSpecification$M$values[7] / 
+		sqrt(bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[7,7]),
+	zpath2$LinearGrowthCurveModel_MatrixSpecification$Std.Value[19],
+	1e-12
+)
 
 
 bigmod2 <- mxModel(
@@ -242,6 +265,29 @@ zpath3 <- mxStandardizeRAMpaths(bigrun2,T)
 omxCheckEquals(names(zpath3),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath3[[2]]),c("MZ","DZ"))
 omxCheckEquals(sum(zpath3$OneFactorPath==zpath,na.rm=T),93)
+#Tests for scaled elements of M matrix:
+omxCheckCloseEnough(
+	bigrun2$twinACE$MZ$M$values[1,1] / sqrt(mxGetExpected(bigrun2$twinACE$MZ,"covariance")[1,1]),
+	zpath3$twinACE$MZ$Std.Value[15],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun2$twinACE$DZ$M$values[1,1] / sqrt(mxGetExpected(bigrun2$twinACE$DZ,"covariance")[1,1]),
+	zpath3$twinACE$DZ$Std.Value[15],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun2$LinearGrowthCurveModel_MatrixSpecification$M$values[6] / 
+		sqrt(bigrun2$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[6,6]),
+	zpath3$LinearGrowthCurveModel_MatrixSpecification$Std.Value[18],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun2$LinearGrowthCurveModel_MatrixSpecification$M$values[7] / 
+		sqrt(bigrun2$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[7,7]),
+	zpath3$LinearGrowthCurveModel_MatrixSpecification$Std.Value[19],
+	1e-12
+)
 
 
 bigmod3 <- mxModel(
@@ -252,6 +298,30 @@ zpath4 <- mxStandardizeRAMpaths(bigrun3,T)
 omxCheckEquals(sum(zpath4$OneFactorPath==zpath3$OneFactorPath,na.rm=T),93)
 omxCheckEquals(names(zpath4),c("OneFactorPath","twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 omxCheckEquals(names(zpath4[[2]]),c("MZ","DZ"))
+#Tests for scaled elements of M matrix:
+omxCheckCloseEnough(
+	bigrun3$twinACE$MZ$M$values[1,1] / sqrt(mxGetExpected(bigrun3$twinACE$MZ,"covariance")[1,1]),
+	zpath4$twinACE$MZ$Std.Value[15],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun3$twinACE$DZ$M$values[1,1] / sqrt(mxGetExpected(bigrun3$twinACE$DZ,"covariance")[1,1]),
+	zpath4$twinACE$DZ$Std.Value[15],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun3$LinearGrowthCurveModel_MatrixSpecification$M$values[6] / 
+		sqrt(bigrun3$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[6,6]),
+	zpath4$LinearGrowthCurveModel_MatrixSpecification$Std.Value[18],
+	1e-12
+)
+omxCheckCloseEnough(
+	bigrun3$LinearGrowthCurveModel_MatrixSpecification$M$values[7] / 
+		sqrt(bigrun3$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[7,7]),
+	zpath4$LinearGrowthCurveModel_MatrixSpecification$Std.Value[19],
+	1e-12
+)
+
 
 #Regression test to ensure (1) that if the "container" model uses RAM expectation, its results are included in the standardized-paths output,
 #and (2) that its element of the output list is named after it:
