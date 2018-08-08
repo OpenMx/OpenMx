@@ -1788,6 +1788,7 @@ class ComputeLoadMatrix : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > mat;
 	std::vector< mini::csv::ifstream* > streams;
+	std::vector<bool> hasRowNames;
 	bool useOriginalData;
 	int line;
 
@@ -3474,6 +3475,9 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	hasRowNames.resize(Rf_length(Rdata));
+	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
+	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
 	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
 		if (isErrorRaised()) return;
 		int objNum = ~INTEGER(Rdata)[wx];
@@ -3488,8 +3492,12 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 		// convert to std::string to work around mini::csv constructor bug
 		// https://github.com/shaovoon/minicsv/issues/8
 		streams.push_back(new mini::csv::ifstream(std::string(p1)));
-		streams[wx]->set_delimiter(' ', "##");
-
+		mini::csv::ifstream &st = *streams[wx];
+		st.set_delimiter(' ', "##");
+		if (INTEGER(Rcolnames)[wx % Rf_length(Rcolnames)]) {
+			st.skip_line();
+		}
+		hasRowNames[wx] = INTEGER(Rrownames)[wx % Rf_length(Rrownames)];
 		//mxLog("ld %s %s", d1->name, p1);
 	}
 	line = 1;
@@ -3524,6 +3532,10 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 		if (!st.read_line()) {
 			Rf_error("%s: ran out of data for matrix '%s'",
 				 name, mat[dx]->name());
+		}
+		if (hasRowNames[dx]) {
+			std::string rn;
+			st >> rn;  // discard it
 		}
 		mat[dx]->loadFromStream(st);
 	}
