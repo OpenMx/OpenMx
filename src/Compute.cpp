@@ -1836,6 +1836,7 @@ class ComputeCheckpoint : public omxCompute {
 		Eigen::VectorXd est;
 		double fit;
 		int inform;
+		Eigen::VectorXd stderrs;
 		Eigen::VectorXd extra;
 	};
 
@@ -1849,6 +1850,8 @@ class ComputeCheckpoint : public omxCompute {
 	std::forward_list<snap> snaps;
 	int numSnaps;
 	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
+	bool inclSEs;
+	bool badSEWarning;
 
  public:
 	virtual bool resetInform() { return false; };
@@ -3839,6 +3842,7 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
+	badSEWarning = false;
 
 	ProtectedSEXP Rappend(R_do_slot(rObj, Rf_install("append")));
 	bool append = Rf_asLogical(Rappend);
@@ -3874,6 +3878,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rstatus(R_do_slot(rObj, Rf_install("status")));
 	inclStatus = Rf_asLogical(Rstatus);
 
+	ProtectedSEXP Rse(R_do_slot(rObj, Rf_install("standardErrors")));
+	inclSEs = Rf_asLogical(Rse);
+
 	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
 	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
 		if (isErrorRaised()) return;
@@ -3907,6 +3914,15 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	if (inclFit) colnames.push_back("objective");
 	if (inclStatus) colnames.push_back("statusCode");
+	if (inclSEs) {
+		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
+		int numParam = vars.size();
+		for(int j = 0; j < numParam; j++) {
+			std::string c1 = vars[j]->name;
+			c1 += "SE";
+			colnames.push_back(c1);
+		}
+	}
 
 	numExtra = 0;
 	for (auto &mat : algebras) {
@@ -3917,9 +3933,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 		numExtra += mat->cols * mat->rows;
 	}
-	// TODO: confidence intervals, standard errors, hessian, constraint algebras, inform code
+	// TODO: confidence intervals, hessian, constraint algebras
 	// what does Eric Schmidt include in per-voxel output?
-	// remove old checkpoint code
+	// remove old checkpoint code?
 }
 
 void ComputeCheckpoint::computeImpl(FitContext *fc)
@@ -3939,6 +3955,22 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	}
 	s1.fit = fc->fit;
 	s1.inform = fc->wrapInform();
+	if (inclSEs) {
+		if (!fc->stderrs.size()) {
+			if (!badSEWarning) {
+				Rf_warning("%s: standard errors are not available", name);
+				badSEWarning = true;
+			}
+		}
+		if (fc->stderrs.size() != int(fc->numParam)) {
+			if (!badSEWarning) {
+				Rf_warning("%s: there are %d standard errors but %d parameters",
+					   name, fc->stderrs.size(), int(fc->numParam));
+				badSEWarning = true;
+			}
+		}
+		s1.stderrs = fc->stderrs;
+	}
 	s1.extra.resize(numExtra);
 
 	{int xx=0;
@@ -3998,6 +4030,11 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				ofs << '\t' << "NA";
 			} else {
 				ofs << '\t' << statusCodeLabels[s1.inform - 1];
+			}
+		}
+		if (inclSEs) {
+			for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+				ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
 			}
 		}
 		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
@@ -4086,6 +4123,16 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto *v = INTEGER(col);
 		int sx=0;
 		for (auto &s1 : snaps) v[sx++] = s1.inform;
+	}
+	if (inclSEs) {
+		auto numEst = int(snaps.front().est.size());
+		for (int x1=0; x1 < numEst; ++x1) {
+			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = REAL(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.stderrs[x1];
+		}
 	}
 	for (int x1=0; x1 < numExtra; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
