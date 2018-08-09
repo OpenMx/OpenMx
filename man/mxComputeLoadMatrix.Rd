@@ -3,7 +3,8 @@
 \alias{MxComputeLoadMatrix-class}
 \title{Load data from CSV files directly into the backend}
 \usage{
-mxComputeLoadMatrix(dest, path, ..., originalDataIsIndexOne=FALSE)
+mxComputeLoadMatrix(dest, path, ..., originalDataIsIndexOne=FALSE,
+ row.names=FALSE, col.names=FALSE)
 }
 \arguments{
 \item{dest}{a character vector of matrix names}
@@ -14,6 +15,8 @@ mxComputeLoadMatrix(dest, path, ..., originalDataIsIndexOne=FALSE)
 
 \item{originalDataIsIndexOne}{logical. Whether to use the initial data
 for index 1}
+\item{row.names}{logical. Whether row names are present}
+\item{col.names}{logical. Whether column names are present}
 }
 \description{
   The CSV file must be formatted in a specific way.

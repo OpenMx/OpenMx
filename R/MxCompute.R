@@ -2003,17 +2003,21 @@ setClass(Class = "MxComputeLoadMatrix",
 	 representation = representation(
 		 dest = "MxCharOrNumber",
 		 path = "character",
-		 originalDataIsIndexOne = "logical"
+		 originalDataIsIndexOne = "logical",
+		 row.names = "logical",
+		 col.names = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeLoadMatrix",
-	  function(.Object, dest, path, originalDataIsIndexOne) {
+	  function(.Object, dest, path, originalDataIsIndexOne, row.names, col.names) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
 		  .Object@dest <- dest
 		  .Object@path <- path
 		  .Object@originalDataIsIndexOne <- originalDataIsIndexOne
+		  .Object@row.names <- row.names
+		  .Object@col.names <- col.names
 		  .Object
 	  })
 
@@ -2034,12 +2038,14 @@ setMethod("convertForBackend", signature("MxComputeLoadMatrix"),
 		.Object
 	})
 
-mxComputeLoadMatrix <- function(dest, path, ..., originalDataIsIndexOne=FALSE) {
+mxComputeLoadMatrix <- function(dest, path, ..., originalDataIsIndexOne=FALSE,
+				row.names=FALSE, col.names=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadMatrix does not accept values for the '...' argument")
 	}
-	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne)
+	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne,
+		as.logical(row.names), as.logical(col.names))
 }
 
 #----------------------------------------------------
