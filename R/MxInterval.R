@@ -355,7 +355,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 		stop("argument 'optimizer' must be one of 'NPSOL', 'CSOLNP', or 'SLSQP'")
 	}
 	if(!independentSubmodels){
-		optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
+		optionList <- generateOptionsList(model, imxHasConstraint(model), TRUE)
 		ctype <- ifelse(optimizer=="SLSQP","ineq","none")
 		ciOpt <- mxComputeGradientDescent(
 			verbose=verbose, engine=optimizer,
@@ -390,7 +390,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 		intervals <- expandConfidenceIntervals(model, intervals)
 		template <- model
 		template <- removeAllIntervals(template)
-		optionList <- generateOptionsList(model, !as.logical(verifyNoConstraints(model)), TRUE)
+		optionList <- generateOptionsList(model, imxHasConstraint(model), TRUE)
 		ctype <- ifelse(optimizer=="SLSQP","ineq","none")
 		ciOpt <- mxComputeGradientDescent(
 			verbose=verbose, engine=optimizer,
