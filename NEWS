@@ -1,5 +1,8 @@
-# OpenMx bleed / 2.9.7 in the making (Summer 2018)
+# OpenMx bleed / 2.10.0 in the making (FALL 2018)
+*
 
+# OpenMx 2.9.9 (R 3.5.0) Summer 2018
+*
 # OpenMx CRAN 2.9.6 (R 3.4.4)
 * BUGFIX: Starting in version 2.7.0 (released January 10th, 2017), and ONLY in joint FIML analysis of both ordinal-threshold and continuous variables: if there was at least one row of the dataset in which all of the continuous variables had missing scores, then OpenMx could incorrectly evaluate the fit function, which would result in OpenMx silently returning numerically incorrect results. If you have run a joint ordinal/continuous FIML analysis with OpenMx versions 2.7.x thru 2.8.x, check your dataset to see if there are any rows in which all the continuous endogenous variables are missing (and at least one endogenous binary or ordinal variable is non-missing). If so, re-run your analysis using OpenMx v2.9. We apologize for any inconvenience this serious, but now-repaired, bug may have caused.
 * IMPROVED:  CSOLNP. This bug would cause CSOLNP to enter an endless loop when optimizing an MxModel containing MxConstraints.
