@@ -36,7 +36,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	if (omxHasDefaultComputePlan(model)) {
 		model@compute <- NULL
 	}
-	lackOfConstraints <- verifyNoConstraints(model)
+	lackOfConstraints <- !imxHasConstraint(model)
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
 	relevantOptions <- list(base::options()$mxOption$"Calculate Hessian", base::options()$mxOption$"Standard Errors",
 													base::options()$mxOption$"Default optimizer", base::options()$mxOption$"Gradient algorithm")
@@ -519,15 +519,5 @@ mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneG
 														 OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...){
 	return(mxTryHard(model=model,greenOK=greenOK,checkHess=checkHess,finetuneGradient=finetuneGradient,
 									 exhaustive=exhaustive,OKstatuscodes=OKstatuscodes,wtgcsv=wtgcsv,...))
-}
-
-
-
-verifyNoConstraints <- function(model){
-	#TODO: Still not sure how this should work when there are independent submodels, and some submodels have
-	#MxConstraints whereas others do not...:
-	out <- ifelse((length(model@constraints)), 0, 1)
-	if(length(model@submodels)){out <- prod(out,sapply(model@submodels,verifyNoConstraints))}
-	return(out)
 }
 
