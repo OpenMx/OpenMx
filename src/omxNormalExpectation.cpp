@@ -22,7 +22,6 @@
 struct omxNormalExpectation : public omxExpectation {
 
 	omxMatrix *cov, *means; // observed covariance and means
-	omxMatrix *thresholds; // same as thresholdsMat? TODO
 
 	double logDetObserved;
 	double n;
@@ -39,7 +38,7 @@ void omxNormalExpectation::compute(FitContext *fc, const char *, const char *) {
 	omxRecompute(one->cov, fc);
 	if(one->means != NULL)
 	    omxRecompute(one->means, fc);
-	if (one->thresholds) omxRecompute(one->thresholds, fc);
+	if (one->thresholdsMat) omxRecompute(one->thresholdsMat, fc);
 }
 
 void omxNormalExpectation::populateAttr(SEXP algebra) {
@@ -91,8 +90,6 @@ void omxNormalExpectation::init()
 
 	if(OMX_DEBUG) { mxLog("Processing Means."); }
 	one->means = omxNewMatrixFromSlot(rObj, currentState, "means");
-
-	one->thresholds = omxNewMatrixFromSlot(rObj, currentState, "thresholds");
 }
 
 omxMatrix* omxNormalExpectation::getComponent(const char* component){
