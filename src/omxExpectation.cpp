@@ -310,3 +310,83 @@ bool omxExpectation::loadDefVars(int row)
 	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("%s: loading definition vars for row %d", name, row); }
 	return changed;
 }
+
+int omxExpectation::numSummaryStats()
+{
+	omxMatrix *cov = getComponent("cov");
+	if (!cov) {
+		Rf_error("%s::numSummaryStats is not implemented (for object '%s')", expType, name);
+	}
+	int count = triangleLoc1(cov->rows);
+	omxMatrix *mean = getComponent("means");
+	if (mean) count += cov->rows;
+	
+	for (auto &th : getThresholdInfo()) {
+		count += th.numThresholds;
+	}
+	return count;
+}
+
+void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::VectorXd> out)
+{
+	loadDefVars(row);
+	omxExpectationCompute(fc, this, 0);
+
+	omxMatrix *cov = getComponent("cov");
+	if (!cov) {
+		Rf_error("%s::asVector is not implemented (for object '%s')", expType, name);
+	}
+	EigenMatrixAdaptor Ecov(cov);
+	omxMatrix *mean = getComponent("means");
+	if (numOrdinal == 0) {
+		int dx = 0;
+		for (int rx=0; rx < cov->cols; ++rx) {
+			for (int cx=0; cx <= rx; ++cx) {
+				out[dx++] = Ecov(rx,cx);
+			}
+		}
+		if (mean) {
+			EigenVectorAdaptor Emean(mean);
+			for (int rx=0; rx < cov->cols; ++rx) {
+				out[dx++] = Emean(rx);
+			}
+		}
+		return;
+	}
+	if (!mean) Rf_error("%s: ordinal indicators and no mean vector", name);
+
+	EigenVectorAdaptor Emean(mean);
+	EigenMatrixAdaptor Eth(thresholdsMat);
+	Eigen::VectorXd sdTmp(1.0/Ecov.diagonal().array().sqrt());
+	Eigen::DiagonalMatrix<double, Eigen::Dynamic> sd(Emean.size());
+	sd.setIdentity();
+	
+	auto &ti = getThresholdInfo();
+	{
+		int tx = triangleLoc1(cov->rows) + cov->rows;
+		for (auto &th : ti) {
+			for (int t1=0; t1 < th.numThresholds; ++t1) {
+				double sd1 = sdTmp[th.dColumn];
+				out[tx + t1] = (Eth(t1, th.column) - Emean[th.dColumn]) * sd1;
+				sd.diagonal()[th.dColumn] = sd1;
+			}
+			tx += th.numThresholds;
+		}
+	}
+	
+	Eigen::MatrixXd stdCov(sd * Ecov * sd);
+
+	int dx = 0;
+	for (int rx=0; rx < cov->rows; ++rx) {
+		for (int cx=rx; cx < cov->cols; ++cx) {
+			out[dx++] = stdCov(rx,cx);
+		}
+	}
+	for (int rx=0; rx < cov->cols; ++rx) {
+		if (ti[rx].numThresholds) {
+			out[dx++] = 0;
+		} else {
+			out[dx++] = Emean(rx);
+		}
+	}
+}

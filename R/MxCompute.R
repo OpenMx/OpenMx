@@ -1661,6 +1661,49 @@ setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="intege
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeManifestByParJacobian",
+	contains = "BaseCompute",
+	representation = representation(
+		expectation = "MxCharOrNumber",
+		defvar.row = "integer"))
+
+setMethod("initialize", "MxComputeManifestByParJacobian",
+	  function(.Object, freeSet, expectation, defvar.row) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@expectation <- expectation
+		  .Object@defvar.row <- defvar.row
+		  .Object
+	  })
+
+setMethod("qualifyNames", signature("MxComputeManifestByParJacobian"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('expectation')) {
+			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeManifestByParJacobian"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (!is.integer(.Object@expectation)) {
+			.Object@expectation <- match(.Object@expectation,
+				names(flatModel@expectations))
+		}
+		.Object
+	})
+
+mxComputeManifestByParameterJacobian <-
+	function(freeSet=NA_character_, ..., expectation="expectation", defvar.row=1L)
+{
+	new("MxComputeManifestByParJacobian", freeSet, expectation, as.integer(defvar.row))
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeStandardError",
 	 contains = "BaseCompute")
 

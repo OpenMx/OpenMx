@@ -30,6 +30,8 @@
 #include "omxBuffer.h"
 #include "omxState.h"
 #include <Eigen/Cholesky>
+#include <Eigen/CholmodSupport>
+#include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
 #include "minicsv.h"
 #include "EnableWarnings.h"
@@ -1678,6 +1680,30 @@ class ComputeStandardError : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeManifestByParJacobian : public omxCompute {
+	typedef omxCompute super;
+	omxExpectation *ex;
+	int defvar_row;
+	Eigen::MatrixXd result;
+
+	struct sense {
+		omxExpectation *ex;
+		int defvar_row;
+		FitContext *fc;
+
+		template <typename T1, typename T2>
+		void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result) const {
+			fc->copyParamToModel();
+			ex->asVector(fc, defvar_row, result);
+		}
+	};
+
+ public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
+        virtual void computeImpl(FitContext *fc);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
 class ComputeHessianQuality : public omxCompute {
 	typedef omxCompute super;
 	int verbose;
@@ -1867,6 +1893,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeLoadMatrix", &newComputeLoadMatrix},
 	{"MxComputeCheckpoint", newComputeCheckpoint},
 	{"MxComputeSimAnnealing", &newComputeGenSA},
+	{"MxComputeManifestByParJacobian",
+	 []()->omxCompute* { return new ComputeManifestByParJacobian; }},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3043,6 +3071,43 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 		if (!ff) continue;
 		omxPopulateFitFunction(algebras[ax], out);
 	}
+}
+
+void ComputeManifestByParJacobian::initFromFrontend(omxState *state, SEXP rObj)
+{
+	super::initFromFrontend(state, rObj);
+
+	ProtectedSEXP Rex(R_do_slot(rObj, Rf_install("expectation")));
+	int objNum = INTEGER(Rex)[0];
+	ex = state->expectationList[objNum - 1];
+	omxCompleteExpectation(ex);
+
+	ProtectedSEXP Rdefvar_row(R_do_slot(rObj, Rf_install("defvar.row")));
+	defvar_row = Rf_asInteger(Rdefvar_row);
+}
+
+void ComputeManifestByParJacobian::computeImpl(FitContext *fc)
+{
+	using Eigen::Map;
+	using Eigen::VectorXd;
+	int numFree = fc->calcNumFree();
+	int numStats = ex->numSummaryStats();
+	Map< VectorXd > curEst(fc->est, numFree);
+	VectorXd ref(numStats);
+	ex->asVector(fc, defvar_row, ref);
+	result.resize(numStats, numFree);
+	sense s1;
+	s1.ex = ex;
+	s1.fc = fc;
+	s1.defvar_row = defvar_row;
+	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, s1, ref, curEst, result);
+}
+
+void ComputeManifestByParJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+{
+	MxRList output;
+	output.add("jacobian", Rcpp::wrap(result));
+	slots->add("output", output.asR());
 }
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
