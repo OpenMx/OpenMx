@@ -37,6 +37,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 		model@compute <- NULL
 	}
 	lackOfConstraints <- !imxHasConstraint(model)
+	hasThresholds <- imxHasThresholds(model)
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
 	relevantOptions <- list(base::options()$mxOption$"Calculate Hessian", base::options()$mxOption$"Standard Errors",
 													base::options()$mxOption$"Default optimizer", base::options()$mxOption$"Gradient algorithm")
@@ -51,6 +52,8 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 			checkHess <- FALSE
 		}
 	}
+	ndgi <- ifelse(hasThresholds,3L,4L)
+	ndgss <- ifelse(hasThresholds,1e-5,1e-7)
 	#If the options call for SEs and/or Hessian, there is no custom compute plan, and the Hessian will not be checked
 	#every fit attempt, then computing SEs and/or Hessian can be put off until the MLE is obtained:
 	SElater <- ifelse( (!checkHess && relevantOptions[[2]]=="Yes" && defaultComputePlan), TRUE, FALSE )
@@ -170,7 +173,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				verbose=verbose, gradientStepSize = gradientStepSize, 
 				nudgeZeroStarts=FALSE,   gradientIterations = gradientIterations, tolerance=tolerance, 
 				maxMajorIter=maxMajorIter, gradientAlgo=relevantOptions[[4]]))
-			if(checkHess){steps <- c(steps,ND=mxComputeNumericDeriv(),SE=mxComputeStandardError())}
+			if(checkHess){steps <- c(steps,ND=mxComputeNumericDeriv(stepSize=ndgss,iterations=ndgi),SE=mxComputeStandardError())}
 			model <- OpenMx::mxModel(
 				model,
 				mxComputeSequence(c( steps,RD=mxComputeReportDeriv(),RE=mxComputeReportExpectation() )))
@@ -295,10 +298,10 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 						plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 				}
 				if(Hesslater){
-					steps <- c(steps,ND=mxComputeNumericDeriv())
+					steps <- c(steps,ND=mxComputeNumericDeriv(stepSize=ndgss,iterations=ndgi))
 				} else {
 					steps <- c(steps,ND=mxComputeNumericDeriv(knownHessian=bestfit$output$hessian,
-																										checkGradient=FALSE))
+																										checkGradient=FALSE,stepSize=ndgss,iterations=ndgi))
 				}
 				if(SElater){
 					steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())
@@ -348,10 +351,10 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 							plan=ciOpt, constraintType=ciOpt$defaultCImethod))
 					}
 					if(Hesslater){
-						steps <- c(steps,ND=mxComputeNumericDeriv())
+						steps <- c(steps,ND=mxComputeNumericDeriv(stepSize=ndgss,iterations=ndgi))
 					} else {
 						steps <- c(steps,ND=mxComputeNumericDeriv(knownHessian=bestfit$output$hessian,
-																											checkGradient=FALSE))
+																											checkGradient=FALSE,stepSize=ndgss,iterations=ndgi))
 					}
 					if(SElater){
 						steps <- c(steps,SE=mxComputeStandardError(),HQ=mxComputeHessianQuality())

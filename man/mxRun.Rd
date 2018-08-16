@@ -19,7 +19,17 @@
 \title{Send a Model to the Optimizer}
 
 \description{
-   This function begins optimization on the top-level model.
+   This function begins optimization, sending \sQuote{model} to the optimizer.
+
+   Optionally, confidence \sQuote{intervals} will also be computed.
+
+   During a run, \sQuote{mxRun} will print the context (e.g. optimizer name or step in the analysis 
+   e.g. MxComputeNumericDeriv ), followed by the current evaluation count, fit value, and the change 
+   in fit compared to the last status report. e.g.: 
+   
+   \code{SLSQP 668 4966.58 -218.8}
+
+   note: For models that prove difficult to run, you might look at \code{\link{mxTryHard}}.
 }
 
 \usage{
@@ -53,7 +63,7 @@ be detected. Any error condition detected will be downgraded to warnings.  It is
 
 Free parameters are estimated or updated based on the expectation and fit functions. These estimated values, along with estimation information and model fit, can be found in the 'output' slot of MxModel objects after mxRun has been used.
 
-If a model is dependent on or shares parameters with another model, both models must be included as arguments in another MxModel object. This top-level MxModel object must include expectation and fit functions in both submodels, as well as an additional fit function describing how the results of the first two should be combined.
+If a model is dependent on or shares parameters with another model, both models must be included as arguments in another MxModel object. This top-level MxModel object must include expectation and fit functions in both submodels, as well as an additional fit function describing how the results of the first two should be combined (e.g. \code{\link{mxFitFunctionMultigroup}}).
 }
 
 \value{
@@ -62,19 +72,28 @@ If a model is dependent on or shares parameters with another model, both models 
    optimization.
 }
 
+\seealso{
+\link{mxTryHard} for running models which prove difficult to optimize; \link{summary} to print a summary of a run model; \link{mxModel} for more on the model itself; More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+}
+
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}.
 }
 
 \examples{
 # Create and run the 1-factor CFA on the openmx.ssri.psu.edu front page
 
+# 1. Load OpenMx and the demoOneFactor dataframe
+
 library(OpenMx)
+data(demoOneFactor)  
 
-data(demoOneFactor)  # load the demoOneFactor dataframe
+# 2. Define the manifests (5 demo variables) and latents for use in the model
 
-manifests <- names(demoOneFactor) # set the manifest to the 5 demo variables
-latents   <- c("G")  # define 1 latent variable
+manifests <- names(demoOneFactor) 
+latents   <- c("G")
+
+# 3. Build the model, adding paths and data
 model <- mxModel(model="One Factor", type="RAM",
     manifestVars = manifests,
     latentVars   = latents,
@@ -83,7 +102,11 @@ model <- mxModel(model="One Factor", type="RAM",
     mxPath(from=latents  , arrows=2, free=FALSE, values=1.0),
     mxData(cov(demoOneFactor), type="cov", numObs=500)
 )
-model <- mxRun(model) # Run the model, returning the result into model
-summary(model) # Show summary of the fitted model
+
+# 4. Run the model, returning the result into model
+model <- mxRun(model) 
+
+# 5. Show a summary of the fitted model and parameter values
+summary(model) 
 
 }

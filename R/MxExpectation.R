@@ -233,3 +233,27 @@ getPrecisionPerExpectation <- function(expectation, optionsList){
 	
 	return(list(stepSize=stepSize, iterations=iterations, functionPrecision=functionPrecision))
 }
+
+
+##' imxHasThresholds
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model (or its
+##' submodels) has any thresholds.
+##'
+##' @param model model
+imxHasThresholds <- function(model) {
+	if(length(model@expectation) && 
+		 (class(model@expectation) %in% c("MxExpectationNormal","MxExpectationLISREL","MxExpectationRAM")) && 
+		 !single.na(model@expectation@thresholds)  ){
+		return(TRUE)
+	}
+	# Check submodels
+	if(length(model@submodels)){
+		attempt <- sapply(model@submodels, imxHasThresholds)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	return(FALSE)
+}

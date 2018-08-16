@@ -22,13 +22,13 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 		stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
 	}
 	if (walnuts) {
-		amt <- c(.5, .5, 4/3,   1, 1/4, 2/3, 3, 16, 180, 1)
+		amt <- c(.5, .5, 4/3,   1, 1/4, 2/3, 3, 16, 180, 1, 1)
 	} else {
-		amt <- c(.5, .5, 2/3, 2/3, 1/4,   0, 3, 16, 180, 1)
+		amt <- c(.5, .5, 2/3, 2/3, 1/4,   0, 3, 16, 180, 1, 1)
 	}
 	amt <- round(amt*quantity, 3)
 	unit <- c("cup", "cup", "cup", "cup", "tsp",
-		'cup', "cup", "dates", "grams", "tsp")
+		'cup', "cup", "dates", "grams", 'Tbsp', "tsp")
 	ing <- c("whole wheat flour",
 		"black bean flour",
 		"sucanat",
@@ -38,6 +38,7 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 		"water",
 		"deglet nour dates",
 		"coconut butter (gently warmed to 90F)",
+		"blackstrap molasses",
 		"vanilla extract")
 	brown <- list(
 		data.frame("Qty."=amt, "Unit"=unit, "Ingredient"=ing),
