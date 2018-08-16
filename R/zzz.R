@@ -36,6 +36,7 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 }
 
 .onAttach <- function(libname, pkgname) {
+	mxSetDefaultOptions()
 	if (.Platform$GUI!="Rgui") {
 		.Call(.enableMxLog)
 	} else {
