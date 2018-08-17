@@ -112,6 +112,9 @@ generatePath <- function(from, to,
 	expanded <- expandPathConnect(from, to, connect)
 	from <- expanded$from
 	to   <- expanded$to
+	if (max(length(from), length(to)) == 0 && length(values) <= 1 &&
+		    length(free) <= 1 && length(labels) <= 1 && length(lbound) <= 1 &&
+		    length(ubound) <= 1 && length(joinKey) <= 1) return(NULL)
 
 	# check for a missing to or from
 	pathCheckToAndFrom(from, to)
