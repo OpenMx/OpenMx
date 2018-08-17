@@ -19,7 +19,7 @@
 \title{Create MxData Object}
 
 \description{
-   This function creates a new \link{MxData} object.
+   This function creates a new \link{MxData} object. (for WLS data see \link{mxDataWLS}).
 }
 
 \usage{
@@ -87,7 +87,7 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 }
 
 \seealso{
-\code{\link{mxGenerateData}}; \link{MxData} for the S4 class created by mxData. \link{matrix} and \link{data.frame} for objects which may be entered as arguments in the \sQuote{observed} slot. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+For WLS data, see \link{mxDataWLS}. To generate data, see \code{\link{mxGenerateData}}; For objects which may be entered as arguments in the \sQuote{observed} slot, see \link{matrix} and \link{data.frame}. See \link{MxData} for the S4 class created by mxData. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{  
