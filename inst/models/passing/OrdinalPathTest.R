@@ -53,6 +53,10 @@ Mx1R <- rbind(
 nameList <- names(data)
 # Define the model
 model <- mxModel("ThresholdTest", type="RAM", manifestVars=nameList)
+
+omxCheckEquals(length(mxPath(from=nameList[1], connect="unique.bivariate",
+                             arrows=2, free=TRUE)), 0)
+
 # Variances
 model <- mxModel(model, mxPath(from=nameList, connect="unique.bivariate", arrows=2, free=TRUE))
 # Covariances
