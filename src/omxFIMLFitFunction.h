@@ -73,6 +73,7 @@ class omxFIMLFitFunction : public omxFitFunction {
 	bool wantRowLikelihoods;
 	bool returnVector;   // Whether or not to return row-by-row likelihoods
 	bool populateRowDiagnostics; // Whether or not to populated the row-by-row likelihoods back to R
+	omxMatrix* otherRowwiseValues; // row-by-row values also stored and returned for row diagnostics (e.g. Mahalanobis distances and number of observed variables)
 
 	int skippedRows;
 	int origStateId;
@@ -168,6 +169,7 @@ class mvnByRow {
 	omxMatrix *rowLikelihoods;
 	bool returnVector;
 	bool wantRowLikelihoods;
+	omxMatrix *otherRowwiseValues;
 	std::vector<bool> &isOrdinal;
 	int numOrdinal;
 	int numContinuous;
@@ -226,6 +228,7 @@ class mvnByRow {
 		rowLikelihoods = ofiml->rowLikelihoods;
 		returnVector = ofiml->returnVector;
 		wantRowLikelihoods = ofiml->wantRowLikelihoods;
+		otherRowwiseValues = ofiml->otherRowwiseValues;
 		localobj = _localobj;
 		omxSetMatrixElement(localobj->matrix, 0, 0, 0.0);
 		numOrdinal = ofiml->numOrdinal;
