@@ -226,25 +226,8 @@ void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &poi
                   int numIter, const double eps, T4 dfn, Eigen::MatrixBase<T5> &jacobiOut)
 {
 	// TODO refactor, evaluate jacobian in parallel
-	if (initialized) {
-		for (int px=0; px < int(point.size()); ++px) {
-			if(std::isnan(jacobiOut.row(px).sum())){
-				double offset = std::max(fabs(point[px] * eps), eps);
-				Eigen::MatrixXd Gaprox(ref.size(), numIter);
-				dfn(ff, ref, point, offset, px, numIter, Gaprox);
-				for(int m = 1; m < numIter; m++) {						// Richardson Step
-					for(int k = 0; k < (numIter - m); k++) {
-						// NumDeriv Hard-wires 4s for r here. Why?
-						Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
-					}
-				}
-				for(int i=0; i<jacobiOut.cols(); i++){
-					if(std::isnan(jacobiOut(px,i))){jacobiOut(px,i) = Gaprox(i,0);}
-				}
-			}
-		}
-	} else {
-		for (int px=0; px < int(point.size()); ++px) {
+	for (int px=0; px < int(point.size()); ++px) {
+		if (!initialized || std::isnan(jacobiOut.row(px).sum())) {
 			double offset = std::max(fabs(point[px] * eps), eps);
 			Eigen::MatrixXd Gaprox(ref.size(), numIter);
 			dfn(ff, ref, point, offset, px, numIter, Gaprox);
@@ -254,7 +237,11 @@ void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &poi
 					Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
 				}
 			}
-			jacobiOut.row(px) = Gaprox.col(0).transpose();
+			for(int i=0; i<jacobiOut.cols(); i++){
+				if (!initialized || std::isnan(jacobiOut(px,i))) {
+					jacobiOut(px,i) = Gaprox(i,0);
+				}
+			}
 		}
 	}
 }
