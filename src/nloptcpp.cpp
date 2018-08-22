@@ -78,10 +78,10 @@ struct equality_functional {
 	template <typename T1, typename T2, typename T3>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		goc.copyFromOptimizer(x.derived().data());
-		goc.analyticEqJacTmp.resize(jacobian.cols(), jacobian.rows());
+		goc.analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
 		goc.solEqBFun(true);
 		result = goc.equality;
-		jacobian = goc.analyticEqJacTmp.transpose();
+		jacobian = goc.analyticEqJacTmp;
 		
 	}
 };
@@ -92,7 +92,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	GradientOptimizerContext &goc = ctx.goc;
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::VectorXd Eresult(ctx.origeq);
-	Eigen::MatrixXd jacobian(n, ctx.origeq);
+	Eigen::MatrixXd jacobian(ctx.origeq, n);
 	equality_functional ff(goc);
 	/*I don't think nloptEqualityFunction is ever called when 'grad' is a null pointer, 
 	but I don't want to assume that:*/
@@ -107,7 +107,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 			for (int c1=0; c1 < int(m-1); ++c1) {
 				for (int c2=c1+1; c2 < int(m); ++c2) {
 					bool match = (Eresult[c1] == Eresult[c2] &&
-                   (jacobian.col(c1) == jacobian.col(c2)));
+                   (jacobian.row(c1) == jacobian.row(c2)));
 					if (match && !ctx.eqmask[c2]) {
 						ctx.eqmask[c2] = true;
 						++ctx.eqredundent;
@@ -120,7 +120,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 			}
 			for (int c1=0; c1 < int(m); ++c1) {
 				if (ctx.eqmask[c1]) continue;
-				if ((jacobian.col(c1).array() == 0.0).all()) {
+				if ((jacobian.row(c1).array() == 0.0).all()) {
 					ctx.eqmask[c1] = true;
 					++ctx.eqredundent;
 					if (goc.verbose >= 2) {
@@ -145,7 +145,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 		if (ctx.eqmask[cx]) continue;
 		Uresult[dx] = Eresult[cx];
 		if (grad) {
-			Ujacobian.col(dx) = jacobian.col(cx);
+			Ujacobian.col(dx) = jacobian.row(cx);
 		}
 		++dx;
 	}
@@ -169,10 +169,10 @@ struct inequality_functional {
 	template <typename T1, typename T2, typename T3>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		goc.copyFromOptimizer(x.derived().data());
-		goc.analyticIneqJacTmp.resize(jacobian.cols(), jacobian.rows());
+		goc.analyticIneqJacTmp.resize(jacobian.rows(), jacobian.cols());
 		goc.myineqFun(true);
 		result = goc.inequality;
-		jacobian = goc.analyticIneqJacTmp.transpose();
+		jacobian = goc.analyticIneqJacTmp;
 	}
 	
 };
@@ -182,7 +182,8 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
 	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
-	Eigen::Map< Eigen::MatrixXd > jacobian(grad, n, m);
+	Eigen::Map< Eigen::MatrixXd > jacobianDest(grad, n, m);
+	Eigen::MatrixXd jacobian(m, n);
 	inequality_functional ff(*goc);
 	/*nloptInequalityFunction() is routinely called when 'grad' is a null pointer:*/
 	if(!grad){ff(Epoint,Eresult);}
@@ -199,8 +200,9 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
 		}
+		jacobianDest = jacobian.transpose();
 		if (goc->verbose >= 3) {
-			mxPrintMat("inequality jacobian", jacobian);
+			mxPrintMat("inequality jacobian", jacobianDest);
 		}
 	}
 }

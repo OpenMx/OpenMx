@@ -227,7 +227,7 @@ void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &poi
 {
 	// TODO refactor, evaluate jacobian in parallel
 	for (int px=0; px < int(point.size()); ++px) {
-		if (!initialized || std::isnan(jacobiOut.row(px).sum())) {
+		if (!initialized || std::isnan(jacobiOut.col(px).sum())) {
 			double offset = std::max(fabs(point[px] * eps), eps);
 			Eigen::MatrixXd Gaprox(ref.size(), numIter);
 			dfn(ff, ref, point, offset, px, numIter, Gaprox);
@@ -237,9 +237,9 @@ void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &poi
 					Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
 				}
 			}
-			for(int i=0; i<jacobiOut.cols(); i++){
-				if (!initialized || std::isnan(jacobiOut(px,i))) {
-					jacobiOut(px,i) = Gaprox(i,0);
+			for(int i=0; i<jacobiOut.rows(); i++){
+				if (!initialized || std::isnan(jacobiOut(i,px))) {
+					jacobiOut(i,px) = Gaprox(i,0);
 				}
 			}
 		}
