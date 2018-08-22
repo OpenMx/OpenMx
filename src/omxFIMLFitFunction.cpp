@@ -374,6 +374,7 @@ omxFIMLFitFunction::~omxFIMLFitFunction()
 	omxFreeMatrix(argStruct->smallCov);
 	omxFreeMatrix(argStruct->RCX);
 	omxFreeMatrix(argStruct->rowLikelihoods);
+	omxFreeMatrix(argStruct->otherRowwiseValues);
 }
 
 void omxFIMLFitFunction::populateAttr(SEXP algebra)
@@ -1081,6 +1082,7 @@ void omxFIMLFitFunction::init()
 	if (returnVector) wantRowLikelihoods = true;
 
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
+	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->rows, 2, TRUE, off->matrix->currentState);
 	
 	
 	if(OMX_DEBUG) {

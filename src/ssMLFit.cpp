@@ -27,6 +27,7 @@ struct ssMLFitState : omxFitFunction {
 	omxMatrix *contRow;
 	omxMatrix *rowLikelihoods;
 	omxMatrix *RCX;
+	omxMatrix* otherRowwiseValues;
 	
 	virtual ~ssMLFitState();
 	virtual void init();
@@ -40,11 +41,21 @@ void ssMLFitState::populateAttr(SEXP algebra)
 	
 	if(argStruct->populateRowDiagnostics){
 		SEXP rowLikelihoodsExt;
+		SEXP rowObsExt;
+		SEXP rowDistExt;
 		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
+		omxMatrix *otherRowwiseValuesInt = argStruct->otherRowwiseValues;
 		Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
-		for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+		Rf_protect(rowObsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		Rf_protect(rowDistExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		for(int row = 0; row < rowLikelihoodsInt->rows; row++) {
 			REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+			REAL(rowDistExt)[row] = omxMatrixElement(otherRowwiseValuesInt, row, 0);
+			REAL(rowObsExt)[row] = omxMatrixElement(otherRowwiseValuesInt, row, 1);
+		}
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
+		Rf_setAttrib(algebra, Rf_install("rowDist"), rowDistExt);
+		Rf_setAttrib(algebra, Rf_install("rowObs"), rowObsExt);
 	}
 }
 
@@ -87,8 +98,10 @@ void ssMLFitState::compute(int want, FitContext *fc)
 				++numCont;
 			}
 		}
+		omxSetMatrixElement(otherRowwiseValues, row, 1, numCont); // set second column to number of observed variables
 		if (!numCont) {
 			omxSetMatrixElement(rowLikelihoods, row, 0, 1.0);
+			omxSetMatrixElement(otherRowwiseValues, row, 0, NA_REAL); // set first column to NA
 			continue;
 		}
 		
@@ -142,6 +155,7 @@ void ssMLFitState::compute(int want, FitContext *fc)
 			omxPrint(contRow, "contRow");
 			mxLog("Q=%f", Q);
 		}
+		omxSetMatrixElement(otherRowwiseValues, row, 0, Q);
 		
 		double rowLikelihood = pow(2 * M_PI, -.5 * numCont) * (1.0/exp(determinant)) * exp(-.5 * Q);
 		
@@ -171,6 +185,7 @@ ssMLFitState::~ssMLFitState()
 	omxFreeMatrix(state->contRow);
 	omxFreeMatrix(state->rowLikelihoods);
 	omxFreeMatrix(state->RCX);
+	omxFreeMatrix(state->otherRowwiseValues);
 }
 
 omxFitFunction *ssMLFitInit()
@@ -200,6 +215,7 @@ void ssMLFitState::init()
 
 	omxState *currentState = oo->matrix->currentState;
 	state->rowLikelihoods = omxInitMatrix(data->rows, 1, TRUE, currentState);
+	state->otherRowwiseValues = omxInitMatrix(data->rows, 2, TRUE, currentState);
 	state->cov = omxGetExpectationComponent(expectation, "cov");
 	
 	int covCols = state->cov->cols;

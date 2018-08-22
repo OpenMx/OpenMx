@@ -140,6 +140,18 @@ omxCheckCloseEnough(mxEval(Sub.fitfunction, srunS), 434.5657, epsilon=1e-3)
 omxCheckCloseEnough(attr(mxEval(StateSpaceExample.fitfunction, srunS), "likelihoods"), attr(srunS$StateSpaceExample.fitfunction$result, "likelihoods"), epsilon=1e-8)
 
 
+omxCheckTrue(all(attr(mxEval(StateSpaceExample.fitfunction, srunS), "rowObs") == 1))
 
+m <- attr(mxEval(StateSpaceExample.fitfunction, srunS), "rowDist")
+qqplot(d <- qchisq(ppoints(nrow(srun$data$observed)), df = 1), m,
+       main = expression("Q-Q plot for" ~~ {chi^2}[nu == 1]))
+qqline(m, distribution = function(p) qchisq(p, df = 1),
+       prob = c(0.1, 0.6), col = 2)
 
+mc <- hist(m, breaks=c(0:8, 10), plot=FALSE)$counts
+dc <- hist(d, breaks=c(0:8, 10), plot=FALSE)$counts
 
+obsChi <- sum((mc - dc)**2/dc)
+
+omxCheckTrue(pchisq(obsChi, df=length(mc)-1, lower.tail=FALSE) > .75)
+# The goodness of fit chi-square probability on the residuals compared to the expected distribution of residuals should be high (e.g. more than .75).
