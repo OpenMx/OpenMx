@@ -85,9 +85,26 @@ omxCheckCloseEnough(expectMin, uniRegModelRawOut$output$minimum, 0.001)
 uniRegModelRaw$fitfunction$rowDiagnostics <- TRUE
 urm1 <- mxRun(uniRegModelRaw)
 lk <- attr(urm1$fitfunction$result, 'likelihoods')
+omxCheckTrue(all(attr(urm1$fitfunction$result, "rowObs") == 2))
 
 omxCheckCloseEnough(urm1$output$fit, expectMin, 1e-3)
 omxCheckCloseEnough(-2 * sum(log(lk)), expectMin, 1e-3)
+
+
+m <- attr(mxEval(fitfunction, urm1), "rowDist")
+qqplot(d <- qchisq(ppoints(nrow(urm1$data$observed)), df = 2), m,
+       main = expression("Q-Q plot for" ~~ {chi^2}[nu == 2]))
+qqline(m, distribution = function(p) qchisq(p, df = 2),
+       prob = c(0.1, 0.6), col = 2)
+
+mc <- hist(m, breaks=c(0:10, 15), plot=FALSE)$counts
+dc <- hist(d, breaks=c(0:10, 15), plot=FALSE)$counts
+
+obsChi <- sum((mc - dc)**2/dc)
+
+omxCheckTrue(pchisq(obsChi, df=length(mc)-1, lower.tail=FALSE) > .65)
+# The goodness of fit chi-square probability on the residuals compared to the expected distribution of residuals should be high (e.g. more than .65).
+
 
 algModel <- mxModel("wrap",
 	mxModel(uniRegModelRaw, mxFitFunctionML(vector=TRUE, rowDiagnostics=TRUE)),

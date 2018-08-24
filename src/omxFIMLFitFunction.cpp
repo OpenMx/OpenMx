@@ -86,6 +86,8 @@ bool condOrdByRow::eval()
 
 	while(row < lastrow) {
 		if (!loadRow()) return true;
+		double iqf = NA_REAL;
+		double residSize = NA_REAL;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 		EigenVectorAdaptor jointMeans(ofo->means);
@@ -205,14 +207,15 @@ bool condOrdByRow::eval()
 					continue;
 				}
 				Eigen::VectorXd resid = ss.dataMean - contMean;
+				residSize = ss.dataMean.size();
 				//mxPrintMat("dataCov", ss.dataCov);
 				//mxPrintMat("contMean", contMean);
 				//mxPrintMat("dataMean", ss.dataMean);
 				//mxPrintMat("resid", resid);
-				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double tr1 = trace_prod(iV, ss.dataCov);
 				double logDet = covDecomp.log_determinant();
-				double cterm = M_LN_2PI * ss.dataMean.size();
+				double cterm = M_LN_2PI * residSize;
 				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
 				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
 				record(-0.5 * ll + ss.rows * log(ordLik), ss.length);
@@ -222,15 +225,16 @@ bool condOrdByRow::eval()
 
 			INCR_COUNTER(contDensity);
 			VectorXd resid = cData - contMean;
-			double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-			double cterm = M_LN_2PI * resid.size();
+			residSize = resid.size();
+			iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+			double cterm = M_LN_2PI * residSize;
 			double logDet = covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLogLik = -0.5 * (iqf + cterm + logDet);
 			if (!std::isfinite(contLogLik)) reportBadContRow(cData, resid, contCov);
 		} else { contLogLik = 0.0; }
 
-		recordRow(contLogLik, ordLik);
+		recordRow(contLogLik, ordLik, iqf, residSize);
 		prevRowContinuous = rowContinuous;
 	}
 
@@ -317,14 +321,18 @@ bool condContByRow::eval()
 				covDecomp.refreshInverse();
 			}
 		}
-
+		
+		double iqf = NA_REAL;
+		double residSize = NA_REAL;
+		
 		if (rowContinuous) {
 			if (!parent->continuousSame[row] || firstRow) {
 				INCR_COUNTER(contDensity);
 				Eigen::VectorXd resid = cData - contMean;
+				residSize = resid.size();
 				const Eigen::MatrixXd &iV = covDecomp.getInverse();
-				double iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-				double cterm = M_LN_2PI * resid.size();
+				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+				double cterm = M_LN_2PI * residSize;
 				double logDet = covDecomp.log_determinant();
 				contLogLik = -0.5 * (iqf + cterm + logDet);
 				if (!std::isfinite(contLogLik)) {
@@ -351,7 +359,7 @@ bool condContByRow::eval()
 			ordLik = 1.0;
 		}
 
-		recordRow(contLogLik, ordLik);
+		recordRow(contLogLik, ordLik, iqf, residSize);
 	}
 
 	return false;
@@ -382,9 +390,9 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 	if(OMX_DEBUG) { mxLog("Populating FIML Attributes."); }
 	auto *off = this;
 	omxFIMLFitFunction *argStruct = this;
-	SEXP expCovExt, expMeanExt, rowLikelihoodsExt;
+	SEXP expCovExt, expMeanExt, rowLikelihoodsExt, rowObsExt, rowDistExt;
 	omxMatrix *expCovInt, *expMeanInt;
-
+	
 	omxExpectationCompute(NULL, off->expectation, NULL);
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
@@ -403,25 +411,33 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 	} else {
 		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
 	}
-
+	
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
 	
 	if(argStruct->populateRowDiagnostics){
 		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
+		omxMatrix *otherRowwiseValuesInt = argStruct->otherRowwiseValues;
 		Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
-		for(int row = 0; row < rowLikelihoodsInt->rows; row++)
+		Rf_protect(rowObsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		Rf_protect(rowDistExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
+		for(int row = 0; row < rowLikelihoodsInt->rows; row++) {
 			REAL(rowLikelihoodsExt)[row] = omxMatrixElement(rowLikelihoodsInt, row, 0);
+			REAL(rowDistExt)[row] = omxMatrixElement(otherRowwiseValuesInt, row, 0);
+			REAL(rowObsExt)[row] = omxMatrixElement(otherRowwiseValuesInt, row, 1);
+		}
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
+		Rf_setAttrib(algebra, Rf_install("rowDist"), rowDistExt);
+		Rf_setAttrib(algebra, Rf_install("rowObs"), rowObsExt);
 	}
-
+	
 	const char *jointLabels[] = {
 		"auto", "continuous", "ordinal", "old"
 	};
 	Rf_setAttrib(algebra, Rf_install("jointConditionOn"),
 		     makeFactor(Rf_ScalarInteger(1+argStruct->jointStrat),
 				OMX_STATIC_ARRAY_SIZE(jointLabels), jointLabels));
-
+	
 	if (OMX_DEBUG_FIML_STATS) {
 		MxRList count;
 		count.add("expectation", Rf_ScalarInteger(argStruct->expectationComputeCount));
