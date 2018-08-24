@@ -2,7 +2,8 @@
 \alias{mxComputeLoadData}
 \alias{write.cbor}
 \alias{MxComputeLoadData-class}
-\title{Load data from netcdf files directly into the backend}
+\title{EXPERIMENTAL Load data from netcdf files directly into the
+  backend EXPERIMENTAL}
 \usage{
 mxComputeLoadData(dest, path, ..., originalDataIsIndexOne=FALSE)
 write.cbor(mxd, file)
@@ -21,6 +22,8 @@ for index 1}
 \item{file}{a character string naming a file}
 }
 \description{
+  This function is experimental and may change in future versions.
+
   Use \code{write.cbor} to store mxData objects containing datasets
   to files in cbor format.
 
