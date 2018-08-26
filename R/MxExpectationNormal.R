@@ -284,7 +284,13 @@ sse <- function(x){sum(x^2)}
 omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize=FALSE) {
 	theParams <- omxGetParameters(model)
 	if (standardize) {
-		tmpModel <- mxModel(model, mxComputeManifestByParameterJacobian(defvar.row=defvar.row))
+		ex <- 'expectation'
+		if (is.null(model$expectation) && is(model$fitfunction, "MxFitFunctionMultigroup")) {
+			submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+			ex <- paste0(submNames, ".expectation")
+		}
+		tmpModel <- mxModel(model, mxComputeManifestByParJacobian(defvar.row=defvar.row,
+			expectation=ex))
 		tmpModel <- mxRun(tmpModel)
 		jac <- tmpModel$compute$output$jacobian
 	} else {

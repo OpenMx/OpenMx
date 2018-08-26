@@ -1,9 +1,9 @@
-\name{mxComputeManifestByParameterJacobian}
-\alias{mxComputeManifestByParameterJacobian}
-\alias{MxComputeManifestByParameterJacobian-class}
+\name{mxComputeManifestByParJacobian}
+\alias{mxComputeManifestByParJacobian}
+\alias{MxComputeManifestByParJacobian-class}
 \title{Manifest model by parameter Jacobian}
 \usage{
-mxComputeManifestByParameterJacobian(freeSet=NA_character_, ...,
+mxComputeManifestByParJacobian(freeSet=NA_character_, ...,
  expectation = "expectation", defvar.row=1L)
 }
 \arguments{

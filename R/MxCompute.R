@@ -1690,13 +1690,16 @@ setMethod("convertForBackend", signature("MxComputeManifestByParJacobian"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		if (!is.integer(.Object@expectation)) {
-			.Object@expectation <- match(.Object@expectation,
+			enum <- match(.Object@expectation,
 				names(flatModel@expectations))
+			if (any(is.na(enum))) stop(paste("Couldn't find expectation",
+				omxQuotes(.Object@expectation[is.na(enum)])))
+			.Object@expectation <- enum
 		}
 		.Object
 	})
 
-mxComputeManifestByParameterJacobian <-
+mxComputeManifestByParJacobian <-
 	function(freeSet=NA_character_, ..., expectation="expectation", defvar.row=1L)
 {
 	new("MxComputeManifestByParJacobian", freeSet, expectation, as.integer(defvar.row))

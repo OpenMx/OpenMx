@@ -1682,19 +1682,28 @@ class ComputeStandardError : public omxCompute {
 
 class ComputeManifestByParJacobian : public omxCompute {
 	typedef omxCompute super;
-	omxExpectation *ex;
+	std::vector<omxExpectation *> exList;
+	std::vector<int> numStats;
+	int maxNumStats;
+	int totalNumStats;
 	int defvar_row;
 	Eigen::MatrixXd result;
 
 	struct sense {
-		omxExpectation *ex;
-		int defvar_row;
+		ComputeManifestByParJacobian &top;
 		FitContext *fc;
+		sense(ComputeManifestByParJacobian &_top) : top(_top) {};
 
 		template <typename T1, typename T2>
 		void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result) const {
 			fc->copyParamToModel();
-			ex->asVector(fc, defvar_row, result);
+			Eigen::VectorXd tmp(top.maxNumStats);
+			for (int ex=0, offset=0; ex < int(top.exList.size()); ++ex) {
+				top.exList[ex]->asVector(fc, top.defvar_row, tmp);
+				result.segment(offset, top.numStats[ex]) =
+					tmp.segment(0, top.numStats[ex]);
+				offset += top.numStats[ex];
+			}
 		}
 	};
 
@@ -3078,9 +3087,22 @@ void ComputeManifestByParJacobian::initFromFrontend(omxState *state, SEXP rObj)
 	super::initFromFrontend(state, rObj);
 
 	ProtectedSEXP Rex(R_do_slot(rObj, Rf_install("expectation")));
-	int objNum = INTEGER(Rex)[0];
-	ex = state->expectationList[objNum - 1];
-	omxCompleteExpectation(ex);
+	int numEx = Rf_length(Rex);
+	if (!numEx) Rf_error("%s: must provide at least one expectation", name);
+	exList.reserve(numEx);
+	numStats.reserve(numEx);
+	maxNumStats = 0;
+	totalNumStats = 0;
+	for (int ex=0; ex < numEx; ++ex) {
+		int objNum = INTEGER(Rex)[ex];
+		omxExpectation *e1 = state->expectationList[objNum - 1];
+		omxCompleteExpectation(e1);
+		exList.push_back(e1);
+		int nss = e1->numSummaryStats();
+		numStats.push_back(nss);
+		totalNumStats += nss;
+		maxNumStats = std::max(nss, maxNumStats);
+	}
 
 	ProtectedSEXP Rdefvar_row(R_do_slot(rObj, Rf_install("defvar.row")));
 	defvar_row = Rf_asInteger(Rdefvar_row);
@@ -3091,15 +3113,12 @@ void ComputeManifestByParJacobian::computeImpl(FitContext *fc)
 	using Eigen::Map;
 	using Eigen::VectorXd;
 	int numFree = fc->calcNumFree();
-	int numStats = ex->numSummaryStats();
 	Map< VectorXd > curEst(fc->est, numFree);
-	VectorXd ref(numStats);
-	ex->asVector(fc, defvar_row, ref);
-	result.resize(numStats, numFree);
-	sense s1;
-	s1.ex = ex;
+	result.resize(totalNumStats, numFree);
+	sense s1(*this);
 	s1.fc = fc;
-	s1.defvar_row = defvar_row;
+	VectorXd ref(totalNumStats);
+	s1(ref, ref);
 	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, s1, ref, curEst, result);
 }
 
