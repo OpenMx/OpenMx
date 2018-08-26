@@ -182,6 +182,16 @@ abline(0, 1)
 print(rms(cmp))
 omxCheckTrue(all(rms(cmp) < 0.035))
 
+round(seCmp <- cbind(ML=jointResults1$output$standardErrors,
+                     WLS=jointWlsResults$output$standardErrors,
+                     DLS=jointDlsResults$output$standardErrors,
+                     ULS=jointUlsResults$output$standardErrors), 3)
+
+omxCheckCloseEnough(cor(seCmp)[1,2:4], rep(1,3), .62)
+
+se1 <- c(0.05, 0.107, 0.056, 0.102, 0.074, 0.111, 0.116,
+         0.009,  0.057, 0.073, 0.083, 0.074, 0.101, 0.069, 0.06)
+omxCheckCloseEnough(c(jointDlsResults$output$standardErrors), se1, .01)
 
 #------------------------------------------------------------------------------
 # Create and compare saturated models
