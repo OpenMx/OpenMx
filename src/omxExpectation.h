@@ -80,6 +80,11 @@ class omxExpectation {					// An Expectation
 	virtual void mutate(const char*, omxMatrix*) {};
 	virtual void invalidateCache() {};
 	virtual void generateData(FitContext *fc, MxRList &out);
+	virtual int numSummaryStats();
+	virtual void asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::VectorXd> out);
+	template <typename T> void asVector(FitContext *fc, int row, Eigen::MatrixBase<T> &out) {
+		asVector1(fc, row, out.derived());
+	}
 
 	void loadFromR();
 	bool loadDefVars(int row);

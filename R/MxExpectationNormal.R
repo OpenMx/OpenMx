@@ -283,9 +283,21 @@ sse <- function(x){sum(x^2)}
 #' @seealso \link{mxGetExpected}
 omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize=FALSE) {
 	theParams <- omxGetParameters(model)
-	theVec <- mxGetExpected(model, 'vector')
-	jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
-	dimnames(jac) <- list(names(theVec), names(theParams))
+	if (standardize) {
+		ex <- 'expectation'
+		if (is.null(model$expectation) && is(model$fitfunction, "MxFitFunctionMultigroup")) {
+			submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+			ex <- paste0(submNames, ".expectation")
+		}
+		tmpModel <- mxModel(model, mxComputeManifestByParJacobian(defvar.row=defvar.row,
+			expectation=ex))
+		tmpModel <- mxRun(tmpModel)
+		jac <- tmpModel$compute$output$jacobian
+	} else {
+		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
+	}
+	
+	dimnames(jac) <- list(names(mxGetExpected(model, 'vector')), names(theParams))
 	return(jac)
 }
 

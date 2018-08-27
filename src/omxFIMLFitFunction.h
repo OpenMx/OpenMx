@@ -341,7 +341,7 @@ class mvnByRow {
 		return rowMult[row1];
 	}
 
-	void recordRow(double contLogLik, double ordLik)
+	void recordRow(double contLogLik, double ordLik, double maha, double numCont)
 	{
 		if (ordLik == 0.0 || !std::isfinite(contLogLik)) {
 			skipRow();
@@ -352,6 +352,7 @@ class mvnByRow {
 		}
 		if (wantRowLikelihoods) {
 			EigenVectorAdaptor rl(rowLikelihoods);
+			EigenMatrixAdaptor rowVals(otherRowwiseValues);
 			double rowLik = exp(contLogLik) * ordLik;
 			double rowLik1 = rowLik;
 			double prevWeight = 1.0;
@@ -361,6 +362,8 @@ class mvnByRow {
 				prevWeight = curWeight;
 			}
 			rl[sortedRow] = rowLik1;
+			rowVals(sortedRow, 0) = maha;
+			rowVals(sortedRow, 1) = numCont;
 			row += 1;
 			while (row < rows && sameAsPrevious[row]) {
 				sortedRow = indexVector[row];
@@ -370,6 +373,8 @@ class mvnByRow {
 					prevWeight = curWeight;
 				}
 				rl[sortedRow] = rowLik1;
+				rowVals(sortedRow, 0) = maha;
+				rowVals(sortedRow, 1) = numCont;
 				row += 1;
 			}
 		} else {
