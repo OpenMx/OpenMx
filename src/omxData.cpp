@@ -33,7 +33,7 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0),
-		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), fullWeight(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
 {}
@@ -271,6 +271,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("acov")));
 	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
+	od->fullWeight = omxNewMatrixFromRPrimitive(Rfw, state, 0, 0);
 	}
 
 	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 

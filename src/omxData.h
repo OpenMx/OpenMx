@@ -114,6 +114,7 @@ class omxData {
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
+	omxMatrix *fullWeight;					// Full weight matrix for WLS SEs
 	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
 	std::vector< omxThresholdColumn > thresholdCols;
 	double numObs;						// Number of observations (sum of rowWeight)

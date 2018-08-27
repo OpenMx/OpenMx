@@ -1676,7 +1676,42 @@ const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) c
 
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
+	omxMatrix *fitMat;
+	std::vector<omxExpectation *> exList; // maybe only need omxData? TODO
+	std::vector<int> numStats;
+
+	struct visitEx {
+		ComputeStandardError &top;
+		visitEx(ComputeStandardError *cse) : top(*cse) {};
+		void operator()(omxMatrix *mat) const
+		{
+			if (!mat->fitFunction) {
+				omxRaiseErrorf("%s: Cannot compute SEs when '%s' included in fit",
+					 top.name, mat->name());
+				return;
+			}
+			omxExpectation *e1 = mat->fitFunction->expectation;
+			if (!e1) return;
+			if (!e1->data) {
+				omxRaiseErrorf("%s: expectation '%s' does not have data",
+					 top.name, e1->name);
+				return;
+			}
+			omxData *d1 = e1->data;
+			if (!d1->fullWeight) {
+				omxRaiseErrorf("%s: terribly sorry, master, but '%s' does not "
+					       "include the full weight matrix hence "
+					       "standard errors cannot be computed",
+					       top.name, d1->name);
+				return;
+			}
+			top.exList.push_back(e1);
+		}
+	};
+
  public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
+        virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -1880,9 +1915,6 @@ static class omxCompute *newComputeOnce()
 static class omxCompute *newComputeEM()
 { return new ComputeEM(); }
 
-static class omxCompute *newComputeStandardError()
-{ return new ComputeStandardError(); }
-
 static class omxCompute *newComputeHessianQuality()
 { return new ComputeHessianQuality(); }
 
@@ -1918,7 +1950,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeOnce", &newComputeOnce },
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
-	{"MxComputeStandardError", &newComputeStandardError},
+	{"MxComputeStandardError",
+	 []()->omxCompute* { return new ComputeStandardError; }},
 	{"MxComputeHessianQuality", &newComputeHessianQuality},
 	{"MxComputeReportDeriv", &newComputeReportDeriv},
 	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval},
@@ -3156,6 +3189,80 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 	MxRList output;
 	output.add("jacobian", Rcpp::wrap(sense.result));
 	slots->add("output", output.asR());
+}
+
+void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
+{
+	super::initFromFrontend(state, rObj);
+
+	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
+}
+
+void ComputeStandardError::computeImpl(FitContext *fc)
+{
+	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
+	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
+	if (!fitMat) return;
+
+	std::function<void(omxMatrix*)> ve = visitEx(this);
+	fitMat->fitFunction->traverse(ve);
+
+	int totalStats = 0;
+	numStats.reserve(exList.size());
+	for (auto &e1 : exList) {
+		int sz = e1->data->acovMat->rows;
+		numStats.push_back(sz);
+		totalStats += sz;
+	}
+
+	Eigen::MatrixXd Vmat(totalStats,totalStats);
+	Eigen::MatrixXd Wmat(totalStats,totalStats);
+	Vmat.setZero();
+	Wmat.setZero();
+	for (int ex=0, offset=0; ex < int(exList.size()); offset += numStats[ex++]) {
+		omxData *d1 = exList[ex]->data;
+		int sz = numStats[ex];
+		EigenMatrixAdaptor acov(d1->acovMat);
+		Vmat.block(offset,offset,sz,sz) = acov;
+
+		EigenMatrixAdaptor fw(d1->fullWeight);
+		int nonZeroDims = (fw.diagonal().array() != 0.0).count();
+		if (nonZeroDims == 0) {
+			omxRaiseErrorf("%s: fullWeight matrix is missing", exList[ex]->name);
+			continue;
+		}
+		Eigen::MatrixXd ifw(fw.rows(), fw.cols());
+		ifw.setZero();
+		Eigen::MatrixXd dense;
+		subsetCovariance(fw, [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
+				 nonZeroDims, dense);
+		if (InvertSymmetricIndef(dense, 'L') > 0) {
+			omxRaiseErrorf("%s: fullWeight matrix is not invertable", exList[ex]->name);
+			continue;
+		}
+		Eigen::MatrixXd idense = dense.selfadjointView<Eigen::Lower>();
+		subsetCovarianceStore(ifw,
+				      [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
+				      idense);
+		Wmat.block(offset,offset,sz,sz) = ifw;
+	}
+
+	int numFree = fc->calcNumFree();
+	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
+	ParJacobianSense sense;
+	sense.attach(&exList, 0);
+	sense.measureRef(fc);
+	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, sense.result);
+
+	Eigen::MatrixXd dvd = sense.result.transpose() * Vmat * sense.result;
+	if (InvertSymmetricIndef(dvd, 'L') > 0) return;
+
+	const double scale = fabs(Global->llScale);
+	double *ihess = fc->getDenseIHessUninitialized();
+	Eigen::Map< Eigen::MatrixXd > Eh(ihess, numFree, numFree);
+	Eh = (1.0/scale) * dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
+		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
+	fc->wanted |= FF_COMPUTE_IHESSIAN;
 }
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
