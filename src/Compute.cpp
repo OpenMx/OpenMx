@@ -1695,12 +1695,12 @@ class ComputeManifestByParJacobian : public omxCompute {
 		sense(ComputeManifestByParJacobian &_top) : top(_top) {};
 
 		template <typename T1, typename T2>
-		void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result) const {
+		void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result1) const {
 			fc->copyParamToModel();
 			Eigen::VectorXd tmp(top.maxNumStats);
 			for (int ex=0, offset=0; ex < int(top.exList.size()); ++ex) {
 				top.exList[ex]->asVector(fc, top.defvar_row, tmp);
-				result.segment(offset, top.numStats[ex]) =
+				result1.segment(offset, top.numStats[ex]) =
 					tmp.segment(0, top.numStats[ex]);
 				offset += top.numStats[ex];
 			}
@@ -3118,7 +3118,7 @@ void ComputeManifestByParJacobian::computeImpl(FitContext *fc)
 	sense s1(*this);
 	s1.fc = fc;
 	VectorXd ref(totalNumStats);
-	s1(ref, ref);
+	s1(curEst, ref);
 	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, s1, ref, curEst, result);
 }
 
