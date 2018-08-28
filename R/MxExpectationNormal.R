@@ -291,7 +291,7 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 		}
 		tmpModel <- mxModel(model, mxComputeManifestByParJacobian(defvar.row=defvar.row,
 			expectation=ex))
-		tmpModel <- mxRun(tmpModel)
+		tmpModel <- mxRun(tmpModel, silent=TRUE)
 		jac <- tmpModel$compute$output$jacobian
 	} else {
 		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
