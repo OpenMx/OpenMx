@@ -61,14 +61,6 @@ mxCompareMatrix <- function(models, statistic, ...,
 	if (length(garbageArguments) > 0) {
 		stop("mxCompareMatrix does not accept values for the '...' argument")
 	}
-	if (is.list(base)) {
-		base <- unlist(base)
-	} else {
-		base <- list(base)
-	}
-	if(!all(sapply(base, is, "MxModel"))) {
-		stop("The 'base' argument must consist of MxModel objects")
-	}
 	
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
@@ -81,7 +73,7 @@ mxCompareMatrix <- function(models, statistic, ...,
 	if (any(unrecog)) {
 		stop(paste("Statistic", omxQuotes(statistic[unrecog]), "is not available"))
 	}
-	if (statistic == 'raw') return(resultsTable)
+	if (any(statistic == 'raw')) return(resultsTable)
 
 	diagstat <- c('ep','minus2LL','df','AIC')
 	offdiag <- c('diffLL','diffdf','p')
