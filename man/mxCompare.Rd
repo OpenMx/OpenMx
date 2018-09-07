@@ -26,16 +26,19 @@
 \usage{
 mxCompare(base, comparison, ..., all = FALSE,
   boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE)
-mxCompareMatrix(models, statistic, ...,
-  boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE)
+mxCompareMatrix(models,
+			    diag=c('minus2LL','ep','df','AIC'),
+			    stat=c('p', 'diffLL','diffdf'), ...,
+  boot=FALSE, replications=400, previousRun=NULL,
+ checkHess=FALSE, wholeTable=FALSE)
 }
 
 \arguments{
    \item{base}{A MxModel object or list of MxModel objects.}
    \item{comparison}{A MxModel object or list of MxModel objects.}
    \item{models}{A MxModel object or list of MxModel objects.}
-   \item{statistic}{A vector of up to two statistics with which to populate the
-   returned matrix.}
+   \item{diag}{statistic used for diagonal entries}
+   \item{stat}{statistic used for off-diagonal entries}
    \item{...}{Not used.}
    \item{all}{A boolean value on whether to compare all bases with all
      comparisons. Defaults to FALSE.}
@@ -45,6 +48,7 @@ mxCompareMatrix(models, statistic, ...,
      bootstrap distribution.}
    \item{previousRun}{Results to re-use from a previous bootstrap.}
   \item{checkHess}{Whether to approximate the Hessian in each replication}
+  \item{wholeTable}{Return the whole table instead of a matrix shaped summary}
 }
 
 \details{
