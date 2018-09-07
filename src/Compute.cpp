@@ -1680,32 +1680,75 @@ class ComputeStandardError : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
-class ComputeManifestByParJacobian : public omxCompute {
-	typedef omxCompute super;
-	std::vector<omxExpectation *> exList;
+struct ParJacobianSense {
+	FitContext *fc;
+	std::vector<omxExpectation *> *exList;
+	std::vector<omxMatrix *> *alList;
+	int numOf;
 	std::vector<int> numStats;
 	int maxNumStats;
 	int totalNumStats;
 	int defvar_row;
+	Eigen::VectorXd ref;
 	Eigen::MatrixXd result;
 
-	struct sense {
-		ComputeManifestByParJacobian &top;
-		FitContext *fc;
-		sense(ComputeManifestByParJacobian &_top) : top(_top) {};
+	// default defvar_row to 1 or 0? TODO
+	ParJacobianSense() : exList(0), alList(0), defvar_row(1) {};
 
-		template <typename T1, typename T2>
-		void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result1) const {
-			fc->copyParamToModel();
-			Eigen::VectorXd tmp(top.maxNumStats);
-			for (int ex=0, offset=0; ex < int(top.exList.size()); ++ex) {
-				top.exList[ex]->asVector(fc, top.defvar_row, tmp);
-				result1.segment(offset, top.numStats[ex]) =
-					tmp.segment(0, top.numStats[ex]);
-				offset += top.numStats[ex];
-			}
+	void attach(std::vector<omxExpectation *> *_exList, std::vector<omxMatrix *> *_alList) {
+		if (_exList && _alList) Rf_error("_exList && _alList");
+		exList = _exList;
+		alList = _alList;
+		numOf = exList? exList->size() : alList->size();
+		numStats.reserve(numOf);
+		maxNumStats = 0;
+		totalNumStats = 0;
+		for (int ex=0; ex < numOf; ++ex) {
+			int nss = exList? (*exList)[ex]->numSummaryStats() : (*alList)[ex]->size();
+			numStats.push_back(nss);
+			totalNumStats += nss;
+			maxNumStats = std::max(nss, maxNumStats);
 		}
 	};
+
+	void measureRef(FitContext *_fc) {
+		using Eigen::Map;
+		using Eigen::VectorXd;
+		fc = _fc;
+		int numFree = fc->calcNumFree();
+		Map< VectorXd > curEst(fc->est, numFree);
+		result.resize(totalNumStats, numFree);
+		ref.resize(totalNumStats);
+		(*this)(curEst, ref);
+	}
+
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result1) const {
+		fc->copyParamToModel();
+		Eigen::VectorXd tmp(maxNumStats);
+		for (int ex=0, offset=0; ex < numOf; offset += numStats[ex++]) {
+			if (exList) {
+				(*exList)[ex]->asVector(fc, defvar_row, tmp);
+				result1.segment(offset, numStats[ex]) =
+					tmp.segment(0, numStats[ex]);
+			} else {
+				omxMatrix *mat = (*alList)[ex];
+				omxRecompute(mat, fc);
+				EigenVectorAdaptor vec(mat);
+				if (numStats[ex] != vec.size()) {
+					Rf_error("Algebra '%s' changed size during Jacobian", mat->name());
+				}
+				result1.segment(offset, numStats[ex]) = vec;
+			}
+		}
+	}
+};
+
+class ComputeJacobian : public omxCompute {
+	typedef omxCompute super;
+	std::vector<omxExpectation *> exList;
+	std::vector<omxMatrix *> alList;
+	ParJacobianSense sense;
 
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -1902,8 +1945,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeLoadMatrix", &newComputeLoadMatrix},
 	{"MxComputeCheckpoint", newComputeCheckpoint},
 	{"MxComputeSimAnnealing", &newComputeGenSA},
-	{"MxComputeManifestByParJacobian",
-	 []()->omxCompute* { return new ComputeManifestByParJacobian; }},
+	{"MxComputeJacobian",
+	 []()->omxCompute* { return new ComputeJacobian; }},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3082,50 +3125,51 @@ void omxComputeOnce::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	}
 }
 
-void ComputeManifestByParJacobian::initFromFrontend(omxState *state, SEXP rObj)
+void ComputeJacobian::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
-	ProtectedSEXP Rex(R_do_slot(rObj, Rf_install("expectation")));
-	int numEx = Rf_length(Rex);
-	if (!numEx) Rf_error("%s: must provide at least one expectation", name);
-	exList.reserve(numEx);
-	numStats.reserve(numEx);
-	maxNumStats = 0;
-	totalNumStats = 0;
-	for (int ex=0; ex < numEx; ++ex) {
-		int objNum = INTEGER(Rex)[ex];
-		omxExpectation *e1 = state->expectationList[objNum - 1];
-		omxCompleteExpectation(e1);
-		exList.push_back(e1);
-		int nss = e1->numSummaryStats();
-		numStats.push_back(nss);
-		totalNumStats += nss;
-		maxNumStats = std::max(nss, maxNumStats);
+	ProtectedSEXP Rof(R_do_slot(rObj, Rf_install("of")));
+	int numOf = Rf_length(Rof);
+	if (!numOf) Rf_error("%s: must provide at least one expectation", name);
+	exList.reserve(numOf);
+	for (int ex=0; ex < numOf; ++ex) {
+		int objNum = INTEGER(Rof)[ex];
+		if (objNum < 0) {
+			omxExpectation *e1 = state->expectationList[~objNum];
+			omxCompleteExpectation(e1);
+			exList.push_back(e1);
+		} else {
+			omxMatrix *algebra = state->algebraList[objNum];
+			if (algebra->fitFunction) {
+				omxCompleteFitFunction(algebra);
+			}
+			alList.push_back(algebra);
+		}
+	}
+
+	if (exList.size()) {
+		sense.attach(&exList, 0);
+	} else {
+		sense.attach(0, &alList);
 	}
 
 	ProtectedSEXP Rdefvar_row(R_do_slot(rObj, Rf_install("defvar.row")));
-	defvar_row = Rf_asInteger(Rdefvar_row);
+	sense.defvar_row = Rf_asInteger(Rdefvar_row);
 }
 
-void ComputeManifestByParJacobian::computeImpl(FitContext *fc)
+void ComputeJacobian::computeImpl(FitContext *fc)
 {
-	using Eigen::Map;
-	using Eigen::VectorXd;
 	int numFree = fc->calcNumFree();
-	Map< VectorXd > curEst(fc->est, numFree);
-	result.resize(totalNumStats, numFree);
-	sense s1(*this);
-	s1.fc = fc;
-	VectorXd ref(totalNumStats);
-	s1(curEst, ref);
-	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, s1, ref, curEst, result);
+	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
+	sense.measureRef(fc);
+	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, sense.result);
 }
 
-void ComputeManifestByParJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
+void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	MxRList output;
-	output.add("jacobian", Rcpp::wrap(result));
+	output.add("jacobian", Rcpp::wrap(sense.result));
 	slots->add("output", output.asR());
 }
 

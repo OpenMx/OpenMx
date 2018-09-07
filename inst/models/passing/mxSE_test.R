@@ -44,7 +44,7 @@ sdrun <- mxRun(sdmod)
 omxCheckCloseEnough(
 	varrun$output$standardErrors[2],
 	mxSE(x=Sigma2,model=sdrun),
-	1e-6
+	5e-6
 )
 
 omxCheckCloseEnough(
@@ -53,5 +53,5 @@ omxCheckCloseEnough(
 	1e-6
 )
 
-omxCheckCloseEnough(mxSE(sigma^2, sdrun), mxSE(sigma2, varrun), 1e-6)
+omxCheckCloseEnough(mxSE(sigma^2, sdrun), mxSE(sigma2, varrun), 5e-6)
 

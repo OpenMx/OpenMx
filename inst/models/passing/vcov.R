@@ -34,3 +34,6 @@ oneFactor <- mxOption(oneFactor, "Calculate Hessian", "Yes")
 oneFactor <- mxRun(oneFactor)
 
 omxCheckTrue(all(abs(sqrt(diag(vcov(oneFactor))) - oneFactor$output$standardErrors) < 1e-6))
+
+# ensure mxSE works
+omxCheckCloseEnough(mxSE(M[1,1] / S[1,1], oneFactor), 0.4934011, .001)
