@@ -30,10 +30,10 @@
 
 \arguments{
    \item{observed}{A matrix or data.frame which provides data to the MxData object.}
-   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, or \dQuote{cor}.}
+   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, \dQuote{'sscp'} or \dQuote{acov}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
-   \item{acov}{Asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares at weight matrix.}
+   \item{acov}{Asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares weight matrix.}
    \item{fullWeight}{Full asymptotic covariance matrix of observed, means, and thresholds.  Used for weighted least squares in standard error and quasi-chi-squared calculation.}
    \item{thresholds}{Observed thresholds.  Used for weighted least squares with ordinal data.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
@@ -54,7 +54,7 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML} functions, depending on the specified model.}
 
-\item{acov}{The best way to have data of the type is to use the \link{mxDataWLS} function.  The contents of the \sQuote{observed} argument are treated as the polychoric correlation matrix of the ordinal variables. The \sQuote{means} argument is not required, but may be included for estimations involving means.  The \sQuote{thresholds} argument is not required, but may be included for estimation involving thresholds and ordinal variables. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the polychoric correlation matrix. Data of this type almost certainly use the \link{mxFitFunctionWLS} function, but may depend on the specified model.}
+\item{acov}{The best way to create data of this type is to use the \link{mxDataWLS} function.  The contents of the \sQuote{observed} argument are treated as the polychoric correlation matrix of the ordinal variables. The \sQuote{means} argument is not required, but may be included for estimations involving means.  The \sQuote{thresholds} argument is not required, but may be included for estimation involving thresholds and ordinal variables. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the polychoric correlation matrix. Data of this type almost certainly use the \link{mxFitFunctionWLS} function, but may depend on the specified model.}
 }
 
 MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxFitFunctionAlgebra} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
@@ -63,7 +63,7 @@ While column names are stored in the \sQuote{observed} slot of MxData objects, t
 
 The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation  matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
 
-OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using dimnames=list(varNames, varNames).
+OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using \code{dimnames = list(varNames, varNames)}.
 
 In the case of raw data, the optional \sQuote{weight} argument names a
 column in the \sQuote{observed} data that contains per-row weights.
@@ -94,7 +94,7 @@ For WLS data, see \link{mxDataWLS}. To generate data, see \code{\link{mxGenerate
     
 library(OpenMx)
 
-#Create a covariance matrix
+# Create a covariance matrix
 covMatrix <- matrix( c(0.77642931, 0.39590663, 
     0.39590663, 0.49115615), 
     nrow = 2, ncol = 2, byrow = TRUE)
@@ -102,7 +102,7 @@ covNames <- c("x", "y")
 dimList <- list(covNames, covNames)
 dimnames(covMatrix) <- dimList
 
-#Create an MxData object including that covariance matrix
+# Create an MxData object including that covariance matrix
 testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
 testModel <- mxModel(model="testModel",
