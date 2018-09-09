@@ -60,7 +60,8 @@ Suggests:
     Rmpi,
     rpf (>= 0.45),
     snowfall,
-    lme4
+    lme4,
+    car
 LazyLoad: yes
 LazyData: yes
 Collate:
