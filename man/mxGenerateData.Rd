@@ -24,7 +24,8 @@ This function returns a new (simulated) data set based on the model-implied dist
 }
 
 \usage{
-mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE, ..., .backend=TRUE, subname=NULL)
+mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
+ ..., .backend=TRUE, subname=NULL)
 }
 
 
