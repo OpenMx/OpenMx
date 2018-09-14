@@ -180,6 +180,9 @@ void MLFitState::compute(int want, FitContext *fc)
 		} catch (const std::exception& e) {
 			fit = NA_REAL;
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
+		} catch (...) {
+			fit = NA_REAL;
+			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
 		}
 		oo->matrix->data[0] = Scale * fit;
 	} else if (strEQ(expectation->expType, "MxExpectationNormal") &&
@@ -231,6 +234,9 @@ void MLFitState::compute(int want, FitContext *fc)
 		} catch (const std::exception& e) {
 			init_log_prob = NA_REAL;
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
+		} catch (...) {
+			init_log_prob = NA_REAL;
+			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
 		}
 
 		if (want & FF_COMPUTE_FIT) {

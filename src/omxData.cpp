@@ -960,6 +960,8 @@ void omxData::reloadFromFile(const std::string &file)
 		}
 	} catch (const std::exception &ex) {
 		Rf_error("%s: %s", name, ex.what());
+	} catch (...) {
+		Rf_error("%s: unknown error", name);
 	};
 }
 
