@@ -59,6 +59,8 @@ void markAsDataFrame(SEXP list, int rows)
 
 SEXP makeFactor(SEXP vec, int levels, const char **labels)
 {
+	Rf_protect(vec);
+
 	SEXP classes;
 	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
 	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
