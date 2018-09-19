@@ -192,7 +192,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	delete fc;
 	delete globalState;
 
-	omxManageProtectInsanity mpi;
+	ProtectAutoBalanceDoodad mpi;
 	MxRList result;
 	result.add("tmean", Rcpp::wrap(tmean));
 	result.add("tvar", Rcpp::wrap(tcov));
@@ -426,7 +426,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 /* Main functions */
 SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
-	omxManageProtectInsanity protectManager;
+	ProtectAutoBalanceDoodad protectManager;
 
 	if(OMX_DEBUG) { mxLog("-----------------------------------------------------------------------");}
 	if(OMX_DEBUG) { mxLog("Explicit call to algebra %d.", INTEGER(algNum)[0]);}
@@ -516,7 +516,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 //	if(!isVector(matList)) Rf_error ("matList must be a list");
 //	if(!isVector(algList)) Rf_error ("algList must be a list");
 
-	omxManageProtectInsanity protectManager;
+	ProtectAutoBalanceDoodad protectManager;
 
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;

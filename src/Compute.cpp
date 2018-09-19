@@ -399,7 +399,7 @@ static bool soleymani2013(const Eigen::SparseMatrix<double> &mat, Eigen::SparseM
 
 SEXP sparseInvert_wrapper(SEXP Rmat)
 {
-	omxManageProtectInsanity mpi;
+	ProtectAutoBalanceDoodad mpi;
 
 	SEXP matrixDims;
 	Rf_protect(matrixDims = Rf_getAttrib(Rmat, R_DimSymbol));

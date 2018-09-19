@@ -74,7 +74,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 	SEXP matListNames = Rf_getAttrib(matList, R_NamesSymbol);
 
 	for(int index = 0; index < Rf_length(matList); index++) {
-		omxManageProtectInsanity protectManager;
+		ProtectAutoBalanceDoodad protectManager;
 		Rf_protect(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
 		Rf_protect(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, this, 1, -index - 1);
@@ -99,7 +99,7 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 	}
 
 	for(int index = 0; index < Rf_length(algList); index++) {
-		omxManageProtectInsanity protectManager;
+		ProtectAutoBalanceDoodad protectManager;
 		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			omxMatrix *fm = algebraList[index];
@@ -308,7 +308,7 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 	int numVars = Rf_length(varList);
 	startingValues->resize(numVars);
 	for (int fx = 0; fx < numVars; fx++) {
-		omxManageProtectInsanity mpi;
+		ProtectAutoBalanceDoodad mpi;
 
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables

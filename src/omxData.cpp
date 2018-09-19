@@ -968,7 +968,7 @@ void omxData::reloadFromFile(const std::string &file)
 SEXP storeData(SEXP Rmxd, SEXP Rfile)
 {
 	using json = jsoncons::json;
-	omxManageProtectInsanity mpi;
+	ProtectAutoBalanceDoodad mpi;
 
 	if (Rf_length(Rfile) == 0) Rf_error("Write to which file?");
 	if (Rf_length(Rfile) != 1) Rf_error("Can only write to 1 file");

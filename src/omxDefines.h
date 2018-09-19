@@ -392,10 +392,10 @@ class ProtectedSEXP {
         ProtectedSEXP& operator=( const ProtectedSEXP& );
 };
 
-class omxManageProtectInsanity {
+class ProtectAutoBalanceDoodad {
 	PROTECT_INDEX initialpix;
  public:
-	omxManageProtectInsanity() {
+	ProtectAutoBalanceDoodad() {
 		R_ProtectWithIndex(R_NilValue, &initialpix);
 		Rf_unprotect(1);
 	}
@@ -406,7 +406,7 @@ class omxManageProtectInsanity {
 		Rf_unprotect(1);
 		return diff;
 	}
-	~omxManageProtectInsanity() {
+	~ProtectAutoBalanceDoodad() {
 		Rf_unprotect(getDepth());
 	}
 };
