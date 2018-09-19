@@ -69,14 +69,13 @@ void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 void omxState::omxProcessMxMatrixEntities(SEXP matList)
 {
 	if(OMX_DEBUG) { mxLog("Processing %d matrix(ces).", Rf_length(matList));}
-	SEXP nextLoc, nextMat;
 	matrixList.clear();
-	SEXP matListNames = Rf_getAttrib(matList, R_NamesSymbol);
+	ProtectedSEXP matListNames(Rf_getAttrib(matList, R_NamesSymbol));
 
+	int preDepth = Global->mpi->getDepth();
 	for(int index = 0; index < Rf_length(matList); index++) {
-		ProtectAutoBalanceDoodad protectManager;
-		Rf_protect(nextLoc = VECTOR_ELT(matList, index));		// This is the matrix + populations
-		Rf_protect(nextMat = VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
+		ProtectedSEXP nextLoc(VECTOR_ELT(matList, index));		// This is the matrix + populations
+		ProtectedSEXP nextMat(VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, this, 1, -index - 1);
 		mat->nameStr = CHAR(STRING_ELT(matListNames, index));
 		matrixList.push_back(mat);
@@ -85,12 +84,18 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 
 		if (isErrorRaised()) return;
 	}
+	int postDepth = Global->mpi->getDepth();
+	if (preDepth != postDepth) {
+		Rf_warning("omxState::omxProcessMxMatrixEntities: "
+			   "protect stack usage %d > 0, PLEASE REPORT TO OPENMX DEVELOPERS",
+			   postDepth - preDepth);
+	}
 }
 
 void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 {
-	SEXP nextAlgTuple;
-	SEXP algListNames = Rf_getAttrib(algList, R_NamesSymbol);
+	ProtectedSEXP algListNames(Rf_getAttrib(algList, R_NamesSymbol));
+	int preDepth = Global->mpi->getDepth();
 
 	if(OMX_DEBUG) { mxLog("Processing %d algebras.", Rf_length(algList)); }
 
@@ -99,16 +104,14 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 	}
 
 	for(int index = 0; index < Rf_length(algList); index++) {
-		ProtectAutoBalanceDoodad protectManager;
-		Rf_protect(nextAlgTuple = VECTOR_ELT(algList, index));
+		ProtectedSEXP nextAlgTuple(VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			omxMatrix *fm = algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, index, nextAlgTuple);
 			fm->nameStr = CHAR(STRING_ELT(algListNames, index));
 		} else {								// This is an algebra spec.
-			SEXP dimnames, formula;
 			omxMatrix *amat = algebraList[index];
-			Rf_protect(dimnames = VECTOR_ELT(nextAlgTuple, 0));
+			ProtectedSEXP dimnames(VECTOR_ELT(nextAlgTuple, 0));
 			int verbose;
 			{
 				ProtectedSEXP Rverbose(VECTOR_ELT(nextAlgTuple, 1));
@@ -116,11 +119,17 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 			}
 			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
 			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 2), VECTOR_ELT(nextAlgTuple, 3));
-			Rf_protect(formula = VECTOR_ELT(nextAlgTuple, 4));
+			ProtectedSEXP formula(VECTOR_ELT(nextAlgTuple, 4));
 			std::string name = CHAR(STRING_ELT(algListNames, index));
 			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames, verbose);
 		}
 		if (isErrorRaised()) return;
+	}
+	int postDepth = Global->mpi->getDepth();
+	if (preDepth != postDepth) {
+		Rf_warning("omxState::omxProcessMxAlgebraEntities: "
+			   "protect stack usage %d > 0, PLEASE REPORT TO OPENMX DEVELOPERS",
+			   postDepth - preDepth);
 	}
 }
 
@@ -302,46 +311,44 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 
 void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
 {
+	int preDepth = Global->mpi->getDepth();
 	if(OMX_DEBUG) { mxLog("Processing Free Parameters."); }
 
-	SEXP nextVar, nextLoc;
 	int numVars = Rf_length(varList);
 	startingValues->resize(numVars);
 	for (int fx = 0; fx < numVars; fx++) {
-		ProtectAutoBalanceDoodad mpi;
-
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables
 		Global->findVarGroup(FREEVARGROUP_ALL)->vars.push_back(fv);
 
 		fv->id = fx;
 		fv->name = CHAR(Rf_asChar(STRING_ELT(Rf_getAttrib(varList, R_NamesSymbol), fx)));
-		Rf_protect(nextVar = VECTOR_ELT(varList, fx));
+		ProtectedSEXP nextVar(VECTOR_ELT(varList, fx));
 
-		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 0));
-		fv->lbound = REAL(nextLoc)[0];
+		ProtectedSEXP Rlbound(VECTOR_ELT(nextVar, 0));
+		fv->lbound = REAL(Rlbound)[0];
 		if (ISNA(fv->lbound)) fv->lbound = NEG_INF;
 		if (fabs(fv->lbound) == 0.0) fv->lbound = 0.0;
 
-		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 1));
-		fv->ubound = REAL(nextLoc)[0];
+		ProtectedSEXP Rubound(VECTOR_ELT(nextVar, 1));
+		fv->ubound = REAL(Rubound)[0];
 		if (ISNA(fv->ubound)) fv->ubound = INF;
 		if (fabs(fv->ubound) == 0.0) fv->ubound = -0.0;
 
-		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 2));
-		int groupCount = Rf_length(nextLoc);
+		ProtectedSEXP Rgroup(VECTOR_ELT(nextVar, 2));
+		int groupCount = Rf_length(Rgroup);
 		for (int gx=0; gx < groupCount; ++gx) {
-			int group = INTEGER(nextLoc)[gx];
+			int group = INTEGER(Rgroup)[gx];
 			if (group == 0) continue;
 			Global->findOrCreateVarGroup(group)->vars.push_back(fv);
 		}
 
-		Rf_protect(nextLoc = VECTOR_ELT(nextVar, 3));
-		fv->setDeps(Rf_length(nextLoc), INTEGER(nextLoc));
+		ProtectedSEXP Rdep(VECTOR_ELT(nextVar, 3));
+		fv->setDeps(Rf_length(Rdep), INTEGER(Rdep));
 
 		int numLocs = Rf_length(nextVar) - 5;
 		for(int locIndex = 0; locIndex < numLocs; locIndex++) {
-			Rf_protect(nextLoc = VECTOR_ELT(nextVar, locIndex+4));
+			ProtectedSEXP nextLoc(VECTOR_ELT(nextVar, locIndex+4));
 			int* theVarList = INTEGER(nextLoc);
 
 			omxFreeVarLocation loc;
@@ -351,8 +358,8 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 
 			fv->locations.push_back(loc);
 		}
-		Rf_protect(nextLoc = VECTOR_ELT(nextVar, Rf_length(nextVar)-1));
-		double sv = REAL(nextLoc)[0];
+		ProtectedSEXP Rsv(VECTOR_ELT(nextVar, Rf_length(nextVar)-1));
+		double sv = REAL(Rsv)[0];
 		(*startingValues)[fx] = sv;
 		if(OMX_DEBUG) {
 			mxLog("Free var %d %s, bounds (%.3g, %.3g), %d loc, starting %f", fx, fv->name,
@@ -361,6 +368,13 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 	}
 
 	Global->deduplicateVarGroups();
+
+	int postDepth = Global->mpi->getDepth();
+	if (preDepth != postDepth) {
+		Rf_warning("omxState::omxProcessFreeVarList: "
+			   "protect stack usage %d > 0, PLEASE REPORT TO OPENMX DEVELOPERS",
+			   postDepth - preDepth);
+	}
 }
 
 ConfidenceInterval::ConfidenceInterval()

@@ -509,8 +509,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
 		 SEXP defvars, bool silent)
 {
-	SEXP nextLoc;
-
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
 //	if(!isVector(matList)) Rf_error ("matList must be a list");
@@ -558,7 +556,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	*/
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	for(int j = 0; j < Rf_length(matList); j++) {
-		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
+		ProtectedSEXP nextLoc(VECTOR_ELT(matList, j));		// This is the matrix + populations
 		globalState->matrixList[j]->omxProcessMatrixPopulationList(nextLoc);
 	}
 
