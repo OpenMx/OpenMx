@@ -2008,49 +2008,6 @@ mxComputeGenerateData <- function(expectation='expectation') {
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeLoadData",
-	 contains = "BaseCompute",
-	 representation = representation(
-		 dest = "MxCharOrNumber",
-		 path = "character",
-		 originalDataIsIndexOne = "logical"
-	 ))
-
-setMethod("initialize", "MxComputeLoadData",
-	  function(.Object, dest, path, originalDataIsIndexOne) {
-		  .Object@name <- 'compute'
-		  .Object@.persist <- TRUE
-		  .Object@freeSet <- NA_character_
-		  .Object@dest <- dest
-		  .Object@path <- path
-		  .Object@originalDataIsIndexOne <- originalDataIsIndexOne
-		  .Object
-	  })
-
-setMethod("convertForBackend", signature("MxComputeLoadData"),
-	function(.Object, flatModel, model) {
-		name <- .Object@name
-		if (is.character(.Object@dest)) {
-			full <- grepl('.', .Object@dest, fixed=TRUE)
-			for (dx in 1:length(.Object@dest)) {
-				if (full[dx]) next
-				.Object@dest[dx] <- paste0(.Object@dest[dx], '.data')
-			}
-			.Object@dest <- imxLocateIndex(flatModel, .Object@dest, .Object)
-		}
-		.Object
-	})
-
-mxComputeLoadData <- function(dest, path, ..., originalDataIsIndexOne=FALSE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxComputeLoadData does not accept values for the '...' argument")
-	}
-	new("MxComputeLoadData", dest, path, originalDataIsIndexOne)
-}
-
-#----------------------------------------------------
-
 setClass(Class = "MxComputeLoadMatrix",
 	 contains = "BaseCompute",
 	 representation = representation(

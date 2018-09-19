@@ -264,6 +264,5 @@ int omxDataNumFactor(omxData *od);                    // Number of factor column
 /* Function wrappers that switch based on inclusion of algebras */
 
 double omxDataDF(omxData *od);
-SEXP storeData(SEXP Rmxd, SEXP Rfile);
 
 #endif /* _OMXDATA_H_ */

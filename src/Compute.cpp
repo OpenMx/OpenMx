@@ -1851,17 +1851,6 @@ class ComputeGenerateData : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
-class ComputeLoadData : public omxCompute {
-	typedef omxCompute super;
-	std::vector< omxData* > data;
-	std::vector< std::string > path;
-	bool useOriginalData;
-
- public:
-	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-};
-
 class ComputeLoadMatrix : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > mat;
@@ -1909,9 +1898,6 @@ static class omxCompute *newComputeBootstrap()
 static class omxCompute *newComputeGenerateData()
 { return new ComputeGenerateData(); }
 
-static class omxCompute *newComputeLoadData()
-{ return new ComputeLoadData(); }
-
 static class omxCompute *newComputeLoadMatrix()
 { return new ComputeLoadMatrix(); }
 
@@ -1941,7 +1927,6 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeNelderMead", &newComputeNelderMead},
 	{"MxComputeBootstrap", &newComputeBootstrap},
 	{"MxComputeGenerateData", &newComputeGenerateData},
-	{"MxComputeLoadData", &newComputeLoadData},
 	{"MxComputeLoadMatrix", &newComputeLoadMatrix},
 	{"MxComputeCheckpoint", newComputeCheckpoint},
 	{"MxComputeSimAnnealing", &newComputeGenSA},
@@ -3555,43 +3540,6 @@ void ComputeGenerateData::computeImpl(FitContext *fc)
 void ComputeGenerateData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	slots->add("output", simData.asR());
-}
-
-void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
-{
-	super::initFromFrontend(globalState, rObj);
-
-	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
-	useOriginalData = Rf_asLogical(RoriginalData);
-
-	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
-	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
-	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
-		if (isErrorRaised()) return;
-		int objNum = INTEGER(Rdata)[wx];
-		omxData *d1 = globalState->dataList[objNum];
-		data.push_back(d1);
-
-		const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
-		path.push_back(p1);
-
-		//mxLog("ld %s %s", d1->name, p1);
-	}
-}
-
-void ComputeLoadData::computeImpl(FitContext *fc)
-{
-	std::vector<int> &clc = Global->computeLoopIndex;
-	if (clc.size() == 0) Rf_error("%s: must be used within a loop", name);
-	int index = clc[clc.size()-1];  // innermost loop index
-	if (useOriginalData && index == 1) return;
-
-	for (int dx=0; dx < int(data.size()); ++dx) {
-		std::string p1 = string_snprintf(path[dx].c_str(), index);
-		data[dx]->reloadFromFile(p1);
-	}
-
-	fc->state->invalidateCache();
 }
 
 void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)

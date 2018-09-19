@@ -37,7 +37,7 @@ for index 1}
   included with the model.
 }
 \seealso{
-  \link{mxComputeLoadData}, \link{mxComputeCheckpoint}
+  \link{mxComputeCheckpoint}
 }
 \examples{
 library(OpenMx)
