@@ -22,7 +22,7 @@ x=rnorm(1000, mean=0, sd=1)
 y= 0.5*x + rnorm(1000, mean=0, sd=1)
 tmpFrame <- data.frame(x, y)
 tmpNames <- names(tmpFrame)
-wdata <- mxDataWLS(tmpFrame)
+wdata <- mxDataWLS(tmpFrame, type="DWLS")
 
 # Define the matrices
 
@@ -44,7 +44,7 @@ fitFunction <- mxFitFunctionWLS()
 # Define the model
 
 tmpModel <- mxModel(model="exampleModel", S, A, I, expCov, expFunction, fitFunction,
-                    wdata)
+                    wdata, mxCI("A"))
 
 # Fit the model and print a summary
 
@@ -54,6 +54,8 @@ summary(tmpModelOut)
 tmpModel2 <- mxModel(tmpModel,name="tmp2")
 twoGroup <- mxModel("two", tmpModel, tmpModel2, mxFitFunctionMultigroup(c("exampleModel","tmp2")))
 twoGroup <- mxRun(twoGroup)
+omxCheckError(mxRun(twoGroup, intervals=TRUE),
+              "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'exampleModel.data' to full WLS")
 
 # Experiment with multigroup automatic start values
 autModel1 <- mxModel(tmpModel, name="auto1", mxData(tmpFrame, 'raw'),

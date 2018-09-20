@@ -360,5 +360,17 @@ imxWlsChiSquare <- function(model, J=NA){
 	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, mAdjust=madj, mvAdjust=mvadj, dstar=dstar))
 }
 
-
-
+approveWLSIntervals <- function(flatModel, modelName) {
+	ff <- flatModel@fitfunctions[[ paste0(modelName, '.fitfunction') ]]
+	if (is(ff, "MxFitFunctionWLS")) {
+		ds <- flatModel@datasets[[ paste0(modelName, '.data') ]]
+		if (any(ds$acov == 0)) {
+			stop(paste("Confidence intervals are not supported for DWLS or ULS. ",
+				"Try mxSE or switch", omxQuotes(ds$name), "to full WLS"))
+		}
+	} else if (is(ff, "MxFitFunctionMultigroup")) {
+		for (g1 in flatModel@fitfunction$groups) {
+			approveWLSIntervals(flatModel, g1)
+		}
+	}
+}
