@@ -697,6 +697,7 @@ class ComputeCI : public omxCompute {
 	void recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 		      int &detailRow, double val, Diagnostic diag);
 	void checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *currentCI, Diagnostic &diag);
+	void checkBoxConstraints(FitContext &fc, int skip, Diagnostic &diag);
 	void runPlan(FitContext *fc);
 public:
 	ComputeCI();
@@ -1392,18 +1393,23 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 void ComputeCI::checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *currentCI,
 					 Diagnostic &diag)
 {
+	checkBoxConstraints(fc, currentCI->varIndex, diag);
+}
+
+void ComputeCI::checkBoxConstraints(FitContext &fc, int skip, Diagnostic &diag)
+{
 	if (diag != CIobjective::DIAG_SUCCESS) return;
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 	for(int px = 0; px < int(fc.numParam); px++) {
-		if (px == currentCI->varIndex) continue;
+		if (px == skip) continue;
 		bool active=false;
-		if (fabs(Est[px] - fc.varGroup->vars[px]->lbound) < eps) {
+		if (Est[px] <= fc.varGroup->vars[px]->lbound + eps) {
 			if (verbose >= 2)
 				mxLog("Param %s at lbound %f", fc.varGroup->vars[px]->name, Est[px]);
 			active=true;
 		}
-		if (fabs(Est[px] - fc.varGroup->vars[px]->ubound) < eps) {
+		if (Est[px] >= fc.varGroup->vars[px]->ubound - eps) {
 			if (verbose >= 2)
 				mxLog("Param %s at ubound %f", fc.varGroup->vars[px]->name, Est[px]);
 			active=true;
@@ -1454,26 +1460,7 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 
 	diag = ciobj.getDiag();
 
-	if (diag == CIobjective::DIAG_SUCCESS) {
-		double eps = sqrt(std::numeric_limits<double>::epsilon());
-		for(int px = 0; px < int(fc.numParam); px++) {
-			bool active=false;
-			if (fabs(Est[px] - fc.varGroup->vars[px]->lbound) < eps) {
-				if (verbose >= 2)
-					mxLog("Param %s at lbound %f", fc.varGroup->vars[px]->name, Est[px]);
-				active=true;
-			}
-			if (fabs(Est[px] - fc.varGroup->vars[px]->ubound) < eps) {
-				if (verbose >= 2)
-					mxLog("Param %s at ubound %f", fc.varGroup->vars[px]->name, Est[px]);
-				active=true;
-			}
-			if (active) {
-				diag = CIobjective::DIAG_BOXED;
-				break;
-			}
-		}
-	}
+	checkBoxConstraints(fc, -1, diag);
 }
 
 void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
