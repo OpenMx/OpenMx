@@ -59,6 +59,8 @@ void markAsDataFrame(SEXP list, int rows)
 
 SEXP makeFactor(SEXP vec, int levels, const char **labels)
 {
+	Rf_protect(vec);
+
 	SEXP classes;
 	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
 	SET_STRING_ELT(classes, 0, Rf_mkChar("factor"));
@@ -190,7 +192,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	delete fc;
 	delete globalState;
 
-	omxManageProtectInsanity mpi;
+	ProtectAutoBalanceDoodad mpi;
 	MxRList result;
 	result.add("tmean", Rcpp::wrap(tmean));
 	result.add("tvar", Rcpp::wrap(tcov));
@@ -424,7 +426,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 /* Main functions */
 SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
-	omxManageProtectInsanity protectManager;
+	ProtectAutoBalanceDoodad protectManager;
 
 	if(OMX_DEBUG) { mxLog("-----------------------------------------------------------------------");}
 	if(OMX_DEBUG) { mxLog("Explicit call to algebra %d.", INTEGER(algNum)[0]);}
@@ -507,14 +509,12 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
 		 SEXP defvars, bool silent)
 {
-	SEXP nextLoc;
-
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
 //	if(!isVector(matList)) Rf_error ("matList must be a list");
 //	if(!isVector(algList)) Rf_error ("algList must be a list");
 
-	omxManageProtectInsanity protectManager;
+	ProtectAutoBalanceDoodad protectManager;
 
 	FitContext::setRFitFunction(NULL);
 	Global = new omxGlobal;
@@ -556,7 +556,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	*/
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	for(int j = 0; j < Rf_length(matList); j++) {
-		Rf_protect(nextLoc = VECTOR_ELT(matList, j));		// This is the matrix + populations
+		ProtectedSEXP nextLoc(VECTOR_ELT(matList, j));		// This is the matrix + populations
 		globalState->matrixList[j]->omxProcessMatrixPopulationList(nextLoc);
 	}
 

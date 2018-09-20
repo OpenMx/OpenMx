@@ -299,7 +299,7 @@ void ifaGroup::import(SEXP Rlist)
 
 	if (int(factorNames.size()) < itemDims) {
 		factorNames.reserve(itemDims);
-		const int SMALLBUF = 16;
+		const int SMALLBUF = 24;
 		char buf[SMALLBUF];
 		while (int(factorNames.size()) < itemDims) {
 			snprintf(buf, SMALLBUF, "s%d", int(factorNames.size()) + 1);

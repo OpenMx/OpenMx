@@ -42,6 +42,7 @@
 ##' @param silent logical; defaults to \code{FALSE}.  If \code{TRUE},
 ##' message-printing is suppressed.
 ##' @param ... further named arguments passed to \code{\link{mxEval}}
+##' @param defvar.row which row to load for any definition variables
 ##' 
 ##' @details
 ##' x can be the name of an algebra, a bracket address, named entity
@@ -82,7 +83,7 @@
 ##' m1 = mxRun(m1)
 ##' mxSE(lambda5, model = m1)
 ##' mxSE(lambda1^2, model = m1)
-mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ...){
+mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..., defvar.row=1L){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	if(isCallEtc && !forceName){
 		if(!silent){message('Treating first argument as an expression')}
@@ -95,23 +96,13 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 		stop("Please, sir.  'x' must be either the name of an entity in the model, or an expression for an MxAlgebra.")
 	}
 	
-	sefun <- function(x = NULL, model, alg){
-		if(is.null(x)){x <- omxGetParameters(model)}
-		param <- omxGetParameters(model)
-		paramNames <- names(param)
-		model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
-		return(c(mxEvalByName(alg, model, compute=TRUE)))
-	}
-	
 	# Get current algebra/matrix values:
 	freeparams <- omxGetParameters(model)
 	paramnames <- names(freeparams)
-	matrix(NA)
 	zoutMat <- try(mxEvalByName(x, model, compute=TRUE),silent=silent)
 	if(class(zoutMat) %in% "try-error"){
 		stop(paste0("I had a problem evaluating your expression. Check that mxEval works for it.\nRecall that elements of submodels are addressed as submodelName.objectName\nFor example, 'sub1.bob' refers to the object 'bob' in the submodel named 'sub1'."))
 	}
-	zoutVec <- sefun(x=freeparams, model=model, alg=x)
 	
 	if(length(model@output) > 0 && missing(cov)){
 		if(length(model@output$infoDefinite) && !single.na(model@output$infoDefinite)){
@@ -136,8 +127,10 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 		}
 	}
 	
-	covParam <- ParamsCov[paramnames,paramnames] # <-- submodel will usually not contain all free param.s
-	jacTrans <- numDeriv::jacobian(func = sefun, x = freeparams, model = model, alg = x)
+	covParam <- ParamsCov
+	jModel <- mxModel(model, mxComputeJacobian(of=x, defvar.row=defvar.row))
+	jModel <- mxRun(jModel, silent=TRUE)
+	jacTrans <- jModel$compute$output$jacobian
 	covSparam <- jacTrans %*% covParam %*% t(jacTrans)
 	# dimnames(covSparam) <- list(rownames(zoutMat), colnames(zoutMat))
 	SEs <- sqrt(diag(covSparam))

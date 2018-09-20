@@ -55,40 +55,32 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 	return(resultsTable)
 }
 
-mxCompareMatrix <- function(models, statistic, ...,
-			    boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE) {
+mxCompareMatrix <- function(models,
+			    diag=c('minus2LL','ep','df','AIC'),
+			    stat=c('p', 'diffLL','diffdf'), ...,
+			    boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE,
+			    wholeTable=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("mxCompareMatrix does not accept values for the '...' argument")
+		stop(paste("mxCompareMatrix does not accept values for the '...' argument",
+			omxQuotes(names(garbageArguments))))
 	}
 	
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
 
+	diagpick <- match.arg(diag)
+	offdiagpick <- match.arg(stat)
+
 	resultsTable <- iterateNestedModels(models, boot, replications, previousRun, checkHess)
 
-	if (missing(statistic)) stop(paste("Available statistics are:", omxQuotes(colnames(resultsTable))))
-
-	unrecog <- !(statistic %in% c('raw', colnames(resultsTable)))
-	if (any(unrecog)) {
-		stop(paste("Statistic", omxQuotes(statistic[unrecog]), "is not available"))
-	}
-	if (any(statistic == 'raw')) return(resultsTable)
-
-	diagstat <- c('ep','minus2LL','df','AIC')
-	offdiag <- c('diffLL','diffdf','p')
+	if (wholeTable) return(resultsTable)
 
 	modelNames <- sapply(models, function(m) m$name)
 	mat <- matrix(NA, length(models), length(models),
 		      dimnames=list(modelNames, modelNames))
-	offdiagpick <- intersect(statistic, offdiag)
-	if (length(offdiagpick)) {
-		mat[,] <- resultsTable[,offdiagpick[1]]
-	}
-	diagpick <- intersect(statistic, diagstat)
-	if (length(diagpick)) {
-		diag(mat) <- resultsTable[!is.na(resultsTable$ep), diagpick[1]]
-	}
+	mat[,] <- resultsTable[,offdiagpick[1]]
+	diag(mat) <- resultsTable[!is.na(resultsTable$ep), diagpick[1]]
 	if (!is.null(attr(resultsTable, "bootData"))) {
 		attr(mat, "bootData") <- attr(resultsTable, "bootData")
 	}

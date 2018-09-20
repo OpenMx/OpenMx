@@ -387,7 +387,7 @@ void omxNPSOL(GradientOptimizerContext &rf)
 
 void omxSetNPSOLOpts(SEXP options)
 {
-    omxManageProtectInsanity mpi;
+    ProtectAutoBalanceDoodad mpi;
     
     static const char *whitelist[] = {
         "Central Difference Interval",

@@ -286,6 +286,8 @@ namespace FellnerFitFunction {
 			//mxLog("%s: total lp %.7g", oo->name(), lpOut);
 		} catch (const std::exception& e) {
 			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
+		} catch (...) {
+			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
 		}
 		oo->matrix->data[0] = lpOut;
 	}

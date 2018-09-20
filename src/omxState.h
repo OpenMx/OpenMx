@@ -213,7 +213,7 @@ class omxGlobal {
 	void reportProgressStr(const char *msg);
 
  public:
-	omxManageProtectInsanity *mpi;
+	ProtectAutoBalanceDoodad *mpi;
 	bool silent;
 	bool ComputePersist;
 	int numThreads;

@@ -1661,48 +1661,55 @@ setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="intege
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeManifestByParJacobian",
+setClass(Class = "MxComputeJacobian",
 	contains = "BaseCompute",
 	representation = representation(
-		expectation = "MxCharOrNumber",
+		of = "MxCharOrNumber",
 		defvar.row = "integer"))
 
-setMethod("initialize", "MxComputeManifestByParJacobian",
-	  function(.Object, freeSet, expectation, defvar.row) {
+setMethod("initialize", "MxComputeJacobian",
+	  function(.Object, freeSet, of, defvar.row) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
-		  .Object@expectation <- expectation
+		  .Object@of <- of
 		  .Object@defvar.row <- defvar.row
 		  .Object
 	  })
 
-setMethod("qualifyNames", signature("MxComputeManifestByParJacobian"),
+setMethod("qualifyNames", signature("MxComputeJacobian"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('expectation')) {
+		for (sl in c('of')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
 	})
 
-setMethod("convertForBackend", signature("MxComputeManifestByParJacobian"),
+setMethod("convertForBackend", signature("MxComputeJacobian"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
-		if (!is.integer(.Object@expectation)) {
-			enum <- match(.Object@expectation,
-				names(flatModel@expectations))
-			if (any(is.na(enum))) stop(paste("Couldn't find expectation",
-				omxQuotes(.Object@expectation[is.na(enum)])))
-			.Object@expectation <- enum
+		if (any(!is.integer(.Object@of))) {
+			expNum <- match(.Object@of, names(flatModel@expectations))
+			algNum <- match(.Object@of, names(flatModel@algebras))
+			if (any(is.na(expNum)) && any(is.na(algNum))) {
+				stop(paste("Can only apply MxComputeJacobian to MxAlgebra *or* MxExpectation not",
+					   deparse(.Object@of)))
+			}
+			if (!any(is.na(expNum))) {
+					# Usually negative numbers indicate matrices; not here
+				.Object@of <- - expNum
+			} else {
+				.Object@of <- algNum - 1L
+			}
 		}
 		.Object
 	})
 
-mxComputeManifestByParJacobian <-
-	function(freeSet=NA_character_, ..., expectation="expectation", defvar.row=1L)
+mxComputeJacobian <-
+	function(freeSet=NA_character_, ..., of="expectation", defvar.row=1L)
 {
-	new("MxComputeManifestByParJacobian", freeSet, expectation, as.integer(defvar.row))
+	new("MxComputeJacobian", freeSet, of, as.integer(defvar.row))
 }
 
 #----------------------------------------------------
