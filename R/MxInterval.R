@@ -150,6 +150,9 @@ generateIntervalList <- function(flatModel, modelname, parameters, labelsData) {
 	retval <- unlist(retval, recursive = FALSE)
 	# Might have requested a CI of the same parameter in different submodels
 	retval <- retval[!duplicated(names(retval))]
+	if (length(retval) > 0) {
+		approveWLSIntervals(flatModel, modelname)
+	}
 	return(retval)
 }
 

@@ -126,8 +126,10 @@ omxCheckTrue(rms(ml.L, auto.L) < 0.01)
 omxCheckTrue(rms(wls.T, quants) < 0.05)
 rms(ml.T, quants)
 
+print(rms(wls.L, auto.L))
 omxCheckTrue(rms(wls.L, auto.L) < 1e-6)
-omxCheckTrue(rms(wls.T, auto.T) < 1e-6)
+print(rms(wls.T, auto.T))
+omxCheckTrue(rms(wls.T, auto.T) < 2e-5)
 
 ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
 wls.sum <- summary(thresholdModelWLSrun)
@@ -136,7 +138,7 @@ omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=16)
 omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
 
 ciModel <- mxModel(thresholdModelWLSrun, mxCI("L"))
-omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for units r'Wr")
+omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'WLSThresholdModel.data' to full WLS")
 
 
 #------------------------------------------------------------------------------

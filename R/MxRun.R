@@ -104,11 +104,13 @@ runHelper <- function(model, frontendStart,
 		warning("mxRun(..., useOptimizer=FALSE) ignored due to custom compute plan")
 	}
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
-		compute <- omxDefaultComputePlan(modelName=model@name, intervals=(length(intervals) && intervals),
+		if (is.null(intervals)) intervals <- FALSE
+		compute <- omxDefaultComputePlan(modelName=model@name, intervals=intervals,
 					useOptimizer=useOptimizer, optionList=options)
 		compute@.persist <- FALSE
 		model@compute <- compute
 	}
+	if (is.null(intervals)) intervals <- TRUE
 	if (!is.null(model@compute)) model@compute <- assignId(model@compute, 1L, '.')
 	flatModelCompute <- safeQualifyNames(model@compute, model@name, namespace)
 
@@ -194,7 +196,10 @@ runHelper <- function(model, frontendStart,
 		flatModel@compute <- compute
 	}
 
-	intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
+	intervalList <- NULL
+	if (intervals) {
+		intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
+	}
 	communication <- generateCommunicationList(model, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
