@@ -610,8 +610,3 @@ setMethod("print", "MxDataDynamic", function(x,...) {
 setMethod("show", "MxDataDynamic", function(object) {
 	displayMxDataDynamic(object) 
 })
-
-write.cbor <- function(mxd, file) {
-	if (!is(mxd, "MxData")) stop("write.cbor only accepts MxData objects")
-	.Call(.storeData, mxd, file)
-}

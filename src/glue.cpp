@@ -779,7 +779,6 @@ static R_CallMethodDef callMethods[] = {
 	{".dtmvnorm.marginal2", (DL_FUNC) dtmvnorm_marginal2, 7},
 	{".mtmvnorm", (DL_FUNC) mtmvnorm, 3},
 	{".enableMxLog", (DL_FUNC) &enableMxLog, 0},
-	{".storeData", (DL_FUNC) storeData, 2},
 	{NULL, NULL, 0}
 };
 
