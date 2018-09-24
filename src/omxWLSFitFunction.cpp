@@ -32,6 +32,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* B;
 	int n;
 	int fullWls;
+	int numOrdinal;
 	
 	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
 	virtual ~omxWLSFitFunction();
@@ -50,68 +51,8 @@ struct omxWLSFitFunction : omxFitFunction {
 void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector)
 {
-	// TODO: vectorize data flattening
-
-	Eigen::ArrayXd stddev;
-	EigenMatrixAdaptor egInCov(cov);
-	EigenMatrixAdaptor egOutCov(standardCov);
-
-	stddev = egInCov.diagonal().array().sqrt();
-	Eigen::ArrayXd stddevUse = Eigen::ArrayXd::Ones(egInCov.rows());
-
-	// standardize thresholds with corresponding transform to mean and covarinace
-	if (means) {
-		EigenMatrixAdaptor egInM(means);
-		EigenMatrixAdaptor egOutM(standardMeans);
-		egOutM = egInM;
-
-		if (thresholdMat) {
-			EigenMatrixAdaptor egInThr(thresholdMat);
-			EigenMatrixAdaptor egOutThr(standardThresholds);
-			for(int j = 0; j < int(thresholds.size()); j++) {
-				omxThresholdColumn* thresh = &thresholds[j];
-				if (thresh->numThresholds == 0) continue;
-				int dcol = thresh->dColumn;
-				for(int k = 0; k < thresh->numThresholds; k++) {
-					egOutThr(k, thresh->column) =
-						( egInThr(k, thresh->column) - egInM(0, dcol) ) / stddev[dcol];
-				}
-				egOutM(0, dcol) = 0.0;
-				stddevUse[dcol] = stddev[dcol];
-			}
-		}
-	}
-
-	// standardize covariance of ordinal indicators
-	for(int i = 0; i < egInCov.rows(); i++) {
-		for(int j = 0; j <= i; j++) {
-			egOutCov(i,j) = egInCov(i, j) / (stddevUse[i] * stddevUse[j]);
-			egOutCov(j,i) = egOutCov(i,j);
-		}
-	}
-	
-	int nextLoc = 0;
-	for(int j = 0; j < cov->rows; j++) {
-		for(int k = j; k < cov->rows; k++) {
-			omxSetVectorElement(vector, nextLoc, egOutCov(j, k));
-			nextLoc++;
-		}
-	}
-	if (means) {
-		EigenMatrixAdaptor egOutM(standardMeans);
-		for(int j = 0; j < cov->rows; j++) {
-			omxSetVectorElement(vector, nextLoc, egOutM(j));
-			nextLoc++;
-		}
-	}
-	for(int j = 0; j < int(thresholds.size()); j++) {
-		EigenMatrixAdaptor egOutThr(standardThresholds);
-		omxThresholdColumn* thresh = &thresholds[j];
-		for(int k = 0; k < thresh->numThresholds; k++) {
-			omxSetVectorElement(vector, nextLoc, egOutThr(k, thresh->column));
-			nextLoc++;
-		}
-	}
+	EigenVectorAdaptor vec1(vector);
+	normalToStdVector(cov, means, thresholdMat, numOrdinal, thresholds, vec1);
 }
 
 omxWLSFitFunction::~omxWLSFitFunction()
@@ -262,8 +203,6 @@ void omxWLSFitFunction::init()
 	
 	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
 	
-	int vectorSize = 0;
-	
 	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
 	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
 	
@@ -383,6 +322,7 @@ void omxWLSFitFunction::init()
 	newObj->observedMeans = means;
 	newObj->n = omxDataNumObs(dataMat);
 	
+	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
 	if (eThresh.size() && !means) {
@@ -411,6 +351,12 @@ void omxWLSFitFunction::init()
 			return;
 		}
 	}
+
+	for(int i = 0, ei=0; i < int(oThresh.size()); i++) {
+		while (ei < int(eThresh.size()) && eThresh[ei].dColumn != oThresh[i].dColumn) ++ei;
+		eThresh[ei].numThresholds = oThresh[i].numThresholds;
+	}
+
 	if (OMX_DEBUG) {
 		mxLog("expected thresholds:");
 		for (auto &th : eThresh) { th.log(); }
@@ -420,15 +366,7 @@ void omxWLSFitFunction::init()
 	
 	/* Error check weight matrix size */
 	int ncol = newObj->observedCov->cols;
-	vectorSize = (ncol * (ncol + 1) ) / 2;
-	if(newObj->expectedMeans != NULL) {
-		vectorSize = vectorSize + ncol;
-	}
-	for(int i = 0, ei=0; i < int(oThresh.size()); i++) {
-		while (ei < int(eThresh.size()) && eThresh[ei].dColumn != oThresh[i].dColumn) ++ei;
-		eThresh[ei].numThresholds = oThresh[i].numThresholds;  // assume
-		vectorSize = vectorSize + oThresh[i].numThresholds;
-	}
+	int vectorSize = expectation->numSummaryStats();
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
 	if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
