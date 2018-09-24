@@ -124,9 +124,7 @@ void omxExpectation::loadThresholds()
 			if (data->rawCols.size()) {
 				col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
 			} else {
-				// See omxWLSFitFunction. There are lots of complications
-				// to permit the order of variables to differ between
-				// the observed data and expected model.
+				// See omxData::permute
 			}
 
 			thresholds.push_back(col);

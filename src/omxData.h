@@ -97,6 +97,7 @@ class omxData {
 	double *currentWeightColumn;
 	int freqCol;
 	int *currentFreqColumn;
+	bool permuted;
 
  public: // move everything to private TODO
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -108,6 +109,8 @@ class omxData {
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
 	void assertColumnIsData(int col);
+	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
+	void permute(const Eigen::Ref<const DataColumnType> &dc);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data

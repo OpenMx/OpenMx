@@ -32,7 +32,7 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false),
 		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), fullWeight(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -882,4 +882,106 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	omxMarkClean(mat);
 	markDefVarDependencies(state, this);
 	return true;
+}
+
+void omxData::permute(const Eigen::Ref<const DataColumnType> &dc)
+{
+	if (!dc.size()) return;
+	if (permuted) Rf_error("Cannot permute '%s' two different ways", name);
+	permuted = true;
+
+	std::vector< omxThresholdColumn > &origThresh = omxDataThresholds(this);
+	std::vector< omxThresholdColumn > oThresh = origThresh;
+
+	dataMat->unshareMemroyWithR();
+	if (meansMat) meansMat->unshareMemroyWithR();
+	acovMat->unshareMemroyWithR();
+	fullWeight->unshareMemroyWithR();
+
+	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		invDataColumns[dc[cx]] = cx;
+	}
+	//mxPrintMat("invDataColumns", invDataColumns);
+	//Eigen::VectorXi invDataColumns = dc;
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(invDataColumns);
+	EigenMatrixAdaptor Ecov(dataMat);
+	Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
+	if (meansMat) {
+		EigenVectorAdaptor Emean(meansMat);
+		Emean.derived() = (pm * Emean).eval();
+	}
+
+	Eigen::MatrixXi mm(dc.size(), dc.size());
+	for (int cx=0, en=0; cx < dc.size(); ++cx) {
+		for (int rx=cx; rx < dc.size(); ++rx) {
+			mm(rx,cx) = en;
+			en += 1;
+		}
+	}
+	mm = mm.selfadjointView<Eigen::Lower>();
+	mm = (pm * mm * pm.transpose()).eval();
+	//mxPrintMat("mm", mm);
+
+	Eigen::VectorXi tstart(origThresh.size() + 1);
+	tstart[0] = 0;
+	int totalThresholds = 0;
+	for (int tx=0; tx < int(origThresh.size()); ++tx) {
+		totalThresholds += origThresh[tx].numThresholds;
+		tstart[tx+1] = totalThresholds;
+	}
+
+	int wpermSize = triangleLoc1(dc.size()) + totalThresholds;
+	if (meansMat) wpermSize += dc.size();
+	Eigen::VectorXi wperm(wpermSize);
+
+	for (int cx=0, en=0; cx < dc.size(); ++cx) {
+		for (int rx=cx; rx < dc.size(); ++rx) {
+			wperm[en] = mm(rx,cx);
+			en += 1;
+		}
+	}
+
+	if (meansMat) {
+		wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
+	}
+
+	std::vector<int> newOrder;
+	newOrder.reserve(origThresh.size());
+	for (int xx=0; xx < int(origThresh.size()); ++xx) newOrder.push_back(xx);
+
+	std::sort(newOrder.begin(), newOrder.end(),
+		  [&](const int &a, const int &b) -> bool
+		  { return invDataColumns[origThresh[a].dColumn] < invDataColumns[origThresh[b].dColumn]; });
+
+	//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
+
+	int thStart = triangleLoc1(dc.size());
+	if (meansMat) thStart += dc.size();
+	for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
+		int oldIndex = newOrder[t1];
+		auto &th = oThresh[oldIndex];
+		for (int t2=0; t2 < th.numThresholds; ++t2) {
+			wperm[thStart + dest] = thStart + tstart[oldIndex] + t2;
+			dest += 1;
+		}
+	}
+
+	for (auto &th : oThresh) th.dColumn = invDataColumns[th.dColumn];
+	std::sort(oThresh.begin(), oThresh.end(),
+		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
+		  { return a.dColumn < b.dColumn; });
+
+	origThresh = oThresh;
+
+	//mxPrintMat("wperm", wperm);
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> wpm(wperm);
+	EigenMatrixAdaptor Eweights(acovMat);
+	Eweights.derived() = (wpm.transpose() * Eweights * wpm).eval();
+
+	if (fullWeight) {
+		EigenMatrixAdaptor Efw(fullWeight);
+		Efw.derived() = (wpm.transpose() * Efw * wpm).eval();
+	}
+	//mxPrintMat("ew", Eweights);
 }
