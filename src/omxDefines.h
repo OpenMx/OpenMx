@@ -270,6 +270,7 @@ void subsetNormalDist(const Eigen::MatrixBase<T1> &gmean, const Eigen::MatrixBas
 
 // Refactor as a single split function that pulls out all 3 parts
 // of the covariance matrix in one iteration through the elements?
+// Maybe rename to subsetSymmetric?
 template <typename T2, typename T4, typename T5>
 void subsetCovariance(const Eigen::MatrixBase<T2> &gcov,
 		      T5 includeTest, int resultSize,
@@ -312,6 +313,28 @@ void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
 			gcov(grx, gcx) = cov(rx,cx);
 			rx += 1;
 		}
+		cx += 1;
+	}
+}
+
+template <typename T1, typename T2, typename T3>
+void subsetColumns(const Eigen::MatrixBase<T1> &in, T2 includeTest,
+		   Eigen::MatrixBase<T3> &out)
+{
+	for (int gcx=0, cx=0; gcx < in.cols(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		out.col(cx) = in.col(gcx);
+		cx += 1;
+	}
+}
+
+template <typename T1, typename T2, typename T3>
+void subsetRows(const Eigen::MatrixBase<T1> &in, T2 includeTest,
+		Eigen::MatrixBase<T3> &out)
+{
+	for (int gcx=0, cx=0; gcx < in.rows(); gcx++) {
+		if (!includeTest(gcx)) continue;
+		out.row(cx) = in.row(gcx);
 		cx += 1;
 	}
 }
