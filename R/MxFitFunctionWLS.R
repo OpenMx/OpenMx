@@ -275,7 +275,7 @@ imxWlsStandardErrors <- function(model){
 
 
 imxWlsChiSquare <- function(model, J=NA){
-	samp.param <- mxGetExpected(model, 'vector')
+	samp.param <- mxGetExpected(model, 'standVector')
 	theParams <- omxGetParameters(model)
 	numOrdinal <- 0
 	numObs <- 0
