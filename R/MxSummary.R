@@ -1312,6 +1312,9 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
       )])]
       return(out)
 }}}
+#Alias using proper camel-casing:
+mxStandardizeRAMPaths <- mxStandardizeRAMpaths
+
 
 mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','quantile'), returnRaw=FALSE){
 	bq <- c(min(bq),max(bq))
