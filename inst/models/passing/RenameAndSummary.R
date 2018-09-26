@@ -11,6 +11,9 @@ summary(rTomRun <- mxRun(rTom))
 rTomRun$aMat$values[1,1] <- .1
 omxCheckWarning(logLik(rTomRun), "MxModel 'Tom' was modified since it was run.")
 
+rTomRun  <- mxRename(rTomRun, newname="Tom")
+omxCheckEquals(rTomRun$name, "Tom")
+
 rNeal  <- mxRename(rTomRun, newname="Neal")
 summary(rNeal)
 
