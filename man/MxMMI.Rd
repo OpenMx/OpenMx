@@ -1,6 +1,7 @@
 \name{mxModelAverage}
 \alias{mxModelAverage}
 \alias{omxAkaikeWeights}
+\alias{omxAICWeights}
 
 \title{
 Information-Theoretic Model-Averaging and Multimodel Inference
