@@ -898,7 +898,7 @@ namespace RelationalRAMExpectation {
 			omxData *data = expectation->data;
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 
-			if (ram->M) {
+			if (ram->M && ram->M->isSimple()) {
 				int mNum = ~ram->M->matrixNumber;
 				for (size_t k=0; k < data->defVars.size(); ++k) {
 					omxDefinitionVar &dv = data->defVars[k];
