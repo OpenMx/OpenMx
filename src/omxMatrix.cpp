@@ -396,6 +396,16 @@ void omxMarkClean(omxMatrix *om)
 	}
 }
 
+omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state, 
+	unsigned short hasMatrixNumber, int matrixNumber) {
+/* Creates and populates an omxMatrix with details from an R matrix object. */
+	if (Rf_isMatrix(rObject) && Rf_length(rObject) == 1 &&
+	    !std::isfinite(REAL(rObject)[0])) return 0;
+	omxMatrix *om = NULL;
+	om = omxInitMatrix(0, 0, TRUE, state);
+	return omxFillMatrixFromRPrimitive(om, rObject, state, hasMatrixNumber, matrixNumber);
+}
+
 omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */

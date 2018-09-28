@@ -163,6 +163,8 @@ omxMatrix *omxCreateCopyOfMatrix(omxMatrix *orig, omxState *os);
 	void omxFreeMatrix(omxMatrix* om);						// Ditto, traversing argument trees
 
 /* Matrix Creation Functions */
+omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state, 
+       unsigned short hasMatrixNumber, int matrixNumber);
 	omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState *state,
 	unsigned short hasMatrixNumber, int matrixNumber); 							// Create an omxMatrix from an R object
 	omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state);				// Creates an Identity Matrix of a given size

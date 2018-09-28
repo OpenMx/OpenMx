@@ -225,7 +225,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
 	} else {
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
-		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+		od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 		
 		if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
 			omxToggleRowColumnMajor(od->dataMat);
@@ -250,19 +250,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("means")));
-	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	od->meansMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 	}
 
-	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
-	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
-	    !std::isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
-		omxFreeMatrix(od->meansMat); // Clear just-allocated memory.
-		od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
-                // FIXME: The above check may cause problems for dynamic data if the means
-                //          originally is a 1x1 that has not yet been calculated.  This should be
-                //          adjusted.
-	}
-	
 	if(OMX_DEBUG) {
 	        if(od->meansMat == NULL) {mxLog("No means found.");}
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
@@ -270,32 +260,17 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("acov")));
-	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	od->acovMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 	ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
-	od->fullWeight = omxNewMatrixFromRPrimitive(Rfw, state, 0, 0);
-	}
-
-	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
-	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
-	    !std::isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
-		omxFreeMatrix(od->acovMat); // Clear just-allocated memory.
-		od->acovMat = NULL;
+	od->fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("thresholds")));
-	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
-	if (!strEQ(od->obsThresholdsMat->getType(), "matrix")) {
-		Rf_error("Observed thresholds must be constant");
-	}
+	od->obsThresholdsMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 	}
 
-	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
-	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
-	    !std::isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
-		omxFreeMatrix(od->obsThresholdsMat); // Clear just-allocated memory.
-		od->obsThresholdsMat = NULL;
-	} else {
+	if(od->obsThresholdsMat) {
 		od->thresholdCols.reserve(od->obsThresholdsMat->cols);
 		int *columns;
 		{
@@ -896,7 +871,7 @@ void omxData::permute(const Eigen::Ref<const DataColumnType> &dc)
 	dataMat->unshareMemroyWithR();
 	if (meansMat) meansMat->unshareMemroyWithR();
 	acovMat->unshareMemroyWithR();
-	fullWeight->unshareMemroyWithR();
+	if (fullWeight) fullWeight->unshareMemroyWithR();
 
 	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
 	for (int cx=0; cx < int(dc.size()); ++cx) {
