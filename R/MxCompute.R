@@ -1715,26 +1715,49 @@ mxComputeJacobian <-
 #----------------------------------------------------
 
 setClass(Class = "MxComputeStandardError",
-	 contains = "BaseCompute")
+	contains = "BaseCompute",
+	representation = representation(
+		fitfunction = "MxCharOrNumber"
+	))
+
+setMethod("qualifyNames", signature("MxComputeStandardError"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod();
+		.Object@fitfunction <- imxConvertIdentifier(.Object@fitfunction, modelname, namespace)
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeStandardError"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@fitfunction)) {
+			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
+		}
+		.Object
+	})
 
 setMethod("initialize", "MxComputeStandardError",
-	  function(.Object, freeSet) {
+	  function(.Object, freeSet, fitfunction) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
+		  .Object@fitfunction <- fitfunction
 		  .Object
 	  })
 
-##' Compute standard errors given the Hessian or inverse Hessian
+##' Compute standard errors
 ##'
-##' The fit is assumed to be in deviance units (-2 log likelihood).
+##' When the fit is in -2 log likelihood units, the SEs are derived
+##' from the diagonal of the Hessian or inverse Hessian. The Hessian
+##' (in some form) must already be available.
 ##'
 ##' @param freeSet names of matrices containing free variables
+##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @aliases
 ##' MxComputeStandardError-class
 
-mxComputeStandardError <- function(freeSet=NA_character_) {
-	new("MxComputeStandardError", freeSet)
+mxComputeStandardError <- function(freeSet=NA_character_, fitfunction='fitfunction') {
+	new("MxComputeStandardError", freeSet, fitfunction)
 }
 
 #----------------------------------------------------

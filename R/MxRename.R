@@ -33,6 +33,7 @@ mxRename <- function(model, newname, oldname = NA) {
 	if (is.na(oldname)) {
 		oldname <- model@name
 	}
+	if (newname == oldname) return(model)
 	existing <- getAllModelNames(model)
 	if (newname %in% existing) {
 		stop(paste("There is already a model named", omxQuotes(newname)))

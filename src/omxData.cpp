@@ -32,8 +32,8 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0),
-		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), obsThresholdsMat(0),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false),
+		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), fullWeight(0), obsThresholdsMat(0),
 		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
 {}
@@ -225,7 +225,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
 	} else {
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
-		od->dataMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+		od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 		
 		if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
 			omxToggleRowColumnMajor(od->dataMat);
@@ -250,19 +250,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if(OMX_DEBUG) {mxLog("Processing Means Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("means")));
-	od->meansMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
+	od->meansMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 	}
 
-	if(od->meansMat->rows == 1 && od->meansMat->cols == 1 && 
-	   (!R_finite(omxMatrixElement(od->meansMat, 0, 0)) ||
-	    !std::isfinite(omxMatrixElement(od->meansMat, 0, 0)))) {
-		omxFreeMatrix(od->meansMat); // Clear just-allocated memory.
-		od->meansMat = NULL;  // 1-by-1 matrix of NAs is a null means matrix.
-                // FIXME: The above check may cause problems for dynamic data if the means
-                //          originally is a 1x1 that has not yet been calculated.  This should be
-                //          adjusted.
-	}
-	
 	if(OMX_DEBUG) {
 	        if(od->meansMat == NULL) {mxLog("No means found.");}
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
@@ -270,30 +260,17 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("acov")));
-	od->acovMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
-	}
-
-	if(od->acovMat->rows == 1 && od->acovMat->cols == 1 && 
-	   (!R_finite(omxMatrixElement(od->acovMat, 0, 0)) ||
-	    !std::isfinite(omxMatrixElement(od->acovMat, 0, 0)))) {
-		omxFreeMatrix(od->acovMat); // Clear just-allocated memory.
-		od->acovMat = NULL;
+	od->acovMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
+	ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
+	od->fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
 	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("thresholds")));
-	od->obsThresholdsMat = omxNewMatrixFromRPrimitive(dataLoc, state, 0, 0);
-	if (!strEQ(od->obsThresholdsMat->getType(), "matrix")) {
-		Rf_error("Observed thresholds must be constant");
-	}
+	od->obsThresholdsMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 	}
 
-	if(od->obsThresholdsMat->rows == 1 && od->obsThresholdsMat->cols == 1 && 
-	   (!R_finite(omxMatrixElement(od->obsThresholdsMat, 0, 0)) ||
-	    !std::isfinite(omxMatrixElement(od->obsThresholdsMat, 0, 0)))) {
-		omxFreeMatrix(od->obsThresholdsMat); // Clear just-allocated memory.
-		od->obsThresholdsMat = NULL;
-	} else {
+	if(od->obsThresholdsMat) {
 		od->thresholdCols.reserve(od->obsThresholdsMat->cols);
 		int *columns;
 		{
@@ -880,4 +857,106 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	omxMarkClean(mat);
 	markDefVarDependencies(state, this);
 	return true;
+}
+
+void omxData::permute(const Eigen::Ref<const DataColumnType> &dc)
+{
+	if (!dc.size()) return;
+	if (permuted) Rf_error("Cannot permute '%s' two different ways", name);
+	permuted = true;
+
+	std::vector< omxThresholdColumn > &origThresh = omxDataThresholds(this);
+	std::vector< omxThresholdColumn > oThresh = origThresh;
+
+	dataMat->unshareMemroyWithR();
+	if (meansMat) meansMat->unshareMemroyWithR();
+	acovMat->unshareMemroyWithR();
+	if (fullWeight) fullWeight->unshareMemroyWithR();
+
+	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		invDataColumns[dc[cx]] = cx;
+	}
+	//mxPrintMat("invDataColumns", invDataColumns);
+	//Eigen::VectorXi invDataColumns = dc;
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(invDataColumns);
+	EigenMatrixAdaptor Ecov(dataMat);
+	Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
+	if (meansMat) {
+		EigenVectorAdaptor Emean(meansMat);
+		Emean.derived() = (pm * Emean).eval();
+	}
+
+	Eigen::MatrixXi mm(dc.size(), dc.size());
+	for (int cx=0, en=0; cx < dc.size(); ++cx) {
+		for (int rx=cx; rx < dc.size(); ++rx) {
+			mm(rx,cx) = en;
+			en += 1;
+		}
+	}
+	mm = mm.selfadjointView<Eigen::Lower>();
+	mm = (pm * mm * pm.transpose()).eval();
+	//mxPrintMat("mm", mm);
+
+	Eigen::VectorXi tstart(origThresh.size() + 1);
+	tstart[0] = 0;
+	int totalThresholds = 0;
+	for (int tx=0; tx < int(origThresh.size()); ++tx) {
+		totalThresholds += origThresh[tx].numThresholds;
+		tstart[tx+1] = totalThresholds;
+	}
+
+	int wpermSize = triangleLoc1(dc.size()) + totalThresholds;
+	if (meansMat) wpermSize += dc.size();
+	Eigen::VectorXi wperm(wpermSize);
+
+	for (int cx=0, en=0; cx < dc.size(); ++cx) {
+		for (int rx=cx; rx < dc.size(); ++rx) {
+			wperm[en] = mm(rx,cx);
+			en += 1;
+		}
+	}
+
+	if (meansMat) {
+		wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
+	}
+
+	std::vector<int> newOrder;
+	newOrder.reserve(origThresh.size());
+	for (int xx=0; xx < int(origThresh.size()); ++xx) newOrder.push_back(xx);
+
+	std::sort(newOrder.begin(), newOrder.end(),
+		  [&](const int &a, const int &b) -> bool
+		  { return invDataColumns[origThresh[a].dColumn] < invDataColumns[origThresh[b].dColumn]; });
+
+	//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
+
+	int thStart = triangleLoc1(dc.size());
+	if (meansMat) thStart += dc.size();
+	for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
+		int oldIndex = newOrder[t1];
+		auto &th = oThresh[oldIndex];
+		for (int t2=0; t2 < th.numThresholds; ++t2) {
+			wperm[thStart + dest] = thStart + tstart[oldIndex] + t2;
+			dest += 1;
+		}
+	}
+
+	for (auto &th : oThresh) th.dColumn = invDataColumns[th.dColumn];
+	std::sort(oThresh.begin(), oThresh.end(),
+		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
+		  { return a.dColumn < b.dColumn; });
+
+	origThresh = oThresh;
+
+	//mxPrintMat("wperm", wperm);
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> wpm(wperm);
+	EigenMatrixAdaptor Eweights(acovMat);
+	Eweights.derived() = (wpm.transpose() * Eweights * wpm).eval();
+
+	if (fullWeight) {
+		EigenMatrixAdaptor Efw(fullWeight);
+		Efw.derived() = (wpm.transpose() * Efw * wpm).eval();
+	}
+	//mxPrintMat("ew", Eweights);
 }

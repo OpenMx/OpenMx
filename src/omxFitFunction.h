@@ -29,6 +29,7 @@
 #ifndef _OMXFITFUNCTION_H_
 #define _OMXFITFUNCTION_H_
 
+#include <functional>
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
 #include <R_ext/BLAS.h>
@@ -63,6 +64,7 @@ struct omxFitFunction {
 	virtual void init()=0;
 	virtual void compute(int ffcompute, FitContext *fc)=0;
 	virtual void invalidateCache() {};
+	virtual void traverse(std::function<void(omxMatrix*)> &fn);
 
 	// addOutput should only be used for returning global results
 	virtual void addOutput(MxRList *out) {};

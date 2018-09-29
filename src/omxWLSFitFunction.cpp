@@ -32,6 +32,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* B;
 	int n;
 	int fullWls;
+	int numOrdinal;
 	
 	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
 	virtual ~omxWLSFitFunction();
@@ -50,68 +51,8 @@ struct omxWLSFitFunction : omxFitFunction {
 void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector)
 {
-	// TODO: vectorize data flattening
-
-	Eigen::ArrayXd stddev;
-	EigenMatrixAdaptor egInCov(cov);
-	EigenMatrixAdaptor egOutCov(standardCov);
-
-	stddev = egInCov.diagonal().array().sqrt();
-	Eigen::ArrayXd stddevUse = Eigen::ArrayXd::Ones(egInCov.rows());
-
-	// standardize thresholds with corresponding transform to mean and covarinace
-	if (means) {
-		EigenMatrixAdaptor egInM(means);
-		EigenMatrixAdaptor egOutM(standardMeans);
-		egOutM = egInM;
-
-		if (thresholdMat) {
-			EigenMatrixAdaptor egInThr(thresholdMat);
-			EigenMatrixAdaptor egOutThr(standardThresholds);
-			for(int j = 0; j < int(thresholds.size()); j++) {
-				omxThresholdColumn* thresh = &thresholds[j];
-				if (thresh->numThresholds == 0) continue;
-				int dcol = thresh->dColumn;
-				for(int k = 0; k < thresh->numThresholds; k++) {
-					egOutThr(k, thresh->column) =
-						( egInThr(k, thresh->column) - egInM(0, dcol) ) / stddev[dcol];
-				}
-				egOutM(0, dcol) = 0.0;
-				stddevUse[dcol] = stddev[dcol];
-			}
-		}
-	}
-
-	// standardize covariance of ordinal indicators
-	for(int i = 0; i < egInCov.rows(); i++) {
-		for(int j = 0; j <= i; j++) {
-			egOutCov(i,j) = egInCov(i, j) / (stddevUse[i] * stddevUse[j]);
-			egOutCov(j,i) = egOutCov(i,j);
-		}
-	}
-	
-	int nextLoc = 0;
-	for(int j = 0; j < cov->rows; j++) {
-		for(int k = j; k < cov->rows; k++) {
-			omxSetVectorElement(vector, nextLoc, egOutCov(j, k));
-			nextLoc++;
-		}
-	}
-	if (means) {
-		EigenMatrixAdaptor egOutM(standardMeans);
-		for(int j = 0; j < cov->rows; j++) {
-			omxSetVectorElement(vector, nextLoc, egOutM(j));
-			nextLoc++;
-		}
-	}
-	for(int j = 0; j < int(thresholds.size()); j++) {
-		EigenMatrixAdaptor egOutThr(standardThresholds);
-		omxThresholdColumn* thresh = &thresholds[j];
-		for(int k = 0; k < thresh->numThresholds; k++) {
-			omxSetVectorElement(vector, nextLoc, egOutThr(k, thresh->column));
-			nextLoc++;
-		}
-	}
+	EigenVectorAdaptor vec1(vector);
+	normalToStdVector(cov, means, thresholdMat, numOrdinal, thresholds, vec1);
 }
 
 omxWLSFitFunction::~omxWLSFitFunction()
@@ -119,9 +60,6 @@ omxWLSFitFunction::~omxWLSFitFunction()
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
 	
 	omxWLSFitFunction* owo = this;
-	omxFreeMatrix(owo->observedCov);
-	omxFreeMatrix(owo->observedMeans);
-	omxFreeMatrix(owo->weights);
 	omxFreeMatrix(owo->observedFlattened);
 	omxFreeMatrix(owo->expectedFlattened);
 	omxFreeMatrix(owo->B);
@@ -262,8 +200,6 @@ void omxWLSFitFunction::init()
 	
 	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
 	
-	int vectorSize = 0;
-	
 	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
 	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
 	
@@ -289,100 +225,19 @@ void omxWLSFitFunction::init()
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 	
 	/* Read and set expected means, variances, and weights */
-	cov = omxCreateCopyOfMatrix(omxDataCovariance(dataMat), currentState);
-	means = omxCreateCopyOfMatrix(omxDataMeans(dataMat), currentState);
-	weights = omxCreateCopyOfMatrix(omxDataAcov(dataMat), currentState);
+	dataMat->permute(oo->expectation->getDataColumns());
 
-	std::vector< omxThresholdColumn > &origThresh = omxDataThresholds(oo->expectation->data);
-	std::vector< omxThresholdColumn > oThresh = origThresh;
-	
-	auto dc = oo->expectation->getDataColumns();
-	if (dc.size()) {
-		Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
-		for (int cx=0; cx < int(dc.size()); ++cx) {
-		 	invDataColumns[dc[cx]] = cx;
-		}
-		//mxPrintMat("invDataColumns", invDataColumns);
-		//Eigen::VectorXi invDataColumns = dc;
-		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(invDataColumns);
-		EigenMatrixAdaptor Ecov(cov);
-		Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
-		if (means) {
-			EigenVectorAdaptor Emean(means);
-			Emean.derived() = (pm * Emean).eval();
-		}
+	cov = omxDataCovariance(dataMat);
+	means = omxDataMeans(dataMat);
+	weights = omxDataAcov(dataMat);
 
-		Eigen::MatrixXi mm(dc.size(), dc.size());
-		for (int cx=0, en=0; cx < dc.size(); ++cx) {
-			for (int rx=cx; rx < dc.size(); ++rx) {
-				mm(rx,cx) = en;
-				en += 1;
-			}
-		}
-		mm = mm.selfadjointView<Eigen::Lower>();
-		mm = (pm * mm * pm.transpose()).eval();
-		//mxPrintMat("mm", mm);
-
-		Eigen::VectorXi tstart(origThresh.size() + 1);
-		tstart[0] = 0;
-		int totalThresholds = 0;
-		for (int tx=0; tx < int(origThresh.size()); ++tx) {
-			totalThresholds += origThresh[tx].numThresholds;
-			tstart[tx+1] = totalThresholds;
-		}
-
-		int wpermSize = triangleLoc1(dc.size()) + totalThresholds;
-		if (means) wpermSize += dc.size();
-		Eigen::VectorXi wperm(wpermSize);
-
-		for (int cx=0, en=0; cx < dc.size(); ++cx) {
-			for (int rx=cx; rx < dc.size(); ++rx) {
-				wperm[en] = mm(rx,cx);
-				en += 1;
-			}
-		}
-
-		if (means) {
-			wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
-		}
-
-		std::vector<int> newOrder;
-		newOrder.reserve(origThresh.size());
-		for (int xx=0; xx < int(origThresh.size()); ++xx) newOrder.push_back(xx);
-
-		std::sort(newOrder.begin(), newOrder.end(),
-			  [&](const int &a, const int &b) -> bool
-			  { return invDataColumns[origThresh[a].dColumn] < invDataColumns[origThresh[b].dColumn]; });
-
-		//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
-
-		int thStart = triangleLoc1(dc.size());
-		if (means) thStart += dc.size();
-		for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
-			int oldIndex = newOrder[t1];
-			auto &th = oThresh[oldIndex];
-			for (int t2=0; t2 < th.numThresholds; ++t2) {
-				wperm[thStart + dest] = thStart + tstart[oldIndex] + t2;
-				dest += 1;
-			}
-		}
-
-		for (auto &th : oThresh) th.dColumn = invDataColumns[th.dColumn];
-		std::sort(oThresh.begin(), oThresh.end(),
-			  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
-			  { return a.dColumn < b.dColumn; });
-
-		//mxPrintMat("wperm", wperm);
-		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> wpm(wperm);
-		EigenMatrixAdaptor Eweights(weights);
-		Eweights.derived() = (wpm.transpose() * Eweights * wpm).eval();
-		//mxPrintMat("ew", Eweights);
-	}
+	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
 
 	newObj->observedCov = cov;
 	newObj->observedMeans = means;
 	newObj->n = omxDataNumObs(dataMat);
 	
+	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
 	if (eThresh.size() && !means) {
@@ -411,6 +266,12 @@ void omxWLSFitFunction::init()
 			return;
 		}
 	}
+
+	for(int i = 0, ei=0; i < int(oThresh.size()); i++) {
+		while (ei < int(eThresh.size()) && eThresh[ei].dColumn != oThresh[i].dColumn) ++ei;
+		eThresh[ei].numThresholds = oThresh[i].numThresholds;
+	}
+
 	if (OMX_DEBUG) {
 		mxLog("expected thresholds:");
 		for (auto &th : eThresh) { th.log(); }
@@ -420,15 +281,7 @@ void omxWLSFitFunction::init()
 	
 	/* Error check weight matrix size */
 	int ncol = newObj->observedCov->cols;
-	vectorSize = (ncol * (ncol + 1) ) / 2;
-	if(newObj->expectedMeans != NULL) {
-		vectorSize = vectorSize + ncol;
-	}
-	for(int i = 0, ei=0; i < int(oThresh.size()); i++) {
-		while (ei < int(eThresh.size()) && eThresh[ei].dColumn != oThresh[i].dColumn) ++ei;
-		eThresh[ei].numThresholds = oThresh[i].numThresholds;  // assume
-		vectorSize = vectorSize + oThresh[i].numThresholds;
-	}
+	int vectorSize = expectation->numSummaryStats();
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
 	if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {

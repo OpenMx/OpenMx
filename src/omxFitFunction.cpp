@@ -320,3 +320,7 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	return newMatrix;
 }
 
+void omxFitFunction::traverse(std::function<void(omxMatrix*)> &fn)
+{
+	fn(matrix);
+}

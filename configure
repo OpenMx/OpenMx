@@ -87,10 +87,6 @@ if [ "$cxx_type" = gcc ]; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
 	fi
     fi
-    if [ "${OPENMP-yes}" = yes ]; then
-	OPENMP_CXXFLAGS="-fopenmp"
-	OPENMP_LDFLAGS="-fopenmp"
-    fi
 fi
 
 if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
@@ -171,12 +167,15 @@ fi
 # " >> src/Makevars
 # fi
 
+if [ "${OPENMP-yes}" = yes ]; then
+    OPENMP_CXXFLAGS='$(SHLIB_OPENMP_CXXFLAGS)'
+fi
+
 echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars
 echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars
 echo "COMPILER_LDFLAGS=$COMPILER_LDFLAGS" >> src/Makevars
 echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars
-echo "OPENMP_LDFLAGS=$OPENMP_LDFLAGS" >> src/Makevars
 echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars
 echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars
 

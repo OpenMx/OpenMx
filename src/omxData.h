@@ -97,6 +97,7 @@ class omxData {
 	double *currentWeightColumn;
 	int freqCol;
 	int *currentFreqColumn;
+	bool permuted;
 
  public: // move everything to private TODO
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -108,12 +109,15 @@ class omxData {
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
 	void assertColumnIsData(int col);
+	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
+	void permute(const Eigen::Ref<const DataColumnType> &dc);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
+	omxMatrix *fullWeight;					// Full weight matrix for WLS SEs
 	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
 	std::vector< omxThresholdColumn > thresholdCols;
 	double numObs;						// Number of observations (sum of rowWeight)

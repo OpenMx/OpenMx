@@ -30,6 +30,8 @@
 #include "omxBuffer.h"
 #include "omxState.h"
 #include <Eigen/Cholesky>
+#include <Eigen/QR>
+#include <Eigen/SVD>
 #include <Eigen/CholmodSupport>
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
@@ -1676,7 +1678,47 @@ const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) c
 
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
+	omxMatrix *fitMat;
+	std::vector<omxExpectation *> exList;
+	std::vector<int> numStats;
+	bool wlsStats;
+	double x2;
+	int df;
+	double x2m, x2mv;
+	double madj, mvadj, dstar;
+
+	struct visitEx {
+		ComputeStandardError &top;
+		visitEx(ComputeStandardError *cse) : top(*cse) {};
+		void operator()(omxMatrix *mat) const
+		{
+			if (!mat->fitFunction) {
+				omxRaiseErrorf("%s: Cannot compute SEs when '%s' included in fit",
+					 top.name, mat->name());
+				return;
+			}
+			omxExpectation *e1 = mat->fitFunction->expectation;
+			if (!e1) return;
+			if (!e1->data) {
+				omxRaiseErrorf("%s: expectation '%s' does not have data",
+					 top.name, e1->name);
+				return;
+			}
+			omxData *d1 = e1->data;
+			if (!d1->fullWeight) {
+				omxRaiseErrorf("%s: terribly sorry, master, but '%s' does not "
+					       "include the full weight matrix hence "
+					       "standard errors cannot be computed",
+					       top.name, d1->name);
+				return;
+			}
+			top.exList.push_back(e1);
+		}
+	};
+
  public:
+        virtual void initFromFrontend(omxState *, SEXP rObj);
+        virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
@@ -1880,9 +1922,6 @@ static class omxCompute *newComputeOnce()
 static class omxCompute *newComputeEM()
 { return new ComputeEM(); }
 
-static class omxCompute *newComputeStandardError()
-{ return new ComputeStandardError(); }
-
 static class omxCompute *newComputeHessianQuality()
 { return new ComputeHessianQuality(); }
 
@@ -1918,7 +1957,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeOnce", &newComputeOnce },
         {"MxComputeNewtonRaphson", &newComputeNewtonRaphson},
         {"MxComputeEM", &newComputeEM },
-	{"MxComputeStandardError", &newComputeStandardError},
+	{"MxComputeStandardError",
+	 []()->omxCompute* { return new ComputeStandardError; }},
 	{"MxComputeHessianQuality", &newComputeHessianQuality},
 	{"MxComputeReportDeriv", &newComputeReportDeriv},
 	{"MxComputeConfidenceInterval", &newComputeConfidenceInterval},
@@ -3158,7 +3198,144 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 	slots->add("output", output.asR());
 }
 
-void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
+{
+	super::initFromFrontend(state, rObj);
+
+	wlsStats = false;
+	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
+}
+
+template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
+{
+	for (int cx=0; cx < acov.cols(); ++cx) {
+		for (int rx=cx; rx < acov.rows(); ++rx) {
+			if (acov(rx,cx) == 0.0) continue;
+			if (cx == rx && acov(rx,cx) == 1.0) continue;
+			return false;
+		}
+	}
+	return true;
+}
+
+void ComputeStandardError::computeImpl(FitContext *fc)
+{
+	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
+	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
+	if (!fitMat) return;
+
+	std::function<void(omxMatrix*)> ve = visitEx(this);
+	fitMat->fitFunction->traverse(ve);
+
+	int numObs = 0;
+	int numOrdinal = 0;
+	int totalStats = 0;
+	numStats.reserve(exList.size());
+	for (auto &e1 : exList) {
+		numOrdinal += e1->numOrdinal;
+		numObs += e1->data->numObs;
+		int sz = e1->data->acovMat->rows;
+		numStats.push_back(sz);
+		totalStats += sz;
+	}
+
+	Eigen::VectorXd obStats(totalStats);
+	Eigen::VectorXd exStats(totalStats);
+	Eigen::MatrixXd Vmat(totalStats,totalStats);
+	Eigen::MatrixXd Wmat(totalStats,totalStats);
+	Vmat.setZero();
+	Wmat.setZero();
+	for (int ex=0, offset=0; ex < int(exList.size()); offset += numStats[ex++]) {
+		omxData *d1 = exList[ex]->data;
+		int sz = numStats[ex];
+
+		Eigen::VectorXd vec1(sz);
+		exList[ex]->asVector(fc, 0, vec1);
+		exStats.segment(offset, sz) = vec1;
+		normalToStdVector(omxDataCovariance(d1), omxDataMeans(d1),
+				  d1->obsThresholdsMat, exList[ex]->numOrdinal, omxDataThresholds(d1), vec1);
+		obStats.segment(offset, sz) = vec1;
+
+		EigenMatrixAdaptor acov(d1->acovMat);
+		Vmat.block(offset,offset,sz,sz) = acov;
+
+		EigenMatrixAdaptor fw(d1->fullWeight);
+		int nonZeroDims = (fw.diagonal().array() != 0.0).count();
+		if (nonZeroDims == 0) {
+			omxRaiseErrorf("%s: fullWeight matrix is missing", exList[ex]->name);
+			continue;
+		}
+		Eigen::MatrixXd ifw(fw.rows(), fw.cols());
+		ifw.setZero();
+		Eigen::MatrixXd dense;
+		subsetCovariance(fw, [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
+				 nonZeroDims, dense);
+		if (InvertSymmetricIndef(dense, 'L') > 0) {
+			omxRaiseErrorf("%s: fullWeight matrix is not invertable", exList[ex]->name);
+			continue;
+		}
+		Eigen::MatrixXd idense = dense.selfadjointView<Eigen::Lower>();
+		subsetCovarianceStore(ifw,
+				      [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
+				      idense);
+		Wmat.block(offset,offset,sz,sz) = ifw;
+	}
+
+	int numFree = fc->calcNumFree();
+	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
+	ParJacobianSense sense;
+	sense.attach(&exList, 0);
+	sense.measureRef(fc);
+	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, sense.result);
+
+	Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr1(sense.result);
+	Eigen::MatrixXd q1 = qr1.householderQ();
+	Eigen::MatrixXd jacOC = q1.block(0, qr1.rank(), q1.rows(), q1.cols() - qr1.rank());
+	if (jacOC.cols()) {
+		Eigen::MatrixXd zqb = jacOC.transpose() * Wmat * jacOC;
+		Eigen::BDCSVD<Eigen::MatrixXd> svd(zqb, Eigen::ComputeFullV | Eigen::ComputeFullU);
+		Eigen::VectorXd sv = svd.singularValues();
+		for (int v1=0; v1 < sv.size(); ++v1) {
+			if (sv[v1] > 1e-6) sv[v1] = 1.0/sv[v1];
+			else sv[v1] = 0;
+		}
+
+		Eigen::VectorXd diff = obStats - exStats;
+		x2 = diff.transpose() * jacOC * svd.matrixV() * sv.asDiagonal() *
+			svd.matrixU().transpose() * jacOC.transpose() * diff;
+		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
+		df = qr2.rank() - numOrdinal * 2;
+	} else {
+		x2 = 0;
+		df = 0;
+	}
+
+	Eigen::MatrixXd dvd = sense.result.transpose() * Vmat * sense.result;
+	if (InvertSymmetricIndef(dvd, 'L') > 0) return;
+
+	const double scale = fabs(Global->llScale);
+	double *ihess = fc->getDenseIHessUninitialized();
+	Eigen::Map< Eigen::MatrixXd > Eh(ihess, numFree, numFree);
+	Eh = (1.0/scale) * dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
+		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
+	fc->wanted |= FF_COMPUTE_IHESSIAN;
+
+	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
+		sense.result.transpose() * Vmat;
+	Eigen::MatrixXd UW = Umat * Wmat;
+	Eigen::MatrixXd UW2 = UW * UW; // unclear if this should be UW^2 i.e. elementwise power
+	double trUW = UW.diagonal().array().sum();
+	madj = trUW / df;
+	x2m = fc->fit / madj;
+	dstar = round((trUW * trUW) / UW2.diagonal().array().sum());
+	mvadj = (trUW*trUW) / dstar;
+	x2mv = fc->fit / mvadj;
+	// N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
+	if (isULS(Vmat)) x2mv /= numObs;
+	wlsStats = true;
+}
+
+void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
@@ -3177,6 +3354,16 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 		double got = ihessDiag[i];
 		if (got <= 0) continue;
 		fc->stderrs[i] = sqrt(scale * got);
+	}
+
+	if (wlsStats) {
+		out->add("chi", Rf_ScalarReal(x2));
+		out->add("chiDoF", Rf_ScalarInteger(df));
+		out->add("chiM", Rf_ScalarReal(x2m));
+		out->add("chiMV", Rf_ScalarReal(x2mv));
+		out->add("chiMadjust", Rf_ScalarReal(madj));
+		out->add("chiMVadjust", Rf_ScalarReal(mvadj));
+		out->add("chiDoFstar", Rf_ScalarReal(dstar));
 	}
 }
 

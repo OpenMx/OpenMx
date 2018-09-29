@@ -124,7 +124,7 @@ void omxExpectation::loadThresholds()
 			if (data->rawCols.size()) {
 				col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
 			} else {
-				// WLS
+				// See omxData::permute
 			}
 
 			thresholds.push_back(col);
@@ -327,21 +327,15 @@ int omxExpectation::numSummaryStats()
 	return count;
 }
 
-void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::VectorXd> out)
+void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *thr,
+		       int numOrdinal, std::vector< omxThresholdColumn > &ti,
+		       Eigen::Ref<Eigen::VectorXd> out)
 {
-	loadDefVars(row);
-	omxExpectationCompute(fc, this, 0);
-
-	omxMatrix *cov = getComponent("cov");
-	if (!cov) {
-		Rf_error("%s::asVector is not implemented (for object '%s')", expType, name);
-	}
 	EigenMatrixAdaptor Ecov(cov);
-	omxMatrix *mean = getComponent("means");
 	if (numOrdinal == 0) {
 		int dx = 0;
-		for (int rx=0; rx < cov->cols; ++rx) {
-			for (int cx=0; cx <= rx; ++cx) {
+		for (int cx=0; cx < cov->cols; ++cx) {
+			for (int rx=cx; rx < cov->rows; ++rx) {
 				out[dx++] = Ecov(rx,cx);
 			}
 		}
@@ -353,15 +347,15 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 		}
 		return;
 	}
-	if (!mean) Rf_error("%s: ordinal indicators and no mean vector", name);
+	if (!mean) Rf_error("ordinal indicators and no mean vector");
 
 	EigenVectorAdaptor Emean(mean);
-	EigenMatrixAdaptor Eth(thresholdsMat);
+	Eigen::VectorXd stdMean = Emean;
+	EigenMatrixAdaptor Eth(thr);
 	Eigen::VectorXd sdTmp(1.0/Ecov.diagonal().array().sqrt());
 	Eigen::DiagonalMatrix<double, Eigen::Dynamic> sd(Emean.size());
 	sd.setIdentity();
 	
-	auto &ti = getThresholdInfo();
 	{
 		int tx = triangleLoc1(cov->rows) + cov->rows;
 		for (auto &th : ti) {
@@ -370,6 +364,7 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 				out[tx + t1] = (Eth(t1, th.column) - Emean[th.dColumn]) * sd1;
 				sd.diagonal()[th.dColumn] = sd1;
 			}
+			if (th.numThresholds) stdMean(th.dColumn) = 0.0;
 			tx += th.numThresholds;
 		}
 	}
@@ -377,16 +372,24 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 	Eigen::MatrixXd stdCov(sd * Ecov * sd);
 
 	int dx = 0;
-	for (int rx=0; rx < cov->rows; ++rx) {
-		for (int cx=rx; cx < cov->cols; ++cx) {
+	for (int cx=0; cx < cov->cols; ++cx) {
+		for (int rx=cx; rx < cov->rows; ++rx) {
 			out[dx++] = stdCov(rx,cx);
 		}
 	}
-	for (int rx=0; rx < cov->cols; ++rx) {
-		if (ti[rx].numThresholds) {
-			out[dx++] = 0;
-		} else {
-			out[dx++] = Emean(rx);
-		}
+	out.segment(dx, cov->cols) = stdMean;
+}
+
+void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::VectorXd> out)
+{
+	loadDefVars(row);
+	omxExpectationCompute(fc, this, 0);
+
+	omxMatrix *cov = getComponent("cov");
+	if (!cov) {
+		Rf_error("%s::asVector is not implemented (for object '%s')", expType, name);
 	}
+
+	normalToStdVector(cov, getComponent("means"), thresholdsMat,
+			  numOrdinal, getThresholdInfo(), out);
 }
