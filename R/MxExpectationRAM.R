@@ -34,7 +34,8 @@ setClass(Class = "MxExpectationRAM",
 	    .useSufficientSets = "logical",
 	    .forceSingleGroup = "logical",
 	    .identifyZeroVarPred = "logical",
-	    .maxDebugGroups = "integer"
+	    .maxDebugGroups = "integer",
+	    .optimizeMean = "integer"
 	),
 	contains = "BaseExpectationNormal")
 
@@ -60,6 +61,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.identifyZeroVarPred <- TRUE
 		.Object@.useSufficientSets <- TRUE
 		.Object@.maxDebugGroups <- 0L
+		.Object@.optimizeMean <- 1L
 		return(.Object)
 	}
 )

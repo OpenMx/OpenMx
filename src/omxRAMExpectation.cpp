@@ -264,6 +264,12 @@ void omxRAMExpectation::init() {
 		RAMexp->useSufficientSets = Rf_asLogical(Rss);
 	}
 
+	RAMexp->optimizeMean = 0;
+	if (R_has_slot(rObj, Rf_install(".optimizeMean"))) {
+		ProtectedSEXP Rom(R_do_slot(rObj, Rf_install(".optimizeMean")));
+		RAMexp->optimizeMean = Rf_asInteger(Rom);
+	}
+
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
 	if (Rf_length(Rbetween)) {
 		if (!oo->data) Rf_error("%s: data is required for joins", oo->name);
@@ -417,6 +423,11 @@ namespace RelationalRAMExpectation {
 		return *st.getParent().group[arrayIndex];
 	}
 
+	int state::getOptimizeMean()
+	{
+		return ((omxRAMExpectation*)homeEx)->optimizeMean;
+	}
+
 	// Similar to connectedness of an undirected graph
 	void state::computeConnected(std::vector<int> &region, SubgraphType &connected)
 	{
@@ -544,9 +555,12 @@ namespace RelationalRAMExpectation {
 		as1.fk1 = NA_INTEGER;
 		as1.numJoins = 0;
 		as1.numKids = 0;
-		as1.heterogenousMean = false;
+		a1.heterogenousMean = false;
+		as1.rset = NA_INTEGER;
 		a1.rampartScale = 1.0;
+		as1.skipMean = NA_INTEGER;
 		a1.row = frow;
+		a1.nextMean = 1;
 		a1.setModel(expectation);
 		//as1.key = frow;
 
@@ -955,7 +969,7 @@ namespace RelationalRAMExpectation {
 		     px != toPlace.end(); ++px) {
 			const std::vector<int> &clump = *px;
 			for (size_t cx=0; cx < clump.size(); ++cx) {
-				heterogenousMean |= layoutSetup[ clump[cx] ].heterogenousMean;
+				heterogenousMean |= layout[ clump[cx] ].heterogenousMean;
 				ig->place(clump[cx]);
 			}
 		}
@@ -1107,6 +1121,7 @@ namespace RelationalRAMExpectation {
 		varNameVec = 0;
 		expectedVec.resize(ig->expectedVec.size());
 		fullMean.resize(ig->fullMean.size());
+		fullMean.setZero();
 		clumpVars = ig->clumpVars;
 		clumpObs = ig->clumpObs;
 		asymT.resize(clumpVars, clumpObs);
@@ -1332,10 +1347,8 @@ namespace RelationalRAMExpectation {
 	};
 
 	template <typename T>
-	void state::oertzenRotate(std::vector<T> &t1)
+	void state::oertzenRotate(std::vector<T> &t1, bool canOptimize)
 	{
-		rotationPlan.push_back(t1);
-
 		addrSetup &specimen = layoutSetup[ t1[0] ];
 		CompatibleMeanCompare cmp(this);
 
@@ -1344,11 +1357,21 @@ namespace RelationalRAMExpectation {
 			cmp.compareDeep(layout[ t1[0] ], layout[ t1[cx] ], mismatch);
 			if (mismatch) break;
 		}
+		bool keep = true;
 		if (mismatch) {
 			for (int cx=0; cx < int(t1.size()); ++cx) {
-				layoutSetup[ t1[cx] ].heterogenousMean = true;
+				layout[ t1[cx] ].heterogenousMean = true;
 			}
+		} else if (canOptimize) {
+			layoutSetup[ t1[0] ].skipMean = 0;
+			for (int vx=1; vx < int(t1.size()); ++vx) {
+				layoutSetup[ t1[vx] ].skipMean = 1;
+			}
+			keep = false;
 		}
+
+		modelRotationPlanFilter.push_back(keep);
+		rotationPlan.push_back(t1);
 
 		for (size_t cx=0; cx < specimen.clump.size(); ++cx) {
 			std::vector<int> t2;
@@ -1357,7 +1380,7 @@ namespace RelationalRAMExpectation {
 				addrSetup &a1 = layoutSetup[ t1[tx] ];
 				t2.push_back(a1.clump[cx]);
 			}
-			oertzenRotate(t2);
+			oertzenRotate(t2, false);
 		}
 	}
 
@@ -1382,7 +1405,7 @@ namespace RelationalRAMExpectation {
 
 			if (t1.size() >= 2) {
 				//std::string buf = "rotate units";
-				oertzenRotate(t1);
+				oertzenRotate(t1, level == 0 && getOptimizeMean() >= 1);
 				addr &specimen = layout[ t1[0] ];
 				specimen.rampartScale = sqrt(double(t1.size()));
 				int parent1 = layoutSetup[ t1[0] ].parent1;
@@ -1509,6 +1532,17 @@ namespace RelationalRAMExpectation {
 		if (debug && buf.size()) mxLogBig(buf);
 	}
 
+	void state::optimizeModelRotation()
+	{
+		std::vector< std::vector<int> > origRotationPlan = rotationPlan;
+		rotationPlan.clear();
+
+		for (int px=0; px < int(origRotationPlan.size()); ++px) {
+			if (modelRotationPlanFilter[px])
+				rotationPlan.push_back(origRotationPlan[px]);
+		}
+	}
+
 	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
 		parent = this;
@@ -1564,9 +1598,9 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		Eigen::VectorXd vec(fc->varGroup->vars.size());
-		vec.setConstant(1);
-		copyParamToModelInternal(fc->varGroup, homeEx->currentState, vec.data());
+		Eigen::VectorXd one(fc->varGroup->vars.size());
+		one.setConstant(1);
+		copyParamToModelInternal(fc->varGroup, homeEx->currentState, one.data());
 
 		for (std::set<omxExpectation*>::iterator it = allEx.begin() ; it != allEx.end(); ++it) {
 			omxRAMExpectation *ram2 = (omxRAMExpectation*) (*it);
@@ -1589,6 +1623,34 @@ namespace RelationalRAMExpectation {
 
 		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
 			(*it)->finalizeData();
+		}
+
+		if (getOptimizeMean() >= 1) optimizeModelRotation();
+
+		for (int r1=0; r1 < int(rotationPlan.size()); ++r1) {
+			auto &vec = rotationPlan[r1];
+			for (int r2=0; r2 < int(vec.size()); ++r2) {
+				int rset = layoutSetup[vec[r2]].rset;
+				if (rset == NA_INTEGER) {
+					layoutSetup[vec[r2]].rset = r1;
+				} else {
+					// Can be subject to multiple rotations
+					layoutSetup[vec[r2]].rset += 1000 + r1;
+				}
+			}
+		}
+
+		rotationCount = 0;
+		for (auto &vec : rotationPlan) {
+			rotationCount += vec.size();
+		}
+
+		// skipMean for layout[0] is always false
+		for (int ax=0; ax < int(layout.size()); ax += layout[ax].nextMean) {
+			int incr = 1;
+			while (ax+incr < int(layout.size()) &&
+			       layoutSetup[ax+incr].skipMean == 1) incr += 1;
+			layout[ax].nextMean = incr;
 		}
 	}
 
@@ -1755,6 +1817,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::filterFullMean()
 	{
+		// With optimizeMean, copies lots of extra data TODO
 		independentGroup &pig = getParent();
 		if (0 == pig.dataVec.size()) return;
 		int ox = 0;
@@ -1770,9 +1833,10 @@ namespace RelationalRAMExpectation {
 		// so this loop can be parallelized
 
 		state &pst = getParent();
+		const int layoutSize = pst.layout.size();
 
 		// can detect whether all units within an independent group are self contained
-		for (size_t ax=0; ax < pst.layout.size(); ++ax) {
+		for (int ax=0; ax < layoutSize; ax += pst.layout[ax].nextMean) {
 			addr &a1 = pst.layout[ax];
 			omxExpectation *expectation = a1.getModel(fc);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
@@ -1798,7 +1862,7 @@ namespace RelationalRAMExpectation {
 				if (key == NA_INTEGER) continue;
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
-				size_t a2Offset = pst.rowToLayoutMap[std::make_pair(data1, frow)];
+				int a2Offset = pst.rowToLayoutMap[std::make_pair(data1, frow)];
 				if (ax < a2Offset) Rf_error("Not in topological order");
 				addr &a2 = pst.layout[a2Offset];
 				independentGroup &tig2 = *group[a2.ig->arrayIndex];
@@ -1829,8 +1893,25 @@ namespace RelationalRAMExpectation {
 			for (size_t ax=0; ax < pst.layout.size(); ++ax) {
 				addr &a1 = pst.layout[ax];
 				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
+				independentGroup &tig1 = *group[a1.ig->arrayIndex];
 				expectedVec.segment(ox, a1.numObs()) =
-					a1.ig->expectedVec.segment(a1Start, a1.numObs());
+					tig1.expectedVec.segment(a1Start, a1.numObs());
+			}
+		}
+
+		if (pst.getOptimizeMean() >= 1) {
+			// Probably only works at the lowest level because
+			// lower means are conditioned on upper means?
+			int homeExpNum = pst.homeEx->expNum;
+			for (int ax=0; ax < layoutSize; ax += pst.layout[ax].nextMean) {
+				addr &a1 = pst.layout[ax];
+				if (a1.getExpNum() != homeExpNum) continue;
+				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
+				if (!pst.layout[ax].heterogenousMean) {
+					independentGroup &tig1 = *group[a1.ig->arrayIndex];
+					tig1.expectedVec.segment(a1Start, a1.numObs())
+						*= a1.rampartScale;
+				}
 			}
 		}
 
@@ -1935,9 +2016,11 @@ namespace RelationalRAMExpectation {
 	void state::exportInternalState(MxRList &dbg)
 	{
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
+		dbg.add("rotationCount", Rcpp::wrap(rotationCount));
 		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
 
-		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, hmean, ugroup;
+		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale,
+			hmean, skipMean, rset, ugroup;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(row = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(numKids = Rf_allocVector(INTSXP, layout.size()));
@@ -1946,6 +2029,8 @@ namespace RelationalRAMExpectation {
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
 		Rf_protect(hmean = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(skipMean = Rf_allocVector(INTSXP, layout.size()));
+		Rf_protect(rset = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(ugroup = Rf_allocVector(INTSXP, layout.size()));
 		for (size_t mx=0; mx < layout.size(); ++mx) {
 			SET_STRING_ELT(modelName, mx, Rf_mkChar(layout[mx].modelName().c_str()));
@@ -1955,7 +2040,9 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
-			INTEGER(hmean)[mx] = layoutSetup[mx].heterogenousMean;
+			INTEGER(hmean)[mx] = layout[mx].heterogenousMean;
+			INTEGER(skipMean)[mx] = layoutSetup[mx].skipMean;
+			INTEGER(rset)[mx] = layoutSetup[mx].rset;
 			INTEGER(ugroup)[mx] = layout[mx].ig? 1+layout[mx].ig->arrayIndex : NA_INTEGER;
 		}
 		dbg.add("layout", Rcpp::DataFrame::create(Rcpp::Named("model")=modelName,
@@ -1966,9 +2053,11 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("rampartScale")=rscale,
 							  Rcpp::Named("hmean")=hmean,
+							  Rcpp::Named("skip")=skipMean,
+							  Rcpp::Named("rset")=rset,
 							  Rcpp::Named("group")=ugroup));
 
-		int digits = ceilf(log10f(group.size()));
+		int digits = ceilf(log10f(1.0+group.size()));
 		std::string fmt = string_snprintf("g%%0%dd", digits);
 		size_t maxIndex = std::min(group.size(),
 					size_t(((omxRAMExpectation*)homeEx)->maxDebugGroups));

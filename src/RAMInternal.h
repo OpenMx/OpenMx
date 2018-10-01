@@ -358,7 +358,8 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
-		bool heterogenousMean;
+		int rset;
+		int skipMean;
 	};
 
 	class addr {
@@ -368,11 +369,13 @@ namespace RelationalRAMExpectation {
 		int row;                 // to load definition variables (never the key)
 		struct independentGroup *ig;
 		int igIndex;
+		int nextMean;
 
 		int numVars() const;
 		int numObsCache;
 		int numObs() const { return numObsCache; }
 		double rampartScale;
+		bool heterogenousMean;
 
 		std::string modelName() {
 			std::string tmp = model->data->name;
@@ -412,8 +415,9 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct sufficientSet {
-		int                              start;   // index into placements
-		int                              length;  // # of clumpSize units
+		// both start & length are in multiples of clumpSize
+		int                              start;
+		int                              length;
 		Eigen::MatrixXd                  dataCov;
 		Eigen::VectorXd                  dataMean;
 	};
@@ -492,6 +496,8 @@ namespace RelationalRAMExpectation {
 		state *parent;
 		std::vector<int>                 rampartUsage;
 		std::vector< std::vector<int> >  rotationPlan;
+		std::vector< bool >              modelRotationPlanFilter;
+		int rotationCount;
 
 	public:
 		typedef std::vector< std::set<int> > SubgraphType;
@@ -519,7 +525,7 @@ namespace RelationalRAMExpectation {
 		void planModelEval(int maxSize, FitContext *fc);
 		void identifyZeroVarPred(FitContext *fc);
 		int rampartRotate(int level);
-		template <typename T> void oertzenRotate(std::vector<T> &t1);
+		template <typename T> void oertzenRotate(std::vector<T> &t1, bool canOptimize);
 		template <typename T> void unapplyRotationPlan(T accessor);
 		template <typename T> void applyRotationPlan(T accessor);
 		template <typename T> void appendClump(int ax, std::vector<T> &clump);
@@ -537,6 +543,8 @@ namespace RelationalRAMExpectation {
 		void exportInternalState(MxRList &dbg);
 		state &getParent() { return *parent; };
 		void simulate(FitContext *fc, MxRList &out);
+		int getOptimizeMean();
+		void optimizeModelRotation();
 	};
 };
 
@@ -570,6 +578,7 @@ class omxRAMExpectation : public omxExpectation {
 	int rampartUnitLimit;
 	int maxDebugGroups;
 	bool useSufficientSets;
+	int optimizeMean;
 	bool rampartEnabled() { return rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0; };
 	double logDetObserved;
 	double n;

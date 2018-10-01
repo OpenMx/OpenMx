@@ -426,6 +426,8 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 	# TODO add outside data reference to relational data
 	if (.backend) {
 		plan <- mxComputeGenerateData()
+		model$expectation$.maxDebugGroups <- 0L
+		model$expectation$.optimizeMean <- 0L
 		modelE <- mxModel(model, plan)
 		modelE <- mxRun(modelE, silent=TRUE)
 		simData <- modelE$compute$output

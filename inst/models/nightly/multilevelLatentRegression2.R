@@ -102,6 +102,7 @@ buildModel <- function(numDistricts, numSchools, numTeachers, numStudents, v, na
 		       joinKey="teacherID", values=runif(1)))
 
 	sMod$fitfunction <- mxFitFunctionML()
+	sMod$expectation$.maxDebugGroups <- 14L
 
 	sMod
 }
@@ -146,6 +147,28 @@ checkSinglePoint <- function(origModel, cycleStart, perUnit=FALSE) {
 set.seed(1)
 
 sMod <- buildModel(5,4,3,5, rep(TRUE,3), .2)
+
+if (0) {
+	plan <- mxComputeSequence(list(
+		mxComputeOnce('fitfunction', 'fit'),
+		mxComputeReportExpectation()))
+
+	mod <- mxModel(sMod, plan)
+	mod$expectation$.optimizeMean <- 1L
+	# mod$expectation$.rampartCycleLimit <- 2L
+	# mod$expectation$.rampartUnitLimit <- 27L
+	fit1 <- mxRun(mod, silent=TRUE)
+	ed = fit1$expectation$debug
+	ed$layout
+	ed$g2$mean[1:20]
+	good <- lapply(paste0('g',1:ed$numGroups), function(x) ed[[x]]$mean)
+	bad <- lapply(paste0('g',1:ed$numGroups), function(x) ed[[x]]$mean)
+	mapply(function(g,b) max(abs(g-b)), good, bad)
+	which(abs(good[[5]] - bad[[5]]) >1e-8)
+	ed$rotationCount
+}
+
+#stop("here")
 
 checkSinglePoint(sMod, 0)
 

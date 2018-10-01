@@ -44,6 +44,7 @@ if (1) {
 	g2 <- ed$g2
 	omxCheckEquals(g2$numSufficientSets, 1L)
 	omxCheckCloseEnough(as.matrix(g2$covariance), diag(c(1.42, 1.55)), 1e-2)
+#	omxCheckCloseEnough(g2$mean, c(-1.085, 0.318, rep(0, 48)), 1e-2)
 	omxCheckCloseEnough(g2$mean, rep(c(-1.085, 0.318), 25), 1e-2)
 
 	omxCheckCloseEnough(dist$output$fit, 484.2459, 1e-2)
@@ -86,8 +87,11 @@ if (0) {
 	dist$expectation$debug$S[1:10,1:10]
 }
 
-sMod <- mxRun(sMod)
+#print(coef(sMod))
+#sMod <- omxSetParameters(sMod, labels = c('psi1','theta3'), values = c(.5, .8))
+sMod <- mxTryHard(sMod)
 
+summary(sMod)
 omxCheckCloseEnough(sMod$output$fit, 445.4331, .01)
 omxCheckCloseEnough(sMod$expectation$debug$numGroups, 2)
 omxCheckCloseEnough(sMod$expectation$debug$rampartUsage, 50)
