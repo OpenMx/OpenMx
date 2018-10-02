@@ -18,6 +18,7 @@ for (numLower in 2:10) {
 			mxComputeOnce('fitfunction', 'fit'),
 			mxComputeReportExpectation())))
 
+	lMod$expectation$.maxDebugGroups <- 10L
 	lMod <- mxRun(lMod, silent=TRUE)
 
 	target <- cbind(matrix(1, numLower, 1), contr.helmert(numLower)[numLower:1,(numLower-1):1])

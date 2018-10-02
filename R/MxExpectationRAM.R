@@ -59,7 +59,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.forceSingleGroup <- FALSE
 		.Object@.identifyZeroVarPred <- TRUE
 		.Object@.useSufficientSets <- TRUE
-		.Object@.maxDebugGroups <- 64L
+		.Object@.maxDebugGroups <- 0L
 		return(.Object)
 	}
 )

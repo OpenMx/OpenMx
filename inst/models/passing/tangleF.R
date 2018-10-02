@@ -48,6 +48,7 @@ mkModel <- function(shuffle, fellner) {
   }
   
   ta1$S$free[latentVars, latentVars] <- TRUE
+  ta1$expectation$.maxDebugGroups <- 10L
   ta1
 }
 

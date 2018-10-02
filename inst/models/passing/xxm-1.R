@@ -26,6 +26,7 @@ sMod <- mxModel("student", type="RAM", tMod,
                        free=FALSE, values=.98, joinKey = "teacher"))
 
 if (1) {
+	sMod$expectation$.maxDebugGroups <- 2L
 	dist <- mxRun(mxModel(sMod,
 			      mxComputeSequence(list(
 				  mxComputeOnce('fitfunction', 'fit'),

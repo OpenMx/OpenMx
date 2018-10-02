@@ -252,7 +252,7 @@ void omxRAMExpectation::init() {
 	ProtectedSEXP RrampartLimit(R_do_slot(rObj, Rf_install(".rampartUnitLimit")));
 	RAMexp->rampartUnitLimit = Rf_asInteger(RrampartLimit);
 
-	RAMexp->maxDebugGroups = 64;
+	RAMexp->maxDebugGroups = 0;
 	if (R_has_slot(rObj, Rf_install(".maxDebugGroups"))) {
 		ProtectedSEXP Rmdg(R_do_slot(rObj, Rf_install(".maxDebugGroups")));
 		RAMexp->maxDebugGroups = Rf_asInteger(Rmdg);
