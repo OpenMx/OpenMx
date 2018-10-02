@@ -44,8 +44,7 @@ if (1) {
 	g2 <- ed$g2
 	omxCheckEquals(g2$numSufficientSets, 1L)
 	omxCheckCloseEnough(as.matrix(g2$covariance), diag(c(1.42, 1.55)), 1e-2)
-#	omxCheckCloseEnough(g2$mean, c(-1.085, 0.318, rep(0, 48)), 1e-2)
-	omxCheckCloseEnough(g2$mean, rep(c(-1.085, 0.318), 25), 1e-2)
+	omxCheckCloseEnough(g2$mean, c(-1.085, 0.318, rep(0, 48)), 1e-2)
 
 	omxCheckCloseEnough(dist$output$fit, 484.2459, 1e-2)
 }

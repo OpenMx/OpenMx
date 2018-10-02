@@ -1363,7 +1363,6 @@ namespace RelationalRAMExpectation {
 				layout[ t1[cx] ].heterogenousMean = true;
 			}
 		} else if (canOptimize) {
-			layoutSetup[ t1[0] ].skipMean = 0;
 			for (int vx=1; vx < int(t1.size()); ++vx) {
 				layoutSetup[ t1[vx] ].skipMean = 1;
 			}
@@ -1541,6 +1540,33 @@ namespace RelationalRAMExpectation {
 			if (modelRotationPlanFilter[px])
 				rotationPlan.push_back(origRotationPlan[px]);
 		}
+
+		if (getOptimizeMean() <= 1) return;
+
+		origRotationPlan = rotationPlan;
+		rotationPlan.clear();
+
+		// Transitive closure on reverse dependencies
+		for (int px=origRotationPlan.size()-1; px >= 0; --px) {
+			auto &vec = origRotationPlan[px];
+			bool skip = true;
+			for (int vx=0; vx < int(vec.size()); ++vx) {
+				if (layoutSetup[vec[vx]].skipMean != 1) {
+					skip = false;
+					break;
+				}
+			}
+			if (skip == false) {
+				for (int vx=0; vx < int(vec.size()); ++vx) {
+					layoutSetup[vec[vx]].skipMean = 0;
+				}
+			}
+		}
+		for (auto &vec : origRotationPlan) {
+			if (layoutSetup[vec[0]].skipMean == 0) {
+				rotationPlan.push_back(vec);
+			}
+		}
 	}
 
 	void state::init(omxExpectation *expectation, FitContext *fc)
@@ -1671,6 +1697,19 @@ namespace RelationalRAMExpectation {
 			placement &first = placements[ss.start * clumpSize];
 			computeMeanCov(dataVec.segment(first.obsStart, ss.length * clumpObs),
 				       clumpObs, ss.dataMean, ss.dataCov);
+			if (st.getOptimizeMean() < 2) continue;
+			for (int cx=0; cx < clumpSize; ++cx) {
+				int gx = ss.start * clumpSize + cx;
+				auto &sm = st.layoutSetup[gMap[gx]].skipMean;
+				if (sm == NA_INTEGER) sm = 0;
+			}
+			for (int px=1; px < ss.length; ++px) {
+				for (int cx=0; cx < clumpSize; ++cx) {
+					int gx = (ss.start + px) * clumpSize + cx;
+					auto &sm = st.layoutSetup[gMap[gx]].skipMean;
+					if (sm == NA_INTEGER) sm = 1;
+				}
+			}
 		}
 	}
 

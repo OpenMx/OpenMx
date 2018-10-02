@@ -61,7 +61,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.identifyZeroVarPred <- TRUE
 		.Object@.useSufficientSets <- TRUE
 		.Object@.maxDebugGroups <- 0L
-		.Object@.optimizeMean <- 1L
+		.Object@.optimizeMean <- 2L
 		return(.Object)
 	}
 )
