@@ -33,8 +33,8 @@ setClass(Class = "MxExpectationRAM",
 	    .rampartUnitLimit = "integer",
 	    .useSufficientSets = "logical",
 	    .forceSingleGroup = "logical",
-	    .ignoreDefVarsHack = "logical", #remove TODO
-	    .identifyZeroVarPred = "logical"
+	    .identifyZeroVarPred = "logical",
+	    .maxDebugGroups = "integer"
 	),
 	contains = "BaseExpectationNormal")
 
@@ -57,9 +57,9 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.rampartCycleLimit <- as.integer(NA)
 		.Object@.rampartUnitLimit <- as.integer(NA)
 		.Object@.forceSingleGroup <- FALSE
-		.Object@.ignoreDefVarsHack <- FALSE  # remove TODO
 		.Object@.identifyZeroVarPred <- TRUE
 		.Object@.useSufficientSets <- TRUE
+		.Object@.maxDebugGroups <- 64L
 		return(.Object)
 	}
 )

@@ -568,6 +568,7 @@ class omxRAMExpectation : public omxExpectation {
 	int numIters;
 	int rampartCycleLimit;
 	int rampartUnitLimit;
+	int maxDebugGroups;
 	bool useSufficientSets;
 	bool rampartEnabled() { return rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0; };
 	double logDetObserved;
