@@ -1404,6 +1404,12 @@ namespace RelationalRAMExpectation {
 
 			if (t1.size() >= 2) {
 				//std::string buf = "rotate units";
+
+				// This could be generalized beyond level 0 by
+				// splitting rampartScale into a variance specific
+				// and a means specific version. The rampartScale
+				// (means) would be multiplied for each rotation.
+
 				oertzenRotate(t1, level == 0 && getOptimizeMean() >= 1);
 				addr &specimen = layout[ t1[0] ];
 				specimen.rampartScale = sqrt(double(t1.size()));
