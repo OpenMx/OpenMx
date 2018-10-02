@@ -45,6 +45,7 @@ fi
 
 devmode=0
 if [ -e .devmode ]; then
+    echo "NOTE: ./.devmode exists; will enable extra compiler diagnostics"
     devmode=1
 fi
 
