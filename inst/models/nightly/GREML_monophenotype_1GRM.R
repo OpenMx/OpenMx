@@ -102,7 +102,7 @@ h2se <- sqrt(
 			(sum(scm)*(pointest[1]+pointest[2])^-2)
 ))
 #Compare:
-mxEval(h2,testrun,T) + 2*c(-h2se,h2se)
+mxEval(h2,testrun,T)[1,1] + 2*c(-h2se,h2se)
 testrun$output$confidenceIntervals
 
 #Test for regressions in how GREML handles its analytic derivatives (for OpenMx developer use):
@@ -203,5 +203,5 @@ testrun3 <- mxRun(testmod3, intervals = T)
 summary(testrun3)
 
 #Compare:
-mxEval(h2,testrun3,T) + 2*c(-0.07824315,0.07824315) #<--0.07824315 is the SE of h2
+mxEval(h2,testrun3,T)[1,1] + 2*c(-0.07824315,0.07824315) #<--0.07824315 is the SE of h2
 testrun3$output$confidenceIntervals
