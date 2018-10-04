@@ -68,8 +68,8 @@ for(i in 1:4){
   defcall<-paste("data.I",i, sep="")
   algName<-paste("EXPd", i, sep="")
   fullAlgString<-paste("omxExponential(DRIFT %x%",defcall,")", sep="")
-  EXPalgs[i]<-eval(substitute(mxAlgebra(theExpression,name = algName),
-    list(theExpression = parse(text=fullAlgString)[[1]])))
+  EXPalgs[i]<- list(eval(substitute(mxAlgebra(theExpression,name = algName),
+    list(theExpression = parse(text=fullAlgString)[[1]]))))
 }
 
 ### intercept (INT)
@@ -78,8 +78,8 @@ for(i in 1:4){
   algName<-paste("intd", i, sep="")
   defcall<-paste("data.I",i, sep="")
   fullAlgString<-paste("solve(DRIFT)%*%(omxExponential(DRIFT %x%",defcall,")-II)%*%t(CINT)", sep="")
-  INTalgs[i]<-eval(substitute(mxAlgebra(theExpression,name = algName),
-    list(theExpression = parse(text=fullAlgString)[[1]])))
+  INTalgs[i]<-list(eval(substitute(mxAlgebra(theExpression,name = algName),
+    list(theExpression = parse(text=fullAlgString)[[1]]))))
 }
 
 ### error covariance (Q)  
@@ -88,7 +88,7 @@ for(i in 1:4){
   defcall<-paste("data.I",i, sep="")
   algName<-paste("Qd", i, sep="")
   fullAlgString<-paste("solve(DRIFTHATCH)%*%((omxExponential(DRIFTHATCH %x%",defcall,"))-(II%x%II))%*%rvectorize(Q)", sep="")
-  Qdalgs[i]<-eval(substitute(mxAlgebra(theExpression,name = algName),list(theExpression = parse(text=fullAlgString)[[1]])))
+  Qdalgs[i]<-list(eval(substitute(mxAlgebra(theExpression,name = algName),list(theExpression = parse(text=fullAlgString)[[1]]))))
 }
 
 

@@ -16,7 +16,7 @@ maxDim <- 2
 items <- vector("list", numItems)
 correct <- vector("list", numItems)
 for (ix in 1:numItems) {
-	items[[ix]] <- rpf.drm(factors=maxDim)
+	items[ix] <- list(rpf.drm(factors=maxDim))
 	correct[[ix]] <- rpf.rparam(items[[ix]], version=1)
 	correct[[ix]][[4]] <- logit(0)   # no guessing, for now
 	correct[[ix]][[5]] <- logit(1)   # upper cound

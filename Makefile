@@ -79,6 +79,8 @@ help:
 	@echo "  clean      remove all files from the build directory"
 	@echo "  veryclean  remove all files from the build directory and all *~ files"
 	@echo "  autodep    regenerate src/autodep"
+	@echo ""
+	@echo "For extra compiler diagnostics, touch ./.devmode"
 
 r-libs-user-dir:
 	./inst/tools/mk-r-libs-user-dir
