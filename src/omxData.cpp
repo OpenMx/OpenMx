@@ -830,21 +830,6 @@ void omxData::loadFakeData(omxState *state, double fake)
 	}
 }
 
-bool omxData::CompareDefVarInMatrix(int lrow, int rrow, omxMatrix *mat, bool &mismatch)
-{
-	int mnum = ~mat->matrixNumber;
-	mismatch = true;
-	for (int dx=0; dx < int(defVars.size()); ++dx) {
-		omxDefinitionVar &dv = defVars[dx];
-		if (dv.matrix != mnum) continue;
-		double lval = omxDoubleDataElement(this, lrow, dv.column);
-		double rval = omxDoubleDataElement(this, rrow, dv.column);
-		if (lval != rval) return lval < rval;
-	}
-	mismatch = false;
-	return false;
-}
-
 bool omxDefinitionVar::loadData(omxState *state, double val)
 {
 	omxMatrix *mat = state->matrixList[matrix];

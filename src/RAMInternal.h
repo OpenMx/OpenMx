@@ -387,7 +387,8 @@ namespace RelationalRAMExpectation {
 		omxExpectation *getModel(FitContext *fc);
 		int getExpNum() const { return model->expNum; };
 		omxData *getData() const { return model->data; };
-		std::vector<bool> &getIgnoreDefVar();
+		const std::vector<bool> &getDefVarInfluenceMean() const;
+		const std::vector<bool> &getDefVarInfluenceVar() const;
 		omxRAMExpectation *getRAMExpectation(FitContext *fc);
 		omxRAMExpectation *getRAMExpectationReadOnly() const {
 			// NOTE: not per-thread!
@@ -517,22 +518,22 @@ namespace RelationalRAMExpectation {
 
 		omxMatrix                       *smallCol;
 		std::vector<independentGroup*>   group;
-		bool                             doIdentifyZeroVarPred;
+		bool                             doAnalyzeDefVars;
 
 	private:
 		int flattenOneRow(omxExpectation *expectation, int frow, int &maxSize);
 		template <typename T>
 		bool placeSet(std::set<std::vector<T> > &toPlace, independentGroup *ig);
 		void planModelEval(int maxSize, FitContext *fc);
-		void identifyZeroVarPred(FitContext *fc);
+		void analyzeModel1(FitContext *fc);
+		void analyzeModel2(FitContext *fc);
 		int rampartRotate(int level);
 		template <typename T> void oertzenRotate(std::vector<T> &t1, bool canOptimize);
 		template <typename T> void unapplyRotationPlan(T accessor);
 		template <typename T> void applyRotationPlan(T accessor);
 		template <typename T> void appendClump(int ax, std::vector<T> &clump);
-		template <typename T> void propagateDefVar(omxRAMExpectation *ram,
-							   Eigen::MatrixBase<T> &transition,
-							   omxRAMExpectation *ram2, bool within);
+		void propagateDefVar(omxRAMExpectation *to, omxMatrix *_transition,
+				     omxRAMExpectation *from);
 		void computeConnected(std::vector<int> &region, SubgraphType &connected);
 	public:
 		~state();
@@ -549,8 +550,6 @@ namespace RelationalRAMExpectation {
 	};
 };
 
-typedef std::set< std::pair< omxExpectation*, int> > dvScoreboardSetType;
-
 class omxRAMExpectation : public omxExpectation {
 	typedef omxExpectation super;
 	unsigned Zversion;
@@ -558,9 +557,14 @@ class omxRAMExpectation : public omxExpectation {
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector< omxThresholdColumn > thresholds;
  public:
-	std::vector< dvScoreboardSetType > dvScoreboard;
-	Eigen::VectorXd hasVariance;
-	std::vector<bool> ignoreDefVar;
+	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array
+	typedef std::set< dvRefType > dvRefSetType;
+	std::vector< dvRefSetType > dvContribution; // per variable dv contribution
+	Eigen::VectorXd hasVariance;    // current level, if nonzero then has variance
+	Eigen::VectorXd hasMean;        // current level, if nonzero then has means
+	// per variable influence of defVars, including lower levels
+	std::vector<bool> dvInfluenceMean;
+	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
 
  	omxRAMExpectation() : Zversion(0), _Z(0) {};
@@ -568,6 +572,8 @@ class omxRAMExpectation : public omxExpectation {
 
 	omxMatrix *getZ(FitContext *fc);
 	void CalculateRAMCovarianceAndMeans(FitContext *fc);
+	void analyzeDefVars(FitContext *fc);
+	void logDefVarsInfluence();
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *A, *S, *F, *M, *I;
@@ -580,7 +586,7 @@ class omxRAMExpectation : public omxExpectation {
 	int maxDebugGroups;
 	bool useSufficientSets;
 	int optimizeMean;
-	bool rampartEnabled() { return rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0; };
+	bool rampartEnabled() { return (rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0) && !forceSingleGroup; };
 	double logDetObserved;
 	double n;
 	double *work;
