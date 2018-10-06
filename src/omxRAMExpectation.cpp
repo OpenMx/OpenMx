@@ -555,9 +555,10 @@ namespace RelationalRAMExpectation {
 		as1.fk1 = NA_INTEGER;
 		as1.numJoins = 0;
 		as1.numKids = 0;
-		a1.heterogenousMean = false;
+		as1.heterogenousMean = false;
 		as1.rset = NA_INTEGER;
 		a1.rampartScale = 1.0;
+		a1.quickRotationFactor = 1.0;
 		as1.skipMean = NA_INTEGER;
 		a1.row = frow;
 		a1.nextMean = 1;
@@ -969,7 +970,7 @@ namespace RelationalRAMExpectation {
 		     px != toPlace.end(); ++px) {
 			const std::vector<int> &clump = *px;
 			for (size_t cx=0; cx < clump.size(); ++cx) {
-				heterogenousMean |= layout[ clump[cx] ].heterogenousMean;
+				heterogenousMean |= layoutSetup[ clump[cx] ].heterogenousMean;
 				ig->place(clump[cx]);
 			}
 		}
@@ -1360,11 +1361,13 @@ namespace RelationalRAMExpectation {
 		bool keep = true;
 		if (mismatch) {
 			for (int cx=0; cx < int(t1.size()); ++cx) {
-				layout[ t1[cx] ].heterogenousMean = true;
+				layoutSetup[ t1[cx] ].heterogenousMean = true;
 			}
 		} else if (canOptimize) {
+			layout[ t1[0] ].quickRotationFactor *= sqrt(double(t1.size()));
 			for (int vx=1; vx < int(t1.size()); ++vx) {
 				layoutSetup[ t1[vx] ].skipMean = 1;
+				layout[ t1[vx] ].quickRotationFactor = 0.;
 			}
 			keep = false;
 		}
@@ -1379,7 +1382,7 @@ namespace RelationalRAMExpectation {
 				addrSetup &a1 = layoutSetup[ t1[tx] ];
 				t2.push_back(a1.clump[cx]);
 			}
-			oertzenRotate(t2, false);
+			oertzenRotate(t2, canOptimize);
 		}
 	}
 
@@ -1405,12 +1408,7 @@ namespace RelationalRAMExpectation {
 			if (t1.size() >= 2) {
 				//std::string buf = "rotate units";
 
-				// This could be generalized beyond level 0 by
-				// splitting rampartScale into a variance specific
-				// and a means specific version. The rampartScale
-				// (means) would be multiplied for each rotation.
-
-				oertzenRotate(t1, level == 0 && getOptimizeMean() >= 1);
+				oertzenRotate(t1, getOptimizeMean() >= 1);
 				addr &specimen = layout[ t1[0] ];
 				specimen.rampartScale = sqrt(double(t1.size()));
 				int parent1 = layoutSetup[ t1[0] ].parent1;
@@ -1945,18 +1943,12 @@ namespace RelationalRAMExpectation {
 		}
 
 		if (pst.getOptimizeMean() >= 1) {
-			// Probably only works at the lowest level because
-			// lower means are conditioned on upper means?
-			int homeExpNum = pst.homeEx->expNum;
 			for (int ax=0; ax < layoutSize; ax += pst.layout[ax].nextMean) {
 				addr &a1 = pst.layout[ax];
-				if (a1.getExpNum() != homeExpNum) continue;
 				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
-				if (!pst.layout[ax].heterogenousMean) {
-					independentGroup &tig1 = *group[a1.ig->arrayIndex];
-					tig1.expectedVec.segment(a1Start, a1.numObs())
-						*= a1.rampartScale;
-				}
+				independentGroup &tig1 = *group[a1.ig->arrayIndex];
+				tig1.expectedVec.segment(a1Start, a1.numObs())
+					*= a1.quickRotationFactor;
 			}
 		}
 
@@ -2085,7 +2077,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
-			INTEGER(hmean)[mx] = layout[mx].heterogenousMean;
+			INTEGER(hmean)[mx] = layoutSetup[mx].heterogenousMean;
 			INTEGER(skipMean)[mx] = layoutSetup[mx].skipMean;
 			INTEGER(rset)[mx] = layoutSetup[mx].rset;
 			INTEGER(ugroup)[mx] = layout[mx].ig? 1+layout[mx].ig->arrayIndex : NA_INTEGER;

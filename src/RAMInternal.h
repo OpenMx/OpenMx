@@ -360,6 +360,7 @@ namespace RelationalRAMExpectation {
 		bool clumped;
 		int rset;
 		int skipMean;
+		bool heterogenousMean;
 	};
 
 	class addr {
@@ -375,7 +376,7 @@ namespace RelationalRAMExpectation {
 		int numObsCache;
 		int numObs() const { return numObsCache; }
 		double rampartScale;
-		bool heterogenousMean;
+		double quickRotationFactor;
 
 		std::string modelName() {
 			std::string tmp = model->data->name;
