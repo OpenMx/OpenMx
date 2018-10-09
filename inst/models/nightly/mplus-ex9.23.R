@@ -51,6 +51,6 @@ withinModel <- mxModel(
 
 withinModel <- mxRun(withinModel)
 
-omxCheckEquals(withinModel$expectation$debug$rampartUsage, c(6000, 1450))
+omxCheckEquals(withinModel$expectation$debug$rampartUsage, c(6000))
 
 omxCheckCloseEnough(logLik(withinModel), -56044.82, 1e-2)  # matches Mplus

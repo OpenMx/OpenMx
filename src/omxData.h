@@ -139,7 +139,6 @@ class omxData {
 
 	void loadFakeData(omxState *state, double fake);
 	bool hasDefinitionVariables() { return defVars.size() != 0; };
-	bool CompareDefVarInMatrix(int lrow, int rrow, omxMatrix *mat, bool &mismatch);
 	bool loadDefVars(omxState *state, int row); // prefer omxExpectation member fn
 
 	// Used when the expectation provides the observed data (DataDynamic)
