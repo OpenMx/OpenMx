@@ -181,3 +181,5 @@ man/omxNameAnonymousParameters.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
+man/imxHasThresholds.Rd
+man/mxComputeLoop.Rd
