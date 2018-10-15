@@ -21,8 +21,6 @@
 
 struct omxWLSFitFunction : omxFitFunction {
 
-	omxMatrix* observedCov;
-	omxMatrix* observedMeans;
 	omxMatrix* expectedCov;
 	omxMatrix* expectedMeans;
 	omxMatrix* observedFlattened;
@@ -233,8 +231,6 @@ void omxWLSFitFunction::init()
 
 	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
 
-	newObj->observedCov = cov;
-	newObj->observedMeans = means;
 	newObj->n = omxDataNumObs(dataMat);
 	
 	numOrdinal = oo->expectation->numOrdinal;
@@ -247,7 +243,7 @@ void omxWLSFitFunction::init()
 
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
-	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
+	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
 		if(newObj->expectedMeans != NULL) {
 			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
 			return;
@@ -280,7 +276,7 @@ void omxWLSFitFunction::init()
 	}
 	
 	/* Error check weight matrix size */
-	int ncol = newObj->observedCov->cols;
+	int ncol = cov->cols;
 	int vectorSize = expectation->numSummaryStats();
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
@@ -312,7 +308,7 @@ void omxWLSFitFunction::init()
 		}
 	}
 	
-	flattenDataToVector(newObj->observedCov, newObj->observedMeans, obsThresholdsMat, oThresh, newObj->observedFlattened);
+	flattenDataToVector(cov, means, obsThresholdsMat, oThresh, newObj->observedFlattened);
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
 }
