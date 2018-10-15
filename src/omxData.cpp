@@ -149,12 +149,51 @@ static int carefulMinusOne(int val)
 	return val != NA_INTEGER? val - 1 : val;
 }
 
+static void importDataFrame(SEXP dataLoc, std::vector<ColumnData> &rawCols,
+			    int &numNumeric, int &numFactor)
+{
+	int numCols = Rf_length(dataLoc);
+	rawCols.clear();
+	rawCols.reserve(numCols);
+	numNumeric = 0;
+	numFactor = 0;
+	ProtectedSEXP colnames(Rf_getAttrib(dataLoc, R_NamesSymbol));
+
+	for(int j = 0; j < numCols; j++) {
+		const char *colname = CHAR(STRING_ELT(colnames, j));
+		ColumnData cd = { colname, COLUMNDATA_INVALID, NULL, NULL, {} };
+		ProtectedSEXP rcol(VECTOR_ELT(dataLoc, j));
+		if(Rf_isFactor(rcol)) {
+			cd.type = Rf_isUnordered(rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
+			if(OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
+			cd.intData = INTEGER(rcol);
+			ProtectedSEXP Rlevels(Rf_getAttrib(rcol, R_LevelsSymbol));
+			for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
+				cd.levels.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
+			}
+			numFactor++;
+		} else if (Rf_isInteger(rcol)) {
+			cd.intData = INTEGER(rcol);
+			cd.type = COLUMNDATA_INTEGER;
+		} else if (Rf_isNumeric(rcol)) {
+			if(OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
+			cd.realData = REAL(rcol);
+			cd.type = COLUMNDATA_NUMERIC;
+			numNumeric++;
+		} else {
+			if(OMX_DEBUG) {mxLog("Column[%d] %s is type %s (ignored)",
+					     j, colname, Rf_type2char(TYPEOF(rcol)));}
+			cd.type = COLUMNDATA_INVALID;
+		}
+		rawCols.push_back(cd);
+	}
+}
+
 void omxData::newDataStatic(omxState *state, SEXP dataObj)
 {
 	owner = dataObj;
 	omxData *od = this;
 	SEXP dataLoc, dataVal;
-	int numCols;
 
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {mxLog("Processing Data '%s'", od->name);}
@@ -179,50 +218,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if (Rf_isFrame(dataLoc)) {
-		if(OMX_DEBUG) {mxLog("Data is a frame.");}
-		// Process Data Frame into Columns
-		od->cols = Rf_length(dataLoc);
-		if(OMX_DEBUG) {mxLog("Data has %d columns.", od->cols);}
-		numCols = od->cols;
-		SEXP colnames;
-		ScopedProtect p2(colnames, Rf_getAttrib(dataLoc, R_NamesSymbol));
-		od->rawCols.reserve(numCols);
-		for(int j = 0; j < numCols; j++) {
-			const char *colname = CHAR(STRING_ELT(colnames, j));
-			ColumnData cd = { colname, COLUMNDATA_INVALID, NULL, NULL, {} };
-			SEXP rcol;
-			ScopedProtect p1(rcol, VECTOR_ELT(dataLoc, j));
-			if(Rf_isFactor(rcol)) {
-				cd.type = Rf_isUnordered(rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
-				if(OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
-				cd.intData = INTEGER(rcol);
-				ProtectedSEXP Rlevels(Rf_getAttrib(rcol, R_LevelsSymbol));
-				for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
-					cd.levels.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
-				}
-				od->numFactor++;
-			} else if (Rf_isInteger(rcol)) {
-				if (j == primaryKey) {
-					if(OMX_DEBUG) {mxLog("Column[%d] %s is the primary key", j, colname);}
-				} else {
-					if(OMX_DEBUG) {mxLog("Column[%d] %s is a foreign key", j, colname);}
-				}
-				cd.intData = INTEGER(rcol);
-				cd.type = COLUMNDATA_INTEGER;
-			} else if (Rf_isNumeric(rcol)) {
-				if(OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
-				cd.realData = REAL(rcol);
-				cd.type = COLUMNDATA_NUMERIC;
-				od->numNumeric++;
-			} else {
-				if(OMX_DEBUG) {mxLog("Column[%d] %s is type %s (ignored)",
-						     j, colname, Rf_type2char(TYPEOF(rcol)));}
-				cd.type = COLUMNDATA_INVALID;
-			}
-			od->rawCols.push_back(cd);
-		}
 		od->rows = Rf_length(VECTOR_ELT(dataLoc, 0));
-		if(OMX_DEBUG) {mxLog("And %d rows.", od->rows);}
+		od->cols = Rf_length(dataLoc);
+		importDataFrame(dataLoc, od->rawCols, od->numNumeric, od->numFactor);
 	} else {
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
 		od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
