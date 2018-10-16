@@ -426,7 +426,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				"', or '", wlsTypes[length(wlsTypes)], "'.", sep="")
 			)
 	}
-	if (!(tolower(allContinuousMethod) %in% c('cumulant', 'cumulants', 'marginal', 'marginals'))){
+	allContinuousMethod <- tolower(allContinuousMethod)
+	if (!(allContinuousMethod %in% c('cumulant', 'cumulants', 'marginal', 'marginals'))){
 		stop(
 			paste("'allContinuousMethod' must be one of ",
 				"'cumulants' or 'marginals'.\nBoth plural and singular forms are allowed.", sep="")
@@ -453,7 +454,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	if (!silent) imxReportProgress(msg, 0)
 	
 	# if no ordinal variables, use continuous-only helper
-	if(nvar == 0 && tolower(allContinuousMethod) %in% c("cumulant", "cumulants")){
+	if(nvar == 0 && allContinuousMethod %in% c("cumulant", "cumulants")){
 		if (!silent) imxReportProgress("", msgLen)
 		if (any(is.na(data))) {
 			stop(paste("All continuous data with missingness cannot be",
@@ -462,7 +463,11 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				   "or use maximum likelihood instead"))
 		}
 		wls <- wlsContinuousOnlyHelper(data, type)
-		return(mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n))
+		retVal <- mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n)
+		retVal@.rawData <- data
+		retVal@.wlsType <- type
+		retVal@.wlsContinuousType <- allContinuousMethod
+		return(retVal)
 	}
 	
 	# separate ordinal and continuous variables (temporary)
@@ -713,6 +718,9 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 	if (debug){return(list(fullJac, fullHess))}
 	if (!silent) imxReportProgress("", msgLen)
+	retVal@.rawData <- data
+	retVal@.wlsType <- type
+	retVal@.wlsContinuousType <- allContinuousMethod
 	return(retVal)
 	}
 

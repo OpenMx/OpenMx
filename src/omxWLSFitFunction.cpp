@@ -28,7 +28,6 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* weights;
 	omxMatrix* P;
 	omxMatrix* B;
-	int n;
 	int fullWls;
 	int numOrdinal;
 	
@@ -194,7 +193,6 @@ void omxWLSFitFunction::init()
 	auto *newObj = this;
 	
 	omxState *currentState = oo->matrix->currentState;
-	omxMatrix *cov, *means;
 	
 	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
 	
@@ -225,14 +223,13 @@ void omxWLSFitFunction::init()
 	/* Read and set expected means, variances, and weights */
 	dataMat->permute(oo->expectation->getDataColumns());
 
-	cov = omxDataCovariance(dataMat);
-	means = omxDataMeans(dataMat);
-	weights = omxDataAcov(dataMat);
+	auto &obsStat = dataMat->getSingleObsSummaryStats();
+	omxMatrix *cov = obsStat.covMat;
+	omxMatrix *means = obsStat.meansMat;
+	omxMatrix *obsThresholdsMat = obsStat.thresholdMat;
+	weights = obsStat.acovMat;
+	std::vector< omxThresholdColumn > &oThresh = obsStat.thresholdCols;
 
-	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
-
-	newObj->n = omxDataNumObs(dataMat);
-	
 	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
@@ -300,7 +297,6 @@ void omxWLSFitFunction::init()
 	if(means){
 		newObj->standardMeans = omxInitMatrix(1, ncol, TRUE, currentState);
 	}
-	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
 		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
 		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {

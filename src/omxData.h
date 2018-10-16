@@ -89,6 +89,25 @@ struct ColumnData {
 	std::vector<std::string> levels;       // factors only
 };
 
+typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
+
+class obsSummaryStats {
+ public:
+	//std::vector<bool> subset;
+	int numObs;
+	int numOrdinal;  // == thresholdMat->cols or 0 if null
+	omxMatrix* covMat;
+	omxMatrix* meansMat;
+	omxMatrix* acovMat;			// The asymptotic covariance
+	omxMatrix *fullWeight;
+	omxMatrix* thresholdMat;
+	std::vector< omxThresholdColumn > thresholdCols;
+        obsSummaryStats() : numObs(0), numOrdinal(0), covMat(0), meansMat(0),
+		acovMat(0), fullWeight(0), thresholdMat(0) {};
+	~obsSummaryStats();
+	void permute(const Eigen::Ref<const DataColumnIndexVector> &dc);
+};
+
 class omxData {
  private:
 	void addDynamicDataSource(omxExpectation *ex);
@@ -98,6 +117,7 @@ class omxData {
 	int freqCol;
 	int *currentFreqColumn;
 	bool permuted;
+	std::vector<obsSummaryStats> obsStatsVec;
 
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -109,17 +129,12 @@ class omxData {
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
 	void assertColumnIsData(int col);
-	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
-	void permute(const Eigen::Ref<const DataColumnType> &dc);
+	void permute(const Eigen::Ref<const DataColumnIndexVector> &dc);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
-	omxMatrix* acovMat;					// The asymptotic covariance, as an omxMatrixObject, added for ordinal WLS
-	omxMatrix *fullWeight;					// Full weight matrix for WLS SEs
-	omxMatrix* obsThresholdsMat;		// The observed thresholds, added for ordinal WLS
-	std::vector< omxThresholdColumn > thresholdCols;
 	double numObs;						// Number of observations (sum of rowWeight)
 	const char *_type;
 	const char *getType() const { return _type; };
@@ -167,6 +182,17 @@ class omxData {
 	void prohibitNAs(int col);
 	void freeInternal();
 	bool isDynamic() { return expectation.size() != 0; };
+	template <typename T> void visitObsStats(T visitor) {
+		for (auto &o1 : obsStatsVec) visitor(o1);
+	}
+	obsSummaryStats &getSingleObsSummaryStats() {
+		if (obsStatsVec.size() != 1) Rf_error("obsStatsVec.size() != 1");
+		return obsStatsVec[0];
+	};
+	const char *columnName(int col);
+	bool columnIsFactor(int col);
+	bool hasSummaryStats() { return dataMat != 0 || obsStatsVec.size(); }
+	void recalcWLSStats();
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
@@ -212,12 +238,8 @@ inline int omxKeyDataElement(omxData *od, int row, int col)
 	return cd.intData[row];
 }
 
-inline bool omxDataHasMatrix(omxData *od) { return od->dataMat != 0; }
 omxMatrix* omxDataCovariance(omxData *od);
 omxMatrix* omxDataMeans(omxData *od);
-omxMatrix* omxDataAcov(omxData *od);
-
-std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od);
 
 void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Populates a matrix with a single data row
 
@@ -255,7 +277,6 @@ static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 }
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
-bool omxDataColumnIsFactor(omxData *od, int col);
 bool omxDataColumnIsKey(omxData *od, int col);
 const char *omxDataColumnName(omxData *od, int col);
 const char *omxDataType(omxData *od);			      // TODO: convert to ENUM
@@ -266,5 +287,7 @@ int omxDataNumFactor(omxData *od);                    // Number of factor column
 /* Function wrappers that switch based on inclusion of algebras */
 
 double omxDataDF(omxData *od);
+
+inline bool omxDataColumnIsFactor(omxData *od, int col) { return od->columnIsFactor(col); }
 
 #endif /* _OMXDATA_H_ */

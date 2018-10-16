@@ -395,8 +395,7 @@ namespace RelationalRAMExpectation {
 			return (omxRAMExpectation*) model;
 		};
 		std::vector< omxMatrix* > &getBetween() const;
-		typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnType;
-		const Eigen::Map<DataColumnType> getDataColumns() const {
+		const Eigen::Map<DataColumnIndexVector> getDataColumns() const {
 			return model->getDataColumns();
 		};
 		void dataRow(omxMatrix *out) const;
@@ -602,8 +601,8 @@ class omxRAMExpectation : public omxExpectation {
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);
-	virtual const Eigen::Map<DataColumnType> getDataColumns() {
-		return Eigen::Map<DataColumnType>(dataCols.data(), numDataColumns);
+	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
+		return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
 	}
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
 	virtual void invalidateCache();

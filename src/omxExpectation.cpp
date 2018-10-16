@@ -109,7 +109,7 @@ void omxExpectation::loadThresholds()
 		omxThresholdColumn col;
 		col.dColumn = index;
 
-		const char *colname = omxDataColumnName(data, index);
+		const char *colname = data->columnName(index);
 		int tc = thresholdsMat->lookupColumnByName(colname);
 
 		if (tc < 0 || (data->rawCols.size() && !omxDataColumnIsFactor(data, index))) {	// Continuous variable
@@ -158,7 +158,7 @@ void omxExpectation::loadFromR()
 
 	int numCols=0;
 	bool isRaw = strEQ(omxDataType(data), "raw");
-	if (isRaw || omxDataHasMatrix(data)) {
+	if (isRaw || data->hasSummaryStats()) {
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
@@ -245,9 +245,9 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	}
 }
 
-const Eigen::Map<omxExpectation::DataColumnType> omxExpectation::getDataColumns()
+const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataColumns()
 {
-	return Eigen::Map<DataColumnType>(dataColumnsPtr, numDataColumns);
+	return Eigen::Map<DataColumnIndexVector>(dataColumnsPtr, numDataColumns);
 }
 
 std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
