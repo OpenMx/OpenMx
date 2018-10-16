@@ -28,11 +28,13 @@
 #include "glue.h"
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
+#include "matrix.h"
 #include <fstream>
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false),
+		     wlsType(0), wlsContinuousType(0),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -234,6 +236,17 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	}
 
+	// temporary TODO
+	ProtectedSEXP RwlsData(R_do_slot(dataObj, Rf_install(".rawData")));
+	if (Rf_isFrame(RwlsData)) {
+		importDataFrame(RwlsData, wlsCols, numNumeric, numFactor);
+		
+		ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
+		wlsType = CHAR(STRING_ELT(RwlsType,0));
+		ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
+		wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
+	}
+
 	if (od->hasPrimaryKey() && !(od->rawCols.size() && od->rawCols[primaryKey].intData)) {
 		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
 	}
@@ -406,7 +419,7 @@ obsSummaryStats::~obsSummaryStats()
 	omxFreeMatrix(covMat);
 	omxFreeMatrix(meansMat);
 	omxFreeMatrix(acovMat);
-	omxFreeMatrix(fullWeight);
+	if (acovMat != fullWeight) omxFreeMatrix(fullWeight);
 	omxFreeMatrix(thresholdMat);
 }
 
@@ -959,9 +972,117 @@ void omxData::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
 	obsStatsVec[0].permute(dc);
 }
 
-// need to pass in order TODO
-void omxData::recalcWLSStats()
+template <typename T>
+void getContRow(std::vector<ColumnData> &df,
+		int row,
+		const Eigen::Ref<const DataColumnIndexVector> &dc,
+		Eigen::MatrixBase<T> &out)
 {
-	// can assume permute already called, but need to check TODO
-	
+	for (int cx=0; cx < dc.size(); ++cx) {
+		auto &cd = df[ dc[cx] ];
+		out[cx] = cd.realData[row];
+	}
+}
+
+void omxData::wlsAllContinuousCumulants(omxState *state,
+					const Eigen::Ref<const DataColumnIndexVector> &dc)
+{
+	int numCols = dc.size();
+	int numColsStar = numCols*(numCols+1)/2;
+	auto &o1 = obsStatsVec[0];
+
+	o1.covMat = omxInitMatrix(numCols, numCols, state);
+	//o1.meansMat = omxInitMatrix(1, numCols, state);
+	o1.fullWeight = omxInitMatrix(numColsStar, numColsStar, state);
+	EigenMatrixAdaptor Ecov(o1.covMat);
+	Eigen::VectorXd Emean(numCols);
+	Ecov.setZero();
+	Emean.setZero();
+
+	Eigen::ArrayXXd data(int(numObs), numCols);
+	Eigen::VectorXd r1(numCols);
+	for (int rx=0; rx < numObs; ++rx) {
+		getContRow(wlsCols, rx, dc, r1);
+		Emean += r1;
+		Ecov += r1 * r1.transpose();
+		data.row(rx) = r1;
+	}
+	Emean /= numObs;
+	Ecov -= numObs * Emean * Emean.transpose();
+	Ecov /= numObs - 1;
+
+	data.rowwise() -= Emean.array().transpose();
+	Eigen::MatrixXd Vmat = Ecov * (numObs-1.) / numObs;
+	EigenMatrixAdaptor Umat(o1.fullWeight);
+
+	Eigen::ArrayXXd M(numColsStar, 2);
+	for (int x1=0, mx=0; x1 < numCols; ++x1) {
+		for (int x2=x1; x2 < numCols; ++x2) {
+			M(mx, 0) = x2;
+			M(mx, 1) = x1;
+			mx += 1;
+		}
+	}
+
+	Eigen::Array<double, 4, 1> ind;
+	for (int jx=0; jx < numColsStar; ++jx) {
+		for (int ix=jx; ix < numColsStar; ++ix) {
+			ind.segment(0,2) = M.row(ix);
+			ind.segment(2,2) = M.row(jx);
+			Umat(ix,jx) = (data.col(ind[0]) * data.col(ind[1]) *
+				       data.col(ind[2]) * data.col(ind[3])).sum() / numObs -
+				Vmat(ind[0],ind[1]) * Vmat(ind[2],ind[3]);
+		}
+	}
+
+	int singular = InvertSymmetricPosDef(Umat, 'L');
+	if (singular) {
+		omxRaiseErrorf("%s: cannot invert full weight matrix (%d)", name, singular);
+		return;
+	}
+	Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
+	Umat *= numObs;
+
+	if (strEQ(wlsType, "WLS")) {
+		o1.acovMat = o1.fullWeight;
+	} else {
+		o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
+		EigenMatrixAdaptor acov(o1.acovMat);
+		if (strEQ(wlsType, "ULS")) {
+			acov.setIdentity();
+		} else { // DWLS
+			acov.setZero();
+			for (int ix=0; ix < numColsStar; ++ix) {
+				acov(ix,ix) = 1./((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
+						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / numObs -
+						  Vmat(M(ix, 0), M(ix, 1)) * Vmat(M(ix, 0), M(ix, 1)));
+			}
+		}
+		acov *= numObs;
+	}
+}
+
+void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc)
+{
+	if (numFactor != 0 || !strEQ(wlsContinuousType, "cumulants")) {
+		permute(dc);
+		return;
+	}
+
+	// ensure no missing data TODO
+
+	int numCols = dc.size();
+	int numColsStar = numCols*(numCols+1)/2;
+	if (numObs-1 < numColsStar) {
+		Rf_error("%s: too few observations (%d) for the number of columns (%d).\n"
+			 "For WLS, you need at least n*(n+1)/2 + 1 = %d observations.\n"
+			 "Better start rubbing two pennies together.",
+			 name, numObs, numCols, numColsStar+1);
+	}
+
+	permuted = true;
+	obsStatsVec.clear();
+	obsStatsVec.resize(1);
+
+	wlsAllContinuousCumulants(state, dc);
 }

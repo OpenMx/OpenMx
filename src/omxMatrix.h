@@ -158,6 +158,8 @@ struct EigenStdVectorAdaptor : Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic,
 // If you call these functions directly then you need to free the memory with omxFreeMatrix.
 // If you obtain a matrix from omxNewMatrixFromSlot then you must NOT free it.
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short colMajor, omxState* os);
+inline omxMatrix* omxInitMatrix(int nrows, int ncols, omxState* os)
+{ return omxInitMatrix(nrows, ncols, 1, os); }
 omxMatrix *omxCreateCopyOfMatrix(omxMatrix *orig, omxState *os);
 
 	void omxFreeMatrix(omxMatrix* om);						// Ditto, traversing argument trees

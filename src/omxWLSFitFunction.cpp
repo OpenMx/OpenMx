@@ -220,8 +220,8 @@ void omxWLSFitFunction::init()
 	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 	
-	/* Read and set expected means, variances, and weights */
-	dataMat->permute(oo->expectation->getDataColumns());
+	// For multiple threads, need to grab parent's info TODO
+	dataMat->recalcWLSStats(currentState, oo->expectation->getDataColumns());
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
 	omxMatrix *cov = obsStat.covMat;

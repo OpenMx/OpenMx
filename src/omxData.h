@@ -119,6 +119,11 @@ class omxData {
 	bool permuted;
 	std::vector<obsSummaryStats> obsStatsVec;
 
+	//temporary TODO
+	std::vector<ColumnData> wlsCols;
+	const char *wlsType;
+	const char *wlsContinuousType;
+
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
 	bool hasWeight() const { return weightCol >= 0; };
@@ -192,7 +197,9 @@ class omxData {
 	const char *columnName(int col);
 	bool columnIsFactor(int col);
 	bool hasSummaryStats() { return dataMat != 0 || obsStatsVec.size(); }
-	void recalcWLSStats();
+	void recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc);
+	void wlsAllContinuousCumulants(omxState *state,
+				       const Eigen::Ref<const DataColumnIndexVector> &dc);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
