@@ -19,54 +19,8 @@
 #include "omxExportBackendState.h"
 #include "Compute.h"
 #include "matrix.h"
+#include "nr.h"
 #include "EnableWarnings.h"
-
-struct NewtonRaphsonObjective {
-	bool converged;
-	Eigen::VectorXd lbound;
-	Eigen::VectorXd ubound;
-
-	virtual void init() {
-		converged = false;
-	}
-	virtual bool isConverged() { return converged; };
-	virtual double getFit()=0;
-	virtual void resetDerivs() {};
-	virtual const char *paramIndexToName(int px)=0;
-	virtual void evaluateFit()=0;
-	virtual void evaluateDerivs(int want)=0;
-	virtual double *getParamVec()=0;
-	virtual double *getGrad()=0;
-	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)=0;  // ihess * grad
-	virtual void reportBadDeriv() {};
-	virtual void debugDeriv(const Eigen::Ref<Eigen::VectorXd> searchDir) {};
-};
-
-class NewtonRaphsonOptimizer {
-	const char *name;
-	int maxIter;
-	double tolerance;
-	int verbose;
-	int iter;
-	int numParam;
-	double refFit;
-	double priorSpeed;
-	double improvement;
-	double maxAdj;
-	double maxAdjSigned;
-	int maxAdjParam;
-	int minorIter;
-	Eigen::VectorXd prevEst;
-	Eigen::VectorXd searchDir;
-	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
-	void lineSearch(NewtonRaphsonObjective &nro);
-public:
-	NewtonRaphsonOptimizer(const char *_name, int _maxIter, double tol, int _verbose) :
-		name(_name), maxIter(_maxIter), tolerance(tol), verbose(_verbose) {};
-	void operator()(NewtonRaphsonObjective &nro);
-	int getIter() { return iter; };
-	int getMinorIter() { return minorIter; };
-};
 
 void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 {
