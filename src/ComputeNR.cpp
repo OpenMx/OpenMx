@@ -14,8 +14,6 @@
  *  limitations under the License.
  */
 
-#include <valarray>
-
 #include "omxState.h"
 #include "omxFitFunction.h"
 #include "omxExportBackendState.h"
@@ -23,29 +21,316 @@
 #include "matrix.h"
 #include "EnableWarnings.h"
 
-static const char engineName[] = "NnRn";
+struct NewtonRaphsonObjective {
+	bool converged;
+	Eigen::VectorXd lbound;
+	Eigen::VectorXd ubound;
+
+	virtual void init() {
+		converged = false;
+	}
+	virtual bool isConverged() { return converged; };
+	virtual double getFit()=0;
+	virtual void resetDerivs() {};
+	virtual const char *paramIndexToName(int px)=0;
+	virtual void evaluateFit()=0;
+	virtual void evaluateDerivs(int want)=0;
+	virtual double *getParamVec()=0;
+	virtual double *getGrad()=0;
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)=0;  // ihess * grad
+	virtual void reportBadDeriv() {};
+	virtual void debugDeriv(const Eigen::Ref<Eigen::VectorXd> searchDir) {};
+};
+
+class NewtonRaphsonOptimizer {
+	const char *name;
+	int maxIter;
+	double tolerance;
+	int verbose;
+	int iter;
+	int numParam;
+	double refFit;
+	double priorSpeed;
+	double improvement;
+	double maxAdj;
+	double maxAdjSigned;
+	int maxAdjParam;
+	int minorIter;
+	Eigen::VectorXd prevEst;
+	Eigen::VectorXd searchDir;
+	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
+	void lineSearch(NewtonRaphsonObjective &nro);
+public:
+	NewtonRaphsonOptimizer(const char *_name, int _maxIter, double tol, int _verbose) :
+		name(_name), maxIter(_maxIter), tolerance(tol), verbose(_verbose) {};
+	void operator()(NewtonRaphsonObjective &nro);
+	int getIter() { return iter; };
+	int getMinorIter() { return minorIter; };
+};
+
+void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
+{
+	nro.init();
+	numParam = nro.lbound.size();
+	prevEst.resize(numParam);
+	searchDir.resize(numParam);
+	maxAdj = 0;
+	maxAdjSigned = 0;
+	maxAdjParam = -1;
+	priorSpeed = 1;
+	iter = 0;
+	minorIter = 0;
+
+	if (verbose >= 2) {
+		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
+		      (int)numParam, tolerance, maxIter);
+		if (verbose >= 3) {
+			mxPrintMat("lbound", nro.lbound);
+			mxPrintMat("ubound", nro.ubound);
+		}
+	}
+
+	while (1) {
+		iter += 1;
+		if (verbose >= 2) {
+			if (iter == 1) {
+				mxLog("%s: iter %d/%d", name, iter, maxIter);
+			} else {
+				const char *pname = nro.paramIndexToName(maxAdjParam);
+				mxLog("%s: iter %d/%d (prev maxAdj %.3g for %s)",
+				      name, iter, maxIter, maxAdjSigned, pname);
+			}
+		}
+
+		nro.resetDerivs();
+		maxAdj = 0;
+		maxAdjParam = -1;
+		improvement = 0;
+		lineSearch(nro);
+
+		if (!std::isfinite(refFit)) return;
+
+		nro.converged =
+			relImprovement(improvement) < tolerance || iter >= maxIter;
+
+		if (nro.isConverged()) break;
+	}
+}
+
+void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
+{
+	bool steepestDescent = false;
+
+	memcpy(prevEst.data(), nro.getParamVec(), numParam * sizeof(double));
+
+	int want = FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN;
+	if (verbose >= 5) want |= FF_COMPUTE_HESSIAN;
+	if (iter == 1) {
+		want |= FF_COMPUTE_FIT;
+	}
+
+	nro.evaluateDerivs(want);
+
+	double speed = std::min(priorSpeed * 1.5, 1.0);
+	nro.setSearchDir(searchDir);
+	Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
+	double targetImprovement = searchDir.dot(grad);
+
+	if (verbose >= 5) {
+		nro.debugDeriv(searchDir);
+	}
+
+	if (iter == 1) {
+		refFit = nro.getFit();
+		if (!std::isfinite(refFit)) return;
+	}
+
+	if (!std::isfinite(targetImprovement)) {
+		if (verbose >= 4) mxLog("%s: target improvement %.4g is suspect, using steepest descent",
+					name, targetImprovement);
+		steepestDescent = true;
+		// the steepness really provides no information due to unknown curvature
+		searchDir = grad / grad.norm();
+		if (!std::isfinite(searchDir.norm())) {
+			if (verbose >= 2) {
+				for (int px=0; px < numParam; ++px) {
+					if (std::isfinite(grad[px])) continue;
+					mxLog("%s=%f is infeasible; try adding bounds",
+					      nro.paramIndexToName(px), nro.getParamVec()[px]);
+				}
+			}
+			nro.reportBadDeriv();
+			return;
+		}
+		targetImprovement = 1;
+		speed = std::max(speed, .1);  // expect steepestDescent
+	}
+	
+	// This is based on the Goldstein test. However, we don't enforce
+	// a lower bound on the improvement.
+
+	int probeCount = 0;
+	Eigen::Map< Eigen::VectorXd > trial(nro.getParamVec(), numParam);
+	double bestSpeed = 0;
+	double bestImproved = 0;
+	double goodness = 0;
+	double bestFit = 0;
+
+	while (++probeCount < 16) {
+		const double scaledTarget = speed * targetImprovement;
+		if (!steepestDescent && relImprovement(scaledTarget) < tolerance) {
+			trial = prevEst;
+			return;
+		}
+		trial = (prevEst - speed * searchDir).
+			cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+		++minorIter;
+		nro.evaluateFit();
+		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
+					name, speed, scaledTarget, nro.getFit(), refFit);
+		if (!std::isfinite(nro.getFit())) {
+			speed *= .1;
+			continue;
+		}
+		const double improved = refFit - nro.getFit();
+		if (improved <= 0) {
+			double guess = scaledTarget/(scaledTarget-improved);
+			if (verbose >= 4) {
+				mxLog("%s: improved %.2g (%.2g), suspect excessive speed",
+				      name, improved, guess);
+			}
+			speed *= std::min(0.1, guess);
+			continue;
+		}
+		bestImproved = improved;
+		bestSpeed = speed;
+		bestFit = nro.getFit();
+		goodness = improved / scaledTarget;
+		if (verbose >= 3) mxLog("%s: viable speed %.2g for improvement %.3g goodness %f",
+					name, bestSpeed, bestImproved, goodness);
+		break;
+	}
+	if (bestSpeed == 0) {
+		trial = prevEst;
+		return;
+	}
+
+	const double epsilon = 0.5;
+	const double accelFactor = 0.5;
+	if (!steepestDescent && speed < 1/(1+0.5*accelFactor) && goodness < epsilon) {
+		if (verbose >= 3) {
+			mxLog("%s: goodness %.2f < %.2f, try to incr speed",
+			      name, goodness, epsilon);
+		}
+		int retries = 8;
+		while (--retries > 0) {
+			speed = std::min(speed * (1 + accelFactor), 1.0);
+			++probeCount;
+			trial = (prevEst - speed * searchDir).
+				cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+			++minorIter;
+			nro.evaluateFit();
+			if (!std::isfinite(nro.getFit())) break;
+			const double improved = refFit - nro.getFit();
+			if (bestImproved >= improved) break;
+			double improvementOverBest = improved - bestImproved;
+			if (verbose >= 4) {
+				mxLog("%s: [%d] incr speed for fit incremental improvement of %.2g",
+				      name, retries, improvementOverBest);
+			}
+			bestFit = nro.getFit();
+			bestImproved = improved;
+			bestSpeed = speed;
+			if (speed == 1 || relImprovement(improvementOverBest) < tolerance) break;
+		}
+	}
+
+	if (verbose >= 3) mxLog("%s: using steepestDescent %d probes %d speed %f improved %.3g",
+				name, steepestDescent, probeCount, bestSpeed, bestImproved);
+	priorSpeed = bestSpeed;
+
+	trial = (prevEst - bestSpeed * searchDir).
+		cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+
+	maxAdj = 0;
+	for (int px=0; px < numParam; ++px) {
+		const double oldEst = prevEst[px];
+		double badj = fabs(oldEst - trial(px));
+		if (maxAdj < badj) {
+			maxAdj = badj;
+			maxAdjSigned = oldEst - trial(px);
+			maxAdjParam = px;
+		}
+	}
+
+	improvement = bestImproved;
+	refFit = bestFit;
+}
 
 class ComputeNR : public omxCompute {
 	typedef omxCompute super;
-	omxMatrix *fitMatrix;
-	Eigen::VectorXd lbound;
-	Eigen::VectorXd ubound;
 
 	int maxIter;
 	double tolerance;
 	int verbose;
-	double priorSpeed;
-	int minorIter;
-	double refFit;
-
-	void lineSearch(FitContext *fc, int iter, double *maxAdj, double *maxAdjSigned,
-			int *maxAdjParam, double *improvement);
-	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
 
 public:
+	omxMatrix *fitMatrix;
+	int numParam;
+	const char *engineName;
 	virtual void initFromFrontend(omxState *state, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+};
+
+struct ComputeNRO : public NewtonRaphsonObjective {
+	ComputeNR &nr;
+	FitContext *fc;
+	ComputeNRO(ComputeNR *_nr, FitContext *_fc) : nr(*_nr), fc(_fc) {};
+	virtual bool isConverged() {
+		nr.reportProgress(fc);
+		return converged || isErrorRaised() || Global->timedOut ||
+			fc->getInform() != INFORM_UNINITIALIZED;
+	}
+	virtual double getFit() { return fc->fit; };
+	virtual void resetDerivs() {
+		fc->resetOrdinalRelativeError();
+		fc->grad = Eigen::VectorXd::Zero(nr.numParam);
+		fc->clearHessian();
+	};
+	virtual const char *paramIndexToName(int px)
+	{
+		const char *pname = "none";
+		if (px >= 0) pname = fc->varGroup->vars[px]->name;
+		return pname;
+	}
+	virtual void evaluateFit() {
+		fc->copyParamToModel();
+		ComputeFit(nr.engineName, nr.fitMatrix, FF_COMPUTE_FIT, fc);
+	}
+	virtual void evaluateDerivs(int want) {
+		fc->copyParamToModel();
+		ComputeFit(nr.engineName, nr.fitMatrix, want, fc);
+	}
+	virtual double *getParamVec() { return fc->est; };
+	virtual double *getGrad() { return fc->grad.data(); };
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) {
+		searchDir = fc->ihessGradProd();
+	}
+	virtual void reportBadDeriv() {
+		fc->setInform(INFORM_BAD_DERIVATIVES);
+	};
+	virtual void debugDeriv(const Eigen::Ref<Eigen::VectorXd> searchDir) {
+		fc->log(FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
+		std::string buf;
+		buf += "searchDir: c(";
+		for (int vx=0; vx < searchDir.size(); ++vx) {
+			buf += string_snprintf("%.5f", searchDir[vx]);
+			if (vx < searchDir.size() - 1) buf += ", ";
+		}
+		buf += ")\n";
+		mxLogBig(buf);
+	}
 };
 
 class omxCompute *newComputeNewtonRaphson()
@@ -75,6 +360,8 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
+
+	engineName = "NnRn";
 }
 
 void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, double *stress)
@@ -148,177 +435,11 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 	}
 }
 
-void pda(const double *ar, int rows, int cols);
-
-void ComputeNR::lineSearch(FitContext *fc, int iter, double *maxAdj, double *maxAdjSigned,
-			   int *maxAdjParam, double *improvement)
-{
-	*maxAdjParam = -1;
-	const size_t numParam = varGroup->vars.size();
-	bool steepestDescent = false;
-
-	fc->resetOrdinalRelativeError();
-	Eigen::VectorXd prevEst(numParam);
-	memcpy(prevEst.data(), fc->est, numParam * sizeof(double));
-
-	int want = FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN;
-	if (verbose >= 5) want |= FF_COMPUTE_HESSIAN;
-	if (iter == 1) {
-		want |= FF_COMPUTE_FIT;
-	}
-
-	ComputeFit(engineName, fitMatrix, want, fc);
-
-	double speed = std::min(priorSpeed * 1.5, 1.0);
-	Eigen::VectorXd searchDir(fc->ihessGradProd());
-	double targetImprovement = searchDir.dot(fc->grad);
-
-	if (verbose >= 5) {
-		fc->log(FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
-		std::string buf;
-		buf += "searchDir: c(";
-		for (int vx=0; vx < searchDir.size(); ++vx) {
-			buf += string_snprintf("%.5f", searchDir[vx]);
-			if (vx < searchDir.size() - 1) buf += ", ";
-		}
-		buf += ")\n";
-		mxLogBig(buf);
-	}
-
-	if (iter == 1) {
-		refFit = fc->fit;
-		if (!std::isfinite(refFit)) {
-			fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
-			return;
-		}
-	}
-
-	if (!std::isfinite(targetImprovement)) {
-		if (verbose >= 4) mxLog("%s: target improvement %.4g is suspect, using steepest descent",
-					name, targetImprovement);
-		steepestDescent = true;
-		// the steepness really provides no information due to unknown curvature
-		searchDir = fc->grad / fc->grad.norm();
-		if (!std::isfinite(searchDir.norm())) {
-			if (verbose >= 2) {
-				for (int px=0; px < fc->grad.size(); ++px) {
-					if (std::isfinite(fc->grad[px])) continue;
-					omxFreeVar *fv = fc->varGroup->vars[px];
-					mxLog("%s=%f is infeasible; try adding bounds", fv->name, fc->est[px]);
-				}
-			}
-			fc->setInform(INFORM_BAD_DERIVATIVES);
-			return;
-		}
-		targetImprovement = 1;
-		speed = std::max(speed, .1);  // expect steepestDescent
-	}
-	
-	// This is based on the Goldstein test. However, we don't enforce
-	// a lower bound on the improvement.
-
-	int probeCount = 0;
-	Eigen::Map< Eigen::VectorXd > trial(fc->est, numParam);
-	double bestSpeed = 0;
-	double bestImproved = 0;
-	double goodness = 0;
-	double bestFit = 0;
-
-	while (++probeCount < 16) {
-		const double scaledTarget = speed * targetImprovement;
-		if (!steepestDescent && relImprovement(scaledTarget) < tolerance) {
-			trial = prevEst;
-			return;
-		}
-		trial = (prevEst - speed * searchDir).cwiseMax(lbound).cwiseMin(ubound);
-		++minorIter;
-		fc->copyParamToModel();
-		ComputeFit(engineName, fitMatrix, FF_COMPUTE_FIT, fc);
-		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
-					name, speed, scaledTarget, fc->fit, refFit);
-		if (!std::isfinite(fc->fit)) {
-			speed *= .1;
-			continue;
-		}
-		const double improved = refFit - fc->fit;
-		if (improved <= 0) {
-			double guess = scaledTarget/(scaledTarget-improved);
-			if (verbose >= 4) {
-				mxLog("%s: improved %.2g (%.2g), suspect excessive speed",
-				      name, improved, guess);
-			}
-			speed *= std::min(0.1, guess);
-			continue;
-		}
-		bestImproved = improved;
-		bestSpeed = speed;
-		bestFit = fc->fit;
-		goodness = improved / scaledTarget;
-		if (verbose >= 3) mxLog("%s: viable speed %.2g for improvement %.3g goodness %f",
-					name, bestSpeed, bestImproved, goodness);
-		break;
-	}
-	if (bestSpeed == 0) {
-		trial = prevEst;
-		return;
-	}
-
-	const double epsilon = 0.5;
-	const double accelFactor = 0.5;
-	if (!steepestDescent && speed < 1/(1+0.5*accelFactor) && goodness < epsilon) {
-		if (verbose >= 3) {
-			mxLog("%s: goodness %.2f < %.2f, try to incr speed",
-			      name, goodness, epsilon);
-		}
-		int retries = 8;
-		while (--retries > 0) {
-			speed = std::min(speed * (1 + accelFactor), 1.0);
-			++probeCount;
-			trial = (prevEst - speed * searchDir).cwiseMax(lbound).cwiseMin(ubound);
-			++minorIter;
-			fc->copyParamToModel();
-			ComputeFit(engineName, fitMatrix, FF_COMPUTE_FIT, fc);
-			if (!std::isfinite(fc->fit)) break;
-			const double improved = refFit - fc->fit;
-			if (bestImproved >= improved) break;
-			double improvementOverBest = improved - bestImproved;
-			if (verbose >= 4) {
-				mxLog("%s: [%d] incr speed for fit incremental improvement of %.2g",
-				      name, retries, improvementOverBest);
-			}
-			bestFit = fc->fit;
-			bestImproved = improved;
-			bestSpeed = speed;
-			if (speed == 1 || relImprovement(improvementOverBest) < tolerance) break;
-		}
-	}
-
-	if (verbose >= 3) mxLog("%s: using steepestDescent %d probes %d speed %f improved %.3g",
-				name, steepestDescent, probeCount, bestSpeed, bestImproved);
-	priorSpeed = bestSpeed;
-
-	trial = (prevEst - bestSpeed * searchDir).cwiseMax(lbound).cwiseMin(ubound);
-
-	*maxAdj = 0;
-	for (size_t px=0; px < numParam; ++px) {
-		const double oldEst = prevEst[px];
-		double badj = fabs(oldEst - trial(px));
-		if (*maxAdj < badj) {
-			*maxAdj = badj;
-			*maxAdjSigned = oldEst - trial(px);
-			*maxAdjParam = px;
-		}
-	}
-
-	*improvement = bestImproved;
-	refFit = bestFit;
-}
-
 void ComputeNR::computeImpl(FitContext *fc)
 {
 	// complain if there are non-linear constraints TODO
 
-	size_t numParam = varGroup->vars.size();
+	numParam = varGroup->vars.size();
 	if (numParam <= 0) { complainNoFreeParam(); return; }
 
 	fc->setInform(INFORM_UNINITIALIZED);
@@ -326,72 +447,26 @@ void ComputeNR::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMatrix, fc);
 
 	// bounds might have changed
-	lbound.resize(numParam);
-	ubound.resize(numParam);
-	for(int px = 0; px < int(numParam); px++) {
-		lbound[px] = varGroup->vars[px]->lbound;
-		ubound[px] = varGroup->vars[px]->ubound;
+	ComputeNRO obj(this, fc);
+	obj.lbound.resize(numParam);
+	obj.ubound.resize(numParam);
+	for(int px = 0; px < numParam; px++) {
+		obj.lbound[px] = varGroup->vars[px]->lbound;
+		obj.ubound[px] = varGroup->vars[px]->ubound;
 	}
 
-	priorSpeed = 1;
-	minorIter = 0;
-	int startIter = fc->iterations;
-	bool converged = false;
-	double maxAdj = 0;
-	double maxAdjSigned = 0;
-	int maxAdjParam = -1;
+	NewtonRaphsonOptimizer nro(name, maxIter, tolerance, verbose);
+	nro(obj);
 
-	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
-		      (int)numParam, tolerance, maxIter);
-		if (verbose >= 3) {
-			mxPrintMat("lbound", lbound);
-			mxPrintMat("ubound", ubound);
-		}
-	}
-	while (1) {
-		fc->iterations += 1;
-		int iter = fc->iterations - startIter;
-		if (verbose >= 2) {
-			if (iter == 1) {
-				mxLog("%s: iter %d/%d", name, iter, maxIter);
-			} else {
-				const char *pname = "none";
-				if (maxAdjParam >= 0) pname = fc->varGroup->vars[maxAdjParam]->name;
-				mxLog("%s: iter %d/%d (prev maxAdj %.3g for %s)",
-				      name, iter, maxIter, maxAdjSigned, pname);
-			}
-		}
+	fc->iterations += nro.getIter();
 
-		fc->grad = Eigen::VectorXd::Zero(fc->numParam);
-		fc->clearHessian();
-
-		maxAdj = 0;
-		double improvement = 0;
-		lineSearch(fc, iter, &maxAdj, &maxAdjSigned, &maxAdjParam, &improvement);
-		if (fc->getInform() != INFORM_UNINITIALIZED) {
-			if (verbose >= 2) {
-				mxLog("%s: line search failed with code %d", name, fc->getInform());
-			}
-			return;
-		}
-
-		reportProgress(fc);
-
-		converged = relImprovement(improvement) < tolerance;
-
-		fc->copyParamToModel();
-
-		if (converged || iter >= maxIter || isErrorRaised() || Global->timedOut) break;
-	}
-
-	if (converged) {
+	if (obj.converged) {
 		double gradNorm = 0.0;
 		double feasibilityTolerance = Global->feasibilityTolerance;
 		// factor out simliar code in omxHessianCalculation
-		for (int gx=0; gx < int(fc->numParam); ++gx) {
-			if ((fc->grad[gx] > 0 && fabs(fc->est[gx] - lbound[gx]) < feasibilityTolerance) ||
-			    (fc->grad[gx] < 0 && fabs(fc->est[gx] - ubound[gx]) < feasibilityTolerance)) continue;
+		for (int gx=0; gx < numParam; ++gx) {
+			if ((fc->grad[gx] > 0 && fabs(fc->est[gx] - obj.lbound[gx]) < feasibilityTolerance) ||
+			    (fc->grad[gx] < 0 && fabs(fc->est[gx] - obj.ubound[gx]) < feasibilityTolerance)) continue;
 			double g1 = fc->grad[gx];
 			gradNorm += g1 * g1;
 		}
@@ -405,16 +480,18 @@ void ComputeNR::computeImpl(FitContext *fc)
 			fc->wanted |= FF_COMPUTE_BESTFIT;
 		}
 		if (verbose >= 1) {
-			int iter = fc->iterations - startIter;
 			mxLog("%s: converged in %d cycles (%d minor iterations) inform=%d",
-			      name, iter, minorIter, fc->getInform());
+			      name, nro.getIter(), nro.getMinorIter(), fc->getInform());
 		}
 	} else {
-		fc->setInform(INFORM_ITERATION_LIMIT);
-		if (verbose >= 1) {
-			int iter = fc->iterations - startIter;
-			mxLog("%s: failed to converge after %d cycles (%d minor iterations)",
-			      name, iter, minorIter);
+		if (nro.getIter() == 1) {
+			fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
+		} else {
+			fc->setInform(INFORM_ITERATION_LIMIT);
+			if (verbose >= 1) {
+				mxLog("%s: failed to converge after %d cycles (%d minor iterations)",
+				      name, nro.getIter(), nro.getMinorIter());
+			}
 		}
 	}
 }

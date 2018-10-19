@@ -99,7 +99,7 @@ class omxData {
 	int *currentFreqColumn;
 	bool permuted;
 
- public: // move everything to private TODO
+ public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
 	bool hasWeight() const { return weightCol >= 0; };
 	bool hasFreq() const { return freqCol >= 0 || currentFreqColumn; };
@@ -165,7 +165,6 @@ class omxData {
 	}
 	int numRawRows();
 	void prohibitNAs(int col);
-	void reloadFromFile(const std::string &path);
 	void freeInternal();
 	bool isDynamic() { return expectation.size() != 0; };
 };

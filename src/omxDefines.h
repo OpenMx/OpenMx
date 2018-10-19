@@ -434,4 +434,25 @@ class ProtectAutoBalanceDoodad {
 	}
 };
 
+class AssertProtectStackBalanced {
+	ProtectAutoBalanceDoodad &myDoodad;
+	const char *context;
+	int preDepth;
+	
+ public:
+ 	AssertProtectStackBalanced(const char *_context,
+			    ProtectAutoBalanceDoodad &_myDoodad) :
+	context(_context), myDoodad(_myDoodad) {
+		preDepth = myDoodad.getDepth();
+	};
+	~AssertProtectStackBalanced() {
+		int postDepth = myDoodad.getDepth();
+		if (preDepth != postDepth) {
+			Rf_warning("%s: "
+				   "protect stack usage %d > 0, PLEASE REPORT TO OPENMX DEVELOPERS",
+				   context, postDepth - preDepth);
+		}
+	}
+};
+
 #endif /* _OMXDEFINES_H_ */
