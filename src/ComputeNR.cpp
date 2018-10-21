@@ -145,7 +145,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 		if (!std::isfinite(refFit)) return;
 	}
 
-	if (!std::isfinite(targetImprovement)) {
+	if (!std::isfinite(targetImprovement) || targetImprovement < 0) {
 		if (verbose >= 4) mxLog("%s: target improvement %.4g is suspect, using steepest descent",
 					name, targetImprovement);
 		steepestDescent = true;
