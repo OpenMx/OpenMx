@@ -28,6 +28,23 @@ void omxRAMExpectation::flatten(FitContext *fc)
 	rram->init(this, fc);
 }
 
+void omxRAMExpectation::getExogenousPredictors(std::vector<int> &out)
+{
+	int numDefVars = data->defVars.size();
+	if (numDefVars == 0 || !M || !M->isSimple() || !S->isSimple()) return;
+
+	EigenMatrixAdaptor eS(S);
+	hasVariance = eS.diagonal().array().abs().matrix();
+	
+	int mNum = ~M->matrixNumber;
+	for (int k=0; k < numDefVars; ++k) {
+		omxDefinitionVar &dv = data->defVars[k];
+		if (dv.matrix == mNum && hasVariance[ dv.col ] == 0.0) {
+			out.push_back(dv.column); // index into omxData
+		}
+	}
+}
+
 void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
 	omxRAMExpectation* oro = this;

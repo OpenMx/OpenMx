@@ -608,6 +608,7 @@ class omxRAMExpectation : public omxExpectation {
 	virtual void invalidateCache();
 	virtual void generateData(FitContext *fc, MxRList &out);
 	virtual void flatten(FitContext *fc);
+	virtual void getExogenousPredictors(std::vector<int> &out);
 };
 
 namespace RelationalRAMExpectation {

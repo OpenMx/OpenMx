@@ -30,6 +30,8 @@
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
 #include "matrix.h"
 #include <fstream>
+#include <Rmath.h>
+#include "nr.h"
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
@@ -987,6 +989,8 @@ void getContRow(std::vector<ColumnData> &df,
 void omxData::wlsAllContinuousCumulants(omxState *state,
 					const Eigen::Ref<const DataColumnIndexVector> &dc)
 {
+	// permit mxData(type='raw') TODO
+
 	int numCols = dc.size();
 	int numColsStar = numCols*(numCols+1)/2;
 	auto &o1 = obsStatsVec[0];
@@ -1062,9 +1066,271 @@ void omxData::wlsAllContinuousCumulants(omxState *state,
 	}
 }
 
-void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc)
+template <typename T1, typename T2>
+void tabulate(Eigen::MatrixBase<T1> &data, Eigen::MatrixBase<T2> &out)
 {
-	if (numFactor != 0 || !strEQ(wlsContinuousType, "cumulants")) {
+	out.setZero();
+	for (int rx=0; rx < data.rows(); ++rx) {
+		if (data[rx] == NA_INTEGER) continue;
+		out[ data[rx] - 1 ] += 1;
+	}
+}
+
+template <typename T1>
+void cumsum(Eigen::MatrixBase<T1> &data)
+{
+	for (int rx=data.rows()-2; rx >= 0; --rx) {
+		data.segment(rx+1, data.size() - rx - 1).array() += data[rx];
+	}
+}
+
+struct OLSRegression {
+	omxData &data;
+	int rows;
+	std::vector<int> exoPred;
+	ColumnData *response;
+	Eigen::MatrixXd pred;
+	Eigen::MatrixXd predCov;
+	Eigen::ArrayXd resid;
+	Eigen::VectorXd beta;
+	Eigen::MatrixXd scores;
+	double var;
+	OLSRegression(omxData *_d, std::vector<int> &_exoPred);
+	void setResponse(ColumnData &response);
+	void calcScores();
+};
+
+OLSRegression::OLSRegression(omxData *_d, std::vector<int> &_exoPred)
+	: data(*_d), rows(int(data.numObs)), exoPred(_exoPred)
+{
+	resid.resize(rows);
+	pred.resize(rows, 1 + exoPred.size());
+	pred.col(0).setConstant(1.0);
+	for (int cx=0; cx < int(exoPred.size()); ++cx) {
+		auto &c1 = data.rawCols[ exoPred[cx] ];
+		Eigen::Map< Eigen::VectorXd > vec(c1.realData, rows);
+		pred.col(1+cx) = vec;
+	}
+	predCov = pred.transpose() * pred;
+	int singular = InvertSymmetricPosDef(predCov, 'L');
+	if (singular) {
+		omxRaiseErrorf("%s: cannot invert exogenous predictors (%d)",
+			       data.name, singular);
+		return;
+	}
+}
+
+void OLSRegression::setResponse(ColumnData &cd)
+{
+	response = &cd;
+	Eigen::Map< Eigen::VectorXd > ycol(cd.realData, rows);
+	if (exoPred.size()) {
+		beta = predCov.selfadjointView<Eigen::Lower>() * pred.transpose() * ycol;
+		resid = ycol - pred * beta;
+	} else {
+		beta.resize(1);
+		beta[0] = ycol.mean();
+		resid = ycol.array() - beta.col(0).array();
+	}
+	var = resid.square().sum() / rows;
+}
+
+void OLSRegression::calcScores()
+{
+	Eigen::Map< Eigen::VectorXd > ycol(response->realData, rows);
+	scores.resize(rows, 1 + pred.cols());
+	scores.block(0,0,rows,pred.cols()) = (pred.array().colwise() * resid) / var;
+	scores.col(pred.cols()) = -1./(2*var) + 1./(2*var*var) * resid * resid;
+}
+
+struct ProbitRegression : NewtonRaphsonObjective {
+	omxData &data;
+	int rows;
+	int numThr;
+	ColumnData *response;
+	std::vector<int> exoPred;
+	int verbose;
+	Eigen::VectorXd param;
+	std::vector<std::string> pnames;
+	Eigen::ArrayXXd pred;
+	double fit;
+	Eigen::ArrayXd pr;
+	Eigen::ArrayXXd zi;
+	Eigen::ArrayXXd dzi;
+	Eigen::ArrayXXd scores;
+	Eigen::VectorXd grad;
+	Eigen::ArrayXXd dxa;
+	Eigen::ArrayXXd Y1, Y2;
+	Eigen::MatrixXd hess;
+
+	ProbitRegression(omxData *_d, std::vector<int> &_exoPred);
+	void setResponse(ColumnData &response);
+	virtual double getFit() { return fit; }
+	virtual const char *paramIndexToName(int px)
+	{ return pnames[px].c_str(); }
+	void evaluate0();
+	void calcScores();
+	virtual void evaluateFit();
+	virtual void evaluateDerivs(int want);
+	virtual double *getParamVec() { return param.data(); }
+	virtual double *getGrad() { return grad.data(); }
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir);
+};
+
+ProbitRegression::ProbitRegression(omxData *_d, std::vector<int> &_exoPred) :
+	data(*_d), rows(int(data.numObs)), numThr(0),
+	response(0), exoPred(_exoPred), verbose(data.verbose)
+{
+	pred.resize(rows, exoPred.size());
+	for (int cx=0; cx < int(exoPred.size()); ++cx) {
+		auto &c1 = data.rawCols[ exoPred[cx] ];
+		Eigen::Map< Eigen::VectorXd > vec(c1.realData, rows);
+		pred.col(cx) = vec;
+	}
+
+	zi.resize(rows, 2);
+	dzi.resize(rows, 2);
+	pr.resize(rows);
+}
+
+void ProbitRegression::setResponse(ColumnData &_r)
+{
+	response = &_r;
+	numThr = response->levels.size()-1;
+
+	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
+	Eigen::VectorXi tab(response->levels.size());
+	tabulate(ycol, tab);
+	Eigen::VectorXd prop = (tab.cast<double>() / double(tab.sum())).
+		segment(0, numThr);
+	cumsum(prop);
+	param.resize(prop.size() + exoPred.size());
+	pnames.clear();
+	for (int px=0; px < prop.size(); ++px) {
+		param[px] = Rf_qnorm5(prop[px], 0., 1., 1, 0);
+		if (verbose >= 1) pnames.push_back(string_snprintf("th%d", 1+px));
+	}
+	if (verbose >= 1) {
+		for (int cx=0; cx < int(exoPred.size()); ++cx) {
+			auto &c1 = data.rawCols[ exoPred[cx] ];
+			pnames.push_back(c1.name);
+		}
+	}
+	param.segment(numThr, pred.cols()).array() = 0;
+
+	dxa.resize(rows, numThr);
+
+	Y1.resize(rows, numThr);
+	Y2.resize(rows, numThr);
+	Y1.setZero();
+	Y2.setZero();
+	for (int rx=0; rx < rows; ++rx) {
+		if (ycol[rx]-2 >= 0)     Y2(rx, ycol[rx]-2) = 1;
+		if (ycol[rx]-1 < numThr) Y1(rx, ycol[rx]-1) = 1;
+	}
+
+	lbound.resize(param.size());
+	lbound.setConstant(NEG_INF);
+	ubound.resize(param.size());
+	ubound.setConstant(INF);
+	scores.resize(rows, param.size());
+	hess.resize(param.size(), param.size());
+}
+
+void ProbitRegression::evaluate0()
+{
+	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
+	Eigen::VectorXd th(1 + response->levels.size());
+	th.segment(1, numThr) = param.segment(0, numThr);
+	th[0] = -std::numeric_limits<double>::infinity();
+	th[response->levels.size()] = std::numeric_limits<double>::infinity();
+
+	for (int rx=0; rx < rows; ++rx) {
+		double eta = pred.row(rx).matrix() * param.segment(numThr, pred.cols());
+		zi(rx,0) = std::min(100., th[ycol[rx]] - eta);
+		zi(rx,1) = std::max(-100., th[ycol[rx]-1] - eta);
+		pr[rx] = Rf_pnorm5(zi(rx,0), 0., 1., 1, 0) - Rf_pnorm5(zi(rx,1), 0., 1., 1, 0);
+	}
+}
+
+void ProbitRegression::evaluateFit()
+{
+	evaluate0();
+	fit = -pr.array().log().sum();
+}
+
+void ProbitRegression::calcScores()
+{
+	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
+	dxa.setZero();
+	for (int rx=0; rx < rows; ++rx) {
+		dzi(rx,0) = Rf_dnorm4(zi(rx,0), 0., 1., 0);
+		dzi(rx,1) = Rf_dnorm4(zi(rx,1), 0., 1., 0);
+		if (ycol[rx]-2 >= 0) {
+			dxa(rx,ycol[rx]-2) -= dzi(rx,1);
+		}
+		if (ycol[rx]-1 < numThr) {
+			dxa(rx, ycol[rx]-1) += dzi(rx,0);
+		}
+	}
+	scores.block(0,0,rows,numThr) = dxa.colwise() / pr;
+	scores.block(0,numThr,rows,pred.cols()) =
+		pred.colwise() * ((dzi.col(1) - dzi.col(0)) / pr);
+}
+
+void ProbitRegression::evaluateDerivs(int want)
+{
+	if (want & FF_COMPUTE_FIT) {
+		evaluateFit();
+	} else {
+		evaluate0();
+	}
+
+	calcScores();
+	grad = -scores.colwise().sum();
+	
+	Eigen::ArrayXXd gdzi = (dzi * zi).colwise() / -pr;
+	Eigen::ArrayXd pr2 = pr * pr;
+	pr2 = 1.0/pr2;
+
+	hess.block(0,0,numThr,numThr) =
+		dxa.transpose().matrix() * (dxa.colwise() * pr2).matrix() -
+		((Y1.colwise() * gdzi.col(0)).transpose().matrix() * Y1.matrix() -
+		 (Y2.colwise() * gdzi.col(1)).transpose().matrix() * Y2.matrix());
+
+	Eigen::ArrayXXd dxb = pred.colwise() * (dzi.col(0) - dzi.col(1));
+
+	hess.block(numThr,numThr,pred.cols(),pred.cols()) =
+		dxb.transpose().matrix() * (dxb.colwise() * pr2).matrix() -
+		((pred.colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
+		 (pred.colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix());
+
+	hess.block(0,numThr,numThr,pred.cols()) =
+		-(dxa.transpose().matrix() * (dxb.colwise() * pr2).matrix() -
+		  ((Y1.colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
+		   (Y2.colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix()));
+	
+	hess.block(numThr,0,pred.cols(),numThr) =
+		hess.block(0,numThr,numThr,pred.cols()).transpose();
+
+	if (want & FF_COMPUTE_HESSIAN) ; // TODO
+}
+
+void ProbitRegression::setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+{
+	Eigen::MatrixXd ihess = hess;
+	int singular = InvertSymmetricPosDef(ihess, 'U');
+	if (singular) {
+		singular = InvertSymmetricIndef(ihess, 'U');
+		if (singular) ihess = Eigen::DiagonalMatrix<double, Eigen::Dynamic>(param.size());
+	}
+	searchDir = ihess.selfadjointView<Eigen::Upper>() * grad;
+}
+
+void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
+			     std::vector<int> &exoPred)
+{
+	if (strEQ(getType(), "acov")) {
 		permute(dc);
 		return;
 	}
@@ -1083,6 +1349,38 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	permuted = true;
 	obsStatsVec.clear();
 	obsStatsVec.resize(1);
+	auto &o1 = obsStatsVec[0];
 
-	wlsAllContinuousCumulants(state, dc);
+	// Maybe still applicable if exoPred is empty? TODO
+	//wlsAllContinuousCumulants(state, dc);
+
+	// based on lav_samplestats_step1.R, lavaan 0.6-2
+	for (int yy=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		mxLog("%s", cd.name);
+		if (cd.type == COLUMNDATA_NUMERIC) {
+			OLSRegression olsr(this, exoPred);
+			olsr.setResponse(cd);
+			olsr.calcScores();
+			mxPrintMat("beta", olsr.beta);
+			mxLog("var %f", olsr.var);
+			mxPrintMat("sc", olsr.scores.row(0));
+			// probably need scores TODO
+		} else {
+			ProbitRegression pr(this, exoPred);
+			pr.setResponse(cd);
+
+			if (exoPred.size()) {
+				double eps = sqrt(std::numeric_limits<double>::epsilon());
+				NewtonRaphsonOptimizer nro("nr", 100, eps, 0);
+				nro(pr);
+			} else {
+				pr.calcScores();
+			}
+
+			mxPrintMat("param", pr.param);
+			mxPrintMat("sc", pr.scores.row(0));
+		}
+	}
+	Rf_error("Not implemented yet");
 }

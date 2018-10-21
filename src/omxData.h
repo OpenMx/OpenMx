@@ -197,7 +197,8 @@ class omxData {
 	const char *columnName(int col);
 	bool columnIsFactor(int col);
 	bool hasSummaryStats() { return dataMat != 0 || obsStatsVec.size(); }
-	void recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc);
+	void recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
+			    std::vector<int> &exoPred);
 	void wlsAllContinuousCumulants(omxState *state,
 				       const Eigen::Ref<const DataColumnIndexVector> &dc);
 };

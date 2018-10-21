@@ -28,7 +28,6 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* weights;
 	omxMatrix* P;
 	omxMatrix* B;
-	int fullWls;
 	int numOrdinal;
 	
 	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
@@ -194,34 +193,25 @@ void omxWLSFitFunction::init()
 	
 	omxState *currentState = oo->matrix->currentState;
 	
-	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
+	if (!oo->expectation) { Rf_error("%s requires an expectation", name()); }
 	
-	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
-	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
-	
-	if(OMX_DEBUG) { mxLog("Retrieving data.\n"); }
 	omxData* dataMat = oo->expectation->data;
-	if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
+
+	std::vector<int> exoPred;
+	expectation->getExogenousPredictors(exoPred);
+
+	if (dataMat->defVars.size() == exoPred.size()) {
+		// OK
+	} else if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
 	
-	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "cov")) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "WLS FitFunction unable to handle data type %s.  Data must be of type 'acov'.\n", omxDataType(dataMat));
-		omxRaiseError(errstr);
-		free(errstr);
-		if(OMX_DEBUG) { mxLog("WLS FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
+	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "raw")) {
+		omxRaiseErrorf("%s: unable to handle data type %s. Data must be of type 'raw' or 'acov'",
+			       name(), omxDataType(dataMat));
 		return;
 	}
 	
-	fullWls = strEQ("WLS", CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("weights")))));
-
-	oo->units = fullWls? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
-	
-	/* Get Expectation Elements */
-	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
-	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
-	
 	// For multiple threads, need to grab parent's info TODO
-	dataMat->recalcWLSStats(currentState, oo->expectation->getDataColumns());
+	dataMat->recalcWLSStats(currentState, oo->expectation->getDataColumns(), exoPred);
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
 	omxMatrix *cov = obsStat.covMat;
@@ -238,6 +228,9 @@ void omxWLSFitFunction::init()
 		return;
 	}
 
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
+	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
@@ -282,6 +275,10 @@ void omxWLSFitFunction::init()
 		return;
 	}
 	
+	EigenMatrixAdaptor Eweight(weights);
+	Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+	double offDiag = offDiagW.array().abs().sum();
+	oo->units = offDiag > 0.0? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
 	
 	// FIXME: More Rf_error checking for incoming Fit Functions
 	
