@@ -21,7 +21,7 @@ ComputeNM.o: Makevars ComputeNM.cpp omxDefines.h \
 ComputeNR.o: Makevars ComputeNR.cpp omxState.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h omxExportBackendState.h Compute.h \
- glue.h matrix.h EnableWarnings.h
+ glue.h matrix.h nr.h EnableWarnings.h
 ComputeSD.o: Makevars ComputeSD.cpp ComputeGD.h Compute.h omxDefines.h \
  glue.h omxState.h  \
   omxMatrix.h omxAlgebra.h \
