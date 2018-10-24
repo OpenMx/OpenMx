@@ -428,6 +428,59 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	}
 }
 
+double UnconstrainedSLSQPOptimizer::obj(unsigned n, const double *x, double *grad, void *mythis)
+{ return ((UnconstrainedSLSQPOptimizer*)mythis)->evaluate(x, grad); }
+
+void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
+{
+	uo = &_uo;
+	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size());
+	nlopt_set_lower_bounds(opt, uo->lbound.data());
+	nlopt_set_upper_bounds(opt, uo->ubound.data());
+	nlopt_set_ftol_rel(opt, tolerance);
+	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
+	nlopt_set_min_objective(opt, obj, this);
+
+	struct nlopt_slsqp_wdump wkspc;
+	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
+	opt->work = (nlopt_slsqp_wdump*)&wkspc;
+	
+	double fit = 0;
+	int code = nlopt_optimize(opt, uo->getParamVec(), &fit);
+
+	opt->work = 0;
+	free(wkspc.realwkspc);
+	nlopt_destroy(opt);
+
+	if (code == NLOPT_INVALID_ARGS) {
+		Rf_error("NLOPT invoked with invalid arguments");
+	} else if (code == NLOPT_OUT_OF_MEMORY) {
+		Rf_error("NLOPT ran out of memory");
+	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
+		Rf_error("NLOPT_ROUNDOFF_LIMITED"); // only relevant to constrained optimization
+	} else if (code < 0) {
+		Rf_error("STARTING_VALUES_INFEASIBLE");
+	} else if (code == NLOPT_MAXEVAL_REACHED) {
+		Rf_error("ITERATION_LIMIT");
+	}
+}
+
+double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
+{
+	double fit = uo->getFit(x);
+	if (grad) {
+		uo->getGrad(grad);
+		if (verbose >= 2) {
+			Eigen::Map< Eigen::VectorXd > Egrad(grad, uo->ubound.size());
+			mxLog("%f", fit);
+			mxPrintMat("grad", Egrad);
+		}
+		iter += 1;
+	} else {
+		if (verbose >= 3) mxLog("%f", fit);
+	}
+	return fit;
+}
 
 void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt)
 {
@@ -480,6 +533,4 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	opt->work = NULL;
 	free(wkspc.realwkspc);
 	nlopt_destroy(opt);
-	
-	return;
 }
