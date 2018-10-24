@@ -8,14 +8,14 @@ ComputeGD.o: Makevars ComputeGD.cpp omxDefines.h \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
  omxNPSOLSpecific.h omxExportBackendState.h omxCsolnp.h Compute.h \
- glue.h nloptcpp.h npsolswitch.h ComputeSD.h matrix.h ComputeGD.h \
+ glue.h omxNLopt.h npsolswitch.h ComputeSD.h matrix.h ComputeGD.h \
  finiteDifferences.h \
  asa.h asa_usr_asa.h EnableWarnings.h
 ComputeNM.o: Makevars ComputeNM.cpp omxDefines.h \
  omxState.h  \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
- omxExportBackendState.h nloptcpp.h Compute.h \
+ omxExportBackendState.h omxNLopt.h Compute.h \
  glue.h ComputeGD.h finiteDifferences.h ComputeNM.h \
  nlopt.h nlopt-internal.h nlopt-util.h EnableWarnings.h
 ComputeNR.o: Makevars ComputeNR.cpp omxState.h omxDefines.h \
@@ -65,11 +65,11 @@ matrix.o: Makevars matrix.cpp omxDefines.h \
   omxMatrix.h EnableWarnings.h
 merge.o: Makevars merge.cpp merge.h EnableWarnings.h
 nanotimer.o: Makevars nanotimer.cpp nanotimer_gettime.h
-nloptcpp.o: Makevars nloptcpp.cpp omxDefines.h \
+omxNLopt.o: Makevars omxNLopt.cpp omxDefines.h \
  omxState.h  \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
- glue.h nloptcpp.h Compute.h \
+ glue.h omxNLopt.h Compute.h \
  ComputeGD.h finiteDifferences.h ComputeNM.h \
  nlopt.h slsqp.h nlopt-util.h nlopt-internal.h EnableWarnings.h
 omxAlgebra.o: Makevars omxAlgebra.cpp omxMatrix.h \
