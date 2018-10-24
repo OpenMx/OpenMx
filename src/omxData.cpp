@@ -58,10 +58,6 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 	if (!strEQ(od->getType(), "cov")) {
 		omxRaiseErrorf("Don't know how to create dynamic data with type '%s'", od->getType());
 	}
-
-	{ScopedProtect p2(dataLoc, R_do_slot(dataObject, Rf_install("verbose")));
-	od->verbose = Rf_asInteger(dataLoc);
-	}
 }
 
 void omxData::addDynamicDataSource(omxExpectation *ex)
@@ -391,6 +387,8 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData();
 	od->name = name;
+	ProtectedSEXP Rverbose(R_do_slot(dataObj, Rf_install("verbose")));
+	od->verbose = Rf_asInteger(Rverbose);
 	dataList.push_back(od);
 	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObj);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObj, od);
@@ -963,6 +961,16 @@ void obsSummaryStats::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
 	//mxPrintMat("ew", Eweights);
 }
 
+void obsSummaryStats::log()
+{
+	mxLog("numObs %d numOrdinal %d", numObs, numOrdinal);
+	if (covMat) omxPrint(covMat, "cov");
+	if (meansMat) omxPrint(meansMat, "mean");
+	if (acovMat) omxPrint(acovMat, "acov");
+	if (fullWeight && acovMat != fullWeight) omxPrint(fullWeight, "full");
+	if (thresholdMat) omxPrint(thresholdMat, "thr");
+}
+
 void omxData::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
 {
 	if (!dc.size()) return;
@@ -1354,33 +1362,89 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	// Maybe still applicable if exoPred is empty? TODO
 	//wlsAllContinuousCumulants(state, dc);
 
+	o1.covMat = omxInitMatrix(numCols, numCols, state);
+	o1.meansMat = omxInitMatrix(1, numCols, state);
+	EigenMatrixAdaptor Ecov(o1.covMat);
+	EigenVectorAdaptor Emean(o1.meansMat);
+
+	o1.perVar.resize(numCols);
+	OLSRegression olsr(this, exoPred);
+	ProbitRegression pr(this, exoPred);
+
 	// based on lav_samplestats_step1.R, lavaan 0.6-2
+	int maxNumThr = 0;
 	for (int yy=0; yy < numCols; ++yy) {
 		ColumnData &cd = rawCols[ dc[yy] ];
-		mxLog("%s", cd.name);
+		WLSVarData &pv = o1.perVar[yy];
 		if (cd.type == COLUMNDATA_NUMERIC) {
-			OLSRegression olsr(this, exoPred);
 			olsr.setResponse(cd);
 			olsr.calcScores();
-			mxPrintMat("beta", olsr.beta);
-			mxLog("var %f", olsr.var);
-			mxPrintMat("sc", olsr.scores.row(0));
-			// probably need scores TODO
+			pv.resid = olsr.resid;
+			pv.theta.resize(olsr.beta.size() + 1);
+			pv.theta.segment(0, olsr.beta.size()) = olsr.beta;
+			pv.theta[olsr.beta.size()] = olsr.var;
+			pv.scores = olsr.scores;
+			Ecov(yy,yy) = olsr.var;
+			Emean[yy] = pv.theta[0];
 		} else {
-			ProbitRegression pr(this, exoPred);
 			pr.setResponse(cd);
-
 			if (exoPred.size()) {
 				double eps = sqrt(std::numeric_limits<double>::epsilon());
-				NewtonRaphsonOptimizer nro("nr", 100, eps, 0);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
 				nro(pr);
 			} else {
 				pr.calcScores();
 			}
-
-			mxPrintMat("param", pr.param);
-			mxPrintMat("sc", pr.scores.row(0));
+			pv.theta = pr.param;
+			pv.scores = pr.scores;
+			omxThresholdColumn tc;
+			tc.dColumn = dc[yy];
+			tc.column = o1.thresholdCols.size();
+			tc.numThresholds = pr.numThr;
+			o1.thresholdCols.push_back(tc);
+			maxNumThr = std::max(maxNumThr, pr.numThr);
+			Ecov(yy,yy) = 1.;
+			Emean[yy] = 0.;
 		}
 	}
+
+	o1.numObs = int(numObs);
+	o1.numOrdinal = o1.thresholdCols.size();
+	o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
+	EigenMatrixAdaptor Ethr(o1.thresholdMat);
+	Ethr.setConstant(nan("uninit"));
+	for (int yy=0, tx=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		if (cd.type == COLUMNDATA_NUMERIC) continue;
+		WLSVarData &pv = o1.perVar[yy];
+		auto &tc = o1.thresholdCols[tx];
+		Ethr.block(0,tx,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
+		tx += 1;
+	}
+
+	// based on lav_samplestats_step2.R, lavaan 0.6-2
+	for (int jj=0; jj < numCols-1; ++jj) {
+		ColumnData &cd1 = rawCols[ dc[jj] ];
+		for (int ii=jj+1; ii < numCols; ++ii) {
+			ColumnData &cd2 = rawCols[ dc[ii] ];
+			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
+				WLSVarData &pv1 = o1.perVar[jj];
+				WLSVarData &pv2 = o1.perVar[ii];
+				double tmp = pv1.resid.matrix().dot(pv2.resid.matrix());
+				double cor = tmp / (o1.numObs *
+						    sqrt(pv1.theta[pv1.theta.size()-1]) *
+						    sqrt(pv2.theta[pv2.theta.size()-1]));
+				Ecov(ii,jj) = cor;
+				Ecov(jj,ii) = cor;
+			} else if (cd1.type == COLUMNDATA_NUMERIC) {
+				
+			} else if (cd2.type == COLUMNDATA_NUMERIC) {
+			} else {
+			}
+		}
+	}
+
+	o1.log();
+
 	Rf_error("Not implemented yet");
 }
