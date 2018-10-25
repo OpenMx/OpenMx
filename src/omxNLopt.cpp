@@ -5,7 +5,7 @@
 #include "omxState.h"
 #include "omxMatrix.h"
 #include "glue.h"
-#include "nloptcpp.h"
+#include "omxNLopt.h"
 #include "Compute.h"
 #include "ComputeGD.h"
 #include "ComputeNM.h"

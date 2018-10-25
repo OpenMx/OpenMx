@@ -18,7 +18,7 @@
 #include "omxState.h"
 #include "omxFitFunction.h"
 #include "omxExportBackendState.h"
-#include "nloptcpp.h"
+#include "omxNLopt.h"
 #include "Compute.h"
 #include "glue.h"
 #include "ComputeGD.h"

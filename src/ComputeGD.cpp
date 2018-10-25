@@ -20,7 +20,7 @@
 #include "omxNPSOLSpecific.h"
 #include "omxExportBackendState.h"
 #include "omxCsolnp.h"
-#include "nloptcpp.h"
+#include "omxNLopt.h"
 #include "Compute.h"
 #include "npsolswitch.h"
 #include "glue.h"
