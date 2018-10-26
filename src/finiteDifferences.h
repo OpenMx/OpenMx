@@ -5,6 +5,11 @@
 
 // See http://en.wikipedia.org/wiki/Finite_difference
 
+enum GradientAlgorithm {
+	GradientAlgorithm_Forward,
+	GradientAlgorithm_Central
+};
+
 template <class Derived>
 struct finite_difference_grad {
 	double refFit;

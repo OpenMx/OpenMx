@@ -469,7 +469,7 @@ double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
 {
 	double fit = uo->getFit(x);
 	if (grad) {
-		uo->getGrad(grad);
+		uo->getGrad(x, grad);
 		if (verbose >= 2) {
 			Eigen::Map< Eigen::VectorXd > Egrad(grad, uo->ubound.size());
 			mxLog("%f", fit);
@@ -480,6 +480,26 @@ double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
 		if (verbose >= 3) mxLog("%f", fit);
 	}
 	return fit;
+}
+
+UnconstrainedObjective::UnconstrainedObjective()
+	: gwrContext(0)
+{}
+
+UnconstrainedObjective::~UnconstrainedObjective()
+{
+	if (gwrContext) delete gwrContext;
+}
+
+void UnconstrainedObjective::getGrad(const double *x, double *out)
+{
+	if (!gwrContext) {
+		gwrContext = new GradientWithRef(1,lbound.size(),GradientAlgorithm_Central,3,1e-3);
+	}
+	Eigen::Map<const Eigen::VectorXd> Epoint(x, lbound.size());
+	Eigen::Map<Eigen::VectorXd> Egrad(out, lbound.size());
+	(*gwrContext)([&](double *myPars, int thrId)->double{ return getFit(myPars); },
+		   getFit(x), Epoint, Egrad);
 }
 
 void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt)

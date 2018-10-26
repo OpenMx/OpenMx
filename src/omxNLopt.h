@@ -1,15 +1,21 @@
 #ifndef _NLOPTCPP_H_
 #define _NLOPTCPP_H_
 
+#include "finiteDifferences.h"
+
 void omxInvokeNLOPT(GradientOptimizerContext &goc);
 
 struct UnconstrainedObjective {
 	Eigen::VectorXd lbound;
 	Eigen::VectorXd ubound;
+	// If no analytic gradient then can use numerical approx,
+	GradientWithRef *gwrContext;
 
+	UnconstrainedObjective();
+	virtual ~UnconstrainedObjective();
 	virtual double *getParamVec()=0;
 	virtual double getFit(const double *)=0;
-	virtual void getGrad(double *)=0;
+	virtual void getGrad(const double *, double *);
 };
 
 class UnconstrainedSLSQPOptimizer {

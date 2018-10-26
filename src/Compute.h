@@ -22,11 +22,6 @@
 #include "glue.h"
 #include "omxState.h"
 
-enum GradientAlgorithm {
-	GradientAlgorithm_Forward,
-	GradientAlgorithm_Central
-};
-
 // See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
 // These are ordered from good to bad so we can use max() on a set
