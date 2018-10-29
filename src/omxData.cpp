@@ -1105,22 +1105,18 @@ struct OLSRegression {
 	Eigen::VectorXd beta;
 	Eigen::MatrixXd scores;
 	double var;
-	OLSRegression(omxData *_d, std::vector<int> &_exoPred);
+	OLSRegression(omxData *_d, const Eigen::Ref<const Eigen::MatrixXd> _pred);
 	void setResponse(ColumnData &response);
 	void calcScores();
 };
 
-OLSRegression::OLSRegression(omxData *_d, std::vector<int> &_exoPred)
-	: data(*_d), rows(int(data.numObs)), exoPred(_exoPred)
+OLSRegression::OLSRegression(omxData *_d, const Eigen::Ref<const Eigen::MatrixXd> _pred)
+	: data(*_d), rows(int(data.numObs))
 {
 	resid.resize(rows);
-	pred.resize(rows, 1 + exoPred.size());
+	pred.resize(rows, 1 + _pred.cols());
 	pred.col(0).setConstant(1.0);
-	for (int cx=0; cx < int(exoPred.size()); ++cx) {
-		auto &c1 = data.rawCols[ exoPred[cx] ];
-		Eigen::Map< Eigen::VectorXd > vec(c1.realData, rows);
-		pred.col(1+cx) = vec;
-	}
+	pred.block(0,1,rows,_pred.cols()) = _pred;
 	predCov = pred.transpose() * pred;
 	int singular = InvertSymmetricPosDef(predCov, 'L');
 	if (singular) {
@@ -1140,7 +1136,7 @@ void OLSRegression::setResponse(ColumnData &cd)
 	} else {
 		beta.resize(1);
 		beta[0] = ycol.mean();
-		resid = ycol.array() - beta.col(0).array();
+		resid = ycol.array() - beta[0];
 	}
 	var = resid.square().sum() / rows;
 }
@@ -1159,10 +1155,10 @@ struct ProbitRegression : NewtonRaphsonObjective {
 	int numThr;
 	ColumnData *response;
 	std::vector<int> exoPred;
+	const Eigen::Ref<const Eigen::MatrixXd> pred;
 	int verbose;
 	Eigen::VectorXd param;
 	std::vector<std::string> pnames;
-	Eigen::ArrayXXd pred;
 	double fit;
 	Eigen::ArrayXd pr;
 	Eigen::ArrayXXd zi;
@@ -1173,7 +1169,8 @@ struct ProbitRegression : NewtonRaphsonObjective {
 	Eigen::ArrayXXd Y1, Y2;
 	Eigen::MatrixXd hess;
 
-	ProbitRegression(omxData *_d, std::vector<int> &_exoPred);
+	ProbitRegression(omxData *_d, std::vector<int> &_exoPred,
+			 const Eigen::Ref<const Eigen::MatrixXd> _pred);
 	void setResponse(ColumnData &response);
 	virtual double getFit() { return fit; }
 	virtual const char *paramIndexToName(int px)
@@ -1187,17 +1184,11 @@ struct ProbitRegression : NewtonRaphsonObjective {
 	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir);
 };
 
-ProbitRegression::ProbitRegression(omxData *_d, std::vector<int> &_exoPred) :
+ProbitRegression::ProbitRegression(omxData *_d, std::vector<int> &_exoPred,
+				   const Eigen::Ref<const Eigen::MatrixXd> _pred) :
 	data(*_d), rows(int(data.numObs)), numThr(0),
-	response(0), exoPred(_exoPred), verbose(data.verbose)
+	response(0), exoPred(_exoPred), pred(_pred), verbose(data.verbose)
 {
-	pred.resize(rows, exoPred.size());
-	for (int cx=0; cx < int(exoPred.size()); ++cx) {
-		auto &c1 = data.rawCols[ exoPred[cx] ];
-		Eigen::Map< Eigen::VectorXd > vec(c1.realData, rows);
-		pred.col(cx) = vec;
-	}
-
 	zi.resize(rows, 2);
 	dzi.resize(rows, 2);
 	pr.resize(rows);
@@ -1214,14 +1205,14 @@ void ProbitRegression::setResponse(ColumnData &_r)
 	Eigen::VectorXd prop = (tab.cast<double>() / double(tab.sum())).
 		segment(0, numThr);
 	cumsum(prop);
-	param.resize(prop.size() + exoPred.size());
+	param.resize(prop.size() + pred.cols());
 	pnames.clear();
 	for (int px=0; px < prop.size(); ++px) {
 		param[px] = Rf_qnorm5(prop[px], 0., 1., 1, 0);
 		if (verbose >= 1) pnames.push_back(string_snprintf("th%d", 1+px));
 	}
 	if (verbose >= 1) {
-		for (int cx=0; cx < int(exoPred.size()); ++cx) {
+		for (int cx=0; cx < pred.cols(); ++cx) {
 			auto &c1 = data.rawCols[ exoPred[cx] ];
 			pnames.push_back(c1.name);
 		}
@@ -1285,7 +1276,7 @@ void ProbitRegression::calcScores()
 	}
 	scores.block(0,0,rows,numThr) = dxa.colwise() / pr;
 	scores.block(0,numThr,rows,pred.cols()) =
-		pred.colwise() * ((dzi.col(1) - dzi.col(0)) / pr);
+		pred.array().colwise() * ((dzi.col(1) - dzi.col(0)) / pr);
 }
 
 void ProbitRegression::evaluateDerivs(int want)
@@ -1308,12 +1299,12 @@ void ProbitRegression::evaluateDerivs(int want)
 		((Y1.colwise() * gdzi.col(0)).transpose().matrix() * Y1.matrix() -
 		 (Y2.colwise() * gdzi.col(1)).transpose().matrix() * Y2.matrix());
 
-	Eigen::ArrayXXd dxb = pred.colwise() * (dzi.col(0) - dzi.col(1));
+	Eigen::ArrayXXd dxb = pred.array().colwise() * (dzi.col(0) - dzi.col(1));
 
 	hess.block(numThr,numThr,pred.cols(),pred.cols()) =
 		dxb.transpose().matrix() * (dxb.colwise() * pr2).matrix() -
-		((pred.colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
-		 (pred.colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix());
+		((pred.array().colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
+		 (pred.array().colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix());
 
 	hess.block(0,numThr,numThr,pred.cols()) =
 		-(dxa.transpose().matrix() * (dxb.colwise() * pr2).matrix() -
@@ -1338,7 +1329,7 @@ void ProbitRegression::setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
 }
 
 template <typename T1, typename T2>
-void regressOrdinalThresholds(Eigen::MatrixBase<T1> &pred,
+void regressOrdinalThresholds(const Eigen::MatrixBase<T1> &pred,
 			     ColumnData &oc, WLSVarData &ov,
 			     Eigen::ArrayBase<T2> &zi)
 {
@@ -1376,12 +1367,15 @@ struct PolyserialCor : UnconstrainedObjective {
 	double rho;
 	double param;
 	double R;
+	const Eigen::Ref<const Eigen::MatrixXd> pred;
 	Eigen::ArrayXXd tau;
+	Eigen::ArrayXXd tauj;
 	Eigen::ArrayXd pr;
+	Eigen::ArrayXXd scores;
 
 	PolyserialCor(omxData *_d, WLSVarData &cv, ColumnData &_oc, WLSVarData &_ov,
-		      std::vector<int> &exoPred) :
-		resid(cv.resid), data(*_d), rows(int(data.numObs)), oc(_oc), ov(_ov)
+		      const Eigen::Ref<const Eigen::MatrixXd> _pred) :
+		resid(cv.resid), data(*_d), rows(int(data.numObs)), oc(_oc), ov(_ov), pred(_pred)
 	{
 		lbound.resize(1);
 		lbound.setConstant(NEG_INF);
@@ -1393,13 +1387,6 @@ struct PolyserialCor : UnconstrainedObjective {
 
 		pr.resize(rows);
 		dzi.resize(rows, 2);
-
-		Eigen::MatrixXd pred(rows, exoPred.size());
-		for (int cx=0; cx < int(exoPred.size()); ++cx) {
-			auto &c1 = data.rawCols[ exoPred[cx] ];
-			Eigen::Map< Eigen::VectorXd > vec(c1.realData, rows);
-			pred.col(cx) = vec;
-		}
 
 		regressOrdinalThresholds(pred, oc, ov, zi);
 
@@ -1435,11 +1422,38 @@ struct PolyserialCor : UnconstrainedObjective {
 			dzi(rx,1) = Rf_dnorm4(tau(rx,1), 0., 1., 0);
 		}
 
-		Eigen::ArrayXXd tauj = dzi * ((zi * rho).colwise() - zee);
+		tauj = dzi * ((zi * rho).colwise() - zee);
 		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1))).sum();
 
 		double cosh_x = cosh(_x[0]);
 		grad[0] = -dx_rho * 1./(cosh_x * cosh_x);
+	}
+	void calcScores()
+	{
+		// mu1 var1 th2 beta1 beta2 rho
+		scores.resize(rows, 2 + numThr + pred.cols() * 2 + 1);
+		scores.block(0,2,rows,numThr).setZero();
+
+		double R3 = R*R*R;
+		Eigen::Map< Eigen::VectorXi > ycol(oc.intData, rows);
+		for (int rx=0; rx < rows; ++rx) {
+			double irpr = 1.0 / (R * pr[rx]);
+			scores(rx,0) = 1.0/sqrt(var) *
+				(zee[rx] + rho * irpr * (dzi(rx,0)-dzi(rx,1)));
+			scores(rx,1) =
+				1.0/(2*var) * ((zee[rx]*zee[rx] - 1.0) +
+					       rho*zee[rx] * irpr * (dzi(rx,0)-dzi(rx,1)));
+			if (ycol(rx)-1 < numThr)
+				scores(rx, 2 + ycol(rx)-1) = dzi(rx,0) * irpr;
+			if (ycol(rx)-2 >= 0)
+				scores(rx, 2 + ycol(rx)-2) = -dzi(rx,1) * irpr;
+			scores.row(rx).segment(2+numThr, pred.cols()) =
+				scores(rx,0) * pred.row(rx);
+			scores.row(rx).segment(2+numThr+pred.cols(), pred.cols()) =
+				-pred.row(rx) * (dzi(rx,0)-dzi(rx,1)) * irpr;
+			scores(rx, 2 + numThr + pred.cols() * 2) =
+				1./(R3*pr[rx]) * (tauj(rx,0) - tauj(rx,1));
+		}
 	}
 };
 
@@ -1451,16 +1465,18 @@ struct PolychoricCor : UnconstrainedObjective {
 	WLSVarData &v1;
 	ColumnData &c2;
 	WLSVarData &v2;
+	const Eigen::Ref<const Eigen::MatrixXd> pred;
 	Eigen::ArrayXXd z1;
 	Eigen::ArrayXXd z2;
 	Eigen::ArrayXd pr;
 	double rho;
 	double param;
+	Eigen::ArrayXXd scores;
 
 	PolychoricCor(omxData *_d, ColumnData &_c1, WLSVarData &_v1,
 		      ColumnData &_c2, WLSVarData &_v2,
-		      std::vector<int> &exoPred)
-		: data(*_d), rows(int(data.numObs)), c1(_c1), v1(_v1), c2(_c2), v2(_v2)
+		      const Eigen::Ref<const Eigen::MatrixXd> _pred)
+		: data(*_d), rows(int(data.numObs)), c1(_c1), v1(_v1), c2(_c2), v2(_v2), pred(_pred)
 	{
 		lbound.resize(1);
 		lbound.setConstant(NEG_INF);
@@ -1469,15 +1485,8 @@ struct PolychoricCor : UnconstrainedObjective {
 
 		// when exoPred is empty, massive speedups are possible TODO
 
-		Eigen::MatrixXd pred(rows, exoPred.size());
-		for (int cx=0; cx < int(exoPred.size()); ++cx) {
-			auto &e1 = data.rawCols[ exoPred[cx] ];
-			Eigen::Map< Eigen::VectorXd > vec(e1.realData, rows);
-			pred.col(cx) = vec;
-		}
-
-		regressOrdinalThresholds(pred, c1, v1, z1);
-		regressOrdinalThresholds(pred, c2, v2, z2);
+		regressOrdinalThresholds(pred.derived(), c1, v1, z1);
+		regressOrdinalThresholds(pred.derived(), c2, v2, z2);
 
 		pr.resize(rows);
 
@@ -1511,6 +1520,47 @@ struct PolychoricCor : UnconstrainedObjective {
 		double cosh_x = cosh(_x[0]);
 		grad[0] = -dx / (cosh_x * cosh_x);
 	}
+	void calcScores()
+	{
+		// th1 th2 beta1 beta2 rho
+		int numThr1 = c1.levels.size()-1;
+		int numThr2 = c2.levels.size()-1;
+		Eigen::Map< Eigen::VectorXi > y1(c1.intData, rows);
+		Eigen::Map< Eigen::VectorXi > y2(c2.intData, rows);
+		Eigen::ArrayXXd Z1(rows, 2);
+		Eigen::ArrayXXd Z2(rows, 2);
+
+		scores.resize(rows, numThr1 + numThr2 + pred.cols() * 2 + 1);
+		scores.setZero();
+
+		double R = sqrt(1 - rho*rho);
+		for (int rx=0; rx < rows; ++rx) {
+			double ipr = 1.0 / pr[rx];
+			Z1(rx,0) = Rf_dnorm4(z1(rx,0), 0., 1., 0) *
+				(Rf_pnorm5((z2(rx,0) - rho*z1(rx,0))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z2(rx,1) - rho*z1(rx,0))/R, 0., 1., 1, 0)) * ipr;
+			Z1(rx,1) = Rf_dnorm4(z1(rx,1), 0., 1., 0) *
+				(Rf_pnorm5((z2(rx,0) - rho*z1(rx,1))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z2(rx,1) - rho*z1(rx,1))/R, 0., 1., 1, 0)) * ipr;
+			Z2(rx,0) = Rf_dnorm4(z2(rx,0), 0., 1., 0) *
+				(Rf_pnorm5((z1(rx,0) - rho*z2(rx,0))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z1(rx,1) - rho*z2(rx,0))/R, 0., 1., 1, 0)) * ipr;
+			Z2(rx,1) = Rf_dnorm4(z2(rx,1), 0., 1., 0) *
+				(Rf_pnorm5((z1(rx,0) - rho*z2(rx,1))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z1(rx,1) - rho*z2(rx,1))/R, 0., 1., 1, 0)) * ipr;
+
+			if (y1(rx)-1 < numThr1) scores(rx, y1(rx)-1) = Z1(rx,0);
+			if (y1(rx)-2 >= 0)      scores(rx, y1(rx)-2) = -Z1(rx,1);
+			if (y2(rx)-1 < numThr2) scores(rx, numThr1 + y2(rx)-1) = Z2(rx,0);
+			if (y2(rx)-2 >= 0)      scores(rx, numThr1 + y2(rx)-2) = -Z2(rx,1);
+			scores.row(rx).segment(numThr1+numThr2, pred.cols()) =
+				(Z1(rx,1)-Z1(rx,0)) * pred.row(rx).array();
+			scores.row(rx).segment(numThr1+numThr2+pred.cols(), pred.cols()) =
+				(Z2(rx,1)-Z2(rx,0)) * pred.row(rx).array();
+			scores(rx,numThr1+numThr2+2*pred.cols()) =
+				dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho) * ipr;
+		}
+	}
 };
 
 void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
@@ -1536,9 +1586,17 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	obsStatsVec.clear();
 	obsStatsVec.resize(1);
 	auto &o1 = obsStatsVec[0];
+	o1.numObs = int(numObs);
 
 	// Maybe still applicable if exoPred is empty? TODO
 	//wlsAllContinuousCumulants(state, dc);
+
+	Eigen::MatrixXd pred(o1.numObs, exoPred.size());
+	for (int cx=0; cx < int(exoPred.size()); ++cx) {
+		auto &e1 = rawCols[ exoPred[cx] ];
+		Eigen::Map< Eigen::VectorXd > vec(e1.realData, o1.numObs);
+		pred.col(cx) = vec;
+	}
 
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
 	o1.meansMat = omxInitMatrix(1, numCols, state);
@@ -1547,8 +1605,8 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 
 	o1.perVar.resize(numCols);
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
-	OLSRegression olsr(this, exoPred);
-	ProbitRegression pr(this, exoPred);
+	OLSRegression olsr(this, pred);
+	ProbitRegression pr(this, exoPred, pred);
 
 	// based on lav_samplestats_step1.R, lavaan 0.6-2
 	int maxNumThr = 0;
@@ -1586,7 +1644,6 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		}
 	}
 
-	o1.numObs = int(numObs);
 	o1.numOrdinal = o1.thresholdCols.size();
 	o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
 	EigenMatrixAdaptor Ethr(o1.thresholdMat);
@@ -1600,51 +1657,41 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		tx += 1;
 	}
 
-	o1.log();
-
 	// based on lav_samplestats_step2.R, lavaan 0.6-2
 	for (int jj=0; jj < numCols-1; ++jj) {
 		ColumnData &cd1 = rawCols[ dc[jj] ];
 		for (int ii=jj+1; ii < numCols; ++ii) {
 			ColumnData &cd2 = rawCols[ dc[ii] ];
+			WLSVarData &pv1 = o1.perVar[jj];
+			WLSVarData &pv2 = o1.perVar[ii];
 			mxLog("consider %s %s", cd1.name, cd2.name);
+			double cor;
 			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
-				WLSVarData &pv1 = o1.perVar[jj];
-				WLSVarData &pv2 = o1.perVar[ii];
 				double tmp = pv1.resid.matrix().dot(pv2.resid.matrix());
-				double cor = tmp / (o1.numObs *
-						    sqrt(pv1.theta[pv1.theta.size()-1]) *
-						    sqrt(pv2.theta[pv2.theta.size()-1]));
-				Ecov(ii,jj) = cor;
-				Ecov(jj,ii) = cor;
+				cor = tmp / (o1.numObs *
+					     sqrt(pv1.theta[pv1.theta.size()-1]) *
+					     sqrt(pv2.theta[pv2.theta.size()-1]));
 			} else if (cd1.type == COLUMNDATA_NUMERIC) {
-				WLSVarData &pv1 = o1.perVar[jj];
-				WLSVarData &pv2 = o1.perVar[ii];
-				PolyserialCor ps(this, pv1, cd2, pv2, exoPred);
+				PolyserialCor ps(this, pv1, cd2, pv2, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(ps);
-				double cor = ps.rho * sqrt(pv1.theta[pv1.theta.size()-1]);
-				Ecov(ii,jj) = cor;
-				Ecov(jj,ii) = cor;
+				cor = ps.rho * sqrt(pv1.theta[pv1.theta.size()-1]);
+				ps.calcScores();
 			} else if (cd2.type == COLUMNDATA_NUMERIC) {
-				WLSVarData &pv1 = o1.perVar[jj];
-				WLSVarData &pv2 = o1.perVar[ii];
-				PolyserialCor ps(this, pv2, cd1, pv1, exoPred);
+				PolyserialCor ps(this, pv2, cd1, pv1, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(ps);
-				double cor = ps.rho * sqrt(pv2.theta[pv2.theta.size()-1]);
-				Ecov(ii,jj) = cor;
-				Ecov(jj,ii) = cor;
+				cor = ps.rho * sqrt(pv2.theta[pv2.theta.size()-1]);
+				ps.calcScores();
 			} else {
-				WLSVarData &pv1 = o1.perVar[jj];
-				WLSVarData &pv2 = o1.perVar[ii];
-				PolychoricCor pc(this, cd1, pv1, cd2, pv2, exoPred);
+				PolychoricCor pc(this, cd2, pv2, cd1, pv1, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(pc);
-				double cor = pc.rho;
-				Ecov(ii,jj) = cor;
-				Ecov(jj,ii) = cor;
+				cor = pc.rho;
+				pc.calcScores();
 			}
+			Ecov(ii,jj) = cor;
+			Ecov(jj,ii) = cor;
 		}
 	}
 
