@@ -93,14 +93,8 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
 
 struct WLSVarData {
 	Eigen::ArrayXd theta;
-	Eigen::ArrayXXd scores;
 	// OLS
 	Eigen::ArrayXd resid;
-	// probit
-	Eigen::ArrayXd z1;
-	Eigen::ArrayXd z2;
-	Eigen::ArrayXd Y1;
-	Eigen::ArrayXd Y2;
 };
 
 class obsSummaryStats {
@@ -115,7 +109,12 @@ class obsSummaryStats {
 	omxMatrix* thresholdMat;
 	std::vector< omxThresholdColumn > thresholdCols;
 
+	// prep
 	std::vector< WLSVarData > perVar;
+	Eigen::ArrayXXd SC_VAR;
+	Eigen::ArrayXXd SC_SL;
+	Eigen::ArrayXXd SC_TH;
+	Eigen::ArrayXXd SC_COR;
 
         obsSummaryStats() : numObs(0), numOrdinal(0), covMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0) {};

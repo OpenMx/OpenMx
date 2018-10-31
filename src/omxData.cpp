@@ -1097,7 +1097,6 @@ void cumsum(Eigen::MatrixBase<T1> &data)
 struct OLSRegression {
 	omxData &data;
 	int rows;
-	std::vector<int> exoPred;
 	ColumnData *response;
 	Eigen::MatrixXd pred;
 	Eigen::MatrixXd predCov;
@@ -1130,7 +1129,7 @@ void OLSRegression::setResponse(ColumnData &cd)
 {
 	response = &cd;
 	Eigen::Map< Eigen::VectorXd > ycol(cd.realData, rows);
-	if (exoPred.size()) {
+	if (pred.cols()) {
 		beta = predCov.selfadjointView<Eigen::Lower>() * pred.transpose() * ycol;
 		resid = ycol - pred * beta;
 	} else {
@@ -1144,7 +1143,7 @@ void OLSRegression::setResponse(ColumnData &cd)
 void OLSRegression::calcScores()
 {
 	Eigen::Map< Eigen::VectorXd > ycol(response->realData, rows);
-	scores.resize(rows, 1 + pred.cols());
+	scores.resize(rows, 1 + pred.cols());  // mean pred var
 	scores.block(0,0,rows,pred.cols()) = (pred.array().colwise() * resid) / var;
 	scores.col(pred.cols()) = -1./(2*var) + 1./(2*var*var) * resid * resid;
 }
@@ -1466,6 +1465,8 @@ struct PolychoricCor : UnconstrainedObjective {
 	ColumnData &c2;
 	WLSVarData &v2;
 	const Eigen::Ref<const Eigen::MatrixXd> pred;
+	int numThr1;
+	int numThr2;
 	Eigen::ArrayXXd z1;
 	Eigen::ArrayXXd z2;
 	Eigen::ArrayXd pr;
@@ -1482,6 +1483,8 @@ struct PolychoricCor : UnconstrainedObjective {
 		lbound.setConstant(NEG_INF);
 		ubound.resize(1);
 		ubound.setConstant(INF);
+		numThr1 = c1.levels.size()-1;
+		numThr2 = c2.levels.size()-1;
 
 		// when exoPred is empty, massive speedups are possible TODO
 
@@ -1523,8 +1526,6 @@ struct PolychoricCor : UnconstrainedObjective {
 	void calcScores()
 	{
 		// th1 th2 beta1 beta2 rho
-		int numThr1 = c1.levels.size()-1;
-		int numThr2 = c2.levels.size()-1;
 		Eigen::Map< Eigen::VectorXi > y1(c1.intData, rows);
 		Eigen::Map< Eigen::VectorXi > y2(c2.intData, rows);
 		Eigen::ArrayXXd Z1(rows, 2);
@@ -1562,6 +1563,53 @@ struct PolychoricCor : UnconstrainedObjective {
 		}
 	}
 };
+
+struct PearsonCor {
+	double rho;
+	Eigen::ArrayXXd scores;
+
+	PearsonCor(WLSVarData &pv1, WLSVarData &pv2,
+		   const Eigen::Ref<const Eigen::MatrixXd> pred)
+	{
+		int rows = pv1.resid.size();
+		rho = 2.*pv1.resid.matrix().dot(pv2.resid.matrix()) /
+			(pv1.resid.square().sum()+pv2.resid.square().sum());
+		double R = (1 - rho*rho);
+		double i2r = 1./(2.*R);
+		double var_y1 = pv1.theta[pv1.theta.size()-1];
+		double sd_y1 = sqrt(var_y1);
+		double var_y2 = pv2.theta[pv2.theta.size()-1];
+		double sd_y2 = sqrt(var_y2);
+
+		scores.resize(rows, 4 + pred.cols()*2 + 1);
+
+		scores.col(0) = (2*pv1.resid/var_y1 - 2*rho*pv2.resid/(sd_y1*sd_y2)) * i2r;
+		scores.col(1) = (2*pv2.resid/var_y2 - 2*rho*pv1.resid/(sd_y1*sd_y2)) * i2r;
+		scores.col(2) = -(.5/var_y1 - ((pv1.resid*pv1.resid)/(var_y1*var_y1) -
+					       rho*pv1.resid*pv2.resid/(var_y1*sd_y1*sd_y2)) * i2r);
+		scores.col(3) = -(.5/var_y2 - ((pv2.resid*pv2.resid)/(var_y2*var_y2) -
+					       rho*pv1.resid*pv2.resid/(var_y2*sd_y1*sd_y2)) * i2r);
+		scores.block(0,4,rows,pred.cols()) = pred.array().colwise() * scores.col(0);
+		scores.block(0,4+pred.cols(),rows,pred.cols()) = pred.array().colwise() * scores.col(1);
+
+		Eigen::ArrayXd zee = (pv1.resid*pv1.resid/var_y1
+				      -2*rho*pv1.resid*pv2.resid/(sd_y1*sd_y2) +
+				      pv2.resid*pv2.resid/var_y2);
+		scores.col(4+2*pred.cols()) = rho/R + pv1.resid*pv2.resid/(sd_y1*sd_y2*R) - zee*rho/(R*R);
+	}
+};
+
+template <typename T1, typename T2, typename T3>
+void copyBlock(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, T2 includeTest)
+{
+	for (int cx=0; cx < out.cols(); ++cx) {
+		if (!includeTest(cx)) continue;
+		for (int rx=0; rx < out.rows(); ++rx) {
+			if (!includeTest(rx)) continue;
+			out(rx,cx) = in(rx,cx);
+		}
+	}
+}
 
 void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
 			     std::vector<int> &exoPred)
@@ -1603,14 +1651,36 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	EigenMatrixAdaptor Ecov(o1.covMat);
 	EigenVectorAdaptor Emean(o1.meansMat);
 
+	std::vector<int> contMap;
+	int numContinuous = 0;
+	int totalThr = 0;
+	int maxNumThr = 0;
+	std::vector<int> thStart(numCols);
+	for (int yy=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		thStart[yy] = totalThr;
+		if (cd.type == COLUMNDATA_NUMERIC) {
+			contMap.push_back(numContinuous);
+			totalThr += 1;  // mean
+			numContinuous += 1;
+		} else {
+			contMap.push_back(-1);
+			int numThr = cd.levels.size() - 1;
+			totalThr += numThr;
+			maxNumThr = std::max(maxNumThr, numThr);
+		}
+	}
+
 	o1.perVar.resize(numCols);
+	o1.SC_VAR.resize(rows, numContinuous);
+	o1.SC_SL.resize(rows, numCols * pred.cols());
+	o1.SC_TH.resize(rows, totalThr);
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 	OLSRegression olsr(this, pred);
 	ProbitRegression pr(this, exoPred, pred);
 
 	// based on lav_samplestats_step1.R, lavaan 0.6-2
-	int maxNumThr = 0;
-	for (int yy=0; yy < numCols; ++yy) {
+	for (int yy=0, contOffset=0, thrOffset=0; yy < numCols; ++yy) {
 		ColumnData &cd = rawCols[ dc[yy] ];
 		WLSVarData &pv = o1.perVar[yy];
 		if (cd.type == COLUMNDATA_NUMERIC) {
@@ -1620,9 +1690,16 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 			pv.theta.resize(olsr.beta.size() + 1);
 			pv.theta.segment(0, olsr.beta.size()) = olsr.beta;
 			pv.theta[olsr.beta.size()] = olsr.var;
-			pv.scores = olsr.scores;
 			Ecov(yy,yy) = olsr.var;
 			Emean[yy] = pv.theta[0];
+			o1.SC_TH.block(0,thrOffset,rows,1) = 
+				olsr.scores.block(0,0,rows,1);
+			for (int px=0; px < pred.cols(); ++px)
+				o1.SC_SL.col(yy+numCols*px) = olsr.scores.col(1+px);
+			o1.SC_VAR.block(0,contOffset,rows,1) = 
+				olsr.scores.block(0,1+pred.cols(),rows,1);
+			contOffset += 1;
+			thrOffset += 1;
 		} else {
 			pr.setResponse(cd);
 			if (exoPred.size()) {
@@ -1632,15 +1709,18 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 				pr.calcScores();
 			}
 			pv.theta = pr.param;
-			pv.scores = pr.scores;
 			omxThresholdColumn tc;
 			tc.dColumn = dc[yy];
 			tc.column = o1.thresholdCols.size();
 			tc.numThresholds = pr.numThr;
 			o1.thresholdCols.push_back(tc);
-			maxNumThr = std::max(maxNumThr, pr.numThr);
 			Ecov(yy,yy) = 1.;
 			Emean[yy] = 0.;
+			o1.SC_TH.block(0,thrOffset,rows,pr.numThr) = 
+				pr.scores.block(0,0,rows,pr.numThr);
+			for (int px=0; px < pred.cols(); ++px)
+				o1.SC_SL.col(yy+numCols*px) = pr.scores.col(pr.numThr+px);
+			thrOffset += pr.numThr;
 		}
 	}
 
@@ -1657,45 +1737,192 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		tx += 1;
 	}
 
+	int pstar = triangleLoc1(numCols-1);
+	o1.SC_COR.resize(rows, pstar);
+	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
+	Eigen::MatrixXd A21(pstar, A11_size);
+	A21.setZero();
+	Eigen::ArrayXXd H22(pstar, pstar);
+	H22.setZero();
+	Eigen::ArrayXXd H21(pstar, A11_size);
+	H21.setZero();
+
 	// based on lav_samplestats_step2.R, lavaan 0.6-2
 	for (int jj=0; jj < numCols-1; ++jj) {
-		ColumnData &cd1 = rawCols[ dc[jj] ];
 		for (int ii=jj+1; ii < numCols; ++ii) {
+			int pstar_idx = ii-(jj+1) + pstar - triangleLoc1(numCols - jj - 1);
+			ColumnData &cd1 = rawCols[ dc[jj] ];
 			ColumnData &cd2 = rawCols[ dc[ii] ];
 			WLSVarData &pv1 = o1.perVar[jj];
 			WLSVarData &pv2 = o1.perVar[ii];
-			mxLog("consider %s %s", cd1.name, cd2.name);
-			double cor;
+			mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
+			double rho;
 			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
-				double tmp = pv1.resid.matrix().dot(pv2.resid.matrix());
-				cor = tmp / (o1.numObs *
-					     sqrt(pv1.theta[pv1.theta.size()-1]) *
-					     sqrt(pv2.theta[pv2.theta.size()-1]));
+				PearsonCor pc(pv2, pv1, pred);
+				o1.SC_COR.col(pstar_idx) = pc.scores.col(4+2*pred.cols());
+				A21(pstar_idx,thStart[ii]) = (o1.SC_COR.col(pstar_idx) * pc.scores.col(0)).sum();
+				A21(pstar_idx,thStart[jj]) = (o1.SC_COR.col(pstar_idx) * pc.scores.col(1)).sum();
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(4+px)).sum();
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(4+pred.cols()+px)).sum();
+				}
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					(o1.SC_COR.col(pstar_idx) * pc.scores.col(2)).sum();
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					(o1.SC_COR.col(pstar_idx) * pc.scores.col(3)).sum();
+				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
+				double sd2 = sqrt(pv2.theta[pv2.theta.size()-1]);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					sd1 * pc.rho / (2. * sd2);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					sd2 * pc.rho / (2. * sd1);
+				H22(pstar_idx,pstar_idx) = sd1 * sd2;
+				rho = pc.rho / H22(pstar_idx,pstar_idx);
 			} else if (cd1.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv1, cd2, pv2, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(ps);
-				cor = ps.rho * sqrt(pv1.theta[pv1.theta.size()-1]);
 				ps.calcScores();
+				o1.SC_COR.col(pstar_idx) = ps.scores.col(2 + ps.numThr + 2*pred.cols());
+				A21(pstar_idx, thStart[jj]) = (o1.SC_COR.col(pstar_idx) * ps.scores.col(0)).sum();
+				for (int tx=0; tx < ps.numThr; ++tx)
+					A21(pstar_idx, thStart[ii]+tx) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+tx)).sum();
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+px)).sum();
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+pred.cols()+px)).sum();
+				}
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					(o1.SC_COR.col(pstar_idx) * ps.scores.col(1)).sum();
+				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					ps.rho / (2. * sd1);
+				H22(pstar_idx,pstar_idx) = sd1;
+				rho = ps.rho * sd1;
 			} else if (cd2.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv2, cd1, pv1, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(ps);
-				cor = ps.rho * sqrt(pv2.theta[pv2.theta.size()-1]);
 				ps.calcScores();
+				o1.SC_COR.col(pstar_idx) = ps.scores.col(2 + ps.numThr + 2*pred.cols());
+				A21(pstar_idx, thStart[ii]) = (o1.SC_COR.col(pstar_idx) * ps.scores.col(0)).sum();
+				for (int tx=0; tx < ps.numThr; ++tx)
+					A21(pstar_idx, thStart[jj]+tx) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+tx)).sum();
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+px)).sum();
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+pred.cols()+px)).sum();
+				}
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					(o1.SC_COR.col(pstar_idx) * ps.scores.col(1)).sum();
+				double sd1 = sqrt(pv2.theta[pv2.theta.size()-1]);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					ps.rho / (2. * sd1);
+				H22(pstar_idx,pstar_idx) = sd1;
+				rho = ps.rho * sd1;
 			} else {
 				PolychoricCor pc(this, cd2, pv2, cd1, pv1, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(pc);
-				cor = pc.rho;
+				H22(pstar_idx,pstar_idx) = 1.0;
+				rho = pc.rho;
 				pc.calcScores();
+				o1.SC_COR.col(pstar_idx) = pc.scores.col(pc.numThr1 + pc.numThr2 + 2*pred.cols());
+				for (int tx=0; tx < pc.numThr1; ++tx)
+					A21(pstar_idx, thStart[ii]+tx) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(tx)).sum();
+				for (int tx=0; tx < pc.numThr2; ++tx)
+					A21(pstar_idx, thStart[jj]+tx) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(pc.numThr1 + tx)).sum();
+				int numThr = pc.numThr1 + pc.numThr2;
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(numThr+px)).sum();
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(numThr+pred.cols()+px)).sum();
+				}
 			}
-			Ecov(ii,jj) = cor;
-			Ecov(jj,ii) = cor;
+			Ecov(ii,jj) = rho;
+			Ecov(jj,ii) = rho;
 		}
 	}
 
-	o1.log();
+	// mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
+	// mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good
+	// mxPrintMat("SC_VAR", o1.SC_VAR.block(0,0,4,o1.SC_VAR.cols())); // good
+	// mxPrintMat("SC_COR", o1.SC_COR.block(0,0,4,o1.SC_COR.cols())); // good
+	// mxPrintMat("A21", A21); // good
+	// mxPrintMat("H22", H22); // good
+	// mxPrintMat("H21", H21); // good
 
-	Rf_error("Not implemented yet");
+	// based on lav_muthen1984, lavaan 0.6-2
+	int acov_size = A11_size + o1.SC_COR.cols();
+	Eigen::MatrixXd SC(rows, acov_size);
+	SC.block(0,0,rows,o1.SC_TH.cols()) = o1.SC_TH;
+	SC.block(0,o1.SC_TH.cols(),rows,o1.SC_SL.cols()) = o1.SC_SL;
+	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols(),rows,o1.SC_VAR.cols()) = o1.SC_VAR;
+	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols()+o1.SC_VAR.cols(),rows,o1.SC_COR.cols()) = o1.SC_COR;
+	Eigen::MatrixXd INNER = SC.transpose() * SC;
+	mxPrintMat("INNER", INNER);
+
+	Eigen::MatrixXd A11(A11_size,A11_size);
+	A11.setZero();
+	for (int yy=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		std::vector<bool> mask(A11_size, false);
+		int numThr = cd.type == COLUMNDATA_NUMERIC? 1 : cd.levels.size() - 1;
+		for (int tx=0; tx < numThr; ++tx) mask[thStart[yy] + tx] = true;
+		for (int px=0; px < pred.cols(); ++px) mask[totalThr + yy+numCols*px] = true;
+		if (cd.type == COLUMNDATA_NUMERIC)
+			mask[totalThr + numCols * pred.cols() + contMap[yy]] = true;
+		copyBlock(INNER, A11, [&mask](int xx){ return mask[xx]; });
+	}
+	//mxPrintMat("A11", A11); // good
+
+	if (InvertSymmetricPosDef(A11, 'L')) {
+		Rf_error("A11 is not invertible. Need generalized inverse TODO");
+	}
+
+	Eigen::MatrixXd A22(pstar, pstar);
+	A22.setZero();
+	for (int ii=0; ii < pstar; ++ii) {
+		double val = o1.SC_COR.col(ii).square().sum();
+		if (val != 0) A22(ii,ii) = 1.0/val;
+	}
+
+	Eigen::MatrixXd A21i = -(A22 * A21 * A11.selfadjointView<Eigen::Lower>());
+	Eigen::MatrixXd Bi(acov_size,acov_size);
+	Bi.setZero();
+	Bi.block(0,0,A11.rows(),A11.cols()) = A11.selfadjointView<Eigen::Lower>();
+	Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
+	Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
+	//mxPrintMat("Bi", Bi); // good
+
+	o1.fullWeight = omxInitMatrix(acov_size, acov_size, state);
+	EigenMatrixAdaptor acov(o1.fullWeight);
+	acov.derived() = Bi * INNER * Bi.transpose();
+
+	//mxPrintMat("acov", acov); //good
+
+	if (numContinuous) {
+		Eigen::MatrixXd H(acov_size,acov_size);
+		H.setZero();
+		H.block(0,0,A11_size,A11_size) = Eigen::MatrixXd::Identity(A11_size,A11_size);
+		H.block(A11_size,0,H21.rows(),H21.cols()) = H21;
+		H.block(A11_size,A11_size,H22.rows(),H22.cols()) = H22;
+		//mxPrintMat("H", H); //good
+
+		acov.derived() = (H * acov * H.transpose()).eval();
+	}
+
+	//mxPrintMat("acov", acov);
+
+	//o1.log();
+	//Rf_error("Not implemented yet");
 }
