@@ -143,7 +143,7 @@ getThresholdMask <- function(model, cols, subname) {
 				    omxQuotes(subname), "has no data"))
 	if (d1@type == 'raw') {
 		lev <- sapply(d1$observed[,cols], function(x) length(levels(x)))
-		mask <- matrix(FALSE, length(cols), max(lev)-1)
+		mask <- matrix(FALSE, max(lev)-1, length(cols))
 		colnames(mask) <- cols
 		for (lx in 1:length(cols)) mask[1:(lev[lx]-1), lx] <- TRUE
 		mask
