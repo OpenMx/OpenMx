@@ -559,4 +559,6 @@ double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &
 	return sum;
 }
 
+void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat);
+
 #endif /* _OMXMATRIX_H_ */

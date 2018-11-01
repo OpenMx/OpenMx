@@ -31,7 +31,6 @@
 #include "omxState.h"
 #include <Eigen/Cholesky>
 #include <Eigen/QR>
-#include <Eigen/SVD>
 #include <Eigen/CholmodSupport>
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
@@ -3293,16 +3292,10 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd jacOC = q1.block(0, qr1.rank(), q1.rows(), q1.cols() - qr1.rank());
 	if (jacOC.cols()) {
 		Eigen::MatrixXd zqb = jacOC.transpose() * Wmat * jacOC;
-		Eigen::BDCSVD<Eigen::MatrixXd> svd(zqb, Eigen::ComputeFullV | Eigen::ComputeFullU);
-		Eigen::VectorXd sv = svd.singularValues();
-		for (int v1=0; v1 < sv.size(); ++v1) {
-			if (sv[v1] > 1e-6) sv[v1] = 1.0/sv[v1];
-			else sv[v1] = 0;
-		}
+		MoorePenroseInverse(zqb);
 
 		Eigen::VectorXd diff = obStats - exStats;
-		x2 = diff.transpose() * jacOC * svd.matrixV() * sv.asDiagonal() *
-			svd.matrixU().transpose() * jacOC.transpose() * diff;
+		x2 = diff.transpose() * jacOC * zqb * jacOC.transpose() * diff;
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
 		df = qr2.rank() - numOrdinal * 2;
 	} else {

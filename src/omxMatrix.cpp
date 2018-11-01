@@ -30,6 +30,7 @@
 #include "unsupported/Eigen/MatrixFunctions"
 #include "omxState.h"
 #include <limits>
+#include <Eigen/SVD>
 #include "Compute.h"
 #include "minicsv.h"
 #include "EnableWarnings.h"
@@ -1100,4 +1101,15 @@ void omxMatrix::loadFromStream(mini::csv::ifstream &st)
 			 name(), shape);
 		break;
 	}
+}
+
+void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat)
+{
+	Eigen::BDCSVD<Eigen::MatrixXd> svd(mat, Eigen::ComputeFullV | Eigen::ComputeFullU);
+	Eigen::VectorXd sv = svd.singularValues();
+	for (int v1=0; v1 < sv.size(); ++v1) {
+		if (sv[v1] > 1e-6) sv[v1] = 1.0/sv[v1];
+		else sv[v1] = 0;
+	}
+	mat.derived() = svd.matrixV() * sv.asDiagonal() * svd.matrixU().transpose();
 }
