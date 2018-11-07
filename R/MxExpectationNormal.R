@@ -224,17 +224,17 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 			} else {
 				tcount <- sum(dth[,tcol])
 				v <- c(v, thresholds[1:tcount,tcol])
-				vn <- c(vn, paste0(mnames[vx], 'T', 1:tcount))
+				vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
 			}
 		}
 		for (vx in 1:length(mnames)) {
 			if (any(vx == ordInd)) next
 			v <- c(v, cov[vx,vx])
-			vn <- c(vn, paste0(mnames[vx], 'VAR'))
+			vn <- c(vn, paste0('var_', mnames[vx]))
 		}
 		v <- c(v, vechs(cov))
 		nv <- length(mnames)
-		vn <- c(vn, paste0('cov', vechs(outer(1:nv, 1:nv, FUN=paste, sep='_'))))
+		vn <- c(vn, paste0('poly_', vechs(outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_'))))
 		names(v) <- vn
 		return(v)
 	}

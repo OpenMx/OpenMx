@@ -294,9 +294,9 @@ indexCov4to2 <- function(i, j, k, l, nvar){
 }
 
 indexCov2to1 <- function(i, j, nvar){
-	if(i > j) {stop("Element should be in upper triangle: column j >= row i")}
-	a <- j
-	b <- i
+	if(i < j) {stop("Element should be in lower triangle: column j <= row i")}
+	a <- i
+	b <- j
 	return( a + nvar*(b-1) - sum((b-1):0) )
 }
 
@@ -467,7 +467,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		retVal@.rawData <- data
 		retVal@.wlsType <- type
 		retVal@.wlsContinuousType <- allContinuousMethod
-		return(retVal)
+		return(wls.permute(retVal))
 	}
 	
 	# separate ordinal and continuous variables (temporary)
@@ -505,8 +505,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	#   - diagonal elements are 1/(1-r^2)
 	#   - off-diagonal elements are -r/(1-r^2)
 	# you don't need any of this information now, but may later
-	for (i in 1:ntvar){
-		for (j in i:ntvar){
+	for (j in 1:ntvar){
+		for (i in j:ntvar){
 			pcData <- data[,c(i,j)]
 			ordPair <- (ords[i] + ords[j])
 			if( ordPair == 0 ) { # Continuous variables
@@ -664,6 +664,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		warning(paste("Encountered warnings during optimization of",
 			      omxQuotes(fullWarn[fullWarn > 0])))
 	}
+
 	dls <- diag(diag(wls))
 	uls <- (dls>0)*1
 	
@@ -721,7 +722,43 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	retVal@.rawData <- data
 	retVal@.wlsType <- type
 	retVal@.wlsContinuousType <- allContinuousMethod
-	return(retVal)
+	return(wls.permute(retVal))
+}
+
+wls.permute <- function(mxd) {
+	perm <- match(names(.mxDataAsVector(mxd)), colnames(mxd$acov))
+	mxd$acov <- mxd$acov[perm,perm]
+	if (!is.null(mxd$fullWeight)) {
+		mxd$fullWeight <- mxd$fullWeight[perm,perm]
 	}
+	mxd
+}
 
-
+.mxDataAsVector <- function(mxd) {
+	mnames <- colnames(mxd$means)
+	ordInd <- match(colnames(mxd$thresholds), mnames)
+	dth <- !is.na(mxd$thresholds)
+	v <- c()
+	vn <- c()
+	for (vx in 1:length(mnames)) {
+		tcol <- which(vx == ordInd)
+		if (length(tcol) == 0) {
+			v <- c(v, mxd$means[vx])
+			vn <- c(vn, mnames[vx])
+		} else {
+			tcount <- sum(dth[,tcol])
+			v <- c(v, mxd$thresholds[1:tcount,tcol])
+			vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
+		}
+	}
+	for (vx in 1:length(mnames)) {
+		if (any(vx == ordInd)) next
+		v <- c(v, mxd$observed[vx,vx])
+		vn <- c(vn, paste0('var_', mnames[vx]))
+	}
+	v <- c(v, vechs(mxd$observed))
+	nv <- length(mnames)
+	vn <- c(vn, paste0('poly_', vechs(outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_'))))
+	names(v) <- vn
+	v
+}
