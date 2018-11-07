@@ -43,7 +43,7 @@
 class omxExpectation {					// An Expectation
 	typedef omxExpectation base;
 	int *dataColumnsPtr;
-	std::vector< omxThresholdColumn > thresholds;
+	std::vector< omxThresholdColumn > thresholds;  // size() == numDataColumns
 
  public:
 	int numDataColumns;

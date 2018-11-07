@@ -106,6 +106,8 @@ setMethod("initialize", "MxDataStatic",
 		.Object@weight <- weight
 		.Object@frequency <- frequency
 		.Object@verbose <- verbose
+		.Object@.wlsType <- 'WLS'
+		.Object@.wlsContinuousType <- 'cumulants'
 		return(.Object)
 	}
 )

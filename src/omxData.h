@@ -107,7 +107,7 @@ class obsSummaryStats {
 	omxMatrix* acovMat;			// The asymptotic covariance
 	omxMatrix *fullWeight;
 	omxMatrix* thresholdMat;
-	std::vector< omxThresholdColumn > thresholdCols;
+	std::vector< omxThresholdColumn > thresholdCols; // size() == covMat.cols()
 
 	// prep
 	std::vector< WLSVarData > perVar;

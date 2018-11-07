@@ -193,7 +193,6 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
 			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
-			names(v) <- c(covNames, mnsNames[!is.na(mns)], thrNames[dth])
 		}
 		return(v)
 })
@@ -215,7 +214,29 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
-		return(c(vech(cov), means[!is.na(means)], thresholds[dth]))
+		v <- c()
+		vn <- c()
+		for (vx in 1:length(mnames)) {
+			tcol <- which(vx == ordInd)
+			if (length(tcol) == 0) {
+				v <- c(v, means[vx])
+				vn <- c(vn, mnames[vx])
+			} else {
+				tcount <- sum(dth[,tcol])
+				v <- c(v, thresholds[1:tcount,tcol])
+				vn <- c(vn, paste0(mnames[vx], 'T', 1:tcount))
+			}
+		}
+		for (vx in 1:length(mnames)) {
+			if (any(vx == ordInd)) next
+			v <- c(v, cov[vx,vx])
+			vn <- c(vn, paste0(mnames[vx], 'VAR'))
+		}
+		v <- c(v, vechs(cov))
+		nv <- length(mnames)
+		vn <- c(vn, paste0('cov', vechs(outer(1:nv, 1:nv, FUN=paste, sep='_'))))
+		names(v) <- vn
+		return(v)
 	}
 }
 

@@ -240,12 +240,12 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	ProtectedSEXP RwlsData(R_do_slot(dataObj, Rf_install(".rawData")));
 	if (Rf_isFrame(RwlsData)) {
 		importDataFrame(RwlsData, wlsCols, numNumeric, numFactor);
-		
-		ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
-		wlsType = CHAR(STRING_ELT(RwlsType,0));
-		ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
-		wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
 	}
+
+	ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
+	wlsType = CHAR(STRING_ELT(RwlsType,0));
+	ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
+	wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
 
 	if (od->hasPrimaryKey() && !(od->rawCols.size() && od->rawCols[primaryKey].intData)) {
 		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
@@ -1160,6 +1160,7 @@ struct ProbitRegression : NewtonRaphsonObjective {
 	std::vector<std::string> pnames;
 	double fit;
 	Eigen::ArrayXd pr;
+	bool stale;
 	Eigen::ArrayXXd zi;
 	Eigen::ArrayXXd dzi;
 	Eigen::ArrayXXd scores;
@@ -1186,7 +1187,7 @@ struct ProbitRegression : NewtonRaphsonObjective {
 ProbitRegression::ProbitRegression(omxData *_d, std::vector<int> &_exoPred,
 				   const Eigen::Ref<const Eigen::MatrixXd> _pred) :
 	data(*_d), rows(int(data.numObs)), numThr(0),
-	response(0), exoPred(_exoPred), pred(_pred), verbose(data.verbose)
+	response(0), exoPred(_exoPred), pred(_pred), verbose(data.verbose), stale(true)
 {
 	zi.resize(rows, 2);
 	dzi.resize(rows, 2);
@@ -1235,6 +1236,7 @@ void ProbitRegression::setResponse(ColumnData &_r)
 	ubound.setConstant(INF);
 	scores.resize(rows, param.size());
 	hess.resize(param.size(), param.size());
+	stale = true;
 }
 
 void ProbitRegression::evaluate0()
@@ -1246,11 +1248,13 @@ void ProbitRegression::evaluate0()
 	th[response->levels.size()] = std::numeric_limits<double>::infinity();
 
 	for (int rx=0; rx < rows; ++rx) {
-		double eta = pred.row(rx).matrix() * param.segment(numThr, pred.cols());
+		double eta = 0;
+		if (pred.cols()) eta = pred.row(rx).matrix() * param.segment(numThr, pred.cols());
 		zi(rx,0) = std::min(INF, th[ycol[rx]] - eta);
 		zi(rx,1) = std::max(NEG_INF, th[ycol[rx]-1] - eta);
 		pr[rx] = Rf_pnorm5(zi(rx,0), 0., 1., 1, 0) - Rf_pnorm5(zi(rx,1), 0., 1., 1, 0);
 	}
+	stale = false;
 }
 
 void ProbitRegression::evaluateFit()
@@ -1261,6 +1265,7 @@ void ProbitRegression::evaluateFit()
 
 void ProbitRegression::calcScores()
 {
+	if (stale) evaluate0();
 	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
 	dxa.setZero();
 	for (int rx=0; rx < rows; ++rx) {
@@ -1343,7 +1348,8 @@ void regressOrdinalThresholds(const Eigen::MatrixBase<T1> &pred,
 
 	Eigen::Map< Eigen::VectorXi > ycol(oc.intData, rows);
 	for (int rx=0; rx < rows; ++rx) {
-		double eta = pred.row(rx) * ov.theta.matrix().segment(numThr, pred.cols());
+		double eta = 0;
+		if (pred.cols()) pred.row(rx) * ov.theta.matrix().segment(numThr, pred.cols());
 		zi(rx,0) = std::min(INF, th[ycol[rx]] - eta);
 		zi(rx,1) = std::max(NEG_INF, th[ycol[rx]-1] - eta);
 	}
@@ -1600,7 +1606,7 @@ struct PearsonCor {
 };
 
 template <typename T1, typename T2, typename T3>
-void copyBlock(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, T2 includeTest)
+void copyBlockwise(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, T2 includeTest)
 {
 	for (int cx=0; cx < out.cols(); ++cx) {
 		if (!includeTest(cx)) continue;
@@ -1675,6 +1681,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	o1.SC_VAR.resize(rows, numContinuous);
 	o1.SC_SL.resize(rows, numCols * pred.cols());
 	o1.SC_TH.resize(rows, totalThr);
+	o1.numOrdinal = 0;
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 	OLSRegression olsr(this, pred);
 	ProbitRegression pr(this, exoPred, pred);
@@ -1684,6 +1691,12 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		ColumnData &cd = rawCols[ dc[yy] ];
 		WLSVarData &pv = o1.perVar[yy];
 		if (cd.type == COLUMNDATA_NUMERIC) {
+			omxThresholdColumn tc;
+			tc.dColumn = dc[yy];
+			tc.column = -1;
+			tc.numThresholds = 0;
+			o1.thresholdCols.push_back(tc);
+
 			olsr.setResponse(cd);
 			olsr.calcScores();
 			pv.resid = olsr.resid;
@@ -1711,7 +1724,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 			pv.theta = pr.param;
 			omxThresholdColumn tc;
 			tc.dColumn = dc[yy];
-			tc.column = o1.thresholdCols.size();
+			tc.column = o1.numOrdinal++;
 			tc.numThresholds = pr.numThr;
 			o1.thresholdCols.push_back(tc);
 			Ecov(yy,yy) = 1.;
@@ -1724,17 +1737,15 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		}
 	}
 
-	o1.numOrdinal = o1.thresholdCols.size();
 	o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
 	EigenMatrixAdaptor Ethr(o1.thresholdMat);
 	Ethr.setConstant(nan("uninit"));
-	for (int yy=0, tx=0; yy < numCols; ++yy) {
+	for (int yy=0; yy < numCols; ++yy) {
 		ColumnData &cd = rawCols[ dc[yy] ];
 		if (cd.type == COLUMNDATA_NUMERIC) continue;
 		WLSVarData &pv = o1.perVar[yy];
-		auto &tc = o1.thresholdCols[tx];
-		Ethr.block(0,tx,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
-		tx += 1;
+		auto &tc = o1.thresholdCols[yy];
+		Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
 	}
 
 	int pstar = triangleLoc1(numCols-1);
@@ -1755,7 +1766,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 			ColumnData &cd2 = rawCols[ dc[ii] ];
 			WLSVarData &pv1 = o1.perVar[jj];
 			WLSVarData &pv2 = o1.perVar[ii];
-			mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
+			//mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
 			double rho;
 			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
 				PearsonCor pc(pv2, pv1, pred);
@@ -1779,7 +1790,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
 					sd2 * pc.rho / (2. * sd1);
 				H22(pstar_idx,pstar_idx) = sd1 * sd2;
-				rho = pc.rho / H22(pstar_idx,pstar_idx);
+				rho = pc.rho * H22(pstar_idx,pstar_idx);
 			} else if (cd1.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv1, cd2, pv2, pred);
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
@@ -1869,7 +1880,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols(),rows,o1.SC_VAR.cols()) = o1.SC_VAR;
 	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols()+o1.SC_VAR.cols(),rows,o1.SC_COR.cols()) = o1.SC_COR;
 	Eigen::MatrixXd INNER = SC.transpose() * SC;
-	mxPrintMat("INNER", INNER);
+	// mxPrintMat("INNER", INNER); // good
 
 	Eigen::MatrixXd A11(A11_size,A11_size);
 	A11.setZero();
@@ -1881,12 +1892,12 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		for (int px=0; px < pred.cols(); ++px) mask[totalThr + yy+numCols*px] = true;
 		if (cd.type == COLUMNDATA_NUMERIC)
 			mask[totalThr + numCols * pred.cols() + contMap[yy]] = true;
-		copyBlock(INNER, A11, [&mask](int xx){ return mask[xx]; });
+		copyBlockwise(INNER, A11, [&mask](int xx){ return mask[xx]; });
 	}
-	//mxPrintMat("A11", A11); // good
+	// mxPrintMat("A11", A11); // good
 
 	if (InvertSymmetricPosDef(A11, 'L')) {
-		Rf_error("A11 is not invertible. Need generalized inverse TODO");
+		MoorePenroseInverse(A11);
 	}
 
 	Eigen::MatrixXd A22(pstar, pstar);
@@ -1902,13 +1913,13 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	Bi.block(0,0,A11.rows(),A11.cols()) = A11.selfadjointView<Eigen::Lower>();
 	Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
 	Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
-	//mxPrintMat("Bi", Bi); // good
+	// mxPrintMat("Bi", Bi); // good
 
 	o1.fullWeight = omxInitMatrix(acov_size, acov_size, state);
-	EigenMatrixAdaptor acov(o1.fullWeight);
-	acov.derived() = Bi * INNER * Bi.transpose();
+	EigenMatrixAdaptor Efw(o1.fullWeight);
+	Efw.derived() = Bi * INNER * Bi.transpose();
 
-	//mxPrintMat("acov", acov); //good
+	//mxPrintMat("Efw", Efw); //good
 
 	if (numContinuous) {
 		Eigen::MatrixXd H(acov_size,acov_size);
@@ -1918,10 +1929,32 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		H.block(A11_size,A11_size,H22.rows(),H22.cols()) = H22;
 		//mxPrintMat("H", H); //good
 
-		acov.derived() = (H * acov * H.transpose()).eval();
+		Efw.derived() = (H * Efw * H.transpose()).eval();
 	}
 
-	//mxPrintMat("acov", acov);
+	//mxPrintMat("Efw", Efw);
+
+	if (strEQ(wlsType, "WLS")) {
+		o1.acovMat = o1.fullWeight;
+	} else {
+		o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
+		EigenMatrixAdaptor acov(o1.acovMat);
+		if (strEQ(wlsType, "ULS")) {
+			// can leave acov unallocated? TODO
+			acov.setIdentity();
+		} else { // DWLS
+			acov.setZero();
+			for (int ix=0; ix < acov_size; ++ix) {
+				acov(ix,ix) = 1.0 / Efw(ix,ix);
+			}
+		}
+	}
+	if (InvertSymmetricPosDef(Efw, 'L')) Rf_error("Attempt to invert acov failed");
+
+	// lavaan divides Efw by rows, we don't
+	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
+	
+	//mxPrintMat("Efw", Efw);
 
 	//o1.log();
 	//Rf_error("Not implemented yet");
