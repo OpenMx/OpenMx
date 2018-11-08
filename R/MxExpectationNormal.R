@@ -313,11 +313,12 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 		tmpModel <- mxModel(model, mxComputeJacobian(defvar.row=defvar.row, of=ex))
 		tmpModel <- mxRun(tmpModel, silent=TRUE)
 		jac <- tmpModel$compute$output$jacobian
+		dimnames(jac) <- list(names(mxGetExpected(model, 'standVector')), names(theParams))
 	} else {
 		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
+		dimnames(jac) <- list(names(mxGetExpected(model, 'vector')), names(theParams))
 	}
 	
-	dimnames(jac) <- list(names(mxGetExpected(model, 'vector')), names(theParams))
 	return(jac)
 }
 

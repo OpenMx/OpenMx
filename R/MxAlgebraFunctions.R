@@ -45,6 +45,11 @@ vechs <- function(x) {
 	return(x[lower.tri(x, diag=FALSE)])
 }
 
+'vechs<-' <- function(x, value) {
+	x[lower.tri(x, diag=FALSE)] <- value
+	x
+}
+
 diag2vec <- function(x) {
 	return(as.matrix(diag(as.matrix(x))))
 }

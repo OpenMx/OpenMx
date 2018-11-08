@@ -61,7 +61,6 @@ setClass(Class = "MxDataStatic",
 		identicalRows = "integer",
 		.isSorted = "logical",  # never sorted anymore, remove slot? TODO
 		.needSort = "logical",
-		.rawData = "MxOptionalDataFrame",  # temporary, remove TODO
 		.wlsType = "MxOptionalChar",
 		.wlsContinuousType = "MxOptionalChar",
 	     primaryKey = "MxCharOrNumber",

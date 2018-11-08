@@ -97,7 +97,6 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	
 	omxCopyMatrix(B, oFlat);
 	
-	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed Vector: "); }
 	if(OMX_DEBUG) {omxPrintMatrix(eFlat, "....WLS Expected Vector: "); }
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
@@ -271,7 +270,7 @@ void omxWLSFitFunction::init()
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
 	if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
-		omxRaiseError("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+		omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
 		return;
 	}
 	
@@ -302,6 +301,7 @@ void omxWLSFitFunction::init()
 	}
 	
 	flattenDataToVector(cov, means, obsThresholdsMat, oThresh, newObj->observedFlattened);
+	if(OMX_DEBUG) {omxPrintMatrix(newObj->observedFlattened, "....WLS Observed Vector: "); }
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
 }

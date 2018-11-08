@@ -3275,8 +3275,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				subsetCovariance(fw, [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
 						 nonZeroDims, dense);
 				if (InvertSymmetricIndef(dense, 'L') > 0) {
-					omxRaiseErrorf("%s: fullWeight matrix is not invertable", exList[ex]->name);
-					return;
+					MoorePenroseInverse(dense);
 				}
 				Eigen::MatrixXd idense = dense.selfadjointView<Eigen::Lower>();
 				subsetCovarianceStore(ifw,
@@ -3305,7 +3304,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 		Eigen::VectorXd diff = obStats - exStats;
 		x2 = diff.transpose() * jacOC * zqb * jacOC.transpose() * diff;
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
-		df = qr2.rank() - numOrdinal * 2;
+		df = qr2.rank();
 	} else {
 		x2 = 0;
 		df = 0;

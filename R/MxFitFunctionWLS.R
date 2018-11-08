@@ -252,7 +252,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	if(prod(dim(jacOC)) > 0){
 		x2 <- t(e) %*% jacOC %*% ginv( as.matrix(t(jacOC) %*% W %*% jacOC) ) %*% t(jacOC) %*% e
 	} else {x2 <- 0}
-	df <- qr(jacOC)$rank - numOrdinal*2 #subtract the number of ordinal means and variances
+	df <- qr(jacOC)$rank
 	
 	dvd <- try(solve( t(jac) %*% V %*% jac ), silent=TRUE)
 	if(class(dvd) != "try-error"){

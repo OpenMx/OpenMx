@@ -236,12 +236,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	}
 
-	// temporary TODO
-	ProtectedSEXP RwlsData(R_do_slot(dataObj, Rf_install(".rawData")));
-	if (Rf_isFrame(RwlsData)) {
-		importDataFrame(RwlsData, wlsCols, numNumeric, numFactor);
-	}
-
 	ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
 	wlsType = CHAR(STRING_ELT(RwlsType,0));
 	ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
@@ -297,13 +291,14 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			int *levels = INTEGER(Rtl);
 
 			for(int i = 0; i < o1.covMat->cols; i++) {
-				if (levels[i] == NA_INTEGER) continue;
 				omxThresholdColumn tc;
 				tc.dColumn = i;
-				tc.column = columns[i];
-				tc.numThresholds = levels[i];
+				if (levels[i] != NA_INTEGER) {
+					tc.column = columns[i];
+					tc.numThresholds = levels[i];
+				}
 				o1.thresholdCols.push_back(tc);
-				if(OMX_DEBUG) {
+				if(OMX_DEBUG && levels[i] != NA_INTEGER) {
 					mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
 					      name, i, levels[i], columns[i]);
 				}
@@ -865,102 +860,109 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	return true;
 }
 
-void obsSummaryStats::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
+struct cstrCmp {
+	bool operator() (const char *s1, const char *s2) const
+	{ return strcmp(s1,s2) < 0; }
+};
+
+typedef std::map< const char *, int, cstrCmp > OrigColMapType;
+
+static int plookup(OrigColMapType &map, const char *str)
 {
-	std::vector< omxThresholdColumn > &origThresh = thresholdCols;
-	std::vector< omxThresholdColumn > oThresh = origThresh;
+	auto it = map.find(str);
+	if (it == map.end()) Rf_error("Can't find '%s'", str);
+	return it->second;
+}
+
+void obsSummaryStats::permute(omxData *data, const Eigen::Ref<const DataColumnIndexVector> &dc)
+{
+	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+	bool needPermute = false;
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		//mxLog("%d %s", cx, omxDataColumnName(data, dc[cx]));
+		invDataColumns[dc[cx]] = cx;
+		if (dc[cx] != cx) needPermute = true;
+	}
+	if (!needPermute) return;
 
 	covMat->unshareMemoryWithR();
 	if (meansMat) meansMat->unshareMemoryWithR();
 	acovMat->unshareMemoryWithR();
 	if (fullWeight) fullWeight->unshareMemoryWithR();
 
-	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> p1(dc);
+
+	OrigColMapType colMap;
+	for (int cx=0; cx < int(acovMat->colnames.size()); ++cx) {
+		OrigColMapType::value_type v(acovMat->colnames[cx], cx);
+		//mxLog("%s -> %d", acovMat->colnames[cx], cx);
+		colMap.insert(v);
+	}
+
+	auto &thresh = thresholdCols;
+
+	Eigen::PermutationMatrix<Eigen::Dynamic> p2(acovMat->cols);
+	int px = 0;
+
+	if (thresh.size() == 0 && meansMat) {
+		for (int cx=0; cx < int(dc.size()); ++cx) {
+			p2.indices()[px++] = plookup(colMap, omxDataColumnName(data, dc[cx]));
+		}
+	} else if (thresh.size()) {
+		for (int cx=0; cx < int(dc.size()); ++cx) {
+			auto &t1 = thresh[ dc[cx] ];
+			auto cn = omxDataColumnName(data, dc[cx]);
+			if (t1.numThresholds) {
+				for (int tx=1; tx <= t1.numThresholds; ++tx) {
+					auto s1 = string_snprintf("%st%d", cn, tx);
+					p2.indices()[px++] = plookup(colMap, s1.c_str());
+				}
+			} else {
+				p2.indices()[px++] = plookup(colMap, cn);
+			}
+		}
+	}
+
 	for (int cx=0; cx < int(dc.size()); ++cx) {
-		invDataColumns[dc[cx]] = cx;
+		auto &t1 = thresh[ dc[cx] ];
+		if (t1.numThresholds) continue;
+		auto cn = omxDataColumnName(data, dc[cx]);
+		auto s1 = string_snprintf("var_%s", cn);
+		p2.indices()[px++] = plookup(colMap, s1.c_str());
 	}
-	//mxPrintMat("invDataColumns", invDataColumns);
-	//Eigen::VectorXi invDataColumns = dc;
-	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(invDataColumns);
+	
+	for (int cx=0; cx < int(dc.size())-1; ++cx) {
+		auto cn = omxDataColumnName(data, dc[cx]);
+		for (int rx=cx+1; rx < int(dc.size()); ++rx) {
+			auto rn = omxDataColumnName(data, dc[rx]);
+			auto s1 = string_snprintf("poly_%s_%s", rn, cn);
+			auto s2 = string_snprintf("poly_%s_%s", cn, rn);
+			auto it = colMap.find(s1.c_str());
+			if (it == colMap.end()) {
+				it = colMap.find(s2.c_str());
+			}
+			if (it == colMap.end()) Rf_error("Can't find '%s' or '%s'",
+							 s1.c_str(), s2.c_str());
+			p2.indices()[px++] = it->second;
+		}
+	}
+
+	EigenVectorAdaptor Emean(meansMat);
 	EigenMatrixAdaptor Ecov(covMat);
-	Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
-	if (meansMat) {
-		EigenVectorAdaptor Emean(meansMat);
-		Emean.derived() = (pm * Emean).eval();
-	}
+	EigenMatrixAdaptor Eacov(acovMat);
+	EigenMatrixAdaptor Efw(fullWeight);
 
-	Eigen::MatrixXi mm(dc.size(), dc.size());
-	for (int cx=0, en=0; cx < dc.size(); ++cx) {
-		for (int rx=cx; rx < dc.size(); ++rx) {
-			mm(rx,cx) = en;
-			en += 1;
-		}
-	}
-	mm = mm.selfadjointView<Eigen::Lower>();
-	mm = (pm * mm * pm.transpose()).eval();
-	//mxPrintMat("mm", mm);
+	//mxPrintMat("p2", p2.indices());
 
-	Eigen::VectorXi tstart(origThresh.size() + 1);
-	tstart[0] = 0;
-	int totalThresholds = 0;
-	for (int tx=0; tx < int(origThresh.size()); ++tx) {
-		totalThresholds += origThresh[tx].numThresholds;
-		tstart[tx+1] = totalThresholds;
-	}
+	Emean.derived() = (p1.transpose() * Emean).eval();
+	Ecov.derived() = (p1.transpose() * Ecov * p1).eval();
+	Eacov.derived() = (p2.transpose() * Eacov * p2).eval();
+	Efw.derived() = (p2.transpose() * Efw * p2).eval();
 
-	int wpermSize = triangleLoc1(dc.size()) + totalThresholds;
-	if (meansMat) wpermSize += dc.size();
-	Eigen::VectorXi wperm(wpermSize);
-
-	for (int cx=0, en=0; cx < dc.size(); ++cx) {
-		for (int rx=cx; rx < dc.size(); ++rx) {
-			wperm[en] = mm(rx,cx);
-			en += 1;
-		}
-	}
-
-	if (meansMat) {
-		wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
-	}
-
-	std::vector<int> newOrder;
-	newOrder.reserve(origThresh.size());
-	for (int xx=0; xx < int(origThresh.size()); ++xx) newOrder.push_back(xx);
-
-	std::sort(newOrder.begin(), newOrder.end(),
-		  [&](const int &a, const int &b) -> bool
-		  { return invDataColumns[origThresh[a].dColumn] < invDataColumns[origThresh[b].dColumn]; });
-
-	//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
-
-	int thStart = triangleLoc1(dc.size());
-	if (meansMat) thStart += dc.size();
-	for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
-		int oldIndex = newOrder[t1];
-		auto &th = oThresh[oldIndex];
-		for (int t2=0; t2 < th.numThresholds; ++t2) {
-			wperm[thStart + dest] = thStart + tstart[oldIndex] + t2;
-			dest += 1;
-		}
-	}
-
-	for (auto &th : oThresh) th.dColumn = invDataColumns[th.dColumn];
-	std::sort(oThresh.begin(), oThresh.end(),
+	for (auto &th : thresh) th.dColumn = invDataColumns[th.dColumn];
+	std::sort(thresh.begin(), thresh.end(),
 		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
 		  { return a.dColumn < b.dColumn; });
-
-	origThresh = oThresh;
-
-	//mxPrintMat("wperm", wperm);
-	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> wpm(wperm);
-	EigenMatrixAdaptor Eweights(acovMat);
-	Eweights.derived() = (wpm.transpose() * Eweights * wpm).eval();
-
-	if (fullWeight) {
-		EigenMatrixAdaptor Efw(fullWeight);
-		Efw.derived() = (wpm.transpose() * Efw * wpm).eval();
-	}
-	//mxPrintMat("ew", Eweights);
 }
 
 void obsSummaryStats::log()
@@ -970,6 +972,7 @@ void obsSummaryStats::log()
 	if (meansMat) omxPrint(meansMat, "mean");
 	if (acovMat) omxPrint(acovMat, "acov");
 	if (fullWeight && acovMat != fullWeight) omxPrint(fullWeight, "full");
+	for (auto &th : thresholdCols) { th.log(); }
 	if (thresholdMat) omxPrint(thresholdMat, "thr");
 }
 
@@ -981,7 +984,7 @@ void omxData::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
 
 	if (obsStatsVec.size() != 1) Rf_error("obsStatsVec.size() != 1");
 
-	obsStatsVec[0].permute(dc);
+	obsStatsVec[0].permute(this, dc);
 }
 
 template <typename T>
@@ -1016,7 +1019,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state,
 	Eigen::ArrayXXd data(int(numObs), numCols);
 	Eigen::VectorXd r1(numCols);
 	for (int rx=0; rx < numObs; ++rx) {
-		getContRow(wlsCols, rx, dc, r1);
+		getContRow(rawCols, rx, dc, r1);
 		Emean += r1;
 		Ecov += r1 * r1.transpose();
 		data.row(rx) = r1;

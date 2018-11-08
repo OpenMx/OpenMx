@@ -22,6 +22,7 @@
 
 # x is the raw data
 wlsContinuousOnlyHelper <- function(x, type="WLS"){
+	mnames <- colnames(x)
 	numRows <- nrow(x)
 	numCols <- ncol(x)
 	numColsStar <- numCols*(numCols+1)/2
@@ -65,6 +66,15 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 	if(type=="WLS"){
 		useWeight <- fullWeight
 	}
+
+	nv <- ncol(x)
+	covNames <- outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_')
+	diag(covNames) <- paste0("var_", mnames[1:nv])
+	vechs(covNames) <- paste0("poly_", vechs(covNames))
+	n1 <- vech(covNames)
+	dimnames(useWeight) <- list(n1,n1)
+	dimnames(fullWeight) <- list(n1,n1)
+
 	return(list(use=useWeight*numRows, full=fullWeight*numRows))
 }
 
@@ -464,7 +474,6 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 		wls <- wlsContinuousOnlyHelper(data, type)
 		retVal <- mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n)
-		retVal@.rawData <- data
 		retVal@.wlsType <- type
 		retVal@.wlsContinuousType <- allContinuousMethod
 		return(wls.permute(retVal))
@@ -666,10 +675,13 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	}
 
 	dls <- diag(diag(wls))
+	dimnames(dls) <- dimnames(wls)
 	uls <- (dls>0)*1
-	
+	dimnames(uls) <- dimnames(wls)
+
 	# try the weird non-hao version
 	xls <- quad
+	dimnames(xls) <- dimnames(wls)
 	
 	if(debug){
 		custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE), mxComputeReportDeriv()))
@@ -719,7 +731,6 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 	if (debug){return(list(fullJac, fullHess))}
 	if (!silent) imxReportProgress("", msgLen)
-	retVal@.rawData <- data
 	retVal@.wlsType <- type
 	retVal@.wlsContinuousType <- allContinuousMethod
 	return(wls.permute(retVal))
@@ -728,14 +739,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 wls.permute <- function(mxd) {
 	perm <- match(names(.mxDataAsVector(mxd)), colnames(mxd$acov))
 	mxd$acov <- mxd$acov[perm,perm]
-	if (!is.null(mxd$fullWeight)) {
+	if (!single.na(mxd$fullWeight)) {
 		mxd$fullWeight <- mxd$fullWeight[perm,perm]
 	}
 	mxd
 }
 
 .mxDataAsVector <- function(mxd) {
-	mnames <- colnames(mxd$means)
+	mnames <- colnames(mxd$observed)
 	ordInd <- match(colnames(mxd$thresholds), mnames)
 	dth <- !is.na(mxd$thresholds)
 	v <- c()
@@ -743,8 +754,10 @@ wls.permute <- function(mxd) {
 	for (vx in 1:length(mnames)) {
 		tcol <- which(vx == ordInd)
 		if (length(tcol) == 0) {
-			v <- c(v, mxd$means[vx])
-			vn <- c(vn, mnames[vx])
+			if (!single.na(mxd$means)) {
+				v <- c(v, mxd$means[vx])
+				vn <- c(vn, mnames[vx])
+			}
 		} else {
 			tcount <- sum(dth[,tcol])
 			v <- c(v, mxd$thresholds[1:tcount,tcol])

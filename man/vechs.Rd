@@ -15,6 +15,7 @@
 
 \name{vechs}
 \alias{vechs}
+\alias{vechs<-}
 
 \title{Strict Half-vectorization}
 

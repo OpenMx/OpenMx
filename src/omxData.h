@@ -119,7 +119,7 @@ class obsSummaryStats {
         obsSummaryStats() : numObs(0), numOrdinal(0), covMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0) {};
 	~obsSummaryStats();
-	void permute(const Eigen::Ref<const DataColumnIndexVector> &dc);
+	void permute(omxData *data, const Eigen::Ref<const DataColumnIndexVector> &dc);
 	void log();
 };
 
@@ -134,8 +134,6 @@ class omxData {
 	bool permuted;
 	std::vector<obsSummaryStats> obsStatsVec;
 
-	//temporary TODO
-	std::vector<ColumnData> wlsCols;
 	const char *wlsType;
 	const char *wlsContinuousType;
 

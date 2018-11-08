@@ -318,10 +318,14 @@ int omxExpectation::numSummaryStats()
 		Rf_error("%s::numSummaryStats is not implemented (for object '%s')", expType, name);
 	}
 
+	omxMatrix *mean = getComponent("means");
+
 	auto &ti = getThresholdInfo();
 	if (ti.size() == 0) {
 		// all continuous
-		return triangleLoc1(cov->rows) + cov->rows;
+		int count = triangleLoc1(cov->rows);
+		if (mean) count += cov->rows;
+		return count;
 	}
 
 	int count = triangleLoc1(cov->rows - 1);  // covariances
