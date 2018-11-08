@@ -851,10 +851,10 @@ void omxData::permute(const Eigen::Ref<const DataColumnType> &dc)
 	std::vector< omxThresholdColumn > &origThresh = omxDataThresholds(this);
 	std::vector< omxThresholdColumn > oThresh = origThresh;
 
-	dataMat->unshareMemroyWithR();
-	if (meansMat) meansMat->unshareMemroyWithR();
-	acovMat->unshareMemroyWithR();
-	if (fullWeight) fullWeight->unshareMemroyWithR();
+	dataMat->unshareMemoryWithR();
+	if (meansMat) meansMat->unshareMemoryWithR();
+	acovMat->unshareMemoryWithR();
+	if (fullWeight) fullWeight->unshareMemoryWithR();
 
 	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
 	for (int cx=0; cx < int(dc.size()); ++cx) {
