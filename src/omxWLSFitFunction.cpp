@@ -28,8 +28,6 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* weights;
 	omxMatrix* P;
 	omxMatrix* B;
-	int n;
-	int fullWls;
 	int numOrdinal;
 	
 	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
@@ -99,7 +97,6 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	
 	omxCopyMatrix(B, oFlat);
 	
-	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed Vector: "); }
 	if(OMX_DEBUG) {omxPrintMatrix(eFlat, "....WLS Expected Vector: "); }
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
@@ -194,45 +191,34 @@ void omxWLSFitFunction::init()
 	auto *newObj = this;
 	
 	omxState *currentState = oo->matrix->currentState;
-	omxMatrix *cov, *means;
 	
-	if(OMX_DEBUG) { mxLog("Initializing WLS FitFunction function."); }
+	if (!oo->expectation) { Rf_error("%s requires an expectation", name()); }
 	
-	if(OMX_DEBUG) { mxLog("Retrieving expectation.\n"); }
-	if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
-	
-	if(OMX_DEBUG) { mxLog("Retrieving data.\n"); }
 	omxData* dataMat = oo->expectation->data;
-	if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
+
+	std::vector<int> exoPred;
+	expectation->getExogenousPredictors(exoPred);
+
+	if (dataMat->defVars.size() == exoPred.size()) {
+		// OK
+	} else if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
 	
-	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "cov")) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "WLS FitFunction unable to handle data type %s.  Data must be of type 'acov'.\n", omxDataType(dataMat));
-		omxRaiseError(errstr);
-		free(errstr);
-		if(OMX_DEBUG) { mxLog("WLS FitFunction unable to handle data type %s.  Aborting.", omxDataType(dataMat)); }
+	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "raw")) {
+		omxRaiseErrorf("%s: unable to handle data type %s. Data must be of type 'raw' or 'acov'",
+			       name(), omxDataType(dataMat));
 		return;
 	}
 	
-	fullWls = strEQ("WLS", CHAR(Rf_asChar(R_do_slot(rObj, Rf_install("weights")))));
+	// For multiple threads, need to grab parent's info TODO
+	dataMat->recalcWLSStats(currentState, oo->expectation->getDataColumns(), exoPred);
 
-	oo->units = fullWls? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
-	
-	/* Get Expectation Elements */
-	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
-	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
-	
-	/* Read and set expected means, variances, and weights */
-	dataMat->permute(oo->expectation->getDataColumns());
+	auto &obsStat = dataMat->getSingleObsSummaryStats();
+	omxMatrix *cov = obsStat.covMat;
+	omxMatrix *means = obsStat.meansMat;
+	omxMatrix *obsThresholdsMat = obsStat.thresholdMat;
+	weights = obsStat.acovMat;
+	std::vector< omxThresholdColumn > &oThresh = obsStat.thresholdCols;
 
-	cov = omxDataCovariance(dataMat);
-	means = omxDataMeans(dataMat);
-	weights = omxDataAcov(dataMat);
-
-	std::vector< omxThresholdColumn > &oThresh = omxDataThresholds(oo->expectation->data);
-
-	newObj->n = omxDataNumObs(dataMat);
-	
 	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
@@ -241,6 +227,9 @@ void omxWLSFitFunction::init()
 		return;
 	}
 
+	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
+	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
+	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
@@ -281,10 +270,14 @@ void omxWLSFitFunction::init()
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
 	if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
-		omxRaiseError("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+		omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
 		return;
 	}
 	
+	EigenMatrixAdaptor Eweight(weights);
+	Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+	double offDiag = offDiagW.array().abs().sum();
+	oo->units = offDiag > 0.0? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
 	
 	// FIXME: More Rf_error checking for incoming Fit Functions
 	
@@ -300,7 +293,6 @@ void omxWLSFitFunction::init()
 	if(means){
 		newObj->standardMeans = omxInitMatrix(1, ncol, TRUE, currentState);
 	}
-	omxMatrix *obsThresholdsMat = oo->expectation->data->obsThresholdsMat;
 	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
 		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
 		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
@@ -309,6 +301,7 @@ void omxWLSFitFunction::init()
 	}
 	
 	flattenDataToVector(cov, means, obsThresholdsMat, oThresh, newObj->observedFlattened);
+	if(OMX_DEBUG) {omxPrintMatrix(newObj->observedFlattened, "....WLS Observed Vector: "); }
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
 }

@@ -85,7 +85,7 @@ omxAlgebraFitFunction.o: Makevars omxAlgebraFitFunction.cpp omxFitFunction.h \
 omxData.o: Makevars omxData.cpp omxData.h omxDefines.h \
  omxAlgebra.h omxSymbolTable.h omxMatrix.h algebraOp.h omxState.h \
  omxExpectation.h omxFitFunction.h glue.h omxExpectationBA81.h ba81quad.h \
- dmvnorm.h EnableWarnings.h
+ dmvnorm.h EnableWarnings.h nr.h omxBVN.h
 omxExpectation.o: Makevars omxExpectation.cpp omxExpectation.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h EnableWarnings.h

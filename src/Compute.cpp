@@ -1704,13 +1704,13 @@ class ComputeStandardError : public omxCompute {
 				return;
 			}
 			omxData *d1 = e1->data;
-			if (!d1->fullWeight) {
-				omxRaiseErrorf("%s: terribly sorry, master, but '%s' does not "
-					       "include the full weight matrix hence "
-					       "standard errors cannot be computed",
-					       top.name, d1->name);
-				return;
-			}
+			d1->visitObsStats([this, d1](obsSummaryStats &o1) {
+					if (o1.fullWeight) return;
+					omxRaiseErrorf("%s: terribly sorry, master, but '%s' does not "
+						       "include the full weight matrix hence "
+						       "standard errors cannot be computed",
+						       top.name, d1->name);
+				});
 			top.exList.push_back(e1);
 		}
 	};
@@ -3231,11 +3231,13 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	int totalStats = 0;
 	numStats.reserve(exList.size());
 	for (auto &e1 : exList) {
-		numOrdinal += e1->numOrdinal;
-		numObs += e1->data->numObs;
-		int sz = e1->data->acovMat->rows;
-		numStats.push_back(sz);
-		totalStats += sz;
+		e1->data->visitObsStats([&](obsSummaryStats &o1){
+				numOrdinal += o1.numOrdinal;
+				numObs += o1.numObs;
+				int sz = o1.acovMat->rows;
+				numStats.push_back(sz);
+				totalStats += sz;
+			});
 	}
 
 	Eigen::VectorXd obStats(totalStats);
@@ -3244,40 +3246,45 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd Wmat(totalStats,totalStats);
 	Vmat.setZero();
 	Wmat.setZero();
-	for (int ex=0, offset=0; ex < int(exList.size()); offset += numStats[ex++]) {
+	for (int ex=0, sx=0, offset=0; ex < int(exList.size()); ++ex) {
 		omxData *d1 = exList[ex]->data;
-		int sz = numStats[ex];
 
-		Eigen::VectorXd vec1(sz);
-		exList[ex]->asVector(fc, 0, vec1);
-		exStats.segment(offset, sz) = vec1;
-		normalToStdVector(omxDataCovariance(d1), omxDataMeans(d1),
-				  d1->obsThresholdsMat, exList[ex]->numOrdinal, omxDataThresholds(d1), vec1);
-		obStats.segment(offset, sz) = vec1;
+		d1->visitObsStats([&](obsSummaryStats &o1){
+				int sz = numStats[sx];
 
-		EigenMatrixAdaptor acov(d1->acovMat);
-		Vmat.block(offset,offset,sz,sz) = acov;
+				// filter out missing variables TODO
+				Eigen::VectorXd vec1(sz);
+				exList[ex]->asVector(fc, 0, vec1);
+				exStats.segment(offset, sz) = vec1;
+				normalToStdVector(o1.covMat, o1.meansMat, o1.thresholdMat,
+						  o1.numOrdinal, o1.thresholdCols, vec1);
+				obStats.segment(offset, sz) = vec1;
 
-		EigenMatrixAdaptor fw(d1->fullWeight);
-		int nonZeroDims = (fw.diagonal().array() != 0.0).count();
-		if (nonZeroDims == 0) {
-			omxRaiseErrorf("%s: fullWeight matrix is missing", exList[ex]->name);
-			continue;
-		}
-		Eigen::MatrixXd ifw(fw.rows(), fw.cols());
-		ifw.setZero();
-		Eigen::MatrixXd dense;
-		subsetCovariance(fw, [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
-				 nonZeroDims, dense);
-		if (InvertSymmetricIndef(dense, 'L') > 0) {
-			omxRaiseErrorf("%s: fullWeight matrix is not invertable", exList[ex]->name);
-			continue;
-		}
-		Eigen::MatrixXd idense = dense.selfadjointView<Eigen::Lower>();
-		subsetCovarianceStore(ifw,
-				      [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
-				      idense);
-		Wmat.block(offset,offset,sz,sz) = ifw;
+				EigenMatrixAdaptor acov(o1.acovMat);
+				Vmat.block(offset,offset,sz,sz) = acov;
+
+				EigenMatrixAdaptor fw(o1.fullWeight);
+				int nonZeroDims = (fw.diagonal().array() != 0.0).count();
+				if (nonZeroDims == 0) {
+					omxRaiseErrorf("%s: fullWeight matrix is missing", exList[ex]->name);
+					return;
+				}
+				Eigen::MatrixXd ifw(fw.rows(), fw.cols());
+				ifw.setZero();
+				Eigen::MatrixXd dense;
+				subsetCovariance(fw, [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
+						 nonZeroDims, dense);
+				if (InvertSymmetricIndef(dense, 'L') > 0) {
+					MoorePenroseInverse(dense);
+				}
+				Eigen::MatrixXd idense = dense.selfadjointView<Eigen::Lower>();
+				subsetCovarianceStore(ifw,
+						      [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
+						      idense);
+				Wmat.block(offset,offset,sz,sz) = ifw;
+				offset += sz;
+				sx += 1;
+			});
 	}
 
 	int numFree = fc->calcNumFree();
@@ -3297,7 +3304,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 		Eigen::VectorXd diff = obStats - exStats;
 		x2 = diff.transpose() * jacOC * zqb * jacOC.transpose() * diff;
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
-		df = qr2.rank() - numOrdinal * 2;
+		df = qr2.rank();
 	} else {
 		x2 = 0;
 		df = 0;

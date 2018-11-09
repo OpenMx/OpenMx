@@ -22,6 +22,10 @@ setClassUnion("MxCharOrNumber", c("character", "integer"))
 ##' @name MxOptionalChar-class
 setClassUnion("MxOptionalChar", c("NULL", "character"))
 
+##' An optional data.frame
+##' @name MxOptionalDataFrame-class
+setClassUnion("MxOptionalDataFrame", c("NULL", "data.frame"))
+
 ##' @title An optional logical
 ##' @name MxOptionalLogical-class
 ##' @rdname MxOptionalLogical-class

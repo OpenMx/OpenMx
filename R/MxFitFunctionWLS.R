@@ -13,8 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# TODO: Add conformance and dimname checking for weight matrix
-
 #------------------------------------------------------------------------------
 # Revision History
 #  Fri 08 Mar 2013 15:35:29 Central Standard Time -- Michael Hunter copied file from 
@@ -28,14 +26,12 @@
 
 # **DONE**
 setClass(Class = "MxFitFunctionWLS",
-	representation = representation(weights = "MxCharOrNumber"),
 	contains = "MxBaseFitFunction")
 
 # **DONE**
 setMethod("initialize", "MxFitFunctionWLS",
-	function(.Object, weights, name = 'fitfunction') {
+	function(.Object, name = 'fitfunction') {
 		.Object@name <- name
-		.Object@weights <- weights
 		.Object@vector <- FALSE
 		return(.Object)
 	}
@@ -45,8 +41,6 @@ setMethod("initialize", "MxFitFunctionWLS",
 setMethod("qualifyNames", signature("MxFitFunctionWLS"), 
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@weights <- imxConvertIdentifier(.Object@weights,
-			modelname, namespace)
 		return(.Object)
 })
 
@@ -85,9 +79,6 @@ setMethod("genericFitFunConvert", "MxFitFunctionWLS",
 		}
 		.Object@expectation <- expectIndex
 		eobj <- flatModel@expectations[[1L+expectIndex]]
-		#if(!single.na(eobj@thresholds)){
-		#	checkWLSIdentification(model, eobj)
-		#}
 		return(.Object)
 })
 
@@ -120,91 +111,15 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 		return(matrix(as.double(NA), cols, cols))
 })
 
-setMethod("genericFitAddEntities", "MxFitFunctionWLS",
-	function(.Object, job, flatJob, labelsData) {
-		modName <- strsplit(.Object@name, split='.', fixed=TRUE)[[1]][1]
-		if(!is.null(job[[modName]]$data) && job[[modName]]$data$type %in% 'acov'){
-			W <- job[[modName]]$data$acov
-			if(any(W[row(W) != col(W)] != 0)){ # any off-diagonals are non-zero
-				job[[modName]]@fitfunction@weights <- 'WLS'
-			} else if(any(!(W %in% c(0, 1)))){ # any diagonals are non-zero non-unity
-				job[[modName]]@fitfunction@weights <- 'DLS'
-			} else {
-				job[[modName]]@fitfunction@weights <- 'ULS'
-			}
-			job@.newobjects <- TRUE
-		}
-		return(job)
-})
-
-checkWLSIdentification <- function(model, expect) {
-		#TODO check the job's expectation
-		# if it's expectation Normal
-		#	if it's identified how we want, then do nothing
-		#	else add constraints and change expectation
-		#		might need to re-do expectationFunctionAddEntities and/or flattening
-		# else if it's RAM
-		#	if it's identified how we want, then do nothing
-		#	else throw error
-		# else if it's LISREL
-		#	if it's identified how we want, then do nothing
-		#	else throw error
-		# else throw error that WLS doesn't work for that yet.
-
-	type <- strsplit(is(expect)[1], "MxExpectation")[[1]][2]
-	if(type=='RAM'){
-		A <- expect@A
-		S <- expect@S
-		F <- expect@F
-		M <- expect@M
-		# ???
-		# mxComputeOnce the RAM expectation?
-		stop("Ordinal WLS with the RAM expectation is not yet implemented.  For now, use mxExpectationNormal.")
-	}
-	else if(type=='LISREL'){
-		# ???
-		# mxComputeOnce the LISREL expectation?
-		stop("Ordinal WLS with the LISREL expectation is not yet implemented.  For now, use mxExpectationNormal.")
-	}
-	else if(type=='Normal'){
-		#Note: below strategy does NOT catch cases where starting values
-		# make the criteria true by accident.
-		theCov <- mxEvalByName(expect@covariance, model, compute=TRUE) #Perhaps save time with cache?
-		covDiagsOne <- all( ( (diag(theCov) - 1)^2 ) < 1e-7 )
-		meanName <- expect@means
-		if(!single.na(meanName)){
-			theMeans <- mxEvalByName(expect@means, model, compute=TRUE)
-			meanZeroNA <- all( ( (diag(theMeans) - 0)^2 ) < 1e-7 )
-		} else {
-			meanZeroNA <- TRUE
-		}
-		if(!covDiagsOne || !meanZeroNA){
-			stop("Model not identified in the way required by WLS.")
-		}
-	}
-	else{
-		stop(paste("The model", omxQuotes(model@name), "has an expectation",
-			"that is not RAM, LISREL, or Normal.  WLS does not know what to do."))
-	}
-}
-
 # **DONE**
 mxFitFunctionWLS <- function(weights="ULS") {
-	if (is.na(weights)) weights <- as.character(NA)
-	if (!(weights %in% c("ULS", "DWLS", "WLS"))){
-		stop("weights must be either 'ULS', 'DLS' or 'WLS'")
-		}
-	return(new("MxFitFunctionWLS", weights))
+	if (!missing(weights)) warning("Argument 'weights' to mxFitFunctionWLS is ignored")
+	return(new("MxFitFunctionWLS"))
 }
 
 # **DONE**
 displayMxFitFunctionWLS <- function(fitfunction) {
 	cat("MxFitFunctionWLS", omxQuotes(fitfunction@name), '\n')
-	if (single.na(fitfunction@weights)) {
-		cat("$weights : NA \n")
-	} else {
-		cat("$weights :", omxQuotes(fitfunction@weights), '\n')
-	}
 	if (length(fitfunction@result) == 0) {
 		cat("$result: (not yet computed) ")
 	} else {
@@ -337,7 +252,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	if(prod(dim(jacOC)) > 0){
 		x2 <- t(e) %*% jacOC %*% ginv( as.matrix(t(jacOC) %*% W %*% jacOC) ) %*% t(jacOC) %*% e
 	} else {x2 <- 0}
-	df <- qr(jacOC)$rank - numOrdinal*2 #subtract the number of ordinal means and variances
+	df <- qr(jacOC)$rank
 	
 	dvd <- try(solve( t(jac) %*% V %*% jac ), silent=TRUE)
 	if(class(dvd) != "try-error"){
