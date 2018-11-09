@@ -110,7 +110,7 @@ class omxMatrix {
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
 	void take(omxMatrix *orig);
 
-	void unshareMemroyWithR();
+	void unshareMemoryWithR();
 	void loadDimnames(SEXP dimnames);
 	const char *getType() const {
 		const char *what = "matrix";

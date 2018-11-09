@@ -125,7 +125,7 @@ void FreeVarGroup::cacheDependencies(omxState *os)
 
 	for(size_t i = 0; i < numMats; i++) {
 		if (!locations[i]) continue;
-		os->matrixList[i]->unshareMemroyWithR();
+		os->matrixList[i]->unshareMemoryWithR();
 	}
 
 	// Everything is set up. This is a good place to log.
