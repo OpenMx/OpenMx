@@ -28,13 +28,19 @@
 #include "glue.h"
 #include "omxState.h"
 #include "omxExpectationBA81.h"  // improve encapsulation TODO
+#include "matrix.h"
 #include <fstream>
+#include <Rmath.h>
+#include "nr.h"
+#include "omxBVN.h"
+#include "omxNLopt.h"
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false),
-		     dataObject(0), dataMat(0), meansMat(0), acovMat(0), fullWeight(0), obsThresholdsMat(0),
-		     thresholdCols(0), numObs(0), _type(0), numFactor(0), numNumeric(0),
+		     wlsType(0), wlsContinuousType(0),
+		     dataObject(0), dataMat(0), meansMat(0), 
+		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
 {}
 
@@ -53,10 +59,6 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 	od->dataObject = dataObject;
 	if (!strEQ(od->getType(), "cov")) {
 		omxRaiseErrorf("Don't know how to create dynamic data with type '%s'", od->getType());
-	}
-
-	{ScopedProtect p2(dataLoc, R_do_slot(dataObject, Rf_install("verbose")));
-	od->verbose = Rf_asInteger(dataLoc);
 	}
 }
 
@@ -193,7 +195,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 {
 	owner = dataObj;
 	omxData *od = this;
-	SEXP dataLoc, dataVal;
+	SEXP dataLoc;
 
 	// PARSE MxData Structure
 	if(OMX_DEBUG) {mxLog("Processing Data '%s'", od->name);}
@@ -234,6 +236,11 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	}
 
+	ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
+	wlsType = CHAR(STRING_ELT(RwlsType,0));
+	ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
+	wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
+
 	if (od->hasPrimaryKey() && !(od->rawCols.size() && od->rawCols[primaryKey].intData)) {
 		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
 	}
@@ -257,43 +264,44 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("acov")));
-	od->acovMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
-	ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
-	od->fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
-	}
+	ProtectedSEXP Racov(R_do_slot(dataObj, Rf_install("acov")));
+	omxMatrix *acovMat = omxNewMatrixFromRPrimitive0(Racov, state, 0, 0);
+	if (acovMat) {
+		obsStatsVec.resize(1);
+		auto &o1 = obsStatsVec[0];
+		o1.covMat = dataMat;
+		dataMat = 0;
+		o1.meansMat = meansMat;
+		meansMat = 0;
+		o1.acovMat = acovMat;
 
-	if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
-	{ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("thresholds")));
-	od->obsThresholdsMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
-	}
+		ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
+		o1.fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
 
-	if(od->obsThresholdsMat) {
-		od->thresholdCols.reserve(od->obsThresholdsMat->cols);
-		int *columns;
-		{
-			ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("thresholdColumns")));
-			columns = INTEGER(dataLoc);
-		}
+		if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
+		ProtectedSEXP Rthr(R_do_slot(dataObj, Rf_install("thresholds")));
+		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
 
-		int *levels;
-		{
-			ScopedProtect p1(dataVal, R_do_slot(dataObj, Rf_install("thresholdLevels")));
-			levels = INTEGER(dataVal);
-		}
+		if(o1.thresholdMat) {
+			o1.numOrdinal = o1.thresholdMat->cols;
+			o1.thresholdCols.reserve(o1.thresholdMat->cols);
+			ProtectedSEXP Rtc(R_do_slot(dataObj, Rf_install("thresholdColumns")));
+			int *columns = INTEGER(Rtc);
+			ProtectedSEXP Rtl(R_do_slot(dataObj, Rf_install("thresholdLevels")));
+			int *levels = INTEGER(Rtl);
 
-		//for(int i = 0; i < od->obsThresholdsMat->cols; i++) {
-		for(int i = 0; i < od->cols; i++) {
-			if (levels[i] == NA_INTEGER) continue;
-			omxThresholdColumn tc;
-			tc.dColumn = i;
-			tc.column = columns[i];
-			tc.numThresholds = levels[i];
-			od->thresholdCols.push_back(tc);
-			od->numFactor++; //N.B. must increment numFactor when data@type=='raw' (above) AND when data@type=='acov' (here)
-			if(OMX_DEBUG) {
-				mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
-				      name, i, levels[i], columns[i]);
+			for(int i = 0; i < o1.covMat->cols; i++) {
+				omxThresholdColumn tc;
+				tc.dColumn = i;
+				if (levels[i] != NA_INTEGER) {
+					tc.column = columns[i];
+					tc.numThresholds = levels[i];
+				}
+				o1.thresholdCols.push_back(tc);
+				if(OMX_DEBUG && levels[i] != NA_INTEGER) {
+					mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
+					      name, i, levels[i], columns[i]);
+				}
 			}
 		}
 	}
@@ -376,6 +384,8 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	if(OMX_DEBUG) {mxLog("Initializing %s element", dclass);}
 	omxData* od = new omxData();
 	od->name = name;
+	ProtectedSEXP Rverbose(R_do_slot(dataObj, Rf_install("verbose")));
+	od->verbose = Rf_asInteger(Rverbose);
 	dataList.push_back(od);
 	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObj);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObj, od);
@@ -401,13 +411,20 @@ void omxData::freeInternal()
 	}
 }
 
+obsSummaryStats::~obsSummaryStats()
+{
+	omxFreeMatrix(covMat);
+	omxFreeMatrix(meansMat);
+	omxFreeMatrix(acovMat);
+	if (acovMat != fullWeight) omxFreeMatrix(fullWeight);
+	omxFreeMatrix(thresholdMat);
+}
+
 void omxFreeData(omxData* od)
 {
 	od->freeInternal();
 	omxFreeMatrix(od->dataMat);
 	omxFreeMatrix(od->meansMat);
-	omxFreeMatrix(od->acovMat);
-	omxFreeMatrix(od->obsThresholdsMat);
 	delete od;
 }
 
@@ -466,15 +483,10 @@ omxMatrix* omxDataCovariance(omxData *od)
 	Rf_error("%s: type='%s' data must be in matrix storage", od->name, od->_type);
 }
 
-omxMatrix* omxDataAcov(omxData *od)
+bool omxData::columnIsFactor(int col)
 {
-	return od->acovMat;  // can be NULL
-}
-
-bool omxDataColumnIsFactor(omxData *od, int col)
-{
-	if(od->dataMat != NULL) return FALSE;
-	ColumnData &cd = od->rawCols[col];
+	if(dataMat != NULL) return FALSE;
+	ColumnData &cd = rawCols[col];
 	return cd.intData && cd.levels.size();
 }
 
@@ -538,12 +550,23 @@ int omxData::lookupRowOfKey(int key)
 
 const char *omxDataColumnName(omxData *od, int col)
 {
-	if(od->dataMat) {
-		auto &cn = od->dataMat->colnames;
+	return od->columnName(col);
+}
+
+const char *omxData::columnName(int col)
+{
+	if(dataMat) {
+		auto &cn = dataMat->colnames;
 		if (col < int(cn.size())) return cn[col];
 		else return "?";
 	}
-	ColumnData &cd = od->rawCols[col];
+	if (obsStatsVec.size() == 1) {
+		auto &o1 = obsStatsVec[0];
+		auto &cn = o1.covMat->colnames;
+		if (col < int(cn.size())) return cn[col];
+		else return "?";
+	}
+	ColumnData &cd = rawCols[col];
 	return cd.name;
 }
 
@@ -602,11 +625,6 @@ omxMatrix* omxDataMeans(omxData *od)
 		return mat;
 	}
 	return NULL;
-}
-
-std::vector<omxThresholdColumn> &omxDataThresholds(omxData *od)
-{
-    return od->thresholdCols;
 }
 
 void omxContiguousDataRow(omxData *od, int row, int start, int len, omxMatrix* om) {
@@ -842,104 +860,1105 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	return true;
 }
 
-void omxData::permute(const Eigen::Ref<const DataColumnType> &dc)
+struct cstrCmp {
+	bool operator() (const char *s1, const char *s2) const
+	{ return strcmp(s1,s2) < 0; }
+};
+
+typedef std::map< const char *, int, cstrCmp > OrigColMapType;
+
+static int plookup(OrigColMapType &map, const char *str)
+{
+	auto it = map.find(str);
+	if (it == map.end()) Rf_error("Can't find '%s'", str);
+	return it->second;
+}
+
+void obsSummaryStats::permute(omxData *data, const Eigen::Ref<const DataColumnIndexVector> &dc)
+{
+	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+	bool needPermute = false;
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		//mxLog("%d %s", cx, omxDataColumnName(data, dc[cx]));
+		invDataColumns[dc[cx]] = cx;
+		if (dc[cx] != cx) needPermute = true;
+	}
+	if (!needPermute) return;
+
+	covMat->unshareMemoryWithR();
+	if (meansMat) meansMat->unshareMemoryWithR();
+	acovMat->unshareMemoryWithR();
+	if (fullWeight) fullWeight->unshareMemoryWithR();
+
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> p1(dc);
+
+	OrigColMapType colMap;
+	for (int cx=0; cx < int(acovMat->colnames.size()); ++cx) {
+		OrigColMapType::value_type v(acovMat->colnames[cx], cx);
+		//mxLog("%s -> %d", acovMat->colnames[cx], cx);
+		colMap.insert(v);
+	}
+
+	auto &thresh = thresholdCols;
+
+	Eigen::PermutationMatrix<Eigen::Dynamic> p2(acovMat->cols);
+	int px = 0;
+
+	if (thresh.size() == 0 && meansMat) {
+		for (int cx=0; cx < int(dc.size()); ++cx) {
+			p2.indices()[px++] = plookup(colMap, omxDataColumnName(data, dc[cx]));
+		}
+	} else if (thresh.size()) {
+		for (int cx=0; cx < int(dc.size()); ++cx) {
+			auto &t1 = thresh[ dc[cx] ];
+			auto cn = omxDataColumnName(data, dc[cx]);
+			if (t1.numThresholds) {
+				for (int tx=1; tx <= t1.numThresholds; ++tx) {
+					auto s1 = string_snprintf("%st%d", cn, tx);
+					p2.indices()[px++] = plookup(colMap, s1.c_str());
+				}
+			} else {
+				p2.indices()[px++] = plookup(colMap, cn);
+			}
+		}
+	}
+
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		auto &t1 = thresh[ dc[cx] ];
+		if (t1.numThresholds) continue;
+		auto cn = omxDataColumnName(data, dc[cx]);
+		auto s1 = string_snprintf("var_%s", cn);
+		p2.indices()[px++] = plookup(colMap, s1.c_str());
+	}
+	
+	for (int cx=0; cx < int(dc.size())-1; ++cx) {
+		auto cn = omxDataColumnName(data, dc[cx]);
+		for (int rx=cx+1; rx < int(dc.size()); ++rx) {
+			auto rn = omxDataColumnName(data, dc[rx]);
+			auto s1 = string_snprintf("poly_%s_%s", rn, cn);
+			auto s2 = string_snprintf("poly_%s_%s", cn, rn);
+			auto it = colMap.find(s1.c_str());
+			if (it == colMap.end()) {
+				it = colMap.find(s2.c_str());
+			}
+			if (it == colMap.end()) Rf_error("Can't find '%s' or '%s'",
+							 s1.c_str(), s2.c_str());
+			p2.indices()[px++] = it->second;
+		}
+	}
+
+	EigenVectorAdaptor Emean(meansMat);
+	EigenMatrixAdaptor Ecov(covMat);
+	EigenMatrixAdaptor Eacov(acovMat);
+	EigenMatrixAdaptor Efw(fullWeight);
+
+	//mxPrintMat("p2", p2.indices());
+
+	Emean.derived() = (p1.transpose() * Emean).eval();
+	Ecov.derived() = (p1.transpose() * Ecov * p1).eval();
+	Eacov.derived() = (p2.transpose() * Eacov * p2).eval();
+	Efw.derived() = (p2.transpose() * Efw * p2).eval();
+
+	for (auto &th : thresh) th.dColumn = invDataColumns[th.dColumn];
+	std::sort(thresh.begin(), thresh.end(),
+		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
+		  { return a.dColumn < b.dColumn; });
+}
+
+void obsSummaryStats::log()
+{
+	mxLog("numObs %d numOrdinal %d", numObs, numOrdinal);
+	if (covMat) omxPrint(covMat, "cov");
+	if (meansMat) omxPrint(meansMat, "mean");
+	if (acovMat) omxPrint(acovMat, "acov");
+	if (fullWeight && acovMat != fullWeight) omxPrint(fullWeight, "full");
+	for (auto &th : thresholdCols) { th.log(); }
+	if (thresholdMat) omxPrint(thresholdMat, "thr");
+}
+
+void omxData::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
 {
 	if (!dc.size()) return;
 	if (permuted) Rf_error("Cannot permute '%s' two different ways", name);
 	permuted = true;
 
-	std::vector< omxThresholdColumn > &origThresh = omxDataThresholds(this);
-	std::vector< omxThresholdColumn > oThresh = origThresh;
+	if (obsStatsVec.size() != 1) Rf_error("obsStatsVec.size() != 1");
 
-	dataMat->unshareMemoryWithR();
-	if (meansMat) meansMat->unshareMemoryWithR();
-	acovMat->unshareMemoryWithR();
-	if (fullWeight) fullWeight->unshareMemoryWithR();
+	obsStatsVec[0].permute(this, dc);
+}
 
-	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
-	for (int cx=0; cx < int(dc.size()); ++cx) {
-		invDataColumns[dc[cx]] = cx;
+template <typename T>
+void getContRow(std::vector<ColumnData> &df,
+		int row,
+		const Eigen::Ref<const DataColumnIndexVector> &dc,
+		Eigen::MatrixBase<T> &out)
+{
+	for (int cx=0; cx < dc.size(); ++cx) {
+		auto &cd = df[ dc[cx] ];
+		out[cx] = cd.realData[row];
 	}
-	//mxPrintMat("invDataColumns", invDataColumns);
-	//Eigen::VectorXi invDataColumns = dc;
-	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(invDataColumns);
-	EigenMatrixAdaptor Ecov(dataMat);
-	Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
-	if (meansMat) {
-		EigenVectorAdaptor Emean(meansMat);
-		Emean.derived() = (pm * Emean).eval();
+}
+
+void omxData::wlsAllContinuousCumulants(omxState *state,
+					const Eigen::Ref<const DataColumnIndexVector> &dc)
+{
+	// permit mxData(type='raw') TODO
+
+	int numCols = dc.size();
+	int numColsStar = numCols*(numCols+1)/2;
+	auto &o1 = obsStatsVec[0];
+
+	o1.covMat = omxInitMatrix(numCols, numCols, state);
+	//o1.meansMat = omxInitMatrix(1, numCols, state);
+	o1.fullWeight = omxInitMatrix(numColsStar, numColsStar, state);
+	EigenMatrixAdaptor Ecov(o1.covMat);
+	Eigen::VectorXd Emean(numCols);
+	Ecov.setZero();
+	Emean.setZero();
+
+	Eigen::ArrayXXd data(int(numObs), numCols);
+	Eigen::VectorXd r1(numCols);
+	for (int rx=0; rx < numObs; ++rx) {
+		getContRow(rawCols, rx, dc, r1);
+		Emean += r1;
+		Ecov += r1 * r1.transpose();
+		data.row(rx) = r1;
 	}
+	Emean /= numObs;
+	Ecov -= numObs * Emean * Emean.transpose();
+	Ecov /= numObs - 1;
 
-	Eigen::MatrixXi mm(dc.size(), dc.size());
-	for (int cx=0, en=0; cx < dc.size(); ++cx) {
-		for (int rx=cx; rx < dc.size(); ++rx) {
-			mm(rx,cx) = en;
-			en += 1;
-		}
-	}
-	mm = mm.selfadjointView<Eigen::Lower>();
-	mm = (pm * mm * pm.transpose()).eval();
-	//mxPrintMat("mm", mm);
+	data.rowwise() -= Emean.array().transpose();
+	Eigen::MatrixXd Vmat = Ecov * (numObs-1.) / numObs;
+	EigenMatrixAdaptor Umat(o1.fullWeight);
 
-	Eigen::VectorXi tstart(origThresh.size() + 1);
-	tstart[0] = 0;
-	int totalThresholds = 0;
-	for (int tx=0; tx < int(origThresh.size()); ++tx) {
-		totalThresholds += origThresh[tx].numThresholds;
-		tstart[tx+1] = totalThresholds;
-	}
-
-	int wpermSize = triangleLoc1(dc.size()) + totalThresholds;
-	if (meansMat) wpermSize += dc.size();
-	Eigen::VectorXi wperm(wpermSize);
-
-	for (int cx=0, en=0; cx < dc.size(); ++cx) {
-		for (int rx=cx; rx < dc.size(); ++rx) {
-			wperm[en] = mm(rx,cx);
-			en += 1;
-		}
-	}
-
-	if (meansMat) {
-		wperm.segment(triangleLoc1(dc.size()), dc.size()) = dc.array() + triangleLoc1(dc.size());
-	}
-
-	std::vector<int> newOrder;
-	newOrder.reserve(origThresh.size());
-	for (int xx=0; xx < int(origThresh.size()); ++xx) newOrder.push_back(xx);
-
-	std::sort(newOrder.begin(), newOrder.end(),
-		  [&](const int &a, const int &b) -> bool
-		  { return invDataColumns[origThresh[a].dColumn] < invDataColumns[origThresh[b].dColumn]; });
-
-	//for (auto &order : newOrder) mxLog("new order %d lev %d", order, origThresh[order].numThresholds);
-
-	int thStart = triangleLoc1(dc.size());
-	if (meansMat) thStart += dc.size();
-	for (int t1=0, dest=0; t1 < int(newOrder.size()); ++t1) {
-		int oldIndex = newOrder[t1];
-		auto &th = oThresh[oldIndex];
-		for (int t2=0; t2 < th.numThresholds; ++t2) {
-			wperm[thStart + dest] = thStart + tstart[oldIndex] + t2;
-			dest += 1;
+	Eigen::ArrayXXd M(numColsStar, 2);
+	for (int x1=0, mx=0; x1 < numCols; ++x1) {
+		for (int x2=x1; x2 < numCols; ++x2) {
+			M(mx, 0) = x2;
+			M(mx, 1) = x1;
+			mx += 1;
 		}
 	}
 
-	for (auto &th : oThresh) th.dColumn = invDataColumns[th.dColumn];
-	std::sort(oThresh.begin(), oThresh.end(),
-		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
-		  { return a.dColumn < b.dColumn; });
-
-	origThresh = oThresh;
-
-	//mxPrintMat("wperm", wperm);
-	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> wpm(wperm);
-	EigenMatrixAdaptor Eweights(acovMat);
-	Eweights.derived() = (wpm.transpose() * Eweights * wpm).eval();
-
-	if (fullWeight) {
-		EigenMatrixAdaptor Efw(fullWeight);
-		Efw.derived() = (wpm.transpose() * Efw * wpm).eval();
+	Eigen::Array<double, 4, 1> ind;
+	for (int jx=0; jx < numColsStar; ++jx) {
+		for (int ix=jx; ix < numColsStar; ++ix) {
+			ind.segment(0,2) = M.row(ix);
+			ind.segment(2,2) = M.row(jx);
+			Umat(ix,jx) = (data.col(ind[0]) * data.col(ind[1]) *
+				       data.col(ind[2]) * data.col(ind[3])).sum() / numObs -
+				Vmat(ind[0],ind[1]) * Vmat(ind[2],ind[3]);
+		}
 	}
-	//mxPrintMat("ew", Eweights);
+
+	int singular = InvertSymmetricPosDef(Umat, 'L');
+	if (singular) {
+		omxRaiseErrorf("%s: cannot invert full weight matrix (%d)", name, singular);
+		return;
+	}
+	Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
+	Umat *= numObs;
+
+	if (strEQ(wlsType, "WLS")) {
+		o1.acovMat = o1.fullWeight;
+	} else {
+		o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
+		EigenMatrixAdaptor acov(o1.acovMat);
+		if (strEQ(wlsType, "ULS")) {
+			acov.setIdentity();
+		} else { // DWLS
+			acov.setZero();
+			for (int ix=0; ix < numColsStar; ++ix) {
+				acov(ix,ix) = 1./((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
+						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / numObs -
+						  Vmat(M(ix, 0), M(ix, 1)) * Vmat(M(ix, 0), M(ix, 1)));
+			}
+		}
+		acov *= numObs;
+	}
+}
+
+template <typename T1, typename T2>
+void tabulate(Eigen::MatrixBase<T1> &data, Eigen::MatrixBase<T2> &out)
+{
+	out.setZero();
+	for (int rx=0; rx < data.rows(); ++rx) {
+		if (data[rx] == NA_INTEGER) continue;
+		out[ data[rx] - 1 ] += 1;
+	}
+}
+
+template <typename T1>
+void cumsum(Eigen::MatrixBase<T1> &data)
+{
+	for (int rx=data.rows()-2; rx >= 0; --rx) {
+		data.segment(rx+1, data.size() - rx - 1).array() += data[rx];
+	}
+}
+
+struct OLSRegression {
+	omxData &data;
+	int rows;
+	ColumnData *response;
+	Eigen::MatrixXd pred;
+	Eigen::MatrixXd predCov;
+	Eigen::ArrayXd resid;
+	Eigen::VectorXd beta;
+	Eigen::MatrixXd scores;
+	double var;
+	OLSRegression(omxData *_d, const Eigen::Ref<const Eigen::MatrixXd> _pred);
+	void setResponse(ColumnData &response);
+	void calcScores();
+};
+
+OLSRegression::OLSRegression(omxData *_d, const Eigen::Ref<const Eigen::MatrixXd> _pred)
+	: data(*_d), rows(int(data.numObs))
+{
+	resid.resize(rows);
+	pred.resize(rows, 1 + _pred.cols());
+	pred.col(0).setConstant(1.0);
+	pred.block(0,1,rows,_pred.cols()) = _pred;
+	predCov = pred.transpose() * pred;
+	int singular = InvertSymmetricPosDef(predCov, 'L');
+	if (singular) {
+		omxRaiseErrorf("%s: cannot invert exogenous predictors (%d)",
+			       data.name, singular);
+		return;
+	}
+}
+
+void OLSRegression::setResponse(ColumnData &cd)
+{
+	response = &cd;
+	Eigen::Map< Eigen::VectorXd > ycol(cd.realData, rows);
+	if (pred.cols()) {
+		beta = predCov.selfadjointView<Eigen::Lower>() * pred.transpose() * ycol;
+		resid = ycol - pred * beta;
+	} else {
+		beta.resize(1);
+		beta[0] = ycol.mean();
+		resid = ycol.array() - beta[0];
+	}
+	var = resid.square().sum() / rows;
+}
+
+void OLSRegression::calcScores()
+{
+	Eigen::Map< Eigen::VectorXd > ycol(response->realData, rows);
+	scores.resize(rows, 1 + pred.cols());  // mean pred var
+	scores.block(0,0,rows,pred.cols()) = (pred.array().colwise() * resid) / var;
+	scores.col(pred.cols()) = -1./(2*var) + 1./(2*var*var) * resid * resid;
+}
+
+struct ProbitRegression : NewtonRaphsonObjective {
+	omxData &data;
+	int rows;
+	int numThr;
+	ColumnData *response;
+	std::vector<int> exoPred;
+	const Eigen::Ref<const Eigen::MatrixXd> pred;
+	int verbose;
+	Eigen::VectorXd param;
+	std::vector<std::string> pnames;
+	double fit;
+	Eigen::ArrayXd pr;
+	bool stale;
+	Eigen::ArrayXXd zi;
+	Eigen::ArrayXXd dzi;
+	Eigen::ArrayXXd scores;
+	Eigen::VectorXd grad;
+	Eigen::ArrayXXd dxa;
+	Eigen::ArrayXXd Y1, Y2;
+	Eigen::MatrixXd hess;
+
+	ProbitRegression(omxData *_d, std::vector<int> &_exoPred,
+			 const Eigen::Ref<const Eigen::MatrixXd> _pred);
+	void setResponse(ColumnData &response);
+	virtual double getFit() { return fit; }
+	virtual const char *paramIndexToName(int px)
+	{ return pnames[px].c_str(); }
+	void evaluate0();
+	void calcScores();
+	virtual void evaluateFit();
+	virtual void evaluateDerivs(int want);
+	virtual double *getParamVec() { return param.data(); }
+	virtual double *getGrad() { return grad.data(); }
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir);
+};
+
+ProbitRegression::ProbitRegression(omxData *_d, std::vector<int> &_exoPred,
+				   const Eigen::Ref<const Eigen::MatrixXd> _pred) :
+	data(*_d), rows(int(data.numObs)), numThr(0),
+	response(0), exoPred(_exoPred), pred(_pred), verbose(data.verbose), stale(true)
+{
+	zi.resize(rows, 2);
+	dzi.resize(rows, 2);
+	pr.resize(rows);
+}
+
+void ProbitRegression::setResponse(ColumnData &_r)
+{
+	response = &_r;
+	numThr = response->levels.size()-1;
+
+	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
+	Eigen::VectorXi tab(response->levels.size());
+	tabulate(ycol, tab);
+	Eigen::VectorXd prop = (tab.cast<double>() / double(tab.sum())).
+		segment(0, numThr);
+	cumsum(prop);
+	param.resize(prop.size() + pred.cols());
+	pnames.clear();
+	for (int px=0; px < prop.size(); ++px) {
+		param[px] = Rf_qnorm5(prop[px], 0., 1., 1, 0);
+		if (verbose >= 1) pnames.push_back(string_snprintf("th%d", 1+px));
+	}
+	if (verbose >= 1) {
+		for (int cx=0; cx < pred.cols(); ++cx) {
+			auto &c1 = data.rawCols[ exoPred[cx] ];
+			pnames.push_back(c1.name);
+		}
+	}
+	param.segment(numThr, pred.cols()).array() = 0;
+
+	dxa.resize(rows, numThr);
+
+	Y1.resize(rows, numThr);
+	Y2.resize(rows, numThr);
+	Y1.setZero();
+	Y2.setZero();
+	for (int rx=0; rx < rows; ++rx) {
+		if (ycol[rx]-2 >= 0)     Y2(rx, ycol[rx]-2) = 1;
+		if (ycol[rx]-1 < numThr) Y1(rx, ycol[rx]-1) = 1;
+	}
+
+	lbound.resize(param.size());
+	lbound.setConstant(NEG_INF);
+	ubound.resize(param.size());
+	ubound.setConstant(INF);
+	scores.resize(rows, param.size());
+	hess.resize(param.size(), param.size());
+	stale = true;
+}
+
+void ProbitRegression::evaluate0()
+{
+	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
+	Eigen::VectorXd th(1 + response->levels.size());
+	th.segment(1, numThr) = param.segment(0, numThr);
+	th[0] = -std::numeric_limits<double>::infinity();
+	th[response->levels.size()] = std::numeric_limits<double>::infinity();
+
+	for (int rx=0; rx < rows; ++rx) {
+		double eta = 0;
+		if (pred.cols()) eta = pred.row(rx).matrix() * param.segment(numThr, pred.cols());
+		zi(rx,0) = std::min(INF, th[ycol[rx]] - eta);
+		zi(rx,1) = std::max(NEG_INF, th[ycol[rx]-1] - eta);
+		pr[rx] = Rf_pnorm5(zi(rx,0), 0., 1., 1, 0) - Rf_pnorm5(zi(rx,1), 0., 1., 1, 0);
+	}
+	stale = false;
+}
+
+void ProbitRegression::evaluateFit()
+{
+	evaluate0();
+	fit = -pr.array().log().sum();
+}
+
+void ProbitRegression::calcScores()
+{
+	if (stale) evaluate0();
+	Eigen::Map< Eigen::VectorXi > ycol(response->intData, rows);
+	dxa.setZero();
+	for (int rx=0; rx < rows; ++rx) {
+		dzi(rx,0) = Rf_dnorm4(zi(rx,0), 0., 1., 0);
+		dzi(rx,1) = Rf_dnorm4(zi(rx,1), 0., 1., 0);
+		if (ycol[rx]-2 >= 0) {
+			dxa(rx,ycol[rx]-2) -= dzi(rx,1);
+		}
+		if (ycol[rx]-1 < numThr) {
+			dxa(rx, ycol[rx]-1) += dzi(rx,0);
+		}
+	}
+	scores.block(0,0,rows,numThr) = dxa.colwise() / pr;
+	scores.block(0,numThr,rows,pred.cols()) =
+		pred.array().colwise() * ((dzi.col(1) - dzi.col(0)) / pr);
+}
+
+void ProbitRegression::evaluateDerivs(int want)
+{
+	if (want & FF_COMPUTE_FIT) {
+		evaluateFit();
+	} else {
+		evaluate0();
+	}
+
+	calcScores();
+	grad = -scores.colwise().sum();
+	
+	Eigen::ArrayXXd gdzi = (dzi * zi).colwise() / -pr;
+	Eigen::ArrayXd pr2 = pr * pr;
+	pr2 = 1.0/pr2;
+
+	hess.block(0,0,numThr,numThr) =
+		dxa.transpose().matrix() * (dxa.colwise() * pr2).matrix() -
+		((Y1.colwise() * gdzi.col(0)).transpose().matrix() * Y1.matrix() -
+		 (Y2.colwise() * gdzi.col(1)).transpose().matrix() * Y2.matrix());
+
+	Eigen::ArrayXXd dxb = pred.array().colwise() * (dzi.col(0) - dzi.col(1));
+
+	hess.block(numThr,numThr,pred.cols(),pred.cols()) =
+		dxb.transpose().matrix() * (dxb.colwise() * pr2).matrix() -
+		((pred.array().colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
+		 (pred.array().colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix());
+
+	hess.block(0,numThr,numThr,pred.cols()) =
+		-(dxa.transpose().matrix() * (dxb.colwise() * pr2).matrix() -
+		  ((Y1.colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
+		   (Y2.colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix()));
+	
+	hess.block(numThr,0,pred.cols(),numThr) =
+		hess.block(0,numThr,numThr,pred.cols()).transpose();
+
+	if (want & FF_COMPUTE_HESSIAN) ; // TODO
+}
+
+void ProbitRegression::setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+{
+	Eigen::MatrixXd ihess = hess;
+	int singular = InvertSymmetricPosDef(ihess, 'U');
+	if (singular) {
+		singular = InvertSymmetricIndef(ihess, 'U');
+		if (singular) ihess = Eigen::DiagonalMatrix<double, Eigen::Dynamic>(param.size());
+	}
+	searchDir = ihess.selfadjointView<Eigen::Upper>() * grad;
+}
+
+template <typename T1, typename T2>
+void regressOrdinalThresholds(const Eigen::MatrixBase<T1> &pred,
+			     ColumnData &oc, WLSVarData &ov,
+			     Eigen::ArrayBase<T2> &zi)
+{
+	int rows = pred.rows();
+	zi.derived().resize(rows, 2);
+
+	int numThr = oc.levels.size() - 1;
+	Eigen::VectorXd th(2 + numThr);
+	th.segment(1, numThr) = ov.theta.segment(0, numThr);
+	th[0] = -std::numeric_limits<double>::infinity();
+	th[numThr + 1] = std::numeric_limits<double>::infinity();
+
+	Eigen::Map< Eigen::VectorXi > ycol(oc.intData, rows);
+	for (int rx=0; rx < rows; ++rx) {
+		double eta = 0;
+		if (pred.cols()) pred.row(rx) * ov.theta.matrix().segment(numThr, pred.cols());
+		zi(rx,0) = std::min(INF, th[ycol[rx]] - eta);
+		zi(rx,1) = std::max(NEG_INF, th[ycol[rx]-1] - eta);
+	}
+}
+
+struct PolyserialCor : UnconstrainedObjective {
+	// continuous
+	double var;
+	Eigen::ArrayXd &resid;
+	Eigen::ArrayXd zee;
+	// ordinal
+	Eigen::ArrayXXd zi;
+	Eigen::ArrayXXd dzi;
+	// other stuff
+	omxData &data;
+	int rows;
+	int numThr;
+	ColumnData &oc;
+	WLSVarData &ov;
+	double rho;
+	double param;
+	double R;
+	const Eigen::Ref<const Eigen::MatrixXd> pred;
+	Eigen::ArrayXXd tau;
+	Eigen::ArrayXXd tauj;
+	Eigen::ArrayXd pr;
+	Eigen::ArrayXXd scores;
+
+	PolyserialCor(omxData *_d, WLSVarData &cv, ColumnData &_oc, WLSVarData &_ov,
+		      const Eigen::Ref<const Eigen::MatrixXd> _pred) :
+		resid(cv.resid), data(*_d), rows(int(data.numObs)), oc(_oc), ov(_ov), pred(_pred)
+	{
+		lbound.resize(1);
+		lbound.setConstant(NEG_INF);
+		ubound.resize(1);
+		ubound.setConstant(INF);
+
+		var = cv.theta[cv.theta.size()-1];
+		zee = resid / sqrt(var);
+
+		pr.resize(rows);
+		dzi.resize(rows, 2);
+
+		regressOrdinalThresholds(pred, oc, ov, zi);
+
+		Eigen::Map< Eigen::VectorXi > ycol(oc.intData, rows);
+		numThr = oc.levels.size() - 1;
+		double den = 0;
+		for (int tx=0; tx < numThr; ++tx) den += Rf_dnorm4(ov.theta[tx], 0., 1., 0);
+		rho = (zee * ycol.cast<double>().array()).sum() / (rows * sqrt(var) * den);
+
+		if (fabs(rho) >= 1.0) rho = 0;
+		param = atanh(rho);
+	}
+	virtual double *getParamVec() { return &param; };
+	virtual double getFit(const double *_x)
+	{
+		rho = tanh(_x[0]);
+		R = sqrt(1 - rho * rho);
+		tau = (zi.colwise() - rho * zee) / R;
+
+		for (int rx=0; rx < rows; ++rx) {
+			pr[rx] = Rf_pnorm5(tau(rx,0), 0., 1., 1, 0) - Rf_pnorm5(tau(rx,1), 0., 1., 1, 0);
+		}
+		pr.max(std::numeric_limits<double>::epsilon());
+		double fit = -pr.log().sum();
+		// py1 <- dnorm(Y1, mean=y1.ETA, sd=y1.SD) <-- is constant
+		return fit;
+	}
+	virtual void getGrad(const double *_x, double *grad)
+	{
+		// can assume getFit just called
+		for (int rx=0; rx < rows; ++rx) {
+			dzi(rx,0) = Rf_dnorm4(tau(rx,0), 0., 1., 0);
+			dzi(rx,1) = Rf_dnorm4(tau(rx,1), 0., 1., 0);
+		}
+
+		tauj = dzi * ((zi * rho).colwise() - zee);
+		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1))).sum();
+
+		double cosh_x = cosh(_x[0]);
+		grad[0] = -dx_rho * 1./(cosh_x * cosh_x);
+	}
+	void calcScores()
+	{
+		// mu1 var1 th2 beta1 beta2 rho
+		scores.resize(rows, 2 + numThr + pred.cols() * 2 + 1);
+		scores.block(0,2,rows,numThr).setZero();
+
+		double R3 = R*R*R;
+		Eigen::Map< Eigen::VectorXi > ycol(oc.intData, rows);
+		for (int rx=0; rx < rows; ++rx) {
+			double irpr = 1.0 / (R * pr[rx]);
+			scores(rx,0) = 1.0/sqrt(var) *
+				(zee[rx] + rho * irpr * (dzi(rx,0)-dzi(rx,1)));
+			scores(rx,1) =
+				1.0/(2*var) * ((zee[rx]*zee[rx] - 1.0) +
+					       rho*zee[rx] * irpr * (dzi(rx,0)-dzi(rx,1)));
+			if (ycol(rx)-1 < numThr)
+				scores(rx, 2 + ycol(rx)-1) = dzi(rx,0) * irpr;
+			if (ycol(rx)-2 >= 0)
+				scores(rx, 2 + ycol(rx)-2) = -dzi(rx,1) * irpr;
+			scores.row(rx).segment(2+numThr, pred.cols()) =
+				scores(rx,0) * pred.row(rx);
+			scores.row(rx).segment(2+numThr+pred.cols(), pred.cols()) =
+				-pred.row(rx) * (dzi(rx,0)-dzi(rx,1)) * irpr;
+			scores(rx, 2 + numThr + pred.cols() * 2) =
+				1./(R3*pr[rx]) * (tauj(rx,0) - tauj(rx,1));
+		}
+	}
+};
+
+struct PolychoricCor : UnconstrainedObjective {
+	typedef UnconstrainedObjective super;
+	omxData &data;
+	int rows;
+	ColumnData &c1;
+	WLSVarData &v1;
+	ColumnData &c2;
+	WLSVarData &v2;
+	const Eigen::Ref<const Eigen::MatrixXd> pred;
+	int numThr1;
+	int numThr2;
+	Eigen::ArrayXXd z1;
+	Eigen::ArrayXXd z2;
+	Eigen::ArrayXd pr;
+	double rho;
+	double param;
+	Eigen::ArrayXXd scores;
+
+	PolychoricCor(omxData *_d, ColumnData &_c1, WLSVarData &_v1,
+		      ColumnData &_c2, WLSVarData &_v2,
+		      const Eigen::Ref<const Eigen::MatrixXd> _pred)
+		: data(*_d), rows(int(data.numObs)), c1(_c1), v1(_v1), c2(_c2), v2(_v2), pred(_pred)
+	{
+		lbound.resize(1);
+		lbound.setConstant(NEG_INF);
+		ubound.resize(1);
+		ubound.setConstant(INF);
+		numThr1 = c1.levels.size()-1;
+		numThr2 = c2.levels.size()-1;
+
+		// when exoPred is empty, massive speedups are possible TODO
+
+		regressOrdinalThresholds(pred.derived(), c1, v1, z1);
+		regressOrdinalThresholds(pred.derived(), c2, v2, z2);
+
+		pr.resize(rows);
+
+		Eigen::Map< Eigen::ArrayXi > y1(c1.intData, rows);
+		Eigen::Map< Eigen::ArrayXi > y2(c2.intData, rows);
+		Eigen::ArrayXd y1c = y1.cast<double>() - y1.cast<double>().mean();
+		Eigen::ArrayXd y2c = y2.cast<double>() - y2.cast<double>().mean();
+		rho = (y1c * y2c).sum() / (sqrt((y1c*y1c).sum() * (y2c*y2c).sum()));
+
+		if (fabs(rho) >= 1.0) rho = 0;
+		param = atanh(rho);
+	}
+
+	virtual double *getParamVec() { return &param; };
+	virtual double getFit(const double *_x)
+	{
+		rho = tanh(_x[0]);
+
+		for (int rx=0; rx < rows; ++rx) {
+			pr[rx] = pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
+		}
+
+		return -pr.log().sum();
+	}
+	virtual void getGrad(const double *_x, double *grad)
+	{
+		double dx = 0;
+		for (int rx=0; rx < rows; ++rx) {
+			dx += dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho) / pr[rx];
+		}
+		double cosh_x = cosh(_x[0]);
+		grad[0] = -dx / (cosh_x * cosh_x);
+	}
+	void calcScores()
+	{
+		// th1 th2 beta1 beta2 rho
+		Eigen::Map< Eigen::VectorXi > y1(c1.intData, rows);
+		Eigen::Map< Eigen::VectorXi > y2(c2.intData, rows);
+		Eigen::ArrayXXd Z1(rows, 2);
+		Eigen::ArrayXXd Z2(rows, 2);
+
+		scores.resize(rows, numThr1 + numThr2 + pred.cols() * 2 + 1);
+		scores.setZero();
+
+		double R = sqrt(1 - rho*rho);
+		for (int rx=0; rx < rows; ++rx) {
+			double ipr = 1.0 / pr[rx];
+			Z1(rx,0) = Rf_dnorm4(z1(rx,0), 0., 1., 0) *
+				(Rf_pnorm5((z2(rx,0) - rho*z1(rx,0))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z2(rx,1) - rho*z1(rx,0))/R, 0., 1., 1, 0)) * ipr;
+			Z1(rx,1) = Rf_dnorm4(z1(rx,1), 0., 1., 0) *
+				(Rf_pnorm5((z2(rx,0) - rho*z1(rx,1))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z2(rx,1) - rho*z1(rx,1))/R, 0., 1., 1, 0)) * ipr;
+			Z2(rx,0) = Rf_dnorm4(z2(rx,0), 0., 1., 0) *
+				(Rf_pnorm5((z1(rx,0) - rho*z2(rx,0))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z1(rx,1) - rho*z2(rx,0))/R, 0., 1., 1, 0)) * ipr;
+			Z2(rx,1) = Rf_dnorm4(z2(rx,1), 0., 1., 0) *
+				(Rf_pnorm5((z1(rx,0) - rho*z2(rx,1))/R, 0., 1., 1, 0) -
+				 Rf_pnorm5((z1(rx,1) - rho*z2(rx,1))/R, 0., 1., 1, 0)) * ipr;
+
+			if (y1(rx)-1 < numThr1) scores(rx, y1(rx)-1) = Z1(rx,0);
+			if (y1(rx)-2 >= 0)      scores(rx, y1(rx)-2) = -Z1(rx,1);
+			if (y2(rx)-1 < numThr2) scores(rx, numThr1 + y2(rx)-1) = Z2(rx,0);
+			if (y2(rx)-2 >= 0)      scores(rx, numThr1 + y2(rx)-2) = -Z2(rx,1);
+			scores.row(rx).segment(numThr1+numThr2, pred.cols()) =
+				(Z1(rx,1)-Z1(rx,0)) * pred.row(rx).array();
+			scores.row(rx).segment(numThr1+numThr2+pred.cols(), pred.cols()) =
+				(Z2(rx,1)-Z2(rx,0)) * pred.row(rx).array();
+			scores(rx,numThr1+numThr2+2*pred.cols()) =
+				dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho) * ipr;
+		}
+	}
+};
+
+struct PearsonCor {
+	double rho;
+	Eigen::ArrayXXd scores;
+
+	PearsonCor(WLSVarData &pv1, WLSVarData &pv2,
+		   const Eigen::Ref<const Eigen::MatrixXd> pred)
+	{
+		int rows = pv1.resid.size();
+		rho = 2.*pv1.resid.matrix().dot(pv2.resid.matrix()) /
+			(pv1.resid.square().sum()+pv2.resid.square().sum());
+		double R = (1 - rho*rho);
+		double i2r = 1./(2.*R);
+		double var_y1 = pv1.theta[pv1.theta.size()-1];
+		double sd_y1 = sqrt(var_y1);
+		double var_y2 = pv2.theta[pv2.theta.size()-1];
+		double sd_y2 = sqrt(var_y2);
+
+		scores.resize(rows, 4 + pred.cols()*2 + 1);
+
+		scores.col(0) = (2*pv1.resid/var_y1 - 2*rho*pv2.resid/(sd_y1*sd_y2)) * i2r;
+		scores.col(1) = (2*pv2.resid/var_y2 - 2*rho*pv1.resid/(sd_y1*sd_y2)) * i2r;
+		scores.col(2) = -(.5/var_y1 - ((pv1.resid*pv1.resid)/(var_y1*var_y1) -
+					       rho*pv1.resid*pv2.resid/(var_y1*sd_y1*sd_y2)) * i2r);
+		scores.col(3) = -(.5/var_y2 - ((pv2.resid*pv2.resid)/(var_y2*var_y2) -
+					       rho*pv1.resid*pv2.resid/(var_y2*sd_y1*sd_y2)) * i2r);
+		scores.block(0,4,rows,pred.cols()) = pred.array().colwise() * scores.col(0);
+		scores.block(0,4+pred.cols(),rows,pred.cols()) = pred.array().colwise() * scores.col(1);
+
+		Eigen::ArrayXd zee = (pv1.resid*pv1.resid/var_y1
+				      -2*rho*pv1.resid*pv2.resid/(sd_y1*sd_y2) +
+				      pv2.resid*pv2.resid/var_y2);
+		scores.col(4+2*pred.cols()) = rho/R + pv1.resid*pv2.resid/(sd_y1*sd_y2*R) - zee*rho/(R*R);
+	}
+};
+
+template <typename T1, typename T2, typename T3>
+void copyBlockwise(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, T2 includeTest)
+{
+	for (int cx=0; cx < out.cols(); ++cx) {
+		if (!includeTest(cx)) continue;
+		for (int rx=0; rx < out.rows(); ++rx) {
+			if (!includeTest(rx)) continue;
+			out(rx,cx) = in(rx,cx);
+		}
+	}
+}
+
+void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
+			     std::vector<int> &exoPred)
+{
+	if (strEQ(getType(), "acov")) {
+		permute(dc);
+		return;
+	}
+
+	// ensure no missing data TODO
+
+	int numCols = dc.size();
+	int numColsStar = numCols*(numCols+1)/2;
+	if (numObs-1 < numColsStar) {
+		Rf_error("%s: too few observations (%d) for the number of columns (%d).\n"
+			 "For WLS, you need at least n*(n+1)/2 + 1 = %d observations.\n"
+			 "Better start rubbing two pennies together.",
+			 name, numObs, numCols, numColsStar+1);
+	}
+
+	permuted = true;
+	obsStatsVec.clear();
+	obsStatsVec.resize(1);
+	auto &o1 = obsStatsVec[0];
+	o1.numObs = int(numObs);
+
+	// Maybe still applicable if exoPred is empty? TODO
+	//wlsAllContinuousCumulants(state, dc);
+
+	Eigen::MatrixXd pred(o1.numObs, exoPred.size());
+	for (int cx=0; cx < int(exoPred.size()); ++cx) {
+		auto &e1 = rawCols[ exoPred[cx] ];
+		Eigen::Map< Eigen::VectorXd > vec(e1.realData, o1.numObs);
+		pred.col(cx) = vec;
+	}
+
+	o1.covMat = omxInitMatrix(numCols, numCols, state);
+	o1.meansMat = omxInitMatrix(1, numCols, state);
+	EigenMatrixAdaptor Ecov(o1.covMat);
+	EigenVectorAdaptor Emean(o1.meansMat);
+
+	std::vector<int> contMap;
+	int numContinuous = 0;
+	int totalThr = 0;
+	int maxNumThr = 0;
+	std::vector<int> thStart(numCols);
+	for (int yy=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		thStart[yy] = totalThr;
+		if (cd.type == COLUMNDATA_NUMERIC) {
+			contMap.push_back(numContinuous);
+			totalThr += 1;  // mean
+			numContinuous += 1;
+		} else {
+			contMap.push_back(-1);
+			int numThr = cd.levels.size() - 1;
+			totalThr += numThr;
+			maxNumThr = std::max(maxNumThr, numThr);
+		}
+	}
+
+	o1.perVar.resize(numCols);
+	o1.SC_VAR.resize(rows, numContinuous);
+	o1.SC_SL.resize(rows, numCols * pred.cols());
+	o1.SC_TH.resize(rows, totalThr);
+	o1.numOrdinal = 0;
+	double eps = sqrt(std::numeric_limits<double>::epsilon());
+	OLSRegression olsr(this, pred);
+	ProbitRegression pr(this, exoPred, pred);
+
+	// based on lav_samplestats_step1.R, lavaan 0.6-2
+	for (int yy=0, contOffset=0, thrOffset=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		WLSVarData &pv = o1.perVar[yy];
+		if (cd.type == COLUMNDATA_NUMERIC) {
+			omxThresholdColumn tc;
+			tc.dColumn = dc[yy];
+			tc.column = -1;
+			tc.numThresholds = 0;
+			o1.thresholdCols.push_back(tc);
+
+			olsr.setResponse(cd);
+			olsr.calcScores();
+			pv.resid = olsr.resid;
+			pv.theta.resize(olsr.beta.size() + 1);
+			pv.theta.segment(0, olsr.beta.size()) = olsr.beta;
+			pv.theta[olsr.beta.size()] = olsr.var;
+			Ecov(yy,yy) = olsr.var;
+			Emean[yy] = pv.theta[0];
+			o1.SC_TH.block(0,thrOffset,rows,1) = 
+				olsr.scores.block(0,0,rows,1);
+			for (int px=0; px < pred.cols(); ++px)
+				o1.SC_SL.col(yy+numCols*px) = olsr.scores.col(1+px);
+			o1.SC_VAR.block(0,contOffset,rows,1) = 
+				olsr.scores.block(0,1+pred.cols(),rows,1);
+			contOffset += 1;
+			thrOffset += 1;
+		} else {
+			pr.setResponse(cd);
+			if (exoPred.size()) {
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(pr);
+			} else {
+				pr.calcScores();
+			}
+			pv.theta = pr.param;
+			omxThresholdColumn tc;
+			tc.dColumn = dc[yy];
+			tc.column = o1.numOrdinal++;
+			tc.numThresholds = pr.numThr;
+			o1.thresholdCols.push_back(tc);
+			Ecov(yy,yy) = 1.;
+			Emean[yy] = 0.;
+			o1.SC_TH.block(0,thrOffset,rows,pr.numThr) = 
+				pr.scores.block(0,0,rows,pr.numThr);
+			for (int px=0; px < pred.cols(); ++px)
+				o1.SC_SL.col(yy+numCols*px) = pr.scores.col(pr.numThr+px);
+			thrOffset += pr.numThr;
+		}
+	}
+
+	o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
+	EigenMatrixAdaptor Ethr(o1.thresholdMat);
+	Ethr.setConstant(nan("uninit"));
+	for (int yy=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		if (cd.type == COLUMNDATA_NUMERIC) continue;
+		WLSVarData &pv = o1.perVar[yy];
+		auto &tc = o1.thresholdCols[yy];
+		Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
+	}
+
+	int pstar = triangleLoc1(numCols-1);
+	o1.SC_COR.resize(rows, pstar);
+	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
+	Eigen::MatrixXd A21(pstar, A11_size);
+	A21.setZero();
+	Eigen::ArrayXXd H22(pstar, pstar);
+	H22.setZero();
+	Eigen::ArrayXXd H21(pstar, A11_size);
+	H21.setZero();
+
+	// based on lav_samplestats_step2.R, lavaan 0.6-2
+	for (int jj=0; jj < numCols-1; ++jj) {
+		for (int ii=jj+1; ii < numCols; ++ii) {
+			int pstar_idx = ii-(jj+1) + pstar - triangleLoc1(numCols - jj - 1);
+			ColumnData &cd1 = rawCols[ dc[jj] ];
+			ColumnData &cd2 = rawCols[ dc[ii] ];
+			WLSVarData &pv1 = o1.perVar[jj];
+			WLSVarData &pv2 = o1.perVar[ii];
+			//mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
+			double rho;
+			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
+				PearsonCor pc(pv2, pv1, pred);
+				o1.SC_COR.col(pstar_idx) = pc.scores.col(4+2*pred.cols());
+				A21(pstar_idx,thStart[ii]) = (o1.SC_COR.col(pstar_idx) * pc.scores.col(0)).sum();
+				A21(pstar_idx,thStart[jj]) = (o1.SC_COR.col(pstar_idx) * pc.scores.col(1)).sum();
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(4+px)).sum();
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(4+pred.cols()+px)).sum();
+				}
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					(o1.SC_COR.col(pstar_idx) * pc.scores.col(2)).sum();
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					(o1.SC_COR.col(pstar_idx) * pc.scores.col(3)).sum();
+				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
+				double sd2 = sqrt(pv2.theta[pv2.theta.size()-1]);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					sd1 * pc.rho / (2. * sd2);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					sd2 * pc.rho / (2. * sd1);
+				H22(pstar_idx,pstar_idx) = sd1 * sd2;
+				rho = pc.rho * H22(pstar_idx,pstar_idx);
+			} else if (cd1.type == COLUMNDATA_NUMERIC) {
+				PolyserialCor ps(this, pv1, cd2, pv2, pred);
+				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
+				uo(ps);
+				ps.calcScores();
+				o1.SC_COR.col(pstar_idx) = ps.scores.col(2 + ps.numThr + 2*pred.cols());
+				A21(pstar_idx, thStart[jj]) = (o1.SC_COR.col(pstar_idx) * ps.scores.col(0)).sum();
+				for (int tx=0; tx < ps.numThr; ++tx)
+					A21(pstar_idx, thStart[ii]+tx) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+tx)).sum();
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+px)).sum();
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+pred.cols()+px)).sum();
+				}
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					(o1.SC_COR.col(pstar_idx) * ps.scores.col(1)).sum();
+				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
+					ps.rho / (2. * sd1);
+				H22(pstar_idx,pstar_idx) = sd1;
+				rho = ps.rho * sd1;
+			} else if (cd2.type == COLUMNDATA_NUMERIC) {
+				PolyserialCor ps(this, pv2, cd1, pv1, pred);
+				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
+				uo(ps);
+				ps.calcScores();
+				o1.SC_COR.col(pstar_idx) = ps.scores.col(2 + ps.numThr + 2*pred.cols());
+				A21(pstar_idx, thStart[ii]) = (o1.SC_COR.col(pstar_idx) * ps.scores.col(0)).sum();
+				for (int tx=0; tx < ps.numThr; ++tx)
+					A21(pstar_idx, thStart[jj]+tx) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+tx)).sum();
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+px)).sum();
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+pred.cols()+px)).sum();
+				}
+				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					(o1.SC_COR.col(pstar_idx) * ps.scores.col(1)).sum();
+				double sd1 = sqrt(pv2.theta[pv2.theta.size()-1]);
+				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
+					ps.rho / (2. * sd1);
+				H22(pstar_idx,pstar_idx) = sd1;
+				rho = ps.rho * sd1;
+			} else {
+				PolychoricCor pc(this, cd2, pv2, cd1, pv1, pred);
+				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
+				uo(pc);
+				H22(pstar_idx,pstar_idx) = 1.0;
+				rho = pc.rho;
+				pc.calcScores();
+				o1.SC_COR.col(pstar_idx) = pc.scores.col(pc.numThr1 + pc.numThr2 + 2*pred.cols());
+				for (int tx=0; tx < pc.numThr1; ++tx)
+					A21(pstar_idx, thStart[ii]+tx) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(tx)).sum();
+				for (int tx=0; tx < pc.numThr2; ++tx)
+					A21(pstar_idx, thStart[jj]+tx) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(pc.numThr1 + tx)).sum();
+				int numThr = pc.numThr1 + pc.numThr2;
+				for (int px=0; px < pred.cols(); ++px) {
+					A21(pstar_idx, totalThr + ii+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(numThr+px)).sum();
+					A21(pstar_idx, totalThr + jj+px*numCols) =
+						(o1.SC_COR.col(pstar_idx) * pc.scores.col(numThr+pred.cols()+px)).sum();
+				}
+			}
+			Ecov(ii,jj) = rho;
+			Ecov(jj,ii) = rho;
+		}
+	}
+
+	// mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
+	// mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good
+	// mxPrintMat("SC_VAR", o1.SC_VAR.block(0,0,4,o1.SC_VAR.cols())); // good
+	// mxPrintMat("SC_COR", o1.SC_COR.block(0,0,4,o1.SC_COR.cols())); // good
+	// mxPrintMat("A21", A21); // good
+	// mxPrintMat("H22", H22); // good
+	// mxPrintMat("H21", H21); // good
+
+	// based on lav_muthen1984, lavaan 0.6-2
+	int acov_size = A11_size + o1.SC_COR.cols();
+	Eigen::MatrixXd SC(rows, acov_size);
+	SC.block(0,0,rows,o1.SC_TH.cols()) = o1.SC_TH;
+	SC.block(0,o1.SC_TH.cols(),rows,o1.SC_SL.cols()) = o1.SC_SL;
+	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols(),rows,o1.SC_VAR.cols()) = o1.SC_VAR;
+	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols()+o1.SC_VAR.cols(),rows,o1.SC_COR.cols()) = o1.SC_COR;
+	Eigen::MatrixXd INNER = SC.transpose() * SC;
+	// mxPrintMat("INNER", INNER); // good
+
+	Eigen::MatrixXd A11(A11_size,A11_size);
+	A11.setZero();
+	for (int yy=0; yy < numCols; ++yy) {
+		ColumnData &cd = rawCols[ dc[yy] ];
+		std::vector<bool> mask(A11_size, false);
+		int numThr = cd.type == COLUMNDATA_NUMERIC? 1 : cd.levels.size() - 1;
+		for (int tx=0; tx < numThr; ++tx) mask[thStart[yy] + tx] = true;
+		for (int px=0; px < pred.cols(); ++px) mask[totalThr + yy+numCols*px] = true;
+		if (cd.type == COLUMNDATA_NUMERIC)
+			mask[totalThr + numCols * pred.cols() + contMap[yy]] = true;
+		copyBlockwise(INNER, A11, [&mask](int xx){ return mask[xx]; });
+	}
+	// mxPrintMat("A11", A11); // good
+
+	if (InvertSymmetricPosDef(A11, 'L')) {
+		MoorePenroseInverse(A11);
+	}
+
+	Eigen::MatrixXd A22(pstar, pstar);
+	A22.setZero();
+	for (int ii=0; ii < pstar; ++ii) {
+		double val = o1.SC_COR.col(ii).square().sum();
+		if (val != 0) A22(ii,ii) = 1.0/val;
+	}
+
+	Eigen::MatrixXd A21i = -(A22 * A21 * A11.selfadjointView<Eigen::Lower>());
+	Eigen::MatrixXd Bi(acov_size,acov_size);
+	Bi.setZero();
+	Bi.block(0,0,A11.rows(),A11.cols()) = A11.selfadjointView<Eigen::Lower>();
+	Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
+	Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
+	// mxPrintMat("Bi", Bi); // good
+
+	o1.fullWeight = omxInitMatrix(acov_size, acov_size, state);
+	EigenMatrixAdaptor Efw(o1.fullWeight);
+	Efw.derived() = Bi * INNER * Bi.transpose();
+
+	//mxPrintMat("Efw", Efw); //good
+
+	if (numContinuous) {
+		Eigen::MatrixXd H(acov_size,acov_size);
+		H.setZero();
+		H.block(0,0,A11_size,A11_size) = Eigen::MatrixXd::Identity(A11_size,A11_size);
+		H.block(A11_size,0,H21.rows(),H21.cols()) = H21;
+		H.block(A11_size,A11_size,H22.rows(),H22.cols()) = H22;
+		//mxPrintMat("H", H); //good
+
+		Efw.derived() = (H * Efw * H.transpose()).eval();
+	}
+
+	//mxPrintMat("Efw", Efw);
+
+	if (strEQ(wlsType, "WLS")) {
+		o1.acovMat = o1.fullWeight;
+	} else {
+		o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
+		EigenMatrixAdaptor acov(o1.acovMat);
+		if (strEQ(wlsType, "ULS")) {
+			// can leave acov unallocated? TODO
+			acov.setIdentity();
+		} else { // DWLS
+			acov.setZero();
+			for (int ix=0; ix < acov_size; ++ix) {
+				acov(ix,ix) = 1.0 / Efw(ix,ix);
+			}
+		}
+	}
+	if (InvertSymmetricPosDef(Efw, 'L')) Rf_error("Attempt to invert acov failed");
+
+	// lavaan divides Efw by rows, we don't
+	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
+	
+	//mxPrintMat("Efw", Efw);
+
+	//o1.log();
+	//Rf_error("Not implemented yet");
 }

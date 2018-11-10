@@ -22,6 +22,7 @@
 
 # x is the raw data
 wlsContinuousOnlyHelper <- function(x, type="WLS"){
+	mnames <- colnames(x)
 	numRows <- nrow(x)
 	numCols <- ncol(x)
 	numColsStar <- numCols*(numCols+1)/2
@@ -65,6 +66,15 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 	if(type=="WLS"){
 		useWeight <- fullWeight
 	}
+
+	nv <- ncol(x)
+	covNames <- outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_')
+	diag(covNames) <- paste0("var_", mnames[1:nv])
+	vechs(covNames) <- paste0("poly_", vechs(covNames))
+	n1 <- vech(covNames)
+	dimnames(useWeight) <- list(n1,n1)
+	dimnames(fullWeight) <- list(n1,n1)
+
 	return(list(use=useWeight*numRows, full=fullWeight*numRows))
 }
 
@@ -294,9 +304,9 @@ indexCov4to2 <- function(i, j, k, l, nvar){
 }
 
 indexCov2to1 <- function(i, j, nvar){
-	if(i > j) {stop("Element should be in upper triangle: column j >= row i")}
-	a <- j
-	b <- i
+	if(i < j) {stop("Element should be in lower triangle: column j <= row i")}
+	a <- i
+	b <- j
 	return( a + nvar*(b-1) - sum((b-1):0) )
 }
 
@@ -426,7 +436,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				"', or '", wlsTypes[length(wlsTypes)], "'.", sep="")
 			)
 	}
-	if (!(tolower(allContinuousMethod) %in% c('cumulant', 'cumulants', 'marginal', 'marginals'))){
+	allContinuousMethod <- tolower(allContinuousMethod)
+	if (!(allContinuousMethod %in% c('cumulant', 'cumulants', 'marginal', 'marginals'))){
 		stop(
 			paste("'allContinuousMethod' must be one of ",
 				"'cumulants' or 'marginals'.\nBoth plural and singular forms are allowed.", sep="")
@@ -453,7 +464,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	if (!silent) imxReportProgress(msg, 0)
 	
 	# if no ordinal variables, use continuous-only helper
-	if(nvar == 0 && tolower(allContinuousMethod) %in% c("cumulant", "cumulants")){
+	if(nvar == 0 && allContinuousMethod %in% c("cumulant", "cumulants")){
 		if (!silent) imxReportProgress("", msgLen)
 		if (any(is.na(data))) {
 			stop(paste("All continuous data with missingness cannot be",
@@ -462,7 +473,10 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				   "or use maximum likelihood instead"))
 		}
 		wls <- wlsContinuousOnlyHelper(data, type)
-		return(mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n))
+		retVal <- mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n)
+		retVal@.wlsType <- type
+		retVal@.wlsContinuousType <- allContinuousMethod
+		return(wls.permute(retVal))
 	}
 	
 	# separate ordinal and continuous variables (temporary)
@@ -500,8 +514,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	#   - diagonal elements are 1/(1-r^2)
 	#   - off-diagonal elements are -r/(1-r^2)
 	# you don't need any of this information now, but may later
-	for (i in 1:ntvar){
-		for (j in i:ntvar){
+	for (j in 1:ntvar){
+		for (i in j:ntvar){
 			pcData <- data[,c(i,j)]
 			ordPair <- (ords[i] + ords[j])
 			if( ordPair == 0 ) { # Continuous variables
@@ -659,11 +673,15 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		warning(paste("Encountered warnings during optimization of",
 			      omxQuotes(fullWarn[fullWarn > 0])))
 	}
+
 	dls <- diag(diag(wls))
+	dimnames(dls) <- dimnames(wls)
 	uls <- (dls>0)*1
-	
+	dimnames(uls) <- dimnames(wls)
+
 	# try the weird non-hao version
 	xls <- quad
+	dimnames(xls) <- dimnames(wls)
 	
 	if(debug){
 		custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE), mxComputeReportDeriv()))
@@ -713,7 +731,47 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 	if (debug){return(list(fullJac, fullHess))}
 	if (!silent) imxReportProgress("", msgLen)
-	return(retVal)
+	retVal@.wlsType <- type
+	retVal@.wlsContinuousType <- allContinuousMethod
+	return(wls.permute(retVal))
+}
+
+wls.permute <- function(mxd) {
+	perm <- match(names(.mxDataAsVector(mxd)), colnames(mxd$acov))
+	mxd$acov <- mxd$acov[perm,perm]
+	if (!single.na(mxd$fullWeight)) {
+		mxd$fullWeight <- mxd$fullWeight[perm,perm]
 	}
+	mxd
+}
 
-
+.mxDataAsVector <- function(mxd) {
+	mnames <- colnames(mxd$observed)
+	ordInd <- match(colnames(mxd$thresholds), mnames)
+	dth <- !is.na(mxd$thresholds)
+	v <- c()
+	vn <- c()
+	for (vx in 1:length(mnames)) {
+		tcol <- which(vx == ordInd)
+		if (length(tcol) == 0) {
+			if (!single.na(mxd$means)) {
+				v <- c(v, mxd$means[vx])
+				vn <- c(vn, mnames[vx])
+			}
+		} else {
+			tcount <- sum(dth[,tcol])
+			v <- c(v, mxd$thresholds[1:tcount,tcol])
+			vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
+		}
+	}
+	for (vx in 1:length(mnames)) {
+		if (any(vx == ordInd)) next
+		v <- c(v, mxd$observed[vx,vx])
+		vn <- c(vn, paste0('var_', mnames[vx]))
+	}
+	v <- c(v, vechs(mxd$observed))
+	nv <- length(mnames)
+	vn <- c(vn, paste0('poly_', vechs(outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_'))))
+	names(v) <- vn
+	v
+}

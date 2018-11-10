@@ -26,7 +26,9 @@
 ##' Not to be used.
 setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
-setClass(Class = "NonNullData")
+setClass(Class = "NonNullData",
+	representation = representation(
+		verbose = "integer"))
 
 ##' @name MxDataStatic-class
 ##' @rdname MxDataStatic-class
@@ -58,7 +60,9 @@ setClass(Class = "MxDataStatic",
 		identicalMissingness = "integer",
 		identicalRows = "integer",
 		.isSorted = "logical",  # never sorted anymore, remove slot? TODO
-	     .needSort = "logical",
+		.needSort = "logical",
+		.wlsType = "MxOptionalChar",
+		.wlsContinuousType = "MxOptionalChar",
 	     primaryKey = "MxCharOrNumber",
 	     weight = "MxCharOrNumber",
 	     frequency = "MxCharOrNumber",
@@ -70,14 +74,13 @@ setClass(Class = "MxDataDynamic",
 	     type        = "character",
 	     expectation = "MxCharOrNumber",
 	     numObs = "numeric",             # output
-	     name        = "character",
-	     verbose = "integer"))
+	     name        = "character"))
 
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds,
-		   sort, primaryKey, weight, frequency) {
+		   sort, primaryKey, weight, frequency, verbose) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -101,6 +104,9 @@ setMethod("initialize", "MxDataStatic",
 		.Object@primaryKey <- primaryKey
 		.Object@weight <- weight
 		.Object@frequency <- frequency
+		.Object@verbose <- verbose
+		.Object@.wlsType <- 'WLS'
+		.Object@.wlsContinuousType <- 'cumulants'
 		return(.Object)
 	}
 )
@@ -150,7 +156,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ...,
 		   sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
-		   frequency = as.character(NA)) {
+		   frequency = as.character(NA), verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -271,7 +277,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs), acov, fullWeight,
-		   thresholds, sort, primaryKey, weight, frequency))
+		   thresholds, sort, primaryKey, weight, frequency, as.integer(verbose)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

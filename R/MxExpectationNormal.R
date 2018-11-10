@@ -193,7 +193,6 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
 			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
-			names(v) <- c(covNames, mnsNames[!is.na(mns)], thrNames[dth])
 		}
 		return(v)
 })
@@ -215,7 +214,29 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
-		return(c(vech(cov), means[!is.na(means)], thresholds[dth]))
+		v <- c()
+		vn <- c()
+		for (vx in 1:length(mnames)) {
+			tcol <- which(vx == ordInd)
+			if (length(tcol) == 0) {
+				v <- c(v, means[vx])
+				vn <- c(vn, mnames[vx])
+			} else {
+				tcount <- sum(dth[,tcol])
+				v <- c(v, thresholds[1:tcount,tcol])
+				vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
+			}
+		}
+		for (vx in 1:length(mnames)) {
+			if (any(vx == ordInd)) next
+			v <- c(v, cov[vx,vx])
+			vn <- c(vn, paste0('var_', mnames[vx]))
+		}
+		v <- c(v, vechs(cov))
+		nv <- length(mnames)
+		vn <- c(vn, paste0('poly_', vechs(outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_'))))
+		names(v) <- vn
+		return(v)
 	}
 }
 
@@ -292,11 +313,12 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 		tmpModel <- mxModel(model, mxComputeJacobian(defvar.row=defvar.row, of=ex))
 		tmpModel <- mxRun(tmpModel, silent=TRUE)
 		jac <- tmpModel$compute$output$jacobian
+		dimnames(jac) <- list(names(mxGetExpected(model, 'standVector')), names(theParams))
 	} else {
 		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
+		dimnames(jac) <- list(names(mxGetExpected(model, 'vector')), names(theParams))
 	}
 	
-	dimnames(jac) <- list(names(mxGetExpected(model, 'vector')), names(theParams))
 	return(jac)
 }
 

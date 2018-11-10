@@ -109,11 +109,24 @@ wlsMod <- mxModel("Test case for WLS Objective function from Bollen 1989",
 	mxDataWLS(Bollen[, 1:8])
 )
 
+dwlsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="DWLS"))
+
+ulsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="ULS"))
+
 
 # Run WLS model
 wlsRun <- mxRun(wlsMod)
 summary(wlsRun)
 omxCheckTrue(is.null(wlsRun$output$calculatedHessian))
+
+dwlsRun <- mxRun(dwlsMod)
+
+ulsRun <- mxRun(ulsMod)
+
+print(cbind(coef(wlsRun), coef(dwlsRun), coef(ulsRun)))
+
+omxCheckCloseEnough(vechs(cor(cbind(coef(wlsRun), coef(dwlsRun), coef(ulsRun)))),
+                    c(.931, .922, .996), 1e-3)
 
 #TODO Fix summary for WLS data/fitfunctions
 # Standard errors correct?
