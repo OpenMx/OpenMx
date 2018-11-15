@@ -55,11 +55,6 @@ setClass(Class = "MxDataStatic",
 		thresholds = "matrix",
 		thresholdColumns = "integer",
 		thresholdLevels = "integer",
-		indexVector = "integer",
-		identicalDefVars = "integer",
-		identicalMissingness = "integer",
-		identicalRows = "integer",
-		.isSorted = "logical",  # never sorted anymore, remove slot? TODO
 		.needSort = "logical",
 		.wlsType = "MxOptionalChar",
 		.wlsContinuousType = "MxOptionalChar",
@@ -100,7 +95,6 @@ setMethod("initialize", "MxDataStatic",
 			sort <- FALSE
 		}
 		.Object@.needSort <- sort
-		.Object@.isSorted <- FALSE
 		.Object@primaryKey <- primaryKey
 		.Object@weight <- weight
 		.Object@frequency <- frequency
