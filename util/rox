@@ -21,6 +21,7 @@ fold_start roxygenize "roxygenize"
 
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
+pkgload::load_all()
 roxygenize('.', roclets=c('rd'))
 EOF
 
