@@ -68,6 +68,7 @@ man/imxHasConstraint.Rd
 man/imxHasDefinitionVariable.Rd
 man/imxHasNPSOL.Rd
 man/imxHasOpenMP.Rd
+man/imxHasThresholds.Rd
 man/imxIdentifier.Rd
 man/imxIndependentModels.Rd
 man/imxInitModel.Rd
@@ -123,7 +124,6 @@ man/MxBaseObjectiveMetaData-class.Rd
 man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
-man/mxComputeBenchmark.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
@@ -132,6 +132,7 @@ man/mxComputeGenerateData.Rd
 man/mxComputeGradientDescent.Rd
 man/mxComputeHessianQuality.Rd
 man/mxComputeIterate.Rd
+man/mxComputeLoop.Rd
 man/mxComputeNewtonRaphson.Rd
 man/mxComputeNothing.Rd
 man/mxComputeNumericDeriv.Rd
@@ -156,6 +157,7 @@ man/mxMakeNames.Rd
 man/mxNormalQuantiles.Rd
 man/MxOptionalChar-class.Rd
 man/MxOptionalCharOrNumber-class.Rd
+man/MxOptionalDataFrame-class.Rd
 man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
@@ -181,5 +183,3 @@ man/omxNameAnonymousParameters.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
-man/imxHasThresholds.Rd
-man/mxComputeLoop.Rd
