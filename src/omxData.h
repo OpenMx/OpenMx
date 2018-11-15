@@ -132,7 +132,7 @@ class omxData {
 	int freqCol;
 	int *currentFreqColumn;
 	bool permuted;
-	std::vector<obsSummaryStats> obsStatsVec;
+	obsSummaryStats *oss;
 
 	const char *wlsType;
 	const char *wlsContinuousType;
@@ -179,6 +179,7 @@ class omxData {
 	int version;
 
 	omxData();
+	~omxData();
 	void newDataStatic(omxState *, SEXP dataObject);
 	void connectDynamicData(omxState *currentState);
 	void recompute();
@@ -201,15 +202,15 @@ class omxData {
 	void freeInternal();
 	bool isDynamic() { return expectation.size() != 0; };
 	template <typename T> void visitObsStats(T visitor) {
-		for (auto &o1 : obsStatsVec) visitor(o1);
+		visitor(*oss);
 	}
 	obsSummaryStats &getSingleObsSummaryStats() {
-		if (obsStatsVec.size() != 1) Rf_error("obsStatsVec.size() != 1");
-		return obsStatsVec[0];
+		if (!oss) Rf_error("No observed summary stats");
+		return *oss;
 	};
 	const char *columnName(int col);
 	bool columnIsFactor(int col);
-	bool hasSummaryStats() { return dataMat != 0 || obsStatsVec.size(); }
+	bool hasSummaryStats() { return dataMat != 0 || oss; }
 	void recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
 			    std::vector<int> &exoPred);
 	void wlsAllContinuousCumulants(omxState *state,

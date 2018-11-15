@@ -37,12 +37,17 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false), oss(0),
 		     wlsType(0), wlsContinuousType(0),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
 {}
+
+omxData::~omxData()
+{
+	if (oss) delete oss;
+}
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
 	int dataIdx = INTEGER(dataObject)[0];
@@ -267,8 +272,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	ProtectedSEXP Racov(R_do_slot(dataObj, Rf_install("acov")));
 	omxMatrix *acovMat = omxNewMatrixFromRPrimitive0(Racov, state, 0, 0);
 	if (acovMat) {
-		obsStatsVec.resize(1);
-		auto &o1 = obsStatsVec[0];
+		oss = new obsSummaryStats;
+		auto &o1 = *oss;
 		o1.covMat = dataMat;
 		dataMat = 0;
 		o1.meansMat = meansMat;
@@ -560,8 +565,8 @@ const char *omxData::columnName(int col)
 		if (col < int(cn.size())) return cn[col];
 		else return "?";
 	}
-	if (obsStatsVec.size() == 1) {
-		auto &o1 = obsStatsVec[0];
+	if (oss) {
+		auto &o1 = *oss;
 		auto &cn = o1.covMat->colnames;
 		if (col < int(cn.size())) return cn[col];
 		else return "?";
@@ -982,9 +987,7 @@ void omxData::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
 	if (permuted) Rf_error("Cannot permute '%s' two different ways", name);
 	permuted = true;
 
-	if (obsStatsVec.size() != 1) Rf_error("obsStatsVec.size() != 1");
-
-	obsStatsVec[0].permute(this, dc);
+	getSingleObsSummaryStats().permute(this, dc);
 }
 
 template <typename T>
@@ -1006,7 +1009,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state,
 
 	int numCols = dc.size();
 	int numColsStar = numCols*(numCols+1)/2;
-	auto &o1 = obsStatsVec[0];
+	auto &o1 = *oss;
 
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
 	//o1.meansMat = omxInitMatrix(1, numCols, state);
@@ -1640,9 +1643,10 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	}
 
 	permuted = true;
-	obsStatsVec.clear();
-	obsStatsVec.resize(1);
-	auto &o1 = obsStatsVec[0];
+
+	if (oss) delete oss;
+	oss = new obsSummaryStats;
+	auto &o1 = *oss;
 	o1.numObs = int(numObs);
 
 	// Maybe still applicable if exoPred is empty? TODO
