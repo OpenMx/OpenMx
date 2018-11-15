@@ -55,6 +55,7 @@ setClass(Class = "MxDataStatic",
 		thresholds = "matrix",
 		thresholdColumns = "integer",
 		thresholdLevels = "integer",
+		.isSorted = "logical",  # remove slot TODO
 		.needSort = "logical",
 		.wlsType = "MxOptionalChar",
 		.wlsContinuousType = "MxOptionalChar",
@@ -94,6 +95,7 @@ setMethod("initialize", "MxDataStatic",
 			}
 			sort <- FALSE
 		}
+		.Object@.isSorted <- FALSE
 		.Object@.needSort <- sort
 		.Object@primaryKey <- primaryKey
 		.Object@weight <- weight
