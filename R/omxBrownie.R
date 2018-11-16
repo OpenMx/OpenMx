@@ -14,14 +14,14 @@
 #   limitations under the License.
 
 
-omxBrownie <- function(quantity=1, walnuts=TRUE, vegan=FALSE){
+omxBrownie <- function(quantity=1, walnuts=TRUE, wfpb=FALSE){
 	if ((is.character(walnuts) && walnuts == 'allergic') ||
 			(is.logical(walnuts) && walnuts == TRUE)) {
 		if (is.character(walnuts)) walnuts <- FALSE
 	} else {
 		stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
 	}
-	if(vegan){
+	if(wfpb){
 		if (walnuts) {
 			amt <- c(.5, .5, 4/3,   1, 1/4, 2/3, 3, 16, 180, 1, 1)
 		} else {
@@ -67,9 +67,9 @@ omxBrownie <- function(quantity=1, walnuts=TRUE, vegan=FALSE){
 			),
 		matrix(c(
 		"Heat oven to 350 degrees Fahrenheit.", 
-		ifelse(vegan, "Mix dry ingredients with a fork.", "Lightly butter baking pan(s), then insert parchment sling."),
-		ifelse(vegan, "Puree water and dates in a high speed blender.", "Beat eggs using mixer until homogonous. Beat in sugar until 'ribbon stage' is reached."),
-		ifelse(vegan, "Combine all ingredients and mix thoroughly.", "Mix in other ingredients, stirring until just combined."),
+		ifelse(wfpb, "Mix dry ingredients with a fork.", "Lightly butter baking pan(s), then insert parchment sling."),
+		ifelse(wfpb, "Puree water and dates in a high speed blender.", "Beat eggs using mixer until homogonous. Beat in sugar until 'ribbon stage' is reached."),
+		ifelse(wfpb, "Combine all ingredients and mix thoroughly.", "Mix in other ingredients, stirring until just combined."),
 		"Bake at 350 for 25 to 30 minutes. Brownies are done when toothpick inserted in brownies comes out clean.",
 		"Place on rack to cool. When nearly at room temperature, brownies may be removed by picking up parchment sling for easy cutting."), ncol=1)
 		)

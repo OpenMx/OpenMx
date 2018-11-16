@@ -23,13 +23,13 @@
 }
 
 \usage{
-omxBrownie(quantity=1, walnuts=TRUE, vegan=FALSE)
+omxBrownie(quantity=1, walnuts=TRUE, wfpb=FALSE)
 }
 
 \arguments{
   \item{quantity}{Number of batches of brownies desired. Defaults to one.}
   \item{walnuts}{Logical. Indicates whether walnuts are to be included in the brownies. Defaults to TRUE.}
-  \item{vegan}{Logical. Indicates whether the vegan version of the recipe should be included.  Defaults to FALSE.}
+  \item{wfpb}{Logical. Indicates whether to display the whole food plant based version.  Defaults to FALSE.}
 }
 
 \details{
@@ -41,16 +41,16 @@ omxBrownie(quantity=1, walnuts=TRUE, vegan=FALSE)
     for approximately double the antioxidants and flavonols. However,
     raw cocoa powder is not as smooth and delicious in taste.
     
-    For the vegan version of the recipe,
+    For the whole food plant based (wfpb) version of the recipe,
     we substitute coconut butter for dairy butter because dairy butter
     contains a large proportion of saturated fat that raises deadly LDL
     cholesterol (Trumbo & Shimakawa, 2011). In contrast, coconut butter
     has so much fiber that the considerable saturated fat that it
     contains is mostly not absorbed (Padmakumaran, Rajamohan & Kurup,
-    1999). Of course, cononut is also a powerful laxative.  Beware.
+    1999).
     You can substitute erythritol (den Hartog et al, 2010) for sucanat
     (Lustig, Schmidt, & Brindis, 2012) to improve the glycemic index and
-    calorie density. We substitute whole wheat flour for all-purpose
+    reduce calorie density. We substitute whole wheat flour for all-purpose
     wheat flour because whole grains are associated with improvement in
     blood pressure (Tighe et al, 2010).  }
 
