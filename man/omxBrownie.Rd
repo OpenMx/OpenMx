@@ -23,29 +23,32 @@
 }
 
 \usage{
-omxBrownie(quantity=1, walnuts=TRUE)
+omxBrownie(quantity=1, walnuts=TRUE, vegan=FALSE)
 }
 
 \arguments{
   \item{quantity}{Number of batches of brownies desired. Defaults to one.}
   \item{walnuts}{Logical. Indicates whether walnuts are to be included in the brownies. Defaults to TRUE.}
+  \item{vegan}{Logical. Indicates whether the vegan version of the recipe should be included.  Defaults to FALSE.}
 }
 
 \details{
     Returns a brownie recipe. Alter the `quantity` variable to make more
     pans of brownies. Ingredients, equipment and procedure are listed,
     but neither ingredients nor equipment are provided.
-
+    
     Raw cocoa powder can be used instead of Dutch processed cocoa
     for approximately double the antioxidants and flavonols. However,
     raw cocoa powder is not as smooth and delicious in taste.
-
-    We substitute coconut butter for dairy butter because dairy butter
+    
+    For the vegan version of the recipe,
+    we substitute coconut butter for dairy butter because dairy butter
     contains a large proportion of saturated fat that raises deadly LDL
     cholesterol (Trumbo & Shimakawa, 2011). In contrast, coconut butter
     has so much fiber that the considerable saturated fat that it
     contains is mostly not absorbed (Padmakumaran, Rajamohan & Kurup,
-    1999). You can substitute erythritol (den Hartog et al, 2010) for sucanat
+    1999). Of course, cononut is also a powerful laxative.  Beware.
+    You can substitute erythritol (den Hartog et al, 2010) for sucanat
     (Lustig, Schmidt, & Brindis, 2012) to improve the glycemic index and
     calorie density. We substitute whole wheat flour for all-purpose
     wheat flour because whole grains are associated with improvement in
