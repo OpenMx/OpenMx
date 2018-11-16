@@ -55,7 +55,7 @@ omxBrownie <- function(quantity=1, walnuts=TRUE){
 			dimnames=list(NULL, c("Qty.", "Object"))
 			),
 		matrix(c(
-		"Preheat oven to 350 degrees Fahrenheit.", 
+		"Heat oven to 350 degrees Fahrenheit.", 
 		"Mix dry ingredients with a fork.",
 		"Puree water and dates in a high speed blender.",
 		"Combine all ingredients and mix thoroughly.",
