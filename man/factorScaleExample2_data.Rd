@@ -29,7 +29,7 @@ Data set used in some of OpenMx's examples.
 }
 
 \details{
-This appears to be a three factor model with factor 1 loading on X1-X4, factor 2 on X5-X8, and factor 3 on X9-X12.  It differs from \link{factorScaleExample1} in the scaling of the varialbes.
+Three-factor data with factor 1 loading on X1-X4, factor 2 on X5-X8, and factor 3 on X9-X12.  It differs from \link{factorScaleExample1} in the scaling of the variables.
 }
 
 \source{
