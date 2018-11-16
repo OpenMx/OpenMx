@@ -16,7 +16,7 @@
 
 omxBrownie <- function(quantity=1, walnuts=TRUE){
 	if ((is.character(walnuts) && walnuts == 'allergic') ||
-		    (is.logical(walnuts) && walnuts == TRUE)) {
+			(is.logical(walnuts) && walnuts == TRUE)) {
 		if (is.character(walnuts)) walnuts <- FALSE
 	} else {
 		stop("Walnuts are required for brownies. Please correct the 'walnuts' argument to either TRUE (default) or 'allergic'.")
