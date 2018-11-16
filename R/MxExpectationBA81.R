@@ -164,9 +164,10 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' \deqn{L(x_i|\xi,\theta_i) = \prod_j \mathrm{Pr}(\mathrm{pick}=x_{ij} | \xi_j,\theta_i).}{%
 ##' L(x[i]|\xi,\theta[i]) = \prod_j Pr(pick=x[i,j] | \xi[j],\theta[i]).}
 ##'
-##' Items are assumed conditionally independent.
-##' That is, the outcome of one item is assumpted to not influence
+##' Items are assumed to be conditionally independent.
+##' That is, the outcome of one item is assumed to not influence
 ##' another item after controlling for \eqn{\xi} and \eqn{\theta_i}{\theta[i]}.
+##' 
 ##' The unconditional likelihood is obtained by integrating over
 ##' the latent distribution \eqn{\theta_i}{\theta[i]},
 ##'
