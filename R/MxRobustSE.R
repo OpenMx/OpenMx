@@ -86,9 +86,6 @@ imxRowGradients <- function(model, robustSE=FALSE){
 						grads <- rbind(grads,currGrads)
 					}
 					else{
-						if(length(currModel@data$indexVector) == nrow(currModel@data$observed)){ #put data back in unsorted order
-							currModel@data@observed <- currModel@data$observed[order(currModel@data$indexVector), ]
-						}
 						currData <- currModel@data$observed
 						currGrads <- matrix(0,nrow=nrow(currData),ncol=numParam,dimnames=list(NULL,paramLabels))
 						for(j in 1:nrow(currData)){
@@ -110,9 +107,6 @@ imxRowGradients <- function(model, robustSE=FALSE){
 			stop("The 'model' argument must have raw (not summary) data.")
 		}
 		nrows <- nrow(model$data$observed)
-		if(length(model$data$indexVector) == nrows){ #put data back in unsorted order
-			model@data@observed <- model$data$observed[order(model$data$indexVector), ]
-		}
 		data <- model@data@observed
 		custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE), mxComputeReportDeriv()))
 		grads <- matrix(NA, nrows, length(coef(model)))

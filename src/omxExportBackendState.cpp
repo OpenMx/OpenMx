@@ -68,8 +68,7 @@ void omxState::omxExportResults(MxRList *out, FitContext *fc)
 	
 	for(size_t index = 0; index < dataList.size(); ++index) {
 		omxData* dat = dataList[index];
-		SEXP rData;
-		ScopedProtect p1(rData, Rf_ScalarReal(omxDataNumObs(dat)));
+		ProtectedSEXP rData(Rf_ScalarReal(omxDataNumObs(dat)));
 		SET_VECTOR_ELT(datums, index, rData);
 	}
 
