@@ -46,6 +46,7 @@ Description: Facilitates treatment of statistical model specifications
 SystemRequirements: GNU make
 ByteCompile: yes
 License: Apache License (== 2.0)
+Language: en-US
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.60), rpf (>= 0.45)
 Imports: Rcpp, digest,
     MASS,
