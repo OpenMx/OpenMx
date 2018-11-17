@@ -20,7 +20,7 @@
 
 \description{
   This function evaluates an algebra on a grid of points provided in
-  an auxillary abscissa matrix.
+  an auxiliary abscissa matrix.
 }
 
 \usage{
