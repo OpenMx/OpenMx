@@ -105,7 +105,7 @@ will be checked in turn and the results returned as a vector.
 If you pass a vector of sample sizes, each sample size will
 be checked in turn and the results returns as a vector.
 
-In constrast to \code{mxPower}, \code{mxPowerSearch} attempts to model
+In contrast to \code{mxPower}, \code{mxPowerSearch} attempts to model
 the whole relationship between sample size or effect size and power.
   A naive Monte Carlo estimate of power examines a single candidate
   sample size at a time.  To obtain the whole curve, and simultaneously,
