@@ -78,7 +78,7 @@ A.R, Haenen G.R, Bast A. (2010). Erythritol is a sweet
 antioxidant. Nutrition. 26(4), 449-58.
 
 Trumbo P.R, Shimakawa T. (2011). Tolerable upper intake levels for trans
-fat, saturated fat, and cholesterol. Nutr Rev. 69(5), 270-8. doi:
+fat, saturated fat, and cholesterol. Nutr. Rev. 69(5), 270-8. doi:
 10.1111/j.1753-4887.2011.00389.x.
 
 The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.

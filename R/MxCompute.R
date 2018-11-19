@@ -213,7 +213,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' The information matrix is only valid when parameters are at the
 ##' maximum likelihood estimate. The information matrix is returned in
 ##' model$output$hessian. You cannot request both the information
-##' matrix and the Hessian. The information matrix is invarient to the
+##' matrix and the Hessian. The information matrix is invariant to the
 ##' sign of the log likelihood scale whereas the Hessian is not.
 ##' Use the \code{how} parameter to specify which approximation to use
 ##' (one of "default", "hessian", "sandwich", "bread", and "meat").
@@ -766,7 +766,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' (even by some small epsilon>0). Non-finite fit values are
 ##' interpreted as soft feasibility constraints. That is, when a
 ##' non-finite fit is encountered, line search is continued after the
-##' step size is multipled by 10%. Comprehensive diagnostics are
+##' step size is multiplied by 10%. Comprehensive diagnostics are
 ##' available by increasing the verbose level.
 ##'
 ##' @param freeSet names of matrices containing free variables
