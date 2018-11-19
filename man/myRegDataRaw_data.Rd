@@ -16,7 +16,7 @@ Data set used in some of OpenMx's examples.
     \item{\code{w}}{Predictor variable}
     \item{\code{x}}{Predictor variable}
     \item{\code{y}}{Predictor variable}
-    \item{\code{z}}{Outcome varialbe}
+    \item{\code{z}}{Outcome variable}
   }
 }
 
