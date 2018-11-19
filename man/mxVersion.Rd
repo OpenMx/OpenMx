@@ -21,7 +21,7 @@
 \description{
    This function returns a string with the current version number of OpenMx.
    Optionally (with verbose = TRUE (the default)), it prints a message containing
-   the version of R, the platform, and the optimiser.
+   the version of R, the platform, and the optimizer.
 }
 
 \usage{

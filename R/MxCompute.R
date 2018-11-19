@@ -529,7 +529,7 @@ setMethod("initialize", "MxComputeTryHard",
 ##'
 ##' Upon failure, start values are randomly perturbed.  Currently only
 ##' the uniform distribution is implemented.  The distribution is
-##' parametrized by arguments \code{location} and \code{scale}.  The
+##' parameterized by arguments \code{location} and \code{scale}.  The
 ##' location parameter is the distribution's median.  For the uniform
 ##' distribution, \code{scale} is the absolute difference between its
 ##' median and extrema (i.e., half the width of the rectangle).  Each

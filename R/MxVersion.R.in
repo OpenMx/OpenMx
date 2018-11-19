@@ -24,7 +24,7 @@ mxVersion <- function (model=NULL, verbose=TRUE) {
 		if ("Darwin" ==Sys.info()["sysname"]){
 			msg = paste(msg, "\nMacOS:", system("sw_vers -productVersion", intern=TRUE))
 		}
-		msg = paste(msg, "\nDefault optimiser: ", mxOption(NULL, "Default optimizer"), sep="")
+		msg = paste(msg, "\nDefault optimizer: ", mxOption(NULL, "Default optimizer"), sep="")
 		msg = paste(msg, "\nNPSOL-enabled?: ", ifelse(imxHasNPSOL(),"Yes","No"), sep="")
 		msg = paste(msg, "\nOpenMP-enabled?: ", ifelse(imxHasOpenMP(),"Yes","No"), sep="")
 		if (!is.null(model)) {
