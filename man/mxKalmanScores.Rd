@@ -35,7 +35,7 @@ mxKalmanScores(model, data=NA, frontend=TRUE)
 }
 
 \details{
-This is a helper function that computes the results of the classical Kalman filter.  In particular, for every row of data there is a predicted latent score, an error covariance matrix for the predicted latent scores that provides an estimate of the predictions precision, an updated latent score, and an updated error covariance matrix for the updated lated scores.  Additionally, the Rauch-Tung-Striebel (RTS) smoothed latent scores and error covariance matrices are returned.
+This is a helper function that computes the results of the classical Kalman filter.  In particular, for every row of data there is a predicted latent score, an error covariance matrix for the predicted latent scores that provides an estimate of the predictions precision, an updated latent score, and an updated error covariance matrix for the updated latent scores.  Additionally, the Rauch-Tung-Striebel (RTS) smoothed latent scores and error covariance matrices are returned.
 }
 
 \value{
