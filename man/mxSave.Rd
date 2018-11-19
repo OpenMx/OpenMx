@@ -39,7 +39,7 @@ Alternatively, the checkpoint file can be manually loaded as a data.frame in R. 
 }
 
 \value{
-   Returns a logical indicating the succes of writing the checkpoint file to the checkpoint directory.
+   Returns a logical indicating the success of writing the checkpoint file to the checkpoint directory.
 }
 
 \references{

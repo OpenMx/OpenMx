@@ -49,7 +49,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
      can be used to force it to recompute.}
 \item{joinKey}{The name of the column in current model's raw data that
   is used as a foreign key to match against the primary key in
-  joinModel's raw data.}
+  the joinModel's raw data.}
 \item{joinModel}{The name of the model that this matrix joins against.}
 \item{verbose}{For values greater than zero, enable runtime diagnostics.}
 }

@@ -7,7 +7,7 @@
   Bootstrapping is used to quantify the variability of parameter estimates.
   A new sample is drawn from the model data (uniformly sampling the
   original data with replacement). The model is re-fitted to this new
-  sample. This process is repeated many times. This yileds a series of estimates
+  sample. This process is repeated many times. This yields a series of estimates
   from these replications which can be used to assess the variability of the parameters.
 }
 
