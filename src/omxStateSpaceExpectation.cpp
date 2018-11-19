@@ -672,7 +672,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
 	
 	//EigenMatrixAdaptor eigenA(A);
-	// intializes eigenA as an instance of EigenMatrixAdaptor class, initialized to omxMatrix A
+	// initializes eigenA as an instance of EigenMatrixAdaptor class, initialized to omxMatrix A
 	// EigenVectorAdaptor
 	// eigenB = eigenA.exp(); // matrix exponential
 	// for scalar multiplication
