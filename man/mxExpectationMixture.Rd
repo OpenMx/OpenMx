@@ -24,7 +24,7 @@ divided by its column sum. For 'sum', each column is divided by its
 column sum. For 'none', no scaling is done.}
 }
 \description{
-  Used in conjuction with \link{mxFitFunctionML}, this expectation
+  Used in conjunction with \link{mxFitFunctionML}, this expectation
   can express a mixture model.
 }
 \details{

@@ -37,7 +37,7 @@ coded as a factor with 5-levels: MZFF, MZMM, DZFF, DZMM, DZOS. DZOS are in Femal
 \references{
 Martin, N. G. & Jardine, R. (1986). Eysenck's contribution to behavior genetics. In S. Modgil & C. Modgil (Eds.), \emph{Hans Eysenck: Consensus and Controversy.} Falmer Press: Lewes, Sussex.
 
-Martin, N. G., Eaves, L. J., Heath, A. C., Jardine, R., Feindgold, L. M., & Eysenck, H. J. (1986). Transmission of social attitudes. \emph{Proceedings of the National Academy of Science}, \bold{83}, 4364-4368.
+Martin, N. G., Eaves, L. J., Heath, A. C., Jardine, R., Feingold, L. M., & Eysenck, H. J. (1986). Transmission of social attitudes. \emph{Proceedings of the National Academy of Science}, \bold{83}, 4364-4368.
 }
 
 \usage{data(twinData)}

@@ -68,13 +68,13 @@ Tighe P, Duthie G, Vaughan N, Brittenden J, Simpson W.G, Duthie S, Mutch
 W, Wahle K, Horgan G, Thies F. (2010). Effect of increased consumption of
 whole-grain foods on blood pressure and other cardiovascular risk
 markers in healthy middle-aged persons: a randomized controlled
-trial. Am J Clin Nutr. 92(4), 733-40.
+trial. Am. J. Clin. Nutr. 92(4), 733-40.
 
 R H Lustig, L A Schmidt, C D Brindis. (2012). Public health: The toxic truth
 about sugar. Nature. 482 27-29.
 
 den Hartog G.J, Boots A.W, Adam-Perrot A, Brouns F, Verkooijen I.W, Weseler
-A.R, Haenen G.R, Bast A. (2010). Erythritol is a sweet
+A.R, Haenen G.R, Bast A. (2010). Erythritol is a sweet 
 antioxidant. Nutrition. 26(4), 449-58.
 
 Trumbo P.R, Shimakawa T. (2011). Tolerable upper intake levels for trans

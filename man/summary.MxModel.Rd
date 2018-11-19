@@ -85,7 +85,7 @@ For raw data (to save computational time), the reference models needed to comput
 
 The \code{refModels}, \code{SaturatedLikelihood}, \code{SaturatedDoF}, \code{IndependenceLikelihood}, and \code{IndependenceDoF} arguments can be used to obtain these additional fit statistics.   An easy way to make reference models for most cases is provided by the \link{mxRefModels} function (see the example given in \link{mxRefModels}).
 
-When the \code{SaturatedLikelihood} or \code{IndependenceLikelihood} arguments are used, OpenMx attempts to calculate the appropriate degrees of freedom.  However, depending on the model, it may sometimes be necessary for the user to also explicity provide the corresponding \code{SaturatedDoF} and/or \code{IndependenceDoF}.  Again, for the vast majority of cases, the \link{mxRefModels} function handles these situations effectively and conveniently.
+When the \code{SaturatedLikelihood} or \code{IndependenceLikelihood} arguments are used, OpenMx attempts to calculate the appropriate degrees of freedom.  However, depending on the model, it may sometimes be necessary for the user to also explicitly provide the corresponding \code{SaturatedDoF} and/or \code{IndependenceDoF}.  Again, for the vast majority of cases, the \link{mxRefModels} function handles these situations effectively and conveniently.
 
 \strong{Notes on fit statistics}
 
