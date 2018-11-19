@@ -112,7 +112,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 						ctx.eqmask[c2] = true;
 						++ctx.eqredundent;
 						if (goc.verbose >= 2) {
-							mxLog("nlopt: eq constraint %d is redundent with %d",
+							mxLog("nlopt: eq constraint %d is redundant with %d",
              c1, c2);
 						}
 					}
@@ -130,7 +130,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 			}
 			if (ctx.eqredundent) {
 				if (goc.verbose >= 1) {
-					mxLog("nlopt: detected %d redundent equality constraints; retrying",
+					mxLog("nlopt: detected %d redundant equality constraints; retrying",
            ctx.eqredundent);
 				}
 				nlopt_opt opt = (nlopt_opt) goc.extraData;

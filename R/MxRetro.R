@@ -30,7 +30,7 @@
 ##' 
 ##' @details
 ##' If you're a nostalgic old sod and you miss the warm, fuzzy
-##' feelings you got from reading one of Mike Neale's pattented error messages,
+##' feelings you got from reading one of Mike Neale's patented error messages,
 ##' then this function is here to save you from the depths of dire depression.
 ##' All credit for this function is due to Sarah Medland, but of course the wisdom
 ##' is from Mike Neale.

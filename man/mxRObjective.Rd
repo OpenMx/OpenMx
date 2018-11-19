@@ -51,7 +51,7 @@ NOTE: THIS DESCRIPTION IS DEPRECATED.  Please change to using \link{mxExpectatio
     at the next iteration. The single numeric value will be used by the optimizer to perform
     optimization.
 
-    The initial default value for the persistant state information is NA.
+    The initial default value for the persistent state information is NA.
 
     Throwing an exception (via stop) from inside fitfun may result
     in unpredictable behavior. You may want to wrap your code in

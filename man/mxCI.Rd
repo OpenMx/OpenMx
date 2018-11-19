@@ -84,7 +84,7 @@ confidence intervals in genetic models.  \emph{Behavior Genetics,
 27}(2), 113-120.
 
 Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals
-and regions for structural equation models.  \emph{Psychometrica,
+and regions for structural equation models.  \emph{Psychometrika,
 80}(4), 1123-1145.
 
 Wu, H. & Neale, M. C. (2012). Adjusted confidence intervals for a
