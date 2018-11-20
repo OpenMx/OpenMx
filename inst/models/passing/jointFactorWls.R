@@ -232,17 +232,20 @@ omxCheckWithinPercentError(shan$Chi, swls$Chi, 28)
 #------------------------------------------------------------------------------
 # Check that ML saturated model estimates are close
 #  to the WLS saturated model estimates.
+
+obsStats <- wd$observedStats
+
 mxGetExpected(jointResults2, 'covariance')
-wd$observed
+obsStats$cov
 
 mxGetExpected(jointResults2, 'means')
-wd$means
+obsStats$means
 
 mxGetExpected(jointResults2, 'thresholds')
-wd$thresholds
+obsStats$thresholds
 
 ml.sat <- mxGetExpected(jointResults2, 'vector')
-wls.sat <- c(vech(wd$observed), wd$means, na.omit(c(wd$thresholds)))
+wls.sat <- c(vech(obsStats$cov), obsStats$means, na.omit(c(obsStats$thresholds)))
 
 omxCheckTrue(rms(ml.sat, wls.sat) < .01)
 omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009

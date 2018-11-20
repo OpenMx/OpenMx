@@ -50,11 +50,7 @@ setClass(Class = "MxDataStatic",
 		means  = "matrix",
 		type   = "character",
 		numObs = "numeric",
-		acov   = "matrix",
-		fullWeight = "matrix",
-		thresholds = "matrix",
-		thresholdColumns = "integer",
-		thresholdLevels = "integer",
+		observedStats = "list",
 		.isSorted = "logical",  # remove slot TODO
 		.needSort = "logical",
 		.wlsType = "MxOptionalChar",
@@ -75,15 +71,13 @@ setClass(Class = "MxDataDynamic",
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
-	  function(.Object, observed, means, type, numObs, acov, fullWeight, thresholds,
+	  function(.Object, observed, means, type, numObs, observedStats,
 		   sort, primaryKey, weight, frequency, verbose) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
 		.Object@numObs <- numObs
-		.Object@acov <- acov
-		.Object@fullWeight <- fullWeight
-		.Object@thresholds <- thresholds
+		.Object@observedStats <- observedStats
 		.Object@name <- "data"
 		if (is.na(primaryKey)) {
 			if (is.na(sort)) {
@@ -150,17 +144,28 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 	return(new("MxDataDynamic", type, expectation, verbose))
 }
 
-mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA, ...,
-		   sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
+mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+		   thresholds=NA, ...,
+		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
 	}
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
-	if (length(acov) == 1 && is.na(acov)) acov <- matrix(as.numeric(NA))
-	if (length(fullWeight) == 1 && is.na(fullWeight)) fullWeight <- matrix(as.numeric(NA))
-	if (length(thresholds) == 1 && is.na(thresholds)) thresholds <- matrix(as.numeric(NA))
+	if (missing(observedStats)) {
+		observedStats <- list()
+		if (!missing(acov)) observedStats <- c(observedStats, acov=acov)
+		if (!missing(fullWeight)) observedStats <- c(observedStats, fullWeight=fullWeight)
+		if (!missing(thresholds)) observedStats <- c(observedStats, thresholds=thresholds)
+	} else {
+		if (!missing(acov) || !missing(fullWeight) || !missing(thresholds)) {
+			stop("acov, fullWeight, and thresholds must be passed in the observedStats list")
+		}
+	}
+	rm(acov)
+	rm(fullWeight)
+	rm(thresholds)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
@@ -182,7 +187,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	if ((!is.vector(means) && !(prod(dim(means)) == length(means))) || !is.numeric(means)) {
 		stop("Means argument must be of numeric vector type")
 	}
-	if (type != "raw" && is.na(numObs)) {
+	if (type != "raw" && type != "acov" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
 	}
 	if (type == "cov") {
@@ -192,27 +197,17 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		verifyCorrelationMatrix(observed)
 	}
 	if (type == "acov") {
-		verifyCovarianceMatrix(observed)
-		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
-		if(!single.na(fullWeight)){
-			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic")
+		verifyCovarianceMatrix(observedStats[['cov']], nameMatrix="covariance")
+		verifyCovarianceMatrix(observedStats[['acov']], nameMatrix="asymptotic")
+		fw <- observedStats[['fullWeight']]
+		if(!is.null(fw)) {
+			verifyCovarianceMatrix(fw, nameMatrix="asymptotic")
 		}
-		if ( !single.na(thresholds) ) {
-			verifyThresholdNames(thresholds, observed)
-		}
-	}
-	if (type != "acov") {
-		if (any(!is.na(acov))) {
-			stop("The acov argument to mxData is only allowed for data with type='acov'")
-		}
-		if (any(!is.na(thresholds))) {
-			stop("The thresholds argument to mxData is only allowed for data with type='acov'")
-		}
-		if (any(!is.na(fullWeight))) {
-			stop("The fullWeight argument to mxData is only allowed for data with type='acov'")
+		thr <- observedStats[['thresholds']]
+		if (!is.null(thr)) {
+			verifyThresholdNames(thr, observed)
 		}
 	}
-
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
 	if(is.matrix(means)){meanNames <- colnames(means)} else {meanNames <- names(means)}
 	means <- as.matrix(means)
@@ -253,7 +248,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 				   "must be provided in the observed data"))
 		}
 	}
-	if (type == "raw") {
+	if (type == "raw" || type == "acov") {
 		if (!is.na(frequency)) {
 			obsCount <- sum(observed[,frequency])
 		} else {
@@ -272,8 +267,8 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		}
 	}
 
-	return(new("MxDataStatic", observed, means, type, as.numeric(numObs), acov, fullWeight,
-		   thresholds, sort, primaryKey, weight, frequency, as.integer(verbose)))
+	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
+		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -360,12 +355,17 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 
 setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 		function(data, model, defVars, modeloptions) {
-			if(!is.null(data) && !single.na(data@thresholds)) {
-				verifyThresholdNames(data@thresholds, data@observed, model@name)
-				retval <- generateDataThresholdColumns(covarianceColumnNames=dimnames(data@observed)[[2]],
-								 thresholdsMatrix=data@thresholds)
-				data@thresholdColumns <- retval[[1]]
-				data@thresholdLevels <- retval[[2]]
+			if(!is.null(data) && length(data@observedStats)) {
+				obsStats <- data@observedStats
+				if (!is.null(obsStats$thresholds)) {
+					verifyThresholdNames(obsStats$thresholds, data@observed, model@name)
+					retval <- generateDataThresholdColumns(
+						covarianceColumnNames=dimnames(obsStats$cov)[[2]],
+						thresholdsMatrix=obsStats$thresholds)
+					obsStats$thresholdColumns <- retval[[1]]
+					#obsStats$thresholdLevels <- retval[[2]]
+					data@observedStats <- obsStats
+				}
 			}
 			data
 		})
@@ -444,7 +444,9 @@ getDataThresholdNames <- function(data) {
 			return(colnames(data@observed)[thresholdCols])
 		}
 	} else if(data@type == "acov") {
-		return(dimnames(data@thresholds)[[2]])
+		obsStats <- data@observedStats
+		if (is.null(obsStats$thresholds)) return(c())
+		return(colnames(obsStats$thresholds))
 	}
 	return(c())
 }
@@ -464,6 +466,8 @@ getDataThresholdNames <- function(data) {
   }
   
 verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
+	if (is.null(covMatrix)) stop(paste("Covariance matrix",omxQuotes(nameMatrix),
+		"is missing in action"))
 	if(nrow(covMatrix) != ncol(covMatrix)) {
 		msg <- paste("The", nameMatrix, "covariance matrix",
 			"is not a square matrix - perhaps you meant type = 'raw' instead of 'cov'? ")
@@ -474,7 +478,7 @@ verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 			"contains NA values. Perhaps ensure you are excluding NAs in your cov() statement?")
 		stop(msg, call. = FALSE)	
 	}
-	if (!all(covMatrix == t(covMatrix))) {
+	if (max(abs(covMatrix - t(covMatrix))) > 1e-9) {
 		if(all.equal(covMatrix, t(covMatrix))){
 			msg <- paste("The", nameMatrix, "covariance matrix",
 				"is not a symmetric matrix,",
@@ -574,17 +578,9 @@ displayMxData <- function(object) {
 		cat("means : \n") 
 		print(object@means)		
 	}
-	if (length(object@acov) == 1 && is.na(object@acov)) {
-		cat("acov : NA \n")
-	} else {
-		cat("acov : \n")
-		print(object@acov)
-	}
-	if (length(object@thresholds) == 1 && is.na(object@thresholds)) {
-		cat("thresholds : NA \n")
-	} else {
-		cat("thresholds : \n")
-		print(object@thresholds)
+	if (length(object@observedStats)) {
+		cat("observedStats : \n")
+		print(object@observedStats)
 	}
 	invisible(object)
 }

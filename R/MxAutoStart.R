@@ -128,9 +128,8 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 	if(type != 'ULS'){
 		mdata <- mxDataWLS(as.data.frame(data), type=type, allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'), fullWeight=FALSE)
 	} else {
-		mdata <- mxData(observed=I, type='acov', numObs=nrowData, 
-			acov=I, fullWeight=I, means=meanData)
-		mdata@observed <- covData
+		mdata <- mxData(as.data.frame(data), type='acov', numObs=nrowData,
+			observedStats=list(cov=covData, acov=I, means=meanData))
 	}
 	return(mdata)
 }

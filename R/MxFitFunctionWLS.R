@@ -279,7 +279,8 @@ approveWLSIntervals <- function(flatModel, modelName) {
 	ff <- flatModel@fitfunctions[[ paste0(modelName, '.fitfunction') ]]
 	if (is(ff, "MxFitFunctionWLS")) {
 		ds <- flatModel@datasets[[ paste0(modelName, '.data') ]]
-		if (any(abs(ds$acov - ds$fullWeight) > 1e-6)) {
+		obsStats <- ds@observedStats
+		if (any(abs(obsStats$acov - obsStats$fullWeight) > 1e-6)) {
 			stop(paste("Confidence intervals are not supported for DWLS or ULS. ",
 				"Try mxSE or switch", omxQuotes(ds$name), "to full WLS"))
 		}

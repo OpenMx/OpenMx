@@ -578,11 +578,12 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	}
 	if (is(model, 'data.frame')) {
 		wlsData <- mxDataWLS(model)
+		obsStats <- wlsData@observedStats
 		fake <- mxModel("fake",
 				mxData(observed=model, type='raw'),
-				mxMatrix(values=wlsData$thresholds, name="thresh"),
-				mxMatrix(values=as.matrix(nearPD(wlsData$observed)$mat), name="cov"),
-				mxMatrix(values=wlsData$means, name="mean"),
+				mxMatrix(values=obsStats$thresholds, name="thresh"),
+				mxMatrix(values=as.matrix(nearPD(obsStats$cov)$mat), name="cov"),
+				mxMatrix(values=obsStats$means, name="mean"),
 				mxExpectationNormal(thresholds = "thresh", covariance = "cov", means = "mean"))
 		if(is.null(nrows)){nrows <- wlsData@numObs}
 		return(mxGenerateData(fake, nrows, returnModel))
@@ -693,7 +694,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 
 		if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
 
-		if (mxDataObject@type != "raw") {
+		if (mxDataObject@type != "raw" && mxDataObject@type != "acov") {
 			verifyExpectedObservedNames(mxDataObject@observed, covName, flatModel, modelname, "Normal")
 			verifyMeans(meansName, mxDataObject, flatModel, modelname)
 		}

@@ -109,6 +109,8 @@ wlsMod <- mxModel("Test case for WLS Objective function from Bollen 1989",
 	mxDataWLS(Bollen[, 1:8])
 )
 
+print(wlsMod$data)
+
 dwlsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="DWLS"))
 
 ulsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="ULS"))
