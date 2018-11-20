@@ -28,7 +28,7 @@
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
     fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
-   "cumulants", ..., silent=!interactive())
+   "cumulants", ..., silent=!interactive(), .oldMethod = TRUE)
 }
 
 \arguments{
@@ -45,7 +45,9 @@
  \item{allContinuousMethod}{A character string 'cumulants' (default) or
    'marginals'. See Details.}
 \item{...}{Not used.  Forces remaining arguments to be specified by name.}
- \item{silent}{Whether to report progress}
+\item{silent}{Whether to report progress}
+ \item{.oldMethod}{Whether to use the old method to obtain the observed
+   summary statistics.}
 }
 
 \details{
