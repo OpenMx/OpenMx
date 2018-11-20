@@ -33,9 +33,9 @@ imxWlsChiSquare(model, J=NA)
 }
 
 \details{
-The Chi Square fit statistic for models fit with maximum likelihood depends on the difference in model fit in minus two log likelihood units between the saturated model and the more restricted model under investigation.  For models fit with weighted least squares a different expression is required.  If \eqn{J} is the first derivative (Jacobian) of the mapping from the free parameters to the unique elements of the expected covariance, means, and threholds, \eqn{J_c} is the orthogonal complement of \eqn{J}, \eqn{W} is the inverse of the full weight matrix, and \eqn{e} is the differnce between the sample-estimated and model-implied covariance, means, and thresholds, then the Chi Square fit statistic is
+The Chi Square fit statistic for models fit with maximum likelihood depends on the difference in model fit in minus two log likelihood units between the saturated model and the more restricted model under investigation.  For models fit with weighted least squares a different expression is required.  If \eqn{J} is the first derivative (Jacobian) of the mapping from the free parameters to the unique elements of the expected covariance, means, and threholds, \eqn{J_c} is the orthogonal complement of \eqn{J}, \eqn{W} is the inverse of the full weight matrix, and \eqn{e} is the difference between the sample-estimated and model-implied covariance, means, and thresholds, then the Chi Square fit statistic is
 \deqn{\chi^2 = e' J_c (J'_c W J_c)^-1 J'_c e}
-with \eqn{e'} indicating the transpode of \eqn{e}.  This Equation 2.20a from Browne (1984) where he showed that this statistic is chi-square distributed with the conventional degrees of freedom.
+with \eqn{e'} indicating the transpose of \eqn{e}.  This Equation 2.20a from Browne (1984) where he showed that this statistic is chi-square distributed with the conventional degrees of freedom.
 
 Mean and variance adjusted Chi Square statistics are also computed following Asparouhov and Muthen (2006).
 }

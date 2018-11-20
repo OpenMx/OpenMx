@@ -39,7 +39,7 @@ mxVersion()
 # R version: R version 3.3.3 (2017-03-06)
 # Platform: x86_64-apple-darwin13.4.0
 # MacOS: 10.12.5
-# Default optimiser: CSOLNP
+# Default optimizer: CSOLNP
 # Warning message:
 # In model 'Estimation Row Model with Missingness' Optimizer returned a non-zero status code 6. The model does not satisfy the first-order optimality conditions to the required accuracy, and no improved point for the merit function could be found during the final linesearch (Mx status RED)
 

@@ -24,7 +24,7 @@ divided by its column sum. For 'sum', each column is divided by its
 column sum. For 'none', no scaling is done.}
 }
 \description{
-  Used in conjuction with \link{mxFitFunctionML}, this expectation
+  Used in conjunction with \link{mxFitFunctionML}, this expectation
   can express a mixture model.
 }
 \details{
@@ -35,7 +35,7 @@ column sum. For 'none', no scaling is done.}
   \deqn{ softmax(x_i) = \frac{e^{x_i}}{\sum_{k=1}^{K} } e^{x_k} }{
     softmax(x_i) = exp(x_i) / sum(exp(x_i))}
   
-  When using the softmax scaling no free parameter bounds or constraints are needed.  However, for model identification, one element of the weights vector must be fixed.  If the softmax scaling is used, then the usual choise for the fixed parameter value is zero.  The latent class or mixture component that has its raw weight set to zero becomes the comparison against which other probabilities are evaluated.
+  When using the softmax scaling no free parameter bounds or constraints are needed.  However, for model identification, one element of the weights vector must be fixed.  If the softmax scaling is used, then the usual choice for the fixed parameter value is zero.  The latent class or mixture component that has its raw weight set to zero becomes the comparison against which other probabilities are evaluated.
   
   When \code{scale} is set to "sum" then each element of the weights matrix is internally divided by its sum.  When using the sum scaling, the same model identification requirements are present.  In particular, one element of the weights must be fixed.  The typical value to fix this value at for sum scaling is one.  Additionally when using sum scaling, all free parameters in the weights must have lower bounds of zero.  In equation form the sum scaling does the following:
   

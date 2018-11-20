@@ -47,7 +47,7 @@ mxMatrix(type = c('Full', 'Diag', 'Iden', 'Lower',
 \item{...}{Not used.  Forces remaining arguments to be specified by
   name.}
 \item{joinKey}{The name of the column in current model's raw data that
-  is used as a foreign key to match against the primary key in
+  is used as a foreign key to match against the primary key in the
   joinModel's raw data.}
 \item{joinModel}{The name of the model that this matrix joins against.}
 }

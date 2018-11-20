@@ -39,7 +39,7 @@ omxGetParameters(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 \details{
   The argument \sQuote{free} dictates whether to return only free
   parameters or only fixed parameters or both free and fixed
-  parameters. The function can return unlabelled free parameters
+  parameters. The function can return unlabeled free parameters
   (parameters with a label of NA). These anonymous free parameters will
   be identified as \sQuote{modelname.matrixname[row,col]}.  It will not
   return fixed parameters that have a label of NA.

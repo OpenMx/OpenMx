@@ -52,7 +52,7 @@ mxFitFunctionR <- function(fitfun, ..., units="-2lnL") {
 		stop("First argument 'fitfun' must be of type function")
 	}
 	if (length(formals(fitfun)) != 2) {
-		stop("The fit function must take exactly two arguments: a model and a persistant state")
+		stop("The fit function must take exactly two arguments: a model and a persistent state")
 	}
 	state <- list(...)
 	return(new("MxFitFunctionR", fitfun, state, units))

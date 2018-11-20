@@ -51,11 +51,11 @@ the model-implied means and covariance are extracted.  It then generates data wi
 
 Please note that this function samples data from the model-implied distribution(s); it does not sample from the data object in the model.  That is, this function generates new data rather than pulling data that already exist from the model.
 
-Thresholds and ordinal data are implemented by generating continuous data and then using \link{cut} and \link{mxFactor} to break the continous data at the thresholds into an ordered factor.
+Thresholds and ordinal data are implemented by generating continuous data and then using \link{cut} and \link{mxFactor} to break the continuous data at the thresholds into an ordered factor.
 
 If the model has definition variables, then a data set must be included in the model object and the number of rows requested must match the number of rows in the model data.  In this case the means, covariance, and thresholds are reevaluated for each row of data, potentially creating a a different mean, covariance, and threshold structure for every generated row of data.
 
-For state space models (i.e. models with an \link{mxExpectationStateSpace} or \link{mxExpectationStateSpaceContinuousTime} expectation), the data are generated based on the autoregressive structure of the model.  The rows of data in a state space model are not independent replicates of a stationary process.  Rather, they are the result of a latent (possibly non-stationary) autoregressive process.  For state space models different rows of data often correspond to different times.  As alluded to above, data generation works for discrete time state space models and hybrid continuous-discrete time state space models.  The latter have a continous process that is measured as discrete times.
+For state space models (i.e. models with an \link{mxExpectationStateSpace} or \link{mxExpectationStateSpaceContinuousTime} expectation), the data are generated based on the autoregressive structure of the model.  The rows of data in a state space model are not independent replicates of a stationary process.  Rather, they are the result of a latent (possibly non-stationary) autoregressive process.  For state space models different rows of data often correspond to different times.  As alluded to above, data generation works for discrete time state space models and hybrid continuous-discrete time state space models.  The latter have a continuous process that is measured as discrete times.
 
 The \code{subname} parameter is used to limit data generation to
 the given submodel. The reason you wouldn't pass the submodel in

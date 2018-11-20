@@ -46,7 +46,7 @@ mxThreshold(vars, nThresh=NA,
 \details{
 If you are new to ordinal data modeling and just want something quick to make your ordinal data work, we recommend you try the \code{\link[umx]{umxThresholdMatrix}} function in the \code{umx} package.
 
-The mxPath function creates \link[=MxThreshold-class]{MxThreshold} objects. These consist of a list of ordinal variables and the thresholds that define the relationship between the observed ordinal variable and the continuous latent variable assumed to underly it. This function directly mirrors the usage of \link{mxPath}, but is used to specify thresholds rather than means, variances and bivariate relationships.
+The mxPath function creates \link[=MxThreshold-class]{MxThreshold} objects. These consist of a list of ordinal variables and the thresholds that define the relationship between the observed ordinal variable and the continuous latent variable assumed to underlie it. This function directly mirrors the usage of \link{mxPath}, but is used to specify thresholds rather than means, variances and bivariate relationships.
 
 The \sQuote{vars} argument specifies which variables you wish to specify thresholds for. Variables are referenced by name, and these names must appear in the \sQuote{manifestVar} argument of the \link{mxModel} function if thresholds are to be correctly processed. Additionally, variables for which thresholds are specified must be specified as ordinal factors in whatever data is included in the model.
 

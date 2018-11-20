@@ -213,7 +213,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' The information matrix is only valid when parameters are at the
 ##' maximum likelihood estimate. The information matrix is returned in
 ##' model$output$hessian. You cannot request both the information
-##' matrix and the Hessian. The information matrix is invarient to the
+##' matrix and the Hessian. The information matrix is invariant to the
 ##' sign of the log likelihood scale whereas the Hessian is not.
 ##' Use the \code{how} parameter to specify which approximation to use
 ##' (one of "default", "hessian", "sandwich", "bread", and "meat").
@@ -529,7 +529,7 @@ setMethod("initialize", "MxComputeTryHard",
 ##'
 ##' Upon failure, start values are randomly perturbed.  Currently only
 ##' the uniform distribution is implemented.  The distribution is
-##' parametrized by arguments \code{location} and \code{scale}.  The
+##' parameterized by arguments \code{location} and \code{scale}.  The
 ##' location parameter is the distribution's median.  For the uniform
 ##' distribution, \code{scale} is the absolute difference between its
 ##' median and extrema (i.e., half the width of the rectangle).  Each
@@ -653,7 +653,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' Find likelihood-based confidence intervals
 ##'
 ##' There are various equivalent ways to pose the optimization
-##' problems required to estimate confindence intervals. Most accurate
+##' problems required to estimate confidence intervals. Most accurate
 ##' solutions are achieved when the problem is posed using non-linear
 ##' constraints. However, the available optimizers (CSOLNP, SLSQP, and NPSOL) often have difficulty with non-linear
 ##' constraints. 
@@ -672,7 +672,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' 27}(2), 113-120.
 ##' 
 ##' Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals and regions for structural equation models.
-##' \emph{Psychometrica, 80}(4), 1123-1145.
+##' \emph{Psychometrika, 80}(4), 1123-1145.
 ##'
 ##' Wu, H. & Neale, M. C. (2012). Adjusted confidence intervals for a
 ##' bounded parameter. \emph{Behavior genetics, 42}(6), 886-898.
@@ -766,7 +766,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' (even by some small epsilon>0). Non-finite fit values are
 ##' interpreted as soft feasibility constraints. That is, when a
 ##' non-finite fit is encountered, line search is continued after the
-##' step size is multipled by 10%. Comprehensive diagnostics are
+##' step size is multiplied by 10%. Comprehensive diagnostics are
 ##' available by increasing the verbose level.
 ##'
 ##' @param freeSet names of matrices containing free variables

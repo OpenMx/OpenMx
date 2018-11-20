@@ -18,7 +18,7 @@ mxRObjective <- function(objfun, ...) {
 		stop("First argument 'objfun' must be of type function")
 	}
 	if (length(formals(objfun)) != 2) {
-		stop("The objective function must take exactly two arguments: a model and a persistant state")
+		stop("The objective function must take exactly two arguments: a model and a persistent state")
 	}
 	expectation <- NULL
 	fitfunction <- mxFitFunctionR(objfun, ...)

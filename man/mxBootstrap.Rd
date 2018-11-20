@@ -4,11 +4,11 @@
 \title{Repeatedly estimate model using resampling with replacement}
 
 \description{
-  Bootstrapping can help to assess the variability in parameter estimates.
-  A new sample is drawn from current data by unformly sampling the
-  original data with replacement. Then the model is fit to these new
-  data. This process is repeated many times. Quantiles of the estimates from all
-  these replications can be used to assess the variability of parameters.
+  Bootstrapping is used to quantify the variability of parameter estimates.
+  A new sample is drawn from the model data (uniformly sampling the
+  original data with replacement). The model is re-fitted to this new
+  sample. This process is repeated many times. This yields a series of estimates
+  from these replications which can be used to assess the variability of the parameters.
 }
 
 \usage{

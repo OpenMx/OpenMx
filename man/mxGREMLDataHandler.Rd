@@ -31,7 +31,7 @@ If the dataframe or matrix supplied for argument \code{data} has \emph{n} rows, 
 
 \value{
 A list with these two components:
-  \item{yX}{Numeric matrix.  The first column is the phenotype vector, 'y,' while the remaining columns constitutethe 'X' matrix of covariates.  If this matrix is used as the raw dataset for a model, then the model's GREML expectation can be constructed with \code{dataset.is.yX=TRUE} in \code{\link{mxExpectationGREML}()}.}
+  \item{yX}{Numeric matrix.  The first column is the phenotype vector, 'y,' while the remaining columns constitute the 'X' matrix of covariates.  If this matrix is used as the raw dataset for a model, then the model's GREML expectation can be constructed with \code{dataset.is.yX=TRUE} in \code{\link{mxExpectationGREML}()}.}
   \item{casesToDrop}{Numeric vector.  Contains the indices of the rows of the 'y' and 'X' that were dropped due to containing \code{NA}'s.  Can be provided as as argument \code{casesToDropFromV} to \code{\link{mxExpectationGREML}()}.}
 }
 

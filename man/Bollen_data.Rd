@@ -33,7 +33,7 @@ Variables y1-y4 and y5-y8 are typically used as indicators of the latent trait o
 }
 
 \source{
-The \code{sem} package (in turn, via pers. comm Bollen to Fox)}
+The \code{sem} package (in turn, via personal communication Bollen to Fox)}
 
 \references{
 

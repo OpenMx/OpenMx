@@ -149,7 +149,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 
 ##' Create a Bock & Aitkin (1981) expectation
 ##'
-##' Used in conjuction with \link{mxFitFunctionML}, this expectation
+##' Used in conjunction with \link{mxFitFunctionML}, this expectation
 ##' models ordinal data with a modest number of latent dimensions.
 ##' Currently, only a multivariate Normal latent distribution is
 ##' supported.  An equal-interval quadrature is used to integrate over
@@ -217,7 +217,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' When a two-tier covariance matrix is recognized, this expectation
 ##' automatically enables analytic dimension reduction (Cai, 2010).
 ##' 
-##' The optional `weightColumn' is superceded by the weight
+##' The optional `weightColumn' is superceeded by the weight
 ##' argument in \link{mxData}. For data with many repeated
 ##' response patterns, model evaluation time can be
 ##' reduced. An easy way to transform your data into this form is to

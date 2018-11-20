@@ -282,7 +282,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
             double *clambda,        -- Array of length n+nclin+ncnln.  Need not be initialized unless using Warm Start. Reports final QP multipliers.
             double *f,              -- Used to report final objective value.  Need not be initialized.
             double *g,              -- Array of length n. Used to report final objective gradient.  Need not be initialized.
-            double *R,              -- Array of length ldR.  Need not be intialized unless using Warm Start.
+            double *R,              -- Array of length ldR.  Need not be initialized unless using Warm Start.
             double *x,              -- Array of length n.  Contains initial solution estimate.
             int *iw,                -- Array of length leniw. Need not be initialized.  Provides workspace.
             int *leniw,             -- Length of iw.  Must be at least 3n + nclin + ncnln.

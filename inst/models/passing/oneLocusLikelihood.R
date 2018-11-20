@@ -50,7 +50,7 @@ omxCheckCloseEnough(estimates,Mx1Estimates,.01)
 
 if (mxOption(NULL, 'Default optimizer') != "CSOLNP") {
 	onelocus <- mxModel(onelocus,
-		    mxConstraint(P + Q + R == 1, "redundent"))
+		    mxConstraint(P + Q + R == 1, "redundant"))
 	run <- mxRun(onelocus)
 	omxCheckCloseEnough(run$algebras$NegativeLogLikelihood$result, 627.028, .1)
 	estimates<-c(run$matrices$P$values,run$matrices$Q$values,run$matrices$R$values)

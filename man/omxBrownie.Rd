@@ -60,25 +60,25 @@ omxBrownie(quantity=1, walnuts=TRUE, wfpb=FALSE)
 
 \references{
 
-Padmakumaran Nair KG, Rajamohan T, Kurup PA. (1999). Coconut kernel protein
+Padmakumaran Nair K.G, Rajamohan T, Kurup P.A. (1999). Coconut kernel protein
 modifies the effect of coconut oil on serum lipids. Plant Foods Hum
 Nutr. 53(2):133-44.
 
-Tighe P, Duthie G, Vaughan N, Brittenden J, Simpson WG, Duthie S, Mutch
+Tighe P, Duthie G, Vaughan N, Brittenden J, Simpson W.G, Duthie S, Mutch
 W, Wahle K, Horgan G, Thies F. (2010). Effect of increased consumption of
 whole-grain foods on blood pressure and other cardiovascular risk
 markers in healthy middle-aged persons: a randomized controlled
-trial. Am J Clin Nutr. 92(4), 733-40.
+trial. Am. J. Clin. Nutr. 92(4), 733-40.
 
 R H Lustig, L A Schmidt, C D Brindis. (2012). Public health: The toxic truth
 about sugar. Nature. 482 27-29.
 
-den Hartog GJ, Boots AW, Adam-Perrot A, Brouns F, Verkooijen IW, Weseler
-AR, Haenen GR, Bast A. (2010). Erythritol is a sweet
+den Hartog G.J, Boots A.W, Adam-Perrot A, Brouns F, Verkooijen I.W, Weseler
+A.R, Haenen G.R, Bast A. (2010). Erythritol is a sweet 
 antioxidant. Nutrition. 26(4), 449-58.
 
-Trumbo PR, Shimakawa T. (2011). Tolerable upper intake levels for trans
-fat, saturated fat, and cholesterol. Nutr Rev. 69(5), 270-8. doi:
+Trumbo P.R, Shimakawa T. (2011). Tolerable upper intake levels for trans
+fat, saturated fat, and cholesterol. Nutr. Rev. 69(5), 270-8. doi:
 10.1111/j.1753-4887.2011.00389.x.
 
 The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.

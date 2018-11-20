@@ -19,7 +19,7 @@ trunk
 * CSOLNP: Count the number of major iterations
 * Add Makefile rule to run the failing tests
 * CSOLNP: Return stuff via CSOLNPFit; isolate Matrix inside of subnp
-* CSOLNP: Remove some redundent information
+* CSOLNP: Remove some redundant information
 * Remove template argument from CSOLNP::solnp
 * Store equality & inequality results in CSOLNPFit
 * Reduce variable lifetime
@@ -447,7 +447,7 @@ Release 2.0.beta1-3473 (May 30, 2014)
 * Simplify management of omxData.type
 * Switched backend from C to C++
 * Fixed maximum number of dimensions bug so that only dimensions other than those -inf to +inf are counted
-* Add API for internal expectations; remove redundent copy of rObj
+* Add API for internal expectations; remove redundant copy of rObj
 * C-side support for submodels
 * Add deps on MASS and mvtnorm
 * Remove lots of UNPROTECTs

@@ -20,6 +20,6 @@ x = mxVersion()
 # OpenMx version: 2.0.0.3627
 # R version: R version 3.1.0 (2014-04-10)
 # Platform: x86_64-apple-darwin10.8.0
-# Default optimiser: NPSOL
+# Default optimizer: NPSOL
 
 omxCheckEquals(x, packageVersion("OpenMx"))
