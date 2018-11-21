@@ -242,7 +242,7 @@ void omxWLSFitFunction::init()
 		}
 	}
 	
-	if((eThresh.size()==0) ^ (oThresh.size()==0)) {
+	if((eThresh.size()==0) ^ (obsThresholdsMat==0)) {
 		if (eThresh.size()) {
 			omxRaiseError("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 			return;
@@ -252,9 +252,10 @@ void omxWLSFitFunction::init()
 		}
 	}
 
-	for(int i = 0, ei=0; i < int(oThresh.size()); i++) {
-		while (ei < int(eThresh.size()) && eThresh[ei].dColumn != oThresh[i].dColumn) ++ei;
-		eThresh[ei].numThresholds = oThresh[i].numThresholds;
+	if (obsThresholdsMat) {
+		for(int i = 0; i < int(oThresh.size()); i++) {
+			eThresh[i].numThresholds = oThresh[i].numThresholds;
+		}
 	}
 
 	if (OMX_DEBUG) {

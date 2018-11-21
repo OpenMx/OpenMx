@@ -158,7 +158,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			})
 		}
 		hasMeanModel <- !is.na(mMatrix)
-		if(hasMeanModel && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
+		if(hasMeanModel && single.na(mxDataObject@means) && mxDataObject@type != "raw" && mxDataObject@type != "acov") {
 			msg <- paste("The RAM expectation function",
 				"has an expected means vector but",
 				"no observed means vector in model",

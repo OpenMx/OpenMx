@@ -230,7 +230,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 
 	dataThresh <- NA
 	if(dataType == "acov") {
-		dataThresh <- flatModel@datasets[[dataName]]@thresholds
+		dataThresh <- flatModel@datasets[[dataName]]@observedStats[['thresholds']]
 	}
 
 	for(i in 1:length(threshNames)) {

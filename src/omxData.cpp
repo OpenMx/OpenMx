@@ -269,48 +269,54 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
-	ProtectedSEXP Racov(R_do_slot(dataObj, Rf_install("acov")));
-	omxMatrix *acovMat = omxNewMatrixFromRPrimitive0(Racov, state, 0, 0);
-	if (acovMat) {
+	ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
+	ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
+	if (Rf_length(RobsStats)) {
 		oss = new obsSummaryStats;
+		if (od->rawCols.size() == 0) {
+			Rf_error("%s: observedStats must be paired with raw data", name);
+		}
 		auto &o1 = *oss;
-		o1.covMat = dataMat;
-		dataMat = 0;
-		o1.meansMat = meansMat;
-		meansMat = 0;
-		o1.acovMat = acovMat;
-
-		ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
-		o1.fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
-
-		if(OMX_DEBUG) {mxLog("Processing Observed Thresholds Matrix.");}
-		ProtectedSEXP Rthr(R_do_slot(dataObj, Rf_install("thresholds")));
-		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
-
-		if(o1.thresholdMat) {
-			o1.numOrdinal = o1.thresholdMat->cols;
-			o1.thresholdCols.reserve(o1.thresholdMat->cols);
-			ProtectedSEXP Rtc(R_do_slot(dataObj, Rf_install("thresholdColumns")));
-			int *columns = INTEGER(Rtc);
-			ProtectedSEXP Rtl(R_do_slot(dataObj, Rf_install("thresholdLevels")));
-			int *levels = INTEGER(Rtl);
-
-			for(int i = 0; i < o1.covMat->cols; i++) {
-				omxThresholdColumn tc;
-				tc.dColumn = i;
-				if (levels[i] != NA_INTEGER) {
-					tc.column = columns[i];
-					tc.numThresholds = levels[i];
-				}
-				o1.thresholdCols.push_back(tc);
-				if(OMX_DEBUG && levels[i] != NA_INTEGER) {
-					mxLog("%s: column %d is ordinal with %d thresholds in threshold column %d.", 
-					      name, i, levels[i], columns[i]);
-				}
+		for (int cx=0; cx < int(rawCols.size()); ++cx) {
+			omxThresholdColumn tc;
+			tc.dColumn = cx;
+			if (rawCols[cx].levels.size()) {
+				tc.numThresholds = rawCols[cx].levels.size() - 1;
+			} else {
+				tc.numThresholds = 0;
 			}
+			o1.thresholdCols.push_back(tc);
 		}
 	}
-
+	for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
+		const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
+		auto &o1 = *oss;
+		if (strEQ(key, "cov")) {
+			o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+		} else if (strEQ(key, "means")) {
+			o1.meansMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+		} else if (strEQ(key, "acov")) {
+			o1.acovMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+		} else if (strEQ(key, "fullWeight")) {
+			o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+		} else if (strEQ(key, "thresholds")) {
+			o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			o1.numOrdinal = o1.thresholdMat->cols;
+		} else if (strEQ(key, "thresholdColumns")) {
+			int *columns = INTEGER(VECTOR_ELT(RobsStats, ax));
+			for (int cx=0; cx < int(o1.thresholdCols.size()); ++cx) {
+				auto &th = o1.thresholdCols[cx];
+				if (th.numThresholds == 0) continue;
+				th.column = columns[cx];
+			}
+		} else {
+			Rf_warning("%s: observedStats key '%s' ignored", name, key);
+		}
+	}
+	if (oss) {
+		auto &o1 = *oss;
+		if (!o1.numOrdinal) o1.thresholdCols.clear();
+	}
 	{
 		ProtectedSEXP RdataLoc(R_do_slot(dataObj, Rf_install("numObs")));
 		od->numObs = Rf_asReal(RdataLoc);

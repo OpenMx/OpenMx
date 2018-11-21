@@ -412,10 +412,17 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 }
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
-		      suppressWarnings = TRUE, allContinuousMethod="cumulants", ..., silent=!interactive()) {
+		      suppressWarnings = TRUE, allContinuousMethod="cumulants", ...,
+		      silent=!interactive(), .oldMethod=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxDataWLS does not accept values for the '...' argument")
+	}
+	if (!.oldMethod) {
+		mxd <- mxData(data, type='raw')
+		mxd@.wlsType <- type
+		mxd@.wlsContinuousType <- allContinuousMethod
+		return(mxd)
 	}
 	debug <- FALSE
 	# version 0.2
@@ -473,7 +480,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				   "or use maximum likelihood instead"))
 		}
 		wls <- wlsContinuousOnlyHelper(data, type)
-		retVal <- mxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n)
+		retVal <- mxData(data, type="acov", numObs=n,
+			observedStats=list(cov=cov(data), acov=wls$use, fullWeight=wls$full))
 		retVal@.wlsType <- type
 		retVal@.wlsContinuousType <- allContinuousMethod
 		return(wls.permute(retVal))
@@ -698,37 +706,21 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		mlHess <- run$output$hessian
 		meanID <- grep('.theMeans', rownames(mlHess))
 		
-		retVal2 <- mxData(pcMatrix, type="acov", numObs=n, 
-			acov=diag(1), fullWeight=NA, thresholds=thresh)
-		retVal2@acov <- satModel$output$hessian
+		retVal2 <- mxData(data, type="acov", numObs=n, 
+			observedStats=list(cov=pcMatrix, acov=diag(1), acov=satModel$output$hessian,
+				thresholds=thresh))
+		return(retVal2)
 	}
-	dummy <- diag(1, nrow=nrow(pcMatrix))
-	dimnames(dummy) <- dimnames(pcMatrix)
-	if(nvar > 0){
-		retVal <- mxData(dummy, type="acov", numObs=n, 
-			acov=diag(1), fullWeight=NA, thresholds=thresh)
-	} else {
-		retVal <- mxData(dummy, type="acov", numObs=n, 
-			acov=diag(1), fullWeight=NA, thresholds=NA)
-	}
-	retVal@observed <- pcMatrix
-	if(fullWeight==TRUE){
-		retVal@fullWeight <- wls
-	}
-	retVal@means <- matrix(meanEst, nrow=1)
-	dimnames(retVal@means) <- list(NULL, names(data))
-	if (type=="ULS"){
-		retVal@acov <- uls
-		}
-	if (type=="DLS" || type=="DWLS"){
-		retVal@acov <- dls
-		}	
-	if (type=="WLS"){
-		retVal@acov <- wls
-		}
-	if (type=="XLS"){
-		retVal@acov <- xls
-		}
+	tmpMean <- matrix(meanEst, nrow=1)
+	dimnames(tmpMean) <- list(NULL, names(data))
+	obsStats <- list(means=tmpMean, cov=pcMatrix)
+	if(nvar > 0) obsStats$thresholds <- thresh
+	if(fullWeight) obsStats$fullWeight <- wls
+	if (type=="ULS") obsStats$acov <- uls
+	if (type=="DLS" || type=="DWLS") obsStats$acov <- dls
+	if (type=="WLS") obsStats$acov <- wls
+	if (type=="XLS") obsStats$acov <- xls
+	retVal <- mxData(data, type="acov", observedStats=obsStats)
 	if (debug){return(list(fullJac, fullHess))}
 	if (!silent) imxReportProgress("", msgLen)
 	retVal@.wlsType <- type
@@ -737,39 +729,45 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 }
 
 wls.permute <- function(mxd) {
-	perm <- match(names(.mxDataAsVector(mxd)), colnames(mxd$acov))
-	mxd$acov <- mxd$acov[perm,perm]
-	if (!single.na(mxd$fullWeight)) {
-		mxd$fullWeight <- mxd$fullWeight[perm,perm]
+	acov <- mxd@observedStats$acov
+	perm <- match(names(.mxDataAsVector(mxd)), colnames(acov))
+	mxd@observedStats$acov <- acov[perm,perm]
+	fw <- mxd@observedStats$fullWeight
+	if (!is.null(fw)) {
+		mxd@observedStats$fullWeight <- fw[perm,perm]
 	}
 	mxd
 }
 
 .mxDataAsVector <- function(mxd) {
-	mnames <- colnames(mxd$observed)
-	ordInd <- match(colnames(mxd$thresholds), mnames)
-	dth <- !is.na(mxd$thresholds)
+	mnames <- colnames(mxd@observed)
+	obsStats <- mxd@observedStats
+	ordInd <- c()
+	if (!is.null(obsStats[['thresholds']])) {
+		ordInd <- match(colnames(obsStats[['thresholds']]), mnames)
+		dth <- !is.na(obsStats[['thresholds']])
+	}
 	v <- c()
 	vn <- c()
 	for (vx in 1:length(mnames)) {
 		tcol <- which(vx == ordInd)
 		if (length(tcol) == 0) {
-			if (!single.na(mxd$means)) {
-				v <- c(v, mxd$means[vx])
+			if (!is.null(obsStats[['means']])) {
+				v <- c(v, obsStats[['means']][vx])
 				vn <- c(vn, mnames[vx])
 			}
 		} else {
 			tcount <- sum(dth[,tcol])
-			v <- c(v, mxd$thresholds[1:tcount,tcol])
+			v <- c(v, obsStats[['thresholds']][1:tcount,tcol])
 			vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
 		}
 	}
 	for (vx in 1:length(mnames)) {
 		if (any(vx == ordInd)) next
-		v <- c(v, mxd$observed[vx,vx])
+		v <- c(v, obsStats[['cov']][vx,vx])
 		vn <- c(vn, paste0('var_', mnames[vx]))
 	}
-	v <- c(v, vechs(mxd$observed))
+	v <- c(v, vechs(obsStats[['cov']]))
 	nv <- length(mnames)
 	vn <- c(vn, paste0('poly_', vechs(outer(mnames[1:nv], mnames[1:nv], FUN=paste, sep='_'))))
 	names(v) <- vn

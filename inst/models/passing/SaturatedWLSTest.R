@@ -95,7 +95,9 @@ dimnames(obsThr) <- list(NULL, letters[(27-nvar):26])
 obsMns <- as.numeric(matrix(0, 1, 3))
 names(obsMns) <- dimnames(obsCor)[[2]]
 
-obsWDat <- mxData(observed=obsCor, type='acov', means=obsMns, thresholds=obsThr, acov=obsAcov, fullWeight=obsAcov, numObs=nrow(cDat))
+obsStats <- list(means=obsMns, cov=obsCor, thresholds=obsThr, acov=obsAcov, fullWeight=obsAcov)
+
+obsWDat <- mxData(observed=rawData, type='acov', observedStats=obsStats)
 
 #------------------------------
 # Make WLS saturated model
@@ -126,8 +128,8 @@ satwls2Run <- mxRun(satwls2)
 #------------------------------
 # Compare saturated model estimates to acov data
 
-omxCheckCloseEnough(mxEval(satCov, model=satwls2Run), obsWDat$observed, 1e-4)
-omxCheckCloseEnough(mxEval(thresholdMatrix, model=satwls2Run)[-2], obsWDat$thresholds[-2], 1e-2)
+omxCheckCloseEnough(mxEval(satCov, model=satwls2Run), obsStats$cov, 1e-4)
+omxCheckCloseEnough(mxEval(thresholdMatrix, model=satwls2Run)[-2], obsStats$thresholds[-2], 1e-2)
 omxCheckCloseEnough(mxEval(fitfunction, model=satwls2Run), 0, 1e-3)
 
 

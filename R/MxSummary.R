@@ -90,8 +90,9 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
 		}
-		numThresh <- sum(!is.na(data@thresholds))
-		numMeans <- sum(!is.na(data@means))
+		obsStats <- data@observedStats
+		numThresh <- sum(!is.na(obsStats$thresholds))
+		numMeans <- sum(!is.na(obsStats$means))
 		n <- nrow(data@observed)
 		# Include diagonal of observed when no thresholds
 		dof <- numThresh + numMeans + ifelse(numThresh > 0, n*(n-1)/2, n*(n+1)/2)

@@ -182,7 +182,7 @@ omxCheckCloseEnough(cor(toFactorLoading(m2$item$values['f1',,drop=FALSE]),
                         m3$A$values[1:numItems,'G',drop=FALSE]),
                     1, .04)
 
-tmask <- !is.na(m3$data$thresholds)
+tmask <- !is.na(m3$data$observedStats$thresholds)
 
 omxCheckCloseEnough(cor(toFactorThreshold(m2$item$values[-1,],
                                           m2$item$values['f1',,drop=FALSE])[tmask],

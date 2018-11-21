@@ -757,7 +757,7 @@ createMatrixF <- function(model) {
 	len <- length(variables)
 	values <- diag(nrow = length(model@manifestVars), ncol = len)
 	names <- list(model@manifestVars, variables)
-	if (!is.null(model@data) && (model@data@type != 'raw')) {
+	if (!is.null(model@data) && (model@data@type != 'raw' && model@data@type != 'acov')) {
 		manifestNames <- rownames(model@data@observed)
 		extraData <- setdiff(manifestNames, model@manifestVars)
 		extraVars <- setdiff(model@manifestVars, manifestNames)
