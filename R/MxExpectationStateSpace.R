@@ -331,7 +331,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		translatedNames <- c(dimnames(cMatrix)[[1]])
 		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
-			checkNumberOrdinalColumns(mxDataObject)
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)

@@ -217,7 +217,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
 				threshName <- .Object@thresholds
-				checkNumberOrdinalColumns(mxDataObject)
 				verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 				.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 				if (length(mxDataObject@observed) == 0) {
