@@ -700,7 +700,6 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		}
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "Normal")
 		checkNumericData(mxDataObject)
-		checkNumberOrdinalColumns(mxDataObject)
 		covNames <- colnames(covariance)
 		verifyMvnNames(covName, meansName, "expected", flatModel, modelname, class(.Object))
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
