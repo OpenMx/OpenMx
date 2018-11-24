@@ -158,15 +158,7 @@ checkLISRELmeansHelper <- function(Lam, Mean, Latent, matrixname, lamname, model
 		checkStg <- "row"
 	}
 	# Check that the means are non-null
-	if(is.null(Mean)){
-		msg <- paste("The LISREL expectation function",
-			"has an observed means vector but",
-			"is missing expected means vector",
-			"for", varType, "variables",
-			matrixname,  "in model",
-			omxQuotes(modelname))
-		stop(msg, call. = FALSE)
-	}
+	if(is.null(Mean)) return()
 	# Check that the means have dimnames
 	meanDimnames <- dimnames(Mean)
 	if(is.null(meanDimnames)){
@@ -452,7 +444,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		#  Set the canonical order of observed variable names.
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 		.Object@depth <- generateLISRELDepth(flatModel, beMatrix2, model@options) #Find out how many iterations of I + BE + BE^2 + ... are need until nilpotency.
-		if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
+		if (mxDataObject@type == 'raw') {
 			threshName <- .Object@thresholds
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)

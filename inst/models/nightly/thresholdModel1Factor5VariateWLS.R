@@ -199,17 +199,3 @@ cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a)
 #  answer.
 omxCheckCloseEnough(omxGetParameters(wrun2), omxGetParameters(wrun2a), 1e-4)
 
-#------------------------------------------------------------------------------
-
-require(OpenMx)
-a <- factor(sample(c('a', 'b', 'c'), size=100, replace=T))
-b <- factor(a, levels=c('a', 'b', 'c', 'd')) #create factor is unused level 'd'
-ma <- mxFactor(a, levels=levels(a))
-mb <- mxFactor(b, levels=levels(b))
-#mb[mb %in% 'c'] <- 'd' #make 'c' the unused level instead of 'd'
-ds <- data.frame(a=ma, b=mb)
-
-omxCheckError(wd <- mxDataWLS(ds), "Variable 'b' has a zero frequency category 'd'.
-Eliminate this level in your mxFactor() or combine categories in some other way.
-Do not pass go. Do not collect $200.")
-

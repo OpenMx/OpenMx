@@ -413,15 +413,19 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
 		      suppressWarnings = TRUE, allContinuousMethod="cumulants", ...,
-		      silent=!interactive(), .oldMethod=TRUE) {
+		      silent=!interactive(), .oldMethod=TRUE, verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxDataWLS does not accept values for the '...' argument")
 	}
 	if (!.oldMethod) {
-		mxd <- mxData(data, type='raw')
+		if (!fullWeight && type != 'ULS') {
+			stop("To avoid fullWeight estimation, also set type='ULS'")
+		}
+		mxd <- mxData(data, type='raw', preferredFit='WLS', verbose=verbose)
 		mxd@.wlsType <- type
 		mxd@.wlsContinuousType <- allContinuousMethod
+		mxd@.wlsFullWeight <- fullWeight
 		return(mxd)
 	}
 	debug <- FALSE
@@ -450,6 +454,9 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				"'cumulants' or 'marginals'.\nBoth plural and singular forms are allowed.", sep="")
 			)
 	}
+	# standardize spelling
+	if (allContinuousMethod == 'cumulant') allContinuousMethod <- 'cumulants'
+	if (allContinuousMethod == 'marginal') allContinuousMethod <- 'marginals'
 		
 	# select ordinal variables
 	ords <- unlist(lapply(data, is.ordered))
@@ -480,8 +487,9 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				   "or use maximum likelihood instead"))
 		}
 		wls <- wlsContinuousOnlyHelper(data, type)
-		retVal <- mxData(data, type="acov", numObs=n,
-			observedStats=list(cov=cov(data), acov=wls$use, fullWeight=wls$full))
+		retVal <- mxData(data, type="raw", numObs=n, preferredFit='WLS',
+			observedStats=list(cov=cov(data), acov=wls$use, fullWeight=wls$full),
+			verbose=verbose)
 		retVal@.wlsType <- type
 		retVal@.wlsContinuousType <- allContinuousMethod
 		return(wls.permute(retVal))
@@ -699,16 +707,16 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 			mxMatrix('Full', nrow(thresh), ncol(thresh), values=thresh, free=TRUE, name='theThresh'),
 			mxExpectationNormal(covariance='theCov', means='theMeans', thresholds='theThresh', dimnames=names(data)),
 			mxFitFunctionML(),
-			mxData(data, 'raw'),
+			mxData(data, 'raw', preferredFit='WLS',verbose=verbose),
 			custom.compute)
 		
 		run <- mxRun(satModel)
 		mlHess <- run$output$hessian
 		meanID <- grep('.theMeans', rownames(mlHess))
 		
-		retVal2 <- mxData(data, type="acov", numObs=n, 
+		retVal2 <- mxData(data, type="raw", numObs=n, preferredFit='WLS',
 			observedStats=list(cov=pcMatrix, acov=diag(1), acov=satModel$output$hessian,
-				thresholds=thresh))
+				thresholds=thresh), verbose=verbose)
 		return(retVal2)
 	}
 	tmpMean <- matrix(meanEst, nrow=1)
@@ -720,7 +728,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	if (type=="DLS" || type=="DWLS") obsStats$acov <- dls
 	if (type=="WLS") obsStats$acov <- wls
 	if (type=="XLS") obsStats$acov <- xls
-	retVal <- mxData(data, type="acov", observedStats=obsStats)
+	retVal <- mxData(data, type="raw", observedStats=obsStats, preferredFit='WLS',
+		verbose=verbose)
 	if (debug){return(list(fullJac, fullHess))}
 	if (!silent) imxReportProgress("", msgLen)
 	retVal@.wlsType <- type

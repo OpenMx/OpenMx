@@ -87,6 +87,8 @@ struct ColumnData {
 	double *realData;
 	int    *intData;
 	std::vector<std::string> levels;       // factors only
+
+	const char *typeName();
 };
 
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
@@ -100,6 +102,7 @@ struct WLSVarData {
 class obsSummaryStats {
  public:
 	//std::vector<bool> subset;
+	bool output;
 	int numObs;
 	int numOrdinal;  // == thresholdMat->cols or 0 if null
 	omxMatrix* covMat;
@@ -116,12 +119,20 @@ class obsSummaryStats {
 	Eigen::ArrayXXd SC_TH;
 	Eigen::ArrayXXd SC_COR;
 
-        obsSummaryStats() : numObs(0), numOrdinal(0), covMat(0), meansMat(0),
+ 	obsSummaryStats() : output(false), numObs(0), numOrdinal(0), covMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0) {};
 	~obsSummaryStats();
-	void permute(omxData *data, const Eigen::Ref<const DataColumnIndexVector> &dc);
+	void setDimnames(omxData *data, const std::vector<const char *> &dc);
+	void permute(omxData *data, const std::vector<const char *> &dc);
 	void log();
 };
+
+struct cstrCmp {
+	bool operator() (const char *s1, const char *s2) const
+	{ return strcmp(s1,s2) < 0; }
+};
+
+typedef std::map< const char *, int, cstrCmp > ColMapType;
 
 class omxData {
  private:
@@ -131,11 +142,16 @@ class omxData {
 	double *currentWeightColumn;
 	int freqCol;
 	int *currentFreqColumn;
-	bool permuted;
 	obsSummaryStats *oss;
 
 	const char *wlsType;
 	const char *wlsContinuousType;
+	bool wlsFullWeight;
+
+	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
+			   std::vector<int> &exoPred);
+	bool regenObsStats(const std::vector<const char *> &dc);
+	void wlsAllContinuousCumulants(omxState *state, const std::vector<const char *> &dc);
 
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -147,7 +163,6 @@ class omxData {
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
 	void assertColumnIsData(int col);
-	void permute(const Eigen::Ref<const DataColumnIndexVector> &dc);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
@@ -158,6 +173,7 @@ class omxData {
 	const char *getType() const { return _type; };
 
 	// type=="raw"
+	ColMapType rawColMap;
 	std::vector<ColumnData> rawCols;
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
 	bool needSort;
@@ -180,6 +196,7 @@ class omxData {
 
 	omxData();
 	~omxData();
+	void reportResults(MxRList &out);
 	void newDataStatic(omxState *, SEXP dataObject);
 	void connectDynamicData(omxState *currentState);
 	void recompute();
@@ -198,7 +215,9 @@ class omxData {
 		return getFreqColumn()[row];
 	}
 	int numRawRows();
-	void prohibitNAs(int col);
+	bool containsNAs(int col);
+	void prohibitFactor(int col);
+	void prohibitNAdefVar(int col);
 	void freeInternal();
 	bool isDynamic() { return expectation.size() != 0; };
 	template <typename T> void visitObsStats(T visitor) {
@@ -211,10 +230,8 @@ class omxData {
 	const char *columnName(int col);
 	bool columnIsFactor(int col);
 	bool hasSummaryStats() { return dataMat != 0 || oss; }
-	void recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
+	void prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			    std::vector<int> &exoPred);
-	void wlsAllContinuousCumulants(omxState *state,
-				       const Eigen::Ref<const DataColumnIndexVector> &dc);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

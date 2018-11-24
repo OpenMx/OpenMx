@@ -158,19 +158,12 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			})
 		}
 		hasMeanModel <- !is.na(mMatrix)
-		if(hasMeanModel && single.na(mxDataObject@means) && mxDataObject@type != "raw" && mxDataObject@type != "acov") {
+		if(hasMeanModel && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
 			msg <- paste("The RAM expectation function",
 				"has an expected means vector but",
 				"no observed means vector in model",
 				omxQuotes(modelname))
 			stop(msg, call. = FALSE)
-		}
-		if(!single.na(mxDataObject@means) && is.null(flatModel[[mMatrix]])) {
-			msg <- paste("The RAM expectation function",
-				"has an observed means vector but",
-				"no expected means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)		
 		}
 		checkNumericData(mxDataObject)
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "RAM")
@@ -216,7 +209,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if (length(translatedNames)) {
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
-			if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
+			if (mxDataObject@type == 'raw') {
 				threshName <- .Object@thresholds
 				verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 				.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)

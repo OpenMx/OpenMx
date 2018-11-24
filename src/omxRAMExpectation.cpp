@@ -365,9 +365,9 @@ void omxRAMExpectation::studyF()
 		double isManifest = eF.col(cx).maxCoeff(&dest);
 		latentFilter[cx] = isManifest;
 		if (isManifest) {
+			dataColNames[dx] = origDataColumnNames[dest];
 			int newDest = dataColumns.size()? dataColumns[dest] : dest;
 			dataCols[dx] = newDest;
-			dataColNames[dx] = origDataColumnNames[newDest];
 			if (origThresholdInfo.size()) {
 				omxThresholdColumn adj = origThresholdInfo[dest];
 				adj.dColumn = dx;

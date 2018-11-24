@@ -68,8 +68,9 @@ void omxState::omxExportResults(MxRList *out, FitContext *fc)
 	
 	for(size_t index = 0; index < dataList.size(); ++index) {
 		omxData* dat = dataList[index];
-		ProtectedSEXP rData(Rf_ScalarReal(omxDataNumObs(dat)));
-		SET_VECTOR_ELT(datums, index, rData);
+		MxRList tmp;
+		dat->reportResults(tmp);
+		SET_VECTOR_ELT(datums, index, tmp.asR());
 	}
 
 	out->add("matrices", matrices);

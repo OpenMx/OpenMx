@@ -34,10 +34,12 @@
 #include "nr.h"
 #include "omxBVN.h"
 #include "omxNLopt.h"
+#include <Eigen/CholmodSupport>
+#include <RcppEigenWrap.h>
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), permuted(false), oss(0),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0),
 		     wlsType(0), wlsContinuousType(0),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
@@ -228,6 +230,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		od->rows = Rf_length(VECTOR_ELT(dataLoc, 0));
 		od->cols = Rf_length(dataLoc);
 		importDataFrame(dataLoc, od->rawCols, od->numNumeric, od->numFactor);
+		for (int cx=0; cx < int(rawCols.size()); ++cx) {
+			rawColMap.emplace(rawCols[cx].name, cx);
+		}
 	} else {
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
 		od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
@@ -245,6 +250,11 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	wlsType = CHAR(STRING_ELT(RwlsType,0));
 	ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
 	wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
+	ProtectedSEXP RwlsFullWeight(R_do_slot(dataObj, Rf_install(".wlsFullWeight")));
+	wlsFullWeight = Rf_asLogical(RwlsFullWeight);
+	if (!wlsFullWeight && !strEQ(wlsType, "ULS")) {
+		Rf_error("%s: !wlsFullWeight && !strEQ(wlsType, ULS)", name);
+	}
 
 	if (od->hasPrimaryKey() && !(od->rawCols.size() && od->rawCols[primaryKey].intData)) {
 		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
@@ -271,28 +281,14 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 	ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
-	if (Rf_length(RobsStats)) {
-		oss = new obsSummaryStats;
-		if (od->rawCols.size() == 0) {
-			Rf_error("%s: observedStats must be paired with raw data", name);
-		}
-		auto &o1 = *oss;
-		for (int cx=0; cx < int(rawCols.size()); ++cx) {
-			omxThresholdColumn tc;
-			tc.dColumn = cx;
-			if (rawCols[cx].levels.size()) {
-				tc.numThresholds = rawCols[cx].levels.size() - 1;
-			} else {
-				tc.numThresholds = 0;
-			}
-			o1.thresholdCols.push_back(tc);
-		}
-	}
+	if (Rf_length(RobsStats)) oss = new obsSummaryStats;
 	for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
 		const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
 		auto &o1 = *oss;
 		if (strEQ(key, "cov")) {
 			o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
+				Rf_error("%s: observedStats$cov must have colnames", name);
 		} else if (strEQ(key, "means")) {
 			o1.meansMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 		} else if (strEQ(key, "acov")) {
@@ -302,20 +298,39 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		} else if (strEQ(key, "thresholds")) {
 			o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			o1.numOrdinal = o1.thresholdMat->cols;
-		} else if (strEQ(key, "thresholdColumns")) {
-			int *columns = INTEGER(VECTOR_ELT(RobsStats, ax));
-			for (int cx=0; cx < int(o1.thresholdCols.size()); ++cx) {
-				auto &th = o1.thresholdCols[cx];
-				if (th.numThresholds == 0) continue;
-				th.column = columns[cx];
-			}
+			if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
+				Rf_error("%s: observedStats$thresholdMat must have colnames", name);
 		} else {
 			Rf_warning("%s: observedStats key '%s' ignored", name, key);
 		}
 	}
 	if (oss) {
 		auto &o1 = *oss;
-		if (!o1.numOrdinal) o1.thresholdCols.clear();
+		if (!o1.covMat) Rf_error("%s: observedStats must include a covariance matrix", name);
+		if (o1.numOrdinal) {
+			EigenMatrixAdaptor Ethr(o1.thresholdMat);
+			ColMapType thrMap;
+			for (int cx=0; cx < int(o1.thresholdMat->colnames.size()); ++cx) {
+				thrMap.emplace(o1.thresholdMat->colnames[cx], cx);
+			}
+			int foundOrd = 0;
+			for (int cx=0; cx < int(o1.covMat->colnames.size()); ++cx) {
+				const char *cn = o1.covMat->colnames[cx];
+				auto it = thrMap.find(cn);
+				omxThresholdColumn tc;
+				tc.dColumn = cx;
+				if (it != thrMap.end()) {
+					tc.column = it->second;
+					int numThr = 0;
+					while (numThr < o1.thresholdMat->rows &&
+					       std::isfinite(Ethr(numThr, it->second))) ++numThr;
+					tc.numThresholds = numThr;
+					foundOrd += 1;
+				}
+				o1.thresholdCols.push_back(tc);
+			}
+			if (foundOrd != o1.numOrdinal) Rf_error("%s: cannot match all thresholdMat columns", name);
+		}
 	}
 	{
 		ProtectedSEXP RdataLoc(R_do_slot(dataObj, Rf_install("numObs")));
@@ -571,12 +586,6 @@ const char *omxData::columnName(int col)
 		if (col < int(cn.size())) return cn[col];
 		else return "?";
 	}
-	if (oss) {
-		auto &o1 = *oss;
-		auto &cn = o1.covMat->colnames;
-		if (col < int(cn.size())) return cn[col];
-		else return "?";
-	}
 	ColumnData &cd = rawCols[col];
 	return cd.name;
 }
@@ -591,6 +600,11 @@ static const char *ColumnDataTypeToString(enum ColumnDataType cdt)
 	case COLUMNDATA_NUMERIC: return "real";
 	default: Rf_error("type %d unknown", cdt);
 	}
+}
+
+const char *ColumnData::typeName()
+{
+	return ColumnDataTypeToString(type);
 }
 
 void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey)
@@ -802,52 +816,73 @@ bool omxData::loadDefVars(omxState *state, int row)
 	return changed;
 }
 
-void omxData::prohibitNAs(int col)
+bool omxData::containsNAs(int col)
 {
 	if(dataMat != NULL) {
 		for (int rx=0; rx < rows; ++rx) {
 			if (std::isfinite(omxMatrixElement(dataMat, rx, col))) continue;
-			Rf_error("%s: NA in definition variable '%s' row %d",
-				 name, omxDataColumnName(this, col), 1+rx);
+			return true;
 		}
-		return;
+		return false;
 	}
 	if (col == weightCol) {
 		double *wc = getWeightColumn();
 		for (int rx=0; rx < rows; ++rx) {
 			if (std::isfinite(wc[rx])) continue;
-			Rf_error("%s: NA in row weight %d", name, 1+rx);
+			return true;
 		}
-		return;
+		return false;
 	}
 	if (col == freqCol) {
 		int *wc = getFreqColumn();
 		for (int rx=0; rx < rows; ++rx) {
 			if (wc[rx] != NA_INTEGER) continue;
-			Rf_error("%s: NA in row frequency %d", name, 1+rx);
+			return true;
 		}
-		return;
+		return false;
 	}
 	ColumnData &cd = rawCols[col];
 	if (cd.realData) {
 		for (int rx=0; rx < rows; ++rx) {
 			if (std::isfinite(cd.realData[rx])) continue;
-			Rf_error("%s: NA in definition variable '%s' row %d",
-				 name, omxDataColumnName(this, col), 1+rx);
+			return true;
 		}
 	} else {
-		if (cd.type != COLUMNDATA_INTEGER) {
-			Rf_warning("%s: definition variable '%s' is a factor;"
-				   " note that it will be treated as integer (as is done by ?unclass)."
-				   " Is this really what you want to do? Really?",
-				   name, omxDataColumnName(this, col));
-		}
 		for (int rx=0; rx < rows; ++rx) {
 			if (cd.intData[rx] != NA_INTEGER) continue;
-			Rf_error("%s: NA in definition variable '%s' row %d",
-				 name, omxDataColumnName(this, col), 1+rx);
+			return true;
 		}
 	}
+	return false;
+}
+
+void omxData::prohibitFactor(int col)
+{
+	if (!rawCols.size()) return;
+	if (col == weightCol || col == freqCol) return;
+	auto &cd = rawCols[col];
+	if (!cd.intData) return;
+	if (cd.type != COLUMNDATA_INTEGER) {
+		Rf_warning("%s: definition variable '%s' is of type '%s';"
+			   " note that it will be treated as integer (as is done by ?unclass)."
+			   " Is this really what you want to do? Really?",
+			   name, columnName(col), cd.typeName());
+	}
+}
+
+void omxData::prohibitNAdefVar(int col)
+{
+	if (!containsNAs(col)) return;
+	if (!dataMat) {
+		if (col == weightCol) {
+			Rf_error("%s: NA in row weights", name);
+		}
+		if (col == freqCol) {
+			Rf_error("%s: NA in row frequencies", name);
+		}
+	}
+	Rf_error("%s: NA in definition variable '%s'",
+		 name, omxDataColumnName(this, col));
 }
 
 void omxData::loadFakeData(omxState *state, double fake)
@@ -871,43 +906,91 @@ bool omxDefinitionVar::loadData(omxState *state, double val)
 	return true;
 }
 
-struct cstrCmp {
-	bool operator() (const char *s1, const char *s2) const
-	{ return strcmp(s1,s2) < 0; }
-};
-
-typedef std::map< const char *, int, cstrCmp > OrigColMapType;
-
-static int plookup(OrigColMapType &map, const char *str)
+static int plookup(ColMapType &map, const char *str)
 {
 	auto it = map.find(str);
 	if (it == map.end()) Rf_error("Can't find '%s'", str);
 	return it->second;
 }
 
-void obsSummaryStats::permute(omxData *data, const Eigen::Ref<const DataColumnIndexVector> &dc)
+void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *> &dc)
 {
-	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
-	bool needPermute = false;
-	for (int cx=0; cx < int(dc.size()); ++cx) {
-		//mxLog("%d %s", cx, omxDataColumnName(data, dc[cx]));
-		invDataColumns[dc[cx]] = cx;
-		if (dc[cx] != cx) needPermute = true;
+	covMat->colnames.resize(covMat->cols);
+	covMat->rownames.resize(covMat->cols);
+	for (int cx=0; cx < covMat->cols; ++cx) {
+		covMat->colnames[cx] = dc[cx];
+		covMat->rownames[cx] = dc[cx];
 	}
-	if (!needPermute) return;
 
+	if (thresholdMat) {
+		thresholdMat->colnames.resize(thresholdMat->cols);
+		for (auto &th : thresholdCols) {
+			if (!th.numThresholds) continue;
+			thresholdMat->colnames[th.column] = dc[th.dColumn];
+		}
+	}
+
+	const bool debug=false;
+	if (acovMat) {
+		if (debug) {
+			// flagrantly leak memory
+			acovMat->colnames.resize(acovMat->cols);
+			int dx = 0;
+			for (auto &tc : thresholdCols) {
+				if (tc.numThresholds == 0) {
+					acovMat->colnames[dx++] = dc[tc.dColumn];
+				} else {
+					for (int th=1; th <= tc.numThresholds; ++th) {
+						auto str = string_snprintf("%st%d", dc[tc.dColumn], th);
+						acovMat->colnames[dx++] = strdup(str.c_str());
+					}
+				}
+			}
+			for (int cx=0; cx < covMat->cols; ++cx) {
+				if (thresholdCols[cx].numThresholds) continue;
+				auto str = string_snprintf("var_%s", dc[cx]);
+				acovMat->colnames[dx++] = strdup(str.c_str());
+			}
+			for (int cx=0; cx < covMat->cols-1; ++cx) {
+				for (int rx=cx+1; rx < covMat->cols; ++rx) {
+					auto str = string_snprintf("poly_%s_%s", dc[rx], dc[cx]);
+					acovMat->colnames[dx++] = strdup(str.c_str());
+				}
+			}
+			acovMat->rownames = acovMat->colnames;
+		} else {
+			acovMat->rownames.clear();
+			acovMat->colnames.clear();
+		}
+	}
+}
+
+void obsSummaryStats::permute(omxData *data, const std::vector<const char *> &dc)
+{
 	covMat->unshareMemoryWithR();
 	if (meansMat) meansMat->unshareMemoryWithR();
 	acovMat->unshareMemoryWithR();
 	if (fullWeight) fullWeight->unshareMemoryWithR();
 
-	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> p1(dc);
+	ColMapType dataMap;
+	for (int cx=0; cx < int(dc.size()); ++cx) dataMap.emplace(dc[cx], cx);
 
-	OrigColMapType colMap;
+	Eigen::VectorXi invDataColumns(dc.size()); // data -> expectation order
+	if (int(covMat->colnames.size()) != covMat->cols) Rf_error("%s: cannot permute without cov dimnames", data->name);
+	for (int cx=0; cx < int(covMat->colnames.size()); ++cx) {
+		auto it = dataMap.find(covMat->colnames[cx]);
+		if (it == dataMap.end()) Rf_error("oops");
+		invDataColumns[cx] = it->second;
+		//mxLog("%d %s", cx, omxDataColumnName(data, dc[cx]));
+	}
+
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> p1(invDataColumns);
+
+	ColMapType acovMap;
+	if (int(acovMat->colnames.size()) != acovMat->cols) Rf_error("%s: cannot permute without acov dimnames", data->name);
 	for (int cx=0; cx < int(acovMat->colnames.size()); ++cx) {
-		OrigColMapType::value_type v(acovMat->colnames[cx], cx);
 		//mxLog("%s -> %d", acovMat->colnames[cx], cx);
-		colMap.insert(v);
+		acovMap.emplace(acovMat->colnames[cx], cx);
 	}
 
 	auto &thresh = thresholdCols;
@@ -915,44 +998,49 @@ void obsSummaryStats::permute(omxData *data, const Eigen::Ref<const DataColumnIn
 	Eigen::PermutationMatrix<Eigen::Dynamic> p2(acovMat->cols);
 	int px = 0;
 
+	ColMapType thrMap;
 	if (thresh.size() == 0 && meansMat) {
 		for (int cx=0; cx < int(dc.size()); ++cx) {
-			p2.indices()[px++] = plookup(colMap, omxDataColumnName(data, dc[cx]));
+			p2.indices()[px++] = plookup(acovMap, dc[cx]);
 		}
 	} else if (thresh.size()) {
+		for (int cx=0; cx < int(thresh.size()); ++cx) {
+			thrMap.emplace(covMat->colnames[cx], cx);
+			//mxLog("%s -> %d", covMat->colnames[cx], cx);
+		}
 		for (int cx=0; cx < int(dc.size()); ++cx) {
-			auto &t1 = thresh[ dc[cx] ];
-			auto cn = omxDataColumnName(data, dc[cx]);
+			auto cn = dc[cx];
+			auto &t1 = thresh[ thrMap[cn] ];
 			if (t1.numThresholds) {
 				for (int tx=1; tx <= t1.numThresholds; ++tx) {
 					auto s1 = string_snprintf("%st%d", cn, tx);
-					p2.indices()[px++] = plookup(colMap, s1.c_str());
+					p2.indices()[px++] = plookup(acovMap, s1.c_str());
 				}
 			} else {
-				p2.indices()[px++] = plookup(colMap, cn);
+				p2.indices()[px++] = plookup(acovMap, cn);
 			}
 		}
 	}
 
 	for (int cx=0; cx < int(dc.size()); ++cx) {
-		auto &t1 = thresh[ dc[cx] ];
+		auto &t1 = thresh[ thrMap[dc[cx]] ];
 		if (t1.numThresholds) continue;
-		auto cn = omxDataColumnName(data, dc[cx]);
+		auto cn = dc[cx];
 		auto s1 = string_snprintf("var_%s", cn);
-		p2.indices()[px++] = plookup(colMap, s1.c_str());
+		p2.indices()[px++] = plookup(acovMap, s1.c_str());
 	}
 	
 	for (int cx=0; cx < int(dc.size())-1; ++cx) {
-		auto cn = omxDataColumnName(data, dc[cx]);
+		auto cn = dc[cx];
 		for (int rx=cx+1; rx < int(dc.size()); ++rx) {
-			auto rn = omxDataColumnName(data, dc[rx]);
+			auto rn = dc[rx];
 			auto s1 = string_snprintf("poly_%s_%s", rn, cn);
 			auto s2 = string_snprintf("poly_%s_%s", cn, rn);
-			auto it = colMap.find(s1.c_str());
-			if (it == colMap.end()) {
-				it = colMap.find(s2.c_str());
+			auto it = acovMap.find(s1.c_str());
+			if (it == acovMap.end()) {
+				it = acovMap.find(s2.c_str());
 			}
-			if (it == colMap.end()) Rf_error("Can't find '%s' or '%s'",
+			if (it == acovMap.end()) Rf_error("Can't find '%s' or '%s'",
 							 s1.c_str(), s2.c_str());
 			p2.indices()[px++] = it->second;
 		}
@@ -963,10 +1051,12 @@ void obsSummaryStats::permute(omxData *data, const Eigen::Ref<const DataColumnIn
 	EigenMatrixAdaptor Eacov(acovMat);
 	EigenMatrixAdaptor Efw(fullWeight);
 
+	//Eigen::MatrixXi mp1 = p1;
+	//mxPrintMat("p1", mp1);
 	//mxPrintMat("p2", p2.indices());
 
-	Emean.derived() = (p1.transpose() * Emean).eval();
-	Ecov.derived() = (p1.transpose() * Ecov * p1).eval();
+	Emean.derived() = (p1 * Emean).eval();
+	Ecov.derived() = (p1 * Ecov * p1.transpose()).eval();
 	Eacov.derived() = (p2.transpose() * Eacov * p2).eval();
 	Efw.derived() = (p2.transpose() * Efw * p2).eval();
 
@@ -987,13 +1077,71 @@ void obsSummaryStats::log()
 	if (thresholdMat) omxPrint(thresholdMat, "thr");
 }
 
-void omxData::permute(const Eigen::Ref<const DataColumnIndexVector> &dc)
+void omxData::reportResults(MxRList &out)
 {
-	if (!dc.size()) return;
-	if (permuted) Rf_error("Cannot permute '%s' two different ways", name);
-	permuted = true;
+	out.add("numObs", Rf_ScalarReal(omxDataNumObs(this)));
 
-	getSingleObsSummaryStats().permute(this, dc);
+	if (!oss) return;
+	auto &o1 = *oss;
+	if (!o1.output) return;
+
+	if (1) {
+		EigenMatrixAdaptor Ecov(o1.covMat);
+		SEXP Rcov = Rf_protect(Rcpp::wrap(Ecov));
+		SEXP dimnames, names;
+		Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
+		Rf_protect(names = Rf_allocVector(STRSXP, o1.covMat->colnames.size()));
+		for (int cx=0; cx < int(o1.covMat->colnames.size()); ++cx) {
+			SET_STRING_ELT(names, cx, Rf_mkChar(o1.covMat->colnames[cx]));
+		}
+		SET_VECTOR_ELT(dimnames, 0, names);
+		SET_VECTOR_ELT(dimnames, 1, names);
+		Rf_setAttrib(Rcov, R_DimNamesSymbol, dimnames);
+		out.add("cov", Rcov);
+	}
+	if (o1.meansMat) {
+		EigenMatrixAdaptor Emean(o1.meansMat);
+		out.add("means", Rcpp::wrap(Emean));
+	}
+	if (o1.acovMat) {
+		EigenMatrixAdaptor Eacov(o1.acovMat);
+		SEXP Racov = Rcpp::wrap(Eacov);
+		if (o1.acovMat->colnames.size()) {
+			SEXP dimnames, names;
+			Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
+			Rf_protect(names = Rf_allocVector(STRSXP, o1.acovMat->colnames.size()));
+			for (int cx=0; cx < int(o1.acovMat->colnames.size()); ++cx) {
+				SET_STRING_ELT(names, cx, Rf_mkChar(o1.acovMat->colnames[cx]));
+			}
+			SET_VECTOR_ELT(dimnames, 0, names);
+			SET_VECTOR_ELT(dimnames, 1, names);
+			Rf_setAttrib(Racov, R_DimNamesSymbol, dimnames);
+		}
+		out.add("acov", Racov);
+	}
+	if (o1.fullWeight) {
+		EigenMatrixAdaptor Efw(o1.fullWeight);
+		out.add("fullWeight", Rcpp::wrap(Efw));
+	}
+	if (o1.thresholdMat) {
+		EigenMatrixAdaptor Ethr(o1.thresholdMat);
+		SEXP Rthr = Rcpp::wrap(Ethr);
+		SEXP dimnames, colnames, rownames;
+		Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
+		Rf_protect(colnames = Rf_allocVector(STRSXP, Ethr.cols()));
+		for (int cx=0; cx < o1.thresholdMat->cols; ++cx) {
+			SET_STRING_ELT(colnames, cx, Rf_mkChar(o1.thresholdMat->colnames[cx]));
+		}
+		Rf_protect(rownames = Rf_allocVector(STRSXP, Ethr.rows()));
+		for (int rx=0; rx < Ethr.rows(); ++rx) {
+			std::string rn = string_snprintf("t%d", 1+rx);
+			SET_STRING_ELT(rownames, rx, Rf_mkChar(rn.c_str()));
+		}
+		SET_VECTOR_ELT(dimnames, 0, rownames);
+		SET_VECTOR_ELT(dimnames, 1, colnames);
+		Rf_setAttrib(Rthr, R_DimNamesSymbol, dimnames);
+		out.add("thresholds", Rthr);
+	}
 }
 
 template <typename T>
@@ -1009,16 +1157,26 @@ void getContRow(std::vector<ColumnData> &df,
 }
 
 void omxData::wlsAllContinuousCumulants(omxState *state,
-					const Eigen::Ref<const DataColumnIndexVector> &dc)
+					const std::vector<const char *> &dc)
 {
-	// permit mxData(type='raw') TODO
+	if (verbose >= 1) mxLog("%s: using wlsAllContinuousCumulants type=%s", name, wlsType);
+
+	DataColumnIndexVector dci(dc.size());
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		int dx = rawColMap[dc[cx]];
+		dci[cx] = dx;
+		if (!containsNAs(dx)) continue;
+		Rf_error("%s: all continuous data with missingness (column '%s') cannot "
+			 "be handled using the cumulants method. Use na.omit(yourDataFrame) "
+			 "to remove rows with missing values or use allContinuousMethod='marginals' "
+			 "or use maximum likelihood", name, columnName(dx));
+	}
 
 	int numCols = dc.size();
 	int numColsStar = numCols*(numCols+1)/2;
 	auto &o1 = *oss;
 
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
-	//o1.meansMat = omxInitMatrix(1, numCols, state);
 	o1.fullWeight = omxInitMatrix(numColsStar, numColsStar, state);
 	EigenMatrixAdaptor Ecov(o1.covMat);
 	Eigen::VectorXd Emean(numCols);
@@ -1028,7 +1186,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state,
 	Eigen::ArrayXXd data(int(numObs), numCols);
 	Eigen::VectorXd r1(numCols);
 	for (int rx=0; rx < numObs; ++rx) {
-		getContRow(rawCols, rx, dc, r1);
+		getContRow(rawCols, rx, dci, r1);
 		Emean += r1;
 		Ecov += r1 * r1.transpose();
 		data.row(rx) = r1;
@@ -1038,7 +1196,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state,
 	Ecov /= numObs - 1;
 
 	data.rowwise() -= Emean.array().transpose();
-	Eigen::MatrixXd Vmat = Ecov * (numObs-1.) / numObs;
+  	Eigen::MatrixXd Vmat = Ecov * (numObs-1.) / numObs;
 	EigenMatrixAdaptor Umat(o1.fullWeight);
 
 	Eigen::ArrayXXd M(numColsStar, 2);
@@ -1069,22 +1227,34 @@ void omxData::wlsAllContinuousCumulants(omxState *state,
 	Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
 	Umat *= numObs;
 
+	Eigen::PermutationMatrix<Eigen::Dynamic> p1(o1.fullWeight->cols);
+	for (int vx=0; vx < Ecov.cols(); ++vx) {
+		p1.indices()[vx] = o1.fullWeight->cols - triangleLoc0(Ecov.cols() - vx - 1) - 1;
+	}
+	for (int v1=0, vx=Ecov.cols(); vx < o1.fullWeight->cols; ++vx) {
+		if (p1.indices()[v1] == vx - Ecov.cols() + v1) v1 += 1;
+		p1.indices()[vx] = vx - Ecov.cols() + v1;
+	}
+
+	Umat.derived() = (p1.transpose() * Umat * p1).eval();
+
 	if (strEQ(wlsType, "WLS")) {
 		o1.acovMat = o1.fullWeight;
 	} else {
-		o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
-		EigenMatrixAdaptor acov(o1.acovMat);
 		if (strEQ(wlsType, "ULS")) {
-			acov.setIdentity();
+			// OK
 		} else { // DWLS
+			o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
+			EigenMatrixAdaptor acov(o1.acovMat);
 			acov.setZero();
 			for (int ix=0; ix < numColsStar; ++ix) {
 				acov(ix,ix) = 1./((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
 						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / numObs -
 						  Vmat(M(ix, 0), M(ix, 1)) * Vmat(M(ix, 0), M(ix, 1)));
 			}
+			acov *= numObs;
+			acov.derived() = (p1.transpose() * acov * p1).eval();
 		}
-		acov *= numObs;
 	}
 }
 
@@ -1629,15 +1799,130 @@ void copyBlockwise(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, 
 	}
 }
 
-void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnIndexVector> &dc,
-			     std::vector<int> &exoPred)
+bool omxData::regenObsStats(const std::vector<const char *> &dc)
 {
-	if (strEQ(getType(), "acov")) {
-		permute(dc);
+	if (!oss) return true;
+	auto &o1 = *oss;
+	// fix for exoPred TODO
+
+	if (int(dc.size()) != o1.covMat->cols) {
+		if (verbose >= 1) mxLog("%s: cov is dimension %d but model is dimension %d",
+					name, o1.covMat->cols, int(dc.size()));
+		return true;
+	}
+
+	ColMapType dataMap;
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		//mxLog("%s", dc[cx]);
+		dataMap.emplace(dc[cx], cx);
+	}
+
+	ColMapType thrMap;
+	if (o1.thresholdMat) {
+		if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols) {
+			if (verbose >= 1) {
+				mxLog("%s: thresholdMat has no colnames", name);
+			}
+			return true;
+		}
+		for (int cx=0; cx < int(o1.thresholdMat->colnames.size()); ++cx) {
+			thrMap.emplace(o1.thresholdMat->colnames[cx], cx);
+		}
+	}
+
+	bool permute = false;
+	if (int(o1.covMat->colnames.size()) != o1.covMat->cols) {
+			if (verbose >= 1) {
+				mxLog("%s: cov has no colnames", name);
+			}
+			return true;
+	}
+	for (int cx=0; cx < int(o1.covMat->colnames.size()); ++cx) {
+		const char *cn = o1.covMat->colnames[cx];
+		auto it = dataMap.find(cn);
+		if (it == dataMap.end()) {
+			if (verbose >= 1) mxLog("%s: observedStats don't include column '%s'", name, cn);
+			return true;
+		}
+		//mxLog("%d %d %s", cx, it->second, cn);
+		if (cx != it->second) permute = true;
+		auto rci = rawColMap.find(cn);
+		if (rci == rawColMap.end()) continue; //hope for the best
+		auto &rc = rawCols[rci->second];
+		auto it2 = thrMap.find(cn);
+		if (it2 == thrMap.end()) {
+			if (rc.type != COLUMNDATA_NUMERIC) {
+				if (verbose >= 1) mxLog("%s: column '%s' is continuous but found %s",
+							name, cn, ColumnDataTypeToString(rc.type));
+				return true;
+			}
+		} else {
+			if (rc.type != COLUMNDATA_ORDERED_FACTOR) {
+				if (verbose >= 1) mxLog("%s: column '%s' is ordinal data but found %s",
+							name, cn,
+							ColumnDataTypeToString(rc.type));
+				return true;
+			}
+			o1.thresholdCols[cx].column = it2->second;
+		}
+	}
+
+	if (o1.thresholdMat) {
+		for (int cx=0; cx < int(o1.thresholdMat->colnames.size()); ++cx) {
+			auto it = rawColMap.find(o1.thresholdMat->colnames[cx]);
+			if (it == rawColMap.end()) continue;
+			auto &rc = rawCols[it->second];
+			EigenMatrixAdaptor Eth(o1.thresholdMat);
+			for (int tx=0; tx <= o1.thresholdMat->rows; ++tx) {
+				if (tx < o1.thresholdMat->rows && std::isfinite(Eth(tx,cx))) continue;
+				int nthr = int(rc.levels.size()) - 1;
+				if (tx != nthr) {
+					if (verbose >= 1) {
+						mxLog("%s: threshold '%s' implies %d levels but data has %d levels",
+						      name, o1.thresholdMat->colnames[cx], 1+tx, 1+nthr);
+					}
+					return true;
+				}
+				break;
+			}
+		}
+	}
+
+	//omxPrint(o1.covMat, "cov");
+	if (permute) {
+		if (int(o1.covMat->colnames.size()) != o1.covMat->cols ||
+		    int(o1.acovMat->colnames.size()) != o1.acovMat->cols) {
+			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are unavailable", name);
+			return true;
+		}
+		if (verbose >= 1) mxLog("%s: observedStats needs permutation", name);
+		o1.permute(this, dc);
+	}
+	//omxPrint(o1.covMat, "cov");
+
+	if (verbose >= 1) mxLog("%s: pre-existing observedStats looks good", name);
+
+	return false;
+}
+
+void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
+			   std::vector<int> &exoPred)
+{
+	_prepObsStats(state, dc, exoPred);
+	oss->setDimnames(this, dc);
+}
+
+void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
+			   std::vector<int> &exoPred)
+{
+	if (!dc.size()) return;
+
+	if (!regenObsStats(dc)) {
+		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats", name);
 		return;
 	}
 
-	// ensure no missing data TODO
+	// deal with missing data pairwise TODO
 
 	int numCols = dc.size();
 	int numColsStar = numCols*(numCols+1)/2;
@@ -1648,15 +1933,22 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 			 name, numObs, numCols, numColsStar+1);
 	}
 
-	permuted = true;
-
 	if (oss) delete oss;
 	oss = new obsSummaryStats;
 	auto &o1 = *oss;
+	o1.output = true;
 	o1.numObs = int(numObs);
 
-	// Maybe still applicable if exoPred is empty? TODO
-	//wlsAllContinuousCumulants(state, dc);
+	if (numFactor == 0 && strEQ(wlsContinuousType, "cumulants")) {
+		if (exoPred.size() != 0) {
+			Rf_error("%s: allContinuousMethod cumulants does not work "
+				 "with exogenous predictors. Use 'marginals' instead", name);
+		}
+		wlsAllContinuousCumulants(state, dc);
+		return;
+	}
+
+	if (verbose >= 1) mxLog("%s: computing marginals stats", name);
 
 	Eigen::MatrixXd pred(o1.numObs, exoPred.size());
 	for (int cx=0; cx < int(exoPred.size()); ++cx) {
@@ -1676,7 +1968,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	int maxNumThr = 0;
 	std::vector<int> thStart(numCols);
 	for (int yy=0; yy < numCols; ++yy) {
-		ColumnData &cd = rawCols[ dc[yy] ];
+		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		thStart[yy] = totalThr;
 		if (cd.type == COLUMNDATA_NUMERIC) {
 			contMap.push_back(numContinuous);
@@ -1701,11 +1993,11 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 
 	// based on lav_samplestats_step1.R, lavaan 0.6-2
 	for (int yy=0, contOffset=0, thrOffset=0; yy < numCols; ++yy) {
-		ColumnData &cd = rawCols[ dc[yy] ];
+		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		WLSVarData &pv = o1.perVar[yy];
 		if (cd.type == COLUMNDATA_NUMERIC) {
 			omxThresholdColumn tc;
-			tc.dColumn = dc[yy];
+			tc.dColumn = yy;
 			tc.column = -1;
 			tc.numThresholds = 0;
 			o1.thresholdCols.push_back(tc);
@@ -1736,7 +2028,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 			}
 			pv.theta = pr.param;
 			omxThresholdColumn tc;
-			tc.dColumn = dc[yy];
+			tc.dColumn = yy;
 			tc.column = o1.numOrdinal++;
 			tc.numThresholds = pr.numThr;
 			o1.thresholdCols.push_back(tc);
@@ -1752,9 +2044,9 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 
 	o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
 	EigenMatrixAdaptor Ethr(o1.thresholdMat);
-	Ethr.setConstant(nan("uninit"));
+	Ethr.setConstant(NA_REAL);
 	for (int yy=0; yy < numCols; ++yy) {
-		ColumnData &cd = rawCols[ dc[yy] ];
+		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		if (cd.type == COLUMNDATA_NUMERIC) continue;
 		WLSVarData &pv = o1.perVar[yy];
 		auto &tc = o1.thresholdCols[yy];
@@ -1775,8 +2067,8 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	for (int jj=0; jj < numCols-1; ++jj) {
 		for (int ii=jj+1; ii < numCols; ++ii) {
 			int pstar_idx = ii-(jj+1) + pstar - triangleLoc1(numCols - jj - 1);
-			ColumnData &cd1 = rawCols[ dc[jj] ];
-			ColumnData &cd2 = rawCols[ dc[ii] ];
+			ColumnData &cd1 = rawCols[ rawColMap[dc[jj]] ];
+			ColumnData &cd2 = rawCols[ rawColMap[dc[ii]] ];
 			WLSVarData &pv1 = o1.perVar[jj];
 			WLSVarData &pv2 = o1.perVar[ii];
 			//mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
@@ -1877,6 +2169,10 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 		}
 	}
 
+	// Small optimization opportunity:
+	// We could avoid above score computations if !wlsFullWeight
+	if (!wlsFullWeight) return;
+
 	// mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
 	// mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good
 	// mxPrintMat("SC_VAR", o1.SC_VAR.block(0,0,4,o1.SC_VAR.cols())); // good
@@ -1898,7 +2194,7 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	Eigen::MatrixXd A11(A11_size,A11_size);
 	A11.setZero();
 	for (int yy=0; yy < numCols; ++yy) {
-		ColumnData &cd = rawCols[ dc[yy] ];
+		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		std::vector<bool> mask(A11_size, false);
 		int numThr = cd.type == COLUMNDATA_NUMERIC? 1 : cd.levels.size() - 1;
 		for (int tx=0; tx < numThr; ++tx) mask[thStart[yy] + tx] = true;
@@ -1950,25 +2246,23 @@ void omxData::recalcWLSStats(omxState *state, const Eigen::Ref<const DataColumnI
 	if (strEQ(wlsType, "WLS")) {
 		o1.acovMat = o1.fullWeight;
 	} else {
-		o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
-		EigenMatrixAdaptor acov(o1.acovMat);
 		if (strEQ(wlsType, "ULS")) {
-			// can leave acov unallocated? TODO
-			acov.setIdentity();
-		} else { // DWLS
+			// OK
+		} else {
+			o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
+			EigenMatrixAdaptor acov(o1.acovMat);
 			acov.setZero();
 			for (int ix=0; ix < acov_size; ++ix) {
-				acov(ix,ix) = 1.0 / Efw(ix,ix);
+				acov(ix,ix) = 1.0 / Efw(ix,ix); // DWLS
 			}
 		}
 	}
 	if (InvertSymmetricPosDef(Efw, 'L')) Rf_error("Attempt to invert acov failed");
 
-	// lavaan divides Efw by rows, we don't
+	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
 	
 	//mxPrintMat("Efw", Efw);
 
 	//o1.log();
-	//Rf_error("Not implemented yet");
 }
