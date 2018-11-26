@@ -45,6 +45,8 @@ SEXP mtmvnorm(SEXP sigma, SEXP lower, SEXP upper);
 
 void friendlyStringToLogical(const char *key, SEXP rawValue, int *out);
 
+void loadCharVecFromR(const char *context, SEXP names, std::vector<const char *> &dest);
+
 #ifndef M_LN_2PI
 #define M_LN_2PI        1.837877066409345483560659472811        /* log(2*pi) */
 #endif

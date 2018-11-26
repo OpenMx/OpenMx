@@ -43,6 +43,7 @@
 class omxExpectation {					// An Expectation
 	typedef omxExpectation base;
 	int *dataColumnsPtr;
+	std::vector<const char *> dataColumnNames;
 	std::vector< omxThresholdColumn > thresholds;  // size() == numDataColumns
 
  public:
@@ -96,6 +97,7 @@ class omxExpectation {					// An Expectation
 
 	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
 	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns();
+	virtual const std::vector<const char *> &getDataColumnNames() const;
 	virtual void getExogenousPredictors(std::vector<int> &out) {};
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo();
 

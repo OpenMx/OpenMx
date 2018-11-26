@@ -702,6 +702,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		checkNumericData(mxDataObject)
 		covNames <- colnames(covariance)
 		verifyMvnNames(covName, meansName, "expected", flatModel, modelname, class(.Object))
+		.Object@dataColumnNames <- covNames
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
 		verifyThresholds(flatModel, model, labelsData, dataName, covNames, threshName)
 		if (single.na(.Object@dims)) {

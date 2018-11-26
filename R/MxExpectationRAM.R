@@ -214,6 +214,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
 		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (length(translatedNames)) {
+			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
 				threshName <- .Object@thresholds

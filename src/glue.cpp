@@ -41,6 +41,20 @@
 #include "EnableWarnings.h"
 #include "omxSadmvnWrapper.h"
 
+void loadCharVecFromR(const char *context, SEXP names, std::vector<const char *> &dest)
+{
+	if (!Rf_isNull(names) && !Rf_isString(names)) {
+		Rf_warning("%s: found type '%s' instead of a character vector (ignored)",
+			   context, Rf_type2char(TYPEOF(names)));
+	} else {
+		int nlen = Rf_length(names);
+		dest.resize(nlen);
+		for (int nx=0; nx < nlen; ++nx) {
+			dest[nx] = CHAR(STRING_ELT(names, nx));
+		}
+	}
+}
+
 void markAsDataFrame(SEXP list, int rows)
 {
 	if (rows >= 0) {

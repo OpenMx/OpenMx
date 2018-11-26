@@ -454,6 +454,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		.Object@depth <- generateLISRELDepth(flatModel, beMatrix2, model@options) #Find out how many iterations of I + BE + BE^2 + ... are need until nilpotency.
 		if (mxDataObject@type == 'raw' || mxDataObject@type == 'acov') {
 			threshName <- .Object@thresholds
+			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
 			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
