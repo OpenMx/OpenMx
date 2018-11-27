@@ -65,4 +65,4 @@ wls <- mxRun(wls)
 
 omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .21)
 
-omxCheckCloseEnough(cor(coef(ml), coef(wls)), 1, .01)
+omxCheckCloseEnough(cor(coef(ml), coef(wls)), 1, .002)

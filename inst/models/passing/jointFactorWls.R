@@ -173,18 +173,18 @@ plot(cmp[1:5,1], cmp[1:5,2])
 abline(0, 1)
 
 print(rms(cmp))
-omxCheckCloseEnough(vechs(rms(cmp)), c(0.01, 0.02, 0.029, 0.027, 0.036, 0.01), .02)
+omxCheckCloseEnough(vechs(rms(cmp)), c(0.01, 0.02, 0.029, 0.027, 0.036, 0.01), .002)
 
 round(seCmp <- cbind(ML=jointResults1$output$standardErrors,
                      WLS=jointWlsResults$output$standardErrors,
                      DLS=jointDlsResults$output$standardErrors,
                      ULS=jointUlsResults$output$standardErrors), 3)
 
-omxCheckCloseEnough(cor(seCmp)[1,2:4], rep(1,3), .4)
+omxCheckCloseEnough(cor(seCmp)[1,2:4], rep(1,3), .04)
 
-# se1 <- c(0.065, 0.113, 0.072, 0.106, 0.068, 0.064, 0.067,  0.061,
-#          0.061, 0.074, 0.083, 0.075, 0.098, 0.067, 0.06)
-# omxCheckCloseEnough(c(jointDlsResults$output$standardErrors), se1, .01)
+se1 <- c(0.065, 0.113, 0.072, 0.106, 0.068, 0.064, 0.067,  0.061,
+         0.061, 0.074, 0.083, 0.075, 0.098, 0.067, 0.06)
+omxCheckCloseEnough(c(jointDlsResults$output$standardErrors), se1, .01)
 
 #------------------------------------------------------------------------------
 # Create and compare saturated models
