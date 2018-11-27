@@ -126,6 +126,7 @@ man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
+man/mxComputeBenchmark.Rd
 man/mxComputeDefault.Rd
 man/mxComputeEM.Rd
 man/mxComputeGenerateData.Rd
