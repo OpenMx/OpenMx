@@ -469,7 +469,6 @@ void omxMatrix::loadDimnames(SEXP dimnames)
 		Rf_error("Attempt to load dimnames more than once for %s", name());
 	}
 
-	SEXP names;
 	if (Rf_length(dimnames) >= 1) {
 		ProtectedSEXP names(VECTOR_ELT(dimnames, 0));
 		loadCharVecFromR(name(), names, rownames);

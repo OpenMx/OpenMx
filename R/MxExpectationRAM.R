@@ -157,14 +157,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				imxLocateIndex(flatModel, bName, name)
 			})
 		}
-		hasMeanModel <- !is.na(mMatrix)
-		if(hasMeanModel && single.na(mxDataObject@means) && mxDataObject@type != "raw") {
-			msg <- paste("The RAM expectation function",
-				"has an expected means vector but",
-				"no observed means vector in model",
-				omxQuotes(modelname))
-			stop(msg, call. = FALSE)
-		}
 		checkNumericData(mxDataObject)
 		verifyObservedNames(mxDataObject@observed, mxDataObject@means, mxDataObject@type, flatModel, modelname, "RAM")
 		fMatrix <- flatModel[[fMatrix]]@values
@@ -178,6 +170,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				omxQuotes(modelname), "does not contain colnames")
 			stop(msg, call. = FALSE)
 		}
+		hasMeanModel <- !is.na(mMatrix)
 		mMatrix <- flatModel[[mMatrix]]		
 		if (hasMeanModel && !is.null(mMatrix)) {
 			means <- dimnames(mMatrix)

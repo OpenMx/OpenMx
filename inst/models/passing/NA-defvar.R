@@ -8,7 +8,7 @@ m1 <- mxModel(
   mxMatrix(nrow=1,ncol=1,labels="data.dv",name="obj"),
   mxFitFunctionAlgebra("obj"))
 
-omxCheckError(mxRun(m1), "integer.data: NA in definition variable 'dv' row 11")
+omxCheckError(mxRun(m1), "integer.data: NA in definition variable 'dv'")
 
 df <- data.frame(dv=c(2.5, 3.5, NA))
 
@@ -18,4 +18,4 @@ m1 <- mxModel(
   mxMatrix(nrow=1,ncol=1,labels="data.dv",name="obj"),
   mxFitFunctionAlgebra("obj"))
 
-omxCheckError(mxRun(m1), "double.data: NA in definition variable 'dv' row 3")
+omxCheckError(mxRun(m1), "double.data: NA in definition variable 'dv'")
