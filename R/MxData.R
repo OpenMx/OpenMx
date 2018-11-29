@@ -49,12 +49,14 @@ setClass(Class = "MxDataStatic",
 		observed = "MxDataFrameOrMatrix",
 		means  = "matrix",
 		type   = "character",
+		preferredFit   = "character",
 		numObs = "numeric",
 		observedStats = "list",
 		.isSorted = "logical",  # remove slot TODO
 		.needSort = "logical",
 		.wlsType = "MxOptionalChar",
 		.wlsContinuousType = "MxOptionalChar",
+		.wlsFullWeight = "logical",
 	     primaryKey = "MxCharOrNumber",
 	     weight = "MxCharOrNumber",
 	     frequency = "MxCharOrNumber",
@@ -72,10 +74,11 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
-		   sort, primaryKey, weight, frequency, verbose) {
+		   sort, primaryKey, weight, frequency, verbose, preferredFit) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
+		.Object@preferredFit <- preferredFit
 		.Object@numObs <- numObs
 		.Object@observedStats <- observedStats
 		.Object@name <- "data"
@@ -122,7 +125,7 @@ setReplaceMethod("$", "MxData",
 setMethod("names", "MxData", slotNames)
 
 ##' Valid types of data that can be contained by MxData
-imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
+imxDataTypes <- c("raw", "cov", "cor", "sscp")
 
 ##' Create dynamic data
 ##'
@@ -147,7 +150,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
-		   frequency = as.character(NA), verbose=0L) {
+		   frequency = as.character(NA), verbose=0L, preferredFit = 'ML') {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -187,7 +190,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	if ((!is.vector(means) && !(prod(dim(means)) == length(means))) || !is.numeric(means)) {
 		stop("Means argument must be of numeric vector type")
 	}
-	if (type != "raw" && type != "acov" && is.na(numObs)) {
+	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
 	}
 	if (type == "cov") {
@@ -196,17 +199,19 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	if (type == "cor") {
 		verifyCorrelationMatrix(observed)
 	}
-	if (type == "acov") {
+	if (!is.null(observedStats[['cov']])) {
 		verifyCovarianceMatrix(observedStats[['cov']], nameMatrix="covariance")
+	}
+	if (!is.null(observedStats[['acov']])) {
 		verifyCovarianceMatrix(observedStats[['acov']], nameMatrix="asymptotic")
-		fw <- observedStats[['fullWeight']]
-		if(!is.null(fw)) {
-			verifyCovarianceMatrix(fw, nameMatrix="asymptotic")
-		}
-		thr <- observedStats[['thresholds']]
-		if (!is.null(thr)) {
-			verifyThresholdNames(thr, observed)
-		}
+	}
+	fw <- observedStats[['fullWeight']]
+	if(!is.null(fw)) {
+		verifyCovarianceMatrix(fw, nameMatrix="asymptotic")
+	}
+	thr <- observedStats[['thresholds']]
+	if (!is.null(thr)) {
+		verifyThresholdNames(thr, observed)
 	}
 	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
 	if(is.matrix(means)){meanNames <- colnames(means)} else {meanNames <- names(means)}
@@ -248,7 +253,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 				   "must be provided in the observed data"))
 		}
 	}
-	if (type == "raw" || type == "acov") {
+	if (type == "raw") {
 		if (!is.na(frequency)) {
 			obsCount <- sum(observed[,frequency])
 		} else {
@@ -268,7 +273,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
-		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose)))
+		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose), preferredFit))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -359,12 +364,6 @@ setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 				obsStats <- data@observedStats
 				if (!is.null(obsStats$thresholds)) {
 					verifyThresholdNames(obsStats$thresholds, data@observed, model@name)
-					retval <- generateDataThresholdColumns(
-						covarianceColumnNames=dimnames(obsStats$cov)[[2]],
-						thresholdsMatrix=obsStats$thresholds)
-					obsStats$thresholdColumns <- retval[[1]]
-					#obsStats$thresholdLevels <- retval[[2]]
-					data@observedStats <- obsStats
 				}
 			}
 			data
@@ -429,21 +428,16 @@ checkNumericData <- function(data) {
 getDataThresholdNames <- function(data) {
 	if(data@type == "raw") {
 		nCols <- ncol(data@observed)
-		thresholdCols <- rep(FALSE, nCols)
-		for(i in 1:nCols) {
-			if(!is.null(attr(data@observed[,i], "mxFactor"))) {
-				thresholdCols[i] <- TRUE
-			}
-		}
+		thresholdCols <- unlist(lapply(data@observed, is.ordered))
 		if(sum(thresholdCols) > 0) {
 			if(is.null(colnames(data@observed))) {
 				stop("The data object", omxQuotes(data@name),
-				"has mxFactor columns, but does not have column names,",
+				"has ordinal columns, but does not have column names,",
 				"which are required for threshold estimation.")
 			}
 			return(colnames(data@observed)[thresholdCols])
 		}
-	} else if(data@type == "acov") {
+	} else {
 		obsStats <- data@observedStats
 		if (is.null(obsStats$thresholds)) return(c())
 		return(colnames(obsStats$thresholds))

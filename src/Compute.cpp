@@ -3234,7 +3234,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 		e1->data->visitObsStats([&](obsSummaryStats &o1){
 				numOrdinal += o1.numOrdinal;
 				numObs += o1.numObs;
-				int sz = o1.acovMat->rows;
+				int sz = o1.fullWeight->rows;
 				numStats.push_back(sz);
 				totalStats += sz;
 			});
@@ -3260,8 +3260,12 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 						  o1.numOrdinal, o1.thresholdCols, vec1);
 				obStats.segment(offset, sz) = vec1;
 
-				EigenMatrixAdaptor acov(o1.acovMat);
-				Vmat.block(offset,offset,sz,sz) = acov;
+				if (o1.acovMat) {
+					EigenMatrixAdaptor acov(o1.acovMat);
+					Vmat.block(offset,offset,sz,sz) = acov;
+				} else {
+					Vmat.block(offset,offset,sz,sz).setIdentity();
+				}
 
 				EigenMatrixAdaptor fw(o1.fullWeight);
 				int nonZeroDims = (fw.diagonal().array() != 0.0).count();

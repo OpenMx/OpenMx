@@ -305,8 +305,7 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 			name <- selectEnt[[i]]
 			candidate <- model[[name]]
 			value <- selectVal[[i]]
-			if (!is.null(candidate) && (length(value) > 0)
-				&& !is.nan(value)) {
+			if (!is.null(candidate) && length(value)) {
 				if (is(candidate, "MxAlgebra")) {
 					cdim <- sapply(dimnames(candidate), length)
 					mask <- cdim != 0
@@ -345,8 +344,11 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					for (sl in names(attributes(value))) {
 						slot(candidate, sl) <- attr(value, sl)
 					}
+				} else if (is(candidate, "MxDataStatic")) {
+					value$numObs <- NULL
+					if (length(value)) candidate@observedStats <- value
 				} else if (is(candidate, "MxDataDynamic")) {
-					candidate@numObs <- value
+					candidate@numObs <- value$numObs
 				}
 				model[[name]] <- candidate
 			}

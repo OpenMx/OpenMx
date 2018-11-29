@@ -88,13 +88,6 @@ setMethod("imxVerifyModel", "MxRAMModel",
 		  }
 		  expectation <- model$expectation
 		  if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
-			  if (!is.null(model@data) && !single.na(model@data@means) &&
-			      is.null(model$M)) {
-				  msg <- paste("The RAM model", omxQuotes(model@name),
-					       "contains an observed means vector",
-					       "but has not specified any means paths.")
-				  stop(msg, call. = FALSE)
-			  }
 			  if (!is.null(model@data)) {
 				  threshNames <- intersect(getDataThresholdNames(model@data), model@manifestVars)
 				  # Only pay attention to (1) manifest variables (2) that need thresholds.
@@ -263,9 +256,9 @@ addEntriesRAM <- function(model, entries) {
 		data <- data[[1]]
 		model@data <- data
 		# If the data are WLS, then change the fit function to WLS away from the default ML.
-		if(model@data@type=="acov" && class(model@fitfunction) %in% "MxFitFunctionML"){
+		if(model@data@preferredFit == 'WLS' && class(model@fitfunction) %in% "MxFitFunctionML"){
 			model[['fitfunction']] <- mxFitFunctionWLS()
-		} else if(model@data@type %in% c('raw', 'cov') && !(class(model@fitfunction) %in% "MxFitFunctionML")){
+		} else if(model@data@preferredFit == 'ML' && !(class(model@fitfunction) %in% "MxFitFunctionML")){
 			model[['fitfunction']] <- mxFitFunctionML()
 		}
 		model[['F']] <- createMatrixF(model)

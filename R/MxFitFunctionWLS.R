@@ -142,7 +142,6 @@ setMethod("show", "MxFitFunctionWLS", function(object) {
 imxWlsStandardErrors <- function(model){
 	#TODO add safety check
 	# Is it a WLS fit function
-	# Does it have data of type=='acov'
 	# Does the data have @fullWeight
 	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
 	fwMsg <- "Terribly sorry, master, but you cannot compute standard errors without the full weight matrix."
@@ -279,8 +278,7 @@ approveWLSIntervals <- function(flatModel, modelName) {
 	ff <- flatModel@fitfunctions[[ paste0(modelName, '.fitfunction') ]]
 	if (is(ff, "MxFitFunctionWLS")) {
 		ds <- flatModel@datasets[[ paste0(modelName, '.data') ]]
-		obsStats <- ds@observedStats
-		if (any(abs(obsStats$acov - obsStats$fullWeight) > 1e-6)) {
+		if (ds@.wlsType != 'WLS') {
 			stop(paste("Confidence intervals are not supported for DWLS or ULS. ",
 				"Try mxSE or switch", omxQuotes(ds$name), "to full WLS"))
 		}

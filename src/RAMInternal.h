@@ -554,6 +554,7 @@ class omxRAMExpectation : public omxExpectation {
 	unsigned Zversion;
 	omxMatrix *_Z;
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
+	std::vector<const char *> dataColNames;
 	std::vector< omxThresholdColumn > thresholds;
  public:
 	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array
@@ -601,6 +602,7 @@ class omxRAMExpectation : public omxExpectation {
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);
+	virtual const std::vector<const char *> &getDataColumnNames() const { return dataColNames; };
 	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
 		return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
 	}

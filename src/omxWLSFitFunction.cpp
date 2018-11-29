@@ -107,6 +107,7 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	} else {
 		// ULS Case: Memcpy faster than dgemv.
 		omxCopyMatrix(P, B);
+		omxTransposeMatrix(P);
 	}
 	
 	sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
@@ -203,17 +204,17 @@ void omxWLSFitFunction::init()
 		// OK
 	} else if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
 	
-	if(!strEQ(omxDataType(dataMat), "acov") && !strEQ(omxDataType(dataMat), "raw")) {
-		omxRaiseErrorf("%s: unable to handle data type %s. Data must be of type 'raw' or 'acov'",
-			       name(), omxDataType(dataMat));
-		return;
-	}
-	
 	// For multiple threads, need to grab parent's info TODO
-	dataMat->recalcWLSStats(currentState, oo->expectation->getDataColumns(), exoPred);
+	dataMat->prepObsStats(currentState, oo->expectation->getDataColumnNames(), exoPred);
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
+	//obsStat.log();
 	omxMatrix *cov = obsStat.covMat;
+	if (!cov) {
+		omxRaiseErrorf("%s: an observed covariance matrix is required", name());
+		return;
+	}
+
 	omxMatrix *means = obsStat.meansMat;
 	omxMatrix *obsThresholdsMat = obsStat.thresholdMat;
 	weights = obsStat.acovMat;
@@ -270,15 +271,19 @@ void omxWLSFitFunction::init()
 	int vectorSize = expectation->numSummaryStats();
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
-	if(weights != NULL && (weights->rows != weights->cols || weights->cols != vectorSize)) {
-		omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
-		return;
-	}
+	if(weights) {
+		if (weights->rows != weights->cols || weights->cols != vectorSize) {
+			omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
+			return;
+		}
 	
-	EigenMatrixAdaptor Eweight(weights);
-	Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
-	double offDiag = offDiagW.array().abs().sum();
-	oo->units = offDiag > 0.0? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
+		EigenMatrixAdaptor Eweight(weights);
+		Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+		double offDiag = offDiagW.array().abs().sum();
+		oo->units = offDiag > 0.0? FIT_UNITS_SQUARED_RESIDUAL_CHISQ : FIT_UNITS_SQUARED_RESIDUAL;
+	} else {
+		oo->units = FIT_UNITS_SQUARED_RESIDUAL;
+	}
 	
 	// FIXME: More Rf_error checking for incoming Fit Functions
 	

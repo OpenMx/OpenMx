@@ -28,7 +28,7 @@
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
     fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
-   "cumulants", ..., silent=!interactive(), .oldMethod = TRUE)
+   "cumulants", ..., silent=!interactive(), .oldMethod = FALSE, verbose=0L)
 }
 
 \arguments{
@@ -48,6 +48,7 @@
 \item{silent}{Whether to report progress}
  \item{.oldMethod}{Whether to use the old method to obtain the observed
    summary statistics.}
+\item{verbose}{level of diagnostic output}
 }
 
 \details{

@@ -40,7 +40,7 @@ as.statusCode(code)
    your provided derivatives differ too much from numerically
    approximated derivatives. Double check your math.
    \item 9,\sQuote{internal error}: An input parameter was invalid. The
-   most likely cause is a bug in the code. Please report occurences to
+   most likely cause is a bug in the code. Please report occurrences to
    the OpenMx developers.
    \item 10,\sQuote{infeasible start}:
    Starting values were infeasible.

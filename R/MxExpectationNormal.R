@@ -577,15 +577,35 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		stop("mxGenerateData does not accept values for the '...' argument")
 	}
 	if (is(model, 'data.frame')) {
-		wlsData <- mxDataWLS(model)
-		obsStats <- wlsData@observedStats
 		fake <- mxModel("fake",
-				mxData(observed=model, type='raw'),
-				mxMatrix(values=obsStats$thresholds, name="thresh"),
-				mxMatrix(values=as.matrix(nearPD(obsStats$cov)$mat), name="cov"),
-				mxMatrix(values=obsStats$means, name="mean"),
-				mxExpectationNormal(thresholds = "thresh", covariance = "cov", means = "mean"))
-		if(is.null(nrows)){nrows <- wlsData@numObs}
+			mxDataWLS(model, type="ULS", fullWeight=FALSE, allContinuousMethod="marginals"),
+			mxMatrix(values=diag(ncol(model)),
+			      dimnames=list(colnames(model),colnames(model)), name="cov"),
+			mxMatrix(values=0, nrow=1, ncol=ncol(model),
+				dimnames=list(c(), colnames(model)), name="mean"),
+			mxExpectationNormal(covariance = "cov", means = "mean"),
+			mxFitFunctionWLS(),
+			mxComputeOnce('fitfunction', 'fit'))
+
+		ords <- unlist(lapply(model, is.ordered))
+		if (any(ords)) {
+			nthr <- sapply(model[,ords], nlevels) - 1L
+			tmpThr <- matrix(NA, ncol=sum(ords), nrow=max(nthr))
+			colnames(tmpThr) <- colnames(model)[ords]
+			for (cx in 1:ncol(tmpThr)) {
+				tmpThr[1:nthr[cx],cx] <- seq(-1,1,length.out=nthr[cx])
+			}
+			fake <- mxModel(fake, mxMatrix(values=tmpThr, name="thresh"))
+			fake$expectation$thresholds <- "thresh"
+		}
+
+		fake <- mxRun(fake, silent=TRUE)
+		obsStats <- fake$data$observedStats
+		fake$cov$values <- obsStats$cov
+		fake$mean$values <- obsStats$means
+		if (any(ords)) fake$thresh$values <- obsStats$thresholds
+
+		if(is.null(nrows)) nrows <- nrow(model)
 		return(mxGenerateData(fake, nrows, returnModel))
 	}
 	if(is.null(subname)) subname <- model$name
@@ -694,7 +714,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 
 		if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
 
-		if (mxDataObject@type != "raw" && mxDataObject@type != "acov") {
+		if (mxDataObject@type != "raw") {
 			verifyExpectedObservedNames(mxDataObject@observed, covName, flatModel, modelname, "Normal")
 			verifyMeans(meansName, mxDataObject, flatModel, modelname)
 		}
@@ -702,6 +722,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		checkNumericData(mxDataObject)
 		covNames <- colnames(covariance)
 		verifyMvnNames(covName, meansName, "expected", flatModel, modelname, class(.Object))
+		.Object@dataColumnNames <- covNames
 		.Object@dataColumns <- generateDataColumns(flatModel, covNames, dataName)
 		verifyThresholds(flatModel, model, labelsData, dataName, covNames, threshName)
 		if (single.na(.Object@dims)) {

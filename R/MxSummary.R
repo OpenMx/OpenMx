@@ -59,6 +59,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		# need to revisit TODO
 		return(list(0, historySet))
 	}
+	obsStats <- data@observedStats
 	if (data@type == 'cov' || data@type == 'sscp') {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
@@ -86,11 +87,10 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		} else {
 			return(list(NA, historySet))
 		}
-	} else if (data@type == 'acov') {
+	} else if (!is.null(obsStats[['cov']])) {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
 		}
-		obsStats <- data@observedStats
 		numThresh <- sum(!is.na(obsStats$thresholds))
 		numMeans <- sum(!is.na(obsStats$means))
 		n <- nrow(data@observed)
@@ -151,13 +151,13 @@ computeFValue <- function(datalist, likelihood, chi) {
 	if(length(datalist) == 0) return(NA)
 	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), datalist)
 	if(all(sapply(datalist, function(x) 
+		{x@preferredFit == 'WLS'}))) return(chi)
+	if(all(sapply(datalist, function(x) 
 		{x@type == 'raw'}))) return(likelihood)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'cov'}))) return(chi)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'cor'}))) return(chi)
-	if(all(sapply(datalist, function(x) 
-		{x@type == 'acov'}))) return(chi)
 	return(NA)
 }
 

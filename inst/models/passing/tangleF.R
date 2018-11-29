@@ -96,9 +96,9 @@ jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)],
 				 levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 mkModel <- function(shuffle, wls) {
+  set.seed(shuffle)
 	myData <- jointData
 	if (shuffle) {
-#	  dperm <- c( 4,   0,   2,   3,   1) + 1
 	  dperm <- sample.int(ncol(myData), ncol(myData))
 		myData <- myData[, dperm]
 	}
@@ -139,7 +139,7 @@ mkModel <- function(shuffle, wls) {
 			 dimnames=list(manifestVars, allVars), name="F"),
 		mxMatrix("Symm", length(allVars), length(allVars),
 			 values=diag(length(allVars)),
-			 free=diag(length(allVars)) == 1,
+			 free=diag(length(allVars)) == 1, ubound=5,
 			 dimnames=list(allVars, allVars), name="S"),
 		mxMatrix("Full", length(allVars), length(allVars),
 			 values=0,
@@ -160,7 +160,7 @@ mkModel <- function(shuffle, wls) {
 	ta1$M$values[1,'z1'] <- c(.1)
 
 	if (wls) {
-	  md <- suppressWarnings(mxDataWLS(myData, type='WLS'))
+	  md <- suppressWarnings(mxDataWLS(myData, type='WLS', verbose=0L))
 		ta1 <- mxModel(ta1, md, mxFitFunctionWLS())
 	} else {
 		ta1 <- mxModel(ta1, mxData(myData, type="raw"), mxFitFunctionML(jointConditionOn = "continuous"))
@@ -169,11 +169,23 @@ mkModel <- function(shuffle, wls) {
 	ta1
 }
 
-for (wls in c(FALSE,TRUE)) {
-	fit1 <- mxRun(mkModel(FALSE, wls))  # MLE=2683.071 when wls=false
-	fit2 <- mxRun(mkModel(TRUE, wls))
-	fit3 <- mxRun(mkModel(TRUE, wls))
-
+for (wls in c(FALSE)) {
+	fit1 <- mxRun(mkModel(0, wls))  # MLE=2683.071 when wls=false
+	fit2 <- mxRun(mkModel(1, wls))
 	omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-6)
+	fit3 <- mxRun(mkModel(2, wls))
 	omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-6)
+}
+
+for (sx in 1:4) {
+  for (wls in c(TRUE)) {
+    fit1 <- mxRun(mkModel(0, wls))  # MLE=2683.071 when wls=false
+    fit2 <- mxRun(mxModel(mkModel(sx, wls), fit1$data))
+    fit3 <- mxRun(mkModel(sx, wls))
+    fit4 <- mxRun(mxModel(mkModel(0, wls), fit3$data))
+#    print(c(fit1$output$fit, fit2$output$fit, fit3$output$fit, fit4$output$fit))
+    omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-6)
+    omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-6)
+    omxCheckCloseEnough(fit1$output$fit - fit4$output$fit, 0, 1e-6)
+  }
 }

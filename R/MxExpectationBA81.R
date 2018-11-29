@@ -217,7 +217,7 @@ setMethod("genericExpRename", signature("MxExpectationBA81"),
 ##' When a two-tier covariance matrix is recognized, this expectation
 ##' automatically enables analytic dimension reduction (Cai, 2010).
 ##' 
-##' The optional `weightColumn' is superceeded by the weight
+##' The optional `weightColumn' is superseded by the weight
 ##' argument in \link{mxData}. For data with many repeated
 ##' response patterns, model evaluation time can be
 ##' reduced. An easy way to transform your data into this form is to

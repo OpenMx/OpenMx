@@ -105,15 +105,16 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 	exps <- mxGetExpected(model, c('covariance', 'means', 'thresholds'), subname=subname)
 	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
 	useVars <- dimnames(exps$covariance)[[1]]
-	data <- model[[subname]]$data$observed[,useVars]
-	hasOrdinal <- any(sapply(data, is.ordered))
-	isCovData <- model[[subname]]$data$type %in% 'cov'
-	I <- diag(1, wsize)
+	data <- model[[subname]]$data$observed
+	hasOrdinal <- any(sapply(data[,useVars], is.ordered))
+	origDataType <- model[[subname]]$data$type
+	isCovData <- origDataType %in% 'cov'
 	if(isCovData){
 		if (any(hasOrdinal)) {
 			stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
 		}
-		covData <- data[useVars,]
+		data <- data[useVars,useVars]
+		covData <- data
 		nrowData <- model[[subname]]$data$numObs
 		meanData <- model[[subname]]$data$means
 	} else {
@@ -126,10 +127,10 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 		}
 	}
 	if(type != 'ULS'){
-		mdata <- mxDataWLS(as.data.frame(data), type=type, allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'), fullWeight=FALSE)
+		mdata <- mxDataWLS(data, type=type, allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'), fullWeight=FALSE)
 	} else {
-		mdata <- mxData(as.data.frame(data), type='acov', numObs=nrowData,
-			observedStats=list(cov=covData, acov=I, means=meanData))
+		mdata <- mxData(data, type=origDataType, numObs=nrowData,
+			observedStats=list(cov=covData, means=meanData))
 	}
 	return(mdata)
 }

@@ -67,4 +67,4 @@ omxCheckCloseEnough(results$output$estimate[3],
 data$z <- mxFactor(z, levels=1:4, labels=c("a",'b','c','d'))
 model <- mxModel(model, mxData(data, "raw"))
 result <- omxCheckWarning(mxRun(model),
-                          "Non Linear Definition.data: definition variable 'z' is a factor; note that it will be treated as integer (as is done by ?unclass). Is this really what you want to do? Really?")
+                          "Non Linear Definition.data: definition variable 'z' is of type 'ordered factor'; note that it will be treated as integer (as is done by ?unclass). Is this really what you want to do? Really?")

@@ -353,16 +353,19 @@ void omxRAMExpectation::init() {
 void omxRAMExpectation::studyF()
 {
 	auto dataColumns = super::getDataColumns();
+	auto origDataColumnNames = super::getDataColumnNames();
 	auto origThresholdInfo = super::getThresholdInfo();
 	EigenMatrixAdaptor eF(F);
 	latentFilter.assign(eF.cols(), false);
 	dataCols.resize(eF.rows());
+	dataColNames.resize(eF.rows(), 0);
 	if (!eF.rows()) return;  // no manifests
 	for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
 		int dest;
 		double isManifest = eF.col(cx).maxCoeff(&dest);
 		latentFilter[cx] = isManifest;
 		if (isManifest) {
+			dataColNames[dx] = origDataColumnNames[dest];
 			int newDest = dataColumns.size()? dataColumns[dest] : dest;
 			dataCols[dx] = newDest;
 			if (origThresholdInfo.size()) {

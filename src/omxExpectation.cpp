@@ -31,6 +31,7 @@
 **********************************************************/
 
 #include "omxExpectation.h"
+#include "glue.h"
 #include "EnableWarnings.h"
 
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
@@ -159,6 +160,9 @@ void omxExpectation::loadFromR()
 	int numCols=0;
 	bool isRaw = strEQ(omxDataType(data), "raw");
 	if (isRaw || data->hasSummaryStats()) {
+		ProtectedSEXP Rdcn(R_do_slot(rObj, Rf_install("dataColumnNames")));
+		loadCharVecFromR(name, Rdcn, dataColumnNames);
+
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
@@ -244,6 +248,9 @@ void omxCompleteExpectation(omxExpectation *ox) {
 		mxLogBig(msg);
 	}
 }
+
+const std::vector<const char *> &omxExpectation::getDataColumnNames() const
+{ return dataColumnNames; }
 
 const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataColumns()
 {
