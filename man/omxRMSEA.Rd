@@ -29,7 +29,7 @@ omxRMSEA(model, lower=.025, upper=.975, null=.05, ...)
 
 
 \arguments{
-   \item{model}{An MxModel object for which the RMSEA is desried}
+   \item{model}{An MxModel object for which the RMSEA is desired}
    \item{lower}{The lower confidence bound for the confidence interval}
    \item{upper}{The upper confidence bound for the confidence interval}
    \item{null}{Value of RMSEA used to test for close fit}

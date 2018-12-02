@@ -34,7 +34,7 @@ omxGraphviz(model, dotFilename = "")
 }
 
 \value{
-   Invisibly returns a string containing the model description in graphviz format.
+   Invisibly returns a string containing the model description in Graphviz format.
 }
 
 

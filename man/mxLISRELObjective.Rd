@@ -50,7 +50,7 @@ mxLISRELObjective(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
 }
 
 \details{
-Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxLISRELObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by LInear Structual RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
+Objective functions are functions for which free parameter values are chosen such that the value of the objective function is minimized. The mxLISRELObjective provides maximum likelihood estimates of free parameters in a model of the covariance of a given \link{MxData} object. This model is defined by LInear Structural RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
 
 The full LISREL specification has 13 matrices and is sometimes called the extended LISREL model.  It is defined by the following equations.
 

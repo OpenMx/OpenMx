@@ -70,8 +70,8 @@ The mxData function creates \link{MxData} objects, which can be used as argument
   involving means.  \sQuote{thresholds} should be included for
   estimation involving thresholds and ordinal variables. \sQuote{acov}
   is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for
-  daigonally weighted least squares. \sQuote{fullWeight} (optional) is
-  the complete aymptotic weight matrix (all entries non-zero). Data of this
+  diagonally weighted least squares. \sQuote{fullWeight} (optional) is
+  the complete asymptotic weight matrix (all entries non-zero). Data of this
   type almost certainly use the \link{mxFitFunctionWLS} function, but
   may depend on the specified model.}
 }

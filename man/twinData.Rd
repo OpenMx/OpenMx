@@ -23,7 +23,7 @@ Questionnaires were mailed to 5,967 pairs age 18 years and over. These data cons
 
 It is a wide dataset, with two individuals per line. Families are identified by the variable \dQuote{fam}.
 
-Data include zygosity (zyg), along with heights in metres, weights in
+Data include zygosity (zyg), along with heights in meters, weights in
 kg, and the derived variables BMI in kg/m^2 (stored as \dQuote{htwt1}
 and \dQuote{htwt2}), as well as the 7 times the natural log of this variable,
 stored as bmi1 and bmi2. The logged values are more closely
