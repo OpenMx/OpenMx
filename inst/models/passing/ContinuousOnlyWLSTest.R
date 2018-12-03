@@ -35,6 +35,9 @@
 require(OpenMx)
 data(Bollen)
 
+got <- mxGenerateData(Bollen[, 1:8], nrows=10)
+omxCheckEquals(nrow(got), 10)
+
 #--------------------------------------
 # Set up  model matrices
 
