@@ -65,7 +65,7 @@ twoplModel<-mxRun(twoplModel)
 omxCheckCloseEnough(k0Model$output$fit,twoplModel$output$fit,.0001)
 
 ################################################################################
-## k=1 is 3rd order polynomial. Test w/ priors vs. hardcoded param estimates
+## k=1 is 3rd order polynomial. Test w/ priors vs. hard-coded param estimates
 ## obtained from CFF's own estimation code
 
 k<-1

@@ -99,7 +99,7 @@ findDataForSubmodel <- function(model, subname, defaultData=NULL) {
 	c()
 }
 
-##' Remove heirarchical structure from model
+##' Remove hierarchical structure from model
 ##'
 ##' @param model model
 ##' @param namespace namespace

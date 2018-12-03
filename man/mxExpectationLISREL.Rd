@@ -52,7 +52,7 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
 }
 
 \details{
-Expectation functions define the way that model expectations are calculated. The mxExpectationLISREL calculates the expected covariance and means of a given \link{MxData} object given a LISREL model. This model is defined by LInear Structual RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
+Expectation functions define the way that model expectations are calculated. The mxExpectationLISREL calculates the expected covariance and means of a given \link{MxData} object given a LISREL model. This model is defined by LInear Structural RELations (LISREL; J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog & S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, 1982, 1996).  Arguments 'LX' through 'AL' must refer to \link{MxMatrix} objects with the associated properties of their respective matrices in the LISREL modeling approach.
 
 The full LISREL specification has 13 matrices and is sometimes called the extended LISREL model.  It is defined by the following equations.
 
