@@ -2042,15 +2042,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		}
 	}
 
-	o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
-	EigenMatrixAdaptor Ethr(o1.thresholdMat);
-	Ethr.setConstant(NA_REAL);
-	for (int yy=0; yy < numCols; ++yy) {
-		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
-		if (cd.type == COLUMNDATA_NUMERIC) continue;
-		WLSVarData &pv = o1.perVar[yy];
-		auto &tc = o1.thresholdCols[yy];
-		Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
+	if (o1.numOrdinal) {
+		o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
+		EigenMatrixAdaptor Ethr(o1.thresholdMat);
+		Ethr.setConstant(NA_REAL);
+		for (int yy=0; yy < numCols; ++yy) {
+			ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
+			if (cd.type == COLUMNDATA_NUMERIC) continue;
+			WLSVarData &pv = o1.perVar[yy];
+			auto &tc = o1.thresholdCols[yy];
+			Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
+		}
 	}
 
 	int pstar = triangleLoc1(numCols-1);
