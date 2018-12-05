@@ -289,6 +289,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
 				Rf_error("%s: observedStats$cov must have colnames", name);
+		} else if (strEQ(key, "slope")) {
+			o1.slopeMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			if (int(o1.slopeMat->colnames.size()) != o1.slopeMat->cols)
+				Rf_error("%s: observedStats$slope must have colnames", name);
 		} else if (strEQ(key, "means")) {
 			o1.meansMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 		} else if (strEQ(key, "acov")) {
@@ -299,7 +303,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			o1.numOrdinal = o1.thresholdMat->cols;
 			if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
-				Rf_error("%s: observedStats$thresholdMat must have colnames", name);
+				Rf_error("%s: observedStats$thresholds must have colnames", name);
 		} else {
 			Rf_warning("%s: observedStats key '%s' ignored", name, key);
 		}
@@ -329,7 +333,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				}
 				o1.thresholdCols.push_back(tc);
 			}
-			if (foundOrd != o1.numOrdinal) Rf_error("%s: cannot match all thresholdMat columns", name);
+			if (foundOrd != o1.numOrdinal) Rf_error("%s: cannot match all threshold columns", name);
 		}
 	}
 	{
@@ -440,6 +444,7 @@ void omxData::freeInternal()
 obsSummaryStats::~obsSummaryStats()
 {
 	omxFreeMatrix(covMat);
+	omxFreeMatrix(slopeMat);
 	omxFreeMatrix(meansMat);
 	omxFreeMatrix(acovMat);
 	if (acovMat != fullWeight) omxFreeMatrix(fullWeight);
@@ -913,13 +918,25 @@ static int plookup(ColMapType &map, const char *str)
 	return it->second;
 }
 
-void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *> &dc)
+void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *> &dc,
+				  std::vector<int> &exoPred)
 {
 	covMat->colnames.resize(covMat->cols);
 	covMat->rownames.resize(covMat->cols);
 	for (int cx=0; cx < covMat->cols; ++cx) {
 		covMat->colnames[cx] = dc[cx];
 		covMat->rownames[cx] = dc[cx];
+	}
+
+	if (slopeMat) {
+		slopeMat->colnames.resize(exoPred.size());
+		for (int cx=0; cx < int(exoPred.size()); ++cx) {
+			slopeMat->colnames[cx] = data->columnName(exoPred[cx]);
+		}
+		slopeMat->rownames.resize(covMat->cols);
+		for (int cx=0; cx < covMat->cols; ++cx) {
+			slopeMat->rownames[cx] = dc[cx];
+		}
 	}
 
 	if (thresholdMat) {
@@ -1070,6 +1087,7 @@ void obsSummaryStats::log()
 {
 	mxLog("numObs %d numOrdinal %d", numObs, numOrdinal);
 	if (covMat) omxPrint(covMat, "cov");
+	if (slopeMat) omxPrint(slopeMat, "slope");
 	if (meansMat) omxPrint(meansMat, "mean");
 	if (acovMat) omxPrint(acovMat, "acov");
 	if (fullWeight && acovMat != fullWeight) omxPrint(fullWeight, "full");
@@ -1085,63 +1103,13 @@ void omxData::reportResults(MxRList &out)
 	auto &o1 = *oss;
 	if (!o1.output) return;
 
-	if (1) {
-		EigenMatrixAdaptor Ecov(o1.covMat);
-		SEXP Rcov = Rf_protect(Rcpp::wrap(Ecov));
-		SEXP dimnames, names;
-		Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
-		Rf_protect(names = Rf_allocVector(STRSXP, o1.covMat->colnames.size()));
-		for (int cx=0; cx < int(o1.covMat->colnames.size()); ++cx) {
-			SET_STRING_ELT(names, cx, Rf_mkChar(o1.covMat->colnames[cx]));
-		}
-		SET_VECTOR_ELT(dimnames, 0, names);
-		SET_VECTOR_ELT(dimnames, 1, names);
-		Rf_setAttrib(Rcov, R_DimNamesSymbol, dimnames);
-		out.add("cov", Rcov);
-	}
-	if (o1.meansMat) {
-		EigenMatrixAdaptor Emean(o1.meansMat);
-		out.add("means", Rcpp::wrap(Emean));
-	}
-	if (o1.acovMat) {
-		EigenMatrixAdaptor Eacov(o1.acovMat);
-		SEXP Racov = Rcpp::wrap(Eacov);
-		if (o1.acovMat->colnames.size()) {
-			SEXP dimnames, names;
-			Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
-			Rf_protect(names = Rf_allocVector(STRSXP, o1.acovMat->colnames.size()));
-			for (int cx=0; cx < int(o1.acovMat->colnames.size()); ++cx) {
-				SET_STRING_ELT(names, cx, Rf_mkChar(o1.acovMat->colnames[cx]));
-			}
-			SET_VECTOR_ELT(dimnames, 0, names);
-			SET_VECTOR_ELT(dimnames, 1, names);
-			Rf_setAttrib(Racov, R_DimNamesSymbol, dimnames);
-		}
-		out.add("acov", Racov);
-	}
-	if (o1.fullWeight) {
-		EigenMatrixAdaptor Efw(o1.fullWeight);
-		out.add("fullWeight", Rcpp::wrap(Efw));
-	}
-	if (o1.thresholdMat) {
-		EigenMatrixAdaptor Ethr(o1.thresholdMat);
-		SEXP Rthr = Rcpp::wrap(Ethr);
-		SEXP dimnames, colnames, rownames;
-		Rf_protect(dimnames = Rf_allocVector(VECSXP, 2));
-		Rf_protect(colnames = Rf_allocVector(STRSXP, Ethr.cols()));
-		for (int cx=0; cx < o1.thresholdMat->cols; ++cx) {
-			SET_STRING_ELT(colnames, cx, Rf_mkChar(o1.thresholdMat->colnames[cx]));
-		}
-		Rf_protect(rownames = Rf_allocVector(STRSXP, Ethr.rows()));
-		for (int rx=0; rx < Ethr.rows(); ++rx) {
-			std::string rn = string_snprintf("t%d", 1+rx);
-			SET_STRING_ELT(rownames, rx, Rf_mkChar(rn.c_str()));
-		}
-		SET_VECTOR_ELT(dimnames, 0, rownames);
-		SET_VECTOR_ELT(dimnames, 1, colnames);
-		Rf_setAttrib(Rthr, R_DimNamesSymbol, dimnames);
-		out.add("thresholds", Rthr);
-	}
+	out.add("cov", o1.covMat->asR());
+
+	if (o1.meansMat) out.add("means", o1.meansMat->asR());
+	if (o1.acovMat) out.add("acov", o1.acovMat->asR());
+	if (o1.slopeMat) out.add("slope", o1.slopeMat->asR());
+	if (o1.fullWeight) out.add("fullWeight", o1.fullWeight->asR());
+	if (o1.thresholdMat) out.add("thresholds", o1.thresholdMat->asR());
 }
 
 template <typename T>
@@ -1531,7 +1499,7 @@ void regressOrdinalThresholds(const Eigen::MatrixBase<T1> &pred,
 	Eigen::Map< Eigen::VectorXi > ycol(oc.intData, rows);
 	for (int rx=0; rx < rows; ++rx) {
 		double eta = 0;
-		if (pred.cols()) pred.row(rx) * ov.theta.matrix().segment(numThr, pred.cols());
+		if (pred.cols()) eta = pred.row(rx) * ov.theta.matrix().segment(numThr, pred.cols());
 		zi(rx,0) = std::min(INF, th[ycol[rx]] - eta);
 		zi(rx,1) = std::max(NEG_INF, th[ycol[rx]-1] - eta);
 	}
@@ -1596,9 +1564,8 @@ struct PolyserialCor : UnconstrainedObjective {
 		for (int rx=0; rx < rows; ++rx) {
 			pr[rx] = Rf_pnorm5(tau(rx,0), 0., 1., 1, 0) - Rf_pnorm5(tau(rx,1), 0., 1., 1, 0);
 		}
-		pr.max(std::numeric_limits<double>::epsilon());
-		double fit = -pr.log().sum();
-		// py1 <- dnorm(Y1, mean=y1.ETA, sd=y1.SD) <-- is constant
+		Eigen::ArrayXd pr2 = pr.max(std::numeric_limits<double>::epsilon());
+		double fit = -pr2.log().sum();
 		return fit;
 	}
 	virtual void getGrad(const double *_x, double *grad)
@@ -1909,7 +1876,7 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred)
 {
 	_prepObsStats(state, dc, exoPred);
-	oss->setDimnames(this, dc);
+	oss->setDimnames(this, dc, exoPred);
 }
 
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
@@ -1955,6 +1922,9 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		auto &e1 = rawCols[ exoPred[cx] ];
 		Eigen::Map< Eigen::VectorXd > vec(e1.realData, o1.numObs);
 		pred.col(cx) = vec;
+	}
+	if (exoPred.size()) {
+		o1.slopeMat = omxInitMatrix(numCols, exoPred.size(), state);
 	}
 
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
@@ -2012,8 +1982,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			Emean[yy] = pv.theta[0];
 			o1.SC_TH.block(0,thrOffset,rows,1) = 
 				olsr.scores.block(0,0,rows,1);
-			for (int px=0; px < pred.cols(); ++px)
-				o1.SC_SL.col(yy+numCols*px) = olsr.scores.col(1+px);
+			if (pred.cols()) {
+				EigenMatrixAdaptor Eslope(o1.slopeMat);
+				Eslope.row(yy) = olsr.beta.segment(1,pred.cols());
+				for (int px=0; px < pred.cols(); ++px)
+					o1.SC_SL.col(yy+numCols*px) = olsr.scores.col(1+px);
+			}
 			o1.SC_VAR.block(0,contOffset,rows,1) = 
 				olsr.scores.block(0,1+pred.cols(),rows,1);
 			contOffset += 1;
@@ -2036,8 +2010,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			Emean[yy] = 0.;
 			o1.SC_TH.block(0,thrOffset,rows,pr.numThr) = 
 				pr.scores.block(0,0,rows,pr.numThr);
-			for (int px=0; px < pred.cols(); ++px)
-				o1.SC_SL.col(yy+numCols*px) = pr.scores.col(pr.numThr+px);
+			if (pred.cols()) {
+				EigenMatrixAdaptor Eslope(o1.slopeMat);
+				Eslope.row(yy) = pr.param.segment(pr.numThr, pred.cols());
+				for (int px=0; px < pred.cols(); ++px)
+					o1.SC_SL.col(yy+numCols*px) = pr.scores.col(pr.numThr+px);
+			}
 			thrOffset += pr.numThr;
 		}
 	}

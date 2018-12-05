@@ -1092,3 +1092,36 @@ void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat)
 	}
 	mat.derived() = svd.matrixV() * sv.asDiagonal() * svd.matrixU().transpose();
 }
+
+SEXP omxMatrix::asR()
+{
+	int m = rows, n = cols;
+	ProtectedSEXP ans(Rcpp::wrap(data, data + m * n));
+	ProtectedSEXP dd(Rf_allocVector(INTSXP, 2));
+	int *d = INTEGER(dd);
+	d[0] = m;
+	d[1] = n;
+	Rf_setAttrib(ans, R_DimSymbol, dd);
+	bool validColnames = int(colnames.size()) == cols;
+	bool validRownames = int(rownames.size()) == rows;
+	if (validRownames || validColnames) {
+		ProtectedSEXP dimnames(Rf_allocVector(VECSXP, 2));
+		if (validRownames) {
+			ProtectedSEXP names(Rf_allocVector(STRSXP, rows));
+			for (int dx=0; dx < rows; ++dx) {
+				SET_STRING_ELT(names, dx, Rf_mkChar(rownames[dx]));
+			}
+			SET_VECTOR_ELT(dimnames, 0, names);
+		}
+		if (validColnames) {
+			ProtectedSEXP names(Rf_allocVector(STRSXP, cols));
+			for (int dx=0; dx < cols; ++dx) {
+				SET_STRING_ELT(names, dx, Rf_mkChar(colnames[dx]));
+			}
+			SET_VECTOR_ELT(dimnames, 1, names);
+		}
+		Rf_setAttrib(ans, R_DimNamesSymbol, dimnames);
+	}
+	return ans;
+}
+

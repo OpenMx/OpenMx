@@ -122,6 +122,7 @@ class omxMatrix {
 	bool isSimple() { return !algebra && !fitFunction && populate.size()==0; };
 	void loadFromStream(mini::csv::ifstream &st);
 	int size() const { return rows * cols; }
+	SEXP asR();
 };
 
 void omxEnsureColumnMajor(omxMatrix *mat);
