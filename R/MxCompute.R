@@ -1665,14 +1665,16 @@ setClass(Class = "MxComputeJacobian",
 	contains = "BaseCompute",
 	representation = representation(
 		of = "MxCharOrNumber",
+		data = "MxCharOrNumber",
 		defvar.row = "integer"))
 
 setMethod("initialize", "MxComputeJacobian",
-	  function(.Object, freeSet, of, defvar.row) {
+	  function(.Object, freeSet, of, defvar.row, data) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
 		  .Object@of <- of
+		  .Object@data <- data
 		  .Object@defvar.row <- defvar.row
 		  .Object
 	  })
@@ -1680,7 +1682,7 @@ setMethod("initialize", "MxComputeJacobian",
 setMethod("qualifyNames", signature("MxComputeJacobian"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
-		for (sl in c('of')) {
+		for (sl in c('of','data')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}
 		.Object
@@ -1703,13 +1705,21 @@ setMethod("convertForBackend", signature("MxComputeJacobian"),
 				.Object@of <- algNum - 1L
 			}
 		}
+		if (any(!is.integer(.Object@data))) {
+			dataNum <- match(.Object@data, names(flatModel@datasets))
+			if (any(is.na(dataNum))) {
+				stop(paste(class(.Object), omxQuotes(.Object@data),
+					   "not recognized as MxData"))
+			}
+			.Object@data <- dataNum - 1L
+		}
 		.Object
 	})
 
 mxComputeJacobian <-
-	function(freeSet=NA_character_, ..., of="expectation", defvar.row=1L)
+	function(freeSet=NA_character_, ..., of="expectation", defvar.row=1L, data='data')
 {
-	new("MxComputeJacobian", freeSet, of, as.integer(defvar.row))
+	new("MxComputeJacobian", freeSet, of, as.integer(defvar.row), data)
 }
 
 #----------------------------------------------------
