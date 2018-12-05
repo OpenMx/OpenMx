@@ -2194,6 +2194,16 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		}
 	}
 
+	if (1) {
+		Eigen::MatrixXd covCopy = Ecov;
+		int info;
+		char uplo = 'L';
+		F77_CALL(dpotrf)(&uplo, &numCols, covCopy.data(), &numCols, &info);
+		if (info < 0) Rf_error("Arg %d is invalid", -info);
+		if (info > 0) Rf_warning("%s: marginal covariance matrix "
+					 "is non-positive definite", name);
+	}
+
 	// Small optimization opportunity:
 	// We could avoid above score computations if !wlsFullWeight
 	if (!wlsFullWeight) return;
