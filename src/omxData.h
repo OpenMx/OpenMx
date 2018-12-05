@@ -94,6 +94,7 @@ struct ColumnData {
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
 
 struct WLSVarData {
+	int naCount;
 	Eigen::ArrayXd theta;
 	// OLS
 	Eigen::ArrayXd resid;
