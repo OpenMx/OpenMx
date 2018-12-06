@@ -1706,18 +1706,22 @@ setMethod("convertForBackend", signature("MxComputeJacobian"),
 			}
 		}
 		if (any(!is.integer(.Object@data))) {
-			dataNum <- match(.Object@data, names(flatModel@datasets))
-			if (any(is.na(dataNum))) {
-				stop(paste(class(.Object), omxQuotes(.Object@data),
-					   "not recognized as MxData"))
+			if (is.na(.Object@defvar.row)) {
+				.Object@data <- as.integer(NA)
+			} else {
+				dataNum <- match(.Object@data, names(flatModel@datasets))
+				if (any(is.na(dataNum))) {
+					stop(paste(class(.Object), omxQuotes(.Object@data),
+						"not recognized as MxData"))
+				}
+				.Object@data <- dataNum - 1L
 			}
-			.Object@data <- dataNum - 1L
 		}
 		.Object
 	})
 
 mxComputeJacobian <-
-	function(freeSet=NA_character_, ..., of="expectation", defvar.row=1L, data='data')
+	function(freeSet=NA_character_, ..., of="expectation", defvar.row=as.integer(NA), data='data')
 {
 	new("MxComputeJacobian", freeSet, of, as.integer(defvar.row), data)
 }

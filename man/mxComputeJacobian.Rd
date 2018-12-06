@@ -3,7 +3,8 @@
 \alias{MxComputeJacobian-class}
 \title{Numerically estimate the Jacobian with respect to free parameters}
 \usage{
-mxComputeJacobian(freeSet=NA_character_, ..., of = "expectation", defvar.row=1L, data='data')
+mxComputeJacobian(freeSet=NA_character_, ..., of = "expectation",
+ defvar.row=as.integer(NA), data='data')
 }
 \arguments{
 \item{freeSet}{names of matrices containing free variables}
