@@ -480,7 +480,7 @@ class AssertProtectStackBalanced {
  public:
  	AssertProtectStackBalanced(const char *_context,
 			    ProtectAutoBalanceDoodad &_myDoodad) :
-	context(_context), myDoodad(_myDoodad) {
+	myDoodad(_myDoodad), context(_context) {
 		preDepth = myDoodad.getDepth();
 	};
 	~AssertProtectStackBalanced() {
