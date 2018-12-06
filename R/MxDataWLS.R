@@ -412,9 +412,10 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 }
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
-		      suppressWarnings = TRUE, allContinuousMethod="cumulants", ...,
+		      suppressWarnings = TRUE, allContinuousMethod=c("cumulants", "marginals"), ...,
 		      silent=!interactive(), .oldMethod=FALSE, verbose=0L) {
 	garbageArguments <- list(...)
+	allContinuousMethod <- match.arg(allContinuousMethod)
 	if (length(garbageArguments) > 0) {
 		stop("mxDataWLS does not accept values for the '...' argument")
 	}
