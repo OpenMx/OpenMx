@@ -94,6 +94,7 @@ struct ColumnData {
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
 
 struct WLSVarData {
+	int naCount;
 	Eigen::ArrayXd theta;
 	// OLS
 	Eigen::ArrayXd resid;
@@ -106,6 +107,7 @@ class obsSummaryStats {
 	int numObs;
 	int numOrdinal;  // == thresholdMat->cols or 0 if null
 	omxMatrix* covMat;
+	omxMatrix *slopeMat; // manifest by exo predictor matrix
 	omxMatrix* meansMat;
 	omxMatrix* acovMat;			// The asymptotic covariance
 	omxMatrix *fullWeight;
@@ -119,10 +121,10 @@ class obsSummaryStats {
 	Eigen::ArrayXXd SC_TH;
 	Eigen::ArrayXXd SC_COR;
 
- 	obsSummaryStats() : output(false), numObs(0), numOrdinal(0), covMat(0), meansMat(0),
+	obsSummaryStats() : output(false), numObs(0), numOrdinal(0), covMat(0), slopeMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0) {};
 	~obsSummaryStats();
-	void setDimnames(omxData *data, const std::vector<const char *> &dc);
+	void setDimnames(omxData *data, const std::vector<const char *> &dc, std::vector<int> &exoPred);
 	void permute(omxData *data, const std::vector<const char *> &dc);
 	void log();
 };

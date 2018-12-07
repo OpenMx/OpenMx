@@ -30,16 +30,12 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* B;
 	int numOrdinal;
 	
-	omxWLSFitFunction() :standardMeans(0), standardThresholds(0) {};
+	omxWLSFitFunction() {};
 	virtual ~omxWLSFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
 	
-	// 'standard' prefix variables are temp space used by flattenDataToVector
-	omxMatrix* standardCov;
-	omxMatrix* standardMeans;
-	omxMatrix* standardThresholds;
 	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
 				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
 };
@@ -60,9 +56,6 @@ omxWLSFitFunction::~omxWLSFitFunction()
 	omxFreeMatrix(owo->expectedFlattened);
 	omxFreeMatrix(owo->B);
 	omxFreeMatrix(owo->P);
-	omxFreeMatrix(owo->standardCov);
-	omxFreeMatrix(owo->standardMeans);
-	omxFreeMatrix(owo->standardThresholds);
 }
 
 
@@ -267,7 +260,6 @@ void omxWLSFitFunction::init()
 	}
 	
 	/* Error check weight matrix size */
-	int ncol = cov->cols;
 	int vectorSize = expectation->numSummaryStats();
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
@@ -292,13 +284,6 @@ void omxWLSFitFunction::init()
 	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
 	newObj->P = omxInitMatrix(1, vectorSize, TRUE, currentState);
 	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
-	newObj->standardCov = omxInitMatrix(ncol, ncol, TRUE, currentState);
-	if (oo->expectation->thresholdsMat) {
-		newObj->standardThresholds = omxInitMatrix(oo->expectation->thresholdsMat->rows, oo->expectation->thresholdsMat->cols, TRUE, currentState);
-	}
-	if(means){
-		newObj->standardMeans = omxInitMatrix(1, ncol, TRUE, currentState);
-	}
 	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
 		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
 		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {

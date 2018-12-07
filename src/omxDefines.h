@@ -302,6 +302,44 @@ void subsetVector(const Eigen::MatrixBase<T1> &gmean, T2 includeTest,
 	}
 }
 
+template <typename T1, typename T2, typename T3>
+void subsetVector(const Eigen::MatrixBase<T1> &in, T2 filter, Eigen::MatrixBase<T3> &out)
+{
+	int ox = 0;
+	for (int ix=0; ix < in.size(); ++ix) {
+		if (!filter(ix)) continue;
+		out[ox++] = in[ix];
+	}
+}
+
+template <typename T1, typename T2, typename T3>
+void subsetVector(const Eigen::ArrayBase<T1> &in, T2 filter, Eigen::ArrayBase<T3> &out)
+{
+	int ox = 0;
+	for (int ix=0; ix < in.size(); ++ix) {
+		if (!filter(ix)) continue;
+		out[ox++] = in[ix];
+	}
+}
+
+template <typename T1, typename T2>
+void subsetVectorStore(Eigen::MatrixBase<T1> &in, T2 filter, double val)
+{
+	for (int ix=0; ix < in.size(); ++ix) {
+		if (!filter(ix)) continue;
+		in[ix] = val;
+	}
+}
+
+template <typename T1, typename T2>
+void subsetVectorStore(Eigen::ArrayBase<T1> &in, T2 filter, double val)
+{
+	for (int ix=0; ix < in.size(); ++ix) {
+		if (!filter(ix)) continue;
+		in[ix] = val;
+	}
+}
+
 template <typename T2, typename T4, typename T5>
 void subsetCovarianceStore(Eigen::MatrixBase<T2> &gcov,
 		      T5 includeTest, const Eigen::MatrixBase<T4> &cov)
@@ -442,7 +480,7 @@ class AssertProtectStackBalanced {
  public:
  	AssertProtectStackBalanced(const char *_context,
 			    ProtectAutoBalanceDoodad &_myDoodad) :
-	context(_context), myDoodad(_myDoodad) {
+	myDoodad(_myDoodad), context(_context) {
 		preDepth = myDoodad.getDepth();
 	};
 	~AssertProtectStackBalanced() {

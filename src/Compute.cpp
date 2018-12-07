@@ -1789,6 +1789,7 @@ class ComputeJacobian : public omxCompute {
 	typedef omxCompute super;
 	std::vector<omxExpectation *> exList;
 	std::vector<omxMatrix *> alList;
+	omxData *data;
 	ParJacobianSense sense;
 
  public:
@@ -3178,6 +3179,11 @@ void ComputeJacobian::initFromFrontend(omxState *state, SEXP rObj)
 		sense.attach(0, &alList);
 	}
 
+	data = 0;
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
+	int objNum = Rf_asInteger(Rdata);
+	if (objNum != NA_INTEGER) data = state->dataList[objNum];
+
 	ProtectedSEXP Rdefvar_row(R_do_slot(rObj, Rf_install("defvar.row")));
 	sense.defvar_row = Rf_asInteger(Rdefvar_row);
 }
@@ -3186,6 +3192,9 @@ void ComputeJacobian::computeImpl(FitContext *fc)
 {
 	int numFree = fc->calcNumFree();
 	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
+	if (sense.defvar_row != NA_INTEGER) {
+		data->loadDefVars(fc->state, sense.defvar_row - 1);
+	}
 	sense.measureRef(fc);
 	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, sense.result);
 }

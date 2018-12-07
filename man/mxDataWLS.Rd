@@ -28,7 +28,7 @@
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
     fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
-   "cumulants", ..., silent=!interactive(), .oldMethod = FALSE, verbose=0L)
+   c("cumulants", "marginals"), ..., silent=!interactive(), .oldMethod = FALSE, verbose=0L)
 }
 
 \arguments{

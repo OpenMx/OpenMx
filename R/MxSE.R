@@ -43,6 +43,7 @@
 ##' message-printing is suppressed.
 ##' @param ... further named arguments passed to \code{\link{mxEval}}
 ##' @param defvar.row which row to load for any definition variables
+##' @param data name of data from which to load definition variables
 ##' 
 ##' @details
 ##' x can be the name of an algebra, a bracket address, named entity
@@ -83,7 +84,8 @@
 ##' m1 = mxRun(m1)
 ##' mxSE(lambda5, model = m1)
 ##' mxSE(lambda1^2, model = m1)
-mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..., defvar.row=1L){
+mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ...,
+		 defvar.row=as.integer(NA), data='data'){
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	if(isCallEtc && !forceName){
 		if(!silent){message('Treating first argument as an expression')}
@@ -128,7 +130,7 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	}
 	
 	covParam <- ParamsCov
-	jModel <- mxModel(model, mxComputeJacobian(of=x, defvar.row=defvar.row))
+	jModel <- mxModel(model, mxComputeJacobian(of=x, defvar.row=defvar.row, data=data))
 	jModel <- mxRun(jModel, silent=TRUE)
 	jacTrans <- jModel$compute$output$jacobian
 	covSparam <- jacTrans %*% covParam %*% t(jacTrans)
