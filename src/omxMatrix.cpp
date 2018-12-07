@@ -524,6 +524,13 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 	}
 }
 
+void omxMatrix::addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow, int destCol)
+{
+	if (!from->hasMatrixNumber) Rf_error("omxMatrix::addPopulate %s must have matrix number",
+					     from->name());
+	populate.emplace_back(from->matrixNumber, srcRow, srcCol, destRow, destCol);
+}
+
 void omxMatrix::unshareMemoryWithR()
 {
 	if (!owner) return;

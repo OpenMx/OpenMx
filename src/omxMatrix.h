@@ -42,6 +42,9 @@ struct populateLocation {
 	int srcRow, srcCol;
 	int destRow, destCol;
 
+	populateLocation() {};
+	populateLocation(int _from, int _srcRow, int _srcCol, int _destRow, int _destCol)
+	: from(_from), srcRow(_srcRow), srcCol(_srcCol), destRow(_destRow), destCol(_destCol) {};
 	void transpose() { std::swap(destRow, destCol); }
 };
 
@@ -66,6 +69,7 @@ class omxMatrix {
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
 	bool dependsOnDefinitionVariables() const { return dependsOnDefVarCache; };
 	bool hasPopulateSubstitutions() const { return populate.size(); };
+	void addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow, int destCol);
 	void transposePopulate();
 	void setJoinInfo(SEXP Rmodel, SEXP Rkey);
 	void omxProcessMatrixPopulationList(SEXP matStruct);

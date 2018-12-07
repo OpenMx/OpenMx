@@ -23,6 +23,7 @@ struct omxWLSFitFunction : omxFitFunction {
 
 	omxMatrix* expectedCov;
 	omxMatrix* expectedMeans;
+	omxMatrix* expectedSlope;
 	omxMatrix* observedFlattened;
 	omxMatrix* expectedFlattened;
 	omxMatrix* weights;
@@ -36,15 +37,16 @@ struct omxWLSFitFunction : omxFitFunction {
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
 	
-	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
+	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope, omxMatrix *thresholdMat,
 				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
 };
 
-void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *thresholdMat,
+void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope,
+					    omxMatrix *thresholdMat,
 			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector)
 {
 	EigenVectorAdaptor vec1(vector);
-	normalToStdVector(cov, means, thresholdMat, numOrdinal, thresholds, vec1);
+	normalToStdVector(cov, means, slope, thresholdMat, numOrdinal, thresholds, vec1);
 }
 
 omxWLSFitFunction::~omxWLSFitFunction()
@@ -86,7 +88,7 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	
 	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
 	
-	flattenDataToVector(eCov, eMeans, expThresholdsMat, eThresh, eFlat);
+	flattenDataToVector(eCov, eMeans, expectedSlope, expThresholdsMat, eThresh, eFlat);
 	
 	omxCopyMatrix(B, oFlat);
 	
@@ -190,6 +192,8 @@ void omxWLSFitFunction::init()
 	
 	omxData* dataMat = oo->expectation->data;
 
+	expectedSlope = omxGetExpectationComponent(expectation, "slope");
+
 	std::vector<int> exoPred;
 	expectation->getExogenousPredictors(exoPred);
 
@@ -291,8 +295,10 @@ void omxWLSFitFunction::init()
 		}
 	}
 	
-	flattenDataToVector(cov, means, obsThresholdsMat, oThresh, newObj->observedFlattened);
+	flattenDataToVector(cov, means, obsStat.slopeMat, obsThresholdsMat,
+			    oThresh, newObj->observedFlattened);
 	if(OMX_DEBUG) {omxPrintMatrix(newObj->observedFlattened, "....WLS Observed Vector: "); }
-	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans, oo->expectation->thresholdsMat,
+	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans,
+			    newObj->expectedSlope, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
 }

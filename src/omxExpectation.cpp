@@ -327,15 +327,20 @@ int omxExpectation::numSummaryStats()
 
 	omxMatrix *mean = getComponent("means");
 
+	int count = 0;
+
+	omxMatrix *slope = getComponent("slope");
+	if (slope) count += slope->rows * slope->cols;
+
 	auto &ti = getThresholdInfo();
 	if (ti.size() == 0) {
 		// all continuous
-		int count = triangleLoc1(cov->rows);
+		count += triangleLoc1(cov->rows);
 		if (mean) count += cov->rows;
 		return count;
 	}
 
-	int count = triangleLoc1(cov->rows - 1);  // covariances
+	count += triangleLoc1(cov->rows - 1);  // covariances
 	for (auto &th : ti) {
 		// mean + variance
 		count += th.numThresholds? th.numThresholds : 2;
@@ -344,15 +349,15 @@ int omxExpectation::numSummaryStats()
 	return count;
 }
 
-void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *thr,
+void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, omxMatrix *thr,
 		       int numOrdinal, std::vector< omxThresholdColumn > &ti,
 		       Eigen::Ref<Eigen::VectorXd> out)
 {
 	// order of elements: (c.f. lav_model_wls, lavaan 0.6-2)
 	// 1. thresholds + means (interleaved)
-	// 2. slopes (if any, columnwise per exo) TODO
+	// 2. slopes (if any, columnwise per exo)
 	// 3. variances (continuous indicators only)
-	// 4. covariances (lower triangle) or correlations? TODO
+	// 4. covariances; not correlations (lower triangle)
 
 	EigenMatrixAdaptor Ecov(cov);
 	if (numOrdinal == 0) {
@@ -361,6 +366,14 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *thr,
 			EigenVectorAdaptor Emean(mean);
 			for (int rx=0; rx < cov->cols; ++rx) {
 				out[dx++] = Emean(rx);
+			}
+		}
+		if (slope) {
+			EigenMatrixAdaptor Eslope(slope);
+			for (int cx=0; cx < Eslope.cols(); ++cx) {
+				for (int rx=0; rx < Eslope.rows(); ++rx) {
+					out[dx++] = Eslope(rx,cx);
+				}
 			}
 		}
 		for (int cx=0; cx < cov->cols; ++cx) {
@@ -393,6 +406,15 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *thr,
 		}
 	}
 	
+	if (slope) {
+		EigenMatrixAdaptor Eslope(slope);
+		for (int cx=0; cx < Eslope.cols(); ++cx) {
+			for (int rx=0; rx < Eslope.rows(); ++rx) {
+				out[dx++] = Eslope(rx,cx);
+			}
+		}
+	}
+
 	Eigen::MatrixXd stdCov(sd * Ecov * sd);
 
 	for (int cx=0; cx < cov->cols; ++cx) {
@@ -417,6 +439,6 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 		Rf_error("%s::asVector is not implemented (for object '%s')", expType, name);
 	}
 
-	normalToStdVector(cov, getComponent("means"), thresholdsMat,
+	normalToStdVector(cov, getComponent("means"), getComponent("slope"), thresholdsMat,
 			  numOrdinal, getThresholdInfo(), out);
 }
