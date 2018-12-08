@@ -53,18 +53,19 @@
 
 \details{
 The mxDataWLS function creates an \link{MxData} object, which can be used in
-\link{MxModel} objects.  This function takes raw data and returns 
-an \code{MxData} object to be used in a model to fit with weighted least squares.
+\link{MxModel} objects.  This function takes raw data and returns an \code{MxData} object to be used in a model to fit with weighted least squares.
 
-Both Ordinal and continuous data are supported.  A combination of these data 
-types also succeeds. Early tests suggested that full 'WLS' might be biased in 
-this joint ordinal and continuous case, whereas 'ULS' and 'DWLS' were unbiased.
-However further investigation revealed that all of these were unbiased when the model is correct, but full
-'WLS' is highly sensitive to model misspecification. Full 'WLS' can heavily weight the
-fourth-order moments of the distribution, so small deviations between the observed 
-fourth-order moments and those implied by the model can lead to poor estimates.
+\strong{Bias and sensitivity to model misspecification}
+Both ordinal and continuous data are supported.  A combination of these data  types also succeeds. All three methods ('WLS', 'ULS' and 'DWLS') are unbiased when the model is correct. Full 'WLS', however, is highly sensitive to model misspecification. It can heavily weight the fourth-order moments of the distribution, so small deviations between the observed fourth-order moments and those implied by the model can lead to poor estimates.
 
-By default when only continuous variables are present, the argument \code{allContinuousMethod} dictates that the asymptotically distribution free (ADF) method of Browne (1984) is used.  This method computes the fourth order \emph{cumulants} for the weight matrix: thus, the name.  The method does not readily handle missing data and does not return weights or summary statistics for the means, but it is generally fast and ADF up to elliptical distributions.  The other option, 'marginals', uses similar methods to the ordinal and joint ordinal-continuous cases.  It does return weights and summary statistics for the means.  When there are any ordinal variables present, \code{allContinuousMethod} is ignored.
+\strong{Behavior with all-continuous data}
+When only continuous variables are present, the argument \code{allContinuousMethod} dictates how to process the data.
+
+The default, \emph{cumulants} is a good choice for non-normal data. This uses the asymptotically distribution free (ADF) method of Browne (1984) and computes the fourth order \emph{cumulants} for the weight matrix: thus, the name.  The \emph{cumulants} method does not readily handle missing data and does not return weights or summary statistics for the means. It is, however generally fast and ADF up to elliptical distributions. Data computed using cumulants should also be more accurate than via marginals because the whole covariance is a single analytic expression, with no estimation is involved. 
+
+The alternative option, 'marginals', uses methods similar to those used in processing ordinal and joint ordinal-continuous data.  By contrast with cumulats, marginals returns weights and summary statistics for the means.
+
+When data are not all continuous, \code{allContinuousMethod} is ignored.
 }
 
 \value{
