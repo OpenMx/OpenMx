@@ -62,3 +62,13 @@ omxCheckCloseEnough(coef(jm1), param, 1e-3)
 param.se <- c(0.0613, 0.1056, 0.0684, 0.0942, 0.0665, 0.0541, 0.0648, 0.0559,  0.0644, 0.1054,
               0.0593, 0.0819, 0.0777, 0.0726, 0.0922, 0.0655,  0.0585)
 omxCheckCloseEnough(c(jm1$output$standardErrors), param.se, 1e-3)
+
+jm2 <- mxModel(jm1, mxFitFunctionML())
+jm2 <- mxRun(jm2)
+summary(jm2)
+
+estCmp <- cbind(coef(jm2), coef(jm1))
+omxCheckCloseEnough(cor(estCmp)[2,1], 1, 1e-4)
+
+seCmp <- cbind(jm2$output$standardErrors, jm1$output$standardErrors)
+omxCheckCloseEnough(cor(seCmp)[2,1], 1, .18)
