@@ -121,12 +121,17 @@ if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
 	    fi
 	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
 	    if [ "x$want" = x ]; then
+		echo "************ ************"
 		echo "WARNING: Cannot verify correct libnpsol.a version"
 		echo "sha1sum libnpsol.a => $got"
+		echo "************ ************"
 		npsol_library="src"
 	    elif [ "x$got" != "x$want" ]; then
 		rm -f src/libnpsol.a
+		echo "************ ************"
 		echo "WARNING: Ignoring bad libnpsol.a from $npsol_url1"
+		echo "Please download $npsol_url1 and rename it to src/libnpsol.a"
+		echo "************ ************"
 	    else
 		echo "sha1sum libnpsol.a => $got   # GOOD"
 		npsol_library="src"

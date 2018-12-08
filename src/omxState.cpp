@@ -963,3 +963,10 @@ void omxFreeVar::copyToState(omxState *os, double val)
 		}
 	}
 }
+
+double omxFreeVar::getCurValue(omxState *os)
+{
+	omxFreeVarLocation &loc = locations[0];
+	EigenMatrixAdaptor Emat(os->matrixList[loc.matrix]);
+	return Emat(loc.row, loc.col);
+}

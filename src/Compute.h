@@ -314,6 +314,8 @@ class FitContext {
 };
 
 void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at);
+void copyParamToModelFake1(omxState *os, Eigen::Ref<Eigen::VectorXd> point);
+void copyParamToModelRestore(omxState *os, const Eigen::Ref<const Eigen::VectorXd> point);
 
 typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
 
@@ -408,6 +410,20 @@ void printSparse(Eigen::SparseMatrixBase<T> &sm) {
 		buf += "\n";
 	}
 	mxLogBig(buf);
+}
+
+template <typename T1>
+void copyParamToModelFake1(omxState *os, Eigen::MatrixBase<T1> &point)
+{
+	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+	size_t numParam = varGroup->vars.size();
+	point.derived().resize(numParam);
+
+	for(size_t k = 0; k < numParam; k++) {
+		omxFreeVar* freeVar = varGroup->vars[k];
+		point[k] = freeVar->getCurValue(os);
+		freeVar->copyToState(os, 1.0);
+	}
 }
 
 #endif

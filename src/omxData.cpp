@@ -807,15 +807,16 @@ bool omxData::loadDefVars(omxState *state, int row)
 {
 	bool changed = false;
 	for (int k=0; k < int(defVars.size()); ++k) {
+		auto &dv = defVars[k];
 		double newDefVar;
-		if (defVars[k].column == weightCol) {
+		if (dv.column == weightCol) {
 			newDefVar = getRowWeight(row);
-		} else if (defVars[k].column == freqCol) {
+		} else if (dv.column == freqCol) {
 			newDefVar = getRowFreq(row);
 		} else {
-			newDefVar = omxDoubleDataElement(this, row, defVars[k].column);
+			newDefVar = omxDoubleDataElement(this, row, dv.column);
 		}
-		changed |= defVars[k].loadData(state, newDefVar);
+		changed |= dv.loadData(state, newDefVar);
 	}
 	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
 	return changed;
@@ -893,7 +894,8 @@ void omxData::prohibitNAdefVar(int col)
 void omxData::loadFakeData(omxState *state, double fake)
 {
 	for (int dx=0; dx < int(defVars.size()); ++dx) {
-		defVars[dx].loadData(state, fake);
+		auto &dv = defVars[dx];
+		dv.loadData(state, fake);
 	}
 }
 

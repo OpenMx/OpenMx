@@ -556,6 +556,8 @@ class omxRAMExpectation : public omxExpectation {
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector<const char *> dataColNames;
 	std::vector< omxThresholdColumn > thresholds;
+	std::vector<int> exoDataColumns; // index into omxData
+	Eigen::VectorXd exoPredMean;
  public:
 	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array
 	typedef std::set< dvRefType > dvRefSetType;
@@ -567,7 +569,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
 
- 	omxRAMExpectation() : Zversion(0), _Z(0) {};
+	omxRAMExpectation() : Zversion(0), _Z(0), slope(0) {};
 	virtual ~omxRAMExpectation();
 
 	omxMatrix *getZ(FitContext *fc);
@@ -576,6 +578,7 @@ class omxRAMExpectation : public omxExpectation {
 	void logDefVarsInfluence();
 
 	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrix *slope;       // exogenous predictor slopes
 	omxMatrix *A, *S, *F, *M, *I;
 	omxMatrix *X, *Y, *Ax;
 
@@ -597,6 +600,7 @@ class omxRAMExpectation : public omxExpectation {
 	bool forceSingleGroup;
 
 	void studyF();
+	void studyExoPred();
 
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);

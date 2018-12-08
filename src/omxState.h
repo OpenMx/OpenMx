@@ -84,6 +84,7 @@ class omxFreeVar {
 	}
 	// Warning: copyToState does not mark matrices dirty
 	void copyToState(omxState *os, double val);
+	double getCurValue(omxState *os);
 	void markDirty(omxState *os);
 };
 

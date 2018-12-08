@@ -140,7 +140,7 @@ omxExpectation *InitMixtureExpectation();
 
 void complainAboutMissingMeans(omxExpectation *off);
 
-void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *thr,
+void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, omxMatrix *thr,
 		       int numOrdinal, std::vector< omxThresholdColumn > &ti,
 		       Eigen::Ref<Eigen::VectorXd> out);
 

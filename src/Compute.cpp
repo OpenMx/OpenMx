@@ -1014,6 +1014,16 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 	}
 }
 
+void copyParamToModelRestore(omxState *os, const Eigen::Ref<const Eigen::VectorXd> point)
+{
+	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+	size_t numParam = varGroup->vars.size();
+	for(size_t k = 0; k < numParam; k++) {
+		omxFreeVar* freeVar = varGroup->vars[k];
+		freeVar->copyToState(os, point[k]);
+	}
+}
+
 void FitContext::copyParamToModelClean()
 {
 	if(numParam == 0) return;
@@ -3265,7 +3275,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				Eigen::VectorXd vec1(sz);
 				exList[ex]->asVector(fc, 0, vec1);
 				exStats.segment(offset, sz) = vec1;
-				normalToStdVector(o1.covMat, o1.meansMat, o1.thresholdMat,
+				normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat, o1.thresholdMat,
 						  o1.numOrdinal, o1.thresholdCols, vec1);
 				obStats.segment(offset, sz) = vec1;
 
