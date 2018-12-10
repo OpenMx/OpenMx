@@ -40,7 +40,7 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0),
-		     wlsType(0), wlsContinuousType(0),
+		     wlsType("WLS"), wlsContinuousType("cumulants"), wlsFullWeight(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -246,12 +246,18 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	}
 
-	ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
-	wlsType = CHAR(STRING_ELT(RwlsType,0));
-	ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
-	wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
-	ProtectedSEXP RwlsFullWeight(R_do_slot(dataObj, Rf_install(".wlsFullWeight")));
-	wlsFullWeight = Rf_asLogical(RwlsFullWeight);
+	if (R_has_slot(dataObj, Rf_install(".wlsType"))) {
+		ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
+		wlsType = CHAR(STRING_ELT(RwlsType,0));
+	}
+	if (R_has_slot(dataObj, Rf_install(".wlsContinuousType"))) {
+		ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
+		wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
+	}
+	if (R_has_slot(dataObj, Rf_install(".wlsFullWeight"))) {
+		ProtectedSEXP RwlsFullWeight(R_do_slot(dataObj, Rf_install(".wlsFullWeight")));
+		wlsFullWeight = Rf_asLogical(RwlsFullWeight);
+	}
 	if (!wlsFullWeight && !strEQ(wlsType, "ULS")) {
 		Rf_error("%s: !wlsFullWeight && !strEQ(wlsType, ULS)", name);
 	}
@@ -279,33 +285,35 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
-	ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
-	ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
-	if (Rf_length(RobsStats)) oss = new obsSummaryStats;
-	for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
-		const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
-		auto &o1 = *oss;
-		if (strEQ(key, "cov")) {
-			o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-			if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
-				Rf_error("%s: observedStats$cov must have colnames", name);
-		} else if (strEQ(key, "slope")) {
-			o1.slopeMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-			if (int(o1.slopeMat->colnames.size()) != o1.slopeMat->cols)
-				Rf_error("%s: observedStats$slope must have colnames", name);
-		} else if (strEQ(key, "means")) {
-			o1.meansMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-		} else if (strEQ(key, "acov")) {
-			o1.acovMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-		} else if (strEQ(key, "fullWeight")) {
-			o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-		} else if (strEQ(key, "thresholds")) {
-			o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-			o1.numOrdinal = o1.thresholdMat->cols;
-			if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
-				Rf_error("%s: observedStats$thresholds must have colnames", name);
-		} else {
-			Rf_warning("%s: observedStats key '%s' ignored", name, key);
+	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
+		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
+		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
+		if (Rf_length(RobsStats)) oss = new obsSummaryStats;
+		for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
+			const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
+			auto &o1 = *oss;
+			if (strEQ(key, "cov")) {
+				o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+				if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
+					Rf_error("%s: observedStats$cov must have colnames", name);
+			} else if (strEQ(key, "slope")) {
+				o1.slopeMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+				if (int(o1.slopeMat->colnames.size()) != o1.slopeMat->cols)
+					Rf_error("%s: observedStats$slope must have colnames", name);
+			} else if (strEQ(key, "means")) {
+				o1.meansMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			} else if (strEQ(key, "acov")) {
+				o1.acovMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			} else if (strEQ(key, "fullWeight")) {
+				o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			} else if (strEQ(key, "thresholds")) {
+				o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+				o1.numOrdinal = o1.thresholdMat->cols;
+				if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
+					Rf_error("%s: observedStats$thresholds must have colnames", name);
+			} else {
+				Rf_warning("%s: observedStats key '%s' ignored", name, key);
+			}
 		}
 	}
 	if (oss) {
