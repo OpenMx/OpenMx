@@ -1204,6 +1204,14 @@ setMethod("initialize", "MxComputeEM",
 ##' a new parameter vector. Repeat these steps until convergence
 ##' criteria are met.
 ##'
+##' The arguments to this function have evolved.  The old style
+##' \code{mxComputeEM(e,p,mstep=m)} is equivalent to the new style
+##' \code{mxComputeEM(estep=mxComputeOnce(e,p), mstep=m)}. This change
+##' allows the API to more closely match the literature on the E-M
+##' method.  You might use \code{mxAlgebra(..., fixed=TRUE)} to
+##' contain the results of the E-step and then cause this algebra to
+##' be recomputed using \code{mxComputeOnce}.
+##'
 ##' This compute plan does not work with any and all expectations. It
 ##' requires a special kind of expectation that can predict its
 ##' missing data to create a completed data model.
@@ -1227,6 +1235,8 @@ setMethod("initialize", "MxComputeEM",
 ##' @param information name of information matrix approximation method
 ##' @param infoArgs arguments to control the information matrix method
 ##' @param estep a compute plan to perform the expectation step
+##' @seealso
+##' \link[=mxAlgebra]{MxAlgebra}, \link{mxComputeOnce}
 ##' @aliases
 ##' MxComputeEM-class
 ##' @references
