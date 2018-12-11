@@ -39,28 +39,9 @@ dualData <- cbind(continuousData,ordinalData)
 
 colnames(dualData) <- paste0('v', 1:ncol(dualData))
 
-fake <- mxModel("fake",
-                mxDataWLS(dualData, type="ULS", fullWeight=FALSE, allContinuousMethod="marginals"),
-                mxMatrix(values=diag(ncol(dualData)),
-                         dimnames=list(colnames(dualData),colnames(dualData)), name="cov"),
-                mxMatrix(values=0, nrow=1, ncol=ncol(dualData),
-                         dimnames=list(c(), colnames(dualData)), name="mean"),
-                mxExpectationNormal(covariance = "cov", means = "mean"),
-                mxFitFunctionWLS(),
-                mxComputeOnce('fitfunction', 'fit'))
-
-ords <- unlist(lapply(dualData, is.ordered))
-nthr <- sapply(dualData[,ords], nlevels) - 1L
-tmpThr <- matrix(NA, ncol=sum(ords), nrow=max(nthr))
-colnames(tmpThr) <- colnames(dualData)[ords]
-for (cx in 1:ncol(tmpThr)) {
-  tmpThr[1:nthr[cx],cx] <- seq(-1,1,length.out=nthr[cx])
-}
-fake <- mxModel(fake, mxMatrix(values=tmpThr, name="thresh"))
-fake$expectation$thresholds <- "thresh"
-
-fakeResult <- omxCheckWarning(mxRun(fake, silent=TRUE),
+mxd <- omxCheckWarning(mxDataWLS(dualData, type="ULS", fullWeight=FALSE,
+	allContinuousMethod="marginals", compute=TRUE),
                               "fake.data: marginal covariance matrix is non-positive definite")
 
-cov <- fakeResult$data$observedStats$cov
+cov <- mxd$observedStats$cov
 omxCheckTrue(any(eigen(cov)$val < 0))

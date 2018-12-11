@@ -413,7 +413,8 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
 		      suppressWarnings = TRUE, allContinuousMethod=c("cumulants", "marginals"), ...,
-		      silent=!interactive(), .oldMethod=FALSE, verbose=0L) {
+		      silent=!interactive(), .oldMethod=FALSE, verbose=0L, compute=FALSE,
+		      returnModel=FALSE) {
 	garbageArguments <- list(...)
 	allContinuousMethod <- match.arg(allContinuousMethod)
 	if (length(garbageArguments) > 0) {
@@ -427,6 +428,32 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		mxd@.wlsType <- type
 		mxd@.wlsContinuousType <- allContinuousMethod
 		mxd@.wlsFullWeight <- fullWeight
+		if (compute) {
+			fake <- mxModel("fake",
+				mxd,
+				mxMatrix(values=diag(ncol(data)),
+					dimnames=list(colnames(data),colnames(data)), name="cov"),
+				mxMatrix(values=0, nrow=1, ncol=ncol(data),
+					dimnames=list(c(), colnames(data)), name="mean"),
+				mxExpectationNormal(covariance = "cov", means = "mean"),
+				mxFitFunctionWLS(),
+				mxComputeOnce('fitfunction', 'fit'))
+
+			ords <- unlist(lapply(data, is.ordered))
+			if (any(ords)) {
+				nthr <- sapply(data[,ords], nlevels) - 1L
+				tmpThr <- matrix(NA, ncol=sum(ords), nrow=max(nthr))
+				colnames(tmpThr) <- colnames(data)[ords]
+				for (cx in 1:ncol(tmpThr)) {
+					tmpThr[1:nthr[cx],cx] <- seq(-1,1,length.out=nthr[cx])
+				}
+				fake <- mxModel(fake, mxMatrix(values=tmpThr, name="thresh"))
+				fake$expectation$thresholds <- "thresh"
+			}
+			fake <- mxRun(fake, silent=TRUE)
+			if (returnModel) return(fake)
+			mxd <- fake$data
+		}
 		return(mxd)
 	}
 	debug <- FALSE
