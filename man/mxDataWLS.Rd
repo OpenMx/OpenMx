@@ -29,7 +29,8 @@
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
     fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
    c("cumulants", "marginals"), ..., silent=!interactive(), .oldMethod =
-   FALSE, verbose=0L, compute=FALSE, returnModel=FALSE)
+   FALSE, verbose=0L, compute=FALSE, returnModel=FALSE,
+          weight = as.character(NA), frequency = as.character(NA))
 }
 
 \arguments{
@@ -53,6 +54,8 @@
 \item{compute}{whether to compute the summary statistics immediately}
 \item{returnModel}{when compute=TRUE, whether to return the model used
    to obtain the summary statistics}
+   \item{weight}{The column name containing row weights}
+   \item{frequency}{The column name containing row frequencies}
 }
 
 \details{

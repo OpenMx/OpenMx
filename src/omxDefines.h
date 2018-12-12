@@ -322,6 +322,38 @@ void subsetVector(const Eigen::ArrayBase<T1> &in, T2 filter, Eigen::ArrayBase<T3
 	}
 }
 
+template <typename T1, typename T3>
+void subsetVector(const Eigen::ArrayBase<T1> &in, const std::vector<int> &ind, Eigen::ArrayBase<T3> &out)
+{
+	for (int ix=0; ix < int(ind.size()); ++ix) {
+		out[ix] = in[ ind[ix] ];
+	}
+}
+
+template <typename T1, typename T3>
+void subsetVector(const Eigen::MatrixBase<T1> &in, const std::vector<int> &ind, Eigen::MatrixBase<T3> &out)
+{
+	for (int ix=0; ix < int(ind.size()); ++ix) {
+		out[ix] = in[ ind[ix] ];
+	}
+}
+
+template <typename T1, typename T3>
+void subsetMatrix(const Eigen::ArrayBase<T1> &in, const std::vector<int> &ind, Eigen::ArrayBase<T3> &out)
+{
+	for (int ix=0; ix < int(ind.size()); ++ix) {
+		out.row(ix) = in.row(ind[ix]);
+	}
+}
+
+template <typename T1, typename T3>
+void subsetMatrix(const Eigen::MatrixBase<T1> &in, const std::vector<int> &ind, Eigen::MatrixBase<T3> &out)
+{
+	for (int ix=0; ix < int(ind.size()); ++ix) {
+		out.row(ix) = in.row(ind[ix]);
+	}
+}
+
 template <typename T1, typename T2>
 void subsetVectorStore(Eigen::MatrixBase<T1> &in, T2 filter, double val)
 {

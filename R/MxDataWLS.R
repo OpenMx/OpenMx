@@ -414,32 +414,51 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
 		      suppressWarnings = TRUE, allContinuousMethod=c("cumulants", "marginals"), ...,
 		      silent=!interactive(), .oldMethod=FALSE, verbose=0L, compute=FALSE,
-		      returnModel=FALSE) {
+		      returnModel=FALSE, weight = as.character(NA), frequency = as.character(NA)) {
 	garbageArguments <- list(...)
 	allContinuousMethod <- match.arg(allContinuousMethod)
 	if (length(garbageArguments) > 0) {
 		stop("mxDataWLS does not accept values for the '...' argument")
 	}
 	if (!.oldMethod) {
+		if (missing(data) || !is(data, "data.frame")) {
+			stop("Data must be a data frame containing raw data")
+		}
 		if (!fullWeight && type != 'ULS') {
 			stop("To avoid fullWeight estimation, also set type='ULS'")
 		}
-		mxd <- mxData(data, type='raw', preferredFit='WLS', verbose=verbose)
+		mxd <- mxData(data, type='raw', preferredFit='WLS', verbose=verbose,
+			weight=weight, frequency=frequency)
 		mxd@.wlsType <- type
 		mxd@.wlsContinuousType <- allContinuousMethod
 		mxd@.wlsFullWeight <- fullWeight
 		if (compute) {
+			nc <- ncol(data)
+			names <- colnames(data)
+			if (!is.na(weight)) {
+				nc <- nc - 1
+				names <- names[-match(weight, colnames(data))]
+			}
+			if (!is.na(frequency)) {
+				nc <- nc - 1
+				names <- names[-match(frequency, colnames(data))]
+			}
 			fake <- mxModel("fake",
 				mxd,
-				mxMatrix(values=diag(ncol(data)),
-					dimnames=list(colnames(data),colnames(data)), name="cov"),
-				mxMatrix(values=0, nrow=1, ncol=ncol(data),
-					dimnames=list(c(), colnames(data)), name="mean"),
-				mxExpectationNormal(covariance = "cov", means = "mean"),
+				mxMatrix(values=diag(nc),
+					dimnames=list(names,names), name="cov"),
+				mxExpectationNormal(covariance = "cov"),
 				mxFitFunctionWLS(),
 				mxComputeOnce('fitfunction', 'fit'))
 
-			ords <- unlist(lapply(data, is.ordered))
+			if (allContinuousMethod != 'cumulants') {
+				fake <- mxModel(fake,
+					mxMatrix(values=0, nrow=1, ncol=nc,
+						dimnames=list(c(), names), name="mean"))
+				fake$expectation$means <- "mean"
+			}
+
+			ords <- unlist(lapply(data, is.ordered)) & colnames(data) %in% names
 			if (any(ords)) {
 				nthr <- sapply(data[,ords], nlevels) - 1L
 				tmpThr <- matrix(NA, ncol=sum(ords), nrow=max(nthr))
@@ -456,6 +475,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 		return(mxd)
 	}
+	if (!is.na(weight)) stop("weight is not implemented for .oldMethod=TRUE")
+	if (!is.na(frequency)) stop("frequency is not implemented for .oldMethod=TRUE")
 	debug <- FALSE
 	# version 0.2
 	#

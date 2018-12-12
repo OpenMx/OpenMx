@@ -104,7 +104,7 @@ class obsSummaryStats {
  public:
 	//std::vector<bool> subset;
 	bool output;
-	int numObs;
+	double totalWeight;
 	int numOrdinal;  // == thresholdMat->cols or 0 if null
 	omxMatrix* covMat;
 	omxMatrix *slopeMat; // manifest by exo predictor matrix
@@ -121,7 +121,7 @@ class obsSummaryStats {
 	Eigen::ArrayXXd SC_TH;
 	Eigen::ArrayXXd SC_COR;
 
-	obsSummaryStats() : output(false), numObs(0), numOrdinal(0), covMat(0), slopeMat(0), meansMat(0),
+	obsSummaryStats() : output(false), totalWeight(0), numOrdinal(0), covMat(0), slopeMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0) {};
 	~obsSummaryStats();
 	void setDimnames(omxData *data, const std::vector<const char *> &dc, std::vector<int> &exoPred);
@@ -153,7 +153,10 @@ class omxData {
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred);
 	bool regenObsStats(const std::vector<const char *> &dc);
-	void wlsAllContinuousCumulants(omxState *state, const std::vector<const char *> &dc);
+	void wlsAllContinuousCumulants(omxState *state,
+				       const std::vector<const char *> &dc,
+				       const Eigen::Ref<const Eigen::ArrayXd> rowMult,
+				       std::vector<int> &index);
 
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -234,6 +237,8 @@ class omxData {
 	bool hasSummaryStats() { return dataMat != 0 || oss; }
 	void prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			    std::vector<int> &exoPred);
+	template <typename T1>
+	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
@@ -330,5 +335,24 @@ int omxDataNumFactor(omxData *od);                    // Number of factor column
 double omxDataDF(omxData *od);
 
 inline bool omxDataColumnIsFactor(omxData *od, int col) { return od->columnIsFactor(col); }
+
+// Should not be stored long-term because freq are updated by bootstrap
+template <typename T1>
+void omxData::recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index)
+{
+	index.clear();
+	index.reserve(rows);
+	rowMult.derived().resize(rows);
+	double *rowWeight = getWeightColumn();
+	int *rowFreq = getFreqColumn();
+	for (int rx=0; rx < rows; ++rx) {
+		double ww = 1.0;
+		if (rowWeight) ww *= rowWeight[rx];
+		if (rowFreq) ww *= rowFreq[rx];
+		rowMult[rx] = ww;
+		if (ww == 0.0) continue;
+		index.push_back(rx);
+	}
+}
 
 #endif /* _OMXDATA_H_ */
