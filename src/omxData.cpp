@@ -161,6 +161,7 @@ static int carefulMinusOne(int val)
 static void importDataFrame(SEXP dataLoc, std::vector<ColumnData> &rawCols,
 			    int &numNumeric, int &numFactor)
 {
+	const int debug = 0;
 	int numCols = Rf_length(dataLoc);
 	rawCols.clear();
 	rawCols.reserve(numCols);
@@ -174,7 +175,7 @@ static void importDataFrame(SEXP dataLoc, std::vector<ColumnData> &rawCols,
 		ProtectedSEXP rcol(VECTOR_ELT(dataLoc, j));
 		if(Rf_isFactor(rcol)) {
 			cd.type = Rf_isUnordered(rcol)? COLUMNDATA_UNORDERED_FACTOR : COLUMNDATA_ORDERED_FACTOR;
-			if(OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
+			if(debug+OMX_DEBUG) {mxLog("Column[%d] %s is a factor.", j, colname);}
 			cd.intData = INTEGER(rcol);
 			ProtectedSEXP Rlevels(Rf_getAttrib(rcol, R_LevelsSymbol));
 			for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
@@ -182,15 +183,16 @@ static void importDataFrame(SEXP dataLoc, std::vector<ColumnData> &rawCols,
 			}
 			numFactor++;
 		} else if (Rf_isInteger(rcol)) {
+			if(debug+OMX_DEBUG) {mxLog("Column[%d] %s is integer.", j, colname);}
 			cd.intData = INTEGER(rcol);
 			cd.type = COLUMNDATA_INTEGER;
 		} else if (Rf_isNumeric(rcol)) {
-			if(OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
+			if(debug+OMX_DEBUG) {mxLog("Column[%d] %s is numeric.", j, colname);}
 			cd.realData = REAL(rcol);
 			cd.type = COLUMNDATA_NUMERIC;
 			numNumeric++;
 		} else {
-			if(OMX_DEBUG) {mxLog("Column[%d] %s is type %s (ignored)",
+			if(debug+OMX_DEBUG) {mxLog("Column[%d] %s is type %s (ignored)",
 					     j, colname, Rf_type2char(TYPEOF(rcol)));}
 			cd.type = COLUMNDATA_INVALID;
 		}
@@ -1371,6 +1373,14 @@ void ProbitRegression::setResponse(ColumnData &_r, WLSVarData &pv)
 	subsetVector(ycol, notMissingF, ycolF);
 	Eigen::VectorXi tab(response->levels.size());
 	tabulate(ycolF, tab);
+	if ((tab.array()==0).any()) {
+		int x,y;
+		tab.minCoeff(&x,&y);
+		Rf_error("%s: variable '%s' has a zero frequency category '%s'.\n"
+			 "Eliminate this level in your mxFactor() or combine categories in some other way.\n"
+			 "Do not pass go. Do not collect $200.",
+			 data.name, response->name, response->levels[x].c_str());
+	}
 	Eigen::VectorXd prop = (tab.cast<double>() / double(tab.sum())).
 		segment(0, numThr);
 	cumsum(prop);
@@ -1936,6 +1946,10 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		return;
 	}
 
+	if (weightCol != NA_INTEGER || freqCol != NA_INTEGER) {
+		Rf_error("%s: weights and frequencies are not implemented yet");
+	}
+
 	int numCols = dc.size();
 	int numColsStar = numCols*(numCols+1)/2;
 	if (numObs-1 < numColsStar) {
@@ -2048,6 +2062,10 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			contOffset += 1;
 			thrOffset += 1;
 		} else {
+			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
+				Rf_error("%s: variable '%s' must be an ordered factor but is of type %s",
+					 name, cd.name, ColumnDataTypeToString(cd.type));
+			}
 			pr.setResponse(cd, pv);
 			if (exoPred.size()) {
 				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);

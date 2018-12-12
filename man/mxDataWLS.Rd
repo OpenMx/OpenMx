@@ -28,7 +28,8 @@
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
     fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
-   c("cumulants", "marginals"), ..., silent=!interactive(), .oldMethod = FALSE, verbose=0L)
+   c("cumulants", "marginals"), ..., silent=!interactive(), .oldMethod =
+   FALSE, verbose=0L, compute=FALSE, returnModel=FALSE)
 }
 
 \arguments{
@@ -49,6 +50,9 @@
  \item{.oldMethod}{Whether to use the old method to obtain the observed
    summary statistics.}
 \item{verbose}{level of diagnostic output}
+\item{compute}{whether to compute the summary statistics immediately}
+\item{returnModel}{when compute=TRUE, whether to return the model used
+   to obtain the summary statistics}
 }
 
 \details{
@@ -66,6 +70,15 @@ The default, \emph{cumulants} is a good choice for non-normal data. This uses th
 The alternative option, 'marginals', uses methods similar to those used in processing ordinal and joint ordinal-continuous data.  By contrast with cumulats, marginals returns weights and summary statistics for the means.
 
 When data are not all continuous, \code{allContinuousMethod} is ignored.
+
+When \code{.oldMethod} is \code{TRUE}, the summary statistics are computed
+immediately. This behavior is retained when \code{.oldMethod} is FALSE
+by setting \code{compute} to \code{TRUE}. The default is to compute the
+summary statistics when the model is run. Since exogenous predictors are
+implied by the model, residualized observed statistics can only be
+estimated when the model is run. The use of \code{compute=TRUE}
+precludes the possibility of residualized observed statistics since
+no model is available.
 }
 
 \value{

@@ -577,33 +577,12 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		stop("mxGenerateData does not accept values for the '...' argument")
 	}
 	if (is(model, 'data.frame')) {
-		fake <- mxModel("fake",
-			mxDataWLS(model, type="ULS", fullWeight=FALSE, allContinuousMethod="marginals"),
-			mxMatrix(values=diag(ncol(model)),
-			      dimnames=list(colnames(model),colnames(model)), name="cov"),
-			mxMatrix(values=0, nrow=1, ncol=ncol(model),
-				dimnames=list(c(), colnames(model)), name="mean"),
-			mxExpectationNormal(covariance = "cov", means = "mean"),
-			mxFitFunctionWLS(),
-			mxComputeOnce('fitfunction', 'fit'))
-
-		ords <- unlist(lapply(model, is.ordered))
-		if (any(ords)) {
-			nthr <- sapply(model[,ords], nlevels) - 1L
-			tmpThr <- matrix(NA, ncol=sum(ords), nrow=max(nthr))
-			colnames(tmpThr) <- colnames(model)[ords]
-			for (cx in 1:ncol(tmpThr)) {
-				tmpThr[1:nthr[cx],cx] <- seq(-1,1,length.out=nthr[cx])
-			}
-			fake <- mxModel(fake, mxMatrix(values=tmpThr, name="thresh"))
-			fake$expectation$thresholds <- "thresh"
-		}
-
-		fake <- mxRun(fake, silent=TRUE)
+		fake <- mxDataWLS(model, type="ULS", fullWeight=FALSE, allContinuousMethod="marginals",
+			compute=TRUE, returnModel=TRUE)
 		obsStats <- fake$data$observedStats
 		fake$cov$values <- obsStats$cov
 		fake$mean$values <- obsStats$means
-		if (any(ords)) fake$thresh$values <- obsStats$thresholds
+		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
 		if(is.null(nrows)) nrows <- nrow(model)
 		return(mxGenerateData(fake, nrows, returnModel))
