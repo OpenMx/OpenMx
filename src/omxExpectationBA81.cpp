@@ -386,8 +386,11 @@ void BA81Expect::init() {
 	}
 	if (!Glibrpf_model) {
 #if USE_EXTERNAL_LIBRPF
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
 		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
 		(*get_librpf)(LIBIFA_RPF_API_VERSION, &Glibrpf_numModels, &Glibrpf_model);
+#pragma GCC diagnostic pop
 #else
 		// if linking against included source code
 		Glibrpf_numModels = librpf_numModels;
