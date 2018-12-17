@@ -1330,6 +1330,7 @@ void OLSRegression::calcScores()
 	scores.resize(index.size(), 1 + pred.cols());  // mean pred var
 	scores.block(0,0,index.size(),pred.cols()) = (pred.array().colwise() * resid) / var;
 	scores.col(pred.cols()) = -1./(2*var) + 1./(2*var*var) * resid * resid;
+	scores.array().colwise() *= rowMult;
 }
 
 struct ProbitRegression : NewtonRaphsonObjective {
