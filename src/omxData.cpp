@@ -368,7 +368,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if (currentFreqColumn) {
 		for (int rx=0; rx < rows; ++rx) {
 			if (currentFreqColumn[rx] >= 0) continue;
-			Rf_error("%s: cannot proceed with non-positive weight %d for row %d",
+			Rf_error("%s: cannot proceed with non-positive frequency %d for row %d",
 				 name, currentFreqColumn[rx], 1+rx);
 		}
 	}
@@ -2003,6 +2003,45 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 	oss->setDimnames(this, dc, exoPred);
 }
 
+template <typename T1, typename T2>
+void omxData::copyScores(Eigen::ArrayBase<T1> &dest, int destCol,
+		const Eigen::ArrayBase<T2> &src, int srcCol, int numCols)
+{
+	for (int cx=0; cx < numCols; ++cx) {
+		if (hasFreq()) {
+			Eigen::Map< Eigen::ArrayXi > freq(getFreqColumn(), rows);
+			for (int dx=0, sx=0, ix=0; ix < freq.size(); ++ix) {
+				if (freq[ix] == 0) continue;
+				double val = src(sx++, srcCol + cx) / double(freq[ix]);
+				for (int fx=0; fx < freq[ix]; ++fx) {
+					dest(dx++, destCol + cx) = val;
+				}
+			}
+		} else {
+			dest.col(destCol + cx) = src.col(srcCol + cx);
+		}
+	}
+}
+
+template <typename T1, typename T2>
+double omxData::scoreDotProd(const Eigen::ArrayBase<T1> &a1,
+		    const Eigen::ArrayBase<T2> &a2)
+{
+	if (hasFreq()) {
+		Eigen::Map< Eigen::ArrayXi > freq(getFreqColumn(), rows);
+		double result = 0;
+		for (int dx=0, sx=0, ix=0; ix < freq.size(); ++ix) {
+			if (freq[ix] == 0) continue;
+			result += a1(dx) * a2(sx++);
+			dx += freq[ix];
+		}
+		return result;
+	} else {
+		Eigen::ArrayXd tmp = (a1 * a2).segment(0,8);
+		return (a1 * a2).sum();
+	}
+}
+
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred)
 {
@@ -2092,9 +2131,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		}
 	}
 
-	o1.SC_VAR.resize(index.size(), numContinuous);
-	o1.SC_SL.resize(index.size(), numCols * pred.cols());
-	o1.SC_TH.resize(index.size(), totalThr);
+	int scoreRows = index.size();
+	if (hasFreq()) {
+		Eigen::Map< Eigen::ArrayXi > freq(getFreqColumn(), rows);
+		scoreRows = freq.sum();
+	}
+	if (verbose >= 1) mxLog("%s: orig %d rows; index.size() = %d; scoreRows = %d; totalWeight = %f",
+				name, rows, int(index.size()), scoreRows, o1.totalWeight);
+
+	o1.SC_VAR.resize(scoreRows, numContinuous);
+	o1.SC_SL.resize(scoreRows, numCols * pred.cols());
+	o1.SC_TH.resize(scoreRows, totalThr);
 	o1.numOrdinal = 0;
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 	OLSRegression olsr(this, pred, o1.totalWeight, rowMult, index);
@@ -2119,16 +2166,14 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			pv.theta[olsr.beta.size()] = olsr.var;
 			Ecov(yy,yy) = olsr.var;
 			Emean[yy] = pv.theta[0];
-			o1.SC_TH.block(0,thrOffset,index.size(),1) =
-				olsr.scores.block(0,0,index.size(),1);
+			copyScores(o1.SC_TH, thrOffset, olsr.scores.array(), 0);
 			if (pred.cols()) {
 				EigenMatrixAdaptor Eslope(o1.slopeMat);
 				Eslope.row(yy) = olsr.beta.segment(1,pred.cols());
 				for (int px=0; px < pred.cols(); ++px)
-					o1.SC_SL.col(yy+numCols*px) = olsr.scores.col(1+px);
+					copyScores(o1.SC_SL, yy+numCols*px, olsr.scores.array(), 1+px);
 			}
-			o1.SC_VAR.block(0,contOffset,index.size(),1) =
-				olsr.scores.block(0,1+pred.cols(),index.size(),1);
+			copyScores(o1.SC_VAR, contOffset, olsr.scores.array(), 1+pred.cols());
 			contOffset += 1;
 			thrOffset += 1;
 		} else {
@@ -2151,13 +2196,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			o1.thresholdCols.push_back(tc);
 			Ecov(yy,yy) = 1.;
 			Emean[yy] = 0.;
-			o1.SC_TH.block(0,thrOffset,index.size(),pr.numThr) =
-				pr.scores.block(0,0,index.size(),pr.numThr);
+			copyScores(o1.SC_TH, thrOffset, pr.scores, 0, pr.numThr);
 			if (pred.cols()) {
 				EigenMatrixAdaptor Eslope(o1.slopeMat);
 				Eslope.row(yy) = pr.param.segment(pr.numThr, pred.cols());
 				for (int px=0; px < pred.cols(); ++px)
-					o1.SC_SL.col(yy+numCols*px) = pr.scores.col(pr.numThr+px);
+					copyScores(o1.SC_SL, yy+numCols*px, pr.scores, pr.numThr+px);
 			}
 			thrOffset += pr.numThr;
 		}
@@ -2177,7 +2221,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	int pstar = triangleLoc1(numCols-1);
-	o1.SC_COR.resize(index.size(), pstar);
+	o1.SC_COR.resize(scoreRows, pstar);
 	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
 	Eigen::MatrixXd A21(pstar, A11_size);
 	A21.setZero();
@@ -2198,19 +2242,19 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			double rho;
 			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
 				PearsonCor pc(pv2, pv1, pred, rowMult, index);
-				o1.SC_COR.col(pstar_idx) = pc.scores.col(4+2*pred.cols());
-				A21(pstar_idx,thStart[ii]) = (o1.SC_COR.col(pstar_idx) * pc.scores.col(0)).sum();
-				A21(pstar_idx,thStart[jj]) = (o1.SC_COR.col(pstar_idx) * pc.scores.col(1)).sum();
+				copyScores(o1.SC_COR, pstar_idx, pc.scores, 4+2*pred.cols());
+				A21(pstar_idx,thStart[ii]) = scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(0));
+				A21(pstar_idx,thStart[jj]) = scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(1));
 				for (int px=0; px < pred.cols(); ++px) {
 					A21(pstar_idx, totalThr + ii+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * pc.scores.col(4+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(4+px));
 					A21(pstar_idx, totalThr + jj+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * pc.scores.col(4+pred.cols()+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(4+pred.cols()+px));
 				}
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
-					(o1.SC_COR.col(pstar_idx) * pc.scores.col(2)).sum();
+					scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(2));
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
-					(o1.SC_COR.col(pstar_idx) * pc.scores.col(3)).sum();
+					scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(3));
 				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
 				double sd2 = sqrt(pv2.theta[pv2.theta.size()-1]);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
@@ -2224,19 +2268,19 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(ps);
 				ps.calcScores();
-				o1.SC_COR.col(pstar_idx) = ps.scores.col(2 + ps.numThr + 2*pred.cols());
-				A21(pstar_idx, thStart[jj]) = (o1.SC_COR.col(pstar_idx) * ps.scores.col(0)).sum();
+				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
+				A21(pstar_idx, thStart[jj]) = scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(0));
 				for (int tx=0; tx < ps.numThr; ++tx)
 					A21(pstar_idx, thStart[ii]+tx) =
-						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+tx)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(2+tx));
 				for (int px=0; px < pred.cols(); ++px) {
 					A21(pstar_idx, totalThr + jj+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(2+ps.numThr+px));
 					A21(pstar_idx, totalThr + ii+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+pred.cols()+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(2+ps.numThr+pred.cols()+px));
 				}
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
-					(o1.SC_COR.col(pstar_idx) * ps.scores.col(1)).sum();
+					scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(1));
 				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
 					ps.rho / (2. * sd1);
@@ -2247,19 +2291,19 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
 				uo(ps);
 				ps.calcScores();
-				o1.SC_COR.col(pstar_idx) = ps.scores.col(2 + ps.numThr + 2*pred.cols());
-				A21(pstar_idx, thStart[ii]) = (o1.SC_COR.col(pstar_idx) * ps.scores.col(0)).sum();
+				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
+				A21(pstar_idx, thStart[ii]) = scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(0));
 				for (int tx=0; tx < ps.numThr; ++tx)
 					A21(pstar_idx, thStart[jj]+tx) =
-						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+tx)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(2+tx));
 				for (int px=0; px < pred.cols(); ++px) {
 					A21(pstar_idx, totalThr + ii+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(2+ps.numThr+px));
 					A21(pstar_idx, totalThr + jj+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * ps.scores.col(2+ps.numThr+pred.cols()+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(2+ps.numThr+pred.cols()+px));
 				}
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
-					(o1.SC_COR.col(pstar_idx) * ps.scores.col(1)).sum();
+					scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(1));
 				double sd1 = sqrt(pv2.theta[pv2.theta.size()-1]);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
 					ps.rho / (2. * sd1);
@@ -2272,19 +2316,19 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				H22(pstar_idx,pstar_idx) = 1.0;
 				rho = pc.rho;
 				pc.calcScores();
-				o1.SC_COR.col(pstar_idx) = pc.scores.col(pc.numThr1 + pc.numThr2 + 2*pred.cols());
+				copyScores(o1.SC_COR, pstar_idx, pc.scores, pc.numThr1 + pc.numThr2 + 2*pred.cols());
 				for (int tx=0; tx < pc.numThr1; ++tx)
 					A21(pstar_idx, thStart[ii]+tx) =
-						(o1.SC_COR.col(pstar_idx) * pc.scores.col(tx)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(tx));
 				for (int tx=0; tx < pc.numThr2; ++tx)
 					A21(pstar_idx, thStart[jj]+tx) =
-						(o1.SC_COR.col(pstar_idx) * pc.scores.col(pc.numThr1 + tx)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(pc.numThr1 + tx));
 				int numThr = pc.numThr1 + pc.numThr2;
 				for (int px=0; px < pred.cols(); ++px) {
 					A21(pstar_idx, totalThr + ii+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * pc.scores.col(numThr+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(numThr+px));
 					A21(pstar_idx, totalThr + jj+px*numCols) =
-						(o1.SC_COR.col(pstar_idx) * pc.scores.col(numThr+pred.cols()+px)).sum();
+						scoreDotProd(o1.SC_COR.col(pstar_idx), pc.scores.col(numThr+pred.cols()+px));
 				}
 			}
 			if (verbose >= 3) mxLog("cov %s %s [%d] -> %f", cd1.name, cd2.name, pstar_idx, rho);
@@ -2317,11 +2361,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 
 	// based on lav_muthen1984, lavaan 0.6-2
 	int acov_size = A11_size + o1.SC_COR.cols();
-	Eigen::MatrixXd SC(index.size(), acov_size);
-	SC.block(0,0,index.size(),o1.SC_TH.cols()) = o1.SC_TH;
-	SC.block(0,o1.SC_TH.cols(),index.size(),o1.SC_SL.cols()) = o1.SC_SL;
-	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols(),index.size(),o1.SC_VAR.cols()) = o1.SC_VAR;
-	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols()+o1.SC_VAR.cols(),index.size(),o1.SC_COR.cols()) = o1.SC_COR;
+	Eigen::MatrixXd SC(scoreRows, acov_size);
+	SC.block(0,0,scoreRows,o1.SC_TH.cols()) = o1.SC_TH;
+	SC.block(0,o1.SC_TH.cols(),scoreRows,o1.SC_SL.cols()) = o1.SC_SL;
+	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols(),scoreRows,o1.SC_VAR.cols()) = o1.SC_VAR;
+	SC.block(0,o1.SC_TH.cols()+o1.SC_SL.cols()+o1.SC_VAR.cols(),scoreRows,o1.SC_COR.cols()) = o1.SC_COR;
+	// mxPrintMat("SC", SC.block(0,0,10,SC.cols())); // good
 	Eigen::MatrixXd INNER = SC.transpose() * SC;
 	// mxPrintMat("INNER", INNER); // good
 
@@ -2399,4 +2444,10 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	//mxPrintMat("Efw", Efw);
 
 	if (verbose >= 2) o1.log();
+}
+
+void omxData::invalidateCache()
+{
+	if (oss) delete oss;
+	oss = 0;
 }

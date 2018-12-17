@@ -239,6 +239,15 @@ class omxData {
 			    std::vector<int> &exoPred);
 	template <typename T1>
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
+	void invalidateCache();
+
+	// util member functions for observed statistics
+	template <typename T1, typename T2>
+	void copyScores(Eigen::ArrayBase<T1> &dest, int destCol,
+				const Eigen::ArrayBase<T2> &src, int srcCol, int numCols=1);
+	template <typename T1, typename T2>
+	double scoreDotProd(const Eigen::ArrayBase<T1> &a1,
+				    const Eigen::ArrayBase<T2> &a2);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

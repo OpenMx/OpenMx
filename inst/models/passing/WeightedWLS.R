@@ -27,23 +27,21 @@ thresh$labels[,3] <- c("z5t1", "z5t2", NA)
 colnames(thresh) <- paste0('z', c(2,4,5))
 
 unweighted <- rbind(
-  jointData[-2:-3,],
   jointData[1,],
   jointData[1,],
   jointData[1,],
-  jointData[1,])
+  jointData[1,],
+  jointData[-2:-3,])
 
 weighted <- cbind(jointData, freq=c(5L,0L,0L,rep(1L,nrow(jointData)-3)))
 
 #------------------------------------------------------------------------------
 # Model definition
 
-# ML form
 uwModel <- mxModel(
   "JointRAM", type="RAM", thresh,
   manifestVars = paste0('z', 1:5),
   latentVars = c('G','z1c','z2c'),
-  #  latentVars = c('G'),
   mxDataWLS(unweighted, verbose=0L),
   mxPath('one', paste0('z', c(1,3)), free=TRUE),
   mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
@@ -71,22 +69,24 @@ omxCheckCloseEnough(os1$means, os2$means, 1e-12)
 omxCheckCloseEnough(os1$slope, os2$slope, 1e-12)
 mask <- !is.na(os1$thresholds)
 omxCheckCloseEnough(os1$thresholds[mask], os2$thresholds[mask], 1e-12)
+omxCheckCloseEnough(vech(os1$acov), vech(os2$acov), 1e-10)
 
-omxCheckCloseEnough(cor(coef(uwModel), coef(wModel)), 1, 1e-4)
+omxCheckCloseEnough(cor(coef(uwModel), coef(wModel)), 1, 1e-9)
 
-# acov is going to be different it uses the cross product of the row gradients
 omxCheckCloseEnough(uwModel$output$standardErrors,
-                    wModel$output$standardErrors, 1e-2)
+                    wModel$output$standardErrors, 1e-3)
+
+wald.se <- c(uwModel$output$standardErrors)
 
 # -----------
 
 contTestData <- Bollen[,1:8]
 unweighted <- rbind(
-  contTestData[-2:-3,],
   contTestData[1,],
   contTestData[1,],
   contTestData[1,],
-  contTestData[1,])
+  contTestData[1,],
+  contTestData[-2:-3,])
 
 weighted <- cbind(contTestData, freq=c(5L,0L,0L,rep(1L,nrow(contTestData)-3)))
 
@@ -97,3 +97,11 @@ os1 <- uwData$observedStats
 os2 <- wData$observedStats
 omxCheckCloseEnough(os1$cov, os2$cov, 1e-12)
 omxCheckCloseEnough(os1$fullWeight, os2$fullWeight, 2e-12)
+
+# -----------
+
+uwModelB <- mxBootstrap(uwModel)
+uw.sum <- summary(uwModelB)
+omxCheckCloseEnough(cor(uw.sum$bootstrapSE, wald.se), 1, .2)
+
+omxCheckCloseEnough((uw.sum$bootstrapSE -  wald.se) / uw.sum$bootstrapSE, rep(0,length(wald.se)), .5)
