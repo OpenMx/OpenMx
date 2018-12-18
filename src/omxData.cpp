@@ -2037,7 +2037,6 @@ double omxData::scoreDotProd(const Eigen::ArrayBase<T1> &a1,
 		}
 		return result;
 	} else {
-		Eigen::ArrayXd tmp = (a1 * a2).segment(0,8);
 		return (a1 * a2).sum();
 	}
 }
