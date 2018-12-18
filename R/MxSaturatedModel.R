@@ -133,6 +133,7 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			mxExpectationNormal("indCov", "satMea")
 		)
 		if(any(ordinalCols)) {
+			thrdnam <- paste(rep(ordnam, each=numThresholds), 'ThrDev', 1:numThresholds, sep='')
 			unitLower <- mxMatrix("Lower", numThresholds, numThresholds, values=1, free=FALSE, name="unitLower")
 			thrdM <- rbind(numOrdinalLevels-1, numThresholds - numOrdinalLevels+1)
 			thrdfre <- apply(thrdM, 2, rep, x=c(TRUE, FALSE))
@@ -140,6 +141,7 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 					name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
 					values=.2,
 					free = thrdfre,
+					labels=thrdnam,
 					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
 					dimnames = list(c(), varnam[ordinalCols]),
 							)
