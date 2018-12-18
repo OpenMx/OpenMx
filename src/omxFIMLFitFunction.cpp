@@ -644,21 +644,9 @@ static void sortData(omxFitFunction *off)
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
 	auto &rowMult = ofiml->rowMult;
 	auto& indexVector = ofiml->indexVector;
-	indexVector.clear();
 	ofiml->sufficientSets.clear();
 	omxData *data = ofiml->data;
-	double *rowWeight = data->getWeightColumn();
-	int *rowFreq = data->getFreqColumn();
-	indexVector.reserve(data->rows);
-	rowMult.resize(data->rows);
-	for (int rx=0; rx < data->rows; ++rx) {
-		double ww = 1.0;
-		if (rowWeight) ww *= rowWeight[rx];
-		if (rowFreq) ww *= rowFreq[rx];
-		rowMult[rx] = ww;
-		if (ww == 0.0) continue;
-		indexVector.push_back(rx);
-	}
+	data->recalcRowWeights(rowMult, indexVector);
 	int rows = int(indexVector.size());
 	ofiml->sameAsPrevious.assign(rows, false);
 

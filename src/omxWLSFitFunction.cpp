@@ -30,6 +30,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* P;
 	omxMatrix* B;
 	int numOrdinal;
+	int vectorSize;
 	
 	omxWLSFitFunction() {};
 	virtual ~omxWLSFitFunction();
@@ -39,6 +40,8 @@ struct omxWLSFitFunction : omxFitFunction {
 	
 	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope, omxMatrix *thresholdMat,
 				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
+	void prepData();
+	virtual void invalidateCache() { prepData(); }
 };
 
 void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope,
@@ -181,28 +184,26 @@ void omxWLSFitFunction::populateAttr(SEXP algebra)
 omxFitFunction *omxInitWLSFitFunction()
 { return new omxWLSFitFunction; }
 
-void omxWLSFitFunction::init()
+void omxWLSFitFunction::prepData()
 {
 	auto *oo = this;
 	auto *newObj = this;
-	
-	omxState *currentState = oo->matrix->currentState;
-	
-	if (!oo->expectation) { Rf_error("%s requires an expectation", name()); }
-	
-	omxData* dataMat = oo->expectation->data;
 
-	expectedSlope = omxGetExpectationComponent(expectation, "slope");
+	if (vectorSize != expectation->numSummaryStats())
+		Rf_error("%s: vectorSize changed from %d -> %d",
+			 vectorSize, expectation->numSummaryStats());
 
 	std::vector<int> exoPred;
 	expectation->getExogenousPredictors(exoPred);
+
+	omxData* dataMat = oo->expectation->data;
 
 	if (dataMat->defVars.size() == exoPred.size()) {
 		// OK
 	} else if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
 	
 	// For multiple threads, need to grab parent's info TODO
-	dataMat->prepObsStats(currentState, oo->expectation->getDataColumnNames(), exoPred);
+	dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(), exoPred);
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
 	//obsStat.log();
@@ -225,9 +226,6 @@ void omxWLSFitFunction::init()
 		return;
 	}
 
-	newObj->expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
-	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
-	
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
@@ -263,10 +261,6 @@ void omxWLSFitFunction::init()
 		for (auto &th : oThresh) { th.log(); }
 	}
 	
-	/* Error check weight matrix size */
-	int vectorSize = expectation->numSummaryStats();
-	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
-	
 	if(weights) {
 		if (weights->rows != weights->cols || weights->cols != vectorSize) {
 			omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
@@ -281,13 +275,6 @@ void omxWLSFitFunction::init()
 		oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	}
 	
-	// FIXME: More Rf_error checking for incoming Fit Functions
-	
-	/* Temporary storage for calculation */
-	newObj->observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
-	newObj->expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
-	newObj->P = omxInitMatrix(1, vectorSize, TRUE, currentState);
-	newObj->B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
 	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
 		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
 		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
@@ -301,4 +288,29 @@ void omxWLSFitFunction::init()
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans,
 			    newObj->expectedSlope, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
+}
+
+void omxWLSFitFunction::init()
+{
+	auto *oo = this;
+	
+	omxState *currentState = oo->matrix->currentState;
+	
+	if (!oo->expectation) { Rf_error("%s requires an expectation", name()); }
+	
+	expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
+	expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
+	expectedSlope = omxGetExpectationComponent(expectation, "slope");
+
+	/* Error check weight matrix size */
+	vectorSize = expectation->numSummaryStats();
+	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
+	
+	/* Temporary storage for calculation */
+	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	P = omxInitMatrix(1, vectorSize, TRUE, currentState);
+	B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+
+	prepData();
 }

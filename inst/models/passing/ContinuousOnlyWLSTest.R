@@ -107,8 +107,6 @@ wlsMod <- mxModel("Test case for WLS Objective function from Bollen 1989",
 	mxDataWLS(Bollen[, 1:8])
 )
 
-print(wlsMod$data)
-
 dwlsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="DWLS"))
 
 ulsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="ULS"))
@@ -144,6 +142,18 @@ fitParam <- c(mxEval(Lam, wlsRun)[1:4,1], diag(mxEval(Theta, wlsRun)))
 
 omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
 
+#--------------------------------------
+# Marginals should be fairly close to cumulants
+
+wlsMO <- mxDataWLS(Bollen[,1:8], type="WLS", allContinuousMethod = "marginals", compute=TRUE)
+dwlsMO <- mxDataWLS(Bollen[,1:8], type="DWLS", allContinuousMethod = "marginals", compute=TRUE)
+
+omxCheckCloseEnough(cor(vech(wlsMO$observedStats$cov),
+                        vech(wlsRun$data$observedStats$cov)), 1, 5e-3)
+omxCheckCloseEnough(cor(vech(wlsMO$observedStats$acov[-1:-8,-1:-8]),
+                        vech(wlsRun$data$observedStats$acov)), 1, .15)
+omxCheckCloseEnough(cor(diag(dwlsMO$observedStats$acov)[-1:-8],
+                        diag(dwlsRun$data$observedStats$acov)), 1, .21)
 
 #--------------------------------------
 # Re-run with ML

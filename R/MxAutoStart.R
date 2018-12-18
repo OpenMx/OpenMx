@@ -109,6 +109,7 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 	hasOrdinal <- any(sapply(data[,useVars], is.ordered))
 	origDataType <- model[[subname]]$data$type
 	isCovData <- origDataType %in% 'cov'
+	needFullWeight <- type != 'ULS'
 	if(isCovData){
 		if (any(hasOrdinal)) {
 			stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
@@ -123,11 +124,13 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 			nrowData <- nrow(data)
 			meanData <- colMeans(data, na.rm=TRUE)
 		} else {
-			return(mxDataWLS(data, type=type, fullWeight=FALSE))
+			return(mxDataWLS(data, type=type, fullWeight = needFullWeight))
 		}
 	}
 	if(type != 'ULS'){
-		mdata <- mxDataWLS(data, type=type, allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'), fullWeight=FALSE)
+		mdata <- mxDataWLS(data, type=type,
+			allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'),
+			fullWeight= needFullWeight)
 	} else {
 		mdata <- mxData(data, type=origDataType, numObs=nrowData,
 			observedStats=list(cov=covData, means=meanData))

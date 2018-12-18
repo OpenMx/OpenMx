@@ -3245,14 +3245,14 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	std::function<void(omxMatrix*)> ve = visitEx(this);
 	fitMat->fitFunction->traverse(ve);
 
-	int numObs = 0;
+	double totalWeight = 0;
 	int numOrdinal = 0;
 	int totalStats = 0;
 	numStats.reserve(exList.size());
 	for (auto &e1 : exList) {
 		e1->data->visitObsStats([&](obsSummaryStats &o1){
 				numOrdinal += o1.numOrdinal;
-				numObs += o1.numObs;
+				totalWeight += o1.totalWeight;
 				int sz = o1.fullWeight->rows;
 				numStats.push_back(sz);
 				totalStats += sz;
@@ -3354,7 +3354,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	mvadj = (trUW*trUW) / dstar;
 	x2mv = fc->fit / mvadj;
 	// N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
-	if (isULS(Vmat)) x2mv /= numObs;
+	if (isULS(Vmat)) x2mv /= totalWeight;
 	wlsStats = true;
 }
 
