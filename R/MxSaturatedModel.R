@@ -49,7 +49,7 @@
 # Saturated Model function definition
 
 generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE, numObs, means=NA,
-					  distribution) {
+					  distribution, equateThresholds) {
 	datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs, means=means)
 	numVar <- ncol(obsdata)
 	varnam <- colnames(obsdata)
@@ -141,10 +141,12 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 					name="thresholdDeviations", nrow=numThresholds, ncol=numOrdinal,
 					values=.2,
 					free = thrdfre,
-					labels=thrdnam,
 					lbound = rep( c(-Inf,rep(.01, (numThresholds-1))) , numOrdinal), # TODO adjust increment value
 					dimnames = list(c(), varnam[ordinalCols]),
-							)
+				)
+			if (equateThresholds) {
+				thresholdDeviations$labels <- thrdnam
+			}
 			saturatedMeans <- mxMatrix(nrow=1, ncol=numVar,
 				values=startmea, free=c(!ordinalCols), name="satMea", dimnames=list(NA, varnam))
 			saturatedThresholds <- mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix")
@@ -252,7 +254,7 @@ generateIFAReferenceModels <- function(model, distribution) {
 		    Independence=ind))
 }
 
-ReferenceModelHelper <- function(x, distribution) {
+ReferenceModelHelper <- function(x, distribution, equateThresholds) {
 	if ( (!(isS4(x) && is(x, "MxModel"))) && !is.data.frame(x) && !(is.matrix(x) && is.numeric(x)) ) {
 		stop("The 'x' argument must be (1) an MxModel object, (2) a raw data frame, or (3) a raw data matrix.")
 	}
@@ -260,23 +262,24 @@ ReferenceModelHelper <- function(x, distribution) {
 		if (is.null(x$fitfunction)) {
 			stop("Model", omxQuotes(x$name), "has no fitfunction")
 		}
-		generateReferenceModels(x$fitfunction, x, distribution)
+		generateReferenceModels(x$fitfunction, x, distribution, equateThresholds)
 	} else {
 		obsdata <- x
 		if(ncol(obsdata) != nrow(obsdata)) {
 			datatype <- "raw"
 		}
 		else {datatype <- "cov"}
-		generateNormalReferenceModels("Data Model", obsdata, datatype, distribution=distribution)
+		generateNormalReferenceModels("Data Model", obsdata, datatype,
+			distribution=distribution, equateThresholds=equateThresholds)
 	}
 }
 
-mxRefModels <- function(x, run=FALSE, ..., distribution="default") {
+mxRefModels <- function(x, run=FALSE, ..., distribution="default", equateThresholds = TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxRefModels does not accept values for the '...' argument")
 	}
-	models <- lapply(ReferenceModelHelper(x, distribution), function(model) {
+	models <- lapply(ReferenceModelHelper(x, distribution, equateThresholds), function(model) {
 		if (!isS4(model)) return(model)
 		model <- omxAssignFirstParameters(model)
 		model <- mxOption(model, "Standard Errors", "No")

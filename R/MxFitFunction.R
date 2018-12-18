@@ -78,7 +78,7 @@ setGeneric("genericFitFunConvert",
 })
 
 setGeneric("generateReferenceModels", 
-	function(.Object, model, distribution) {
+	function(.Object, model, distribution, equateThresholds) {
 	return(standardGeneric("generateReferenceModels"))
 })
 

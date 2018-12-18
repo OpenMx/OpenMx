@@ -25,7 +25,7 @@
 
 
 \usage{
-mxRefModels(x, run=FALSE, ..., distribution="default")
+mxRefModels(x, run=FALSE, ..., distribution="default", equateThresholds = TRUE)
 }
 
 \arguments{
@@ -34,6 +34,8 @@ mxRefModels(x, run=FALSE, ..., distribution="default")
      otherwise returns built models without running.}
    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
    \item{distribution}{character. Which distribution to assume.}
+   \item{equateThresholds}{logical. Whether ordinal thresholds should be
+   constrained equal across groups.}
 }
 
 \details{
