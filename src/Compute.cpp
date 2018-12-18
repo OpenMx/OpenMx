@@ -29,6 +29,7 @@
 #include "matrix.h"
 #include "omxBuffer.h"
 #include "omxState.h"
+#include "omxData.h"
 #include <Eigen/Cholesky>
 #include <Eigen/QR>
 #include <Eigen/CholmodSupport>
@@ -1914,12 +1915,42 @@ class ComputeGenerateData : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
 };
 
+class ComputeLoadData : public omxCompute {
+	typedef omxCompute super;
+	omxData *data;
+	std::vector< int > columns;
+	std::vector< int > colTypes;
+	std::string filePath;
+	bool useOriginalData;
+	std::vector<dataPtr> origData;
+	bool hasColNames, hasRowNames;
+	bool byrow;
+	int verbose;
+
+	int loadCounter;
+	void loadByCol(FitContext *fc, int index);
+	int stripeSize;
+	int stripeStart;  // 0 is the first column
+	int stripeEnd;
+	std::vector<dataPtr> stripeData; // stripeSize * columns.size()
+
+	void loadByRow(FitContext *fc, int index);
+
+ public:
+	virtual ~ComputeLoadData();
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *);
+};
+
 class ComputeLoadMatrix : public omxCompute {
 	typedef omxCompute super;
 	std::vector< omxMatrix* > mat;
 	std::vector< mini::csv::ifstream* > streams;
 	std::vector<bool> hasRowNames;
 	bool useOriginalData;
+	// origData is not really needed until it is possible to seek backwards
+	std::vector<Eigen::MatrixXd> origData;
 	int line;
 
  public:
@@ -1988,6 +2019,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeNelderMead", &newComputeNelderMead},
 	{"MxComputeBootstrap", &newComputeBootstrap},
 	{"MxComputeGenerateData", &newComputeGenerateData},
+	{"MxComputeLoadData",
+	 []()->omxCompute* { return new ComputeLoadData; }},
 	{"MxComputeLoadMatrix", &newComputeLoadMatrix},
 	{"MxComputeCheckpoint", newComputeCheckpoint},
 	{"MxComputeSimAnnealing", &newComputeGenSA},
@@ -3774,6 +3807,188 @@ void ComputeGenerateData::reportResults(FitContext *fc, MxRList *slots, MxRList 
 	slots->add("output", simData.asR());
 }
 
+void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
+	useOriginalData = Rf_asLogical(RoriginalData);
+
+	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
+	hasRowNames = Rf_asLogical(Rrownames);
+	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
+	hasColNames = Rf_asLogical(Rcolnames);
+	ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
+	byrow = Rf_asLogical(Rbyrow);
+	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(Rverbose);
+	ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
+	stripeSize = std::max(Rf_asInteger(Rcs), 1);
+
+	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	if (Rf_length(Rdata) != 1 || Rf_length(Rpath) != 1)
+		Rf_error("%s: can only handle 1 data and path", name);
+
+	int objNum = Rf_asInteger(Rdata);
+	data = globalState->dataList[objNum];
+
+	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
+	for (int cx=0; cx < Rf_length(Rcol); ++cx) {
+		auto cn = R_CHAR(STRING_ELT(Rcol, cx));
+		auto &rcm = data->rawColMap;
+		auto rci = rcm.find(cn);
+		if (rci == rcm.end()) {
+			omxRaiseErrorf("%s: column '%s' not found in '%s'",
+				       name, cn, data->name);
+			continue;
+		}
+		columns.push_back(rci->second);
+		auto &rc = data->rawCols[rci->second];
+		colTypes.push_back(rc.type);
+		origData.emplace_back(rc.ptr);
+	}
+
+	filePath = R_CHAR(STRING_ELT(Rpath, 0));
+
+	loadCounter = 0;
+	stripeStart = -1;
+	stripeEnd = -1;
+}
+
+void ComputeLoadData::computeImpl(FitContext *fc)
+{
+	std::vector<int> &clc = Global->computeLoopIndex;
+	if (clc.size() == 0) Rf_error("%s: must be used within a loop", name);
+	int index = clc[clc.size()-1] - 1;  // innermost loop index
+
+	if (useOriginalData && index == 0) {
+		for (int cx=0; cx < int(columns.size()); ++cx) {
+			data->rawCols[ columns[cx] ].ptr = origData[cx];
+		}
+	} else {
+		if (!byrow) {
+			loadByCol(fc, index - useOriginalData);
+		} else {
+			loadByRow(fc, index - useOriginalData);
+		}
+	}
+
+	fc->state->invalidateCache();
+}
+
+ComputeLoadData::~ComputeLoadData()
+{
+	int stripes = stripeData.size() / columns.size();
+	for (int sx=0; sx < stripes; ++sx) {
+		for (int cx=0; cx < int(columns.size()); ++cx) {
+			int dx = sx * columns.size() + cx;
+			if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+				delete [] stripeData[dx].realData;
+			} else {
+				delete [] stripeData[dx].intData;
+			}
+		}
+	}
+	stripeData.clear();
+}
+
+void ComputeLoadData::loadByCol(FitContext *fc, int index)
+{
+	if (!stripeData.size()) {
+		stripeData.reserve(stripeSize * columns.size());
+		for (int sx=0; sx < stripeSize; ++sx) {
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+					stripeData.emplace_back(new double[data->rows]);
+				} else {
+					stripeData.emplace_back(new int[data->rows]);
+				}
+			}
+		}
+	}
+
+	if (stripeStart == -1 ||
+	    index < stripeStart || index >= stripeEnd) {
+		bool backward = index < stripeStart;
+		stripeStart = std::max(0, index - backward * (stripeSize - 1));
+
+		loadCounter += 1;
+		mini::csv::ifstream st(filePath);
+		st.set_delimiter(' ', "##");
+		if (hasColNames) st.skip_line();
+		int stripeAvail = stripeSize;
+		for (int rx=0; rx < data->rows; ++rx) {
+			if (!st.read_line()) {
+				Rf_error("%s: ran out of data for '%s' (need %d rows but only found %d)",
+					 name, data->name, data->rows, 1+rx);
+			}
+			int toSkip = stripeStart * columns.size() + hasRowNames;
+			for (int jx=0; jx < toSkip; ++jx) {
+				std::string rn;
+				st >> rn;
+			}
+			for (int sx=0,dx=0; sx < stripeAvail; ++sx) {
+				try {
+					for (int cx=0; cx < int(columns.size()); ++cx) {
+						if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+							st >> stripeData[dx].realData[rx];
+						} else {
+							auto &rc = data->rawCols[ columns[cx] ];
+							if (rc.levels.size()) {
+								std::string rn;
+								st >> rn;
+								bool found = false;
+								for (int lx=0; lx < int(rc.levels.size()); ++lx) {
+									if (rn == rc.levels[lx]) {
+										found = true;
+										stripeData[dx].intData[rx] = 1+lx;
+										break;
+									}
+								}
+								if (!found) Rf_error("%s: factor level '%s' unrecognized (row %d, column %d)",
+										     name, rn.c_str(), 1+rx, 1 + toSkip + sx*columns.size() + cx);
+							} else {
+								st >> stripeData[dx].intData[rx];
+							}
+						}
+						dx += 1;
+					}
+				} catch (...) {
+					// assume we tried to read off the end of the line
+					stripeAvail = sx;
+				}
+			}
+		}
+		stripeEnd = stripeStart + stripeAvail;
+		if (verbose >= 2) {
+			mxLog("%s: loaded stripes [%d,%d) of %d columns each",
+			      name, stripeStart, stripeEnd, int(columns.size()));
+		}
+	}
+
+	if (index < stripeStart || index >= stripeEnd) {
+		Rf_error("%s: no data available for %d", name, index);
+	}
+
+	int offset = (index - stripeStart) * columns.size();
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		data->rawCols[ columns[cx] ].ptr = stripeData[offset + cx];
+	}
+}
+
+void ComputeLoadData::loadByRow(FitContext *fc, int index)
+{
+	Rf_error("%s: not implemented", name);
+}
+
+void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	MxRList dbg;
+	dbg.add("loadCounter", Rf_ScalarInteger(loadCounter));
+	slots->add("debug", dbg.asR());
+}
+
 void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
@@ -3784,6 +3999,7 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
 	hasRowNames.resize(Rf_length(Rdata));
+	if (useOriginalData) origData.resize(Rf_length(Rdata));
 	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
 	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
 	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
@@ -3794,6 +4010,8 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 			omxRaiseErrorf("%s: matrix '%s' has populate substitutions",
 				       name, m1->name());
 		}
+		EigenMatrixAdaptor Em1(m1);
+		if (useOriginalData) origData[wx] = Em1;
 		mat.push_back(m1);
 
 		const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
@@ -3822,7 +4040,13 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 	std::vector<int> &clc = Global->computeLoopIndex;
 	if (clc.size() == 0) Rf_error("%s: must be used within a loop", name);
 	int index = clc[clc.size()-1];  // innermost loop index
-	if (useOriginalData && index == 1) return;
+	if (useOriginalData && index == 1) {
+		for (int dx=0; dx < int(mat.size()); ++dx) {
+			EigenMatrixAdaptor Em(mat[dx]);
+			Em.derived() = origData[dx];
+		}
+		return;
+	}
 
 	if (line > index - useOriginalData) {
 		Rf_error("%s: at line %d, cannot seek backwards to line %d",

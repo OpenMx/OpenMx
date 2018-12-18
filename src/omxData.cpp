@@ -1105,7 +1105,10 @@ void obsSummaryStats::log()
 	if (slopeMat) omxPrint(slopeMat, "slope");
 	if (meansMat) omxPrint(meansMat, "mean");
 	if (acovMat) omxPrint(acovMat, "acov");
-	if (fullWeight && acovMat != fullWeight) omxPrint(fullWeight, "full");
+	if (fullWeight) {
+		if (acovMat != fullWeight) omxPrint(fullWeight, "full");
+		else mxLog("fullWeight == acov");
+	}
 	for (auto &th : thresholdCols) { th.log(); }
 	if (thresholdMat) omxPrint(thresholdMat, "thr");
 }
@@ -2036,6 +2039,8 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *type,
 			  const char *continuousType, bool fullWeight)
 {
+	if (state->isClone()) Rf_error("omxData::prepObsStats called in a thread context");
+
 	if (strEQ(_type, "acov")) {
 		// ignore request from fit function (legacy, deprecated)
 		auto &o1 = *oss;

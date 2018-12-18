@@ -17,7 +17,7 @@ m1 <- mxModel(
   mxFitFunctionAlgebra("area"),
   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
-                        c('mean.csv', 'cov.csv')),
+	    path=c('mean.csv', 'cov.csv')),
     mxComputeOnce('fitfunction', 'fit'),
     mxComputeCheckpoint(path="loadMatrix.csv")
   ), i=1:4))
@@ -34,7 +34,7 @@ omxCheckCloseEnough(log$objective, e1, 1e-4)
 
 m2 <- mxModel(m1,   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
-                        c('mean.csv', 'cov.csv')),
+	    path=c('mean.csv', 'cov.csv')),
     mxComputeOnce('fitfunction', 'fit'),
     mxComputeCheckpoint(path="loadMatrix.csv")
 ), i=3:4))
@@ -48,7 +48,7 @@ omxCheckCloseEnough(log$objective, e1[3:4], 1e-4)
 
 m3 <- mxModel(m1,   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
-                        c('mean.csv', 'cov.csv')),
+	    path=c('mean.csv', 'cov.csv')),
     mxComputeOnce('fitfunction', 'fit'),
     mxComputeCheckpoint(path="loadMatrix.csv")
 ), i=2:1))

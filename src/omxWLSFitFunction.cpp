@@ -198,18 +198,20 @@ void omxWLSFitFunction::prepData()
 		Rf_error("%s: vectorSize changed from %d -> %d",
 			 vectorSize, expectation->numSummaryStats());
 
-	std::vector<int> exoPred;
-	expectation->getExogenousPredictors(exoPred);
-
 	omxData* dataMat = oo->expectation->data;
 
-	if (dataMat->defVars.size() == exoPred.size()) {
-		// OK
-	} else if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
+	if (!matrix->currentState->isClone()) {
+		std::vector<int> exoPred;
+		expectation->getExogenousPredictors(exoPred);
+		if (dataMat->defVars.size() == exoPred.size()) {
+			// OK
+		} else if (dataMat->hasDefinitionVariables()) {
+			Rf_error("%s: def vars not implemented", oo->name());
+		}
 	
-	// For multiple threads, need to grab parent's info TODO
-	dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(), exoPred,
-			      type, continuousType, fullWeight);
+		dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(),
+				      exoPred, type, continuousType, fullWeight);
+	}
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
 	//obsStat.log();
