@@ -95,7 +95,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 	model@compute@.persist <- TRUE
 	modelAtStartValues <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T, intervals=FALSE)))
 	if(class(modelAtStartValues) != "try-error"){ 
-		fitvalAtStarts <- modelAtStartValues@fitfunction@result[1,1]
+		fitvalAtStarts <- modelAtStartValues@fitfunction@result[1]
 		if(is.finite(fitvalAtStarts)){lowestminsofar <- fitvalAtStarts}
 	}
 	model@compute <- inputCompute
