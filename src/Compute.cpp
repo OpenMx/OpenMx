@@ -3254,6 +3254,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
 
+	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
 	fitMat->fitFunction->traverse(ve);
 
