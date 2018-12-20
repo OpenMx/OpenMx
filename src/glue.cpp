@@ -705,12 +705,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				}
 				result.add("bounds", bret.asR());
 			}
-			if (fc->stderrs) {
-				SEXP stdErrors;
-				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
-				memcpy(REAL(stdErrors), fc->stderrs, sizeof(double) * numFree);
-				result.add("standardErrors", stdErrors);
-			}
 			if (fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
 				result.add("infoDefinite", Rf_ScalarLogical(fc->infoDefinite));
 				result.add("conditionNumber", Rf_ScalarReal(fc->infoCondNum));

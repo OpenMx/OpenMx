@@ -163,7 +163,7 @@ class FitContext {
 	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;
-	double *stderrs;   // plural to distinguish from stdio's stderr
+	Eigen::VectorXd stderrs;   // plural to distinguish from stdio's stderr
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
 	double *infoB; // sandwich, the meat
@@ -184,7 +184,7 @@ class FitContext {
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
 	void createChildren(omxMatrix *alg);
 	void destroyChildren();
-	void allocStderrs();
+	void calcStderrs();
 	void ensureParamWithinBox(bool nudge);
 	void copyParamToModel();
 	void copyParamToModelClean();

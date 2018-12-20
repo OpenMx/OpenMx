@@ -689,7 +689,6 @@ void FitContext::init()
 	infoCondNum = NA_REAL;
 	infoA = NULL;
 	infoB = NULL;
-	stderrs = NULL;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
 	ciobj = 0;
@@ -723,14 +722,25 @@ void FitContext::clearHessian()
 	maxBlockSize = 0;
 }
 
-void FitContext::allocStderrs()
+void FitContext::calcStderrs()
 {
-	if (stderrs) return;
+	int numFree = calcNumFree();
+	stderrs.resize(numFree);
 
-	stderrs = new double[numParam];
+	Eigen::VectorXd ihd(ihessDiag());
 
-	for (size_t px=0; px < numParam; ++px) {
-		stderrs[px] = NA_REAL;
+	const double scale = fabs(Global->llScale);
+
+	// This function calculates the standard errors from the Hessian matrix
+	// sqrt(scale * diag(solve(hessian)))
+
+	for(int i = 0; i < numFree; i++) {
+		double got = ihd[i];
+		if (got <= 0) {
+			stderrs[i] = NA_REAL;
+			continue;
+		}
+		stderrs[i] = sqrt(scale * got);
 	}
 }
 
@@ -807,12 +817,6 @@ void FitContext::updateParent()
 			if (dest->vars[d1] != src->vars[s1]) continue;
 			parent->est[d1] = est[s1];
 			if (++s1 == svars) break;
-		}
-		if (stderrs) {
-			parent->allocStderrs();
-			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
-				parent->stderrs[mapToParent[s1]] = stderrs[s1];
-			}
 		}
 	}
 	
@@ -1201,7 +1205,6 @@ FitContext::~FitContext()
 
 	clearHessian();
 	if (est) delete [] est;
-	if (stderrs) delete [] stderrs;
 	if (infoA) delete [] infoA;
 	if (infoB) delete [] infoB;
 }
@@ -3238,6 +3241,12 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
+	if (fc->fitUnits == FIT_UNITS_MINUS2LL &&
+	    fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+		fc->calcStderrs();
+		return;
+	}
+
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
@@ -3342,6 +3351,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eh = (1.0/scale) * dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
 		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
 	fc->wanted |= FF_COMPUTE_IHESSIAN;
+	fc->calcStderrs();
 
 	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
 		sense.result.transpose() * Vmat;
@@ -3362,21 +3372,12 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 {
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
-	fc->allocStderrs();  // at least report NAs
-
-	const size_t numParams = fc->numParam;
-
-	Eigen::VectorXd ihessDiag(fc->ihessDiag());
-
-	const double scale = fabs(Global->llScale);
-
-	// This function calculates the standard errors from the Hessian matrix
-	// sqrt(scale * diag(solve(hessian)))
-
-	for(size_t i = 0; i < numParams; i++) {
-		double got = ihessDiag[i];
-		if (got <= 0) continue;
-		fc->stderrs[i] = sqrt(scale * got);
+	if (fc->stderrs.size()) {
+		int np = fc->stderrs.size();
+		SEXP stdErrors;
+		Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, np, 1));
+		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * np);
+		out->add("standardErrors", stdErrors);
 	}
 
 	if (wlsStats) {
