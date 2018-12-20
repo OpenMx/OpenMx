@@ -54,6 +54,11 @@ ml <- mxRun(ml)
 
 omxCheckCloseEnough(max(abs(coef(ml) - trueCoef)), 0, .2)
 
+r1 <- mxRefModels(ml)
+omxCheckEquals(length(coef(r1$Saturated)), 56)
+r2 <- mxRefModels(ml, equateThresholds=FALSE)
+omxCheckEquals(length(coef(r2$Saturated)), 60)
+
 wls <- mxModel(name="wls", container)
 
 for (gx in 1:nGroups) {

@@ -80,12 +80,18 @@ enum ColumnDataType {
 	COLUMNDATA_NUMERIC
 };
 
+union dataPtr {
+	double *realData;
+	int *intData;
+	dataPtr(double *_p) : realData(_p) {};
+	dataPtr(int *_p) : intData(_p) {};
+	void clear() { realData=0; intData=0; };
+};
+
 struct ColumnData {
 	const char *name;
 	ColumnDataType type;
-	// exactly one of these is non-null
-	double *realData;
-	int    *intData;
+	dataPtr ptr;
 	std::vector<std::string> levels;       // factors only
 
 	const char *typeName();
@@ -290,7 +296,7 @@ bool omxDataElementMissing(omxData *od, int row, int col);
 inline int omxKeyDataElement(omxData *od, int row, int col)
 {
 	ColumnData &cd = od->rawCols[col];
-	return cd.intData[row];
+	return cd.ptr.intData[row];
 }
 
 omxMatrix* omxDataCovariance(omxData *od);
@@ -323,12 +329,12 @@ void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix
 static OMXINLINE int
 omxIntDataElementUnsafe(omxData *od, int row, int col)
 {
-	return od->rawCols[col].intData[row];
+	return od->rawCols[col].ptr.intData[row];
 }
 
 static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 {
-	return od->rawCols[col].intData;
+	return od->rawCols[col].ptr.intData;
 }
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset

@@ -183,6 +183,7 @@ omxCheckCloseEnough(cor(bq1[,2] - bq1[,1], i2$output$standardErrors),
                     1.0, 0.2)
 
 cdata <- compressDataFrame(data)
+cdata$freq <- as.numeric(cdata$freq)
 i4 <- mxBootstrap(mxModel(m2, mxData(observed=cdata,
                                      type="raw", weight = "freq")), 50)
 bq2 <- summary(i4)[['bootstrapQuantile']]

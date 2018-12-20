@@ -393,6 +393,12 @@ void omxRAMExpectation::studyExoPred()
 
 	for (int cx=0, ex=0; cx < S->rows; ++cx) {
 		if (exoDataCol[cx] == -1) continue;
+		auto &rc = data->rawCols[ exoDataCol[cx] ];
+		if (rc.type != COLUMNDATA_NUMERIC) {
+			omxRaiseErrorf("%s: exogenous predictor '%s' must be type numeric (not '%s')",
+				       name, rc.name, rc.typeName());
+			continue;
+		}
 		exoDataColumns.push_back(exoDataCol[cx]);
 		for (int rx=0, dx=0; rx < S->rows; ++rx) {
 			if (!latentFilter[rx]) continue;
@@ -405,7 +411,7 @@ void omxRAMExpectation::studyExoPred()
 	exoPredMean.resize(exoDataColumns.size());
 	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
                auto &e1 = data->rawCols[ exoDataColumns[cx] ];
-               Eigen::Map< Eigen::VectorXd > vec(e1.realData, omxDataNumObs(data));
+               Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, omxDataNumObs(data));
                exoPredMean[cx] = vec.mean();
        }
 }
