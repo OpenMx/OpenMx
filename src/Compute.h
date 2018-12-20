@@ -179,7 +179,7 @@ class FitContext {
 	// for confidence intervals
 	CIobjective *ciobj;
 
-	FitContext(omxState *_state, std::vector<double> &startingValues);
+	FitContext(omxState *_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
 	void createChildren(omxMatrix *alg);

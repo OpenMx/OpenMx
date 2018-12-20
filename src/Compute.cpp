@@ -744,13 +744,14 @@ void FitContext::calcStderrs()
 	}
 }
 
-FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
+FitContext::FitContext(omxState *_state)
 {
 	parent = NULL;
 	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 	init();
 	profiledOut.assign(numParam, false);
 
+	auto &startingValues = Global->startingValues;
 	state = _state;
 	if (numParam) {
 		if (startingValues.size() != numParam) {
@@ -1688,6 +1689,10 @@ class ComputeEM : public omxCompute {
 const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) constexpr
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
+struct ComputeSetOriginalStarts : public omxCompute {
+        virtual void computeImpl(FitContext *fc);
+};
+
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMat;
@@ -1988,6 +1993,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeSimAnnealing", &newComputeGenSA},
 	{"MxComputeJacobian",
 	 []()->omxCompute* { return new ComputeJacobian; }},
+	{"MxComputeSetOriginalStarts",
+	 []()->omxCompute* { return new ComputeSetOriginalStarts; }},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3220,6 +3227,16 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 	MxRList output;
 	output.add("jacobian", Rcpp::wrap(sense.result));
 	slots->add("output", output.asR());
+}
+
+void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
+{
+	auto &startingValues = Global->startingValues;
+	auto &vars = fc->varGroup->vars;
+	for (int vx=0; vx < int(vars.size()); ++vx) {
+		auto *fv = vars[vx];
+		fc->est[vx] = startingValues[fv->id];
+	}
 }
 
 void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)

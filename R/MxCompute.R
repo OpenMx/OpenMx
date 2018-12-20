@@ -2010,6 +2010,31 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeSetOriginalStarts",
+	 contains = "BaseCompute")
+
+setMethod("initialize", "MxComputeSetOriginalStarts",
+	  function(.Object, freeSet) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object
+	  })
+
+##' Reset parameter starting values
+##'
+##' Sets the current parameter vector back to the original starting values.
+##'
+##' @param freeSet names of matrices containing free variables
+##' @aliases
+##' MxComputeSetOriginalStarts-class
+
+mxComputeSetOriginalStarts <- function(freeSet=NA_character_) {
+	new("MxComputeSetOriginalStarts", freeSet)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeGenerateData",
 	 contains = "BaseCompute",
 	 representation = representation(

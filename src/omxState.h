@@ -272,6 +272,7 @@ class omxGlobal {
 
 	// Will need revision if multiple optimizers are running in parallel
 	std::vector< omxCheckpoint* > checkpointList;
+	std::vector<double> startingValues;
 	FitContext *topFc;
 
 	omxGlobal();
@@ -320,7 +321,7 @@ class omxState {
 	omxState(omxState *src);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
-	void omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues);
+	void omxProcessFreeVarList(SEXP varList);
 	void omxProcessMxAlgebraEntities(SEXP algList);
 	void omxCompleteMxFitFunction(SEXP algList, FitContext *fc);
 	void omxProcessConfidenceIntervals(SEXP intervalList);
