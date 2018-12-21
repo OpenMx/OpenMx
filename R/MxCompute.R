@@ -2010,6 +2010,31 @@ mxComputeReportExpectation <- function(freeSet=NA_character_) {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeSetOriginalStarts",
+	 contains = "BaseCompute")
+
+setMethod("initialize", "MxComputeSetOriginalStarts",
+	  function(.Object, freeSet) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object
+	  })
+
+##' Reset parameter starting values
+##'
+##' Sets the current parameter vector back to the original starting values.
+##'
+##' @param freeSet names of matrices containing free variables
+##' @aliases
+##' MxComputeSetOriginalStarts-class
+
+mxComputeSetOriginalStarts <- function(freeSet=NA_character_) {
+	new("MxComputeSetOriginalStarts", freeSet)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeGenerateData",
 	 contains = "BaseCompute",
 	 representation = representation(
@@ -2120,11 +2145,12 @@ setClass(Class = "MxComputeCheckpoint",
 		 loopIndices = "logical",
 		 fit = "logical",
 		 counters = "logical",
-		 status = "logical"
+		 status = "logical",
+		 standardErrors = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
-	  function(.Object, what, path, append, header, toReturn, parameters, loopIndices, fit, counters, status) {
+	  function(.Object, what, path, append, header, toReturn, parameters, loopIndices, fit, counters, status, standardErrors) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2138,6 +2164,7 @@ setMethod("initialize", "MxComputeCheckpoint",
 		  .Object@fit <- fit
 		  .Object@counters <- counters
 		  .Object@status <- status
+		  .Object@standardErrors <- standardErrors
 		  .Object
 	  })
 
@@ -2160,7 +2187,8 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 	})
 
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
-				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE, status=TRUE) {
+				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE,
+				status=TRUE, standardErrors=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeCheckpoint does not accept values for the '...' argument")
@@ -2169,7 +2197,7 @@ mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=
 	path <- as.character(path)
 	new("MxComputeCheckpoint", what, path, as.logical(append), as.logical(header), as.logical(toReturn),
 		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
-		as.logical(status))
+		as.logical(status), as.logical(standardErrors))
 }
 
 #----------------------------------------------------

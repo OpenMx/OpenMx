@@ -299,13 +299,14 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 	}
 }
 
-void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *startingValues)
+void omxState::omxProcessFreeVarList(SEXP varList)
 {
 	AssertProtectStackBalanced apsb(__FUNCTION__, *Global->mpi);
 	if(OMX_DEBUG) { mxLog("Processing Free Parameters."); }
 
 	int numVars = Rf_length(varList);
-	startingValues->resize(numVars);
+	auto &startingValues = Global->startingValues;
+	startingValues.resize(numVars);
 	for (int fx = 0; fx < numVars; fx++) {
 		omxFreeVar *fv = new omxFreeVar;
 		// default group has free all variables
@@ -350,7 +351,7 @@ void omxState::omxProcessFreeVarList(SEXP varList, std::vector<double> *starting
 		}
 		ProtectedSEXP Rsv(VECTOR_ELT(nextVar, Rf_length(nextVar)-1));
 		double sv = REAL(Rsv)[0];
-		(*startingValues)[fx] = sv;
+		startingValues[fx] = sv;
 		if(OMX_DEBUG) {
 			mxLog("Free var %d %s, bounds (%.3g, %.3g), %d loc, starting %f", fx, fv->name,
 			      fv->lbound, fv->ubound, numLocs, sv);

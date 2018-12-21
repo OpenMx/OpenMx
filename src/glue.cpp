@@ -155,8 +155,7 @@ SEXP dtmvnorm_marginal2(SEXP Rxq, SEXP Rxr, SEXP Rq, SEXP Rr,
 	VectorXd density(4);
 
 	omxState *globalState = new omxState;
-	std::vector<double> startingValues;
-	FitContext *fc = new FitContext(globalState, startingValues);
+	FitContext *fc = new FitContext(globalState);
 	_dtmvnorm_marginal2(fc, NA_REAL, xq, xr, qq, rr, sigma, lower, upper, density);
 	delete fc;
 	delete globalState;
@@ -178,8 +177,7 @@ SEXP dtmvnorm_marginal(SEXP Rxn, SEXP Rn, SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	VectorXd density(2);
 
 	omxState *globalState = new omxState;
-	std::vector<double> startingValues;
-	FitContext *fc = new FitContext(globalState, startingValues);
+	FitContext *fc = new FitContext(globalState);
 	_dtmvnorm_marginal(fc, NA_REAL, xn, nn, sigma, lower, upper, density);
 	delete fc;
 	delete globalState;
@@ -200,8 +198,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	VectorXd tmean;
 	MatrixXd tcov;
 	omxState *globalState = new omxState;
-	std::vector<double> startingValues;
-	FitContext *fc = new FitContext(globalState, startingValues);
+	FitContext *fc = new FitContext(globalState);
 	_mtmvnorm(fc, NA_REAL, sigma, fullLower, fullUpper, tmean, tcov);
 	delete fc;
 	delete globalState;
@@ -553,9 +550,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	globalState->omxProcessMxMatrixEntities(matList);
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	std::vector<double> startingValues;
-	globalState->omxProcessFreeVarList(varList, &startingValues);
-	FitContext *fc = new FitContext(globalState, startingValues);
+	globalState->omxProcessFreeVarList(varList);
+	FitContext *fc = new FitContext(globalState);
 	Global->topFc = fc;
 	fc->copyParamToModelClean();
 
@@ -704,12 +700,6 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 					ub[px] = internalToUserBound(varGroup->vars[px]->ubound, INF);
 				}
 				result.add("bounds", bret.asR());
-			}
-			if (fc->stderrs) {
-				SEXP stdErrors;
-				Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
-				memcpy(REAL(stdErrors), fc->stderrs, sizeof(double) * numFree);
-				result.add("standardErrors", stdErrors);
 			}
 			if (fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
 				result.add("infoDefinite", Rf_ScalarLogical(fc->infoDefinite));

@@ -689,7 +689,6 @@ void FitContext::init()
 	infoCondNum = NA_REAL;
 	infoA = NULL;
 	infoB = NULL;
-	stderrs = NULL;
 	inform = INFORM_UNINITIALIZED;
 	iterations = 0;
 	ciobj = 0;
@@ -723,24 +722,36 @@ void FitContext::clearHessian()
 	maxBlockSize = 0;
 }
 
-void FitContext::allocStderrs()
+void FitContext::calcStderrs()
 {
-	if (stderrs) return;
+	int numFree = calcNumFree();
+	stderrs.resize(numFree);
 
-	stderrs = new double[numParam];
+	Eigen::VectorXd ihd(ihessDiag());
 
-	for (size_t px=0; px < numParam; ++px) {
-		stderrs[px] = NA_REAL;
+	const double scale = fabs(Global->llScale);
+
+	// This function calculates the standard errors from the Hessian matrix
+	// sqrt(scale * diag(solve(hessian)))
+
+	for(int i = 0; i < numFree; i++) {
+		double got = ihd[i];
+		if (got <= 0) {
+			stderrs[i] = NA_REAL;
+			continue;
+		}
+		stderrs[i] = sqrt(scale * got);
 	}
 }
 
-FitContext::FitContext(omxState *_state, std::vector<double> &startingValues)
+FitContext::FitContext(omxState *_state)
 {
 	parent = NULL;
 	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 	init();
 	profiledOut.assign(numParam, false);
 
+	auto &startingValues = Global->startingValues;
 	state = _state;
 	if (numParam) {
 		if (startingValues.size() != numParam) {
@@ -807,12 +818,6 @@ void FitContext::updateParent()
 			if (dest->vars[d1] != src->vars[s1]) continue;
 			parent->est[d1] = est[s1];
 			if (++s1 == svars) break;
-		}
-		if (stderrs) {
-			parent->allocStderrs();
-			for (size_t s1=0; s1 < src->vars.size(); ++s1) {
-				parent->stderrs[mapToParent[s1]] = stderrs[s1];
-			}
 		}
 	}
 	
@@ -1201,7 +1206,6 @@ FitContext::~FitContext()
 
 	clearHessian();
 	if (est) delete [] est;
-	if (stderrs) delete [] stderrs;
 	if (infoA) delete [] infoA;
 	if (infoB) delete [] infoB;
 }
@@ -1685,6 +1689,10 @@ class ComputeEM : public omxCompute {
 const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) constexpr
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
+struct ComputeSetOriginalStarts : public omxCompute {
+        virtual void computeImpl(FitContext *fc);
+};
+
 class ComputeStandardError : public omxCompute {
 	typedef omxCompute super;
 	omxMatrix *fitMat;
@@ -1833,6 +1841,7 @@ class ComputeCheckpoint : public omxCompute {
 		Eigen::VectorXd est;
 		double fit;
 		int inform;
+		Eigen::VectorXd stderrs;
 		Eigen::VectorXd extra;
 	};
 
@@ -1846,6 +1855,8 @@ class ComputeCheckpoint : public omxCompute {
 	std::forward_list<snap> snaps;
 	int numSnaps;
 	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
+	bool inclSEs;
+	bool badSEWarning;
 
  public:
 	virtual bool resetInform() { return false; };
@@ -1982,6 +1993,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeSimAnnealing", &newComputeGenSA},
 	{"MxComputeJacobian",
 	 []()->omxCompute* { return new ComputeJacobian; }},
+	{"MxComputeSetOriginalStarts",
+	 []()->omxCompute* { return new ComputeSetOriginalStarts; }},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3216,6 +3229,16 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 	slots->add("output", output.asR());
 }
 
+void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
+{
+	auto &startingValues = Global->startingValues;
+	auto &vars = fc->varGroup->vars;
+	for (int vx=0; vx < int(vars.size()); ++vx) {
+		auto *fv = vars[vx];
+		fc->est[vx] = startingValues[fv->id];
+	}
+}
+
 void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
@@ -3238,10 +3261,17 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
+	if (fc->fitUnits == FIT_UNITS_MINUS2LL &&
+	    fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+		fc->calcStderrs();
+		return;
+	}
+
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
 
+	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
 	fitMat->fitFunction->traverse(ve);
 
@@ -3342,6 +3372,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eh = (1.0/scale) * dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
 		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
 	fc->wanted |= FF_COMPUTE_IHESSIAN;
+	fc->calcStderrs();
 
 	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
 		sense.result.transpose() * Vmat;
@@ -3362,21 +3393,12 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 {
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
-	fc->allocStderrs();  // at least report NAs
-
-	const size_t numParams = fc->numParam;
-
-	Eigen::VectorXd ihessDiag(fc->ihessDiag());
-
-	const double scale = fabs(Global->llScale);
-
-	// This function calculates the standard errors from the Hessian matrix
-	// sqrt(scale * diag(solve(hessian)))
-
-	for(size_t i = 0; i < numParams; i++) {
-		double got = ihessDiag[i];
-		if (got <= 0) continue;
-		fc->stderrs[i] = sqrt(scale * got);
+	if (fc->stderrs.size()) {
+		int np = fc->stderrs.size();
+		SEXP stdErrors;
+		Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, np, 1));
+		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * np);
+		out->add("standardErrors", stdErrors);
 	}
 
 	if (wlsStats) {
@@ -3838,6 +3860,7 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
+	badSEWarning = false;
 
 	ProtectedSEXP Rappend(R_do_slot(rObj, Rf_install("append")));
 	bool append = Rf_asLogical(Rappend);
@@ -3873,6 +3896,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rstatus(R_do_slot(rObj, Rf_install("status")));
 	inclStatus = Rf_asLogical(Rstatus);
 
+	ProtectedSEXP Rse(R_do_slot(rObj, Rf_install("standardErrors")));
+	inclSEs = Rf_asLogical(Rse);
+
 	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
 	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
 		if (isErrorRaised()) return;
@@ -3906,6 +3932,15 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	if (inclFit) colnames.push_back("objective");
 	if (inclStatus) colnames.push_back("statusCode");
+	if (inclSEs) {
+		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
+		int numParam = vars.size();
+		for(int j = 0; j < numParam; j++) {
+			std::string c1 = vars[j]->name;
+			c1 += "SE";
+			colnames.push_back(c1);
+		}
+	}
 
 	numExtra = 0;
 	for (auto &mat : algebras) {
@@ -3916,9 +3951,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 		numExtra += mat->cols * mat->rows;
 	}
-	// TODO: confidence intervals, standard errors, hessian, constraint algebras, inform code
+	// TODO: confidence intervals, hessian, constraint algebras
 	// what does Eric Schmidt include in per-voxel output?
-	// remove old checkpoint code
+	// remove old checkpoint code?
 }
 
 void ComputeCheckpoint::computeImpl(FitContext *fc)
@@ -3938,6 +3973,22 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	}
 	s1.fit = fc->fit;
 	s1.inform = fc->wrapInform();
+	if (inclSEs) {
+		if (!fc->stderrs.size()) {
+			if (!badSEWarning) {
+				Rf_warning("%s: standard errors are not available", name);
+				badSEWarning = true;
+			}
+		}
+		if (fc->stderrs.size() != int(fc->numParam)) {
+			if (!badSEWarning) {
+				Rf_warning("%s: there are %d standard errors but %d parameters",
+					   name, fc->stderrs.size(), int(fc->numParam));
+				badSEWarning = true;
+			}
+		}
+		s1.stderrs = fc->stderrs;
+	}
 	s1.extra.resize(numExtra);
 
 	{int xx=0;
@@ -3997,6 +4048,11 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				ofs << '\t' << "NA";
 			} else {
 				ofs << '\t' << statusCodeLabels[s1.inform - 1];
+			}
+		}
+		if (inclSEs) {
+			for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+				ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
 			}
 		}
 		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
@@ -4085,6 +4141,16 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto *v = INTEGER(col);
 		int sx=0;
 		for (auto &s1 : snaps) v[sx++] = s1.inform;
+	}
+	if (inclSEs) {
+		auto numEst = int(snaps.front().est.size());
+		for (int x1=0; x1 < numEst; ++x1) {
+			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = REAL(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.stderrs[x1];
+		}
 	}
 	for (int x1=0; x1 < numExtra; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
