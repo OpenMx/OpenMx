@@ -444,7 +444,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		#  Set the canonical order of observed variable names.
 		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 		.Object@depth <- generateLISRELDepth(flatModel, beMatrix2, model@options) #Find out how many iterations of I + BE + BE^2 + ... are need until nilpotency.
-		if (mxDataObject@type == 'raw') {
+		if (dataIsRawish(mxDataObject)) {
 			threshName <- .Object@thresholds
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)

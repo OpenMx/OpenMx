@@ -42,7 +42,7 @@ uwModel <- mxModel(
   "JointRAM", type="RAM", thresh,
   manifestVars = paste0('z', 1:5),
   latentVars = c('G','z1c','z2c'),
-  mxDataWLS(unweighted, verbose=0L),
+  mxData(unweighted, 'raw'),
   mxPath('one', paste0('z', c(1,3)), free=TRUE),
   mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
   mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
@@ -56,7 +56,7 @@ uwModel <- mxModel(
 
 uwModel$expectation$thresholds <- 'T'
 
-wModel <- mxModel(uwModel, mxDataWLS(weighted, verbose=0L, frequency="freq"))
+wModel <- mxModel(uwModel, mxData(weighted, 'raw', verbose=0L, frequency="freq"))
 
 uwModel <- mxRun(uwModel)
 wModel <- mxRun(wModel)
@@ -90,8 +90,8 @@ unweighted <- rbind(
 
 weighted <- cbind(contTestData, freq=c(5L,0L,0L,rep(1L,nrow(contTestData)-3)))
 
-uwData <- mxDataWLS(unweighted, compute=TRUE, verbose=0L)
-wData <- mxDataWLS(weighted, frequency="freq", compute=TRUE, verbose=0L)
+uwData <- omxDataWLSCompute(mxData(unweighted, 'raw'))
+wData <- omxDataWLSCompute(mxData(weighted, 'raw', frequency="freq"))
 
 os1 <- uwData$observedStats
 os2 <- wData$observedStats

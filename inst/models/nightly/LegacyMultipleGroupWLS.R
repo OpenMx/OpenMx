@@ -22,7 +22,7 @@ x=rnorm(1000, mean=0, sd=1)
 y= 0.5*x + rnorm(1000, mean=0, sd=1)
 tmpFrame <- data.frame(x, y)
 tmpNames <- names(tmpFrame)
-wdata <- mxData(tmpFrame, type="raw")
+wdata <- mxDataWLS(tmpFrame, type="DWLS")
 
 # Define the matrices
 
@@ -39,7 +39,7 @@ expFunction <- mxExpectationNormal(covariance="expCov", dimnames=tmpNames)
 
 # Choose a fit function
 
-fitFunction <- mxFitFunctionWLS('DWLS')
+fitFunction <- mxFitFunctionWLS()
 
 # Define the model
 
@@ -54,8 +54,6 @@ summary(tmpModelOut)
 tmpModel2 <- mxModel(tmpModel,name="tmp2")
 twoGroup <- mxModel("two", tmpModel, tmpModel2, mxFitFunctionMultigroup(c("exampleModel","tmp2")))
 twoGroup <- mxRun(twoGroup)
-omxCheckError(mxRun(twoGroup, intervals=TRUE),
-              "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'exampleModel' to full WLS")
 
 # Experiment with multigroup automatic start values
 autModel1 <- mxModel(tmpModel, name="auto1", mxData(tmpFrame, 'raw'),
@@ -67,6 +65,6 @@ autGroup <- mxModel("group", autModel1, autModel2, mxFitFunctionMultigroup(c("au
 autStart <- mxAutoStart(autGroup)
 
 # Starting values from mxAutoStart are close to the final estimates from multigroup WLS
-omxCheckCloseEnough(coef(autStart)[names(coef(twoGroup))], coef(twoGroup), 1e-3)
+omxCheckCloseEnough(coef(autStart)[names(coef(twoGroup))], coef(twoGroup), 1e-2)
 
 

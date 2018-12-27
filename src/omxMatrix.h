@@ -63,7 +63,9 @@ class omxMatrix {
 	class omxExpectation *joinModel;
 	int shape;
  public:
-   omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1), joinModel(0), shape(0) {};
+ 	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1),
+		joinModel(0), shape(0), freeRownames(false), freeColnames(false)
+		{};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
@@ -106,7 +108,7 @@ class omxMatrix {
 	std::string nameStr;
 	const char *name() const { return nameStr.c_str(); }
 
-	// char pointers are from R and should not be freed
+	bool freeRownames, freeColnames;
 	std::vector<const char *> rownames;
 	std::vector<const char *> colnames;
 	int lookupColumnByName(const char *target);

@@ -41,7 +41,7 @@ thresh$labels[,3] <- c("z5t1", "z5t2", NA)
 colnames(thresh) <- paste0('z', c(2,4,5))
 
 jm1 <- mxModel("ContinuousOrdinalData",
-				mxData(jointData, "raw"),
+				mxDataWLS(jointData, "WLS"),
 				loadings, resid, means, thresh,
 			mxAlgebra(t(L) %*% L + U, name="C"),
 			mxFitFunctionWLS(),
@@ -66,4 +66,4 @@ omxCheckCloseEnough(sum(goodEntry), 15, 2)
 
 print(max(abs(ci1[goodEntry] - ci2[goodEntry])))
 omxCheckCloseEnough(ci1[goodEntry], ci2[goodEntry], .09)
-omxCheckCloseEnough(median(abs(ci1[goodEntry] - ci2[goodEntry])), 0, .01)
+omxCheckCloseEnough(median(abs(ci1[goodEntry] - ci2[goodEntry])), 0, .02)

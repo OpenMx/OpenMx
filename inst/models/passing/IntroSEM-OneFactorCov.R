@@ -98,30 +98,6 @@ omxCheckCloseEnough(1435.94, oneFactorCov1Out$output$minimum, 0.001)
 
 
 # ----------------------------------
-# Check that WLS can be swapped into a path model just by
-#  adding a WLS data set.
-oneFactorCovWLS <- mxModel(oneFactorCov1Out, name='WLS',
-	mxDataWLS(factorExample1)
-)
-
-oneFactorCovWLSOut <- mxRun(oneFactorCovWLS)
-
-# WLS estimates are close to ML estimates
-rms <- function(x, y){sqrt(mean((x-y)^2))}
-omxCheckTrue(rms(expectVal, omxGetParameters(oneFactorCovWLSOut)) < .25)
-omxCheckTrue(rms(expectSE, summary(oneFactorCovWLSOut)$parameters[,6]) < .025)
-
-
-# Swap the data back to cov and make sure the fit function automatically adjusts
-oneFactorCovML <- mxModel(oneFactorCovWLSOut, name='ML',
-	mxData(observed=cov(factorExample1), type="cov", numObs=500)
-)
-
-oneFactorCovMLOut <- mxRun(oneFactorCovML, suppressWarnings=TRUE)
-omxCheckCloseEnough(expectVal, oneFactorCovMLOut$output$estimate, 0.001)
-
-
-# ----------------------------------
 # Build an OpenMx single factor covariance model with fixed loading
 
 

@@ -134,6 +134,7 @@ mkModel <- function(shuffle, wls) {
 
 	ta1 <- mxModel(
 		model="tangle", thresh,
+		mxData(myData, 'raw'),
 		mxMatrix("Full", length(manifestVars), length(allVars),
 			 values=Fval,
 			 dimnames=list(manifestVars, allVars), name="F"),
@@ -160,10 +161,9 @@ mkModel <- function(shuffle, wls) {
 	ta1$M$values[1,'z1'] <- c(.1)
 
 	if (wls) {
-	  md <- suppressWarnings(mxDataWLS(myData, type='WLS', verbose=0L))
-		ta1 <- mxModel(ta1, md, mxFitFunctionWLS())
+		ta1 <- mxModel(ta1, mxFitFunctionWLS('WLS'))
 	} else {
-		ta1 <- mxModel(ta1, mxData(myData, type="raw"), mxFitFunctionML(jointConditionOn = "continuous"))
+		ta1 <- mxModel(ta1, mxFitFunctionML(jointConditionOn = "continuous"))
 	}
 
 	ta1

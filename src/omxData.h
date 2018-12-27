@@ -152,14 +152,11 @@ class omxData {
 	int *currentFreqColumn;
 	obsSummaryStats *oss;
 
-	const char *wlsType;
-	const char *wlsContinuousType;
-	bool wlsFullWeight;
-
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
-			   std::vector<int> &exoPred);
-	bool regenObsStats(const std::vector<const char *> &dc);
-	void wlsAllContinuousCumulants(omxState *state,
+			   std::vector<int> &exoPred, const char *type,
+			  const char *continuousType, bool fullWeight);
+	bool regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
+	void wlsAllContinuousCumulants(omxState *state, const char *wlsType,
 				       const std::vector<const char *> &dc,
 				       const Eigen::Ref<const Eigen::ArrayXd> rowMult,
 				       std::vector<int> &index);
@@ -242,7 +239,8 @@ class omxData {
 	bool columnIsFactor(int col);
 	bool hasSummaryStats() { return dataMat != 0 || oss; }
 	void prepObsStats(omxState *state, const std::vector<const char *> &dc,
-			    std::vector<int> &exoPred);
+			  std::vector<int> &exoPred, const char *type,
+			  const char *continuousType, bool fullWeight);
 	template <typename T1>
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();

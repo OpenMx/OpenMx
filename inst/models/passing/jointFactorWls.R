@@ -143,16 +143,16 @@ ramResult1 <- mxRun(ramModel1)
 summary(ramResult1)
 
 # Create WLS Data
-wd <- mxDataWLS(jointData, "WLS")
-dd <- mxDataWLS(jointData, "DLS")
-ud <- mxDataWLS(jointData, "ULS")
+wd <- mxData(jointData, "raw")
+dd <- mxData(jointData, "raw")
+ud <- mxData(jointData, "raw")
 
 # WLS form(s) of model
-jointWlsModel <- mxModel(jointModel1, name='wlsModel', wd, mxFitFunctionWLS())
-jointDlsModel <- mxModel(jointModel1, name='dlsModel', dd, mxFitFunctionWLS())
-jointUlsModel <- mxModel(jointModel1, name='ulsModel', ud, mxFitFunctionWLS())
+jointWlsModel <- mxModel(jointModel1, name='wlsModel', wd, mxFitFunctionWLS('WLS'))
+jointDlsModel <- mxModel(jointModel1, name='dlsModel', dd, mxFitFunctionWLS('DWLS'))
+jointUlsModel <- mxModel(jointModel1, name='ulsModel', ud, mxFitFunctionWLS('ULS'))
 
-ramWlsModel <- mxModel(ramModel1, name='wlsModel', wd, mxFitFunctionWLS())
+ramWlsModel <- mxModel(ramModel1, name='wlsModel', mxFitFunctionWLS())
 
 # Run 'em
 jointWlsResults <- mxRun(jointWlsModel)

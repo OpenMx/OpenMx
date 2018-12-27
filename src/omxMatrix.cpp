@@ -222,6 +222,9 @@ void omxFreeMatrix(omxMatrix *om) {
 		delete om->fitFunction;
 		om->fitFunction = NULL;
 	}
+
+	if (om->freeColnames) for (auto cn : om->colnames) free((void*)cn);
+	if (om->freeRownames) for (auto rn : om->rownames) free((void*)rn);
 	
 	if (!om->hasMatrixNumber) delete om;
 }

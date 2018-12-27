@@ -75,16 +75,14 @@ mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
 	
 	if( isMultiGroupModel ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
-		sD <- list()
 		wmodel <- model
 		for(amod in submNames){
-			sD[[amod]] <- autoStartDataHelper(model, subname=amod, type=type)
-			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), sD[[amod]], mxFitFunctionWLS())
+			
+			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), autoStartDataHelper(model, subname=amod, type=type))
 		}
 		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
 	} else {
-		mdata <- autoStartDataHelper(model, type=type)
-		wmodel <- mxModel(model, name='AutoStart', mdata, mxFitFunctionWLS())
+		wmodel <- mxModel(model, name='AutoStart', autoStartDataHelper(model, type=type))
 	}
 	wmodel <- mxOption(wmodel, "Calculate Hessian", "No")
 	wmodel <- mxOption(wmodel, "Standard Errors", "No")
@@ -103,37 +101,30 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 		stop(paste("Your model named", model[[subname]]@name, "doesn't have any data?  Sad."))
 	}
 	exps <- mxGetExpected(model, c('covariance', 'means', 'thresholds'), subname=subname)
-	wsize <- length(c(vech(exps$covariance), exps$means, exps$thresholds[!is.na(exps$thresholds)]))
 	useVars <- dimnames(exps$covariance)[[1]]
 	data <- model[[subname]]$data$observed
-	hasOrdinal <- any(sapply(data[,useVars], is.ordered))
 	origDataType <- model[[subname]]$data$type
-	isCovData <- origDataType %in% 'cov'
-	needFullWeight <- type != 'ULS'
-	if(isCovData){
-		if (any(hasOrdinal)) {
-			stop("Found ordinal data of type='cov'. I go crazy, crazy baby.")
-		}
+	if(origDataType %in% 'cov'){
 		data <- data[useVars,useVars]
-		covData <- data
 		nrowData <- model[[subname]]$data$numObs
 		meanData <- model[[subname]]$data$means
-	} else {
-		if(!hasOrdinal){
-			covData <- cov(data, use='pair')
-			nrowData <- nrow(data)
-			meanData <- colMeans(data, na.rm=TRUE)
-		} else {
-			return(mxDataWLS(data, type=type, fullWeight = needFullWeight))
+		mdata <- mxData(data, type=origDataType, numObs=nrowData, observedStats=list(cov=data))
+		if (length(exps$means) > 0) {
+			mdata$observedStats$means <- meanData
 		}
-	}
-	if(type != 'ULS'){
-		mdata <- mxDataWLS(data, type=type,
-			allContinuousMethod=ifelse(length(exps$means) > 0, 'marginals', 'cumulants'),
-			fullWeight= needFullWeight)
+	} else if (origDataType == 'raw') {
+		data <- data[,useVars]
+		if (type == 'ULS' && !any(sapply(data, is.ordered))) {
+			# special case for ULS, all continuous
+			os <- list(cov=cov(data, use='pair'))
+			if (length(exps$means) > 0) os$means <- colMeans(data, na.rm=TRUE)
+			return(list(mxData(data, type='raw', numObs=nrow(data), observedStats=os),
+				mxFitFunctionWLS('ULS', fullWeight=FALSE)))
+		}
+		mdata <- mxData(data, 'raw')
 	} else {
-		mdata <- mxData(data, type=origDataType, numObs=nrowData,
-			observedStats=list(cov=covData, means=meanData))
+		stop(paste("mxAutoStart for",origDataType,"data is not implemented"))
 	}
-	return(mdata)
+	list(mdata, mxFitFunctionWLS(type, ifelse(length(exps$means) > 0, 'marginals', 'cumulants'),
+		type != 'ULS'))
 }

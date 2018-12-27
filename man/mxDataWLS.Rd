@@ -15,8 +15,9 @@
 
 \name{mxDataWLS}
 \alias{mxDataWLS}
+\alias{MxDataLegacyWLS-class}
 
-\title{Create MxData Object for Least Squares (WLS, DWLS, ULS) Analyses}
+\title{Create legacy MxData Object for Least Squares (WLS, DWLS, ULS) Analyses}
 
 \description{
    This function creates a new \link{MxData} object of type 
@@ -28,9 +29,7 @@
 \usage{
    mxDataWLS(data, type = "WLS", useMinusTwo = TRUE, returnInverted = TRUE, 
     fullWeight = TRUE, suppressWarnings = TRUE, allContinuousMethod =
-   c("cumulants", "marginals"), ..., silent=!interactive(), .oldMethod =
-   FALSE, verbose=0L, compute=FALSE, returnModel=FALSE,
-          weight = as.character(NA), frequency = as.character(NA))
+   c("cumulants", "marginals"), silent=!interactive())
 }
 
 \arguments{
@@ -48,40 +47,13 @@
    'marginals'. See Details.}
 \item{...}{Not used.  Forces remaining arguments to be specified by name.}
 \item{silent}{Whether to report progress}
- \item{.oldMethod}{Whether to use the old method to obtain the observed
-   summary statistics.}
-\item{verbose}{level of diagnostic output}
-\item{compute}{whether to compute the summary statistics immediately}
-\item{returnModel}{when compute=TRUE, whether to return the model used
-   to obtain the summary statistics}
-   \item{weight}{The column name containing row weights}
-   \item{frequency}{The column name containing row frequencies}
 }
 
 \details{
 The mxDataWLS function creates an \link{MxData} object, which can be used in
 \link{MxModel} objects.  This function takes raw data and returns an \code{MxData} object to be used in a model to fit with weighted least squares.
 
-\strong{Bias and sensitivity to model misspecification}
-Both ordinal and continuous data are supported.  A combination of these data  types also succeeds. All three methods ('WLS', 'ULS' and 'DWLS') are unbiased when the model is correct. Full 'WLS', however, is highly sensitive to model misspecification. It can heavily weight the fourth-order moments of the distribution, so small deviations between the observed fourth-order moments and those implied by the model can lead to poor estimates.
-
-\strong{Behavior with all-continuous data}
-When only continuous variables are present, the argument \code{allContinuousMethod} dictates how to process the data.
-
-The default, \emph{cumulants} is a good choice for non-normal data. This uses the asymptotically distribution free (ADF) method of Browne (1984) and computes the fourth order \emph{cumulants} for the weight matrix: thus, the name.  The \emph{cumulants} method does not readily handle missing data and does not return weights or summary statistics for the means. It is, however generally fast and ADF up to elliptical distributions. Data computed using cumulants should also be more accurate than via marginals because the whole covariance is a single analytic expression, with no estimation is involved. 
-
-The alternative option, 'marginals', uses methods similar to those used in processing ordinal and joint ordinal-continuous data.  By contrast with cumulats, marginals returns weights and summary statistics for the means.
-
-When data are not all continuous, \code{allContinuousMethod} is ignored.
-
-When \code{.oldMethod} is \code{TRUE}, the summary statistics are computed
-immediately. This behavior is retained when \code{.oldMethod} is FALSE
-by setting \code{compute} to \code{TRUE}. The default is to compute the
-summary statistics when the model is run. Since exogenous predictors are
-implied by the model, residualized observed statistics can only be
-estimated when the model is run. The use of \code{compute=TRUE}
-precludes the possibility of residualized observed statistics since
-no model is available.
+This method is deprecated. Use \link{mxData} and \link{mxFitFunctionWLS} instead.
 }
 
 \value{

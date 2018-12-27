@@ -63,7 +63,7 @@ wls <- mxModel(name="wls", container)
 
 for (gx in 1:nGroups) {
   grp <- wls[[paste0("g",gx)]]
-  grp <- mxModel(grp, mxDataWLS(grp$data$observed))
+  grp <- mxModel(grp, mxData(grp$data$observed, 'raw'), mxFitFunctionWLS())
   wls <- mxModel(wls, grp)
 }
 wls <- mxRun(wls)

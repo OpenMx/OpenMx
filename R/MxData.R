@@ -49,14 +49,10 @@ setClass(Class = "MxDataStatic",
 		observed = "MxDataFrameOrMatrix",
 		means  = "matrix",
 		type   = "character",
-		preferredFit   = "character",
 		numObs = "numeric",
 		observedStats = "list",
 		.isSorted = "logical",  # remove slot TODO
 		.needSort = "logical",
-		.wlsType = "MxOptionalChar",
-		.wlsContinuousType = "MxOptionalChar",
-		.wlsFullWeight = "logical",
 	     primaryKey = "MxCharOrNumber",
 	     weight = "MxCharOrNumber",
 	     frequency = "MxCharOrNumber",
@@ -74,11 +70,10 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
-		   sort, primaryKey, weight, frequency, verbose, preferredFit) {
+		   sort, primaryKey, weight, frequency, verbose) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
-		.Object@preferredFit <- preferredFit
 		.Object@numObs <- numObs
 		.Object@observedStats <- observedStats
 		.Object@name <- "data"
@@ -98,8 +93,6 @@ setMethod("initialize", "MxDataStatic",
 		.Object@weight <- weight
 		.Object@frequency <- frequency
 		.Object@verbose <- verbose
-		.Object@.wlsType <- 'WLS'
-		.Object@.wlsContinuousType <- 'cumulants'
 		return(.Object)
 	}
 )
@@ -150,7 +143,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
-		   frequency = as.character(NA), verbose=0L, preferredFit = 'ML') {
+		   frequency = as.character(NA), verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -273,7 +266,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
-		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose), preferredFit))
+		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

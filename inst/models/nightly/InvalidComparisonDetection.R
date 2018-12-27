@@ -175,7 +175,8 @@ oneFactorCov1 <- mxModel("Single Factor Covariance Model with Fixed Variance",
 oneFactorCov1Out <- mxRun(oneFactorCov1)
 
 oneFactorCovWLS <- mxModel(oneFactorCov1Out, name='WLS',
-													 mxDataWLS(factorExample1)
+	mxData(factorExample1, 'raw'),
+	mxFitFunctionWLS()
 )
 oneFactorCovWLS <- omxSetParameters(model=oneFactorCovWLS,labels="b_x1",free=F,values=0)
 

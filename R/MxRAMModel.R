@@ -256,10 +256,8 @@ addEntriesRAM <- function(model, entries) {
 		data <- data[[1]]
 		model@data <- data
 		# If the data are WLS, then change the fit function to WLS away from the default ML.
-		if(model@data@preferredFit == 'WLS' && class(model@fitfunction) %in% "MxFitFunctionML"){
+		if(is(model@data,"MxDataLegacyWLS") && class(model@fitfunction) %in% "MxFitFunctionML"){
 			model[['fitfunction']] <- mxFitFunctionWLS()
-		} else if(model@data@preferredFit == 'ML' && !(class(model@fitfunction) %in% "MxFitFunctionML")){
-			model[['fitfunction']] <- mxFitFunctionML()
 		}
 		model[['F']] <- createMatrixF(model)
 	}

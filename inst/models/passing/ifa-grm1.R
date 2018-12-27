@@ -155,7 +155,8 @@ m3 <- mxModel(
   mxPath('one', c("G", colnames(correct.mat)), values=0, free=FALSE),
   mxPath('G', colnames(correct.mat), values=1),
   mxMatrix(nrow=6, ncol=ncol(correct.mat), name="T", values=NA,
-           dimnames=list(NULL, colnames(correct.mat)))
+	  dimnames=list(NULL, colnames(correct.mat))),
+  mxFitFunctionWLS()
 )
 
 m3$expectation$thresholds <- 'T'
@@ -163,7 +164,7 @@ m3$expectation$thresholds <- 'T'
 omxCheckError(mxGetExpected(m3, 'vector'),
               "Cannot find observed thresholds, model 'grm1WLS' has no data")
 
-m3 <- mxModel(m3, mxDataWLS(data))
+m3 <- mxModel(m3, mxData(data, 'raw'))
 
 for (ix in 1:numItems) {
   nth <- spec[[ix]]$outcomes - 1L

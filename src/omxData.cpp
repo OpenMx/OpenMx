@@ -40,7 +40,6 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0),
-		     wlsType("WLS"), wlsContinuousType("cumulants"), wlsFullWeight(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -248,22 +247,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	}
 
-	if (R_has_slot(dataObj, Rf_install(".wlsType"))) {
-		ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
-		wlsType = CHAR(STRING_ELT(RwlsType,0));
-	}
-	if (R_has_slot(dataObj, Rf_install(".wlsContinuousType"))) {
-		ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
-		wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
-	}
-	if (R_has_slot(dataObj, Rf_install(".wlsFullWeight"))) {
-		ProtectedSEXP RwlsFullWeight(R_do_slot(dataObj, Rf_install(".wlsFullWeight")));
-		wlsFullWeight = Rf_asLogical(RwlsFullWeight);
-	}
-	if (!wlsFullWeight && !strEQ(wlsType, "ULS")) {
-		Rf_error("%s: !wlsFullWeight && !strEQ(wlsType, ULS)", name);
-	}
-
 	if (od->hasPrimaryKey() && !(od->rawCols.size() && od->rawCols[primaryKey].type != COLUMNDATA_NUMERIC)) {
 		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
 	}
@@ -287,6 +270,22 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
+	if (strEQ(od->_type, "acov")) {  // old style for backward compatibility
+		oss = new obsSummaryStats;
+		auto &o1 = *oss;
+		o1.covMat = omxCreateCopyOfMatrix(dataMat, state);
+		o1.covMat->colnames = dataMat->colnames;
+		o1.covMat->rownames = dataMat->rownames;
+		o1.meansMat = meansMat;
+		meansMat = 0;
+		// slopeMat unimplemented for legacy version
+		ProtectedSEXP Racov(R_do_slot(dataObj, Rf_install("acov")));
+		o1.acovMat = omxNewMatrixFromRPrimitive(Racov, state, 0, 0);
+		ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
+		o1.fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
+		ProtectedSEXP Rthr(R_do_slot(dataObj, Rf_install("thresholds")));
+		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
+	}
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
@@ -296,8 +295,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			auto &o1 = *oss;
 			if (strEQ(key, "cov")) {
 				o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-				if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
-					Rf_error("%s: observedStats$cov must have colnames", name);
 			} else if (strEQ(key, "slope")) {
 				o1.slopeMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 				if (int(o1.slopeMat->colnames.size()) != o1.slopeMat->cols)
@@ -310,9 +307,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			} else if (strEQ(key, "thresholds")) {
 				o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-				o1.numOrdinal = o1.thresholdMat->cols;
-				if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
-					Rf_error("%s: observedStats$thresholds must have colnames", name);
 			} else {
 				Rf_warning("%s: observedStats key '%s' ignored", name, key);
 			}
@@ -320,8 +314,13 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	if (oss) {
 		auto &o1 = *oss;
+		if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
+			Rf_error("%s: observedStats$cov must have colnames", name);
+		if (o1.thresholdMat) o1.numOrdinal = o1.thresholdMat->cols;
 		if (!o1.covMat) Rf_error("%s: observedStats must include a covariance matrix", name);
 		if (o1.numOrdinal) {
+			if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
+				Rf_error("%s: observedStats$thresholds must have colnames", name);
 			EigenMatrixAdaptor Ethr(o1.thresholdMat);
 			ColMapType thrMap;
 			for (int cx=0; cx < int(o1.thresholdMat->colnames.size()); ++cx) {
@@ -427,7 +426,7 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	ProtectedSEXP Rverbose(R_do_slot(dataObj, Rf_install("verbose")));
 	od->verbose = Rf_asInteger(Rverbose);
 	dataList.push_back(od);
-	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObj);
+	if (strEQ(dclass, "MxDataStatic") || strEQ(dclass, "MxDataLegacyWLS")) od->newDataStatic(this, dataObj);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObj, od);
 	else Rf_error("Unknown data class %s", dclass);
 	return od;
@@ -935,6 +934,9 @@ static int plookup(ColMapType &map, const char *str)
 void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *> &dc,
 				  std::vector<int> &exoPred)
 {
+	if (int(dc.size()) != covMat->cols)
+		Rf_error("%s: internal error; dc.size() %d != covMat->cols %d",
+			 data->name, int(dc.size()), covMat->cols);
 	covMat->colnames.resize(covMat->cols);
 	covMat->rownames.resize(covMat->cols);
 	for (int cx=0; cx < covMat->cols; ++cx) {
@@ -961,37 +963,36 @@ void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *>
 		}
 	}
 
-	const bool debug=false;
+	const bool debug = false;
 	if (acovMat) {
+		acovMat->colnames.clear();
+		acovMat->rownames.clear();
 		if (debug) {
-			// flagrantly leak memory
-			acovMat->colnames.resize(acovMat->cols);
-			int dx = 0;
+			acovMat->colnames.reserve(acovMat->cols);
 			for (auto &tc : thresholdCols) {
 				if (tc.numThresholds == 0) {
-					acovMat->colnames[dx++] = dc[tc.dColumn];
+					acovMat->colnames.push_back(strdup(dc[tc.dColumn]));
 				} else {
 					for (int th=1; th <= tc.numThresholds; ++th) {
 						auto str = string_snprintf("%st%d", dc[tc.dColumn], th);
-						acovMat->colnames[dx++] = strdup(str.c_str());
+						acovMat->colnames.push_back(strdup(str.c_str()));
 					}
 				}
 			}
+			// slopes TODO
 			for (int cx=0; cx < covMat->cols; ++cx) {
 				if (thresholdCols[cx].numThresholds) continue;
 				auto str = string_snprintf("var_%s", dc[cx]);
-				acovMat->colnames[dx++] = strdup(str.c_str());
+				acovMat->colnames.push_back(strdup(str.c_str()));
 			}
 			for (int cx=0; cx < covMat->cols-1; ++cx) {
 				for (int rx=cx+1; rx < covMat->cols; ++rx) {
 					auto str = string_snprintf("poly_%s_%s", dc[rx], dc[cx]);
-					acovMat->colnames[dx++] = strdup(str.c_str());
+					acovMat->colnames.push_back(strdup(str.c_str()));
 				}
 			}
+			acovMat->freeColnames = true;
 			acovMat->rownames = acovMat->colnames;
-		} else {
-			acovMat->rownames.clear();
-			acovMat->colnames.clear();
 		}
 	}
 }
@@ -1000,7 +1001,7 @@ void obsSummaryStats::permute(omxData *data, const std::vector<const char *> &dc
 {
 	covMat->unshareMemoryWithR();
 	if (meansMat) meansMat->unshareMemoryWithR();
-	acovMat->unshareMemoryWithR();
+	if (acovMat) acovMat->unshareMemoryWithR();
 	if (fullWeight) fullWeight->unshareMemoryWithR();
 
 	ColMapType dataMap;
@@ -1138,7 +1139,7 @@ void getContRow(std::vector<ColumnData> &df,
 	}
 }
 
-void omxData::wlsAllContinuousCumulants(omxState *state,
+void omxData::wlsAllContinuousCumulants(omxState *state, const char *wlsType,
 					const std::vector<const char *> &dc,
 					const Eigen::Ref<const Eigen::ArrayXd> rowMult,
 					std::vector<int> &index)
@@ -1892,7 +1893,7 @@ void copyBlockwise(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, 
 	}
 }
 
-bool omxData::regenObsStats(const std::vector<const char *> &dc)
+bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wlsType)
 {
 	if (!oss) return true;
 	auto &o1 = *oss;
@@ -1981,11 +1982,43 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc)
 		}
 	}
 
+	if (strEQ(wlsType, "ULS")) {
+		omxFreeMatrix(o1.acovMat);
+		o1.acovMat = 0;
+	} else {
+		EigenMatrixAdaptor Eweight(o1.acovMat);
+		Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+		double offDiag = offDiagW.array().abs().sum();
+		if (strEQ(wlsType, "DWLS")) {
+			if (offDiag > 0) {
+				if (verbose >= 1) {
+					mxLog("%s: DWLS requested but full weight matrix found", name);
+				}
+				return true;
+			}
+		} else {
+			if (offDiag == 0.0) {
+				if (verbose >= 1) {
+					mxLog("%s: WLS requested but diagonal weight matrix found", name);
+				}
+				return true;
+			}
+		}
+	}
+
 	//omxPrint(o1.covMat, "cov");
 	if (permute) {
+		if (o1.slopeMat) {
+			if (verbose >= 1) mxLog("%s: observedStats could be permuted but "
+						"has slopes (not implemented)", name);
+			return true;
+		}
 		if (int(o1.covMat->colnames.size()) != o1.covMat->cols ||
-		    int(o1.acovMat->colnames.size()) != o1.acovMat->cols) {
-			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are unavailable", name);
+		    !o1.acovMat || int(o1.acovMat->colnames.size()) != o1.acovMat->cols) {
+			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are "
+						"unavailable (cov=%d, acov=%d)", name,
+						int(o1.covMat->colnames.size()),
+						o1.acovMat? int(o1.acovMat->colnames.size()) : -1);
 			return true;
 		}
 		if (verbose >= 1) mxLog("%s: observedStats needs permutation", name);
@@ -1999,9 +2032,29 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc)
 }
 
 void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
-			   std::vector<int> &exoPred)
+			   std::vector<int> &exoPred, const char *type,
+			  const char *continuousType, bool fullWeight)
 {
-	_prepObsStats(state, dc, exoPred);
+	if (strEQ(_type, "acov")) {
+		// ignore request from fit function (legacy, deprecated)
+		auto &o1 = *oss;
+		if (!o1.thresholdMat && !o1.meansMat) {
+			continuousType = "cumulants";
+		} else {
+			continuousType = "marginals";
+		}
+		if (!o1.acovMat) {
+			type = "ULS";
+		} else {
+			EigenMatrixAdaptor Eweight(o1.acovMat);
+			Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+			double offDiag = offDiagW.array().abs().sum();
+			if (offDiag > 0) type = "WLS";
+			else type = "DWLS";
+		}
+	}
+
+	_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
 	oss->setDimnames(this, dc, exoPred);
 }
 
@@ -2044,13 +2097,20 @@ double omxData::scoreDotProd(const Eigen::ArrayBase<T1> &a1,
 }
 
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
-			   std::vector<int> &exoPred)
+			   std::vector<int> &exoPred, const char *wlsType,
+			  const char *continuousType, bool fullWeight)
 {
 	if (!dc.size()) return;
 
-	if (!regenObsStats(dc)) {
+	if (!regenObsStats(dc, wlsType)) {
 		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats", name);
 		return;
+	}
+
+	if (rawCols.size() == 0) {
+		Rf_error("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
+			 "and raw data are also not available",
+			 name, wlsType, continuousType, fullWeight);
 	}
 
 	int numCols = dc.size();
@@ -2073,12 +2133,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	subsetVector(rowMultFull, index, rowMult);
 	o1.totalWeight = rowMult.sum();
 
-	if (numFactor == 0 && strEQ(wlsContinuousType, "cumulants")) {
+	if (numFactor == 0 && strEQ(continuousType, "cumulants")) {
 		if (exoPred.size() != 0) {
 			Rf_error("%s: allContinuousMethod cumulants does not work "
 				 "with exogenous predictors. Use 'marginals' instead", name);
 		}
-		wlsAllContinuousCumulants(state, dc, rowMult, index);
+		wlsAllContinuousCumulants(state, wlsType, dc, rowMult, index);
 		return;
 	}
 
@@ -2349,8 +2409,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	// Small optimization opportunity:
-	// We could avoid above score computations if !wlsFullWeight
-	if (!wlsFullWeight) return;
+	// We could avoid above score computations if !fullWeight
+	if (!fullWeight) return;
 
 	// mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
 	// mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good

@@ -577,11 +577,11 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		stop("mxGenerateData does not accept values for the '...' argument")
 	}
 	if (is(model, 'data.frame')) {
-		fake <- mxDataWLS(model, type="ULS", fullWeight=FALSE, allContinuousMethod="marginals",
-			compute=TRUE, returnModel=TRUE)
+		fake <- omxDataWLSCompute(mxData(model,'raw'), "ULS", "marginals",
+			fullWeight=FALSE, returnModel=TRUE)
 		obsStats <- fake$data$observedStats
-		fake$cov$values <- obsStats$cov
-		fake$mean$values <- obsStats$means
+		fake$S$values <- obsStats$cov
+		fake$M$values <- obsStats$means
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
 		if(is.null(nrows)) nrows <- nrow(model)

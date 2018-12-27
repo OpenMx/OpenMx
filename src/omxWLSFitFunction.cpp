@@ -32,7 +32,12 @@ struct omxWLSFitFunction : omxFitFunction {
 	int numOrdinal;
 	int vectorSize;
 	
-	omxWLSFitFunction() {};
+	const char *type;
+	const char *continuousType;
+	bool fullWeight;
+
+	omxWLSFitFunction() :
+		type("WLS"), continuousType("cumulants"), fullWeight(true) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
@@ -203,7 +208,8 @@ void omxWLSFitFunction::prepData()
 	} else if (dataMat->hasDefinitionVariables()) Rf_error("%s: def vars not implemented", oo->name());
 	
 	// For multiple threads, need to grab parent's info TODO
-	dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(), exoPred);
+	dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(), exoPred,
+			      type, continuousType, fullWeight);
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
 	//obsStat.log();
@@ -298,6 +304,23 @@ void omxWLSFitFunction::init()
 	
 	if (!oo->expectation) { Rf_error("%s requires an expectation", name()); }
 	
+	if (R_has_slot(rObj, Rf_install("type"))) {
+		ProtectedSEXP RwlsType(R_do_slot(rObj, Rf_install("type")));
+		type = CHAR(STRING_ELT(RwlsType,0));
+	}
+	if (R_has_slot(rObj, Rf_install("continuousType"))) {
+		ProtectedSEXP RwlsContType(R_do_slot(rObj, Rf_install("continuousType")));
+		continuousType = CHAR(STRING_ELT(RwlsContType,0));
+	}
+	if (R_has_slot(rObj, Rf_install("fullWeight"))) {
+		ProtectedSEXP RwlsFullWeight(R_do_slot(rObj, Rf_install("fullWeight")));
+		fullWeight = Rf_asLogical(RwlsFullWeight);
+	}
+
+	if (!fullWeight && !strEQ(type, "ULS")) {
+		Rf_error("%s: !fullWeight && !strEQ(type, ULS)", name());
+	}
+
 	expectedCov = omxGetExpectationComponent(oo->expectation, "cov");
 	expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 	expectedSlope = omxGetExpectationComponent(expectation, "slope");

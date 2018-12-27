@@ -151,7 +151,7 @@ computeFValue <- function(datalist, likelihood, chi) {
 	if(length(datalist) == 0) return(NA)
 	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), datalist)
 	if(all(sapply(datalist, function(x) 
-		{x@preferredFit == 'WLS'}))) return(chi)
+		{length(x@observedStats) > 0 || is(x,"MxDataLegacyWLS") }))) return(chi)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'raw'}))) return(likelihood)
 	if(all(sapply(datalist, function(x) 
