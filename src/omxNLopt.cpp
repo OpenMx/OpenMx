@@ -470,8 +470,9 @@ double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
 	double fit = uo->getFit(x);
 	if (grad) {
 		uo->getGrad(x, grad);
+		Eigen::Map< Eigen::ArrayXd > Egrad(grad, uo->ubound.size());
+		if ((!Egrad.isFinite()).any()) Rf_error("%s: gradient has non-finite entries", name);
 		if (verbose >= 2) {
-			Eigen::Map< Eigen::VectorXd > Egrad(grad, uo->ubound.size());
 			mxLog("%f", fit);
 			mxPrintMat("grad", Egrad);
 		}
