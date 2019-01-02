@@ -102,6 +102,6 @@ omxCheckCloseEnough(os1$fullWeight, os2$fullWeight, 2e-12)
 
 uwModelB <- mxBootstrap(uwModel)
 uw.sum <- summary(uwModelB)
-omxCheckCloseEnough(cor(uw.sum$bootstrapSE, wald.se), 1, .2)
+omxCheckCloseEnough(cor(uw.sum$bootstrapSE, wald.se), 1, .15)
 
-omxCheckCloseEnough((uw.sum$bootstrapSE -  wald.se) / uw.sum$bootstrapSE, rep(0,length(wald.se)), .5)
+omxCheckCloseEnough((uw.sum$bootstrapSE -  wald.se) / uw.sum$bootstrapSE, rep(0,length(wald.se)), .41)
