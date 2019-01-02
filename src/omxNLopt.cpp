@@ -434,7 +434,7 @@ double UnconstrainedSLSQPOptimizer::obj(unsigned n, const double *x, double *gra
 void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 {
 	uo = &_uo;
-	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size());
+	opt = nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size());
 	nlopt_set_lower_bounds(opt, uo->lbound.data());
 	nlopt_set_upper_bounds(opt, uo->ubound.data());
 	nlopt_set_ftol_rel(opt, tolerance);
@@ -475,7 +475,7 @@ double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
 			mxLog("%f", fit);
 			mxPrintMat("grad", Egrad);
 		}
-		iter += 1;
+		if (++iter > maxIter) nlopt_force_stop(opt);
 	} else {
 		if (verbose >= 3) mxLog("%f", fit);
 	}

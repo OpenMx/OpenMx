@@ -25,6 +25,8 @@ class UnconstrainedSLSQPOptimizer {
 	int verbose;
 	int iter;
 	UnconstrainedObjective *uo;
+	typedef struct nlopt_opt_s *nlopt_opt;
+	nlopt_opt opt;
 
 	double evaluate(const double *x, double *grad);
 	static double obj(unsigned n, const double *x, double *grad, void *mythis);
