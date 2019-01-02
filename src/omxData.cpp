@@ -1786,8 +1786,9 @@ struct PolychoricCor : UnconstrainedObjective {
 	{
 		rho = tanh(_x[0]);
 
+		const double eps = std::numeric_limits<double>::epsilon();
 		for (int rx=0; rx < int(index.size()); ++rx) {
-			pr[rx] = pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
+			pr[rx] = std::max(pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho), eps);
 		}
 
 		return -(pr.log() * rowMult).sum();
