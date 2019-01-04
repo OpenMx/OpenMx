@@ -29,7 +29,7 @@
 
 \usage{
 mxThreshold(vars, nThresh=NA,
-	free=FALSE, values=NA, labels=NA,
+	free=FALSE, values=mxNormalQuantiles(nThresh), labels=NA,
 	lbound=NA, ubound=NA)
 }
 

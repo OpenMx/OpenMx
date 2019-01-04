@@ -150,7 +150,7 @@ splitThresholds <- function(variables, nThresh, free, values, labels, lbound, ub
 	return(thresholds)
 }
 
-mxThreshold <- function(vars, nThresh=NA, free=FALSE, values=NA, # normalQuantiles(nThresh)
+mxThreshold <- function(vars, nThresh=NA, free=FALSE, values=mxNormalQuantiles(nThresh),
                         labels=NA, lbound=NA, ubound=NA) {
   if(all.na(vars)) {
     stop("You must specify a variable name for which these thresholds should be applied.")
