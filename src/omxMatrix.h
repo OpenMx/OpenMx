@@ -474,11 +474,12 @@ void expm_eigen(int n, double *rz, double *out);
 void logm_eigen(int n, double *rz, double *out);
 
 template <typename T>
-std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
+std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra,
+			      bool debug=false)
 {
 	std::string buf;
 
-	if (mat.rows() * mat.cols() > 1000) {
+	if (!debug && mat.rows() * mat.cols() > 1000) {
 		buf = string_snprintf("%s is too large to print # %dx%d\n",
 				name, mat.rows(), mat.cols());
 		return buf;

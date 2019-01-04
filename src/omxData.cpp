@@ -1661,10 +1661,11 @@ struct PolyserialCor : UnconstrainedObjective {
 		tau = (zi.colwise() - rho * zee) / R;
 
 		for (int rx=0; rx < ycol.rows(); ++rx) {
-			pr[rx] = Rf_pnorm5(tau(rx,0), 0., 1., 1, 0) - Rf_pnorm5(tau(rx,1), 0., 1., 1, 0);
+			pr[rx] = std::max(Rf_pnorm5(tau(rx,0), 0., 1., 1, 0) -
+					  Rf_pnorm5(tau(rx,1), 0., 1., 1, 0),
+					  std::numeric_limits<double>::epsilon());
 		}
-		Eigen::ArrayXd pr2 = pr.max(std::numeric_limits<double>::epsilon());
-		double fit = -(pr2.log() * rowMult).sum();
+		double fit = -(pr.log() * rowMult).sum();
 		return fit;
 	}
 	virtual void getGrad(const double *_x, double *grad)
@@ -1709,6 +1710,16 @@ struct PolyserialCor : UnconstrainedObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
+	virtual void panic(const char *why) {
+		mxLog("Internal error in PolyserialCor: %s", why);
+		mxLog("param=%f rho=%f R=%f", param, rho, R);
+		std::string buf, xtra;
+		buf += mxStringifyMatrix("tau", tau, xtra, true);
+		buf += mxStringifyMatrix("pr", pr, xtra, true);
+		buf += mxStringifyMatrix("dzi", dzi, xtra, true);
+		mxLogBig(buf);
+		Rf_error("Report this failure to OpenMx developers");
+	};
 };
 
 struct PolychoricCor : UnconstrainedObjective {
@@ -1727,6 +1738,7 @@ struct PolychoricCor : UnconstrainedObjective {
 	Eigen::ArrayXXd z1;
 	Eigen::ArrayXXd z2;
 	Eigen::ArrayXd pr;
+	Eigen::ArrayXd den;
 	double rho;
 	double param;
 	Eigen::ArrayXXd scores;
@@ -1752,6 +1764,7 @@ struct PolychoricCor : UnconstrainedObjective {
 		// when exoPred is empty, massive speedups are possible TODO
 
 		pr.resize(index.size());
+		den.resize(index.size());
 
 		Eigen::Map< Eigen::ArrayXi > y1Full(c1.ptr.intData, data.rows);
 		y1.resize(index.size());
@@ -1800,7 +1813,8 @@ struct PolychoricCor : UnconstrainedObjective {
 	{
 		double dx = 0;
 		for (int rx=0; rx < int(index.size()); ++rx) {
-			dx += rowMult[rx] * dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho) / pr[rx];
+			den[rx] = dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
+			dx += rowMult[rx] * den[rx] / pr[rx];
 		}
 		double cosh_x = cosh(_x[0]);
 		grad[0] = -dx / (cosh_x * cosh_x);
@@ -1844,6 +1858,15 @@ struct PolychoricCor : UnconstrainedObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
+	virtual void panic(const char *why) {
+		mxLog("Internal error in PolychoricCor: %s", why);
+		mxLog("param=%f rho=%f", param, rho);
+		std::string buf, xtra;
+		buf += mxStringifyMatrix("pr", pr, xtra, true);
+		buf += mxStringifyMatrix("den", den, xtra, true);
+		mxLogBig(buf);
+		Rf_error("Report this failure to OpenMx developers");
+	};
 };
 
 struct PearsonCor {
