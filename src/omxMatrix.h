@@ -129,6 +129,8 @@ class omxMatrix {
 	void loadFromStream(mini::csv::ifstream &st);
 	int size() const { return rows * cols; }
 	SEXP asR();
+	bool isValidElem(int row, int col)
+	{ return row >= 0 && col >= 0 && row < rows && col < cols; };
 };
 
 void omxEnsureColumnMajor(omxMatrix *mat);
@@ -233,7 +235,7 @@ static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
 /* BLAS Wrappers */
 
 static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
-	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+	if (!om->isValidElem(row, col)) {
 		setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
 		return;
 	}
@@ -247,7 +249,7 @@ static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, doubl
 }
 
 static OMXINLINE void omxAccumulateMatrixElement(omxMatrix *om, int row, int col, double value) {
-        if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+	if (!om->isValidElem(row, col)) {
                 setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
                 return;
         }
@@ -262,7 +264,7 @@ static OMXINLINE void omxAccumulateMatrixElement(omxMatrix *om, int row, int col
 
 static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
-	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+	if (!om->isValidElem(row, col)) {
 		matrixElementError(row + 1, col + 1, om);
         return (NA_REAL);
 	}

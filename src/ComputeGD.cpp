@@ -1526,6 +1526,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 			ConfidenceInterval *oCI = Global->intervalList[j];
 			omxMatrix *ciMat = oCI->getMatrix(state);
 			omxRecompute(ciMat, mle);
+			if (!ciMat->isValidElem(oCI->row, oCI->col)) {
+				Rf_error("%s: attempt to find confidence interval of "
+					 "nonexistent element (%d,%d) in %dx%d matrix '%s'",
+					 name, 1+oCI->row, 1+oCI->col, ciMat->rows, ciMat->cols, ciMat->name());
+			}
 			interval(j, 1) = omxMatrixElement(ciMat, oCI->row, oCI->col);
 			totalIntervals += (oCI->bound != 0.0).count();
 		}
