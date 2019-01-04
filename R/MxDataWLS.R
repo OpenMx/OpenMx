@@ -834,9 +834,9 @@ wls.permute <- function(mxd) {
 ##' @seealso
 ##' \link{mxFitFunctionWLS}
 ##' @examples
-##' omxDataWLSCompute(mxData(Bollen[,1:8], 'raw'))
+##' omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'))
 
-omxDataWLSCompute <- function(mxd, type=c('WLS','DWLS','ULS'),
+omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 			      allContinuousMethod=c("cumulants", "marginals"),
 			      ..., exogenous=c(), fullWeight=TRUE, returnModel=FALSE)
 {
@@ -844,7 +844,7 @@ omxDataWLSCompute <- function(mxd, type=c('WLS','DWLS','ULS'),
 	allContinuousMethod <- match.arg(allContinuousMethod)
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
-		stop("omxDataWLSCompute does not accept values for the '...' argument")
+		stop("omxAugmentDataWithWLSSummary does not accept values for the '...' argument")
 	}
 	if (mxd@type != 'raw') stop("Data must contain a raw data frame")
 	data <- mxd@observed

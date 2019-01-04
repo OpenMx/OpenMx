@@ -145,8 +145,8 @@ omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
 #--------------------------------------
 # Marginals should be fairly close to cumulants
 
-wlsMO <- omxDataWLSCompute(mxData(Bollen[,1:8], 'raw'), allContinuousMethod = "marginals")
-dwlsMO <- omxDataWLSCompute(mxData(Bollen[,1:8], 'raw'), "DWLS", allContinuousMethod = "marginals")
+wlsMO <- omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'), allContinuousMethod = "marginals")
+dwlsMO <- omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'), "DWLS", allContinuousMethod = "marginals")
 
 omxCheckCloseEnough(cor(vech(wlsMO$observedStats$cov),
                         vech(wlsRun$data$observedStats$cov)), 1, 5e-3)

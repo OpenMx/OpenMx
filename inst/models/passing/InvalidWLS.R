@@ -7,17 +7,17 @@ mb <- mxFactor(b, levels=levels(b))
 #mb[mb %in% 'c'] <- 'd' #make 'c' the unused level instead of 'd'
 ds <- data.frame(a=ma, b=mb)
 
-omxCheckError(omxDataWLSCompute(mxData(ds, 'raw')), "fake.data: variable 'b' has a zero frequency category 'd'.
+omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')), "fake.data: variable 'b' has a zero frequency category 'd'.
 Eliminate this level in your mxFactor() or combine categories in some other way.
 Do not pass go. Do not collect $200.")
 
 Bollen1 <- Bollen
 Bollen1[1,'y1'] <- NA
-omxCheckError(omxDataWLSCompute(mxData(Bollen1[, 1:8], 'raw')),
+omxCheckError(omxAugmentDataWithWLSSummary(mxData(Bollen1[, 1:8], 'raw')),
               "fake.data: all continuous data with missingness (column 'y1') cannot be handled using the cumulants method. Use na.omit(yourDataFrame) to remove rows with missing values or use allContinuousMethod='marginals' or use maximum likelihood")
 
 ds <- data.frame(a=a, b=ma)
 omxCheckWarning(
-  omxCheckError(omxDataWLSCompute(mxData(ds, 'raw')),
+  omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')),
                 "fake.data: variable 'a' must be an ordered factor but is of type unordered factor"),
   "In data 'fake.data', column 'a' must be an ordered factor. Please use mxFactor()")

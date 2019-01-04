@@ -90,8 +90,8 @@ unweighted <- rbind(
 
 weighted <- cbind(contTestData, freq=c(5L,0L,0L,rep(1L,nrow(contTestData)-3)))
 
-uwData <- omxDataWLSCompute(mxData(unweighted, 'raw'))
-wData <- omxDataWLSCompute(mxData(weighted, 'raw', frequency="freq"))
+uwData <- omxAugmentDataWithWLSSummary(mxData(unweighted, 'raw'))
+wData <- omxAugmentDataWithWLSSummary(mxData(weighted, 'raw', frequency="freq"))
 
 os1 <- uwData$observedStats
 os2 <- wData$observedStats

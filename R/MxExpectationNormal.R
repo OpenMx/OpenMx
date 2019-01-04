@@ -577,7 +577,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		stop("mxGenerateData does not accept values for the '...' argument")
 	}
 	if (is(model, 'data.frame')) {
-		fake <- omxDataWLSCompute(mxData(model,'raw'), "ULS", "marginals",
+		fake <- omxAugmentDataWithWLSSummary(mxData(model,'raw'), "ULS", "marginals",
 			fullWeight=FALSE, returnModel=TRUE)
 		obsStats <- fake$data$observedStats
 		fake$S$values <- obsStats$cov
