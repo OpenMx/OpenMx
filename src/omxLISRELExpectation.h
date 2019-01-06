@@ -18,36 +18,7 @@
 #ifndef _OMXLISRELEXPECTATION_H_
 #define _OMXLISRELEXPECTATION_H_
 
-struct omxLISRELExpectation : public omxExpectation {
-
-	omxMatrix *cov, *means; // expected covariance and means
-	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH; // LISREL model Matrices
-	omxMatrix *TX, *TY, *KA, *AL; //LISREL Means Matrices
-	omxMatrix *A, *B, *C, *D, *E, *F, *G, *H, *I, *J, *K, *L; // Place holder matrices used in computations.  Note: L is analogous to Ax in RAM and is used in I-BE inverse
-	omxMatrix *TOP, *BOT; // Place holder matrices for building covariance matrix from blocks
-	omxMatrix *MUX, *MUY; //Place holder matrices for building means from blocks
-	//omxMatrix *C, *P, *V, *Mns; // Other Matrices, not sure what these are for.
-
-	int numIters; // used by omxFastRAM/LISRELInverse
-	double logDetObserved;
-	double n;
-	//double* work; // used by omxFastRAM/LISRELInverse
-	//int lwork; // used by omxFastRAM/LISRELInverse
-
-	omxMatrix **args;
-
-	bool noLX;
-	bool noLY;
-	bool Lnocol;
-
-	virtual ~omxLISRELExpectation();
-	virtual void init();
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual void populateAttr(SEXP expectation);
-	virtual omxMatrix *getComponent(const char*);
-};
-
-void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro);
+void omxCalculateLISRELCovarianceAndMeans(struct omxLISRELExpectation* oro);
 
 /*
 void omxFastLISRELInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ); // same as RAM inverse

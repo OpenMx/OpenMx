@@ -28,7 +28,8 @@
 \usage{
 mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
                     TX = NA, TY = NA, KA = NA, AL = NA,
-                    dimnames = NA, thresholds = NA, threshnames = dimnames)
+                    dimnames = NA, thresholds = NA,
+	 threshnames = dimnames, verbose=0L)
 }
 
 
@@ -49,6 +50,7 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
    \item{dimnames}{An optional character vector that is currently ignored}%to be assigned to the column names of the 'F' and 'M' matrices.}   
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
+   \item{verbose}{integer. Level of runtime diagnostic output.}
 }
 
 \details{

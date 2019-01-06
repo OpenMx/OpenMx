@@ -26,8 +26,29 @@ thresh$values[,3] <- c(-1, 1, NA)
 thresh$labels[,3] <- c("z5t1", "z5t2", NA)
 colnames(thresh) <- paste0('z', c(2,4,5))
 
-#------------------------------------------------------------------------------
-# Model definition
+# ------- LISREL
+
+jl <- mxModel("JointLISREL", type="LISREL", thresh,
+              manifestVars = list(endogenous=paste0('z',1:5)),
+              latentVars = list(endogenous=c('G','z1c','z2c')),
+              mxData(jointData, "raw", verbose=0L),
+              mxPath('one', paste0('z', c(1,3)), free=TRUE, labels=c('z1','z3')),
+              mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
+              mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
+              mxPath('G', arrows=2, values=1, free=FALSE),
+              mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0, ubound=4),
+              mxPath('one', 'z1c', free=FALSE, labels="data.z1c"),
+              mxPath('one', 'z2c', free=FALSE, labels="data.z2c"),
+              mxPath('z1c', 'z1', labels="r1"),
+              mxPath('z2c', 'z2', labels="r2"),
+              mxFitFunctionWLS())
+
+jl$expectation$thresholds <- 'T'
+#jl$expectation$verbose <- 1L
+
+jl <- mxRun(jl)
+
+#----------- RAM
 
 buildModel <- function(manifests=paste0('z', 1:5), type='WLS', slopes=TRUE) {
 	jr <- mxModel("JointRAM", type="RAM", thresh,
@@ -55,6 +76,8 @@ jm1 <- buildModel()
 
 jm1 <- mxRun(jm1)
 summary(jm1)
+
+omxCheckCloseEnough(coef(jl), coef(jm1), 1e-6)
 
 # tmp <- c(jm1$output$standardErrors)
 # names(tmp) <- c()

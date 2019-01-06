@@ -16,7 +16,44 @@
 
 #include "omxExpectation.h"
 #include "omxLISRELExpectation.h"
+#include "Compute.h"
 #include "EnableWarnings.h"
+
+class omxLISRELExpectation : public omxExpectation {
+	std::vector<int> exoDataColumns; // index into omxData
+	int verbose;
+
+public:
+	omxMatrix *cov, *means; // expected covariance and means
+	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH; // LISREL model Matrices
+	omxMatrix *TX, *TY, *KA, *AL; //LISREL Means Matrices
+	omxMatrix *A, *B, *C, *D, *E, *F, *G, *H, *I, *J, *K, *L; // Place holder matrices used in computations.  Note: L is analogous to Ax in RAM and is used in I-BE inverse
+	omxMatrix *TOP, *BOT; // Place holder matrices for building covariance matrix from blocks
+	omxMatrix *MUX, *MUY; //Place holder matrices for building means from blocks
+	//omxMatrix *C, *P, *V, *Mns; // Other Matrices, not sure what these are for.
+	omxMatrix *slope;       // exogenous predictor slopes
+	Eigen::VectorXd exoPredMean;
+
+	int numIters; // used by omxFastRAM/LISRELInverse
+	double n;
+	//double* work; // used by omxFastRAM/LISRELInverse
+	//int lwork; // used by omxFastRAM/LISRELInverse
+
+	omxMatrix **args;
+
+	bool noLX;
+	bool noLY;
+	bool Lnocol;
+
+	virtual ~omxLISRELExpectation();
+	virtual void init();
+	virtual void compute(FitContext *fc, const char *what, const char *how);
+	virtual void populateAttr(SEXP expectation);
+	virtual omxMatrix *getComponent(const char*);
+	virtual void getExogenousPredictors(std::vector<int> &out);
+
+	void studyExoPred();
+};
 
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.
@@ -43,6 +80,7 @@ void omxLISRELExpectation::compute(FitContext *fc, const char *, const char *)
 		omxRecompute(oro->TY, fc);
 		omxRecompute(oro->AL, fc);
 	}
+	if (slope) omxRecompute(slope, fc);
 	
 	omxCalculateLISRELCovarianceAndMeans(oro);
 }
@@ -90,6 +128,7 @@ omxLISRELExpectation::~omxLISRELExpectation()
 		omxFreeMatrix(argStruct->PH);
 		omxFreeMatrix(argStruct->TD);
 	}
+	omxFreeMatrix(slope);
 }
 
 void omxLISRELExpectation::populateAttr(SEXP algebra)
@@ -181,6 +220,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	omxMatrix* BOT = oro->BOT;
 	omxMatrix* MUX = oro->MUX;
 	omxMatrix* MUY = oro->MUY;
+	omxMatrix *slope = oro->slope;
 	omxMatrix** args = oro->args;
 	if(OMX_DEBUG) { mxLog("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans."); }
 	double oned = 1.0, zerod=0.0; //, minusOned = -1.0;
@@ -282,14 +322,17 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 				omxDGEMV(FALSE, oned, GA, KA, oned, K);
 				omxCopyMatrix(MUY, TY);
 				omxDGEMV(FALSE, oned, D, K, oned, MUY);
+				if (slope) {
+					EigenVectorAdaptor Emean(MUY);
+					EigenMatrixAdaptor Eslope(slope);
+					Emean += Eslope * oro->exoPredMean;
+				}
 			//}
 		
 			/* Build means from blocks */
 			args[0] = MUY;
 			args[1] = MUX;
 			omxMatrixVertCat(args, 2, Means);
-			
-			if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....LISREL: Model-implied Means Vector:");}
 		}
 	}
 	else if(LX->cols != 0) { /* IF THE MODEL ONLY HAS Xs */
@@ -327,8 +370,14 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		if(Means != NULL) {
 				omxCopyMatrix(Means, TY);
 				omxDGEMV(FALSE, oned, D, AL, oned, Means);
+				if (slope) {
+					EigenVectorAdaptor Emean(Means);
+					EigenMatrixAdaptor Eslope(slope);
+					Emean += Eslope * oro->exoPredMean;
+				}
 		}
 	}
+	if (Means && OMX_DEBUG_ALGEBRA) omxPrintMatrix(Means, "....LISREL: Model-implied Means Vector:");
 /*	
 	if(OMX_DEBUG) { mxLog("Running RAM computation."); }
 		
@@ -384,6 +433,13 @@ omxExpectation *omxInitLISRELExpectation() { return new omxLISRELExpectation; }
 void omxLISRELExpectation::init() {
 	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }
 		
+	slope = 0;
+	verbose = 0;
+	if (R_has_slot(rObj, Rf_install("verbose"))) {
+		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(Rverbose);
+	}
+
 	int nx, nxi, ny, neta, ntotal;
 	
 	SEXP slotValue;
@@ -516,7 +572,78 @@ omxMatrix* omxLISRELExpectation::getComponent(const char* component) {
 		retval = ore->means;
 	} else if(strEQ("pvec", component)) {
 		// Once implemented, change compute function and return pvec
+	} else if(strEQ("slope", component)) {
+		if (!slope) studyExoPred();
+		retval = slope;
 	}
 	
 	return retval;
+}
+
+void omxLISRELExpectation::getExogenousPredictors(std::vector<int> &out)
+{
+	out = exoDataColumns;
+}
+
+void omxLISRELExpectation::studyExoPred() // compare with similar function for RAM
+{
+	if (data->defVars.size() == 0 || !TY || !TY->isSimple() || !PS->isSimple()) return;
+
+	Eigen::VectorXd estSave;
+	copyParamToModelFake1(currentState, estSave);
+	omxRecompute(PS, 0);
+	omxRecompute(LY, 0);
+	omxRecompute(BE, 0);
+
+	EigenMatrixAdaptor ePS(PS);  // latent covariance
+	EigenMatrixAdaptor eLY(LY);  // to manifest loading
+	EigenMatrixAdaptor eBE(BE);  // to latent loading
+	Eigen::VectorXd hasVariance = ePS.diagonal().array().abs().matrix();
+
+	int found = 0;
+	std::vector<int> exoDataCol(PS->rows, -1);
+	int alNum = ~AL->matrixNumber;
+	for (int k=0; k < int(data->defVars.size()); ++k) {
+		omxDefinitionVar &dv = data->defVars[k];
+		if (dv.matrix == alNum && hasVariance[ dv.row ] == 0.0) {
+			for (int cx=0; cx < eBE.rows(); ++cx) {
+				if (eBE(cx, dv.row) == 0.0) continue;
+				Rf_error("%s: latent exogenous variables are not supported (%s -> %s)", name,
+					 PS->rownames[dv.row], BE->rownames[cx]);
+			}
+			if (eLY.col(dv.row).array().abs().sum() == 0.) continue;
+			exoDataCol[dv.row] = dv.column;
+			found += 1;
+			dv.loadData(currentState, 0.);
+			if (verbose >= 1) {
+				mxLog("%s: set defvar '%s' for latent '%s' to exogenous mode",
+				      name, data->columnName(dv.column), PS->rownames[dv.row]);
+			}
+			data->defVars.erase(data->defVars.begin() + k--);
+		}
+	}
+
+	copyParamToModelRestore(currentState, estSave);
+
+	if (!found) return;
+
+	slope = omxInitMatrix(LY->rows, found, currentState);
+	EigenMatrixAdaptor eSl(slope);
+	eSl.setZero();
+
+	for (int cx=0, ex=0; cx < PS->rows; ++cx) {
+		if (exoDataCol[cx] == -1) continue;
+		exoDataColumns.push_back(exoDataCol[cx]);
+		for (int rx=0; rx < LY->rows; ++rx) {
+			slope->addPopulate(LY, rx, cx, rx, ex);
+		}
+		ex += 1;
+	}
+
+	exoPredMean.resize(exoDataColumns.size());
+	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
+		auto &e1 = data->rawCols[ exoDataColumns[cx] ];
+		Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, data->numRawRows());
+		exoPredMean[cx] = vec.mean();
+	}
 }

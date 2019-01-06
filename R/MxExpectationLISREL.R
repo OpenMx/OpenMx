@@ -46,14 +46,16 @@ setClass(Class = "MxExpectationLISREL",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
 		threshnames = "character",
-		depth = "integer"), #Used to speed up I-A inverse in RAM, could be used to speed up I-B inverse in LISREL
+		depth = "integer", # speed up I-A inverse in RAM; speed up I-B inverse in LISREL
+		verbose = "integer"),
 	contains = "BaseExpectationNormal")
 
 
 #--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxExpectationLISREL",
-	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dims, thresholds, threshnames,
+	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL,
+		 dims, thresholds, threshnames, verbose,
 		data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@LX <- LX
@@ -69,6 +71,7 @@ setMethod("initialize", "MxExpectationLISREL",
 		.Object@TY <- TY
 		.Object@KA <- KA
 		.Object@AL <- AL
+		.Object@verbose <- verbose
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
@@ -526,7 +529,7 @@ checkLISRELargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = dimnames) {
+mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = dimnames, verbose=0L) {
 	LX <- checkLISRELargument(LX, "LX")
 	LY <- checkLISRELargument(LY, "LY")
 	BE <- checkLISRELargument(BE, "BE")
@@ -556,7 +559,7 @@ mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA,
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames))
+	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames, as.integer(verbose)))
 }
 
 
