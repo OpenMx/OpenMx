@@ -77,7 +77,7 @@ jm1 <- buildModel()
 jm1 <- mxRun(jm1)
 summary(jm1)
 
-omxCheckCloseEnough(coef(jl), coef(jm1), 1e-6)
+omxCheckCloseEnough(coef(jl), coef(jm1), 1e-5)
 
 # tmp <- c(jm1$output$standardErrors)
 # names(tmp) <- c()

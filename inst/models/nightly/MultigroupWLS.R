@@ -1,5 +1,7 @@
 library(OpenMx)
 
+if (mxOption(NULL, "Default optimizer") == 'NPSOL') stop('SKIP')
+
 nContPerFactor <- 4
 nOrdPerFactor <- 1
 nVarPerFactor <- nContPerFactor + nOrdPerFactor
@@ -52,7 +54,7 @@ container <- mxGenerateData(container, nrows=300, returnModel = TRUE)
 ml <- mxModel(name="ml", container)
 ml <- mxRun(ml)
 
-omxCheckCloseEnough(max(abs(coef(ml) - trueCoef)), 0, .2)
+omxCheckCloseEnough(max(abs(coef(ml) - trueCoef)), 0, .21)
 
 r1 <- mxRefModels(ml)
 omxCheckEquals(length(coef(r1$Saturated)), 56)

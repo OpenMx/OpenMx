@@ -34,6 +34,8 @@
 
 require(OpenMx)
 
+if (mxOption(NULL, "Default optimizer") == 'NPSOL') stop('SKIP')
+
 rms <- function(x, y=NA){
 	if(is.matrix(x) && is.vector(y) && nrow(x) == length(y)){
 		sqrt(colMeans((x-y)^2))
