@@ -551,7 +551,7 @@ displayMxData <- function(object) {
 		cat("means : \n") 
 		print(object@means)		
 	}
-	if (length(object@observedStats)) {
+	if (.hasSlot(object, 'observedStats') && length(object@observedStats)) {
 		cat("observedStats : \n")
 		print(object@observedStats)
 	}
