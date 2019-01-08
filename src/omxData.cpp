@@ -1607,6 +1607,7 @@ struct PolyserialCor : UnconstrainedObjective {
 	double rho;
 	double param;
 	double R;
+	double fitCopy, gradCopy;
 	const Eigen::Ref<const Eigen::MatrixXd> pred;
 	Eigen::ArrayXXd tau;
 	Eigen::ArrayXXd tauj;
@@ -1665,8 +1666,8 @@ struct PolyserialCor : UnconstrainedObjective {
 					  Rf_pnorm5(tau(rx,1), 0., 1., 1, 0),
 					  std::numeric_limits<double>::epsilon());
 		}
-		double fit = -(pr.log() * rowMult).sum();
-		return fit;
+		fitCopy = -(pr.log() * rowMult).sum();
+		return fitCopy;
 	}
 	virtual void getGrad(const double *_x, double *grad)
 	{
@@ -1680,7 +1681,8 @@ struct PolyserialCor : UnconstrainedObjective {
 		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1)) * rowMult).sum();
 
 		double cosh_x = cosh(_x[0]);
-		grad[0] = -dx_rho * 1./(cosh_x * cosh_x);
+		gradCopy = -dx_rho * 1./(cosh_x * cosh_x);
+		grad[0] = gradCopy;
 	}
 	void calcScores()
 	{
@@ -1712,7 +1714,7 @@ struct PolyserialCor : UnconstrainedObjective {
 	}
 	virtual void panic(const char *why) {
 		mxLog("Internal error in PolyserialCor: %s", why);
-		mxLog("param=%f rho=%f R=%f", param, rho, R);
+		mxLog("param=%f rho=%f R=%f fit=%f grad=%f", param, rho, R, fitCopy, gradCopy);
 		std::string buf, xtra;
 		buf += mxStringifyMatrix("tau", tau, xtra, true);
 		buf += mxStringifyMatrix("pr", pr, xtra, true);
@@ -1741,6 +1743,7 @@ struct PolychoricCor : UnconstrainedObjective {
 	Eigen::ArrayXd den;
 	double rho;
 	double param;
+	double fitCopy, gradCopy;
 	Eigen::ArrayXXd scores;
 	Eigen::ArrayXi y1;
 	Eigen::ArrayXi y2;
@@ -1807,7 +1810,8 @@ struct PolychoricCor : UnconstrainedObjective {
 			pr[rx] = std::max(pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho), eps);
 		}
 
-		return -(pr.log() * rowMult).sum();
+		fitCopy = -(pr.log() * rowMult).sum();
+		return fitCopy;
 	}
 	virtual void getGrad(const double *_x, double *grad)
 	{
@@ -1817,7 +1821,8 @@ struct PolychoricCor : UnconstrainedObjective {
 			dx += rowMult[rx] * den[rx] / pr[rx];
 		}
 		double cosh_x = cosh(_x[0]);
-		grad[0] = -dx / (cosh_x * cosh_x);
+		gradCopy = -dx / (cosh_x * cosh_x);
+		grad[0] = gradCopy;
 	}
 	void calcScores()
 	{
@@ -1860,7 +1865,7 @@ struct PolychoricCor : UnconstrainedObjective {
 	}
 	virtual void panic(const char *why) {
 		mxLog("Internal error in PolychoricCor: %s", why);
-		mxLog("param=%f rho=%f", param, rho);
+		mxLog("param=%f rho=%f fit=%f grad=%f", param, rho, fitCopy, gradCopy);
 		std::string buf, xtra;
 		buf += mxStringifyMatrix("pr", pr, xtra, true);
 		buf += mxStringifyMatrix("den", den, xtra, true);
