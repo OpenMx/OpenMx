@@ -423,27 +423,45 @@ void omxState::initialRecalc(FitContext *fc)
 	}
 }
 
-void omxState::invalidateCache()
+void StateInvalidator::doData()
 {
-	for (int ax=0; ax < int(dataList.size()); ++ax) {
-		auto d1 = dataList[ax];
+	for (int ax=0; ax < int(st.dataList.size()); ++ax) {
+		auto d1 = st.dataList[ax];
 		d1->invalidateCache();
 	}
-	for (int ax=0; ax < (int) matrixList.size(); ++ax) {
-		omxMatrix *matrix = matrixList[ax];
+}
+
+void StateInvalidator::doMatrix()
+{
+	for (int ax=0; ax < (int) st.matrixList.size(); ++ax) {
+		omxMatrix *matrix = st.matrixList[ax];
 		omxMarkDirty(matrix);
 	}
-	for(size_t ex = 0; ex < expectationList.size(); ex++) {
-		expectationList[ex]->invalidateCache();
+}
+
+void StateInvalidator::doExpectation()
+{
+	for(size_t ex = 0; ex < st.expectationList.size(); ex++) {
+		st.expectationList[ex]->invalidateCache();
 	}
-	for (int ax=0; ax < (int) algebraList.size(); ++ax) {
-		omxMatrix *matrix = algebraList[ax];
+}
+
+void StateInvalidator::doAlgebra()
+{
+	for (int ax=0; ax < (int) st.algebraList.size(); ++ax) {
+		omxMatrix *matrix = st.algebraList[ax];
 		if (!matrix->fitFunction) {
 			omxMarkDirty(matrix);
 		} else {
 			matrix->fitFunction->invalidateCache();
 		}
 	}
+}
+
+void omxState::invalidateCache()
+{
+	StateInvalidator si(*this);
+	si();
 }
 
 omxState::~omxState()

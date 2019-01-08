@@ -384,6 +384,22 @@ void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);
 void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 SEXP enableMxLog();
 
+struct StateInvalidator {
+	omxState &st;
+	StateInvalidator(omxState &_st) : st(_st) {};
+	virtual void doData();
+	virtual void doMatrix();
+	virtual void doExpectation();
+	virtual void doAlgebra();
+	void operator()()
+	{
+		doData();
+		doMatrix();
+		doExpectation();
+		doAlgebra();
+	}
+};
+
 #endif /* _OMXSTATE_H_ */
 
 
