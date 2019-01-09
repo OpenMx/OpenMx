@@ -1717,9 +1717,9 @@ struct PolyserialCor : UnconstrainedObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
-	virtual void panic(const char *why) {
+	virtual void panic(const char *why, int iter) {
 		mxLog("Internal error in PolyserialCor: %s", why);
-		mxLog("param=%f rho=%f R=%f fit=%f grad=%f", param, rho, R, fitCopy, gradCopy);
+		mxLog("iter=%d param=%f rho=%f R=%f fit=%f grad=%f", iter, param, rho, R, fitCopy, gradCopy);
 		std::string buf, xtra;
 		buf += mxStringifyMatrix("tau", tau, xtra, true);
 		buf += mxStringifyMatrix("pr", pr, xtra, true);
@@ -1873,9 +1873,9 @@ struct PolychoricCor : UnconstrainedObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
-	virtual void panic(const char *why) {
+	virtual void panic(const char *why, int iter) {
 		mxLog("Internal error in PolychoricCor: %s", why);
-		mxLog("param=%f rho=%f fit=%f grad=%f", param, rho, fitCopy, gradCopy);
+		mxLog("iter=%d param=%f rho=%f fit=%f grad=%f", iter, param, rho, fitCopy, gradCopy);
 		std::string buf, xtra;
 		buf += mxStringifyMatrix("pr", pr, xtra, true);
 		buf += mxStringifyMatrix("den", den, xtra, true);
@@ -2343,7 +2343,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			ColumnData &cd2 = rawCols[ rawColMap[dc[ii]] ];
 			WLSVarData &pv1 = o1.perVar[jj];
 			WLSVarData &pv2 = o1.perVar[ii];
-			if (verbose >= 3) mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
+			if (1 || verbose >= 3) mxLog("consider %s %s [%d]", cd1.name, cd2.name, pstar_idx);
 			double rho;
 			if (cd1.type == COLUMNDATA_NUMERIC && cd2.type == COLUMNDATA_NUMERIC) {
 				PearsonCor pc(pv2, pv1, pred, rowMult, index);
@@ -2393,7 +2393,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				rho = ps.rho * sd1;
 			} else if (cd2.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv2, cd1, pv1, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
+				UnconstrainedSLSQPOptimizer uo(name, 100, eps, 2+verbose);
 				uo(ps);
 				ps.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
@@ -2416,7 +2416,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				rho = ps.rho * sd1;
 			} else {
 				PolychoricCor pc(this, cd2, pv2, cd1, pv1, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
+				UnconstrainedSLSQPOptimizer uo(name, 100, eps, 2+verbose);
 				uo(pc);
 				H22(pstar_idx,pstar_idx) = 1.0;
 				rho = pc.rho;

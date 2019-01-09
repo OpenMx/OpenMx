@@ -65,11 +65,11 @@ wls <- mxModel(name="wls", container)
 
 for (gx in 1:nGroups) {
   grp <- wls[[paste0("g",gx)]]
-  grp <- mxModel(grp, mxData(grp$data$observed, 'raw'), mxFitFunctionWLS())
+  grp <- mxModel(grp, mxFitFunctionWLS())
   wls <- mxModel(wls, grp)
 }
 wls <- mxRun(wls)
 
-omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .21)
+omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .22)
 
 omxCheckCloseEnough(cor(coef(ml), coef(wls)), 1, .003)
