@@ -460,6 +460,7 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 		_uo.panic("NLOPT_ROUNDOFF_LIMITED"); // only relevant to constrained optimization
 	} else if (code < 0) {
 		if (iter < 5) {
+			mxLog("[%d] code<0; retry with new starts", iter);
 			// No idea why we need to retry here
 			++iter;
 			_uo.setRandomStart();
