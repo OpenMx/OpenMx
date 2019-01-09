@@ -1654,6 +1654,11 @@ struct PolyserialCor : UnconstrainedObjective {
 		if (data.verbose >= 3) mxLog("starting ps rho = %f", rho);
 		param = atanh(rho);
 	}
+	virtual void setRandomStart() {
+		GetRNGstate();
+		param = norm_rand();
+		PutRNGstate();
+	}
 	virtual double *getParamVec() { return &param; };
 	virtual double getFit(const double *_x)
 	{
@@ -1800,6 +1805,11 @@ struct PolychoricCor : UnconstrainedObjective {
 		param = atanh(rho);
 	}
 
+	virtual void setRandomStart() {
+		GetRNGstate();
+		param = norm_rand();
+		PutRNGstate();
+	}
 	virtual double *getParamVec() { return &param; };
 	virtual double getFit(const double *_x)
 	{

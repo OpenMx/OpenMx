@@ -13,6 +13,7 @@ struct UnconstrainedObjective {
 
 	UnconstrainedObjective();
 	virtual ~UnconstrainedObjective();
+	virtual void setRandomStart()=0;
 	virtual double *getParamVec()=0;
 	virtual double getFit(const double *)=0;
 	virtual void getGrad(const double *, double *);
