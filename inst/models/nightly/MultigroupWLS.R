@@ -70,6 +70,6 @@ for (gx in 1:nGroups) {
 }
 wls <- mxRun(wls)
 
-omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .22)
+omxCheckCloseEnough(max(abs(coef(wls) - trueCoef)), 0, .25)
 
 omxCheckCloseEnough(cor(coef(ml), coef(wls)), 1, .003)
