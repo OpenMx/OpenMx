@@ -459,14 +459,7 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
 		_uo.panic("NLOPT_ROUNDOFF_LIMITED"); // only relevant to constrained optimization
 	} else if (code < 0) {
-		if (iter < 5) {
-			// No idea why we need to retry here
-			++iter;
-			_uo.setRandomStart();
-			(*this)(_uo);
-		} else {
-			_uo.panic("STARTING_VALUES_INFEASIBLE");
-		}
+		_uo.panic("STARTING_VALUES_INFEASIBLE");
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		_uo.panic("ITERATION_LIMIT");
 	}
