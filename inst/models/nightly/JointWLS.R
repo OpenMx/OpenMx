@@ -77,7 +77,6 @@ nam <- names(rawData)
 
 jdat <- data.frame(rawData, scale(cDat+rnorm(prod(dim(cDat)))))
 names(jdat) <- c(nam, paste(nam, 'Con', sep=''))
-d <- mxData(jdat, 'raw')
 
 jam <- names(jdat)
 
@@ -105,17 +104,17 @@ jodr <- mxRun(jod)
 #jow <- mxModel(jod, name="jointThesholdModelWls", r, mxFitFunctionWLS(),
 #	mxExpectationNormal(covariance="impliedCovs", dimnames = jam, thresholds="thresholdMatrix", threshnames=nam))
 
-jow <- mxModel(jod, name="jointThesholdModelWls", d, mxFitFunctionWLS())
+jow <- mxModel(jod, name="jointThesholdModelWls", mxFitFunctionWLS())
 
 jowr <- mxRun(jow)
 
 # DWLS
-jodw <- mxModel(jow, name="jointThesholdModelDwls", d, mxFitFunctionWLS('DWLS'))
+jodw <- mxModel(jow, name="jointThesholdModelDwls", mxFitFunctionWLS('DWLS'))
 
 jodwr <- mxRun(jodw)
 
 #ULS
-jou <- mxModel(jow, name="jointThesholdModelUls", d, mxFitFunctionWLS('ULS'))
+jou <- mxModel(jow, name="jointThesholdModelUls", mxFitFunctionWLS('ULS'))
 
 jour <- mxRun(jou)
 
@@ -148,15 +147,15 @@ jodm <- mxModel("jointThresholdModel",
 
 jodmr <- mxRun(jodm)
 
-jowm <- mxModel(jodm, name="jointThesholdModelWls", d, mxFitFunctionWLS())
+jowm <- mxModel(jodm, name="jointThesholdModelWls", mxFitFunctionWLS())
 jowmr <- mxRun(jowm)
 
 # DWLS
-jodwm <- mxModel(jowm, name="jointThesholdModelDwls", d, mxFitFunctionWLS('DWLS'))
+jodwm <- mxModel(jowm, name="jointThesholdModelDwls", mxFitFunctionWLS('DWLS'))
 jodwmr <- mxRun(jodwm)
 
 #ULS
-joum <- mxModel(jowm, name="jointThesholdModelUls", d, mxFitFunctionWLS('ULS'))
+joum <- mxModel(jowm, name="jointThesholdModelUls", mxFitFunctionWLS('ULS'))
 joumr <- mxRun(joum)
 
 
