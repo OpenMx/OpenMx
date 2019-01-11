@@ -453,11 +453,11 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 	nlopt_destroy(opt);
 
 	if (code == NLOPT_INVALID_ARGS) {
-		_uo.panic("NLOPT invoked with invalid arguments", iter);
+		_uo.panic("NLOPT invoked with invalid arguments");
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
-		_uo.panic("NLOPT ran out of memory", iter);
+		_uo.panic("NLOPT ran out of memory");
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		_uo.panic("NLOPT_ROUNDOFF_LIMITED", iter); // only relevant to constrained optimization
+		_uo.panic("NLOPT_ROUNDOFF_LIMITED"); // only relevant to constrained optimization
 	} else if (code < 0) {
 		if (iter < 5) {
 			mxLog("[%d] code<0; retry with new starts", iter);
@@ -466,13 +466,13 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 			_uo.setRandomStart();
 			(*this)(_uo);
 		} else {
-			_uo.panic("STARTING_VALUES_INFEASIBLE", iter);
+			_uo.panic("STARTING_VALUES_INFEASIBLE");
 		}
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
-		_uo.panic("ITERATION_LIMIT", iter);
+		_uo.panic("ITERATION_LIMIT");
 	}
 	if (iter > maxIter) {
-		_uo.panic("ITERATION_LIMIT", iter);
+		_uo.panic("ITERATION_LIMIT");
 	}
 }
 
@@ -482,7 +482,7 @@ double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
 	if (grad) {
 		uo->getGrad(x, grad);
 		Eigen::Map< Eigen::ArrayXd > Egrad(grad, uo->ubound.size());
-		if ((!Egrad.isFinite()).any()) uo->panic("gradient has non-finite entries", iter);
+		if ((!Egrad.isFinite()).any()) uo->panic("gradient has non-finite entries");
 		if (verbose >= 2) {
 			mxLog("%f", fit);
 			mxPrintMat("grad", Egrad);
