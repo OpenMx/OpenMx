@@ -1588,7 +1588,7 @@ void ProbitRegression::setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
 	searchDir = ihess.selfadjointView<Eigen::Upper>() * grad;
 }
 
-struct PolyserialCor : UnconstrainedObjective {
+struct PolyserialCor : NewtonRaphsonObjective {
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
@@ -1604,9 +1604,8 @@ struct PolyserialCor : UnconstrainedObjective {
 	int numThr;
 	ColumnData &oc;
 	WLSVarData &ov;
-	double rho;
-	double param;
-	double R;
+	double param, grad;
+	double fit;
 	const Eigen::Ref<const Eigen::MatrixXd> pred;
 	Eigen::ArrayXXd tau;
 	Eigen::ArrayXXd tauj;
@@ -1647,17 +1646,18 @@ struct PolyserialCor : UnconstrainedObjective {
 		subsetVector(rowMult, [&](int rx){ return ycol[rx] != NA_INTEGER; }, rowMultF);
 		double den = 0;
 		for (int tx=0; tx < numThr; ++tx) den += Rf_dnorm4(ov.theta[tx], 0., 1., 0);
-		rho = (zee * ycolF.cast<double>().array() * rowMultF).sum() / (totalWeight * sqrt(var) * den);
-
+		double rho = (zee * ycolF.cast<double>().array() * rowMultF).sum() /
+			(totalWeight * sqrt(var) * den);
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting ps rho = %f", rho);
 		param = atanh(rho);
 	}
-	virtual double *getParamVec() { return &param; };
-	virtual double getFit(const double *_x)
+	virtual double getFit() { return fit; };
+	virtual const char *paramIndexToName(int px) { return "rho"; }
+	virtual void evaluateFit()
 	{
-		rho = tanh(_x[0]);
-		R = sqrt(1 - rho * rho);
+		double rho = tanh(param);
+		double R = sqrt(1 - rho * rho);
 		tau = (zi.colwise() - rho * zee) / R;
 
 		for (int rx=0; rx < ycol.rows(); ++rx) {
@@ -1665,22 +1665,32 @@ struct PolyserialCor : UnconstrainedObjective {
 					  Rf_pnorm5(tau(rx,1), 0., 1., 1, 0),
 					  std::numeric_limits<double>::epsilon());
 		}
-		double fit = -(pr.log() * rowMult).sum();
-		return fit;
+		fit = -(pr.log() * rowMult).sum();
 	}
-	virtual void getGrad(const double *_x, double *grad)
+	virtual double *getParamVec() { return &param; };
+	virtual double *getGrad() { return &grad; };
+	virtual void evaluateDerivs(int want)
 	{
-		// can assume getFit just called
+		if (want & FF_COMPUTE_FIT) evaluateFit();
+
 		for (int rx=0; rx < ycol.rows(); ++rx) {
 			dzi(rx,0) = Rf_dnorm4(tau(rx,0), 0., 1., 0);
 			dzi(rx,1) = Rf_dnorm4(tau(rx,1), 0., 1., 0);
 		}
 
+		double rho = tanh(param);
+		double R = sqrt(1 - rho * rho);
 		tauj = dzi * ((zi * rho).colwise() - zee);
 		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1)) * rowMult).sum();
 
-		double cosh_x = cosh(_x[0]);
-		grad[0] = -dx_rho * 1./(cosh_x * cosh_x);
+		double cosh_x = cosh(param);
+		grad = -dx_rho * 1./(cosh_x * cosh_x);
+	}
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+	{
+		// Can fix Hessian at 1.0 because only 1 parameter.
+		// Line search takes care of scaling.
+		searchDir[0] = grad;
 	}
 	void calcScores()
 	{
@@ -1688,6 +1698,9 @@ struct PolyserialCor : UnconstrainedObjective {
 		scores.resize(index.size(), 2 + numThr + pred.cols() * 2 + 1);
 		scores.setZero();
 
+		evaluateDerivs(FF_COMPUTE_FIT);
+		double rho = tanh(param);
+		double R = sqrt(1 - rho * rho);
 		double R3 = R*R*R;
 		for (int rx=0; rx < ycol.rows(); ++rx) {
 			if (ycol[rx] == NA_INTEGER) continue;
@@ -1712,7 +1725,7 @@ struct PolyserialCor : UnconstrainedObjective {
 	}
 	virtual void panic(const char *why) {
 		mxLog("Internal error in PolyserialCor: %s", why);
-		mxLog("param=%f rho=%f R=%f", param, rho, R);
+		mxLog("param=%f", param);
 		std::string buf, xtra;
 		buf += mxStringifyMatrix("tau", tau, xtra, true);
 		buf += mxStringifyMatrix("pr", pr, xtra, true);
@@ -1722,7 +1735,7 @@ struct PolyserialCor : UnconstrainedObjective {
 	};
 };
 
-struct PolychoricCor : UnconstrainedObjective {
+struct PolychoricCor : NewtonRaphsonObjective {
 	typedef UnconstrainedObjective super;
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
@@ -1739,8 +1752,8 @@ struct PolychoricCor : UnconstrainedObjective {
 	Eigen::ArrayXXd z2;
 	Eigen::ArrayXd pr;
 	Eigen::ArrayXd den;
-	double rho;
 	double param;
+	double fit, grad;
 	Eigen::ArrayXXd scores;
 	Eigen::ArrayXi y1;
 	Eigen::ArrayXi y2;
@@ -1790,34 +1803,46 @@ struct PolychoricCor : UnconstrainedObjective {
 		subsetVector(rowMult, notMissingF, rowMultF);
 		Eigen::ArrayXd y1c = y1F.cast<double>() - (y1F.cast<double>() * rowMultF).sum() / totalWeight;
 		Eigen::ArrayXd y2c = y2F.cast<double>() - (y2F.cast<double>() * rowMultF).sum() / totalWeight;
-		rho = (y1c * y2c * rowMultF).sum() / (sqrt((y1c*y1c*rowMultF).sum() * (y2c*y2c*rowMultF).sum()));
-
+		double rho = (y1c * y2c * rowMultF).sum() /
+			(sqrt((y1c*y1c*rowMultF).sum() * (y2c*y2c*rowMultF).sum()));
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting rho = %f", rho);
 		param = atanh(rho);
 	}
 
 	virtual double *getParamVec() { return &param; };
-	virtual double getFit(const double *_x)
+	virtual double *getGrad() { return &grad; };
+	virtual const char *paramIndexToName(int px) { return "rho"; };
+	virtual double getFit() { return fit; };
+	virtual void evaluateFit()
 	{
-		rho = tanh(_x[0]);
+		double rho = tanh(param);
 
 		const double eps = std::numeric_limits<double>::epsilon();
 		for (int rx=0; rx < int(index.size()); ++rx) {
 			pr[rx] = std::max(pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho), eps);
 		}
 
-		return -(pr.log() * rowMult).sum();
+		fit = -(pr.log() * rowMult).sum();
 	}
-	virtual void getGrad(const double *_x, double *grad)
+	virtual void evaluateDerivs(int want)
 	{
+		if (want & FF_COMPUTE_FIT) evaluateFit();
+
+		double rho = tanh(param);
 		double dx = 0;
 		for (int rx=0; rx < int(index.size()); ++rx) {
 			den[rx] = dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
 			dx += rowMult[rx] * den[rx] / pr[rx];
 		}
-		double cosh_x = cosh(_x[0]);
-		grad[0] = -dx / (cosh_x * cosh_x);
+		double cosh_x = cosh(param);
+		grad = -dx / (cosh_x * cosh_x);
+	}
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+	{
+		// Can fix Hessian at 1.0 because only 1 parameter.
+		// Line search takes care of scaling.
+		searchDir[0] = grad;
 	}
 	void calcScores()
 	{
@@ -1828,6 +1853,8 @@ struct PolychoricCor : UnconstrainedObjective {
 		scores.resize(index.size(), numThr1 + numThr2 + pred.cols() * 2 + 1);
 		scores.setZero();
 
+		evaluateFit();
+		double rho = tanh(param);
 		double R = sqrt(1 - rho*rho);
 		for (int rx=0; rx < pred.rows(); ++rx) {
 			if (y1[rx] == NA_INTEGER || y2[rx] == NA_INTEGER) continue;
@@ -1860,7 +1887,7 @@ struct PolychoricCor : UnconstrainedObjective {
 	}
 	virtual void panic(const char *why) {
 		mxLog("Internal error in PolychoricCor: %s", why);
-		mxLog("param=%f rho=%f", param, rho);
+		mxLog("param=%f", param);
 		std::string buf, xtra;
 		buf += mxStringifyMatrix("pr", pr, xtra, true);
 		buf += mxStringifyMatrix("den", den, xtra, true);
@@ -2355,8 +2382,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				rho = pc.rho * H22(pstar_idx,pstar_idx);
 			} else if (cd1.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv1, cd2, pv2, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
-				uo(ps);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(ps);
 				ps.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
 				A21(pstar_idx, thStart[jj]) = scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(0));
@@ -2371,15 +2398,16 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				}
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
 					scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(1));
+				double std_rho = tanh(ps.param);
 				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
-					ps.rho / (2. * sd1);
+					std_rho / (2. * sd1);
 				H22(pstar_idx,pstar_idx) = sd1;
-				rho = ps.rho * sd1;
+				rho = std_rho * sd1;
 			} else if (cd2.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv2, cd1, pv1, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
-				uo(ps);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(ps);
 				ps.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
 				A21(pstar_idx, thStart[ii]) = scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(0));
@@ -2395,16 +2423,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
 					scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(1));
 				double sd1 = sqrt(pv2.theta[pv2.theta.size()-1]);
+				double std_rho = tanh(ps.param);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
-					ps.rho / (2. * sd1);
+					std_rho / (2. * sd1);
 				H22(pstar_idx,pstar_idx) = sd1;
-				rho = ps.rho * sd1;
+				rho = std_rho * sd1;
 			} else {
 				PolychoricCor pc(this, cd2, pv2, cd1, pv1, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
-				uo(pc);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(pc);
 				H22(pstar_idx,pstar_idx) = 1.0;
-				rho = pc.rho;
+				rho = tanh(pc.param);
 				pc.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, pc.scores, pc.numThr1 + pc.numThr2 + 2*pred.cols());
 				for (int tx=0; tx < pc.numThr1; ++tx)

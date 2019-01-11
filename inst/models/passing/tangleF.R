@@ -140,7 +140,7 @@ mkModel <- function(shuffle, wls) {
 			 dimnames=list(manifestVars, allVars), name="F"),
 		mxMatrix("Symm", length(allVars), length(allVars),
 			 values=diag(length(allVars)),
-			 free=diag(length(allVars)) == 1, ubound=5,
+			 free=diag(length(allVars)) == 1, lbound=0, ubound=5,
 			 dimnames=list(allVars, allVars), name="S"),
 		mxMatrix("Full", length(allVars), length(allVars),
 			 values=0,
