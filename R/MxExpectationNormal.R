@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -577,11 +577,11 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		stop("mxGenerateData does not accept values for the '...' argument")
 	}
 	if (is(model, 'data.frame')) {
-		fake <- mxDataWLS(model, type="ULS", fullWeight=FALSE, allContinuousMethod="marginals",
-			compute=TRUE, returnModel=TRUE)
+		fake <- omxAugmentDataWithWLSSummary(mxData(model,'raw'), "ULS", "marginals",
+			fullWeight=FALSE, returnModel=TRUE)
 		obsStats <- fake$data$observedStats
-		fake$cov$values <- obsStats$cov
-		fake$mean$values <- obsStats$means
+		fake$S$values <- obsStats$cov
+		fake$M$values <- obsStats$means
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
 		if(is.null(nrows)) nrows <- nrow(model)

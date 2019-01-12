@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -104,12 +104,12 @@ wlsMod <- mxModel("Test case for WLS Objective function from Bollen 1989",
 	lx, ph, td,
 	mxExpectationLISREL(LX=lx$name, PH=ph$name, TD=td$name),
 	mxFitFunctionWLS(),
-	mxDataWLS(Bollen[, 1:8])
+	mxData(Bollen[, 1:8], 'raw')
 )
 
-dwlsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="DWLS"))
+dwlsMod <- mxModel(wlsMod, mxFitFunctionWLS("DWLS"))
 
-ulsMod <- mxModel(wlsMod, mxDataWLS(Bollen[,1:8], type="ULS"))
+ulsMod <- mxModel(wlsMod, mxFitFunctionWLS("ULS"))
 
 
 # Run WLS model
@@ -145,8 +145,8 @@ omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
 #--------------------------------------
 # Marginals should be fairly close to cumulants
 
-wlsMO <- mxDataWLS(Bollen[,1:8], type="WLS", allContinuousMethod = "marginals", compute=TRUE)
-dwlsMO <- mxDataWLS(Bollen[,1:8], type="DWLS", allContinuousMethod = "marginals", compute=TRUE)
+wlsMO <- omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'), allContinuousMethod = "marginals")
+dwlsMO <- omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'), "DWLS", allContinuousMethod = "marginals")
 
 omxCheckCloseEnough(cor(vech(wlsMO$observedStats$cov),
                         vech(wlsRun$data$observedStats$cov)), 1, 5e-3)

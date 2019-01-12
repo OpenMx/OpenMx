@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -63,7 +63,9 @@ class omxMatrix {
 	class omxExpectation *joinModel;
 	int shape;
  public:
-   omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1), joinModel(0), shape(0) {};
+ 	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1),
+		joinModel(0), shape(0), freeRownames(false), freeColnames(false)
+		{};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
@@ -106,7 +108,7 @@ class omxMatrix {
 	std::string nameStr;
 	const char *name() const { return nameStr.c_str(); }
 
-	// char pointers are from R and should not be freed
+	bool freeRownames, freeColnames;
 	std::vector<const char *> rownames;
 	std::vector<const char *> colnames;
 	int lookupColumnByName(const char *target);
@@ -127,6 +129,8 @@ class omxMatrix {
 	void loadFromStream(mini::csv::ifstream &st);
 	int size() const { return rows * cols; }
 	SEXP asR();
+	bool isValidElem(int row, int col)
+	{ return row >= 0 && col >= 0 && row < rows && col < cols; };
 };
 
 void omxEnsureColumnMajor(omxMatrix *mat);
@@ -231,7 +235,7 @@ static OMXINLINE int omxIsMatrix(omxMatrix *mat) {
 /* BLAS Wrappers */
 
 static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, double value) {
-	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+	if (!om->isValidElem(row, col)) {
 		setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
 		return;
 	}
@@ -245,7 +249,7 @@ static OMXINLINE void omxSetMatrixElement(omxMatrix *om, int row, int col, doubl
 }
 
 static OMXINLINE void omxAccumulateMatrixElement(omxMatrix *om, int row, int col, double value) {
-        if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+	if (!om->isValidElem(row, col)) {
                 setMatrixError(om, row + 1, col + 1, om->rows, om->cols);
                 return;
         }
@@ -260,7 +264,7 @@ static OMXINLINE void omxAccumulateMatrixElement(omxMatrix *om, int row, int col
 
 static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 	int index = 0;
-	if((row < 0) || (col < 0) || (row >= om->rows) || (col >= om->cols)) {
+	if (!om->isValidElem(row, col)) {
 		matrixElementError(row + 1, col + 1, om);
         return (NA_REAL);
 	}
@@ -472,11 +476,12 @@ void expm_eigen(int n, double *rz, double *out);
 void logm_eigen(int n, double *rz, double *out);
 
 template <typename T>
-std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra)
+std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, std::string &xtra,
+			      bool debug=false)
 {
 	std::string buf;
 
-	if (mat.rows() * mat.cols() > 1000) {
+	if (!debug && mat.rows() * mat.cols() > 1000) {
 		buf = string_snprintf("%s is too large to print # %dx%d\n",
 				name, mat.rows(), mat.cols());
 		return buf;

@@ -16,6 +16,7 @@ struct UnconstrainedObjective {
 	virtual double *getParamVec()=0;
 	virtual double getFit(const double *)=0;
 	virtual void getGrad(const double *, double *);
+	virtual void panic(const char *why) { Rf_error(why); };
 };
 
 class UnconstrainedSLSQPOptimizer {
@@ -25,6 +26,8 @@ class UnconstrainedSLSQPOptimizer {
 	int verbose;
 	int iter;
 	UnconstrainedObjective *uo;
+	typedef struct nlopt_opt_s *nlopt_opt;
+	nlopt_opt opt;
 
 	double evaluate(const double *x, double *grad);
 	static double obj(unsigned n, const double *x, double *grad, void *mythis);

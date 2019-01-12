@@ -39,8 +39,8 @@ dualData <- cbind(continuousData,ordinalData)
 
 colnames(dualData) <- paste0('v', 1:ncol(dualData))
 
-mxd <- omxCheckWarning(mxDataWLS(dualData, type="ULS", fullWeight=FALSE,
-	allContinuousMethod="marginals", compute=TRUE),
+mxd <- omxCheckWarning(omxAugmentDataWithWLSSummary(mxData(dualData, 'raw'), type="ULS", fullWeight=FALSE,
+	allContinuousMethod="marginals"),
                               "fake.data: marginal covariance matrix is non-positive definite")
 
 cov <- mxd$observedStats$cov

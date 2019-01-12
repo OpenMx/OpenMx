@@ -434,7 +434,7 @@ double UnconstrainedSLSQPOptimizer::obj(unsigned n, const double *x, double *gra
 void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 {
 	uo = &_uo;
-	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size());
+	opt = nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size());
 	nlopt_set_lower_bounds(opt, uo->lbound.data());
 	nlopt_set_upper_bounds(opt, uo->ubound.data());
 	nlopt_set_ftol_rel(opt, tolerance);
@@ -453,15 +453,18 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 	nlopt_destroy(opt);
 
 	if (code == NLOPT_INVALID_ARGS) {
-		Rf_error("NLOPT invoked with invalid arguments");
+		_uo.panic("NLOPT invoked with invalid arguments");
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
-		Rf_error("NLOPT ran out of memory");
+		_uo.panic("NLOPT ran out of memory");
 	} else if (code == NLOPT_ROUNDOFF_LIMITED) {
-		Rf_error("NLOPT_ROUNDOFF_LIMITED"); // only relevant to constrained optimization
+		_uo.panic("NLOPT_ROUNDOFF_LIMITED"); // only relevant to constrained optimization
 	} else if (code < 0) {
-		Rf_error("STARTING_VALUES_INFEASIBLE");
+		_uo.panic("STARTING_VALUES_INFEASIBLE");
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
-		Rf_error("ITERATION_LIMIT");
+		_uo.panic("ITERATION_LIMIT");
+	}
+	if (iter > maxIter) {
+		_uo.panic("ITERATION_LIMIT");
 	}
 }
 
@@ -470,12 +473,13 @@ double UnconstrainedSLSQPOptimizer::evaluate(const double *x, double *grad)
 	double fit = uo->getFit(x);
 	if (grad) {
 		uo->getGrad(x, grad);
+		Eigen::Map< Eigen::ArrayXd > Egrad(grad, uo->ubound.size());
+		if ((!Egrad.isFinite()).any()) uo->panic("gradient has non-finite entries");
 		if (verbose >= 2) {
-			Eigen::Map< Eigen::VectorXd > Egrad(grad, uo->ubound.size());
 			mxLog("%f", fit);
 			mxPrintMat("grad", Egrad);
 		}
-		iter += 1;
+		if (++iter > maxIter) nlopt_force_stop(opt);
 	} else {
 		if (verbose >= 3) mxLog("%f", fit);
 	}

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@ model <- mxModel(model, mxPath(from=nameList, connect="single", arrows=2, values
 model <- mxModel(model, mxPath(from="one", to=nameList, values=0, free=FALSE))
 # Thresholds 
 model <- mxModel(model, mxThreshold(nameList[c(1,3)], nThresh=nthresh2, 
-                                    values=omxNormalQuantiles(nthresh2), 
                                     free=TRUE, labels=paste("neur", 1:nthresh2, sep="")))
 model <- mxModel(model, mxThreshold(nameList[c(2,4)], nThresh=nthresh1, 
                                     values=1, free=TRUE, 

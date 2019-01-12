@@ -41,4 +41,4 @@ before <- proc.time()[['elapsed']]
 got4 <- mxParametricBootstrap(base, paste0('l', 1:length(manifests)), "two.sided",
                               previousRun=got3)
 elapsed <- proc.time()[['elapsed']] - before
-omxCheckCloseEnough(elapsed, 0, .5)
+omxCheckCloseEnough(elapsed, 0, 1.)

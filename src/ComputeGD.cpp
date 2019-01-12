@@ -1,5 +1,5 @@
 /*
- *  Copyright 2013-2018 by the individuals mentioned in the source code history
+ *  Copyright 2013-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1526,6 +1526,11 @@ void ComputeCI::computeImpl(FitContext *mle)
 			ConfidenceInterval *oCI = Global->intervalList[j];
 			omxMatrix *ciMat = oCI->getMatrix(state);
 			omxRecompute(ciMat, mle);
+			if (!ciMat->isValidElem(oCI->row, oCI->col)) {
+				Rf_error("%s: attempt to find confidence interval of "
+					 "nonexistent element (%d,%d) in %dx%d matrix '%s'",
+					 name, 1+oCI->row, 1+oCI->col, ciMat->rows, ciMat->cols, ciMat->name());
+			}
 			interval(j, 1) = omxMatrixElement(ciMat, oCI->row, oCI->col);
 			totalIntervals += (oCI->bound != 0.0).count();
 		}

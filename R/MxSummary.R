@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -151,7 +151,7 @@ computeFValue <- function(datalist, likelihood, chi) {
 	if(length(datalist) == 0) return(NA)
 	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), datalist)
 	if(all(sapply(datalist, function(x) 
-		{x@preferredFit == 'WLS'}))) return(chi)
+		{length(x@observedStats) > 0 || is(x,"MxDataLegacyWLS") }))) return(chi)
 	if(all(sapply(datalist, function(x) 
 		{x@type == 'raw'}))) return(likelihood)
 	if(all(sapply(datalist, function(x) 

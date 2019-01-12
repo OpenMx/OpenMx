@@ -1,5 +1,5 @@
 #
-#   Copyright 2013-2018 by the individuals mentioned in the source code history
+#   Copyright 2013-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -2080,6 +2080,105 @@ mxComputeGenerateData <- function(expectation='expectation') {
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeLoadData",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 dest = "MxCharOrNumber",
+		 column = "character",
+		 path = "character",
+		 originalDataIsIndexOne = "logical",
+		 byrow = "logical",
+		 row.names = "logical",
+		 col.names = "logical",
+		 verbose = "integer",
+		 cacheSize = "integer"
+	 ))
+
+setMethod("initialize", "MxComputeLoadData",
+	function(.Object, dest, column, path, originalDataIsIndexOne,
+		 row.names, col.names, byrow, verbose, cacheSize) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- NA_character_
+		  .Object@dest <- dest
+		  .Object@column <- column
+		  .Object@path <- path
+		  .Object@originalDataIsIndexOne <- originalDataIsIndexOne
+		  .Object@byrow <- byrow
+		  .Object@row.names <- row.names
+		  .Object@col.names <- col.names
+		  .Object@verbose <- verbose
+		  .Object@cacheSize <- cacheSize
+		  .Object
+	  })
+
+setMethod("convertForBackend", signature("MxComputeLoadData"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		if (is.character(.Object@dest)) {
+			full <- grepl('.', .Object@dest, fixed=TRUE)
+			for (dx in 1:length(.Object@dest)) {
+				if (full[dx]) next
+				.Object@dest[dx] <- paste0(.Object@dest[dx], '.data')
+			}
+			.Object@dest <- imxLocateIndex(flatModel, .Object@dest, .Object)
+		}
+		.Object
+	})
+
+##' Load columns into an MxData object
+##'
+##' The purpose of this compute step is to help quickly perform many
+##' similar analyses. For example, if we are given a sample of people
+##' with a few million SNPs (single-nucleotide polymorphism) per
+##' person then we could fit a separate model for each SNP by iterating
+##' over the SNP data.
+##'
+##' The column names given in the \code{column} parameter must already
+##' exist in the model's MxData object. The data is assumed to be
+##' a placeholder and is not used unless
+##' \code{originalDataIsIndexOne} is set to TRUE.
+##'
+##' When \code{byrow} is FALSE, it is necessary to read through the
+##' whole file on disk to load a single column. To amortize the cost
+##' of reading through the file, \code{cacheSize} are loaded each
+##' pass through the file.
+##'
+##' @param dest the name of the model where the columns will be loaded
+##' @param column a character vector. The column names to replace.
+##' @param method name of the conduit used to load the columns.
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param path when method='CSV', the path to the file containing the data
+##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
+##' @param byrow logical. Whether the data columns are stored in rows (TRUE)
+##' or columns (FALSE) on disk.
+##' @param row.names logical. Whether row names are present.
+##' @param col.names logical. Whether column names are present.
+##' @param verbose integer. Level of diagnostic output.
+##' @param cacheSize integer. How many columns to cacheSize per
+##' scan through the data.
+##' @aliases
+##' MxComputeLoadData-class
+##' @seealso
+##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
+##' @examples
+mxComputeLoadData <- function(dest, column, method='CSV', ..., path,
+			      originalDataIsIndexOne=FALSE, byrow=TRUE,
+			      row.names=FALSE, col.names=FALSE, verbose=0L,
+			      cacheSize=100L) {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeLoadData does not accept values for the '...' argument")
+	}
+	if (method != 'CSV') stop("Only method='CSV' is implemented")
+	if (cacheSize < 1L) stop("cacheSize must be a positive integer")
+	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
+		as.logical(row.names), as.logical(col.names), byrow,
+		as.integer(verbose), as.integer(cacheSize))
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeLoadMatrix",
 	 contains = "BaseCompute",
 	 representation = representation(
@@ -2120,12 +2219,13 @@ setMethod("convertForBackend", signature("MxComputeLoadMatrix"),
 		.Object
 	})
 
-mxComputeLoadMatrix <- function(dest, path, ..., originalDataIsIndexOne=FALSE,
+mxComputeLoadMatrix <- function(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
 				row.names=FALSE, col.names=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadMatrix does not accept values for the '...' argument")
 	}
+	if (method != 'CSV') stop("Only method='CSV' is implemented")
 	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne,
 		as.logical(row.names), as.logical(col.names))
 }

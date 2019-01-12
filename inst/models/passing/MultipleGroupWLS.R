@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ x=rnorm(1000, mean=0, sd=1)
 y= 0.5*x + rnorm(1000, mean=0, sd=1)
 tmpFrame <- data.frame(x, y)
 tmpNames <- names(tmpFrame)
-wdata <- mxDataWLS(tmpFrame, type="DWLS")
+wdata <- mxData(tmpFrame, type="raw")
 
 # Define the matrices
 
@@ -39,7 +39,7 @@ expFunction <- mxExpectationNormal(covariance="expCov", dimnames=tmpNames)
 
 # Choose a fit function
 
-fitFunction <- mxFitFunctionWLS()
+fitFunction <- mxFitFunctionWLS('DWLS')
 
 # Define the model
 
@@ -55,7 +55,7 @@ tmpModel2 <- mxModel(tmpModel,name="tmp2")
 twoGroup <- mxModel("two", tmpModel, tmpModel2, mxFitFunctionMultigroup(c("exampleModel","tmp2")))
 twoGroup <- mxRun(twoGroup)
 omxCheckError(mxRun(twoGroup, intervals=TRUE),
-              "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'exampleModel.data' to full WLS")
+              "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'exampleModel' to full WLS")
 
 # Experiment with multigroup automatic start values
 autModel1 <- mxModel(tmpModel, name="auto1", mxData(tmpFrame, 'raw'),

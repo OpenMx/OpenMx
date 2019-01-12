@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -40,7 +40,6 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0),
-		     wlsType("WLS"), wlsContinuousType("cumulants"), wlsFullWeight(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -248,22 +247,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	}
 
-	if (R_has_slot(dataObj, Rf_install(".wlsType"))) {
-		ProtectedSEXP RwlsType(R_do_slot(dataObj, Rf_install(".wlsType")));
-		wlsType = CHAR(STRING_ELT(RwlsType,0));
-	}
-	if (R_has_slot(dataObj, Rf_install(".wlsContinuousType"))) {
-		ProtectedSEXP RwlsContType(R_do_slot(dataObj, Rf_install(".wlsContinuousType")));
-		wlsContinuousType = CHAR(STRING_ELT(RwlsContType,0));
-	}
-	if (R_has_slot(dataObj, Rf_install(".wlsFullWeight"))) {
-		ProtectedSEXP RwlsFullWeight(R_do_slot(dataObj, Rf_install(".wlsFullWeight")));
-		wlsFullWeight = Rf_asLogical(RwlsFullWeight);
-	}
-	if (!wlsFullWeight && !strEQ(wlsType, "ULS")) {
-		Rf_error("%s: !wlsFullWeight && !strEQ(wlsType, ULS)", name);
-	}
-
 	if (od->hasPrimaryKey() && !(od->rawCols.size() && od->rawCols[primaryKey].type != COLUMNDATA_NUMERIC)) {
 		Rf_error("%s: primary key must be an integer or factor column in raw observed data", od->name);
 	}
@@ -287,6 +270,22 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
+	if (strEQ(od->_type, "acov")) {  // old style for backward compatibility
+		oss = new obsSummaryStats;
+		auto &o1 = *oss;
+		o1.covMat = omxCreateCopyOfMatrix(dataMat, state);
+		o1.covMat->colnames = dataMat->colnames;
+		o1.covMat->rownames = dataMat->rownames;
+		o1.meansMat = meansMat;
+		meansMat = 0;
+		// slopeMat unimplemented for legacy version
+		ProtectedSEXP Racov(R_do_slot(dataObj, Rf_install("acov")));
+		o1.acovMat = omxNewMatrixFromRPrimitive(Racov, state, 0, 0);
+		ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
+		o1.fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
+		ProtectedSEXP Rthr(R_do_slot(dataObj, Rf_install("thresholds")));
+		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
+	}
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
@@ -296,8 +295,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			auto &o1 = *oss;
 			if (strEQ(key, "cov")) {
 				o1.covMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-				if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
-					Rf_error("%s: observedStats$cov must have colnames", name);
 			} else if (strEQ(key, "slope")) {
 				o1.slopeMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 				if (int(o1.slopeMat->colnames.size()) != o1.slopeMat->cols)
@@ -310,9 +307,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			} else if (strEQ(key, "thresholds")) {
 				o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
-				o1.numOrdinal = o1.thresholdMat->cols;
-				if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
-					Rf_error("%s: observedStats$thresholds must have colnames", name);
 			} else {
 				Rf_warning("%s: observedStats key '%s' ignored", name, key);
 			}
@@ -320,8 +314,13 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	if (oss) {
 		auto &o1 = *oss;
+		if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
+			Rf_error("%s: observedStats$cov must have colnames", name);
+		if (o1.thresholdMat) o1.numOrdinal = o1.thresholdMat->cols;
 		if (!o1.covMat) Rf_error("%s: observedStats must include a covariance matrix", name);
 		if (o1.numOrdinal) {
+			if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
+				Rf_error("%s: observedStats$thresholds must have colnames", name);
 			EigenMatrixAdaptor Ethr(o1.thresholdMat);
 			ColMapType thrMap;
 			for (int cx=0; cx < int(o1.thresholdMat->colnames.size()); ++cx) {
@@ -427,7 +426,7 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	ProtectedSEXP Rverbose(R_do_slot(dataObj, Rf_install("verbose")));
 	od->verbose = Rf_asInteger(Rverbose);
 	dataList.push_back(od);
-	if (strcmp(dclass, "MxDataStatic")==0) od->newDataStatic(this, dataObj);
+	if (strEQ(dclass, "MxDataStatic") || strEQ(dclass, "MxDataLegacyWLS")) od->newDataStatic(this, dataObj);
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObj, od);
 	else Rf_error("Unknown data class %s", dclass);
 	return od;
@@ -935,6 +934,9 @@ static int plookup(ColMapType &map, const char *str)
 void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *> &dc,
 				  std::vector<int> &exoPred)
 {
+	if (int(dc.size()) != covMat->cols)
+		Rf_error("%s: internal error; dc.size() %d != covMat->cols %d",
+			 data->name, int(dc.size()), covMat->cols);
 	covMat->colnames.resize(covMat->cols);
 	covMat->rownames.resize(covMat->cols);
 	for (int cx=0; cx < covMat->cols; ++cx) {
@@ -961,37 +963,36 @@ void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *>
 		}
 	}
 
-	const bool debug=false;
+	const bool debug = false;
 	if (acovMat) {
+		acovMat->colnames.clear();
+		acovMat->rownames.clear();
 		if (debug) {
-			// flagrantly leak memory
-			acovMat->colnames.resize(acovMat->cols);
-			int dx = 0;
+			acovMat->colnames.reserve(acovMat->cols);
 			for (auto &tc : thresholdCols) {
 				if (tc.numThresholds == 0) {
-					acovMat->colnames[dx++] = dc[tc.dColumn];
+					acovMat->colnames.push_back(strdup(dc[tc.dColumn]));
 				} else {
 					for (int th=1; th <= tc.numThresholds; ++th) {
 						auto str = string_snprintf("%st%d", dc[tc.dColumn], th);
-						acovMat->colnames[dx++] = strdup(str.c_str());
+						acovMat->colnames.push_back(strdup(str.c_str()));
 					}
 				}
 			}
+			// slopes TODO
 			for (int cx=0; cx < covMat->cols; ++cx) {
 				if (thresholdCols[cx].numThresholds) continue;
 				auto str = string_snprintf("var_%s", dc[cx]);
-				acovMat->colnames[dx++] = strdup(str.c_str());
+				acovMat->colnames.push_back(strdup(str.c_str()));
 			}
 			for (int cx=0; cx < covMat->cols-1; ++cx) {
 				for (int rx=cx+1; rx < covMat->cols; ++rx) {
 					auto str = string_snprintf("poly_%s_%s", dc[rx], dc[cx]);
-					acovMat->colnames[dx++] = strdup(str.c_str());
+					acovMat->colnames.push_back(strdup(str.c_str()));
 				}
 			}
+			acovMat->freeColnames = true;
 			acovMat->rownames = acovMat->colnames;
-		} else {
-			acovMat->rownames.clear();
-			acovMat->colnames.clear();
 		}
 	}
 }
@@ -1000,7 +1001,7 @@ void obsSummaryStats::permute(omxData *data, const std::vector<const char *> &dc
 {
 	covMat->unshareMemoryWithR();
 	if (meansMat) meansMat->unshareMemoryWithR();
-	acovMat->unshareMemoryWithR();
+	if (acovMat) acovMat->unshareMemoryWithR();
 	if (fullWeight) fullWeight->unshareMemoryWithR();
 
 	ColMapType dataMap;
@@ -1104,7 +1105,10 @@ void obsSummaryStats::log()
 	if (slopeMat) omxPrint(slopeMat, "slope");
 	if (meansMat) omxPrint(meansMat, "mean");
 	if (acovMat) omxPrint(acovMat, "acov");
-	if (fullWeight && acovMat != fullWeight) omxPrint(fullWeight, "full");
+	if (fullWeight) {
+		if (acovMat != fullWeight) omxPrint(fullWeight, "full");
+		else mxLog("fullWeight == acov");
+	}
 	for (auto &th : thresholdCols) { th.log(); }
 	if (thresholdMat) omxPrint(thresholdMat, "thr");
 }
@@ -1138,7 +1142,7 @@ void getContRow(std::vector<ColumnData> &df,
 	}
 }
 
-void omxData::wlsAllContinuousCumulants(omxState *state,
+void omxData::wlsAllContinuousCumulants(omxState *state, const char *wlsType,
 					const std::vector<const char *> &dc,
 					const Eigen::Ref<const Eigen::ArrayXd> rowMult,
 					std::vector<int> &index)
@@ -1584,7 +1588,7 @@ void ProbitRegression::setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
 	searchDir = ihess.selfadjointView<Eigen::Upper>() * grad;
 }
 
-struct PolyserialCor : UnconstrainedObjective {
+struct PolyserialCor : NewtonRaphsonObjective {
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
@@ -1600,9 +1604,8 @@ struct PolyserialCor : UnconstrainedObjective {
 	int numThr;
 	ColumnData &oc;
 	WLSVarData &ov;
-	double rho;
-	double param;
-	double R;
+	double param, grad;
+	double fit;
 	const Eigen::Ref<const Eigen::MatrixXd> pred;
 	Eigen::ArrayXXd tau;
 	Eigen::ArrayXXd tauj;
@@ -1643,39 +1646,51 @@ struct PolyserialCor : UnconstrainedObjective {
 		subsetVector(rowMult, [&](int rx){ return ycol[rx] != NA_INTEGER; }, rowMultF);
 		double den = 0;
 		for (int tx=0; tx < numThr; ++tx) den += Rf_dnorm4(ov.theta[tx], 0., 1., 0);
-		rho = (zee * ycolF.cast<double>().array() * rowMultF).sum() / (totalWeight * sqrt(var) * den);
-
+		double rho = (zee * ycolF.cast<double>().array() * rowMultF).sum() /
+			(totalWeight * sqrt(var) * den);
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting ps rho = %f", rho);
 		param = atanh(rho);
 	}
-	virtual double *getParamVec() { return &param; };
-	virtual double getFit(const double *_x)
+	virtual double getFit() { return fit; };
+	virtual const char *paramIndexToName(int px) { return "rho"; }
+	virtual void evaluateFit()
 	{
-		rho = tanh(_x[0]);
-		R = sqrt(1 - rho * rho);
+		double rho = tanh(param);
+		double R = sqrt(1 - rho * rho);
 		tau = (zi.colwise() - rho * zee) / R;
 
 		for (int rx=0; rx < ycol.rows(); ++rx) {
-			pr[rx] = Rf_pnorm5(tau(rx,0), 0., 1., 1, 0) - Rf_pnorm5(tau(rx,1), 0., 1., 1, 0);
+			pr[rx] = std::max(Rf_pnorm5(tau(rx,0), 0., 1., 1, 0) -
+					  Rf_pnorm5(tau(rx,1), 0., 1., 1, 0),
+					  std::numeric_limits<double>::epsilon());
 		}
-		Eigen::ArrayXd pr2 = pr.max(std::numeric_limits<double>::epsilon());
-		double fit = -(pr2.log() * rowMult).sum();
-		return fit;
+		fit = -(pr.log() * rowMult).sum();
 	}
-	virtual void getGrad(const double *_x, double *grad)
+	virtual double *getParamVec() { return &param; };
+	virtual double *getGrad() { return &grad; };
+	virtual void evaluateDerivs(int want)
 	{
-		// can assume getFit just called
+		if (want & FF_COMPUTE_FIT) evaluateFit();
+
 		for (int rx=0; rx < ycol.rows(); ++rx) {
 			dzi(rx,0) = Rf_dnorm4(tau(rx,0), 0., 1., 0);
 			dzi(rx,1) = Rf_dnorm4(tau(rx,1), 0., 1., 0);
 		}
 
+		double rho = tanh(param);
+		double R = sqrt(1 - rho * rho);
 		tauj = dzi * ((zi * rho).colwise() - zee);
 		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1)) * rowMult).sum();
 
-		double cosh_x = cosh(_x[0]);
-		grad[0] = -dx_rho * 1./(cosh_x * cosh_x);
+		double cosh_x = cosh(param);
+		grad = -dx_rho * 1./(cosh_x * cosh_x);
+	}
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+	{
+		// Can fix Hessian at 1.0 because only 1 parameter.
+		// Line search takes care of scaling.
+		searchDir[0] = grad;
 	}
 	void calcScores()
 	{
@@ -1683,6 +1698,9 @@ struct PolyserialCor : UnconstrainedObjective {
 		scores.resize(index.size(), 2 + numThr + pred.cols() * 2 + 1);
 		scores.setZero();
 
+		evaluateDerivs(FF_COMPUTE_FIT);
+		double rho = tanh(param);
+		double R = sqrt(1 - rho * rho);
 		double R3 = R*R*R;
 		for (int rx=0; rx < ycol.rows(); ++rx) {
 			if (ycol[rx] == NA_INTEGER) continue;
@@ -1705,9 +1723,19 @@ struct PolyserialCor : UnconstrainedObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
+	virtual void panic(const char *why) {
+		mxLog("Internal error in PolyserialCor: %s", why);
+		mxLog("param=%f", param);
+		std::string buf, xtra;
+		buf += mxStringifyMatrix("tau", tau, xtra, true);
+		buf += mxStringifyMatrix("pr", pr, xtra, true);
+		buf += mxStringifyMatrix("dzi", dzi, xtra, true);
+		mxLogBig(buf);
+		Rf_error("Report this failure to OpenMx developers");
+	};
 };
 
-struct PolychoricCor : UnconstrainedObjective {
+struct PolychoricCor : NewtonRaphsonObjective {
 	typedef UnconstrainedObjective super;
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
@@ -1723,8 +1751,9 @@ struct PolychoricCor : UnconstrainedObjective {
 	Eigen::ArrayXXd z1;
 	Eigen::ArrayXXd z2;
 	Eigen::ArrayXd pr;
-	double rho;
+	Eigen::ArrayXd den;
 	double param;
+	double fit, grad;
 	Eigen::ArrayXXd scores;
 	Eigen::ArrayXi y1;
 	Eigen::ArrayXi y2;
@@ -1748,6 +1777,7 @@ struct PolychoricCor : UnconstrainedObjective {
 		// when exoPred is empty, massive speedups are possible TODO
 
 		pr.resize(index.size());
+		den.resize(index.size());
 
 		Eigen::Map< Eigen::ArrayXi > y1Full(c1.ptr.intData, data.rows);
 		y1.resize(index.size());
@@ -1773,32 +1803,46 @@ struct PolychoricCor : UnconstrainedObjective {
 		subsetVector(rowMult, notMissingF, rowMultF);
 		Eigen::ArrayXd y1c = y1F.cast<double>() - (y1F.cast<double>() * rowMultF).sum() / totalWeight;
 		Eigen::ArrayXd y2c = y2F.cast<double>() - (y2F.cast<double>() * rowMultF).sum() / totalWeight;
-		rho = (y1c * y2c * rowMultF).sum() / (sqrt((y1c*y1c*rowMultF).sum() * (y2c*y2c*rowMultF).sum()));
-
+		double rho = (y1c * y2c * rowMultF).sum() /
+			(sqrt((y1c*y1c*rowMultF).sum() * (y2c*y2c*rowMultF).sum()));
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting rho = %f", rho);
 		param = atanh(rho);
 	}
 
 	virtual double *getParamVec() { return &param; };
-	virtual double getFit(const double *_x)
+	virtual double *getGrad() { return &grad; };
+	virtual const char *paramIndexToName(int px) { return "rho"; };
+	virtual double getFit() { return fit; };
+	virtual void evaluateFit()
 	{
-		rho = tanh(_x[0]);
+		double rho = tanh(param);
 
+		const double eps = std::numeric_limits<double>::epsilon();
 		for (int rx=0; rx < int(index.size()); ++rx) {
-			pr[rx] = pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
+			pr[rx] = std::max(pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho), eps);
 		}
 
-		return -(pr.log() * rowMult).sum();
+		fit = -(pr.log() * rowMult).sum();
 	}
-	virtual void getGrad(const double *_x, double *grad)
+	virtual void evaluateDerivs(int want)
 	{
+		if (want & FF_COMPUTE_FIT) evaluateFit();
+
+		double rho = tanh(param);
 		double dx = 0;
 		for (int rx=0; rx < int(index.size()); ++rx) {
-			dx += rowMult[rx] * dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho) / pr[rx];
+			den[rx] = dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
+			dx += rowMult[rx] * den[rx] / pr[rx];
 		}
-		double cosh_x = cosh(_x[0]);
-		grad[0] = -dx / (cosh_x * cosh_x);
+		double cosh_x = cosh(param);
+		grad = -dx / (cosh_x * cosh_x);
+	}
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+	{
+		// Can fix Hessian at 1.0 because only 1 parameter.
+		// Line search takes care of scaling.
+		searchDir[0] = grad;
 	}
 	void calcScores()
 	{
@@ -1809,6 +1853,8 @@ struct PolychoricCor : UnconstrainedObjective {
 		scores.resize(index.size(), numThr1 + numThr2 + pred.cols() * 2 + 1);
 		scores.setZero();
 
+		evaluateFit();
+		double rho = tanh(param);
 		double R = sqrt(1 - rho*rho);
 		for (int rx=0; rx < pred.rows(); ++rx) {
 			if (y1[rx] == NA_INTEGER || y2[rx] == NA_INTEGER) continue;
@@ -1839,6 +1885,15 @@ struct PolychoricCor : UnconstrainedObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
+	virtual void panic(const char *why) {
+		mxLog("Internal error in PolychoricCor: %s", why);
+		mxLog("param=%f", param);
+		std::string buf, xtra;
+		buf += mxStringifyMatrix("pr", pr, xtra, true);
+		buf += mxStringifyMatrix("den", den, xtra, true);
+		mxLogBig(buf);
+		Rf_error("Report this failure to OpenMx developers");
+	};
 };
 
 struct PearsonCor {
@@ -1892,7 +1947,7 @@ void copyBlockwise(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, 
 	}
 }
 
-bool omxData::regenObsStats(const std::vector<const char *> &dc)
+bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wlsType)
 {
 	if (!oss) return true;
 	auto &o1 = *oss;
@@ -1981,11 +2036,43 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc)
 		}
 	}
 
+	if (strEQ(wlsType, "ULS")) {
+		omxFreeMatrix(o1.acovMat);
+		o1.acovMat = 0;
+	} else {
+		EigenMatrixAdaptor Eweight(o1.acovMat);
+		Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+		double offDiag = offDiagW.array().abs().sum();
+		if (strEQ(wlsType, "DWLS")) {
+			if (offDiag > 0) {
+				if (verbose >= 1) {
+					mxLog("%s: DWLS requested but full weight matrix found", name);
+				}
+				return true;
+			}
+		} else {
+			if (offDiag == 0.0) {
+				if (verbose >= 1) {
+					mxLog("%s: WLS requested but diagonal weight matrix found", name);
+				}
+				return true;
+			}
+		}
+	}
+
 	//omxPrint(o1.covMat, "cov");
 	if (permute) {
+		if (o1.slopeMat) {
+			if (verbose >= 1) mxLog("%s: observedStats could be permuted but "
+						"has slopes (not implemented)", name);
+			return true;
+		}
 		if (int(o1.covMat->colnames.size()) != o1.covMat->cols ||
-		    int(o1.acovMat->colnames.size()) != o1.acovMat->cols) {
-			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are unavailable", name);
+		    !o1.acovMat || int(o1.acovMat->colnames.size()) != o1.acovMat->cols) {
+			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are "
+						"unavailable (cov=%d, acov=%d)", name,
+						int(o1.covMat->colnames.size()),
+						o1.acovMat? int(o1.acovMat->colnames.size()) : -1);
 			return true;
 		}
 		if (verbose >= 1) mxLog("%s: observedStats needs permutation", name);
@@ -1999,9 +2086,31 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc)
 }
 
 void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
-			   std::vector<int> &exoPred)
+			   std::vector<int> &exoPred, const char *type,
+			  const char *continuousType, bool fullWeight)
 {
-	_prepObsStats(state, dc, exoPred);
+	if (state->isClone()) Rf_error("omxData::prepObsStats called in a thread context");
+
+	if (strEQ(_type, "acov")) {
+		// ignore request from fit function (legacy, deprecated)
+		auto &o1 = *oss;
+		if (!o1.thresholdMat && !o1.meansMat) {
+			continuousType = "cumulants";
+		} else {
+			continuousType = "marginals";
+		}
+		if (!o1.acovMat) {
+			type = "ULS";
+		} else {
+			EigenMatrixAdaptor Eweight(o1.acovMat);
+			Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
+			double offDiag = offDiagW.array().abs().sum();
+			if (offDiag > 0) type = "WLS";
+			else type = "DWLS";
+		}
+	}
+
+	_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
 	oss->setDimnames(this, dc, exoPred);
 }
 
@@ -2044,13 +2153,20 @@ double omxData::scoreDotProd(const Eigen::ArrayBase<T1> &a1,
 }
 
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
-			   std::vector<int> &exoPred)
+			   std::vector<int> &exoPred, const char *wlsType,
+			  const char *continuousType, bool fullWeight)
 {
 	if (!dc.size()) return;
 
-	if (!regenObsStats(dc)) {
+	if (!regenObsStats(dc, wlsType)) {
 		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats", name);
 		return;
+	}
+
+	if (rawCols.size() == 0) {
+		Rf_error("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
+			 "and raw data are also not available",
+			 name, wlsType, continuousType, fullWeight);
 	}
 
 	int numCols = dc.size();
@@ -2073,12 +2189,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	subsetVector(rowMultFull, index, rowMult);
 	o1.totalWeight = rowMult.sum();
 
-	if (numFactor == 0 && strEQ(wlsContinuousType, "cumulants")) {
+	if (numFactor == 0 && strEQ(continuousType, "cumulants")) {
 		if (exoPred.size() != 0) {
 			Rf_error("%s: allContinuousMethod cumulants does not work "
 				 "with exogenous predictors. Use 'marginals' instead", name);
 		}
-		wlsAllContinuousCumulants(state, dc, rowMult, index);
+		wlsAllContinuousCumulants(state, wlsType, dc, rowMult, index);
 		return;
 	}
 
@@ -2266,8 +2382,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				rho = pc.rho * H22(pstar_idx,pstar_idx);
 			} else if (cd1.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv1, cd2, pv2, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
-				uo(ps);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(ps);
 				ps.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
 				A21(pstar_idx, thStart[jj]) = scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(0));
@@ -2282,15 +2398,16 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				}
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
 					scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(1));
+				double std_rho = tanh(ps.param);
 				double sd1 = sqrt(pv1.theta[pv1.theta.size()-1]);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[jj]) =
-					ps.rho / (2. * sd1);
+					std_rho / (2. * sd1);
 				H22(pstar_idx,pstar_idx) = sd1;
-				rho = ps.rho * sd1;
+				rho = std_rho * sd1;
 			} else if (cd2.type == COLUMNDATA_NUMERIC) {
 				PolyserialCor ps(this, pv2, cd1, pv1, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
-				uo(ps);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(ps);
 				ps.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, ps.scores, 2 + ps.numThr + 2*pred.cols());
 				A21(pstar_idx, thStart[ii]) = scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(0));
@@ -2306,16 +2423,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				A21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
 					scoreDotProd(o1.SC_COR.col(pstar_idx), ps.scores.col(1));
 				double sd1 = sqrt(pv2.theta[pv2.theta.size()-1]);
+				double std_rho = tanh(ps.param);
 				H21(pstar_idx, totalThr + pred.cols()*numCols + contMap[ii]) =
-					ps.rho / (2. * sd1);
+					std_rho / (2. * sd1);
 				H22(pstar_idx,pstar_idx) = sd1;
-				rho = ps.rho * sd1;
+				rho = std_rho * sd1;
 			} else {
 				PolychoricCor pc(this, cd2, pv2, cd1, pv1, pred, o1.totalWeight, rowMult, index);
-				UnconstrainedSLSQPOptimizer uo(name, 100, eps, verbose);
-				uo(pc);
+				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+				nro(pc);
 				H22(pstar_idx,pstar_idx) = 1.0;
-				rho = pc.rho;
+				rho = tanh(pc.param);
 				pc.calcScores();
 				copyScores(o1.SC_COR, pstar_idx, pc.scores, pc.numThr1 + pc.numThr2 + 2*pred.cols());
 				for (int tx=0; tx < pc.numThr1; ++tx)
@@ -2349,8 +2467,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	// Small optimization opportunity:
-	// We could avoid above score computations if !wlsFullWeight
-	if (!wlsFullWeight) return;
+	// We could avoid above score computations if !fullWeight
+	if (!fullWeight) return;
 
 	// mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
 	// mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good

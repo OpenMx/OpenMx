@@ -68,7 +68,7 @@ imxExtractSlot <- function(x, name) {
 imxGetSlotDisplayNames <- function(object, pattern='.*', slotList=slotNames(object), showDots=FALSE, showEmpty=FALSE) {
 	dotSlots <- slotList[substr(slotList,1,1) == "."]	# Eliminate .<anything> slots
 	emptySlots <- slotList[sapply(slotList, 			# Eliminate 0-length slots
-					function(x, object) { length(slot(object, x)) == 0 }, 
+					function(x, object) { .hasSlot(object,x) && length(slot(object, x)) == 0 }, 
 					object=object)]
 	if(!showDots) {
 		slotList <- setdiff(slotList, dotSlots)

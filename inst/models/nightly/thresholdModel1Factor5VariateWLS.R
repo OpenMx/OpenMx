@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -97,10 +97,11 @@ summary(thresholdModelrun)$wallTime
 # auto starts provides a net boost in performance
 
 a <- proc.time()
-thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel", mxDataWLS(ordinalData, type="ULS"), #Change type here!!!
+thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel",
+	mxData(ordinalData, 'raw'),
 	mxMatrix('Zero', nrow=1, ncol=nVariables, name='impliedMeans'),
 	mxExpectationNormal(covariance="impliedCovs", means='impliedMeans', dimnames = fruitynames, thresholds="thresholdMatrix"),
-	mxFitFunctionWLS())
+	mxFitFunctionWLS('ULS'))
 thresholdModelWLSrun <- mxRun(thresholdModelWLS)
 b <- proc.time()
 b-a
@@ -138,7 +139,7 @@ omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=16)
 omxCheckEquals(ml.sum$ChiDoF, wls.sum$ChiDoF)
 
 ciModel <- mxModel(thresholdModelWLSrun, mxCI("L"))
-omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'WLSThresholdModel.data' to full WLS")
+omxCheckError(mxRun(ciModel, intervals=TRUE), "Confidence intervals are not supported for DWLS or ULS.  Try mxSE or switch 'WLSThresholdModel' to full WLS")
 
 
 #------------------------------------------------------------------------------
@@ -157,7 +158,8 @@ tmod2 <- mxModel("thresholdModel2",
 trun2 <- mxRun(tmod2)
 
 a <- proc.time()
-wmod2 <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS(),
+wmod2 <- mxModel(tmod2, mxData(ordinalData, 'raw'),
+	mxFitFunctionWLS(),
 	mxAlgebra(cov2cor(impliedCovs), name='newCov'),
 	mxMatrix("Unit", nrow=nThresholds, ncol=1, name="UnitVector"),
 	mxAlgebra(UnitVector %x% t(sqrt(diag2vec(impliedCovs))), name='theStandardDeviations'),
@@ -190,7 +192,7 @@ omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .0
 
 
 # new style for model 2
-wmod2a <- mxModel(tmod2, mxDataWLS(ordinalData), mxFitFunctionWLS())
+wmod2a <- mxModel(tmod2, mxData(ordinalData, 'raw'), mxFitFunctionWLS())
 wrun2a <- mxRun(wmod2a)
 
 cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a))

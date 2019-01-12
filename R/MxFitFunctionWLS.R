@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -26,13 +26,21 @@
 
 # **DONE**
 setClass(Class = "MxFitFunctionWLS",
-	contains = "MxBaseFitFunction")
+	contains = "MxBaseFitFunction",
+	 representation = representation(
+		 type = "character",
+		 continuousType = "character",
+		 fullWeight = "logical"
+	))
 
 # **DONE**
 setMethod("initialize", "MxFitFunctionWLS",
-	function(.Object, name = 'fitfunction') {
+	function(.Object, type, allContinuousMethod, fullWeight, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@vector <- FALSE
+		.Object@type <- type
+		.Object@continuousType <- allContinuousMethod
+		.Object@fullWeight <- fullWeight
 		return(.Object)
 	}
 )
@@ -112,9 +120,12 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 })
 
 # **DONE**
-mxFitFunctionWLS <- function(weights="ULS") {
-	if (!missing(weights)) warning("Argument 'weights' to mxFitFunctionWLS is ignored")
-	return(new("MxFitFunctionWLS"))
+mxFitFunctionWLS <- function(type=c('WLS','DWLS','ULS'),
+			     allContinuousMethod=c("cumulants", "marginals"),
+			     fullWeight=TRUE) {
+	type <- match.arg(type)
+	allContinuousMethod <- match.arg(allContinuousMethod)
+	return(new("MxFitFunctionWLS", type, allContinuousMethod, as.logical(fullWeight)))
 }
 
 # **DONE**
@@ -277,10 +288,9 @@ imxWlsChiSquare <- function(model, J=NA){
 approveWLSIntervals <- function(flatModel, modelName) {
 	ff <- flatModel@fitfunctions[[ paste0(modelName, '.fitfunction') ]]
 	if (is(ff, "MxFitFunctionWLS")) {
-		ds <- flatModel@datasets[[ paste0(modelName, '.data') ]]
-		if (ds@.wlsType != 'WLS') {
+		if (ff@type != 'WLS') {
 			stop(paste("Confidence intervals are not supported for DWLS or ULS. ",
-				"Try mxSE or switch", omxQuotes(ds$name), "to full WLS"))
+				"Try mxSE or switch", omxQuotes(modelName), "to full WLS"))
 		}
 	} else if (is(ff, "MxFitFunctionMultigroup")) {
 		for (g1 in flatModel@fitfunction$groups) {

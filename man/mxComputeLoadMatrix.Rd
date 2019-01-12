@@ -3,15 +3,17 @@
 \alias{MxComputeLoadMatrix-class}
 \title{Load data from CSV files directly into the backend}
 \usage{
-mxComputeLoadMatrix(dest, path, ..., originalDataIsIndexOne=FALSE,
+mxComputeLoadMatrix(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
  row.names=FALSE, col.names=FALSE)
 }
 \arguments{
 \item{dest}{a character vector of matrix names}
 
-\item{path}{a character vector of paths}
+\item{method}{name of the conduit used to load the data.}
 
 \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+
+\item{path}{a character vector of paths}
 
 \item{originalDataIsIndexOne}{logical. Whether to use the initial data
 for index 1}
@@ -19,7 +21,7 @@ for index 1}
 \item{col.names}{logical. Whether column names are present}
 }
 \description{
-  The CSV file must be formatted in a specific way.
+  For method='CSV', the file must be formatted in a specific way.
   The number of columns must match the number of entries available
   in the mxMatrix. Matrix types (e.g., symmetric or diagonal) are
   respected (see \link{mxMatrix}). For example, a \emph{Full} 2x2
@@ -37,7 +39,7 @@ for index 1}
   included with the model.
 }
 \seealso{
-  \link{mxComputeCheckpoint}
+  \link{mxComputeLoadData}, \link{mxComputeCheckpoint}
 }
 \examples{
 library(OpenMx)
@@ -58,7 +60,7 @@ m1 <- mxModel(
   mxFitFunctionAlgebra("area"),
   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
-                        c('mean.csv', 'cov.csv')),
+                        path=c('mean.csv', 'cov.csv')),
     mxComputeOnce('fitfunction', 'fit'),
     mxComputeCheckpoint(path="loadMatrix.csv")
   ), i=1:4))

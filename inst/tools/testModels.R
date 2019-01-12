@@ -53,10 +53,6 @@ if (any(args == 'failing')) {
 	directories <- c('models/failing')
 }
 
-null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
-	error = function(e) { file('nul', 'w') } )
-
-
 if (any(args == 'gctorture')) {
 	files <- c('models/passing/AlgebraComputePassing.R',
 		   'models/passing/TestRowObjective.R')
@@ -69,6 +65,7 @@ if (any(args == 'lisrel')) {
 	files <- grep("LISREL", files, value=TRUE, ignore.case=TRUE)
 }
 
+outputFilename <- list()
 errors <- list()
 warnRec <- list()
 runtimes <- numeric()
@@ -76,10 +73,12 @@ runtimes <- numeric()
 errorRecover <- function(script, opt, index) {
 	mxSetDefaultOptions()
 	mxOption(NULL, "Default optimizer", opt)
-	sink(type = 'output')
 	cat(paste(opt, index, "of",
 		length(files), script, "...\n"))
-	sink(null, type = 'output')
+	outputFilename[[opt]][[script]] <- tempfile()
+	outputFile <- tryCatch(suppressWarnings(file(outputFilename[[opt]][[script]], 'w')),
+		error = function(e) { file('nul', 'w') } )
+	sink(outputFile, type = 'output')
 	start <- Sys.time()
 
 	tryCatch.W.E <- function(expr) {
@@ -99,18 +98,21 @@ errorRecover <- function(script, opt, index) {
 	runtimes[[paste(opt,script,sep=":")]] <<- as.double(timeDifference, units = "secs")
   
 	err <- got$value
+	sink(type = 'output')
+	close(outputFile)
+
 	if (is(err, "error") && err$message != 'SKIP') {
 	  errors[[opt]][[script]] <<- err$message
-	  sink(type = 'output')
 	  cat("*** ERROR from", script, '***\n')
 	  print(err$message)
-	  sink(null, type = 'output')
+	} else {
+		file.remove(outputFilename[[opt]][[script]])
 	}
 	warnRec[[opt]][[script]] <<- got$warning
 	
 	rm(envir=globalenv(), 
 		list=setdiff(ls(envir=globalenv()), 
-			     c('warnRec', 'errors', 'errorRecover', 'opt', 'null',
+			     c('warnRec', 'errors', 'errorRecover', 'opt', 'outputFile', 'outputFilename',
 			       'files', 'directories', 'runtimes', 'beginTravisFold', 'endTravisFold')))
 }
 
@@ -129,17 +131,15 @@ if (length(optimizers) == 0) {
 for (opt in optimizers) {
 	beginTravisFold(opt, paste("TEST", opt))
 	errors[[opt]] <- list()
+	outputFilename[[opt]] <- list()
 	warnRec[[opt]] <- list()
 	if (length(files) > 0) {
 		for (i in 1:length(files)) {
 			errorRecover(files[[i]], opt, i)
 		}
 	}
-	sink(type = 'output')
 	endTravisFold(opt)
 }	
-
-close(null)
 
 totalErrors <- sum(sapply(errors, length))
 cat("Number of errors:", totalErrors, '\n')
@@ -147,10 +147,13 @@ if (totalErrors > 0) {
 	for (opt in names(errors)) {
 		oerr <- errors[[opt]]
 		fileName <- names(oerr)
-		if (length(oerr)) for (i in 1:length(oerr)) {
-			cat("Error", opt, fileName[[i]], '***\n')
-			print(oerr[[i]])
-			cat('\n')
+		if (length(oerr)) {
+			for (i in 1:length(oerr)) {
+				cat("Error", opt, fileName[[i]], '***\n')
+				print(oerr[[i]])
+				cat('\n')
+			}
+			system(paste("cat", outputFilename[[opt]][[ fileName[[i]] ]]))
 		}
 	}
 } else {

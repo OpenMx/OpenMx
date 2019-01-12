@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2018 by the individuals mentioned in the source code history
+%   Copyright 2007-2019 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 \title{Create MxModel Object}
     
 \description{
-   This function creates a new \link{MxModel} object.
+   Create or modify an \link{MxModel}.
 }
     
 \usage{
@@ -39,25 +39,33 @@ mxModel(model = NA, ..., manifestVars = NA, latentVars = NA,
 }
     
 \details{
-The mxModel function is used to create \link{MxModel} objects. Objects created by this function may be new, or may be modified versions of existing \link{MxModel} objects. By default a new \link{MxModel} object will be created: To create a modified version of an existing \link{MxModel} object, include this model in the 'model' argument.
+The mxModel function is used to create \link{MxModel}s. Models created by this function may be new, or may be modified versions of existing \link{MxModel} objects. By default a new \link{MxModel} object will be created: To create a modified version of an existing \link{MxModel} object, include this model in the 'model' argument.
 
-Other \link{named-entities} may be added as arguments to the mxModel function, which are then added to or removed from the model specified in the \sQuote{model} argument. Other functions you can use to add objects to the model to this way are \link{mxCI}, \link{mxAlgebra}, \link{mxBounds}, \link{mxConstraint}, \link{mxData}, and \link{mxMatrix} objects, as well as objective functions. You can also include \link{MxModel} objects as sub-models of the output model, and may be estimated separately or jointly depending on shared parameters and the \sQuote{independent} flag discussed below. Only one \link{MxData} object and one objective function may be included per model, but there are no restrictions on the number of other \link{named-entities} included in an mxModel statement.
+Other \link{named-entities} may be added as arguments to the mxModel function, which are then added to or removed from the model specified in the \sQuote{model} argument. Functions you can use to add objects to the model to this way include \link{mxPath}, \link{mxCI}, \link{mxAlgebra}, \link{mxBounds}, \link{mxConstraint}, \link{mxData}, and \link{mxMatrix} objects, as well as fit functions and expectations (see below). You can also include sub-models as components of a model. These sub-models may be estimated separately or jointly depending on shared parameters and the \sQuote{independent} flag (see below). Only one \link{MxData} object and one fit function and expectation may be included per model, but there are no restrictions on the number of other \link{named-entities} included in an mxModel statement.
 
-All other arguments must be named (i.e. \sQuote{latentVars = names}), or they will be interpreted as elements of the ellipsis list. The \sQuote{manifestVars} and \sQuote{latentVars} arguments specify the names of the manifest and latent variables, respectively, for use with the \link{mxPath} function. The \sQuote{remove} argument may be used when mxModel is used to create a modified version of an existing \link{MxMatrix} object. When \sQuote{remove} is set to TRUE, the listed objects are removed from the model specified in the \sQuote{model} argument. When \sQuote{remove} is set to FALSE, the listed objects are added to the model specified in the \sQuote{model} argument. 
+All other arguments must be named (i.e. \sQuote{latentVars = names}), or they will be interpreted as elements of the ellipsis list. The \sQuote{manifestVars} and \sQuote{latentVars} arguments specify the names of the manifest and latent variables, respectively, for use with the \link{mxPath} function.
+
+The \sQuote{remove} argument may be used when mxModel is used to create a modified version of an existing \link{MxMatrix} object. When \sQuote{remove} is set to TRUE, the listed objects are removed from the model specified in the \sQuote{model} argument. When \sQuote{remove} is set to FALSE, the listed objects are added to the model specified in the \sQuote{model} argument. 
     
 Model independence may be specified with the \sQuote{independent} argument. If a model is independent (\sQuote{independent = TRUE}), then the parameters of this model are not shared with any other model. An independent model may be estimated with no dependency on any other model. If a model is not independent (\sQuote{independent = FALSE}), then this model shares parameters with one or more other models such that these models must be jointly estimated. These dependent models must be entered as arguments in another model, so that they are simultaneously optimized.
 
 The model type is determined by a character vector supplied to the \sQuote{type} argument. The type of a model is a dynamic property, ie. it is allowed to change during the lifetime of the model. To see a list of available types, use the \link{mxTypes} command.  When a new model is created and no type is specified, the type specified by \code{options("mxDefaultType")} is used.
-    
-To be estimated, \link{MxModel} objects must include objective functions as arguments
-(\link{mxAlgebraObjective}, \link{mxFIMLObjective}, \link{mxMLObjective} or \link{mxRAMObjective})
-and executed using the \link{mxRun} function. When \link{MxData} objects are included in models, the 'type' argument of these objects may require or exclude certain objective functions, or set an objective function as default. 
 
-\link[=Named-entity]{Named entities} in \link{MxModel} objects may be viewed and referenced by name using the $ symbol.  For instance, for an MxModel named "yourModel" containing an MxMatrix named "yourMatrix", the contents of "yourMatrix" can be accessed as yourModel$yourMatrix. Slots (i.e., matrices, algebras, etc.) in an mxMatrix may also be referenced with the $ symbol (e.g., yourModel$matrices or yourModel$algebras). See the documentation for \link[methods]{Classes} and the examples in \link[methods]{Classes} for more information.
+\strong{Expectations and Fit functions}
+
+To be estimated, \link{MxModel} objects must include fit functions and expectations as arguments.  Fit functions include \link{mxFitFunctionML}, \link{mxFitFunctionMultigroup}, \link{mxFitFunctionWLS}, \link{mxFitFunctionAlgebra}, \link{mxFitFunctionGREML}, \link{mxFitFunctionR}, amd \link{mxFitFunctionRow}. Expectations include 
+\link{mxExpectationBA81}, \link{mxExpectationGREML}, \link{mxExpectationHiddenMarkov}
+\link{mxExpectationLISREL}, \link{mxExpectationMixture}, \link{mxExpectationNormal}, \link{mxExpectationRAM}, \link{mxExpectationStateSpace}, \link{mxExpectationStateSpaceContinuousTime}. The 'type' of the model may imply a certain fit function or expectation (e.g. type = "RAM" implies mxExpectationRAM). The model data may also constrain which fit and expectation are appropriate.
+
+The model, complete with fit function and expectation can then be executed using \link{mxRun}. 
+
+\strong{Accessing model components}
+
+You can view a model summary with summary. You can also access \link[=Named-entity]{Named entities} in \link{MxModel} directly via the $ symbol.  For instance, for an MxModel named "yourModel" containing an MxMatrix named "yourMatrix", the contents of "yourMatrix" can be accessed as yourModel$yourMatrix. Slots (i.e., matrices, algebras, etc.) in an mxMatrix may also be referenced with the $ symbol (e.g., yourModel$matrices or yourModel$algebras). See the documentation for \link[methods]{Classes} and the examples in \link[methods]{Classes} for more information.
 }
     
 \value{
-Returns a new \link{MxModel} object. \link{MxModel} objects must include an objective function to be used as arguments in \link{mxRun} functions.
+Returns a new \link{MxModel} object. To be run, \link{MxModel} object must include a fit function and expectation.
 }
 
 \references{
@@ -69,7 +77,7 @@ See \link{mxCI} for information about adding Confidence Interval calculations to
 See \link{mxPath} for information about adding paths to RAM-type models.
 See \link{mxMatrix} for information about adding matrices to models.
 See \link{mxData} for specifying the data a model is to be evaluated against.
-See \link{MxModel} for the S4 class created by mxMatrix. Many advanced options can be set via \link{mxOption} (such as calculating the Hessian). 
+Many advanced options can be set via \link{mxOption}. 
 More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
     

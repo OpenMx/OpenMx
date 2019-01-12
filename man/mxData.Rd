@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2018 by the individuals mentioned in the source code history
+%   Copyright 2007-2019 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
-          verbose = 0L, preferredFit = "ML")
+          verbose = 0L)
 }
 
 \arguments{
@@ -46,8 +46,6 @@
    \item{weight}{The column name containing row weights}
    \item{frequency}{The column name containing row frequencies}
 \item{verbose}{level of diagnostic output}
-\item{preferredFit}{used to keep track of whether the MxData object was
-   created by mxDataWLS}
 }
 
 \details{
