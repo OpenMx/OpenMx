@@ -39,7 +39,7 @@ inline double dbivnorm(double lower1, double lower2,
 		out -= dbivnorm1(lower1, upper2, cor);
 	if (upper1 < 100 && lower2 > -100)
 		out -= dbivnorm1(upper1, lower2, cor);
-	if (lower1 > -100 & lower2 > -100)
+	if (lower1 > -100 && lower2 > -100)
 		out += dbivnorm1(lower1, lower2, cor);
 	return out;
 }
