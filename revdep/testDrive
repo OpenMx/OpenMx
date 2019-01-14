@@ -11,8 +11,7 @@ fi
 
 export _R_CHECK_FORCE_SUGGESTS_=0
 
-pkgs="ctsem_2.7.6.tar.gz EasyMx_0.2-1.tar.gz ifaTools_0.17.tar.gz
-  metaSEM_1.2.0.tar.gz semtree_0.9.13.tar.gz umx_2.9.0.tar.gz"
+pkgs=$(R --no-save --slave -f revdep/getPackages.R)
 
 pdir=""
 
