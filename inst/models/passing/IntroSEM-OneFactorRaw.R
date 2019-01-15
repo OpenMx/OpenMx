@@ -169,5 +169,8 @@ omxCheckCloseEnough(expectSE,
 omxCheckCloseEnough(expectMin, oneFactorRaw2Out$output$minimum, 0.001)
 
 
-
-
+oneFactorRaw1$data$observed$x4 <- as.integer(factorExample1$x4)
+oneFactorRaw3Out <- omxCheckWarning(
+  mxRun(oneFactorRaw1),
+  "Single Factor FIML Model with Fixed Variance.data: column 'x4' is integer but used as numeric")
+omxCheckCloseEnough(oneFactorRaw3Out$output$fit, 9328.354, .01)
