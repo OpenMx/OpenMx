@@ -553,7 +553,6 @@ void omxData::assertColumnIsData(int col)
 		}
 		return;
 	case COLUMNDATA_INTEGER:{
-		Rf_warning("%s: column '%s' is integer but used as numeric", name, cd.name);
 		cd.type = COLUMNDATA_NUMERIC;
 		int *intData = cd.ptr.intData;
 		cd.ptr.realData = (double*) R_alloc(rows, sizeof(double));
