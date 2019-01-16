@@ -104,6 +104,8 @@ struct WLSVarData {
 	Eigen::ArrayXd theta;
 	// OLS
 	Eigen::ArrayXd resid;
+	int contOffset;
+	int thrOffset;
 };
 
 class obsSummaryStats {

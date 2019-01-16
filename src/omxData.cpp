@@ -2223,12 +2223,14 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	int maxNumThr = 0;
 	std::vector<int> thStart(numCols);
 	o1.perVar.resize(numCols);
-	for (int yy=0; yy < numCols; ++yy) {
+	for (int yy=0, thrOffset=0; yy < numCols; ++yy) {
 		auto &pv = o1.perVar[yy];
 		pv.naCount = 0;
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		thStart[yy] = totalThr;
 		if (cd.type == COLUMNDATA_NUMERIC) {
+			pv.contOffset = numContinuous;
+			pv.thrOffset = thrOffset++;
 			contMap.push_back(numContinuous);
 			totalThr += 1;  // mean
 			numContinuous += 1;
@@ -2237,8 +2239,11 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				if (!std::isfinite(ycol[ index[rx] ])) pv.naCount += 1;
 			}
 		} else {
+			pv.contOffset = -1;
+			pv.thrOffset = thrOffset;
 			contMap.push_back(-1);
 			int numThr = cd.levels.size() - 1;
+			thrOffset += numThr;
 			totalThr += numThr;
 			maxNumThr = std::max(maxNumThr, numThr);
 			Eigen::Map< Eigen::VectorXi > ycol(cd.ptr.intData, rows);
@@ -2265,7 +2270,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	ProbitRegression pr(this, exoPred, pred, o1.totalWeight, rowMult, index);
 
 	// based on lav_samplestats_step1.R, lavaan 0.6-2
-	for (int yy=0, contOffset=0, thrOffset=0; yy < numCols; ++yy) {
+	for (int yy=0; yy < numCols; ++yy) {
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		WLSVarData &pv = o1.perVar[yy];
 		if (cd.type == COLUMNDATA_NUMERIC) {
@@ -2283,16 +2288,14 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			pv.theta[olsr.beta.size()] = olsr.var;
 			Ecov(yy,yy) = olsr.var;
 			Emean[yy] = pv.theta[0];
-			copyScores(o1.SC_TH, thrOffset, olsr.scores.array(), 0);
+			copyScores(o1.SC_TH, pv.thrOffset, olsr.scores.array(), 0);
 			if (pred.cols()) {
 				EigenMatrixAdaptor Eslope(o1.slopeMat);
 				Eslope.row(yy) = olsr.beta.segment(1,pred.cols());
 				for (int px=0; px < pred.cols(); ++px)
 					copyScores(o1.SC_SL, yy+numCols*px, olsr.scores.array(), 1+px);
 			}
-			copyScores(o1.SC_VAR, contOffset, olsr.scores.array(), 1+pred.cols());
-			contOffset += 1;
-			thrOffset += 1;
+			copyScores(o1.SC_VAR, pv.contOffset, olsr.scores.array(), 1+pred.cols());
 		} else {
 			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
 				Rf_error("%s: variable '%s' must be an ordered factor but is of type %s",
@@ -2313,14 +2316,13 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			o1.thresholdCols.push_back(tc);
 			Ecov(yy,yy) = 1.;
 			Emean[yy] = 0.;
-			copyScores(o1.SC_TH, thrOffset, pr.scores, 0, pr.numThr);
+			copyScores(o1.SC_TH, pv.thrOffset, pr.scores, 0, pr.numThr);
 			if (pred.cols()) {
 				EigenMatrixAdaptor Eslope(o1.slopeMat);
 				Eslope.row(yy) = pr.param.segment(pr.numThr, pred.cols());
 				for (int px=0; px < pred.cols(); ++px)
 					copyScores(o1.SC_SL, yy+numCols*px, pr.scores, pr.numThr+px);
 			}
-			thrOffset += pr.numThr;
 		}
 	}
 
