@@ -2282,6 +2282,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.SC_VAR.resize(scoreRows, numContinuous);
 	o1.SC_SL.resize(scoreRows, numCols * pred.cols());
 	o1.SC_TH.resize(scoreRows, totalThr);
+
+	int pstar = triangleLoc1(numCols-1);
+	o1.SC_COR.resize(scoreRows, pstar);
+	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
+	Eigen::MatrixXd A21(pstar, A11_size);
+	A21.setZero();
+	Eigen::ArrayXXd H22(pstar, pstar);
+	H22.setZero();
+	Eigen::ArrayXXd H21(pstar, A11_size);
+	H21.setZero();
+
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 	OLSRegression olsr(this, pred, o1.totalWeight, rowMult, index);
 	ProbitRegression pr(this, exoPred, pred, o1.totalWeight, rowMult, index);
@@ -2327,29 +2338,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			}
 		}
 	}
-
-	if (o1.numOrdinal) {
-		o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
-		EigenMatrixAdaptor Ethr(o1.thresholdMat);
-		Ethr.setConstant(NA_REAL);
-		for (int yy=0; yy < numCols; ++yy) {
-			ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
-			if (cd.type == COLUMNDATA_NUMERIC) continue;
-			WLSVarData &pv = o1.perVar[yy];
-			auto &tc = o1.thresholdCols[yy];
-			Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
-		}
-	}
-
-	int pstar = triangleLoc1(numCols-1);
-	o1.SC_COR.resize(scoreRows, pstar);
-	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
-	Eigen::MatrixXd A21(pstar, A11_size);
-	A21.setZero();
-	Eigen::ArrayXXd H22(pstar, pstar);
-	H22.setZero();
-	Eigen::ArrayXXd H21(pstar, A11_size);
-	H21.setZero();
 
 	// based on lav_samplestats_step2.R, lavaan 0.6-2
 	for (int jj=0; jj < numCols-1; ++jj) {
@@ -2457,6 +2445,19 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			if (verbose >= 3) mxLog("cov %s %s [%d] -> %f", cd1.name, cd2.name, pstar_idx, rho);
 			Ecov(ii,jj) = rho;
 			Ecov(jj,ii) = rho;
+		}
+	}
+
+	if (o1.numOrdinal) {
+		o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
+		EigenMatrixAdaptor Ethr(o1.thresholdMat);
+		Ethr.setConstant(NA_REAL);
+		for (int yy=0; yy < numCols; ++yy) {
+			ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
+			if (cd.type == COLUMNDATA_NUMERIC) continue;
+			WLSVarData &pv = o1.perVar[yy];
+			auto &tc = o1.thresholdCols[yy];
+			Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
 		}
 	}
 
