@@ -2222,6 +2222,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	int totalThr = 0;
 	int maxNumThr = 0;
 	std::vector<int> thStart(numCols);
+	o1.numOrdinal = 0;
 	o1.perVar.resize(numCols);
 	for (int yy=0, thrOffset=0; yy < numCols; ++yy) {
 		auto &pv = o1.perVar[yy];
@@ -2229,6 +2230,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		thStart[yy] = totalThr;
 		if (cd.type == COLUMNDATA_NUMERIC) {
+			omxThresholdColumn tc;
+			tc.dColumn = yy;
+			tc.column = -1;
+			tc.numThresholds = 0;
+			o1.thresholdCols.push_back(tc);
+
 			pv.contOffset = numContinuous;
 			pv.thrOffset = thrOffset++;
 			contMap.push_back(numContinuous);
@@ -2239,10 +2246,21 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				if (!std::isfinite(ycol[ index[rx] ])) pv.naCount += 1;
 			}
 		} else {
+			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
+				Rf_error("%s: variable '%s' must be an ordered factor but is of type %s",
+					 name, cd.name, ColumnDataTypeToString(cd.type));
+			}
+			int numThr = cd.levels.size() - 1;
+
+			omxThresholdColumn tc;
+			tc.dColumn = yy;
+			tc.column = o1.numOrdinal++;
+			tc.numThresholds = numThr;
+			o1.thresholdCols.push_back(tc);
+
 			pv.contOffset = -1;
 			pv.thrOffset = thrOffset;
 			contMap.push_back(-1);
-			int numThr = cd.levels.size() - 1;
 			thrOffset += numThr;
 			totalThr += numThr;
 			maxNumThr = std::max(maxNumThr, numThr);
@@ -2264,7 +2282,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.SC_VAR.resize(scoreRows, numContinuous);
 	o1.SC_SL.resize(scoreRows, numCols * pred.cols());
 	o1.SC_TH.resize(scoreRows, totalThr);
-	o1.numOrdinal = 0;
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 	OLSRegression olsr(this, pred, o1.totalWeight, rowMult, index);
 	ProbitRegression pr(this, exoPred, pred, o1.totalWeight, rowMult, index);
@@ -2274,12 +2291,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		WLSVarData &pv = o1.perVar[yy];
 		if (cd.type == COLUMNDATA_NUMERIC) {
-			omxThresholdColumn tc;
-			tc.dColumn = yy;
-			tc.column = -1;
-			tc.numThresholds = 0;
-			o1.thresholdCols.push_back(tc);
-
 			olsr.setResponse(cd, pv);
 			olsr.calcScores();
 			pv.resid = olsr.resid;
@@ -2297,10 +2308,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			}
 			copyScores(o1.SC_VAR, pv.contOffset, olsr.scores.array(), 1+pred.cols());
 		} else {
-			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
-				Rf_error("%s: variable '%s' must be an ordered factor but is of type %s",
-					 name, cd.name, ColumnDataTypeToString(cd.type));
-			}
 			pr.setResponse(cd, pv);
 			if (exoPred.size()) {
 				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
@@ -2309,11 +2316,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 				pr.calcScores();
 			}
 			pv.theta = pr.param;
-			omxThresholdColumn tc;
-			tc.dColumn = yy;
-			tc.column = o1.numOrdinal++;
-			tc.numThresholds = pr.numThr;
-			o1.thresholdCols.push_back(tc);
 			Ecov(yy,yy) = 1.;
 			Emean[yy] = 0.;
 			copyScores(o1.SC_TH, pv.thrOffset, pr.scores, 0, pr.numThr);
