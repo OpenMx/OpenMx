@@ -123,11 +123,17 @@ class obsSummaryStats {
 	std::vector< omxThresholdColumn > thresholdCols; // size() == covMat.cols()
 
 	// prep
+	std::vector<int> contMap;
+	int totalThr;
+	std::vector<int> thStart;
 	std::vector< WLSVarData > perVar;
 	Eigen::ArrayXXd SC_VAR;
 	Eigen::ArrayXXd SC_SL;
 	Eigen::ArrayXXd SC_TH;
 	Eigen::ArrayXXd SC_COR;
+	Eigen::MatrixXd A21;
+	Eigen::ArrayXXd H22;
+	Eigen::ArrayXXd H21;
 
 	obsSummaryStats() : output(false), totalWeight(0), numOrdinal(0), covMat(0), slopeMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0) {};
@@ -246,14 +252,6 @@ class omxData {
 	template <typename T1>
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();
-
-	// util member functions for observed statistics
-	template <typename T1, typename T2>
-	void copyScores(Eigen::ArrayBase<T1> &dest, int destCol,
-				const Eigen::ArrayBase<T2> &src, int srcCol, int numCols=1);
-	template <typename T1, typename T2>
-	double scoreDotProd(const Eigen::ArrayBase<T1> &a1,
-				    const Eigen::ArrayBase<T2> &a2);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
