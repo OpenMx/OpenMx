@@ -301,10 +301,8 @@ approveWLSIntervals <- function(flatModel, modelName) {
 
 #' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS
 #'
-#' @description
 #' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS.
 #' Currently, all-continuous data processed using the "marginals" method lack means.
-#' @details
 #'
 #' @param data the (currently raw) data being used in a \code{\link{mxFitFunctionWLS}} model.
 #' @param allContinuousMethod the method used to process data when all columns are continuous.
