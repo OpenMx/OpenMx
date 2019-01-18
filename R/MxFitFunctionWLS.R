@@ -298,3 +298,49 @@ approveWLSIntervals <- function(flatModel, modelName) {
 		}
 	}
 }
+
+#' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS
+#'
+#' @description
+#' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS.
+#' Currently, all-continuous data processed using the "marginals" method lack means.
+#' @details
+#'
+#' @param data the (currently raw) data being used in a \code{\link{mxFitFunctionWLS}} model.
+#' @param allContinuousMethod the method used to process data when all columns are continuous.
+#' @return - list describing the data.
+#' @export
+#' @family Data Functions
+#' @seealso - \code{\link{mxFitFunctionWLS}}, \code{\link{omxAugmentDataWithWLSSummary}}
+#' @examples
+#'
+#' # =======================
+#' # = All continuous data =
+#' # =======================
+#'
+#' mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # TRUE
+#' mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals")$hasMeans  # FALSE - no means with marginals
+#'
+#' # =======================
+#' # = One var is a factor =
+#' # =======================
+#' tmp = mtcars
+#' tmp$cyl = factor(tmp$cyl)
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants")$hasMeans # TRUE
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans # TRUE - always has means
+#' 
+mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "marginals"), verbose=FALSE){
+	allContinuousMethod = match.arg(allContinuousMethod)
+	if(all(sapply(data, FUN= is.numeric))){
+		if(verbose){
+			print("all continuous")
+		}
+		if(allContinuousMethod == "marginals"){
+			list(hasMeans = FALSE)
+		} else {
+			list(hasMeans = TRUE)
+		}
+	}else{
+		list(hasMeans = TRUE)
+	}
+}
