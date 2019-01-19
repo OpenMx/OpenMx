@@ -169,5 +169,7 @@ omxCheckCloseEnough(expectSE,
 omxCheckCloseEnough(expectMin, oneFactorRaw2Out$output$minimum, 0.001)
 
 
-
-
+oneFactorRaw1$data$observed$x4 <- as.integer(factorExample1$x4)
+oneFactorRaw1$data$observed$x4[1] <- NA # screwed this up before
+oneFactorRaw3Out <- mxRun(oneFactorRaw1)
+omxCheckCloseEnough(oneFactorRaw3Out$output$fit, 9327.42, .01)

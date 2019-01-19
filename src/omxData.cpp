@@ -528,14 +528,14 @@ bool omxData::columnIsFactor(int col)
 {
 	if(dataMat != NULL) return FALSE;
 	ColumnData &cd = rawCols[col];
-	return cd.ptr.intData && cd.levels.size();
+	return cd.type == COLUMNDATA_ORDERED_FACTOR;
 }
 
 bool omxDataColumnIsKey(omxData *od, int col)
 {
 	if(od->dataMat != NULL) return FALSE;
 	ColumnData &cd = od->rawCols[col];
-	return cd.ptr.intData != 0;
+	return cd.type != COLUMNDATA_NUMERIC;
 }
 
 void omxData::assertColumnIsData(int col)
@@ -557,7 +557,7 @@ void omxData::assertColumnIsData(int col)
 		int *intData = cd.ptr.intData;
 		cd.ptr.realData = (double*) R_alloc(rows, sizeof(double));
 		for (int rx=0; rx < rows; ++rx) {
-			if (cd.ptr.intData[rx] == NA_INTEGER) {
+			if (intData[rx] == NA_INTEGER) {
 				cd.ptr.realData[rx] = NA_REAL;
 			} else {
 				cd.ptr.realData[rx] = intData[rx];
@@ -730,7 +730,7 @@ void omxData::omxPrintData(const char *header, int maxRows, int *permute)
 		for (auto &cd : od->rawCols) {
 			buf += " ";
 			buf += cd.name;
-			if (cd.ptr.intData) {
+			if (cd.type != COLUMNDATA_NUMERIC) {
 				buf += "[I]";
 			} else {
 				buf += "[N]";
