@@ -2146,6 +2146,7 @@ struct sampleStats {
 	obsSummaryStats &o1;
 	EigenVectorAdaptor Emean;
 	EigenMatrixAdaptor Ecov;
+	EigenMatrixAdaptor0 Ethr;
 	FilterPred fPred;
 	OLSRegression olsr;
 	ProbitRegression pr;
@@ -2171,7 +2172,7 @@ struct sampleStats {
 		    obsSummaryStats &_o1) :
 		data(*_d), dc(_dc),
 		rowMult(_rowMult), index(_index),
-		o1(_o1), Emean(o1.meansMat), Ecov(o1.covMat),
+		o1(_o1), Emean(o1.meansMat), Ecov(o1.covMat), Ethr(o1.thresholdMat),
 		fPred(_d, exoPred, _rowMult, _index),
 		olsr(_d, o1.totalWeight, rowMult, index),
 		pr(_d, exoPred, fPred.pred, o1.totalWeight, rowMult, index),
@@ -2260,6 +2261,8 @@ struct sampleStats {
 				pr.calcScores();
 			}
 			pv.theta = pr.param;
+			auto &tc = o1.thresholdCols[yy];
+			Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
 			Ecov(yy,yy) = 1.;
 			Emean[yy] = 0.;
 			copyScores(o1.SC_TH, pv.thrOffset, pr.scores, 0, pr.numThr);
@@ -2490,6 +2493,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		}
 	}
 
+	if (o1.numOrdinal) {
+		o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
+		EigenMatrixAdaptor Ethr(o1.thresholdMat);
+		Ethr.setConstant(NA_REAL);
+	}
+
 	int scoreRows = index.size();
 	if (hasFreq()) {
 		Eigen::Map< Eigen::ArrayXi > freq(getFreqColumn(), rows);
@@ -2526,19 +2535,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			for (int ii=jj+1; ii < numCols; ++ii) {
 				ss.cov(jj, ii);
 			}
-		}
-	}
-
-	if (o1.numOrdinal) {
-		o1.thresholdMat = omxInitMatrix(maxNumThr, o1.numOrdinal, state);
-		EigenMatrixAdaptor Ethr(o1.thresholdMat);
-		Ethr.setConstant(NA_REAL);
-		for (int yy=0; yy < numCols; ++yy) {
-			ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
-			if (cd.type == COLUMNDATA_NUMERIC) continue;
-			WLSVarData &pv = o1.perVar[yy];
-			auto &tc = o1.thresholdCols[yy];
-			Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);
 		}
 	}
 

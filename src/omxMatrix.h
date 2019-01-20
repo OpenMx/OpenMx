@@ -148,6 +148,13 @@ struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
 	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
 };
 
+struct EigenMatrixAdaptor0 : Eigen::Map< Eigen::MatrixXd > {
+	EigenMatrixAdaptor0(omxMatrix *mat) :
+	Eigen::Map< Eigen::MatrixXd >(mat? omxMatrixDataColumnMajor(mat) : 0,
+				      mat? mat->rows : 0,
+				      mat? mat->cols : 0) {}
+};
+
 struct EigenArrayAdaptor : Eigen::Map< Eigen::ArrayXXd > {
 	EigenArrayAdaptor(omxMatrix *mat) :
 	  Eigen::Map< Eigen::ArrayXXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
