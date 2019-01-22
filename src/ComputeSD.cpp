@@ -43,7 +43,7 @@ void omxSD(GradientOptimizerContext &rf)
     fit_functional ff(rf);
     Eigen::VectorXd majorEst = currEst;
 
-    while(++iter < maxIter && !isErrorRaised() && !Global->timedOut) {
+    while(++iter < maxIter && !isErrorRaised()) {
 	    rf.numericalGradientWithRef(majorEst);
 
 	    if (rf.verbose >= 3) mxPrintMat("grad", rf.grad);

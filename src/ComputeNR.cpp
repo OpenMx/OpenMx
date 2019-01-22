@@ -243,7 +243,7 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 	ComputeNRO(ComputeNR *_nr, FitContext *_fc) : nr(*_nr), fc(_fc) {};
 	virtual bool isConverged() {
 		nr.reportProgress(fc);
-		return converged || isErrorRaised() || Global->timedOut ||
+		return converged || isErrorRaised() ||
 			fc->getInform() != INFORM_UNINITIALIZED;
 	}
 	virtual double getFit() { return fc->fit; };

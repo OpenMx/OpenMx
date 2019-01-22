@@ -647,7 +647,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxExportResults(&result, fc);
 
-	if (topCompute && !isErrorRaised()) {
+	if (topCompute && !isErrorRaisedIgnTime()) {
 		LocalComputeResult cResult;
 		topCompute->collectResults(fc, &cResult, &result);
 
@@ -711,9 +711,9 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	MxRList backwardCompatStatus;
 	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->getInform()));
-	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaised()));
+	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaisedIgnTime()));
 
-	if (isErrorRaised()) {
+	if (isErrorRaisedIgnTime()) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
 		SET_STRING_ELT(msg, 0, Rf_mkChar(Global->getBads()));

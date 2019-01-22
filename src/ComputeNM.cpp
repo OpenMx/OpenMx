@@ -292,7 +292,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 			if(verbose){mxLog("l1p iteration %d",k);}
 			if(k>0){
 				if(nmoc.iniSimplexMat.rows() || nmoc.iniSimplexMat.cols()){nmoc.iniSimplexMat.resize(0,0);}
-				if(nmoc.statuscode==10 || Global->timedOut){break;}
+				if(nmoc.statuscode==10){break;}
 				if( !nmoc.estInfeas && nmoc.statuscode==0 ){
 					if(verbose){mxLog("l1p solution found");}
 					break;
@@ -1303,7 +1303,7 @@ bool NelderMeadOptimizerContext::checkConvergence(){
 			return(true);
 		}
 	}
-	if(itersElapsed >= maxIter || isErrorRaised() || Global->timedOut){
+	if(itersElapsed >= maxIter || isErrorRaised()){
 		statuscode = 4;
 		return(true);
 	}
