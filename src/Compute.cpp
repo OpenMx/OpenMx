@@ -1951,6 +1951,16 @@ class ComputeLoadData : public omxCompute {
 
 	void loadByRow(FitContext *fc, int index);
 
+	struct ColumnInvalidator : StateInvalidator {
+		typedef StateInvalidator super;
+		omxData *data;
+		std::vector< int > &columns;
+		ColumnInvalidator(omxState &_st, omxData *_data,
+				  std::vector< int > &_columns) :
+			super(_st), data(_data), columns(_columns) {};
+		virtual void doData() { data->invalidateColumnsCache(columns); };
+	};
+
  public:
 	virtual ~ComputeLoadData();
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
@@ -3889,7 +3899,8 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 		}
 	}
 
-	fc->state->invalidateCache();
+	ColumnInvalidator ci(*fc->state, data, columns);
+	ci();
 }
 
 ComputeLoadData::~ComputeLoadData()

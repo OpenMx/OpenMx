@@ -937,9 +937,11 @@ static int plookup(ColMapType &map, const char *str)
 	return it->second;
 }
 
-void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *> &dc,
-				  std::vector<int> &exoPred)
+void obsSummaryStats::setDimnames(omxData *data)
 {
+	colMap.clear();
+	for (int cx=0; cx < int(dc.size()); ++cx) colMap.emplace(dc[cx], cx);
+
 	if (int(dc.size()) != covMat->cols)
 		Rf_error("%s: internal error; dc.size() %d != covMat->cols %d",
 			 data->name, int(dc.size()), covMat->cols);
@@ -1003,7 +1005,7 @@ void obsSummaryStats::setDimnames(omxData *data, const std::vector<const char *>
 	}
 }
 
-void obsSummaryStats::permute(omxData *data, const std::vector<const char *> &dc)
+void obsSummaryStats::permute(omxData *data)
 {
 	covMat->unshareMemoryWithR();
 	if (meansMat) meansMat->unshareMemoryWithR();
@@ -1148,11 +1150,14 @@ void getContRow(std::vector<ColumnData> &df,
 	}
 }
 
-void omxData::wlsAllContinuousCumulants(omxState *state, const char *wlsType,
-					const std::vector<const char *> &dc,
-					const Eigen::Ref<const Eigen::ArrayXd> rowMult,
-					std::vector<int> &index)
+void omxData::wlsAllContinuousCumulants(omxState *state)
 {
+	auto &o1 = *oss;
+	const char *wlsType = o1.wlsType;
+	const std::vector<const char *> &dc = o1.dc;
+	const Eigen::ArrayXd &rowMult = o1.rowMult;
+	std::vector<int> &index = o1.index;
+
 	if (verbose >= 1) mxLog("%s: using wlsAllContinuousCumulants type=%s", name, wlsType);
 
 	DataColumnIndexVector dci(dc.size());
@@ -1168,7 +1173,6 @@ void omxData::wlsAllContinuousCumulants(omxState *state, const char *wlsType,
 
 	int numCols = dc.size();
 	int numColsStar = numCols*(numCols+1)/2;
-	auto &o1 = *oss;
 
 	double totalWeight = o1.totalWeight;
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
@@ -1967,6 +1971,9 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 		return true;
 	}
 
+	o1.dc = dc;
+	o1.wlsType = wlsType;
+
 	ColMapType dataMap;
 	for (int cx=0; cx < int(dc.size()); ++cx) {
 		//mxLog("%s", dc[cx]);
@@ -2084,7 +2091,7 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 			return true;
 		}
 		if (verbose >= 1) mxLog("%s: observedStats needs permutation", name);
-		o1.permute(this, dc);
+		o1.permute(this);
 	}
 	//omxPrint(o1.covMat, "cov");
 
@@ -2119,7 +2126,7 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 	}
 
 	_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
-	oss->setDimnames(this, dc, exoPred);
+	oss->setDimnames(this);
 }
 
 struct sampleStats {
@@ -2148,9 +2155,9 @@ struct sampleStats {
 	omxData &data;
 	const std::vector<const char *> &dc;
 	std::vector<int> &exoPred;
+	obsSummaryStats &o1;
 	Eigen::Ref<Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
-	obsSummaryStats &o1;
 	EigenVectorAdaptor Emean;
 	EigenMatrixAdaptor Ecov;
 	EigenMatrixAdaptor0 Ethr;
@@ -2173,12 +2180,11 @@ struct sampleStats {
 
 	sampleStats(omxData *_d, const std::vector<const char *> &_dc,
 		    std::vector<int> &_exoPred,
-		    Eigen::Ref<Eigen::ArrayXd> _rowMult, std::vector<int> &_index,
 		    obsSummaryStats &_o1) :
 		data(*_d), dc(_dc), exoPred(_exoPred),
-		rowMult(_rowMult), index(_index),
-		o1(_o1), Emean(o1.meansMat), Ecov(o1.covMat), Ethr(o1.thresholdMat),
-		fPred(_d, exoPred, _rowMult, _index),
+		o1(_o1), rowMult(o1.rowMult), index(o1.index),
+		Emean(o1.meansMat), Ecov(o1.covMat), Ethr(o1.thresholdMat),
+		fPred(_d, exoPred, rowMult, index),
 		rows(data.rows),
 		rawColMap(data.rawColMap),
 		rawCols(data.rawCols),
@@ -2420,11 +2426,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	if (oss) delete oss;
 	oss = new obsSummaryStats;
 	auto &o1 = *oss;
+	o1.dc = dc;
+	o1.exoPred = exoPred;
+	o1.wlsType = wlsType;
+	o1.continuousType = continuousType;
+	o1.wantFullWeight = fullWeight;
 	o1.output = true;
 	Eigen::ArrayXd rowMultFull;
-	std::vector<int> index;
+	std::vector<int> &index = o1.index;
 	recalcRowWeights(rowMultFull, index);
-	Eigen::ArrayXd rowMult(index.size());
+	Eigen::ArrayXd &rowMult = o1.rowMult;
+	rowMult.resize(index.size());
 	subsetVector(rowMultFull, index, rowMult);
 	o1.totalWeight = rowMult.sum();
 
@@ -2444,7 +2456,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			Rf_error("%s: allContinuousMethod cumulants does not work "
 				 "with exogenous predictors. Use 'marginals' instead", name);
 		}
-		wlsAllContinuousCumulants(state, wlsType, dc, rowMult, index);
+		wlsAllContinuousCumulants(state);
 		return;
 	}
 
@@ -2462,7 +2474,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.meansMat = omxInitMatrix(1, numCols, state);
 
 	std::vector<int> &contMap = o1.contMap;
-	int numContinuous = 0;
+	int &numContinuous = o1.numContinuous;
+	numContinuous = 0;
 	int &totalThr = o1.totalThr;
 	totalThr = 0;
 	int maxNumThr = 0;
@@ -2538,6 +2551,13 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	int pstar = triangleLoc1(numCols-1);
 	o1.SC_COR.resize(scoreRows, pstar);
 	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
+	int acov_size = A11_size + o1.SC_COR.cols();
+	if (!strEQ(wlsType, "ULS")) {
+		o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
+	}
+	if (fullWeight) {
+		o1.fullWeight = omxInitMatrix(acov_size, acov_size, state);
+	}
 
 	auto &A21 = o1.A21;
 	A21.resize(pstar, A11_size);
@@ -2549,8 +2569,23 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	H21.resize(pstar, A11_size);
 	H21.setZero();
 
+	estimateObservedStats();
+}
+
+void omxData::estimateObservedStats()
+{
+	auto &o1 = *oss;
+	std::vector<const char *> &dc = o1.dc;
+	int numCols = dc.size();
+	std::vector<int> &exoPred = o1.exoPred;
+	const char *wlsType = o1.wlsType;
+	std::vector<int> &thStart = o1.thStart;
+	auto &A21 = o1.A21;
+	auto &H22 = o1.H22;
+	auto &H21 = o1.H21;
+
 	{
-		sampleStats ss(this, dc, exoPred, rowMult, index, o1);
+		sampleStats ss(this, dc, exoPred, o1);
 		CovEntrywiseParallel(parallel? Global->numThreads : 1, ss);
 		if (isErrorRaised()) return;
 	}
@@ -2568,7 +2603,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 
 	// Small optimization opportunity:
 	// We could avoid above score computations if !fullWeight
-	if (!fullWeight) return;
+	if (!o1.wantFullWeight) return;
 
 	// mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
 	// mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good
@@ -2579,7 +2614,9 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	// mxPrintMat("H21", H21); // good
 
 	// based on lav_muthen1984, lavaan 0.6-2
+	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
 	int acov_size = A11_size + o1.SC_COR.cols();
+	int scoreRows = o1.SC_COR.rows();
 	Eigen::MatrixXd SC(scoreRows, acov_size);
 	SC.block(0,0,scoreRows,o1.SC_TH.cols()) = o1.SC_TH;
 	SC.block(0,o1.SC_TH.cols(),scoreRows,o1.SC_SL.cols()) = o1.SC_SL;
@@ -2591,6 +2628,9 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 
 	Eigen::MatrixXd A11(A11_size,A11_size);
 	A11.setZero();
+	int numContinuous = o1.numContinuous;
+	int totalThr = o1.totalThr;
+	std::vector<int> &contMap = o1.contMap;
 	for (int yy=0; yy < numCols; ++yy) {
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		std::vector<bool> mask(A11_size, false);
@@ -2607,6 +2647,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		MoorePenroseInverse(A11);
 	}
 
+	int pstar = H22.rows();
 	Eigen::MatrixXd A22(pstar, pstar);
 	A22.setZero();
 	for (int ii=0; ii < pstar; ++ii) {
@@ -2622,7 +2663,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
 	// mxPrintMat("Bi", Bi); // good
 
-	o1.fullWeight = omxInitMatrix(acov_size, acov_size, state);
 	EigenMatrixAdaptor Efw(o1.fullWeight);
 	Efw.derived() = Bi * INNER * Bi.transpose();
 
@@ -2647,7 +2687,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 		if (strEQ(wlsType, "ULS")) {
 			// OK
 		} else {
-			o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
 			EigenMatrixAdaptor acov(o1.acovMat);
 			acov.setZero();
 			for (int ix=0; ix < acov_size; ++ix) {
@@ -2669,4 +2708,30 @@ void omxData::invalidateCache()
 {
 	if (oss) delete oss;
 	oss = 0;
+}
+
+void omxData::invalidateColumnsCache(std::vector< int > &columns)
+{
+	if (!oss) return;
+
+	auto &o1 = *oss;
+	EigenMatrixAdaptor Ecov(o1.covMat);
+	bool fail = false;
+	for (auto col : columns) {
+		auto it = o1.colMap.find(rawCols[col].name);
+		if (it == o1.colMap.end()) {
+			if (1||verbose >= 1) mxLog("%s: column '%s' is not an observed indicator",
+						name, rawCols[col].name);
+			fail = true; break;
+		}
+		Ecov.row(it->second).setConstant(nan("uninit"));
+		Ecov.col(it->second).setConstant(nan("uninit"));
+	}
+	if (fail) {
+		delete oss;
+		oss = 0;
+		return;
+	}
+
+	estimateObservedStats();
 }

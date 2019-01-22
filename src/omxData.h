@@ -108,12 +108,27 @@ struct WLSVarData {
 	int thrOffset;
 };
 
+struct cstrCmp {
+	bool operator() (const char *s1, const char *s2) const
+	{ return strcmp(s1,s2) < 0; }
+};
+
+typedef std::map< const char *, int, cstrCmp > ColMapType;
+
 class obsSummaryStats {
  public:
-	//std::vector<bool> subset;
+	std::vector<const char *> dc;
+	std::vector<int> exoPred;
+	const char *wlsType;
+	const char *continuousType;
+	bool wantFullWeight;
+	std::vector<int> index;
+	Eigen::ArrayXd rowMult;
+
 	bool output;
 	double totalWeight;
 	int numOrdinal;  // == thresholdMat->cols or 0 if null
+	int numContinuous;
 	omxMatrix* covMat;
 	omxMatrix *slopeMat; // manifest by exo predictor matrix
 	omxMatrix* meansMat;
@@ -121,6 +136,7 @@ class obsSummaryStats {
 	omxMatrix *fullWeight;
 	omxMatrix* thresholdMat;
 	std::vector< omxThresholdColumn > thresholdCols; // size() == covMat.cols()
+	ColMapType colMap;
 
 	// prep
 	std::vector<int> contMap;
@@ -135,20 +151,15 @@ class obsSummaryStats {
 	Eigen::ArrayXXd H22;
 	Eigen::ArrayXXd H21;
 
-	obsSummaryStats() : output(false), totalWeight(0), numOrdinal(0), covMat(0), slopeMat(0), meansMat(0),
-		acovMat(0), fullWeight(0), thresholdMat(0) {};
+ 	obsSummaryStats() : wlsType(0), continuousType(0), wantFullWeight(true),
+		output(false), totalWeight(0), numOrdinal(0), numContinuous(0),
+		covMat(0), slopeMat(0), meansMat(0),
+		acovMat(0), fullWeight(0), thresholdMat(0), totalThr(0) {};
 	~obsSummaryStats();
-	void setDimnames(omxData *data, const std::vector<const char *> &dc, std::vector<int> &exoPred);
-	void permute(omxData *data, const std::vector<const char *> &dc);
+	void setDimnames(omxData *data);
+	void permute(omxData *data);
 	void log();
 };
-
-struct cstrCmp {
-	bool operator() (const char *s1, const char *s2) const
-	{ return strcmp(s1,s2) < 0; }
-};
-
-typedef std::map< const char *, int, cstrCmp > ColMapType;
 
 class omxData {
  private:
@@ -161,14 +172,12 @@ class omxData {
 	obsSummaryStats *oss;
 	bool parallel;
 
+	void estimateObservedStats();
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *type,
 			  const char *continuousType, bool fullWeight);
 	bool regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
-	void wlsAllContinuousCumulants(omxState *state, const char *wlsType,
-				       const std::vector<const char *> &dc,
-				       const Eigen::Ref<const Eigen::ArrayXd> rowMult,
-				       std::vector<int> &index);
+	void wlsAllContinuousCumulants(omxState *state);
 
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -253,6 +262,7 @@ class omxData {
 	template <typename T1>
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();
+	void invalidateColumnsCache(std::vector< int > &columns);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
