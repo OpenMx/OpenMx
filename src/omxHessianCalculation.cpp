@@ -383,7 +383,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	int numChildren = 0;
 	if (parallel && !fc->openmpUser) numChildren = fc->childList.size();
 
-	if (!fc->haveReferenceFit(fitMat) || Global->timedOut) return;
+	if (!fc->haveReferenceFit(fitMat)) return;
 
 	minimum = fc->fit;
 

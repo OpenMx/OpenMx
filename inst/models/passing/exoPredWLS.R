@@ -107,7 +107,7 @@ omxCheckCloseEnough(cor(seCmp)[2,1], 1, .18)
 for (slopes in c(TRUE,FALSE)) {
 	for (type in c('WLS','DWLS','ULS')) {
 		jm3 <- buildModel(type=type, slopes=slopes)
-		jm3$data$verbose <- 1L
+		#jm3$data$verbose <- 1L
 		jm3 <- mxRun(jm3)
 		jm4 <- mxModel(buildModel(paste0('z', 5:1), type=type, slopes=slopes), jm3$data)
 		jm4 <- mxRun(jm4)

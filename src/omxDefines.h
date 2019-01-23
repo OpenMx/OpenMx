@@ -242,6 +242,7 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) loc
 
 #ifndef _OPENMP
 static inline int omp_get_thread_num() { return 0; }
+static inline int omp_get_num_threads(void) { return 1; }
 #endif
 
 #include <Eigen/Core>
