@@ -159,6 +159,7 @@ class omxData {
 	int freqCol;
 	int *currentFreqColumn;
 	obsSummaryStats *oss;
+	bool parallel;
 
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *type,

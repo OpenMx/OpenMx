@@ -53,6 +53,7 @@ setClass(Class = "MxDataStatic",
 		observedStats = "list",
 		.isSorted = "logical",  # remove slot TODO
 		.needSort = "logical",
+		.parallel = "logical",
 	     primaryKey = "MxCharOrNumber",
 	     weight = "MxCharOrNumber",
 	     frequency = "MxCharOrNumber",
@@ -70,7 +71,7 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
-		   sort, primaryKey, weight, frequency, verbose) {
+		   sort, primaryKey, weight, frequency, verbose, .parallel) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -89,6 +90,7 @@ setMethod("initialize", "MxDataStatic",
 		}
 		.Object@.isSorted <- FALSE
 		.Object@.needSort <- sort
+		.Object@.parallel <- .parallel
 		.Object@primaryKey <- primaryKey
 		.Object@weight <- weight
 		.Object@frequency <- frequency
@@ -143,7 +145,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
-		   frequency = as.character(NA), verbose=0L) {
+		   frequency = as.character(NA), verbose=0L, .parallel=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -266,7 +268,8 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
-		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose)))
+		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
+		as.logical(.parallel)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

@@ -2,58 +2,56 @@
 // Copyright (c) 2013 Juan Palacios juan.palacios.puyana@gmail.com
 // Subject to the BSD 2-Clause License
 // - see < http://opensource.org/licenses/BSD-2-Clause>
-// Copied from https://github.com/juanchopanza/cppblog/tree/master/Concurrency/Queue
+// Based on https://github.com/juanchopanza/cppblog/tree/master/Concurrency/Queue
 //
 
-#ifndef CONCURRENT_QUEUE_
-#define CONCURRENT_QUEUE_
+#ifndef CONCURRENT_DEQUE_
+#define CONCURRENT_DEQUE_
 
-#include <queue>
+#include <deque>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 
 template <typename T>
-class Queue
+class ConcurrentDeque
 {
  public:
-
   T pop() 
   {
     std::unique_lock<std::mutex> mlock(mutex_);
-    while (queue_.empty())
+    while (deque_.empty())
     {
       cond_.wait(mlock);
     }
-    auto val = queue_.front();
-    queue_.pop();
+    auto val = deque_.front();
+    deque_.pop_front();
     return val;
   }
-
-  void pop(T& item)
+  void push_back(const T item)
   {
     std::unique_lock<std::mutex> mlock(mutex_);
-    while (queue_.empty())
-    {
-      cond_.wait(mlock);
-    }
-    item = queue_.front();
-    queue_.pop();
-  }
-
-  void push(const T& item)
-  {
-    std::unique_lock<std::mutex> mlock(mutex_);
-    queue_.push(item);
+    deque_.push_back(item);
     mlock.unlock();
     cond_.notify_one();
   }
-  Queue()=default;
-  Queue(const Queue&) = delete;            // disable copying
-  Queue& operator=(const Queue&) = delete; // disable assignment
+  void push_front(const T item)
+  {
+    std::unique_lock<std::mutex> mlock(mutex_);
+    deque_.push_front(item);
+    mlock.unlock();
+    cond_.notify_one();
+  }
+  void push_nolock(const T item)
+  {
+    deque_.push_back(item);
+  }
+  ConcurrentDeque()=default;
+  ConcurrentDeque(const ConcurrentDeque&) = delete;            // disable copying
+  ConcurrentDeque& operator=(const ConcurrentDeque&) = delete; // disable assignment
   
  private:
-  std::queue<T> queue_;
+  std::deque<T> deque_;
   std::mutex mutex_;
   std::condition_variable cond_;
 };

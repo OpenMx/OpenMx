@@ -36,10 +36,11 @@
 #include "omxNLopt.h"
 #include <Eigen/CholmodSupport>
 #include <RcppEigenWrap.h>
+#include "CovEntrywisePar.h"
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0), parallel(false),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -225,6 +226,11 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		ProtectedSEXP Rfrequency(R_do_slot(dataObj, Rf_install("frequency")));
 		freqCol = carefulMinusOne(Rf_asInteger(Rfrequency));
 	}
+	if (R_has_slot(dataObj, Rf_install(".parallel"))) {
+		ProtectedSEXP Rpar(R_do_slot(dataObj, Rf_install(".parallel")));
+		parallel = Rf_asLogical(Rpar);
+	}
+
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 	if(OMX_DEBUG) {mxLog("Processing Data Elements.");}
 	if (Rf_isFrame(dataLoc)) {
@@ -2141,6 +2147,7 @@ struct sampleStats {
 
 	omxData &data;
 	const std::vector<const char *> &dc;
+	std::vector<int> &exoPred;
 	Eigen::Ref<Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
 	obsSummaryStats &o1;
@@ -2148,8 +2155,6 @@ struct sampleStats {
 	EigenMatrixAdaptor Ecov;
 	EigenMatrixAdaptor0 Ethr;
 	FilterPred fPred;
-	OLSRegression olsr;
-	ProbitRegression pr;
 	double eps;
 	int numCols;
 	int pstar;
@@ -2167,15 +2172,13 @@ struct sampleStats {
 	const Eigen::Ref<const Eigen::MatrixXd> pred;
 
 	sampleStats(omxData *_d, const std::vector<const char *> &_dc,
-		    std::vector<int> &exoPred,
+		    std::vector<int> &_exoPred,
 		    Eigen::Ref<Eigen::ArrayXd> _rowMult, std::vector<int> &_index,
 		    obsSummaryStats &_o1) :
-		data(*_d), dc(_dc),
+		data(*_d), dc(_dc), exoPred(_exoPred),
 		rowMult(_rowMult), index(_index),
 		o1(_o1), Emean(o1.meansMat), Ecov(o1.covMat), Ethr(o1.thresholdMat),
 		fPred(_d, exoPred, _rowMult, _index),
-		olsr(_d, o1.totalWeight, rowMult, index),
-		pr(_d, exoPred, fPred.pred, o1.totalWeight, rowMult, index),
 		rows(data.rows),
 		rawColMap(data.rawColMap),
 		rawCols(data.rawCols),
@@ -2192,7 +2195,6 @@ struct sampleStats {
 		numCols = dc.size();
 		pstar = triangleLoc1(numCols-1);
 		verbose = data.verbose;
-		olsr.setPred(pred);
 	}
 
 	template <typename T1, typename T2>
@@ -2231,11 +2233,21 @@ struct sampleStats {
 		}
 	}
 
+	int getNumCols() { return numCols; };
+	bool isDone(int rx, int cx) { return std::isfinite(Ecov(rx,cx)); };
+	void reportProgress(int numDone) {
+		std::string detail = std::to_string(numDone) + "/" + std::to_string(triangleLoc1(numCols));
+		Global->reportProgress1(data.name, detail);
+	}
+
 	void var(int yy)
 	{
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		WLSVarData &pv = o1.perVar[yy];
+		if (verbose >= 3) mxLog("consider %s", cd.name);
 		if (cd.type == COLUMNDATA_NUMERIC) {
+			OLSRegression olsr(&data, o1.totalWeight, rowMult, index);
+			olsr.setPred(pred);
 			olsr.setResponse(cd, pv);
 			olsr.calcScores();
 			pv.resid = olsr.resid;
@@ -2253,6 +2265,7 @@ struct sampleStats {
 			}
 			copyScores(o1.SC_VAR, pv.contOffset, olsr.scores.array(), 1+pred.cols());
 		} else {
+			ProbitRegression pr(&data, exoPred, fPred.pred, o1.totalWeight, rowMult, index);
 			pr.setResponse(cd, pv);
 			if (pred.cols()) {
 				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
@@ -2274,8 +2287,10 @@ struct sampleStats {
 			}
 		}
 	}
+
 	void cov(int jj, int ii)
 	{
+		// assume jj < ii, upper triangle
 		int pstar_idx = ii-(jj+1) + pstar - triangleLoc1(numCols - jj - 1);
 		ColumnData &cd1 = rawCols[ rawColMap[dc[jj]] ];
 		ColumnData &cd2 = rawCols[ rawColMap[dc[ii]] ];
@@ -2401,12 +2416,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 
 	int numCols = dc.size();
 	int numColsStar = triangleLoc1(numCols);
-	if (numObs-1 < numColsStar) {
-		Rf_error("%s: too few observations (%d) for the number of columns (%d).\n"
-			 "For WLS, you need at least n*(n+1)/2 + 1 = %d observations.\n"
-			 "Better start rubbing two pennies together.",
-			 name, numObs, numCols, numColsStar+1);
-	}
 
 	if (oss) delete oss;
 	oss = new obsSummaryStats;
@@ -2419,6 +2428,17 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	subsetVector(rowMultFull, index, rowMult);
 	o1.totalWeight = rowMult.sum();
 
+	int maxSizeCov = floor(sqrt(2. * std::numeric_limits<int>::max() / double(index.size())));
+	if (numCols > maxSizeCov) {
+		Rf_error("%s: for %d rows, WLS cannot handle more than %d columns",
+			 name, int(index.size()), maxSizeCov);
+	}
+	if (rowMult.size() < numColsStar) {
+		Rf_error("%s: too few observations (%d) for the number of columns (%d).\n"
+			 "For WLS, you need at least n*(n+1)/2 + 1 = %d observations.\n"
+			 "Better start rubbing two pennies together.",
+			 name, rowMult.size(), numCols, numColsStar+1);
+	}
 	if (numFactor == 0 && strEQ(continuousType, "cumulants")) {
 		if (exoPred.size() != 0) {
 			Rf_error("%s: allContinuousMethod cumulants does not work "
@@ -2435,6 +2455,10 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
+	{
+		EigenMatrixAdaptor Ecov(o1.covMat);
+		Ecov.setConstant(nan("unset"));
+	}
 	o1.meansMat = omxInitMatrix(1, numCols, state);
 
 	std::vector<int> &contMap = o1.contMap;
@@ -2527,15 +2551,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 
 	{
 		sampleStats ss(this, dc, exoPred, rowMult, index, o1);
-
-		for (int yy=0; yy < numCols; ++yy) {
-			ss.var(yy);
-		}
-		for (int jj=0; jj < numCols-1; ++jj) {
-			for (int ii=jj+1; ii < numCols; ++ii) {
-				ss.cov(jj, ii);
-			}
-		}
+		CovEntrywiseParallel(parallel? Global->numThreads : 1, ss);
+		if (isErrorRaised()) return;
 	}
 
 	if (1) {

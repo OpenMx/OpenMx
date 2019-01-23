@@ -831,6 +831,7 @@ wls.permute <- function(mxd) {
 ##' @param exogenous names variables to be modelled as exogenous
 ##' @param fullWeight whether to produce a fullWeight matrix
 ##' @param returnModel whether to return the whole mxModel (TRUE) or just the mxData (FALSE)
+##' @param silent logical. Whether to print status to terminal.
 ##' @seealso
 ##' \link{mxFitFunctionWLS}
 ##' @examples
@@ -838,7 +839,8 @@ wls.permute <- function(mxd) {
 
 omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 			      allContinuousMethod=c("cumulants", "marginals"),
-			      ..., exogenous=c(), fullWeight=TRUE, returnModel=FALSE)
+			      ..., exogenous=c(), fullWeight=TRUE, returnModel=FALSE,
+			      silent=TRUE)
 {
 	type <- match.arg(type)
 	allContinuousMethod <- match.arg(allContinuousMethod)
@@ -903,7 +905,7 @@ omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 		fake <- mxModel(fake, mxMatrix(values=tmpThr, name="thresh"))
 		fake$expectation$thresholds <- "thresh"
 	}
-	fake <- mxRun(fake, silent=TRUE)
+	fake <- mxRun(fake, silent=silent)
 	if (returnModel) return(fake)
 	fake$data
 }
