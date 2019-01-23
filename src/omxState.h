@@ -208,10 +208,9 @@ class omxGlobal {
 	bool unpackedConfidenceIntervals;
 	std::vector< FreeVarGroup* > freeGroup;
 	time_t lastProgressReport;
-	int previousReportLength;
+	std::string previousReport;
 	int previousComputeCount;
-	double previousReportFit;
-	void reportProgressStr(const char *msg);
+	void reportProgressStr(std::string &str);
 
  public:
 	ProtectAutoBalanceDoodad *mpi;
@@ -292,6 +291,9 @@ class omxGlobal {
 
 	~omxGlobal();
 	void reportProgress(const char *context, FitContext *fc);
+	void checkInterruptLongjmp() { R_CheckUserInterrupt(); };
+	static bool interrupted();
+	void reportProgress1(const char *context, std::string detail);
 };
 
 // Use a pointer to ensure correct initialization and destruction

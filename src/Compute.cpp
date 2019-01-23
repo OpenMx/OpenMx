@@ -683,6 +683,7 @@ void FitContext::init()
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
+	previousReportFit = nan("uninit");
 	fitUnits = parent? parent->fitUnits : FIT_UNITS_UNINITIALIZED;
 	skippedRows = 0;
 	est = new double[numParam];
@@ -897,6 +898,20 @@ void FitContext::log(int what)
 		buf += ")\n";
 	}
 	mxLogBig(buf);
+}
+
+std::string FitContext::asProgressReport()
+{
+	std::string str;
+	if (!std::isfinite(previousReportFit) || !std::isfinite(fit) ||
+	    previousReportFit == fit) {
+		str = string_snprintf("%d %.6g", getGlobalComputeCount(), fit);
+	} else {
+		str = string_snprintf("%d %.6g %.4g",
+				      getGlobalComputeCount(), fit, fit - previousReportFit);
+	}
+	previousReportFit = fit;
+	return str;
 }
 
 void FitContext::resetIterationError()
