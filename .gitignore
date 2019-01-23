@@ -126,13 +126,13 @@ man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
-man/mxComputeBenchmark.Rd
 man/mxComputeDefault.Rd
 man/mxComputeEM.Rd
 man/mxComputeGenerateData.Rd
 man/mxComputeGradientDescent.Rd
 man/mxComputeHessianQuality.Rd
 man/mxComputeIterate.Rd
+man/mxComputeLoadData.Rd
 man/mxComputeLoop.Rd
 man/mxComputeNewtonRaphson.Rd
 man/mxComputeNothing.Rd
@@ -141,11 +141,13 @@ man/mxComputeOnce.Rd
 man/mxComputeReportDeriv.Rd
 man/mxComputeReportExpectation.Rd
 man/mxComputeSequence.Rd
+man/mxComputeSetOriginalStarts.Rd
 man/mxComputeStandardError.Rd
 man/mxComputeTryHard.Rd
 man/mxDataDynamic.Rd
 man/MxDataFrameOrMatrix-class.Rd
 man/MxDataStatic-class.Rd
+man/mxDescribeDataWLS.Rd
 man/MxDirectedGraph-class.Rd
 man/mxExpectationBA81.Rd
 man/MxExpectationXclass.Rd
@@ -170,6 +172,7 @@ man/mxSE.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/MxVersionType-class.Rd
+man/omxAugmentDataWithWLSSummary.Rd
 man/omxCheckCloseEnough.Rd
 man/omxCheckError.Rd
 man/omxCheckNamespace.Rd
