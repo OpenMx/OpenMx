@@ -823,7 +823,7 @@ void omxFIMLFitFunction::invalidateCache()
 	indexVector.clear();
 	openmpUser = false;
 
-	rowCount = std::numeric_limits<typeof(rowCount)>::max();
+	rowCount = std::numeric_limits<decltype(rowCount)>::max();
 	omxResizeMatrix(rowLikelihoods, data->rows, 1);
 }
 
@@ -1059,7 +1059,7 @@ void omxFIMLFitFunction::init()
 	}
 	newObj->data = off->expectation->data;
 	newObj->rowBegin = 0;
-	newObj->rowCount = std::numeric_limits<typeof(rowCount)>::max();
+	newObj->rowCount = std::numeric_limits<decltype(rowCount)>::max();
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
