@@ -106,8 +106,8 @@ class ba81NormalQuad {
 			numSpecific(-1), primaryDims(-1), totalPrimaryPoints(-1) {};
 		int numAbil() const { return (int) abilitiesMap.size(); }
 		inline int sIndex(int sx, int qx) {
-			//if (sx < 0 || sx >= state->numSpecific) Rf_error("Out of domain");
-			//if (qx < 0 || qx >= state->gridSize) Rf_error("Out of domain");
+			//if (sx < 0 || sx >= state->numSpecific) mxThrow("Out of domain");
+			//if (qx < 0 || qx >= state->gridSize) mxThrow("Out of domain");
 			return qx * numSpecific + sx;
 		};
 		template <typename T1>
@@ -293,15 +293,15 @@ void ba81NormalQuad::layer::calcDerivCoef1(Eigen::MatrixBase<T1> &meanVec, Eigen
 template <typename T1>
 int ba81quad_InvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat, const char uplo)
 {
-	if (mat.rows() != mat.cols()) Rf_error("Not square");
+	if (mat.rows() != mat.cols()) mxThrow("Not square");
 	int size = mat.rows();
 	int info;
 	F77_CALL(dpotrf)(&uplo, &size, mat.derived().data(), &size, &info);
-	if (info < 0) Rf_error("Arg %d is invalid", -info);
+	if (info < 0) mxThrow("Arg %d is invalid", -info);
 	if (info > 0) return info;
     
 	F77_CALL(dpotri)(&uplo, &size, mat.derived().data(), &size, &info);
-	if (info < 0) Rf_error("Arg %d is invalid", -info);
+	if (info < 0) mxThrow("Arg %d is invalid", -info);
 	return info;
 }
 
@@ -467,7 +467,7 @@ template <typename T1>
 void ba81NormalQuad::decodeLocation(int qx, int base, Eigen::MatrixBase<T1> &out, int dims)
 {
 	is_same<typename T1::Scalar, int> isInt;
-	if (!isInt.value) Rf_error("should be int");
+	if (!isInt.value) mxThrow("should be int");
 
 	for (int dx=dims-1; dx >= 0; --dx) {
 		out[dx] = qx % base;

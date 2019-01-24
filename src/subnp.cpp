@@ -764,7 +764,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         }
         
         if (false && solvecond(a_e) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
-            Rf_error("Redundant constraints were found. Poor intermediate results may result. "
+            mxThrow("Redundant constraints were found. Poor intermediate results may result. "
                      "Remove redundant constraints and re-OPTIMIZE.");
         }
         
@@ -1397,7 +1397,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     hessv_e = hessv_e * vscale_e(0);
     
     if (verbose >= 1 && reduce > tol) {
-        mxLog("m3 solnp Rf_error message being reported.");
+        mxLog("m3 solnp mxThrow message being reported.");
     }
 
     resP = p_e;

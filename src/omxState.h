@@ -242,8 +242,11 @@ class omxGlobal {
 	int calcNumIntegrationPoints(int numVars) {
 		int pts = (maxptsa + maxptsb * numVars + maxptsc * numVars * numVars +
 			   exp(maxptsd + maxptse * numVars * log(relEps)));
-		if (pts < 0) Rf_error("%f + %f * %d + %f * %d * %d + exp(%f + %f * %d * log(%f)) is too large (or non-positive)",
-				      maxptsa, maxptsb, numVars, maxptsc, numVars, numVars, relEps);
+		if (pts < 0) mxThrow("calcNumIntegrationPoints "
+				     "%f + %f * %d + %f * %d * %d + "
+				     "exp(%f + %f * %d * log(%f)) is too large (or non-positive)",
+				      maxptsa, maxptsb, numVars, maxptsc, numVars, numVars,
+				     maxptsd, maxptse, numVars, log(relEps));
 		return pts;
 	};
 	double relEps;
@@ -376,8 +379,8 @@ class omxState {
 inline bool isErrorRaised() { return Global->bads.size() != 0; }
 inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0; }
 
-void omxRaiseError(const char* Rf_errorMsg); // DEPRECATED
-void omxRaiseErrorf(const char* Rf_errorMsg, ...) __attribute__((format (printf, 1, 2)));
+void omxRaiseError(const char* mxThrowMsg); // DEPRECATED
+void omxRaiseErrorf(const char* mxThrowMsg, ...) __attribute__((format (printf, 1, 2)));
 
 void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);
 

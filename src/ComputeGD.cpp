@@ -95,7 +95,7 @@ void GradientOptimizerContext::setupAllBounds()
 			}
 			break;
 		default:
-			Rf_error("Unknown constraint type %d", type);
+			mxThrow("Unknown constraint type %d", type);
 		}
 	}
 }
@@ -387,12 +387,12 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 #if HAS_NPSOL
 		engine = OptEngine_NPSOL;
 #else
-		Rf_error("NPSOL is not available in this build. See ?omxGetNPSOL() to download this optimizer");
+		mxThrow("NPSOL is not available in this build. See ?omxGetNPSOL() to download this optimizer");
 #endif
 	} else if(strEQ(engineName, "SD")){
 		engine = OptEngine_SD;
 	} else {
-		Rf_error("%s: engine %s unknown", name, engineName);
+		mxThrow("%s: engine %s unknown", name, engineName);
 	}
 
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
@@ -413,7 +413,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		int *dimList = INTEGER(matrixDims);
 		int rows = dimList[0];
 		int cols = dimList[1];
-		if (rows != cols) Rf_error("%s: warmStart matrix must be square", name);
+		if (rows != cols) mxThrow("%s: warmStart matrix must be square", name);
 
 		warmStartSize = rows;
 		warmStart = REAL(slotValue);
@@ -442,7 +442,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		} else if (strEQ(gradientAlgoName, "central")) {
 			gradientAlgo = GradientAlgorithm_Central;
 		} else {
-		Rf_error("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
+		mxThrow("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
 		}
 	}
 
@@ -580,11 +580,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			omxSD(rf);   // unconstrained problems
 			rf.finish();
 		} else {
-			Rf_error("Constrained problems are not implemented");
+			mxThrow("Constrained problems are not implemented");
 		}
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		break;}
-        default: Rf_error("Optimizer %d is not available", engine);
+        default: mxThrow("Optimizer %d is not available", engine);
 	}
 
 	if (!fc->insideFeasibleSet()) {
@@ -755,7 +755,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 		} else if (strEQ(ctypeName, "none")) {
 			// OK
 		} else {
-			Rf_error("%s: unknown constraintType='%s'", name, ctypeName);
+			mxThrow("%s: unknown constraintType='%s'", name, ctypeName);
 		}
 	}
 
@@ -780,10 +780,10 @@ class notImplementedConstraint : public omxConstraint {
 public:
 	notImplementedConstraint() : super("not implemented") {};
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
-		Rf_error("Not implemented");
+		mxThrow("Not implemented");
 	};
 	virtual omxConstraint *duplicate(omxState *dest) {
-		Rf_error("Not implemented");
+		mxThrow("Not implemented");
 	}
 };
 
@@ -910,7 +910,7 @@ struct regularCIobj : CIobjective {
 
 		if (!(want & FF_COMPUTE_FIT)) {
 			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
-			Rf_error("Not implemented yet");
+			mxThrow("Not implemented yet");
 		}
 
 		// We need to compute the fit here because that's the only way to
@@ -988,7 +988,7 @@ struct bound1CIobj : CIobjective {
 
 		if (!(want & FF_COMPUTE_FIT)) {
 			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
-			Rf_error("Not implemented yet");
+			mxThrow("Not implemented yet");
 		}
 
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
@@ -1071,7 +1071,7 @@ struct boundAwayCIobj : CIobjective {
 
 		if (!(want & FF_COMPUTE_FIT)) {
 			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
-			Rf_error("Not implemented yet");
+			mxThrow("Not implemented yet");
 		}
 
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
@@ -1166,7 +1166,7 @@ struct boundNearCIobj : CIobjective {
 
 		if (!(want & FF_COMPUTE_FIT)) {
 			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
-			Rf_error("Not implemented yet");
+			mxThrow("Not implemented yet");
 		}
 
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
@@ -1486,7 +1486,7 @@ void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 void ComputeCI::computeImpl(FitContext *mle)
 {
-	if (intervals) Rf_error("Can only compute CIs once");
+	if (intervals) mxThrow("Can only compute CIs once");
 	if (!Global->intervals) {
 		if (verbose >= 1) mxLog(name, "%s: mxRun(..., intervals=FALSE), skipping");
 		return;
@@ -1527,7 +1527,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 			omxMatrix *ciMat = oCI->getMatrix(state);
 			omxRecompute(ciMat, mle);
 			if (!ciMat->isValidElem(oCI->row, oCI->col)) {
-				Rf_error("%s: attempt to find confidence interval of "
+				mxThrow("%s: attempt to find confidence interval of "
 					 "nonexistent element (%d,%d) in %dx%d matrix '%s'",
 					 name, 1+oCI->row, 1+oCI->col, ciMat->rows, ciMat->cols, ciMat->name());
 			}
@@ -1948,7 +1948,7 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 		methodName = R_CHAR(STRING_ELT(Rmethod, 0));
 		if (strEQ(methodName, "tsallis1996")) method = ALGO_TSALLIS1996;
 		else if (strEQ(methodName, "ingber2012")) method = ALGO_INGBER2012;
-		else Rf_error("%s: unknown method '%s'", name, methodName);
+		else mxThrow("%s: unknown method '%s'", name, methodName);
 
 		ProtectedSEXP Rcontrol(R_do_slot(rObj, Rf_install("control")));
 		ProtectedSEXP RcontrolName(Rf_getAttrib(Rcontrol, R_NamesSymbol));
@@ -2017,7 +2017,7 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 					Rf_warning("%s: unknown key '%s' for method '%s'",
 						   name, key, methodName);
 				}
-			} else Rf_error("%s: method %d unimplemented", name, method);
+			} else mxThrow("%s: method %d unimplemented", name, method);
 		}
 	}
 
@@ -2143,8 +2143,8 @@ void ComputeGenSA::ingber2012(FitContext *fc)
 		quenchParamScale.setConstant(1.);
 	}
 	if (quenchParamScale.size() != numFree) {
-		Rf_error("%s: quenchParamScale must have %d entries instead of %d",
-			 numFree, quenchParamScale.size());
+		mxThrow("%s: quenchParamScale must have %d entries instead of %d",
+			name, numFree, quenchParamScale.size());
 	}
 	OPTIONS->User_Quench_Param_Scale = quenchParamScale.data();
 
@@ -2153,8 +2153,8 @@ void ComputeGenSA::ingber2012(FitContext *fc)
 		quenchCostScale.setConstant(1.);
 	}
 	if (quenchCostScale.size() != numFree) {
-		Rf_error("%s: quenchCostScale must have %d entries instead of %d",
-			 numFree, quenchCostScale.size());
+		mxThrow("%s: quenchCostScale must have %d entries instead of %d",
+			name, numFree, int(quenchCostScale.size()));
 	}
 	OPTIONS->User_Quench_Cost_Scale = quenchCostScale.data();
 
@@ -2197,10 +2197,10 @@ void ComputeGenSA::ingber2012(FitContext *fc)
 	case INVALID_USER_INPUT:
 	case INVALID_COST_FUNCTION:
 	case INVALID_COST_FUNCTION_DERIV:
-		Rf_error("%s: ASA error %d", name, exit_status);
+		mxThrow("%s: ASA error %d", name, exit_status);
 		break;
 	case CALLOC_FAILED:
-		Rf_error("%s: out of memory", name);
+		mxThrow("%s: out of memory", name);
 		break;
 	default:
 		Rf_warning("%s: unknown exit_status %d", name, exit_status);
@@ -2352,7 +2352,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 	switch (method) {
 	case ALGO_TSALLIS1996: tsallis1996(fc); break;
 	case ALGO_INGBER2012: ingber2012(fc); break;
-	default: Rf_error("%s: unknown method %d", name, method);
+	default: mxThrow("%s: unknown method %d", name, method);
 	}
 
 	fc->copyParamToModel();

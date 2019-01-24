@@ -393,9 +393,9 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	int constrainedCode = SLSQP::constrainedSLSQPOptimalityCheck(goc, feasibilityTolerance);
 	
 	if (code == NLOPT_INVALID_ARGS) {
-		Rf_error("NLOPT invoked with invalid arguments");
+		mxThrow("NLOPT invoked with invalid arguments");
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
-		Rf_error("NLOPT ran out of memory");
+		mxThrow("NLOPT ran out of memory");
 	} else if (code == NLOPT_FORCED_STOP) {
 		if (!goc.feasible) {
 			goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
@@ -406,7 +406,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 		if (goc.eqNorm > feasibilityTolerance || goc.ineqNorm > feasibilityTolerance) {
 			goc.informOut = INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE;
 		} else if (goc.iterations <= 2) {
-			Rf_error("%s: Failed due to singular matrix E or C in LSQ subproblem or "
+			mxThrow("%s: Failed due to singular matrix E or C in LSQ subproblem or "
               "rank-deficient equality constraint subproblem or "
               "positive directional derivative in line search "
               "(eq %.4g ineq %.4g)", goc.optName, goc.eqNorm, goc.ineqNorm);

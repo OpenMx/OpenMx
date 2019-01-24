@@ -45,7 +45,7 @@ void omxGREMLExpectation::init()
 	if(OMX_DEBUG) { mxLog("Processing V."); }
 	oge->cov = omxNewMatrixFromSlot(rObj, currentState, "V");
   if( oge->cov->rows != oge->cov->cols ){
-    Rf_error("'V' matrix is not square");
+    mxThrow("'V' matrix is not square");
   }
   //X:
 	if(OMX_DEBUG) { mxLog("Processing X."); }
@@ -54,7 +54,7 @@ void omxGREMLExpectation::init()
   }
   //Eigy (local) will have however many rows and 1 column:
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
-  if(oge->X->rows != Eigy.rows()){Rf_error("'X' and 'y' matrices have different numbers of rows");}
+  if(oge->X->rows != Eigy.rows()){mxThrow("'X' and 'y' matrices have different numbers of rows");}
   //means:
   oge->means = omxInitMatrix(Eigy.rows(), 1, 1, currentState);
   //logdetV_om:
@@ -90,7 +90,7 @@ void omxGREMLExpectation::init()
   }}
   }
   if(Eigy.rows() != oge->cov->rows - oge->numcases2drop){
-    Rf_error("y and V matrices do not have equal numbers of rows");
+    mxThrow("y and V matrices do not have equal numbers of rows");
   }
   
   
@@ -125,7 +125,7 @@ void omxGREMLExpectation::init()
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), EigV.rows(), EigV.cols());
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
-    Rf_error("Expected covariance matrix is non-positive-definite at initial values");
+    mxThrow("Expected covariance matrix is non-positive-definite at initial values");
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
   for(i=0; i < oge->X->rows; i++){
@@ -137,7 +137,7 @@ void omxGREMLExpectation::init()
   quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
   cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
   if(cholquadX.info() != Eigen::Success){
-    Rf_error("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
+    mxThrow("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
@@ -147,7 +147,7 @@ void omxGREMLExpectation::init()
   data2 = data;  // for safekeeping
   data = oge->y;
   if (data2->hasDefinitionVariables()) {
-	  Rf_error("definition variables are incompatible (and unnecessary) with GREML expectation");
+	  mxThrow("definition variables are incompatible (and unnecessary) with GREML expectation");
   }
 }
 
@@ -304,7 +304,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim)
 {
   int index = 0;
   if(row >= origDim || col >= origDim){
-		Rf_error("Requested improper value (%d, %d) from (%d x %d) matrix %s", 
+		mxThrow("Requested improper value (%d, %d) from (%d x %d) matrix %s", 
            row + 1, col + 1, origDim, origDim, om->name());
 		return (NA_REAL);
 	}
@@ -322,11 +322,11 @@ void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > todrop, 
 	
 	omxEnsureColumnMajor(om);
 	
-	if(origDim==0){Rf_error("Memory not allocated for algebra %s at downsize time",
+	if(origDim==0){mxThrow("Memory not allocated for algebra %s at downsize time",
     om->name());}
 	if(om->rows != origDim || om->cols != origDim){
 		//Not sure if there are cases where this should be allowed
-		Rf_error("More than one attempt made to downsize algebra %s", om->name());
+		mxThrow("More than one attempt made to downsize algebra %s", om->name());
 		//return;
 	}
 	

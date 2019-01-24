@@ -121,11 +121,11 @@ bool condOrdByRow::eval()
 						int col = ordColBuf[jj];
 						int var = dataColumns[col];
 						if (OMX_DEBUG && !omxDataColumnIsFactor(data, var)) {
-							Rf_error("Must be a factor");
+							mxThrow("Must be a factor");
 						}
 						int pick = omxIntDataElement(data, sortedRow, var) - 1;
 						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
-							Rf_error("Out of range");
+							mxThrow("Out of range");
 						}
 						int tcol = colInfo[col].column;
 						if (pick == 0) {
@@ -201,7 +201,7 @@ bool condOrdByRow::eval()
 			    ssx < (int)parent->sufficientSets.size()) {
 				INCR_COUNTER(contDensity);
 				sufficientSet &ss = parent->sufficientSets[ssx++];
-				if (ss.start != row) Rf_error("oops");
+				if (ss.start != row) mxThrow("oops");
 				if (ordLik == 0.0) {
 					record(-std::numeric_limits<double>::infinity(), ss.length);
 					continue;
@@ -614,7 +614,7 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 			int col = dc[cx];
 			bool lm = omxDataElementMissing(data, sortedRow, col);
 			if (lm) continue;
-			if (dx >= perRow) Rf_error("oops");
+			if (dx >= perRow) mxThrow("oops");
 			dvec[row * perRow + dx] = omxDoubleDataElement(data, sortedRow, col);
 			dx += 1;
 		}
@@ -761,7 +761,7 @@ static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 		condContByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
 	}
-	default: Rf_error("oops");
+	default: mxThrow("oops");
 	}
 }
 
@@ -898,7 +898,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	if (myParent->curParallelism > 1) {
 		if (OMX_DEBUG) {
 			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, 0);
-			if (!ofo->parent) Rf_error("oops");
+			if (!ofo->parent) mxThrow("oops");
 		}
 
 		for (int tx=0; tx < myParent->curParallelism; ++tx) {
@@ -1078,7 +1078,7 @@ void omxFIMLFitFunction::init()
 		newObj->jointStrat = JOINT_CONDORD;
 	} else if (strEQ(jointStratName, "continuous")) {
 		newObj->jointStrat = JOINT_CONDCONT;
-	} else { Rf_error("jointConditionOn '%s'?", jointStratName); }
+	} else { mxThrow("jointConditionOn '%s'?", jointStratName); }
 
 	returnVector = Rf_asInteger(R_do_slot(rObj, Rf_install("vector")));
 

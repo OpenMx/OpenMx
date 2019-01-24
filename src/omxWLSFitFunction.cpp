@@ -195,8 +195,8 @@ void omxWLSFitFunction::prepData()
 	auto *newObj = this;
 
 	if (vectorSize != expectation->numSummaryStats())
-		Rf_error("%s: vectorSize changed from %d -> %d",
-			 vectorSize, expectation->numSummaryStats());
+		mxThrow("%s: vectorSize changed from %d -> %d",
+			name(), vectorSize, expectation->numSummaryStats());
 
 	omxData* dataMat = oo->expectation->data;
 
@@ -206,7 +206,7 @@ void omxWLSFitFunction::prepData()
 		if (dataMat->defVars.size() == exoPred.size()) {
 			// OK
 		} else if (dataMat->hasDefinitionVariables()) {
-			Rf_error("%s: def vars not implemented", oo->name());
+			mxThrow("%s: def vars not implemented", oo->name());
 		}
 	
 		dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(),
@@ -304,7 +304,7 @@ void omxWLSFitFunction::init()
 	
 	omxState *currentState = oo->matrix->currentState;
 	
-	if (!oo->expectation) { Rf_error("%s requires an expectation", name()); }
+	if (!oo->expectation) { mxThrow("%s requires an expectation", name()); }
 	
 	if (R_has_slot(rObj, Rf_install("type"))) {
 		ProtectedSEXP RwlsType(R_do_slot(rObj, Rf_install("type")));
@@ -320,7 +320,7 @@ void omxWLSFitFunction::init()
 	}
 
 	if (!fullWeight && !strEQ(type, "ULS")) {
-		Rf_error("%s: !fullWeight && !strEQ(type, ULS)", name());
+		mxThrow("%s: !fullWeight && !strEQ(type, ULS)", name());
 	}
 
 	expectedCov = omxGetExpectationComponent(oo->expectation, "cov");

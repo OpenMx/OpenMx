@@ -267,8 +267,8 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	super::initFromFrontend(state, rObj);
 
 	if (state->conListX.size()) {
-		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
-		      state->conListX.size());
+		mxThrow("%s: cannot proceed with constraints (%d constraints found)",
+			name, int(state->conListX.size()));
 	}
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
@@ -277,7 +277,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("iterations")));
 	numIter = INTEGER(slotValue)[0];
-	if (numIter < 2) Rf_error("stepSize must be 2 or greater");
+	if (numIter < 2) mxThrow("stepSize must be 2 or greater");
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("parallel")));
 	parallel = Rf_asLogical(slotValue);
@@ -295,7 +295,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("stepSize")));
 	stepSize = GRADIENT_FUDGE_FACTOR(3.0) * REAL(slotValue)[0];
-	if (stepSize <= 0) Rf_error("stepSize must be positive");
+	if (stepSize <= 0) mxThrow("stepSize must be positive");
 
 	knownHessian = NULL;
 	{
@@ -347,7 +347,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if (wantHessian) newWanted |= FF_COMPUTE_HESSIAN;
 
 	if (numParams != 0 && numParams != int(fc->numParam)) {
-		Rf_error("%s: number of parameters changed from %d to %d",
+		mxThrow("%s: number of parameters changed from %d to %d",
 			 name, numParams, int(fc->numParam));
 	}
 

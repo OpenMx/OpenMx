@@ -48,7 +48,7 @@ namespace MarkovFF {
 		int nrow = components[0]->rows;
 		for (auto c1 : components) {
 			if (c1->rows != nrow) {
-				Rf_error("%s: component '%s' has %d rows but component '%s' has %d rows",
+				mxThrow("%s: component '%s' has %d rows but component '%s' has %d rows",
 					 oo->name(), components[0]->name(), nrow, c1->name(), c1->rows);
 			}
 		}
@@ -102,7 +102,7 @@ namespace MarkovFF {
 	{
 		auto *oo = this;
 		auto *ms = this;
-		if (!oo->expectation) { Rf_error("%s requires an expectation", oo->fitType); }
+		if (!oo->expectation) { mxThrow("%s requires an expectation", oo->fitType); }
 
 		oo->units = FIT_UNITS_MINUS2LL;
 		oo->canDuplicate = true;
@@ -112,7 +112,7 @@ namespace MarkovFF {
 		const char *myex2 = "MxExpectationMixture";
 		if (!expectation || !(strEQ(expectation->expType, myex1) ||
 				      strEQ(expectation->expType, myex2)))
-			Rf_error("%s must be paired with %s or %s", oo->name(), myex1, myex2);
+			mxThrow("%s must be paired with %s or %s", oo->name(), myex1, myex2);
 
 		ProtectedSEXP Rverbose(R_do_slot(oo->rObj, Rf_install("verbose")));
 		ms->verbose = Rf_asInteger(Rverbose);

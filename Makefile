@@ -89,6 +89,7 @@ code-style: $(RFILES)
 	@echo "Checking code style"
 	@if grep Rf_unprotect src/*.cpp; then echo "*** Rf_unprotect is error prone. Use ScopedProtect instead."; exit 1; fi
 	@if grep UNPROTECT src/*.cpp; then echo "*** UNPROTECT is error prone. Use ScopedProtect instead."; exit 1; fi
+	@if [ `grep Rf_error src/*.cpp | wc -l` -gt 8 ]; then echo "*** mxThrow instead of Rf_error."; exit 1; fi
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if grep --color=always --exclude '*.rda' --exclude '*.RData' --exclude '.R*' --exclude '*.pdf' --exclude MatrixErrorDetection.R -r "@" demo inst/models; then echo '*** Access of @ slots must be done using $$'; fi

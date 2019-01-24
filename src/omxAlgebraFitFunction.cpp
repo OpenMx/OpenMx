@@ -53,21 +53,21 @@ void AlgebraFitFunction::setVarGroup(FreeVarGroup *vg)
 		if (int(std::max(gradient->rownames.size(),
 				 gradient->colnames.size())) !=
 		    std::max(gradient->rows, gradient->cols)) {
-			Rf_error("%s: gradient must have row or column names", ff->matrix->name());
+			mxThrow("%s: gradient must have row or column names", ff->matrix->name());
 		}
 	}
 	if (hessian) {
 		if (hessian->rows != hessian->cols) {
-			Rf_error("%s: Hessian must be square (instead of %dx%d)",
+			mxThrow("%s: Hessian must be square (instead of %dx%d)",
 				 ff->matrix->name(), hessian->rows, hessian->cols);
 		}
 		if (int(hessian->rownames.size()) != hessian->rows ||
 		    int(hessian->colnames.size()) != hessian->rows) {
-			Rf_error("%s: Hessian must have row and column names", ff->matrix->name());
+			mxThrow("%s: Hessian must have row and column names", ff->matrix->name());
 		}
 		for (int hx=0; hx < hessian->rows; ++hx) {
 			if (strcmp(hessian->colnames[hx], hessian->rownames[hx]) != 0) {
-				Rf_error("%s: Hessian must have identical row and column names (mismatch at %d)",
+				mxThrow("%s: Hessian must have identical row and column names (mismatch at %d)",
 					 ff->matrix->name(), 1+hx);
 			}
 		}
@@ -77,14 +77,14 @@ void AlgebraFitFunction::setVarGroup(FreeVarGroup *vg)
 	if (gradient && hessian) {
 		int size = gradient->rows * gradient->cols;
 		if (hessian->rows != size) {
-			Rf_error("%s: derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
+			mxThrow("%s: derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
 				 ff->matrix->name(), size, hessian->rows, hessian->cols);
 		}
 		std::vector<const char*> &gnames = gradient->rownames;
 		if (gnames.size() == 0) gnames = gradient->colnames;
 		for (int hx=0; hx < hessian->rows; ++hx) {
 			if (strcmp(hessian->colnames[hx], gnames[hx]) != 0) {
-				Rf_error("%s: Hessian and gradient must have identical names (mismatch at %d)",
+				mxThrow("%s: Hessian and gradient must have identical names (mismatch at %d)",
 					 ff->matrix->name(), 1+hx);
 			}
 		}

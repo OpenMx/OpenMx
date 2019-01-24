@@ -57,7 +57,7 @@ namespace FellnerFitFunction {
 
 		RelationalRAMExpectation::state &rram = ram->rram->getParent();
 		if (rram.group.size() > 1) {
-			Rf_error("Cannot profile out parameters when problem is split into independent groups");
+			mxThrow("Cannot profile out parameters when problem is split into independent groups");
 		}
 
 		RelationalRAMExpectation::independentGroup &ig = *rram.group[0];
@@ -116,7 +116,7 @@ namespace FellnerFitFunction {
 						weight * (ig.dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
 				}
 			}
-			if (!found) Rf_error("oops");
+			if (!found) mxThrow("oops");
 
 			fc->profiledOut[vx] = true;
 		}
@@ -167,7 +167,7 @@ namespace FellnerFitFunction {
 			return;
 		}
 
-		if (!(want & (FF_COMPUTE_FIT))) Rf_error("Not implemented");
+		if (!(want & (FF_COMPUTE_FIT))) mxThrow("Not implemented");
 
 		double lpOut = NA_REAL;
 		try {
@@ -303,7 +303,7 @@ namespace FellnerFitFunction {
 			return;
 		}
 		if (!strEQ(expectation->expType, "MxExpectationRAM")) {
-			Rf_error("%s: only MxExpectationRAM is implemented", oo->matrix->name());
+			mxThrow("%s: only MxExpectationRAM is implemented", oo->matrix->name());
 		}
 
 		oo->canDuplicate = true;

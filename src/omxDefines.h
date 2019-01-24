@@ -161,6 +161,7 @@ std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf,
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogSetCurrentRow(int row);
 void mxLogBig(const std::string &str);
+void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
 
 static inline int triangleLoc1(int diag)
 {
@@ -458,7 +459,7 @@ class ScopedProtect { // DEPRECATED, use ProtectedSEXP
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) Rf_error("Depth %d != 1, ScopedProtect was nested", diff);
+		if (diff != 1) mxThrow("Depth %d != 1, ScopedProtect was nested", diff);
 		Rf_unprotect(2);
 	}
 };
@@ -477,7 +478,7 @@ class ProtectedSEXP {
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) Rf_error("Depth %d != 1, ProtectedSEXP was nested", diff);
+		if (diff != 1) mxThrow("Depth %d != 1, ProtectedSEXP was nested", diff);
 		Rf_unprotect(2);
 	}
         operator SEXP() const { return var; }
