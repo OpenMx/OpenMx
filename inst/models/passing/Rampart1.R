@@ -104,7 +104,7 @@ pt1 <- mxRun(mxModel(
     mxComputeSequence(list(
 	mxComputeOnce('fitfunction', 'fit'),
 	mxComputeNumericDeriv(checkGradient=FALSE,
-			      iterations=3, hessian=FALSE),
+			      iterations=2, hessian=FALSE),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()))))
 
@@ -114,7 +114,7 @@ pt2 <- mxRun(mxModel(
     mxComputeSequence(list(
 	mxComputeOnce('fitfunction', 'fit'),
 	mxComputeNumericDeriv(checkGradient=FALSE,
-			      iterations=3, hessian=FALSE),
+			      iterations=2, hessian=FALSE),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()))))
 
@@ -128,7 +128,7 @@ if (0) {
 }
 
 omxCheckCloseEnough(pt1$output$fit, pt2$output$fit, 1e-7)
-omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-6)
+omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-3)
 
 student <- mxRun(student)
 if (!more.noise) {
