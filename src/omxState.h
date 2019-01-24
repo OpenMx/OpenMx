@@ -294,7 +294,6 @@ class omxGlobal {
 
 	~omxGlobal();
 	void reportProgress(const char *context, FitContext *fc);
-	void checkInterruptLongjmp() { R_CheckUserInterrupt(); };
 	static bool interrupted();
 	void reportProgress1(const char *context, std::string detail);
 };
