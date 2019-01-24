@@ -138,6 +138,7 @@ class FitContext {
 	double ordinalRelativeError;
 	int computeCount;
 	ComputeInform inform;
+	double previousReportFit;
 
  public:
 	FreeVarGroup *varGroup;
@@ -310,7 +311,8 @@ class FitContext {
 			if (!std::isfinite(ub[px])) ub[px] = INF;
 			++px;
 		}
-	}
+	};
+	std::string asProgressReport();
 };
 
 void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at);

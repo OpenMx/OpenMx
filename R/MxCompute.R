@@ -2161,7 +2161,6 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
-##' @examples
 mxComputeLoadData <- function(dest, column, method='CSV', ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=FALSE, col.names=FALSE, verbose=0L,

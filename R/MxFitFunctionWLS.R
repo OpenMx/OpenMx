@@ -308,7 +308,6 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #' @param allContinuousMethod the method used to process data when all columns are continuous.
 #' @param verbose logical. Whether to report diagnostics.
 #' @return - list describing the data.
-#' @export
 #' @family Data Functions
 #' @seealso - \code{\link{mxFitFunctionWLS}}, \code{\link{omxAugmentDataWithWLSSummary}}
 #' @examples

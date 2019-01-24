@@ -221,9 +221,6 @@ omxGlobal::omxGlobal()
 	maxSeconds = 0;
 	timedOut = false;
 	lastProgressReport = startTime;
-	previousReportLength = 0;
-	previousReportFit = 0;
-	previousComputeCount = 0;
 	mxLogSetCurrentRow(-1);
 	numThreads = 1;
 	analyticGradients = 0;
@@ -480,7 +477,10 @@ omxState::~omxState()
 
 omxGlobal::~omxGlobal()
 {
-	if (previousReportLength) reportProgressStr("");
+	if (!previousReport.empty()) {
+		std::string empty;
+		reportProgressStr(empty);
+	}
 	if (topFc) {
 		omxState *state = topFc->state;
 		delete topFc;
@@ -616,25 +616,46 @@ void mxLog(const char* msg, ...)   // thread-safe
 	if (wrote != len) Rf_error("mxLog only wrote %d/%d, errno=%d", wrote, len, errno);
 }
 
-void omxGlobal::reportProgressStr(const char *msg)
+void omxGlobal::reportProgressStr(std::string &str)
 {
 	ProtectedSEXP theCall(Rf_allocVector(LANGSXP, 3));
 	SETCAR(theCall, Rf_install("imxReportProgress"));
 	ProtectedSEXP Rmsg(Rf_allocVector(STRSXP, 1));
-	SET_STRING_ELT(Rmsg, 0, Rf_mkChar(msg));
+	SET_STRING_ELT(Rmsg, 0, Rf_mkChar(str.c_str()));
 	SETCADR(theCall, Rmsg);
-	SETCADDR(theCall, Rf_ScalarInteger(previousReportLength));
+	SETCADDR(theCall, Rf_ScalarInteger(previousReport.length())); // not UTF8 safe TODO
 	Rf_eval(theCall, R_GlobalEnv);
+	previousReport = str;
 }
 
 void omxGlobal::reportProgress(const char *context, FitContext *fc)
 {
-	if (omx_absolute_thread_num() != 0) {
-		mxLog("omxGlobal::reportProgress called in a thread context (report this bug to developers)");
-		return;
+	checkInterruptLongjmp();
+	reportProgress1(context, fc->asProgressReport());
+}
+
+bool omxGlobal::interrupted()
+{
+	if (omp_get_thread_num() != 0 && omp_get_num_threads() != 1) {
+		mxLog("omxGlobal::interrupted called from thread %d/%d (report this bug to developers)",
+		      omp_get_thread_num(), omp_get_num_threads());
+		return false;
 	}
 
-	R_CheckUserInterrupt();
+	// see Rcpp's checkUserInterrupt
+	auto checkInterruptFn = [](void *dummy){ R_CheckUserInterrupt(); };
+	bool got = R_ToplevelExec(checkInterruptFn, NULL) == FALSE;
+	if (got) omxRaiseErrorf("User interrupt");
+	return got;
+}
+
+void omxGlobal::reportProgress1(const char *context, std::string detail)
+{
+	if (omp_get_thread_num() != 0 && omp_get_num_threads() != 1) {
+		mxLog("omxGlobal::reportProgress(%s,%s) called from thread %d/%d (report this bug to developers)",
+		      context, detail.c_str(), omp_get_thread_num(), omp_get_num_threads());
+		return;
+	}
 
 	time_t now = time(0);
 	if (Global->maxSeconds > 0 && now > Global->startTime + Global->maxSeconds && !Global->timedOut) {
@@ -642,23 +663,14 @@ void omxGlobal::reportProgress(const char *context, FitContext *fc)
 		Rf_warning("Time limit of %d minutes %d seconds exceeded",
 			   Global->maxSeconds/60, Global->maxSeconds % 60);
 	}
-	if (silent || now - lastProgressReport < 1 || fc->getGlobalComputeCount() == previousComputeCount) return;
+	if (silent || now - lastProgressReport < 1) return;
 
 	lastProgressReport = now;
 
-	std::string str;
-	if (previousReportFit == 0.0 || previousReportFit == fc->fit) {
-		str = string_snprintf("%s %d %.6g",
-				      context, fc->getGlobalComputeCount(), fc->fit);
-	} else {
-		str = string_snprintf("%s %d %.6g %.4g",
-				      context, fc->getGlobalComputeCount(), fc->fit, fc->fit - previousReportFit);
-	}
-
-	reportProgressStr(str.c_str());
-	previousReportLength = str.size();
-	previousReportFit = fc->fit;
-	previousComputeCount = fc->getGlobalComputeCount();
+	std::string str = context;
+	str += " ";
+	str += detail;
+	reportProgressStr(str);
 }
 
 void diagParallel(int verbose, const char* msg, ...)
