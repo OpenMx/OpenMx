@@ -104,7 +104,7 @@ pt1 <- mxRun(mxModel(
     mxComputeSequence(list(
 	mxComputeOnce('fitfunction', 'fit'),
 	mxComputeNumericDeriv(checkGradient=FALSE,
-			      iterations=2, hessian=FALSE),
+			      iterations=3, hessian=FALSE),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()))))
 
@@ -114,7 +114,7 @@ pt2 <- mxRun(mxModel(
     mxComputeSequence(list(
 	mxComputeOnce('fitfunction', 'fit'),
 	mxComputeNumericDeriv(checkGradient=FALSE,
-			      iterations=2, hessian=FALSE),
+			      iterations=3, hessian=FALSE),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()))))
 
