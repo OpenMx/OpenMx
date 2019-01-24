@@ -145,7 +145,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
-		   frequency = as.character(NA), verbose=0L, .parallel=FALSE) {
+		   frequency = as.character(NA), verbose=0L, .parallel=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
