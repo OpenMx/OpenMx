@@ -488,7 +488,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
-	if (!numParams || !(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+	if (!numParams || !(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_GRADIENT))) return;
 
 	if (wantHessian) {
 		SEXP calculatedHessian;
