@@ -2290,6 +2290,7 @@ void ComputeLoop::computeImpl(FitContext *fc)
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
 		if (hasMaxIter && iterations >= maxIter) break;
 		if (hasIndices && iterations >= indicesLength) break;
+		if (isErrorRaised()) break;
 	}
 }
 
