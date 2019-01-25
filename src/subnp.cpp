@@ -17,6 +17,9 @@
 
 #include "EnableWarnings.h"
 
+// This optimization pass fails anyway so save time by not attempting it.
+#pragma GCC optimize ("no-var-tracking-assignments")
+
 struct CSOLNP {
 
     int flag, flag_NormgZ, minr_rec;
