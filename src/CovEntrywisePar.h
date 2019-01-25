@@ -20,6 +20,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 		diagDone[cx] = ce.isDone(cx,cx);
 		todo.push_nolock(std::make_pair(cx,cx));
 	}
+	int maxIter = numColsStar + numThreads;
 #pragma omp parallel num_threads(numThreads)
 	while (1) {
 		int tid = omp_get_thread_num();
@@ -37,7 +38,6 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				}
 				diagDone[t1.first] = 1; // regardless of ce.isDone
 			}
-			thrDone[tid] += 1;
 			for (int rx=0; rx < t1.first; ++rx) {
 				if (ce.isDone(rx, t1.first)) { thrDone[tid] += 1; continue; }
 				if (debug) mxLog("todo.push_front(%d,%d)", rx, t1.first);
@@ -51,6 +51,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			if (!diagDone[t1.first]) {
 				if (debug) mxLog("requeue %d %d", t1.first, t1.second);
 				todo.push_back(t1);
+				continue;
 			} else {
 				try {
 					ce.offDiag(t1.first, t1.second);
@@ -59,9 +60,9 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				} catch (...) {
 					omxRaiseErrorf("CovEntrywiseParallel: unknown exception");
 				}
-				thrDone[tid] += 1;
 			}
 		}
+		thrDone[tid] += 1;
 		int thrDoneSum = thrDone.sum();
 		if (tid == 0) {
 			ce.reportProgress(thrDoneSum);
@@ -73,7 +74,17 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				todo.push_front(std::make_pair(-1, tx));
 			}
 		}
+#pragma omp atomic
+		maxIter -= 1;
+		if (maxIter < 0) {
+			mxLog("CovEntrywiseParallel loop %d failed to terminate, deque=%d",
+			      numCols, int(todo.size()));
+			mxPrintMat("thrDone", thrDone);
+			mxPrintMat("diagDone", diagDone);
+			break;
+		}
 	}
+	if (maxIter < 0) mxThrow("Contact OpenMx developers");
 }
 
 #endif
