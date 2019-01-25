@@ -14,7 +14,10 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 	thrDone.setZero();
 	int numCols = ce.getNumCols();
 	int numColsStar = triangleLoc1(numCols);
+	// isDone might behave badly so we copy it and track status ourselves
+	Eigen::Array<long, Eigen::Dynamic, 1> diagDone(numCols);
 	for (int cx=0; cx < numCols; ++cx) {
+		diagDone[cx] = ce.isDone(cx,cx);
 		todo.push_nolock(std::make_pair(cx,cx));
 	}
 #pragma omp parallel num_threads(numThreads)
@@ -24,32 +27,33 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 		if (t1.first < 0) break;
 		if (debug) mxLog("todo.pop -> %d,%d", t1.first, t1.second);
 		if (t1.first == t1.second) {
-			if (!ce.isDone(t1.first, t1.first)) {
+			if (!diagDone[t1.first]) {
 				try {
-					ce.var(t1.first);
+					ce.onDiag(t1.first);
 				} catch (const std::exception& e) {
 					omxRaiseErrorf("%s", e.what());
 				} catch (...) {
 					omxRaiseErrorf("CovEntrywiseParallel: unknown exception");
 				}
+				diagDone[t1.first] = 1; // regardless of ce.isDone
 			}
 			thrDone[tid] += 1;
 			for (int rx=0; rx < t1.first; ++rx) {
 				if (ce.isDone(rx, t1.first)) { thrDone[tid] += 1; continue; }
 				if (debug) mxLog("todo.push_front(%d,%d)", rx, t1.first);
-				if (ce.isDone(t1.first, t1.first)) {
+				if (diagDone(t1.first)) {
 					todo.push_front(std::make_pair(rx, t1.first));
 				} else {
 					todo.push_back(std::make_pair(rx, t1.first));
 				}
 			}
 		} else {
-			if (!ce.isDone(t1.first, t1.first)) {
+			if (!diagDone[t1.first]) {
 				if (debug) mxLog("requeue %d %d", t1.first, t1.second);
 				todo.push_back(t1);
 			} else {
 				try {
-					ce.cov(t1.first, t1.second);
+					ce.offDiag(t1.first, t1.second);
 				} catch (const std::exception& e) {
 					omxRaiseErrorf("%s", e.what());
 				} catch (...) {

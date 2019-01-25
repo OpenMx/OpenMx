@@ -2246,7 +2246,7 @@ struct sampleStats {
 		Global->reportProgress1(data.name, detail);
 	}
 
-	void var(int yy)
+	void onDiag(int yy)
 	{
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		WLSVarData &pv = o1.perVar[yy];
@@ -2294,7 +2294,7 @@ struct sampleStats {
 		}
 	}
 
-	void cov(int jj, int ii)
+	void offDiag(int jj, int ii)
 	{
 		// assume jj < ii, upper triangle
 		int pstar_idx = ii-(jj+1) + pstar - triangleLoc1(numCols - jj - 1);

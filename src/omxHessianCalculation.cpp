@@ -98,11 +98,11 @@ class omxComputeNumericDeriv : public omxCompute {
 				return rx != cx;  // Only interested in gradient
 			}
 		}
-		void var(int ii) {
+		void onDiag(int ii) {
 			int threadId = omx_absolute_thread_num();
 			cnd.omxEstimateHessianOnDiagonal(ii, hessWorkVector + threadId);
 		}
-		void cov(int rx, int cx) {
+		void offDiag(int rx, int cx) {
 			int threadId = omx_absolute_thread_num();
 			cnd.omxEstimateHessianOffDiagonal(rx, cx, hessWorkVector + threadId);
 		}
