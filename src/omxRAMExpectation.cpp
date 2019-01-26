@@ -173,7 +173,7 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
 		
 	if(Ax == NULL || I == NULL || Y == NULL || X == NULL) {
-		Rf_error("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
+		mxThrow("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 		
 	if(cov == NULL && means == NULL) {
@@ -283,23 +283,23 @@ void omxRAMExpectation::init() {
 
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
 	if (Rf_length(Rbetween)) {
-		if (!oo->data) Rf_error("%s: data is required for joins", oo->name);
-		if (!Rf_isInteger(Rbetween)) Rf_error("%s: between must be an integer vector", oo->name);
+		if (!oo->data) mxThrow("%s: data is required for joins", oo->name);
+		if (!Rf_isInteger(Rbetween)) mxThrow("%s: between must be an integer vector", oo->name);
 		RAMexp->between.reserve(Rf_length(Rbetween));
 		int *bnumber = INTEGER(Rbetween);
 		for (int jx=0; jx < Rf_length(Rbetween); ++jx) {
 			omxMatrix *bmat = currentState->getMatrixFromIndex(bnumber[jx]);
 			int foreignKey = bmat->getJoinKey();
 			omxExpectation *fex = bmat->getJoinModel();
-			if (!fex) Rf_error("%s: level transition matrix '%s' does not reference the upper level model",
+			if (!fex) mxThrow("%s: level transition matrix '%s' does not reference the upper level model",
 					   oo->name, bmat->name());
 			omxCompleteExpectation(fex);
 			if (!strEQ(fex->expType, "MxExpectationRAM")) {
-				Rf_error("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
+				mxThrow("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
 			}
 			omxDataKeysCompatible(fex->data, oo->data, foreignKey);
 			if (!omxDataColumnIsKey(oo->data, foreignKey)) {
-				Rf_error("Cannot join using non-integer type column '%s' in '%s'. "
+				mxThrow("Cannot join using non-integer type column '%s' in '%s'. "
 					 "Did you forget to use mxData(..., sort=FALSE)?",
 					 omxDataColumnName(oo->data, foreignKey),
 					 oo->data->name);
@@ -318,7 +318,7 @@ void omxRAMExpectation::init() {
 	k = RAMexp->A->cols;
 
 	if (k != RAMexp->S->cols || k != RAMexp->S->rows || k != RAMexp->A->rows) {
-		Rf_error("RAM matrices '%s' and '%s' must have the same dimensions",
+		mxThrow("RAM matrices '%s' and '%s' must have the same dimensions",
 			 RAMexp->S->name(), RAMexp->A->name());
 	}
 
@@ -370,7 +370,7 @@ void omxRAMExpectation::studyExoPred()
 				else latentName = S->colnames[cx];
 			}
 			if (!toManifest && !latentName) continue;
-			if (latentName) Rf_error("%s: latent exogenous variables are not supported (%s -> %s)", name,
+			if (latentName) mxThrow("%s: latent exogenous variables are not supported (%s -> %s)", name,
 						 S->colnames[dv.col], latentName);
 			exoDataCol[dv.col] = dv.column;
 			found += 1;
@@ -616,7 +616,7 @@ namespace RelationalRAMExpectation {
 				RowToLayoutMapType::const_iterator it =
 					rowToLayoutMap.find(std::make_pair(e1->data, row));
 				if (it == rowToLayoutMap.end())
-					Rf_error("Cannot find row %d in %s", row, e1->data->name);
+					mxThrow("Cannot find row %d in %s", row, e1->data->name);
 				int bx = it->second;
 				cc.connect(ax, bx);
 			}
@@ -638,7 +638,7 @@ namespace RelationalRAMExpectation {
 				double val = eA(rx, cx);
 				if (val != 0) {
 					if (rx == cx) {
-						Rf_error("%s: nonzero diagonal entry in A matrix at %d",
+						mxThrow("%s: nonzero diagonal entry in A matrix at %d",
 							 st.homeEx->name, 1+pl.modelStart+cx);
 					}
 					asymT.fullA.coeffRef(pl.modelStart + cx, pl.modelStart + rx) =
@@ -708,7 +708,7 @@ namespace RelationalRAMExpectation {
 			// insert_or_assign would be nice here
 			RowToLayoutMapType::const_iterator it = rowToLayoutMap.find(std::make_pair(data, frow));
 			if (it != rowToLayoutMap.end()) {
-				if (it->second < 0) Rf_error("%s cycle detected: '%s' row %d joins against itself",
+				if (it->second < 0) mxThrow("%s cycle detected: '%s' row %d joins against itself",
 							     homeEx->name, data->name, 1+frow);
 				return it->second;
 			}
@@ -809,7 +809,7 @@ namespace RelationalRAMExpectation {
 					int frow = data1->lookupRowOfKey(key);
 					RowToPlacementMapType::iterator plIndex =
 						rowToPlacementMap.find(std::make_pair(data1, frow));
-					if (plIndex == rowToPlacementMap.end()) Rf_error("Cannot find row %d in %s",
+					if (plIndex == rowToPlacementMap.end()) mxThrow("Cannot find row %d in %s",
 											 frow, data1->name);
 					placement &p2 = placements[ plIndex->second ];
 					omxRecompute(betA, fc);
@@ -1005,7 +1005,7 @@ namespace RelationalRAMExpectation {
 			state::RowToLayoutMapType::const_iterator it =
 				st.rowToLayoutMap.find(std::make_pair(e1->data, row));
 			if (it == st.rowToLayoutMap.end())
-				Rf_error("Cannot find row %d in %s", row, e1->data->name);
+				mxThrow("Cannot find row %d in %s", row, e1->data->name);
 			return &st.layout[it->second];
 		}
 
@@ -1335,7 +1335,7 @@ namespace RelationalRAMExpectation {
 	void independentGroup::place(int ax)
 	{
 		if (st.layout[ax].ig) {
-			Rf_error("Unit[%d] already assigned; this is a bug", ax);
+			mxThrow("Unit[%d] already assigned; this is a bug", ax);
 		}
 		st.layout[ax].ig = this;
 		int mx = 0;
@@ -1452,7 +1452,7 @@ namespace RelationalRAMExpectation {
 					dx += 1;
 				}
 				if (a1.numObs() != dx - prevDx) {
-					Rf_error("numObs() %d != %d", a1.numObs(), dx - prevDx);
+					mxThrow("numObs() %d != %d", a1.numObs(), dx - prevDx);
 				}
 			}
 			for (int vx=0; vx < ram->F->cols; ++vx) {
@@ -1559,7 +1559,7 @@ namespace RelationalRAMExpectation {
 				std::vector<int> dc(a1.clump);
 				std::sort(dc.begin(), dc.end(), RampartClumpCompare(this));
 				for (size_t cx=0; cx < dc.size(); ++cx) {
-					if (dc[cx] != a1.clump[cx]) Rf_error("oops");
+					if (dc[cx] != a1.clump[cx]) mxThrow("oops");
 				}
 			}
 		}
@@ -1725,7 +1725,7 @@ namespace RelationalRAMExpectation {
 		}
 		for (auto *ex : allEx) {
 			if (!ex->data->hasWeight() && !ex->data->hasFreq()) continue;
-			Rf_error("%s: row frequencies or weights provided in '%s' are not compatible with joins",
+			mxThrow("%s: row frequencies or weights provided in '%s' are not compatible with joins",
 				 expectation->name, ex->data->name);
 		}
 
@@ -2034,7 +2034,7 @@ namespace RelationalRAMExpectation {
 				omxData *data1 = betA->getJoinModel()->data;
 				int frow = data1->lookupRowOfKey(key);
 				int a2Offset = pst.rowToLayoutMap[std::make_pair(data1, frow)];
-				if (ax < a2Offset) Rf_error("Not in topological order");
+				if (ax < a2Offset) mxThrow("Not in topological order");
 				addr &a2 = pst.layout[a2Offset];
 				independentGroup &tig2 = *group[a2.ig->arrayIndex];
 				omxRecompute(betA, fc);

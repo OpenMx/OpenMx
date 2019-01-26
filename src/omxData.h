@@ -104,35 +104,8 @@ struct WLSVarData {
 	Eigen::ArrayXd theta;
 	// OLS
 	Eigen::ArrayXd resid;
-};
-
-class obsSummaryStats {
- public:
-	//std::vector<bool> subset;
-	bool output;
-	double totalWeight;
-	int numOrdinal;  // == thresholdMat->cols or 0 if null
-	omxMatrix* covMat;
-	omxMatrix *slopeMat; // manifest by exo predictor matrix
-	omxMatrix* meansMat;
-	omxMatrix* acovMat;			// The asymptotic covariance
-	omxMatrix *fullWeight;
-	omxMatrix* thresholdMat;
-	std::vector< omxThresholdColumn > thresholdCols; // size() == covMat.cols()
-
-	// prep
-	std::vector< WLSVarData > perVar;
-	Eigen::ArrayXXd SC_VAR;
-	Eigen::ArrayXXd SC_SL;
-	Eigen::ArrayXXd SC_TH;
-	Eigen::ArrayXXd SC_COR;
-
-	obsSummaryStats() : output(false), totalWeight(0), numOrdinal(0), covMat(0), slopeMat(0), meansMat(0),
-		acovMat(0), fullWeight(0), thresholdMat(0) {};
-	~obsSummaryStats();
-	void setDimnames(omxData *data, const std::vector<const char *> &dc, std::vector<int> &exoPred);
-	void permute(omxData *data, const std::vector<const char *> &dc);
-	void log();
+	int contOffset;
+	int thrOffset;
 };
 
 struct cstrCmp {
@@ -141,6 +114,52 @@ struct cstrCmp {
 };
 
 typedef std::map< const char *, int, cstrCmp > ColMapType;
+
+class obsSummaryStats {
+ public:
+	std::vector<const char *> dc;
+	std::vector<int> exoPred;
+	const char *wlsType;
+	const char *continuousType;
+	bool wantFullWeight;
+	std::vector<int> index;
+	Eigen::ArrayXd rowMult;
+
+	bool output;
+	double totalWeight;
+	int numOrdinal;  // == thresholdMat->cols or 0 if null
+	int numContinuous;
+	omxMatrix* covMat;
+	omxMatrix *slopeMat; // manifest by exo predictor matrix
+	omxMatrix* meansMat;
+	omxMatrix* acovMat;			// The asymptotic covariance
+	omxMatrix *fullWeight;
+	omxMatrix* thresholdMat;
+	std::vector< omxThresholdColumn > thresholdCols; // size() == covMat.cols()
+	ColMapType colMap;
+
+	// prep
+	std::vector<int> contMap;
+	int totalThr;
+	std::vector<int> thStart;
+	std::vector< WLSVarData > perVar;
+	Eigen::ArrayXXd SC_VAR;
+	Eigen::ArrayXXd SC_SL;
+	Eigen::ArrayXXd SC_TH;
+	Eigen::ArrayXXd SC_COR;
+	Eigen::MatrixXd A21;
+	Eigen::ArrayXXd H22;
+	Eigen::ArrayXXd H21;
+
+ 	obsSummaryStats() : wlsType(0), continuousType(0), wantFullWeight(true),
+		output(false), totalWeight(0), numOrdinal(0), numContinuous(0),
+		covMat(0), slopeMat(0), meansMat(0),
+		acovMat(0), fullWeight(0), thresholdMat(0), totalThr(0) {};
+	~obsSummaryStats();
+	void setDimnames(omxData *data);
+	void permute(omxData *data);
+	void log();
+};
 
 class omxData {
  private:
@@ -151,15 +170,14 @@ class omxData {
 	int freqCol;
 	int *currentFreqColumn;
 	obsSummaryStats *oss;
+	bool parallel;
 
+	void estimateObservedStats();
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *type,
 			  const char *continuousType, bool fullWeight);
 	bool regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
-	void wlsAllContinuousCumulants(omxState *state, const char *wlsType,
-				       const std::vector<const char *> &dc,
-				       const Eigen::Ref<const Eigen::ArrayXd> rowMult,
-				       std::vector<int> &index);
+	void wlsAllContinuousCumulants(omxState *state);
 
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -232,7 +250,7 @@ class omxData {
 		visitor(*oss);
 	}
 	obsSummaryStats &getSingleObsSummaryStats() {
-		if (!oss) Rf_error("No observed summary stats");
+		if (!oss) mxThrow("No observed summary stats");
 		return *oss;
 	};
 	const char *columnName(int col);
@@ -244,14 +262,7 @@ class omxData {
 	template <typename T1>
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();
-
-	// util member functions for observed statistics
-	template <typename T1, typename T2>
-	void copyScores(Eigen::ArrayBase<T1> &dest, int destCol,
-				const Eigen::ArrayBase<T2> &src, int srcCol, int numCols=1);
-	template <typename T1, typename T2>
-	double scoreDotProd(const Eigen::ArrayBase<T1> &a1,
-				    const Eigen::ArrayBase<T2> &a2);
+	void invalidateColumnsCache(std::vector< int > &columns);
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
@@ -305,9 +316,9 @@ void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Popu
 template <typename T>
 void omxDataRow(omxData *od, int row, const Eigen::MatrixBase<T> &colList, omxMatrix* om)
 {
-	if (row >= od->rows) Rf_error("Invalid row");
+	if (row >= od->rows) mxThrow("Invalid row");
 
-	if(om == NULL) Rf_error("Must provide an output matrix");
+	if(om == NULL) mxThrow("Must provide an output matrix");
 
 	int numcols = colList.size();
 	if(od->dataMat != NULL) {

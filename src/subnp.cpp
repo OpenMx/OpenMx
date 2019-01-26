@@ -173,7 +173,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 
         if (verbose >= 2){
             mxLog("ind is: \n");
-            for (int i = 0; i < ind.size(); i++) mxLog("%f",ind[i]);
+            for (int ii = 0; ii < ind.size(); i++) mxLog("%f",ind[ii]);
         }
     
         Eigen::RowVectorXd ineqx0_e(nineq); ineqx0_e.setZero();
@@ -354,10 +354,10 @@ void CSOLNP::solnp(double *solPars, int verbose)
             else{
                 vscale_e.resize(1, 1); vscale_e.setOnes();
             }
-            Eigen::RowVectorXd onesMatrix(1, p_e.size()); onesMatrix.setOnes();
-            Eigen::RowVectorXd vscale_t = vscale_e;
-            vscale_e.resize(1, vscale_t.cols() + onesMatrix.cols());
-            vscale_e << vscale_t, onesMatrix;
+            Eigen::RowVectorXd onesMatrix2(1, p_e.size()); onesMatrix2.setOnes();
+            Eigen::RowVectorXd vscale_t2 = vscale_e;
+            vscale_e.resize(1, vscale_t2.cols() + onesMatrix2.cols());
+            vscale_e << vscale_t2, onesMatrix2;
             
             lambda_e = resY;
             hessv_e = resHessv;
@@ -537,10 +537,12 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     double delta = ctrl[2];
     double tol =   ctrl[3];
     
-    int neq =  fit.equality.size();
-    int nineq;
-    if (optimize_initial_inequality_constraints) nineq = 0;
-    else nineq = fit.inequality.size();
+    if (neq != fit.equality.size()) mxThrow("oops");
+    if (optimize_initial_inequality_constraints) {
+	    if (nineq != 0) mxThrow("oops");
+    } else {
+	    if (nineq != fit.inequality.size()) mxThrow("oops");
+    }
 
     int np = (int)ind[indNumParam];
     
@@ -631,10 +633,12 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     // hessv [ (np+nineq) x (np+nineq) ]
     // hessv = hessv * (vscale[ (neq + 2):(nc + np + 1) ] %*% t(vscale[ (neq + 2):(nc + np + 1)]) ) / vscale[ 1 ]
     
-    Eigen::MatrixXd result_e;
-    result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
-    hessv_e = hessv_e.cwiseProduct(result_e);
-    hessv_e = hessv_e / vscale_e[0];
+    {
+	    Eigen::MatrixXd result_e;
+	    result_e = vscale_e.block(0, neq + 1, 1, nc + np - neq).transpose() * vscale_e.block(0, neq + 1, 1, nc + np - neq);
+	    hessv_e = hessv_e.cwiseProduct(result_e);
+	    hessv_e = hessv_e / vscale_e[0];
+    }
 
     j = ob_e(0, 0);
     if (verbose >= 3){
@@ -705,7 +709,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     double funv;
     
     int solnp_nfn = 0;
-    double go, reduce = 1e-300;
+    double go;
     int minit;
     double lambdaValue = lambda;
     
@@ -764,7 +768,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         }
         
         if (false && solvecond(a_e) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
-            Rf_error("Redundant constraints were found. Poor intermediate results may result. "
+            mxThrow("Redundant constraints were found. Poor intermediate results may result. "
                      "Remove redundant constraints and re-OPTIMIZE.");
         }
         
@@ -1143,10 +1147,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         ptt_e = ptt_temp;
         Eigen::MatrixXd pttCol;
         pttCol = ptt_e.col(2);
-        Eigen::MatrixXd tmpv_e = pttCol.transpose().block(0, nineq, 1, npic - nineq).cwiseProduct(vscale_e.block(0, nc+1, 1, np));
         
         mode = 0;
-        funv = fit.solFun(tmpv_e.data(), &mode);
+	{
+		Eigen::MatrixXd tmpv_e = pttCol.transpose().block(0, nineq, 1, npic - nineq).
+			cwiseProduct(vscale_e.block(0, nc+1, 1, np));
+		funv = fit.solFun(tmpv_e.data(), &mode);
+	}
         
         if (verbose >= 3){
 		mxPrintMat("g", g_e);
@@ -1165,17 +1172,20 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
         
         solnp_nfn = solnp_nfn + 1;
         
-        Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
-        Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-        Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
-        Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
+	Eigen::MatrixXd ob3_e;
+	{
+		Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
+		Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
+		Eigen::RowVectorXd eqv_e(neq); eqv_e = fit.equality;
+		Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -fit.inequality;
         
-        obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
+		obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
         
-        Eigen::RowVectorXd secondPart_e;
-        secondPart_e = vscale_e.block(0, 0, 1, nc+1);
-        firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
-        Eigen::MatrixXd ob3_e = firstPart_e;
+		Eigen::RowVectorXd secondPart_e;
+		secondPart_e = vscale_e.block(0, 0, 1, nc+1);
+		firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
+		ob3_e = firstPart_e;
+	}
         sob[2] = ob3_e(0, 0);
         
         if (ind[indHasIneq] > 0.5){
@@ -1396,8 +1406,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     hessv_e = hessv_e.cwiseQuotient(transposePart);
     hessv_e = hessv_e * vscale_e(0);
     
-    if (verbose >= 1 && reduce > tol) {
-        mxLog("m3 solnp Rf_error message being reported.");
+    if (verbose >= 1 && 1e-300 > tol) {
+        mxLog("m3 solnp mxThrow message being reported.");
     }
 
     resP = p_e;
@@ -1829,7 +1839,6 @@ void omxCSOLNP(GradientOptimizerContext &go)
 	double *est = go.est.data();
 	go.optName = "CSOLNP";
 	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
-    int oldWanted = go.getWanted();
     go.setWanted(0);
 	solnp(est, go);
 }

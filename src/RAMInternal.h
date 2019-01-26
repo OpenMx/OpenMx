@@ -109,7 +109,7 @@ template <typename T1> void AsymTool<T1>::invert()
 		}
 		Asolver.factorize(fullA);
 		if (Asolver.info() != Eigen::Success) {
-			Rf_error("Failed to invert flattened A matrix; %s",
+			mxThrow("Failed to invert flattened A matrix; %s",
 				 Asolver.lastErrorMessage().c_str());
 		}
 
@@ -145,7 +145,7 @@ template <typename T1> void AsymTool<T1>::filter()
 	IAF.conservativeResize(fullA.rows(), clumpObs);
 
 	// I've screwed this up 3-4 times, better check it!
-	if (OMX_DEBUG && dx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
+	if (OMX_DEBUG && dx != clumpObs) mxThrow("latentFilter has wrong count %d != %d",
 						  dx, clumpObs);
 
 	if (doubleCheck) {
@@ -157,7 +157,7 @@ template <typename T1> void AsymTool<T1>::filter()
 			denseAF.col(xx) = denseA.col(cx);
 			++xx;
 		}
-		if (xx != clumpObs) Rf_error("latentFilter has wrong count %d != %d",
+		if (xx != clumpObs) mxThrow("latentFilter has wrong count %d != %d",
 					     xx, clumpObs);
 
 		// ensure inner iterator works
@@ -180,7 +180,7 @@ template <typename T1> void AsymTool<T1>::filter()
 					}
 				}
 			}
-			Rf_error("stop");
+			mxThrow("stop");
 		}
 	}
 	filtered = true;
@@ -282,7 +282,7 @@ class SimpCholesky : public Eigen::SimplicialLDLT<_MatrixType, _UpLo> {
 		double log_determinant() const {
 			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
 			cholmod_factor *cf = factor();
-			if (cf->xtype == CHOLMOD_PATTERN) Rf_error("Cannot extract diagonal from symbolic factor");
+			if (cf->xtype == CHOLMOD_PATTERN) mxThrow("Cannot extract diagonal from symbolic factor");
 			double logDet = 0;
 			double *x = (double*) cf->x;
 			if (cf->is_super) {
@@ -510,7 +510,7 @@ namespace RelationalRAMExpectation {
 		std::vector<addr>		 layout;
 
 		void clumpWith(int upper, int lower) {
-			if (layoutSetup[lower].clumped) Rf_error("%d is already clumped", lower);
+			if (layoutSetup[lower].clumped) mxThrow("%d is already clumped", lower);
 			layoutSetup[upper].clump.push_back(lower);
 			layoutSetup[lower].clumped = true;
 		};

@@ -148,6 +148,13 @@ struct EigenMatrixAdaptor : Eigen::Map< Eigen::MatrixXd > {
 	  Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
 };
 
+struct EigenMatrixAdaptor0 : Eigen::Map< Eigen::MatrixXd > {
+	EigenMatrixAdaptor0(omxMatrix *mat) :
+	Eigen::Map< Eigen::MatrixXd >(mat? omxMatrixDataColumnMajor(mat) : 0,
+				      mat? mat->rows : 0,
+				      mat? mat->cols : 0) {}
+};
+
 struct EigenArrayAdaptor : Eigen::Map< Eigen::ArrayXXd > {
 	EigenArrayAdaptor(omxMatrix *mat) :
 	  Eigen::Map< Eigen::ArrayXXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols) {}
@@ -277,8 +284,8 @@ static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 static OMXINLINE double *omxMatrixColumn(omxMatrix *om, int col) {
-  if (!om->colMajor) Rf_error("omxMatrixColumn requires colMajor order");
-  if (col < 0 || col >= om->cols) Rf_error(0, col, om->rows, om->cols);
+  if (!om->colMajor) mxThrow("omxMatrixColumn requires colMajor order");
+  if (col < 0 || col >= om->cols) mxThrow("omxMatrixColumn(%d) but only %d columns", col, om->cols);
   return om->data + col * om->rows;
 }
 
@@ -407,7 +414,7 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
 	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::
 		if(mat->cols != nVecEl) {
-			Rf_error("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+			mxThrow("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
 		}
 	}
 
@@ -448,13 +455,13 @@ static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              /
 }
 
 static OMXINLINE void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
-	// TODO: Add Rf_error checking, and/or adjustments for row vs. column majority.
+	// TODO: Add mxThrow checking, and/or adjustments for row vs. column majority.
 	// N.B. Not fully tested.
 	char u = 'U'; //l = 'L'; //U for storing upper triangle
 	F77_CALL(dpotrf)(&u, &(mat->rows), mat->data, &(mat->cols), info);
 }
 static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
-	// TODO: Add Rf_error checking, and/or adjustments for row vs. column majority.
+	// TODO: Add mxThrow checking, and/or adjustments for row vs. column majority.
 	// N.B. Not fully tested.
 	char u = 'U'; //l = 'L'; // U for storing upper triangle
 	F77_CALL(dpotri)(&u, &(mat->rows), mat->data, &(mat->cols), info);

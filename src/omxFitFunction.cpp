@@ -89,7 +89,7 @@ const char *fitUnitsToName(FitStatisticUnits units)
 	case FIT_UNITS_MINUS2LL: return "-2lnL";
 	case FIT_UNITS_SQUARED_RESIDUAL: return "r'Wr";
 	case FIT_UNITS_SQUARED_RESIDUAL_CHISQ: return "r'Wr";
-	default: Rf_error("Don't know how to stringify units %d", units);
+	default: mxThrow("Don't know how to stringify units %d", units);
 	}
 }
 
@@ -108,7 +108,7 @@ static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
 	if (fitUnitsIsChiSq(ff->units)) {
 		fc->ciobj->evalFit(ff, want, fc);
 	} else {
-		Rf_error("Confidence intervals are not supported for units %s",
+		mxThrow("Confidence intervals are not supported for units %s",
 			 fitUnitsToName(ff->units));
 	}
 }
@@ -179,8 +179,8 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 	if (ff) {
 		omxFitFunctionComputeAuto(ff, want, fc);
 	} else {
-		if (want != FF_COMPUTE_FIT) Rf_error("Only fit is available");
-		if (fc->ciobj) Rf_error("CIs cannot be computed for unitless algebra");
+		if (want != FF_COMPUTE_FIT) mxThrow("Only fit is available");
+		if (fc->ciobj) mxThrow("CIs cannot be computed for unitless algebra");
 		omxRecompute(fitMat, fc);
 	}
 	if (ff && want & FF_COMPUTE_FIT) {
@@ -209,7 +209,7 @@ static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitTy
 			break;
 		}
 	}
-	if (!obj) Rf_error("omxNewInternalFitFunction: cannot find '%s'", fitType);
+	if (!obj) mxThrow("omxNewInternalFitFunction: cannot find '%s'", fitType);
 
 	if (!matrix) {
 		obj->matrix = omxInitMatrix(1, 1, TRUE, os);
@@ -261,7 +261,7 @@ void omxFillMatrixFromMxFitFunction(omxMatrix* om, int matrixNumber, SEXP rObj)
 omxFitFunction *omxChangeFitType(omxFitFunction *oo, const char *fitType)
 {
 	if (oo->initialized) {
-		Rf_error("%s: cannot omxChangeFitType from %s to %s; already initialized",
+		mxThrow("%s: cannot omxChangeFitType from %s to %s; already initialized",
 			 oo->matrix->name(), oo->fitType, fitType);
 	}
 
@@ -284,7 +284,7 @@ omxFitFunction *omxChangeFitType(omxFitFunction *oo, const char *fitType)
 		}
 	}
 
-	Rf_error("Cannot find fit type '%s'", fitType);
+	mxThrow("Cannot find fit type '%s'", fitType);
 }
 
 void omxCompleteFitFunction(omxMatrix *om)
@@ -300,7 +300,7 @@ void omxCompleteFitFunction(omxMatrix *om)
 
 	obj = obj->initMorph();
 
-	if (Global->mpi->getDepth() != depth) Rf_error("%s improperly used the R protect stack", om->name());
+	if (Global->mpi->getDepth() != depth) mxThrow("%s improperly used the R protect stack", om->name());
 
 	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;

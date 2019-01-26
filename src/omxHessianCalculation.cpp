@@ -35,8 +35,25 @@
 #include "omxNPSOLSpecific.h"
 #include "omxExportBackendState.h"
 #include "Compute.h"
-#include "omxBuffer.h"
+#include "CovEntrywisePar.h"
 #include "EnableWarnings.h"
+
+struct hess_struct {
+	int probeCount;
+	double* Haprox;
+	double *Gcentral;
+	double *Gforward;
+	double *Gbackward;
+	FitContext *fc;
+	omxMatrix* fitMatrix;
+
+	~hess_struct() {
+		delete [] Haprox;
+		delete [] Gcentral;
+		delete [] Gforward;
+		delete [] Gbackward;
+	}
+};
 
 class omxComputeNumericDeriv : public omxCompute {
 	typedef omxCompute super;
@@ -56,35 +73,50 @@ class omxComputeNumericDeriv : public omxCompute {
 	int numParams;
 	double *gcentral, *gforward, *gbackward;
 	double *hessian;
+	struct hess_struct *hessWorkVector;
 	bool recordDetail;
 	SEXP detail;
 
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
-	void doHessianCalculation(int numChildren, struct hess_struct *hess_work);
+
+	struct calcHessianEntry {
+		omxComputeNumericDeriv &cnd;
+		const int numParams;
+		double *hessian;
+		struct hess_struct *hessWorkVector;
+		calcHessianEntry(omxComputeNumericDeriv *_cnd) :
+			cnd(*_cnd), numParams(cnd.numParams), hessian(cnd.hessian),
+			hessWorkVector(cnd.hessWorkVector)
+		{};
+		int getNumCols() { return numParams; };
+		bool isDone(int rx, int cx) {
+			if (hessian) {
+				return std::isfinite(hessian[cx*numParams + rx]);
+			} else {
+				return rx != cx;  // Only interested in gradient
+			}
+		}
+		void onDiag(int ii) {
+			int threadId = omx_absolute_thread_num();
+			cnd.omxEstimateHessianOnDiagonal(ii, hessWorkVector + threadId);
+		}
+		void offDiag(int rx, int cx) {
+			int threadId = omx_absolute_thread_num();
+			cnd.omxEstimateHessianOffDiagonal(rx, cx, hessWorkVector + threadId);
+		}
+		void reportProgress(int numDone) {
+			std::string detail = std::to_string(numDone) + "/" +
+				std::to_string(triangleLoc1(numParams));
+			Global->reportProgress1(cnd.name, detail);
+		}
+	};
 
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-};
-
-struct hess_struct {
-	int probeCount;
-	double* Haprox;
-	double *Gcentral;
-	double *Gforward;
-	double *Gbackward;
-	FitContext *fc;
-	omxMatrix* fitMatrix;
-
-	~hess_struct() {
-		delete [] Haprox;
-		delete [] Gcentral;
-		delete [] Gforward;
-		delete [] Gbackward;
-	}
 };
 
 void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc)
@@ -230,59 +262,13 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 	hessian[l*numParams+i] = Haprox[0];
 }
 
-void omxComputeNumericDeriv::doHessianCalculation(int numChildren, struct hess_struct *hess_work)
-{
-	// gcc does not detect the usage of the following variable
-	// in the omp parallel pragma, and marks the variable as
-	// unused, so the attribute is placed to silence the Rf_warning.
-    int __attribute__((unused)) parallelism = (numChildren == 0) ? 1 : numChildren;
-
-	std::vector<std::pair<int,int> > todo;
-	if (wantHessian) {
-		todo.reserve(numParams * (numParams-1) / 2);
-		for(int i = 0; i < numParams; i++) {
-			for(int j = i - 1; j >= 0; j--) {
-				if (std::isfinite(hessian[i*numParams + j])) continue;
-				todo.push_back(std::make_pair(i,j));
-			}
-		}
-	}
-
-	if (numChildren) {
-#pragma omp parallel for num_threads(parallelism)
-		for(int i = 0; i < numParams; i++) {
-			if (hessian && std::isfinite(hessian[i*numParams + i])) continue;
-			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-			omxEstimateHessianOnDiagonal(i, hess_work + threadId);
-		}
-
-		reportProgress(hess_work->fc);
-
-#pragma omp parallel for num_threads(parallelism)
-		for(int i = 0; i < int(todo.size()); i++) {
-			int threadId = (numChildren < 2) ? 0 : omx_absolute_thread_num();
-			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work + threadId);
-		}
-	} else {
-		for(int i = 0; i < numParams; i++) {
-			reportProgress(hess_work->fc);
-			if (hessian && std::isfinite(hessian[i*numParams + i])) continue;
-			omxEstimateHessianOnDiagonal(i, hess_work);
-		}
-		for(int i = 0; i < int(todo.size()); i++) {
-			reportProgress(hess_work->fc);
-			omxEstimateHessianOffDiagonal(todo[i].first, todo[i].second, hess_work);
-		}
-	}
-}
-
 void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
 	if (state->conListX.size()) {
-		Rf_error("Cannot compute estimated Hessian with constraints (%d constraints found)",
-		      state->conListX.size());
+		mxThrow("%s: cannot proceed with constraints (%d constraints found)",
+			name, int(state->conListX.size()));
 	}
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
@@ -291,7 +277,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("iterations")));
 	numIter = INTEGER(slotValue)[0];
-	if (numIter < 2) Rf_error("stepSize must be 2 or greater");
+	if (numIter < 2) mxThrow("stepSize must be 2 or greater");
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("parallel")));
 	parallel = Rf_asLogical(slotValue);
@@ -309,7 +295,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("stepSize")));
 	stepSize = GRADIENT_FUDGE_FACTOR(3.0) * REAL(slotValue)[0];
-	if (stepSize <= 0) Rf_error("stepSize must be positive");
+	if (stepSize <= 0) mxThrow("stepSize must be positive");
 
 	knownHessian = NULL;
 	{
@@ -361,7 +347,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if (wantHessian) newWanted |= FF_COMPUTE_HESSIAN;
 
 	if (numParams != 0 && numParams != int(fc->numParam)) {
-		Rf_error("%s: number of parameters changed from %d to %d",
+		mxThrow("%s: number of parameters changed from %d to %d",
 			 name, numParams, int(fc->numParam));
 	}
 
@@ -380,21 +366,19 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	// TODO: Adjust algorithm to account for constraints
 	// TODO: Allow more than one hessian value for calculation
 
-	int numChildren = 0;
-	if (parallel && !fc->openmpUser) numChildren = fc->childList.size();
+	int numChildren = 1;
+	if (parallel && !fc->openmpUser && fc->childList.size()) numChildren = fc->childList.size();
 
 	if (!fc->haveReferenceFit(fitMat)) return;
 
 	minimum = fc->fit;
 
-	struct hess_struct* hess_work;
-	if (numChildren < 2) {
-		hess_work = new hess_struct[1];
-		omxPopulateHessianWork(hess_work, fc);
+	hessWorkVector = new hess_struct[numChildren];
+	if (numChildren == 1) {
+		omxPopulateHessianWork(hessWorkVector, fc);
 	} else {
-		hess_work = new hess_struct[numChildren];
 		for(int i = 0; i < numChildren; i++) {
-			omxPopulateHessianWork(hess_work + i, fc->childList[i]);
+			omxPopulateHessianWork(hessWorkVector + i, fc->childList[i]);
 		}
 	}
 	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
@@ -453,17 +437,15 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	Gc.setConstant(NA_REAL);
 	Gb.setConstant(NA_REAL);
 
-	doHessianCalculation(numChildren, hess_work);
+	calcHessianEntry che(this);
+	CovEntrywiseParallel(numChildren, che);
 
-	if (numChildren < 2) {
-		totalProbeCount = hess_work->probeCount;
-	} else {
-		for(int i = 0; i < numChildren; i++) {
-			struct hess_struct *hw = hess_work + i;
-			totalProbeCount += hw->probeCount;
-		}
+	for(int i = 0; i < numChildren; i++) {
+		struct hess_struct *hw = hessWorkVector + i;
+		totalProbeCount += hw->probeCount;
 	}
-	delete [] hess_work;
+	delete [] hessWorkVector;
+	if (isErrorRaised()) return;
 
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 	double gradNorm = 0.0;
@@ -506,7 +488,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRList *result)
 {
-	if (!numParams || !(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+	if (!numParams || !(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_GRADIENT))) return;
 
 	if (wantHessian) {
 		SEXP calculatedHessian;

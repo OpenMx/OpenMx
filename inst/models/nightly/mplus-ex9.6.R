@@ -83,11 +83,11 @@ if (1) {
 	    mxComputeReportExpectation()
 	))
 
-	wModel$expectation$.rampart <- 2L
+	wModel$expectation$.rampartCycleLimit <- 2L
 #	wModel$expectation$scaleOverride <- c(6, 1)
 	rotated <- mxRun(mxModel(wModel, plan))
 	
-	wModel$expectation$.rampart <- 0L
+	wModel$expectation$.rampartCycleLimit <- 0L
 	square <- mxRun(mxModel(wModel, plan))
 
 	ex <- rotated$expectation

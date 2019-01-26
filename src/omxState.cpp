@@ -254,7 +254,7 @@ omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 
 omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 {
-	if (!element->hasMatrixNumber) Rf_error("lookupDuplicate without matrix number");
+	if (!element->hasMatrixNumber) mxThrow("lookupDuplicate without matrix number");
 	return getMatrixFromIndex(element->matrixNumber);
 }
 
@@ -423,27 +423,45 @@ void omxState::initialRecalc(FitContext *fc)
 	}
 }
 
-void omxState::invalidateCache()
+void StateInvalidator::doData()
 {
-	for (int ax=0; ax < int(dataList.size()); ++ax) {
-		auto d1 = dataList[ax];
+	for (int ax=0; ax < int(st.dataList.size()); ++ax) {
+		auto d1 = st.dataList[ax];
 		d1->invalidateCache();
 	}
-	for (int ax=0; ax < (int) matrixList.size(); ++ax) {
-		omxMatrix *matrix = matrixList[ax];
+}
+
+void StateInvalidator::doMatrix()
+{
+	for (int ax=0; ax < (int) st.matrixList.size(); ++ax) {
+		omxMatrix *matrix = st.matrixList[ax];
 		omxMarkDirty(matrix);
 	}
-	for(size_t ex = 0; ex < expectationList.size(); ex++) {
-		expectationList[ex]->invalidateCache();
+}
+
+void StateInvalidator::doExpectation()
+{
+	for(size_t ex = 0; ex < st.expectationList.size(); ex++) {
+		st.expectationList[ex]->invalidateCache();
 	}
-	for (int ax=0; ax < (int) algebraList.size(); ++ax) {
-		omxMatrix *matrix = algebraList[ax];
+}
+
+void StateInvalidator::doAlgebra()
+{
+	for (int ax=0; ax < (int) st.algebraList.size(); ++ax) {
+		omxMatrix *matrix = st.algebraList[ax];
 		if (!matrix->fitFunction) {
 			omxMarkDirty(matrix);
 		} else {
 			matrix->fitFunction->invalidateCache();
 		}
 	}
+}
+
+void omxState::invalidateCache()
+{
+	StateInvalidator si(*this);
+	si();
 }
 
 omxState::~omxState()
@@ -578,7 +596,7 @@ static ssize_t mxLogWriteSynchronous(const char *outBuf, int len)
 void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
-	if (len == 0) Rf_error("Attempt to log 0 characters with mxLogBig");
+	if (len == 0) mxThrow("Attempt to log 0 characters with mxLogBig");
 
 	std::string fullstr;
 	if (mxLogCurrentRow == -1) {
@@ -591,7 +609,7 @@ void mxLogBig(const std::string &str)   // thread-safe
 	
 	const char *outBuf = fullstr.c_str();
 	ssize_t wrote = mxLogWriteSynchronous(outBuf, len);
-	if (wrote != len) Rf_error("mxLogBig only wrote %d/%d, errno %d", wrote, len, errno);
+	if (wrote != len) mxThrow("mxLogBig only wrote %d/%d, errno %d", int(wrote), int(len), errno);
 }
 
 void mxLog(const char* msg, ...)   // thread-safe
@@ -613,7 +631,7 @@ void mxLog(const char* msg, ...)   // thread-safe
 	}
 
 	ssize_t wrote = mxLogWriteSynchronous(buf2, len);
-	if (wrote != len) Rf_error("mxLog only wrote %d/%d, errno=%d", wrote, len, errno);
+	if (wrote != len) mxThrow("mxLog only wrote %d/%d, errno=%d", int(wrote), len, errno);
 }
 
 void omxGlobal::reportProgressStr(std::string &str)
@@ -727,6 +745,21 @@ void omxRaiseErrorf(const char* msg, ...)
 
         // mxLog takes a lock too, so call it outside of critical section
         if (overflow) mxLog("Too many errors: %s", str.c_str());
+}
+
+void mxThrow(const char* msg, ...)
+{
+	std::string str;
+	va_list ap;
+	va_start(ap, msg);
+	string_vsnprintf(msg, ap, str);
+	va_end(ap);
+
+	if(OMX_DEBUG) {
+		mxLog("mxThrow: %s", str.c_str());
+	}
+
+	throw std::runtime_error(str);
 }
 
 const char *omxGlobal::getBads()

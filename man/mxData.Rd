@@ -26,7 +26,7 @@
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
-          verbose = 0L)
+          verbose = 0L, .parallel=TRUE)
 }
 
 \arguments{
@@ -45,7 +45,9 @@
      identify rows (default NA)}
    \item{weight}{The column name containing row weights}
    \item{frequency}{The column name containing row frequencies}
-\item{verbose}{level of diagnostic output}
+   \item{verbose}{level of diagnostic output}
+   \item{.parallel}{logical. Whether to compute observed summary
+   statistics in parallel.}
 }
 
 \details{

@@ -196,7 +196,7 @@ void omxExpectation::loadFromR()
 
 void omxExpectation::generateData(FitContext *, MxRList &out)
 {
-	Rf_error("%s: generateData not implemented for '%s'", name, expType);
+	mxThrow("%s: generateData not implemented for '%s'", name, expType);
 }
 
 omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
@@ -277,7 +277,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 		}
 	}
 
-	if (!expect) Rf_error("expectation '%s' not recognized", expType);
+	if (!expect) mxThrow("expectation '%s' not recognized", expType);
 
 	expect->currentState = os;
 	expect->canDuplicate = true;
@@ -310,7 +310,7 @@ bool omxExpectation::loadDefVars(int row)
 		omxDefinitionVar &dv = data->defVars[k];
 		double newDefVar = omxDoubleDataElement(data, row, dv.column);
 		if(ISNA(newDefVar)) {
-			Rf_error("Error: NA value for a definition variable is Not Yet Implemented.");
+			mxThrow("Error: NA value for a definition variable is Not Yet Implemented.");
 		}
 		changed |= dv.loadData(currentState, newDefVar);
 	}
@@ -322,7 +322,7 @@ int omxExpectation::numSummaryStats()
 {
 	omxMatrix *cov = getComponent("cov");
 	if (!cov) {
-		Rf_error("%s::numSummaryStats is not implemented (for object '%s')", expType, name);
+		mxThrow("%s::numSummaryStats is not implemented (for object '%s')", expType, name);
 	}
 
 	omxMatrix *mean = getComponent("means");
@@ -386,7 +386,7 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, omxMat
 		}
 		return;
 	}
-	if (!mean) Rf_error("ordinal indicators and no mean vector");
+	if (!mean) mxThrow("ordinal indicators and no mean vector");
 
 	EigenVectorAdaptor Emean(mean);
 	EigenMatrixAdaptor Eth(thr);
@@ -436,7 +436,7 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 
 	omxMatrix *cov = getComponent("cov");
 	if (!cov) {
-		Rf_error("%s::asVector is not implemented (for object '%s')", expType, name);
+		mxThrow("%s::asVector is not implemented (for object '%s')", expType, name);
 	}
 
 	normalToStdVector(cov, getComponent("means"), getComponent("slope"), thresholdsMat,

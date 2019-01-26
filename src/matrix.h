@@ -61,8 +61,8 @@ double solvecond(Eigen::MatrixBase<T1> & inMat)
     Eigen::ArrayXd work(lwork);
     F77_CALL(dgesdd)(&JOBZ, &result_row, &result_col, result.data(), &result_row, sv.data(), u.data(), &result_row, vt.data(), &result_col, work.data(), &lwork, iwork.data(), &l);
     
-    if (l < 0) Rf_error("the i-th argument had an illegal value");
-    else if (l > 0) Rf_error("DBDSDC did not converge, updating process failed.");
+    if (l < 0) mxThrow("the i-th argument had an illegal value");
+    else if (l > 0) mxThrow("DBDSDC did not converge, updating process failed.");
     else
     {
         if ((sv == 0).count()) return std::numeric_limits<double>::infinity();

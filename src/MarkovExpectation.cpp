@@ -85,7 +85,7 @@ void MarkovExpectation::init()
 	} else if (strEQ(scaleName, "none")) {
 		scale = SCALE_NONE;
 	} else {
-		Rf_error("%s: unknown scale '%s'", name, scaleName);
+		mxThrow("%s: unknown scale '%s'", name, scaleName);
 	}
 
 	scaledInitial = omxInitMatrix(1, 1, TRUE, currentState);

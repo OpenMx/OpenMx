@@ -23,7 +23,7 @@ _mahalanobis(char *err, int dim, double *loc, double *center, double *origCov)
 	int info = MatrixSolve(covMat, icovMat, true); // can optimize for symmetry TODO
 	if (info) {
 		snprintf(err, ERROR_LEN, "Sigma is singular and cannot be inverted");
-		return nan("Rf_error");
+		return nan("mxThrow");
 	}
 
 	std::vector<double> half(dim);
@@ -44,7 +44,7 @@ mahalanobis(int dim, double *loc, double *center, double *origCov)
 	char err[ERROR_LEN];
 	err[0] = 0;
 	double ret = _mahalanobis(err, dim, loc, center, origCov);
-	if (err[0]) Rf_error("%s", err);
+	if (err[0]) mxThrow("%s", err);
 	return ret;
 }
 
@@ -83,7 +83,7 @@ _dmvnorm(char *err, int dim, double *loc, double *mean, double *origSigma)
 			 &optliWork, &liwork, &info);
 	if (info != 0) {
 		snprintf(err, ERROR_LEN, "dsyevr failed when requesting work space size");
-		return nan("Rf_error");
+		return nan("mxThrow");
 	}
 
 	lwork = optlWork;
@@ -96,15 +96,15 @@ _dmvnorm(char *err, int dim, double *loc, double *mean, double *origSigma)
 			 work.data(), &lwork, iwork.data(), &liwork, &info);
 	if (info < 0) {
 		snprintf(err, ERROR_LEN, "Arg %d is invalid", -info);
-		return nan("Rf_error");
+		return nan("mxThrow");
 	}
 	if (info > 0) {
-		snprintf(err, ERROR_LEN, "dsyevr: internal Rf_error");
-		return nan("Rf_error");
+		snprintf(err, ERROR_LEN, "dsyevr: internal mxThrow");
+		return nan("mxThrow");
 	}
 	if (m < dim) {
 		snprintf(err, ERROR_LEN, "Sigma not of full rank");
-		return nan("Rf_error");
+		return nan("mxThrow");
 	}
 
 	for (int dx=0; dx < dim; dx++) dist += log(w[dx]);
@@ -118,7 +118,7 @@ dmvnorm(int dim, double *loc, double *mean, double *sigma)
 	char err[ERROR_LEN];
 	err[0] = 0;
 	double ret = _dmvnorm(err, dim, loc, mean, sigma);
-	if (err[0]) Rf_error("%s", err);
+	if (err[0]) mxThrow("%s", err);
 	return ret;
 }
 

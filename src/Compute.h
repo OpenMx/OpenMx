@@ -214,7 +214,7 @@ class FitContext {
 		    inform != INFORM_UNCONVERGED_OPTIMUM) {
 			return false;
 		}
-		Rf_error("%s: reference fit is not finite", fitMat->name());
+		mxThrow("%s: reference fit is not finite", fitMat->name());
 	};
 	~FitContext();
 	

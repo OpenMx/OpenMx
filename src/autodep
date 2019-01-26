@@ -8,15 +8,15 @@ ComputeGD.o: Makevars ComputeGD.cpp omxDefines.h \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
  omxNPSOLSpecific.h omxExportBackendState.h omxCsolnp.h Compute.h \
- glue.h omxNLopt.h npsolswitch.h ComputeSD.h matrix.h ComputeGD.h \
- finiteDifferences.h \
+ glue.h omxNLopt.h finiteDifferences.h npsolswitch.h ComputeSD.h matrix.h \
+ ComputeGD.h \
  asa.h asa_usr_asa.h EnableWarnings.h
 ComputeNM.o: Makevars ComputeNM.cpp omxDefines.h \
  omxState.h  \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
- omxExportBackendState.h omxNLopt.h Compute.h \
- glue.h ComputeGD.h finiteDifferences.h ComputeNM.h \
+ omxExportBackendState.h omxNLopt.h finiteDifferences.h Compute.h \
+ glue.h ComputeGD.h ComputeNM.h \
  nlopt.h nlopt-internal.h nlopt-util.h EnableWarnings.h
 ComputeNR.o: Makevars ComputeNR.cpp omxState.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
@@ -65,13 +65,6 @@ matrix.o: Makevars matrix.cpp omxDefines.h \
   omxMatrix.h EnableWarnings.h
 merge.o: Makevars merge.cpp merge.h EnableWarnings.h
 nanotimer.o: Makevars nanotimer.cpp nanotimer_gettime.h
-omxNLopt.o: Makevars omxNLopt.cpp omxDefines.h \
- omxState.h  \
-  omxMatrix.h omxAlgebra.h \
- omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
- glue.h omxNLopt.h Compute.h \
- ComputeGD.h finiteDifferences.h ComputeNM.h \
- nlopt.h slsqp.h nlopt-util.h nlopt-internal.h EnableWarnings.h
 omxAlgebra.o: Makevars omxAlgebra.cpp omxMatrix.h \
   omxDefines.h \
  omxFitFunction.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
@@ -85,10 +78,11 @@ omxAlgebraFitFunction.o: Makevars omxAlgebraFitFunction.cpp omxFitFunction.h \
 omxData.o: Makevars omxData.cpp omxData.h omxDefines.h \
  omxAlgebra.h omxSymbolTable.h omxMatrix.h algebraOp.h omxState.h \
  omxExpectation.h omxFitFunction.h glue.h omxExpectationBA81.h ba81quad.h \
- dmvnorm.h EnableWarnings.h nr.h omxBVN.h
+ dmvnorm.h matrix.h nr.h omxBVN.h omxNLopt.h finiteDifferences.h \
+ CovEntrywisePar.h ConcurrentQueue.h EnableWarnings.h
 omxExpectation.o: Makevars omxExpectation.cpp omxExpectation.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxFitFunction.h omxData.h EnableWarnings.h
+ omxFitFunction.h omxData.h glue.h EnableWarnings.h
 omxExpectationBA81.o: Makevars omxExpectationBA81.cpp  \
   omxExpectationBA81.h \
  omxExpectation.h omxDefines.h \
@@ -133,7 +127,7 @@ omxHessianCalculation.o: Makevars omxHessianCalculation.cpp omxDefines.h \
   omxMatrix.h omxAlgebra.h \
  omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
  omxNPSOLSpecific.h omxExportBackendState.h Compute.h \
- omxBuffer.h EnableWarnings.h
+ CovEntrywisePar.h ConcurrentQueue.h EnableWarnings.h
 omxImportFrontendState.o: Makevars omxImportFrontendState.cpp omxDefines.h \
  glue.h omxState.h  \
   omxMatrix.h omxAlgebra.h \
@@ -143,7 +137,8 @@ omxImportFrontendState.o: Makevars omxImportFrontendState.cpp omxDefines.h \
 omxLISRELExpectation.o: Makevars omxLISRELExpectation.cpp omxExpectation.h \
  omxDefines.h  \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxFitFunction.h omxData.h omxLISRELExpectation.h EnableWarnings.h
+ omxFitFunction.h omxData.h omxLISRELExpectation.h Compute.h \
+ glue.h EnableWarnings.h
 omxMLFitFunction.o: Makevars omxMLFitFunction.cpp omxDefines.h \
  multi_normal_sufficient.hpp omxExpectation.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
@@ -153,8 +148,16 @@ omxMatrix.o: Makevars omxMatrix.cpp omxMatrix.h  \
   omxDefines.h \
  matrix.h \
  omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
- omxData.h omxFitFunction.h Compute.h \
+ omxData.h omxFitFunction.h \
+ Compute.h \
  glue.h minicsv.h EnableWarnings.h
+omxNLopt.o: Makevars omxNLopt.cpp omxDefines.h \
+ omxState.h  \
+  omxMatrix.h omxAlgebra.h \
+ omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h omxFitFunction.h \
+ glue.h omxNLopt.h finiteDifferences.h Compute.h \
+ ComputeGD.h ComputeNM.h \
+ nlopt.h slsqp.h nlopt-util.h nlopt-internal.h EnableWarnings.h
 omxNPSOLSpecific.o: Makevars omxNPSOLSpecific.cpp omxState.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h omxNPSOLSpecific.h omxImportFrontendState.h \

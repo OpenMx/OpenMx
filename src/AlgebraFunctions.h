@@ -255,7 +255,7 @@ static void ensureElemConform(const char *opName, FitContext *fc, omxMatrix **ma
 			EigenMatrixAdaptor m(mat1);
 			detail += mxStringifyMatrix(mat1->name(), m, empty);
 		}
-		Rf_error("Element-wise '%s' not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
+		mxThrow("Element-wise '%s' not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
 			 opName, mat0->name(), mat0->rows, mat0->cols,
 			 mat1->name(), mat1->rows, mat1->cols, detail.c_str());
 	}
@@ -271,7 +271,7 @@ static void omxBroadcast(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 	}
 
 	if (src->rows != 1 || src->cols != 1) {
-		Rf_error("Don't know how to broadcast from %dx%d source "
+		mxThrow("Don't know how to broadcast from %dx%d source "
 			 "matrix '%s' to %dx%d result matrix '%s'",
 			 src->rows, src->cols, src->name(),
 			 result->rows, result->cols, result->name());
@@ -1920,7 +1920,7 @@ static void omxMatrixVech(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 	if(counter != size) {
 		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal Rf_error in vech().\n");
+		sprintf(errstr, "Internal mxThrow in vech().\n");
 		omxRaiseError(errstr);
 		free(errstr);
 	}
@@ -1953,7 +1953,7 @@ static void omxMatrixVechs(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 	if(counter != size) {
 		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal Rf_error in vechs().\n");
+		sprintf(errstr, "Internal mxThrow in vechs().\n");
 		omxRaiseError(errstr);
 		free(errstr);
 	}
@@ -2860,7 +2860,7 @@ static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	}
 
 	omxMatrix* inMat = matList[0];
-	if (inMat->rows != inMat->cols) Rf_error("omxExponential requires a symmetric matrix");
+	if (inMat->rows != inMat->cols) mxThrow("omxExponential requires a symmetric matrix");
 	omxEnsureColumnMajor(inMat);
 	omxResizeMatrix(result, inMat->rows, inMat->cols);
 	result->colMajor = true;
@@ -2871,7 +2871,7 @@ static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omx
 static void mxMatrixLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	if (inMat->rows != inMat->cols) Rf_error("logm requires a symmetric matrix");
+	if (inMat->rows != inMat->cols) mxThrow("logm requires a symmetric matrix");
 	omxEnsureColumnMajor(inMat);
 	omxResizeMatrix(result, inMat->rows, inMat->cols);
 	result->colMajor = true;
@@ -3015,10 +3015,10 @@ void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
 template <typename T> 
 void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
 {
-	if (origCov->rows != origCov->cols) Rf_error("'%s' must be square", origCov->name());
-	if (origCov->rows != int(origCov->rownames.size())) Rf_error("'%s' must have dimnames", origCov->name());
-	if (newCov->rows != newCov->cols) Rf_error("'%s' must be square", newCov->name());
-	if (newCov->rows != int(newCov->rownames.size())) Rf_error("'%s' must have dimnames", newCov->name());
+	if (origCov->rows != origCov->cols) mxThrow("'%s' must be square", origCov->name());
+	if (origCov->rows != int(origCov->rownames.size())) mxThrow("'%s' must have dimnames", origCov->name());
+	if (newCov->rows != newCov->cols) mxThrow("'%s' must be square", newCov->name());
+	if (newCov->rows != int(newCov->rownames.size())) mxThrow("'%s' must have dimnames", newCov->name());
 	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
 		bool found = false;
 		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
@@ -3076,9 +3076,9 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	omxMatrix *origCov = matList[0];
 	omxMatrix *newCov = matList[1];
 	omxMatrix *origMean = matList[2];
-	if (origMean->cols > 1) Rf_error("'%s' must be a column vector", origMean->name());
+	if (origMean->cols > 1) mxThrow("'%s' must be a column vector", origMean->name());
 	if (origMean->rows != origCov->rows) {
-		Rf_error("'%s' of dimension %d must have same dimension as '%s' (%d)",
+		mxThrow("'%s' of dimension %d must have same dimension as '%s' (%d)",
 			 origMean->name(), origMean->rows, origCov->name(), origCov->rows);
 	}
 	EigenMatrixAdaptor EorigCov(origCov);

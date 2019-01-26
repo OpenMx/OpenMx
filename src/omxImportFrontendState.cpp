@@ -177,7 +177,7 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 	computeList.push_back(compute);
 
 	if (Global->computeLoopContext.size())
-		Rf_error("computeLoopContext imbalance in initFromFrontend");
+		mxThrow("computeLoopContext imbalance in initFromFrontend");
 }
 
 // This is called at initialization and when we copy
@@ -274,13 +274,13 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 			if(OMX_DEBUG) { mxLog("Opening File: %s", fullname); }
 			oC->file = fopen(fullname, "w");
 			if(!oC->file) {
-				Rf_error("Unable to open file %s for checkpoint storage: %s",
+				mxThrow("Unable to open file %s for checkpoint storage: %s",
 					 fullname, strerror(errno));
 			}
 			break;}
 
 		case OMX_CONNECTION_CHECKPOINT:{
-			Rf_error("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
+			mxThrow("Warning NYI: Socket checkpoints Not Yet Implemented.\n");
 			break;}
 		}
 
@@ -293,7 +293,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 		} else if (strEQ(units, "evaluations")) {
 			oC->evalsPerCheckpoint = Rf_asInteger(VECTOR_ELT(nextLoc, next++));
 		} else {
-			Rf_error("In 'Checkpoint Units' model option, '%s' not recognized", units);
+			mxThrow("In 'Checkpoint Units' model option, '%s' not recognized", units);
 		}
 		Global->checkpointList.push_back(oC);
 	}

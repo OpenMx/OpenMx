@@ -128,7 +128,7 @@ if (0) {
 }
 
 omxCheckCloseEnough(pt1$output$fit, pt2$output$fit, 1e-7)
-omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-6)
+omxCheckCloseEnough(pt1$output$gradient, pt2$output$gradient, 1e-2)
 
 student <- mxRun(student)
 if (!more.noise) {
