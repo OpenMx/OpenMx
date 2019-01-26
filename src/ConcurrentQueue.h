@@ -46,7 +46,6 @@ class ConcurrentDeque
   {
     deque_.push_back(item);
   }
-  size_t size() { return deque_.size(); }
   ConcurrentDeque()=default;
   ConcurrentDeque(const ConcurrentDeque&) = delete;            // disable copying
   ConcurrentDeque& operator=(const ConcurrentDeque&) = delete; // disable assignment

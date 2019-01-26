@@ -23,13 +23,14 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 	int numCols = ce.getNumCols();
 	int numColsStar = triangleLoc1(numCols);
 	// Use type 'long' to ensure that writes don't interfere with each other
+	Eigen::Array<long, Eigen::Dynamic, 1> thrDone(numThreads);
+	thrDone.setZero();
 	// isDone might behave badly so we copy it and track status ourselves
 	Eigen::Array<long, Eigen::Dynamic, 1> diagDone(numCols);
 	for (int cx=0; cx < numCols; ++cx) {
 		diagDone[cx] = ce.isDone(cx,cx);
 		todo.push_nolock(std::make_pair(cx,cx));
 	}
-	int remain = numColsStar;
 #pragma omp parallel num_threads(numThreads)
 	while (1) {
 		int tid = omp_get_thread_num();
@@ -50,8 +51,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			}
 			for (int rx=0; rx < t1.first; ++rx) {
 				if (ce.isDone(rx, t1.first)) {
-#pragma omp atomic
-					remain -= 1; // switch back to thrDone TODO
+					thrDone[tid] += 1;
 					continue;
 				}
 				if (diagDone(rx)) {
@@ -87,15 +87,14 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			}
 			todo.push_back(top);
 		}
-#pragma omp atomic
-		remain -= 1;
+		thrDone[tid] += 1;
+		int thrDoneSum = thrDone.sum();
 		if (tid == 0) {
-			ce.reportProgress(numColsStar - remain);
+			ce.reportProgress(thrDoneSum);
 			bool gotInt = omxGlobal::interrupted();
 			if (gotInt && debug) mxLog("interrupt");
 		}
-		if (debug) mxLog(". %d/%d %d/%d", remain, numColsStar, int(diagDone.sum()), numCols);
-		if (remain==0 || isErrorRaised()) {
+		if (thrDoneSum == numColsStar || isErrorRaised()) {
 			for (int tx=0; tx < numThreads; ++tx) {
 				todo.push_front(std::make_pair(-1, tx));
 			}
