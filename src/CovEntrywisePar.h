@@ -57,12 +57,12 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			}
 			if (debug) mxLog("sentinal queued %d (%d/%d)", progress,
 			      int(progress + thrDone.sum()), numColsStar);
-			if (thrDone.sum() == numColsStar) {
-				for (int tx=0; tx < numThreads; ++tx) {
-					todo.push_front(std::make_pair(-1, tx));
-				}
-			} else {
+			if (int(progress + thrDone.sum()) < numColsStar) {
 				todo.push_back(std::make_pair(-1, -1));
+			} else {
+				for (int tx=0; tx < numThreads; ++tx) {
+					todo.push_back(std::make_pair(-1, tx));
+				}
 			}
 			continue;
 		}
@@ -111,6 +111,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			if (gotInt && debug) mxLog("interrupt");
 		}
 		if (isErrorRaised()) {
+			// push_front to stop ASAP
 			for (int tx=0; tx < numThreads; ++tx) {
 				todo.push_front(std::make_pair(-1, tx));
 			}
