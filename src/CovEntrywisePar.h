@@ -74,8 +74,9 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 		while (delayed.size()) {
 			std::pair<int,int> top;
 			{
-				std::unique_lock<std::mutex> mlock(delayedMutex);
-				if (delayed.size() == 0) break;
+				std::unique_lock<std::mutex>
+					mlock(delayedMutex,std::defer_lock);
+				if (!mlock.try_lock() || delayed.size() == 0) break;
 				top = delayed.top();
 				if (debug) mxLog("delayed.top is (%d,%d) pending %d",
 						 top.first, top.second, int(delayed.size()));
