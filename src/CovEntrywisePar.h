@@ -35,8 +35,38 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 	while (1) {
 		int tid = omp_get_thread_num();
 		auto t1 = todo.pop();
-		if (t1.first < 0) break;
 		if (debug) mxLog("todo.pop -> %d,%d", t1.first, t1.second);
+		if (t1.first == -1 && t1.second == -1) {
+			int progress = 0;
+			while (delayed.size()) {
+				std::pair<int,int> top;
+				{
+					std::unique_lock<std::mutex> mlock(delayedMutex);
+					if (delayed.size() == 0) break;
+					top = delayed.top();
+					if (debug) mxLog("delayed.top is (%d,%d) pending %d",
+							 top.first, top.second, int(delayed.size()));
+					if (diagDone[top.first] && diagDone[top.second]) {
+						delayed.pop();
+						if (debug) mxLog("todo.push(%d,%d) %d left",
+								 top.first, top.second, int(delayed.size()));
+					} else break;
+				}
+				todo.push_back(top);
+				progress += 1;
+			}
+			if (debug) mxLog("sentinal queued %d (%d/%d)", progress,
+			      int(progress + thrDone.sum()), numColsStar);
+			if (thrDone.sum() == numColsStar) {
+				for (int tx=0; tx < numThreads; ++tx) {
+					todo.push_front(std::make_pair(-1, tx));
+				}
+			} else {
+				todo.push_back(std::make_pair(-1, -1));
+			}
+			continue;
+		}
+		if (t1.first < 0) break;
 		if (t1.first == t1.second) {
 			if (!diagDone[t1.first]) {
 				try {
@@ -62,6 +92,9 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 					if (debug) mxLog("delay %d %d", rx, t1.second);
 				}
 			}
+			if (t1.first == numCols-1) {
+				todo.push_back(std::make_pair(-1, -1));
+			}
 		} else {
 			try {
 				if (!isErrorRaised()) ce.offDiag(t1.first, t1.second);
@@ -71,30 +104,13 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				omxRaiseErrorf("CovEntrywiseParallel: unknown exception");
 			}
 		}
-		while (delayed.size()) {
-			std::pair<int,int> top;
-			{
-				std::unique_lock<std::mutex> mlock(delayedMutex);
-				if (delayed.size() == 0) break;
-				top = delayed.top();
-				if (debug) mxLog("delayed.top is (%d,%d) pending %d",
-						 top.first, top.second, int(delayed.size()));
-				if (diagDone[top.first] && diagDone[top.second]) {
-					delayed.pop();
-					if (debug) mxLog("todo.push(%d,%d) %d left",
-							 top.first, top.second, int(delayed.size()));
-				} else break;
-			}
-			todo.push_back(top);
-		}
 		thrDone[tid] += 1;
-		int thrDoneSum = thrDone.sum();
 		if (tid == 0) {
-			ce.reportProgress(thrDoneSum);
+			ce.reportProgress(thrDone.sum());
 			bool gotInt = omxGlobal::interrupted();
 			if (gotInt && debug) mxLog("interrupt");
 		}
-		if (thrDoneSum == numColsStar || isErrorRaised()) {
+		if (isErrorRaised()) {
 			for (int tx=0; tx < numThreads; ++tx) {
 				todo.push_front(std::make_pair(-1, tx));
 			}
