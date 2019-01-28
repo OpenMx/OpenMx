@@ -1,3 +1,10 @@
+# OpenMx 2.12.X FUTURE 2019 (R 3.5.2))
+* IMPROVED: parallel processing improved by addition of ConcurrentQueue.
+* IMPROVED: WLS moved to the backend: 10x faster!
+
+# OpenMx 2.12.1 (Jan 20 2019 (R 3.5.2))
+* Bug fix to definition variable handling in multilevel models (v2.11.5-2-g7ef03e3fe)
+
 # OpenMx 2.11.4 (September 24 2018 (R 3.5.1))
 * PARTYTIME:  Appears to be passing compiling for MacOS on CRAN !! 
 * NEW: `mxModelAverage` function do compute parameter estimates that reflect the values found in a range of models that contain the parameter.
