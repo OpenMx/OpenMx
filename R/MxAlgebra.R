@@ -35,11 +35,13 @@ setClass(Class = "MxAlgebra",
 	    result = "matrix",
 	    joinModel = "MxCharOrNumber",
 	    joinKey = "MxCharOrNumber",
-	    verbose= "integer"
+	    verbose= "integer",
+	    initial = "matrix"
 	))
 		
 setMethod("initialize", "MxAlgebra",
-	function(.Object, formula, name, fixed, joinKey, joinModel, verbose) {
+	function(.Object, formula, name, fixed, joinKey, joinModel,
+		 verbose, initial) {
 		.Object@formula <- sys.call(which=-3)[[3]]
 		.Object@name <- name
 		.Object@fixed <- fixed
@@ -47,6 +49,7 @@ setMethod("initialize", "MxAlgebra",
 		.Object@joinKey <- joinKey
 		.Object@joinModel <- joinModel
 		.Object@verbose <- verbose
+		.Object@initial <- initial
 		return(.Object)
 	}
 )
@@ -82,7 +85,8 @@ setReplaceMethod("$", "MxAlgebra",
 setMethod("names", "MxAlgebra", slotNames)
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
-		      joinKey=as.character(NA), joinModel=as.character(NA), verbose=0L) {
+		      joinKey=as.character(NA), joinModel=as.character(NA),
+		      verbose=0L, initial=matrix(as.numeric(NA),1,1)) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxAlgebra does not accept values for the '...' argument")
@@ -91,7 +95,8 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 		name <- imxUntitledName()
 	}
 	imxVerifyName(name, 0)
-	retval <- new("MxAlgebra", NA, name, fixed, joinKey, joinModel, as.integer(verbose))
+	retval <- new("MxAlgebra", NA, name, fixed, joinKey, joinModel,
+		as.integer(verbose), initial)
 	formula <- match.call()$expression
 	if(is.character(formula)){
 		stop("mxAlgebra wants an unquoted expression or formula")
@@ -175,7 +180,8 @@ generateAlgebraHelper <- function(algebra, joinModel, joinKey, matrixNumbers, al
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
-	return(list(algebra@.dimnames, algebra@verbose, joinModel, joinKey, retval))
+	return(list(algebra@.dimnames, algebra@verbose, algebra@fixed,
+		algebra@initial, joinModel, joinKey, retval))
 }
 
 substituteOperators <- function(algebra, name) {
