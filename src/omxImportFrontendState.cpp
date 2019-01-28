@@ -105,19 +105,31 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 			omxMatrix *fm = algebraList[index];
 			omxFillMatrixFromMxFitFunction(fm, index, nextAlgTuple);
 			fm->nameStr = CHAR(STRING_ELT(algListNames, index));
-		} else {								// This is an algebra spec.
+		} else {
+			int tx=0;
 			omxMatrix *amat = algebraList[index];
-			ProtectedSEXP dimnames(VECTOR_ELT(nextAlgTuple, 0));
-			int verbose;
-			{
-				ProtectedSEXP Rverbose(VECTOR_ELT(nextAlgTuple, 1));
-				verbose = Rf_asInteger(Rverbose);
-			}
+			ProtectedSEXP dimnames(VECTOR_ELT(nextAlgTuple, tx++));
+			ProtectedSEXP Rverbose(VECTOR_ELT(nextAlgTuple, tx++));
+			int verbose = Rf_asInteger(Rverbose);
+			ProtectedSEXP Rfixed(VECTOR_ELT(nextAlgTuple, tx++));
+			bool fixed = Rf_asLogical(Rfixed);
+			ProtectedSEXP Rinitial(VECTOR_ELT(nextAlgTuple, tx++));
+			omxMatrix *initial = omxNewMatrixFromRPrimitive0(Rinitial, this, 0, 0);
 			omxFillMatrixFromRPrimitive(amat, NULL, this, 1, index);
-			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, 2), VECTOR_ELT(nextAlgTuple, 3));
-			ProtectedSEXP formula(VECTOR_ELT(nextAlgTuple, 4));
+			amat->setJoinInfo(VECTOR_ELT(nextAlgTuple, tx),
+					  VECTOR_ELT(nextAlgTuple, tx+1));
+			tx += 2;
+			ProtectedSEXP formula(VECTOR_ELT(nextAlgTuple, tx++));
 			std::string name = CHAR(STRING_ELT(algListNames, index));
-			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames, verbose);
+			if (initial) {
+				if (OMX_DEBUG) {
+					omxPrint(initial, name.c_str());
+				}
+				amat->take(initial);
+				omxFreeMatrix(initial);
+			}
+			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames,
+						   verbose, fixed);
 		}
 		if (isErrorRaised()) return;
 	}
