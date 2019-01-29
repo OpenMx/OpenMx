@@ -91,8 +91,6 @@ void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc);
 void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 
-void omxFitFunctionPrint(omxFitFunction *source, const char* d);
-	
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
 
 omxFitFunction *omxInitFIMLFitFunction();
