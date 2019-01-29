@@ -39,6 +39,7 @@ struct omxAlgebra {						// A matrix
 	bool calcDimnames;
 	int verbose;
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
+	bool processing;  // to avoid infinite loops
 
 	const omxAlgebraTableEntry *oate;
 

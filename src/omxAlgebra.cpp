@@ -92,6 +92,8 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
 	
+	if (oa->processing) return;
+	oa->processing = true;
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
 		omxFreeMatrix(oa->algArgs[j]);
@@ -139,6 +141,8 @@ void CheckAST(omxAlgebra *oa, FitContext *fc)
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
 	omxAlgebra *oa = mat->algebra;
+	if (oa->processing) return;
+	oa->processing = true;
 	if (oa->verbose >= 1) mxLog("recompute algebra '%s'", mat->name());
 
 	if (want & FF_COMPUTE_INITIAL_FIT) {
@@ -209,10 +213,12 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 						   Emat.rows(), Emat.cols());
 		mxPrintMat(name.c_str(), Emat.topLeftCorner(nr, nc));
 	}
+	oa->processing = false;
 }
 
 omxAlgebra::omxAlgebra()
 {
+	processing = false;
 	verbose = 0;
 }
 
