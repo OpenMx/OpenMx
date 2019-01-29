@@ -659,7 +659,6 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int rowsRemoved[], int colsRemoved[]
 void omxPrint(omxMatrix *source, const char* d) { 					// Pretty-print a (small) matrix
     if(source == NULL) mxLog("%s is NULL.", d);
 	else if(source->algebra != NULL) omxAlgebraPrint(source->algebra, d);
-	else if(source->fitFunction != NULL) omxFitFunctionPrint(source->fitFunction, d);
 	else omxPrintMatrix(source, d);
 }
 

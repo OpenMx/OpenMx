@@ -306,12 +306,6 @@ void omxCompleteFitFunction(omxMatrix *om)
 	obj->initialized = TRUE;
 }
 
-void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
-	mxLog("(FitFunction, type %s)", off->fitType);
-	omxPrintMatrix(off->matrix, d);
-}
-
-
 /* Helper functions */
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* slotName) {
 	SEXP slotValue;
