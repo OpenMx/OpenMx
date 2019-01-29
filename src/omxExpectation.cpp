@@ -305,6 +305,7 @@ void complainAboutMissingMeans(omxExpectation *off)
 
 bool omxExpectation::loadDefVars(int row)
 {
+	if (!data) return false;
 	bool changed = false;
 	for (int k=0; k < int(data->defVars.size()); ++k) {
 		omxDefinitionVar &dv = data->defVars[k];
