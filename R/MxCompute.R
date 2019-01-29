@@ -1263,6 +1263,39 @@ setMethod("initialize", "MxComputeEM",
 ##' Varadhan, R. & Roland, C. (2008). Simple and globally convergent
 ##' methods for accelerating the convergence of any EM
 ##' algorithm. \emph{Scandinavian Journal of Statistics, 35}, 335-353.
+##' @examples
+##' library(OpenMx)
+##' set.seed(190127)
+##' 
+##' N <- 200
+##' x <- matrix(c(rnorm(N/2,0,1),
+##'               rnorm(N/2,3,1)),ncol=1,dimnames=list(NULL,"x"))
+##' data4mx <- mxData(observed=x,type="raw")
+##' 
+##' class1 <- mxModel("Class1",
+##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,name="Mu"),
+##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,name="Sigma"),
+##' 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames="x"),
+##' 	mxFitFunctionML(vector=T))
+##' 
+##' class2 <- mxRename(class1, "Class2")
+##' 
+##' mm <- mxModel(
+##' 	"Mixture", data4mx, class1, class2,
+##' 	mxAlgebra((1-Posteriors) * Class1.fitfunction, name="PL1"),
+##' 	mxAlgebra(Posteriors * Class2.fitfunction, name="PL2"),
+##' 	mxAlgebra(PL1 + PL2, name="PL"),
+##' 	mxAlgebra(PL2 / PL,  fixed=TRUE,
+##' 	          initial=matrix(runif(N,.4,.6), nrow=N, ncol = 1), name="Posteriors"),
+##' 	mxAlgebra(-2*sum(log(PL)), name="FF"),
+##' 	mxFitFunctionAlgebra(algebra="FF"),
+##' 	mxComputeEM(
+##' 	  estep=mxComputeOnce("Mixture.Posteriors"),
+##' 	  mstep=mxComputeGradientDescent(fitfunction="Mixture.fitfunction")))
+##' 
+##' mm <- mxOption(mm, "Max minutes", 1/20)  # remove this line to find optimum
+##' mmfit <- mxRun(mm)
+##' summary(mmfit)
 mxComputeEM <- function(expectation=NULL, predict=NA_character_, mstep, observedFit="fitfunction", ...,
 			maxIter=500L, tolerance=1e-9, verbose=0L, freeSet=NA_character_,
 			accel="varadhan2008", information=NA_character_, infoArgs=list(), estep=NULL) {
