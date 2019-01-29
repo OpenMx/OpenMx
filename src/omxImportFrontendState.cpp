@@ -210,17 +210,10 @@ void omxState::omxInitialMatrixAlgebraCompute(FitContext *fc)
 		}
 	}
 
-	// We use FF_COMPUTE_INITIAL_FIT because an expectation
-	// could depend on the value of an algebra. However, we
-	// don't mark anything clean because an algebra could
-	// depend on an expectation (via a fit function).
-
 	size_t numMats = matrixList.size();
 	int numAlgs = algebraList.size();
 
 	if(OMX_DEBUG) mxLog("omxInitialMatrixAlgebraCompute(state[%d], ...)", getId());
-
-	setWantStage(FF_COMPUTE_INITIAL_FIT);
 
 	// Need something finite for definition variables to avoid exceptions
 
