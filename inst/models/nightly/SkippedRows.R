@@ -22,7 +22,7 @@ for (condOn in c('ordinal', 'continuous')) {
 #	m1$fitfunction$verbose <- 2L
 	# Need to retry lots of times because it's hard to take the
 	# gradient with the same number of skipped rows.
-	m1fit <- mxTryHard(m1, extraTries = 49)
+	m1fit <- mxTryHard(m1, extraTries = 99)
 	print(summary(m1fit))
 	omxCheckCloseEnough(m1fit$output$fit, 40719.05, .01)
 }
