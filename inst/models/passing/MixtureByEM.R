@@ -10,10 +10,10 @@ x <- matrix(c(rnorm(N/2,mu1,1),
 data4mx <- mxData(observed=x,type="raw")
 
 class1 <- mxModel("Class1",
-	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=-.5,name="Mu"),
-	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,name="Sigma"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=TRUE,values=-.5,name="Mu"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=TRUE,values=4,name="Sigma"),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames="x"),
-	mxFitFunctionML(vector=T))
+	mxFitFunctionML(vector=TRUE))
 
 class2 <- mxRename(class1, "Class2")
 class2$Mu$values[1,1] <- .5

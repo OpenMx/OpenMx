@@ -1273,10 +1273,10 @@ setMethod("initialize", "MxComputeEM",
 ##' data4mx <- mxData(observed=x,type="raw")
 ##' 
 ##' class1 <- mxModel("Class1",
-##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,name="Mu"),
-##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,name="Sigma"),
+##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=TRUE,values=0,name="Mu"),
+##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=TRUE,values=4,name="Sigma"),
 ##' 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames="x"),
-##' 	mxFitFunctionML(vector=T))
+##' 	mxFitFunctionML(vector=TRUE))
 ##' 
 ##' class2 <- mxRename(class1, "Class2")
 ##' 
