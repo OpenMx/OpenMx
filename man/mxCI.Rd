@@ -19,7 +19,8 @@
 \title{Create mxCI Object}
 
 \description{
-This function creates a new \link{MxCI} object, which are used to estimate likelihood-based confidence intervals.
+This function creates a new \link{MxCI} object, which allows estimation of likelihood-based confidence intervals in a model
+(note: to estimate SEs around arbitrary objects, see \code{\link{mxSE}})
 }
 
 \usage{
@@ -92,10 +93,11 @@ bounded parameter. \emph{Behavior genetics, 42}(6), 886-898.
 }
 
 \seealso{
-  \link{MxCI} for the S4 class created by mxCI.
-  \link{mxComputeConfidenceInterval} is the internal compute plan that
-  implements the algorithm.
-\link{MxMatrix} and \link{mxMatrix} for free parameter specification. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+  \code{\link{mxSE}} for computing SEs around arbitrary objects.
+  \code{\link{mxComputeConfidenceInterval}} is the internal compute plan that implements the algorithm.
+  \link{MxMatrix} and \link{mxMatrix} for free parameter specification.
+  \code{\link{MxCI}} for the S4 class created by mxCI.
+  More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{
