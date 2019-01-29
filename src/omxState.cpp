@@ -648,8 +648,8 @@ void omxGlobal::reportProgressStr(std::string &str)
 
 void omxGlobal::reportProgress(const char *context, FitContext *fc)
 {
-	checkInterruptLongjmp();
 	reportProgress1(context, fc->asProgressReport());
+	interrupted();
 }
 
 bool omxGlobal::interrupted()

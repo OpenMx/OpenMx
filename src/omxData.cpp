@@ -2137,11 +2137,10 @@ struct sampleStats {
 		std::vector<ColumnData> &rawCols;
 		Eigen::MatrixXd pred;
 		FilterPred(omxData *_d, std::vector<int> &exoPred,
-			   Eigen::Ref<Eigen::ArrayXd> rowMult,
-			   std::vector<int> &index) :
+			   int rows, std::vector<int> &index) :
 			data(*_d), rawCols(data.rawCols)
 		{
-			pred.resize(rowMult.rows(), exoPred.size());
+			pred.resize(rows, exoPred.size());
 			for (int cx=0; cx < int(exoPred.size()); ++cx) {
 				auto &e1 = rawCols[ exoPred[cx] ];
 				Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, data.rows);
@@ -2156,7 +2155,7 @@ struct sampleStats {
 	const std::vector<const char *> &dc;
 	std::vector<int> &exoPred;
 	obsSummaryStats &o1;
-	Eigen::Ref<Eigen::ArrayXd> rowMult;
+	const Eigen::ArrayXd &rowMult;
 	std::vector<int> &index;
 	EigenVectorAdaptor Emean;
 	EigenMatrixAdaptor Ecov;
@@ -2176,7 +2175,7 @@ struct sampleStats {
 	Eigen::ArrayXXd &H22;
 	Eigen::ArrayXXd &H21;
 	Eigen::Map< Eigen::ArrayXi > freq;
-	const Eigen::Ref<const Eigen::MatrixXd> pred;
+	const Eigen::MatrixXd &pred;
 
 	sampleStats(omxData *_d, const std::vector<const char *> &_dc,
 		    std::vector<int> &_exoPred,
@@ -2184,7 +2183,7 @@ struct sampleStats {
 		data(*_d), dc(_dc), exoPred(_exoPred),
 		o1(_o1), rowMult(o1.rowMult), index(o1.index),
 		Emean(o1.meansMat), Ecov(o1.covMat), Ethr(o1.thresholdMat),
-		fPred(_d, exoPred, rowMult, index),
+		fPred(_d, exoPred, rowMult.rows(), index),
 		rows(data.rows),
 		rawColMap(data.rawColMap),
 		rawCols(data.rawCols),
