@@ -40,6 +40,7 @@ struct omxAlgebra {						// A matrix
 	int verbose;
 	bool fixed;
     SEXP sexpAlgebra;               // The SEXP MxAlgebra object
+	bool processing;  // to avoid infinite loops
 
 	const omxAlgebraTableEntry *oate;
 
