@@ -101,8 +101,14 @@ class GradientWithRef {
 			int thrId = omp_get_thread_num();
 			int thrSelect = curNumThreads==1? -1 : thrId;
 			double offset = std::max(fabs(point[px] * eps), eps);
-			dfn[thrId](ff, refFit, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px,
-				   numIter, &grid.coeffRef(0,px), verbose);
+			try {
+				dfn[thrId](ff, refFit, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px,
+					   numIter, &grid.coeffRef(0,px), verbose);
+			} catch (const std::exception& e) {
+				omxRaiseErrorf("%s", e.what());
+			} catch (...) {
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+			}
 			// push down into per-thread code TODO
 			for(int m = 1; m < numIter; m++) {	// Richardson Step
 				for(int k = 0; k < (numIter - m); k++) {

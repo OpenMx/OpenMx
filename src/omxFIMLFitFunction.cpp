@@ -910,7 +910,13 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
-			failed |= dispatchByRow(kid, childFit, myParent, ofiml);
+			try {
+				failed |= dispatchByRow(kid, childFit, myParent, ofiml);
+			} catch (const std::exception& e) {
+				omxRaiseErrorf("%s", e.what());
+			} catch (...) {
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+			}
 		}
 		for (int tx = 0; tx < myParent->curParallelism; tx++) {
 			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, tx);
