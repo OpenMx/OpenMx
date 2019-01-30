@@ -79,8 +79,8 @@ constraintsToAlgebrasHelper <- function(constraint, flatModel) {
 	rightHandSide <- constraint@formula[[3]]
 	leftHandName <- imxUntitledName()
 	rightHandName <- imxUntitledName()
-	leftHandAlgebra <- new("MxAlgebra", NA, leftHandName, FALSE, NA_character_, NA_character_, 0L)
-	rightHandAlgebra <- new("MxAlgebra", NA, rightHandName, FALSE, NA_character_, NA_character_, 0L)
+	leftHandAlgebra <- new("MxAlgebra", NA, leftHandName, FALSE, NA_character_, NA_character_, 0L, matrix(NA_real_,1,1))
+	rightHandAlgebra <- new("MxAlgebra", NA, rightHandName, FALSE, NA_character_, NA_character_, 0L, matrix(NA_real_,1,1))
 	leftHandAlgebra@formula <- leftHandSide
 	rightHandAlgebra@formula <- rightHandSide
 	constraint@alg1 <- paste(flatModel@name, leftHandName, sep='.')

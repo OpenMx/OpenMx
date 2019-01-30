@@ -229,6 +229,7 @@ static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitTy
 		omxResizeMatrix(matrix, dat->rows, 1);
 	} else {
 		omxResizeMatrix(matrix, 1, 1);
+		matrix->data[0] = NA_REAL;
 	}
 
 	return obj;
@@ -302,15 +303,8 @@ void omxCompleteFitFunction(omxMatrix *om)
 
 	if (Global->mpi->getDepth() != depth) mxThrow("%s improperly used the R protect stack", om->name());
 
-	obj->matrix->data[0] = NA_REAL;
 	obj->initialized = TRUE;
 }
-
-void omxFitFunctionPrint(omxFitFunction* off, const char* d) {
-	mxLog("(FitFunction, type %s)", off->fitType);
-	omxPrintMatrix(off->matrix, d);
-}
-
 
 /* Helper functions */
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* slotName) {

@@ -260,6 +260,7 @@ omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 
 void omxState::setWantStage(int stage)
 {
+	if (wantStage == stage) mxThrow("omxState::setWantStage(%d) is redundent", stage);
 	wantStage = stage;
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
@@ -347,6 +348,11 @@ int omxState::nextId = 0;
 
 void omxState::init()
 {
+	// We use FF_COMPUTE_INITIAL_FIT because an expectation
+	// could depend on the value of an algebra. However, we
+	// don't mark anything clean because an algebra could
+	// depend on an expectation (via a fit function).
+
 	stateId = ++nextId;
 	setWantStage(FF_COMPUTE_INITIAL_FIT);
 }
@@ -421,6 +427,8 @@ void omxState::initialRecalc(FitContext *fc)
 	for (size_t xx=0; xx < conListX.size(); ++xx) {
 		conListX[xx]->prep(fc);
 	}
+
+	setWantStage(FF_COMPUTE_FIT);
 }
 
 void StateInvalidator::doData()
@@ -809,7 +817,6 @@ void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, double
 
 void UserConstraint::prep(FitContext *fc)
 {
-	fc->state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 	refresh(fc);
 	nrows = pad->rows;
 	ncols = pad->cols;

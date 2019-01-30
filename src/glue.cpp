@@ -617,6 +617,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		mxThrow("Protection stack too large; report this problem to the OpenMx forum");
 	}
 
+	if (globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT) {
+		mxThrow("globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT");
+	}
+	globalState->setWantStage(FF_COMPUTE_FIT);
+
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
 		if (Global->computeLoopContext.size() != 0) mxThrow("computeLoopContext imbalance");

@@ -77,7 +77,7 @@ void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
 void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
     if(src->algebra != NULL) {
-	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL, 0);
+	    omxFillMatrixFromMxAlgebra(tgt, src->algebra->sexpAlgebra, src->nameStr, NULL, 0, src->algebra->fixed);
 	    tgt->algebra->calcDimnames = src->algebra->calcDimnames;
 	    if (!src->algebra->calcDimnames) {
 		    tgt->rownames = src->rownames;
@@ -92,6 +92,8 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
 	
+	if (oa->processing) return;
+	oa->processing = true;
 	int j;
 	for(j = 0; j < oa->numArgs; j++) {
 		omxFreeMatrix(oa->algArgs[j]);
@@ -105,11 +107,12 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 {
 	if (mat->hasMatrixNumber) mat = fc->lookupDuplicate(mat);
 	omxState *st = mat->currentState;
+	auto prevWant = st->getWantStage();
 	st->setWantStage(FF_COMPUTE_PREOPTIMIZE);
 	omxRecompute(mat, fc);
 	auto ff = mat->fitFunction;
 	if (ff) fc->fitUnits = ff->units;
-	st->setWantStage(FF_COMPUTE_FIT);
+	st->setWantStage(prevWant);
 }
 
 void CheckAST(omxAlgebra *oa, FitContext *fc)
@@ -139,6 +142,8 @@ void CheckAST(omxAlgebra *oa, FitContext *fc)
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
 	omxAlgebra *oa = mat->algebra;
+	if (oa->processing) return;
+	oa->processing = true;
 	if (oa->verbose >= 1) mxLog("recompute algebra '%s'", mat->name());
 
 	if (want & FF_COMPUTE_INITIAL_FIT) {
@@ -209,11 +214,14 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 						   Emat.rows(), Emat.cols());
 		mxPrintMat(name.c_str(), Emat.topLeftCorner(nr, nc));
 	}
+	oa->processing = false;
 }
 
 omxAlgebra::omxAlgebra()
 {
+	processing = false;
 	verbose = 0;
+	fixed = false;
 }
 
 static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, std::string &name)
@@ -223,7 +231,7 @@ static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, std::string 
 	om->hasMatrixNumber = 0;
 	om->matrixNumber = 0;	
 
-	omxFillMatrixFromMxAlgebra(om, alg, name, NULL, 0);
+	omxFillMatrixFromMxAlgebra(om, alg, name, NULL, 0, false);
 	
 	return om;
 }
@@ -250,7 +258,8 @@ static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::stri
 	return(newMat);
 }
 
-void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, SEXP dimnames, int verbose)
+void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name,
+				SEXP dimnames, int verbose, bool fixed)
 {
 	int value;
 	omxAlgebra *oa = NULL;
@@ -259,6 +268,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 
 	if(value > 0) { 			// This is an operator.
 		oa = new omxAlgebra;
+		oa->fixed = fixed;
 		oa->verbose = verbose;
 		omxInitAlgebraWithMatrix(oa, om);
 		const omxAlgebraTableEntry* entry = &(omxAlgebraSymbolTable[value]);
@@ -285,6 +295,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 			value = Rf_asInteger(algebraElt);
 			
 			oa = new omxAlgebra;
+			oa->fixed = fixed;
 			omxInitAlgebraWithMatrix(oa, om);
 			omxAlgebraAllocArgs(oa, 1);
 			
@@ -300,6 +311,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name, 
 	oa->sexpAlgebra = algebra;
 	oa->calcDimnames = !dimnames || Rf_isNull(dimnames);
 	if (!oa->calcDimnames) om->loadDimnames(dimnames);
+	if (oa->fixed) omxMarkClean(om);
 }
 
 void omxAlgebraPrint(omxAlgebra* oa, const char* d) {
