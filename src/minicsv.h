@@ -134,6 +134,7 @@ namespace mini
 			{
 				init();
 				filename = file;
+				istm.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
 				istm.open(file, std::ios_base::in);
 				read_bom();
 			}
@@ -397,6 +398,7 @@ namespace mini
 			void open(const char * file)
 			{
 				init();
+				ostm.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
 				ostm.open(file, std::ios_base::out);
 			}
 			void init()
