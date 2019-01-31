@@ -183,10 +183,16 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
-			if (i == parallelism - 1) {
-				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i, fc);
-			} else {
-				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride, fc);
+			try {
+				if (i == parallelism - 1) {
+					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i, fc);
+				} else {
+					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride, fc);
+				}
+			} catch (const std::exception& e) {
+				omxRaiseErrorf("%s", e.what());
+			} catch (...) {
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 			}
 		}
 	} else {

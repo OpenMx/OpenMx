@@ -74,7 +74,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				} catch (const std::exception& e) {
 					omxRaiseErrorf("%s", e.what());
 				} catch (...) {
-					omxRaiseErrorf("CovEntrywiseParallel: unknown exception");
+					omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 				}
 				diagDone[t1.first] = 1; // regardless of ce.isDone
 				if (debug) mxLog("diag %d done", t1.first);
@@ -101,12 +101,18 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			} catch (const std::exception& e) {
 				omxRaiseErrorf("%s", e.what());
 			} catch (...) {
-				omxRaiseErrorf("CovEntrywiseParallel: unknown exception");
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 			}
 		}
 		thrDone[tid] += 1;
 		if (tid == 0) {
-			ce.reportProgress(thrDone.sum());
+			try {
+				ce.reportProgress(thrDone.sum());
+			} catch (const std::exception& e) {
+				omxRaiseErrorf("%s", e.what());
+			} catch (...) {
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+			}
 			bool gotInt = omxGlobal::interrupted();
 			if (gotInt && debug) mxLog("interrupt");
 		}
