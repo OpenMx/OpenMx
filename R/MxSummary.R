@@ -224,7 +224,7 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	} else {chiDoF <- model@output$chiDoF}
 	retval[['ChiDoF']] <- chiDoF
 	retval[['Chi']] <- chi
-	retval[['p']] <- suppressWarnings(pchisq(chi, chiDoF, lower.tail = FALSE))
+	retval[['p']] <- suppressWarnings(ifelse(chiDoF==0,1.0,pchisq(chi, chiDoF, lower.tail = FALSE)))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
 	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) 
 	AIC.p <- Fvalue + 2 * nParam
