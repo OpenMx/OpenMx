@@ -159,10 +159,7 @@ void omxExpectation::loadFromR()
 
 	int numCols=0;
 	bool isRaw = strEQ(omxDataType(data), "raw");
-	if (isRaw || data->hasSummaryStats()) {
-		ProtectedSEXP Rdcn(R_do_slot(rObj, Rf_install("dataColumnNames")));
-		loadCharVecFromR(name, Rdcn, dataColumnNames);
-
+	{
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
@@ -172,6 +169,18 @@ void omxExpectation::loadFromR()
 			for (int cx=0; cx < numCols; ++cx) {
 				int var = dc[cx];
 				data->assertColumnIsData(var);
+			}
+		}
+		if (R_has_slot(rObj, Rf_install("dataColumnNames"))) {
+			ProtectedSEXP Rdcn(R_do_slot(rObj, Rf_install("dataColumnNames")));
+			loadCharVecFromR(name, Rdcn, dataColumnNames);
+		}
+		if (numCols && !dataColumnNames.size()) {
+			// eventually deprecate slot 'dataColumns'
+			Rf_warning("Slot MxData@dataColumnNames is not set up; OpenMx bug? Improvising...");
+			auto dc = base::getDataColumns();
+			for (int cx=0; cx < int(dc.size()); ++cx) {
+				dataColumnNames.push_back(data->columnName(dc[cx]));
 			}
 		}
 	}
