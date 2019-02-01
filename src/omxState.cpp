@@ -373,7 +373,7 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src) : clone(true)
+omxState::omxState(omxState *src) : wantStage(0), clone(true)
 {
 	init();
 

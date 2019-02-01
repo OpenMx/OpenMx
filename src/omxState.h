@@ -321,7 +321,7 @@ class omxState {
 	std::vector< omxData* > dataList;
 	std::vector< omxConstraint* > conListX;
 
- 	omxState() : clone(false) { init(); };
+	omxState() : wantStage(0), clone(false) { init(); };
 	omxState(omxState *src);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
