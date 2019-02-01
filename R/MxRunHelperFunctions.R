@@ -65,10 +65,7 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	if (length(output$estimate) == length(parameterNames)) {
 		names(output$estimate) <- parameterNames
 	}
-	if (length(output$gradient) == length(parameterNames)) {
-		names(output$gradient) <- parameterNames
-	}
-	for (deriv in c("calculatedHessian", "hessian", "ihessian")) {
+	for (deriv in c("calculatedHessian")) {
 		mat <- output[[deriv]]
 		if (!is.null(mat) &&
 		    nrow(mat) == length(parameterNames) &&
@@ -82,9 +79,6 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	if (length(output$algebras) == length(algebraNames)) {
 		names(output$algebras) <- algebraNames
-	}
-	if (length(output$standardErrors) == length(parameterNames)) {
-		rownames(output$standardErrors) <- parameterNames
 	}
 	GDsteps <- computeSeq$steps[sapply(computeSeq$steps,function(x){is(x,"MxComputeGradientDescent")})]
 	if(length(GDsteps)){

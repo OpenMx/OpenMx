@@ -71,6 +71,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	double minimum;
 	Eigen::ArrayXd optima;
 	int numParams;
+	std::vector<int> paramMap;
 	double *gcentral, *gforward, *gbackward;
 	double *hessian;
 	struct hess_struct *hessWorkVector;
@@ -128,7 +129,6 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
 	hess_work->Gbackward = new double[numIter];
 	hess_work->fitMatrix = fc->lookupDuplicate(fitMat);
 	hess_work->fc = fc;
-	memcpy(fc->est, optima.data(), numParams * sizeof(double));
 }
 
 /**
@@ -140,6 +140,7 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
  */
 void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
 {
+	int ix = paramMap[i];
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
@@ -153,7 +154,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	/* Part the first: Gradient and diagonal */
 	double iOffset = std::max(fabs(stepSize * optima[i]), stepSize);
 	for(int k = 0; k < numIter; k++) {			// Decreasing step size, starting at k == 0
-		freeParams[i] = optima[i] + iOffset;
+		freeParams[ix] = optima[i] + iOffset;
 		
 		fc->copyParamToModel();
 
@@ -161,7 +162,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		omxRecompute(fitMatrix, fc);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
-		freeParams[i] = optima[i] - iOffset;
+		freeParams[ix] = optima[i] - iOffset;
 
 		fc->copyParamToModel();
 
@@ -173,7 +174,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		Gforward[k] = (minimum - f2) / iOffset;
 		Gbackward[k] = (f1 - minimum) / iOffset;
 		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
-		freeParams[i] = optima[i];									// Reset parameter value
+		freeParams[ix] = optima[i];									// Reset parameter value
 		iOffset /= v;
 		if(verbose >= 2) {
 			mxLog("Hessian: diag[%s] Δ%g (#%d) F1 %f F2 %f grad %f hess %f",
@@ -202,6 +203,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 
 void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
 {
+	int ix = paramMap[i];
+	int lx = paramMap[l];
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
@@ -213,8 +216,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 	double lOffset = std::max(fabs(stepSize*optima[l]), stepSize);
 
 	for(int k = 0; k < numIter; k++) {
-		freeParams[i] = optima[i] + iOffset;
-		freeParams[l] = optima[l] + lOffset;
+		freeParams[ix] = optima[i] + iOffset;
+		freeParams[lx] = optima[l] + lOffset;
 
 		fc->copyParamToModel();
 
@@ -222,8 +225,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		omxRecompute(fitMatrix, fc);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
-		freeParams[i] = optima[i] - iOffset;
-		freeParams[l] = optima[l] - lOffset;
+		freeParams[ix] = optima[i] - iOffset;
+		freeParams[lx] = optima[l] - lOffset;
 
 		fc->copyParamToModel();
 
@@ -239,8 +242,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 			      v, k, pow(v, k), stepSize*optima[i], stepSize*optima[l]);
 		}
 
-		freeParams[i] = optima[i];				// Reset parameter values
-		freeParams[l] = optima[l];
+		freeParams[ix] = optima[i];				// Reset parameter values
+		freeParams[lx] = optima[l];
 
 		iOffset = iOffset / v;					//  And shrink step
 		lOffset = lOffset / v;
@@ -346,16 +349,22 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	int newWanted = fc->wanted | FF_COMPUTE_GRADIENT;
 	if (wantHessian) newWanted |= FF_COMPUTE_HESSIAN;
 
-	if (numParams != 0 && numParams != int(fc->numParam)) {
+	int nf = fc->calcNumFree();
+	if (numParams != 0 && numParams != nf) {
 		mxThrow("%s: number of parameters changed from %d to %d",
-			 name, numParams, int(fc->numParam));
+			 name, numParams, nf);
 	}
 
-	numParams = int(fc->numParam);
+	numParams = nf;
 	if (numParams <= 0) { complainNoFreeParam(); return; }
 
 	optima.resize(numParams);
-	memcpy(optima.data(), fc->est, sizeof(double) * numParams);
+	fc->copyEstToOptimizer(optima);
+	paramMap.resize(numParams);
+	for (int px=0,ex=0; px < numParams; ++ex) {
+		if (fc->profiledOut[ex]) continue;
+		paramMap[px++] = ex;
+	}
 
 	omxAlgebraPreeval(fitMat, fc);
 	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
@@ -453,7 +462,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
 		// factor out simliar code in ComputeNR
-		omxFreeVar &fv = *fc->varGroup->vars[px];
+		omxFreeVar &fv = *fc->varGroup->vars[ paramMap[px] ];
 		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
 		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
 			Gsymmetric[px] = false;
@@ -467,8 +476,9 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 	}
 	
-	fc->grad.resize(numParams);
-	fc->grad = Gc.matrix();
+	fc->grad.resize(fc->numParam);
+	fc->grad.setZero();
+	fc->copyGradFromOptimizer(Gc);
 
 	gradNorm = sqrt(gradNorm);
 	double gradThresh = Global->getGradientThreshold(minimum);
@@ -479,8 +489,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
 	}
 
-	memcpy(fc->est, optima.data(), sizeof(double) * numParams);
-	fc->copyParamToModel();
+	fc->setEstFromOptimizer(optima);
 	// auxillary information like per-row likelihoods need a refresh
 	ComputeFit(name, fitMat, FF_COMPUTE_FIT, fc);
 	fc->wanted = newWanted;
@@ -500,7 +509,7 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 	MxRList out;
 	out.add("probeCount", Rf_ScalarInteger(totalProbeCount));
 	if (detail && recordDetail) {
-		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), fc->numParam);
+		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 		out.add("gradient", detail);
 	}
 	slots->add("output", out.asR());

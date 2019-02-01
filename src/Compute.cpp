@@ -166,6 +166,9 @@ void FitContext::refreshDenseHess()
 {
 	if (haveDenseHess) return;
 
+	int numFree = calcNumFree();
+	hess.resize(numFree, numFree);
+
 	hess.triangularView<Eigen::Upper>().setZero();
 
 	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
@@ -187,14 +190,15 @@ void FitContext::refreshDenseHess()
 void FitContext::copyDenseHess(double *dest)
 {
 	refreshDenseHess();
-	for (size_t v1=0; v1 < numParam; ++v1) {
-		for (size_t v2=0; v2 <= v1; ++v2) {
+	int np = hess.rows();
+	for (int v1=0; v1 < np; ++v1) {
+		for (int v2=0; v2 <= v1; ++v2) {
 			double coef = hess.selfadjointView<Eigen::Upper>()(v2,v1);
 			if (v1==v2) {
-				dest[v1 * numParam + v2] = coef;
+				dest[v1 * np + v2] = coef;
 			} else {
-				dest[v1 * numParam + v2] = coef;
-				dest[v2 * numParam + v1] = coef;
+				dest[v1 * np + v2] = coef;
+				dest[v2 * np + v1] = coef;
 			}
 		}
 	}
@@ -202,6 +206,9 @@ void FitContext::copyDenseHess(double *dest)
 
 double *FitContext::getDenseHessUninitialized()
 {
+	int numFree = calcNumFree();
+	hess.resize(numFree, numFree);
+
 	// Assume the caller is going to fill it out
 	haveDenseHess = true;
 	haveDenseIHess = false;
@@ -587,6 +594,9 @@ Eigen::VectorXd FitContext::ihessDiag()
 
 double *FitContext::getDenseIHessUninitialized()
 {
+	int numFree = calcNumFree();
+	ihess.resize(numFree, numFree);
+
 	// Assume the caller is going to fill it out
 	haveDenseIHess = true;
 	haveDenseHess = false;
@@ -597,14 +607,15 @@ void FitContext::copyDenseIHess(double *dest)
 {
 	refreshDenseIHess();
 
-	for (size_t v1=0; v1 < numParam; ++v1) {
-		for (size_t v2=0; v2 <= v1; ++v2) {
+	int np = ihess.rows();
+	for (int v1=0; v1 < np; ++v1) {
+		for (int v2=0; v2 <= v1; ++v2) {
 			double coef = ihess.selfadjointView<Eigen::Upper>()(v2,v1);
 			if (v1==v2) {
-				dest[v1 * numParam + v2] = coef;
+				dest[v1 * np + v2] = coef;
 			} else {
-				dest[v1 * numParam + v2] = coef;
-				dest[v2 * numParam + v1] = coef;
+				dest[v1 * np + v2] = coef;
+				dest[v2 * np + v1] = coef;
 			}
 		}
 	}
@@ -615,6 +626,13 @@ double *FitContext::getDenseHessianish()
 	if (haveDenseHess) return hess.data();
 	if (haveDenseIHess) return ihess.data();
 	return NULL;
+}
+
+int FitContext::getDenseHessianishSize()
+{
+	if (haveDenseHess) return hess.rows();
+	if (haveDenseIHess) return ihess.rows();
+	return 0;
 }
 
 HessianBlock *HessianBlock::clone()
@@ -698,8 +716,9 @@ void FitContext::init()
 	ordinalRelativeError = 0;
 	computeCount = 0;
 
-	hess.resize(numParam, numParam);
-	ihess.resize(numParam, numParam);
+	hess.resize(numParam, numParam);  // TODO why needed?
+	ihess.resize(numParam, numParam);  // TODO why needed?
+
 	clearHessian();
 }
 
@@ -3453,10 +3472,27 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
 
 	if (fc->stderrs.size()) {
-		int np = fc->stderrs.size();
+		int numFree = fc->calcNumFree();
+		if (numFree != fc->stderrs.size()) {
+			mxThrow("%s: numFree != fc->stderrs.size() %d != %d",
+				name, numFree, fc->stderrs.size());
+		}
+
+		SEXP parNames = Rf_allocVector(STRSXP, numFree);
+		Rf_protect(parNames);
+		for (int vx=0, px=0; vx < int(fc->numParam) && px < numFree; ++vx) {
+			if (fc->profiledOut[vx]) continue;
+			SET_STRING_ELT(parNames, px++, Rf_mkChar(varGroup->vars[vx]->name));
+		}
+
+		SEXP dimnames = Rf_allocVector(VECSXP, 2);
+		Rf_protect(dimnames);
+		SET_VECTOR_ELT(dimnames, 0, parNames);
+
 		SEXP stdErrors;
-		Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, np, 1));
-		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * np);
+		Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
+		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * numFree);
+		Rf_setAttrib(stdErrors, R_DimNamesSymbol, dimnames);
 		out->add("standardErrors", stdErrors);
 	}
 
@@ -3494,7 +3530,8 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		return; // already set elsewhere
 	}
 
-	int numParams = int(fc->varGroup->vars.size());
+	int numParams = fc->getDenseHessianishSize();
+	if (numParams == 0) return;
 
 	fc->infoDefinite = false;
 	double *hessMem = fc->getDenseHessianish();
@@ -3535,28 +3572,52 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 
 void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *result)
 {
-	size_t numFree = fc->numParam;
+	if (!(fc->wanted & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN|FF_COMPUTE_IHESSIAN))) return;
+
+	int numFree = fc->calcNumFree();
+
+	SEXP parNames = Rf_allocVector(STRSXP, numFree);
+	Rf_protect(parNames);
+	for (int vx=0, px=0; vx < int(fc->numParam) && px < numFree; ++vx) {
+		if (fc->profiledOut[vx]) continue;
+		SET_STRING_ELT(parNames, px++, Rf_mkChar(varGroup->vars[vx]->name));
+	}
 
 	if (fc->wanted & FF_COMPUTE_GRADIENT) {
-		if (!fc->grad.data()) {
-			// oh well
-		} else {
-			SEXP Rgradient = Rf_allocVector(REALSXP, numFree);
-			result->add("gradient", Rgradient);
-			memcpy(REAL(Rgradient), fc->grad.data(), sizeof(double) * numFree);
+		SEXP Rgradient = Rf_allocVector(REALSXP, numFree);
+		result->add("gradient", Rgradient);
+		double *gp = REAL(Rgradient);
+		fc->copyGradToOptimizer(gp);
+		Rf_setAttrib(Rgradient, R_NamesSymbol, parNames);
+	}
+
+	if (fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+		SEXP dimnames = Rf_allocVector(VECSXP, 2);
+		Rf_protect(dimnames);
+		for (int dx=0; dx < 2; ++dx) SET_VECTOR_ELT(dimnames, dx, parNames);
+
+		if (numFree != fc->hess.rows()) {
+			if (OMX_DEBUG) mxLog("free %d hessian %d", numFree, fc->hess.rows());
+			return;
 		}
-	}
-	if (fc->wanted & FF_COMPUTE_HESSIAN) {
-		SEXP Rhessian;
-		Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree);
-		result->add("hessian", Rhessian);
-		fc->copyDenseHess(REAL(Rhessian));
-	}
-	if (fc->wanted & FF_COMPUTE_IHESSIAN) {
-		SEXP Rihessian;
-		Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree);
-		result->add("ihessian", Rihessian);
-		fc->copyDenseIHess(REAL(Rihessian));
+		if (fc->wanted & FF_COMPUTE_HESSIAN) {
+			SEXP Rhessian;
+			Rhessian = Rf_allocMatrix(REALSXP, numFree, numFree);
+			result->add("hessian", Rhessian);
+			fc->copyDenseHess(REAL(Rhessian));
+			Rf_setAttrib(Rhessian, R_DimNamesSymbol, dimnames);
+		}
+		if (numFree != fc->ihess.rows()) {
+			if (OMX_DEBUG) mxLog("free %d ihessian %d", numFree, fc->ihess.rows());
+			return;
+		}
+		if (fc->wanted & FF_COMPUTE_IHESSIAN) {
+			SEXP Rihessian;
+			Rihessian = Rf_allocMatrix(REALSXP, numFree, numFree);
+			result->add("ihessian", Rihessian);
+			fc->copyDenseIHess(REAL(Rihessian));
+			Rf_setAttrib(Rihessian, R_DimNamesSymbol, dimnames);
+		}
 	}
 }
 

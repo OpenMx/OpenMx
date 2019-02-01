@@ -125,9 +125,7 @@ class FitContext {
 	int maxBlockSize;
 
 	bool haveDenseHess;
-	Eigen::MatrixXd hess;
 	bool haveDenseIHess;
-	Eigen::MatrixXd ihess;
 
 	void init();
 	void analyzeHessian();
@@ -164,6 +162,8 @@ class FitContext {
 	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;
+	Eigen::MatrixXd hess;
+	Eigen::MatrixXd ihess;
 	Eigen::VectorXd stderrs;   // plural to distinguish from stdio's stderr
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
@@ -230,6 +230,7 @@ class FitContext {
 	double *getDenseHessUninitialized();
 	double *getDenseIHessUninitialized();
 	double *getDenseHessianish();  // either a Hessian or inverse Hessian, remove TODO
+	int getDenseHessianishSize();
 	void copyDenseHess(double *dest);
 	void copyDenseIHess(double *dest);
 	Eigen::VectorXd ihessDiag();
@@ -261,7 +262,7 @@ class FitContext {
 	static void setRFitFunction(omxFitFunction *rff);
 
 	// profiledOut parameters are not subject to optimization
-	template<typename T> void copyEstToOptimizer(Eigen::MatrixBase<T> &out) {
+	template<typename T> void copyEstToOptimizer(T &out) {
 		int px=0;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			if (profiledOut[vx]) continue;
@@ -269,7 +270,7 @@ class FitContext {
 			++px;
 		}
 	};
-	template<typename T> void copyGradToOptimizer(Eigen::MatrixBase<T> &out) {
+	template<typename T> void copyGradToOptimizer(T &out) {
 		int px=0;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			if (profiledOut[vx]) continue;
@@ -277,7 +278,15 @@ class FitContext {
 			++px;
 		}
 	};
-	template<typename T> void setEstFromOptimizer(Eigen::MatrixBase<T> &in) {
+	template<typename T> void copyGradFromOptimizer(const T &in) {
+		int px=0;
+		for (size_t vx=0; vx < numParam; ++vx) {
+			if (profiledOut[vx]) continue;
+			grad[vx] = in[px];
+			++px;
+		}
+	};
+	template<typename T> void setEstFromOptimizer(const T &in) {
 		int px=0;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			if (profiledOut[vx]) continue;
@@ -287,7 +296,7 @@ class FitContext {
 		copyParamToModel();
 	};
 	template<typename T1, typename T2>
-	void setEstGradFromOptimizer(Eigen::MatrixBase<T1> &ein, Eigen::MatrixBase<T2> &gin) {
+	void setEstGradFromOptimizer(const T1 &ein, const T2 &gin) {
 		grad.resize(numParam);
 		grad.setConstant(nan("unset"));
 		int px=0;
