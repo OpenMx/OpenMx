@@ -108,6 +108,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  }
 
 		  .Object@dataColumns <- dc
+		  .Object@dataColumnNames <- colnames(item)
 		  if (!is.na(.Object@weightColumn)) {
 			  wc <- match(.Object@weightColumn, .Object@dims) - 1L
 			  if (is.na(wc)) {
