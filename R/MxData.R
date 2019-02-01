@@ -441,6 +441,27 @@ getDataThresholdNames <- function(data) {
 	return(c())
 }
 
+verifySymmetric <- function(covMatrix, nameMatrix="observed") {
+	mask <- lower.tri(covMatrix)
+	maxDiff <- max(abs(covMatrix[mask] - t(covMatrix)[mask]))
+	if (maxDiff <= 1e-9) return();
+	if (1e-2 > maxDiff && maxDiff > 1e-9) {
+		msg <- paste("The", nameMatrix, "matrix",
+			"is not a symmetric matrix,",
+			"possibly due to rounding errors.\n",
+			"Something like this would be appropriate:\n",
+			"m <- (m + t(m)) / 2\n",
+			"Where m is the name of your observed data.",
+			"Another option is \n m <- round(m, 3)")
+	} else {
+		msg <- paste("The", nameMatrix, "matrix",
+			"is not symmetric.",
+			"Check what you are providing to mxData",
+			"and perhaps try round(yourData, x) for x digits of precision.")
+	}
+	stop(msg, call. = FALSE)
+}
+
 verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 	if (is.null(covMatrix)) stop(paste("Covariance matrix",omxQuotes(nameMatrix),
 		"is missing in action"))
@@ -454,23 +475,8 @@ verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 			"contains NA values. Perhaps ensure you are excluding NAs in your cov() statement?")
 		stop(msg, call. = FALSE)	
 	}
-	if (max(abs(covMatrix - t(covMatrix))) > 1e-9) {
-		if(all.equal(covMatrix, t(covMatrix))){
-			msg <- paste("The", nameMatrix, "covariance matrix",
-				"is not a symmetric matrix,",
-				" possibly due to rounding errors.\n",
-				"Something like this would be appropriate:\n",
-				"covMatrix[lower.tri(covMatrix)] = t(covMatrix)[lower.tri(t(covMatrix))]\n",
-				"Where covMatrix is the name of your covariance data.",
-				"Another option is \n round(covMatrix, 6)\n.")
-		} else {
-			msg <- paste("The", nameMatrix, "covariance matrix",
-				"is not a symmetric matrix.\n",
-				"Check what you are providing to mxData",
-				"and perhaps try round(yourData, x) for x digits of precision.")
-		}		
-		stop(msg, call. = FALSE)
-	}
+	verifySymmetric(covMatrix, nameMatrix)
+	if (is.data.frame(covMatrix)) covMatrix <- as.matrix(covMatrix)
 	evalCov <- eigen(covMatrix)$values
 	if (nameMatrix=="observed" & any( evalCov <= 0)) {
 		msg <- paste("The", nameMatrix, "covariance matrix",
@@ -499,13 +505,8 @@ verifyCorrelationMatrix <- function(corMatrix) {
 			"contains NA values")
 		stop(msg, call. = FALSE)	
 	}
-	if (!all(corMatrix == t(corMatrix))) {
-		msg <- paste("The observed correlation matrix",
-			"is not a symmetric matrix.",
-			"Check what you are providing to mxData, and perhaps try using",
-			"round(yourData, x) for x digits of precision.")
-		stop(msg, call. = FALSE)
-	}
+	verifySymmetric(corMatrix)
+	if (is.data.frame(corMatrix)) corMatrix <- as.matrix(corMatrix)
 	if (any(eigen(corMatrix)$values <= 0)) {
 		msg <- paste("The observed correlation matrix",
 			"is not a positive-definite matrix")

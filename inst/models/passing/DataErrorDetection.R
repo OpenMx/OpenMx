@@ -67,3 +67,15 @@ bad <- mxModel("bad", type="RAM",
 	       mxPath("ign", arrows=2),
 	       mxData(data.frame(key=1), 'raw', primaryKey="key"))
 omxCheckError(mxRun(bad), "bad.data: primary key must be an integer or factor column in raw observed data")
+
+omxCheckError(mxData(mtcars[1:2,1:2], type="cov", numObs= 77),
+              "The observed matrix is not symmetric. Check what you are providing to mxData and perhaps try round(yourData, x) for x digits of precision.")
+
+m <- diag(2)
+m[1,2] <- .001
+omxCheckError(mxData(m, type="cov", numObs=10),
+              "The observed matrix is not a symmetric matrix, possibly due to rounding errors.
+Something like this would be appropriate:
+ m <- (m + t(m)) / 2
+Where m is the name of your observed data. Another option is 
+ m <- round(m, 3)")
