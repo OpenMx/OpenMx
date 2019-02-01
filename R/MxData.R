@@ -442,9 +442,10 @@ getDataThresholdNames <- function(data) {
 }
 
 verifySymmetric <- function(covMatrix, nameMatrix="observed") {
+	if (nrow(covMatrix) == 1) return()
 	mask <- lower.tri(covMatrix)
 	maxDiff <- max(abs(covMatrix[mask] - t(covMatrix)[mask]))
-	if (maxDiff <= 1e-9) return();
+	if (maxDiff <= 1e-9) return()
 	if (1e-2 > maxDiff && maxDiff > 1e-9) {
 		msg <- paste("The", nameMatrix, "matrix",
 			"is not a symmetric matrix,",
