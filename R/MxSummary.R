@@ -307,11 +307,10 @@ parameterListHelper <- function(model, withModelName) {
 	ptable <- data.frame()
 	if(length(model@output) == 0) { return(ptable) }
 	estimates <- model@output$estimate
-    if (!is.null(model@output$standardErrors) && 
- 		length(model@output$standardErrors) == length(estimates)) { 
- 		errorEstimates <- model@output$standardErrors 
-	} else { 
-		errorEstimates <- rep.int(as.numeric(NA), length(estimates)) 
+	errorEstimates <- rep.int(as.numeric(NA), length(estimates)) 
+    if (!is.null(model@output$standardErrors)) {
+	    se <- model@output$standardErrors 
+	    errorEstimates[match(rownames(se), names(estimates))] <- se
 	}
 	matrices <- model@runstate$matrices
 	parameters <- model@runstate$parameters
@@ -508,10 +507,12 @@ print.summary.mxmodel <- function(x,...) {
 			seCol <- match('Std.Error', colnames(params))
 			before <- params[1:seCol]
 			stars <- mapply(highlightProblem, rep('',length(x[['seSuspect']])), x[['seSuspect']])
+			fullStars <- rep('', nrow(params))
+			fullStars[match(names(x[['seSuspect']]), params$name)] <- stars
 			if (length(params) > seCol) {
-				params <- cbind(before, 'A'=stars, params[(seCol+1):length(params)])
+				params <- cbind(before, 'A'=fullStars, params[(seCol+1):length(params)])
 			} else {
-				params <- cbind(before, 'A'=stars)
+				params <- cbind(before, 'A'=fullStars)
 			}
 		}
 		if (!is.null(x$bootstrapQuantile) && nrow(x$bootstrapQuantile) == nrow(params)) {
@@ -875,7 +876,9 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	retval$parameters <- parameterList(model, useSubmodels)
 	if (!is.null(model@compute$steps[['ND']]) && model@compute$steps[['ND']]$checkGradient &&
 	    !is.null(model@compute$steps[['ND']]$output$gradient)) {
-		retval$seSuspect <- !model@compute$steps[['ND']]$output$gradient[,'symmetric']
+		gdetail <- model@compute$steps[['ND']]$output$gradient
+		retval$seSuspect <- !gdetail[,'symmetric']
+		names(retval$seSuspect) <- rownames(gdetail)
 	}
 	if (is(model@compute, "MxComputeBootstrap")) {
 		bq <- c(.25,.75)
