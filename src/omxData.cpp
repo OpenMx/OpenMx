@@ -40,7 +40,8 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0), parallel(false),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0), parallel(true),
+		     noExoOptimize(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -229,6 +230,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if (R_has_slot(dataObj, Rf_install(".parallel"))) {
 		ProtectedSEXP Rpar(R_do_slot(dataObj, Rf_install(".parallel")));
 		parallel = Rf_asLogical(Rpar);
+	}
+	if (R_has_slot(dataObj, Rf_install(".noExoOptimize"))) {
+		ProtectedSEXP Rneo(R_do_slot(dataObj, Rf_install(".noExoOptimize")));
+		noExoOptimize = Rf_asLogical(Rneo);
 	}
 
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
@@ -1476,10 +1481,10 @@ void regressOrdinalThresholds(const Eigen::MatrixBase<T3> &ycol,
 	zi.derived().resize(ycol.size(), 2);
 
 	int numThr = oc.levels.size() - 1;
-	Eigen::VectorXd th(2 + numThr);
+	Eigen::VectorXd th(2 + numThr);  // pass in as argument TODO
 	th.segment(1, numThr) = ov.theta.segment(0, numThr);
-	th[0] = -std::numeric_limits<double>::infinity();
-	th[numThr + 1] = std::numeric_limits<double>::infinity();
+	th[0] = NEG_INF;
+	th[numThr + 1] = INF;
 
 	for (int rx=0; rx < ycol.size(); ++rx) {
 		if (ycol[rx] == NA_INTEGER) {
@@ -1489,8 +1494,8 @@ void regressOrdinalThresholds(const Eigen::MatrixBase<T3> &ycol,
 		}
 		double eta = 0;
 		if (pred.cols()) eta = pred.row(rx) * ov.theta.matrix().segment(numThr, pred.cols());
-		zi(rx,0) = std::min(INF, th[ycol[rx]] - eta);
-		zi(rx,1) = std::max(NEG_INF, th[ycol[rx]-1] - eta);
+		zi(rx,0) = th[ycol[rx]] - eta;
+		zi(rx,1) = th[ycol[rx]-1] - eta;
 	}
 }
 
@@ -1769,6 +1774,9 @@ struct PolychoricCor : NewtonRaphsonObjective {
 	Eigen::ArrayXXd scores;
 	Eigen::ArrayXi y1;
 	Eigen::ArrayXi y2;
+	Eigen::ArrayXd th1;
+	Eigen::ArrayXd th2;
+	Eigen::ArrayXXd obsTable;
 
 	PolychoricCor(omxData *_d, ColumnData &_c1, WLSVarData &_v1,
 		      ColumnData &_c2, WLSVarData &_v2,
@@ -1785,11 +1793,14 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		ubound.setConstant(INF);
 		numThr1 = c1.levels.size()-1;
 		numThr2 = c2.levels.size()-1;
-
-		// when exoPred is empty, massive speedups are possible TODO
-
-		pr.resize(index.size());
-		den.resize(index.size());
+		th1.resize(2 + numThr1);
+		th1.segment(1, numThr1) = v1.theta.segment(0, numThr1);
+		th1[0] = NEG_INF;
+		th1[numThr1 + 1] = INF;
+		th2.resize(2 + numThr2);
+		th2.segment(1, numThr2) = v2.theta.segment(0, numThr2);
+		th2[0] = NEG_INF;
+		th2[numThr2 + 1] = INF;
 
 		Eigen::Map< Eigen::ArrayXi > y1Full(c1.ptr.intData, data.rows);
 		y1.resize(index.size());
@@ -1797,9 +1808,6 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		Eigen::Map< Eigen::ArrayXi > y2Full(c2.ptr.intData, data.rows);
 		y2.resize(index.size());
 		subsetVector(y2Full, index, y2);
-
-		regressOrdinalThresholds(y1.matrix(), pred.derived(), c1, v1, z1);
-		regressOrdinalThresholds(y2.matrix(), pred.derived(), c2, v2, z2);
 
 		int naCount = 0;
 		for (int rx=0; rx < pred.rows(); ++rx) {
@@ -1820,6 +1828,21 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting rho = %f", rho);
 		param = atanh(rho);
+
+		if (pred.cols() || !data.getNoExoOptimize()) {
+			pr.resize(index.size());
+			den.resize(index.size());
+			regressOrdinalThresholds(y1.matrix(), pred.derived(), c1, v1, z1);
+			regressOrdinalThresholds(y2.matrix(), pred.derived(), c2, v2, z2);
+		} else {
+			obsTable.resize(c1.levels.size(), c2.levels.size());
+			obsTable.setZero();
+			pr.resize(obsTable.size());
+			den.resize(obsTable.size());
+			for (int rx=0; rx < y1F.rows(); ++rx) {
+				obsTable(y1F[rx]-1, y2F[rx]-1) += rowMultF[rx];
+			}
+		}
 	}
 
 	virtual double *getParamVec() { return &param; };
@@ -1831,11 +1854,23 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		double rho = tanh(param);
 
 		const double eps = std::numeric_limits<double>::epsilon();
-		for (int rx=0; rx < int(index.size()); ++rx) {
-			pr[rx] = std::max(pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho), eps);
-		}
 
-		fit = -(pr.log() * rowMult).sum();
+		if (pred.cols() || !data.getNoExoOptimize()) {
+			for (int rx=0; rx < int(index.size()); ++rx) {
+				pr[rx] = std::max(pbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho), eps);
+			}
+			fit = -(pr.log() * rowMult).sum();
+		} else {
+			fit = 0;
+			for (int cx=0; cx < obsTable.cols(); ++cx) {
+				for (int rx=0; rx < obsTable.rows(); ++rx) {
+					int px = cx * obsTable.rows() + rx;
+					pr[px] = std::max(pbivnorm(th1[rx], th2[cx],
+								   th1[rx+1], th2[cx+1], rho), eps);
+					fit -= log(pr[px]) * obsTable(rx,cx);
+				}
+			}
+		}
 	}
 	virtual void evaluateDerivs(int want)
 	{
@@ -1843,9 +1878,21 @@ struct PolychoricCor : NewtonRaphsonObjective {
 
 		double rho = tanh(param);
 		double dx = 0;
-		for (int rx=0; rx < int(index.size()); ++rx) {
-			den[rx] = dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
-			dx += rowMult[rx] * den[rx] / pr[rx];
+		
+		if (pred.cols() || !data.getNoExoOptimize()) {
+			for (int rx=0; rx < int(index.size()); ++rx) {
+				den[rx] = dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
+				dx += rowMult[rx] * den[rx] / pr[rx];
+			}
+		} else {
+			for (int cx=0; cx < obsTable.cols(); ++cx) {
+				for (int rx=0; rx < obsTable.rows(); ++rx) {
+					int px = cx * obsTable.rows() + rx;
+					den[px] = dbivnorm(th1[rx], th2[cx],
+							   th1[rx+1], th2[cx+1], rho);
+					dx += obsTable(rx,cx) * den[px] / pr[px];
+				}
+			}
 		}
 		double cosh_x = cosh(param);
 		grad = -dx / (cosh_x * cosh_x);
@@ -1859,41 +1906,72 @@ struct PolychoricCor : NewtonRaphsonObjective {
 	void calcScores()
 	{
 		// th1 th2 beta1 beta2 rho
-		Eigen::ArrayXXd Z1(index.size(), 2);
-		Eigen::ArrayXXd Z2(index.size(), 2);
-
 		scores.resize(index.size(), numThr1 + numThr2 + pred.cols() * 2 + 1);
 		scores.setZero();
 
-		evaluateFit();
+		evaluateDerivs(FF_COMPUTE_FIT);
 		double rho = tanh(param);
 		double R = sqrt(1 - rho*rho);
+
+		Eigen::ArrayXXd Z1;
+		Eigen::ArrayXXd Z2;
+		bool slow = pred.cols() || !data.getNoExoOptimize();
+		if (slow) {
+			Z1.resize(index.size(), 2);
+			Z2.resize(index.size(), 2);
+
+			for (int rx=0; rx < pred.rows(); ++rx) {
+				if (y1[rx] == NA_INTEGER || y2[rx] == NA_INTEGER) continue;
+				double ipr = 1.0 / pr[rx];
+				Z1(rx,0) = Rf_dnorm4(z1(rx,0), 0., 1., 0) *
+					(Rf_pnorm5((z2(rx,0) - rho*z1(rx,0))/R, 0., 1., 1, 0) -
+					 Rf_pnorm5((z2(rx,1) - rho*z1(rx,0))/R, 0., 1., 1, 0)) * ipr;
+				Z1(rx,1) = Rf_dnorm4(z1(rx,1), 0., 1., 0) *
+					(Rf_pnorm5((z2(rx,0) - rho*z1(rx,1))/R, 0., 1., 1, 0) -
+					 Rf_pnorm5((z2(rx,1) - rho*z1(rx,1))/R, 0., 1., 1, 0)) * ipr;
+				Z2(rx,0) = Rf_dnorm4(z2(rx,0), 0., 1., 0) *
+					(Rf_pnorm5((z1(rx,0) - rho*z2(rx,0))/R, 0., 1., 1, 0) -
+					 Rf_pnorm5((z1(rx,1) - rho*z2(rx,0))/R, 0., 1., 1, 0)) * ipr;
+				Z2(rx,1) = Rf_dnorm4(z2(rx,1), 0., 1., 0) *
+					(Rf_pnorm5((z1(rx,0) - rho*z2(rx,1))/R, 0., 1., 1, 0) -
+					 Rf_pnorm5((z1(rx,1) - rho*z2(rx,1))/R, 0., 1., 1, 0)) * ipr;
+			}
+		} else {
+			Z1.resize(pr.size(), 2);
+			Z2.resize(pr.size(), 2);
+
+			for (int cx=0; cx < obsTable.cols(); ++cx) {
+				for (int rx=0; rx < obsTable.rows(); ++rx) {
+					int px = cx * obsTable.rows() + rx;
+					double ipr = 1.0 / pr[px];
+					Z1(px,0) = Rf_dnorm4(th1[rx+1], 0., 1., 0) *
+						(Rf_pnorm5((th2[cx+1] - rho*th1[rx+1])/R, 0., 1., 1, 0) -
+						 Rf_pnorm5((th2[cx] - rho*th1[rx+1])/R, 0., 1., 1, 0)) * ipr;
+					Z1(px,1) = Rf_dnorm4(th1[rx], 0., 1., 0) *
+						(Rf_pnorm5((th2[cx+1] - rho*th1[rx])/R, 0., 1., 1, 0) -
+						 Rf_pnorm5((th2[cx] - rho*th1[rx])/R, 0., 1., 1, 0)) * ipr;
+					Z2(px,0) = Rf_dnorm4(th2[cx+1], 0., 1., 0) *
+						(Rf_pnorm5((th1[rx+1] - rho*th2[cx+1])/R, 0., 1., 1, 0) -
+						 Rf_pnorm5((th1[rx] - rho*th2[cx+1])/R, 0., 1., 1, 0)) * ipr;
+					Z2(px,1) = Rf_dnorm4(th2[cx], 0., 1., 0) *
+						(Rf_pnorm5((th1[rx+1] - rho*th2[cx])/R, 0., 1., 1, 0) -
+						 Rf_pnorm5((th1[rx] - rho*th2[cx])/R, 0., 1., 1, 0)) * ipr;
+				}
+			}
+		}
+
 		for (int rx=0; rx < pred.rows(); ++rx) {
 			if (y1[rx] == NA_INTEGER || y2[rx] == NA_INTEGER) continue;
-			double ipr = 1.0 / pr[rx];
-			Z1(rx,0) = Rf_dnorm4(z1(rx,0), 0., 1., 0) *
-				(Rf_pnorm5((z2(rx,0) - rho*z1(rx,0))/R, 0., 1., 1, 0) -
-				 Rf_pnorm5((z2(rx,1) - rho*z1(rx,0))/R, 0., 1., 1, 0)) * ipr;
-			Z1(rx,1) = Rf_dnorm4(z1(rx,1), 0., 1., 0) *
-				(Rf_pnorm5((z2(rx,0) - rho*z1(rx,1))/R, 0., 1., 1, 0) -
-				 Rf_pnorm5((z2(rx,1) - rho*z1(rx,1))/R, 0., 1., 1, 0)) * ipr;
-			Z2(rx,0) = Rf_dnorm4(z2(rx,0), 0., 1., 0) *
-				(Rf_pnorm5((z1(rx,0) - rho*z2(rx,0))/R, 0., 1., 1, 0) -
-				 Rf_pnorm5((z1(rx,1) - rho*z2(rx,0))/R, 0., 1., 1, 0)) * ipr;
-			Z2(rx,1) = Rf_dnorm4(z2(rx,1), 0., 1., 0) *
-				(Rf_pnorm5((z1(rx,0) - rho*z2(rx,1))/R, 0., 1., 1, 0) -
-				 Rf_pnorm5((z1(rx,1) - rho*z2(rx,1))/R, 0., 1., 1, 0)) * ipr;
-
-			if (y1(rx)-1 < numThr1) scores(rx, y1(rx)-1) = Z1(rx,0);
-			if (y1(rx)-2 >= 0)      scores(rx, y1(rx)-2) = -Z1(rx,1);
-			if (y2(rx)-1 < numThr2) scores(rx, numThr1 + y2(rx)-1) = Z2(rx,0);
-			if (y2(rx)-2 >= 0)      scores(rx, numThr1 + y2(rx)-2) = -Z2(rx,1);
+			int px = slow? rx : (y2[rx]-1) * obsTable.rows() + y1[rx]-1;
+			if (y1(rx)-1 < numThr1) scores(rx, y1(rx)-1) = Z1(px,0);
+			if (y1(rx)-2 >= 0)      scores(rx, y1(rx)-2) = -Z1(px,1);
+			if (y2(rx)-1 < numThr2) scores(rx, numThr1 + y2(rx)-1) = Z2(px,0);
+			if (y2(rx)-2 >= 0)      scores(rx, numThr1 + y2(rx)-2) = -Z2(px,1);
 			scores.row(rx).segment(numThr1+numThr2, pred.cols()) =
-				(Z1(rx,1)-Z1(rx,0)) * pred.row(rx).array();
+				(Z1(px,1)-Z1(px,0)) * pred.row(rx).array();
 			scores.row(rx).segment(numThr1+numThr2+pred.cols(), pred.cols()) =
-				(Z2(rx,1)-Z2(rx,0)) * pred.row(rx).array();
-			scores(rx,numThr1+numThr2+2*pred.cols()) =
-				dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho) * ipr;
+				(Z2(px,1)-Z2(px,0)) * pred.row(rx).array();
+			scores(rx,numThr1+numThr2+2*pred.cols()) = den[px] / pr[px];
 		}
 		scores.colwise() *= rowMult;
 	}
@@ -2435,7 +2513,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	std::vector<int> &index = o1.index;
 	recalcRowWeights(rowMultFull, index);
 	Eigen::ArrayXd &rowMult = o1.rowMult;
-	rowMult.resize(index.size());
+	rowMult.resize(index.size()); // rowMult.rows() == index.size() == pred.rows()
 	subsetVector(rowMultFull, index, rowMult);
 	o1.totalWeight = rowMult.sum();
 

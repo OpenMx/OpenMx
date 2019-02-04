@@ -171,6 +171,7 @@ class omxData {
 	int *currentFreqColumn;
 	obsSummaryStats *oss;
 	bool parallel;
+	bool noExoOptimize;
 
 	void estimateObservedStats();
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
@@ -263,6 +264,7 @@ class omxData {
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();
 	void invalidateColumnsCache(std::vector< int > &columns);
+	bool getNoExoOptimize() const { return noExoOptimize; };
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);

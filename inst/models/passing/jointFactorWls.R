@@ -58,20 +58,22 @@ jointData <- read.table("data/jointdata.txt", header=TRUE)
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
-# Check joint WLS data generation
-set.seed(23)
-simData <- mxGenerateData(jointData)
-omxCheckTrue(dim(simData) == c(250, 5))
-omxCheckCloseEnough(cor(simData$z1, simData$z3), cor(jointData$z1, jointData$z3), 0.01)
+if(1) {
+  # Check joint WLS data generation
+  set.seed(23)
+  simData <- mxGenerateData(jointData)
+  omxCheckTrue(dim(simData) == c(250, 5))
+  omxCheckCloseEnough(cor(simData$z1, simData$z3), cor(jointData$z1, jointData$z3), 0.01)
 
-tabo <- table(simData$z2, simData$z4)
-tabe <- table(jointData$z2, jointData$z4)
-# Chi-square-ish test
-# That is, the vectorized joint distributions are near
-#  the expected value of the chi-square
-omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.6)
-
-omxCheckTrue(all.equal(sapply(jointData, levels), sapply(simData, levels)))
+  tabo <- table(simData$z2, simData$z4)
+  tabe <- table(jointData$z2, jointData$z4)
+  # Chi-square-ish test
+  # That is, the vectorized joint distributions are near
+  #  the expected value of the chi-square
+  omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.6)
+  
+  omxCheckTrue(all.equal(sapply(jointData, levels), sapply(simData, levels)))
+}
 
 
 #------------------------------------------------------------------------------
