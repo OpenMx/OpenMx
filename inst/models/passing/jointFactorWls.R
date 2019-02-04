@@ -125,11 +125,6 @@ jointModel1 <- mxModel("ContinuousOrdinalData",
 				threshnames=c("z2", "z4", "z5"))
 			)
 
-# run it
-jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)
-
-summary(jointResults1)
-
 ramModel1 <- jointRAM <- mxModel(
   "JointRAM", type="RAM", thresh,
   manifestVars = paste0('z', 1:5),
@@ -142,9 +137,6 @@ ramModel1 <- jointRAM <- mxModel(
   mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0))
 
 ramModel1$expectation$thresholds <- 'T'
-
-ramResult1 <- mxRun(ramModel1)
-summary(ramResult1)
 
 # Create WLS Data
 wd <- mxData(jointData, "raw")
@@ -164,6 +156,12 @@ jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
 ramWlsResults <- mxRun(ramWlsModel)
+
+jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)
+summary(jointResults1)
+
+ramResult1 <- mxRun(ramModel1)
+summary(ramResult1)
 
 omxCheckCloseEnough(coef(jointWlsResults) - coef(ramWlsResults),
                     rep(0,15), 1e-3)
