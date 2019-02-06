@@ -771,8 +771,6 @@ static SEXP testEigenDebug()
 	return Rf_ScalarLogical(false);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 12},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
@@ -792,7 +790,6 @@ static R_CallMethodDef callMethods[] = {
 	{".enableMxLog", (DL_FUNC) &enableMxLog, 0},
 	{NULL, NULL, 0}
 };
-#pragma GCC diagnostic pop
 
 #ifdef  __cplusplus
 extern "C" {
