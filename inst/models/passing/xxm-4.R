@@ -31,4 +31,4 @@ diameterModel <- mxRun(diameterModel)
 
 (fm03.1 <- lmer(diameter ~ 1 + (1 | plate) + (1 | sample), REML = FALSE, Penicillin))
 
-omxCheckCloseEnough(logLik(diameterModel), logLik(fm03.1), 1e-6)
+omxCheckCloseEnough(logLik(diameterModel), logLik(fm03.1), 1e-5)
