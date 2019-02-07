@@ -91,7 +91,7 @@ omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 2L)
 
 discardCols <- c("OpenMxEvals", "iterations", "timestamp", "MxComputeLoop1", "objective", "statusCode")
 thr <- c(7, 8, 7, 7, 8, 8, 7, 8, 8, 7, 7, 8, 7, 7, 4, 8, 8, 8, 9, 8,
-         9, 9, 11, 10, 10, 9, 9, 8, 10, 10) - 1.5
+         9, 9, 11, 10, 10, 9, 9, 8, 10, 10) - 2
 
 log <- model3Fit$compute$steps[['CPT']]$log
 for (col in discardCols) log[[col]] <- NULL

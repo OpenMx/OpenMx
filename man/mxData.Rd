@@ -26,7 +26,7 @@
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
-          verbose = 0L, .parallel=TRUE)
+          verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE)
 }
 
 \arguments{
@@ -47,7 +47,9 @@
    \item{frequency}{The column name containing row frequencies}
    \item{verbose}{level of diagnostic output}
    \item{.parallel}{logical. Whether to compute observed summary
-   statistics in parallel.}
+     statistics in parallel.}
+   \item{.noExoOptimize}{logical. Whether to use math short-cuts for the
+     case of no exogenous predictors.}
 }
 
 \details{
