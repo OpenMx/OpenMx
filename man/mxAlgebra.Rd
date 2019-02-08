@@ -53,7 +53,7 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 \item{joinModel}{The name of the model that this matrix joins against.}
 \item{verbose}{For values greater than zero, enable runtime
   diagnostics.}
-\item{initial}{a matrix. When \code{recompute=\sQuote{onDemand}},
+\item{initial}{a matrix. When \code{recompute='onDemand'},
   you must provide this initial algebra result.}
    \item{recompute}{If \sQuote{onDemand}, this algebra will not be recomputed
      automatically when things it depends on change. \link{mxComputeOnce}
