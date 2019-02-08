@@ -1208,7 +1208,7 @@ setMethod("initialize", "MxComputeEM",
 ##' \code{mxComputeEM(e,p,mstep=m)} is equivalent to the new style
 ##' \code{mxComputeEM(estep=mxComputeOnce(e,p), mstep=m)}. This change
 ##' allows the API to more closely match the literature on the E-M
-##' method.  You might use \code{mxAlgebra(..., fixed=TRUE)} to
+##' method.  You might use \code{mxAlgebra(..., recompute='onDemand')} to
 ##' contain the results of the E-step and then cause this algebra to
 ##' be recomputed using \code{mxComputeOnce}.
 ##'
@@ -1285,7 +1285,7 @@ setMethod("initialize", "MxComputeEM",
 ##' 	mxAlgebra((1-Posteriors) * Class1.fitfunction, name="PL1"),
 ##' 	mxAlgebra(Posteriors * Class2.fitfunction, name="PL2"),
 ##' 	mxAlgebra(PL1 + PL2, name="PL"),
-##' 	mxAlgebra(PL2 / PL,  fixed=TRUE,
+##' 	mxAlgebra(PL2 / PL,  recompute='onDemand',
 ##' 	          initial=matrix(runif(N,.4,.6), nrow=N, ncol = 1), name="Posteriors"),
 ##' 	mxAlgebra(-2*sum(log(PL)), name="FF"),
 ##' 	mxFitFunctionAlgebra(algebra="FF"),
