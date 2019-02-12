@@ -96,7 +96,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 		name <- imxUntitledName()
 	}
 	imxVerifyName(name, 0)
-	if (!missing(fixed) && !missed(recompute)) stop("The 'fixed' argument is renamed to recompute")
+	if (!missing(fixed) && !missing(recompute)) stop("The 'fixed' argument is renamed to recompute")
 	if (!missing(fixed) && fixed == TRUE) recompute <- 'onDemand'
 	recompute <- match.arg(recompute)
 	retval <- new("MxAlgebra", NA, name, recompute=='onDemand', joinKey, joinModel,
