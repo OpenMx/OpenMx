@@ -279,6 +279,12 @@ mxRefModels <- function(x, run=FALSE, ..., distribution="default", equateThresho
 	if (length(garbageArguments) > 0) {
 		stop("mxRefModels does not accept values for the '...' argument")
 	}
+	if(is(x,"MxModel")){
+		if(imxHasDefinitionVariable(x)){
+			warning(
+				"argument 'x' is an MxModel that contains definition variables, but mxRefModels() ignores definition variables, and therefore may not do what you expect")
+		}
+	}
 	models <- lapply(ReferenceModelHelper(x, distribution, equateThresholds), function(model) {
 		if (!isS4(model)) return(model)
 		model <- omxAssignFirstParameters(model)
