@@ -86,7 +86,8 @@ setMethod("names", "MxAlgebra", slotNames)
 
 mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 		      joinKey=as.character(NA), joinModel=as.character(NA),
-		      verbose=0L, initial=matrix(as.numeric(NA),1,1)) {
+		      verbose=0L, initial=matrix(as.numeric(NA),1,1),
+		      recompute=c('always','onDemand')) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxAlgebra does not accept values for the '...' argument")
@@ -95,7 +96,10 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 		name <- imxUntitledName()
 	}
 	imxVerifyName(name, 0)
-	retval <- new("MxAlgebra", NA, name, fixed, joinKey, joinModel,
+	if (!missing(fixed) && !missing(recompute)) stop("The 'fixed' argument is renamed to recompute")
+	if (!missing(fixed) && fixed == TRUE) recompute <- 'onDemand'
+	recompute <- match.arg(recompute)
+	retval <- new("MxAlgebra", NA, name, recompute=='onDemand', joinKey, joinModel,
 		as.integer(verbose), initial)
 	formula <- match.call()$expression
 	if(is.character(formula)){
@@ -114,7 +118,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 #' @param algString the character string to convert into an R expression
 #' @param name An optional character string indicating the name of the object.
 #' @param dimnames list. The dimnames attribute for the algebra: a list of length 2 giving the row and column names respectively. An empty list is treated as NULL, and a list of length one as row names. The list can be named, and the list names will be used as names for the dimensions.
-#' @param ... Not used.  Forces any remaining arguments to be specified by name.
+#' @param ... Forwarded verbatim to \link{mxAlgebra}
 #' @seealso \link{mxAlgebra}
 #' @examples
 #' A <- mxMatrix(values = runif(25), nrow = 5, ncol = 5, name = 'A')
@@ -125,11 +129,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 #' model[['test']]$result
 #' A$values * (B$values + A$values)
 mxAlgebraFromString <- function(algString, name=NA, dimnames=NA, ...) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxAlgebraFromString does not accept values for the '...' argument")
-	}
-	eval(substitute(mxAlgebra(tExp, name=name, dimnames=dimnames),
+	eval(substitute(mxAlgebra(tExp, name=name, dimnames=dimnames, ...),
 			list(tExp = parse(text=algString)[[1]])))
 }
 

@@ -23,7 +23,7 @@ mm <- mxModel(
 	mxAlgebra((1-Posteriors) * Class1.fitfunction, name="PL1"),
 	mxAlgebra(Posteriors * Class2.fitfunction, name="PL2"),
 	mxAlgebra(PL1 + PL2, name="PL"),
-	mxAlgebra(PL2 / PL,  fixed=TRUE,
+	mxAlgebra(PL2 / PL,  recompute='onDemand',
 	          initial=matrix(runif(N,.4,.6), nrow=N, ncol = 1), name="Posteriors"),
 	mxAlgebra(-2*sum(log(PL)), name="FF"),
 	mxFitFunctionAlgebra(algebra="FF"),

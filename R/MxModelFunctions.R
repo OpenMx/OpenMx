@@ -318,6 +318,12 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 						dimnames(value) <- dimnames(candidate)
 					}
 					candidate@result <- value
+					if (candidate@fixed && all(dim(value) == dim(candidate@initial)) &&
+						    all(value == candidate@initial)) {
+						warning(paste("Algebra",omxQuotes(candidate@name),
+							"is set for onDemand recompute yet is still at",
+							"initial values"))
+					}
 				} else if (is(candidate,"MxFitFunction")) {
 					if(is(candidate,"MxFitFunctionGREML")){
 						candidate@MLfit <- attr(value,"MLfit")
