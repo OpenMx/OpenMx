@@ -28,7 +28,8 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("The Regents of the University of California", role="cph"),
     person("Lester", "Ingber", role="cph"),
     person("Wong", "Shao Voon", role="cph"),
-    person("Juan", "Palacios", role="cph"))
+    person("Juan", "Palacios", role="cph"),
+    person("Jiang", "Yang", role="cph"))
 URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
 BugReports: http://openmx.ssri.psu.edu/forums
 Description: Facilitates treatment of statistical model specifications
@@ -172,6 +173,7 @@ Collate:
     'MxAutoStart.R'
     'MxRetro.R'
     'MxMMI.R'
+    'omxReadGRMBin.R'
     'zzz.R'
 Biarch: true
 Version: @VERSION@
