@@ -20,7 +20,7 @@
 \title{Create Reference (Saturated and Independence) Models}
 
 \description{
-   This function creates and, optionally, runs saturated and independence (null) models of a base model or data set for use with \link{mxSummary} to enable fit indices that depend on these models.
+   This function creates and, optionally, runs saturated and independence (null) models of a base model or data set for use with \link{mxSummary} to enable fit indices that depend on these models.  Note that there are cases where this function is not valid for use, or should be used with caution (see below, under "Warnings").
 }
 
 
@@ -47,13 +47,20 @@ The saturated and independence models could be used to create further fit indice
 
 When the \link{mxFitFunctionMultigroup} fit function is used, \code{mxRefModels} creates the appropriate multi-group saturated and independence models.  Saturated and independence models are created separately for each group.  Each group has its own saturated and independence model.  The multi-group saturated model is a multi-group model where each group has its own saturated model, and similarly for the independence model.
 
-One potentially important limitation of the \code{mxRefModels} function is for behavior-genetic models.  If variables 'x', 'y', and 'z' are measured on twins 1 and 2 creating the modeled variables 'x1', 'y1', 'z1', 'x2', 'y2', 'z2', then this function may not create the intended saturated or independence models.  In particular, the means of 'x1' and 'x2' are estimated separately.  Similarly, the covariance of 'x1' with 'y1' and 'x2' with 'y2' are allowed be be distinct: \eqn{cov(x1, y1) != cov{x2, y2}}.  Moreover, the cross-twin covariances are estimated: e.g. \eqn{cov(x1, y2) != 0}.
-
-Another potential misuse of this function is for models with definition variables.  If definition variables are used, the saturated and independence model may not be correct because they do not account for the definition variables.
-
 When an MxModel has been run, some effort is made to make the reference models for only the variables used in the model.  For covariance data, all variables are modeled by default.  For raw data when the model has been run, only the modeled variables are used in the reference models.  This matches the behavior of \link{mxModel}.
 
 In general, it is best practice to give \code{mxRefModels} a model that has already been run.
+
+Multivariate normal models with all ordinal data and no missing values
+can use the saturated multinomial distribution. This is much faster than
+estimation of the saturated multivariate normal model. Use
+\code{distribution='multinomial'} to avail this option.
+}
+
+\section{Warnings}{
+One potentially important limitation of the \code{mxRefModels} function is for behavior-genetic models.  If variables 'x', 'y', and 'z' are measured on twins 1 and 2 creating the modeled variables 'x1', 'y1', 'z1', 'x2', 'y2', 'z2', then this function may not create the intended saturated or independence models.  In particular, the means of 'x1' and 'x2' are estimated separately.  Similarly, the covariance of 'x1' with 'y1' and 'x2' with 'y2' are allowed be be distinct: \eqn{cov(x1, y1) != cov{x2, y2}}.  Moreover, the cross-twin covariances are estimated: e.g. \eqn{cov(x1, y2) != 0}.
+
+Another potential misuse of this function is for models with definition variables.  If definition variables are used, the saturated and independence model may not be correct because they do not account for the definition variables.
 
 The are a few considerations specific to IFA models
 (\link{mxExpectationBA81}).
@@ -73,11 +80,6 @@ on loading, and uniqueness prior). These priors cannot be included
 in the independence model because there are no latent factors.
 Therefore, exercise caution when comparing the independence model
 to a model that includes Bayesian priors.
-
-Multivariate normal models with all ordinal data and no missing values
-can use the saturated multinomial distribution. This is much faster than
-estimation of the saturated multivariate normal model. Use
-\code{distribution='multinomial'} to avail this option.
 
 \code{mxRefModels()} is not compatible with
 \link[OpenMx:mxExpectationGREML]{GREML expectation}, as there is no

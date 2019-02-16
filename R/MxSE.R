@@ -57,6 +57,19 @@
 ##' covariance matrix is given, not the information matrix.  These 
 ##' two are inverses of one another.
 ##' 
+##' This function uses the delta method to compute the standard error of arbitrary
+##' and possibly nonlinear functions of the free parameters.  The delta method
+##' makes a first-order Taylor approximation of the nonlinear function.  The
+##' nonlinear function is a map from all the free parameters to some transformed
+##' subset of parameters: the linearization of this map is given by the Jacobian
+##' \eqn{J}.  In equation form, the delta method computes standard errors by the following:
+##' 
+##' \deqn{J^T C J}
+##' 
+##' where \eqn{J} is the Jacobian of the nonlinear parameter transformation
+##' and \eqn{C} is the covariance matrix of the free parameters (e.g., two
+##' times the inverse of the Hessian of the minus two log likelihood function).
+##' 
 ##' @return SE value(s) returned as a matrix when \code{details} is FALSE.
 ##' When \code{details} is TRUE, a list of the SE value(s) and the full 
 ##' sampling covariance matrix.
