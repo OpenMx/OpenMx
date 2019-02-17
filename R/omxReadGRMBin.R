@@ -17,12 +17,12 @@
 #------------------------------------------------------------------------------
 # Authors: Robert M. Kirkpatrick, Jiang Yang
 # Date: 2019-02-15
-# Filename: mxReadGRMBin.R
+# Filename: omxReadGRMBin.R
 # Purpose: Read GCTA-format GRMs
 #------------------------------------------------------------------------------
 
 #This function is adapted from syntax written by Jiang Yang for the GCTA User Manual:
-omxReadGRMBin <- function(prefix,	AllN=FALSE,	size=4, returnList=FALSE){
+omxReadGRMBin <- function(prefix, AllN=FALSE, size=4, returnList=FALSE){
 	sum_i = function(i){
 		return(sum(1:i))
 	}	
