@@ -37,5 +37,4 @@ Yang J, Lee SH, Goddard ME, Visscher, PM. Genome-wide complex trait analysis (GC
 
 GCTA website:  http://cnsgenomics.com/software/gcta/#Overview .
 
-Code for \code{omxReadGRMBin() was adapted from syntax by Jiang Yang in the GCTA User Manual, version 1.24, dated 28 July 2014, retrieved from http://cnsgenomics.com/software/gcta/GCTA_UserManual_v1.24.pdf .}
-}
+Code for \code{omxReadGRMBin()} was adapted from syntax by Jiang Yang in the GCTA User Manual, version 1.24, dated 28 July 2014, retrieved from http://cnsgenomics.com/software/gcta/GCTA_UserManual_v1.24.pdf .}
