@@ -127,8 +127,11 @@ param.se <- c(0.0613, 0.1056, 0.0684, 0.0942, 0.0665, 0.0541, 0.0648, 0.0559,  0
               0.0593, 0.0819, 0.0777, 0.0726, 0.0922, 0.0655,  0.0585)
 omxCheckCloseEnough(c(jointRAM1$output$standardErrors), param.se, 1e-3)
 
-# Switch jointRAM1 from MxFitFunctionWLS to an ML fitfunction
-# TODO: why??
+# ===============================================================
+# = Switch jointRAM1 from MxFitFunctionWLS to an ML fitfunction =
+# = to compare the estimates of these two approaches            =
+# ===============================================================
+
 jointRAM2 <- mxModel(jointRAM1, mxFitFunctionML())
 jointRAM2 <- mxRun(jointRAM2)
 summary(jointRAM2)
@@ -142,7 +145,7 @@ omxCheckCloseEnough(cor(seCmp)[2,1], 1, .18)
 # =========================
 # = Test permutation code =
 # =========================
-# TODO: How does this test "permutation" code?
+# TODO: How does this test "permutation" code? Should this be "iterate over model types allowed by the builModel function"
 
 for (slopes in c(TRUE,FALSE)) {
 	for (type in c('WLS','DWLS','ULS')) {
