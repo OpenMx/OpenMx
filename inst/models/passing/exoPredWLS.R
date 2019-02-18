@@ -1,108 +1,148 @@
+# ==================================================================================
+# = This is a 1-factor model of 2 continuous variables, and 3 factors              =
+# = Two definition variables are created (coded with a "c" suffix ?)               =
+# = In RAM models, you add a definition variable as a fake latent with no variance =
+# = with its mean set to "data.defnVar"                                            =
+# ==================================================================================
+
+# TODO: Change the file name: "exoPredWLS.R" is not discoverable
+
 library(OpenMx)
 
+# Make the results repeatable (unclear if this is needed?)
 set.seed(1)
 
+# Why is reading the data done twice?
 jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
 jointData <- read.table("data/jointdata.txt", header=TRUE)
-jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
-                                 levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
+# TODO: Note, neither of these paths are valid for an installed package.
+# A user stumbling onto this file will likely just give up, assuming it's a broken script.
 
+# TODO: NOTE: Something like this works for an actual user. But why don't we use load()?
+# jointData <- read.table("~/bin/OpenMx/inst/models/passing/data/jointdata.txt", header=TRUE)
+
+# ==========================================
+# = Here's what our input data looks like: =
+# ==========================================
+str(jointData)
+# jointData is a dataframe with 5 variables: "z1", "z2", "z3", "z4", "z5"
+# 'data.frame':	250 obs. of  5 variables:
+#  $ z1: num  6.83 8.77 8.01 9 8.52 ...
+#  $ z2: int  0 0 0 1 0 0 0 0 0 0 ...
+#  $ z3: num  -0.0647 2.8983 2.5471 2.9078 3.4518 ...
+#  $ z4: int  2 2 1 2 1 1 0 1 0 3 ...
+#  $ z5: int  2 1 2 2 0 2 0 2 2 1 ...
+
+round(cov(jointData),3)
+#       z1    z2    z3    z4    z5
+# z1 0.927 0.149 0.437 0.368 0.089
+# z2 0.149 0.250 0.148 0.202 0.065
+# z3 0.437 0.148 0.936 0.454 0.049
+# z4 0.368 0.202 0.454 1.279 0.122
+# z5 0.089 0.065 0.049 0.122 0.635
+
+# ==============================================================================================================
+# = Make data suitable for a joint (continuous and ordinal) model by reformatting some variables as mxFactors  =
+# ==============================================================================================================
+# z2, z4, and z5 to be mxFactors with 2, 4, and 3 levels respectively
+jointData[,c("z2", "z4", "z5")] <- mxFactor(jointData[,c("z2", "z4", "z5")], levels= list(c(0, 1), c(0, 1, 2, 3), c(0, 1, 2)))
+
+# Make z1c = z1 + some noise;
 jointData$z1c <- with(jointData, z1 * .1 + rnorm(nrow(jointData)))
-
+# and z2c which is just a column of noise with a mean = the mean factor level of z2 (no clue why as yet...)
 jointData$z2c <- with(jointData, rnorm(nrow(jointData), mean=unclass(z2)*.2))
 
-thresh <- mxMatrix("Full", 3, 3, FALSE, 0, name="T")
+# ============================================
+# = Create a thresholds matrix for the model =
+# ============================================
+thresh <- mxMatrix(name="T", "Full", nrow= 3, ncol= 3, free = FALSE, values = 0)
 
-thresh$free[,1] <- c(TRUE, FALSE, FALSE)
-thresh$values[,1] <- c(0, NA, NA)
-thresh$labels[,1] <- c("z2t1", NA, NA)
+# ... and fill in for columns 1:3 matching vars z2, z4, and z5
+thresh$free[,1]   <- c(TRUE  , FALSE, FALSE)
+thresh$values[,1] <- c(0     , NA   , NA)
+thresh$labels[,1] <- c("z2_thresh1", NA   , NA)
 
-thresh$free[,2] <- TRUE
-thresh$values[,2] <- c(-1, 0, 1)
-thresh$labels[,2] <- c("z4t1", "z4t2", "z4t3")
+thresh$free[,2]   <- c(TRUE, TRUE, TRUE)
+thresh$values[,2] <- c(-1  , 0   , 1)
+thresh$labels[,2] <- c("z4_thresh1", "z4_thresh2", "z4_thresh3")
 
-thresh$free[,3] <- c(TRUE, TRUE, FALSE)
-thresh$values[,3] <- c(-1, 1, NA)
-thresh$labels[,3] <- c("z5t1", "z5t2", NA)
-colnames(thresh) <- paste0('z', c(2,4,5))
+thresh$free[,3]   <- c(TRUE, TRUE, FALSE)
+thresh$values[,3] <- c(-1  , 1   , NA)
+thresh$labels[,3] <- c("z5_thresh1", "z5_thresh2", NA)
+# Add column names
+colnames(thresh)  <- paste0('z', c(2, 4, 5))
 
-# ------- LISREL
 
-jl <- mxModel("JointLISREL", type="LISREL", thresh,
-              manifestVars = list(endogenous=paste0('z',1:5)),
-              latentVars = list(endogenous=c('G','z1c','z2c')),
-              mxData(jointData, "raw", verbose=0L),
-              mxPath('one', paste0('z', c(1,3)), free=TRUE, labels=c('z1','z3')),
-              mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
-              mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
-              mxPath('G', arrows=2, values=1, free=FALSE),
-              mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0, ubound=4),
-              mxPath('one', 'z1c', free=FALSE, labels="data.z1c"),
-              mxPath('one', 'z2c', free=FALSE, labels="data.z2c"),
-              mxPath('z1c', 'z1', labels="r1"),
-              mxPath('z2c', 'z2', labels="r2"),
-              mxFitFunctionWLS())
+# =============================================
+# = Build a function to create WLS RAM models =
+# =============================================
+# note: This makes the script more complex, but will allow some programatic generation below
 
-jl$expectation$thresholds <- 'T'
-#jl$expectation$verbose <- 1L
-
-jl <- mxRun(jl)
-
-#----------- RAM
-
-buildModel <- function(manifests=paste0('z', 1:5), type='WLS', slopes=TRUE) {
-	jr <- mxModel("JointRAM", type="RAM", thresh,
+buildModel <- function(manifests= paste0('z', 1:5), type = 'WLS', slopes= TRUE) {
+	jr <- mxModel("JointRAM", type= "RAM",
 		manifestVars = manifests,
+		# TODO: is this legit (to use a var name found in the data as a latent name?)
 		latentVars = c('G','z1c','z2c'),
-		mxData(jointData, "raw", verbose=0L),
-		mxPath('one', paste0('z', c(1,3)), free=TRUE, labels=c('z1','z3')),
-		mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
-		mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
-		mxPath('G', arrows=2, values=1, free=FALSE),
-		mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0),
-		mxFitFunctionWLS(type))
-	if (slopes) {
+		mxPath('one', c('z1', 'z3'), free= TRUE, labels= c('z1','z3')),
+		mxPath(paste0('z', c(1,3)), arrows= 2, free= TRUE, values= .5),
+		# ordinal variables have fixed variance and no mean
+		# TODO: why var = .5?
+		mxPath(paste0('z', c(2,4,5)), arrows= 2, free= FALSE, values= .5),
+		# latent scaled to var of 1 (mean is fixed at zero by default)
+		mxPath('G', arrows= 2, values= 1, free= FALSE),
+		mxPath('G', to = manifests, free= TRUE, values= 1, lbound= 0),
+		# include the thresholds matrix made earlier
+		thresh,
+		# Note: No data are still raw, despite our using WLS
+		mxData(jointData, type = "raw", verbose= 0L),
+		# Note: this call to mxFitFunctionWLS is all that's
+		# required to make a model into WLS!
+		mxFitFunctionWLS(type)
+	)
+	# TODO: "slopes" is means?
+	if(slopes){
 		jr <- mxModel(jr,
-			mxPath('one', 'z1c', free=FALSE, labels="data.z1c"),
-			mxPath('one', 'z2c', free=FALSE, labels="data.z2c"),
-			mxPath('z1c', 'z1', labels="r1"),
-			mxPath('z2c', 'z2', labels="r2"))
+			mxPath('one', to = 'z1c', free= FALSE, labels= "data.z1c"),
+			mxPath('one', to = 'z2c', free= FALSE, labels= "data.z2c"),
+			mxPath('z1c', to = 'z1', labels= "r1"),
+			mxPath('z2c', to = 'z2', labels= "r2"))
 	}
+	# TODO: Shouldn't we have a call to mxExpectationRAM or LISREL??? here???
+	# mxExpectationRAM(M = NA, dimnames = NA, thresholds = "T", threshnames = ???)
 	jr$expectation$thresholds <- 'T'
-	jr
+	return(jr)
 }
 
-jm1 <- buildModel()
+jointRAM1 <- buildModel()
+jointRAM1 <- mxRun(jointRAM1)
+summary(jointRAM1)
+# plot(jointRAM1) # (if using umx)
 
-jm1 <- mxRun(jm1)
-summary(jm1)
-
-print(max(abs(coef(jl) - coef(jm1))))
-omxCheckCloseEnough(coef(jl), coef(jm1), 2e-5)
-
-# tmp <- c(jm1$output$standardErrors)
-# names(tmp) <- c()
-# cat(deparse(round(tmp,4)))
-
+# Where do these come from?
 param <-  c(0.5808, 0.5903, 0.6526, 0.6066, 0.1745, 0.0871, 0.0504, 0.5476,  0.4639, 7.8323,
             2.0759, 0.0785, -0.3664, 0.1271, 0.7919, -0.6475,  -0.296)
-omxCheckCloseEnough(coef(jm1), param, 1e-3)
+omxCheckCloseEnough(coef(jointRAM1), param, 1e-3)
 
 param.se <- c(0.0613, 0.1056, 0.0684, 0.0942, 0.0665, 0.0541, 0.0648, 0.0559,  0.0644, 0.1054,
               0.0593, 0.0819, 0.0777, 0.0726, 0.0922, 0.0655,  0.0585)
-omxCheckCloseEnough(c(jm1$output$standardErrors), param.se, 1e-3)
+omxCheckCloseEnough(c(jointRAM1$output$standardErrors), param.se, 1e-3)
 
-jm2 <- mxModel(jm1, mxFitFunctionML())
-jm2 <- mxRun(jm2)
-summary(jm2)
+# Switch jointRAM1 from MxFitFunctionWLS to an ML fitfunction
+# TODO: why??
+jointRAM2 <- mxModel(jointRAM1, mxFitFunctionML())
+jointRAM2 <- mxRun(jointRAM2)
+summary(jointRAM2)
 
-estCmp <- cbind(coef(jm2), coef(jm1))
+estCmp <- cbind(coef(jointRAM2), coef(jointRAM1))
 omxCheckCloseEnough(cor(estCmp)[2,1], 1, 1e-4)
 
-seCmp <- cbind(jm2$output$standardErrors, jm1$output$standardErrors)
+seCmp <- cbind(jointRAM2$output$standardErrors, jointRAM1$output$standardErrors)
 omxCheckCloseEnough(cor(seCmp)[2,1], 1, .18)
 
-# ------- Test permutation code
+# =========================
+# = Test permutation code =
+# =========================
+# TODO: How does this test "permutation" code?
 
 for (slopes in c(TRUE,FALSE)) {
 	for (type in c('WLS','DWLS','ULS')) {
@@ -113,3 +153,42 @@ for (slopes in c(TRUE,FALSE)) {
 		jm4 <- mxRun(jm4)
 	}
 }
+
+# =========================
+# = Make a LISREL version =
+# =========================
+
+jointLISREL <- mxModel("JointLISREL", type="LISREL",
+    manifestVars = list(endogenous= paste0('z',1:5)),
+    latentVars = list(endogenous= c('G','z1c','z2c')),
+    mxPath('one', paste0('z', c(1,3)), free= TRUE, labels= c('z1','z3')),
+    mxPath(paste0('z', c(1,3)), arrows= 2, free=TRUE, values= .5),
+    mxPath(paste0('z', c(2,4,5)), arrows= 2, free=FALSE, values= .5),
+    mxPath('G', arrows= 2, values= 1, free= FALSE),
+    mxPath('G', paste0('z', 1:5), free= TRUE, values= 1, lbound= 0, ubound= 4),
+    mxPath('one', 'z1c', free= FALSE, labels= "data.z1c"),
+    mxPath('one', 'z2c', free= FALSE, labels= "data.z2c"),
+    mxPath('z1c', 'z1', labels= "r1"),
+    mxPath('z2c', 'z2', labels= "r2"),
+    thresh,
+	mxData(jointData, "raw", verbose=0L),
+    mxFitFunctionWLS()
+	# Shouldn't we have a call to mxExpectationRAM or LISREL??? here???
+	# mxExpectationRAM(M = NA, dimnames = NA, thresholds = "T", threshnames = ???)	
+)
+
+# =================================================================
+# = TODO: How would a user ever discover this?: What does it do?? =
+# =================================================================
+jointLISREL$expectation$thresholds <- 'T'
+# jointLISREL$expectation$verbose <- 1L
+
+jointLISREL <- mxRun(jointLISREL)
+
+# Compare parameter estimates from the RAM and LISREL models
+print(max(abs(coef(jointLISREL) - coef(jointRAM1))))
+omxCheckCloseEnough(coef(jointLISREL), coef(jointRAM1), 2e-5)
+
+# tmp <- c(jointRAM1$output$standardErrors)
+# names(tmp) <- c()
+# cat(deparse(round(tmp,4)))
