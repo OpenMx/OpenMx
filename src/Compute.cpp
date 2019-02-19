@@ -924,9 +924,9 @@ std::string FitContext::asProgressReport()
 	std::string str;
 	if (!std::isfinite(previousReportFit) || !std::isfinite(fit) ||
 	    previousReportFit == fit) {
-		str = string_snprintf("%d %.6g", getGlobalComputeCount(), fit);
+		str = string_snprintf("evaluations %d fit %.6g", getGlobalComputeCount(), fit);
 	} else {
-		str = string_snprintf("%d %.6g %.4g",
+		str = string_snprintf("evaluations %d fit %.6g change %.4g",
 				      getGlobalComputeCount(), fit, fit - previousReportFit);
 	}
 	previousReportFit = fit;

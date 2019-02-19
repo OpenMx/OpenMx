@@ -29,11 +29,19 @@ class GradientOptimizerContext {
 	// some parameters might be profiled out and should
 	// not be subject to optimization.
 	FitContext *fc;
+	std::string optName;
+	const char *computeName;
 
  public:
 	const int verbose;
 	const int numFree;    // how many parameters are not profiled out
-	const char *optName;  // filled in by the optimizer
+	const char *getOptName() const { return optName.c_str(); };
+	void setEngineName(const char *engine) {
+		optName = computeName;
+		optName += "(";
+		optName += engine;
+		optName += ")";
+	}
 
 	// Maybe the optimizer should not have information about
 	// how the gradient is approximated?
@@ -78,7 +86,8 @@ class GradientOptimizerContext {
 	GradientOptimizerContext(FitContext *fc, int verbose,
 				 enum GradientAlgorithm _gradientAlgo,
 				 int _gradientIterations,
-				 double _gradientStepSize);
+				 double _gradientStepSize,
+				 omxCompute *owner);
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
@@ -174,7 +183,7 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 			// of them.
 			copyFromOptimizer(myPars, fc2);
 			int want = FF_COMPUTE_FIT;
-			ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
+			ComputeFit(getOptName(), fc2->lookupDuplicate(fitMatrix), want, fc2);
 			double fit = fc2->fit;
 			if (fc2->outsideFeasibleSet()) {
 				fit = nan("infeasible");

@@ -185,7 +185,7 @@ static double getNPSOLFeasibilityTolerance()
 
 static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality, int nl_inequality, int l_equality, int l_inequality)
 {
-	rf.optName = "NPSOL";
+	rf.setEngineName("NPSOL");
 	rf.setupAllBounds();
 	{
 		double ft = (nl_equality+nl_inequality+l_inequality+l_equality)? getNPSOLFeasibilityTolerance() : 1e-5;
