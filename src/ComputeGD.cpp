@@ -117,14 +117,15 @@ int GradientOptimizerContext::countNumFree()
 GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
 						   enum GradientAlgorithm _gradientAlgo,
 						   int _gradientIterations,
-						   double _gradientStepSize)
+						   double _gradientStepSize,
+						   omxCompute *owner)
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
 	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
 	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
-	optName = "?";
+	computeName = owner->name;
 	fitMatrix = NULL;
 	ControlMinorLimit = 800;
 	ControlRho = 1.0;
@@ -185,7 +186,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	if (*mode == 1) {
 		fc->iterations += 1;
 		fc->resetOrdinalRelativeError();
-		Global->reportProgress(optName, fc);
+		Global->reportProgress(getOptName(), fc);
 	}
 	copyFromOptimizer(myPars, fc);
 
@@ -196,7 +197,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		fc->grad.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
-	ComputeFit(optName, fitMatrix, want, fc);
+	ComputeFit(getOptName(), fitMatrix, want, fc);
 
 	if (fc->outsideFeasibleSet() || isErrorRaised()) {
 		*mode = -1;
@@ -477,7 +478,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	//if (fc->ciobj) verbose=2;
 	double effectiveGradientStepSize = gradientStepSize;
 	if (engine == OptEngine_NLOPT) effectiveGradientStepSize *= GRADIENT_FUDGE_FACTOR(2.0);
-	GradientOptimizerContext rf(fc, verbose, gradientAlgo, gradientIterations, effectiveGradientStepSize);
+	GradientOptimizerContext rf(fc, verbose, gradientAlgo, gradientIterations, effectiveGradientStepSize,
+				    this);
 	threads = rf.numOptimizerThreads;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
