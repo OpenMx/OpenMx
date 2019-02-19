@@ -40,7 +40,8 @@ omxCheckTrue(!is.null(checkpointdat))
 omxCheckTrue(nrow(checkpointdat)>1)
 omxCheckTrue(all(checkpointdat$OpenMxNumFree == 10))
 
-mask <- checkpointdat$objective < 1000 & checkpointdat$OpenMxContext == mxOption(NULL, "Default optimizer")
+ctx <- paste0('MxComputeGradientDescent(', mxOption(NULL, "Default optimizer"), ')')
+mask <- checkpointdat$objective < 1000 & checkpointdat$OpenMxContext == ctx
 traj <- checkpointdat$objective[mask]
 omxCheckTrue(length(traj) > 40)
 trajDf <- data.frame(y=traj, x=1:length(traj))
