@@ -67,22 +67,50 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 
 \examples{
    
-#----------
+# ===============================================
+# = Build a 1-factor CFA, with bad start values =
+# ===============================================
 require(OpenMx)
-manifests <- paste("x", 1:5, sep="")
-latents <- c("G")
-factorModel <- mxModel("One Factor",
-      type="RAM",
+manifests = paste("x", 1:5, sep="")
+latents = c("G")
+factorModel = mxModel("One Factor", type="RAM",
       manifestVars = manifests,
       latentVars = latents,
-      mxPath(from=latents, to=manifests),
-      mxPath(from=manifests, arrows=2),
-      mxPath(from=latents, arrows=2,
-            free=FALSE, values=1.0),
-      mxPath(from = 'one', to = manifests))
+      mxPath(from = latents, to = manifests),
+      mxPath(from = manifests, arrows = 2),
+      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+      mxPath(from = 'one', to = manifests),
+	  mxData(demoOneFactor, type = "raw")
+)
+
+# ============================================================================
+# = What do our starting values indicate about the expected data covariance? =
+# ============================================================================
+mxGetExpected(factorModel, "covariance")
+
+# Oops. Starting values indicate an expected zero-covariance matrix.
+# The model likely won't run from these start values.
+# Let's adjust them:
+
+factorModel = mxModel("One Factor", type = "RAM",
+      manifestVars = manifests, latentVars = latents,
+      # Reasonable start VALUES
+	  mxPath(from = latents, to = manifests, values = .2),
+      mxPath(from = manifests, arrows = 2),
+      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+      mxPath(from = 'one', to = manifests),
+	  mxData(demoOneFactor, type = "raw")
+)
 
 mxGetExpected(factorModel, "covariance")
-# oops.  Starting values indicate a zero covariance matrix.
-#  Probably should adjust them.
+#      x1   x2   x3   x4   x5
+# x1 0.04 0.04 0.04 0.04 0.04
+# x2 0.04 0.04 0.04 0.04 0.04
+# x3 0.04 0.04 0.04 0.04 0.04
+# x4 0.04 0.04 0.04 0.04 0.04
+# x5 0.04 0.04 0.04 0.04 0.04
+
+# And this version will run:
+factorModel = mxRun(factorModel)
 
 }
