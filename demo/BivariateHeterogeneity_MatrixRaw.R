@@ -94,7 +94,7 @@ funML        <- mxFitFunctionML()
 model2       <- mxModel("group2", 
                          dataRaw2, chol2, expCov2, expMean2, exp2, funML)
 
-fun           <- mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
+fun           <- mxFitFunctionMultigroup(c("group1", "group2"))
 bivHetModel   <- mxModel("bivariate Heterogeneity Matrix Specification",
                         model1, model2, fun )
 
