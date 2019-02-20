@@ -1,3 +1,7 @@
+# Where to find news
+
+OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
+
 # OpenMx 2.12.X FUTURE 2019 (R 3.5.2))
 * IMPROVED: parallel processing improved by addition of ConcurrentQueue.
 * IMPROVED: WLS moved to the backend: 10x faster!
