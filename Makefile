@@ -112,10 +112,13 @@ build: build-prep
 build-simple: build-prep
 	cd build && ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
-srcbuild: build-prep
-	cd build && ./util/prep npsol build && $(REXEC) CMD build .
+packages-help:
 	@echo 'To generate a PACKAGES file, use:'
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='source'"')" | R --vanilla'
+	@echo '  echo "library(tools); write_PACKAGES('"'.', type='mac.binary'"', latestOnly=FALSE)" | R --vanilla # for OS/X'
+
+srcbuild: build-prep packages-help
+	cd build && ./util/prep npsol build && $(REXEC) CMD build .
 
 cran-check: cran-build
 	$(REXEC) CMD check build/OpenMx_*.tar.gz | tee cran-check.log
