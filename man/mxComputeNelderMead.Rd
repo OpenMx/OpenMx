@@ -20,7 +20,7 @@ mxComputeNelderMead(
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
 	xTolProx=1e-8, fTolProx=1e-8,
-	doPseudoHessian=FALSE,
+	doPseudoHessian=TRUE,
 	ineqConstraintMthd=c("soft","eqMthd"), 
 	eqConstraintMthd=c("GDsearch","soft","backtrack","l1p"),
 	backtrackCtrl=c(0.5,5),
@@ -48,7 +48,7 @@ mxComputeNelderMead(
   \item{validationRestart}{Logical; defaults to TRUE.}
   \item{xTolProx}{Numeric "domain-convergence" criterion; defaults to 1e-8.  See below for details.}
   \item{fTolProx}{Numeric "range-convergence" criterion; defaults to 1e-8.  See below for details.}
-  \item{doPseudoHessian}{Logical; defaults to \code{FALSE}.}
+  \item{doPseudoHessian}{Logical; defaults to \code{TRUE}.}
   \item{ineqConstraintMthd}{"Inequality constraint method;" character string. Defaults to "soft".}
   \item{eqConstraintMthd}{"Equality constraint method;" character string. Defaults to "GDsearch".}
   \item{backtrackCtrl}{Numeric vector of length two.  See below for details.}
