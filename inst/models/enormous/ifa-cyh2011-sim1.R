@@ -71,7 +71,7 @@ modelGen <- function() {
   g1$ifa <- mxModel(g1$ifa, mxData(observed=data.g1, type="raw"))
   g2$ifa <- mxModel(g2$ifa, mxData(observed=data.g2, type="raw"))
   
-  latent <- mxModel("latent", mxFitFunctionMultigroup("g2latent.fitfunction"))
+  latent <- mxModel("latent", mxFitFunctionMultigroup("g2latent"))
   
   if (0) {
     # groups are swapped in my flexmirt specs
@@ -101,7 +101,7 @@ modelGen <- function() {
   }
   
   grpModel <- mxModel(model="groupModel", g1, g2, latent,
-                      mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                      mxFitFunctionMultigroup(groups),
                       omxIFAComputePlan(groups))
 }
 

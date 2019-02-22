@@ -143,7 +143,7 @@ m2 <- mxModel("model2", type = "RAM",
 )
 
 m3 = mxModel("bob", m1, m2,
-    mxFitFunctionMultigroup(c("model1.fitfunction","model2.fitfunction"))
+    mxFitFunctionMultigroup(c("model1","model2"))
 )
 
 

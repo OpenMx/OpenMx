@@ -83,8 +83,7 @@ mklatent <- function(name) {
   m1
 }
 
-latent <- mxModel("latent",
-                  mxFitFunctionMultigroup(paste(paste(groups[-1],"latent",sep=""), "fitfunction", sep=".")))
+latent <- mxModel("latent", mxFitFunctionMultigroup(paste0(groups[-1],"latent")))
 
 g2.latent <- mklatent("g2")
 g3.latent <- mklatent("g3")
@@ -109,7 +108,7 @@ if (0) {
 }
 
 grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent,
-                    mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                    mxFitFunctionMultigroup(groups),
                     mxComputeSequence(list(
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeSequence(list(

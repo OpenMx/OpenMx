@@ -103,7 +103,7 @@ funML     <- mxFitFunctionML()
 pars      <- list( pathA, pathC, pathE, covA, covC, covE, covP )
 modelMZ   <- mxModel( pars, meanG, covMZ, dataMZ, expMZ, funML, name="MZ" )
 modelDZ   <- mxModel( pars, meanG, covDZ, dataDZ, expDZ, funML, name="DZ" )
-fitML     <- mxFitFunctionMultigroup(c("MZ.fitfunction","DZ.fitfunction") )
+fitML     <- mxFitFunctionMultigroup(c("MZ", "DZ") )
 twinACEModel  <- mxModel( "ACE", pars, modelMZ, modelDZ, fitML )
 
 # Run Model
