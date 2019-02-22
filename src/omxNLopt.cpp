@@ -321,7 +321,7 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 void omxInvokeNLOPT(GradientOptimizerContext &goc)
 {
 	double *est = goc.est.data();
-	goc.optName = "SLSQP";
+	goc.setEngineName("SLSQP");
 	goc.setupSimpleBounds();
 	
 	int oldWanted = goc.getWanted();
@@ -409,7 +409,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 			mxThrow("%s: Failed due to singular matrix E or C in LSQ subproblem or "
               "rank-deficient equality constraint subproblem or "
               "positive directional derivative in line search "
-              "(eq %.4g ineq %.4g)", goc.optName, goc.eqNorm, goc.ineqNorm);
+				"(eq %.4g ineq %.4g)", goc.getOptName(), goc.eqNorm, goc.ineqNorm);
 		} else {
 			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 		}

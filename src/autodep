@@ -203,7 +203,7 @@ ssMLFit.o: Makevars ssMLFit.cpp omxFitFunction.h omxDefines.h \
  omxMatrix.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxExpectation.h omxData.h Compute.h \
  glue.h EnableWarnings.h
-subnp.o: Makevars subnp.cpp omxDefines.h \
+asubnp.o: Makevars asubnp.cpp omxDefines.h \
  matrix.h  \
   omxCsolnp.h omxMatrix.h Compute.h \
  glue.h omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h \

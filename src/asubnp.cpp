@@ -1840,7 +1840,7 @@ void CSOLNP::handleAnalyticGradJac()
 void omxCSOLNP(GradientOptimizerContext &go)
 {
 	double *est = go.est.data();
-	go.optName = "CSOLNP";
+	go.setEngineName("CSOLNP");
 	if (!std::isfinite(go.ControlTolerance)) go.ControlTolerance = 1e-9;
     go.setWanted(0);
 	solnp(est, go);
