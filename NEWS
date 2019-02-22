@@ -3,8 +3,32 @@
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
 # OpenMx 2.12.X FUTURE 2019 (R 3.5.2))
+* IMPROVED: `omxSetParameters` warns if you don't ask to do anything
+
+# OpenMx 2.12.2 Feb 2019 (R 3.5.2))
 * IMPROVED: parallel processing improved by addition of ConcurrentQueue.
 * IMPROVED: WLS moved to the backend: 10x faster!
+* NEW:  A new optimizer, which uses generalized simulated annealing, has been implemented.
+* NEW:  `omxAkaikeWeights` and `mxModelAverage`, for information-theoretic model-averaging and multimodel inference.
+* NEW:  `mxPearsonSelCov` and `mxPearsonSelMean` implement the Pearson-Aitken selection formulae. Both functions are usable in MxAlgebras.
+* NEW:  `mxComputeLoadMatrix`: placed into a custom compute plan will load a CSV file directly into the backend.
+* NEW:  WLSM and WLSMV fit statistics for models that use the WLS fitfunction.
+* IMPROVED:  `mxSE` is now much faster.
+* IMPROVED:  `mxTryHard` much nice printing to console.
+* IMPROVED:  "CI details" table (in verbose summary() output) reordered, to make the table more readable.
+* IMPROVED:  `mxStandardizeRAMpaths` now reports elements of the 'M' matrix, re-scaled to standard-deviation units.
+* IMPROVED:  `mxAutoStart` can now be used with diagonally weighted least squares.
+* IMPROVED:  `mxGenerateData` now compatible with models that depend on objects in other models.
+* IMPROVED:  `mxOption`  "Max minutes" sets a maximum allowed backend time (default = 0, meaning no limit, i.e. Inf).
+* IMPROVED:  `mxMatrix` now partially matches the value of its type argument. For instance, type="Ze" is now equivalent to type="Zero".
+* IMPROVED:  `omxManifestModelByParameterJacobian` Jacobian  has dimnames, which make it easier to read.
+* IMPROVED:  `SLSQP` uses multiple threads
+* IMPROVED:  custom compute plan support checkpointing steps.
+* IMPROVED:  Eigen linear-algebra library now multi-threaded.
+* IMPROVED:  `mxExpectationHiddenMarkov` and `mxExpectationMixture` allow scaling of zero.
+* IMPROVED:  `mxConstraints` that depend upon definition variables now throw a warning at runtime.
+* IMPROVED:  `mxPower` more detailed output.
+* IMPROVED:  `mxFitFunctionML`with rowDiagnostics=TRUE includes per-row squared Mahalanobis distance.
 
 # OpenMx 2.12.1 (Jan 20 2019 (R 3.5.2))
 * Bug fix to definition variable handling in multilevel models (v2.11.5-2-g7ef03e3fe)
