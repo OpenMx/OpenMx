@@ -432,6 +432,8 @@ omxCheckError(
 J <- mxMatrix("Iden",nrow=3,name="I")
 J$labels <- matrix(letters[1:9],3,3)
 m <- mxModel("asdf",J)
+omxCheckWarning(omxSetParameters(model = m, labels = "a"),
+                "What do you want to change? Pick some of 'free', 'values', 'newlabels', 'lbound', and 'ubound'")
 m <- omxSetParameters(model = m, labels = "a", free = T)
 omxCheckError(
   mxRun(m),
