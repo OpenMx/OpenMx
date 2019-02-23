@@ -100,8 +100,9 @@ if (1) {
   
   # Also check whether we compute the LL correctly given flexMIRT's parameters.
     cModel <- mxModel(model="cModel", c(g1, g2),
-                      mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
-		      mxComputeOnce('fitfunction', 'fit'))
+              	mxFitFunctionMultigroup(groups),
+		      	mxComputeOnce('fitfunction', 'fit')
+	)
     cModel.fit <- mxRun(cModel)
     omxCheckCloseEnough(cModel.fit$fitfunction$result, flexmirt.LL, 1e-4)
   
@@ -151,14 +152,13 @@ omxIFAComputePlan <- function(groups) {
   ))
 }
 
-latent <- mxModel("latent",
-                  mxFitFunctionMultigroup(paste(paste(groups,"latent",sep=""), "fitfunction", sep=".")))
+latent <- mxModel("latent", mxFitFunctionMultigroup(paste0(groups, "latent")))
 
 	# Now actually fit the model.
   g1 <- mk.model("g1", data.g1, TRUE)
   g2 <- mk.model("g2", data.g2, FALSE)
   grpModel <- mxModel(model="groupModel", g1, g2, latent,
-                      mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                      mxFitFunctionMultigroup(groups),
                       omxIFAComputePlan(groups))
   
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)

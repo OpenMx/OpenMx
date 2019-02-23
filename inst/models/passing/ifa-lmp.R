@@ -129,8 +129,7 @@ itemModel <- mxModel(model="itemModel", imat,
   mxExpectationBA81(spec,qwidth=5,qpoints=49),
   mxFitFunctionML())
 
-fit<-mxFitFunctionMultigroup(groups=c('itemModel.fitfunction',
-  'gaussModelAlpha.fitfunction','gaussModelTau.fitfunction'))
+fit<- mxFitFunctionMultigroup(groups=c('itemModel', 'gaussModelAlpha','gaussModelTau'))
 
 k1PriorModel <- mxModel(model="k1PriorModel", itemModel, gaussModelAlpha, gaussModelTau,
   fit,

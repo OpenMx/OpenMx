@@ -155,7 +155,7 @@ expDZm <- mxExpectationNormal( covariance="expCorDZm", means="M", dimnames=selVa
 
 #FitFunctions
 fun <- mxFitFunctionML()
-fitFunction <- mxFitFunctionMultigroup(c("MZf.fitfunction", "MZm.fitfunction", "DZf.fitfunction", "DZm.fitfunction"))
+fitFunction <- mxFitFunctionMultigroup(c("MZf", "MZm", "DZf", "DZm"))
 
 # Combine Groups
 modelMZf	<- mxModel( obsAge1, obsAge2, Mean, betaAf, Tmzf, inc, ThresMZf, CorMZf, dataMZf, expMZf, fun, name="MZf" )

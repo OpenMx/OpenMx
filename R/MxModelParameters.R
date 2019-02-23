@@ -162,6 +162,12 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	if (!is.null(name) && length(name) != 1 && !is.character(name)) {
 		stop("'name' argument must be a character string")
 	}
+	if (missing(free) && missing(values) && missing(newlabels) &&
+		    missing(lbound) && missing(ubound)) {
+		what <- c('free','values','newlabels','lbound','ubound')
+		warning(paste("What do you want to change?",
+			"Pick some of", omxQuotes(what)))
+	}
 	if (strict) {
 		pnames <- names(omxGetParameters(model, indep, NA))
 		missing <- setdiff(labels, pnames)

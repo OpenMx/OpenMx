@@ -86,7 +86,7 @@ omxCheckCloseEnough(ponly.fit$submodels$pmodel$matrices$gparam$values[,],
 
 if (1) {
   fm1 <- mxModel("fm", m1, pm,
-                 mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'itemModel.fitfunction')),
+                 mxFitFunctionMultigroup(groups=c('pmodel', 'itemModel')),
                  mxComputeSequence(list(
                    mxComputeOnce('fitfunction', c('fit','gradient')),
                    mxComputeReportDeriv())))
@@ -143,8 +143,7 @@ if (1) {
 }
 
 m2 <- mxModel("ex", m1, pm,
-                    mxFitFunctionMultigroup(groups=c('pmodel.fitfunction', 'itemModel.fitfunction'),
-                                            verbose=0L),
+                    mxFitFunctionMultigroup(groups=c('pmodel', 'itemModel'),verbose=0L),
                     mxComputeSequence(list(
                       mxComputeEM('itemModel.expectation', 'scores',
                                   mxComputeNewtonRaphson(verbose=0L, maxIter=50L),

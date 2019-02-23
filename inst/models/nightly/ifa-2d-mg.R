@@ -101,8 +101,7 @@ mklatent <- function(name) {
 
 groups <- paste("g", 1:3, sep="")
 
-latent <- mxModel("latent",
-                  mxFitFunctionMultigroup(paste(paste(groups[-1],"latent",sep=""), "fitfunction", sep=".")))
+latent <- mxModel("latent", mxFitFunctionMultigroup(paste0(groups[-1], "latent")))
 
 g2.latent <- mklatent("g2")
 g3.latent <- mklatent("g3")

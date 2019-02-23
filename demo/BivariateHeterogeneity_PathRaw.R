@@ -98,7 +98,7 @@ model2       <- mxModel("group2", type="RAM", manifestVars= selVars,
 
 #h12          <- mxAlgebra( group1.fitfunction + group2.fitfunction, name="h12" )
 #funML        <- mxFitFunctionAlgebra("h12")
-fun           <- mxFitFunctionMultigroup(c("group1.fitfunction", "group2.fitfunction"))
+fun           <- mxFitFunctionMultigroup(c("group1", "group2"))
 bivHetModel   <- mxModel("bivariate Heterogeneity Path Specification",
                         model1, model2, fun )
 
