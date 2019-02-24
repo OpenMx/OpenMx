@@ -2,7 +2,7 @@
 \alias{twin_NA_dot}
 \docType{data}
 \title{
-Twin data on weight and height
+Twin biometric data (Practice cleaning: "." for missing data, wrong data types etc.)
 }
 
 \description{
@@ -14,10 +14,10 @@ Data set used in some of OpenMx's examples.
   A data frame with 3808 observations on the following variables.
   \describe{
     \item{\code{fam}}{Family ID variable}
-    \item{\code{age}}{Age of the twin pair.  Range: 17 to 88.}
+    \item{\code{age}}{Age of the twin pair.  Range: 17 to 88, coded as factor}
     \item{\code{zyg}}{Integer codes for zygosity and gender combinations}
-    \item{\code{part}}{}
-    \item{\code{wt1}}{Weight in kilograms for twin 1}
+    \item{\code{part}}{Cohort}
+    \item{\code{wt1}}{Weight in kilograms for twin 1 (this and following have "." embedded as NA...)}
     \item{\code{wt2}}{Weight in kilograms for twin 2}
     \item{\code{ht1}}{Height in meters for twin 1}
     \item{\code{ht2}}{Height in meters for twin 2}
