@@ -13,19 +13,20 @@ library(OpenMx)
 set.seed(1)
 
 # Why is reading the data done twice?
-jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
-jointData <- read.table("data/jointdata.txt", header=TRUE)
+# jointdata <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
+# jointdata <- read.table("data/jointdata.txt", header=TRUE)
 # TODO: Note, neither of these paths are valid for an installed package.
 # A user stumbling onto this file will likely just give up, assuming it's a broken script.
-
 # TODO: NOTE: Something like this works for an actual user. But why don't we use load()?
-# jointData <- read.table("~/bin/OpenMx/inst/models/passing/data/jointdata.txt", header=TRUE)
+# jointdata <- read.table("~/bin/OpenMx/inst/models/passing/data/jointdata.txt", header=TRUE)
+
+data("jointdata", package ="OpenMx", verbose= TRUE)
 
 # ==========================================
 # = Here's what our input data looks like: =
 # ==========================================
-str(jointData)
-# jointData is a dataframe with 5 variables: "z1", "z2", "z3", "z4", "z5"
+str(jointdata)
+# jointdata is a dataframe with 5 variables: "z1", "z2", "z3", "z4", "z5"
 # 'data.frame':	250 obs. of  5 variables:
 #  $ z1: num  6.83 8.77 8.01 9 8.52 ...
 #  $ z2: int  0 0 0 1 0 0 0 0 0 0 ...
@@ -33,7 +34,7 @@ str(jointData)
 #  $ z4: int  2 2 1 2 1 1 0 1 0 3 ...
 #  $ z5: int  2 1 2 2 0 2 0 2 2 1 ...
 
-round(cov(jointData),3)
+round(cov(jointdata),3)
 #       z1    z2    z3    z4    z5
 # z1 0.927 0.149 0.437 0.368 0.089
 # z2 0.149 0.250 0.148 0.202 0.065
@@ -45,12 +46,12 @@ round(cov(jointData),3)
 # = Make data suitable for a joint (continuous and ordinal) model by reformatting some variables as mxFactors  =
 # ==============================================================================================================
 # z2, z4, and z5 to be mxFactors with 2, 4, and 3 levels respectively
-jointData[,c("z2", "z4", "z5")] <- mxFactor(jointData[,c("z2", "z4", "z5")], levels= list(c(0, 1), c(0, 1, 2, 3), c(0, 1, 2)))
+jointdata[,c("z2", "z4", "z5")] <- mxFactor(jointdata[,c("z2", "z4", "z5")], levels= list(c(0, 1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 # Make z1c = z1 + some noise;
-jointData$z1c <- with(jointData, z1 * .1 + rnorm(nrow(jointData)))
+jointdata$z1c <- with(jointdata, z1 * .1 + rnorm(nrow(jointdata)))
 # and z2c which is just a column of noise with a mean = the mean factor level of z2 (no clue why as yet...)
-jointData$z2c <- with(jointData, rnorm(nrow(jointData), mean=unclass(z2)*.2))
+jointdata$z2c <- with(jointdata, rnorm(nrow(jointdata), mean=unclass(z2)*.2))
 
 # ============================================
 # = Create a thresholds matrix for the model =
@@ -94,7 +95,7 @@ buildModel <- function(manifests= paste0('z', 1:5), type = 'WLS', slopes= TRUE) 
 		# include the thresholds matrix made earlier
 		thresh,
 		# Note: No data are still raw, despite our using WLS
-		mxData(jointData, type = "raw", verbose= 0L),
+		mxData(jointdata, type = "raw", verbose= 0L),
 		# Note: this call to mxFitFunctionWLS is all that's
 		# required to make a model into WLS!
 		mxFitFunctionWLS(type)
@@ -174,7 +175,7 @@ jointLISREL <- mxModel("JointLISREL", type="LISREL",
     mxPath('z1c', 'z1', labels= "r1"),
     mxPath('z2c', 'z2', labels= "r2"),
     thresh,
-	mxData(jointData, "raw", verbose=0L),
+	mxData(jointdata, "raw", verbose=0L),
     mxFitFunctionWLS()
 	# Shouldn't we have a call to mxExpectationRAM or LISREL??? here???
 	# mxExpectationRAM(M = NA, dimnames = NA, thresholds = "T", threshnames = ???)	
