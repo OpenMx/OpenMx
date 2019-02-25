@@ -78,33 +78,42 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' @details OpenMx solves algebra optimization and statistical estimation problems using matrix algebra. 
 #' Most users use it for Structural equation modeling.
 #' 
-#' The core function is \code{\link{mxModel}}, which makes a model. Models are containers for data, matrices, \code{\link{mxPath}}s
-#' algebras, bounds and constraints. Models most often have an expectation function (e.g., \code{\link{mxExpectationNormal}}) 
-#' to calculate the expectations for the model. Models need a fit function. Several of these are built-in (e.g., \link{mxFitFunctionML} )
-#' OpenMx also allows user-defined fit functions for purposes not covered by the built-in functions. (e.g., \link{mxFitFunctionR} or \link{mxFitFunctionAlgebra}).
+#' The core function is \code{\link{mxModel}}, which makes a model. Models are containers for \code{\link{mxData}}, \code{\link[=mxMatrix]{matrices}}, \code{\link{mxPath}}s
+#' \code{\link[=mxAlgebra]{algebras}}, \link{mxBounds}, \code{\link[=mxCI]{confidence intervals}}, and \code{\link[=mxConstraint]{mxConstraints}}.
+#' Most models require an expectation (see the list below) to calculate the expectations for the model.
+#' Models also need a fit function, several of which are built-in (see below).
+#' OpenMx also allows user-defined fit functions for purposes not covered by the built-in functions. (e.g., \code{\link{mxFitFunctionR}} or \code{\link{mxFitFunctionAlgebra}}).
+#' 
+#' \emph{Note}, for mxModels of \code{type="RAM"}, the expectation and fit-function are set for you automatically.
+#' 
+#' \strong{Running and summarizing a model}
 #' 
 #' Once built, the resulting mxModel can be run (i.e., optimized) using  \code{\link{mxRun}}. This returns the fitted model.
 #' 
-#' You can see the resulting parameter estimates, algebra evaluation etc using \code{\link[=summary.MxModel]{summary}}(yourModel)
+#' You can summarize the results of the model using \code{\link[=summary.MxModel]{summary}}(yourModel)
 #' 
-#' The user's manual is online (see reference below), but functions \link{mxRun}, \link{mxModel}, \link{mxMatrix}
-#' all have working examples to get you started as well.
+#' \strong{Additional overview of model making and getting started}
+#' 
+#' The OpenMx manual is online (see references below). However, \code{\link{mxRun}}, \code{\link{mxModel}}, \code{\link{mxMatrix}}
+#' all have working examples that will help get you started as well.
 #'
-#' The main OpenMx functions are: \link{mxAlgebra}, \link{mxBounds}, \link{mxCI}, \link{mxConstraint}, \link{mxData}, 
-#' \link{mxMatrix}, \link{mxModel}, and \link{mxPath}
+#' The main OpenMx functions are: \code{\link{mxAlgebra}}, \code{\link{mxBounds}}, \code{\link{mxCI}}, \code{\link{mxConstraint}}, \code{\link{mxData}}, 
+#' \code{\link{mxMatrix}}, \code{\link{mxModel}}, and \code{\link{mxPath}}.
 #' 
-#' Expectation functions include \link{mxExpectationNormal}, \link{mxExpectationRAM}, \link{mxExpectationLISREL}, and \link{mxExpectationStateSpace};
+#' Expectation functions include \code{\link{mxExpectationNormal}}, \code{\link{mxExpectationRAM}}, \code{\link{mxExpectationLISREL}}, and \code{\link{mxExpectationStateSpace}};
 #' 
 #' Fit functions include \link{mxFitFunctionML}, \link{mxFitFunctionAlgebra}, \link{mxFitFunctionRow} and \link{mxFitFunctionR}.
 #' 
-#' OpenMx comes with several useful datasets built-in. Access them using data(package="OpenMx")
+#' \strong{Datasets built into OpenMx}
 #' 
+#' \code{OpenMx} comes with over a dozen useful datasets built-in. Discover them using \code{data(package="OpenMx")}, and open them with, 
+#' for example, \code{data("jointdata", package ="OpenMx", verbose= TRUE)}
 #' 
-#' To cite package 'OpenMx' in publications use:
+#' Please cite the 'OpenMx' package in any publications that make use of it:
 #' 
 #' Michael C. Neale, Michael D. Hunter, Joshua N. Pritikin, Mahsa Zahery, Timothy R. Brick Robert M.
-#' Kirkpatrick, Ryne Estabrook, Timothy C. Bates, Hermine H. Maes, Steven M. Boker. (in press).
-#' OpenMx 2.0: Extended structural equation and statistical modeling. \emph{Psychometrika}. 
+#' Kirkpatrick, Ryne Estabrook, Timothy C. Bates, Hermine H. Maes, Steven M. Boker. (2016).
+#' OpenMx 2.0: Extended structural equation and statistical modeling. \emph{Psychometrika}, \strong{81}, 535–549. 
 #' DOI: 10.1007/s11336-014-9435-8
 #' 
 #' Steven M. Boker, Michael C. Neale, Hermine H. Maes, Michael J. Wilde, Michael Spiegel, Timothy R. Brick,
@@ -118,7 +127,7 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' Yang Wang, and Charles Driver. (2016) OpenMx 2 User Guide. 
 #' http://openmx.ssri.psu.edu/docs/OpenMx/latest/OpenMxUserGuide.pdf
 #'
-#' @references The OpenMx User's guide can be found at \url{http://openmx.ssri.psu.edu/documentation}
+#' @references The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}
 #'
 #' @examples
 #' library(OpenMx)
