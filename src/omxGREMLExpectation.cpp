@@ -314,7 +314,7 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim)
 
 
 
-void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > todrop, int symmetric, int origDim){
+void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > &todrop, int symmetric, int origDim){
 	
 	if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
 	

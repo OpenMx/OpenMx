@@ -282,7 +282,7 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 	}
 	
 	if (CSOLNP_HACK) {
-		// CSOLNP doesn't know that inequality constraints can be inactive TODO
+		// CSOLNP doesn't know that inequality constraints can be inactive (by design, since it's an interior-point algorithm)
 	} else {
 		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
 		inequality = inequality.array().max(0.0);
