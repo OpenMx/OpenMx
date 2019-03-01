@@ -16,6 +16,43 @@
 
 #------------------------------------------------------------------------------
 
+##' Build the model used for mxAutoStart
+##'
+##' @param model The MxModel for which starting values are desired
+##' @param type The type of starting values to obtain, currently unweighted or diagonally weighted least squares, ULS or DWLS
+##' @return
+##' an MxModel that can be run to obtain starting values
+##' @seealso \link{mxAutoStart}
+omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
+	type <- match.barg(type)
+	# Run the model through all the frontend processing to check for errors
+	blah <- mxRun(model, silent=TRUE, suppressWarnings=FALSE, onlyFrontend=TRUE)
+	blah <- NULL
+	# If no errors found, continue with processing for autostart.
+	if(is.null(model@fitfunction)){
+		stop("I don't work with null fit functions.")
+	}
+	if(imxHasDefinitionVariable(model)){
+		stop("Definition variables found. Automatic start values are not implemented for models with definition variables.\nNo plans have been made to add these soon.")
+	}
+
+	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
+
+	if( isMultiGroupModel ){
+		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
+		wmodel <- model
+		for(amod in submNames){
+			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), autoStartDataHelper(model, subname=amod, type=type))
+		}
+		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
+	} else {
+		wmodel <- mxModel(model, name='AutoStart', autoStartDataHelper(model, type=type))
+	}
+	wmodel <- mxOption(wmodel, "Calculate Hessian", "No")
+	wmodel <- mxOption(wmodel, "Standard Errors", "No")
+	wmodel
+}
+
 ##' Automatically set starting values for an MxModel
 ##' 
 ##' @param model The MxModel for which starting values are desired
@@ -60,33 +97,7 @@
 ##' mxGetExpected(m1s, 'covariance')
 mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
 	type <- match.barg(type)
-	# Run the model through all the frontend processing to check for errors
-	blah <- mxRun(model, silent=TRUE, suppressWarnings=FALSE, onlyFrontend=TRUE)
-	blah <- NULL
-	# If no errors found, continue with processing for autostart.
-	if(is.null(model@fitfunction)){
-		stop("I don't work with null fit functions.")
-	}
-	if(imxHasDefinitionVariable(model)){
-		stop("Definition variables found. Automatic start values are not implemented for models with definition variables.\nNo plans have been made to add these soon.")
-	}
-	
-	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
-	
-	if( isMultiGroupModel ){
-		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
-		wmodel <- model
-		for(amod in submNames){
-			
-			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), autoStartDataHelper(model, subname=amod, type=type))
-		}
-		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
-	} else {
-		wmodel <- mxModel(model, name='AutoStart', autoStartDataHelper(model, type=type))
-	}
-	wmodel <- mxOption(wmodel, "Calculate Hessian", "No")
-	wmodel <- mxOption(wmodel, "Standard Errors", "No")
-	wmodel <- mxRun(wmodel, silent=TRUE)
+	wmodel <- mxRun(omxBuildAutoStartModel(model, type), silent=TRUE)
 	newparams <- coef(wmodel)
 	oldparams <- coef(model)
 	model <- omxSetParameters(model, values=newparams, labels=names(oldparams))
