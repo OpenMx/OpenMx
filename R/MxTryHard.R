@@ -244,7 +244,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				}
 				if(checkHess==TRUE) {
 					fit@output["infoDefinite"] <- TRUE
-					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
+					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values,silent=T)
 					if(class(hessEigenval)=='try-error') {
 						if(!silent){message(paste0('\n Eigenvalues of Hessian could not be calculated'))}
 						goodflag <- FALSE
