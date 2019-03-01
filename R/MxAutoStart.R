@@ -42,11 +42,11 @@ omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		wmodel <- model
 		for(amod in submNames){
-			wmodel[[amod]] <- mxModel(model[[amod]], name=paste0('AutoStart', amod), autoStartDataHelper(model, subname=amod, type=type))
+			wmodel[[amod]] <- mxModel(model[[amod]], autoStartDataHelper(model, subname=amod, type=type))
 		}
-		wmodel <- mxModel(wmodel, name='AutoStart', mxFitFunctionMultigroup(submNames))
+		wmodel <- mxModel(wmodel, mxFitFunctionMultigroup(submNames))
 	} else {
-		wmodel <- mxModel(model, name='AutoStart', autoStartDataHelper(model, type=type))
+		wmodel <- mxModel(model, autoStartDataHelper(model, type=type))
 	}
 	wmodel <- mxOption(wmodel, "Calculate Hessian", "No")
 	wmodel <- mxOption(wmodel, "Standard Errors", "No")
