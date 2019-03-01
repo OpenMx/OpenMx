@@ -331,7 +331,7 @@ insertAllPathsLISREL <-  function(model, paths){
 		varExist <- allFromTo %in% legalVars 
 		if(!all(varExist)) {
 			missingVars <- allFromTo[!varExist]
-			stop(paste("Nice try, you need to add", 
+			stop(paste("You need to add", 
 				omxQuotes(missingVars), 
 				"to either manifestVars or latentVars before you",
 				"can use them in a path."), call. = FALSE)
