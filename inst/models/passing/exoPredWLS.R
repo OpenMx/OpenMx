@@ -12,14 +12,6 @@ library(OpenMx)
 # Make the results repeatable (unclear if this is needed?)
 set.seed(1)
 
-# Why is reading the data done twice?
-# jointdata <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
-# jointdata <- read.table("data/jointdata.txt", header=TRUE)
-# TODO: Note, neither of these paths are valid for an installed package.
-# A user stumbling onto this file will likely just give up, assuming it's a broken script.
-# TODO: NOTE: Something like this works for an actual user. But why don't we use load()?
-# jointdata <- read.table("~/bin/OpenMx/inst/models/passing/data/jointdata.txt", header=TRUE)
-
 data("jointdata", package ="OpenMx", verbose= TRUE)
 
 # ==========================================
