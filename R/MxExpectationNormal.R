@@ -803,9 +803,9 @@ generateDataColumns <- function(flatModel, covNames, dataName) {
 	if (any(is.na(retval))) {
 		msg <- paste("The column name(s)", omxQuotes(covNames[is.na(retval)]),
 			     "in the expected covariance matrix",
-			     "of the expectation function in model",
-			     omxQuotes(flatModel@name),
-			     "cannot be found in the column names of the data.")
+			     "of the expectation function",
+			     "cannot be found in the column names of",
+			     omxQuotes(dataName))
 		stop(msg, call. = FALSE)
 	}
 	return(retval - 1L)
