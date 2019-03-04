@@ -3,8 +3,8 @@ library(OpenMx)
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
 mxOption(NULL, "major iterations", 3000)
 
-jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
-jointData <- read.table("data/jointdata.txt", header=TRUE)
+data("jointdata", package ="OpenMx", verbose= TRUE)
+jointData <- jointdata
 
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))

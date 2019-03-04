@@ -334,7 +334,7 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 	varExist <- allVars %in% legalVars
 	if(!all(varExist)) {
 		missingVars <- allVars[!varExist]
-		stop(paste("Nice try, you need to add", 
+		stop(paste("You need to add", 
 		omxQuotes(missingVars), 
 			"to the manifestVars before you",
 			"can assign them thresholds."), call. = FALSE)
@@ -495,7 +495,7 @@ insertPathRAM <- function(path, model) {
 			upperModelName <- fromUpperModel[1]
 			upperModel <- model[[upperModelName]]
 			if (is.null(upperModel)) {
-				msg <- paste("Nice try. You need to create an upper level RAM",
+				msg <- paste("You need to create an upper level RAM",
 				      "model called", omxQuotes(upperModelName),
 				      "and add it as a submodel of", omxQuotes(model@name),
 				      "before you can create paths between these models.")
@@ -505,7 +505,7 @@ insertPathRAM <- function(path, model) {
 			upperVars <- c(upperModel@manifestVars, upperModel@latentVars)
 			upperVarExist <- fromUpperVar %in% upperVars
 			if (!all(upperVarExist)) {
-				stop(paste("Nice try, you need to add",
+				stop(paste("You need to add",
 					   omxQuotes(fromUpperVar[!upperVarExist]),
 					   "to either manifestVars or latentVars in model",
 					   omxQuotes(upperModelName),
@@ -514,7 +514,7 @@ insertPathRAM <- function(path, model) {
 
 			lowerVarExist <- to %in% rownames(A)
 			if (!all(lowerVarExist)) {
-				stop(paste("Nice try, you need to add",
+				stop(paste("You need to add",
 					   omxQuotes(to[!lowerVarExist]),
 					   "to either manifestVars or latentVars before you",
 					   "can use them in a path."), call. = FALSE)
@@ -579,7 +579,7 @@ insertPathRAM <- function(path, model) {
 			}
 
 			missingVars <- allFromTo[!varExist]
-			stop(paste("Nice try, you need to add", 
+			stop(paste("You need to add", 
 				   omxQuotes(missingVars), 
 				   "to either manifestVars or latentVars before you",
 				   "can use them in a path."), call. = FALSE)

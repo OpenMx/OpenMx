@@ -4,8 +4,8 @@ set.seed(1)
 if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
 #mxOption(NULL, "Number of Threads", 1L)
 
-jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
-jointData <- read.table("data/jointdata.txt", header=TRUE)
+data("jointdata", package ="OpenMx", verbose= TRUE)
+jointData <- jointdata
 
 # specify ordinal columns as ordered factors
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 

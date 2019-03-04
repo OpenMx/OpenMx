@@ -16,14 +16,15 @@
 #TODO:
 #Need more input checking?  For instance, initialGradientIterations should be a positive integer, right?
 
-mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1, 
-											scale = 0.25,  initialGradientStepSize = imxAutoOptionValue("Gradient step size"), 
-											initialGradientIterations = imxAutoOptionValue('Gradient iterations'),
-											initialTolerance=as.numeric(mxOption(NULL,'Optimality tolerance')), 
-											checkHess = TRUE, fit2beat = Inf, paste = TRUE,
-											iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
-											finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
-											maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive()
+mxTryHard <- function(
+	model, extraTries = 10, greenOK = FALSE, loc = 1, 
+	scale = 0.25,  initialGradientStepSize = imxAutoOptionValue("Gradient step size"), 
+	initialGradientIterations = imxAutoOptionValue('Gradient iterations'),
+	initialTolerance=as.numeric(mxOption(NULL,'Optimality tolerance')), 
+	checkHess = TRUE, fit2beat = Inf, paste = TRUE,
+	iterationSummary=FALSE, bestInitsOutput=TRUE, showInits=FALSE, verbose=0, intervals = FALSE,
+	finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
+	maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive()
 ){
 	
 	#Initialize stuff & check inputs:
@@ -244,7 +245,7 @@ mxTryHard <- function(model, extraTries = 10, greenOK = FALSE, loc = 1,
 				}
 				if(checkHess==TRUE) {
 					fit@output["infoDefinite"] <- TRUE
-					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values)
+					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values,silent=T)
 					if(class(hessEigenval)=='try-error') {
 						if(!silent){message(paste0('\n Eigenvalues of Hessian could not be calculated'))}
 						goodflag <- FALSE
