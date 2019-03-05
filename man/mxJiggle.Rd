@@ -63,6 +63,6 @@ print(pars2)
 mod2 <- mxJiggle(model=factorModel,scale=0.05)
 coef(mod2)
 
-mod3 <- mxJiggle(model=factorModel,classic=T)
+mod3 <- mxJiggle(model=factorModel,classic=TRUE)
 coef(mod3)
 }
