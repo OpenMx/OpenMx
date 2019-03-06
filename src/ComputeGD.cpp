@@ -122,9 +122,9 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
-	  equality(_fc->equality), inequality(_fc->inequality), 
-	  analyticEqJacTmp(_fc->analyticEqJacTmp), analyticIneqJacTmp(_fc->analyticIneqJacTmp),
 	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
+	  equality(fc->equality), inequality(fc->inequality), 
+	  analyticEqJacTmp(fc->analyticEqJacTmp), analyticIneqJacTmp(fc->analyticIneqJacTmp),
 	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
 	computeName = owner->name;
