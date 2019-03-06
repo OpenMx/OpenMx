@@ -13,8 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxOption <- function(model=NULL, key, value, reset = FALSE) {
-	if (length(key) != 1 || !is.character(key)) {
+mxOption <- function(model=NULL, key=NULL, value, reset = FALSE) {
+	if (!reset && (length(key) != 1 || !is.character(key))) {
 		stop("argument 'key' must be a character string")
 	}
 	if (!missing(model) && !is.null(model) && !is(model, "MxModel")) {

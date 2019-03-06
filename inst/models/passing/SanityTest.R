@@ -25,5 +25,5 @@ omxCheckError(mxOption(mxPath('one'), "bar"),
 mre <- mxOption(key="mvnRelEps")
 mxOption(key="mvnRelEps", value= mxOption(key="mvnRelEps") / 5)
 omxCheckEquals(mxOption(key="mvnRelEps"), mre / 5)
-mxOption(reset=TRUE, key="anything")
+mxOption(reset=TRUE)
 omxCheckEquals(mxOption(key="mvnRelEps"), mre)
