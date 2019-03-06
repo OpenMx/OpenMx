@@ -81,6 +81,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
+	void omxCalcFinalConstraintJacobian();
 
 	struct calcHessianEntry {
 		omxComputeNumericDeriv &cnd;
@@ -111,6 +112,44 @@ class omxComputeNumericDeriv : public omxCompute {
 			std::string detail = std::to_string(numDone) + "/" +
 				std::to_string(triangleLoc1(numParams));
 			Global->reportProgress1(cnd.name, detail);
+		}
+	};
+	
+	struct equality_functional {
+		FitContext &fc;
+		equality_functional(FitContext &_fc) : fc(_fc) {};
+		template <typename T1, typename T2>
+		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+			fc.setEstFromOptimizer(x.derived().data());
+			fc.solEqBFun(false, 0);
+			result = fc.equality;
+		}
+		template <typename T1, typename T2, typename T3>
+		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+			fc.setEstFromOptimizer(x.derived().data());
+			fc.analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
+			fc.solEqBFun(true, 0);
+			result = fc.equality;
+			jacobian = fc.analyticEqJacTmp;
+		}
+	};
+	
+	struct inequality_functional {
+		FitContext &fc;
+		inequality_functional(FitContext &_fc) : fc(_fc) {};
+		template <typename T1, typename T2>
+		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+			fc.setEstFromOptimizer(x.derived().data());
+			fc.myineqFun(false, 0, omxConstraint::LESS_THAN, false);
+			result = fc.inequality;
+		}
+		template <typename T1, typename T2, typename T3>
+		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+			fc.setEstFromOptimizer(x.derived().data());
+			fc.analyticIneqJacTmp.resize(jacobian.rows(), jacobian.cols());
+			fc.myineqFun(true, 0, omxConstraint::LESS_THAN, false);
+			result = fc.inequality;
+			jacobian = fc.analyticIneqJacTmp;
 		}
 	};
 
@@ -343,7 +382,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		numParams = 0;
 		if (verbose >= 1) mxLog("%s: derivatives %s units are meaningless",
 					name, fitUnitsToName(fc->fitUnits));
-		return;
+		return; //Possible TODO: calculate Hessian anyway?
 	}
 
 	int newWanted = fc->wanted | FF_COMPUTE_GRADIENT;
@@ -372,7 +411,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if(wantHessian && fc->state->conListX.size()){
 		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
 	}
-	// TODO: Adjust algorithm to account for constraints
+	// TODO: Eliminate above warning, and calculate Jacobian here if there are MxConstraints.
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
