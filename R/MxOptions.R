@@ -21,6 +21,9 @@ mxOption <- function(model=NULL, key, value, reset = FALSE) {
 		stop(paste("The first argument to mxOption must",
 			"be an MxModel, not", omxQuotes(class(model))))
 	}
+	if (is.null(model) && reset) {
+		return(invisible(mxSetDefaultOptions()))
+	}
 	if (missing(value)) {
 		if (length(model) && !is.null(model@options[[key]])) {
 			return(model@options[[key]])
@@ -49,8 +52,8 @@ mxOption <- function(model=NULL, key, value, reset = FALSE) {
 			stop(msg)
 		}
 	}
-    if (length(model) == 0 && is.null(model)) {
-        return(processDefaultOptionList(key, value))
+    if (is.null(model)) {
+	    return(processDefaultOptionList(key, value))
     }
 	if (length(model) > 1 || !is(model, "MxModel")) {
 		stop("argument 'model' must be an MxModel object")
