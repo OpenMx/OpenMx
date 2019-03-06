@@ -18,3 +18,6 @@ require(OpenMx)
 ppml <- getOption('mxOptions')$UsePPML
 
 omxCheckTrue(!is.null(ppml) && ppml == "No")
+
+omxCheckError(mxOption(mxPath('one'), "bar"),
+              "The first argument to mxOption must be an MxModel, not 'MxPath'")
