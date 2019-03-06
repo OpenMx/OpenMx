@@ -409,25 +409,13 @@ mxTryHard <- function(
 
 
 
-##' imxJiggle
-##' 
-##' Jiggle parameter values, subject to box constraints.
-##' For internal use by mxTryHard().
-##' This is an internal function exported for those people who know
-##' what they are doing.
-##' @param params Numeric vector of current free parameter values.
-##' @param lbounds Numeric vector of lower bounds on parameters.
-##' @param ubounds Numeric vector of upper bounds on parameters.
-##' @param dsn Character string naming the family of distribution to be used.
-##' @param loc Numeric vector of location parameters (medians).
-##' @param scale Numeric vector of scale parameters (see source code).
-##' @aliases
-##' imxJiggle
 imxJiggle <- function(params, lbounds, ubounds, dsn, loc, scale){
 	if( !(dsn %in% c("rnorm","runif","rcauchy")) ){stop("unrecognized value for argument 'dsn'")}
 	loc <- as.numeric(loc[1])
 	scale <- as.numeric(scale[1])
 	if(scale<0){stop("negative value for argument 'scale'")}
+	lbounds[is.na(lbounds)] <- -Inf
+	ubounds[is.na(ubounds)] <- Inf
 	n <- length(params)
 	if(dsn=="rnorm"){
 		out <- params * rnorm(n=n,mean=loc,sd=scale) + rnorm(n=n,mean=0,sd=scale)
@@ -441,6 +429,33 @@ imxJiggle <- function(params, lbounds, ubounds, dsn, loc, scale){
 	if(any(out<lbounds)){out[out<lbounds] <- lbounds[out<lbounds]}
 	if(any(out>ubounds)){out[out>ubounds] <- ubounds[out>ubounds]}
 	return(out)
+}
+
+
+mxJiggle <- function(model, classic=FALSE, dsn=c("runif","rnorm","rcauchy"), loc=1, scale=0.25){
+	dsn <- match.arg(dsn, c("runif","rnorm","rcauchy"))
+	loc <- as.numeric(loc[1])
+	scale <- as.numeric(scale[1])
+	if(scale<0){stop("negative value for argument 'scale'")}
+	params <- omxGetParameters(model=model,free=TRUE,fetch="values")
+	labels <- names(params)
+	lbounds <- omxGetParameters(model=model,free=TRUE,fetch="lbound")
+	lbounds[is.na(lbounds)] <- -Inf
+	ubounds <- omxGetParameters(model=model,free=TRUE,fetch="ubound")
+	ubounds[is.na(ubounds)] <- Inf
+	if(classic){
+		out <- params + 0.1*(params+0.5)
+		if(any(out<lbounds)){out[out<lbounds] <- lbounds[out<lbounds]}
+		if(any(out>ubounds)){out[out>ubounds] <- ubounds[out>ubounds]}
+		retval <- omxSetParameters(model=model,labels=labels,values=out)
+	}
+	else{
+		retval <- omxSetParameters(
+			model=model,labels=labels,
+			values=imxJiggle(params=params,lbounds=lbounds,ubounds=ubounds,dsn=dsn,loc=loc,scale=scale)
+			)
+	}
+	return(retval)
 }
 
 

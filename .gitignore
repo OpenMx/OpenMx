@@ -74,7 +74,6 @@ man/imxIndependentModels.Rd
 man/imxInitModel.Rd
 man/imxIsDefinitionVariable.Rd
 man/imxIsPath.Rd
-man/imxJiggle.Rd
 man/imxLocateFunction.Rd
 man/imxLocateIndex.Rd
 man/imxLocateLabel.Rd
