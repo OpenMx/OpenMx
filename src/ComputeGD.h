@@ -66,8 +66,8 @@ class GradientOptimizerContext {
 	Eigen::VectorXd solUB;
 
 	// TODO remove, better to pass as a parameter so we can avoid copies
-	Eigen::VectorXd equality;
-	Eigen::VectorXd inequality;
+	Eigen::VectorXd& equality;
+	Eigen::VectorXd& inequality;
 	bool CSOLNP_HACK;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
@@ -110,8 +110,8 @@ class GradientOptimizerContext {
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
 	void checkForAnalyticJacobians();
 	bool usingAnalyticJacobian; 
-	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
-	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
+	Eigen::MatrixXd& analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
+	Eigen::MatrixXd& analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
 	void copyFromOptimizer(double *myPars, FitContext *fc2);
