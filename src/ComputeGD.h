@@ -108,8 +108,8 @@ class GradientOptimizerContext {
 			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
-	bool usingAnalyticJacobian;
 	void checkForAnalyticJacobians();
+	bool usingAnalyticJacobian; 
 	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
 	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	void useBestFit();
