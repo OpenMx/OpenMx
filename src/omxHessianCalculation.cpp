@@ -81,7 +81,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
-	void omxCalcFinalConstraintJacobian();
+	void omxCalcFinalConstraintJacobian(FitContext* fc);
 
 	struct calcHessianEntry {
 		omxComputeNumericDeriv &cnd;
@@ -375,6 +375,14 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	detail = 0;
 }
 
+void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc){
+	equality_functional eff(*fc);
+	//eff(optima, fc->equality, fc->constraintJacobian);
+	
+	inequality_functional iff(*fc);
+	return;
+}
+
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
 	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
@@ -411,6 +419,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if(wantHessian && fc->state->conListX.size()){
 		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
 	}
+	omxCalcFinalConstraintJacobian(fc);
 	// TODO: Eliminate above warning, and calculate Jacobian here if there are MxConstraints.
 	// TODO: Allow more than one hessian value for calculation
 
