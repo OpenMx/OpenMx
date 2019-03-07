@@ -171,11 +171,23 @@ class FitContext {
 	int iterations;
 	int wanted;
 	std::vector< class FitContext* > childList;
+	
+	//Outputs from gradient-based optimizers:
 	Eigen::VectorXd constraintFunVals;
 	Eigen::MatrixXd constraintJacobian;
 	Eigen::VectorXd LagrMultipliers;
 	Eigen::VectorXi constraintStates;
 	Eigen::MatrixXd LagrHessian;
+	
+	//Constraint-related:
+	void solEqBFun(bool wantAJ, int verbose);
+	void myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK);
+	bool usingAnalyticJacobian;
+	void checkForAnalyticJacobians();
+	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
+	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
+	Eigen::VectorXd equality;
+	Eigen::VectorXd inequality;
 
 	// for confidence intervals
 	CIobjective *ciobj;

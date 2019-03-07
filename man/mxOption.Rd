@@ -23,7 +23,7 @@ The function sets, shows, or clears an option that is specific to the optimizer 
 }
 
 \usage{
-mxOption(model, key, value, reset = FALSE)
+mxOption(model=NULL, key=NULL, value, reset = FALSE)
 }
 
 \arguments{

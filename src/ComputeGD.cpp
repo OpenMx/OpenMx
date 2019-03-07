@@ -123,6 +123,8 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
 	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
+	  equality(fc->equality), inequality(fc->inequality), 
+	  analyticEqJacTmp(fc->analyticEqJacTmp), analyticIneqJacTmp(fc->analyticIneqJacTmp),
 	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
 	computeName = owner->name;
@@ -219,98 +221,23 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 // variable group.
 void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobian"
 {
-	const int eq_n = (int) equality.size();
-	omxState *st = fc->state;
-
-	if (!eq_n) return;
-	
-	/*Note that this needs to happen even if no equality constraints have analytic Jacobians, because
-	analyticEqJacTmp is copied to the Jacobian matrix the elements of which are populated by code in
-	finiteDifferences.h, which knows to numerically populate an element if it's NA:*/
-	analyticEqJacTmp.setConstant(NA_REAL);
-	
-	int cur=0, j=0, c=0, roffset=0;
-	for(j = 0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		if (con.opCode != omxConstraint::EQUALITY) continue;
-		
-		con.refreshAndGrab(fc, &equality(cur));
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
-			omxRecompute(con.jacobian, fc);
-			for(c=0; c<con.jacobian->cols; c++){
-				if(con.jacMap[c]<0){continue;}
-				for(roffset=0; roffset<con.size; roffset++){
-					analyticEqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-				}
-			}
-		}
-		cur += con.size;
-	}
-
-	if (verbose >= 3) {
-		mxPrintMat("equality", equality);
-	}
+	fc->solEqBFun(wantAJ, verbose);
+	return;
 };
 
 // NOTE: All non-linear constraints are applied regardless of free
 // variable group.
 void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
-	const int ineq_n = (int) inequality.size();
-	omxState *st = fc->state;
-
-	if (!ineq_n) return;
-	
-	analyticIneqJacTmp.setConstant(NA_REAL);
-	
-	int cur=0, j=0, c=0, roffset=0;
-	for (j=0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		if (con.opCode == omxConstraint::EQUALITY) continue;
-		
-		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
-			omxRecompute(con.jacobian, fc);
-			for(c=0; c<con.jacobian->cols; c++){
-				if(con.jacMap[c]<0){continue;}
-				for(roffset=0; roffset<con.size; roffset++){
-					analyticIneqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-				}
-			}
-		}
-		cur += con.size;
-	}
-	
-	if (CSOLNP_HACK) {
-		// CSOLNP doesn't know that inequality constraints can be inactive (by design, since it's an interior-point algorithm)
-	} else {
-		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
-		inequality = inequality.array().max(0.0);
-		if(wantAJ && usingAnalyticJacobian){
-			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
-				/*The Jacobians of each inactive constraint are set to zero here; 
-				as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
-				if(!inequality[i]){analyticIneqJacTmp.row(i).setZero();}
-			}
-		}
-	}
-
-	if (verbose >= 3) {
-		mxPrintMat("inequality", inequality);
-	}
+	fc->myineqFun(wantAJ, verbose, ineqType, CSOLNP_HACK);
+	return;
 };
 
 void GradientOptimizerContext::checkForAnalyticJacobians()
 {
-	usingAnalyticJacobian = false;
-	omxState *st = fc->state;
-	for(int i=0; i < (int) st->conListX.size(); i++){
-		omxConstraint &cs = *st->conListX[i];
-		if(cs.jacobian){
-			usingAnalyticJacobian = true;
-			return;
-		}
-	}
+	fc->checkForAnalyticJacobians();
+	usingAnalyticJacobian = fc->usingAnalyticJacobian; //Could probably reference instead of copy, but it's just 1 boolean.
+	return;
 }
 
 // ------------------------------------------------------------
