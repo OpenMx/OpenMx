@@ -80,7 +80,7 @@ Some other functions and changes that might interest you
 * IMPROVED: `mxEval` can use scalar multiplication, division, and powering of matrices.
 * IMPROVED: Ordinal data fit should often be better, and fewer status Reds.
 * FIXED: mxBootstrap bug where replications reported incorrect optimizer status codes
-* IMPROVED: Parametric bootstrapping compatible with multigroup models.
+* IMPROVED: Parametric bootstrapping compatible with multi-group models.
 * IMPROVED: error checking in `mxCompare`, `mxCompareMatrix`, `confint`, `vcov`
 	* Catch case where MxModel hasn't been run or has been modified since it was run.
 * IMPROVED: `omxParallelCI` and `omxRunCI` accept new 'optimizer' argument for calculating CIs
@@ -109,8 +109,8 @@ Some other functions and changes that might interest you
 # OpenMx 2.7.9 (March 22, 2017)
 * NEW: mxAutoStart Get automatic starting values.
 * NEW: "Auto" mxOption values.
-* NEW: omxNudgeZeroStarts helper function
-* NEW: Hidden Markov models with mxExpectationHiddenMarkov
+* NEW: `omxNudgeZeroStarts` helper function
+* NEW: Hidden Markov models with `mxExpectationHiddenMarkov`
 * NEW: "Internal" warm starts for NPSOL
 * NEW: Correct documentation of how NPSOL uses feasibility tolerance
 * NEW: Nelder-Mead
@@ -128,7 +128,7 @@ Some other functions and changes that might interest you
 * NEW: mxRun Now gives feedback about optimization progress.
 * NEW: Analytic constraint Jacobians can now be provided to MxConstraints (presently with NPSOL only).
 * NEW: Constraint diagnostics exported to frontend (NPSOL and SLSQP).
-* NEW: omxDefaultComputePlan()
+* NEW: `omxDefaultComputePlan`
 * CHANGE: CSOLNP is now the default optimizer.
 	* Change this with mxOption(NULL, "Default optimizer", "CSOLNP|NPSOL|SLSQP")
 	* NPSOL is available from the custom build at http://openmx.ssri.psu.edu/installing-openmx 
