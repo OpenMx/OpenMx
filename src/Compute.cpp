@@ -1161,6 +1161,63 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	}
 };
 
+//Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:
+void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive){
+	int c_n = equality.size() + inequality.size();
+	if(!c_n){return;}
+	std::vector<bool> is_inactive_ineq(c_n);
+	
+	constraintJacobian.setConstant(NA_REAL);
+	
+	int cur=0, j=0, c=0, roffset=0, i=0;
+	for (j=0; j < int(state->conListX.size()); j++) {
+		omxConstraint &con = *state->conListX[j];
+		if (con.opCode == omxConstraint::EQUALITY) {
+			con.refreshAndGrab(this, &constraintFunVals(cur));
+			for(i=0; i < con.size; i++){
+				is_inactive_ineq[cur+i] = false;
+			}
+		} else{
+			con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &constraintFunVals(cur));
+			for(i=0; i < con.size; i++){
+				if(constraintFunVals(cur+i) < 0 && maskInactive){
+					constraintFunVals(cur+i) = 0;
+					is_inactive_ineq[cur+i] = true;
+				} else{
+					is_inactive_ineq[cur+i] = false;
+				}
+			}
+		}
+		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+			omxRecompute(con.jacobian, this);
+			for(c=0; c<con.jacobian->cols; c++){
+				if(con.jacMap[c]<0){continue;}
+				for(roffset=0; roffset<con.size; roffset++){
+					constraintJacobian(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
+				}
+			}
+		}
+		cur += con.size;
+	}
+	
+	if (CSOLNP_HACK) {
+		
+	} else {
+		if(wantAJ && usingAnalyticJacobian && maskInactive){
+			for(int i=0; i<constraintJacobian.rows(); i++){
+				/*The Jacobians of each inactive constraint are set to zero here; 
+				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
+				if(is_inactive_ineq[i]){constraintJacobian.row(i).setZero();}
+			}
+		}
+	}
+	
+	if (verbose >= 3) {
+		mxPrintMat("constraint Jacobian", constraintJacobian);
+	}
+	
+}
+
 void FitContext::checkForAnalyticJacobians()
 {
 	usingAnalyticJacobian = false;
@@ -3665,6 +3722,34 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 
 void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *result)
 {
+	if( fc->state->conListX.size() ){
+		SEXP cn, cr, cc, cv, cjac;
+		size_t i=0;
+		{
+			Rf_protect(cn = Rf_allocVector( STRSXP, fc->state->conListX.size() ));
+			Rf_protect(cr = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
+			Rf_protect(cc = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
+			for(i=0; i < fc->state->conListX.size(); i++){
+				SET_STRING_ELT( cn, i, Rf_mkChar(fc->state->conListX[i]->name) );
+				INTEGER(cr)[i] = fc->state->conListX[i]->nrows;
+				INTEGER(cc)[i] = fc->state->conListX[i]->ncols;
+			}
+			result->add("constraintNames", cn);
+			result->add("constraintRows", cr);
+			result->add("constraintCols", cc);
+		}
+		if( fc->constraintFunVals.size() ){
+			Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
+			memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
+			result->add("constraintFunctionValues", cv);
+		}
+		if( fc->constraintJacobian.rows() ){
+			Rf_protect(cjac = Rf_allocMatrix( REALSXP, fc->constraintJacobian.rows(), fc->constraintJacobian.cols() ));
+			memcpy( REAL(cjac), fc->constraintJacobian.data(), sizeof(double) * fc->constraintJacobian.rows() * fc->constraintJacobian.cols() );
+			result->add("constraintJacobian", cjac);
+		}
+	}
+
 	if (!(fc->wanted & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN|FF_COMPUTE_IHESSIAN))) return;
 
 	int numFree = fc->calcNumFree();

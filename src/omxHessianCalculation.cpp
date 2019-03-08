@@ -37,6 +37,7 @@
 #include "Compute.h"
 #include "CovEntrywisePar.h"
 #include "EnableWarnings.h"
+#include "finiteDifferences.h"
 
 struct hess_struct {
 	int probeCount;
@@ -115,44 +116,6 @@ class omxComputeNumericDeriv : public omxCompute {
 		}
 	};
 	
-	struct equality_functional {
-		FitContext &fc;
-		equality_functional(FitContext &_fc) : fc(_fc) {};
-		template <typename T1, typename T2>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.solEqBFun(false, 0);
-			result = fc.equality;
-		}
-		template <typename T1, typename T2, typename T3>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
-			fc.solEqBFun(true, 0);
-			result = fc.equality;
-			jacobian = fc.analyticEqJacTmp;
-		}
-	};
-	
-	struct inequality_functional {
-		FitContext &fc;
-		inequality_functional(FitContext &_fc) : fc(_fc) {};
-		template <typename T1, typename T2>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.myineqFun(false, 0, omxConstraint::LESS_THAN, false);
-			result = fc.inequality;
-		}
-		template <typename T1, typename T2, typename T3>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.analyticIneqJacTmp.resize(jacobian.rows(), jacobian.cols());
-			fc.myineqFun(true, 0, omxConstraint::LESS_THAN, false);
-			result = fc.inequality;
-			jacobian = fc.analyticIneqJacTmp;
-		}
-	};
-
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
@@ -376,10 +339,21 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 }
 
 void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc){
-	equality_functional eff(*fc);
-	//eff(optima, fc->equality, fc->constraintJacobian);
-	
-	inequality_functional iff(*fc);
+	allconstraints_functional acf(*fc, verbose);
+	Eigen::MatrixWrapper< Eigen::ArrayXd > optimaM(optima);
+	acf(optimaM, fc->constraintFunVals, fc->constraintJacobian);
+	/*Gradient algorithm, iterations, and stepsize are hardcoded as they are for two reasons.
+	 * 1.  Differentiating the constraint functions should not take long, expecially compared to 
+	 * twice-differentiating the fitfunction, so it might as well be done carefully.
+	 * 2.  The default behavior during the ComputeNumericDeriv step uses different values of 
+	 * gradient stepsize and iterations depending on whether or not the MxModel contains thresholds,
+	 * since the numerical accuracy of the -2logL is worse when multivariate-normal integration is involved.
+	 * But, that has no bearing on the constraint functions, so it doesn't really make sense to use
+	 * the stepsize and iterations stored in the omxComputeNumericDeriv object.
+	 */
+	fd_jacobian<true>(
+		GradientAlgorithm_Central, 4, 1.0e-7,
+    acf, fc->constraintFunVals, optimaM, fc->constraintJacobian);
 	return;
 }
 

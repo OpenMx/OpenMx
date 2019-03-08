@@ -188,6 +188,7 @@ class FitContext {
 	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
+	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
 
 	// for confidence intervals
 	CIobjective *ciobj;
@@ -341,6 +342,29 @@ void copyParamToModelFake1(omxState *os, Eigen::Ref<Eigen::VectorXd> point);
 void copyParamToModelRestore(omxState *os, const Eigen::Ref<const Eigen::VectorXd> point);
 
 typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
+
+struct allconstraints_functional {
+	FitContext &fc;
+	int verbose;
+	
+	allconstraints_functional(FitContext &_fc, int _verbose) : fc(_fc), verbose(_verbose) {};
+	
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+		fc.setEstFromOptimizer(x.derived().data());
+		fc.allConstraintsF(false, verbose, omxConstraint::LESS_THAN, false, true);
+		result = fc.constraintFunVals;
+	}
+	
+	template <typename T1, typename T2, typename T3>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+		fc.setEstFromOptimizer(x.derived().data());
+		fc.constraintJacobian.resize(jacobian.rows(), jacobian.cols());
+		fc.allConstraintsF(true, verbose, omxConstraint::LESS_THAN, false, true);
+		result = fc.constraintFunVals;
+		jacobian = fc.constraintJacobian;
+	}
+};
 
 class omxCompute {
 	int computeId;
