@@ -344,6 +344,8 @@ class omxState {
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
+	
+	int numEqC, numIneqC;
 
 	void countNonlinearConstraints(int &equality, int &inequality, bool distinguishLinear)
 	{

@@ -40,35 +40,33 @@ void GradientOptimizerContext::copyBounds()
 	fc->copyBoxConstraintToOptimizer(solLB, solUB);
 }
 
-void GradientOptimizerContext::setupSimpleBounds()
+void GradientOptimizerContext::setupSimpleBounds() //used with SLSQP.
 {
 	solLB.resize(numFree);
 	solUB.resize(numFree);
 	copyBounds();
-}
+} 
 
-void GradientOptimizerContext::setupIneqConstraintBounds()
+void GradientOptimizerContext::setupIneqConstraintBounds() //used with CSOLNP.
 {
 	solLB.resize(numFree);
 	solUB.resize(numFree);
 	copyBounds();
 
 	omxState *globalState = fc->state;
-	int eqn, nineqn;
-	globalState->countNonlinearConstraints(eqn, nineqn, false);
-	equality.resize(eqn);
-	inequality.resize(nineqn);
+	equality.resize(globalState->numEqC);
+	inequality.resize(globalState->numIneqC);
 };
 
-void GradientOptimizerContext::setupAllBounds()
+void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 {
 	omxState *st = fc->state;
 	int n = (int) numFree;
 
 	// treat all constraints as non-linear
-	int eqn, nineqn;
-	st->countNonlinearConstraints(eqn, nineqn, false);
-	int ncnln = eqn + nineqn;
+	// st->countNonlinearConstraints(eqn, nineqn, false);
+	// ^^^Does the special handling of linear constraints work properly in NPSOL version 6??
+	int ncnln = st->numEqC + st->numIneqC;
 	solLB.resize(n + ncnln);
 	solUB.resize(n + ncnln);
 

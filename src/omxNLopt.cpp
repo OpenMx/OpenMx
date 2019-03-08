@@ -337,7 +337,8 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	nlopt_set_upper_bounds(opt, goc.solUB.data());
 	
 	int eq, ieq;
-	globalState->countNonlinearConstraints(eq, ieq, false);
+	eq = globalState->numEqC;
+	ieq = globalState->numIneqC;
 	
 	// The *2 is there to roughly equate accuracy with NPSOL.
 	nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
@@ -364,7 +365,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 		}
 	}
 	
-	//The following four lines are only sensible if using SLSQP (noted in case we ever use a different optimizer from NLOPT):
+	//The following four lines are only sensible if using SLSQP (noted in case we ever use a different optimizer from the NLOPT collection):
 	struct nlopt_slsqp_wdump wkspc;
 	//wkspc.lengths = (int*)calloc(8, sizeof(int));
 	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
