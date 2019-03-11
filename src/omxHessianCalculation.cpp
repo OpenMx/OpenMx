@@ -271,10 +271,10 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
-	if (state->conListX.size()) {
+	/*if (state->conListX.size()) {
 		mxThrow("%s: cannot proceed with constraints (%d constraints found)",
 			name, int(state->conListX.size()));
-	}
+	}*/
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 
@@ -339,9 +339,12 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 }
 
 void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc){
+	int npar = fc->calcNumFree();
 	allconstraints_functional acf(*fc, verbose);
 	Eigen::MatrixWrapper< Eigen::ArrayXd > optimaM(optima);
-	acf(optimaM, fc->constraintFunVals, fc->constraintJacobian);
+	Eigen::VectorXd resulttmp(fc->state->numEqC + fc->state->numIneqC);
+	Eigen::MatrixXd jactmp(fc->state->numEqC + fc->state->numIneqC, npar);
+	acf(optimaM, resulttmp, jactmp);
 	/*Gradient algorithm, iterations, and stepsize are hardcoded as they are for two reasons.
 	 * 1.  Differentiating the constraint functions should not take long, expecially compared to 
 	 * twice-differentiating the fitfunction, so it might as well be done carefully.
@@ -353,7 +356,9 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc){
 	 */
 	fd_jacobian<true>(
 		GradientAlgorithm_Central, 4, 1.0e-7,
-    acf, fc->constraintFunVals, optimaM, fc->constraintJacobian);
+    acf, resulttmp, optimaM, jactmp);
+	fc->constraintFunVals = resulttmp;
+	fc->constraintJacobian = jactmp;
 	return;
 }
 
@@ -390,9 +395,9 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMat, fc);
 	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
 
-	if(wantHessian && fc->state->conListX.size()){
+	/*if(wantHessian && fc->state->conListX.size()){
 		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
-	}
+	}*/
 	omxCalcFinalConstraintJacobian(fc);
 	// TODO: Eliminate above warning, and calculate Jacobian here if there are MxConstraints.
 	// TODO: Allow more than one hessian value for calculation

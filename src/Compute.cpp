@@ -743,25 +743,49 @@ void FitContext::clearHessian()
 	maxBlockSize = 0;
 }
 
-void FitContext::calcStderrs()
+void FitContext::calcStderrs()  //I believe this function is only calculated if fit is in -2logL units.
 {
 	int numFree = calcNumFree();
 	stderrs.resize(numFree);
-
-	Eigen::VectorXd ihd(ihessDiag());
-
+	vcov.resize(numFree, numFree);
 	const double scale = fabs(Global->llScale);
-
-	// This function calculates the standard errors from the Hessian matrix
-	// sqrt(scale * diag(solve(hessian)))
-
-	for(int i = 0; i < numFree; i++) {
-		double got = ihd[i];
-		if (got <= 0) {
-			stderrs[i] = NA_REAL;
-			continue;
+	
+	if(constraintJacobian.rows()){
+		Eigen::MatrixXd hesstmp(numFree, numFree);
+		copyDenseHess(hesstmp.data());
+		hesstmp = hesstmp/scale;
+		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
+		Eigen::MatrixXd Q = qrj.householderQ();
+		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
+		mxPrintMat("basis",U);
+		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
+		MoorePenroseInverse(centr);
+		vcov = U * centr * U.transpose();
+		
+		for(int i = 0; i < numFree; i++) {
+			double got = vcov(i,i);
+			if (got <= 0) {
+				stderrs[i] = NA_REAL;
+				continue;
+			}
+			stderrs[i] = sqrt(got);
 		}
-		stderrs[i] = sqrt(scale * got);
+		
+	} else{
+		Eigen::VectorXd ihd(ihessDiag());
+		
+		// This function calculates the standard errors from the Hessian matrix
+		// sqrt(scale * diag(solve(hessian)))
+		
+		for(int i = 0; i < numFree; i++) {
+			double got = ihd[i];
+			if (got <= 0) {
+				stderrs[i] = NA_REAL;
+				continue;
+			}
+			stderrs[i] = sqrt(scale * got);
+		}
+		copyDenseIHess(vcov.data());
 	}
 }
 
@@ -781,6 +805,8 @@ FitContext::FitContext(omxState *_state)
 		}
 		memcpy(est, startingValues.data(), sizeof(double) * numParam);
 	}
+	//equality.resize(state->numEqC);
+	//inequality.resize(state->numIneqC);
 }
 
 FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
@@ -814,6 +840,8 @@ FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
 	ciobj = parent->ciobj;
+	//equality.resize(state->numEqC);
+	//inequality.resize(state->numIneqC);
 }
 
 void FitContext::updateParent()
@@ -1888,6 +1916,7 @@ class ComputeStandardError : public omxCompute {
 	int df;
 	double x2m, x2mv;
 	double madj, mvadj, dstar;
+	Eigen::MatrixXd vcov;
 
 	struct visitEx {
 		ComputeStandardError &top;
@@ -3644,6 +3673,14 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * numFree);
 		Rf_setAttrib(stdErrors, R_DimNamesSymbol, dimnames);
 		out->add("standardErrors", stdErrors);
+		
+		if(fc->vcov.rows() && fc->vcov.cols()){
+			SEXP Vcov;
+			Rf_protect(Vcov = Rf_allocMatrix(REALSXP, numFree, numFree));
+			memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * numFree * numFree);
+			Rf_setAttrib(Vcov, R_DimNamesSymbol, dimnames);
+			out->add("vcov", Vcov);
+		}
 	}
 
 	if (wlsStats) {
