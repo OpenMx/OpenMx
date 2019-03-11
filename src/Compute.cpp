@@ -747,7 +747,6 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 {
 	int numFree = calcNumFree();
 	stderrs.resize(numFree);
-	vcov.resize(numFree, numFree);
 	const double scale = fabs(Global->llScale);
 	
 	if(constraintJacobian.rows()){
@@ -757,9 +756,9 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
 		Eigen::MatrixXd Q = qrj.householderQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
-		mxPrintMat("basis",U);
+		if(OMX_DEBUG){}mxPrintMat("basis",U);}
 		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
-		MoorePenroseInverse(centr);
+		MoorePenroseInverse(centr); //TODO: centr's inverse proper should exist unless something's wrong.
 		vcov = U * centr * U.transpose();
 		
 		for(int i = 0; i < numFree; i++) {
@@ -772,6 +771,7 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		}
 		
 	} else{
+		vcov.resize(numFree, numFree);
 		Eigen::VectorXd ihd(ihessDiag());
 		
 		// This function calculates the standard errors from the Hessian matrix
@@ -1191,7 +1191,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 
 //Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:
 void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive){
-	int c_n = equality.size() + inequality.size();
+	int c_n = state->numEqC + state->numIneqC;
 	if(!c_n){return;}
 	std::vector<bool> is_inactive_ineq(c_n);
 	
@@ -3676,8 +3676,8 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 		
 		if(fc->vcov.rows() && fc->vcov.cols()){
 			SEXP Vcov;
-			Rf_protect(Vcov = Rf_allocMatrix(REALSXP, numFree, numFree));
-			memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * numFree * numFree);
+			Rf_protect(Vcov = Rf_allocMatrix(REALSXP, fc->vcov.rows(), fc->vcov.cols()));
+			memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * fc->vcov.rows() * fc->vcov.cols());
 			Rf_setAttrib(Vcov, R_DimNamesSymbol, dimnames);
 			out->add("vcov", Vcov);
 		}

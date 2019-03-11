@@ -189,7 +189,7 @@ class FitContext {
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
 	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
-	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs, in the presence of MxConstraints.
+	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
 
 	// for confidence intervals
 	CIobjective *ciobj;
@@ -360,7 +360,6 @@ struct allconstraints_functional {
 	template <typename T1, typename T2, typename T3>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		fc.setEstFromOptimizer(x.derived().data());
-		fc.constraintJacobian.resize(jacobian.rows(), jacobian.cols());
 		fc.allConstraintsF(true, verbose, omxConstraint::LESS_THAN, false, true);
 		result = fc.constraintFunVals;
 		jacobian = fc.constraintJacobian;
