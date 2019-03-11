@@ -87,7 +87,7 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	return(output)
 }
-
+#TODO: prevent "carefully calculated" constraint Jacobian from being overwritten with the Jacobian from the GD optimizer; also, give it dimnames.
 nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep, output){
 	if(GDstep@engine=="NPSOL"){
 		
