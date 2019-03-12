@@ -3708,6 +3708,21 @@ void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
 void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+	
+	/*
+	 * If there are equality MxConstraints, then the quality of the generically calculated Hessian will not be informative;
+	 * we must rely upon the optimizer's status code.
+	 * (Completely boneheaded equality MxConstraints, like constraining a free parameter equal to itself, are assumed to be the user's problem.)
+	 * The quality of the generically calculated Hessian is likewise uninformative if there are active inequality MxConstraints.
+	 * But, if there are no equalities, and all of the inequalities are inactive, then we might as well proceed (corner case as that may be):
+	*/
+	if(fc->state->conListX.size()){
+		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
+		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
+		fc->inequality.resize(fc->state->numIneqC);
+		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
+		if(fc->state->numEqC || fc->inequality.array().sum()){return;}
+	}
 
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
