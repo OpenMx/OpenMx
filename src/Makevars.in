@@ -22,10 +22,31 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_CXXFLAGS+=$(xcheck_CXXFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 $(NO_INLINE) -O0 -fmax-errors=5  # basic debugging without extra logging
 # DEBUG_CXXFLAGS+=-fno-omit-frame-pointer $(NO_INLINE)  # oprofile
 # DEBUG_CXXFLAGS+=-UNDEBUG                      # always uncomment this when you debug
-# DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # uncomment to pass flags to linker, including '-fsanitize=undefined'.
+# DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # pass debug flags to linker, i.e., -fsanitize=undefined
 
-PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) -I.
-PKG_LIBS=$(OPENMP_CXXFLAGS) $(COMPILER_LDFLAGS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
+#BGEN_DEBUG += -D DEBUG=1
+
+COMMON_FLAGS=-I. -Iinclude \
+-Iinclude/zstd-1.1.0 \
+-Iinclude/zstd-1.1.0/common \
+-Iinclude/zstd-1.1.0/compress \
+-Iinclude/zstd-1.1.0/decompress \
+-D SQLITE_ENABLE_COLUMN_METADATA \
+-D SQLITE_ENABLE_STAT4 \
+-D SQLITE_MAX_EXPR_DEPTH=10000 \
+-D SQLITE_USE_URI=1 \
+$(BGEN_DEBUG)
+
+PKG_CXXFLAGS= $(OPENMP_CXXFLAGS) \
+ $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) \
+ $(COMMON_FLAGS)
+
+PKG_CFLAGS=$(COMMON_FLAGS)
+
+PKG_LIBS= $(OPENMP_CXXFLAGS) \
+  $(COMPILER_LDFLAGS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(LAPACK_LIBS) \
+  $(BLAS_LIBS) $(FLIBS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS) \
+ -lboost_thread -lboost_chrono -lboost_filesystem
 
 all: $(SHLIB) save-gcno
 

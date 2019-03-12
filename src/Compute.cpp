@@ -20,6 +20,9 @@
 #include <random>
 #include <fstream>
 #include <forward_list>
+#include <map>
+#include "genfile/bgen/View.hpp"
+#include "genfile/bgen/IndexQuery.hpp"
 
 #include "glue.h"
 #include "Compute.h"
@@ -2141,6 +2144,10 @@ class ComputeGenerateData : public omxCompute {
 
 class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
+	enum LoadMethod {
+		LoadCSV,
+		LoadBGEN
+	} loadMethod;
 	omxData *data;
 	std::vector< int > columns;
 	std::vector< int > colTypes;
@@ -2150,6 +2157,8 @@ class ComputeLoadData : public omxCompute {
 	bool hasColNames, hasRowNames;
 	bool byrow;
 	int verbose;
+
+	genfile::bgen::View::UniquePtr bgenView;
 
 	int loadCounter;
 	void loadByCol(FitContext *fc, int index);
@@ -4167,6 +4176,16 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
 	useOriginalData = Rf_asLogical(RoriginalData);
 
+	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
+	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
+	if (strEQ(methodName, "csv")) {
+		loadMethod = LoadCSV;
+	} else if (strEQ(methodName, "bgen")) {
+		loadMethod = LoadBGEN;
+	} else {
+		mxThrow("%s: unknown method '%s'", name, methodName);
+	}
+	
 	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
 	hasRowNames = Rf_asLogical(Rrownames);
 	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
@@ -4209,8 +4228,62 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	stripeEnd = -1;
 }
 
+struct BgenXfer {
+	dataPtr dp;
+	std::vector<double> prob;
+	int row;
+	BgenXfer(dataPtr &_dp) : dp(_dp) {};
+	void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {}
+	void set_min_max_ploidy(genfile::bgen::uint32_t min_ploidy, genfile::bgen::uint32_t max_ploidy,
+				genfile::bgen::uint32_t min_entries, genfile::bgen::uint32_t max_entries)
+	{
+		row = 0;
+		if (min_ploidy != 2 || max_ploidy != 2 || min_entries != 3 || max_entries != 3) {
+			mxThrow("set_min_max_ploidy %u %u %u %u, not implemented",
+				min_ploidy, max_ploidy, min_entries, max_entries);
+		}
+	}
+	bool set_sample( std::size_t i ) { return true; }
+	void set_number_of_entries(std::size_t ploidy,
+				   std::size_t number_of_entries,
+				   genfile::OrderType order_type,
+				   genfile::ValueType value_type)
+	{
+		if( value_type != genfile::eProbability ) {
+			mxThrow("value_type != genfile::eProbability");
+		}
+		prob.resize(number_of_entries);
+	}
+	void set_value( genfile::bgen::uint32_t entry_i, double value ) {
+		prob[entry_i] = value;
+		if (entry_i == 2) {
+			double dosage = prob[1] * 1 + prob[2] * 2;
+			dp.realData[row++] = dosage;
+		}
+	}
+
+	void set_value( genfile::bgen::uint32_t entry_i, genfile::MissingValue) {
+		if (entry_i == 2) {
+			dp.realData[row++] = NA_REAL;
+		}
+	}
+};
+
 void ComputeLoadData::computeImpl(FitContext *fc)
 {
+	if (!stripeData.size()) {
+		stripeData.reserve(stripeSize * columns.size());
+		for (int sx=0; sx < stripeSize; ++sx) {
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+					stripeData.emplace_back(new double[data->rows]);
+				} else {
+					stripeData.emplace_back(new int[data->rows]);
+				}
+			}
+		}
+	}
+
 	std::vector<int> &clc = Global->computeLoopIndex;
 	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
 	int index = clc[clc.size()-1] - 1;  // innermost loop index
@@ -4220,10 +4293,50 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 			data->rawCols[ columns[cx] ].ptr = origData[cx];
 		}
 	} else {
-		if (!byrow) {
-			loadByCol(fc, index - useOriginalData);
+		if (loadMethod == LoadCSV) {
+			if (!byrow) {
+				loadByCol(fc, index - useOriginalData);
+			} else {
+				loadByRow(fc, index - useOriginalData);
+			}
+		} else if (loadMethod == LoadBGEN) {
+			// m_postheader_data WTF?
+			if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
+							 name, int(columns.size()));
+			if (bgenView.get() == 0) {
+				using namespace genfile::bgen ;
+				using namespace Rcpp ;
+				std::string bgen(filePath);
+				std::string bgenIndex = bgen + ".bgi";
+				bgenView = View::create( filePath ) ;
+				auto query = IndexQuery::create( bgenIndex ) ;
+				query->initialise();
+				bgenView->set_query( query ) ;
+				if (data->rows != int(bgenView->number_of_samples())) {
+					mxThrow("%s: %s has %d rows but %s has %d samples",
+						name, data->name, data->rows, filePath.c_str(),
+						int(bgenView->number_of_samples()));
+				}
+				auto number_of_variants = bgenView->number_of_variants();
+				if (index >= int(number_of_variants)) {
+					mxThrow("%s: only %d variants available in %s",
+						name, int(number_of_variants), filePath.c_str());
+				}
+			}
+
+			std::string SNPID, rsid, chromosome ;
+			genfile::bgen::uint32_t position ;
+			std::vector< std::string > alleles ;
+			bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
+			mxLog("%s %s %s %u", SNPID.c_str(), rsid.c_str(), chromosome.c_str(), position);
+			BgenXfer xfer(stripeData[0]); // check type TODO
+			bgenView->read_genotype_data_block(xfer);
+			
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+			}
 		} else {
-			loadByRow(fc, index - useOriginalData);
+			mxThrow("%s: unknown load method %d", name, loadMethod);
 		}
 	}
 
@@ -4249,19 +4362,6 @@ ComputeLoadData::~ComputeLoadData()
 
 void ComputeLoadData::loadByCol(FitContext *fc, int index)
 {
-	if (!stripeData.size()) {
-		stripeData.reserve(stripeSize * columns.size());
-		for (int sx=0; sx < stripeSize; ++sx) {
-			for (int cx=0; cx < int(columns.size()); ++cx) {
-				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-					stripeData.emplace_back(new double[data->rows]);
-				} else {
-					stripeData.emplace_back(new int[data->rows]);
-				}
-			}
-		}
-	}
-
 	if (stripeStart == -1 ||
 	    index < stripeStart || index >= stripeEnd) {
 		bool backward = index < stripeStart;
