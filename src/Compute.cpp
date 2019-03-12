@@ -3674,6 +3674,7 @@ void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList
 		Rf_setAttrib(stdErrors, R_DimNamesSymbol, dimnames);
 		out->add("standardErrors", stdErrors);
 		
+		SET_VECTOR_ELT(dimnames, 1, parNames);
 		if(fc->vcov.rows() && fc->vcov.cols()){
 			SEXP Vcov;
 			Rf_protect(Vcov = Rf_allocMatrix(REALSXP, fc->vcov.rows(), fc->vcov.cols()));
