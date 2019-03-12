@@ -45,6 +45,7 @@ void GradientOptimizerContext::setupSimpleBounds() //used with SLSQP.
 	solLB.resize(numFree);
 	solUB.resize(numFree);
 	copyBounds();
+	//MxConstraints are re-counted in omxInvokeNLOPT().
 } 
 
 void GradientOptimizerContext::setupIneqConstraintBounds() //used with CSOLNP.
@@ -54,6 +55,7 @@ void GradientOptimizerContext::setupIneqConstraintBounds() //used with CSOLNP.
 	copyBounds();
 
 	omxState *globalState = fc->state;
+	globalState->countNonlinearConstraints(globalState->numEqC, globalState->numIneqC, false);
 	equality.resize(globalState->numEqC);
 	inequality.resize(globalState->numIneqC);
 };
@@ -66,6 +68,7 @@ void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 	// treat all constraints as non-linear
 	// st->countNonlinearConstraints(eqn, nineqn, false);
 	// ^^^Does the special handling of linear constraints work properly in NPSOL version 6??
+	st->countNonlinearConstraints(st->numEqC, st->numIneqC, false);
 	int ncnln = st->numEqC + st->numIneqC;
 	solLB.resize(n + ncnln);
 	solUB.resize(n + ncnln);

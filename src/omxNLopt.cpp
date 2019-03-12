@@ -337,6 +337,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	nlopt_set_upper_bounds(opt, goc.solUB.data());
 	
 	int eq, ieq;
+	globalState->countNonlinearConstraints(globalState->numEqC, globalState->numIneqC, false);
 	eq = globalState->numEqC;
 	ieq = globalState->numIneqC;
 	
