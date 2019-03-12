@@ -399,7 +399,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	}*/
 	int c_n = fc->state->numEqC + fc->state->numIneqC;
 	fc->constraintFunVals.resize(c_n);
-	fc->constraintJacobian(c_n, numParams);
+	fc->constraintJacobian.resize(c_n, numParams);
 	omxCalcFinalConstraintJacobian(fc, numParams);
 	// TODO: Eliminate above warning, and calculate Jacobian here if there are MxConstraints.
 	// TODO: Allow more than one hessian value for calculation
