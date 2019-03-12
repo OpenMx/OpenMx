@@ -394,14 +394,11 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMat, fc);
 	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
 
-	/*if(wantHessian && fc->state->conListX.size()){
-		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
-	}*/
+	fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
 	int c_n = fc->state->numEqC + fc->state->numIneqC;
 	fc->constraintFunVals.resize(c_n);
 	fc->constraintJacobian.resize(c_n, numParams);
 	omxCalcFinalConstraintJacobian(fc, numParams);
-	// TODO: Eliminate above warning, and calculate Jacobian here if there are MxConstraints.
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
