@@ -756,7 +756,7 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
 		Eigen::MatrixXd Q = qrj.householderQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
-		if(OMX_DEBUG){}mxPrintMat("basis",U);}
+		if(OMX_DEBUG){mxPrintMat("basis",U);}
 		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
 		MoorePenroseInverse(centr); //TODO: centr's inverse proper should exist unless something's wrong.
 		vcov = U * centr * U.transpose();
