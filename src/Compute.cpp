@@ -3761,6 +3761,11 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *result)
 {
 	if( fc->state->conListX.size() ){
+		/* After the call to the backend,
+		 * frontend function nameGenericConstraintOutput(), in R/MxRunHelperFunctions.R, uses 'constraintNames',
+		 * 'constraintRows', and 'constraintCols' to populate the dimnames of 'constraintFunctionValues' and 
+		 * 'constraintJacobian'.
+		 */
 		SEXP cn, cr, cc, cv, cjac;
 		size_t i=0;
 		{
