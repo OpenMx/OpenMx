@@ -217,9 +217,10 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 
 nameGenericConstraintOutput <- function(paramNames, constraintNames, output){
 	#Name columns of vcov, if it exists:
-	if(nrow(output$vcov) && ncol(output$vcov) && nrow(output$vcov)==ncol(output$vcov)){
-		colnames(output$vcov) <- rownames(output$vcov)
-	}
+	if(!is.null(output$vcov)){ 
+		 if(ncol(output$vcov) && nrow(output$vcov) && nrow(output$vcov)==ncol(output$vcov)){
+			colnames(output$vcov) <- rownames(output$vcov)
+	}}
 	
 	#Initialize variables:
 	cfvNames <- NULL
