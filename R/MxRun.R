@@ -219,11 +219,13 @@ runHelper <- function(model, frontendStart,
 			silent || !interactive(), PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
-	model <- updateModelMatrices(model, flatModel, output$matrices)
-	model <- updateModelAlgebras(model, flatModel, output$algebras)
-	model <- updateModelExpectations(model, flatModel, output$expectations)
-	model <- updateModelExpectationDims(model, expectations)
-	model <- updateModelData(model, flatModel, output$data)
+	if (is.null(output$error)) {
+		model <- updateModelMatrices(model, flatModel, output$matrices)
+		model <- updateModelAlgebras(model, flatModel, output$algebras)
+		model <- updateModelExpectations(model, flatModel, output$expectations)
+		model <- updateModelExpectationDims(model, expectations)
+		model <- updateModelData(model, flatModel, output$data)
+	}
 	model@compute <-updateModelCompute(model, output$computes)
 	output[['computes']] <- NULL
 	if (!is.null(output[['bounds']])) {

@@ -220,6 +220,7 @@ void omxWLSFitFunction::prepData()
 	
 		dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(),
 				      exoPred, type, continuousType, fullWeight);
+		if (isErrorRaised()) return;
 	}
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();

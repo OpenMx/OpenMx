@@ -188,3 +188,11 @@ omxCheckEquals(mlSum$ChiDoF, wlsSum$ChiDoF)
 omxCheckTrue( (wlsSum$RMSEA < mlSum$RMSEACI[2]) & (wlsSum$RMSEA > mlSum$RMSEACI[1]))
 omxCheckTrue( (mlSum$RMSEA < wlsSum$RMSEACI[2]) & (mlSum$RMSEA >= wlsSum$RMSEACI[1]))
 
+
+#--------------------------------------
+
+wlsMod$data$observed[,1] <- 0.
+omxCheckError(mxRun(wlsMod), "Test case for WLS Objective function from Bollen 1989.data: 'y1' has no observed variance")
+
+wlsMod <- mxModel(wlsMod, mxFitFunctionWLS(allContinuousMethod= 'marginals'))
+omxCheckError(mxRun(wlsMod), "The job for model 'Test case for WLS Objective function from Bollen 1989' exited abnormally with the error message: Test case for WLS Objective function from Bollen 1989.data: 'y1' has no observed variance")
