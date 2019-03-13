@@ -40,6 +40,8 @@ factorModelPath <- mxModel("OneFactorPath",
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Directory","C:/Work/OpenMx_dev/")
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Units","evaluations")
 #factorModelPath <- mxOption(factorModelPath,"Checkpoint Count",1)
+factorModelPath <- mxOption(factorModelPath,"Calculate Hessian","No")
+factorModelPath <- mxOption(factorModelPath,"Standard Errors","No")
 factorFit <- mxRun(factorModelPath, silent = TRUE)
 
 omxCheckEquals(factorFit$output$status$code, 0)
