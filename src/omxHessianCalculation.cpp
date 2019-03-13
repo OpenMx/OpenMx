@@ -398,7 +398,9 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	int c_n = fc->state->numEqC + fc->state->numIneqC;
 	fc->constraintFunVals.resize(c_n);
 	fc->constraintJacobian.resize(c_n, numParams);
-	omxCalcFinalConstraintJacobian(fc, numParams);
+	if(c_n){
+		omxCalcFinalConstraintJacobian(fc, numParams);
+	}
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
