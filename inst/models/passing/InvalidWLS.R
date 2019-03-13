@@ -7,7 +7,7 @@ mb <- mxFactor(b, levels=levels(b))
 #mb[mb %in% 'c'] <- 'd' #make 'c' the unused level instead of 'd'
 ds <- data.frame(a=ma, b=mb)
 
-omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')), "fake.data: variable 'b' has a zero frequency category 'd'.
+omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')), "The job for model 'fake' exited abnormally with the error message: fake.data: variable 'b' has a zero frequency category 'd'.
 Eliminate this level in your mxFactor() or combine categories in some other way.
 Do not pass go. Do not collect $200.")
 

@@ -46,7 +46,11 @@ struct omxWLSFitFunction : omxFitFunction {
 	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope, omxMatrix *thresholdMat,
 				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
 	void prepData();
-	virtual void invalidateCache() { prepData(); }
+	virtual void invalidateCache()
+	{
+		omxFreeMatrix(observedFlattened);
+		observedFlattened = 0;
+	}
 };
 
 void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope,
@@ -61,8 +65,8 @@ omxWLSFitFunction::~omxWLSFitFunction()
 {
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
 	
+	invalidateCache();
 	omxWLSFitFunction* owo = this;
-	omxFreeMatrix(owo->observedFlattened);
 	omxFreeMatrix(owo->expectedFlattened);
 	omxFreeMatrix(owo->B);
 	omxFreeMatrix(owo->P);
@@ -73,7 +77,11 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 {
 	auto *oo = this;
 	auto *owo = this;
-	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
+	if ((want & FF_COMPUTE_PREOPTIMIZE) && !observedFlattened) {
+		prepData();
+		return;
+	}
 	
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.
@@ -86,7 +94,8 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
 	auto &eThresh   = oo->expectation->getThresholdInfo();
-	oFlat		= owo->observedFlattened;
+	if (!observedFlattened) return;
+	oFlat		= observedFlattened;
 	eFlat		= owo->expectedFlattened;
 	int onei	= 1;
 	
@@ -290,9 +299,10 @@ void omxWLSFitFunction::prepData()
 		}
 	}
 	
+	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
 	flattenDataToVector(cov, means, obsStat.slopeMat, obsThresholdsMat,
-			    oThresh, newObj->observedFlattened);
-	if(OMX_DEBUG) {omxPrintMatrix(newObj->observedFlattened, "....WLS Observed Vector: "); }
+			    oThresh, observedFlattened);
+	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans,
 			    newObj->expectedSlope, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
@@ -332,10 +342,8 @@ void omxWLSFitFunction::init()
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
 	/* Temporary storage for calculation */
-	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	observedFlattened = 0;
 	expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
 	P = omxInitMatrix(1, vectorSize, TRUE, currentState);
 	B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
-
-	prepData();
 }
