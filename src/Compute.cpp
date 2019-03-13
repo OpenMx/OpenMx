@@ -756,6 +756,7 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
 		Eigen::MatrixXd Q = qrj.householderQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
+		if(U.rows()==0 || U.cols()==0){return;}
 		if(OMX_DEBUG){mxPrintMat("basis",U);}
 		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
 		MoorePenroseInverse(centr); //TODO: centr's inverse proper should exist unless something's wrong.
@@ -3719,7 +3720,9 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 	if(fc->state->conListX.size()){
 		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
 		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
+		int nf = fc->calcNumFree();
 		fc->inequality.resize(fc->state->numIneqC);
+		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, nf);
 		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
 		if(fc->state->numEqC || fc->inequality.array().sum()){return;}
 	}
