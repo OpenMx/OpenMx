@@ -53,6 +53,8 @@ omxCheckCloseEnough(sqrt(sum(factorFit$output$gradient^2)), 0, .021)
 
 if (mxOption(NULL, "Default optimizer") != 'CSOLNP') {  # TODO
 	broken <- mxModel(factorModelPath, remove=TRUE, names(factorModelPath$constraints))
+	broken <- mxOption(broken,"Standard Errors","No")
+	broken <- mxOption(broken,"Calculate Hessian","No")
 	broken <- mxModel(broken, mxConstraint(GV>2, "infeasible"));
 	broken <- omxCheckWarning(mxRun(broken, silent=TRUE),
 				  "In model 'OneFactorPath' Optimizer returned a non-zero status code 3. The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution.")
