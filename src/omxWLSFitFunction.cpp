@@ -238,16 +238,17 @@ void omxWLSFitFunction::prepData()
 	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
-	if (eThresh.size() && !means) {
-		omxRaiseError("Means are required when the data include ordinal measurements");
-		return;
-	}
-
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
 		if(newObj->expectedMeans != NULL) {
-			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			if (eThresh.size() == 0) {
+				omxRaiseError("Observed means not detected, but expected means specified.\n"
+					      "The model has no continuous variables. "
+					      "Do you did forget allContinuousMethod='marginals'?");
+			} else {
+				omxRaiseError("Means are required when the data include ordinal measurements");
+			}
 			return;
 		} else {
 			omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
