@@ -406,8 +406,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	//if (fc->ciobj) verbose=2;
 	double effectiveGradientStepSize = gradientStepSize;
 	if (engine == OptEngine_NLOPT) effectiveGradientStepSize *= GRADIENT_FUDGE_FACTOR(2.0);
-	GradientOptimizerContext rf(fc, verbose, gradientAlgo, gradientIterations, effectiveGradientStepSize,
-				    this);
+	GradientOptimizerContext rf(fc, verbose, gradientAlgo, gradientIterations, effectiveGradientStepSize,this);
 	threads = rf.numOptimizerThreads;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
