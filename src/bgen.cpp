@@ -620,7 +620,7 @@ namespace genfile {
 			db::Connection::StatementPtr stmt = connection.get_statement( "SELECT * FROM sqlite_master WHERE name == 'Metadata' AND type == 'table'" ) ;
 			stmt->step() ;
 			if( !stmt->empty() ) {
-				db::Connection::StatementPtr mdStmt = connection.get_statement( "SELECT filename, file_size, last_write_time, first_1000_bytes FROM Metadata" ) ;
+				db::Connection::StatementPtr mdStmt = connection.get_statement( "SELECT filename, file_size, first_1000_bytes FROM Metadata" ) ;
 				mdStmt->step() ;
 
 				if( mdStmt->empty() ) {
@@ -630,7 +630,6 @@ namespace genfile {
 				// Get metadata fields for comparison
 				metadata.filename = mdStmt->get< std::string >( 0 ) ;
 				metadata.size = mdStmt->get< int64_t >( 1 ) ;
-				metadata.last_write_time = mdStmt->get< int64_t >( 2 ) ;
 				metadata.first_bytes = mdStmt->get< std::vector< uint8_t > >( 3 ) ;
 				
 				result = metadata ;
@@ -849,7 +848,6 @@ namespace genfile {
 		// Open the bgen file, read header data and gather metadata.
 		void View::setup( std::string const& filename ) {
 			m_file_metadata.filename = filename ;
-			m_file_metadata.last_write_time = boost::filesystem::last_write_time( filename ) ;
 
 			// Open the stream
 			m_stream.reset(

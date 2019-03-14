@@ -96,21 +96,18 @@ namespace genfile {
 				FileMetadata( FileMetadata const& other ):
 					filename( other.filename ),
 					size( other.size ),
-					last_write_time( other.last_write_time ),
 					first_bytes( other.first_bytes )
 				{}
 
 				FileMetadata& operator=( FileMetadata const& other ) {
 					filename = other.filename ;
 					size = other.size ;
-					last_write_time = other.last_write_time ;
 					first_bytes = other.first_bytes ;
 					return *this ;
 				}
 
 				std::string filename ;
 				int64_t size ;
-				std::time_t last_write_time ;
 				std::vector< byte_t > first_bytes ;
 			} ;
 		} ;
