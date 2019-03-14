@@ -2,6 +2,8 @@ library(OpenMx)
 if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
 
 mxOption(NULL,"Nudge zero starts","No")
+mxOption(NULL,"Calculate Hessian","No")
+mxOption(NULL,"Standard Errors","No")
 
 mxd <- data.frame(
 	y=mxFactor(as.numeric(runif(100)<.5), levels=c(0,1)),
@@ -33,5 +35,6 @@ mod2b <- mxModel(
 	mxConstraint(-1%x%Yhat < 0, name="c1"),
 	mxConstraint(Yhat - 1 < 0, name="c2")
 )
-mod2b <- omxCheckWarning(mxRun(mod2b),
-                         "Constraint 'constrLPM.c2' depends on definition variables; This may not do what you expect. See ?mxConstraint")
+mod2b <- omxCheckWarning(
+	mxRun(mod2b),
+  "Constraint 'constrLPM.c2' depends on definition variables; This may not do what you expect. See ?mxConstraint")
