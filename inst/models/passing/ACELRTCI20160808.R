@@ -20,6 +20,8 @@ require(mvtnorm)
 #mxOption(NULL, 'Default optimizer', 'SLSQP')
 
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
+mxOption(NULL,"Calculate Hessian","No")
+mxOption(NULL,"Standard Errors","No")
 
 # Aug 11, 2016 by Hao Wu
 
