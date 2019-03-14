@@ -85,9 +85,8 @@ namespace db {
 
 #include <iostream>
 #include <stdint.h>
-#include <boost/chrono.hpp>
-#include <boost/thread/thread_time.hpp>
-#include <boost/thread/thread.hpp>
+#include <thread>
+#include <chrono>
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLite3Statement.hpp"
 #include "db/Error.hpp"
@@ -101,7 +100,7 @@ extern "C" {
 		if( number_of_tries > 10 ) {
 			return 0 ;
 		}
-		boost::this_thread::sleep_for( boost::chrono::milliseconds( 10 ) ) ;
+		std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) ) ;
 		return 1 ;
 	}
 }
@@ -218,7 +217,7 @@ namespace db {
 				// We wait an additional 0.1s so that each attempt takes 0.2s in total.
 				if( ( count * 0.2 ) > max_seconds_to_wait ) {
 					std::cerr << "Open transaction: failure count=" << count << " (~" << count*0.2 << "s).  Bailing out.\n" ;
-					boost::this_thread::sleep_for( boost::chrono::milliseconds( 100 ) ) ;
+					std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) ) ;
 					throw TransactionError( "SQLite3Connection::open_transaction()", get_spec(), e.error_code(), e.sql() ) ;
 				}
 			}

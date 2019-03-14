@@ -46,7 +46,7 @@ PKG_CFLAGS=$(COMMON_FLAGS)
 PKG_LIBS= $(OPENMP_CXXFLAGS) \
   $(COMPILER_LDFLAGS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(LAPACK_LIBS) \
   $(BLAS_LIBS) $(FLIBS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS) \
- -lboost_thread -lboost_chrono -lboost_filesystem
+ -lboost_filesystem
 
 all: $(SHLIB) save-gcno
 
