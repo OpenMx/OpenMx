@@ -507,10 +507,18 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->grad.resize(fc->numParam);
 	fc->grad.setZero();
 	fc->copyGradFromOptimizer(Gc);
+	
+	if(c_n){
+		fc->inequality.resize(fc->state->numIneqC);
+		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numParams);
+		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
+	}
 
 	gradNorm = sqrt(gradNorm);
 	double gradThresh = Global->getGradientThreshold(minimum);
-	if (checkGradient && gradNorm > gradThresh) {
+	//The gradient will generally not be near zero at a local minimum if there are equality constraints 
+	//or active inequality constraints:
+	if ( checkGradient && gradNorm > gradThresh && !(fc->state->numEqC || fc->inequality.array().sum()) ) {
 		if (verbose >= 1) {
 			mxLog("Some gradient entries are too large, norm %f", gradNorm);
 		}
