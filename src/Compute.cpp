@@ -2070,14 +2070,15 @@ class ComputeCheckpoint : public omxCompute {
 		double fit;
 		int inform;
 		Eigen::VectorXd stderrs;
-		Eigen::VectorXd extra;
+		Eigen::VectorXd algebraEnt;
+		std::vector< std::string > extra;
 	};
 
 	const char *path;
 	std::ofstream ofs;
 	bool toReturn;
 	std::vector<omxMatrix*> algebras;
-	int numExtra;
+	int numAlgebraEnt;
 	bool wroteHeader;
 	std::vector<std::string> colnames;
 	std::forward_list<snap> snaps;
@@ -2152,11 +2153,14 @@ class ComputeLoadData : public omxCompute {
 	std::vector< int > columns;
 	std::vector< int > colTypes;
 	std::string filePath;
+	std::string fileName;
 	bool useOriginalData;
 	std::vector<dataPtr> origData;
 	bool hasColNames, hasRowNames;
 	bool byrow;
 	int verbose;
+	bool checkpoint;
+	int cpIndex;
 
 	genfile::bgen::View::UniquePtr bgenView;
 
@@ -4222,6 +4226,29 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	filePath = R_CHAR(STRING_ELT(Rpath, 0));
+	auto slashPos = filePath.find_last_of("/\\");
+	if (slashPos == std::string::npos) {
+		fileName = filePath;
+	} else {
+		fileName = filePath.substr(slashPos+1);
+	}
+
+	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
+	checkpoint = Rf_asLogical(Rcheckpoint);
+
+	if (checkpoint) {
+		auto &cp = Global->checkpointColnames;
+		cpIndex = cp.size();
+		std::string c1 = fileName + ":SNP";
+		cp.push_back(c1);
+		c1 = fileName + ":RSID";
+		cp.push_back(c1);
+		c1 = fileName + ":ch";
+		cp.push_back(c1);
+		c1 = fileName + ":pos";
+		cp.push_back(c1);
+		Global->checkpointValues.resize(cpIndex + 4);
+	}
 
 	loadCounter = 0;
 	stripeStart = -1;
@@ -4328,7 +4355,13 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 			genfile::bgen::uint32_t position ;
 			std::vector< std::string > alleles ;
 			bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
-			mxLog("%s %s %s %u", SNPID.c_str(), rsid.c_str(), chromosome.c_str(), position);
+			if (checkpoint) {
+				auto &cv = Global->checkpointValues;
+				cv[cpIndex] = SNPID;
+				cv[cpIndex+1] = rsid;
+				cv[cpIndex+2] = chromosome;
+				cv[cpIndex+3] = string_snprintf("%u", position);
+			}
 			BgenXfer xfer(stripeData[0]); // check type TODO
 			bgenView->read_genotype_data_block(xfer);
 			
@@ -4620,18 +4653,19 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 
-	numExtra = 0;
+	numAlgebraEnt = 0;
 	for (auto &mat : algebras) {
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				colnames.push_back(string_snprintf("%s[%d,%d]", mat->name(), 1+rx, 1+cx));
 			}
 		}
-		numExtra += mat->cols * mat->rows;
+		numAlgebraEnt += mat->cols * mat->rows;
 	}
 	// TODO: confidence intervals, hessian, constraint algebras
 	// what does Eric Schmidt include in per-voxel output?
 	// remove old checkpoint code?
+	numSnaps = 0;
 }
 
 void ComputeCheckpoint::computeImpl(FitContext *fc)
@@ -4667,23 +4701,26 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		}
 		s1.stderrs = fc->stderrs;
 	}
-	s1.extra.resize(numExtra);
+	s1.algebraEnt.resize(numAlgebraEnt);
 
 	{int xx=0;
 	for (auto &mat : algebras) {
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				EigenMatrixAdaptor eM(mat);
-				s1.extra[xx] = eM(rx, cx);
+				s1.algebraEnt[xx] = eM(rx, cx);
 				xx += 1;
 			}
 		}
 	}}
+	s1.extra = Global->checkpointValues;
 
 	if (ofs.is_open()) {
 		const int digits = std::numeric_limits<double>::digits10 + 1;
 		if (!wroteHeader) {
 			bool first = true;
+			auto &xcn = Global->checkpointColnames;
+			colnames.insert(colnames.end(), xcn.begin(), xcn.end());
 			for (auto &cn : colnames) {
 				if (first) { first=false; }
 				else       { ofs << '\t'; }
@@ -4739,9 +4776,10 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				}
 			}
 		}
-		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
-			ofs << '\t' << std::setprecision(digits) << s1.extra[x1];
+		for (int x1=0; x1 < int(s1.algebraEnt.size()); ++x1) {
+			ofs << '\t' << std::setprecision(digits) << s1.algebraEnt[x1];
 		}
+		for (auto &x1 : s1.extra) ofs << '\t' << x1;
 		ofs << '\n';
 		ofs.flush();
 	}
@@ -4842,12 +4880,19 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			}
 		}
 	}
-	for (int x1=0; x1 < numExtra; ++x1) {
+	for (int x1=0; x1 < numAlgebraEnt; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
-		for (auto &s1 : snaps) v[sx++] = s1.extra[x1];
+		for (auto &s1 : snaps) v[sx++] = s1.algebraEnt[x1];
+	}
+	auto &xcn = Global->checkpointColnames;
+	for (int x1=0; x1 < int(xcn.size()); ++x1) {
+		SEXP col = Rf_allocVector(STRSXP, numSnaps);
+		SET_VECTOR_ELT(log, curCol++, col);
+		int sx=0;
+		for (auto &s1 : snaps) SET_STRING_ELT(col, sx++, Rf_mkChar(s1.extra[x1].c_str()));
 	}
 
 	markAsDataFrame(log, numSnaps);

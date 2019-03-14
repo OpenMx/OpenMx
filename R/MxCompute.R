@@ -2135,12 +2135,14 @@ setClass(Class = "MxComputeLoadData",
 		 col.names = "logical",
 		 verbose = "integer",
 		 cacheSize = "integer",
-		 method = "character"
+		 method = "character",
+		 checkpointMetadata = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
-		 row.names, col.names, byrow, verbose, cacheSize, method) {
+		 row.names, col.names, byrow, verbose, cacheSize, method,
+		 checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2154,6 +2156,7 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@verbose <- verbose
 		  .Object@cacheSize <- cacheSize
 		  .Object@method <- method
+		  .Object@checkpointMetadata <- checkpointMetadata
 		  .Object
 	  })
 
@@ -2202,6 +2205,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param verbose integer. Level of diagnostic output.
 ##' @param cacheSize integer. How many columns to cacheSize per
 ##' scan through the data.
+##' @param checkpointMetadata logical. Whether to add per index metadata to the checkpoint
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
@@ -2209,7 +2213,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=FALSE, col.names=FALSE, verbose=0L,
-			      cacheSize=100L) {
+			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadData does not accept values for the '...' argument")
@@ -2218,7 +2222,8 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 	if (cacheSize < 1L) stop("cacheSize must be a positive integer")
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
 		as.logical(row.names), as.logical(col.names), byrow,
-		as.integer(verbose), as.integer(cacheSize), method)
+		as.integer(verbose), as.integer(cacheSize), method,
+		as.logical(checkpointMetadata))
 }
 
 #----------------------------------------------------

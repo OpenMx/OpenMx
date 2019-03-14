@@ -270,6 +270,8 @@ class omxGlobal {
 
 	std::vector<const char *> computeLoopContext;
 	std::vector<int> computeLoopIndex;
+	std::vector< std::string > checkpointColnames;
+	std::vector< std::string > checkpointValues;
 	std::vector< std::string > bads;
 
 	// Will need revision if multiple optimizers are running in parallel
