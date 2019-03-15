@@ -4602,8 +4602,14 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			}
 		}
 		if (inclSEs) {
-			for (int x1=0; x1 < int(s1.est.size()); ++x1) {
-				ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
+			if (s1.stderrs.size()) {
+				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
+				}
+			} else {
+				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << NA_REAL;
+				}
 			}
 		}
 		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
@@ -4700,7 +4706,13 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = REAL(col);
 			int sx=0;
-			for (auto &s1 : snaps) v[sx++] = s1.stderrs[x1];
+			for (auto &s1 : snaps) {
+				if (s1.stderrs.size()) {
+					v[sx++] = s1.stderrs[x1];
+				} else {
+					v[sx++] = NA_REAL;
+				}
+			}
 		}
 	}
 	for (int x1=0; x1 < numExtra; ++x1) {
