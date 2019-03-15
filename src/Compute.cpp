@@ -171,6 +171,7 @@ void FitContext::refreshDenseHess()
 
 	hess.triangularView<Eigen::Upper>().setZero();
 
+	// if allBlocks.size() == 0 then what? TODO
 	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
 		HessianBlock *hb = allBlocks[bx];
 
@@ -747,6 +748,10 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 {
 	int numFree = calcNumFree();
 	stderrs.resize(numFree);
+	if (vcov.rows() != numFree || vcov.cols() != numFree) {
+		mxThrow("FitContext::calcStderrs vcov size wrong %d vs %d",
+			vcov.rows(), numFree);
+	}
 	const double scale = fabs(Global->llScale);
 	
 	if(constraintJacobian.rows()){
@@ -761,32 +766,15 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
 		MoorePenroseInverse(centr); //TODO: centr's inverse proper should exist unless something's wrong.
 		vcov = U * centr * U.transpose();
-		
-		for(int i = 0; i < numFree; i++) {
-			double got = vcov(i,i);
-			if (got <= 0) {
-				stderrs[i] = NA_REAL;
-				continue;
-			}
-			stderrs[i] = sqrt(got);
+	}
+
+	for(int i = 0; i < numFree; i++) {
+		double got = vcov(i,i);
+		if (got <= 0) {
+			stderrs[i] = NA_REAL;
+			continue;
 		}
-		
-	} else{
-		vcov.resize(numFree, numFree);
-		Eigen::VectorXd ihd(ihessDiag());
-		
-		// This function calculates the standard errors from the Hessian matrix
-		// sqrt(scale * diag(solve(hessian)))
-		
-		for(int i = 0; i < numFree; i++) {
-			double got = ihd[i];
-			if (got <= 0) {
-				stderrs[i] = NA_REAL;
-				continue;
-			}
-			stderrs[i] = sqrt(scale * got);
-		}
-		copyDenseIHess(vcov.data());
+		stderrs[i] = sqrt(got);
 	}
 }
 
@@ -3519,8 +3507,13 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
-	if (fc->fitUnits == FIT_UNITS_MINUS2LL &&
-	    fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+	if (fc->fitUnits == FIT_UNITS_UNINITIALIZED) return;
+	if (fc->fitUnits == FIT_UNITS_MINUS2LL) {
+		if (!fc->vcov.size()) {
+			const double Scale = fabs(Global->llScale);
+			fc->refreshDenseIHess();
+			fc->vcov = Scale * fc->ihess;
+		}
 		fc->calcStderrs();
 		return;
 	}
@@ -3624,12 +3617,8 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd dvd = sense.result.transpose() * Vmat * sense.result;
 	if (InvertSymmetricIndef(dvd, 'L') > 0) return;
 
-	const double scale = fabs(Global->llScale);
-	double *ihess = fc->getDenseIHessUninitialized();
-	Eigen::Map< Eigen::MatrixXd > Eh(ihess, numFree, numFree);
-	Eh = (1.0/scale) * dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
+	fc->vcov = dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
 		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
-	fc->wanted |= FF_COMPUTE_IHESSIAN;
 	fc->calcStderrs();
 
 	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
@@ -3649,40 +3638,42 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+	int numFree=0;
+	SEXP parNames=0, dimnames=0;
 
-	if (fc->stderrs.size()) {
-		int numFree = fc->calcNumFree();
+	if (fc->vcov.size() || fc->stderrs.size()) {
+		numFree = fc->calcNumFree();
 		if (numFree != fc->stderrs.size()) {
 			mxThrow("%s: numFree != fc->stderrs.size() %d != %d",
 				name, numFree, fc->stderrs.size());
 		}
 
-		SEXP parNames = Rf_allocVector(STRSXP, numFree);
+		parNames = Rf_allocVector(STRSXP, numFree);
 		Rf_protect(parNames);
 		for (int vx=0, px=0; vx < int(fc->numParam) && px < numFree; ++vx) {
 			if (fc->profiledOut[vx]) continue;
 			SET_STRING_ELT(parNames, px++, Rf_mkChar(varGroup->vars[vx]->name));
 		}
 
-		SEXP dimnames = Rf_allocVector(VECSXP, 2);
+		dimnames = Rf_allocVector(VECSXP, 2);
 		Rf_protect(dimnames);
 		SET_VECTOR_ELT(dimnames, 0, parNames);
+	}
 
+	if (fc->vcov.size()) {
+		SEXP Vcov;
+		Rf_protect(Vcov = Rf_allocMatrix(REALSXP, fc->vcov.rows(), fc->vcov.cols()));
+		memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * fc->vcov.rows() * fc->vcov.cols());
+		Rf_setAttrib(Vcov, R_DimNamesSymbol, dimnames);
+		out->add("vcov", Vcov);
+	}
+
+	if (fc->stderrs.size()) {
 		SEXP stdErrors;
 		Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
 		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * numFree);
 		Rf_setAttrib(stdErrors, R_DimNamesSymbol, dimnames);
 		out->add("standardErrors", stdErrors);
-		
-		//SET_VECTOR_ELT(dimnames, 1, parNames);
-		if(fc->vcov.rows() && fc->vcov.cols()){
-			SEXP Vcov;
-			Rf_protect(Vcov = Rf_allocMatrix(REALSXP, fc->vcov.rows(), fc->vcov.cols()));
-			memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * fc->vcov.rows() * fc->vcov.cols());
-			Rf_setAttrib(Vcov, R_DimNamesSymbol, dimnames);
-			out->add("vcov", Vcov);
-		}
 	}
 
 	if (wlsStats) {
