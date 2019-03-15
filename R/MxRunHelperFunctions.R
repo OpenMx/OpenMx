@@ -80,6 +80,7 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	if (length(output$algebras) == length(algebraNames)) {
 		names(output$algebras) <- algebraNames
 	}
+	output <- nameGenericConstraintOutput(parameterNames, constraintNames, output)
 	GDsteps <- computeSeq$steps[sapply(computeSeq$steps,function(x){is(x,"MxComputeGradientDescent")})]
 	if(length(GDsteps)){
 		lastGDstep <- GDsteps[[length(GDsteps)]] #<--If a custom compute plan has more than one GD step, use the last one
@@ -87,6 +88,7 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 	}
 	return(output)
 }
+
 
 nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep, output){
 	if(GDstep@engine=="NPSOL"){
@@ -118,20 +120,24 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 		}
 		
 		#Assign names to components, and components to 'output' list:
-		if(length(GDstep@output$constraintFunctionValues)){
-			if(length(GDstep@output$constraintFunctionValues)==length(cfvNames)){
-				names(GDstep@output$constraintFunctionValues) <- cfvNames
+		if(is.null(output$constraintFunctionValues)){
+			if(length(GDstep@output$constraintFunctionValues)){
+				if(length(GDstep@output$constraintFunctionValues)==length(cfvNames)){
+					names(GDstep@output$constraintFunctionValues) <- cfvNames
+				}
+				output$constraintFunctionValues <- GDstep@output$constraintFunctionValues
 			}
-			output$constraintFunctionValues <- GDstep@output$constraintFunctionValues
 		}
-		if(length(GDstep@output$constraintJacobian)){
-			if(ncol(GDstep@output$constraintJacobian) && ncol(GDstep@output$constraintJacobian)==length(paramNames)){
-				colnames(GDstep@output$constraintJacobian) <- paramNames
+		if(is.null(output$constraintJacobian)){
+			if(length(GDstep@output$constraintJacobian)){
+				if(ncol(GDstep@output$constraintJacobian) && ncol(GDstep@output$constraintJacobian)==length(paramNames)){
+					colnames(GDstep@output$constraintJacobian) <- paramNames
+				}
+				if(nrow(GDstep@output$constraintJacobian) && nrow(GDstep@output$constraintJacobian)==length(cfvNames)){
+					rownames(GDstep@output$constraintJacobian) <- cfvNames
+				}
+				output$constraintJacobian <- GDstep@output$constraintJacobian
 			}
-			if(nrow(GDstep@output$constraintJacobian) && nrow(GDstep@output$constraintJacobian)==length(cfvNames)){
-				rownames(GDstep@output$constraintJacobian) <- cfvNames
-			}
-			output$constraintJacobian <- GDstep@output$constraintJacobian
 		}
 		if(length(GDstep@output$LagrangeMultipliers)){
 			if(length(GDstep@output$LagrangeMultipliers)==length(lmNames)){
@@ -172,20 +178,24 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 		}
 		
 		#Assign names to components, and components to 'output' list:
-		if(length(GDstep@output$constraintFunctionValues)){
-			if(length(GDstep@output$constraintFunctionValues)==length(cfvNames)){
-				names(GDstep@output$constraintFunctionValues) <- cfvNames
+		if(is.null(output$constraintFunctionValues)){
+			if(length(GDstep@output$constraintFunctionValues)){
+				if(length(GDstep@output$constraintFunctionValues)==length(cfvNames)){
+					names(GDstep@output$constraintFunctionValues) <- cfvNames
+				}
+				output$constraintFunctionValues <- GDstep@output$constraintFunctionValues
 			}
-			output$constraintFunctionValues <- GDstep@output$constraintFunctionValues
 		}
-		if(length(GDstep@output$constraintJacobian)){
-			if(ncol(GDstep@output$constraintJacobian) && ncol(GDstep@output$constraintJacobian)==length(paramNames)){
-				colnames(GDstep@output$constraintJacobian) <- paramNames
+		if(is.null(output$constraintJacobian)){
+			if(length(GDstep@output$constraintJacobian)){
+				if(ncol(GDstep@output$constraintJacobian) && ncol(GDstep@output$constraintJacobian)==length(paramNames)){
+					colnames(GDstep@output$constraintJacobian) <- paramNames
+				}
+				if(nrow(GDstep@output$constraintJacobian) && nrow(GDstep@output$constraintJacobian)==length(cfvNames)){
+					rownames(GDstep@output$constraintJacobian) <- cfvNames
+				}
+				output$constraintJacobian <- GDstep@output$constraintJacobian
 			}
-			if(nrow(GDstep@output$constraintJacobian) && nrow(GDstep@output$constraintJacobian)==length(cfvNames)){
-				rownames(GDstep@output$constraintJacobian) <- cfvNames
-			}
-			output$constraintJacobian <- GDstep@output$constraintJacobian
 		}
 		if(length(GDstep@output$LagrangeMultipliers)){
 			if(length(GDstep@output$LagrangeMultipliers)==length(cfvNames)){
@@ -201,6 +211,57 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 			output$LagrHessian <- GDstep@output$LagrHessian
 		}
 	}
+	return(output)
+}
+
+
+nameGenericConstraintOutput <- function(paramNames, constraintNames, output){
+	#Name columns of vcov, if it exists:
+	if(!is.null(output$vcov)){ 
+		 if(ncol(output$vcov) && nrow(output$vcov) && nrow(output$vcov)==ncol(output$vcov)){
+			colnames(output$vcov) <- rownames(output$vcov)
+	}}
+	
+	#Initialize variables:
+	cfvNames <- NULL
+	constraintRows <- NULL
+	constraintCols <- NULL
+	
+	#Filter extraneous elements and generate vectors of names:
+	if(length(constraintNames) && length(output$constraintRows) && length(output$constraintCols)){
+		emptyConstraints <- (output$constraintRows==0 | output$constraintCols==0)
+		#Assuming that "empty" constraints have no function values...
+		constraintNames <- constraintNames[!emptyConstraints]
+		constraintRows <- output$constraintRows[!emptyConstraints]
+		constraintCols <- output$constraintCols[!emptyConstraints]
+	}
+	if(length(constraintNames) && length(constraintRows) && length(constraintCols)){
+		for(i in 1:length(constraintNames)){
+			for(co in 1:constraintCols[i]){
+				for(ro in 1:constraintRows[i]){
+					cfvNames <- c(cfvNames, paste(constraintNames[i],"[",ro,",",co,"]",sep=""))
+				}
+			}
+		}
+	}
+	
+	if(length(output$constraintFunctionValues) && length(output$constraintFunctionValues)==length(cfvNames)){
+		names(output$constraintFunctionValues) <- cfvNames
+	}
+	if(length(output$constraintJacobian)){
+		if(ncol(output$constraintJacobian) && ncol(output$constraintJacobian)==length(paramNames)){
+			colnames(output$constraintJacobian) <- paramNames
+		}
+		if(nrow(output$constraintJacobian) && nrow(output$constraintJacobian)==length(cfvNames)){
+			rownames(output$constraintJacobian) <- cfvNames
+		}
+	}
+	
+	#Remove clutter from output list:
+	output$constraintNames <- NULL
+	output$constraintCols <- NULL
+	output$constraintRows <- NULL
+	
 	return(output)
 }
 

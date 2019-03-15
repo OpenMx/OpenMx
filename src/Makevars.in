@@ -22,7 +22,7 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_CXXFLAGS+=$(xcheck_CXXFLAGS) -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG -g3 $(NO_INLINE) -O0 -fmax-errors=5  # basic debugging without extra logging
 # DEBUG_CXXFLAGS+=-fno-omit-frame-pointer $(NO_INLINE)  # oprofile
 # DEBUG_CXXFLAGS+=-UNDEBUG                      # always uncomment this when you debug
-# DEBUG_LDFLAGS += $(xcheck_LDFLAGS)
+# DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # uncomment to pass flags to linker, including '-fsanitize=undefined'.
 
 PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) -I.
 PKG_LIBS=$(OPENMP_CXXFLAGS) $(COMPILER_LDFLAGS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)

@@ -213,12 +213,6 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
 		input <- model@options
-		if (is.null(input[["Standard Errors"]]) && constraints > 0) {
-			input[["Standard Errors"]] <- "No"
-		}
-		if (is.null(input[["Calculate Hessian"]]) && constraints > 0) {
-			input[["Calculate Hessian"]] <- "No"
-		}
 		if( !is.null(input[["UsePPML"]]) 
 		   && (input[["UsePPML"]] == "PartialSolved" || input[["UsePPML"]] == "Split") ) {
 			input[["Calculate Hessian"]] <- "No"
@@ -307,7 +301,7 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 		return(numcast)
 	}
 	#Otherwise, if the current value is a string and can be matched to "Auto",
-	#convert to default nuermical value for the three motivating cases: 
+	#convert to default numerical value for the three motivating cases: 
 	else{
 		if(length(grep(pattern="Auto",x=optionList[[optionName]],ignore.case=T))){
 			if(optionName=="Gradient step size"){return(1.0e-7)}

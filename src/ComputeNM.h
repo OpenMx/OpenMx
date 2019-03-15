@@ -18,8 +18,6 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-//TODO: define functions using Eigen-lib templates
-
 class omxComputeNM : public omxCompute {
 	typedef omxCompute super;
 	bool nudge;

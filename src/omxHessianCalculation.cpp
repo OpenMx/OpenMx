@@ -37,6 +37,7 @@
 #include "Compute.h"
 #include "CovEntrywisePar.h"
 #include "EnableWarnings.h"
+#include "finiteDifferences.h"
 
 struct hess_struct {
 	int probeCount;
@@ -81,7 +82,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
-	void omxCalcFinalConstraintJacobian();
+	void omxCalcFinalConstraintJacobian(FitContext* fc, int npar);
 
 	struct calcHessianEntry {
 		omxComputeNumericDeriv &cnd;
@@ -115,44 +116,6 @@ class omxComputeNumericDeriv : public omxCompute {
 		}
 	};
 	
-	struct equality_functional {
-		FitContext &fc;
-		equality_functional(FitContext &_fc) : fc(_fc) {};
-		template <typename T1, typename T2>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.solEqBFun(false, 0);
-			result = fc.equality;
-		}
-		template <typename T1, typename T2, typename T3>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
-			fc.solEqBFun(true, 0);
-			result = fc.equality;
-			jacobian = fc.analyticEqJacTmp;
-		}
-	};
-	
-	struct inequality_functional {
-		FitContext &fc;
-		inequality_functional(FitContext &_fc) : fc(_fc) {};
-		template <typename T1, typename T2>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.myineqFun(false, 0, omxConstraint::LESS_THAN, false);
-			result = fc.inequality;
-		}
-		template <typename T1, typename T2, typename T3>
-		void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-			fc.setEstFromOptimizer(x.derived().data());
-			fc.analyticIneqJacTmp.resize(jacobian.rows(), jacobian.cols());
-			fc.myineqFun(true, 0, omxConstraint::LESS_THAN, false);
-			result = fc.inequality;
-			jacobian = fc.analyticIneqJacTmp;
-		}
-	};
-
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
@@ -308,10 +271,10 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
-	if (state->conListX.size()) {
+	/*if (state->conListX.size()) {
 		mxThrow("%s: cannot proceed with constraints (%d constraints found)",
 			name, int(state->conListX.size()));
-	}
+	}*/
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 
@@ -375,6 +338,29 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	detail = 0;
 }
 
+void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int npar){
+	allconstraints_functional acf(*fc, verbose);
+	Eigen::MatrixWrapper< Eigen::ArrayXd > optimaM(optima);
+	Eigen::VectorXd resulttmp(fc->state->numEqC + fc->state->numIneqC);
+	Eigen::MatrixXd jactmp(fc->state->numEqC + fc->state->numIneqC, npar);
+	acf(optimaM, resulttmp, jactmp);
+	/*Gradient algorithm, iterations, and stepsize are hardcoded as they are for two reasons.
+	 * 1.  Differentiating the constraint functions should not take long, expecially compared to 
+	 * twice-differentiating the fitfunction, so it might as well be done carefully.
+	 * 2.  The default behavior during the ComputeNumericDeriv step uses different values of 
+	 * gradient stepsize and iterations depending on whether or not the MxModel contains thresholds,
+	 * since the numerical accuracy of the -2logL is worse when multivariate-normal integration is involved.
+	 * But, that has no bearing on the constraint functions, so it doesn't really make sense to use
+	 * the stepsize and iterations stored in the omxComputeNumericDeriv object.
+	 */
+	fd_jacobian<true>(
+		GradientAlgorithm_Central, 4, 1.0e-7,
+    acf, resulttmp, optimaM, jactmp);
+	fc->constraintFunVals = resulttmp;
+	fc->constraintJacobian = jactmp;
+	return;
+}
+
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 {
 	if (fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
@@ -408,10 +394,13 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	omxAlgebraPreeval(fitMat, fc);
 	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
 
-	if(wantHessian && fc->state->conListX.size()){
-		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
+	fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
+	int c_n = fc->state->numEqC + fc->state->numIneqC;
+	fc->constraintFunVals.resize(c_n);
+	fc->constraintJacobian.resize(c_n, numParams);
+	if(c_n){
+		omxCalcFinalConstraintJacobian(fc, numParams);
 	}
-	// TODO: Eliminate above warning, and calculate Jacobian here if there are MxConstraints.
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
@@ -518,10 +507,18 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	fc->grad.resize(fc->numParam);
 	fc->grad.setZero();
 	fc->copyGradFromOptimizer(Gc);
+	
+	if(c_n){
+		fc->inequality.resize(fc->state->numIneqC);
+		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numParams);
+		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
+	}
 
 	gradNorm = sqrt(gradNorm);
 	double gradThresh = Global->getGradientThreshold(minimum);
-	if (checkGradient && gradNorm > gradThresh) {
+	//The gradient will generally not be near zero at a local minimum if there are equality constraints 
+	//or active inequality constraints:
+	if ( checkGradient && gradNorm > gradThresh && !(fc->state->numEqC || fc->inequality.array().sum()) ) {
 		if (verbose >= 1) {
 			mxLog("Some gradient entries are too large, norm %f", gradNorm);
 		}
