@@ -3521,6 +3521,19 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
+	int numFree = fc->calcNumFree();
+	//Calculating the WLS vcov doesn't take constraints into consideration, so if there are active
+	//constraints, it won't be valid:
+	if(fc->state->conListX.size()){
+		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
+		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
+		if(fc->state->numEqC){return;}
+		fc->inequality.resize(fc->state->numIneqC);
+		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numFree);
+		fc->myineqFun(true, 0, omxConstraint::LESS_THAN, false);
+		if(fc->inequality.array().sum()){return;}
+	}
+	
 
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
@@ -3591,7 +3604,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 			});
 	}
 
-	int numFree = fc->calcNumFree();
 	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
 	ParJacobianSense sense;
 	sense.attach(&exList, 0);
