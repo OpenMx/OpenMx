@@ -3527,11 +3527,13 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if(fc->state->conListX.size()){
 		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
 		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
-		if(fc->state->numEqC){return;}
 		fc->inequality.resize(fc->state->numIneqC);
 		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numFree);
 		fc->myineqFun(true, 0, omxConstraint::LESS_THAN, false);
-		if(fc->inequality.array().sum()){return;}
+		if(fc->state->numEqC || fc->inequality.array().sum()){
+			Rf_warning(
+				"due to active MxConstraints, the WLS standard errors and sampling covariance matrix may not be valid for statistical-inferential purposes");
+		}
 	}
 	
 
