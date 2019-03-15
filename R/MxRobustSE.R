@@ -152,8 +152,9 @@ imxRowGradients <- function(model, robustSE=FALSE){
 ##' groups themselves contain subgroups.  This function also does not 
 ##' correctly handle multilevel data.
 ##'
-##' @param model An OpenMx model object that has been run
-##' @param details logical. whether to return the full parameter covariance matrix
+##' @param model An OpenMx model object that has been run.
+##' @param details Logical. whether to return the full parameter
+##' covariance matrix.
 imxRobustSE <- function(model, details=FALSE){
 	if(is(model@expectation, "MxExpectationGREML")){
 		stop("robust standard errors cannot be calculated for a single-group model that uses GREML expectation")
