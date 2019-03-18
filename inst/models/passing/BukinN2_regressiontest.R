@@ -61,7 +61,8 @@ omxCheckCloseEnough(m2$output$fit, -124.7500, 5e-5)
 omxCheckTrue(m2$output$status$code %in% c(0,1))
 
 
-#All 3 optimizers appear robust to redundant INequality constraints:
+#All 3 optimizers appear robust to redundant INequality constraints, even with infeasible start values:
+startvals <- c(-4.9, 3.1)
 m3 <- mxModel(
 	"BukinN2",
 	plan,
