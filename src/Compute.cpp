@@ -33,6 +33,7 @@
 #include <Eigen/Cholesky>
 #include <Eigen/QR>
 #include <Eigen/CholmodSupport>
+#include <Eigen/Dense>
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
 #include "minicsv.h"
@@ -761,10 +762,31 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
 		Eigen::MatrixXd Q = qrj.householderQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
-		if(U.rows()==0 || U.cols()==0){return;}
+		if(U.rows()==0 || U.cols()==0){
+			Rf_warning(
+				"standard errors could not be calculated because no basis could be found for the nullspace of the constraint Jacobian");
+			return;
+		}
 		if(OMX_DEBUG){mxPrintMat("basis",U);}
 		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
-		MoorePenroseInverse(centr); //TODO: centr's inverse proper should exist unless something's wrong.
+		//centr should be symmetric, will almost always be invertible, may sometimes not be PD:
+		Eigen::LLT< Eigen::MatrixXd > cholCentr;
+		//Ff center is PD, we'd rather calculate its inverse via its Cholesky factorization:
+		cholCentr.compute(centr.selfadjointView<Eigen::Lower>());
+		if(cholCentr.info() != Eigen::Success){ //<--Will be true if centr is not PD.
+			Eigen::FullPivLU< Eigen::MatrixXd > luCentr(centr.selfadjointView<Eigen::Lower>());
+			if(luCentr.isInvertible()){
+				centr = luCentr.inverse();
+			}
+			else{
+				Rf_warning(
+					"constraint-adjusted standard errors could not be calculated because the coefficient matrix of the quadratic form was uninvertible");
+				return;
+			}
+		}
+		else{
+			centr = cholCentr.solve(Eigen::MatrixXd::Identity( centr.rows(), centr.cols() ));
+		}
 		vcov = U * centr * U.transpose();
 	}
 
