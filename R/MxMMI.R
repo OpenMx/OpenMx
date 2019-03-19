@@ -221,19 +221,19 @@ mxModelAverage <- function(
 				else{
 					currmodcovm <- try(vcov(currmod))
 					if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-				# 	if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
-				# 		currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
-				# 		dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
-				# 		covmAvailable <- TRUE
-				# 	}
-				# 	else{
-				# 		currmodcovm <- try(solve(currmod@output$hessian/2))
-				# 		if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-				# 	}
-				# 	if(imxHasConstraint(currmod) && covmAvailable){
-				# 		warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix and standard errors for model-average point estimates may not be valid"))
-				# 	}
-				# }
+					# if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
+					# 	currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
+					# 	dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
+					# 	covmAvailable <- TRUE
+					# }
+					# else{
+					# 	currmodcovm <- try(solve(currmod@output$hessian/2))
+					# 	if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
+					# }
+					# if(imxHasConstraint(currmod) && covmAvailable){
+					# 	warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix and standard errors for model-average point estimates may not be valid"))
+					# }
+				}
 			}
 			currmod <- mxModel(
 				currmod,
