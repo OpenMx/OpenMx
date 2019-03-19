@@ -352,6 +352,10 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 ##'
 ##' @param model model
 imxHasWLS <- function(model){
+	if(!is.null(model@output$fitUnits){
+		if(model@output$fitUnits=="r'Wr"){return(TRUE)}
+		else{return(FALSE)}
+	}
 	if(is.null(model@fitfunction)){return(FALSE)}
 	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
 	if(model@fitfunction@units=="r'Wr"){return(TRUE)}
