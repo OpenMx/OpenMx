@@ -700,11 +700,12 @@ vcov.MxModel <- function(object, ...) {
   fu <- object$output$fitUnits
   if (fu %in% c("-2lnL", "r'Wr")) {
 	  got <- NULL
-	  if (!is.null(object$output[['ihessian']])) {
-		  got <- 2 * object$output[['ihessian']]
-	  } else if (!is.null(object$output[['hessian']])) {
-		  got <- 2 * solve(object$output$hessian)
-	  }
+	  if(!is.null(object$output[["vcov"]])){got <- object$output[["vcov"]]}
+	#   if (!is.null(object$output[['ihessian']])) {
+	# 	  got <- 2 * object$output[['ihessian']]
+	#   } else if (!is.null(object$output[['hessian']])) {
+	# 	  got <- 2 * solve(object$output$hessian)
+	#   }
 	  if (is.null(got)) {
 		  stop(paste("Parameter variance covariance matrix is not available.",
 			     "Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))
