@@ -20,6 +20,9 @@
 #include <random>
 #include <fstream>
 #include <forward_list>
+#include <map>
+#include "genfile/bgen/View.hpp"
+#include "genfile/bgen/IndexQuery.hpp"
 
 #include "glue.h"
 #include "Compute.h"
@@ -2067,14 +2070,15 @@ class ComputeCheckpoint : public omxCompute {
 		double fit;
 		int inform;
 		Eigen::VectorXd stderrs;
-		Eigen::VectorXd extra;
+		Eigen::VectorXd algebraEnt;
+		std::vector< std::string > extra;
 	};
 
 	const char *path;
 	std::ofstream ofs;
 	bool toReturn;
 	std::vector<omxMatrix*> algebras;
-	int numExtra;
+	int numAlgebraEnt;
 	bool wroteHeader;
 	std::vector<std::string> colnames;
 	std::forward_list<snap> snaps;
@@ -2141,15 +2145,24 @@ class ComputeGenerateData : public omxCompute {
 
 class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
+	enum LoadMethod {
+		LoadCSV,
+		LoadBGEN
+	} loadMethod;
 	omxData *data;
 	std::vector< int > columns;
 	std::vector< int > colTypes;
 	std::string filePath;
+	std::string fileName;
 	bool useOriginalData;
 	std::vector<dataPtr> origData;
 	bool hasColNames, hasRowNames;
 	bool byrow;
 	int verbose;
+	bool checkpoint;
+	int cpIndex;
+
+	genfile::bgen::View::UniquePtr bgenView;
 
 	int loadCounter;
 	void loadByCol(FitContext *fc, int index);
@@ -4167,6 +4180,16 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
 	useOriginalData = Rf_asLogical(RoriginalData);
 
+	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
+	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
+	if (strEQ(methodName, "csv")) {
+		loadMethod = LoadCSV;
+	} else if (strEQ(methodName, "bgen")) {
+		loadMethod = LoadBGEN;
+	} else {
+		mxThrow("%s: unknown method '%s'", name, methodName);
+	}
+	
 	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
 	hasRowNames = Rf_asLogical(Rrownames);
 	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
@@ -4203,14 +4226,91 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	filePath = R_CHAR(STRING_ELT(Rpath, 0));
+	auto slashPos = filePath.find_last_of("/\\");
+	if (slashPos == std::string::npos) {
+		fileName = filePath;
+	} else {
+		fileName = filePath.substr(slashPos+1);
+	}
+
+	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
+	checkpoint = Rf_asLogical(Rcheckpoint);
+
+	if (checkpoint) {
+		auto &cp = Global->checkpointColnames;
+		cpIndex = cp.size();
+		std::string c1 = fileName + ":SNP";
+		cp.push_back(c1);
+		c1 = fileName + ":RSID";
+		cp.push_back(c1);
+		c1 = fileName + ":ch";
+		cp.push_back(c1);
+		c1 = fileName + ":pos";
+		cp.push_back(c1);
+		Global->checkpointValues.resize(cpIndex + 4);
+	}
 
 	loadCounter = 0;
 	stripeStart = -1;
 	stripeEnd = -1;
 }
 
+struct BgenXfer {
+	dataPtr dp;
+	std::vector<double> prob;
+	int row;
+	BgenXfer(dataPtr &_dp) : dp(_dp) {};
+	void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {}
+	void set_min_max_ploidy(genfile::bgen::uint32_t min_ploidy, genfile::bgen::uint32_t max_ploidy,
+				genfile::bgen::uint32_t min_entries, genfile::bgen::uint32_t max_entries)
+	{
+		row = 0;
+		if (min_ploidy != 2 || max_ploidy != 2 || min_entries != 3 || max_entries != 3) {
+			mxThrow("set_min_max_ploidy %u %u %u %u, not implemented",
+				min_ploidy, max_ploidy, min_entries, max_entries);
+		}
+	}
+	bool set_sample( std::size_t i ) { return true; }
+	void set_number_of_entries(std::size_t ploidy,
+				   std::size_t number_of_entries,
+				   genfile::OrderType order_type,
+				   genfile::ValueType value_type)
+	{
+		if( value_type != genfile::eProbability ) {
+			mxThrow("value_type != genfile::eProbability");
+		}
+		prob.resize(number_of_entries);
+	}
+	void set_value( genfile::bgen::uint32_t entry_i, double value ) {
+		prob[entry_i] = value;
+		if (entry_i == 2) {
+			double dosage = prob[1] * 1 + prob[2] * 2;
+			dp.realData[row++] = dosage;
+		}
+	}
+
+	void set_value( genfile::bgen::uint32_t entry_i, genfile::MissingValue) {
+		if (entry_i == 2) {
+			dp.realData[row++] = NA_REAL;
+		}
+	}
+};
+
 void ComputeLoadData::computeImpl(FitContext *fc)
 {
+	if (!stripeData.size()) {
+		stripeData.reserve(stripeSize * columns.size());
+		for (int sx=0; sx < stripeSize; ++sx) {
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+					stripeData.emplace_back(new double[data->rows]);
+				} else {
+					stripeData.emplace_back(new int[data->rows]);
+				}
+			}
+		}
+	}
+
 	std::vector<int> &clc = Global->computeLoopIndex;
 	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
 	int index = clc[clc.size()-1] - 1;  // innermost loop index
@@ -4220,10 +4320,56 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 			data->rawCols[ columns[cx] ].ptr = origData[cx];
 		}
 	} else {
-		if (!byrow) {
-			loadByCol(fc, index - useOriginalData);
+		if (loadMethod == LoadCSV) {
+			if (!byrow) {
+				loadByCol(fc, index - useOriginalData);
+			} else {
+				loadByRow(fc, index - useOriginalData);
+			}
+		} else if (loadMethod == LoadBGEN) {
+			// m_postheader_data WTF?
+			if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
+							 name, int(columns.size()));
+			if (bgenView.get() == 0) {
+				using namespace genfile::bgen ;
+				using namespace Rcpp ;
+				std::string bgen(filePath);
+				std::string bgenIndex = bgen + ".bgi";
+				bgenView = View::create( filePath ) ;
+				auto query = IndexQuery::create( bgenIndex ) ;
+				query->initialise();
+				bgenView->set_query( query ) ;
+				if (data->rows != int(bgenView->number_of_samples())) {
+					mxThrow("%s: %s has %d rows but %s has %d samples",
+						name, data->name, data->rows, filePath.c_str(),
+						int(bgenView->number_of_samples()));
+				}
+				auto number_of_variants = bgenView->number_of_variants();
+				if (index >= int(number_of_variants)) {
+					mxThrow("%s: only %d variants available in %s",
+						name, int(number_of_variants), filePath.c_str());
+				}
+			}
+
+			std::string SNPID, rsid, chromosome ;
+			genfile::bgen::uint32_t position ;
+			std::vector< std::string > alleles ;
+			bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
+			if (checkpoint) {
+				auto &cv = Global->checkpointValues;
+				cv[cpIndex] = SNPID;
+				cv[cpIndex+1] = rsid;
+				cv[cpIndex+2] = chromosome;
+				cv[cpIndex+3] = string_snprintf("%u", position);
+			}
+			BgenXfer xfer(stripeData[0]); // check type TODO
+			bgenView->read_genotype_data_block(xfer);
+			
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+			}
 		} else {
-			loadByRow(fc, index - useOriginalData);
+			mxThrow("%s: unknown load method %d", name, loadMethod);
 		}
 	}
 
@@ -4249,19 +4395,6 @@ ComputeLoadData::~ComputeLoadData()
 
 void ComputeLoadData::loadByCol(FitContext *fc, int index)
 {
-	if (!stripeData.size()) {
-		stripeData.reserve(stripeSize * columns.size());
-		for (int sx=0; sx < stripeSize; ++sx) {
-			for (int cx=0; cx < int(columns.size()); ++cx) {
-				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-					stripeData.emplace_back(new double[data->rows]);
-				} else {
-					stripeData.emplace_back(new int[data->rows]);
-				}
-			}
-		}
-	}
-
 	if (stripeStart == -1 ||
 	    index < stripeStart || index >= stripeEnd) {
 		bool backward = index < stripeStart;
@@ -4520,18 +4653,19 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 
-	numExtra = 0;
+	numAlgebraEnt = 0;
 	for (auto &mat : algebras) {
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				colnames.push_back(string_snprintf("%s[%d,%d]", mat->name(), 1+rx, 1+cx));
 			}
 		}
-		numExtra += mat->cols * mat->rows;
+		numAlgebraEnt += mat->cols * mat->rows;
 	}
 	// TODO: confidence intervals, hessian, constraint algebras
 	// what does Eric Schmidt include in per-voxel output?
 	// remove old checkpoint code?
+	numSnaps = 0;
 }
 
 void ComputeCheckpoint::computeImpl(FitContext *fc)
@@ -4567,23 +4701,26 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		}
 		s1.stderrs = fc->stderrs;
 	}
-	s1.extra.resize(numExtra);
+	s1.algebraEnt.resize(numAlgebraEnt);
 
 	{int xx=0;
 	for (auto &mat : algebras) {
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				EigenMatrixAdaptor eM(mat);
-				s1.extra[xx] = eM(rx, cx);
+				s1.algebraEnt[xx] = eM(rx, cx);
 				xx += 1;
 			}
 		}
 	}}
+	s1.extra = Global->checkpointValues;
 
 	if (ofs.is_open()) {
 		const int digits = std::numeric_limits<double>::digits10 + 1;
 		if (!wroteHeader) {
 			bool first = true;
+			auto &xcn = Global->checkpointColnames;
+			colnames.insert(colnames.end(), xcn.begin(), xcn.end());
 			for (auto &cn : colnames) {
 				if (first) { first=false; }
 				else       { ofs << '\t'; }
@@ -4639,9 +4776,10 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				}
 			}
 		}
-		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
-			ofs << '\t' << std::setprecision(digits) << s1.extra[x1];
+		for (int x1=0; x1 < int(s1.algebraEnt.size()); ++x1) {
+			ofs << '\t' << std::setprecision(digits) << s1.algebraEnt[x1];
 		}
+		for (auto &x1 : s1.extra) ofs << '\t' << x1;
 		ofs << '\n';
 		ofs.flush();
 	}
@@ -4742,12 +4880,19 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			}
 		}
 	}
-	for (int x1=0; x1 < numExtra; ++x1) {
+	for (int x1=0; x1 < numAlgebraEnt; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
-		for (auto &s1 : snaps) v[sx++] = s1.extra[x1];
+		for (auto &s1 : snaps) v[sx++] = s1.algebraEnt[x1];
+	}
+	auto &xcn = Global->checkpointColnames;
+	for (int x1=0; x1 < int(xcn.size()); ++x1) {
+		SEXP col = Rf_allocVector(STRSXP, numSnaps);
+		SET_VECTOR_ELT(log, curCol++, col);
+		int sx=0;
+		for (auto &s1 : snaps) SET_STRING_ELT(col, sx++, Rf_mkChar(s1.extra[x1].c_str()));
 	}
 
 	markAsDataFrame(log, numSnaps);

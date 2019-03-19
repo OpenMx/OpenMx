@@ -2134,12 +2134,15 @@ setClass(Class = "MxComputeLoadData",
 		 row.names = "logical",
 		 col.names = "logical",
 		 verbose = "integer",
-		 cacheSize = "integer"
+		 cacheSize = "integer",
+		 method = "character",
+		 checkpointMetadata = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
-		 row.names, col.names, byrow, verbose, cacheSize) {
+		 row.names, col.names, byrow, verbose, cacheSize, method,
+		 checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2152,6 +2155,8 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@col.names <- col.names
 		  .Object@verbose <- verbose
 		  .Object@cacheSize <- cacheSize
+		  .Object@method <- method
+		  .Object@checkpointMetadata <- checkpointMetadata
 		  .Object
 	  })
 
@@ -2191,7 +2196,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param column a character vector. The column names to replace.
 ##' @param method name of the conduit used to load the columns.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param path when method='CSV', the path to the file containing the data
+##' @param path when method='csv', the path to the file containing the data
 ##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
 ##' @param byrow logical. Whether the data columns are stored in rows (TRUE)
 ##' or columns (FALSE) on disk.
@@ -2200,23 +2205,25 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param verbose integer. Level of diagnostic output.
 ##' @param cacheSize integer. How many columns to cacheSize per
 ##' scan through the data.
+##' @param checkpointMetadata logical. Whether to add per index metadata to the checkpoint
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
-mxComputeLoadData <- function(dest, column, method='CSV', ..., path,
+mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=FALSE, col.names=FALSE, verbose=0L,
-			      cacheSize=100L) {
+			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadData does not accept values for the '...' argument")
 	}
-	if (method != 'CSV') stop("Only method='CSV' is implemented")
+	method <- match.arg(method)
 	if (cacheSize < 1L) stop("cacheSize must be a positive integer")
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
 		as.logical(row.names), as.logical(col.names), byrow,
-		as.integer(verbose), as.integer(cacheSize))
+		as.integer(verbose), as.integer(cacheSize), method,
+		as.logical(checkpointMetadata))
 }
 
 #----------------------------------------------------
@@ -2261,13 +2268,13 @@ setMethod("convertForBackend", signature("MxComputeLoadMatrix"),
 		.Object
 	})
 
-mxComputeLoadMatrix <- function(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
+mxComputeLoadMatrix <- function(dest, method='csv', ..., path, originalDataIsIndexOne=FALSE,
 				row.names=FALSE, col.names=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadMatrix does not accept values for the '...' argument")
 	}
-	if (method != 'CSV') stop("Only method='CSV' is implemented")
+	if (method != 'csv') stop("Only method='csv' is implemented")
 	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne,
 		as.logical(row.names), as.logical(col.names))
 }
