@@ -2804,7 +2804,8 @@ void omxData::invalidateColumnsCache(std::vector< int > &columns)
 	for (auto col : columns) {
 		auto it = o1.colMap.find(rawCols[col].name);
 		if (it == o1.colMap.end()) {
-			if (1||verbose >= 1) mxLog("%s: column '%s' is not an observed indicator",
+			if (verbose >= 1) mxLog("%s: column '%s' is not an observed indicator; "
+						"must re-estimate all observed stats",
 						name, rawCols[col].name);
 			fail = true; break;
 		}
