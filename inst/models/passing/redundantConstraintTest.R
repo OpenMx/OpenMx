@@ -19,7 +19,7 @@
 # thereby making it redundant. 
 
 library(OpenMx)
-library(psych); library(polycor)
+library(polycor)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # PREPARE DATA
