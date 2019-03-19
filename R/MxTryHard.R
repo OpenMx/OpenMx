@@ -49,7 +49,7 @@ mxTryHard <- function(
 		relevantOptions[[1]] <- "No"
 		relevantOptions[[2]] <- "No"
 		if(checkHess){
-			warning("argument 'checkHess' coerced to FALSE due to presence of MxConstraints")
+			message("argument 'checkHess' coerced to FALSE due to presence of MxConstraints")
 			checkHess <- FALSE
 		}
 	}
