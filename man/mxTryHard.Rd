@@ -9,7 +9,9 @@
 \title{Make multiple attempts to run a model}
 
 \description{
-Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} until the optimizer yields an acceptable solution or the maximum number of attempts is reached.  Between attempts, start values are perturbed by random numbers, and optimization-control parameters may be altered.  From among its attempts, the function returns the fitted, post-\code{\link{mxRun}()} model with the smallest fit-function value, and can print to the console the start values it used for that model.
+Makes multiple attempts to fit an MxModel object with \code{\link{mxRun}()} until the optimizer yields an acceptable solution or the maximum number of attempts (set by \code{extraTries}) is reached.  Between attempts, start values are perturbed by random numbers (see details). Optimization-control parameters may also be altered.  From among its attempts, the function returns the fitted model with the best fit (smallest fit-function value). If \code{bestInitsOutput} is TRUE, then in addition the start values used for the best-fitting model will be printed to the console.
+
+\emph{note}: If the model contains \code{\link{mxConstraint}}s, or if \code{\link{mxFitFunctionWLS}} is being used, the Hessian cannot be checked, and so \code{checkHess} will be coerced to FALSE.
 }
 
 \usage{
