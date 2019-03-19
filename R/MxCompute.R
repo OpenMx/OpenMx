@@ -1807,11 +1807,21 @@ setMethod("initialize", "MxComputeStandardError",
 ##' When the fit is in -2 log likelihood units, the SEs are derived
 ##' from the diagonal of the Hessian or inverse Hessian. The Hessian
 ##' (in some form) must already be available.
+##' 
+##' If there are active MxConstraints and the fit is in -2logL units,
+##' the SEs are derived from the Hessian and the Jacobian of the 
+##' constraint functions (see references).
 ##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @aliases
 ##' MxComputeStandardError-class
+##' @references
+##' Moore T & Sadler B.  (2006).  \emph{Maximum-Likelihood Estimation and 
+##'      Scoring Under Parametric Constraints}.  Army Research Laboratory 
+##'      report ARL-TR-3805.
+##' Schoenberg R.  (1996).  \emph{Constrained Maximum Likelihood}.
+##'      Maple Valley, Wa: Aptech Systems, Inc.
 
 mxComputeStandardError <- function(freeSet=NA_character_, fitfunction='fitfunction') {
 	new("MxComputeStandardError", freeSet, fitfunction)

@@ -46,7 +46,11 @@ struct omxWLSFitFunction : omxFitFunction {
 	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope, omxMatrix *thresholdMat,
 				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
 	void prepData();
-	virtual void invalidateCache() { prepData(); }
+	virtual void invalidateCache()
+	{
+		omxFreeMatrix(observedFlattened);
+		observedFlattened = 0;
+	}
 };
 
 void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope,
@@ -61,8 +65,8 @@ omxWLSFitFunction::~omxWLSFitFunction()
 {
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
 	
+	invalidateCache();
 	omxWLSFitFunction* owo = this;
-	omxFreeMatrix(owo->observedFlattened);
 	omxFreeMatrix(owo->expectedFlattened);
 	omxFreeMatrix(owo->B);
 	omxFreeMatrix(owo->P);
@@ -73,7 +77,11 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 {
 	auto *oo = this;
 	auto *owo = this;
-	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
+	if ((want & FF_COMPUTE_PREOPTIMIZE) && !observedFlattened) {
+		prepData();
+		return;
+	}
 	
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.
@@ -86,7 +94,8 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
 	auto &eThresh   = oo->expectation->getThresholdInfo();
-	oFlat		= owo->observedFlattened;
+	if (!observedFlattened) return;
+	oFlat		= observedFlattened;
 	eFlat		= owo->expectedFlattened;
 	int onei	= 1;
 	
@@ -211,6 +220,7 @@ void omxWLSFitFunction::prepData()
 	
 		dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(),
 				      exoPred, type, continuousType, fullWeight);
+		if (isErrorRaised()) return;
 	}
 
 	auto &obsStat = dataMat->getSingleObsSummaryStats();
@@ -229,16 +239,17 @@ void omxWLSFitFunction::prepData()
 	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
-	if (eThresh.size() && !means) {
-		omxRaiseError("Means are required when the data include ordinal measurements");
-		return;
-	}
-
 	// Error Checking: Observed/Expected means must agree.  
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
 		if(newObj->expectedMeans != NULL) {
-			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you  wish to model the means, you must provide observed means.\n");
+			if (eThresh.size() == 0) {
+				omxRaiseError("Observed means not detected, but expected means specified.\n"
+					      "The model has no continuous variables. "
+					      "Do you did forget allContinuousMethod='marginals'?");
+			} else {
+				omxRaiseError("Means are required when the data include ordinal measurements");
+			}
 			return;
 		} else {
 			omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
@@ -290,9 +301,10 @@ void omxWLSFitFunction::prepData()
 		}
 	}
 	
+	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
 	flattenDataToVector(cov, means, obsStat.slopeMat, obsThresholdsMat,
-			    oThresh, newObj->observedFlattened);
-	if(OMX_DEBUG) {omxPrintMatrix(newObj->observedFlattened, "....WLS Observed Vector: "); }
+			    oThresh, observedFlattened);
+	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
 	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans,
 			    newObj->expectedSlope, oo->expectation->thresholdsMat,
 				eThresh, newObj->expectedFlattened);
@@ -332,10 +344,8 @@ void omxWLSFitFunction::init()
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
 	
 	/* Temporary storage for calculation */
-	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
+	observedFlattened = 0;
 	expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);
 	P = omxInitMatrix(1, vectorSize, TRUE, currentState);
 	B = omxInitMatrix(vectorSize, 1, TRUE, currentState);
-
-	prepData();
 }

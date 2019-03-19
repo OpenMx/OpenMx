@@ -48,6 +48,15 @@ void FitMultigroup::compute(int want, FitContext *fc)
 			if (want & FF_COMPUTE_MAXABSCHANGE) {
 				mac = std::max(fc->mac, mac);
 			}
+			if (want & FF_COMPUTE_PREOPTIMIZE) {
+				if (units == FIT_UNITS_UNINITIALIZED) {
+					units = f1->fitFunction->units;
+				} else if (units != f1->fitFunction->units) {
+					mxThrow("%s: cannot combine units %s and %s (from %s)",
+						matrix->name(), fitUnitsToName(units),
+						fitUnitsToName(f1->fitFunction->units), f1->name());
+				}
+			}
 		} else {
 			omxRecompute(f1, fc);
 		}
@@ -119,13 +128,6 @@ void FitMultigroup::init()
 			omxCompleteFitFunction(mat);
 			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
-			if (oo->units == FIT_UNITS_UNINITIALIZED) {
-				oo->units = mat->fitFunction->units;
-			} else if (oo->units != mat->fitFunction->units) {
-				mxThrow("%s: cannot combine units %s and %s (from %s)",
-					 oo->matrix->name(),
-					 fitUnitsToName(oo->units), fitUnitsToName(mat->fitFunction->units), mat->name());
-			}
 		} else {
 			oo->gradientAvailable = FALSE;
 			oo->hessianAvailable = FALSE;

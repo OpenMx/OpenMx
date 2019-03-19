@@ -1199,6 +1199,10 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 	Emean /= totalWeight;
 	Ecov -= totalWeight * Emean * Emean.transpose();
 	Ecov /= totalWeight - 1;
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		if (Ecov(cx,cx) > 0.) continue;
+		mxThrow("%s: '%s' has no observed variance", name, dc[cx]);
+	}
 
 	data.rowwise() -= Emean.array().transpose();
 	Eigen::MatrixXd Vmat = Ecov * (totalWeight-1.) / totalWeight;
@@ -2338,6 +2342,9 @@ struct sampleStats {
 			pv.theta.segment(0, olsr.beta.size()) = olsr.beta;
 			pv.theta[olsr.beta.size()] = olsr.var;
 			Ecov(yy,yy) = olsr.var;
+			if (olsr.var == 0.0) {
+				omxRaiseErrorf("%s: '%s' has no observed variance", data.name, dc[yy]);
+			}
 			Emean[yy] = pv.theta[0];
 			copyScores(o1.SC_TH, pv.thrOffset, olsr.scores.array(), 0);
 			if (pred.cols()) {

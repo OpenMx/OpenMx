@@ -33,6 +33,7 @@
 #include <Eigen/Cholesky>
 #include <Eigen/QR>
 #include <Eigen/CholmodSupport>
+#include <Eigen/Dense>
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
 #include "minicsv.h"
@@ -171,6 +172,7 @@ void FitContext::refreshDenseHess()
 
 	hess.triangularView<Eigen::Upper>().setZero();
 
+	// if allBlocks.size() == 0 then what? TODO
 	for (size_t bx=0; bx < allBlocks.size(); ++bx) {
 		HessianBlock *hb = allBlocks[bx];
 
@@ -747,6 +749,10 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 {
 	int numFree = calcNumFree();
 	stderrs.resize(numFree);
+	if (vcov.rows() != numFree || vcov.cols() != numFree) {
+		mxThrow("FitContext::calcStderrs vcov size wrong %d vs %d",
+			vcov.rows(), numFree);
+	}
 	const double scale = fabs(Global->llScale);
 	
 	if(constraintJacobian.rows()){
@@ -756,37 +762,41 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
 		Eigen::MatrixXd Q = qrj.householderQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
-		if(U.rows()==0 || U.cols()==0){return;}
+		if(U.rows()==0 || U.cols()==0){
+			Rf_warning(
+				"standard errors could not be calculated because no basis could be found for the nullspace of the constraint Jacobian");
+			return;
+		}
 		if(OMX_DEBUG){mxPrintMat("basis",U);}
 		Eigen::MatrixXd centr = U.transpose() * hesstmp * U;
-		MoorePenroseInverse(centr); //TODO: centr's inverse proper should exist unless something's wrong.
+		//centr should be symmetric, will almost always be invertible, may sometimes not be PD:
+		Eigen::LLT< Eigen::MatrixXd > cholCentr;
+		//Ff center is PD, we'd rather calculate its inverse via its Cholesky factorization:
+		cholCentr.compute(centr.selfadjointView<Eigen::Lower>());
+		if(cholCentr.info() != Eigen::Success){ //<--Will be true if centr is not PD.
+			Eigen::FullPivLU< Eigen::MatrixXd > luCentr(centr.selfadjointView<Eigen::Lower>());
+			if(luCentr.isInvertible()){
+				centr = luCentr.inverse();
+			}
+			else{
+				Rf_warning(
+					"constraint-adjusted standard errors could not be calculated because the coefficient matrix of the quadratic form was uninvertible");
+				return;
+			}
+		}
+		else{
+			centr = cholCentr.solve(Eigen::MatrixXd::Identity( centr.rows(), centr.cols() ));
+		}
 		vcov = U * centr * U.transpose();
-		
-		for(int i = 0; i < numFree; i++) {
-			double got = vcov(i,i);
-			if (got <= 0) {
-				stderrs[i] = NA_REAL;
-				continue;
-			}
-			stderrs[i] = sqrt(got);
+	}
+
+	for(int i = 0; i < numFree; i++) {
+		double got = vcov(i,i);
+		if (got <= 0) {
+			stderrs[i] = NA_REAL;
+			continue;
 		}
-		
-	} else{
-		vcov.resize(numFree, numFree);
-		Eigen::VectorXd ihd(ihessDiag());
-		
-		// This function calculates the standard errors from the Hessian matrix
-		// sqrt(scale * diag(solve(hessian)))
-		
-		for(int i = 0; i < numFree; i++) {
-			double got = ihd[i];
-			if (got <= 0) {
-				stderrs[i] = NA_REAL;
-				continue;
-			}
-			stderrs[i] = sqrt(scale * got);
-		}
-		copyDenseIHess(vcov.data());
+		stderrs[i] = sqrt(got);
 	}
 }
 
@@ -3519,8 +3529,13 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
-	if (fc->fitUnits == FIT_UNITS_MINUS2LL &&
-	    fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+	if (fc->fitUnits == FIT_UNITS_UNINITIALIZED) return;
+	if (fc->fitUnits == FIT_UNITS_MINUS2LL) {
+		if (!fc->vcov.size()) {
+			const double Scale = fabs(Global->llScale);
+			fc->refreshDenseIHess();
+			fc->vcov = Scale * fc->ihess;
+		}
 		fc->calcStderrs();
 		return;
 	}
@@ -3528,6 +3543,21 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
+	int numFree = fc->calcNumFree();
+	//Calculating the WLS vcov doesn't take constraints into consideration, so if there are active
+	//constraints, it won't be valid:
+	if(fc->state->conListX.size()){
+		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
+		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
+		fc->inequality.resize(fc->state->numIneqC);
+		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numFree);
+		fc->myineqFun(true, 0, omxConstraint::LESS_THAN, false);
+		if(fc->state->numEqC || fc->inequality.array().sum()){
+			Rf_warning(
+				"due to active MxConstraints, the WLS standard errors and sampling covariance matrix may not be valid for statistical-inferential purposes");
+		}
+	}
+	
 
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
@@ -3598,7 +3628,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 			});
 	}
 
-	int numFree = fc->calcNumFree();
 	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
 	ParJacobianSense sense;
 	sense.attach(&exList, 0);
@@ -3624,12 +3653,8 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd dvd = sense.result.transpose() * Vmat * sense.result;
 	if (InvertSymmetricIndef(dvd, 'L') > 0) return;
 
-	const double scale = fabs(Global->llScale);
-	double *ihess = fc->getDenseIHessUninitialized();
-	Eigen::Map< Eigen::MatrixXd > Eh(ihess, numFree, numFree);
-	Eh = (1.0/scale) * dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
+	fc->vcov = dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
 		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
-	fc->wanted |= FF_COMPUTE_IHESSIAN;
 	fc->calcStderrs();
 
 	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
@@ -3649,40 +3674,42 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+	int numFree=0;
+	SEXP parNames=0, dimnames=0;
 
-	if (fc->stderrs.size()) {
-		int numFree = fc->calcNumFree();
+	if (fc->vcov.size() || fc->stderrs.size()) {
+		numFree = fc->calcNumFree();
 		if (numFree != fc->stderrs.size()) {
 			mxThrow("%s: numFree != fc->stderrs.size() %d != %d",
 				name, numFree, fc->stderrs.size());
 		}
 
-		SEXP parNames = Rf_allocVector(STRSXP, numFree);
+		parNames = Rf_allocVector(STRSXP, numFree);
 		Rf_protect(parNames);
 		for (int vx=0, px=0; vx < int(fc->numParam) && px < numFree; ++vx) {
 			if (fc->profiledOut[vx]) continue;
 			SET_STRING_ELT(parNames, px++, Rf_mkChar(varGroup->vars[vx]->name));
 		}
 
-		SEXP dimnames = Rf_allocVector(VECSXP, 2);
+		dimnames = Rf_allocVector(VECSXP, 2);
 		Rf_protect(dimnames);
 		SET_VECTOR_ELT(dimnames, 0, parNames);
+	}
 
+	if (fc->vcov.size()) {
+		SEXP Vcov;
+		Rf_protect(Vcov = Rf_allocMatrix(REALSXP, fc->vcov.rows(), fc->vcov.cols()));
+		memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * fc->vcov.rows() * fc->vcov.cols());
+		Rf_setAttrib(Vcov, R_DimNamesSymbol, dimnames);
+		out->add("vcov", Vcov);
+	}
+
+	if (fc->stderrs.size()) {
 		SEXP stdErrors;
 		Rf_protect(stdErrors = Rf_allocMatrix(REALSXP, numFree, 1));
 		memcpy(REAL(stdErrors), fc->stderrs.data(), sizeof(double) * numFree);
 		Rf_setAttrib(stdErrors, R_DimNamesSymbol, dimnames);
 		out->add("standardErrors", stdErrors);
-		
-		//SET_VECTOR_ELT(dimnames, 1, parNames);
-		if(fc->vcov.rows() && fc->vcov.cols()){
-			SEXP Vcov;
-			Rf_protect(Vcov = Rf_allocMatrix(REALSXP, fc->vcov.rows(), fc->vcov.cols()));
-			memcpy(REAL(Vcov), fc->vcov.data(), sizeof(double) * fc->vcov.rows() * fc->vcov.cols());
-			Rf_setAttrib(Vcov, R_DimNamesSymbol, dimnames);
-			out->add("vcov", Vcov);
-		}
 	}
 
 	if (wlsStats) {
@@ -4602,8 +4629,14 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			}
 		}
 		if (inclSEs) {
-			for (int x1=0; x1 < int(s1.est.size()); ++x1) {
-				ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
+			if (s1.stderrs.size()) {
+				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
+				}
+			} else {
+				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << NA_REAL;
+				}
 			}
 		}
 		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
@@ -4700,7 +4733,13 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = REAL(col);
 			int sx=0;
-			for (auto &s1 : snaps) v[sx++] = s1.stderrs[x1];
+			for (auto &s1 : snaps) {
+				if (s1.stderrs.size()) {
+					v[sx++] = s1.stderrs[x1];
+				} else {
+					v[sx++] = NA_REAL;
+				}
+			}
 		}
 	}
 	for (int x1=0; x1 < numExtra; ++x1) {

@@ -516,6 +516,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
         default: mxThrow("Optimizer %d is not available", engine);
 	}
 
+	if (isErrorRaised()) return;
+
 	if (!fc->insideFeasibleSet()) {
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 	} else {
@@ -527,8 +529,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		mxLog("%s: engine %s done, iter=%d inform=%d",
 		      name, engineName, fc->getLocalComputeCount() - beforeEval, fc->getInform());
 	}
-
-	if (isErrorRaised()) return;
 
 	// Optimizers can terminate with inconsistent fit and parameters
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);

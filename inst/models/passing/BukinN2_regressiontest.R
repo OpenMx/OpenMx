@@ -59,3 +59,27 @@ m2$output$gradient
 omxCheckCloseEnough(coef(m2), c(-15,0), 0.1)
 omxCheckCloseEnough(m2$output$fit, -124.7500, 5e-5)
 omxCheckTrue(m2$output$status$code %in% c(0,1))
+
+
+#All 3 optimizers appear robust to redundant INequality constraints, even with infeasible start values:
+startvals <- c(-4.9, 3.1)
+m3 <- mxModel(
+	"BukinN2",
+	plan,
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=startvals[1],labels="x1",name="X1"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=startvals[2],labels="x2",name="X2"),
+	mxConstraint(X1 > -15, name="l1"),
+	mxConstraint(2*X1 > -30, name="redundant"),
+	mxConstraint(X1 < -5, name="u1"),
+	mxConstraint(X2 > -3, name="l2"),
+	mxConstraint(X2 < 3, name="u2"),
+	mxAlgebra( 100*( (X2^2) - 0.01*(X1^2) + 1) + 0.01*(X1+10)^2,
+						 name="BukinN2Func"),
+	#Interestingly, given an analytic gradient to NPSOL and SLSQP makes them FAIL to find the correct solution...
+	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","X2"))),
+	mxFitFunctionAlgebra(algebra="BukinN2Func")#,gradient="grad")
+)
+m3 <- mxRun(m3)
+summary(m3)
+omxCheckCloseEnough(coef(m3), c(-15,0), 0.1)
+omxCheckCloseEnough(m3$output$fit, -124.7500, 5e-5)
