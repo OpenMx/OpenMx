@@ -93,7 +93,9 @@ namespace db {
 
 extern "C" {
 	void sqlite3_trace_callback( void* udp, const char* sql ) {
+#if DEBUG
 		std::cerr << "SQLite3 trace: SQL = \"" << sql << "\".\n" ;
+#endif
 	}
 	
 	int sqlite3_busy_callback( void*, int number_of_tries ) {
@@ -216,7 +218,9 @@ namespace db {
 				// each attempt takes ~0.1s anyway
 				// We wait an additional 0.1s so that each attempt takes 0.2s in total.
 				if( ( count * 0.2 ) > max_seconds_to_wait ) {
+#if DEBUG
 					std::cerr << "Open transaction: failure count=" << count << " (~" << count*0.2 << "s).  Bailing out.\n" ;
+#endif
 					std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) ) ;
 					throw TransactionError( "SQLite3Connection::open_transaction()", get_spec(), e.error_code(), e.sql() ) ;
 				}

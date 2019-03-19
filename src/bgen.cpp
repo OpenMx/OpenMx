@@ -158,8 +158,8 @@ namespace genfile {
 		namespace impl {
 			void check_for_two_alleles( uint16_t numberOfAlleles ) {
 				if( numberOfAlleles != 2 ) {
-					std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
-					assert(0) ;
+					//std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
+					//assert(0) ;
 				}
 			}
 		
