@@ -258,6 +258,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	}
 	
 	feasTol = Global->feasibilityTolerance;
+	checkRedundantEqualities = true;
 }
 
 
@@ -543,6 +544,30 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	equality.resize(numEqC);
 	inequality.resize(numIneqC);
 	
+	fc->equality.resize(numEqC);
+	fc->checkForAnalyticJacobians();
+	
+	//Check for redundant equality constraints, and warn if found:
+	if(numEqC > 1 && NMobj->checkRedundantEqualities){
+		NldrMd_equality_functional eqf(this, fc);
+		Eigen::MatrixXd ej(numEqC, numFree);
+		eqf(est, equality);
+		fd_jacobian<true>(
+			GradientAlgorithm_Central, 4, 1.0e-7,
+			eqf, equality, est, ej);
+		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj;
+		qrj.setThreshold(Eigen::Default);
+		qrj.compute(ej.transpose());
+		if(qrj.rank() < numEqC){
+			Rf_warning(
+				"counted %d equality constraints, but equality-constraint Jacobian is rank %d; " 
+				"Nelder-Mead will not work correctly unless equality constraints are linearly independent "
+				"(this warning may be spurious if there are non-smooth equality constraints)", numEqC, qrj.rank()
+			);
+			NMobj->checkRedundantEqualities = false;
+		}
+	}
+	
 	if(numEqC + numIneqC || NMobj->eqConstraintMthd==3){
 		subsidiarygoc.setEngineName("SLSQP");
 		subsidiarygoc.ControlTolerance = 2 * Global->optimalityTolerance;
@@ -560,10 +585,6 @@ void NelderMeadOptimizerContext::copyParamsFromFitContext(double *ocpars)
 	fc->copyEstToOptimizer(vec);
 }
 
-void NelderMeadOptimizerContext::copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2)
-{
-	fc2->setEstFromOptimizer(x);
-}
 
 //----------------------------------------------------------------------
 

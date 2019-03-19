@@ -44,6 +44,7 @@ public:
 	double feasTol;
 	double backtrackCtrl1;
 	int backtrackCtrl2;
+	bool checkRedundantEqualities;
 
 	Eigen::MatrixXd verticesOut;
 	Eigen::VectorXd fvalsOut;
@@ -72,8 +73,11 @@ public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);
 	void countConstraintsAndSetupBounds();
 	void copyParamsFromFitContext(double *ocpars);
-	void copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2);
-
+	
+	template <typename T1>
+	void copyParamsFromOptimizer(Eigen::MatrixBase<T1> &x, FitContext* fc2){
+		fc2->setEstFromOptimizer(x);
+	}
 	
 	omxComputeNM* NMobj;
 	const int numFree;
@@ -142,8 +146,30 @@ public:
 	GradientOptimizerContext subsidiarygoc;
 	void *extraData;
 	int gdfsIter;
-	
 };
 
 double nmgdfso(unsigned n, const double *x, double *grad, void *f_data);
 void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt);
+
+struct NldrMd_equality_functional {
+	NelderMeadOptimizerContext* nmoc;
+	FitContext* fc;
+	
+	NldrMd_equality_functional(NelderMeadOptimizerContext* _nmoc, FitContext* _fc) : nmoc(_nmoc), fc(_fc) {};
+	
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+		nmoc->copyParamsFromOptimizer(x, fc);
+		fc->solEqBFun(false, nmoc->verbose);
+		result = fc->equality;
+	}
+	
+	template <typename T1, typename T2, typename T3>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+		nmoc->copyParamsFromOptimizer(x, fc);
+		fc->analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
+		fc->solEqBFun(true, nmoc->verbose);
+		result = fc->equality;
+		jacobian = fc->analyticEqJacTmp;
+	}
+};
