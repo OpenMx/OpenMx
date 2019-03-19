@@ -4236,7 +4236,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
 	checkpoint = Rf_asLogical(Rcheckpoint);
 
-	if (checkpoint) {
+	if (loadMethod == LoadBGEN && checkpoint) {
 		auto &cp = Global->checkpointColnames;
 		cpIndex = cp.size();
 		std::string c1 = fileName + ":SNP";
@@ -4792,6 +4792,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 
 void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
+	const bool debug = false;
 	if (ofs.is_open()) {
 		ofs.close();
 	}
@@ -4805,6 +4806,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	if (inclCounters) {
 		{
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (evaluations)", curCol, colnames[curCol].c_str());
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
@@ -4812,6 +4814,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		}
 		{
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (iterations)", curCol, colnames[curCol].c_str());
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
@@ -4825,6 +4828,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		SET_STRING_ELT(POSIXct, 1, Rf_mkChar("POSIXt"));
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
 		Rf_setAttrib(col, R_ClassSymbol, POSIXct);
+		if (debug) mxLog("log[%d] = %s (timestamp)", curCol, colnames[curCol].c_str());
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
@@ -4834,6 +4838,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto &clc = snaps.front().computeLoopIndex;
 		for (int lx=0; lx < int(clc.size()); ++lx) {
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (loop index %d)", curCol, colnames[curCol].c_str(), lx);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
@@ -4844,6 +4849,8 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto numEst = int(snaps.front().est.size());
 		for (int x1=0; x1 < numEst; ++x1) {
 			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (parameter %d/%d)", curCol, colnames[curCol].c_str(),
+			      x1, numEst);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = REAL(col);
 			int sx=0;
@@ -4852,6 +4859,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	}
 	if (inclFit) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		if (debug) mxLog("log[%d] = %s (fit)", curCol, colnames[curCol].c_str());
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
@@ -4859,6 +4867,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	}
 	if (inclStatus) {
 		SEXP col = allocInformVector(numSnaps);
+		if (debug) mxLog("log[%d] = %s (inform)", curCol, colnames[curCol].c_str());
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = INTEGER(col);
 		int sx=0;
@@ -4868,6 +4877,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto numEst = int(snaps.front().est.size());
 		for (int x1=0; x1 < numEst; ++x1) {
 			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (SE %d/%d)", curCol, colnames[curCol].c_str(), x1, numEst);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = REAL(col);
 			int sx=0;
@@ -4882,6 +4892,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	}
 	for (int x1=0; x1 < numAlgebraEnt; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		if (debug) mxLog("log[%d] = %s (alge %d/%d)", curCol, colnames[curCol].c_str(), x1, numAlgebraEnt);
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
@@ -4890,6 +4901,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	auto &xcn = Global->checkpointColnames;
 	for (int x1=0; x1 < int(xcn.size()); ++x1) {
 		SEXP col = Rf_allocVector(STRSXP, numSnaps);
+		if (debug) mxLog("log[%d] = %s (extra %d/%d)", curCol, colnames[curCol].c_str(), x1, int(xcn.size()));
 		SET_VECTOR_ELT(log, curCol++, col);
 		int sx=0;
 		for (auto &s1 : snaps) SET_STRING_ELT(col, sx++, Rf_mkChar(s1.extra[x1].c_str()));

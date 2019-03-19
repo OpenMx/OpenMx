@@ -2176,6 +2176,8 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 
 ##' Load columns into an MxData object
 ##'
+##' THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
+##'
 ##' The purpose of this compute step is to help quickly perform many
 ##' similar analyses. For example, if we are given a sample of people
 ##' with a few million SNPs (single-nucleotide polymorphism) per
@@ -2196,7 +2198,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param column a character vector. The column names to replace.
 ##' @param method name of the conduit used to load the columns.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param path when method='csv', the path to the file containing the data
+##' @param path the path to the file containing the data
 ##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
 ##' @param byrow logical. Whether the data columns are stored in rows (TRUE)
 ##' or columns (FALSE) on disk.
