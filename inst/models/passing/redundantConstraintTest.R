@@ -19,7 +19,7 @@
 # thereby making it redundant. 
 
 library(OpenMx)
-library(polycor)
+#library(polycor)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # PREPARE DATA
@@ -27,7 +27,6 @@ library(polycor)
 # Load Data
 data(twinData)
 dim(twinData)
-describe(twinData[,1:12], skew=F)
 
 # Create Ordinal Variables
 nth       <- 3                         # number of thresholds
@@ -51,8 +50,6 @@ dzDataF   <- mxFactor( x=dzData, levels=c(0:nth) )
 # Generate Descriptive Statistics
 sapply(mzData,table)
 sapply(dzData,table)
-hetcor(mzData)$cor
-hetcor(dzData)$cor
 
 # Set Starting Values
 svLTh     <- -1.5                      # start value for first threshold
