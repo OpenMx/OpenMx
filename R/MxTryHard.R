@@ -46,8 +46,7 @@ mxTryHard <- function(
 	if("Standard Errors" %in%  names(model@options)){relevantOptions[[2]] <- model@options$"Standard Errors"}
 	if("Gradient algorithm" %in%  names(model@options)){relevantOptions[[4]] <- model@options$"Gradient algorithm"}
 	if(!lackOfConstraints){
-		relevantOptions[[1]] <- "No"
-		relevantOptions[[2]] <- "No"
+		if(imxHasWLS(model)){relevantOptions[[2]] <- "No"}
 		if(checkHess){
 			message("argument 'checkHess' coerced to FALSE due to presence of MxConstraints")
 			checkHess <- FALSE
