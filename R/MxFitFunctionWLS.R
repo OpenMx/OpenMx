@@ -358,7 +358,7 @@ imxHasWLS <- function(model){
 	}
 	if(is.null(model@fitfunction)){return(FALSE)}
 	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
-	if(model@fitfunction@units=="r'Wr"){return(TRUE)}
+	if(length(model@fitfunction$units) && model@fitfunction$units=="r'Wr"){return(TRUE)}
 	if( is(model@fitfunction, "MXFitFunctionMultigroup") ){
 		#Just in case the user provided 'modelName.fitfunction':
 		submodnames <- unlist(lapply(strsplit(model@fitfunction@groups,"[.]"),function(x){x[1]}))
