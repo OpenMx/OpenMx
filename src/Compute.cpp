@@ -1930,7 +1930,6 @@ class ComputeStandardError : public omxCompute {
 	int df;
 	double x2m, x2mv;
 	double madj, mvadj, dstar;
-	Eigen::MatrixXd vcov;
 
 	struct visitEx {
 		ComputeStandardError &top;
@@ -3543,11 +3542,16 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
 	if (fc->fitUnits == FIT_UNITS_UNINITIALIZED) return;
+	int numFree = fc->calcNumFree();
 	if (fc->fitUnits == FIT_UNITS_MINUS2LL) {
 		if (!fc->vcov.size()) {
+			fc->vcov.resize(numFree, numFree);
 			const double Scale = fabs(Global->llScale);
 			fc->refreshDenseIHess();
-			fc->vcov = Scale * fc->ihess;
+			//fc->ihess is not actually the inverted Hessian,
+			//but there's a method for constructing the inverted Hessian from it:
+			fc->copyDenseIHess(fc->vcov.data());
+			fc->vcov = Scale * fc->vcov;
 		}
 		fc->calcStderrs();
 		return;
@@ -3556,7 +3560,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
-	int numFree = fc->calcNumFree();
 	//Calculating the WLS vcov doesn't take constraints into consideration, so if there are active
 	//constraints, it won't be valid:
 	if(fc->state->conListX.size()){
