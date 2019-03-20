@@ -2085,6 +2085,8 @@ class ComputeCheckpoint : public omxCompute {
 	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
 	bool inclSEs;
 	bool badSEWarning;
+	bool firstTime;
+	size_t numExtraCols;
 
  public:
 	virtual bool resetInform() { return false; };
@@ -4582,6 +4584,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rheader(R_do_slot(rObj, Rf_install("header")));
 	wroteHeader = !Rf_asLogical(Rheader);
 
+	firstTime = true;
+	numExtraCols = 0;
+
 	path = 0;
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
 	if (Rf_length(Rpath) == 1) {
@@ -4716,14 +4721,19 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			}
 		}
 	}}
+
+	if (firstTime) {
+		auto &xcn = Global->checkpointColnames;
+		numExtraCols = xcn.size();
+		colnames.insert(colnames.end(), xcn.begin(), xcn.end());
+		firstTime = false;
+	}
 	s1.extra = Global->checkpointValues;
 
 	if (ofs.is_open()) {
 		const int digits = std::numeric_limits<double>::digits10 + 1;
 		if (!wroteHeader) {
 			bool first = true;
-			auto &xcn = Global->checkpointColnames;
-			colnames.insert(colnames.end(), xcn.begin(), xcn.end());
 			for (auto &cn : colnames) {
 				if (first) { first=false; }
 				else       { ofs << '\t'; }
@@ -4902,6 +4912,10 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		for (auto &s1 : snaps) v[sx++] = s1.algebraEnt[x1];
 	}
 	auto &xcn = Global->checkpointColnames;
+	if (xcn.size() != numExtraCols) {
+		mxThrow("%s: xcn.size() != numExtraCols; %d != %d",
+			name, int(xcn.size()), int(numExtraCols));
+	}
 	for (int x1=0; x1 < int(xcn.size()); ++x1) {
 		SEXP col = Rf_allocVector(STRSXP, numSnaps);
 		if (debug) mxLog("log[%d] = %s (extra %d/%d)", curCol, colnames[curCol].c_str(), x1, int(xcn.size()));
