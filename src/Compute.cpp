@@ -2157,7 +2157,8 @@ class ComputeLoadData : public omxCompute {
 	std::string fileName;
 	bool useOriginalData;
 	std::vector<dataPtr> origData;
-	bool hasColNames, hasRowNames;
+	int rowNames, colNames;
+	int skipRows, skipCols;
 	bool byrow;
 	int verbose;
 	bool checkpoint;
@@ -2167,12 +2168,12 @@ class ComputeLoadData : public omxCompute {
 
 	int loadCounter;
 	void loadByCol(FitContext *fc, int index);
+	void loadByRow(FitContext *fc, int index);
+	void loadBgenRow(FitContext *fc, int index);
 	int stripeSize;
 	int stripeStart;  // 0 is the first column
 	int stripeEnd;
 	std::vector<dataPtr> stripeData; // stripeSize * columns.size()
-
-	void loadByRow(FitContext *fc, int index);
 
 	struct ColumnInvalidator : StateInvalidator {
 		typedef StateInvalidator super;
@@ -2183,6 +2184,10 @@ class ComputeLoadData : public omxCompute {
 			super(_st), data(_data), columns(_columns) {};
 		virtual void doData() { data->invalidateColumnsCache(columns); };
 	};
+
+	std::unique_ptr< mini::csv::ifstream > icsv;
+	int curRecord;
+	void mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out);
 
  public:
 	virtual ~ComputeLoadData();
@@ -4184,6 +4189,8 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
 	useOriginalData = Rf_asLogical(RoriginalData);
+	ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
+	byrow = Rf_asLogical(Rbyrow);
 
 	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
 	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
@@ -4191,20 +4198,31 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 		loadMethod = LoadCSV;
 	} else if (strEQ(methodName, "bgen")) {
 		loadMethod = LoadBGEN;
+		if (!byrow) mxThrow("%s: byrow=FALSE is not implemented for bgen format", name);
 	} else {
 		mxThrow("%s: unknown method '%s'", name, methodName);
 	}
 	
+	rowNames = NA_INTEGER;
+	colNames = NA_INTEGER;
 	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
-	hasRowNames = Rf_asLogical(Rrownames);
+	if (Rf_length(Rrownames)) rowNames = Rf_asInteger(Rrownames);
 	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
-	hasColNames = Rf_asLogical(Rcolnames);
-	ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
-	byrow = Rf_asLogical(Rbyrow);
+	if (Rf_length(Rcolnames)) colNames = Rf_asInteger(Rcolnames);
+
+	ProtectedSEXP Rskiprows(R_do_slot(rObj, Rf_install("skip.rows")));
+	skipRows = Rf_asInteger(Rskiprows);
+	ProtectedSEXP Rskipcols(R_do_slot(rObj, Rf_install("skip.cols")));
+	skipCols = Rf_asInteger(Rskipcols);
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
 	ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
-	stripeSize = std::max(Rf_asInteger(Rcs), 1);
+	if (byrow) {
+		stripeSize = 1;
+	} else {
+		stripeSize = std::max(Rf_asInteger(Rcs), 1);
+	}
 
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
@@ -4241,18 +4259,27 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
 	checkpoint = Rf_asLogical(Rcheckpoint);
 
-	if (loadMethod == LoadBGEN && checkpoint) {
+	if (checkpoint) {
 		auto &cp = Global->checkpointColnames;
 		cpIndex = cp.size();
-		std::string c1 = fileName + ":SNP";
-		cp.push_back(c1);
-		c1 = fileName + ":RSID";
-		cp.push_back(c1);
-		c1 = fileName + ":ch";
-		cp.push_back(c1);
-		c1 = fileName + ":pos";
-		cp.push_back(c1);
-		Global->checkpointValues.resize(cpIndex + 4);
+
+		if (loadMethod == LoadBGEN) {
+			std::string c1 = fileName + ":SNP";
+			cp.push_back(c1);
+			c1 = fileName + ":RSID";
+			cp.push_back(c1);
+			c1 = fileName + ":ch";
+			cp.push_back(c1);
+			c1 = fileName + ":pos";
+			cp.push_back(c1);
+		}
+		if (loadMethod == LoadCSV && rowNames > 0 && byrow) {
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				std::string c1 = fileName + ":" + data->rawCols[ columns[cx] ].name;
+				cp.push_back(c1);
+			}
+		}
+		Global->checkpointValues.resize(cp.size());
 	}
 
 	loadCounter = 0;
@@ -4325,54 +4352,15 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 			data->rawCols[ columns[cx] ].ptr = origData[cx];
 		}
 	} else {
+		index -= useOriginalData; // 0 == the first record
 		if (loadMethod == LoadCSV) {
 			if (!byrow) {
-				loadByCol(fc, index - useOriginalData);
+				loadByCol(fc, index);
 			} else {
-				loadByRow(fc, index - useOriginalData);
+				loadByRow(fc, index);
 			}
 		} else if (loadMethod == LoadBGEN) {
-			// m_postheader_data WTF?
-			if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
-							 name, int(columns.size()));
-			if (bgenView.get() == 0) {
-				using namespace genfile::bgen ;
-				using namespace Rcpp ;
-				std::string bgen(filePath);
-				std::string bgenIndex = bgen + ".bgi";
-				bgenView = View::create( filePath ) ;
-				auto query = IndexQuery::create( bgenIndex ) ;
-				query->initialise();
-				bgenView->set_query( query ) ;
-				if (data->rows != int(bgenView->number_of_samples())) {
-					mxThrow("%s: %s has %d rows but %s has %d samples",
-						name, data->name, data->rows, filePath.c_str(),
-						int(bgenView->number_of_samples()));
-				}
-				auto number_of_variants = bgenView->number_of_variants();
-				if (index >= int(number_of_variants)) {
-					mxThrow("%s: only %d variants available in %s",
-						name, int(number_of_variants), filePath.c_str());
-				}
-			}
-
-			std::string SNPID, rsid, chromosome ;
-			genfile::bgen::uint32_t position ;
-			std::vector< std::string > alleles ;
-			bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
-			if (checkpoint) {
-				auto &cv = Global->checkpointValues;
-				cv[cpIndex] = SNPID;
-				cv[cpIndex+1] = rsid;
-				cv[cpIndex+2] = chromosome;
-				cv[cpIndex+3] = string_snprintf("%u", position);
-			}
-			BgenXfer xfer(stripeData[0]); // check type TODO
-			bgenView->read_genotype_data_block(xfer);
-			
-			for (int cx=0; cx < int(columns.size()); ++cx) {
-				data->rawCols[ columns[cx] ].ptr = stripeData[cx];
-			}
+			loadBgenRow(fc, index);
 		} else {
 			mxThrow("%s: unknown load method %d", name, loadMethod);
 		}
@@ -4398,8 +4386,81 @@ ComputeLoadData::~ComputeLoadData()
 	stripeData.clear();
 }
 
+void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
+{
+	// m_postheader_data WTF?
+	if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
+					 name, int(columns.size()));
+	if (bgenView.get() == 0) {
+		using namespace genfile::bgen ;
+		using namespace Rcpp ;
+		std::string bgen(filePath);
+		std::string bgenIndex = bgen + ".bgi";
+		bgenView = View::create( filePath ) ;
+		auto query = IndexQuery::create( bgenIndex ) ;
+		query->initialise();
+		bgenView->set_query( query ) ;
+		if (data->rows != int(bgenView->number_of_samples())) {
+			mxThrow("%s: %s has %d rows but %s has %d samples",
+				name, data->name, data->rows, filePath.c_str(),
+				int(bgenView->number_of_samples()));
+		}
+		auto number_of_variants = bgenView->number_of_variants();
+		if (index >= int(number_of_variants)) {
+			mxThrow("%s: %d requested but only %d variants available in %s",
+				name, index, int(number_of_variants), filePath.c_str());
+		}
+	}
+
+	std::string SNPID, rsid, chromosome ;
+	genfile::bgen::uint32_t position ;
+	std::vector< std::string > alleles ;
+	bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
+	if (checkpoint) {
+		auto &cv = Global->checkpointValues;
+		cv[cpIndex] = SNPID;
+		cv[cpIndex+1] = rsid;
+		cv[cpIndex+2] = chromosome;
+		cv[cpIndex+3] = string_snprintf("%u", position);
+	}
+	BgenXfer xfer(stripeData[0]); // check type TODO
+	bgenView->read_genotype_data_block(xfer);
+
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+	}
+}
+
+void ComputeLoadData::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out)
+{
+	if (rc.levels.size()) {
+		std::string rn;
+		st >> rn;
+		// What about NA? TODO
+		bool found = false;
+		for (int lx=0; lx < int(rc.levels.size()); ++lx) {
+			if (rn == rc.levels[lx]) {
+				found = true;
+				*out = 1+lx;
+				break;
+			}
+		}
+		if (!found) mxThrow("%s: factor level '%s' unrecognized in column '%s'",
+				    name, rn.c_str(), rc.name);
+	} else {
+		st >> *out;
+	}
+}
+
 void ComputeLoadData::loadByCol(FitContext *fc, int index)
 {
+	// Doing the transpose on the fly is clever, but
+	// the code is tricky to test and the user would better
+	// transpose the data using some other program before
+	// feeding to OpenMx.
+
+	mxThrow("%s: ComputeLoadData::loadByCol not implemented", name);
+
 	if (stripeStart == -1 ||
 	    index < stripeStart || index >= stripeEnd) {
 		bool backward = index < stripeStart;
@@ -4408,14 +4469,14 @@ void ComputeLoadData::loadByCol(FitContext *fc, int index)
 		loadCounter += 1;
 		mini::csv::ifstream st(filePath);
 		st.set_delimiter(' ', "##");
-		if (hasColNames) st.skip_line();
+		for (int rx=0; rx < skipRows; ++rx) st.skip_line();
 		int stripeAvail = stripeSize;
 		for (int rx=0; rx < data->rows; ++rx) {
 			if (!st.read_line()) {
 				mxThrow("%s: ran out of data for '%s' (need %d rows but only found %d)",
 					 name, data->name, data->rows, 1+rx);
 			}
-			int toSkip = stripeStart * columns.size() + hasRowNames;
+			int toSkip = stripeStart * columns.size() + skipCols;
 			for (int jx=0; jx < toSkip; ++jx) {
 				std::string rn;
 				st >> rn;
@@ -4426,23 +4487,8 @@ void ComputeLoadData::loadByCol(FitContext *fc, int index)
 						if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 							st >> stripeData[dx].realData[rx];
 						} else {
-							auto &rc = data->rawCols[ columns[cx] ];
-							if (rc.levels.size()) {
-								std::string rn;
-								st >> rn;
-								bool found = false;
-								for (int lx=0; lx < int(rc.levels.size()); ++lx) {
-									if (rn == rc.levels[lx]) {
-										found = true;
-										stripeData[dx].intData[rx] = 1+lx;
-										break;
-									}
-								}
-								if (!found) mxThrow("%s: factor level '%s' unrecognized (row %d, column %d)",
-										    name, rn.c_str(), 1+rx, int(1 + toSkip + sx*columns.size() + cx));
-							} else {
-								st >> stripeData[dx].intData[rx];
-							}
+							mxScanInt(st, data->rawCols[ columns[cx] ],
+								  &stripeData[dx].intData[rx]);
 						}
 						dx += 1;
 					}
@@ -4471,7 +4517,51 @@ void ComputeLoadData::loadByCol(FitContext *fc, int index)
 
 void ComputeLoadData::loadByRow(FitContext *fc, int index)
 {
-	mxThrow("%s: not implemented", name);
+	if (!icsv || index < curRecord) {
+		icsv = std::unique_ptr< mini::csv::ifstream >(new mini::csv::ifstream(filePath));
+		icsv->set_delimiter(' ', "##");
+		for (int rx=0; rx < skipRows; ++rx) {
+			if (1+rx == colNames) {
+				// TODO
+			}
+			icsv->skip_line();
+		}
+		curRecord = 0;
+		loadCounter += 1;
+	}
+
+	while (index > curRecord) {
+		icsv->skip_line();
+		curRecord += 1;
+	}
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		if (!icsv->read_line()) {
+			mxThrow("%s: ran out of data for '%s' at record %d",
+				name, data->name, 1+index);
+		}
+		for (int sx=0; sx < skipCols; ++sx) {
+			std::string rn;
+			*icsv >> rn;
+			if (checkpoint && 1+sx == rowNames) {
+				auto &cv = Global->checkpointValues;
+				cv[cpIndex + cx] = rn;
+			}
+		}
+		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+			for (int rx=0; rx < data->rows; ++rx) {
+				*icsv >> stripeData[cx].realData[rx];
+			}
+		} else {
+			for (int rx=0; rx < data->rows; ++rx) {
+				mxScanInt(*icsv, data->rawCols[ columns[cx] ],
+					  &stripeData[cx].intData[rx]);
+			}
+		}
+	}
+	curRecord += 1;
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+	}
 }
 
 void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)

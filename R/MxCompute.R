@@ -2131,17 +2131,19 @@ setClass(Class = "MxComputeLoadData",
 		 path = "character",
 		 originalDataIsIndexOne = "logical",
 		 byrow = "logical",
-		 row.names = "logical",
-		 col.names = "logical",
+		 row.names = "MxOptionalInteger",
+		 col.names = "MxOptionalInteger",
 		 verbose = "integer",
 		 cacheSize = "integer",
 		 method = "character",
-		 checkpointMetadata = "logical"
+		 checkpointMetadata = "logical",
+		 skip.rows = "integer",
+		 skip.cols = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
-		 row.names, col.names, byrow, verbose, cacheSize, method,
+		 row.names, col.names, skip.rows, skip.cols, byrow, verbose, cacheSize, method,
 		 checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
@@ -2157,6 +2159,8 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@cacheSize <- cacheSize
 		  .Object@method <- method
 		  .Object@checkpointMetadata <- checkpointMetadata
+		  .Object@skip.rows <- skip.rows
+		  .Object@skip.cols <- skip.cols
 		  .Object
 	  })
 
@@ -2202,19 +2206,23 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
 ##' @param byrow logical. Whether the data columns are stored in rows (TRUE)
 ##' or columns (FALSE) on disk.
-##' @param row.names logical. Whether row names are present.
-##' @param col.names logical. Whether column names are present.
+##' @param row.names optional integer. Column containing the row names.
+##' @param col.names optional integer. Row containing the column names.
+##' @param skip.rows integer. Number of rows to skip before reading data.
+##' @param skip.cols integer. Number of columns to skip before reading data.
 ##' @param verbose integer. Level of diagnostic output.
-##' @param cacheSize integer. How many columns to cacheSize per
-##' scan through the data.
-##' @param checkpointMetadata logical. Whether to add per index metadata to the checkpoint
+##' @param cacheSize integer. How many columns to cache per
+##' scan through the data. Only used when byrow=FALSE.
+##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
 mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
-			      row.names=FALSE, col.names=FALSE, verbose=0L,
+			      row.names=c(), col.names=c(),
+			      skip.rows=0, skip.cols=0,
+			      verbose=0L,
 			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -2223,7 +2231,8 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 	method <- match.arg(method)
 	if (cacheSize < 1L) stop("cacheSize must be a positive integer")
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
-		as.logical(row.names), as.logical(col.names), byrow,
+		as.integer(row.names), as.integer(col.names),
+		as.integer(skip.rows), as.integer(skip.cols), byrow,
 		as.integer(verbose), as.integer(cacheSize), method,
 		as.logical(checkpointMetadata))
 }
