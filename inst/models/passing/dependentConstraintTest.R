@@ -55,12 +55,14 @@ if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 							 dimnames=list(NULL,c("pred","pyellow","pgreen","pblue"))),
 		mxFitFunctionAlgebra(algebra="fitfunc",gradient="objgrad",numObs=100),
 		mxCI(c("pred","pyellow","pgreen","pblue")),
-		mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying"),
-		mxConstraint(2*(Pred + Pyellow + Pgreen + Pblue) - 2 == 0,name="indentifying2")
+		mxMatrix(type="Unit",nrow=1,ncol=4,dimnames=list(NULL,c("pred","pyellow","pgreen","pblue")),name="jac"),
+		mxAlgebra(2%x%jac, name="jac2", dimnames=list(NULL,c("pred","pyellow","pgreen","pblue"))),
+		mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying",jac="jac"),
+		mxConstraint(2*(Pred + Pyellow + Pgreen + Pblue) - 2 == 0,name="indentifying2",jac="jac2")
 	)
 	omxCheckWarning(
 		mxRun(m1),
-		"counted 2 equality constraints, but equality-constraint Jacobian is rank 1; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
+		"equality-constraint Jacobian is rank-deficient at start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
 	)
 	
 }

@@ -555,14 +555,16 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		fd_jacobian<true>(
 			GradientAlgorithm_Central, 4, 1.0e-7,
 			eqf, equality, est, ej);
-		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj;
-		qrj.setThreshold(Eigen::Default);
+		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
+		qrj.setThreshold(2.220446e-16);
 		qrj.compute(ej.transpose());
+		//mxLog("QR max pivot is %.8e",qrj.maxPivot());
+		//mxLog("QR threshold is %.8e",qrj.threshold());
 		if(qrj.rank() < numEqC){
 			Rf_warning(
-				"counted %d equality constraints, but equality-constraint Jacobian is rank %d; " 
+				"equality-constraint Jacobian is rank-deficient at start values; "
 				"Nelder-Mead will not work correctly unless equality constraints are linearly independent "
-				"(this warning may be spurious if there are non-smooth equality constraints)", numEqC, qrj.rank()
+				"(this warning may be spurious if there are non-smooth equality constraints)"
 			);
 			NMobj->checkRedundantEqualities = false;
 		}
