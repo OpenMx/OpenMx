@@ -1232,15 +1232,15 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   			SE <- FALSE
   		}
   		if(SE){
-  			covParam <- model@output$vcov
+  			covParam <- vcov(model)
   		}
   	}
   	#If user requests SEs and provided a covariance matrix:
   	else{
   		#Conceivably, the user could provide a sampling covariance matrix that IS valid in the presence of MxConstraints...
   		if(length(model@constraints)>0){
-  			msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
-  			warning(msg)
+  			#msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
+  			#warning(msg)
   		}
   		#Sanity checks on the value of argument 'cov':
   		if(!is.matrix(cov)){ #<--Is it a matrix?
