@@ -60,7 +60,7 @@ if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 	)
 	omxCheckWarning(
 		mxRun(m1),
-		"counted 2 equality constraints, but equality-constraint Jacobian is rank 0; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
+		"counted 2 equality constraints, but equality-constraint Jacobian is rank 1; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
 	)
 	
 }
