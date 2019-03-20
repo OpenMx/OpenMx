@@ -59,10 +59,10 @@ mxStandardizeRAMpaths(growthCurveFit,SE=T,cov=rcov)
 #Check warnings and errors:
 pointlessConstraint <- mxModel(growthCurveFit, mxConstraint(1==1))
 pointlessConstraint <- mxRun(pointlessConstraint)
-omxCheckWarning(
-	mxStandardizeRAMpaths(pointlessConstraint, T, rcov),
-	"standard errors may be invalid because model 'Linear Growth Curve Model Path Specification' contains at least one mxConstraint"
-)
+# omxCheckWarning(
+# 	mxStandardizeRAMpaths(pointlessConstraint, T, rcov),
+# 	"standard errors may be invalid because model 'Linear Growth Curve Model Path Specification' contains at least one mxConstraint"
+# )
 anAlg <- mxAlgebra(1+1)
 omxCheckError(
 	mxStandardizeRAMpaths(growthCurveFit,T,anAlg),
@@ -89,3 +89,4 @@ omxCheckError(
 	mxStandardizeRAMpaths(growthCurveFit, T, rcov3),
 	"the dimnames of the matrix provided for argument 'cov' do not match the free-parameter labels of 'Linear Growth Curve Model Path Specification'"
 )
+
