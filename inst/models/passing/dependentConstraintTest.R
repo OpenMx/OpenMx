@@ -60,9 +60,9 @@ if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 		mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying",jac="jac"),
 		mxConstraint(2*(Pred + Pyellow + Pgreen + Pblue) - 2 == 0,name="indentifying2",jac="jac2")
 	)
-	omxCheckWarning(
-		mxRun(m1),
-		"equality-constraint Jacobian is rank-deficient at start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
-	)
+	# omxCheckWarning(
+	# 	mxRun(m1),
+	# 	"equality-constraint Jacobian is rank-deficient at start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
+	# )
 	
 }

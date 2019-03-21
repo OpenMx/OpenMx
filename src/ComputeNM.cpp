@@ -551,15 +551,14 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	if(numEqC > 1 && NMobj->checkRedundantEqualities){
 		NldrMd_equality_functional eqf(this, fc);
 		Eigen::MatrixXd ej(numEqC, numFree);
+		//TODO: why doesn't this populate the elements of ej?:
 		eqf(est, equality);
 		fd_jacobian<true>(
 			GradientAlgorithm_Central, 4, 1.0e-7,
 			eqf, equality, est, ej);
+		//mxPrintMat("ej: ",ej);
 		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
-		qrj.setThreshold(2.220446e-16);
 		qrj.compute(ej.transpose());
-		//mxLog("QR max pivot is %.8e",qrj.maxPivot());
-		//mxLog("QR threshold is %.8e",qrj.threshold());
 		if(qrj.rank() < numEqC){
 			Rf_warning(
 				"equality-constraint Jacobian is rank-deficient at start values; "
