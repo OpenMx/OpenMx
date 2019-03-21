@@ -1241,12 +1241,9 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				return;
 			}
 			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
-				//Accept reflection point:
-				fvals[n] = fr;
-				vertices[n] = xr;
-				vertexInfeas[n] = badr;
-				needFullSort=false;
-				if(verbose){mxLog("reflection point accepted");}
+				//This case is considered a failed contraction:
+				failedContraction = true;
+				if(verbose){mxLog("outside contraction failed and shrinks are switched off...");}
 				return;
 			}
 		}
@@ -1275,7 +1272,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 			}
 			else if(NMobj->sigma<=0){
 				failedContraction = true;
-				if(verbose){mxLog("contraction failed and shrinks are switched off...");}
+				if(verbose){mxLog("inside contraction failed and shrinks are switched off...");}
 				return;
 			}
 		}
