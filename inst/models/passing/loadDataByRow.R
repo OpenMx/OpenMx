@@ -54,7 +54,9 @@ numSets <- 8
 dsets <- list()
 for (dx in 1:numSets) {
   df <- data.frame(z1=jointdata$z1 + rnorm(nrow(jointdata), mean=dx/10, sd=.1),
-                   z2=ordered(sample.int(2, 10, replace=TRUE)-1L))
+                   z2=ordered(sample.int(2, nrow(jointdata), replace=TRUE)-1L))
+  df$z1[sample.int(nrow(jointdata), 10)] <- NA
+  df$z2[sample.int(nrow(jointdata), 10)] <- NA
   dsets[[dx]] <- df
   for (cx in paste0('z',3:5)) df[[cx]] <- jointdata[[cx]]
   model2 <- mxModel(model1, mxData(df, 'raw'), mxFitFunctionWLS())

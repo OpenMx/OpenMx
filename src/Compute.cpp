@@ -4433,11 +4433,13 @@ void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 
 void ComputeLoadData::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out)
 {
+	const std::string &rn = st.get_delimited_str();
+	if (rn == "NA") {
+		*out = NA_INTEGER;
+		return;
+	}
 	if (rc.levels.size()) {
-		std::string rn;
-		st >> rn;
-		// What about NA? TODO
-		bool found = false;
+		bool found = false; // maybe use a map for better performance?
 		for (int lx=0; lx < int(rc.levels.size()); ++lx) {
 			if (rn == rc.levels[lx]) {
 				found = true;
@@ -4448,7 +4450,8 @@ void ComputeLoadData::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *ou
 		if (!found) mxThrow("%s: factor level '%s' unrecognized in column '%s'",
 				    name, rn.c_str(), rc.name);
 	} else {
-		st >> *out;
+		std::istringstream is(rn);
+		is >> *out;
 	}
 }
 
@@ -4549,7 +4552,13 @@ void ComputeLoadData::loadByRow(FitContext *fc, int index)
 		}
 		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 			for (int rx=0; rx < data->rows; ++rx) {
-				*icsv >> stripeData[cx].realData[rx];
+				const std::string& str = icsv->get_delimited_str();
+				if (str == "NA") {
+					stripeData[cx].realData[rx] = NA_REAL;
+				} else {
+					std::istringstream is(str);
+					is >> stripeData[cx].realData[rx];
+				}
 			}
 		} else {
 			for (int rx=0; rx < data->rows; ++rx) {
