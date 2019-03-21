@@ -580,4 +580,6 @@ double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &
 
 void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat);
 
+void filterJacobianRows(Eigen::MatrixXd& A, int& rankA);
+
 #endif /* _OMXMATRIX_H_ */
