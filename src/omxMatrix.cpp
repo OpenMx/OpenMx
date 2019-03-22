@@ -1096,7 +1096,8 @@ void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat)
 // https://forum.kde.org/viewtopic.php?f=74&t=96706
 // https://forum.kde.org/viewtopic.php?f=74&t=124421
 // https://forum.kde.org/viewtopic.php?f=74&t=91271
-void filterJacobianRows(Eigen::MatrixXd& A, int& rankA){
+template <typename T1>
+void filterJacobianRows(Eigen::MatrixBase<T1>& A, int& rankA){
 	//TODO: check for conformability
 	Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qra(A.transpose());
 	rankA = qra.rank();
