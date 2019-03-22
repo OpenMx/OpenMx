@@ -376,6 +376,7 @@ class omxCompute {
 	static enum ComputeInfoMethod stringToInfoMethod(const char *iMethod);
 	void complainNoFreeParam();
  public:
+
 	const char *name;
 	FreeVarGroup *varGroup;
 	omxCompute();
@@ -387,9 +388,48 @@ class omxCompute {
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
 	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
-	void pushIndex(int ix);
-	void popIndex();
 	bool isPersist() { return dotPersist; };
+};
+
+struct PushLoopIndex {
+	PushLoopIndex(const char *name, int ix) {
+		Global->computeLoopContext.push_back(name);
+		Global->computeLoopIndex.push_back(ix);
+	}
+	~PushLoopIndex() {
+		Global->computeLoopContext.pop_back();
+		Global->computeLoopIndex.pop_back();
+	}
+};
+
+class RNGStateManager {
+ protected:
+	void checkOut()
+	{
+		if (Global->RNGCheckedOut) {
+			mxThrow("Attempt to check out RNG but already checked out");
+		}
+		GetRNGstate();
+		Global->RNGCheckedOut = true;
+	}
+	void checkIn()
+	{
+		if (!Global->RNGCheckedOut) {
+			mxThrow("Attempt to return RNG but already returned");
+		}
+		PutRNGstate();
+		Global->RNGCheckedOut = false;
+	}
+};
+
+struct BorrowRNGState : public RNGStateManager {
+	BorrowRNGState() { checkOut(); }
+	~BorrowRNGState() { checkIn(); }
+};
+
+struct ReturnRNGState : public RNGStateManager {
+	ReturnRNGState() { checkIn(); }
+	~ReturnRNGState() { checkOut(); }
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);

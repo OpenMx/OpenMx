@@ -851,13 +851,12 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout, double scal){
 	double a,b;
 	int i;
-	GetRNGstate();
+	BorrowRNGState grs;
 	for(i=0; i < xin.size(); i++){
 		b = Rf_runif(1.0-scal,1.0+scal);
 		a = Rf_runif(0.0-scal,0.0+scal);
 		xout[i] = b*xin[i] + a;
 	}
-	PutRNGstate();
 }
 
 //TODO: make the different parts of the printing subject to different verbose levels

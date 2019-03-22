@@ -213,6 +213,7 @@ class omxGlobal {
 	void reportProgressStr(std::string &str);
 
  public:
+	bool RNGCheckedOut;
 	ProtectAutoBalanceDoodad *mpi;
 	bool silent;
 	bool ComputePersist;

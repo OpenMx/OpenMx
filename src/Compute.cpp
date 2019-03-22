@@ -1728,38 +1728,55 @@ void omxCompute::complainNoFreeParam()
 	}
 }
 
-void omxCompute::pushIndex(int ix)
-{
-	Global->computeLoopContext.push_back(name);
-	Global->computeLoopIndex.push_back(ix);
-}
-
-void omxCompute::popIndex()
-{
-	Global->computeLoopContext.pop_back();
-	Global->computeLoopIndex.pop_back();
-}
+class EnterVarGroup {
+	bool narrowed;
+ public:
+	FitContext *narrow;
+	EnterVarGroup(FitContext *fc, FreeVarGroup *varGroup) {
+		narrow = fc;
+		narrowed = fc->varGroup != varGroup;
+		if (narrowed) narrow = new FitContext(fc, varGroup);
+	}
+	~EnterVarGroup() {
+		if (narrowed) narrow->updateParentAndFree();
+	}
+};
 
 void omxCompute::compute(FitContext *fc)
 {
-	FitContext *narrow = fc;
-	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
-	computeWithVarGroup(narrow);
-	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+	EnterVarGroup evg(fc, varGroup);
+	computeWithVarGroup(evg.narrow);
 }
+
+struct LeaveComputeWithVarGroup {
+	FitContext *fc;
+	bool toResetInform;
+	ComputeInform origInform;
+	const char *name;
+
+	LeaveComputeWithVarGroup(FitContext *_fc, struct omxCompute *compute) : fc(_fc), name(compute->name) {
+		origInform = fc->getInform();
+		toResetInform = compute->resetInform();
+		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);
+		if (Global->debugProtectStack) {
+			mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
+		}
+	};
+	~LeaveComputeWithVarGroup() {
+		fc->destroyChildren();
+		if (toResetInform) fc->setInform(std::max(origInform, fc->getInform()));
+		Global->checkpointMessage(fc, fc->est, "%s", name);
+		if (Global->debugProtectStack) {
+			mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
+		}
+
+	}
+};
 
 void omxCompute::computeWithVarGroup(FitContext *fc)
 {
-	ComputeInform origInform = fc->getInform();
-	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
-	if (Global->debugProtectStack) mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
-	if (resetInform()) fc->setInform(INFORM_UNINITIALIZED);
+	LeaveComputeWithVarGroup lcwvg(fc, this);
 	computeImpl(fc);
-	if (resetInform()) fc->setInform(std::max(origInform, fc->getInform()));
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
-	if (Global->debugProtectStack) mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
-	fc->destroyChildren();
-	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
 
 class ComputeContainer : public omxCompute {
@@ -2480,7 +2497,7 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
-	pushIndex(NA_INTEGER);
+	PushLoopIndex pli(name, NA_INTEGER);
 
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
@@ -2496,8 +2513,6 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 		clist.push_back(compute);
 	}
 
-	popIndex();
-
 	iterations = 0;
 }
 
@@ -2507,14 +2522,13 @@ void ComputeLoop::computeImpl(FitContext *fc)
 	bool hasMaxIter = maxIter != NA_INTEGER;
 	time_t startTime = time(0);
 	while (1) {
-		pushIndex(hasIndices? indices[iterations] : 1+iterations);
+		PushLoopIndex pli(name, hasIndices? indices[iterations] : 1+iterations);
 		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
 			if (isErrorRaised()) break;
 		}
-		popIndex();
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
 		if (hasMaxIter && iterations >= maxIter) break;
 		if (hasIndices && iterations >= indicesLength) break;
@@ -4064,14 +4078,13 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 
 	auto *seedVec = INTEGER(VECTOR_ELT(rawOutput, 0));
 	if (only == NA_INTEGER || !previousData) {
-		GetRNGstate();
+		BorrowRNGState grs;
 		for (int repl=0; repl < numReplications; ++repl) {
 			if (seedVec[repl] != NA_INTEGER) continue;
 			int seed1 = unif_rand() * std::numeric_limits<int>::max();
 			if (seed1 == NA_INTEGER) seed1 = 0; // maybe impossible
 			seedVec[repl] = seed1;
 		}
-		PutRNGstate();
 	} else {
 		if (only <= Rf_length(VECTOR_ELT(previousData, 0))) {
 			if (verbose >= 1) mxLog("%s: using only=%d", name, only);
@@ -4169,13 +4182,11 @@ void ComputeGenerateData::computeImpl(FitContext *fc)
 {
 	if (simData.size()) mxThrow("Cannot generate data more than once");
 
-	GetRNGstate();
+	BorrowRNGState grs;
 
 	for (auto ex : expectations) {
 		ex->generateData(fc, simData);
 	}
-
-	PutRNGstate();
 }
 
 void ComputeGenerateData::reportResults(FitContext *fc, MxRList *slots, MxRList *)

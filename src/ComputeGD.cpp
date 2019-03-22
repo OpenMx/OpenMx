@@ -691,15 +691,13 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	omxCompleteFitFunction(fitMatrix);
 
-	pushIndex(NA_INTEGER);
+	PushLoopIndex pli(name, NA_INTEGER);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
-
-	popIndex();
 }
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
@@ -800,7 +798,6 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 		REAL(VECTOR_ELT(detail, 7+px))[detailRow] = Est[px];
 	}
 	++detailRow;
-	popIndex();
 }
 
 struct regularCIobj : CIobjective {
@@ -1153,7 +1150,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 	bool boundActive = fabs(Mle[currentCI->varIndex] - nearBox) < sqrt(std::numeric_limits<double>::epsilon());
 	if (currentCI->bound[!side] > 0.0) {	// ------------------------------ away from bound side --
-		pushIndex(detailRow);
+		PushLoopIndex pli(name, detailRow);
 		if (!boundActive) {
 			Diagnostic diag;
 			double val;
@@ -1212,7 +1209,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
  part2:
 	if (currentCI->bound[side] > 0.0) {     // ------------------------------ near to bound side --
-		pushIndex(detailRow);
+		PushLoopIndex pli(name, detailRow);
 		double boundLL = NA_REAL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (!boundActive) {
@@ -1402,7 +1399,7 @@ void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		int lower = 1-upper;
 		if (!(currentCI->bound[upper])) continue;
 
-		pushIndex(detailRow);
+		PushLoopIndex pli(name, detailRow);
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
 					  upper? "upper" : "lower");
@@ -1651,7 +1648,7 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	invocations = 0;
 	numRetries = 0;
 
-	pushIndex(NA_INTEGER);
+	PushLoopIndex pli(name, NA_INTEGER);
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -1659,8 +1656,6 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = omxNewCompute(globalState, CHAR(s4class));
 	plan->initFromFrontend(globalState, slotValue);
-
-	popIndex();
 }
 
 bool ComputeTryH::satisfied(FitContext *fc)
@@ -1690,19 +1685,19 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		mxLog("%s: at most %d attempts (Welcome)", name, retriesRemain);
 	}
 
-	pushIndex(1);
-
-	bestStatus = INFORM_UNINITIALIZED;
-	bestFit = NA_REAL;
-	fc->setInform(INFORM_UNINITIALIZED);
-	plan->compute(fc);
-	if (fc->getInform() != INFORM_UNINITIALIZED && fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
-		bestStatus = fc->getInform();
-		bestEst = curEst;
-		bestFit = fc->fit;
+	{
+		PushLoopIndex pli(name, 1);
+		bestStatus = INFORM_UNINITIALIZED;
+		bestFit = NA_REAL;
+		fc->setInform(INFORM_UNINITIALIZED);
+		plan->compute(fc);
+		if (fc->getInform() != INFORM_UNINITIALIZED &&
+		    fc->getInform() != INFORM_STARTING_VALUES_INFEASIBLE) {
+			bestStatus = fc->getInform();
+			bestEst = curEst;
+			bestFit = fc->fit;
+		}
 	}
-
-	popIndex();
 
 	while (!satisfied(fc) && retriesRemain > 0) {
 		if (verbose >= 2) {
@@ -1711,21 +1706,22 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		}
 
 		curEst = origStart;
-		GetRNGstate();
-		for (int vx=0; vx < curEst.size(); ++vx) {
-			double adj1 = loc + unif_rand() * 2.0 * scale - scale;
-			double adj2 = 0.0 + unif_rand() * 2.0 * scale - scale;
-			if (verbose >= 3) {
-				mxLog("%d %g %g", vx, adj1, adj2);
+		{
+			BorrowRNGState grs;
+			for (int vx=0; vx < curEst.size(); ++vx) {
+				double adj1 = loc + unif_rand() * 2.0 * scale - scale;
+				double adj2 = 0.0 + unif_rand() * 2.0 * scale - scale;
+				if (verbose >= 3) {
+					mxLog("%d %g %g", vx, adj1, adj2);
+				}
+				curEst[vx] = curEst[vx] * adj1 + adj2;
+				if(curEst[vx] < solLB[vx]){curEst[vx] = solLB[vx];}
+				if(curEst[vx] > solUB[vx]){curEst[vx] = solUB[vx];}
 			}
-			curEst[vx] = curEst[vx] * adj1 + adj2;
-			if(curEst[vx] < solLB[vx]){curEst[vx] = solLB[vx];}
-			if(curEst[vx] > solUB[vx]){curEst[vx] = solUB[vx];}
 		}
-		PutRNGstate();
 
 		--retriesRemain;
-		pushIndex(maxRetries - retriesRemain);
+		PushLoopIndex pli(name, maxRetries - retriesRemain);
 
 		fc->setInform(INFORM_UNINITIALIZED);
 		fc->wanted &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
@@ -1736,7 +1732,6 @@ void ComputeTryH::computeImpl(FitContext *fc)
 			bestEst = curEst;
 			bestFit = fc->fit;
 		}
-		popIndex();
 	}
 
 	fc->setInform(bestStatus);
@@ -1950,7 +1945,7 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 		}
 	}
 
-	pushIndex(NA_INTEGER);
+	PushLoopIndex pli(name, NA_INTEGER);
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -1958,8 +1953,6 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = omxNewCompute(state, CHAR(s4class));
 	plan->initFromFrontend(state, slotValue);
-
-	popIndex();
 }
 
 double ComputeGenSA::visita(double temp)
@@ -2033,15 +2026,15 @@ double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DE
 	Map< VectorXd > curEst(fc->est, numFree);
 	Map< VectorXd > proposal(x, numFree);
 
-	PutRNGstate();
-	pushIndex(opt->N_Generated);
-	fc->setInform(INFORM_UNINITIALIZED);
-	curEst = proposal;
-	fc->copyParamToModel();
-	fc->wanted = FF_COMPUTE_FIT;
-	plan->compute(fc);
-	popIndex();
-	GetRNGstate();
+	{
+		ReturnRNGState rrs;
+		PushLoopIndex pli(name, opt->N_Generated);
+		fc->setInform(INFORM_UNINITIALIZED);
+		curEst = proposal;
+		fc->copyParamToModel();
+		fc->wanted = FF_COMPUTE_FIT;
+		plan->compute(fc);
+	}
 
 	if (fc->outsideFeasibleSet()) {
 		return std::numeric_limits<double>::max();
@@ -2092,12 +2085,13 @@ void ComputeGenSA::ingber2012(FitContext *fc)
 	OPTIONS->Asa_Data_Dim_Ptr = 1;
 	OPTIONS->Asa_Data_Ptr = this;
 
-	GetRNGstate();
-	(void) asa(asa_cost_function_stub, asa_random_generator, &seed,
-		   fc->est, lbound.data(), ubound.data(), tangents.data(),
-		   0, &num_parameters, paramType.data(), &valid_state_generated_flag,
-		   &exit_status, OPTIONS);
-	PutRNGstate();
+	{
+		BorrowRNGState grs;
+		(void) asa(asa_cost_function_stub, asa_random_generator, &seed,
+			   fc->est, lbound.data(), ubound.data(), tangents.data(),
+			   0, &num_parameters, paramType.data(), &valid_state_generated_flag,
+			   &exit_status, OPTIONS);
+	}
 
 	if (!valid_state_generated_flag && verbose) mxLog("invalid state generated");
 
@@ -2152,7 +2146,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 	double curFit = curBestFit;
 	double curPenalty = curBestPenalty;
 
-	GetRNGstate();
+	BorrowRNGState grs;
 	const double t1 = exp((qv - 1.) * M_LN2) - 1.;
 
 	// Tsallis & Stariolo (1996) start at t=1 (see around Eqn 4)
@@ -2175,14 +2169,14 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 			}
 			curEst[vx] = a;
 
-			PutRNGstate();
-			pushIndex(jj);
-			fc->setInform(INFORM_UNINITIALIZED);
-			fc->copyParamToModel();
-			fc->wanted = FF_COMPUTE_FIT;
-			plan->compute(fc);
-			popIndex();
-			GetRNGstate();
+			{
+				ReturnRNGState grs;
+				PushLoopIndex pli(name, jj);
+				fc->setInform(INFORM_UNINITIALIZED);
+				fc->copyParamToModel();
+				fc->wanted = FF_COMPUTE_FIT;
+				plan->compute(fc);
+			}
 
 			if (fc->outsideFeasibleSet()) {
 				curEst[vx] = xMini[vx];
@@ -2231,8 +2225,6 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 		}
 	}
 
-	PutRNGstate();
-
 	curEst = curBest;
 }
 
@@ -2264,15 +2256,17 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 	// ----------
 
 	ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
-	GetRNGstate();
-	int retries = 5;
-	while (fc->outsideFeasibleSet() && retries-- > 0) {
-		for (int vx=0; vx < curEst.size(); ++vx) {
-			curEst[vx] = lbound[vx] + unif_rand() * range[vx];
+	{
+		BorrowRNGState grs;
+		int retries = 5;
+		while (fc->outsideFeasibleSet() && retries-- > 0) {
+			for (int vx=0; vx < curEst.size(); ++vx) {
+				curEst[vx] = lbound[vx] + unif_rand() * range[vx];
+			}
+			ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
 		}
-		ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);
 	}
-	PutRNGstate();
+
 	if (fc->outsideFeasibleSet()) {
 		fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		return;
