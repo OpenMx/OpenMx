@@ -39,7 +39,7 @@ The method uses the Jacobian of the model expected means and the unique elements
 
 The Jacobian is evaluated numerically and generally takes a few seconds, but much less than a minute.
 
-The identification may not be accurate for model where definition variables are used.  Currently, only the first row of the definition variable is evaluated.
+The identification may not be accurate for models using definition variables.  Currently, only the first row of the definition variable is evaluated.
 
 When TRUE, the 'details' argument provides the names of the non-identified parameters.  Otherwise, only the status and Jacobian are returned.
 }
