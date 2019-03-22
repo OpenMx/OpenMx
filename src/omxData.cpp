@@ -40,7 +40,7 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0), parallel(true),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
 		     noExoOptimize(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
@@ -49,7 +49,6 @@ omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeigh
 
 omxData::~omxData()
 {
-	if (oss) delete oss;
 }
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
@@ -282,7 +281,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	if (strEQ(od->_type, "acov")) {  // old style for backward compatibility
-		oss = new obsSummaryStats;
+		oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 		auto &o1 = *oss;
 		o1.covMat = omxCreateCopyOfMatrix(dataMat, state);
 		o1.covMat->colnames = dataMat->colnames;
@@ -300,7 +299,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
-		if (Rf_length(RobsStats)) oss = new obsSummaryStats;
+		if (Rf_length(RobsStats)) oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 		for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
 			const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
 			auto &o1 = *oss;
@@ -2507,8 +2506,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	int numCols = dc.size();
 	int numColsStar = triangleLoc1(numCols);
 
-	if (oss) delete oss;
-	oss = new obsSummaryStats;
+	oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 	auto &o1 = *oss;
 	o1.dc = dc;
 	o1.exoPred = exoPred;
@@ -2790,8 +2788,7 @@ void omxData::estimateObservedStats()
 
 void omxData::invalidateCache()
 {
-	if (oss) delete oss;
-	oss = 0;
+	oss.reset();
 }
 
 void omxData::invalidateColumnsCache(std::vector< int > &columns)
@@ -2813,8 +2810,7 @@ void omxData::invalidateColumnsCache(std::vector< int > &columns)
 		Ecov.col(it->second).setConstant(nan("uninit"));
 	}
 	if (fail) {
-		delete oss;
-		oss = 0;
+		invalidateCache();
 		return;
 	}
 

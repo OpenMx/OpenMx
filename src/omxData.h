@@ -169,7 +169,7 @@ class omxData {
 	double *currentWeightColumn;
 	int freqCol;
 	int *currentFreqColumn;
-	obsSummaryStats *oss;
+	std::unique_ptr< obsSummaryStats > oss;
 	bool parallel;
 	bool noExoOptimize;
 
