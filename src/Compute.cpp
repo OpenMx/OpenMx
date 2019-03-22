@@ -2229,6 +2229,17 @@ class ComputeLoadMatrix : public omxCompute {
 	virtual void computeImpl(FitContext *fc);
 };
 
+class ComputeTryCatch : public omxCompute {
+	typedef omxCompute super;
+	std::unique_ptr< omxCompute > plan;
+	int cpIndex;
+
+public:
+	virtual void initFromFrontend(omxState *, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+};
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -2298,6 +2309,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	 []()->omxCompute* { return new ComputeJacobian; }},
 	{"MxComputeSetOriginalStarts",
 	 []()->omxCompute* { return new ComputeSetOriginalStarts; }},
+	{"MxComputeTryCatch",
+	 []()->omxCompute* { return new ComputeTryCatch; }},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -2372,6 +2385,48 @@ omxComputeSequence::~omxComputeSequence()
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		delete clist[cx];
 	}
+}
+
+void ComputeTryCatch::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	auto &cp = Global->checkpointColnames;
+	cpIndex = cp.size();
+	std::string errCol(string_snprintf("catch%d", int(Global->computeLoopIndex.size())));
+	cp.push_back(errCol);
+
+	SEXP slotValue;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
+	SEXP s4class;
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
+	plan = std::unique_ptr< omxCompute >(omxNewCompute(globalState, CHAR(s4class)));
+	plan->initFromFrontend(globalState, slotValue);
+}
+
+void ComputeTryCatch::computeImpl(FitContext *fc)
+{
+	auto &cv = Global->checkpointValues;
+	cv[cpIndex] = "";
+	try {
+		plan->compute(fc);
+	} catch( std::exception &ex ) {
+		cv[cpIndex] = ex.what();
+	} catch(...) {
+		cv[cpIndex] = "c++ exception (unknown reason)";
+	}
+	if (isErrorRaisedIgnTime()) {
+		cv[cpIndex] = Global->getBads();
+		Global->bads.clear();
+	}
+}
+
+void ComputeTryCatch::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan.get();
+	collectResultsHelper(fc, clist, lcr, out);
 }
 
 void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -4803,13 +4858,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	s1.fit = fc->fit;
 	s1.inform = fc->wrapInform();
 	if (inclSEs) {
-		if (!fc->stderrs.size()) {
-			if (!badSEWarning) {
-				Rf_warning("%s: standard errors are not available", name);
-				badSEWarning = true;
-			}
-		}
-		if (fc->stderrs.size() != int(fc->numParam)) {
+		if (fc->stderrs.size() && fc->stderrs.size() != int(fc->numParam)) {
 			if (!badSEWarning) {
 				Rf_warning("%s: there are %d standard errors but %d parameters",
 					   name, fc->stderrs.size(), int(fc->numParam));

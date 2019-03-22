@@ -2225,7 +2225,7 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 	}
 
 	_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
-	oss->setDimnames(this);
+	if (oss) oss->setDimnames(this);
 }
 
 struct sampleStats {
@@ -2361,6 +2361,7 @@ struct sampleStats {
 			Ecov(yy,yy) = olsr.var;
 			if (olsr.var < std::numeric_limits<double>::epsilon()) {
 				omxRaiseErrorf("%s: '%s' has no observed variance", data.name, dc[yy]);
+				return;
 			}
 			Emean[yy] = pv.theta[0];
 			copyScores(o1.SC_TH, pv.thrOffset, olsr.scores.array(), 0);
@@ -2511,7 +2512,9 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	if (!dc.size()) return;
 
 	if (!regenObsStats(dc, wlsType)) {
-		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats", name);
+		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats (partial=%d)",
+					name, int(oss->partial));
+		if (oss->partial) estimateObservedStats();
 		return;
 	}
 
@@ -2635,14 +2638,14 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	if (verbose >= 1) mxLog("%s: orig %d rows; index.size() = %d; scoreRows = %d; totalWeight = %f",
 				name, rows, int(index.size()), scoreRows, o1.totalWeight);
 
+	int pstar = triangleLoc1(numCols-1);
 	o1.SC_VAR.resize(scoreRows, numContinuous);
 	o1.SC_SL.resize(scoreRows, numCols * exoPred.size());
 	o1.SC_TH.resize(scoreRows, totalThr);
-
-	int pstar = triangleLoc1(numCols-1);
 	o1.SC_COR.resize(scoreRows, pstar);
+
 	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
-	int acov_size = A11_size + o1.SC_COR.cols();
+	int acov_size = A11_size + pstar;
 	if (!strEQ(wlsType, "ULS")) {
 		o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
 	}
@@ -2788,13 +2791,14 @@ void omxData::estimateObservedStats()
 			}
 		}
 	}
-	if (InvertSymmetricPosDef(Efw, 'L')) mxThrow("Attempt to invert acov failed");
+	if (InvertSymmetricPosDef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
 
 	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
 	
 	//mxPrintMat("Efw", Efw);
 
+	o1.partial = false;
 	if (verbose >= 2) o1.log();
 }
 
@@ -2820,11 +2824,7 @@ void omxData::invalidateColumnsCache(std::vector< int > &columns)
 		}
 		Ecov.row(it->second).setConstant(nan("uninit"));
 		Ecov.col(it->second).setConstant(nan("uninit"));
+		o1.partial = true;
 	}
-	if (fail) {
-		invalidateCache();
-		return;
-	}
-
-	estimateObservedStats();
+	if (fail) invalidateCache();
 }

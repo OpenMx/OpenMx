@@ -1597,7 +1597,7 @@ void ComputeCI::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 class ComputeTryH : public omxCompute {
 	typedef omxCompute super;
-	omxCompute *plan;
+	std::unique_ptr< omxCompute > plan;
 	int numFree;
 	int verbose;
 	double loc;
@@ -1613,8 +1613,6 @@ class ComputeTryH : public omxCompute {
 
 	static bool satisfied(FitContext *fc);
 public:
-	ComputeTryH() : plan(0) {};
-	virtual ~ComputeTryH();
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -1623,11 +1621,6 @@ public:
 
 omxCompute *newComputeTryHard()
 { return new ComputeTryH(); }
-
-ComputeTryH::~ComputeTryH()
-{
-	if (plan) delete plan;
-}
 
 void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 {
@@ -1654,7 +1647,7 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan = std::unique_ptr< omxCompute >(omxNewCompute(globalState, CHAR(s4class)));
 	plan->initFromFrontend(globalState, slotValue);
 }
 
@@ -1749,7 +1742,7 @@ void ComputeTryH::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRLis
 {
 	super::collectResults(fc, lcr, out);
 	std::vector< omxCompute* > clist(1);
-	clist[0] = plan;
+	clist[0] = plan.get();
 	collectResultsHelper(fc, clist, lcr, out);
 }
 
@@ -2170,7 +2163,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 			curEst[vx] = a;
 
 			{
-				ReturnRNGState grs;
+				ReturnRNGState rrs;
 				PushLoopIndex pli(name, jj);
 				fc->setInform(INFORM_UNINITIALIZED);
 				fc->copyParamToModel();

@@ -583,6 +583,104 @@ setMethod("displayCompute", signature(Ob="MxComputeTryHard", indent="integer"),
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeTryCatch",
+	 contains = "BaseCompute",
+	 representation = representation(
+	     plan = "MxCompute"))
+
+setMethod("assignId", signature("MxComputeTryCatch"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeTryCatch"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("qualifyNames", signature("MxComputeTryCatch"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeTryCatch"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("updateFromBackend", signature("MxComputeTryCatch"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeTryCatch",
+	  function(.Object, freeSet, plan) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@plan <- plan
+		  .Object
+	  })
+
+##' Execute a sub-compute plan, catching errors
+##'
+##' THIS IS EXPERIMENTAL AND MAY HAVE BUGS.
+##' 
+##' Any error will be recorded in a subsequent checkpoint. After
+##' execution, the context will be reset to continue computation as if
+##' no errors has occurred.
+##'
+##' @param plan compute plan to optimize the model
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @seealso
+##' \link{mxComputeCheckpoint}
+##' @aliases
+##' MxComputeTryCatch-class
+mxComputeTryCatch <- function(plan, ..., freeSet=NA_character_)
+{
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeTryCatch does not accept values for the '...' argument")
+	}
+	new("MxComputeTryCatch", freeSet, plan)
+}
+
+setMethod("displayCompute", signature(Ob="MxComputeTryCatch", indent="integer"),
+	  function(Ob, indent) {
+		  callNextMethod()
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$plan :", '\n')
+		  displayCompute(Ob@plan, indent+1L)
+		  invisible(Ob)
+	  })
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeConfidenceInterval",
 	 contains = "BaseCompute",
 	 representation = representation(

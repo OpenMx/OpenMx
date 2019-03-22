@@ -124,6 +124,7 @@ class obsSummaryStats {
 	std::vector<int> index;
 	Eigen::ArrayXd rowMult;
 
+	bool partial;
 	bool output;
 	double totalWeight;
 	int numOrdinal;  // == thresholdMat->cols or 0 if null
@@ -151,7 +152,7 @@ class obsSummaryStats {
 	Eigen::ArrayXXd H21;
 
  	obsSummaryStats() : wlsType(0), continuousType(0), wantFullWeight(true),
-		output(false), totalWeight(0), numOrdinal(0), numContinuous(0),
+		partial(false), output(false), totalWeight(0), numOrdinal(0), numContinuous(0),
 		covMat(0), slopeMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0), totalThr(0) {};
 	~obsSummaryStats();
