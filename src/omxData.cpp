@@ -1286,6 +1286,7 @@ void cumsum(Eigen::MatrixBase<T1> &data)
 
 struct OLSRegression {
 	omxData &data;
+	int naCount;
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
@@ -1324,13 +1325,17 @@ void OLSRegression::setResponse(ColumnData &cd, WLSVarData &pv)
 	ycol.resize(pred.rows());
 	subsetVector(ycolFull, index, ycol);
 	auto notMissingF = [&](int rx){ return std::isfinite(ycol[rx]); };
-	Eigen::VectorXd ycolF(ycol.size() - pv.naCount);
+	naCount = 0;
+	for (int rx=0; rx < int(ycol.size()); ++rx) {
+		if (!notMissingF(rx)) naCount += 1;
+	}
+	Eigen::VectorXd ycolF(ycol.size() - naCount);
 	subsetVector(ycol, notMissingF, ycolF);
-	Eigen::ArrayXd rowMultF(rowMult.size() - pv.naCount);
+	Eigen::ArrayXd rowMultF(rowMult.size() - naCount);
 	subsetVector(rowMult, notMissingF, rowMultF);
-	if (pred.cols()) {
+	if (pred.cols() > 1) {
 		Eigen::DiagonalMatrix<double, Eigen::Dynamic> weightMat(rowMultF.matrix());
-		Eigen::MatrixXd predF(pred.rows() - pv.naCount, pred.cols());
+		Eigen::MatrixXd predF(pred.rows() - naCount, pred.cols());
 		subsetRows(pred, notMissingF, predF);
 		Eigen::MatrixXd predCov;
 		predCov = predF.transpose() * weightMat * predF;
@@ -1424,7 +1429,11 @@ void ProbitRegression::setResponse(ColumnData &_r, WLSVarData &pv)
 	ycol.resize(pred.rows());
 	subsetVector(ycolFull, index, ycol);
 	auto notMissingF = [&](int rx){ return ycol[rx] != NA_INTEGER; };
-	Eigen::VectorXi ycolF(ycol.size() - pv.naCount);
+	int naCount=0;
+	for (int rx=0; rx < int(index.size()); ++rx) {
+		if (!notMissingF(rx)) naCount += 1;
+	}
+	Eigen::VectorXi ycolF(ycol.size() - naCount);
 	subsetVector(ycol, notMissingF, ycolF);
 	Eigen::VectorXd tab(response->levels.size());
 	tabulate(ycolF, rowMult.derived(), tab);
@@ -1660,14 +1669,23 @@ struct PolyserialCor : NewtonRaphsonObjective {
 
 		numThr = oc.levels.size() - 1;
 
-		Eigen::VectorXi ycolF(ycol.rows() - ov.naCount);
-		subsetVector(ycol, [&](int rx){ return ycol[rx] != NA_INTEGER; }, ycolF);
+		int naCount=0;
+		auto notMissingF = [&](int rx){ return ycol[rx] != NA_INTEGER; };
+		for (int rx=0; rx < int(index.size()); ++rx) {
+			if (!notMissingF(rx)) naCount += 1;
+		}
+		Eigen::VectorXi ycolF(ycol.rows() - naCount);
+		subsetVector(ycol, notMissingF, ycolF);
+		Eigen::ArrayXd zeeF(ycolF.size());
+		subsetVector(zee, notMissingF, zeeF);
+
 		Eigen::ArrayXd rowMultF(ycolF.size());
-		subsetVector(rowMult, [&](int rx){ return ycol[rx] != NA_INTEGER; }, rowMultF);
+		subsetVector(rowMult, notMissingF, rowMultF);
 		double den = 0;
 		for (int tx=0; tx < numThr; ++tx) den += Rf_dnorm4(ov.theta[tx], 0., 1., 0);
-		double rho = (zee * ycolF.cast<double>().array() * rowMultF).sum() /
+		double rho = (zeeF * ycolF.cast<double>().array() * rowMultF).sum() /
 			(totalWeight * sqrt(var) * den);
+		if (!std::isfinite(rho)) mxThrow("PolyserialCor starting value not finite");
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting ps rho = %f", rho);
 		param = atanh(rho);
@@ -2567,7 +2585,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.perVar.resize(numCols);
 	for (int yy=0, thrOffset=0; yy < numCols; ++yy) {
 		auto &pv = o1.perVar[yy];
-		pv.naCount = 0;
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		thStart[yy] = totalThr;
 		if (cd.type == COLUMNDATA_NUMERIC) {
@@ -2582,10 +2599,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			contMap.push_back(numContinuous);
 			totalThr += 1;  // mean
 			numContinuous += 1;
-			Eigen::Map< Eigen::VectorXd > ycol(cd.ptr.realData, rows);
-			for (int rx=0; rx < int(index.size()); ++rx) {
-				if (!std::isfinite(ycol[ index[rx] ])) pv.naCount += 1;
-			}
 		} else {
 			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
 				mxThrow("%s: variable '%s' must be an ordered factor but is of type %s",
@@ -2605,10 +2618,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			thrOffset += numThr;
 			totalThr += numThr;
 			maxNumThr = std::max(maxNumThr, numThr);
-			Eigen::Map< Eigen::VectorXi > ycol(cd.ptr.intData, rows);
-			for (int rx=0; rx < int(index.size()); ++rx) {
-				if (ycol[ index[rx] ] == NA_INTEGER) pv.naCount += 1;
-			}
 		}
 	}
 
