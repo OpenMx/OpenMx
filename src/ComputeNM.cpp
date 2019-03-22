@@ -551,7 +551,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	if(numEqC > 1 && NMobj->checkRedundantEqualities){
 		NldrMd_equality_functional eqf(this, fc);
 		Eigen::MatrixXd ej(numEqC, numFree);
-		//TODO: why doesn't this populate the elements of ej?:
 		eqf(est, equality);
 		fd_jacobian<true>(
 			GradientAlgorithm_Central, 4, 1.0e-7,
