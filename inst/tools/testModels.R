@@ -153,7 +153,7 @@ if (totalErrors > 0) {
 				print(oerr[[i]])
 				cat('\n')
 			}
-			system(paste("cat", outputFilename[[opt]][[ fileName[[i]] ]]))
+			system(paste("cat", outputFilename[[opt]][[ fileName[[i]] ]]), wait=FALSE)
 		}
 	}
 } else {
