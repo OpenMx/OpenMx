@@ -95,7 +95,7 @@ discardCols <- c("OpenMxEvals", "iterations", "timestamp",
                  "MxComputeLoop1", "objective", "statusCode",
                  'testCols.csv:z1', 'testCols.csv:z2')
 thr <- c(7, 8, 7, 7, 8, 8, 7, 8, 8, 7, 7, 8, 7, 7, 4, 8, 8, 8, 9, 8,
-         9, 9, 11, 10, 10, 9, 9, 8, 10, 10)
+         9, 9, 11, 10, 10, 9, 9, 8, 10, 10) - 2
 
 log <- model3Fit$compute$steps[['CPT']]$log
 
