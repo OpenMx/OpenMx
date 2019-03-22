@@ -135,8 +135,10 @@ if(mxOption(NULL,"Default optimizer")!="CSOLNP"){
 	plan$steps <- list(GD=plan$steps$GD)
 	plan$steps$GD <- mxComputeNelderMead(eqConstraintMthd="GDsearch")
 	modelACE <- mxModel(modelACE, plan)
-	# omxCheckWarning(
-	# 	mxRun(modelACE),
-	# 	"equality-constraint Jacobian is rank-deficient at start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
-	# )
+	omxCheckWarning(
+		mxRun(modelACE),
+		"counted 3 equality constraints, but equality-constraint Jacobian is rank 1 at the start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
+	)
+	#fitACE <- mxRun(modelACE)
+	#summary(fitACE)
 }
