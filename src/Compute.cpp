@@ -4279,7 +4279,6 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 				cp.push_back(c1);
 			}
 		}
-		Global->checkpointValues.resize(cp.size());
 	}
 
 	loadCounter = 0;

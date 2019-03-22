@@ -190,6 +190,8 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 
 	if (Global->computeLoopContext.size())
 		mxThrow("computeLoopContext imbalance in initFromFrontend");
+
+	Global->checkpointValues.resize(Global->checkpointColnames.size());
 }
 
 // This is called at initialization and when we copy
