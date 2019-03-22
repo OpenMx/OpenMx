@@ -103,16 +103,28 @@ void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	delete oa;
 }
 
+struct SwitchWantStage {
+	omxState *st;
+	int prevWant;
+
+	SwitchWantStage(omxState *_st, int to) : st(_st)
+	{
+		prevWant = st->getWantStage();
+		st->setWantStage(to);
+	}
+	~SwitchWantStage()
+	{
+		st->setWantStage(prevWant);
+	}
+};
+
 void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 {
 	if (mat->hasMatrixNumber) mat = fc->lookupDuplicate(mat);
-	omxState *st = mat->currentState;
-	auto prevWant = st->getWantStage();
-	st->setWantStage(FF_COMPUTE_PREOPTIMIZE);
+	SwitchWantStage sws(mat->currentState, FF_COMPUTE_PREOPTIMIZE);
 	omxRecompute(mat, fc);
 	auto ff = mat->fitFunction;
 	if (ff) fc->fitUnits = ff->units;
-	st->setWantStage(prevWant);
 }
 
 void CheckAST(omxAlgebra *oa, FitContext *fc)
@@ -139,11 +151,21 @@ void CheckAST(omxAlgebra *oa, FitContext *fc)
 	}
 }
 
+struct AlgebraProcessingGuard {
+	omxAlgebra *al;
+	AlgebraProcessingGuard(omxAlgebra *_al) : al(_al) {
+		al->processing = true;
+	};
+	~AlgebraProcessingGuard() {
+		al->processing = false;
+	}
+};
+
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
 	omxAlgebra *oa = mat->algebra;
 	if (oa->processing) return;
-	oa->processing = true;
+	AlgebraProcessingGuard apg(oa);
 	if (oa->verbose >= 1) mxLog("recompute algebra '%s'", mat->name());
 
 	if (want & FF_COMPUTE_INITIAL_FIT) {
@@ -214,7 +236,6 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 						   Emat.rows(), Emat.cols());
 		mxPrintMat(name.c_str(), Emat.topLeftCorner(nr, nc));
 	}
-	oa->processing = false;
 }
 
 omxAlgebra::omxAlgebra()
