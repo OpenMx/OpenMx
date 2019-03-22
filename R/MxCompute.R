@@ -657,6 +657,7 @@ setMethod("initialize", "MxComputeTryCatch",
 ##'
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param freeSet names of matrices containing free variables
 ##' @seealso
 ##' \link{mxComputeCheckpoint}
 ##' @aliases
