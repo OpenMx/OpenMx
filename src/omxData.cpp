@@ -2746,12 +2746,15 @@ void omxData::estimateObservedStats()
 		if (val != 0) A22(ii,ii) = 1.0/val;
 	}
 
-	Eigen::MatrixXd A21i = -(A22 * A21 * A11.selfadjointView<Eigen::Lower>());
+	Eigen::MatrixXd A21i;
+	if (pstar) A21i = -(A22 * A21 * A11.selfadjointView<Eigen::Lower>());
 	Eigen::MatrixXd Bi(acov_size,acov_size);
 	Bi.setZero();
 	Bi.block(0,0,A11.rows(),A11.cols()) = A11.selfadjointView<Eigen::Lower>();
-	Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
-	Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
+	if (pstar) {
+		Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
+		Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
+	}
 	// mxPrintMat("Bi", Bi); // good
 
 	EigenMatrixAdaptor Efw(o1.fullWeight);
