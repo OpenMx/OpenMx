@@ -555,9 +555,10 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		fd_jacobian<true>(
 			GradientAlgorithm_Central, 4, 1.0e-7,
 			eqf, equality, est, ej);
+		Eigen::MatrixXd ejt = ej.transpose();
 		//mxPrintMat("ej: ",ej);
 		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
-		qrj.compute(ej.transpose().eval());
+		qrj.compute(ejt);
 		if(qrj.rank() < numEqC){
 			Rf_warning(
 				"counted %d equality constraints, but equality-constraint Jacobian is rank %d at the start values; " 
