@@ -1093,24 +1093,6 @@ void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat)
 	mat.derived() = svd.matrixV() * sv.asDiagonal() * svd.matrixU().transpose();
 }
 
-// https://forum.kde.org/viewtopic.php?f=74&t=96706
-// https://forum.kde.org/viewtopic.php?f=74&t=124421
-// https://forum.kde.org/viewtopic.php?f=74&t=91271
-template <typename T1>
-void filterJacobianRows(Eigen::MatrixBase<T1>& A, int& rankA){
-	//TODO: check for conformability
-	Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qra(A.transpose());
-	rankA = qra.rank();
-	Eigen::MatrixXd Q(A.cols(), A.rows());
-	Q.setIdentity(A.cols(), A.rows());
-	qra.householderQ().applyThisOnTheLeft(Q);
-	Eigen::MatrixXd R = qra.matrixR().triangularView<Eigen::Upper>();
-	R.conservativeResize(A.rows(), rankA);
-	//mxLog("rank: %d",rankA[0]);
-	//mxPrintMat("Q ",Q);
-	//mxPrintMat("R ",R);
-	A = (Q * R).transpose();
-}
 
 SEXP omxMatrix::asR()
 {
