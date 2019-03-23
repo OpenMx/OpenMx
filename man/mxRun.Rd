@@ -16,20 +16,25 @@
 \name{mxRun}
 \alias{mxRun}
 
-\title{Send a Model to the Optimizer}
+\title{Run an OpenMx model}
 
 \description{
-   This function begins optimization, sending \sQuote{model} to the optimizer.
+   This function sends \sQuote{model} to the optimizer, and returns the optimized model if it ran without error.
 
-   Optionally, confidence \sQuote{intervals} will also be computed.
+   If  \code{intervals = TRUE}, then confidence intervals will be computed on
+   any \code{\link{mxCI}}s added to the model.
 
    During a run, \sQuote{mxRun} will print the context (e.g. optimizer name or step in the analysis 
    e.g. MxComputeNumericDeriv ), followed by the current evaluation count, fit value, and the change 
    in fit compared to the last status report. e.g.: 
    
-   \code{SLSQP 668 4966.58 -218.8}
+   \code{MxComputeGradientDescent(CSOLNP) evaluations 1258 fit 37702.6 change -0.05861}
 
-   note: For models that prove difficult to run, you might look at \code{\link{mxTryHard}}.
+   This may be followed by progress on the numeric derivative
+
+   \code{MxComputeNumericDeriv 313/528}
+
+   \emph{note}: For models that prove difficult to run, you might try using \code{\link{mxTryHard}} in place of mxRun.
 }
 
 \usage{
@@ -108,5 +113,26 @@ model <- mxRun(model)
 
 # 5. Show a summary of the fitted model and parameter values
 summary(model) 
+
+# 6. Print SE-based CIs for the fitted parameter values
+
+confint(model)
+
+# 7. Add likelihood-based CIs to the model and run these
+
+model = mxModel(model, mxCI(paste0("b", 1:5))) 
+model <- mxRun(model, intervals = TRUE) 
+summary(model)$CI
+
+#       lbound  estimate    ubound note
+# b1 0.3675940 0.3967545 0.4285895     
+# b2 0.4690663 0.5031569 0.5405838     
+# b3 0.5384588 0.5766635 0.6186705     
+# b4 0.6572678 0.7020702 0.7514609     
+# b5 0.7457231 0.7954529 0.8503486     
+
+# 8. Demonstrate mxTryHard
+
+model <- mxTryHard(model, intervals = TRUE) 
 
 }

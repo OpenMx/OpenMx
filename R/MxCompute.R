@@ -583,6 +583,105 @@ setMethod("displayCompute", signature(Ob="MxComputeTryHard", indent="integer"),
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeTryCatch",
+	 contains = "BaseCompute",
+	 representation = representation(
+	     plan = "MxCompute"))
+
+setMethod("assignId", signature("MxComputeTryCatch"),
+	function(.Object, id, defaultFreeSet) {
+		.Object <- callNextMethod()
+		defaultFreeSet <- .Object@freeSet
+		id <- .Object@id
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
+			id <- slot(.Object, sl)@id + 1L
+		}
+		.Object@id <- id
+		.Object
+	})
+
+setMethod("getFreeVarGroup", signature("MxComputeTryCatch"),
+	function(.Object) {
+		result <- callNextMethod()
+		for (step in c(.Object@plan)) {
+			got <- getFreeVarGroup(step)
+			if (length(got)) result <- append(result, got)
+		}
+		result
+	})
+
+setMethod("qualifyNames", signature("MxComputeTryCatch"),
+	function(.Object, modelname, namespace) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
+		}
+		.Object
+	})
+
+setMethod("convertForBackend", signature("MxComputeTryCatch"),
+	function(.Object, flatModel, model) {
+		name <- .Object@name
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
+		}
+		.Object
+	})
+
+setMethod("updateFromBackend", signature("MxComputeTryCatch"),
+	function(.Object, computes) {
+		.Object <- callNextMethod()
+		for (sl in c('plan')) {
+			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
+		}
+		.Object
+	})
+
+setMethod("initialize", "MxComputeTryCatch",
+	  function(.Object, freeSet, plan) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- freeSet
+		  .Object@plan <- plan
+		  .Object
+	  })
+
+##' Execute a sub-compute plan, catching errors
+##'
+##' THIS IS EXPERIMENTAL AND MAY HAVE BUGS.
+##' 
+##' Any error will be recorded in a subsequent checkpoint. After
+##' execution, the context will be reset to continue computation as if
+##' no errors has occurred.
+##'
+##' @param plan compute plan to optimize the model
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param freeSet names of matrices containing free variables
+##' @seealso
+##' \link{mxComputeCheckpoint}
+##' @aliases
+##' MxComputeTryCatch-class
+mxComputeTryCatch <- function(plan, ..., freeSet=NA_character_)
+{
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeTryCatch does not accept values for the '...' argument")
+	}
+	new("MxComputeTryCatch", freeSet, plan)
+}
+
+setMethod("displayCompute", signature(Ob="MxComputeTryCatch", indent="integer"),
+	  function(Ob, indent) {
+		  callNextMethod()
+		  sp <- paste(rep('  ', indent), collapse="")
+		  cat(sp, "$plan :", '\n')
+		  displayCompute(Ob@plan, indent+1L)
+		  invisible(Ob)
+	  })
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeConfidenceInterval",
 	 contains = "BaseCompute",
 	 representation = representation(
@@ -2131,15 +2230,20 @@ setClass(Class = "MxComputeLoadData",
 		 path = "character",
 		 originalDataIsIndexOne = "logical",
 		 byrow = "logical",
-		 row.names = "logical",
-		 col.names = "logical",
+		 row.names = "MxOptionalInteger",
+		 col.names = "MxOptionalInteger",
 		 verbose = "integer",
-		 cacheSize = "integer"
+		 cacheSize = "integer",
+		 method = "character",
+		 checkpointMetadata = "logical",
+		 skip.rows = "integer",
+		 skip.cols = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
-		 row.names, col.names, byrow, verbose, cacheSize) {
+		 row.names, col.names, skip.rows, skip.cols, byrow, verbose, cacheSize, method,
+		 checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2152,6 +2256,10 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@col.names <- col.names
 		  .Object@verbose <- verbose
 		  .Object@cacheSize <- cacheSize
+		  .Object@method <- method
+		  .Object@checkpointMetadata <- checkpointMetadata
+		  .Object@skip.rows <- skip.rows
+		  .Object@skip.cols <- skip.cols
 		  .Object
 	  })
 
@@ -2170,6 +2278,8 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 	})
 
 ##' Load columns into an MxData object
+##'
+##' THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
 ##'
 ##' The purpose of this compute step is to help quickly perform many
 ##' similar analyses. For example, if we are given a sample of people
@@ -2191,32 +2301,39 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param column a character vector. The column names to replace.
 ##' @param method name of the conduit used to load the columns.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param path when method='CSV', the path to the file containing the data
+##' @param path the path to the file containing the data
 ##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
 ##' @param byrow logical. Whether the data columns are stored in rows (TRUE)
 ##' or columns (FALSE) on disk.
-##' @param row.names logical. Whether row names are present.
-##' @param col.names logical. Whether column names are present.
+##' @param row.names optional integer. Column containing the row names.
+##' @param col.names optional integer. Row containing the column names.
+##' @param skip.rows integer. Number of rows to skip before reading data.
+##' @param skip.cols integer. Number of columns to skip before reading data.
 ##' @param verbose integer. Level of diagnostic output.
-##' @param cacheSize integer. How many columns to cacheSize per
-##' scan through the data.
+##' @param cacheSize integer. How many columns to cache per
+##' scan through the data. Only used when byrow=FALSE.
+##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
-mxComputeLoadData <- function(dest, column, method='CSV', ..., path,
+mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
-			      row.names=FALSE, col.names=FALSE, verbose=0L,
-			      cacheSize=100L) {
+			      row.names=c(), col.names=c(),
+			      skip.rows=0, skip.cols=0,
+			      verbose=0L,
+			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadData does not accept values for the '...' argument")
 	}
-	if (method != 'CSV') stop("Only method='CSV' is implemented")
+	method <- match.arg(method)
 	if (cacheSize < 1L) stop("cacheSize must be a positive integer")
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
-		as.logical(row.names), as.logical(col.names), byrow,
-		as.integer(verbose), as.integer(cacheSize))
+		as.integer(row.names), as.integer(col.names),
+		as.integer(skip.rows), as.integer(skip.cols), byrow,
+		as.integer(verbose), as.integer(cacheSize), method,
+		as.logical(checkpointMetadata))
 }
 
 #----------------------------------------------------
@@ -2261,13 +2378,13 @@ setMethod("convertForBackend", signature("MxComputeLoadMatrix"),
 		.Object
 	})
 
-mxComputeLoadMatrix <- function(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
+mxComputeLoadMatrix <- function(dest, method='csv', ..., path, originalDataIsIndexOne=FALSE,
 				row.names=FALSE, col.names=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadMatrix does not accept values for the '...' argument")
 	}
-	if (method != 'CSV') stop("Only method='CSV' is implemented")
+	if (method != 'csv') stop("Only method='csv' is implemented")
 	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne,
 		as.logical(row.names), as.logical(col.names))
 }

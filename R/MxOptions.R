@@ -213,6 +213,9 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
 		input <- model@options
+		if (is.null(input[["Standard Errors"]]) && constraints > 0 && imxHasWLS(model)){
+			input[["Standard Errors"]] <- "No"
+		}
 		if( !is.null(input[["UsePPML"]]) 
 		   && (input[["UsePPML"]] == "PartialSolved" || input[["UsePPML"]] == "Split") ) {
 			input[["Calculate Hessian"]] <- "No"

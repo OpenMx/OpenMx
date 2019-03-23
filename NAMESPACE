@@ -7,7 +7,7 @@ importFrom(Matrix, nearPD)
 importFrom(utils, .DollarNames, installed.packages, packageVersion, read.table)
 importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize, quantile,
 	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var, sd)
-importFrom("stats", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.methods")
+importFrom("stats", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.methods", "vcov")
 importFrom("stats", "binomial", "glm", "median", "plogis", 'qlogis', "predict")
 
 useDynLib(OpenMx, .registration=TRUE)

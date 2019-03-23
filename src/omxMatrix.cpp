@@ -1093,6 +1093,7 @@ void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat)
 	mat.derived() = svd.matrixV() * sv.asDiagonal() * svd.matrixU().transpose();
 }
 
+
 SEXP omxMatrix::asR()
 {
 	int m = rows, n = cols;

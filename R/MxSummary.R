@@ -1215,7 +1215,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   			warning(msg)
   			SE <- FALSE
   		}
-  		if(SE & length(model@output$hessian)==0){
+  		if(SE & length(model@output$vcov)==0){
   			if(!model@.wasRun){
   				msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run, and no matrix was provided for argument 'cov'",sep="")
   				warning(msg)
@@ -1232,22 +1232,15 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   			SE <- FALSE
   		}
   		if(SE){
-  			if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
-  				#solve() will fail if Hessian is computationally singular;
-  				#chol2inv() will still fail if Hessian is exactly singular.
-  				covParam <- 2*chol2inv(chol(model@output$hessian))
-  				dimnames(covParam) <- dimnames(model@output$hessian)
-  			}
-  			#An indefinite Hessian usually means some SEs will be NaN:
-  			else{covParam <- 2*solve(model@output$hessian)}
+  			covParam <- vcov(model)
   		}
   	}
   	#If user requests SEs and provided a covariance matrix:
   	else{
   		#Conceivably, the user could provide a sampling covariance matrix that IS valid in the presence of MxConstraints...
   		if(length(model@constraints)>0){
-  			msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
-  			warning(msg)
+  			#msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
+  			#warning(msg)
   		}
   		#Sanity checks on the value of argument 'cov':
   		if(!is.matrix(cov)){ #<--Is it a matrix?

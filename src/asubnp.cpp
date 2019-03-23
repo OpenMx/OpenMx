@@ -8,6 +8,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "matrix.h"
+#include "omxMatrix.h"
 #include "omxCsolnp.h"
 #include "ComputeGD.h"
 //#include <iostream>
@@ -1749,6 +1750,8 @@ void CSOLNP::calculateJac_forward(int np, double delta, Eigen::MatrixBase<T2>& p
         
         p0_e[index] = p0_e[index] - delta;
     }
+    //int rnk;
+		//filterJacobianRows(a_e, rnk);
 }
 
 template <typename T1, typename T2>
@@ -1823,6 +1826,8 @@ void CSOLNP::calculateJac_central(int np, double delta, Eigen::MatrixBase<T2>& p
         p0_e1[index] = p0_e1[index] - delta;
         p0_e2[index] = p0_e2[index] + delta;
     }
+    //int rnk;
+    //filterJacobianRows(a_e, rnk);
 }
 
 void CSOLNP::handleAnalyticGradJac()

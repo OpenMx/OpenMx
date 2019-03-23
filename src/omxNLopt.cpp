@@ -102,6 +102,8 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 		goc.eqNorm = Eresult.array().abs().sum();
 		fd_jacobian<true>(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,
               ff, Eresult, Epoint, jacobian);
+		//int rank;
+		//filterJacobianRows(jacobian, &rank);
 		if (ctx.eqmask.size() == 0) {
 			ctx.eqmask.assign(m, false);
 			for (int c1=0; c1 < int(m-1); ++c1) {

@@ -34,6 +34,7 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 			matrices <- setdiff(matrices, model$expectation$F)
 		}
 	}
+	if(imxHasWLS(model)){stop("modification indices not implemented for WLS fitfunction")}
 	param <- omxGetParameters(model)
 	param.names <- names(param)
 	gmodel <- omxSetParameters(model, free=FALSE, labels=param.names)

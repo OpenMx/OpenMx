@@ -20,6 +20,9 @@
 #include <random>
 #include <fstream>
 #include <forward_list>
+#include <map>
+#include "genfile/bgen/View.hpp"
+#include "genfile/bgen/IndexQuery.hpp"
 
 #include "glue.h"
 #include "Compute.h"
@@ -1725,38 +1728,55 @@ void omxCompute::complainNoFreeParam()
 	}
 }
 
-void omxCompute::pushIndex(int ix)
-{
-	Global->computeLoopContext.push_back(name);
-	Global->computeLoopIndex.push_back(ix);
-}
-
-void omxCompute::popIndex()
-{
-	Global->computeLoopContext.pop_back();
-	Global->computeLoopIndex.pop_back();
-}
+class EnterVarGroup {
+	bool narrowed;
+ public:
+	FitContext *narrow;
+	EnterVarGroup(FitContext *fc, FreeVarGroup *varGroup) {
+		narrow = fc;
+		narrowed = fc->varGroup != varGroup;
+		if (narrowed) narrow = new FitContext(fc, varGroup);
+	}
+	~EnterVarGroup() {
+		if (narrowed) narrow->updateParentAndFree();
+	}
+};
 
 void omxCompute::compute(FitContext *fc)
 {
-	FitContext *narrow = fc;
-	if (fc->varGroup != varGroup) narrow = new FitContext(fc, varGroup);
-	computeWithVarGroup(narrow);
-	if (fc->varGroup != varGroup) narrow->updateParentAndFree();
+	EnterVarGroup evg(fc, varGroup);
+	computeWithVarGroup(evg.narrow);
 }
+
+struct LeaveComputeWithVarGroup {
+	FitContext *fc;
+	bool toResetInform;
+	ComputeInform origInform;
+	const char *name;
+
+	LeaveComputeWithVarGroup(FitContext *_fc, struct omxCompute *compute) : fc(_fc), name(compute->name) {
+		origInform = fc->getInform();
+		toResetInform = compute->resetInform();
+		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);
+		if (Global->debugProtectStack) {
+			mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
+		}
+	};
+	~LeaveComputeWithVarGroup() {
+		fc->destroyChildren();
+		if (toResetInform) fc->setInform(std::max(origInform, fc->getInform()));
+		Global->checkpointMessage(fc, fc->est, "%s", name);
+		if (Global->debugProtectStack) {
+			mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
+		}
+
+	}
+};
 
 void omxCompute::computeWithVarGroup(FitContext *fc)
 {
-	ComputeInform origInform = fc->getInform();
-	if (OMX_DEBUG) { mxLog("enter %s varGroup %d", name, varGroup->id[0]); }
-	if (Global->debugProtectStack) mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
-	if (resetInform()) fc->setInform(INFORM_UNINITIALIZED);
+	LeaveComputeWithVarGroup lcwvg(fc, this);
 	computeImpl(fc);
-	if (resetInform()) fc->setInform(std::max(origInform, fc->getInform()));
-	if (OMX_DEBUG) { mxLog("exit %s varGroup %d inform %d", name, varGroup->id[0], fc->getInform()); }
-	if (Global->debugProtectStack) mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
-	fc->destroyChildren();
-	Global->checkpointMessage(fc, fc->est, "%s", name);
 }
 
 class ComputeContainer : public omxCompute {
@@ -1927,7 +1947,6 @@ class ComputeStandardError : public omxCompute {
 	int df;
 	double x2m, x2mv;
 	double madj, mvadj, dstar;
-	Eigen::MatrixXd vcov;
 
 	struct visitEx {
 		ComputeStandardError &top;
@@ -2067,14 +2086,15 @@ class ComputeCheckpoint : public omxCompute {
 		double fit;
 		int inform;
 		Eigen::VectorXd stderrs;
-		Eigen::VectorXd extra;
+		Eigen::VectorXd algebraEnt;
+		std::vector< std::string > extra;
 	};
 
 	const char *path;
 	std::ofstream ofs;
 	bool toReturn;
 	std::vector<omxMatrix*> algebras;
-	int numExtra;
+	int numAlgebraEnt;
 	bool wroteHeader;
 	std::vector<std::string> colnames;
 	std::forward_list<snap> snaps;
@@ -2082,6 +2102,8 @@ class ComputeCheckpoint : public omxCompute {
 	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
 	bool inclSEs;
 	bool badSEWarning;
+	bool firstTime;
+	size_t numExtraCols;
 
  public:
 	virtual bool resetInform() { return false; };
@@ -2141,24 +2163,34 @@ class ComputeGenerateData : public omxCompute {
 
 class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
+	enum LoadMethod {
+		LoadCSV,
+		LoadBGEN
+	} loadMethod;
 	omxData *data;
 	std::vector< int > columns;
 	std::vector< int > colTypes;
 	std::string filePath;
+	std::string fileName;
 	bool useOriginalData;
 	std::vector<dataPtr> origData;
-	bool hasColNames, hasRowNames;
+	int rowNames, colNames;
+	int skipRows, skipCols;
 	bool byrow;
 	int verbose;
+	bool checkpoint;
+	int cpIndex;
+
+	genfile::bgen::View::UniquePtr bgenView;
 
 	int loadCounter;
 	void loadByCol(FitContext *fc, int index);
+	void loadByRow(FitContext *fc, int index);
+	void loadBgenRow(FitContext *fc, int index);
 	int stripeSize;
 	int stripeStart;  // 0 is the first column
 	int stripeEnd;
 	std::vector<dataPtr> stripeData; // stripeSize * columns.size()
-
-	void loadByRow(FitContext *fc, int index);
 
 	struct ColumnInvalidator : StateInvalidator {
 		typedef StateInvalidator super;
@@ -2169,6 +2201,10 @@ class ComputeLoadData : public omxCompute {
 			super(_st), data(_data), columns(_columns) {};
 		virtual void doData() { data->invalidateColumnsCache(columns); };
 	};
+
+	std::unique_ptr< mini::csv::ifstream > icsv;
+	int curRecord;
+	void mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out);
 
  public:
 	virtual ~ComputeLoadData();
@@ -2191,6 +2227,17 @@ class ComputeLoadMatrix : public omxCompute {
 	virtual ~ComputeLoadMatrix();
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
+};
+
+class ComputeTryCatch : public omxCompute {
+	typedef omxCompute super;
+	std::unique_ptr< omxCompute > plan;
+	int cpIndex;
+
+public:
+	virtual void initFromFrontend(omxState *, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
 };
 
 static class omxCompute *newComputeSequence()
@@ -2262,6 +2309,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	 []()->omxCompute* { return new ComputeJacobian; }},
 	{"MxComputeSetOriginalStarts",
 	 []()->omxCompute* { return new ComputeSetOriginalStarts; }},
+	{"MxComputeTryCatch",
+	 []()->omxCompute* { return new ComputeTryCatch; }},
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -2336,6 +2385,48 @@ omxComputeSequence::~omxComputeSequence()
 	for (size_t cx=0; cx < clist.size(); ++cx) {
 		delete clist[cx];
 	}
+}
+
+void ComputeTryCatch::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	auto &cp = Global->checkpointColnames;
+	cpIndex = cp.size();
+	std::string errCol(string_snprintf("catch%d", int(Global->computeLoopIndex.size())));
+	cp.push_back(errCol);
+
+	SEXP slotValue;
+	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
+	SEXP s4class;
+	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
+	plan = std::unique_ptr< omxCompute >(omxNewCompute(globalState, CHAR(s4class)));
+	plan->initFromFrontend(globalState, slotValue);
+}
+
+void ComputeTryCatch::computeImpl(FitContext *fc)
+{
+	auto &cv = Global->checkpointValues;
+	cv[cpIndex] = "";
+	try {
+		plan->compute(fc);
+	} catch( std::exception &ex ) {
+		cv[cpIndex] = ex.what();
+	} catch(...) {
+		cv[cpIndex] = "c++ exception (unknown reason)";
+	}
+	if (isErrorRaisedIgnTime()) {
+		cv[cpIndex] = Global->getBads();
+		Global->bads.clear();
+	}
+}
+
+void ComputeTryCatch::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
+{
+	super::collectResults(fc, lcr, out);
+	std::vector< omxCompute* > clist(1);
+	clist[0] = plan.get();
+	collectResultsHelper(fc, clist, lcr, out);
 }
 
 void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -2461,7 +2552,7 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
-	pushIndex(NA_INTEGER);
+	PushLoopIndex pli(name, NA_INTEGER);
 
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
@@ -2477,8 +2568,6 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 		clist.push_back(compute);
 	}
 
-	popIndex();
-
 	iterations = 0;
 }
 
@@ -2488,14 +2577,13 @@ void ComputeLoop::computeImpl(FitContext *fc)
 	bool hasMaxIter = maxIter != NA_INTEGER;
 	time_t startTime = time(0);
 	while (1) {
-		pushIndex(hasIndices? indices[iterations] : 1+iterations);
+		PushLoopIndex pli(name, hasIndices? indices[iterations] : 1+iterations);
 		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
 			if (isErrorRaised()) break;
 		}
-		popIndex();
 		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
 		if (hasMaxIter && iterations >= maxIter) break;
 		if (hasIndices && iterations >= indicesLength) break;
@@ -3530,11 +3618,16 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
 	if (fc->fitUnits == FIT_UNITS_UNINITIALIZED) return;
+	int numFree = fc->calcNumFree();
 	if (fc->fitUnits == FIT_UNITS_MINUS2LL) {
 		if (!fc->vcov.size()) {
+			fc->vcov.resize(numFree, numFree);
 			const double Scale = fabs(Global->llScale);
 			fc->refreshDenseIHess();
-			fc->vcov = Scale * fc->ihess;
+			//fc->ihess is not actually the inverted Hessian,
+			//but there's a method for constructing the inverted Hessian from it:
+			fc->copyDenseIHess(fc->vcov.data());
+			fc->vcov = Scale * fc->vcov;
 		}
 		fc->calcStderrs();
 		return;
@@ -3543,7 +3636,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
-	int numFree = fc->calcNumFree();
 	//Calculating the WLS vcov doesn't take constraints into consideration, so if there are active
 	//constraints, it won't be valid:
 	if(fc->state->conListX.size()){
@@ -4041,14 +4133,13 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 
 	auto *seedVec = INTEGER(VECTOR_ELT(rawOutput, 0));
 	if (only == NA_INTEGER || !previousData) {
-		GetRNGstate();
+		BorrowRNGState grs;
 		for (int repl=0; repl < numReplications; ++repl) {
 			if (seedVec[repl] != NA_INTEGER) continue;
 			int seed1 = unif_rand() * std::numeric_limits<int>::max();
 			if (seed1 == NA_INTEGER) seed1 = 0; // maybe impossible
 			seedVec[repl] = seed1;
 		}
-		PutRNGstate();
 	} else {
 		if (only <= Rf_length(VECTOR_ELT(previousData, 0))) {
 			if (verbose >= 1) mxLog("%s: using only=%d", name, only);
@@ -4146,13 +4237,11 @@ void ComputeGenerateData::computeImpl(FitContext *fc)
 {
 	if (simData.size()) mxThrow("Cannot generate data more than once");
 
-	GetRNGstate();
+	BorrowRNGState grs;
 
 	for (auto ex : expectations) {
 		ex->generateData(fc, simData);
 	}
-
-	PutRNGstate();
 }
 
 void ComputeGenerateData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
@@ -4166,17 +4255,40 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ProtectedSEXP RoriginalData(R_do_slot(rObj, Rf_install("originalDataIsIndexOne")));
 	useOriginalData = Rf_asLogical(RoriginalData);
-
-	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
-	hasRowNames = Rf_asLogical(Rrownames);
-	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
-	hasColNames = Rf_asLogical(Rcolnames);
 	ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
 	byrow = Rf_asLogical(Rbyrow);
+
+	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
+	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
+	if (strEQ(methodName, "csv")) {
+		loadMethod = LoadCSV;
+	} else if (strEQ(methodName, "bgen")) {
+		loadMethod = LoadBGEN;
+		if (!byrow) mxThrow("%s: byrow=FALSE is not implemented for bgen format", name);
+	} else {
+		mxThrow("%s: unknown method '%s'", name, methodName);
+	}
+	
+	rowNames = NA_INTEGER;
+	colNames = NA_INTEGER;
+	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
+	if (Rf_length(Rrownames)) rowNames = Rf_asInteger(Rrownames);
+	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
+	if (Rf_length(Rcolnames)) colNames = Rf_asInteger(Rcolnames);
+
+	ProtectedSEXP Rskiprows(R_do_slot(rObj, Rf_install("skip.rows")));
+	skipRows = Rf_asInteger(Rskiprows);
+	ProtectedSEXP Rskipcols(R_do_slot(rObj, Rf_install("skip.cols")));
+	skipCols = Rf_asInteger(Rskipcols);
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
 	ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
-	stripeSize = std::max(Rf_asInteger(Rcs), 1);
+	if (byrow) {
+		stripeSize = 1;
+	} else {
+		stripeSize = std::max(Rf_asInteger(Rcs), 1);
+	}
 
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
@@ -4203,14 +4315,99 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	filePath = R_CHAR(STRING_ELT(Rpath, 0));
+	auto slashPos = filePath.find_last_of("/\\");
+	if (slashPos == std::string::npos) {
+		fileName = filePath;
+	} else {
+		fileName = filePath.substr(slashPos+1);
+	}
+
+	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
+	checkpoint = Rf_asLogical(Rcheckpoint);
+
+	if (checkpoint) {
+		auto &cp = Global->checkpointColnames;
+		cpIndex = cp.size();
+
+		if (loadMethod == LoadBGEN) {
+			std::string c1 = fileName + ":SNP";
+			cp.push_back(c1);
+			c1 = fileName + ":RSID";
+			cp.push_back(c1);
+			c1 = fileName + ":ch";
+			cp.push_back(c1);
+			c1 = fileName + ":pos";
+			cp.push_back(c1);
+		}
+		if (loadMethod == LoadCSV && rowNames > 0 && byrow) {
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				std::string c1 = fileName + ":" + data->rawCols[ columns[cx] ].name;
+				cp.push_back(c1);
+			}
+		}
+	}
 
 	loadCounter = 0;
 	stripeStart = -1;
 	stripeEnd = -1;
 }
 
+struct BgenXfer {
+	dataPtr dp;
+	std::vector<double> prob;
+	int row;
+	BgenXfer(dataPtr &_dp) : dp(_dp) {};
+	void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {}
+	void set_min_max_ploidy(genfile::bgen::uint32_t min_ploidy, genfile::bgen::uint32_t max_ploidy,
+				genfile::bgen::uint32_t min_entries, genfile::bgen::uint32_t max_entries)
+	{
+		row = 0;
+		if (min_ploidy != 2 || max_ploidy != 2 || min_entries != 3 || max_entries != 3) {
+			mxThrow("set_min_max_ploidy %u %u %u %u, not implemented",
+				min_ploidy, max_ploidy, min_entries, max_entries);
+		}
+	}
+	bool set_sample( std::size_t i ) { return true; }
+	void set_number_of_entries(std::size_t ploidy,
+				   std::size_t number_of_entries,
+				   genfile::OrderType order_type,
+				   genfile::ValueType value_type)
+	{
+		if( value_type != genfile::eProbability ) {
+			mxThrow("value_type != genfile::eProbability");
+		}
+		prob.resize(number_of_entries);
+	}
+	void set_value( genfile::bgen::uint32_t entry_i, double value ) {
+		prob[entry_i] = value;
+		if (entry_i == 2) {
+			double dosage = prob[1] * 1 + prob[2] * 2;
+			dp.realData[row++] = dosage;
+		}
+	}
+
+	void set_value( genfile::bgen::uint32_t entry_i, genfile::MissingValue) {
+		if (entry_i == 2) {
+			dp.realData[row++] = NA_REAL;
+		}
+	}
+};
+
 void ComputeLoadData::computeImpl(FitContext *fc)
 {
+	if (!stripeData.size()) {
+		stripeData.reserve(stripeSize * columns.size());
+		for (int sx=0; sx < stripeSize; ++sx) {
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+					stripeData.emplace_back(new double[data->rows]);
+				} else {
+					stripeData.emplace_back(new int[data->rows]);
+				}
+			}
+		}
+	}
+
 	std::vector<int> &clc = Global->computeLoopIndex;
 	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
 	int index = clc[clc.size()-1] - 1;  // innermost loop index
@@ -4220,10 +4417,17 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 			data->rawCols[ columns[cx] ].ptr = origData[cx];
 		}
 	} else {
-		if (!byrow) {
-			loadByCol(fc, index - useOriginalData);
+		index -= useOriginalData; // 0 == the first record
+		if (loadMethod == LoadCSV) {
+			if (!byrow) {
+				loadByCol(fc, index);
+			} else {
+				loadByRow(fc, index);
+			}
+		} else if (loadMethod == LoadBGEN) {
+			loadBgenRow(fc, index);
 		} else {
-			loadByRow(fc, index - useOriginalData);
+			mxThrow("%s: unknown load method %d", name, loadMethod);
 		}
 	}
 
@@ -4247,20 +4451,83 @@ ComputeLoadData::~ComputeLoadData()
 	stripeData.clear();
 }
 
-void ComputeLoadData::loadByCol(FitContext *fc, int index)
+void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 {
-	if (!stripeData.size()) {
-		stripeData.reserve(stripeSize * columns.size());
-		for (int sx=0; sx < stripeSize; ++sx) {
-			for (int cx=0; cx < int(columns.size()); ++cx) {
-				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-					stripeData.emplace_back(new double[data->rows]);
-				} else {
-					stripeData.emplace_back(new int[data->rows]);
-				}
-			}
+	// m_postheader_data WTF?
+	if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
+					 name, int(columns.size()));
+	if (bgenView.get() == 0) {
+		using namespace genfile::bgen ;
+		using namespace Rcpp ;
+		std::string bgen(filePath);
+		std::string bgenIndex = bgen + ".bgi";
+		bgenView = View::create( filePath ) ;
+		auto query = IndexQuery::create( bgenIndex ) ;
+		query->initialise();
+		bgenView->set_query( query ) ;
+		if (data->rows != int(bgenView->number_of_samples())) {
+			mxThrow("%s: %s has %d rows but %s has %d samples",
+				name, data->name, data->rows, filePath.c_str(),
+				int(bgenView->number_of_samples()));
+		}
+		auto number_of_variants = bgenView->number_of_variants();
+		if (index >= int(number_of_variants)) {
+			mxThrow("%s: %d requested but only %d variants available in %s",
+				name, index, int(number_of_variants), filePath.c_str());
 		}
 	}
+
+	std::string SNPID, rsid, chromosome ;
+	genfile::bgen::uint32_t position ;
+	std::vector< std::string > alleles ;
+	bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
+	if (checkpoint) {
+		auto &cv = Global->checkpointValues;
+		cv[cpIndex] = SNPID;
+		cv[cpIndex+1] = rsid;
+		cv[cpIndex+2] = chromosome;
+		cv[cpIndex+3] = string_snprintf("%u", position);
+	}
+	BgenXfer xfer(stripeData[0]); // check type TODO
+	bgenView->read_genotype_data_block(xfer);
+
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+	}
+}
+
+void ComputeLoadData::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out)
+{
+	const std::string &rn = st.get_delimited_str();
+	if (rn == "NA") {
+		*out = NA_INTEGER;
+		return;
+	}
+	if (rc.levels.size()) {
+		bool found = false; // maybe use a map for better performance?
+		for (int lx=0; lx < int(rc.levels.size()); ++lx) {
+			if (rn == rc.levels[lx]) {
+				found = true;
+				*out = 1+lx;
+				break;
+			}
+		}
+		if (!found) mxThrow("%s: factor level '%s' unrecognized in column '%s'",
+				    name, rn.c_str(), rc.name);
+	} else {
+		std::istringstream is(rn);
+		is >> *out;
+	}
+}
+
+void ComputeLoadData::loadByCol(FitContext *fc, int index)
+{
+	// Doing the transpose on the fly is clever, but
+	// the code is tricky to test and the user would better
+	// transpose the data using some other program before
+	// feeding to OpenMx.
+
+	mxThrow("%s: ComputeLoadData::loadByCol not implemented", name);
 
 	if (stripeStart == -1 ||
 	    index < stripeStart || index >= stripeEnd) {
@@ -4270,14 +4537,14 @@ void ComputeLoadData::loadByCol(FitContext *fc, int index)
 		loadCounter += 1;
 		mini::csv::ifstream st(filePath);
 		st.set_delimiter(' ', "##");
-		if (hasColNames) st.skip_line();
+		for (int rx=0; rx < skipRows; ++rx) st.skip_line();
 		int stripeAvail = stripeSize;
 		for (int rx=0; rx < data->rows; ++rx) {
 			if (!st.read_line()) {
 				mxThrow("%s: ran out of data for '%s' (need %d rows but only found %d)",
 					 name, data->name, data->rows, 1+rx);
 			}
-			int toSkip = stripeStart * columns.size() + hasRowNames;
+			int toSkip = stripeStart * columns.size() + skipCols;
 			for (int jx=0; jx < toSkip; ++jx) {
 				std::string rn;
 				st >> rn;
@@ -4288,23 +4555,8 @@ void ComputeLoadData::loadByCol(FitContext *fc, int index)
 						if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 							st >> stripeData[dx].realData[rx];
 						} else {
-							auto &rc = data->rawCols[ columns[cx] ];
-							if (rc.levels.size()) {
-								std::string rn;
-								st >> rn;
-								bool found = false;
-								for (int lx=0; lx < int(rc.levels.size()); ++lx) {
-									if (rn == rc.levels[lx]) {
-										found = true;
-										stripeData[dx].intData[rx] = 1+lx;
-										break;
-									}
-								}
-								if (!found) mxThrow("%s: factor level '%s' unrecognized (row %d, column %d)",
-										    name, rn.c_str(), 1+rx, int(1 + toSkip + sx*columns.size() + cx));
-							} else {
-								st >> stripeData[dx].intData[rx];
-							}
+							mxScanInt(st, data->rawCols[ columns[cx] ],
+								  &stripeData[dx].intData[rx]);
 						}
 						dx += 1;
 					}
@@ -4333,7 +4585,57 @@ void ComputeLoadData::loadByCol(FitContext *fc, int index)
 
 void ComputeLoadData::loadByRow(FitContext *fc, int index)
 {
-	mxThrow("%s: not implemented", name);
+	if (!icsv || index < curRecord) {
+		icsv = std::unique_ptr< mini::csv::ifstream >(new mini::csv::ifstream(filePath));
+		icsv->set_delimiter(' ', "##");
+		for (int rx=0; rx < skipRows; ++rx) {
+			if (1+rx == colNames) {
+				// TODO
+			}
+			icsv->skip_line();
+		}
+		curRecord = 0;
+		loadCounter += 1;
+	}
+
+	while (index > curRecord) {
+		icsv->skip_line();
+		curRecord += 1;
+	}
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		if (!icsv->read_line()) {
+			mxThrow("%s: ran out of data for '%s' at record %d",
+				name, data->name, 1+index);
+		}
+		for (int sx=0; sx < skipCols; ++sx) {
+			std::string rn;
+			*icsv >> rn;
+			if (checkpoint && 1+sx == rowNames) {
+				auto &cv = Global->checkpointValues;
+				cv[cpIndex + cx] = rn;
+			}
+		}
+		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+			for (int rx=0; rx < data->rows; ++rx) {
+				const std::string& str = icsv->get_delimited_str();
+				if (str == "NA") {
+					stripeData[cx].realData[rx] = NA_REAL;
+				} else {
+					std::istringstream is(str);
+					is >> stripeData[cx].realData[rx];
+				}
+			}
+		} else {
+			for (int rx=0; rx < data->rows; ++rx) {
+				mxScanInt(*icsv, data->rawCols[ columns[cx] ],
+					  &stripeData[cx].intData[rx]);
+			}
+		}
+	}
+	curRecord += 1;
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+	}
 }
 
 void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
@@ -4446,6 +4748,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rheader(R_do_slot(rObj, Rf_install("header")));
 	wroteHeader = !Rf_asLogical(Rheader);
 
+	firstTime = true;
+	numExtraCols = 0;
+
 	path = 0;
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
 	if (Rf_length(Rpath) == 1) {
@@ -4520,18 +4825,19 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 
-	numExtra = 0;
+	numAlgebraEnt = 0;
 	for (auto &mat : algebras) {
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				colnames.push_back(string_snprintf("%s[%d,%d]", mat->name(), 1+rx, 1+cx));
 			}
 		}
-		numExtra += mat->cols * mat->rows;
+		numAlgebraEnt += mat->cols * mat->rows;
 	}
 	// TODO: confidence intervals, hessian, constraint algebras
 	// what does Eric Schmidt include in per-voxel output?
 	// remove old checkpoint code?
+	numSnaps = 0;
 }
 
 void ComputeCheckpoint::computeImpl(FitContext *fc)
@@ -4552,13 +4858,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	s1.fit = fc->fit;
 	s1.inform = fc->wrapInform();
 	if (inclSEs) {
-		if (!fc->stderrs.size()) {
-			if (!badSEWarning) {
-				Rf_warning("%s: standard errors are not available", name);
-				badSEWarning = true;
-			}
-		}
-		if (fc->stderrs.size() != int(fc->numParam)) {
+		if (fc->stderrs.size() && fc->stderrs.size() != int(fc->numParam)) {
 			if (!badSEWarning) {
 				Rf_warning("%s: there are %d standard errors but %d parameters",
 					   name, fc->stderrs.size(), int(fc->numParam));
@@ -4567,18 +4867,26 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		}
 		s1.stderrs = fc->stderrs;
 	}
-	s1.extra.resize(numExtra);
+	s1.algebraEnt.resize(numAlgebraEnt);
 
 	{int xx=0;
 	for (auto &mat : algebras) {
 		for (int cx=0; cx < mat->cols; ++cx) {
 			for (int rx=0; rx < mat->rows; ++rx) {
 				EigenMatrixAdaptor eM(mat);
-				s1.extra[xx] = eM(rx, cx);
+				s1.algebraEnt[xx] = eM(rx, cx);
 				xx += 1;
 			}
 		}
 	}}
+
+	if (firstTime) {
+		auto &xcn = Global->checkpointColnames;
+		numExtraCols = xcn.size();
+		colnames.insert(colnames.end(), xcn.begin(), xcn.end());
+		firstTime = false;
+	}
+	s1.extra = Global->checkpointValues;
 
 	if (ofs.is_open()) {
 		const int digits = std::numeric_limits<double>::digits10 + 1;
@@ -4639,9 +4947,10 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				}
 			}
 		}
-		for (int x1=0; x1 < int(s1.extra.size()); ++x1) {
-			ofs << '\t' << std::setprecision(digits) << s1.extra[x1];
+		for (int x1=0; x1 < int(s1.algebraEnt.size()); ++x1) {
+			ofs << '\t' << std::setprecision(digits) << s1.algebraEnt[x1];
 		}
+		for (auto &x1 : s1.extra) ofs << '\t' << x1;
 		ofs << '\n';
 		ofs.flush();
 	}
@@ -4654,6 +4963,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 
 void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
+	const bool debug = false;
 	if (ofs.is_open()) {
 		ofs.close();
 	}
@@ -4667,6 +4977,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	if (inclCounters) {
 		{
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (evaluations)", curCol, colnames[curCol].c_str());
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
@@ -4674,6 +4985,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		}
 		{
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (iterations)", curCol, colnames[curCol].c_str());
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
@@ -4687,6 +4999,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		SET_STRING_ELT(POSIXct, 1, Rf_mkChar("POSIXt"));
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
 		Rf_setAttrib(col, R_ClassSymbol, POSIXct);
+		if (debug) mxLog("log[%d] = %s (timestamp)", curCol, colnames[curCol].c_str());
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
@@ -4696,6 +5009,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto &clc = snaps.front().computeLoopIndex;
 		for (int lx=0; lx < int(clc.size()); ++lx) {
 			SEXP col = Rf_allocVector(INTSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (loop index %d)", curCol, colnames[curCol].c_str(), lx);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = INTEGER(col);
 			int sx=0;
@@ -4706,6 +5020,8 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto numEst = int(snaps.front().est.size());
 		for (int x1=0; x1 < numEst; ++x1) {
 			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (parameter %d/%d)", curCol, colnames[curCol].c_str(),
+			      x1, numEst);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = REAL(col);
 			int sx=0;
@@ -4714,6 +5030,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	}
 	if (inclFit) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		if (debug) mxLog("log[%d] = %s (fit)", curCol, colnames[curCol].c_str());
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
@@ -4721,6 +5038,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	}
 	if (inclStatus) {
 		SEXP col = allocInformVector(numSnaps);
+		if (debug) mxLog("log[%d] = %s (inform)", curCol, colnames[curCol].c_str());
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = INTEGER(col);
 		int sx=0;
@@ -4730,6 +5048,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto numEst = int(snaps.front().est.size());
 		for (int x1=0; x1 < numEst; ++x1) {
 			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (SE %d/%d)", curCol, colnames[curCol].c_str(), x1, numEst);
 			SET_VECTOR_ELT(log, curCol++, col);
 			auto *v = REAL(col);
 			int sx=0;
@@ -4742,12 +5061,25 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			}
 		}
 	}
-	for (int x1=0; x1 < numExtra; ++x1) {
+	for (int x1=0; x1 < numAlgebraEnt; ++x1) {
 		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		if (debug) mxLog("log[%d] = %s (alge %d/%d)", curCol, colnames[curCol].c_str(), x1, numAlgebraEnt);
 		SET_VECTOR_ELT(log, curCol++, col);
 		auto *v = REAL(col);
 		int sx=0;
-		for (auto &s1 : snaps) v[sx++] = s1.extra[x1];
+		for (auto &s1 : snaps) v[sx++] = s1.algebraEnt[x1];
+	}
+	auto &xcn = Global->checkpointColnames;
+	if (xcn.size() != numExtraCols) {
+		mxThrow("%s: xcn.size() != numExtraCols; %d != %d",
+			name, int(xcn.size()), int(numExtraCols));
+	}
+	for (int x1=0; x1 < int(xcn.size()); ++x1) {
+		SEXP col = Rf_allocVector(STRSXP, numSnaps);
+		if (debug) mxLog("log[%d] = %s (extra %d/%d)", curCol, colnames[curCol].c_str(), x1, int(xcn.size()));
+		SET_VECTOR_ELT(log, curCol++, col);
+		int sx=0;
+		for (auto &s1 : snaps) SET_STRING_ELT(col, sx++, Rf_mkChar(s1.extra[x1].c_str()));
 	}
 
 	markAsDataFrame(log, numSnaps);

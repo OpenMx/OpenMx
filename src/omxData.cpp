@@ -40,7 +40,7 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), oss(0), parallel(true),
+		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
 		     noExoOptimize(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
@@ -49,7 +49,6 @@ omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeigh
 
 omxData::~omxData()
 {
-	if (oss) delete oss;
 }
 
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state) {
@@ -282,7 +281,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	if (strEQ(od->_type, "acov")) {  // old style for backward compatibility
-		oss = new obsSummaryStats;
+		oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 		auto &o1 = *oss;
 		o1.covMat = omxCreateCopyOfMatrix(dataMat, state);
 		o1.covMat->colnames = dataMat->colnames;
@@ -300,7 +299,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
-		if (Rf_length(RobsStats)) oss = new obsSummaryStats;
+		if (Rf_length(RobsStats)) oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 		for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
 			const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
 			auto &o1 = *oss;
@@ -1200,7 +1199,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 	Ecov -= totalWeight * Emean * Emean.transpose();
 	Ecov /= totalWeight - 1;
 	for (int cx=0; cx < int(dc.size()); ++cx) {
-		if (Ecov(cx,cx) > 0.) continue;
+		if (Ecov(cx,cx) > std::numeric_limits<double>::epsilon()) continue;
 		mxThrow("%s: '%s' has no observed variance", name, dc[cx]);
 	}
 
@@ -1287,6 +1286,7 @@ void cumsum(Eigen::MatrixBase<T1> &data)
 
 struct OLSRegression {
 	omxData &data;
+	int naCount;
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
@@ -1325,13 +1325,17 @@ void OLSRegression::setResponse(ColumnData &cd, WLSVarData &pv)
 	ycol.resize(pred.rows());
 	subsetVector(ycolFull, index, ycol);
 	auto notMissingF = [&](int rx){ return std::isfinite(ycol[rx]); };
-	Eigen::VectorXd ycolF(ycol.size() - pv.naCount);
+	naCount = 0;
+	for (int rx=0; rx < int(ycol.size()); ++rx) {
+		if (!notMissingF(rx)) naCount += 1;
+	}
+	Eigen::VectorXd ycolF(ycol.size() - naCount);
 	subsetVector(ycol, notMissingF, ycolF);
-	Eigen::ArrayXd rowMultF(rowMult.size() - pv.naCount);
+	Eigen::ArrayXd rowMultF(rowMult.size() - naCount);
 	subsetVector(rowMult, notMissingF, rowMultF);
-	if (pred.cols()) {
+	if (pred.cols() > 1) {
 		Eigen::DiagonalMatrix<double, Eigen::Dynamic> weightMat(rowMultF.matrix());
-		Eigen::MatrixXd predF(pred.rows() - pv.naCount, pred.cols());
+		Eigen::MatrixXd predF(pred.rows() - naCount, pred.cols());
 		subsetRows(pred, notMissingF, predF);
 		Eigen::MatrixXd predCov;
 		predCov = predF.transpose() * weightMat * predF;
@@ -1425,7 +1429,11 @@ void ProbitRegression::setResponse(ColumnData &_r, WLSVarData &pv)
 	ycol.resize(pred.rows());
 	subsetVector(ycolFull, index, ycol);
 	auto notMissingF = [&](int rx){ return ycol[rx] != NA_INTEGER; };
-	Eigen::VectorXi ycolF(ycol.size() - pv.naCount);
+	int naCount=0;
+	for (int rx=0; rx < int(index.size()); ++rx) {
+		if (!notMissingF(rx)) naCount += 1;
+	}
+	Eigen::VectorXi ycolF(ycol.size() - naCount);
 	subsetVector(ycol, notMissingF, ycolF);
 	Eigen::VectorXd tab(response->levels.size());
 	tabulate(ycolF, rowMult.derived(), tab);
@@ -1661,14 +1669,23 @@ struct PolyserialCor : NewtonRaphsonObjective {
 
 		numThr = oc.levels.size() - 1;
 
-		Eigen::VectorXi ycolF(ycol.rows() - ov.naCount);
-		subsetVector(ycol, [&](int rx){ return ycol[rx] != NA_INTEGER; }, ycolF);
+		int naCount=0;
+		auto notMissingF = [&](int rx){ return ycol[rx] != NA_INTEGER; };
+		for (int rx=0; rx < int(index.size()); ++rx) {
+			if (!notMissingF(rx)) naCount += 1;
+		}
+		Eigen::VectorXi ycolF(ycol.rows() - naCount);
+		subsetVector(ycol, notMissingF, ycolF);
+		Eigen::ArrayXd zeeF(ycolF.size());
+		subsetVector(zee, notMissingF, zeeF);
+
 		Eigen::ArrayXd rowMultF(ycolF.size());
-		subsetVector(rowMult, [&](int rx){ return ycol[rx] != NA_INTEGER; }, rowMultF);
+		subsetVector(rowMult, notMissingF, rowMultF);
 		double den = 0;
 		for (int tx=0; tx < numThr; ++tx) den += Rf_dnorm4(ov.theta[tx], 0., 1., 0);
-		double rho = (zee * ycolF.cast<double>().array() * rowMultF).sum() /
+		double rho = (zeeF * ycolF.cast<double>().array() * rowMultF).sum() /
 			(totalWeight * sqrt(var) * den);
+		if (!std::isfinite(rho)) mxThrow("PolyserialCor starting value not finite");
 		if (fabs(rho) >= 1.0) rho = 0;
 		if (data.verbose >= 3) mxLog("starting ps rho = %f", rho);
 		param = atanh(rho);
@@ -2208,7 +2225,7 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 	}
 
 	_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
-	oss->setDimnames(this);
+	if (oss) oss->setDimnames(this);
 }
 
 struct sampleStats {
@@ -2342,8 +2359,9 @@ struct sampleStats {
 			pv.theta.segment(0, olsr.beta.size()) = olsr.beta;
 			pv.theta[olsr.beta.size()] = olsr.var;
 			Ecov(yy,yy) = olsr.var;
-			if (olsr.var == 0.0) {
+			if (olsr.var < std::numeric_limits<double>::epsilon()) {
 				omxRaiseErrorf("%s: '%s' has no observed variance", data.name, dc[yy]);
+				return;
 			}
 			Emean[yy] = pv.theta[0];
 			copyScores(o1.SC_TH, pv.thrOffset, olsr.scores.array(), 0);
@@ -2494,7 +2512,9 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	if (!dc.size()) return;
 
 	if (!regenObsStats(dc, wlsType)) {
-		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats", name);
+		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats (partial=%d)",
+					name, int(oss->partial));
+		if (oss->partial) estimateObservedStats();
 		return;
 	}
 
@@ -2507,8 +2527,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	int numCols = dc.size();
 	int numColsStar = triangleLoc1(numCols);
 
-	if (oss) delete oss;
-	oss = new obsSummaryStats;
+	oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 	auto &o1 = *oss;
 	o1.dc = dc;
 	o1.exoPred = exoPred;
@@ -2569,7 +2588,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.perVar.resize(numCols);
 	for (int yy=0, thrOffset=0; yy < numCols; ++yy) {
 		auto &pv = o1.perVar[yy];
-		pv.naCount = 0;
 		ColumnData &cd = rawCols[ rawColMap[dc[yy]] ];
 		thStart[yy] = totalThr;
 		if (cd.type == COLUMNDATA_NUMERIC) {
@@ -2584,10 +2602,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			contMap.push_back(numContinuous);
 			totalThr += 1;  // mean
 			numContinuous += 1;
-			Eigen::Map< Eigen::VectorXd > ycol(cd.ptr.realData, rows);
-			for (int rx=0; rx < int(index.size()); ++rx) {
-				if (!std::isfinite(ycol[ index[rx] ])) pv.naCount += 1;
-			}
 		} else {
 			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
 				mxThrow("%s: variable '%s' must be an ordered factor but is of type %s",
@@ -2607,10 +2621,6 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			thrOffset += numThr;
 			totalThr += numThr;
 			maxNumThr = std::max(maxNumThr, numThr);
-			Eigen::Map< Eigen::VectorXi > ycol(cd.ptr.intData, rows);
-			for (int rx=0; rx < int(index.size()); ++rx) {
-				if (ycol[ index[rx] ] == NA_INTEGER) pv.naCount += 1;
-			}
 		}
 	}
 
@@ -2628,14 +2638,14 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	if (verbose >= 1) mxLog("%s: orig %d rows; index.size() = %d; scoreRows = %d; totalWeight = %f",
 				name, rows, int(index.size()), scoreRows, o1.totalWeight);
 
+	int pstar = triangleLoc1(numCols-1);
 	o1.SC_VAR.resize(scoreRows, numContinuous);
 	o1.SC_SL.resize(scoreRows, numCols * exoPred.size());
 	o1.SC_TH.resize(scoreRows, totalThr);
-
-	int pstar = triangleLoc1(numCols-1);
 	o1.SC_COR.resize(scoreRows, pstar);
+
 	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
-	int acov_size = A11_size + o1.SC_COR.cols();
+	int acov_size = A11_size + pstar;
 	if (!strEQ(wlsType, "ULS")) {
 		o1.acovMat = omxInitMatrix(acov_size, acov_size, state);
 	}
@@ -2739,12 +2749,15 @@ void omxData::estimateObservedStats()
 		if (val != 0) A22(ii,ii) = 1.0/val;
 	}
 
-	Eigen::MatrixXd A21i = -(A22 * A21 * A11.selfadjointView<Eigen::Lower>());
+	Eigen::MatrixXd A21i;
+	if (pstar) A21i = -(A22 * A21 * A11.selfadjointView<Eigen::Lower>());
 	Eigen::MatrixXd Bi(acov_size,acov_size);
 	Bi.setZero();
 	Bi.block(0,0,A11.rows(),A11.cols()) = A11.selfadjointView<Eigen::Lower>();
-	Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
-	Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
+	if (pstar) {
+		Bi.block(A11.rows(),0,A21i.rows(),A21i.cols()) = A21i;
+		Bi.block(A11.rows(),A11.cols(), A22.rows(), A22.cols()) = A22;
+	}
 	// mxPrintMat("Bi", Bi); // good
 
 	EigenMatrixAdaptor Efw(o1.fullWeight);
@@ -2778,20 +2791,20 @@ void omxData::estimateObservedStats()
 			}
 		}
 	}
-	if (InvertSymmetricPosDef(Efw, 'L')) mxThrow("Attempt to invert acov failed");
+	if (InvertSymmetricPosDef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
 
 	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
 	
 	//mxPrintMat("Efw", Efw);
 
+	o1.partial = false;
 	if (verbose >= 2) o1.log();
 }
 
 void omxData::invalidateCache()
 {
-	if (oss) delete oss;
-	oss = 0;
+	oss.reset();
 }
 
 void omxData::invalidateColumnsCache(std::vector< int > &columns)
@@ -2804,18 +2817,14 @@ void omxData::invalidateColumnsCache(std::vector< int > &columns)
 	for (auto col : columns) {
 		auto it = o1.colMap.find(rawCols[col].name);
 		if (it == o1.colMap.end()) {
-			if (1||verbose >= 1) mxLog("%s: column '%s' is not an observed indicator",
+			if (verbose >= 1) mxLog("%s: column '%s' is not an observed indicator; "
+						"must re-estimate all observed stats",
 						name, rawCols[col].name);
 			fail = true; break;
 		}
 		Ecov.row(it->second).setConstant(nan("uninit"));
 		Ecov.col(it->second).setConstant(nan("uninit"));
+		o1.partial = true;
 	}
-	if (fail) {
-		delete oss;
-		oss = 0;
-		return;
-	}
-
-	estimateObservedStats();
+	if (fail) invalidateCache();
 }

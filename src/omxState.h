@@ -213,6 +213,7 @@ class omxGlobal {
 	void reportProgressStr(std::string &str);
 
  public:
+	bool RNGCheckedOut;
 	ProtectAutoBalanceDoodad *mpi;
 	bool silent;
 	bool ComputePersist;
@@ -270,6 +271,8 @@ class omxGlobal {
 
 	std::vector<const char *> computeLoopContext;
 	std::vector<int> computeLoopIndex;
+	std::vector< std::string > checkpointColnames;
+	std::vector< std::string > checkpointValues;
 	std::vector< std::string > bads;
 
 	// Will need revision if multiple optimizers are running in parallel

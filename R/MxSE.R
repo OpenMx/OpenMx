@@ -120,15 +120,16 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	}
 	
 	if(length(model@output) > 0 && missing(cov)){
-		if(length(model@output$infoDefinite) && !single.na(model@output$infoDefinite)){
-			# An indefinite Hessian usually means some SEs will be NaN:
-			ParamsCov <- 2*solve(model@output$hessian)
-			dimnames(ParamsCov) <- dimnames(model@output$hessian)
-		} else {
-			msg <- "Model does not have a reasonable Hessian or standard errors."
-			msg <- paste0(msg, ifelse(imxHasConstraint(model), "\nModel has at least one mxConstraint. This prevented standard error computation.\nTry mxCI().", "\nDid you set the mxOption() to turn off standard errors?"))
+		ParamsCov <- try(vcov(model))
+		if(is(ParamsCov,"try-error")){
+			msg <- "Model does not have a reasonable vcov matrix or standard errors."
 			stop(msg)
 		}
+		# if(length(model@output$infoDefinite) && !single.na(model@output$infoDefinite)){
+		# 	# An indefinite Hessian usually means some SEs will be NaN:
+		# 	ParamsCov <- 2*solve(model@output$hessian)
+		# 	dimnames(ParamsCov) <- dimnames(model@output$hessian)
+		# } else {
 	} else if (missing(cov)){
 		stop("Model does not have output and 'cov' argument is missing.  I'm a doctor, not a bricklayer!\nWas this model run with mxRun?")
 	} else {

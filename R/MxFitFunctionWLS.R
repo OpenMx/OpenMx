@@ -342,3 +342,32 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 		list(hasMeans = TRUE)
 	}
 }
+
+
+##' imxHasWLS
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model uses a
+##' fitfunction with WLS units.
+##'
+##' @param model model
+imxHasWLS <- function(model){
+	if(!is.null(model@output$fitUnits)){
+		if(model@output$fitUnits=="r'Wr"){return(TRUE)}
+		else{return(FALSE)}
+	}
+	if(is.null(model@fitfunction)){return(FALSE)}
+	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
+	if(length(model@fitfunction$units) && model@fitfunction$units=="r'Wr"){return(TRUE)}
+	if( is(model@fitfunction, "MXFitFunctionMultigroup") ){
+		#Just in case the user provided 'modelName.fitfunction':
+		submodnames <- unlist(lapply(strsplit(model@fitfunction@groups,"[.]"),function(x){x[1]}))
+		for(i in 1:length(model@submodels)){
+			if(model@submodels[[i]]@name %in% submodnames){
+				probe <- imxHasWLS(model@submodels[[i]])
+				if(probe){return(probe)}
+			}
+		}
+	}
+	return(FALSE)
+}

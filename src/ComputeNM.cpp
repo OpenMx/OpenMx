@@ -258,6 +258,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	}
 	
 	feasTol = Global->feasibilityTolerance;
+	checkRedundantEqualities = true;
 }
 
 
@@ -543,6 +544,31 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	equality.resize(numEqC);
 	inequality.resize(numIneqC);
 	
+	fc->equality.resize(numEqC);
+	fc->checkForAnalyticJacobians();
+	
+	//Check for redundant equality constraints, and warn if found:
+	if(numEqC > 1 && NMobj->checkRedundantEqualities){
+		NldrMd_equality_functional eqf(this, fc);
+		Eigen::MatrixXd ej(numEqC, numFree);
+		eqf(est, equality);
+		fd_jacobian<true>(
+			GradientAlgorithm_Central, 4, 1.0e-7,
+			eqf, equality, est, ej);
+		Eigen::MatrixXd ejt = ej.transpose();
+		//mxPrintMat("ej: ",ej);
+		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
+		qrj.compute(ejt);
+		if(qrj.rank() < numEqC){
+			Rf_warning(
+				"counted %d equality constraints, but equality-constraint Jacobian is rank %d at the start values; " 
+				"Nelder-Mead will not work correctly unless equality constraints are linearly independent "
+				"(this warning may be spurious if there are non-smooth equality constraints)", numEqC, qrj.rank()
+			);
+			NMobj->checkRedundantEqualities = false;
+		}
+	}
+	
 	if(numEqC + numIneqC || NMobj->eqConstraintMthd==3){
 		subsidiarygoc.setEngineName("SLSQP");
 		subsidiarygoc.ControlTolerance = 2 * Global->optimalityTolerance;
@@ -560,10 +586,6 @@ void NelderMeadOptimizerContext::copyParamsFromFitContext(double *ocpars)
 	fc->copyEstToOptimizer(vec);
 }
 
-void NelderMeadOptimizerContext::copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2)
-{
-	fc2->setEstFromOptimizer(x);
-}
 
 //----------------------------------------------------------------------
 
@@ -829,13 +851,12 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 void NelderMeadOptimizerContext::jiggleCoord(Eigen::VectorXd &xin, Eigen::VectorXd &xout, double scal){
 	double a,b;
 	int i;
-	GetRNGstate();
+	BorrowRNGState grs;
 	for(i=0; i < xin.size(); i++){
 		b = Rf_runif(1.0-scal,1.0+scal);
 		a = Rf_runif(0.0-scal,0.0+scal);
 		xout[i] = b*xin[i] + a;
 	}
-	PutRNGstate();
 }
 
 //TODO: make the different parts of the printing subject to different verbose levels
@@ -1219,12 +1240,9 @@ void NelderMeadOptimizerContext::simplexTransformation()
 				return;
 			}
 			else if(NMobj->sigma<=0){ //<--If fit at xoc is worse than fit at reflection point, and shrinks are turned off
-				//Accept reflection point:
-				fvals[n] = fr;
-				vertices[n] = xr;
-				vertexInfeas[n] = badr;
-				needFullSort=false;
-				if(verbose){mxLog("reflection point accepted");}
+				//This case is considered a failed contraction:
+				failedContraction = true;
+				if(verbose){mxLog("outside contraction failed and shrinks are switched off...");}
 				return;
 			}
 		}
@@ -1253,7 +1271,7 @@ void NelderMeadOptimizerContext::simplexTransformation()
 			}
 			else if(NMobj->sigma<=0){
 				failedContraction = true;
-				if(verbose){mxLog("contraction failed and shrinks are switched off...");}
+				if(verbose){mxLog("inside contraction failed and shrinks are switched off...");}
 				return;
 			}
 		}

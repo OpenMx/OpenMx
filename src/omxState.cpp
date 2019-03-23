@@ -214,6 +214,7 @@ void FreeVarGroup::log(omxState *os)
 
 omxGlobal::omxGlobal()
 {
+	RNGCheckedOut = false;
 	mpi = 0;
 	silent = true;
 	ComputePersist = false;

@@ -3,7 +3,7 @@
 \alias{MxComputeLoadMatrix-class}
 \title{Load data from CSV files directly into the backend}
 \usage{
-mxComputeLoadMatrix(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
+mxComputeLoadMatrix(dest, method='csv', ..., path, originalDataIsIndexOne=FALSE,
  row.names=FALSE, col.names=FALSE)
 }
 \arguments{
@@ -21,7 +21,7 @@ for index 1}
 \item{col.names}{logical. Whether column names are present}
 }
 \description{
-  For method='CSV', the file must be formatted in a specific way.
+  For method='csv', the file must be formatted in a specific way.
   The number of columns must match the number of entries available
   in the mxMatrix. Matrix types (e.g., symmetric or diagonal) are
   respected (see \link{mxMatrix}). For example, a \emph{Full} 2x2
