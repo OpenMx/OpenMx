@@ -20,7 +20,7 @@ if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
 #The naive "soft" method only seems to work OK if EVERY vertex of the initial simplex is feasible...:
 ism <- matrix(0.2,4,4) + diag(0.2,4)
 colnames(ism) <- c("pred","pyellow","pgreen","pblue")
-foo <- mxComputeNelderMead(iniSimplexMat=ism, nudgeZeroStarts=FALSE, xTolProx=1e-12, fTolProx=1e-8)
+foo <- mxComputeNelderMead(iniSimplexMat=ism, nudgeZeroStarts=FALSE, xTolProx=1e-12, fTolProx=1e-8,eqConstraintMthd="soft")
 #foo$verbose <- 5L
 plan <- omxDefaultComputePlan()
 plan$steps <- list(foo,plan$steps$RE)
@@ -58,8 +58,8 @@ m2 <- mxModel(
 )
 m2run <- mxRun(m2)
 summary(m2run)
-
-omxCheckCloseEnough(m1run$output$estimate, m2run$output$estimate, 0.01)
+#The "soft" heuristic is now about as good as the default "GDsearch":
+omxCheckCloseEnough(m1run$output$estimate, m2run$output$estimate, 1e-4)
 
 #Run with Nelder-Mead, with different arguments:
 ism3 <- ism
