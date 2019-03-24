@@ -3,9 +3,13 @@
  ===========================
 
 # Created: 2019-03-24 04:57PM
-# Broken Version: 2.12.2.233 [GIT v2.12.2-233-ga7a310a]
-
+# path = "~/bin/OpenMx/inst/models/failing/check_mxSE_works.R"
+# Was Broken as of Version: 2.12.2.233 [GIT v2.12.2-233-ga7a310a]
 # NOTE: When fixed, this check should be merged into passing/mxSE_test.R
+
+# ============================================
+# = Make a super-simple 1 variance RAM model =
+# ============================================
 mData = matrix (1)
 dimnames(mData) = list(c("X"), c("X"))
 
@@ -16,7 +20,9 @@ m1 = mxModel("one_is_the_loneliest_number", type="RAM",
 )
 m1 = mxRun(m1)
 
-# this "works", but should not warn that model has been changed...)
+# Try and get an SE for the parameter by expression, and then by label
+
+# By expression "works", but should not warn that model has been changed...)
 mxSE(X, m1) #  0.4024916
 
 # Warning message:
@@ -24,7 +30,7 @@ mxSE(X, m1) #  0.4024916
 #   MxModel 'one_is_the_loneliest_number' was modified since it was run.
 
 
-# this errors, and should not...
+# By label errors, and should not...
 
 mxSE("X", m1)
 # Treating first argument as character named entity in the model
