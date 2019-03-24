@@ -47,8 +47,8 @@
 ##' 
 ##' @details
 ##' x can be the name of an algebra, a bracket address, named entity
-##' or arbitrary expression. It is a frontend-only file that works
-##' much like mxEval. When the \code{details} argument is TRUE, the full
+##' or arbitrary expression.
+##' When the \code{details} argument is TRUE, the full
 ##' sampling covariance matrix of \code{x} is also returned as part of a list.
 ##' The square root of the diagonals of this sampling covariance matrix are
 ##' the standard errors.
@@ -106,7 +106,7 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else if('character' %in% is(x)){
-		if(!silent){message('Treating first argument as character named entity in the model')}
+		if(!silent){message('Treating first argument as character-named entity in the model')}
 	} else {
 		stop("Please, sir.  'x' must be either the name of an entity in the model, or an expression for an MxAlgebra.")
 	}
