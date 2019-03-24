@@ -30,6 +30,7 @@
 /inst/models/passing/testModel.omx
 /inst/models/passing/Rplots.pdf
 /models
+imxJiggle.Rd
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
 man/expm.Rd
@@ -69,6 +70,7 @@ man/imxHasDefinitionVariable.Rd
 man/imxHasNPSOL.Rd
 man/imxHasOpenMP.Rd
 man/imxHasThresholds.Rd
+man/imxHasWLS.Rd
 man/imxIdentifier.Rd
 man/imxIndependentModels.Rd
 man/imxInitModel.Rd
@@ -124,7 +126,6 @@ man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompute-class.Rd
-man/mxComputeBenchmark.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
 man/mxComputeEM.Rd
@@ -143,6 +144,7 @@ man/mxComputeReportExpectation.Rd
 man/mxComputeSequence.Rd
 man/mxComputeSetOriginalStarts.Rd
 man/mxComputeStandardError.Rd
+man/mxComputeTryCatch.Rd
 man/mxComputeTryHard.Rd
 man/mxDataDynamic.Rd
 man/MxDataFrameOrMatrix-class.Rd
@@ -161,6 +163,7 @@ man/mxNormalQuantiles.Rd
 man/MxOptionalChar-class.Rd
 man/MxOptionalCharOrNumber-class.Rd
 man/MxOptionalDataFrame-class.Rd
+man/MxOptionalInteger-class.Rd
 man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
@@ -173,6 +176,7 @@ man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/MxVersionType-class.Rd
 man/omxAugmentDataWithWLSSummary.Rd
+man/omxBuildAutoStartModel.Rd
 man/omxCheckCloseEnough.Rd
 man/omxCheckError.Rd
 man/omxCheckNamespace.Rd
@@ -187,4 +191,3 @@ man/omxNameAnonymousParameters.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
-imxJiggle.Rd
