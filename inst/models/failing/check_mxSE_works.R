@@ -1,6 +1,6 @@
- ===========================
- = check mxSE isnt broken =
- ===========================
+# ===========================
+# = check mxSE isnt broken =
+# ===========================
 
 # Created: 2019-03-24 04:57PM
 # path = "~/bin/OpenMx/inst/models/failing/check_mxSE_works.R"
@@ -37,4 +37,4 @@ mxSE("X", m1)
 # Error in convertForBackend(flatModel@compute, flatModel, model) :
 #   Can only apply MxComputeJacobian to MxAlgebra *or* MxExpectation not "X"
 
-
+confint(m1)

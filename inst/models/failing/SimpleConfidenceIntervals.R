@@ -16,8 +16,10 @@
 # ===========
 # = history =
 # ===========
+# ~/bin/OpenMx/inst/models/failing/SimpleConfidenceIntervals.R
 # 2017-04-14 04:35PM TBATES: update for mxFitFunctionMultigroup(c("MZ", "DZ"))
 # 2019-03-24 05:06PM TBATES: Still FAILING at line > 167)
+
 
 require(OpenMx)
 
