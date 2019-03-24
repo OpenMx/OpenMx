@@ -207,9 +207,11 @@ tryCatch.W <- function(expr) {
 ##' Correct Warning Message Function
 ##'
 ##' This function tests whether the correct warning message is thrown.
-##'
 ##' Arguments \sQuote{expression} and \sQuote{message} give the expression
 ##' that generates the warning and the message that is supposed to be generated, respectively.
+##' 
+##' \emph{note}: to test for no warning, set \code{message = NA}.
+##' 
 ##'
 ##' @param expression an R expression that produces a warning
 ##' @param message a character string with the desired warning message
@@ -227,6 +229,10 @@ tryCatch.W <- function(expr) {
 ##'		"and add a call to mxFitFunctionML().",
 ##'		"See examples at help(mxExpectationNormal)")
 ##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), msg)
+##' 
+##' # Test for no warning
+##' omxCheckWarning(2+2, message = NA)
+##' 
 omxCheckWarning <- function(expression, message) {
 	inputExpression <- match.call()$expression
 	result <- tryCatch.W(expression)
