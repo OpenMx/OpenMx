@@ -129,8 +129,10 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 		xalg <- mxAlgebraFromString(Reduce(paste, deparse(match.call()$x)), name='onTheFlyAlgebra')
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
-	} else if('character' %in% is(x)){
-		if(!silent){message('Treating first argument as character-named entity in the model')}
+	} else if ('character' %in% is(x)) {
+		xalg <- mxAlgebraFromString(Reduce(paste, match.call()$x), name='onTheFlyAlgebra')
+		x <- "onTheFlyAlgebra"
+		model <- mxModel(model, xalg)
 	} else {
 		stop("Please, sir.  'x' must be either the name of an entity in the model, or an expression for an MxAlgebra.")
 	}
