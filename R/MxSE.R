@@ -100,7 +100,7 @@
 mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ...,
 		 defvar.row=as.integer(NA), data='data'){
 	if(length(model@output) > 0 && missing(cov)){
-		ParamsCov <- try(suppressWarnings(vcov(model)))
+		ParamsCov <- try(vcov(model))
 		if(is(ParamsCov,"try-error")){
 			msg <- "Model does not have a reasonable vcov matrix or standard errors."
 			stop(msg)
