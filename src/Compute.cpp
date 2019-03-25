@@ -754,14 +754,34 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 	stderrs.resize(numFree);
 	if (vcov.rows() != numFree || vcov.cols() != numFree) {
 		mxThrow("FitContext::calcStderrs vcov size wrong %d vs %d",
-			vcov.rows(), numFree);
+          vcov.rows(), numFree);
 	}
 	const double scale = fabs(Global->llScale);
 	
 	if(constraintJacobian.rows()){
 		Eigen::MatrixXd hesstmp(numFree, numFree);
-		copyDenseHess(hesstmp.data());
-		hesstmp = hesstmp/scale;
+		if(fitUnits == FIT_UNITS_MINUS2LL){
+			copyDenseHess(hesstmp.data());
+			hesstmp = hesstmp/scale;
+		}
+		else{ //WLS case--'hesstmp' is actually not a Hessian matrix, but the inverse of the WLS sampling-covariance matrix.
+			Eigen::LLT< Eigen::MatrixXd > cholVcov;
+			cholVcov.compute(vcov.selfadjointView<Eigen::Lower>());
+			if(cholVcov.info() != Eigen::Success){
+				Eigen::FullPivLU< Eigen::MatrixXd > luVcov(vcov.selfadjointView<Eigen::Lower>());
+				if(luVcov.isInvertible()){
+					hesstmp = luVcov.inverse();
+				}
+				else{ //This is supposed to never happen with WLS...
+					Rf_warning(
+						"constraint-adjusted standard errors could not be calculated because the sampling covariance matrix was uninvertible");
+					return;
+				}
+			}
+			else{
+				hesstmp = cholVcov.solve(Eigen::MatrixXd::Identity( vcov.rows(), vcov.cols() ));
+			}
+		}
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
 		Eigen::MatrixXd Q = qrj.householderQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
@@ -792,7 +812,7 @@ void FitContext::calcStderrs()  //I believe this function is only calculated if 
 		}
 		vcov = U * centr * U.transpose();
 	}
-
+	
 	for(int i = 0; i < numFree; i++) {
 		double got = vcov(i,i);
 		if (got <= 0) {
@@ -3636,20 +3656,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
-	//Calculating the WLS vcov doesn't take constraints into consideration, so if there are active
-	//constraints, it won't be valid:
-	if(fc->state->conListX.size()){
-		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
-		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
-		fc->inequality.resize(fc->state->numIneqC);
-		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numFree);
-		fc->myineqFun(true, 0, omxConstraint::LESS_THAN, false);
-		if(fc->state->numEqC || fc->inequality.array().sum()){
-			Rf_warning(
-				"due to active MxConstraints, the WLS standard errors and sampling covariance matrix may not be valid for statistical-inferential purposes");
-		}
-	}
-	
+
 
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
