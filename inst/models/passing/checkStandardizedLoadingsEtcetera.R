@@ -96,7 +96,7 @@ if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	nohess <- mxRun(nohess)
 	omxCheckWarning(
 		mxStandardizeRAMpaths(nohess,T),
-		"argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
+		"argument 'SE=TRUE' requires model to have a nonempty 'vcov' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
 	)
 }
 
