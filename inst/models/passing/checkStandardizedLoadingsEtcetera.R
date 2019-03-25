@@ -88,10 +88,6 @@ omxCheckWarning(
 )
 pointlessConstraint <- mxModel(factorModelPath, mxConstraint(1==1))
 pointlessConstraint <- mxRun(pointlessConstraint)
-omxCheckWarning(
-	mxStandardizeRAMpaths(pointlessConstraint,T),
-	"standard errors will not be computed because model 'OneFactorPath' contains at least one mxConstraint"
-)
 #NPSOL populates the 'hessian' slot of the output with its own final Hessian when there is no MxComputeNumericDeriv step:
 if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	plan <- omxDefaultComputePlan()
