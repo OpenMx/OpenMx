@@ -1157,11 +1157,7 @@ logLik.MxModel <- function(object, ...) {
   			paste(paramnames[!(paramnames %in% rownames(ParamsCov))],collapse=", "),sep=""))
   	}
     #From Mike Hunter's delta method example:
-    covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
-    if(length(covParam)==1){
-    	#This is for a strange corner case.
-    	covParam <- matrix(covParam[1],nrow=1,ncol=1,dimnames=list(paramnames,paramnames))
-    }
+    covParam <- ParamsCov[paramnames,paramnames,drop=FALSE]#<--submodel will usually not contain all free param.s
     jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos, Mpos=Mpos)
     covSparam <- jacStand %*% covParam %*% t(jacStand)
     dimnames(covSparam) <- list(names(zout),names(zout))
