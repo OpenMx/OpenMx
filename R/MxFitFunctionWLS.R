@@ -339,7 +339,7 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 	allContinuousMethod = match.arg(allContinuousMethod)
 	if(class(data) == "data.frame"){
 		# all good
-	} else if(class(data) == "MxDataStatic" && tmp$type == "raw"){
+	} else if(class(data) == "MxDataStatic" && data$type == "raw"){
 		data = data$observed
 	}else{
 		message("mxDescribeDataWLS currently only knows how to process dataframes and mxData of type = 'raw'.\n",
