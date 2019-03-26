@@ -343,8 +343,7 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 		data = data$observed
 	}else{
 		message("mxDescribeDataWLS currently only knows how to process dataframes and mxData of type = 'raw'.\n",
-		"You offered up an object of class: ", omxQuotes(class(data)
-		)
+		"You offered up an object of class: ", omxQuotes(class(data)))
 	}
 
 	if(all(sapply(data, FUN= is.numeric))){
