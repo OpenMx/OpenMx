@@ -31,7 +31,7 @@
 
 \arguments{
    \item{observed}{A matrix or data.frame which provides data to the MxData object.}
-   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, \dQuote{'sscp'} or \dQuote{acov}.}
+   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, \dQuote{'sscp'} or \dQuote{acov}. The latter is deprecated}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
    \item{acov}{Deprecated.}
@@ -62,41 +62,25 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML} functions, depending on the specified model.}
 
-\item{acov}{The best way to create data of this type is to use the
-  \link{mxDataWLS} function.  The contents of the \sQuote{observed}
-  argument is regarded as raw data. The \sQuote{observedStats} slot
-  contains a list of observed statistics. The list is expected to
-  contain a number of named objects: \sQuote{cov} is the (polychoric)
-  covariance matrix of the continuous and ordinal
-  variables. \sQuote{means} (optional) may be included for estimations
-  involving means.  \sQuote{thresholds} should be included for
-  estimation involving thresholds and ordinal variables. \sQuote{acov}
-  is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for
-  diagonally weighted least squares. \sQuote{fullWeight} (optional) is
-  the complete asymptotic weight matrix (all entries non-zero). Data of this
-  type almost certainly use the \link{mxFitFunctionWLS} function, but
-  may depend on the specified model.}
+\item{acov}{ This type was used for WLS data as created by \link{mxDataWLS}. Its use is now deprecated
+Instead, use type = \sQuote{raw} and the \link{mxFitFunctionWLS}. For reference, if type is acov, the \sQuote{observed} argument will contain raw data and the \sQuote{observedStats} slot a list of observed statistics. The list is expected to contain a number of named objects: \sQuote{cov} is the (polychoric) covariance matrix of the continuous and ordinal variables. \sQuote{means} (optional) may be included for estimations involving means.  \sQuote{thresholds} should be included for estimation involving thresholds and ordinal variables. \sQuote{acov} is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for diagonally weighted least squares. \sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero). Data of this type typically use the \link{mxFitFunctionWLS} function.}
 }
 
-MxData objects may not be included in \link{MxAlgebra} objects or use the \link{mxFitFunctionAlgebra} function. If these capabilities are desired, data should be appropriately input or transformed using the \link{mxMatrix} and \link{mxAlgebra} functions.
+MxData objects may not be included in \link{mxAlgebra} objects or the \link{mxFitFunctionAlgebra} function. To reference data in these functions, use a \link{mxMatrix} or a definition variable (data.var) label.
 
-While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not recognized as variable names in \link[=MxPath-class]{MxPath} objects. Variable names must be specified using the \sQuote{manifestVars} argument of the \link{mxModel} function prior to use in \link[=MxPath-class]{MxPath} objects.
-
-The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation  matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
+While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not automatically recognized as variable names in \link[=MxPath-class]{mxPaths} in RAM models. Instead, the names of used variables must be specified using the \sQuote{manifestVars} argument of the \link{mxModel} function.
 
 OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using \code{dimnames = list(varNames, varNames)}.
 
-In the case of raw data, the optional \sQuote{weight} argument names a
-column in the \sQuote{observed} data that contains per-row weights.
-Similarly, the optional \sQuote{frequency} argument names a column
-in the \sQuote{observed} data that contains per-row frequencies.
-Frequencies must be integral but weights can be arbitrary real numbers.
-For data with many repeated response patterns, organizing the data into
-unique patterns and frequencies can reduce model evaluation time.
+\strong{Weights}
 
-In some cases, the fit function can be evaluated more efficiently when
-data are sorted.
+In the case of raw data, the optional \sQuote{weight} argument names a column in the data that contains per-row weights. Similarly, the optional \sQuote{frequency} argument names a column in the \sQuote{observed} data that contains per-row frequencies. Frequencies must be integers but weights can be arbitrary real numbers. For data with many repeated response patterns, organizing the data into unique patterns and frequencies can reduce model evaluation time.
+
+In some cases, the fit function can be evaluated more efficiently when data are sorted.
 When a primary key is provided, sorting is disabled. Otherwise, sort defaults to TRUE.
+
+The mxData function does not currently place restrictions on the size, shape, or symmetry of matrices input into the \sQuote{observed} argument. While it is possible to specify MxData objects as covariance or correlation  matrices that do not have the properties commonly associated with these matrices, failure to correctly specify these matrices will likely lead to problems in model estimation.
+
 }
 
 \value{
