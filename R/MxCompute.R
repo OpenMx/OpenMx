@@ -2237,13 +2237,14 @@ setClass(Class = "MxComputeLoadData",
 		 method = "character",
 		 checkpointMetadata = "logical",
 		 skip.rows = "integer",
-		 skip.cols = "integer"
+		 skip.cols = "integer",
+		 raw_sample_ct = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
-		 row.names, col.names, skip.rows, skip.cols, byrow, verbose, cacheSize, method,
-		 checkpointMetadata) {
+		 row.names, col.names, skip.rows, skip.cols, byrow, verbose, raw_sample_ct,
+		 cacheSize, method, checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2260,6 +2261,7 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@checkpointMetadata <- checkpointMetadata
 		  .Object@skip.rows <- skip.rows
 		  .Object@skip.cols <- skip.cols
+		  .Object@raw_sample_ct <- raw_sample_ct
 		  .Object
 	  })
 
@@ -2292,10 +2294,13 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' a placeholder and is not used unless
 ##' \code{originalDataIsIndexOne} is set to TRUE.
 ##'
-##' When \code{byrow} is FALSE, it is necessary to read through the
-##' whole file on disk to load a single column. To amortize the cost
-##' of reading through the file, \code{cacheSize} are loaded each
-##' pass through the file.
+##' The code to implement method='pgen' is based on plink 2.0
+##' alpha. The number of samples available in PLINK 1 \code{.bed}
+##' files cannot be autodetected and must be passed via argument
+##' \code{raw_sample_ct}. Data are coerced appropriately depending on
+##' the type of the destination column. For a numeric column, data are
+##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
+##' exactly 3 levels.
 ##'
 ##' @param dest the name of the model where the columns will be loaded
 ##' @param column a character vector. The column names to replace.
@@ -2303,25 +2308,26 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param path the path to the file containing the data
 ##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
-##' @param byrow logical. Whether the data columns are stored in rows (TRUE)
-##' or columns (FALSE) on disk.
+##' @param byrow logical. Whether the data columns are stored in rows (TRUE);
+##' This argument is deprecated
 ##' @param row.names optional integer. Column containing the row names.
 ##' @param col.names optional integer. Row containing the column names.
 ##' @param skip.rows integer. Number of rows to skip before reading data.
 ##' @param skip.cols integer. Number of columns to skip before reading data.
 ##' @param verbose integer. Level of diagnostic output.
+##' @param raw_sample_ct integer. Number of samples available.
 ##' @param cacheSize integer. How many columns to cache per
-##' scan through the data. Only used when byrow=FALSE.
+##' scan through the data. Only used when byrow=FALSE. Deprecated.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
-mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
+mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=c(), col.names=c(),
 			      skip.rows=0, skip.cols=0,
-			      verbose=0L,
+			      verbose=0L, raw_sample_ct=NA_integer_,
 			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -2332,7 +2338,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen'), ..., path,
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
 		as.integer(row.names), as.integer(col.names),
 		as.integer(skip.rows), as.integer(skip.cols), byrow,
-		as.integer(verbose), as.integer(cacheSize), method,
+		as.integer(verbose), as.integer(raw_sample_ct), as.integer(cacheSize), method,
 		as.logical(checkpointMetadata))
 }
 
