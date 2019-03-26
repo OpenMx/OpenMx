@@ -32,17 +32,13 @@ mxFitFunctionWLS(type=c('WLS','DWLS','ULS'),
 }
 
 \arguments{
-   \item{type}{A character string 'WLS' (default), 'DWLS', or 'ULS' for
-   weighted, diagonally weighted, or unweighted least squares, respectively}
- \item{allContinuousMethod}{A character string 'cumulants' (default) or
-   'marginals'. See Details.}
-   \item{fullWeight}{Logical determining if the full weight matrix is
-   returned (default). Needed for standard error and quasi-chi-squared
-   calculation.}
+   \item{type}{A character string 'WLS' (default), 'DWLS', or 'ULS' for weighted, diagonally weighted, or unweighted least squares, respectively}
+   \item{allContinuousMethod}{A character string 'cumulants' (default) or 'marginals'. See Details.}
+   \item{fullWeight}{Logical determining if the full weight matrix is returned (default). Needed for standard error and quasi-chi-squared calculation.}
 }
 
 \details{
-Like all fit functions, \code{mxFitFunctionWLS} optimizes free parameter values such that the value of a cost function is minimized. For \code{mxFitFunctionWLS}, this cost function is the weighted least squares difference between the data and the model-implied expectations for the data based on the free parameters and the expectation function (e.g., \code{\link{mxExpectationNormal}} or \code{\link{mxExpectationRAM}}) selected for the model. 
+As with other fit functions, \code{mxFitFunctionWLS} optimizes free parameter values such that the value of a cost function is minimized. For \code{mxFitFunctionWLS}, this cost function is the weighted least squares difference between the data and the model-implied expectations for the data based on the free parameters and the expectation function (e.g., \code{\link{mxExpectationNormal}} or \code{\link{mxExpectationRAM}}) selected for the model. 
 
 \strong{Bias and sensitivity to model misspecification}
 Both ordinal and continuous data are supported, as well as combinations of these data types. All three methods ('WLS', 'ULS' and 'DWLS') are unbiased when the model is correct. Full 'WLS' is highly sensitive to model misspecification – it can heavily weight the fourth-order moments of the distribution, so small deviations between the observed fourth-order moments and those implied by the model can lead to poor estimates.
@@ -56,7 +52,7 @@ The default, \emph{cumulants} is a good choice for non-normal data. This uses th
 
 The alternative option, 'marginals', uses methods similar to those used in processing ordinal and joint ordinal-continuous data.  By contrast with cumulants, marginals returns weights and summary statistics for the means.
 
-When data are not all continuous, \code{allContinuousMethod} is ignored.
+When data are not all continuous, \code{allContinuousMethod} is ignored, and means are modelled.
 
 \emph{Usage Notes}:
 
