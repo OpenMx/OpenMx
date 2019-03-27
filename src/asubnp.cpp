@@ -1129,7 +1129,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     
                 }
             }
-	    bool bb = omxGlobal::interrupted();
+	    bool bb = Global->interrupted();
 	    if(bb) return;
         } // end while(go <= 0){
         
@@ -1315,7 +1315,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     mxLog("%f", go);
                 }
             }
-            bool bbb = omxGlobal::interrupted();
+            bool bbb = Global->interrupted();
             if(bbb) return;
         } // 	while(go > tol){
         
