@@ -2466,6 +2466,7 @@ void ComputeTryCatch::computeImpl(FitContext *fc)
 		cv[cpIndex] = Global->getBads();
 		Global->bads.clear();
 	}
+	if (Global->userInterrupted) omxRaiseErrorf("User interrupt"); // rethrow if caused by user
 }
 
 void ComputeTryCatch::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)

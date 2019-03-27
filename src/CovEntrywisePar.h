@@ -113,7 +113,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 			} catch (...) {
 				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 			}
-			bool gotInt = omxGlobal::interrupted();
+			bool gotInt = Global->interrupted();
 			if (gotInt && debug) mxLog("interrupt");
 		}
 		if (isErrorRaised()) {
