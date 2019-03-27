@@ -2406,7 +2406,7 @@ template <> struct MemequalKImpl<1> {
 
 template <> struct MemequalKImpl<2> {
   static int32_t MemequalK(const void* m1, const void* m2) {
-    return ((*R_CAST(const uint16_t*, m1)) == (*R_CAST(const uint16_t*, m2)));
+	  return memcmp(m1,m2,2)==0;
   }
 };
 

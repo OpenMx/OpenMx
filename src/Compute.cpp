@@ -2252,7 +2252,6 @@ class ComputeLoadData : public omxCompute {
 	uintptr_t* pgen_subset_include_vec;
 	uint32_t* pgen_subset_cumulative_popcounts;
 	uintptr_t* pgen_genovec;
-	int raw_sample_ct;
 
  public:
 	virtual ~ComputeLoadData();
@@ -4318,9 +4317,6 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rskipcols(R_do_slot(rObj, Rf_install("skip.cols")));
 	skipCols = Rf_asInteger(Rskipcols);
 
-	ProtectedSEXP Rraw_sample_ct(R_do_slot(rObj, Rf_install("raw_sample_ct")));
-	raw_sample_ct = Rf_asInteger(Rraw_sample_ct);
-
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
 	ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
@@ -4552,8 +4548,7 @@ void ComputeLoadData::loadPgen(FitContext *fc, int index)
 		PreinitPgfi(pgen_info.get());
 		pgen_info->vrtypes = 0;
 		uint32_t cur_variant_ct = 0xffffffffU;
-		uint32_t cur_sample_ct = 0xffffffffU;
-		if (raw_sample_ct != NA_INTEGER) cur_sample_ct = raw_sample_ct;
+		uint32_t cur_sample_ct = data->rows;
 		PgenHeaderCtrl header_ctrl;
 		uintptr_t pgfi_alloc_cacheline_ct;
 		char errstr_buf[kPglErrstrBufBlen];

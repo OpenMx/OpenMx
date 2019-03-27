@@ -2237,13 +2237,12 @@ setClass(Class = "MxComputeLoadData",
 		 method = "character",
 		 checkpointMetadata = "logical",
 		 skip.rows = "integer",
-		 skip.cols = "integer",
-		 raw_sample_ct = "integer"
+		 skip.cols = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
-		 row.names, col.names, skip.rows, skip.cols, byrow, verbose, raw_sample_ct,
+		 row.names, col.names, skip.rows, skip.cols, byrow, verbose,
 		 cacheSize, method, checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
@@ -2261,7 +2260,6 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@checkpointMetadata <- checkpointMetadata
 		  .Object@skip.rows <- skip.rows
 		  .Object@skip.cols <- skip.cols
-		  .Object@raw_sample_ct <- raw_sample_ct
 		  .Object
 	  })
 
@@ -2295,9 +2293,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' \code{originalDataIsIndexOne} is set to TRUE.
 ##'
 ##' The code to implement method='pgen' is based on plink 2.0
-##' alpha. The number of samples available in PLINK 1 \code{.bed}
-##' files cannot be autodetected and must be passed via argument
-##' \code{raw_sample_ct}. Data are coerced appropriately depending on
+##' alpha. Data are coerced appropriately depending on
 ##' the type of the destination column. For a numeric column, data are
 ##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
 ##' exactly 3 levels.
@@ -2315,7 +2311,6 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param skip.rows integer. Number of rows to skip before reading data.
 ##' @param skip.cols integer. Number of columns to skip before reading data.
 ##' @param verbose integer. Level of diagnostic output.
-##' @param raw_sample_ct integer. Number of samples available.
 ##' @param cacheSize integer. How many columns to cache per
 ##' scan through the data. Only used when byrow=FALSE. Deprecated.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
@@ -2327,7 +2322,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ...
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=c(), col.names=c(),
 			      skip.rows=0, skip.cols=0,
-			      verbose=0L, raw_sample_ct=NA_integer_,
+			      verbose=0L,
 			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
@@ -2338,7 +2333,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ...
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
 		as.integer(row.names), as.integer(col.names),
 		as.integer(skip.rows), as.integer(skip.cols), byrow,
-		as.integer(verbose), as.integer(raw_sample_ct), as.integer(cacheSize), method,
+		as.integer(verbose), as.integer(cacheSize), method,
 		as.logical(checkpointMetadata))
 }
 
