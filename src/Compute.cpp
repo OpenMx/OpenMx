@@ -4635,7 +4635,7 @@ void ComputeLoadData::loadPgen(FitContext *fc, int index)
 
 void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 {
-	// m_postheader_data WTF?
+	// discard m_postheader_data? TODO
 	if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
 					 name, int(columns.size()));
 	if (colTypes[0] != COLUMNDATA_NUMERIC) mxThrow("%s: bgen contains a numeric dosage", name);
