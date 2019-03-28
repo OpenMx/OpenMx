@@ -33,7 +33,9 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Gavin", "Band", role="cph"),
     person("Yann", "Collet", role="cph"),
     person("Facebook, Inc.", role="cph"),
-    person("Yuta", "Mori", role="cph"))
+    person("Yuta", "Mori", role="cph"),
+    person("Shaun", "Purcell", role="cph"),
+    person("Christopher", "Chang", role="cph"))
 URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
 BugReports: http://openmx.ssri.psu.edu/forums
 Description: Create structural equation models that can be manipulated programmatically.

@@ -299,10 +299,11 @@ approveWLSIntervals <- function(flatModel, modelName) {
 	}
 }
 
-#' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS
+#' Determine whether a dataset will have weights and summary statistics for the means if used with mxFitFunctionWLS
 #'
-#' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS.
-#' Currently, all-continuous data processed using the "marginals" method lack means.
+#' Given either a data.frame or an mxData of type raw, this function determines whether mxFitFunctionWLS will generate expectations for means.
+#' Currently, mixed and ordinal data as well as all-continuous data processed using the "cumulants" method have means, while all continuous
+#' data processed with allContinuousMethod = "marginals" will lack means.
 #'
 #' @param data the (currently raw) data being used in a \code{\link{mxFitFunctionWLS}} model.
 #' @param allContinuousMethod the method used to process data when all columns are continuous.
@@ -319,6 +320,13 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #' mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # TRUE
 #' mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals")$hasMeans  # FALSE - no means with marginals
 #'
+#' # ================================
+#' # = Provided as an mxData object =
+#' # ================================
+#' tmp = mxData(mtcars, type="raw")
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # TRUE
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans  # FALSE - no means with marginals
+#'
 #' # =======================
 #' # = One var is a factor =
 #' # =======================
@@ -329,17 +337,25 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #' 
 mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "marginals"), verbose=FALSE){
 	allContinuousMethod = match.arg(allContinuousMethod)
+	if(class(data) == "data.frame"){
+		# all good
+	} else if(class(data) == "MxDataStatic" && data$type == "raw"){
+		data = data$observed
+	}else{
+		message("mxDescribeDataWLS currently only knows how to process dataframes and mxData of type = 'raw'.\n",
+		"You offered up an object of class: ", omxQuotes(class(data)))
+	}
+
 	if(all(sapply(data, FUN= is.numeric))){
-		if(verbose){
-			print("all continuous")
-		}
-		if(allContinuousMethod == "marginals"){
-			list(hasMeans = FALSE)
+		if(verbose){ print("all continuous") }
+		if(allContinuousMethod == "cumulants"){
+			return(list(hasMeans = TRUE))
 		} else {
-			list(hasMeans = TRUE)
+			return(list(hasMeans = FALSE))
 		}
 	}else{
-		list(hasMeans = TRUE)
+		# all non-continuous forms of WLS have means
+		return(list(hasMeans = TRUE))
 	}
 }
 

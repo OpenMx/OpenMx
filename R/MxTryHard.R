@@ -48,7 +48,7 @@ mxTryHard <- function(
 	if(!lackOfConstraints){
 		if(imxHasWLS(model)){relevantOptions[[2]] <- "No"}
 		if(checkHess){
-			message("argument 'checkHess' coerced to FALSE due to presence of MxConstraints")
+			message("Polite note from mxTryHard: Hessian not checked as model contains mxConstraints")
 			checkHess <- FALSE
 		}
 	}

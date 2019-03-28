@@ -1,6 +1,8 @@
 # ===============================
 # = Model fails on being re-run =
 # ===============================
+# passing as of 2019-03-24 05:31PM
+# Passing as of OpenMx version: 2.12.2.233 [GIT v2.12.2-233-ga7a310a]
 
 library(OpenMx)
 # =================
@@ -21,20 +23,22 @@ cmod <- mxModel(name='Estimation Row Model with Missingness',
 	mxFitFunctionRow(
 		rowAlgebra='rowAlgebra',
 		reduceAlgebra='reduceAlgebra',
-		dimnames=c('a', 'b'))
+		dimnames=c('a', 'b')
+	)
 )
 
 # ==========
 # = 3. Run =
 # ==========
-cmod <- mxRun(cmod)
+cmod = mxRun(cmod)
 
 # ==============
 # = Now re-run =
 # ==============
-cmod <- mxRun(cmod)
+cmod = mxRun(cmod)
 
 mxVersion()
+
 # OpenMx version: 2.7.9.58 [GIT v2.7.9-58-ga116bb8]
 # R version: R version 3.3.3 (2017-03-06)
 # Platform: x86_64-apple-darwin13.4.0

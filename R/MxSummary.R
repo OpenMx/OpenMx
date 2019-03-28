@@ -1157,7 +1157,7 @@ logLik.MxModel <- function(object, ...) {
   			paste(paramnames[!(paramnames %in% rownames(ParamsCov))],collapse=", "),sep=""))
   	}
     #From Mike Hunter's delta method example:
-    covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
+    covParam <- ParamsCov[paramnames,paramnames,drop=FALSE]#<--submodel will usually not contain all free param.s
     jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos, Mpos=Mpos)
     covSparam <- jacStand %*% covParam %*% t(jacStand)
     dimnames(covSparam) <- list(names(zout),names(zout))
@@ -1210,11 +1210,11 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   if(SE){
   	#If user requests SEs and provided no covariance matrix, check to be sure SEs can and should be computed:
   	if(!length(cov)){
-  		if(length(model@constraints)>0){
-  			msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
-  			warning(msg)
-  			SE <- FALSE
-  		}
+  		# if(length(model@constraints)>0){
+  		# 	msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
+  		# 	warning(msg)
+  		# 	SE <- FALSE
+  		# }
   		if(SE & length(model@output$vcov)==0){
   			if(!model@.wasRun){
   				msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run, and no matrix was provided for argument 'cov'",sep="")
@@ -1222,7 +1222,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   				SE <- FALSE
   			}
   			else{
-  				warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'")
+  				warning("argument 'SE=TRUE' requires model to have a nonempty 'vcov' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'")
   				SE <- FALSE
   			}}
   		libraries <- rownames(installed.packages())

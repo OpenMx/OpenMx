@@ -1129,6 +1129,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     
                 }
             }
+	    if (Global->interrupted()) mxThrow("User interrupt");
         } // end while(go <= 0){
         
         alp[0] = 0;
@@ -1313,7 +1314,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
                     mxLog("%f", go);
                 }
             }
-            
+	    if (Global->interrupted()) mxThrow("User interrupt");
         } // 	while(go > tol){
         
         if (verbose >= 3){

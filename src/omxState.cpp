@@ -235,6 +235,7 @@ omxGlobal::omxGlobal()
 	gradientTolerance = 1e-6;
 	boundsUpdated = false;
 	dataTypeWarningCount = 0;
+	userInterrupted = false;
 
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
@@ -672,7 +673,10 @@ bool omxGlobal::interrupted()
 	// see Rcpp's checkUserInterrupt
 	auto checkInterruptFn = [](void *dummy){ R_CheckUserInterrupt(); };
 	bool got = R_ToplevelExec(checkInterruptFn, NULL) == FALSE;
-	if (got) omxRaiseErrorf("User interrupt");
+	if (got) {
+		omxRaiseErrorf("User interrupt");
+		userInterrupted = true;
+	}
 	return got;
 }
 

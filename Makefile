@@ -87,6 +87,7 @@ r-libs-user-dir:
 
 code-style: $(RFILES)
 	@echo "Checking code style"
+	@if [ `grep R_CheckUserInterrupt src/*.cpp | wc -l` -gt 1 ]; then echo "*** omxGlobal::interrupted instead of R_CheckUserInterrupt."; exit 1; fi
 	@if grep Rf_unprotect src/*.cpp; then echo "*** Rf_unprotect is error prone. Use ScopedProtect instead."; exit 1; fi
 	@if grep UNPROTECT src/*.cpp; then echo "*** UNPROTECT is error prone. Use ScopedProtect instead."; exit 1; fi
 	@if [ `grep Rf_error src/*.cpp | wc -l` -gt 8 ]; then echo "*** mxThrow instead of Rf_error."; exit 1; fi

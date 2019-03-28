@@ -274,6 +274,7 @@ class omxGlobal {
 	std::vector< std::string > checkpointColnames;
 	std::vector< std::string > checkpointValues;
 	std::vector< std::string > bads;
+	bool userInterrupted;
 
 	// Will need revision if multiple optimizers are running in parallel
 	std::vector< omxCheckpoint* > checkpointList;
@@ -297,7 +298,7 @@ class omxGlobal {
 
 	~omxGlobal();
 	void reportProgress(const char *context, FitContext *fc);
-	static bool interrupted();
+	bool interrupted();
 	void reportProgress1(const char *context, std::string detail);
 };
 

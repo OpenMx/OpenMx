@@ -20,7 +20,8 @@ if [ -d inst/npsol/linux/x86_64 ]; then
   ln -s ../gcc4.7/libnpsol.a inst/npsol/linux/x86_64/gcc4.8/libnpsol.a
 fi
 
-rm -f src/omxSymbolTable.*
+rm -f src/omxSymbolTable.* src/*.o  # make clean
+#rm -f ./inst/npsol/checksum         # to build without NPSOL
 
 if [ -f prep.patch ]; then
   patch -p1 < prep.patch
