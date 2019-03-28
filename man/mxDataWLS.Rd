@@ -24,6 +24,8 @@
    \dQuote{ULS} (unweighted least squares), \dQuote{WLS} (weighted least squares) 
    or \dQuote{DWLS} (diagonally-weighted least squares). The appropriate
    fit function to include with these models is \code{\link{mxFitFunctionWLS}}
+
+	\emph{note}: This method is deprecated. Use \link{mxData} and \link{mxFitFunctionWLS} instead.
 }
 
 \usage{
@@ -44,7 +46,7 @@
  \item{suppressWarnings}{Logical that determines whether to suppress
    diagnostic warnings. These warnings are likely only helpful to developers.}
  \item{allContinuousMethod}{A character string 'cumulants' (default) or
-   'marginals'. See Details.}
+   'marginals'. See mxFitFunctionWLS.}
 \item{...}{Not used.  Forces remaining arguments to be specified by name.}
 \item{silent}{Whether to report progress}
 }
