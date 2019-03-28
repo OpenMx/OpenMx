@@ -18,7 +18,22 @@
 #include "nlopt-internal.h"
 #include "EnableWarnings.h"
 
+void nlopt_opt_dtor::operator()(struct nlopt_opt_s *opt)
+{
+	opt->work = 0;
+	nlopt_destroy(opt);
+}
+
 namespace SLSQP {
+
+	struct nlopt_slsqp_wdump_dtor {
+		void operator()(struct nlopt_slsqp_wdump *nsw) {
+			free(nsw->realwkspc);
+			delete nsw;
+		}
+	};
+
+	typedef std::unique_ptr< struct nlopt_slsqp_wdump, nlopt_slsqp_wdump_dtor > nlopt_slsqp_wdump_ptr;
 
 struct context {
 	GradientOptimizerContext &goc;
@@ -209,7 +224,7 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	}
 }
 
-static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump wkspc, nlopt_opt opt, GradientOptimizerContext &goc){
+static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump &wkspc, nlopt_opt opt, GradientOptimizerContext &goc){
 	int n = opt->n;
 	int  n1 = n+1;
 	int M = wkspc.M; //<--Total number of constraints (i.e. constraint function elements, not MxConstraint objects)
@@ -330,8 +345,8 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	goc.setWanted(0);
 	omxState *globalState = goc.getState();
 	
-	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, goc.numFree);
-	goc.extraData = opt;
+	nlopt_opt_ptr opt(nlopt_create(NLOPT_LD_SLSQP, goc.numFree));
+	goc.extraData = opt.get();
 	//local_opt = nlopt_create(NLOPT_LD_SLSQP, n); // Subsidiary algorithm
 	
 	//nlopt_set_local_optimizer(opt, local_opt);
@@ -369,10 +384,10 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	}
 	
 	//The following four lines are only sensible if using SLSQP (noted in case we ever use a different optimizer from the NLOPT collection):
-	struct nlopt_slsqp_wdump wkspc;
+	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
 	//wkspc.lengths = (int*)calloc(8, sizeof(int));
-	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
-	opt->work = (nlopt_slsqp_wdump*)&wkspc;
+	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
+	opt->work = wkspc.get();
 	
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
@@ -386,11 +401,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	}
 	
 	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
-	SLSQP::omxExtractSLSQPConstraintInfo(wkspc, opt, goc);
-	opt->work = NULL;
-	free(wkspc.realwkspc);
-	
-	nlopt_destroy(opt);
+	SLSQP::omxExtractSLSQPConstraintInfo(*wkspc, opt, goc);
 	
 	goc.setWanted(oldWanted);
 	
@@ -439,23 +450,19 @@ double UnconstrainedSLSQPOptimizer::obj(unsigned n, const double *x, double *gra
 void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 {
 	uo = &_uo;
-	opt = nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size());
+	opt = nlopt_opt_ptr(nlopt_create(NLOPT_LD_SLSQP, uo->lbound.size()));
 	nlopt_set_lower_bounds(opt, uo->lbound.data());
 	nlopt_set_upper_bounds(opt, uo->ubound.data());
 	nlopt_set_ftol_rel(opt, tolerance);
 	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	nlopt_set_min_objective(opt, obj, this);
 
-	struct nlopt_slsqp_wdump wkspc;
-	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
+	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
+	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = (nlopt_slsqp_wdump*)&wkspc;
 	
 	double fit = 0;
 	int code = nlopt_optimize(opt, uo->getParamVec(), &fit);
-
-	opt->work = 0;
-	free(wkspc.realwkspc);
-	nlopt_destroy(opt);
 
 	if (code == NLOPT_INVALID_ARGS) {
 		_uo.panic("NLOPT invoked with invalid arguments");
@@ -515,7 +522,7 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 {
 	double *est = gdpt.data();
 	
-	nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, nmoc->numFree);
+	nlopt_opt_ptr opt(nlopt_create(NLOPT_LD_SLSQP, nmoc->numFree));
 	nmoc->extraData = opt;
 	nmoc->subsidiarygoc.extraData = opt;
 	nlopt_set_lower_bounds(opt, nmoc->solLB.data());
@@ -541,9 +548,9 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 		}
 	}
 	
-	struct nlopt_slsqp_wdump wkspc;
-	wkspc.realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
-	opt->work = (nlopt_slsqp_wdump*)&wkspc;
+	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
+	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
+	opt->work = wkspc.get();
 	
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
@@ -558,8 +565,4 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 		
 		code = nlopt_optimize(opt, est, &fit);
 	}
-	
-	opt->work = NULL;
-	free(wkspc.realwkspc);
-	nlopt_destroy(opt);
 }
