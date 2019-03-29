@@ -4449,6 +4449,7 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
 	int index = clc[clc.size()-1] - 1;  // innermost loop index
 
+	data->setModified();
 	if (useOriginalData && index == 0) {
 		for (int cx=0; cx < int(columns.size()); ++cx) {
 			data->rawCols[ columns[cx] ].ptr = origData[cx];

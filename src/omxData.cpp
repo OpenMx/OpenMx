@@ -41,7 +41,7 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
-		     noExoOptimize(true),
+		     noExoOptimize(true), modified(false),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -1128,6 +1128,25 @@ void obsSummaryStats::log()
 void omxData::reportResults(MxRList &out)
 {
 	out.add("numObs", Rf_ScalarReal(omxDataNumObs(this)));
+
+	if (isModified() && rawCols.size()) {
+		Rcpp::CharacterVector colNames(rawCols.size());
+		Rcpp::List columns(rawCols.size());
+		for (int cx=0; cx < int(rawCols.size()); ++cx) {
+			auto &c1 = rawCols[cx];
+			colNames[cx] = c1.name;
+			if (c1.type == COLUMNDATA_NUMERIC) {
+				Eigen::Map< Eigen::VectorXd > vec(c1.ptr.realData, rows);
+				columns[cx] = Rcpp::wrap(vec);
+			} else {
+				Eigen::Map< Eigen::VectorXi > vec(c1.ptr.intData, rows);
+				columns[cx] = Rcpp::wrap(vec);
+			}
+		}
+		Rf_setAttrib(columns, R_NamesSymbol, colNames);
+		markAsDataFrame(columns, rows);
+		out.add("rawData", columns);
+	}
 
 	if (!oss) return;
 	auto &o1 = *oss;

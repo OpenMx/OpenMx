@@ -2298,6 +2298,15 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
 ##' exactly 3 levels.
 ##'
+##' After \code{mxRun} returns, the \code{dest} mxData object will
+##' contain the most recently loaded data. Hence, any single analysis
+##' of a series can be reproduced by issuing \code{mxComputeLoadData}
+##' with the single index associated with a particular dataset,
+##' replacing the compute plan with something like
+##' \code{omxDefaultComputePlan}, and then passing the model back
+##' through \code{mxRun}. This can be a helpful approach when
+##' investigating unexpected results.
+##'
 ##' @param dest the name of the model where the columns will be loaded
 ##' @param column a character vector. The column names to replace.
 ##' @param method name of the conduit used to load the columns.
@@ -2317,7 +2326,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
-##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
+##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}, \link{mxRun}, \link{omxDefaultComputePlan}
 mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=c(), col.names=c(),

@@ -352,6 +352,10 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 					}
 				} else if (is(candidate, "MxDataStatic")) {
 					value$numObs <- NULL
+					if (!is.null(value[['rawData']])) {
+						candidate@observed <- value[['rawData']]
+						value[['rawData']] <- NULL
+					}
 					if (length(value)) candidate@observedStats <- value
 				} else if (is(candidate, "MxDataDynamic")) {
 					candidate@numObs <- value$numObs
