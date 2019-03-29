@@ -331,6 +331,9 @@ mxCheckIdentification <- function(model, details=TRUE){
 	if(imxHasConstraint(model)){
 		stop("Whoa Nelly.  I found an MxConstraint in your model.  I just cannot work under these conditions. I will be in my trailer until you reparameterize your model without using mxConstraint().")
 	}
+	if(imxHasDefinitionVariable(model)){
+		stop("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
+	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	jac <- omxManifestModelByParameterJacobian(model)
