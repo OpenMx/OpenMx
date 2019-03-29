@@ -476,7 +476,8 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 	return(list(meanEst, varEst, meanHess, varHess, meanJac, varJac))
 }
 
-# useMinusTwo is deprecated
+# mxDataWLS itself is deprecated
+# useMinusTwo parameter is deprecated
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
 		      suppressWarnings = TRUE, allContinuousMethod=c("cumulants", "marginals"),
 		      silent=!interactive())

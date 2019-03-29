@@ -301,9 +301,13 @@ approveWLSIntervals <- function(flatModel, modelName) {
 
 #' Determine whether a dataset will have weights and summary statistics for the means if used with mxFitFunctionWLS
 #'
-#' Given either a data.frame or an mxData of type raw, this function determines whether mxFitFunctionWLS will generate expectations for means.
-#' Currently, mixed and ordinal data as well as all-continuous data processed using the "cumulants" method have means, while all continuous
-#' data processed with allContinuousMethod = "marginals" will lack means.
+#' Given either a data.frame or an mxData of type raw, this function determines whether \code{mxFitFunctionWLS}
+#' will generate expectations for means.
+#' 
+#' All-continuous data processed using the "cumulants" method lack means, while
+#' all continuous data processed with allContinuousMethod = "marginals" will have means.
+#' 
+#' When data are not all continuous, allContinuousMethod is ignored, and means are modelled.
 #'
 #' @param data the (currently raw) data being used in a \code{\link{mxFitFunctionWLS}} model.
 #' @param allContinuousMethod the method used to process data when all columns are continuous.
@@ -313,27 +317,29 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #' @seealso - \code{\link{mxFitFunctionWLS}}, \code{\link{omxAugmentDataWithWLSSummary}}
 #' @examples
 #'
-#' # =======================
-#' # = All continuous data =
-#' # =======================
+#' # ====================================
+#' # = All continuous, data.frame input =
+#' # ====================================
 #'
-#' mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # TRUE
-#' mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals")$hasMeans  # FALSE - no means with marginals
+#' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)
+#' tmp$hasMeans # FALSE - no means with cumulants
+#' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals") 
+#' tmp$hasMeans # TRUE we get means with marginals
 #'
-#' # ================================
-#' # = Provided as an mxData object =
-#' # ================================
+#' # ==========================
+#' # = mxData object as input =
+#' # ==========================
 #' tmp = mxData(mtcars, type="raw")
-#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # TRUE
-#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans  # FALSE - no means with marginals
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # FALSE
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans  # TRUE
 #'
-#' # =======================
-#' # = One var is a factor =
-#' # =======================
+#' # =======================================
+#' # = One var is a factor: Means modelled =
+#' # =======================================
 #' tmp = mtcars
 #' tmp$cyl = factor(tmp$cyl)
-#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants")$hasMeans # TRUE
-#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans # TRUE - always has means
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants")$hasMeans # TRUE - always has means
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans # TRUE
 #' 
 mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "marginals"), verbose=FALSE){
 	allContinuousMethod = match.arg(allContinuousMethod)
@@ -348,13 +354,14 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 
 	if(all(sapply(data, FUN= is.numeric))){
 		if(verbose){ print("all continuous") }
+
 		if(allContinuousMethod == "cumulants"){
-			return(list(hasMeans = TRUE))
-		} else {
 			return(list(hasMeans = FALSE))
+		} else {
+			return(list(hasMeans = TRUE))
 		}
 	}else{
-		# all non-continuous forms of WLS have means
+		# Data with any non-continuous vars have means under WLS
 		return(list(hasMeans = TRUE))
 	}
 }

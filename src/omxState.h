@@ -300,6 +300,7 @@ class omxGlobal {
 	void reportProgress(const char *context, FitContext *fc);
 	bool interrupted();
 	void reportProgress1(const char *context, std::string detail);
+	void throwOnUserInterrupted() { if (interrupted()) mxThrow("User interrupt"); };
 };
 
 // Use a pointer to ensure correct initialization and destruction
