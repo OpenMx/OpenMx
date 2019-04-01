@@ -3643,8 +3643,13 @@ void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
 		auto *fv = vars[vx];
 		fc->est[vx] = startingValues[fv->id];
 	}
+	fc->fit = NA_REAL;
+	fc->mac = NA_REAL;
+	fc->fitUnits = FIT_UNITS_UNINITIALIZED;
+	fc->skippedRows = 0;
 	fc->vcov.resize(0,0);
 	fc->stderrs.resize(0);
+	fc->clearHessian();
 }
 
 void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
