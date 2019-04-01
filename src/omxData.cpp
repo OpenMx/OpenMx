@@ -1223,7 +1223,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 	Ecov /= totalWeight - 1;
 	for (int cx=0; cx < int(dc.size()); ++cx) {
 		if (Ecov(cx,cx) > minVariance) continue;
-		mxThrow("%s: '%s' has observed variance less than %f",
+		mxThrow("%s: '%s' has observed variance less than %g",
 			name, dc[cx], minVariance);
 	}
 
@@ -2384,7 +2384,7 @@ struct sampleStats {
 			pv.theta[olsr.beta.size()] = olsr.var;
 			Ecov(yy,yy) = olsr.var;
 			if (olsr.var < data.getMinVariance()) {
-				omxRaiseErrorf("%s: '%s' has observed variance less than %f",
+				omxRaiseErrorf("%s: '%s' has observed variance less than %g",
 					       data.name, dc[yy], data.getMinVariance());
 				return;
 			}
