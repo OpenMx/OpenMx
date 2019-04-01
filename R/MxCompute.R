@@ -2300,6 +2300,11 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
 ##' exactly 3 levels.
 ##'
+##' For \code{method='bgen'}, the file \code{path+".bgi"} must also
+##' exist. If not available, generate this index file with the
+##' \href{https://bitbucket.org/gavinband/bgen/wiki/bgenix}{bgenix}
+##' tool.
+##'
 ##' After \code{mxRun} returns, the \code{dest} mxData object will
 ##' contain the most recently loaded data. Hence, any single analysis
 ##' of a series can be reproduced by issuing \code{mxComputeLoadData}
