@@ -4654,6 +4654,9 @@ void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 	if (columns.size() != 1) mxThrow("%s: bgen only has 1 column, not %d",
 					 name, int(columns.size()));
 	if (colTypes[0] != COLUMNDATA_NUMERIC) mxThrow("%s: bgen contains a numeric dosage", name);
+
+	if (curRecord != index) bgenView.reset();
+
 	if (bgenView.get() == 0) {
 		using namespace genfile::bgen ;
 		using namespace Rcpp ;
@@ -4661,24 +4664,24 @@ void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 		std::string bgenIndex = bgen + ".bgi";
 		bgenView = View::create( filePath ) ;
 		auto query = IndexQuery::create( bgenIndex ) ;
+		query->from_row(index);
 		query->initialise();
 		bgenView->set_query( query ) ;
+		curRecord = index;
 		if (data->rows != int(bgenView->number_of_samples())) {
 			mxThrow("%s: %s has %d rows but %s has %d samples",
 				name, data->name, data->rows, filePath.c_str(),
 				int(bgenView->number_of_samples()));
 		}
-		auto number_of_variants = bgenView->number_of_variants();
-		if (index >= int(number_of_variants)) {
-			mxThrow("%s: %d requested but only %d variants available in %s",
-				name, index, int(number_of_variants), filePath.c_str());
-		}
+		loadCounter += 1;
 	}
 
 	std::string SNPID, rsid, chromosome ;
 	genfile::bgen::uint32_t position ;
 	std::vector< std::string > alleles ;
-	bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles ) ;
+	if (!bgenView->read_variant( &SNPID, &rsid, &chromosome, &position, &alleles )) {
+		mxThrow("%s: %s has no more varients", name, filePath.c_str());
+	}
 	if (checkpoint) {
 		auto &cv = Global->checkpointValues;
 		cv[cpIndex] = SNPID;
@@ -4688,6 +4691,7 @@ void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 	}
 	BgenXfer xfer(stripeData[0]);
 	bgenView->read_genotype_data_block(xfer);
+	curRecord += 1;
 
 	for (int cx=0; cx < int(columns.size()); ++cx) {
 		data->rawCols[ columns[cx] ].ptr = stripeData[cx];

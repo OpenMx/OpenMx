@@ -556,6 +556,13 @@ namespace genfile {
 			return m_positions[index] ;
 		}
 
+		SqliteIndexQuery& SqliteIndexQuery::from_row( int row ) {
+			m_query_parts.limit =
+				(boost::format( "LIMIT %d OFFSET %d" ) % 1e13 % row).str() ;
+			m_initialised = false ;
+			return *this ;
+		}
+
 		SqliteIndexQuery& SqliteIndexQuery::include_range( GenomicRange const& range ) {
 			m_query_parts.inclusion += ((m_query_parts.inclusion.size() > 0) ? " OR " : "" ) + (
 				boost::format( "( chromosome == '%s' AND position BETWEEN %d AND %d )" ) % range.chromosome() % range.start() % range.end()
@@ -645,7 +652,7 @@ namespace genfile {
 				+ (( m_query_parts.exclusion.size() > 0 ) ? ("(" + m_query_parts.exclusion + ")") : "" ) ;
 			std::string const where = (inclusion.size() > 0 || exclusion.size() > 0) ? ("WHERE " + inclusion + exclusion) : "" ;
 			std::string const orderBy = "ORDER BY chromosome, position, rsid, allele1, allele2" ;
-			std::string const select_sql = select + " " + m_query_parts.join + " " + where + " " + orderBy ;
+			std::string const select_sql = select + " " + m_query_parts.join + " " + where + " " + orderBy + " " + m_query_parts.limit ;
 	#if DEBUG
 			std::cerr << "BgenIndex::build_query(): SQL is: \"" << select_sql << "\"...\n" ;
 	#endif
