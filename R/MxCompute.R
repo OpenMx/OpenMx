@@ -2237,14 +2237,13 @@ setClass(Class = "MxComputeLoadData",
 		 method = "character",
 		 checkpointMetadata = "logical",
 		 skip.rows = "integer",
-		 skip.cols = "integer",
-		 na.strings = "character"
+		 skip.cols = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
 		 row.names, col.names, skip.rows, skip.cols, byrow, verbose,
-		 cacheSize, method, checkpointMetadata, na.strings) {
+		 cacheSize, method, checkpointMetadata) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2261,7 +2260,6 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@checkpointMetadata <- checkpointMetadata
 		  .Object@skip.rows <- skip.rows
 		  .Object@skip.cols <- skip.cols
-		  .Object@na.strings <- na.strings
 		  .Object
 	  })
 
@@ -2330,7 +2328,6 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param cacheSize integer. How many columns to cache per
 ##' scan through the data. Only used when byrow=FALSE. Deprecated.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
-##' @param na.strings character vector. A vector of strings that denote a missing value.
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
@@ -2340,7 +2337,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ...
 			      row.names=c(), col.names=c(),
 			      skip.rows=0, skip.cols=0,
 			      verbose=0L,
-			      cacheSize=100L, checkpointMetadata=TRUE, na.strings=c('NA')) {
+			      cacheSize=100L, checkpointMetadata=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadData does not accept values for the '...' argument")
@@ -2351,7 +2348,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ...
 		as.integer(row.names), as.integer(col.names),
 		as.integer(skip.rows), as.integer(skip.cols), byrow,
 		as.integer(verbose), as.integer(cacheSize), method,
-		as.logical(checkpointMetadata), as.character(na.strings))
+		as.logical(checkpointMetadata))
 }
 
 #----------------------------------------------------
