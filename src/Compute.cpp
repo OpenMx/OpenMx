@@ -3643,6 +3643,8 @@ void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
 		auto *fv = vars[vx];
 		fc->est[vx] = startingValues[fv->id];
 	}
+	fc->vcov.resize(0,0);
+	fc->stderrs.resize(0);
 }
 
 void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
