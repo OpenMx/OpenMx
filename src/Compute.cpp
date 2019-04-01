@@ -2203,6 +2203,8 @@ class ComputeLoadData : public omxCompute {
 	int verbose;
 	bool checkpoint;
 	int cpIndex;
+	std::vector<std::string> naStrings;
+	bool isNA(const std::string& str);
 
 	genfile::bgen::View::UniquePtr bgenView;
 
@@ -4384,6 +4386,11 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 
+	ProtectedSEXP RnaStr(R_do_slot(rObj, Rf_install("na.strings")));
+	for (int x1=0; x1 < Rf_length(RnaStr); ++x1) {
+		naStrings.push_back(R_CHAR(STRING_ELT(Rpath, x1)));
+	}
+
 	loadCounter = 0;
 	stripeStart = -1;
 	stripeEnd = -1;
@@ -4680,10 +4687,18 @@ void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
 	}
 }
 
+bool ComputeLoadData::isNA(const std::string& str)
+{
+	for (auto &na1 : naStrings) {
+		if (na1 == str) return true;
+	}
+	return false;
+}
+
 void ComputeLoadData::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out)
 {
 	const std::string &rn = st.get_delimited_str();
-	if (rn == "NA") {
+	if (isNA(rn)) {
 		*out = NA_INTEGER;
 		return;
 	}
@@ -4802,7 +4817,7 @@ void ComputeLoadData::loadByRow(FitContext *fc, int index)
 		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 			for (int rx=0; rx < data->rows; ++rx) {
 				const std::string& str = icsv->get_delimited_str();
-				if (str == "NA") {
+				if (isNA(str)) {
 					stripeData[cx].realData[rx] = NA_REAL;
 				} else {
 					std::istringstream is(str);
