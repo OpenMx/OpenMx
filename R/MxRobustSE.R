@@ -159,14 +159,14 @@ imxRobustSE <- function(model, details=FALSE){
 	if(is(model@expectation, "MxExpectationGREML")){
 		stop("robust standard errors cannot be calculated for a single-group model that uses GREML expectation")
 	}
-	if(is(model@fitfunction, "MxFitFunctionWLS")){
-		stop("imxRobustSE() requires a maximum-likelihood fit, but 'model' uses a WLS fitfunction")
+	if(!length(model@output$vcov)){
+		stop("imxRobustSE() requires model to have a nonempty 'vcov' output slot (has the model been run?)")
+	}
+	if(imxHasWLS(model)){
+		stop("'model' uses a WLS fitfunction; robust standard errors are automatically calculated for WLS models when they are run with the default compute plan")
 	}
 	if(!is(model@fitfunction, "MxFitFunctionML") && !is(model@fitfunction, "MxFitFunctionMultigroup")){
 		warning(paste("imxRobustSE() requires a maximum-likelihood fit, but 'model' uses ",class(model@fitfunction),"; robust standard errors will only be correct if the fitfunction units are -2lnL",sep=""))
-	}
-	if(!length(model@output$vcov)){
-		stop("imxRobustSE() requires model to have a nonempty 'vcov' output slot (has the model been run?)")
 	}
 	parnames <- dimnames(model@output$vcov)
 	# if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){

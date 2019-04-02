@@ -1,12 +1,12 @@
-Compute.o: Makevars Compute.cpp  \
-  include/genfile/zlib.hpp \
-  include/genfile/types.hpp \
-  include/genfile/bgen/IndexQuery.hpp \
-  include/db/Connection.hpp \
-  include/db/SQLite3Connection.hpp \
-  include/db/Connection.hpp include/db/Error.hpp \
-  include/db/SQLite3Connection.hpp \
-  include/db/SQLite3Error.hpp \
+Compute.o: Makevars Compute.cpp include/genfile/bgen/View.hpp \
+ include/genfile/bgen/bgen.hpp include/genfile/zlib.hpp \
+ include/zstd-1.1.0/zstd.h include/genfile/types.hpp \
+ include/genfile/MissingValue.hpp include/genfile/bgen/IndexQuery.hpp \
+ include/db/sqlite3.hpp include/db/Connection.hpp \
+ include/db/Transaction.hpp include/db/SQLite3Connection.hpp \
+ include/sqlite3/sqlite3.h include/db/Connection.hpp include/db/Error.hpp \
+ include/db/SQLite3Statement.hpp include/db/SQLite3Connection.hpp \
+ include/db/SQLStatement.hpp include/db/SQLite3Error.hpp \
  pgenlib_internal.h plink2_base.h glue.h omxState.h omxDefines.h \
  omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
@@ -67,19 +67,21 @@ ba81quad.o: Makevars ba81quad.cpp ba81quad.h glue.h omxState.h omxDefines.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
  omxFitFunction.h \
  dmvnorm.h EnableWarnings.h
-bgen.o: Makevars bgen.cpp  include/genfile/bgen/bgen.hpp \
-  include/zstd-1.1.0/zstd.h \
-  include/db/Connection.hpp \
-  include/db/SQLite3Connection.hpp \
-  include/db/Connection.hpp include/db/Error.hpp \
-  include/db/SQLite3Connection.hpp \
-  include/db/SQLite3Error.hpp \
- 
-db_wrapper.o: Makevars db_wrapper.cpp  \
-  include/db/SQLite3Connection.hpp \
-  include/db/Error.hpp \
-  include/db/SQLite3Statement.hpp \
- 
+bgen.o: Makevars bgen.cpp include/genfile/types.hpp include/genfile/bgen/bgen.hpp \
+ include/genfile/zlib.hpp include/zstd-1.1.0/zstd.h \
+ include/genfile/MissingValue.hpp \
+ include/db/sqlite3.hpp include/db/Connection.hpp \
+ include/db/Transaction.hpp include/db/SQLite3Connection.hpp \
+ include/sqlite3/sqlite3.h include/db/Connection.hpp include/db/Error.hpp \
+ include/db/SQLite3Statement.hpp include/db/SQLite3Connection.hpp \
+ include/db/SQLStatement.hpp include/db/SQLite3Error.hpp \
+ include/genfile/bgen/IndexQuery.hpp \
+ include/genfile/bgen/View.hpp
+db_wrapper.o: Makevars db_wrapper.cpp include/db/Connection.hpp \
+ include/db/Transaction.hpp include/db/SQLite3Connection.hpp \
+ include/sqlite3/sqlite3.h include/db/Error.hpp \
+ include/db/SQLStatement.hpp include/db/SQLite3Statement.hpp \
+ include/db/SQLite3Error.hpp
 dmvnorm.o: Makevars dmvnorm.cpp omxDefines.h \
  omxBuffer.h matrix.h glue.h omxState.h omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
@@ -258,46 +260,66 @@ ssMLFit.o: Makevars ssMLFit.cpp omxFitFunction.h omxDefines.h \
  omxData.h Compute.h \
  glue.h EnableWarnings.h
 asa.o: Makevars asa.c asa.h asa_usr_asa.h
-entropy_common.o: Makevars entropy_common.c  \
-  include/zstd-1.1.0/common/fse.h \
-  include/zstd-1.1.0/common/mem.h \
- 
-fse_compress.o: Makevars fse_compress.c  \
-  include/zstd-1.1.0/common/fse.h \
- 
-fse_decompress.o: Makevars fse_decompress.c  \
-  include/zstd-1.1.0/common/fse.h \
- 
+entropy_common.o: Makevars entropy_common.c include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/bitstream.h include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/huf.h
+fse_compress.o: Makevars fse_compress.c include/zstd-1.1.0/common/bitstream.h \
+ include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/bitstream.h
+fse_decompress.o: Makevars fse_decompress.c include/zstd-1.1.0/common/bitstream.h \
+ include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/bitstream.h
 general.o: Makevars general.c nlopt-internal.h nlopt.h nlopt-util.h
-huf_compress.o: Makevars huf_compress.c  \
-  include/zstd-1.1.0/common/fse.h \
-  include/zstd-1.1.0/common/huf.h
-huf_decompress.o: Makevars huf_decompress.c  \
-  include/zstd-1.1.0/common/fse.h \
- 
+huf_compress.o: Makevars huf_compress.c include/zstd-1.1.0/common/bitstream.h \
+ include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/bitstream.h include/zstd-1.1.0/common/huf.h
+huf_decompress.o: Makevars huf_decompress.c include/zstd-1.1.0/common/bitstream.h \
+ include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/huf.h
 optimize.o: Makevars optimize.c nlopt-internal.h nlopt.h nlopt-util.h slsqp.h
 options.o: Makevars options.c nlopt-internal.h nlopt.h nlopt-util.h
 slsqp.o: Makevars slsqp.c slsqp.h nlopt.h nlopt-util.h
 sqlite3.o: Makevars sqlite3.c
 stop.o: Makevars stop.c nlopt-util.h nlopt.h
-xxhash.o: Makevars xxhash.c 
+xxhash.o: Makevars xxhash.c include/zstd-1.1.0/common/xxhash.h
 zbuff_compress.o: Makevars zbuff_compress.c \
-  include/zstd-1.1.0/zstd.h \
- 
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h \
+ include/zstd-1.1.0/common/zstd_internal.h \
+ include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h include/zstd-1.1.0/zstd.h \
+ include/zstd-1.1.0/common/zbuff.h
 zbuff_decompress.o: Makevars zbuff_decompress.c \
-  include/zstd-1.1.0/zstd.h \
- 
-zstd_common.o: Makevars zstd_common.c  \
-  include/zstd-1.1.0/zstd.h \
- 
-zstd_compress.o: Makevars zstd_compress.c  \
-  include/zstd-1.1.0/common/fse.h \
-  include/zstd-1.1.0/common/mem.h \
-  include/zstd-1.1.0/common/huf.h \
-  include/zstd-1.1.0/zstd.h \
- 
-zstd_decompress.o: Makevars zstd_decompress.c  \
-  include/zstd-1.1.0/common/fse.h \
-  include/zstd-1.1.0/common/mem.h \
-  include/zstd-1.1.0/common/huf.h \
-  include/zstd-1.1.0/zstd.h
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h \
+ include/zstd-1.1.0/common/zstd_internal.h \
+ include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h include/zstd-1.1.0/zstd.h \
+ include/zstd-1.1.0/common/zbuff.h
+zstd_common.o: Makevars zstd_common.c include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/zstd.h \
+ include/zstd-1.1.0/common/zbuff.h
+zstd_compress.o: Makevars zstd_compress.c include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/xxhash.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/bitstream.h include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/huf.h \
+ include/zstd-1.1.0/common/zstd_internal.h include/zstd-1.1.0/zstd.h \
+ include/zstd-1.1.0/compress/zstd_opt.h
+zstd_decompress.o: Makevars zstd_decompress.c include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/xxhash.h include/zstd-1.1.0/common/fse.h \
+ include/zstd-1.1.0/common/bitstream.h include/zstd-1.1.0/common/mem.h \
+ include/zstd-1.1.0/common/error_private.h \
+ include/zstd-1.1.0/common/error_public.h include/zstd-1.1.0/common/huf.h \
+ include/zstd-1.1.0/common/zstd_internal.h include/zstd-1.1.0/zstd.h

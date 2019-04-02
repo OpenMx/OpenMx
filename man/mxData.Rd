@@ -27,7 +27,7 @@
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
-          verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE)
+          verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE, minVariance=sqrt(.Machine$double.eps))
 }
 
 \arguments{
@@ -51,6 +51,7 @@
      statistics in parallel.}
    \item{.noExoOptimize}{logical. Whether to use math short-cuts for the
      case of no exogenous predictors.}
+   \item{minVariance}{numeric. The minimum acceptable variance for \sQuote{observedStats}.}
 }
 
 \details{
@@ -64,7 +65,12 @@ The mxData function creates \link{MxData} objects, which can be used as argument
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML} functions, depending on the specified model.}
 
 \item{acov}{ This type was used for WLS data as created by \link{mxDataWLS}. Its use is now deprecated.
-Instead, use type = \sQuote{raw} and an \link{mxFitFunctionWLS}. For reference, if type is acov, the \sQuote{observed} argument will contain raw data and the \sQuote{observedStats} slot a list of observed statistics. The list is expected to contain a number of named objects: \sQuote{cov} is the (polychoric) covariance matrix of the continuous and ordinal variables. \sQuote{means} (optional) may be included for estimations involving means.  \sQuote{thresholds} should be included for estimation involving thresholds and ordinal variables. \sQuote{acov} is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for diagonally weighted least squares. \sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero). Data of this type typically use the \link{mxFitFunctionWLS} function.}
+Instead, use type = \sQuote{raw} and an \link{mxFitFunctionWLS}. For
+reference, if type is acov, the \sQuote{observed} argument will contain
+raw data and the \sQuote{observedStats} slot a list of observed
+statistics. The list is expected to contain a number of named objects:
+\sQuote{cov} is the (polychoric) covariance matrix of the continuous and
+ordinal variables. An error is raised if any variance is smaller \code{minVariance}. \sQuote{means} (optional) may be included for estimations involving means.  \sQuote{thresholds} should be included for estimation involving thresholds and ordinal variables. \sQuote{acov} is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for diagonally weighted least squares. \sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero). Data of this type typically use the \link{mxFitFunctionWLS} function.}
 }
 
 MxData objects may not be included in \link{mxAlgebra} objects or the \link{mxFitFunctionAlgebra} function. To reference data in these functions, use a \link{mxMatrix} or a definition variable (data.var) label.

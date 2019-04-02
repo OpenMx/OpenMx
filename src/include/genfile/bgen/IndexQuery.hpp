@@ -76,6 +76,7 @@ namespace genfile {
 
 			// Methods for building queries
 			// Each method returns this object, allowing methods to be chained
+			virtual IndexQuery& from_row( int row ) = 0;
 			virtual IndexQuery& include_range( GenomicRange const& range ) = 0 ;
 			virtual IndexQuery& exclude_range( GenomicRange const& range ) = 0 ;
 			virtual IndexQuery& include_rsids( std::vector< std::string > const& ids ) = 0 ;
@@ -125,6 +126,7 @@ namespace genfile {
 			// Methods for building queries
 			// Each method returns this object, allowing methods to be chained
 
+			SqliteIndexQuery& from_row( int row );
 			// Include variants in a range
 			SqliteIndexQuery& include_range( GenomicRange const& range ) ;
 			// Exclude variants in a range
@@ -154,6 +156,7 @@ namespace genfile {
 				std::string join ;
 				std::string inclusion ;
 				std::string exclusion ;
+				std::string limit ;
 			} ;
 			QueryParts m_query_parts ;
 			bool m_initialised ;

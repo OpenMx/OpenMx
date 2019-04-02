@@ -172,6 +172,8 @@ class omxData {
 	std::unique_ptr< obsSummaryStats > oss;
 	bool parallel;
 	bool noExoOptimize;
+	bool modified;
+	double minVariance;
 
 	void estimateObservedStats();
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
@@ -190,6 +192,9 @@ class omxData {
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
 	void assertColumnIsData(int col);
+	void setModified() { modified=true; };
+	bool isModified() { return modified; };
+	double getMinVariance() const { return minVariance; };
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data

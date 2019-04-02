@@ -1919,8 +1919,8 @@ setMethod("initialize", "MxComputeStandardError",
 ##' Moore T & Sadler B.  (2006).  \emph{Maximum-Likelihood Estimation and 
 ##'      Scoring Under Parametric Constraints}.  Army Research Laboratory 
 ##'      report ARL-TR-3805.
-##' Schoenberg R.  (1996).  \emph{Constrained Maximum Likelihood}.
-##'      Maple Valley, Wa: Aptech Systems, Inc.
+##' Schoenberg R.  (1997).  Constrained maximum likelihood.
+##'      \emph{Computational Economics, 10}, p. 251-266.
 
 mxComputeStandardError <- function(freeSet=NA_character_, fitfunction='fitfunction') {
 	new("MxComputeStandardError", freeSet, fitfunction)
@@ -2237,13 +2237,14 @@ setClass(Class = "MxComputeLoadData",
 		 method = "character",
 		 checkpointMetadata = "logical",
 		 skip.rows = "integer",
-		 skip.cols = "integer"
+		 skip.cols = "integer",
+		 na.strings = "character"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
 		 row.names, col.names, skip.rows, skip.cols, byrow, verbose,
-		 cacheSize, method, checkpointMetadata) {
+		 cacheSize, method, checkpointMetadata, na.strings) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2260,6 +2261,7 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@checkpointMetadata <- checkpointMetadata
 		  .Object@skip.rows <- skip.rows
 		  .Object@skip.cols <- skip.cols
+		  .Object@na.strings <- na.strings
 		  .Object
 	  })
 
@@ -2298,6 +2300,20 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
 ##' exactly 3 levels.
 ##'
+##' For \code{method='bgen'}, the file \code{path+".bgi"} must also
+##' exist. If not available, generate this index file with the
+##' \href{https://bitbucket.org/gavinband/bgen/wiki/bgenix}{bgenix}
+##' tool.
+##'
+##' After \code{mxRun} returns, the \code{dest} mxData object will
+##' contain the most recently loaded data. Hence, any single analysis
+##' of a series can be reproduced by issuing \code{mxComputeLoadData}
+##' with the single index associated with a particular dataset,
+##' replacing the compute plan with something like
+##' \code{omxDefaultComputePlan}, and then passing the model back
+##' through \code{mxRun}. This can be a helpful approach when
+##' investigating unexpected results.
+##'
 ##' @param dest the name of the model where the columns will be loaded
 ##' @param column a character vector. The column names to replace.
 ##' @param method name of the conduit used to load the columns.
@@ -2314,16 +2330,17 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param cacheSize integer. How many columns to cache per
 ##' scan through the data. Only used when byrow=FALSE. Deprecated.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
+##' @param na.strings character vector. A vector of strings that denote a missing value.
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
-##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}
+##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}, \link{mxRun}, \link{omxDefaultComputePlan}
 mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ..., path,
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=c(), col.names=c(),
 			      skip.rows=0, skip.cols=0,
 			      verbose=0L,
-			      cacheSize=100L, checkpointMetadata=TRUE) {
+			      cacheSize=100L, checkpointMetadata=TRUE, na.strings=c('NA')) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadData does not accept values for the '...' argument")
@@ -2334,7 +2351,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ...
 		as.integer(row.names), as.integer(col.names),
 		as.integer(skip.rows), as.integer(skip.cols), byrow,
 		as.integer(verbose), as.integer(cacheSize), method,
-		as.logical(checkpointMetadata))
+		as.logical(checkpointMetadata), as.character(na.strings))
 }
 
 #----------------------------------------------------
