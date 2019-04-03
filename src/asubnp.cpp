@@ -1050,7 +1050,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			mxLog("%.20f", lambdaValue);
 		}
 		
-		while(go <= 0){
+		int whileIter = 1;
+		while(go <= 0 && whileIter < 1e6){
 			Eigen::RowVectorXd dxDiagValues(dx_e.cols());
 			dxDiagValues = dx_e.cwiseProduct(dx_e);
 			Eigen::MatrixXd cz_e;
@@ -1130,6 +1131,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				}
 			}
 			Global->throwOnUserInterrupted();
+			whileIter++;
 		} // end while(go <= 0){
 		
 		alp[0] = 0;
@@ -1213,7 +1215,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 		
 		go = 1;
 		
-		while(go > tol){
+		whileIter = 1;
+		while(go > tol && whileIter < 1e6){
 			alp[1] = (alp[0] + alp[2]) / 2.0;
 			
 			ptt_e.col(1) = (p_e * (1 - alp[1])) + p0_e * alp[1];
@@ -1315,6 +1318,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				}
 			}
 			Global->throwOnUserInterrupted();
+			whileIter++;
 		} // 	while(go > tol){
 		
 		if (verbose >= 3){
