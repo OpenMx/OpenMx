@@ -2188,7 +2188,8 @@ class ComputeLoadData : public omxCompute {
 	enum LoadMethod {
 		LoadCSV,
 		LoadBGEN,
-		LoadPGEN
+		LoadPGEN,
+		LoadDataFrame
 	} loadMethod;
 	omxData *data;
 	std::vector< int > columns;
@@ -2205,6 +2206,7 @@ class ComputeLoadData : public omxCompute {
 	int cpIndex;
 	std::vector<std::string> naStrings;
 	bool isNA(const std::string& str);
+	Rcpp::DataFrame observed;
 
 	genfile::bgen::View::UniquePtr bgenView;
 
@@ -2213,6 +2215,7 @@ class ComputeLoadData : public omxCompute {
 	void loadByRow(FitContext *fc, int index);
 	void loadBgenRow(FitContext *fc, int index);
 	void loadPgen(FitContext *fc, int index);
+	void loadDataFrame(FitContext *fc, int index);
 	int stripeSize;
 	int stripeStart;  // 0 is the first column
 	int stripeEnd;
@@ -4301,16 +4304,22 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	useOriginalData = Rf_asLogical(RoriginalData);
 	ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
 	byrow = Rf_asLogical(Rbyrow);
+	ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
+	stripeSize = 1;
 
 	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
 	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
 	if (strEQ(methodName, "csv")) {
 		loadMethod = LoadCSV;
+		if (!byrow) stripeSize = std::max(Rf_asInteger(Rcs), 1);
 	} else if (strEQ(methodName, "bgen")) {
 		loadMethod = LoadBGEN;
 		if (!byrow) mxThrow("%s: byrow=FALSE is not implemented for bgen format", name);
 	} else if (strEQ(methodName, "pgen")) {
 		loadMethod = LoadPGEN;
+	} else if (strEQ(methodName, "data.frame")) {
+		loadMethod = LoadDataFrame;
+		if (byrow) mxThrow("%s: method='%s' byrow=TRUE not implemented", name, methodName);
 	} else {
 		mxThrow("%s: unknown method '%s'", name, methodName);
 	}
@@ -4329,17 +4338,11 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
-	ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
-	if (byrow) {
-		stripeSize = 1;
-	} else {
-		stripeSize = std::max(Rf_asInteger(Rcs), 1);
-	}
 
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
 	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
-	if (Rf_length(Rdata) != 1 || Rf_length(Rpath) != 1)
-		mxThrow("%s: can only handle 1 data and path", name);
+	if (Rf_length(Rdata) != 1)
+		mxThrow("%s: can only handle 1 destination MxData", name);
 
 	int objNum = Rf_asInteger(Rdata);
 	data = globalState->dataList[objNum];
@@ -4360,12 +4363,54 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 		origData.emplace_back(rc.ptr);
 	}
 
-	filePath = R_CHAR(STRING_ELT(Rpath, 0));
-	auto slashPos = filePath.find_last_of("/\\");
-	if (slashPos == std::string::npos) {
-		fileName = filePath;
-	} else {
-		fileName = filePath.substr(slashPos+1);
+	if (loadMethod != LoadDataFrame) {
+		if (Rf_length(Rpath) != 1)
+			mxThrow("%s: you must specify exactly one file from which to read data", name);
+
+		filePath = R_CHAR(STRING_ELT(Rpath, 0));
+		auto slashPos = filePath.find_last_of("/\\");
+		if (slashPos == std::string::npos) {
+			fileName = filePath;
+		} else {
+			fileName = filePath.substr(slashPos+1);
+		}
+	}
+
+	if (loadMethod == LoadDataFrame) {
+		ProtectedSEXP Robs(R_do_slot(rObj, Rf_install("observed")));
+		observed = Robs;
+		if (int(observed.size()) < int(colTypes.size())) {
+			mxThrow("%s: provided observed data only has %d columns but %d requested",
+				name, int(observed.size()), int(colTypes.size()));
+		}
+		if (observed.nrows() % data->rows != 0) {
+			mxThrow("%s: original data has %d rows, "
+				"does not divide the number of observed rows %d evenly (remainder %d)",
+				name, data->rows, observed.nrows(), observed.nrows() % data->rows);
+		}
+		Rcpp::CharacterVector obNames = observed.attr("names");
+		for (int cx=0; cx < int(colTypes.size()); ++cx) {
+			if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+				if (!Rcpp::is<Rcpp::NumericVector>(observed[cx])) {
+					mxThrow("%s: observed column %d (%s) is not type 'numeric'",
+						name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
+				}
+			} else {
+				auto vec = observed[cx];
+				if (!Rcpp::is<Rcpp::IntegerVector>(vec)) {
+					mxThrow("%s: observed column %d (%s) is not type 'integer'",
+						name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
+				}
+				ProtectedSEXP Rlevels(Rf_getAttrib(vec, R_LevelsSymbol));
+				auto &rc = data->rawCols[ columns[cx] ];
+				if (int(rc.levels.size()) != int(Rf_length(Rlevels))) {
+					mxThrow("%s: observed column %d (%s) has a different number"
+						"of factor levels %d compare to the original data %d",
+						name, 1+cx, Rcpp::as<const char *>(obNames[cx]),
+						int(Rf_length(Rlevels)), int(rc.levels.size()));
+				}
+			}
+		}
 	}
 
 	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
@@ -4484,6 +4529,9 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 		case LoadPGEN:
 			loadPgen(fc, index);
 			break;
+		case LoadDataFrame:
+			loadDataFrame(fc, index);
+			break;
 		default:
 			mxThrow("%s: unknown load method %d", name, loadMethod);
 		}
@@ -4507,6 +4555,30 @@ ComputeLoadData::~ComputeLoadData()
 		}
 	}
 	stripeData.clear();
+}
+
+void ComputeLoadData::loadDataFrame(FitContext *fc, int index)
+{
+	int rowBase = index * data->rows;
+	if (observed.nrows() < rowBase + data->rows) {
+		mxThrow("%s: index %d requested but observed data only has %d sets of rows",
+			name, index, observed.nrows() / data->rows);
+	}
+	for (int cx=0; cx < int(columns.size()); ++cx) {
+		auto vec = observed[cx];
+		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+			double *val = REAL(vec);
+			for (int rx=0; rx < data->rows; ++rx) {
+				stripeData[cx].realData[rx] = val[rowBase + rx];
+			}
+		} else {
+			int *val = INTEGER(vec);
+			for (int rx=0; rx < data->rows; ++rx) {
+				stripeData[cx].intData[rx] = val[rowBase + rx];
+			}
+		}
+		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+	}
 }
 
 static const double kGenoToDouble[4] = {0, 1, 2, NA_REAL};
