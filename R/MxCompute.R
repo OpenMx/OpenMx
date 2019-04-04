@@ -1168,7 +1168,7 @@ mxComputeLoop <- function(steps, ..., i=NULL, maxIter=as.integer(NA), freeSet=NA
 		stop("mxComputeBenchmark does not accept values for the '...' argument")
 	}
 
-	if (is.null(i)) maxIter <- 500L
+	if (is.null(i) && missing(maxIter)) maxIter <- 500L
 	maxIter <- as.integer(maxIter)
 	new("MxComputeLoop", steps=steps, indices=as.integer(i), maxIter=maxIter,
 	    freeSet, maxDuration)
