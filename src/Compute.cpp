@@ -4732,13 +4732,6 @@ void ComputeLoadData::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *ou
 
 void ComputeLoadData::loadByCol(FitContext *fc, int index)
 {
-	// Doing the transpose on the fly is clever, but
-	// the code is tricky to test and the user would better
-	// transpose the data using some other program before
-	// feeding to OpenMx.
-
-	mxThrow("%s: ComputeLoadData::loadByCol not implemented", name);
-
 	if (stripeStart == -1 ||
 	    index < stripeStart || index >= stripeEnd) {
 		bool backward = index < stripeStart;

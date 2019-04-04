@@ -2290,13 +2290,14 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' over the SNP data.
 ##'
 ##' The column names given in the \code{column} parameter must already
-##' exist in the model's MxData object. The data is assumed to be
+##' exist in the model's MxData object. Pre-existing data is assumed to be
 ##' a placeholder and is not used unless
 ##' \code{originalDataIsIndexOne} is set to TRUE.
 ##'
 ##' The code to implement method='pgen' is based on plink 2.0
-##' alpha. Data are coerced appropriately depending on
-##' the type of the destination column. For a numeric column, data are
+##' alpha. plink's \sQuote{bed} file format is supported in addition
+##' to \sQuote{pgen}. Data are coerced appropriately depending on the
+##' type of the destination column. For a numeric column, data are
 ##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
 ##' exactly 3 levels.
 ##'
@@ -2304,6 +2305,15 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' exist. If not available, generate this index file with the
 ##' \href{https://bitbucket.org/gavinband/bgen/wiki/bgenix}{bgenix}
 ##' tool.
+##'
+##' For \code{method='csv'}, the highest performance arrangement is
+##' \code{byrow=TRUE} because entire columns are stored in single
+##' chunks (rows) on the disk and can be easily loaded. For
+##' \code{byrow=FALSE}, the data requires transposition. To load a
+##' single column of observed data, it is necessary to read through
+##' the whole file. This can be slow for large files. To amortize the
+##' cost of transposition, \code{cacheSize} columns are loaded on
+##' every pass through the file.
 ##'
 ##' After \code{mxRun} returns, the \code{dest} mxData object will
 ##' contain the most recently loaded data. Hence, any single analysis
@@ -2320,15 +2330,14 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param path the path to the file containing the data
 ##' @param originalDataIsIndexOne logical. Whether to use the initial data for index 1
-##' @param byrow logical. Whether the data columns are stored in rows (TRUE);
-##' This argument is deprecated
+##' @param byrow logical. Whether the data columns are stored in rows.
 ##' @param row.names optional integer. Column containing the row names.
 ##' @param col.names optional integer. Row containing the column names.
 ##' @param skip.rows integer. Number of rows to skip before reading data.
 ##' @param skip.cols integer. Number of columns to skip before reading data.
 ##' @param verbose integer. Level of diagnostic output.
 ##' @param cacheSize integer. How many columns to cache per
-##' scan through the data. Only used when byrow=FALSE. Deprecated.
+##' scan through the data. Only used when byrow=FALSE.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
 ##' @param na.strings character vector. A vector of strings that denote a missing value.
 ##' @aliases
