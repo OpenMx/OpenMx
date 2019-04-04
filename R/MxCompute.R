@@ -2342,6 +2342,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' scan through the data. Only used when byrow=FALSE.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
 ##' @param na.strings character vector. A vector of strings that denote a missing value.
+##' @param observed data frame. The reservoir of data for \code{method='data.frame'}.
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
