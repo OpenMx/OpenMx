@@ -84,7 +84,8 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		fullData <- as.data.frame(model$data$observed)
 		plan1 <- list(
 			GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
-		if (tolower(mxOption(NULL,"Standard Errors")) == "yes") {
+		wantSE <- tolower(mxOption(NULL,"Standard Errors")) == "yes"
+		if (wantSE) {
 			plan1 <- c(plan1,
 				ND=mxComputeNumericDeriv(),
 				SE=mxComputeStandardError())
@@ -95,7 +96,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 				method="data.frame", byrow=FALSE,
 				observed=fullData),
 			TC=mxComputeTryCatch(mxComputeSequence(plan1)),
-			CP=mxComputeCheckpoint(toReturn=TRUE, standardErrors = TRUE))
+			CP=mxComputeCheckpoint(toReturn=TRUE, standardErrors = wantSE))
 		plan <- mxComputeLoop(plan, maxIter = nrow(fullData))
 		rawData <- fullData[1,,drop=FALSE]
 		if(type[1]=='ML'){
@@ -107,7 +108,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		fit <- mxRun(mxModel(fit, plan))
 		got <- fit$compute$steps$CP$log
 		res[,,1] <- got[,names(coef(fit))]
-		if (tolower(mxOption(NULL,"Standard Errors")) == "yes") {
+		if (wantSE) {
 			res[,,2] <- got[,paste0(names(coef(fit)), 'SE')]
 		} else {
 			msg <- paste0("factor-score standard errors not available from MxModel '",
