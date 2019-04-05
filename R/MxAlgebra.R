@@ -180,16 +180,20 @@ generateAlgebraHelper <- function(algebra, joinModel, joinKey, matrixNumbers, al
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
-	if (!algebra@fixed && !single.na(algebra@initial)) {
-		stop(paste("In algebra", omxQuotes(algebra@name),
-			"initial result will be immediately discarded"))
-	}
-	if (algebra@fixed && any(is.na(algebra@initial))) {
-		stop(paste("Missing value found in initial result of algebra",
-			omxQuotes(algebra@name)))
+	initial <- matrix(as.numeric(NA),1,1)
+	if (.hasSlot(algebra, 'initial')) {
+		initial <- algebra@initial
+		if (!algebra@fixed && !single.na(initial)) {
+			stop(paste("In algebra", omxQuotes(algebra@name),
+				"initial result will be immediately discarded"))
+		}
+		if (algebra@fixed && any(is.na(initial))) {
+			stop(paste("Missing value found in initial result of algebra",
+				omxQuotes(algebra@name)))
+		}
 	}
 	return(list(algebra@.dimnames, algebra@verbose, algebra@fixed,
-		algebra@initial, joinModel, joinKey, retval))
+		initial, joinModel, joinKey, retval))
 }
 
 substituteOperators <- function(algebra, name) {
