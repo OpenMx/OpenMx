@@ -3,6 +3,7 @@
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
 # OpenMx 2.12.X FUTURE 2019 (R 3.5.2))
+* NEW!: SEs for models with constraints! (used not to be calculated, and a big win for twin models)
 * IMPROVED: `omxSetParameters` warns if you don't ask to do anything
 
 # OpenMx 2.12.2 Feb 2019 (R 3.5.2))
