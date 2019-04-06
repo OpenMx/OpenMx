@@ -71,7 +71,8 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 	res <- array(NA, c(nrows, nksi, 2))
 	if(any(type %in% c('ML', 'WeightedML'))){
 		model <- omxSetParameters(model, labels=names(omxGetParameters(model)), free=FALSE)
-			work <- factorScoreHelperFUN(model)
+		work <- factorScoreHelperFUN(model)
+		dataModelName <- work$name
 		if(type[1]=='WeightedML'){
 			wup <- mxModel(model="Container", work,
 				mxAlgebraFromString(paste(work@name, ".weight + ", work@name, ".fitfunction", sep=""), name="wtf"),
@@ -80,41 +81,42 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 			work <- wup
 		}
 		work@data <- NULL
-		plan <- list(GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
-		if (tolower(mxOption(NULL,"Standard Errors")) == "yes") {
-			plan <- c(plan,
-				  ND=mxComputeNumericDeriv(),
-				  SE=mxComputeStandardError())
+		fullData <- as.data.frame(model$data$observed)
+		plan1 <- list(
+			GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
+		wantSE <- tolower(mxOption(NULL,"Standard Errors")) == "yes"
+		if (wantSE) {
+			plan1 <- c(plan1,
+				ND=mxComputeNumericDeriv(),
+				SE=mxComputeStandardError())
 		}
-		plan <- mxComputeSequence(plan)
-		for(i in 1:nrows){
-			rawData <- model$data$observed[i,,drop=FALSE]
-			missing <- is.na(rawData)
-			anyMissing = any(missing)
-			if (anyMissing && is.na(minManifests)) requireMinManifests(i)
-			if (anyMissing && sum(!missing) < minManifests) {
-				res[i,,1] <- NA
-				res[i,,2] <- NA
-			} else {
-				modelName <- paste(work@name, i, "of", nrows, sep="_")
-				if(type[1]=='ML'){
-					fit <- mxModel(model=work, name=modelName, mxData(rawData, 'raw'))
-				} else if(type[1]=='WeightedML'){
-					work@submodels[[1]]@data <- mxData(rawData, 'raw')
-					fit <- mxModel(model=work, name=modelName)
-				}
-				fit <- mxRun(mxModel(fit, plan),
-					     silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
-				res[i,,1] <- omxGetParameters(fit) #params
-				if(length(fit$output$standardErrors)){res[i,,2] <- fit$output$standardErrors} #SEs
-				else if(i==1){
-					msg <- paste0("factor-score standard errors not available from MxModel '",
-						     model$name,"' because calculating SEs is turned off for that ",
-						     "model (possibly due to one or more MxConstraints)")
-					warning(msg, sep="")
-				}
-			}
+		plan <- list(
+			SOS=mxComputeSetOriginalStarts(),
+			LD=mxComputeLoadData(dataModelName, names(fullData),
+				method="data.frame", byrow=FALSE,
+				observed=fullData),
+			TC=mxComputeTryCatch(mxComputeSequence(plan1)),
+			CP=mxComputeCheckpoint(toReturn=TRUE, standardErrors = wantSE))
+		plan <- mxComputeLoop(plan, maxIter = nrow(fullData))
+		rawData <- fullData[1,,drop=FALSE]
+		if(type[1]=='ML'){
+			fit <- mxModel(model=work, mxData(rawData, 'raw'))
+		} else if(type[1]=='WeightedML'){
+			work@submodels[[1]]@data <- mxData(rawData, 'raw')
+			fit <- mxModel(model=work)
 		}
+		fit <- mxRun(mxModel(fit, plan))
+		got <- fit$compute$steps$CP$log
+		res[,,1] <- got[,names(coef(fit))]
+		if (wantSE) {
+			res[,,2] <- got[,paste0(names(coef(fit)), 'SE')]
+		} else {
+			msg <- paste0("factor-score standard errors not available from MxModel '",
+				model$name,"' because calculating SEs is turned off for that ",
+				"model (possibly due to one or more MxConstraints)")
+			warning(msg, sep="")
+		}
+		res <- clearExcessivelyMissingRows(fullData, minManifests, res)
 	} else if(tolower(type)=='regression'){
 		if(!single.na(model$expectation$thresholds)){
 			stop('Regression factor scores cannot be computed when there are thresholds (ordinal data).')
@@ -136,18 +138,23 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 			# Kill the rows with too much missing data
 			useCols <- dimnames(ss[[ss$expectation$C]])[[1]]
 			rawData <- model$data$observed[ , useCols, drop=FALSE]
-			missing <- is.na(rawData)
-			anyMissing <- any(missing)
-			howMissing <- apply(!missing, 1, sum)
-			if (anyMissing && is.na(minManifests)) requireMinManifests(which(howMissing < ncol(rawData))[1])
-			res[howMissing < minManifests, , 1] <- NA
-			res[howMissing < minManifests, , 2] <- NA
+			res <- clearExcessivelyMissingRows(rawData, minManifests, res)
 		}
 	} else {
 		stop('Unknown type argument to mxFactorScores')
 	}
 	dimnames(res) <- list(1:dim(res)[1], factorNames, c('Scores', 'StandardErrors'))
 	return(res)
+}
+
+clearExcessivelyMissingRows <- function(rawData, minManifests, res) {
+	numPresent <- apply(!is.na(rawData), 1, sum)
+	if (any(numPresent < ncol(rawData)) && is.na(minManifests)) {
+		requireMinManifests(which(numPresent < ncol(rawData))[1])
+	}
+	res[numPresent < minManifests, , 1] <- NA
+	res[numPresent < minManifests, , 2] <- NA
+	res
 }
 
 lisrelFactorScoreHelper <- function(model){

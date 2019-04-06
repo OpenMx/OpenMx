@@ -1168,7 +1168,7 @@ mxComputeLoop <- function(steps, ..., i=NULL, maxIter=as.integer(NA), freeSet=NA
 		stop("mxComputeBenchmark does not accept values for the '...' argument")
 	}
 
-	if (is.null(i)) maxIter <- 500L
+	if (is.null(i) && missing(maxIter)) maxIter <- 500L
 	maxIter <- as.integer(maxIter)
 	new("MxComputeLoop", steps=steps, indices=as.integer(i), maxIter=maxIter,
 	    freeSet, maxDuration)
@@ -2227,7 +2227,7 @@ setClass(Class = "MxComputeLoadData",
 	 representation = representation(
 		 dest = "MxCharOrNumber",
 		 column = "character",
-		 path = "character",
+		 path = "MxOptionalChar",
 		 originalDataIsIndexOne = "logical",
 		 byrow = "logical",
 		 row.names = "MxOptionalInteger",
@@ -2238,13 +2238,14 @@ setClass(Class = "MxComputeLoadData",
 		 checkpointMetadata = "logical",
 		 skip.rows = "integer",
 		 skip.cols = "integer",
-		 na.strings = "character"
+		 na.strings = "character",
+		 observed = "MxOptionalDataFrame"
 	 ))
 
 setMethod("initialize", "MxComputeLoadData",
 	function(.Object, dest, column, path, originalDataIsIndexOne,
 		 row.names, col.names, skip.rows, skip.cols, byrow, verbose,
-		 cacheSize, method, checkpointMetadata, na.strings) {
+		 cacheSize, method, checkpointMetadata, na.strings, observed) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2262,6 +2263,7 @@ setMethod("initialize", "MxComputeLoadData",
 		  .Object@skip.rows <- skip.rows
 		  .Object@skip.cols <- skip.cols
 		  .Object@na.strings <- na.strings
+		  .Object@observed <- observed
 		  .Object
 	  })
 
@@ -2340,16 +2342,18 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' scan through the data. Only used when byrow=FALSE.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
 ##' @param na.strings character vector. A vector of strings that denote a missing value.
+##' @param observed data frame. The reservoir of data for \code{method='data.frame'}.
 ##' @aliases
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}, \link{mxRun}, \link{omxDefaultComputePlan}
-mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ..., path,
+mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen', 'data.frame'), ..., path=c(),
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=c(), col.names=c(),
 			      skip.rows=0, skip.cols=0,
 			      verbose=0L,
-			      cacheSize=100L, checkpointMetadata=TRUE, na.strings=c('NA')) {
+			      cacheSize=100L, checkpointMetadata=TRUE, na.strings=c('NA'),
+			      observed=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadData does not accept values for the '...' argument")
@@ -2360,7 +2364,7 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen'), ...
 		as.integer(row.names), as.integer(col.names),
 		as.integer(skip.rows), as.integer(skip.cols), byrow,
 		as.integer(verbose), as.integer(cacheSize), method,
-		as.logical(checkpointMetadata), as.character(na.strings))
+		as.logical(checkpointMetadata), as.character(na.strings), observed)
 }
 
 #----------------------------------------------------
