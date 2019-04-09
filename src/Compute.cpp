@@ -1778,7 +1778,7 @@ struct LeaveComputeWithVarGroup {
 
 	LeaveComputeWithVarGroup(FitContext *_fc, struct omxCompute *compute) : fc(_fc), name(compute->name) {
 		origInform = fc->getInform();
-		toResetInform = compute->resetInform();
+		toResetInform = compute->accumulateInform();
 		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);
 		if (Global->debugProtectStack) {
 			mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
@@ -1956,7 +1956,7 @@ const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) cons
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
 struct ComputeSetOriginalStarts : public omxCompute {
-	virtual bool resetInform() { return false; };
+	virtual bool accumulateInform() { return false; };
         virtual void computeImpl(FitContext *fc);
 };
 
@@ -2131,7 +2131,7 @@ class ComputeCheckpoint : public omxCompute {
 	size_t numExtraCols;
 
  public:
-	virtual bool resetInform() { return false; };
+	virtual bool accumulateInform() { return false; };
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -2169,6 +2169,7 @@ class ComputeBootstrap : public omxCompute {
  public:
 	ComputeBootstrap() : plan(0) {};
 	virtual ~ComputeBootstrap();
+	virtual bool accumulateInform() { return false; };
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
