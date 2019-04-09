@@ -3641,22 +3641,27 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 	slots->add("output", output.asR());
 }
 
-void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
+void FitContext::resetToOriginalStarts()
 {
-	fc->setInform(INFORM_UNINITIALIZED);
+	setInform(INFORM_UNINITIALIZED);
 	auto &startingValues = Global->startingValues;
-	auto &vars = fc->varGroup->vars;
+	auto &vars = varGroup->vars;
 	for (int vx=0; vx < int(vars.size()); ++vx) {
 		auto *fv = vars[vx];
-		fc->est[vx] = startingValues[fv->id];
+		est[vx] = startingValues[fv->id];
 	}
-	fc->fit = NA_REAL;
-	fc->mac = NA_REAL;
-	fc->fitUnits = FIT_UNITS_UNINITIALIZED;
-	fc->skippedRows = 0;
-	fc->vcov.resize(0,0);
-	fc->stderrs.resize(0);
-	fc->clearHessian();
+	fit = NA_REAL;
+	mac = NA_REAL;
+	fitUnits = FIT_UNITS_UNINITIALIZED;
+	skippedRows = 0;
+	vcov.resize(0,0);
+	stderrs.resize(0);
+	clearHessian();
+}
+
+void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
+{
+	fc->resetToOriginalStarts();
 }
 
 void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
@@ -4201,8 +4206,6 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		}
 	}
 
-	Eigen::VectorXd origEst = fc->getEst();
-
 	for (int repl=0; repl < numReplications && !isErrorRaised(); ++repl) {
 		std::mt19937 generator(seedVec[repl]);
 		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
@@ -4224,7 +4227,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 			}
 		}
 		fc->state->invalidateCache();
-		fc->getEst() = origEst;
+		fc->resetToOriginalStarts();
 		plan->compute(fc);
 		if (only == NA_INTEGER) {
 			fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
@@ -4246,8 +4249,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	}
 
 	if (only == NA_INTEGER) {
-		fc->setInform(INFORM_UNINITIALIZED);
-		fc->getEst() = origEst;
+		fc->resetToOriginalStarts();
 		fc->copyParamToModel();
 	}
 }

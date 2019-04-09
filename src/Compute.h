@@ -210,6 +210,7 @@ class FitContext {
 	void updateParentAndFree();
 	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
+	void resetToOriginalStarts();
 	void setInform(int _in) { inform = _in; };
 	int getInform() { return inform; };
 	int wrapInform() {
