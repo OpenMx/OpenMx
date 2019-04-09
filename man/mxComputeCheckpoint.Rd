@@ -5,7 +5,7 @@
 \usage{
 mxComputeCheckpoint(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE,
-  fit=TRUE, counters=TRUE, status=TRUE, standardErrors=FALSE)
+  fit=TRUE, counters=TRUE, status=TRUE, standardErrors=FALSE, gradient=FALSE)
 }
 \arguments{
 \item{what}{a character vector of algebra names to include in each checkpoint}
@@ -30,6 +30,7 @@ mxComputeCheckpoint(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toRetu
   evaluations and iterations)}
 \item{status}{logical. Whether to include the status code}
 \item{standardErrors}{logical. Whether to include the standard errors}
+\item{gradient}{logical. Whether to include the gradients}
 }
 \description{
 Captures the current state of the backend. When \code{path} is set, the

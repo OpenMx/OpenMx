@@ -1956,6 +1956,7 @@ const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) cons
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
 struct ComputeSetOriginalStarts : public omxCompute {
+	virtual bool resetInform() { return false; };
         virtual void computeImpl(FitContext *fc);
 };
 
@@ -2108,6 +2109,7 @@ class ComputeCheckpoint : public omxCompute {
 		double fit;
 		int inform;
 		Eigen::VectorXd stderrs;
+		Eigen::VectorXd gradient;
 		Eigen::VectorXd algebraEnt;
 		std::vector< std::string > extra;
 	};
@@ -2123,6 +2125,7 @@ class ComputeCheckpoint : public omxCompute {
 	int numSnaps;
 	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
 	bool inclSEs;
+	bool inclGradient;
 	bool badSEWarning;
 	bool firstTime;
 	size_t numExtraCols;
@@ -3640,6 +3643,7 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 
 void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
 {
+	fc->setInform(INFORM_UNINITIALIZED);
 	auto &startingValues = Global->startingValues;
 	auto &vars = fc->varGroup->vars;
 	for (int vx=0; vx < int(vars.size()); ++vx) {
@@ -5057,6 +5061,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rse(R_do_slot(rObj, Rf_install("standardErrors")));
 	inclSEs = Rf_asLogical(Rse);
 
+	ProtectedSEXP Rgradient(R_do_slot(rObj, Rf_install("gradient")));
+	inclGradient = Rf_asLogical(Rgradient);
+
 	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
 	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
 		if (isErrorRaised()) return;
@@ -5096,6 +5103,14 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		for(int j = 0; j < numParam; j++) {
 			std::string c1 = vars[j]->name;
 			c1 += "SE";
+			colnames.push_back(c1);
+		}
+	}
+	if (inclGradient) {
+		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
+		for (auto v1 : vars) {
+			std::string c1 = v1->name;
+			c1 += "Grad";
 			colnames.push_back(c1);
 		}
 	}
@@ -5142,6 +5157,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		}
 		s1.stderrs = fc->stderrs;
 	}
+	if (inclGradient) s1.gradient = fc->grad;
 	s1.algebraEnt.resize(numAlgebraEnt);
 
 	{int xx=0;
@@ -5215,6 +5231,17 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			if (s1.stderrs.size()) {
 				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
 					ofs << '\t' << std::setprecision(digits) << s1.stderrs[x1];
+				}
+			} else {
+				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << NA_REAL;
+				}
+			}
+		}
+		if (inclGradient) {
+			if (s1.gradient.size()) {
+				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << std::setprecision(digits) << s1.gradient[x1];
 				}
 			} else {
 				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
@@ -5333,6 +5360,18 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 				} else {
 					v[sx++] = NA_REAL;
 				}
+			}
+		}
+	}
+	if (inclGradient) {
+		auto numEst = int(snaps.front().est.size());
+		for (int x1=0; x1 < numEst; ++x1) {
+			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = REAL(col);
+			int sx=0;
+			for (auto &s1 : snaps) {
+				v[sx++] = s1.gradient.size()? s1.gradient[x1] : NA_REAL;
 			}
 		}
 	}

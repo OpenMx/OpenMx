@@ -61,7 +61,8 @@ for (dx in 1:numSets) {
   for (cx in paste0('z',3:5)) df[[cx]] <- jointData[[cx]]
   model2 <- mxModel(model1, mxData(df, 'raw'), mxFitFunctionWLS())
   model2 <- mxRun(model2)
-  result1 <- rbind(result1, c(coef(model2), model2$output$standardErrors))
+  result1 <- rbind(result1, c(coef(model2), model2$output$standardErrors,
+	  model2$output$gradient))
 }
 flat <- as.data.frame(unlist(dsets, recursive=FALSE))
 
@@ -82,7 +83,7 @@ model3 <- mxModel(
     mxComputeSetOriginalStarts(),
     mxComputeGradientDescent(),
     mxComputeStandardError(),
-    CPT=mxComputeCheckpoint(toReturn=TRUE, standardErrors = TRUE)
+    CPT=mxComputeCheckpoint(toReturn=TRUE, standardErrors = TRUE, gradient=TRUE)
   ), i=shuffle))
 
 model3Fit <- mxRun(model3)
@@ -90,8 +91,9 @@ model3Fit <- mxRun(model3)
 omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 2L)
 
 discardCols <- c("OpenMxEvals", "iterations", "timestamp", "MxComputeLoop1", "objective", "statusCode")
-thr <- c(7, 8, 7, 7, 8, 8, 7, 8, 8, 7, 7, 8, 7, 7, 4, 8, 8, 8, 9, 8,
-         9, 9, 11, 10, 10, 9, 9, 8, 10, 10) - 2
+thr <- c(9, 9, 9, 8, 9, 9, 8, 9, 9, 9, 9, 8, 8, 9, 4, 10, 10, 9, 9,
+         10, 10, 9, 12, 12, 11, 10, 10, 9, 10, 11, 6, 6, 7, 6, 6, 6,
+         6,  6, 7, 6, 6, 6, 6, 7, 6) - 3
 
 log <- model3Fit$compute$steps[['CPT']]$log
 for (col in discardCols) log[[col]] <- NULL
