@@ -1956,6 +1956,7 @@ const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) cons
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
 struct ComputeSetOriginalStarts : public omxCompute {
+	virtual bool resetInform() { return false; };
         virtual void computeImpl(FitContext *fc);
 };
 
@@ -3642,6 +3643,7 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 
 void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
 {
+	fc->setInform(INFORM_UNINITIALIZED);
 	auto &startingValues = Global->startingValues;
 	auto &vars = fc->varGroup->vars;
 	for (int vx=0; vx < int(vars.size()); ++vx) {
