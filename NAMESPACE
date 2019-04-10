@@ -29,6 +29,7 @@ export(tr, "%&%", "%^%", rvectorize, cvectorize, vech, vechs, 'vechs<-',
 # export S4 classes in the OpenMx library
 exportClassPattern("^.+Matrix")
 exportClassPattern("^Mx.+")
+exportClass("MxRAMModel")
 
 # export S4 methods in the OpenMx library
 exportMethods("[","[[", "$")

@@ -332,6 +332,7 @@ typeArgument <- function(model, type) {
 				omxQuotes(names(imxModelTypes))), call. = FALSE)
 		}
 		typename <- imxModelTypes[[type]]
+		attr(typename,"package") <- "OpenMx"
 		class(model) <- typename
 		model <- imxInitModel(model)
 	}

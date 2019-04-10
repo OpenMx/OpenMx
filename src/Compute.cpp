@@ -1778,7 +1778,7 @@ struct LeaveComputeWithVarGroup {
 
 	LeaveComputeWithVarGroup(FitContext *_fc, struct omxCompute *compute) : fc(_fc), name(compute->name) {
 		origInform = fc->getInform();
-		toResetInform = compute->resetInform();
+		toResetInform = compute->accumulateInform();
 		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);
 		if (Global->debugProtectStack) {
 			mxLog("enter %s: protect depth %d", name, Global->mpi->getDepth());
@@ -1956,7 +1956,7 @@ const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) cons
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
 struct ComputeSetOriginalStarts : public omxCompute {
-	virtual bool resetInform() { return false; };
+	virtual bool accumulateInform() { return false; };
         virtual void computeImpl(FitContext *fc);
 };
 
@@ -2131,7 +2131,7 @@ class ComputeCheckpoint : public omxCompute {
 	size_t numExtraCols;
 
  public:
-	virtual bool resetInform() { return false; };
+	virtual bool accumulateInform() { return false; };
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
@@ -2169,6 +2169,7 @@ class ComputeBootstrap : public omxCompute {
  public:
 	ComputeBootstrap() : plan(0) {};
 	virtual ~ComputeBootstrap();
+	virtual bool accumulateInform() { return false; };
 	virtual void initFromFrontend(omxState *, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
@@ -3641,22 +3642,27 @@ void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out
 	slots->add("output", output.asR());
 }
 
-void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
+void FitContext::resetToOriginalStarts()
 {
-	fc->setInform(INFORM_UNINITIALIZED);
+	setInform(INFORM_UNINITIALIZED);
 	auto &startingValues = Global->startingValues;
-	auto &vars = fc->varGroup->vars;
+	auto &vars = varGroup->vars;
 	for (int vx=0; vx < int(vars.size()); ++vx) {
 		auto *fv = vars[vx];
-		fc->est[vx] = startingValues[fv->id];
+		est[vx] = startingValues[fv->id];
 	}
-	fc->fit = NA_REAL;
-	fc->mac = NA_REAL;
-	fc->fitUnits = FIT_UNITS_UNINITIALIZED;
-	fc->skippedRows = 0;
-	fc->vcov.resize(0,0);
-	fc->stderrs.resize(0);
-	fc->clearHessian();
+	fit = NA_REAL;
+	mac = NA_REAL;
+	fitUnits = FIT_UNITS_UNINITIALIZED;
+	skippedRows = 0;
+	vcov.resize(0,0);
+	stderrs.resize(0);
+	clearHessian();
+}
+
+void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
+{
+	fc->resetToOriginalStarts();
 }
 
 void ComputeStandardError::initFromFrontend(omxState *state, SEXP rObj)
@@ -4201,8 +4207,6 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		}
 	}
 
-	Eigen::VectorXd origEst = fc->getEst();
-
 	for (int repl=0; repl < numReplications && !isErrorRaised(); ++repl) {
 		std::mt19937 generator(seedVec[repl]);
 		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
@@ -4224,7 +4228,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 			}
 		}
 		fc->state->invalidateCache();
-		fc->getEst() = origEst;
+		fc->resetToOriginalStarts();
 		plan->compute(fc);
 		if (only == NA_INTEGER) {
 			fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
@@ -4246,8 +4250,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	}
 
 	if (only == NA_INTEGER) {
-		fc->setInform(INFORM_UNINITIALIZED);
-		fc->getEst() = origEst;
+		fc->resetToOriginalStarts();
 		fc->copyParamToModel();
 	}
 }

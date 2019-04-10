@@ -21,7 +21,6 @@
 ##' $<-,MxRAMModel-method
 ##' [[<-,MxRAMModel-method
 setClass(Class = "MxRAMModel",
-	representation = representation(),
 	contains = "MxModel")
 
 imxModelTypes[['RAM']] <- "MxRAMModel"
