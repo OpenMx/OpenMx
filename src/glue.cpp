@@ -718,7 +718,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->getInform()));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaisedIgnTime()));
 
-	if (isErrorRaisedIgnTime()) {
+	if (Global->getBads()) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
 		SET_STRING_ELT(msg, 0, Rf_mkChar(Global->getBads()));

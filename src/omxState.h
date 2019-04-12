@@ -382,8 +382,8 @@ class omxState {
 	};
 };
 
-inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->timedOut; }
-inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0; }
+inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInterrupted || Global->timedOut; }
+inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0 || Global->userInterrupted; }
 
 void omxRaiseError(const char* mxThrowMsg); // DEPRECATED
 void omxRaiseErrorf(const char* mxThrowMsg, ...) __attribute__((format (printf, 1, 2)));
