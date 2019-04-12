@@ -21,6 +21,8 @@ for index 1}
 \item{col.names}{logical. Whether column names are present}
 }
 \description{
+  THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
+  
   For method='csv', the file must be formatted in a specific way.
   The number of columns must match the number of entries available
   in the mxMatrix. Matrix types (e.g., symmetric or diagonal) are
