@@ -2437,12 +2437,13 @@ setClass(Class = "MxComputeCheckpoint",
 		 counters = "logical",
 		 status = "logical",
 		 standardErrors = "logical",
-		 gradient = "logical"
+		 gradient = "logical",
+		 vcov = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
 	function(.Object, what, path, append, header, toReturn, parameters,
-		 loopIndices, fit, counters, status, standardErrors, gradient) {
+		 loopIndices, fit, counters, status, standardErrors, gradient, vcov) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2458,6 +2459,7 @@ setMethod("initialize", "MxComputeCheckpoint",
 		  .Object@status <- status
 		  .Object@standardErrors <- standardErrors
 		  .Object@gradient <- gradient
+		  .Object@vcov <- vcov
 		  .Object
 	  })
 
@@ -2481,7 +2483,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE,
-				status=TRUE, standardErrors=FALSE, gradient=FALSE) {
+				status=TRUE, standardErrors=FALSE, gradient=FALSE, vcov=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeCheckpoint does not accept values for the '...' argument")
@@ -2490,7 +2492,7 @@ mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=
 	path <- as.character(path)
 	new("MxComputeCheckpoint", what, path, as.logical(append), as.logical(header), as.logical(toReturn),
 		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
-		as.logical(status), as.logical(standardErrors), as.logical(gradient))
+		as.logical(status), as.logical(standardErrors), as.logical(gradient), as.logical(vcov))
 }
 
 #----------------------------------------------------

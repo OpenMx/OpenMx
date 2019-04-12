@@ -62,7 +62,7 @@ for (dx in 1:numSets) {
   model2 <- mxModel(model1, mxData(df, 'raw'), mxFitFunctionWLS())
   model2 <- mxRun(model2)
   result1 <- rbind(result1, c(coef(model2), model2$output$standardErrors,
-	  model2$output$gradient))
+	  model2$output$gradient, vech(model2$output$vcov)))
 }
 flat <- as.data.frame(unlist(dsets, recursive=FALSE))
 
@@ -83,7 +83,8 @@ model3 <- mxModel(
     mxComputeSetOriginalStarts(),
     mxComputeGradientDescent(),
     mxComputeStandardError(),
-    CPT=mxComputeCheckpoint(toReturn=TRUE, standardErrors = TRUE, gradient=TRUE)
+    CPT=mxComputeCheckpoint(toReturn=TRUE, standardErrors = TRUE,
+	    gradient=TRUE, vcov=TRUE)
   ), i=shuffle))
 
 model3Fit <- mxRun(model3)
@@ -92,8 +93,15 @@ omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 2L)
 
 discardCols <- c("OpenMxEvals", "iterations", "timestamp", "MxComputeLoop1", "objective", "statusCode")
 thr <- c(9, 9, 9, 8, 9, 9, 8, 9, 9, 9, 9, 8, 8, 9, 4, 10, 10, 9, 9,
-         10, 10, 9, 12, 12, 11, 10, 10, 9, 10, 11, 6, 6, 7, 6, 6, 6,
-         6,  6, 7, 6, 6, 6, 6, 7, 6) - 3
+         10, 10, 9, 12, 12, 11, 10, 10, 9, 10, 11, 6, 6, 7, 6, 6, 6, 6, 
+         6, 7, 6, 6, 6, 6, 7, 6, 11, 11, 10, 11, 12, 11, 10, 12, 12, 12,
+         11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12,
+         11, 12, 12, 10, 11, 11, 10, 10, 11, 12, 12, 12, 11, 11, 12, 12,
+         10, 12, 11, 10, 12, 12, 11, 11, 11, 10, 12, 12, 11, 11, 11, 12,
+         12, 12, 12, 12, 12, 11, 12, 11, 10, 12, 12, 12, 11, 11, 11, 12,
+         12, 10, 11, 11, 11, 12, 11, 11, 12, 11, 13, 13, 13, 12, 11, 11,
+         13, 13, 13, 13, 11, 11, 11, 13, 13, 12, 12, 12, 11, 12, 13, 10,
+         11, 11, 12, 12, 11, 11, 12, 12, 10, 12, 12, 11, 12, 12) - 3
 
 log <- model3Fit$compute$steps[['CPT']]$log
 for (col in discardCols) log[[col]] <- NULL
