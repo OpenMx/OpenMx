@@ -190,6 +190,7 @@ class FitContext {
 	Eigen::VectorXd inequality;
 	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
 	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
+	int redundantEqualities;
 
 	// for confidence intervals
 	CIobjective *ciobj;

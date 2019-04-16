@@ -78,7 +78,6 @@ class omxComputeNumericDeriv : public omxCompute {
 	struct hess_struct *hessWorkVector;
 	bool recordDetail;
 	SEXP detail;
-	int excessEqConstraints;
 
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
@@ -371,9 +370,9 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 		Eigen::MatrixXd ejt = eqjactmp.transpose();
 		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrej;
 		qrej.compute(ejt);
-		excessEqConstraints = fc->state->numEqC - qrej.rank();
-		if(excessEqConstraints > 0){
-			Rf_warning("counted %d excess equality constraints at solution, will adjust model df accordinly",excessEqConstraints);
+		fc->redundantEqualities = fc->state->numEqC - qrej.rank();
+		if(fc->redundantEqualities > 0){
+			Rf_warning("counted %d excess equality constraints at solution, will adjust model df accordinly",fc->redundantEqualities);
 		}
 	}
 	
