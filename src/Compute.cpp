@@ -2110,6 +2110,7 @@ class ComputeCheckpoint : public omxCompute {
 		int inform;
 		Eigen::VectorXd stderrs;
 		Eigen::VectorXd gradient;
+		Eigen::VectorXd vcov;
 		Eigen::VectorXd algebraEnt;
 		std::vector< std::string > extra;
 	};
@@ -2123,9 +2124,11 @@ class ComputeCheckpoint : public omxCompute {
 	std::vector<std::string> colnames;
 	std::forward_list<snap> snaps;
 	int numSnaps;
+	int numParam;
 	bool inclPar, inclLoop, inclFit, inclCounters, inclStatus;
 	bool inclSEs;
 	bool inclGradient;
+	bool inclVcov;
 	bool badSEWarning;
 	bool firstTime;
 	size_t numExtraCols;
@@ -5067,6 +5070,9 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rgradient(R_do_slot(rObj, Rf_install("gradient")));
 	inclGradient = Rf_asLogical(Rgradient);
 
+	ProtectedSEXP Rvcov(R_do_slot(rObj, Rf_install("vcov")));
+	inclVcov = Rf_asLogical(Rvcov);
+
 	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
 	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
 		if (isErrorRaised()) return;
@@ -5090,9 +5096,10 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 
+	std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
+	numParam = vars.size();
+
 	if (inclPar) {
-		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
-		int numParam = vars.size();
 		for(int j = 0; j < numParam; j++) {
 			colnames.push_back(vars[j]->name);
 		}
@@ -5101,8 +5108,6 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	if (inclFit) colnames.push_back("objective");
 	if (inclStatus) colnames.push_back("statusCode");
 	if (inclSEs) {
-		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
-		int numParam = vars.size();
 		for(int j = 0; j < numParam; j++) {
 			std::string c1 = vars[j]->name;
 			c1 += "SE";
@@ -5110,11 +5115,21 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 	if (inclGradient) {
-		std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
 		for (auto v1 : vars) {
 			std::string c1 = v1->name;
 			c1 += "Grad";
 			colnames.push_back(c1);
+		}
+	}
+	if (inclVcov) {
+		for (int cx=0; cx < numParam; ++cx) {
+			for (int rx=cx; rx < numParam; ++rx) {
+				std::string c1 = "V";
+				c1 += vars[rx]->name;
+				c1 += ":";
+				c1 += vars[cx]->name;
+				colnames.push_back(c1);
+			}
 		}
 	}
 
@@ -5161,6 +5176,15 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		s1.stderrs = fc->stderrs;
 	}
 	if (inclGradient) s1.gradient = fc->grad;
+	if (inclVcov && fc->vcov.rows() == numParam) {
+		s1.vcov.resize(triangleLoc1(numParam));
+		int lx=0;
+		for (int cx=0; cx < numParam; ++cx) {
+			for (int rx=cx; rx < numParam; ++rx) {
+				s1.vcov[lx++] = fc->vcov(rx, cx);
+			}
+		}
+	}
 	s1.algebraEnt.resize(numAlgebraEnt);
 
 	{int xx=0;
@@ -5248,6 +5272,18 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				}
 			} else {
 				for (int x1=0; x1 < int(s1.est.size()); ++x1) {
+					ofs << '\t' << NA_REAL;
+				}
+			}
+		}
+		if (inclVcov) {
+			int numVcov = triangleLoc1(numParam);
+			if (s1.vcov.size()) {
+				for (int x1=0; x1 < numVcov; ++x1) {
+					ofs << '\t' << std::setprecision(digits) << s1.vcov[x1];
+				}
+			} else {
+				for (int x1=0; x1 < numVcov; ++x1) {
 					ofs << '\t' << NA_REAL;
 				}
 			}
@@ -5375,6 +5411,18 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 			int sx=0;
 			for (auto &s1 : snaps) {
 				v[sx++] = s1.gradient.size()? s1.gradient[x1] : NA_REAL;
+			}
+		}
+	}
+	if (inclVcov) {
+		int numVcov = triangleLoc1(numParam);
+		for (int x1=0; x1 < numVcov; ++x1) {
+			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = REAL(col);
+			int sx=0;
+			for (auto &s1 : snaps) {
+				v[sx++] = s1.vcov.size()? s1.vcov[x1] : NA_REAL;
 			}
 		}
 	}

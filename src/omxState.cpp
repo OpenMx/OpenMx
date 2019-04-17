@@ -698,7 +698,19 @@ void omxGlobal::reportProgress1(const char *context, std::string detail)
 
 	lastProgressReport = now;
 
-	std::string str = context;
+	auto &cli = Global->computeLoopIndex;
+	std::string str;
+	if (cli.size()) {
+		str += "[";
+		for (int x1=0; x1 < int(cli.size()); ++x1) {
+			std::ostringstream os_temp;
+			os_temp << cli[x1];
+			str += os_temp.str();
+			if (x1 < int(cli.size())-1) str += "/";
+		}
+		str += "] ";
+	}
+	str += context;
 	str += " ";
 	str += detail;
 	reportProgressStr(str);

@@ -50,15 +50,15 @@ citEntry(entry="article",
 	title="State Space Modeling in an Open Source, Modular, Structural Equation Modeling Environment",
 	author=c(person(c("Michael", "D."), "Hunter")),
 	journal="Structural Equation Modeling",
-	year="in press",
-	volume="",
+	year="2018",
+	volume="25",
 	number="",
-	pages="1-18",
+	pages="307-324",
 	doi="10.1080/10705511.2017.1369354",
 	textVersion=paste("Hunter, M. D.",
-		"(in press). State space modeling in an open source, modular,",
+		"(2018). State space modeling in an open source, modular,",
 		"structural equation modeling environment.",
-		"Structural Equation Modeling, 1-18. doi: 10.1080/10705511.2017.1369354")
+		"Structural Equation Modeling, 25, 307-324. doi: 10.1080/10705511.2017.1369354")
 )
 
 year <- @YEAR@
