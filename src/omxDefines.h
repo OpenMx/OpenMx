@@ -27,6 +27,7 @@
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
+#include <memory>
 #include <string.h>
 #include <string>
 

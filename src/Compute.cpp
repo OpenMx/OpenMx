@@ -21,10 +21,6 @@
 #include <fstream>
 #include <forward_list>
 #include <map>
-#include "genfile/bgen/View.hpp"
-#include "genfile/bgen/IndexQuery.hpp"
-#include "pgenlib_internal.h"
-using namespace plink2;
 
 #include "glue.h"
 #include "Compute.h"
@@ -42,6 +38,11 @@ using namespace plink2;
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
 #include "minicsv.h"
+#undef ERROR  // defined in R_ext/RS.h but used by include/db/SQLite3Statement.hpp
+#include "genfile/bgen/View.hpp"
+#include "genfile/bgen/IndexQuery.hpp"
+#include "pgenlib_internal.h"
+using namespace plink2;
 #include "EnableWarnings.h"
 
 void pda(const double *ar, int rows, int cols);
