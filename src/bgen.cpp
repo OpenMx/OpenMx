@@ -370,11 +370,8 @@ namespace genfile {
 					begin = read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
 				}
 				buffer->resize( uncompressed_data_size ) ;
-				if( compressionType == e_ZlibCompression ) {
-					zlib_uncompress( begin, end, buffer ) ;
-				} else if( compressionType == e_ZstdCompression ) {
-					zstd_uncompress( begin, end, buffer ) ;
-				}
+				assert( compressionType == e_ZstdCompression );
+				zstd_uncompress( begin, end, buffer ) ;
 				assert( buffer->size() == uncompressed_data_size ) ;
 			}
 			else {

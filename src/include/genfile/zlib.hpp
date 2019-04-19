@@ -37,25 +37,6 @@ namespace genfile {
 	// this function).
 
 	template< typename T >
-	void zlib_uncompress(
-		byte_t const* begin,
-		byte_t const* const end,
-		std::vector< T >* dest
-	) {
-		uLongf const source_size = ( end - begin ) ;
-		uLongf dest_size = dest->size() * sizeof( T ) ;
-		int result = uncompress(
-			reinterpret_cast< Bytef* >( &dest->operator[]( 0 ) ),
-			&dest_size,
-			reinterpret_cast< Bytef const* >( begin ),
-			source_size
-		) ;
-		assert( result == Z_OK ) ;
-		assert( dest_size % sizeof( T ) == 0 ) ;
-		dest->resize( dest_size / sizeof( T )) ;
-	}
-
-	template< typename T >
 	void zstd_uncompress( byte_t const* begin, byte_t const* const end, std::vector< T >* dest ) {
 		std::size_t const source_size = ( end - begin ) ;
 		std::size_t const dest_size = dest->size() * sizeof( T ) ;
@@ -68,16 +49,6 @@ namespace genfile {
 		) ;
 		assert( result == uncompressed_size ) ;
 		dest->resize( dest_size / sizeof( T )) ;
-	}
-
-	// Uncompress the given data, symmetric with zlib_compress.
-	// The destination must be large enough to fit the uncompressed data,
-	// and it will be resized to exactly fit the uncompressed data.
-	template< typename T >
-	void zlib_uncompress( std::vector< byte_t > const& source, std::vector< T >* dest ) {
-		byte_t const* begin = &source[0] ;
-		byte_t const* const end = &source[0] + source.size() ;
-		zlib_uncompress( begin, end, dest ) ;
 	}
 }
 
