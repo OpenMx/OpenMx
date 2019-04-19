@@ -27,7 +27,8 @@
    mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
-          verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE, minVariance=sqrt(.Machine$double.eps))
+          verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
+     minVariance=sqrt(.Machine$double.eps))
 }
 
 \arguments{

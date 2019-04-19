@@ -9,6 +9,7 @@
 ^.dir-locals.el
 ^.gdbinit
 ^.travis.yml$
+^_config.yml$
 ^.devmode$
 .*\.log$
 oprofile_data
