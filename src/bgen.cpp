@@ -938,29 +938,6 @@ namespace genfile {
 #include "genfile/zlib.hpp"
 
 namespace genfile {
-	void zlib_compress(
-		uint8_t const* buffer,
-		uint8_t const* const end,
-		std::vector< uint8_t >* dest,
-		std::size_t const offset,
-		int const compressionLevel
-	) {
-		assert( dest != 0 ) ;
-		assert( compressionLevel >= 0 && compressionLevel <= Z_BEST_COMPRESSION ) ;
-		uLongf const source_size = ( end - buffer ) ;
-		uLongf compressed_size = compressBound( source_size ) ;
-		dest->resize( compressed_size + offset ) ;
-		int result = compress2(
-			reinterpret_cast< Bytef* >( const_cast< uint8_t* >( &( dest->operator[](0) ) + offset ) ),
-			&compressed_size,
-			reinterpret_cast< Bytef const* >( buffer ),
-			source_size,
-			compressionLevel
-		) ;
-		assert( result == Z_OK ) ;
-		dest->resize( compressed_size + offset ) ;
-	}
-
 	void zstd_compress(
 		uint8_t const* buffer,
 		uint8_t const* const end,
