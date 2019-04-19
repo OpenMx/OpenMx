@@ -32,3 +32,5 @@ omxCheckEquals(capture.output(mxPath(paste0('i',1:3), connect='all.bivariate')),
 omxCheckEquals(capture.output(mxPath(paste0('i',1:3), connect='unique.bivariate')),
                c("mxPath", "i1 -> i2 [value=0, free=TRUE]", "i1 -> i3 [value=0, free=TRUE]",  "i2 -> i3 [value=0, free=TRUE]"))
 
+omxCheckError(mxPath('alice', to = 'bob', values = list(v=1)['v']), message="The 'values' argument to mxPath must be a numeric vector of length > 0\nin mxPath('alice', to = 'bob', values = list(v = 1)['v']))\n'values' argument had class list and length 1")
+
