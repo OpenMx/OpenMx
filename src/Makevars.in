@@ -6,7 +6,7 @@
 #
 # Now edit to Makeconf to adjust the default compiler flags.
 
-CXX_STD = CXX11
+CXX_STD = CXX14
 
 NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 
