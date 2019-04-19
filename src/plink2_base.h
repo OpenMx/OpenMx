@@ -113,7 +113,9 @@
 #ifdef _WIN32
   // needed for EnterCriticalSection, etc.
 #  ifndef _WIN64
-#    define WINVER 0x0501
+#    ifndef WINVER
+#      define WINVER 0x0501
+#    endif
 #  else
 #    define __LP64__
 #  endif
@@ -122,6 +124,7 @@
 #  endif
 #  include <windows.h>
 #endif
+#undef ERROR  // also defined in R_ext/RS.h
 
 #if __cplusplus >= 201103L
 #  include <array>
