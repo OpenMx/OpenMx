@@ -27,7 +27,6 @@
 **********************************************************/
 #include "omxMatrix.h"
 #include "matrix.h"
-#include "unsupported/Eigen/MatrixFunctions"
 #include "omxState.h"
 #include <limits>
 #include <Eigen/SVD>
@@ -38,22 +37,8 @@
 // forward declarations
 static const char *omxMatrixMajorityList[] = {"T", "n"};		// BLAS Column Majority.
 
-// For background, see
-// http://epubs.siam.org/doi/abs/10.1137/090768539
-
-void logm_eigen(int n, double *rz, double *out)
-{
-    Eigen::Map< Eigen::MatrixXd > inMat(rz, n, n);
-    Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
-    outMat = inMat.log();
-}
-
-void expm_eigen(int n, double *rz, double *out)
-{
-    Eigen::Map< Eigen::MatrixXd > inMat(rz, n, n);
-    Eigen::Map< Eigen::MatrixXd > outMat(out, n, n);
-    outMat = inMat.exp();
-}
+void logm_eigen(int n, double *rz, double *out);
+void expm_eigen(int n, double *rz, double *out);
 
 std::string stringifyDimnames(omxMatrix *source)
 {

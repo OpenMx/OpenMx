@@ -1,4 +1,9 @@
-Compute.o: Makevars Compute.cpp include/genfile/bgen/View.hpp \
+Compute.o: Makevars Compute.cpp glue.h omxState.h omxDefines.h \
+ omxMatrix.h \
+ omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
+ omxFitFunction.h Compute.h \
+ omxExportBackendState.h omxRFitFunction.h matrix.h omxBuffer.h \
+ finiteDifferences.h minicsv.h include/genfile/bgen/View.hpp \
  include/genfile/bgen/bgen.hpp include/genfile/zlib.hpp \
  include/zstd-1.1.0/zstd.h include/genfile/types.hpp \
  include/genfile/MissingValue.hpp include/genfile/bgen/IndexQuery.hpp \
@@ -7,12 +12,7 @@ Compute.o: Makevars Compute.cpp include/genfile/bgen/View.hpp \
  include/sqlite3/sqlite3.h include/db/Connection.hpp include/db/Error.hpp \
  include/db/SQLite3Statement.hpp include/db/SQLite3Connection.hpp \
  include/db/SQLStatement.hpp include/db/SQLite3Error.hpp \
- pgenlib_internal.h plink2_base.h glue.h omxState.h omxDefines.h \
- omxMatrix.h \
- omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
- omxFitFunction.h Compute.h \
- omxExportBackendState.h omxRFitFunction.h matrix.h omxBuffer.h \
- finiteDifferences.h minicsv.h EnableWarnings.h
+ pgenlib_internal.h plink2_base.h EnableWarnings.h
 ComputeGD.o: Makevars ComputeGD.cpp omxDefines.h \
  omxState.h  \
   omxMatrix.h \
@@ -99,6 +99,8 @@ glue.o: Makevars glue.cpp omxDefines.h \
  omxExportBackendState.h Compute.h \
  dmvnorm.h npsolswitch.h omxCsolnp.h \
  EnableWarnings.h omxSadmvnWrapper.h Connectedness.h matrix.h
+matlogexp.o: Makevars matlogexp.cpp \
+ 
 matrix.o: Makevars matrix.cpp omxDefines.h \
  omxBuffer.h matrix.h  \
   omxMatrix.h \
@@ -196,9 +198,8 @@ omxMLFitFunction.o: Makevars omxMLFitFunction.cpp omxDefines.h \
  Connectedness.h matrix.h Compute.h glue.h EnableWarnings.h
 omxMatrix.o: Makevars omxMatrix.cpp omxMatrix.h  \
   omxDefines.h \
- matrix.h \
- omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
- omxData.h omxFitFunction.h \
+ matrix.h omxState.h omxAlgebra.h omxSymbolTable.h algebraOp.h \
+ omxExpectation.h omxData.h omxFitFunction.h \
  Compute.h \
  glue.h minicsv.h EnableWarnings.h
 omxNLopt.o: Makevars omxNLopt.cpp omxDefines.h \
