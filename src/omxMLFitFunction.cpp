@@ -16,6 +16,7 @@
 
 #include "omxDefines.h"
 
+#include <utility>
 #include <stan/math/mix/mat.hpp>
 #include "multi_normal_sufficient.hpp"
 

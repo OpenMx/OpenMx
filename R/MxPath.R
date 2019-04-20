@@ -233,7 +233,8 @@ pathCheckVector <- function(value, valname, check, type) {
 		stop(paste("The", omxQuotes(valname), 
 			"argument to mxPath must be a",
 			type, "vector of length > 0 in",
-			deparse(width.cutoff = 400L, imxLocateFunction("mxPath"))
+			deparse(width.cutoff = 400L, imxLocateFunction("mxPath")),
+			omxQuotes(valname), "argument had class", class(value), "and length", length(value)
 			), call. = FALSE)
 	}
 }
