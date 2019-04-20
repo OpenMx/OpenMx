@@ -55,29 +55,30 @@
 }
 
 \details{
-The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects. The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the \sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel objects. Four different data types are supported (a fifth, sscp, is not yet implemented):
+The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects.
+The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the
+\sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel
+objects. Four different data types are supported (a fifth, sscp, is not yet implemented):
+
+
 
 \describe{
-\item{raw}{The contents of the \sQuote{observed} argument are treated as raw data. Missing values are permitted and must be designated as the system missing value. The \sQuote{means} and \sQuote{numObs} arguments cannot be specified, as the \sQuote{means} argument is not relevant and the \sQuote{numObs} argument is automatically populated with the number of rows in the data. Data of this type may use fit functions such as \link{mxFitFunctionML} function in MxModel objects, which will automatically use covariance estimation under full-information maximum likelihood for this data type.}
+\item{raw}{The contents of the \sQuote{observed} argument are treated as raw data. Missing values are permitted and must be designated as the system missing value. The \sQuote{means} and \sQuote{numObs} arguments cannot be specified, as the \sQuote{means} argument is not relevant and the \sQuote{numObs} argument is automatically populated with the number of rows in the data. Data of this type may use fit functions such as \link{mxFitFunctionML} or \link{mxFitFunctionWLS}. \link{mxFitFunctionML} will automatically use use full-information maximum likelihood for raw data.}
 
-\item{cov}{The contents of the \sQuote{observed} argument are treated as a covariance matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML}, depending on the specified model.}
+\item{cov}{The contents of the \sQuote{observed} argument are treated as a covariance matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Cov data typically use the \link{mxFitFunctionML} fit function, depending on the specified model.}
 
-\item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Data of this type may use the fit functions such as \link{mxFitFunctionML} functions, depending on the specified model.}
+\item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should reflect the number of observations or rows in the data described by the covariance matrix. Models with cor data typically use the \link{mxFitFunctionML} fit function, depending on the specified model.}
 
 \item{acov}{ This type was used for WLS data as created by \link{mxDataWLS}. Its use is now deprecated.
-Instead, use type = \sQuote{raw} and an \link{mxFitFunctionWLS}. For
-reference, if type is acov, the \sQuote{observed} argument will contain
-raw data and the \sQuote{observedStats} slot a list of observed
-statistics. The list is expected to contain a number of named objects:
-\sQuote{cov} is the (polychoric) covariance matrix of the continuous and
-ordinal variables. An error is raised if any variance is smaller \code{minVariance}. \sQuote{means} (optional) may be included for estimations involving means.  \sQuote{thresholds} should be included for estimation involving thresholds and ordinal variables. \sQuote{acov} is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for diagonally weighted least squares. \sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero). Data of this type typically use the \link{mxFitFunctionWLS} function.}
+Instead, use type = \sQuote{raw} and an \link{mxFitFunctionWLS}. For reference, if type is acov, the \sQuote{observed} argument will contain raw data and the \sQuote{observedStats} slot -- a list of observed statistics. 
+This list is expected to contain a number of named objects: \sQuote{cov} is the (polychoric) covariance matrix of the continuous and ordinal variables. An error is raised if any variance is smaller \code{minVariance}. \sQuote{means} (optional) may be included for estimations involving means.  \sQuote{thresholds} should be included for estimation involving thresholds and ordinal variables. \sQuote{acov} is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for diagonally weighted least squares. \sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero). Data of this type typically use the \link{mxFitFunctionWLS} function.}
 }
 
-MxData objects may not be included in \link{mxAlgebra} objects or the \link{mxFitFunctionAlgebra} function. To reference data in these functions, use a \link{mxMatrix} or a definition variable (data.var) label.
+MxData objects may not be included in \link{mxAlgebra}s nor in the \link{mxFitFunctionAlgebra} function. To reference data in these functions, use a \link{mxMatrix} or a definition variable (data.var) label.
 
-While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not automatically recognized as variable names in \link[=MxPath-class]{mxPaths} in RAM models. Instead, the names of used variables must be specified using the \sQuote{manifestVars} argument of the \link{mxModel} function.
+While column names are stored in the \sQuote{observed} slot of MxData objects, these names are not automatically recognized as variable names in \link[=MxPath-class]{mxPaths} in RAM models. Instead, all variable names used in the model must be listed explicitly using the \sQuote{manifestVars} argument of the \link{mxModel} function.
 
-OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. For data.frames, ensure you have set the names(). For matrices set names using, for instance, row.names=c(\dQuote{your}, \dQuote{columns}). Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using \code{dimnames = list(varNames, varNames)}.
+OpenMx uses the names of variables to map them onto the expectation functions and other elements associated with your model. Thus for data provided as a data.frame, ensure the columns have appropriate \code{\link{names}}. Covariance and correlation matrices need to have both the row and column names set and these must be identical, for instance by using \code{dimnames = list(varNames, varNames)}.
 
 \strong{Weights}
 
@@ -99,7 +100,7 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 }
 
 \seealso{
-For WLS data, see \link{mxDataWLS}. To generate data, see \code{\link{mxGenerateData}}; For objects which may be entered as arguments in the \sQuote{observed} slot, see \link{matrix} and \link{data.frame}. See \link{MxData} for the S4 class created by mxData. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+To generate data, see \code{\link{mxGenerateData}}; For objects which may be entered as arguments in the \sQuote{observed} slot, see \link{matrix} and \link{data.frame}. See \link{MxData} for the S4 class created by mxData. For WLS data, see \link{mxDataWLS} (deprecated). More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \examples{  
