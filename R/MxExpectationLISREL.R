@@ -729,6 +729,10 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  } else {thr <- matrix( , 0, 0)}
 			  ret[['thresholds']] <- thr
 		  }
+		  zcomp <- sapply(ret, function(x){prod(dim(x))}) == 0
+		  if(any(zcomp)){
+		    stop(paste('Requested component(s)', omxQuotes(names(zcomp)[zcomp]), "had dimension or length 0.\nRequested component not in model. All I have is yours, but I ain't got no", omxQuotes(names(zcomp)[zcomp])))
+		  }
 		  ret
 })
 
