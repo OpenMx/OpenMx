@@ -760,6 +760,39 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 		}
 		
+		//mxPrintMat("constraint_e_before",constraint_e);
+		//mxPrintMat("a_e_before", a_e);
+		
+		if(neq){ //We only care about redundancy if there are equality constraints.
+			int rnk, jj, kk;
+			Eigen::VectorXi Keep(a_e.rows());
+			Keep.setZero();
+			Eigen::MatrixXd filteredA = a_e;
+			filterJacobianRows(filteredA, rnk);
+			//mxPrintMat("filteredA",filteredA);
+			//mxLog("rank is %d \n", rnk);
+			if(rnk < a_e.size() && rnk >= 1){ //Only interfere if the Jacobian is not full rank, but also not entirely zeroes.
+				//Loop thru the rows of the filtered Jacobian, find the first matching row in the unfiltered Jacobian, and mark
+				//it to be kept:
+				for(jj=0; jj < filteredA.rows(); jj++){
+					for(kk=0; kk < a_e.rows(); kk++){
+						if( ((filteredA.row(jj) - a_e.row(kk)).array().abs() < std::numeric_limits<double>::epsilon()).all() ){
+							Keep(kk) = 1;
+							break;
+						}
+					}
+				}
+				for(kk=0; kk < a_e.rows(); kk++){
+					if(!Keep(kk)){
+						a_e.row(kk).setZero();
+						constraint_e(0,kk) = 0.0;
+					}
+				}
+			}
+		}
+		//mxPrintMat("constraint_e_after",constraint_e);
+		//mxPrintMat("a_e_after", a_e);
+		
 		if (mode == -1)
 		{
 			funv = 1e24;
