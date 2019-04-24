@@ -48,7 +48,7 @@ imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 			 packageStartupMessage("OpenMx may run faster if it is compiled to take advantage of multiple cores.")
 		 } else if (Sys.getenv("OMP_NUM_THREADS") == "") {
 			 packageStartupMessage(paste0("To take full advantage of multiple cores, use:\n",
-				 "  mxOption(NULL, 'Number of Threads', parallel::detectCores()) #now\n",
+				 "  mxOption(key='Number of Threads', value=parallel::detectCores()) #now\n",
 				 "  Sys.setenv(OMP_NUM_THREADS=parallel::detectCores()) #before library(OpenMx)"))
 		 }
 	 }
