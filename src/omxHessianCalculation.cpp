@@ -371,9 +371,9 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrej;
 		qrej.compute(ejt);
 		fc->redundantEqualities = fc->state->numEqC - qrej.rank();
-		if(fc->redundantEqualities > 0){
-			Rf_warning("counted %d excess equality constraints at solution, will adjust model df accordinly",fc->redundantEqualities);
-		}
+		/*if(fc->redundantEqualities > 0){
+			Rf_warning("counted %d excess equality constraint(s) at solution, will adjust model df accordingly",fc->redundantEqualities);
+		}*/
 	}
 	
 	fc->constraintFunVals = resulttmp;
