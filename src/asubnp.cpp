@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "matrix.h"
-#include "omxMatrix.h"
+//#include "omxMatrix.h"
 #include "omxCsolnp.h"
 #include "ComputeGD.h"
 //#include <iostream>
@@ -40,6 +40,7 @@ struct CSOLNP {
 	bool noFeasibleFlag;
 	int numCallsToCSOLNP;
 	GradientOptimizerContext &fit;
+	bool checkJacobianRank;
 	
 	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
 	
@@ -105,6 +106,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	double funv;
 	double resultForTT;
 	double solnp_nfn = 0;
+	checkJacobianRank = true;
 	
 	//time_t sec;
 	//sec = time (NULL);
@@ -758,6 +760,20 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				calculateJac_forward(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 			else
 				calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
+		}
+		
+		if(neq && checkJacobianRank){ //We only care about redundancies if there are equality constraints
+			Eigen::MatrixXd aet = a_e.transpose();
+			Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
+			qrj.compute(aet);
+			if(qrj.rank() < a_e.rows()){
+				Rf_warning(
+					"constraint Jacobian is not full-rank at the start values; "
+					"if this rank-deficiency is due to linearly dependent equality MxConstraints, "
+					"CSOLNP will not work correctly"
+				);
+			}
+			checkJacobianRank = false;
 		}
 		
 		if (mode == -1)
