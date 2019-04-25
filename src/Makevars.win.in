@@ -1,5 +1,13 @@
 CXX_STD = CXX14
 
+# Developer's Note: As of R 3.5.3 and Rtools35.exe you must set the following flags
+#  CXX14 = $(BINPREF)g++ $(M_ARCH)
+#  CXX14STD = -std=gnu++14
+#  CXX14FLAGS = -Wa,-mbig-obj -g0 -O2
+# in R/R-$VERSION/etc/i386/Makeconf and R/R-$VERSION/etc/x64/Makeconf
+# I'm not sure that the -g0 is even needed, so maybe just 
+#  CXX14FLAGS = -Wa,-mbig-obj -O2
+
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 
 # Uncomment the following two lines to try parallel
