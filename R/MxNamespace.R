@@ -331,6 +331,27 @@ imxHasDefinitionVariable <- function(model) {
 	return(FALSE)
 }
 
+##' imxIsMultilevel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  If you don't know what you're doing, but want to,
+##' here's a brief description of the function.  You give this function an MxModel. It 
+##' returns TRUE if the model is multilevel and FALSE otherwise.
+##'
+##' @param model model
+imxIsMultilevel <- function(model){
+	if(length(model$submodels) > 0){
+		attempt <- sapply(model@submodels, imxIsMultilevel)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	if(!is.null(model$expectation) && length(model$expectation$between) > 0){
+		return(TRUE)
+	}
+	return(FALSE)
+}
+
 ##' imxIdentifier
 ##'
 ##' This is an internal function exported for those people who know
