@@ -629,10 +629,11 @@ modelModifyFilter <- function(model, entries, action) {
   thresholdFilter <- sapply(entries, is, "MxThreshold")
 	unknownFilter <- !(boundsFilter | namedEntityFilter | intervalFilter | characterFilter | thresholdFilter)
 	if (any(pathFilter)) {
-		stop(paste("The model",
+		stop(paste("The model of class",
 			omxQuotes(class(model)),
 			"named",
-			omxQuotes(model@name), "does not recognize paths."),
+			omxQuotes(model@name), "does not recognize paths.\n",
+			"Add one of", paste0("type='", paste0(setdiff(mxTypes(), 'default'), "'"), collapse=' or '), 'to your model.'),
 			call. = FALSE)
 	}
 	if (any(thresholdFilter)) {
