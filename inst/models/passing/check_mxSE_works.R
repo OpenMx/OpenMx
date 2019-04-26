@@ -1,5 +1,4 @@
 library(OpenMx)
-if(mxOption(NULL,"Default optimizer")=="CSOLNP"){stop("SKIP")}
 
 # ============================================
 # = Make a super-simple 1 variance RAM model =
