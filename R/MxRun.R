@@ -16,7 +16,7 @@
 mxRun <- function(model, ..., intervals=NULL, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
-		useOptimizer = TRUE){
+		useOptimizer = TRUE, beginMessage=!silent){
 
 	warnModelCreatedByOldVersion(model)
 
@@ -37,12 +37,13 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 	}
 	runHelper(model, frontendStart, intervals,
 		silent, suppressWarnings, unsafe,
-		checkpoint, useSocket, onlyFrontend, useOptimizer)
+		checkpoint, useSocket, onlyFrontend, useOptimizer, beginMessage)
 }
 
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
-		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
+		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer,
+		beginMessage, parentData = NULL) {
 
 	Rcpp::Module  # ensure Rcpp is loaded
 	model <- imxPreprocessModel(model)
@@ -59,7 +60,8 @@ runHelper <- function(model, frontendStart,
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
-		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer, parentData = model@data)
+		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer,
+		beginMessage=beginMessage, parentData = model@data)
 		indepTimeStop <- Sys.time()
 		indepElapsed <- indepTimeStop - indepTimeStart
 		return(processHollowModel(model, independents, 
@@ -74,7 +76,8 @@ runHelper <- function(model, frontendStart,
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
-		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer)
+		onlyFrontend = onlyFrontend, beginMessage=beginMessage,
+		useOptimizer = useOptimizer)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
@@ -208,7 +211,7 @@ runHelper <- function(model, frontendStart,
 	
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
-	if(!silent) message("Running ", model@name, " with ", numParam, " parameter",
+	if(beginMessage) message("Running ", model@name, " with ", numParam, " parameter",
 			    ifelse(numParam==1, "", "s"))
 	if (onlyFrontend) return(model)
 
