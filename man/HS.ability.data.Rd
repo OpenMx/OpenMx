@@ -1,16 +1,18 @@
 \name{HS.ability.data}
 \alias{HS.ability.data}
-\alias{HS.fake.data}
 \docType{data}
 
 \title{
-Holzinger and Swineford (1939) Ability data in 301 children from two schools
+Holzinger & Swineford (1939) Ability in 301 children from 2 schools
 }
 \description{
-This classic data set contains of intelligence-test scores from 301 children on 26 distinct tests.
-The data are also available in the MBESS package.
+This classic data set contains of intelligence-test scores from 301 children on 26 
+tests of cognitive ability.
 
 The tests cover mental speed, memory, mathematical-ability, spatial, and verbal ability as listed below.
+
+The data are also available in the MBESS package.
+
 }
 
 \usage{data("HS.ability.data")}
@@ -19,7 +21,7 @@ The tests cover mental speed, memory, mathematical-ability, spatial, and verbal 
   A data frame comprising 301 observations on 22 variables:
   \describe{
 		\item{\code{id}}{ student ID number (int)}
-		\item{\code{Gender}}{ Sex (Factor w/ 2 levels \dQuote{Female},\dQuote{Male}}
+		\item{\code{Gender}}{ Sex (Factor w/ 2 levels \dQuote{Female} and \dQuote{Male})}
 		\item{\code{grade}}{ Grade in school (integer 7 or 8)}
 		\item{\code{agey}}{  Age in years (integer)}
 		\item{\code{agem}}{  Age in months (integer)}
@@ -41,7 +43,7 @@ The tests cover mental speed, memory, mathematical-ability, spatial, and verbal 
 		\item{\code{numeric}}{A mathematical subtest of numerical puzzles}
 		\item{\code{problemr}}{A mathematical subtest of problem reasoning}
 		\item{\code{series}}{A mathematical subtest of series completion}
-		\item{\code{arithmet}}{A mathematical subtest: Woody-McCall mixed fundamentals, form I test, test 24}
+		\item{\code{arithmet}}{A mathematical subtest: Woody-McCall mixed fundamentals, form I}
 
 		\item{\code{visual}}{ A spatial subtest of visual perception}
 		\item{\code{cubes}}{ A spatial subtest}
@@ -59,9 +61,9 @@ The tests cover mental speed, memory, mathematical-ability, spatial, and verbal 
 }
 
 \details{
-The data are from children who differ in grade (seventh- and eighth-grade) and are nested in one of two schools (Pasteur and Grant-White). You will see it in use elsewhere, both in R (lavaan, MBESS), and in Joreskog (1969) reporting a CFA on the Grant-White school subject subset).
+The data are from children who differ in grade (seventh- and eighth-grade) and are nested in one of two schools (Pasteur and Grant-White). You will see it in use elsewhere, both in R (\code{lavaan}, and \code{MBESS}), and in Joreskog (1969) reporting a CFA on the Grant-White school subject subset.
 
-The last two tests are substitute versions for other tests. \code{paperrev} (a paper form board test) can substitute for \code{paper} and \code{flagssub} for the lozenges test \code{flags}.
+Some tests are alternate or substitute forms, e.g. \code{paperrev} (a paper form board test) can substitute for \code{paper} and \code{flagssub} for the lozenges test \code{flags}.
 }
 
 \source{
@@ -70,6 +72,7 @@ Holzinger, K., and Swineford, F. (1939).
 
 \references{
 Holzinger, K., and Swineford, F. (1939). A study in factor analysis: The stability of a bifactor solution. \emph{Supplementary Educational Monograph}, no. \bold{48}. Chicago: University of Chicago Press.
+
 Joreskog, K. G. (1969). A general approach to confirmatory maximum likelihood factor analysis. \emph{Psychometrika}, \bold{34}, 183-202.
 }
 
