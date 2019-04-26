@@ -763,10 +763,16 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 		}
 		
 		if(neq && checkJacobianRank){ //We only care about redundancies if there are equality constraints
-			Eigen::MatrixXd aet = a_e.transpose();
+			Eigen::MatrixXd aet;
+			if(a_e.rows() <= a_e.cols()){
+				aet = a_e.transpose();
+			}
+			else{
+				aet = a_e;
+			}
 			Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
 			qrj.compute(aet);
-			if(qrj.rank() < a_e.rows()){
+			if( qrj.rank() < std::min(a_e.rows(),a_e.cols()) ){
 				Rf_warning(
 					"constraint Jacobian is not full-rank at the start values; "
 					"if this rank-deficiency is due to linearly dependent equality MxConstraints, "

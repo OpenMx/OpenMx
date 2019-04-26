@@ -367,7 +367,13 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 				ejj++;
 			}
 		}
-		Eigen::MatrixXd ejt = eqjactmp.transpose();
+		Eigen::MatrixXd ejt;
+		if(eqjactmp.rows() <= eqjactmp.cols()){
+			ejt = eqjactmp.transpose();
+		}
+		else{
+			ejt = eqjactmp;
+		}
 		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrej;
 		qrej.compute(ejt);
 		fc->redundantEqualities = fc->state->numEqC - qrej.rank();
