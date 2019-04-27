@@ -333,7 +333,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
 			
 			subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
 			
-			p_e = resP;
+			if(resP.rows() && resP.cols()){
+				p_e = resP;
+			}
 			
 			if (flag == 1)
 			{
@@ -522,10 +524,14 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		optimize_initial_inequality_constraints = FALSE;
 	}
 	
-	fit.gradOut.resize(resGrad.size());
-	memcpy(fit.gradOut.data(), resGrad.data(), fit.gradOut.size() * sizeof(double));
-	fit.hessOut.resize(hessv_e.rows(), hessv_e.cols());
-	memcpy(fit.hessOut.data(), hessv_e.data(), fit.hessOut.size() * sizeof(double));
+	if(resGrad.size()){
+		fit.gradOut.resize(resGrad.size());
+		memcpy(fit.gradOut.data(), resGrad.data(), fit.gradOut.size() * sizeof(double));
+	}
+	if(hessv_e.rows() && hessv_e.cols()){
+		fit.hessOut.resize(hessv_e.rows(), hessv_e.cols());
+		memcpy(fit.hessOut.data(), hessv_e.data(), fit.hessOut.size() * sizeof(double));
+	}
 }
 
 template <typename T1, typename T2>
