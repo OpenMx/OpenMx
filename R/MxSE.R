@@ -151,7 +151,10 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	jacTrans <- jModel$compute$output$jacobian
 	covSparam <- jacTrans %*% covParam %*% t(jacTrans)
 	# dimnames(covSparam) <- list(rownames(zoutMat), colnames(zoutMat))
-	SEs <- sqrt(diag(covSparam))
+	if(any(diag(covSparam) < 0) || any(is.na(diag(covSparam)))){
+		warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nI know, right? Set details=TRUE and check the 'Cov' element of this object.")
+	}
+	SEs <- suppressWarnings(sqrt(diag(covSparam)))
 	SEsMat <- matrix(SEs, nrow = nrow(zoutMat), ncol = ncol(zoutMat))
 	if(details==TRUE){
 		return(list(SE=SEsMat, Cov=covSparam))
