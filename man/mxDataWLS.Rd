@@ -25,7 +25,7 @@
    or \dQuote{DWLS} (diagonally-weighted least squares). The appropriate
    fit function to include with these models is \code{\link{mxFitFunctionWLS}}
 
-	\emph{note}: This method is deprecated. Use \link{mxData} and \link{mxFitFunctionWLS} instead.
+	\emph{note}: This function continues to work, but is deprecated. Use \link{mxData} and \link{mxFitFunctionWLS} instead.
 }
 
 \usage{
@@ -55,7 +55,7 @@
 The mxDataWLS function creates an \link{MxData} object, which can be used in
 \link{MxModel} objects.  This function takes raw data and returns an \code{MxData} object to be used in a model to fit with weighted least squares.
 
-This method is deprecated. Use \link{mxData} and \link{mxFitFunctionWLS} instead.
+\emph{note}: This function continues to work, but is deprecated. Use \link{mxData} and \link{mxFitFunctionWLS} instead.
 }
 
 \value{
