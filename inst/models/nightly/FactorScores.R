@@ -277,7 +277,8 @@ ssModelLisrel <- mxModel(model="lisrel",
 	mxFitFunctionML()
 	)
 
-omxCheckWarning(mxGetExpected(ssModelLisrel, 'means'),
+omxCheckWarning(omxCheckError(mxGetExpected(ssModelLisrel, 'means'),
+	"Requested component(s) 'means' had dimension or length 0.\nRequested component not in model. All I have is yours, but I ain't got no 'means'"),
 	"Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")
 
 # Add means and it works fine
