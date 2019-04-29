@@ -57,6 +57,12 @@ When data are not all continuous, \code{allContinuousMethod} is ignored, and mea
 \emph{Usage Notes}:
 
 Model results can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the model (i.e., \code{model$output}). Components of the output may also be accessed and used in the same way, i.e., via the \code{$} and \code{[]} \code{\link{Extract}} functions.
+
+Summary statistics are returned in the MxData object in an
+\code{observedStats} list. If \code{observedStats} are already present
+and in the appropriate shape then they are reused. It is also possible
+to provide your own arbitrary user supplied observed statistics using
+this same approach.
 }
 
 
