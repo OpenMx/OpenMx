@@ -78,4 +78,8 @@ rotmodel <- mxModel(
 )
 rotmodel <- omxSetParameters(model=rotmodel,labels=names(coef(fitModel)),values=coef(fitModel),free=c(rep(F,24),rep(T,99)))
 rotfit <- mxRun(rotmodel)
+rotfit <- mxModel(
+	rotfit,
+	mxComputeSequence(steps=list(GD=mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer"),maxMajorIter=3000)))
+)
 rotfit <- mxTryHard(rotfit,exhaustive=T)
