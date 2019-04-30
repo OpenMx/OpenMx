@@ -76,6 +76,6 @@ rotmodel <- mxModel(
 	mxAlgebra(Part12+Part13+Part23, name="fitfunc"),
 	mxFitFunctionAlgebra(algebra="fitfunc",numObs=301,numStats=7224)
 )
-rotmodel <- omxSetParameters(model=rotmodel,labels=names(coef(fitModel)),values=coef(fitModel))
+rotmodel <- omxSetParameters(model=rotmodel,labels=names(coef(fitModel)),values=coef(fitModel),free=c(rep(F,24),rep(T,99)))
 rotfit <- mxRun(rotmodel)
 rotfit <- mxTryHard(rotfit,exhaustive=T)
