@@ -2029,6 +2029,7 @@ double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DE
 		plan->compute(fc);
 	}
 
+	if (Global->interrupted()) return nan("abort");
 	if (fc->outsideFeasibleSet()) {
 		return std::numeric_limits<double>::max();
 	}
@@ -2147,7 +2148,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 		// Equation 14' from Tsallis & Stariolo (1996)
 		double t2 = exp((qv - 1.) * log(tt + 1.));
 		double tem = temSta * t1 / t2;
-		if (tem < temEnd) break;
+		if (tem < temEnd || Global->interrupted()) break;
 
 		for (int jj = 0; jj < markovLength; ++jj) {
 			int vx = jj % numFree;
