@@ -2530,6 +2530,28 @@ struct sampleStats {
 	}
 };
 
+void omxData::convertToDataFrame()
+{
+	if (!strEQ(_type, "raw")) return;
+
+	rawCols.clear();
+	rawCols.reserve(cols);
+	numNumeric = cols;
+
+	if (!dataMat->colMajor) omxToggleRowColumnMajor(dataMat);
+
+	for(int j = 0; j < cols; j++) {
+		const char *colname = dataMat->colnames[j];
+		ColumnData cd = { colname, COLUMNDATA_NUMERIC, (int*)0, {} };
+		cd.ptr.realData = omxMatrixColumn(dataMat, j);
+		rawCols.push_back(cd);
+	}
+
+	for (int cx=0; cx < int(rawCols.size()); ++cx) {
+		rawColMap.emplace(rawCols[cx].name, cx);
+	}
+}
+
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *wlsType,
 			  const char *continuousType, bool fullWeight)
@@ -2544,9 +2566,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	if (rawCols.size() == 0) {
-		mxThrow("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
-			 "and raw data are also not available",
-			 name, wlsType, continuousType, fullWeight);
+		if (dataMat) convertToDataFrame();
+		if (rawCols.size() == 0) {
+			mxThrow("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
+				"and raw data are also not available",
+				name, wlsType, continuousType, fullWeight);
+		}
 	}
 
 	int numCols = dc.size();
