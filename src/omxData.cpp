@@ -2841,7 +2841,7 @@ void omxData::estimateObservedStats()
 			}
 		}
 	}
-	if (InvertSymmetricPosDef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
+	if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
 
 	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
