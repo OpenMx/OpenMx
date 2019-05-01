@@ -2841,7 +2841,10 @@ void omxData::estimateObservedStats()
 			}
 		}
 	}
-	if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
+	if (InvertSymmetricPosDef(Efw, 'L')) {
+		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
+		else Rf_warning("%s: acov matrix is not positive definite", name);
+	}
 
 	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
