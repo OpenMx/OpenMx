@@ -3662,6 +3662,7 @@ void FitContext::resetToOriginalStarts()
 	vcov.resize(0,0);
 	stderrs.resize(0);
 	clearHessian();
+	resetIterationError();
 }
 
 void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
@@ -4256,6 +4257,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	if (only == NA_INTEGER) {
 		fc->resetToOriginalStarts();
 		fc->copyParamToModel();
+		fc->wanted &= ~FF_COMPUTE_FIT;  // discard garbage
 	}
 }
 
