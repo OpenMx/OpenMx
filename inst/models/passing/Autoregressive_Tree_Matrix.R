@@ -19,6 +19,7 @@
 # This is not really flexible enough to model a pedigree
 # because it is not easy to set the initial conditions.
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 maleEffect <- 13 #cm
