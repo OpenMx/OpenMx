@@ -299,13 +299,16 @@ void omxComputeNM::computeImpl(FitContext *fc){
 					break;
 				}
 				if(nmoc.estInfeas){
-					nmoc.rho *= 10;
+					nmoc.rho *= 10.0;
 					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
 					nmoc.iniSimplexEdge = iniSimplexEdge;
 				}
-				else{ //It's making progress w/r/t the constraints, so re-initialize the simplex with a smaller edge:
+				else{ //It's making progress w/r/t the constraints, so re-initialize the simplex with a small edge:
 					nmoc.iniSimplexEdge = 
-						sqrt((nmoc.vertices[1] - nmoc.vertices[0]).dot(nmoc.vertices[1] - nmoc.vertices[0]));
+						sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+					//It's a good idea to reduce the penalty coefficient if the algorithm is making progress.
+					//That helps prevent it from stopping at a non-optimal point:
+					nmoc.rho /= 5.0;
 				}
 				if(fc->iterations >= maxIter){
 					nmoc.statuscode = 4;
