@@ -16,50 +16,15 @@
 calculateConstraints <- function(model, useSubmodels) {
 	constraints <- model@runstate$constraints
 	retval <- c()
-	fullrank <- TRUE
 	if (length(constraints) > 0) {
-		if(length(model@output$constraintJacobian)){
-			iseq <- rep(FALSE,nrow(model@output$constraintJacobian))
-			k <- 1
-			csizevec <- rep(0L,length(constraints))
-			for(i in 1:length(constraints)){
-				leftHandSide <- constraints[[i]]@formula[[2]]
-				value <- eval(substitute(mxEval(x, model, compute=TRUE),list(x = leftHandSide)))
-				value <- as.matrix(value)
-				csize <- nrow(value) * ncol(value)
-				if(constraints[[i]]@relation == "=="){
-					iseq[k:(k+csize-1)] <- TRUE
-					csizevec[i] <- csize
-				}
-				k <- k + csize
-			}
-			if(any(iseq)){eqjac <- model@output$constraintJacobian[iseq,,drop=FALSE]}
-			if(length(eqjac)){
-				qreqjac <- qr(eqjac)
-				if(qreqjac$rank < min(nrow(eqjac),ncol(eqjac))){
-					retval <- qreqjac$rank
-					fullrank <- FALSE
-				}
-				else{
-					retval <- csizevec
-					names(retval) <- names(constraints)
-				}
-			}
-			else{retval <- 0}
-		}
-		else{
-			retval <- sapply(constraints, calculateConstraintsHelper, model)
-		}
+		retval <- sapply(constraints, calculateConstraintsHelper, model)
 	}
 	if (useSubmodels && length(model@runstate$independents) > 0) {
 		submodelConstraints <- lapply(model@runstate$independents, calculateConstraints, FALSE)
 		names(submodelConstraints) <- NULL
-		fullrank <- all(fullrank, sapply(submodelConstraints,function(x){attr(x,"fullrank")}))
 		submodelConstraints <- unlist(submodelConstraints)
 		retval <- c(retval, submodelConstraints)
 	}
-	attr(retval,"fullrank") <- fullrank
-	#print(retval)
 	return(retval)
 }
 
@@ -451,12 +416,7 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
       sum(sapply(obj,imxExtractSlot,name="numFixEff"))
   }
 	if (is.null(numStats)) {
-		if(attr(retval$constraints,"fullrank")){
-			retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, sum(retval$constraints))
-		}
-		else{
-			retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, retval$constraints[1])
-		}
+		retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, sum(retval$constraints))
 	} else {
 		retval[['observedStatistics']] <- numStats
 	}
@@ -598,17 +558,12 @@ print.summary.mxmodel <- function(x,...) {
 	cat('Number of observations/statistics: ', x$numObs, "/", x$observedStatistics, '\n\n', sep="")
 	constraints <- x$constraints
 	if(length(constraints) > 0) {
-		if(attr(constraints,"fullrank")){
-			for(i in 1:length(constraints)) {
-				name <- names(constraints)[[i]]
-				if (constraints[[i]] == 1) plural <- ''
-				else plural <- 's'
-				cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
-						constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
-			}
-		}
-		else{
-			cat(paste("system of linearly independent equality constraint(s)", " contributes ", constraints[[1]], " observed statistics.",  sep=""), "\n")
+		for(i in 1:length(constraints)) {
+			name <- names(constraints)[[i]]
+			if (constraints[[i]] == 1) plural <- ''
+			else plural <- 's'
+			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
+				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
 		}
 	}
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
