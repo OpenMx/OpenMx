@@ -195,6 +195,7 @@ class omxData {
 	void setModified() { modified=true; };
 	bool isModified() { return modified; };
 	double getMinVariance() const { return minVariance; };
+	void convertToDataFrame();
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data

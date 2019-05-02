@@ -2,6 +2,7 @@
 library(OpenMx)
 library(rpf)
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(9)
 
 numItems <- 14

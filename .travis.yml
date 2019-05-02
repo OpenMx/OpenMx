@@ -14,6 +14,8 @@ matrix:
     osx_image: xcode7.3
     env:
     - MODE=build
+    latex: false
+    before_script: sed -i.bak 's/-isysroot /-I/g' $(R RHOME)/etc/Makeconf
 dist: xenial
 sudo: required
 latex: true

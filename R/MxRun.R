@@ -355,6 +355,7 @@ mxBootstrap <- function(model, replications=200, ...,
     if (missing(data)) {
       data <- enumerateDatasets(model)
     }
+	    # wrap with mxComputeTryCatch ?
     plan <- mxComputeBootstrap(data, model@compute)
   } else {
     plan <- model$compute
