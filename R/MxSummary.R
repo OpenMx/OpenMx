@@ -598,20 +598,17 @@ print.summary.mxmodel <- function(x,...) {
 	cat('Number of observations/statistics: ', x$numObs, "/", x$observedStatistics, '\n\n', sep="")
 	constraints <- x$constraints
 	if(length(constraints) > 0) {
-		for(i in 1:length(constraints)) {
-			name <- names(constraints)[[i]]
-			if (constraints[[i]] == 1) plural <- ''
-			else plural <- 's'
-			if(!attr(constraints,"fullrank") && name==""){
-				cat(paste("system of linearly independent equality constraint(s)", " contributes ", constraints[[i]], " observed statistic", plural, ".",  sep=""), "\n")
-			}
-			else{
+		if(attr(constraints,"fullrank")){
+			for(i in 1:length(constraints)) {
+				name <- names(constraints)[[i]]
+				if (constraints[[i]] == 1) plural <- ''
+				else plural <- 's'
 				cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
 						constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
 			}
-			if(i==length(constraints)){
-				cat("\n")
-			}
+		}
+		else{
+			cat(paste("system of linearly independent equality constraint(s)", " contributes ", constraints[[1]], " observed statistics.",  sep=""), "\n")
 		}
 	}
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
