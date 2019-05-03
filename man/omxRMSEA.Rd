@@ -46,7 +46,7 @@ To help users obtain fit statistics related to the RMSEA, this function confiden
 
 
 \references{
-Browne, M. W. & Cudeck, R. (1992).  Alternative Ways of Assessing Model Fit.  \emph{Sociological Methods and Research, 21}, 230-258.
+Browne, M. W. & Cudeck, R. (1992).  Alternative Ways of Assessing Model Fit. \emph{Sociological Methods and Research}, \strong{21}, 230-258.
 }
 
 \examples{

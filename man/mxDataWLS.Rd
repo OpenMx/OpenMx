@@ -65,7 +65,7 @@ The mxDataWLS function creates an \link{MxData} object, which can be used in
 \references{
 The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 
-Browne, M. W. (1984). Asymptotically distribution-free methods for the analysis of covariance structures. British Journal of Mathematical and Statistical Psychology, 37, p. 62-83.
+Browne, M. W. (1984).  Asymptotically Distribution-Free Methods for the Analysis of Covariance Structures. \emph{British Journal of Mathematical and Statistical Psychology}, \strong{37}, 62-83.
 }
 
 \seealso{
