@@ -1,3 +1,5 @@
+#undef OMX_BOUNDS_CHECK  // Very, very expensive here
+
 #include "omxDefines.h"
 #include "unsupported/Eigen/MatrixFunctions"
 
