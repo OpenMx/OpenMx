@@ -1175,9 +1175,16 @@ logLik.MxModel <- function(object, ...) {
             (out$label[i] %in% paramnames) ){
         tdiags <- covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
                                        ifelse(is.na(out$label[i]),out$name[i],out$label[i])]
-        if(any(diag(tdiags) < 0) || any(is.na(tdiags))){
-          warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
-        }
+	if (length(tdiags) == 1) {
+		# For diag, R will return a square identity matrix of size given by the scalar
+		if(tdiags < 0 || is.na(tdiags)) {
+			warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+		}
+	} else {
+		if(any(diag(tdiags) < 0) || any(is.na(tdiags))){
+			warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+		}
+	}
         out$Raw.SE[i] <- suppressWarnings(sqrt(tdiags))
   }}}
   else{out$Raw.SE <- "not_requested"}
