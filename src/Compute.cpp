@@ -726,6 +726,7 @@ void FitContext::init()
 
 	hess.resize(numParam, numParam);  // TODO why needed?
 	ihess.resize(numParam, numParam);  // TODO why needed?
+	usingAnalyticJacobian = false;
 
 	clearHessian();
 }
@@ -1285,7 +1286,6 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 
 void FitContext::checkForAnalyticJacobians()
 {
-	usingAnalyticJacobian = false;
 	for(int i=0; i < (int) state->conListX.size(); i++){
 		omxConstraint &cs = *state->conListX[i];
 		if(cs.jacobian){
