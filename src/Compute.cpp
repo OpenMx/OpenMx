@@ -726,7 +726,6 @@ void FitContext::init()
 
 	hess.resize(numParam, numParam);  // TODO why needed?
 	ihess.resize(numParam, numParam);  // TODO why needed?
-	usingAnalyticJacobian = false;
 
 	clearHessian();
 }
@@ -1286,13 +1285,9 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 
 void FitContext::checkForAnalyticJacobians()
 {
-	for(int i=0; i < (int) state->conListX.size(); i++){
-		omxConstraint &cs = *state->conListX[i];
-		if(cs.jacobian){
-			usingAnalyticJacobian = true;
-			return;
-		}
-	}
+	//omxState::usingAnalyticJacobian is set during omxState::countNonlinearConstraints(), and there is currently
+	//no reason why it would ever change once set.
+	usingAnalyticJacobian = &(state->usingAnalyticJacobian);
 }
 
 omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
