@@ -993,72 +993,27 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
     }
 }
 
-void omxMatrix::loadFromStream(mini::csv::ifstream &st)
+int omxMatrix::numNonConstElements() const
 {
-	EigenMatrixAdaptor v(this);
-
 	switch(shape) {
-	case 0:
-		mxThrow("loadFromStream: matrix '%s' has unknown shape", name());
-		break;
 	case 1: //Diag
-		for (int rx=0; rx < rows; ++rx) {
-			st >> v(rx, rx);
-		}
-		break;
+		return rows;
 
 	case 2: //Full
-		for (int cx=0; cx < cols; ++cx) {
-			for (int rx=0; rx < rows; ++rx) {
-				st >> v(rx,cx);
-			}
-		}
-		break;
+		return rows * cols;
 		
 	case 4: //Lower
-		for (int cx=0; cx < cols; ++cx) {
-			for (int rx=cx; rx < rows; ++rx) {
-				st >> v(rx,cx);
-			}
-		}
-		break;
+	case 7: //Symm
+		return triangleLoc1(rows);
 
 	case 5: //Sdiag
-		for (int cx=0; cx < cols-1; ++cx) {
-			for (int rx=cx+1; rx < rows; ++rx) {
-				st >> v(rx,cx);
-			}
-		}
-		break;
-
 	case 6: //Stand
-		for (int cx=0; cx < cols-1; ++cx) {
-			for (int rx=cx+1; rx < rows; ++rx) {
-				double tmp;
-				st >> tmp;
-				v(rx,cx) = tmp;
-				v(cx,rx) = tmp;
-			}
-		}
-		break;
-
-	case 7: //Symm
-		for (int cx=0; cx < cols; ++cx) {
-			for (int rx=cx; rx < rows; ++rx) {
-				double tmp;
-				st >> tmp;
-				v(rx,cx) = tmp;
-				v(cx,rx) = tmp;
-			}
-		}
-		break;
+		return triangleLoc1(rows - 1);
 
 	case 8: //Unit
 	case 9: //Zero
 	case 3: //Iden
-		mxThrow("loadFromStream: matrix '%s' is constant (type %d);"
-			 " use a Full matrix if you wish to update it", name(), shape);
-		break;
+		return 0;
 
 	default:
 		mxThrow("loadFromStream: matrix '%s' with shape %d is unimplemented",

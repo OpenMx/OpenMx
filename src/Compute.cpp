@@ -2275,6 +2275,12 @@ class ComputeLoadData : public omxCompute {
 
 class ComputeLoadMatrix : public omxCompute {
 	typedef omxCompute super;
+
+	enum LoadMethod {
+		LoadCSV,
+		LoadDataFrame
+	} loadMethod;
+
 	std::vector< omxMatrix* > mat;
 	std::vector< mini::csv::ifstream* > streams;
 	std::vector<bool> hasRowNames;
@@ -2282,6 +2288,10 @@ class ComputeLoadMatrix : public omxCompute {
 	// origData is not really needed until it is possible to seek backwards
 	std::vector<Eigen::MatrixXd> origData;
 	int line;
+	Rcpp::DataFrame observed;
+
+	void loadFromCSV(FitContext *fc, int index);
+	void loadDataFrame(FitContext *fc, int index);
 
  public:
 	virtual ~ComputeLoadMatrix();
@@ -4946,6 +4956,22 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 	if (useOriginalData) origData.resize(Rf_length(Rdata));
 	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
 	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
+
+	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
+	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
+	if (strEQ(methodName, "csv")) {
+		loadMethod = LoadCSV;
+		if (Rf_length(Rpath) != Rf_length(Rdata)) {
+			mxThrow("%s: %d matrices to load but only %d paths",
+				name, Rf_length(Rdata), Rf_length(Rpath));
+		}
+	} else if (strEQ(methodName, "data.frame")) {
+		loadMethod = LoadDataFrame;
+	} else {
+		mxThrow("%s: unknown method '%s'", name, methodName);
+	}
+
+	int numElem = 0;
 	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
 		if (isErrorRaised()) return;
 		int objNum = ~INTEGER(Rdata)[wx];
@@ -4954,23 +4980,44 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 			omxRaiseErrorf("%s: matrix '%s' has populate substitutions",
 				       name, m1->name());
 		}
+		numElem += m1->numNonConstElements();
 		EigenMatrixAdaptor Em1(m1);
 		if (useOriginalData) origData[wx] = Em1;
 		mat.push_back(m1);
 
-		const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
-		// convert to std::string to work around mini::csv constructor bug
-		// https://github.com/shaovoon/minicsv/issues/8
-		streams.push_back(new mini::csv::ifstream(std::string(p1)));
-		mini::csv::ifstream &st = *streams[wx];
-		st.set_delimiter(' ', "##");
-		if (INTEGER(Rcolnames)[wx % Rf_length(Rcolnames)]) {
-			st.skip_line();
+		if (loadMethod != LoadDataFrame) {
+			const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
+			// convert to std::string to work around mini::csv constructor bug
+			// https://github.com/shaovoon/minicsv/issues/8
+			streams.push_back(new mini::csv::ifstream(std::string(p1)));
+			mini::csv::ifstream &st = *streams[wx];
+			st.set_delimiter(' ', "##");
+			if (INTEGER(Rcolnames)[wx % Rf_length(Rcolnames)]) {
+				st.skip_line();
+			}
 		}
+
 		hasRowNames[wx] = INTEGER(Rrownames)[wx % Rf_length(Rrownames)];
 		//mxLog("ld %s %s", d1->name, p1);
 	}
 	line = 1;
+
+	if (loadMethod == LoadDataFrame) {
+		ProtectedSEXP Robs(R_do_slot(rObj, Rf_install("observed")));
+		observed = Robs;
+		if (int(observed.size()) < numElem) {
+			mxThrow("%s: provided observed data only has %d columns but %d requested",
+				name, int(observed.size()), numElem);
+		}
+		Rcpp::CharacterVector obNames = observed.attr("names");
+		for (int cx=0; cx < numElem; ++cx) {
+			if (Rcpp::is<Rcpp::NumericVector>(observed[cx])) continue;
+
+			mxThrow("%s: observed column %d (%s) is not type 'numeric'",
+				name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
+		}
+	}
+
 }
 
 ComputeLoadMatrix::~ComputeLoadMatrix()
@@ -4990,13 +5037,59 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 			Em.derived() = origData[dx];
 		}
 		return;
+	} else {
+		index -= useOriginalData; // 1 == the first record
+		switch (loadMethod) {
+		case LoadCSV:
+			loadFromCSV(fc, index);
+			break;
+		case LoadDataFrame:
+			loadDataFrame(fc, index);
+			break;
+		default:
+			mxThrow("%s: unknown load method %d", name, loadMethod);
+		}
 	}
 
-	if (line > index - useOriginalData) {
-		mxThrow("%s: at line %d, cannot seek backwards to line %d",
-			 name, line, index - useOriginalData);
+	fc->state->invalidateCache();
+	fc->state->omxInitialMatrixAlgebraCompute(fc);
+	if (isErrorRaised()) mxThrow("%s", Global->getBads()); // ?still necessary?
+}
+
+struct clmStream {
+	Rcpp::DataFrame &observed;
+	const int row;
+	int curCol;
+	clmStream(Rcpp::DataFrame &_ob, int _row) : observed(_ob), row(_row) { curCol = 0; };
+	
+	void operator >> (double& val)
+	{
+		auto vec = observed[curCol];
+		val = REAL(vec)[row];
+		curCol += 1;
 	}
-	while (line < index - useOriginalData) {
+};
+
+void ComputeLoadMatrix::loadDataFrame(FitContext *fc, int index)
+{
+	if (observed.nrows() < index) {
+		mxThrow("%s: index %d requested but observed data only has %d rows",
+			name, index, observed.nrows());
+	}
+
+	clmStream st(observed, index - 1);
+	for (int dx=0; dx < int(mat.size()); ++dx) {
+		mat[dx]->loadFromStream(st);
+	}
+}
+
+void ComputeLoadMatrix::loadFromCSV(FitContext *fc, int index)
+{
+	if (line > index) {
+		mxThrow("%s: at line %d, cannot seek backwards to line %d",
+			 name, line, index);
+	}
+	while (line < index) {
 		for (int dx=0; dx < int(mat.size()); ++dx) {
 			mini::csv::ifstream &st = *streams[dx];
 			st.skip_line();
@@ -5016,13 +5109,6 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 		mat[dx]->loadFromStream(st);
 	}
 	line += 1;
-
-	fc->state->invalidateCache();
-
-	fc->state->omxInitialMatrixAlgebraCompute(fc);
-	if (isErrorRaised()) {
-		mxThrow("%s", Global->getBads());
-	}
 }
 
 void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)

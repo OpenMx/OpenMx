@@ -3,7 +3,7 @@
 \alias{MxComputeLoadMatrix-class}
 \title{Load data from CSV files directly into the backend}
 \usage{
-mxComputeLoadMatrix(dest, method='csv', ..., path, originalDataIsIndexOne=FALSE,
+mxComputeLoadMatrix(dest, method=c('csv','data.frame'), ..., path, originalDataIsIndexOne=FALSE,
  row.names=FALSE, col.names=FALSE)
 }
 \arguments{
@@ -19,6 +19,7 @@ mxComputeLoadMatrix(dest, method='csv', ..., path, originalDataIsIndexOne=FALSE,
 for index 1}
 \item{row.names}{logical. Whether row names are present}
 \item{col.names}{logical. Whether column names are present}
+\item{observed}{data frame. The reservoir of data for \code{method='data.frame'}}
 }
 \description{
   THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
