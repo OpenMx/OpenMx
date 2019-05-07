@@ -564,6 +564,7 @@ print.summary.mxmodel <- function(x,...) {
 			else plural <- 's'
 			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
 				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
+			if(i==length(constraints)){cat("\n")}
 		}
 	}
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
