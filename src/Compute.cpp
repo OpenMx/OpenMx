@@ -2299,6 +2299,27 @@ class ComputeLoadMatrix : public omxCompute {
 	virtual void computeImpl(FitContext *fc);
 };
 
+class ComputeLoadContext : public omxCompute {
+	typedef omxCompute super;
+
+	int loadCounter;
+	char sep;
+	std::string path;
+	std::unique_ptr< mini::csv::ifstream > st;
+	int cpIndex;
+	int numColumns;
+	int *columnPtr;
+	int maxColumn;
+	int curLine;
+
+	void reopen();
+
+ public:
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *);
+};
+
 class ComputeTryCatch : public omxCompute {
 	typedef omxCompute super;
 	std::unique_ptr< omxCompute > plan;
@@ -2381,6 +2402,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	 []()->omxCompute* { return new ComputeSetOriginalStarts; }},
 	{"MxComputeTryCatch",
 	 []()->omxCompute* { return new ComputeTryCatch; }},
+	{"MxComputeLoadContext",
+	 []()->omxCompute* { return new ComputeLoadContext; }}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -4937,6 +4960,99 @@ void ComputeLoadData::loadByRow(FitContext *fc, int index)
 }
 
 void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	MxRList dbg;
+	dbg.add("loadCounter", Rf_ScalarInteger(loadCounter));
+	slots->add("debug", dbg.asR());
+}
+
+void ComputeLoadContext::reopen()
+{
+	loadCounter += 1;
+	st = std::unique_ptr<mini::csv::ifstream>(new mini::csv::ifstream(path));
+	st->set_delimiter(sep, "##");
+}
+
+void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	loadCounter = 0;
+
+	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
+	numColumns = Rf_length(Rcol);
+	columnPtr = INTEGER(Rcol);
+	if (numColumns == 0) return;
+
+	ProtectedSEXP Rsep(R_do_slot(rObj, Rf_install("sep")));
+	const char *sepStr = R_CHAR(STRING_ELT(Rsep, 0));
+	if (strlen(sepStr) != 1) mxThrow("%s: sep must be a single character, not '%s'", name, sepStr);
+	sep = sepStr[0];
+
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	path = R_CHAR(STRING_ELT(Rpath, 0));
+	reopen();
+	if (!st->read_line()) mxThrow("%s: cannot read header of '%s'", name, path.c_str());
+
+	auto &cp = Global->checkpointColnames;
+	cpIndex = cp.size();
+	Eigen::Map< Eigen::ArrayXi > col(columnPtr, numColumns);
+	if (col.minCoeff() < 1) mxThrow("%s: the first column is 1, not %d",
+				   name, col.minCoeff());
+	maxColumn = col.maxCoeff();
+	//mxLog("%s: len %d max %d", name, numColumns, maxColumn);
+	int xx=0;
+	for (int cx=0; cx < maxColumn; ++cx) {
+		std::string c1;
+		*st >> c1;
+		if (cx == col[xx]-1) {
+			//mxLog("cx %d xx %d %s", cx, xx, c1.c_str());
+			cp.push_back(c1);
+			if (++xx == numColumns) break;
+		}
+	}
+	if (xx != numColumns) mxThrow("%s: columns must be ordered from first to last", name);
+	curLine = 0;
+}
+
+void ComputeLoadContext::computeImpl(FitContext *fc)
+{
+	if (numColumns == 0) return;
+
+	std::vector<int> &clc = Global->computeLoopIndex;
+	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
+	int index = clc[clc.size()-1] - 1;  // innermost loop index
+
+	if (index < curLine) {
+		reopen();
+		st->skip_line(); // header
+		curLine = 0;
+	}
+	while (index > curLine) {
+		st->skip_line();
+		curLine += 1;
+	}
+
+	if (!st->read_line()) {
+		mxThrow("%s: '%s' ran out of data at record %d",
+			name, path.c_str(), 1+index);
+	}
+
+	Eigen::Map< Eigen::ArrayXi > col(columnPtr, numColumns);
+	auto &cv = Global->checkpointValues;
+
+	for (int cx=0, xx=0; cx < maxColumn; ++cx) {
+		std::string c1;
+		*st >> c1;
+		if (cx == col[xx]-1) {
+			cv[cpIndex + xx] = c1;
+			if (++xx == numColumns) break;
+		}
+	}
+	curLine += 1;
+}
+
+void ComputeLoadContext::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	MxRList dbg;
 	dbg.add("loadCounter", Rf_ScalarInteger(loadCounter));
