@@ -726,7 +726,6 @@ void FitContext::init()
 
 	hess.resize(numParam, numParam);  // TODO why needed?
 	ihess.resize(numParam, numParam);  // TODO why needed?
-	usingAnalyticJacobian = false;
 
 	clearHessian();
 }
@@ -1165,7 +1164,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 		
 		con.refreshAndGrab(this, &equality(cur));
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
@@ -1196,7 +1195,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 		
 		con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &inequality(cur));
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
@@ -1213,7 +1212,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	} else {
 		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
 		inequality = inequality.array().max(0.0);
-		if(wantAJ && usingAnalyticJacobian){
+		if(wantAJ && isUsingAnalyticJacobian()){
 			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
 				/*The Jacobians of each inactive constraint are set to zero here; 
 				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
@@ -1254,7 +1253,7 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 				}
 			}
 		}
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
@@ -1269,7 +1268,7 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	if (CSOLNP_HACK) {
 		
 	} else {
-		if(wantAJ && usingAnalyticJacobian && maskInactive){
+		if(wantAJ && isUsingAnalyticJacobian() && maskInactive){
 			for(int i=0; i<constraintJacobian.rows(); i++){
 				/*The Jacobians of each inactive constraint are set to zero here; 
 				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
@@ -1284,16 +1283,6 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	
 }
 
-void FitContext::checkForAnalyticJacobians()
-{
-	for(int i=0; i < (int) state->conListX.size(); i++){
-		omxConstraint &cs = *state->conListX[i];
-		if(cs.jacobian){
-			usingAnalyticJacobian = true;
-			return;
-		}
-	}
-}
 
 omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
 {

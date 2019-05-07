@@ -1865,14 +1865,14 @@ void CSOLNP::calculateJac_central(int np, double delta, Eigen::MatrixBase<T2>& p
 
 void CSOLNP::handleAnalyticGradJac()
 {
-	if (fit.getWanted() & FF_COMPUTE_GRADIENT && fit.usingAnalyticJacobian){
+	if ( fit.getWanted() & FF_COMPUTE_GRADIENT && fit.isUsingAnalyticJacobian() ){
 		gradFlag = TRUE;
 		jacFlag = TRUE;
 		return;
 	} else if (fit.getWanted() & FF_COMPUTE_GRADIENT) {
 		gradFlag = TRUE;
 	}
-	else if (fit.usingAnalyticJacobian)   jacFlag = TRUE;
+	else if (fit.isUsingAnalyticJacobian())   jacFlag = TRUE;
 }
 
 void omxCSOLNP(GradientOptimizerContext &go)

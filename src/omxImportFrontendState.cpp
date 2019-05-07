@@ -443,6 +443,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		constr->prep(fc);
 		conListX.push_back(constr);
 	}
+	usingAnalyticJacobian = false;
 	countNonlinearConstraints(numEqC, numIneqC, false);
 	if(OMX_DEBUG){mxLog("Found %d equality and %d inequality constraints", numEqC, numIneqC);}
 }

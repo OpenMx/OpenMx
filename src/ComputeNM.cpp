@@ -548,7 +548,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	inequality.resize(numIneqC);
 	
 	fc->equality.resize(numEqC);
-	fc->checkForAnalyticJacobians();
 	
 	//Check for redundant equality constraints, and warn if found:
 	if(numEqC > 1 && NMobj->checkRedundantEqualities){
@@ -579,7 +578,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		subsidiarygoc.useGradient = true;
 		subsidiarygoc.maxMajorIterations = Global->majorIterations;
 		subsidiarygoc.setupSimpleBounds();
-		subsidiarygoc.checkForAnalyticJacobians();
 		//mxThrow("so far, so good");
 	}
 }

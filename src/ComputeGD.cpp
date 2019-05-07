@@ -234,12 +234,6 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 	return;
 };
 
-void GradientOptimizerContext::checkForAnalyticJacobians()
-{
-	fc->checkForAnalyticJacobians();
-	usingAnalyticJacobian = fc->usingAnalyticJacobian; //Could probably reference instead of copy, but it's just 1 boolean.
-	return;
-}
 
 // ------------------------------------------------------------
 
@@ -474,7 +468,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		rf.CSOLNP_HACK = true;
-		rf.checkForAnalyticJacobians();
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
@@ -490,7 +483,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;
         case OptEngine_NLOPT:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
-		rf.checkForAnalyticJacobians();
 		omxInvokeNLOPT(rf);
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
