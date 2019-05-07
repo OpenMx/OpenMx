@@ -3,8 +3,9 @@
 \alias{MxComputeLoadMatrix-class}
 \title{Load data from CSV files directly into the backend}
 \usage{
-mxComputeLoadMatrix(dest, method=c('csv','data.frame'), ..., path, originalDataIsIndexOne=FALSE,
- row.names=FALSE, col.names=FALSE)
+mxComputeLoadMatrix(dest, method=c('csv','data.frame'), ...,
+ path=NULL, originalDataIsIndexOne=FALSE,
+ row.names=FALSE, col.names=FALSE, observed=NULL)
 }
 \arguments{
 \item{dest}{a character vector of matrix names}
