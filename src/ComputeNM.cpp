@@ -564,7 +564,7 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		qrj.compute(ejt);
 		if(qrj.rank() < numEqC){
 			Rf_warning(
-				"counted %d equality constraints, but equality-constraint Jacobian is rank %d at the start values; " 
+				"counted %d equality constraints, but equality-constraint Jacobian is apparently rank %d at the start values; " 
 				"Nelder-Mead will not work correctly unless equality constraints are linearly independent "
 				"(this warning may be spurious if there are non-smooth equality constraints)", numEqC, qrj.rank()
 			);

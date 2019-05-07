@@ -768,7 +768,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 		}
 		
-		if(neq && checkJacobianRank){ //We only care about redundancies if there are equality constraints
+		if(neq > 1 && checkJacobianRank){ //We only care about redundancies if there are equality constraints
 			Eigen::MatrixXd aet;
 			if(a_e.rows() <= a_e.cols()){
 				aet = a_e.transpose();
@@ -780,7 +780,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			qrj.compute(aet);
 			if( qrj.rank() < std::min(a_e.rows(),a_e.cols()) ){
 				Rf_warning(
-					"constraint Jacobian is not full-rank at the start values; "
+					"constraint Jacobian may be rank-deficient at the start values; "
 					"if this rank-deficiency is due to linearly dependent equality MxConstraints, "
 					"CSOLNP will not work correctly"
 				);
