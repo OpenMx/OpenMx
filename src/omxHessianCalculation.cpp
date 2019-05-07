@@ -357,31 +357,6 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 		GradientAlgorithm_Central, 4, 1.0e-7,
     acf, resulttmp, optimaM, jactmp);
 	
-	if(fc->state->numEqC){
-		Eigen::MatrixXd eqjactmp(fc->state->numEqC, npar);
-		int ejj=0, cj=0;
-		for(cj=0; cj < int(fc->state->conListX.size()); cj++){
-			omxConstraint& con = *fc->state->conListX[cj];
-			if(con.opCode == omxConstraint::EQUALITY){
-				eqjactmp.row(ejj) = jactmp.row(cj);
-				ejj++;
-			}
-		}
-		Eigen::MatrixXd ejt;
-		if(eqjactmp.rows() <= eqjactmp.cols()){
-			ejt = eqjactmp.transpose();
-		}
-		else{
-			ejt = eqjactmp;
-		}
-		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrej;
-		qrej.compute(ejt);
-		fc->redundantEqualities = fc->state->numEqC - qrej.rank();
-		/*if(fc->redundantEqualities > 0){
-			Rf_warning("counted %d excess equality constraint(s) at solution, will adjust model df accordingly",fc->redundantEqualities);
-		}*/
-	}
-	
 	fc->constraintFunVals = resulttmp;
 	fc->constraintJacobian = jactmp;
 	return;
