@@ -408,9 +408,6 @@ omxState::omxState(omxState *src) : wantStage(0), clone(true)
 	for (size_t xx=0; xx < src->conListX.size(); ++xx) {
 		conListX.push_back(src->conListX[xx]->duplicate(this));
 	}
-	
-	usingAnalyticJacobian = false;
-	
 }
 
 void omxState::initialRecalc(FitContext *fc)
