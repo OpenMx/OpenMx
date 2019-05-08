@@ -74,10 +74,22 @@ namespace genfile {
 		}
 		
 		// class thrown when errors are detected
-		struct BGenError: public virtual std::exception {
+		class BGenError: public virtual std::exception {
+			std::string msg;
+			const char* file;
+			unsigned int line;
+		public:
+			BGenError(const char* _file, unsigned int _line) :
+				file(_file), line(_line) {};
 			~BGenError() throw() {}
-			char const* what() const throw() { return "BGenError" ; }
-		} ;
+			char const* what() throw() {
+				std::ostringstream o;
+				o << file << ":" << line << ": BGenError";
+				msg = o.str();
+				return msg.c_str();
+			}
+		};
+#define ThrowBGenError() throw BGenError(__FILE__, __LINE__)
 
 		// integer types
 		typedef ::uint32_t uint32_t ;
@@ -372,7 +384,7 @@ namespace genfile {
 			byte_t buffer[ sizeof( IntegerType ) ] ;
 			in_stream.read( reinterpret_cast< char* >( buffer ), sizeof( IntegerType )) ;
 			if( !in_stream ) {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 			read_little_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
 		}
@@ -384,7 +396,7 @@ namespace genfile {
 			std::vector< char >buffer ( length ) ;
 			in_stream.read( &buffer[0], length ) ;
 			if( !in_stream ) {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 			string_ptr->assign( buffer.begin(), buffer.end() ) ;
 		}
@@ -452,7 +464,7 @@ namespace genfile {
 					bytes_read += sizeof( identifier_size ) + identifier_size ;
 					setter( identifier ) ;
 				} else {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 			}
 			assert( bytes_read == block_size ) ;
@@ -491,7 +503,7 @@ namespace genfile {
 					return false ;
 				}
 				if( number_of_samples != context.number_of_samples ) {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 				read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
 			} else if( layout == e_Layout2 ) {
@@ -522,7 +534,7 @@ namespace genfile {
 				std::cerr << "bgen: layout = " << layout << ", alleles = " << numberOfAlleles << ".\n" << std::flush ;
 				std::cerr << *SNPID << ", " << *RSID << ", " << *chromosome << ", " << *SNP_position << ".\n" << std::flush ;
 #endif
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 			return true ;
 		}
@@ -697,7 +709,7 @@ namespace genfile {
 				) {
 					assert( m_state == eSampleSet ) ;
 					if( ploidy != uint32_t(2)) {
-						throw BGenError() ;
+						ThrowBGenError() ;
 					}
 					assert( number_of_entries == uint32_t(3)) ;
 					assert( order_type == ePerUnorderedGenotype ) ;
@@ -774,7 +786,7 @@ namespace genfile {
 				Setter& setter
 			) {
 				if( end != buffer + 6*context.number_of_samples ) {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 				setter.initialise( context.number_of_samples, 2 ) ;
 				uint32_t const ploidy = 2 ;
@@ -1014,16 +1026,16 @@ namespace genfile {
 				byte_t const* const end
 			) {
 				if( end < buffer + 8 ) {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 
 				uint32_t N = 0 ;
 				buffer = read_little_endian_integer( buffer, end, &N ) ;
 				if( N != context_.number_of_samples ) {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 				if( end < buffer + N + 2 ) {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 
 				buffer = read_little_endian_integer( buffer, end, &numberOfAlleles ) ;
@@ -1157,7 +1169,7 @@ namespace genfile {
 							
 							
 							if( !valueConsumer.check( 2 )) {
-								throw BGenError() ;
+								ThrowBGenError() ;
 							}
 							// Consume values and interpret them.
 							for( uint32_t hap = 0; hap < 2; ++hap ) {
@@ -1184,7 +1196,7 @@ namespace genfile {
 								setter.set_number_of_entries( 2, 3, ePerUnorderedGenotype, eProbability ) ;
 							}
 							if( !valueConsumer.check( 2 )) {
-								throw BGenError() ;
+								ThrowBGenError() ;
 							}
 							double const value1 = valueConsumer.next() ;
 							double const value2 = valueConsumer.next() ;
@@ -1259,7 +1271,7 @@ namespace genfile {
 							double sum = 0.0 ;
 							uint32_t reportedValueCount = 0 ;
 							if( !valueConsumer.check( ploidy * (pack.numberOfAlleles-1) )) {
-								throw BGenError() ;
+								ThrowBGenError() ;
 							}
 							for( uint32_t hap = 0; hap < ploidy; ++hap ) {
 								for( uint32_t allele = 0; allele < (pack.numberOfAlleles-1); ++allele ) {
@@ -1312,7 +1324,7 @@ namespace genfile {
 							}
 							
 							if( !valueConsumer.check( storedValueCount )) {
-								throw BGenError() ;
+								ThrowBGenError() ;
 							}
 							
 							double sum = 0.0 ;
@@ -1442,12 +1454,12 @@ namespace genfile {
 							m_order_type = order_type ;
 						} else {
 							if( m_order_type != order_type ) {
-								throw BGenError() ;
+								ThrowBGenError() ;
 							}
 						}
 					}
 					if( value_type != eProbability ) {
-						throw BGenError() ;
+						ThrowBGenError() ;
 					}
 					m_number_of_entries = number_of_entries ;
 					m_entries_per_bake = (m_order_type == ePerUnorderedGenotype || m_ploidy == 0) ? m_number_of_entries : m_number_of_alleles ;
@@ -1489,7 +1501,7 @@ namespace genfile {
 						std::cerr << "Sample " << m_sample_i << ", value " << entry_i << " is "
 							<< std::setprecision(17) << value
 							<< ", expected within bounds 0 - " << (1.0+m_max_error_per_prob) << ".\n" ;
-						throw BGenError() ;
+						ThrowBGenError() ;
 					}
 					if( value != 0.0 ) {
 						m_missing = eNotMissing ;
@@ -1527,7 +1539,7 @@ namespace genfile {
 							<< " m_order_type = " << m_order_type
 							<< " m_ploidy = " << m_ploidy
 							<< ".\n" ;
-						throw BGenError() ;
+						ThrowBGenError() ;
 					}
 					// Write any remaining data
 					if( m_offset > 0 ) {
@@ -1599,7 +1611,7 @@ namespace genfile {
 							for( std::size_t i = 0; i < count; ++i ) {
 								std::cerr << values[i] << "\n" ;
 							}
-							throw BGenError() ;
+							ThrowBGenError() ;
 						}
 						// We project onto the unit simplex before computing the approximation.
 						for( std::size_t i = 0; i < count; ++i ) {
@@ -1690,14 +1702,14 @@ namespace genfile {
 				// v12 has an explicit allele count
 				p = write_little_endian_integer( p, end, number_of_alleles ) ;
 			} else if( number_of_alleles != 2u ) {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 
 			std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
 			for( uint16_t allele_i = 0; allele_i < number_of_alleles; ++allele_i ) {
 				std::string const& allele = get_allele( allele_i ) ;
 				if( allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
-					throw BGenError() ;
+					ThrowBGenError() ;
 				}
 				p = write_length_followed_by_data( p, end, uint32_t( allele.size() ), allele.data() ) ;
 			}
