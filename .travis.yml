@@ -15,7 +15,6 @@ matrix:
     env:
     - MODE=build
     latex: false
-    before_script: sed -i.bak 's/-isysroot /-I/g' $(R RHOME)/etc/Makeconf
 dist: xenial
 sudo: required
 latex: true
