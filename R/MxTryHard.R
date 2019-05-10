@@ -399,7 +399,7 @@ mxTryHard <- function(
 	
 	if(bestInitsOutput && exists("bestfit")){
 		bestfit.params <- omxGetParameters(bestfit)
-		if(showInits){
+		if(!silent){
 			message(" Start values from best fit:")
 			if(paste) message(paste(bestfit.params, sep=",", collapse = ",")) 
 			if(!paste)  message(paste(names(bestfit.params),": ", bestfit.params,"\n"))
