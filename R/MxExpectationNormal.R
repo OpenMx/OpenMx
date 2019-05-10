@@ -335,7 +335,7 @@ mxCheckIdentification <- function(model, details=TRUE){
 	theParams <- omxGetParameters(model)
 	jac <- omxManifestModelByParameterJacobian(model)
 	if(imxHasConstraint(model)){
-		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(), mxComputeReportDeriv())))
+		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(hessian=FALSE), mxComputeReportDeriv())))
 		tmpModel <- mxRun(tmpModel, silent=TRUE)
 		cjac <- tmpModel$output$constraintJacobian
 		# drop model name from constraint name
