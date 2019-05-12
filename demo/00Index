@@ -64,3 +64,4 @@ RObjectiveLISRELFactorRegression	    Implementing LISREL style model specificati
 AlternativeApproaches                  Fitting a range of models using the matrix style specification
 mxThreshold			       Example of mxThreshold
 omxConstrainMLThresholds		       Example of omxConstrainMLThresholds
+LDE                                    Latent Differential Equation (LDE) model
