@@ -125,7 +125,7 @@ runHelper <- function(model, frontendStart,
 	defVars <- generateDefinitionList(flatModel, list())
 	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
 	model <- preprocessDatasets(model, defVars, model@options) # DEPRECATED
-	flatModel@datasets <- collectDatasets(model)  # done in imxFlattenModel, but confusingly do it again
+	flatModel@datasets <- collectDatasets(model, namespace)  # done in imxFlattenModel, but confusingly do it again
 	labelsData <- imxGenerateLabels(model)
 
 	model <- fitFunctionAddEntities(model, flatModel, labelsData)

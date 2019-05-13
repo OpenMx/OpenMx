@@ -37,6 +37,7 @@
 #include <Eigen/CholmodSupport>
 #include <RcppEigenWrap.h>
 #include "CovEntrywisePar.h"
+#include "Compute.h"
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
@@ -383,6 +384,16 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			if (currentFreqColumn[rx] >= 0) continue;
 			mxThrow("%s: cannot proceed with non-positive frequency %d for row %d",
 				 name, currentFreqColumn[rx], 1+rx);
+		}
+	}
+
+	if (R_has_slot(dataObj, Rf_install("algebra"))) {
+		ProtectedSEXP Ralg(R_do_slot(dataObj, Rf_install("algebra")));
+		int len = Rf_length(Ralg);
+		if (len) {
+			algebra.reserve(len);
+			int *aptr = INTEGER(Ralg);
+			for (int ax=0; ax < len; ++ax) algebra.push_back(aptr[ax]);
 		}
 	}
 }
@@ -843,7 +854,7 @@ bool omxData::loadDefVars(omxState *state, int row)
 		}
 		changed |= dv.loadData(state, newDefVar);
 	}
-	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
+	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("%s: load def vars for row %d", name, row); }
 	return changed;
 }
 
@@ -2880,4 +2891,43 @@ void omxData::invalidateColumnsCache(std::vector< int > &columns)
 		o1.partial = true;
 	}
 	if (fail) invalidateCache();
+}
+
+void omxData::evalAlgebras(FitContext *fc)
+{
+	for (auto ax : algebra) {
+		omxMatrix *a1 = fc->state->algebraList[ax];
+		if (!a1->colnames.size()) {
+			mxThrow("%s: algebra '%s' must have colnames", name, a1->name());
+		}
+		std::vector<int> colMap;
+		int numCols = a1->colnames.size();
+		for (int cx=0; cx < numCols; ++cx) {
+			auto *cn = a1->colnames[cx];
+			auto it = rawColMap.find(cn);
+			if (it == rawColMap.end()) {
+				mxThrow("%s: cannot find column '%s'", name, cn);
+			}
+			int dc = it->second;
+			if (rawCols[dc].type != COLUMNDATA_NUMERIC) {
+				mxThrow("%s: column '%s' must be type of numeric not %s",
+					name, cn, ColumnDataTypeToString(rawCols[dc].type));
+			}
+			//mxLog("%s -> %d", a1->colnames[cx], dc);
+			colMap.push_back(dc);
+		}
+		for (int rx=0; rx < rows; ++rx) {
+			loadDefVars(fc->state, rx);
+			omxRecompute(a1, fc); // should not depend on free parameters TODO
+			if (a1->rows != 1) mxThrow("%s: algebra '%s' must evaluate to a row vector "
+						   "instead of %dx%d", name, a1->name(), a1->rows, a1->cols);
+			if (a1->cols < numCols) mxThrow("%s: algebra '%s' must have at least "
+							"%d columns (found %d)",
+							name, a1->name(), numCols, a1->cols);
+			EigenVectorAdaptor result(a1);
+			for (int cx=0; cx < numCols; ++cx) {
+				rawCols[colMap[cx]].ptr.realData[rx] = result[cx];
+			}
+		}
+	}
 }

@@ -28,7 +28,7 @@
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
-     minVariance=sqrt(.Machine$double.eps))
+     minVariance=sqrt(.Machine$double.eps), algebra=c())
 }
 
 \arguments{
@@ -52,7 +52,10 @@
      statistics in parallel.}
    \item{.noExoOptimize}{logical. Whether to use math short-cuts for the
      case of no exogenous predictors.}
-   \item{minVariance}{numeric. The minimum acceptable variance for \sQuote{observedStats}.}
+   \item{minVariance}{numeric. The minimum acceptable variance for
+     \sQuote{observedStats}.}
+   \item{algebra}{character vector. Names of algebras used to fill in
+     calculated columns of raw data.}
 }
 
 \details{

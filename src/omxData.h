@@ -174,6 +174,7 @@ class omxData {
 	bool noExoOptimize;
 	bool modified;
 	double minVariance;
+	std::vector<int> algebra;
 
 	void estimateObservedStats();
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
@@ -196,6 +197,7 @@ class omxData {
 	bool isModified() { return modified; };
 	double getMinVariance() const { return minVariance; };
 	void convertToDataFrame();
+	void evalAlgebras(FitContext *fc);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data

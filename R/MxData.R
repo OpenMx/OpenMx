@@ -28,7 +28,8 @@ setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
 setClass(Class = "NonNullData",
 	representation = representation(
-		verbose = "integer"))
+		verbose = "integer"),
+	contains = "MxBaseNamed")
 
 ##' @name MxDataStatic-class
 ##' @rdname MxDataStatic-class
@@ -59,22 +60,21 @@ setClass(Class = "MxDataStatic",
 	     weight = "MxCharOrNumber",
 	     frequency = "MxCharOrNumber",
 	     minVariance = "numeric",
-	     name   = "character"))
+	     algebra = "MxOptionalCharOrNumber"))
 
 setClass(Class = "MxDataDynamic",
 	 contains = "NonNullData",
 	 representation = representation(
 	     type        = "character",
 	     expectation = "MxCharOrNumber",
-	     numObs = "numeric",             # output
-	     name        = "character"))
+	     numObs = "numeric"))             # output
 
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
 		   sort, primaryKey, weight, frequency, verbose, .parallel, .noExoOptimize,
-		   minVariance) {
+		   minVariance, algebra) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -100,6 +100,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@frequency <- frequency
 		.Object@verbose <- verbose
 		.Object@minVariance <- minVariance
+		.Object@algebra <- algebra
 		return(.Object)
 	}
 )
@@ -151,7 +152,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
-		   minVariance=sqrt(.Machine$double.eps)) {
+		   minVariance=sqrt(.Machine$double.eps), algebra=c()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
@@ -193,6 +194,9 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
+	}
+	if (length(algebra) && type != 'raw') {
+		stop("algebra only permitted for type='raw' data")
 	}
 	if (type == "cov") {
 		verifyCovarianceMatrix(observed)
@@ -275,7 +279,8 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
 		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
-		as.logical(.parallel), as.logical(.noExoOptimize), minVariance))
+		as.logical(.parallel), as.logical(.noExoOptimize), minVariance,
+		as.character(algebra)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -298,6 +303,19 @@ setMethod("preprocessDataForBackend", signature("NonNullData"),
 
 setMethod("convertDataForBackend", signature("NonNullData"),
 	  function(data, model, flatModel) { data })
+
+setMethod("qualifyNames", signature("NonNullData"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxDataStatic"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace, TRUE)
+		.Object
+	})
 
 setMethod("convertDataForBackend", signature("MxDataStatic"),
 	  function(data, model, flatModel) {
@@ -354,6 +372,18 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					  stop(msg, call.=FALSE)
 				  }
 				  data@frequency <- wc
+			  }
+		  }
+		  if (.hasSlot(data, 'algebra')) {
+			  if (length(data@algebra)) {
+				  aNames <- names(flatModel@algebras)
+				  nums <- match(data@algebra, aNames)
+				  if (any(is.na(nums))) {
+					  msg <- paste("Algebra", omxQuotes(data@algebra[is.na(nums)]),
+						  "do not refer to an algebra")
+					  stop(msg, call.=FALSE)
+				  }
+				  data@algebra <- nums - 1L
 			  }
 		  }
 

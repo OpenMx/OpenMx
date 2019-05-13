@@ -883,10 +883,3 @@ safeQualifyNames <- function(obj, modelname, namespace) {
 	}
 	obj
 }
-
-qualifyNamesData <- function(data, modelname) {
-	if (!is.null(data)) {
-		data@name <- imxIdentifier(modelname, data@name)
-	}
-	return(data)
-}
