@@ -2927,6 +2927,8 @@ void omxData::evalAlgebras(FitContext *fc)
 							name, a1->name(), numCols, a1->cols);
 			EigenVectorAdaptor result(a1);
 			for (int cx=0; cx < numCols; ++cx) {
+				if (verbose >= 3) mxLog("%s::evalAlgebras [%d,%d] <- %f",
+							name, 1+rx, 1+cx, result[cx]);
 				rawCols[colMap[cx]].ptr.realData[rx] = result[cx];
 			}
 		}
