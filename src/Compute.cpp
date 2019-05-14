@@ -4574,7 +4574,6 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 
 	ColumnInvalidator ci(*fc->state, data, columns);
 	ci();
-	fc->state->omxInitialMatrixAlgebraCompute(fc);
 }
 
 ComputeLoadData::~ComputeLoadData()
