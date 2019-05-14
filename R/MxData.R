@@ -503,7 +503,7 @@ verifySymmetric <- function(covMatrix, nameMatrix="observed") {
 	stop(msg, call. = FALSE)
 }
 
-verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
+verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed", strictPD=TRUE) {
 	if (is.null(covMatrix)) stop(paste("Covariance matrix",omxQuotes(nameMatrix),
 		"is missing in action"))
 	if(nrow(covMatrix) != ncol(covMatrix)) {
@@ -518,20 +518,39 @@ verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 	}
 	verifySymmetric(covMatrix, nameMatrix)
 	if (is.data.frame(covMatrix)) covMatrix <- as.matrix(covMatrix)
-	evalCov <- eigen(covMatrix)$values
-	if (nameMatrix=="observed" & any( evalCov <= 0)) {
-		msg <- paste("The", nameMatrix, "covariance matrix",
-			"is not a positive-definite matrix:\n",
-			"1 or more elements of eigen(covMatrix)$values ",
-			"<= 0")
-		stop(msg, call. = FALSE)
+	if(nameMatrix=="observed" && strictPD){
+		evalCov <- eigen(covMatrix,T,T)$values
+		if(any(evalCov <= 0)){
+			msg <- paste(
+				"The", nameMatrix, "covariance matrix",
+				"is not a positive-definite matrix:\n",
+				"1 or more elements of eigen(covMatrix)$values ",
+				"<= 0")
+			stop(msg, call. = FALSE)
+		}
 	}
-	if (nameMatrix=="asymptotic" & any( evalCov < -1e-4)) {
-		msg <- paste("The", nameMatrix, "covariance matrix",
-			"is not a positive-semi-definite matrix:\n",
-			"1 or more elements of eigen(covMatrix)$values ",
-			"< 0")
-		stop(msg, call. = FALSE)
+	if(nameMatrix=="asymptotic"){
+		if(strictPD){
+			evalCov <- eigen(covMatrix,T,T)$values
+			if(any(evalCov < -1e-4)){
+				msg <- paste(
+					"The", nameMatrix, "covariance matrix",
+					"is not a positive-semi-definite matrix:\n",
+					"1 or more elements of eigen(covMatrix)$values ",
+					"< 0")
+				stop(msg, call. = FALSE)
+			}
+		}
+		else{
+			tryToInv <- try(solve(covMatrix),silent=TRUE)
+			if(is(tryToInv,"try-error")){
+				msg <- paste(
+					"The", nameMatrix, "covariance matrix",
+					"is a singular matrix\n",
+					"(at least computationally if not exactly)")
+				stop(msg, call. = FALSE)
+			}
+		}
 	}
 }
 

@@ -62,10 +62,10 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
 	}
 	if (type == "acov") {
-		verifyCovarianceMatrix(observed)
-		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
+		verifyCovarianceMatrix(observed, strictPD=FALSE)
+		verifyCovarianceMatrix(acov, nameMatrix="asymptotic", strictPD=FALSE)
 		if(!single.na(fullWeight)){
-			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic")
+			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic", strictPD=FALSE)
 		}
 		if ( !single.na(thresholds) ) {
 			verifyThresholdNames(thresholds, observed)
