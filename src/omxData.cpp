@@ -2388,6 +2388,7 @@ struct sampleStats {
 			OLSRegression olsr(&data, o1.totalWeight, rowMult, index);
 			olsr.setPred(pred);
 			olsr.setResponse(cd, pv);
+			if (isErrorRaised()) return;
 			olsr.calcScores();
 			pv.resid = olsr.resid;
 			pv.theta.resize(olsr.beta.size() + 1);
