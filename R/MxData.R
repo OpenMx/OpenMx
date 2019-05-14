@@ -158,19 +158,6 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		stop("mxData does not accept values for the '...' argument")
 	}
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
-	if (missing(observedStats)) {
-		observedStats <- list()
-		if (!missing(acov)) observedStats <- c(observedStats, acov=acov)
-		if (!missing(fullWeight)) observedStats <- c(observedStats, fullWeight=fullWeight)
-		if (!missing(thresholds)) observedStats <- c(observedStats, thresholds=thresholds)
-	} else {
-		if (!missing(acov) || !missing(fullWeight) || !missing(thresholds)) {
-			stop("acov, fullWeight, and thresholds must be passed in the observedStats list")
-		}
-	}
-	rm(acov)
-	rm(fullWeight)
-	rm(thresholds)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
@@ -185,6 +172,23 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 			stop(paste("Type must be set to one of: ", "'", 
 			paste(imxDataTypes[1:(numTypes-1)], collapse="' '"),
 			"' or '", imxDataTypes[numTypes], "'", sep=""))
+	}
+	if (type == "acov") {
+		return(legacyMxData(observed, type="acov", means=means, numObs=numObs, 
+			acov=acov, fullWeight=fullWeight, thresholds=thresholds))
+	}
+	rm(acov)
+	rm(fullWeight)
+	rm(thresholds)
+	if (missing(observedStats)) {
+		observedStats <- list()
+		if (!missing(acov)) observedStats <- c(observedStats, acov=acov)
+		if (!missing(fullWeight)) observedStats <- c(observedStats, fullWeight=fullWeight)
+		if (!missing(thresholds)) observedStats <- c(observedStats, thresholds=thresholds)
+	} else {
+		if (!missing(acov) || !missing(fullWeight) || !missing(thresholds)) {
+			stop("acov, fullWeight, and thresholds must be passed in via the observedStats list")
+		}
 	}
 	if (type == "sscp") {
 		stop(paste("'sscp' is not yet implemented."))
