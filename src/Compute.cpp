@@ -4574,6 +4574,7 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 
 	ColumnInvalidator ci(*fc->state, data, columns);
 	ci();
+	data->evalAlgebras(fc);
 }
 
 ComputeLoadData::~ComputeLoadData()
