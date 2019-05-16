@@ -31,7 +31,7 @@ factormod <- mxModel(
 	mxMatrix(type="Full",nrow=3,ncol=1,free=T,values=0.1,name="Lambda"),
 	mxMatrix(type="Stand",nrow=1,ncol=1,free=F,values=1,lbound=-1,ubound=1,name="Rxx"),
 	mxMatrix(type="Diag",nrow=3,free=T,values=diag(S),lbound=0.0001,name="Psi2"),
-	mxAlgebra(Lambda%&%Rxx + Psi2, name="xpecCov"),
+	mxAlgebra( (Lambda%&%Rxx) + Psi2, name="xpecCov"),
 	mxAlgebra(sqrt(diag2vec(xpecCov)), name="SDs"),
 	mxAlgebra( 
 		Lambda / SDs, name="standardizedLoadings"),
