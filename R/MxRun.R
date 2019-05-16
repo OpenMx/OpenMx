@@ -378,8 +378,7 @@ omxGetBootstrapReplications <- function(model) {
   if (is.null(model$compute) || !is(model$compute, "MxComputeBootstrap")) {
 	  stop(paste("Compute plan", class(model$compute), "found in model",
 		     omxQuotes(model$name),
-		     "instead of MxComputeBootstrap. Have you run this model",
-		     "through mxBootstrap already?"))
+		     "instead of MxComputeBootstrap. You need to run this model through mxBootstrap first."))
   }
    assertModelFreshlyRun(model)
   cb <- model@compute

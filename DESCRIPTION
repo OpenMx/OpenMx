@@ -1,6 +1,6 @@
 Encoding: UTF-8
 Package: OpenMx
-Date: 2019-05-03
+Date: 2019-05-14
 Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -52,10 +52,11 @@ ByteCompile: no
 Language: en-US
 License: Apache License (== 2.0)
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
-Imports: Rcpp, digest,
+Imports: digest,
     MASS,
-    methods,
     Matrix,
+    methods,
+	Rcpp, 
     parallel
 Depends: R (>= 3.1.0)
 Suggests:
@@ -178,4 +179,4 @@ Collate:
     'omxReadGRMBin.R'
     'zzz.R'
 Biarch: true
-Version: 2.12.2-394
+Version: 2.12.2-425
