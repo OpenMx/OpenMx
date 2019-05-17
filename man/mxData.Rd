@@ -55,7 +55,7 @@
    \item{minVariance}{numeric. The minimum acceptable variance for
      \sQuote{observedStats}.}
    \item{algebra}{character vector. Names of algebras used to fill in
-     calculated columns of raw data.}
+     calculated columns of raw data. EXPERIMENTAL}
 }
 
 \details{
