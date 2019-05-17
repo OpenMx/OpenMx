@@ -55,3 +55,6 @@ omxCheckCloseEnough(
 
 omxCheckCloseEnough(mxSE(sigma^2, sdrun), mxSE(sigma2, varrun), 5e-6)
 
+obj <- 'sigma2'
+omxCheckCloseEnough(mxSE(obj, varrun), mxSE(sigma2, varrun), 1e-10)
+
