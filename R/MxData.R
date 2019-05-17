@@ -317,7 +317,7 @@ setMethod("qualifyNames", signature("NonNullData"),
 setMethod("qualifyNames", signature("MxDataStatic"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		  if (.hasSlot(data, 'algebra')) {
+		  if (.hasSlot(.Object, 'algebra')) {
 			  .Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace, TRUE)
 		  }
 		.Object
