@@ -130,7 +130,7 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else if ('character' %in% is(x)) {
-		xalg <- mxAlgebraFromString(Reduce(paste, match.call()$x), name='onTheFlyAlgebra')
+		xalg <- mxAlgebraFromString(Reduce(paste, eval(match.call()$x)), name='onTheFlyAlgebra')
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else {
