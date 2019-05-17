@@ -300,6 +300,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		o1.fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
 		ProtectedSEXP Rthr(R_do_slot(dataObj, Rf_install("thresholds")));
 		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
+		if (!o1.fullWeight) mxThrow("%s: you must provide a fullWeight matrix", name);
 	}
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
