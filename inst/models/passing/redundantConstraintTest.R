@@ -137,7 +137,7 @@ if(mxOption(NULL,"Default optimizer")!="CSOLNP"){
 	modelACE <- mxModel(modelACE, plan)
 	omxCheckWarning(
 		mxRun(modelACE),
-		"counted 3 equality constraints, but equality-constraint Jacobian is rank 1 at the start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
+		"counted 3 equality constraints, but equality-constraint Jacobian is apparently rank 1 at the start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
 	)
 	#fitACE <- mxRun(modelACE)
 	#summary(fitACE)

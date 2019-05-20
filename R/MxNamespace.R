@@ -147,11 +147,13 @@ imxVerifyReference <- function(reference, stackNumber) {
 
 #' mxMakeNames
 #'
-#' Adjust a character vector so that it can be used as MxMatrix column
-#' or row names. OpenMx is (much) more restrictive than base R's make.names.
+#' Adjust a character vector so that it is valid when used as MxMatrix column
+#' or row names.
+#' 
+#' \emph{note}: OpenMx is (much) more restrictive than base R's make.names.
 #'
 #' @param names a character vector
-#' @param unique whether the pass the result through \link[base]{make.unique}
+#' @param unique whether to pass the result through \link[base]{make.unique}
 #' @seealso
 #' \link[base]{make.names}
 #' @examples
@@ -880,11 +882,4 @@ safeQualifyNames <- function(obj, modelname, namespace) {
 		obj <- qualifyNames(obj, modelname, namespace)
 	}
 	obj
-}
-
-qualifyNamesData <- function(data, modelname) {
-	if (!is.null(data)) {
-		data@name <- imxIdentifier(modelname, data@name)
-	}
-	return(data)
 }

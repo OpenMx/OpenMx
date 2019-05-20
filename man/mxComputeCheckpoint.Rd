@@ -39,6 +39,10 @@ Captures the current state of the backend. When \code{path} is set, the
 state is written to disk in a single row. When \code{toReturn} is set,
 the state is recorded in memory and returned after \code{mxRun}.
 }
+\seealso{
+  \code{\link{mxComputeLoadData}}, \code{\link{mxComputeLoadMatrix}},
+  \code{\link{mxComputeLoadContext}}, \code{\link{mxComputeLoop}}
+}
 \examples{
 library(OpenMx)
 

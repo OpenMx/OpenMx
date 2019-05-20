@@ -36,7 +36,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
-			if(needcIn(l) > 0 || !usingAnalyticJacobian){cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));}
+			if(needcIn(l) > 0 || !isUsingAnalyticJacobian()){cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));}
 			l += cs.size;
 			if (verbose >= 3) {
 				mxLog("mode 0");
@@ -77,7 +77,7 @@ void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constrai
 		for(j = 0; j < (int) st->conListX.size(); j++) {
 			omxConstraint &cs = *st->conListX[j];
 			if(cs.linear){continue;}
-			if(needcIn(l) > 0 || !usingAnalyticJacobian){
+			if(needcIn(l) > 0 || !isUsingAnalyticJacobian()){
 				cs.refreshAndGrab(fc, omxConstraint::LESS_THAN, &constraintOut(l));
 				if(cs.jacobian != NULL){
 					omxRecompute(cs.jacobian, fc);
@@ -140,7 +140,7 @@ void F77_SUB(npsolConstraintFunction)
 		double *c, double *cJac, int *nstate)
 {
 	//The line below prevents unnecessary calls to the allConstraintsFun() when no analytic Jacobians are used:
-	if( !(NPSOL_GOpt->usingAnalyticJacobian) && *mode==1){return;}
+	if( !(NPSOL_GOpt->isUsingAnalyticJacobian()) && *mode==1){return;}
 
 	// "Note that if there are any nonlinear constraints then the
 	// first call to CONFUN will precede the first call to
@@ -345,8 +345,6 @@ void omxNPSOL(GradientOptimizerContext &rf)
 	int nl_equality, nl_inequality, l_equality, l_inequality;
 	st->countNonlinearConstraints(nl_equality, nl_inequality, true);
 	st->countLinearConstraints(l_equality, l_inequality);
-	
-	rf.checkForAnalyticJacobians();
 
 	omxNPSOL1(est, rf, nl_equality, nl_inequality, l_equality, l_inequality);
 

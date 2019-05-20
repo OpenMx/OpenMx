@@ -125,7 +125,7 @@ runHelper <- function(model, frontendStart,
 	defVars <- generateDefinitionList(flatModel, list())
 	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
 	model <- preprocessDatasets(model, defVars, model@options) # DEPRECATED
-	flatModel@datasets <- collectDatasets(model)  # done in imxFlattenModel, but confusingly do it again
+	flatModel@datasets <- collectDatasets(model, namespace)  # done in imxFlattenModel, but confusingly do it again
 	labelsData <- imxGenerateLabels(model)
 
 	model <- fitFunctionAddEntities(model, flatModel, labelsData)
@@ -355,6 +355,7 @@ mxBootstrap <- function(model, replications=200, ...,
     if (missing(data)) {
       data <- enumerateDatasets(model)
     }
+	    # wrap with mxComputeTryCatch ?
     plan <- mxComputeBootstrap(data, model@compute)
   } else {
     plan <- model$compute
@@ -377,8 +378,7 @@ omxGetBootstrapReplications <- function(model) {
   if (is.null(model$compute) || !is(model$compute, "MxComputeBootstrap")) {
 	  stop(paste("Compute plan", class(model$compute), "found in model",
 		     omxQuotes(model$name),
-		     "instead of MxComputeBootstrap. Have you run this model",
-		     "through mxBootstrap already?"))
+		     "instead of MxComputeBootstrap. You need to run this model through mxBootstrap first."))
   }
    assertModelFreshlyRun(model)
   cb <- model@compute

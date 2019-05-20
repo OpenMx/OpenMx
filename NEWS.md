@@ -2,9 +2,17 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
-# OpenMx 2.12.X FUTURE 2019 (R 3.5.2))
-* NEW!: SEs for models with constraints! (used not to be calculated, and a big win for twin models)
-* IMPROVED: `omxSetParameters` warns if you don't ask to do anything
+# OpenMx 2.13.0 FUTURE 2019 (R 3.6.0))
+* NEW!: SEs for models with constraints! (used not to be calculated. Big win for twin models)
+* IMPROVED: `omxSetParameters` warns if you don't ask to do anything.
+* IMPROVED: `mxCheckIdentification` works with models containing constraints
+* IMPROVED: `mxPath` more helpful messages for errors
+* IMPROVED: `mxModel` error when path added to model without type = "RAM"
+* IMPROVED: `summary` better at not counting redundant constraints.
+* IMPROVED: progress reporting, inc. for mxTryHard.
+* IMPROVED: github and CRAN README.md
+* CHANGED: CXX14 (not CXX11)
+
 
 # OpenMx 2.12.2 Feb 2019 (R 3.5.2))
 * IMPROVED: parallel processing improved by addition of ConcurrentQueue.
@@ -13,9 +21,7 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * NEW:  `omxAkaikeWeights` and `mxModelAverage`, for information-theoretic model-averaging and multimodel inference.
 * NEW:  `mxPearsonSelCov` and `mxPearsonSelMean` implement the Pearson-Aitken selection formulae. Both functions are usable in MxAlgebras.
 * NEW:  `mxComputeLoadMatrix`: placed into a custom compute plan will load a CSV file directly into the backend.
-* NEW:  WLSM and WLSMV fit statistics for models that use the WLS fitfunction.
-* IMPROVED:  `mxSE` is now much faster.
-* IMPROVED:  `mxTryHard` much nice printing to console.
+* NEW:  `mxFitFunctionWLS` WLSM and WLSMV fit statistics.
 * IMPROVED:  "CI details" table (in verbose summary() output) reordered, to make the table more readable.
 * IMPROVED:  `mxStandardizeRAMpaths` now reports elements of the 'M' matrix, re-scaled to standard-deviation units.
 * IMPROVED:  `mxAutoStart` can now be used with diagonally weighted least squares.
@@ -42,7 +48,7 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * IMPROVED: CIs on the RMSEA statistic for models that fit *very* badly.
 * IMPROVED: Mahalanobis distance to ML models (Resolves #92)
 * IMPROVED: `logLik.MxModel` can take a list of models.
-* IMPROVED: `omxGetParameters` handles labels of the form model.mat[row,col]
+* IMPROVED: `omxGetParameters` handles labels of the form model.mat[row, col]
 * IMPROVED: Fit value is smart enough to not report logLik() for WLS (only reports AIC & BIC with -2lnL fit units)
 * MODIFIED: `mxBrownie` now supports vegans.
 * PREVIEW: `mxCompareMatrix` (note: this doesn't compare matrices, it compares models, and outputs a matrix of comparisons). Comments welcome!

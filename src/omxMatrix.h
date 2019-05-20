@@ -127,7 +127,8 @@ class omxMatrix {
 	}
 	void copyAttr(omxMatrix *src);
 	bool isSimple() { return !algebra && !fitFunction && populate.size()==0; };
-	void loadFromStream(mini::csv::ifstream &st);
+	int numNonConstElements() const;
+	template <typename T> void loadFromStream(T &st);
 	int size() const { return rows * cols; }
 	SEXP asR();
 	bool isValidElem(int row, int col)
@@ -598,6 +599,77 @@ void filterJacobianRows(Eigen::MatrixBase<T1>& A, int& rankA){
 	//mxPrintMat("Q ",Q);
 	//mxPrintMat("R ",R);
 	A = (Q * R).transpose();
+}
+
+template <typename T> void omxMatrix::loadFromStream(T &st)
+{
+	EigenMatrixAdaptor v(this);
+
+	switch(shape) {
+	case 1: //Diag
+		for (int rx=0; rx < rows; ++rx) {
+			st >> v(rx, rx);
+		}
+		break;
+
+	case 2: //Full
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=0; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+		
+	case 4: //Lower
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=cx; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+
+	case 5: //Sdiag
+		for (int cx=0; cx < cols-1; ++cx) {
+			for (int rx=cx+1; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+
+	case 6: //Stand
+		for (int cx=0; cx < cols-1; ++cx) {
+			for (int rx=cx+1; rx < rows; ++rx) {
+				double tmp;
+				st >> tmp;
+				v(rx,cx) = tmp;
+				v(cx,rx) = tmp;
+			}
+		}
+		break;
+
+	case 7: //Symm
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=cx; rx < rows; ++rx) {
+				double tmp;
+				st >> tmp;
+				v(rx,cx) = tmp;
+				v(cx,rx) = tmp;
+			}
+		}
+		break;
+
+	case 8: //Unit
+	case 9: //Zero
+	case 3: //Iden
+		mxThrow("loadFromStream: matrix '%s' is constant (type %d);"
+			 " use a Full matrix if you wish to update it", name(), shape);
+		break;
+
+	default:
+		mxThrow("loadFromStream: matrix '%s' with shape %d is unimplemented",
+			 name(), shape);
+		break;
+	}
 }
 
 #endif /* _OMXMATRIX_H_ */

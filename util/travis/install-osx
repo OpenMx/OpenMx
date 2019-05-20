@@ -23,6 +23,8 @@ sudo rm -rf /usr/local/include/c++
 sudo tar -zxf /tmp/gcc.tar.gz -C /
 sudo tar -zxf /tmp/gfort.tar.gz -C /
 
+sed -i.bak 's/-isysroot /-I/g' $(R RHOME)/etc/Makeconf
+
 R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in
 
 which otool

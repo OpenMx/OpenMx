@@ -306,6 +306,8 @@ class omxGlobal {
 // Use a pointer to ensure correct initialization and destruction
 extern class omxGlobal *Global;
 
+
+
 // omxState is for stuff that must be duplicated for thread safety.
 class omxState {
  private:
@@ -351,6 +353,7 @@ class omxState {
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
 	
 	int numEqC, numIneqC;
+	bool usingAnalyticJacobian;
 
 	void countNonlinearConstraints(int &equality, int &inequality, bool distinguishLinear)
 	{
@@ -363,6 +366,9 @@ class omxState {
 				equality += cs->size;
 			} else {
 				inequality += cs->size;
+			}
+			if(!usingAnalyticJacobian && cs->jacobian){
+				usingAnalyticJacobian = true;
 			}
 		}
 	};
@@ -377,6 +383,9 @@ class omxState {
 				l_equality += cs->size;
 			} else {
 				l_inequality += cs->size;
+			}
+			if(!usingAnalyticJacobian && cs->jacobian){
+				usingAnalyticJacobian = true;
 			}
 		}
 	};

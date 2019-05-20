@@ -57,6 +57,12 @@ When data are not all continuous, \code{allContinuousMethod} is ignored, and mea
 \emph{Usage Notes}:
 
 Model results can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the model (i.e., \code{model$output}). Components of the output may also be accessed and used in the same way, i.e., via the \code{$} and \code{[]} \code{\link{Extract}} functions.
+
+Summary statistics are returned in the MxData object in an
+\code{observedStats} list. If \code{observedStats} are already present
+and in the appropriate shape then they are reused. It is also possible
+to provide your own arbitrary user supplied observed statistics using
+this same approach.
 }
 
 
@@ -107,6 +113,25 @@ m1 = mxModel("my_first_WLS", type="RAM",
 m1 = mxRun(m1)
 summary(m1)$parameters
 
+originalSE <- m1$output$standardErrors
+
+# Here are the summary statistics
+print(m1$data$observedStats)
+
+# Use a different weight matrix
+os <- m1$data$observedStats
+os$acov <- rWishart(1, nrow(tmpFrame)/2, diag(3))[,,1]
+os$fullWeight <- os$acov
+m1$data$observedStats <- os
+
+# Can check whether our new weights are used
+m1$data$verbose <- 1L
+
+# Run model
+m1 <- mxRun(m1)
+
+# SE indeed changed due to new weights
+print(m1$output$standardErrors - originalSE)
 
 # ==========================
 # = A matrix-based example =

@@ -177,10 +177,21 @@ id <- mxCheckIdentification(xmod)
 omxCheckEquals(id$status, FALSE)
 omxCheckEquals(id$non_identified_parameters, c("l11", "l12", "l13", "l14", "varF1", "covF1F2"))
 
+
 #--------------------------------------------------------------------
 #--------------------------------------------------------------------
-# Add constraint, now I don't know what to do
+# Add constraint, now I know what to do
+
 xmod2 <- mxModel(xmod, mxConstraint(TX[1,1] == TX[2,1], name='conman'))
+id2 <- mxCheckIdentification(xmod2)
 
-omxCheckError(mxCheckIdentification(xmod2), "Whoa Nelly.  I found an MxConstraint in your model.  I just cannot work under these conditions. I will be in my trailer until you reparameterize your model without using mxConstraint().")
+omxCheckEquals(id2$status, FALSE)
+omxCheckEquals(id$non_identified_parameters, c("l11", "l12", "l13", "l14", "varF1", "covF1F2"))
 
+xmod3 <- mxModel(xmod, mxConstraint(PH[1,1] == PH[2,2], name='convar'))
+id3 <- mxCheckIdentification(xmod3)
+
+omxCheckEquals(id3$status, TRUE)
+
+#--------------------------------------------------------------------
+# End

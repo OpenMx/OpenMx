@@ -2,6 +2,8 @@
 require(OpenMx)
 require(rpf)
 
+suppressWarnings(RNGversion("3.5"))
+
 mcar <- function(ret, mcar) {
   size <- prod(dim(ret))
   mask <- rep(FALSE, size)

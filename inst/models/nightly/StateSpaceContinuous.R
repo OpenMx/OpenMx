@@ -216,7 +216,7 @@ tx <- matrix(0, xdim, tdim+1)
 tu <- matrix(0, udim, tdim)
 ty <- matrix(0, ydim, tdim)
 
-tT <- matrix(0:tdim, nrow=1, ncol=tdim+1)
+tT <- matrix((0:tdim)/4, nrow=1, ncol=tdim+1)
 
 tI <- diag(1, nrow=xdim)
 
@@ -226,7 +226,15 @@ for(i in 2:(tdim+1)){
 	tdx[,i] <- tA %*% tx[,i-1] + tB %*% tu[,i-1] + q
 	expA <- as.matrix(expm(tA * (tT[,i]-tT[,i-1])))
 	intA <- solve(tA) %*% (expA - tI)
-	tx[,i] <- expA %*% tx[, i-1] + intA %*% tB %*% tu[,i-1] + intA %*% q
+	eF <- as.matrix( expm( rbind(cbind(-tA, tQ), cbind(matrix(0, xdim, xdim), t(tA))) * (tT[,i]-tT[,i-1])))
+	tQd <- expA %*% eF[1:xdim, (xdim+1):(2*xdim)]
+	# Whiten the continuous-time error then transform it to the continuous time error cov
+	s <- svd(tQ)
+	dinv <- s$d
+	dinv[s$d > 0] <- 1/s$d[s$d > 0]
+	W <- diag(sqrt(dinv)) %*% t(s$v)
+	qd <- t(chol(tQd)) %*% W %*% q
+	tx[,i] <- expA %*% tx[, i-1] + intA %*% tB %*% tu[,i-1] + qd
 	#ty[,i-1] <- tC %*% tx[,i-1] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 	ty[,i-1] <- tC %*% tx[,i] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 }
@@ -237,6 +245,7 @@ rownames(ty) <- paste('y', 1:ydim, sep='')
 rownames(tx) <- paste('x', 1:xdim, sep='')
 
 plot(tT[,-1], ty[1,], type='l')
+plot(tT[1,], tx[1,], type='l')
 
 
 #--------------------------------------
@@ -276,27 +285,36 @@ summary(doscr)
 
 mxEval(A, doscr)
 tA
-omxCheckTrue(rms(mxEval(A, doscr)[2,1], tA[2,1]) < .3)
+omxCheckTrue(rms(mxEval(A, doscr)[2,1], tA[2,1]) < .07)
 
 mxEval(R, doscr)
 tR
-omxCheckTrue(rms(mxEval(R, doscr), tR) < .5)
+omxCheckTrue(rms(mxEval(R, doscr), tR) < .2)
 
 mxEval(Q, doscr)
 tQ
-omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .9)
+omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .7)
 
 
 mxEval(x0, doscr) #poorly estimated, likely due to dynamic error
 x0
-omxCheckTrue(rms(mxEval(x0, doscr)[1,1], x0[1,1]) < .1)
+omxCheckTrue(rms(mxEval(x0, doscr)[1,1], x0[1,1]) < .7)
 
 estParam <- coef(doscr)
 truParam <- c(tA[2,], tQ[2,2], tR, x0[1,1])
 estSE <- summary(doscr)$parameters[,6]
 ex3Tvals <- (estParam - truParam) / estSE
 
-omxCheckTrue(all(abs(ex3Tvals) < 1.25))
+omxCheckTrue(all(abs(ex3Tvals) < 0.6))
+
+s <- solve(kronecker(diag(xdim), mxEval(A, doscr)) + kronecker(mxEval(A, doscr), diag(xdim)))
+(asym_lvar <- matrix(-s %*% matrix(mxEval(Q, doscr)), xdim, xdim))
+(obs_lvar <- var(t(tx)))
+omxCheckTrue(rms(vech(asym_lvar), vech(obs_lvar)) < .7)
+
+(asym_ovar <- mxEval(C, doscr) %*% asym_lvar %*% t(mxEval(C, doscr)) + mxEval(R, doscr))
+(obs_ovar <- var(t(ty)))
+omxCheckTrue(rms(vech(asym_ovar), vech(obs_ovar)) < 1.1)
 
 
 #------------------------------------------------------------------------------
@@ -339,7 +357,15 @@ for(i in 2:(tdim+1)){
 	tdx[,i] <- tA %*% tx[,i-1] + tB %*% tu[,i-1] + q
 	expA <- as.matrix(expm(tA * (tT[,i]-tT[,i-1])))
 	intA <- solve(tA) %*% (expA - tI)
-	tx[,i] <- expA %*% tx[, i-1] + intA %*% tB %*% tu[,i-1] + intA %*% q
+	eF <- as.matrix( expm( rbind(cbind(-tA, tQ), cbind(matrix(0, xdim, xdim), t(tA))) * (tT[,i]-tT[,i-1])))
+	tQd <- expA %*% eF[1:xdim, (xdim+1):(2*xdim)]
+	# Whiten the continuous-time error then transform it to the continuous time error cov
+	s <- svd(tQ)
+	dinv <- s$d
+	dinv[s$d > 0] <- 1/s$d[s$d > 0]
+	W <- diag(sqrt(dinv)) %*% t(s$v)
+	qd <- t(chol(tQd)) %*% W %*% q
+	tx[,i] <- expA %*% tx[, i-1] + intA %*% tB %*% tu[,i-1] + qd
 	#ty[,i-1] <- tC %*% tx[,i-1] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 	ty[,i-1] <- tC %*% tx[,i] + tD %*% tu[,i-1] + t(rmvnorm(1, rep(0, ydim), tR))
 }
@@ -404,7 +430,7 @@ summary(srun)
 
 
 mxEval(A, srun); tA
-omxCheckTrue(rms(mxEval(A, srun)[tA!=0], tA[tA!=0]) < .2)
+omxCheckTrue(rms(mxEval(A, srun)[tA!=0], tA[tA!=0]) < .02)
 
 mxEval(C, srun)[tC!=0]; tC[tC!=0]
 omxCheckTrue(rms(mxEval(C, srun)[tC!=0], tC[tC!=0]) < .1)
@@ -423,12 +449,41 @@ restC <- c(0.4789963, 0.6038891, 0.7602543, 0.9514004, 0.7272259,
 restR <- c(0.3226227, 0.8767227, 1.1029966, 0.5607970, 0.1622717,
 	 0.8304199, 0.7078884, 0.9453716, 0.9422717)
 
+restAnew <- matrix(c(
+	-0.4381936, 0, 0,
+	0, -0.90029646, -0.08843642,
+	0, 0.08843642, -0.90029646), xdim, xdim, byrow=TRUE)
+restCnew <- c(0.4779426, 0.7274788, 0.7311741, 0.9677682, 0.7325752,
+	1.0499232, 0.4789363, 1.0284996, 0.5794153)
+restRnew <- c(0.3115990, 0.8528872, 1.1730305, 0.5813367, 0.1538722,
+	0.8300052, 0.7317202, 0.8460866, 0.9378043)
 
-omxCheckCloseEnough(diag(mxEval(A, srun)), diag(restA), 0.05)
+# At least 7x improvement in dynamics estimation
+omxCheckTrue(rms(restA, tA) / rms(restAnew, tA) > 7)
 
-omxCheckCloseEnough(mxEval(C, srun)[tC!=0], restC, 0.01)
+# At most 30% decrement in factor loadings estimation
+omxCheckTrue(rms(restCnew, tC[tC!=0]) / rms(restC, tC[tC!=0]) < 1.3)
 
-omxCheckCloseEnough(diag(mxEval(R, srun)), restR, 0.02)
+# At most 20% decrement in residual variance estimation
+omxCheckTrue(rms(restRnew, diag(tR)) / rms(restR, diag(tR)) < 1.2)
+
+
+omxCheckCloseEnough(diag(mxEval(A, srun)), diag(restAnew), 0.05)
+
+omxCheckCloseEnough(mxEval(C, srun)[tC!=0], restCnew, 0.01)
+
+omxCheckCloseEnough(diag(mxEval(R, srun)), restRnew, 0.02)
+
+
+s <- solve(kronecker(diag(xdim), mxEval(A, srun)) + kronecker(mxEval(A, srun), diag(xdim)))
+(asym_lvar <- matrix(-s %*% matrix(mxEval(Q, srun)), xdim, xdim))
+(obs_lvar <- var(t(tx)))
+omxCheckTrue(rms(vech(asym_lvar), vech(obs_lvar)) < .05)
+
+(asym_ovar <- mxEval(C, srun) %*% asym_lvar %*% t(mxEval(C, srun)) + mxEval(R, srun))
+(obs_ovar <- var(t(ty)))
+omxCheckTrue(rms(vech(asym_ovar), vech(obs_ovar)) < 0.05)
+
 
 
 #------------------------------------------------------------------------------

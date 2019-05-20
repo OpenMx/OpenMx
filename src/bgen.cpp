@@ -98,7 +98,7 @@ namespace genfile {
 				( magic[0] != 'b' || magic[1] != 'g' || magic[2] != 'e' || magic[3] != 'n' )
 				&& ( magic[0] != 0 || magic[1] != 0 || magic[2] != 0 || magic[3] != 0 )
 			) {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 
 			if( aStream ) {
@@ -110,7 +110,7 @@ namespace genfile {
 
 				return( header_size ) ;
 			} else {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 		}
 
@@ -208,7 +208,7 @@ namespace genfile {
 						return false ;
 					}
 					if( number_of_samples != context.number_of_samples ) {
-						throw BGenError() ;
+						ThrowBGenError() ;
 					}
 				}
 				if( aStream ) {

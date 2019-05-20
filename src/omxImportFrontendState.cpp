@@ -229,13 +229,17 @@ void omxState::omxInitialMatrixAlgebraCompute(FitContext *fc)
 
 	if(OMX_DEBUG) mxLog("omxInitialMatrixAlgebraCompute(state[%d], ...)", getId());
 
-	// Need something finite for definition variables to avoid exceptions
-
 	for (int ex = 0; ex < (int) dataList.size(); ++ex) {
+		auto *d1 = dataList[ex];
+
+		if (fc->childList.size()==0) {
+			d1->evalAlgebras(fc);
+		}
+
 		// It is necessary to load some number (like 1) instead
 		// of NAs because algebra can use definition variables
 		// for indexing. We will load real data later.
-		dataList[ex]->loadFakeData(this, 1);
+		d1->loadFakeData(this, 1);
 	}
 
 	for(size_t index = 0; index < numMats; index++) {
@@ -443,6 +447,7 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		constr->prep(fc);
 		conListX.push_back(constr);
 	}
+	usingAnalyticJacobian = false;
 	countNonlinearConstraints(numEqC, numIneqC, false);
 	if(OMX_DEBUG){mxLog("Found %d equality and %d inequality constraints", numEqC, numIneqC);}
 }

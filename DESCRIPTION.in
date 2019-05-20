@@ -52,10 +52,11 @@ ByteCompile: @BC@
 Language: en-US
 License: @LICENSE@
 LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
-Imports: Rcpp, digest,
+Imports: digest,
     MASS,
-    methods,
     Matrix,
+    methods,
+	Rcpp, 
     parallel
 Depends: R (>= 3.1.0)
 Suggests:

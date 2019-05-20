@@ -182,8 +182,7 @@ class FitContext {
 	//Constraint-related:
 	void solEqBFun(bool wantAJ, int verbose);
 	void myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK);
-	bool usingAnalyticJacobian;
-	void checkForAnalyticJacobians();
+	bool isUsingAnalyticJacobian(){ return state->usingAnalyticJacobian; }
 	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
 	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	Eigen::VectorXd equality;
