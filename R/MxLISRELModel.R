@@ -97,9 +97,9 @@ createMatrixLISREL <- function(model, rowvariables, colvariables, matrixname){
 	values <- matrix(0, rlen, clen)
 	free <- matrix(FALSE, rlen, clen)
 	labels <- matrix(as.character(NA), rlen, clen)
-	if(matrixname %in% c('LX', 'LY', 'BE', 'GA', 'TX', 'TY', 'KA', 'AL')){
+	if(matrixname %in% c('LX', 'LY', 'BE', 'GA', 'TX', 'TY', 'KA', 'AL', 'TH')){
 		matrixtype <- 'Full'
-	} else if(matrixname %in% c('PH', 'PS', 'TD', 'TE', 'TH')){	
+	} else if(matrixname %in% c('PH', 'PS', 'TD', 'TE')){	
 		matrixtype <- 'Symm'
 	}
 	retval <- mxMatrix(matrixtype, values = values, free = free, labels = labels, name = matrixname)

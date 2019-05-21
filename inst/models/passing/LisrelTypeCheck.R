@@ -120,7 +120,7 @@ mod1e <- mxModel(name="A type LISREL model",
 	mxPath(from='x1', to='y3', values=2, arrows=2, free=TRUE, labels='residX1') #TH
 )
 
-# manifest enod paths
+# manifest endo paths
 mod1f <- mxModel(name="A type LISREL model",
 	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
@@ -129,6 +129,7 @@ mod1f <- mxModel(name="A type LISREL model",
 	mxPath(from='y4', to='y2', values=1, arrows=2, free=TRUE, labels='residC3'), #TE
 	mxPath(from='y2', to='x5', values=2, arrows=2, free=TRUE, labels='residX2') #TH
 )
+
 
 #------------------------------------------------------------------------------
 
