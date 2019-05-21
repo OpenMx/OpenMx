@@ -73,7 +73,13 @@ void markAsDataFrame(SEXP list, int rows)
 
 SEXP makeFactor(SEXP vec, int levels, const char **labels)
 {
+	bool debug = false;
 	Rf_protect(vec);
+	if (debug) {
+		int len = Rf_length(vec);
+		int *data = INTEGER(vec);
+		for (int xx=0; xx < len; ++xx) data[xx] = 1;
+	}
 
 	SEXP classes;
 	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
