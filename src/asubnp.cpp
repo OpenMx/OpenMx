@@ -782,7 +782,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				Rf_warning(
 					"constraint Jacobian may be rank-deficient at the start values; "
 					"if this rank-deficiency is due to linearly dependent equality MxConstraints, "
-					"CSOLNP will not work correctly"
+					"CSOLNP will not work correctly "
+					"(but if CSOLNP gives reasonable-looking results in a reasonable amount of time, then this warning is probably spurious)"
 				);
 			}
 			checkJacobianRank = false;
