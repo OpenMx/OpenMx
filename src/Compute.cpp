@@ -1981,10 +1981,10 @@ class ComputeStandardError : public omxCompute {
 			omxData *d1 = e1->data;
 			d1->visitObsStats([this, d1](obsSummaryStats &o1) {
 					if (o1.fullWeight) return;
-					omxRaiseErrorf("%s: terribly sorry, master, but '%s' does not "
-						       "include the full weight matrix hence "
-						       "standard errors cannot be computed",
-						       top.name, d1->name);
+					mxThrow("%s: terribly sorry, master, but '%s' does not "
+						"include the full weight matrix hence "
+						"standard errors cannot be computed",
+						top.name, d1->name);
 				});
 			top.exList.push_back(e1);
 		}
@@ -3733,7 +3733,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
-
 
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);

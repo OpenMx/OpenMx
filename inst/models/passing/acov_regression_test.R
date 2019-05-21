@@ -51,4 +51,4 @@ omxCheckCloseEnough(as.vector(mxEval(diag2vec(Psi2),factorfit,T)),c(1,1,1),1e-3)
 
 omxCheckError(mxRun(mxModel(factormod, mxData(S, numObs = 100, means = NA,
 	type = "acov",acov=W))),
-	"1factor.data: you must provide a fullWeight matrix")
+	"MxComputeStandardError: terribly sorry, master, but '1factor.data' does not include the full weight matrix hence standard errors cannot be computed")
