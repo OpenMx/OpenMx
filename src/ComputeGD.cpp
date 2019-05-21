@@ -258,9 +258,10 @@ class omxComputeGD : public omxCompute {
 	int maxIter;
 
 	bool useGradient;
-	SEXP hessChol;
+
 	int nudge;
 
+	Eigen::MatrixXd hessChol;  // in-out for warmstart
 	int warmStartSize;
 	double *warmStart;
 	int threads;
@@ -279,7 +280,6 @@ class omxCompute *newComputeGradientDescent()
 
 omxComputeGD::omxComputeGD()
 {
-	hessChol = NULL;
 	warmStart = NULL;
 }
 
@@ -449,11 +449,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		if (rf.hessOut.size() ){
-			if (!hessChol) {
-				Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
-			}
-			Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
-			hc = rf.hessOut;
+			hessChol = rf.hessOut;
 			Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
 			fc->wanted |= FF_COMPUTE_HESSIAN;
@@ -589,8 +585,8 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	}
 	slots->add("output", output.asR());
 	
-	if (engine == OptEngine_NPSOL && hessChol) {
-		out->add("hessianCholesky", hessChol);
+	if (engine == OptEngine_NPSOL && hessChol.size()) {
+		out->add("hessianCholesky", Rcpp::wrap(hessChol));
 	}
 }
 
