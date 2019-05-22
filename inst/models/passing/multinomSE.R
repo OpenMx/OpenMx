@@ -34,6 +34,7 @@ omxCheckCloseEnough(cov1, m1run$output$vcov)
 #Analytic value of covariance matrix, for comparison:
 ( cov2 <- (diag(p)-outer(p,p))/100 )
 omxCheckCloseEnough(cov2, m1run$output$vcov, 1e-8)
+#^^^This test will fail if this script is run single-threaded.
 
 #Compare to the "covariance matrix" you'd get directly from the Hessian (which is wrong):
 solve(m1run$output$hessian/2)

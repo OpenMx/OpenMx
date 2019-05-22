@@ -19,6 +19,8 @@ library(OpenMx)
 #CSOLNP still fails in a platform-specific manner:
 if(mxOption(NULL,"Default optimizer")=="CSOLNP" && .Platform$OS.type=="windows" && .Platform$r_arch=="i386"){stop("SKIP")}
 
+# This test script will not pass if run single-threaded.
+
 library(mvtnorm)
 
 set.seed(170209)
@@ -64,7 +66,11 @@ m1 <- mxModel(
 	safeT,
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying")
 )
-m2 <- mxRun(m1)
+if(mxOption(NULL,"Default optimizer")=="CSOLNP"){
+	m2 <- mxTryHardOrdinal(m1)
+} else{
+	m2 <- mxRun(m1)
+}
 summary(m2)
 mxEval(Sigma,m2,T)
 omxCheckCloseEnough(mxEval(Tau,m2,T)[1,],c(1.64,1.64,1.64),0.1)
@@ -210,3 +216,4 @@ omxCheckCloseEnough(mxEval(Sigma,m6,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
 omxCheckCloseEnough(diag(mxEval(Sigma,m6,T)),c(1,1,1),as.numeric(mxOption(NULL,"Feasibility tolerance")))
 omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],mxEval(Tau,m2,T)[1,],5e-4)
 omxCheckCloseEnough(mxEval(Sigma,m6,T),mxEval(Sigma,m2,T),5e-4)
+
