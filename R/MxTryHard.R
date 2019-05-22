@@ -340,7 +340,7 @@ mxTryHard <- function(
 			message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
 			message(paste0("fit value = ", bestfit@fitfunction@result[1]))
 		}
-		bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
+		bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess,lackOfConstraints)
 	} #end 'if goodflag' section
 	
 	
@@ -392,7 +392,7 @@ mxTryHard <- function(
 				message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
 				message(paste0("fit value = ", bestfit@fitfunction@result[1]))
 			}
-			bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
+			bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess,lackOfConstraints)
 		}
 	}
 	
@@ -471,7 +471,7 @@ mxJiggle <- function(model, classic=FALSE, dsn=c("runif","rnorm","rcauchy"), loc
 
 
 
-THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess){
+THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess,lackOfConstraints){
 	if( is.null(finalfit) || !any(Hesslater,SElater,doIntervals) || ("try-error" %in% class(finalfit)) || 
 			finalfit$output$status$status== -1 ){return(bestfit)}
 	if(defaultComputePlan){
@@ -507,6 +507,14 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 		bestfit@output$standardErrors <- finalfit@output$standardErrors
 		bestfit@output$infoDefinite <- finalfit@output$infoDefinite
 		bestfit@output$conditionNumber <- finalfit@output$conditionNumber
+		bestfit@output$vcov <- finalfit@output$vcov
+	}
+	if(!lackOfConstraints){
+		bestfit@output$constraintFunctionValues <- finalfit@output$constraintFunctionValues
+		bestfit@output$constraintJacobian <- finalfit@output$constraintJacobian
+		bestfit@output$constraintNames <- finalfit@output$constraintNames
+		bestfit@output$constraintRows <- finalfit@output$constraintRows
+		bestfit@output$constraintCols <- finalfit@output$constraintCols
 	}
 	bestfit@output$evaluations <- bestfit@output$evaluations + finalfit@output$evaluations
 	bestfit@output$frontendTime <- bestfit@output$frontendTime + finalfit@output$frontendTime
