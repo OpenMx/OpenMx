@@ -87,6 +87,9 @@ if [ "$cxx_type" = gcc ]; then
 	if [ $(compareVersions $cxx_version 7.0) -gt -1 ]; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
 	fi
+	if [ $(compareVersions $cxx_version 8.0) -ge 0 ]; then
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wclass-memaccess"
+	fi
     fi
 fi
 

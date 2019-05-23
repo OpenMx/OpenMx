@@ -6,6 +6,7 @@
 
 #ifdef EXTRA_GCC_DIAG
 #pragma GCC diagnostic warning "-Wshadow"
+#pragma GCC diagnostic warning "-Wpedantic"
 #pragma GCC diagnostic warning "-Wmisleading-indentation"
 #pragma GCC diagnostic warning "-Wall"
 #pragma GCC diagnostic warning "-Wextra"
