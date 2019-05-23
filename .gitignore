@@ -75,6 +75,7 @@ man/imxIdentifier.Rd
 man/imxIndependentModels.Rd
 man/imxInitModel.Rd
 man/imxIsDefinitionVariable.Rd
+man/imxIsMultilevel.Rd
 man/imxIsPath.Rd
 man/imxLocateFunction.Rd
 man/imxLocateIndex.Rd
@@ -133,6 +134,7 @@ man/mxComputeGenerateData.Rd
 man/mxComputeGradientDescent.Rd
 man/mxComputeHessianQuality.Rd
 man/mxComputeIterate.Rd
+man/mxComputeLoadContext.Rd
 man/mxComputeLoadData.Rd
 man/mxComputeLoop.Rd
 man/mxComputeNewtonRaphson.Rd
