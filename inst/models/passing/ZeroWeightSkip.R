@@ -1,5 +1,6 @@
 library(OpenMx)
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 data(myFADataRaw)
 

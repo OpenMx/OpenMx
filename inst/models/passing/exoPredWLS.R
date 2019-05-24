@@ -188,3 +188,37 @@ omxCheckCloseEnough(coef(jointLISREL), coef(jointRAM1), 2e-5)
 # tmp <- c(jointRAM1$output$standardErrors)
 # names(tmp) <- c()
 # cat(deparse(round(tmp,4)))
+
+numPeople <- 100
+personData <- data.frame(
+  snp=rnorm(numPeople),
+  isMale=as.numeric(rbinom(numPeople,1,.5)),
+  phenotype=rnorm(numPeople),
+  snpsex=0)
+
+m1 <- mxModel(
+  "gwsem", type="RAM",
+  manifestVars = c('phenotype'),
+  latentVars = c('snp', 'sex', 'snpsex'),
+  
+  # residual variances
+  mxPath(c('phenotype'), arrows=2, values=1),
+  
+  mxPath('one', 'sex', free=FALSE, labels="data.isMale"),
+  mxPath('one', 'snp', free=FALSE, labels="data.snp"),
+  mxAlgebra(data.snp * data.isMale, name="snpsexAlg",
+	  dimnames=list(NULL, 'snpsex')),
+  mxPath('one', 'snpsex', free=FALSE, labels="data.snpsex"),
+  
+  mxPath('one', 'phenotype'),
+  mxPath(c('snp','sex', 'snpsex'), 'phenotype'),
+  
+  mxData(personData, type="raw", algebra='snpsexAlg'),
+  mxFitFunctionWLS(allContinuousMethod = "marginals"))
+
+m1 <- mxRun(m1)
+
+personData$snpsex <- with(personData, snp * isMale)
+c1 <- coef(lm(phenotype ~ isMale + snp + snpsex, personData))
+
+omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')], 1e-3)

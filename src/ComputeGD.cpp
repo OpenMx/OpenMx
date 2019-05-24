@@ -234,12 +234,6 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 	return;
 };
 
-void GradientOptimizerContext::checkForAnalyticJacobians()
-{
-	fc->checkForAnalyticJacobians();
-	usingAnalyticJacobian = fc->usingAnalyticJacobian; //Could probably reference instead of copy, but it's just 1 boolean.
-	return;
-}
 
 // ------------------------------------------------------------
 
@@ -264,9 +258,10 @@ class omxComputeGD : public omxCompute {
 	int maxIter;
 
 	bool useGradient;
-	SEXP hessChol;
+
 	int nudge;
 
+	Eigen::MatrixXd hessChol;  // in-out for warmstart
 	int warmStartSize;
 	double *warmStart;
 	int threads;
@@ -285,7 +280,6 @@ class omxCompute *newComputeGradientDescent()
 
 omxComputeGD::omxComputeGD()
 {
-	hessChol = NULL;
 	warmStart = NULL;
 }
 
@@ -455,11 +449,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
 		if (rf.hessOut.size() ){
-			if (!hessChol) {
-				Rf_protect(hessChol = Rf_allocMatrix(REALSXP, numParam, numParam));
-			}
-			Eigen::Map<Eigen::MatrixXd> hc(REAL(hessChol), numParam, numParam);
-			hc = rf.hessOut;
+			hessChol = rf.hessOut;
 			Eigen::Map<Eigen::MatrixXd> dest(fc->getDenseHessUninitialized(), numParam, numParam);
 			dest.noalias() = rf.hessOut.transpose() * rf.hessOut;
 			fc->wanted |= FF_COMPUTE_HESSIAN;
@@ -474,7 +464,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
 		rf.CSOLNP_HACK = true;
-		rf.checkForAnalyticJacobians();
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
@@ -490,7 +479,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;
         case OptEngine_NLOPT:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
-		rf.checkForAnalyticJacobians();
 		omxInvokeNLOPT(rf);
 		rf.finish();
 		fc->wanted |= FF_COMPUTE_GRADIENT;
@@ -597,8 +585,8 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	}
 	slots->add("output", output.asR());
 	
-	if (engine == OptEngine_NPSOL && hessChol) {
-		out->add("hessianCholesky", hessChol);
+	if (engine == OptEngine_NPSOL && hessChol.size()) {
+		out->add("hessianCholesky", Rcpp::wrap(hessChol));
 	}
 }
 
@@ -1761,6 +1749,7 @@ class ComputeGenSA : public omxCompute {
 	omxCompute *plan;
 	static const char *optName;
 	const char *methodName;
+	std::string contextStr;
 	int numFree;
 	int numIneqC;
 	int numEqC;
@@ -1866,6 +1855,7 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 		if (strEQ(methodName, "tsallis1996")) method = ALGO_TSALLIS1996;
 		else if (strEQ(methodName, "ingber2012")) method = ALGO_INGBER2012;
 		else mxThrow("%s: unknown method '%s'", name, methodName);
+		contextStr = string_snprintf("%s(%s)", name, methodName);
 
 		ProtectedSEXP Rcontrol(R_do_slot(rObj, Rf_install("control")));
 		ProtectedSEXP RcontrolName(Rf_getAttrib(Rcontrol, R_NamesSymbol));
@@ -2029,11 +2019,13 @@ double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DE
 		plan->compute(fc);
 	}
 
+	if (Global->interrupted()) return nan("abort");
 	if (fc->outsideFeasibleSet()) {
 		return std::numeric_limits<double>::max();
 	}
 	double penalty = getConstraintPenalty(fc);
 	fc->fit += penalty * round(opt->N_Generated / 100); //OK? TODO
+	Global->reportProgress1(contextStr.c_str(), fc->asProgressReport());
 	return fc->fit;
 }
 
@@ -2149,7 +2141,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 		double tem = temSta * t1 / t2;
 		if (tem < temEnd) break;
 
-		for (int jj = 0; jj < markovLength; ++jj) {
+		for (int jj = 0; jj < markovLength && !isErrorRaised(); ++jj) {
 			int vx = jj % numFree;
 			double va = visita(tem);
 			double a = xMini[vx] + va;
@@ -2215,6 +2207,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 				// candidate rejected
 				curEst[vx] = xMini[vx];
 			}
+			Global->reportProgress(contextStr.c_str(), fc);
 		}
 	}
 

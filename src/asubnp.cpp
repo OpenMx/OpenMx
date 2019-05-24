@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "matrix.h"
-#include "omxMatrix.h"
+//#include "omxMatrix.h"
 #include "omxCsolnp.h"
 #include "ComputeGD.h"
 //#include <iostream>
@@ -40,6 +40,7 @@ struct CSOLNP {
 	bool noFeasibleFlag;
 	int numCallsToCSOLNP;
 	GradientOptimizerContext &fit;
+	bool checkJacobianRank;
 	
 	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
 	
@@ -105,6 +106,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	double funv;
 	double resultForTT;
 	double solnp_nfn = 0;
+	checkJacobianRank = true;
 	
 	//time_t sec;
 	//sec = time (NULL);
@@ -331,7 +333,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
 			
 			subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
 			
-			p_e = resP;
+			if(resP.rows() && resP.cols()){
+				p_e = resP;
+			}
 			
 			if (flag == 1)
 			{
@@ -520,10 +524,14 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		optimize_initial_inequality_constraints = FALSE;
 	}
 	
-	fit.gradOut.resize(resGrad.size());
-	memcpy(fit.gradOut.data(), resGrad.data(), fit.gradOut.size() * sizeof(double));
-	fit.hessOut.resize(hessv_e.rows(), hessv_e.cols());
-	memcpy(fit.hessOut.data(), hessv_e.data(), fit.hessOut.size() * sizeof(double));
+	if(resGrad.size()){
+		fit.gradOut.resize(resGrad.size());
+		memcpy(fit.gradOut.data(), resGrad.data(), fit.gradOut.size() * sizeof(double));
+	}
+	if(hessv_e.rows() && hessv_e.cols()){
+		fit.hessOut.resize(hessv_e.rows(), hessv_e.cols());
+		memcpy(fit.hessOut.data(), hessv_e.data(), fit.hessOut.size() * sizeof(double));
+	}
 }
 
 template <typename T1, typename T2>
@@ -758,6 +766,27 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				calculateJac_forward(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 			else
 				calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
+		}
+		
+		if(neq > 1 && checkJacobianRank){ //We only care about redundancies if there are equality constraints
+			Eigen::MatrixXd aet;
+			if(a_e.rows() <= a_e.cols()){
+				aet = a_e.transpose();
+			}
+			else{
+				aet = a_e;
+			}
+			Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
+			qrj.compute(aet);
+			if( qrj.rank() < std::min(a_e.rows(),a_e.cols()) ){
+				Rf_warning(
+					"constraint Jacobian may be rank-deficient at the start values; "
+					"if this rank-deficiency is due to linearly dependent equality MxConstraints, "
+					"CSOLNP will not work correctly "
+					"(but if CSOLNP gives reasonable-looking results in a reasonable amount of time, then this warning is probably spurious)"
+				);
+			}
+			checkJacobianRank = false;
 		}
 		
 		if (mode == -1)
@@ -1837,14 +1866,14 @@ void CSOLNP::calculateJac_central(int np, double delta, Eigen::MatrixBase<T2>& p
 
 void CSOLNP::handleAnalyticGradJac()
 {
-	if (fit.getWanted() & FF_COMPUTE_GRADIENT && fit.usingAnalyticJacobian){
+	if ( fit.getWanted() & FF_COMPUTE_GRADIENT && fit.isUsingAnalyticJacobian() ){
 		gradFlag = TRUE;
 		jacFlag = TRUE;
 		return;
 	} else if (fit.getWanted() & FF_COMPUTE_GRADIENT) {
 		gradFlag = TRUE;
 	}
-	else if (fit.usingAnalyticJacobian)   jacFlag = TRUE;
+	else if (fit.isUsingAnalyticJacobian())   jacFlag = TRUE;
 }
 
 void omxCSOLNP(GradientOptimizerContext &go)

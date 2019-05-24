@@ -1,4 +1,12 @@
-CXX_STD = CXX11
+CXX_STD = CXX14
+
+# Developer's Note: As of R 3.5.3 and Rtools35.exe you must set the following flags
+#  CXX14 = $(BINPREF)g++ $(M_ARCH)
+#  CXX14STD = -std=gnu++14
+#  CXX14FLAGS = -Wa,-mbig-obj -g0 -O2
+# in R/R-$VERSION/etc/i386/Makeconf and R/R-$VERSION/etc/x64/Makeconf
+# I'm not sure that the -g0 is even needed, so maybe just 
+#  CXX14FLAGS = -Wa,-mbig-obj -O2
 
 PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 
@@ -14,6 +22,21 @@ PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
 # PKG_CFLAGS=-DDEBUGMX -DDEBUGMX_ALGEBRA -DDEBUGMX_MATRIX -DDEBUGMX_ROWS # Debug setup, etc., Algebras, etc., Matrix, and Rows
 # PKG_CFLAGS=-DVERBOSEMX                   # VERBOSEMX gives minimal per-iteration details and a few other notes
 
-PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(PKG_CFLAGS) -I.
+#BGEN_DEBUG += -D DEBUG=1
+
+COMMON_FLAGS=-I. -Iinclude \
+-Iinclude/zstd-1.1.0 \
+-Iinclude/zstd-1.1.0/common \
+-Iinclude/zstd-1.1.0/compress \
+-Iinclude/zstd-1.1.0/decompress \
+-D SQLITE_ENABLE_COLUMN_METADATA \
+-D SQLITE_ENABLE_STAT4 \
+-D SQLITE_MAX_EXPR_DEPTH=10000 \
+-D SQLITE_USE_URI=1 \
+$(BGEN_DEBUG)
+
+
+PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(PKG_CFLAGS) $(COMMON_FLAGS)
+PKG_CFLAGS=$(COMMON_FLAGS)
 # Uncomment this line too, if debugging
 # PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(PKG_CFLAGS) -UNDEBUG

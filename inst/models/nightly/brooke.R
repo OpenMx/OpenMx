@@ -183,6 +183,12 @@ mod1 <- mxModel(obsAge1, obsAge2, Mean, betaAf, Tmzf, inc,
                 name="MZf", mxFitFunctionML())
 mod1Res <- mxRun(mod1)
 
+if (mxOption(NULL, "Default optimizer") == 'NPSOL' &&
+	    max(abs(c(mod1Res$ThMZf$values) - c(0.779, 0.341))) < .01) {
+	# NPSOL can get stuck in a local minimum
+	mod1Res <- mxTryHard(mod1Res)
+}
+
 # definition variables and dependencies should be set to NA upon return
 omxCheckEquals(mod1Res$Age1$values, dataMZf$observed[1,'age1'])
 omxCheckEquals(mod1Res$Age2$values, dataMZf$observed[1,'age2'])

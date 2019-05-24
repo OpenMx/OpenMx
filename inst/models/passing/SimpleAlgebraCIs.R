@@ -42,8 +42,8 @@ factorFit <- mxRun(factorModel, intervals=FALSE)
 omxCheckCloseEnough(factorFit$output$fit, 934.095, .01)
 
 factorBoot <- mxBootstrap(factorFit, 100L, OK=c("OK","OK/green", "nonzero gradient/red"))
-omxCheckError(mxBootstrapEval(P, factorFit, compute=T),
-	      "Compute plan MxComputeSequence found in model 'One Factor' instead of MxComputeBootstrap. Have you run this model through mxBootstrap already?")
+omxCheckError(mxBootstrapEval(P, factorFit, compute=TRUE),
+	      "Compute plan MxComputeSequence found in model 'One Factor' instead of MxComputeBootstrap. You need to run this model through mxBootstrap first.")
 
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") {ctype = 'none'} else {ctype = 'ineq'}
 

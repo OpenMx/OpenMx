@@ -1,4 +1,6 @@
 library(OpenMx)
+
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")

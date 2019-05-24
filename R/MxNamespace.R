@@ -147,11 +147,13 @@ imxVerifyReference <- function(reference, stackNumber) {
 
 #' mxMakeNames
 #'
-#' Adjust a character vector so that it can be used as MxMatrix column
-#' or row names. OpenMx is (much) more restrictive than base R's make.names.
+#' Adjust a character vector so that it is valid when used as MxMatrix column
+#' or row names.
+#' 
+#' \emph{note}: OpenMx is (much) more restrictive than base R's make.names.
 #'
 #' @param names a character vector
-#' @param unique whether the pass the result through \link[base]{make.unique}
+#' @param unique whether to pass the result through \link[base]{make.unique}
 #' @seealso
 #' \link[base]{make.names}
 #' @examples
@@ -328,6 +330,27 @@ imxHasDefinitionVariable <- function(model) {
 	}
 	
 	# All checks find nothing, return FALSE
+	return(FALSE)
+}
+
+##' imxIsMultilevel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  If you don't know what you're doing, but want to,
+##' here's a brief description of the function.  You give this function an MxModel. It 
+##' returns TRUE if the model is multilevel and FALSE otherwise.
+##'
+##' @param model model
+imxIsMultilevel <- function(model){
+	if(length(model$submodels) > 0){
+		attempt <- sapply(model@submodels, imxIsMultilevel)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	if(!is.null(model$expectation) && length(model$expectation$between) > 0){
+		return(TRUE)
+	}
 	return(FALSE)
 }
 
@@ -859,11 +882,4 @@ safeQualifyNames <- function(obj, modelname, namespace) {
 		obj <- qualifyNames(obj, modelname, namespace)
 	}
 	obj
-}
-
-qualifyNamesData <- function(data, modelname) {
-	if (!is.null(data)) {
-		data@name <- imxIdentifier(modelname, data@name)
-	}
-	return(data)
 }

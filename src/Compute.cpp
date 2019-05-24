@@ -21,10 +21,6 @@
 #include <fstream>
 #include <forward_list>
 #include <map>
-#include "genfile/bgen/View.hpp"
-#include "genfile/bgen/IndexQuery.hpp"
-#include "pgenlib_internal.h"
-using namespace plink2;
 
 #include "glue.h"
 #include "Compute.h"
@@ -42,6 +38,11 @@ using namespace plink2;
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
 #include "minicsv.h"
+#undef ERROR  // defined in R_ext/RS.h but used by include/db/SQLite3Statement.hpp
+#include "genfile/bgen/View.hpp"
+#include "genfile/bgen/IndexQuery.hpp"
+#include "pgenlib_internal.h"
+using namespace plink2;
 #include "EnableWarnings.h"
 
 void pda(const double *ar, int rows, int cols);
@@ -1163,7 +1164,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 		if (con.opCode != omxConstraint::EQUALITY) continue;
 		
 		con.refreshAndGrab(this, &equality(cur));
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
@@ -1194,7 +1195,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 		
 		con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &inequality(cur));
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
@@ -1211,7 +1212,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	} else {
 		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
 		inequality = inequality.array().max(0.0);
-		if(wantAJ && usingAnalyticJacobian){
+		if(wantAJ && isUsingAnalyticJacobian()){
 			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
 				/*The Jacobians of each inactive constraint are set to zero here; 
 				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
@@ -1252,7 +1253,7 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 				}
 			}
 		}
-		if(wantAJ && usingAnalyticJacobian && con.jacobian != NULL){
+		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
@@ -1267,7 +1268,7 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	if (CSOLNP_HACK) {
 		
 	} else {
-		if(wantAJ && usingAnalyticJacobian && maskInactive){
+		if(wantAJ && isUsingAnalyticJacobian() && maskInactive){
 			for(int i=0; i<constraintJacobian.rows(); i++){
 				/*The Jacobians of each inactive constraint are set to zero here; 
 				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
@@ -1282,17 +1283,6 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	
 }
 
-void FitContext::checkForAnalyticJacobians()
-{
-	usingAnalyticJacobian = false;
-	for(int i=0; i < (int) state->conListX.size(); i++){
-		omxConstraint &cs = *state->conListX[i];
-		if(cs.jacobian){
-			usingAnalyticJacobian = true;
-			return;
-		}
-	}
-}
 
 omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
 {
@@ -1991,10 +1981,10 @@ class ComputeStandardError : public omxCompute {
 			omxData *d1 = e1->data;
 			d1->visitObsStats([this, d1](obsSummaryStats &o1) {
 					if (o1.fullWeight) return;
-					omxRaiseErrorf("%s: terribly sorry, master, but '%s' does not "
-						       "include the full weight matrix hence "
-						       "standard errors cannot be computed",
-						       top.name, d1->name);
+					mxThrow("%s: terribly sorry, master, but '%s' does not "
+						"include the full weight matrix hence "
+						"standard errors cannot be computed",
+						top.name, d1->name);
 				});
 			top.exList.push_back(e1);
 		}
@@ -2274,6 +2264,12 @@ class ComputeLoadData : public omxCompute {
 
 class ComputeLoadMatrix : public omxCompute {
 	typedef omxCompute super;
+
+	enum LoadMethod {
+		LoadCSV,
+		LoadDataFrame
+	} loadMethod;
+
 	std::vector< omxMatrix* > mat;
 	std::vector< mini::csv::ifstream* > streams;
 	std::vector<bool> hasRowNames;
@@ -2281,11 +2277,36 @@ class ComputeLoadMatrix : public omxCompute {
 	// origData is not really needed until it is possible to seek backwards
 	std::vector<Eigen::MatrixXd> origData;
 	int line;
+	Rcpp::DataFrame observed;
+
+	void loadFromCSV(FitContext *fc, int index);
+	void loadDataFrame(FitContext *fc, int index);
 
  public:
 	virtual ~ComputeLoadMatrix();
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
+};
+
+class ComputeLoadContext : public omxCompute {
+	typedef omxCompute super;
+
+	int loadCounter;
+	char sep;
+	std::string path;
+	std::unique_ptr< mini::csv::ifstream > st;
+	int cpIndex;
+	int numColumns;
+	int *columnPtr;
+	int maxColumn;
+	int curLine;
+
+	void reopen();
+
+ public:
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
+	virtual void computeImpl(FitContext *fc);
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *);
 };
 
 class ComputeTryCatch : public omxCompute {
@@ -2370,6 +2391,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	 []()->omxCompute* { return new ComputeSetOriginalStarts; }},
 	{"MxComputeTryCatch",
 	 []()->omxCompute* { return new ComputeTryCatch; }},
+	{"MxComputeLoadContext",
+	 []()->omxCompute* { return new ComputeLoadContext; }}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3661,6 +3684,7 @@ void FitContext::resetToOriginalStarts()
 	vcov.resize(0,0);
 	stderrs.resize(0);
 	clearHessian();
+	resetIterationError();
 }
 
 void ComputeSetOriginalStarts::computeImpl(FitContext *fc)
@@ -3709,7 +3733,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	if (!(fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL ||
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
-
 
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
@@ -4255,6 +4278,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	if (only == NA_INTEGER) {
 		fc->resetToOriginalStarts();
 		fc->copyParamToModel();
+		fc->wanted &= ~FF_COMPUTE_FIT;  // discard garbage
 	}
 }
 
@@ -4549,6 +4573,7 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 
 	ColumnInvalidator ci(*fc->state, data, columns);
 	ci();
+	data->evalAlgebras(fc);
 }
 
 ComputeLoadData::~ComputeLoadData()
@@ -4930,6 +4955,99 @@ void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	slots->add("debug", dbg.asR());
 }
 
+void ComputeLoadContext::reopen()
+{
+	loadCounter += 1;
+	st = std::unique_ptr<mini::csv::ifstream>(new mini::csv::ifstream(path));
+	st->set_delimiter(sep, "##");
+}
+
+void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+	loadCounter = 0;
+
+	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
+	numColumns = Rf_length(Rcol);
+	columnPtr = INTEGER(Rcol);
+	if (numColumns == 0) return;
+
+	ProtectedSEXP Rsep(R_do_slot(rObj, Rf_install("sep")));
+	const char *sepStr = R_CHAR(STRING_ELT(Rsep, 0));
+	if (strlen(sepStr) != 1) mxThrow("%s: sep must be a single character, not '%s'", name, sepStr);
+	sep = sepStr[0];
+
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	path = R_CHAR(STRING_ELT(Rpath, 0));
+	reopen();
+	if (!st->read_line()) mxThrow("%s: cannot read header of '%s'", name, path.c_str());
+
+	auto &cp = Global->checkpointColnames;
+	cpIndex = cp.size();
+	Eigen::Map< Eigen::ArrayXi > col(columnPtr, numColumns);
+	if (col.minCoeff() < 1) mxThrow("%s: the first column is 1, not %d",
+				   name, col.minCoeff());
+	maxColumn = col.maxCoeff();
+	//mxLog("%s: len %d max %d", name, numColumns, maxColumn);
+	int xx=0;
+	for (int cx=0; cx < maxColumn; ++cx) {
+		std::string c1;
+		*st >> c1;
+		if (cx == col[xx]-1) {
+			//mxLog("cx %d xx %d %s", cx, xx, c1.c_str());
+			cp.push_back(c1);
+			if (++xx == numColumns) break;
+		}
+	}
+	if (xx != numColumns) mxThrow("%s: columns must be ordered from first to last", name);
+	curLine = 0;
+}
+
+void ComputeLoadContext::computeImpl(FitContext *fc)
+{
+	if (numColumns == 0) return;
+
+	std::vector<int> &clc = Global->computeLoopIndex;
+	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
+	int index = clc[clc.size()-1] - 1;  // innermost loop index
+
+	if (index < curLine) {
+		reopen();
+		st->skip_line(); // header
+		curLine = 0;
+	}
+	while (index > curLine) {
+		st->skip_line();
+		curLine += 1;
+	}
+
+	if (!st->read_line()) {
+		mxThrow("%s: '%s' ran out of data at record %d",
+			name, path.c_str(), 1+index);
+	}
+
+	Eigen::Map< Eigen::ArrayXi > col(columnPtr, numColumns);
+	auto &cv = Global->checkpointValues;
+
+	for (int cx=0, xx=0; cx < maxColumn; ++cx) {
+		std::string c1;
+		*st >> c1;
+		if (cx == col[xx]-1) {
+			cv[cpIndex + xx] = c1;
+			if (++xx == numColumns) break;
+		}
+	}
+	curLine += 1;
+}
+
+void ComputeLoadContext::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	MxRList dbg;
+	dbg.add("loadCounter", Rf_ScalarInteger(loadCounter));
+	slots->add("debug", dbg.asR());
+}
+
 void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
@@ -4943,6 +5061,22 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 	if (useOriginalData) origData.resize(Rf_length(Rdata));
 	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
 	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
+
+	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
+	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
+	if (strEQ(methodName, "csv")) {
+		loadMethod = LoadCSV;
+		if (Rf_length(Rpath) != Rf_length(Rdata)) {
+			mxThrow("%s: %d matrices to load but only %d paths",
+				name, Rf_length(Rdata), Rf_length(Rpath));
+		}
+	} else if (strEQ(methodName, "data.frame")) {
+		loadMethod = LoadDataFrame;
+	} else {
+		mxThrow("%s: unknown method '%s'", name, methodName);
+	}
+
+	int numElem = 0;
 	for (int wx=0; wx < Rf_length(Rdata); ++wx) {
 		if (isErrorRaised()) return;
 		int objNum = ~INTEGER(Rdata)[wx];
@@ -4951,23 +5085,44 @@ void ComputeLoadMatrix::initFromFrontend(omxState *globalState, SEXP rObj)
 			omxRaiseErrorf("%s: matrix '%s' has populate substitutions",
 				       name, m1->name());
 		}
+		numElem += m1->numNonConstElements();
 		EigenMatrixAdaptor Em1(m1);
 		if (useOriginalData) origData[wx] = Em1;
 		mat.push_back(m1);
 
-		const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
-		// convert to std::string to work around mini::csv constructor bug
-		// https://github.com/shaovoon/minicsv/issues/8
-		streams.push_back(new mini::csv::ifstream(std::string(p1)));
-		mini::csv::ifstream &st = *streams[wx];
-		st.set_delimiter(' ', "##");
-		if (INTEGER(Rcolnames)[wx % Rf_length(Rcolnames)]) {
-			st.skip_line();
+		if (loadMethod != LoadDataFrame) {
+			const char *p1 = R_CHAR(STRING_ELT(Rpath, wx));
+			// convert to std::string to work around mini::csv constructor bug
+			// https://github.com/shaovoon/minicsv/issues/8
+			streams.push_back(new mini::csv::ifstream(std::string(p1)));
+			mini::csv::ifstream &st = *streams[wx];
+			st.set_delimiter(' ', "##");
+			if (INTEGER(Rcolnames)[wx % Rf_length(Rcolnames)]) {
+				st.skip_line();
+			}
 		}
+
 		hasRowNames[wx] = INTEGER(Rrownames)[wx % Rf_length(Rrownames)];
 		//mxLog("ld %s %s", d1->name, p1);
 	}
 	line = 1;
+
+	if (loadMethod == LoadDataFrame) {
+		ProtectedSEXP Robs(R_do_slot(rObj, Rf_install("observed")));
+		observed = Robs;
+		if (int(observed.size()) < numElem) {
+			mxThrow("%s: provided observed data only has %d columns but %d requested",
+				name, int(observed.size()), numElem);
+		}
+		Rcpp::CharacterVector obNames = observed.attr("names");
+		for (int cx=0; cx < numElem; ++cx) {
+			if (Rcpp::is<Rcpp::NumericVector>(observed[cx])) continue;
+
+			mxThrow("%s: observed column %d (%s) is not type 'numeric'",
+				name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
+		}
+	}
+
 }
 
 ComputeLoadMatrix::~ComputeLoadMatrix()
@@ -4987,13 +5142,59 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 			Em.derived() = origData[dx];
 		}
 		return;
+	} else {
+		index -= useOriginalData; // 1 == the first record
+		switch (loadMethod) {
+		case LoadCSV:
+			loadFromCSV(fc, index);
+			break;
+		case LoadDataFrame:
+			loadDataFrame(fc, index);
+			break;
+		default:
+			mxThrow("%s: unknown load method %d", name, loadMethod);
+		}
 	}
 
-	if (line > index - useOriginalData) {
-		mxThrow("%s: at line %d, cannot seek backwards to line %d",
-			 name, line, index - useOriginalData);
+	fc->state->invalidateCache();
+	fc->state->omxInitialMatrixAlgebraCompute(fc);
+	if (isErrorRaised()) mxThrow("%s", Global->getBads()); // ?still necessary?
+}
+
+struct clmStream {
+	Rcpp::DataFrame &observed;
+	const int row;
+	int curCol;
+	clmStream(Rcpp::DataFrame &_ob, int _row) : observed(_ob), row(_row) { curCol = 0; };
+	
+	void operator >> (double& val)
+	{
+		auto vec = observed[curCol];
+		val = REAL(vec)[row];
+		curCol += 1;
 	}
-	while (line < index - useOriginalData) {
+};
+
+void ComputeLoadMatrix::loadDataFrame(FitContext *fc, int index)
+{
+	if (observed.nrows() < index) {
+		mxThrow("%s: index %d requested but observed data only has %d rows",
+			name, index, observed.nrows());
+	}
+
+	clmStream st(observed, index - 1);
+	for (int dx=0; dx < int(mat.size()); ++dx) {
+		mat[dx]->loadFromStream(st);
+	}
+}
+
+void ComputeLoadMatrix::loadFromCSV(FitContext *fc, int index)
+{
+	if (line > index) {
+		mxThrow("%s: at line %d, cannot seek backwards to line %d",
+			 name, line, index);
+	}
+	while (line < index) {
 		for (int dx=0; dx < int(mat.size()); ++dx) {
 			mini::csv::ifstream &st = *streams[dx];
 			st.skip_line();
@@ -5013,13 +5214,6 @@ void ComputeLoadMatrix::computeImpl(FitContext *fc)
 		mat[dx]->loadFromStream(st);
 	}
 	line += 1;
-
-	fc->state->invalidateCache();
-
-	fc->state->omxInitialMatrixAlgebraCompute(fc);
-	if (isErrorRaised()) {
-		mxThrow("%s", Global->getBads());
-	}
 }
 
 void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)

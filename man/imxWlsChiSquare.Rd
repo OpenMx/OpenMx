@@ -53,9 +53,8 @@ Mean and variance adjusted Chi Square statistics are also computed following Asp
 }
 
 \references{
-M. W. Browne. (1984).  Asymptotically Distribution-Free Methods for the Analysis of Covariance Structures. \emph{British Journal of Mathematical and Statistical Psychology, 37}, 62-83.
+M. W. Browne. (1984).  Asymptotically Distribution-Free Methods for the Analysis of Covariance Structures. \emph{British Journal of Mathematical and Statistical Psychology}, \strong{37}, 62-83.
 
 T. Asparouhov and B. O. Muthen.  (2006).  Robust Chi Square Difference Testing with Mean and Variance Adjusted Test Statistics.  \emph{Mplus Web Notes: No. 10}.
 }
-
 

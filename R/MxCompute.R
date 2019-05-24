@@ -2369,26 +2369,83 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen', 'dat
 
 #----------------------------------------------------
 
+setClass(Class = "MxComputeLoadContext",
+	 contains = "BaseCompute",
+	 representation = representation(
+		 method = "character",
+		 path = "character",
+		 column = "integer",
+		 sep = "character"
+	 ))
+
+setMethod("initialize", "MxComputeLoadContext",
+	function(.Object, method, path, column, sep) {
+		  .Object@name <- 'compute'
+		  .Object@.persist <- TRUE
+		  .Object@freeSet <- NA_character_
+		  .Object@method <- method
+		  .Object@path <- path
+		  .Object@column <- column
+		  .Object@sep <- sep
+		  .Object
+	  })
+
+##' Load contextual data to supplement checkpoint
+##'
+##' THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
+##'
+##' Currently, this only supports tab separated comma separated value
+##' format with a column header and no row names.
+##' An \code{originalDataIsIndexOne} option is not offered. You'll need to
+##' add an extra line at the start on your file if you wish to make
+##' use of \code{originalDataIsIndexOne} in \code{mxComputeLoad*}.
+##'
+##' @param method name of the conduit used to load the columns.
+##' @param path the path to the file containing the data
+##' @param column a character vector. The column names to log.
+##' @param ...  Not used.  Forces remaining arguments to be specified by name.
+##' @param sep the field separator character. Values on each line of the file
+##' are separated by this character.
+##' @aliases
+##' MxComputeLoadContext-class
+##' @seealso
+##' \link{mxComputeCheckpoint}, \link{mxComputeLoadData}, \link{mxComputeLoadMatrix}
+mxComputeLoadContext <- function(method=c('csv'), path=c(), column, ..., sep=' ') {
+	garbageArguments <- list(...)
+	if (length(garbageArguments) > 0) {
+		stop("mxComputeLoadContext does not accept values for the '...' argument")
+	}
+	method <- match.arg(method)
+	new("MxComputeLoadContext", method, as.character(path), as.integer(column), sep)
+}
+
+#----------------------------------------------------
+
 setClass(Class = "MxComputeLoadMatrix",
 	 contains = "BaseCompute",
 	 representation = representation(
 		 dest = "MxCharOrNumber",
-		 path = "character",
+		 method = "character",
+		 path = "MxOptionalChar",
 		 originalDataIsIndexOne = "logical",
 		 row.names = "logical",
-		 col.names = "logical"
+		 col.names = "logical",
+		 observed = "MxOptionalDataFrame"
 	 ))
 
 setMethod("initialize", "MxComputeLoadMatrix",
-	  function(.Object, dest, path, originalDataIsIndexOne, row.names, col.names) {
+	function(.Object, dest, method, path, originalDataIsIndexOne, row.names, col.names,
+		 observed) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
 		  .Object@dest <- dest
+		  .Object@method <- method
 		  .Object@path <- path
 		  .Object@originalDataIsIndexOne <- originalDataIsIndexOne
 		  .Object@row.names <- row.names
 		  .Object@col.names <- col.names
+		  .Object@observed <- observed
 		  .Object
 	  })
 
@@ -2409,15 +2466,16 @@ setMethod("convertForBackend", signature("MxComputeLoadMatrix"),
 		.Object
 	})
 
-mxComputeLoadMatrix <- function(dest, method='csv', ..., path, originalDataIsIndexOne=FALSE,
-				row.names=FALSE, col.names=FALSE) {
+mxComputeLoadMatrix <- function(dest, method=c('csv','data.frame'), ..., path=NULL,
+				originalDataIsIndexOne=FALSE,
+				row.names=FALSE, col.names=FALSE, observed=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadMatrix does not accept values for the '...' argument")
 	}
-	if (method != 'csv') stop("Only method='csv' is implemented")
-	new("MxComputeLoadMatrix", dest, path, originalDataIsIndexOne,
-		as.logical(row.names), as.logical(col.names))
+	method <- match.arg(method)
+	new("MxComputeLoadMatrix", dest, method, path, originalDataIsIndexOne,
+		as.logical(row.names), as.logical(col.names), observed)
 }
 
 #----------------------------------------------------

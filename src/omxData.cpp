@@ -37,6 +37,7 @@
 #include <Eigen/CholmodSupport>
 #include <RcppEigenWrap.h>
 #include "CovEntrywisePar.h"
+#include "Compute.h"
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
@@ -383,6 +384,16 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			if (currentFreqColumn[rx] >= 0) continue;
 			mxThrow("%s: cannot proceed with non-positive frequency %d for row %d",
 				 name, currentFreqColumn[rx], 1+rx);
+		}
+	}
+
+	if (R_has_slot(dataObj, Rf_install("algebra"))) {
+		ProtectedSEXP Ralg(R_do_slot(dataObj, Rf_install("algebra")));
+		int len = Rf_length(Ralg);
+		if (len) {
+			algebra.reserve(len);
+			int *aptr = INTEGER(Ralg);
+			for (int ax=0; ax < len; ++ax) algebra.push_back(aptr[ax]);
 		}
 	}
 }
@@ -843,7 +854,7 @@ bool omxData::loadDefVars(omxState *state, int row)
 		}
 		changed |= dv.loadData(state, newDefVar);
 	}
-	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("Processing Definition Vars for row %d", row); }
+	if (changed && OMX_DEBUG_ROWS(row)) { mxLog("%s: load def vars for row %d", name, row); }
 	return changed;
 }
 
@@ -2377,6 +2388,7 @@ struct sampleStats {
 			OLSRegression olsr(&data, o1.totalWeight, rowMult, index);
 			olsr.setPred(pred);
 			olsr.setResponse(cd, pv);
+			if (isErrorRaised()) return;
 			olsr.calcScores();
 			pv.resid = olsr.resid;
 			pv.theta.resize(olsr.beta.size() + 1);
@@ -2530,6 +2542,28 @@ struct sampleStats {
 	}
 };
 
+void omxData::convertToDataFrame()
+{
+	if (!strEQ(_type, "raw")) return;
+
+	rawCols.clear();
+	rawCols.reserve(cols);
+	numNumeric = cols;
+
+	if (!dataMat->colMajor) omxToggleRowColumnMajor(dataMat);
+
+	for(int j = 0; j < cols; j++) {
+		const char *colname = dataMat->colnames[j];
+		ColumnData cd = { colname, COLUMNDATA_NUMERIC, (int*)0, {} };
+		cd.ptr.realData = omxMatrixColumn(dataMat, j);
+		rawCols.push_back(cd);
+	}
+
+	for (int cx=0; cx < int(rawCols.size()); ++cx) {
+		rawColMap.emplace(rawCols[cx].name, cx);
+	}
+}
+
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *wlsType,
 			  const char *continuousType, bool fullWeight)
@@ -2544,9 +2578,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	if (rawCols.size() == 0) {
-		mxThrow("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
-			 "and raw data are also not available",
-			 name, wlsType, continuousType, fullWeight);
+		if (dataMat) convertToDataFrame();
+		if (rawCols.size() == 0) {
+			mxThrow("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
+				"and raw data are also not available",
+				name, wlsType, continuousType, fullWeight);
+		}
 	}
 
 	int numCols = dc.size();
@@ -2816,7 +2853,10 @@ void omxData::estimateObservedStats()
 			}
 		}
 	}
-	if (InvertSymmetricPosDef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
+	if (InvertSymmetricPosDef(Efw, 'L')) {
+		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
+		else Rf_warning("%s: acov matrix is not positive definite", name);
+	}
 
 	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
@@ -2852,4 +2892,45 @@ void omxData::invalidateColumnsCache(std::vector< int > &columns)
 		o1.partial = true;
 	}
 	if (fail) invalidateCache();
+}
+
+void omxData::evalAlgebras(FitContext *fc)
+{
+	for (auto ax : algebra) {
+		omxMatrix *a1 = fc->state->algebraList[ax];
+		if (!a1->colnames.size()) {
+			mxThrow("%s: algebra '%s' must have colnames", name, a1->name());
+		}
+		std::vector<int> colMap;
+		int numCols = a1->colnames.size();
+		for (int cx=0; cx < numCols; ++cx) {
+			auto *cn = a1->colnames[cx];
+			auto it = rawColMap.find(cn);
+			if (it == rawColMap.end()) {
+				mxThrow("%s: cannot find column '%s'", name, cn);
+			}
+			int dc = it->second;
+			if (rawCols[dc].type != COLUMNDATA_NUMERIC) {
+				mxThrow("%s: column '%s' must be type of numeric not %s",
+					name, cn, ColumnDataTypeToString(rawCols[dc].type));
+			}
+			//mxLog("%s -> %d", a1->colnames[cx], dc);
+			colMap.push_back(dc);
+		}
+		for (int rx=0; rx < rows; ++rx) {
+			loadDefVars(fc->state, rx);
+			omxRecompute(a1, fc); // should not depend on free parameters TODO
+			if (a1->rows != 1) mxThrow("%s: algebra '%s' must evaluate to a row vector "
+						   "instead of %dx%d", name, a1->name(), a1->rows, a1->cols);
+			if (a1->cols < numCols) mxThrow("%s: algebra '%s' must have at least "
+							"%d columns (found %d)",
+							name, a1->name(), numCols, a1->cols);
+			EigenVectorAdaptor result(a1);
+			for (int cx=0; cx < numCols; ++cx) {
+				if (verbose >= 3) mxLog("%s::evalAlgebras [%d,%d] <- %f",
+							name, 1+rx, 1+cx, result[cx]);
+				rawCols[colMap[cx]].ptr.realData[rx] = result[cx];
+			}
+		}
+	}
 }

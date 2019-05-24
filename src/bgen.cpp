@@ -98,7 +98,7 @@ namespace genfile {
 				( magic[0] != 'b' || magic[1] != 'g' || magic[2] != 'e' || magic[3] != 'n' )
 				&& ( magic[0] != 0 || magic[1] != 0 || magic[2] != 0 || magic[3] != 0 )
 			) {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 
 			if( aStream ) {
@@ -110,7 +110,7 @@ namespace genfile {
 
 				return( header_size ) ;
 			} else {
-				throw BGenError() ;
+				ThrowBGenError() ;
 			}
 		}
 
@@ -208,7 +208,7 @@ namespace genfile {
 						return false ;
 					}
 					if( number_of_samples != context.number_of_samples ) {
-						throw BGenError() ;
+						ThrowBGenError() ;
 					}
 				}
 				if( aStream ) {
@@ -370,11 +370,8 @@ namespace genfile {
 					begin = read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
 				}
 				buffer->resize( uncompressed_data_size ) ;
-				if( compressionType == e_ZlibCompression ) {
-					zlib_uncompress( begin, end, buffer ) ;
-				} else if( compressionType == e_ZstdCompression ) {
-					zstd_uncompress( begin, end, buffer ) ;
-				}
+				assert( compressionType == e_ZstdCompression );
+				zstd_uncompress( begin, end, buffer ) ;
 				assert( buffer->size() == uncompressed_data_size ) ;
 			}
 			else {
@@ -938,29 +935,6 @@ namespace genfile {
 #include "genfile/zlib.hpp"
 
 namespace genfile {
-	void zlib_compress(
-		uint8_t const* buffer,
-		uint8_t const* const end,
-		std::vector< uint8_t >* dest,
-		std::size_t const offset,
-		int const compressionLevel
-	) {
-		assert( dest != 0 ) ;
-		assert( compressionLevel >= 0 && compressionLevel <= Z_BEST_COMPRESSION ) ;
-		uLongf const source_size = ( end - buffer ) ;
-		uLongf compressed_size = compressBound( source_size ) ;
-		dest->resize( compressed_size + offset ) ;
-		int result = compress2(
-			reinterpret_cast< Bytef* >( const_cast< uint8_t* >( &( dest->operator[](0) ) + offset ) ),
-			&compressed_size,
-			reinterpret_cast< Bytef const* >( buffer ),
-			source_size,
-			compressionLevel
-		) ;
-		assert( result == Z_OK ) ;
-		dest->resize( compressed_size + offset ) ;
-	}
-
 	void zstd_compress(
 		uint8_t const* buffer,
 		uint8_t const* const end,

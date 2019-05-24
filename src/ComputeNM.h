@@ -44,7 +44,6 @@ public:
 	double feasTol;
 	double backtrackCtrl1;
 	int backtrackCtrl2;
-	bool checkRedundantEqualities;
 
 	Eigen::MatrixXd verticesOut;
 	Eigen::VectorXd fvalsOut;
@@ -104,6 +103,8 @@ public:
 	double bignum;
 	double rho;
 	bool addPenalty;
+	int ineqConstraintMthd, eqConstraintMthd;
+	bool checkRedundantEqualities;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);

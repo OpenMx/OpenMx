@@ -124,13 +124,21 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	}
 	
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
-	if(isCallEtc && !forceName){
+	ex <- try(eval(x), silent=TRUE)
+	isChar <- !('try-error' %in% is(ex)) && is.character(ex)
+	if(isCallEtc && !forceName && !isChar){
 		if(!silent){message('Treating first argument as an expression')}
 		xalg <- mxAlgebraFromString(Reduce(paste, deparse(match.call()$x)), name='onTheFlyAlgebra')
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
-	} else if ('character' %in% is(x)) {
+	} else if ('character' %in% is(x) && !isCallEtc) {
+		if(!silent){message('Treating first argument as a character')}
 		xalg <- mxAlgebraFromString(Reduce(paste, match.call()$x), name='onTheFlyAlgebra')
+		x <- "onTheFlyAlgebra"
+		model <- mxModel(model, xalg)
+	} else if(isChar){
+		if(!silent){message('Treating first argument as an object that stores a character')}
+		xalg <- mxAlgebraFromString(ex, name='onTheFlyAlgebra')
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else {
@@ -142,7 +150,9 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	paramnames <- names(freeparams)
 	zoutMat <- try(mxEvalByName(x, model, compute=TRUE),silent=silent)
 	if(class(zoutMat) %in% "try-error"){
-		stop(paste0("I had a problem evaluating your expression. Check that mxEval works for it.\nRecall that elements of submodels are addressed as submodelName.objectName\nFor example, 'sub1.bob' refers to the object 'bob' in the submodel named 'sub1'."))
+		stop(paste0("Couldn't evaluate expression ", omxQuotes(x), ". Might help to check if it works in mxEval.\n",
+		"Recall also that elements of submodels are addressed as submodelName.objectName\n",
+		"For example, to refer to an object called 'bob' in submodel 'sub1', you would say 'sub1.bob'."))
 	}
 	
 	covParam <- ParamsCov
@@ -151,7 +161,10 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	jacTrans <- jModel$compute$output$jacobian
 	covSparam <- jacTrans %*% covParam %*% t(jacTrans)
 	# dimnames(covSparam) <- list(rownames(zoutMat), colnames(zoutMat))
-	SEs <- sqrt(diag(covSparam))
+	if(any(diag(covSparam) < 0) || any(is.na(diag(covSparam)))){
+		warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nI know, right? Set details=TRUE and check the 'Cov' element of this object.")
+	}
+	SEs <- suppressWarnings(sqrt(diag(covSparam)))
 	SEsMat <- matrix(SEs, nrow = nrow(zoutMat), ncol = ncol(zoutMat))
 	if(details==TRUE){
 		return(list(SE=SEsMat, Cov=covSparam))

@@ -27,6 +27,7 @@
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
+#include <memory>
 #include <string.h>
 #include <string>
 
@@ -507,18 +508,25 @@ class ProtectAutoBalanceDoodad {
 };
 
 class AssertProtectStackBalanced {
-	ProtectAutoBalanceDoodad &myDoodad;
 	const char *context;
 	int preDepth;
+	PROTECT_INDEX initialpix;
 	
+	PROTECT_INDEX getDepth() {
+		PROTECT_INDEX pix;
+		R_ProtectWithIndex(R_NilValue, &pix);
+		PROTECT_INDEX diff = pix - initialpix;
+		Rf_unprotect(1);
+		return diff;
+	}
  public:
- 	AssertProtectStackBalanced(const char *_context,
-			    ProtectAutoBalanceDoodad &_myDoodad) :
-	myDoodad(_myDoodad), context(_context) {
-		preDepth = myDoodad.getDepth();
+ 	AssertProtectStackBalanced(const char *_context) : context(_context) {
+		R_ProtectWithIndex(R_NilValue, &initialpix);
+		Rf_unprotect(1);
+		preDepth = getDepth();
 	};
 	~AssertProtectStackBalanced() {
-		int postDepth = myDoodad.getDepth();
+		int postDepth = getDepth();
 		if (preDepth != postDepth) {
 			Rf_warning("%s: "
 				   "protect stack usage %d > 0, PLEASE REPORT TO OPENMX DEVELOPERS",

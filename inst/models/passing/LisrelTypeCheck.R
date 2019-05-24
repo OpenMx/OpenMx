@@ -120,15 +120,55 @@ mod1e <- mxModel(name="A type LISREL model",
 	mxPath(from='x1', to='y3', values=2, arrows=2, free=TRUE, labels='residX1') #TH
 )
 
-# manifest enod paths
+# manifest endo paths
 mod1f <- mxModel(name="A type LISREL model",
-	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:10]),
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:9]),
 	latentVars=list(exogenous='ksi1', endogenous='eta1'),
 	type="LISREL",
 	mxData(demoTwoFactor, 'raw'),
 	mxPath(from='y4', to='y2', values=1, arrows=2, free=TRUE, labels='residC3'), #TE
 	mxPath(from='y2', to='x5', values=2, arrows=2, free=TRUE, labels='residX2') #TH
 )
+
+TE <- list(
+	labels=matrix(as.character(NA), 4, 4),
+	values=matrix(0, 4, 4),
+	free=matrix(FALSE, 4, 4))
+TE$labels[4, 2] <- 'residC3'
+TE$labels[2, 4] <- 'residC3'
+TE$values[4, 2] <- 1
+TE$values[2, 4] <- 1
+TE$free[4, 2] <- TRUE
+TE$free[2, 4] <- TRUE
+omxCheckTrue(all.equal(mod1f$TE$labels, TE$labels, check.attributes=FALSE))
+omxCheckTrue(all.equal(mod1f$TE$values, TE$values, check.attributes=FALSE))
+omxCheckTrue(all.equal(mod1f$TE$free, TE$free, check.attributes=FALSE))
+
+TH <- list(
+	labels=matrix(as.character(NA), 4, 5),
+	values=matrix(0, 4, 5),
+	free=matrix(FALSE, 4, 5))
+TH$labels[2, 5] <- 'residX2'
+TH$values[2, 5] <- 2
+TH$free[2, 5] <- TRUE
+omxCheckTrue(all.equal(mod1f$TH$labels, TH$labels, check.attributes=FALSE))
+omxCheckTrue(all.equal(mod1f$TH$values, TH$values, check.attributes=FALSE))
+omxCheckTrue(all.equal(mod1f$TH$free, TH$free, check.attributes=FALSE))
+
+# manifest endo paths, opposite direction
+mod1g <- mxModel(name="A type LISREL model",
+	manifestVars=list(exo=names(demoTwoFactor)[1:5], endo=names(demoTwoFactor)[6:9]),
+	latentVars=list(exogenous='ksi1', endogenous='eta1'),
+	type="LISREL",
+	mxData(demoTwoFactor, 'raw'),
+	mxPath(from='y4', to='y2', values=1, arrows=2, free=TRUE, labels='residC3'), #TE
+	mxPath(from='x5', to='y2', values=2, arrows=2, free=TRUE, labels='residX2') #TH
+)
+
+omxCheckTrue(all.equal(mod1g$TH$labels, TH$labels, check.attributes=FALSE))
+omxCheckTrue(all.equal(mod1g$TH$values, TH$values, check.attributes=FALSE))
+omxCheckTrue(all.equal(mod1g$TH$free, TH$free, check.attributes=FALSE))
+
 
 #------------------------------------------------------------------------------
 

@@ -106,13 +106,13 @@ build-prep:
 	git archive --format=tar HEAD | (cd build; tar -xf -)
 
 cran-build: build-prep
-	cd build && ./util/prep cran build && $(REXEC) CMD build .
+	cd build && sh ./util/prep cran build && $(REXEC) CMD build .
 
 build: build-prep
-	cd build && ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	cd build && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 build-simple: build-prep
-	cd build && ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	cd build && sh ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 packages-help:
 	@echo 'To generate a PACKAGES file, use:'
@@ -120,7 +120,7 @@ packages-help:
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='mac.binary'"', latestOnly=FALSE)" | R --vanilla # for OS/X'
 
 srcbuild: build-prep packages-help
-	cd build && ./util/prep npsol build && $(REXEC) CMD build .
+	cd build && sh ./util/prep npsol build && $(REXEC) CMD build .
 
 cran-check: cran-build
 	$(REXEC) CMD check build/OpenMx_*.tar.gz | tee cran-check.log
@@ -135,14 +135,14 @@ cran-check-strict: cran-build
 pdf:
 	-[ -d build ] && rm -r ./build
 	mkdir build
-	./util/prep npsol install
+	sh ./util/prep npsol install
 	rm -f $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
 html:
 	-[ -d build ] && rm -r ./build
 	mkdir build
-	./util/prep npsol install
+	sh ./util/prep npsol install
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
@@ -160,12 +160,12 @@ doc.tar.bz2: html pdf
 	cd build && tar jcf ../doc.tar.bz2 $(VERSION)
 
 install: code-style
-	./util/prep npsol install
+	sh ./util/prep npsol install
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 
 cran-install: code-style
-	./util/prep cran install
+	sh ./util/prep cran install
 	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 

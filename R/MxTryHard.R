@@ -16,6 +16,20 @@
 #TODO:
 #Need more input checking?  For instance, initialGradientIterations should be a positive integer, right?
 
+runWithCounter <- function(model, count, silent, intervals=FALSE) {
+	if(silent){
+		plan <- model@compute
+		plan <- mxComputeLoop(list(plan), i=count)
+		fit <- mxRun(mxModel(model, plan), suppressWarnings = T,
+								 silent=F, unsafe=T, intervals=intervals, beginMessage=FALSE)
+		fit@compute <- fit@compute$steps[[1]]
+		return(fit)
+	}
+	else{
+		return(mxRun(model=model, suppressWarnings = T, unsafe=T, silent=T, intervals=intervals, beginMessage=T))
+	}
+}
+
 mxTryHard <- function(
 	model, extraTries = 10, greenOK = FALSE, loc = 1, 
 	scale = 0.25,  initialGradientStepSize = imxAutoOptionValue("Gradient step size"), 
@@ -26,7 +40,6 @@ mxTryHard <- function(
 	finetuneGradient=TRUE, jitterDistrib=c("runif","rnorm","rcauchy"), exhaustive=FALSE,
 	maxMajorIter=3000, OKstatuscodes, wtgcsv=c("prev","best","initial"), silent=interactive()
 ){
-	
 	#Initialize stuff & check inputs:
 	jitterDistrib <- match.arg(jitterDistrib)
 	wtgcsv <- match.arg(wtgcsv,c("prev","best","initial"),several.ok=T)
@@ -93,7 +106,7 @@ mxTryHard <- function(
 		list(CO=mxComputeOnce(from="fitfunction", what="fit", .is.bestfit=TRUE),
 		RE=mxComputeReportExpectation()))
 	model@compute@.persist <- TRUE
-	modelAtStartValues <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T, intervals=FALSE)))
+	modelAtStartValues <- suppressWarnings(try(runWithCounter(model, 0, silent, F)))
 	if(class(modelAtStartValues) != "try-error"){ 
 		fitvalAtStarts <- modelAtStartValues@fitfunction@result[1]
 		if(is.finite(fitvalAtStarts)){lowestminsofar <- fitvalAtStarts}
@@ -101,7 +114,7 @@ mxTryHard <- function(
 	model@compute <- inputCompute
 	rm(modelAtStartValues, inputCompute)
 	
-	
+
 	#Begin main 'while' loop.
 	while (!stopflag) {
 		if(numdone==0){
@@ -185,7 +198,7 @@ mxTryHard <- function(
 			message('\nStarting values:  ')
 			message(paste0(names(omxGetParameters(model)),' : ', omxGetParameters(model),'\n'))
 		}
-		fit <- suppressWarnings(try(mxRun(model, suppressWarnings = T, unsafe=T, silent=T,intervals=FALSE)))
+		fit <- suppressWarnings(try(runWithCounter(model, numdone, silent, intervals=F)))
 		numdone <- numdone + 1
 		
 		
@@ -234,24 +247,24 @@ mxTryHard <- function(
 				if( !(fit$output$status[[1]] %in% OKstatuscodes) ){
 					goodflag <- FALSE
 					if(!silent){
-						message(paste('\n OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', 
+						message(paste(' OpenMx status code ', fit$output$status[[1]], ' not in list of acceptable status codes, ', 
 													paste("(",paste(OKstatuscodes,collapse=","),")",sep=""), sep=""))
 					}
 				}
 				if(fit@fitfunction@result[1] > fit2beat) {
-					if(!silent){message(paste0('\n Fit value of ', fit@fitfunction@result[1], ' greater than fit2beat of ', fit2beat))}
+					if(!silent){message(paste0(' Fit value of ', fit@fitfunction@result[1], ' greater than fit2beat of ', fit2beat))}
 					goodflag <- FALSE
 				}
 				if(checkHess==TRUE) {
 					fit@output["infoDefinite"] <- TRUE
 					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values,silent=T)
 					if(class(hessEigenval)=='try-error') {
-						if(!silent){message(paste0('\n Eigenvalues of Hessian could not be calculated'))}
+						if(!silent){message(paste0(' Eigenvalues of Hessian could not be calculated'))}
 						goodflag <- FALSE
 						fit@output["infoDefinite"] <- FALSE
 					}
 					if(class(hessEigenval)!='try-error' && any(hessEigenval < 0)) {
-						if(!silent){message(paste0('\n Not all eigenvalues of Hessian are greater than ', 0,': ', paste(hessEigenval,collapse=', ')))}
+						if(!silent){message(paste0(' Not all eigenvalues of the Hessian are positive: ', paste(hessEigenval,collapse=', ')))}
 						goodflag <- FALSE
 						fit@output["infoDefinite"] <- FALSE
 					}}
@@ -309,17 +322,17 @@ mxTryHard <- function(
 				steps <- c(steps,RD=mxComputeReportDeriv())
 				finalfit <- OpenMx::mxModel(finalfit,mxComputeSequence(steps=steps))
 			}
-			finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
+			finalfit <- suppressWarnings(try(runWithCounter(finalfit, numdone, silent, intervals=doIntervals)))
 			if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
-				if(!silent){message('Errors during final fit for Hessian/SEs/CIs\n')}
+				if(!silent){message(' Errors during final fit for Hessian/SEs/CIs\n')}
 			} else {
 				if (length(summary(finalfit)$npsolMessage) > 0){
-					if(!silent){message('Warning messages generated from final run for Hessian/SEs/CIs\n')}
+					if(!silent){message(' Warning messages generated from final run for Hessian/SEs/CIs\n')}
 				}
 			}
 		}
 		imxReportProgress("", previousLen)
-		message(paste0("\nSolution found!  Final fit=", signif(bestfit@fitfunction@result[1],8), " (started at ", signif(fitvalAtStarts,8), ")  (" ,numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
+		message(paste0("\n Solution found!  Final fit=", signif(bestfit@fitfunction@result[1],8), " (started at ", signif(fitvalAtStarts,8), ")  (" ,numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
 		if (length(summary(bestfit)$npsolMessage) > 0) {
 			warning(summary(bestfit)$npsolMessage)
 		}
@@ -327,7 +340,7 @@ mxTryHard <- function(
 			message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
 			message(paste0("fit value = ", bestfit@fitfunction@result[1]))
 		}
-		bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
+		bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess,lackOfConstraints)
 	} #end 'if goodflag' section
 	
 	
@@ -362,24 +375,24 @@ mxTryHard <- function(
 					steps <- c(steps,RD=mxComputeReportDeriv())
 					finalfit <- OpenMx::mxModel(bestfit,mxComputeSequence(steps=steps))
 				}
-				finalfit <- suppressWarnings(try(mxRun(finalfit, suppressWarnings = T, silent=T,	intervals=doIntervals)))
+				finalfit <- suppressWarnings(try(runWithCounter(finalfit, numdone, silent, intervals=doIntervals)))
 				if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
 					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
 				}
 			}
 			imxReportProgress("", previousLen)
-			message(paste0("\nRetry limit reached; solution not found.  Best fit=", signif(bestfit@fitfunction@result[1],8), " (started at ", signif(fitvalAtStarts,8), ")  (", numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
+			message(paste0("\n Retry limit reached; Best fit=", signif(bestfit@fitfunction@result[1],8), " (started at ", signif(fitvalAtStarts,8), ")  (", numdone, " attempt(s): ", validcount, " valid, ", errorcount," errors)\n"))
 			if (length(bestfit$output$status$statusMsg) > 0) { 
 				warning(bestfit$output$status$statusMsg)
 			}
 			if(bestfit$output$status$code==6 && !(6 %in% OKstatuscodes)){
-				if(!silent){message('\nUncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')}
+				if(!silent){message('\n Uncertain solution found - consider parameter validity, try again, increase extraTries, change inits, change model, or check data!\n')}
 			}
 			if(iterationSummary){
 				message(paste(names(bestfit.params),": ", bestfit$output$estimate,"\n"))
 				message(paste0("fit value = ", bestfit@fitfunction@result[1]))
 			}
-			bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess)
+			bestfit <- THFrankenmodel(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess,lackOfConstraints)
 		}
 	}
 	
@@ -387,7 +400,7 @@ mxTryHard <- function(
 	if(bestInitsOutput && exists("bestfit")){
 		bestfit.params <- omxGetParameters(bestfit)
 		if(!silent){
-			message("\nStart values from best fit:")
+			message(" Start values from best fit:")
 			if(paste) message(paste(bestfit.params, sep=",", collapse = ",")) 
 			if(!paste)  message(paste(names(bestfit.params),": ", bestfit.params,"\n"))
 		}
@@ -396,13 +409,12 @@ mxTryHard <- function(
 	if (!exists("bestfit")) {
 		if(class(fit) == 'try-error') warning(fit[[length(fit)]])
 		imxReportProgress("", previousLen)
-		message('\nAll fit attempts resulted in errors - check starting values or model specification\n')
+		message('\n All fit attempts resulted in errors - check starting values or model specification\n')
 		bestfit<-fit
 	}
 	
 	if( defaultComputePlan && !("try-error" %in% class(bestfit)) ){bestfit@compute@.persist <- FALSE}
 	
-	#imxReportProgress("", previousLen)
 	return(bestfit)
 }
 
@@ -459,7 +471,7 @@ mxJiggle <- function(model, classic=FALSE, dsn=c("runif","rnorm","rcauchy"), loc
 
 
 
-THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess){
+THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater,doIntervals,checkHess,lackOfConstraints){
 	if( is.null(finalfit) || !any(Hesslater,SElater,doIntervals) || ("try-error" %in% class(finalfit)) || 
 			finalfit$output$status$status== -1 ){return(bestfit)}
 	if(defaultComputePlan){
@@ -495,6 +507,14 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 		bestfit@output$standardErrors <- finalfit@output$standardErrors
 		bestfit@output$infoDefinite <- finalfit@output$infoDefinite
 		bestfit@output$conditionNumber <- finalfit@output$conditionNumber
+		bestfit@output$vcov <- finalfit@output$vcov
+	}
+	if(!lackOfConstraints){
+		bestfit@output$constraintFunctionValues <- finalfit@output$constraintFunctionValues
+		bestfit@output$constraintJacobian <- finalfit@output$constraintJacobian
+		bestfit@output$constraintNames <- finalfit@output$constraintNames
+		bestfit@output$constraintRows <- finalfit@output$constraintRows
+		bestfit@output$constraintCols <- finalfit@output$constraintCols
 	}
 	bestfit@output$evaluations <- bestfit@output$evaluations + finalfit@output$evaluations
 	bestfit@output$frontendTime <- bestfit@output$frontendTime + finalfit@output$frontendTime

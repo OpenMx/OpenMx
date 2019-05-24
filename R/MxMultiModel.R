@@ -110,13 +110,13 @@ imxFlattenModel <- function(model, namespace, unsafe=FALSE) {
 	flatModel@unsafe <- unsafe
 	flatModel@fitfunction <- safeQualifyNames(model@fitfunction, name, namespace)
 	flatModel@expectation <- safeQualifyNames(model@expectation, name, namespace)
-	defaultData <- qualifyNamesData(model@data, name)
+	defaultData <- safeQualifyNames(model@data, name, namespace)
 	flatModel@data <- defaultData
 	flatModel@matrices <- collectMatrices(model, namespace, defaultData)
 	flatModel@algebras <- collectComponents(model, namespace, "algebras", qualifyNamesAlgebra)
 	flatModel@constraints <- collectComponents(model, namespace, "constraints", qualifyNamesConstraint)	
 	flatModel@intervals <- collectComponents(model, namespace, "intervals", qualifyNamesInterval)
-	flatModel@datasets <- collectDatasets(model)
+	flatModel@datasets <- collectDatasets(model, namespace)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
 	flatModel@submodels <- list()
@@ -141,23 +141,23 @@ collectComponentsHelper <- function(model, namespace, slotName, convertFunction)
 	return(components)
 }
 
-collectDatasets <- function(model) {
-	datasets <- collectDatasetsHelper(model)
+collectDatasets <- function(model, namespace) {
+	datasets <- collectDatasetsHelper(model, namespace)
 	names(datasets) <- imxExtractNames(datasets)
 	return(datasets)
 }
 
 
-collectDatasetsHelper <- function(model) {
+collectDatasetsHelper <- function(model, namespace) {
 	modeldata <- model@data
 	if (!is.null(modeldata)) {
-		modeldata <- qualifyNamesData(modeldata, model@name)
+		modeldata <- safeQualifyNames(modeldata, model@name, namespace)
 		retval <- list(modeldata)
 	} else {
 		retval <- list()
 	}
 	if (length(model@submodels) > 0) {
-		submodel_datasets <- lapply(model@submodels, collectDatasetsHelper)		
+		submodel_datasets <- lapply(model@submodels, collectDatasetsHelper, namespace)
 		submodel_datasets <- unlist(submodel_datasets, recursive = FALSE, use.names = FALSE)
 		retval <- append(retval, submodel_datasets)
 	}
@@ -171,7 +171,7 @@ collectMatrices <- function(model, namespace, defaultData) {
 }
 
 collectMatricesHelper <- function(model, namespace, defaultData) {
-	modeldata <- qualifyNamesData(model@data, model@name)
+	modeldata <- safeQualifyNames(model@data, model@name, namespace)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 
@@ -210,7 +210,7 @@ collectExpectations <- function(model, namespace, defaultData) {
 
 collectExpectationsHelper <- function(model, namespace, defaultData) {
 	expectation <- safeQualifyNames(model@expectation, model@name, namespace)
-	modeldata <- qualifyNamesData(model@data, model@name)	
+	modeldata <- safeQualifyNames(model@data, model@name, namespace)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 	
@@ -233,7 +233,7 @@ collectExpectationsHelper <- function(model, namespace, defaultData) {
 
 collectFitFunctionsHelper <- function(model, namespace, defaultData) {
 	fitfunction <- safeQualifyNames(model@fitfunction, model@name, namespace)
-	modeldata <- qualifyNamesData(model@data, model@name)	
+	modeldata <- safeQualifyNames(model@data, model@name, namespace)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
 	} 	

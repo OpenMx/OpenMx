@@ -172,7 +172,9 @@ mxEval(fitfunction, mg)
 mxEval(g1model.fitfunction, mg)
 mxEval(g2model.fitfunction, mg)
 
-mg2 = omxSetParameters(mg, labels = c("Resid_y_group1", "Resid_y_group2"), newlabels = "Resid_y", name = "equated")
+mg2 = omxSetParameters(mg,
+  labels = c("Resid_y_group1", "Resid_y_group2"),
+  newlabels = "Resid_y", name = "equated")
 mg2 = omxAssignFirstParameters(mg2)
 mg2 = mxRun(mg2)
 

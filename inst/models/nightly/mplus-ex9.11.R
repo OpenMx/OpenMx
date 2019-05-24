@@ -48,6 +48,7 @@ cfa$withinGroup2$betweenGroup2$M$free[1,c('fb1','fb2')] <- TRUE
 cfa <- mxTryHard(cfa)
 omxCheckCloseEnough(cfa$output$fit, 49853.908, 1e-2)
 # Mplus -24926.956 * -2 = 49853.91
+del <- omxCheckWarning(mxRefModels(cfa), "The right reference models for the multilevel case are not yet known.\nI made reference models for level 1.\nI hope you know what you're doing because I don't.")
 
 cfa$withinGroup1$expectation$.rampartCycleLimit <- 0L
 cfa$withinGroup2$expectation$.rampartCycleLimit <- 0L

@@ -28,7 +28,8 @@ setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
 setClass(Class = "NonNullData",
 	representation = representation(
-		verbose = "integer"))
+		verbose = "integer"),
+	contains = "MxBaseNamed")
 
 ##' @name MxDataStatic-class
 ##' @rdname MxDataStatic-class
@@ -59,22 +60,21 @@ setClass(Class = "MxDataStatic",
 	     weight = "MxCharOrNumber",
 	     frequency = "MxCharOrNumber",
 	     minVariance = "numeric",
-	     name   = "character"))
+	     algebra = "MxOptionalCharOrNumber"))
 
 setClass(Class = "MxDataDynamic",
 	 contains = "NonNullData",
 	 representation = representation(
 	     type        = "character",
 	     expectation = "MxCharOrNumber",
-	     numObs = "numeric",             # output
-	     name        = "character"))
+	     numObs = "numeric"))             # output
 
 setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
 		   sort, primaryKey, weight, frequency, verbose, .parallel, .noExoOptimize,
-		   minVariance) {
+		   minVariance, algebra) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -100,6 +100,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@frequency <- frequency
 		.Object@verbose <- verbose
 		.Object@minVariance <- minVariance
+		.Object@algebra <- algebra
 		return(.Object)
 	}
 )
@@ -125,7 +126,7 @@ setReplaceMethod("$", "MxData",
 setMethod("names", "MxData", slotNames)
 
 ##' Valid types of data that can be contained by MxData
-imxDataTypes <- c("raw", "cov", "cor", "sscp")
+imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
 
 ##' Create dynamic data
 ##'
@@ -151,25 +152,12 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
-		   minVariance=sqrt(.Machine$double.eps)) {
+		   minVariance=sqrt(.Machine$double.eps), algebra=c()) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxData does not accept values for the '...' argument")
 	}
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
-	if (missing(observedStats)) {
-		observedStats <- list()
-		if (!missing(acov)) observedStats <- c(observedStats, acov=acov)
-		if (!missing(fullWeight)) observedStats <- c(observedStats, fullWeight=fullWeight)
-		if (!missing(thresholds)) observedStats <- c(observedStats, thresholds=thresholds)
-	} else {
-		if (!missing(acov) || !missing(fullWeight) || !missing(thresholds)) {
-			stop("acov, fullWeight, and thresholds must be passed in the observedStats list")
-		}
-	}
-	rm(acov)
-	rm(fullWeight)
-	rm(thresholds)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
@@ -185,6 +173,23 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 			paste(imxDataTypes[1:(numTypes-1)], collapse="' '"),
 			"' or '", imxDataTypes[numTypes], "'", sep=""))
 	}
+	if (type == "acov") {
+		return(legacyMxData(observed, type="acov", means=means, numObs=numObs, 
+			acov=acov, fullWeight=fullWeight, thresholds=thresholds))
+	}
+	if (missing(observedStats)) {
+		observedStats <- list()
+		if (!missing(acov)) observedStats <- c(observedStats, acov=acov)
+		if (!missing(fullWeight)) observedStats <- c(observedStats, fullWeight=fullWeight)
+		if (!missing(thresholds)) observedStats <- c(observedStats, thresholds=thresholds)
+	} else {
+		if (!missing(acov) || !missing(fullWeight) || !missing(thresholds)) {
+			stop("acov, fullWeight, and thresholds must be passed in via the observedStats list")
+		}
+	}
+	rm(acov)
+	rm(fullWeight)
+	rm(thresholds)
 	if (type == "sscp") {
 		stop(paste("'sscp' is not yet implemented."))
 	}
@@ -193,6 +198,9 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
 	if (type != "raw" && is.na(numObs)) {
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
+	}
+	if (length(algebra) && type != 'raw') {
+		stop("algebra only permitted for type='raw' data")
 	}
 	if (type == "cov") {
 		verifyCovarianceMatrix(observed)
@@ -275,7 +283,8 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
 		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
-		as.logical(.parallel), as.logical(.noExoOptimize), minVariance))
+		as.logical(.parallel), as.logical(.noExoOptimize), minVariance,
+		as.character(algebra)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -298,6 +307,21 @@ setMethod("preprocessDataForBackend", signature("NonNullData"),
 
 setMethod("convertDataForBackend", signature("NonNullData"),
 	  function(data, model, flatModel) { data })
+
+setMethod("qualifyNames", signature("NonNullData"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxDataStatic"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+		  if (.hasSlot(.Object, 'algebra')) {
+			  .Object@algebra <- imxConvertIdentifier(.Object@algebra, modelname, namespace, TRUE)
+		  }
+		.Object
+	})
 
 setMethod("convertDataForBackend", signature("MxDataStatic"),
 	  function(data, model, flatModel) {
@@ -354,6 +378,18 @@ setMethod("convertDataForBackend", signature("MxDataStatic"),
 					  stop(msg, call.=FALSE)
 				  }
 				  data@frequency <- wc
+			  }
+		  }
+		  if (.hasSlot(data, 'algebra')) {
+			  if (length(data@algebra)) {
+				  aNames <- names(flatModel@algebras)
+				  nums <- match(data@algebra, aNames)
+				  if (any(is.na(nums))) {
+					  msg <- paste("Algebra", omxQuotes(data@algebra[is.na(nums)]),
+						  "do not refer to an algebra")
+					  stop(msg, call.=FALSE)
+				  }
+				  data@algebra <- nums - 1L
 			  }
 		  }
 
@@ -469,7 +505,7 @@ verifySymmetric <- function(covMatrix, nameMatrix="observed") {
 	stop(msg, call. = FALSE)
 }
 
-verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
+verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed", strictPD=TRUE) {
 	if (is.null(covMatrix)) stop(paste("Covariance matrix",omxQuotes(nameMatrix),
 		"is missing in action"))
 	if(nrow(covMatrix) != ncol(covMatrix)) {
@@ -484,20 +520,39 @@ verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed") {
 	}
 	verifySymmetric(covMatrix, nameMatrix)
 	if (is.data.frame(covMatrix)) covMatrix <- as.matrix(covMatrix)
-	evalCov <- eigen(covMatrix)$values
-	if (nameMatrix=="observed" & any( evalCov <= 0)) {
-		msg <- paste("The", nameMatrix, "covariance matrix",
-			"is not a positive-definite matrix:\n",
-			"1 or more elements of eigen(covMatrix)$values ",
-			"<= 0")
-		stop(msg, call. = FALSE)
+	if(nameMatrix=="observed" && strictPD){
+		evalCov <- eigen(covMatrix,T,T)$values
+		if(any(evalCov <= 0)){
+			msg <- paste(
+				"The", nameMatrix, "covariance matrix",
+				"is not a positive-definite matrix:\n",
+				"1 or more elements of eigen(covMatrix)$values ",
+				"<= 0")
+			stop(msg, call. = FALSE)
+		}
 	}
-	if (nameMatrix=="asymptotic" & any( evalCov < -1e-4)) {
-		msg <- paste("The", nameMatrix, "covariance matrix",
-			"is not a positive-semi-definite matrix:\n",
-			"1 or more elements of eigen(covMatrix)$values ",
-			"< 0")
-		stop(msg, call. = FALSE)
+	if(nameMatrix=="asymptotic"){
+		if(strictPD){
+			evalCov <- eigen(covMatrix,T,T)$values
+			if(any(evalCov < -1e-4)){
+				msg <- paste(
+					"The", nameMatrix, "covariance matrix",
+					"is not a positive-semi-definite matrix:\n",
+					"1 or more elements of eigen(covMatrix)$values ",
+					"< 0")
+				stop(msg, call. = FALSE)
+			}
+		}
+		else{
+			tryToInv <- try(solve(covMatrix),silent=TRUE)
+			if(is(tryToInv,"try-error")){
+				msg <- paste(
+					"The", nameMatrix, "covariance matrix",
+					"is a singular matrix\n",
+					"(at least computationally if not exactly)")
+				stop(msg, call. = FALSE)
+			}
+		}
 	}
 }
 

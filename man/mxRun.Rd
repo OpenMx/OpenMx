@@ -40,7 +40,7 @@
 \usage{
 mxRun(model, ..., intervals = NULL, silent = FALSE, suppressWarnings = FALSE, 
     unsafe = FALSE, checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
-    useOptimizer = TRUE)
+    useOptimizer = TRUE, beginMessage=!silent)
 }
 
 \arguments{
@@ -53,7 +53,11 @@ mxRun(model, ..., intervals = NULL, silent = FALSE, suppressWarnings = FALSE,
     \item{checkpoint}{A boolean indicating whether to periodically write parameter values to a file.}
     \item{useSocket}{A boolean indicating whether to periodically write parameter values to a socket.}
     \item{onlyFrontend}{A boolean indicating whether to run only front-end model transformations.}
-    \item{useOptimizer}{A boolean indicating whether to run only the log-likelihood of the current free parameter values but not move any of the free parameters.}
+    \item{useOptimizer}{A boolean indicating whether to run only the
+    log-likelihood of the current free parameter values but not move any
+    of the free parameters.}
+  \item{beginMessage}{A boolean indicating whether to print the
+  number of parameters before invoking the backend.}
 }
 
 \details{

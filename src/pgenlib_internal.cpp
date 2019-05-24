@@ -12149,6 +12149,7 @@ void SpgwInitPhase2(uint32_t max_vrec_len, STPgenWriter* spgwp, unsigned char* s
 PglErr MpgwInitPhase2(const char* __restrict fname, const uintptr_t* __restrict allele_idx_offsets, uintptr_t* __restrict explicit_nonref_flags, uint32_t variant_ct, uint32_t sample_ct, PgenGlobalFlags phase_dosage_gflags, uint32_t nonref_flags_storage, uint32_t vrec_len_byte_ct, uintptr_t vblock_cacheline_ct, uint32_t thread_ct, unsigned char* mpgw_alloc, MTPgenWriter* mpgwp) {
   assert(thread_ct);
   const uintptr_t pwc_byte_ct = RoundUpPow2(sizeof(PgenWriterCommon), kCacheline);
+  mpgwp->pwcs.resize(thread_ct);
   for (uint32_t tidx = 0; tidx != thread_ct; ++tidx) {
     mpgwp->pwcs[tidx] = R_CAST(PgenWriterCommon*, &(mpgw_alloc[tidx * pwc_byte_ct]));
   }
@@ -12156,10 +12157,10 @@ PglErr MpgwInitPhase2(const char* __restrict fname, const uintptr_t* __restrict 
   if (!reterr) {
     mpgwp->thread_ct = thread_ct;
     for (uint32_t tidx = 1; tidx != thread_ct; ++tidx) {
-      memcpy(mpgwp->pwcs[tidx], mpgwp->pwcs[0], sizeof(PgenWriterCommon));
+      mpgwp->pwcs[tidx] = mpgwp->pwcs[0];
       mpgwp->pwcs[tidx]->vidx = tidx * kPglVblockSize;
     }
-    PwcInitPhase2(vblock_cacheline_ct, thread_ct, mpgwp->pwcs, &(mpgw_alloc[thread_ct * pwc_byte_ct]));
+    PwcInitPhase2(vblock_cacheline_ct, thread_ct, mpgwp->pwcs.data(), &(mpgw_alloc[thread_ct * pwc_byte_ct]));
   }
   return reterr;
 }

@@ -23,6 +23,8 @@
 # Step 1: load libraries
 require(OpenMx)
 
+if (mxOption(NULL, "Default optimizer") == 'NPSOL') stop('SKIP')
+
 #
 # Step 2: set up simulation parameters 
 # Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)

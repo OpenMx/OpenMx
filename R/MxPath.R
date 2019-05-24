@@ -233,7 +233,8 @@ pathCheckVector <- function(value, valname, check, type) {
 		stop(paste("The", omxQuotes(valname), 
 			"argument to mxPath must be a",
 			type, "vector of length > 0 in",
-			deparse(width.cutoff = 400L, imxLocateFunction("mxPath"))
+			deparse(width.cutoff = 400L, imxLocateFunction("mxPath")),
+			omxQuotes(valname), "argument had class", class(value), "and length", length(value)
 			), call. = FALSE)
 	}
 }
@@ -348,12 +349,19 @@ mxPath <- function(from, to = NA,
 	pathCheckVector(arrows, 'arrows', is.numeric, 'numeric')
 	pathCheckVector(free, 'free', is.logical, 'logical')
 	pathCheckVector(labels, 'labels', is.character, 'character')
+	if(!nchar0(labels)){
+		stop("Found illegal label '', i.e. the empty label. Give us a real label, love.")
+	}
 	pathCheckVector(values, 'values', is.numeric, 'numeric')
 	pathCheckVector(lbound, 'lbound', is.numeric, 'numeric')
 	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
 	generatePath(from, to, connect, arrows,
 		values, free, labels, 
 		lbound, ubound, joinKey)
+}
+
+nchar0 <- function(x){
+	all(nchar(x) > 0 | is.na(x))
 }
 
 prepPath <- function(path) {

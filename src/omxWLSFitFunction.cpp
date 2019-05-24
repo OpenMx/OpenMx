@@ -212,11 +212,7 @@ void omxWLSFitFunction::prepData()
 	if (!matrix->currentState->isClone()) {
 		std::vector<int> exoPred;
 		expectation->getExogenousPredictors(exoPred);
-		if (dataMat->defVars.size() == exoPred.size()) {
-			// OK
-		} else if (dataMat->hasDefinitionVariables()) {
-			mxThrow("%s: def vars not implemented", oo->name());
-		}
+		// how to prohibit def vars? TODO
 	
 		dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(),
 				      exoPred, type, continuousType, fullWeight);

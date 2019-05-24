@@ -258,7 +258,6 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	}
 	
 	feasTol = Global->feasibilityTolerance;
-	checkRedundantEqualities = true;
 }
 
 
@@ -282,8 +281,10 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	nmoc.fit2beat = R_PosInf;
 	nmoc.bignum = bignum;
 	nmoc.iniSimplexMat = iniSimplexMat;
+	nmoc.ineqConstraintMthd = ineqConstraintMthd;
+	nmoc.eqConstraintMthd = eqConstraintMthd;
 	nmoc.countConstraintsAndSetupBounds();
-	if(eqConstraintMthd==4 && (nmoc.numEqC || (ineqConstraintMthd && nmoc.numIneqC))){
+	if(nmoc.eqConstraintMthd==4 && (nmoc.numEqC || (nmoc.ineqConstraintMthd && nmoc.numIneqC))){
 		if(verbose){mxLog("starting l1-penalty algorithm");}
 		fc->iterations = 0; //<--Not sure about this
 		nmoc.maxIter = maxIter/10;
@@ -299,13 +300,17 @@ void omxComputeNM::computeImpl(FitContext *fc){
 					break;
 				}
 				if(nmoc.estInfeas){
-					nmoc.rho *= 10;
+					nmoc.rho *= 10.0;
 					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
 					nmoc.iniSimplexEdge = iniSimplexEdge;
 				}
-				else{ //It's making progress w/r/t the constraints, so re-initialize the simplex with a smaller edge:
+				else{ //It's making progress w/r/t the constraints, so re-initialize the simplex with a small edge:
 					nmoc.iniSimplexEdge = 
-						sqrt((nmoc.vertices[1] - nmoc.vertices[0]).dot(nmoc.vertices[1] - nmoc.vertices[0]));
+						sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+					//It's a good idea to reduce the penalty coefficient if the algorithm is making progress.
+					//That helps prevent it from stopping at a non-optimal point:
+					nmoc.rho /= 5.0;
+					if(verbose){mxLog("penalty factor rho = %f",nmoc.rho);}
 				}
 				if(fc->iterations >= maxIter){
 					nmoc.statuscode = 4;
@@ -336,6 +341,8 @@ void omxComputeNM::computeImpl(FitContext *fc){
 		nmoc2.est = nmoc.est;
 		nmoc2.rho = nmoc.rho;
 		nmoc2.addPenalty = nmoc.addPenalty;
+		nmoc2.eqConstraintMthd = nmoc.eqConstraintMthd;
+		nmoc2.ineqConstraintMthd = nmoc.ineqConstraintMthd;
 		nmoc2.countConstraintsAndSetupBounds();
 		nmoc2.invokeNelderMead();
 		if(nmoc2.statuscode==10){
@@ -517,6 +524,7 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 	statuscode = -1;
 	addPenalty = false;
 	rho = 1;
+	checkRedundantEqualities = true;
 }
 
 void NelderMeadOptimizerContext::copyBounds()
@@ -539,16 +547,15 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	//If there aren't any of one of the two constraint types, then the
 	//method for handling them shouldn't matter.  But, switching the
 	//method to the simplest setting helps simplify programming logic:
-	if(!numEqC && !NMobj->ineqConstraintMthd){NMobj->eqConstraintMthd = 1;}
-	if(!numIneqC){NMobj->ineqConstraintMthd = 0;}
+	if(!numEqC && !ineqConstraintMthd){eqConstraintMthd = 1;}
+	if(!numIneqC){ineqConstraintMthd = 0;}
 	equality.resize(numEqC);
 	inequality.resize(numIneqC);
 	
 	fc->equality.resize(numEqC);
-	fc->checkForAnalyticJacobians();
 	
 	//Check for redundant equality constraints, and warn if found:
-	if(numEqC > 1 && NMobj->checkRedundantEqualities){
+	if(numEqC > 1 && checkRedundantEqualities){
 		NldrMd_equality_functional eqf(this, fc);
 		Eigen::MatrixXd ej(numEqC, numFree);
 		ej.setConstant(NA_REAL);
@@ -562,21 +569,20 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		qrj.compute(ejt);
 		if(qrj.rank() < numEqC){
 			Rf_warning(
-				"counted %d equality constraints, but equality-constraint Jacobian is rank %d at the start values; " 
+				"counted %d equality constraints, but equality-constraint Jacobian is apparently rank %d at the start values; " 
 				"Nelder-Mead will not work correctly unless equality constraints are linearly independent "
 				"(this warning may be spurious if there are non-smooth equality constraints)", numEqC, qrj.rank()
 			);
-			NMobj->checkRedundantEqualities = false;
+			checkRedundantEqualities = false;
 		}
 	}
 	
-	if(numEqC + numIneqC || NMobj->eqConstraintMthd==3){
+	if(numEqC + numIneqC || eqConstraintMthd==3){
 		subsidiarygoc.setEngineName("SLSQP");
 		subsidiarygoc.ControlTolerance = 2 * Global->optimalityTolerance;
 		subsidiarygoc.useGradient = true;
 		subsidiarygoc.maxMajorIterations = Global->majorIterations;
 		subsidiarygoc.setupSimpleBounds();
-		subsidiarygoc.checkForAnalyticJacobians();
 		//mxThrow("so far, so good");
 	}
 }
@@ -664,12 +670,12 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 	else{
 		if(fc->fit > bignum){bignum = 10 * fc->fit;}
 		double fv = fc->fit;
-		if(NMobj->eqConstraintMthd==4 && addPenalty){
+		if(eqConstraintMthd==4 && addPenalty){
 			int i;
 			for(i=0; i < equality.size(); i++){
 				fv += rho * fabs(equality[i]);
 			}
-			if(NMobj->ineqConstraintMthd){
+			if(ineqConstraintMthd){
 				for(i=0; i < inequality.size(); i++){
 					fv += rho * fabs(inequality[i]);
 				}
@@ -711,8 +717,6 @@ void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::
 void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas)
 {
 	Eigen::Vector2i ifcr;
-	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
-	int eqConstraintMthd = NMobj->eqConstraintMthd;
 	enforceBounds(x);
 	checkNewPointInfeas(x, ifcr);
 	if(!ifcr.sum()){
@@ -772,8 +776,6 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::VectorXd oldpt, double &fv, int &newInfeas, int oldInfeas)
 {
 	Eigen::Vector2i ifcr;
-	int ineqConstraintMthd = NMobj->ineqConstraintMthd;
-	int eqConstraintMthd = NMobj->eqConstraintMthd;
 	enforceBounds(newpt);
 	checkNewPointInfeas(newpt, ifcr);
 	if(!ifcr.sum()){
@@ -1370,7 +1372,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 	subcentroid.resize(numFree);
 	eucentroidCurr.resize(numFree);
 	initializeSimplex(est, iniSimplexEdge, false);
-	if( (vertexInfeas.sum()==n+1 && NMobj->eqConstraintMthd != 4) || (fvals.array()==bignum).all()){
+	if( (vertexInfeas.sum()==n+1 && eqConstraintMthd != 4) || (fvals.array()==bignum).all()){
 		fc->recordIterationError("initial simplex is not feasible; specify it differently, try different start values, or use mxTryHard()");
 		statuscode = 10;
 		return;

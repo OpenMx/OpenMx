@@ -173,6 +173,11 @@ ex1Run <- omxCheckWarning(mxRun(Jor82Ex1),
 summary(ex1Run)
 
 
+#--------------------------------------------------------------------
+# Check for errors/warnings
+omxCheckWarning(omxCheckError(mxGetExpected(ex1Run, 'means'), "Requested component(s) 'means' had dimension or length 0.\nRequested component not in model. All I have is yours, but I ain't got no 'means'"), "Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")
+
+
 #------------------------------------------------------------------------------
 # Published Results
 

@@ -1,5 +1,4 @@
 library(OpenMx)
-if(mxOption(NULL,"Default optimizer")=="CSOLNP"){stop("SKIP")}
 
 # ============================================
 # = Make a super-simple 1 variance RAM model =
@@ -19,3 +18,6 @@ m1 = mxRun(m1)
 omxCheckWarning(mxSE(X, m1), NA) #  0.4024916
 
 omxCheckCloseEnough(mxSE(X, m1), mxSE("X", m1), 1e-4)
+
+foo <- "X"
+omxCheckCloseEnough(mxSE(X, m1), mxSE(foo, m1, forceName=T), 1e-4)
