@@ -37,6 +37,7 @@
 #include "omxDefines.h"
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include "minicsv.h"
 
 struct populateLocation {
 	int from;
@@ -48,12 +49,6 @@ struct populateLocation {
 	: from(_from), srcRow(_srcRow), srcCol(_srcCol), destRow(_destRow), destCol(_destCol) {};
 	void transpose() { std::swap(destRow, destCol); }
 };
-
-namespace mini {
-	namespace csv {
-		class ifstream;
-	}
-}
 
 class omxMatrix {
 	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
@@ -603,6 +598,7 @@ void filterJacobianRows(Eigen::MatrixBase<T1>& A, int& rankA){
 
 template <typename T> void omxMatrix::loadFromStream(T &st)
 {
+	using namespace mini::csv;
 	EigenMatrixAdaptor v(this);
 
 	switch(shape) {
