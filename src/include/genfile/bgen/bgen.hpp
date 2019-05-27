@@ -8,6 +8,7 @@
 #define BGEN_REFERENCE_IMPLEMENTATION_HPP
 
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <vector>
 #include <cassert>
