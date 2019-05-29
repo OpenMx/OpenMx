@@ -96,13 +96,15 @@ code-style: $(RFILES)
 	@if [ `grep GetRNGstate src/*.cpp | wc -l` -gt 1 ]; then echo "*** Use BorrowRNGState instead of GetRNGstate."; exit 1; fi
 	@if grep --color=always --exclude '*.rda' --exclude '*.RData' --exclude '.R*' --exclude '*.pdf' --exclude MatrixErrorDetection.R -r "@" demo inst/models; then echo '*** Access of @ slots must be done using $$'; fi
 
-build-prep:
+build-clean:
+	-[ -d build ] && rm -r ./build
+	mkdir build
+
+build-prep: build-clean
 	@if [ $$(git status --short --untracked-files=no 2> /dev/null | wc -l) != 0 ]; then \
 	  echo '***'; echo "*** UNCOMMITTED CHANGES IGNORED ***"; \
 	  echo '***'; echo "*** Use 'git diff' to see what is uncommitted"; \
           echo '***'; fi
-	-[ -d build ] && rm -r ./build
-	mkdir build
 	git archive --format=tar HEAD | (cd build; tar -xf -)
 
 cran-build: build-prep
@@ -132,16 +134,15 @@ cran-check-strict: cran-build
 	wc -l OpenMx.Rcheck/00check.log
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 88 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
-pdf:
-	-[ -d build ] && rm -r ./build
-	mkdir build
+roxygen:
+	sh ./util/rox
+
+pdf: roxygen build-clean
 	sh ./util/prep npsol install
 	rm -f $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
-html:
-	-[ -d build ] && rm -r ./build
-	mkdir build
+html: roxygen build-clean
 	sh ./util/prep npsol install
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
