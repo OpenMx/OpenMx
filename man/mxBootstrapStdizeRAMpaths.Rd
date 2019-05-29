@@ -24,8 +24,8 @@ mxBootstrapStdizeRAMpaths(model, bq= c(.25, .75),
 \details{
 \code{mxBootstrapStdizeRAMpaths} applies \code{\link{mxStandardizeRAMpaths}} to each bootstrap replication, thus creating a distribution of standardized estimates for each nonzero path coefficient.
 
-The default \code{bq} (bootstrap quantiles) of c(.25, .75) correspond to a 50% CI. This default is chosen as many more bootstraps are required to 
-accurately estimate more extreme quantiles. For a 95% CI, use \code{bq=c(.025,.0975)}. 
+The default \code{bq} (bootstrap quantiles) of c(.25, .75) correspond to a 50\% CI. This default is chosen as many more bootstraps are required to 
+accurately estimate more extreme quantiles. For a 95\% CI, use \code{bq=c(.025,.0975)}. 
 
 \emph{note 1}: It is possible (though unlikely) that the number of nonzero paths (elements of the \code{A} and \code{S} RAM matrices) may vary among bootstrap replications.  This precludes a simple summary of the standardized paths' bootstrapping results. In this rare case, if \code{returnRaw=TRUE}, a raw list of bootstrapping results is returned, with a warning. Otherwise an error is thrown.
 
