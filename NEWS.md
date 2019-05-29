@@ -8,7 +8,6 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * IMPROVED: `mxCheckIdentification` works with models containing constraints
 * IMPROVED: `mxPath` more helpful messages for errors
 * IMPROVED: `mxModel` error when path added to model without type = "RAM"
-* IMPROVED: `summary` better at not counting redundant constraints.
 * IMPROVED: progress reporting, inc. for mxTryHard.
 * IMPROVED: github and CRAN README.md
 * CHANGED: CXX14 (not CXX11)
