@@ -2,18 +2,36 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
-# OpenMx 2.13.0 FUTURE 2019 (R 3.6.0))
+# Road Map
+
+# OpenMx 2.13.2 
+* May 2019 (R 3.6.0))
 * NEW!: SEs for models with constraints! (used not to be calculated. Big win for twin models)
+* NEW: `vcov` works with models that contain MxConstraints (so does `m1$vcov')
+* EXPERIMENTAL: `mxAlgebra` gives users the option of populating an MxAlgebra with initial values, and of only recomputing the MxAlgebra when specifically called-for
+* HELP: `mxRefModels` now raises a warning if it is used on an MxModel that contains definition variables, or is a multilevel model.
+* IMPROVED: WLS summary statistics now taking advantage of multiple CPU cores: 40x faster :-)
+* IMPROVED: `summary` now reports a p-value of 1 if the chi-square test statistic has zero degrees-of-freedom.
+* NEW: `omxReadGRMBin` loads a genomic-relatedness matrix into R's workspace from a GCTA-format binary file.
 * IMPROVED: `omxSetParameters` warns if you don't ask to do anything.
+* NEW: `mxJiggle`: emulate the effect of keyword JIGGLE from classic Mx, or (default) function as a wrapper to the pre-existing imxJiggle(). Let the jiggling commence.
+* IMPROVED: `mxData` allows non-positive-definite observed covariance matrix if type = "acov".
+* IMPROVED: `mxRun` progress printing is now much easier to read
+* IMPROVED: `mxTryHard` progress reporting much improved!
+* IMPROVED: `mxOption` model  now conveniently defaults to NULL.
+* IMPROVED: `mxOption` has a `reset` argument, to reset all options to their on-load defaults.
+* EXPERIMENTAL: `mxComputeLoadData` supports high-throughput data analyses. A paper describing how to use it to analyze molecular genetic data is in preparation.
+* EXPERIMENTAL: `mxData` now has a new argument, algebra. It is an experimental feature that is only useful in conjunction with mxComputeLoadData.
 * IMPROVED: `mxCheckIdentification` works with models containing constraints
-* IMPROVED: `mxPath` more helpful messages for errors
+* IMPROVED: `mxFactorScores` is moved to the backend resulting in a substantial performance improvement!
+* IMPROVED: `mxPath` error messages are even more helpful :-)
 * IMPROVED: `mxModel` error when path added to model without type = "RAM"
-* IMPROVED: progress reporting, inc. for mxTryHard.
 * IMPROVED: github and CRAN README.md
 * CHANGED: CXX14 (not CXX11)
 
 
-# OpenMx 2.12.2 Feb 2019 (R 3.5.2))
+# OpenMx 2.12.2
+* Feb 2019 (R 3.5.2))
 * IMPROVED: parallel processing improved by addition of ConcurrentQueue.
 * IMPROVED: WLS moved to the backend: 10x faster!
 * NEW:  A new optimizer, which uses generalized simulated annealing, has been implemented.
@@ -36,10 +54,12 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * IMPROVED:  `mxPower` more detailed output.
 * IMPROVED:  `mxFitFunctionML`with rowDiagnostics=TRUE includes per-row squared Mahalanobis distance.
 
-# OpenMx 2.12.1 (Jan 20 2019 (R 3.5.2))
+# OpenMx 2.12.1
+* Jan 20 2019 (R 3.5.2)
 * Bug fix to definition variable handling in multilevel models (v2.11.5-2-g7ef03e3fe)
 
-# OpenMx 2.11.4 (September 24 2018 (R 3.5.1))
+# OpenMx 2.11.4
+* September 24 2018 (R 3.5.1)
 * PARTYTIME:  Appears to be passing compiling for MacOS on CRAN !! 
 * NEW: `mxModelAverage` function do compute parameter estimates that reflect the values found in a range of models that contain the parameter.
 * IMPROVED: `mxTryHard` has compact and self-erasing progress report
@@ -56,10 +76,12 @@ Some other functions and changes that might interest you
 
 * OTHER: `mxComputeManifestByParJacobian`
 
-# OpenMx 2.9.9 (R 3.5.0) Summer 2018
+# OpenMx 2.9.9
+* R 3.5.0) Summer 2018
 * No change for users
 
-# OpenMx CRAN 2.9.6 (R 3.4.4)
+# OpenMx 2.9.6
+* R 3.4.4
 * BUGFIX: Starting in version 2.7.0 (released January 10th, 2017), and ONLY in joint FIML analysis of both ordinal-threshold and continuous variables: if there was at least one row of the dataset in which all of the continuous variables had missing scores, then OpenMx could incorrectly evaluate the fit function, which would result in OpenMx silently returning numerically incorrect results. If you have run a joint ordinal/continuous FIML analysis with OpenMx versions 2.7.x thru 2.8.x, check your dataset to see if there are any rows in which all the continuous endogenous variables are missing (and at least one endogenous binary or ordinal variable is non-missing). If so, re-run your analysis using OpenMx v2.9. We apologize for any inconvenience this serious, but now-repaired, bug may have caused.
 * IMPROVED:  CSOLNP. This bug would cause CSOLNP to enter an endless loop when optimizing an MxModel containing MxConstraints.
 * IMPROVED:  Four memory leaks have been closed: one in OpenMx's interface to SLSQP, one in OpenMx's Nelder-Mead implementation, one in the MxComputeNumericDeriv step, and one in the FIML fitfunction backend for state-space models.
