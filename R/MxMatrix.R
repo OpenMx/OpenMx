@@ -494,7 +494,7 @@ mxMatrix <- function(type = c("Full", 'Diag', 'Iden', 'Lower',
 	if (length(list(...)) > 0) {
 		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
 	}
-	type <- match.barg(type)
+	type <- match.barg(as.character(type), choices=matrixTypes)
 	if (missing(dimnames) && !missing(values) && !is.null(dimnames(values))) {
 		dimnames <- dimnames(values)
 	}
