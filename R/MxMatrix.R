@@ -446,7 +446,7 @@ setReplaceMethod("[[", "MxMatrix", function(x,i,value) { .mxMatSetLayer(x,i,valu
 
 setMethod("names", "MxMatrix", slotNames)
 
-matrixTypes <- c("Diag", "Full", "Iden", "Lower", "Stand", "Sdiag", "Symm", "Unit", "Zero")
+matrixTypes <- c("Full", "Diag", "Iden", "Lower", "Sdiag", "Stand", "Symm", "Unit", "Zero")
 squareMatrices <- c("Diag", "Iden", "Lower", "Stand", "Sdiag", "Symm")
 fixedMatrices <- c("Iden","Unit","Zero")
 
