@@ -616,7 +616,7 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 		stop(paste("In model", omxQuotes(topmodel@name),
 			"the name", omxQuotes(select),
 			"is used as a free parameter in", omxQuotes(freelocation),
-			"and as a fixed parameter in", omxQuotes(fixedlocation)), call. = FALSE)
+			"but as a fixed parameter in", omxQuotes(fixedlocation)), call. = FALSE)
 	}
 }
 
