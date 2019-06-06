@@ -1,11 +1,14 @@
 # OpenMx
 
+<!-- badges: start -->
 [![Build Status](https://travis-ci.org/OpenMx/OpenMx.svg?branch=master)](https://travis-ci.org/OpenMx/OpenMx)
+[![Codecov test coverage](https://codecov.io/gh/jpritikin/OpenMx/branch/master/graph/badge.svg)](https://codecov.io/gh/jpritikin/OpenMx?branch=master)
 [![cran version](http://www.r-pkg.org/badges/version/OpenMx)](https://cran.r-project.org/package=OpenMx)
 [![Monthly Downloads](http://cranlogs.r-pkg.org/badges/OpenMx)](http://cranlogs.r-pkg.org/badges/OpenMx)
 [![Total Downloads](http://cranlogs.r-pkg.org/badges/grand-total/OpenMx)](http://cranlogs.r-pkg.org/badges/grand-total/OpenMx)
 [![Rdoc](http://www.rdocumentation.org/badges/version/OpenMx)](http://www.rdocumentation.org/packages/OpenMx)
 [![DOI](https://img.shields.io/badge/doi-110.1007/s11336--014--9435--8-yellow.svg?style=flat)](https://doi.org/10.1007/s11336-014-9435-8)
+<!-- badges: end -->
 
 OpenMx is a [Structural Equation Modeling](https://en.wikipedia.org/wiki/Structural_equation_modeling) 
 package that encourages users to treat model specifications as something to be generated
