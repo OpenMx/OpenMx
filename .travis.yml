@@ -45,4 +45,4 @@ deploy:
   script: ./util/travis/deploy
   on: master
 after_success:
-- if [ "x$MODE" = xcran-check ]; then travis_wait 40 Rscript -e 'covr::codecov()'; fi
+- if [ "x$MODE" = xcran-check ]; then travis_wait 40 tar -C .. -xf $PKG_TARBALL && Rscript -e 'covr::codecov()'; fi
