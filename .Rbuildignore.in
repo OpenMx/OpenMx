@@ -36,3 +36,5 @@ cachegrind.out.*
 ^cran-check.log$
 ^middle
 ^configure.win$
+^codecov\.yml$
+
