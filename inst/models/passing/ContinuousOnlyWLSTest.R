@@ -103,7 +103,7 @@ ph <- mxMatrix(name="Phi", type="Symm", ncol=2, free=T, values=c(.8, .2, .8), la
 wlsMod <- mxModel("Test case for WLS Objective function from Bollen 1989",
 	lx, ph, td,
 	mxExpectationLISREL(LX=lx$name, PH=ph$name, TD=td$name),
-	mxFitFunctionWLS(),
+	mxFitFunctionWLS("WLS"),
 	mxData(Bollen[, 1:8], 'raw')
 )
 
@@ -194,5 +194,5 @@ omxCheckTrue( (mlSum$RMSEA < wlsSum$RMSEACI[2]) & (mlSum$RMSEA >= wlsSum$RMSEACI
 wlsMod$data$observed[,1] <- 0.
 omxCheckError(mxRun(wlsMod), "Test case for WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")
 
-wlsMod <- mxModel(wlsMod, mxFitFunctionWLS(allContinuousMethod= 'marginals'))
+wlsMod <- mxModel(wlsMod, mxFitFunctionWLS("WLS", allContinuousMethod= 'marginals'))
 omxCheckError(mxRun(wlsMod), "The job for model 'Test case for WLS Objective function from Bollen 1989' exited abnormally with the error message: Test case for WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")

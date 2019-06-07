@@ -120,7 +120,7 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 })
 
 # **DONE**
-mxFitFunctionWLS <- function(type=c('WLS','DWLS','ULS'),
+mxFitFunctionWLS <- function(type=c('DWLS','WLS','ULS'),
 			     allContinuousMethod=c("cumulants", "marginals"),
 			     fullWeight=TRUE) {
 	type <- match.arg(type)

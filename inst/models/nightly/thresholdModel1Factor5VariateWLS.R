@@ -161,7 +161,7 @@ trun2 <- mxRun(tmod2)
 
 a <- proc.time()
 wmod2 <- mxModel(tmod2, mxData(ordinalData, 'raw'),
-	mxFitFunctionWLS(),
+	mxFitFunctionWLS('WLS'),
 	mxAlgebra(cov2cor(impliedCovs), name='newCov'),
 	mxMatrix("Unit", nrow=nThresholds, ncol=1, name="UnitVector"),
 	mxAlgebra(UnitVector %x% t(sqrt(diag2vec(impliedCovs))), name='theStandardDeviations'),
@@ -194,7 +194,7 @@ omxCheckCloseEnough(cor(omxGetParameters(trun2), omxGetParameters(wrun2)), 1, .0
 
 
 # new style for model 2
-wmod2a <- mxModel(tmod2, mxData(ordinalData, 'raw'), mxFitFunctionWLS())
+wmod2a <- mxModel(tmod2, mxData(ordinalData, 'raw'), mxFitFunctionWLS('WLS'))
 wrun2a <- mxRun(wmod2a)
 
 cbind(omxGetParameters(trun2), omxGetParameters(wrun2), omxGetParameters(wrun2a))

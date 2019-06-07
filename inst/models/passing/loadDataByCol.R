@@ -47,7 +47,7 @@ thresh$labels[,3] <- c("z5t1", "z5t2", NA)
 model1 <- mxModel("loadData",
 	loadings, resid, means, thresh,
 	mxAlgebra(t(L) %*% L + U, name="C"),
-	mxFitFunctionWLS(),
+	mxFitFunctionWLS('WLS'),
 	mxExpectationNormal("C", "M",
 		dimnames=names(jointData)[1:5],
 		thresholds="T",
@@ -61,7 +61,7 @@ for (dx in 1:numSets) {
                    z2=ordered(sample.int(2, 10, replace=TRUE)-1L))
   dsets[[dx]] <- df
   for (cx in paste0('z',3:5)) df[[cx]] <- jointData[[cx]]
-  model2 <- mxModel(model1, mxData(df, 'raw'), mxFitFunctionWLS())
+  model2 <- mxModel(model1, mxData(df, 'raw'), mxFitFunctionWLS('WLS'))
   model2 <- mxRun(model2)
   result1 <- rbind(result1, c(coef(model2), model2$output$standardErrors,
 	  model2$output$gradient, vech(model2$output$vcov)))
