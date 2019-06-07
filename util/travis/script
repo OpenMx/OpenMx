@@ -41,6 +41,7 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
     if [ "x$MODE" = xtest ]; then
 	make test
     elif [ "x$MODE" = xcran-check ]; then
+	./util/prep cran install  # for covr
 	do_cran_check
     fi
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
