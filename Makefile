@@ -64,7 +64,6 @@ help:
 	@echo ""	
 	@echo "  test               run the test suite"
 	@echo "  cran-check         build OpenMx without NPSOL and run CRAN check"
-	@echo "  cran-check-strict  build OpenMx without NPSOL and run CRAN check --as-cran"
 	@echo ""
 	@echo "  test-failing  run the failing test collection"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
@@ -124,15 +123,11 @@ packages-help:
 srcbuild: build-prep packages-help
 	cd build && sh ./util/prep npsol build && $(REXEC) CMD build .
 
-cran-check: cran-build
-	$(REXEC) CMD check build/OpenMx_*.tar.gz | tee cran-check.log
+cran-check:
+	sh ./util/prep cran build && $(REXEC) CMD build .
+	$(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
 	wc -l OpenMx.Rcheck/00check.log
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 66 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
-
-cran-check-strict: cran-build
-	$(REXEC) CMD check --as-cran build/OpenMx_*.tar.gz | tee cran-check.log
-	wc -l OpenMx.Rcheck/00check.log
-	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 88 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 roxygen:
 	sh ./util/rox
