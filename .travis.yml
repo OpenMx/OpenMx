@@ -15,6 +15,10 @@ matrix:
     env:
     - MODE=build
     latex: false
+
+r_github_packages:
+  - r-lib/covr
+
 dist: xenial
 sudo: required
 latex: true
