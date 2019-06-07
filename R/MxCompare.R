@@ -795,7 +795,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                                     values = nullInterestValue + curX)
     }
     simData <- try(gdFun(trueModel, returnModel=FALSE,
-                         nrows=ifelse(is.null(n), curX, origSampleSize)))
+                         nrows=ifelse(is.null(n), round(curX), origSampleSize)))
     if (is(simData, "try-error")) {
       stop(paste("Cannot generate data with trueModel",
                  omxQuotes(trueModel$name)), call.=FALSE)
