@@ -108,7 +108,7 @@ summary(factorRun)
 summary(factorRun, refModels=factorSat)
 
 # A raw-data example where using mxRefModels adds fit indices
-\dontrun{
+\donttest{
 m1 <- mxModel("OneFactor", type = "RAM",
     manifestVars = manifests, latentVars = latents,
     mxPath(latents, to=manifests, values = diag(var(demoOneFactor))*.2),

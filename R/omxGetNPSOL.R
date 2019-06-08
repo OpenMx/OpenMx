@@ -22,7 +22,7 @@
 ##' @return
 ##' Invisible NULL
 ##' @examples
-##' \dontrun{omxGetNPSOL()}
+##' \donttest{omxGetNPSOL()}
 ##'
 
 omxGetNPSOL <- function() {

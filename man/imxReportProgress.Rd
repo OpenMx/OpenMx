@@ -36,5 +36,5 @@ demo <- function() {
 	cat("DONE!", fill=TRUE)
 }
 
-\dontrun{demo()}
+\donttest{demo()}
 }

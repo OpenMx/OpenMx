@@ -114,7 +114,7 @@ factorModel2 <- omxSetParameters(
 	newlabels="u",name="OneFactor2")
 factorFit2 <- mxRun(factorModel2)
 omxAkaikeWeights(models=list(factorFit1,factorFit2))
-\dontrun{
+\donttest{
 mxModelAverage(
 	reference=c("A","Udiag"), include="all",
 	models=list(factorFit1,factorFit2))
