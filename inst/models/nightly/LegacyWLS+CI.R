@@ -39,7 +39,7 @@ colnames(thresh)  <- paste0('z', c(2,4,5))
 
 jm1 <- mxModel("ContinuousOrdinalData", loadings, resid, means, thresh,
 			mxAlgebra(t(L) %*% L + U, name="C"),
-			mxFitFunctionWLS(),
+			mxFitFunctionWLS('WLS'),
 			mxExpectationNormal("C", "M",
 				dimnames=names(jointdata),
 				thresholds="T",
