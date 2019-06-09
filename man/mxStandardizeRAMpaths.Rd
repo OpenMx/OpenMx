@@ -105,7 +105,7 @@ factorModel2 <- mxModel(model=factorModel,
                                    name="Sz",dimnames=dimnames(factorModel$S)),
                         mxCI(c("Az","Sz"))
 )
-\dontrun{
+\donttest{
 factorFit2 <- mxRun(factorModel2,intervals=TRUE)
 ## Contains point values and confidence limits for all paths:
 summary(factorFit2)$CI

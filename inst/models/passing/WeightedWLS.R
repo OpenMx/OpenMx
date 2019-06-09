@@ -53,7 +53,7 @@ uwModel <- mxModel(
   mxPath('one', 'z2c', free=FALSE, labels="data.z2c"),
   mxPath('z1c', 'z1'),
   mxPath('z2c', 'z2'),
-  mxFitFunctionWLS())
+  mxFitFunctionWLS('WLS'))
 
 uwModel$expectation$thresholds <- 'T'
 

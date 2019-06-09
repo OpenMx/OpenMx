@@ -148,7 +148,7 @@ jointWlsModel <- mxModel(jointModel1, name='wlsModel', wd, mxFitFunctionWLS('WLS
 jointDlsModel <- mxModel(jointModel1, name='dlsModel', dd, mxFitFunctionWLS('DWLS'))
 jointUlsModel <- mxModel(jointModel1, name='ulsModel', ud, mxFitFunctionWLS('ULS'))
 
-ramWlsModel <- mxModel(ramModel1, name='wlsModel', mxFitFunctionWLS())
+ramWlsModel <- mxModel(ramModel1, name='wlsModel', mxFitFunctionWLS('WLS'))
 
 # Run 'em
 jointWlsResults <- mxRun(jointWlsModel)
