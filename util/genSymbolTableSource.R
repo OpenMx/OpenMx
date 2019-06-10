@@ -26,4 +26,4 @@ strings <- paste(strings, collapse = '\n')
 
 output <- paste(header, strings, '};', sep = '\n')
 
-cat(output)
+cat(c(output, '\n'))
