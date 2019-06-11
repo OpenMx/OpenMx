@@ -25,7 +25,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
 }
 \arguments{
   \item{trueModel}{The true generating model for the data.}
-  \item{falseModel}{The model representing the null hypothesis that we wish to reject.}
+  \item{falseModel}{Model representing the null hypothesis that we wish to reject.}
   \item{n}{Average group sample size. When NULL, finds the relationship between sample size and power.
     When given, finds the relationship between a parameter and power (at the given sample size).}
   \item{sig.level}{The false positive rate (a.k.a. type 1 error).}
@@ -44,7 +44,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
 \details{
 
   Power is the chance of obtaining a significant difference when there
-  is a significant difference (1 - false negative rate).
+  is a true difference, i.e., (1 - false negative rate).
   The likelihood ratio test is used by default. There are two
   methods available to produce a power curve. The default,
   \code{method = empirical}, works for any model where the likelihood
@@ -64,7 +64,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
   before relying on \code{method = ncp}.
 
   \emph{note}: Unlike \code{method = empirical}, \code{method = ncp} does not use the
-  \code{gdFun} argument and works with models that only have summary statistics for data.
+  \code{gdFun} argument and can be used with models that have summary statistics rather than raw data.
 
   When \code{method = ncp}, parameters of both \sQuote{trueModel} and
   \sQuote{falseModel} are assumed to be converged to their desired values.
@@ -93,6 +93,8 @@ will be checked in turn and the results returned as a vector.
 If you pass a vector of sample sizes, each sample size will
 be checked in turn and the results returns as a vector.
 
+\strong{mxPowerSearch}
+
 In contrast to \code{mxPower}, \code{mxPowerSearch} attempts to model
 the whole relationship between sample size or effect size and power.
   A naive Monte Carlo estimate of power examines a single candidate
@@ -103,9 +105,9 @@ the whole relationship between sample size or effect size and power.
   (similar to Schoemann et al, 2014).
 
   The \code{mxPowerSearch} algorithm works in 3
-  stages. Without loss of generality, our description will assume a
-  sample size to power relationship, but a similar process is used for
-  the parameter value to power relationship. In the first stage, a crude
+  stages. Without loss of generality, our description will use the
+  sample size to power relationship, but a similar process is used when evaluating
+  the relationship of parameter value to power. In the first stage, a crude
   binary search is used to find the range reasonable values for N. This
   stage is complete once we have at least two rejections and at least two
   non-rejections. At this point, the binomial intercept and slope model
@@ -124,8 +126,7 @@ the whole relationship between sample size or effect size and power.
   Occasionally, the \emph{p}-value for the slope in the stage 3 model
   grows larger than 0.25. In this case, we switch back to stage 2
   (intercept only) until the stage 3 model start working again.
-  There is no other
-  convergence criteria. Accuracy continues to improves until the probe
+  There is no other convergence criteria. Accuracy continues to improves until the probe
   limit is reached. After \code{mxPowerSearch} returns, additional probes can
   be run by passing the previous result back into the function as the
   \code{previousRun} argument.
@@ -148,6 +149,10 @@ the whole relationship between sample size or effect size and power.
   identical for any pair of models (but located at a different range of
   sample sizes). You should select your own \code{grid} points if you
   wish to align power curves from more than one power analysis.
+  
+  \emph{Note}: CI is not given for method=ncp: The estimates are exact
+  (to the precision of the true and null/false model solutions provided by the user).
+ 
 
 }
 
