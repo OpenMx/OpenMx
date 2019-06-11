@@ -3,7 +3,16 @@
 \alias{mxPower}
 \title{Power curve}
 \description{
-  Determine the power curve between true and false models
+\code{mxPower} is used to evaluate the power to distinguish between a hypothesized effect (\code{trueModel})
+and a model where this effect is set to the value of the null hypothesis (\code{falseModel}).
+\code{mxPowerSearch} evaluates the relationship between sample size or effect size and power
+across a range of intelligently chosen values of, for example, sample size.
+
+The functions are flexible, with multiple options to control \emph{n}, \code{sig.level}, \code{method}, and 
+other factors. Several parameters can take a vector as input.
+
+These options are described in detail below.
+
 }
 \usage{
 mxPowerSearch(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
