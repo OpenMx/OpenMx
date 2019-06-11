@@ -217,6 +217,7 @@ RAMrfs <- function(model, res, minManifests) {
 	relevantDataCols <- c(manvars,defvars)
 	dat <- model@data@observed
 	I <- diag(length(manvars)+length(latvars))
+	Ilat <- diag(length(latvars))
 	while(i<=dim(res)[1]){
 		continublockflag <- ifelse(i<dim(res)[1],TRUE,FALSE)
 		manvars.curr <- manvars[ !is.na(dat[i,manvars]) ]
@@ -234,7 +235,8 @@ RAMrfs <- function(model, res, minManifests) {
 		unfilt <- solve(I-mxEvalByName("A",model,T,defvar.row=i))%*%mxEvalByName("S",model,T,defvar.row=i)%*%
 			t(solve(I-mxEvalByName("A",model,T,defvar.row=i)))
 		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
-		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],nrow=1)
+		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% t(solve(Ilat-mxEvalByName("A",model,T,defvar.row=i)[latvars,latvars]) %*% 
+			matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],ncol=1))
 		missing <- is.na(dat[i,manvars])
 		anyMissing <- any(missing)
 		if (anyMissing && is.na(minManifests)) requireMinManifests(i)
