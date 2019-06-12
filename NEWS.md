@@ -4,6 +4,9 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 
 # Road Map
 
+# OpenMx 2.13.3? 
+* FIXED: Bug with RAM-regression `mxFactor` scores (means not included in some cases).
+
 # OpenMx 2.13.2 
 * May 2019 (R 3.6.0))
 * NEW!: SEs for models with constraints! (used not to be calculated. Big win for twin models)
