@@ -168,7 +168,7 @@ jointLISREL <- mxModel("JointLISREL", type="LISREL",
     mxPath('z2c', 'z2', labels= "r2"),
     thresh,
 	mxData(jointdata, "raw", verbose=0L),
-    mxFitFunctionWLS('WLS')
+    mxFitFunctionWLS()
 	# Shouldn't we have a call to mxExpectationRAM or LISREL??? here???
 	# mxExpectationRAM(M = NA, dimnames = NA, thresholds = "T", threshnames = ???)	
 )
@@ -214,7 +214,7 @@ m1 <- mxModel(
   mxPath(c('snp','sex', 'snpsex'), 'phenotype'),
   
   mxData(personData, type="raw", algebra='snpsexAlg'),
-  mxFitFunctionWLS('WLS', allContinuousMethod = "marginals"))
+  mxFitFunctionWLS(allContinuousMethod = "marginals"))
 
 m1 <- mxRun(m1)
 

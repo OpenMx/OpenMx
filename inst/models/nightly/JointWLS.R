@@ -104,7 +104,7 @@ jodr <- mxRun(jod)
 #jow <- mxModel(jod, name="jointThesholdModelWls", r, mxFitFunctionWLS(),
 #	mxExpectationNormal(covariance="impliedCovs", dimnames = jam, thresholds="thresholdMatrix", threshnames=nam))
 
-jow <- mxModel(jod, name="jointThesholdModelWls", mxFitFunctionWLS('WLS'))
+jow <- mxModel(jod, name="jointThesholdModelWls", mxFitFunctionWLS())
 
 jowr <- mxRun(jow)
 
@@ -147,7 +147,7 @@ jodm <- mxModel("jointThresholdModel",
 
 jodmr <- mxRun(jodm)
 
-jowm <- mxModel(jodm, name="jointThesholdModelWls", mxFitFunctionWLS('WLS'))
+jowm <- mxModel(jodm, name="jointThesholdModelWls", mxFitFunctionWLS())
 jowmr <- mxRun(jowm)
 
 # DWLS

@@ -26,13 +26,13 @@
 }
 
 \usage{
-mxFitFunctionWLS(type=c('DWLS','WLS','ULS'),
+mxFitFunctionWLS(type=c('WLS','DWLS','ULS'),
 			     allContinuousMethod=c("cumulants", "marginals"),
 			     fullWeight=TRUE)
 }
 
 \arguments{
-   \item{type}{A character string 'DWLS' (default), 'WLS', or 'ULS' for weighted, diagonally weighted, or unweighted least squares, respectively}
+   \item{type}{A character string 'WLS' (default), 'DWLS', or 'ULS' for weighted, diagonally weighted, or unweighted least squares, respectively}
    \item{allContinuousMethod}{A character string 'cumulants' (default) or 'marginals'. See Details.}
    \item{fullWeight}{Logical determining if the full weight matrix is returned (default). Needed for standard error and quasi-chi-squared calculation.}
 }

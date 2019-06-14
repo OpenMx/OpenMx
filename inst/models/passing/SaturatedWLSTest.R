@@ -109,7 +109,7 @@ satwls2 <- mxModel(name="ExpNormWLSSat",
 	mxMatrix("Full", 2, 3, values=c(0, NA, 0, .8, 0, .8), free=c(TRUE,FALSE,TRUE,TRUE,TRUE,TRUE), name="thresholdMatrix"),
 	mxMatrix('Zero', nrow=1, ncol=3, name='meansMatrix'),
 	obsWDat,
-	mxFitFunctionWLS('WLS'),
+	mxFitFunctionWLS(),
 	mxExpectationNormal(covariance="satCov", means='meansMatrix', thresholds="thresholdMatrix", dimnames=theDims[[1]])
 )
 
