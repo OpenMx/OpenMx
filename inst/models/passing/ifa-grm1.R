@@ -157,7 +157,7 @@ m3 <- mxModel(
   mxPath('G', colnames(correct.mat), values=1),
   mxMatrix(nrow=6, ncol=ncol(correct.mat), name="T", values=NA,
 	  dimnames=list(NULL, colnames(correct.mat))),
-  mxFitFunctionWLS('WLS')
+  mxFitFunctionWLS()
 )
 
 m3$expectation$thresholds <- 'T'
