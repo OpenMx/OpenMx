@@ -111,12 +111,7 @@ omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
 ##' @references
 ##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
 ##' @examples
-##' msg <- paste("Objective functions like mxFIMLObjective()",
-##'		"have been deprecated in favor of expectation and fit functions.\n",
-##'		"Please use mxExpectationNormal(covariance= , means = , ...) instead,",
-##'		"and add a call to mxFitFunctionML().",
-##'		"See examples at help(mxExpectationNormal)")
-##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), msg)
+##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), "deprecated")
 ##' 
 ##' # Test for no warning
 ##' omxCheckWarning(2+2, message = NA)
@@ -153,10 +148,6 @@ omxCheckWarning <- function(expression, message) {
 ##'		"has been assigned to a",
 ##'		"free parameter in matrix 'A'"))
 ##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
-##' # Throws error, check the message
-##' tmsg <- paste("In omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9, 3), 0.01)",
-##'		": not equal to within 0.01 : '1 2 3' and '1.1 1.9 3'")
-##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), .01), tmsg)
 omxCheckError <- function(expression, message) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_error(expression, message, fixed=TRUE)
