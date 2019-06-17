@@ -85,7 +85,7 @@ omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
 omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     mapply(function(a1,b1) {
-      testthat::expect_equivalent(object=a1, expected=b1, scale=a1, tolerance=percent)
+      testthat::expect_equivalent(object=a1, expected=b1, scale=abs(a1), tolerance=percent)
     }, as.vector(a), as.vector(b))
   } else {
     stop(paste0("Please install.packages(testthat) and try again"))
