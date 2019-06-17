@@ -23,12 +23,11 @@
 }
 
 \usage{
-omxCheckEquals(a, b)
+omxCheckEquals(...)
 }
 
 \arguments{
-   \item{a}{the first value to compare.}
-   \item{b}{the second value to compare.}
+   \item{...}{arguments forwarded to \link[testthat:equality-expectations]{expect_equivalent}}
 }
 
 \details{

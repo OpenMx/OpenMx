@@ -23,12 +23,11 @@
 }
 
 \usage{
-omxCheckSetEquals(a, b)
+omxCheckSetEquals(...)
 }
 
 \arguments{
-   \item{a}{the first vector to compare.}
-   \item{b}{the second vector to compare.}
+   \item{...}{arguments forwarded to \link[testthat:equality-expectations]{expect_setequal}}
 }
 
 \details{

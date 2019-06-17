@@ -38,11 +38,11 @@ omxCheckSetEquals <- function(...) {
   }
 }
 
-omxCheckTrue <- function(object) {
+omxCheckTrue <- function(a) {
   if (requireNamespace('testthat', quietly = TRUE)) {
-    if (is.numeric(object)) object <- as.logical(object)
-    if (length(object) > 1) object <- all(object)
-    testthat::expect_true(object)
+    if (is.numeric(a)) a <- as.logical(a)
+    if (length(a) > 1) a <- all(a)
+    testthat::expect_true(a)
   } else {
     stop(paste0("Please install.packages(testthat) and try again"))
   }
