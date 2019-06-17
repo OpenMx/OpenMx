@@ -82,6 +82,17 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
 		   thresholds))
 }
 
+tryCatch.W <- function(expr) {
+	# see demo(error.catching)
+	W <- NULL
+	w.handler <- function(w) {
+		W <<- c(W,w)
+		invokeRestart("muffleWarning")
+	}
+	list(value = withCallingHandlers(tryCatch(expr), warning = w.handler),
+	     warning = W)
+}
+
 #------------------------------------------------------------------------------
 # Mike Hunter's wls compute function for continuous only variables
 
