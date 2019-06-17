@@ -241,8 +241,7 @@ void omxWLSFitFunction::prepData()
 		if(newObj->expectedMeans != NULL) {
 			if (eThresh.size() == 0) {
 				omxRaiseError("Observed means not detected, but expected means specified.\n"
-					      "The model has no continuous variables. "
-					      "Do you did forget allContinuousMethod='marginals'?");
+				   "To model means with all continuous data, you need to set allContinuousMethod='marginals'");
 			} else {
 				omxRaiseError("Means are required when the data include ordinal measurements");
 			}
