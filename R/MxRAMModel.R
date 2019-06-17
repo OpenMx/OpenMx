@@ -300,7 +300,7 @@ getNotPathsOrData <- function(lst) {
 expectationIsMissingThresholds <- function(model) {
 	expectation <- model@expectation
 	return(!is.null(expectation) &&
-	is(expectation, "MxExpectationRAM") &&
+	       (is(expectation, "MxExpectationRAM") || is(expectation, "MxExpectationLISREL")) &&
 		is.na(expectation@thresholds))
 }
 
@@ -324,9 +324,10 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 	}
 	
 	legalVars <- model@manifestVars
-	isUsed <- matrix(FALSE, 1, length(legalVars))
-	colnames(isUsed) <- legalVars
-	isUsed[colnames(Thresh)] <- TRUE
+	if (is.list(legalVars)) {
+	  # for LISREL
+	  legalVars <- legalVars$endogenous
+	}
 	maxNThresh <- nrow(Thresh)
 
 	allVars <- unique(as.character(lapply(thresholds, getElement, "variable")))
@@ -340,7 +341,6 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 	}
 
 	maxNThresh <- max(sapply(thresholds, getElement, "nThresh"))
-	isUsed[allVars] <- TRUE
 	
 	newVars <- union(colnames(Thresh), allVars)
 	if(length(newVars) > ncol(Thresh)) {  # Rebuild Threshold matrix if needed
