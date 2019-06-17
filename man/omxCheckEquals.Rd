@@ -32,7 +32,7 @@ omxCheckEquals(a, b)
 }
 
 \details{
-Performs the \sQuote{==} comparison on the two arguments. If the two arguments are not equal, then an error will be thrown. If \sQuote{a} and \sQuote{b} are equal to each other, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
+Performs the \sQuote{==} comparison on the two arguments. If the two arguments are not equal, then an error will be thrown.
 }
 
 \references{

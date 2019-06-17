@@ -15,6 +15,8 @@
 
 #options(error = browser)
 require(OpenMx)
+library(testthat)
+
 data <- mxData(type = 'raw', matrix(".", 3, 3, dimnames = list(NULL,c('a','b','c'))))
 covariance <- mxMatrix('Symm', 3, 3, values = c(1:6), name = 'cov')
 means <- mxMatrix('Full', 1, 3, values = c(1:3), name = 'means')
@@ -73,9 +75,5 @@ omxCheckError(mxData(mtcars[1:2,1:2], type="cov", numObs= 77),
 
 m <- diag(2)
 m[1,2] <- .001
-omxCheckError(mxData(m, type="cov", numObs=10),
-              "The observed matrix is not a symmetric matrix, possibly due to rounding errors.
-Something like this would be appropriate:
- m <- (m + t(m)) / 2
-Where m is the name of your observed data. Another option is 
- m <- round(m, 3)")
+expect_error(mxData(m, type="cov", numObs=10),
+              "The observed matrix is not a symmetric matrix, possibly due to rounding errors.")

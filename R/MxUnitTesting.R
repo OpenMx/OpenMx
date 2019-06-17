@@ -14,93 +14,38 @@
 #   limitations under the License.
 
 
-checkZeroDimensions <- function(a, b) {
-	if ((length(a) == 0 && length(b) > 0) ||
-		(length(a) > 0 && length(b) == 0)) {
-			stop(paste("One of these has zero length:",
-				omxQuotes(paste(a, collapse = ' ')), 
-				"and", omxQuotes(paste(b, collapse = ' ')))) 	
-	} else if (length(a) == 0 && length(b) == 0) {
-		warning("Both values have zero length.  That's weird.")
-	}
+omxCheckIdentical <- function(...) {
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    testthat::expect_identical(...)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
-checkEqualDimensions <- function(a, b) {
-	checkZeroDimensions(a, b)
-	if((is.vector(a) && length(a) > 1 && !is.vector(b)) || 
-		(is.vector(b) && length(b) > 1 && !is.vector(a))) {
-		stop(paste("Not both vectors:",
-			   omxQuotes(paste(a, collapse = ' ')),
-			   "and", omxQuotes(paste(b, collapse = ' '))))
-	}
-	if((is.matrix(a) && (nrow(a) > 1 || ncol(a) > 1) && !is.matrix(b)) || 
-		(is.matrix(b) && (nrow(b) > 1 || ncol(b) > 1) && !is.matrix(a))) {
-		stop(paste("Not both matrices:",
-			   omxQuotes(paste(a, collapse = ' ')),
-			   "and", omxQuotes(paste(b, collapse = ' '))))
-	}	
-	if (is.vector(a) && (length(a) != length(b))) {
-		stop(paste("Not equal length",
-			   length(a), 'and', length(b), ":",
-			   omxQuotes(paste(a, collapse = ' ')),
-			   "and", omxQuotes(paste(b, collapse = ' '))))
-	}
-	if (is.matrix(a) && (nrow(a) > 1 || ncol(a) > 1) && any(dim(a) != dim(b))) {
-		stop(paste("Not of equal dimension",
-			   paste(dim(a), collapse = ' x '), 'and',
-			   paste(dim(b), collapse = ' x '), ":",
-			   omxQuotes(paste(a, collapse = ' ')),
-			   "and", omxQuotes(paste(b, collapse = ' '))))
-	}
+omxCheckEquals <- function(...) {
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    testthat::expect_equivalent(...)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
-omxCheckIdentical <- function(a, b) {
-	checkEqualDimensions(a, b)	
-	if (any(!identical(a, b))) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not identical"))
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste(deparse(match.call()$a), "and", 
-			deparse(match.call()$b),
-			"are identical.\n"))	
-	}
+omxCheckSetEquals <- function(...) {
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    testthat::expect_setequal(...)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
-omxCheckEquals <- function(a, b) {
-	checkEqualDimensions(a, b)	
-	if (any(a != b)) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"are not equal"))
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste(deparse(match.call()$a), "and", 
-			deparse(match.call()$b),
-			"are equal.\n"))	
-	}
-}
-
-omxCheckSetEquals <- function(a, b) {
-	if (!setequal(a, b)) {
-		stop(paste(omxQuotes(paste(b, collapse = ' ')), 
-			"and", omxQuotes(paste(b, collapse = ' ')), 
-			"do not contain the same elements"))
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste(deparse(match.call()$a), "and", 
-			deparse(match.call()$b),
-			"contain the same elements.\n"))
-	}
-}
-
-omxCheckTrue <- function(a) {	
-	if (length(a) < 1) stop("What is true? (Nothing tested)")
-	if (any(!a)) {
-		call <- deparse(match.call()$a)
-		stop(paste(call, "is not true"))
-	} else if (getOption("mxPrintUnitTests")) {
-		call <- deparse(match.call()$a)
-		cat(paste(call, "is true.", '\n'))
-	}
+omxCheckTrue <- function(object) {
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    if (is.numeric(object)) object <- as.logical(object)
+    if (length(object) > 1) object <- all(object)
+    testthat::expect_true(object)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
 ##' Approximate Equality Testing Function
@@ -113,19 +58,11 @@ omxCheckTrue <- function(a) {
 ##' equal dimension. The two arguments are compared element-wise for
 ##' approximate equality.  If the absolute value of the difference of
 ##' any two values is greater than the threshold, then an error will
-##' be thrown. If \sQuote{a} and \sQuote{b} are approximately equal to
-##' each other, by default the function will print a statement
-##' informing the user the test has passed.  To turn off these print
-##' statements use \code{options("mxPrintUnitTests" = FALSE)}.
-##'
-##' When na.action is set to na.pass, a and b are expected to have
-##' identical missingness patterns.
+##' be thrown.
 ##'
 ##' @param a a numeric vector or matrix
 ##' @param b a numeric vector or matrix
 ##' @param epsilon a non-negative tolerance threshold
-##' @param na.action either na.fail (default) or na.pass. Use of
-##' na.omit or na.exclude is not recommended.
 ##' @seealso
 ##' \code{\link{omxCheckWithinPercentError}},
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
@@ -137,71 +74,22 @@ omxCheckTrue <- function(a) {
 ##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
 ##' # Throws an error
 ##' try(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.01))
-omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15), na.action=na.fail) {
-	if (epsilon < 0) stop("epsilon must be non-negative")
-	checkEqualDimensions(a, b)
-	a <- na.action(a)
-	b <- na.action(b)
-	if (any(is.na(a) != is.na(b))) {
-		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
-			   "different missingness patterns:",
-			   omxQuotes(paste(a, collapse = ' ')),
-			   "and", omxQuotes(paste(b, collapse = ' '))),
-			call. = FALSE)
-	}
-	a.vec <- as.vector(a)
-	b.vec <- as.vector(b)
-	a.vec <- a.vec[!is.na(a.vec)]
-	b.vec <- b.vec[!is.na(b.vec)]
-	check <- any(mapply(function(x,y) {
-			abs(x - y) > epsilon }, 
-			a.vec, b.vec))
-	if (check) {
-		stop(paste("In", deparse(width.cutoff = 400L, sys.call()), ":",
-			   "not equal to within", epsilon, ':',
-			   omxQuotes(paste(a, collapse = ' ')),
-			   "and", omxQuotes(paste(b, collapse = ' '))),
-			call. = FALSE)
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste(deparse(match.call()$a), "and", 
-			deparse(match.call()$b),
-			"are equal to within", paste(epsilon, ".\n", sep = '')))
-	}
+omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    testthat::expect_equivalent(object=a, expected=b, scale=1, tolerance=epsilon)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
 omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
-	checkEqualDimensions(a, b)	
-	check <- any(mapply(function(x,y) {
-			(abs(x - y)/x * 100) > percent }, 
-			as.vector(a), as.vector(b)))	
-	if (check) {
-		stop(paste(omxQuotes(paste(a, collapse = ' ')), 
-			"does not estimate", 
-			omxQuotes(paste(b, collapse = ' ')), 
-			"within", percent, "percent"))
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste(deparse(match.call()$a), "and", 
-			deparse(match.call()$b),
-			"are equal to within", percent, "percent.\n"))
-	}
-}
-
-trim <- function(input) {
-	input <- sub("(?m)^\\s+", "", input, perl = TRUE)
-	input <- sub("(?m)\\s+$", "", input, perl = TRUE)
-	input <- gsub("\\s+", " ", input, perl = TRUE)
-	tolower(input)
-}
-
-tryCatch.W <- function(expr) {
-	# see demo(error.catching)
-	W <- NULL
-	w.handler <- function(w) {
-		W <<- c(W,w)
-		invokeRestart("muffleWarning")
-	}
-	list(value = withCallingHandlers(tryCatch(expr), warning = w.handler),
-	     warning = W)
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    mapply(function(a1,b1) {
+      testthat::expect_equivalent(object=a1, expected=b1, scale=a1, tolerance=percent)
+    }, as.vector(a), as.vector(b))
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
 ##' Correct Warning Message Function
@@ -234,42 +122,11 @@ tryCatch.W <- function(expr) {
 ##' omxCheckWarning(2+2, message = NA)
 ##' 
 omxCheckWarning <- function(expression, message) {
-	inputExpression <- match.call()$expression
-	result <- tryCatch.W(expression)
-	if (is.null(result$warning)) {
-		if (all(is.na(message))) {
-			if (getOption("mxPrintUnitTests")) {
-				cat(paste("As expected, no warning was generated by the expression",
-					  deparse(inputExpression, width.cutoff = 500L), '\n'))
-			}
-			return(result$value)
-		}
-		stop(paste("No warning was observed for the expression",
-			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
-	}
-	if (length(result$warning)) {
-		msgs <- unlist(result$warning[seq(1,length(result$warning),2)])
-		#ctxt <- result$warning[seq(2,length(result$warning),2)]  # maybe helpful?
-		if (length(msgs) < length(message)) {
-			stop(paste("Got",length(msgs),"warnings but expected",length(message)))
-		}
-		expWarn <- c()
-		for (mx in 1:length(msgs)) {
-			expWarn[mx] <- message[1L+((mx-1L) %% length(message))]
-		}
-		mismatch <- trim(msgs) != trim(expWarn)
-		if (any(mismatch)) {
-			stop(paste("A warning was thrown with the wrong message:",
-				   paste(apply(data.frame(n=which(mismatch),
-							  msg=msgs[mismatch]),
-					       1, paste, collapse=":"), collapse="\n")), call. = FALSE)
-		}
-	}
-	if (getOption("mxPrintUnitTests")) {
-		cat(paste("The expected warning was observed for the expression",
-			  deparse(inputExpression, width.cutoff = 500L), '\n'))
-	}
-	result$value
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    testthat::expect_warning(expression, message, fixed=TRUE)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }
 
 ##' Correct Error Message Function
@@ -301,21 +158,9 @@ omxCheckWarning <- function(expression, message) {
 ##'		": not equal to within 0.01 : '1 2 3' and '1.1 1.9 3'")
 ##' omxCheckError(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), .01), tmsg)
 omxCheckError <- function(expression, message) {
-	inputExpression <- match.call()$expression
-	pkg_globals$checkErrorState <- FALSE
-	tryCatch(eval(inputExpression), error = function(x) {
-		if(!any(trim(x$message) == trim(message))) {
-			stop(paste("An error was thrown with the wrong message:",
-				x$message), call. = FALSE)
-		} else {
-			pkg_globals$checkErrorState <- TRUE
-		}
-	})
-	if (!pkg_globals$checkErrorState) {
-		stop(paste("No error was observed for the expression",
-			deparse(inputExpression, width.cutoff = 500L)), call. = FALSE)
-	} else if (getOption("mxPrintUnitTests")) {
-		cat(paste("The expected error was observed for the expression",
-			deparse(inputExpression, width.cutoff = 500L), '\n'))
-	}
+  if (requireNamespace('testthat', quietly = TRUE)) {
+    testthat::expect_error(expression, message, fixed=TRUE)
+  } else {
+    stop(paste0("Please install.packages(testthat) and try again"))
+  }
 }

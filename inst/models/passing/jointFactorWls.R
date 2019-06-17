@@ -219,8 +219,8 @@ omxCheckTrue(shan$ChiDoF == swls$ChiDoF)
 
 
 # Compare Chi-squared values too
-omxCheckCloseEnough(sref$Chi, shan$Chi, 1e-3)
-omxCheckWithinPercentError(shan$Chi, swls$Chi, 28)
+omxCheckCloseEnough(sref$Chi, as.numeric(shan$Chi), 1e-3)
+omxCheckWithinPercentError(as.numeric(shan$Chi), swls$Chi, 28)
 
 
 

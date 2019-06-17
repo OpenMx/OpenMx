@@ -42,8 +42,6 @@ if (system2(rexec, args='--vanilla', stdout=FALSE, stderr=FALSE,
 
 library(OpenMx)
 
-options('mxPrintUnitTests' = FALSE)
-
 directories <- c('models/passing')
 
 if (any(args == 'nightly')) {
