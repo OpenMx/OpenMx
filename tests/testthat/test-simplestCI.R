@@ -15,6 +15,9 @@
 
 
 library(OpenMx)
+library(testthat)
+context("simplestCI")
+
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
 covariance <- matrix(c(1.0, 0.5, 0.5, 1.0), nrow=2, dimnames=list(c("a", "b"),
@@ -47,7 +50,7 @@ cimodel <- mxModel(fit1,
 
 fit2 <- mxRun(cimodel,
               intervals = TRUE, silent=TRUE, checkpoint=FALSE)
-print(fit2$compute$output$detail)
+#print(fit2$compute$output$detail)
 
 fit3 <- mxRun(cimodel, intervals = FALSE)
 omxCheckTrue(is.null(fit3$output$confidenceIntervals))
