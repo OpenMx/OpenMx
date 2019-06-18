@@ -18,27 +18,6 @@ data("jointdata", package ="OpenMx", verbose= TRUE)
 # = Here's what our input data looks like: =
 # ==========================================
 str(jointdata)
-# jointdata is a dataframe with 5 variables: "z1", "z2", "z3", "z4", "z5"
-# 'data.frame':	250 obs. of  5 variables:
-#  $ z1: num  6.83 8.77 8.01 9 8.52 ...
-#  $ z2: int  0 0 0 1 0 0 0 0 0 0 ...
-#  $ z3: num  -0.0647 2.8983 2.5471 2.9078 3.4518 ...
-#  $ z4: int  2 2 1 2 1 1 0 1 0 3 ...
-#  $ z5: int  2 1 2 2 0 2 0 2 2 1 ...
-
-round(cov(jointdata),3)
-#       z1    z2    z3    z4    z5
-# z1 0.927 0.149 0.437 0.368 0.089
-# z2 0.149 0.250 0.148 0.202 0.065
-# z3 0.437 0.148 0.936 0.454 0.049
-# z4 0.368 0.202 0.454 1.279 0.122
-# z5 0.089 0.065 0.049 0.122 0.635
-
-# ==============================================================================================================
-# = Make data suitable for a joint (continuous and ordinal) model by reformatting some variables as mxFactors  =
-# ==============================================================================================================
-# z2, z4, and z5 to be mxFactors with 2, 4, and 3 levels respectively
-jointdata[,c("z2", "z4", "z5")] <- mxFactor(jointdata[,c("z2", "z4", "z5")], levels= list(c(0, 1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 # Make z1c = z1 + some noise;
 jointdata$z1c <- with(jointdata, z1 * .1 + rnorm(nrow(jointdata)))
