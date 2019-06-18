@@ -76,6 +76,8 @@ omxCheckTrue <- function(a) {
 ##' try(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.01))
 omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
   if (requireNamespace('testthat', quietly = TRUE)) {
+    if (is(a, "logLik")) a <- as.numeric(a)
+    if (is(b, "logLik")) b <- as.numeric(b)
     testthat::expect_equivalent(object=a, expected=b, scale=1, tolerance=epsilon)
   } else {
     stop(paste0("Please install.packages(testthat) and try again"))
@@ -85,6 +87,8 @@ omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
 omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     mapply(function(a1,b1) {
+      if (is(a1, "logLik")) a1 <- as.numeric(a1)
+      if (is(b1, "logLik")) b1 <- as.numeric(b1)
       testthat::expect_equivalent(object=a1, expected=b1, scale=abs(a1), tolerance=percent)
     }, as.vector(a), as.vector(b))
   } else {
