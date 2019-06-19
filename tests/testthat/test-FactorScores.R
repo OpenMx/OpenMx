@@ -21,6 +21,7 @@
 library(OpenMx)
 library(testthat)
 context("FactorScores")
+suppressWarnings(RNGversion("3.5"))
 
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
