@@ -57,7 +57,9 @@ withr::with_makevars(getOption("covr.flags"), assignment = "+=",
   )
 )
 roxygenize('.', roclets=c('rd'))
-covr::codecov(type=c("tests","examples"))
+c1 <- covr::package_coverage(type=c("tests","examples"))
+print(c1)
+covr::codecov(coverage = c1)
 EOF
 	travis_wait
     fi
