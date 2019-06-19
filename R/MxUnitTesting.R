@@ -18,7 +18,7 @@ omxCheckIdentical <- function(...) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_identical(...)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
@@ -26,7 +26,7 @@ omxCheckEquals <- function(...) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_equivalent(...)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
@@ -34,17 +34,17 @@ omxCheckSetEquals <- function(...) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_setequal(...)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
 omxCheckTrue <- function(a) {
   if (requireNamespace('testthat', quietly = TRUE)) {
-    if (is.numeric(a)) a <- as.logical(a)
+    if (is.numeric(a)) a <- as.logical(a) #nocov
     if (length(a) > 1) a <- all(a)
     testthat::expect_true(a)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
@@ -76,23 +76,23 @@ omxCheckTrue <- function(a) {
 ##' try(omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.01))
 omxCheckCloseEnough <- function(a, b, epsilon = 10^(-15)) {
   if (requireNamespace('testthat', quietly = TRUE)) {
-    if (is(a, "logLik")) a <- as.numeric(a)
-    if (is(b, "logLik")) b <- as.numeric(b)
+    if (is(a, "logLik")) a <- as.numeric(a) #nocov
+    if (is(b, "logLik")) b <- as.numeric(b) #nocov
     testthat::expect_equivalent(object=a, expected=b, scale=1, tolerance=epsilon)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
 omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     mapply(function(a1,b1) {
-      if (is(a1, "logLik")) a1 <- as.numeric(a1)
-      if (is(b1, "logLik")) b1 <- as.numeric(b1)
+      if (is(a1, "logLik")) a1 <- as.numeric(a1) #nocov
+      if (is(b1, "logLik")) b1 <- as.numeric(b1) #nocov
       testthat::expect_equivalent(object=a1, expected=b1, scale=abs(a1), tolerance=percent)
     }, as.vector(a), as.vector(b))
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
@@ -124,7 +124,7 @@ omxCheckWarning <- function(expression, message) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_warning(expression, message, fixed=TRUE)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
 
@@ -156,6 +156,6 @@ omxCheckError <- function(expression, message) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_error(expression, message, fixed=TRUE)
   } else {
-    stop(paste0("Please install.packages(testthat) and try again"))
+    stop(paste0("Please install.packages(testthat) and try again")) #nocov
   }
 }
