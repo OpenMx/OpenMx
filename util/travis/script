@@ -43,7 +43,22 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
 	travis_wait
     elif [ "x$MODE" = xcovr ]; then
 	./util/prep cran install
-	Rscript -e 'library(covr); options(covr.flags=c(getOption("covr.flags"), CXX14FLAGS="-O0 --coverage")); covr::codecov(type=c("tests","examples"))' &
+	${REXEC:-R} --vanilla --no-readline <<EOF &
+library(covr)
+library(roxygen2)
+options(covr.flags=c(getOption("covr.flags"), CXX14FLAGS="-O0 --coverage"))
+withr::with_makevars(getOption("covr.flags"), assignment = "+=",
+  utils::install.packages(
+    ".",
+    repos = NULL,
+    type = "source",
+    INSTALL_opts = c("--example",  "--install-tests", "--with-keep.source",
+      "--with-keep.parse.data", "--no-multiarch")
+  )
+)
+roxygenize('.', roclets=c('rd'))
+covr::codecov(type=c("tests","examples"))'
+EOF
 	travis_wait
     fi
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
