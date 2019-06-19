@@ -57,7 +57,7 @@ withr::with_makevars(getOption("covr.flags"), assignment = "+=",
   )
 )
 roxygenize('.', roclets=c('rd'))
-covr::codecov(type=c("tests","examples"))'
+covr::codecov(type=c("tests","examples"))
 EOF
 	travis_wait
     fi
