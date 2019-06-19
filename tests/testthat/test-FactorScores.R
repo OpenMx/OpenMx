@@ -18,7 +18,10 @@
 # Frontpage model in LISREL form
 #  with factor scores
 
-require(OpenMx)
+library(OpenMx)
+library(testthat)
+context("FactorScores")
+
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")

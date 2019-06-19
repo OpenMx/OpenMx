@@ -15,6 +15,8 @@
 
 
 library(OpenMx)
+library(testthat)
+context("Legacy Multiple Group WLS")
 
 # Simulate some data
 

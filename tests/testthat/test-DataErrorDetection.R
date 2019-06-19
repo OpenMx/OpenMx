@@ -14,8 +14,9 @@
 #   limitations under the License.
 
 #options(error = browser)
-require(OpenMx)
+library(OpenMx)
 library(testthat)
+context("DataErrorDetection")
 
 data <- mxData(type = 'raw', matrix(".", 3, 3, dimnames = list(NULL,c('a','b','c'))))
 covariance <- mxMatrix('Symm', 3, 3, values = c(1:6), name = 'cov')

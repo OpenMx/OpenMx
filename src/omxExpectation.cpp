@@ -177,7 +177,9 @@ void omxExpectation::loadFromR()
 		}
 		if (numCols && !dataColumnNames.size()) {
 			// eventually deprecate slot 'dataColumns'
-			Rf_warning("Slot MxData@dataColumnNames is not set up; OpenMx bug? Improvising...");
+			if (usesDataColumnNames()) {
+				Rf_warning("Slot MxData@dataColumnNames is not set up; OpenMx bug? Improvising...");
+			}
 			auto dc = base::getDataColumns();
 			for (int cx=0; cx < int(dc.size()); ++cx) {
 				dataColumnNames.push_back(data->columnName(dc[cx]));

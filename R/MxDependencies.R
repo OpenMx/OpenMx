@@ -64,27 +64,3 @@ transitiveClosureEntity <- function(flatModel, dependencies, target, cache) {
 doLocateIndex <- function(name, model, referant) {
 	return(imxLocateIndex(model, name, referant))
 }
-
-generateDeps <- function(sinks, source) {
-	retval <- rep.int(source, length(sinks))
-	names(retval) <- sinks
-	return(retval)
-}
-
-getPair <- function(val, x, y) {
-	retval <- unlist(c(x[val], y[val]))
-	names(retval) <- NULL
-	return(retval)
-}
-
-combinePairs <- function(x, y) {
-	shared <- intersect(names(x), names(y))
-	diffx <- setdiff(names(x), names(y))
-	diffy <- setdiff(names(y), names(x))
-	common <- lapply(shared, getPair, x, y)
-	names(common) <- shared
-	xunique <- x[diffx]
-	yunique <- y[diffy]
-	return(c(common, xunique, yunique))
-}
-
