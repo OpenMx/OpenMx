@@ -1,4 +1,5 @@
 require(OpenMx)
+library(testthat)
 
 plan <- omxDefaultComputePlan()
 omxCheckEquals(names(plan$steps),c("GD","ND","SE","HQ","RD","RE"))
@@ -11,11 +12,11 @@ omxCheckEquals(names(plan$steps),c("GD","CI","ND","SE","HQ","RD","RE"))
 
 plan <- omxDefaultComputePlan(modelName="foo",intervals=TRUE)
 omxCheckEquals(plan$steps$GD$fitfunction,"foo.fitfunction")
-omxCheckEquals(
-	a=ifelse(test=mxOption(NULL,"Default optimizer")=="SLSQP",
-					 yes=plan$steps$CI$plan$plan$fitfunction,
-					 no=plan$steps$CI$plan$fitfunction),
-	b="foo.fitfunction")
+expect_equivalent(
+  ifelse(test=mxOption(NULL,"Default optimizer")=="SLSQP",
+         yes=plan$steps$CI$plan$plan$fitfunction,
+         no=plan$steps$CI$plan$fitfunction),
+	"foo.fitfunction")
 omxCheckEquals(plan$steps$ND$fitfunction,"foo.fitfunction")
 
 ol <- options()$mxOption

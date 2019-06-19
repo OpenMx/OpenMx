@@ -100,36 +100,39 @@ convertSingleAlgebra <- function(algebra, flatModel, convertArguments) {
 }
 
 convertFormulaInsertModel <- function(formula, flatModel, convertArguments) {
-	if (length(formula) == 1) {
-        charFormula <- as.character(formula)
-		if (!is.null(flatModel[[charFormula]])) {
-             # do not translate this symbol
-        } else if (is.numeric(formula)) {
-            flatModel <- insertNumericValue(formula, flatModel)
-        } else if (identical(charFormula, "")) {
-            flatModel <- insertNumericValue(matrix(0,0,0), flatModel)
-        } else if (charFormula %in% convertArguments$values) {
-            flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
-        } else if (charFormula %in% convertArguments$parameters) {
-            flatModel <- insertFreeParameter(charFormula, convertArguments$startvals,
-		convertArguments$bounds, flatModel)
-		} else if (imxIsDefinitionVariable(charFormula)) {
-             flatModel <- insertDefinitionVariable(charFormula, flatModel)
-        } else if (exists(charFormula, envir = globalenv()) && is.numeric(get(charFormula, envir = globalenv()))) {
-            flatModel <- insertOutsideValue(charFormula, flatModel)
-        }
-	} else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
-		formula[[3]] <- translateSquareBracketArgument(formula[[3]], formula[[2]], flatModel, 1)
-		formula[[4]] <- translateSquareBracketArgument(formula[[4]], formula[[2]], flatModel, 2)
-		for (i in 2:length(formula)) {
-			flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
-		}
-	} else {
-		for (i in 2:length(formula)) {
-			flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
-		}
-	}
-    return(flatModel)
+  if (length(formula) == 1) {
+    charFormula <- as.character(formula)
+    if (!is.null(flatModel[[charFormula]])) {
+					# do not translate this symbol
+    } else if (is.numeric(formula)) {
+      flatModel <- insertNumericValue(formula, flatModel)
+    } else if (identical(charFormula, "")) {
+      flatModel <- insertNumericValue(matrix(0,0,0), flatModel)
+    } else if (charFormula %in% convertArguments$values) {
+      flatModel <- insertFixedValue(charFormula, convertArguments$startvals, flatModel)
+    } else if (charFormula %in% convertArguments$parameters) {
+      flatModel <- insertFreeParameter(charFormula, convertArguments$startvals,
+				       convertArguments$bounds, flatModel)
+    } else if (imxIsDefinitionVariable(charFormula)) {
+      flatModel <- insertDefinitionVariable(charFormula, flatModel)
+    } else {
+      topEnv <- parent.frame(6L)
+      if (exists(charFormula, envir=topEnv) && is.numeric(get(charFormula, envir=topEnv))) {
+	flatModel <- insertOutsideValue(charFormula, flatModel)
+      }
+    }
+  } else if (length(formula) == 4 && identical(as.character(formula[1]), '[')) {
+    formula[[3]] <- translateSquareBracketArgument(formula[[3]], formula[[2]], flatModel, 1)
+    formula[[4]] <- translateSquareBracketArgument(formula[[4]], formula[[2]], flatModel, 2)
+    for (i in 2:length(formula)) {
+      flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
+    }
+  } else {
+    for (i in 2:length(formula)) {
+      flatModel <- convertFormulaInsertModel(formula[[i]], flatModel, convertArguments)
+    }
+  }
+  return(flatModel)
 }
 
 insertFixedValue <- function(valName, startvals, flatModel) {
@@ -175,8 +178,9 @@ squareBracketArgumentHelper <- function(arg, matrixName, model, rowCol) {
 		arg <- translateRowColName(matrixName, arg, model, rowCol)
 	} else if (is.symbol(arg)) {
 		charFormula <- as.character(arg)
-		if (!identical(charFormula, '') && exists(charFormula, envir = globalenv())) {
-			target <- get(charFormula, envir = globalenv())
+		topEnv <- parent.frame(7L)
+		if (!identical(charFormula, '') && exists(charFormula, envir=topEnv)) {
+			target <- get(charFormula, envir=topEnv)
 			if (is.character(target)) {
 				arg <- translateRowColName(matrixName, target, model, rowCol)
 			}
@@ -276,7 +280,8 @@ insertNumericValue <- function(value, flatModel) {
 }
 
 insertOutsideValue <- function(varname, flatModel) {
-    value <- as.matrix(get(varname, envir = globalenv()))
+    topEnv <- parent.frame(7L)
+    value <- as.matrix(get(varname, envir = topEnv))
     if (length(flatModel@constMatrices) == 0) {
 	    localName <- imxUntitledName()
 	    identifier <- imxIdentifier(flatModel@name, localName)
@@ -335,22 +340,25 @@ lookupNumericValue <- function(value, flatModel, convertArguments) {
             }
         }
     } else if (asCharacter %in% convertArguments$parameters) {
-        matrix <- flatModel@freeMatrices[[asCharacter]]
-        return(as.symbol(matrix@name))
-	} else if (imxIsDefinitionVariable(asCharacter)) {
-        matrix <- flatModel@freeMatrices[[asCharacter]]
-        return(as.symbol(matrix@name))
-	} else if(exists(asCharacter, envir = globalenv()) && 
-		is.numeric(get(asCharacter, envir = globalenv()))) {
-		value <- as.matrix(get(asCharacter, envir = globalenv()))
-        for (i in 1:length(flatModel@constMatrices)) {
-            constMatrix <- flatModel@constMatrices[[i]]@values
-            if (nrow(value) == nrow(constMatrix) &&
-                ncol(value) == ncol(constMatrix) &&
-                all(value == constMatrix)) {
-                return(as.symbol(flatModel@constMatrices[[i]]@name))
-            }
-        }
+      matrix <- flatModel@freeMatrices[[asCharacter]]
+      return(as.symbol(matrix@name))
+    } else if (imxIsDefinitionVariable(asCharacter)) {
+      matrix <- flatModel@freeMatrices[[asCharacter]]
+      return(as.symbol(matrix@name))
+    } else {
+      topEnv <- parent.frame(7L)
+      if(exists(asCharacter, envir = topEnv) && 
+	 is.numeric(get(asCharacter, envir = topEnv))) {
+	value <- as.matrix(get(asCharacter, envir = topEnv))
+	for (i in 1:length(flatModel@constMatrices)) {
+	  constMatrix <- flatModel@constMatrices[[i]]@values
+	  if (nrow(value) == nrow(constMatrix) &&
+	      ncol(value) == ncol(constMatrix) &&
+	      all(value == constMatrix)) {
+	    return(as.symbol(flatModel@constMatrices[[i]]@name))
+	  }
+	}
+      }
     }
     return(value)
 }

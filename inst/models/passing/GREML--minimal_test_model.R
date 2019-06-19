@@ -114,9 +114,7 @@ omxCheckCloseEnough(testrun3$output$minimum, testrun$fitfunction$MLfit, epsilon=
 
 testrun3summ <- summary(testrun3)
 #FIML fitfunction doesn't know how to tell the frontend that a GREML analysis involves only 1 observation:
-omxCheckError( 
-	omxCheckEquals(testrun3summ$numObs,1),
-	"'100' and '1' are not equal")
+omxCheckEquals(testrun3summ$numObs,100) # should be 1
 omxCheckEquals(testrun3summ$estimatedParameters,2)
 omxCheckEquals(testrun3summ$observedStatistics,100)
 omxCheckEquals(testrun3summ$degreesOfFreedom,98)

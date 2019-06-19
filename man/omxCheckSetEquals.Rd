@@ -23,16 +23,15 @@
 }
 
 \usage{
-omxCheckSetEquals(a, b)
+omxCheckSetEquals(...)
 }
 
 \arguments{
-   \item{a}{the first vector to compare.}
-   \item{b}{the second vector to compare.}
+   \item{...}{arguments forwarded to \link[testthat:equality-expectations]{expect_setequal}}
 }
 
 \details{
-Performs the \sQuote{setequal} function on the two arguments. If the two arguments do not contain the same elements, then an error will be thrown. If \sQuote{a} and \sQuote{b} contain the same elements, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
+Performs the \sQuote{setequal} function on the two arguments. If the two arguments do not contain the same elements, then an error will be thrown.
 }
 
 \references{

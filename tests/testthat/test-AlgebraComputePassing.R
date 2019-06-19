@@ -14,7 +14,9 @@
 #   limitations under the License.
 
 
-require(OpenMx)
+library(OpenMx)
+library(testthat)
+context("AlgebraCompute")
 
 "%&%" <- OpenMx::"%&%"  # ensure we don't use the %&% from Matrix
 

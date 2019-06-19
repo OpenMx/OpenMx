@@ -31,7 +31,7 @@ omxCheckTrue(a)
 }
 
 \details{
-Checks element-wise whether an object is equal to TRUE. If any of the elements are false, then an error will be thrown. If \sQuote{a} is TRUE, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
+Checks element-wise whether an object is equal to TRUE. If any of the elements are false, then an error will be thrown.
 }
 
 \references{

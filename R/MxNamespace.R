@@ -653,11 +653,12 @@ locateLabelHelper <- function(matrix, model, label, parameter) {
 }
 
 legalGlobalReference <- function(name) {
-	if(exists(name, envir = globalenv())) {
-		value <- get(name, envir = globalenv())
-		return(is.numeric(value) || is.character(value))
-	}
-	return(FALSE);
+  topEnv <- parent.frame(10L)
+  if(exists(name, envir=topEnv)) {
+    value <- get(name, envir=topEnv)
+    return(is.numeric(value) || is.character(value))
+  }
+  return(FALSE)
 }
 
 checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {

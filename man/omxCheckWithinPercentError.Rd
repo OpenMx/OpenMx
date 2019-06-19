@@ -33,7 +33,7 @@ omxCheckWithinPercentError(a, b, percent = 0.1)
 }
 
 \details{
-Arguments \sQuote{a} and \sQuote{b} must be of the same type, ie. they must be either vectors of equal dimension or matrices of equal dimension. The two arguments are compared element-wise for approximate equality.  If the absolute value of the difference of any two values is greater than the percentage difference of \sQuote{a}, then an error will be thrown. If \sQuote{a} and \sQuote{b} are approximately equal to each other, by default the function will print a statement informing the user the test has passed.  To turn off these print statements use \code{options("mxPrintUnitTests" = FALSE)}.
+Arguments \sQuote{a} and \sQuote{b} must be of the same type, ie. they must be either vectors of equal dimension or matrices of equal dimension. The two arguments are compared element-wise for approximate equality.  If the absolute value of the difference of any two values is greater than the percentage difference of \sQuote{a}, then an error will be thrown.
 }
 
 \references{

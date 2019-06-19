@@ -21,7 +21,6 @@ mxSetDefaultOptions <- function() {
 	'mxByrow' = FALSE,
 	'mxCondenseMatrixSlots' = FALSE,
 	'mxShowDimnames' = TRUE,
-	'mxPrintUnitTests' = TRUE,
 	'swift.initialexpr' = "library(OpenMx)")
 }
 

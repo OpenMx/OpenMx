@@ -64,11 +64,11 @@ omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
                       pmin(got[,'upper'] - got2[,'power'], 0)),
                     rep(0,40), .01)
 
-omxCheckEquals(mxPower(modA2, ceFit2, method='ncp'), 224)
+omxCheckEquals(as.numeric(mxPower(modA2, ceFit2, method='ncp')), 224)
 
-omxCheckCloseEnough(mxPower(modA2, ceFit2, method='ncp', n=224, power=NULL), .817, .01)
+omxCheckCloseEnough(as.numeric(mxPower(modA2, ceFit2, method='ncp', n=224, power=NULL)), .817, .01)
 
-omxCheckCloseEnough(mxPower(modA2, ceFit2, n=224, power=NULL, probes = 100),
+omxCheckCloseEnough(as.numeric(mxPower(modA2, ceFit2, n=224, power=NULL, probes = 100)),
                     .8, .5)
 
-omxCheckCloseEnough(mxPower(modA2, ceFit2), 211.59, 5)
+omxCheckCloseEnough(as.numeric(mxPower(modA2, ceFit2)), 211.59, 5)

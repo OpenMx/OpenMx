@@ -18,53 +18,11 @@ data("jointdata", package ="OpenMx", verbose= TRUE)
 # = Here's what our input data looks like: =
 # ==========================================
 str(jointdata)
-# jointdata is a dataframe with 5 variables: "z1", "z2", "z3", "z4", "z5"
-# 'data.frame':	250 obs. of  5 variables:
-#  $ z1: num  6.83 8.77 8.01 9 8.52 ...
-#  $ z2: int  0 0 0 1 0 0 0 0 0 0 ...
-#  $ z3: num  -0.0647 2.8983 2.5471 2.9078 3.4518 ...
-#  $ z4: int  2 2 1 2 1 1 0 1 0 3 ...
-#  $ z5: int  2 1 2 2 0 2 0 2 2 1 ...
-
-round(cov(jointdata),3)
-#       z1    z2    z3    z4    z5
-# z1 0.927 0.149 0.437 0.368 0.089
-# z2 0.149 0.250 0.148 0.202 0.065
-# z3 0.437 0.148 0.936 0.454 0.049
-# z4 0.368 0.202 0.454 1.279 0.122
-# z5 0.089 0.065 0.049 0.122 0.635
-
-# ==============================================================================================================
-# = Make data suitable for a joint (continuous and ordinal) model by reformatting some variables as mxFactors  =
-# ==============================================================================================================
-# z2, z4, and z5 to be mxFactors with 2, 4, and 3 levels respectively
-jointdata[,c("z2", "z4", "z5")] <- mxFactor(jointdata[,c("z2", "z4", "z5")], levels= list(c(0, 1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 # Make z1c = z1 + some noise;
 jointdata$z1c <- with(jointdata, z1 * .1 + rnorm(nrow(jointdata)))
 # and z2c which is just a column of noise with a mean = the mean factor level of z2 (no clue why as yet...)
 jointdata$z2c <- with(jointdata, rnorm(nrow(jointdata), mean=unclass(z2)*.2))
-
-# ============================================
-# = Create a thresholds matrix for the model =
-# ============================================
-thresh <- mxMatrix(name="T", "Full", nrow= 3, ncol= 3, free = FALSE, values = 0)
-
-# ... and fill in for columns 1:3 matching vars z2, z4, and z5
-thresh$free[,1]   <- c(TRUE  , FALSE, FALSE)
-thresh$values[,1] <- c(0     , NA   , NA)
-thresh$labels[,1] <- c("z2_thresh1", NA   , NA)
-
-thresh$free[,2]   <- c(TRUE, TRUE, TRUE)
-thresh$values[,2] <- c(-1  , 0   , 1)
-thresh$labels[,2] <- c("z4_thresh1", "z4_thresh2", "z4_thresh3")
-
-thresh$free[,3]   <- c(TRUE, TRUE, FALSE)
-thresh$values[,3] <- c(-1  , 1   , NA)
-thresh$labels[,3] <- c("z5_thresh1", "z5_thresh2", NA)
-# Add column names
-colnames(thresh)  <- paste0('z', c(2, 4, 5))
-
 
 # =============================================
 # = Build a function to create WLS RAM models =
@@ -84,9 +42,10 @@ buildModel <- function(manifests= paste0('z', 1:5), type = 'WLS', slopes= TRUE) 
 		# latent scaled to var of 1 (mean is fixed at zero by default)
 		mxPath('G', arrows= 2, values= 1, free= FALSE),
 		mxPath('G', to = manifests, free= TRUE, values= 1, lbound= 0),
-		# include the thresholds matrix made earlier
-		thresh,
-		# Note: No data are still raw, despite our using WLS
+		mxThreshold('z2', 1, free=TRUE, labels="z2_thresh1"),
+		mxThreshold('z4', 3, free=TRUE, labels=paste0("z4_thresh",1:3)),
+		mxThreshold('z5', 2, free=TRUE, labels=paste0("z5_thresh",1:2)),
+		# Note: Data are raw, despite our using WLS
 		mxData(jointdata, type = "raw", verbose= 0L),
 		# Note: this call to mxFitFunctionWLS is all that's
 		# required to make a model into WLS!
@@ -102,7 +61,6 @@ buildModel <- function(manifests= paste0('z', 1:5), type = 'WLS', slopes= TRUE) 
 	}
 	# TODO: Shouldn't we have a call to mxExpectationRAM or LISREL??? here???
 	# mxExpectationRAM(M = NA, dimnames = NA, thresholds = "T", threshnames = ???)
-	jr$expectation$thresholds <- 'T'
 	return(jr)
 }
 
@@ -166,8 +124,10 @@ jointLISREL <- mxModel("JointLISREL", type="LISREL",
     mxPath('one', 'z2c', free= FALSE, labels= "data.z2c"),
     mxPath('z1c', 'z1', labels= "r1"),
     mxPath('z2c', 'z2', labels= "r2"),
-    thresh,
-	mxData(jointdata, "raw", verbose=0L),
+    mxThreshold('z2', 1, free=TRUE, labels="z2_thresh1"),
+    mxThreshold('z4', 3, free=TRUE, labels=paste0("z4_thresh",1:3)),
+    mxThreshold('z5', 2, free=TRUE, labels=paste0("z5_thresh",1:2)),
+    mxData(jointdata, "raw", verbose=0L),
     mxFitFunctionWLS()
 	# Shouldn't we have a call to mxExpectationRAM or LISREL??? here???
 	# mxExpectationRAM(M = NA, dimnames = NA, thresholds = "T", threshnames = ???)	
@@ -176,7 +136,6 @@ jointLISREL <- mxModel("JointLISREL", type="LISREL",
 # =================================================================
 # = TODO: How would a user ever discover this?: What does it do?? =
 # =================================================================
-jointLISREL$expectation$thresholds <- 'T'
 # jointLISREL$expectation$verbose <- 1L
 
 jointLISREL <- mxRun(jointLISREL)
