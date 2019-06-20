@@ -9,7 +9,7 @@ if [ ! -x revdep/testDrive ]; then
   exit 1
 fi
 
-export _R_CHECK_FORCE_SUGGESTS_=0
+export _R_CHECK_FORCE_SUGGESTS_=false
 
 pkgs=$(R --no-save --slave -f revdep/getPackages.R)
 

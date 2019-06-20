@@ -2,7 +2,7 @@
 
 set -o errexit
 
-export _R_CHECK_FORCE_SUGGESTS_=0
+export _R_CHECK_FORCE_SUGGESTS_=false
 export OMP_NUM_THREADS=2
 
 fold_start() {
