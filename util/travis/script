@@ -47,6 +47,7 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
 library(covr)
 library(roxygen2)
 options(covr.flags=c(getOption("covr.flags"), CXX14FLAGS="-O0 --coverage"))
+options(Ncpus=2L)
 withr::with_makevars(getOption("covr.flags"), assignment = "+=",
   utils::install.packages(
     ".",
