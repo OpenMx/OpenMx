@@ -57,7 +57,7 @@ withr::with_makevars(getOption("covr.flags"), assignment = "+=",
   )
 )
 roxygenize('.', roclets=c('rd'))
-c1 <- covr::package_coverage(type=c("tests","examples"))
+c1 <- covr::package_coverage(type=c("tests","examples"), quiet=FALSE)
 pct <- percent_coverage(c1)
 print(pct)
 if (pct < .46) {
