@@ -666,22 +666,24 @@ fitPowerModel <- function(rx, result, isN) {
 }
 
 mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=300L, previousRun=NULL,
-                    gdFun=mxGenerateData,
-                    method=c('empirical', 'ncp'),
-                    grid=NULL,
-                    statistic=c('LRT','AIC','BIC'),
-		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE,
-		    silent=!interactive())
-# add plot=TRUE? or return S3 object that responds to plot(obj) ? TODO
+	probes = 300L, previousRun = NULL,
+	gdFun = mxGenerateData,
+	method = c('empirical', 'ncp'),
+	grid = NULL,
+	statistic = c('LRT','AIC','BIC'),
+	OK = mxOption(trueModel, "Status OK"), checkHess=FALSE,
+	silent = !interactive())
 {
+	# TODO: add plot=TRUE? or return S3 object that responds to plot(obj)?
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
-        stop("mxPowerSearch does not accept values for the '...' argument")
+		 message("Invalid inputs to mxPowerSearch:")
+		 print(garbageArguments)
+       stop("mxPowerSearch does not accept values for the '...' argument\n")
     }
-  method <- match.arg(method)
-  statistic <- match.arg(statistic)
-  if (method == 'ncp') {
+    method <- match.arg(method)
+    statistic <- match.arg(statistic)
+    if (method == 'ncp') {
     if (!is.null(n)) stop(paste("method='ncp' does not work for fixed n =", n))
     if (statistic != 'LRT') stop(paste("method='ncp' does not work for statistic =", statistic))
     warnModelCreatedByOldVersion(trueModel)
@@ -923,7 +925,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
   statistic <- match.arg(statistic)
   detail <- list(method=method, sig.level=sig.level, statistic=statistic)
   if (is.null(power)) {
-    if (is.null(n)) stop("To estimate power, it is necessary to fix sample size")
+    if (is.null(n)) stop("To estimate power, it is necessary to fix sample size (set n = )")
     if (method == 'ncp') {
       got <- mxPowerSearch(trueModel, falseModel, sig.level=sig.level, method=method,
                            grid=n, statistic=statistic)
