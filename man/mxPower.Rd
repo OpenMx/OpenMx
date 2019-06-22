@@ -35,10 +35,10 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
 \arguments{
   \item{trueModel}{The true generating model for the data.}
   \item{falseModel}{Model representing the null hypothesis that we wish to reject.}
-  \item{n}{Average group sample size. When NULL, finds the relationship between sample size and power.
-    When given, finds the relationship between a parameter and power (at the given sample size).}
-  \item{sig.level}{The false positive rate (a.k.a. type 1 error).}
-  \item{power}{The power (a.k.a. 1 - type 2 error).}
+  \item{n}{Total sample size (total data rows across all groups). Default = NULL.
+    If provided, result (power or alpha) solved-for at the given sample size.}
+  \item{sig.level}{The false positive rate (a.k.a. type 1 error. Default = .05).}
+  \item{power}{The power (a.k.a. 1 - type 2 error). Default = .8}
   \item{...}{Not used.}
   \item{probes}{The number of probes to use when method=\sQuote{empirical}.}
   \item{previousRun}{Output from a prior run of \sQuote{mxPowerSearch} to extend.}
@@ -48,7 +48,7 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
   \item{statistic}{Which test to use to compare models.}
   \item{OK}{The set of status code that are considered successful}
   \item{checkHess}{Whether to approximate the Hessian in each replication}
-  \item{silent}{Whether to output a progress indicator.}
+  \item{silent}{Whether to show a progress indicator.}
 }
 \details{
 
