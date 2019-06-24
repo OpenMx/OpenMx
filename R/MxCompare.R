@@ -1002,8 +1002,8 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
       detail$n <- n
     }
   } else { # length(power) > 0
-	  detail$power <- power
-	  detail$probes <- probes
+    detail$power <- power
+    if (method == 'empirical') detail$probes <- probes
     if (is.null(n)) {
       # search n:power relationship
       result <- mxPowerSearch(trueModel, falseModel, probes=probes, gdFun=gdFun,
