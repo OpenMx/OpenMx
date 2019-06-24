@@ -243,14 +243,14 @@ assertIsRawData <- function(model) {
 	     "mxPowerSearch(..., method='empirical')"))
 }
 
-loadDataIntoModel <- function(model, dataList) {
+loadDataIntoModel <- function(model, dataList, assertRaw=FALSE) {
   for (modelName in names(dataList)) {
     dataobj <- mxData(dataList[[modelName]], type='raw')
     if (modelName == model$name) {
-      assertIsRawData(model)
+      if (assertRaw) assertIsRawData(model)
       model <- mxModel(model, dataobj)
     } else {
-      assertIsRawData(model[[modelName]])
+      if (assertRaw) assertIsRawData(model[[modelName]])
       model <- mxModel(model, mxModel(model[[modelName]], dataobj))
     }
   }
@@ -823,7 +823,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
       names(simData) <- trueModel$name
     }
     
-    true1  <- loadDataIntoModel(trueModel,  simData)
+    true1  <- loadDataIntoModel(trueModel,  simData, assertRaw=rx==1)
     true1  <- mxRun(true1,  silent=TRUE, suppressWarnings = TRUE)
     # complain about parameters at box constraints TODO
     
