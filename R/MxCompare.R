@@ -235,13 +235,23 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 	ret
 }
 
+assertIsRawData <- function(model) {
+  type <- model$data$type
+  if (type == 'raw') return()
+  stop(paste("Model", omxQuotes(model$name), "contains", omxQuotes(type),
+	     "data. Only type='raw' data is supported by",
+	     "mxPowerSearch(..., method='empirical')"))
+}
+
 loadDataIntoModel <- function(model, dataList) {
   for (modelName in names(dataList)) {
-	  dataobj <- mxData(dataList[[modelName]], type='raw')
+    dataobj <- mxData(dataList[[modelName]], type='raw')
     if (modelName == model$name) {
-	    model <- mxModel(model, dataobj)
+      assertIsRawData(model)
+      model <- mxModel(model, dataobj)
     } else {
-	    model <- mxModel(model, mxModel(model[[modelName]], dataobj))
+      assertIsRawData(model[[modelName]])
+      model <- mxModel(model, mxModel(model[[modelName]], dataobj))
     }
   }
   model
