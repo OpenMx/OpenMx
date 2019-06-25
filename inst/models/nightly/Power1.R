@@ -19,12 +19,11 @@ factorModelFit <- mxRun(factorModel)
 indModel <- factorModelFit
 indModel$A$values['x1','G'] <- 0.3
 indModel$A$free['x1','G'] <- FALSE
+indModel <- mxRun(indModel)
 
 got4 <- mxPowerSearch(factorModelFit, indModel, method = 'ncp')
 omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'],
-                    34.67, 1)
-
-indModel <- mxRun(indModel)
+                    72.54, 1)
 
 set.seed(1)
 
