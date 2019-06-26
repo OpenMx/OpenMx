@@ -675,6 +675,19 @@ fitPowerModel <- function(rx, result, isN) {
   list(curX=curX, m1=m1, alg=alg)
 }
 
+validateSigLevel <- function(sl) {
+  if (length(sl) > 1) {
+    stop(paste("Can only evaluate one sig.level at a time.",
+	       "To evaluate power across a range of sig.levels",
+	       "you need to call mxPower in a loop and accumulate",
+	       "estimates that way"))
+  } else if (length(sl) == 0) {
+    stop("At what sig.level?")
+  } else if (sl <= 0 || sl >= 1) {
+    stop("sig.level must be between 0 and 1")
+  }
+}
+
 mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 	probes = 300L, previousRun = NULL,
 	gdFun = mxGenerateData,
@@ -691,6 +704,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 		 print(garbageArguments)
        stop("mxPowerSearch does not accept values for the '...' argument\n")
     }
+  validateSigLevel(sig.level)
     method <- match.arg(method)
     statistic <- match.arg(statistic)
     if (method == 'ncp') {
@@ -906,6 +920,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
   }
   if (length(power) == 1 && is.na(power)) power <- c()
   if (length(n) == 1 && is.na(n)) n <- c()
+  validateSigLevel(sig.level)
   if (length(falseModel) > 1) {
     if (length(n) > 1 || length(power) > 1) {
       stop(paste("You cannot pass more than 1 falseModel at the same time",

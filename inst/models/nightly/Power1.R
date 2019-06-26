@@ -1,4 +1,5 @@
 library(OpenMx)
+library(testthat)
 
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
@@ -24,6 +25,9 @@ indModel <- mxRun(indModel)
 got4 <- mxPowerSearch(factorModelFit, indModel, method = 'ncp')
 omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'],
                     72.54, 1)
+
+expect_error(mxPower(factorModelFit, indModel, method = 'ncp', sig.level=c(.05,.01)),
+	     "one sig.level at a time")
 
 set.seed(1)
 
