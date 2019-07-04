@@ -1022,11 +1022,11 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
     if (is.null(n)) {
       # search n:power relationship
       result <- mxPowerSearch(trueModel, falseModel, probes=probes, gdFun=gdFun,
-	      method=method, statistic=statistic, OK=OK, checkHess=checkHess)
+	      method=method, statistic=statistic, OK=OK, checkHess=checkHess, sig.level=sig.level)
     } else {
       # search parameter:power relationship
       result <- mxPowerSearch(trueModel, falseModel, n=n, probes=probes, gdFun=gdFun,
-	      method=method, statistic=statistic, OK=OK, checkHess=checkHess)
+	      method=method, statistic=statistic, OK=OK, checkHess=checkHess, sig.level=sig.level)
 	    detail$parameter <- setdiff(names(coef(trueModel)), names(coef(falseModel)))
 	    detail$n <- n
     }
