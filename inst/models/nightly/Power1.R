@@ -26,6 +26,9 @@ p1 <- mxPower(factorModelFit, indModel, method = 'ncp', sig.level = .01)
 expect_equivalent(c(p1), 118)
 p2 <- mxPower(factorModelFit, indModel, method = 'ncp', sig.level = .005)
 expect_equivalent(c(p2), 132)
+expect_error(mxPower(factorModelFit, indModel, method = 'ncp',
+                     sig.level = .5),
+             "Try method='empirical'")
 
 got4 <- mxPowerSearch(factorModelFit, indModel, method = 'ncp')
 omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'], 72.54, 1)

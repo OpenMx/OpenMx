@@ -746,7 +746,11 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                   center+4*width, length.out = 20)
     }
     out <- data.frame(x=grid)
-    out$power <- 1 - pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x)
+    out$power <- 1 - suppressWarnings(pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x))
+    if (any(is.na(out$power))) {
+      stop(paste("Sorry, unable to estimate power for sig.level=",sig.level,
+		 "with method='ncp'. Try method='empirical'"))
+    }
     out$lower <- NA
     out$upper <- NA
     colnames(out)[1] <- 'N'
