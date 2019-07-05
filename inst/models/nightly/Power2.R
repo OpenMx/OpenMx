@@ -56,9 +56,13 @@ ACEfit <- acePow2(add = .33, com = .3, Nmz = 1000, Ndz = 1000)
 CEfit <- omxSetParameters(ACEfit, labels = "A11", free = FALSE, values = 0)
 CEfit <- mxRun(CEfit)
 
+AEfit <- omxSetParameters(ACEfit, labels = "C11", free = FALSE, values = 0)
+AEfit <- mxRun(AEfit)
+
 # ACE and CE coefficients
 round(coef(ACEfit),2)
 round( coef(CEfit),2)
+round( coef(AEfit),2)
 
 # Check N estimated for 80% power is 224 pairs total
 omxCheckEquals(as.numeric(mxPower(ACEfit, CEfit, method='ncp')), 224)

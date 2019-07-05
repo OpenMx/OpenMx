@@ -93,17 +93,17 @@ omxCheckCloseEnough(cor(estCmp)[2,1], 1, 1e-4)
 seCmp <- cbind(jointRAM2$output$standardErrors, jointRAM1$output$standardErrors)
 omxCheckCloseEnough(cor(seCmp)[2,1], 1, .18)
 
-# =========================
-# = Test permutation code =
-# =========================
-# TODO: How does this test "permutation" code? Should this be "iterate over model types allowed by the builModel function"
+# ===============================================================
+# = Iterate over model types allowed by the buildModel function =
+# ===============================================================
 
+mani = paste0('z', 5:1)
 for (slopes in c(TRUE,FALSE)) {
 	for (type in c('WLS','DWLS','ULS')) {
 		jm3 <- buildModel(type=type, slopes=slopes)
 		#jm3$data$verbose <- 1L
 		jm3 <- mxRun(jm3)
-		jm4 <- mxModel(buildModel(paste0('z', 5:1), type=type, slopes=slopes), jm3$data)
+		jm4 <- mxModel(buildModel(manifests = mani, type=type, slopes=slopes), jm3$data)
 		jm4 <- mxRun(jm4)
 	}
 }
