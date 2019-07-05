@@ -823,7 +823,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   prevProgressLen <- 0L
   if (!is.na(nextTrial)) for (rx in nextTrial:probes) {
     set.seed(result[rx,'seed'])
-    info <- paste("R", rx, alg, xLabel, nullInterestValue + curX)
+    info <- paste0(xLabel,"[", rx,"] fitting model '", alg, "' value ", nullInterestValue + curX)
     if (!silent) imxReportProgress(info, prevProgressLen)
     prevProgressLen <- nchar(info)
     if (!is.null(n)) {
