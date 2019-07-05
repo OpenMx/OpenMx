@@ -28,11 +28,15 @@ p2 <- mxPower(factorModelFit, indModel, method = 'ncp', sig.level = .005)
 expect_equivalent(c(p2), 132)
 
 got4 <- mxPowerSearch(factorModelFit, indModel, method = 'ncp')
-omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'],
-                    72.54, 1)
+omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'], 72.54, 1)
 
+# only 1 p-value handled at a time
 expect_error(mxPower(factorModelFit, indModel, method = 'ncp', sig.level=c(.05,.01)),
 	     "one sig.level at a time")
+
+# more than 1 power request is fine
+p3 <- mxPower(factorModelFit, indModel, method = 'ncp', sig.level = .05,power=c(.5,.8))
+expect_equivalent(p3, c(45,80))
 
 set.seed(1)
 
