@@ -2,10 +2,10 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
-# Road Map
-
-# OpenMx 2.13.3? 
-* FIXED: Bug with RAM-regression `mxFactor` scores (means not included in some cases).
+# Next Release OpenMx 2.13.3? 
+* FIXED: Bug with RAM regression `mxFactor` scores (means not included in some cases).
+* FIXED: Bug in `mxPower` where we were not respecting requested p-values.
+* FIXED: `mxPower` Clarify N reported by mxPower is total N, not average/group.
 
 # OpenMx 2.13.2 
 * May 2019 (R 3.6.0))
