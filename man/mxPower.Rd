@@ -5,13 +5,18 @@
 \description{
 \code{mxPower} is used to evaluate the power to distinguish between a hypothesized effect (\code{trueModel})
 and a model where this effect is set to the value of the null hypothesis (\code{falseModel}).
-\code{mxPowerSearch} evaluates the relationship between sample size or effect size and power
-across a range of intelligently chosen values of, for example, sample size.
 
-The functions are flexible, with multiple options to control \emph{n}, \code{sig.level}, \code{method}, and 
-other factors. Several parameters can take a vector as input.
+\code{mxPowerSearch} evaluates power across a range of sample sizes or effect sizes,
+choosing intelligent values of, for example, sample size to explore.
 
-These options are described in detail below.
+Both functions are flexible, with multiple options to control \emph{n}, \code{sig.level}, \code{method}, and 
+other factors. Several parameters can take a vector as input. These options are described in detail below.
+
+Evaluation can either use the non-centrality parameter (which can be very quick) or conduct an empirical evaluation.
+
+\emph{note}: During longer evaluations, the functions printout helpful progress consisting of a note about what
+task is being conducted, e.g. "Search n:power relationship for 'A11'" and, beneath that, an update on the
+run, the model being evaluated, and the current candidate value being considered, e.g. "R 15 1p N 79"
 
 }
 \usage{
@@ -37,12 +42,12 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
   \item{falseModel}{Model representing the null hypothesis that we wish to reject.}
   \item{n}{Total sample size (total data rows across all groups). Default = NULL.
     If provided, result (power or alpha) solved-for at the given sample size.}
-  \item{sig.level}{The false positive rate (a.k.a. type 1 error. Default = .05).}
-  \item{power}{The power (a.k.a. 1 - type 2 error). Default = .8}
+  \item{sig.level}{A single value for the p-value (aka false positive or type-1 error rate). Default = .05.}
+  \item{power}{One or values for power (a.k.a. 1 - type 2 error) to evaluate. Default = .80}
   \item{...}{Not used.}
-  \item{probes}{The number of probes to use when method=\sQuote{empirical}.}
-  \item{previousRun}{Output from a prior run of \sQuote{mxPowerSearch} to run more probes on.}
-  \item{gdFun}{The function invoked to generate new data for each Monte Carlo probe.}
+  \item{probes}{The number of probes to use when method = \sQuote{empirical}.}
+  \item{previousRun}{Output from a prior run of \sQuote{mxPowerSearch} to build on.}
+  \item{gdFun}{The function invoked to generate new data for each Monte Carlo probe. Default = \code{mxGenerateData}}
   \item{method}{To estimate power: \sQuote{empirical} (Monte Carlo method) or \sQuote{ncp} (average non-centrality method).}
   \item{grid}{A vector of locations at which to evaluate the power. If not provided, a reasonable default will be chosen.}
   \item{statistic}{Which test to use to compare models (Default = 'LRT').}
