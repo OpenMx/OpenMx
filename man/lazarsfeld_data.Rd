@@ -11,7 +11,7 @@ Data set used in some of OpenMx's examples.
 
 \usage{data("lazarsfeld")}
 \format{
-  A data frame with 1000 observations on four dichotomus items.
+  A data frame with 1000 observations on four dichotomous items.
   \describe{
     \item{\code{armyrun}}{In general how do you feel the Army is run?}
     \item{\code{favatt}}{Do you think when you are discharged you will [have] a favorable attitude toward the Army?}

@@ -51,7 +51,7 @@ mxExpectationStateSpace(A, B, C, D, Q, R, x0, P0, u,
 }
 
 \details{
-This page presents details for both the \code{mxExpectationStateSpace} function and for state space modeling generally; however, for much more information on state space modeling see the paper by Hunter (2018) listed under references.  Authors using state space modeing in OpenMx should cite Hunter (2018).
+This page presents details for both the \code{mxExpectationStateSpace} function and for state space modeling generally; however, for much more information on state space modeling see the paper by Hunter (2018) listed under references.  Authors using state space modeling in OpenMx should cite Hunter (2018).
 
 Expectation functions define the way that model expectations are calculated. When used in conjunction with the \link{mxFitFunctionML}, the mxExpectationStateSpace uses maximum likelihood prediction error decomposition (PED) to obtain estimates of free parameters in a model of the raw \link{MxData} object. State space expectations treat the raw data as a multivariate time series of equally spaced times with each row corresponding to a single occasion.  This is not a model of the block Toeplitz lagged autocovariance matrix.  State space expectations implement a classical Kalman filter to produce expectations.
 

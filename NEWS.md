@@ -356,7 +356,7 @@ Release 2.0.0-4004 (Oct 24, 2014)
 * CSOLNP: Unravel some confused Matrix resizing
 * CSOLNP: Allow 0 coeff matrices; init to NaN instead of 1.0
 * CSOLNP: Avoid allocation to report gradient
-* CSOLNP: Add a varient of subset that copies out to Eigen::MatrixBase
+* CSOLNP: Add a variant of subset that copies out to Eigen::MatrixBase
 * CSOLNP: Eliminate 2 instances of fillMatrix
 * CSOLNP: Shorten lifetime of index variable
 * CSOLNP: Convert a little bit of subnp to Eigen
