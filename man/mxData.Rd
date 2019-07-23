@@ -37,7 +37,7 @@
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
-   \item{observedStats}{A list containing observed statistics for weighted least squares estimation.}
+   \item{observedStats}{A list containing observed statistics for weighted least squares estimation. See details for contents}
    \item{sort}{Whether to sort raw data prior to use (default NA).}
    \item{primaryKey}{The column name of the primary key used to uniquely identify rows (default NA)}
    \item{weight}{The column name containing row weights.}
@@ -45,7 +45,7 @@
    \item{verbose}{level of diagnostic output.}
    \item{.parallel}{logical. Whether to compute observed summary statistics in parallel.}
    \item{.noExoOptimize}{logical. Whether to use math short-cuts for the case of no exogenous predictors.}
-   \item{minVariance}{numeric. The minimum acceptable variance for \sQuote{observedStats}.}
+   \item{minVariance}{numeric. The minimum acceptable variance for \sQuote{observedStats$cov}.}
    \item{acov}{Deprecated in favor of the acov element of observedStats.}
    \item{fullWeight}{Deprecated in favor of the fullWeight element of observedStats.}
    \item{thresholds}{Deprecated in favor of the thresholds element of observedStats.}
@@ -53,12 +53,10 @@
 }
 
 \details{
-The mxData function creates \link{MxData} objects, which can be used as arguments in \link{MxModel} objects.
+The mxData function creates \link{MxData} objects used in \link{mxModel}s.
 The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the
 \sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel
-objects. Four different data types are supported (a fifth, sscp, is not yet implemented).
-
-
+objects. Three data types are supported (cor and sscp are not yet implemented).
 
 \describe{
 \item{raw}{The contents of the \sQuote{observed} argument are treated as raw data. Missing values are permitted and must be
@@ -73,34 +71,42 @@ not required, but may be included for estimations involving means. The \sQuote{n
 reflect the number of observations or rows in the data described by the covariance matrix. Cov data typically use the
 \link{mxFitFunctionML} fit function, depending on the specified model.}
 
+\item{acov}{ This type was used for WLS data as created by \link{mxDataWLS}. Unless you are using summary data, its use is deprecated.
+Instead, use type =\sQuote{raw} and an \link{mxFitFunctionWLS}. If type \sQuote{acov} is set, the \sQuote{observed} argument will
+(usually) contain raw data and the \sQuote{observedStats} slot contain a list of observed statistics.}
+
 \item{cor}{The contents of the \sQuote{observed} argument are treated as a correlation matrix. The \sQuote{means} argument is
 not required, but may be included for estimations involving means. The \sQuote{numObs} argument is required, which should
 reflect the number of observations or rows in the data described by the covariance matrix. Models with cor data typically use
-the \link{mxFitFunctionML} fit function, depending on the specified model.}
-
-\item{acov}{ This type was used for WLS data as created by \link{mxDataWLS}. Its use is deprecated. Instead, use type =
-\sQuote{raw} and an \link{mxFitFunctionWLS}. For reference, if type is \sQuote{acov}, the \sQuote{observed} argument will
-(usually) contain raw data and the \sQuote{observedStats} slot -- a list of observed statistics.}
+the \link{mxFitFunctionML} fit function.}
 }
 
-\emph{Note on data handling}: OpenMx uses the names of variables to map them onto the expectation functions and other
-elements associated with your model. Thus for data provided as a data.frame, ensure the columns have appropriate
-\code{\link{names}}. Covariance and correlation matrices need to have both the row and column names set and these must be
+\emph{Note on data handling}: OpenMx uses the names of variables to map them onto other elements of your model, such as expectation functions.
+Thus for data provided as a data.frame, ensure the columns have appropriate \code{\link{names}}.
+Covariance and correlation matrices need to have both the row and column names set and these must be
 identical, for instance by using \code{dimnames = list(varNames, varNames)}.
 
 \strong{WLS data}
 
-The \code{observedStats} list is expected to contain a number of named objects: \sQuote{cov} is the (polychoric) covariance
-matrix of raw data variables. An error is raised if any variance is smaller \code{minVariance}. \sQuote{means} (optional) may
-be included for estimations involving means. \sQuote{thresholds} should be included for estimation involving thresholds and
-ordinal variables. \sQuote{acov} is the asymptotic covariance matrix. \sQuote{acov} can be diagonal for diagonally weighted
-least squares. \sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero).
+The \code{observedStats} contains the following named objects: cov, slope, means, acov, fullWeight, and thresholds.
 
-WLS data typically use the \link{mxFitFunctionWLS} function.
+\sQuote{cov} The (polychoric) covariance matrix of raw data variables. An error is raised if any variance is smaller \code{minVariance}.
+
+\sQuote{slope} The regression coefficients from all exogenous predictors to all observed variables. Required for exogenous predictors.
+
+\sQuote{means} The means of the data variables. Required for estimations involving means.
+
+\sQuote{thresholds} Thresholds of ordinal variables. Required for models including ordinal variables.
+
+\sQuote{acov} The asymptotic covariance matrix. Can be diagonal for diagonally weighted least squares.
+
+\sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero).
+
+\emph{note}: WLS data typically use the \link{mxFitFunctionWLS} function.
 
 \emph{IMPORTANT}: The WLS interface is under heavy development to support both very fast backend processing of raw data while
-continuing to support modeling applications which require direct access ot the object in the front end. Some user-interface
-changes should be expected as we optimise both these workflows.
+continuing to support modeling applications which require direct access to the object in the front end. Some user-interface
+changes should be expected as we optimize both these workflows.
 
 
 \strong{Weights}
@@ -147,23 +153,26 @@ For WLS data, see \link{mxDataWLS} (deprecated). More information about the Open
     
 library(OpenMx)
 
-# Create a covariance matrix
-covMatrix <- matrix( c(0.77642931, 0.39590663, 
-    0.39590663, 0.49115615), 
-    nrow = 2, ncol = 2, byrow = TRUE)
+# Simple covariance model. See other mxFitFunctions for examples with different data types
+
+# 1. Create a covariance matrix x and y
+covMatrix <- matrix(nrow = 2, ncol = 2, byrow = TRUE,
+	c(0.77642931, 0.39590663, 
+      0.39590663, 0.49115615)
+)
 covNames <- c("x", "y")
 dimList <- list(covNames, covNames)
 dimnames(covMatrix) <- dimList
 
-# Create an MxData object including that covariance matrix
+# 2. Create an MxData object from covMatrix
 testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
 testModel <- mxModel(model="testModel",
-                mxMatrix(type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), 
-                         free=TRUE, name="expCov", dimnames=dimList),
-                mxExpectationNormal(covariance="expCov", dimnames=covNames),
-                mxFitFunctionML(),
-                testData) 
+	mxMatrix(name="expCov", type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), free=TRUE, dimnames=dimList),
+    mxExpectationNormal("expCov", dimnames=covNames),
+    mxFitFunctionML(),
+	testData
+)
 
 outModel <- mxRun(testModel)
 

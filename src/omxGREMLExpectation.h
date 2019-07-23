@@ -29,6 +29,7 @@ struct omxGREMLExpectation : public omxExpectation {
   virtual void compute(FitContext *fc, const char *what, const char *how);
   virtual void populateAttr(SEXP expectation);
   virtual omxMatrix *getComponent(const char*);
+	virtual bool usesDataColumnNames() const { return false; }
 };
 
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);

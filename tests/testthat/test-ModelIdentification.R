@@ -27,7 +27,9 @@
 #--------------------------------------------------------------------
 # Load OpenMx
 
-require(OpenMx)
+library(OpenMx)
+library(testthat)
+context("Model Identification")
 
 
 #--------------------------------------------------------------------

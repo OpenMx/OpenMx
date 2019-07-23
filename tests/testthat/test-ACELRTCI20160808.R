@@ -14,12 +14,14 @@
 #   limitations under the License.
 
 
-require(OpenMx)
-require(mvtnorm)
+library(OpenMx)
+library(testthat)
+library(mvtnorm)
+context("ACE LRT CI")
 
-#mxOption(NULL, 'Default optimizer', 'SLSQP')
+mxOption(NULL, 'Default optimizer', 'SLSQP')
 
-if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
+#if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
 mxOption(NULL,"Calculate Hessian","No")
 mxOption(NULL,"Standard Errors","No")
 
@@ -600,7 +602,7 @@ SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.45,.45,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'C.UB', 'c', 'ubound')
-print(got)
+#print(got)
 omxCheckCloseEnough(got[1], .17223, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.16244, 2), 1e-4)
 
@@ -610,7 +612,7 @@ SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.6,.6,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'C.LB', 'c', 'lbound')
-print(got)
+#print(got)
 omxCheckCloseEnough(got[1], 0.093102, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.122418, 2), 1e-4)
 
@@ -620,7 +622,7 @@ SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'A.UB', 'a', 'ubound')
-print(got)
+#print(got)
 omxCheckCloseEnough(got[1], 0.040689, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.033402, 2), 1e-5)
 
@@ -629,8 +631,9 @@ set.seed(8)
 SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.8,.8,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
-got <- cmpInterval(ace, 'A.LB', 'a', 'lbound')
-print(got)
+got <- expect_warning(cmpInterval(ace, 'A.LB', 'a', 'lbound'),
+                      "non-zero status code 6")
+#print(got)
 omxCheckCloseEnough(got[1], 0.0687491, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.07511647, 2), 1e-5)
 
@@ -643,3 +646,5 @@ if (FALSE) {
   SigmaMZ0<-array(c(1,0.4,0.4,1),dim=c(2,2));
   SigmaDZ0<-array(c(1,0.3,0.3,1),dim=c(2,2));
 }
+
+mxOption(reset=TRUE)

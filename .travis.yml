@@ -5,9 +5,9 @@ addons:
     sources:
     - ubuntu-toolchain-r-test
     packages:
-    - gcc-7
-    - g++-7
-    - gfortran-7
+    - gcc-8
+    - g++-8
+    - gfortran-8
 matrix:
   include:
   - os: osx

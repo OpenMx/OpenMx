@@ -5,13 +5,18 @@
 \description{
 \code{mxPower} is used to evaluate the power to distinguish between a hypothesized effect (\code{trueModel})
 and a model where this effect is set to the value of the null hypothesis (\code{falseModel}).
-\code{mxPowerSearch} evaluates the relationship between sample size or effect size and power
-across a range of intelligently chosen values of, for example, sample size.
 
-The functions are flexible, with multiple options to control \emph{n}, \code{sig.level}, \code{method}, and 
-other factors. Several parameters can take a vector as input.
+\code{mxPowerSearch} evaluates power across a range of sample sizes or effect sizes,
+choosing intelligent values of, for example, sample size to explore.
 
-These options are described in detail below.
+Both functions are flexible, with multiple options to control \emph{n}, \code{sig.level}, \code{method}, and 
+other factors. Several parameters can take a vector as input. These options are described in detail below.
+
+Evaluation can either use the non-centrality parameter (which can be very quick) or conduct an empirical evaluation.
+
+\emph{note}: During longer evaluations, the functions printout helpful progress consisting of a note about what
+task is being conducted, e.g. "Search n:power relationship for 'A11'" and, beneath that, an update on the
+run, the model being evaluated, and the current candidate value being considered, e.g. "R 15 1p N 79"
 
 }
 \usage{
@@ -35,20 +40,20 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
 \arguments{
   \item{trueModel}{The true generating model for the data.}
   \item{falseModel}{Model representing the null hypothesis that we wish to reject.}
-  \item{n}{Average group sample size. When NULL, finds the relationship between sample size and power.
-    When given, finds the relationship between a parameter and power (at the given sample size).}
-  \item{sig.level}{The false positive rate (a.k.a. type 1 error).}
-  \item{power}{The power (a.k.a. 1 - type 2 error).}
+  \item{n}{Total sample size (total data rows across all groups). Default = NULL.
+    If provided, result (power or alpha) solved-for at the given sample size.}
+  \item{sig.level}{A single value for the p-value (aka false positive or type-1 error rate). Default = .05.}
+  \item{power}{One or values for power (a.k.a. 1 - type 2 error) to evaluate. Default = .80}
   \item{...}{Not used.}
-  \item{probes}{The number of probes to use when method=\sQuote{empirical}.}
-  \item{previousRun}{Output from a prior run of \sQuote{mxPowerSearch} to extend.}
-  \item{gdFun}{The function invoked to generate new data for each Monte Carlo probe.}
+  \item{probes}{The number of probes to use when method = \sQuote{empirical}.}
+  \item{previousRun}{Output from a prior run of \sQuote{mxPowerSearch} to build on.}
+  \item{gdFun}{The function invoked to generate new data for each Monte Carlo probe. Default = \code{mxGenerateData}}
   \item{method}{To estimate power: \sQuote{empirical} (Monte Carlo method) or \sQuote{ncp} (average non-centrality method).}
   \item{grid}{A vector of locations at which to evaluate the power. If not provided, a reasonable default will be chosen.}
-  \item{statistic}{Which test to use to compare models.}
-  \item{OK}{The set of status code that are considered successful}
-  \item{checkHess}{Whether to approximate the Hessian in each replication}
-  \item{silent}{Whether to output a progress indicator.}
+  \item{statistic}{Which test to use to compare models (Default = 'LRT').}
+  \item{OK}{The set of status codes that are considered successful.}
+  \item{checkHess}{Whether to approximate the Hessian in each replication.}
+  \item{silent}{Whether to show a progress indicator.}
 }
 \details{
 
@@ -135,9 +140,12 @@ the whole relationship between sample size or effect size and power.
   Occasionally, the \emph{p}-value for the slope in the stage 3 model
   grows larger than 0.25. In this case, we switch back to stage 2
   (intercept only) until the stage 3 model start working again.
-  There is no other convergence criteria. Accuracy continues to improves until the probe
-  limit is reached. After \code{mxPowerSearch} returns, additional probes can
-  be run by passing the previous result back into the function as the
+  There are no other convergence criteria. Accuracy continues to improves until the probe
+  limit is reached.
+  
+  \emph{note}: After \code{mxPowerSearch} returns, you might find you wanted to run 
+  additional probes (i.e., bounds are wider than you'd like). You can run more probes
+  without starting from scratch by passing the previous result back into the function using the
   \code{previousRun} argument.
 
   When \sQuote{n} is fixed then \code{mxPowerSearch} helps answer the
@@ -152,17 +160,17 @@ the whole relationship between sample size or effect size and power.
   model, required to have a good chance to reject the false model
   according to the chosen statistic.
 
-  Note that the default \code{grid} is chosen to exhibit the interesting
+  Note that the default \code{grid} is chosen to show the interesting
   part of the power curve (from 0.25 to 0.97).
   Especially for \code{method=ncp}, this curve is practically
   identical for any pair of models (but located at a different range of
-  sample sizes). You should select your own \code{grid} points if you
-  wish to align power curves from more than one power analysis.
+  sample sizes). However, if you wish to align power curves from more than one 
+  power analysis, you should select your own \code{grid} points (perhaps pass in the
+  power array from the first to subsequent using \code{grid = }).
   
   \emph{Note}: CI is not given for method=ncp: The estimates are exact
   (to the precision of the true and null/false model solutions provided by the user).
  
-
 }
 
 \value{

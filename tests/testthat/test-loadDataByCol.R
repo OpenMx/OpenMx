@@ -1,4 +1,6 @@
 library(OpenMx)
+library(testthat)
+context("loadDataByCol")
 
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
@@ -6,7 +8,7 @@ set.seed(1)
 if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
 #mxOption(NULL, "Number of Threads", 1L)
 
-data("jointdata", package ="OpenMx", verbose= TRUE)
+data("jointdata", package ="OpenMx")
 jointData <- jointdata
 
 # specify ordinal columns as ordered factors
@@ -110,7 +112,7 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log[shuffle,] - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
-print(lmad - thr)
+#print(lmad - thr)
 omxCheckTrue(all(lmad - thr > 0))
 
 model3$compute$steps[['LD']]$cacheSize <- 1L

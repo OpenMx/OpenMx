@@ -1,10 +1,12 @@
 library(OpenMx)
+library(testthat)
+context("loadDataByRow")
 set.seed(1)
 
 if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
 #mxOption(NULL, "Number of Threads", 1L)
 
-data("jointdata", package ="OpenMx", verbose= TRUE)
+data("jointdata", package ="OpenMx")
 
 # specify ordinal columns as ordered factors
 jointdata[,c(2,4,5)] <- mxFactor(jointdata[,c(2,4,5)], 
@@ -106,5 +108,5 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
-print(lmad - thr)
+#print(lmad - thr)
 omxCheckTrue(all(lmad - thr > 0))

@@ -2,7 +2,7 @@
 
 set -o errexit
 
-export _R_CHECK_FORCE_SUGGESTS_=0
+export _R_CHECK_FORCE_SUGGESTS_=false
 export OMP_NUM_THREADS=2
 
 fold_start() {
@@ -43,7 +43,30 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
 	travis_wait
     elif [ "x$MODE" = xcovr ]; then
 	./util/prep cran install
-	Rscript -e 'library(covr); options(covr.flags=c(getOption("covr.flags"), CXX14FLAGS="-O0 --coverage")); covr::codecov(type=c("tests","examples"))' &
+	${REXEC:-R} --vanilla --no-readline <<EOF &
+library(devtools)
+devtools::install_github("jpritikin/covr")
+library(covr)
+library(roxygen2)
+withr::with_envvar(c(MAKE="make -j2"), {
+  withr::with_makevars(getOption("covr.flags"), assignment = "+=", {
+    utils::install.packages(
+      ".", repos = NULL, type = "source",
+      INSTALL_opts = c("--example",  "--install-tests", "--with-keep.source",
+        "--with-keep.parse.data", "--no-multiarch")
+    )
+  })
+})
+roxygenize('.', roclets=c('rd'))
+c1 <- covr::package_coverage(type=c("tests","examples"), quiet=FALSE, pre_clean=FALSE)
+pct <- percent_coverage(c1, by="line")
+print(pct)
+if (pct < .46) {
+  print(paste("Coverage dropped to", pct))
+  q(status=1)
+}
+covr::codecov(coverage = c1)
+EOF
 	travis_wait
     fi
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then

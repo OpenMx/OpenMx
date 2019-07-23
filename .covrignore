@@ -1,0 +1,9 @@
+src/sqlite3.c
+src/zbuff_*.c
+src/zstd_*.c
+src/include/genfile/zlib.hpp
+src/xxhash.c
+src/huf_*.c
+src/fse_*.c
+src/entropy_common.c
+src/include/zstd*

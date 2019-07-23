@@ -13,10 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+library(OpenMx)
+library(testthat)
+context("mxBounds")
 
-require(OpenMx)
-bar <- matrix(c(1:4), 2, 2)
-foo <- mxAlgebra((-1 + 2.0 + 5e-1) %x% bar, 'foo')
-model <- mxModel('model', foo)
-modelOut <- mxRun(model)
-omxCheckIdentical(matrix(c(1.5, 3.0, 4.5, 6.0), 2, 2), mxEval(foo, modelOut))
+omxCheckError(mxModel('model', mxBounds(c('foo', 'bar'))),
+	paste("In model 'model' the following parameter",
+		"names are used in mxBounds() but do not",
+		"exist in the model: 'foo' and 'bar'."))

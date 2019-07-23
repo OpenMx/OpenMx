@@ -53,9 +53,11 @@ Fit functions are functions for which free parameter values are optimized such t
 
 The 'vector' argument is either TRUE or FALSE, and determines whether the objective function returns a column vector of the likelihoods, or a single -2*(log likelihood) value.
 
-The 'rowDiagnostics' argument is either TRUE or FALSE, and determines whether the row likelihoods are returned as an attribute of the fit function.  It is sometimes useful to inspect the likelihoods for outliers, diagnostics, or other anomalies.
+The 'rowDiagnostics' argument is either TRUE or FALSE, and determines whether the row likelihoods are returned as an attribute of the fit function.  Additionally, the squared Mahalanobis distance and the number of observed (non-missing) variables) for each row are returned under the names \code{rowDist} and \code{rowObs}, respectively.  It is sometimes useful to inspect the likelihoods for outliers, diagnostics, or other anomalies.  Each rowwise squared Mahalanobis distance should be chi-squared distributed with degrees of freedom equal to the number of observed variables.  In the case of no missing data, all of the rowwise squared Mahalanobis distances should theoretically be chi-squared distributed with the same degrees of freedom.  In the case of some missing data, the rowwise squared Mahalanobis distances should theoretically be a mixture of chi-squared distributions with mixing proportions equal to the proportions of each number of observed variables.
 
-When \code{vector=FALSE} and \code{rowDiagnostics=TRUE}, fitfunction can be referenced in the model and included in algebras as a scalar. The row likelihoods are an attribute of the fit function but are not accessible in the model during optimization.  The row likelihoods are accessible to the user after the model has been run.
+If there are ordinal data, then only the row likelihoods are returned among the row diagnostics.
+
+When \code{vector=FALSE} and \code{rowDiagnostics=TRUE}, the fit function can be referenced in the model and included in algebras as a scalar. The row likelihoods, row distances, and row observations are then an attribute of the fit function but are not accessible in the model during optimization.  The row likelihoods and other diagnostics are accessible to the user after the model has been run.
 
 By default, \code{jointConditionOn='auto'} and a heuristic will be used
 to select the fastest algorithm. Conditioning the continuous data on

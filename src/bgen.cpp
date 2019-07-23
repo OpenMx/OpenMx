@@ -863,7 +863,7 @@ namespace genfile {
 
 			// get file size
 			{
-				std::ios::streampos origin = m_stream->tellg() ;
+				auto origin = m_stream->tellg() ;
 				m_stream->seekg( 0, std::ios::end ) ;
 				m_file_metadata.size = m_stream->tellg() - origin ;
 				m_stream->seekg( 0, std::ios::beg ) ;

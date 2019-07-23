@@ -14,7 +14,10 @@
 #   limitations under the License.
 
 
-require(OpenMx)
+library(OpenMx)
+library(testthat)
+context("GREML Error Detection")
+
 options(mxCondenseMatrixSlots=TRUE)
 mxOption(NULL,"Analytic Gradients","Yes")
 require(mvtnorm)
@@ -305,3 +308,4 @@ omxCheckError(
 	mxRun(testmod),
 	"Augmentation derivatives non-conformable (gradient is size 3 and Hessian is 2x2)")
 
+mxOption(reset=TRUE)

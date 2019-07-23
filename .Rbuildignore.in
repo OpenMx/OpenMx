@@ -37,4 +37,4 @@ cachegrind.out.*
 ^middle
 ^configure.win$
 ^codecov\.yml$
-
+^.covrignore$

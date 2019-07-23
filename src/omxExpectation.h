@@ -87,6 +87,7 @@ class omxExpectation {					// An Expectation
 		asVector1(fc, row, out.derived());
 	}
 
+	virtual bool usesDataColumnNames() const { return true; }
 	void loadFromR();
 	bool loadDefVars(int row);
 

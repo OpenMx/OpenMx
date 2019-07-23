@@ -50,7 +50,6 @@ man/imxDefaultGetSlotDisplayNames.Rd
 man/imxDeparse.Rd
 man/imxDependentModels.Rd
 man/imxDetermineDefaultOptimizer.Rd
-man/imxDiff.Rd
 man/imxDmvnorm.Rd
 man/imxEvalByName.Rd
 man/imxExtractMethod.Rd

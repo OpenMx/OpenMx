@@ -51,6 +51,8 @@ mxExpectationStateSpace(A, B, C, D, Q, R, x0, P0, u,
 }
 
 \details{
+This page presents details for both the \code{mxExpectationStateSpace} function and for state space modeling generally; however, for much more information on state space modeling see the paper by Hunter (2018) listed under references.  Authors using state space modeling in OpenMx should cite Hunter (2018).
+
 Expectation functions define the way that model expectations are calculated. When used in conjunction with the \link{mxFitFunctionML}, the mxExpectationStateSpace uses maximum likelihood prediction error decomposition (PED) to obtain estimates of free parameters in a model of the raw \link{MxData} object. State space expectations treat the raw data as a multivariate time series of equally spaced times with each row corresponding to a single occasion.  This is not a model of the block Toeplitz lagged autocovariance matrix.  State space expectations implement a classical Kalman filter to produce expectations.
 
 The hybrid Kalman filter (combination of classical Kalman and Kalman-Bucy filters) for continuous latent time with discrete observations is implemented and is available as \link{mxExpectationStateSpaceContinuousTime}.  The following alternative filters are not yet implemented: square root Kalman filter (in Cholesky or singular value decomposition form), extended Kalman filter for linear approximations to nonlinear state space models, unscented Kalman filter for highly nonlinear state space models, and Rauch-Tung-Striebel smoother for updating forecast state estimates after a complete forward pass through the data has been made.
@@ -122,6 +124,8 @@ To evaluate, place mxExpectationStateSpace objects, the \link{mxData} object for
 K.J. \ifelse{latex}{\out{\r Astr\"om}}{\ifelse{html}{\out{&Aring;str&ouml;m}}{Astrom}} and R.M. Murray  (2010).  \emph{ Feedback Systems: An Introduction for Scientists and Engineers}. Princeton University Press.
 
 J. Durbin and S.J. Koopman.  (2001).  \emph{Time Series Analysis by State Space Methods}. Oxford University Press.
+
+Hunter, M.D.  (2018).  State Space Modeling in an Open Source, Modular, Structural Equation Modeling Environment.  \emph{Structural Equation Modeling: A Multidisciplinary Journal, 25(2)}, 307-324.  DOI: 10.1080/10705511.2017.1369354
 
 R.E. Kalman  (1960).  A New Approach to Linear Filtering and Prediction Problems.  \emph{Basic Engineering, 82}, 35-45.
 

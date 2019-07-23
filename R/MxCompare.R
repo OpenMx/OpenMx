@@ -235,13 +235,23 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 	ret
 }
 
-loadDataIntoModel <- function(model, dataList) {
+assertIsRawData <- function(model) {
+  type <- model$data$type
+  if (type == 'raw') return()
+  stop(paste("Model", omxQuotes(model$name), "contains", omxQuotes(type),
+	     "data. Only type='raw' data is supported by",
+	     "mxPowerSearch(..., method='empirical')"))
+}
+
+loadDataIntoModel <- function(model, dataList, assertRaw=FALSE) {
   for (modelName in names(dataList)) {
-	  dataobj <- mxData(dataList[[modelName]], type='raw')
+    dataobj <- mxData(dataList[[modelName]], type='raw')
     if (modelName == model$name) {
-	    model <- mxModel(model, dataobj)
+      if (assertRaw) assertIsRawData(model)
+      model <- mxModel(model, dataobj)
     } else {
-	    model <- mxModel(model, mxModel(model[[modelName]], dataobj))
+      if (assertRaw) assertIsRawData(model[[modelName]])
+      model <- mxModel(model, mxModel(model[[modelName]], dataobj))
     }
   }
   model
@@ -665,23 +675,39 @@ fitPowerModel <- function(rx, result, isN) {
   list(curX=curX, m1=m1, alg=alg)
 }
 
+validateSigLevel <- function(sl) {
+  if (length(sl) > 1) {
+    stop(paste("Can only evaluate one sig.level at a time.",
+	       "To evaluate power across a range of sig.levels",
+	       "you need to call mxPower in a loop and accumulate",
+	       "estimates that way"))
+  } else if (length(sl) == 0) {
+    stop("At what sig.level?")
+  } else if (sl <= 0 || sl >= 1) {
+    stop("sig.level must be between 0 and 1")
+  }
+}
+
 mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
-                    probes=300L, previousRun=NULL,
-                    gdFun=mxGenerateData,
-                    method=c('empirical', 'ncp'),
-                    grid=NULL,
-                    statistic=c('LRT','AIC','BIC'),
-		    OK=mxOption(trueModel, "Status OK"), checkHess=FALSE,
-		    silent=!interactive())
-# add plot=TRUE? or return S3 object that responds to plot(obj) ? TODO
+	probes = 300L, previousRun = NULL,
+	gdFun = mxGenerateData,
+	method = c('empirical', 'ncp'),
+	grid = NULL,
+	statistic = c('LRT','AIC','BIC'),
+	OK = mxOption(trueModel, "Status OK"), checkHess=FALSE,
+	silent = !interactive())
 {
+	# TODO: add plot=TRUE? or return S3 object that responds to plot(obj)?
     garbageArguments <- list(...)
     if (length(garbageArguments) > 0) {
-        stop("mxPowerSearch does not accept values for the '...' argument")
+		 message("Invalid inputs to mxPowerSearch:")
+		 print(garbageArguments)
+       stop("mxPowerSearch does not accept values for the '...' argument\n")
     }
-  method <- match.arg(method)
-  statistic <- match.arg(statistic)
-  if (method == 'ncp') {
+  validateSigLevel(sig.level)
+    method <- match.arg(method)
+    statistic <- match.arg(statistic)
+    if (method == 'ncp') {
     if (!is.null(n)) stop(paste("method='ncp' does not work for fixed n =", n))
     if (statistic != 'LRT') stop(paste("method='ncp' does not work for statistic =", statistic))
     warnModelCreatedByOldVersion(trueModel)
@@ -720,7 +746,11 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                   center+4*width, length.out = 20)
     }
     out <- data.frame(x=grid)
-    out$power <- 1 - pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x)
+    out$power <- 1 - suppressWarnings(pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x))
+    if (any(is.na(out$power))) {
+      stop(paste("Sorry, unable to estimate power for sig.level=",sig.level,
+		 "with method='ncp'. Try method='empirical'"))
+    }
     out$lower <- NA
     out$upper <- NA
     colnames(out)[1] <- 'N'
@@ -793,7 +823,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   prevProgressLen <- 0L
   if (!is.na(nextTrial)) for (rx in nextTrial:probes) {
     set.seed(result[rx,'seed'])
-    info <- paste("R", rx, alg, xLabel, nullInterestValue + curX)
+    info <- paste0(xLabel,"[", rx,"] fitting model '", alg, "' value ", nullInterestValue + curX)
     if (!silent) imxReportProgress(info, prevProgressLen)
     prevProgressLen <- nchar(info)
     if (!is.null(n)) {
@@ -811,7 +841,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
       names(simData) <- trueModel$name
     }
     
-    true1  <- loadDataIntoModel(trueModel,  simData)
+    true1  <- loadDataIntoModel(trueModel,  simData, assertRaw=rx==1)
     true1  <- mxRun(true1,  silent=TRUE, suppressWarnings = TRUE)
     # complain about parameters at box constraints TODO
     
@@ -894,6 +924,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
   }
   if (length(power) == 1 && is.na(power)) power <- c()
   if (length(n) == 1 && is.na(n)) n <- c()
+  validateSigLevel(sig.level)
   if (length(falseModel) > 1) {
     if (length(n) > 1 || length(power) > 1) {
       stop(paste("You cannot pass more than 1 falseModel at the same time",
@@ -923,7 +954,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
   statistic <- match.arg(statistic)
   detail <- list(method=method, sig.level=sig.level, statistic=statistic)
   if (is.null(power)) {
-    if (is.null(n)) stop("To estimate power, it is necessary to fix sample size")
+    if (is.null(n)) stop("To estimate power, it is necessary to fix sample size (set n = )")
     if (method == 'ncp') {
       got <- mxPowerSearch(trueModel, falseModel, sig.level=sig.level, method=method,
                            grid=n, statistic=statistic)
@@ -990,16 +1021,16 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
       detail$n <- n
     }
   } else { # length(power) > 0
-	  detail$power <- power
-	  detail$probes <- probes
+    detail$power <- power
+    if (method == 'empirical') detail$probes <- probes
     if (is.null(n)) {
       # search n:power relationship
       result <- mxPowerSearch(trueModel, falseModel, probes=probes, gdFun=gdFun,
-	      method=method, statistic=statistic, OK=OK, checkHess=checkHess)
+	      method=method, statistic=statistic, OK=OK, checkHess=checkHess, sig.level=sig.level)
     } else {
       # search parameter:power relationship
       result <- mxPowerSearch(trueModel, falseModel, n=n, probes=probes, gdFun=gdFun,
-	      method=method, statistic=statistic, OK=OK, checkHess=checkHess)
+	      method=method, statistic=statistic, OK=OK, checkHess=checkHess, sig.level=sig.level)
 	    detail$parameter <- setdiff(names(coef(trueModel)), names(coef(falseModel)))
 	    detail$n <- n
     }
