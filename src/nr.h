@@ -45,9 +45,9 @@ class NewtonRaphsonOptimizer {
 	int verbose;
 	int iter;
 	int numParam;
-	double refFit;
+	double refFit; // current fit value
 	double priorSpeed;
-	double improvement;
+	double improvement;  // previous fit - refFit
 	double maxAdj;
 	double maxAdjSigned;
 	int maxAdjParam;
