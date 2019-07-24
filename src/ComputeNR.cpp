@@ -199,8 +199,9 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 		}
 	}
 
-	if (verbose >= 3) mxLog("%s: using steepestDescent %d probes %d speed %f improved %.3g",
-				name, steepestDescent, probeCount, bestSpeed, bestImproved);
+	if (verbose >= 3) mxLog("%s: %s, probes %d speed %f improved %.3g",
+				name, steepestDescent?"steepestDescent":"normal step",
+				probeCount, bestSpeed, bestImproved);
 	priorSpeed = bestSpeed;
 
 	trial = (prevEst - bestSpeed * searchDir).
