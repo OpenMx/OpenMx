@@ -1782,9 +1782,6 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 		    any(rownames(knownHessian) != colnames(knownHessian))) {
 			stop("knownHessian must have matching row and column names")
 		}
-		if (any(knownHessian != t(knownHessian))) {
-			stop("knownHessian must be exactly symmetric")
-		}
 	}
 
 	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations,
