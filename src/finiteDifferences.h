@@ -49,7 +49,7 @@ struct finite_difference_grad {
 			k += 1;
 		}
 		point[px] = orig;
-	};
+	}
 };
 
 struct forward_difference_grad : finite_difference_grad<forward_difference_grad> {
@@ -209,7 +209,7 @@ struct forward_difference_jacobi {
 			offset *= .5;
 		}
 		point[px] = orig;
-	};
+	}
 };
 
 struct central_difference_jacobi {
@@ -229,7 +229,7 @@ struct central_difference_jacobi {
 			offset *= .5;
 		}
 		point[px] = orig;
-	};
+	}
 };
 
 template <bool initialized, typename T1, typename T2, typename T3, typename T4, typename T5>
