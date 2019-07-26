@@ -59,7 +59,11 @@ withr::with_envvar(c(MAKE="make -j2"), {
   })
 })
 roxygenize('.', roclets=c('rd'))
-c1 <- covr::package_coverage(type=c("tests","examples"), quiet=FALSE, pre_clean=FALSE)
+c1 <- covr::package_coverage(type=c("tests","examples"), quiet=TRUE, pre_clean=FALSE)
+pl <- covr:::per_line(c1)
+print(t(sapply(pl, function(x) c(total=length(x$coverage),
+                         possible=sum(!is.na(x$coverage)),
+                         covered=sum(!is.na(x$coverage) & x$coverage > 0)))))
 pct <- percent_coverage(c1, by="expression")
 print(pct)
 pct <- percent_coverage(c1, by="line")
