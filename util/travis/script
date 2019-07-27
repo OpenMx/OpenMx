@@ -48,6 +48,7 @@ library(devtools)
 devtools::install_github("jpritikin/covr")
 library(covr)
 library(roxygen2)
+options(covr.gcov = "gcov-8")
 withr::with_envvar(c(MAKE="make -j2"), {
   withr::with_makevars(getOption("covr.flags"), assignment = "+=", {
     utils::install.packages(
@@ -59,6 +60,8 @@ withr::with_envvar(c(MAKE="make -j2"), {
 })
 roxygenize('.', roclets=c('rd'))
 c1 <- covr::package_coverage(type=c("tests","examples"), quiet=FALSE, pre_clean=FALSE)
+pct <- percent_coverage(c1, by="expression")
+print(pct)
 pct <- percent_coverage(c1, by="line")
 print(pct)
 if (pct < .46) {

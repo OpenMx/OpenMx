@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+library(testthat)
 library(OpenMx)
 
 data(demoOneFactor)
@@ -38,11 +38,19 @@ fullH <- fitModel$output$hessian
 
 omxCheckEquals(fitModel$compute$steps[[1]]$output$probeCount, 4 * (10^2+10))
 
-limModel <- mxRun(mxModel(factorModel,
+kh <- fullH[3:10,3:10]
+kh[1,2] <- kh[1,2] + 5  # asymmetric
+kh[2,1] <- kh[2,1] - 5  # asymmetric
+kh[3,3] <- NA
+
+limModel <- mxModel(factorModel,
                           mxComputeSequence(list(
                             mxComputeNumericDeriv(verbose=0,
-                                                  knownHessian=fullH[3:10,3:10]),
-                            mxComputeReportDeriv()))))
+                                                  knownHessian=kh),
+                            mxComputeReportDeriv())))
+limModel <- expect_warning(mxRun(limModel),
+               "knownHessian[1,2] is not symmetric", fixed=TRUE)
+
 omxCheckCloseEnough(limModel$output$hessian[,1:2], fullH[,1:2], 1e-3)
 
-omxCheckEquals(limModel$compute$steps[[1]]$output$probeCount, 152)
+omxCheckEquals(limModel$compute$steps[[1]]$output$probeCount, 160)

@@ -1724,6 +1724,12 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' intervals should be used for inference instead of standard errors
 ##' (see \code{mxComputeConfidenceInterval}).
 ##'
+##' If provided, the square matrix \code{knownHessian} should have
+##' dimnames set to the names of some subset of the free
+##' parameters. Entries of the matrix set to NA will be estimated
+##' numerically while entries containing finite values will be copied
+##' to the Hessian result.
+##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
@@ -1775,9 +1781,6 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 		if (length(dimnames(knownHessian)) != 2 ||
 		    any(rownames(knownHessian) != colnames(knownHessian))) {
 			stop("knownHessian must have matching row and column names")
-		}
-		if (any(knownHessian != t(knownHessian))) {
-			stop("knownHessian must be exactly symmetric")
 		}
 	}
 

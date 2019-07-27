@@ -431,10 +431,18 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		if (knownHessian) {
 			int khSize = int(khMap.size());
 			Eigen::Map< Eigen::MatrixXd > kh(knownHessian, khSize, khMap.size());
+			int warns=0;
 			for (int rx=0; rx < khSize; ++rx) {
 				for (int cx=0; cx < khSize; ++cx) {
 					if (khMap[rx] < 0 || khMap[cx] < 0) continue;
-					eH(khMap[rx], khMap[cx]) = kh(rx, cx);
+					if (!std::isfinite(kh(rx, cx))) continue;
+					if (rx < cx && fabs(kh(rx, cx) - kh(cx, rx)) > 1e-9) {
+						if (++warns < 3) {
+							Rf_warning("%s: knownHessian[%d,%d] is not symmetric",
+								   name, 1+rx, 1+cx);
+						}
+					}
+					eH(khMap[rx], khMap[cx]) = (kh(rx, cx) + kh(cx, rx))/2.0;
 				}
 			}
 		}
