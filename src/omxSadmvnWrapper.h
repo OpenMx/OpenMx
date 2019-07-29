@@ -141,7 +141,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		this->data = _data;
 		this->thresholdMat = tMat;
 		this->colInfoPtr = &colInfo;
-	};
+	}
 
 	template <typename T1>
 	void setCovariance(Eigen::MatrixBase<T1> &cov, FitContext *fc)
@@ -268,14 +268,14 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 		for (int bx=0; bx < (int)blocks.size(); ++bx) {
 			blocks[bx].setMean(meanIn);
 		}
-	};
+	}
 
 	template <typename T1>
 	void setColumns(Eigen::ArrayBase<T1> &colIn)
 	{
 		//mxPrintMat("setColumns", colIn);
 		ordColumns = colIn;
-	};
+	}
 
 	inline double likelihood(FitContext *fc, int row)
 	{
@@ -284,7 +284,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 			lk *= blocks[bx].likelihood(fc, row);  // log space instead?
 		}
 		return lk;
-	};
+	}
 
 	template <typename T1, typename T2>
 	double likelihood(FitContext *fc, const Eigen::MatrixBase<T1> &lbound, const Eigen::MatrixBase<T2> &ubound)
@@ -296,7 +296,7 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 			lk *= l1;
 		}
 		return lk;
-	};
+	}
 
 	void log()
 	{

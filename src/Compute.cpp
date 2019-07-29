@@ -1179,7 +1179,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 	if (verbose >= 3) {
 		mxPrintMat("equality", equality);
 	}
-};
+}
 
 void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK)
 {
@@ -1224,7 +1224,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	if (verbose >= 3) {
 		mxPrintMat("inequality", inequality);
 	}
-};
+}
 
 //Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:
 void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive){
@@ -1234,17 +1234,17 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	
 	constraintJacobian.setConstant(NA_REAL);
 	
-	int cur=0, j=0, c=0, roffset=0, i=0;
-	for (j=0; j < int(state->conListX.size()); j++) {
+	int cur=0;
+	for (int j=0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) {
 			con.refreshAndGrab(this, &constraintFunVals(cur));
-			for(i=0; i < con.size; i++){
+			for(int i=0; i < con.size; i++){
 				is_inactive_ineq[cur+i] = false;
 			}
 		} else{
 			con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &constraintFunVals(cur));
-			for(i=0; i < con.size; i++){
+			for(int i=0; i < con.size; i++){
 				if(constraintFunVals(cur+i) < 0 && maskInactive){
 					constraintFunVals(cur+i) = 0;
 					is_inactive_ineq[cur+i] = true;
@@ -1255,9 +1255,9 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 		}
 		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
-			for(c=0; c<con.jacobian->cols; c++){
+			for(int c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
-				for(roffset=0; roffset<con.size; roffset++){
+				for(int roffset=0; roffset<con.size; roffset++){
 					constraintJacobian(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
 				}
 			}
@@ -1497,7 +1497,7 @@ public:
 		for (int px=0; px < numParam; ++px) {
 			prevAdj1[px] = fc->est[px] - prevEst[px];
 		}
-	};
+	}
 
 	Eigen::VectorXd dir;
 	virtual bool calcDirection(bool major) = 0;
@@ -3101,7 +3101,7 @@ struct estep_jacobian_functional {
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		em->dEstep(fc, x, result);
-	};
+	}
 };
 
 template <typename T1, typename T2>

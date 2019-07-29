@@ -666,7 +666,7 @@ struct ba81gradCovOp {
 		double *myDeriv = &ideriv.coeffRef(ix * itemDerivPadSize, thrId);
 		(*Glibrpf_model[id].dLL1)(spec1, iparam, abscissa.derived().data(),
 					  &expected.coeffRef(0, thrId), myDeriv);
-	};
+	}
 
 	void endQuadPoint(int thrId) {};
 };

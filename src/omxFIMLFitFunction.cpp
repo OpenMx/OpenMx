@@ -14,13 +14,13 @@
  *  limitations under the License.
  */
 
+#include <limits>
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include <Eigen/Cholesky>
-#include "EnableWarnings.h"
 #include "omxFIMLFitFunction.h"
-#include <limits>
+#include "EnableWarnings.h"
 
 nanotime_t omxFIMLFitFunction::getMedianElapsedTime()
 {

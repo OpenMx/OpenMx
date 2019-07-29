@@ -333,7 +333,7 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 	return(code);
 }
 
-};
+}
 
 void omxInvokeNLOPT(GradientOptimizerContext &goc)
 {

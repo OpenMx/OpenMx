@@ -145,7 +145,7 @@ namespace MarkovFF {
 		ms->initial = expectation->getComponent("initial");
 		ms->transition = expectation->getComponent("transition");
 	}
-};
+}
 
 omxFitFunction *InitMarkovFF()
 { return new MarkovFF::state; }
