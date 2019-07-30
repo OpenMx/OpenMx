@@ -196,8 +196,8 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
 	if (*mode > 0 && !fc->ciobj && useGradient && fitMatrix->fitFunction->gradientAvailable) {
-		fc->grad.resize(fc->numParam);
-		fc->grad.setZero();
+		fc->initGrad();
+		fc->gradZ.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
 	ComputeFit(getOptName(), fitMatrix, want, fc);
@@ -467,7 +467,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
-			fc->grad = rf.gradOut.tail(numParam);
+			fc->haveGrad.assign(numParam, true);
+			fc->gradZ = rf.gradOut.tail(numParam);
 			Eigen::Map< Eigen::MatrixXd > hess(fc->getDenseHessUninitialized(), numParam, numParam);
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
 			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;

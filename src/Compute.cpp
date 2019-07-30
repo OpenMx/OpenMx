@@ -585,12 +585,14 @@ bool FitContext::refreshSparseIHess()
 
 Eigen::VectorXd FitContext::ihessGradProd()
 {
+	if (!std::all_of(haveGrad.begin(), haveGrad.end(), [](bool i){return i;}))
+		mxThrow("FitContext::ihessGradProd but gradient is missing entries");
 	if (refreshSparseIHess()) {
-		return sparseIHess.selfadjointView<Eigen::Upper>() * grad;
+		return sparseIHess.selfadjointView<Eigen::Upper>() * gradZ;
 	} else {
 		refreshDenseHess();
 		InvertSymmetricNR(hess, ihess);
-		return ihess.selfadjointView<Eigen::Upper>() * grad;
+		return ihess.selfadjointView<Eigen::Upper>() * gradZ;
 	}
 }
 
@@ -958,7 +960,11 @@ void FitContext::log(int what)
 	if (what & FF_COMPUTE_GRADIENT) {
 		buf += string_snprintf("gradient %d: c(", (int) count);
 		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.5f", grad[vx]);
+			if (haveGrad[vx]) {
+				buf += string_snprintf("%.5f", gradZ[vx]);
+			} else {
+				buf += '-';
+			}
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";
@@ -3118,11 +3124,11 @@ void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBa
 	Est = optimum;
 	fc->copyParamToModelClean();
 
-	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+	fc->gradZ = Eigen::VectorXd::Zero(fc->numParam);
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
-	result = fc->grad;
+	result = fc->gradZ;
 	reportProgress(fc);
 }
 
@@ -3136,7 +3142,7 @@ void ComputeEM::Oakes(FitContext *fc)
 	estep->compute(fc);
 	fc->wanted &= ~FF_COMPUTE_HESSIAN;  // discard garbage
 
-	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+	fc->initGrad();
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
@@ -3144,7 +3150,7 @@ void ComputeEM::Oakes(FitContext *fc)
 
 	Eigen::VectorXd optimumCopy = optimum;  // will be modified
 	Eigen::VectorXd refGrad(freeVars);
-	refGrad = fc->grad;
+	refGrad = fc->gradZ;
 	//mxPrintMat("refGrad", refGrad);
 
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
@@ -3560,7 +3566,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
-			fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+			fc->initGrad();
 		}
 		if (hessian) {
 			want |= FF_COMPUTE_HESSIAN;
@@ -3569,7 +3575,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (infoMat) {
 			want |= FF_COMPUTE_INFO;
 			fc->infoMethod = infoMethod;
-			fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+			fc->initGrad();
 			fc->clearHessian();
 			fc->preInfo();
 		}
@@ -5369,7 +5375,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		}
 		s1.stderrs = fc->stderrs;
 	}
-	if (inclGradient) s1.gradient = fc->grad;
+	if (inclGradient) s1.gradient = fc->gradZ;
 	if (inclVcov && fc->vcov.rows() == numParam) {
 		s1.vcov.resize(triangleLoc1(numParam));
 		int lx=0;

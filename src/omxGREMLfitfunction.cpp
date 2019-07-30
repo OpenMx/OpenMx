@@ -315,7 +315,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		int nThreadz = Global->numThreads;
  		int wantHess = 0;
  		
- 		fc->grad.resize(gff->dVlength); //<--Resize gradient in FitContext
+		fc->initGrad(gff->dVlength); //<--Resize gradient in FitContext
  		
  		//Set up new HessianBlock:
  		HessianBlock *hb = new HessianBlock;
@@ -384,7 +384,8 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					}
 					gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
 						Scale*gff->pullAugVal(1,a1,0);
-					fc->grad(hrn) += gff->gradient(hrn);
+					fc->haveGrad[hrn] = true;
+					fc->gradZ(hrn) += gff->gradient(hrn);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
 							Scale*gff->pullAugVal(2,a1,a1);
@@ -449,7 +450,8 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 				}
 				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
 					Scale*gff->pullAugVal(1,a1,0);
-				fc->grad(hrn) += gff->gradient(hrn);
+				fc->haveGrad[hrn] = true;
+				fc->gradZ(hrn) += gff->gradient(hrn);
 				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 					gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
 						Scale*gff->pullAugVal(2,a1,a1);
@@ -519,7 +521,8 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					}
 					gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
 						Scale*gff->pullAugVal(1,a1,0);
-					fc->grad(t1) += gff->gradient(t1);
+					fc->haveGrad[t1] = true;
+					fc->gradZ(t1) += gff->gradient(t1);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
 							Scale*gff->pullAugVal(2,a1,a1);

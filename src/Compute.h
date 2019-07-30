@@ -159,7 +159,13 @@ class FitContext {
 		std::vector<bool> &po = profiledOut;
 		return numParam - std::count(po.begin(), po.end(), true);
 	};
-	Eigen::VectorXd grad;
+	std::vector<bool> haveGrad;
+	Eigen::VectorXd gradZ;
+	void initGrad(int pars) { // should dimension to numParam always? TODO
+		haveGrad.assign(pars, false);
+		gradZ = Eigen::VectorXd::Zero(pars);
+	};
+	void initGrad() { initGrad(numParam); };
 	int infoDefinite;
 	double infoCondNum;
 	Eigen::MatrixXd hess;
@@ -289,7 +295,7 @@ class FitContext {
 		int px=0;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			if (profiledOut[vx]) continue;
-			out[px] = grad[vx];
+			out[px] = haveGrad[vx]? gradZ[vx] : NA_REAL;
 			++px;
 		}
 	};
@@ -297,7 +303,8 @@ class FitContext {
 		int px=0;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			if (profiledOut[vx]) continue;
-			grad[vx] = in[px];
+			gradZ[vx] = in[px];
+			haveGrad[vx] = true;
 			++px;
 		}
 	};
@@ -312,13 +319,14 @@ class FitContext {
 	};
 	template<typename T1, typename T2>
 	void setEstGradFromOptimizer(const T1 &ein, const T2 &gin) {
-		grad.resize(numParam);
-		grad.setConstant(nan("unset"));
+		haveGrad.assign(numParam, true);
+		gradZ.resize(numParam);
+		gradZ.setConstant(NA_REAL);
 		int px=0;
 		for (size_t vx=0; vx < numParam; ++vx) {
 			if (profiledOut[vx]) continue;
 			est[vx] = ein[px];
-			grad[vx] = gin[px];
+			gradZ[vx] = gin[px];
 			++px;
 		}
 		copyParamToModel();

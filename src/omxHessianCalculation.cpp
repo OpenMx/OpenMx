@@ -499,6 +499,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
 		// factor out simliar code in ComputeNR
+		Gsymmetric[px] = true;
 		omxFreeVar &fv = *fc->varGroup->vars[ paramMap[px] ];
 		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
 		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
@@ -507,14 +508,15 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 		gradNorm += Gc[px] * Gc[px];
 		double relsym = 2 * fabs(Gf[px] + Gb[px]) / (Gb[px] - Gf[px]);
-		Gsymmetric[px] = (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
+		Gsymmetric[px] &= (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
 		if (checkGradient && verbose >= 2 && !Gsymmetric[px]) {
 			mxLog("%s: param[%d] %d %f", name, px, Gsymmetric[px], relsym);
 		}
 	}
 	
-	fc->grad.resize(fc->numParam);
-	fc->grad.setZero();
+	fc->haveGrad.assign(fc->numParam, true);
+	fc->gradZ.resize(fc->numParam);
+	fc->gradZ.setZero();
 	fc->copyGradFromOptimizer(Gc);
 	
 	if(c_n){

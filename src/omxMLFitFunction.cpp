@@ -247,7 +247,8 @@ void MLFitState::compute(int want, FitContext *fc)
 			int px=0;
 			for (int fx=0; fx < int(fc->numParam); ++fx) {
 				if (!fvMask[fx]) continue;
-				fc->grad[fx] += Scale * init_grad[px];
+				fc->haveGrad[fx] = true;
+				fc->gradZ[fx] += Scale * init_grad[px];
 				++px;
 			}
 		}
