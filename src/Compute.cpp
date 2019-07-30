@@ -585,8 +585,11 @@ bool FitContext::refreshSparseIHess()
 
 Eigen::VectorXd FitContext::ihessGradProd()
 {
-	if (!std::all_of(haveGrad.begin(), haveGrad.end(), [](bool i){return i;}))
-		mxThrow("FitContext::ihessGradProd but gradient is missing entries");
+	for (int px=0; px < int(haveGrad.size()); ++px) {
+		if (haveGrad[px]) continue;
+		mxLog("FitContext::ihessGradProd grad[%d/%s] missing",
+		      px, varGroup->vars[px]->name);
+	}
 	if (refreshSparseIHess()) {
 		return sparseIHess.selfadjointView<Eigen::Upper>() * gradZ;
 	} else {
