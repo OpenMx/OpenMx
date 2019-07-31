@@ -58,7 +58,7 @@ void GradientOptimizerContext::setupIneqConstraintBounds() //used with CSOLNP.
 	globalState->countNonlinearConstraints(globalState->numEqC, globalState->numIneqC, false);
 	equality.resize(globalState->numEqC);
 	inequality.resize(globalState->numIneqC);
-};
+}
 
 void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 {
@@ -196,8 +196,8 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	int want = FF_COMPUTE_FIT;
 	// eventually want to permit analytic gradient during CI
 	if (*mode > 0 && !fc->ciobj && useGradient && fitMatrix->fitFunction->gradientAvailable) {
-		fc->grad.resize(fc->numParam);
-		fc->grad.setZero();
+		fc->initGrad();
+		fc->gradZ.setZero();
 		want |= FF_COMPUTE_GRADIENT;
 	}
 	ComputeFit(getOptName(), fitMatrix, want, fc);
@@ -216,7 +216,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	}
 
 	return fc->fit;
-};
+}
 
 // NOTE: All non-linear constraints are applied regardless of free
 // variable group.
@@ -224,7 +224,7 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 {
 	fc->solEqBFun(wantAJ, verbose);
 	return;
-};
+}
 
 // NOTE: All non-linear constraints are applied regardless of free
 // variable group.
@@ -232,7 +232,7 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
 	fc->myineqFun(wantAJ, verbose, ineqType, CSOLNP_HACK);
 	return;
-};
+}
 
 
 // ------------------------------------------------------------
@@ -467,7 +467,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
-			fc->grad = rf.gradOut.tail(numParam);
+			fc->haveGrad.assign(numParam, true);
+			fc->gradZ = rf.gradOut.tail(numParam);
 			Eigen::Map< Eigen::MatrixXd > hess(fc->getDenseHessUninitialized(), numParam, numParam);
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
 			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
@@ -688,7 +689,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	plan->initFromFrontend(globalState, slotValue);
 }
 
-extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); };
+extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); }
 
 class notImplementedConstraint : public omxConstraint {
 	typedef omxConstraint super;

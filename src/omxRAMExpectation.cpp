@@ -567,7 +567,7 @@ namespace RelationalRAMExpectation {
 	omxRAMExpectation *addr::getRAMExpectation(FitContext *fc)
 	{
 		return (omxRAMExpectation*) getModel(fc);
-	};
+	}
 
 	std::vector< omxMatrix* > &addr::getBetween() const
 	{
@@ -2234,5 +2234,4 @@ namespace RelationalRAMExpectation {
 			dbg.add(name.c_str(), info.asR());
 		}
 	}
-
-};
+}

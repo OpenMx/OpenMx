@@ -183,15 +183,17 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		if (fc->ciobj) mxThrow("CIs cannot be computed for unitless algebra");
 		omxRecompute(fitMat, fc);
 	}
-	if (ff && want & FF_COMPUTE_FIT) {
-		fc->fit = totalLogLikelihood(fitMat);
-		if (std::isfinite(fc->fit)) {
-			fc->resetIterationError();
-		}
-		Global->checkpointPostfit(callerName, fc, fc->est, false);
-		if (OMX_DEBUG) {
-			mxLog("%s: completed evaluation, fit=%.12g skippedRows=%d",
-			      fitMat->name(), fc->fit, fc->skippedRows);
+	if (ff) {
+		if (want & FF_COMPUTE_FIT) {
+			fc->fit = totalLogLikelihood(fitMat);
+			if (std::isfinite(fc->fit)) {
+				fc->resetIterationError();
+			}
+			Global->checkpointPostfit(callerName, fc, fc->est, false);
+			if (OMX_DEBUG) {
+				mxLog("%s: completed evaluation, fit=%.12g skippedRows=%d",
+				      fitMat->name(), fc->fit, fc->skippedRows);
+			}
 		}
 	}
 }

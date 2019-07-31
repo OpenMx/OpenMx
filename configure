@@ -91,6 +91,13 @@ if [ "$cxx_type" = gcc ]; then
 	if [ $(compareVersions $cxx_version 8.0) -ge 0 ]; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wclass-memaccess"
 	fi
+	if [ $(compareVersions $cxx_version 9.0) -ge 0 ]; then
+	    # As of RcppEigen 0.3.3.5.0, there is some problem with the
+	    # definition of Eigen::Ref. Try to re-enable this warning
+	    # in a year.
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-deprecated-copy"
+	    :
+	fi
     fi
 fi
 

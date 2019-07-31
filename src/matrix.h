@@ -34,11 +34,11 @@ struct Matrix {
 	}
 	template <typename T1> Matrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {
 		copyDimsFromEigen(mb);
-	};
+	}
 	template <typename T1> void operator=(Eigen::MatrixBase<T1> &mb) {
 		t = mb.derived().data();
 		copyDimsFromEigen(mb);
-	};
+	}
 };
 
 template <typename T1>

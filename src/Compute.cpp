@@ -585,12 +585,17 @@ bool FitContext::refreshSparseIHess()
 
 Eigen::VectorXd FitContext::ihessGradProd()
 {
+	for (int px=0; px < int(haveGrad.size()); ++px) {
+		if (haveGrad[px]) continue;
+		mxLog("FitContext::ihessGradProd grad[%d/%s] missing",
+		      px, varGroup->vars[px]->name);
+	}
 	if (refreshSparseIHess()) {
-		return sparseIHess.selfadjointView<Eigen::Upper>() * grad;
+		return sparseIHess.selfadjointView<Eigen::Upper>() * gradZ;
 	} else {
 		refreshDenseHess();
 		InvertSymmetricNR(hess, ihess);
-		return ihess.selfadjointView<Eigen::Upper>() * grad;
+		return ihess.selfadjointView<Eigen::Upper>() * gradZ;
 	}
 }
 
@@ -958,7 +963,11 @@ void FitContext::log(int what)
 	if (what & FF_COMPUTE_GRADIENT) {
 		buf += string_snprintf("gradient %d: c(", (int) count);
 		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.5f", grad[vx]);
+			if (haveGrad[vx]) {
+				buf += string_snprintf("%.5f", gradZ[vx]);
+			} else {
+				buf += '-';
+			}
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";
@@ -1179,7 +1188,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 	if (verbose >= 3) {
 		mxPrintMat("equality", equality);
 	}
-};
+}
 
 void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK)
 {
@@ -1224,7 +1233,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	if (verbose >= 3) {
 		mxPrintMat("inequality", inequality);
 	}
-};
+}
 
 //Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:
 void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive){
@@ -1234,17 +1243,17 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	
 	constraintJacobian.setConstant(NA_REAL);
 	
-	int cur=0, j=0, c=0, roffset=0, i=0;
-	for (j=0; j < int(state->conListX.size()); j++) {
+	int cur=0;
+	for (int j=0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) {
 			con.refreshAndGrab(this, &constraintFunVals(cur));
-			for(i=0; i < con.size; i++){
+			for(int i=0; i < con.size; i++){
 				is_inactive_ineq[cur+i] = false;
 			}
 		} else{
 			con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &constraintFunVals(cur));
-			for(i=0; i < con.size; i++){
+			for(int i=0; i < con.size; i++){
 				if(constraintFunVals(cur+i) < 0 && maskInactive){
 					constraintFunVals(cur+i) = 0;
 					is_inactive_ineq[cur+i] = true;
@@ -1255,9 +1264,9 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 		}
 		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
-			for(c=0; c<con.jacobian->cols; c++){
+			for(int c=0; c<con.jacobian->cols; c++){
 				if(con.jacMap[c]<0){continue;}
-				for(roffset=0; roffset<con.size; roffset++){
+				for(int roffset=0; roffset<con.size; roffset++){
 					constraintJacobian(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
 				}
 			}
@@ -1497,7 +1506,7 @@ public:
 		for (int px=0; px < numParam; ++px) {
 			prevAdj1[px] = fc->est[px] - prevEst[px];
 		}
-	};
+	}
 
 	Eigen::VectorXd dir;
 	virtual bool calcDirection(bool major) = 0;
@@ -3101,7 +3110,7 @@ struct estep_jacobian_functional {
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		em->dEstep(fc, x, result);
-	};
+	}
 };
 
 template <typename T1, typename T2>
@@ -3118,11 +3127,11 @@ void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBa
 	Est = optimum;
 	fc->copyParamToModelClean();
 
-	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+	fc->gradZ = Eigen::VectorXd::Zero(fc->numParam);
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
-	result = fc->grad;
+	result = fc->gradZ;
 	reportProgress(fc);
 }
 
@@ -3136,7 +3145,7 @@ void ComputeEM::Oakes(FitContext *fc)
 	estep->compute(fc);
 	fc->wanted &= ~FF_COMPUTE_HESSIAN;  // discard garbage
 
-	fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+	fc->initGrad();
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
@@ -3144,7 +3153,7 @@ void ComputeEM::Oakes(FitContext *fc)
 
 	Eigen::VectorXd optimumCopy = optimum;  // will be modified
 	Eigen::VectorXd refGrad(freeVars);
-	refGrad = fc->grad;
+	refGrad = fc->gradZ;
 	//mxPrintMat("refGrad", refGrad);
 
 	Eigen::MatrixXd jacobian(freeVars, freeVars);
@@ -3560,7 +3569,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
-			fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+			fc->initGrad();
 		}
 		if (hessian) {
 			want |= FF_COMPUTE_HESSIAN;
@@ -3569,7 +3578,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (infoMat) {
 			want |= FF_COMPUTE_INFO;
 			fc->infoMethod = infoMethod;
-			fc->grad = Eigen::VectorXd::Zero(fc->numParam);
+			fc->initGrad();
 			fc->clearHessian();
 			fc->preInfo();
 		}
@@ -5369,7 +5378,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		}
 		s1.stderrs = fc->stderrs;
 	}
-	if (inclGradient) s1.gradient = fc->grad;
+	if (inclGradient) s1.gradient = fc->gradZ;
 	if (inclVcov && fc->vcov.rows() == numParam) {
 		s1.vcov.resize(triangleLoc1(numParam));
 		int lx=0;

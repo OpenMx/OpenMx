@@ -127,6 +127,6 @@ namespace UndirectedGraph {
 
 		int numSubgraphs() const { return subgraphs; }
 	};
-};
+}
 
 #endif

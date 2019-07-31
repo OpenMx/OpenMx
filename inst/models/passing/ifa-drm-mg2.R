@@ -119,7 +119,8 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                                   infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
                       mxComputeStandardError(),
                       mxComputeHessianQuality(),
-                    mxComputeOnce('fitfunction', 'gradient'),
+                    mxComputeOnce(c('fitfunction', paste0('g',2:3,'latent.fitfunction')),
+                                  'gradient'),
                    mxComputeReportDeriv())))
 
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
@@ -201,3 +202,5 @@ if (0) {
   got$GroupPars <- NULL
   round(m2$matrices$item$values - simplify2array(got), 2)
 }
+
+  
