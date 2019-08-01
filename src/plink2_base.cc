@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+#if WANT_PGENLIB
 
 #include "plink2_base.h"
 
@@ -2425,3 +2426,5 @@ uint32_t Copy1bit16Subset(const uintptr_t* __restrict src_subset, const void* __
 #ifdef __cplusplus
 }  // namespace plink2
 #endif
+
+#endif // WANT_PGENLIB
