@@ -2241,6 +2241,7 @@ class ComputeLoadData : public omxCompute {
 	int curRecord;
 	void mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int *out);
 
+#if WANT_PGENLIB
 	struct PgenFileInfoDtor {
 		void operator()(PgenFileInfo *pfi) {
 			CleanupPgfi(pfi);
@@ -2263,6 +2264,7 @@ class ComputeLoadData : public omxCompute {
 	uintptr_t* pgen_subset_include_vec;
 	uint32_t* pgen_subset_cumulative_popcounts;
 	uintptr_t* pgen_genovec;
+#endif
 
  public:
 	virtual ~ComputeLoadData();
@@ -4570,7 +4572,11 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 			loadBgenRow(fc, index);
 			break;
 		case LoadPGEN:
+#if WANT_PGENLIB
 			loadPgen(fc, index);
+#else
+			mxThrow("%s: compiled without pgenlib support", name);
+#endif
 			break;
 		case LoadDataFrame:
 			loadDataFrame(fc, index);
@@ -4625,6 +4631,7 @@ void ComputeLoadData::loadDataFrame(FitContext *fc, int index)
 	}
 }
 
+#if WANT_PGENLIB
 static const double kGenoToDouble[4] = {0, 1, 2, NA_REAL};
 
 // TODO: investigate GenoarrLookup16x8bx2()
@@ -4668,9 +4675,11 @@ static void GenoarrToFactor(const uintptr_t* genoarr, uint32_t sample_ct, int *g
     }
   }
 }
+#endif
 
 void ComputeLoadData::loadPgen(FitContext *fc, int index)
 {
+#if WANT_PGENLIB
 	if (columns.size() != 1) mxThrow("%s: pgen only has 1 column, not %d",
 					 name, int(columns.size()));
 
@@ -4762,6 +4771,7 @@ void ComputeLoadData::loadPgen(FitContext *fc, int index)
 	for (int cx=0; cx < int(columns.size()); ++cx) {
 		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
 	}
+#endif
 }
 
 void ComputeLoadData::loadBgenRow(FitContext *fc, int index)
