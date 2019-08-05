@@ -150,6 +150,8 @@ setMethod("show", "MxFitFunctionWLS", function(object) {
 })
 
 
+# deprecated
+# nocov start
 imxWlsStandardErrors <- function(model){
 	#TODO add safety check
 	# Is it a WLS fit function
@@ -197,8 +199,10 @@ imxWlsStandardErrors <- function(model){
 	#Cov is the analog of the Hessian for WLS
 	return(list(SE=wls.se, Cov=nacov, Jac=d))
 }
+# nocov end
 
-
+# deprecated
+# nocov start
 imxWlsChiSquare <- function(model, J=NA){
 	samp.param <- mxGetExpected(model, 'standVector')
 	theParams <- omxGetParameters(model)
@@ -284,6 +288,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	x2mv <- x2mv*ifelse(all(V[V!=0] == I[V != 0]), 1/numObs, 1)
 	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, mAdjust=madj, mvAdjust=mvadj, dstar=dstar))
 }
+# nocov end
 
 approveWLSIntervals <- function(flatModel, modelName) {
 	ff <- flatModel@fitfunctions[[ paste0(modelName, '.fitfunction') ]]

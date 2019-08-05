@@ -14,7 +14,7 @@ src/general.cpp
 src/optimize.c
 src/options.c
 src/pgenlib_internal.*
-src/plink_base.*
+src/plink2_base.*
 src/stop.c
 src/include/db/*
 src/include/genfile/bgen/*

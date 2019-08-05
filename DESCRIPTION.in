@@ -105,7 +105,6 @@ Collate:
     'MxRename.R'
     'MxPath.R'
     'MxObjectiveMetaData.R'
-    'MxRAMMetaData.R'
     'MxExpectation.R'
     'MxExpectationNormal.R'
     'MxExpectationRAM.R'

@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#deprecated
+# nocov start
 mxRowObjective <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "rowResults", 
 	filteredDataRow = "filteredDataRow", existenceVector = "existenceVector") {
 	if (missing(rowAlgebra) || typeof(rowAlgebra) != "character") {
@@ -39,4 +41,4 @@ mxRowObjective <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "ro
 	return(list(expectation=expectation, fitfunction=fitfunction))
 }
 
-
+# nocov end
