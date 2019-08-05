@@ -59,12 +59,11 @@ withr::with_envvar(c(MAKE="make -j2"), {
   })
 })
 roxygenize('.', roclets=c('rd'))
-c1 <- covr::package_coverage(type=c("tests","examples"), quiet=FALSE, pre_clean=FALSE)
-pct <- percent_coverage(c1, by="expression")
-print(pct)
+options(digits=15)
+c1 <- covr::package_coverage(type=c("tests","examples"), quiet=TRUE, pre_clean=FALSE)
 pct <- percent_coverage(c1, by="line")
 print(pct)
-if (pct < .46) {
+if (pct < 44.04) {
   print(paste("Coverage dropped to", pct))
   q(status=1)
 }

@@ -7,3 +7,14 @@ src/huf_*.c
 src/fse_*.c
 src/entropy_common.c
 src/include/zstd*
+src/asa.c
+src/bgen.cpp
+src/db_wrapper.cpp
+src/general.cpp
+src/optimize.c
+src/options.c
+src/pgenlib_internal.*
+src/plink_base.*
+src/stop.c
+src/include/db/*
+src/include/genfile/bgen/*
