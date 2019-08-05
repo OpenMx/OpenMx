@@ -723,7 +723,7 @@ mxKalmanScores <- function(model, data=NA, frontend=TRUE){
 
 #--------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
-	function(.Object, model, nrows, subname) {
+	function(.Object, model, nrows, subname, empirical) {
 		A <- mxEvalByName(model[[subname]]@expectation@A, model, compute=TRUE)
 		B <- mxEvalByName(model[[subname]]@expectation@B, model, compute=TRUE)
 		C <- mxEvalByName(model[[subname]]@expectation@C, model, compute=TRUE)
@@ -773,8 +773,8 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 				Qd <- Q
 			}
 			xp <- Ad %*% tx[,i-1] + Bd %*% u
-			tx[,i] <- xp + t(mvtnorm::rmvnorm(1, rep(0, xdim), Qd))
-			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(mvtnorm::rmvnorm(1, rep(0, ydim), R))
+			tx[,i] <- xp + t(.rmvnorm(1, rep(0, xdim), Qd, empirical))
+			ty[,i-1] <- C %*% tx[,i-1] + D %*% u + t(.rmvnorm(1, rep(0, ydim), R, empirical))
 		}
 		ret <- t(ty)
 		colnames(ret) <- dimnames(C)[[1]]

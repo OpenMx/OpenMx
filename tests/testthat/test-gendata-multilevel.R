@@ -1,4 +1,6 @@
 library(OpenMx)
+library(testthat)
+context("gendata-multilevel")
 
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
@@ -22,7 +24,7 @@ trueYield <- mxModel(
     mxPath('Yield', arrows=2, values=1),
     mxPath('batch.batch', 'Yield', free=FALSE, values=1, joinKey="Batch"))
 
-result <- expand.grid(rep=1:20)
+result <- expand.grid(rep=1:5)
 for (px in names(coef(trueYield))) result[[px]] <- NA
 result$rep <- NULL
 
@@ -34,5 +36,5 @@ for (rep in 1:nrow(result)) {
   result[rep, names(coef(yield))] <- coef(yield)
 }
 
-omxCheckCloseEnough(colMeans(result) - coef(trueYield), rep(0,3), .06)
+omxCheckCloseEnough(colMeans(result) - coef(trueYield), rep(0,3), .1)
 omxCheckCloseEnough(apply(result, 2, var), rep(0,3), .03)

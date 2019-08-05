@@ -87,12 +87,12 @@ setMethod("genericGetExpected", signature("MxExpectationMixture"),
 	})
 
 setMethod("genericGenerateData", signature("MxExpectationMixture"),
-	function(.Object, model, nrows, subname) {
+	function(.Object, model, nrows, subname, empirical) {
 		origData <- findDataForSubmodel(model, subname)
 
 		cdata <- list()
 		for (c1 in .Object@components) {
-			cdata[[c1]] <- mxGenerateData(model, returnModel=FALSE, nrows=nrows, use.miss=FALSE, subname=c1)
+			cdata[[c1]] <- mxGenerateData(model, returnModel=FALSE, nrows=nrows, use.miss=FALSE, subname=c1, empirical=empirical)
 		}
 		data <- cdata[[1]]
 

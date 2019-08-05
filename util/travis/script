@@ -63,7 +63,7 @@ options(digits=15)
 c1 <- covr::package_coverage(type=c("tests","examples"), quiet=TRUE, pre_clean=FALSE)
 pct <- percent_coverage(c1, by="line")
 print(pct)
-if (pct < 54.862229) {
+if (pct < 56.7662486773) {
   print(paste("Coverage dropped to", pct))
   q(status=1)
 }
