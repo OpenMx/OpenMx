@@ -466,6 +466,8 @@ generateRelationalData <- function(model, returnModel, .backend, subname, empiri
 	model <- model[[subname]]
 	# TODO add outside data reference to relational data
 	if (.backend) {
+	  if (empirical) stop("mxGenerateData(..., empirical=TRUE) is not implemented for multilevel models")
+
 		plan <- mxComputeGenerateData()
 		model$expectation$.maxDebugGroups <- 0L
 		model$expectation$.optimizeMean <- 0L
@@ -502,6 +504,7 @@ generateRelationalData <- function(model, returnModel, .backend, subname, empiri
 		}
 	}
 
+	# nocov start
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('expectation', 'distribution', 'flat'),
 	    mxComputeReportExpectation()
@@ -564,6 +567,7 @@ generateRelationalData <- function(model, returnModel, .backend, subname, empiri
 		}
 		model
 	}
+	# nocov end
 }
 
 simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
