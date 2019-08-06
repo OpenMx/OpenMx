@@ -1,6 +1,8 @@
 #ifndef __PGENLIB_INTERNAL_H__
 #define __PGENLIB_INTERNAL_H__
 
+#if WANT_PGENLIB
+
 // This library is part of PLINK 2.00, copyright (C) 2005-2019 Shaun Purcell,
 // Christopher Chang.
 //
@@ -1680,5 +1682,7 @@ BoolErr MpgwCleanup(MTPgenWriter* mpgwp);
 #ifdef __cplusplus
 }  // namespace plink2
 #endif
+
+#endif // WANT_PGENLIB
 
 #endif  // __PGENLIB_INTERNAL_H__
