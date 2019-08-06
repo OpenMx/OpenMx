@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# nocov start
+
 ##' omxGetNPSOL
 ##'
 ##' Get the non-CRAN version of OpenMx from the OpenMx website.
@@ -51,3 +53,4 @@ omxGetNPSOL <- function() {
         source("http://openmx.ssri.psu.edu/getOpenMx.R")
     }
 }
+# nocov end

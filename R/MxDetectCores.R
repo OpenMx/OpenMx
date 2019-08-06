@@ -17,4 +17,6 @@
 ##'
 ##' Detects the number of cores on the local machine
 ##' @param ... unused
+##' @examples
+##' omxDetectCores()
 omxDetectCores <- memoize(detectCores)

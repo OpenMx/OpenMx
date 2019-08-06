@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# deprecated
+# nocov start
 mxRObjective <- function(objfun, ...) {
 	if (!is.function(objfun)) {
 		stop("First argument 'objfun' must be of type function")
@@ -28,4 +30,4 @@ mxRObjective <- function(objfun, ...) {
 	return(list(expectation=expectation, fitfunction=fitfunction))
 }
 
-
+# nocov end

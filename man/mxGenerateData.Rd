@@ -25,7 +25,7 @@ This function returns a new (simulated) data set based on the model-implied dist
 
 \usage{
 mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
- ..., .backend=TRUE, subname=NULL)
+ ..., .backend=TRUE, subname=NULL, empirical=FALSE)
 }
 
 
@@ -39,6 +39,8 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
 \item{...}{Not used; forces remaining arguments to be specified by name.}
 \item{.backend}{Whether to use the backend to generate data}
 \item{subname}{Submodel name}
+\item{empirical}{Whether the generate data should match the distribution
+   of the current data exactly. Uses \link[MASS]{mvrnorm} instead of \link[mvtnorm]{rmvnorm}}
 }
 
 \details{
@@ -76,6 +78,11 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 }
 
 \examples{
+
+# Demonstration for empirical=TRUE
+popCov <- cov(Bollen[, 1:8])*(nrow(Bollen)-1)/nrow(Bollen)
+got <- mxGenerateData(Bollen[, 1:8], nrows=nrow(Bollen), empirical = TRUE)
+cov(got) - popCov  # close to zero
 
 #----------
 # Create data based on state space model.

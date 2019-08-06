@@ -13,6 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# nocov start
 
 ##' imxGenSwift
 ##'
@@ -25,3 +26,4 @@ imxGenSwift <- function(tc, sites, sfile) {
 	cmdline <- paste("swift -tc.file ",tc," -sites.file ",sites," ",sfile)
 	system(cmdline)
 }
+# nocov end

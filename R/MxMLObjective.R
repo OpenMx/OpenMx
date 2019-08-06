@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# deprecated
+# nocov start
 mxMLObjective <- function(covariance, means = NA, dimnames = NA, thresholds = NA) {
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("Covariance argument is not a string (the name of the expected covariance matrix)")
@@ -43,3 +45,4 @@ mxMLObjective <- function(covariance, means = NA, dimnames = NA, thresholds = NA
 	warning(msg)
 	return(list(expectation=expectation, fitfunction=fitfunction))
 }
+# nocov end

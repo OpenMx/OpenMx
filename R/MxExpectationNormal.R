@@ -379,16 +379,24 @@ mxCheckIdentification <- function(model, details=TRUE){
 }
 
 setGeneric("genericGenerateData",
-	function(.Object, model, nrows, subname) {
+	function(.Object, model, nrows, subname, empirical) {
 	return(standardGeneric("genericGenerateData"))
 })
 
 setMethod("genericGenerateData", signature("MxExpectationNormal"),
-	function(.Object, model, nrows, subname) {
-		return(generateNormalData(model, nrows, subname))
+	function(.Object, model, nrows, subname, empirical) {
+		return(generateNormalData(model, nrows, subname, empirical))
 })
 
-generateNormalData <- function(model, nrows, subname){
+.rmvnorm <- function(nrow, mean, sigma, empirical) {
+  if (!empirical) {
+    mvtnorm::rmvnorm(nrow, mean, sigma)
+  } else {
+    MASS::mvrnorm(nrow, mu=mean, Sigma=sigma, empirical=TRUE)
+  }
+}
+
+generateNormalData <- function(model, nrows, subname, empirical) {
 	origData <- findDataForSubmodel(model, subname)
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model[[subname]])){
@@ -409,7 +417,7 @@ generateNormalData <- function(model, nrows, subname){
 			theMeans <- imxGetExpectationComponent(model, "means", defvar.row=i, subname=subname)
 			theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i, subname=subname)
 			theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i, subname=subname)
-			data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
+			data[i,] <- .rmvnorm(1, theMeans, theCov, empirical)
 		}
 		data <- ordinalizeDataHelper(data, theThresh, origData)
 		if (!is.null(origData)) {
@@ -418,14 +426,13 @@ generateNormalData <- function(model, nrows, subname){
 			}
 		}
 	} else{
-		#use generic functions and mvtnorm::rmvnorm() to generate data
 		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
 		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
 		theThresh <- imxGetExpectationComponent(model, "thresholds", subname=subname)
 		if (length(theMeans) == 0) {
 			theMeans <- rep(0, nrow(theCov))
 		}
-		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
+		data <- .rmvnorm(nrows, theMeans, theCov, empirical)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
 		data <- ordinalizeDataHelper(data, theThresh, origData)
@@ -455,10 +462,12 @@ ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
 	return(data)
 }
 
-generateRelationalData <- function(model, returnModel, .backend, subname) {
+generateRelationalData <- function(model, returnModel, .backend, subname, empirical) {
 	model <- model[[subname]]
 	# TODO add outside data reference to relational data
 	if (.backend) {
+	  if (empirical) stop("mxGenerateData(..., empirical=TRUE) is not implemented for multilevel models")
+
 		plan <- mxComputeGenerateData()
 		model$expectation$.maxDebugGroups <- 0L
 		model$expectation$.optimizeMean <- 0L
@@ -495,6 +504,7 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 		}
 	}
 
+	# nocov start
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('expectation', 'distribution', 'flat'),
 	    mxComputeReportExpectation()
@@ -519,8 +529,8 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 		groupTodo <- ed$layout[ed[[groupName]]$layout[,'aIndex'],]
 		for (cx in 1:numCopies) {
 			todo <- groupTodo[seq(1+(cx-1)*clumpSize, cx*clumpSize),]
-			repl1 <- mvtnorm::rmvnorm(1, ed[[groupName]]$mean[seq(1+(cx-1)*cxLength, cx*cxLength)],
-						  sigma=as.matrix(ed[[groupName]]$covariance))
+			repl1 <- .rmvnorm(1, ed[[groupName]]$mean[seq(1+(cx-1)*cxLength, cx*cxLength)],
+					  sigma=as.matrix(ed[[groupName]]$covariance), empirical)
 			dx <- 1
 			for (tx in 1:nrow(todo)) {
 				modelName <- as.character(todo[tx,'model'])
@@ -557,6 +567,7 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 		}
 		model
 	}
+	# nocov end
 }
 
 simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
@@ -583,7 +594,7 @@ extractObservedData <- function(model) {
 }
 
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
-			   ..., .backend=TRUE, subname=NULL) {
+			   ..., .backend=TRUE, subname=NULL, empirical=FALSE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxGenerateData does not accept values for the '...' argument")
@@ -597,14 +608,15 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
 		if(is.null(nrows)) nrows <- nrow(model)
-		return(mxGenerateData(fake, nrows, returnModel))
+		return(mxGenerateData(fake, nrows, returnModel, empirical=empirical))
 	}
 	if(is.null(subname)) subname <- model$name
 	if (is.null(model[[subname]]$expectation) && is(model[[subname]]$fitfunction, 'MxFitFunctionMultigroup')) {
 		todo <- sub(".fitfunction", "", model[[subname]]$fitfunction$groups, fixed=TRUE)
 		for (s1 in todo) {
-			model <- mxModel(model, mxGenerateData(model, returnModel=TRUE, nrows=nrows,
-							       use.miss=use.miss, .backend=.backend, subname=s1))
+		  model <- mxModel(model, mxGenerateData(model, returnModel=TRUE, nrows=nrows,
+							 use.miss=use.miss, .backend=.backend, subname=s1,
+							 empirical=empirical))
 		}
 		if (!returnModel) {
 			return(extractObservedData(model))
@@ -625,7 +637,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
 		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:", nrows))
-		data <- genericGenerateData(model[[subname]]$expectation, model, nrows, subname)
+		data <- genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical)
 		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
 			del <- is.na(origData[,colnames(data),drop=FALSE])
 			if (nrows != nrow(origData)) {
@@ -645,7 +657,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if (length(nrows)) {
 			stop("Specification of the number of rows is not supported for relational models")
 		}
-		generateRelationalData(model, returnModel, .backend, subname)
+		generateRelationalData(model, returnModel, .backend, subname, empirical)
 	}
 }
 

@@ -13,6 +13,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# deprecated
+# nocov start
+
 ##' omxRAMtoML
 ##'
 ##' Convert a RAM model to an ML model
@@ -117,3 +120,4 @@ convertRAMtoMLModel <- function(model, job, namespace) {
     class(model) <- 'MxModel'
 	return(model)
 }
+# nocov end
