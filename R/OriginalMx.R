@@ -20,13 +20,18 @@
 # 5/30/2007
 
 
-##' imxOriginalMx
+##' Run an classic mx script
 ##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
+##' For this to work, classic mx must be installed, and callable from the command line.
 ##'
-##' @param mx.filename mx.filename
-##' @param output.directory output.directory
+##' @param mx.filename Name of file containing the mx script.
+##' @param output.directory Where to write mxo output from the script
+##' @return processed matrix output.
+##' @export
+##' @examples
+#' \dontrun{
+##' output = imxOriginalMx(mx.filename = "power1.mx", "~/Desktop")
+##' }
 imxOriginalMx <- function(mx.filename, output.directory) {
 	original.directory <- getwd()
 	result <- tryCatch(originalMxHelper(mx.filename, output.directory),
