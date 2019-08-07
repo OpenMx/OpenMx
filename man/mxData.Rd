@@ -33,7 +33,7 @@
 
 \arguments{
    \item{observed}{A matrix or data.frame which provides data to the MxData object.}
-   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, \dQuote{'sscp'} or \dQuote{acov}.}
+   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, or \dQuote{acov}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}
@@ -56,7 +56,7 @@
 The mxData function creates \link{MxData} objects used in \link{mxModel}s.
 The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the
 \sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel
-objects. Three data types are supported (cor and sscp are not yet implemented).
+objects. Three data types are supported (cor is not yet implemented).
 
 \describe{
 \item{raw}{The contents of the \sQuote{observed} argument are treated as raw data. Missing values are permitted and must be

@@ -126,7 +126,7 @@ setReplaceMethod("$", "MxData",
 setMethod("names", "MxData", slotNames)
 
 ##' Valid types of data that can be contained by MxData
-imxDataTypes <- c("raw", "cov", "cor", "sscp", "acov")
+imxDataTypes <- c("raw", "cov", "cor", "acov")
 
 ##' Create dynamic data
 ##'
@@ -190,9 +190,6 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	rm(acov)
 	rm(fullWeight)
 	rm(thresholds)
-	if (type == "sscp") {
-		stop(paste("'sscp' is not yet implemented."))
-	}
 	if ((!is.vector(means) && !(prod(dim(means)) == length(means))) || !is.numeric(means)) {
 		stop("Means argument must be of numeric vector type")
 	}

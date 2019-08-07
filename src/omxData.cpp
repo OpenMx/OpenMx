@@ -807,7 +807,7 @@ void omxData::omxPrintData(const char *header, int maxRows)
 double omxDataDF(omxData *od)
 {
 	const char *type = od->_type;
-	if (strEQ(type, "cov") || strEQ(type, "sscp")) {
+	if (strEQ(type, "cov")) {
 		omxMatrix *cov = omxDataCovariance(od);
 		int df = triangleLoc1(cov->rows);
 		omxMatrix *mm = omxDataMeans(od);

@@ -615,7 +615,7 @@ These days, the standard approach for model fitting applications is to use **raw
 Covariance Matrix
 ^^^^^^^^^^^^^^^^^
 
-We will start with an example using summary data, so we are specifying a covariance matrix by using the R function ``cov`` to generate a covariance matrix from the data frame.  In addition to reading in the actual covariance matrix as the first (``observed``) argument, we specify the ``type`` (one of "cov","cor","sscp" and "raw") and the number of observations (``numObs``).
+We will start with an example using summary data, so we are specifying a covariance matrix by using the R function ``cov`` to generate a covariance matrix from the data frame.  In addition to reading in the actual covariance matrix as the first (``observed``) argument, we specify the ``type`` (one of "cov","cor", or "raw") and the number of observations (``numObs``).
 
 .. cssclass:: input
 ..
