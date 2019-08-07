@@ -42,7 +42,9 @@
 #include "genfile/bgen/View.hpp"
 #include "genfile/bgen/IndexQuery.hpp"
 #include "pgenlib_internal.h"
+#if WANT_PGENLIB
 using namespace plink2;
+#endif // WANT_PGENLIB
 #include "EnableWarnings.h"
 
 void pda(const double *ar, int rows, int cols);
