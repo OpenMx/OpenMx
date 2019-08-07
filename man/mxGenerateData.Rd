@@ -17,10 +17,13 @@
 \alias{mxGenerateData}
 
 
-\title{Generate data based on an MxModel object}
+\title{Generate data based on an mxModel (or a data.frame)}
 
 \description{
-This function returns a new (simulated) data set based on the model-implied distribution provided.
+This function returns a new (simulated) data set based on either the model-implied distribution if
+a model is provided, OR saturated model if a data.frame is given in the model parameter.
+
+See below for important details
 }
 
 \usage{
@@ -31,14 +34,12 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
 
 \arguments{
    \item{model}{A data.frame or MxModel object upon which the data are generated.}
-   \item{nrows}{Numeric. The number of rows of data to generate.}
-   \item{returnModel}{Logical. Return data.frames if FALSE or model
-     populated with new data if TRUE.}
-   \item{use.miss}{Logical. Whether to approximate the missingness
-   pattern of the original data.}
+   \item{nrows}{Numeric. The number of rows of data to generate (default = same as in the original data)}
+   \item{returnModel}{ Whether to return the model with new data, or just return the new data.frames (default)}
+   \item{use.miss}{ Whether to approximate the missingness pattern of the original data (TRUE by default).}
 \item{...}{Not used; forces remaining arguments to be specified by name.}
-\item{.backend}{Whether to use the backend to generate data}
-\item{subname}{Submodel name}
+\item{.backend}{Whether to use the backend to generate data (TRUE by default for speed)}
+\item{subname}{If given, limits data generation to this sub model.}
 \item{empirical}{Whether the generate data should match the distribution
    of the current data exactly. Uses \link[MASS]{mvrnorm} instead of \link[mvtnorm]{rmvnorm}}
 }
@@ -79,13 +80,18 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 
 \examples{
 
-# Demonstration for empirical=TRUE
+# ====================================
+# = Demonstration for empirical=TRUE =
+# ====================================
 popCov <- cov(Bollen[, 1:8])*(nrow(Bollen)-1)/nrow(Bollen)
 got <- mxGenerateData(Bollen[, 1:8], nrows=nrow(Bollen), empirical = TRUE)
-cov(got) - popCov  # close to zero
+cov(got) - popCov  # pretty close, given 8 variables to juggle!
+round(cov2cor(cov(got)) - cov2cor(popCov), 4)
 
-#----------
-# Create data based on state space model.
+# ===========================================
+# = Create data based on state space model. =
+# ===========================================
+
 require(OpenMx)
 nvar <- 5
 varnames <- paste("x", 1:nvar, sep="")
@@ -105,41 +111,58 @@ ssModel <- mxModel(model="State Space Manual Example",
 
 ssData <- mxGenerateData(ssModel, 200) # 200 time points
 
-# Add simulated data to model
+# Add simulated data to model and run
 ssModel <- mxModel(ssModel, mxData(ssData, 'raw'))
-
-# Fit model to simulated data
 ssRun <- mxRun(ssModel)
 
-# Compare parameters estimated from random data to
-#  their true generating values
+# Compare parameters from random data to the generating model
 cbind(Rand = omxGetParameters(ssRun), Gen = omxGetParameters(ssModel))
+
 # Note the parameters should be "close" (up to sampling error)
 # to the generating values
 
 
-#----------
+# =========================================
+# = Demo generating new data from a model =
+# =========================================
 require(OpenMx)
-manifests <- paste("x", 1:5, sep="")
-latents <- c("G")
-factorModel <- mxModel("One Factor",
-      type="RAM",
+manifests <- paste0("x", 1:5)
+originalModel <- mxModel("One Factor", type="RAM",
       manifestVars = manifests,
-      latentVars = latents,
-      mxPath(from=latents, to=manifests, values=.8),
+      latentVars = "G",
+      mxPath(from="G", to=manifests, values=.8),
       mxPath(from=manifests, arrows=2, values=.2),
-      mxPath(from=latents, arrows=2,
-            free=FALSE, values=1.0),
-      mxPath(from = 'one', to = manifests))
+      mxPath(from="G"  , arrows=2, free=FALSE, values=1.0),
+      mxPath(from = 'one', to = manifests)
+)
 
-factorData <- mxGenerateData(factorModel, 100)
+factorData <- mxGenerateData(originalModel, 1000)
+newData = mxData(cov(factorData), type="cov", 
+	numObs=nrow(factorData), means = colMeans(factorData)
+)
+newModel <- mxModel(originalModel, newData)
+newModel <- mxRun(newModel)
+cbind(
+	Original = omxGetParameters(originalModel),
+	Generated = round(omxGetParameters(newModel), 4),
+	Delta = round(
+		omxGetParameters(originalModel) - 
+		omxGetParameters(newModel), 3)
+)
 
-factorModel <- mxModel(factorModel,
-                       mxData(observed=cov(factorData), type="cov",
-                              numObs=nrow(factorData),
-                              means = colMeans(factorData)))
-factorRun <- mxRun(factorModel)
-cbind(Rand=omxGetParameters(factorRun), Gen=omxGetParameters(factorModel))
+# And again with empirical = TRUE
 
+factorData <- mxGenerateData(originalModel, 1000, empirical=T)
+newData = mxData(cov(factorData), type="cov", 
+	numObs=nrow(factorData), means = colMeans(factorData)
+)
+newModel <- mxModel(originalModel, newData)
+newModel <- mxRun(newModel)
+cbind(
+	Original = omxGetParameters(originalModel),
+	Generated = round(omxGetParameters(newModel), 4),
+	Delta = omxGetParameters(originalModel) - 
+		omxGetParameters(newModel)
+)
 
 }
