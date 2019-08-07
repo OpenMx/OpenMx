@@ -152,17 +152,21 @@ cbind(
 
 # And again with empirical = TRUE
 
-factorData <- mxGenerateData(originalModel, 1000, empirical=T)
-newData = mxData(cov(factorData), type="cov", 
-	numObs=nrow(factorData), means = colMeans(factorData)
+factorData <- mxGenerateData(originalModel, 1000, empirical = TRUE)
+newData = mxData(cov(factorData),
+	type = "cov", 
+	numObs = nrow(factorData),
+	means = colMeans(factorData)
 )
+
 newModel <- mxModel(originalModel, newData)
 newModel <- mxRun(newModel)
+
 cbind(
-	Original = omxGetParameters(originalModel),
+	Original  = omxGetParameters(originalModel),
 	Generated = round(omxGetParameters(newModel), 4),
-	Delta = omxGetParameters(originalModel) - 
-		omxGetParameters(newModel)
+	Delta     = omxGetParameters(originalModel) - 
+		 	    omxGetParameters(newModel)
 )
 
 }
