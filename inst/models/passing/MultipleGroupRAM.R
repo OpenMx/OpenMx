@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -34,42 +34,40 @@ matrixA <- mxMatrix("Zero", nrow=1, ncol=1, name="A")
 #F Matrix, 1 x 1 Identity Matrix
 matrixF <- mxMatrix("Iden", nrow=1, name="F")
 
-#Lets make some objective functions!
-objective <- mxExpectationRAM("A", "S", "F", dimnames = c('a'))
+#Lets make some expectation functions!
+expectation <- mxExpectationRAM("A", "S", "F", dimnames = c('a'))
 
 #Models
-model1 <- mxModel("first", matrixA, S1, matrixF, objective, data1, mxFitFunctionML())
-model2 <- mxModel("second", matrixA, S2, matrixF, objective, data2, mxFitFunctionML())
+model1 <- mxModel("first", matrixA, S1, matrixF, expectation, data1, mxFitFunctionML())
+model2 <- mxModel("second", matrixA, S2, matrixF, expectation, data2, mxFitFunctionML())
 
 #Run them
 output1 <- mxRun(model1, suppressWarnings = TRUE)
 output2 <- mxRun(model2, suppressWarnings = TRUE)
 
 ###Starting the "Super" Model, which contains models 1 and 2
-#This will use the mxFitFunctionAlgebra function
-#we first need an algebra, which describes how obj1 and obj2 go together (sum)
-alg<-mxAlgebra(first.objective + second.objective, name="alg")
+#This will use the mxFitFunctionMultigroup function
 
-#now the objective function
-obj<-mxFitFunctionAlgebra("alg")
+#now the objective/fit function
+obj<-mxFitFunctionMultigroup(c('first', 'second'))
 
 #make a model
-model<-mxModel("both", alg, obj, model1, model2)
+model<-mxModel("both", obj, model1, model2)
 
 #run the "super" model
 output<-mxRun(model, suppressWarnings = TRUE)
 
 ###Check Results
 #Model 1: This should have a value of 1
-print(output1$output$estimate)
+coef(output1)
 
 #Model 2: This should have a value of 2
-print(output2$output$estimate)
+coef(output2)
 
 #"Super" Model: This should have values of 1 and 2, in order.
-print(output$output$estimate)
+coef(output)
 
-omxCheckCloseEnough(output1$output$estimate, .99 * c(1), 0.001)
-omxCheckCloseEnough(output2$output$estimate, .99 * c(2), 0.001)
-omxCheckCloseEnough(output$output$estimate, .99 * c(1, 2), 0.001)
+omxCheckCloseEnough(coef(output1), .99 * c(1), 0.001)
+omxCheckCloseEnough(coef(output2), .99 * c(2), 0.001)
+omxCheckCloseEnough(coef(output), .99 * c(1, 2), 0.001)
 
