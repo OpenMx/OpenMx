@@ -169,6 +169,7 @@ man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
 man/MxRAMGraph-class.Rd
+man/MxRAMMetaData-class.Rd
 man/MxRAMModel-class.Rd
 man/mxRetro.Rd
 man/mxSE.Rd

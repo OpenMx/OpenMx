@@ -60,7 +60,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		return(list(0, historySet))
 	}
 	obsStats <- data@observedStats
-	if (data@type == 'cov' || data@type == 'sscp') {
+	if (data@type == 'cov') {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
 		}
