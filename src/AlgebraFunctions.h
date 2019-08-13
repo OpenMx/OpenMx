@@ -2448,31 +2448,17 @@ static void omxCovToCor(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 static void omxCholesky(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-
-    int l = 0; char u = 'U';
+	if(inMat->rows != inMat->cols) {
+		mxThrow("Cholesky decomposition of non-square matrix '%s' is not defined", inMat->name());
+	}
 	omxCopyMatrix(result, inMat);
-	if(result->rows != result->cols) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Cholesky decomposition of non-square matrix cannot even be attempted\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
+	EigenMatrixAdaptor Ei(result);
 
-    F77_CALL(dpotrf)(&u, &(result->rows), result->data, &(result->cols), &l);
-	if(l != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Attempted to Cholesky decompose non-invertable matrix.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	} else {
-	    for(int i = 0; i < result->rows; i++) {
-			for(int j = 0; j < i; j++) {
-                omxSetMatrixElement(result, i, j, 0.0);
-			}
-		}
+	Eigen::LLT< Eigen::Ref<Eigen::MatrixXd>, Eigen::Upper > sc(Ei);
+	if (sc.info() != Eigen::Success) {
+		mxThrow("Cholesky factor of '%s' failed", inMat->name());
 	}
+	Ei.triangularView<Eigen::StrictlyLower>().setZero();
 }
 
 static void omxVechToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)

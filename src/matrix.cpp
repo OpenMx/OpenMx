@@ -106,19 +106,6 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
                     prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
 }
 
-int InvertSymmetricPosDef(Matrix mat, const char uplo)
-{
-    if (mat.rows != mat.cols) mxThrow("Not square");
-    int info;
-    F77_CALL(dpotrf)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    if (info > 0) return info;
-    
-    F77_CALL(dpotri)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    return info;
-}
-
 int InvertSymmetricIndef(Matrix mat, const char uplo)
 {
     if (mat.rows != mat.cols) mxThrow("Not square");
@@ -203,3 +190,30 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
     }
     return info;
 }
+
+int InvertSymmetricPosDef(Matrix mat, char uplo)
+{
+	Eigen::Map<Eigen::MatrixXd> Emat(mat.t, mat.rows, mat.cols);
+	if (uplo == 'L') {
+		SimpCholesky< Eigen::Ref<Eigen::MatrixXd>, Eigen::Lower > sc(Emat);
+		if (sc.info() != Eigen::Success || !sc.isPositive()) {
+			return -1;
+		} else {
+			sc.refreshInverse();
+			Emat.derived() = sc.getInverse();
+			return 0;
+		}
+	} else if (uplo == 'U') {
+		SimpCholesky< Eigen::Ref<Eigen::MatrixXd>, Eigen::Upper > sc(Emat);
+		if (sc.info() != Eigen::Success || !sc.isPositive()) {
+			return -1;
+		} else {
+			sc.refreshInverse();
+			Emat.derived() = sc.getInverse();
+			return 0;
+		}
+	} else {
+		mxThrow("uplo invalid");
+	}
+}
+

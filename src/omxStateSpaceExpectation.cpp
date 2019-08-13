@@ -521,7 +521,6 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	toRemoveNoneOne.setZero();
 	
 	omxMatrix* covInfo = ose->covInfo;
-	int info = 0; // Used for computing inverse for Kalman gain
 	
 	omxCopyMatrix(smallS, ose->S);
 	
@@ -605,18 +604,16 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	
 	/* Now compute the Kalman Gain and update the error covariance matrix */
 	/* S = S^-1 */
-	omxDPOTRF(smallS, &info); // S replaced by the lower triangular matrix of the Cholesky factorization
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Cholesky of S"); }
-	covInfo->data[0] = (double) info;
-	for(int i = 0; i < smallS->cols; i++) {
-		*Det->data += log(fabs(omxMatrixElement(smallS, i, i)));
-	}
-	//det *= 2.0; //sum( log( abs( diag( chol(S) ) ) ) )*2
-	omxDPOTRI(smallS, &info); // S = S^-1 via Cholesky factorization
-	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
-	// If Cholesky of exp cov failed (i.e. non-positive def), Populate 1,1 element of smallS (inverse of exp cov) with NA_REAL
-	if(covInfo->data[0] > 0) {
+	EigenMatrixAdaptor EsmallS(smallS);
+	SimpCholesky< Eigen::Ref<Eigen::MatrixXd>, Eigen::Upper > sc(EsmallS);
+	if (sc.info() != Eigen::Success || !sc.isPositive()) {
+		covInfo->data[0] = 1;
 		omxSetMatrixElement(smallS, 0, 0, NA_REAL);
+	} else {
+		covInfo->data[0] = 0;
+		sc.refreshInverse();
+		*Det->data = 0.5 * sc.log_determinant();
+		EsmallS.derived() = sc.getInverse();
 	}
 	
 	/* K = P C^T S^-1 */
