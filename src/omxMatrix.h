@@ -668,4 +668,6 @@ template <typename T> void omxMatrix::loadFromStream(T &st)
 	}
 }
 
+void MatrixInvert1(omxMatrix *target);
+
 #endif /* _OMXMATRIX_H_ */

@@ -103,7 +103,6 @@ Eigen::MatrixXd QRdsolve(Eigen::MatrixBase<T1> &mainMat, Eigen::MatrixBase<T1> &
 
 void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum);
 Matrix MatrixInvert(Matrix inMat);
-int MatrixInvert1(Matrix result);
 int InvertSymmetricPosDef(Matrix matd, const char uplo);
 int InvertSymmetricIndef(Matrix mat, const char uplo);
 void SymMatrixMultiply(char side, char uplo, double alpha, double beta,

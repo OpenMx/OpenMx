@@ -429,18 +429,22 @@ omxCheckCloseEnough(modelOut[['test39f']]$result, cvectorize(rvectorize(t(A$valu
 omxCheckCloseEnough(modelOut[['test39g']]$result, rvectorize(cvectorize(A$values)), 0.001)
 omxCheckCloseEnough(modelOut[['test39h']]$result, rvectorize(cvectorize(t(A$values))), 0.001)
 omxCheckCloseEnough(modelOut[["Gprime"]]$values, mxEval(Gprime, model, compute=T), 1e-4)
-omxCheckCloseEnough(abs(modelOut[['test40']]$result),  mxEval(abs(Re(eigen(A)$vectors)), model), 0.001)
-omxCheckCloseEnough(abs(modelOut[['test40a']]$result), mxEval(abs(Re(eigen(G)$vectors)), model), 0.001)
-omxCheckCloseEnough(abs(modelOut[['test40b']]$result), mxEval(abs(Re(eigen(H)$vectors)), model), 0.001)
-omxCheckCloseEnough(modelOut[['test41']]$result,  as.matrix(mxEval(Re(eigen(A)$values), model)), 0.001)
-omxCheckCloseEnough(modelOut[['test41a']]$result, as.matrix(mxEval(Re(eigen(G)$values), model)), 0.001)
-omxCheckCloseEnough(modelOut[['test41b']]$result, as.matrix(mxEval(Re(eigen(H)$values), model)), 0.001)
-omxCheckCloseEnough(abs(modelOut[['test42']]$result),  mxEval(abs(Im(eigen(A)$vectors)), model), 0.001)
-omxCheckCloseEnough(abs(modelOut[['test42a']]$result), mxEval(abs(Im(eigen(G)$vectors)), model), 0.001)
-omxCheckCloseEnough(abs(modelOut[['test42b']]$result), mxEval(abs(Im(eigen(H)$vectors)), model), 0.001)
-omxCheckCloseEnough(modelOut[['test43']]$result,  as.matrix(mxEval(Im(eigen(A)$values), model)), 0.001)
-omxCheckCloseEnough(modelOut[['test43a']]$result, as.matrix(mxEval(Im(eigen(G)$values), model)), 0.001)
-omxCheckCloseEnough(modelOut[['test43b']]$result, as.matrix(mxEval(Im(eigen(H)$values), model)), 0.001)
+
+check_eigen_decomp <- function(mat, suffix) {
+  algName <- paste0('test', 40:43, suffix)
+  vec <- (modelOut[[ algName[1] ]]$result +
+            1i * modelOut[[ algName[3] ]]$result)
+  val <- (modelOut[[ algName[2] ]]$result +
+            1i * modelOut[[ algName[4] ]]$result)
+  z <- matrix(as.complex(0), nrow(mat), ncol(mat))
+  expect_equivalent(vec %*% diag(c(val)) %*% solve(vec) - mat, z,
+                    tolerance=1e-14, scale=1)
+}
+
+check_eigen_decomp(A$values, '')
+check_eigen_decomp(G$values, 'a')
+check_eigen_decomp(H$values, 'b')
+
 omxCheckCloseEnough(modelOut[['test44a']]$result, mxEval(omxNot(Z), model), 0.001)
 omxCheckCloseEnough(modelOut[['test44b']]$result, mxEval(omxNot(omxNot(Z)), model), 0.001)
 omxCheckCloseEnough(modelOut[['test44c']]$result, mxEval(omxNot(t(Z)), model), 0.001)

@@ -29,10 +29,11 @@
 
 #include <limits>
 #include "omxMatrix.h"
-#include "merge.h"
 #include "matrix.h"
 #include "omxState.h"
 #include <Eigen/Cholesky>
+#include <Eigen/LU>
+#include <Eigen/Eigenvalues>
 #include "omxSadmvnWrapper.h"
 #include "EnableWarnings.h"
 
@@ -190,13 +191,8 @@ static void omxMatrixInvert(FitContext *fc, omxMatrix** matList, int numArgs, om
 {
 	omxMatrix* inMat = matList[0];
 	omxCopyMatrix(result, inMat);
-
-	Matrix resultMat(result);
-	int info = MatrixInvert1(result);
-	if (info) {
-		result->data[0] = nan("singular");
-		// recordIterationError TODO
-	}
+	MatrixInvert1(result);
+	// recordIterationError if failed TODO
 }
 
 static int BroadcastIndex = 0;
@@ -916,57 +912,13 @@ static void omxMatrixDeterminant(FitContext *fc, omxMatrix** matList, int numArg
 	omxResizeMatrix(result, 1, 1);
 
 	omxMatrix* inMat = matList[0];
-	omxMatrix* calcMat;					// This should be preallocated.
-
 	int rows = inMat->rows;
 	int cols = inMat->cols;
-	double det = 1;
-	int info;
+	if(rows != cols) mxThrow("Determinant of non-square matrix '%s' cannot be found", inMat->name());
 
-	if(rows != cols) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Determinant of non-square matrix cannot be found.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
-
-	calcMat = omxInitMatrix(rows, cols, TRUE, inMat->currentState);
-	omxCopyMatrix(calcMat, inMat);
-
-	int* ipiv = (int*) calloc(inMat->rows, sizeof(int));
-
-	F77_CALL(dgetrf)(&(calcMat->rows), &(calcMat->cols), calcMat->data, &(calcMat->cols), ipiv, &info);
-
-	if(info != 0) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Determinant Calculation: Nonsingular matrix (at row %d) on LUP decomposition.", info);
-		omxRaiseError(errstr);
-		free(errstr);
-		free(ipiv);
-		omxFreeMatrix(calcMat);
-		return;
-	}
-
-	if(OMX_DEBUG_ALGEBRA) {
-		omxPrint(calcMat, "LU Decomp");
-		mxLog("info is %d.", info);
-	}
-
-	for(int i = 0; i < rows; i++) {
-		det *= omxMatrixElement(calcMat, i, i);
-		if(ipiv[i] != (i+1)) det *= -1;
-	}
-
-	if(OMX_DEBUG_ALGEBRA) {
-		mxLog("det is %f.", det);
-	}
-
-	omxFreeMatrix(calcMat);
-
-	omxSetMatrixElement(result, 0, 0, det);
-
-	free(ipiv);
+	EigenMatrixAdaptor Ein(inMat);
+	Eigen::PartialPivLU<Eigen::MatrixXd> lu(Ein);
+	omxSetMatrixElement(result, 0, 0, lu.determinant());
 }
 
 static void omxMatrixTraceOp(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2235,337 +2187,87 @@ static void omxAllIntegrationNorms(FitContext *fc, omxMatrix** matList, int numA
 	}
 }
 
-static int omxComparePointerContentsHelper(const void* one, const void* two, void *ign) {
-	double diff = (*(*(double**) two)) - (*(*(double**) one));
-	if(diff > std::numeric_limits<double>::epsilon()) {
-		return 1;
-	} else if(diff < -std::numeric_limits<double>::epsilon()) {
-		return -1;
-	} else return 0;
-}
-
-static void omxSortHelper(double* sortOrder, omxMatrix* original, omxMatrix* result) {
-	/* Sorts the columns of a matrix or the rows of a column vector
-					in decreasing order of the elements of sortOrder. */
-
-	if(OMX_DEBUG) {mxLog("SortHelper:Original is (%d x %d), result is (%d x %d).", original->rows, original->cols, result->rows, result->cols);}
-
-	if(!result->colMajor || !original->colMajor
-		|| result->cols != original->cols || result->rows != original->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Incorrect input to omxRowSortHelper: %d %d %d %d", result->cols, original->cols, result->rows, original->rows);
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
+template <typename T> void orderByNorm(const T &ev, std::vector<int> &idx)
+{
+	auto count = ev.size();
+	std::vector<double> evn;
+	for (int vx=0; vx < count; ++vx) {
+		std::complex<double> e1 = ev[vx];
+		evn.push_back(std::norm(e1));
+		idx.push_back(vx);
 	}
-
-	std::vector<double*> sortArray(original->rows);
-	int numElements = original->cols;
-	int numRows = original->rows;
-
-	if(numElements == 1)  numElements = numRows;		// Special case for column vectors
-
-	for(int i = 0; i < numElements; i++) {
-		sortArray[i] = sortOrder + i;
-	}
-
-	freebsd_mergesort(sortArray.data(), numElements, sizeof(double*), omxComparePointerContentsHelper, NULL);
-
-	if(OMX_DEBUG) {mxLog("Original is (%d x %d), result is (%d x %d).", original->rows, original->cols, result->rows, result->cols);}
-
-
-	for(int i = 0; i < numElements; i++) {
-		if(original->cols == 1) {
-			omxSetMatrixElement(result, i, 0, omxMatrixElement(original, (sortArray[i] - sortOrder), 0));
-		} else {
-			memcpy(omxLocationOfMatrixElement(result, 0, i), omxLocationOfMatrixElement(original, 0, sortArray[i]-sortOrder), numRows * sizeof(double));
-		}
-	}
-
-	return;
+	std::sort(idx.begin(), idx.end(),
+		  [&evn](int i1, int i2) -> bool { return evn[i1] > evn[i2]; });
 }
 
 static void omxRealEigenvalues(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
-	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
-	omxCopyMatrix(B, matList[0]);
-	omxResizeMatrix(A, B->rows, 1);
+	omxMatrix* B = matList[0];
 
-	/* Conformability Check! */
-	if(B->cols != B->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		omxFreeMatrix(A);
-		omxFreeMatrix(B);
-		return;
-	}
+	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
 	if(result->rows != B->rows || result->cols != 1)
 		omxResizeMatrix(result, B->rows, 1);
 
-	char N = 'N';						// Indicators for BLAS
-	// char V = 'V';						// Indicators for BLAS
-
-	int One = 1;
-	int lwork = 10*B->rows;
-
-	int info;
-
-	double* work = (double*) malloc(lwork * sizeof(double));
-	double* WI = (double*) malloc(B->cols * sizeof(double));
-
-	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), A->data, WI, NULL, &One, NULL, &One, work, &lwork, &info);
-	if(info != 0) {
-		if(info < 0)
-			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
-		else
-			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
-		goto RealEigenValCleanup;
-	}
-
-	result->colMajor = TRUE;
-
-	// Calculate Eigenvalue modulus.
-	for(int i = 0; i < A->rows; i++) {
-		double value = omxMatrixElement(A, i, 0);
-		if(WI[i] != 0) {				// FIXME: Might need to be abs(WI[i] > EPSILON)
-			value = sqrt(WI[i]*WI[i] + value*value);				// Sort by eigenvalue modulus
-			WI[i] = value;
-			WI[++i] = value;										// Conjugate pair.
-		} else {
-			WI[i] = fabs(value); 									// Modulus of a real is its absolute value
-		}
-	}
-
-	omxSortHelper(WI, A, result);
-
-RealEigenValCleanup:
-	omxFreeMatrix(A);				// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxFreeMatrix(B);
-	omxMatrixLeadingLagging(result);
-
-	free(work);
-	free(WI);
+	EigenMatrixAdaptor Ein(B);
+	Eigen::EigenSolver<Eigen::MatrixXd> es(Ein, false);
+	std::vector<int> idx;
+	auto &ev = es.eigenvalues();
+	orderByNorm(ev, idx);
+	EigenVectorAdaptor Eout(result);
+	for (int vx=0; vx < result->rows; ++vx) Eout[vx] = ev[idx[vx]].real();
 }
 
 static void omxRealEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
-	omxCopyMatrix(result, matList[0]);
-	omxResizeMatrix(A, result->rows, result->cols);
+	omxMatrix* B = matList[0];
 
+	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
-	if(A == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Null matrix pointer detected.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		return;
-	}
+	omxResizeMatrix(result, B->rows, B->cols);
 
-	/* Conformability Check! */
-	if(A->cols != A->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-square matrix in (real) eigenvalue decomposition.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		omxFreeMatrix(A);
-		return;
-	}
-
-	char N = 'N';						// Indicators for BLAS
-	char V = 'V';						// Indicators for BLAS
-
-	int One = 1;
-	int lwork = 10*A->rows;
-
-	int info;
-
-	double *WR = (double*) malloc(A->cols * sizeof(double));
-	double *WI = (double*) malloc(A->cols * sizeof(double));
-	double *work = (double*) malloc(lwork * sizeof(double));
-
-	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
-	if(info != 0) {
-		if(info < 0)
-			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
-		else
-			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
-		goto RealEigenVecCleanup;
-	}
-
-	// Filter real and imaginary eigenvectors.  Real ones have no WI.
-	for(int i = 0; i < A->cols; i++) {
-		if(fabs(WI[i]) > std::numeric_limits<double>::epsilon()) {									// If this is part of a conjugate pair
-			memcpy(omxLocationOfMatrixElement(A, 0, i+1), omxLocationOfMatrixElement(A, 0, i), A->rows * sizeof(double));
-				// ^^ This is column-major, so we can clobber columns over one another.
-			WR[i] = sqrt(WR[i] *WR[i] + WI[i]*WI[i]);				// Sort by eigenvalue modulus
-			WR[i+1] = WR[i];										// Identical--conjugate pair
-			i++; 	// Skip the next one; we know it's the conjugate pair.
-		} else {
-			WR[i] = fabs(WR[i]); 									// Modulus of a real is its absolute value
-		}
-	}
-
-	result->colMajor = TRUE;
-
-	// Sort results
-	omxSortHelper(WR, A, result);
-
-RealEigenVecCleanup:
-	omxFreeMatrix(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxMatrixLeadingLagging(result);
-
-	free(WR);
-	free(WI);
-	free(work);	
+	EigenMatrixAdaptor Ein(B);
+	Eigen::EigenSolver<Eigen::MatrixXd> es(Ein, true);
+	std::vector<int> idx;
+	auto &ev = es.eigenvalues();
+	orderByNorm(ev, idx);
+	EigenMatrixAdaptor Eout(result);
+	for (int vx=0; vx < result->rows; ++vx) Eout.col(vx) = es.eigenvectors().col(idx[vx]).real();
 }
 
 static void omxImaginaryEigenvalues(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
-	omxMatrix* B = omxInitMatrix(0, 0, TRUE, result->currentState);
-	omxCopyMatrix(B, matList[0]);
-	omxResizeMatrix(A, B->rows, 1);
+	omxMatrix* B = matList[0];
 
-	/* Conformability Check! */
-	if(B->cols != B->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-square matrix in eigenvalue decomposition.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		omxFreeMatrix(A);
-		omxFreeMatrix(B);
-		return;
-	}
+	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
-	if(result->cols != 1 || result->rows != A->rows)
+	if(result->rows != B->rows || result->cols != 1)
 		omxResizeMatrix(result, B->rows, 1);
 
-	char N = 'N';						// Indicators for BLAS
-
-	int One = 1;
-	int lwork = 10*B->rows;
-
-	int info;
-
-	double *WR = (double*) malloc(B->cols * sizeof(double));
-	double *VR = (double*) malloc(B->rows * B->cols * sizeof(double));
-	double *work = (double*) malloc(lwork * sizeof(double));
-
-	F77_CALL(dgeev)(&N, &N, &(B->rows), B->data, &(B->leading), WR, A->data, NULL, &One, NULL, &One, work, &lwork, &info);
-	if(info != 0) {
-		if(info < 0)
-			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
-		else
-			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
-		goto ImagEigenValCleanup;
-	}
-
-	// Calculate Eigenvalue modulus.
-	for(int i = 0; i < result->rows; i++) {
-		double value = omxMatrixElement(A, i, 0);					// A[i] is the ith imaginary eigenvalue
-		value *= value;												// Squared imaginary part
-		if(value > std::numeric_limits<double>::epsilon()) {
-			value = sqrt(WR[i] *WR[i] + value);				// Sort by eigenvalue modulus
-			WR[i] = value;
-			WR[++i] = value;										// Conjugate pair.
-		} else {
-			WR[i] = fabs(WR[i]);
-		}
-	}
-
-	result->colMajor = TRUE;
-
-	// Sort results
-	omxSortHelper(WR, A, result);
-
-ImagEigenValCleanup:
-	omxFreeMatrix(A);		// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxFreeMatrix(B);
-	omxMatrixLeadingLagging(result);
-
-	free(WR);
-	free(VR);
-	free(work);
+	EigenMatrixAdaptor Ein(B);
+	Eigen::EigenSolver<Eigen::MatrixXd> es(Ein, false);
+	std::vector<int> idx;
+	auto &ev = es.eigenvalues();
+	orderByNorm(ev, idx);
+	EigenVectorAdaptor Eout(result);
+	for (int vx=0; vx < result->rows; ++vx) Eout[vx] = ev[idx[vx]].imag();
 }
 
 static void omxImaginaryEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
-	omxMatrix* A = omxInitMatrix(0, 0, TRUE, result->currentState);
-	omxCopyMatrix(result, matList[0]);
-	omxResizeMatrix(A, result->rows, result->cols);
+	omxMatrix* B = matList[0];
 
-	/* Conformability Check! */
-	if(A->cols != A->rows) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Non-square matrix in (imaginary) eigenvalue decomposition.\n");
-		omxRaiseError(errstr);
-		free(errstr);
-		omxFreeMatrix(A);
-		return;
-	}
+	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
-	char N = 'N';						// Indicators for BLAS
-	char V = 'V';						// Indicators for BLAS
+	omxResizeMatrix(result, B->rows, B->cols);
 
-	int One = 1;
-	int lwork = 10*A->rows;
-
-	int info;
-
-	double *WR = (double*) malloc(A->cols * sizeof(double));
-	double *WI = (double*) malloc(A->cols * sizeof(double));
-	double *work = (double*) malloc(lwork * sizeof(double));
-
-	if(result->rows != A->rows || result->cols != A->cols)
-		omxResizeMatrix(result, A->rows, A->cols);
-
-	F77_CALL(dgeev)(&N, &V, &(result->rows), result->data, &(result->leading), WR, WI, NULL, &One, A->data, &(A->leading), work, &lwork, &info);
-	if(info != 0) {
-		if(info < 0)
-			omxRaiseErrorf("dgeev argument %d was illegal. Post this to the OpenMx support forum", info);
-		else
-			omxRaiseErrorf("dgeev: eigenvalue decomposition failed, matrix not of full rank?");
-		goto ImagEigenVecCleanup;
-	}
-
-	// Filter real and imaginary eigenvectors.  Imaginary ones have a WI.
-	for(int i = 0; i < result->cols; i++) {
-		if(WI[i] != 0) {				// FIXME: Might need to be abs(WI[i] > EPSILON)
-			// memcpy(omxLocationOfMatrixElement(A, 0, i), omxLocationOfMatrixElement(A, 0, i+1), A->rows * sizeof(double));
-			for(int j = 0; j < result->rows; j++) {
-				double value = omxMatrixElement(A, j, i+1);			// Conjugate pair
-				omxSetMatrixElement(A, j, i, value);				// Positive first,
-				omxSetMatrixElement(A, j, i+1, -value);				// Negative second
-			}
-			WR[i] = sqrt(WR[i] *WR[i] + WI[i]*WI[i]);				// Sort by eigenvalue modulus
-			WR[i+1] = WR[i];										// Identical--conjugate pair
-			i++; 	// Skip the next one; we know it's the conjugate pair.
-		} else {						// If it's not imaginary, it's zero.
-			for(int j = 0; j < A->rows; j++) {
-				omxSetMatrixElement(A, j, i, 0.0);
-			}
-			WR[i] = fabs(WR[i]); 									// Modulus of a real is its absolute value
-
-		}
-	}
-
-	result->colMajor = TRUE;
-
-	omxSortHelper(WR, A, result);
-
-ImagEigenVecCleanup:
-	omxFreeMatrix(A);			// FIXME: State-keeping for algebras would save significant time in memory allocation/deallocation
-	omxMatrixLeadingLagging(result);
-
-	free(WR);
-	free(WI);
-	free(work);
-
+	EigenMatrixAdaptor Ein(B);
+	Eigen::EigenSolver<Eigen::MatrixXd> es(Ein, true);
+	std::vector<int> idx;
+	auto &ev = es.eigenvalues();
+	orderByNorm(ev, idx);
+	EigenMatrixAdaptor Eout(result);
+	for (int vx=0; vx < result->rows; ++vx) Eout.col(vx) = es.eigenvectors().col(idx[vx]).imag();
 }
 
 static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)

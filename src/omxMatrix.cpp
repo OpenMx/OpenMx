@@ -30,6 +30,7 @@
 #include "omxState.h"
 #include <limits>
 #include <Eigen/SVD>
+#include <Eigen/LU>
 #include "Compute.h"
 #include "minicsv.h"
 #include "EnableWarnings.h"
@@ -754,6 +755,17 @@ void omxMatrix::transposePopulate()
 	for (size_t px=0; px < populate.size(); ++px) populate[px].transpose();
 }
 
+void MatrixInvert1(omxMatrix *target)
+{
+	EigenMatrixAdaptor Ein(target);
+	// inplace not working as of Aug 2019, maybe try again later
+	//Eigen::FullPivLU< Eigen::Ref<Eigen::MatrixXd> > lu(Ein);
+	//Eigen::FullPivLU< Eigen::MatrixXd > lu(Ein);
+	Eigen::PartialPivLU< Eigen::MatrixXd > lu(Ein);
+	// will fail silently if not invertible?
+	Ein.derived() = lu.inverse();
+}
+
 /*
  * omxShallowInverse
  * 			Calculates the inverse of (I-A) using an n-step Neumann series
@@ -782,13 +794,7 @@ void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z,
 
 		omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, Z);
 
-		Matrix Zmat(Z);
-		int info = MatrixInvert1(Zmat);
-		if (info) {
-			Z->data[0] = nan("singular");
-			if (fc) fc->recordIterationError("(I-A) is exactly singular (info=%d)", info);
-		        return;
-		}
+		MatrixInvert1(Z);
 
 		if(OMX_DEBUG_ALGEBRA) {omxPrint(Z, "Z");}
 

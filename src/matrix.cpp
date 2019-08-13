@@ -14,6 +14,7 @@ using std::endl;
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "omxMatrix.h"
+#include <Eigen/LU>
 #include "EnableWarnings.h"
 
 Matrix::Matrix(omxMatrix *mat)
@@ -201,26 +202,4 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
         mxThrow("Arg %d is invalid", -info);
     }
     return info;
-}
-
-int MatrixInvert1(Matrix result)
-{
-    omxBuffer<int> ipiv(result.rows);
-    int info;
-    F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv.data(), &info);
-    if (info < 0) mxThrow("dgetrf info %d", info);
-    if (info > 0) return info;
-    
-    int opt_lwork = -1;
-    double opt_work;
-    F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), &opt_work, &opt_lwork, &info);
-    if (info != 0) mxThrow("dgetri workspace query failed %d", info);
-    
-    opt_lwork = opt_work;
-    omxBuffer<double> work(opt_lwork);
-    F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), work.data(), &opt_lwork, &info);
-    if (info < 0) mxThrow("dgetri info %d", info);
-    if (info > 0) return info;   // probably would fail at dgetrf already
-    
-    return 0;
 }
