@@ -214,7 +214,7 @@ bool condOrdByRow::eval()
 				//mxPrintMat("resid", resid);
 				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double tr1 = trace_prod(iV, ss.dataCov);
-				double logDet = covDecomp.log_determinant();
+				double logDet = 2.0 * covDecomp.log_determinant();
 				double cterm = M_LN_2PI * residSize;
 				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
 				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
@@ -228,7 +228,7 @@ bool condOrdByRow::eval()
 			residSize = resid.size();
 			iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * residSize;
-			double logDet = covDecomp.log_determinant();
+			double logDet = 2.0 * covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLogLik = -0.5 * (iqf + cterm + logDet);
 			if (!std::isfinite(contLogLik)) reportBadContRow(cData, resid, contCov);
@@ -333,7 +333,7 @@ bool condContByRow::eval()
 				const Eigen::MatrixXd &iV = covDecomp.getInverse();
 				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double cterm = M_LN_2PI * residSize;
-				double logDet = covDecomp.log_determinant();
+				double logDet = 2.0 * covDecomp.log_determinant();
 				contLogLik = -0.5 * (iqf + cterm + logDet);
 				if (!std::isfinite(contLogLik)) {
 					reportBadContRow(cData, resid, contCov);

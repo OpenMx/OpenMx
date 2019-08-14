@@ -238,7 +238,7 @@ namespace FellnerFitFunction {
 				//mxPrintMat("expectedVec", ig.expectedVec);
 
 				const Eigen::MatrixXd &iV = covDecomp.getInverse();
-				double logDet = covDecomp.log_determinant();
+				double logDet = 2.0 * covDecomp.log_determinant();
 				//mxPrintMat("iV", iV);
 				int clumps = ig.numLooseClumps();
 				if (clumps) {

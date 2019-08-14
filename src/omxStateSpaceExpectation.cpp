@@ -612,7 +612,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	} else {
 		covInfo->data[0] = 0;
 		sc.refreshInverse();
-		*Det->data = 0.5 * sc.log_determinant();
+		*Det->data = sc.log_determinant();
 		EsmallS.derived() = sc.getInverse();
 	}
 	
