@@ -51,64 +51,12 @@ mahalanobis(int dim, double *loc, double *center, double *origCov)
 static double
 _dmvnorm(char *err, int dim, double *loc, double *mean, double *origSigma)
 {
+	Eigen::Map< Eigen::MatrixXd > Esigma(origSigma, dim, dim);
+	SimpCholesky< Eigen::MatrixXd, Eigen::Upper > sc(Esigma);
+
 	double dist = mahalanobis(dim, loc, mean, origSigma);
 
-	std::vector<double> sigma(dim * dim);
-	memcpy(sigma.data(), origSigma, sizeof(double) * dim * dim);
-
-	char jobz = 'N';
-	char range = 'A';
-	char uplo = 'U';
-	double vunused;
-	int iunused;
-	double abstol = 0;
-	int m;
-	Eigen::VectorXd w(dim);
-	Eigen::VectorXd Z(dim);
-	int ldz=1;
-	Eigen::VectorXi isuppz(2*dim);
-	int lwork = -1;
-	double optlWork;
-	int optliWork;
-	int liwork = -1;
-	int info;
-
-	F77_CALL(dsyevr)(&jobz, &range, &uplo,
-			 &dim, sigma.data(), &dim,
-			 &vunused, &vunused,
-			 &iunused, &iunused,
-			 &abstol, &m, w.data(),
-			 Z.data(), &ldz, isuppz.data(),
-			 &optlWork, &lwork,
-			 &optliWork, &liwork, &info);
-	if (info != 0) {
-		snprintf(err, ERROR_LEN, "dsyevr failed when requesting work space size");
-		return nan("mxThrow");
-	}
-
-	lwork = optlWork;
-	std::vector<double> work(lwork);
-	liwork = optliWork;
-	std::vector<int> iwork(liwork);
-
-	F77_CALL(dsyevr)(&jobz, &range, &uplo, &dim, sigma.data(), &dim,
-			 &vunused, &vunused, &iunused, &iunused, &abstol, &m, w.data(), Z.data(), &ldz, isuppz.data(),
-			 work.data(), &lwork, iwork.data(), &liwork, &info);
-	if (info < 0) {
-		snprintf(err, ERROR_LEN, "Arg %d is invalid", -info);
-		return nan("mxThrow");
-	}
-	if (info > 0) {
-		snprintf(err, ERROR_LEN, "dsyevr: internal mxThrow");
-		return nan("mxThrow");
-	}
-	if (m < dim) {
-		snprintf(err, ERROR_LEN, "Sigma not of full rank");
-		return nan("mxThrow");
-	}
-
-	for (int dx=0; dx < dim; dx++) dist += log(w[dx]);
-	double got = -(dim * M_LN_SQRT_2PI*2 + dist)/2;
+	double got = -(dim * M_LN_SQRT_2PI + 0.5*dist + sc.log_determinant());
 	return got;
 }
 

@@ -10,6 +10,7 @@
 #include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include <Eigen/Core>
+#include <Eigen/Eigenvalues>
 
 typedef struct Matrix Matrix;
 
@@ -101,7 +102,25 @@ Eigen::MatrixXd QRdsolve(Eigen::MatrixBase<T1> &mainMat, Eigen::MatrixBase<T1> &
     return Final_result;
 }
 
-void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum);
+template <typename T1>
+void ForceInvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat, double *origEv, double *condnum)
+{
+	// lower triangle is referenced
+	Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > es(mat);
+	if (origEv) memcpy(origEv, es.eigenvalues().data(), sizeof(double) * mat.rows());
+
+	const double tooSmallEV = 1e-6;
+	// The abs() preserves the measure of curvature. This is conservative
+	// compared to setting the curvature to some value near zero.
+	Eigen::VectorXd ev = 1.0 / es.eigenvalues().array().abs().max(tooSmallEV);
+	if (condnum) *condnum = ev.maxCoeff() / ev.minCoeff();
+	mat.derived() = es.eigenvectors() * ev.asDiagonal() * es.eigenvectors().inverse();
+}
+
+template <typename T1>
+void ForceInvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat)
+{ ForceInvertSymmetricPosDef(mat, 0, 0); }
+
 Matrix MatrixInvert(Matrix inMat);
 int InvertSymmetricIndef(Matrix mat, const char uplo);
 void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
