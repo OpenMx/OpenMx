@@ -2,7 +2,6 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include <Eigen/Core>
-#include "omxBuffer.h"
 #include "matrix.h"
 #include "glue.h"
 #include "EnableWarnings.h"
@@ -12,30 +11,20 @@ static const int ERROR_LEN = 80;
 static double
 _mahalanobis(char *err, int dim, double *loc, double *center, double *origCov)
 {
-	std::vector<double> cloc(dim);
+	Eigen::VectorXd cloc(dim);
 	for (int dx=0; dx < dim; dx++) {
 		cloc[dx] = loc[dx] - center[dx];
 	}
 
-	Matrix covMat(origCov, dim, dim);
-	omxBuffer<double> icov(dim * dim);
-	Matrix icovMat(icov.data(), dim, dim);
-	int info = MatrixSolve(covMat, icovMat, true); // can optimize for symmetry TODO
-	if (info) {
+	Eigen::Map<Eigen::MatrixXd> covMat(origCov, dim, dim);
+	SimpCholesky< Eigen::MatrixXd, Eigen::Lower > sc(covMat);
+	if (sc.info() != Eigen::Success || !sc.isPositive()) {
 		snprintf(err, ERROR_LEN, "Sigma is singular and cannot be inverted");
 		return nan("mxThrow");
 	}
 
-	std::vector<double> half(dim);
-	char trans='n';
-	double alpha=1;
-	double beta=0;
-	int inc=1;
-	F77_CALL(dgemv)(&trans, &dim, &dim, &alpha, icov.data(), &dim, cloc.data(), &inc, &beta, half.data(), &inc);
-
-	double got=0;
-	for (int dx=0; dx < dim; dx++) got += half[dx] * cloc[dx];
-	return got;
+	sc.refreshInverse();
+	return cloc.transpose() * sc.getInverse() * cloc;
 }
 
 static double

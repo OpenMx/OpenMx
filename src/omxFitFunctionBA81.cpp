@@ -20,7 +20,6 @@
 #include "omxExpectationBA81.h"
 #include "libifa-rpf.h"
 #include "matrix.h"
-#include "omxBuffer.h"
 #include "Compute.h"
 #include "EnableWarnings.h"
 
