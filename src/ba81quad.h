@@ -291,18 +291,16 @@ void ba81NormalQuad::layer::calcDerivCoef1(Eigen::MatrixBase<T1> &meanVec, Eigen
 }
 
 template <typename T1>
-int ba81quad_InvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat, const char uplo)
+int ba81quad_InvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat)
 {
-	if (mat.rows() != mat.cols()) mxThrow("Not square");
-	int size = mat.rows();
-	int info;
-	F77_CALL(dpotrf)(&uplo, &size, mat.derived().data(), &size, &info);
-	if (info < 0) mxThrow("Arg %d is invalid", -info);
-	if (info > 0) return info;
-    
-	F77_CALL(dpotri)(&uplo, &size, mat.derived().data(), &size, &info);
-	if (info < 0) mxThrow("Arg %d is invalid", -info);
-	return info;
+	SimpCholesky< Eigen::Ref<T1>, Eigen::Upper > sc(mat);
+	if (sc.info() != Eigen::Success || !sc.isPositive()) {
+		return -1;
+	} else {
+		sc.refreshInverse();
+		mat.derived() = sc.getInverse();
+		return 0;
+	}
 }
 
 template <typename T1, typename T2>
@@ -310,7 +308,7 @@ int ba81NormalQuad::layer::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen:
 {
 	Eigen::MatrixXd priCov = cov.topLeftCorner(primaryDims, primaryDims);
 	Eigen::MatrixXd icov = priCov;
-	int info = ba81quad_InvertSymmetricPosDef(icov, 'U');
+	int info = ba81quad_InvertSymmetricPosDef(icov);
 	if (info) return info;
 	icov.triangularView<Eigen::Lower>() = icov.transpose().triangularView<Eigen::Lower>();
 	

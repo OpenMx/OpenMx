@@ -2748,13 +2748,12 @@ void omxData::estimateObservedStats()
 
 	if (1) {
 		EigenMatrixAdaptor Ecov(o1.covMat);
-		Eigen::MatrixXd covCopy = Ecov;
-		int info;
-		char uplo = 'L';
-		F77_CALL(dpotrf)(&uplo, &numCols, covCopy.data(), &numCols, &info);
-		if (info < 0) mxThrow("Arg %d is invalid", -info);
-		if (info > 0) Rf_warning("%s: marginal covariance matrix "
-					 "is non-positive definite", name);
+		SimpCholesky< Eigen::MatrixXd > sc;
+		sc.compute(Ecov);
+		if (sc.info() != Eigen::Success || !sc.isPositive()) {
+			Rf_warning("%s: marginal covariance matrix "
+				   "is non-positive definite", name);
+		}
 	}
 
 	// Small optimization opportunity:

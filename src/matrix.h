@@ -103,13 +103,13 @@ Eigen::MatrixXd QRdsolve(Eigen::MatrixBase<T1> &mainMat, Eigen::MatrixBase<T1> &
 
 void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum);
 Matrix MatrixInvert(Matrix inMat);
-int MatrixInvert1(Matrix result);
-int InvertSymmetricPosDef(Matrix matd, const char uplo);
 int InvertSymmetricIndef(Matrix mat, const char uplo);
 void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
                        Matrix amat, Matrix bmat, Matrix cmat);
 void MeanSymmetric(Matrix mat);
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity);
+
+int InvertSymmetricPosDef(Matrix mat, char uplo);
 
 template <typename T2>
 void rowSort_e(Eigen::MatrixBase<T2>& mat)

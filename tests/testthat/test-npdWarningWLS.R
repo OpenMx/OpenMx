@@ -1,5 +1,7 @@
-# Step 1: load libraries
 library(OpenMx)
+library(testthat)
+context("npdWarningWLS")
+
 set.seed(1)
 
 #

@@ -14,6 +14,7 @@ using std::endl;
 #include "omxBuffer.h"
 #include "matrix.h"
 #include "omxMatrix.h"
+#include <Eigen/LU>
 #include "EnableWarnings.h"
 
 Matrix::Matrix(omxMatrix *mat)
@@ -105,19 +106,6 @@ void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
                     prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
 }
 
-int InvertSymmetricPosDef(Matrix mat, const char uplo)
-{
-    if (mat.rows != mat.cols) mxThrow("Not square");
-    int info;
-    F77_CALL(dpotrf)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    if (info > 0) return info;
-    
-    F77_CALL(dpotri)(&uplo, &mat.rows, mat.t, &mat.rows, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    return info;
-}
-
 int InvertSymmetricIndef(Matrix mat, const char uplo)
 {
     if (mat.rows != mat.cols) mxThrow("Not square");
@@ -203,24 +191,29 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
     return info;
 }
 
-int MatrixInvert1(Matrix result)
+int InvertSymmetricPosDef(Matrix mat, char uplo)
 {
-    omxBuffer<int> ipiv(result.rows);
-    int info;
-    F77_CALL(dgetrf)(&(result.cols), &(result.rows), result.t, &(result.rows), ipiv.data(), &info);
-    if (info < 0) mxThrow("dgetrf info %d", info);
-    if (info > 0) return info;
-    
-    int opt_lwork = -1;
-    double opt_work;
-    F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), &opt_work, &opt_lwork, &info);
-    if (info != 0) mxThrow("dgetri workspace query failed %d", info);
-    
-    opt_lwork = opt_work;
-    omxBuffer<double> work(opt_lwork);
-    F77_CALL(dgetri)(&(result.cols), result.t, &(result.rows), ipiv.data(), work.data(), &opt_lwork, &info);
-    if (info < 0) mxThrow("dgetri info %d", info);
-    if (info > 0) return info;   // probably would fail at dgetrf already
-    
-    return 0;
+	Eigen::Map<Eigen::MatrixXd> Emat(mat.t, mat.rows, mat.cols);
+	if (uplo == 'L') {
+		SimpCholesky< Eigen::Ref<Eigen::MatrixXd>, Eigen::Lower > sc(Emat);
+		if (sc.info() != Eigen::Success || !sc.isPositive()) {
+			return -1;
+		} else {
+			sc.refreshInverse();
+			Emat.derived() = sc.getInverse();
+			return 0;
+		}
+	} else if (uplo == 'U') {
+		SimpCholesky< Eigen::Ref<Eigen::MatrixXd>, Eigen::Upper > sc(Emat);
+		if (sc.info() != Eigen::Success || !sc.isPositive()) {
+			return -1;
+		} else {
+			sc.refreshInverse();
+			Emat.derived() = sc.getInverse();
+			return 0;
+		}
+	} else {
+		mxThrow("uplo invalid");
+	}
 }
+

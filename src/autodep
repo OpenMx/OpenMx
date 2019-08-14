@@ -105,7 +105,6 @@ matrix.o: Makevars matrix.cpp omxDefines.h \
  omxBuffer.h matrix.h  \
   omxMatrix.h \
  EnableWarnings.h
-merge.o: Makevars merge.cpp merge.h EnableWarnings.h
 nanotimer.o: Makevars nanotimer.cpp nanotimer_gettime.h
 omxAlgebra.o: Makevars omxAlgebra.cpp omxMatrix.h \
   omxDefines.h \
@@ -246,7 +245,7 @@ omxStateSpaceExpectation.o: Makevars omxStateSpaceExpectation.cpp omxDefines.h \
  EnableWarnings.h
 omxSymbolTable.o: Makevars omxSymbolTable.cpp omxSymbolTable.h omxMatrix.h \
   omxDefines.h \
- algebraOp.h AlgebraFunctions.h merge.h matrix.h omxState.h omxAlgebra.h \
+ algebraOp.h AlgebraFunctions.h matrix.h omxState.h omxAlgebra.h \
  omxExpectation.h omxData.h omxFitFunction.h \
  omxSadmvnWrapper.h Connectedness.h Compute.h \
  glue.h EnableWarnings.h
