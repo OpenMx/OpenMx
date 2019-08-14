@@ -123,8 +123,7 @@ void ForceInvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat)
 
 Matrix MatrixInvert(Matrix inMat);
 int InvertSymmetricIndef(Matrix mat, const char uplo);
-void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
-                       Matrix amat, Matrix bmat, Matrix cmat);
+void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat);
 void MeanSymmetric(Matrix mat);
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity);
 

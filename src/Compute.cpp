@@ -1304,8 +1304,8 @@ void FitContext::postInfo()
 		Matrix bmat(infoB, numParam, numParam);
 		Matrix wmat(work.data(), numParam, numParam);
 		Matrix hmat(getDenseIHessUninitialized(), numParam, numParam);
-		SymMatrixMultiply('L', 'U', 1, 0, amat, bmat, wmat);
-		SymMatrixMultiply('R', 'U', 1, 0, amat, wmat, hmat);
+		SymMatrixMultiply('L', amat, bmat, wmat);
+		SymMatrixMultiply('R', amat, wmat, hmat);
 		wanted |= FF_COMPUTE_IHESSIAN;
 		break;}
 	case INFO_METHOD_MEAT:{
@@ -3276,7 +3276,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	omxBuffer<double> infoBuf(freeVars * freeVars);
 	Matrix infoMat(infoBuf.data(), freeVars, freeVars);
 
-	SymMatrixMultiply('L', 'U', 1, 0, hessMat, rijMat, infoMat);  // result not symmetric!
+	SymMatrixMultiply('L', hessMat, rijMat, infoMat);  // result not symmetric!
 
 	if (semDebug) {
 		// ihess is always symmetric, this could be asymmetric

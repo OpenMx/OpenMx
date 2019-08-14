@@ -58,24 +58,21 @@ void MeanSymmetric(Matrix mat)
     }
 }
 
-void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
-                       Matrix amat, Matrix bmat, Matrix cmat)
+void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat)
 {
-    if (amat.rows != amat.cols) mxThrow("Not conformable");
-    if (bmat.rows != cmat.rows || bmat.cols != cmat.cols) mxThrow("Not conformable");
-    int lda;
+	using Eigen::Map;
+	using Eigen::MatrixXd;
+	Map< MatrixXd > Ea(amat.t, amat.rows, amat.cols);
+	Map< MatrixXd > Eb(bmat.t, bmat.rows, bmat.cols);
+	Map< MatrixXd > Ec(cmat.t, cmat.rows, cmat.cols);
+
     if (side == 'R') {
-        if (amat.cols != cmat.rows) mxThrow("Not conformable");
-        lda = cmat.cols;
+	Ec.derived() = Eb * Ea.selfadjointView<Eigen::Upper>();
     } else if (side == 'L') {
-        if (amat.cols != cmat.cols) mxThrow("Not conformable");
-        lda = cmat.rows;
+	Ec.derived() = Ea.selfadjointView<Eigen::Upper>() * Eb;
     } else {
         mxThrow("Side of %c is invalid", side);
     }
-    F77_CALL(dsymm)(&side, &uplo, &cmat.rows, &cmat.cols,
-                    &alpha, amat.t, &lda, bmat.t, &bmat.rows,
-                    &beta, cmat.t, &cmat.rows);
 }
 
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
