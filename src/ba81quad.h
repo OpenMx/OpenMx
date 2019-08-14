@@ -232,20 +232,18 @@ void ba81NormalQuad::layer::calcDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen:
 	const int pDims = primaryDims;
 	const char R='R';
 	const char L='L';
-	const char U='U';
 	const double alpha = 1;
 	const double beta = 0;
-	const int one = 1;
 
-	std::vector<double> whereDiff(pDims);
+	Eigen::VectorXd whereDiff(pDims);
 	std::vector<double> whereGram(triangleLoc1(pDims));
 	for (int d1=0; d1 < pDims; ++d1) {
 		whereDiff[d1] = where[d1] - meanVec[d1];
 	}
 	gramProduct(whereDiff.data(), whereDiff.size(), whereGram.data());
 
-	F77_CALL(dsymv)(&U, &pDims, &alpha, icov.derived().data(), &pDims, whereDiff.data(), &one,
-			&beta, &derivCoef.coeffRef(0,qx), &one);
+	Eigen::Map< Eigen::VectorXd > dcol(&derivCoef.coeffRef(0,qx), derivCoef.rows());
+	Edsymv(1.0, icov, whereDiff, 0, dcol);
 
 	std::vector<double> covGrad1(pDims * pDims);
 	std::vector<double> covGrad2(pDims * pDims);

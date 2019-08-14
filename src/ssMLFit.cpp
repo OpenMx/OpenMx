@@ -143,10 +143,7 @@ void ssMLFitState::compute(int want, FitContext *fc)
 		
 		/* Calculate Row Likelihood */
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
-		double zerod = 0.0;
-		char u = 'U';
-		double oned = 1.0;
-		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
+		omxDSYMV(1.0, smallCov, contRow, 0, RCX);
 		double Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei);
 		if (verbose >= 2) {
 			EigenMatrixAdaptor EsmallCov(smallCov);
