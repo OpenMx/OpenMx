@@ -22,24 +22,21 @@ Matrix::Matrix(omxMatrix *mat)
 
 int InvertSymmetricIndef(Matrix mat, const char uplo)
 {
-    if (mat.rows != mat.cols) mxThrow("Not square");
-    int info;
-    omxBuffer<int> ipiv(mat.rows);
-    double temp;
-    int lwork = -1;
-    F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), &temp, &lwork, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    if (info > 0) return info;
-    
-    if (lwork < mat.rows) lwork = mat.rows; // for dsytri
-    omxBuffer<double> work(lwork);
-    F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &lwork, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    if (info > 0) return info;
-    
-    F77_CALL(dsytri)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    return info;
+	// Not as efficient as dsytrf/dsytri, but we generally
+	// use this only when InvertSymmetricPosDef fails or
+	// in non-performance critical paths.
+	Eigen::Map< Eigen::MatrixXd > Emat(mat.t, mat.rows, mat.cols);
+	if (uplo == 'L') {
+		Emat.derived() = Emat.selfadjointView<Eigen::Lower>();
+	} else if (uplo == 'U') {
+		Emat.derived() = Emat.selfadjointView<Eigen::Upper>();
+	} else {
+		mxThrow("uplo='%c'", uplo);
+	}
+	Eigen::FullPivLU< Eigen::MatrixXd > lu(Emat);
+	if (lu.rank() < mat.rows) return -1;
+	Emat.derived() = lu.inverse();
+	return 0;
 }
 
 void MeanSymmetric(Matrix mat)

@@ -243,12 +243,6 @@ static void InvertSymmetricNR(Eigen::MatrixXd &hess, Eigen::MatrixXd &ihess)
 	ihess = hess;
 	Matrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
 
-	if (0) {
-		// for comparison
-		InvertSymmetricIndef(ihessMat, 'U');
-		return;
-	}
-
 	if (!InvertSymmetricPosDef(ihessMat, 'U')) return;
 
 	int numParams = hess.rows();
