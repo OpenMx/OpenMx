@@ -800,11 +800,6 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			constraint_e.block(0, neq, 1, nineq) = (constraint_e.block(0, neq, 1, nineq) - p0_e.block(0, 0, 1, nineq)).block(0, 0, 1, nineq);
 		}
 		
-		if (false && solvecond(a_e) > 1/DBL_EPSILON) { // this can't be the cheapest way to check TODO
-			mxThrow("Redundant constraints were found. Poor intermediate results may result. "
-             "Remove redundant constraints and re-OPTIMIZE.");
-		}
-		
 		b_e = (a_e * p0_e.transpose()).transpose();
 		//  b [nc,1]
 		b_e -= constraint_e;
@@ -870,7 +865,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				argum1_e.transposeInPlace();
 				Eigen::MatrixXd argum2_e;
 				argum2_e = cx_e.asDiagonal() * dx_e;
-				y_e = QRdsolve(argum1_e, argum2_e);
+				y_e = argum1_e.fullPivHouseholderQr().solve(argum2_e);
 				Eigen::MatrixXd cx_e_r;
 				cx_e_r = cx_e.transpose() - (a_e.transpose() * y_e);
 				dx_e = (cx_e_r.asDiagonal() * dx_e).asDiagonal() * dx_e;
@@ -1129,7 +1124,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				argum1_e = cz_inv.transpose() * a_e.transpose();
 				Eigen::MatrixXd solution;
 				
-				solution = QRdsolve(argum1_e, yg_e);
+				solution = argum1_e.fullPivHouseholderQr().solve(yg_e);
 				
 				y_e.resize(solution.cols(), solution.rows());
 				y_e = solution.transpose();

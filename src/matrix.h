@@ -43,66 +43,6 @@ struct Matrix {
 };
 
 template <typename T1>
-double solvecond(Eigen::MatrixBase<T1> & inMat)
-{
-    Eigen::MatrixXd result = inMat;
-    int l;
-    char JOBZ = 'S';
-    int lwork = -1;
-    double wkopt;
-    int dim_s = std::max(result.cols(), result.rows()); // maybe min is sufficient
-    Eigen::ArrayXi iwork(8 * dim_s);
-    Eigen::ArrayXd sv(dim_s);
-    Eigen::ArrayXd u(dim_s * result.rows());
-    Eigen::ArrayXd vt(dim_s * result.cols());
-    int result_row = result.rows();
-    int result_col = result.cols();
-    F77_CALL(dgesdd)(&JOBZ, &result_row, &result_col, result.data(), &result_row, sv.data(), u.data(), &result_row, vt.data(), &result_col, &wkopt, &lwork, iwork.data(), &l);
-    lwork = (int)wkopt;
-    Eigen::ArrayXd work(lwork);
-    F77_CALL(dgesdd)(&JOBZ, &result_row, &result_col, result.data(), &result_row, sv.data(), u.data(), &result_row, vt.data(), &result_col, work.data(), &lwork, iwork.data(), &l);
-    
-    if (l < 0) mxThrow("the i-th argument had an illegal value");
-    else if (l > 0) mxThrow("DBDSDC did not converge, updating process failed.");
-    else
-    {
-        if ((sv == 0).count()) return std::numeric_limits<double>::infinity();
-        else return sv.maxCoeff() / sv.minCoeff();
-    }
-}
-
-template <typename T1>
-Eigen::MatrixXd QRdsolve(Eigen::MatrixBase<T1> &mainMat, Eigen::MatrixBase<T1> &RHSMat)
-
-{
-    int lwork = 4 * mainMat.rows() * mainMat.cols();
-    int l;
-    char TRANS = 'N';
-    int LDB = std::max(mainMat.cols(), mainMat.rows());
-    Eigen::MatrixXd input = mainMat;
-    Eigen::MatrixXd result(LDB, RHSMat.cols());
-    result.setZero();
-    for (int i = 0; i < RHSMat.rows(); i++)
-        for (int j = 0; j < RHSMat.cols(); j++)
-            result(i, j) = RHSMat(i, j);
-    int input_row = input.rows();
-    int input_col = input.cols();
-    int result_col = result.cols();
-    Eigen::ArrayXd work(lwork);
-    F77_CALL(dgels)(&TRANS, &input_row, &input_col, &result_col, input.data(), &input_row, result.data(), &LDB, work.data(), &lwork, &l);
-    Eigen::MatrixXd Final_result(mainMat.cols(), RHSMat.cols());
-    for (int i = 0; i < mainMat.cols(); i++)
-    {
-        for(int j = 0; j < RHSMat.cols(); j++)
-        {
-            Final_result(i, j) = result(i, j);
-        }
-    }
-    
-    return Final_result;
-}
-
-template <typename T1>
 void ForceInvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat, double *origEv, double *condnum)
 {
 	// lower triangle is referenced

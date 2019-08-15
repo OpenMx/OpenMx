@@ -57,11 +57,11 @@ m1 <- mxModel(
 	"mod1",
 	mxdat,
 	#plan,
-	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
+	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S", lbound=-10, ubound=10),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau"),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=5),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
@@ -164,11 +164,11 @@ m3 <- mxModel(
 	"mod3",
 	mxdat,
 	#plan,
-	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
+	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S", lbound=-10, ubound=10),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau"),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=5),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
@@ -198,11 +198,11 @@ m5 <- mxModel(
 	"mod5",
 	mxdat,
 	#plan,
-	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
+	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S", lbound=-10, ubound=10),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau"),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=4),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
@@ -217,7 +217,7 @@ mxEval(Sigma,m6,T)
 #Interestingly, SLSQP doesn't gain any advantage in function evaluations by adding analytic derivatives
 #for the inequality constraints, but NPSOL does:
 if(mxOption(NULL,"Default optimizer") %in% c("CSOLNP","NPSOL")){
-	omxCheckTrue(m4$output$evaluations > m6$output$evaluations)
+  omxCheckTrue(m4$output$evaluations > m6$output$evaluations)
 }
 omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m6,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
