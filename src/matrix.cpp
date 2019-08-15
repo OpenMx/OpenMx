@@ -74,29 +74,15 @@ void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat)
 
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
 {
-    if (mat1.rows != mat1.cols ||
-        mat2.rows != mat2.cols ||
-        mat1.rows != mat2.rows) mxThrow("Not conformable");
-    const int dim = mat1.rows;
+	Eigen::Map< Eigen::MatrixXd > Emat1(mat1.t, mat1.rows, mat1.cols);
+	Eigen::Map< Eigen::MatrixXd > Emat2(mat2.t, mat2.rows, mat2.cols);
+	Eigen::FullPivLU< Eigen::MatrixXd > lu(Emat1);
+	if (lu.rank() < mat1.rows) return -1;
+
+	if (identity) Emat2.setIdentity();
+	Emat2 = lu.solve(Emat2);
     
-    omxBuffer<double> pad(dim * dim);
-    memcpy(pad.data(), mat1.t, sizeof(double) * dim * dim);
-    
-    if (identity) {
-        for (int rx=0; rx < dim; rx++) {
-            for (int cx=0; cx < dim; cx++) {
-                mat2.t[rx * dim + cx] = rx==cx? 1 : 0;
-            }
-        }
-    }
-    
-    std::vector<int> ipiv(dim);
-    int info;
-    F77_CALL(dgesv)(&dim, &dim, pad.data(), &dim, ipiv.data(), mat2.t, &dim, &info);
-    if (info < 0) {
-        mxThrow("Arg %d is invalid", -info);
-    }
-    return info;
+	return 0;
 }
 
 int InvertSymmetricPosDef(Matrix mat, char uplo)
