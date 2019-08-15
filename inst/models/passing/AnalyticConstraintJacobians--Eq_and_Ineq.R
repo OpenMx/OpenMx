@@ -168,7 +168,7 @@ m3 <- mxModel(
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=5),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=4),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
@@ -178,6 +178,9 @@ m3 <- mxModel(
 	#tauineqjac, ineqjsub, ineqjac, sgn
 )
 m4 <- mxRun(m3)
+m4Eval <- m4$output$evaluations
+m4 <- mxRun(m4)  # help NPSOL get to the solution
+m4Eval <- m4Eval + m4$output$evaluations
 summary(m4)
 mxEval(Sigma,m4,T)
 if(mxOption(NULL,"Default optimizer") %in% c("NPSOL","SLSQP")){
@@ -217,7 +220,7 @@ mxEval(Sigma,m6,T)
 #Interestingly, SLSQP doesn't gain any advantage in function evaluations by adding analytic derivatives
 #for the inequality constraints, but NPSOL does:
 if(mxOption(NULL,"Default optimizer") %in% c("CSOLNP","NPSOL")){
-  omxCheckTrue(m4$output$evaluations > m6$output$evaluations)
+  omxCheckTrue(m4Eval > m6$output$evaluations)
 }
 omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m6,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
