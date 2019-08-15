@@ -713,7 +713,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     warnModelCreatedByOldVersion(trueModel)
     warnModelCreatedByOldVersion(falseModel)
     if (!trueModel@.wasRun || trueModel@.modifiedSinceRun) {
-		warning("Polite but strong warning: You haven't re-run falseModel since modifying it.\n",
+		warning("Polite but strong warning: You haven't re-run trueModel since modifying it.\n",
 		"You most likely want to mxRun trueModel, or your apparent power may be illusory.\n",
 		"(But perhaps you're an expert wanting to do this - if so we're glad you chose OpenMx for your advanced studies :-) ).")
 	    trueModel <- mxRun(mxModel(trueModel, mxComputeOnce('fitfunction','fit')))
