@@ -419,17 +419,17 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 	Eresult.derived() = alpha * (Emat.selfadjointView<Eigen::Upper>() * Evec).array() + beta;
 }
 
-static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* symmetric, 		// result <- alpha * A %*% B + beta * C
-				omxMatrix *other, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
+static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, omxMatrix* symmetric,
+			       omxMatrix *other, omxMatrix* result) {
+	EigenMatrixAdaptor Es(symmetric);
+	EigenMatrixAdaptor Eo(other);
+	EigenMatrixAdaptor Eresult(result);
 
-	char r='R', l = 'L';
-	char u='U';
-	F77_CALL(dsymm)((symmOnLeft?&l:&r), &u, &(result->rows), &(result->cols),
-					&alpha, symmetric->data, &(symmetric->leading),
- 					other->data, &(other->leading),
-					&beta, result->data, &(result->leading));
-
-	if(!result->colMajor) omxToggleRowColumnMajor(result);
+	if (symmOnLeft) {
+		Eresult.derived() = Es.template selfadjointView<Eigen::Upper>() * Eo;
+	} else {
+		Eresult.derived() = Eo * Es.template selfadjointView<Eigen::Upper>();
+	}
 }
 
 static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs) {              // RHS += alpha*lhs  

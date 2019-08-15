@@ -264,7 +264,7 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 		
 		// Create Full observed cov prediction
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Hand prediction of full observed cov ..."); }
-		omxDSYMM(FALSE, 1.0, ose->P, ose->C, 0.0, ose->Y); // Y = C P
+		omxDSYMM(FALSE, ose->P, ose->C, ose->Y); // Y = C P
 		omxCopyMatrix(ose->S, ose->R); // S = R
 		omxDGEMM(FALSE, TRUE, 1.0, ose->Y, ose->C, 1.0, ose->S); // S = Y C^T + S THAT IS C P C^T + R
 		
@@ -472,7 +472,7 @@ void omxKalmanPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = A x + B u"); }
 	
 	/* P = A P A^T + Q */
-	omxDSYMM(FALSE, 1.0, P, A, 0.0, Z); // Z = A P
+	omxDSYMM(FALSE, P, A, Z); // Z = A P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Z, "....State Space: Z = A P"); }
 	omxCopyMatrix(P, Q); // P = Q
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = Q"); }
@@ -595,7 +595,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	
 	
 	/* S = C P C^T + R */
-	omxDSYMM(FALSE, 1.0, P, smallC, 0.0, smallY); // Y = C P
+	omxDSYMM(FALSE, P, smallC, smallY); // Y = C P
 	//omxCopyMatrix(S, smallR); // S = R
 	memcpy(smallS->data, smallR->data, smallR->rows * smallR->cols * sizeof(double)); // Less safe omxCopyMatrix that keeps smallS aliased to S.
 	omxDGEMM(FALSE, TRUE, 1.0, smallY, smallC, 1.0, smallS); // S = Y C^T + S THAT IS C P C^T + R
@@ -618,7 +618,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	
 	/* K = P C^T S^-1 */
 	/* Computed as K^T = S^-1 C P */
-	omxDSYMM(TRUE, 1.0, smallS, smallY, 0.0, smallK); // K = Y^T S THAT IS K = P C^T S^-1
+	omxDSYMM(TRUE, smallS, smallY, smallK); // K = Y^T S THAT IS K = P C^T S^-1
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K^T = S^-1 C P"); }
 	
 	/* x = x + K r */
