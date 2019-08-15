@@ -419,13 +419,6 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 	Eresult.derived() = alpha * (Emat.selfadjointView<Eigen::Upper>() * Evec).array() + beta;
 }
 
-template <typename T1, typename T2, typename T3>
-void Edsymv(double alpha, Eigen::MatrixBase<T1> &mat, Eigen::MatrixBase<T2> &vec,
-	    double beta, Eigen::MatrixBase<T3> &result)
-{
-	result.derived() = alpha * (mat.template selfadjointView<Eigen::Upper>() * vec).array() + beta;
-}
-
 static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* symmetric, 		// result <- alpha * A %*% B + beta * C
 				omxMatrix *other, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
 

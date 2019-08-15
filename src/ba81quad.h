@@ -238,8 +238,8 @@ void ba81NormalQuad::layer::calcDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen:
 	}
 	gramProduct(whereDiff.data(), whereDiff.size(), whereGram.data());
 
-	Eigen::Map< Eigen::VectorXd > dcol(&derivCoef.coeffRef(0,qx), derivCoef.rows());
-	Edsymv(1.0, icov, whereDiff, 0, dcol);
+	Eigen::Map< Eigen::VectorXd > dcol(&derivCoef.coeffRef(0,qx), icov.rows());
+	dcol = icov.template selfadjointView<Eigen::Lower>() * whereDiff;
 
 	Eigen::MatrixXd covGrad1(pDims, pDims);
 
