@@ -137,14 +137,12 @@ void ssMLFitState::compute(int want, FitContext *fc)
 			omxPrint(contRow, "contRow");
 			omxPrint(smallMeans, "smallMeans");
 		}
-		double minusoned = -1.0;
-		int onei = 1;
-		F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
+		omxDAXPY(-1.0, smallMeans, contRow);
 		
 		/* Calculate Row Likelihood */
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
 		omxDSYMV(1.0, smallCov, contRow, 0, RCX);
-		double Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei);
+		double Q = omxDDOT(contRow, RCX);
 		if (verbose >= 2) {
 			EigenMatrixAdaptor EsmallCov(smallCov);
 			EsmallCov.derived() = EsmallCov.selfadjointView<Eigen::Upper>();

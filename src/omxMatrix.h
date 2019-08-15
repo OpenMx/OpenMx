@@ -432,21 +432,18 @@ static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, omxMatrix* symmetr
 	}
 }
 
-static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs) {              // RHS += alpha*lhs  
-    // N.B.  Not fully tested.                                                              // Assumes common majority or vectordom.
-    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
-    int len = lhs->rows * lhs->cols;
-    int onei = 1;
-    F77_CALL(daxpy)(&len, &alpha, lhs->data, &onei, rhs->data, &onei);
-
+static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs)
+{
+	EigenVectorAdaptor El(lhs);
+	EigenVectorAdaptor Er(rhs);
+	Er += alpha * El;
 }
 
-static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              // returns dot product, as if they were vectors
-    // N.B.  Not fully tested.                                                  // Assumes common majority or vectordom.
-    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
-    int len = lhs->rows * lhs->cols;
-    int onei = 1;
-    return(F77_CALL(ddot)(&len, lhs->data, &onei, rhs->data, &onei));
+static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs)
+{
+	EigenVectorAdaptor El(lhs);
+	EigenVectorAdaptor Er(rhs);
+	return El.transpose() * Er;
 }
 
 void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
