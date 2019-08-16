@@ -26,7 +26,6 @@ struct ssMLFitState : omxFitFunction {
 	omxMatrix *smallRow;
 	omxMatrix *contRow;
 	omxMatrix *rowLikelihoods;
-	omxMatrix *RCX;
 	omxMatrix* otherRowwiseValues;
 	
 	virtual ~ssMLFitState();
@@ -141,8 +140,12 @@ void ssMLFitState::compute(int want, FitContext *fc)
 		
 		/* Calculate Row Likelihood */
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
-		omxDSYMV(1.0, smallCov, contRow, 0, RCX);
-		double Q = omxDDOT(contRow, RCX);
+		double Q;
+		{
+			EigenMatrixAdaptor EsmallCov(smallCov);
+			EigenVectorAdaptor EcontRow(contRow);
+			Q = EcontRow.transpose() * EsmallCov.selfadjointView<Eigen::Upper>() * EcontRow;
+		}
 		if (verbose >= 2) {
 			EigenMatrixAdaptor EsmallCov(smallCov);
 			EsmallCov.derived() = EsmallCov.selfadjointView<Eigen::Upper>();
@@ -179,7 +182,6 @@ ssMLFitState::~ssMLFitState()
 	omxFreeMatrix(state->smallRow);
 	omxFreeMatrix(state->contRow);
 	omxFreeMatrix(state->rowLikelihoods);
-	omxFreeMatrix(state->RCX);
 	omxFreeMatrix(state->otherRowwiseValues);
 }
 
@@ -216,5 +218,4 @@ void ssMLFitState::init()
 	int covCols = state->cov->cols;
 	state->smallRow = omxInitMatrix(1, covCols, TRUE, currentState);
 	state->contRow = omxInitMatrix(covCols, 1, TRUE, currentState);
-	state->RCX = omxInitMatrix(1, covCols, TRUE, currentState);
 }
