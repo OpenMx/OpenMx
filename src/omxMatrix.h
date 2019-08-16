@@ -31,8 +31,6 @@
 #define _OMXMATRIX_H_
 
 #include <R_ext/Arith.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 
 #include "omxDefines.h"
 #include <Eigen/Core>

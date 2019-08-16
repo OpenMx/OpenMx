@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include "omxDefines.h"
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>

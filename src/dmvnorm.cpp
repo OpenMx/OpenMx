@@ -1,6 +1,4 @@
 #include "omxDefines.h"
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include <Eigen/Core>
 #include "matrix.h"
 #include "glue.h"
