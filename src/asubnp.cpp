@@ -21,6 +21,13 @@
 // This optimization pass fails anyway so save time by not attempting it.
 #pragma GCC optimize ("no-var-tracking-assignments")
 
+#define DEBUG_Y_E 0
+template <typename T1>
+Eigen::MatrixXd QRdsolve(Eigen::MatrixBase<T1> &mainMat, Eigen::MatrixBase<T1> &RHSMat)
+{
+	return mainMat.fullPivHouseholderQr().solve(RHSMat);
+}
+
 struct CSOLNP {
 	
 	int flag, flag_NormgZ, minr_rec;
@@ -265,6 +272,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		else {
 			lambda_e.setZero(1, 1);
 		}
+		if (DEBUG_Y_E) mxLog("line 274 lambda_e %dx%d", lambda_e.rows(), lambda_e.cols());
 		
 		Eigen::RowVectorXd p_e;
 		
@@ -368,12 +376,14 @@ void CSOLNP::solnp(double *solPars, int verbose)
 				vscale_e << vscale_t2, onesMatrix2;
 				
 				lambda_e = resY;
+				if (DEBUG_Y_E) mxLog("line 378 lambda_e %dx%d", lambda_e.rows(), lambda_e.cols());
 				hessv_e = resHessv;
 				mu = resLambda;
 				subnp(p_e, lambda_e, ob_e, hessv_e, mu, vscale_e, subnp_ctrl, verbose);
 			}
 			
 			lambda_e = resY;
+			if (DEBUG_Y_E) mxLog("line 385 lambda_e %dx%d", lambda_e.rows(), lambda_e.cols());
 			hessv_e = resHessv;
 			mu = resLambda;
 			
@@ -638,8 +648,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 		// scale here is [tc] and dot multiplied by yy
 		//yy = vscale[ 2:(nc + 1) ] * yy / vscale[ 1 ]
 		
+		if (DEBUG_Y_E) mxLog("line 647 yy_e %dx%d", yy_e.rows(), yy_e.cols());
 		yy_e = vscale_e.block(0, 1, 1, nc).transpose().array() * yy_e.array();
+		if (DEBUG_Y_E) mxLog("line 649 yy_e %dx%d", yy_e.rows(), yy_e.cols());
 		yy_e = yy_e / vscale_e[0];
+		if (DEBUG_Y_E) mxLog("line 651 yy_e %dx%d", yy_e.rows(), yy_e.cols());
 	}
 	
 	// hessv [ (np+nineq) x (np+nineq) ]
@@ -865,7 +878,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				argum1_e.transposeInPlace();
 				Eigen::MatrixXd argum2_e;
 				argum2_e = cx_e.asDiagonal() * dx_e;
-				y_e = argum1_e.fullPivHouseholderQr().solve(argum2_e);
+				y_e = QRdsolve(argum1_e, argum2_e);
 				Eigen::MatrixXd cx_e_r;
 				cx_e_r = cx_e.transpose() - (a_e.transpose() * y_e);
 				dx_e = (cx_e_r.asDiagonal() * dx_e).asDiagonal() * dx_e;
@@ -1091,10 +1104,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				}
 				flag = 1;
 				p_e = p_e.cwiseProduct(vscale_e.block(0, neq+1, 1, nc+np-neq));
-				if (nc > 0){ y_e.resize(1, 1); y_e(0, 0) = 0;}
+				y_e.setZero();
 				hessv_e = hessv_e.cwiseQuotient(vscale_e.block(0, neq+1, 1, nc+np-neq).transpose() * vscale_e.block(0, neq+1, 1, nc+np-neq)) *vscale_e(0);
 				resP = p_e;
-				resY = y_e;
+				resY = y_e.transpose();
+				if (DEBUG_Y_E) mxLog("1110 resY %dx%d", resY.rows(), resY.cols());
 				resHessv = hessv_e;
 				resLambda = lambda;
 				resGrad = g_e;
@@ -1122,11 +1136,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				//y = qr.solve(t(cz) %*% t(a), yg)
 				Eigen::MatrixXd argum1_e;
 				argum1_e = cz_inv.transpose() * a_e.transpose();
-				Eigen::MatrixXd solution;
+				Eigen::MatrixXd solution = QRdsolve(argum1_e, yg_e);
 				
-				solution = argum1_e.fullPivHouseholderQr().solve(yg_e);
-				
-				y_e.resize(solution.cols(), solution.rows());
 				y_e = solution.transpose();
 				u_e = (cz_inv * (-1.0)) * (yg_e - (argum1_e * solution));
 				u_e.transposeInPlace();
@@ -1445,6 +1456,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 	
 	resP = p_e;
 	resY = y_e.block(0, 0, 1, yyRows).transpose();
+	if (DEBUG_Y_E) mxLog("1458 resY %dx%d", resY.rows(), resY.cols());
 	resHessv = hessv_e;
 	resLambda = lambdaValue;
 	resGrad = g_e;

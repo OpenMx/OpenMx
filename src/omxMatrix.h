@@ -414,7 +414,7 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 
 	EigenMatrixAdaptor Emat(mat);
 	EigenVectorAdaptor Evec(vec);
-	EigenMatrixAdaptor Eresult(result);
+	EigenVectorAdaptor Eresult(result);
 	
 	Eresult.derived() = alpha * (Emat.selfadjointView<Eigen::Upper>() * Evec).array() + beta;
 }
