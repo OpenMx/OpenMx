@@ -894,6 +894,7 @@ void omxStateSpaceExpectation::init()
 	if(OMX_DEBUG) { mxLog("Processing first data row for y."); }
 	SSMexp->y = omxInitMatrix(ny, 1, TRUE, currentState);
 	for(int i = 0; i < ny; i++) {
+		data->assertColumnIsData(i);
 		omxSetMatrixElement(SSMexp->y, i, 0, omxDoubleDataElement(data, 0, i));
 	}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(SSMexp->y, "....State Space: y"); }
