@@ -19,8 +19,6 @@
 
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 
 typedef struct omxAlgebra omxAlgebra;
 

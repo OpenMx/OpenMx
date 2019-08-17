@@ -31,8 +31,6 @@
 #define _OMXMATRIX_H_
 
 #include <R_ext/Arith.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 
 #include "omxDefines.h"
 #include <Eigen/Core>
@@ -403,9 +401,6 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 
 static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix* result) {       // only A is symmetric, and B is a vector
-	char u='U';
-    int onei = 1;
-
 	if(OMX_DEBUG_MATRIX) {
 		int nVecEl = vec->rows * vec->cols;
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
@@ -415,40 +410,38 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 		}
 	}
 
-    F77_CALL(dsymv)(&u, &(mat->cols), &alpha, mat->data, &(mat->leading), 
-                    vec->data, &onei, &beta, result->data, &onei);
-
-    // if(!result->colMajor) omxToggleRowColumnMajor(result);
+	EigenMatrixAdaptor Emat(mat);
+	EigenVectorAdaptor Evec(vec);
+	EigenVectorAdaptor Eresult(result);
+	
+	Eresult.derived() = alpha * (Emat.selfadjointView<Eigen::Upper>() * Evec).array() + beta;
 }
 
-static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* symmetric, 		// result <- alpha * A %*% B + beta * C
-				omxMatrix *other, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
+static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, omxMatrix* symmetric,
+			       omxMatrix *other, omxMatrix* result) {
+	EigenMatrixAdaptor Es(symmetric);
+	EigenMatrixAdaptor Eo(other);
+	EigenMatrixAdaptor Eresult(result);
 
-	char r='R', l = 'L';
-	char u='U';
-	F77_CALL(dsymm)((symmOnLeft?&l:&r), &u, &(result->rows), &(result->cols),
-					&alpha, symmetric->data, &(symmetric->leading),
- 					other->data, &(other->leading),
-					&beta, result->data, &(result->leading));
-
-	if(!result->colMajor) omxToggleRowColumnMajor(result);
+	if (symmOnLeft) {
+		Eresult.derived() = Es.template selfadjointView<Eigen::Upper>() * Eo;
+	} else {
+		Eresult.derived() = Eo * Es.template selfadjointView<Eigen::Upper>();
+	}
 }
 
-static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs) {              // RHS += alpha*lhs  
-    // N.B.  Not fully tested.                                                              // Assumes common majority or vectordom.
-    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
-    int len = lhs->rows * lhs->cols;
-    int onei = 1;
-    F77_CALL(daxpy)(&len, &alpha, lhs->data, &onei, rhs->data, &onei);
-
+static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs)
+{
+	EigenVectorAdaptor El(lhs);
+	EigenVectorAdaptor Er(rhs);
+	Er += alpha * El;
 }
 
-static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              // returns dot product, as if they were vectors
-    // N.B.  Not fully tested.                                                  // Assumes common majority or vectordom.
-    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
-    int len = lhs->rows * lhs->cols;
-    int onei = 1;
-    return(F77_CALL(ddot)(&len, lhs->data, &onei, rhs->data, &onei));
+static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs)
+{
+	EigenVectorAdaptor El(lhs);
+	EigenVectorAdaptor Er(rhs);
+	return El.transpose() * Er;
 }
 
 void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );

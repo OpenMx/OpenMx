@@ -32,8 +32,6 @@
 #include <functional>
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"

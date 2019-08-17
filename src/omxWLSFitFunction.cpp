@@ -96,7 +96,6 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	if (!observedFlattened) return;
 	oFlat		= observedFlattened;
 	eFlat		= owo->expectedFlattened;
-	int onei	= 1;
 	
 	/* Recompute and recopy */
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
@@ -122,7 +121,7 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 		omxTransposeMatrix(P);
 	}
 	
-	sum = F77_CALL(ddot)(&(P->cols), P->data, &onei, B->data, &onei);
+	sum = omxDDOT(P, B);
 	
 	oo->matrix->data[0] = sum;
 	

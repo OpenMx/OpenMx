@@ -17,6 +17,8 @@
 #options(error = utils::recover)
 #library(mvtnorm)
 library(OpenMx)
+library(testthat)
+context("dmvnorm")
 
 #set.seed(1)
 

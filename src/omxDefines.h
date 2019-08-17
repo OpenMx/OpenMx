@@ -426,10 +426,9 @@ class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
 	template<typename InputType>
 	explicit SimpCholesky(Eigen::EigenBase<InputType>& matrix) : Base(matrix) {};
 
-	// actually 2.0*logDet because LDLT doesn't take the sqrt of vectorD
 	double log_determinant() const {
 		typename Base::Scalar detL = Base::vectorD().array().log().sum();
-		return detL;
+		return detL * 0.5;
 	}
 
 	void refreshInverse()

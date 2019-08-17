@@ -189,34 +189,6 @@ template <typename T1> void AsymTool<T1>::filter()
 }
 
 /*
-template<typename _MatrixType, int _UpLo = Eigen::Lower>
-class SimpCholesky : public Eigen::SimplicialLDLT<_MatrixType, _UpLo> {
- private:
-	Eigen::MatrixXd ident;
-	Eigen::MatrixXd inverse;
-
- public:
-	typedef Eigen::SimplicialLDLT<_MatrixType, _UpLo> Base;
-	
-	double log_determinant() const {
-		typename Base::Scalar detL = Base::vectorD().array().log().sum();
-		return detL;
-	}
-
-	void refreshInverse()
-	{
-		if (ident.rows() != Base::m_matrix.rows()) {
-			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
-		}
-
-		inverse = Base::solve(ident);
-	};
-
- 	const Eigen::MatrixXd &getInverse() const { return inverse; };
-};
-*/
-
-/*
 	// Based on lme4CholmodDecomposition.h from lme4
 	template<typename _MatrixType, int _UpLo = Eigen::Lower>
 	class Cholmod : public Eigen::CholmodDecomposition<_MatrixType, _UpLo> {

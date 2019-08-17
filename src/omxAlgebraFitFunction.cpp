@@ -16,7 +16,6 @@
 
 #include "omxFitFunction.h"
 #include "matrix.h"
-#include "omxBuffer.h"
 #include <algorithm>
 #include "Compute.h"
 #include "EnableWarnings.h"

@@ -26,7 +26,6 @@ struct ssMLFitState : omxFitFunction {
 	omxMatrix *smallRow;
 	omxMatrix *contRow;
 	omxMatrix *rowLikelihoods;
-	omxMatrix *RCX;
 	omxMatrix* otherRowwiseValues;
 	
 	virtual ~ssMLFitState();
@@ -137,17 +136,16 @@ void ssMLFitState::compute(int want, FitContext *fc)
 			omxPrint(contRow, "contRow");
 			omxPrint(smallMeans, "smallMeans");
 		}
-		double minusoned = -1.0;
-		int onei = 1;
-		F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
+		omxDAXPY(-1.0, smallMeans, contRow);
 		
 		/* Calculate Row Likelihood */
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
-		double zerod = 0.0;
-		char u = 'U';
-		double oned = 1.0;
-		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
-		double Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei);
+		double Q;
+		{
+			EigenMatrixAdaptor EsmallCov(smallCov);
+			EigenVectorAdaptor EcontRow(contRow);
+			Q = EcontRow.transpose() * EsmallCov.selfadjointView<Eigen::Upper>() * EcontRow;
+		}
 		if (verbose >= 2) {
 			EigenMatrixAdaptor EsmallCov(smallCov);
 			EsmallCov.derived() = EsmallCov.selfadjointView<Eigen::Upper>();
@@ -184,7 +182,6 @@ ssMLFitState::~ssMLFitState()
 	omxFreeMatrix(state->smallRow);
 	omxFreeMatrix(state->contRow);
 	omxFreeMatrix(state->rowLikelihoods);
-	omxFreeMatrix(state->RCX);
 	omxFreeMatrix(state->otherRowwiseValues);
 }
 
@@ -221,5 +218,4 @@ void ssMLFitState::init()
 	int covCols = state->cov->cols;
 	state->smallRow = omxInitMatrix(1, covCols, TRUE, currentState);
 	state->contRow = omxInitMatrix(covCols, 1, TRUE, currentState);
-	state->RCX = omxInitMatrix(1, covCols, TRUE, currentState);
 }

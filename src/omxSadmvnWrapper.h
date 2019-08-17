@@ -568,7 +568,7 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 		loc[0] = xq[dx];
 		loc[1] = xr[dx];
 		double dist = loc.transpose() * covDecomp.getInverse() * loc;
-		density[dx] = exp(-0.5 * (M_LN_2PI * 2 + covDecomp.log_determinant() + dist)) / alpha;
+		density[dx] = exp(-(M_LN_2PI + covDecomp.log_determinant() + dist * 0.5)) / alpha;
 	}
 
 	if (sigma.rows() == 2) return true;

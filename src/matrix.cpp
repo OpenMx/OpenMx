@@ -20,112 +20,23 @@ using std::endl;
 Matrix::Matrix(omxMatrix *mat)
 : rows(mat->rows), cols(mat->cols), t(mat->data) {}
 
-void InplaceForcePosSemiDef(Matrix mat, double *origEv, double *condnum)
-{
-    {
-        // Variances must be positive so the diagonal must be
-        // non-zero. If there are no covariances then dsyevr
-        // triggers a valgrind error. It's probably harmless
-        // but annoying. This check avoids it.
-        Eigen::Map< Eigen::ArrayXXd > tmp(mat.t, mat.rows, mat.cols);
-        if ((tmp != 0).count() == mat.rows) return;
-    }
-    
-    const double tooSmallEV = 1e-6;
-    double *target = mat.t;
-    int numParams = mat.rows;
-    if (mat.rows != mat.cols) mxThrow("InplaceForcePosDef must be square");
-    
-    omxBuffer<double> hessWork(numParams * numParams);
-    memcpy(hessWork.data(), target, sizeof(double) * numParams * numParams);
-    
-    char jobz = 'V';
-    char range = 'A';
-    char uplo = 'U';
-    double abstol = 0;
-    int m;
-    omxBuffer<double> w(numParams);
-    omxBuffer<double> z(numParams * numParams);
-    double optWork;
-    int optIwork;
-    int lwork = -1;
-    int liwork = -1;
-    int info;
-    double realIgn = 0;
-    int intIgn = 0;
-    omxBuffer<int> isuppz(numParams * 2);
-    
-    F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-                     &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-                     z.data(), &numParams, isuppz.data(), &optWork, &lwork, &optIwork, &liwork, &info);
-    
-    lwork = optWork;
-    omxBuffer<double> work(lwork);
-    liwork = optIwork;
-    omxBuffer<int> iwork(liwork);
-    F77_CALL(dsyevr)(&jobz, &range, &uplo, &numParams, hessWork.data(),
-                     &numParams, &realIgn, &realIgn, &intIgn, &intIgn, &abstol, &m, w.data(),
-                     z.data(), &numParams, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork, &info);
-    if (info < 0) {
-        mxThrow("dsyevr %d", info);
-    } else if (info) {
-        return;
-    }
-    
-    std::vector<double> evalDiag(numParams * numParams);
-    double minEV = 0;
-    double maxEV = 0;
-    if (origEv) memcpy(origEv, w.data(), sizeof(double) * numParams);
-    for (int px=0; px < numParams; ++px) {
-        // record how many eigenvalues are zeroed TODO
-        if (w[px] < tooSmallEV) {
-            evalDiag[px * numParams + px] = tooSmallEV; // exactly zero can still fail
-            continue;
-        }
-        evalDiag[px * numParams + px] = w[px];
-        if (w[px] > 0) {
-            if (minEV == 0) minEV = w[px];
-            else minEV = std::min(minEV, w[px]);
-            maxEV = std::max(maxEV, w[px]);
-        }
-    }
-    
-    //fc->infoDefinite = true;  actually we don't know!
-    if (condnum) *condnum = maxEV/minEV;
-    
-    Matrix evMat(z.data(), numParams, numParams);
-    Matrix edMat(evalDiag.data(), numParams, numParams);
-    omxBuffer<double> prod1(numParams * numParams);
-    Matrix p1Mat(prod1.data(), numParams, numParams);
-    SymMatrixMultiply('R', 'U', 1.0, 0, edMat, evMat, p1Mat);
-    char transa = 'N';
-    char transb = 'T';
-    double alpha = 1.0;
-    double beta = 0;
-    F77_CALL(dgemm)(&transa, &transb, &numParams, &numParams, &numParams, &alpha,
-                    prod1.data(), &numParams, z.data(), &numParams, &beta, target, &numParams);
-}
-
 int InvertSymmetricIndef(Matrix mat, const char uplo)
 {
-    if (mat.rows != mat.cols) mxThrow("Not square");
-    int info;
-    omxBuffer<int> ipiv(mat.rows);
-    double temp;
-    int lwork = -1;
-    F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), &temp, &lwork, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    if (info > 0) return info;
-    
-    if (lwork < mat.rows) lwork = mat.rows; // for dsytri
-    omxBuffer<double> work(lwork);
-    F77_CALL(dsytrf)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &lwork, &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    if (info > 0) return info;
-    
-    F77_CALL(dsytri)(&uplo, &mat.rows, mat.t, &mat.rows, ipiv.data(), work.data(), &info);
-    if (info < 0) mxThrow("Arg %d is invalid", -info);
-    return info;
+	// Not as efficient as dsytrf/dsytri, but we generally
+	// use this only when InvertSymmetricPosDef fails or
+	// in non-performance critical paths.
+	Eigen::Map< Eigen::MatrixXd > Emat(mat.t, mat.rows, mat.cols);
+	if (uplo == 'L') {
+		Emat.derived() = Emat.selfadjointView<Eigen::Lower>();
+	} else if (uplo == 'U') {
+		Emat.derived() = Emat.selfadjointView<Eigen::Upper>();
+	} else {
+		mxThrow("uplo='%c'", uplo);
+	}
+	Eigen::FullPivLU< Eigen::MatrixXd > lu(Emat);
+	if (lu.rank() < mat.rows) return -1;
+	Emat.derived() = lu.inverse();
+	return 0;
 }
 
 void MeanSymmetric(Matrix mat)
@@ -144,51 +55,34 @@ void MeanSymmetric(Matrix mat)
     }
 }
 
-void SymMatrixMultiply(char side, char uplo, double alpha, double beta,
-                       Matrix amat, Matrix bmat, Matrix cmat)
+void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat)
 {
-    if (amat.rows != amat.cols) mxThrow("Not conformable");
-    if (bmat.rows != cmat.rows || bmat.cols != cmat.cols) mxThrow("Not conformable");
-    int lda;
+	using Eigen::Map;
+	using Eigen::MatrixXd;
+	Map< MatrixXd > Ea(amat.t, amat.rows, amat.cols);
+	Map< MatrixXd > Eb(bmat.t, bmat.rows, bmat.cols);
+	Map< MatrixXd > Ec(cmat.t, cmat.rows, cmat.cols);
+
     if (side == 'R') {
-        if (amat.cols != cmat.rows) mxThrow("Not conformable");
-        lda = cmat.cols;
+	Ec.derived() = Eb * Ea.selfadjointView<Eigen::Upper>();
     } else if (side == 'L') {
-        if (amat.cols != cmat.cols) mxThrow("Not conformable");
-        lda = cmat.rows;
+	Ec.derived() = Ea.selfadjointView<Eigen::Upper>() * Eb;
     } else {
         mxThrow("Side of %c is invalid", side);
     }
-    F77_CALL(dsymm)(&side, &uplo, &cmat.rows, &cmat.cols,
-                    &alpha, amat.t, &lda, bmat.t, &bmat.rows,
-                    &beta, cmat.t, &cmat.rows);
 }
 
 int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
 {
-    if (mat1.rows != mat1.cols ||
-        mat2.rows != mat2.cols ||
-        mat1.rows != mat2.rows) mxThrow("Not conformable");
-    const int dim = mat1.rows;
+	Eigen::Map< Eigen::MatrixXd > Emat1(mat1.t, mat1.rows, mat1.cols);
+	Eigen::Map< Eigen::MatrixXd > Emat2(mat2.t, mat2.rows, mat2.cols);
+	Eigen::FullPivLU< Eigen::MatrixXd > lu(Emat1);
+	if (lu.rank() < mat1.rows) return -1;
+
+	if (identity) Emat2.setIdentity();
+	Emat2 = lu.solve(Emat2);
     
-    omxBuffer<double> pad(dim * dim);
-    memcpy(pad.data(), mat1.t, sizeof(double) * dim * dim);
-    
-    if (identity) {
-        for (int rx=0; rx < dim; rx++) {
-            for (int cx=0; cx < dim; cx++) {
-                mat2.t[rx * dim + cx] = rx==cx? 1 : 0;
-            }
-        }
-    }
-    
-    std::vector<int> ipiv(dim);
-    int info;
-    F77_CALL(dgesv)(&dim, &dim, pad.data(), &dim, ipiv.data(), mat2.t, &dim, &info);
-    if (info < 0) {
-        mxThrow("Arg %d is invalid", -info);
-    }
-    return info;
+	return 0;
 }
 
 int InvertSymmetricPosDef(Matrix mat, char uplo)

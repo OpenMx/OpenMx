@@ -21,7 +21,6 @@
 #include "glue.h"
 #include <libifa-rpf.h>
 #include "dmvnorm.h"
-#include "omxBuffer.h"
 #include "matrix.h"
 #include "EnableWarnings.h"
 

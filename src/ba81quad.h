@@ -230,48 +230,34 @@ void ba81NormalQuad::layer::calcDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen:
 		   Eigen::MatrixBase<T3> &icov, Eigen::MatrixBase<T4> &where, int qx)
 {
 	const int pDims = primaryDims;
-	const char R='R';
-	const char L='L';
-	const char U='U';
-	const double alpha = 1;
-	const double beta = 0;
-	const int one = 1;
 
-	std::vector<double> whereDiff(pDims);
+	Eigen::VectorXd whereDiff(pDims);
 	std::vector<double> whereGram(triangleLoc1(pDims));
 	for (int d1=0; d1 < pDims; ++d1) {
 		whereDiff[d1] = where[d1] - meanVec[d1];
 	}
 	gramProduct(whereDiff.data(), whereDiff.size(), whereGram.data());
 
-	F77_CALL(dsymv)(&U, &pDims, &alpha, icov.derived().data(), &pDims, whereDiff.data(), &one,
-			&beta, &derivCoef.coeffRef(0,qx), &one);
+	Eigen::Map< Eigen::VectorXd > dcol(&derivCoef.coeffRef(0,qx), icov.rows());
+	dcol = icov.template selfadjointView<Eigen::Lower>() * whereDiff;
 
-	std::vector<double> covGrad1(pDims * pDims);
-	std::vector<double> covGrad2(pDims * pDims);
+	Eigen::MatrixXd covGrad1(pDims, pDims);
 
 	int cx=0;
 	for (int d1=0; d1 < pDims; ++d1) {
 		for (int d2=0; d2 <= d1; ++d2) {
-			covGrad1[d2 * pDims + d1] = cov(d2,d1) - whereGram[cx];
+			covGrad1(d1, d2) = cov(d2,d1) - whereGram[cx];
 			++cx;
 		}
 	}
 
-	F77_CALL(dsymm)(&R, &L, &pDims, &pDims, &alpha, covGrad1.data(), &pDims, icov.derived().data(),
-			&pDims, &beta, covGrad2.data(), &pDims);
-	F77_CALL(dsymm)(&R, &L, &pDims, &pDims, &alpha, icov.derived().data(), &pDims, covGrad2.data(),
-			&pDims, &beta, covGrad1.data(), &pDims);
-
-	for (int d1=0; d1 < pDims; ++d1) {
-		covGrad1[d1 * pDims + d1] *= 0.5;
-	}
+	covGrad1 = icov * covGrad1.template selfadjointView<Eigen::Lower>() * icov.template selfadjointView<Eigen::Lower>();
+	covGrad1.diagonal() *= 0.5;
 
 	cx = pDims;
 	for (int d1=0; d1 < pDims; ++d1) {
-		int cell = d1 * pDims;
 		for (int d2=0; d2 <= d1; ++d2) {
-			derivCoef(cx,qx) = -covGrad1[cell + d2];
+			derivCoef(cx,qx) = -covGrad1(d2, d1);
 			++cx;
 		}
 	}

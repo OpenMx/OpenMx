@@ -31,8 +31,6 @@
 #include "omxDefines.h"
 
 #include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include <sys/types.h>
 
 #include <time.h>
