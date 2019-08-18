@@ -11,7 +11,6 @@ using std::endl;
 #include <algorithm>
 #include <iterator>
 #include <limits>
-#include "omxBuffer.h"
 #include "matrix.h"
 #include "omxMatrix.h"
 #include <Eigen/LU>

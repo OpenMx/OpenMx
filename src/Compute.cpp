@@ -28,7 +28,6 @@
 #include "omxExportBackendState.h"
 #include "omxRFitFunction.h"
 #include "matrix.h"
-#include "omxBuffer.h"
 #include "omxState.h"
 #include "omxData.h"
 #include <Eigen/Cholesky>
@@ -1291,7 +1290,7 @@ void FitContext::postInfo()
 	switch (infoMethod) {
 	case INFO_METHOD_SANDWICH:{
 		// move into FCDeriv TODO
-		omxBuffer<double> work(numParam * numParam);
+		std::vector<double> work(numParam * numParam);
 		Matrix amat(infoA, numParam, numParam);
 		InvertSymmetricIndef(amat, 'U');
 		_fixSymmetry("InfoB", infoB, numParam, false);
@@ -3159,7 +3158,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 
 			paramConverged = true;
 			int iter = 0;
-			omxBuffer<double> coefHist(agileMaxIter);
+			std::vector<double> coefHist(agileMaxIter);
 			while (++iter <= agileMaxIter &&
 			       !(noiseTarget/noiseTolerance < diff && diff < noiseTarget*noiseTolerance)) {
 				coefHist[iter-1] = diff * midOffset * midOffset;
@@ -3267,7 +3266,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 
 	Matrix rijMat(rij.data(), freeVars, freeVars);
 	Matrix hessMat(hess, freeVars, freeVars);
-	omxBuffer<double> infoBuf(freeVars * freeVars);
+	std::vector<double> infoBuf(freeVars * freeVars);
 	Matrix infoMat(infoBuf.data(), freeVars, freeVars);
 
 	SymMatrixMultiply('L', hessMat, rijMat, infoMat);  // result not symmetric!

@@ -2,7 +2,7 @@ Compute.o: Makevars Compute.cpp glue.h omxState.h omxDefines.h \
  omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
  omxFitFunction.h Compute.h \
- omxExportBackendState.h omxRFitFunction.h matrix.h omxBuffer.h \
+ omxExportBackendState.h omxRFitFunction.h matrix.h  \
  finiteDifferences.h minicsv.h include/genfile/bgen/View.hpp \
  include/genfile/bgen/bgen.hpp include/genfile/zlib.hpp \
  include/zstd-1.1.0/zstd.h include/genfile/types.hpp \
@@ -83,7 +83,7 @@ db_wrapper.o: Makevars db_wrapper.cpp include/db/Connection.hpp \
  include/db/SQLStatement.hpp include/db/SQLite3Statement.hpp \
  include/db/SQLite3Error.hpp
 dmvnorm.o: Makevars dmvnorm.cpp omxDefines.h \
- omxBuffer.h matrix.h glue.h omxState.h omxMatrix.h \
+  matrix.h glue.h omxState.h omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h omxData.h \
  omxFitFunction.h EnableWarnings.h
 fitMultigroup.o: Makevars fitMultigroup.cpp omxDefines.h \
@@ -102,7 +102,7 @@ glue.o: Makevars glue.cpp omxDefines.h \
 matlogexp.o: Makevars matlogexp.cpp \
  
 matrix.o: Makevars matrix.cpp omxDefines.h \
- omxBuffer.h matrix.h  \
+  matrix.h  \
   omxMatrix.h \
  EnableWarnings.h
 nanotimer.o: Makevars nanotimer.cpp nanotimer_gettime.h
@@ -115,7 +115,7 @@ omxAlgebraFitFunction.o: Makevars omxAlgebraFitFunction.cpp omxFitFunction.h \
  omxDefines.h  \
  omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxExpectation.h \
- omxData.h matrix.h omxBuffer.h Compute.h \
+ omxData.h matrix.h  Compute.h \
  glue.h EnableWarnings.h
 omxData.o: Makevars omxData.cpp omxData.h omxDefines.h \
  omxAlgebra.h omxSymbolTable.h omxMatrix.h \
@@ -133,7 +133,7 @@ omxExpectationBA81.o: Makevars omxExpectationBA81.cpp  \
  omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxFitFunction.h \
  omxData.h ba81quad.h glue.h \
- dmvnorm.h omxBuffer.h matrix.h EnableWarnings.h
+ dmvnorm.h  matrix.h EnableWarnings.h
 omxExportBackendState.o: Makevars omxExportBackendState.cpp omxDefines.h \
  omxState.h  \
   omxMatrix.h \
@@ -157,7 +157,7 @@ omxFitFunctionBA81.o: Makevars omxFitFunctionBA81.cpp omxFitFunction.h \
  omxMatrix.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxExpectation.h \
  omxData.h omxExpectationBA81.h ba81quad.h glue.h \
- dmvnorm.h matrix.h omxBuffer.h Compute.h \
+ dmvnorm.h matrix.h  Compute.h \
  EnableWarnings.h
 omxGREMLExpectation.o: Makevars omxGREMLExpectation.cpp omxExpectation.h \
  omxDefines.h  \
