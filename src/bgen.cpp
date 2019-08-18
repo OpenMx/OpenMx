@@ -725,8 +725,8 @@ namespace genfile {
 			return m_context.number_of_samples ;
 		}
 
-		void View::set_query( IndexQuery::UniquePtr query ) {
-			m_index_query = query ;
+		void View::set_query( IndexQuery::UniquePtr &query ) {
+			m_index_query = std::move(query) ;
 			if( m_index_query->number_of_variants() > 0 ) {
 				m_stream->seekg( m_index_query->locate_variant(0).first ) ;
 			}

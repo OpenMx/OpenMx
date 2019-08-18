@@ -21,8 +21,8 @@ namespace db {
 		// The only supported operation is getting a query representing some SQL.
 	{
 	public:
-		typedef std::auto_ptr< Connection > UniquePtr ;
-		typedef std::auto_ptr< SQLStatement > StatementPtr ;
+		typedef std::unique_ptr< Connection > UniquePtr ;
+		typedef std::unique_ptr< SQLStatement > StatementPtr ;
 		
 		static UniquePtr create( std::string const& filename, std::string const& mode = "rw" ) ;
 		

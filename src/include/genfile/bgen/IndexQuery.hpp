@@ -20,8 +20,8 @@ namespace genfile {
 		// Base class representing a query against a BGEN file index
 		struct IndexQuery {
 		public:
-			// We use std::auto_ptr to avoid using C++11 features here.
-			typedef std::auto_ptr< IndexQuery > UniquePtr ;
+			// We use std::unique_ptr to avoid using C++11 features here.
+			typedef std::unique_ptr< IndexQuery > UniquePtr ;
 			typedef uint8_t byte_t ;
 
 			static UniquePtr create( std::string const& filename, std::string const& table_name = "Variant" ) ;
@@ -116,8 +116,8 @@ namespace genfile {
 		// Class for index queries implemented using a sqlite file, a la bgenix.
 		struct SqliteIndexQuery: public IndexQuery {
 		public:
-			// We use auto_ptr to avoid using C++11 features here.
-			typedef std::auto_ptr< SqliteIndexQuery > UniquePtr ;
+			// We use unique_ptr to avoid using C++11 features here.
+			typedef std::unique_ptr< SqliteIndexQuery > UniquePtr ;
 
 		public:
 			// Construct given an index file and an index table name
