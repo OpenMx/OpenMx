@@ -610,7 +610,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		fake$M$values <- obsStats$means
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
-		if (!missing(nrowsProportion)) nrows <- round(nrow(model) * nrowsProportion)
+		if (!is.null(nrowsProportion)) nrows <- round(nrow(model) * nrowsProportion)
 		if(is.null(nrows)) nrows <- nrow(model)
 		return(mxGenerateData(fake, nrows, returnModel, empirical=empirical))
 	}
@@ -640,14 +640,14 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 				origRows <- model[[subname]]@data@numObs
 			}
 		}
-		if (!is.null(nrowsProportion)) {
-		  if (is.null(origRows)) {
-		    stop(paste("nrowsProportion provided but there is no data in model", omxQuotes(subname)))
-		  } else {
+		if (is.null(nrows)) {
+		  if (is.null(origRows)) stop("You must specify nrows")
+		  if (!is.null(nrowsProportion)) {
 		    nrows <- round(origRows * nrowsProportion)
+		  } else {
+		    nrows <- origRows
 		  }
 		}
-		if (is.null(nrows)) stop("You must specify nrows")
 		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:", nrows))
 		data <- genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical)
 		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
