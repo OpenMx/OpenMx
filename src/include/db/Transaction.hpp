@@ -12,7 +12,7 @@
 namespace db {
 	class Transaction {
 	public:
-		typedef std::auto_ptr< Transaction > UniquePtr ;
+		typedef std::unique_ptr< Transaction > UniquePtr ;
 		virtual ~Transaction() {}
 	} ;
 }

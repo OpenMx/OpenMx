@@ -27,7 +27,7 @@ namespace db {
 	class SQLStatement
 	{
 	public:
-		typedef std::auto_ptr< SQLStatement > UniquePtr ;
+		typedef std::unique_ptr< SQLStatement > UniquePtr ;
 	public:
 		virtual ~SQLStatement() ;
 		

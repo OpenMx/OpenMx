@@ -18,9 +18,9 @@ namespace genfile {
 		// Base class representing a query against a BGEN file or index
 		struct Query {
 		public:
-			// We use std::auto_ptr to avoid using C++11 features here.
+			// We use std::unique_ptr to avoid using C++11 features here.
 			typedef uint8_t byte_t ;
-			typedef std::auto_ptr< Query > UniquePtr ;
+			typedef std::unique_ptr< Query > UniquePtr ;
 			
 			static UniquePtr create() ;
 
