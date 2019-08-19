@@ -594,10 +594,13 @@ extractObservedData <- function(model) {
 }
 
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
-			   ..., .backend=TRUE, subname=NULL, empirical=FALSE) {
+			   ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxGenerateData does not accept values for the '...' argument")
+	}
+	if (!is.null(nrows) && !is.null(nrowsProportion)) {
+	  stop("You cannot specify both nrows and nrowsProportion")
 	}
 	if (is(model, 'data.frame')) {
 		fake <- omxAugmentDataWithWLSSummary(mxData(model,'raw'), "ULS", "marginals",
@@ -607,6 +610,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		fake$M$values <- obsStats$means
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
+		if (!missing(nrowsProportion)) nrows <- round(nrow(model) * nrowsProportion)
 		if(is.null(nrows)) nrows <- nrow(model)
 		return(mxGenerateData(fake, nrows, returnModel, empirical=empirical))
 	}
@@ -616,7 +620,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		for (s1 in todo) {
 		  model <- mxModel(model, mxGenerateData(model, returnModel=TRUE, nrows=nrows,
 							 use.miss=use.miss, .backend=.backend, subname=s1,
-							 empirical=empirical))
+							 empirical=empirical, nrowsProportion=nrowsProportion))
 		}
 		if (!returnModel) {
 			return(extractObservedData(model))
@@ -627,20 +631,28 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	fellner <- is(model[[subname]]$expectation, "MxExpectationRAM") && length(model[[subname]]$expectation$between);
 	if (!fellner) {
 		origData <- NULL
+		origRows <- NULL
 		if (!is.null(model[[subname]]@data)) {
 			if (model[[subname]]@data@type == 'raw') {
 				origData <- model[[subname]]@data@observed
-				if (length(nrows)==0) nrows <- nrow(origData)
+				origRows <- nrow(origData)
 			} else if (model[[subname]]@data@type %in% c('cov','cor')) {
-				if (length(nrows)==0) nrows <- model[[subname]]@data@numObs
+				origRows <- model[[subname]]@data@numObs
 			}
+		}
+		if (!is.null(nrowsProportion)) {
+		  if (is.null(origRows)) {
+		    stop(paste("nrowsProportion provided but there is no data in model", omxQuotes(subname)))
+		  } else {
+		    nrows <- round(origRows * nrowsProportion)
+		  }
 		}
 		if (is.null(nrows)) stop("You must specify nrows")
 		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:", nrows))
 		data <- genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical)
 		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
 			del <- is.na(origData[,colnames(data),drop=FALSE])
-			if (nrows != nrow(origData)) {
+			if (nrows != origRows) {
 				del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),,drop=FALSE]
 			}
 			data[del] <- NA
@@ -654,7 +666,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if (!use.miss) {
 			stop("use.miss=FALSE is not implemented for relational models")
 		}
-		if (length(nrows)) {
+		if (length(nrows) || length(nrowsProportion)) {
 			stop("Specification of the number of rows is not supported for relational models")
 		}
 		generateRelationalData(model, returnModel, .backend, subname, empirical)

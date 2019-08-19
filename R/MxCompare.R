@@ -635,19 +635,7 @@ mxParametricBootstrap <- function(nullModel, labels,
   ret
 }
 
-meanSampleSize <- function(model, default=100L) {
-    sizes <- sapply(extractData(model), function(mxd) {
-        if (mxd@type == 'raw') {
-            nrow(mxd@observed)
-        } else {
-            mxd@numObs
-        }
-    })
-    if (length(sizes) == 0) sizes <- default
-    mean(sizes)
-}
-
-fitPowerModel <- function(rx, result, isN) {
+fitPowerModel <- function(rx, result) {
   # rx is which(is.na(result$reject))[1] - 1L
   result <- result[!is.na(result$x),]
   algRle <- rle(result$alg)
@@ -666,12 +654,8 @@ fitPowerModel <- function(rx, result, isN) {
     curX <- mean(result$x[from:nrow(result)]) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
     alg <- '1p'
   }
-  if (isN) {
-    curX <- round(max(5,curX))
-  } else {
     # Can only consider one-sided hypotheses
-    if (sign(curX) != sign(result[1,'x'])) curX <- 0
-  }
+  if (sign(curX) != sign(result[1,'x'])) curX <- 0
   list(curX=curX, m1=m1, alg=alg)
 }
 
@@ -732,8 +716,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 	    stop(paste(falseModel$name, "measured in terms of", falseModel$output[['fitUnits']],
 		       "instead of -2lnL"))
     }
-    avgNcp <- (falseModel$output$Minus2LogLikelihood -
-	       trueModel$output$Minus2LogLikelihood)/meanSampleSize(trueModel)
+    avgNcp <- falseModel$output$Minus2LogLikelihood - trueModel$output$Minus2LogLikelihood
     if (avgNcp < 0) stop("falseModel fit better than trueModel?")
     if (avgNcp == 0.0) stop("falseModel and trueModel are identical?")
     # is diffdf>1 ever a good approx? TODO
@@ -776,9 +759,8 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 		       statusTrue=as.statusCode(NA), statusFalse=as.statusCode(NA))
   if (is.null(n)) {
     nullInterestValue <- 0
-    curX <- meanSampleSize(trueModel)
+    curX <- 1.0
   } else {
-    origSampleSize <- meanSampleSize(trueModel)
     par <- omxGetParameters(falseModel, free=FALSE, labels=interest)
     if (!(interest %in% names(par))) {
       stop(paste("Cannot find", omxQuotes(interest),
@@ -811,7 +793,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
         toCopy <- min(probes, nrow(oldProbes))
         result[1:toCopy,] <- oldProbes[1:toCopy,]
         nextTrial <- which(is.na(result$reject))[1]
-	pm <- fitPowerModel(nextTrial-1L, result, is.null(n))
+	pm <- fitPowerModel(ifelse(!is.na(nextTrial), nextTrial-1L, nrow(result)), result)
 	m1 <- pm$m1
 	curX <- pm$curX
       }
@@ -831,7 +813,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                                     values = nullInterestValue + curX)
     }
     simData <- try(gdFun(trueModel, returnModel=FALSE,
-                         nrows=ifelse(is.null(n), round(curX), origSampleSize)))
+                         nrowsProportion=ifelse(is.null(n), curX, n)))
     if (is(simData, "try-error")) {
       stop(paste("Cannot generate data with trueModel",
                  omxQuotes(trueModel$name)), call.=FALSE)
@@ -875,15 +857,12 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     if (dim(rej) == 1 || any(rej < 2)) {
       if (names(sort(rej, decreasing=TRUE))[1] == "TRUE") {
         curX <- curX / 2
-        if (is.null(n)) {
-          curX <- round(max(curX, 10))
-        }
       } else {
         curX <- curX * 2
       }
       alg <- 'init'
     } else {
-      pm <- fitPowerModel(rx, okResult, is.null(n))
+      pm <- fitPowerModel(rx, okResult)
       m1 <- pm$m1
       curX <- pm$curX
       alg <- pm$alg
@@ -977,7 +956,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
         info <- paste(rx, "/", probes)
         if (!silent) imxReportProgress(info, prevProgressLen)
         prevProgressLen <- nchar(info)
-        simData <- try(gdFun(trueModel, returnModel=FALSE, nrows=n))
+        simData <- try(gdFun(trueModel, returnModel=FALSE, nrowsProportion=n))
         if (is(simData, "try-error")) {
           stop(paste("Cannot generate data with trueModel",
             omxQuotes(trueModel$name)), call.=FALSE)
@@ -1038,7 +1017,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
     if (is.null(model)) {
       ret <- sapply(power, function(p1) {
         ind <- min(1 + findInterval(p1, result$power, all.inside = TRUE), nrow(result))
-        ceiling(result[ind, 'N'])
+        result[ind, 'N']
       })
     } else {
       ret <- qlogis(power, -coef(model)[1]/coef(model)[2], 1/coef(model)[2])
