@@ -635,6 +635,18 @@ mxParametricBootstrap <- function(nullModel, labels,
   ret
 }
 
+totalSampleSize <- function(model, default=100L) {
+  sizes <- sapply(extractData(model), function(mxd) {
+    if (mxd@type == 'raw') {
+      nrow(mxd@observed)
+    } else {
+      mxd@numObs
+    }
+  })
+  if (length(sizes) == 0) sizes <- default
+  sum(sizes)
+}
+
 fitPowerModel <- function(rx, result) {
   # rx is which(is.na(result$reject))[1] - 1L
   result <- result[!is.na(result$x),]
@@ -688,6 +700,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
 		 print(garbageArguments)
        stop("mxPowerSearch does not accept values for the '...' argument\n")
     }
+  origSampleSize <- totalSampleSize(trueModel)
   validateSigLevel(sig.level)
     method <- match.arg(method)
     statistic <- match.arg(statistic)
@@ -725,11 +738,12 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
     if (is.null(grid)) {
       width <- 2.75/avgNcp
       center <- 1.15*qchisq(1 - sig.level, diffdf)/avgNcp
-      grid <- seq(center-1*width,
-                  center+4*width, length.out = 20)
+      grid <- round(seq(center-1*width,
+			center+4*width, length.out = 20) * origSampleSize)
     }
     out <- data.frame(x=grid)
-    out$power <- 1 - suppressWarnings(pchisq(qchisq(1 - sig.level, diffdf), diffdf, avgNcp * out$x))
+    out$power <- 1 - suppressWarnings(pchisq(qchisq(1 - sig.level, diffdf), diffdf,
+					     avgNcp * out$x / origSampleSize))
     if (any(is.na(out$power))) {
       stop(paste("Sorry, unable to estimate power for sig.level=",sig.level,
 		 "with method='ncp'. Try method='empirical'"))
@@ -805,7 +819,9 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   prevProgressLen <- 0L
   if (!is.na(nextTrial)) for (rx in nextTrial:probes) {
     set.seed(result[rx,'seed'])
-    info <- paste0(xLabel,"[", rx,"] fitting model '", alg, "' value ", nullInterestValue + curX)
+    info <- paste0(xLabel,"[", rx,"] fitting model '", alg, "' value ",
+		   ifelse(is.null(n), round(origSampleSize * (nullInterestValue + curX)),
+			  nullInterestValue + curX))
     if (!silent) imxReportProgress(info, prevProgressLen)
     prevProgressLen <- nchar(info)
     if (!is.null(n)) {
@@ -813,7 +829,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
                                     values = nullInterestValue + curX)
     }
     simData <- try(gdFun(trueModel, returnModel=FALSE,
-                         nrowsProportion=ifelse(is.null(n), curX, n)))
+                         nrowsProportion=ifelse(is.null(n), curX, n/origSampleSize)))
     if (is(simData, "try-error")) {
       stop(paste("Cannot generate data with trueModel",
                  omxQuotes(trueModel$name)), call.=FALSE)
@@ -873,12 +889,16 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
   if (is.null(grid)) {
     width <- 1/coef(m1)[2]
     center <- -(coef(m1)[1] / coef(m1)[2])
-    grid <- seq(center-1*width,
-                center+4*width, length.out = 20)
+    grid <- seq(max(center-1*width,0), center+4*width, length.out = 20)
+    if (is.null(n)) grid <- round(grid * origSampleSize)
   }
   out <- data.frame(x=grid)
 #  out$p <- plogis(out$N, center, 1/coef(m1)[2])
-  pr <- predict(m1, newdata=out, type="link", se.fit=TRUE)
+  if (is.null(n)) {
+    pr <- predict(m1, newdata=out / origSampleSize, type="link", se.fit=TRUE)
+  } else {
+    pr <- predict(m1, newdata=out, type="link", se.fit=TRUE)
+  }
   out$power <- plogis(pr$fit)
   out$lower <- plogis(pr$fit - 2*pr$se.fit)
   out$upper <- plogis(pr$fit + 2*pr$se.fit)
@@ -929,6 +949,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
     return(got)
   }
   
+  origSampleSize <- totalSampleSize(trueModel)
   method <- match.arg(method)
   statistic <- match.arg(statistic)
   detail <- list(method=method, sig.level=sig.level, statistic=statistic)
@@ -956,7 +977,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
         info <- paste(rx, "/", probes)
         if (!silent) imxReportProgress(info, prevProgressLen)
         prevProgressLen <- nchar(info)
-        simData <- try(gdFun(trueModel, returnModel=FALSE, nrowsProportion=n))
+        simData <- try(gdFun(trueModel, returnModel=FALSE, nrowsProportion=n / origSampleSize))
         if (is(simData, "try-error")) {
           stop(paste("Cannot generate data with trueModel",
             omxQuotes(trueModel$name)), call.=FALSE)
@@ -1021,6 +1042,7 @@ mxPower <- function(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ..
       })
     } else {
       ret <- qlogis(power, -coef(model)[1]/coef(model)[2], 1/coef(model)[2])
+      if (is.null(n)) ret <- round(ret * origSampleSize)
     }
     if (is.null(n)) {
 	    detail$n <- ret

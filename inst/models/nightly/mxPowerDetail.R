@@ -20,12 +20,12 @@ indModel$A$values['x1','G'] <- 0.3
 indModel$A$free['x1','G'] <- FALSE
 indModel <- mxRun(indModel)
 
-got <- mxPower(factorModelFit, indModel, power=NA, n=1/5, method='ncp')
+got <- mxPower(factorModelFit, indModel, power=NA, n=100, method='ncp')
 detail <- attr(got, 'detail')
 omxCheckEquals(sort(names(detail)),
                c("method", "n", "power", "sig.level", "statistic"))
 omxCheckEquals(detail$method, 'ncp')
-omxCheckEquals(detail$n, 1/5)
+omxCheckEquals(detail$n, 100)
 omxCheckCloseEnough(detail$power, .9, .01)
 omxCheckEquals(detail$sig.level, .05)
 omxCheckEquals(detail$statistic, 'LRT')
@@ -35,17 +35,17 @@ detail <- attr(got, 'detail')
 omxCheckEquals(sort(names(detail)),
                c("method", "n", "power", "sig.level", "statistic"))
 omxCheckEquals(detail$method, 'ncp')
-omxCheckEquals(detail$n, .159, 1e-3)
+omxCheckEquals(detail$n, 80)
 omxCheckEquals(detail$power, .8)
 omxCheckEquals(detail$sig.level, .05)
 omxCheckEquals(detail$statistic, 'LRT')
 
-got <- mxPower(factorModelFit, indModel, probes=30, power=.8, n=.08)
+got <- mxPower(factorModelFit, indModel, probes=30, power=.8, n=40)
 detail <- attr(got, 'detail')
 omxCheckEquals(sort(names(detail)),
                c("method", "n", "parameter", "parameterDiff", "power", "probes",  "sig.level", "statistic"))
 omxCheckEquals(detail$method, 'empirical')
-omxCheckEquals(detail$n, .08)
+omxCheckEquals(detail$n, 40)
 omxCheckEquals(detail$parameter, 'One Factor.A[1,6]')
 omxCheckCloseEnough(detail$parameterDiff, 0.154, .03)
 omxCheckEquals(detail$power, .8)
