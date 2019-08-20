@@ -77,4 +77,4 @@ indModel <- mxRun(indModel)
 got <- mxPowerSearch(factorModelFit, indModel, probes = 50, n=1/5)
 got <- mxPowerSearch(factorModelFit, indModel, n=1/5, previousRun = got)
 omxCheckCloseEnough(got[findInterval(.8, got$power), 'loading1'],
-                    .166, .005)
+                    .16, .01)

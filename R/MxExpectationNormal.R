@@ -610,7 +610,14 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		fake$M$values <- obsStats$means
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
-		if (!is.null(nrowsProportion)) nrows <- round(nrow(model) * nrowsProportion)
+		if (!is.null(nrowsProportion)) {
+		  nrows <- round(nrow(model) * nrowsProportion)
+		  if (nrows < 1) {
+		    nrows <- 1
+		    warning(paste("In model", omxQuotes(model$name),
+				  "nrowsProportion is too small. Rounding up to 1 row"))
+		  }
+		}
 		if(is.null(nrows)) nrows <- nrow(model)
 		return(mxGenerateData(fake, nrows, returnModel, empirical=empirical))
 	}
@@ -644,6 +651,11 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		  if (is.null(origRows)) stop("You must specify nrows")
 		  if (!is.null(nrowsProportion)) {
 		    nrows <- round(origRows * nrowsProportion)
+		    if (nrows < 1) {
+		      nrows <- 1
+		      warning(paste("In model", omxQuotes(subname),
+				    "nrowsProportion is too small. Rounding up to 1 row"))
+		    }
 		  } else {
 		    nrows <- origRows
 		  }
