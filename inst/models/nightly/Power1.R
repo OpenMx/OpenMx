@@ -67,7 +67,9 @@ refs <- mxRefModels(factorModelFit, run = TRUE)
 mxCompare(refs[['Saturated']], factorModelFit)
 got3 <- mxPowerSearch(factorModelFit, refs[['Saturated']],
                 statistic = 'AIC', probes = 300)
-omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'], 48)
+got3 <- mxPowerSearch(factorModelFit, refs[['Saturated']],
+                      statistic = 'AIC', probes = 500, previousRun=got3)
+omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'], 22, 5)
 
 # --------------------
 

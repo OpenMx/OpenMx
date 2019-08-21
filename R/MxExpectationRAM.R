@@ -564,7 +564,20 @@ setMethod("show", "MxExpectationRAM", function(object) {
 
 #------------------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationRAM"),
-	function(.Object, model, nrows, subname, empirical) {
-		return(generateNormalData(model, nrows, subname, empirical))
-})
-
+	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		 .backend, nrowsProportion)
+	{
+	  fellner <- length(model$expectation$between)
+	  if (!fellner) {
+	    return(generateNormalData(model, nrows, subname, empirical, returnModel, use.miss,
+				      .backend, nrowsProportion))
+	  } else {
+	    if (!use.miss) {
+	      stop("use.miss=FALSE is not implemented for relational models")
+	    }
+	    if (length(nrows) || length(nrowsProportion)) {
+	      stop("Specification of the number of rows is not supported for relational models")
+	    }
+	    generateRelationalData(model, returnModel, .backend, subname, empirical)
+	  }
+	})
