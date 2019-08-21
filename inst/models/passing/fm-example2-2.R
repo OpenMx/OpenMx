@@ -2,6 +2,9 @@
 library(OpenMx)
 library(rpf)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
+
 numItems <- 12
 spec <- list()
 spec[1:numItems] <- list(rpf.drm())

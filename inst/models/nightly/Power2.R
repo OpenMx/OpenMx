@@ -1,6 +1,7 @@
 library(OpenMx)
 library(MASS)
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 acePow2 <- function(add, com, Nmz, Ndz){
@@ -75,7 +76,7 @@ omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit, n=500, power=NULL, probes 
 
 # Empirically search for N required to reject false model (CEfit) 80% of long-run occasions
 got <- mxPower(ACEfit, CEfit)
-omxCheckCloseEnough(as.numeric(got), 449)
+omxCheckCloseEnough(as.numeric(got), 394)
 
 
 got <- mxPowerSearch(ACEfit, CEfit, probes = 50)

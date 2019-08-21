@@ -1,6 +1,9 @@
 library(OpenMx)
 library(testthat)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
+
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
@@ -64,7 +67,7 @@ refs <- mxRefModels(factorModelFit, run = TRUE)
 mxCompare(refs[['Saturated']], factorModelFit)
 got3 <- mxPowerSearch(factorModelFit, refs[['Saturated']],
                 statistic = 'AIC', probes = 300)
-omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'], 13)
+omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'], 48)
 
 # --------------------
 
@@ -77,3 +80,4 @@ got <- mxPowerSearch(factorModelFit, indModel, probes = 50, n=100)
 got <- mxPowerSearch(factorModelFit, indModel, n=100, previousRun = got)
 omxCheckCloseEnough(got[findInterval(.8, got$power), 'loading1'],
                     .16, .01)
+
