@@ -451,16 +451,18 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 		}
 	} else if (!is.null(origData) && origData$type == 'cov' && returnModel) {
 		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
+		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
 		if (length(theMeans) == 0) {
 			theMeans <- rep(0, nrow(theCov))
 		}
-		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
 		
 		if (empirical) {
 		  got <- mxModel(model[[subname]], mxData(theCov, "cov", means=theMeans, numObs=nrows))
 		} else {
+		  newCov <- rWishart(1, nrows, theCov)[,,1]
+		  dimnames(newCov) <- dimnames(theCov)
 		  got <- mxModel(model[[subname]],
-				 mxData(rWishart(1, nrows, theCov)[,,1], "cov", means=theMeans, numObs=nrows))
+				 mxData(newCov, "cov", means=theMeans, numObs=nrows))
 		}
 		  return(got)
 	} else{
