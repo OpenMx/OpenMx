@@ -96,8 +96,7 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		cdata <- list()
 		for (c1 in .Object@components) {
 		  cdata[[c1]] <- mxGenerateData(model, returnModel=FALSE, nrows=nrows, use.miss=FALSE,
-						subname=c1, empirical=empirical, returnModel=FALSE,
-						.backend=.backend)
+						subname=c1, empirical=empirical, .backend=.backend)
 		}
 		data <- cdata[[1]]
 
