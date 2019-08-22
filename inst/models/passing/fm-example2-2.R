@@ -1,3 +1,5 @@
+# TODO What is fm? i.e., can we have an explanatory paragraph and make an example of this?
+
 #options(error = browser)
 library(OpenMx)
 library(rpf)
