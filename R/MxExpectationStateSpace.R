@@ -723,7 +723,12 @@ mxKalmanScores <- function(model, data=NA, frontend=TRUE){
 
 #--------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
-	function(.Object, model, nrows, subname, empirical) {
+	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		   .backend, nrowsProportion) {
+  origData <- findDataForSubmodel(model, subname)
+  origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
+  nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)
+
 		A <- mxEvalByName(model[[subname]]@expectation@A, model, compute=TRUE)
 		B <- mxEvalByName(model[[subname]]@expectation@B, model, compute=TRUE)
 		C <- mxEvalByName(model[[subname]]@expectation@C, model, compute=TRUE)
@@ -778,7 +783,11 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		}
 		ret <- t(ty)
 		colnames(ret) <- dimnames(C)[[1]]
-		return(ret)
+		if (returnModel) {
+		  mxModel(model[[subname]], mxData(as.data.frame(ret), "raw"))
+		} else {
+		  as.data.frame(ret)
+		}
 	}
 )
 

@@ -87,12 +87,16 @@ setMethod("genericGetExpected", signature("MxExpectationMixture"),
 	})
 
 setMethod("genericGenerateData", signature("MxExpectationMixture"),
-	function(.Object, model, nrows, subname, empirical) {
+	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		   .backend, nrowsProportion) {
 		origData <- findDataForSubmodel(model, subname)
+		origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
+		nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)
 
 		cdata <- list()
 		for (c1 in .Object@components) {
-			cdata[[c1]] <- mxGenerateData(model, returnModel=FALSE, nrows=nrows, use.miss=FALSE, subname=c1, empirical=empirical)
+		  cdata[[c1]] <- mxGenerateData(model, returnModel=FALSE, nrows=nrows, use.miss=FALSE,
+						subname=c1, empirical=empirical, .backend=.backend)
 		}
 		data <- cdata[[1]]
 
@@ -129,7 +133,11 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 				data[[dcol]] <- origData[[dcol]]
 			}
 		}
-		data
+		if (returnModel) {
+		  mxModel(model[[subname]], mxData(as.data.frame(data), "raw"))
+		} else {
+		  as.data.frame(data)
+		}
 	})
 
 mxExpectationMixture <- function(components, weights="weights",

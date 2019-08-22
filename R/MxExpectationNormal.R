@@ -379,14 +379,17 @@ mxCheckIdentification <- function(model, details=TRUE){
 }
 
 setGeneric("genericGenerateData",
-	function(.Object, model, nrows, subname, empirical) {
+	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		   .backend, nrowsProportion) {
 	return(standardGeneric("genericGenerateData"))
 })
 
 setMethod("genericGenerateData", signature("MxExpectationNormal"),
-	function(.Object, model, nrows, subname, empirical) {
-		return(generateNormalData(model, nrows, subname, empirical))
-})
+	  function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		   .backend, nrowsProportion) {
+	    return(generateNormalData(model, nrows, subname, empirical, returnModel,
+				      use.miss, .backend, nrowsProportion))
+	  })
 
 .rmvnorm <- function(nrow, mean, sigma, empirical) {
   if (!empirical) {
@@ -396,8 +399,29 @@ setMethod("genericGenerateData", signature("MxExpectationNormal"),
   }
 }
 
-generateNormalData <- function(model, nrows, subname, empirical) {
-	origData <- findDataForSubmodel(model, subname)
+calcNumRows <- function(nrows, nrowsProportion, origRows, subname) {
+  if (is.null(nrows)) {
+    if (is.null(origRows)) stop("You must specify nrows")
+    if (!is.null(nrowsProportion)) {
+      nrows <- round(origRows * nrowsProportion)
+      if (nrows < 1) {
+	nrows <- 1
+	warning(paste("In model", omxQuotes(subname),
+		      "nrowsProportion is too small. Rounding up to 1 row"))
+      }
+    } else {
+      nrows <- origRows
+    }
+  }
+  nrows
+}
+
+generateNormalData <- function(model, nrows, subname, empirical, returnModel, use.miss,
+			       .backend, nrowsProportion) {
+  origData <- findDataForSubmodel(model, subname)
+  origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
+  nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)
+
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model[[subname]])){
 		if (origData$type != 'raw') {
@@ -425,6 +449,22 @@ generateNormalData <- function(model, nrows, subname, empirical) {
 				data[[dcol]] <- origData[[dcol]]
 			}
 		}
+	} else if (!is.null(origData) && origData$type == 'cov' && returnModel) {
+		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
+		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
+		if (length(theMeans) == 0) {
+			theMeans <- rep(0, nrow(theCov))
+		}
+		
+		if (empirical) {
+		  got <- mxModel(model[[subname]], mxData(theCov, "cov", means=theMeans, numObs=nrows))
+		} else {
+		  newCov <- rWishart(1, nrows, theCov)[,,1]
+		  dimnames(newCov) <- dimnames(theCov)
+		  got <- mxModel(model[[subname]],
+				 mxData(newCov, "cov", means=theMeans, numObs=nrows))
+		}
+		  return(got)
 	} else{
 		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
 		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
@@ -437,7 +477,18 @@ generateNormalData <- function(model, nrows, subname, empirical) {
 		data <- as.data.frame(data)
 		data <- ordinalizeDataHelper(data, theThresh, origData)
 	}
-	return(data)
+        if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
+	  del <- is.na(origData[,colnames(data),drop=FALSE])
+	  if (nrows != origRows) {
+	    del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),,drop=FALSE]
+	  }
+	  data[del] <- NA
+	}
+	if (returnModel) {
+	  mxModel(model[[subname]], mxData(as.data.frame(data), "raw"))
+	} else {
+	  as.data.frame(data)
+	}
 }
 
 ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
@@ -602,6 +653,9 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 	if (!is.null(nrows) && !is.null(nrowsProportion)) {
 	  stop("You cannot specify both nrows and nrowsProportion")
 	}
+	if (!is.null(nrows) && nrows != round(nrows)) {
+	  stop(paste("Cannot generate a non-integral number of rows:", nrows))
+	}
 	if (is(model, 'data.frame')) {
 		fake <- omxAugmentDataWithWLSSummary(mxData(model,'raw'), "ULS", "marginals",
 			fullWeight=FALSE, returnModel=TRUE)
@@ -635,54 +689,8 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 			return(model)
 		}
 	}
-	fellner <- is(model[[subname]]$expectation, "MxExpectationRAM") && length(model[[subname]]$expectation$between);
-	if (!fellner) {
-		origData <- NULL
-		origRows <- NULL
-		if (!is.null(model[[subname]]@data)) {
-			if (model[[subname]]@data@type == 'raw') {
-				origData <- model[[subname]]@data@observed
-				origRows <- nrow(origData)
-			} else if (model[[subname]]@data@type %in% c('cov','cor')) {
-				origRows <- model[[subname]]@data@numObs
-			}
-		}
-		if (is.null(nrows)) {
-		  if (is.null(origRows)) stop("You must specify nrows")
-		  if (!is.null(nrowsProportion)) {
-		    nrows <- round(origRows * nrowsProportion)
-		    if (nrows < 1) {
-		      nrows <- 1
-		      warning(paste("In model", omxQuotes(subname),
-				    "nrowsProportion is too small. Rounding up to 1 row"))
-		    }
-		  } else {
-		    nrows <- origRows
-		  }
-		}
-		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:", nrows))
-		data <- genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical)
-		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
-			del <- is.na(origData[,colnames(data),drop=FALSE])
-			if (nrows != origRows) {
-				del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),,drop=FALSE]
-			}
-			data[del] <- NA
-		}
-		if (returnModel) {
-			mxModel(model[[subname]], mxData(as.data.frame(data), "raw"))
-		} else {
-			as.data.frame(data)
-		}
-	} else {
-		if (!use.miss) {
-			stop("use.miss=FALSE is not implemented for relational models")
-		}
-		if (length(nrows) || length(nrowsProportion)) {
-			stop("Specification of the number of rows is not supported for relational models")
-		}
-		generateRelationalData(model, returnModel, .backend, subname, empirical)
-	}
+	genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical,
+			    returnModel, use.miss, .backend, nrowsProportion)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {

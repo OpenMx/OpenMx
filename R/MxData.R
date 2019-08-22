@@ -128,6 +128,16 @@ setMethod("names", "MxData", slotNames)
 ##' Valid types of data that can be contained by MxData
 imxDataTypes <- c("raw", "cov", "cor", "acov")
 
+nrowMxData <- function(mxd) {
+    if (mxd@type == 'raw') {
+      return(nrow(mxd$observed))
+    } else if (mxd@type %in% c('cov','cor')) {
+      return(mxd@numObs)
+    } else {
+      stop(paste("nrowMxData not implemented for type", omxQuotes(mxd@type)))
+    }
+}
+
 ##' Create dynamic data
 ##'
 ##' @param type type of data

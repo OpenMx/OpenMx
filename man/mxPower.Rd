@@ -40,9 +40,9 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
 \arguments{
   \item{trueModel}{The true generating model for the data.}
   \item{falseModel}{Model representing the null hypothesis that we wish to reject.}
-  \item{n}{Proportion of rows provided in the trueModel. Default = NULL.
+  \item{n}{Total rows summing across all submodels proportioned as given in the trueModel. Default = NULL.
     If provided, result (power or alpha) solved-for at the given
-        proportional sample size.}
+        total sample size.}
   \item{sig.level}{A single value for the p-value (aka false positive or type-1 error rate). Default = .05.}
   \item{power}{One or values for power (a.k.a. 1 - type 2 error) to evaluate. Default = .80}
   \item{...}{Not used.}
