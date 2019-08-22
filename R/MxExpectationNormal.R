@@ -459,7 +459,7 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 		if (empirical) {
 		  got <- mxModel(model[[subname]], mxData(theCov, "cov", means=theMeans, numObs=nrows))
 		} else {
-		  newCov <- rWishart(1, nrows, theCov)[,,1]
+		  newCov <- rWishart(1, nrows, theCov)[,,1] / nrows
 		  dimnames(newCov) <- dimnames(theCov)
 		  got <- mxModel(model[[subname]],
 				 mxData(newCov, "cov", means=theMeans, numObs=nrows))
