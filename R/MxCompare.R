@@ -806,8 +806,9 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
       } else {
         toCopy <- min(probes, nrow(oldProbes))
         result[1:toCopy,] <- oldProbes[1:toCopy,]
+	okResult <- result[result$statusTrue %in% OK & result$statusFalse %in% OK,]
         nextTrial <- which(is.na(result$reject))[1]
-	pm <- fitPowerModel(ifelse(!is.na(nextTrial), nextTrial-1L, nrow(result)), result)
+	pm <- fitPowerModel(ifelse(!is.na(nextTrial), nextTrial-1L, nrow(result)), okResult)
 	m1 <- pm$m1
 	curX <- pm$curX
       }

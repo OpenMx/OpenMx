@@ -76,7 +76,7 @@ omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit, n=500, power=NULL, probes 
 
 # Empirically search for N required to reject false model (CEfit) 80% of long-run occasions
 got <- mxPower(ACEfit, CEfit)
-omxCheckCloseEnough(as.numeric(got), 394)
+omxCheckCloseEnough(as.numeric(got), 458)
 
 
 got <- mxPowerSearch(ACEfit, CEfit, probes = 50)
