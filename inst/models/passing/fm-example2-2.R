@@ -1,4 +1,5 @@
-# TODO What is fm? i.e., can we have an explanatory paragraph and make an example of this?
+# TODO What is fm? and is 2-2 is an example from somewhere?
+# i.e., can we have an explanatory paragraph and make an example of this?
 
 #options(error = browser)
 library(OpenMx)
