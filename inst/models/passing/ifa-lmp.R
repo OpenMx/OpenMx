@@ -5,6 +5,9 @@
 require(OpenMx)
 require(rpf)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
+
 data(LSAT6)
 dat<-expandDataFrame(LSAT6, freqName="Freq")
 dat<-mxFactor(as.data.frame(dat), levels=0:1)
