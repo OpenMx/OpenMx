@@ -2047,6 +2047,7 @@ class ComputeCheckpoint : public omxCompute {
 		std::vector<int> computeLoopIndex;
 		Eigen::VectorXd est;
 		double fit;
+		FitStatisticUnits fitUnits;
 		int inform;
 		Eigen::VectorXd stderrs;
 		Eigen::VectorXd gradient;
@@ -5259,7 +5260,10 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 
-	if (inclFit) colnames.push_back("objective");
+	if (inclFit) {
+		colnames.push_back("objective");
+		colnames.push_back("fitUnits");
+	}
 	if (inclStatus) colnames.push_back("statusCode");
 	if (inclSEs) {
 		for(int j = 0; j < numParam; j++) {
@@ -5318,6 +5322,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		s1.est = Eest;
 	}
 	s1.fit = fc->fit;
+	s1.fitUnits = fc->fitUnits;
 	s1.inform = fc->wrapInform();
 	if (inclSEs) {
 		if (fc->stderrs.size() && fc->stderrs.size() != int(fc->numParam)) {
@@ -5400,7 +5405,10 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				ofs << '\t' << std::setprecision(digits) << s1.est[x1];
 			}
 		}
-		if (inclFit) ofs << '\t' << std::setprecision(digits) << s1.fit;
+		if (inclFit) {
+			ofs << '\t' << std::setprecision(digits) << s1.fit;
+			ofs << '\t' << fitUnitsToName(s1.fitUnits);
+		}
 		if (inclStatus) {
 			if (s1.inform == NA_INTEGER) {
 				ofs << '\t' << "NA";
@@ -5524,12 +5532,23 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		}
 	}
 	if (inclFit) {
-		SEXP col = Rf_allocVector(REALSXP, numSnaps);
+		SEXP col1 = Rf_allocVector(REALSXP, numSnaps);
 		if (debug) mxLog("log[%d] = %s (fit)", curCol, colnames[curCol].c_str());
-		SET_VECTOR_ELT(log, curCol++, col);
-		auto *v = REAL(col);
+		SET_VECTOR_ELT(log, curCol++, col1);
+		SEXP col2 = makeFitUnitsFactor(Rf_allocVector(INTSXP, numSnaps));
+		SET_VECTOR_ELT(log, curCol++, col2);
+		auto *v = REAL(col1);
+		auto *vu = INTEGER(col2);
 		int sx=0;
-		for (auto &s1 : snaps) v[sx++] = s1.fit;
+		for (auto &s1 : snaps) {
+			v[sx] = s1.fit;
+			if (s1.fitUnits == FIT_UNITS_UNINITIALIZED) {
+				vu[sx] = NA_INTEGER;
+			} else {
+				vu[sx] = s1.fitUnits;
+			}
+			sx += 1;
+		}
 	}
 	if (inclStatus) {
 		SEXP col = allocInformVector(numSnaps);
