@@ -452,10 +452,7 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 	} else if (!is.null(origData) && origData$type == 'cov' && returnModel) {
 		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
 		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
-		if (length(theMeans) == 0) {
-			theMeans <- rep(0, nrow(theCov))
-		}
-		
+		if (length(theMeans) == 0) theMeans <- NA
 		if (empirical) {
 		  got <- mxModel(model[[subname]], mxData(theCov, "cov", means=theMeans, numObs=nrows))
 		} else {
