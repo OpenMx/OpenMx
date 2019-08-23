@@ -63,16 +63,6 @@ omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
 
 # --------------------
 
-refs <- mxRefModels(factorModelFit, run = TRUE)
-mxCompare(refs[['Saturated']], factorModelFit)
-got3 <- mxPowerSearch(factorModelFit, refs[['Saturated']],
-                statistic = 'AIC', probes = 300)
-got3 <- mxPowerSearch(factorModelFit, refs[['Saturated']],
-                      statistic = 'AIC', probes = 500, previousRun=got3)
-omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'], 22, 5)
-
-# --------------------
-
 indModel <- factorModelFit
 indModel$A$values['x1','G'] <- .1
 indModel$A$free['x1','G'] <- FALSE
