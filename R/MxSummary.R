@@ -322,15 +322,6 @@ parameterListHelper <- function(model, withModelName) {
 			mCol <- parameters[[i]][[5]][[3]] + 1
 			lbound <- parameters[[i]][[1]]
 			ubound <- parameters[[i]][[2]]
-			aMatrix <- matrices[[mLocation]][[1]]
-			if (getOption('mxShowDimnames')) {
-				if (!is.null(rownames(aMatrix))) {
-					mRow <- rownames(aMatrix)[[mRow]]
-				}
-				if (!is.null(colnames(aMatrix))) {
-					mCol <- colnames(aMatrix)[[mCol]]
-				}
-			}
 			if (withModelName) {
 				ptable[i, 'model'] <- model@name
 			}
