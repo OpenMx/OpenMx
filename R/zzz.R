@@ -20,7 +20,6 @@ mxSetDefaultOptions <- function() {
 	    list("Default optimizer" = imxDetermineDefaultOptimizer())),
 	'mxByrow' = FALSE,
 	'mxCondenseMatrixSlots' = FALSE,
-	'mxShowDimnames' = TRUE,
 	'swift.initialexpr' = "library(OpenMx)")
 }
 

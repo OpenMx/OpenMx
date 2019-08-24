@@ -1,6 +1,7 @@
 library(OpenMx)
 library(MASS)
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 acePow2 <- function(add, com, Nmz, Ndz){
@@ -64,23 +65,26 @@ round(coef(ACEfit),2)
 round( coef(CEfit),2)
 round( coef(AEfit),2)
 
-# Check N estimated for 80% power is 224 pairs total
-omxCheckEquals(as.numeric(mxPower(ACEfit, CEfit, method='ncp')), 224)
+# Check N estimated for 80% power is 0.223 pairs total
+omxCheckEquals(as.numeric(mxPower(ACEfit, CEfit, method='ncp')), 446)
 
-# Set N=224, request power and check it's within .01 of .8
-omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit, method='ncp', n=224, power=NULL)), .817, .01)
+# Set N=500, request power and check it's within .01 of .8
+omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit, method='ncp', n=500, power=NULL)), .857, .01)
 
-# Set N=224, request power with method empirical, 100 probes, and check it's +/- 5% of .8
-omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit, n=224, power=NULL, probes = 100)), .8, .5)
+# Set N=500, request power with method empirical, 100 probes, and check it's +/- 5% of .8
+omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit, n=500, power=NULL, probes = 100)), .8, .5)
 
 # Empirically search for N required to reject false model (CEfit) 80% of long-run occasions
-omxCheckCloseEnough(as.numeric(mxPower(ACEfit, CEfit)), 224, 7)
+got <- mxPower(ACEfit, CEfit)
+omxCheckCloseEnough(as.numeric(got), 458)
 
 
 got <- mxPowerSearch(ACEfit, CEfit, probes = 50)
-got <- mxPowerSearch(ACEfit, CEfit, previousRun = got)
+got <- mxPowerSearch(ACEfit, CEfit, previousRun = got,
+                     grid=seq(100,800,length.out = 20))
 
-got2 <- mxPowerSearch(ACEfit, CEfit, method = "ncp")
+got2 <- mxPowerSearch(ACEfit, CEfit, method = "ncp",
+                      grid=seq(100,800,length.out = 20))
 
 omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
                       pmin(got[,'upper'] - got2[,'power'], 0)),

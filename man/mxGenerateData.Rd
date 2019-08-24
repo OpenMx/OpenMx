@@ -28,7 +28,7 @@ See below for important details
 
 \usage{
 mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
- ..., .backend=TRUE, subname=NULL, empirical=FALSE)
+ ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion)
 }
 
 
@@ -41,7 +41,10 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
 \item{.backend}{Whether to use the backend to generate data (TRUE by default for speed)}
 \item{subname}{If given, limits data generation to this sub model.}
 \item{empirical}{Whether the generate data should match the distribution
-   of the current data exactly. Uses \link[MASS]{mvrnorm} instead of \link[mvtnorm]{rmvnorm}}
+   of the current data exactly. Uses \link[MASS]{mvrnorm} instead of
+   \link[mvtnorm]{rmvnorm}}
+ \item{nrowsProportion}{Numeric. The number of rows of data to generate
+   expressed as a proportion of the current number of rows.}
 }
 
 \details{

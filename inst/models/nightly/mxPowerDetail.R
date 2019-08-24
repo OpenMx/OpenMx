@@ -47,7 +47,7 @@ omxCheckEquals(sort(names(detail)),
 omxCheckEquals(detail$method, 'empirical')
 omxCheckEquals(detail$n, 40)
 omxCheckEquals(detail$parameter, 'One Factor.A[1,6]')
-omxCheckCloseEnough(detail$parameterDiff, .0348, .03)
+omxCheckCloseEnough(detail$parameterDiff, 0.154, .03)
 omxCheckEquals(detail$power, .8)
 omxCheckEquals(detail$probes, 30)
 omxCheckEquals(detail$sig.level, .05)

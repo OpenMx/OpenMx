@@ -40,8 +40,9 @@ mxPower(trueModel, falseModel, n=NULL, sig.level=0.05, power=0.8, ...,
 \arguments{
   \item{trueModel}{The true generating model for the data.}
   \item{falseModel}{Model representing the null hypothesis that we wish to reject.}
-  \item{n}{Total sample size (total data rows across all groups). Default = NULL.
-    If provided, result (power or alpha) solved-for at the given sample size.}
+  \item{n}{Total rows summing across all submodels proportioned as given in the trueModel. Default = NULL.
+    If provided, result (power or alpha) solved-for at the given
+        total sample size.}
   \item{sig.level}{A single value for the p-value (aka false positive or type-1 error rate). Default = .05.}
   \item{power}{One or values for power (a.k.a. 1 - type 2 error) to evaluate. Default = .80}
   \item{...}{Not used.}
@@ -177,7 +178,8 @@ the whole relationship between sample size or effect size and power.
   \code{mxPower} returns a vector of sample sizes, powers, or effect sizes.
 
   \code{mxPowerSearch} returns a data.frame with one row for each \sQuote{grid} point. The
-  first column is either the sample size \sQuote{N} or the parameter
+  first column is either the sample size \sQuote{N} (given as the
+  proportion of rows provided in \code{trueModel}) or the parameter
   label. The second column is the power. If \code{method=empirical}, \code{lower} 
   and \code{upper} provide a +/-2 SE confidence interval (CI95) 
   for the power (as estimated by the binomial logit linear model).

@@ -27,7 +27,6 @@
 ##' @param mx.filename Name of file containing the mx script.
 ##' @param output.directory Where to write mxo output from the script
 ##' @return processed matrix output.
-##' @export
 ##' @examples
 #' \dontrun{
 ##' output = imxOriginalMx(mx.filename = "power1.mx", "~/Desktop")

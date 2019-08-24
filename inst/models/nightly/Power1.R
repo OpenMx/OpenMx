@@ -1,6 +1,9 @@
 library(OpenMx)
 library(testthat)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
+
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
@@ -31,7 +34,7 @@ expect_error(mxPower(factorModelFit, indModel, method = 'ncp',
              "Try method='empirical'")
 
 got4 <- mxPowerSearch(factorModelFit, indModel, method = 'ncp')
-omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'], 72.54, 1)
+omxCheckCloseEnough(got4[findInterval(.8, got4$power), 'N'], 73)
 
 # only 1 p-value handled at a time
 expect_error(mxPower(factorModelFit, indModel, method = 'ncp', sig.level=c(.05,.01)),
@@ -39,30 +42,24 @@ expect_error(mxPower(factorModelFit, indModel, method = 'ncp', sig.level=c(.05,.
 
 # more than 1 power request is fine
 p3 <- mxPower(factorModelFit, indModel, method = 'ncp', sig.level = .05,power=c(.5,.8))
-expect_equivalent(p3, c(45,80))
+expect_equivalent(p3, c(44,80))
 
 set.seed(1)
 
 got <- mxPowerSearch(factorModelFit, indModel)
+m1 <- attr(got,'model')
 
 got <- mxPowerSearch(factorModelFit, indModel, previousRun = got,
-               grid=seq(15,160,length.out = 20))
+               grid=seq(15,150,length.out = 20))
+m2 <- attr(got,'model')
+expect_equal(coef(m1), coef(m2), scale=1, tolerance=1e-14)
 
 got2 <- mxPowerSearch(factorModelFit, indModel, method='ncp',
-                grid=seq(15,160,length.out = 20))
+                grid=seq(15,150,length.out = 20))
 
 omxCheckCloseEnough(c(pmin(got2[,'power'] - got[,'lower'], 0),
                       pmin(got[,'upper'] - got2[,'power'], 0)),
                     rep(0,40), .05)
-
-# --------------------
-
-refs <- mxRefModels(factorModelFit, run = TRUE)
-mxCompare(refs[['Saturated']], factorModelFit)
-got3 <- mxPowerSearch(factorModelFit, refs[['Saturated']],
-                statistic = 'AIC', probes = 300)
-omxCheckCloseEnough(got3[findInterval(.8, got3$power), 'N'],
-                    16.45, 3)
 
 # --------------------
 
@@ -74,4 +71,5 @@ indModel <- mxRun(indModel)
 got <- mxPowerSearch(factorModelFit, indModel, probes = 50, n=100)
 got <- mxPowerSearch(factorModelFit, indModel, n=100, previousRun = got)
 omxCheckCloseEnough(got[findInterval(.8, got$power), 'loading1'],
-                    .1285, .005)
+                    .16, .01)
+
