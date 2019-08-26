@@ -2,13 +2,18 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
-# Next Release OpenMx 2.13.3? 
-* FIXED: Bug with RAM regression `mxFactor` scores (means not included in some cases).
-* FIXED: Bug in `mxPower` where we were not respecting requested p-values.
-* FIXED: `mxPower` Clarify N reported by mxPower is total N, not average/group.
+
+# OpenMx 2.13.3
+* September 2019 (R 3.6.1)
+* FIXED: Bug `mxFactor`where RAM regression scores did not always include the means.
+* FIXED: Bug `mxPowerSearch` was ignoring the user N. 
+* FIXED: Bug `mxPower` where we were not respecting requested p-values.
+* IMPROVED: `mxGenerateData` returns data of the type in the model (when `returnModel = TRUE``)
+* IMPROVED: `mxPower` Clarify N reported by mxPower is total N, not average/group.
+* IMPROVED: `mxPowerSearch` supports un-equal N in multi-group models, as specified by user's trueModel.
 
 # OpenMx 2.13.2 
-* May 2019 (R 3.6.0))
+* May 2019 (R 3.6.0)
 * NEW!: SEs for models with constraints! (used not to be calculated. Big win for twin models)
 * NEW: `vcov` works with models that contain MxConstraints (so does `m1$vcov')
 * EXPERIMENTAL: `mxAlgebra` gives users the option of populating an MxAlgebra with initial values, and of only recomputing the MxAlgebra when specifically called-for
@@ -34,7 +39,7 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 
 
 # OpenMx 2.12.2
-* Feb 2019 (R 3.5.2))
+* Feb 2019 (R 3.5.2)
 * IMPROVED: parallel processing improved by addition of ConcurrentQueue.
 * IMPROVED: WLS moved to the backend: 10x faster!
 * NEW:  A new optimizer, which uses generalized simulated annealing, has been implemented.
