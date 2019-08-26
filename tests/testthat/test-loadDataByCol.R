@@ -95,7 +95,8 @@ model3Fit <- mxRun(model3)
 
 omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 2L)
 
-discardCols <- c("OpenMxEvals", "iterations", "timestamp", "MxComputeLoop1", "objective", "statusCode")
+discardCols <- c("OpenMxEvals", "iterations", "timestamp", "MxComputeLoop1",
+                 "objective", "statusCode", "fitUnits")
 thr <- c(9, 9, 9, 8, 9, 9, 8, 9, 9, 9, 9, 8, 8, 9, 4, 10, 10, 9, 9,
          10, 10, 9, 12, 12, 11, 10, 10, 9, 10, 11, 6, 6, 7, 6, 6, 6, 6, 
          6, 7, 6, 6, 6, 6, 7, 6, 11, 11, 10, 11, 12, 11, 10, 12, 12, 12,
@@ -124,3 +125,4 @@ log <- model3Fit$compute$steps[['CPT']]$log
 for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log[shuffle,] - result1)), 2, max))
 omxCheckTrue(all(lmad - thr > 0))
+

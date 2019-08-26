@@ -2564,6 +2564,8 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 #' state is written to disk in a single row. When \code{toReturn} is set,
 #' the state is recorded in memory and returned after \code{mxRun}.
 #'
+#' @aliases
+#' MxComputeCheckpoint-class
 #' @seealso
 #' \code{\link{mxComputeLoadData}}, \code{\link{mxComputeLoadMatrix}},
 #' \code{\link{mxComputeLoadContext}}, \code{\link{mxComputeLoop}}
