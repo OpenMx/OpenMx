@@ -29,6 +29,7 @@ cachegrind.out.*
 ^src/autodep$
 ^.Rbuildignore*
 ^man/README$
+^man-roxygen
 .*\.omx$
 ^docs
 ^stan/

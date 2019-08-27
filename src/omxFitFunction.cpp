@@ -80,15 +80,23 @@ bool fitUnitsIsChiSq(FitStatisticUnits units)
 	return units == FIT_UNITS_MINUS2LL || units == FIT_UNITS_SQUARED_RESIDUAL_CHISQ;
 }
 
+static const char* FitUnitNames[] = { "?", "Pr", "-2lnL", "r'Wr", "r'Wr" };
+
+SEXP makeFitUnitsFactor(SEXP obj)
+{
+	return makeFactor(obj, OMX_STATIC_ARRAY_SIZE(FitUnitNames), FitUnitNames);
+}
+
 const char *fitUnitsToName(FitStatisticUnits units)
 {
 	switch (units) {
 	case FIT_UNITS_UNINITIALIZED: return "";
-	case FIT_UNITS_UNKNOWN: return "?";
-	case FIT_UNITS_PROBABILITY: return "Pr";
-	case FIT_UNITS_MINUS2LL: return "-2lnL";
-	case FIT_UNITS_SQUARED_RESIDUAL: return "r'Wr";
-	case FIT_UNITS_SQUARED_RESIDUAL_CHISQ: return "r'Wr";
+	case FIT_UNITS_UNKNOWN:
+	case FIT_UNITS_PROBABILITY:
+	case FIT_UNITS_MINUS2LL:
+	case FIT_UNITS_SQUARED_RESIDUAL:
+	case FIT_UNITS_SQUARED_RESIDUAL_CHISQ:
+		return FitUnitNames[units-1];
 	default: mxThrow("Don't know how to stringify units %d", units);
 	}
 }

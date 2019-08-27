@@ -125,6 +125,7 @@ man/MxBaseObjectiveMetaData-class.Rd
 man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
+man/mxComputeCheckpoint.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
@@ -169,9 +170,10 @@ man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
 man/MxRAMGraph-class.Rd
-man/MxRAMMetaData-class.Rd
 man/MxRAMModel-class.Rd
+man/mxRestore.Rd
 man/mxRetro.Rd
+man/mxSave.Rd
 man/mxSE.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd

@@ -113,5 +113,6 @@ double totalLogLikelihood(omxMatrix *fitMat);
 
 const char *fitUnitsToName(FitStatisticUnits units);
 bool fitUnitsIsChiSq(FitStatisticUnits units);
+SEXP makeFitUnitsFactor(SEXP obj);
 
 #endif /* _OMXFITFUNCTION_H_ */
