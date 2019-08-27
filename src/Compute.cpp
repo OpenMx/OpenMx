@@ -4249,8 +4249,9 @@ class LoadDataCSVProvider : public LoadDataProvider<LoadDataCSVProvider> {
 	{
 		if (rowNames == 0 || !byrow) return;
 		cpIndex = cp.size();
+		auto rc = *rawCols;
 		for (int cx=0; cx < int(columns.size()); ++cx) {
-			std::string c1 = fileName + ":" + data->rawCols[ columns[cx] ].name;
+			std::string c1 = fileName + ":" + rc[ columns[cx] ].name;
 			cp.push_back(c1);
 		}
 	}
@@ -4303,10 +4304,10 @@ void LoadDataCSVProvider::loadByCol(FitContext *fc, int index)
 		st.set_delimiter(' ', "##");
 		for (int rx=0; rx < skipRows; ++rx) st.skip_line();
 		int stripeAvail = stripeSize;
-		for (int rx=0; rx < data->rows; ++rx) {
+		for (int rx=0; rx < rows; ++rx) {
 			if (!st.read_line()) {
 				mxThrow("%s: ran out of data for '%s' (need %d rows but only found %d)",
-					 name, data->name, data->rows, 1+rx);
+					 name, dataName, rows, 1+rx);
 			}
 			int toSkip = stripeStart * columns.size() + skipCols;
 			for (int jx=0; jx < toSkip; ++jx) {
@@ -4314,12 +4315,13 @@ void LoadDataCSVProvider::loadByCol(FitContext *fc, int index)
 				st >> rn;
 			}
 			for (int sx=0,dx=0; sx < stripeAvail; ++sx) {
+				auto rc = *rawCols;
 				try {
 					for (int cx=0; cx < int(columns.size()); ++cx) {
 						if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 							st >> stripeData[dx].realData[rx];
 						} else {
-							mxScanInt(st, data->rawCols[ columns[cx] ],
+							mxScanInt(st, rc[ columns[cx] ],
 								  &stripeData[dx].intData[rx]);
 						}
 						dx += 1;
@@ -4342,13 +4344,15 @@ void LoadDataCSVProvider::loadByCol(FitContext *fc, int index)
 	}
 
 	int offset = (index - stripeStart) * columns.size();
+	auto &rc = *rawCols;
 	for (int cx=0; cx < int(columns.size()); ++cx) {
-		data->rawCols[ columns[cx] ].ptr = stripeData[offset + cx];
+		rc[ columns[cx] ].ptr = stripeData[offset + cx];
 	}
 }
 
 void LoadDataCSVProvider::loadByRow(FitContext *fc, int index)
 {
+	auto &rc = *rawCols;
 	if (!icsv || index < curRecord) {
 		icsv = std::unique_ptr< mini::csv::ifstream >(new mini::csv::ifstream(filePath));
 		icsv->set_delimiter(' ', "##");
@@ -4369,7 +4373,7 @@ void LoadDataCSVProvider::loadByRow(FitContext *fc, int index)
 	for (int cx=0; cx < int(columns.size()); ++cx) {
 		if (!icsv->read_line()) {
 			mxThrow("%s: ran out of data for '%s' at record %d",
-				name, data->name, 1+index);
+				name, dataName, 1+index);
 		}
 		for (int sx=0; sx < skipCols; ++sx) {
 			std::string rn;
@@ -4380,7 +4384,7 @@ void LoadDataCSVProvider::loadByRow(FitContext *fc, int index)
 			}
 		}
 		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-			for (int rx=0; rx < data->rows; ++rx) {
+			for (int rx=0; rx < rows; ++rx) {
 				const std::string& str = icsv->get_delimited_str();
 				if (isNA(str)) {
 					stripeData[cx].realData[rx] = NA_REAL;
@@ -4390,15 +4394,15 @@ void LoadDataCSVProvider::loadByRow(FitContext *fc, int index)
 				}
 			}
 		} else {
-			for (int rx=0; rx < data->rows; ++rx) {
-				mxScanInt(*icsv, data->rawCols[ columns[cx] ],
+			for (int rx=0; rx < rows; ++rx) {
+				mxScanInt(*icsv, rc[ columns[cx] ],
 					  &stripeData[cx].intData[rx]);
 			}
 		}
 	}
 	curRecord += 1;
 	for (int cx=0; cx < int(columns.size()); ++cx) {
-		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+		rc[ columns[cx] ].ptr = stripeData[cx];
 	}
 }
 
@@ -4418,10 +4422,10 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 			mxThrow("%s: provided observed data only has %d columns but %d requested",
 				name, int(observed.size()), int(colTypes.size()));
 		}
-		if (observed.nrows() % data->rows != 0) {
+		if (observed.nrows() % rows != 0) {
 			mxThrow("%s: original data has %d rows, "
 				"does not divide the number of observed rows %d evenly (remainder %d)",
-				name, data->rows, observed.nrows(), observed.nrows() % data->rows);
+				name, rows, observed.nrows(), observed.nrows() % rows);
 		}
 		Rcpp::CharacterVector obNames = observed.attr("names");
 		for (int cx=0; cx < int(colTypes.size()); ++cx) {
@@ -4437,7 +4441,7 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 						name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
 				}
 				ProtectedSEXP Rlevels(Rf_getAttrib(vec, R_LevelsSymbol));
-				auto &rc = data->rawCols[ columns[cx] ];
+				auto &rc = (*rawCols)[ columns[cx] ];
 				if (int(rc.levels.size()) != int(Rf_length(Rlevels))) {
 					mxThrow("%s: observed column %d (%s) has a different number"
 						"of factor levels %d compare to the original data %d",
@@ -4449,25 +4453,26 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	}
 	virtual void loadRowImpl(FitContext *fc, int index)
 	{
-		int rowBase = index * data->rows;
-		if (observed.nrows() < rowBase + data->rows) {
+		auto &rc = *rawCols;
+		int rowBase = index * rows;
+		if (observed.nrows() < rowBase + rows) {
 			mxThrow("%s: index %d requested but observed data only has %d sets of rows",
-				name, index, observed.nrows() / data->rows);
+				name, index, observed.nrows() / rows);
 		}
 		for (int cx=0; cx < int(columns.size()); ++cx) {
 			auto vec = observed[cx];
 			if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 				double *val = REAL(vec);
-				for (int rx=0; rx < data->rows; ++rx) {
+				for (int rx=0; rx < rows; ++rx) {
 					stripeData[cx].realData[rx] = val[rowBase + rx];
 				}
 			} else {
 				int *val = INTEGER(vec);
-				for (int rx=0; rx < data->rows; ++rx) {
+				for (int rx=0; rx < rows; ++rx) {
 					stripeData[cx].intData[rx] = val[rowBase + rx];
 				}
 			}
-			data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+			rc[ columns[cx] ].ptr = stripeData[cx];
 		}
 	}
 };
@@ -4559,9 +4564,9 @@ void LoadDataBGENProvider::loadRowImpl(FitContext *fc, int index)
 		query->initialise();
 		bgenView->set_query( query ) ;
 		curRecord = index;
-		if (data->rows != int(bgenView->number_of_samples())) {
+		if (rows != int(bgenView->number_of_samples())) {
 			mxThrow("%s: %s has %d rows but %s has %d samples",
-				name, data->name, data->rows, filePath.c_str(),
+				name, dataName, rows, filePath.c_str(),
 				int(bgenView->number_of_samples()));
 		}
 		loadCounter += 1;
@@ -4584,8 +4589,9 @@ void LoadDataBGENProvider::loadRowImpl(FitContext *fc, int index)
 	bgenView->read_genotype_data_block(xfer);
 	curRecord += 1;
 
+	auto &rc = *rawCols;
 	for (int cx=0; cx < int(columns.size()); ++cx) {
-		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+		rc[ columns[cx] ].ptr = stripeData[cx];
 	}
 }
 
@@ -4675,7 +4681,7 @@ void LoadDataPGENProvider::loadRowImpl(FitContext *fc, int index)
 		PreinitPgfi(pgen_info.get());
 		pgen_info->vrtypes = 0;
 		uint32_t cur_variant_ct = 0xffffffffU;
-		uint32_t cur_sample_ct = data->rows;
+		uint32_t cur_sample_ct = rows;
 		PgenHeaderCtrl header_ctrl;
 		uintptr_t pgfi_alloc_cacheline_ct;
 		char errstr_buf[kPglErrstrBufBlen];
@@ -4748,14 +4754,14 @@ void LoadDataPGENProvider::loadRowImpl(FitContext *fc, int index)
 	if (colTypes[0] == COLUMNDATA_NUMERIC) {
 		GenoarrToDouble(pgen_genovec, pgen_info->raw_sample_ct, stripeData[0].realData);
 	} else {
-		auto &rc = data->rawCols[ columns[0] ];
+		auto &rc = (*rawCols)[ columns[0] ];
 		if (rc.levels.size() != 3) mxThrow("%s: pgen files contain data with 3 levels (not %d)",
 						   name, int(rc.levels.size()));
 		GenoarrToFactor(pgen_genovec, pgen_info->raw_sample_ct, stripeData[0].intData);
 	}
 
 	for (int cx=0; cx < int(columns.size()); ++cx) {
-		data->rawCols[ columns[cx] ].ptr = stripeData[cx];
+		(*rawCols)[ columns[cx] ].ptr = stripeData[cx];
 	}
 }
 
@@ -4778,7 +4784,8 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	for (auto pr : Providers) {
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
-			provider->commonInit(rObj, name, data, Global->checkpointValues);
+			provider->commonInit(rObj, name, data->name, data->rows, data->rawCols,
+					     data->rawColMap, Global->checkpointValues);
 			provider->init(rObj);
 			break;
 		}

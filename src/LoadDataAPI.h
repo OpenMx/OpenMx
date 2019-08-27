@@ -1,13 +1,23 @@
 #ifndef _LOAD_DATA_API_H_
 #define _LOAD_DATA_API_H_
 
+// Required types:
+//
+// enum ColumnDataType
+// dataPtr
+// struct ColumnData
+// ColMapType
+
 class LoadDataProviderBase {
 protected:
 	const char *name;
-	omxData *data; //TODO
+	const char *dataName;
+	int rows;
+	std::vector<ColumnData> *rawCols;
+	ColMapType *rawColMap;
 	std::vector< int > columns;
-	std::vector< int > colTypes;
-	std::vector<dataPtr> origData; // TODO
+	std::vector< ColumnDataType > colTypes;
+	std::vector<dataPtr> origData;
 	bool checkpoint;
 	std::vector< std::string > *checkpointValues;
 
@@ -53,7 +63,10 @@ protected:
 
 public:
 	const std::vector< int > &getColumns() { return columns; }
-	void commonInit(SEXP rObj, const char *_name, omxData *_data,
+	void commonInit(SEXP rObj, const char *_name,
+			const char *_dataName, int rows,
+			std::vector<ColumnData> &_rawCols,
+			ColMapType &_rawColMap,
 			std::vector< std::string > &_checkpointValues);
 	bool wantCheckpoint() const { return checkpoint; }
 	int getLoadCounter() const { return loadCounter; }
@@ -67,9 +80,9 @@ public:
 			for (int sx=0; sx < stripeSize; ++sx) {
 				for (int cx=0; cx < int(columns.size()); ++cx) {
 					if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-						stripeData.emplace_back(new double[data->rows]);
+						stripeData.emplace_back(new double[rows]);
 					} else {
-						stripeData.emplace_back(new int[data->rows]);
+						stripeData.emplace_back(new int[rows]);
 					}
 				}
 			}
@@ -78,8 +91,9 @@ public:
 		loadRowImpl(fc, index);
 	}
 	void loadOrigRow() {
+		auto rc = *rawCols;
 		for (int cx=0; cx < int(columns.size()); ++cx) {
-			data->rawCols[ columns[cx] ].ptr = origData[cx];
+			rc[ columns[cx] ].ptr = origData[cx];
 		}
 	}
 	virtual std::unique_ptr<LoadDataProviderBase> clone()=0;
@@ -99,17 +113,24 @@ public:
 	}
 };
 
-void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name, omxData *_data,
-				  std::vector< std::string > &_checkpointValues)
+void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name,
+				      const char *_dataName, int _rows,
+				      std::vector<ColumnData> &_rawCols,
+				      ColMapType &_rawColMap,
+				      std::vector< std::string > &_checkpointValues)
 {
 	name = _name;
-	data = _data;
+	dataName = _dataName;
+	rows = _rows;
+	rawCols = &_rawCols;
+	rawColMap = &_rawColMap;
+	checkpointValues = &_checkpointValues;
+
 	curRecord = -1;
 	loadCounter = 0;
 	stripeSize = 1;
 	stripeStart = -1;
 	stripeEnd = -1;
-	checkpointValues = &_checkpointValues;
 
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
@@ -134,15 +155,15 @@ void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name, omxData *_da
 	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
 	for (int cx=0; cx < Rf_length(Rcol); ++cx) {
 		auto cn = R_CHAR(STRING_ELT(Rcol, cx));
-		auto &rcm = data->rawColMap;
+		auto &rcm = *rawColMap;
 		auto rci = rcm.find(cn);
 		if (rci == rcm.end()) {
 			omxRaiseErrorf("%s: column '%s' not found in '%s'",
-				       name, cn, data->name);
+				       name, cn, dataName);
 			continue;
 		}
 		columns.push_back(rci->second);
-		auto &rc = data->rawCols[rci->second];
+		auto &rc = _rawCols[rci->second];
 		colTypes.push_back(rc.type);
 		origData.emplace_back(rc.ptr);
 	}
