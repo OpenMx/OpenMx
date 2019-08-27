@@ -2871,7 +2871,7 @@ void omxData::invalidateCache()
 	oss.reset();
 }
 
-void omxData::invalidateColumnsCache(std::vector< int > &columns)
+void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 {
 	if (!oss) return;
 
