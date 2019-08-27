@@ -59,7 +59,7 @@ protected:
 		}
 	}
 
-	virtual void loadRowImpl(FitContext *fc, int index)=0;
+	virtual void loadRowImpl(int index)=0;
 
 public:
 	const std::vector< int > &getColumns() { return columns; }
@@ -73,7 +73,7 @@ public:
 	virtual const char *getName()=0;
 	virtual void init(SEXP rObj)=0;
 	virtual void addCheckpointColumns(std::vector< std::string > &cp) {};
-	void loadRow(FitContext *fc, int index)
+	void loadRow(int index)
 	{
 		if (!stripeData.size()) {
 			stripeData.reserve(stripeSize * columns.size());
@@ -88,7 +88,7 @@ public:
 			}
 		}
 
-		loadRowImpl(fc, index);
+		loadRowImpl(index);
 	}
 	void loadOrigRow() {
 		auto rc = *rawCols;
@@ -183,6 +183,6 @@ public:
 
 #define OPENMX_LOAD_DATA_API_VERSION 0.17789282277226448059 // this is a random number
 
-typedef std::vector<LoadDataProviderBase*> &(*get_providers_t)(double version);
+typedef void (*AddLoadDataProviderType)(double version, LoadDataProviderBase *ldp);
 
 #endif

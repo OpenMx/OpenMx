@@ -522,4 +522,6 @@ void copyParamToModelFake1(omxState *os, Eigen::MatrixBase<T1> &point)
 	}
 }
 
+void AddLoadDataProvider(double version, class LoadDataProviderBase *ldp);
+
 #endif
