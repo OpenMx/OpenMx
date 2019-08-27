@@ -50,8 +50,8 @@ $(BGEN_DEBUG)
 	-Wl,--end-group -liomp5 -lpthread -lm -ldl
 # Uncomment the following line to dynamically link the single-threaded MKL:
 # MKL_LIBS= -L /usr/lib/x86_64-linux-gnu -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_mc -lmkl_def -lpthread -lm -ldl
-# Uncomment the following line to dynamically link the multithreaded MKL (NOT TESTED):
-# MKL_LIBS= -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
+# Uncomment the following line to dynamically link the multithreaded MKL:
+# MKL_LIBS= -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lmkl_mc -lmkl_def -lpthread -lm -ldl
 
 PKG_CXXFLAGS= $(OPENMP_CXXFLAGS) $(MKL_CXXFLAGS) \
  $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) \
