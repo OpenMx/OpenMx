@@ -265,7 +265,7 @@ rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
 	# Lower confidence interval
 	if( pchisq(chi.squared, df=df, ncp=0) >= upper){ #sic
 		lower.lam <- uniroot(f=pChiSqFun, interval=c(1e-10, 1e4), val=chi.squared,
-			degf=df, goal=upper, extendInt="upX")$root
+			degf=df, goal=upper, extendInt="upX", maxiter=100L)$root
 		# solve pchisq(ch, df=df, ncp=x) == upper for x
 	} else{
 		lower.lam <- 0
@@ -273,7 +273,7 @@ rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
 	# Upper confidence interval
 	if( pchisq(chi.squared, df=df, ncp=0) >= lower){ #sic
 		upper.lam <- uniroot(f=pChiSqFun, interval=c(1e-10, 1e4), val=chi.squared,
-			degf=df, goal=lower, extendInt="upX")$root
+			degf=df, goal=lower, extendInt="upX", maxiter=100L)$root
 		# solve pchisq(ch, df=df, ncp=x) == lower for x
 	} else{
 		upper.lam <- 0

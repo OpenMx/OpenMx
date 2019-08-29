@@ -4548,7 +4548,11 @@ void AddLoadDataProvider(double version, LoadDataProviderBase *ldp)
 void ComputeLoadContext::reopen()
 {
 	loadCounter += 1;
-	st = std::unique_ptr<mini::csv::ifstream>(new mini::csv::ifstream(path));
+	try {
+		st = std::unique_ptr<mini::csv::ifstream>(new mini::csv::ifstream(path));
+	} catch (...) {
+		mxThrow("%s: failed to open '%s'", name, path.c_str());
+	}
 	st->set_delimiter(sep, "##");
 }
 

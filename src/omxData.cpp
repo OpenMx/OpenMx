@@ -1144,19 +1144,23 @@ void omxData::reportResults(MxRList &out)
 {
 	out.add("numObs", Rf_ScalarReal(omxDataNumObs(this)));
 
-	if (isModified() && rawCols.size()) {
-		Rcpp::CharacterVector colNames(rawCols.size());
-		Rcpp::List columns(rawCols.size());
-		for (int cx=0; cx < int(rawCols.size()); ++cx) {
+	int numValid = std::count_if(rawCols.begin(), rawCols.end(),
+				     [](ColumnData &c1)->bool{ return c1.type != COLUMNDATA_INVALID; });
+	if (isModified() && numValid) {
+		Rcpp::CharacterVector colNames(numValid);
+		Rcpp::List columns(numValid);
+		for (int cx=0, dx=0; cx < int(rawCols.size()); ++cx) {
 			auto &c1 = rawCols[cx];
-			colNames[cx] = c1.name;
+			if (c1.type == COLUMNDATA_INVALID) continue;
+			colNames[dx] = c1.name;
 			if (c1.type == COLUMNDATA_NUMERIC) {
 				Eigen::Map< Eigen::VectorXd > vec(c1.ptr.realData, rows);
-				columns[cx] = Rcpp::wrap(vec);
+				columns[dx] = Rcpp::wrap(vec);
 			} else {
 				Eigen::Map< Eigen::VectorXi > vec(c1.ptr.intData, rows);
-				columns[cx] = Rcpp::wrap(vec);
+				columns[dx] = Rcpp::wrap(vec);
 			}
+			dx += 1;
 		}
 		Rf_setAttrib(columns, R_NamesSymbol, colNames);
 		markAsDataFrame(columns, rows);
