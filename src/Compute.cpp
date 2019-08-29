@@ -4616,10 +4616,14 @@ void ComputeLoadContext::computeImpl(FitContext *fc)
 		curLine += 1;
 	}
 
-	if (!st->read_line()) {
-		mxThrow("%s: '%s' ran out of data at record %d",
-			name, path.c_str(), 1+index);
+	bool fail = false; // not sure how failure is reported
+	try {
+		fail = !st->read_line();
+	} catch (...) {
+		fail = true;
 	}
+	if (fail) mxThrow("%s: '%s' ran out of data at record %d",
+			  name, path.c_str(), 1+index);
 
 	Eigen::Map< Eigen::ArrayXi > col(columnPtr, numColumns);
 	auto &cv = Global->checkpointValues;
