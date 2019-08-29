@@ -185,13 +185,6 @@ if [ "${OPENMP-yes}" = yes ]; then
     OPENMP_CXXFLAGS='$(SHLIB_OPENMP_CXXFLAGS)'
 fi
 
-if [ $(uname -p) = x86_64 ]; then
-    arch_CXXFLAGS="$arch_CXXFLAGS -DWANT_PGENLIB=1"
-else
-    # pgenlib uses crazy non-portable optimizations
-    arch_CXXFLAGS="$arch_CXXFLAGS -DWANT_PGENLIB=0"
-fi
-
 echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars.new
 echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars.new
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars.new
