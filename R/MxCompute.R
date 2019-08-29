@@ -223,7 +223,7 @@ setMethod("initialize", "MxComputeOnce",
 ##' @param how to compute it (optional)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
-##' @param verbose the level of debugging output
+##' @template args-verbose
 ##' @param .is.bestfit do not use; for backward compatibility
 ##' @aliases
 ##' MxComputeOnce-class
@@ -369,7 +369,7 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param engine specific 'CSOLNP', 'SLSQP', or 'NPSOL'
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
-##' @param verbose level of debugging output
+##' @template args-verbose
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
 ##' @param useGradient whether to use the analytic gradient (if available)
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
@@ -540,7 +540,7 @@ setMethod("initialize", "MxComputeTryHard",
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
-##' @param verbose level of debugging output
+##' @template args-verbose
 ##' @param location location of the perturbation distribution
 ##' @param scale scale of the perturbation distribution
 ##' @param maxRetries maximum number of plan evaluations per invocation (including the first evaluation)
@@ -760,7 +760,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
-##' @param verbose level of debugging output
+##' @template args-verbose
 ##' @param engine deprecated
 ##' @param fitfunction the name of the deviance function
 ##' @param tolerance deprecated
@@ -873,7 +873,7 @@ setMethod("initialize", "MxComputeNewtonRaphson",
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @param maxIter maximum number of iterations
 ##' @param tolerance optimization is considered converged when the maximum relative change in fit is less than tolerance
-##' @param verbose level of debugging output
+##' @template args-verbose
 ##' @aliases
 ##' MxComputeNewtonRaphson-class
 ##' @references
@@ -1093,7 +1093,7 @@ setMethod("initialize", "MxComputeIterate",
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param maxIter the maximum number of iterations
 ##' @param tolerance iterates until maximum relative change is less than tolerance
-##' @param verbose level of debugging output
+##' @template args-verbose
 ##' @param freeSet Names of matrices containing free variables.
 ##' @param maxDuration the maximum amount of time (in seconds) to iterate
 ##' @aliases
@@ -1328,7 +1328,7 @@ setMethod("initialize", "MxComputeEM",
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param maxIter maximum number of iterations
 ##' @param tolerance optimization is considered converged when the maximum relative change in fit is less than tolerance
-##' @param verbose level of diagnostic output
+##' @template args-verbose
 ##' @param freeSet names of matrices containing free variables
 ##' @param accel name of acceleration method ("varadhan2008" or "ramsay1975")
 ##' @param information name of information matrix approximation method
@@ -1736,7 +1736,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' @param parallel whether to evaluate the fitfunction in parallel (defaults to TRUE)
 ##' @param stepSize starting set size (defaults to 0.0001)
 ##' @param iterations number of Richardson extrapolation iterations (defaults to 4L)
-##' @param verbose Level of debugging output.
+##' @template args-verbose
 ##' @param knownHessian an optional matrix of known Hessian entries
 ##' @param checkGradient whether to check the first order convergence criterion (gradient is near zero)
 ##' @param hessian whether to estimate the Hessian. If FALSE then only the gradient is estimated.
@@ -1959,7 +1959,7 @@ setMethod("initialize", "MxComputeHessianQuality",
 ##' 
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param verbose Level of debugging output.
+##' @template args-verbose
 ##' @aliases
 ##' MxComputeHessianQuality-class
 ##' @references
@@ -2340,7 +2340,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' @param col.names optional integer. Row containing the column names.
 ##' @param skip.rows integer. Number of rows to skip before reading data.
 ##' @param skip.cols integer. Number of columns to skip before reading data.
-##' @param verbose integer. Level of diagnostic output.
+##' @template args-verbose
 ##' @param cacheSize integer. How many columns to cache per
 ##' scan through the data. Only used when byrow=FALSE.
 ##' @param checkpointMetadata logical. Whether to add per record metadata to the checkpoint
