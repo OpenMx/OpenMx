@@ -1132,10 +1132,11 @@ setClass(Class = "MxComputeLoop",
 	 representation = representation(
 		 indices = "integer",
 	   maxIter = "integer",
-	   maxDuration = "numeric"))
+	   maxDuration = "numeric",
+	   verbose="integer"))
 
 setMethod("initialize", "MxComputeLoop",
-	  function(.Object, steps, indices, maxIter, freeSet, maxDuration) {
+	  function(.Object, steps, indices, maxIter, freeSet, maxDuration, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
@@ -1143,6 +1144,7 @@ setMethod("initialize", "MxComputeLoop",
 		  .Object@maxIter <- maxIter
 		  .Object@freeSet <- freeSet
 		  .Object@maxDuration <- maxDuration
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
@@ -1156,22 +1158,21 @@ setMethod("initialize", "MxComputeLoop",
 ##' @param freeSet Names of matrices containing free variables.
 ##' @param maxDuration the maximum amount of time (in seconds) to
 ##'         iterate
+##' @template args-verbose
 ##' @description When \code{i} is given then these values are iterated
 ##'         over instead of the sequence 1 to the number of
-##'         iterations.  If \code{i} is not given then \code{maxIter}
-##'         is set to 500 to prevent infinite loops.
+##'         iterations.
 ##' @aliases MxComputeLoop-class mxComputeBenchmark
 mxComputeLoop <- function(steps, ..., i=NULL, maxIter=as.integer(NA), freeSet=NA_character_,
-			     maxDuration=as.numeric(NA)) {
+			     maxDuration=as.numeric(NA), verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeBenchmark does not accept values for the '...' argument")
 	}
 
-	if (is.null(i) && missing(maxIter)) maxIter <- 500L
 	maxIter <- as.integer(maxIter)
 	new("MxComputeLoop", steps=steps, indices=as.integer(i), maxIter=maxIter,
-	    freeSet, maxDuration)
+	    freeSet, maxDuration, as.integer(verbose))
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeLoop", indent="integer"),
@@ -2378,11 +2379,12 @@ setClass(Class = "MxComputeLoadContext",
 		 method = "character",
 		 path = "character",
 		 column = "integer",
-		 sep = "character"
+	   sep = "character",
+	   verbose = "integer"
 	 ))
 
 setMethod("initialize", "MxComputeLoadContext",
-	function(.Object, method, path, column, sep) {
+	function(.Object, method, path, column, sep, verbose) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2390,6 +2392,7 @@ setMethod("initialize", "MxComputeLoadContext",
 		  .Object@path <- path
 		  .Object@column <- column
 		  .Object@sep <- sep
+		  .Object@verbose <- verbose
 		  .Object
 	  })
 
@@ -2407,19 +2410,21 @@ setMethod("initialize", "MxComputeLoadContext",
 ##' @param path the path to the file containing the data
 ##' @param column a character vector. The column names to log.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param sep the field separator character. Values on each line of the file
-##' are separated by this character.
+##' @param sep the field separator character. Values on each line of the file are separated by this character.
+##' @template args-verbose
 ##' @aliases
 ##' MxComputeLoadContext-class
 ##' @seealso
 ##' \link{mxComputeCheckpoint}, \link{mxComputeLoadData}, \link{mxComputeLoadMatrix}
-mxComputeLoadContext <- function(method=c('csv'), path=c(), column, ..., sep=' ') {
+mxComputeLoadContext <- function(method=c('csv'), path=c(), column, ..., sep=' ',
+				 verbose=0L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadContext does not accept values for the '...' argument")
 	}
 	method <- match.arg(method)
-	new("MxComputeLoadContext", method, as.character(path), as.integer(column), sep)
+	new("MxComputeLoadContext", method, as.character(path), as.integer(column), sep,
+	    as.integer(verbose))
 }
 
 #----------------------------------------------------

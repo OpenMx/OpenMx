@@ -1776,6 +1776,7 @@ class omxComputeIterate : public ComputeContainer {
 
 class ComputeLoop : public ComputeContainer {
 	typedef ComputeContainer super;
+	int verbose;
 	int indicesLength;
 	int *indices;
 	int maxIter;
@@ -2186,6 +2187,7 @@ class ComputeLoadMatrix : public omxCompute {
 class ComputeLoadContext : public omxCompute {
 	typedef omxCompute super;
 
+	int verbose;
 	int loadCounter;
 	char sep;
 	std::string path;
@@ -2521,6 +2523,8 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	{
+		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+		verbose = Rf_asInteger(Rverbose);
 		ProtectedSEXP Rindices(R_do_slot(rObj, Rf_install("indices")));
 		indicesLength = Rf_length(Rindices);
 		indices = INTEGER(Rindices);
@@ -2560,12 +2564,27 @@ void ComputeLoop::computeImpl(FitContext *fc)
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
 			clist[cx]->compute(fc);
-			if (isErrorRaised()) break;
+			if (isErrorRaised()) {
+				if (verbose) mxLog("%s: error raised at step %d", name, int(cx));
+				break;
+			}
 		}
-		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) break;
-		if (hasMaxIter && iterations >= maxIter) break;
-		if (hasIndices && iterations >= indicesLength) break;
-		if (isErrorRaised()) break;
+		if (std::isfinite(maxDuration) && time(0) - startTime > maxDuration) {
+			if (verbose) mxLog("%s: maximum duration", name);
+			break;
+		}
+		if (hasMaxIter && iterations >= maxIter) {
+			if (verbose) mxLog("%s: maximum iterations", name);
+			break;
+		}
+		if (hasIndices && iterations >= indicesLength) {
+			if (verbose) mxLog("%s: completed todo list", name);
+			break;
+		}
+		if (isErrorRaised()) {
+			if (verbose) mxLog("%s: error raised", name);
+			break;
+		}
 	}
 }
 
@@ -4562,6 +4581,9 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	loadCounter = 0;
 
+	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
+	verbose = Rf_asInteger(Rverbose);
+
 	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
 	numColumns = Rf_length(Rcol);
 	columnPtr = INTEGER(Rcol);
@@ -4589,7 +4611,7 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 		std::string c1;
 		*st >> c1;
 		if (cx == col[xx]-1) {
-			//mxLog("cx %d xx %d %s", cx, xx, c1.c_str());
+			if (verbose) mxLog("cx %d xx %d %s", cx, xx, c1.c_str());
 			cp.push_back(c1);
 			if (++xx == numColumns) break;
 		}
