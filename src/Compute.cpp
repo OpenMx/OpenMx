@@ -2191,6 +2191,7 @@ class ComputeLoadContext : public omxCompute {
 	int loadCounter;
 	char sep;
 	bool header;
+	std::vector<const char *> colnames;
 	std::string path;
 	std::unique_ptr< mini::csv::ifstream > st;
 	int cpIndex;
@@ -4646,6 +4647,10 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 	verbose = Rf_asInteger(Rverbose);
 	ProtectedSEXP Rheader(R_do_slot(rObj, Rf_install("header")));
 	header = Rf_asInteger(Rheader);
+	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
+	for (int cx=0; cx < Rf_length(Rcolnames); ++cx) {
+		colnames.push_back(R_CHAR(STRING_ELT(Rcolnames, cx)));
+	}
 
 	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
 	numColumns = Rf_length(Rcol);
@@ -4670,7 +4675,10 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 	reopen();
 	if (header) {
 		if (!st->read_line()) mxThrow("%s: cannot read header of '%s'", name, path.c_str());
-
+	}
+	if (colnames.size()) {
+		for (int cx=0; cx < numColumns; ++cx) cp.push_back(colnames[cx]);
+	} else if (header) {
 		int xx=0;
 		for (int cx=0; cx < maxColumn; ++cx) {
 			std::string c1;
