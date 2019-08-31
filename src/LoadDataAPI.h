@@ -113,66 +113,6 @@ public:
 	}
 };
 
-void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name,
-				      const char *_dataName, int _rows,
-				      std::vector<ColumnData> &_rawCols,
-				      ColMapType &_rawColMap,
-				      std::vector< std::string > &_checkpointValues)
-{
-	name = _name;
-	dataName = _dataName;
-	rows = _rows;
-	rawCols = &_rawCols;
-	rawColMap = &_rawColMap;
-	checkpointValues = &_checkpointValues;
-
-	curRecord = -1;
-	loadCounter = 0;
-	stripeSize = 1;
-	stripeStart = -1;
-	stripeEnd = -1;
-
-	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
-	verbose = Rf_asInteger(Rverbose);
-
-	rowNames = NA_INTEGER;
-	colNames = NA_INTEGER;
-	ProtectedSEXP Rrownames(R_do_slot(rObj, Rf_install("row.names")));
-	if (Rf_length(Rrownames)) rowNames = Rf_asInteger(Rrownames);
-	ProtectedSEXP Rcolnames(R_do_slot(rObj, Rf_install("col.names")));
-	if (Rf_length(Rcolnames)) colNames = Rf_asInteger(Rcolnames);
-
-	ProtectedSEXP Rskiprows(R_do_slot(rObj, Rf_install("skip.rows")));
-	skipRows = Rf_asInteger(Rskiprows);
-	ProtectedSEXP Rskipcols(R_do_slot(rObj, Rf_install("skip.cols")));
-	skipCols = Rf_asInteger(Rskipcols);
-
-	ProtectedSEXP RnaStr(R_do_slot(rObj, Rf_install("na.strings")));
-	for (int x1=0; x1 < Rf_length(RnaStr); ++x1) {
-		naStrings.push_back(R_CHAR(STRING_ELT(RnaStr, x1)));
-	}
-
-	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
-	for (int cx=0; cx < Rf_length(Rcol); ++cx) {
-		auto cn = R_CHAR(STRING_ELT(Rcol, cx));
-		auto &rcm = *rawColMap;
-		auto rci = rcm.find(cn);
-		if (rci == rcm.end()) {
-			omxRaiseErrorf("%s: column '%s' not found in '%s'",
-				       name, cn, dataName);
-			continue;
-		}
-		columns.push_back(rci->second);
-		auto &rc = _rawCols[rci->second];
-		colTypes.push_back(rc.type);
-		origData.emplace_back(rc.ptr);
-	}
-
-	
-	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
-	checkpoint = Rf_asLogical(Rcheckpoint);
-}
-
 template <typename Derived>
 class LoadDataProvider : public LoadDataProviderBase {
 public:
