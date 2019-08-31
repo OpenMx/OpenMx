@@ -2190,6 +2190,7 @@ class ComputeLoadContext : public omxCompute {
 	int verbose;
 	int loadCounter;
 	char sep;
+	bool header;
 	std::string path;
 	std::unique_ptr< mini::csv::ifstream > st;
 	int cpIndex;
@@ -4583,6 +4584,8 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
+	ProtectedSEXP Rheader(R_do_slot(rObj, Rf_install("header")));
+	header = Rf_asInteger(Rheader);
 
 	ProtectedSEXP Rcol(R_do_slot(rObj, Rf_install("column")));
 	numColumns = Rf_length(Rcol);
@@ -4594,11 +4597,6 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 	if (strlen(sepStr) != 1) mxThrow("%s: sep must be a single character, not '%s'", name, sepStr);
 	sep = sepStr[0];
 
-	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
-	path = R_CHAR(STRING_ELT(Rpath, 0));
-	reopen();
-	if (!st->read_line()) mxThrow("%s: cannot read header of '%s'", name, path.c_str());
-
 	auto &cp = Global->checkpointColnames;
 	cpIndex = cp.size();
 	Eigen::Map< Eigen::ArrayXi > col(columnPtr, numColumns);
@@ -4606,17 +4604,30 @@ void ComputeLoadContext::initFromFrontend(omxState *globalState, SEXP rObj)
 				   name, col.minCoeff());
 	maxColumn = col.maxCoeff();
 	//mxLog("%s: len %d max %d", name, numColumns, maxColumn);
-	int xx=0;
-	for (int cx=0; cx < maxColumn; ++cx) {
-		std::string c1;
-		*st >> c1;
-		if (cx == col[xx]-1) {
-			if (verbose) mxLog("cx %d xx %d %s", cx, xx, c1.c_str());
-			cp.push_back(c1);
-			if (++xx == numColumns) break;
+
+	ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
+	path = R_CHAR(STRING_ELT(Rpath, 0));
+	reopen();
+	if (header) {
+		if (!st->read_line()) mxThrow("%s: cannot read header of '%s'", name, path.c_str());
+
+		int xx=0;
+		for (int cx=0; cx < maxColumn; ++cx) {
+			std::string c1;
+			*st >> c1;
+			if (cx == col[xx]-1) {
+				if (verbose) mxLog("cx %d xx %d %s", cx, xx, c1.c_str());
+				cp.push_back(c1);
+				if (++xx == numColumns) break;
+			}
+		}
+		if (xx != numColumns) mxThrow("%s: columns must be ordered from first to last", name);
+	} else {
+		for (int cx=0; cx < numColumns; ++cx) {
+			std::string c1 = string_snprintf(":%d", col[cx]);
+			cp.push_back(path + c1);
 		}
 	}
-	if (xx != numColumns) mxThrow("%s: columns must be ordered from first to last", name);
 	curLine = 0;
 }
 

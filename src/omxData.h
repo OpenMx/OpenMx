@@ -172,6 +172,7 @@ class omxData {
 	bool noExoOptimize;
 	bool modified;
 	double minVariance;
+	bool warnNPDacov;
 	std::vector<int> algebra;
 
 	void estimateObservedStats();

@@ -42,7 +42,7 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
-		     noExoOptimize(true), modified(false), minVariance(0),
+		     noExoOptimize(true), modified(false), minVariance(0), warnNPDacov(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -238,6 +238,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if (R_has_slot(dataObj, Rf_install("minVariance"))) {
 		ProtectedSEXP Rmv(R_do_slot(dataObj, Rf_install("minVariance")));
 		minVariance = Rf_asReal(Rmv);
+	}
+	if (R_has_slot(dataObj, Rf_install("warnNPDacov"))) {
+		ProtectedSEXP Rnpd(R_do_slot(dataObj, Rf_install("warnNPDacov")));
+		warnNPDacov = Rf_asLogical(Rnpd);
 	}
 
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
@@ -2858,7 +2862,7 @@ void omxData::estimateObservedStats()
 	}
 	if (InvertSymmetricPosDef(Efw, 'L')) {
 		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
-		else Rf_warning("%s: acov matrix is not positive definite", name);
+		else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
 	}
 
 	// lavaan divides Efw by numObs, we don't

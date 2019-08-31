@@ -2380,11 +2380,12 @@ setClass(Class = "MxComputeLoadContext",
 		 path = "character",
 		 column = "integer",
 	   sep = "character",
-	   verbose = "integer"
+	   verbose = "integer",
+	   header = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeLoadContext",
-	function(.Object, method, path, column, sep, verbose) {
+	function(.Object, method, path, column, sep, verbose, header) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2393,6 +2394,7 @@ setMethod("initialize", "MxComputeLoadContext",
 		  .Object@column <- column
 		  .Object@sep <- sep
 		  .Object@verbose <- verbose
+		  .Object@header <- header
 		  .Object
 	  })
 
@@ -2411,20 +2413,23 @@ setMethod("initialize", "MxComputeLoadContext",
 ##' @param column a character vector. The column names to log.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param sep the field separator character. Values on each line of the file are separated by this character.
+##' @param header logical. Whether the first row contains column headers.
 ##' @template args-verbose
 ##' @aliases
 ##' MxComputeLoadContext-class
 ##' @seealso
 ##' \link{mxComputeCheckpoint}, \link{mxComputeLoadData}, \link{mxComputeLoadMatrix}
 mxComputeLoadContext <- function(method=c('csv'), path=c(), column, ..., sep=' ',
-				 verbose=0L) {
+				 verbose=0L, header=TRUE) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadContext does not accept values for the '...' argument")
 	}
 	method <- match.arg(method)
+	if (length(column) > 1 && any(diff(column) < 0))
+	  stop("Columns must be ordered from left to right")
 	new("MxComputeLoadContext", method, as.character(path), as.integer(column), sep,
-	    as.integer(verbose))
+	    as.integer(verbose), as.logical(header))
 }
 
 #----------------------------------------------------
