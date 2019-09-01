@@ -2381,11 +2381,12 @@ setClass(Class = "MxComputeLoadContext",
 		 column = "integer",
 	   sep = "character",
 	   verbose = "integer",
-	   header = "logical"
+	   header = "logical",
+	   col.names = "character"
 	 ))
 
 setMethod("initialize", "MxComputeLoadContext",
-	function(.Object, method, path, column, sep, verbose, header) {
+	function(.Object, method, path, column, sep, verbose, header, col.names) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2395,6 +2396,7 @@ setMethod("initialize", "MxComputeLoadContext",
 		  .Object@sep <- sep
 		  .Object@verbose <- verbose
 		  .Object@header <- header
+		  .Object@col.names <- col.names
 		  .Object
 	  })
 
@@ -2402,8 +2404,12 @@ setMethod("initialize", "MxComputeLoadContext",
 ##'
 ##' THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
 ##'
-##' Currently, this only supports tab separated comma separated value
-##' format with a column header and no row names.
+##' Currently, this only supports comma separated value format and no
+##' row names. If \code{header=TRUE} and \code{col.names} are
+##' provided, the \code{col.names} take precedence. If
+##' \code{header=FALSE} and no \code{col.names} are provided then
+##' the column names consist of the file name and column offset.
+##' 
 ##' An \code{originalDataIsIndexOne} option is not offered. You'll need to
 ##' add an extra line at the start on your file if you wish to make
 ##' use of \code{originalDataIsIndexOne} in \code{mxComputeLoad*}.
@@ -2414,13 +2420,14 @@ setMethod("initialize", "MxComputeLoadContext",
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param sep the field separator character. Values on each line of the file are separated by this character.
 ##' @param header logical. Whether the first row contains column headers.
+##' @param col.names character vector. Column names
 ##' @template args-verbose
 ##' @aliases
 ##' MxComputeLoadContext-class
 ##' @seealso
 ##' \link{mxComputeCheckpoint}, \link{mxComputeLoadData}, \link{mxComputeLoadMatrix}
 mxComputeLoadContext <- function(method=c('csv'), path=c(), column, ..., sep=' ',
-				 verbose=0L, header=TRUE) {
+				 verbose=0L, header=TRUE, col.names=NULL) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeLoadContext does not accept values for the '...' argument")
@@ -2428,8 +2435,11 @@ mxComputeLoadContext <- function(method=c('csv'), path=c(), column, ..., sep=' '
 	method <- match.arg(method)
 	if (length(column) > 1 && any(diff(column) < 0))
 	  stop("Columns must be ordered from left to right")
+	if (length(col.names) && length(col.names) != length(column)) {
+	  stop("If col.names provided, the length must match the number of columns")
+	}
 	new("MxComputeLoadContext", method, as.character(path), as.integer(column), sep,
-	    as.integer(verbose), as.logical(header))
+	    as.integer(verbose), as.logical(header), as.character(col.names))
 }
 
 #----------------------------------------------------
