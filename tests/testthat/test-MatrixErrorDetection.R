@@ -423,13 +423,13 @@ J <- mxMatrix("Iden",nrow=3,name="I")
 J@values[1,2] <- 2
 omxCheckError(
   mxRun(mxModel("asdf",J)),
-  "'values' matrix of Identity MxMatrix 'I' is not the identity matrix in \"(oops) could not find function mxMatrix\"")
+  "'values' matrix of Identity MxMatrix 'I' is not the identity matrix in \"mxMatrix\"")
 
 J <- mxMatrix("Iden",nrow=3,name="I",condenseSlots=FALSE)
 J@free[1,2] <- TRUE
 omxCheckError(
   mxRun(mxModel("asdf",J)),
-"'free' matrix of Identity MxMatrix 'I' has a free parameter in \"(oops) could not find function mxMatrix\"")
+"'free' matrix of Identity MxMatrix 'I' has a free parameter in \"mxMatrix\"")
 
 J <- mxMatrix("Iden",nrow=3,name="I")
 J$labels <- matrix(letters[1:9],3,3)
@@ -439,19 +439,19 @@ omxCheckWarning(omxSetParameters(model = m, labels = "a"),
 m <- omxSetParameters(model = m, labels = "a", free = T)
 omxCheckError(
   mxRun(m),
-  "'free' matrix of Identity MxMatrix 'I' has a free parameter in \"(oops) could not find function mxMatrix\"")
+  "'free' matrix of Identity MxMatrix 'I' has a free parameter in \"mxMatrix\"")
 
 U <- mxMatrix("Unit",nrow=2,ncol=3,name="U")
 U@values[1,2] <- 2
 omxCheckError(
   mxRun(mxModel("asdf",U)),
-  "'values' matrix of Unit MxMatrix 'U' has non unit entries in \"(oops) could not find function mxMatrix\"")
+  "'values' matrix of Unit MxMatrix 'U' has non unit entries in \"mxMatrix\"")
 
 U <- mxMatrix("Unit",nrow=2,ncol=3,name="U",condenseSlots=FALSE)
 U@free[1,2] <- TRUE
 omxCheckError(
   mxRun(mxModel("asdf",U)),
-"'free' matrix of Unit MxMatrix 'U' has a free parameter in \"(oops) could not find function mxMatrix\"")
+"'free' matrix of Unit MxMatrix 'U' has a free parameter in \"mxMatrix\"")
 
 U <- mxMatrix("Unit",nrow=2,ncol=3,name="U")
 U$labels <- matrix(letters[1:6],2,3)
@@ -459,19 +459,19 @@ m <- mxModel("asdf",U)
 m <- omxSetParameters(model = m, labels = "a", free = T)
 omxCheckError(
   mxRun(m),
-  "'free' matrix of Unit MxMatrix 'U' has a free parameter in \"(oops) could not find function mxMatrix\"")
+  "'free' matrix of Unit MxMatrix 'U' has a free parameter in \"mxMatrix\"")
 
 Z <- mxMatrix("Zero",nrow=2,ncol=3,name="Z")
 Z@values[1,2] <- 2
 omxCheckError(
   mxRun(mxModel("asdf",Z)),
-  "'values' matrix of Zero MxMatrix 'Z' has non-zero entries in \"(oops) could not find function mxMatrix\"")
+  "'values' matrix of Zero MxMatrix 'Z' has non-zero entries in \"mxMatrix\"")
 
 Z <- mxMatrix("Zero",nrow=2,ncol=3,name="Z",condenseSlots=FALSE)
 Z@free[1,2] <- TRUE
 omxCheckError(
   mxRun(mxModel("asdf",Z)),
-  "'free' matrix of Zero MxMatrix 'Z' has a free parameter in \"(oops) could not find function mxMatrix\"")
+  "'free' matrix of Zero MxMatrix 'Z' has a free parameter in \"mxMatrix\"")
 
 Z <- mxMatrix("Zero",nrow=2,ncol=3,name="Z")
 Z$labels <- matrix(letters[1:6],2,3)
@@ -479,7 +479,7 @@ m <- mxModel("asdf",Z)
 m <- omxSetParameters(model = m, labels = "a", free = T)
 omxCheckError(
   mxRun(m),
-  "'free' matrix of Zero MxMatrix 'Z' has a free parameter in \"(oops) could not find function mxMatrix\"")
+  "'free' matrix of Zero MxMatrix 'Z' has a free parameter in \"mxMatrix\"")
 
 Fu <- mxMatrix(type = "Full", nrow = 2, ncol=3, free = rep(F,6), values = 1:6, name="Fu", condenseSlots = T,
                dimnames = list(c("r1","r2"),c("c1","c2","c3")))
@@ -518,10 +518,10 @@ Fu <- mxMatrix(type = "Full", nrow = 2, ncol=3, free = rep(F,6), values = 1:6, n
                dimnames = list(c("r1","r2"),c("c1","c2","c3")))
 omxCheckWarning(
   Fu$values <- 1:7,
-  "data length 7 is not a sub-multiple or multiple of the number of rows 2 for argument 'values' in \"(oops) could not find function mxMatrix\"")
+  "data length 7 is not a sub-multiple or multiple of the number of rows 2 for argument 'values' in \"mxMatrix\"")
 omxCheckWarning(
   Fu$values <- 1:8,
-  "data length 8 is not a sub-multiple or multiple of the number of columns 3 for argument 'values' in \"(oops) could not find function mxMatrix\"")
+  "data length 8 is not a sub-multiple or multiple of the number of columns 3 for argument 'values' in \"mxMatrix\"")
 omxCheckError(
   Fu[1:2,1:2] <- "qwer",
   "right-hand side must be MxMatrix object")
