@@ -68,6 +68,7 @@ public:
 			std::vector<ColumnData> &_rawCols,
 			ColMapType &_rawColMap,
 			std::vector< std::string > &_checkpointValues);
+	virtual int getNumVariants() { return 0; }
 	bool wantCheckpoint() const { return checkpoint; }
 	int getLoadCounter() const { return loadCounter; }
 	virtual const char *getName()=0;

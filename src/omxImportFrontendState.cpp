@@ -188,8 +188,10 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 	compute->initFromFrontend(currentState, rObj);
 	computeList.push_back(compute);
 
-	if (Global->computeLoopContext.size())
-		mxThrow("computeLoopContext imbalance in initFromFrontend");
+	if (Global->computeLoopContext.size()) {
+		mxThrow("computeLoopContext imbalance of %d in initFromFrontend",
+			int(Global->computeLoopContext.size()));
+	}
 
 	Global->checkpointValues.resize(Global->checkpointColnames.size());
 }
