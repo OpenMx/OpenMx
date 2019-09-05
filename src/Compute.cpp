@@ -2536,7 +2536,7 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("steps")));
 
-	PushLoopIndex pli(name, NA_INTEGER);
+	PushLoopIndex pli(name);
 
 	for (int cx = 0; cx < Rf_length(slotValue); cx++) {
 		SEXP step = VECTOR_ELT(slotValue, cx);
@@ -2561,7 +2561,8 @@ void ComputeLoop::computeImpl(FitContext *fc)
 	bool hasMaxIter = maxIter != NA_INTEGER;
 	time_t startTime = time(0);
 	while (1) {
-		PushLoopIndex pli(name, hasIndices? indices[iterations] : 1+iterations);
+		PushLoopIndex pli(name, hasIndices? indices[iterations] : 1+iterations,
+				  hasMaxIter? maxIter : 0);
 		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
@@ -4597,6 +4598,9 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 	} else {
 		index -= useOriginalData; // 0 == the first record
 		provider->loadRow(index);
+		auto &clm = Global->computeLoopMax;
+		auto &max = clm.at(clm.size()-1);
+		if (max == 0) max = provider->getNumVariants();
 	}
 
 	auto &columns = provider->getColumns();

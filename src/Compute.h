@@ -400,14 +400,22 @@ class omxCompute {
 	bool isPersist() { return dotPersist; };
 };
 
-struct PushLoopIndex {
-	PushLoopIndex(const char *name, int ix) {
+class PushLoopIndex {
+	void init(const char *name, int ix, int last)
+	{
 		Global->computeLoopContext.push_back(name);
 		Global->computeLoopIndex.push_back(ix);
+		Global->computeLoopMax.push_back(last);
 	}
+public:
+	PushLoopIndex(const char *name, int ix, int last)
+	{ init(name, ix, last); }
+	PushLoopIndex(const char *name)
+	{ init(name, NA_INTEGER, 0); }
 	~PushLoopIndex() {
 		Global->computeLoopContext.pop_back();
 		Global->computeLoopIndex.pop_back();
+		Global->computeLoopMax.pop_back();
 	}
 };
 
