@@ -1782,6 +1782,7 @@ class ComputeLoop : public ComputeContainer {
 	int maxIter;
 	double maxDuration;
 	int iterations;
+	int startFrom;
 
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
@@ -2525,6 +2526,8 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	{
+		ProtectedSEXP RstartFrom(R_do_slot(rObj, Rf_install("startFrom")));
+		startFrom = Rf_asInteger(RstartFrom);
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(Rverbose);
 		ProtectedSEXP Rindices(R_do_slot(rObj, Rf_install("indices")));
@@ -2561,7 +2564,7 @@ void ComputeLoop::computeImpl(FitContext *fc)
 	bool hasMaxIter = maxIter != NA_INTEGER;
 	time_t startTime = time(0);
 	while (1) {
-		PushLoopIndex pli(name, hasIndices? indices[iterations] : 1+iterations,
+		PushLoopIndex pli(name, hasIndices? indices[iterations] : startFrom+iterations,
 				  hasMaxIter? maxIter : 0);
 		++iterations;
 		++fc->iterations;
