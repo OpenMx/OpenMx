@@ -236,6 +236,8 @@ omxGlobal::omxGlobal()
 	boundsUpdated = false;
 	dataTypeWarningCount = 0;
 	userInterrupted = false;
+	lastIndexDone=0;
+	lastIndexDoneTime=0;
 
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
@@ -700,14 +702,17 @@ void omxGlobal::reportProgress1(const char *context, std::string detail)
 
 	lastProgressReport = now;
 
-	// TODO
 	auto &cli = Global->computeLoopIndex;
 	auto &clm = Global->computeLoopMax;
 	std::string str;
-	if (cli.size() == 1 && cli[0] > 0 && clm[0] != 0 && cli[0] <= clm[0]) {
+	if (cli.size() == 1 && cli[0] != lastIndexDone) {
+		lastIndexDone = cli[0];
+		lastIndexDoneTime = now;
+	}
+	if (cli.size() == 1 && clm[0] != 0 && cli[0] <= clm[0] && lastIndexDone > 0) {
 		str += "[";
-		double pctDone = cli[0] / double(clm[0]);
-		auto elapsed = now - Global->startTime;
+		double pctDone = lastIndexDone / double(clm[0]);
+		auto elapsed = lastIndexDoneTime - Global->startTime;
 		auto estTotal = elapsed / pctDone;
 		int estRemain = estTotal - elapsed;
 		if (estTotal < 60*60) {

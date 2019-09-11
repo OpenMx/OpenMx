@@ -271,6 +271,8 @@ class omxGlobal {
 	std::vector<const char *> computeLoopContext;
 	std::vector<int> computeLoopIndex;
 	std::vector<int> computeLoopMax;
+	int lastIndexDone;
+	time_t lastIndexDoneTime;
 
 	std::vector< std::string > checkpointColnames;
 	std::vector< std::string > checkpointValues;

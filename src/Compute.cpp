@@ -2588,6 +2588,15 @@ void ComputeLoop::computeImpl(FitContext *fc)
 			if (verbose) mxLog("%s: error raised", name);
 			break;
 		}
+		if (!hasMaxIter) {
+			auto &clm = Global->computeLoopMax;
+			int m1 = clm[clm.size() - 1];
+			if (m1) {
+				// filled in by sub compute plan
+				maxIter = m1;
+				hasMaxIter = true;
+			}
+		}
 	}
 }
 
