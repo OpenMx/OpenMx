@@ -70,4 +70,6 @@ m1 <- mxModel(
   ), i=1:4))
 
 m1 <- mxRun(m1)
+
+file.remove(c("loadMatrix.csv", "mean.csv", "cov.csv"))   # tidy up
 }
