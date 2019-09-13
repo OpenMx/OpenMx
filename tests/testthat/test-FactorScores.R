@@ -187,9 +187,9 @@ rr3 <- mxFactorScores(factorRamRun, 'WeightedML')
 
 
 # Compare RAM factor scores to LISREL
-omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1)
-omxCheckCloseEnough(cor(rr2[,,1], r2[,,1]), 1)
-omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1)
+omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1, 1e-8)
+omxCheckCloseEnough(cor(rr2[,,1], r2[,,1]), 1, 1e-8)
+omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1, 1e-8)
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
