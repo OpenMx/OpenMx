@@ -79,7 +79,7 @@ matrixA <- mxMatrix("Full", nrow = 1, ncol = 1, values = 1, name = "A")
 algebraB <- mxAlgebra(A + A, name = "B")
 
 # Put them both in a model
-testModel <- mxModel(model="testModel", matrixA, algebraB)
+testModel <- mxModel(model="testModel3", matrixA, algebraB)
 
 # Even though the model has not been run, we can evaluate the algebra
 #   given the starting values in matrixA.

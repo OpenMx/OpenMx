@@ -170,7 +170,7 @@ dimnames(covMatrix) <- dimList
 # 2. Create an MxData object from covMatrix
 testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
-testModel <- mxModel(model="testModel",
+testModel <- mxModel(model="testModel2",
 	mxMatrix(name="expCov", type="Symm", nrow=2, ncol=2,
                  values=c(.2,.1,.2), free=TRUE, dimnames=dimList),
     mxExpectationNormal("expCov", dimnames=covNames),
