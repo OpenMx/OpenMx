@@ -171,7 +171,8 @@ dimnames(covMatrix) <- dimList
 testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
 testModel <- mxModel(model="testModel",
-	mxMatrix(name="expCov", type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), free=TRUE, dimnames=dimList),
+	mxMatrix(name="expCov", type="Symm", nrow=2, ncol=2,
+                 values=c(.2,.1,.2), free=TRUE, dimnames=dimList),
     mxExpectationNormal("expCov", dimnames=covNames),
     mxFitFunctionML(),
 	testData
