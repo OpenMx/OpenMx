@@ -24,18 +24,14 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_CXXFLAGS+=-UNDEBUG                      # always uncomment this when you debug
 # DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # pass debug flags to linker, i.e., -fsanitize=undefined
 
-#BGEN_DEBUG += -D DEBUG=1
-
-COMMON_FLAGS=-I. -Iinclude \
--Iinclude/zstd-1.1.0 \
--Iinclude/zstd-1.1.0/common \
--Iinclude/zstd-1.1.0/compress \
--Iinclude/zstd-1.1.0/decompress \
--D SQLITE_ENABLE_COLUMN_METADATA \
--D SQLITE_ENABLE_STAT4 \
--D SQLITE_MAX_EXPR_DEPTH=10000 \
--D SQLITE_USE_URI=1 \
-$(BGEN_DEBUG)
+# Uncomment if you want to link OpenMx against Intel's MKL, if you installed the MKL directly from an Intel product, under Linux/GNU:
+# MKL_CXXFLAGS= -D EIGEN_USE_MKL_ALL -I"/opt/intel/mkl/include"
+# Uncomment the following line to statically link against the multithreaded MKL (MKLROOT should already have been defined by an Intel script):
+# MKL_LIBS= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a \
+	${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl
+# Uncomment the following line to statically link against the single-threaded MKL (MKLROOT should already have been defined by an Intel script):
+# MKL_LIBS=  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a \
+	${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
 # Uncomment if you want to link OpenMx against Debian's package of the Intel MKL
 # (you may need to change the paths in MKL_CXXFLAGS and MKL_LIBS if using a different OS, or if you installed the MKL directly from Intel):
@@ -49,9 +45,15 @@ $(BGEN_DEBUG)
 	/usr/lib/x86_64-linux-gnu/libmkl_intel_thread.a /usr/lib/x86_64-linux-gnu/libmkl_core.a \
 	-Wl,--end-group -liomp5 -lpthread -lm -ldl
 # Uncomment the following line to dynamically link the single-threaded MKL:
-# MKL_LIBS= -L /usr/lib/x86_64-linux-gnu -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_mc -lmkl_def -lpthread -lm -ldl
-# Uncomment the following line to dynamically link the multithreaded MKL (NOT TESTED):
-# MKL_LIBS= -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
+# MKL_LIBS= -L /usr/lib/x86_64-linux-gnu -lmkl_gf_lp64 -lmkl_intel_lp64 -lmkl_rt -lmkl_sequential -lmkl_core -lmkl_mc -lmkl_def -lpthread -lm -ldl
+# Uncomment the following line to dynamically link the multithreaded MKL:
+# MKL_LIBS= -L /usr/lib/x86_64-linux-gnu -lmkl_gf_lp64 -lmkl_intel_lp64 -lmkl_rt -lmkl_intel_thread -lmkl_core -liomp5 -lmkl_mc -lmkl_def -lpthread -lm -ldl
+
+# Uncomment next line to link OpenMx against a non-MKL BLAS implementation (assumes BLAS_LIBS is already set appropriately):
+# MKL_CXXFLAGS= -D EIGEN_USE_BLAS
+# Uncomment next TWO lines to additionally link OpenMx against a non-MKL LAPACK (you may need to appropriately change the path):
+# MKL_CXXFLAGS+= -D EIGEN_USE_LAPACK
+# MKL_LIBS= -L/usr/lib/x86_64-linux-gnu -llapacke
 
 PKG_CXXFLAGS= $(OPENMP_CXXFLAGS) $(MKL_CXXFLAGS) \
  $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) \

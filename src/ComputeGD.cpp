@@ -599,6 +599,7 @@ class ComputeCI : public omxCompute {
 	omxCompute *plan;
 	omxMatrix *fitMatrix;
 	int verbose;
+	int totalIntervals;
 	SEXP intervals, intervalCodes, detail;
 	const char *ctypeName;
 	bool useInequality;
@@ -680,7 +681,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, globalState, "fitfunction");
 	omxCompleteFitFunction(fitMatrix);
 
-	PushLoopIndex pli(name, NA_INTEGER);
+	PushLoopIndex pli(name);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
@@ -1139,7 +1140,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 	bool boundActive = fabs(Mle[currentCI->varIndex] - nearBox) < sqrt(std::numeric_limits<double>::epsilon());
 	if (currentCI->bound[!side] > 0.0) {	// ------------------------------ away from bound side --
-		PushLoopIndex pli(name, detailRow);
+		PushLoopIndex pli(name, detailRow, totalIntervals);
 		if (!boundActive) {
 			Diagnostic diag;
 			double val;
@@ -1198,7 +1199,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
  part2:
 	if (currentCI->bound[side] > 0.0) {     // ------------------------------ near to bound side --
-		PushLoopIndex pli(name, detailRow);
+		PushLoopIndex pli(name, detailRow, totalIntervals);
 		double boundLL = NA_REAL;
 		double sqrtCrit95 = sqrt(currentCI->bound[side]);
 		if (!boundActive) {
@@ -1388,7 +1389,7 @@ void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		int lower = 1-upper;
 		if (!(currentCI->bound[upper])) continue;
 
-		PushLoopIndex pli(name, detailRow);
+		PushLoopIndex pli(name, detailRow, totalIntervals);
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] %s CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1,
 					  upper? "upper" : "lower");
@@ -1433,7 +1434,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	Rf_protect(intervals = Rf_allocMatrix(REALSXP, numInts, 3));
 	Rf_protect(intervalCodes = Rf_allocMatrix(INTSXP, numInts, 2));
 
-	int totalIntervals = 0;
+	totalIntervals = 0;
 	{
 		Eigen::Map< Eigen::ArrayXXd > interval(REAL(intervals), numInts, 3);
 		interval.fill(NA_REAL);
@@ -1630,7 +1631,7 @@ void ComputeTryH::initFromFrontend(omxState *globalState, SEXP rObj)
 	invocations = 0;
 	numRetries = 0;
 
-	PushLoopIndex pli(name, NA_INTEGER);
+	PushLoopIndex pli(name);
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -1668,7 +1669,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 	}
 
 	{
-		PushLoopIndex pli(name, 1);
+		PushLoopIndex pli(name, 1, 0);
 		bestStatus = INFORM_UNINITIALIZED;
 		bestFit = NA_REAL;
 		fc->setInform(INFORM_UNINITIALIZED);
@@ -1703,7 +1704,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		}
 
 		--retriesRemain;
-		PushLoopIndex pli(name, maxRetries - retriesRemain);
+		PushLoopIndex pli(name, maxRetries - retriesRemain, 0);
 
 		fc->setInform(INFORM_UNINITIALIZED);
 		fc->wanted &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
@@ -1929,7 +1930,7 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 		}
 	}
 
-	PushLoopIndex pli(name, NA_INTEGER);
+	PushLoopIndex pli(name);
 
 	SEXP slotValue;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
@@ -2012,7 +2013,7 @@ double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DE
 
 	{
 		ReturnRNGState rrs;
-		PushLoopIndex pli(name, opt->N_Generated);
+		PushLoopIndex pli(name, opt->N_Generated, opt->Limit_Generated);
 		fc->setInform(INFORM_UNINITIALIZED);
 		curEst = proposal;
 		fc->copyParamToModel();
@@ -2157,7 +2158,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 
 			{
 				ReturnRNGState rrs;
-				PushLoopIndex pli(name, jj);
+				PushLoopIndex pli(name, jj, markovLength);
 				fc->setInform(INFORM_UNINITIALIZED);
 				fc->copyParamToModel();
 				fc->wanted = FF_COMPUTE_FIT;

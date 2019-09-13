@@ -172,6 +172,7 @@ class omxData {
 	bool noExoOptimize;
 	bool modified;
 	double minVariance;
+	bool warnNPDacov;
 	std::vector<int> algebra;
 
 	void estimateObservedStats();
@@ -269,7 +270,7 @@ class omxData {
 	template <typename T1>
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();
-	void invalidateColumnsCache(std::vector< int > &columns);
+	void invalidateColumnsCache(const std::vector< int > &columns);
 	bool getNoExoOptimize() const { return noExoOptimize; };
 };
 

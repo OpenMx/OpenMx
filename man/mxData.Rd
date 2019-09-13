@@ -28,7 +28,7 @@
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
-     minVariance=sqrt(.Machine$double.eps), algebra=c())
+     minVariance=sqrt(.Machine$double.eps), algebra=c(), warnNPDacov=TRUE)
 }
 
 \arguments{
@@ -49,7 +49,10 @@
    \item{acov}{Deprecated in favor of the acov element of observedStats.}
    \item{fullWeight}{Deprecated in favor of the fullWeight element of observedStats.}
    \item{thresholds}{Deprecated in favor of the thresholds element of observedStats.}
-   \item{algebra}{character vector. Names of algebras used to fill in calculated columns of raw data. EXPERIMENTAL}
+   \item{algebra}{character vector. Names of algebras used to fill in
+     calculated columns of raw data. EXPERIMENTAL}
+   \item{warnNPDacov}{logical. Whether to warn when the asymptotic
+     covariance matrix is non-positive definite.}
 }
 
 \details{
@@ -168,7 +171,8 @@ dimnames(covMatrix) <- dimList
 testData <- mxData(observed=covMatrix, type="cov", numObs = 100)
 
 testModel <- mxModel(model="testModel",
-	mxMatrix(name="expCov", type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), free=TRUE, dimnames=dimList),
+	mxMatrix(name="expCov", type="Symm", nrow=2, ncol=2,
+                 values=c(.2,.1,.2), free=TRUE, dimnames=dimList),
     mxExpectationNormal("expCov", dimnames=covNames),
     mxFitFunctionML(),
 	testData

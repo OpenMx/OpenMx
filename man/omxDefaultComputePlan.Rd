@@ -20,7 +20,7 @@ omxDefaultComputePlan(modelName=NULL, intervals=FALSE,
 }
 
 \details{
-At minimum, argument \code{optionList} must include \dQuote{Gradient algorithm}, \dQuote{Gradient iterations}, \dQuote{Gradient step size}, \dQuote{Calculate Hessian}, and \dQuote{Standard Errors}.  Users are advised to set \dQuote{Calculate Hessian} and \dQuote{Standard Errors} to "No" if the compute plan is to be used in an \link{MxModel} containing \link[=MxConstraint-class]{MxConstraint}s.
+At minimum, argument \code{optionList} must include \dQuote{Gradient algorithm}, \dQuote{Gradient iterations}, \dQuote{Gradient step size}, \dQuote{Calculate Hessian}, and \dQuote{Standard Errors}.
 }
 \value{
 Returns an object of class \link[=mxComputeSequence]{MxComputeSequence}.

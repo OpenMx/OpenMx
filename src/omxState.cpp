@@ -236,6 +236,8 @@ omxGlobal::omxGlobal()
 	boundsUpdated = false;
 	dataTypeWarningCount = 0;
 	userInterrupted = false;
+	lastIndexDone=0;
+	lastIndexDoneTime=0;
 
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
@@ -701,8 +703,36 @@ void omxGlobal::reportProgress1(const char *context, std::string detail)
 	lastProgressReport = now;
 
 	auto &cli = Global->computeLoopIndex;
+	auto &clm = Global->computeLoopMax;
 	std::string str;
-	if (cli.size()) {
+	if (cli.size() == 1 && cli[0] != lastIndexDone) {
+		lastIndexDone = cli[0];
+		lastIndexDoneTime = now;
+	}
+	if (cli.size() == 1 && clm[0] != 0 && cli[0] <= clm[0] && lastIndexDone > 0) {
+		str += "[";
+		double pctDone = lastIndexDone / double(clm[0]);
+		auto elapsed = lastIndexDoneTime - Global->startTime;
+		auto estTotal = elapsed / pctDone;
+		int estRemain = estTotal - elapsed;
+		if (estTotal < 60*60) {
+			str += string_snprintf("%02d:%02d", estRemain/60, estRemain%60);
+		} else if (estTotal < 60*60*24) {
+			int hours = estRemain/(60*60);
+			int min = (estRemain - hours*60*60) / 60;
+			int sec = estRemain % 60;
+			str += string_snprintf("%02d:%02d:%02d", hours, min, sec);
+		} else {
+			int days = estRemain/(24*60*60);
+			estRemain -= days*24*60*60;
+			int hours = estRemain/(60*60);
+			estRemain -= hours*60*60;
+			int min = (estRemain) / 60;
+			int sec = estRemain % 60;
+			str += string_snprintf("%d %02d:%02d:%02d", days, hours, min, sec);
+		}
+		str += "] ";
+	} else if (cli.size() > 1) {
 		str += "[";
 		for (int x1=0; x1 < int(cli.size()); ++x1) {
 			std::ostringstream os_temp;

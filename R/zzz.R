@@ -30,7 +30,7 @@ mxSetDefaultOptions <- function() {
 imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
 .onLoad <- function(libname, pkgname) {
-	mxSetDefaultOptions()
+  .Call(.OpenMxLoaded, PACKAGE="OpenMx")
 }
 
 .onAttach <- function(libname, pkgname) {

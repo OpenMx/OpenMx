@@ -42,7 +42,7 @@
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
-		     noExoOptimize(true), modified(false), minVariance(0),
+		     noExoOptimize(true), modified(false), minVariance(0), warnNPDacov(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
 		     numObs(0), _type(0), numFactor(0), numNumeric(0),
 		     rows(0), cols(0), expectation(0)
@@ -238,6 +238,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	if (R_has_slot(dataObj, Rf_install("minVariance"))) {
 		ProtectedSEXP Rmv(R_do_slot(dataObj, Rf_install("minVariance")));
 		minVariance = Rf_asReal(Rmv);
+	}
+	if (R_has_slot(dataObj, Rf_install("warnNPDacov"))) {
+		ProtectedSEXP Rnpd(R_do_slot(dataObj, Rf_install("warnNPDacov")));
+		warnNPDacov = Rf_asLogical(Rnpd);
 	}
 
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
@@ -1144,19 +1148,23 @@ void omxData::reportResults(MxRList &out)
 {
 	out.add("numObs", Rf_ScalarReal(omxDataNumObs(this)));
 
-	if (isModified() && rawCols.size()) {
-		Rcpp::CharacterVector colNames(rawCols.size());
-		Rcpp::List columns(rawCols.size());
-		for (int cx=0; cx < int(rawCols.size()); ++cx) {
+	int numValid = std::count_if(rawCols.begin(), rawCols.end(),
+				     [](ColumnData &c1)->bool{ return c1.type != COLUMNDATA_INVALID; });
+	if (isModified() && numValid) {
+		Rcpp::CharacterVector colNames(numValid);
+		Rcpp::List columns(numValid);
+		for (int cx=0, dx=0; cx < int(rawCols.size()); ++cx) {
 			auto &c1 = rawCols[cx];
-			colNames[cx] = c1.name;
+			if (c1.type == COLUMNDATA_INVALID) continue;
+			colNames[dx] = c1.name;
 			if (c1.type == COLUMNDATA_NUMERIC) {
 				Eigen::Map< Eigen::VectorXd > vec(c1.ptr.realData, rows);
-				columns[cx] = Rcpp::wrap(vec);
+				columns[dx] = Rcpp::wrap(vec);
 			} else {
 				Eigen::Map< Eigen::VectorXi > vec(c1.ptr.intData, rows);
-				columns[cx] = Rcpp::wrap(vec);
+				columns[dx] = Rcpp::wrap(vec);
 			}
+			dx += 1;
 		}
 		Rf_setAttrib(columns, R_NamesSymbol, colNames);
 		markAsDataFrame(columns, rows);
@@ -2854,7 +2862,7 @@ void omxData::estimateObservedStats()
 	}
 	if (InvertSymmetricPosDef(Efw, 'L')) {
 		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
-		else Rf_warning("%s: acov matrix is not positive definite", name);
+		else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
 	}
 
 	// lavaan divides Efw by numObs, we don't
@@ -2871,7 +2879,7 @@ void omxData::invalidateCache()
 	oss.reset();
 }
 
-void omxData::invalidateColumnsCache(std::vector< int > &columns)
+void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 {
 	if (!oss) return;
 
