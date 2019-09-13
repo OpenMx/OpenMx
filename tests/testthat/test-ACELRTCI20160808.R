@@ -648,3 +648,5 @@ if (FALSE) {
 }
 
 mxOption(reset=TRUE)
+
+file.remove('ACEModelTwin0.omx')

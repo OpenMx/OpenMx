@@ -69,3 +69,5 @@ mxSave(modelOut, chkpt.prefix="z")
 
 modelRestored <- mxRestore(testModel, chkpt.prefix="z", strict=TRUE)
 omxCheckCloseEnough(coef(modelRestored), coef(modelOut), 1e-5)
+
+file.remove(c('testModel.omx', 'ztestModel.omx', 'backendChkpt.omx'))
