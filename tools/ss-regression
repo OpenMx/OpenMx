@@ -1,0 +1,58 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+out=/tmp/irt-regression.$$.log
+
+opt="-q --vanilla --no-save"
+
+tests="
+passing/StateSpaceAlg.R
+passing/StateSpaceErrorCheck.R
+passing/StateSpaceInputs.R
+passing/StateSpaceMissingData.R
+passing/StateSpaceOsc.R
+passing/SubStateSpaceOsc.R
+nightly/ModificationIndexCheck.R
+nightly/MultilevelStateSpaceEx5.R
+nightly/StateSpaceContinuous.R
+"
+
+for t in $tests; do
+  echo -n "$t\t"
+  if false; then
+    R $opt -f inst/models/$t
+  else
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f inst/models/$t > $out 2>&1"; then
+      cat $out
+      exit
+    else
+      rm -f $out
+    fi
+  fi
+done
+
+exit 0
+
+# ---------------------
+
+passing/StateSpaceAlg.R	0:01.81 0 52956 34
+passing/StateSpaceErrorCheck.R	0:01.66 0 52907 57
+passing/StateSpaceInputs.R	0:06.53 0 52965 2729
+passing/StateSpaceMissingData.R	0:07.01 0 65218 3854
+passing/StateSpaceOsc.R	0:03.14 0 52978 1062
+passing/SubStateSpaceOsc.R	0:02.43 0 52979 413
+nightly/ModificationIndexCheck.R	0:11.46 3 62928 3775
+nightly/MultilevelStateSpaceEx5.R	0:33.73 0 54994 11616
+
+passing/StateSpaceAlg.R	0:01.81 0 52912 48
+passing/StateSpaceErrorCheck.R	0:01.65 0 52882 11
+passing/StateSpaceInputs.R	0:06.49 0 52938 3169
+passing/StateSpaceMissingData.R	0:07.17 0 65201 4139
+passing/StateSpaceOsc.R	0:03.24 0 52948 941
+passing/SubStateSpaceOsc.R	0:02.45 0 52941 431
+nightly/ModificationIndexCheck.R	0:11.36 0 62894 3848
+nightly/MultilevelStateSpaceEx5.R	0:33.49 0 54951 13710
+nightly/StateSpaceContinuous.R	0:17.14 0 52976 4902
