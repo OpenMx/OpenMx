@@ -13,6 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+setwd(tempdir())  # safe place to create files
 
 library(OpenMx)
 library(testthat)
@@ -648,5 +649,3 @@ if (FALSE) {
 }
 
 mxOption(reset=TRUE)
-
-file.remove('ACEModelTwin0.omx')

@@ -46,6 +46,8 @@ for index 1}
   \link{mxComputeLoadData}, \link{mxComputeCheckpoint}
 }
 \examples{
+setwd(tempdir())  # safe place to create files
+
 library(OpenMx)
 
 Cov <- rWishart(4, 20, toeplitz(c(2,1)/20))
@@ -70,6 +72,4 @@ m1 <- mxModel(
   ), i=1:4))
 
 m1 <- mxRun(m1)
-
-file.remove(c("loadMatrix.csv", "mean.csv", "cov.csv"))   # tidy up
 }
