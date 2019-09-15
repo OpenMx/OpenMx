@@ -140,6 +140,6 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
    # Create a LISREL objective with LX, TD, and PH matrix names
    objective <- mxLISRELObjective(LX="LX", TD="TD", PH="PH")
    
-   testModel <- mxModel(model="testModel", mLX, mTD, mPH, objective)
+   testModel <- mxModel(model="testModel4", mLX, mTD, mPH, objective)
 
 }

@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+out=/tmp/constr-regression.$$.log
+
+opt="-q --vanilla --no-save"
+
+tests="
+passing/AlgebraErrorDetection.R
+passing/LCAlazarsfeld-rewrite.R
+passing/LCAlazarsfeld.R
+passing/MultivariateConstraint.R
+passing/NamesReferencesErrorDetection.R
+passing/RenameAndSummary.R
+passing/SimpleConstraint.R
+passing/StateSpaceAlg.R
+passing/UnivHetModTwinAnalysis_MatrixRawOrdNIQmfFv3.R
+passing/UselessConstraint.R
+passing/oneLocusLikelihood.R
+passing/rowAlgTest140708.R
+passing/StateSpaceOsc.R
+passing/SubStateSpaceOsc.R
+passing/StateSpaceInputs.R
+"
+
+for t in $tests; do
+  echo $t
+  if false; then
+    R $opt -f models/$t
+  else
+    if ! R $opt -f models/$t > $out 2>&1; then
+      cat $out
+      exit
+    else
+      rm -f $out
+    fi
+  fi
+done

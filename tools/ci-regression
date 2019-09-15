@@ -1,0 +1,87 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+out=/tmp/irt-regression.$$.log
+
+opt="-q --vanilla --no-save"
+
+tests="
+passing/simplestCI.R
+passing/SimpleConfidenceIntervals.R
+passing/SimpleAlgebraCIs.R
+passing/SimpleMLAlgebraCIs.R
+passing/IgnoreFixedConfidenceIntervals.R
+passing/ConfidenceIntervalsDefVar.R
+passing/CIduplicates.R
+passing/checkStandardizedLoadingsEtcetera.R
+passing/MxTryHardTest.R
+passing/ACELRTCI20160808.R
+nightly/RAM-3Factor-24Indicators-covdata-a-intervals.R
+nightly/thresholdModel1Factor5VariateWLS.R
+nightly/wu-neale-2012-lgc.R
+nightly/wu-neale-2012-symmetry.R
+"
+
+for t in $tests; do
+  echo -n "$t\t"
+  if false; then
+    R $opt -f inst/models/$t
+  else
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f inst/models/$t > $out 2>&1"; then
+      cat $out
+      exit
+    else
+      rm -f $out
+    fi
+  fi
+done
+
+exit 0
+
+# ------ 2016 Aug 09
+
+passing/simplestCI.R	0:01.58 0 52757 28
+passing/SimpleConfidenceIntervals.R	0:04.12 0 63542 1861
+passing/SimpleAlgebraCIs.R	0:02.08 3 52757 94
+passing/SimpleMLAlgebraCIs.R	0:09.33 0 124285 9051
+passing/IgnoreFixedConfidenceIntervals.R	0:01.58 0 52688 11
+passing/ConfidenceIntervalsDefVar.R	0:02.45 0 57185 653
+passing/CIduplicates.R	0:01.63 0 52740 17
+passing/checkStandardizedLoadingsEtcetera.R	0:11.18 0 167556 14759
+passing/MxTryHardTest.R	0:39.77 0 397600 64819
+nightly/RAM-3Factor-24Indicators-covdata-a-intervals.R	0:43.65 0 52827 3638
+nightly/thresholdModel1Factor5VariateWLS.R	0:51.11 2 130282 22383
+
+# ------ 2016 Nov 09
+
+passing/simplestCI.R	0:01.76 0 53015 32
+passing/SimpleConfidenceIntervals.R	0:02.54 0 53703 173
+passing/SimpleAlgebraCIs.R	0:02.06 0 53022 51
+passing/SimpleMLAlgebraCIs.R	0:01.94 0 53679 140
+passing/IgnoreFixedConfidenceIntervals.R	0:01.57 0 52969 16
+passing/ConfidenceIntervalsDefVar.R	0:01.97 0 53239 30
+passing/CIduplicates.R	0:01.55 0 52981 25
+passing/checkStandardizedLoadingsEtcetera.R	0:04.11 0 53639 65
+passing/MxTryHardTest.R	0:42.18 0 398140 63074
+nightly/RAM-3Factor-24Indicators-covdata-a-intervals.R	0:50.83 0 53165 93
+nightly/thresholdModel1Factor5VariateWLS.R	0:54.58 6 83676 22246
+
+# ------ 2016 Nov 16
+
+passing/simplestCI.R	0:01.76 0 53094 153
+passing/SimpleConfidenceIntervals.R	0:02.75 0 53784 345
+passing/SimpleAlgebraCIs.R	0:02.22 0 53098 329
+passing/SimpleMLAlgebraCIs.R	0:02.14 0 53789 563
+passing/IgnoreFixedConfidenceIntervals.R	0:01.64 0 53052 158
+passing/ConfidenceIntervalsDefVar.R	0:02.08 0 53340 90
+passing/CIduplicates.R	0:01.84 0 53083 218
+passing/checkStandardizedLoadingsEtcetera.R	0:04.28 0 53714 248
+passing/MxTryHardTest.R	0:47.93 0 398736 72019
+passing/ACELRTCI20160808.R	0:07.80 0 57843 1962
+nightly/RAM-3Factor-24Indicators-covdata-a-intervals.R	0:57.04 0 53214 1228
+nightly/thresholdModel1Factor5VariateWLS.R	1:05.13 0 86708 27749
+nightly/wu-neale-2012-lgc.R	0:15.69 0 56449 1611
+nightly/wu-neale-2012-symmetry.R	0:11.22 0 56515 1205
