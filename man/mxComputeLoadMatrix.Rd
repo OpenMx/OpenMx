@@ -46,15 +46,17 @@ for index 1}
   \link{mxComputeLoadData}, \link{mxComputeCheckpoint}
 }
 \examples{
-setwd(tempdir())  # safe place to create files
-
 library(OpenMx)
+
+dir <-tempdir()  # safe place to create files
 
 Cov <- rWishart(4, 20, toeplitz(c(2,1)/20))
 write.table(t(apply(Cov, 3, vech)),
-            file="cov.csv", col.names=FALSE, row.names=FALSE)
+            file=file.path(dir, "cov.csv"),
+            col.names=FALSE, row.names=FALSE)
 Mean <- matrix(rnorm(8),4,2)
-write.table(Mean, file="mean.csv", col.names=FALSE, row.names=FALSE)
+write.table(Mean, file=file.path(dir, "mean.csv"),
+            col.names=FALSE, row.names=FALSE)
 
 m1 <- mxModel(
   "test1",
@@ -66,7 +68,7 @@ m1 <- mxModel(
   mxFitFunctionAlgebra("area"),
   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
-                        path=c('mean.csv', 'cov.csv')),
+                        path=file.path(dir, c('mean.csv', 'cov.csv'))),
     mxComputeOnce('fitfunction', 'fit'),
     mxComputeCheckpoint(path="loadMatrix.csv")
   ), i=1:4))

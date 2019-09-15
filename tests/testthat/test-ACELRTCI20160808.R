@@ -13,8 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setwd(tempdir())  # safe place to create files
-
 library(OpenMx)
 library(testthat)
 library(mvtnorm)
@@ -588,7 +586,7 @@ cmpInterval <- function(model, iname, param, col) {
   d1 <- unadj$compute$steps[['CI']]$output$detail
   if (is(unadj, "try-error")) return(rep(NA,3))
   adj <- try(mxRun(mxModel(m2, mxCI(param,boundAdj=TRUE)),
-               intervals=TRUE,checkpoint=TRUE))
+               intervals=TRUE,checkpoint=FALSE))
   if (is(adj, "try-error")) return(rep(NA,3))
   d2 <- unadj$compute$steps[['CI']]$output$detail
   ref <- ACECI(model)

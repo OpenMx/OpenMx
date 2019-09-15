@@ -13,11 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setwd(tempdir())  # safe place to create files
-
 library(OpenMx)
 library(testthat)
 context("mxSave")
+
+dir <- tempdir()  # safe place to create files
+mxOption(key="Checkpoint Directory", value=dir)
 
 # Simulate some data
 
@@ -34,7 +35,7 @@ data <- mxData(cov(tmpFrame), type="cov", numObs = sampleSize)
 expCov <- mxMatrix(type="Symm", nrow=2, ncol=2, values=c(.2,.1,.2), free=TRUE, name="expCov")
 plan <- omxDefaultComputePlan()
 plan$steps <- c(plan$steps,
-                CK=mxComputeCheckpoint(path="backendChkpt.omx",
+                CK=mxComputeCheckpoint(path=file.path(dir,"backendChkpt.omx"),
                                     standardErrors = TRUE, gradient = TRUE, vcov=TRUE,
                                     toReturn=TRUE))
 testModel <- mxModel(model="testModel", expCov, data,
@@ -48,7 +49,7 @@ modelOut <- mxRun(testModel, checkpoint = TRUE)
 modelRestored <- mxRestore(testModel, strict = TRUE)  # old checkpoint output
 omxCheckCloseEnough(coef(modelRestored), coef(modelOut), 1e-5)
 
-bckpt <- read.table("backendChkpt.omx",
+bckpt <- read.table(file.path(dir,"backendChkpt.omx"),
            header=TRUE, sep="\t", stringsAsFactors=FALSE, check.names=FALSE)
 bckpt2 <- modelOut$compute$steps$CK$log
 omxCheckEquals(colnames(bckpt), colnames(bckpt2))
