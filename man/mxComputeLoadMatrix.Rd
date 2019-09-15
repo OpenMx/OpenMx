@@ -70,7 +70,7 @@ m1 <- mxModel(
     mxComputeLoadMatrix(c('mean', 'cov'),
                         path=file.path(dir, c('mean.csv', 'cov.csv'))),
     mxComputeOnce('fitfunction', 'fit'),
-    mxComputeCheckpoint(path="loadMatrix.csv")
+    mxComputeCheckpoint(path=file.path(dir, "loadMatrix.csv"))
   ), i=1:4))
 
 m1 <- mxRun(m1)
