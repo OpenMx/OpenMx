@@ -123,7 +123,9 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 #' modelRestore <- mxRestore(testModel)
 #' modelRestore$expCov
 
-mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL, strict=FALSE) {
+mxRestore <- function(model, chkpt.directory = mxOption(model, "Checkpoint directory"),
+		      chkpt.prefix = mxOption(model,"Checkpoint Prefix"), line=NULL, strict=FALSE)
+{
 	if (!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}
