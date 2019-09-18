@@ -1187,6 +1187,9 @@ namespace RelationalRAMExpectation {
 	{
 		for (auto it : allEx) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) it;
+			if (ram->getThresholdInfo().size()) {
+				mxThrow("%s: Ordinal indicators are not supported in multilevel models", ram->name);
+			}
 			omxData *data = ram->data;
 			int numDefVars = data->defVars.size();
 			if (numDefVars == 0) continue;
