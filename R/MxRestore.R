@@ -44,7 +44,10 @@ removeTrailingSeparator <- function(x) {
 #' tmpFrame <- data.frame(x, y)
 #' tmpNames <- names(tmpFrame)
 #' 
-#' # Create a model that includes an expected covariance matrix,
+#' dir <- tempdir()  # safe place to create files
+#' mxOption(key="Checkpoint Directory", value=dir)
+#'
+#' Create a model that includes an expected covariance matrix,
 #' # an expectation function, a fit function, and an observed covariance matrix
 #' 
 #' data <- mxData(cov(tmpFrame), type="cov", numObs = 1000)
@@ -105,6 +108,9 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 #' y= 0.5*x + rnorm(1000, mean=0, sd=1)
 #' tmpFrame <- data.frame(x, y)
 #' tmpNames <- names(tmpFrame)
+#' 
+#' dir <- tempdir()  # safe place to create files
+#' mxOption(key="Checkpoint Directory", value=dir)
 #' 
 #' # Create a model that includes an expected covariance matrix,
 #' # an expectation function, a fit function, and an observed covariance matrix

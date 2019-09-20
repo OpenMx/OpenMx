@@ -17,11 +17,6 @@ library(OpenMx)
 library(testthat)
 context("mxSave")
 
-# CRAN complains that testModel.omx is written somewhere inappropriate.
-# I'm pretty sure it goes to tempdir(), but CRAN seems too busy to triage
-# the issue.
-skip_on_cran()
-
 dir <- tempdir()  # safe place to create files
 mxOption(key="Checkpoint Directory", value=dir)
 
@@ -43,7 +38,7 @@ plan$steps <- c(plan$steps,
                 CK=mxComputeCheckpoint(path=file.path(dir,"backendChkpt.omx"),
                                     standardErrors = TRUE, gradient = TRUE, vcov=TRUE,
                                     toReturn=TRUE))
-testModel <- mxModel(model="testModel", expCov, data,
+testModel <- mxModel(model="testFish", expCov, data,
                      mxExpectationNormal(covariance="expCov", dimnames=tmpNames),
                      mxFitFunctionML(),
                      plan)
