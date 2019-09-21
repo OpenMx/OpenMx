@@ -38,7 +38,7 @@ plan$steps <- c(plan$steps,
                 CK=mxComputeCheckpoint(path=file.path(dir,"backendChkpt.omx"),
                                     standardErrors = TRUE, gradient = TRUE, vcov=TRUE,
                                     toReturn=TRUE))
-testModel <- mxModel(model="testModel", expCov, data,
+testModel <- mxModel(model="testFish", expCov, data,
                      mxExpectationNormal(covariance="expCov", dimnames=tmpNames),
                      mxFitFunctionML(),
                      plan)
