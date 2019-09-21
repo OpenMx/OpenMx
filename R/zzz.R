@@ -29,13 +29,18 @@ mxSetDefaultOptions <- function() {
 ##' what they are doing.
 imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
-# Don't use .onAttach, see https://github.com/OpenMx/OpenMx/issues/98
+# Don't use .onAttach except for packageStartupMessage,
+# see https://github.com/OpenMx/OpenMx/issues/98
 .onLoad <- function(libname, pkgname) {
   .Call(.OpenMxLoaded, PACKAGE="OpenMx")
-	mxSetDefaultOptions()
+  mxSetDefaultOptions()
 	if (.Platform$GUI!="Rgui") {
-		.Call(.enableMxLog)
-	} else {
+	  .Call(.enableMxLog)
+	}
+}
+
+.onAttach <- function(libname, pkgname) {
+	if (.Platform$GUI=="Rgui") {
 		packageStartupMessage(paste("Notice: R GUI cannot display verbose output from the OpenMx backend.",
 					    "If you need detail diagnostics then R CMD BATCH is one option."))
 	}
