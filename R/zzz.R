@@ -29,11 +29,9 @@ mxSetDefaultOptions <- function() {
 ##' what they are doing.
 imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
+# Don't use .onAttach, see https://github.com/OpenMx/OpenMx/issues/98
 .onLoad <- function(libname, pkgname) {
   .Call(.OpenMxLoaded, PACKAGE="OpenMx")
-}
-
-.onAttach <- function(libname, pkgname) {
 	mxSetDefaultOptions()
 	if (.Platform$GUI!="Rgui") {
 		.Call(.enableMxLog)
