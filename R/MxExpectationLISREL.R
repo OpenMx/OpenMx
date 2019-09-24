@@ -682,7 +682,7 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 			  GA <- matrix( , nrow=ncol(LY), ncol=ncol(LX))
 			  TH <- matrix( , nrow=nrow(LX), ncol=nrow(LY))
 		  }
-		  if ('covariance' %in% what) {
+		  if (any(c('covariance','covariances') %in% what)) {
 			  endoBlock <- A %*% (GA %*% PH %*% t(GA) + PS) %*% t(A) + TE
 			  exoBlock <- LX %*% PH %*% t(LX) + TD
 			  exenBlock <- LX %*% PH %*% t(GA) %*% t(A) + TH
@@ -690,7 +690,7 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 				       cbind(exenBlock, exoBlock))
 			  ret[['covariance']] <- cov
 		  }
-		  if ('means' %in% what) {
+		  if (any(c('mean', 'means') %in% what)) {
 			  if(single.na(TXname) & single.na(TYname)){
 					warning("Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")
 				  mean <- matrix( , 0, 0)

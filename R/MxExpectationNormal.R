@@ -96,7 +96,7 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	function(.Object, model, what, defvar.row=1, subname=model@name) {
 		ret <- list()
-		if ('covariance' %in% what) {
+		if (any(c('covariance','covariances') %in% what)) {
 			covname <- .modifyDottedName(subname, .Object@covariance)
 			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
 			dnames <- .Object$dims
@@ -106,7 +106,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 			}
 			ret[['covariance']] <- cov
 		}
-		if ('means' %in% what) {
+		if (any(c('means', 'mean') %in% what)) {
 			meanname <- .Object@means
 			if(!single.na(meanname)){
 				meanname <- .modifyDottedName(subname, meanname, sep=".")
