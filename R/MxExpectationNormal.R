@@ -254,6 +254,9 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=model$name)
 {
+  if (!is(model[[subname]], "MxModel")) {
+    stop(paste("Submodel", subname, "in model", model$name, "is not found"))
+  }
 	if(is.null(model[[subname]]$expectation) && (class(model[[subname]]$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()
