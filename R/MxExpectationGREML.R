@@ -96,7 +96,9 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 					function(.Object, model, what, defvar.row=1) {
 						ret <- list()
 						
-						if ( ('covariance' %in% what) || ('means' %in% what) ) {
+						wantMean <- any(c('mean','means') %in% what)
+						wantCov <- any(c('covariance','covariances') %in% what)
+						if ( wantCov || wantMean ) {
 							mxDataObject <- model@data
 							if(!length(mxDataObject)){
 								msg <- paste("the GREML expectation function",
@@ -135,11 +137,11 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 							if(length(casesToDrop)){V <- V[-casesToDrop, -casesToDrop]}
 						}
 						
-						if('covariance' %in% what){
+						if(wantCov){
 							ret[['covariance']] <- V
 						}
 						
-						if ('means' %in% what) {
+						if (wantMean) {
 							Vinv <- try(chol2inv(chol(V)))
 							rm(V)
 							if(is(Vinv,"try-error")){

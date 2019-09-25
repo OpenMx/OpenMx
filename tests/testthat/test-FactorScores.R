@@ -187,9 +187,9 @@ rr3 <- mxFactorScores(factorRamRun, 'WeightedML')
 
 
 # Compare RAM factor scores to LISREL
-omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1)
-omxCheckCloseEnough(cor(rr2[,,1], r2[,,1]), 1)
-omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1)
+omxCheckCloseEnough(cor(rr1[,,1], r1[,,1]), 1, 1e-8)
+omxCheckCloseEnough(cor(rr2[,,1], r2[,,1]), 1, 1e-8)
+omxCheckCloseEnough(cor(rr3[,,1], r3[,,1]), 1, 1e-8)
 
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
@@ -281,9 +281,8 @@ ssModelLisrel <- mxModel(model="lisrel",
 	mxFitFunctionML()
 	)
 
-omxCheckWarning(omxCheckError(mxGetExpected(ssModelLisrel, 'means'),
-	"Requested component(s) 'means' had dimension or length 0.\nRequested component not in model. All I have is yours, but I ain't got no 'means'"),
-	"Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")
+expect_warning(mxGetExpected(ssModelLisrel, 'means'),
+               "Means requested, but model has no means")
 
 # Add means and it works fine
 ssModelLisrel <- mxModel(ssModelLisrel, name="lisrel",

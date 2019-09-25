@@ -44,6 +44,9 @@ removeTrailingSeparator <- function(x) {
 #' tmpFrame <- data.frame(x, y)
 #' tmpNames <- names(tmpFrame)
 #' 
+#' dir <- tempdir()  # safe place to create files
+#' mxOption(key="Checkpoint Directory", value=dir)
+#'
 #' # Create a model that includes an expected covariance matrix,
 #' # an expectation function, a fit function, and an observed covariance matrix
 #' 
@@ -106,6 +109,9 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 #' tmpFrame <- data.frame(x, y)
 #' tmpNames <- names(tmpFrame)
 #' 
+#' dir <- tempdir()  # safe place to create files
+#' mxOption(key="Checkpoint Directory", value=dir)
+#' 
 #' # Create a model that includes an expected covariance matrix,
 #' # an expectation function, a fit function, and an observed covariance matrix
 #' 
@@ -123,7 +129,9 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 #' modelRestore <- mxRestore(testModel)
 #' modelRestore$expCov
 
-mxRestore <- function(model, chkpt.directory = ".", chkpt.prefix = "", line=NULL, strict=FALSE) {
+mxRestore <- function(model, chkpt.directory = mxOption(model, "Checkpoint directory"),
+		      chkpt.prefix = mxOption(model,"Checkpoint Prefix"), line=NULL, strict=FALSE)
+{
 	if (!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}

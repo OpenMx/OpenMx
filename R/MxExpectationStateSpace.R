@@ -397,6 +397,8 @@ setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
 			if(length(defvar.row) > 1){
 				stop("'defvar.row' must be (1) a single integer, (2) 'all', or (3) Inf")
 			}
+			wantMean <- any(c('mean', 'means') %in% what)
+			wantCov <- any(c('covariance','covariances') %in% what)
 			if(defvar.row == Inf){
 				if(!single.na(.Object@t)){
 					stop("Found continuous time model.\nAsymptotic expectations are not yet implemented for continuous time models.")
@@ -421,10 +423,10 @@ setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
 				Pinf <- ImA %*% matrix(c(Q), ncol=1)
 				Pinf <- matrix(Pinf, nrow=nrow(A), ncol=nrow(A))
 				Sinf <- C %*% Pinf %*% t(C) + R
-				if ('covariance' %in% what) {
+				if (wantCov) {
 					ret[['covariance']] <- Sinf
 				}
-				if ('means' %in% what) {
+				if (wantMean) {
 					ret[['means']] <- 'Not implemented'
 				}
 				if ('thresholds' %in% what) {
@@ -438,10 +440,10 @@ setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
 				} else {
 					defvar.row <- defvar.row + 1
 				}
-				if ('covariance' %in% what) {
+				if (wantCov) {
 					ret[['covariance']] <- ks$SPredicted[ , , defvar.row, drop=FALSE]
 				}
-				if ('means' %in% what) {
+				if (wantMean) {
 					ret[['means']] <- ks$yPredicted[defvar.row, , drop=FALSE]
 				}
 				if ('thresholds' %in% what) {

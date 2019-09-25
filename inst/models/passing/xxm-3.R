@@ -4,6 +4,7 @@
 libraries <- rownames(installed.packages())
 if (!("lme4" %in% libraries)) stop("SKIP")
 
+library(testthat)
 library(lme4)
 library(OpenMx)
 
@@ -36,3 +37,16 @@ strength <- mxRun(strength)
 omxCheckCloseEnough(strength$output$fit, 247.9945, 1e-2)
 
 omxCheckCloseEnough(logLik(fm01), logLik(strength), 1e-6)
+
+# --------
+
+Pastes$strength = ifelse(Pastes$strength < 60, 1, 0)
+Pastes$strength = mxFactor(Pastes$strength, levels = c(0, 1))
+
+ordStrength <- mxModel(
+  strength,
+  mxData(Pastes, 'raw'),
+  mxThreshold('strength', nThresh = 1, values = 1))
+
+expect_error(mxRun(ordStrength),
+	     "Ordinal indicators are not supported in multilevel")

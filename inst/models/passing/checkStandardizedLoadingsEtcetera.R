@@ -237,6 +237,10 @@ omxCheckCloseEnough(
 	zpath2$twinACE$DZ$Std.Value[15],
 	1e-12
 )
+
+omxCheckEquals(colnames(bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov),
+               bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$dims)
+
 omxCheckCloseEnough(
 	bigrun$LinearGrowthCurveModel_MatrixSpecification$M$values[6] / 
 		sqrt(bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[6,6]),

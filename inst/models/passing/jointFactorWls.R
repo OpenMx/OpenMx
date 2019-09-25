@@ -32,7 +32,8 @@
 # Load package define a useful function
 
 
-require(OpenMx)
+library(OpenMx)
+library(testthat)
 
 if (mxOption(NULL, "Default optimizer") == 'NPSOL') stop('SKIP')
 
@@ -229,6 +230,9 @@ omxCheckWithinPercentError(as.numeric(shan$Chi), swls$Chi, 28)
 #  to the WLS saturated model estimates.
 
 obsStats <- jointWlsResults$data$observedStats
+
+expect_error(mxGetExpected(jointResults2, 'covariance', subname="xyz"),
+             "not found")
 
 mxGetExpected(jointResults2, 'covariance')
 obsStats$cov

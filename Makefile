@@ -131,15 +131,15 @@ cran-check:
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 69 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 roxygen:
-	sh ./util/rox
+	MAKEFLAGS="$(INSTALLMAKEFLAGS)" sh ./util/rox
 
-pdf: roxygen build-clean
-	sh ./util/prep npsol install
+docprep: roxygen build-clean
+
+pdf: docprep
 	rm -f $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
-html: roxygen build-clean
-	sh ./util/prep npsol install
+html: docprep
 	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
@@ -148,7 +148,8 @@ html: roxygen build-clean
 	cd docs/build/html && perl -pi -e 's,http://openmx\.ssri\.psu\.edu/svn/trunk/demo/,_static/demo/,g' *.html
 	cd docs/build/html && perl -pi -e 's,\.R">_static/demo/,.R">,g' *.html
 
-doc.tar.bz2: html pdf
+doc.tar.bz2:
+	$(MAKE) -j1 html pdf
 	-rm -r build/$(VERSION)
 	mkdir -p build/$(VERSION)
 	mv docs/build/html/* build/$(VERSION)

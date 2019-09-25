@@ -89,7 +89,7 @@ sum(1:10)
 
 # Model sums data$value (sum(1:10)= 55), subtracts "A", squares the result, 
 # and tries to minimize this (achieved by setting A=55)
-testModel = mxModel(model = "testModel", myData,
+testModel = mxModel(model = "testModel1", myData,
 	mxMatrix(name  = "A", "Full", nrow = 1, ncol = 1, values = 1, free=TRUE),
 	# nb: filteredDataRow is an auto-generated matrix of
 	# non-missing data from the present row.

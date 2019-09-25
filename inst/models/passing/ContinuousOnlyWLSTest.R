@@ -31,7 +31,7 @@
 #--------------------------------------
 # Needed packages
 
-
+library(testthat)
 require(OpenMx)
 data(Bollen)
 
@@ -141,6 +141,12 @@ bollenParam <- c(l1=1.00, l2=1.11, l3=1.05, l4=1.16, e1=1.30, e2=7.12, e3=3.53, 
 fitParam <- c(mxEval(Lam, wlsRun)[1:4,1], diag(mxEval(Theta, wlsRun)))
 
 omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
+
+j1 <- expect_warning(omxManifestModelByParameterJacobian(wlsRun, standardize = TRUE),
+                     "Means requested, but model has no means")
+# Tedious to check all entries, but if variances match then
+# other labels are probably correct.
+expect_equivalent(j1[1:8, paste0('var',1:8)], diag(8))
 
 #--------------------------------------
 # Marginals should be fairly close to cumulants

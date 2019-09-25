@@ -127,7 +127,7 @@ myLatent <- c("G1", "G2", "G3", "G4", "G5")
 
 # Start building the model:
 #  Define its type, and add the manifest and latent variable name lists
-testModel <- mxModel(model="testModel", type = "RAM",
+testModel <- mxModel(model="testModel6", type = "RAM",
                      manifestVars = myManifest, latentVars = myLatent)
 
 # Create covariances between the latent variables and add to the model

@@ -1133,10 +1133,11 @@ setClass(Class = "MxComputeLoop",
 		 indices = "integer",
 	   maxIter = "integer",
 	   maxDuration = "numeric",
-	   verbose="integer"))
+	   verbose="integer",
+	   startFrom="integer"))
 
 setMethod("initialize", "MxComputeLoop",
-	  function(.Object, steps, indices, maxIter, freeSet, maxDuration, verbose) {
+	  function(.Object, steps, indices, maxIter, freeSet, maxDuration, verbose, startFrom) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@steps <- steps
@@ -1145,6 +1146,7 @@ setMethod("initialize", "MxComputeLoop",
 		  .Object@freeSet <- freeSet
 		  .Object@maxDuration <- maxDuration
 		  .Object@verbose <- verbose
+		  .Object@startFrom <- startFrom
 		  .Object
 	  })
 
@@ -1158,21 +1160,24 @@ setMethod("initialize", "MxComputeLoop",
 ##' @param freeSet Names of matrices containing free variables.
 ##' @param maxDuration the maximum amount of time (in seconds) to
 ##'         iterate
+##' @param startFrom When \code{i=NULL}, permits starting from an index greater than 1.
 ##' @template args-verbose
 ##' @description When \code{i} is given then these values are iterated
 ##'         over instead of the sequence 1 to the number of
 ##'         iterations.
 ##' @aliases MxComputeLoop-class mxComputeBenchmark
 mxComputeLoop <- function(steps, ..., i=NULL, maxIter=as.integer(NA), freeSet=NA_character_,
-			     maxDuration=as.numeric(NA), verbose=0L) {
+			     maxDuration=as.numeric(NA), verbose=0L, startFrom=1L) {
 	garbageArguments <- list(...)
 	if (length(garbageArguments) > 0) {
 		stop("mxComputeBenchmark does not accept values for the '...' argument")
 	}
-
+	if (length(i) && startFrom != 1L) {
+	  warning("Argument startFrom is ignored when i is provided")
+	}
 	maxIter <- as.integer(maxIter)
 	new("MxComputeLoop", steps=steps, indices=as.integer(i), maxIter=maxIter,
-	    freeSet, maxDuration, as.integer(verbose))
+	    freeSet, maxDuration, as.integer(verbose), as.integer(startFrom))
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeLoop", indent="integer"),

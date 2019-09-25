@@ -262,12 +262,12 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  S <- mxEvalByName(Sname, model, compute=TRUE, defvar.row=defvar.row)
 		  F <- mxEvalByName(Fname, model, compute=TRUE, defvar.row=defvar.row)
 		  I <- diag(1, nrow=nrow(A))
-		  if ('covariance' %in% what) {
+		  if (any(c('covariance','covariances') %in% what)) {
 			  ImA <- solve(I-A)
 			  cov <- F %*% ImA %*% S %*% t(ImA) %*% t(F)
 			  ret[['covariance']] <- cov
 		  }
-		  if ('means' %in% what) {
+		  if (any(c('mean','means') %in% what)) {
 				if(single.na(Mname)){
 					mean <- matrix( , 0, 0)
 				} else {

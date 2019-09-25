@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+out=/tmp/irt-regression.$$.log
+
+opt="-q --vanilla --no-save"
+
+tests="
+ passing/ifa-drm-mg2.R
+ nightly/ifa-ms.R
+ nightly/ifa-cai2009.R
+ nightly/fm-example2-1.R
+"
+
+for t in $tests; do
+  echo inst/models/$t
+  if false; then
+    R $opt -f inst/models/$t
+  else
+    if ! R $opt -f inst/models/$t > $out 2>&1; then
+      cat $out
+      exit
+    else
+      rm -f $out
+    fi
+  fi
+done

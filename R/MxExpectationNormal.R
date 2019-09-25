@@ -96,7 +96,7 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	function(.Object, model, what, defvar.row=1, subname=model@name) {
 		ret <- list()
-		if ('covariance' %in% what) {
+		if (any(c('covariance','covariances') %in% what)) {
 			covname <- .modifyDottedName(subname, .Object@covariance)
 			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
 			dnames <- .Object$dims
@@ -106,7 +106,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 			}
 			ret[['covariance']] <- cov
 		}
-		if ('means' %in% what) {
+		if (any(c('means', 'mean') %in% what)) {
 			meanname <- .Object@means
 			if(!single.na(meanname)){
 				meanname <- .modifyDottedName(subname, meanname, sep=".")
@@ -183,49 +183,45 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		nv <- nrow(cov)
-		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
-		mnsNames <- paste0('mean', 1:nv)
 		thr <- ret[['thresholds']]
-		if (prod(dim(thr)) == 0) {
-			v <- c(vech(cov), mns[!is.na(mns)])
-			names(v) <- c(covNames, mnsNames[!is.na(mns)])
-		} else {
+		if (prod(dim(thr)) != 0) {
 			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
-			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
 		}
+		v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
 		return(v)
 })
 
 .standardizeCovMeansThresholds <- function(cov, means, thresholds, dth, vector=FALSE){
-	if(!is.null(names(means))){
-		mnames <- names(means)
-	} else if(!is.null(colnames(means)) && length(means) == length(colnames(means))) {
-		mnames <- colnames(means)
-	} else if(!is.null(rownames(means)) && length(means) == length(rownames(means))){
-		mnames <- rownames(means)
-	} else {
-		stop("I give up. Have no idea how to standardize this expectation.\nYour means must have rownames(), colnames(), or names().")
-	}
-	ordInd <- match(colnames(thresholds), mnames)
-	thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)[ordInd]), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
-	means[ordInd] <- means[ordInd] - means[ordInd]
-	cov <- .ordinalCov2Cor(cov, ordInd)
+  mnames <- colnames(cov)
+  if (length(mnames) == 0) {
+    stop("I give up. Have no idea how to standardize this expectation.\nYour covariance matrix must have dimnames.")
+  }
+  if (prod(dim(thresholds)) == 0) {
+    ordInd <- c()
+  } else {
+    ordInd <- match(colnames(thresholds), mnames)
+    thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)[ordInd]), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
+    means[ordInd] <- means[ordInd] - means[ordInd]
+    cov <- .ordinalCov2Cor(cov, ordInd)
+  }
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
 		v <- c()
 		vn <- c()
-		for (vx in 1:length(mnames)) {
-			tcol <- which(vx == ordInd)
-			if (length(tcol) == 0) {
-				v <- c(v, means[vx])
-				vn <- c(vn, mnames[vx])
-			} else {
-				tcount <- sum(dth[,tcol])
-				v <- c(v, thresholds[1:tcount,tcol])
-				vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
-			}
+		if (length(means)) {
+		  for (vx in 1:length(mnames)) {
+		    tcol <- which(vx == ordInd)
+		    if (length(tcol) == 0) {
+		      v <- c(v, means[vx])
+		      vn <- c(vn, mnames[vx])
+		    } else {
+		      tcount <- sum(dth[,tcol])
+		      v <- c(v, thresholds[1:tcount,tcol])
+		      vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
+		    }
+		  }
 		}
 		for (vx in 1:length(mnames)) {
 			if (any(vx == ordInd)) next
@@ -258,6 +254,9 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=model$name)
 {
+  if (!is(model[[subname]], "MxModel")) {
+    stop(paste("Submodel", subname, "in model", model$name, "is not found"))
+  }
 	if(is.null(model[[subname]]$expectation) && (class(model[[subname]]$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()

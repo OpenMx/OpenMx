@@ -110,6 +110,16 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 		ProtectedSEXP expCovExt(Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
 		memcpy(REAL(expCovExt), Ax->data, sizeof(double) * Ax->rows * Ax->cols);
 		Rf_setAttrib(robj, Rf_install("UnfilteredExpCov"), expCovExt);
+		if (F->colnames.size()) {
+			ProtectedSEXP names(Rf_allocVector(STRSXP, Ax->rows));
+			for (int px=0; px < Ax->rows; ++px) {
+				SET_STRING_ELT(names, px, Rf_mkChar(F->colnames[px]));
+			}
+			ProtectedSEXP dimnames(Rf_allocVector(VECSXP, 2));
+			for (int dx=0; dx < 2; ++dx) SET_VECTOR_ELT(dimnames, dx, names);
+			Rf_setAttrib(expCovExt, R_DimNamesSymbol, dimnames);
+		}
+
 		ProtectedSEXP RnumStats(Rf_ScalarReal(omxDataDF(data)));
 		Rf_setAttrib(robj, Rf_install("numStats"), RnumStats);
 	}
@@ -418,6 +428,9 @@ void omxRAMExpectation::studyExoPred()
 
 void omxRAMExpectation::studyF()
 {
+	// Permute the data columns such that the manifest
+	// part of F is a diagonal matrix. This permits
+	// trivial filtering of the latent variables.
 	auto dataColumns = super::getDataColumns();
 	auto origDataColumnNames = super::getDataColumnNames();
 	auto origThresholdInfo = super::getThresholdInfo();
@@ -1174,6 +1187,9 @@ namespace RelationalRAMExpectation {
 	{
 		for (auto it : allEx) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) it;
+			if (ram->getThresholdInfo().size()) {
+				mxThrow("%s: Ordinal indicators are not supported in multilevel models", ram->name);
+			}
 			omxData *data = ram->data;
 			int numDefVars = data->defVars.size();
 			if (numDefVars == 0) continue;
