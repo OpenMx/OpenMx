@@ -8,6 +8,9 @@ addons:
     - gcc-8
     - g++-8
     - gfortran-8
+env:
+  global:
+    - INSTALLMAKEFLAGS="-j 2"
 matrix:
   include:
   - os: osx
