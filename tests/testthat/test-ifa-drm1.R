@@ -1,10 +1,13 @@
 #options(error = browser)
 #options(warn = 2)
+library(testthat)
 library(OpenMx)
 library(rpf)
 
 suppressWarnings(RNGversion("3.5"))
 set.seed(9)
+
+dir <- tempdir()  # safe place to create files
 
 numItems <- 10
 i1 <- rpf.drm(multidimensional=TRUE)
@@ -72,6 +75,7 @@ m2 <- mxModel(m2,
 		  mxComputeEM(estep=mxComputeOnce('expectation', 'scores'),
 			      mstep=mxComputeSequence(list(
 				      mxComputeNewtonRaphson(),
+				      mxComputeCheckpoint(path=file.path(dir,"em.csv")),
 				      mxComputeOnce('expectation')))),
 		  mxComputeOnce('fitfunction', 'gradient'),
 		  mxComputeReportDeriv())))
@@ -98,6 +102,10 @@ omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'], 6340.56, .02)
 omxCheckTrue(all(m2$item$lbound['f1',] == 1e-6))
 omxCheckTrue(all(is.na(m2$item$lbound[2:nrow(m2$item),])))
 omxCheckTrue(all(is.na(m2$item$ubound)))
+
+emlog <- read.table(file.path(dir,"em.csv"),
+		    header=TRUE, sep="\t", stringsAsFactors=FALSE, check.names=FALSE)
+expect_equal(nrow(emlog), emstat$EMcycles)
 
 short <- mxModel(m1, mxComputeEM(estep=mxComputeOnce('expectation', 'scores'),
 			      mstep=mxComputeSequence(list(
