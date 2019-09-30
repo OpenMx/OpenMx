@@ -19,7 +19,7 @@ fi
 
 fold_start roxygenize "roxygenize"
 
-MAKEFLAGS="$INSTALLMAKEFLAGS" ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
+MAKEFLAGS="${INSTALLMAKEFLAGS:-}" ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
 pkgbuild::compile_dll()
 roxygenize('.', roclets=c('rd'))
