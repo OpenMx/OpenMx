@@ -131,7 +131,7 @@ cran-check:
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 69 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 roxygen:
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" sh ./util/rox
+	sh ./util/rox
 
 docprep: roxygen build-clean
 

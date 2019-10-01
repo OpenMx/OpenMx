@@ -5128,7 +5128,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 				else       { ofs << '\t'; }
 				ofs << cn;
 			}
-			ofs << '\n';
+			ofs << std::endl;
 			wroteHeader = true;
 		}
 
@@ -5208,7 +5208,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			ofs << '\t' << std::setprecision(digits) << s1.algebraEnt[x1];
 		}
 		for (auto &x1 : s1.extra) ofs << '\t' << x1;
-		ofs << '\n';
+		ofs << std::endl;
 		ofs.flush();
 	}
 
