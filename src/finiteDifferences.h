@@ -249,9 +249,9 @@ void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &poi
 				Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
 			}
 		}
-		for(int i=0; i<jacobiOut.rows(); i++){
-			if (!initialized || std::isnan(jacobiOut(i))) {
-				jacobiOut(i) = Gaprox(i,0);
+		for(int i=0; i<jacobiOut1.rows(); i++){
+			if (!initialized || std::isnan(jacobiOut1(i))) {
+				jacobiOut1(i) = Gaprox(i,0);
 			}
 		}
 	}
