@@ -27,8 +27,8 @@ MEMORYTESTFILE = inst/tools/memoryTestModels.sh
 #GDBWRAP = $(shell if which gdb >/dev/null; then echo '-d gdb --debugger-args="--nx --batch --return-child-result --command util/gdb-where"'; fi)
 GDBWRAP=
 
-#INSTALLMAKEFLAGS="--debug=b"   #debug dependencies
-#INSTALLMAKEFLAGS="-j 8"   #much faster compiles
+#MAKEFLAGS="--debug=b"   #debug dependencies
+#MAKEFLAGS="-j 8"   #much faster compiles
 
 # subdirectories
 RSOURCE = R
@@ -108,13 +108,13 @@ build-prep: build-clean
 	git archive --format=tar HEAD | (cd build; tar -xf -)
 
 cran-build: build-prep
-	cd build && sh ./util/prep cran build && $(REXEC) CMD build .
+	+cd build && sh ./util/prep cran build && $(REXEC) CMD build .
 
 build: build-prep
-	cd build && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	+cd build && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 build-simple: build-prep
-	cd build && sh ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+	+cd build && sh ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 packages-help:
 	@echo 'To generate a PACKAGES file, use:'
@@ -122,11 +122,11 @@ packages-help:
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='mac.binary'"', latestOnly=FALSE)" | R --vanilla # for OS/X'
 
 srcbuild: build-prep packages-help
-	cd build && sh ./util/prep npsol build && $(REXEC) CMD build .
+	+cd build && sh ./util/prep npsol build && $(REXEC) CMD build .
 
 cran-check:
-	sh ./util/prep cran build && $(REXEC) CMD build .
-	$(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
+	+sh ./util/prep cran build && $(REXEC) CMD build .
+	+$(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
 	wc -l OpenMx.Rcheck/00check.log
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 69 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
@@ -159,12 +159,12 @@ doc.tar.bz2:
 
 install: code-style
 	sh ./util/prep npsol install
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
+	+$(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 
 cran-install: code-style
 	sh ./util/prep cran install
-	MAKEFLAGS="$(INSTALLMAKEFLAGS)" $(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
+	+$(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 
 rproftest:
