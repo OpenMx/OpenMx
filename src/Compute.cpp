@@ -1991,7 +1991,7 @@ struct ParJacobianSense {
 		for (int ex=0, offset=0; ex < numOf; offset += numStats[ex++]) {
 			if (exList) {
 				(*exList)[ex]->asVector(fc, defvar_row, tmp);
-				result1.segment(offset, numStats[ex]) =
+				result1.block(offset, 0, numStats[ex], 1) =
 					tmp.segment(0, numStats[ex]);
 			} else {
 				omxMatrix *mat = (*alList)[ex];
@@ -2000,11 +2000,51 @@ struct ParJacobianSense {
 				if (numStats[ex] != vec.size()) {
 					mxThrow("Algebra '%s' changed size during Jacobian", mat->name());
 				}
-				result1.segment(offset, numStats[ex]) = vec;
+				result1.block(offset, 0, numStats[ex], 1) = vec;
 			}
 		}
 	}
 };
+
+struct ParJacobianSense1 {
+	FitContext *fc;
+	omxMatrix *alg;
+	Eigen::MatrixXd ref;
+	Eigen::MatrixXd result;
+
+	ParJacobianSense1() : alg(0) {};
+
+	void attach(omxMatrix * _alg) {
+		if (_alg) mxThrow("_alg");
+		alg = _alg;
+	};
+
+	void measureRef(FitContext *_fc) {
+		using Eigen::Map;
+		using Eigen::VectorXd;
+		fc = _fc;
+		int numFree = fc->calcNumFree();
+		Map< VectorXd > curEst(fc->est, numFree);
+		result.resize(alg->rows, alg->cols);
+		ref.resize(alg->rows, alg->cols);
+		(*this)(curEst, ref);
+	}
+
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result1) const {
+		fc->copyParamToModel();
+		omxRecompute(alg, fc);
+		EigenMatrixAdaptor Ealg(alg);
+		result1 = Ealg;
+	}
+};
+
+// usage:
+//
+// ParJacobianSense1 sense;
+// sense.attach(myAlgebra);
+// sense.measureRef(fc);
+// fd_jacobian1<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, px, sense.result);
 
 class ComputeJacobian : public omxCompute {
 	typedef omxCompute super;

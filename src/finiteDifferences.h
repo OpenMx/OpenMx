@@ -201,11 +201,12 @@ struct forward_difference_jacobi {
 			double offset, int px, int numIter, Eigen::MatrixBase<T3> &Gaprox)
 	{
 		double orig = point[px];
-		Eigen::VectorXd result(refFit.size());
+		Eigen::MatrixXd result(refFit.rows(), refFit.cols());
 		for(int k = 0; k < numIter; k++) {
 			point[px] = orig + offset;
 			ff(point, result);
-			Gaprox.col(k) = (result - refFit) / offset;
+			Eigen::Map<Eigen::MatrixXd> Gaprox1(&Gaprox.coeffRef(0,k), refFit.rows(), refFit.cols());
+			Gaprox1 = (result - refFit) / offset;
 			offset *= .5;
 		}
 		point[px] = orig;
@@ -218,14 +219,15 @@ struct central_difference_jacobi {
 			double offset, int px, int numIter, Eigen::MatrixBase<T3> &Gaprox)
 	{
 		double orig = point[px];
-		Eigen::VectorXd result1(refFit.size());
-		Eigen::VectorXd result2(refFit.size());
+		Eigen::MatrixXd result1(refFit.rows(), refFit.cols());
+		Eigen::MatrixXd result2(refFit.rows(), refFit.cols());
 		for(int k = 0; k < numIter; k++) {
 			point[px] = orig + offset;
 			ff(point, result1);
 			point[px] = orig - offset;
 			ff(point, result2);
-			Gaprox.col(k) = (result1 - result2) / (2.0 * offset);
+			Eigen::Map<Eigen::MatrixXd> Gaprox1(&Gaprox.coeffRef(0,k), refFit.rows(), refFit.cols());
+			Gaprox1 = (result1 - result2) / (2.0 * offset);
 			offset *= .5;
 		}
 		point[px] = orig;
@@ -233,42 +235,64 @@ struct central_difference_jacobi {
 };
 
 template <bool initialized, typename T1, typename T2, typename T3, typename T4, typename T5>
-void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &point,
-                  int numIter, const double eps, T4 dfn, Eigen::MatrixBase<T5> &jacobiOut)
+void jacobianImpl(T1 ff,  Eigen::MatrixBase<T2> &ref, Eigen::MatrixBase<T3> &point, int px,
+                  int numIter, const double eps, T4 dfn, Eigen::MatrixBase<T5> &jacobiOut, int dest)
 {
-	// TODO refactor, evaluate jacobian in parallel
-	for (int px=0; px < int(point.size()); ++px) {
-		if (!initialized || std::isnan(jacobiOut.col(px).sum())) {
-			double offset = std::max(fabs(point[px] * eps), eps);
-			Eigen::MatrixXd Gaprox(ref.size(), numIter);
-			dfn(ff, ref, point, offset, px, numIter, Gaprox);
-			for(int m = 1; m < numIter; m++) {						// Richardson Step
-				for(int k = 0; k < (numIter - m); k++) {
-					// NumDeriv Hard-wires 4s for r here. Why?
-					Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
-				}
+	Eigen::Map<Eigen::VectorXd> jacobiOut1(&jacobiOut.coeffRef(0,dest), ref.size());
+	if (!initialized || std::isnan(jacobiOut1.sum())) {
+		double offset = std::max(fabs(point[px] * eps), eps);
+		Eigen::MatrixXd Gaprox(ref.size(), numIter);
+		dfn(ff, ref, point, offset, px, numIter, Gaprox);
+		for(int m = 1; m < numIter; m++) {						// Richardson Step
+			for(int k = 0; k < (numIter - m); k++) {
+				// NumDeriv Hard-wires 4s for r here. Why?
+				Gaprox.col(k) = (Gaprox.col(k+1) * pow(4.0, m) - Gaprox.col(k))/(pow(4.0, m)-1);
 			}
-			for(int i=0; i<jacobiOut.rows(); i++){
-				if (!initialized || std::isnan(jacobiOut(i,px))) {
-					jacobiOut(i,px) = Gaprox(i,0);
-				}
+		}
+		for(int i=0; i<jacobiOut1.rows(); i++){
+			if (!initialized || std::isnan(jacobiOut1(i))) {
+				jacobiOut1(i) = Gaprox(i,0);
 			}
 		}
 	}
 }
 
+// all parameters
 template <bool initialized, typename T1, typename T2, typename T3, typename T4>
 void fd_jacobian(GradientAlgorithm algo, int numIter, double eps, T1 ff, Eigen::MatrixBase<T2> &ref,
 	      Eigen::MatrixBase<T3> &point, Eigen::MatrixBase<T4> &jacobiOut)
 {
+	// TODO refactor, evaluate jacobian in parallel
 	switch (algo) {
 	case GradientAlgorithm_Forward:{
 		forward_difference_jacobi dfn;
-		jacobianImpl<initialized>(ff, ref, point, numIter, eps, dfn, jacobiOut);
+		for (int px=0; px < int(point.size()); ++px) {
+			jacobianImpl<initialized>(ff, ref, point, px, numIter, eps, dfn, jacobiOut, px);
+		}
 		break;}
 	case GradientAlgorithm_Central:{
 		central_difference_jacobi dfn;
-		jacobianImpl<initialized>(ff, ref, point, numIter, eps, dfn, jacobiOut);
+		for (int px=0; px < int(point.size()); ++px) {
+			jacobianImpl<initialized>(ff, ref, point, px, numIter, eps, dfn, jacobiOut, px);
+		}
+		break;}
+	default: mxThrow("Unknown gradient algorithm %d", algo);
+	}
+}
+
+// single parameter
+template <bool initialized, typename T1, typename T2, typename T3, typename T4>
+void fd_jacobian1(GradientAlgorithm algo, int numIter, double eps, T1 ff, Eigen::MatrixBase<T2> &ref,
+		  Eigen::MatrixBase<T3> &point, int px, Eigen::MatrixBase<T4> &jacobiOut)
+{
+	switch (algo) {
+	case GradientAlgorithm_Forward:{
+		forward_difference_jacobi dfn;
+		jacobianImpl<initialized>(ff, ref, point, px, numIter, eps, dfn, jacobiOut, 0);
+		break;}
+	case GradientAlgorithm_Central:{
+		central_difference_jacobi dfn;
+		jacobianImpl<initialized>(ff, ref, point, px, numIter, eps, dfn, jacobiOut, 0);
 		break;}
 	default: mxThrow("Unknown gradient algorithm %d", algo);
 	}

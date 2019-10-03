@@ -10,7 +10,7 @@ addons:
     - gfortran-8
 env:
   global:
-    - INSTALLMAKEFLAGS="-j 2"
+    - MAKEFLAGS="-j 2"
 matrix:
   include:
   - os: osx
