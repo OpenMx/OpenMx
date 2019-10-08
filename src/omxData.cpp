@@ -1175,8 +1175,7 @@ void omxData::reportResults(MxRList &out)
 	auto &o1 = *oss;
 	if (!o1.output) return;
 
-	out.add("cov", o1.covMat->asR());
-
+	if (o1.covMat) out.add("cov", o1.covMat->asR());
 	if (o1.meansMat) out.add("means", o1.meansMat->asR());
 	if (o1.acovMat) out.add("acov", o1.acovMat->asR());
 	if (o1.slopeMat) out.add("slope", o1.slopeMat->asR());
