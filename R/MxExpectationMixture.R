@@ -142,9 +142,7 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 
 mxExpectationMixture <- function(components, weights="weights",
 				      ..., verbose=0L, scale=c('softmax', 'sum', 'none')) {
-	if (length(list(...)) > 0) {
-		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
-	}
+  prohibitDotdotdot(list(...))
 
 	scale <- match.arg(scale)
 

@@ -15,16 +15,9 @@
 
 mxCompare <- function(base, comparison, ..., all = FALSE,
 		      boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxCompare does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 	if (missing(base)) {
 		stop("'base' argument be a MxModel object or list of MxModel objects")	
-	}
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxCompare does not accept values for the '...' argument")
 	}
 	if (is.list(base)) {
 		base <- unlist(base)
@@ -60,11 +53,7 @@ mxCompareMatrix <- function(models,
 			    stat=c('p', 'diffLL','diffdf'), ...,
 			    boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE,
 			    wholeTable=FALSE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop(paste("mxCompareMatrix does not accept values for the '...' argument",
-			omxQuotes(names(garbageArguments))))
-	}
+	prohibitDotdotdot(list(...))
 	
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
@@ -551,10 +540,7 @@ mxParametricBootstrap <- function(nullModel, labels,
                                   previousRun=NULL, replications=400,
                                   checkHess=FALSE,
 				  signif.stars = getOption("show.signif.stars")) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxParametricBootstrap does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 	if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1")
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	nullModel <- ProcessCheckHess(nullModel, checkHess)

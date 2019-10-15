@@ -133,3 +133,11 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 	}
 }
 
+prohibitDotdotdot <- function(args) {
+  if (length(args) == 0) return()
+  stop(paste0(as.character(sys.call(-1))[1], " does not accept ... arguments. ",
+              "The first parameter in ... was named ", omxQuotes(names(args)[1]), 
+              " with value '", args[[1]], "'"),
+       call.=FALSE)
+}
+

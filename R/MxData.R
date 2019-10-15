@@ -151,10 +151,7 @@ nrowMxData <- function(mxd) {
 ##' print,MxDataDynamic-method
 ##' show,MxDataDynamic-method
 mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxDataDynamic does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	if (type != "cov") stop("Type must be set to 'cov'")
 	verbose <- as.integer(verbose)
 	return(new("MxDataDynamic", type, expectation, verbose))
@@ -166,10 +163,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
 		   minVariance=sqrt(.Machine$double.eps), algebra=c(),
 		   warnNPDacov=TRUE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxData does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")

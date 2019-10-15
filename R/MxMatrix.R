@@ -491,9 +491,7 @@ mxMatrix <- function(type = c("Full", 'Diag', 'Iden', 'Lower',
 	lbound = NA, ubound = NA, byrow = getOption('mxByrow'), 
 		     dimnames = NA, name = NA, condenseSlots=getOption('mxCondenseMatrixSlots'),
 		     ..., joinKey=as.character(NA), joinModel=as.character(NA)) {
-	if (length(list(...)) > 0) {
-		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
-	}
+  prohibitDotdotdot(list(...))
 	type <- match.barg(as.character(type), choices=matrixTypes)
 	if (missing(dimnames) && !missing(values) && !is.null(dimnames(values))) {
 		dimnames <- dimnames(values)

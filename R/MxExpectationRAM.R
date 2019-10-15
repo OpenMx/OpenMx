@@ -483,9 +483,7 @@ imxSimpleRAMPredicate <- function(model) {
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
 	threshnames = dimnames, ..., between=NULL, verbose=0L) {
 
-	if (length(list(...)) > 0) {
-		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
-	}
+	prohibitDotdotdot(list(...))
 
 	if (typeof(A) != "character") {
 		msg <- paste("argument 'A' is not a string",

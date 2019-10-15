@@ -642,10 +642,7 @@ extractObservedData <- function(model) {
 
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
 			   ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion=NULL) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxGenerateData does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 	if (!is.null(nrows) && !is.null(nrowsProportion)) {
 	  stop("You cannot specify both nrows and nrowsProportion")
 	}

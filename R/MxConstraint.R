@@ -45,12 +45,7 @@ mxConstraintFromString <- function(exprString, name = NA,...) {
 }
 
 mxConstraint <- function(expression, name=NA, ..., jac=character(0)){#, linear=FALSE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		# user may have added an illegal parameter, or an illegal symbol in the expression
-		stop("mxConstraint accepts at most only three arguments. Check that you've used only the legal comparators (<, ==, >) in the constraint formula.")
-	}
-	
+  prohibitDotdotdot(list(...))
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}

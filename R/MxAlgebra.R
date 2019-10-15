@@ -88,10 +88,7 @@ mxAlgebra <- function(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 		      joinKey=as.character(NA), joinModel=as.character(NA),
 		      verbose=0L, initial=matrix(as.numeric(NA),1,1),
 		      recompute=c('always','onDemand')) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxAlgebra does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 	if (single.na(name)) {
 		name <- imxUntitledName()
 	}

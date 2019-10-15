@@ -31,10 +31,7 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 	}
 
 	frontendStart <- Sys.time()
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxRun does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	runHelper(model, frontendStart, intervals,
 		silent, suppressWarnings, unsafe,
 		checkpoint, useSocket, onlyFrontend, useOptimizer, beginMessage)

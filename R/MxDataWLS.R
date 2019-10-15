@@ -856,10 +856,7 @@ omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 {
 	type <- match.arg(type)
 	allContinuousMethod <- match.arg(allContinuousMethod)
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("omxAugmentDataWithWLSSummary does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	if (mxd@type != 'raw') stop("Data must contain a raw data frame")
 	data <- mxd@observed
 	notFound <- is.na(match(exogenous, colnames(data)))
