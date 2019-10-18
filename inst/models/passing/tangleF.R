@@ -1,9 +1,41 @@
 library(OpenMx)
+library(testthat)
 
 # NPSOL trips up on WLS for some reason
 if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
 
 mxOption(NULL, "Standard Errors", "No")
+
+data(demoOneFactor)
+
+mkModel <- function() {
+  manifests <- sample(names(demoOneFactor), ncol(demoOneFactor))
+  mxModel("One Factor", type="RAM",
+          manifestVars = manifests,
+          latentVars = c("G"),
+          mxPath(from="G", to=manifests,
+                 labels=paste0("loading_",manifests)),
+          mxPath(from=manifests, arrows=2),
+          mxPath(from="G", arrows=2, free=FALSE, values=1.0),
+          mxPath(from="one", to=manifests,
+                 labels=paste0("mean_",manifests)),
+          mxData(cov(demoOneFactor), type="cov", numObs=500,
+                 means=colMeans(demoOneFactor)))
+}
+
+interest <- c(paste0("loading_x",1:5),paste0("mean_x",1:5))
+c1 <- c()
+for (rep in 1:5) {
+  fit <- mxRun(mkModel())
+  if (is.null(c1)) {
+    c1 <- coef(fit)[interest]
+  } else {
+    expect_equivalent(c1 - coef(fit)[interest],
+                      rep(0,10), tolerance=1e-6)
+  }
+}
+
+# -------
 
 numManifestsPerLatent <- 5
 

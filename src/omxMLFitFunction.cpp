@@ -405,10 +405,10 @@ void MLFitState::init()
 		newObj->observedMeans = omxCreateCopyOfMatrix(newObj->observedMeans, oo->matrix->currentState);
 		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(dc);
 		EigenMatrixAdaptor Ecov(newObj->observedCov);
-		Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
+		Ecov.derived() = (pm.transpose() * Ecov * pm).eval();
 		if (newObj->observedMeans) {
 			EigenVectorAdaptor Emean(newObj->observedMeans);
-			Emean.derived() = (pm * Emean).eval();
+			Emean.derived() = (pm.transpose() * Emean).eval();
 		}
 	}
 

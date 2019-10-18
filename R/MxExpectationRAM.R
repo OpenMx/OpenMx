@@ -197,7 +197,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				stop(msg, call. = FALSE)
 			}
 		}
-		translatedNames <- fMatrixTranslateNames(fMatrix, modelname)
+		translatedNames <- modelManifestNames(fMatrix, modelname)
 		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (length(translatedNames)) {
 			.Object@dataColumnNames <- translatedNames
@@ -346,7 +346,7 @@ generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
 	}
 }
 
-fMatrixTranslateNames <- function(fMatrix, modelName) {
+modelManifestNames <- function(fMatrix, modelName) {
 	retval <- character()
 	if (length(fMatrix) == 0) return(retval)
 	colNames <- dimnames(fMatrix)[[2]]

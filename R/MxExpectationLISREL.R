@@ -445,7 +445,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		#
 		# Raw data error checking
 		#  Set the canonical order of observed variable names.
-		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #fMatrixTranslateNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
+		translatedNames <- c(dimnames(lyMatrix)[[1]], dimnames(lxMatrix)[[1]]) #modelManifestNames(fMatrix, modelname) #Rearrange the rownames of F to match the order of the columns
 		.Object@depth <- generateLISRELDepth(flatModel, beMatrix2, model@options) #Find out how many iterations of I + BE + BE^2 + ... are need until nilpotency.
 		if (dataIsRawish(mxDataObject)) {
 			threshName <- .Object@thresholds
@@ -809,7 +809,7 @@ generateLISRELDepth <- function(flatModel, aMatrixName, modeloptions) {
 
 
 #
-#fMatrixTranslateNames <- function(fMatrix, modelName) {
+#modelManifestNames <- function(fMatrix, modelName) {
 #	retval <- character()
 #	colNames <- dimnames(fMatrix)[[2]]
 #	for(i in 1:nrow(fMatrix)) {
