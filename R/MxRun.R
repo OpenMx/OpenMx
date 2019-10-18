@@ -309,8 +309,9 @@ imxReportProgress <- function(info, eraseLen) {
 enumerateDatasets <- function(model) {
 	datasets <- c()
 	if (!is.null(model@data)) datasets <- c(datasets, model@name)
-	if (length(model@submodels)) {
-		datasets <- c(datasets, sapply(model@submodels, enumerateDatasets))
+	if (length(model@submodels)) for (mx in 1:length(model@submodels)) {
+    got <- enumerateDatasets(model@submodels[[mx]])
+    if (length(got)) datasets <- c(datasets, got)
 	}
 	return(datasets)
 }
