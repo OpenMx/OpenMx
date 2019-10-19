@@ -275,10 +275,7 @@ ReferenceModelHelper <- function(x, distribution, equateThresholds) {
 }
 
 mxRefModels <- function(x, run=FALSE, ..., distribution="default", equateThresholds = TRUE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxRefModels does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	if(is(x,"MxModel")){
 		if(imxHasDefinitionVariable(x)){
 			warning(

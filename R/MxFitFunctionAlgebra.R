@@ -107,10 +107,7 @@ mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 				 gradient=NA_character_, hessian=NA_character_,
 				 verbose=0L, units="-2lnL")
 {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxFitFunctionAlgebra does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 
 	if (is.null(algebra)) {
 		algebra <- NA_character_

@@ -79,10 +79,7 @@ expandIntervals <- function(intervals) {
 }
 
 mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'), ..., boundAdj=TRUE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("Values for the '...' argument are not accepted")
-	}
+  prohibitDotdotdot(list(...))
 	if (!is.numeric(interval) || interval < 0 || interval > 1) {
 		stop("'interval' must be a numeric value between 0 and 1")
 	}

@@ -87,7 +87,7 @@ convertRAMtoMLModel <- function(model, job, namespace) {
 		model <- mxModel(model, algebra)
 	}
 
-    translatedNames <- fMatrixTranslateNames(job[[fName]]@values, modelname)
+    translatedNames <- modelManifestNames(job[[fName]]@values, modelname)
 	dataset <- job[[modelname]]@data
 	if (dataset@type == 'raw') {
 		objectiveType <- as.symbol('mxFIMLObjective')
