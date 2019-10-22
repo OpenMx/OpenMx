@@ -3,6 +3,11 @@
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
 
+# OpenMx 2.14.X
+* October 2019 (R 3.6.1)
+* IMPROVED: `mxRun` informs user about any unrecognised parameters (... parameters).
+* FIXED: Bug affecting RAM models: `cov` data was not reordered correctly to match model.
+
 # OpenMx 2.13.3
 * September 2019 (R 3.6.1)
 * FIXED: Bug `mxFactor`where RAM regression scores did not always include the means.
@@ -34,7 +39,7 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * IMPROVED: `mxFactorScores` is moved to the backend resulting in a substantial performance improvement!
 * IMPROVED: `mxPath` error messages are even more helpful :-)
 * IMPROVED: `mxModel` error when path added to model without type = "RAM"
-* IMPROVED: github and CRAN README.md
+* IMPROVED: Github and CRAN README.md
 * CHANGED: CXX14 (not CXX11)
 
 
