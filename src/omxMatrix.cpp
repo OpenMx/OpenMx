@@ -827,7 +827,7 @@ void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z,
 			omxCopyMatrix(Ax, I);
 			// F77_CALL(omxunsafedgemm)(A->majority, A->majority, &(Z->cols), &(Z->rows), &(A->rows), &oned, Z->data, &(Z->cols), A->data, &(A->cols), &oned, Ax->data, &(Ax->cols));  // Ax = Z %*% A + I
 			omxDGEMM(FALSE, FALSE, oned, A, Z, oned, Ax);
-			omxMatrix* m = Z; Z = Ax; Ax = m;	// Juggle to make Z equal to Ax
+			std::swap(Z, Ax);
 			//omxPrint(Z, "Z");
 		}
 		if(origZ != Z) { 	// Juggling has caused Ax and Z to swap
