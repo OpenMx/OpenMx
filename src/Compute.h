@@ -401,20 +401,24 @@ class omxCompute {
 };
 
 class PushLoopIndex {
-	void init(const char *name, int ix, int last)
+	void init(const char *name, int ix, int ii, int last)
 	{
 		Global->computeLoopContext.push_back(name);
 		Global->computeLoopIndex.push_back(ix);
+		Global->computeLoopIter.push_back(ii);
 		Global->computeLoopMax.push_back(last);
 	}
 public:
 	PushLoopIndex(const char *name, int ix, int last)
-	{ init(name, ix, last); }
+	{ init(name, ix, ix, last); }
+	PushLoopIndex(const char *name, int ix, int ii, int last)
+	{ init(name, ix, ii, last); }
 	PushLoopIndex(const char *name)
-	{ init(name, NA_INTEGER, 0); }
+	{ init(name, NA_INTEGER, 0, 0); }
 	~PushLoopIndex() {
 		Global->computeLoopContext.pop_back();
 		Global->computeLoopIndex.pop_back();
+		Global->computeLoopIter.pop_back();
 		Global->computeLoopMax.pop_back();
 	}
 };

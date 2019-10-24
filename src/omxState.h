@@ -270,6 +270,7 @@ class omxGlobal {
 	// bundle computeLoop* into a structure?
 	std::vector<const char *> computeLoopContext;
 	std::vector<int> computeLoopIndex;
+	std::vector<int> computeLoopIter;
 	std::vector<int> computeLoopMax;
 	int lastIndexDone;
 	time_t lastIndexDoneTime;

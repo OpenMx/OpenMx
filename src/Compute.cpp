@@ -2606,7 +2606,7 @@ void ComputeLoop::computeImpl(FitContext *fc)
 	if (hasMaxIter) lastIndex = std::min(lastIndex, maxIter);
 	while (1) {
 		PushLoopIndex pli(name, hasIndices? indices[iterations] : startFrom+iterations,
-											lastIndex);
+											iterations, lastIndex);
 		++iterations;
 		++fc->iterations;
 		for (size_t cx=0; cx < clist.size(); ++cx) {
