@@ -231,6 +231,11 @@ omxWLSFitFunction.o: Makevars omxWLSFitFunction.cpp omxData.h omxDefines.h \
  omxAlgebra.h omxSymbolTable.h omxMatrix.h \
  minicsv.h algebraOp.h omxState.h omxExpectation.h omxFitFunction.h \
  EnableWarnings.h
+povRAM.o: Makevars povRAM.cpp omxExpectation.h omxDefines.h \
+ omxMatrix.h \
+ minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
+ omxFitFunction.h omxData.h polynomial.h \
+ SelfAdjointEigenSolverNosort.h EnableWarnings.h
 ssMLFit.o: Makevars ssMLFit.cpp omxFitFunction.h omxDefines.h \
  omxMatrix.h \
  minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \

@@ -82,7 +82,7 @@ model3 <- mxModel(
     LD=mxComputeLoadData(
       'loadData', column=paste0('z',1:2),
       skip.rows=1, skip.cols=1,
-      row.names=1,
+      row.names=1, method="oops",
       path=paste0(tdir, "testCols.csv"), verbose=0L),
     mxComputeSetOriginalStarts(),
     mxComputeGradientDescent(),
@@ -90,6 +90,8 @@ model3 <- mxModel(
     CPT=mxComputeCheckpoint(toReturn=TRUE, standardErrors = TRUE)
   ), i=1:numSets))
 
+expect_error(mxRun(model3), "unknown provider")
+model3$compute$steps[['LD']]$method <- 'csv'
 model3Fit <- mxRun(model3)
 
 omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 1L)

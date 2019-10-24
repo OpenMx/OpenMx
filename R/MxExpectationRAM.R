@@ -28,6 +28,7 @@ setClass(Class = "MxExpectationRAM",
 		UnfilteredExpCov = "matrix",
 	    numStats = "numeric",
 	    between = "MxOptionalCharOrNumber",
+    isProductNode = "MxOptionalLogical",
 	    verbose = "integer",
 	    .rampartCycleLimit = "integer",
 	    .rampartUnitLimit = "integer",
@@ -38,6 +39,9 @@ setClass(Class = "MxExpectationRAM",
 	    .optimizeMean = "integer"
 	),
 	contains = "BaseExpectationNormal")
+
+setClass(Class = "MxExpectationPOVRAM",   # temporary hack TODO
+         contains = "MxExpectationRAM")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
@@ -236,6 +240,9 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
+    if (length(.Object@isProductNode)) {
+      class(.Object) <- 'MxExpectationPOVRAM'  # remove TODO
+    }
 		return(.Object)
 })
 

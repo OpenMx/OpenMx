@@ -2257,18 +2257,6 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' a placeholder and is not used unless
 ##' \code{originalDataIsIndexOne} is set to TRUE.
 ##'
-##' The code to implement method='pgen' is based on plink 2.0
-##' alpha. plink's \sQuote{bed} file format is supported in addition
-##' to \sQuote{pgen}. Data are coerced appropriately depending on the
-##' type of the destination column. For a numeric column, data are
-##' recorded as the values NA, 0, 1, or 2. An ordinal column must have
-##' exactly 3 levels.
-##'
-##' For \code{method='bgen'}, the file \code{path+".bgi"} must also
-##' exist. If not available, generate this index file with the
-##' \href{https://bitbucket.org/gavinband/bgen/wiki/bgenix}{bgenix}
-##' tool.
-##'
 ##' For \code{method='csv'}, the highest performance arrangement is
 ##' \code{byrow=TRUE} because entire columns are stored in single
 ##' chunks (rows) on the disk and can be easily loaded. For
@@ -2308,7 +2296,7 @@ setMethod("convertForBackend", signature("MxComputeLoadData"),
 ##' MxComputeLoadData-class
 ##' @seealso
 ##' \link{mxComputeLoadMatrix}, \link{mxComputeCheckpoint}, \link{mxRun}, \link{omxDefaultComputePlan}
-mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen', 'data.frame'), ..., path=c(),
+mxComputeLoadData <- function(dest, column, method=c('csv', 'data.frame'), ..., path=c(),
 			      originalDataIsIndexOne=FALSE, byrow=TRUE,
 			      row.names=c(), col.names=c(),
 			      skip.rows=0, skip.cols=0,
@@ -2316,7 +2304,6 @@ mxComputeLoadData <- function(dest, column, method=c('csv', 'bgen', 'pgen', 'dat
 			      cacheSize=100L, checkpointMetadata=TRUE, na.strings=c('NA'),
 			      observed=NULL) {
   prohibitDotdotdot(list(...))
-	method <- match.arg(method)
 	if (cacheSize < 1L) stop("cacheSize must be a positive integer")
 	new("MxComputeLoadData", dest, column, path, originalDataIsIndexOne,
 		as.integer(row.names), as.integer(col.names),

@@ -4632,7 +4632,15 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 			break;
 		}
 	}
-	if (!provider) mxThrow("%s: unknown method '%s'", name, methodName);
+	if (!provider) {
+		std::string avail;
+		for (auto pr : Providers) {
+			avail += " ";
+			avail += pr->getName();
+		}
+		mxThrow("%s: unknown provider '%s'; available providers are:%s",
+						name, methodName, avail.c_str());
+	}
 
 	if (provider->wantCheckpoint()) {
 		auto &cp = Global->checkpointColnames;
