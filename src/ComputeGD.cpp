@@ -189,7 +189,6 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	if (*mode == 1) {
 		fc->iterations += 1;
 		fc->resetOrdinalRelativeError();
-		Global->reportProgress(getOptName(), fc);
 	}
 	copyFromOptimizer(myPars, fc);
 
@@ -201,6 +200,8 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 		want |= FF_COMPUTE_GRADIENT;
 	}
 	ComputeFit(getOptName(), fitMatrix, want, fc);
+
+	if (*mode == 1) Global->reportProgress(getOptName(), fc);
 
 	if (fc->outsideFeasibleSet() || isErrorRaised()) {
 		*mode = -1;
