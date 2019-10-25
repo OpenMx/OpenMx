@@ -702,7 +702,7 @@ void omxGlobal::reportProgress1(const char *context, std::string detail)
 
 	lastProgressReport = now;
 
-	auto &cli = Global->computeLoopIndex;
+	auto &cli = Global->computeLoopIter;
 	auto &clm = Global->computeLoopMax;
 	std::string str;
 	if (cli.size() == 1 && cli[0] != lastIndexDone) {
