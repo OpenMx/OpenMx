@@ -23,7 +23,8 @@
 #include <Eigen/Dense>
 #include "EnableWarnings.h"
 
-omxExpectation *omxInitGREMLExpectation(){ return new omxGREMLExpectation; }
+omxExpectation *omxInitGREMLExpectation(omxState *st)
+{ return new omxGREMLExpectation(st); }
 
 void omxGREMLExpectation::init()
 {

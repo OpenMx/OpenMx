@@ -541,7 +541,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
 
-	omxRAMExpectation() : Zversion(0), _Z(0), slope(0) {};
+	omxRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0), slope(0) {};
 	virtual ~omxRAMExpectation();
 
 	omxMatrix *getZ(FitContext *fc);

@@ -20,6 +20,7 @@
 #include "EnableWarnings.h"
 
 class omxLISRELExpectation : public omxExpectation {
+	typedef omxExpectation super;
 	std::vector<int> exoDataColumns; // index into omxData
 	int verbose;
 
@@ -45,6 +46,7 @@ public:
 	bool noLY;
 	bool Lnocol;
 
+	omxLISRELExpectation(omxState *st) : super(st) {}
 	virtual ~omxLISRELExpectation();
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
@@ -428,7 +430,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 */
 }
 
-omxExpectation *omxInitLISRELExpectation() { return new omxLISRELExpectation; }
+omxExpectation *omxInitLISRELExpectation(omxState *st)
+{ return new omxLISRELExpectation(st); }
 
 void omxLISRELExpectation::init() {
 	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }

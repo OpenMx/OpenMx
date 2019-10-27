@@ -20,7 +20,7 @@ class povRAMExpectation : public omxExpectation {
  public:
 	std::vector<bool> latentFilter; // false when latent
 
-	povRAMExpectation() : Zversion(0), _Z(0) {};
+	povRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0) {};
 	virtual ~povRAMExpectation();
 
 	omxMatrix *cov, *means; // observed covariance and means
@@ -41,7 +41,8 @@ class povRAMExpectation : public omxExpectation {
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
 };
 
-omxExpectation *povRAMExpectationInit() { return new povRAMExpectation; }
+omxExpectation *povRAMExpectationInit(omxState *st)
+{ return new povRAMExpectation(st); }
 
 povRAMExpectation::~povRAMExpectation()
 {

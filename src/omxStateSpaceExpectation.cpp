@@ -40,6 +40,7 @@
 #include "EnableWarnings.h"
 
 struct omxStateSpaceExpectation : omxExpectation {
+	typedef omxExpectation super;
 	omxMatrix *cov, *means;
 	omxMatrix *A, *B, *C, *D, *Q, *R, *t; // State Space model Matrices
 	omxMatrix *r, *s, *u, *x, *y, *z; // Data and place holder vectors
@@ -60,6 +61,7 @@ struct omxStateSpaceExpectation : omxExpectation {
 	Eigen::MatrixXd PSI;
 	Eigen::MatrixXd eigenPreX;
 	
+	omxStateSpaceExpectation(omxState *st) : super(st) {}
 	virtual ~omxStateSpaceExpectation();
 	virtual void init();
 	virtual omxMatrix *getComponent(const char*);
@@ -837,7 +839,8 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 }
 
 
-omxExpectation *omxInitStateSpaceExpectation() { return new omxStateSpaceExpectation; }
+omxExpectation *omxInitStateSpaceExpectation(omxState *st)
+{ return new omxStateSpaceExpectation(st); }
 
 void omxStateSpaceExpectation::init()
 {

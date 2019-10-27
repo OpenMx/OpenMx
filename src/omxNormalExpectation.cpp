@@ -20,12 +20,14 @@
 #include "EnableWarnings.h"
 
 struct omxNormalExpectation : public omxExpectation {
+	typedef omxExpectation super;
 
 	omxMatrix *cov, *means; // observed covariance and means
 
 	double logDetObserved;
 	double n;
 
+	omxNormalExpectation(omxState *st) : super(st) {}
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void populateAttr(SEXP expectation);
@@ -76,7 +78,8 @@ void omxNormalExpectation::populateAttr(SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("numStats"), RnumStats);
 }
 
-omxExpectation *omxInitNormalExpectation() { return new omxNormalExpectation; }
+omxExpectation *omxInitNormalExpectation(omxState *st)
+{ return new omxNormalExpectation(st); }
 
 void omxNormalExpectation::init()
 {

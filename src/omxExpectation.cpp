@@ -38,7 +38,7 @@ typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 
 struct omxExpectationTableEntry {
 	char name[32];
-	omxExpectation *(*initFun)();
+	omxExpectation *(*initFun)(omxState *os);
 };
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
@@ -283,7 +283,7 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
 		if(strEQ(expType, entry->name)) {
-			expect = entry->initFun();
+			expect = entry->initFun(os);
 		        expect->expType = entry->name;
 			break;
 		}
@@ -291,7 +291,6 @@ omxNewInternalExpectation(const char *expType, omxState* os)
 
 	if (!expect) mxThrow("expectation '%s' not recognized", expType);
 
-	expect->currentState = os;
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
 

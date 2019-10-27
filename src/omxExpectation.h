@@ -63,8 +63,9 @@ class omxExpectation {					// An Expectation
 	bool canDuplicate;
 	bool dynamicDataSource;
 
-	omxExpectation() : dataColumnsPtr(0), numDataColumns(0), rObj(0), expType(0),
-		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(0),
+	omxExpectation(omxState *state) :
+		dataColumnsPtr(0), numDataColumns(0), rObj(0), expType(0),
+		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(state),
 		expNum(0), freeVarGroup(0), name(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
@@ -128,15 +129,15 @@ omxMatrix* omxGetExpectationComponent(omxExpectation *ox, const char* component)
 	
 void omxSetExpectationComponent(omxExpectation *ox, const char* component, omxMatrix *om);
 
-omxExpectation *omxInitNormalExpectation();
-omxExpectation *omxInitLISRELExpectation();
-omxExpectation *omxInitStateSpaceExpectation();
-omxExpectation *omxInitRAMExpectation();
-omxExpectation *omxInitExpectationBA81();
-omxExpectation *omxInitGREMLExpectation();
-omxExpectation *InitHiddenMarkovExpectation();
-omxExpectation *InitMixtureExpectation();
-omxExpectation *povRAMExpectationInit();
+omxExpectation *omxInitNormalExpectation(omxState *);
+omxExpectation *omxInitLISRELExpectation(omxState *);
+omxExpectation *omxInitStateSpaceExpectation(omxState *);
+omxExpectation *omxInitRAMExpectation(omxState *);
+omxExpectation *omxInitExpectationBA81(omxState *);
+omxExpectation *omxInitGREMLExpectation(omxState *);
+omxExpectation *InitHiddenMarkovExpectation(omxState *);
+omxExpectation *InitMixtureExpectation(omxState *);
+omxExpectation *povRAMExpectationInit(omxState *);
 
 void complainAboutMissingMeans(omxExpectation *off);
 
