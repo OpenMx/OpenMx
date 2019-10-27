@@ -11,6 +11,7 @@
 #include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>
 //#include <RcppEigenCholmod.h>
+#include "path.h"
 #include "Connectedness.h"
 
 template <typename T1>
@@ -54,15 +55,15 @@ class AsymTool {
 		ident.setIdentity();
 		clumpObs = _clumpObs;
 	};
-	void determineShallowDepth(FitContext *fc);
+	void determineShallowDepth();
 	void invert();
 	void filter();
 };
 
-template <typename T1> void AsymTool<T1>::determineShallowDepth(FitContext *fc)
+template <typename T1> void AsymTool<T1>::determineShallowDepth()
 {
 	int maxDepth = std::min(fullA.cols(), 30);
-	if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
+	if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = std::min(maxDepth, Global->RAMMaxDepth);
 	Eigen::SparseMatrix<double> curProd = fullA;
 	for (int tx=1; tx <= maxDepth; ++tx) {
 		if (false) {
@@ -432,13 +433,11 @@ namespace RelationalRAMExpectation {
 		std::vector<bool>                latentFilter; // false when latent or missing
 
 		// could store coeff extraction plan in addr TODO
+		PathCalc pcalc;
 		AsymTool<bool>          asymT;
 		double                           fit;  // most recent fit for debugging
 
-		independentGroup(class state *_st, int size, int _clumpSize)
-			: st(*_st), clumpSize(_clumpSize),
-			analyzedCov(false), asymT(latentFilter)
-		{ placements.reserve(size); };
+		independentGroup(class state *_st, int size, int _clumpSize);
 		independentGroup(independentGroup *ig);
 		int numLooseClumps() {
 			independentGroup &par = getParent();
@@ -540,8 +539,13 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceMean;
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
+	std::vector<bool> isProductNode;
+	std::vector<coeffLoc> aCoeff;
+	std::vector<coeffLoc> sCoeff;
+	std::vector<coeffLoc> mCoeff;
+	PathCalc pcalc;
 
-	omxRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0), slope(0) {};
+	omxRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0), slope(0), pcalc(st) {};
 	virtual ~omxRAMExpectation();
 
 	omxMatrix *getZ(FitContext *fc);

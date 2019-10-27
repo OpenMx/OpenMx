@@ -1062,16 +1062,6 @@ void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at)
 	}
 }
 
-void copyParamToModelRestore(omxState *os, const Eigen::Ref<const Eigen::VectorXd> point)
-{
-	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
-	size_t numParam = varGroup->vars.size();
-	for(size_t k = 0; k < numParam; k++) {
-		omxFreeVar* freeVar = varGroup->vars[k];
-		freeVar->copyToState(os, point[k]);
-	}
-}
-
 void FitContext::copyParamToModelClean()
 {
 	if(numParam == 0) return;

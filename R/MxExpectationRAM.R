@@ -21,7 +21,6 @@ setClass(Class = "MxExpectationRAM",
 		M = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		depth = "integer",
 		threshnames = "character",
 		usePPML = "logical",
 		ppmlData = "MxData",
@@ -202,7 +201,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			}
 		}
 		translatedNames <- modelManifestNames(fMatrix, modelname)
-		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (length(translatedNames)) {
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
@@ -294,27 +292,6 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 			}
 			ret
 })
-
-generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
-	mxObject <- flatModel[[aMatrixName]]
-	if (!is(mxObject, "MxMatrix")) {
-		return(as.integer(NA))
-	}
-	if (identical(modeloptions[['RAM Inverse Optimization']], "No")) {
-		return(as.integer(NA))
-	}
-	if (is.null(modeloptions[['RAM Inverse Optimization']]) &&
-		identical(getOption('mxOptions')[['RAM Inverse Optimization']], "No")) {
-		return(as.integer(NA))
-	}	
-	maxdepth <- modeloptions[['RAM Max Depth']]
-	if (is.null(maxdepth) || (length(maxdepth) != 1) ||
-		is.na(maxdepth) || !is.numeric(maxdepth) || maxdepth < 0) {
-		maxdepth <- nrow(mxObject) - 1
-	}
-	return(omxGetRAMDepth(mxObject, maxdepth))
-}
-
 
 ##' omxGetRAMDepth
 ##'

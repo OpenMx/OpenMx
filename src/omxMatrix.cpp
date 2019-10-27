@@ -150,11 +150,11 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 	if(dest->rows == 0 || dest->cols == 0) {
 		omxFreeInternalMatrixData(dest);
-		dest->data = NULL;
+		dest->setData(0);
 	} else {
 		if(regenerateMemory) {
 			omxFreeInternalMatrixData(dest);											// Free and regenerate memory
-			dest->data = (double*) Calloc(dest->rows * dest->cols, double);
+			dest->setData((double*) Calloc(dest->rows * dest->cols, double));
 		}
 		if (dest->data != orig->data) {  // if equal then programmer mxThrow? TODO
 			memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
@@ -162,6 +162,12 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	}
 
 	omxMatrixLeadingLagging(dest);
+}
+
+void omxMatrix::setData(double *ptr)
+{
+	if (allocationLock) mxThrow("Cannot change allocation of matrix '%s'", name());
+	data = ptr;
 }
 
 void omxMatrix::take(omxMatrix *orig)
@@ -173,7 +179,7 @@ void omxMatrix::take(omxMatrix *orig)
 	this->colMajor = orig->colMajor;
 	this->populate = orig->populate;
 
-	this->data = orig->data;
+	setData(orig->data);
 	this->owner = orig->owner;
 	orig->data = 0;
 	orig->owner = 0;
@@ -299,7 +305,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 
 	if( (om->rows != nrows || om->cols != ncols)) {
 		omxFreeInternalMatrixData(om);
-		om->data = (double*) Calloc(nrows * ncols, double);
+		om->setData((double*) Calloc(nrows * ncols, double));
 	}
 
 	om->rows = nrows;
@@ -517,7 +523,7 @@ void omxMatrix::unshareMemoryWithR()
 
 	double *copy = (double*) Realloc(NULL, rows * cols, double);
 	memcpy(copy, data, rows * cols * sizeof(double));
-	data = copy;
+	setData(copy);
 	owner = NULL;
 }
 
@@ -551,7 +557,7 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 	}
 
 	omxFreeInternalMatrixData(mat);
-	mat->data = newdata;
+	mat->setData(newdata);  // can probably avoid this, if needed
 	mat->colMajor = !mat->colMajor;
 }
 
@@ -778,7 +784,7 @@ void MatrixInvert1(omxMatrix *target)
  * omxMatrix *I				: Identity matrix. Will not be changed on exit. MxM.
  */
 
-void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I )
+void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I )
 {
 	omxMatrix* origZ = Z;
     double oned = 1, minusOned = -1.0;

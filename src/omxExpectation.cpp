@@ -312,6 +312,12 @@ bool omxExpectation::loadDefVars(int row)
 	return data->loadDefVars(currentState, row);
 }
 
+void omxExpectation::loadFakeDefVars()
+{
+	if (!data) return;
+	data->loadFakeData(currentState, 1.0);
+}
+
 int omxExpectation::numSummaryStats()
 {
 	omxMatrix *cov = getComponent("cov");

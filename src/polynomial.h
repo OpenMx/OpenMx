@@ -9,6 +9,7 @@
 // F should be a Field
 template <typename F> class Monomial {
  public:
+	// Instead of storing coeff as a double, store as expression tree? TODO
 	F coeff;
 	std::vector<int> exponent;
 

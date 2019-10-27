@@ -251,7 +251,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
-		omxShallowInverse(NULL, numIters, BE, C, L, I ); // C = (I-BE)^-1
+		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp
@@ -355,7 +355,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	//else if(LY != NULL) {
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
-		omxShallowInverse(NULL, numIters, BE, C, L, I ); // C = (I-BE)^-1
+		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
 		//omxCopyMatrix(C, BE); // C = BE
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp
@@ -593,7 +593,7 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 	if (data->defVars.size() == 0 || !TY || !TY->isSimple() || !PS->isSimple()) return;
 
 	Eigen::VectorXd estSave;
-	copyParamToModelFake1(currentState, estSave);
+	currentState->setFakeParam(estSave);
 	omxRecompute(PS, 0);
 	omxRecompute(LY, 0);
 	omxRecompute(BE, 0);
@@ -626,7 +626,7 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 		}
 	}
 
-	copyParamToModelRestore(currentState, estSave);
+	currentState->restoreParam(estSave);
 
 	if (!found) return;
 

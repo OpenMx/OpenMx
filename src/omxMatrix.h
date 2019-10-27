@@ -48,6 +48,15 @@ struct populateLocation {
 	void transpose() { std::swap(destRow, destCol); }
 };
 
+//
+// Ways that values can be loaded into plain matrices (not algebras)
+// and how to ensure that non-zero values are loaded into these cells,
+//
+// + Free parameters, omxState->setFakeParam(estSave);
+// + Populated labels, omxMatrix->markPopulatedEntries();
+// + Definition variables, omxData->loadFakeData(currentState, 1.0);
+//
+
 class omxMatrix {
 	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
 	// Note: some overlap with FreeVarGroup::cacheDependencies
@@ -56,9 +65,11 @@ class omxMatrix {
 	int joinKey;
 	class omxExpectation *joinModel;
 	int shape;
+	bool allocationLock;   // whether the data can be moved
  public:
  	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1),
-		joinModel(0), shape(0), freeRownames(false), freeColnames(false)
+								joinModel(0), shape(0), allocationLock(false),
+								freeRownames(false), freeColnames(false)
 		{};
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
@@ -67,6 +78,8 @@ class omxMatrix {
 	bool hasPopulateSubstitutions() const { return populate.size(); };
 	void addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow, int destCol);
 	void transposePopulate();
+	void lockAllocation() { allocationLock = true; }
+	void setData(double *ptr);
 	void setJoinInfo(SEXP Rmodel, SEXP Rkey);
 	void omxProcessMatrixPopulationList(SEXP matStruct);
 	void omxPopulateSubstitutions(int want, FitContext *fc);
@@ -119,7 +132,8 @@ class omxMatrix {
 		return what;
 	}
 	void copyAttr(omxMatrix *src);
-	bool isSimple() { return !algebra && !fitFunction && populate.size()==0; };
+	bool isSimple() const { return !algebra && !fitFunction && populate.size()==0; };
+	bool isAlgebra() const { return algebra != 0; }
 	int numNonConstElements() const;
 	template <typename T> void loadFromStream(T &st);
 	int size() const { return rows * cols; }
@@ -444,7 +458,7 @@ static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs)
 	return El.transpose() * Er;
 }
 
-void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
+void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
 

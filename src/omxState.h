@@ -320,6 +320,7 @@ class omxState {
 	int stateId;
 	int wantStage; // hack because omxRecompute doesn't take 'want' as a parameter TODO
 	bool clone;
+	bool hasFakeParam;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
@@ -332,7 +333,7 @@ class omxState {
 	std::vector< omxData* > dataList;
 	std::vector< omxConstraint* > conListX;
 
-	omxState() : wantStage(0), clone(false) { init(); };
+	omxState() : wantStage(0), clone(false), hasFakeParam(false) { init(); };
 	omxState(omxState *src);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
@@ -393,6 +394,28 @@ class omxState {
 			}
 		}
 	};
+
+	bool isFakeParamSet() const { return hasFakeParam; }
+
+	template <typename T1>
+	void setFakeParam(Eigen::MatrixBase<T1> &point)
+	{
+		if (hasFakeParam) mxThrow("already has fake parameters loaded");
+		hasFakeParam = true;
+
+		auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+		size_t numParam = varGroup->vars.size();
+		point.derived().resize(numParam);
+
+		for(size_t k = 0; k < numParam; k++) {
+			omxFreeVar* freeVar = varGroup->vars[k];
+			point[k] = freeVar->getCurValue(this);
+			freeVar->copyToState(this, 1.0);
+		}
+	}
+
+	void restoreParam(const Eigen::Ref<const Eigen::VectorXd> point);
+
 };
 
 inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInterrupted || Global->timedOut; }

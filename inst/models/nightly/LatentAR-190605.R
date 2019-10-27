@@ -54,6 +54,7 @@ testARModel <- mxModel(model="testAR", type="RAM",
 
     mxPath(from="one", to=c(tLGCLatents), arrows=1, free=TRUE, values=c(.5,.4), labels=c("muI", "muS")),
     mxPath(from="one", to=c(tARLatent), arrows=1, free=TRUE, values=.9, labels=c("muB")),
+    mxPath(from="one", to=tOps, arrows=1, free=FALSE, values=1),
     mxData(observed=cov(tsData), type='cov', means=colMeans(tsData),
            numObs=nrow(tsData))
 )

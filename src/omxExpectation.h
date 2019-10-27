@@ -89,6 +89,7 @@ class omxExpectation {					// An Expectation
 	virtual bool usesDataColumnNames() const { return true; }
 	void loadFromR();
 	bool loadDefVars(int row);
+	void loadFakeDefVars();
 
 	void saveDataColumnsInfo(SEXP vec) {
 		numDataColumns = Rf_length(vec);

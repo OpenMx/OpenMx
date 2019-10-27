@@ -251,6 +251,19 @@ omxGlobal::omxGlobal()
 	freeGroup.push_back(fvg);
 }
 
+void omxState::restoreParam(const Eigen::Ref<const Eigen::VectorXd> point)
+{
+	if (!hasFakeParam) mxThrow("Cannot restore; fake parameters not loaded");
+	hasFakeParam = false;
+
+	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+	size_t numParam = varGroup->vars.size();
+	for(size_t k = 0; k < numParam; k++) {
+		omxFreeVar* freeVar = varGroup->vars[k];
+		freeVar->copyToState(this, point[k]);
+	}
+}
+
 omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 {
 	return matnum<0? matrixList[~matnum] : algebraList[matnum];
@@ -377,7 +390,7 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src) : wantStage(0), clone(true)
+omxState::omxState(omxState *src) : wantStage(0), clone(true), hasFakeParam(false)
 {
 	init();
 
