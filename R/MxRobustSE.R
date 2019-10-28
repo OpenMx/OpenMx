@@ -47,7 +47,7 @@ imxRowGradients <- function(model, robustSE=FALSE){
 			custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE), mxComputeReportDeriv()))
 			for(i in 1:length(model@submodels)){
 				#Ignore submodels that don't contribute to the multigroup fitfunction:
-				if(grep(pattern=model@submodels[[i]]$name,x=contributingModelNames)){
+				if(length(grep(pattern=model@submodels[[i]]$name,x=contributingModelNames))){
 					currModel <- model@submodels[[i]]
 					if(is.null(currModel@data)){
 						if(robustSE){
