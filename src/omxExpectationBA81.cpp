@@ -375,7 +375,7 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols)
     *cols = dimList[1];
 }
 
-omxExpectation *omxInitExpectationBA81() { return new BA81Expect; }
+omxExpectation *omxInitExpectationBA81(omxState *st) { return new BA81Expect(st); }
 
 void BA81Expect::init() {
 	SEXP tmp;

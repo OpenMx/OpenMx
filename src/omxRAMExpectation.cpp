@@ -218,7 +218,8 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	}
 }
 
-omxExpectation *omxInitRAMExpectation() { return new omxRAMExpectation; }
+omxExpectation *omxInitRAMExpectation(omxState *st)
+{ return new omxRAMExpectation(st); }
 
 void omxRAMExpectation::init() {
 	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }

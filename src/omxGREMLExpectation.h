@@ -15,6 +15,7 @@
  */
  
 struct omxGREMLExpectation : public omxExpectation {
+	typedef omxExpectation super;
   omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, *origVdim_om;
   omxData *y, *data2;
   int alwaysComputeMeans, numcases2drop, cholquadX_fail;
@@ -24,6 +25,7 @@ struct omxGREMLExpectation : public omxExpectation {
   Eigen::MatrixXd XtVinv, quadXinv;
   std::vector< const char* > yXcolnames;
 
+	omxGREMLExpectation(omxState *st) : super(st) {}
   virtual ~omxGREMLExpectation();
   virtual void init();
   virtual void compute(FitContext *fc, const char *what, const char *how);

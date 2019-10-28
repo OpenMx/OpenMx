@@ -21,6 +21,7 @@
 #include "EnableWarnings.h"
 
 class MarkovExpectation : public omxExpectation {
+	typedef omxExpectation super;
 public:
 	enum ScaleType { SCALE_SOFTMAX, SCALE_SUM, SCALE_NONE };
 
@@ -35,8 +36,9 @@ public:
 	omxMatrix *scaledTransition;
 	const bool isMixtureInterface;
 
-	MarkovExpectation(bool _isMixtureInterface)
-		: initialV(0), transitionV(0), isMixtureInterface(_isMixtureInterface) {};
+	MarkovExpectation(omxState *st, bool _isMixtureInterface)
+		: super(st), initialV(0), transitionV(0),
+			isMixtureInterface(_isMixtureInterface) {};
 	virtual ~MarkovExpectation();
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
@@ -44,11 +46,11 @@ public:
 	virtual void populateAttr(SEXP expectation);
 };
 
-omxExpectation *InitHiddenMarkovExpectation()
-{ return new MarkovExpectation(false); }
+omxExpectation *InitHiddenMarkovExpectation(omxState *st)
+{ return new MarkovExpectation(st, false); }
 
-omxExpectation *InitMixtureExpectation()
-{ return new MarkovExpectation(true); }
+omxExpectation *InitMixtureExpectation(omxState *st)
+{ return new MarkovExpectation(st, true); }
 
 MarkovExpectation::~MarkovExpectation()
 {
