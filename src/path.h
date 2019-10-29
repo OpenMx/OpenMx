@@ -21,39 +21,40 @@ void loadCoeffVecNegate(std::vector<coeffLoc> &vec, Eigen::MatrixBase<T> &dest)
 	for (auto &v : vec) dest(v.r, v.c) = -(*v.src);
 }
 
+template <typename avft>
 class PathCalc {
 	omxState &state;
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
 	Eigen::MatrixXd fullA;
 	Eigen::MatrixXd fullS;
-	Eigen::VectorXd fullM;
+	unsigned versionIA;
 	Eigen::MatrixXd IA;  // intermediate result given boker2019=false
+	unsigned versionIAF;
 	Eigen::MatrixXd IAF;  // intermediate result given boker2019=false
 	bool boker2019;
-	bool algoSelected;
 	int numVars;
 	int numObs;
+	std::unique_ptr<avft> avf;
 	std::vector<coeffLoc> *aCoeff;
 	std::vector<coeffLoc> *sCoeff;
-	std::vector<coeffLoc> *mCoeff;
 	
 	void determineShallowDepth();
+	void evaluate();
+	void filter();
 
  public:
 	int numIters; // private TODO
 
  PathCalc(omxState *st) :
-	state(*st), algoSelected(false), numIters(NA_INTEGER) {}
-
-	~PathCalc();
+	 state(*st), versionIA(0), versionIAF(0), numIters(NA_INTEGER) {}
 
 	void attach(int _numVars, int _numObs,
 							std::vector<bool> &_latentFilter,
 							std::vector<bool> &_isProductNode,
+							avft *_avf,
 							std::vector<coeffLoc> &_aCoeff,
-							std::vector<coeffLoc> &_sCoeff,
-							std::vector<coeffLoc> &_mCoeff)
+							std::vector<coeffLoc> &_sCoeff)
 	{
 		numVars = _numVars;
 		numObs = _numObs;
@@ -61,64 +62,171 @@ class PathCalc {
 		isProductNode = &_isProductNode;
 		aCoeff = &_aCoeff;
 		sCoeff = &_sCoeff;
-		// Transpose row vectors
-		for (auto &c1 : _mCoeff) {
-			if (c1.c) std::swap(c1.r, c1.c);
-		}
-		mCoeff = &_mCoeff;
+		avf = std::unique_ptr<avft>(_avf);
 		fullA.resize(numVars, numVars);
 		fullA.setZero();
 		fullS.resize(numVars, numVars);
 		fullS.setZero();
-		fullM.resize(numVars);
-		fullM.setZero();
 	}
 
 	void setAlgo(bool _boker2019);
 
-	void evaluate();
-	template <typename T> void fullCov(Eigen::MatrixBase<T> &cov);
-	template <typename T> void fullMean(Eigen::MatrixBase<T> &mean);
-	void filter();
-	template <typename T> void cov(Eigen::MatrixBase<T> &cov);
-	template <typename T> void mean(Eigen::MatrixBase<T> &mean);
+	template <typename T>
+	void fullCov(Eigen::MatrixBase<T> &cov)
+	{
+		evaluate();
+		if (!boker2019) {
+			loadCoeffVec(*sCoeff, fullS);  // only need lower triangle TODO
+			cov.derived() = IA * fullS.selfadjointView<Eigen::Lower>() * IA.transpose();
+		} else {
+			mxThrow("Not yet");
+		}
+	}
+
+	template <typename T1, typename T2>
+	void fullMean(Eigen::MatrixBase<T1> &meanIn,
+								Eigen::MatrixBase<T2> &meanOut)
+	{
+		evaluate();
+		if (!boker2019) {
+			meanOut.derived() = IA * meanIn;
+		} else {
+			mxThrow("Not yet");
+		}
+	}
+
+	template <typename T1>
+	Eigen::VectorXd fullMean(Eigen::MatrixBase<T1> &meanIn)
+	{
+		evaluate();
+		if (!boker2019) {
+			return IA * meanIn; // avoids temporary copy? TODO
+		} else {
+			mxThrow("Not yet");
+		}
+	}
+
+	template <typename T>
+	void cov(Eigen::MatrixBase<T> &cov)
+	{
+		evaluate();
+		filter();
+		if (!boker2019) {
+			loadCoeffVec(*sCoeff, fullS);  // only need lower triangle TODO
+			cov.derived() = IAF * fullS.selfadjointView<Eigen::Lower>() * IAF.transpose();
+		} else {
+			mxThrow("Not yet");
+		}
+	}
+
+	template <typename T1, typename T2>
+	void mean(Eigen::MatrixBase<T1> &meanIn,
+						Eigen::MatrixBase<T2> &meanOut)
+	{
+		evaluate();
+		filter();
+		if (!boker2019) {
+			meanOut.derived() = IAF * meanIn;
+		} else {
+			mxThrow("Not yet");
+		}
+	}
 };
 
-template <typename T> void PathCalc::fullCov(Eigen::MatrixBase<T> &cov)
+
+template<class avft>
+void PathCalc<avft>::setAlgo(bool _boker2019)
 {
+	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
+																 [](bool x){ return x; })) {
+		mxThrow("Must use Boker2019 when product nodes are present");
+	}
+	boker2019 = _boker2019;
+
 	if (!boker2019) {
-		loadCoeffVec(*sCoeff, fullS);  // only need lower triangle TODO
-		cov.derived() = IA * fullS.selfadjointView<Eigen::Lower>() * IA.transpose();
+		determineShallowDepth();
+		//mxLog("PathCalc: depth %d", numIters);
 	} else {
-		mxThrow("Not yet");
+		
 	}
 }
 
-template <typename T> void PathCalc::fullMean(Eigen::MatrixBase<T> &mean)
+template<class avft>
+void PathCalc<avft>::determineShallowDepth()
 {
-	if (!boker2019) {
-		loadCoeffVec(*mCoeff, fullM);
-		mean.derived() = IA * fullM.transpose();
-	} else {
-		mxThrow("Not yet");
+	if (!Global->RAMInverseOpt) return;
+
+	int maxDepth = std::min(numVars, 30);
+	if (Global->RAMMaxDepth != NA_INTEGER) {
+		maxDepth = std::min(maxDepth, Global->RAMMaxDepth);
+	}
+	loadCoeffVec(*aCoeff, fullA);
+	Eigen::MatrixXd curProd = fullA;
+	for (int tx=1; tx <= maxDepth; ++tx) {
+		if (false) {
+			mxLog("tx=%d", tx);
+			mxPrintMat("curProd", curProd);
+		}
+		curProd = (curProd * fullA.transpose()).eval();
+		if ((curProd.array() == 0.0).all()) {
+			numIters = tx - 1;
+			break;
+		}
 	}
 }
 
-template <typename T> void PathCalc::cov(Eigen::MatrixBase<T> &cov)
+template<class avft>
+void PathCalc<avft>::evaluate()
 {
+	auto v = (*avf)();
+	if (versionIA == v) {
+		//mxLog("PathCalc<avft>::evaluate() in cache");
+		return;
+	}
+	versionIA = v;
+
 	if (!boker2019) {
-		loadCoeffVec(*sCoeff, fullS);  // only need lower triangle TODO
-		cov.derived() = IAF * fullS.selfadjointView<Eigen::Lower>() * IAF.transpose();
+		if (numIters >= 0) {
+			loadCoeffVec(*aCoeff, fullA);
+			// could further optimize using std::swap? (see old code)
+			IA = fullA;
+			IA.diagonal().array() += 1;
+			for (int iter=1; iter <= numIters; ++iter) {
+				IA *= fullA;
+				IA.diagonal().array() += 1;
+				//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
+			}
+		} else {
+			loadCoeffVecNegate(*aCoeff, fullA);
+			fullA.diagonal().array() = 1;
+			Eigen::FullPivLU< Eigen::MatrixXd > lu(fullA);
+			IA.resize(numVars, numVars);
+			IA.setIdentity();
+			IA = lu.solve(IA);
+		}
 	} else {
-		mxThrow("Not yet");
+		mxThrow("not impl yet");
 	}
 }
 
-template <typename T> void PathCalc::mean(Eigen::MatrixBase<T> &mean)
+template<class avft>
+void PathCalc<avft>::filter()
 {
+	if (versionIAF == versionIA) {
+		//mxLog("PathCalc<avft>::filter() in cache");
+		return;
+	}
+	versionIAF = versionIA;
+
+	auto &lf = *latentFilter;
 	if (!boker2019) {
-		loadCoeffVec(*mCoeff, fullM);
-		mean.derived() = IAF * fullM;
+		IAF.resize(numObs, numVars);
+		for (int rx=0, dx=0; rx < IA.rows(); ++rx) {
+			if (!lf[rx]) continue;
+			// maybe smarter to build transposed so we can filter by column?
+			IAF.row(dx) = IA.row(rx);
+			dx += 1;
+		}
 	} else {
 		mxThrow("Not yet");
 	}
@@ -140,10 +248,6 @@ refreshUnfilteredCov(omxExpectation *oo) [DONE]
 
 omxMatrix *omxRAMExpectation::getZ(FitContext *fc) --> TO REMOVE
   updates Z using omxShallowInverse conditional on Zversion
-
-	void state::analyzeModel1(FitContext *fc)
-			propagateDefVar(ram, ram->getZ(fc), ram);
-  Uses approximate Z (0/1 only) just to calculate dependencies
 
 	void state::computeMean(FitContext *fc)
    direct input

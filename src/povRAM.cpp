@@ -6,92 +6,6 @@
 #include "SelfAdjointEigenSolverNosort.h"
 #include "EnableWarnings.h"
 
-PathCalc::~PathCalc()
-{}
-
-void PathCalc::setAlgo(bool _boker2019)
-{
-	if (algoSelected) mxThrow("Cannot change algorithm once selected");
-	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
-																 [](bool x){ return x; })) {
-		mxThrow("Must use Boker2019 when product nodes are present");
-	}
-	boker2019 = _boker2019;
-	algoSelected = true;
-
-	if (!boker2019) {
-		determineShallowDepth();
-		//mxLog("PathCalc: depth %d", numIters);
-	} else {
-		
-	}
-}
-
-void PathCalc::determineShallowDepth()
-{
-	if (!Global->RAMInverseOpt) return;
-
-	int maxDepth = std::min(numVars, 30);
-	if (Global->RAMMaxDepth != NA_INTEGER) {
-		maxDepth = std::min(maxDepth, Global->RAMMaxDepth);
-	}
-	loadCoeffVec(*aCoeff, fullA);
-	Eigen::MatrixXd curProd = fullA;
-	for (int tx=1; tx <= maxDepth; ++tx) {
-		if (false) {
-			mxLog("tx=%d", tx);
-			mxPrintMat("curProd", curProd);
-		}
-		curProd = (curProd * fullA.transpose()).eval();
-		if ((curProd.array() == 0.0).all()) {
-			numIters = tx - 1;
-			break;
-		}
-	}
-}
-
-void PathCalc::evaluate()
-{
-	if (!boker2019) {
-		if (numIters >= 0) {
-			loadCoeffVec(*aCoeff, fullA);
-			// could further optimize using std::swap? (see old code)
-			IA = fullA;
-			IA.diagonal().array() += 1;
-			for (int iter=1; iter <= numIters; ++iter) {
-				IA *= fullA;
-				IA.diagonal().array() += 1;
-				//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
-			}
-		} else {
-			loadCoeffVecNegate(*aCoeff, fullA);
-			fullA.diagonal().array() = 1;
-			Eigen::FullPivLU< Eigen::MatrixXd > lu(fullA);
-			IA.resize(numVars, numVars);
-			IA.setIdentity();
-			IA = lu.solve(IA);
-		}
-	} else {
-		mxThrow("not impl yet");
-	}
-}
-
-void PathCalc::filter()
-{
-	auto &lf = *latentFilter;
-	if (!boker2019) {
-		IAF.resize(numObs, numVars);
-		for (int rx=0, dx=0; rx < IA.rows(); ++rx) {
-			if (!lf[rx]) continue;
-			// maybe smarter to build transposed so we can filter by column?
-			IAF.row(dx) = IA.row(rx);
-			dx += 1;
-		}
-	} else {
-		mxThrow("Not yet");
-	}
-}
-
 // Sparse matrix version below. This is probably
 // not worth the trouble because we only do this
 // once. Even if it is faster, it might be easier
@@ -182,7 +96,6 @@ class povRAMExpectation : public omxExpectation {
 	omxMatrix *A, *S, *F, *M;
 
 	int verbose;
-	int numIters;
 
 	void studyF();
 
@@ -214,9 +127,6 @@ void povRAMExpectation::init()
 
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
-
-	ProtectedSEXP Rdepth(R_do_slot(rObj, Rf_install("depth")));
-	numIters = Rf_asInteger(Rdepth);
 
 	M = omxNewMatrixFromSlot(rObj, currentState, "M"); // can be optional? TODO
 	A = omxNewMatrixFromSlot(rObj, currentState, "A");
@@ -395,9 +305,9 @@ void povRAMExpectation::compute(FitContext *fc, const char *what, const char *ho
 	}
 
 	// mxPrintMat("vec", symVec);
-	// for (int ii=0; ii < S->rows; ++ii) {
-	// 	std::cout << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
-	// }
+	 for (int ii=0; ii < S->rows; ++ii) {
+	 	std::cout << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
+	 }
 
 	EigenMatrixAdaptor sigmaBig(Ax);
 	Eigen::VectorXd fullMean(S->rows);

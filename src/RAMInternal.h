@@ -433,7 +433,10 @@ namespace RelationalRAMExpectation {
 		std::vector<bool>                latentFilter; // false when latent or missing
 
 		// could store coeff extraction plan in addr TODO
-		PathCalc pcalc;
+		std::vector<coeffLoc> aCoeff;
+		std::vector<coeffLoc> sCoeff;
+		struct GetVersionClosure {};
+		PathCalc<GetVersionClosure> pcalc;
 		AsymTool<bool>          asymT;
 		double                           fit;  // most recent fit for debugging
 
@@ -502,8 +505,9 @@ namespace RelationalRAMExpectation {
 		template <typename T> void unapplyRotationPlan(T accessor);
 		template <typename T> void applyRotationPlan(T accessor);
 		template <typename T> void appendClump(int ax, std::vector<T> &clump);
-		void propagateDefVar(omxRAMExpectation *to, omxMatrix *_transition,
-				     omxRAMExpectation *from);
+		template <typename T>
+		void propagateDefVar(omxRAMExpectation *to, Eigen::MatrixBase<T> &transition,
+												 omxRAMExpectation *from);
 		void computeConnected(std::vector<int> &region, SubgraphType &connected);
 	public:
 		~state();
@@ -522,8 +526,6 @@ namespace RelationalRAMExpectation {
 
 class omxRAMExpectation : public omxExpectation {
 	typedef omxExpectation super;
-	unsigned Zversion;
-	omxMatrix *_Z;
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector<const char *> dataColNames;
 	std::vector< omxThresholdColumn > thresholds;
@@ -542,21 +544,23 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> isProductNode;
 	std::vector<coeffLoc> aCoeff;
 	std::vector<coeffLoc> sCoeff;
-	std::vector<coeffLoc> mCoeff;
-	PathCalc pcalc;
 
-	omxRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0), slope(0), pcalc(st) {};
+	struct GetVersionClosureType {
+		omxMatrix *A;
+		unsigned operator()() { return omxGetMatrixVersion(A); }
+	};
+	PathCalc<GetVersionClosureType> pcalc;
+
+	omxRAMExpectation(omxState *st) : super(st), slope(0), pcalc(st) {};
 	virtual ~omxRAMExpectation();
 
-	omxMatrix *getZ(FitContext *fc);
 	void CalculateRAMCovarianceAndMeans(FitContext *fc);
 	void analyzeDefVars(FitContext *fc);
 	void logDefVarsInfluence();
 
 	omxMatrix *cov, *means; // observed covariance and means
 	omxMatrix *slope;       // exogenous predictor slopes
-	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *X, *Y, *Ax;
+	omxMatrix *A, *S, *F, *M;
 
 	int verbose;
 	int numIters;
