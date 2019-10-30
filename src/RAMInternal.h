@@ -321,8 +321,8 @@ namespace RelationalRAMExpectation {
 	// analysis of the data.
 
 	struct addrSetup {
-		int numKids;
-		int numJoins;
+		int numKids;  // how many lower level units (kids) join with this unit?
+		int numJoins; // how many parents does this unit join with?
 		int parent1;  // first parent
 		int fk1;      // first foreign key
 
@@ -330,7 +330,7 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
-		int rset;
+		int rset; // "rotation set" annotation for debugging
 		int skipMean;
 		bool heterogenousMean;
 	};

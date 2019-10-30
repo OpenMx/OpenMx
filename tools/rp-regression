@@ -9,38 +9,38 @@ out=/tmp/irt-regression.$$.log
 opt="-q --vanilla --no-save"
 
 tests="
- passing/xxm-1.R
- passing/xxm-2.R
- passing/xxm-3.R
- passing/xxm-4.R
- passing/lmer-1.R
- passing/lmer-2.R
- passing/Rampart1.R
- passing/Autoregressive_Tree_Matrix.R
- passing/Autoregressive_Tree_Path.R
- passing/multilevelLatentRegression.R
- passing/MultilevelUniRandomSlopeInt.R
- passing/Multilevel-GenData.R
- nightly/univACErSEM.R
- nightly/multilevelLatentRegression2.R
- nightly/mplus-ex9.1.R
- nightly/mplus-ex9.6.R
- nightly/mplus-ex9.11.R
- nightly/mplus-ex9.12.R
- nightly/mplus-ex9.23.R
- nightly/xxm-cfars.R
- nightly/xxm-faces.R
- nightly/xxm-hcfa.R
- nightly/xxm-lgc.R
- nightly/xxm-mlcfa.R
+ inst/models/passing/xxm-1.R
+ inst/models/passing/xxm-2.R
+ inst/models/passing/xxm-3.R
+ inst/models/passing/xxm-4.R
+ inst/models/passing/lmer-1.R
+ inst/models/passing/lmer-2.R
+ inst/models/passing/Rampart1.R
+ inst/models/passing/Autoregressive_Tree_Matrix.R
+ inst/models/passing/Autoregressive_Tree_Path.R
+ inst/models/passing/multilevelLatentRegression.R
+ inst/models/passing/MultilevelUniRandomSlopeInt.R
+ tests/testthat/test-gendata-multilevel.R
+ inst/models/nightly/univACErSEM.R
+ inst/models/nightly/multilevelLatentRegression2.R
+ inst/models/nightly/mplus-ex9.1.R
+ inst/models/nightly/mplus-ex9.6.R
+ inst/models/nightly/mplus-ex9.11.R
+ inst/models/nightly/mplus-ex9.12.R
+ inst/models/nightly/mplus-ex9.23.R
+ inst/models/nightly/xxm-cfars.R
+ inst/models/nightly/xxm-faces.R
+ inst/models/nightly/xxm-hcfa.R
+ inst/models/nightly/xxm-lgc.R
+ inst/models/nightly/xxm-mlcfa.R
 "
 
 for t in $tests; do
   echo -n "$t\t"
   if false; then
-    R $opt -f inst/models/$t
+    R $opt -f $t
   else
-    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f inst/models/$t > $out 2>&1"; then
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f $t > $out 2>&1"; then
       cat $out
       exit
     else
