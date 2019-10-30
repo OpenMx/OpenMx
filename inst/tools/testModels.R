@@ -41,6 +41,7 @@ if (system2(rexec, args='--vanilla', stdout=FALSE, stderr=FALSE,
 }
 
 library(OpenMx)
+mxVersion()
 
 directories <- c('models/passing')
 
