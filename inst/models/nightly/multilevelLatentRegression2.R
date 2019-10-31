@@ -1,5 +1,7 @@
 library(OpenMx)
 
+if (mxOption(NULL,"Default optimizer")=='NPSOL') stop("SKIP")
+
 suppressWarnings(RNGversion("3.5"))
 
 numIndicators <- 4

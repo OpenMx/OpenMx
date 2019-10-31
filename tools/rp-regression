@@ -185,3 +185,30 @@ nightly/xxm-faces.R	3:01.82 0 113517 103467
 nightly/xxm-hcfa.R	0:03.07 0 62592 49
 nightly/xxm-lgc.R	0:03.85 0 73264 177
 nightly/xxm-mlcfa.R	0:04.07 0 81109 88
+
+v2.14.11-36-gaeb19eec7 (30 Oct 2019):
+
+inst/models/passing/xxm-1.R	0:03.35 0 51501 20
+inst/models/passing/xxm-2.R	0:02.80 0 70349 25
+inst/models/passing/xxm-3.R	0:03.33 0 71438 18
+inst/models/passing/xxm-4.R	0:03.49 0 71839 127
+inst/models/passing/lmer-1.R	0:03.36 0 70485 292
+inst/models/passing/lmer-2.R	0:03.68 0 71725 81
+inst/models/passing/Rampart1.R	0:03.18 0 52393 130
+inst/models/passing/Autoregressive_Tree_Matrix.R	0:02.38 0 54712 15
+inst/models/passing/Autoregressive_Tree_Path.R	0:02.60 0 54261 93
+inst/models/passing/multilevelLatentRegression.R	0:04.03 0 51521 215
+inst/models/passing/MultilevelUniRandomSlopeInt.R	0:07.49 0 76525 199
+tests/testthat/test-gendata-multilevel.R	0:03.24 0 51516 44
+inst/models/nightly/univACErSEM.R	0:03.18 0 52084 27
+inst/models/nightly/multilevelLatentRegression2.R	6:43.28 0 632283 74204
+inst/models/nightly/mplus-ex9.1.R	0:02.70 0 51908 17
+inst/models/nightly/mplus-ex9.6.R	0:05.37 0 52233 325
+inst/models/nightly/mplus-ex9.11.R	0:04.30 0 70233 124
+inst/models/nightly/mplus-ex9.12.R	0:03.90 0 52418 287
+inst/models/nightly/mplus-ex9.23.R	2:59.58 0 97625 19158
+inst/models/nightly/xxm-cfars.R	0:03.43 0 52509 388
+inst/models/nightly/xxm-faces.R	2:56.96 0 8166393 15910
+inst/models/nightly/xxm-hcfa.R	0:02.61 0 51567 13
+inst/models/nightly/xxm-lgc.R	0:02.97 0 51733 31
+inst/models/nightly/xxm-mlcfa.R	0:03.46 0 51797 71
