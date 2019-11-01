@@ -1,5 +1,9 @@
 library(OpenMx)
 
+if (mxOption(NULL,"Default optimizer")=='NPSOL') stop("SKIP")
+
+suppressWarnings(RNGversion("3.5"))
+
 numIndicators <- 4
 
 genData <- function(upper, fanout, variation, keyname) {
@@ -144,33 +148,38 @@ checkSinglePoint <- function(origModel, cycleStart, perUnit=FALSE) {
 	omxCheckCloseEnough(fitDiff, rep(0,length(fitDiff)), 1e-8)
 }
 
-set.seed(1)
-
-sMod <- buildModel(5,4,3,5, rep(TRUE,3), .2)
-
-if (0) {
-	plan <- mxComputeSequence(list(
-		mxComputeOnce('fitfunction', 'fit'),
-		mxComputeReportExpectation()))
-
-	mod <- mxModel(sMod, plan)
-	mod$expectation$.optimizeMean <- 1L
-	# mod$expectation$.rampartCycleLimit <- 2L
-	# mod$expectation$.rampartUnitLimit <- 27L
-	fit1 <- mxRun(mod, silent=TRUE)
-	ed = fit1$expectation$debug
-	ed$layout
-	ed$g2$mean[1:20]
-	good <- lapply(paste0('g',1:ed$numGroups), function(x) ed[[x]]$mean)
-	bad <- lapply(paste0('g',1:ed$numGroups), function(x) ed[[x]]$mean)
-	mapply(function(g,b) max(abs(g-b)), good, bad)
-	which(abs(good[[5]] - bad[[5]]) >1e-8)
-	ed$rotationCount
+for (try in 1:6) {
+  set.seed(try)
+  
+  sMod <- buildModel(5,4,3,5, rep(TRUE,3), 0.2*(try-1)/5)
+  
+  if (0) {
+    plan <- mxComputeSequence(list(
+      mxComputeOnce('fitfunction', 'fit'),
+      mxComputeReportExpectation()))
+    
+    mod <- mxModel(sMod, plan)
+    mod$expectation$.optimizeMean <- 0L
+    mod$expectation$.rampartCycleLimit <- 3L
+    #	mod$expectation$.useSufficientSets <- FALSE
+    mod$expectation$.rampartUnitLimit <- 247L  # 247 bad
+    fit1 <- mxRun(mod, silent=TRUE)
+    fit1$output$fit
+    stop("here")
+    ed = fit1$expectation$debug
+    ed$layout
+    ed$g2$mean[1:20]
+    good <- lapply(paste0('g',1:ed$numGroups), function(x) ed[[x]]$mean)
+    bad <- lapply(paste0('g',1:ed$numGroups), function(x) ed[[x]]$mean)
+    mapply(function(g,b) max(abs(g-b)), good, bad)
+    which(abs(good[[5]] - bad[[5]]) >1e-8)
+    ed$rotationCount
+  }
+  
+  #stop("here")
+  
+  checkSinglePoint(sMod, 0)
 }
-
-#stop("here")
-
-checkSinglePoint(sMod, 0)
 
 fit1 <- mxRun(mxModel(sMod, mxComputeSequence(list(
   mxComputeGradientDescent(),
@@ -178,16 +187,16 @@ fit1 <- mxRun(mxModel(sMod, mxComputeSequence(list(
 
 print(summary(fit1))
 
-omxCheckCloseEnough(fit1$output$fit, 17144.43, .01)
+omxCheckCloseEnough(fit1$output$fit, 20573.74, .01)
 #We've check it before. If fit is good then the gradient would be good.
 #omxCheckCloseEnough(max(abs(fit1$output$gradient)), 0, .01)
 ed <- fit1$expectation$debug
-omxCheckCloseEnough(ed$rampartUsage, c(902, 16))
-omxCheckCloseEnough(ed$numGroups, 14L)
+omxCheckCloseEnough(ed$rampartUsage, c(1106, 10))
+omxCheckCloseEnough(ed$numGroups, 13L)
 omxCheckCloseEnough(
-    sapply(sprintf("g%02d", 1:14),
+    sapply(sprintf("g%02d", 1:13),
 	   function(x) nrow(ed[[x]]$layout) %/% ed[[x]]$clumpSize),
-    c(97L, 805L, 2L, 2L, 2L, 4L, 3L, 1L, 2L, 1L, 1L, 1L,  1L, 1L))
+    c(170L, 936L, 1L, 2L, 2L, 2L, 1L, 2L, 1L, 1L, 1L, 1L, 1L))
 
 plan <- mxComputeSequence(list(
     mxComputeOnce('fitfunction', 'fit'),

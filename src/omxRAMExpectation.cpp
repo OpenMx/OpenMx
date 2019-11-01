@@ -893,23 +893,23 @@ namespace RelationalRAMExpectation {
 
 		bool compareMissingnessAndCov(const addr &la, const addr &ra, bool &mismatch) const
 		{
-			mismatch = true;
-			if (la.getExpNum() != ra.getExpNum())
-				return la.getExpNum() < ra.getExpNum();
+			mismatch = la.getExpNum() != ra.getExpNum();
+			if (mismatch) return la.getExpNum() < ra.getExpNum();
 
-			if (la.numVars() != ra.numVars())
-				return la.numVars() < ra.numVars();
+			mismatch = la.numVars() != ra.numVars();
+			if (mismatch) return la.numVars() < ra.numVars();
 
 			std::vector<bool> lmp;
 			getMissingnessPattern(la, lmp);
 			std::vector<bool> rmp;
 			getMissingnessPattern(ra, rmp);
 
-			if (lmp.size() != rmp.size())
-				return lmp.size() < rmp.size();
+			mismatch = lmp.size() != rmp.size();
+			if (mismatch) return lmp.size() < rmp.size();
 
 			for (size_t lx=0; lx < lmp.size(); ++lx) {
-				if (lmp[lx] == rmp[lx]) continue;
+				mismatch = lmp[lx] != rmp[lx];
+				if (!mismatch) continue;
 				return int(lmp[lx]) < int(rmp[lx]);
 			}
 
@@ -919,13 +919,11 @@ namespace RelationalRAMExpectation {
 			bool got = compareCovDefVars(la, ra, mismatch);
 			if (mismatch) return got;
 
-			mismatch = false;
 			return false;
 		}
 
 		bool cmpCovClump(const addr &la, const addr &ra, bool &mismatch) const
 		{
-			mismatch = true;
 			bool got;
 
 			got = compareMissingnessAndCov(la, ra, mismatch);
@@ -933,16 +931,15 @@ namespace RelationalRAMExpectation {
 
 			const addrSetup &lhss = st.layoutSetup[&la - &st.layout[0]];
 			const addrSetup &rhss = st.layoutSetup[&ra - &st.layout[0]];
-			if (lhss.clump.size() != rhss.clump.size()) {
-				return lhss.clump.size() < rhss.clump.size();
-			}
+			mismatch = lhss.clump.size() != rhss.clump.size();
+			if (mismatch) return lhss.clump.size() < rhss.clump.size();
+
 			for (size_t cx=0; cx < lhss.clump.size(); ++cx) {
 				got = cmpCovClump(st.layout[lhss.clump[cx]],
 						   st.layout[rhss.clump[cx]], mismatch);
 				if (mismatch) return got;
 			}
 
-			mismatch = false;
 			return false;
 		}
 
@@ -1046,10 +1043,10 @@ namespace RelationalRAMExpectation {
 
 		bool operator() (const std::vector<int> &lhs, const std::vector<int> &rhs) const
 		{
-			bool mismatch = false;
 			for (size_t ux=0; ux < lhs.size(); ++ux) {
 				addr &la = st.layout[lhs[ux]];
 				addr &ra = st.layout[rhs[ux]];
+				bool mismatch;
 				bool got = compareMeanDeep(la, ra, mismatch);
 				if (mismatch) return got;
 			}
@@ -1065,10 +1062,9 @@ namespace RelationalRAMExpectation {
 			const addrSetup *lhss = &st.layoutSetup[lhs - &st.layout[0]];
 			const addrSetup *rhss = &st.layoutSetup[rhs - &st.layout[0]];
 
-			if (lhss->fk1 != rhss->fk1)
-				return lhss->fk1 < rhss->fk1;
+			bool mismatch = lhss->fk1 != rhss->fk1;
+			if (mismatch) return lhss->fk1 < rhss->fk1;
 
-			bool mismatch;
 			return cmpCovClump(*lhs, *rhs, mismatch);
 		}
 	};
@@ -1250,6 +1246,8 @@ namespace RelationalRAMExpectation {
 		if (verbose() >= 2) {
 			mxLog("%s: analyzing unit dependencies", homeEx->name);
 		}
+
+		// Here we sort clumps into independent groups of identical covariance
 
 		std::vector<int> region;
 		SubgraphType connected;
@@ -1515,6 +1513,9 @@ namespace RelationalRAMExpectation {
 			t2.reserve(t1.size());
 			for (size_t tx=0; tx < t1.size(); ++tx) {
 				addrSetup &a1 = layoutSetup[ t1[tx] ];
+				if (specimen.clump.size() != a1.clump.size()) {
+					mxThrow("BUG: clump size mismatch; alert developers");
+				}
 				t2.push_back(a1.clump[cx]);
 			}
 			oertzenRotate(t2, canOptimize);
@@ -1534,6 +1535,7 @@ namespace RelationalRAMExpectation {
 			addr &a1 = layout[ax];
 			addrSetup &as1 = layoutSetup[ax];
 			if (as1.numKids != 0 || as1.numJoins != 1 || as1.clumped) continue;
+			// numKids == 0 && numJoints == 1 && !as1.clumped
 			std::vector<int> &t1 = todo[&a1];
 			t1.push_back(int(ax));
 		}
