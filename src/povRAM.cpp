@@ -6,6 +6,110 @@
 #include "SelfAdjointEigenSolverNosort.h"
 #include "EnableWarnings.h"
 
+void PathCalc::prepS()
+{
+	auto v = sio->getVersion();
+	if (versionS != v) {
+		sio->refresh(fullS, 0);
+		versionS = v;
+	}
+}
+
+void PathCalc::setAlgo(bool _boker2019)
+{
+	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
+																 [](bool x){ return x; })) {
+		mxThrow("Must use Boker2019 when product nodes are present");
+	}
+	boker2019 = _boker2019;
+
+	if (!boker2019) {
+		determineShallowDepth();
+		//mxLog("PathCalc: depth %d", numIters);
+	} else {
+		
+	}
+}
+
+void PathCalc::determineShallowDepth()
+{
+	if (!Global->RAMInverseOpt) return;
+
+	int maxDepth = std::min(numVars, 30);
+	if (Global->RAMMaxDepth != NA_INTEGER) {
+		maxDepth = std::min(maxDepth, Global->RAMMaxDepth);
+	}
+	aio->refresh(fullA, 1);
+	Eigen::MatrixXd curProd = fullA;
+	for (int tx=1; tx <= maxDepth; ++tx) {
+		if (false) {
+			mxLog("tx=%d", tx);
+			mxPrintMat("curProd", curProd);
+		}
+		curProd = (curProd * fullA.transpose()).eval();
+		if ((curProd.array() == 0.0).all()) {
+			numIters = tx - 1;
+			break;
+		}
+	}
+}
+
+void PathCalc::evaluate()
+{
+	auto v = aio->getVersion();
+	if (versionIA == v) {
+		//mxLog("PathCalc<avft>::evaluate() in cache");
+		return;
+	}
+	versionIA = v;
+
+	if (!boker2019) {
+		if (numIters >= 0) {
+			aio->refresh(fullA, 1.0);
+			// could further optimize using std::swap? (see old code)
+			IA = fullA;
+			IA.diagonal().array() += 1;
+			for (int iter=1; iter <= numIters; ++iter) {
+				IA *= fullA;
+				IA.diagonal().array() += 1;
+				//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
+			}
+		} else {
+			aio->refresh(fullA, -1.0);
+			fullA.diagonal().array() = 1;
+			Eigen::FullPivLU< Eigen::MatrixXd > lu(fullA);
+			IA.resize(numVars, numVars);
+			IA.setIdentity();
+			IA = lu.solve(IA);
+		}
+	} else {
+		mxThrow("not impl yet");
+	}
+}
+
+void PathCalc::filter()
+{
+	if (versionIAF == versionIA) {
+		//mxLog("PathCalc<avft>::filter() in cache");
+		return;
+	}
+	versionIAF = versionIA;
+
+	auto &lf = *latentFilter;
+	if (!boker2019) {
+		IAF.resize(numObs, numVars);
+		for (int rx=0, dx=0; rx < IA.rows(); ++rx) {
+			if (!lf[rx]) continue;
+			// maybe smarter to build transposed so we can filter by column?
+			IAF.row(dx) = IA.row(rx);
+			dx += 1;
+		}
+	} else {
+		mxThrow("Not yet");
+	}
+}
+
+
 // Sparse matrix version below. This is probably
 // not worth the trouble because we only do this
 // once. Even if it is faster, it might be easier

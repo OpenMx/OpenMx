@@ -21,6 +21,26 @@
 //#include <Eigen/LU>
 #include "EnableWarnings.h"
 
+unsigned omxRAMExpectation::ApcIO::getVersion()
+{ return omxGetMatrixVersion(A); }
+
+void omxRAMExpectation::ApcIO::refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+{
+	if (sign == 1) {
+		for (auto &v : vec) mat(v.r, v.c) = (*v.src);
+	} else {
+		for (auto &v : vec) mat(v.r, v.c) = -(*v.src);
+	}
+}
+
+unsigned omxRAMExpectation::SpcIO::getVersion()
+{ return omxGetMatrixVersion(S); }
+
+void omxRAMExpectation::SpcIO::refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+{
+	for (auto &v : vec) mat(v.r, v.c) = (*v.src);
+}
+
 void omxRAMExpectation::flatten(FitContext *fc)
 {
 	if (rram) return;
@@ -148,8 +168,6 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	if (M) omxRecompute(M, fc);
 	if (slope) omxRecompute(slope, fc);
 	    
-	if(OMX_DEBUG) { mxLog("Running RAM computation with numIters is %d\n.", numIters); }
-		
 	if(cov == NULL && means == NULL) {
 		return; // We're not populating anything, so why bother running the calculation?
 	}
@@ -174,7 +192,7 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 omxExpectation *omxInitRAMExpectation(omxState *st)
 { return new omxRAMExpectation(st); }
 
-static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec)
+static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lowerTri)
 {
 	omxRecompute(m, 0);
 	m->markPopulatedEntries();
@@ -182,7 +200,8 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec)
 	EigenMatrixAdaptor em(m);
 
 	for (int cx=0; cx < m->cols; ++cx) {
-		for (int rx=0; rx < m->rows; ++rx) {
+		int rStart = lowerTri? cx : 0;
+		for (int rx=rStart; rx < m->rows; ++rx) {
 			if (em(rx,cx) == 0.0) continue;
 			vec.emplace_back(&em.coeffRef(rx,cx), rx, cx);
 		}
@@ -317,19 +336,17 @@ void omxRAMExpectation::init() {
 	currentState->setFakeParam(estSave);
 	loadFakeDefVars();
 
-	recordNonzeroCoeff(A, aCoeff);
-	recordNonzeroCoeff(S, sCoeff);
+	auto *aio = new ApcIO;
+	aio->A = A;
+	recordNonzeroCoeff(A, aio->vec, false);
+	auto *sio = new SpcIO;
+	sio->S = S;
+	recordNonzeroCoeff(S, sio->vec, true);
 
-	auto *vfn = new GetVersionClosureType;
-	vfn->A = A;
-
-	pcalc.attach(k, l, latentFilter, isProductNode,
-							 vfn, aCoeff, sCoeff);
+	pcalc.attach(k, l, latentFilter, isProductNode, aio, sio);
 	pcalc.setAlgo(false);
 
 	currentState->restoreParam(estSave);
-
-	numIters = pcalc.numIters;
 }
 
 void omxRAMExpectation::studyExoPred()
@@ -686,6 +703,20 @@ namespace RelationalRAMExpectation {
 				}
 			}
 		}
+	}
+
+	unsigned independentGroup::ApcIO::getVersion()
+	{ return 0; }
+
+	void independentGroup::ApcIO::refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+	{
+	}
+
+	unsigned independentGroup::SpcIO::getVersion()
+	{ return 0; }
+
+	void independentGroup::SpcIO::refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+	{
 	}
 
 	// 1st visitor
@@ -1135,9 +1166,10 @@ namespace RelationalRAMExpectation {
 			if (checkedEx.find(expectation) != checkedEx.end()) continue;
 
 			omxData *data = expectation->data;
-			// def vars are addressed in analyzeModel2
-			// We try to make them disappear
-			data->loadFakeData(expectation->currentState, 0.0);
+			// def vars are addressed in analyzeModel2.
+			// Not sure if we need to consider them here, but it is
+			// the conservative approach.
+			data->loadFakeData(expectation->currentState, 1.0);
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -1399,6 +1431,7 @@ namespace RelationalRAMExpectation {
 			      st.homeEx->name, (int)st.group.size(), maxSize, totalObserved);
 		}
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
+		isProductNode.assign(maxSize, false);
 		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
 		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
 		expectedVec.resize(totalObserved);
@@ -1457,6 +1490,7 @@ namespace RelationalRAMExpectation {
 					bool yes = std::isfinite(val);
 					if (!yes) continue;
 					latentFilter[ pl.modelStart + vx ] = true;
+					isProductNode[ pl.modelStart + vx ] = ram->isProductNode[vx];
 					std::string dname =
 						modelName + omxDataColumnName(data, dc[col]);
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
@@ -1474,6 +1508,11 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
+		auto *aio = new ApcIO;
+		auto *sio = new SpcIO;
+
+		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, aio, sio);
+		pcalc.setAlgo(false);
 		asymT.resize(clumpVars, clumpObs);
 		determineShallowDepth(fc);
 	}

@@ -14,6 +14,14 @@
 #include "path.h"
 #include "Connectedness.h"
 
+struct coeffLoc {
+	double *src;
+	int r, c;
+
+coeffLoc(double *_src, int _r, int _c) :
+	src(_src), r(_r), c(_c) {}
+};
+
 template <typename T1>
 class AsymTool {
 	int AshallowDepth;
@@ -407,6 +415,17 @@ namespace RelationalRAMExpectation {
 		void refreshModel(FitContext *fc);
 		void refreshUnitA(FitContext *fc, int px);
 		void invertAndFilterA();
+
+		struct ApcIO : PathCalcIO {
+			virtual unsigned getVersion();
+			virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		};
+
+		struct SpcIO : PathCalcIO {
+			virtual unsigned getVersion();
+			virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		};
+
 	public:
 		int arrayIndex;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToPlacementMapType;
@@ -425,18 +444,15 @@ namespace RelationalRAMExpectation {
 		Eigen::VectorXd                  fullMean;
 		Eigen::VectorXd                  rawFullMean;
 		Eigen::VectorXd                  expectedVec;
-		Eigen::SparseMatrix<double>      fullCov;
+		Eigen::SparseMatrix<double>      fullCov;   // actually latents are filtered out
 		bool                             analyzedCov;
 		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 		//SimpCholesky< Eigen::MatrixXd >  covDecomp;
 		Eigen::SparseMatrix<double>      fullS;
 		std::vector<bool>                latentFilter; // false when latent or missing
+    std::vector<bool>                isProductNode;
 
-		// could store coeff extraction plan in addr TODO
-		std::vector<coeffLoc> aCoeff;
-		std::vector<coeffLoc> sCoeff;
-		struct GetVersionClosure {};
-		PathCalc<GetVersionClosure> pcalc;
+		PathCalc pcalc;
 		AsymTool<bool>          asymT;
 		double                           fit;  // most recent fit for debugging
 
@@ -531,6 +547,21 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector< omxThresholdColumn > thresholds;
 	std::vector<int> exoDataColumns; // index into omxData
 	Eigen::VectorXd exoPredMean;
+
+	struct ApcIO : PathCalcIO {
+		omxMatrix *A;
+		std::vector<coeffLoc> vec;
+		virtual unsigned getVersion();
+		virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+	};
+
+	struct SpcIO : PathCalcIO {
+		omxMatrix *S;
+		std::vector<coeffLoc> vec;
+		virtual unsigned getVersion();
+		virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+	};
+
  public:
 	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array
 	typedef std::set< dvRefType > dvRefSetType;
@@ -542,14 +573,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
 	std::vector<bool> isProductNode;
-	std::vector<coeffLoc> aCoeff;
-	std::vector<coeffLoc> sCoeff;
-
-	struct GetVersionClosureType {
-		omxMatrix *A;
-		unsigned operator()() { return omxGetMatrixVersion(A); }
-	};
-	PathCalc<GetVersionClosureType> pcalc;
+	PathCalc pcalc;
 
 	omxRAMExpectation(omxState *st) : super(st), slope(0), pcalc(st) {};
 	virtual ~omxRAMExpectation();
@@ -563,7 +587,6 @@ class omxRAMExpectation : public omxExpectation {
 	omxMatrix *A, *S, *F, *M;
 
 	int verbose;
-	int numIters;
 	int rampartCycleLimit;
 	int rampartUnitLimit;
 	int maxDebugGroups;
