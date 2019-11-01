@@ -275,6 +275,18 @@ omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 	return getMatrixFromIndex(element->matrixNumber);
 }
 
+omxExpectation *omxState::getParent(omxExpectation *element) const
+{
+	auto *st = this;
+	if (parent) st = parent;
+	return st->expectationList[element->expNum];
+}
+
+omxExpectation *omxState::lookupDuplicate(omxExpectation *element) const
+{
+	return expectationList[element->expNum];
+}
+
 void omxState::setWantStage(int stage)
 {
 	if (wantStage == stage) mxThrow("omxState::setWantStage(%d) is redundent", stage);
@@ -390,7 +402,7 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src) : wantStage(0), clone(true), hasFakeParam(false)
+omxState::omxState(omxState *src) : wantStage(0), parent(src), hasFakeParam(false)
 {
 	init();
 

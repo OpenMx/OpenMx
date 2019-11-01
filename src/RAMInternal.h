@@ -15,11 +15,11 @@
 #include "Connectedness.h"
 
 struct coeffLoc {
-	double *src;
+	int off;
 	int r, c;
 
-coeffLoc(double *_src, int _r, int _c) :
-	src(_src), r(_r), c(_c) {}
+coeffLoc(int _off, int _r, int _c) :
+	off(_off), r(_r), c(_c) {}
 };
 
 template <typename T1>
@@ -417,13 +417,23 @@ namespace RelationalRAMExpectation {
 		void invertAndFilterA();
 
 		struct ApcIO : PathCalcIO {
-			virtual unsigned getVersion();
-			virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+			independentGroup &par;
+			int clumpSize;
+			ApcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			virtual void recompute(FitContext *fc);
+			virtual unsigned getVersion(FitContext *fc);
+			virtual void refresh(FitContext *fc,
+													 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
 		};
 
 		struct SpcIO : PathCalcIO {
-			virtual unsigned getVersion();
-			virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+			independentGroup &par;
+			int clumpSize;
+			SpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			virtual void recompute(FitContext *fc);
+			virtual unsigned getVersion(FitContext *fc);
+			virtual void refresh(FitContext *fc,
+													 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
 		};
 
 	public:
@@ -441,10 +451,10 @@ namespace RelationalRAMExpectation {
 		Eigen::ArrayXi                   dataColumn; // for OLS profiled constant parameters
 		Eigen::VectorXd                  dataVec;
 		Eigen::VectorXd                  simDataVec;
-		Eigen::VectorXd                  fullMean;
+		Eigen::VectorXd                  fullMean;  // rename, latents are filtered out
 		Eigen::VectorXd                  rawFullMean;
 		Eigen::VectorXd                  expectedVec;
-		Eigen::SparseMatrix<double>      fullCov;   // actually latents are filtered out
+		Eigen::MatrixXd                  fullCov;   // rename, latents are filtered out
 		bool                             analyzedCov;
 		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
 		//SimpCholesky< Eigen::MatrixXd >  covDecomp;
@@ -452,12 +462,18 @@ namespace RelationalRAMExpectation {
 		std::vector<bool>                latentFilter; // false when latent or missing
     std::vector<bool>                isProductNode;
 
+		ApcIO *aio;
+		SpcIO *sio;
 		PathCalc pcalc;
 		AsymTool<bool>          asymT;
 		double                           fit;  // most recent fit for debugging
 
 		independentGroup(class state *_st, int size, int _clumpSize);
 		independentGroup(independentGroup *ig);
+		~independentGroup() {
+			if (aio) delete aio;
+			if (sio) delete sio;
+		}
 		int numLooseClumps() {
 			independentGroup &par = getParent();
 			int loose = par.placements.size() / clumpSize;
@@ -473,8 +489,7 @@ namespace RelationalRAMExpectation {
 		void filterFullMean();
 		void finalizeData();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
-		void computeCov1(FitContext *fc);
-		void computeCov2();
+		void computeCov(FitContext *fc);
 		void simulate();
 		void exportInternalState(MxRList &out, MxRList &dbg);
 		independentGroup &getParent();
@@ -491,6 +506,7 @@ namespace RelationalRAMExpectation {
 		int rotationCount;
 
 	public:
+		bool isChild() const { return this != parent; }
 		typedef std::vector< std::set<int> > SubgraphType;
 		struct omxExpectation *homeEx;
 		std::set<struct omxExpectation *> allEx;
@@ -549,18 +565,27 @@ class omxRAMExpectation : public omxExpectation {
 	Eigen::VectorXd exoPredMean;
 
 	struct ApcIO : PathCalcIO {
-		omxMatrix *A;
-		std::vector<coeffLoc> vec;
-		virtual unsigned getVersion();
-		virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		omxMatrix *A0;
+		std::vector<coeffLoc> &vec;
+		ApcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
+		virtual void recompute(FitContext *fc);
+		virtual unsigned getVersion(FitContext *fc);
+		virtual void refresh(FitContext *fc,
+												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
 	};
 
 	struct SpcIO : PathCalcIO {
-		omxMatrix *S;
-		std::vector<coeffLoc> vec;
-		virtual unsigned getVersion();
-		virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		omxMatrix *S0;
+		std::vector<coeffLoc> &vec;
+		SpcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
+		virtual void recompute(FitContext *fc);
+		virtual unsigned getVersion(FitContext *fc);
+		virtual void refresh(FitContext *fc,
+												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
 	};
+
+	ApcIO *aio;
+	SpcIO *sio;
 
  public:
 	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array
@@ -573,9 +598,13 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
 	std::vector<bool> isProductNode;
+	std::vector<coeffLoc> ScoeffStorage;
+	std::vector<coeffLoc> AcoeffStorage;
+	std::vector<coeffLoc> *Scoeff;
+	std::vector<coeffLoc> *Acoeff;
 	PathCalc pcalc;
 
-	omxRAMExpectation(omxState *st) : super(st), slope(0), pcalc(st) {};
+	omxRAMExpectation(omxState *st, int num);
 	virtual ~omxRAMExpectation();
 
 	void CalculateRAMCovarianceAndMeans(FitContext *fc);

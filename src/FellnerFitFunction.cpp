@@ -127,8 +127,7 @@ namespace FellnerFitFunction {
 	{
 		if (0 == ig.getParent().dataVec.size()) return 0;
 
-		ig.computeCov1(fc);
-		ig.computeCov2();
+		ig.computeCov(fc);
 
 		/*
 		if (!ig.analyzedCov) {
@@ -139,7 +138,7 @@ namespace FellnerFitFunction {
 		ig.covDecomp.factorize(ig.fullCov);
 		*/
 
-		Eigen::MatrixXd denseCov = ig.fullCov;
+		Eigen::MatrixXd denseCov = ig.fullCov; // try alias instead of copy TODO
 		covDecomp.compute(denseCov);
 
 		if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return 1;

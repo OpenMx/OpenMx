@@ -6,16 +6,17 @@
 #include "SelfAdjointEigenSolverNosort.h"
 #include "EnableWarnings.h"
 
-void PathCalc::prepS()
+void PathCalc::prepS(FitContext *fc)
 {
-	auto v = sio->getVersion();
-	if (versionS != v) {
-		sio->refresh(fullS, 0);
-		versionS = v;
+	sio->recompute(fc);
+	if (ignoreVersion || versionS != sio->getVersion(fc)) {
+		sio->refresh(fc, fullS, 0);
+		versionS = sio->getVersion(fc);
 	}
+	if (verbose) mxPrintMat("S", fullS);
 }
 
-void PathCalc::setAlgo(bool _boker2019)
+void PathCalc::setAlgo(FitContext *fc, bool _boker2019)
 {
 	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
 																 [](bool x){ return x; })) {
@@ -24,14 +25,15 @@ void PathCalc::setAlgo(bool _boker2019)
 	boker2019 = _boker2019;
 
 	if (!boker2019) {
-		determineShallowDepth();
+		determineShallowDepth(fc);
 		//mxLog("PathCalc: depth %d", numIters);
 	} else {
 		
 	}
+	algoSet = true;
 }
 
-void PathCalc::determineShallowDepth()
+void PathCalc::determineShallowDepth(FitContext *fc)
 {
 	if (!Global->RAMInverseOpt) return;
 
@@ -39,7 +41,7 @@ void PathCalc::determineShallowDepth()
 	if (Global->RAMMaxDepth != NA_INTEGER) {
 		maxDepth = std::min(maxDepth, Global->RAMMaxDepth);
 	}
-	aio->refresh(fullA, 1);
+	aio->refresh(fc, fullA, 1);
 	Eigen::MatrixXd curProd = fullA;
 	for (int tx=1; tx <= maxDepth; ++tx) {
 		if (false) {
@@ -54,18 +56,19 @@ void PathCalc::determineShallowDepth()
 	}
 }
 
-void PathCalc::evaluate()
+void PathCalc::evaluate(FitContext *fc)
 {
-	auto v = aio->getVersion();
-	if (versionIA == v) {
+	aio->recompute(fc);
+	if (!ignoreVersion && versionIA == aio->getVersion(fc)) {
 		//mxLog("PathCalc<avft>::evaluate() in cache");
 		return;
 	}
-	versionIA = v;
+	versionIA = aio->getVersion(fc);
 
 	if (!boker2019) {
 		if (numIters >= 0) {
-			aio->refresh(fullA, 1.0);
+			aio->refresh(fc, fullA, 1.0);
+			if (verbose) mxPrintMat("A", fullA);
 			// could further optimize using std::swap? (see old code)
 			IA = fullA;
 			IA.diagonal().array() += 1;
@@ -75,13 +78,15 @@ void PathCalc::evaluate()
 				//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
 			}
 		} else {
-			aio->refresh(fullA, -1.0);
+			aio->refresh(fc, fullA, -1.0);
+			if (verbose) mxPrintMat("A", fullA);
 			fullA.diagonal().array() = 1;
 			Eigen::FullPivLU< Eigen::MatrixXd > lu(fullA);
 			IA.resize(numVars, numVars);
 			IA.setIdentity();
 			IA = lu.solve(IA);
 		}
+		if (verbose) mxPrintMat("IA", IA);
 	} else {
 		mxThrow("not impl yet");
 	}
@@ -89,7 +94,7 @@ void PathCalc::evaluate()
 
 void PathCalc::filter()
 {
-	if (versionIAF == versionIA) {
+	if (!ignoreVersion && versionIAF == versionIA) {
 		//mxLog("PathCalc<avft>::filter() in cache");
 		return;
 	}
@@ -104,6 +109,7 @@ void PathCalc::filter()
 			IAF.row(dx) = IA.row(rx);
 			dx += 1;
 		}
+		if (verbose) mxPrintMat("new IAF", IAF);
 	} else {
 		mxThrow("Not yet");
 	}
@@ -193,7 +199,7 @@ class povRAMExpectation : public omxExpectation {
  public:
 	std::vector<bool> latentFilter; // false when latent
 
-	povRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0) {};
+	povRAMExpectation(omxState *st, int num) : super(st, num), Zversion(0), _Z(0) {};
 	virtual ~povRAMExpectation();
 
 	omxMatrix *cov, *means; // observed covariance and means
@@ -213,8 +219,8 @@ class povRAMExpectation : public omxExpectation {
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
 };
 
-omxExpectation *povRAMExpectationInit(omxState *st)
-{ return new povRAMExpectation(st); }
+omxExpectation *povRAMExpectationInit(omxState *st, int num)
+{ return new povRAMExpectation(st, num); }
 
 povRAMExpectation::~povRAMExpectation()
 {

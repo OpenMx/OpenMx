@@ -2,12 +2,15 @@
 #define __path_h_
 
 struct PathCalcIO {
-	virtual unsigned getVersion()=0;
-	virtual void refresh(Eigen::Ref<Eigen::MatrixXd> mat, double sign)=0;
+	virtual void recompute(FitContext *fc)=0;
+	virtual unsigned getVersion(FitContext *fc)=0;
+	virtual void refresh(FitContext *fc, Eigen::Ref<Eigen::MatrixXd> mat,
+											 double sign)=0;
+	virtual ~PathCalcIO() {};
 };
 
 class PathCalc {
-	omxState &state;   // remove? TODO
+public:
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
 	Eigen::MatrixXd fullA;
@@ -17,21 +20,48 @@ class PathCalc {
 	Eigen::MatrixXd IA;  // intermediate result given boker2019=false
 	unsigned versionIAF;
 	Eigen::MatrixXd IAF;  // intermediate result given boker2019=false
-	int numIters; // private TODO
+	int numIters;
 	bool boker2019;
 	int numVars;
 	int numObs;
-	std::unique_ptr<PathCalcIO> aio, sio;
+	PathCalcIO *aio, *sio;
+	bool algoSet;
 	
-	void determineShallowDepth();
-	void evaluate();
+	void determineShallowDepth(FitContext *fc);
+	void evaluate(FitContext *fc);
 	void filter();
-	void prepS();
+	void prepS(FitContext *fc);
+
+	void init()
+	{
+		fullA.resize(numVars, numVars);
+		fullA.setZero();
+		fullS.resize(numVars, numVars);
+		fullS.setZero();
+	}
 
  public:
 
- PathCalc(omxState *st) :
-	 state(*st), versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER) {}
+	int verbose;
+	bool ignoreVersion;
+
+ PathCalc() :
+	 versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER),
+	 algoSet(false), verbose(0), ignoreVersion(false) {}
+
+	void clone(PathCalc &pc)
+	{
+		if (!pc.algoSet) mxThrow("PathCalc::clone but setAlgo not called yet");
+		numVars = pc.numVars;
+		numObs = pc.numObs;
+		latentFilter = pc.latentFilter;
+		isProductNode = pc.isProductNode;
+		aio = pc.aio;
+		sio = pc.sio;
+		numIters = pc.numIters;
+		boker2019 = pc.boker2019;
+		init();
+	}
 
 	void attach(int _numVars, int _numObs,
 							std::vector<bool> &_latentFilter,
@@ -43,22 +73,19 @@ class PathCalc {
 		numObs = _numObs;
 		latentFilter = &_latentFilter;
 		isProductNode = &_isProductNode;
-		aio = std::unique_ptr<PathCalcIO>(_aio);
-		sio = std::unique_ptr<PathCalcIO>(_sio);
-		fullA.resize(numVars, numVars);
-		fullA.setZero();
-		fullS.resize(numVars, numVars);
-		fullS.setZero();
+		aio = _aio;
+		sio = _sio;
+		init();
 	}
 
-	void setAlgo(bool _boker2019);
+	void setAlgo(FitContext *fc, bool _boker2019);
 
 	template <typename T>
-	void fullCov(Eigen::MatrixBase<T> &cov)
+	void fullCov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
-		evaluate();
+		evaluate(fc);
 		if (!boker2019) {
-			prepS();
+			prepS(fc);
 			cov.derived() = IA * fullS.selfadjointView<Eigen::Lower>() * IA.transpose();
 		} else {
 			mxThrow("Not yet");
@@ -66,10 +93,10 @@ class PathCalc {
 	}
 
 	template <typename T1, typename T2>
-	void fullMean(Eigen::MatrixBase<T1> &meanIn,
+	void fullMean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn,
 								Eigen::MatrixBase<T2> &meanOut)
 	{
-		evaluate();
+		evaluate(fc);
 		if (!boker2019) {
 			meanOut.derived() = IA * meanIn;
 		} else {
@@ -78,9 +105,9 @@ class PathCalc {
 	}
 
 	template <typename T1>
-	Eigen::VectorXd fullMean(Eigen::MatrixBase<T1> &meanIn)
+	Eigen::VectorXd fullMean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn)
 	{
-		evaluate();
+		evaluate(fc);
 		if (!boker2019) {
 			return IA * meanIn; // avoids temporary copy? TODO
 		} else {
@@ -89,12 +116,12 @@ class PathCalc {
 	}
 
 	template <typename T>
-	void cov(Eigen::MatrixBase<T> &cov)
+	void cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
-		evaluate();
+		evaluate(fc);
 		filter();
 		if (!boker2019) {
-			prepS();
+			prepS(fc);
 			cov.derived() = IAF * fullS.selfadjointView<Eigen::Lower>() * IAF.transpose();
 		} else {
 			mxThrow("Not yet");
@@ -102,10 +129,10 @@ class PathCalc {
 	}
 
 	template <typename T1, typename T2>
-	void mean(Eigen::MatrixBase<T1> &meanIn,
+	void mean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn,
 						Eigen::MatrixBase<T2> &meanOut)
 	{
-		evaluate();
+		evaluate(fc);
 		filter();
 		if (!boker2019) {
 			meanOut.derived() = IAF * meanIn;

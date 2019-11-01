@@ -46,7 +46,7 @@ public:
 	bool noLY;
 	bool Lnocol;
 
-	omxLISRELExpectation(omxState *st) : super(st) {}
+	omxLISRELExpectation(omxState *st, int num) : super(st, num) {}
 	virtual ~omxLISRELExpectation();
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
@@ -430,8 +430,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 */
 }
 
-omxExpectation *omxInitLISRELExpectation(omxState *st)
-{ return new omxLISRELExpectation(st); }
+omxExpectation *omxInitLISRELExpectation(omxState *st, int num)
+{ return new omxLISRELExpectation(st, num); }
 
 void omxLISRELExpectation::init() {
 	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }

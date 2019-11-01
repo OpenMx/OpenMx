@@ -319,13 +319,13 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage; // hack because omxRecompute doesn't take 'want' as a parameter TODO
-	bool clone;
+	omxState *parent;
 	bool hasFakeParam;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
-	bool isClone() const { return clone; }
+	bool isClone() const { return parent != 0; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
@@ -333,7 +333,7 @@ class omxState {
 	std::vector< omxData* > dataList;
 	std::vector< omxConstraint* > conListX;
 
-	omxState() : wantStage(0), clone(false), hasFakeParam(false) { init(); };
+	omxState() : wantStage(0), parent(0), hasFakeParam(false) { init(); };
 	omxState(omxState *src);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
@@ -352,6 +352,8 @@ class omxState {
 	void invalidateCache();
 	~omxState();
 
+	omxExpectation *getParent(omxExpectation *element) const;
+	omxExpectation *lookupDuplicate(omxExpectation *element) const;
 	omxMatrix *lookupDuplicate(omxMatrix *element) const;
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };

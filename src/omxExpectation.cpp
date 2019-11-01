@@ -38,7 +38,7 @@ typedef struct omxExpectationTableEntry omxExpectationTableEntry;
 
 struct omxExpectationTableEntry {
 	char name[32];
-	omxExpectation *(*initFun)(omxState *os);
+	omxExpectation *(*initFun)(omxState *os, int num);
 };
 
 static const omxExpectationTableEntry omxExpectationSymbolTable[] = {
@@ -226,7 +226,7 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
 		if(strEQ(expType, entry->name)) {
-			expect = entry->initFun(os);
+			expect = entry->initFun(os, expNum);
 			expect->expType = entry->name;
 			break;
 		}
@@ -237,7 +237,6 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
 	expect->rObj = rObj;
-	expect->expNum = expNum;
 	
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
 	if (TYPEOF(Rdata) == INTSXP) {

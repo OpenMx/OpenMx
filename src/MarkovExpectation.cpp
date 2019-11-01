@@ -36,8 +36,8 @@ public:
 	omxMatrix *scaledTransition;
 	const bool isMixtureInterface;
 
-	MarkovExpectation(omxState *st, bool _isMixtureInterface)
-		: super(st), initialV(0), transitionV(0),
+	MarkovExpectation(omxState *st, int num, bool _isMixtureInterface)
+		: super(st, num), initialV(0), transitionV(0),
 			isMixtureInterface(_isMixtureInterface) {};
 	virtual ~MarkovExpectation();
 	virtual void init();
@@ -46,11 +46,11 @@ public:
 	virtual void populateAttr(SEXP expectation);
 };
 
-omxExpectation *InitHiddenMarkovExpectation(omxState *st)
-{ return new MarkovExpectation(st, false); }
+omxExpectation *InitHiddenMarkovExpectation(omxState *st, int num)
+{ return new MarkovExpectation(st, num, false); }
 
-omxExpectation *InitMixtureExpectation(omxState *st)
-{ return new MarkovExpectation(st, true); }
+omxExpectation *InitMixtureExpectation(omxState *st, int num)
+{ return new MarkovExpectation(st, num, true); }
 
 MarkovExpectation::~MarkovExpectation()
 {
