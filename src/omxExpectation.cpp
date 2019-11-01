@@ -211,16 +211,31 @@ void omxExpectation::generateData(FitContext *, MxRList &out)
 	mxThrow("%s: generateData not implemented for '%s'", name, expType);
 }
 
-omxExpectation* omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os) {
-
+omxExpectation *
+omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
+{
 	SEXP ExpectationClass;
 	const char *expType;
 	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
 		expType = CHAR(ExpectationClass);
 	}
 
-	omxExpectation* expect = omxNewInternalExpectation(expType, os);
+	omxExpectation* expect = 0;
 
+	/* Switch based on Expectation type. */ 
+	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
+		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
+		if(strEQ(expType, entry->name)) {
+			expect = entry->initFun(os);
+			expect->expType = entry->name;
+			break;
+		}
+	}
+
+	if (!expect) mxThrow("expectation '%s' not recognized", expType);
+
+	expect->canDuplicate = true;
+	expect->dynamicDataSource = false;
 	expect->rObj = rObj;
 	expect->expNum = expNum;
 	
@@ -272,29 +287,6 @@ const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataC
 std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
 {
 	return thresholds;
-}
-
-omxExpectation *
-omxNewInternalExpectation(const char *expType, omxState* os)
-{
-	omxExpectation* expect = 0;
-
-	/* Switch based on Expectation type. */ 
-	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
-		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
-		if(strEQ(expType, entry->name)) {
-			expect = entry->initFun(os);
-		        expect->expType = entry->name;
-			break;
-		}
-	}
-
-	if (!expect) mxThrow("expectation '%s' not recognized", expType);
-
-	expect->canDuplicate = true;
-	expect->dynamicDataSource = false;
-
-	return expect;
 }
 
 void omxExpectation::print()

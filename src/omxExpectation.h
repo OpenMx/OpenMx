@@ -54,7 +54,7 @@ class omxExpectation {					// An Expectation
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
 	omxState* currentState;
-	int expNum;
+	int expNum;  // index in omxState's vector
 
 	// omxExpectation should not need to know about free variables.
 	FreeVarGroup *freeVarGroup; // TODO remove
@@ -103,9 +103,6 @@ class omxExpectation {					// An Expectation
 
 	void loadThresholds();
 };
-
-omxExpectation *
-omxNewInternalExpectation(const char *expType, omxState* os);
 
 	void omxCompleteExpectation(omxExpectation *ox);
 
