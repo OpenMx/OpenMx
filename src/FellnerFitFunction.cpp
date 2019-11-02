@@ -138,7 +138,7 @@ namespace FellnerFitFunction {
 		ig.covDecomp.factorize(ig.fullCov);
 		*/
 
-		Eigen::MatrixXd denseCov = ig.fullCov; // try alias instead of copy TODO
+		Eigen::MatrixXd &denseCov = ig.fullCov;
 		covDecomp.compute(denseCov);
 
 		if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return 1;

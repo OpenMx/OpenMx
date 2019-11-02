@@ -1,6 +1,15 @@
 #ifndef __path_h_
 #define __path_h_
 
+#include <Eigen/Eigenvalues>
+#include "polynomial.h"
+#include "SelfAdjointEigenSolverNosort.h"
+
+// TODO:
+// integrate with p-o-v
+// build I-A transposed (or row major order?)
+// use sparse matrix for A matrix
+
 struct PathCalcIO {
 	virtual void recompute(FitContext *fc)=0;
 	virtual unsigned getVersion(FitContext *fc)=0;
@@ -10,7 +19,6 @@ struct PathCalcIO {
 };
 
 class PathCalc {
-public:
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
 	Eigen::MatrixXd fullA;
@@ -40,10 +48,13 @@ public:
 		fullS.setZero();
 	}
 
+	void appendPolyRep(int nn, std::vector<int> &status,
+										 std::vector< Polynomial< double > > &polyRep);
+
  public:
 
-	int verbose;
-	bool ignoreVersion;
+	const int verbose;
+	const bool ignoreVersion;
 
  PathCalc() :
 	 versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER),
@@ -141,44 +152,5 @@ public:
 		}
 	}
 };
-
-/*
-	NOTES:
-
-void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc) [DONE]
-  needs some rewriting because getZ(NULL) then filters Z
-  and uses omxDGEMM to do the quadratic product FZSZ'F'
-  hence, unfiltered covariance is optimized out
-  Maybe need a special API to keep this optimization.
-
-refreshUnfilteredCov(omxExpectation *oo) [DONE]
-   reads directly from A, S
-    omxMatrix* Z = oro->getZ(NULL);
-   writes to Ax
-
-omxMatrix *omxRAMExpectation::getZ(FitContext *fc) --> TO REMOVE
-  updates Z using omxShallowInverse conditional on Zversion
-
-	void state::computeMean(FitContext *fc)
-   direct input
-			omxRecompute(ram->A, fc);
-			EigenMatrixAdaptor eZ(ram->getZ(fc));
-   mean only output
-
-	void independentGroup::refreshUnitA(FitContext *fc, int px)
-    asymT.fullA -- block diagonal aggregation of group units + rampart adjusted
-    input entry by entry into sparse matrix
-
-	void independentGroup::determineShallowDepth(FitContext *fc)
-    asymT.fullA -- first builds whole A then
-		asymT.determineShallowDepth(fc);
-
-	independentGroup::independentGroup(independentGroup *ig)
-	& void independentGroup::prep(FitContext *fc)
-    asymT initialization
-
-	void independentGroup::computeCov2()
-   output dense, filtered covariance
- */
 
 #endif // __path_h_

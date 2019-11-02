@@ -668,85 +668,6 @@ namespace RelationalRAMExpectation {
 		}
 	}
 
-	void independentGroup::refreshUnitA(FitContext *fc, int px)
-	{
-		independentGroup &par = getParent();
-		struct placement &pl = par.placements[px];
-		addr &a1 = par.st.layout[ par.gMap[px] ];
-		omxExpectation *expectation = a1.getModel(fc);
-		omxData *data = expectation->data;
-		omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
-
-		EigenMatrixAdaptor eA(ram->A);
-		for (int cx=0; cx < eA.cols(); ++cx) {
-			for (int rx=0; rx < eA.rows(); ++rx) {
-				double val = eA(rx, cx);
-				if (val != 0) {
-					if (rx == cx) {
-						mxThrow("%s: nonzero diagonal entry in A matrix at %d",
-							 st.homeEx->name, 1+pl.modelStart+cx);
-					}
-					asymT.fullA.coeffRef(pl.modelStart + cx, pl.modelStart + rx) =
-						asymT.getSign() * val;
-				}
-			}
-		}
-
-		const double scale = a1.rampartScale;
-		if (scale == 0.0) return;
-
-		for (size_t jx=0; jx < ram->between.size(); ++jx) {
-			omxMatrix *betA = ram->between[jx];
-			int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
-			if (key == NA_INTEGER) continue;
-			omxData *data1 = betA->getJoinModel()->data;
-			int frow = data1->lookupRowOfKey(key);
-			RowToPlacementMapType::iterator plIndex =
-				par.rowToPlacementMap.find(std::make_pair(data1, frow));
-			placement &p2 = par.placements[ plIndex->second ];
-			omxRecompute(betA, fc);
-			omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel();
-			for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-				for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-					double val = omxMatrixElement(betA, rx, cx);
-					if (val == 0.0) continue;
-					asymT.fullA.coeffRef(p2.modelStart + cx, pl.modelStart + rx) =
-						asymT.getSign() * val * scale;
-				}
-			}
-		}
-	}
-
-	void independentGroup::refreshModel(FitContext *fc) // for cov
-	{
-		independentGroup &par = getParent();
-		for (int ax=0; ax < clumpSize; ++ax) {
-			placement &pl = par.placements[ax];
-			addr &a1 = par.st.layout[ par.gMap[ax] ];
-			omxExpectation *expectation = a1.getModel(fc);
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
-			expectation->loadDefVars(a1.row);
-			omxRecompute(ram->A, fc);
-			omxRecompute(ram->S, fc);
-
-			refreshUnitA(fc, ax);
-
-			EigenMatrixAdaptor eS(ram->S);
-			for (int cx=0; cx < eS.cols(); ++cx) {
-				for (int rx=cx; rx < eS.rows(); ++rx) {
-					if (eS(rx,cx) != 0) {
-						fullS.coeffRef(pl.modelStart + rx, pl.modelStart + cx) = eS(rx, cx);
-					}
-				}
-			}
-		}
-
-		Eigen::MatrixXd denS = fullS;
-		//mxPrintMat("old S", denS);
-		Eigen::MatrixXd denA = asymT.fullA;
-		//mxPrintMat("old A", denA);
-	}
-
 	void independentGroup::ApcIO::recompute(FitContext *fc)
 	{
 		for (int ax=0; ax < clumpSize; ++ax) {
@@ -869,8 +790,6 @@ namespace RelationalRAMExpectation {
 			expectation->loadDefVars(a1.row);
 			omxRecompute(ram->S, fc);
 			double *dat = ram->S->data;
-			// mxLog("load[%d] %s at %d (%d coef)", ax, expectation->name, pl.modelStart,
-			// 			int(ram->Scoeff.size()));
 			for (auto &v : *ram->Scoeff) {
 				mat(pl.modelStart + v.r, pl.modelStart + v.c) = dat[v.off];
 			}
@@ -964,63 +883,6 @@ namespace RelationalRAMExpectation {
 
 		maxSize += ram->F->cols;
 		return layout.size()-1;
-	}
-
-	void independentGroup::determineShallowDepth(FitContext *fc)
-	{
-		if (!Global->RAMInverseOpt) return;
-
-		for (int ax=0; ax < clumpSize; ++ax) {
-			placement &pl = placements[ax];
-			addr &a1 = st.layout[ gMap[ax] ];
-			omxExpectation *expectation = a1.getModel(fc);
-			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
-			omxData *data = expectation->data;
-
-			expectation->loadDefVars(a1.row);
-			omxRecompute(ram->A, fc);
-
-			if (a1.rampartScale != 0.0) {
-				for (size_t jx=0; jx < ram->between.size(); ++jx) {
-					omxMatrix *betA = ram->between[jx];
-					int key = omxKeyDataElement(data, a1.row, betA->getJoinKey());
-					if (key == NA_INTEGER) continue;
-					omxData *data1 = betA->getJoinModel()->data;
-					int frow = data1->lookupRowOfKey(key);
-					RowToPlacementMapType::iterator plIndex =
-						rowToPlacementMap.find(std::make_pair(data1, frow));
-					if (plIndex == rowToPlacementMap.end()) mxThrow("Cannot find row %d in %s",
-											 frow, data1->name);
-					placement &p2 = placements[ plIndex->second ];
-					omxRecompute(betA, fc);
-					betA->markPopulatedEntries();
-					omxRAMExpectation *ram2 = (omxRAMExpectation*) betA->getJoinModel();
-					for (int rx=0; rx < ram->A->rows; ++rx) {  //lower
-						for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
-							double val = omxMatrixElement(betA, rx, cx);
-							if (val == 0.0) continue;
-							asymT.fullA.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = 1;
-						}
-					}
-				}
-			}
-
-			ram->A->markPopulatedEntries();
-			EigenMatrixAdaptor eA(ram->A);
-			for (int cx=0; cx < eA.cols(); ++cx) {
-				for (int rx=0; rx < eA.rows(); ++rx) {
-					if (rx != cx && eA(rx,cx) != 0) {
-						asymT.fullA.coeffRef(pl.modelStart + cx, pl.modelStart + rx) = 1;
-					}
-				}
-			}
-		}
-
-		asymT.determineShallowDepth();
-
-		if (st.verbose() >= 1) {
-			mxLog("%s: RAM shallow inverse depth = %d", st.homeEx->name, asymT.getDepth());
-		}
 	}
 
 	const std::vector<bool> &addr::getDefVarInfluenceMean() const
@@ -1552,14 +1414,14 @@ namespace RelationalRAMExpectation {
 
 	independentGroup::independentGroup(class state *_st, int size, int _clumpSize)
 		: st(*_st), clumpSize(_clumpSize),
-			analyzedCov(false), asymT(latentFilter)
+			analyzedCov(false)
 	{
 		placements.reserve(size);
 	}
 
 	independentGroup::independentGroup(independentGroup *ig)
 		: st(ig->st), clumpSize(ig->clumpSize),
-		  analyzedCov(false), asymT(ig->latentFilter)
+		  analyzedCov(false)
 	{
 		arrayIndex = ig->arrayIndex;
 		obsNameVec = 0;
@@ -1569,8 +1431,6 @@ namespace RelationalRAMExpectation {
 		fullMean.setZero();
 		clumpVars = ig->clumpVars;
 		clumpObs = ig->clumpObs;
-		asymT.resize(clumpVars, clumpObs);
-		asymT.setDepth(ig->asymT.getDepth());
 		aio = 0;
 		sio = 0;
 		pcalc.clone(ig->pcalc);
@@ -1673,8 +1533,6 @@ namespace RelationalRAMExpectation {
 		sio = new SpcIO(*this);
 		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, aio, sio);
 		pcalc.setAlgo(fc, false);
-		//asymT.resize(clumpVars, clumpObs);
-		//determineShallowDepth(fc);
 	}
 
 	template <typename T>
@@ -2065,32 +1923,7 @@ namespace RelationalRAMExpectation {
 	{
 		if (0 == getParent().dataVec.size()) return;
 
-		//fullS.resize(clumpVars, clumpVars);
-		//refreshModel(fc);
-
-		// Eigen::MatrixXd goodS1 = fullS;
-		// Eigen::MatrixXd goodS = goodS1.selfadjointView<Eigen::Lower>();
-		// Eigen::MatrixXd goodA = asymT.fullA.transpose();
-		// Eigen::MatrixXd badS = pcalc.fullS.selfadjointView<Eigen::Lower>();
-		// mxLog("S %f", (badS.array() - goodS.array()).abs().maxCoeff());
-		// mxLog("A %f", (pcalc.fullA.array() - goodA.array()).abs().maxCoeff());
-		//		mxPrintMat("good", goodS);
-		//		mxPrintMat("bad", badS);
-
-		if (0) {
-			asymT.invert();
-		asymT.filter();
-		Eigen::MatrixXd oldIAF = asymT.IAF.transpose();
-		mxPrintMat("IAF", oldIAF);
-		Eigen::MatrixXd oldCov =
-			(asymT.IAF.transpose() * fullS.selfadjointView<Eigen::Lower>() * asymT.IAF);
-		}
-
-		//pcalc.ignoreVersion = true;
-		//pcalc.verbose = 1;
 		pcalc.cov(fc, fullCov);
-		//mxPrintMat("oldCov", oldCov);
-		//mxPrintMat("newCov", fullCov);
 	}
 
 	void independentGroup::simulate()
@@ -2307,11 +2140,6 @@ namespace RelationalRAMExpectation {
 		else return val + 1;
 	}
 
-	Eigen::SparseMatrix<double> independentGroup::getInputMatrix() const
-	{
-		return asymT.getSign() * asymT.fullA.transpose();
-	}
-
 	void independentGroup::exportInternalState(MxRList &out, MxRList &dbg)
 	{
 		dbg.add("clumpSize", Rf_ScalarInteger(clumpSize));
@@ -2338,12 +2166,12 @@ namespace RelationalRAMExpectation {
 				dbg.add("rawFullMean", fmean);
 				Rf_setAttrib(fmean, R_NamesSymbol, varNameVec);
 			}
-			Eigen::SparseMatrix<double> A = getInputMatrix();
-			dbg.add("A", Rcpp::wrap(A));
+			//Eigen::SparseMatrix<double> A = getInputMatrix();
+			//dbg.add("A", Rcpp::wrap(A));
 			if (0) {
 				// regularize internal representation
-				Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
-				dbg.add("filteredA", Rcpp::wrap(fAcopy));
+				//Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
+				//dbg.add("filteredA", Rcpp::wrap(fAcopy));
 			}
 			Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
 			dbg.add("S", Rcpp::wrap(fullSymS));
