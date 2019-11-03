@@ -1,8 +1,8 @@
-#include <functional>
-#include <sstream>
-
 #ifndef __polynomial_h_
 #define __polynomial_h_
+
+#include <functional>
+#include <sstream>
 
 // Don't need classes like Ring/Field because C++ has operator overloading
 

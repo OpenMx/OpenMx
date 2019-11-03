@@ -21,6 +21,26 @@
 //#include <Eigen/LU>
 #include "EnableWarnings.h"
 
+void omxRAMExpectation::MpcIO::recompute(FitContext *fc)
+{
+	omxMatrix *M = !fc? M0 : fc->state->lookupDuplicate(M0);
+	omxRecompute(M, fc);
+}
+
+unsigned omxRAMExpectation::MpcIO::getVersion(FitContext *fc)
+{
+	omxMatrix *M = !fc? M0 : fc->state->lookupDuplicate(M0);
+	return omxGetMatrixVersion(M);
+}
+
+void omxRAMExpectation::MpcIO::refresh(FitContext *fc,
+																			 Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+{
+	omxMatrix *M = !fc? M0 : fc->state->lookupDuplicate(M0);
+	EigenVectorAdaptor Emean(M);
+	mat.derived() = Emean;
+}
+
 void omxRAMExpectation::ApcIO::recompute(FitContext *fc)
 {
 	omxMatrix *A = !fc? A0 : fc->state->lookupDuplicate(A0);
@@ -109,6 +129,7 @@ omxRAMExpectation::~omxRAMExpectation()
 	
 	omxRAMExpectation* argStruct = this;
 
+	if (mio) delete mio;
 	if (aio) delete aio;
 	if (sio) delete sio;
 
@@ -184,7 +205,6 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 {
 	if (F->rows == 0) return;
 
-	if (M) omxRecompute(M, fc);
 	if (slope) omxRecompute(slope, fc);
 	    
 	if(cov == NULL && means == NULL) {
@@ -196,10 +216,9 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(cov, "....RAM: Model-implied Covariance Matrix:");}
 	
-	if(M != NULL && means != NULL) {
-		EigenVectorAdaptor eM(M);
+	if (M) {
 		EigenVectorAdaptor Emean(means);
-		pcalc.mean(fc, eM, Emean);
+		pcalc.mean(fc, Emean);
 		if (slope) {
 			EigenMatrixAdaptor Eslope(slope);
 			Emean += Eslope * exoPredMean;
@@ -229,6 +248,7 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lo
 omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
 	: super(st, num), slope(0)
 {
+	mio = 0;
 	aio = 0;
 	sio = 0;
 
@@ -372,6 +392,11 @@ void omxRAMExpectation::init() {
 		currentState->setFakeParam(estSave);
 		loadFakeDefVars();
 
+		mio = 0;
+		if (M) {
+			mio = new MpcIO;
+			mio->M0 = M;
+		}
 		recordNonzeroCoeff(A, *Acoeff, false);
 		aio = new ApcIO(*Acoeff);
 		aio->A0 = A;
@@ -379,7 +404,7 @@ void omxRAMExpectation::init() {
 		sio = new SpcIO(*Scoeff);
 		sio->S0 = S;
 
-		pcalc.attach(k, l, latentFilter, isProductNode, aio, sio);
+		pcalc.attach(k, l, latentFilter, isProductNode, mio, aio, sio);
 		pcalc.setAlgo(0, false);
 
 		currentState->restoreParam(estSave);
@@ -1531,7 +1556,7 @@ namespace RelationalRAMExpectation {
 
 		aio = new ApcIO(*this);
 		sio = new SpcIO(*this);
-		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, aio, sio);
+		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, 0, aio, sio);
 		pcalc.setAlgo(fc, false);
 	}
 

@@ -265,6 +265,15 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<int> exoDataColumns; // index into omxData
 	Eigen::VectorXd exoPredMean;
 
+	struct MpcIO : PathCalcIO {
+		omxMatrix *M0;
+		MpcIO() {}
+		virtual void recompute(FitContext *fc);
+		virtual unsigned getVersion(FitContext *fc);
+		virtual void refresh(FitContext *fc,
+												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+	};
+
 	struct ApcIO : PathCalcIO {
 		omxMatrix *A0;
 		std::vector<coeffLoc> &vec;
@@ -285,6 +294,7 @@ class omxRAMExpectation : public omxExpectation {
 												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
 	};
 
+	MpcIO *mio;
 	ApcIO *aio;
 	SpcIO *sio;
 

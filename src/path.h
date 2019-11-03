@@ -21,8 +21,10 @@ struct PathCalcIO {
 class PathCalc {
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
+	Eigen::VectorXd fullM;
 	Eigen::MatrixXd fullA;
 	Eigen::MatrixXd fullS;
+	unsigned versionM;
 	unsigned versionS;
 	unsigned versionIA;
 	Eigen::MatrixXd IA;  // intermediate result given boker2019=false
@@ -32,16 +34,21 @@ class PathCalc {
 	bool boker2019;
 	int numVars;
 	int numObs;
-	PathCalcIO *aio, *sio;
+	PathCalcIO *mio, *aio, *sio;
 	bool algoSet;
 	
 	void determineShallowDepth(FitContext *fc);
 	void evaluate(FitContext *fc);
 	void filter();
 	void prepS(FitContext *fc);
+	void prepM(FitContext *fc);
 
 	void init()
 	{
+		if (mio) {
+			fullM.resize(numVars);
+			//fullM.setZero(); all coeff are copied
+		}
 		fullA.resize(numVars, numVars);
 		fullA.setZero();
 		fullS.resize(numVars, numVars);
@@ -57,8 +64,8 @@ class PathCalc {
 	const bool ignoreVersion;
 
  PathCalc() :
-	 versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER),
-	 algoSet(false), verbose(0), ignoreVersion(false) {}
+	 versionM(0), versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER),
+	 mio(0), algoSet(false), verbose(0), ignoreVersion(false) {}
 
 	void clone(PathCalc &pc)
 	{
@@ -67,6 +74,7 @@ class PathCalc {
 		numObs = pc.numObs;
 		latentFilter = pc.latentFilter;
 		isProductNode = pc.isProductNode;
+		mio = pc.mio;
 		aio = pc.aio;
 		sio = pc.sio;
 		numIters = pc.numIters;
@@ -77,6 +85,7 @@ class PathCalc {
 	void attach(int _numVars, int _numObs,
 							std::vector<bool> &_latentFilter,
 							std::vector<bool> &_isProductNode,
+							PathCalcIO *_mio,
 							PathCalcIO *_aio,
 							PathCalcIO *_sio)
 	{
@@ -84,6 +93,7 @@ class PathCalc {
 		numObs = _numObs;
 		latentFilter = &_latentFilter;
 		isProductNode = &_isProductNode;
+		mio = _mio;
 		aio = _aio;
 		sio = _sio;
 		init();
@@ -91,6 +101,7 @@ class PathCalc {
 
 	void setAlgo(FitContext *fc, bool _boker2019);
 
+	// called by omxRAMExpectation::populateAttr
 	template <typename T>
 	void fullCov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
@@ -103,18 +114,7 @@ class PathCalc {
 		}
 	}
 
-	template <typename T1, typename T2>
-	void fullMean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn,
-								Eigen::MatrixBase<T2> &meanOut)
-	{
-		evaluate(fc);
-		if (!boker2019) {
-			meanOut.derived() = IA * meanIn;
-		} else {
-			mxThrow("Not yet");
-		}
-	}
-
+	// called by state::computeMean
 	template <typename T1>
 	Eigen::VectorXd fullMean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn)
 	{
@@ -126,6 +126,9 @@ class PathCalc {
 		}
 	}
 
+	// called by:
+	// independentGroup::computeCov
+	// omxRAMExpectation::CalculateRAMCovarianceAndMeans
 	template <typename T>
 	void cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
@@ -139,14 +142,15 @@ class PathCalc {
 		}
 	}
 
-	template <typename T1, typename T2>
-	void mean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn,
-						Eigen::MatrixBase<T2> &meanOut)
+	// called by omxRAMExpectation::CalculateRAMCovarianceAndMeans
+	template <typename T1>
+	void mean(FitContext *fc, Eigen::MatrixBase<T1> &meanOut)
 	{
 		evaluate(fc);
 		filter();
+		prepM(fc);
 		if (!boker2019) {
-			meanOut.derived() = IAF * meanIn;
+			meanOut.derived() = IAF * fullM;
 		} else {
 			mxThrow("Not yet");
 		}

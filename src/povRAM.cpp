@@ -3,6 +3,17 @@
 #include "path.h"
 #include "EnableWarnings.h"
 
+void PathCalc::prepM(FitContext *fc)
+{
+	if (!mio) mxThrow("PathCalc::prepM but no PathCalcIO for mean");
+	mio->recompute(fc);
+	if (ignoreVersion || versionM != mio->getVersion(fc)) {
+		mio->refresh(fc, fullM, 0);
+		versionM = mio->getVersion(fc);
+	}
+	if (verbose) mxPrintMat("M", fullM);
+}
+
 void PathCalc::prepS(FitContext *fc)
 {
 	sio->recompute(fc);
