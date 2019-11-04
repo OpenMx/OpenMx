@@ -39,9 +39,6 @@ setClass(Class = "MxExpectationRAM",
 	),
 	contains = "BaseExpectationNormal")
 
-setClass(Class = "MxExpectationPOVRAM",   # temporary hack TODO
-         contains = "MxExpectationRAM")
-
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
 		 between, verbose, data = as.integer(NA), name = 'expectation') {
@@ -238,9 +235,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
-    if (length(.Object@isProductNode)) {
-      class(.Object) <- 'MxExpectationPOVRAM'  # remove TODO
-    }
 		return(.Object)
 })
 

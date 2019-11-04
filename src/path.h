@@ -18,6 +18,23 @@ struct PathCalcIO {
 	virtual ~PathCalcIO() {};
 };
 
+template <typename T>
+double polynomialToMoment(Polynomial< double > &polyRep, T& symEv)
+{
+	double erg = 0;
+	for (auto &monom : polyRep.monomials) {
+		double zwerg = monom.coeff;
+		for (size_t ii=0; ii < monom.exponent.size(); ++ii) {
+			if (monom.exponent[ii] % 2 == 1) { zwerg = 0; break; }
+			for (int jj=0; jj <= (monom.exponent[ii]/2)-1; ++jj) zwerg *= 2*jj+1;
+			zwerg *= pow(symEv[ii], monom.exponent[ii]/2.0);
+		}
+		erg += zwerg;
+	}
+	//std::cout << std::string(polyRep) << "\n=" << erg << "\n";
+	return erg;
+}
+
 class PathCalc {
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
@@ -34,16 +51,23 @@ class PathCalc {
 	bool boker2019;
 	int numVars;
 	int numObs;
+	Eigen::ArrayXi obsMap;
 	PathCalcIO *mio, *aio, *sio;
 	bool algoSet;
+	Eigen::SelfAdjointEigenSolverNosort< Eigen::MatrixXd > symSolver;
+	std::vector< Polynomial< double > > polyRep;
+	unsigned versionPoly;
+	Eigen::VectorXd meanOut;
 	
 	void determineShallowDepth(FitContext *fc);
 	void evaluate(FitContext *fc);
 	void filter();
-	void prepS(FitContext *fc);
 	void prepM(FitContext *fc);
+	void prepS(FitContext *fc);
+	void prepA(FitContext *fc);
+	void buildPolynomial(FitContext *fc);
 
-	void init()
+	void init() // move to setAlgo TODO
 	{
 		if (mio) {
 			fullM.resize(numVars);
@@ -53,10 +77,18 @@ class PathCalc {
 		fullA.setZero();
 		fullS.resize(numVars, numVars);
 		fullS.setZero();
+		polyRep.resize(numVars);
+
+		obsMap.resize(numVars);
+		obsMap.setConstant(-1);
+		auto &lf = *latentFilter;
+		for (int vx=0, ox=0; vx < numVars; ++vx) {
+			if (!lf[vx]) continue;
+			obsMap[vx] = ox++;
+		}
 	}
 
-	void appendPolyRep(int nn, std::vector<int> &status,
-										 std::vector< Polynomial< double > > &polyRep);
+	void appendPolyRep(int nn, std::vector<int> &status);
 
  public:
 
@@ -65,7 +97,7 @@ class PathCalc {
 
  PathCalc() :
 	 versionM(0), versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER),
-	 mio(0), algoSet(false), verbose(0), ignoreVersion(false) {}
+	 mio(0), algoSet(false), versionPoly(0), verbose(0), ignoreVersion(false) {}
 
 	void clone(PathCalc &pc)
 	{
@@ -105,12 +137,21 @@ class PathCalc {
 	template <typename T>
 	void fullCov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
-		evaluate(fc);
 		if (!boker2019) {
+			evaluate(fc);
 			prepS(fc);
 			cov.derived() = IA * fullS.selfadjointView<Eigen::Lower>() * IA.transpose();
 		} else {
-			mxThrow("Not yet");
+			buildPolynomial(fc);
+			auto &symEv = symSolver.eigenvalues();
+			auto &symVec = symSolver.eigenvectors();
+			for (int ii=0; ii<numVars; ii++) {
+				for (int jj=ii; jj<numVars; jj++) {
+					auto polyProd = polyRep[ii] * polyRep[jj];
+					cov(ii,jj) = polynomialToMoment(polyProd, symEv) - meanOut[ii]*meanOut[jj];
+					if (ii != jj) cov(jj,ii) = cov(ii,jj);
+				}
+			}
 		}
 	}
 
@@ -118,11 +159,12 @@ class PathCalc {
 	template <typename T1>
 	Eigen::VectorXd fullMean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn)
 	{
-		evaluate(fc);
 		if (!boker2019) {
+			evaluate(fc);
 			return IA * meanIn; // avoids temporary copy? TODO
 		} else {
-			mxThrow("Not yet");
+			buildPolynomial(fc);
+			return meanOut;
 		}
 	}
 
@@ -132,27 +174,44 @@ class PathCalc {
 	template <typename T>
 	void cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
-		evaluate(fc);
-		filter();
 		if (!boker2019) {
+			evaluate(fc);
+			filter();
 			prepS(fc);
 			cov.derived() = IAF * fullS.selfadjointView<Eigen::Lower>() * IAF.transpose();
 		} else {
-			mxThrow("Not yet");
+			buildPolynomial(fc);
+			auto &symEv = symSolver.eigenvalues();
+			auto &symVec = symSolver.eigenvectors();
+			for (int ii=0; ii<numVars; ii++) {
+				for (int jj=ii; jj<numVars; jj++) {
+					int oii = obsMap[ii];
+					int ojj = obsMap[jj];
+					if (oii < 0 || ojj < 0) continue;
+					auto polyProd = polyRep[ii] * polyRep[jj];
+					cov(oii,ojj) = polynomialToMoment(polyProd, symEv) - meanOut[ii]*meanOut[jj];
+					if (oii != ojj) cov(ojj,oii) = cov(oii,ojj);
+				}
+			}
 		}
 	}
 
 	// called by omxRAMExpectation::CalculateRAMCovarianceAndMeans
 	template <typename T1>
-	void mean(FitContext *fc, Eigen::MatrixBase<T1> &meanOut)
+	void mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut)
 	{
-		evaluate(fc);
-		filter();
-		prepM(fc);
 		if (!boker2019) {
-			meanOut.derived() = IAF * fullM;
+			evaluate(fc);
+			filter();
+			prepM(fc);
+			copyOut.derived() = IAF * fullM;
 		} else {
-			mxThrow("Not yet");
+			buildPolynomial(fc);
+			for (int vx=0; vx < numVars; ++vx) {
+				int ox = obsMap[vx];
+				if (ox < 0) continue;
+				copyOut[ox] = meanOut[vx];
+			}
 		}
 	}
 };

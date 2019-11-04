@@ -157,10 +157,6 @@ namespace RelationalRAMExpectation {
 		Eigen::VectorXd                  rawFullMean;
 		Eigen::VectorXd                  expectedVec;
 		Eigen::MatrixXd                  fullCov;   // rename, latents are filtered out
-		bool                             analyzedCov;
-		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
-		//SimpCholesky< Eigen::MatrixXd >  covDecomp;
-		Eigen::SparseMatrix<double>      fullS;
 		std::vector<bool>                latentFilter; // false when latent or missing
     std::vector<bool>                isProductNode;
 

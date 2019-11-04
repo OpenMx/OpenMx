@@ -135,7 +135,6 @@ omxExpectation *omxInitExpectationBA81(omxState *, int num);
 omxExpectation *omxInitGREMLExpectation(omxState *, int num);
 omxExpectation *InitHiddenMarkovExpectation(omxState *, int num);
 omxExpectation *InitMixtureExpectation(omxState *, int num);
-omxExpectation *povRAMExpectationInit(omxState *, int num);
 
 void complainAboutMissingMeans(omxExpectation *off);
 

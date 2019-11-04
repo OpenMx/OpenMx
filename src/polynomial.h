@@ -115,6 +115,7 @@ template <typename F> class Polynomial {
 	}
 	//Polynomial<F> zero() { return Polynomial<F>(F::zero()); }
 	//Polynomial<F> one() { return Polynomial<F>(F::one()); }
+	void clear() { monomials.clear(); }
 	bool isZero() const { return monomials.size() == 0; }
 	void addMonomial(Monomial<F> m)
 	{

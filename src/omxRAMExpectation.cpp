@@ -361,6 +361,7 @@ void omxRAMExpectation::init() {
 			 RAMexp->S->name(), RAMexp->A->name());
 	}
 
+	bool hasProductNodes = false;
 	isProductNode.assign(A->cols, false);
 	if (R_has_slot(rObj, Rf_install("isProductNode"))) {
 		ProtectedSEXP RprodNode(R_do_slot(rObj, Rf_install("isProductNode")));
@@ -369,7 +370,10 @@ void omxRAMExpectation::init() {
 				mxThrow("isProductNode must be same dimension as A matrix");
 			}
 			for (int px = 0; px < A->cols; ++px) {
-				if (INTEGER(RprodNode)[px]) isProductNode[px] = true;
+				if (INTEGER(RprodNode)[px]) {
+					isProductNode[px] = true;
+					hasProductNodes = true;
+				}
 			}
 		}
 	}
@@ -405,7 +409,7 @@ void omxRAMExpectation::init() {
 		sio->S0 = S;
 
 		pcalc.attach(k, l, latentFilter, isProductNode, mio, aio, sio);
-		pcalc.setAlgo(0, false);
+		pcalc.setAlgo(0, hasProductNodes);
 
 		currentState->restoreParam(estSave);
 	}
@@ -1438,15 +1442,13 @@ namespace RelationalRAMExpectation {
 	}
 
 	independentGroup::independentGroup(class state *_st, int size, int _clumpSize)
-		: st(*_st), clumpSize(_clumpSize),
-			analyzedCov(false)
+		: st(*_st), clumpSize(_clumpSize)
 	{
 		placements.reserve(size);
 	}
 
 	independentGroup::independentGroup(independentGroup *ig)
-		: st(ig->st), clumpSize(ig->clumpSize),
-		  analyzedCov(false)
+		: st(ig->st), clumpSize(ig->clumpSize)
 	{
 		arrayIndex = ig->arrayIndex;
 		obsNameVec = 0;
@@ -2198,8 +2200,8 @@ namespace RelationalRAMExpectation {
 				//Eigen::SparseMatrix<double> fAcopy = asymT.IAF.transpose();
 				//dbg.add("filteredA", Rcpp::wrap(fAcopy));
 			}
-			Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
-			dbg.add("S", Rcpp::wrap(fullSymS));
+			//Eigen::SparseMatrix<double> fullSymS = fullS.selfadjointView<Eigen::Lower>();
+			//dbg.add("S", Rcpp::wrap(fullSymS));
 			dbg.add("latentFilter", Rcpp::wrap(latentFilter));
 			SEXP dv = Rcpp::wrap(dataVec);
 			Rf_protect(dv);
