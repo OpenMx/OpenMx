@@ -2860,7 +2860,8 @@ void omxData::estimateObservedStats()
 		}
 	}
 	if (InvertSymmetricPosDef(Efw, 'L')) {
-		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: attempt to invert acov failed", name);
+		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: the acov matrix is rank deficient as "
+																								"determined by LU factorization", name);
 		else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
 	}
 
