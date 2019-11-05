@@ -1,5 +1,6 @@
 library(OpenMx)
 library(testthat)
+context("LatentAR-190605")
 
 if (0) {
   # This might be wrong TODO
