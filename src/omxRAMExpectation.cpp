@@ -33,12 +33,11 @@ unsigned omxRAMExpectation::MpcIO::getVersion(FitContext *fc)
 	return omxGetMatrixVersion(M);
 }
 
-void omxRAMExpectation::MpcIO::refresh(FitContext *fc,
-																			 Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+void omxRAMExpectation::MpcIO::refresh(FitContext *fc)
 {
 	omxMatrix *M = !fc? M0 : fc->state->lookupDuplicate(M0);
 	EigenVectorAdaptor Emean(M);
-	mat.derived() = Emean;
+	full = Emean;
 }
 
 void omxRAMExpectation::ApcIO::recompute(FitContext *fc)
@@ -53,14 +52,15 @@ unsigned omxRAMExpectation::ApcIO::getVersion(FitContext *fc)
 	return omxGetMatrixVersion(A);
 }
 
-void omxRAMExpectation::ApcIO::refresh(FitContext *fc,
-																			 Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+template <typename T>
+void omxRAMExpectation::ApcIO::
+_refresh(FitContext *fc, T &mat, double sign)
 {
 	omxMatrix *A = !fc? A0 : fc->state->lookupDuplicate(A0);
 	if (sign == 1) {
-		for (auto &v : vec) mat(v.r, v.c) = A->data[v.off];
+		for (auto &v : vec) mat.coeffRef(v.c, v.r) = A->data[v.off];
 	} else {
-		for (auto &v : vec) mat(v.r, v.c) = -A->data[v.off];
+		for (auto &v : vec) mat.coeffRef(v.c, v.r) = -A->data[v.off];
 	}
 }
 
@@ -76,12 +76,11 @@ unsigned omxRAMExpectation::SpcIO::getVersion(FitContext *fc)
 	return omxGetMatrixVersion(S);
 }
 
-void omxRAMExpectation::SpcIO::refresh(FitContext *fc,
-																			 Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+void omxRAMExpectation::SpcIO::refresh(FitContext *fc)
 {
 	omxMatrix *S = !fc? S0 : fc->state->lookupDuplicate(S0);
 	omxRecompute(S, fc);
-	for (auto &v : vec) mat(v.r, v.c) = S->data[v.off];
+	for (auto &v : vec) full(v.r, v.c) = S->data[v.off];
 }
 
 void omxRAMExpectation::flatten(FitContext *fc)
@@ -128,10 +127,6 @@ omxRAMExpectation::~omxRAMExpectation()
 	if(OMX_DEBUG) { mxLog("Destroying RAM Expectation."); }
 	
 	omxRAMExpectation* argStruct = this;
-
-	if (mio) delete mio;
-	if (aio) delete aio;
-	if (sio) delete sio;
 
 	if (argStruct->rram) delete argStruct->rram;
 
@@ -248,10 +243,6 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lo
 omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
 	: super(st, num), slope(0)
 {
-	mio = 0;
-	aio = 0;
-	sio = 0;
-
 	if (st->isClone()) {
 		omxRAMExpectation *ram = (omxRAMExpectation *)st->getParent(this);
 		Scoeff = &ram->ScoeffStorage;
@@ -396,16 +387,16 @@ void omxRAMExpectation::init() {
 		currentState->setFakeParam(estSave);
 		loadFakeDefVars();
 
-		mio = 0;
+		MpcIO *mio = 0;
 		if (M) {
 			mio = new MpcIO;
 			mio->M0 = M;
 		}
 		recordNonzeroCoeff(A, *Acoeff, false);
-		aio = new ApcIO(*Acoeff);
+		ApcIO *aio = new ApcIO(*Acoeff);
 		aio->A0 = A;
 		recordNonzeroCoeff(S, *Scoeff, true);
-		sio = new SpcIO(*Scoeff);
+		SpcIO *sio = new SpcIO(*Scoeff);
 		sio->S0 = S;
 
 		pcalc.attach(k, l, latentFilter, isProductNode, mio, aio, sio);
@@ -741,8 +732,8 @@ namespace RelationalRAMExpectation {
 		return v;
 	}
 
-	void independentGroup::ApcIO::refresh(FitContext *fc,
-																				Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+	template <typename T>
+	void independentGroup::ApcIO::_refresh(FitContext *fc, T &mat, double sign)
 	{
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
@@ -754,10 +745,10 @@ namespace RelationalRAMExpectation {
 
 			if (sign == 1) {
 				double *dat = ram->A->data;
-				for (auto &v : *ram->Acoeff) mat(pl.modelStart + v.r, pl.modelStart + v.c) = dat[v.off];
+				for (auto &v : *ram->Acoeff) mat.coeffRef(pl.modelStart + v.c, pl.modelStart + v.r) = dat[v.off];
 			} else {
 				double *dat = ram->A->data;
-				for (auto &v : *ram->Acoeff) mat(pl.modelStart + v.r, pl.modelStart + v.c) = -dat[v.off];
+				for (auto &v : *ram->Acoeff) mat.coeffRef(pl.modelStart + v.c, pl.modelStart + v.r) = -dat[v.off];
 			}
 
 			const double scale = a1.rampartScale;
@@ -780,7 +771,7 @@ namespace RelationalRAMExpectation {
 					for (int cx=0; cx < ram2->A->rows; ++cx) {  //upper
 						double val = eBetA(rx,cx);
 						if (val == 0.0) continue;
-						mat(pl.modelStart + rx, p2.modelStart + cx) = sign * val * scale;
+						mat.coeffRef(p2.modelStart + cx, pl.modelStart + rx) = sign * val * scale;
 					}
 				}
 			}
@@ -809,7 +800,7 @@ namespace RelationalRAMExpectation {
 		return v;
 	}
 
-	void independentGroup::SpcIO::refresh(FitContext *fc, Eigen::Ref<Eigen::MatrixXd> mat, double sign)
+	void independentGroup::SpcIO::refresh(FitContext *fc)
 	{
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
@@ -820,7 +811,7 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->S, fc);
 			double *dat = ram->S->data;
 			for (auto &v : *ram->Scoeff) {
-				mat(pl.modelStart + v.r, pl.modelStart + v.c) = dat[v.off];
+				full(pl.modelStart + v.r, pl.modelStart + v.c) = dat[v.off];
 			}
 		}
 	}
@@ -1458,8 +1449,6 @@ namespace RelationalRAMExpectation {
 		fullMean.setZero();
 		clumpVars = ig->clumpVars;
 		clumpObs = ig->clumpObs;
-		aio = 0;
-		sio = 0;
 		pcalc.clone(ig->pcalc);
 	}
 
@@ -1556,9 +1545,8 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		aio = new ApcIO(*this);
-		sio = new SpcIO(*this);
-		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, 0, aio, sio);
+		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, 0,
+								 new ApcIO(*this), new SpcIO(*this));
 		pcalc.setAlgo(fc, false);
 	}
 

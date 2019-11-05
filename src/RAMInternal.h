@@ -124,8 +124,14 @@ namespace RelationalRAMExpectation {
 			ApcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
-			virtual void refresh(FitContext *fc,
-													 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+			template <typename T>
+			void _refresh(FitContext *fc, T &mat, double sign);
+			virtual void refreshA(FitContext *fc, double sign)
+			{ _refresh(fc, full, sign); }
+			virtual void refreshSparse1(FitContext *fc, double sign)
+			{ _refresh(fc, sparse, sign); }
+			virtual PathCalcIO *clone()
+			{ return new ApcIO(par); }
 		};
 
 		struct SpcIO : PathCalcIO {
@@ -134,8 +140,9 @@ namespace RelationalRAMExpectation {
 			SpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
-			virtual void refresh(FitContext *fc,
-													 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+			virtual void refresh(FitContext *fc);
+			virtual PathCalcIO *clone()
+			{ return new SpcIO(par); }
 		};
 
 	public:
@@ -160,17 +167,11 @@ namespace RelationalRAMExpectation {
 		std::vector<bool>                latentFilter; // false when latent or missing
     std::vector<bool>                isProductNode;
 
-		ApcIO *aio;
-		SpcIO *sio;
 		PathCalc pcalc;
 		double                           fit;  // most recent fit for debugging
 
 		independentGroup(class state *_st, int size, int _clumpSize);
 		independentGroup(independentGroup *ig);
-		~independentGroup() {
-			if (aio) delete aio;
-			if (sio) delete sio;
-		}
 		int numLooseClumps() {
 			independentGroup &par = getParent();
 			int loose = par.placements.size() / clumpSize;
@@ -266,8 +267,13 @@ class omxRAMExpectation : public omxExpectation {
 		MpcIO() {}
 		virtual void recompute(FitContext *fc);
 		virtual unsigned getVersion(FitContext *fc);
-		virtual void refresh(FitContext *fc,
-												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		virtual void refresh(FitContext *fc);
+		virtual PathCalcIO *clone()
+		{
+			auto *mio = new MpcIO;
+			mio->M0 = M0;
+			return mio;
+		}
 	};
 
 	struct ApcIO : PathCalcIO {
@@ -276,8 +282,18 @@ class omxRAMExpectation : public omxExpectation {
 		ApcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
 		virtual void recompute(FitContext *fc);
 		virtual unsigned getVersion(FitContext *fc);
-		virtual void refresh(FitContext *fc,
-												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		template <typename T>
+		void _refresh(FitContext *fc, T &mat, double sign);
+		virtual void refreshA(FitContext *fc,double sign)
+		{ _refresh(fc, full, sign); }
+		virtual void refreshSparse1(FitContext *fc, double sign)
+		{ _refresh(fc, sparse, sign); }
+		virtual PathCalcIO *clone()
+		{
+			auto *aio = new ApcIO(vec);
+			aio->A0 = A0;
+			return aio;
+		}
 	};
 
 	struct SpcIO : PathCalcIO {
@@ -286,13 +302,14 @@ class omxRAMExpectation : public omxExpectation {
 		SpcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
 		virtual void recompute(FitContext *fc);
 		virtual unsigned getVersion(FitContext *fc);
-		virtual void refresh(FitContext *fc,
-												 Eigen::Ref<Eigen::MatrixXd> mat, double sign);
+		virtual void refresh(FitContext *fc);
+		virtual PathCalcIO *clone()
+		{
+			auto *sio = new SpcIO(vec);
+			sio->S0 = S0;
+			return sio;
+		}
 	};
-
-	MpcIO *mio;
-	ApcIO *aio;
-	SpcIO *sio;
 
  public:
 	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array

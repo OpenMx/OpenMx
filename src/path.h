@@ -2,20 +2,37 @@
 #define __path_h_
 
 #include <Eigen/Eigenvalues>
+#include <Eigen/Sparse>
 #include "polynomial.h"
 #include "SelfAdjointEigenSolverNosort.h"
 
 // TODO:
-// integrate with p-o-v
-// build I-A transposed (or row major order?)
-// use sparse matrix for A matrix
+// integrate POV into Rampart
+// optimize polynomials
+//   try cholesky
+
+// Nice if we could use RowMajor for A matrix, but sparseLU requires ColMajor
+// so we do all math transposed instead.
 
 struct PathCalcIO {
+	Eigen::SparseMatrix<double> sparse;
+	Eigen::MatrixXd full;
 	virtual void recompute(FitContext *fc)=0;
 	virtual unsigned getVersion(FitContext *fc)=0;
-	virtual void refresh(FitContext *fc, Eigen::Ref<Eigen::MatrixXd> mat,
-											 double sign)=0;
+	virtual void refresh(FitContext *fc) {}
+	virtual void refreshA(FitContext *fc, double sign) {}
+	virtual void refreshSparse1(FitContext *fc, double sign) {}
+	virtual PathCalcIO *clone()=0;
 	virtual ~PathCalcIO() {};
+	void refreshSparse(FitContext *fc, double sign)
+	{
+		refreshSparse1(fc, sign);
+		sparse.makeCompressed();
+	}
+	void copyLowerToUpper()
+	{
+		full = full.selfadjointView<Eigen::Lower>(); // TODO optimal?
+	}
 };
 
 template <typename T>
@@ -38,21 +55,22 @@ double polynomialToMoment(Polynomial< double > &polyRep, T& symEv)
 class PathCalc {
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
-	Eigen::VectorXd fullM;
-	Eigen::MatrixXd fullA;
-	Eigen::MatrixXd fullS;
+	const bool useSparse;
 	unsigned versionM;
 	unsigned versionS;
 	unsigned versionIA;
-	Eigen::MatrixXd IA;  // intermediate result given boker2019=false
-	unsigned versionIAF;
-	Eigen::MatrixXd IAF;  // intermediate result given boker2019=false
+	Eigen::MatrixXd IA;
+	Eigen::SparseMatrix<double> sparseIA;
+	bool sparseLUanal;
+	Eigen::SparseLU< Eigen::SparseMatrix<double>,
+		Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > sparseLU;
+	Eigen::SparseMatrix<double> sparseIdent;
 	int numIters;
 	bool boker2019;
 	int numVars;
 	int numObs;
 	Eigen::ArrayXi obsMap;
-	PathCalcIO *mio, *aio, *sio;
+	std::unique_ptr<PathCalcIO> mio, aio, sio;
 	bool algoSet;
 	Eigen::SelfAdjointEigenSolverNosort< Eigen::MatrixXd > symSolver;
 	std::vector< Polynomial< double > > polyRep;
@@ -60,35 +78,30 @@ class PathCalc {
 	Eigen::VectorXd meanOut;
 	
 	void determineShallowDepth(FitContext *fc);
-	void evaluate(FitContext *fc);
-	void filter();
+	void evaluate(FitContext *fc, bool filter);
 	void prepM(FitContext *fc);
 	void prepS(FitContext *fc);
 	void prepA(FitContext *fc);
 	void buildPolynomial(FitContext *fc);
 
-	void init() // move to setAlgo TODO
-	{
-		if (mio) {
-			fullM.resize(numVars);
-			//fullM.setZero(); all coeff are copied
-		}
-		fullA.resize(numVars, numVars);
-		fullA.setZero();
-		fullS.resize(numVars, numVars);
-		fullS.setZero();
-		polyRep.resize(numVars);
-
-		obsMap.resize(numVars);
-		obsMap.setConstant(-1);
-		auto &lf = *latentFilter;
-		for (int vx=0, ox=0; vx < numVars; ++vx) {
-			if (!lf[vx]) continue;
-			obsMap[vx] = ox++;
-		}
-	}
+	void init1();
+	void init2();
 
 	void appendPolyRep(int nn, std::vector<int> &status);
+
+	void refreshA(FitContext *fc, double sign)
+	{
+		if (!useSparse) {
+			aio->refreshA(fc, sign);
+			if (verbose >= 2) mxPrintMat("fullA", aio->full);
+		} else {
+			aio->refreshSparse(fc, sign);
+			if (verbose >= 2) {
+				aio->full = aio->sparse;
+				mxPrintMat("fullA", aio->full);
+			}
+		}
+	}
 
  public:
 
@@ -96,8 +109,10 @@ class PathCalc {
 	const bool ignoreVersion;
 
  PathCalc() :
-	 versionM(0), versionS(0), versionIA(0), versionIAF(0), numIters(NA_INTEGER),
-	 mio(0), algoSet(false), versionPoly(0), verbose(0), ignoreVersion(false) {}
+	 useSparse(true),
+	 versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
+	 numIters(NA_INTEGER),
+	 algoSet(false), versionPoly(0), verbose(0), ignoreVersion(false) {}
 
 	void clone(PathCalc &pc)
 	{
@@ -106,12 +121,13 @@ class PathCalc {
 		numObs = pc.numObs;
 		latentFilter = pc.latentFilter;
 		isProductNode = pc.isProductNode;
-		mio = pc.mio;
-		aio = pc.aio;
-		sio = pc.sio;
+		if (pc.mio) mio = std::unique_ptr<PathCalcIO>(pc.mio->clone());
+		aio = std::unique_ptr<PathCalcIO>(pc.aio->clone());
+		sio = std::unique_ptr<PathCalcIO>(pc.sio->clone());
 		numIters = pc.numIters;
 		boker2019 = pc.boker2019;
-		init();
+		init1();
+		init2();
 	}
 
 	void attach(int _numVars, int _numObs,
@@ -125,10 +141,9 @@ class PathCalc {
 		numObs = _numObs;
 		latentFilter = &_latentFilter;
 		isProductNode = &_isProductNode;
-		mio = _mio;
-		aio = _aio;
-		sio = _sio;
-		init();
+		if (_mio) mio = std::unique_ptr<PathCalcIO>(_mio);
+		aio = std::unique_ptr<PathCalcIO>(_aio);
+		sio = std::unique_ptr<PathCalcIO>(_sio);
 	}
 
 	void setAlgo(FitContext *fc, bool _boker2019);
@@ -138,9 +153,14 @@ class PathCalc {
 	void fullCov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
 		if (!boker2019) {
-			evaluate(fc);
+			evaluate(fc, false);
 			prepS(fc);
-			cov.derived() = IA * fullS.selfadjointView<Eigen::Lower>() * IA.transpose();
+			if (!useSparse) {
+				cov.derived() = IA.transpose() * sio->full.selfadjointView<Eigen::Lower>() * IA;
+			} else {
+				sio->copyLowerToUpper();
+				cov.derived() = sparseIA.transpose() * sio->full * sparseIA;
+			}
 		} else {
 			buildPolynomial(fc);
 			auto &symEv = symSolver.eigenvalues();
@@ -160,8 +180,12 @@ class PathCalc {
 	Eigen::VectorXd fullMean(FitContext *fc, Eigen::MatrixBase<T1> &meanIn)
 	{
 		if (!boker2019) {
-			evaluate(fc);
-			return IA * meanIn; // avoids temporary copy? TODO
+			evaluate(fc, false);
+			if (!useSparse) {
+				return IA.transpose() * meanIn; // avoids temporary copy? TODO
+			} else {
+				return sparseIA.transpose() * meanIn; // avoids temporary copy? TODO
+			}
 		} else {
 			buildPolynomial(fc);
 			return meanOut;
@@ -175,10 +199,14 @@ class PathCalc {
 	void cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 	{
 		if (!boker2019) {
-			evaluate(fc);
-			filter();
+			evaluate(fc, true);
 			prepS(fc);
-			cov.derived() = IAF * fullS.selfadjointView<Eigen::Lower>() * IAF.transpose();
+			if (!useSparse) {
+				cov.derived() = IA.transpose() * sio->full.selfadjointView<Eigen::Lower>() * IA;
+			} else {
+				sio->copyLowerToUpper();
+				cov.derived() = sparseIA.transpose() * sio->full * sparseIA;
+			}
 		} else {
 			buildPolynomial(fc);
 			auto &symEv = symSolver.eigenvalues();
@@ -201,10 +229,13 @@ class PathCalc {
 	void mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut)
 	{
 		if (!boker2019) {
-			evaluate(fc);
-			filter();
+			evaluate(fc, true);
 			prepM(fc);
-			copyOut.derived() = IAF * fullM;
+			if (!useSparse) {
+				copyOut.derived() = IA.transpose() * mio->full;
+			} else {
+				copyOut.derived() = sparseIA.transpose() * mio->full;
+			}
 		} else {
 			buildPolynomial(fc);
 			for (int vx=0; vx < numVars; ++vx) {
