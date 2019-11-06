@@ -140,7 +140,12 @@ namespace RelationalRAMExpectation {
 			SpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
-			virtual void refresh(FitContext *fc);
+			template <typename T>
+			void _refresh(FitContext *fc, T &mat);
+			virtual void refresh(FitContext *fc)
+			{ _refresh(fc, full); }
+			virtual void refreshSparse1(FitContext *fc, double sign)
+			{ _refresh(fc, sparse); }
 			virtual PathCalcIO *clone()
 			{ return new SpcIO(par); }
 		};
@@ -302,7 +307,12 @@ class omxRAMExpectation : public omxExpectation {
 		SpcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
 		virtual void recompute(FitContext *fc);
 		virtual unsigned getVersion(FitContext *fc);
-		virtual void refresh(FitContext *fc);
+		template <typename T>
+		void _refresh(FitContext *fc, T &mat);
+		virtual void refresh(FitContext *fc)
+		{ _refresh(fc, full); }
+		virtual void refreshSparse1(FitContext *fc, double sign)
+		{ _refresh(fc, sparse); }
 		virtual PathCalcIO *clone()
 		{
 			auto *sio = new SpcIO(vec);

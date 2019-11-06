@@ -18,7 +18,11 @@ void PathCalc::prepS(FitContext *fc)
 {
 	sio->recompute(fc);
 	if (ignoreVersion || versionS != sio->getVersion(fc)) {
-		sio->refresh(fc);
+		if (!useSparse) {
+			sio->refresh(fc);
+		} else {
+			sio->refreshSparse(fc, 0.0);
+		}
 		versionS = sio->getVersion(fc);
 	}
 	if (verbose >= 2) mxPrintMat("S", sio->full);
@@ -43,16 +47,19 @@ void PathCalc::init1()
 	if (!useSparse) {
 		aio->full.resize(numVars, numVars);
 		aio->full.setZero();
+		sio->full.resize(numVars, numVars);
+		sio->full.setZero();
 	} else {
 		aio->sparse.resize(numVars, numVars);
 		aio->sparse.reserve(2*numVars);
 		aio->sparse.uncompress();
+		sio->sparse.resize(numVars, numVars);
+		sio->sparse.reserve(2*numVars);
+		sio->sparse.uncompress();
 		sparseIdent.resize(numVars, numVars);
 		sparseIdent.setIdentity();
 		sparseIdent.makeCompressed();
 	}
-	sio->full.resize(numVars, numVars);
-	sio->full.setZero();
 	polyRep.resize(numVars);
 
 	obsMap.resize(numVars);

@@ -76,11 +76,12 @@ unsigned omxRAMExpectation::SpcIO::getVersion(FitContext *fc)
 	return omxGetMatrixVersion(S);
 }
 
-void omxRAMExpectation::SpcIO::refresh(FitContext *fc)
+template <typename T>
+void omxRAMExpectation::SpcIO::_refresh(FitContext *fc, T &mat)
 {
 	omxMatrix *S = !fc? S0 : fc->state->lookupDuplicate(S0);
 	omxRecompute(S, fc);
-	for (auto &v : vec) full(v.r, v.c) = S->data[v.off];
+	for (auto &v : vec) mat.coeffRef(v.r, v.c) = S->data[v.off];
 }
 
 void omxRAMExpectation::flatten(FitContext *fc)
@@ -800,7 +801,8 @@ namespace RelationalRAMExpectation {
 		return v;
 	}
 
-	void independentGroup::SpcIO::refresh(FitContext *fc)
+	template <typename T>
+	void independentGroup::SpcIO::_refresh(FitContext *fc, T &mat)
 	{
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
@@ -811,7 +813,7 @@ namespace RelationalRAMExpectation {
 			omxRecompute(ram->S, fc);
 			double *dat = ram->S->data;
 			for (auto &v : *ram->Scoeff) {
-				full(pl.modelStart + v.r, pl.modelStart + v.c) = dat[v.off];
+				mat.coeffRef(pl.modelStart + v.r, pl.modelStart + v.c) = dat[v.off];
 			}
 		}
 	}

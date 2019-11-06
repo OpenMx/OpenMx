@@ -158,8 +158,8 @@ class PathCalc {
 			if (!useSparse) {
 				cov.derived() = IA.transpose() * sio->full.selfadjointView<Eigen::Lower>() * IA;
 			} else {
-				sio->copyLowerToUpper();
-				cov.derived() = sparseIA.transpose() * sio->full * sparseIA;
+				//sio->copyLowerToUpper();
+				cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
 			}
 		} else {
 			buildPolynomial(fc);
@@ -204,8 +204,8 @@ class PathCalc {
 			if (!useSparse) {
 				cov.derived() = IA.transpose() * sio->full.selfadjointView<Eigen::Lower>() * IA;
 			} else {
-				sio->copyLowerToUpper();
-				cov.derived() = sparseIA.transpose() * sio->full * sparseIA;
+				//sio->copyLowerToUpper();
+				cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
 			}
 		} else {
 			buildPolynomial(fc);
