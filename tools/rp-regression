@@ -22,17 +22,17 @@ tests="
  inst/models/passing/MultilevelUniRandomSlopeInt.R
  tests/testthat/test-gendata-multilevel.R
  inst/models/nightly/univACErSEM.R
- inst/models/nightly/multilevelLatentRegression2.R
  inst/models/nightly/mplus-ex9.1.R
  inst/models/nightly/mplus-ex9.6.R
  inst/models/nightly/mplus-ex9.11.R
  inst/models/nightly/mplus-ex9.12.R
- inst/models/nightly/mplus-ex9.23.R
  inst/models/nightly/xxm-cfars.R
- inst/models/nightly/xxm-faces.R
  inst/models/nightly/xxm-hcfa.R
  inst/models/nightly/xxm-lgc.R
  inst/models/nightly/xxm-mlcfa.R
+ inst/models/nightly/xxm-faces.R
+ inst/models/nightly/mplus-ex9.23.R
+ inst/models/nightly/multilevelLatentRegression2.R
 "
 
 for t in $tests; do
