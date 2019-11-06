@@ -1,4 +1,4 @@
-#include <ostream>
+#include <sstream>
 #include "omxExpectation.h"
 #include "path.h"
 #include "EnableWarnings.h"
@@ -342,9 +342,11 @@ void PathCalc::buildPolynomial(FitContext *fc)
 
 	// mxPrintMat("vec", symVec);
 	if (verbose >= 2) {
+		std::ostringstream temp;
 		for (int ii=0; ii < numVars; ++ii) {
-			std::cout << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
+			temp << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
 		}
+		mxLogBig(temp.str());
 	}
 
 	// Could be smarter and avoid latents except when needed TODO
