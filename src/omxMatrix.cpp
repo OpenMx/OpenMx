@@ -737,12 +737,12 @@ void omxRecompute(omxMatrix *matrix, FitContext *fc)
 	int want = matrix->currentState->getWantStage();
 	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
-	if(!omxNeedsUpdate(matrix)) /* do nothing */;
-	else if(matrix->algebra) omxAlgebraRecompute(matrix, want, fc);
-	else if(matrix->fitFunction != NULL) {
+	if(!omxNeedsUpdate(matrix)) return;
+
+	if(matrix->algebra) omxAlgebraRecompute(matrix, want, fc);
+	else if(matrix->fitFunction) {
 		omxFitFunctionCompute(matrix->fitFunction, want, fc);
 	}
-
 	if (want & FF_COMPUTE_FIT) {
 		omxMarkClean(matrix);
 	}
