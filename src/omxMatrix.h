@@ -401,7 +401,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 
 static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix* result) {       // only A is symmetric, and B is a vector
-	if(OMX_DEBUG_MATRIX) {
+	if(OMX_DEBUG) {
 		int nVecEl = vec->rows * vec->cols;
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
 	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::

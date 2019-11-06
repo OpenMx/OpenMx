@@ -292,7 +292,7 @@ int omxMatrix::lookupColumnByName(const char *target)
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 {
 	// Always Recompute() before you Resize().
-	if(OMX_DEBUG_MATRIX) { 
+	if(OMX_DEBUG) { 
 		mxLog("Resizing matrix from (%d, %d) to (%d, %d)",
 			om->rows, om->cols, nrows, ncols);
 	}
