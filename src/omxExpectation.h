@@ -54,7 +54,7 @@ class omxExpectation {					// An Expectation
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
 	omxState* currentState;
-	int expNum;
+	int expNum;  // index in omxState's vector
 
 	// omxExpectation should not need to know about free variables.
 	FreeVarGroup *freeVarGroup; // TODO remove
@@ -63,10 +63,10 @@ class omxExpectation {					// An Expectation
 	bool canDuplicate;
 	bool dynamicDataSource;
 
-	omxExpectation(omxState *state) :
+	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), numDataColumns(0), rObj(0), expType(0),
 		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(state),
-		expNum(0), freeVarGroup(0), name(0), canDuplicate(false), dynamicDataSource(false) {};
+		expNum(num), freeVarGroup(0), name(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
 	virtual void compute(FitContext *fc, const char *what, const char *how) = 0;
@@ -89,6 +89,7 @@ class omxExpectation {					// An Expectation
 	virtual bool usesDataColumnNames() const { return true; }
 	void loadFromR();
 	bool loadDefVars(int row);
+	void loadFakeDefVars();
 
 	void saveDataColumnsInfo(SEXP vec) {
 		numDataColumns = Rf_length(vec);
@@ -103,9 +104,6 @@ class omxExpectation {					// An Expectation
 
 	void loadThresholds();
 };
-
-omxExpectation *
-omxNewInternalExpectation(const char *expType, omxState* os);
 
 	void omxCompleteExpectation(omxExpectation *ox);
 
@@ -129,15 +127,14 @@ omxMatrix* omxGetExpectationComponent(omxExpectation *ox, const char* component)
 	
 void omxSetExpectationComponent(omxExpectation *ox, const char* component, omxMatrix *om);
 
-omxExpectation *omxInitNormalExpectation(omxState *);
-omxExpectation *omxInitLISRELExpectation(omxState *);
-omxExpectation *omxInitStateSpaceExpectation(omxState *);
-omxExpectation *omxInitRAMExpectation(omxState *);
-omxExpectation *omxInitExpectationBA81(omxState *);
-omxExpectation *omxInitGREMLExpectation(omxState *);
-omxExpectation *InitHiddenMarkovExpectation(omxState *);
-omxExpectation *InitMixtureExpectation(omxState *);
-omxExpectation *povRAMExpectationInit(omxState *);
+omxExpectation *omxInitNormalExpectation(omxState *, int num);
+omxExpectation *omxInitLISRELExpectation(omxState *, int num);
+omxExpectation *omxInitStateSpaceExpectation(omxState *, int num);
+omxExpectation *omxInitRAMExpectation(omxState *, int num);
+omxExpectation *omxInitExpectationBA81(omxState *, int num);
+omxExpectation *omxInitGREMLExpectation(omxState *, int num);
+omxExpectation *InitHiddenMarkovExpectation(omxState *, int num);
+omxExpectation *InitMixtureExpectation(omxState *, int num);
 
 void complainAboutMissingMeans(omxExpectation *off);
 

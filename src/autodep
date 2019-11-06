@@ -36,7 +36,7 @@ FellnerFitFunction.o: Makevars FellnerFitFunction.cpp glue.h omxState.h \
  omxMatrix.h \
  minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
  omxData.h omxFitFunction.h RAMInternal.h \
- Connectedness.h Compute.h
+ path.h Connectedness.h Compute.h
 MarkovExpectation.o: Makevars MarkovExpectation.cpp omxExpectation.h omxDefines.h \
  omxMatrix.h \
  minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
@@ -171,7 +171,7 @@ omxMLFitFunction.o: Makevars omxMLFitFunction.cpp omxDefines.h \
  multi_normal_sufficient.hpp omxExpectation.h omxMatrix.h minicsv.h \
  omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h omxFitFunction.h \
  omxData.h RAMInternal.h \
- Connectedness.h matrix.h \
+ path.h Connectedness.h matrix.h \
  Compute.h glue.h EnableWarnings.h
 omxMatrix.o: Makevars omxMatrix.cpp omxMatrix.h  \
   omxDefines.h \
@@ -202,7 +202,7 @@ omxRAMExpectation.o: Makevars omxRAMExpectation.cpp omxExpectation.h omxDefines.
  omxMatrix.h \
  minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
  omxFitFunction.h omxData.h RAMInternal.h \
- Connectedness.h Compute.h glue.h EnableWarnings.h
+ path.h Connectedness.h Compute.h glue.h EnableWarnings.h
 omxRFitFunction.o: Makevars omxRFitFunction.cpp glue.h omxState.h omxDefines.h \
  omxMatrix.h \
  minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxExpectation.h \
@@ -234,7 +234,7 @@ omxWLSFitFunction.o: Makevars omxWLSFitFunction.cpp omxData.h omxDefines.h \
 povRAM.o: Makevars povRAM.cpp omxExpectation.h omxDefines.h \
  omxMatrix.h \
  minicsv.h omxAlgebra.h omxSymbolTable.h algebraOp.h omxState.h \
- omxFitFunction.h omxData.h polynomial.h \
+ omxFitFunction.h omxData.h polynomial.h path.h \
  SelfAdjointEigenSolverNosort.h EnableWarnings.h
 ssMLFit.o: Makevars ssMLFit.cpp omxFitFunction.h omxDefines.h \
  omxMatrix.h \

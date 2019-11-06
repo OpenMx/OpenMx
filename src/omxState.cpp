@@ -251,6 +251,19 @@ omxGlobal::omxGlobal()
 	freeGroup.push_back(fvg);
 }
 
+void omxState::restoreParam(const Eigen::Ref<const Eigen::VectorXd> point)
+{
+	if (!hasFakeParam) mxThrow("Cannot restore; fake parameters not loaded");
+	hasFakeParam = false;
+
+	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+	size_t numParam = varGroup->vars.size();
+	for(size_t k = 0; k < numParam; k++) {
+		omxFreeVar* freeVar = varGroup->vars[k];
+		freeVar->copyToState(this, point[k]);
+	}
+}
+
 omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 {
 	return matnum<0? matrixList[~matnum] : algebraList[matnum];
@@ -260,6 +273,18 @@ omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 {
 	if (!element->hasMatrixNumber) mxThrow("lookupDuplicate without matrix number");
 	return getMatrixFromIndex(element->matrixNumber);
+}
+
+omxExpectation *omxState::getParent(omxExpectation *element) const
+{
+	auto *st = this;
+	if (parent) st = parent;
+	return st->expectationList[element->expNum];
+}
+
+omxExpectation *omxState::lookupDuplicate(omxExpectation *element) const
+{
+	return expectationList[element->expNum];
 }
 
 void omxState::setWantStage(int stage)
@@ -377,7 +402,7 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src) : wantStage(0), clone(true)
+omxState::omxState(omxState *src) : wantStage(0), parent(src), hasFakeParam(false)
 {
 	init();
 

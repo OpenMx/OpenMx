@@ -1,14 +1,15 @@
-#include <functional>
-#include <sstream>
-
 #ifndef __polynomial_h_
 #define __polynomial_h_
+
+#include <functional>
+#include <sstream>
 
 // Don't need classes like Ring/Field because C++ has operator overloading
 
 // F should be a Field
 template <typename F> class Monomial {
  public:
+	// Instead of storing coeff as a double, store as expression tree? TODO
 	F coeff;
 	std::vector<int> exponent;
 
@@ -114,6 +115,7 @@ template <typename F> class Polynomial {
 	}
 	//Polynomial<F> zero() { return Polynomial<F>(F::zero()); }
 	//Polynomial<F> one() { return Polynomial<F>(F::one()); }
+	void clear() { monomials.clear(); }
 	bool isZero() const { return monomials.size() == 0; }
 	void addMonomial(Monomial<F> m)
 	{

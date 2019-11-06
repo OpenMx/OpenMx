@@ -61,7 +61,7 @@ struct omxStateSpaceExpectation : omxExpectation {
 	Eigen::MatrixXd PSI;
 	Eigen::MatrixXd eigenPreX;
 	
-	omxStateSpaceExpectation(omxState *st) : super(st) {}
+	omxStateSpaceExpectation(omxState *st, int num) : super(st, num) {}
 	virtual ~omxStateSpaceExpectation();
 	virtual void init();
 	virtual omxMatrix *getComponent(const char*);
@@ -839,8 +839,8 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 }
 
 
-omxExpectation *omxInitStateSpaceExpectation(omxState *st)
-{ return new omxStateSpaceExpectation(st); }
+omxExpectation *omxInitStateSpaceExpectation(omxState *st, int num)
+{ return new omxStateSpaceExpectation(st, num); }
 
 void omxStateSpaceExpectation::init()
 {

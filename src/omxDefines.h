@@ -86,12 +86,6 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #define OMX_DEBUG_ROWS(row) 0
 #endif /* DEBUGMX_ROWS */
 
-#ifdef DEBUGMX_MATRIX
-#define OMX_DEBUG_MATRIX 1
-#else
-#define OMX_DEBUG_MATRIX 0
-#endif /* DEBUGMX_MATRIX */
-
 #ifdef DEBUGMX_ALGEBRA
 #define OMX_DEBUG_ALGEBRA 1
 #else

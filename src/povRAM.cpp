@@ -1,162 +1,273 @@
 #include <ostream>
 #include "omxExpectation.h"
-#include "polynomial.h"
-#include <Eigen/Eigenvalues>
-#include "SelfAdjointEigenSolverNosort.h"
+#include "path.h"
 #include "EnableWarnings.h"
 
-class povRAMExpectation : public omxExpectation {
-	typedef omxExpectation super;
-	unsigned Zversion;
-	omxMatrix *_Z, *I, *Ax;
-	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
-	std::vector<const char *> dataColNames;
-	std::vector< omxThresholdColumn > thresholds;
-	std::vector<bool> isProductNode;
-
-	void appendPolyRep(int nn, std::vector<int> &status,
-										 std::vector< Polynomial< double > > &polyRep);
-
- public:
-	std::vector<bool> latentFilter; // false when latent
-
-	povRAMExpectation(omxState *st) : super(st), Zversion(0), _Z(0) {};
-	virtual ~povRAMExpectation();
-
-	omxMatrix *cov, *means; // observed covariance and means
-	omxMatrix *A, *S, *F, *M;
-
-	int verbose;
-	int numIters;
-
-	void studyF();
-
-	virtual void init();
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual omxMatrix *getComponent(const char*);
-	virtual const std::vector<const char *> &getDataColumnNames() const { return dataColNames; };
-	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
-		return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
-	}
-	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
-};
-
-omxExpectation *povRAMExpectationInit(omxState *st)
-{ return new povRAMExpectation(st); }
-
-povRAMExpectation::~povRAMExpectation()
+void PathCalc::prepM(FitContext *fc)
 {
-	omxFreeMatrix(I);
-	omxFreeMatrix(_Z);
-	omxFreeMatrix(Ax);
-	omxFreeMatrix(cov);
-	omxFreeMatrix(means);
+	if (!mio) mxThrow("PathCalc::prepM but no PathCalcIO for mean");
+	mio->recompute(fc);
+	if (ignoreVersion || versionM != mio->getVersion(fc)) {
+		mio->refresh(fc);
+		versionM = mio->getVersion(fc);
+	}
+	if (verbose >= 2) mxPrintMat("M", mio->full);
 }
 
-void povRAMExpectation::init()
+void PathCalc::prepS(FitContext *fc)
 {
-	canDuplicate = true;
-
-	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
-	verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
-
-	ProtectedSEXP Rdepth(R_do_slot(rObj, Rf_install("depth")));
-	numIters = Rf_asInteger(Rdepth);
-
-	M = omxNewMatrixFromSlot(rObj, currentState, "M"); // can be optional? TODO
-	A = omxNewMatrixFromSlot(rObj, currentState, "A");
-	S = omxNewMatrixFromSlot(rObj, currentState, "S");
-	F = omxNewMatrixFromSlot(rObj, currentState, "F");
-
-	int k = A->rows;
-	I = omxNewIdentityMatrix(k, currentState);
-	_Z = omxInitMatrix(k, k, TRUE, currentState);
-	Ax = omxInitMatrix(k, k, TRUE, currentState);
-
-	ProtectedSEXP RprodNode(R_do_slot(rObj, Rf_install("isProductNode")));
-	if (Rf_length(RprodNode) != A->cols) {
-		mxThrow("isProductNode must be same dimension as A matrix");
+	sio->recompute(fc);
+	if (ignoreVersion || versionS != sio->getVersion(fc)) {
+		if (!useSparse) {
+			sio->refresh(fc);
+		} else {
+			sio->refreshSparse(fc, 0.0);
+		}
+		versionS = sio->getVersion(fc);
 	}
-	isProductNode.assign(A->cols, false);
-	for (int px = 0; px < A->cols; ++px) {
-		if (INTEGER(RprodNode)[px]) isProductNode[px] = true;
-	}
-
-	int l = F->rows;
-	cov = 		omxInitMatrix(l, l, TRUE, currentState);
-	means = 	omxInitMatrix(1, l, TRUE, currentState);
-
-	studyF();
+	if (verbose >= 2) mxPrintMat("S", sio->full);
 }
 
-void povRAMExpectation::studyF()
+void PathCalc::prepA(FitContext *fc)
 {
-	// Permute the data columns such that the manifest
-	// part of F is a diagonal matrix. This permits
-	// trivial filtering of the latent variables.
-	auto dataColumns = super::getDataColumns();
-	auto origDataColumnNames = super::getDataColumnNames();
-	auto origThresholdInfo = super::getThresholdInfo();
-	EigenMatrixAdaptor eF(F);
-	latentFilter.assign(eF.cols(), false);
-	dataCols.resize(eF.rows());
-	dataColNames.resize(eF.rows(), 0);
-	if (!eF.rows()) return;  // no manifests
-	for (int cx =0, dx=0; cx < eF.cols(); ++cx) {
-		int dest;
-		double isManifest = eF.col(cx).maxCoeff(&dest);
-		latentFilter[cx] = isManifest;
-		if (isManifest) {
-			dataColNames[dx] = origDataColumnNames[dest];
-			int newDest = dataColumns.size()? dataColumns[dest] : dest;
-			dataCols[dx] = newDest;
-			if (origThresholdInfo.size()) {
-				omxThresholdColumn adj = origThresholdInfo[dest];
-				adj.dColumn = dx;
-				thresholds.push_back(adj);
+	aio->recompute(fc);
+	if (ignoreVersion || versionIA != aio->getVersion(fc)) {
+		refreshA(fc, 1.0);
+		versionIA = aio->getVersion(fc);
+	}
+}
+
+void PathCalc::init1()
+{
+	if (algoSet) mxThrow("PathCalc::init() but algoSet");
+	if (mio) {
+		mio->full.resize(numVars, 1);
+		//fullM.setZero(); all coeff are copied
+	}
+
+	if (!boker2019) {
+		useSparse = numVars >= 15;
+		if (!useSparse) {
+			aio->full.resize(numVars, numVars);
+			aio->full.setZero();
+			sio->full.resize(numVars, numVars);
+			sio->full.setZero();
+		} else {
+			aio->sparse.resize(numVars, numVars);
+			aio->sparse.reserve(2*numVars);
+			aio->sparse.uncompress();
+			sio->sparse.resize(numVars, numVars);
+			sio->sparse.reserve(2*numVars);
+			sio->sparse.uncompress();
+			sparseIdent.resize(numVars, numVars);
+			sparseIdent.setIdentity();
+			sparseIdent.makeCompressed();
+		}
+	}
+
+	obsMap.resize(numVars);
+	obsMap.setConstant(-1);
+	auto &lf = *latentFilter;
+	for (int vx=0, ox=0; vx < numVars; ++vx) {
+		if (!lf[vx]) continue;
+		obsMap[vx] = ox++;
+	}
+}
+
+void PathCalc::init2()
+{
+	if (!boker2019) {
+		if (numIters == NA_INTEGER) {
+			if (!useSparse) {
+				aio->full.diagonal().array() = 1;
+			} else {
+				for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
 			}
-			dx += 1;
+		}
+	} else { // boker2019
+		aio->full.resize(numVars, numVars);
+		aio->full.setZero();
+		sio->full.resize(numVars, numVars);
+		sio->full.setZero();
+		polyRep.resize(numVars);
+	}
+	algoSet = true;
+}
+
+void PathCalc::setAlgo(FitContext *fc, bool _boker2019)
+{
+	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
+																 [](bool x){ return x; })) {
+		mxThrow("Must use Boker2019 when product nodes are present");
+	}
+	boker2019 = _boker2019;
+
+	init1();
+
+	if (!boker2019) {
+		determineShallowDepth(fc);
+		if (verbose >= 1) mxLog("PathCalc: sparse=%d numVars=%d depth=%d",
+														useSparse, numVars, numIters);
+	} else { // boker2019 P-O-V
+		if (verbose >= 1) mxLog("PathCalc: Boker2019 P-O-V enabled, numVars=%d", numVars);
+		// no sparse support, for now
+	}
+
+	init2();
+}
+
+void PathCalc::determineShallowDepth(FitContext *fc)
+{
+	if (!Global->RAMInverseOpt) return;
+
+	int maxDepth = std::min(numVars, 30);
+	if (Global->RAMMaxDepth != NA_INTEGER) {
+		maxDepth = std::min(maxDepth, Global->RAMMaxDepth);
+	}
+	refreshA(fc, 1.0);
+	if (!useSparse) {
+		if ((aio->full.diagonal().array() != 0).any()) mxThrow("A matrix has non-zero diagonal");
+		Eigen::MatrixXd curProd = aio->full;
+		for (int tx=1; tx <= maxDepth; ++tx) {
+			if (false) {
+				mxLog("tx=%d", tx);
+				mxPrintMat("curProd", curProd);
+			}
+			curProd *= aio->full.transpose();
+			if ((curProd.array() == 0.0).all()) {
+				numIters = tx - 1;
+				break;
+			}
+		}
+	} else {
+		typeof(aio->sparse) curProd = aio->sparse;
+		int prev = -1;
+		for (int tx=1; tx <= maxDepth; ++tx) {
+			curProd = (curProd * aio->sparse.transpose()).pruned().eval();
+			if (tx == 1) prev = curProd.nonZeros();
+			else if (prev <= curProd.nonZeros()) break;  // no improvement
+			prev = curProd.nonZeros();
+			if (prev == 0) {
+				numIters = tx - 1;
+				break;
+			}
+		}
+  }
+}
+
+void PathCalc::evaluate(FitContext *fc, bool doFilter)
+{
+	if (boker2019) mxThrow("PathCalc::evaluate but boker2019=TRUE");
+
+	aio->recompute(fc);
+	const unsigned fver = 0xb01dface;
+	if (!ignoreVersion && versionIA == aio->getVersion(fc) + doFilter*fver) {
+		//mxLog("PathCalc<avft>::evaluate() in cache");
+		return;
+	}
+	versionIA = aio->getVersion(fc) + doFilter*fver;
+
+	if (numIters >= 0) {
+		refreshA(fc, 1.0);
+		// could further optimize using std::swap? (see old code)
+		if (!useSparse) {
+			IA = aio->full;
+			IA.diagonal().array() += 1;
+			for (int iter=1; iter <= numIters; ++iter) {
+				IA *= aio->full;
+				IA.diagonal().array() += 1;
+				//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
+			}
+			if (verbose >= 2) mxPrintMat("IA", IA);
+		} else {
+			sparseIA = aio->sparse + sparseIdent;
+			for (int iter=1; iter <= numIters; ++iter) {
+				sparseIA = (sparseIA * aio->sparse + sparseIdent).pruned().eval();
+			}
+			if (verbose >= 2) {
+				IA = sparseIA;
+				mxPrintMat("IA", IA);
+			}
+		}
+	} else {
+		refreshA(fc, -1.0);
+		if (!useSparse) {
+			Eigen::FullPivLU< Eigen::MatrixXd > lu(aio->full);
+			IA.resize(numVars, numVars);
+			IA.setIdentity();
+			IA = lu.solve(IA);
+			if (verbose >= 2) mxPrintMat("IA", IA);
+		} else {
+			aio->sparse.makeCompressed();
+			if (!sparseLUanal) {
+				sparseLUanal = true;
+				sparseLU.analyzePattern(aio->sparse);
+			}
+			sparseLU.factorize(aio->sparse);
+			if (sparseLU.info() != Eigen::Success) {
+				mxThrow("Failed to invert A matrix; %s",
+								sparseLU.lastErrorMessage().c_str());
+			}
+			sparseIA = sparseLU.solve(sparseIdent);
+			if (verbose >= 2) {
+				IA = sparseIA;
+				mxPrintMat("IA", IA);
+			}
+		}
+	}
+
+	if (doFilter) {
+		// We built A transposed so we can quickly filter columns
+		auto &lf = *latentFilter;
+		if (!useSparse) {
+			for (int rx=0, dx=0; rx < IA.rows(); ++rx) {
+				if (!lf[rx]) continue;
+				IA.col(dx) = IA.col(rx);
+				dx += 1;
+			}
+			IA.conservativeResize(numVars, numObs);
+			if (verbose >= 2) mxPrintMat("IAF", IA);
+		} else {
+			// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
+			sparseIA.uncompress();
+			Eigen::SparseMatrix<double>::Index *op = sparseIA.outerIndexPtr();
+			Eigen::SparseMatrix<double>::Index *nzp = sparseIA.innerNonZeroPtr();
+			int dx = 0;
+			for (int cx=0; cx < numVars; ++cx) {
+				if (!lf[cx]) continue;
+				op[dx] = op[cx];
+				nzp[dx] = nzp[cx];
+				++dx;
+			}
+			op[dx] = op[numVars];
+			sparseIA.conservativeResize(numVars, numObs);
+			if (verbose >= 2) {
+				IA = sparseIA;
+				mxPrintMat("IAF", IA);
+			}
 		}
 	}
 }
 
-omxMatrix* povRAMExpectation::getComponent(const char* component)
+void PathCalc::appendPolyRep(int nn, std::vector<int> &status)
 {
-	omxMatrix* retval = NULL;
-
-	if(strEQ("cov", component)) {
-		retval = cov;
-	} else if(strEQ("means", component)) {
-		retval = means;
-	} else if(strEQ("slope", component)) {
-		mxThrow("slope not supported");
-	} else if(strEQ("pvec", component)) {
-		// Once implemented, change compute function and return pvec
-	}
-	
-	return retval;
-}
-
-void povRAMExpectation::appendPolyRep(int nn, std::vector<int> &status,
-																			std::vector< Polynomial< double > > &polyRep)
-{
-	EigenMatrixAdaptor eA(A);
 	if (status[nn] == 2) return;
 	if (status[nn] == 1) mxThrow("Asymmetric matrix is cyclic");
 	status[nn] = 1;
 	
-	for (int ii=0; ii < A->rows; ++ii) {
-		if (ii == nn || status[ii] == 2 || eA(nn,ii) == 0) continue;
-		appendPolyRep(ii, status, polyRep);
+	auto &A = aio->full;
+	for (int ii=0; ii < A.rows(); ++ii) {
+		if (ii == nn || status[ii] == 2 || A(ii,nn) == 0) continue;
+		appendPolyRep(ii, status);
 	}
-	for (int ii=0; ii < A->rows; ++ii) {
-		if (ii == nn || eA(nn,ii) == 0) continue;
-		Polynomial< double > term(eA(nn,ii));
-		//mxLog("A %d %d %f", ii,nn,eA(nn,ii));
+	for (int ii=0; ii < A.rows(); ++ii) {
+		if (ii == nn || A(ii,nn) == 0) continue;
+		Polynomial< double > term(A(ii,nn));
+		//mxLog("A %d %d %f", ii,nn,A(ii,nn));
 		//std::cout << std::string(polyRep[ii]) << "\n";
 		term *= polyRep[ii];
 		//std::cout << std::string(polyRep[nn]) << "OP " << isProductNode[nn] << " " << std::string(term) << "\n";
-		if (isProductNode[nn]) {
+		if ((*isProductNode)[nn]) {
 			polyRep[nn] *= term;
 		} else {
 			polyRep[nn] += term;
@@ -167,98 +278,78 @@ void povRAMExpectation::appendPolyRep(int nn, std::vector<int> &status,
 	status[nn] = 2;
 }
 
-template <typename T>
-double polynomialToMoment(Polynomial< double > &polyRep, T& symEv)
+void PathCalc::buildPolynomial(FitContext *fc)
 {
-	double erg = 0;
-	for (auto &monom : polyRep.monomials) {
-		double zwerg = monom.coeff;
-		for (size_t ii=0; ii < monom.exponent.size(); ++ii) {
-			if (monom.exponent[ii] % 2 == 1) { zwerg = 0; break; }
-			for (int jj=0; jj <= (monom.exponent[ii]/2)-1; ++jj) zwerg *= 2*jj+1;
-			zwerg *= pow(symEv[ii], monom.exponent[ii]/2.0);
-		}
-		erg += zwerg;
+	prepS(fc);
+	prepA(fc);
+	unsigned curV = versionS + versionIA;
+	if (mio) {
+		prepM(fc);
+		curV += versionM;
 	}
-	//std::cout << std::string(polyRep) << "\n=" << erg << "\n";
-	return erg;
-}
+	if (!ignoreVersion && versionPoly == curV) return;
+	versionPoly = curV;
 
-void povRAMExpectation::compute(FitContext *fc, const char *what, const char *how)
-{
-	if (F->rows == 0) return;
-
-	omxRecompute(A, fc);
-	omxRecompute(S, fc);
-	omxRecompute(F, fc);
-	if (M) omxRecompute(M, fc);  // currently required TODO
-
-	// if (Zversion != omxGetMatrixVersion(A)) {
-	// 	omxShallowInverse(fc, numIters, A, _Z, Ax, I);  // Z = (I-A)^{-1}
-	// 	Zversion = omxGetMatrixVersion(A);
-	// }
-
-	//EigenMatrixAdaptor eZ(_Z);
-	EigenMatrixAdaptor eS(S);
-	EigenVectorAdaptor eM(M);
-	//mxPrintMat("S", eS);
-
-	std::vector< Polynomial< double > > polyRep(S->rows);
-	for (int ii=0; ii < S->rows; ++ii) {
-		if (isProductNode[ii] && eM(ii) == 0.0) {
-			// I think this should be set up by the frontend TODO
-			polyRep[ii].addMonomial(Monomial< double >(1.0));
-		}
-		else polyRep[ii].addMonomial(Monomial< double >(eM(ii)));
+	if (verbose >= 2) {
+		mxLog("PathCalc::buildPolynomial for %u (S%u A%u M%u)", curV,
+					versionS, versionIA, versionM);
 	}
 
-	Eigen::SelfAdjointEigenSolverNosort< Eigen::MatrixXd > sym(eS);
-	auto &symEv = sym.eigenvalues();
-	auto &symVec = sym.eigenvectors();
-	for (int jj=0; jj < S->rows; ++jj) {
+	for (auto &p1 : polyRep) p1.clear();
+
+	if (mio) {
+		for (int ii=0; ii < numVars; ++ii) {
+			polyRep[ii].addMonomial(Monomial< double >(mio->full(ii)));
+		}
+	}
+
+	/* old version with Cholesky, doesn't work with non-positive definite S, but probably easier to extend to derivatives. Also, 
+	 * polynomials are more sparse with the Cholesky variant. An alternative could be to use a sign switch in the Cholesky decomposition,
+	 * thereby working with normally distributed variables of variance either 1 or -1. 
+	 double[][] cholesky = null;
+	 try {
+	 cholesky = Statik.choleskyDecompose(symVal,0.001);
+	 } catch (Exception e) {
+	 throw new RuntimeException("Polynomial representation is impossible because symmetric matrix is not positive definite: "+e);
+	 }
+
+	 int[] x = new int[anzFac]; int k = 0; for (int i=0; i<anzFac; i++) if (cholesky[i][i]!=0.0) x[i] = k++;
+	 for (int i=0; i<anzFac; i++) for (int j=0; j<=i; j++) if (cholesky[i][j] != 0.0) polynomialRepresentation[i].addMonomial(cholesky[i][j], x[j]);
+	 polynomialRepresentationVariances = Statik.ensureSize(polynomialRepresentationVariances, k);
+	 for (int i=0; i<polynomialRepresentationVariances.length; i++) polynomialRepresentationVariances[i] = 1.0;
+	*/
+
+	// Add option to use Cholesky with fallback to SelfAdjointEigenSolver TODO
+	symSolver.compute(sio->full);
+	auto &symEv = symSolver.eigenvalues();
+	auto &symVec = symSolver.eigenvectors();
+	for (int jj=0; jj < numVars; ++jj) {
 		if (symEv(jj) == 0) continue;
-		for (int ii=0; ii < S->rows; ++ii) {
+		for (int ii=0; ii < numVars; ++ii) {
 			if (symVec(ii,jj) == 0) continue;
 			polyRep[ii].addMonomial(symVec(ii,jj), jj);
 		}
 	}
 
-	// for (int ii=0; ii < S->rows; ++ii) {
+	// for (int ii=0; ii < numVars; ++ii) {
 	// 	std::cout << ii << ":" << std::string(polyRep[ii]) << "\n";
 	// }
 
-	std::vector<int> status(S->rows, 0);
-	for (int ii=0; ii<S->rows; ii++) {
-		appendPolyRep(ii, status, polyRep);
+	std::vector<int> status(numVars, 0);
+	for (int ii=0; ii<numVars; ii++) {
+		appendPolyRep(ii, status);
 	}
 
 	// mxPrintMat("vec", symVec);
-	// for (int ii=0; ii < S->rows; ++ii) {
-	// 	std::cout << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
-	// }
-
-	EigenMatrixAdaptor sigmaBig(Ax);
-	Eigen::VectorXd fullMean(S->rows);
-	for (int ii=0; ii<S->rows; ++ii) {
-		fullMean[ii] = polynomialToMoment(polyRep[ii], symEv);
-	}
-	for (int ii=0; ii<S->rows; ii++) {
-		for (int jj=ii; jj<S->rows; jj++) {
-			auto polyProd = polyRep[ii] * polyRep[jj];
-			sigmaBig(ii,jj) = polynomialToMoment(polyProd, symEv) - fullMean[ii]*fullMean[jj];
+	if (verbose >= 2) {
+		for (int ii=0; ii < numVars; ++ii) {
+			std::cout << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
 		}
 	}
-	sigmaBig.derived() = sigmaBig.selfadjointView<Eigen::Upper>();
 
-  //mxPrintMat("full cov", sigmaBig);
-	//mxPrintMat("full mean", fullMean);
-
-	//mxThrow("stop");
-
-	EigenMatrixAdaptor eCov(cov);
-	EigenVectorAdaptor eMeans(means);
-	subsetCovariance(sigmaBig, [&](int x){ return latentFilter[x]; }, F->rows, eCov);
-	subsetVector(fullMean, [&](int x){ return latentFilter[x]; }, F->rows, eMeans);
-	//mxPrintMat("cov", eCov);
-	//mxPrintMat("mean", eMeans);
+	// Could be smarter and avoid latents except when needed TODO
+	meanOut.resize(numVars);
+	for (int ii=0; ii<numVars; ++ii) {
+		meanOut[ii] = polynomialToMoment(polyRep[ii], symEv);
+	}
 }

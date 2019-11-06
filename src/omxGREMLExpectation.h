@@ -25,7 +25,7 @@ struct omxGREMLExpectation : public omxExpectation {
   Eigen::MatrixXd XtVinv, quadXinv;
   std::vector< const char* > yXcolnames;
 
-	omxGREMLExpectation(omxState *st) : super(st) {}
+	omxGREMLExpectation(omxState *st, int num) : super(st, num) {}
   virtual ~omxGREMLExpectation();
   virtual void init();
   virtual void compute(FitContext *fc, const char *what, const char *how);
