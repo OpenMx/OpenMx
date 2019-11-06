@@ -73,6 +73,13 @@ void PathCalc::init1()
 
 void PathCalc::init2()
 {
+	if (!boker2019 && numIters == NA_INTEGER) {
+		if (!useSparse) {
+			aio->full.diagonal().array() = 1;
+		} else {
+			for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
+		}
+	}
 	algoSet = true;
 }
 
@@ -88,7 +95,8 @@ void PathCalc::setAlgo(FitContext *fc, bool _boker2019)
 
 	if (!boker2019) {
 		determineShallowDepth(fc);
-		if (verbose >= 1) mxLog("PathCalc: depth %d", numIters);
+		if (verbose >= 1) mxLog("PathCalc: sparse=%d numVars=%d depth=%d",
+														useSparse, numVars, numIters);
 	} else {
 		
 	}
@@ -121,11 +129,13 @@ void PathCalc::determineShallowDepth(FitContext *fc)
 		}
 	} else {
 		typeof(aio->sparse) curProd = aio->sparse;
-		int prev = curProd.nonZeros();
+		int prev = -1;
 		for (int tx=1; tx <= maxDepth; ++tx) {
-			curProd = (curProd * aio->sparse.transpose()).eval();
-			if (tx == 1 && prev <= curProd.nonZeros()) break;  // no improvement
-			if (curProd.nonZeros() == 0) {
+			curProd = (curProd * aio->sparse.transpose()).pruned().eval();
+			if (tx == 1) prev = curProd.nonZeros();
+			else if (prev <= curProd.nonZeros()) break;  // no improvement
+			prev = curProd.nonZeros();
+			if (prev == 0) {
 				numIters = tx - 1;
 				break;
 			}
@@ -158,11 +168,9 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 			}
 			if (verbose >= 2) mxPrintMat("IA", IA);
 		} else {
-			sparseIA = aio->sparse;
-			for (int vx=0; vx < numVars; ++vx) sparseIA.coeffRef(vx,vx) += 1;
+			sparseIA = aio->sparse + sparseIdent;
 			for (int iter=1; iter <= numIters; ++iter) {
-				sparseIA = (sparseIA * aio->sparse).eval();
-				for (int vx=0; vx < numVars; ++vx) sparseIA.coeffRef(vx,vx) += 1;
+				sparseIA = (sparseIA * aio->sparse + sparseIdent).pruned().eval();
 			}
 			if (verbose >= 2) {
 				IA = sparseIA;
@@ -172,14 +180,12 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 	} else {
 		refreshA(fc, -1.0);
 		if (!useSparse) {
-			aio->full.diagonal().array() = 1;
 			Eigen::FullPivLU< Eigen::MatrixXd > lu(aio->full);
 			IA.resize(numVars, numVars);
 			IA.setIdentity();
 			IA = lu.solve(IA);
 			if (verbose >= 2) mxPrintMat("IA", IA);
 		} else {
-			for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
 			aio->sparse.makeCompressed();
 			if (!sparseLUanal) {
 				sparseLUanal = true;
