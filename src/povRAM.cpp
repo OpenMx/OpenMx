@@ -44,23 +44,26 @@ void PathCalc::init1()
 		mio->full.resize(numVars, 1);
 		//fullM.setZero(); all coeff are copied
 	}
-	if (!useSparse) {
-		aio->full.resize(numVars, numVars);
-		aio->full.setZero();
-		sio->full.resize(numVars, numVars);
-		sio->full.setZero();
-	} else {
-		aio->sparse.resize(numVars, numVars);
-		aio->sparse.reserve(2*numVars);
-		aio->sparse.uncompress();
-		sio->sparse.resize(numVars, numVars);
-		sio->sparse.reserve(2*numVars);
-		sio->sparse.uncompress();
-		sparseIdent.resize(numVars, numVars);
-		sparseIdent.setIdentity();
-		sparseIdent.makeCompressed();
+
+	if (!boker2019) {
+		useSparse = numVars >= 15;
+		if (!useSparse) {
+			aio->full.resize(numVars, numVars);
+			aio->full.setZero();
+			sio->full.resize(numVars, numVars);
+			sio->full.setZero();
+		} else {
+			aio->sparse.resize(numVars, numVars);
+			aio->sparse.reserve(2*numVars);
+			aio->sparse.uncompress();
+			sio->sparse.resize(numVars, numVars);
+			sio->sparse.reserve(2*numVars);
+			sio->sparse.uncompress();
+			sparseIdent.resize(numVars, numVars);
+			sparseIdent.setIdentity();
+			sparseIdent.makeCompressed();
+		}
 	}
-	polyRep.resize(numVars);
 
 	obsMap.resize(numVars);
 	obsMap.setConstant(-1);
@@ -73,12 +76,20 @@ void PathCalc::init1()
 
 void PathCalc::init2()
 {
-	if (!boker2019 && numIters == NA_INTEGER) {
-		if (!useSparse) {
-			aio->full.diagonal().array() = 1;
-		} else {
-			for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
+	if (!boker2019) {
+		if (numIters == NA_INTEGER) {
+			if (!useSparse) {
+				aio->full.diagonal().array() = 1;
+			} else {
+				for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
+			}
 		}
+	} else { // boker2019
+		aio->full.resize(numVars, numVars);
+		aio->full.setZero();
+		sio->full.resize(numVars, numVars);
+		sio->full.setZero();
+		polyRep.resize(numVars);
 	}
 	algoSet = true;
 }
@@ -97,8 +108,9 @@ void PathCalc::setAlgo(FitContext *fc, bool _boker2019)
 		determineShallowDepth(fc);
 		if (verbose >= 1) mxLog("PathCalc: sparse=%d numVars=%d depth=%d",
 														useSparse, numVars, numIters);
-	} else {
-		
+	} else { // boker2019 P-O-V
+		if (verbose >= 1) mxLog("PathCalc: Boker2019 P-O-V enabled, numVars=%d", numVars);
+		// no sparse support, for now
 	}
 
 	init2();
@@ -243,14 +255,15 @@ void PathCalc::appendPolyRep(int nn, std::vector<int> &status)
 	if (status[nn] == 1) mxThrow("Asymmetric matrix is cyclic");
 	status[nn] = 1;
 	
-	for (int ii=0; ii < aio->full.rows(); ++ii) {
-		if (ii == nn || status[ii] == 2 || aio->full(nn,ii) == 0) continue;
+	auto &A = aio->full;
+	for (int ii=0; ii < A.rows(); ++ii) {
+		if (ii == nn || status[ii] == 2 || A(ii,nn) == 0) continue;
 		appendPolyRep(ii, status);
 	}
-	for (int ii=0; ii < aio->full.rows(); ++ii) {
-		if (ii == nn || aio->full(nn,ii) == 0) continue;
-		Polynomial< double > term(aio->full(nn,ii));
-		//mxLog("A %d %d %f", ii,nn,aio->full(nn,ii));
+	for (int ii=0; ii < A.rows(); ++ii) {
+		if (ii == nn || A(ii,nn) == 0) continue;
+		Polynomial< double > term(A(ii,nn));
+		//mxLog("A %d %d %f", ii,nn,A(ii,nn));
 		//std::cout << std::string(polyRep[ii]) << "\n";
 		term *= polyRep[ii];
 		//std::cout << std::string(polyRep[nn]) << "OP " << isProductNode[nn] << " " << std::string(term) << "\n";
@@ -276,6 +289,11 @@ void PathCalc::buildPolynomial(FitContext *fc)
 	}
 	if (!ignoreVersion && versionPoly == curV) return;
 	versionPoly = curV;
+
+	if (verbose >= 2) {
+		mxLog("PathCalc::buildPolynomial for %u (S%u A%u M%u)", curV,
+					versionS, versionIA, versionM);
+	}
 
 	for (auto &p1 : polyRep) p1.clear();
 
@@ -323,7 +341,7 @@ void PathCalc::buildPolynomial(FitContext *fc)
 	}
 
 	// mxPrintMat("vec", symVec);
-	if (false) {
+	if (verbose >= 2) {
 		for (int ii=0; ii < numVars; ++ii) {
 			std::cout << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
 		}

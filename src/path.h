@@ -109,7 +109,7 @@ class PathCalc {
 	const bool ignoreVersion;
 
  PathCalc() :
-	 versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
+	 useSparse(false), versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
 	 algoSet(false), versionPoly(0), verbose(0), ignoreVersion(false) {}
 
@@ -139,7 +139,6 @@ class PathCalc {
 	{
 		numVars = _numVars;
 		numObs = _numObs;
-		useSparse = numVars >= 15;
 		latentFilter = &_latentFilter;
 		isProductNode = &_isProductNode;
 		if (_mio) mio = std::unique_ptr<PathCalcIO>(_mio);
