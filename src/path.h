@@ -55,7 +55,7 @@ double polynomialToMoment(Polynomial< double > &polyRep, T& symEv)
 class PathCalc {
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
-	const bool useSparse;
+	bool useSparse;
 	unsigned versionM;
 	unsigned versionS;
 	unsigned versionIA;
@@ -109,7 +109,6 @@ class PathCalc {
 	const bool ignoreVersion;
 
  PathCalc() :
-	 useSparse(true),
 	 versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
 	 algoSet(false), versionPoly(0), verbose(0), ignoreVersion(false) {}
@@ -119,6 +118,7 @@ class PathCalc {
 		if (!pc.algoSet) mxThrow("PathCalc::clone but setAlgo not called yet");
 		numVars = pc.numVars;
 		numObs = pc.numObs;
+		useSparse = pc.useSparse;
 		latentFilter = pc.latentFilter;
 		isProductNode = pc.isProductNode;
 		if (pc.mio) mio = std::unique_ptr<PathCalcIO>(pc.mio->clone());
@@ -139,6 +139,7 @@ class PathCalc {
 	{
 		numVars = _numVars;
 		numObs = _numObs;
+		useSparse = numVars >= 15;
 		latentFilter = &_latentFilter;
 		isProductNode = &_isProductNode;
 		if (_mio) mio = std::unique_ptr<PathCalcIO>(_mio);
