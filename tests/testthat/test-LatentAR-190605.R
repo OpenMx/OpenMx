@@ -7,6 +7,7 @@ if (1) {
   # Not sure if this simulation exactly matches the model. Parameter
   # recovery might be better with a better simulation.
 
+  suppressWarnings(RNGversion("3.5"))
   set.seed(1)
   tsData <- NULL
   
