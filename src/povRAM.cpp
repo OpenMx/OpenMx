@@ -1,6 +1,7 @@
 #include <sstream>
 #include "omxExpectation.h"
 #include "path.h"
+#include "Compute.h"
 #include "EnableWarnings.h"
 
 void PathCalc::prepM(FitContext *fc)
@@ -81,6 +82,7 @@ void PathCalc::init2()
 			if (!useSparse) {
 				aio->full.diagonal().array() = 1;
 			} else {
+				aio->sparse.reserve(aio->sparse.nonZeros() + numVars);
 				for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
 			}
 		}
@@ -205,10 +207,11 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 			}
 			sparseLU.factorize(aio->sparse);
 			if (sparseLU.info() != Eigen::Success) {
-				mxThrow("Failed to invert A matrix; %s",
-								sparseLU.lastErrorMessage().c_str());
+				if (fc) fc->recordIterationError("RAM's A matrix is not invertible");
+				sparseIA = sparseIdent * NA_REAL;
+			} else {
+				sparseIA = sparseLU.solve(sparseIdent);
 			}
-			sparseIA = sparseLU.solve(sparseIdent);
 			if (verbose >= 2) {
 				IA = sparseIA;
 				mxPrintMat("IA", IA);
