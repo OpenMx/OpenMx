@@ -34,7 +34,6 @@ env:
   - MODE=test IMX_OPT_ENGINE=CSOLNP
   - MODE=test IMX_OPT_ENGINE=SLSQP
   - MODE=cran-check
-  - MODE=covr
 branches:
   except:
   - stable   # already tested
