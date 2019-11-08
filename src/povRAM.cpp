@@ -55,11 +55,11 @@ void PathCalc::init1()
 			sio->full.setZero();
 		} else {
 			aio->sparse.resize(numVars, numVars);
+			aio->sparse.makeCompressed();
 			aio->sparse.reserve(2*numVars);
-			aio->sparse.uncompress();
 			sio->sparse.resize(numVars, numVars);
+			aio->sparse.makeCompressed();
 			sio->sparse.reserve(2*numVars);
-			sio->sparse.uncompress();
 			sparseIdent.resize(numVars, numVars);
 			sparseIdent.setIdentity();
 			sparseIdent.makeCompressed();
@@ -82,6 +82,7 @@ void PathCalc::init2()
 			if (!useSparse) {
 				aio->full.diagonal().array() = 1;
 			} else {
+				aio->sparse.makeCompressed();
 				aio->sparse.reserve(aio->sparse.nonZeros() + numVars);
 				for (int vx=0; vx < numVars; ++vx) aio->sparse.coeffRef(vx,vx) = 1.0;
 			}
