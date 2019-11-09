@@ -103,7 +103,13 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				
 				# Create and run the single-parameter model for the LISREL-type/partial/[lower bound] MI
 				gmodel <- mxModel(gmodel, custom.compute)
-				grun <- mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE) #suppress Warnings =TRUE
+				grun <- try(mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)) #suppress War
+nings =TRUE
+        if (is(grun, "try-error")) {
+          # oops, not happy about that parameter (e.g., diag of RAM's A)
+          gmodel <- omxSetParameters(gmodel, labels=names(omxGetParameters(gmodel)), free=FALSE)
+          next
+        }
 				
 				# restricted MI
 				grad <- grun$output$gradient #get gradient

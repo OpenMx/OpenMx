@@ -27,7 +27,7 @@ struct omxNormalExpectation : public omxExpectation {
 	double logDetObserved;
 	double n;
 
-	omxNormalExpectation(omxState *st) : super(st) {}
+	omxNormalExpectation(omxState *st, int num) : super(st, num) {}
 	virtual void init();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void populateAttr(SEXP expectation);
@@ -78,8 +78,8 @@ void omxNormalExpectation::populateAttr(SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("numStats"), RnumStats);
 }
 
-omxExpectation *omxInitNormalExpectation(omxState *st)
-{ return new omxNormalExpectation(st); }
+omxExpectation *omxInitNormalExpectation(omxState *st, int num)
+{ return new omxNormalExpectation(st, num); }
 
 void omxNormalExpectation::init()
 {

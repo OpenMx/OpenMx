@@ -48,7 +48,8 @@ fim <- mxMI(factorRun)
 mplusON.mi <- c(NA, 0.001, 1.582, .272, .285, NA, 0.001, NA, 1.540, 4.041, .748, NA, 1.582, 1.540, NA, .151, 5.339, NA, .272, 4.042, .151, NA, 3.574, NA, NA, .748, 5.339, 3.574, NA, NA, NA)
 mplusWITH.mi <- c(0.001, 1.582, 1.540, .272, NA, .151, .285, .748, 5.339, 3.574)
 
-mplus.mi <- c(mplusON.mi, mplusWITH.mi)
+Adiag <- c(1L, 8L, 15L, 22L, 29L, 31L)
+mplus.mi <- c(mplusON.mi[-Adiag], mplusWITH.mi)
 
 plot(fim$MI.Full[1:length(mplus.mi)], mplus.mi)
 abline(a=0, b=1)

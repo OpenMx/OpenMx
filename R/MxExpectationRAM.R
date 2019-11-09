@@ -21,7 +21,6 @@ setClass(Class = "MxExpectationRAM",
 		M = "MxCharOrNumber",
 		thresholds = "MxCharOrNumber",
 		dims = "character",
-		depth = "integer",
 		threshnames = "character",
 		usePPML = "logical",
 		ppmlData = "MxData",
@@ -39,9 +38,6 @@ setClass(Class = "MxExpectationRAM",
 	    .optimizeMean = "integer"
 	),
 	contains = "BaseExpectationNormal")
-
-setClass(Class = "MxExpectationPOVRAM",   # temporary hack TODO
-         contains = "MxExpectationRAM")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
@@ -202,7 +198,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			}
 		}
 		translatedNames <- modelManifestNames(fMatrix, modelname)
-		.Object@depth <- generateRAMDepth(flatModel, aMatrix, model@options)
 		if (length(translatedNames)) {
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
@@ -240,9 +235,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
-    if (length(.Object@isProductNode)) {
-      class(.Object) <- 'MxExpectationPOVRAM'  # remove TODO
-    }
 		return(.Object)
 })
 
@@ -294,27 +286,6 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 			}
 			ret
 })
-
-generateRAMDepth <- function(flatModel, aMatrixName, modeloptions) {
-	mxObject <- flatModel[[aMatrixName]]
-	if (!is(mxObject, "MxMatrix")) {
-		return(as.integer(NA))
-	}
-	if (identical(modeloptions[['RAM Inverse Optimization']], "No")) {
-		return(as.integer(NA))
-	}
-	if (is.null(modeloptions[['RAM Inverse Optimization']]) &&
-		identical(getOption('mxOptions')[['RAM Inverse Optimization']], "No")) {
-		return(as.integer(NA))
-	}	
-	maxdepth <- modeloptions[['RAM Max Depth']]
-	if (is.null(maxdepth) || (length(maxdepth) != 1) ||
-		is.na(maxdepth) || !is.numeric(maxdepth) || maxdepth < 0) {
-		maxdepth <- nrow(mxObject) - 1
-	}
-	return(omxGetRAMDepth(mxObject, maxdepth))
-}
-
 
 ##' omxGetRAMDepth
 ##'

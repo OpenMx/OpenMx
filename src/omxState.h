@@ -319,12 +319,13 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage; // hack because omxRecompute doesn't take 'want' as a parameter TODO
-	bool clone;
+	omxState *parent;
+	bool hasFakeParam;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
-	bool isClone() const { return clone; }
+	bool isClone() const { return parent != 0; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
@@ -332,7 +333,7 @@ class omxState {
 	std::vector< omxData* > dataList;
 	std::vector< omxConstraint* > conListX;
 
-	omxState() : wantStage(0), clone(false) { init(); };
+	omxState() : wantStage(0), parent(0), hasFakeParam(false) { init(); };
 	omxState(omxState *src);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
@@ -351,6 +352,8 @@ class omxState {
 	void invalidateCache();
 	~omxState();
 
+	omxExpectation *getParent(omxExpectation *element) const;
+	omxExpectation *lookupDuplicate(omxExpectation *element) const;
 	omxMatrix *lookupDuplicate(omxMatrix *element) const;
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
@@ -393,6 +396,28 @@ class omxState {
 			}
 		}
 	};
+
+	bool isFakeParamSet() const { return hasFakeParam; }
+
+	template <typename T1>
+	void setFakeParam(Eigen::MatrixBase<T1> &point)
+	{
+		if (hasFakeParam) mxThrow("already has fake parameters loaded");
+		hasFakeParam = true;
+
+		auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+		size_t numParam = varGroup->vars.size();
+		point.derived().resize(numParam);
+
+		for(size_t k = 0; k < numParam; k++) {
+			omxFreeVar* freeVar = varGroup->vars[k];
+			point[k] = freeVar->getCurValue(this);
+			freeVar->copyToState(this, 1.0);
+		}
+	}
+
+	void restoreParam(const Eigen::Ref<const Eigen::VectorXd> point);
+
 };
 
 inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInterrupted || Global->timedOut; }
