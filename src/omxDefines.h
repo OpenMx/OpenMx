@@ -241,6 +241,7 @@ static inline int omp_get_thread_num() { return 0; }
 static inline int omp_get_num_threads(void) { return 1; }
 #endif
 
+#include <stan/math/prim/mat/fun/Eigen.hpp>
 #include <Eigen/Core>
 
 // Refactor as a single split function that pulls out all 3 parts
