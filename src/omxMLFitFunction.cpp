@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+#include <stan/math/prim/mat/fun/Eigen.hpp>
 #include "omxDefines.h"
 
 #include <utility>
