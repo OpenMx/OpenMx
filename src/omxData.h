@@ -116,10 +116,12 @@ class obsSummaryStats {
  public:
 	std::vector<const char *> dc;
 	std::vector<int> exoPred;
+	Eigen::ArrayXXi exoFree; // observed by exo matrix
+	int totalExoFree;
 	const char *wlsType;
 	const char *continuousType;
 	bool wantFullWeight;
-	std::vector<int> index;
+	std::vector<int> index; // rowMult.rows() == index.size()
 	Eigen::ArrayXd rowMult;
 
 	bool partial;
@@ -149,7 +151,8 @@ class obsSummaryStats {
 	Eigen::ArrayXXd H22;
 	Eigen::ArrayXXd H21;
 
- 	obsSummaryStats() : wlsType(0), continuousType(0), wantFullWeight(true),
+ 	obsSummaryStats() :
+		wlsType(0), continuousType(0), wantFullWeight(true),
 		partial(false), output(false), totalWeight(0), numOrdinal(0), numContinuous(0),
 		covMat(0), slopeMat(0), meansMat(0),
 		acovMat(0), fullWeight(0), thresholdMat(0), totalThr(0) {};
@@ -157,6 +160,7 @@ class obsSummaryStats {
 	void setDimnames(omxData *data);
 	void permute(omxData *data);
 	void log();
+	void loadExoFree(SEXP Ref);
 };
 
 class omxData {
@@ -271,6 +275,9 @@ class omxData {
 	void recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index);
 	void invalidateCache();
 	void invalidateColumnsCache(const std::vector< int > &columns);
+	// When FALSE, PolychoricCor uses raw data.
+	// When TRUE, PolychoricCor uses summary data (if possible).
+	// Both should obtain the same result when no exogenous covariates.
 	bool getNoExoOptimize() const { return noExoOptimize; };
 };
 
