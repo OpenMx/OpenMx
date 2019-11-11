@@ -3025,14 +3025,16 @@ void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 	if (!oss) return;
 
 	auto &o1 = *oss;
-	EigenMatrixAdaptor Ecov(o1.covMat);
+	if (!o1.covMat) { invalidateCache(); return; }
+
 	bool fail = false;
+	EigenMatrixAdaptor Ecov(o1.covMat);
 	for (auto col : columns) {
 		auto it = o1.colMap.find(rawCols[col].name);
 		if (it == o1.colMap.end()) {
 			if (verbose >= 1) mxLog("%s: column '%s' is not an observed indicator; "
-						"must re-estimate all observed stats",
-						name, rawCols[col].name);
+															"must re-estimate all observed stats",
+															name, rawCols[col].name);
 			fail = true; break;
 		}
 		Ecov.row(it->second).setConstant(nan("uninit"));
