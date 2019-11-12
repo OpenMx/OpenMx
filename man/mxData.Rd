@@ -28,7 +28,8 @@
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
-     minVariance=sqrt(.Machine$double.eps), algebra=c(), warnNPDacov=TRUE)
+     minVariance=sqrt(.Machine$double.eps), algebra=c(),
+   warnNPDacov=TRUE, exoFree=NULL)
 }
 
 \arguments{
@@ -53,6 +54,10 @@
      calculated columns of raw data. EXPERIMENTAL}
    \item{warnNPDacov}{logical. Whether to warn when the asymptotic
      covariance matrix is non-positive definite.}
+   \item{exoFree}{logical matrix of observed manifests by
+   exogenous predictors. Defaults to all TRUE, but you can fix some
+   regression coefficients in the \code{observedStats} \code{slope}
+   matrix to zero by setting entries to FALSE.}
 }
 
 \details{

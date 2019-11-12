@@ -10,34 +10,35 @@ trap "rm -f $out" EXIT
 opt="-q --vanilla --no-save"
 
 tests="
-passing/ContinuousOnlyWLSTest.R
-passing/InvalidWLS.R
-passing/MultipleGroupWLS.R
-passing/WLS+CI.R
-passing/WeightedWLS.R
-passing/exoPredWLS.R
-passing/SaturatedWLSTest.R
-passing/ifa-grm1.R
-passing/jointFactorWls.R
-passing/tangleF.R
-passing/loadDataByRow.R
-passing/automaticStarts.R
-passing/IgnoreFixedConfidenceIntervals.R
-nightly/MultigroupWLS.R
-nightly/thresholdModel1Factor5VariateWLS.R
-nightly/JointWLS.R
-nightly/LegacyContinuousOnlyWLSTest.R
-nightly/LegacyMultipleGroupWLS.R
-nightly/LegacyWLS+CI.R
+inst/models/passing/ContinuousOnlyWLSTest.R
+inst/models/passing/InvalidWLS.R
+inst/models/passing/MultipleGroupWLS.R
+inst/models/passing/WLS+CI.R
+inst/models/passing/WeightedWLS.R
+inst/models/passing/exoPredWLS.R
+inst/models/passing/exoPredWLS2.R
+inst/models/passing/SaturatedWLSTest.R
+inst/models/passing/ifa-grm1.R
+inst/models/passing/jointFactorWls.R
+inst/models/passing/tangleF.R
+tests/testthat/test-loadDataByRow.R
+inst/models/passing/automaticStarts.R
+inst/models/passing/IgnoreFixedConfidenceIntervals.R
+inst/models/nightly/MultigroupWLS.R
+inst/models/nightly/thresholdModel1Factor5VariateWLS.R
+inst/models/nightly/JointWLS.R
+inst/models/nightly/LegacyContinuousOnlyWLSTest.R
+tests/testthat/test-LegacyMultipleGroupWLS.R
+inst/models/nightly/LegacyWLS+CI.R
 "
 # nightly/InvalidComparisonDetection.R CSOLNP only
 
 for t in $tests; do
   echo -n "$t\t"
   if false; then
-    R $opt -f inst/models/$t
+    R $opt -f $t
   else
-    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f inst/models/$t > $out 2>&1"; then
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f $t > $out 2>&1"; then
       cat $out
       exit
     fi
@@ -107,3 +108,26 @@ passing/IgnoreFixedConfidenceIntervals.R	0:02.11 0 62678 11
 nightly/MultigroupWLS.R	0:04.56 0 82140 34
 nightly/thresholdModel1Factor5VariateWLS.R	0:44.74 0 169846 9281
 nightly/JointWLS.R	0:05.04 0 87819 105
+
+2019 Nov 11
+
+inst/models/passing/ContinuousOnlyWLSTest.R	0:03.68 1 53148 71
+inst/models/passing/InvalidWLS.R	0:02.53 0 51484 321
+inst/models/passing/MultipleGroupWLS.R	0:03.20 0 51481 8
+inst/models/passing/WLS+CI.R	0:09.68 0 51861 90
+inst/models/passing/WeightedWLS.R	0:05.41 0 51593 710
+inst/models/passing/exoPredWLS.R	0:07.24 0 71010 109
+inst/models/passing/exoPredWLS2.R	0:07.19 0 70583 95
+inst/models/passing/SaturatedWLSTest.R	0:01.91 0 51610 3
+inst/models/passing/ifa-grm1.R	0:03.60 0 56345 376
+inst/models/passing/jointFactorWls.R	0:10.92 0 72018 413
+inst/models/passing/tangleF.R	0:12.99 0 52260 260
+tests/testthat/test-loadDataByRow.R	0:03.00 0 51620 19
+inst/models/passing/automaticStarts.R	0:03.41 0 51632 33
+inst/models/passing/IgnoreFixedConfidenceIntervals.R	0:01.83 0 51498 16
+inst/models/nightly/MultigroupWLS.R	0:04.00 0 51971 75
+inst/models/nightly/thresholdModel1Factor5VariateWLS.R	0:44.49 0 129280 18207
+inst/models/nightly/JointWLS.R	0:04.77 0 84122 314
+inst/models/nightly/LegacyContinuousOnlyWLSTest.R	0:03.72 0 51651 40
+tests/testthat/test-LegacyMultipleGroupWLS.R	0:03.09 0 51485 8
+inst/models/nightly/LegacyWLS+CI.R	0:10.94 2 52261 107
