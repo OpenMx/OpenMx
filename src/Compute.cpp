@@ -4674,10 +4674,17 @@ void ComputeLoadData::loadedHook()
 	Providers.push_back(new LoadDataDFProvider());
 }
 
-void AddLoadDataProvider(double version, LoadDataProviderBase *ldp)
+void AddLoadDataProvider(double version, int ldpbSz, LoadDataProviderBase *ldp)
 {
-	if (version != OPENMX_LOAD_DATA_API_VERSION)
+	if (version == OPENMX_LOAD_DATA_API_VERSION) {
+		if (ldpbSz != sizeof(LoadDataProviderBase)) {
+			mxThrow("Cannot add mxComputeLoadData provider, version matches "
+							"but OpenMx is compiled with different compiler options (%d != %d)",
+							ldpbSz, int(sizeof(LoadDataProviderBase)));
+		}
+	} else {
 		mxThrow("Cannot add mxComputeLoadData provider, version mismatch");
+	}
 	ComputeLoadData::addProvider(ldp);
 }
 
