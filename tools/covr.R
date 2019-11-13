@@ -7,7 +7,7 @@ withr::with_makevars(getOption("covr.flags"), assignment = "+=", {
   utils::install.packages(
     ".", repos = NULL, type = "source",
     INSTALL_opts = c("--example",  "--install-tests", "--with-keep.source",
-      "--with-keep.parse.data", "--no-multiarch")
+      "--no-multiarch")  # "--with-keep.parse.data" -- only available w/ R 3.6
   )
 })
 roxygenize('.', roclets=c('rd'))
