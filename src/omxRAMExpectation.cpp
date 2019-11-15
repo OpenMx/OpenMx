@@ -217,7 +217,7 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 		pcalc.mean(fc, Emean);
 		if (slope) {
 			EigenMatrixAdaptor Eslope(slope);
-			Emean -= Eslope * exoPredMean;
+			Emean += Eslope * exoPredMean;
 		}
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(means, "....RAM: Model-implied Means Vector:");}
 	}
