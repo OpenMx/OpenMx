@@ -47,7 +47,7 @@ void PathCalc::init1()
 	}
 
 	if (!boker2019) {
-		useSparse = numVars >= 15;
+		if (useSparse == NA_INTEGER) useSparse = numVars >= 15;
 		if (!useSparse) {
 			aio->full.resize(numVars, numVars);
 			aio->full.setZero();
@@ -64,6 +64,8 @@ void PathCalc::init1()
 			sparseIdent.setIdentity();
 			sparseIdent.makeCompressed();
 		}
+	} else {
+		useSparse = 0;  // TODO probably default to true
 	}
 
 	obsMap.resize(numVars);
@@ -77,6 +79,7 @@ void PathCalc::init1()
 
 void PathCalc::init2()
 {
+	if (useSparse == NA_INTEGER) mxThrow("PathCalc::init2: must decide useSparse");
 	if (!boker2019) {
 		if (numIters == NA_INTEGER) {
 			if (!useSparse) {
@@ -97,13 +100,14 @@ void PathCalc::init2()
 	algoSet = true;
 }
 
-void PathCalc::setAlgo(FitContext *fc, bool _boker2019)
+void PathCalc::setAlgo(FitContext *fc, bool _boker2019, int _useSparse)
 {
 	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
 																 [](bool x){ return x; })) {
 		mxThrow("Must use Boker2019 when product nodes are present");
 	}
 	boker2019 = _boker2019;
+	useSparse = _useSparse;
 
 	init1();
 

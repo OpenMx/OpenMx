@@ -355,6 +355,7 @@ class omxRAMExpectation : public omxExpectation {
 	int maxDebugGroups;
 	bool useSufficientSets;
 	int optimizeMean;
+	int useSparse;
 	bool rampartEnabled() { return (rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0) && !forceSingleGroup; };
 	double logDetObserved;
 	double n;
