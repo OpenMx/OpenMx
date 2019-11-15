@@ -57,7 +57,7 @@
    \item{exoFree}{logical matrix of observed manifests by
    exogenous predictors. Defaults to all TRUE, but you can fix some
    regression coefficients in the \code{observedStats} \code{slope}
-   matrix to zero by setting entries to FALSE.}
+   matrix to zero by setting entries to FALSE. EXPERIMENTAL}
 }
 
 \details{
