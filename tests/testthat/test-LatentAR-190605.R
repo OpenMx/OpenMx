@@ -71,7 +71,7 @@ testARModel <- mxModel(model="testAR", type="RAM",
 testARModel$expectation$isProductNode <- colnames(testARModel$A) %in% tOps
 #testARModel$expectation$isProductNode <- rep(FALSE, nrow(testARModel$A))
 
-testARModel <- mxOption(testARModel, "Major iterations", 2)  # keep things short
+testARModel <- mxOption(testARModel, "Major iterations", 10)  # keep things short
 testARModel <- mxOption(testARModel, "Standard Errors", "No")  # keep things short
 testARModel <- mxOption(testARModel, "Calculate Hessian", "No")  # keep things short
 testARModelFit <- mxRun(testARModel)
