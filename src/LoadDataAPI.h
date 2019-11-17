@@ -1,6 +1,8 @@
 #ifndef _LOAD_DATA_API_H_
 #define _LOAD_DATA_API_H_
 
+#include <memory>
+
 // Required types:
 //
 // enum ColumnDataType
@@ -122,8 +124,9 @@ public:
 	}
 };
 
-#define OPENMX_LOAD_DATA_API_VERSION 0.17789282277226448059 // this is a random number
+//#define OPENMX_LOAD_DATA_API_VERSION 0.17789282277226448059
+#define OPENMX_LOAD_DATA_API_VERSION 0.3091921037994325 // this is a random number
 
-typedef void (*AddLoadDataProviderType)(double version, LoadDataProviderBase *ldp);
+typedef void (*AddLoadDataProviderType)(double version, int ldpbSz, LoadDataProviderBase *ldp);
 
 #endif

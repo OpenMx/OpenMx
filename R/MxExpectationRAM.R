@@ -35,13 +35,14 @@ setClass(Class = "MxExpectationRAM",
 	    .forceSingleGroup = "logical",
 	    .analyzeDefVars = "logical",
 	    .maxDebugGroups = "integer",
-	    .optimizeMean = "integer"
+    .optimizeMean = "integer",
+    .useSparse = "logical"
 	),
 	contains = "BaseExpectationNormal")
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
-		 between, verbose, data = as.integer(NA), name = 'expectation') {
+		 between, verbose, useSparse, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -62,6 +63,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.useSufficientSets <- TRUE
 		.Object@.maxDebugGroups <- 0L
 		.Object@.optimizeMean <- 2L
+    .Object@.useSparse <- useSparse
 		return(.Object)
 	}
 )
@@ -459,7 +461,7 @@ imxSimpleRAMPredicate <- function(model) {
 }
 
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-	threshnames = dimnames, ..., between=NULL, verbose=0L) {
+	threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA) {
 
 	prohibitDotdotdot(list(...))
 
@@ -500,7 +502,7 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	}
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
-		   between, as.integer(verbose)))
+		   between, as.integer(verbose), as.logical(.useSparse)))
 }
 
 displayMxExpectationRAM <- function(expectation) {

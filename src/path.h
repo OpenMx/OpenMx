@@ -55,7 +55,7 @@ double polynomialToMoment(Polynomial< double > &polyRep, T& symEv)
 class PathCalc {
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
-	bool useSparse;
+	int useSparse;
 	unsigned versionM;
 	unsigned versionS;
 	unsigned versionIA;
@@ -146,7 +146,7 @@ class PathCalc {
 		sio = std::unique_ptr<PathCalcIO>(_sio);
 	}
 
-	void setAlgo(FitContext *fc, bool _boker2019);
+	void setAlgo(FitContext *fc, bool _boker2019, int _useSparse);
 
 	// called by omxRAMExpectation::populateAttr
 	template <typename T>

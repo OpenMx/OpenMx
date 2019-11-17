@@ -27,7 +27,7 @@ This function creates an MxExpectationRAM object.
 
 \usage{
 mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-                 threshnames = dimnames, ..., between=NULL, verbose=0L)
+                 threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA)
 }
 
 
@@ -42,6 +42,8 @@ mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
    \item{between}{A character vector of matrices that specify cross model relationships.}
    \item{verbose}{integer. Level of runtime diagnostic output.}
+   \item{.useSparse}{logical. Whether to use sparse matrices to compute
+   the expectation. The default \code{NA} allows the backend to decide.}
 }
 
 \details{

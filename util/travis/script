@@ -41,35 +41,6 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
     elif [ "x$MODE" = xcran-check ]; then
 	make cran-check &
 	travis_wait
-    elif [ "x$MODE" = xcovr ]; then
-	./util/prep cran install
-	${REXEC:-R} --vanilla --no-readline <<EOF &
-library(devtools)
-devtools::install_github("jpritikin/covr")
-library(covr)
-library(roxygen2)
-options(covr.gcov = "gcov-8")
-withr::with_envvar(c(MAKE="make -j2"), {
-  withr::with_makevars(getOption("covr.flags"), assignment = "+=", {
-    utils::install.packages(
-      ".", repos = NULL, type = "source",
-      INSTALL_opts = c("--example",  "--install-tests", "--with-keep.source",
-        "--with-keep.parse.data", "--no-multiarch")
-    )
-  })
-})
-roxygenize('.', roclets=c('rd'))
-options(digits=15)
-c1 <- covr::package_coverage(type=c("tests","examples"), quiet=TRUE, pre_clean=FALSE)
-pct <- percent_coverage(c1, by="line")
-print(pct)
-if (pct < 61.1) {
-  print(paste("Coverage dropped to", pct))
-  q(status=1)
-}
-covr::codecov(coverage = c1)
-EOF
-	travis_wait
     fi
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
     if [ "x$MODE" = xbuild ]; then

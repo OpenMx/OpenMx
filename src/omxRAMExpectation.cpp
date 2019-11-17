@@ -312,6 +312,12 @@ void omxRAMExpectation::init() {
 		RAMexp->optimizeMean = Rf_asInteger(Rom);
 	}
 
+	useSparse = NA_INTEGER;
+	if (R_has_slot(rObj, Rf_install(".useSparse"))) {
+		ProtectedSEXP Rus(R_do_slot(rObj, Rf_install(".useSparse")));
+		useSparse = Rf_asInteger(Rus);
+	}
+
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
 	if (Rf_length(Rbetween)) {
 		if (!oo->data) mxThrow("%s: data is required for joins", oo->name);
@@ -401,7 +407,7 @@ void omxRAMExpectation::init() {
 		sio->S0 = S;
 
 		pcalc.attach(k, l, latentFilter, isProductNode, mio, aio, sio);
-		pcalc.setAlgo(0, hasProductNodes);
+		pcalc.setAlgo(0, hasProductNodes, useSparse);
 
 		currentState->restoreParam(estSave);
 	}
@@ -1549,7 +1555,7 @@ namespace RelationalRAMExpectation {
 
 		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, 0,
 								 new ApcIO(*this), new SpcIO(*this));
-		pcalc.setAlgo(fc, false);
+		pcalc.setAlgo(fc, false, NA_INTEGER);
 	}
 
 	template <typename T>
