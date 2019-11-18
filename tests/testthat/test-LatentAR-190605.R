@@ -85,10 +85,10 @@ expect_equivalent(coef(testARModelFit)['IScov'], IScov, .04)
 expect_equivalent(coef(testARModelFit)['VB'], VB, .15)
 
 if (0) {
-  library(ggplot2)
-  library(reshape2)
-  tsData$row <- 1:nrow(tsData)
-  df <- melt(tsData, id.vars="row")
-  ggplot(df) +
-    geom_line(aes(x=variable, y=value, group=row), alpha=.1)
+  ## library(ggplot2)
+  ## library(reshape2)
+  ## tsData$row <- 1:nrow(tsData)
+  ## df <- melt(tsData, id.vars="row")
+  ## ggplot(df) +
+  ##   geom_line(aes(x=variable, y=value, group=row), alpha=.1)
 }
