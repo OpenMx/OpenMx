@@ -84,7 +84,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		fullData <- as.data.frame(model$data$observed)
 		plan1 <- list(
 			GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
-		wantSE <- tolower(mxOption(NULL,"Standard Errors")) == "yes"
+		wantSE <- tolower(mxOption(model=model, key="Standard Errors")) == "yes"
 		if (wantSE) {
 			plan1 <- c(plan1,
 				ND=mxComputeNumericDeriv(),
