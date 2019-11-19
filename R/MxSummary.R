@@ -958,8 +958,8 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 
 assertModelRunAndFresh <- function(model) {
 	warnModelCreatedByOldVersion(model)
-	if (!model@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
-	if (model@.modifiedSinceRun) {
+	if (.hasSlot(model,".wasRun") && !model@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+	if (.hasSlot(model,".modifiedSinceRun") && model@.modifiedSinceRun) {
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run.")
 		warning(msg)
