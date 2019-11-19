@@ -348,6 +348,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
 	}
+	assertModelRunAndFresh(model)
 	if(length(model@output) == 0) {
 		stop("'model' argument to omxParallelCI must be a fitted model")
 	}
