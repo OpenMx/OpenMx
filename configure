@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 set -o errexit
 
@@ -21,22 +21,11 @@ EOF
     $CXX -c $tmp1 -o $tmp2 > /dev/null 2>&1
 }
 
-compareVersions() {
-  typeset    IFS='.'
-  typeset -a v1=( $1 )
-  typeset -a v2=( $2 )
-  typeset    n diff
-
-  for (( n=0; n<4; n+=1 )); do
-    diff=$((v1[n]-v2[n]))
-    if [ $diff -ne 0 ] ; then
-      [ $diff -le 0 ] && echo '-1' || echo '1'
-      return
-    fi
-  done
-  echo  '0'
-}
-
+version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
+version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" = "$1"; }
+version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
+version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" = "$1"; }
+ 
 : ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then 
    echo "could not determine R_HOME" 
@@ -68,30 +57,31 @@ fi
 
 min_gcc_version=4.9.3
 if [ "$cxx_type" = gcc ]; then
-    cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
-    if [ $(compareVersions $cxx_version $min_gcc_version) -lt 0 ]; then
+    cxx_version=$($CXX -dumpfullversion -dumpversion | awk -F '.' '{print $1 "." $2}')
+		#echo "gcc -> $cxx_version"
+    if version_lt $cxx_version $min_gcc_version; then
 	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version $min_gcc_version"
 	exit 1
     fi
     if [ $devmode = 1 ]; then
 	COMPILER_CXXFLAGS="-Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function -Wno-unused-variable"
 
-	if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
+	if version_ge $cxx_version 5.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	    COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
 	    xcheck_CXXFLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
 	    xcheck_LDFLAGS="-fsanitize=undefined"
 	fi
-	if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
+	if version_ge $cxx_version 6.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
 	fi
-	if [ $(compareVersions $cxx_version 7.0) -gt -1 ]; then
+	if version_ge $cxx_version 7.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
 	fi
-	if [ $(compareVersions $cxx_version 8.0) -ge 0 ]; then
+	if version_ge $cxx_version 8.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wclass-memaccess"
 	fi
-	if [ $(compareVersions $cxx_version 9.0) -ge 0 ]; then
+	if version_ge $cxx_version 9.0; then
 	    # As of RcppEigen 0.3.3.5.0, there is some problem with the
 	    # definition of Eigen::Ref. Try to re-enable this warning
 	    # in a year.
