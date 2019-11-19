@@ -21,10 +21,21 @@ EOF
     $CXX -c $tmp1 -o $tmp2 > /dev/null 2>&1
 }
 
-version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
-version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" = "$1"; }
-version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
-version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" = "$1"; }
+#if test "$(echo 1 | sort -V 2>/dev/null)" = 1; then :; else echo FAIL; fi
+#if test "$(echo 1 | sort -Q 2>/dev/null)" = 1; then :; else echo FAIL; fi
+
+# OS/X sort doesn't know about -V
+if test "$(echo 1 | sort -V 2>/dev/null)" = 1; then
+  version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
+  version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" = "$1"; }
+  version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
+  version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" = "$1"; }
+else
+  version_gt() { false; }
+  version_le() { false; }
+  version_lt() { false; }
+  version_ge() { false; }
+fi
  
 : ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then 
