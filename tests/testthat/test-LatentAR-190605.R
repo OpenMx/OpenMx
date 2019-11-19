@@ -3,6 +3,8 @@ library(mvtnorm)
 library(testthat)
 context("LatentAR-190605")
 
+skip_on_cran()
+
 if (1) {
   # Not sure if this simulation exactly matches the model. Parameter
   # recovery might be better with a better simulation.
