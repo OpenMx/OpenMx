@@ -71,21 +71,24 @@ testARModel <- mxModel(model="testAR", type="RAM",
 testARModel$expectation$isProductNode <- colnames(testARModel$A) %in% tOps
 #testARModel$expectation$isProductNode <- rep(FALSE, nrow(testARModel$A))
 
-testARModel <- mxOption(testARModel, "Major iterations", 2)  # keep things short
-testARModel <- mxOption(testARModel, "Standard Errors", "No")  # keep things short
-testARModel <- mxOption(testARModel, "Calculate Hessian", "No")  # keep things short
 testARModelFit <- mxRun(testARModel)
-fit1 <- testARModelFit$output$fit
-testARModelFit <- mxRun(testARModelFit)
-fit2 <- testARModelFit$output$fit
+summary(testARModelFit)
 
-expect_true(fit2 < fit1)
+expect_equal(testARModelFit$output$fit, -1660.948, .01)
+expect_equivalent(coef(testARModelFit)['muI'], muI, tolerance=.06)
+expect_equivalent(coef(testARModelFit)['muS'], muS, tolerance=.1)
+expect_equivalent(coef(testARModelFit)['muB'], muB, tolerance=.6)
+expect_equivalent(coef(testARModelFit)['Ve'], Ve, tolerance=.2)
+expect_equivalent(coef(testARModelFit)['VI'], VI, .4)
+expect_equivalent(coef(testARModelFit)['VS'], VS, .2)
+expect_equivalent(coef(testARModelFit)['IScov'], IScov, .04)
+expect_equivalent(coef(testARModelFit)['VB'], VB, .15)
 
 if (0) {
-  library(ggplot2)
-  library(reshape2)
-  tsData$row <- 1:nrow(tsData)
-  df <- melt(tsData, id.vars="row")
-  ggplot(df) +
-    geom_line(aes(x=variable, y=value, group=row), alpha=.1)
+  ## library(ggplot2)
+  ## library(reshape2)
+  ## tsData$row <- 1:nrow(tsData)
+  ## df <- melt(tsData, id.vars="row")
+  ## ggplot(df) +
+  ##   geom_line(aes(x=variable, y=value, group=row), alpha=.1)
 }
