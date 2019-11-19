@@ -102,7 +102,7 @@ if [ "$cxx_type" = gcc ]; then
     fi
 fi
 
-if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
+if [ ! -e inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
     host_cpu=$(uname -p)
     if [ "x$host_cpu" = xunknown ]; then
 	# tanglu 1 has the machine architecture here
@@ -166,7 +166,7 @@ fi
 echo "### Generated from Makevars.in" > src/Makevars.new
 echo >> src/Makevars.new
 
-if [ ! -e inst/no-npsol -a -n "${npsol_library+1}" ]; then
+if [ ! -e inst/no-npsol ] && [ -n "${npsol_library+1}" ]; then
     npsol_file="${npsol_library}/libnpsol.a"
     if [ ! -f "$npsol_file" ]; then
 	echo "$npsol_file not found"
