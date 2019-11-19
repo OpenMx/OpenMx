@@ -23,6 +23,8 @@ library(testthat)
 context("FactorScores")
 suppressWarnings(RNGversion("3.5"))
 
+skip_on_cran()
+
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")

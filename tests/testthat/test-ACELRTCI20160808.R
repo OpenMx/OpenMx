@@ -18,6 +18,8 @@ library(testthat)
 library(mvtnorm)
 context("ACE LRT CI")
 
+skip_on_cran()
+
 mxOption(NULL, 'Default optimizer', 'SLSQP')
 
 #if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
