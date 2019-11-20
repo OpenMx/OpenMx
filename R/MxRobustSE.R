@@ -149,8 +149,9 @@ imxRowGradients <- function(model, robustSE=FALSE){
 ##' at the maximum-likelihood solution.
 ##' 
 ##' This function does not work correctly with multigroup models in which the 
-##' groups themselves contain subgroups.  This function also does not 
-##' correctly handle multilevel data.
+##' groups themselves contain subgroups, or in which groups contain references
+##' to objects in other groups.  This function also does not correctly handle
+##' multilevel data.
 ##'
 ##' @param model An OpenMx model object that has been run.
 ##' @param details Logical. whether to return the full parameter
