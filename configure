@@ -1,6 +1,7 @@
 #!/bin/sh
 
-set -o errexit
+#set -o errexit
+#set -v
 
 #wwwHome=openmx.psyc.virginia.edu
 wwwHome=openmx.ssri.psu.edu/software
@@ -21,10 +22,7 @@ EOF
     $CXX -c $tmp1 -o $tmp2 > /dev/null 2>&1
 }
 
-#if test "$(echo 1 | sort -V 2>/dev/null)" = 1; then :; else echo FAIL; fi
-#if test "$(echo 1 | sort -Q 2>/dev/null)" = 1; then :; else echo FAIL; fi
-
-# OS/X sort doesn't know about -V
+# in case sort doesn't know about -V
 if test "$(echo 1 | sort -V 2>/dev/null)" = 1; then
   version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
   version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" = "$1"; }
@@ -36,7 +34,7 @@ else
   version_lt() { false; }
   version_ge() { false; }
 fi
- 
+
 : ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then 
    echo "could not determine R_HOME" 
@@ -44,7 +42,7 @@ if test -z "${R_HOME}"; then
 fi 
 
 devmode=0
-if [ -e .devmode ]; then
+if [ -f .devmode ]; then
     echo "NOTE: ./.devmode exists; will enable extra compiler diagnostics"
     devmode=1
 fi
@@ -54,7 +52,7 @@ REXEC=${R_HOME}/bin/R
 echo 'NOTE: ./configure is not an autoconf generated script.'
 echo 'Change default C/C++ compiler and default compile flags by editing ~/.R/Makevars'
 
-CXX=$($REXEC CMD config CXX)
+CXX=`$REXEC CMD config CXX`
 
 if isdef __clang__; then
     cxx_type=clang
@@ -68,7 +66,7 @@ fi
 
 min_gcc_version=4.9.3
 if [ "$cxx_type" = gcc ]; then
-    cxx_version=$($CXX -dumpfullversion -dumpversion | awk -F '.' '{print $1 "." $2}')
+    cxx_version=`$CXX -dumpfullversion -dumpversion | awk -F '.' '{print $1 "." $2}'`
 		#echo "gcc -> $cxx_version"
     if version_lt $cxx_version $min_gcc_version; then
 	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version $min_gcc_version"
@@ -102,11 +100,11 @@ if [ "$cxx_type" = gcc ]; then
     fi
 fi
 
-if [ ! -e inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
-    host_cpu=$(uname -p)
+if [ ! -f inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
+    host_cpu=`uname -p`
     if [ "x$host_cpu" = xunknown ]; then
 	# tanglu 1 has the machine architecture here
-	host_cpu=$(uname -m)
+	host_cpu=`uname -m`
     fi
     case "$host_cpu" in
 	*86_64) omx_arch=x86_64 ;;
@@ -117,12 +115,12 @@ if [ ! -e inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
 	    ;;
     esac
 
-    os=$(uname -s)
+    os=`uname -s`
     case "$os" in
 	*Linux)
 	    omx_os=linux
 	    pick="linux/${omx_arch}/gcc${cxx_version}"
-	    want=$(grep "$pick" inst/npsol/checksum | cut -f1 -d' ' | head -1)
+	    want=`grep "$pick" inst/npsol/checksum | cut -f1 -d' ' | head -1`
 	    npsol_url1="http://$wwwHome/packages/npsol/linux/${omx_arch}/$want"
 	    npsol_url2="http://$wwwHome/packages/npsol/$pick/libnpsol.a"
 	    if [ ! -f src/libnpsol.a ]; then
@@ -131,7 +129,7 @@ if [ ! -e inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
 		    wget -q -O src/libnpsol.a "$npsol_url2" || true
 		fi
 	    fi
-	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
+	    got=`sha1sum src/libnpsol.a | cut -f1 -d' '`
 	    if [ "x$want" = x ]; then
 		echo "************ ************"
 		echo "WARNING: Cannot verify correct libnpsol.a version"
@@ -166,7 +164,7 @@ fi
 echo "### Generated from Makevars.in" > src/Makevars.new
 echo >> src/Makevars.new
 
-if [ ! -e inst/no-npsol ] && [ -n "${npsol_library+1}" ]; then
+if [ ! -f inst/no-npsol ] && [ -n "${npsol_library+1}" ]; then
     npsol_file="${npsol_library}/libnpsol.a"
     if [ ! -f "$npsol_file" ]; then
 	echo "$npsol_file not found"
@@ -176,10 +174,10 @@ if [ ! -e inst/no-npsol ] && [ -n "${npsol_library+1}" ]; then
     fi
 fi
 
-# if [ $($REXEC --slave --vanilla -e 'cat(suppressWarnings(require("nloptr", quietly=TRUE)) && packageVersion("nloptr") >= "1.0.5")') = TRUE ]; then
+# if [ `$REXEC --slave --vanilla -e 'cat(suppressWarnings(require("nloptr", quietly=TRUE)) && packageVersion("nloptr") >= "1.0.5")'` = TRUE ]; then
 #   echo "
-# NLOPT_CXXFLAGS=$($REXEC --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat("-DHAS_NLOPT", nloptr:::CFlags())')
-# NLOPT_LDFLAGS=$($REXEC  --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat(nloptr:::LdFlags())')
+# NLOPT_CXXFLAGS=`$REXEC --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat("-DHAS_NLOPT", nloptr:::CFlags())'`
+# NLOPT_LDFLAGS=`$REXEC  --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat(nloptr:::LdFlags())'`
 # " >> src/Makevars.new
 # fi
 
@@ -197,8 +195,8 @@ echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars.new
 
 # check for special environment variables
 if [ "x$IMX_SAFE" = x1 ]; then
-    echo 'DEBUG_CXXFLAGS=$(xcheck_CXXFLAGS) -UNDEBUG -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG' >> src/Makevars.new
-    echo 'DEBUG_LDFLAGS=$(xcheck_LDFLAGS)' >> src/Makevars.new
+    echo 'DEBUG_CXXFLAGS=`xcheck_CXXFLAGS` -UNDEBUG -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG' >> src/Makevars.new
+    echo 'DEBUG_LDFLAGS=`xcheck_LDFLAGS`' >> src/Makevars.new
 elif [ "x$IMX_GCOV" = x1 ]; then
     # To collect gcov statistics (gcc only)
     echo 'DEBUG_CXXFLAGS=--coverage' >> src/Makevars.new
@@ -210,7 +208,7 @@ echo "# ---- appending Makevars.in ----" >> src/Makevars.new
 echo >> src/Makevars.new
 cat src/Makevars.in >> src/Makevars.new
 
-if [ -e src/Makevars ] && cmp -s src/Makevars src/Makevars.new; then
+if [ -f src/Makevars ] && cmp -s src/Makevars src/Makevars.new; then
     echo "src/Makevars unchanged"
     rm -f src/Makevars.new
 else
