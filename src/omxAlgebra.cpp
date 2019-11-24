@@ -245,18 +245,6 @@ omxAlgebra::omxAlgebra()
 	fixed = false;
 }
 
-static omxMatrix* omxNewMatrixFromMxAlgebra(SEXP alg, omxState* os, std::string &name)
-{
-	omxMatrix *om = omxInitMatrix(0, 0, TRUE, os);
-
-	om->hasMatrixNumber = 0;
-	om->matrixNumber = 0;	
-
-	omxFillMatrixFromMxAlgebra(om, alg, name, NULL, 0, false);
-	
-	return om;
-}
-
 void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs)
 {
 	/* TODO: check for full initialization */
@@ -271,7 +259,11 @@ static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::stri
 	omxMatrix* newMat;
 	
 	if(!Rf_isInteger(algebraArg)) {
-		newMat = omxNewMatrixFromMxAlgebra(algebraArg, os, name);
+		omxMatrix *om = omxInitMatrix(0, 0, TRUE, os);
+		om->hasMatrixNumber = 0;
+		om->matrixNumber = 0;
+		omxFillMatrixFromMxAlgebra(om, algebraArg, name, NULL, 0, false);
+		newMat = om;
 	} else {
 		newMat = omxMatrixLookupFromState1(algebraArg, os);
 	}
@@ -296,12 +288,8 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name,
 		if(OMX_DEBUG) {mxLog("Table Entry %d is %s.", value, entry->opName);}
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
-			if (om->nameStr.compare("?") == 0) {
-				// A bit inefficient but invaluable for debugging
-				om->nameStr = string_snprintf("alg%03d", ++Global->anonAlgebra);
-			}
 			ProtectedSEXP algebraArg(VECTOR_ELT(algebra, j+1));
-			auto name2 = string_snprintf("%s arg %d", om->name(), j);
+			auto name2 = string_snprintf("%s[%d]", name.c_str(), j);
 			oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name2);
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.

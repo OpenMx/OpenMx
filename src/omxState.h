@@ -220,7 +220,6 @@ class omxGlobal {
 	int analyticGradients;
 	double llScale;
 	int debugProtectStack;
-	int anonAlgebra;
 	bool rowLikelihoodsWarning;
 	double feasibilityTolerance;
 	double optimalityTolerance;
