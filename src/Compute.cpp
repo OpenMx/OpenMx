@@ -890,7 +890,7 @@ void FitContext::log(int what)
 	if (what & FF_COMPUTE_ESTIMATE) {
 		buf += string_snprintf("est %d: c(", (int) count);
 		for (size_t vx=0; vx < count; ++vx) {
-			buf += string_snprintf("%.5f", est[vx]);
+			buf += string_snprintf("%.16f", est[vx]);
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";

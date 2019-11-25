@@ -229,6 +229,14 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 	}
 
 	if(OMX_DEBUG_ALGEBRA || oa->verbose >= 3) {
+		for(int j = 0; j < oa->numArgs; j++) {
+			auto *mat1 = oa->algArgs[j];
+			EigenMatrixAdaptor Emat(mat1);
+			std::string name = string_snprintf("arg[%d] '%s' %dx%d", j, mat1->name(), Emat.rows(), Emat.cols());
+			int nr = std::min(10, Emat.rows());
+			int nc = std::min(10, Emat.cols());
+			mxPrintMat(name.c_str(), Emat.topLeftCorner(nr, nc));
+		}
 		EigenMatrixAdaptor Emat(oa->matrix);
 		int nr = std::min(10, Emat.rows());
 		int nc = std::min(10, Emat.cols());
