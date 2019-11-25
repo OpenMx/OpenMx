@@ -227,7 +227,6 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	llScale = -2.0;
 	debugProtectStack = OMX_DEBUG;
-	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
 	topFc = NULL;
