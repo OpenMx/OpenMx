@@ -359,6 +359,8 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	
 	fc->constraintFunVals = resulttmp;
 	fc->constraintJacobian = jactmp;
+	fc->setEstFromOptimizer(optima);
+	return;
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
