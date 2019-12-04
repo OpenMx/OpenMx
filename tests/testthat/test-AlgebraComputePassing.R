@@ -562,7 +562,7 @@ omxCheckCloseEnough(modelOut[['test77b']]$result, besselJ(C$values,D$values), .0
 omxCheckCloseEnough(modelOut[['test78a']]$result, besselK(A$values,A$values,A$values), .001)
 omxCheckCloseEnough(modelOut[['test78b']]$result, besselK(C$values,D$values,0), .001)
 omxCheckCloseEnough(modelOut[['test79a']]$result, besselY(A$values,A$values), .001)
-omxCheckCloseEnough(modelOut[['test79b']]$result, besselY(C$values,D$values), .001)
+omxCheckCloseEnough(modelOut[['test79b']]$result, besselY(C$values,D$values), .004)
 omxCheckCloseEnough(modelOut[['test80a']]$result, dpois(D$values,D$values), .001)
 omxCheckCloseEnough(modelOut[['test80b']]$result, dpois(D$values,D$values,TRUE), .001)
 omxCheckCloseEnough(modelOut[['test81a']]$result, ppois(D$values,D$values,TRUE,TRUE), .001)
