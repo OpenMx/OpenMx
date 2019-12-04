@@ -3025,7 +3025,8 @@ void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 	if (!oss) return;
 
 	auto &o1 = *oss;
-	if (!o1.covMat) { invalidateCache(); return; }
+	// If no meansMat then we used the cumulants method
+	if (!o1.meansMat || !o1.covMat) { invalidateCache(); return; }
 
 	bool fail = false;
 	EigenMatrixAdaptor Ecov(o1.covMat);

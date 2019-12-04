@@ -507,7 +507,7 @@ std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, 
 				} else {
 					val = mat(j,k);
 				}
-				buf += string_snprintf(" %3.6g", val);
+				buf += string_snprintf(" %3.15g", val);
 			}
 		}
 	}

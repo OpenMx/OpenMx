@@ -631,10 +631,14 @@ static ssize_t mxLogWriteSynchronous(const char *outBuf, int len)
 	return wrote;
 }
 
+static const bool onlyThreadZero = false;
+
 void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
 	if (len == 0) mxThrow("Attempt to log 0 characters with mxLogBig");
+
+	if (onlyThreadZero && omx_absolute_thread_num() != 0) return;
 
 	std::string fullstr;
 	if (mxLogCurrentRow == -1) {
@@ -652,6 +656,8 @@ void mxLogBig(const std::string &str)   // thread-safe
 
 void mxLog(const char* msg, ...)   // thread-safe
 {
+	if (onlyThreadZero && omx_absolute_thread_num() != 0) return;
+
 	const int maxLen = 240;
 	char buf1[maxLen];
 	char buf2[maxLen];
@@ -1087,7 +1093,7 @@ void omxFreeVar::copyToState(omxState *os, double val)
 		int col = loc->col;
 		omxSetMatrixElement(matrix, row, col, val);
 		if (OMX_DEBUG) {
-			mxLog("free var %s, matrix %s[%d, %d] = %f",
+			mxLog("free var %s, matrix %s[%d, %d] = %.17f",
 			      name, matrix->name(), row, col, val);
 		}
 	}

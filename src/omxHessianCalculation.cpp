@@ -179,7 +179,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		freeParams[ix] = optima[i];									// Reset parameter value
 		iOffset /= v;
 		if(verbose >= 2) {
-			mxLog("Hessian: diag[%s] Δ%g (#%d) F1 %f F2 %f grad %f hess %f",
+			mxLog("Hessian: diag[%s] Δ%.16g (#%d) F1 %.15f F2 %.15f grad %f hess %f",
 			      fc->varGroup->vars[i]->name, iOffset, k, f1, f2, Gcentral[k], Haprox[k]);
 		}
 	}
@@ -359,7 +359,6 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	
 	fc->constraintFunVals = resulttmp;
 	fc->constraintJacobian = jactmp;
-	return;
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
@@ -419,7 +418,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 			omxPopulateHessianWork(hessWorkVector + i, fc->childList[i]);
 		}
 	}
-	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
+	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.16g)",
 			       numChildren, minimum);
 
 	hessian = NULL;
