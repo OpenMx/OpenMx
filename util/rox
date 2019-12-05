@@ -19,6 +19,9 @@ fi
 
 fold_start roxygenize "roxygenize"
 
+# Work around make bug
+MAKEFLAGS=$(echo $MAKEFLAGS | sed -e 's/--jobserver-auth=[0-9,]*//')
+
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
 pkgbuild::compile_dll()

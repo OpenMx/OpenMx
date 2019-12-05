@@ -5,6 +5,10 @@
 # Created: 2019-03-24 04:57PM
 # path = "~/bin/OpenMx/inst/models/passing/check_mxSE_works.R"
 
+library(testthat)
+context("check1_var_RAM_works")
+library(OpenMx)
+
 # ============================================
 # = Make a super-simple 1 variance RAM model =
 # ============================================
@@ -23,7 +27,11 @@ omxCheckCloseEnough(mxSE(X, m1), 0.4024916, .01)
 omxCheckWarning(mxSE(X, m1), message=NA)
 
 # SE by label with no warnings or errors
+omxCheckCloseEnough(mxSE(X, m1), mxSE("X", m1), 1e-4)
+foo <- "X"
+omxCheckCloseEnough(mxSE(X, m1), mxSE(foo, m1, forceName=T), 1e-4)
 omxCheckWarning(mxSE("X", m1), message=NA)
 
 # Confint with 1 or more parameters in the model
-confint(m1)
+expect_message(omxCheckCloseEnough(confint(m1), c(.111,1.688), 1e-3),
+               "Wald type confidence")

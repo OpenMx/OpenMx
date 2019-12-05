@@ -19,8 +19,6 @@ library(OpenMx)
 #CSOLNP still fails in a platform-specific manner:
 if(mxOption(NULL,"Default optimizer")=="CSOLNP" && .Platform$OS.type=="windows" && .Platform$r_arch=="i386"){stop("SKIP")}
 
-# This test script will not pass if run single-threaded.
-
 library(mvtnorm)
 
 set.seed(170209)
