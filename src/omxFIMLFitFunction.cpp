@@ -1071,6 +1071,8 @@ void omxFIMLFitFunction::init()
 		mxLog("Accessing row likelihood option.");
 	}
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
+	// currently treats NA_INTEGER as true, probably should be smarter TODO
+	diagParallel(OMX_DEBUG, "%s: rowwiseParallel = %d", name(), newObj->rowwiseParallel != 0);
 
 	{
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
