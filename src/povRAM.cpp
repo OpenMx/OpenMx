@@ -288,6 +288,9 @@ void PathCalc::appendPolyRep(int nn, std::vector<int> &status)
 
 void PathCalc::buildPolynomial(FitContext *fc)
 {
+	if (verbose >= 2) {
+		mxLog("enter PathCalc::buildPolynomial");
+	}
 	prepS(fc);
 	prepA(fc);
 	unsigned curV = versionS + versionIA;
