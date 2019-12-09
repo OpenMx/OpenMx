@@ -3001,8 +3001,23 @@ void omxData::estimateObservedStats()
 		}
 	}
 	if (InvertSymmetricPosDef(Efw, 'L')) {
-		if (InvertSymmetricIndef(Efw, 'L')) mxThrow("%s: the acov matrix is rank deficient as "
-																								"determined by LU factorization", name);
+		if (InvertSymmetricIndef(Efw, 'L')) {
+			std::ostringstream temp;
+			Eigen::DiagonalMatrix<double, Eigen::Dynamic>
+				isd((1.0 / INNER.diagonal().array().sqrt()).matrix());
+			Eigen::MatrixXd innerCor = isd * INNER * isd;
+			for (int cx=0; cx < innerCor.cols()-1; ++cx) {
+				for (int rx=cx+1; rx < innerCor.rows(); ++rx) {
+					if (fabs(fabs(innerCor(rx,cx)) - 1.0) > 1e-6) continue;
+					// Better if we reported the names of the summary stats
+					temp << " [" << (1+rx) << "," << (1+cx) << "]";
+				}
+			}
+			std::string diag = temp.str();
+			mxThrow("%s: the acov matrix is rank deficient as "
+							"determined by LU factorization; perfectly correlated gradients:%s",
+							name, diag.c_str());
+		}
 		else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
 	}
 
