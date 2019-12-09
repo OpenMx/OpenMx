@@ -26,4 +26,6 @@ d8620dae607b3abba1fa4c53f539ea682116791f  ./linux/x86_64/gcc4.1/libnpsol.a
 55b53b3111b77a28595fd3690b3ecaecf8ab695b  ./linux/x86_64/gcc3.4/libnpsol.a
 2b12a33c14b7add96b1be1aa486a289f921273b6  ./linux/x86_64/gcc4.2/libnpsol.a
 947c218861254b5737a91c61c8d8ed82684e413f  ./linux/x86_64/gcc7.2/libnpsol.a
+947c218861254b5737a91c61c8d8ed82684e413f  ./linux/x86_64/gcc7.3/libnpsol.a
+947c218861254b5737a91c61c8d8ed82684e413f  ./linux/x86_64/gcc7.4/libnpsol.a
 a21b02cfe4d55dacd70408182becd0170b060423  ./linux/x86_64/gcc8.3/libnpsol.a

@@ -118,6 +118,17 @@ namespace RelationalRAMExpectation {
 		void refreshUnitA(FitContext *fc, int px);
 		void invertAndFilterA();
 
+		struct MpcIO : PathCalcIO {
+			independentGroup &par;
+			int clumpSize;
+			MpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			virtual void recompute(FitContext *fc);
+			virtual unsigned getVersion(FitContext *fc);
+			virtual void refresh(FitContext *fc);
+			virtual PathCalcIO *clone()
+			{ return new MpcIO(par); }
+		};
+
 		struct ApcIO : PathCalcIO {
 			independentGroup &par;
 			int clumpSize;
@@ -193,6 +204,7 @@ namespace RelationalRAMExpectation {
 		void finalizeData();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
 		void computeCov(FitContext *fc);
+		void computeMean(FitContext *fc);
 		void simulate();
 		void exportInternalState(MxRList &out, MxRList &dbg);
 		independentGroup &getParent();
@@ -213,6 +225,7 @@ namespace RelationalRAMExpectation {
 		typedef std::vector< std::set<int> > SubgraphType;
 		struct omxExpectation *homeEx;
 		std::set<struct omxExpectation *> allEx;
+		bool hasProductNodes;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
 		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addrSetup>		 layoutSetup;
@@ -244,6 +257,8 @@ namespace RelationalRAMExpectation {
 		void propagateDefVar(omxRAMExpectation *to, Eigen::MatrixBase<T> &transition,
 												 omxRAMExpectation *from);
 		void computeConnected(std::vector<int> &region, SubgraphType &connected);
+		void computeMeanByModel(FitContext *fc);
+		void computeMeanByGroup(FitContext *fc);
 	public:
 		~state();
 		void computeCov(FitContext *fc);
@@ -266,6 +281,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector< omxThresholdColumn > thresholds;
 	std::vector<int> exoDataColumns; // index into omxData
 	Eigen::VectorXd exoPredMean;
+	bool hasProductNodes;
 
 	struct MpcIO : PathCalcIO {
 		omxMatrix *M0;
@@ -332,6 +348,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
 	std::vector<bool> isProductNode;
+	bool getHasProductNodes() const { return hasProductNodes; }
 	std::vector<coeffLoc> ScoeffStorage;
 	std::vector<coeffLoc> AcoeffStorage;
 	std::vector<coeffLoc> *Scoeff;

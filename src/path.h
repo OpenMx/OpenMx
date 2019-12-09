@@ -208,6 +208,7 @@ class PathCalc {
 				cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
 			}
 		} else {
+			cov.derived().resize(numObs, numObs);
 			buildPolynomial(fc);
 			auto &symEv = symSolver.eigenvalues();
 			auto &symVec = symSolver.eigenvectors();

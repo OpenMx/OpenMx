@@ -359,7 +359,7 @@ void omxRAMExpectation::init() {
 			 RAMexp->S->name(), RAMexp->A->name());
 	}
 
-	bool hasProductNodes = false;
+	hasProductNodes = false;
 	isProductNode.assign(A->cols, false);
 	if (R_has_slot(rObj, Rf_install("isProductNode"))) {
 		ProtectedSEXP RprodNode(R_do_slot(rObj, Rf_install("isProductNode")));
@@ -691,6 +691,44 @@ namespace RelationalRAMExpectation {
 					mxThrow("Cannot find row %d in %s", row, e1->data->name);
 				int bx = it->second;
 				cc.connect(ax, bx);
+			}
+		}
+	}
+
+	void independentGroup::MpcIO::recompute(FitContext *fc)
+	{
+		for (int ax=0; ax < clumpSize; ++ax) {
+			addr &a1 = par.st.layout[ par.gMap[ax] ];
+			omxExpectation *expectation = a1.getModel(fc);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
+			if (ram->M) omxRecompute(ram->M, fc);
+		}
+	}
+
+	unsigned independentGroup::MpcIO::getVersion(FitContext *fc)
+	{
+		unsigned v = 0;
+		for (int ax=0; ax < clumpSize; ++ax) {
+			addr &a1 = par.st.layout[ par.gMap[ax] ];
+			omxExpectation *expectation = a1.getModel(fc);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
+			if (ram->M) v += omxGetMatrixVersion(ram->M);
+		}
+		return v;
+	}
+
+	void independentGroup::MpcIO::refresh(FitContext *fc)
+	{
+		for (int ax=0; ax < clumpSize; ++ax) {
+			placement &pl = par.placements[ax];
+			addr &a1 = par.st.layout[ par.gMap[ax] ];
+			omxExpectation *expectation = a1.getModel(fc);
+			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
+			expectation->loadDefVars(a1.row);
+			if (ram->M) {
+				omxRecompute(ram->M, fc);
+				EigenVectorAdaptor eM(ram->M);
+				full.col(0).segment(pl.modelStart, eM.size()) = eM;
 			}
 		}
 	}
@@ -1529,13 +1567,13 @@ namespace RelationalRAMExpectation {
 				int prevDx = dx;
 				a1.dataRow(st.smallCol);
 				for (int vx=0, ncol=0; vx < ram->F->cols; ++vx) {
+					isProductNode[ pl.modelStart + vx ] = ram->isProductNode[vx];
 					if (!ram->latentFilter[vx]) continue;
 					int col = ncol++;
 					double val = omxMatrixElement(st.smallCol, 0, col);
 					bool yes = std::isfinite(val);
 					if (!yes) continue;
 					latentFilter[ pl.modelStart + vx ] = true;
-					isProductNode[ pl.modelStart + vx ] = ram->isProductNode[vx];
 					std::string dname =
 						modelName + omxDataColumnName(data, dc[col]);
 					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
@@ -1553,9 +1591,9 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, 0,
+		pcalc.attach(clumpVars, clumpObs, latentFilter, isProductNode, new MpcIO(*this),
 								 new ApcIO(*this), new SpcIO(*this));
-		pcalc.setAlgo(fc, false, NA_INTEGER);
+		pcalc.setAlgo(fc, st.hasProductNodes, NA_INTEGER);
 	}
 
 	template <typename T>
@@ -1801,6 +1839,7 @@ namespace RelationalRAMExpectation {
 			omxExpectation *phomeEx = omxExpectationFromIndex(homeEx->expNum, fc->getParentState());
 			omxRAMExpectation *pram = (omxRAMExpectation*) phomeEx;
 			parent = pram->rram;
+			hasProductNodes = parent->hasProductNodes;
 			group.reserve(parent->group.size());
 			for (size_t gx=0; gx < parent->group.size(); ++gx) {
 				independentGroup *ig = parent->group[gx];
@@ -1820,10 +1859,17 @@ namespace RelationalRAMExpectation {
 			flattenOneRow(homeEx, row, maxSize);
 			if (isErrorRaised()) return;
 		}
+
+		hasProductNodes = false;
 		for (auto *ex : allEx) {
+			omxRAMExpectation *ram1 = (omxRAMExpectation*) ex;
+			hasProductNodes |= ram1->getHasProductNodes();
 			if (!ex->data->hasWeight() && !ex->data->hasFreq()) continue;
 			mxThrow("%s: row frequencies or weights provided in '%s' are not compatible with joins",
 				 expectation->name, ex->data->name);
+		}
+		if (hasProductNodes && getOptimizeMean() < 2) {
+			mxThrow("%s: .optimizeMean=2L is required for product nodes", homeEx->name);
 		}
 
 		Eigen::VectorXd paramSave;
@@ -1949,6 +1995,13 @@ namespace RelationalRAMExpectation {
 		pcalc.cov(fc, fullCov);
 	}
 
+	void independentGroup::computeMean(FitContext *fc)
+	{
+		if (0 == getParent().dataVec.size()) return;
+
+		pcalc.mean(fc, expectedVec);
+	}
+
 	void independentGroup::simulate()
 	{
 		if (!dataVec.size()) return;
@@ -2072,6 +2125,22 @@ namespace RelationalRAMExpectation {
 	}
 
 	void state::computeMean(FitContext *fc)
+	{
+		if (hasProductNodes) {
+			computeMeanByGroup(fc);
+		} else {
+			computeMeanByModel(fc);
+		}
+	}
+
+	void state::computeMeanByGroup(FitContext *fc)
+	{
+		for (size_t gx=0; gx < group.size(); ++gx) {
+			group[gx]->computeMean(fc);
+		}
+	}
+
+	void state::computeMeanByModel(FitContext *fc)
 	{
 		// maybe there is a way to sort by dependency
 		// so this loop can be parallelized
