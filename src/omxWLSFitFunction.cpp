@@ -291,7 +291,10 @@ void omxWLSFitFunction::prepData()
 	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
 		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
 		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
-			omxRaiseError("Observed and expected threshold matrices must have the same number of rows and columns");
+			mxThrow("Observed %dx%d and expected %dx%d threshold matrices must have the same shape",
+							obsThresholdsMat->rows, obsThresholdsMat->cols,
+							expectation->thresholdsMat->rows,
+							expectation->thresholdsMat->cols);
 		}
 	}
 	
