@@ -353,11 +353,7 @@ void PathCalc::buildPolynomial(FitContext *fc)
 
 	// mxPrintMat("vec", symVec);
 	if (verbose >= 2) {
-		std::ostringstream temp;
-		for (int ii=0; ii < numVars; ++ii) {
-			temp << ii << " " << symEv[ii] << ":" << std::string(polyRep[ii]) << "\n";
-		}
-		mxLogBig(temp.str());
+		mxLogBig(getPolyRep());
 	}
 
 	// Could be smarter and avoid latents except when needed TODO

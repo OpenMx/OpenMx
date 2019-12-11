@@ -246,6 +246,17 @@ class PathCalc {
 			}
 		}
 	}
+
+	std::string getPolyRep()
+	{
+		auto &symEv = symSolver.eigenvalues();
+		std::ostringstream temp;
+		for (int ii=0; ii < numVars; ++ii) {
+			temp << "[" << ii << "] " << symEv[ii] << " : " << std::string(polyRep[ii]) << "\n";
+		}
+		return temp.str();
+	}
+
 };
 
 #endif // __path_h_
