@@ -2255,7 +2255,9 @@ namespace RelationalRAMExpectation {
 		dbg.add("clumpObs", Rf_ScalarInteger(clumpObs));
 		dbg.add("numLooseClumps", Rf_ScalarInteger(numLooseClumps()));
 		dbg.add("skipMean", Rf_ScalarInteger(skipMean));
-		dbg.add("polyRep", Rcpp::wrap(pcalc.getPolyRep()));
+		if (st.hasProductNodes) {
+			dbg.add("polyRep", Rcpp::wrap(pcalc.getPolyRep()));
+		}
 
 		if (clumpObs < 500) {
 			// Can crash R because vectors are too long.
