@@ -756,7 +756,7 @@ namespace RelationalRAMExpectation {
 
 	unsigned independentGroup::ApcIO::getVersion(FitContext *fc)
 	{
-		unsigned v = 0;
+		unsigned v = useRampart * 100000;
 		for (int ax=0; ax < clumpSize; ++ax) {
 			addr &a1 = par.st.layout[ par.gMap[ax] ];
 			omxExpectation *expectation = a1.getModel(fc);
@@ -796,8 +796,11 @@ namespace RelationalRAMExpectation {
 				for (auto &v : *ram->Acoeff) mat.coeffRef(pl.modelStart + v.c, pl.modelStart + v.r) = -dat[v.off];
 			}
 
-			const double scale = a1.rampartScale;
-			if (scale == 0.0) continue;
+			double scale = 1.0;
+			if (useRampart) {
+				scale = a1.rampartScale;
+				if (scale == 0.0) continue;
+			}
 
 			omxData *data = expectation->data;
 			for (size_t jx=0; jx < ram->between.size(); ++jx) {
@@ -1490,7 +1493,9 @@ namespace RelationalRAMExpectation {
 		arrayIndex = ig->arrayIndex;
 		obsNameVec = 0;
 		varNameVec = 0;
+		skipMean = ig->skipMean;
 		expectedVec.resize(ig->expectedVec.size());
+		if (skipMean) expectedVec.setZero();
 		fullMean.resize(ig->fullMean.size());
 		fullMean.setZero();
 		clumpVars = ig->clumpVars;
@@ -1500,6 +1505,7 @@ namespace RelationalRAMExpectation {
 
 	void independentGroup::prep(FitContext *fc)
 	{
+		skipMean = NA_INTEGER;
 		int totalObserved = 0;
 		int maxSize = 0;
 		if (placements.size()) {
@@ -1515,9 +1521,7 @@ namespace RelationalRAMExpectation {
 		}
 		latentFilter.assign(maxSize, false); // will have totalObserved true entries
 		isProductNode.assign(maxSize, false);
-		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, totalObserved));
 		varNameVec = Rf_protect(Rf_allocVector(STRSXP, maxSize));
-		expectedVec.resize(totalObserved);
 		dataVec.resize(totalObserved);
 		dataColumn.resize(totalObserved);
 		dataColumn.setConstant(-1);
@@ -1535,6 +1539,9 @@ namespace RelationalRAMExpectation {
 			clumpVars = end.modelStart + a1.numVars();
 			clumpObs = end.obsStart + a1.numObs();
 		}
+		int tmpObs = st.hasProductNodes? clumpObs : totalObserved;
+		expectedVec.resize(tmpObs);
+		obsNameVec = Rf_protect(Rf_allocVector(STRSXP, tmpObs));
 
 		int dx=0;
 		for (size_t ax=0; ax < placements.size(); ++ax) {
@@ -1576,7 +1583,7 @@ namespace RelationalRAMExpectation {
 					latentFilter[ pl.modelStart + vx ] = true;
 					std::string dname =
 						modelName + omxDataColumnName(data, dc[col]);
-					SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
+					if (dx < tmpObs) SET_STRING_ELT(obsNameVec, dx, Rf_mkChar(dname.c_str()));
 					dataVec[ dx ] = val;
 					if (a1.getExpNum() == st.homeEx->expNum) dataColumn[ dx ] = col;
 					dx += 1;
@@ -1986,12 +1993,17 @@ namespace RelationalRAMExpectation {
 				}
 			}
 		}
+		if (st.hasProductNodes) {
+			skipMean = st.layoutSetup[gMap[0]].skipMean;
+			if (skipMean) expectedVec.setZero();
+		}
 	}
 
 	void independentGroup::computeCov(FitContext *fc)
 	{
 		if (0 == getParent().dataVec.size()) return;
 
+		((ApcIO&)*pcalc.aio).useRampart = true;
 		pcalc.cov(fc, fullCov);
 	}
 
@@ -1999,6 +2011,9 @@ namespace RelationalRAMExpectation {
 	{
 		if (0 == getParent().dataVec.size()) return;
 
+		if (skipMean) return;
+
+		((ApcIO&)*pcalc.aio).useRampart = false;
 		pcalc.mean(fc, expectedVec);
 	}
 
@@ -2131,6 +2146,18 @@ namespace RelationalRAMExpectation {
 		} else {
 			computeMeanByModel(fc);
 		}
+
+		state &pst = getParent();
+		const int layoutSize = pst.layout.size();
+		if (pst.getOptimizeMean() >= 1) {
+			for (int ax=0; ax < layoutSize; ax += pst.layout[ax].nextMean) {
+				addr &a1 = pst.layout[ax];
+				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
+				independentGroup &tig1 = *group[a1.ig->arrayIndex];
+				tig1.expectedVec.segment(a1Start, a1.numObs())
+					*= a1.quickRotationFactor;
+			}
+		}
 	}
 
 	void state::computeMeanByGroup(FitContext *fc)
@@ -2214,16 +2241,6 @@ namespace RelationalRAMExpectation {
 			}
 		}
 
-		if (pst.getOptimizeMean() >= 1) {
-			for (int ax=0; ax < layoutSize; ax += pst.layout[ax].nextMean) {
-				addr &a1 = pst.layout[ax];
-				int a1Start = a1.ig->placements[a1.igIndex].obsStart;
-				independentGroup &tig1 = *group[a1.ig->arrayIndex];
-				tig1.expectedVec.segment(a1Start, a1.numObs())
-					*= a1.quickRotationFactor;
-			}
-		}
-
 		pst.applyRotationPlan(UnitAccessor<true>(this));
 	}
 
@@ -2237,6 +2254,7 @@ namespace RelationalRAMExpectation {
 		dbg.add("clumpSize", Rf_ScalarInteger(clumpSize));
 		dbg.add("clumpObs", Rf_ScalarInteger(clumpObs));
 		dbg.add("numLooseClumps", Rf_ScalarInteger(numLooseClumps()));
+		dbg.add("skipMean", Rf_ScalarInteger(skipMean));
 
 		if (clumpObs < 500) {
 			// Can crash R because vectors are too long.
@@ -2270,7 +2288,7 @@ namespace RelationalRAMExpectation {
 			dbg.add("latentFilter", Rcpp::wrap(latentFilter));
 			SEXP dv = Rcpp::wrap(dataVec);
 			Rf_protect(dv);
-			Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
+			//Rf_setAttrib(dv, R_NamesSymbol, obsNameVec);
 			dbg.add("dataVec", dv);
 		} else {
 			Rf_warning("%s: group %d too large to transfer to back to R",
@@ -2322,8 +2340,9 @@ namespace RelationalRAMExpectation {
 		dbg.add("rampartUsage", Rcpp::wrap(rampartUsage));
 		dbg.add("rotationCount", Rcpp::wrap(rotationCount));
 		dbg.add("numGroups", Rcpp::wrap(int(group.size())));
+		dbg.add("hasProductNodes", Rcpp::wrap(hasProductNodes));
 
-		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale,
+		SEXP modelName, row, numJoins, numKids, parent1, fk1, rscale, qrf,
 			hmean, skipMean, rset, ugroup;
 		Rf_protect(modelName = Rf_allocVector(STRSXP, layout.size()));
 		Rf_protect(row = Rf_allocVector(INTSXP, layout.size()));
@@ -2332,6 +2351,7 @@ namespace RelationalRAMExpectation {
 		Rf_protect(parent1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(fk1 = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rscale = Rf_allocVector(REALSXP, layout.size()));
+		Rf_protect(qrf = Rf_allocVector(REALSXP, layout.size()));
 		Rf_protect(hmean = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(skipMean = Rf_allocVector(INTSXP, layout.size()));
 		Rf_protect(rset = Rf_allocVector(INTSXP, layout.size()));
@@ -2344,6 +2364,7 @@ namespace RelationalRAMExpectation {
 			INTEGER(parent1)[mx] = plusOne(layoutSetup[mx].parent1);
 			INTEGER(fk1)[mx] = layoutSetup[mx].fk1;
 			REAL(rscale)[mx] = layout[mx].rampartScale;
+			REAL(qrf)[mx] = layout[mx].quickRotationFactor;
 			INTEGER(hmean)[mx] = layoutSetup[mx].heterogenousMean;
 			INTEGER(skipMean)[mx] = layoutSetup[mx].skipMean;
 			INTEGER(rset)[mx] = layoutSetup[mx].rset;
@@ -2356,6 +2377,7 @@ namespace RelationalRAMExpectation {
 							  Rcpp::Named("parent1")=parent1,
 							  Rcpp::Named("fk1")=fk1,
 							  Rcpp::Named("rampartScale")=rscale,
+							  Rcpp::Named("qrf")=qrf,
 							  Rcpp::Named("hmean")=hmean,
 							  Rcpp::Named("skip")=skipMean,
 							  Rcpp::Named("rset")=rset,

@@ -70,7 +70,6 @@ class PathCalc {
 	int numVars;
 	int numObs;
 	Eigen::ArrayXi obsMap;
-	std::unique_ptr<PathCalcIO> mio, aio, sio;
 	bool algoSet;
 	Eigen::SelfAdjointEigenSolverNosort< Eigen::MatrixXd > symSolver;
 	std::vector< Polynomial< double > > polyRep;
@@ -105,6 +104,7 @@ class PathCalc {
 
  public:
 
+	std::unique_ptr<PathCalcIO> mio, aio, sio;
 	const int verbose;
 	const bool ignoreVersion;
 

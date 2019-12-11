@@ -132,7 +132,8 @@ namespace RelationalRAMExpectation {
 		struct ApcIO : PathCalcIO {
 			independentGroup &par;
 			int clumpSize;
-			ApcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			bool useRampart;
+			ApcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize), useRampart(true) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
 			template <typename T>
@@ -178,6 +179,7 @@ namespace RelationalRAMExpectation {
 		Eigen::VectorXd                  simDataVec;
 		Eigen::VectorXd                  fullMean;  // rename, latents are filtered out
 		Eigen::VectorXd                  rawFullMean;
+		int                              skipMean;
 		Eigen::VectorXd                  expectedVec;
 		Eigen::MatrixXd                  fullCov;   // rename, latents are filtered out
 		std::vector<bool>                latentFilter; // false when latent or missing
