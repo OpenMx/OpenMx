@@ -174,6 +174,9 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 			EigenVectorAdaptor Emean(oro->means);
 			out.add("mean", Rcpp::wrap(Emean));
 		}
+		if (hasProductNodes) {
+			dbg.add("polyRep", Rcpp::wrap(pcalc.getPolyRep()));
+		}
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());
@@ -390,6 +393,8 @@ void omxRAMExpectation::init() {
 	//mxPrintMat("RAM corrected dc", oo->getDataColumns());
 
 	if (!currentState->isClone()) {
+		//if (hasProductNodes) rampartCycleLimit = 0; TODO
+
 		Eigen::VectorXd estSave;
 		currentState->setFakeParam(estSave);
 		loadFakeDefVars();
