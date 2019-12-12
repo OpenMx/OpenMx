@@ -45,7 +45,7 @@ An Intuitive Appeal
 	dev.off()
 
 .. _figure-intervalize:
-.. figure:: cache/ifa-intervalize.*
+.. figure:: cache/ifa-intervalize.png
 
 	    Percentage correct of responses by skill bin
 
@@ -89,7 +89,7 @@ from an unrepresentative sample [Embretson1996]_.
 	dev.off()
 
 .. _figure-1pl-rpf:
-.. figure:: cache/ifa-1pl-rpf.*
+.. figure:: cache/ifa-1pl-rpf.png
 
 	Example plots of the logistic curve
 
@@ -188,7 +188,7 @@ will only consider the positive affect part of the scale.
    PANASItem <- c("Very Slightly or Not at All",  "A Little",
 		"Moderately", "Quite a Bit",	"Extremely")
    spec <- list()
-   spec[1:10] <- rpf.grm(outcomes = length(PANASItem))  # grm="graded response model"
+   spec[1:10] <- list(rpf.grm(outcomes = length(PANASItem)))  # grm="graded response model"
 
    # replace with your own data
    data <- rpf.sample(750, spec, sapply(spec, rpf.rparam))
@@ -224,7 +224,7 @@ collapsing two outcomes and see how the model fit changes.
 .. code-block:: r
 
    spec <- list()
-   spec[1:10] <- rpf.grm(outcomes = length(PANASItem))
+   spec[1:10] <- list(rpf.grm(outcomes = length(PANASItem)))
 
 The ``rpf.grm`` function creates an ``rpf.base`` class object that
 represents an item response function. An item response function
@@ -521,7 +521,7 @@ scores.
 	dev.off()
 
 .. _figure-1pl-itemmap:
-.. figure:: cache/ifa-1pl-itemMap.*
+.. figure:: cache/ifa-1pl-itemMap.png
 
 	Example item map
 
@@ -645,7 +645,7 @@ S test [OrlandoThissen2000]_.
 	dev.off()
 
 .. _figure-splot:
-.. figure:: cache/ifa-Splot.*
+.. figure:: cache/ifa-Splot.png
 
 	    Expected vs observed outcome frequencies at each sum-score level
 
@@ -697,7 +697,7 @@ probability units using the logistic function, :math:`(1+\exp(-g))^{-1}`.
 .. code-block:: r
 
    spec <- list()
-   spec[1:8] <- rpf.drm()  # drm="dichotomous response model"
+   spec[1:8] <- list(rpf.drm())  # drm="dichotomous response model"
 
    # replace with your own data
    simParam <- sapply(spec, rpf.rparam)
@@ -752,7 +752,7 @@ It is often helpful to look at a plot (e.g., :num:`Figure #figure-betaprior`)
 to develop your mathematical imagination.
 
 .. _figure-betaprior:
-.. figure:: cache/ifa-betaprior.*
+.. figure:: cache/ifa-betaprior.png
 
 	    Beta prior of strength 5 with mode logit(1/5) on the logit scale
 
@@ -966,7 +966,7 @@ the general population mean.
                     mxComputeSequence(list(
                       mxComputeEM('panas.expectation', 'scores',
 		                  mxComputeGradientDescent(fitfunction="latent.fitfunction")),
-                      mxComputeConfidenceInterval())))
+                      omxDefaultComputePlan(intervals=TRUE)$steps[['CI']])))
 
    e1Model <- mxRun(e1Model)
    summary(e1Model)
@@ -1014,7 +1014,7 @@ This behavior can be confirmed by passing ``verbose=2L``
 to ``mxExpectationBA81``.
 
 .. _figure-eap-latent:
-.. figure:: cache/ifa-eap-latent.*
+.. figure:: cache/ifa-eap-latent.png
 
 	    EAP scores with a standard Normal latent distribution (wrong) and estimated Normal distribution (correct).
 
@@ -1073,7 +1073,7 @@ perception accuracy.
 
    # replace with published item parameters
    spec <- list()
-   spec[1:21] <- rpf.grm(factors=9, outcomes=5)
+   spec[1:21] <- list(rpf.grm(factors=9, outcomes=5))
    factors <- c('tonal', 'rhythm', paste('s', 1:7, sep=""))
    imat <- mxMatrix(name="item", values=simplify2array(lapply(spec, rpf.rparam)),
                  dimnames=list(c(factors, paste('b', 1:4, sep="")),
