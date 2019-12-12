@@ -27,14 +27,15 @@ for f in *.rst; do
 	if [ -f "$rout" ]; then touch "$rout"; fi
     fi
   fi
-  if [ "$check" -eq 1 -a -s "$rsrc" -a "$rsrc" -nt "$rout" ]; then
+  if [ "$check" -eq 1 -a -s "$rsrc" ] && [ ! -e "$rout" -o "$rsrc" -nt "$rout" ]; then
     echo -n "check   $rsrc .. "
     if R --no-save -f "$rsrc" > "$rout" 2>&1; then
-	echo "pass"
+    		echo "pass"
+				touch "$rout"
     else
-	echo "FAIL"
-	echo ">>> See $dir/$rout"
-	exit 1
+    	echo "FAIL"
+    	echo ">>> See $dir/$rout"
+    	exit 1
     fi
   fi
 done
