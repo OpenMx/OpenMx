@@ -7,6 +7,7 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * October 2019 (R 3.6.1)
 * IMPROVED: `mxRun` informs user about any unrecognised parameters (... parameters).
 * FIXED: Bug affecting RAM models: `cov` data was not reordered correctly to match model.
+* FIXED: Bug prevented estimation of factor score when there was more than one latent factor (v2.14.11-87-g6af1bf6fe).
 
 # OpenMx 2.13.3
 * September 2019 (R 3.6.1)
