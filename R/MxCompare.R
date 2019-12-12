@@ -493,7 +493,9 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 		c(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
 		  otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom)
 
-	if (any(otherStats[['diffdf']] < 0)) {
+  diffdf <- otherStats[['diffdf']]
+  diffdf <- diffdf[!is.na(diffdf)]
+	if (length(diffdf) && any(diffdf < 0)) {
 		msg <- paste("Model", omxQuotes(refSummary$modelName), "has more degrees of freedom than",
 			     otherSummary$modelName, "which means that the models need to be",
 			     "compared in the opposite order")
