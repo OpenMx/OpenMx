@@ -83,10 +83,10 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	} else if (is(expectation, "MxExpectationBA81")) {  # refactor TODO
 		if (!is.na(expectation@weightColumn) || !is.na(data@weight)) {
 			dof <- nrow(data@observed) - 1
-			historySet <- append(data, historySet)
 		} else {
-			return(list(NA, historySet))
+			dof <- nrow(rpf::compressDataFrame(data@observed)) - 1
 		}
+    historySet <- append(data, historySet)
 	} else if (!is.null(obsStats[['cov']])) {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
