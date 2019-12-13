@@ -37,10 +37,14 @@ clean:
 	-rm source/conf.py
 	-rm -r source/cache
 
-html: rcheck
+html-initial: rcheck
 	-rm -rf build/doctrees  # latex interferes with html somehow
 	# https://bitbucket.org/arjones6/sphinx-numfig/issue/7/make-html-needs-to-be-run-before-make
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
+
+html: html-initial
+	cd build/html && perl -pi -e 's,http://openmx\.ssri\.psu\.edu/svn/trunk/demo/,_static/demo/,g' *.html
+	cd build/html && perl -pi -e 's,\.R">_static/demo/,.R">,g' *.html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 

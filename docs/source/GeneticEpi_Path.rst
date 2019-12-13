@@ -301,7 +301,7 @@ To evaluate the significance of each of the model parameters, nested submodels a
                             latentVars=aceVars, paths, covA1A2_MZ, dataMZ )
     modelDZ      <- mxModel(model="DZ", type="RAM", manifestVars=selVars, 
                             latentVars=aceVars, paths, covA1A2_DZ, dataDZ )
-    modelAE      <- mxModel(model="AE", modelMZ, modelDZ, minus2ll, obj )
+    modelAE      <- mxModel(model="AE", modelMZ, modelDZ, obj )
 
     # Run Model
     fitAE        <- mxRun(modelAE)

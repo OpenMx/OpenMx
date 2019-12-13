@@ -136,19 +136,20 @@ roxygen:
 docprep: roxygen build-clean
 
 pdf: docprep
+	sh ./util/prep cran install
 	rm -f $(PDFFILE); $(REXEC) CMD Rd2pdf --title="OpenMx Reference Manual" --output=$(PDFFILE) .
 	cd docs; make pdf
 
 html: docprep
-	cd build && R CMD INSTALL --html --no-libs --no-test-load --build ..
+	sh ./util/prep cran install
+	cd build && R CMD INSTALL --library=/tmp --html --no-libs --no-test-load --build ..
 	cd build && tar -zxf *gz
 	mv build/OpenMx/html/* docs/source/static/Rdoc
 	mv build/OpenMx/demo/* docs/source/static/demo
 	cd docs && make html
-	cd docs/build/html && perl -pi -e 's,http://openmx\.ssri\.psu\.edu/svn/trunk/demo/,_static/demo/,g' *.html
-	cd docs/build/html && perl -pi -e 's,\.R">_static/demo/,.R">,g' *.html
 
 doc.tar.bz2:
+	cd docs && make clean
 	$(MAKE) -j1 html pdf
 	-rm -r build/$(VERSION)
 	mkdir -p build/$(VERSION)
@@ -156,6 +157,7 @@ doc.tar.bz2:
 	mv docs/build/latex/OpenMx.pdf build/$(VERSION)/OpenMxUserGuide.pdf
 	mv build/OpenMx.pdf build/$(VERSION)
 	cd build && tar jcf ../doc.tar.bz2 $(VERSION)
+	git checkout DESCRIPTION
 
 install: code-style
 	sh ./util/prep npsol install
@@ -214,6 +216,7 @@ autodep:
 	cd src && gcc     -MM *.cpp *.c | perl -pe 's,\S*/(R|Rcpp|BH|RcppEigen|rpf|StanHeaders)/include/\S*,,g' | perl -pe 's,^\s*\\\n,,'  |perl -pe 's,:,: Makevars,'  > autodep
 
 clean:
+	cd docs && make clean
 	mkdir -p build
 	-rm build/OpenMx_*.tar.gz
 	-rm src/*.o
