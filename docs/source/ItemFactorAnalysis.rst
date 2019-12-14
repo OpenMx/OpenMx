@@ -45,7 +45,7 @@ An Intuitive Appeal
 	dev.off()
 
 .. _figure-intervalize:
-.. figure:: cache/ifa-intervalize.png
+.. figure:: cache/ifa-intervalize.*
 
 	    Percentage correct of responses by skill bin
 
@@ -89,7 +89,7 @@ from an unrepresentative sample [Embretson1996]_.
 	dev.off()
 
 .. _figure-1pl-rpf:
-.. figure:: cache/ifa-1pl-rpf.png
+.. figure:: cache/ifa-1pl-rpf.*
 
 	Example plots of the logistic curve
 
@@ -521,7 +521,7 @@ scores.
 	dev.off()
 
 .. _figure-1pl-itemmap:
-.. figure:: cache/ifa-1pl-itemMap.png
+.. figure:: cache/ifa-1pl-itemMap.*
 
 	Example item map
 
@@ -645,7 +645,7 @@ S test [OrlandoThissen2000]_.
 	dev.off()
 
 .. _figure-splot:
-.. figure:: cache/ifa-Splot.png
+.. figure:: cache/ifa-Splot.*
 
 	    Expected vs observed outcome frequencies at each sum-score level
 
@@ -752,7 +752,7 @@ It is often helpful to look at a plot (e.g., :num:`Figure #figure-betaprior`)
 to develop your mathematical imagination.
 
 .. _figure-betaprior:
-.. figure:: cache/ifa-betaprior.png
+.. figure:: cache/ifa-betaprior.*
 
 	    Beta prior of strength 5 with mode logit(1/5) on the logit scale
 
@@ -1014,7 +1014,7 @@ This behavior can be confirmed by passing ``verbose=2L``
 to ``mxExpectationBA81``.
 
 .. _figure-eap-latent:
-.. figure:: cache/ifa-eap-latent.png
+.. figure:: cache/ifa-eap-latent.*
 
 	    EAP scores with a standard Normal latent distribution (wrong) and estimated Normal distribution (correct).
 
