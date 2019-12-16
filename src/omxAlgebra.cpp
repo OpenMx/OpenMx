@@ -358,15 +358,8 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 }
 
 omxMatrix* omxMatrixLookupFromStateByNumber(int matrix, omxState* os) {
-	omxMatrix* output = NULL;
 	if(matrix == NA_INTEGER){return NULL;}
-	if (matrix >= 0) {
-		output = os->algebraList[matrix];
-	} 
-	else {
-		output = os->matrixList[~matrix];
-	}
-	return output;
+	return os->getMatrixFromIndex(matrix);
 }
 
 omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {
