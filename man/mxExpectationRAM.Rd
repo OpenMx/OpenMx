@@ -27,7 +27,8 @@ This function creates an MxExpectationRAM object.
 
 \usage{
 mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-                 threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA)
+                 threshnames = dimnames, ..., between=NULL, verbose=0L,
+  .useSparse=NA, expectedCovariance=NULL, expectedMean=NULL)
 }
 
 
@@ -44,6 +45,10 @@ mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
    \item{verbose}{integer. Level of runtime diagnostic output.}
    \item{.useSparse}{logical. Whether to use sparse matrices to compute
    the expectation. The default \code{NA} allows the backend to decide.}
+   \item{expectedCovariance}{An optional character string indicating the
+   name of a matrix for the model implied covariance.}
+   \item{expectedMean}{An optional character string indicating the name
+   of a matrix for the model implied mean.}
 }
 
 \details{

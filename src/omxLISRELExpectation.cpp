@@ -26,6 +26,7 @@ class omxLISRELExpectation : public omxExpectation {
 
 public:
 	omxMatrix *cov, *means; // expected covariance and means
+	omxMatrixPtr covOwner, meanOwner;
 	omxMatrix *LX, *LY, *BE, *GA, *PH, *PS, *TD, *TE, *TH; // LISREL model Matrices
 	omxMatrix *TX, *TY, *KA, *AL; //LISREL Means Matrices
 	omxMatrix *A, *B, *C, *D, *E, *F, *G, *H, *I, *J, *K, *L; // Place holder matrices used in computations.  Note: L is analogous to Ax in RAM and is used in I-BE inverse
@@ -93,9 +94,6 @@ omxLISRELExpectation::~omxLISRELExpectation()
 	
 	omxLISRELExpectation* argStruct = this;
 
-	omxFreeMatrix(argStruct->cov);
-	omxFreeMatrix(argStruct->means);
-	
 	omxFreeMatrix(argStruct->A);
 	omxFreeMatrix(argStruct->B);
 	omxFreeMatrix(argStruct->C);
@@ -553,13 +551,17 @@ void omxLISRELExpectation::init() {
 	LISobj->MUY = 	omxInitMatrix(ny, 1, TRUE, currentState);
 	
 	
-	LISobj->cov = 	omxInitMatrix(ntotal, ntotal, TRUE, currentState);
+	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", ntotal, ntotal);
+	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
+	else connectMatrixToExpectation(cov, this, "covariance");
 
 	LISobj->args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*));
 	
 	/* Means */
 	if(LISobj->TX != NULL || LISobj->TY != NULL || LISobj->KA != NULL || LISobj->AL != NULL) {
-		LISobj->means = 	omxInitMatrix(1, ntotal, TRUE, currentState);
+		means = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, ntotal);
+		if (!means->hasMatrixNumber) meanOwner = omxMatrixPtr(means);
+		else connectMatrixToExpectation(means, this, "mean");
 	} else LISobj->means  = 	NULL;
 	//TODO: Adjust means processing to allow only Xs or only Ys
 

@@ -14,7 +14,83 @@
 #   limitations under the License.
 
 setClass(Class = "BaseExpectationNormal",
-	 contains = "MxBaseExpectation")
+         contains = "MxBaseExpectation",
+         representation = representation(
+           expectedCovariance = "MxOptionalCharOrNumber",
+           expectedMean = "MxOptionalCharOrNumber"))
+
+setMethod("qualifyNames", signature("BaseExpectationNormal"), 
+          function(.Object, modelname, namespace) {
+            for (sl in c(paste0('expected', c('Covariance','Mean')))) {
+              slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+            }
+            .Object
+          })
+
+setMethod("genericExpRename", signature("BaseExpectationNormal"),
+          function(.Object, oldname, newname) {
+            for (sl in c(paste0('expected', c('Covariance','Mean')))) {
+              slot(.Object,sl) <- renameReference(slot(.Object,sl), oldname, newname)
+            }
+            .Object
+          })
+
+setMethod("genericExpFunConvert", signature("BaseExpectationNormal"), 
+          function(.Object, flatModel, model, labelsData, dependencies) {
+            for (sl in c(paste0('expected', c('Covariance','Mean')))) {
+              matName <- slot(.Object,sl)
+              if (length(matName) == 0) next
+              mat <- flatModel[[matName]]
+              if (any(mat@free)) {
+                msg <- paste('Free parameters are not allowed in matrix',
+                             omxQuotes(matName))
+                stop(msg, call.=FALSE)
+              }
+              if (any(!is.na(mat@labels))) {
+                msg <- paste('Labels are not allowed in matrix', omxQuotes(matName))
+                stop(msg, call.=FALSE)
+              }
+            }
+            .Object
+          })
+
+setMethod("genericNameToNumber", signature("BaseExpectationNormal"),
+	  function(.Object, flatModel, model) {
+		  name <- .Object@name
+      for (sl in c(paste0('expected', c('Covariance','Mean')))) {
+        slot(.Object,sl) <- imxLocateIndex(flatModel, slot(.Object,sl), name)
+      }
+		  .Object
+	  })
+
+constrainCorData <- function(ex, size, model, flatModel) {
+  path <- unlist(strsplit(ex@name, imxSeparatorChar, fixed = TRUE))
+  if (path[1] == model@name) {
+    submodel <- model
+  } else {
+    submodel <- model[[ path[1] ]]
+  }
+  newObj <- model@.newobjects
+  # Don't deal with inherited MxData. That's an indication of
+  # an advanced user who knows what they are doing.
+  if (!is.null(submodel@data) && submodel@data@type == 'cor' && is.null(ex@expectedCovariance)) {
+    ex@expectedCovariance <- 'expectedCovariance'
+    corConstraint <- list(
+      ex,
+      mxMatrix(name="expectedCovariance", nrow=size, ncol=size),
+      mxMatrix(name= "unit_1_by_nObs", type="Unit", ncol=1, nrow=size),
+      mxConstraintFromString(name="constraintForCorData", "diag2vec(expectedCovariance) == unit_1_by_nObs"))
+    submodel <- mxModel(submodel, corConstraint)
+    newObj <- TRUE
+  }
+  if (path[1] == model@name) {
+    model <- submodel
+  } else {
+    model <- mxModel(model, submodel)
+  }
+  model@.newobjects <- newObj
+  model
+}
 
 setClass(Class = "MxExpectationNormal",
 	representation = representation(

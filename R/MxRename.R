@@ -66,6 +66,7 @@ propagateModelName <- function(model, oldname, newname) {
 }
 
 renameReference <- function(reference, oldname, newname) {
+  if (length(reference) == 0) return(reference)
 	if (is.na(reference)) {
 		return(reference)
 	}

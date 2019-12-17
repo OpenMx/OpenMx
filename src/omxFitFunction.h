@@ -90,6 +90,8 @@ void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
+omxMatrix *omxNewMatrixFromSlotOrAnon(SEXP rObj, omxState* currentState, const char* slotName,
+																			int rows, int cols);
 
 omxFitFunction *omxInitFIMLFitFunction();
 omxFitFunction *omxInitAlgebraFitFunction();

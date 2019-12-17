@@ -324,6 +324,23 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	return newMatrix;
 }
 
+omxMatrix *omxNewMatrixFromSlotOrAnon(SEXP rObj, omxState* currentState, const char* slotName,
+																			int rows, int cols)
+{
+	ProtectedSEXP slotValue(R_do_slot(rObj, Rf_install(slotName)));
+	omxMatrix *newMatrix;
+	if (Rf_length(slotValue) == 0) {
+		newMatrix = omxInitMatrix(rows, cols, currentState);
+	} else {
+		newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
+		if (newMatrix->rows != rows || newMatrix->cols != cols) {
+			mxThrow("Matrix '%s' must be dimension %dx%d instead of %dx%d",
+							slotName, rows, cols, newMatrix->rows, newMatrix->cols);
+		}
+	}
+	return newMatrix;
+}
+
 void omxFitFunction::traverse(std::function<void(omxMatrix*)> &fn)
 {
 	fn(matrix);
