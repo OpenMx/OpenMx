@@ -156,13 +156,11 @@ void omxState::omxProcessMxExpectationEntities(SEXP expList)
 {
 	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", Rf_length(expList));}
 	SEXP nextExp;
-	SEXP eNames = Rf_getAttrib(expList, R_NamesSymbol);
 
 	for(int index = 0; index < Rf_length(expList); index++) {
 		if (isErrorRaised()) return;
 		Rf_protect(nextExp = VECTOR_ELT(expList, index));
 		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, this);
-		ex->name = CHAR(STRING_ELT(eNames, index));
 		expectationList.push_back(ex);
 	}
 }

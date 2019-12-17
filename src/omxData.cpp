@@ -108,9 +108,9 @@ void omxData::connectDynamicData(omxState *currentState)
 
 		for (int sx=0; sx < num; ++sx) {
 			omxExpectation *ex = omxExpectationFromIndex(evec[sx], currentState);
-			if (!strEQ(ex->expType, "MxExpectationBA81")) {
+			if (!strEQ(ex->name, "MxExpectationBA81")) {
 				omxRaiseErrorf("MxDataDynamic: type='cov' is only valid for MxExpectationBA81, not '%s'",
-					       ex->expType);
+					       ex->name);
 				continue;
 			}
 			BA81Expect *other = (BA81Expect *) ex;

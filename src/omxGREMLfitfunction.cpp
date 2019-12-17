@@ -68,7 +68,7 @@ void omxGREMLFitState::init()
   oo->canDuplicate = true;
   
   omxState* currentState = expectation->currentState;
-  newObj->usingGREMLExpectation = (strcmp(expectation->expType, "MxExpectationGREML")==0 ? 1 : 0);
+  newObj->usingGREMLExpectation = (strcmp(expectation->name, "MxExpectationGREML")==0 ? 1 : 0);
   if(!newObj->usingGREMLExpectation){
     //Maybe someday GREML fitfunction could be made compatible with another expectation, but not at present:
     mxThrow("GREML fitfunction is currently only compatible with GREML expectation");
