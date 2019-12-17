@@ -46,7 +46,7 @@ map$labels['Reaction','slope'] <- 'data.Days'
 map$values['Reaction','intercept'] <- 1
 m1 <- mxModel(m1, map)
 
-omxCheckError(mxRun(m1), "sleep.fitfunction: fellner=TRUE is required for sleep.expectation")
+omxCheckError(mxRun(m1), "sleep.fitfunction: fellner=TRUE is required for MxExpectationRAM")
 m1$fitfunction$fellner <- TRUE
 
 m1 <- mxRun(m1)

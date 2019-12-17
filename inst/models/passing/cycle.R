@@ -25,5 +25,5 @@ m1 <- mxModel("slug", type="RAM",
               mxPath("length", arrows=2, values=1),
               mxPath("slug.length", "length", joinKey='parentID', labels="fromParent"))
 
-omxCheckError(mxRun(m1), "slug.expectation cycle detected: 'slug.data' row 1 joins against itself")
+omxCheckError(mxRun(m1), "MxExpectationRAM cycle detected: 'slug.data' row 1 joins against itself")
 
