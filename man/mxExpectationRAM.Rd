@@ -63,7 +63,11 @@ The 'dimnames' arguments takes an optional character vector.  If this argument i
 
 mxExpectationRAM evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxExpectationRAM function, but must be included in the \link{MxModel} object. 
 
-To evaluate and mxExpectationRAM object, place it, the \link{mxData} object which the expected covariance approximates, any referenced \link{MxAlgebra} and \link{MxMatrix} objects, and optional \link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel} object and evaluate using \link{mxRun}. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function.
+To evaluate an mxExpectationRAM object, place it, the \link{mxData}
+object which the expected covariance approximates, any referenced
+\link{MxAlgebra} and \link{MxMatrix} objects, and optional
+\link{MxBounds} and \link{MxConstraint} objects in an \link{MxModel}
+object and evaluate it using \link{mxRun}. The results of the optimization can be found in the 'output' slot of the resulting model, and may be obtained using the \link{mxEval} function.
 }
 
 \value{
