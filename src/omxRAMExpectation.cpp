@@ -394,7 +394,7 @@ void omxRAMExpectation::init() {
 	//mxPrintMat("RAM corrected dc", oo->getDataColumns());
 
 	if (!currentState->isClone()) {
-		//if (hasProductNodes) rampartCycleLimit = 0; TODO
+		if (hasProductNodes) rampartCycleLimit = 0;
 
 		Eigen::VectorXd estSave;
 		currentState->setFakeParam(estSave);
