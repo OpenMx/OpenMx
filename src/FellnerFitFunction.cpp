@@ -301,7 +301,7 @@ namespace FellnerFitFunction {
 			omxRaiseErrorf("%s cannot fit without a model expectation", oo->fitType);
 			return;
 		}
-		if (!strEQ(expectation->expType, "MxExpectationRAM")) {
+		if (!strEQ(expectation->name, "MxExpectationRAM")) {
 			mxThrow("%s: only MxExpectationRAM is implemented", oo->matrix->name());
 		}
 

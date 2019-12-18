@@ -47,7 +47,7 @@ class omxExpectation {					// An Expectation
  public:
 	int numDataColumns;
 	SEXP rObj;
-        const char* expType;   // pointer to a static string, no need to allocate or free
+	const char *name;   // pointer to a static string, no need to allocate or free
 	omxData* data;
 	omxMatrix *thresholdsMat;
 	int numOrdinal;  // number of thresholds with matrix != 0
@@ -58,15 +58,14 @@ class omxExpectation {					// An Expectation
 
 	// omxExpectation should not need to know about free variables.
 	FreeVarGroup *freeVarGroup; // TODO remove
-	const char *name;
 
 	bool canDuplicate;
 	bool dynamicDataSource;
 
 	omxExpectation(omxState *state, int num) :
-		dataColumnsPtr(0), numDataColumns(0), rObj(0), expType(0),
+		dataColumnsPtr(0), numDataColumns(0), rObj(0), name(0),
 		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(state),
-		expNum(num), freeVarGroup(0), name(0), canDuplicate(false), dynamicDataSource(false) {};
+		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
 	virtual void compute(FitContext *fc, const char *what, const char *how) = 0;

@@ -334,8 +334,9 @@ void omxRAMExpectation::init() {
 			if (!fex) mxThrow("%s: level transition matrix '%s' does not reference the upper level model",
 					   oo->name, bmat->name());
 			omxCompleteExpectation(fex);
-			if (!strEQ(fex->expType, "MxExpectationRAM")) {
-				mxThrow("%s: only MxExpectationRAM can be joined with MxExpectationRAM", oo->name);
+			if (!strEQ(fex->name, "MxExpectationRAM")) {
+				mxThrow("%s: only MxExpectationRAM can be joined with MxExpectationRAM (not %s)",
+								oo->name, fex->name);
 			}
 			omxDataKeysCompatible(fex->data, oo->data, foreignKey);
 			if (!omxDataColumnIsKey(oo->data, foreignKey)) {

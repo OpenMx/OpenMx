@@ -691,7 +691,7 @@ void FitContext::clearHessian()
 	maxBlockSize = 0;
 }
 
-void FitContext::calcStderrs()  //I believe this function is only calculated if fit is in -2logL units.
+void FitContext::calcStderrs()
 {
 	int numFree = calcNumFree();
 	stderrs.resize(numFree);

@@ -207,16 +207,15 @@ void omxExpectation::loadFromR()
 
 void omxExpectation::generateData(FitContext *, MxRList &out)
 {
-	mxThrow("%s: generateData not implemented for '%s'", name, expType);
+	mxThrow("%s: generateData not implemented", name);
 }
 
 omxExpectation *
 omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 {
-	SEXP ExpectationClass;
-	const char *expType;
-	{ScopedProtect p1(ExpectationClass, STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
-		expType = CHAR(ExpectationClass);
+	const char *name;
+	{ProtectedSEXP ExpectationClass(STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
+		name = CHAR(ExpectationClass);
 	}
 
 	omxExpectation* expect = 0;
@@ -224,14 +223,14 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	/* Switch based on Expectation type. */ 
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
-		if(strEQ(expType, entry->name)) {
+		if(strEQ(name, entry->name)) {
 			expect = entry->initFun(os, expNum);
-			expect->expType = entry->name;
+			expect->name = entry->name;
 			break;
 		}
 	}
 
-	if (!expect) mxThrow("expectation '%s' not recognized", expType);
+	if (!expect) mxThrow("expectation '%s' not recognized", name);
 
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
@@ -256,8 +255,8 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	if (OMX_DEBUG) {
 		omxData *od = ox->data;
 		omxState *state = ox->currentState;
-		std::string msg = string_snprintf("Expectation '%s' of type '%s' has"
-						  " %d definition variables:\n", ox->name, ox->expType,
+		std::string msg = string_snprintf("Expectation '%s' has"
+						  " %d definition variables:\n", ox->name,
 						  int(od->defVars.size()));
 		for (int dx=0; dx < int(od->defVars.size()); ++dx) {
 			omxDefinitionVar &dv = od->defVars[dx];
@@ -289,7 +288,7 @@ std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
 
 void omxExpectation::print()
 {
-	mxLog("(Expectation, type %s) ", (expType==NULL?"Untyped":expType));
+	mxLog("(Expectation, type %s) ", (name==NULL?"Untyped":name));
 }
 
 void omxExpectationPrint(omxExpectation* ox, char* d)
@@ -320,7 +319,7 @@ int omxExpectation::numSummaryStats()
 {
 	omxMatrix *cov = getComponent("cov");
 	if (!cov) {
-		mxThrow("%s::numSummaryStats is not implemented (for object '%s')", expType, name);
+		mxThrow("%s::numSummaryStats is not implemented", name);
 	}
 
 	omxMatrix *mean = getComponent("means");
@@ -434,7 +433,7 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 
 	omxMatrix *cov = getComponent("cov");
 	if (!cov) {
-		mxThrow("%s::asVector is not implemented (for object '%s')", expType, name);
+		mxThrow("%s::asVector is not implemented", name);
 	}
 
 	normalToStdVector(cov, getComponent("means"), getComponent("slope"), thresholdsMat,
