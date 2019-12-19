@@ -293,6 +293,11 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	name  <- retval[[3]]
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
+	nam <- names(lst)
+	filter0 <- nam %in% c('product', 'productOp', 'productOps', 'productVar', 'productVars')
+	productOps <- lst[[which(filter0)]]
+	# TODO what if multiple names match?
+	lst <- lst[!filter0]
 	lst <- unlist(lst)
 	filter <- sapply(lst, is, "MxModel")
 	submodels <- lst[filter]
