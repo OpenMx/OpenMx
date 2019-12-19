@@ -33,9 +33,9 @@ setClass(Class = "MxModel",
 		runstate = "list",
 		.newobjects = "logical",
 		.resetdata = "logical",
-	        .wasRun = "logical",
-	    .modifiedSinceRun = "logical",
-	    .version = "MxVersionType"
+		.wasRun = "logical",
+		.modifiedSinceRun = "logical",
+		.version = "MxVersionType"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -59,8 +59,8 @@ setMethod("initialize", "MxModel",
 		.Object@runstate <- list()
 		.Object@.newobjects <- FALSE
 		.Object@.resetdata <- FALSE
-	        .Object@.wasRun <- FALSE
-	        .Object@.modifiedSinceRun <- FALSE
+		.Object@.wasRun <- FALSE
+		.Object@.modifiedSinceRun <- FALSE
 		if (.hasSlot(.Object, '.version')) {
 			.Object@.version <- as.character(pkg_globals$myVersion)
 		}
@@ -221,10 +221,10 @@ visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
 
 setMethod("$", "MxModel",
 	function(x, name) {
-        result <- imxExtractMethod(x, name)
-        if(name %in% publicMxModelSlots) {
-            result <- imxExtractSlot(x, name)
-        }
+		result <- imxExtractMethod(x, name)
+		if(name %in% publicMxModelSlots) {
+			result <- imxExtractSlot(x, name)
+		}
 		return(result)
 	}
 )
@@ -531,14 +531,14 @@ setMethod("imxVerifyModel", "MxModel", function(model) {
 
 addVariablesHelper <- function(model, vartype, vars) {
 	modelvars <- slot(model, vartype)
-
+	
 	if (length(vars) == 0) {
 		return(model)
 	} else if (length(modelvars) == 0) {
 		slot(model, vartype) <- vars
 		return(model)
 	}
-
+	
 	if (is.list(vars) && !is.list(modelvars)) {
 		msg <- paste("The", vartype, "variables in",
 			"the call to mxModel() have been separated",
@@ -552,7 +552,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 			"variables do have categories.")
 		stop(msg, call. = FALSE)
 	}
-
+	
 	if (is.character(vars) && is.character(modelvars)) {
 		modelvars <- c(modelvars, vars)
 		slot(model, vartype) <- modelvars
@@ -566,7 +566,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 		}
 		slot(model, vartype) <- modelvars
 	}
-
+	
 	return(model)
 }
 
