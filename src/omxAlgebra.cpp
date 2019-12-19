@@ -52,7 +52,7 @@ void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 	memset(oa->algArgs, 0, sizeof(omxMatrix*) * numArgs);  //remove debug TODO
 }
 
-omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os) {
+static omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os) {
 
 	omxMatrix* om = omxInitMatrix(0, 0, TRUE, os);
 	
@@ -61,16 +61,9 @@ omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os) {
 	return om;
 }
 
-void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om) {
-	
-	if(oa == NULL) {
-		oa = (omxAlgebra*) R_alloc(1, sizeof(omxAlgebra));
-	}
-	
-	omxAlgebraAllocArgs(oa, 0);
-	oa->funWrapper = NULL;
+void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix *om)
+{
 	oa->matrix = om;
-	oa->oate = NULL;
 	om->algebra = oa;
 }
 
@@ -161,6 +154,17 @@ struct AlgebraProcessingGuard {
 	}
 };
 
+static void refreshExpectationOp(FitContext *fc, class omxMatrix **matList, int numArgs,
+																 class omxMatrix *result)
+{
+	auto *oa = result->algebra;
+	omxExpectation *ex = oa->expectation;
+	if (OMX_DEBUG_ALGEBRA || oa->verbose >= 2) {
+		mxLog("Recompute %s(%s) for algebra %s", ex->name, oa->what, result->name());
+	}
+	ex->compute(fc, oa->what, 0);
+}
+
 void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 {
 	omxAlgebra *oa = mat->algebra;
@@ -215,7 +219,7 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 				const char *argname = oa->algArgs[ax]->name();
 				buf += argname? argname : "?";
 			}
-			mxLog("Algebra '%s' %s(%s)", oa->matrix->name(), oa->oate->rName, buf.c_str());
+			mxLog("Algebra '%s' %s(%s)", oa->matrix->name(), oa->oate? oa->oate->rName : "?", buf.c_str());
 		}
 		(*(algebra_op_t)oa->funWrapper)(fc, oa->algArgs, (oa->numArgs), oa->matrix);
 		for(int j = 0; j < oa->numArgs; j++) {
@@ -246,11 +250,23 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 	}
 }
 
-omxAlgebra::omxAlgebra()
+omxAlgebra::omxAlgebra() :
+	funWrapper(0), algArgs(0), numArgs(0), expectation(0), what(0),
+	matrix(0), calcDimnames(false), verbose(0), fixed(false), sexpAlgebra(0),
+	processing(false), oate(0)
+{}
+
+void connectMatrixToExpectation(omxMatrix *result, omxExpectation *ex, const char *what)
 {
-	processing = false;
-	verbose = 0;
-	fixed = false;
+	if (result->algebra) mxThrow("already connected");
+	result->algebra = new omxAlgebra;
+	auto *oa = result->algebra;
+	oa->matrix = result;
+	oa->expectation = ex;
+	oa->funWrapper = refreshExpectationOp;
+	oa->what = what;
+	//oa->verbose = 2;
+	result->unshareMemoryWithR();
 }
 
 void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs)

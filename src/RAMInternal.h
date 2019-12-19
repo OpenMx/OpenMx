@@ -365,6 +365,7 @@ class omxRAMExpectation : public omxExpectation {
 	void logDefVarsInfluence();
 
 	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrixPtr covOwner, meanOwner;
 	omxMatrix *slope;       // exogenous predictor slopes
 	omxMatrix *A, *S, *F, *M;
 

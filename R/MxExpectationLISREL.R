@@ -56,7 +56,7 @@ setClass(Class = "MxExpectationLISREL",
 setMethod("initialize", "MxExpectationLISREL",
 	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL,
 		 dims, thresholds, threshnames, verbose,
-		data = as.integer(NA), name = 'expectation') {
+     expectedCovariance, expectedMean, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@LX <- LX
 		.Object@LY <- LY
@@ -75,10 +75,19 @@ setMethod("initialize", "MxExpectationLISREL",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
+    .Object@expectedCovariance <- expectedCovariance
+    .Object@expectedMean <- expectedMean
 		return(.Object)
 	}
 )
 
+setMethod("genericExpAddEntities", "MxExpectationLISREL",
+	  function(.Object, job, flatJob, labelsData) {
+      size <- 0L
+      if (!single.na(.Object$TD)) size <- size + nrow(job[[ .Object$TD ]])
+      if (!single.na(.Object$TE)) size <- size + nrow(job[[ .Object$TE ]])
+      constrainCorData(.Object, size, job, flatJob)
+    })
 
 #--------------------------------------------------------------------
 setMethod("genericExpConvertEntities", "MxExpectationLISREL",
@@ -141,7 +150,7 @@ setMethod("qualifyNames", signature("MxExpectationLISREL"),
 		.Object@AL <- imxConvertIdentifier(.Object@AL, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
 		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
-		return(.Object)
+    callNextMethod(.Object, modelname, namespace)
 	}
 )
 
@@ -471,9 +480,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 				stop(msg, call. = FALSE)
 			}
 		}
-		return(.Object)
-	}
-)
+    callNextMethod(.Object, flatModel, model, labelsData, dependencies)
+	})
 
 
 #--------------------------------------------------------------------
@@ -485,7 +493,9 @@ setMethod("genericExpDependencies", signature("MxExpectationLISREL"),
 		.Object@TH, .Object@TX, .Object@TY, .Object@KA, 
 		.Object@AL, .Object@thresholds)
 	sources <- sources[!is.na(sources)]
-	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
+  sink <- .Object@name
+  sink <- c(sink, .Object@expectedCovariance, .Object@expectedMean)
+	dependencies <- imxAddDependency(sources, sink, dependencies)
 	return(dependencies)
 	}
 )
@@ -510,7 +520,7 @@ setMethod("genericExpRename", signature("MxExpectationLISREL"),
 		.Object@AL <- renameReference(.Object@AL, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
 		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
-		return(.Object)
+    callNextMethod(.Object, oldname, newname)
 	}
 )
 
@@ -529,7 +539,9 @@ checkLISRELargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = dimnames, verbose=0L) {
+mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = dimnames, verbose=0L,
+                                ..., expectedCovariance=NULL, expectedMean=NULL) {
+	prohibitDotdotdot(list(...))
 	LX <- checkLISRELargument(LX, "LX")
 	LY <- checkLISRELargument(LY, "LY")
 	BE <- checkLISRELargument(BE, "BE")
@@ -559,7 +571,7 @@ mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA,
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames, as.integer(verbose)))
+	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames, as.integer(verbose), expectedCovariance, expectedMean))
 }
 
 

@@ -29,7 +29,8 @@
 mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
                     TX = NA, TY = NA, KA = NA, AL = NA,
                     dimnames = NA, thresholds = NA,
-	 threshnames = dimnames, verbose=0L)
+	 threshnames = dimnames, verbose=0L, ...,
+  expectedCovariance=NULL, expectedMean=NULL)
 }
 
 
@@ -51,6 +52,11 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
    \item{verbose}{integer. Level of runtime diagnostic output.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{expectedCovariance}{An optional character string indicating the
+   name of a matrix for the model implied covariance.}
+   \item{expectedMean}{An optional character string indicating the name
+   of a matrix for the model implied mean.}
 }
 
 \details{

@@ -64,7 +64,7 @@
 The mxData function creates \link{MxData} objects used in \link{mxModel}s.
 The \sQuote{observed} argument may take either a data frame or a matrix, which is then described with the
 \sQuote{type} argument. Data types describe compatibility and usage with expectation functions in MxModel
-objects. Three data types are supported (cor is not yet implemented).
+objects. Three data types are supported (acov is deprecated).
 
 \describe{
 \item{raw}{The contents of the \sQuote{observed} argument are treated as raw data. Missing values are permitted and must be
@@ -93,6 +93,14 @@ the \link{mxFitFunctionML} fit function.}
 Thus for data provided as a data.frame, ensure the columns have appropriate \code{\link{names}}.
 Covariance and correlation matrices need to have both the row and column names set and these must be
 identical, for instance by using \code{dimnames = list(varNames, varNames)}.
+
+\strong{Correlation data}
+
+To obtain accurate parameter estimates and standard errors,
+it is necessary to constrain the model implied covariance matrix to have
+unit variances. This constraint is added automatically if you use an
+\code{\link{mxModel}} with \code{type='RAM'} or \code{type='LISREL'}.
+Otherwise, you will need to add this constraint yourself.
 
 \strong{WLS data}
 

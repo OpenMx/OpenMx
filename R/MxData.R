@@ -331,11 +331,6 @@ setMethod("qualifyNames", signature("MxDataStatic"),
 
 setMethod("convertDataForBackend", signature("MxDataStatic"),
 	  function(data, model, flatModel) {
-		  if (data@type == "cor") {
-			  warning(paste("OpenMx does not yet correctly handle mxData(type='cor')",
-					'standard errors and fit statistics.',
-					'See Steiger (1980), "Tests for comparing elements of a correlation matrix".'))
-		  }
 		  if (data@type == "raw") {
 			  if (is.matrix(data@observed) && is.integer(data@observed)) {
 				  data@observed <- matrix(as.double(data@observed),

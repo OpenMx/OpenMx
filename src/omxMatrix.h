@@ -71,6 +71,7 @@ class omxMatrix {
 								joinModel(0), shape(0), allocationLock(false),
 								freeRownames(false), freeColnames(false)
 		{};
+	struct dtor;
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
@@ -188,6 +189,12 @@ inline omxMatrix* omxInitMatrix(int nrows, int ncols, omxState* os)
 omxMatrix *omxCreateCopyOfMatrix(omxMatrix *orig, omxState *os);
 
 	void omxFreeMatrix(omxMatrix* om);						// Ditto, traversing argument trees
+
+struct omxMatrix::dtor {
+	void operator()(omxMatrix *om) { omxFreeMatrix(om); }
+};
+
+typedef std::unique_ptr< omxMatrix, omxMatrix::dtor > omxMatrixPtr;
 
 /* Matrix Creation Functions */
 omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state, 

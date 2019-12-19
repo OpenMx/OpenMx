@@ -125,17 +125,7 @@ void omxRAMExpectation::invalidateCache()
 
 omxRAMExpectation::~omxRAMExpectation()
 {
-	if(OMX_DEBUG) { mxLog("Destroying RAM Expectation."); }
-	
-	omxRAMExpectation* argStruct = this;
-
-	if (argStruct->rram) delete argStruct->rram;
-
-	omxFreeMatrix(argStruct->cov);
-
-	if(argStruct->means != NULL) {
-		omxFreeMatrix(argStruct->means);
-	}
+	if (rram) delete rram;
 }
 
 void omxRAMExpectation::populateAttr(SEXP robj)
@@ -382,19 +372,23 @@ void omxRAMExpectation::init() {
 
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 
-	RAMexp->cov = 		omxInitMatrix(l, l, TRUE, currentState);
+	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", l, l);
+	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
+	else connectMatrixToExpectation(cov, this, "covariance");
 
-	if(RAMexp->M != NULL) {
-		RAMexp->means = 	omxInitMatrix(1, l, TRUE, currentState);
+	if (M) {
+		means =	omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, l);
+		if (!means->hasMatrixNumber) meanOwner = omxMatrixPtr(means);
+		else connectMatrixToExpectation(means, this, "mean");
 	} else {
-	    RAMexp->means  = 	NULL;
-    }
+		RAMexp->means  = 	NULL;
+	}
 
 	RAMexp->studyF();
 	//mxPrintMat("RAM corrected dc", oo->getDataColumns());
 
 	if (!currentState->isClone()) {
-		//if (hasProductNodes) rampartCycleLimit = 0; TODO
+		if (hasProductNodes) rampartCycleLimit = 0;
 
 		Eigen::VectorXd estSave;
 		currentState->setFakeParam(estSave);

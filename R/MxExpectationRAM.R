@@ -42,7 +42,8 @@ setClass(Class = "MxExpectationRAM",
 
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
-		 between, verbose, useSparse, data = as.integer(NA), name = 'expectation') {
+           between, verbose, useSparse, expectedCovariance, expectedMean,
+           data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -64,6 +65,8 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@.maxDebugGroups <- 0L
 		.Object@.optimizeMean <- 2L
     .Object@.useSparse <- useSparse
+    .Object@expectedCovariance <- expectedCovariance
+    .Object@expectedMean <- expectedMean
 		return(.Object)
 	}
 )
@@ -72,7 +75,9 @@ setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 	function(.Object, dependencies) {
 	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds, .Object@between)
 	sources <- sources[!is.na(sources)]
-	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
+  sink <- .Object@name
+  sink <- c(sink, .Object@expectedCovariance, .Object@expectedMean)
+	dependencies <- imxAddDependency(sources, sink, dependencies)
 	return(dependencies)
 })
 
@@ -87,7 +92,7 @@ setMethod("qualifyNames", signature("MxExpectationRAM"),
 		.Object@thresholds <- sapply(.Object@thresholds, 
 					     imxConvertIdentifier, modelname, namespace)
 		.Object@between <- imxConvertIdentifier(.Object@between, modelname, namespace)
-		return(.Object)
+    callNextMethod(.Object, modelname, namespace)
 })
 
 setMethod("genericExpRename", signature("MxExpectationRAM"),
@@ -98,7 +103,7 @@ setMethod("genericExpRename", signature("MxExpectationRAM"),
 		.Object@M <- renameReference(.Object@M, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
 		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
-		return(.Object)
+    callNextMethod(.Object, oldname, newname)
 })
 
 setMethod("genericExpFunConvert", signature("MxExpectationRAM"), 
@@ -237,7 +242,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
-		return(.Object)
+    callNextMethod(.Object, flatModel, model, labelsData, dependencies)
 })
 
 setMethod("genericNameToNumber", signature("MxExpectationRAM"),
@@ -249,7 +254,7 @@ setMethod("genericNameToNumber", signature("MxExpectationRAM"),
 		  .Object@S <- imxLocateIndex(flatModel, .Object@S, name)
 		  .Object@F <- imxLocateIndex(flatModel, .Object@F, name)
 		  .Object@M <- imxLocateIndex(flatModel, .Object@M, name)
-		  .Object
+      callNextMethod(.Object, flatModel, model)
 	  })
 
 setMethod("genericGetExpected", signature("MxExpectationRAM"),
@@ -397,6 +402,8 @@ updateRAMdimnames <- function(flatExpectation, flatJob) {
 
 setMethod("genericExpAddEntities", "MxExpectationRAM",
 	  function(.Object, job, flatJob, labelsData) {
+      job <- constrainCorData(.Object, nrow(job[[ .Object$F ]]), job, flatJob)
+
 		  ppmlModelOption <- job@options$UsePPML
 		  if (is.null(ppmlModelOption)) {
 			  enablePPML <- (getOption("mxOptions")$UsePPML == "Yes")
@@ -461,7 +468,8 @@ imxSimpleRAMPredicate <- function(model) {
 }
 
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
-	threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA) {
+                             threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA,
+                             expectedCovariance=NULL, expectedMean=NULL) {
 
 	prohibitDotdotdot(list(...))
 
@@ -502,7 +510,8 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	}
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
-		   between, as.integer(verbose), as.logical(.useSparse)))
+             between, as.integer(verbose), as.logical(.useSparse),
+             expectedCovariance, expectedMean))
 }
 
 displayMxExpectationRAM <- function(expectation) {
