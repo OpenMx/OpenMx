@@ -52,6 +52,10 @@ fr1$expectedCovariance$labels[1,1] <- "bob"
 expect_error(mxRun(fr1), "Labels are not allowed")
 fr1$expectedCovariance$labels[1,1] <- NA
 
+expect_error(mxRun(mxModel(fr,
+                           mxMatrix(name="expectedCovariance",nrow=1,ncol=1))),
+             "an object named 'expectedCovariance' already exists")
+
 # ---- #
 
 fm <- mxModel("One Factor", type="RAM",

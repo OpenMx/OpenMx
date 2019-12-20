@@ -74,6 +74,16 @@ constrainCorData <- function(ex, size, model, flatModel) {
   # Don't deal with inherited MxData. That's an indication of
   # an advanced user who knows what they are doing.
   if (!is.null(submodel@data) && submodel@data@type == 'cor' && is.null(ex@expectedCovariance)) {
+    for (sl in c('expectedCovariance', 'unit_1_by_nObs', 'constraintForCorData')) {
+      if (!is.null(submodel[[sl]])) {
+        msg <- paste("In model", omxQuotes(submodel@name),
+                     "data has type='cor' with", omxQuotes(class(ex)[1]),
+                     "but an object named", omxQuotes(sl),
+                     "already exists preventing the addition of a constraint",
+                     "on the diagonal of the expected covariance")
+				stop(msg, call.=FALSE)
+      }
+    }
     ex@expectedCovariance <- 'expectedCovariance'
     corConstraint <- list(
       ex,
