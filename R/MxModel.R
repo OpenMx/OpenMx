@@ -294,7 +294,7 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
 	nam <- names(lst)
-	filter0 <- nam %in% c('product', 'productOp', 'productOps', 'productVar', 'productVars')
+	filter0 <- nam %in% c('product', 'productVars')
 	productOps <- lst[[which(filter0)]]
 	# TODO what if multiple names match?
 	lst <- lst[!filter0]
