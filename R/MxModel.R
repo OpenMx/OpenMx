@@ -293,11 +293,9 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	name  <- retval[[3]]
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
-	nam <- names(lst)
-	filter0 <- nam %in% c('product', 'productVars')
-	productOps <- lst[[which(filter0)]]
-	# TODO what if multiple names match?
-	lst <- lst[!filter0]
+	prods <- productArgument(lst)
+	lst <- prods[[1]]
+	productVars <- prods[[2]]
 	lst <- unlist(lst)
 	filter <- sapply(lst, is, "MxModel")
 	submodels <- lst[filter]
@@ -305,6 +303,22 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	model <- imxModelBuilder(model, lst, name, manifestVars,
 		latentVars, submodels, remove, independent)
 	return(model)
+}
+
+productArgument <- function(x){
+	nam <- names(x)
+	filter0 <- nam %in% c('product', 'productVars')
+	# What if multiple names match?
+	if(sum(filter0) > 1){
+		stop(paste("Multiple objects in the '...' argument matched 'productVars'.",
+			"To specify multiple product variables, hand 'productVars' a vector of the names of the product variables."))
+	} else if(sum(filter0) == 1){
+		productVars <- x[[which(filter0)]]
+		x <- x[!filter0]
+	} else {
+		productVars <- NA
+	}
+	return(list(x, productVars=productVars))
 }
 
 firstArgument <- function(model, name) {
