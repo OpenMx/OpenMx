@@ -984,9 +984,15 @@ logLik.MxModel <- function(object, ...) {
 			!is.null(model@output$fitUnits) ) {
 		if(model@output$fitUnits=="-2lnL"){
 			ll <- -0.5*model@output$Minus2LogLikelihood
+			#TODO: this doesn't count "implicit" free parameters that are "profiled out":
+			attr(ll, "df") <- length(model@output$estimate)
 		} else if(model@output$fitUnits=="r'Wr") {
 			ll <- model@output$chi
+			attr(ll, "df") <- model@output$chiDoF
+			# TODO is this right?
 		}
+	} else {
+		attr(ll,"df") <- NA
 	}
 	
 	nobs <- numberObservations(model@runstate$datalist, model@runstate$fitfunctions)
@@ -994,17 +1000,6 @@ logLik.MxModel <- function(object, ...) {
 		attr(ll,"nobs") <- nobs
 	}
 	
-	if (!is.null(model@output)){
-		#TODO: this doesn't count "implicit" free parameters that are "profiled out":
-		if(model@output$fitUnits=="-2lnL"){
-			attr(ll, "df") <- length(model@output$estimate)
-		} else if(model@output$fitUnits=="r'Wr"){
-			attr(ll, "df") <- model@output$chiDoF
-			# TODO is this right?
-		}
-	} else {
-		attr(ll,"df") <- NA
-	}
 	class(ll) <- "logLik"
 	if (length(moreModels)) {
 		c(list(ll), lapply(moreModels, logLik.MxModel))
