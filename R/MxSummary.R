@@ -981,25 +981,46 @@ logLik.MxModel <- function(object, ...) {
 	assertModelFreshlyRun(model)
 	ll <- NA
 	if (length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
-			!is.null(model@output$fitUnits) && model@output$fitUnits=="-2lnL") {
-		ll <- -0.5*model@output$Minus2LogLikelihood
+			!is.null(model@output$fitUnits) ) {
+		if(model@output$fitUnits=="-2lnL"){
+			ll <- -0.5*model@output$Minus2LogLikelihood
+		} else if(model@output$fitUnits=="r'Wr") {
+			ll <- model@output$chi
+		}
 	}
-
+	
 	nobs <- numberObservations(model@runstate$datalist, model@runstate$fitfunctions)
 	if (!is.na(nobs)) {
 		attr(ll,"nobs") <- nobs
 	}
-
-	if (!is.null(model@output))
+	
+	if (!is.null(model@output)){
 		#TODO: this doesn't count "implicit" free parameters that are "profiled out":
-		attr(ll,"df")<- length(model@output$estimate)
-	else
+		if(model@output$fitUnits=="-2lnL"){
+			attr(ll, "df") <- length(model@output$estimate)
+		} else if(model@output$fitUnits=="r'Wr"){
+			attr(ll, "df") <- model@output$chiDoF
+			# TODO is this right?
+		}
+	} else {
 		attr(ll,"df") <- NA
+	}
 	class(ll) <- "logLik"
 	if (length(moreModels)) {
 		c(list(ll), lapply(moreModels, logLik.MxModel))
 	} else {
 		ll
+	}
+}
+
+AIC.MxModel <- function(object, ..., k=2){
+	model <- object
+	if( length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
+			!is.null(model@output$fitUnits) && model@output$fitUnits=="r'Wr" ){
+		ll <- logLik.MxModel(model, ...)
+		return( ll + k*attr(ll, "df") )
+	} else {
+		return( stats:::AIC.default(model, ..., k=k) )
 	}
 }
 
