@@ -1012,30 +1012,31 @@ AIC.MxModel <- function(object, ..., k=2){
 	model <- object
 	if( length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
 			!is.null(model@output$fitUnits) && model@output$fitUnits=="r'Wr" ){
-		# Copied from AIC.default
-		# Modified by using logLik instead of -2*logLik for WLS
-		# because logLik on a WLS model returns the Chi-Squared value
-		if (!missing(...)) {
-			lls <- lapply(list(object, ...), logLik)
-			vals <- sapply(lls, function(el) {
-				no <- attr(el, "nobs")
-				c(as.numeric(el), attr(el, "df"), if (is.null(no)) NA_integer_ else no)
-			})
-			val <- data.frame(df = vals[2L, ], ll = vals[1L, ])
-			nos <- na.omit(vals[3L, ])
-			if (length(nos) && any(nos != nos[1L])) 
-				warning("models are not all fitted to the same number of observations")
-			val <- data.frame(df = val$df, AIC = val$ll + k * val$df)
-			Call <- match.call()
-			Call$k <- NULL
-			row.names(val) <- as.character(Call[-1L])
-			return(val)
-		} else {
-			lls <- logLik(object)
-			return(as.numeric(lls) + k * attr(lls, "df"))
-		}
+		aicMult <- 1
 	} else {
-		return( stats:::AIC.default(model, ..., k=k) )
+		aicMult <- -2
+	}
+	# Copied from AIC.default
+	# Modified by using logLik instead of -2*logLik for WLS
+	# because logLik on a WLS model returns the Chi-Squared value
+	if (!missing(...)) {
+		lls <- lapply(list(object, ...), logLik)
+		vals <- sapply(lls, function(el) {
+			no <- attr(el, "nobs")
+			c(as.numeric(el), attr(el, "df"), if (is.null(no)) NA_integer_ else no)
+		})
+		val <- data.frame(df = vals[2L, ], ll = vals[1L, ])
+		nos <- na.omit(vals[3L, ])
+		if (length(nos) && any(nos != nos[1L])) 
+			warning("models are not all fitted to the same number of observations")
+		val <- data.frame(df = val$df, AIC = aicMult * val$ll + k * val$df)
+		Call <- match.call()
+		Call$k <- NULL
+		row.names(val) <- as.character(Call[-1L])
+		return(val)
+	} else {
+		lls <- logLik(object)
+		return(aicMult * as.numeric(lls) + k * attr(lls, "df"))
 	}
 }
 
