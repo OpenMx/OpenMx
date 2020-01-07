@@ -101,6 +101,7 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 	int dim = quad.abilities();
 	int numLatents = dim + triangleLoc1(dim);
 	Eigen::ArrayXd latentDist(numLatents);
+	quad.prepSummary();
 	quad.EAP(extraData->freqSum, latentDist);
 	for (int d1=quad.abilities(); d1 < numLatents; d1++) {
 		latentDist[d1] *= extraData->freqSum / (extraData->freqSum - 1.0);
@@ -137,6 +138,7 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 	int dim = quad.abilities();
 	int numLatents = dim + triangleLoc1(dim);
 	Eigen::ArrayXd latentDist(numLatents);
+	combined.prepSummary();
 	combined.EAP(got, latentDist);
 	for (int d1=quad.abilities(); d1 < numLatents; d1++) {
 		latentDist[d1] *= got / (got - 1.0);
@@ -147,7 +149,7 @@ void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectatio
 template <typename T>
 void BA81Estep<T>::begin(ifaGroup *state)
 {
-	state->quad.allocEstep(Global->numThreads);
+	state->quad.allocEstep();
 }
 
 template <typename T>
@@ -472,7 +474,7 @@ void BA81Expect::init() {
 
 	{
 		ProtectedSEXP tmp2(R_do_slot(rObj, Rf_install(".detectIndependence")));
-		state->grp.detectIndependence = Rf_asLogical(tmp2);
+		// state->grp.detectIndependence = Rf_asLogical(tmp2);  deprecated
 	}
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("EstepItem")));
@@ -583,8 +585,9 @@ void BA81Expect::init() {
 		Eigen::Map< Eigen::VectorXd > meanVec(state->grp.mean, maxAbilities);
 		Eigen::Map< Eigen::MatrixXd > covMat(state->grp.cov, maxAbilities, maxAbilities);
 		state->grp.quad.setStructure(state->grp.qwidth, state->grp.qpoints,
-					     Eparam, meanVec, covMat);
+																 Eparam, meanVec, covMat, state->grp.twotier);
 	}
+	grp.quad.setupOutcomes(grp);
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("minItemsPerScore")));
 	state->grp.setMinItemsPerScore(Rf_asInteger(tmp));

@@ -97,7 +97,10 @@ class BA81Expect : public omxExpectation {
 	struct omxFitFunction *fit;  // weak pointer
 
 	BA81Expect(omxState *st, int num) :
-		super(st, num), grp(Global->numThreads, true) {};
+		super(st, num), grp(true)
+	{
+		grp.quad.setNumThreads(Global->numThreads);
+	};
 	const char *getLatentIncompatible(BA81Expect *other);
 
 	void refreshPatternLikelihood(bool hasFreeLatent);

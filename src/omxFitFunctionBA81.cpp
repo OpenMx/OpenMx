@@ -534,7 +534,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 	ba81sandwichOp op(numThreads, estate, numParam, state, itemParam, abScale);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers();
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -710,7 +710,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			 estate, state->itemDerivPadSize, itemParam,
 			 numThreads, itemDerivSize);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers();
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
