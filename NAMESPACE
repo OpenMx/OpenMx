@@ -10,6 +10,7 @@ importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize, quantile,
 importFrom("stats", "AIC", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.methods", "vcov")
 importFrom("stats", "binomial", "glm", "median", "plogis", 'qlogis', "predict")
 importFrom("stats", "rWishart")
+importFrom("stats", "logLik")
 
 useDynLib(OpenMx, .registration=TRUE)
 
