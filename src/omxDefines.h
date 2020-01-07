@@ -131,7 +131,7 @@ class MxRList;
 class omxCompute;
 class FitContext;
 class GradientOptimizerContext;
-struct Matrix;
+struct ThinMatrix;
 struct Param_Obj;
 
 // debug tools
