@@ -30,7 +30,7 @@ int InvertSymmetricIndef(ThinMatrix mat, const char uplo)
 	} else if (uplo == 'U') {
 		Emat.derived() = Emat.selfadjointView<Eigen::Upper>();
 	} else {
-		mxThrow("uplo='%c'", uplo);
+		stop("uplo='%c'", uplo);
 	}
 	Eigen::FullPivLU< Eigen::MatrixXd > lu(Emat);
 	if (lu.rank() < mat.rows) return -1;
@@ -40,7 +40,7 @@ int InvertSymmetricIndef(ThinMatrix mat, const char uplo)
 
 void MeanSymmetric(ThinMatrix mat)
 {
-    if (mat.rows != mat.cols) mxThrow("Not conformable");
+    if (mat.rows != mat.cols) stop("Not conformable");
     const int len = mat.rows;
     
     for (int v1=1; v1 < len; ++v1) {
@@ -67,7 +67,7 @@ void SymMatrixMultiply(char side, ThinMatrix amat, ThinMatrix bmat, ThinMatrix c
     } else if (side == 'L') {
 	Ec.derived() = Ea.selfadjointView<Eigen::Upper>() * Eb;
     } else {
-        mxThrow("Side of %c is invalid", side);
+        stop("Side of %c is invalid", side);
     }
 }
 
@@ -106,7 +106,7 @@ int InvertSymmetricPosDef(ThinMatrix mat, char uplo)
 			return 0;
 		}
 	} else {
-		mxThrow("uplo invalid");
+		stop("uplo invalid");
 	}
 }
 

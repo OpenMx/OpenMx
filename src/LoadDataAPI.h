@@ -50,7 +50,7 @@ protected:
 	{
 		ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
 		if (Rf_length(Rpath) != 1)
-			mxThrow("%s: you must specify exactly one file from which to read data", name);
+			stop("%s: you must specify exactly one file from which to read data", name);
 
 		filePath = R_CHAR(STRING_ELT(Rpath, 0));
 		auto slashPos = filePath.find_last_of("/\\");

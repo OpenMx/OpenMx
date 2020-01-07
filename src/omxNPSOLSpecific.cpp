@@ -161,7 +161,7 @@ void GradientOptimizerContext::linearConstraintCoefficients(Eigen::MatrixBase<T1
 	for(i=0; i < (int) st->conListX.size(); i++){
 		omxConstraint &cs = *st->conListX[i];
 		if(!(cs.linear)){continue;}
-		if(cs.jacobian == NULL){mxThrow("in %s: user must provide all linear MxConstraints with a Jacobian",cs.name);}
+		if(cs.jacobian == NULL){stop("in %s: user must provide all linear MxConstraints with a Jacobian",cs.name);}
 		sgn = (cs.opCode == omxConstraint::EQUALITY) ? -1 : 1;
 		for(clm=0; clm<cs.jacobian->cols; clm++){
 			if(cs.jacMap[clm]<0){continue;}
@@ -210,7 +210,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	}
 
 	// Will fail if we re-enter after an exception
-	//if (NPSOL_fitMatrix) mxThrow("NPSOL is not reentrant");
+	//if (NPSOL_fitMatrix) stop("NPSOL is not reentrant");
 	NPSOL_GOpt = &rf;
 
     int nclin = l_equality + l_inequality;

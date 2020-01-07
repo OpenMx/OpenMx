@@ -100,12 +100,12 @@ static SEXP do_logm_eigen(SEXP x)
     int n, m;
     double *rx = REAL(x), *rz;
 
-    if (!Rf_isNumeric(x) || !Rf_isMatrix(x)) mxThrow("invalid argument");
+    if (!Rf_isNumeric(x) || !Rf_isMatrix(x)) stop("invalid argument");
 
     dims = Rf_getAttrib(x, R_DimSymbol);
     n = INTEGER(dims)[0];
     m = INTEGER(dims)[0];
-    if (n != m) mxThrow("non-square matrix");
+    if (n != m) stop("non-square matrix");
     if (n == 0) return(Rf_allocVector(REALSXP, 0));
 
     ScopedProtect p1(z, Rf_allocMatrix(REALSXP, n, n));
@@ -124,12 +124,12 @@ static SEXP do_expm_eigen(SEXP x)
     int n, m;
     double *rx = REAL(x), *rz;
 
-    if (!Rf_isNumeric(x) || !Rf_isMatrix(x)) mxThrow("invalid argument");
+    if (!Rf_isNumeric(x) || !Rf_isMatrix(x)) stop("invalid argument");
 
     dims = Rf_getAttrib(x, R_DimSymbol);
     n = INTEGER(dims)[0];
     m = INTEGER(dims)[0];
-    if (n != m) mxThrow("non-square matrix");
+    if (n != m) stop("non-square matrix");
     if (n == 0) return(Rf_allocVector(REALSXP, 0));
 
     ScopedProtect(z, Rf_allocMatrix(REALSXP, n, n));
@@ -231,9 +231,9 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
    	//	Infin	int*		Array of flags: 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
    	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
    	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-   	//	Abseps	double		Absolute mxThrow tolerance.  Yick.
-   	//	Releps	double		Relative mxThrow tolerance.  Use EPSILON.
-   	//	Error	&double		On return: absolute real mxThrow, 99% confidence
+   	//	Abseps	double		Absolute stop tolerance.  Yick.
+   	//	Releps	double		Relative stop tolerance.  Use EPSILON.
+   	//	Error	&double		On return: absolute real stop, 99% confidence
    	//	Value	&double		On return: evaluated value
    	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
    	double Error;
@@ -331,7 +331,7 @@ SEXP MxRList::asR()
 	for (int lx=0; lx < len; ++lx) {
 		SEXP p1 = (*this)[lx].first;
 		SEXP p2 = (*this)[lx].second;
-		if (!p1 || !p2) mxThrow("Attempt to return NULL pointer to R");
+		if (!p1 || !p2) stop("Attempt to return NULL pointer to R");
 		SET_STRING_ELT(names, lx, p1);
 		SET_VECTOR_ELT(ans,   lx, p2);
 	}
@@ -401,7 +401,7 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->parallelDiag);
 			} else if(matchCaseInsensitive(nextOptionName, "maxOrdinalPerBlock")) {
 				Global->maxOrdinalPerBlock = atoi(nextOptionValue);
-				if (Global->maxOrdinalPerBlock < 1) mxThrow("maxOrdinalPerBlock must be strictly positive");
+				if (Global->maxOrdinalPerBlock < 1) stop("maxOrdinalPerBlock must be strictly positive");
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsA")) {
 				Global->maxptsa = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "mvnMaxPointsB")) {
@@ -483,7 +483,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	algebra = omxNewAlgebraFromOperatorAndArgs(algebraNum, args.data(), Rf_length(matList), globalState);
 
 	if(algebra==NULL) {
-		mxThrow("Failed to build algebra");
+		stop("Failed to build algebra");
 	}
 
 	if(OMX_DEBUG) {mxLog("Completed Algebras and Matrices.  Beginning Initial Compute.");}
@@ -504,7 +504,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	delete globalState;
 	delete Global;
 
-	if (bads) mxThrow("%s", bads);
+	if (bads) stop("%s", bads);
 
 	return ans;
 }
@@ -533,8 +533,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 {
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
-//	if(!isVector(matList)) mxThrow ("matList must be a list");
-//	if(!isVector(algList)) mxThrow ("algList must be a list");
+//	if(!isVector(matList)) stop ("matList must be a list");
+//	if(!isVector(algList)) stop ("algList must be a list");
 
 	ProtectAutoBalanceDoodad protectManager;
 
@@ -584,7 +584,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxInitialMatrixAlgebraCompute(fc);
 	if (isErrorRaised()) {
-		mxThrow("%s", Global->getBads());
+		stop("%s", Global->getBads());
 	}
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
@@ -605,7 +605,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	globalState->omxProcessConstraints(constraints, fc);
 
 	if (isErrorRaised()) {
-		mxThrow("%s", Global->getBads());
+		stop("%s", Global->getBads());
 	}
 
 	globalState->loadDefinitionVariables(true);
@@ -625,17 +625,17 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	if (protectManager.getDepth() > Global->maxStackDepth) {
-		mxThrow("Protection stack too large; report this problem to the OpenMx forum");
+		stop("Protection stack too large; report this problem to the OpenMx forum");
 	}
 
 	if (globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT) {
-		mxThrow("globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT");
+		stop("globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT");
 	}
 	globalState->setWantStage(FF_COMPUTE_FIT);
 
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
-		if (Global->computeLoopContext.size() != 0) mxThrow("computeLoopContext imbalance");
+		if (Global->computeLoopContext.size() != 0) stop("computeLoopContext imbalance");
 
 		if (fc->wanted & FF_COMPUTE_FIT) {
 			if (!std::isfinite(fc->fit)) {

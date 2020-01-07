@@ -300,7 +300,7 @@ class mvnByRow {
 
 	void record(double logLik, int nrows)
 	{
-		if (wantRowLikelihoods) mxThrow("oops");
+		if (wantRowLikelihoods) stop("oops");
 		if (!std::isfinite(logLik)) {
 			ofiml->skippedRows += nrows;
 		} else {

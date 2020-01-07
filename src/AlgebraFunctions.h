@@ -251,7 +251,7 @@ static void ensureElemConform(const char *opName, FitContext *fc, omxMatrix **ma
 			EigenMatrixAdaptor m(mat1);
 			detail += mxStringifyMatrix(mat1->name(), m, empty);
 		}
-		mxThrow("Element-wise '%s' not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
+		stop("Element-wise '%s' not conformable: '%s' is %dx%d and '%s' is %dx%d\n%s",
 			 opName, mat0->name(), mat0->rows, mat0->cols,
 			 mat1->name(), mat1->rows, mat1->cols, detail.c_str());
 	}
@@ -267,7 +267,7 @@ static void omxBroadcast(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 	}
 
 	if (src->rows != 1 || src->cols != 1) {
-		mxThrow("Don't know how to broadcast from %dx%d source "
+		stop("Don't know how to broadcast from %dx%d source "
 			 "matrix '%s' to %dx%d result matrix '%s'",
 			 src->rows, src->cols, src->name(),
 			 result->rows, result->cols, result->name());
@@ -914,7 +914,7 @@ static void omxMatrixDeterminant(FitContext *fc, omxMatrix** matList, int numArg
 	omxMatrix* inMat = matList[0];
 	int rows = inMat->rows;
 	int cols = inMat->cols;
-	if(rows != cols) mxThrow("Determinant of non-square matrix '%s' cannot be found", inMat->name());
+	if(rows != cols) stop("Determinant of non-square matrix '%s' cannot be found", inMat->name());
 
 	EigenMatrixAdaptor Ein(inMat);
 	Eigen::PartialPivLU<Eigen::MatrixXd> lu(Ein);
@@ -1870,13 +1870,7 @@ static void omxMatrixVech(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 		}
 	}
 
-	if(counter != size) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal mxThrow in vech().\n");
-		omxRaiseError(errstr);
-		free(errstr);
-	}
-
+	if(counter != size) omxRaiseErrorf("vech: %d != %d", counter, size);
 }
 
 static void omxMatrixVechs(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -1905,7 +1899,7 @@ static void omxMatrixVechs(FitContext *fc, omxMatrix** matList, int numArgs, omx
 
 	if(counter != size) {
 		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal mxThrow in vechs().\n");
+		sprintf(errstr, "Internal stop in vechs().\n");
 		omxRaiseError(errstr);
 		free(errstr);
 	}
@@ -1959,7 +1953,7 @@ static void omxColVectorize(FitContext *fc, omxMatrix** matList, int numArgs, om
 static void omxSequenceGenerator(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	double start = omxVectorElement(matList[0], 0);
-	double stop = omxVectorElement(matList[1], 0);
+	double stop1 = omxVectorElement(matList[1], 0);
 
 	if (!R_finite(start)) {
 		char *errstr = (char*) calloc(250, sizeof(char));
@@ -1969,7 +1963,7 @@ static void omxSequenceGenerator(FitContext *fc, omxMatrix** matList, int numArg
 		return;
 	}
 
-	if (!R_finite(stop)) {
+	if (!R_finite(stop1)) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Non-finite stop value in ':' operator.\n");
 		omxRaiseError(errstr);
@@ -1977,7 +1971,7 @@ static void omxSequenceGenerator(FitContext *fc, omxMatrix** matList, int numArg
 		return;
 	}
 
-	double difference = stop - start;
+	double difference = stop1 - start;
 	if (difference < 0) difference = - difference;
 
 	int size = ((int) difference) + 1;
@@ -1993,14 +1987,14 @@ static void omxSequenceGenerator(FitContext *fc, omxMatrix** matList, int numArg
 	}
 
 	int count = 0;
-	if ((stop - start) >= 0) {
-		while (start <= stop) {
+	if ((stop1 - start) >= 0) {
+		while (start <= stop1) {
 			omxSetVectorElement(result, count, start);
 			start = start + 1.0;
 			count++;
 		}
 	} else {
-		while (start >= stop) {
+		while (start >= stop1) {
 			omxSetVectorElement(result, count, start);
 			start = start - 1.0;
 			count++;
@@ -2204,7 +2198,7 @@ static void omxRealEigenvalues(FitContext *fc, omxMatrix** matList, int numArgs,
 {
 	omxMatrix* B = matList[0];
 
-	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
+	if(B->cols != B->rows) stop("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
 	if(result->rows != B->rows || result->cols != 1)
 		omxResizeMatrix(result, B->rows, 1);
@@ -2222,7 +2216,7 @@ static void omxRealEigenvectors(FitContext *fc, omxMatrix** matList, int numArgs
 {
 	omxMatrix* B = matList[0];
 
-	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
+	if(B->cols != B->rows) stop("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
 	omxResizeMatrix(result, B->rows, B->cols);
 
@@ -2239,7 +2233,7 @@ static void omxImaginaryEigenvalues(FitContext *fc, omxMatrix** matList, int num
 {
 	omxMatrix* B = matList[0];
 
-	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
+	if(B->cols != B->rows) stop("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
 	if(result->rows != B->rows || result->cols != 1)
 		omxResizeMatrix(result, B->rows, 1);
@@ -2257,7 +2251,7 @@ static void omxImaginaryEigenvectors(FitContext *fc, omxMatrix** matList, int nu
 {
 	omxMatrix* B = matList[0];
 
-	if(B->cols != B->rows) mxThrow("Non-square matrix '%s' in eigenvalue decomposition", B->name());
+	if(B->cols != B->rows) stop("Non-square matrix '%s' in eigenvalue decomposition", B->name());
 
 	omxResizeMatrix(result, B->rows, B->cols);
 
@@ -2449,14 +2443,14 @@ static void omxCholesky(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 {
 	omxMatrix* inMat = matList[0];
 	if(inMat->rows != inMat->cols) {
-		mxThrow("Cholesky decomposition of non-square matrix '%s' is not defined", inMat->name());
+		stop("Cholesky decomposition of non-square matrix '%s' is not defined", inMat->name());
 	}
 	omxCopyMatrix(result, inMat);
 	EigenMatrixAdaptor Ei(result);
 
 	Eigen::LLT< Eigen::Ref<Eigen::MatrixXd>, Eigen::Upper > sc(Ei);
 	if (sc.info() != Eigen::Success) {
-		mxThrow("Cholesky factor of '%s' failed", inMat->name());
+		stop("Cholesky factor of '%s' failed", inMat->name());
 	}
 	Ei.triangularView<Eigen::StrictlyLower>().setZero();
 }
@@ -2548,7 +2542,7 @@ static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	}
 
 	omxMatrix* inMat = matList[0];
-	if (inMat->rows != inMat->cols) mxThrow("omxExponential requires a symmetric matrix");
+	if (inMat->rows != inMat->cols) stop("omxExponential requires a symmetric matrix");
 	omxEnsureColumnMajor(inMat);
 	omxResizeMatrix(result, inMat->rows, inMat->cols);
 	result->colMajor = true;
@@ -2559,7 +2553,7 @@ static void omxExponential(FitContext *fc, omxMatrix** matList, int numArgs, omx
 static void mxMatrixLog(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	if (inMat->rows != inMat->cols) mxThrow("logm requires a symmetric matrix");
+	if (inMat->rows != inMat->cols) stop("logm requires a symmetric matrix");
 	omxEnsureColumnMajor(inMat);
 	omxResizeMatrix(result, inMat->rows, inMat->cols);
 	result->colMajor = true;
@@ -2703,10 +2697,10 @@ void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
 template <typename T> 
 void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
 {
-	if (origCov->rows != origCov->cols) mxThrow("'%s' must be square", origCov->name());
-	if (origCov->rows != int(origCov->rownames.size())) mxThrow("'%s' must have dimnames", origCov->name());
-	if (newCov->rows != newCov->cols) mxThrow("'%s' must be square", newCov->name());
-	if (newCov->rows != int(newCov->rownames.size())) mxThrow("'%s' must have dimnames", newCov->name());
+	if (origCov->rows != origCov->cols) stop("'%s' must be square", origCov->name());
+	if (origCov->rows != int(origCov->rownames.size())) stop("'%s' must have dimnames", origCov->name());
+	if (newCov->rows != newCov->cols) stop("'%s' must be square", newCov->name());
+	if (newCov->rows != int(newCov->rownames.size())) stop("'%s' must have dimnames", newCov->name());
 	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
 		bool found = false;
 		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
@@ -2764,9 +2758,9 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	omxMatrix *origCov = matList[0];
 	omxMatrix *newCov = matList[1];
 	omxMatrix *origMean = matList[2];
-	if (origMean->cols > 1) mxThrow("'%s' must be a column vector", origMean->name());
+	if (origMean->cols > 1) stop("'%s' must be a column vector", origMean->name());
 	if (origMean->rows != origCov->rows) {
-		mxThrow("'%s' of dimension %d must have same dimension as '%s' (%d)",
+		stop("'%s' of dimension %d must have same dimension as '%s' (%d)",
 			 origMean->name(), origMean->rows, origCov->name(), origCov->rows);
 	}
 	EigenMatrixAdaptor EorigCov(origCov);

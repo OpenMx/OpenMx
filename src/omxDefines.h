@@ -15,26 +15,11 @@
  *
  */
 
-/***********************************************************
- * 
- *  omxDefines.h
- *
- *  Created: Timothy R. Brick 	Date: 2009-09-23
- *
- *	Contains #define information for debugging purposes.
- *
- **********************************************************/
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
-#include <memory>
-#include <string.h>
-#include <string>
-
-#define R_NO_REMAP
 #include <Rcpp.h>
-#include <Rmath.h>
-#include <Rinternals.h>
+using namespace Rcpp;
 
 typedef uint64_t nanotime_t;
 nanotime_t get_nanotime(void);
@@ -156,7 +141,6 @@ std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf,
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogSetCurrentRow(int row);
 void mxLogBig(const std::string &str);
-void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
 
 static inline int triangleLoc1(int diag)
 {
@@ -461,7 +445,7 @@ class ScopedProtect { // DEPRECATED, use ProtectedSEXP
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) mxThrow("Depth %d != 1, ScopedProtect was nested", diff);
+		if (diff != 1) stop("Depth %d != 1, ScopedProtect was nested", diff);
 		Rf_unprotect(2);
 	}
 };
@@ -480,7 +464,7 @@ class ProtectedSEXP {
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) mxThrow("Depth %d != 1, ProtectedSEXP was nested", diff);
+		if (diff != 1) stop("Depth %d != 1, ProtectedSEXP was nested", diff);
 		Rf_unprotect(2);
 	}
         operator SEXP() const { return var; }

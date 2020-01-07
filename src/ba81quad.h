@@ -106,8 +106,8 @@ class ba81NormalQuad {
 			numSpecific(-1), primaryDims(-1), totalPrimaryPoints(-1) {};
 		int numAbil() const { return (int) abilitiesMap.size(); }
 		inline int sIndex(int sx, int qx) {
-			//if (sx < 0 || sx >= state->numSpecific) mxThrow("Out of domain");
-			//if (qx < 0 || qx >= state->gridSize) mxThrow("Out of domain");
+			//if (sx < 0 || sx >= state->numSpecific) stop("Out of domain");
+			//if (qx < 0 || qx >= state->gridSize) stop("Out of domain");
 			return qx * numSpecific + sx;
 		};
 		template <typename T1>
@@ -451,7 +451,7 @@ template <typename T1>
 void ba81NormalQuad::decodeLocation(int qx, int base, Eigen::MatrixBase<T1> &out, int dims)
 {
 	is_same<typename T1::Scalar, int> isInt;
-	if (!isInt.value) mxThrow("should be int");
+	if (!isInt.value) stop("should be int");
 
 	for (int dx=dims-1; dx >= 0; --dx) {
 		out[dx] = qx % base;

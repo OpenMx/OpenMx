@@ -6,7 +6,7 @@
 
 void PathCalc::prepM(FitContext *fc)
 {
-	if (!mio) mxThrow("PathCalc::prepM but no PathCalcIO for mean");
+	if (!mio) stop("PathCalc::prepM but no PathCalcIO for mean");
 	mio->recompute(fc);
 	if (ignoreVersion || versionM != mio->getVersion(fc)) {
 		mio->refresh(fc);
@@ -40,7 +40,7 @@ void PathCalc::prepA(FitContext *fc)
 
 void PathCalc::init1()
 {
-	if (algoSet) mxThrow("PathCalc::init() but algoSet");
+	if (algoSet) stop("PathCalc::init() but algoSet");
 	if (mio) {
 		mio->full.resize(numVars, 1);
 		//fullM.setZero(); all coeff are copied
@@ -79,7 +79,7 @@ void PathCalc::init1()
 
 void PathCalc::init2()
 {
-	if (useSparse == NA_INTEGER) mxThrow("PathCalc::init2: must decide useSparse");
+	if (useSparse == NA_INTEGER) stop("PathCalc::init2: must decide useSparse");
 	if (!boker2019) {
 		if (numIters == NA_INTEGER) {
 			if (!useSparse) {
@@ -104,7 +104,7 @@ void PathCalc::setAlgo(FitContext *fc, bool _boker2019, int _useSparse)
 {
 	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
 																 [](bool x){ return x; })) {
-		mxThrow("Must use Boker2019 when product nodes are present");
+		stop("Must use Boker2019 when product nodes are present");
 	}
 	boker2019 = _boker2019;
 	useSparse = _useSparse;
@@ -133,7 +133,7 @@ void PathCalc::determineShallowDepth(FitContext *fc)
 	}
 	refreshA(fc, 1.0);
 	if (!useSparse) {
-		if ((aio->full.diagonal().array() != 0).any()) mxThrow("A matrix has non-zero diagonal");
+		if ((aio->full.diagonal().array() != 0).any()) stop("A matrix has non-zero diagonal");
 		Eigen::MatrixXd curProd = aio->full;
 		for (int tx=1; tx <= maxDepth; ++tx) {
 			if (false) {
@@ -164,7 +164,7 @@ void PathCalc::determineShallowDepth(FitContext *fc)
 
 void PathCalc::evaluate(FitContext *fc, bool doFilter)
 {
-	if (boker2019) mxThrow("PathCalc::evaluate but boker2019=TRUE");
+	if (boker2019) stop("PathCalc::evaluate but boker2019=TRUE");
 
 	aio->recompute(fc);
 	const unsigned fver = 0xb01dface;
@@ -260,7 +260,7 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 void PathCalc::appendPolyRep(int nn, std::vector<int> &status)
 {
 	if (status[nn] == 2) return;
-	if (status[nn] == 1) mxThrow("Asymmetric matrix is cyclic");
+	if (status[nn] == 1) stop("Asymmetric matrix is cyclic");
 	status[nn] = 1;
 	
 	auto &A = aio->full;

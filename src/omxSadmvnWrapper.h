@@ -429,7 +429,7 @@ bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1>
 	using Eigen::MatrixXd;
 
 	for (int dx=0; dx < xn.size(); dx++) {
-		if (!(lower[nn] <= xn[dx] && xn[dx] <= upper[nn])) mxThrow("xn out of range");
+		if (!(lower[nn] <= xn[dx] && xn[dx] <= upper[nn])) stop("xn out of range");
 	}
 
 	if (sigma.rows() == 1) {
@@ -530,13 +530,13 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 	using Eigen::MatrixXd;
 	using Eigen::DiagonalMatrix;
 
-	if (sigma.rows() < 2) mxThrow("Dimension must be >= 2");
+	if (sigma.rows() < 2) stop("Dimension must be >= 2");
 
 	for (int dx=0; dx < xq.size(); dx++) {
-		if (!(lower[qq] <= xq[dx] && xq[dx] <= upper[qq])) mxThrow("xq[%d] out of range", dx);
+		if (!(lower[qq] <= xq[dx] && xq[dx] <= upper[qq])) stop("xq[%d] out of range", dx);
 	}
 	for (int dx=0; dx < xr.size(); dx++) {
-		if (!(lower[rr] <= xr[dx] && xr[dx] <= upper[rr])) mxThrow("xr[%d] out of range", dx);
+		if (!(lower[rr] <= xr[dx] && xr[dx] <= upper[rr])) stop("xr[%d] out of range", dx);
 	}
 
 	OrdinalLikelihood ol;

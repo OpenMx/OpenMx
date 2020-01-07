@@ -162,22 +162,22 @@ template <typename F> class Polynomial {
 				++it1; ++it2;
 			} else if (top1 > top2) {
 				auto result = erg.monomials.insert(top1);
-				if (!result.second) mxThrow("already exists in set?");
+				if (!result.second) stop("already exists in set?");
 				++it1;
 			} else {
 				auto result = erg.monomials.insert(top2);
-				if (!result.second) mxThrow("already exists in set?");
+				if (!result.second) stop("already exists in set?");
 				++it2;
 			}
 		}
 		while (it1 != monomials.rend()) {
 			auto result = erg.monomials.insert(*it1);
-			if (!result.second) mxThrow("already exists in set?");
+			if (!result.second) stop("already exists in set?");
 			++it1;
 		}
 		while (it2 != other.monomials.rend()) {
 			auto result = erg.monomials.insert(*it2);
-			if (!result.second) mxThrow("already exists in set?");
+			if (!result.second) stop("already exists in set?");
 			++it2;
 		}
 		monomials = erg.monomials;

@@ -480,7 +480,7 @@ void BA81Expect::init() {
 		int rows, cols;
 		getMatrixDims(tmp, &rows, &cols);
 		if (rows != state->itemParam->rows || cols != state->itemParam->cols) {
-			mxThrow("EstepItem must have the same dimensions as the item MxMatrix");
+			stop("EstepItem must have the same dimensions as the item MxMatrix");
 		}
 		state->EitemParam = REAL(tmp);
 	}
@@ -492,7 +492,7 @@ void BA81Expect::init() {
 	// The sorting algorithm ought to remove them so we get better cache behavior.
 	// The following summary stats would be cheaper to calculate too.
 
-	if (data->hasDefinitionVariables()) mxThrow("%s: not implemented yet", name);
+	if (data->hasDefinitionVariables()) stop("%s: not implemented yet", name);
 
 	std::vector<int> &rowMap = state->grp.rowMap;
 
@@ -555,23 +555,23 @@ void BA81Expect::init() {
 			++cols;
 			const int no = state->grp.itemOutcomes[cx];
 			if (pick > no) {
-				mxThrow("Data for item '%s' has at least %d outcomes, not %d",
+				stop("Data for item '%s' has at least %d outcomes, not %d",
 					 state->itemParam->colnames[cx], pick, no);
 			}
 		}
 		if (cols == 0) {
-			mxThrow("Row %d has all NAs", 1+rx);
+			stop("Row %d has all NAs", 1+rx);
 		}
 	}
 
 	if (state->_latentMeanOut && state->_latentMeanOut->rows * state->_latentMeanOut->cols != maxAbilities) {
-		mxThrow("The mean matrix '%s' must be a row or column vector of size %d",
+		stop("The mean matrix '%s' must be a row or column vector of size %d",
 			 state->_latentMeanOut->name(), maxAbilities);
 	}
 
 	if (state->_latentCovOut && (state->_latentCovOut->rows != maxAbilities ||
 				    state->_latentCovOut->cols != maxAbilities)) {
-		mxThrow("The cov matrix '%s' must be %dx%d",
+		stop("The cov matrix '%s' must be %dx%d",
 			 state->_latentCovOut->name(), maxAbilities, maxAbilities);
 	}
 

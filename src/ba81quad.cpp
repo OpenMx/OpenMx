@@ -129,7 +129,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 	for (int sx=0; sx < Rf_length(slotValue); ++sx) {
 		SEXP model = VECTOR_ELT(slotValue, sx);
 		if (!OBJECT(model)) {
-			mxThrow("Item models must inherit rpf.base");
+			stop("Item models must inherit rpf.base");
 		}
 		SEXP Rspec;
 		ScopedProtect p1(Rspec, R_do_slot(model, Rf_install("spec")));
@@ -150,7 +150,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 		if (itemDims == -1) {
 			itemDims = dims;
 		} else if (dims != itemDims) {
-			mxThrow("All items must have the same number of factors (%d != %d)",
+			stop("All items must have the same number of factors (%d != %d)",
 				 itemDims, dims);
 		}
 		int no = ispec[RPF_ISpecOutcomes];
@@ -176,14 +176,14 @@ void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
 			Rf_protect(names = VECTOR_ELT(dimnames, dx));
 			if (!Rf_length(names)) continue;
 			if (int(factorNames.size()) != Rf_length(names)) {
-				mxThrow("%s %snames must be length %d",
+				stop("%s %snames must be length %d",
 					 matName, dimname[dx], (int) factorNames.size());
 			}
 			int nlen = Rf_length(names);
 			for (int nx=0; nx < nlen; ++nx) {
 				const char *name = CHAR(STRING_ELT(names, nx));
 				if (strEQ(factorNames[nx].c_str(), name)) continue;
-				mxThrow("%s %snames[%d] is '%s', does not match factor name '%s'",
+				stop("%s %snames[%d] is '%s', does not match factor name '%s'",
 					 matName, dimname[dx], 1+nx, name, factorNames[nx].c_str());
 			}
 		}
@@ -203,7 +203,7 @@ void ifaGroup::learnMaxAbilities()
 	maxAbilities = (loadings != 0).count();
 	if (itemDims != maxAbilities) {
 		for (int lx=0; lx < itemDims; ++lx) {
-			if (loadings[lx] == 0) mxThrow("Factor %d does not load on any items", 1+lx);
+			if (loadings[lx] == 0) stop("Factor %d does not load on any items", 1+lx);
 		}
 	}
 }
@@ -213,7 +213,7 @@ void ifaGroup::import(SEXP Rlist)
 	SEXP argNames;
 	Rf_protect(argNames = Rf_getAttrib(Rlist, R_NamesSymbol));
 	if (Rf_length(Rlist) != Rf_length(argNames)) {
-		mxThrow("All list elements must be named");
+		stop("All list elements must be named");
 	}
 
 	std::vector<const char *> dataColNames;
@@ -230,7 +230,7 @@ void ifaGroup::import(SEXP Rlist)
 		if (strEQ(key, "spec")) {
 			importSpec(slotValue);
 		} else if (strEQ(key, "param")) {
-			if (!Rf_isReal(slotValue)) mxThrow("'param' must be a numeric matrix of item parameters");
+			if (!Rf_isReal(slotValue)) stop("'param' must be a numeric matrix of item parameters");
 			param = REAL(slotValue);
 			getMatrixDims(slotValue, &paramRows, &pmatCols);
 
@@ -253,11 +253,11 @@ void ifaGroup::import(SEXP Rlist)
 			}
 		} else if (strEQ(key, "mean")) {
 			Rmean = slotValue;
-			if (!Rf_isReal(slotValue)) mxThrow("'mean' must be a numeric vector or matrix");
+			if (!Rf_isReal(slotValue)) stop("'mean' must be a numeric vector or matrix");
 			mean = REAL(slotValue);
 		} else if (strEQ(key, "cov")) {
 			Rcov = slotValue;
-			if (!Rf_isReal(slotValue)) mxThrow("'cov' must be a numeric matrix");
+			if (!Rf_isReal(slotValue)) stop("'cov' must be a numeric matrix");
 			cov = REAL(slotValue);
 		} else if (strEQ(key, "data")) {
 			Rdata = slotValue;
@@ -273,12 +273,12 @@ void ifaGroup::import(SEXP Rlist)
 			Rf_protect(dataRowNames = Rf_getAttrib(Rdata, R_RowNamesSymbol));
 		} else if (strEQ(key, "weightColumn")) {
 			if (Rf_length(slotValue) != 1) {
-				mxThrow("You can only have one %s", key);
+				stop("You can only have one %s", key);
 			}
 			weightColumnName = CHAR(STRING_ELT(slotValue, 0));
 		} else if (strEQ(key, "freqColumn")) {
 			if (Rf_length(slotValue) != 1) {
-				mxThrow("You can only have one %s", key);
+				stop("You can only have one %s", key);
 			}
 			freqColumnName = CHAR(STRING_ELT(slotValue, 0));
 		} else if (strEQ(key, "qwidth")) {
@@ -312,11 +312,11 @@ void ifaGroup::import(SEXP Rlist)
 			int nrow, ncol;
 			getMatrixDims(Rmean, &nrow, &ncol);
 			if (!(nrow * ncol == itemDims && (nrow==1 || ncol==1))) {
-				mxThrow("mean must be a column or row matrix of length %d", itemDims);
+				stop("mean must be a column or row matrix of length %d", itemDims);
 			}
 		} else {
 			if (Rf_length(Rmean) != itemDims) {
-				mxThrow("mean must be a vector of length %d", itemDims);
+				stop("mean must be a vector of length %d", itemDims);
 			}
 		}
 
@@ -328,11 +328,11 @@ void ifaGroup::import(SEXP Rlist)
 			int nrow, ncol;
 			getMatrixDims(Rcov, &nrow, &ncol);
 			if (nrow != itemDims || ncol != itemDims) {
-				mxThrow("cov must be %dx%d matrix", itemDims, itemDims);
+				stop("cov must be %dx%d matrix", itemDims, itemDims);
 			}
 		} else {
 			if (Rf_length(Rcov) != 1) {
-				mxThrow("cov must be %dx%d matrix", itemDims, itemDims);
+				stop("cov must be %dx%d matrix", itemDims, itemDims);
 			}
 		}
 
@@ -344,12 +344,12 @@ void ifaGroup::import(SEXP Rlist)
 	setMinItemsPerScore(mips);
 
 	if (numItems() != pmatCols) {
-		mxThrow("item matrix implies %d items but spec is length %d",
+		stop("item matrix implies %d items but spec is length %d",
 			 pmatCols, numItems());
 	}
 
 	if (Rdata) {
-		if (itemNames.size() == 0) mxThrow("Item matrix must have colnames");
+		if (itemNames.size() == 0) stop("Item matrix must have colnames");
 		for (int ix=0; ix < numItems(); ++ix) {
 			bool found=false;
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
@@ -357,11 +357,11 @@ void ifaGroup::import(SEXP Rlist)
 					SEXP col = VECTOR_ELT(Rdata, dc);
 					if (!Rf_isFactor(col)) {
 						if (TYPEOF(col) == INTSXP) {
-							mxThrow("Column '%s' is an integer but "
+							stop("Column '%s' is an integer but "
 								 "not an ordered factor",
 								 dataColNames[dc]);
 						} else {
-							mxThrow("Column '%s' is of type %s; expecting an "
+							stop("Column '%s' is of type %s; expecting an "
 								 "ordered factor (integer)",
 								 dataColNames[dc], Rf_type2char(TYPEOF(col)));
 						}
@@ -372,7 +372,7 @@ void ifaGroup::import(SEXP Rlist)
 				}
 			}
 			if (!found) {
-				mxThrow("Cannot find item '%s' in data", itemNames[ix]);
+				stop("Cannot find item '%s' in data", itemNames[ix]);
 			}
 		}
 		if (weightColumnName) {
@@ -380,7 +380,7 @@ void ifaGroup::import(SEXP Rlist)
 				if (strEQ(weightColumnName, dataColNames[dc])) {
 					SEXP col = VECTOR_ELT(Rdata, dc);
 					if (TYPEOF(col) != REALSXP) {
-						mxThrow("Column '%s' is of type %s; expecting type numeric (double)",
+						stop("Column '%s' is of type %s; expecting type numeric (double)",
 							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
 					}
 					rowWeight = REAL(col);
@@ -388,7 +388,7 @@ void ifaGroup::import(SEXP Rlist)
 				}
 			}
 			if (!rowWeight) {
-				mxThrow("Cannot find weight column '%s'", weightColumnName);
+				stop("Cannot find weight column '%s'", weightColumnName);
 			}
 		}
 		if (freqColumnName) {
@@ -396,7 +396,7 @@ void ifaGroup::import(SEXP Rlist)
 				if (strEQ(freqColumnName, dataColNames[dc])) {
 					SEXP col = VECTOR_ELT(Rdata, dc);
 					if (TYPEOF(col) != INTSXP) {
-						mxThrow("Column '%s' is of type %s; expecting type integer",
+						stop("Column '%s' is of type %s; expecting type integer",
 							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
 					}
 					rowFreq = INTEGER(col);
@@ -404,7 +404,7 @@ void ifaGroup::import(SEXP Rlist)
 				}
 			}
 			if (!rowFreq) {
-				mxThrow("Cannot find frequency column '%s'", freqColumnName);
+				stop("Cannot find frequency column '%s'", freqColumnName);
 			}
 		}
 		rowMap.reserve(dataRows);
@@ -418,7 +418,7 @@ void ifaGroup::import(SEXP Rlist)
 	quad.setStructure(qwidth, qpoints, Eparam, meanVec, covMat);
 
 	if (paramRows < impliedParamRows) {
-		mxThrow("At least %d rows are required in the item parameter matrix, only %d found",
+		stop("At least %d rows are required in the item parameter matrix, only %d found",
 			 impliedParamRows, paramRows);
 	}
 	
@@ -596,7 +596,7 @@ void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 
 	if (orthogonal.size() == 1) orthogonal.clear();
 	if (orthogonal.size() && orthogonal[0] != mean.rows() - int(orthogonal.size())) {
-		mxThrow("Independent specific factors must be given after general dense factors");
+		stop("Independent specific factors must be given after general dense factors");
 	}
 
 	numSpecific = orthogonal.size();
@@ -619,7 +619,7 @@ void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
 void ifaGroup::setMinItemsPerScore(int mips)
 {
 	if (numItems() && mips > numItems()) {
-		mxThrow("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
+		stop("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
 			 mips, numItems());
 	}
 	minItemsPerScore = mips;
@@ -667,7 +667,7 @@ void ifaGroup::buildRowSkip()
 		}
 		if (!hasNA) continue;
 		if (minItemsPerScore == NA_INTEGER) {
-			mxThrow("You have missing data. You must set minItemsPerScore");
+			stop("You have missing data. You must set minItemsPerScore");
 		}
 		for (int ax=0; ax < itemDims; ++ax) {
 			if (contribution[ax] < minItemsPerScore) {
@@ -791,7 +791,7 @@ void ba81NormalQuad::releaseEstep()
 
 void ifaGroup::setFactorNames(std::vector<const char *> &names)
 {
-	if (int(names.size()) < itemDims) mxThrow("Not enough names");
+	if (int(names.size()) < itemDims) stop("Not enough names");
 	factorNames.resize(itemDims);
 	for (int fx=0; fx < itemDims; ++fx) factorNames[fx] = names[fx];
 }

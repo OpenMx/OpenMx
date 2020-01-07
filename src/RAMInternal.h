@@ -234,7 +234,7 @@ namespace RelationalRAMExpectation {
 		std::vector<addr>		 layout;
 
 		void clumpWith(int upper, int lower) {
-			if (layoutSetup[lower].clumped) mxThrow("%d is already clumped", lower);
+			if (layoutSetup[lower].clumped) stop("%d is already clumped", lower);
 			layoutSetup[upper].clump.push_back(lower);
 			layoutSetup[lower].clumped = true;
 		};
