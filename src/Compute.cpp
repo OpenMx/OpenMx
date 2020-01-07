@@ -234,7 +234,7 @@ struct allFiniteHelper {
 static void InvertSymmetricNR(Eigen::MatrixXd &hess, Eigen::MatrixXd &ihess)
 {
 	ihess = hess;
-	Matrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
+	ThinMatrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
 
 	if (!InvertSymmetricPosDef(ihessMat, 'U')) return;
 
@@ -257,7 +257,7 @@ void FitContext::refreshDenseIHess()
 	refreshDenseHess();
 
 	ihess = hess;
-	Matrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
+	ThinMatrix ihessMat(ihess.data(), ihess.rows(), ihess.cols());
 	InvertSymmetricIndef(ihessMat, 'U');
 
 	haveDenseIHess = true;
@@ -1274,12 +1274,12 @@ void FitContext::postInfo()
 	case INFO_METHOD_SANDWICH:{
 		// move into FCDeriv TODO
 		std::vector<double> work(numParam * numParam);
-		Matrix amat(infoA, numParam, numParam);
+		ThinMatrix amat(infoA, numParam, numParam);
 		InvertSymmetricIndef(amat, 'U');
 		_fixSymmetry("InfoB", infoB, numParam, false);
-		Matrix bmat(infoB, numParam, numParam);
-		Matrix wmat(work.data(), numParam, numParam);
-		Matrix hmat(getDenseIHessUninitialized(), numParam, numParam);
+		ThinMatrix bmat(infoB, numParam, numParam);
+		ThinMatrix wmat(work.data(), numParam, numParam);
+		ThinMatrix hmat(getDenseIHessUninitialized(), numParam, numParam);
 		SymMatrixMultiply('L', amat, bmat, wmat);
 		SymMatrixMultiply('R', amat, wmat, hmat);
 		wanted |= FF_COMPUTE_IHESSIAN;
@@ -3272,10 +3272,10 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	double *hess = REAL(inputInfoMatrix);
 	fc->copyDenseHess(hess);
 
-	Matrix rijMat(rij.data(), freeVars, freeVars);
-	Matrix hessMat(hess, freeVars, freeVars);
+	ThinMatrix rijMat(rij.data(), freeVars, freeVars);
+	ThinMatrix hessMat(hess, freeVars, freeVars);
 	std::vector<double> infoBuf(freeVars * freeVars);
-	Matrix infoMat(infoBuf.data(), freeVars, freeVars);
+	ThinMatrix infoMat(infoBuf.data(), freeVars, freeVars);
 
 	SymMatrixMultiply('L', hessMat, rijMat, infoMat);  // result not symmetric!
 
@@ -3292,7 +3292,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 		singular = InvertSymmetricIndef(infoMat, 'U');
 		memcpy(ihess, infoBuf.data(), sizeof(double) * freeVars * freeVars);
 	} else {
-		Matrix ihessMat(ihess, freeVars, freeVars);
+		ThinMatrix ihessMat(ihess, freeVars, freeVars);
 		singular = MatrixSolve(infoMat, ihessMat, true);
 	}
 	if (singular) {

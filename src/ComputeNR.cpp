@@ -340,7 +340,7 @@ void omxApproxInvertPosDefTriangular(int dim, double *hess, double *ihess, doubl
 			}
 		}
 
-		Matrix ihessMat(ihess, dim, dim);
+		ThinMatrix ihessMat(ihess, dim, dim);
 		info = InvertSymmetricPosDef(ihessMat, 'L');
 		if (info == 0) break;
 	} while (++retries < maxRetries * 1.5);
