@@ -559,11 +559,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 	double delta = ctrl[2];
 	double tol =   ctrl[3];
 	
-	if (neq != fit.equality.size()) mxThrow("oops");
+	if (neq != fit.equality.size()) stop("oops");
 	if (optimize_initial_inequality_constraints) {
-		if (nineq != 0) mxThrow("oops");
+		if (nineq != 0) stop("oops");
 	} else {
-		if (nineq != fit.inequality.size()) mxThrow("oops");
+		if (nineq != fit.inequality.size()) stop("oops");
 	}
 	
 	int np = (int)ind[indNumParam];
@@ -1451,7 +1451,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 	hessv_e = hessv_e * vscale_e(0);
 	
 	if (verbose >= 1 && 1e-300 > tol) {
-		mxLog("m3 solnp mxThrow message being reported.");
+		mxLog("m3 solnp stop message being reported.");
 	}
 	
 	resP = p_e;

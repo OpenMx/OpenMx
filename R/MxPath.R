@@ -280,7 +280,10 @@ mxPath <- function(from, to = NA,
 			connect <- allArgument
 		}
 	} else if (length(garbageArguments) > 0) {
-		msg <- paste("mxPath does not accept values",
+		msg <- paste("mxPath does not accept",
+				omxQuotes(names(garbageArguments)),
+				"as argument(s) and",
+				"does not accept values",
 				"for the '...' argument.",
 				"See ?mxPath for more information.")
    		stop(msg)

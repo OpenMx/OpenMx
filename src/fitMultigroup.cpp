@@ -52,7 +52,7 @@ void FitMultigroup::compute(int want, FitContext *fc)
 				if (units == FIT_UNITS_UNINITIALIZED) {
 					units = f1->fitFunction->units;
 				} else if (units != f1->fitFunction->units) {
-					mxThrow("%s: cannot combine units %s and %s (from %s)",
+					stop("%s: cannot combine units %s and %s (from %s)",
 						matrix->name(), fitUnitsToName(units),
 						fitUnitsToName(f1->fitFunction->units), f1->name());
 				}
@@ -120,9 +120,9 @@ void FitMultigroup::init()
 		if (fits[gx] >= 0) {
 			mat = os->algebraList[fits[gx]];
 		} else {
-			mxThrow("Can only add algebra and fitfunction");
+			stop("Can only add algebra and fitfunction");
 		}
-		if (mat == oo->matrix) mxThrow("Cannot add multigroup to itself");
+		if (mat == oo->matrix) stop("Cannot add multigroup to itself");
 		mg->fits.push_back(mat);
 		if (mat->fitFunction) {
 			omxCompleteFitFunction(mat);
@@ -146,8 +146,8 @@ void FitMultigroup::traverse(std::function<void(omxMatrix*)> &fn)
 /* TODO
 void omxMultigroupAdd(omxFitFunction *oo, omxFitFunction *fit)
 {
-	if (oo->initFun != initFitMultigroup) mxThrow("%s is not the multigroup fit", oo->fitType);
-	if (!oo->initialized) mxThrow("Fit not initialized", oo);
+	if (oo->initFun != initFitMultigroup) stop("%s is not the multigroup fit", oo->fitType);
+	if (!oo->initialized) stop("Fit not initialized", oo);
 
 	FitMultigroup *mg = (FitMultigroup*) oo->argStruct;
 	mg->fits.push_back(fit->matrix);

@@ -89,7 +89,7 @@ code-style: $(RFILES)
 	@if [ `grep R_CheckUserInterrupt src/*.cpp | wc -l` -gt 1 ]; then echo "*** omxGlobal::interrupted instead of R_CheckUserInterrupt."; exit 1; fi
 	@if grep Rf_unprotect src/*.cpp; then echo "*** Rf_unprotect is error prone. Use ProtectedSEXP or Rcpp instead."; exit 1; fi
 	@if grep UNPROTECT src/*.cpp; then echo "*** UNPROTECT is error prone. Use ProtectedSEXP or Rcpp instead."; exit 1; fi
-	@if [ `grep Rf_error src/*.cpp | wc -l` -gt 8 ]; then echo "*** Use mxThrow instead of Rf_error."; exit 1; fi
+	@if [ `grep Rf_error src/*.cpp | wc -l` -gt 8 ]; then echo "*** Use stop instead of Rf_error."; exit 1; fi
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep globalenv R/*.R | wc -l` -gt 6 ]; then echo "*** globalenv() interferes with testthat and is not allowed"; exit 1; fi

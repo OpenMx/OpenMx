@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2017, 2016 Joshua Nathaniel Pritikin and contributors
+  Copyright 2012-2017 Joshua Nathaniel Pritikin and contributors
 
   This is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,15 +18,17 @@
 #include "ba81quad.h"
 #include "EnableWarnings.h"
 
+using namespace ba81quad;
+
 const double ba81NormalQuad::MIN_VARIANCE = 0.01;
 
-ba81NormalQuad::ba81NormalQuad(struct ifaGroup *_ig) : ig(*_ig)
+ba81NormalQuad::ba81NormalQuad() : numThreads(-1)
 {
 	setOne(1);
 	layers.resize(1, layer(this));
 }
 
-ba81NormalQuad::ba81NormalQuad(ba81NormalQuad &quad) : ig(quad.ig)
+ba81NormalQuad::ba81NormalQuad(ba81NormalQuad &quad) : numThreads(-1)
 {
 	setOne(quad.One);
 	layers.resize(quad.layers.size(), layer(this));
@@ -64,25 +66,22 @@ void ba81NormalQuad::layer::copyStructure(ba81NormalQuad::layer &orig)
 // Depends on item parameters, but not latent distribution
 void ba81NormalQuad::cacheOutcomeProb(double *param, bool wantLog)
 {
-	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layer &l1 = layers[lx];
-		l1.outcomeProbX.resize(ig.totalOutcomes * l1.totalQuadPoints);
-	}
+	if (layers.size() != 1) stop("layers.size() != 1");
+	
+	layer &l1 = layers[0];
+	l1.outcomeProbX.resize(l1.totalOutcomes * l1.totalQuadPoints);
 
-#pragma omp parallel for num_threads(ig.numThreads)
-	for (int ix=0; ix < ig.numItems(); ix++) {
-		const double *ispec = ig.spec[ix];
+#pragma omp parallel for num_threads(numThreads)
+	for (int ix=0; ix < l1.numItems(); ix++) {
+		const double *ispec = l1.spec[ix];
 		int id = ispec[RPF_ISpecID];
-		double *iparam = param + ig.paramRows * ix;
+		double *iparam = param + l1.paramRows * ix;
 		rpf_prob_t prob_fn = wantLog? Glibrpf_model[id].logprob : Glibrpf_model[id].prob;
 
 		Eigen::VectorXi abx(abscissaDim());
 		Eigen::VectorXd abscissa(abscissaDim());
 
-		for (size_t lx=0; lx < layers.size(); ++lx) {
-			layer &l1 = layers[lx];
-			l1.cacheOutcomeProb(ispec, iparam, prob_fn, ix, abx, abscissa);
-		}
+		l1.cacheOutcomeProb(ispec, iparam, prob_fn, ix, abx, abscissa);
 	}
 	// for (size_t lx=0; lx < layers.size(); ++lx) {
 	// 	layer &l1 = layers[lx];
@@ -97,17 +96,16 @@ void ba81NormalQuad::layer::addSummary(ba81NormalQuad::layer &l1)
 
 void ba81NormalQuad::addSummary(ba81NormalQuad &quad)
 {
-	allocSummary(1);
+	allocSummary();
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].prepSummary();
 		layers[lx].addSummary(quad.layers[lx]);
 	}
 }
 
-ifaGroup::ifaGroup(int cores, bool _twotier) :
-	Rdata(NULL), numThreads(cores), qwidth(6.0), qpoints(49), quad(this),
-	detectIndependence(true),
-	twotier(_twotier), mean(0), cov(0), dataRowNames(0),
+ifaGroup::ifaGroup(bool _twotier) :
+	itemDims(-1), qwidth(6.0), qpoints(49),
+	twotier(_twotier), mean(0), cov(0),
 	weightColumnName(0), rowWeight(0), freqColumnName(0), rowFreq(0),
 	minItemsPerScore(NA_INTEGER), excludedPatterns(-1)
 {}
@@ -124,16 +122,12 @@ ifaGroup::~ifaGroup()
 {
 }
 
-void ifaGroup::importSpec(SEXP slotValue)
+void ifaGroup::importSpec(const List &slotValue)
 {
-	for (int sx=0; sx < Rf_length(slotValue); ++sx) {
-		SEXP model = VECTOR_ELT(slotValue, sx);
-		if (!OBJECT(model)) {
-			mxThrow("Item models must inherit rpf.base");
-		}
-		SEXP Rspec;
-		ScopedProtect p1(Rspec, R_do_slot(model, Rf_install("spec")));
-		spec.push_back(REAL(Rspec));
+	for (int sx=0; sx < slotValue.size(); ++sx) {
+		S4 model = slotValue[sx];
+		NumericVector s1 = model.slot("spec");
+		spec.push_back(s1.begin());
 	}
 
 	dataColumns.reserve(spec.size());
@@ -142,7 +136,6 @@ void ifaGroup::importSpec(SEXP slotValue)
 	impliedParamRows = 0;
 	totalOutcomes = 0;
 	maxOutcomes = 0;
-	itemDims = -1;
 	for (int cx = 0; cx < numItems(); cx++) {
 		const double *ispec = spec[cx];
 		int id = ispec[RPF_ISpecID];
@@ -150,7 +143,7 @@ void ifaGroup::importSpec(SEXP slotValue)
 		if (itemDims == -1) {
 			itemDims = dims;
 		} else if (dims != itemDims) {
-			mxThrow("All items must have the same number of factors (%d != %d)",
+			stop("All items must have the same number of factors (%d != %d)",
 				 itemDims, dims);
 		}
 		int no = ispec[RPF_ISpecOutcomes];
@@ -164,28 +157,27 @@ void ifaGroup::importSpec(SEXP slotValue)
 	}
 }
 
-void ifaGroup::verifyFactorNames(SEXP mat, const char *matName)
+void ifaGroup::verifyFactorNames(const List &dimnames, const char *matName)
 {
+	using ba81quad::strEQ;
 	static const char *dimname[] = { "row", "col" };
 
-	SEXP dimnames;
-	Rf_protect(dimnames = Rf_getAttrib(mat, R_DimNamesSymbol));
-	if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
-		for (int dx=0; dx < 2; ++dx) {
-			SEXP names;
-			Rf_protect(names = VECTOR_ELT(dimnames, dx));
-			if (!Rf_length(names)) continue;
-			if (int(factorNames.size()) != Rf_length(names)) {
-				mxThrow("%s %snames must be length %d",
+	if (dimnames.size() != 2) return;
+
+	for (int dx=0; dx < 2; ++dx) {
+		RObject d1 = dimnames[dx];
+		if (d1.isNULL()) continue;
+		CharacterVector names = as<CharacterVector>(d1);
+		if (int(factorNames.size()) != names.size()) {
+			stop("%s %snames must be length %d",
 					 matName, dimname[dx], (int) factorNames.size());
-			}
-			int nlen = Rf_length(names);
-			for (int nx=0; nx < nlen; ++nx) {
-				const char *name = CHAR(STRING_ELT(names, nx));
-				if (strEQ(factorNames[nx].c_str(), name)) continue;
-				mxThrow("%s %snames[%d] is '%s', does not match factor name '%s'",
+		}
+		int nlen = names.size();
+		for (int nx=0; nx < nlen; ++nx) {
+			const char *name = names[nx];
+			if (strEQ(factorNames[nx].c_str(), name)) continue;
+			stop("%s %snames[%d] is '%s', does not match factor name '%s'",
 					 matName, dimname[dx], 1+nx, name, factorNames[nx].c_str());
-			}
 		}
 	}
 }
@@ -203,17 +195,17 @@ void ifaGroup::learnMaxAbilities()
 	maxAbilities = (loadings != 0).count();
 	if (itemDims != maxAbilities) {
 		for (int lx=0; lx < itemDims; ++lx) {
-			if (loadings[lx] == 0) mxThrow("Factor %d does not load on any items", 1+lx);
+			if (loadings[lx] == 0) stop("Factor %d does not load on any items", 1+lx);
 		}
 	}
 }
 
-void ifaGroup::import(SEXP Rlist)
+void ifaGroup::import(const List &Rlist)
 {
-	SEXP argNames;
-	Rf_protect(argNames = Rf_getAttrib(Rlist, R_NamesSymbol));
-	if (Rf_length(Rlist) != Rf_length(argNames)) {
-		mxThrow("All list elements must be named");
+	using ba81quad::strEQ;
+	CharacterVector argNames = Rlist.attr("names");
+	if (Rlist.size() != argNames.size()) {
+		stop("All list elements must be named");
 	}
 
 	std::vector<const char *> dataColNames;
@@ -222,71 +214,65 @@ void ifaGroup::import(SEXP Rlist)
 	int pmatCols=-1;
 	int mips = 1;
 	int dataRows = 0;
-	SEXP Rmean=0, Rcov=0;
+	NumericVector Rmean;
+	NumericMatrix Rcov;
 
-	for (int ax=0; ax < Rf_length(Rlist); ++ax) {
-		const char *key = R_CHAR(STRING_ELT(argNames, ax));
-		SEXP slotValue = VECTOR_ELT(Rlist, ax);
+	for (int ax=0; ax < Rlist.size(); ++ax) {
+		const char *key = argNames[ax];
+		RObject slotValue = Rlist[ax];
 		if (strEQ(key, "spec")) {
-			importSpec(slotValue);
+			importSpec(as<List>(slotValue));
 		} else if (strEQ(key, "param")) {
-			if (!Rf_isReal(slotValue)) mxThrow("'param' must be a numeric matrix of item parameters");
-			param = REAL(slotValue);
-			getMatrixDims(slotValue, &paramRows, &pmatCols);
+			if (!is<NumericVector>(slotValue)) stop("'param' must be a numeric matrix of item parameters");
+			NumericMatrix Rparam = as<NumericMatrix>(slotValue);
+			param = Rparam.begin();
+			paramRows = Rparam.nrow();
+			pmatCols = Rparam.ncol();
 
-			SEXP dimnames;
-			Rf_protect(dimnames = Rf_getAttrib(slotValue, R_DimNamesSymbol));
-			if (!Rf_isNull(dimnames) && Rf_length(dimnames) == 2) {
-				SEXP names;
-				Rf_protect(names = VECTOR_ELT(dimnames, 0));
-				int nlen = Rf_length(names);
-				factorNames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					factorNames[nx] = CHAR(STRING_ELT(names, nx));
+			List dimnames = Rparam.attr("dimnames");
+			if (dimnames.size() == 2) {
+				if (dimnames[0] != R_NilValue) {
+					CharacterVector names = dimnames[0];
+					factorNames.resize(names.size());
+					for (int nx=0; nx < names.size(); ++nx) {
+						factorNames[nx] = names[nx];
+					}
 				}
-				Rf_protect(names = VECTOR_ELT(dimnames, 1));
-				nlen = Rf_length(names);
-				itemNames.resize(nlen);
-				for (int nx=0; nx < nlen; ++nx) {
-					itemNames[nx] = CHAR(STRING_ELT(names, nx));
+				if (dimnames[1] != R_NilValue) {
+					CharacterVector names = dimnames[1];
+					itemNames.resize(names.size());
+					for (int nx=0; nx < names.size(); ++nx) {
+						itemNames[nx] = names[nx];
+					}
 				}
 			}
 		} else if (strEQ(key, "mean")) {
-			Rmean = slotValue;
-			if (!Rf_isReal(slotValue)) mxThrow("'mean' must be a numeric vector or matrix");
-			mean = REAL(slotValue);
+			Rmean = as<NumericVector>(slotValue);
+			mean = Rmean.begin();
 		} else if (strEQ(key, "cov")) {
-			Rcov = slotValue;
-			if (!Rf_isReal(slotValue)) mxThrow("'cov' must be a numeric matrix");
-			cov = REAL(slotValue);
+			Rcov = as<NumericMatrix>(slotValue);
+			cov = Rcov.begin();
 		} else if (strEQ(key, "data")) {
-			Rdata = slotValue;
-			dataRows = Rf_length(VECTOR_ELT(Rdata, 0));
+			Rdata = as<DataFrame>(slotValue);
+			IntegerVector col0 = Rdata[0];
+			dataRows = col0.size();
 
-			SEXP names;
-			Rf_protect(names = Rf_getAttrib(Rdata, R_NamesSymbol));
-			int nlen = Rf_length(names);
-			dataColNames.reserve(nlen);
-			for (int nx=0; nx < nlen; ++nx) {
-				dataColNames.push_back(CHAR(STRING_ELT(names, nx)));
+			CharacterVector names = Rdata.attr("names");
+			dataColNames.reserve(names.size());
+			for (int nx=0; nx < names.size(); ++nx) {
+				dataColNames.push_back(names[nx]);
 			}
-			Rf_protect(dataRowNames = Rf_getAttrib(Rdata, R_RowNamesSymbol));
+			dataRowNames = Rdata.attr("row.names");
 		} else if (strEQ(key, "weightColumn")) {
-			if (Rf_length(slotValue) != 1) {
-				mxThrow("You can only have one %s", key);
-			}
-			weightColumnName = CHAR(STRING_ELT(slotValue, 0));
+			weightColumnName = as<const char *>(slotValue);
 		} else if (strEQ(key, "freqColumn")) {
-			if (Rf_length(slotValue) != 1) {
-				mxThrow("You can only have one %s", key);
-			}
-			freqColumnName = CHAR(STRING_ELT(slotValue, 0));
+			freqColumnName = as<const char *>(slotValue);
 		} else if (strEQ(key, "qwidth")) {
-			qwidth = Rf_asReal(slotValue);
+			qwidth = as<double>(slotValue);
 		} else if (strEQ(key, "qpoints")) {
-			qpoints = Rf_asInteger(slotValue);
+			qpoints = as<int>(slotValue);
 		} else if (strEQ(key, "minItemsPerScore")) {
-			mips = Rf_asInteger(slotValue);
+			mips = as<int>(slotValue);
 		} else {
 			// ignore
 		}
@@ -307,36 +293,22 @@ void ifaGroup::import(SEXP Rlist)
 		}
 	}
 
-	if (Rmean) {
-		if (Rf_isMatrix(Rmean)) {
-			int nrow, ncol;
-			getMatrixDims(Rmean, &nrow, &ncol);
-			if (!(nrow * ncol == itemDims && (nrow==1 || ncol==1))) {
-				mxThrow("mean must be a column or row matrix of length %d", itemDims);
-			}
-		} else {
-			if (Rf_length(Rmean) != itemDims) {
-				mxThrow("mean must be a vector of length %d", itemDims);
-			}
+	if (Rmean.size()) {
+		if (Rmean.size() != itemDims) {
+			stop("mean must be a vector of length %d (not %d)", itemDims, Rmean.size());
 		}
 
-		verifyFactorNames(Rmean, "mean");
+		verifyFactorNames(Rmean.attr("dimnames"), "mean");
 	}
 
-	if (Rcov) {
-		if (Rf_isMatrix(Rcov)) {
-			int nrow, ncol;
-			getMatrixDims(Rcov, &nrow, &ncol);
-			if (nrow != itemDims || ncol != itemDims) {
-				mxThrow("cov must be %dx%d matrix", itemDims, itemDims);
-			}
-		} else {
-			if (Rf_length(Rcov) != 1) {
-				mxThrow("cov must be %dx%d matrix", itemDims, itemDims);
-			}
+	if (Rcov.size()) {
+		int nrow = Rcov.nrow();
+		int ncol = Rcov.ncol();
+		if (nrow != itemDims || ncol != itemDims) {
+			stop("cov must be %dx%d matrix", itemDims, itemDims);
 		}
 
-		verifyFactorNames(Rcov, "cov");
+		verifyFactorNames(Rcov.attr("dimnames"), "cov");
 	}
 
 	setLatentDistribution(mean, cov);
@@ -344,67 +316,53 @@ void ifaGroup::import(SEXP Rlist)
 	setMinItemsPerScore(mips);
 
 	if (numItems() != pmatCols) {
-		mxThrow("item matrix implies %d items but spec is length %d",
+		stop("item matrix implies %d items but spec is length %d",
 			 pmatCols, numItems());
 	}
 
-	if (Rdata) {
-		if (itemNames.size() == 0) mxThrow("Item matrix must have colnames");
+	if (Rdata.size()) {
+		if (itemNames.size() == 0) stop("Item matrix must have colnames");
 		for (int ix=0; ix < numItems(); ++ix) {
 			bool found=false;
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
 				if (strEQ(itemNames[ix], dataColNames[dc])) {
-					SEXP col = VECTOR_ELT(Rdata, dc);
+					IntegerVector col = Rdata[dc];
 					if (!Rf_isFactor(col)) {
-						if (TYPEOF(col) == INTSXP) {
-							mxThrow("Column '%s' is an integer but "
+						stop("Column '%s' is an integer but "
 								 "not an ordered factor",
 								 dataColNames[dc]);
-						} else {
-							mxThrow("Column '%s' is of type %s; expecting an "
-								 "ordered factor (integer)",
-								 dataColNames[dc], Rf_type2char(TYPEOF(col)));
-						}
 					}
-					dataColumns.push_back(INTEGER(col));
+					dataColumns.push_back(col.begin());
 					found=true;
 					break;
 				}
 			}
 			if (!found) {
-				mxThrow("Cannot find item '%s' in data", itemNames[ix]);
+				stop("Cannot find item '%s' in data", itemNames[ix]);
 			}
 		}
 		if (weightColumnName) {
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
 				if (strEQ(weightColumnName, dataColNames[dc])) {
-					SEXP col = VECTOR_ELT(Rdata, dc);
-					if (TYPEOF(col) != REALSXP) {
-						mxThrow("Column '%s' is of type %s; expecting type numeric (double)",
-							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
-					}
-					rowWeight = REAL(col);
+					NumericVector col = Rdata[dc];
+					rowWeight = col.begin();
 					break;
 				}
 			}
 			if (!rowWeight) {
-				mxThrow("Cannot find weight column '%s'", weightColumnName);
+				stop("Cannot find weight column '%s'", weightColumnName);
 			}
 		}
 		if (freqColumnName) {
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
 				if (strEQ(freqColumnName, dataColNames[dc])) {
-					SEXP col = VECTOR_ELT(Rdata, dc);
-					if (TYPEOF(col) != INTSXP) {
-						mxThrow("Column '%s' is of type %s; expecting type integer",
-							 dataColNames[dc], Rf_type2char(TYPEOF(col)));
-					}
-					rowFreq = INTEGER(col);
+					IntegerVector col = Rdata[dc];
+					rowFreq = col.begin();
 					break;
 				}
 			}
 			if (!rowFreq) {
-				mxThrow("Cannot find frequency column '%s'", freqColumnName);
+				stop("Cannot find frequency column '%s'", freqColumnName);
 			}
 		}
 		rowMap.reserve(dataRows);
@@ -415,10 +373,11 @@ void ifaGroup::import(SEXP Rlist)
 	Eigen::Map< Eigen::VectorXd > meanVec(mean, itemDims);
 	Eigen::Map< Eigen::MatrixXd > covMat(cov, itemDims, itemDims);
 
-	quad.setStructure(qwidth, qpoints, Eparam, meanVec, covMat);
+	quad.setStructure(qwidth, qpoints, Eparam, meanVec, covMat, twotier);
+	quad.setupOutcomes(*this);
 
 	if (paramRows < impliedParamRows) {
-		mxThrow("At least %d rows are required in the item parameter matrix, only %d found",
+		stop("At least %d rows are required in the item parameter matrix, only %d found",
 			 impliedParamRows, paramRows);
 	}
 	
@@ -443,183 +402,30 @@ void ifaGroup::setLatentDistribution(double *_mean, double *_cov)
 	}
 }
 
-template <typename T1, typename T2, typename T3>
-void ba81NormalQuad::setStructure(double Qwidth, int Qpoints,
-				  Eigen::ArrayBase<T1> &param,
-				  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
+void ba81NormalQuad::layer::setupOutcomes(ifaGroup &ig)
 {
-	hasBifactorStructure = false;
-	width = Qwidth;
-	gridSize = Qpoints;
-
-	if (int(Qpoint.size()) != gridSize) {
-		Qpoint.clear();
-		Qpoint.reserve(gridSize);
-		double qgs = gridSize-1;
-		for (int px=0; px < gridSize; ++px) {
-			Qpoint.push_back(px * 2 * width / qgs - width);
-		}
-	}
-
-	if (!mean.rows()) {
-		gridSize = 1;
-		layers.resize(1, layer(this));
-		layers[0].itemsMask.assign(param.cols(), true);
-		layers[0].setStructure(param, mean, cov);
-		return;
-	}
-
-	if (!ig.detectIndependence) {
-		layers.resize(1, layer(this));
-		layers[0].itemsMask.assign(param.cols(), true);
-		layers[0].abilitiesMask.assign(mean.rows(), true);
-		layers[0].setStructure(param, mean, cov);
-		return;
-	}
-
-	layers.clear();
-	layers.resize(1, layer(this));
-
-	// This overengineering was done in error.
-	layers[0].itemsMask.assign(param.cols(), true);
-	layers[0].abilitiesMask.assign(mean.rows(), true);
-	layers[0].setStructure(param, mean, cov);
-}
-
-template <typename T1, typename T2, typename T3>
-void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
-					 Eigen::MatrixBase<T2> &gmean, Eigen::MatrixBase<T3> &gcov)
-{
-	abilitiesMap.clear();
-	std::string str = string_snprintf("layer:");
-	for (int ax=0; ax < gmean.rows(); ++ax) {
-		if (!abilitiesMask[ax]) continue;
-		abilitiesMap.push_back(ax);
-		str += " ";
-		str += quad->ig.factorNames[ax];
-	}
-	str += ":";
-
-	itemsMap.clear();
-	glItemsMap.resize(param.cols(), -1);
-	for (int ix=0, lx=0; ix < param.cols(); ++ix) {
-		if (!itemsMask[ix]) continue;
-		itemsMap.push_back(ix);
-		glItemsMap[ix] = lx++;
-		str += string_snprintf(" %d", ix);
-	}
-	
-	str += "\n";
-	//mxLogBig(str);
-
 	dataColumns.clear();
 	dataColumns.reserve(numItems());
 	totalOutcomes = 0;
 	for (int ix=0; ix < numItems(); ++ix) {
-		int outcomes = quad->ig.itemOutcomes[ itemsMap[ix] ];
+		int outcomes = ig.itemOutcomes[ itemsMap[ix] ];
 		itemOutcomes.push_back(outcomes);
 		cumItemOutcomes.push_back(totalOutcomes);
 		totalOutcomes += outcomes;
-		dataColumns.push_back(quad->ig.dataColumns[ itemsMap[ix] ]);
+		dataColumns.push_back(ig.dataColumns[ itemsMap[ix] ]);
 	}
 
-	Eigen::VectorXd mean;
-	Eigen::MatrixXd cov;
-	globalToLocalDist(gmean, gcov, mean, cov);
-
-	if (mean.size() == 0) {
-		numSpecific = 0;
-		primaryDims = 0;
-		maxDims = 1;
-		totalQuadPoints = 1;
-		totalPrimaryPoints = 1;
-		weightTableSize = 1;
-		return;
-	}
-
-	numSpecific = 0;
-	
-	if (quad->ig.twotier) detectTwoTier(param, mean, cov);
-	if (numSpecific) quad->hasBifactorStructure = true;
-
-	primaryDims = cov.cols() - numSpecific;
-	maxDims = primaryDims + (numSpecific? 1 : 0);
-
-	totalQuadPoints = 1;
-	for (int dx=0; dx < maxDims; dx++) {
-		totalQuadPoints *= quad->gridSize;
-	}
-
-	totalPrimaryPoints = totalQuadPoints;
-	weightTableSize = totalQuadPoints;
-
-	if (numSpecific) {
-		totalPrimaryPoints /= quad->gridSize;
-		weightTableSize *= numSpecific;
-	}
+	spec = ig.spec;
+	paramRows = ig.paramRows;
 }
 
-template <typename T1, typename T2, typename T3>
-void ba81NormalQuad::layer::detectTwoTier(Eigen::ArrayBase<T1> &param,
-					  Eigen::MatrixBase<T2> &mean, Eigen::MatrixBase<T3> &cov)
-{
-	if (mean.rows() < 3) return;
-
-	std::vector<int> orthogonal;
-
-	Eigen::Matrix<Eigen::DenseIndex, Eigen::Dynamic, 1>
-		numCov((cov.array() != 0.0).matrix().colwise().count());
-	std::vector<int> candidate;
-	for (int fx=0; fx < numCov.rows(); ++fx) {
-		if (numCov(fx) == 1) candidate.push_back(fx);
-	}
-	if (candidate.size() > 1) {
-		std::vector<bool> mask(numItems());
-		for (int cx=candidate.size() - 1; cx >= 0; --cx) {
-			std::vector<bool> loading(numItems());
-			for (int ix=0; ix < numItems(); ++ix) {
-				loading[ix] = param(candidate[cx], itemsMap[ix]) != 0;
-			}
-			std::vector<bool> overlap(loading.size());
-			std::transform(loading.begin(), loading.end(),
-				       mask.begin(), overlap.begin(),
-				       std::logical_and<bool>());
-			if (std::find(overlap.begin(), overlap.end(), true) == overlap.end()) {
-				std::transform(loading.begin(), loading.end(),
-					       mask.begin(), mask.begin(),
-					       std::logical_or<bool>());
-				orthogonal.push_back(candidate[cx]);
-			}
-		}
-	}
-	std::reverse(orthogonal.begin(), orthogonal.end());
-
-	if (orthogonal.size() == 1) orthogonal.clear();
-	if (orthogonal.size() && orthogonal[0] != mean.rows() - int(orthogonal.size())) {
-		mxThrow("Independent specific factors must be given after general dense factors");
-	}
-
-	numSpecific = orthogonal.size();
-
-	if (numSpecific) {
-		Sgroup.assign(numItems(), 0);
-		for (int ix=0; ix < numItems(); ix++) {
-			for (int dx=orthogonal[0]; dx < mean.rows(); ++dx) {
-				if (param(dx, itemsMap[ix]) != 0) {
-					Sgroup[ix] = dx - orthogonal[0];
-					continue;
-				}
-			}
-		}
-		//Eigen::Map< Eigen::ArrayXi > foo(Sgroup.data(), param.cols());
-		//mxPrintMat("sgroup", foo);
-	}
-}
+void ba81NormalQuad::setupOutcomes(class ifaGroup &ig)
+{ layers[0].setupOutcomes(ig); }
 
 void ifaGroup::setMinItemsPerScore(int mips)
 {
 	if (numItems() && mips > numItems()) {
-		mxThrow("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
+		stop("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
 			 mips, numItems());
 	}
 	minItemsPerScore = mips;
@@ -667,7 +473,7 @@ void ifaGroup::buildRowSkip()
 		}
 		if (!hasNA) continue;
 		if (minItemsPerScore == NA_INTEGER) {
-			mxThrow("You have missing data. You must set minItemsPerScore");
+			stop("You have missing data. You must set minItemsPerScore");
 		}
 		for (int ax=0; ax < itemDims; ++ax) {
 			if (contribution[ax] < minItemsPerScore) {
@@ -687,12 +493,12 @@ void ba81NormalQuad::layer::allocSummary(int numThreads)
 	Dweight.setZero();
 }
 
-void ba81NormalQuad::allocSummary(int numThreads)
+void ba81NormalQuad::allocSummary()
 {
+	if (numThreads < 1) stop("numThreads < 1");
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].allocSummary(numThreads);
 	}
-	DweightToThread0 = false;
 }
 
 void ba81NormalQuad::layer::prepSummary()
@@ -702,11 +508,9 @@ void ba81NormalQuad::layer::prepSummary()
 
 void ba81NormalQuad::prepSummary()
 {
-	if (DweightToThread0) return;
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].prepSummary();
 	}
-	DweightToThread0 = true;
 }
 
 void ba81NormalQuad::layer::allocBuffers(int numThreads)
@@ -719,8 +523,9 @@ void ba81NormalQuad::layer::allocBuffers(int numThreads)
 	thrEis.resize(totalPrimaryPoints * numSpecific, numThreads);
 }
 
-void ba81NormalQuad::allocBuffers(int numThreads)
+void ba81NormalQuad::allocBuffers()
 {
+	if (numThreads < 1) stop("numThreads < 1");
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].allocBuffers(numThreads);
 	}
@@ -763,13 +568,13 @@ void ba81NormalQuad::prepExpectedTable()
 	}
 }
 
-void ba81NormalQuad::allocEstep(int numThreads)
+void ba81NormalQuad::allocEstep()
 {
-	for (size_t lx=0; lx < layers.size(); ++lx) {
-		layer &l1 = layers[lx];
-		l1.expected.resize(ig.totalOutcomes * l1.totalQuadPoints, numThreads);
-		l1.expected.setZero();
-	}
+	if (numThreads < 1) stop("numThreads < 1");
+	if (layers.size() != 1) stop("layers.size() != 1");
+	layer &l1 = layers[0];
+	l1.expected.resize(l1.totalOutcomes * l1.totalQuadPoints, numThreads);
+	l1.expected.setZero();
 }
 
 double ba81NormalQuad::mstepFit()
@@ -791,7 +596,7 @@ void ba81NormalQuad::releaseEstep()
 
 void ifaGroup::setFactorNames(std::vector<const char *> &names)
 {
-	if (int(names.size()) < itemDims) mxThrow("Not enough names");
+	if (int(names.size()) < itemDims) stop("Not enough names");
 	factorNames.resize(itemDims);
 	for (int fx=0; fx < itemDims; ++fx) factorNames[fx] = names[fx];
 }

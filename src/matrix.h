@@ -10,16 +10,14 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
-typedef struct Matrix Matrix;
-
-struct Matrix {
+struct ThinMatrix { // deprecated
     int rows;
     int cols;
     double *t;
     
-    Matrix() : rows(0), cols(0), t(NULL) {};
-    Matrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
-    Matrix(omxMatrix *mat);
+    ThinMatrix() : rows(0), cols(0), t(NULL) {};
+    ThinMatrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
+    ThinMatrix(omxMatrix *mat);
 
 	template <typename T1> void copyDimsFromEigen(Eigen::MatrixBase<T1> &mb) {
 		if (mb.rows() == 1 || mb.cols() == 1) {
@@ -31,7 +29,7 @@ struct Matrix {
 			cols = mb.cols();
 		}
 	}
-	template <typename T1> Matrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {
+	template <typename T1> ThinMatrix(Eigen::MatrixBase<T1> &mb) : t(mb.derived().data()) {
 		copyDimsFromEigen(mb);
 	}
 	template <typename T1> void operator=(Eigen::MatrixBase<T1> &mb) {
@@ -59,13 +57,13 @@ template <typename T1>
 void ForceInvertSymmetricPosDef(Eigen::MatrixBase<T1> &mat)
 { ForceInvertSymmetricPosDef(mat, 0, 0); }
 
-Matrix MatrixInvert(Matrix inMat);
-int InvertSymmetricIndef(Matrix mat, const char uplo);
-void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat);
-void MeanSymmetric(Matrix mat);
-int MatrixSolve(Matrix mat1, Matrix mat2, bool identity);
+ThinMatrix MatrixInvert(ThinMatrix inMat);
+int InvertSymmetricIndef(ThinMatrix mat, const char uplo);
+void SymMatrixMultiply(char side, ThinMatrix amat, ThinMatrix bmat, ThinMatrix cmat);
+void MeanSymmetric(ThinMatrix mat);
+int MatrixSolve(ThinMatrix mat1, ThinMatrix mat2, bool identity);
 
-int InvertSymmetricPosDef(Matrix mat, char uplo);
+int InvertSymmetricPosDef(ThinMatrix mat, char uplo);
 
 template <typename T2>
 void rowSort_e(Eigen::MatrixBase<T2>& mat)

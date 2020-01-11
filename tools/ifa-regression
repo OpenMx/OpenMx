@@ -9,35 +9,35 @@ out=/tmp/irt-regression.$$.log
 opt="-q --vanilla --no-save"
 
 tests="
- passing/ifa-allna.R
- passing/ifa-drm1.R
- passing/ifa-grm1.R
- passing/ifa-drm-mg.R
- passing/ifa-missingdata.R
- passing/ifa-drm-mg2.R
- passing/fm-example2-2.R
- passing/ifa-lmp.R
- nightly/fm-example2-8.R
- nightly/ifa-ms.R
- nightly/ifa-2d-mg.R
- nightly/ifa-bifactor.R
- nightly/ifa-cai2009.R
- nightly/fm-example2-1.R
- nightly/fm-example2-4.R
- nightly/ifa-dLL.R
- nightly/ifa-meat-2d.R
- nightly/ifa-meat-2tier.R
- nightly/ifa-latent-2d.R
- nightly/ifa-fisher-info.R
- nightly/ifa-drm-wide.R
+ inst/models/passing/ifa-allna.R
+ tests/testthat/test-ifa-drm1.R
+ inst/models/passing/ifa-grm1.R
+ inst/models/passing/ifa-drm-mg.R
+ inst/models/passing/ifa-missingdata.R
+ inst/models/passing/ifa-drm-mg2.R
+ inst/models/passing/fm-example2-2.R
+ inst/models/passing/ifa-lmp.R
+ inst/models/nightly/fm-example2-8.R
+ inst/models/nightly/ifa-ms.R
+ inst/models/nightly/ifa-2d-mg.R
+ inst/models/nightly/ifa-bifactor.R
+ inst/models/nightly/ifa-cai2009.R
+ inst/models/nightly/fm-example2-1.R
+ inst/models/nightly/fm-example2-4.R
+ inst/models/nightly/ifa-dLL.R
+ inst/models/nightly/ifa-meat-2d.R
+ inst/models/nightly/ifa-meat-2tier.R
+ inst/models/nightly/ifa-latent-2d.R
+ inst/models/nightly/ifa-fisher-info.R
+ inst/models/nightly/ifa-drm-wide.R
 "
 
 for t in $tests; do
   echo -n "$t\t"
   if false; then
-    R $opt -f inst/models/$t
+    R $opt -f $t
   else
-    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f inst/models/$t > $out 2>&1"; then
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f $t > $out 2>&1"; then
       cat $out
       exit
     else

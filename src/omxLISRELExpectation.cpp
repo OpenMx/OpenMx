@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -384,7 +384,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	double oned = 1.0, zerod=0.0;
 	
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
-		mxThrow("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
+		stop("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
 		
 	if(Cov == NULL && Means == NULL) {
@@ -399,7 +399,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
 	// 	|| (M->cols  != Cov->cols)  || (M->rows  != 1)
 	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
-	// 		mxThrow("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
+	// 		stop("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
 	// }
 	
 	omxShallowInverse(numIters, A, Z, Ax, I );
@@ -613,7 +613,7 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 		if (dv.matrix == alNum && hasVariance[ dv.row ] == 0.0) {
 			for (int cx=0; cx < eBE.rows(); ++cx) {
 				if (eBE(cx, dv.row) == 0.0) continue;
-				mxThrow("%s: latent exogenous variables are not supported (%s -> %s)", name,
+				stop("%s: latent exogenous variables are not supported (%s -> %s)", name,
 					 PS->rownames[dv.row], BE->rownames[cx]);
 			}
 			if (eLY.col(dv.row).array().abs().sum() == 0.) continue;

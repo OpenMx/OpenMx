@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 by the individuals mentioned in the source code history
+ * Copyright 2016-2019 by the individuals mentioned in the source code history
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,11 +90,11 @@ namespace UndirectedGraph {
 
 		void connect(int ax, int bx)
 		{
-			if (ax == bx) mxThrow("Cannot connect %d to itself", ax);
+			if (ax == bx) stop("Cannot connect %d to itself", ax);
 			if (region[ax] == -1) preconnect(ax);
 			if (region[ax] == region[bx]) return; //already connected
 			subgraphs -= 1;
-			//if (subgraphs < 1) mxThrow("problem");
+			//if (subgraphs < 1) stop("problem");
 			if (region[bx] == -1) {
 				region[bx] = region[ax];
 				connected[ region[ax] ].insert(bx);

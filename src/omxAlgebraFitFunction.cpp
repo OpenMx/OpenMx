@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -52,21 +52,21 @@ void AlgebraFitFunction::setVarGroup(FreeVarGroup *vg)
 		if (int(std::max(gradient->rownames.size(),
 				 gradient->colnames.size())) !=
 		    std::max(gradient->rows, gradient->cols)) {
-			mxThrow("%s: gradient must have row or column names", ff->matrix->name());
+			stop("%s: gradient must have row or column names", ff->matrix->name());
 		}
 	}
 	if (hessian) {
 		if (hessian->rows != hessian->cols) {
-			mxThrow("%s: Hessian must be square (instead of %dx%d)",
+			stop("%s: Hessian must be square (instead of %dx%d)",
 				 ff->matrix->name(), hessian->rows, hessian->cols);
 		}
 		if (int(hessian->rownames.size()) != hessian->rows ||
 		    int(hessian->colnames.size()) != hessian->rows) {
-			mxThrow("%s: Hessian must have row and column names", ff->matrix->name());
+			stop("%s: Hessian must have row and column names", ff->matrix->name());
 		}
 		for (int hx=0; hx < hessian->rows; ++hx) {
 			if (strcmp(hessian->colnames[hx], hessian->rownames[hx]) != 0) {
-				mxThrow("%s: Hessian must have identical row and column names (mismatch at %d)",
+				stop("%s: Hessian must have identical row and column names (mismatch at %d)",
 					 ff->matrix->name(), 1+hx);
 			}
 		}
@@ -76,14 +76,14 @@ void AlgebraFitFunction::setVarGroup(FreeVarGroup *vg)
 	if (gradient && hessian) {
 		int size = gradient->rows * gradient->cols;
 		if (hessian->rows != size) {
-			mxThrow("%s: derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
+			stop("%s: derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
 				 ff->matrix->name(), size, hessian->rows, hessian->cols);
 		}
 		std::vector<const char*> &gnames = gradient->rownames;
 		if (gnames.size() == 0) gnames = gradient->colnames;
 		for (int hx=0; hx < hessian->rows; ++hx) {
 			if (strcmp(hessian->colnames[hx], gnames[hx]) != 0) {
-				mxThrow("%s: Hessian and gradient must have identical names (mismatch at %d)",
+				stop("%s: Hessian and gradient must have identical names (mismatch at %d)",
 					 ff->matrix->name(), 1+hx);
 			}
 		}

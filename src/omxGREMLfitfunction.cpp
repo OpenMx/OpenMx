@@ -71,7 +71,7 @@ void omxGREMLFitState::init()
   newObj->usingGREMLExpectation = (strcmp(expectation->name, "MxExpectationGREML")==0 ? 1 : 0);
   if(!newObj->usingGREMLExpectation){
     //Maybe someday GREML fitfunction could be made compatible with another expectation, but not at present:
-    mxThrow("GREML fitfunction is currently only compatible with GREML expectation");
+    stop("GREML fitfunction is currently only compatible with GREML expectation");
   }
   else{
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
@@ -114,7 +114,7 @@ void omxGREMLFitState::init()
 	  if(newObj->dVlength){
 		  if(!newObj->usingGREMLExpectation){
 			  //Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
-			  mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
+			  stop("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
 		  }
 		  if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
 		  int* dVint = INTEGER(RdV);
@@ -143,7 +143,7 @@ void omxGREMLFitState::init()
       	newObj->origdVdim[i] = newObj->dV[i]->rows;
       }
       else{
-        mxThrow("all derivatives of V must have the same dimensions as V");
+        stop("all derivatives of V must have the same dimensions as V");
   }}}
   
   //Augmentation derivatives:
@@ -153,10 +153,10 @@ void omxGREMLFitState::init()
 		ProtectedSEXP RaugHess(R_do_slot(rObj, Rf_install("augHess")));
 		if(!Rf_length(RaugGrad)){
 			if(Rf_length(RaugHess)){
-				mxThrow("if argument 'augHess' has nonzero length, then argument 'augGrad' must as well");
+				stop("if argument 'augHess' has nonzero length, then argument 'augGrad' must as well");
 			}
 			else{
-				mxThrow("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
+				stop("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
 		}}
 		else{
 			int* augGradint = INTEGER(RaugGrad);
@@ -625,21 +625,21 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 			}
 		}/*By the end of the loop, the member objects of the omxGREMLFitState (dV, dVnames, etc.) should have their
 		elements arranged to match the order in which the free parameters appear in the freeVarGroup*/
-		if (gx != dVlength) mxThrow("Problem in dVnames mapping"); //possibly, argument 'dV' has elements not named with free parameter labels
-		if( gx < int(varGroup->vars.size()) ){mxThrow("At least one free parameter has no corresponding element in 'dV'");}
+		if (gx != dVlength) stop("Problem in dVnames mapping"); //possibly, argument 'dV' has elements not named with free parameter labels
+		if( gx < int(varGroup->vars.size()) ){stop("At least one free parameter has no corresponding element in 'dV'");}
 		
 		if(augGrad){
 			int ngradelem = std::max(augGrad->rows, augGrad->cols);
 			if(ngradelem != dVlength){
-				mxThrow("matrix referenced by 'augGrad' must have same number of elements as argument 'dV'");
+				stop("matrix referenced by 'augGrad' must have same number of elements as argument 'dV'");
 			}
 			if(augHess){
 				if (augHess->rows != augHess->cols) {
-					mxThrow("matrix referenced by 'augHess' must be square (instead of %dx%d)",
+					stop("matrix referenced by 'augHess' must be square (instead of %dx%d)",
               augHess->rows, augHess->cols);
 				}
 				if(augHess->rows != ngradelem){
-					mxThrow("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
+					stop("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
               ngradelem, augHess->rows, augHess->cols);
 			}}
 		}

@@ -37,3 +37,8 @@ omxCheckError(mxPath('alice', to = 'bob', values = list(v=1)['v']),
                              'mxPath("alice", to = "bob", values = list(v = 1)["v"])',
                              " 'values' argument had class list and length 1"))
 
+omxCheckError(mxPath(from='alice', to='bob', arrows=1, fixed=TRUE),
+              message=paste("mxPath does not accept 'fixed' as argument(s)",
+                            "and does not accept values for the '...' argument.",
+                            "See ?mxPath for more information."))
+

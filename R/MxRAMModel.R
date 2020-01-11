@@ -374,7 +374,7 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 				"that are evenly spaced across a normal distribution is using:"),
 				"mxThreshold(vars='x1', nThresh=3, values=mxNormalQuantiles(3))",
 				"See '?mxNormalQuantiles' and '?mxThreshold' for more details.", sep='\n')
-				stop(msg, .call=FALSE)
+				stop(msg, call.=FALSE)
 		}
 		thisVar <- thisThresh@variable
 		theseRows <- 1:thisThresh@nThresh

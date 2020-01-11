@@ -132,12 +132,12 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 						fv->lbound = estate->grp.quad.MIN_VARIANCE;  // variance must be positive
 						Global->boundsUpdated = true;
 						if (fc->est[px] < fv->lbound) {
-							mxThrow("Starting value for variance %s is not positive", fv->name);
+							stop("Starting value for variance %s is not positive", fv->name);
 						}
 					}
 				} else if (latentMap[cell] != px) {
 					// doesn't detect similar problems in multigroup constraints TODO
-					mxThrow("Covariance matrix must be constrained to preserve symmetry");
+					stop("Covariance matrix must be constrained to preserve symmetry");
 				}
 				state->freeLatents = true;
 			}
@@ -204,14 +204,14 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			if (state->paramFlavor[px] == 0) {
 				state->paramFlavor[px] = flavor;
 			} else if (strcmp(state->paramFlavor[px], flavor) != 0) {
-				mxThrow("Cannot equate %s with %s[%d,%d]", fv->name,
+				stop("Cannot equate %s with %s[%d,%d]", fv->name,
 					 itemParam->name(), loc->row, loc->col);
 			}
 			if (fv->lbound == NEG_INF && std::isfinite(lower)) {
 				fv->lbound = lower;
 				Global->boundsUpdated = true;
 				if (fc->est[px] < fv->lbound) {
-					mxThrow("Starting value %s %f less than lower bound %f",
+					stop("Starting value %s %f less than lower bound %f",
 					      fv->name, fc->est[px], lower);
 				}
 			}
@@ -219,7 +219,7 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 				fv->ubound = upper;
 				Global->boundsUpdated = true;
 				if (fc->est[px] > fv->ubound) {
-					mxThrow("Starting value %s %f greater than upper bound %f",
+					stop("Starting value %s %f greater than upper bound %f",
 					      fv->name, fc->est[px], upper);
 				}
 			}
@@ -243,16 +243,16 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			const int outer_at1 = state->paramMap[cx * state->itemDerivPadSize + p1];
 			if (outer_at1 < 0) continue;
 			const int outer_hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), outer_at1) - hb.vars.begin();
-			if (hb.vars[outer_hb1] != outer_at1) mxThrow("oops");
+			if (hb.vars[outer_hb1] != outer_at1) stop("oops");
 
 			for (int p2=0; p2 <= p1; p2++) {
 				int at1 = outer_at1;
 				int hb1 = outer_hb1;
 				int at2 = state->paramMap[cx * state->itemDerivPadSize + p2];
 				if (at2 < 0) continue;
-				if (p1 == p2 && at1 != at2) mxThrow("oops");
+				if (p1 == p2 && at1 != at2) stop("oops");
 				int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
-				if (hb.vars[hb2] != at2) mxThrow("oops");
+				if (hb.vars[hb2] != at2) stop("oops");
 
 				if (at1 < at2) std::swap(at1, at2); // outer_at1 unaffected
 				if (hb1 < hb2) std::swap(hb1, hb2); // outer_hb1 unaffected
@@ -375,7 +375,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 					double *iparam2 = omxMatrixColumn(itemParam, item);
 					pda(iparam2, numParam, 1);
 					// Perhaps bounds can be pulled in from librpf? TODO
-					mxThrow("Deriv %d for item %d is %f; are you missing a lbound/ubound?",
+					stop("Deriv %d for item %d is %f; are you missing a lbound/ubound?",
 						 ox, item, deriv0[ox]);
 				}
 
@@ -529,12 +529,12 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 	Eigen::ArrayXd &rowWeight = estate->grp.rowMult;
 
 	if (quad.hasBifactorStructure) {
-		mxThrow("Sandwich information matrix method is not implemented for bifactor-optimized models");
+		stop("Sandwich information matrix method is not implemented for bifactor-optimized models");
 	}
 
 	ba81sandwichOp op(numThreads, estate, numParam, state, itemParam, abScale);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers();
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -710,7 +710,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			 estate, state->itemDerivPadSize, itemParam,
 			 numThreads, itemDerivSize);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers();
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -908,7 +908,7 @@ void BA81FitState::compute(int want, FitContext *fc)
 			}
 		}
 	} else {
-		mxThrow("%s: Predict nothing or scores before computing %d", oo->name(), want);
+		stop("%s: Predict nothing or scores before computing %d", oo->name(), want);
 	}
 }
 
@@ -947,7 +947,7 @@ void BA81FitState::init()
 		const double *spec = estate->itemSpec(ix);
 		int id = spec[RPF_ISpecID];
 		if (id < 0 || id >= Glibrpf_numModels) {
-			mxThrow("ItemSpec %d has unknown item model %d", ix, id);
+			stop("ItemSpec %d has unknown item model %d", ix, id);
 		}
 	}
 

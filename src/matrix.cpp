@@ -16,10 +16,10 @@ using std::endl;
 #include <Eigen/LU>
 #include "EnableWarnings.h"
 
-Matrix::Matrix(omxMatrix *mat)
+ThinMatrix::ThinMatrix(omxMatrix *mat)
 : rows(mat->rows), cols(mat->cols), t(mat->data) {}
 
-int InvertSymmetricIndef(Matrix mat, const char uplo)
+int InvertSymmetricIndef(ThinMatrix mat, const char uplo)
 {
 	// Not as efficient as dsytrf/dsytri, but we generally
 	// use this only when InvertSymmetricPosDef fails or
@@ -30,7 +30,7 @@ int InvertSymmetricIndef(Matrix mat, const char uplo)
 	} else if (uplo == 'U') {
 		Emat.derived() = Emat.selfadjointView<Eigen::Upper>();
 	} else {
-		mxThrow("uplo='%c'", uplo);
+		stop("uplo='%c'", uplo);
 	}
 	Eigen::FullPivLU< Eigen::MatrixXd > lu(Emat);
 	if (lu.rank() < mat.rows) return -1;
@@ -38,9 +38,9 @@ int InvertSymmetricIndef(Matrix mat, const char uplo)
 	return 0;
 }
 
-void MeanSymmetric(Matrix mat)
+void MeanSymmetric(ThinMatrix mat)
 {
-    if (mat.rows != mat.cols) mxThrow("Not conformable");
+    if (mat.rows != mat.cols) stop("Not conformable");
     const int len = mat.rows;
     
     for (int v1=1; v1 < len; ++v1) {
@@ -54,7 +54,7 @@ void MeanSymmetric(Matrix mat)
     }
 }
 
-void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat)
+void SymMatrixMultiply(char side, ThinMatrix amat, ThinMatrix bmat, ThinMatrix cmat)
 {
 	using Eigen::Map;
 	using Eigen::MatrixXd;
@@ -67,11 +67,11 @@ void SymMatrixMultiply(char side, Matrix amat, Matrix bmat, Matrix cmat)
     } else if (side == 'L') {
 	Ec.derived() = Ea.selfadjointView<Eigen::Upper>() * Eb;
     } else {
-        mxThrow("Side of %c is invalid", side);
+        stop("Side of %c is invalid", side);
     }
 }
 
-int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
+int MatrixSolve(ThinMatrix mat1, ThinMatrix mat2, bool identity)
 {
 	Eigen::Map< Eigen::MatrixXd > Emat1(mat1.t, mat1.rows, mat1.cols);
 	Eigen::Map< Eigen::MatrixXd > Emat2(mat2.t, mat2.rows, mat2.cols);
@@ -84,7 +84,7 @@ int MatrixSolve(Matrix mat1, Matrix mat2, bool identity)
 	return 0;
 }
 
-int InvertSymmetricPosDef(Matrix mat, char uplo)
+int InvertSymmetricPosDef(ThinMatrix mat, char uplo)
 {
 	Eigen::Map<Eigen::MatrixXd> Emat(mat.t, mat.rows, mat.cols);
 	if (uplo == 'L') {
@@ -106,7 +106,7 @@ int InvertSymmetricPosDef(Matrix mat, char uplo)
 			return 0;
 		}
 	} else {
-		mxThrow("uplo invalid");
+		stop("uplo invalid");
 	}
 }
 

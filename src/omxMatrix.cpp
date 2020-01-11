@@ -87,7 +87,7 @@ void omxPrintMatrix(omxMatrix *source, const char* header) // make static TODO
 
 omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxState* os) {
 
-	if (!isColMajor) mxThrow("All matrices are created column major");
+	if (!isColMajor) stop("All matrices are created column major");
 
 	omxMatrix* om = new omxMatrix;
 
@@ -156,7 +156,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 			omxFreeInternalMatrixData(dest);											// Free and regenerate memory
 			dest->setData((double*) Calloc(dest->rows * dest->cols, double));
 		}
-		if (dest->data != orig->data) {  // if equal then programmer mxThrow? TODO
+		if (dest->data != orig->data) {  // if equal then programmer stop? TODO
 			memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
 		}
 	}
@@ -166,7 +166,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 
 void omxMatrix::setData(double *ptr)
 {
-	if (allocationLock) mxThrow("Cannot change allocation of matrix '%s'", name());
+	if (allocationLock) stop("Cannot change allocation of matrix '%s'", name());
 	data = ptr;
 }
 
@@ -326,11 +326,11 @@ double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
 
 void vectorElementError(int index, int numrow, int numcol) {
 	if ((numrow > 1) && (numcol > 1)) {
-		mxThrow("Requested improper index (%d) from a malformed vector of dimensions (%d, %d)", 
+		stop("Requested improper index (%d) from a malformed vector of dimensions (%d, %d)", 
 			index, numrow, numcol);
 	} else {
 		int Rf_length = (numrow > 1) ? numrow : numcol;
-		mxThrow("Requested improper index (%d) from vector of Rf_length (%d)", 
+		stop("Requested improper index (%d) from vector of Rf_length (%d)", 
 			index, Rf_length);
 	}
 }
@@ -347,22 +347,22 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	} else {
 		typeString = matrixString;
 	}
-	mxThrow("Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
+	stop("Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
 		row, col, typeString, om->name(), numrow, numcol);
 }
 
 void matrixElementError(int row, int col, omxMatrix *om) {
-	mxThrow("Requested improper value (%d, %d) from (%d, %d) matrix '%s'",
+	stop("Requested improper value (%d, %d) from (%d, %d) matrix '%s'",
 		 row, col, om->rows, om->cols, om->name());
 }
 
 void setVectorError(int index, int numrow, int numcol) {
 	if ((numrow > 1) && (numcol > 1)) {
-		mxThrow("Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d)", 
+		stop("Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d)", 
 			index, numrow, numcol);
 	} else {
 		int Rf_length = (numrow > 1) ? numrow : numcol;
-		mxThrow("Setting improper index (%d) from vector of Rf_length %d", 
+		stop("Setting improper index (%d) from vector of Rf_length %d", 
 			index, Rf_length);
 	}
 }
@@ -404,7 +404,7 @@ omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber)
 {
-	if (!om) mxThrow("fillMatrixHelperFunction: matrix must be allocated already");
+	if (!om) stop("fillMatrixHelperFunction: matrix must be allocated already");
 
 	if (rObject) {
 		if(Rf_isMatrix(rObject)) {
@@ -418,11 +418,11 @@ omxMatrix* omxFillMatrixFromRPrimitive(omxMatrix* om, SEXP rObject, omxState* st
 			om->rows = 1;
 			om->cols = Rf_length(rObject);
 		} else {
-			mxThrow("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
+			stop("Recieved unknown matrix type in omxFillMatrixFromRPrimitive.");
 		}
 		if(OMX_DEBUG) { mxLog("Matrix connected to (%d, %d) matrix or MxMatrix.", om->rows, om->cols); }
 
-		if (TYPEOF(rObject) != REALSXP) mxThrow("matrix is of type '%s'; only type double is accepted",
+		if (TYPEOF(rObject) != REALSXP) stop("matrix is of type '%s'; only type double is accepted",
 							Rf_type2char(TYPEOF(rObject)));
 
 		om->owner = rObject;
@@ -452,7 +452,7 @@ void omxMatrix::loadDimnames(SEXP dimnames)
 	if (!dimnames || Rf_isNull(dimnames)) return;
 
 	if (rownames.size() || colnames.size()) {
-		mxThrow("Attempt to load dimnames more than once for %s", name());
+		stop("Attempt to load dimnames more than once for %s", name());
 	}
 
 	if (Rf_length(dimnames) >= 1) {
@@ -512,7 +512,7 @@ void omxMatrix::omxProcessMatrixPopulationList(SEXP matStruct)
 
 void omxMatrix::addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow, int destCol)
 {
-	if (!from->hasMatrixNumber) mxThrow("omxMatrix::addPopulate %s must have matrix number",
+	if (!from->hasMatrixNumber) stop("omxMatrix::addPopulate %s must have matrix number",
 					     from->name());
 	populate.emplace_back(from->matrixNumber, srcRow, srcCol, destRow, destCol);
 }
@@ -601,14 +601,14 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int rowsRemoved[], int colsRemoved[]
 	int newRows = origRows;
 	for(int j = 0; j < om->rows; j++) {
 #if OMX_DEBUG
-		if (rowsRemoved[j] != (rowsRemoved[j] & 1)) mxThrow("Removed flag can only be 0 or 1");
+		if (rowsRemoved[j] != (rowsRemoved[j] & 1)) stop("Removed flag can only be 0 or 1");
 #endif
 		newRows -= rowsRemoved[j];
 	}
 	int newCols = origCols;
 	for(int j = 0; j < om->cols; j++) {
 #if OMX_DEBUG
-		if (colsRemoved[j] != (colsRemoved[j] & 1)) mxThrow("Removed flag can only be 0 or 1");
+		if (colsRemoved[j] != (colsRemoved[j] & 1)) stop("Removed flag can only be 0 or 1");
 #endif
 		newCols -= colsRemoved[j];
 	}
@@ -844,7 +844,7 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 {
-	if (m1->rows != m2->rows || m1->cols != m2->cols) mxThrow("Matrices are not the same size");
+	if (m1->rows != m2->rows || m1->cols != m2->cols) stop("Matrices are not the same size");
 
 	double mad = 0;
 	int size = m1->rows * m1->cols;
@@ -859,7 +859,7 @@ bool thresholdsIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
 {
 	int threshCrossCount = 0;
 	if(count > om->rows) {
-		mxThrow("Too many thresholds (%d) requested from %dx%d thresholds matrix (in column %d)",
+		stop("Too many thresholds (%d) requested from %dx%d thresholds matrix (in column %d)",
 			 count, om->rows, om->cols, column);
 	}
 	for(int j = 1; j < count; j++ ) {
@@ -1028,7 +1028,7 @@ int omxMatrix::numNonConstElements() const
 		return 0;
 
 	default:
-		mxThrow("loadFromStream: matrix '%s' with shape %d is unimplemented",
+		stop("loadFromStream: matrix '%s' with shape %d is unimplemented",
 			 name(), shape);
 		break;
 	}

@@ -207,7 +207,7 @@ void omxExpectation::loadFromR()
 
 void omxExpectation::generateData(FitContext *, MxRList &out)
 {
-	mxThrow("%s: generateData not implemented", name);
+	stop("%s: generateData not implemented", name);
 }
 
 omxExpectation *
@@ -230,7 +230,7 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 		}
 	}
 
-	if (!expect) mxThrow("expectation '%s' not recognized", name);
+	if (!expect) stop("expectation '%s' not recognized", name);
 
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
@@ -319,7 +319,7 @@ int omxExpectation::numSummaryStats()
 {
 	omxMatrix *cov = getComponent("cov");
 	if (!cov) {
-		mxThrow("%s::numSummaryStats is not implemented", name);
+		stop("%s::numSummaryStats is not implemented", name);
 	}
 
 	omxMatrix *mean = getComponent("means");
@@ -383,7 +383,7 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, omxMat
 		}
 		return;
 	}
-	if (!mean) mxThrow("ordinal indicators and no mean vector");
+	if (!mean) stop("ordinal indicators and no mean vector");
 
 	EigenVectorAdaptor Emean(mean);
 	EigenMatrixAdaptor Eth(thr);
@@ -433,7 +433,7 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 
 	omxMatrix *cov = getComponent("cov");
 	if (!cov) {
-		mxThrow("%s::asVector is not implemented", name);
+		stop("%s::asVector is not implemented", name);
 	}
 
 	normalToStdVector(cov, getComponent("means"), getComponent("slope"), thresholdsMat,

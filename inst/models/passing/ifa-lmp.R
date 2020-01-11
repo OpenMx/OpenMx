@@ -22,7 +22,7 @@ colnames(dat)<-paste("X",1:ni,sep="")
 k<-0
 par<-c(.1,0)
 spec<-list()
-spec[1:ni]<- list(rpf.lmp(k=k))
+spec[1:ni]<- list(rpf.lmp(k))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))
@@ -80,7 +80,7 @@ pmtau<- -1
 pvar<-50
 
 spec<-list()
-spec[1:ni]<-list(rpf.lmp(k=k))
+spec[1:ni]<-list(rpf.lmp(k))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))

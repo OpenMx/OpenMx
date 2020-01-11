@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -33,9 +33,9 @@ setClass(Class = "MxModel",
 		runstate = "list",
 		.newobjects = "logical",
 		.resetdata = "logical",
-	        .wasRun = "logical",
-	    .modifiedSinceRun = "logical",
-	    .version = "MxVersionType"
+		.wasRun = "logical",
+		.modifiedSinceRun = "logical",
+		.version = "MxVersionType"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -59,8 +59,8 @@ setMethod("initialize", "MxModel",
 		.Object@runstate <- list()
 		.Object@.newobjects <- FALSE
 		.Object@.resetdata <- FALSE
-	        .Object@.wasRun <- FALSE
-	        .Object@.modifiedSinceRun <- FALSE
+		.Object@.wasRun <- FALSE
+		.Object@.modifiedSinceRun <- FALSE
 		if (.hasSlot(.Object, '.version')) {
 			.Object@.version <- as.character(pkg_globals$myVersion)
 		}
@@ -221,10 +221,10 @@ visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
 
 setMethod("$", "MxModel",
 	function(x, name) {
-        result <- imxExtractMethod(x, name)
-        if(name %in% publicMxModelSlots) {
-            result <- imxExtractSlot(x, name)
-        }
+		result <- imxExtractMethod(x, name)
+		if(name %in% publicMxModelSlots) {
+			result <- imxExtractSlot(x, name)
+		}
 		return(result)
 	}
 )
@@ -293,6 +293,9 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	name  <- retval[[3]]
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
+	prods <- productArgument(lst)
+	lst <- prods[[1]]
+	productVars <- prods[[2]]
 	lst <- unlist(lst)
 	filter <- sapply(lst, is, "MxModel")
 	submodels <- lst[filter]
@@ -300,6 +303,22 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	model <- imxModelBuilder(model, lst, name, manifestVars,
 		latentVars, submodels, remove, independent)
 	return(model)
+}
+
+productArgument <- function(x){
+	nam <- names(x)
+	filter0 <- nam %in% c('product', 'productVars')
+	# What if multiple names match?
+	if(sum(filter0) > 1){
+		stop(paste("Multiple objects in the '...' argument matched 'productVars'.",
+			"To specify multiple product variables, hand 'productVars' a vector of the names of the product variables."))
+	} else if(sum(filter0) == 1){
+		productVars <- x[[which(filter0)]]
+		x <- x[!filter0]
+	} else {
+		productVars <- NA
+	}
+	return(list(x, productVars=productVars))
 }
 
 firstArgument <- function(model, name) {
@@ -531,14 +550,14 @@ setMethod("imxVerifyModel", "MxModel", function(model) {
 
 addVariablesHelper <- function(model, vartype, vars) {
 	modelvars <- slot(model, vartype)
-
+	
 	if (length(vars) == 0) {
 		return(model)
 	} else if (length(modelvars) == 0) {
 		slot(model, vartype) <- vars
 		return(model)
 	}
-
+	
 	if (is.list(vars) && !is.list(modelvars)) {
 		msg <- paste("The", vartype, "variables in",
 			"the call to mxModel() have been separated",
@@ -552,7 +571,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 			"variables do have categories.")
 		stop(msg, call. = FALSE)
 	}
-
+	
 	if (is.character(vars) && is.character(modelvars)) {
 		modelvars <- c(modelvars, vars)
 		slot(model, vartype) <- modelvars
@@ -566,7 +585,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 		}
 		slot(model, vartype) <- modelvars
 	}
-
+	
 	return(model)
 }
 
