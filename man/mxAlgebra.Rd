@@ -151,6 +151,8 @@ Functions
   an algebra on an abscissa grid and collect column results}
 }
 
+Note that \code{solve} will fail silently if it is used on an uninvertible square matrix.
+
 \code{mxRobustLog} is the same as \code{log} except that it returns -745
 instead of -Inf for an argument of 0. The value -745 is less than
 log(4.94066e-324), a good approximation of negative infinity because the
