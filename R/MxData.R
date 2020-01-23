@@ -62,7 +62,8 @@ setClass(Class = "MxDataStatic",
 	     minVariance = "numeric",
 	   algebra = "MxOptionalCharOrNumber",
     warnNPDacov = "logical",
-    exoFree = "MxOptionalMatrix"))
+    exoFree = "MxOptionalMatrix",
+    na.action = "character"))
 
 setClass(Class = "MxDataDynamic",
 	 contains = "NonNullData",
@@ -76,7 +77,7 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
 		   sort, primaryKey, weight, frequency, verbose, .parallel, .noExoOptimize,
-		   minVariance, algebra, warnNPDacov, exoFree) {
+		   minVariance, algebra, warnNPDacov, exoFree, na.action) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -105,6 +106,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@algebra <- algebra
 		.Object@warnNPDacov <- warnNPDacov
 		.Object@exoFree <- exoFree
+		.Object@na.action <- na.action
 		return(.Object)
 	}
 )
@@ -164,7 +166,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
 		   minVariance=sqrt(.Machine$double.eps), algebra=c(),
-		   warnNPDacov=TRUE, exoFree=NULL) {
+		   warnNPDacov=TRUE, exoFree=NULL, na.action=c("pass","fail","omit")) {
   prohibitDotdotdot(list(...))
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
@@ -182,6 +184,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 			paste(imxDataTypes[1:(numTypes-1)], collapse="' '"),
 			"' or '", imxDataTypes[numTypes], "'", sep=""))
 	}
+  na.action <- match.arg(na.action)
 	if (type == "acov") {
 		return(legacyMxData(observed, type="acov", means=means, numObs=numObs, 
 			acov=acov, fullWeight=fullWeight, thresholds=thresholds))
@@ -290,7 +293,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
 		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
 		as.logical(.parallel), as.logical(.noExoOptimize), minVariance,
-		as.character(algebra), as.logical(warnNPDacov), exoFree))
+		as.character(algebra), as.logical(warnNPDacov), exoFree, na.action))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

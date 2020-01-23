@@ -211,10 +211,12 @@ class omxData {
 	const char *getType() const { return _type; };
 
 	// type=="raw"
+	enum NaActionType { NA_PASS, NA_FAIL, NA_OMIT };
 	ColMapType rawColMap;
 	std::vector<ColumnData> rawCols;
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
 	bool needSort;
+	NaActionType naAction;
 
 	SEXP owner;	// The R object owning data or NULL if we own it.
 

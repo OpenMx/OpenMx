@@ -215,6 +215,18 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		od->_type = CHAR(STRING_ELT(dataLoc,0));
 		if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
 
+		naAction = NA_PASS;
+		if (R_has_slot(dataObj, Rf_install("na.action"))) {
+			ProtectedSEXP RactStr(R_do_slot(dataObj, Rf_install("na.action")));
+			if (Rf_length(RactStr)) {
+				const char *naActStr = as<const char *>(RactStr);
+				if (strEQ(naActStr, "pass")) ; // is default
+				else if (strEQ(naActStr, "fail")) naAction = NA_FAIL;
+				else if (strEQ(naActStr, "omit")) naAction = NA_OMIT;
+				else stop("%s: unknown na.action '%s'", name, naActStr);
+			}
+		}
+
 		ProtectedSEXP needsort(R_do_slot(dataObj, Rf_install(".needSort")));
 		od->needSort = Rf_asLogical(needsort);
 
