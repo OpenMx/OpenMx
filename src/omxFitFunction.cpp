@@ -236,7 +236,7 @@ static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitTy
 
 	if (rowLik && expect && expect->data) {
 		omxData *dat = expect->data;
-		omxResizeMatrix(matrix, dat->rows, 1);
+		omxResizeMatrix(matrix, dat->nrows(), 1);
 	} else {
 		omxResizeMatrix(matrix, 1, 1);
 		matrix->data[0] = NA_REAL;

@@ -93,6 +93,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = shared_oro->rowResults;
 	data		    = oro->data;
+	int rows = data->nrows();
     dataColumns     = oro->dataColumns;
     dataRow         = oro->dataRow;
     filteredDataRow = oro->filteredDataRow;
@@ -105,7 +106,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
-	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
+	for(int row = rowbegin; row < rows && (row - rowbegin) < rowcount; row++) {
 		mxLogSetCurrentRow(row);
 
 		data->loadDefVars(localobj->matrix->currentState, row);
@@ -150,6 +151,7 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 
 	omxMatrix* objMatrix  = oo->matrix;
 	int numChildren = fc? fc->childList.size() : 0;
+	int rows = data->nrows();
 
 	/* Michael Spiegel, 7/31/12
 	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel 
@@ -159,24 +161,24 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = oro->rowResults;
 
-	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
+	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != rows) {
 		if(OMX_DEBUG_ROWS(1)) { 
 			mxLog("Resizing rowResults from %dx%d to %dx%d.", 
 				rowResults->rows, rowResults->cols, 
-				data->rows, rowAlgebra->cols); 
+				rows, rowAlgebra->cols); 
 		}
-		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols);
+		omxResizeMatrix(rowResults, rows, rowAlgebra->cols);
 	}
 	*/
 		
     int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (parallelism > data->rows) {
-		parallelism = data->rows;
+	if (parallelism > rows) {
+		parallelism = rows;
 	}
 
 	if (parallelism > 1) {
-		int stride = (data->rows / parallelism);
+		int stride = (rows / parallelism);
 
 #pragma omp parallel for num_threads(parallelism) 
 		for(int i = 0; i < parallelism; i++) {
@@ -185,7 +187,7 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			try {
 				if (i == parallelism - 1) {
-					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i, fc);
+					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, rows - stride * i, fc);
 				} else {
 					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride, fc);
 				}
@@ -196,7 +198,7 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 			}
 		}
 	} else {
-		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows, fc);
+		omxRowFitFunctionSingleIteration(oo, oo, 0, rows, fc);
 	}
 
 	omxRecompute(reduceAlgebra, fc);

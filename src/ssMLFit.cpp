@@ -66,7 +66,7 @@ void ssMLFitState::compute(int want, FitContext *fc)
 	ssMLFitState *state = this;
 	auto dataColumns	= expectation->getDataColumns();
 	omxData *data = expectation->data;
-	int rowcount = data->rows;
+	int rowcount = data->nrows();
 	
 	Eigen::VectorXi contRemove(cov->cols);
 	
@@ -164,7 +164,7 @@ void ssMLFitState::compute(int want, FitContext *fc)
 		double sum = 0.0;
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
-		for(int i = 0; i < data->rows; i++) {
+		for(int i = 0; i < data->nrows(); i++) {
 			double prob = omxVectorElement(state->rowLikelihoods, i);
 			//mxLog("[%d] %g", i, -2.0 * log(prob));
 			sum += log(prob);
@@ -210,9 +210,10 @@ void ssMLFitState::init()
 			 expectation->name, data->name);
 	}
 
+	int rows = data->nrows();
 	omxState *currentState = oo->matrix->currentState;
-	state->rowLikelihoods = omxInitMatrix(data->rows, 1, TRUE, currentState);
-	state->otherRowwiseValues = omxInitMatrix(data->rows, 2, TRUE, currentState);
+	state->rowLikelihoods = omxInitMatrix(rows, 1, currentState);
+	state->otherRowwiseValues = omxInitMatrix(rows, 2, currentState);
 	state->cov = omxGetExpectationComponent(expectation, "cov");
 	
 	int covCols = state->cov->cols;

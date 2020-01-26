@@ -824,7 +824,7 @@ void omxFIMLFitFunction::invalidateCache()
 	openmpUser = false;
 
 	rowCount = std::numeric_limits<decltype(rowCount)>::max();
-	omxResizeMatrix(rowLikelihoods, data->rows, 1);
+	omxResizeMatrix(rowLikelihoods, data->nrows(), 1);
 }
 
 void omxFIMLFitFunction::compute(int want, FitContext *fc)
@@ -1093,8 +1093,8 @@ void omxFIMLFitFunction::init()
 	units = returnVector? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
 	if (returnVector) wantRowLikelihoods = true;
 
-	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
-	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->rows, 2, TRUE, off->matrix->currentState);
+	newObj->rowLikelihoods = omxInitMatrix(newObj->data->nrows(), 1, off->matrix->currentState);
+	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->nrows(), 2, off->matrix->currentState);
 	
 	
 	if(OMX_DEBUG) {

@@ -54,6 +54,7 @@ class omxExpectation {					// An Expectation
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
 	omxState* currentState;
+	bool isClone() const;
 	int expNum;  // index in omxState's vector
 
 	// omxExpectation should not need to know about free variables.

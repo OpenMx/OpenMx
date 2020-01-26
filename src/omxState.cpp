@@ -393,7 +393,7 @@ void omxState::loadDefinitionVariables(bool start)
 	for(int ex = 0; ex < int(dataList.size()); ++ex) {
 		omxData *e1 = dataList[ex];
 		if (e1->defVars.size() == 0) continue;
-		if (start && e1->rows != 1) {
+		if (start && e1->nrows() != 1) {
 			e1->loadFakeData(this, NA_REAL);
 			continue;
 		}

@@ -4615,7 +4615,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	for (auto pr : Providers) {
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
-			provider->commonInit(rObj, name, data->name, data->rows, data->rawCols,
+			provider->commonInit(rObj, name, data->name, data->nrows(), data->getRawCols(),
 					     data->rawColMap, Global->checkpointValues);
 			provider->init(rObj);
 			break;

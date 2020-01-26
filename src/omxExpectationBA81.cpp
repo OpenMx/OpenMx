@@ -522,7 +522,7 @@ void BA81Expect::init() {
 		state->grp.setRowFreq(data->getFreqColumn());
 	}
 
-	rowMap.resize(data->rows);
+	rowMap.resize(data->nrows());
 	for (size_t rx=0; rx < rowMap.size(); ++rx) {
 		rowMap[rx] = rx;
 	}
@@ -548,7 +548,7 @@ void BA81Expect::init() {
 	}
 
 	// TODO the max outcome should be available from omxData
-	for (int rx=0; rx < data->rows; rx++) {
+	for (int rx=0; rx < data->nrows(); rx++) {
 		int cols = 0;
 		for (int cx = 0; cx < numItems; cx++) {
 			const int *col = state->grp.dataColumns[cx];
