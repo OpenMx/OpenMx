@@ -34,7 +34,6 @@
 #include <R_ext/Rdynload.h> 
 
 class omxData;
-typedef struct omxContiguousData omxContiguousData;
 typedef struct omxThresholdColumn omxThresholdColumn;
 
 #include "omxAlgebra.h"
@@ -51,12 +50,6 @@ struct omxDefinitionVar {
 	int* deps;              // indices of algebra/matrix dependencies
 
 	bool loadData(omxState *state, double val);
-};
-
-struct omxContiguousData {
-	int isContiguous;
-	int start;
-	int length;
 };
 
 struct omxThresholdColumn {
@@ -303,30 +296,6 @@ omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state);	// Retrieves a data object from the state
 void omxFreeData(omxData* od);					// Release any held data.
 
-template <typename T>
-void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data,
-				 Eigen::MatrixBase<T> &colList)
-{
-	contiguous->isContiguous = FALSE;   // Assume not contiguous
-
-	if (data->dataMat == NULL) return; // Data has no matrix elements, so skip.
-
-	omxMatrix* dataMat = data->dataMat;
-	if (dataMat->colMajor) return;      // If data matrix is column-major, there's no continuity
-	
-	int colListLength = colList.size();             // # of columns in the cov matrix
-	double start = colList[0];                      // Data col of first column of the covariance
-	contiguous->start = (int) start;                // That's our starting point.
-	contiguous->length = colListLength;             // And the length is ncol(cov)
-	
-	for(int i = 1; i < colListLength; i++) {        // Make sure that the col list is 
-		double next = colList[i];               // contiguously increasing in column number
-		if (next != (start + i)) return;            // If it isn't, it's not contiguous data
-	}
-	
-	contiguous->isContiguous = TRUE;    // Passed.  This is contiguous.
-}
-
 /* Getters 'n Setters */
 int omxDataGetNumFactorLevels(omxData *od, int col);
 double omxDoubleDataElement(omxData *od, int row, int col);
@@ -365,8 +334,6 @@ void omxDataRow(omxData *od, int row, const Eigen::MatrixBase<T> &colList, omxMa
 		}
 	}
 };
-
-void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 
 static OMXINLINE int
 omxIntDataElementUnsafe(omxData *od, int row, int col)

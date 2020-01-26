@@ -31,9 +31,6 @@ struct omxRowFitFunction : omxFitFunction {
     omxMatrix* existenceVector; // Set of NAs
     omxMatrix* dataColumns;		// The order of columns in the data matrix
 
-    /* Contiguous data note for contiguity speedup */
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
-
 	/* Structures determined from info in the MxRowFitFunction Object*/
 	omxMatrix* dataRow;         // One row of data, kept for aliasing only
 	omxData*   data;			// The data
@@ -88,7 +85,6 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
     omxMatrix *filteredDataRow, *dataRow, *existenceVector;
     omxMatrix *dataColumns;
 	omxData *data;
-	int isContiguous, contiguousStart, contiguousLength;
 
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = shared_oro->rowResults;
@@ -99,10 +95,6 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
     filteredDataRow = oro->filteredDataRow;
     existenceVector = oro->existenceVector;
     
-    isContiguous    = oro->contiguous.isContiguous;
-	contiguousStart = oro->contiguous.start;
-	contiguousLength = oro->contiguous.length;
-
 	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
@@ -111,12 +103,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 
 		data->loadDefVars(localobj->matrix->currentState, row);
 
-        // Populate data row
-		if (isContiguous) {
-			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, dataRow);
-		} else {
-			omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
-		}
+		omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
 
 		markDataRowDependencies(localobj->matrix->currentState, oro);
 		
@@ -307,10 +294,6 @@ void omxRowFitFunction::init()
 		newObj->dataRowDeps[i] = INTEGER(nextItem)[i];
 	}
 	}
-
-	/* Set up data columns */
-	EigenVectorAdaptor dc(newObj->dataColumns);
-	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
 
 	oo->canDuplicate = true;
 	oo->openmpUser = true;
