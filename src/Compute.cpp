@@ -4197,6 +4197,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		std::mt19937 generator(seedVec[repl]);
 		if (INTEGER(VECTOR_ELT(rawOutput, 2 + fc->numParam))[repl] != NA_INTEGER) continue;
 		if (verbose >= 2) mxLog("%s: replication %d", name, repl);
+		fc->state->invalidateCache();
 		for (auto &ctx : contexts) {
 			ctx.resample.assign(ctx.origCumSum.size(), 0);
 			int last = ctx.origCumSum.size() - 1;
@@ -4213,7 +4214,6 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 				onlyWeight.add(ctx.data->name, Rcpp::wrap(ctx.resample));
 			}
 		}
-		fc->state->invalidateCache();
 		fc->resetToOriginalStarts();
 		plan->compute(fc);
 		if (only == NA_INTEGER) {
@@ -4470,6 +4470,9 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	Rcpp::DataFrame observed;
 
 	virtual const char *getName() { return "data.frame"; };
+	virtual int getNumVariants() {
+		return (observed.nrows() / rows) * (observed.ncol() / columns.size());
+	}
 	virtual void init(SEXP rObj) {
 		ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
 		byrow = Rf_asLogical(Rbyrow);
@@ -4483,29 +4486,30 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 		}
 		if (observed.nrows() % rows != 0) {
 			stop("%s: original data has %d rows, "
-				"does not divide the number of observed rows %d evenly (remainder %d)",
-				name, rows, observed.nrows(), observed.nrows() % rows);
+					 "does not divide the number of observed rows %d evenly (remainder %d)",
+					 name, rows, observed.nrows(), observed.nrows() % rows);
 		}
-		Rcpp::CharacterVector obNames = observed.attr("names");
+		if (observed.ncol() % columns.size() != 0) {
+			stop("%s: original data has %d columns, "
+					 "does not divide the number of observed columns %d evenly (remainder %d)",
+					 name, int(columns.size()), observed.ncol(), observed.ncol() % columns.size());
+		}
+		if (observed.nrows() != rows && observed.ncol() != int(columns.size())) {
+			stop("%s: additional data must be in rows or columns, but not both");
+		}
+		CharacterVector obNames = observed.attr("names");
 		for (int cx=0; cx < int(colTypes.size()); ++cx) {
 			if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-				if (!Rcpp::is<Rcpp::NumericVector>(observed[cx])) {
-					stop("%s: observed column %d (%s) is not type 'numeric'",
-						name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
-				}
+				// OK
 			} else {
-				auto vec = observed[cx];
-				if (!Rcpp::is<Rcpp::IntegerVector>(vec)) {
-					stop("%s: observed column %d (%s) is not type 'integer'",
-						name, 1+cx, Rcpp::as<const char *>(obNames[cx]));
-				}
-				ProtectedSEXP Rlevels(Rf_getAttrib(vec, R_LevelsSymbol));
+				IntegerVector vec = observed[cx];
+				CharacterVector lev = vec.attr("levels");
 				auto &rc = (*rawCols)[ columns[cx] ];
-				if (int(rc.levels.size()) != int(Rf_length(Rlevels))) {
+				if (int(rc.levels.size()) != int(lev.size())) {
 					stop("%s: observed column %d (%s) has a different number"
 						"of factor levels %d compare to the original data %d",
-						name, 1+cx, Rcpp::as<const char *>(obNames[cx]),
-						int(Rf_length(Rlevels)), int(rc.levels.size()));
+						name, 1+cx, as<const char *>(obNames[cx]),
+							 int(lev.size()), int(rc.levels.size()));
 				}
 			}
 		}
@@ -4513,25 +4517,43 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	virtual void loadRowImpl(int index)
 	{
 		auto &rc = *rawCols;
-		int rowBase = index * rows;
-		if (observed.nrows() < rowBase + rows) {
-			stop("%s: index %d requested but observed data only has %d sets of rows",
-				name, index, observed.nrows() / rows);
-		}
-		for (int cx=0; cx < int(columns.size()); ++cx) {
-			auto vec = observed[cx];
-			if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-				double *val = REAL(vec);
-				for (int rx=0; rx < rows; ++rx) {
-					stripeData[cx].realData[rx] = val[rowBase + rx];
+		if (observed.nrows() != rows) {
+			int rowBase = index * rows;
+			if (observed.nrows() < rowBase + rows) {
+				stop("%s: index %d requested but observed data only has %d sets of rows",
+						 name, index, observed.nrows() / rows);
+			}
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				RObject vec = observed[cx];
+				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+					NumericVector avec(vec);
+					for (int rx=0; rx < rows; ++rx) {
+						stripeData[cx].realData[rx] = avec[rowBase + rx];
+					}
+				} else {
+					IntegerVector ivec(vec);
+					for (int rx=0; rx < rows; ++rx) {
+						stripeData[cx].intData[rx] = ivec[rowBase + rx];
+					}
 				}
-			} else {
-				int *val = INTEGER(vec);
-				for (int rx=0; rx < rows; ++rx) {
-					stripeData[cx].intData[rx] = val[rowBase + rx];
+				rc[ columns[cx] ].ptr = stripeData[cx];
+			}
+		} else {
+			int colBase = index * columns.size();
+			if (observed.ncol() < int(colBase + columns.size())) {
+				stop("%s: index %d requested but observed data only has %d sets of columns",
+						 name, index, observed.ncol() / columns.size());
+			}
+			for (int cx=0; cx < int(columns.size()); ++cx) {
+				RObject vec = observed[colBase + cx];
+				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+					NumericVector avec(vec);
+					rc[ columns[cx] ].ptr.realData = avec.begin();
+				} else {
+					IntegerVector ivec(vec);
+					rc[ columns[cx] ].ptr.intData = ivec.begin();
 				}
 			}
-			rc[ columns[cx] ].ptr = stripeData[cx];
 		}
 	}
 };
@@ -4611,11 +4633,12 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 		stop("%s: can only handle 1 destination MxData", name);
 	int objNum = Rf_asInteger(Rdata);
 	data = globalState->dataList[objNum];
+	auto &rd = data->getUnfilteredRawData();
 
 	for (auto pr : Providers) {
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
-			provider->commonInit(rObj, name, data->name, data->nrows(), data->getRawCols(),
+			provider->commonInit(rObj, name, data->name, rd.rows, rd.rawCols,
 					     data->rawColMap, Global->checkpointValues);
 			provider->init(rObj);
 			break;

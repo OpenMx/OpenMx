@@ -206,16 +206,18 @@ class omxData {
 	// type=="raw"
 	struct RawData {
 		std::vector<ColumnData> rawCols;
+		std::vector<bool> hasNa;
 		int rows;
 		bool owner;
 		RawData() : rows(0), owner(false) {}
 		void clear();
+		void clearColumn(int col);
 		~RawData();
+		void refreshHasNa();
 	};
 	RawData filtered;
 	RawData unfiltered;
-	std::vector<bool> naFilter;
-	enum NaActionType { NA_PASS, NA_FAIL, NA_OMIT };
+	enum NaActionType { NA_PASS, NA_FAIL, NA_OMIT, NA_EXCLUDE };
 	NaActionType naAction;
 	ColMapType rawColMap;
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
@@ -226,6 +228,8 @@ class omxData {
 	std::vector<omxDefinitionVar> defVars;
  public:
 	void prep();
+	void sanityCheck();
+	RawData &getUnfilteredRawData() { return unfiltered; }
 	bool isRaw() const { return filtered.rawCols.size() != 0; }
 	ColumnData &rawCol(int cx) { return filtered.rawCols[cx]; }
 	std::vector<ColumnData> &getRawCols() { return filtered.rawCols; }

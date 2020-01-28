@@ -166,7 +166,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
 		   minVariance=sqrt(.Machine$double.eps), algebra=c(),
-		   warnNPDacov=TRUE, exoFree=NULL, naAction=c("pass","fail","omit")) {
+		   warnNPDacov=TRUE, exoFree=NULL, naAction=c("pass","fail","omit","exclude")) {
   prohibitDotdotdot(list(...))
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {

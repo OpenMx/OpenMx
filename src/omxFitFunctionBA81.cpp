@@ -799,6 +799,7 @@ void BA81FitState::compute(int want, FitContext *fc)
 	auto *oo = this;
 	BA81FitState *state = (BA81FitState*) this;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
+	estate->prep();
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FINAL_FIT)) return;

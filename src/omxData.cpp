@@ -44,7 +44,7 @@ omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeigh
 		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
 		     noExoOptimize(true), modified(false), minVariance(0), warnNPDacov(true),
 		     dataObject(0), dataMat(0), meansMat(0), 
-		     numObs(0), _type(0), numFactor(0), numNumeric(0),
+										 numObs(0), _type(0), naAction(NA_PASS), numFactor(0), numNumeric(0),
 		     cols(0), expectation(0)
 {}
 
@@ -215,7 +215,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		od->_type = CHAR(STRING_ELT(dataLoc,0));
 		if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
 
-		naAction = NA_PASS;
 		if (R_has_slot(dataObj, Rf_install("naAction"))) {
 			ProtectedSEXP RactStr(R_do_slot(dataObj, Rf_install("naAction")));
 			if (Rf_length(RactStr)) {
@@ -223,6 +222,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				if (strEQ(naActStr, "pass")) ; // is default
 				else if (strEQ(naActStr, "fail")) naAction = NA_FAIL;
 				else if (strEQ(naActStr, "omit")) naAction = NA_OMIT;
+				else if (strEQ(naActStr, "exclude")) naAction = NA_EXCLUDE;
 				else stop("%s: unknown naAction '%s'", name, naActStr);
 			}
 		}
@@ -406,11 +406,117 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 void omxData::prep()
 {
-	filtered.clear();
+	switch (naAction) {
+	case NA_PASS:
+		filtered.rows = unfiltered.rows;
+		filtered.rawCols = unfiltered.rawCols;
+		break;
+	case NA_FAIL:
+		unfiltered.refreshHasNa();
+		if (std::any_of(unfiltered.hasNa.begin(),
+										unfiltered.hasNa.end(), [](bool na){ return na; })) {
+			stop("%d: contains at least one NA and naAction='fail'", name);
+		}
+		filtered.rows = unfiltered.rows;
+		filtered.rawCols = unfiltered.rawCols;
+		break;
+	case NA_OMIT:{ // remove rows
+		if (filtered.rawCols.size() != unfiltered.rawCols.size()) {
+			filtered = unfiltered;
+			filtered.owner = false;
+		}
+		unfiltered.refreshHasNa();
+		int rows = std::count(unfiltered.hasNa.begin(),
+													unfiltered.hasNa.end(), false);
+		if (filtered.rows != rows || filtered.hasNa != unfiltered.hasNa) {
+			if (verbose >= 1) mxLog("omit: NA pattern changed, clearing cache");
+			filtered.owner = true;
+			filtered.rows = rows;
+			filtered.hasNa = unfiltered.hasNa;
+			for (auto &cd : filtered.rawCols) {
+				cd.ptr.clear();
+			}
+			oss.reset();
+		}
+		int filterCount = 0;
+		for (int cx=0; cx < int(unfiltered.rawCols.size()); ++cx) {
+			auto &src = unfiltered.rawCols[cx];
+			auto &dest = filtered.rawCols[cx];
+			if (dest.ptr.realData) continue;
+			filterCount += 1;
+			switch (src.type) {
+			case COLUMNDATA_ORDERED_FACTOR:
+			case COLUMNDATA_UNORDERED_FACTOR:
+			case COLUMNDATA_INTEGER:
+				dest.ptr.intData = new int[rows];
+				for (int sx=0, dx=0; sx < unfiltered.rows; ++sx) {
+					if (unfiltered.hasNa[sx]) continue;
+					dest.ptr.intData[dx++] = src.ptr.intData[sx];
+				}
+				break;
+			case COLUMNDATA_NUMERIC:
+				dest.ptr.realData = new double[rows];
+				for (int sx=0, dx=0; sx < unfiltered.rows; ++sx) {
+					if (unfiltered.hasNa[sx]) continue;
+					dest.ptr.realData[dx++] = src.ptr.realData[sx];
+				}
+				break;
+			default: stop("unknown type %d", src.type);
+			}
+		}
+		if (verbose >= 1) mxLog("omit: filtered %d columns", filterCount);
+		break;}
+	case NA_EXCLUDE:{ // set to zero frequency
+		unfiltered.refreshHasNa();
+		if (filtered.rawCols.size() == 0) {
+			filtered.rows = unfiltered.rows;
+			filtered.rawCols = unfiltered.rawCols;
+		} else {
+			for (int cx=0; cx < int(unfiltered.rawCols.size()); ++cx) {
+				filtered.rawCols[cx] = unfiltered.rawCols[cx];
+			}
+		}
+		if (!hasFreq()) {
+			if (verbose >= 1) mxLog("exclude: adding freq column");
+			freqCol = filtered.rawCols.size();
+			auto *newFreq = (int*) R_alloc(filtered.rows, sizeof(int));
+			ColumnData cd = { "freq", COLUMNDATA_INTEGER, newFreq, {} };
+			filtered.rawCols.emplace_back(cd);
+			for (int rx=0; rx < filtered.rows; ++rx) {
+				if (unfiltered.hasNa[rx]) newFreq[rx] = 0;
+				else newFreq[rx] = 1;
+			}
+			oss.reset();
+		} else if (filtered.hasNa != unfiltered.hasNa) {
+			if (verbose >= 1) mxLog("exclude: NA pattern changed, clearing WLS cache");
+			filtered.hasNa = unfiltered.hasNa;
+			oss.reset();
+			int *oldFreq = 0;
+			if (unfiltered.rawCols.size() == filtered.rawCols.size()) {
+				oldFreq = unfiltered.rawCols[freqCol].ptr.intData;
+			}
+			auto *newFreq = (int*) R_alloc(filtered.rows, sizeof(int));
+			for (int rx=0; rx < filtered.rows; ++rx) {
+				if (unfiltered.hasNa[rx]) newFreq[rx] = 0;
+				else {
+					if (oldFreq) newFreq[rx] = oldFreq[rx];
+					else newFreq[rx] = 1;
+				}
+			}
+			filtered.rawCols[freqCol].ptr.intData = newFreq;
+		}
+		break;}
+	default: stop("unknown naAction %d", naAction);
+	}
 
-	filtered.rows = unfiltered.rows;
-	filtered.rawCols = unfiltered.rawCols;
+	currentWeightColumn = getWeightColumn();
+	currentFreqColumn = getOriginalFreqColumn();
 
+	if (verbose >= 2) omxPrintData("prep", 10);
+}
+
+void omxData::sanityCheck()
+{
 	if (hasPrimaryKey()) {
 		for (int rx=0; rx < nrows(); ++rx) {
 			int key = primaryKeyOfRow(rx);
@@ -420,9 +526,6 @@ void omxData::prep()
 			stop("%s: primary keys are not unique (examine rows with key=%d)", name, key);
 		}
 	}
-
-	currentWeightColumn = getWeightColumn();
-	currentFreqColumn = getOriginalFreqColumn();
 
 	if (currentFreqColumn) {
 		for (int rx=0; rx < nrows(); ++rx) {
@@ -453,16 +556,8 @@ double *omxData::getWeightColumn()
 
 int *omxData::getOriginalFreqColumn()
 {
-	if (!hasFreq()) return 0;
-	if (isRaw()) {
-		return rawCol(freqCol).ptr.intData;
-	} else {
-		auto *col = (int*) R_alloc(dataMat->rows, sizeof(int));
-		EigenMatrixAdaptor dm(dataMat);
-		Eigen::Map< Eigen::VectorXi > Ecol(col, dataMat->rows);
-		Ecol.derived() = dm.col(freqCol).cast<int>();
-		return col;
-	}
+	if (freqCol < 0) return 0;
+	return rawCol(freqCol).ptr.intData;
 }
 
 int omxData::numRawRows()
@@ -490,21 +585,47 @@ omxData* omxState::omxNewDataFromMxData(SEXP dataObj, const char *name)
 	else if (strcmp(dclass, "MxDataDynamic")==0) newDataDynamic(dataObj, od);
 	else stop("Unknown data class %s", dclass);
 	od->prep();
+	od->sanityCheck();
 	return od;
+}
+
+void omxData::RawData::refreshHasNa()
+{
+	hasNa.resize(rows);
+	for (int rx=0; rx < rows; ++rx) {
+		bool na = false;
+		for (auto &cd : rawCols) {
+			switch (cd.type) {
+			case COLUMNDATA_INVALID: continue;
+			case COLUMNDATA_ORDERED_FACTOR:
+			case COLUMNDATA_UNORDERED_FACTOR:
+			case COLUMNDATA_INTEGER:
+				na |= cd.ptr.intData[rx] == NA_INTEGER;
+				break;
+			case COLUMNDATA_NUMERIC:
+				na |= !std::isfinite(cd.ptr.realData[rx]);
+				break;
+			}
+			hasNa[rx] = na;
+		}
+	}
+}
+
+void omxData::RawData::clearColumn(int col)
+{
+	if (owner) delete [] rawCols[col].ptr.realData;
+	rawCols[col].ptr.clear();
 }
 
 void omxData::RawData::clear()
 {
 	if (owner) {
 		for (auto &cd : rawCols) {
-			if (cd.type == COLUMNDATA_NUMERIC) {
-				if (cd.ptr.realData) delete [] cd.ptr.realData;
-			} else {
-				if (cd.ptr.intData) delete [] cd.ptr.intData;
-			}
+			if (cd.ptr.realData) delete [] cd.ptr.realData;
 		}
 	}
 	for (auto &cd : rawCols) cd.ptr.clear();
+	rawCols.clear();
 	owner = false;
 	rows = 0;
 }
@@ -799,21 +920,23 @@ void omxData::omxPrintData(const char *header, int maxRows, int *permute)
 		}
 		buf += "\n";
 
-		for (int vxv=0; vxv < upto; vxv++) {
+		for (int vxv=0; upto > 0; vxv++) {
 			int vx = permute? permute[vxv] : vxv;
-			for (int j = 0; j < od->cols; j++) {
+			if (hasFreq() && getRowFreq(vx) == 0) continue;
+			upto -= 1;
+			for (int j = 0; j < int(rd.rawCols.size()); j++) {
 				ColumnData &cd = rd.rawCols[j];
 				if (cd.type == COLUMNDATA_INVALID) continue;
 				if (cd.type != COLUMNDATA_NUMERIC) {
 					int *val = cd.ptr.intData;
-					if (val[vx] == NA_INTEGER) {
+					if (!val || val[vx] == NA_INTEGER) {
 						buf += " NA,";
 					} else {
 						buf += string_snprintf(" %d,", val[vx]);
 					}
 				} else {
 					double *val = cd.ptr.realData;
-					if (!std::isfinite(val[vx])) {
+					if (!val || !std::isfinite(val[vx])) {
 						buf += " NA,";
 					} else {
 						buf += string_snprintf(" %.3g,", val[vx]);
@@ -3074,11 +3197,19 @@ void omxData::estimateObservedStats()
 
 void omxData::invalidateCache()
 {
+	prep();
 	oss.reset();
 }
 
 void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 {
+	if (naAction == NA_OMIT) {
+		for (auto col : columns) {
+			filtered.clearColumn(col);
+		}
+	}
+	prep();
+
 	if (!oss) return;
 
 	auto &o1 = *oss;
