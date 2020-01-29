@@ -34,7 +34,6 @@
 #include <R_ext/Rdynload.h> 
 
 class omxData;
-typedef struct omxContiguousData omxContiguousData;
 typedef struct omxThresholdColumn omxThresholdColumn;
 
 #include "omxAlgebra.h"
@@ -51,12 +50,6 @@ struct omxDefinitionVar {
 	int* deps;              // indices of algebra/matrix dependencies
 
 	bool loadData(omxState *state, double val);
-};
-
-struct omxContiguousData {
-	int isContiguous;
-	int start;
-	int length;
 };
 
 struct omxThresholdColumn {
@@ -185,6 +178,7 @@ class omxData {
 			  const char *continuousType, bool fullWeight);
 	bool regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
 	void wlsAllContinuousCumulants(omxState *state);
+	void convertToDataFrame();
 
  public:
 	bool hasPrimaryKey() const { return primaryKey >= 0; };
@@ -199,7 +193,6 @@ class omxData {
 	void setModified() { modified=true; };
 	bool isModified() { return modified; };
 	double getMinVariance() const { return minVariance; };
-	void convertToDataFrame();
 	void evalAlgebras(FitContext *fc);
 
 	const char *name;
@@ -211,8 +204,22 @@ class omxData {
 	const char *getType() const { return _type; };
 
 	// type=="raw"
+	struct RawData {
+		std::vector<ColumnData> rawCols;
+		std::vector<bool> hasNa;
+		int rows;
+		bool owner;
+		RawData() : rows(0), owner(false) {}
+		void clear();
+		void clearColumn(int col);
+		~RawData();
+		void refreshHasNa();
+	};
+	RawData filtered;
+	RawData unfiltered;
+	enum NaActionType { NA_PASS, NA_FAIL, NA_OMIT, NA_EXCLUDE };
+	NaActionType naAction;
 	ColMapType rawColMap;
-	std::vector<ColumnData> rawCols;
 	int numFactor, numNumeric;			// Number of ordinal and continuous columns
 	bool needSort;
 
@@ -220,7 +227,14 @@ class omxData {
 
 	std::vector<omxDefinitionVar> defVars;
  public:
-	int rows, cols;						// Matrix size 
+	void prep();
+	void sanityCheck();
+	RawData &getUnfilteredRawData() { return unfiltered; }
+	bool isRaw() const { return filtered.rawCols.size() != 0; }
+	ColumnData &rawCol(int cx) { return filtered.rawCols[cx]; }
+	std::vector<ColumnData> &getRawCols() { return filtered.rawCols; }
+	int nrows() const { return filtered.rows; }
+	int cols;						// dataMat->cols or rawCols.size()
 	int verbose;
 	std::map<int,int> primaryKeyIndex;
 
@@ -286,30 +300,6 @@ omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 omxData* omxDataLookupFromState(SEXP dataObject, omxState* state);	// Retrieves a data object from the state
 void omxFreeData(omxData* od);					// Release any held data.
 
-template <typename T>
-void omxSetContiguousDataColumns(omxContiguousData* contiguous, omxData* data,
-				 Eigen::MatrixBase<T> &colList)
-{
-	contiguous->isContiguous = FALSE;   // Assume not contiguous
-
-	if (data->dataMat == NULL) return; // Data has no matrix elements, so skip.
-
-	omxMatrix* dataMat = data->dataMat;
-	if (dataMat->colMajor) return;      // If data matrix is column-major, there's no continuity
-	
-	int colListLength = colList.size();             // # of columns in the cov matrix
-	double start = colList[0];                      // Data col of first column of the covariance
-	contiguous->start = (int) start;                // That's our starting point.
-	contiguous->length = colListLength;             // And the length is ncol(cov)
-	
-	for(int i = 1; i < colListLength; i++) {        // Make sure that the col list is 
-		double next = colList[i];               // contiguously increasing in column number
-		if (next != (start + i)) return;            // If it isn't, it's not contiguous data
-	}
-	
-	contiguous->isContiguous = TRUE;    // Passed.  This is contiguous.
-}
-
 /* Getters 'n Setters */
 int omxDataGetNumFactorLevels(omxData *od, int col);
 double omxDoubleDataElement(omxData *od, int row, int col);
@@ -320,7 +310,7 @@ bool omxDataElementMissing(omxData *od, int row, int col);
 
 inline int omxKeyDataElement(omxData *od, int row, int col)
 {
-	ColumnData &cd = od->rawCols[col];
+	ColumnData &cd = od->rawCol(col);
 	return cd.ptr.intData[row];
 }
 
@@ -332,34 +322,32 @@ void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Popu
 template <typename T>
 void omxDataRow(omxData *od, int row, const Eigen::MatrixBase<T> &colList, omxMatrix* om)
 {
-	if (row >= od->rows) stop("Invalid row");
+	if (row >= od->nrows()) stop("Invalid row");
 
 	if(om == NULL) stop("Must provide an output matrix");
 
 	int numcols = colList.size();
-	if(od->dataMat != NULL) {
+	if(od->isRaw()) {
+		for(int j = 0; j < numcols; j++) {
+			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, colList[j]));
+		}
+	} else {
 		omxMatrix* dataMat = od->dataMat;
 		for(int j = 0; j < numcols; j++) {
 			omxSetMatrixElement(om, 0, j, omxMatrixElement(dataMat, row, colList[j]));
 		}
-	} else {
-		for(int j = 0; j < numcols; j++) {
-			omxSetMatrixElement(om, 0, j, omxDoubleDataElement(od, row, colList[j]));
-		}
 	}
 };
-
-void omxContiguousDataRow(omxData *od, int row, int start, int length, omxMatrix* om);// Populates a matrix with a contiguous data row
 
 static OMXINLINE int
 omxIntDataElementUnsafe(omxData *od, int row, int col)
 {
-	return od->rawCols[col].ptr.intData[row];
+	return od->rawCol(col).ptr.intData[row];
 }
 
 static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 {
-	return od->rawCols[col].ptr.intData;
+	return od->rawCol(col).ptr.intData;
 }
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset
@@ -380,6 +368,7 @@ inline bool omxDataColumnIsFactor(omxData *od, int col) { return od->columnIsFac
 template <typename T1>
 void omxData::recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &index)
 {
+	int rows = nrows();
 	index.clear();
 	index.reserve(rows);
 	rowMult.derived().resize(rows);

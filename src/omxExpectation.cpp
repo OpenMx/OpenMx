@@ -113,7 +113,7 @@ void omxExpectation::loadThresholds()
 		const char *colname = data->columnName(index);
 		int tc = thresholdsMat->lookupColumnByName(colname);
 
-		if (tc < 0 || (data->rawCols.size() && !omxDataColumnIsFactor(data, index))) {	// Continuous variable
+		if (tc < 0 || (data->isRaw() && !omxDataColumnIsFactor(data, index))) {	// Continuous variable
 			if(debug || OMX_DEBUG) {
 				mxLog("%s: column[%d] '%s' is continuous (tc=%d isFactor=%d)",
 				      name, index, colname, tc, omxDataColumnIsFactor(data, index));
@@ -122,7 +122,7 @@ void omxExpectation::loadThresholds()
 		} else {
 			found[tc] = true;
 			col.column = tc;
-			if (data->rawCols.size()) {
+			if (data->isRaw()) {
 				col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
 			} else {
 				// See omxData::permute
@@ -439,3 +439,6 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 	normalToStdVector(cov, getComponent("means"), getComponent("slope"), thresholdsMat,
 			  numOrdinal, getThresholdInfo(), out);
 }
+
+bool omxExpectation::isClone() const
+{ return currentState->isClone(); }

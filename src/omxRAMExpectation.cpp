@@ -462,7 +462,7 @@ void omxRAMExpectation::studyExoPred()
 
 	for (int cx=0, ex=0; cx < S->rows; ++cx) {
 		if (exoDataCol[cx] == -1) continue;
-		auto &rc = data->rawCols[ exoDataCol[cx] ];
+		auto &rc = data->rawCol( exoDataCol[cx] );
 		if (rc.type != COLUMNDATA_NUMERIC) {
 			omxRaiseErrorf("%s: exogenous predictor '%s' must be type numeric (not '%s')",
 				       name, rc.name, rc.typeName());
@@ -479,10 +479,10 @@ void omxRAMExpectation::studyExoPred()
 
 	exoPredMean.resize(exoDataColumns.size());
 	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
-               auto &e1 = data->rawCols[ exoDataColumns[cx] ];
-               Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, data->numRawRows());
-               exoPredMean[cx] = vec.mean();
-       }
+		auto &e1 = data->rawCol( exoDataColumns[cx] );
+		Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, data->numRawRows());
+		exoPredMean[cx] = vec.mean();
+	}
 }
 
 void omxRAMExpectation::studyF()
@@ -1861,7 +1861,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		int maxSize = 0;
-		int homeDataRows = homeEx->data->rows;
+		int homeDataRows = homeEx->data->nrows();
 		for (int row=0; row < homeDataRows; ++row) {
 			flattenOneRow(homeEx, row, maxSize);
 			if (isErrorRaised()) return;
@@ -2078,21 +2078,22 @@ namespace RelationalRAMExpectation {
 			auto &dc = ex1->getDataColumns();
 			if (dc.size() == 0) continue;
 			omxData *data = ex1->data;
+			int rows = data->nrows();
 
 			SEXP df;
 			Rf_protect(df = Rf_allocVector(VECSXP, dc.size()));
 			SEXP colnames = Rf_allocVector(STRSXP, dc.size());
 			Rf_setAttrib(df, R_NamesSymbol, colnames);
 			for (int col=0; col < int(dc.size()); ++col) {
-				SEXP colData = Rf_allocVector(REALSXP, data->rows);
+				SEXP colData = Rf_allocVector(REALSXP, rows);
 				SET_VECTOR_ELT(df, col, colData);
 				double *colPtr = REAL(colData);
-				for (int rx=0; rx < data->rows; ++rx) {
+				for (int rx=0; rx < rows; ++rx) {
 					colPtr[rx] = NA_REAL;
 				}
 				SET_STRING_ELT(colnames, col, Rf_mkChar(omxDataColumnName(data, dc[col])));
 			}
-			markAsDataFrame(df, data->rows);
+			markAsDataFrame(df, rows);
 
 			DataMap[ex1] = df;
 			out.add(data->name, df);

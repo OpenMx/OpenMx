@@ -146,7 +146,8 @@ omxCheckCloseEnough(cor(c(scores[,1]), ability), .737, .01)
 m3 <- mxModel(m2,
               mxFitFunctionML(vector=TRUE),
               mxComputeOnce('fitfunction', 'fit'))
-m3 <- mxRun(m3, silent=TRUE)
+m3 <- expect_warning(mxRun(m3, silent=TRUE),
+                     "Fixing model by adding mxAlgebra")
 omxCheckCloseEnough(-2 * sum(log(m3$fitfunction$result)), 6216.272, .01)
 
 #mxOption(NULL, 'loglikelihoodScale', -2)

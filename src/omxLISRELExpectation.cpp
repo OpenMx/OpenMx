@@ -647,7 +647,7 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 
 	exoPredMean.resize(exoDataColumns.size());
 	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
-		auto &e1 = data->rawCols[ exoDataColumns[cx] ];
+		auto &e1 = data->rawCol( exoDataColumns[cx] );
 		Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, data->numRawRows());
 		exoPredMean[cx] = vec.mean();
 	}

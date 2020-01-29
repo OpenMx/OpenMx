@@ -29,7 +29,8 @@
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
      minVariance=sqrt(.Machine$double.eps), algebra=c(),
-   warnNPDacov=TRUE, exoFree=NULL)
+   warnNPDacov=TRUE, exoFree=NULL,
+   naAction=c("pass","fail","omit","exclude"))
 }
 
 \arguments{
@@ -58,6 +59,7 @@
    exogenous predictors. Defaults to all TRUE, but you can fix some
    regression coefficients in the \code{observedStats} \code{slope}
    matrix to zero by setting entries to FALSE. EXPERIMENTAL}
+ \item{naAction}{Specify treatment of missing data. See details.}
 }
 
 \details{
@@ -124,6 +126,18 @@ The \code{observedStats} contains the following named objects: cov, slope, means
 continuing to support modeling applications which require direct access to the object in the front end. Some user-interface
 changes should be expected as we optimize both these workflows.
 
+
+\strong{Missing values}
+
+For raw data, the \sQuote{naAction} option controls the treatment of missing values.
+When set to \sQuote{pass}, the data is passed as-is.
+When set to \sQuote{fail}, the presence of any missing value will
+trigger an error.
+When set to \sQuote{omit}, missing data will be discarded row-wise.
+For example, a single missing value in a row will cause the whole row to
+be discarded.
+When set to \sQuote{exclude}, rows with missing data are retained
+but their \sQuote{frequency} is set to zero.
 
 \strong{Weights}
 

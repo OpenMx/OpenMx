@@ -205,10 +205,24 @@ void BA81Expect::refreshPatternLikelihood(bool hasFreeLatent)
 	}
 }
 
+void BA81Expect::prep()
+{
+	if (grp.rowMult.size()) return;
+
+	// complain about non-integral rowWeights (EAP can't work) TODO
+	if (data->hasFreq()) {
+		grp.setRowFreq(data->getFreqColumn());
+	}
+	grp.buildRowMult();
+	freqSum = grp.getWeightSum();
+}
+
 void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 {
 	omxExpectation *oo = this;
 	BA81Expect *state = (BA81Expect *) oo;
+
+	prep();
 
 	if (what) {
 		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
@@ -518,18 +532,13 @@ void BA81Expect::init() {
 		}
 		state->grp.setRowWeight(omxDoubleDataColumn(data, weightCol));
 	}
-	if (data->hasFreq()) {
-		state->grp.setRowFreq(data->getFreqColumn());
-	}
 
-	rowMap.resize(data->rows);
+	rowMap.resize(data->nrows());
 	for (size_t rx=0; rx < rowMap.size(); ++rx) {
 		rowMap[rx] = rx;
 	}
 
-	// complain about non-integral rowWeights (EAP can't work) TODO
-	state->grp.buildRowMult();
-	state->freqSum = state->grp.getWeightSum();
+	prep();
 
 	auto colMap = getDataColumns();
 
@@ -548,7 +557,7 @@ void BA81Expect::init() {
 	}
 
 	// TODO the max outcome should be available from omxData
-	for (int rx=0; rx < data->rows; rx++) {
+	for (int rx=0; rx < data->nrows(); rx++) {
 		int cols = 0;
 		for (int cx = 0; cx < numItems; cx++) {
 			const int *col = state->grp.dataColumns[cx];
@@ -614,8 +623,7 @@ void BA81Expect::init() {
 
 void BA81Expect::invalidateCache()
 {
-	grp.setRowFreq(data->getFreqColumn());
-	grp.buildRowMult();
+	grp.rowMult.resize(0);
 }
 
 const char *BA81Expect::getLatentIncompatible(BA81Expect *other)

@@ -46,13 +46,14 @@ protected:
 		return false;
 	}
 
-	void requireFile(SEXP rObj)
+	void requireFile(SEXP rObj1)
 	{
-		ProtectedSEXP Rpath(R_do_slot(rObj, Rf_install("path")));
-		if (Rf_length(Rpath) != 1)
+		RObject rObj(rObj1);
+		CharacterVector Rpath(rObj.slot("path"));
+		if (Rpath.size() != 1)
 			stop("%s: you must specify exactly one file from which to read data", name);
 
-		filePath = R_CHAR(STRING_ELT(Rpath, 0));
+		filePath = Rpath[0];
 		auto slashPos = filePath.find_last_of("/\\");
 		if (slashPos == std::string::npos) {
 			fileName = filePath;
