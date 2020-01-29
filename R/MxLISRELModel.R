@@ -529,11 +529,14 @@ insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 #manifestExo -> 'one'
 #	stop('nonsense')
 
+manifestToLatentError <- function(from, to) {
+  stop(paste('In LISREL, paths are not allowed from manifest variables to latent variables;',
+             'from=',omxQuotes(from), 'to=', omxQuotes(to)))
+}
+
 insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
-	if(to %in% variables$lex){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
-	} else if(to %in% variables$len){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
+	if(to %in% variables$lex || to %in% variables$len){
+    manifestToLatentError(from, to)
 	} else if(to %in% variables$mex){
 		if(arrows==1){
 			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous variables.')
@@ -572,10 +575,8 @@ insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 #	stop('nonsense')
 
 insertManifestEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
-	if(to %in% variables$lex){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
-	} else if(to %in% variables$len){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
+	if(to %in% variables$lex || to %in% variables$len){
+    manifestToLatentError(from, to)
 	} else if(to %in% variables$mex){
 		if(arrows==1){
 			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous variables.')
