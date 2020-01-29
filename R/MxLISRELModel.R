@@ -157,12 +157,11 @@ variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, 
 		}
 	} else {
 		if (length(manifestVars) + length(latentVars) > 0) {
-			if(length(names(latentVars)) == 0 || !is.list(latentVars) ){
-				stop("Unlike RAM, LISREL models must have latent variables.  The latentVars argument of a LISREL model must be a named list.")
+			if(length(latentVars) == 0) {
+				stop("Unlike RAM, LISREL models must have latent variables.")
 			}
-			if(length(names(manifestVars)) == 0 || !is.list(manifestVars) ){
-				stop("The manifestVars argument of a LISREL model must be a named list.")
-			}
+      if (!is.list(latentVars)) latentVars <- list(endo=latentVars)
+			if (length(manifestVars) && !is.list(manifestVars)) manifestVars <- list(endo=manifestVars)
 			latentVars <- varsToCharacter(latentVars, "latent")
 			manifestVars <- varsToCharacter(manifestVars, "manifest")
 			checkVariables(model, latentVars, manifestVars)
@@ -173,7 +172,6 @@ variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, 
 		}
 	}
 	return(model)
-	# include check prior to varsToCharacter to see if length(names(latentVars)) == 0 (and if same for manifestVars
 }
 
 removeVariablesLISREL <- function(model, latent, manifest){

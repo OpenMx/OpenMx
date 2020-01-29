@@ -27,8 +27,8 @@
 
 #------------------------------------------------------------------------------
 # load needed package(s)
-require(OpenMx)
-
+library(OpenMx)
+library(testthat)
 
 #------------------------------------------------------------------------------
 
@@ -55,11 +55,11 @@ mod3 <- mxModel(name="exogenous only LISREL model",
 
 # endogenous only
 mod4 <- mxModel(name="endogenous LISREL model",
-	manifestVars=list(end='y1'),
-	latentVars=list(end='eta1'),
+	manifestVars='y1',
+	latentVars='eta1',
 	type="LISREL"
 )
-
+expect_equal(dimnames(mod4$LY), list("y1","eta1"))
 
 #------------------------------------------------------------------------------
 # Now try adding entries

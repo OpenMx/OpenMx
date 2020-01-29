@@ -85,9 +85,25 @@ The \sQuote{constraints} slot contains a list of the \link{MxConstraint} objects
 
 The \sQuote{intervals} slot contains a list of the confidence intervals requested by included \link{MxCI} objects. These objects are listed by the free parameters, \link[=MxMatrix]{MxMatrices} and \link[=MxAlgebra]{MxAlgebras} referenced in the \link{MxCI} objects, not the list of \link{MxCI} objects themselves. If a new \link{MxCI} object is added to an MxModel object referencing one or more free parameters \link[=MxMatrix]{MxMatrices} or \link[=MxAlgebra]{MxAlgebras} previously listed in the \sQuote{intervals} slot, the new confidence interval(s) replace the existing ones. All listed confidence intervals must refer to free parameters \link[=MxMatrix]{MxMatrices} or \link[=MxAlgebra]{MxAlgebras} in the model.
 
-The \sQuote{latentVars} slot contains a list of latent variable names, which may be referenced by \link[=MxPath-class]{MxPath} objects. This slot defaults to 'NA', and is only used when the \link{mxPath} function is used.
+The \sQuote{latentVars} slot contains a list of latent variable names,
+which may be referenced by \link[=MxPath-class]{MxPath} objects. This
+slot defaults to 'NA', and is only used when the \link{mxPath} function
+is used. In the context of a RAM model, this slot accepts a character
+vector of variable names. However, the LISREL model is partitioned into
+exogenous and endogenous parts. Both exogenous and endogenous variables
+can be specified using a list like, \code{list(endo='a',  exo='b')}.
+If a character vector is passed to a LISREL model then those
+variables will be assumed endogenous.
 
-The \sQuote{manifestVars} slot contains a list of latent variable names, which may be referenced by \link[=MxPath-class]{MxPath} objects. This slot defaults to 'NA', and is only used when the \link{mxPath} function is used.
+The \sQuote{manifestVars} slot contains a list of latent variable names,
+which may be referenced by \link[=MxPath-class]{MxPath} objects. This
+slot defaults to 'NA', and is only used when the \link{mxPath} function
+is used. In the context of a RAM model, this slot accepts a character
+vector of variable names. However, the LISREL model is partitioned into
+exogenous and endogenous parts. Both exogenous and endogenous variables
+can be specified using a list like, \code{list(endo='a',  exo='b')}.
+If a character vector is passed to a LISREL model then those
+variables will be assumed endogenous.
 
 The \sQuote{data} slot contains an \link{MxData} object. This slot must be filled prior to execution when a fitfunction referencing data is used. Only one \link{MxData} object may be included per model, but submodels may have their own data in their own \sQuote{data} slots. If an \link{MxData} object is added to an MxModel which already contains an \link{MxData} object, the new object replaces the existing one.
 
@@ -107,7 +123,7 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 }
 
 \seealso{
-\link{mxModel} for creating MxModel objects. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{mxExpectationRAM}, \link{mxExpectationLISREL}, \link{mxModel} for creating MxModel objects. More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 
 \examples{
