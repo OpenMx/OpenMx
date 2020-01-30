@@ -1078,3 +1078,12 @@ SEXP omxMatrix::asR()
 	return ans;
 }
 
+bool omxMatrix::sameDimnames(omxMatrix *other) const
+{
+	if (!sameSize(other)) return false;
+	if (hasDimnames() != other->hasDimnames()) return false;
+	if (!hasDimnames()) return true;
+	for (int nx=0; nx < rows; ++nx) if (!strEQ(rownames[nx], other->rownames[nx])) return false;
+	for (int nx=0; nx < cols; ++nx) if (!strEQ(colnames[nx], other->colnames[nx])) return false;
+	return true;
+}

@@ -119,6 +119,9 @@ class omxMatrix {
 	bool freeRownames, freeColnames;
 	std::vector<const char *> rownames;
 	std::vector<const char *> colnames;
+	bool hasDimnames() const { return rownames.size() && colnames.size(); }
+	bool sameSize(omxMatrix *other) const { return other->rows == rows && other->cols == cols; }
+	bool sameDimnames(omxMatrix *other) const;
 	int lookupColumnByName(const char *target);
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
