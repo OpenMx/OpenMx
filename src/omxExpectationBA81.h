@@ -51,6 +51,7 @@ struct BA81LatentSummary {
 
 class BA81Expect : public omxExpectation {
 	typedef omxExpectation super;
+	bool ready;
  public:
 	virtual ~BA81Expect();
 	virtual void init();
@@ -98,7 +99,7 @@ class BA81Expect : public omxExpectation {
 	struct omxFitFunction *fit;  // weak pointer
 
 	BA81Expect(omxState *st, int num) :
-		super(st, num), grp(true)
+		super(st, num), ready(false), grp(true)
 	{
 		grp.quad.setNumThreads(Global->numThreads);
 	};

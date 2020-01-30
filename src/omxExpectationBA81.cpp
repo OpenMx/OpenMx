@@ -207,7 +207,7 @@ void BA81Expect::refreshPatternLikelihood(bool hasFreeLatent)
 
 void BA81Expect::prep()
 {
-	if (grp.rowMult.size()) return;
+	if (ready) return;
 
 	// complain about non-integral rowWeights (EAP can't work) TODO
 	if (data->hasFreq()) {
@@ -215,6 +215,7 @@ void BA81Expect::prep()
 	}
 	grp.buildRowMult();
 	freqSum = grp.getWeightSum();
+	ready = true;
 }
 
 void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
@@ -623,7 +624,7 @@ void BA81Expect::init() {
 
 void BA81Expect::invalidateCache()
 {
-	grp.rowMult.resize(0);
+	ready = false;
 }
 
 const char *BA81Expect::getLatentIncompatible(BA81Expect *other)
