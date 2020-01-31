@@ -313,7 +313,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name,
 		omxFillAlgebraFromTableEntry(oa, entry, Rf_length(algebra) - 1);
 		for(int j = 0; j < oa->numArgs; j++) {
 			ProtectedSEXP algebraArg(VECTOR_ELT(algebra, j+1));
-			auto name2 = string_snprintf("%s[%d]", name.c_str(), j);
+			auto name2 = string_snprintf("%s[%d]", name.c_str(), 1+j);
 			oa->algArgs[j] = omxAlgebraParseHelper(algebraArg, om->currentState, name2);
 		}
 	} else {		// This is an algebra pointer, and we're a No-op algebra.

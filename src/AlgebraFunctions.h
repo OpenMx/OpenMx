@@ -209,6 +209,16 @@ static void ensureElemConform(const char *opName, FitContext *fc, omxMatrix **ma
 
 	if (mat0->cols == mat1->cols && mat0->rows == mat1->rows) {
 		omxResizeMatrix(result, mat0->rows, mat0->cols);
+		// copy dimnames if it is unambiguous what to copy
+		if (!result->hasDimnames()) {
+			if (mat0->hasDimnames() && (!mat1->hasDimnames() || mat0->sameDimnames(mat1))) {
+				result->rownames = mat0->rownames;
+				result->colnames = mat0->colnames;
+			} else if (mat1->hasDimnames() && !mat0->hasDimnames()) {
+				result->rownames = mat1->rownames;
+				result->colnames = mat1->colnames;
+			}
+		}
 		return;
 	}
 
