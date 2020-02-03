@@ -47,7 +47,6 @@
    diagnostic warnings. These warnings are likely only helpful to developers.}
  \item{allContinuousMethod}{A character string 'cumulants' (default) or
    'marginals'. See mxFitFunctionWLS.}
-\item{...}{Not used.  Forces remaining arguments to be specified by name.}
 \item{silent}{Whether to report progress}
 }
 
