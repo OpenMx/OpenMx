@@ -3,6 +3,7 @@
 
 #options(error = browser)
 library(OpenMx)
+library(testthat)
 library(rpf)
 
 suppressWarnings(RNGversion("3.5"))
@@ -60,14 +61,14 @@ gm <- mxModel(model="gm", pm,
     mxComputeReportDeriv())))
 testDeriv <- mxRun(gm)
 
-omxCheckCloseEnough(testDeriv$output$fit, -2 * sum(dbeta(1/(1+exp(-ip.mat$values[3,])), 2, 5, log=TRUE)), .01)
+expect_equal(testDeriv$output$fit, -2 * sum(dbeta(1/(1+exp(-ip.mat$values[3,])), 2, 5, log=TRUE)), .01)
 #cat(deparse(round(fivenum(testDeriv$output$gradient), 3)))
-omxCheckCloseEnough(fivenum(testDeriv$output$gradient),
+expect_equivalent(fivenum(testDeriv$output$gradient),
                     c(-1, -0.773, -0.5, -0.227, 0), .01)
 #cat(deparse(round(fivenum(diag(testDeriv$output$hessian)), 3)))
-omxCheckCloseEnough(fivenum(diag(testDeriv$output$hessian)),
+expect_equivalent(fivenum(diag(testDeriv$output$hessian)),
                     c(0.9, 1.076, 1.275, 1.458, 1.6), .01)
-omxCheckCloseEnough(testDeriv$output$hessian %*% testDeriv$output$ihessian, diag(12), 1e-2)
+expect_equivalent(testDeriv$output$hessian %*% testDeriv$output$ihessian, diag(12), 1e-2)
 
 if (0) {
   require("numDeriv")
@@ -87,7 +88,7 @@ if (0) {
 ponly <- mxModel("ex", pm,
                  mxComputeNewtonRaphson(fitfunction="pmodel.fitfunction"))
 ponly.fit <- mxRun(ponly)
-omxCheckCloseEnough(ponly.fit$submodels$pmodel$matrices$gparam$values[,],
+expect_equal(ponly.fit$submodels$pmodel$matrices$gparam$values[,],
                     rep(logit(.2), numItems), .001)
 
 if (1) {
@@ -106,8 +107,8 @@ if (1) {
   cpmodel$gparam$values[,] <- citem$item$values[3,]
   fm1 <- mxModel(fm1, citem, cpmodel)
   fm1 <- mxRun(fm1, silent=TRUE)
-  omxCheckCloseEnough(max(abs(fm1$output$gradient)), 0, .02)  # sandwich obtains 1.29 TODO
-  omxCheckCloseEnough(fm1$output$fit - fm1$submodels$pmodel$fitfunction$result, 33335.75, .01)
+  expect_equal(max(abs(fm1$output$gradient)), 0, .02)  # sandwich obtains 1.29 TODO
+  expect_equivalent(fm1$output$fit - fm1$submodels$pmodel$fitfunction$result, 33335.75, .01)
   
   if (0) {
     dm <- fm1
@@ -142,9 +143,9 @@ if (1) {
       }
       hess
     }
-    omxCheckCloseEnough(got$D[1:6], dm.fit$output$gradient, 1e-6)
+    expect_equal(got$D[1:6], dm.fit$output$gradient, 1e-6)
     # max(abs(unpackHessian(got$D, 6) - dm.fit$output$hessian))
-    omxCheckCloseEnough(unpackHessian(got$D, 6), dm.fit$output$hessian, .2)
+    expect_equal(unpackHessian(got$D, 6), dm.fit$output$hessian, .2)
   }
 }
 
@@ -162,14 +163,14 @@ m2 <- mxOption(m2,"Checkpoint Count",1)
 m2 <- mxRun(m2, silent=TRUE, checkpoint=FALSE)
 # flexmirt's LL is reported w/o prior
 priorLL <- m2$submodels$pmodel$fitfunction$result
-omxCheckCloseEnough(m2$output$fit - priorLL, 33335.75, .1)
-omxCheckCloseEnough(max(abs(m2$output$gradient)), 0, .011)
+expect_equivalent(m2$output$fit - priorLL, 33335.75, .1)
+expect_equal(max(abs(m2$output$gradient)), 0, .011)
 #cat(deparse(round(m2$output$confidenceIntervals,3)))
 # Doesn't converge consistently
-#omxCheckCloseEnough(m2$output$confidenceIntervals['g1',c('lbound','ubound')], c(-1.687, -0.726), .01)
+#expect_equal(m2$output$confidenceIntervals['g1',c('lbound','ubound')], c(-1.687, -0.726), .01)
 
-omxCheckCloseEnough(summary(m2)$informationCriteria['AIC:','par'] - priorLL, 33407.745, .01)
-omxCheckCloseEnough(summary(m2)$informationCriteria['BIC:','par'] - priorLL, 33622.053, .01)
+expect_equivalent(summary(m2)$informationCriteria['AIC:','par'] - priorLL, 33407.745, .01)
+expect_equivalent(summary(m2)$informationCriteria['BIC:','par'] - priorLL, 33622.053, .01)
 
 g1 <- mxRun(mxModel(m2, mxComputeSequence(list(
   mxComputeOnce('pmodel.fitfunction', 'gradient'),
@@ -179,8 +180,8 @@ g2 <- mxRun(mxModel(m2, mxComputeSequence(list(
   mxComputeReportDeriv()))), silent=TRUE)
 
 emstat <- m2$compute$steps[[1]]$output
-omxCheckCloseEnough(emstat$EMcycles, 14, 3)
-#omxCheckCloseEnough(log(m2$output$conditionNumber), 6.12, 1)
+expect_equal(emstat$EMcycles, 14, 3)
+#expect_equal(log(m2$output$conditionNumber), 6.12, 1)
 
 # SEs probably wrong TODO
 #cat(deparse(round(c(m2$output$standardErrors), 3)))
@@ -188,7 +189,7 @@ if (0) {
   semse <- c(0.309, 0.286, 0.232, 0.162, 0.438, 3.704, 0.248, 0.274, 0.21,  0.185, 0.226, 0.428,
              0.201, 0.227, 0.256, 0.17, 0.224, 1.547,  1.388, 0.947, 18.144, 1.216, 2.735, 10.888,
              0.52, 0.492, 9.264,  0.921, 2.031, 20.255, 0.586, 0.602, 0.348, 0.234, 0.25, 0.291 )
-  omxCheckCloseEnough(c(m2$output$standardErrors), semse, .2)  # very unstable
+  expect_equal(c(m2$output$standardErrors), semse, .2)  # very unstable
 }
 
 # SEs probably wrong TODO
@@ -200,12 +201,12 @@ i1 <- mxModel(m2,
                 mxComputeHessianQuality())))
 i1 <- mxRun(i1, silent=TRUE)
 omxCheckTrue(i1$output$infoDefinite)
-omxCheckCloseEnough(log(i1$output$conditionNumber), 9.7, .5)
+expect_equal(log(i1$output$conditionNumber), 9.7, .5)
 # cat(deparse(round(c(i1$output$standardErrors), 3)))
 se <- c(0.308, 0.266, 0.232, 0.216, 0.601, 4.736, 0.266, 0.301, 0.236,  0.202, 0.243,
         0.502, 0.222, 0.265, 0.295, 0.213, 0.285, 1.883,  0.278, 0.494, 5.178, 0.178,
         0.354, 1.443, 0.242, 0.267, 3.554,  0.19, 0.346, 3.115, 0.325, 0.343, 0.192,
         0.243, 0.243, 0.295)
 # max(abs(c(i1$output$standardErrors) - se))
-omxCheckCloseEnough(c(i1$output$standardErrors), se, .01)
+expect_equal(c(i1$output$standardErrors), se, .01)
 }
