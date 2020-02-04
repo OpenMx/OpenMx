@@ -1304,11 +1304,11 @@ void omxData::reportResults(MxRList &out)
 {
 	out.add("numObs", Rf_ScalarReal(omxDataNumObs(this)));
 
-	auto &rc = unfiltered.rawCols;
+	auto &rc = filtered.rawCols;
 	int numValid = std::count_if(rc.begin(), rc.end(),
 				     [](ColumnData &c1)->bool{ return c1.type != COLUMNDATA_INVALID; });
 	if (isModified() && numValid) {
-		int rows = unfiltered.rows;
+		int rows = filtered.rows;
 		Rcpp::CharacterVector colNames(numValid);
 		Rcpp::List columns(numValid);
 		for (int cx=0, dx=0; cx < int(rc.size()); ++cx) {
