@@ -320,6 +320,10 @@ parameterListHelper <- function(model, withModelName) {
 			mLocation <- parameters[[i]][[5]][[1]] + 1
 			mRow <- parameters[[i]][[5]][[2]] + 1
 			mCol <- parameters[[i]][[5]][[3]] + 1
+      mat <- matrices[[mLocation]][[1]]
+      dn <- dimnames(mat)
+      if (!is.null(dn[[1]])) mRow <- dn[[1]][mRow]
+      if (!is.null(dn[[2]])) mCol <- dn[[2]][mCol]
 			lbound <- parameters[[i]][[1]]
 			ubound <- parameters[[i]][[2]]
 			if (withModelName) {

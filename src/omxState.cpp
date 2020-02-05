@@ -248,6 +248,12 @@ omxGlobal::omxGlobal()
 	fvg = new FreeVarGroup;
 	fvg->id.push_back(FREEVARGROUP_NONE);  // no variables
 	freeGroup.push_back(fvg);
+
+	// Preallocate a large buffer to avoid reallocations. CRAN runs clang's ASAN
+	// to look for problems. If extensions like gwsem are instrumented and OpenMx
+	// is not instrumented then false positives can result,
+	// https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow
+	checkpointColnames.reserve(100);
 }
 
 void omxState::restoreParam(const Eigen::Ref<const Eigen::VectorXd> point)

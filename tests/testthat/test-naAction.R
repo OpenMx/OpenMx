@@ -77,11 +77,14 @@ m3 <- m1
 m3$data$observed[['freq']] <- 1L + rpois(nrow(dof), .5)
 m3$data$frequency <- 'freq'
 m3$data$naAction <- 'exclude'
-m3 <- mxRun(m3)
 m4 <- m3
+m3 <- mxRun(m3)
 m4$data$naAction <- 'omit'
 m4 <- mxRun(m4)
-expect_equal(m3$compute$steps$CP$log$objective, m4$compute$steps$CP$log$objective)
+expect_equal(m3$compute$steps$CP$log$objective,
+             m4$compute$steps$CP$log$objective)
+expect_equal(nrow(m3$data$observed), 500)
+expect_equal(nrow(m4$data$observed), 300,10)
 
 # ----
 
@@ -110,4 +113,3 @@ m2 <- mxRun(m2)
 expect_equal(m2$compute$steps$CP$log$objective, m1$compute$steps$CP$log$objective)
 
 # ----
-

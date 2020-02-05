@@ -43,12 +43,11 @@
    \item{fullWeight}{Logical determining if the full weight matrix is
    returned (default). Needed for standard error and quasi-chi-squared
    calculation.}
- \item{suppressWarnings}{Logical that determines whether to suppress
+   \item{suppressWarnings}{Logical that determines whether to suppress
    diagnostic warnings. These warnings are likely only helpful to developers.}
- \item{allContinuousMethod}{A character string 'cumulants' (default) or
+   \item{allContinuousMethod}{A character string 'cumulants' (default) or
    'marginals'. See mxFitFunctionWLS.}
-\item{...}{Not used.  Forces remaining arguments to be specified by name.}
-\item{silent}{Whether to report progress}
+   \item{silent}{Whether to report progress}
 }
 
 \details{
