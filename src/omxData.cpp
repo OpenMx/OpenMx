@@ -719,35 +719,46 @@ bool omxDataColumnIsKey(omxData *od, int col)
 	return cd.type != COLUMNDATA_NUMERIC;
 }
 
-void omxData::assertColumnIsData(int col)
+void omxData::RawData::assertColumnIsData(int col)
 {
-	if (dataMat) return;
-	ColumnData &cd = rawCol(col);
+	ColumnData &cd = rawCols[col];
 	switch (cd.type) {
 	case COLUMNDATA_ORDERED_FACTOR:
 	case COLUMNDATA_NUMERIC:
 		return;
 	case COLUMNDATA_UNORDERED_FACTOR:
 		if (++Global->dataTypeWarningCount < 5) {
-			Rf_warning("In data '%s', column '%s' must be an ordered factor. "
-				   "Please use mxFactor()", name, cd.name);
+			Rf_warning("Column '%s' must be an ordered factor. "
+				   "Please use mxFactor()", cd.name);
 		}
 		return;
 	case COLUMNDATA_INTEGER:{
 		cd.type = COLUMNDATA_NUMERIC;
 		int *intData = cd.ptr.intData;
-		cd.ptr.realData = (double*) R_alloc(nrows(), sizeof(double));
-		for (int rx=0; rx < nrows(); ++rx) {
+		if (owner) {
+			cd.ptr.realData = new double[rows];
+		} else {
+			cd.ptr.realData = (double*) R_alloc(rows, sizeof(double));
+		}
+		for (int rx=0; rx < rows; ++rx) {
 			if (intData[rx] == NA_INTEGER) {
 				cd.ptr.realData[rx] = NA_REAL;
 			} else {
 				cd.ptr.realData[rx] = intData[rx];
 			}
 		}
+		if (owner) delete [] intData;
 		return;}
 	default:
-		stop("In data '%s', column '%s' is an unknown data type", name, cd.name);
+		stop("Column '%s' is an unknown data type", cd.name);
 	}
+}
+
+void omxData::assertColumnIsData(int col)
+{
+	if (dataMat) return;
+	unfiltered.assertColumnIsData(col);
+	filtered.assertColumnIsData(col);
 }
 
 int omxData::primaryKeyOfRow(int row)
@@ -1017,6 +1028,16 @@ bool omxData::loadDefVars(omxState *state, int row)
 	return changed;
 }
 
+double omxData::rowMultiplier(int rx)
+{
+	double ww = 1.0;
+	double *rowWeight = getWeightColumn();
+	int *rowFreq = getFreqColumn();
+	if (rowWeight) ww *= rowWeight[rx];
+	if (rowFreq) ww *= rowFreq[rx];
+	return ww;
+}
+
 bool omxData::containsNAs(int col)
 {
 	int rows = nrows();
@@ -1027,31 +1048,20 @@ bool omxData::containsNAs(int col)
 		}
 		return false;
 	}
-	if (col == weightCol) {
-		double *wc = getWeightColumn();
-		for (int rx=0; rx < rows; ++rx) {
-			if (std::isfinite(wc[rx])) continue;
-			return true;
-		}
-		return false;
-	}
-	if (col == freqCol) {
-		int *wc = getFreqColumn();
-		for (int rx=0; rx < rows; ++rx) {
-			if (wc[rx] != NA_INTEGER) continue;
-			return true;
-		}
-		return false;
-	}
+
+	if (col == weightCol || col == freqCol) return false;
+
 	ColumnData &cd = rawCol(col);
 	if (cd.type == COLUMNDATA_NUMERIC) {
 		for (int rx=0; rx < rows; ++rx) {
-			if (std::isfinite(cd.ptr.realData[rx])) continue;
+			if (std::isfinite(cd.ptr.realData[rx]) ||
+					rowMultiplier(rx) == 0) continue;
 			return true;
 		}
 	} else {
 		for (int rx=0; rx < rows; ++rx) {
-			if (cd.ptr.intData[rx] != NA_INTEGER) continue;
+			if (cd.ptr.intData[rx] != NA_INTEGER ||
+					rowMultiplier(rx) == 0) continue;
 			return true;
 		}
 	}

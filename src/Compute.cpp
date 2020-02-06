@@ -4503,13 +4503,15 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 				// OK
 			} else {
 				IntegerVector vec = observed[cx];
-				CharacterVector lev = vec.attr("levels");
-				auto &rc = (*rawCols)[ columns[cx] ];
-				if (int(rc.levels.size()) != int(lev.size())) {
-					stop("%s: observed column %d (%s) has a different number"
-						"of factor levels %d compare to the original data %d",
-						name, 1+cx, as<const char *>(obNames[cx]),
-							 int(lev.size()), int(rc.levels.size()));
+				if (vec.hasAttribute("levels")) {
+					CharacterVector lev = vec.attr("levels");
+					auto &rc = (*rawCols)[ columns[cx] ];
+					if (int(rc.levels.size()) != int(lev.size())) {
+						stop("%s: observed column %d (%s) has a different number"
+								 "of factor levels %d compare to the original data %d",
+								 name, 1+cx, as<const char *>(obNames[cx]),
+								 int(lev.size()), int(rc.levels.size()));
+					}
 				}
 			}
 		}

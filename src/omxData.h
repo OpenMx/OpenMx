@@ -214,6 +214,7 @@ class omxData {
 		void clearColumn(int col);
 		~RawData();
 		void refreshHasNa();
+		void assertColumnIsData(int col);
 	};
 	RawData filtered;
 	RawData unfiltered;
@@ -267,6 +268,7 @@ class omxData {
 		return getFreqColumn()[row];
 	}
 	int numRawRows();
+	double rowMultiplier(int rx);
 	bool containsNAs(int col);
 	void prohibitFactor(int col);
 	void prohibitNAdefVar(int col);
