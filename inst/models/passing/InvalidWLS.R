@@ -20,4 +20,4 @@ ds <- data.frame(a=a, b=ma)
 omxCheckWarning(
   omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')),
                 "fake.data: variable 'a' must be an ordered factor but is of type unordered factor"),
-  "In data 'fake.data', column 'a' must be an ordered factor. Please use mxFactor()")
+  "Column 'a' must be an ordered factor. Please use mxFactor()")

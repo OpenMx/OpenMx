@@ -719,7 +719,7 @@ bool omxDataColumnIsKey(omxData *od, int col)
 	return cd.type != COLUMNDATA_NUMERIC;
 }
 
-void omxData::RawData::assertColumnIsData(int col)
+void omxData::RawData::assertColumnIsData(int col, bool warn)
 {
 	ColumnData &cd = rawCols[col];
 	switch (cd.type) {
@@ -727,7 +727,7 @@ void omxData::RawData::assertColumnIsData(int col)
 	case COLUMNDATA_NUMERIC:
 		return;
 	case COLUMNDATA_UNORDERED_FACTOR:
-		if (++Global->dataTypeWarningCount < 5) {
+		if (warn && ++Global->dataTypeWarningCount < 5) {
 			Rf_warning("Column '%s' must be an ordered factor. "
 				   "Please use mxFactor()", cd.name);
 		}
@@ -757,8 +757,8 @@ void omxData::RawData::assertColumnIsData(int col)
 void omxData::assertColumnIsData(int col)
 {
 	if (dataMat) return;
-	unfiltered.assertColumnIsData(col);
-	filtered.assertColumnIsData(col);
+	unfiltered.assertColumnIsData(col, true);
+	filtered.assertColumnIsData(col, false);
 }
 
 int omxData::primaryKeyOfRow(int row)

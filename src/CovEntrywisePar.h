@@ -22,6 +22,7 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 	ConcurrentDeque< std::pair<int,int> > todo;
 	int numCols = ce.getNumCols();
 	int numColsStar = triangleLoc1(numCols);
+	if (debug) mxLog("CovEntrywiseParallel %d", numThreads);
 	// Use type 'long' to ensure that writes don't interfere with each other
 	Eigen::Array<long, Eigen::Dynamic, 1> thrDone(numThreads);
 	thrDone.setZero();
@@ -73,8 +74,10 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 					ce.onDiag(t1.first);
 				} catch (const std::exception& e) {
 					omxRaiseErrorf("%s", e.what());
+					if (debug) mxLog("CATCH: %s", e.what());
 				} catch (...) {
 					omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+					if (debug) mxLog("CATCH: %s line %d: unknown exception", __FILE__, __LINE__);
 				}
 				diagDone[t1.first] = 1; // regardless of ce.isDone
 				if (debug) mxLog("diag %d done", t1.first);
@@ -100,8 +103,10 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				if (!isErrorRaised()) ce.offDiag(t1.first, t1.second);
 			} catch (const std::exception& e) {
 				omxRaiseErrorf("%s", e.what());
+				if (debug) mxLog("CATCH: %s", e.what());
 			} catch (...) {
 				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+				if (debug) mxLog("CATCH: %s line %d: unknown exception", __FILE__, __LINE__);
 			}
 		}
 		thrDone[tid] += 1;
@@ -110,8 +115,10 @@ void CovEntrywiseParallel(int numThreads, CalcEntry &ce)
 				ce.reportProgress(thrDone.sum());
 			} catch (const std::exception& e) {
 				omxRaiseErrorf("%s", e.what());
+				if (debug) mxLog("CATCH: %s", e.what());
 			} catch (...) {
 				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+				if (debug) mxLog("CATCH: %s line %d: unknown exception", __FILE__, __LINE__);
 			}
 			bool gotInt = Global->interrupted();
 			if (gotInt && debug) mxLog("interrupt");

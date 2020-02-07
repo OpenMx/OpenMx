@@ -214,7 +214,7 @@ class omxData {
 		void clearColumn(int col);
 		~RawData();
 		void refreshHasNa();
-		void assertColumnIsData(int col);
+		void assertColumnIsData(int col, bool warn);
 	};
 	RawData filtered;
 	RawData unfiltered;

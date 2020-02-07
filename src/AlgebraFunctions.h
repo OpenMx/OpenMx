@@ -1907,13 +1907,7 @@ static void omxMatrixVechs(FitContext *fc, omxMatrix** matList, int numArgs, omx
 		}
 	}
 
-	if(counter != size) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "Internal stop in vechs().\n");
-		omxRaiseError(errstr);
-		free(errstr);
-	}
-
+	if(counter != size) stop("Internal error in vechs()");
 }
 
 static void omxRowVectorize(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
