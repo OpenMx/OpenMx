@@ -3245,8 +3245,11 @@ void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 
 void omxData::evalAlgebras(FitContext *fc)
 {
+	if (algebra.size()) setModified();
 	for (auto ax : algebra) {
 		omxMatrix *a1 = fc->state->algebraList[ax];
+		if (verbose >= 2) mxLog("%s::evalAlgebras %s(%d)",
+														name, a1->name(), ax);
 		if (!a1->colnames.size()) {
 			mxThrow("%s: algebra '%s' must have colnames", name, a1->name());
 		}
