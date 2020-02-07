@@ -1438,7 +1438,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 
 	int singular = InvertSymmetricPosDef(Umat, 'L');
 	if (singular) {
-		omxRaiseErrorf("%s: cannot invert full weight matrix (%d)", name, singular);
+		mxThrow("%s: full weight matrix is rank deficient; cannot invert", name);
 		return;
 	}
 	Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
