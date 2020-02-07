@@ -1160,12 +1160,11 @@ void obsSummaryStats::setDimnames(omxData *data)
 		}
 	}
 
-	const bool debug = false;
 	if (acovMat) {
 		acovMat->colnames.clear();
 		acovMat->rownames.clear();
-		if (debug) {
-			acovMat->colnames.reserve(acovMat->cols);
+		acovMat->colnames.reserve(acovMat->cols);
+		if (thresholdMat || meansMat) {
 			for (auto &tc : thresholdCols) {
 				if (tc.numThresholds == 0) {
 					acovMat->colnames.push_back(strdup(dc[tc.dColumn]));
@@ -1176,21 +1175,21 @@ void obsSummaryStats::setDimnames(omxData *data)
 					}
 				}
 			}
-			// slopes TODO
-			for (int cx=0; cx < covMat->cols; ++cx) {
-				if (thresholdCols[cx].numThresholds) continue;
-				auto str = string_snprintf("var_%s", dc[cx]);
+		}
+		// slopes TODO
+		for (int cx=0; cx < covMat->cols; ++cx) {
+			if (thresholdMat && thresholdCols[cx].numThresholds) continue;
+			auto str = string_snprintf("var_%s", dc[cx]);
+			acovMat->colnames.push_back(strdup(str.c_str()));
+		}
+		for (int cx=0; cx < covMat->cols-1; ++cx) {
+			for (int rx=cx+1; rx < covMat->cols; ++rx) {
+				auto str = string_snprintf("poly_%s_%s", dc[rx], dc[cx]);
 				acovMat->colnames.push_back(strdup(str.c_str()));
 			}
-			for (int cx=0; cx < covMat->cols-1; ++cx) {
-				for (int rx=cx+1; rx < covMat->cols; ++rx) {
-					auto str = string_snprintf("poly_%s_%s", dc[rx], dc[cx]);
-					acovMat->colnames.push_back(strdup(str.c_str()));
-				}
-			}
-			acovMat->freeColnames = true;
-			acovMat->rownames = acovMat->colnames;
 		}
+		acovMat->freeColnames = true;
+		acovMat->rownames = acovMat->colnames;
 	}
 }
 
