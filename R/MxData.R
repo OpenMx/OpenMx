@@ -186,6 +186,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
   naAction <- match.arg(naAction)
 	if (type == "acov") {
+    deprecate_soft("2.12", "mxData(type='acov', ...)", "mxData(type='raw', ...)")
 		return(legacyMxData(observed, type="acov", means=means, numObs=numObs, 
 			acov=acov, fullWeight=fullWeight, thresholds=thresholds))
 	}
