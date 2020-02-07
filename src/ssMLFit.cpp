@@ -206,7 +206,7 @@ void ssMLFitState::init()
 	
 	auto *data = expectation->data;
 	if (data->hasWeight() || data->hasFreq()) {
-		stop("%s: row frequencies or weights provided in '%s' are not supported",
+		mxThrow("%s: row frequencies or weights provided in '%s' are not supported",
 			 expectation->name, data->name);
 	}
 

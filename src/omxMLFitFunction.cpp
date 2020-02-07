@@ -260,7 +260,7 @@ void MLFitState::compute(int want, FitContext *fc)
 			delete hb;
 		}
 	} else {
-		stop("Not implemented");
+		mxThrow("Not implemented");
 	}
 }
 
@@ -308,7 +308,7 @@ omxFitFunction *MLFitState::initMorph()
 {
 	auto *oo = this;
 
-	if (!oo->expectation) { stop("%s requires an expectation", oo->fitType); }
+	if (!oo->expectation) { mxThrow("%s requires an expectation", oo->fitType); }
 	oo->units = FIT_UNITS_MINUS2LL;
 
 	if (strcmp(expectation->name, "MxExpectationBA81")==0) {
@@ -339,7 +339,7 @@ omxFitFunction *MLFitState::initMorph()
 				strEQ(oo->expectation->name, "MxExpectationRAM") && !wantRowwiseLikelihood);
 
 	if (Rf_asLogical(Rfellner) == 1 && !fellnerPossible) {
-		stop("%s: fellner requires raw data (have %s), "
+		mxThrow("%s: fellner requires raw data (have %s), "
 			 "all continuous indicators (%d are ordinal), "
 			 "MxExpectationRAM (have %s), and no row-wise likelihoods (want %d)",
 			 oo->name(), dataMat->getType(), expectation->numOrdinal,
@@ -352,7 +352,7 @@ omxFitFunction *MLFitState::initMorph()
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 			if (ram->between.size()) {
 				if (useFellner == 0) {
-					stop("%s: fellner=TRUE is required for %s",
+					mxThrow("%s: fellner=TRUE is required for %s",
 						 oo->name(), expectation->name);
 				}
 				useFellner = 1;
@@ -398,7 +398,7 @@ void MLFitState::init()
 
 	auto dc = oo->expectation->getDataColumns();
 	if (dc.size()) {
-		if (dataMat->isDynamic()) stop("%s: dynamic data & column reordering"
+		if (dataMat->isDynamic()) mxThrow("%s: dynamic data & column reordering"
 						   " is not implemented yet", name());
 		newObj->copiedData = true;
 		newObj->observedCov = omxCreateCopyOfMatrix(newObj->observedCov, oo->matrix->currentState);

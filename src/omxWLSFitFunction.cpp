@@ -203,7 +203,7 @@ void omxWLSFitFunction::prepData()
 	auto *newObj = this;
 
 	if (vectorSize != expectation->numSummaryStats())
-		stop("%s: vectorSize changed from %d -> %d",
+		mxThrow("%s: vectorSize changed from %d -> %d",
 			name(), vectorSize, expectation->numSummaryStats());
 
 	omxData* dataMat = oo->expectation->data;
@@ -291,7 +291,7 @@ void omxWLSFitFunction::prepData()
 	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
 		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
 		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
-			stop("Observed %dx%d and expected %dx%d threshold matrices must have the same shape",
+			mxThrow("Observed %dx%d and expected %dx%d threshold matrices must have the same shape",
 							obsThresholdsMat->rows, obsThresholdsMat->cols,
 							expectation->thresholdsMat->rows,
 							expectation->thresholdsMat->cols);
@@ -313,7 +313,7 @@ void omxWLSFitFunction::init()
 	
 	omxState *currentState = oo->matrix->currentState;
 	
-	if (!oo->expectation) { stop("%s requires an expectation", name()); }
+	if (!oo->expectation) { mxThrow("%s requires an expectation", name()); }
 	
 	if (R_has_slot(rObj, Rf_install("type"))) {
 		ProtectedSEXP RwlsType(R_do_slot(rObj, Rf_install("type")));
@@ -329,7 +329,7 @@ void omxWLSFitFunction::init()
 	}
 
 	if (!fullWeight && !strEQ(type, "ULS")) {
-		stop("%s: !fullWeight && !strEQ(type, ULS)", name());
+		mxThrow("%s: !fullWeight && !strEQ(type, ULS)", name());
 	}
 
 	expectedCov = omxGetExpectationComponent(oo->expectation, "cov");

@@ -66,7 +66,7 @@ void ba81NormalQuad::layer::copyStructure(ba81NormalQuad::layer &orig)
 // Depends on item parameters, but not latent distribution
 void ba81NormalQuad::cacheOutcomeProb(double *param, bool wantLog)
 {
-	if (layers.size() != 1) stop("layers.size() != 1");
+	if (layers.size() != 1) mxThrow("layers.size() != 1");
 	
 	layer &l1 = layers[0];
 	l1.outcomeProbX.resize(l1.totalOutcomes * l1.totalQuadPoints);
@@ -143,7 +143,7 @@ void ifaGroup::importSpec(const List &slotValue)
 		if (itemDims == -1) {
 			itemDims = dims;
 		} else if (dims != itemDims) {
-			stop("All items must have the same number of factors (%d != %d)",
+			mxThrow("All items must have the same number of factors (%d != %d)",
 				 itemDims, dims);
 		}
 		int no = ispec[RPF_ISpecOutcomes];
@@ -169,14 +169,14 @@ void ifaGroup::verifyFactorNames(const List &dimnames, const char *matName)
 		if (d1.isNULL()) continue;
 		CharacterVector names = as<CharacterVector>(d1);
 		if (int(factorNames.size()) != names.size()) {
-			stop("%s %snames must be length %d",
+			mxThrow("%s %snames must be length %d",
 					 matName, dimname[dx], (int) factorNames.size());
 		}
 		int nlen = names.size();
 		for (int nx=0; nx < nlen; ++nx) {
 			const char *name = names[nx];
 			if (strEQ(factorNames[nx].c_str(), name)) continue;
-			stop("%s %snames[%d] is '%s', does not match factor name '%s'",
+			mxThrow("%s %snames[%d] is '%s', does not match factor name '%s'",
 					 matName, dimname[dx], 1+nx, name, factorNames[nx].c_str());
 		}
 	}
@@ -195,7 +195,7 @@ void ifaGroup::learnMaxAbilities()
 	maxAbilities = (loadings != 0).count();
 	if (itemDims != maxAbilities) {
 		for (int lx=0; lx < itemDims; ++lx) {
-			if (loadings[lx] == 0) stop("Factor %d does not load on any items", 1+lx);
+			if (loadings[lx] == 0) mxThrow("Factor %d does not load on any items", 1+lx);
 		}
 	}
 }
@@ -205,7 +205,7 @@ void ifaGroup::import(const List &Rlist)
 	using ba81quad::strEQ;
 	CharacterVector argNames = Rlist.attr("names");
 	if (Rlist.size() != argNames.size()) {
-		stop("All list elements must be named");
+		mxThrow("All list elements must be named");
 	}
 
 	std::vector<const char *> dataColNames;
@@ -223,7 +223,7 @@ void ifaGroup::import(const List &Rlist)
 		if (strEQ(key, "spec")) {
 			importSpec(as<List>(slotValue));
 		} else if (strEQ(key, "param")) {
-			if (!is<NumericVector>(slotValue)) stop("'param' must be a numeric matrix of item parameters");
+			if (!is<NumericVector>(slotValue)) mxThrow("'param' must be a numeric matrix of item parameters");
 			NumericMatrix Rparam = as<NumericMatrix>(slotValue);
 			param = Rparam.begin();
 			paramRows = Rparam.nrow();
@@ -295,7 +295,7 @@ void ifaGroup::import(const List &Rlist)
 
 	if (Rmean.size()) {
 		if (Rmean.size() != itemDims) {
-			stop("mean must be a vector of length %d (not %d)", itemDims, Rmean.size());
+			mxThrow("mean must be a vector of length %d (not %d)", itemDims, Rmean.size());
 		}
 
 		verifyFactorNames(Rmean.attr("dimnames"), "mean");
@@ -305,7 +305,7 @@ void ifaGroup::import(const List &Rlist)
 		int nrow = Rcov.nrow();
 		int ncol = Rcov.ncol();
 		if (nrow != itemDims || ncol != itemDims) {
-			stop("cov must be %dx%d matrix", itemDims, itemDims);
+			mxThrow("cov must be %dx%d matrix", itemDims, itemDims);
 		}
 
 		verifyFactorNames(Rcov.attr("dimnames"), "cov");
@@ -316,19 +316,19 @@ void ifaGroup::import(const List &Rlist)
 	setMinItemsPerScore(mips);
 
 	if (numItems() != pmatCols) {
-		stop("item matrix implies %d items but spec is length %d",
+		mxThrow("item matrix implies %d items but spec is length %d",
 			 pmatCols, numItems());
 	}
 
 	if (Rdata.size()) {
-		if (itemNames.size() == 0) stop("Item matrix must have colnames");
+		if (itemNames.size() == 0) mxThrow("Item matrix must have colnames");
 		for (int ix=0; ix < numItems(); ++ix) {
 			bool found=false;
 			for (int dc=0; dc < int(dataColNames.size()); ++dc) {
 				if (strEQ(itemNames[ix], dataColNames[dc])) {
 					IntegerVector col = Rdata[dc];
 					if (!Rf_isFactor(col)) {
-						stop("Column '%s' is an integer but "
+						mxThrow("Column '%s' is an integer but "
 								 "not an ordered factor",
 								 dataColNames[dc]);
 					}
@@ -338,7 +338,7 @@ void ifaGroup::import(const List &Rlist)
 				}
 			}
 			if (!found) {
-				stop("Cannot find item '%s' in data", itemNames[ix]);
+				mxThrow("Cannot find item '%s' in data", itemNames[ix]);
 			}
 		}
 		if (weightColumnName) {
@@ -350,7 +350,7 @@ void ifaGroup::import(const List &Rlist)
 				}
 			}
 			if (!rowWeight) {
-				stop("Cannot find weight column '%s'", weightColumnName);
+				mxThrow("Cannot find weight column '%s'", weightColumnName);
 			}
 		}
 		if (freqColumnName) {
@@ -362,7 +362,7 @@ void ifaGroup::import(const List &Rlist)
 				}
 			}
 			if (!rowFreq) {
-				stop("Cannot find frequency column '%s'", freqColumnName);
+				mxThrow("Cannot find frequency column '%s'", freqColumnName);
 			}
 		}
 		rowMap.reserve(dataRows);
@@ -377,7 +377,7 @@ void ifaGroup::import(const List &Rlist)
 	quad.setupOutcomes(*this);
 
 	if (paramRows < impliedParamRows) {
-		stop("At least %d rows are required in the item parameter matrix, only %d found",
+		mxThrow("At least %d rows are required in the item parameter matrix, only %d found",
 			 impliedParamRows, paramRows);
 	}
 	
@@ -425,7 +425,7 @@ void ba81NormalQuad::setupOutcomes(class ifaGroup &ig)
 void ifaGroup::setMinItemsPerScore(int mips)
 {
 	if (numItems() && mips > numItems()) {
-		stop("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
+		mxThrow("minItemsPerScore (=%d) cannot be larger than the number of items (=%d)",
 			 mips, numItems());
 	}
 	minItemsPerScore = mips;
@@ -473,7 +473,7 @@ void ifaGroup::buildRowSkip()
 		}
 		if (!hasNA) continue;
 		if (minItemsPerScore == NA_INTEGER) {
-			stop("You have missing data. You must set minItemsPerScore");
+			mxThrow("You have missing data. You must set minItemsPerScore");
 		}
 		for (int ax=0; ax < itemDims; ++ax) {
 			if (contribution[ax] < minItemsPerScore) {
@@ -495,7 +495,7 @@ void ba81NormalQuad::layer::allocSummary(int numThreads)
 
 void ba81NormalQuad::allocSummary()
 {
-	if (numThreads < 1) stop("numThreads < 1");
+	if (numThreads < 1) mxThrow("numThreads < 1");
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].allocSummary(numThreads);
 	}
@@ -525,7 +525,7 @@ void ba81NormalQuad::layer::allocBuffers(int numThreads)
 
 void ba81NormalQuad::allocBuffers()
 {
-	if (numThreads < 1) stop("numThreads < 1");
+	if (numThreads < 1) mxThrow("numThreads < 1");
 	for (size_t lx=0; lx < layers.size(); ++lx) {
 		layers[lx].allocBuffers(numThreads);
 	}
@@ -570,8 +570,8 @@ void ba81NormalQuad::prepExpectedTable()
 
 void ba81NormalQuad::allocEstep()
 {
-	if (numThreads < 1) stop("numThreads < 1");
-	if (layers.size() != 1) stop("layers.size() != 1");
+	if (numThreads < 1) mxThrow("numThreads < 1");
+	if (layers.size() != 1) mxThrow("layers.size() != 1");
 	layer &l1 = layers[0];
 	l1.expected.resize(l1.totalOutcomes * l1.totalQuadPoints, numThreads);
 	l1.expected.setZero();
@@ -596,7 +596,7 @@ void ba81NormalQuad::releaseEstep()
 
 void ifaGroup::setFactorNames(std::vector<const char *> &names)
 {
-	if (int(names.size()) < itemDims) stop("Not enough names");
+	if (int(names.size()) < itemDims) mxThrow("Not enough names");
 	factorNames.resize(itemDims);
 	for (int fx=0; fx < itemDims; ++fx) factorNames[fx] = names[fx];
 }

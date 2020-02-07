@@ -235,7 +235,7 @@ class FitContext {
 		    inform != INFORM_UNCONVERGED_OPTIMUM) {
 			return false;
 		}
-		stop("%s: reference fit is not finite", fitMat->name());
+		mxThrow("%s: reference fit is not finite", fitMat->name());
 	};
 	~FitContext();
 	
@@ -426,7 +426,7 @@ class RNGStateManager {
 	void checkOut()
 	{
 		if (Global->RNGCheckedOut) {
-			stop("Attempt to check out RNG but already checked out");
+			mxThrow("Attempt to check out RNG but already checked out");
 		}
 		GetRNGstate();
 		Global->RNGCheckedOut = true;
@@ -434,7 +434,7 @@ class RNGStateManager {
 	void checkIn()
 	{
 		if (!Global->RNGCheckedOut) {
-			stop("Attempt to return RNG but already returned");
+			mxThrow("Attempt to return RNG but already returned");
 		}
 		PutRNGstate();
 		Global->RNGCheckedOut = false;

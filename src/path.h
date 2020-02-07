@@ -115,7 +115,7 @@ class PathCalc {
 
 	void clone(PathCalc &pc)
 	{
-		if (!pc.algoSet) stop("PathCalc::clone but setAlgo not called yet");
+		if (!pc.algoSet) mxThrow("PathCalc::clone but setAlgo not called yet");
 		numVars = pc.numVars;
 		numObs = pc.numObs;
 		useSparse = pc.useSparse;

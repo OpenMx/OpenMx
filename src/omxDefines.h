@@ -21,6 +21,11 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+template <typename... Args>
+inline void NORET mxThrow(const char* fmt, Args&&... args) {
+    throw std::runtime_error( tfm::format(fmt, std::forward<Args>(args)... ).c_str() );
+}
+
 typedef uint64_t nanotime_t;
 nanotime_t get_nanotime(void);
 
@@ -445,7 +450,7 @@ class ScopedProtect { // DEPRECATED, use ProtectedSEXP
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) stop("Depth %d != 1, ScopedProtect was nested", diff);
+		if (diff != 1) mxThrow("Depth %d != 1, ScopedProtect was nested", diff);
 		Rf_unprotect(2);
 	}
 };
@@ -464,7 +469,7 @@ class ProtectedSEXP {
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
 		PROTECT_INDEX diff = pix - initialpix;
-		if (diff != 1) stop("Depth %d != 1, ProtectedSEXP was nested", diff);
+		if (diff != 1) mxThrow("Depth %d != 1, ProtectedSEXP was nested", diff);
 		Rf_unprotect(2);
 	}
         operator SEXP() const { return var; }

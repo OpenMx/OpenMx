@@ -15,7 +15,7 @@ mahalanobis(int dim, double *loc, double *center, double *origCov)
 	Eigen::Map<Eigen::MatrixXd> covMat(origCov, dim, dim);
 	SimpCholesky< Eigen::MatrixXd, Eigen::Lower > sc(covMat);
 	if (sc.info() != Eigen::Success || !sc.isPositive()) {
-		stop("mahalanobis: sigma is singular and cannot be inverted");
+		mxThrow("mahalanobis: sigma is singular and cannot be inverted");
 	}
 
 	sc.refreshInverse();

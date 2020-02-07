@@ -51,7 +51,7 @@ protected:
 		RObject rObj(rObj1);
 		CharacterVector Rpath(rObj.slot("path"));
 		if (Rpath.size() != 1)
-			stop("%s: you must specify exactly one file from which to read data", name);
+			mxThrow("%s: you must specify exactly one file from which to read data", name);
 
 		filePath = Rpath[0];
 		auto slashPos = filePath.find_last_of("/\\");

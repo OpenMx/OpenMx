@@ -278,7 +278,7 @@ class omxData {
 		visitor(*oss);
 	}
 	obsSummaryStats &getSingleObsSummaryStats() {
-		if (!oss) stop("No observed summary stats");
+		if (!oss) mxThrow("No observed summary stats");
 		return *oss;
 	};
 	const char *columnName(int col);
@@ -324,9 +324,9 @@ void omxDataRow(omxData *od, int row, omxMatrix* colList, omxMatrix* om);// Popu
 template <typename T>
 void omxDataRow(omxData *od, int row, const Eigen::MatrixBase<T> &colList, omxMatrix* om)
 {
-	if (row >= od->nrows()) stop("Invalid row");
+	if (row >= od->nrows()) mxThrow("Invalid row");
 
-	if(om == NULL) stop("Must provide an output matrix");
+	if(om == NULL) mxThrow("Must provide an output matrix");
 
 	int numcols = colList.size();
 	if(od->isRaw()) {

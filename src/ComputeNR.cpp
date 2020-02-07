@@ -302,7 +302,7 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 
 	if (!fitMatrix->fitFunction->hessianAvailable ||
 	    !fitMatrix->fitFunction->gradientAvailable) {
-		stop("Newton-Raphson requires derivatives");
+		mxThrow("Newton-Raphson requires derivatives");
 	}
 
 	SEXP slotValue;
@@ -311,7 +311,7 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) stop("tolerance must be positive");
+	if (tolerance <= 0) mxThrow("tolerance must be positive");
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);

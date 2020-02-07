@@ -140,7 +140,7 @@ class GradientWithRef {
 	void operator()(T1 ff, double refFit,
 			Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
 	{
-		if (point.size() != numFree) stop("%s line %d: expecting %d parameters, got %d",
+		if (point.size() != numFree) mxThrow("%s line %d: expecting %d parameters, got %d",
 						      __FILE__, __LINE__, numFree, point.size());
 
 		nanotime_t startTime = get_nanotime();
@@ -159,7 +159,7 @@ class GradientWithRef {
 			std::vector<central_difference_grad> dfn(curNumThreads);
 			gradientImpl(ff, refFit, point, dfn, gradOut);
 			break;}
-		default: stop("Unknown gradient algorithm %d", algo);
+		default: mxThrow("Unknown gradient algorithm %d", algo);
 		}
 
 		double el1 = get_nanotime() - startTime;
@@ -276,7 +276,7 @@ void fd_jacobian(GradientAlgorithm algo, int numIter, double eps, T1 ff, Eigen::
 			jacobianImpl<initialized>(ff, ref, point, px, numIter, eps, dfn, jacobiOut, px);
 		}
 		break;}
-	default: stop("Unknown gradient algorithm %d", algo);
+	default: mxThrow("Unknown gradient algorithm %d", algo);
 	}
 }
 
@@ -294,7 +294,7 @@ void fd_jacobian1(GradientAlgorithm algo, int numIter, double eps, T1 ff, Eigen:
 		central_difference_jacobi dfn;
 		jacobianImpl<initialized>(ff, ref, point, px, numIter, eps, dfn, jacobiOut, 0);
 		break;}
-	default: stop("Unknown gradient algorithm %d", algo);
+	default: mxThrow("Unknown gradient algorithm %d", algo);
 	}
 }
 
