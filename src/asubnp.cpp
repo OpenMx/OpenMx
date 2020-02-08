@@ -559,11 +559,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 	double delta = ctrl[2];
 	double tol =   ctrl[3];
 	
-	if (neq != fit.equality.size()) stop("oops");
+	if (neq != fit.equality.size()) mxThrow("oops");
 	if (optimize_initial_inequality_constraints) {
-		if (nineq != 0) stop("oops");
+		if (nineq != 0) mxThrow("oops");
 	} else {
-		if (nineq != fit.inequality.size()) stop("oops");
+		if (nineq != fit.inequality.size()) mxThrow("oops");
 	}
 	
 	int np = (int)ind[indNumParam];

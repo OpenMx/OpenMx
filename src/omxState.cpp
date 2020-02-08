@@ -258,7 +258,7 @@ omxGlobal::omxGlobal()
 
 void omxState::restoreParam(const Eigen::Ref<const Eigen::VectorXd> point)
 {
-	if (!hasFakeParam) stop("Cannot restore; fake parameters not loaded");
+	if (!hasFakeParam) mxThrow("Cannot restore; fake parameters not loaded");
 	hasFakeParam = false;
 
 	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
@@ -276,7 +276,7 @@ omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 
 omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 {
-	if (!element->hasMatrixNumber) stop("lookupDuplicate without matrix number");
+	if (!element->hasMatrixNumber) mxThrow("lookupDuplicate without matrix number");
 	return getMatrixFromIndex(element->matrixNumber);
 }
 
@@ -294,7 +294,7 @@ omxExpectation *omxState::lookupDuplicate(omxExpectation *element) const
 
 void omxState::setWantStage(int stage)
 {
-	if (wantStage == stage) stop("omxState::setWantStage(%d) is redundent", stage);
+	if (wantStage == stage) mxThrow("omxState::setWantStage(%d) is redundent", stage);
 	wantStage = stage;
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
@@ -642,7 +642,7 @@ static const bool onlyThreadZero = false;
 void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
-	if (len == 0) stop("Attempt to log 0 characters with mxLogBig");
+	if (len == 0) mxThrow("Attempt to log 0 characters with mxLogBig");
 
 	if (onlyThreadZero && omx_absolute_thread_num() != 0) return;
 
@@ -657,7 +657,7 @@ void mxLogBig(const std::string &str)   // thread-safe
 	
 	const char *outBuf = fullstr.c_str();
 	ssize_t wrote = mxLogWriteSynchronous(outBuf, len);
-	if (wrote != len) stop("mxLogBig only wrote %d/%d, errno %d", int(wrote), int(len), errno);
+	if (wrote != len) mxThrow("mxLogBig only wrote %d/%d, errno %d", int(wrote), int(len), errno);
 }
 
 void mxLog(const char* msg, ...)   // thread-safe
@@ -681,7 +681,7 @@ void mxLog(const char* msg, ...)   // thread-safe
 	}
 
 	ssize_t wrote = mxLogWriteSynchronous(buf2, len);
-	if (wrote != len) stop("mxLog only wrote %d/%d, errno=%d", int(wrote), len, errno);
+	if (wrote != len) mxThrow("mxLog only wrote %d/%d, errno=%d", int(wrote), len, errno);
 }
 
 void omxGlobal::reportProgressStr(std::string &str)

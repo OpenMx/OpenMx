@@ -304,8 +304,8 @@ static OMXINLINE double omxMatrixElement(omxMatrix *om, int row, int col) {
 }
 
 static OMXINLINE double *omxMatrixColumn(omxMatrix *om, int col) {
-  if (!om->colMajor) stop("omxMatrixColumn requires colMajor order");
-  if (col < 0 || col >= om->cols) stop("omxMatrixColumn(%d) but only %d columns", col, om->cols);
+  if (!om->colMajor) mxThrow("omxMatrixColumn requires colMajor order");
+  if (col < 0 || col >= om->cols) mxThrow("omxMatrixColumn(%d) but only %d columns", col, om->cols);
   return om->data + col * om->rows;
 }
 
@@ -431,7 +431,7 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
 	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::
 		if(mat->cols != nVecEl) {
-			stop("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
+			mxThrow("Mismatch in symmetric vector/matrix multiply: %s (%d x %d) * (%d x 1).\n", "symmetric", mat->rows, mat->cols, nVecEl); // :::DEBUG:::
 		}
 	}
 
@@ -662,12 +662,12 @@ template <typename T> void omxMatrix::loadFromStream(T &st)
 	case 8: //Unit
 	case 9: //Zero
 	case 3: //Iden
-		stop("loadFromStream: matrix '%s' is constant (type %d);"
+		mxThrow("loadFromStream: matrix '%s' is constant (type %d);"
 			 " use a Full matrix if you wish to update it", name(), shape);
 		break;
 
 	default:
-		stop("loadFromStream: matrix '%s' with shape %d is unimplemented",
+		mxThrow("loadFromStream: matrix '%s' with shape %d is unimplemented",
 			 name(), shape);
 		break;
 	}

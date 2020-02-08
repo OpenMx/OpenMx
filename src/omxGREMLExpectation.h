@@ -66,11 +66,11 @@ void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixBase<T1> &em, int num2drop
 	}
 	else{ /*If the omxMatrix is from an algebra, then copying is not necessary; it can be resized directly
 		and Eigen-mapped, since the algebra will be recalculated back to its original dimensions anyhow.*/
- if(origDim==0){stop("Memory not allocated for algebra %s at downsize time",
+ if(origDim==0){mxThrow("Memory not allocated for algebra %s at downsize time",
     om->name());}
  if(om->rows != origDim || om->cols != origDim){
  	//Not sure if there are cases where this should be allowed
- 	stop("More than one attempt made to downsize algebra %s", om->name());
+ 	mxThrow("More than one attempt made to downsize algebra %s", om->name());
  	//return;
  }
  

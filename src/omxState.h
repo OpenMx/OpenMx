@@ -240,7 +240,7 @@ class omxGlobal {
 	int calcNumIntegrationPoints(int numVars) {
 		int pts = (maxptsa + maxptsb * numVars + maxptsc * numVars * numVars +
 			   exp(maxptsd + maxptse * numVars * log(relEps)));
-		if (pts < 0) stop("calcNumIntegrationPoints "
+		if (pts < 0) mxThrow("calcNumIntegrationPoints "
 				     "%f + %f * %d + %f * %d * %d + "
 				     "exp(%f + %f * %d * log(%f)) is too large (or non-positive)",
 				      maxptsa, maxptsb, numVars, maxptsc, numVars, numVars,
@@ -303,7 +303,7 @@ class omxGlobal {
 	void reportProgress(const char *context, FitContext *fc);
 	bool interrupted();
 	void reportProgress1(const char *context, std::string detail);
-	void throwOnUserInterrupted() { if (interrupted()) stop("User interrupt"); };
+	void throwOnUserInterrupted() { if (interrupted()) mxThrow("User interrupt"); };
 };
 
 // Use a pointer to ensure correct initialization and destruction
@@ -401,7 +401,7 @@ class omxState {
 	template <typename T1>
 	void setFakeParam(Eigen::MatrixBase<T1> &point)
 	{
-		if (hasFakeParam) stop("already has fake parameters loaded");
+		if (hasFakeParam) mxThrow("already has fake parameters loaded");
 		hasFakeParam = true;
 
 		auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
@@ -422,6 +422,7 @@ class omxState {
 inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInterrupted || Global->timedOut; }
 inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0 || Global->userInterrupted; }
 
+// rename from "Raise" to "Record" since no exception is thrown
 void omxRaiseError(const char* msg); // DEPRECATED
 void omxRaiseErrorf(const char* fmt, ...) __attribute__((format (printf, 1, 2)));
 

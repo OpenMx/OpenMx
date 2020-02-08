@@ -90,11 +90,11 @@ namespace UndirectedGraph {
 
 		void connect(int ax, int bx)
 		{
-			if (ax == bx) stop("Cannot connect %d to itself", ax);
+			if (ax == bx) mxThrow("Cannot connect %d to itself", ax);
 			if (region[ax] == -1) preconnect(ax);
 			if (region[ax] == region[bx]) return; //already connected
 			subgraphs -= 1;
-			//if (subgraphs < 1) stop("problem");
+			//if (subgraphs < 1) mxThrow("problem");
 			if (region[bx] == -1) {
 				region[bx] = region[ax];
 				connected[ region[ax] ].insert(bx);

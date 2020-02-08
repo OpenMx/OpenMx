@@ -83,7 +83,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("alpha")));
 	alpha = Rf_asReal(slotValue);
-	if(alpha<=0){stop("reflection coefficient 'alpha' must be positive");}
+	if(alpha<=0){mxThrow("reflection coefficient 'alpha' must be positive");}
 	if(verbose){
 		mxLog("omxComputeNM member 'alpha' is %f", alpha);
 	}
@@ -100,13 +100,13 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'betai' is %f", betai);
 	}
 	if(betao<=0 || betao>=1 || betai<=0 || betai>=1){
-		stop("contraction coefficients 'betao' and 'betai' must both be within unit interval (0,1)");
+		mxThrow("contraction coefficients 'betao' and 'betai' must both be within unit interval (0,1)");
 	}
 	
 	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gamma")));
 	gamma = Rf_asReal(slotValue);
 	if(gamma>0 && gamma<=alpha){
-		stop("if positive, expansion coefficient 'gamma' must be greater than reflection coefficient 'alpha'");
+		mxThrow("if positive, expansion coefficient 'gamma' must be greater than reflection coefficient 'alpha'");
 	}
 	if(verbose){
 		mxLog("omxComputeNM member 'gamma' is %f", gamma);
@@ -114,7 +114,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("sigma")));
 	sigma = Rf_asReal(slotValue);
-	if(sigma>=1){stop("shrink coefficient 'sigma' must be less than 1.0");}
+	if(sigma>=1){mxThrow("shrink coefficient 'sigma' must be less than 1.0");}
 	if(verbose){
 		mxLog("omxComputeNM member 'sigma' is %f", sigma);
 	}
@@ -130,7 +130,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"right")){iniSimplexType = 2;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"smartRight")){iniSimplexType = 3;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"random")){iniSimplexType = 4;}
-	else{stop("unrecognized character string provided for Nelder-Mead 'iniSimplexType'");}
+	else{mxThrow("unrecognized character string provided for Nelder-Mead 'iniSimplexType'");}
 	if(verbose){
 		mxLog("omxComputeNM member 'iniSimplexType' is %d", iniSimplexType);
 	}
@@ -179,13 +179,13 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	
 	ScopedProtect p16(slotValue, R_do_slot(rObj, Rf_install("degenLimit")));
 	degenLimit = Rf_asReal(slotValue);
-	if(degenLimit<0 || degenLimit>myPI){stop("'degenLimit' must ge within interval [0,pi]");}
+	if(degenLimit<0 || degenLimit>myPI){mxThrow("'degenLimit' must ge within interval [0,pi]");}
 	if(verbose){
 		mxLog("omxComputeNM member 'degenLimit' is %f", degenLimit);
 	}
 	
 	ScopedProtect p17(slotValue, R_do_slot(rObj, Rf_install("stagnCtrl")));
-	if(Rf_length(slotValue)!=2){stop("'stagnCtrl' must be an integer vector of length 2");}
+	if(Rf_length(slotValue)!=2){mxThrow("'stagnCtrl' must be an integer vector of length 2");}
 	stagnCtrl[0] = INTEGER(slotValue)[0];
 	stagnCtrl[1] = INTEGER(slotValue)[1];
 	if(verbose){
@@ -225,7 +225,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	ScopedProtect p24(slotValue, R_do_slot(rObj, Rf_install("ineqConstraintMthd")));
 	if(strEQ(CHAR(Rf_asChar(slotValue)),"soft")){ineqConstraintMthd = 0;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"eqMthd")){ineqConstraintMthd = 1;}
-	else{stop("unrecognized character string provided for Nelder-Mead 'ineqConstraintMthd'");}
+	else{mxThrow("unrecognized character string provided for Nelder-Mead 'ineqConstraintMthd'");}
 	if(verbose){
 		mxLog("omxComputeNM member 'ineqConstraintMthd' is %d", ineqConstraintMthd);
 	}
@@ -235,7 +235,7 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"backtrack")){eqConstraintMthd = 2;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"GDsearch")){eqConstraintMthd = 3;}
 	else if(strEQ(CHAR(Rf_asChar(slotValue)),"l1p")){eqConstraintMthd = 4;}
-	else{stop("unrecognized character string provided for Nelder-Mead 'eqConstraintMthd'");}
+	else{mxThrow("unrecognized character string provided for Nelder-Mead 'eqConstraintMthd'");}
 	if(verbose){
 		mxLog("omxComputeNM member 'eqConstraintMthd' is %d", eqConstraintMthd);
 	}
@@ -379,7 +379,7 @@ void omxComputeNM::computeImpl(FitContext *fc){
 	
 	switch(nmoc.statuscode){
 	case -1:
-		stop("unknown Nelder-Mead optimizer error");
+		mxThrow("unknown Nelder-Mead optimizer error");
 		break;
 	case 0:
 		fc->setInform(INFORM_CONVERGED_OPTIMUM);
@@ -583,7 +583,7 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 		subsidiarygoc.useGradient = true;
 		subsidiarygoc.maxMajorIterations = Global->majorIterations;
 		subsidiarygoc.setupSimpleBounds();
-		//stop("so far, so good");
+		//mxThrow("so far, so good");
 	}
 }
 
@@ -758,7 +758,7 @@ void NelderMeadOptimizerContext::evalFirstPoint(Eigen::VectorXd &x, double &fv, 
 				infeas = 1L;
 				return;
 			}
-			//stop("'GDsearch' Not Yet Implemented");
+			//mxThrow("'GDsearch' Not Yet Implemented");
 		case 4:
 			fv = evalFit(x);
 			infeas = 1L;
@@ -837,7 +837,7 @@ void NelderMeadOptimizerContext::evalNewPoint(Eigen::VectorXd &newpt, Eigen::Vec
 				newInfeas = 1L;
 				return;
 			}
-			//stop("'GDsearch' Not Yet Implemented");
+			//mxThrow("'GDsearch' Not Yet Implemented");
 		case 4:
 			fv = evalFit(newpt);
 			newInfeas = 1L;
@@ -890,10 +890,10 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 		Eigen::MatrixXd SiniSupp, iniSimplexMat2;
 		Eigen::VectorXi paramMap(numFree);
 		if(iniSimplexMat.cols() != numFree){
-			stop("'iniSimplexMat' has %d columns, but %d columns expected",iniSimplexMat.cols(), numFree);
+			mxThrow("'iniSimplexMat' has %d columns, but %d columns expected",iniSimplexMat.cols(), numFree);
 		}
 		if( int(NMobj->iniSimplexColnames.size()) != numFree){
-			stop("'iniSimplexMat' has %d column names, but %d column names expected", int(NMobj->iniSimplexColnames.size()), numFree);
+			mxThrow("'iniSimplexMat' has %d column names, but %d column names expected", int(NMobj->iniSimplexColnames.size()), numFree);
 		}
 		if(iniSimplexMat.rows()>n+1){
 			Rf_warning("'iniSimplexMat' has %d rows, but %d rows expected; extraneous rows will be ignored",iniSimplexMat.rows(), n+1);
@@ -913,7 +913,7 @@ void NelderMeadOptimizerContext::initializeSimplex(Eigen::VectorXd startpt, doub
 			}
 		}
 		if ( gx != int(NMobj->iniSimplexColnames.size()) ){
-			stop("error in mapping column names of 'iniSimplexMat' to free-parameter labels");
+			mxThrow("error in mapping column names of 'iniSimplexMat' to free-parameter labels");
 		}
 		for(i=0; i < iniSimplexMat.cols(); i++){
 			iniSimplexMat2.col(paramMap[i]) = iniSimplexMat.col(i);

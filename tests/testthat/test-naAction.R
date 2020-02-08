@@ -5,6 +5,9 @@ suppressWarnings(RNGversion("3.5"))
 
 data(demoOneFactor)
 dof <- demoOneFactor
+
+dof$x5 <- as.integer(dof$x5)  # test autoconversion to numeric
+
 mask <- matrix(as.logical(rbinom(prod(dim(dof)), size = 1, .1)),
                nrow=nrow(dof), ncol=ncol(dof))
 dof[mask] <- NA
