@@ -2702,24 +2702,38 @@ template <typename T>
 void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
 {
 	if (origCov->rows != origCov->cols) mxThrow("'%s' must be square", origCov->name());
-	if (origCov->rows != int(origCov->rownames.size())) mxThrow("'%s' must have dimnames", origCov->name());
 	if (newCov->rows != newCov->cols) mxThrow("'%s' must be square", newCov->name());
-	if (newCov->rows != int(newCov->rownames.size())) mxThrow("'%s' must have dimnames", newCov->name());
-	for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
-		bool found = false;
-		for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
-			if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
-				if (filter[r2]) {
-					omxRaiseErrorf("Cannot filter row '%s' in '%s' more than once",
-						       newCov->rownames[r1], origCov->name());
+
+	if (newCov->sameSize(origCov)) {
+		EigenMatrixAdaptor EorigCov(origCov);
+		EigenMatrixAdaptor EnewCov(newCov);
+		Eigen::Array<bool, Eigen::Dynamic, Eigen::Dynamic> NotMatch =
+			EorigCov.array() != EnewCov.array();
+		Eigen::Array<bool, Eigen::Dynamic, 1> mask =
+			NotMatch.rowwise().maxCoeff() || NotMatch.colwise().maxCoeff().transpose();
+		std::copy(&mask.coeffRef(0), &mask.coeffRef(mask.size()), filter.begin());
+	} else {
+		if (origCov->rows != int(origCov->rownames.size()))
+			mxThrow("'%s' must have dimnames", origCov->name());
+		if (newCov->rows != int(newCov->rownames.size()))
+			mxThrow("'%s' must have dimnames", newCov->name());
+
+		for (int r1=0; r1 < int(newCov->rownames.size()); ++r1) {
+			bool found = false;
+			for (int r2=0; r2 < int(origCov->rownames.size()); ++r2) {
+				if (strEQ(newCov->rownames[r1], origCov->rownames[r2])) {
+					if (filter[r2]) {
+						omxRaiseErrorf("Cannot filter row '%s' in '%s' more than once",
+													 newCov->rownames[r1], origCov->name());
+					}
+					filter[r2] = true;
+					found = true;
+					break;
 				}
-				filter[r2] = true;
-				found = true;
-				break;
 			}
+			if (!found) omxRaiseErrorf("Cannot find row '%s' in '%s'",
+																 newCov->rownames[r1], origCov->name());
 		}
-		if (!found) omxRaiseErrorf("Cannot find row '%s' in '%s'",
-				     newCov->rownames[r1], origCov->name());
 	}
 }
 
@@ -2728,7 +2742,6 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	omxMatrix *origCov = matList[0];
 	omxMatrix *newCov = matList[1];
 	EigenMatrixAdaptor EorigCov(origCov);
-	EigenMatrixAdaptor EnewCov(newCov);
 
 	omxResizeMatrix(result, origCov->rows, origCov->cols);
 	EigenMatrixAdaptor Eresult(result);
@@ -2738,9 +2751,18 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	buildFilterVec(origCov, newCov, filter);
 	if (isErrorRaised()) return;
 
-	Eigen::MatrixXd v11(EnewCov.rows(), EnewCov.cols());
-	Eigen::MatrixXd v12(EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
-	Eigen::MatrixXd v22(EorigCov.rows() - EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
+	EigenMatrixAdaptor EnewCov(newCov);
+	Eigen::MatrixXd nc;
+	if (newCov->sameSize(origCov)) {
+		subsetCovariance(EnewCov, [&filter](int x)->bool{ return filter[x]; },
+										 std::accumulate(filter.begin(), filter.end(), 0), nc);
+	} else {
+		nc = EnewCov;
+	}
+
+	Eigen::MatrixXd v11(nc.rows(), nc.cols());
+	Eigen::MatrixXd v12(nc.rows(), EorigCov.cols() - nc.cols());
+	Eigen::MatrixXd v22(EorigCov.rows() - nc.rows(), EorigCov.cols() - nc.cols());
 	partitionCovariance(EorigCov, [&](int xx){ return filter[xx]; },
 			    v11, v12, v22);
 
@@ -2750,11 +2772,11 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 		return;
 	}
 	iv11 = iv11.selfadjointView<Eigen::Lower>();
-	Eigen::MatrixXd n12 = EnewCov * iv11 * v12;
-	Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * EnewCov * iv11) * v12;
+	Eigen::MatrixXd n12 = nc * iv11 * v12;
+	Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * nc * iv11) * v12;
 	
 	partitionCovarianceSet(Eresult, [&](int xx){ return filter[xx]; },
-			       EnewCov, n12, n22);
+			       nc, n12, n22);
 }
 
 static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -2768,7 +2790,6 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 			 origMean->name(), origMean->rows, origCov->name(), origCov->rows);
 	}
 	EigenMatrixAdaptor EorigCov(origCov);
-	EigenMatrixAdaptor EnewCov(newCov);
 	EigenVectorAdaptor EorigMean(origMean);
 
 	omxResizeMatrix(result, EorigMean.size(), 1);
@@ -2779,9 +2800,18 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	buildFilterVec(origCov, newCov, filter);
 	if (isErrorRaised()) return;
 
-	Eigen::MatrixXd v11(EnewCov.rows(), EnewCov.cols());
-	Eigen::MatrixXd v12(EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
-	Eigen::MatrixXd v22(EorigCov.rows() - EnewCov.rows(), EorigCov.cols() - EnewCov.cols());
+	EigenMatrixAdaptor EnewCov(newCov);
+	Eigen::MatrixXd nc;
+	if (newCov->sameSize(origCov)) {
+		subsetCovariance(EnewCov, [&filter](int x)->bool{ return filter[x]; },
+										 std::accumulate(filter.begin(), filter.end(), 0), nc);
+	} else {
+		nc = EnewCov;
+	}
+
+	Eigen::MatrixXd v11(nc.rows(), nc.cols());
+	Eigen::MatrixXd v12(nc.rows(), EorigCov.cols() - nc.cols());
+	Eigen::MatrixXd v22(EorigCov.rows() - nc.rows(), EorigCov.cols() - nc.cols());
 	partitionCovariance(EorigCov, [&](int xx){ return filter[xx]; },
 			    v11, v12, v22);
 
@@ -2794,7 +2824,7 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	
 	Eigen::VectorXd obsMean;
 	subsetVector(EorigMean, [&](int xx){ return filter[xx]; },
-		     EnewCov.rows(), obsMean);
+		     nc.rows(), obsMean);
 
 	Eigen::VectorXd adj = v12.transpose() * iv11 * obsMean;
 	for (int v1=0, a1=0; v1 < EorigMean.rows(); ++v1) {
