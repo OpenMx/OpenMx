@@ -35,6 +35,8 @@ m2 <- mxRun(m2)
 
 omxCheckCloseEnough(m2$c1$result, m1$c1$result, 1e-9)
 omxCheckCloseEnough(m2$u2$result, m1$u2$result, 1e-9)
+omxCheckCloseEnough(m2$c1$result, mxEval(c1, m2, compute = TRUE), 1e-9)
+omxCheckCloseEnough(m2$u2$result, mxEval(u2, m2, compute = TRUE), 1e-9)
 
 
 # ----

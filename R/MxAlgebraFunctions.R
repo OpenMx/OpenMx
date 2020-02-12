@@ -416,11 +416,17 @@ mxRobustLog <- function(pr) {
 }
 
 mxPearsonSelCov <- function(origCov, newCov) {
-  m1 <- match(colnames(newCov), colnames(origCov))
+  if (all(dim(origCov) == dim(newCov))) {
+    used <- (colSums(origCov != newCov) + rowSums(origCov != newCov)) != 0
+    m1 <- which(used)
+    newCov <- newCov[m1,m1]
+  } else {
+    m1 <- match(colnames(newCov), colnames(origCov))
 
-  if (any(is.na(m1))) {
-	  stop(paste("schurComplementC: cannot find variables",
-		  omxQuotes(colnames(newCov)[is.na(m1)])))
+    if (any(is.na(m1))) {
+      stop(paste("schurComplementC: cannot find variables",
+                 omxQuotes(colnames(newCov)[is.na(m1)])))
+    }
   }
 
   rpp <- origCov[m1,m1,drop=F]
@@ -436,13 +442,19 @@ mxPearsonSelCov <- function(origCov, newCov) {
 }
 
 mxPearsonSelMean <- function(origCov, newCov, origMean) {
-  m1 <- match(colnames(newCov), colnames(origCov))
-  
-  if (any(is.na(m1))) {
-    stop(paste("schurComplementC: cannot find variables",
-               omxQuotes(colnames(newCov)[is.na(m1)])))
+  if (all(dim(origCov) == dim(newCov))) {
+    used <- (colSums(origCov != newCov) + rowSums(origCov != newCov)) != 0
+    m1 <- which(used)
+    newCov <- newCov[m1,m1]
+  } else {
+    m1 <- match(colnames(newCov), colnames(origCov))
+    
+    if (any(is.na(m1))) {
+      stop(paste("schurComplementC: cannot find variables",
+                 omxQuotes(colnames(newCov)[is.na(m1)])))
+    }
   }
-  
+
   rpp <- origCov[m1,m1,drop=F]
   rqp <- origCov[-m1,m1,drop=F]
   irpp <- solve(rpp)
