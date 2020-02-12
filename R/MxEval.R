@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row = 1L,
-			cache = new.env(parent = emptyenv()), cacheBack = FALSE) {
+			cache = new.env(parent = emptyenv()), cacheBack = FALSE, .extraBack=0L) {
 	if (missing(expression)) {
 		stop("'expression' argument is mandatory in call to mxEval function")
 	} else if (missing(model)) {
@@ -22,8 +22,9 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	}
 	expression <- match.call()$expression
 	modelvariable <- match.call()$model
+  #for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
 	EvalInternal(expression, model, modelvariable, compute, show, defvar.row,
-		       cache, cacheBack, 2L)
+		       cache, cacheBack, 2L + .extraBack)
 }
 
 EvalInternal <- function(expression, model, modelvariable, compute, show, defvar.row,
@@ -416,14 +417,14 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 }
 
 mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1L,
-		cache = new.env(parent = emptyenv()), cacheBack = FALSE) {
+		cache = new.env(parent = emptyenv()), cacheBack = FALSE, .extraBack=0L) {
    if((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
    if(!is(model, "MxModel")) {
       stop("'model' argument must be a MxModel object")
    }
-   eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack),
+   eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack, 1L + .extraBack),
       list(x = as.symbol(name))))
 }
 
