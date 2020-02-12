@@ -56,7 +56,13 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 	if (!is.vector(result)) {
 		result <- eval(result, envir = env)
 	}
-	if (!is.matrix(result)) result <- as.matrix(result)
+	if (!is.matrix(result)) {
+    if (is(result, "MxAlgebra")) {
+      stop(paste("You have referenced algebra",
+                 omxQuotes(result$name), "outside of the model"))
+    }
+    result <- as.matrix(result)
+  }
 	if (cacheBack) {
 		return(list(result, cache))
 	} else {
