@@ -419,6 +419,7 @@ mxPearsonSelCov <- function(origCov, newCov) {
   if (all(dim(origCov) == dim(newCov))) {
     used <- (colSums(origCov != newCov) + rowSums(origCov != newCov)) != 0
     m1 <- which(used)
+    if (length(m1) == 0) return(origCov)
     newCov <- newCov[m1,m1]
   } else {
     m1 <- match(colnames(newCov), colnames(origCov))
@@ -445,6 +446,7 @@ mxPearsonSelMean <- function(origCov, newCov, origMean) {
   if (all(dim(origCov) == dim(newCov))) {
     used <- (colSums(origCov != newCov) + rowSums(origCov != newCov)) != 0
     m1 <- which(used)
+    if (length(m1) == 0) return(origMean)
     newCov <- newCov[m1,m1]
   } else {
     m1 <- match(colnames(newCov), colnames(origCov))

@@ -2759,6 +2759,10 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	} else {
 		nc = EnewCov;
 	}
+	if (nc.rows() == 0) {
+		Eresult.derived() = EorigCov;
+		return;
+	}
 
 	Eigen::MatrixXd v11(nc.rows(), nc.cols());
 	Eigen::MatrixXd v12(nc.rows(), EorigCov.cols() - nc.cols());
@@ -2807,6 +2811,10 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 										 std::accumulate(filter.begin(), filter.end(), 0), nc);
 	} else {
 		nc = EnewCov;
+	}
+	if (nc.rows() == 0) {
+		Eresult.derived() = EorigMean;
+		return;
 	}
 
 	Eigen::MatrixXd v11(nc.rows(), nc.cols());
