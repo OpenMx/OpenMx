@@ -71,6 +71,12 @@ fit4 <- omxCheckWarning(mxRun(mxModel(cimodel, mxCI('expectedMean[1,1]', interva
 			      intervals = TRUE, silent=TRUE, checkpoint=FALSE),
 			"Different confidence intervals 'CIExample.expectedMean[1,1]' and 'm1' refer to the same thing")
 
+test_that("missing algebra", {
+  Q <- mxAlgebra(c + d, name="e")
+  expect_error(mxRun(mxModel(cimodel, mxCI('Q[1,1]'))),
+               "outside of the model")
+})
+
 # ensure the [1,] syntax is supported
 data(demoOneFactor)
 factorModel <- mxModel("One Factor",

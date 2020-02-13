@@ -25,10 +25,10 @@
 
 \usage{
 mxEval(expression, model, compute = FALSE, show = FALSE, defvar.row = 1,
-    cache = new.env(parent = emptyenv()), cacheBack = FALSE)
+    cache = new.env(parent = emptyenv()), cacheBack = FALSE, .extraBack=0L)
 
 mxEvalByName(name, model, compute = FALSE, show = FALSE, defvar.row = 1,
-    cache = new.env(parent = emptyenv()), cacheBack = FALSE)
+    cache = new.env(parent = emptyenv()), cacheBack = FALSE, .extraBack=0L)
 }
 
 \arguments{
@@ -41,9 +41,10 @@ mxEvalByName(name, model, compute = FALSE, show = FALSE, defvar.row = 1,
    \item{cache}{An R environment of matrix values used to speedup computation.}
    \item{cacheBack}{If TRUE then return the list pair (value, cache).}
    \item{name}{The character name of an object to evaluate.}
+   \item{.extraBack}{Depth of original caller in count of stack frames (environments).}
 }
 
-\details{
+\details{\lifecycle{stable}
 The argument \sQuote{expression} is an arbitrary R expression.  Any named entities that are used within the R expression are translated into their current value from the model. Any labels from the matrices within the model are translated into their current value from the model. Finally the expression is evaluated and the result is returned.  To enable debugging, the \sQuote{show} argument has been provided.  The most common mistake when using this function is to include named entities in the model that are identical to R function names.  For example, if a model contains a named entity named \sQuote{c}, then the following mxEval call will return an error: \code{mxEval(c(A, B, C), model)}.
 
 The \code{mxEvalByName} function is a wrapper around \code{mxEval} that takes a character instead of an R expression.

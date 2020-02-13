@@ -151,7 +151,10 @@ Functions
   an algebra on an abscissa grid and collect column results}
 }
 
-Note that \code{solve} will fail silently if it is used on an uninvertible square matrix.
+If \code{solve} is used on an uninvertible square matrix in R, via 
+\code{\link[OpenMx:mxEval]{mxEval()}}, it will fail with an error will; if 
+\code{solve} is used on an uninvertible square matrix during 
+\link[OpenMx:mxRun]{runtime}, it will fail silently.
 
 \code{mxRobustLog} is the same as \code{log} except that it returns -745
 instead of -Inf for an argument of 0. The value -745 is less than

@@ -203,7 +203,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		entityName <- components[[1]]
 		rows <- eval(parse(text = components[[2]]), envir = globalenv())
 		cols <- eval(parse(text = components[[3]]), envir = globalenv())
-		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
+		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE, .extraBack=7L),
 			list(x = as.symbol(entityName))))
 		if (is.null(rows)) {
 			rows <- 1:nrow(entityValue)
