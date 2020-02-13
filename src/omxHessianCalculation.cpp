@@ -359,7 +359,7 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	
 	fc->constraintFunVals = resulttmp;
 	fc->constraintJacobian = jactmp;
-	fc->setEstFromOptimizer(optima);
+	fc->est[npar-1L] = optima.coeff(npar-1L);
 	return;
 }
 
