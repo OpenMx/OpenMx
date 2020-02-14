@@ -52,14 +52,14 @@
    \item{fullWeight}{Deprecated in favor of the fullWeight element of observedStats.}
    \item{thresholds}{Deprecated in favor of the thresholds element of observedStats.}
    \item{algebra}{character vector. Names of algebras used to fill in
-     calculated columns of raw data. \lifecycle{experimental}}
+     calculated columns of raw data. EXPERIMENTAL}
    \item{warnNPDacov}{logical. Whether to warn when the asymptotic
      covariance matrix is non-positive definite.}
    \item{exoFree}{logical matrix of observed manifests by
    exogenous predictors. Defaults to all TRUE, but you can fix some
    regression coefficients in the \code{observedStats} \code{slope}
-   matrix to zero by setting entries to FALSE. \lifecycle{experimental}}
- \item{naAction}{Specify treatment of missing data. See details. \lifecycle{maturing}}
+   matrix to zero by setting entries to FALSE. EXPERIMENTAL}
+ \item{naAction}{Specify treatment of missing data. See details.}
 }
 
 \details{
