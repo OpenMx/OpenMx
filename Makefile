@@ -126,7 +126,7 @@ srcbuild: build-prep packages-help
 
 cran-check:
 	+sh ./util/prep cran build && $(REXEC) CMD build .
-	+$(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
+	+$(REXEC) CMD check --as-cran OpenMx_*.tar.gz | tee cran-check.log
 	wc -l OpenMx.Rcheck/00check.log
 	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 69 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
