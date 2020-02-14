@@ -640,7 +640,8 @@ setMethod("initialize", "MxComputeTryCatch",
 
 ##' Execute a sub-compute plan, catching errors
 ##'
-##' \lifecycle{experimental}
+##' THIS IS EXPERIMENTAL AND MAY HAVE BUGS.
+##' 
 ##' Any error will be recorded in a subsequent checkpoint. After
 ##' execution, the context will be reset to continue computation as if
 ##' no errors has occurred.
@@ -1296,8 +1297,8 @@ setMethod("initialize", "MxComputeEM",
 ##'
 ##' Ramsay (1975) was recommended in Bock, Gibbons, & Muraki (1988).
 ##'
-##' @param expectation a vector of expectation names \lifecycle{deprecated}
-##' @param predict what to predict from the observed data \lifecycle{deprecated}
+##' @param expectation a vector of expectation names (DEPRECATED)
+##' @param predict what to predict from the observed data (DEPRECATED)
 ##' @param mstep a compute plan to optimize the completed data model
 ##' @param observedFit the name of the observed data fit function (defaults to "fitfunction")
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.

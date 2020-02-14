@@ -54,7 +54,7 @@ Imports: digest,
     Matrix,
     methods,
 	Rcpp, 
-    parallel, lifecycle
+    parallel
 Depends: R (>= 3.5.0)
 Suggests:
     mvtnorm,
@@ -174,7 +174,5 @@ Collate:
     'MxMMI.R'
     'omxReadGRMBin.R'
     'zzz.R'
-RdMacros: 
-    lifecycle
 Biarch: true
 Version: @VERSION@
