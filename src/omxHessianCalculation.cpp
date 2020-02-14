@@ -359,7 +359,12 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	
 	fc->constraintFunVals = resulttmp;
 	fc->constraintJacobian = jactmp;
-	fc->setEstFromOptimizer(optima);
+	/*The finite-differences Jacobian code seems to assume that fc->est will be set back to the 
+	 * optimium point before the fitfunction is called again, but that isn't quite the case here--
+	 * at this point in the code, the last parameter in fc->est has still been offset for 
+	 * numeric differentiation purposes.  We thus nudge it back to its optimum value:
+	 */
+	fc->est[npar-1L] = optima.coeff(npar-1L);
 	return;
 }
 
