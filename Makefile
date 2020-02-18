@@ -124,11 +124,10 @@ packages-help:
 srcbuild: build-prep packages-help
 	+cd build && sh ./util/prep npsol build && $(REXEC) CMD build .
 
-cran-check:
-	+sh ./util/prep cran build && $(REXEC) CMD build .
-	+$(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
-	wc -l OpenMx.Rcheck/00check.log
-	@if [ $$(wc -l OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 69 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
+cran-check: cran-build
+	+cd build && $(REXEC) CMD check --as-cran OpenMx_*.tar.gz | tee cran-check.log
+	wc -l build/OpenMx.Rcheck/00check.log
+	@if [ $$(wc -l build/OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 77 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 roxygen:
 	sh ./util/rox

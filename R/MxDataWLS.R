@@ -493,7 +493,6 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		      suppressWarnings = TRUE, allContinuousMethod=c("cumulants", "marginals"),
 		      silent=!interactive())
 {
-  deprecate_soft("2.12", "mxDataWLS()", "mxData()")
 	allContinuousMethod <- match.arg(allContinuousMethod)
 	# version 0.2
 	#
