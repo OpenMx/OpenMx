@@ -167,7 +167,7 @@ if (m2$output$fit - priorLL > 1 + 33335.75) {
   # Optimizers frequently have trouble
   m2 <- mxTryHard(m2)
 }
-expect_equivalent(m2$output$fit - priorLL, 33335.75, .1)
+expect_equivalent(m2$output$fit - priorLL, 33335.75, .4)
 expect_equal(max(abs(m2$output$gradient)), 0, .011)
 #cat(deparse(round(m2$output$confidenceIntervals,3)))
 # Doesn't converge consistently
