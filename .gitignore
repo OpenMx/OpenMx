@@ -6,7 +6,7 @@
 *.old
 *.bak
 *.dll
-/build
+/staging
 /config.log
 /config.status
 /autom4te.cache

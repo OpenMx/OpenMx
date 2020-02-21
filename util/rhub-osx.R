@@ -1,6 +1,6 @@
 library(rhub)
 
-src <- paste0('build/', list.files(path="build", pattern="^OpenMx_.*tar.gz$"))
+src <- paste0('staging/', list.files(path="staging", pattern="^OpenMx_.*tar.gz$"))
 
 check(src,
 	platform="macos-elcapitan-release",

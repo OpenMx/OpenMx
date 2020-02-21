@@ -1,6 +1,6 @@
 ^OpenMx.Rproj$
 ^Makefile
-^build
+^staging
 ^support
 ^CONTRIBUTING$
 ^.git.*$
