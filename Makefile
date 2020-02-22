@@ -10,7 +10,7 @@ BUILDARGS = --force-biarch --dsym
 VERSION = $(shell ./inst/tools/findBuildNum.sh)
 
 TARGET = OpenMx_$(VERSION).tar.gz 
-PDFFILE = build/OpenMx.pdf
+PDFFILE = staging/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
 ifdef CPUS
@@ -56,7 +56,7 @@ help:
 	@echo ""
 	@echo "DOCUMENTATION"
 	@echo ""	
-	@echo "  pdf           create a pdf file (in build) of the OpenMx R documentation"
+	@echo "  pdf           create a pdf file (in staging) of the OpenMx R documentation"
 	@echo "  html          create Sphinx documentation (in docs/build/html) in html format"
 	@echo "  doc.tar.bz2   create doc tarball suitable for our website"
 	@echo ""
@@ -75,8 +75,8 @@ help:
 	@echo ""
 	@echo "CLEANING"
 	@echo ""	
-	@echo "  clean      remove all files from the build directory"
-	@echo "  veryclean  remove all files from the build directory and all *~ files"
+	@echo "  clean      remove all files from the staging directory"
+	@echo "  veryclean  remove all files from the staging directory and all *~ files"
 	@echo "  autodep    regenerate src/autodep"
 	@echo ""
 	@echo "For extra compiler diagnostics, touch ./.devmode"
@@ -96,43 +96,43 @@ code-style: $(RFILES)
 	@if [ `grep GetRNGstate src/*.cpp | wc -l` -gt 1 ]; then echo "*** Use BorrowRNGState instead of GetRNGstate."; exit 1; fi
 	@if grep --color=always --exclude '*.rda' --exclude '*.RData' --exclude '.R*' --exclude '*.pdf' --exclude MatrixErrorDetection.R -r "@" demo inst/models; then echo '*** Access of @ slots must be done using $$'; fi
 
-build-clean:
-	-[ -d build ] && rm -r ./build
-	mkdir build
+staging-clean:
+	-[ -d staging ] && rm -r ./staging
+	mkdir staging
 
-build-prep: build-clean
+staging-prep: staging-clean
 	@if [ $$(git status --short --untracked-files=no 2> /dev/null | wc -l) != 0 ]; then \
 	  echo '***'; echo "*** UNCOMMITTED CHANGES IGNORED ***"; \
 	  echo '***'; echo "*** Use 'git diff' to see what is uncommitted"; \
           echo '***'; fi
-	git archive --format=tar HEAD | (cd build; tar -xf -)
+	git archive --format=tar HEAD | (cd staging; tar -xf -)
 
-cran-build: build-prep
-	+cd build && sh ./util/prep cran build && $(REXEC) CMD build .
+cran-build: staging-prep
+	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build .
 
-build: build-prep
-	+cd build && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+build: staging-prep
+	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
-build-simple: build-prep
-	+cd build && sh ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
+build-simple: staging-prep
+	+cd staging && sh ./util/prep npsol build && OPENMP=no $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 packages-help:
 	@echo 'To generate a PACKAGES file, use:'
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='source'"')" | R --vanilla'
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='mac.binary'"', latestOnly=FALSE)" | R --vanilla # for OS/X'
 
-srcbuild: build-prep packages-help
-	+cd build && sh ./util/prep npsol build && $(REXEC) CMD build .
+srcbuild: staging-prep packages-help
+	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD build .
 
 cran-check: cran-build
-	+cd build && $(REXEC) CMD check --as-cran OpenMx_*.tar.gz | tee cran-check.log
-	wc -l build/OpenMx.Rcheck/00check.log
-	@if [ $$(wc -l build/OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 77 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
+	+cd staging && $(REXEC) CMD check --as-cran OpenMx_*.tar.gz | tee cran-check.log
+	wc -l staging/OpenMx.Rcheck/00check.log
+	@if [ $$(wc -l staging/OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 77 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 roxygen:
 	sh ./util/rox
 
-docprep: roxygen build-clean
+docprep: roxygen staging-clean
 
 pdf: docprep
 	sh ./util/prep cran install
@@ -141,21 +141,21 @@ pdf: docprep
 
 html: docprep
 	sh ./util/prep cran install
-	cd build && R CMD INSTALL --library=/tmp --html --no-libs --no-test-load --build ..
-	cd build && tar -zxf *gz
-	mv build/OpenMx/html/* docs/source/static/Rdoc
-	mv build/OpenMx/demo/* docs/source/static/demo
+	cd staging && R CMD INSTALL --library=/tmp --html --no-libs --no-test-load --build ..
+	cd staging && tar -zxf *gz
+	mv staging/OpenMx/html/* docs/source/static/Rdoc
+	mv staging/OpenMx/demo/* docs/source/static/demo
 	cd docs && make html
 
 doc.tar.bz2:
 	cd docs && make clean
 	$(MAKE) -j1 html pdf
-	-rm -r build/$(VERSION)
-	mkdir -p build/$(VERSION)
-	mv docs/build/html/* build/$(VERSION)
-	mv docs/build/latex/OpenMx.pdf build/$(VERSION)/OpenMxUserGuide.pdf
-	mv build/OpenMx.pdf build/$(VERSION)
-	cd build && tar jcf ../doc.tar.bz2 $(VERSION)
+	-rm -r staging/$(VERSION)
+	mkdir -p staging/$(VERSION)
+	mv docs/build/html/* staging/$(VERSION)
+	mv docs/build/latex/OpenMx.pdf staging/$(VERSION)/OpenMxUserGuide.pdf
+	mv staging/OpenMx.pdf staging/$(VERSION)
+	cd staging && tar jcf ../doc.tar.bz2 $(VERSION)
 	git checkout DESCRIPTION
 
 install: code-style
@@ -217,8 +217,8 @@ autodep:
 
 clean:
 	cd docs && make clean
-	mkdir -p build
-	-rm build/OpenMx_*.tar.gz
+	mkdir -p staging
+	-rm staging/OpenMx_*.tar.gz
 	-rm src/*.o
 	-rm src/*.so
 	-rm src/*.dll

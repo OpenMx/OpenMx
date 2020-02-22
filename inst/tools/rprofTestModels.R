@@ -49,7 +49,7 @@ errorRecover <- function(script, index) {
 }
 
 if (length(files) > 0) {
-	Rprof("build/rprofTest.out")
+	Rprof("staging/rprofTest.out")
 	for (i in 1:length(files)) {
 		errorRecover(files[[i]], i)
 	}

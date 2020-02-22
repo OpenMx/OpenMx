@@ -168,7 +168,7 @@ if (m2$output$fit - priorLL > 1 + 33335.75) {
   m2 <- mxTryHard(m2)
 }
 expect_equivalent(m2$output$fit - priorLL, 33335.75, .4)
-expect_equal(max(abs(m2$output$gradient)), 0, .011)
+expect_equal(max(abs(m2$output$gradient)), 0, .015)
 #cat(deparse(round(m2$output$confidenceIntervals,3)))
 # Doesn't converge consistently
 #expect_equal(m2$output$confidenceIntervals['g1',c('lbound','ubound')], c(-1.687, -0.726), .01)
