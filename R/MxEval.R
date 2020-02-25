@@ -194,7 +194,8 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 				result <- definitionStartingValue(key, contextString, model, defvar.row)
 			} else if (is.null(lookup)) {
 				if (!show && !outsideAlgebra && exists(key, envir = env)) {
-					result <- as.matrix(get(key, envir = env))
+					result <- try(as.matrix(get(key, envir = env)), silent=TRUE)
+          if (is(result, 'try-error')) stop(paste(omxQuotes(key), "is not a matrix"))
 				} else {
 					result <- symbol
 				}
@@ -424,6 +425,7 @@ mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1L
    if(!is(model, "MxModel")) {
       stop("'model' argument must be a MxModel object")
    }
+#for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
    eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack, 1L + .extraBack),
       list(x = as.symbol(name))))
 }
