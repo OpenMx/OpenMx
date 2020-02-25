@@ -195,7 +195,12 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 			} else if (is.null(lookup)) {
 				if (!show && !outsideAlgebra && exists(key, envir = env)) {
 					result <- try(as.matrix(get(key, envir = env)), silent=TRUE)
-          if (is(result, 'try-error')) stop(paste(omxQuotes(key), "is not a matrix"))
+          if (is(result, 'try-error')){
+          	stop(paste(
+          		"cannot coerce object with symbol", omxQuotes(key), "to a matrix\n",
+          		"(hint: did you neglect to put an object named", omxQuotes(key), "into model",
+          		omxQuotes(model@name),"?)"))
+          }
 				} else {
 					result <- symbol
 				}
