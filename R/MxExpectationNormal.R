@@ -184,7 +184,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 		ret <- list()
 		if (any(c('covariance','covariances') %in% what)) {
 			covname <- .modifyDottedName(subname, .Object@covariance)
-			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
+			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row, .extraBack=7L)
 			dnames <- .Object$dims
 			if(!single.na(dnames)){
 				colnames(cov) <- dnames
