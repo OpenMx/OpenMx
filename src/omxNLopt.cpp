@@ -228,7 +228,7 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump &wkspc, nlopt_opt op
 	int n = opt->n;
 	int  n1 = n+1;
 	int M = wkspc.M; //<--Total number of constraints (i.e. constraint function elements, not MxConstraint objects)
-	//if(M <= 0){return;} //<--Not sure about this.
+	if(M <= 0){return;} //<--I can't think of any reason why this function would need to be run if there are no MxConstraints.
 	int* lengths = wkspc.lengths;
 	double* realwkspc = wkspc.realwkspc;
 	int i=0, ro=0, co=0;
@@ -463,6 +463,9 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 	nlopt_set_min_objective(opt, obj, this);
 
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
+	for(int li=0; li<8; li++){
+		wkspc->lengths[li] = 0;
+	}
 	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = (nlopt_slsqp_wdump*)&wkspc;
 	
@@ -554,6 +557,9 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	}
 	
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
+	for(int li=0; li<8; li++){
+		wkspc->lengths[li] = 0;
+	}
 	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = wkspc.get();
 	
