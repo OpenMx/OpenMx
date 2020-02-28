@@ -228,6 +228,7 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump &wkspc, nlopt_opt op
 	int n = opt->n;
 	int  n1 = n+1;
 	int M = wkspc.M; //<--Total number of constraints (i.e. constraint function elements, not MxConstraint objects)
+	//if(M <= 0){return;} //<--Not sure about this.
 	int* lengths = wkspc.lengths;
 	double* realwkspc = wkspc.realwkspc;
 	int i=0, ro=0, co=0;
@@ -385,7 +386,9 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	
 	//The following four lines are only sensible if using SLSQP (noted in case we ever use a different optimizer from the NLOPT collection):
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
-	//wkspc.lengths = (int*)calloc(8, sizeof(int));
+	for(int li=0; li<8; li++){
+		wkspc->lengths[li] = 0;
+	}
 	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = wkspc.get();
 	
@@ -401,7 +404,9 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	}
 	
 	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
-	SLSQP::omxExtractSLSQPConstraintInfo(*wkspc, opt, goc);
+	if(code > 0){
+		SLSQP::omxExtractSLSQPConstraintInfo(*wkspc, opt, goc);
+	}
 	
 	goc.setWanted(oldWanted);
 	
