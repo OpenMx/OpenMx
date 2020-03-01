@@ -22,9 +22,8 @@ context("MatrixErrorDetection")
 A <- mxMatrix('Full', 1, 1, labels = 'data.foo', free = TRUE, name = 'A')
 model <- mxModel('model', A)
 omxCheckError(mxRun(model), 
-	paste("The definition variable 'data.foo'",
-		"has been assigned to a",
-		"free parameter in matrix 'A'"))
+	paste("matrix 'model.A' free=TRUE but label looks",
+	      "like a definition variable:"))
 
 A <- mxMatrix('Full', 1, 1, labels = 'foo[1,2]', free = TRUE, name = 'A')
 model <- mxModel('model', A)

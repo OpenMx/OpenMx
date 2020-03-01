@@ -78,3 +78,14 @@ omxCheckCloseEnough(as.vector(c(0.982984089,0.004713885,0.004713885,2.052462084)
 omxCheckCloseEnough(0.02570572, mxEval(M[1,1], run), .001)
 omxCheckCloseEnough(0.01611651, mxEval(M[1,2], run), .001)
 
+bad <- model
+bad$def$free['x','y'] <- TRUE
+bad$def$free['y','x'] <- TRUE
+expect_error(mxRun(bad), "free=TRUE but label looks like a definition variable:")
+    
+br2 <- mxModel("breaker", type="RAM", manifestVars="X",
+               mxPath("one", "X", label="data.intervention"),
+               mxData(data.frame(X=1:100, intervention=rep(1,100)),
+                      type="raw"))
+expect_error(mxEvalByName("breaker.M", br2, compute=TRUE, defvar.row = 1),
+             "free=TRUE but label looks like a definition")
