@@ -834,6 +834,16 @@ qualifyNamesMatrix <- function(matrix, modelname, dataname, namespace) {
 		refNames <- labels[select]
 		matrix@labels[select] <- sapply(refNames, imxConvertLabel, modelname, dataname, namespace)
 	}
+	select <- (free) & (!is.na(labels))
+	if (any(select)) {
+    parNames <- labels[select]
+    confused <- sapply(parNames, imxIsDefinitionVariable)
+    if (any(confused)) {
+      stop(paste("In matrix", omxQuotes(matrix@name),
+                 "free=TRUE but label looks like a definition variable:",
+                 omxQuotes(parNames[confused])))
+    }
+  }
 	return(matrix)
 }
 

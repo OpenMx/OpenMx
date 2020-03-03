@@ -144,14 +144,6 @@ omxCheckWarning <- function(expression, message) {
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
 ##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
-##' @examples
-##' A <- mxMatrix('Full', 1, 1, labels = 'data.foo', free = TRUE, name = 'A')
-##' model <- mxModel('model', A)
-##' omxCheckError(mxRun(model), 
-##'	paste("The definition variable 'data.foo'",
-##'		"has been assigned to a",
-##'		"free parameter in matrix 'A'"))
-##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
 omxCheckError <- function(expression, message) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_error(expression, message, fixed=TRUE)
