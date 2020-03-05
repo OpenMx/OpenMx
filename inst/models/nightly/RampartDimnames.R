@@ -8,7 +8,7 @@
 
 
 #------------------------------------------------------------------------------
-require(OpenMx)
+library(OpenMx)
 
 
 #------------------------------------------------------------------------------
@@ -53,7 +53,6 @@ bModel1 <- mxModel('between', type="RAM",
                       free=FALSE, labels=c(NA, "data.rel")))
 
 
-dn1 <- list(c("C1", "AC1"), c("C1", "AC1"))
 bModel1Matrix <- mxModel('mbetween',
                          mxData(type="raw", observed=bData, primaryKey="fam"),
                          mxMatrix(name='A', type='Zero', nrow=2, ncol=2),
@@ -84,7 +83,6 @@ wModel1 <- mxModel('within', type="RAM", bModel1,
                          labels=c('a1Ht'), lbound=1e-6, joinKey="fam")
 )
 
-dn2 <- list(c("ht", "AU1", "E1"), c("ht", "AU1", "E1"))
 wModel1Matrix <- mxModel('mwithin', bModel1Matrix,
                          mxData(type="raw", observed=wData, sort=FALSE),
                          mxMatrix(name="A", type="Full", nrow=3, ncol=3,
@@ -95,10 +93,10 @@ wModel1Matrix <- mxModel('mwithin', bModel1Matrix,
                                   FALSE, FALSE, FALSE,
                                   FALSE, FALSE, FALSE),
                            labels=c(NA, "a1Ht", "e1Ht", NA, NA, NA, NA, NA, NA),
-                           byrow=TRUE, dimnames=dn2),
-                         mxMatrix(name="S", type="Diag", nrow=3, ncol=3, label=c(NA, "data.relu", NA), values=c(0, 1, 1), , dimnames=dn2),
-                         mxMatrix(name="F", type="Full", nrow=1, ncol=3, values=c(1, 0, 0)),#, dimnames=list(c("ht"), c("ht", "AU1", "E1"))),
-                         mxMatrix(name="M", type="Full", nrow=1, ncol=3, values=c(1.5, 0, 0), labels=c("meanHt", NA, NA), free=c(TRUE, FALSE, FALSE), dimnames=list(NULL, c("ht", "AU1", "E1"))),
+                           byrow=TRUE),
+                         mxMatrix(name="S", type="Diag", nrow=3, ncol=3, label=c(NA, "data.relu", NA), values=c(0, 1, 1),),
+                         mxMatrix(name="F", type="Full", nrow=1, ncol=3, values=c(1, 0, 0), dimnames=list(c("ht"), c("ht", "AU1", "E1"))),
+                         mxMatrix(name="M", type="Full", nrow=1, ncol=3, values=c(1.5, 0, 0), labels=c("meanHt", NA, NA), free=c(TRUE, FALSE, FALSE)),
                          mxMatrix(name="cross_model", type="Full", nrow=3, ncol=2,
                            values=c(.8, .8,
                                      0, 0,
@@ -113,12 +111,11 @@ wModel1Matrix <- mxModel('mwithin', bModel1Matrix,
                          mxFitFunctionML()
 )
 
-
 #------------------------------------------------------------------------------
 # Run 'em
-wRun1 <- mxRun(wModel1)
-# Works fine
 
+wRun1 <- mxRun(wModel1)
 wRun1Matrix <- mxRun(wModel1Matrix)
-# Fails
-# Error: Join mapping matrix mwithin.cross_model must have 0 columns: NULL
+
+wRun1$output$fit
+wRun1Matrix$output$fit
