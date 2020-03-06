@@ -721,6 +721,10 @@ bool omxDataColumnIsKey(omxData *od, int col)
 
 void omxData::RawData::assertColumnIsData(int col, bool warn)
 {
+	if (col < 0 || col >= int(rawCols.size())) {
+		mxThrow("Column %d requested but only %d columns of data",
+						col, int(rawCols.size()));
+	}
 	ColumnData &cd = rawCols[col];
 	switch (cd.type) {
 	case COLUMNDATA_ORDERED_FACTOR:
