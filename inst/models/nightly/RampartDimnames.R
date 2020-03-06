@@ -71,16 +71,16 @@ bModel1Matrix <- mxModel('mbetween',
 wModel1 <- mxModel('within', type="RAM", bModel1,
                   mxData(type="raw", observed=wData, sort=FALSE),
                   manifestVars = c('ht'),
-                  latentVars = c("E1", "AU1"),
+                  latentVars = c("AU1", "E1"),
                   mxPath(from="one", to=c('ht'), arrows=1, free=TRUE, values=1.5, labels=c("meanHt")),
-                  mxPath(c("E1", "AU1"), arrows=2, values=1,
-                      free=FALSE, labels=c(NA, "data.relu")),
-                  mxPath('AU1', c('ht'), values=.8, labels=c('a1Ht'), lbound=1e-6),
-                  mxPath('E1', c('ht'), values=.8, labels=c('e1Ht'), lbound=1e-6),
+                  mxPath(c("AU1", "E1"), arrows=2, values=1,
+                      free=FALSE, labels=c("data.relu", NA)),
+                  mxPath('AU1', c('ht'), values=.8, labels=c('a1Ht')),
+                  mxPath('E1', c('ht'), values=.8, labels=c('e1Ht')),
                   mxPath('between.C1', c('ht'), values=.8,
-                         labels=c('c1Ht'), lbound=1e-6, joinKey="fam"),
+                         labels=c('c1Ht'), joinKey="fam"),
                   mxPath('between.AC1', c('ht'), values=.8, arrows=1,
-                         labels=c('a1Ht'), lbound=1e-6, joinKey="fam")
+                         labels=c('a1Ht'), joinKey="fam")
 )
 
 wModel1Matrix <- mxModel('mwithin', bModel1Matrix,
@@ -94,8 +94,8 @@ wModel1Matrix <- mxModel('mwithin', bModel1Matrix,
                                   FALSE, FALSE, FALSE),
                            labels=c(NA, "a1Ht", "e1Ht", NA, NA, NA, NA, NA, NA),
                            byrow=TRUE),
-                         mxMatrix(name="S", type="Diag", nrow=3, ncol=3, label=c(NA, "data.relu", NA), values=c(0, 1, 1),),
-                         mxMatrix(name="F", type="Full", nrow=1, ncol=3, values=c(1, 0, 0), dimnames=list(c("ht"), c("ht", "AU1", "E1"))),
+                         mxMatrix(name="S", type="Diag", nrow=3, ncol=3, label=c(NA, "data.relu", NA), values=c(0, 1, 1)),
+                         mxMatrix(name="F", type="Full", nrow=1, ncol=3, values=c(1, 0, 0)),
                          mxMatrix(name="M", type="Full", nrow=1, ncol=3, values=c(1.5, 0, 0), labels=c("meanHt", NA, NA), free=c(TRUE, FALSE, FALSE)),
                          mxMatrix(name="cross_model", type="Full", nrow=3, ncol=2,
                            values=c(.8, .8,
@@ -116,6 +116,9 @@ wModel1Matrix <- mxModel('mwithin', bModel1Matrix,
 
 wRun1 <- mxRun(wModel1)
 wRun1Matrix <- mxRun(wModel1Matrix)
+
+coef(wRun1)
+coef(wRun1Matrix)
 
 wRun1$output$fit
 wRun1Matrix$output$fit
