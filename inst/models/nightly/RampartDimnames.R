@@ -9,7 +9,7 @@
 
 #------------------------------------------------------------------------------
 library(OpenMx)
-
+library(testthat)
 
 #------------------------------------------------------------------------------
 # Prepare Data
@@ -120,5 +120,4 @@ wRun1Matrix <- mxRun(wModel1Matrix)
 coef(wRun1)
 coef(wRun1Matrix)
 
-wRun1$output$fit
-wRun1Matrix$output$fit
+expect_equal(wRun1$output$fit, wRun1Matrix$output$fit, 1e-6)
