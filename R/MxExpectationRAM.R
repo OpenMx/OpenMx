@@ -132,33 +132,33 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 					stop(msg, call. = FALSE)
 				}
 				expName <- paste0(zMat@joinModel, imxSeparatorChar, 'expectation')
-				upperA <- flatModel[[ flatModel@expectations[[ expName ]]$A ]]
-				lowerA <- flatModel[[ aMatrix ]]
+				upperF <- flatModel[[ flatModel@expectations[[ expName ]]$F ]]
+				lowerF <- flatModel[[ fMatrix ]]
 
-				if (length(rownames(zMat)) != length(colnames(lowerA))) {
+				if (length(rownames(zMat)) != length(colnames(lowerF))) {
 					msg <- paste("Join mapping matrix", zMat@name,
-						     "must have", length(colnames(lowerA)), "rows:",
-						     omxQuotes(colnames(lowerA)))
+						     "must have", length(colnames(lowerF)), "rows:",
+						     omxQuotes(colnames(lowerF)))
 					stop(msg, call. = FALSE)
 				}
-				lowerMatch <- rownames(zMat) == colnames(lowerA)
+				lowerMatch <- rownames(zMat) == colnames(lowerF)
 				if (any(!lowerMatch)) {
 					msg <- paste("Join mapping matrix", zMat@name,
 						     "needs mapping rows for",
-						     omxQuotes(colnames(lowerA)[!lowerMatch]))
+						     omxQuotes(colnames(lowerF)[!lowerMatch]))
 					stop(msg, call. = FALSE)
 				}
-				if (length(colnames(zMat)) != length(colnames(upperA))) {
+				if (length(colnames(zMat)) != length(colnames(upperF))) {
 					msg <- paste("Join mapping matrix", zMat@name,
-						     "must have", length(colnames(upperA)), "columns:",
-						     omxQuotes(colnames(upperA)))
+						     "must have", length(colnames(upperF)), "columns:",
+						     omxQuotes(colnames(upperF)))
 					stop(msg, call. = FALSE)
 				}
-				upperMatch <- colnames(zMat) == colnames(upperA)
+				upperMatch <- colnames(zMat) == colnames(upperF)
 				if (any(!upperMatch)) {
 					msg <- paste("Join mapping matrix", zMat@name,
 						     "needs mapping columns for",
-						     omxQuotes(colnames(upperA)[!upperMatch]))
+						     omxQuotes(colnames(upperF)[!upperMatch]))
 					stop(msg, call. = FALSE)
 				}
 				imxLocateIndex(flatModel, bName, name)

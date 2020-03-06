@@ -913,7 +913,7 @@ verifyObservedNames <- function(data, means, type, flatModel, modelname, expecta
 		if (!single.na(means) && is.null(dimnames(means))) {
 			msg <- paste("In model", omxQuotes(modelname), 
 				", the observed means vector does not contain column names.",
-				"Use the name() function to assign names to the means vector.")
+				"Use the names() function to assign names to the means vector.")
 			stop(msg, call. = FALSE)
 		}
 		if (!single.na(means) && !identical(dataNames[[1]], dimnames(means)[[2]])) {
