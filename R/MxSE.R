@@ -126,6 +126,7 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	ex <- try(eval(x), silent=TRUE)
 	isChar <- !('try-error' %in% is(ex)) && is.character(ex)
+	xorig <- x
 	if(isCallEtc && !forceName && !isChar){
 		if(!silent){message('Treating first argument as an expression')}
 		xalg <- mxAlgebraFromString(Reduce(paste, deparse(match.call()$x)), name='onTheFlyAlgebra')
@@ -150,7 +151,7 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	paramnames <- names(freeparams)
 	zoutMat <- try(mxEvalByName(x, model, compute=TRUE),silent=silent)
 	if(is(zoutMat, "try-error")) {
-		stop(paste0("Couldn't evaluate expression ", omxQuotes(x), ". Might help to check if it works in mxEval.\n",
+		stop(paste0("Couldn't evaluate expression ", omxQuotes(xorig), ". Might help to check if it works in mxEval.\n",
 		"Recall also that elements of submodels are addressed as submodelName.objectName\n",
 		"For example, to refer to an object called 'bob' in submodel 'sub1', you would say 'sub1.bob'."))
 	}
