@@ -123,23 +123,26 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 		}
 	}
 	
+	xorig <- "x" #<--Initialize as something that will always be understandable in an error message.
 	isCallEtc <- any(c('call', 'language', 'MxAlgebraFormula') %in% is(match.call()$x))
 	ex <- try(eval(x), silent=TRUE)
 	isChar <- !('try-error' %in% is(ex)) && is.character(ex)
-	xorig <- x
 	if(isCallEtc && !forceName && !isChar){
 		if(!silent){message('Treating first argument as an expression')}
 		xalg <- mxAlgebraFromString(Reduce(paste, deparse(match.call()$x)), name='onTheFlyAlgebra')
+		xorig <- Reduce(paste, deparse(match.call()$x))
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else if ('character' %in% is(x) && !isCallEtc) {
 		if(!silent){message('Treating first argument as a character')}
 		xalg <- mxAlgebraFromString(Reduce(paste, match.call()$x), name='onTheFlyAlgebra')
+		xorig <- x
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else if(isChar){
 		if(!silent){message('Treating first argument as an object that stores a character')}
 		xalg <- mxAlgebraFromString(ex, name='onTheFlyAlgebra')
+		xorig <- ex
 		x <- "onTheFlyAlgebra"
 		model <- mxModel(model, xalg)
 	} else {
