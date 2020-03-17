@@ -35,10 +35,9 @@ omxGetNPSOL <- function() {
 	}
 	if(.Platform$OS.type=="windows"){
 		message(
-			paste("Windows users should either restart R or run\n",
-						"detach('package:OpenMx',unload=TRUE)\n",
-						", and then run\n",
-						"source('http://openmx.ssri.psu.edu/getOpenMx.R')\n")
+			paste("Windows users must clear R's workspace, restart R, run\n",
+						"source('http://openmx.ssri.psu.edu/getOpenMx.R')\n",
+						", and then restart R again before trying to load OpenMx.")
 		)
 		return()
 	}
