@@ -137,8 +137,7 @@ npsolOptions <- list(
 # below are not npsol options
 	"Calculate Hessian" = "Yes",
 	"Standard Errors" = "Yes",
-	"Analytic Gradients" = "Yes",
-	"Number of Threads" = 0
+	"Analytic Gradients" = "Yes"
 )
 
 checkpointOptions <- list(
@@ -231,9 +230,6 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 			options[["useOptimizer"]] <- "No"
 	} else {
 		options[["useOptimizer"]] <- "No"
-	}
-	if (is.null(options[["Number of Threads"]]) || options[["Number of Threads"]] == 0) {
-		options[["Number of Threads"]] <- imxGetNumThreads()
 	}
 	if (identical(options[["Standard Errors"]], "Yes") &&
 		identical(options[["Calculate Hessian"]], "No")) {
