@@ -15,12 +15,14 @@
 
 ##' Reset global options to the default
 mxSetDefaultOptions <- function() {
-   options('mxDefaultType' = 'default', 
-	'mxOptions' = c(npsolOptions, checkpointOptions, otherOptions,
-	    list("Default optimizer" = imxDetermineDefaultOptimizer())),
-	'mxByrow' = FALSE,
-	'mxCondenseMatrixSlots' = FALSE,
-	'swift.initialexpr' = "library(OpenMx)")
+  options(
+    'mxDefaultType' = 'default',
+    'mxOptions' = c(npsolOptions, checkpointOptions, otherOptions,
+                    list("Default optimizer" = imxDetermineDefaultOptimizer()),
+                    "Number of Threads" = imxGetNumThreads()),
+    'mxByrow' = FALSE,
+    'mxCondenseMatrixSlots' = FALSE,
+    'swift.initialexpr' = "library(OpenMx)")
 }
 
 ##' imxHasOpenMP

@@ -109,7 +109,10 @@ mxTryHard <- function(
 	modelAtStartValues <- suppressWarnings(try(runWithCounter(model, 0, silent, F)))
 	if(class(modelAtStartValues) != "try-error"){ 
 		fitvalAtStarts <- modelAtStartValues@fitfunction@result[1]
-		if(is.finite(fitvalAtStarts)){lowestminsofar <- fitvalAtStarts}
+		#If there are MxConstraints, we don't know if they're satisfied at the start values,
+		#so we don't want to treat the fit at the start values as the lowest so far,
+		#since an uphill step may be necessary to get to feasibility:
+		if(is.finite(fitvalAtStarts) && lackOfConstraints){lowestminsofar <- fitvalAtStarts}
 	}
 	model@compute <- inputCompute
 	rm(modelAtStartValues, inputCompute)
