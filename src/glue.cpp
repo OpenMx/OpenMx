@@ -396,6 +396,11 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
 					*numThreads = 1;
 				}
+				char *ont = getenv("OMP_NUM_THREADS");
+				if (ont && *numThreads > atoi(ont)) {
+					mxThrow("I'm confused! %d threads requested but environment variable OMP_NUM_THREADS='%s'",
+									*numThreads, ont);
+				}
 #endif
 			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->parallelDiag);
