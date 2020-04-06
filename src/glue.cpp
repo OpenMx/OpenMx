@@ -398,8 +398,13 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 				}
 				char *ont = getenv("OMP_NUM_THREADS");
 				if (ont && *numThreads > atoi(ont)) {
-					mxThrow("I'm confused! %d threads requested but environment variable OMP_NUM_THREADS='%s'",
-									*numThreads, ont);
+					mxThrow("I'm confused! %d threads requested. "
+									"Either request fewer threads, i.e., %s, in the mxOption() "
+									"statement, or submit your batch job with OMP_NUM_THREADS "
+									"environment varible set to %d.  This env variable may be "
+									"controlled by PBS’s -ncpus argument, "
+									"or similar on other batch systems.",
+									*numThreads, ont, *numThreads);
 				}
 #endif
 			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {

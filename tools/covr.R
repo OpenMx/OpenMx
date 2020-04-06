@@ -1,6 +1,7 @@
 library(devtools)
 devtools::install_github("jpritikin/covr")
 Sys.setenv(NOT_CRAN="true")
+Sys.setenv(OMP_NUM_THREADS="2")
 library(covr)
 library(roxygen2)
 options(covr.gcov = "gcov")
