@@ -18,6 +18,8 @@ library(OpenMx)
 library(testthat)
 context("simplestCI")
 
+mxOption(key='Number of Threads', value=1) 
+
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
 covariance <- matrix(c(1.0, 0.5, 0.5, 1.0), nrow=2, dimnames=list(c("a", "b"),

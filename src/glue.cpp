@@ -396,6 +396,16 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
 					*numThreads = 1;
 				}
+				char *ont = getenv("OMP_NUM_THREADS");
+				if (ont && *numThreads > atoi(ont)) {
+					mxThrow("I'm confused! %d threads requested. "
+									"Either request fewer threads, i.e., %s, in the mxOption() "
+									"statement, or submit your batch job with OMP_NUM_THREADS "
+									"environment varible set to %d.  This env variable may be "
+									"controlled by PBS’s -ncpus argument, "
+									"or similar on other batch systems.",
+									*numThreads, ont, *numThreads);
+				}
 #endif
 			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->parallelDiag);

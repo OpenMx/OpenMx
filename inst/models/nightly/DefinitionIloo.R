@@ -3,6 +3,10 @@
 set.seed(1)
 
 library(OpenMx)
+library(testthat)
+
+skip_if_not(imxHasOpenMP())
+
 N <- 2000
 u <- rbinom(N,1,.5)
 x <- .5*u+rnorm(N)
@@ -20,7 +24,7 @@ model <- mxModel( 'BinCont',
   mxFitFunctionML(vector=TRUE)
 )                                        
 
-maxThreads <- 6
+maxThreads <- imxGetNumThreads()
 rowLik <- matrix(NA, N, maxThreads)
 for (rep in 1:maxThreads) {
   model <- mxOption(model, "Number of Threads", rep)  # failed with 3 or more!

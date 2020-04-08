@@ -2,6 +2,8 @@ library(OpenMx)
 library(MASS)
 library(testthat)
 
+mxOption(key='Number of Threads', value=1) 
+
 context("binary as continuous")
 
 set.seed(1)
