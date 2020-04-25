@@ -8,7 +8,9 @@ addons:
     - gcc-8
     - g++-8
     - gfortran-8
-env:
+  homebrew:
+    packages:
+    - gnu-tar
   global:
     - MAKEFLAGS="-j 2"
 matrix:
