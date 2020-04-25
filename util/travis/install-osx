@@ -22,8 +22,8 @@ curl -Lo /tmp/gfort.tar.gz 'https://sourceforge.net/projects/hpc/files/hpc/g95/g
 sudo rm -rf /usr/local/lib/gcc
 sudo rm -rf /usr/local/include/c++
 
-sudo gtar --owner=travis --group=staff -zxf /tmp/gcc.tar.gz -C /
-sudo gtar --owner=travis --group=staff -zxf /tmp/gfort.tar.gz -C /
+sudo gtar --no-overwrite-dir --owner=travis --group=staff -zxf /tmp/gcc.tar.gz -C /
+sudo gtar --no-overwrite-dir --owner=travis --group=staff -zxf /tmp/gfort.tar.gz -C /
 
 sed -i.bak 's/-isysroot /-I/g' $(R RHOME)/etc/Makeconf
 
