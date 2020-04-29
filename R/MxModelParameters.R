@@ -147,7 +147,7 @@ setParametersCheckVector <- function(values, test, argname, typename) {
 }
 
 
-omxSetParameters <- function(model, labels, free = NULL, values = NULL,
+omxSetParameters <- function(model, labels=names(coef(model)), free = NULL, values = NULL,
 	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
 	strict = TRUE, name = NULL) {
 	if (missing(labels) || !is.character(labels) || length(labels) == 0) {
