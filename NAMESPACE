@@ -11,6 +11,7 @@ importFrom("stats", "AIC", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.me
 importFrom("stats", "binomial", "glm", "median", "plogis", 'qlogis', "predict")
 importFrom("stats", "rWishart")
 importFrom("stats", "logLik")
+importFrom("lifecycle", "deprecate_soft")
 
 useDynLib(OpenMx, .registration=TRUE)
 

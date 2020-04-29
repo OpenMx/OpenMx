@@ -5,6 +5,7 @@
 \title{Perform Pearson Aitken selection}
 
 \description{
+\lifecycle{maturing}
    These functions implement the Pearson Aitken selection formulae.
 }
 
