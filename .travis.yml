@@ -11,6 +11,7 @@ addons:
   homebrew:
     packages:
     - gnu-tar
+    - libxml2
   global:
     - MAKEFLAGS="-j 2"
 matrix:
