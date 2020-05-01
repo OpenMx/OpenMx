@@ -2,6 +2,8 @@
 
 set -ve
 
+export PKG_CONFIG_PATH="/usr/local/opt/libxml2/lib/pkgconfig:$PKG_CONFIG_PATH"
+
 # Workaround for travis-ci/travis-ci#8973
 python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
 
