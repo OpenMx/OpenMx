@@ -25,7 +25,7 @@ template <typename F> class Monomial {
 	Monomial(F _coeff, const std::vector<int> &_e) { coeff=_coeff; exponent=_e; }
 	Monomial(const Monomial<F> &from) { coeff = from.coeff; exponent = from.exponent; }
 	int getExponent(int xx) const {
-		if (xx >= exponent.size()) return 0;
+		if (xx >= int(exponent.size())) return 0;
 		return exponent[xx];
 	}
 	Monomial<F> operator*(const Monomial<F> &mon2) const {
