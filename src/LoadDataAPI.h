@@ -10,11 +10,11 @@
 // struct ColumnData
 // ColMapType
 
-class LoadDataProviderBase {
+class LoadDataProviderBase2 {
 protected:
 	const char *name;
 	const char *dataName;
-	int rows;
+	int destRows;  // ==sum(rowFilter)
 	std::vector<ColumnData> *rawCols;
 	ColMapType *rawColMap;
 	std::vector< int > columns;
@@ -29,6 +29,8 @@ protected:
 	int rowNames, colNames;
 	int skipRows, skipCols;
 	std::vector<std::string> naStrings;
+	int srcRows;  // destRows or length(rowFilter)
+	int *rowFilter;
 
 	std::string filePath;
 	std::string fileName;
@@ -74,6 +76,7 @@ public:
 	virtual int getNumVariants() { return 0; }
 	bool wantCheckpoint() const { return checkpoint; }
 	int getLoadCounter() const { return loadCounter; }
+	bool skipRow(int rx) const { return !rowFilter? false : rowFilter[rx]; }
 	virtual const char *getName()=0;
 	virtual void init(SEXP rObj)=0;
 	virtual void addCheckpointColumns(std::vector< std::string > &cp) {};
@@ -84,9 +87,9 @@ public:
 			for (int sx=0; sx < stripeSize; ++sx) {
 				for (int cx=0; cx < int(columns.size()); ++cx) {
 					if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-						stripeData.emplace_back(new double[rows]);
+						stripeData.emplace_back(new double[destRows]);
 					} else {
-						stripeData.emplace_back(new int[rows]);
+						stripeData.emplace_back(new int[destRows]);
 					}
 				}
 			}
@@ -100,8 +103,8 @@ public:
 			rc[ columns[cx] ].ptr = origData[cx];
 		}
 	}
-	virtual std::unique_ptr<LoadDataProviderBase> clone()=0;
-	virtual ~LoadDataProviderBase() {
+	virtual std::unique_ptr<LoadDataProviderBase2> clone()=0;
+	virtual ~LoadDataProviderBase2() {
 		int stripes = stripeData.size() / columns.size();
 		for (int sx=0; sx < stripes; ++sx) {
 			for (int cx=0; cx < int(columns.size()); ++cx) {
@@ -118,16 +121,17 @@ public:
 };
 
 template <typename Derived>
-class LoadDataProvider : public LoadDataProviderBase {
+class LoadDataProvider : public LoadDataProviderBase2 {
 public:
-	virtual std::unique_ptr<LoadDataProviderBase> clone() {
-		return std::unique_ptr<LoadDataProviderBase>(new Derived());
+	virtual std::unique_ptr<LoadDataProviderBase2> clone() {
+		return std::unique_ptr<LoadDataProviderBase2>(new Derived());
 	}
 };
 
 //#define OPENMX_LOAD_DATA_API_VERSION 0.17789282277226448059
-#define OPENMX_LOAD_DATA_API_VERSION 0.3091921037994325 // this is a random number
+//#define OPENMX_LOAD_DATA_API_VERSION 0.3091921037994325
+#define OPENMX_LOAD_DATA_API_VERSION 0.5240939254872501 // this is a random number
 
-typedef void (*AddLoadDataProviderType)(double version, int ldpbSz, LoadDataProviderBase *ldp);
+typedef void (*AddLoadDataProviderType)(double version, int ldpbSz, LoadDataProviderBase2 *ldp);
 
 #endif

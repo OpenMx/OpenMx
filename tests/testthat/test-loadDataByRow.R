@@ -113,3 +113,28 @@ lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # cat(deparse(floor(lmad)))
 # print(lmad - thr)
 omxCheckTrue(all(lmad - thr > 0))
+
+# --------------
+
+totalCol <- ncol(flat) + length(letters)
+lcol <- sample.int(totalCol, length(letters))
+print(sort(lcol))
+flatMap <- (1:totalCol)[-lcol]
+flat2 <- matrix("", nrow(flat), totalCol)
+flat2[,lcol] <- letters
+flat2[,flatMap] <- flat
+
+write.table(flat2, file=paste0(tdir, "testCols.csv"),
+            quote=FALSE, row.names = TRUE, col.names=TRUE)
+
+model3$compute$steps$LD$rowFilter <- 1:totalCol %in% lcol
+model4Fit <- mxRun(model3)
+
+log <- model4Fit$compute$steps[['CPT']]$log
+
+for (col in discardCols) log[[col]] <- NULL
+lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
+# names(lmad) <- c()
+# cat(deparse(floor(lmad)))
+# print(lmad - thr)
+omxCheckTrue(all(lmad - thr > 0))

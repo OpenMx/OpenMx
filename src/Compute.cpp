@@ -2159,8 +2159,8 @@ class ComputeGenerateData : public omxCompute {
 class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
 
-	static std::vector<LoadDataProviderBase*> Providers;
-	std::unique_ptr<LoadDataProviderBase> provider;
+	static std::vector<LoadDataProviderBase2*> Providers;
+	std::unique_ptr<LoadDataProviderBase2> provider;
 
 	omxData *data;
 	bool useOriginalData;
@@ -2177,13 +2177,13 @@ class ComputeLoadData : public omxCompute {
 
  public:
 	static void loadedHook();
-	static void addProvider(LoadDataProviderBase *ldp) { Providers.push_back(ldp); }
+	static void addProvider(LoadDataProviderBase2 *ldp) { Providers.push_back(ldp); }
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
 	virtual void computeImpl(FitContext *fc);
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *);
 };
 
-std::vector<LoadDataProviderBase*> ComputeLoadData::Providers;
+std::vector<LoadDataProviderBase2*> ComputeLoadData::Providers;
 
 void ComputeLoadDataLoadedHook()
 { ComputeLoadData::loadedHook(); }
@@ -4363,11 +4363,18 @@ void LoadDataCSVProvider::loadByCol(int index)
 		st.set_delimiter(' ', "##");
 		for (int rx=0; rx < skipRows; ++rx) st.skip_line();
 		int stripeAvail = stripeSize;
-		for (int rx=0; rx < rows; ++rx) {
-			if (!st.read_line()) {
-				mxThrow("%s: ran out of data for '%s' (need %d rows but only found %d)",
-					 name, dataName, rows, 1+rx);
+		for (int rx=0,dr=0; rx < srcRows; ++rx) {
+			bool gotLine = false;
+			try {
+				gotLine = st.read_line();
+			} catch (...) {
+				// ignore
 			}
+			if (!gotLine) {
+				mxThrow("%s: ran out of data for '%s' (need %d rows but only found %d)",
+					 name, dataName, srcRows, 1+rx);
+			}
+			if (skipRow(rx)) continue;
 			int toSkip = stripeStart * columns.size() + skipCols;
 			for (int jx=0; jx < toSkip; ++jx) {
 				std::string rn;
@@ -4378,10 +4385,10 @@ void LoadDataCSVProvider::loadByCol(int index)
 				try {
 					for (int cx=0; cx < int(columns.size()); ++cx) {
 						if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-							st >> stripeData[dx].realData[rx];
+							st >> stripeData[dx].realData[dr];
 						} else {
 							mxScanInt(st, rc[ columns[cx] ],
-								  &stripeData[dx].intData[rx]);
+								  &stripeData[dx].intData[dr]);
 						}
 						dx += 1;
 					}
@@ -4390,6 +4397,7 @@ void LoadDataCSVProvider::loadByCol(int index)
 					stripeAvail = sx;
 				}
 			}
+			dr += 1;
 		}
 		stripeEnd = stripeStart + stripeAvail;
 		if (verbose >= 2) {
@@ -4443,19 +4451,26 @@ void LoadDataCSVProvider::loadByRow(int index)
 			}
 		}
 		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-			for (int rx=0; rx < rows; ++rx) {
+			for (int rx=0, dr=0; rx < srcRows; ++rx) {
 				const std::string& str = icsv->get_delimited_str();
+				if (skipRow(rx)) continue;
 				if (isNA(str)) {
-					stripeData[cx].realData[rx] = NA_REAL;
+					stripeData[cx].realData[dr] = NA_REAL;
 				} else {
 					std::istringstream is(str);
-					is >> stripeData[cx].realData[rx];
+					is >> stripeData[cx].realData[dr];
 				}
+				dr += 1;
 			}
 		} else {
-			for (int rx=0; rx < rows; ++rx) {
+			for (int rx=0,dr=0; rx < srcRows; ++rx) {
+				if (skipRow(rx)) {
+					icsv->get_delimited_str();
+					continue;
+				}
 				mxScanInt(*icsv, rc[ columns[cx] ],
-					  &stripeData[cx].intData[rx]);
+					  &stripeData[cx].intData[dr]);
+				dr += 1;
 			}
 		}
 	}
@@ -4471,7 +4486,7 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 
 	virtual const char *getName() { return "data.frame"; };
 	virtual int getNumVariants() {
-		return (observed.nrows() / rows) * (observed.ncol() / columns.size());
+		return (observed.nrows() / srcRows) * (observed.ncol() / columns.size());
 	}
 	virtual void init(SEXP rObj) {
 		ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
@@ -4484,17 +4499,17 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 			mxThrow("%s: provided observed data only has %d columns but %d requested",
 				name, int(observed.size()), int(colTypes.size()));
 		}
-		if (observed.nrows() % rows != 0) {
+		if (observed.nrows() % srcRows != 0) {
 			mxThrow("%s: original data has %d rows, "
 					 "does not divide the number of observed rows %d evenly (remainder %d)",
-					 name, rows, observed.nrows(), observed.nrows() % rows);
+					 name, srcRows, observed.nrows(), observed.nrows() % srcRows);
 		}
 		if (observed.ncol() % columns.size() != 0) {
 			mxThrow("%s: original data has %d columns, "
 					 "does not divide the number of observed columns %d evenly (remainder %d)",
 					 name, int(columns.size()), observed.ncol(), observed.ncol() % columns.size());
 		}
-		if (observed.nrows() != rows && observed.ncol() != int(columns.size())) {
+		if (observed.nrows() != srcRows && observed.ncol() != int(columns.size())) {
 			mxThrow("%s: additional data must be in rows or columns, but not both");
 		}
 		CharacterVector obNames = observed.attr("names");
@@ -4519,23 +4534,27 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	virtual void loadRowImpl(int index)
 	{
 		auto &rc = *rawCols;
-		if (observed.nrows() != rows) {
-			int rowBase = index * rows;
-			if (observed.nrows() < rowBase + rows) {
+		if (observed.nrows() != srcRows) {
+			int rowBase = index * srcRows;
+			if (observed.nrows() < rowBase + srcRows) {
 				mxThrow("%s: index %d requested but observed data only has %d sets of rows",
-						 name, index, observed.nrows() / rows);
+						 name, index, observed.nrows() / srcRows);
 			}
 			for (int cx=0; cx < int(columns.size()); ++cx) {
 				RObject vec = observed[cx];
 				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 					NumericVector avec(vec);
-					for (int rx=0; rx < rows; ++rx) {
-						stripeData[cx].realData[rx] = avec[rowBase + rx];
+					for (int rx=0,dr=0; rx < srcRows; ++rx) {
+						if (skipRow(rx)) continue;
+						stripeData[cx].realData[dr] = avec[rowBase + rx];
+						dr += 1;
 					}
 				} else {
 					IntegerVector ivec(vec);
-					for (int rx=0; rx < rows; ++rx) {
-						stripeData[cx].intData[rx] = ivec[rowBase + rx];
+					for (int rx=0,dr=0; rx < srcRows; ++rx) {
+						if (skipRow(rx)) continue;
+						stripeData[cx].intData[dr] = ivec[rowBase + rx];
+						dr += 1;
 					}
 				}
 				rc[ columns[cx] ].ptr = stripeData[cx];
@@ -4560,7 +4579,7 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	}
 };
 
-void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name,
+void LoadDataProviderBase2::commonInit(SEXP rObj, const char *_name,
 				      const char *_dataName, int _rows,
 				      std::vector<ColumnData> &_rawCols,
 				      ColMapType &_rawColMap,
@@ -4568,7 +4587,8 @@ void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name,
 {
 	name = _name;
 	dataName = _dataName;
-	rows = _rows;
+	destRows = _rows;
+	srcRows = _rows;
 	rawCols = &_rawCols;
 	rawColMap = &_rawColMap;
 	checkpointValues = &_checkpointValues;
@@ -4615,9 +4635,20 @@ void LoadDataProviderBase::commonInit(SEXP rObj, const char *_name,
 		origData.emplace_back(rc.ptr);
 	}
 
-	
 	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
 	checkpoint = Rf_asLogical(Rcheckpoint);
+
+	ProtectedSEXP RrowFilter(R_do_slot(rObj, Rf_install("rowFilter")));
+	rowFilter = 0;
+	if (Rf_length(RrowFilter)) {
+		rowFilter = INTEGER(RrowFilter);
+		srcRows = Rf_length(RrowFilter);
+		int numSkip = std::accumulate(rowFilter, rowFilter + srcRows, 0);
+		if (destRows != srcRows - numSkip) {
+			mxThrow("rowFilter skips %d rows but %d-%d does not match the number of "
+							"rows of observed data %d", numSkip, srcRows, numSkip, destRows);
+		}
+	}
 }
 
 void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
@@ -4699,13 +4730,13 @@ void ComputeLoadData::loadedHook()
 	Providers.push_back(new LoadDataDFProvider());
 }
 
-void AddLoadDataProvider(double version, int ldpbSz, LoadDataProviderBase *ldp)
+void AddLoadDataProvider(double version, int ldpbSz, LoadDataProviderBase2 *ldp)
 {
 	if (version == OPENMX_LOAD_DATA_API_VERSION) {
-		if (ldpbSz != sizeof(LoadDataProviderBase)) {
+		if (ldpbSz != sizeof(LoadDataProviderBase2)) {
 			mxThrow("Cannot add mxComputeLoadData provider, version matches "
 							"but OpenMx is compiled with different compiler options (%d != %d)",
-							ldpbSz, int(sizeof(LoadDataProviderBase)));
+							ldpbSz, int(sizeof(LoadDataProviderBase2)));
 		}
 	} else {
 		mxThrow("Cannot add mxComputeLoadData provider, version mismatch");

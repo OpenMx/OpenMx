@@ -126,3 +126,29 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log[shuffle,] - result1)), 2, max))
 omxCheckTrue(all(lmad - thr > 0))
 
+
+# --------------
+
+options(stringsAsFactors = FALSE)
+totalRow <- nrow(flat) + length(letters)
+lrow <- sample.int(totalRow, length(letters))
+flatMap <- (1:totalRow)[-lrow]
+flat2 <- matrix("", totalRow, ncol(flat))
+flat2[lrow,] <- letters
+flat2[flatMap,] <-
+  as.matrix(as.data.frame(lapply(flat, as.character)))
+
+write.table(flat2, file=paste0(tdir, "testCols.csv"),
+            quote=FALSE, row.names = FALSE, col.names=FALSE)
+
+model3$compute$steps$LD$rowFilter <- 1:totalRow %in% lrow
+model4Fit <- mxRun(model3)
+
+log <- model4Fit$compute$steps[['CPT']]$log
+
+for (col in discardCols) log[[col]] <- NULL
+lmad <- -log10(apply(abs(as.matrix(log[shuffle,] - result1)), 2, max))
+# names(lmad) <- c()
+# cat(deparse(floor(lmad)))
+# print(lmad - thr)
+omxCheckTrue(all(lmad - thr > 0))
