@@ -65,13 +65,13 @@ setMethod("imxInitModel", "MxRAMModel",
 
 setMethod("imxModelBuilder", "MxRAMModel", 
 	function(model, lst, name, 
-		 manifestVars, latentVars, submodels, remove, independent) {
+		 manifestVars, latentVars, productVars, submodels, remove, independent) {
 		model <- nameArgument(model, name)
-		model <- variablesArgumentRAM(model, manifestVars, latentVars, submodels, remove)
+		model <- variablesArgumentRAM(model, manifestVars, latentVars, productVars, submodels, remove)
 		model <- listArgumentRAM(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
 		callNextMethod(model, notPathOrData, NA, character(), 
-			character(), list(), remove, independent)
+			character(), character(), list(), remove, independent)
 	}
 )
 
@@ -116,7 +116,7 @@ setMethod("imxVerifyModel", "MxRAMModel",
 
 # Helper functions used by the generic functions
 
-variablesArgumentRAM <- function(model, manifestVars, latentVars, submodels, remove) {
+variablesArgumentRAM <- function(model, manifestVars, latentVars, productVars, submodels, remove) {
 	manifestVars <- unlist(manifestVars)
 	latentVars <- unlist(latentVars)
 	if (single.na(manifestVars)) {
@@ -125,6 +125,10 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, submodels, rem
 	if (single.na(latentVars)) {
 		latentVars <- character()
 	}
+	if (single.na(productVars)) {
+		productVars <- character()
+	}
+	latentVars <- c(latentVars, productVars)
 	if (remove == TRUE) {
 		if (length(latentVars) + length(manifestVars) > 0) {
 			model <- removeVariablesRAM(model, latentVars, manifestVars)
@@ -138,6 +142,7 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, submodels, rem
 			manifestVars <- varsToCharacter(manifestVars, "manifest")
 			checkVariables(model, latentVars, manifestVars)
 			model <- addVariablesRAM(model, latentVars, manifestVars)
+			model[['expectation']]$isProductNode <- colnames(model$A) %in% productVars
 		}
 		if (length(submodels)) for(i in 1:length(submodels)) {
 			model <- addSingleNamedEntity(model, submodels[[i]])

@@ -110,12 +110,12 @@ createMatrixLISREL <- function(model, rowvariables, colvariables, matrixname){
 
 
 setMethod("imxModelBuilder", "MxLISRELModel", 
-	function(model, lst, name, manifestVars, latentVars, submodels, remove, independent) {
+	function(model, lst, name, manifestVars, latentVars, productVars, submodels, remove, independent) {
 		model <- nameArgument(model, name)
-		model <- variablesArgumentLISREL(model, manifestVars, latentVars, submodels, remove)
+		model <- variablesArgumentLISREL(model, manifestVars, latentVars, productVars, submodels, remove)
 		model <- listArgumentLISREL(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
-		callNextMethod(model, notPathOrData, NA, character(), character(), list(), remove, independent)
+		callNextMethod(model, notPathOrData, NA, character(), character(), character(), list(), remove, independent)
 		#stop("Not implemented")
 	}
 )
@@ -141,12 +141,15 @@ setReplaceMethod("$", "MxLISRELModel",
 )
 
 # Helpers for LISREL models
-variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, remove){
+variablesArgumentLISREL <- function(model, manifestVars, latentVars, productVars, submodels, remove){
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
 	if (single.na(latentVars)) {
 		latentVars <- character()
+	}
+	if(length(productVars) > 0 && !single.na(productVars)) {
+		stop("Whoopsie! Product nodes/variables are not currently supported for LISREL MxModel objects.")
 	}
 	if (remove == TRUE) {
 		if (length(latentVars) + length(manifestVars) > 0) {
