@@ -176,7 +176,7 @@ testdocs:
 	$(REXEC) --vanilla --slave < $(DOCTESTFILE)
 
 test:
-	./tools/test
+	sh ./tools/test
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE)
 
 test-failing:
