@@ -167,6 +167,13 @@ summary(ramResult1)
 omxCheckCloseEnough(coef(jointWlsResults) - coef(ramWlsResults),
                     rep(0,15), 1e-3)
 
+expect_equal(jointDlsResults$output$fit, 5.061, .1)
+expect_equal(summary(jointDlsResults)$Chi, 10.126, .1)
+expect_equal(summary(jointDlsResults)$ChiDoF, 5)
+
+noOptResult <- mxRun(jointDlsResults, useOptimizer = FALSE)
+expect_true(is.null(summary(noOptResult)$Chi))
+
 #------------------------------------------------------------------------------
 # Compare ML and WLS estimates
 
