@@ -150,8 +150,6 @@ if [ ! -f inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
 	    ;;
 	*Darwin)
 	    omx_os=osx
-	    arch_LDFLAGS="-mmacosx-version-min=10.7"
-	    arch_CXXFLAGS="-mmacosx-version-min=10.7"
 	    npsol_library="inst/npsol/osx"
 	    ;;
 	*)
