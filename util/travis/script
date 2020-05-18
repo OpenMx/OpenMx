@@ -45,7 +45,8 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
     if [ "x$MODE" = xbuild ]; then
 	git fetch --unshallow  # need tags to compute version string
-	make build
+	make cran-build
+	#make build
 	pushd staging && tar zxf OpenMx_*.tgz && popd
 	pushd staging/OpenMx/libs && ../../../util/libtastic.py -r -id OpenMx.so /usr/local/ && popd
 	pushd staging && tar zcf OpenMx_*.tgz OpenMx && popd
