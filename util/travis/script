@@ -48,8 +48,8 @@ elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
 	make cran-build &
 	travis_wait
 	#make build
-	pushd staging && tar zxf OpenMx_*.tgz && popd
+	pushd staging && tar zxf OpenMx_*.tar.gz && popd
 	pushd staging/OpenMx/libs && ../../../util/libtastic.py -r -id OpenMx.so /usr/local/ && popd
-	pushd staging && tar zcf OpenMx_*.tgz OpenMx && popd
+	pushd staging && tar zcf OpenMx_*.tar.gz OpenMx && popd
     fi
 fi
