@@ -211,15 +211,17 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	likelihood <- retval[['Minus2LogLikelihood']]
 	saturated <- retval[['SaturatedLikelihood']]
 	independence <- retval[['IndependenceLikelihood']]
-	if(is.null(model@output$chi)){
+  if (is.null(model@output$fitUnits)) return(retval)
+	if (model@output$fitUnits=="-2lnL" && is.null(model@output$chi)) {
 		chi <- likelihood - saturated
 	} else {chi <- model@output$chi}
+  if (is.null(chi)) return(retval)
 	DoF <- retval$degreesOfFreedom
 	satDoF <- retval$saturatedDoF
 	indDoF <- retval$independenceDoF
 	nParam <- dim(retval$parameters)[1]
 	Fvalue <- computeFValue(datalist, likelihood, chi)
-	if(is.null(model@output$chiDoF)){
+	if (model@output$fitUnits=="-2lnL" && is.null(model@output$chiDoF)) {
 		chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
 	} else {chiDoF <- model@output$chiDoF}
 	retval[['ChiDoF']] <- chiDoF

@@ -128,7 +128,7 @@ setGeneric("imxInitModel", function(model) {
 ##' imxModelBuilder,MxModel-method
 ##' imxModelBuilder,MxRAMModel-method
 setGeneric("imxModelBuilder", function(model, lst, name, 
-	manifestVars, latentVars, submodels, remove, independent) {
+	manifestVars, latentVars, productVars, submodels, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
 
 ##' imxTypeName
@@ -301,7 +301,7 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	submodels <- lst[filter]
 	lst <- lst[!filter]
 	model <- imxModelBuilder(model, lst, name, manifestVars,
-		latentVars, submodels, remove, independent)
+		latentVars, productVars, submodels, remove, independent)
 	return(model)
 }
 
@@ -316,7 +316,7 @@ productArgument <- function(x){
 		productVars <- x[[which(filter0)]]
 		x <- x[!filter0]
 	} else {
-		productVars <- NA
+		productVars <- character()
 	}
 	return(list(x, productVars=productVars))
 }
@@ -368,13 +368,14 @@ typeArgument <- function(model, type) {
 ##' @param name name
 ##' @param manifestVars manifestVars
 ##' @param latentVars latentVars
+##' @param productVars productVars
 ##' @param submodels submodels
 ##' @param remove remove
 ##' @param independent independent
 imxGenericModelBuilder <- function(model, lst, name, 
-	manifestVars, latentVars, submodels, remove, independent) {
+	manifestVars, latentVars, productVars, submodels, remove, independent) {
 	model <- nameArgument(model, name)
-	model <- variablesArgument(model, manifestVars, latentVars, submodels, remove)
+	model <- variablesArgument(model, manifestVars, latentVars, productVars, submodels, remove)
 	model <- listArgument(model, lst, remove)
 	model <- independentArgument(model, independent)
 	return(model)
@@ -430,12 +431,15 @@ varsToCharacter2 <- function(vars, vartype) {
 	}
 }
 
-variablesArgument <- function(model, manifestVars, latentVars, submodels, remove) {
+variablesArgument <- function(model, manifestVars, latentVars, productVars, submodels, remove) {
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
 	if (single.na(latentVars)) {
 		latentVars <- character()
+	}
+	if(length(productVars) > 0 && !single.na(productVars)) {
+		stop("Whoopsie! Product nodes/variables are not currently supported for generic MxModel objects.")
 	}
 	if (remove == TRUE) {
 		model <- modelRemoveVariables(model, latentVars, manifestVars)

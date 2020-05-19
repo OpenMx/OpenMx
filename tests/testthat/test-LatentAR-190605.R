@@ -94,3 +94,38 @@ if (0) {
   ## ggplot(df) +
   ##   geom_line(aes(x=variable, y=value, group=row), alpha=.1)
 }
+
+
+#------------------------------------------------------------------------------
+# Repeat test but now using the frontend productVars interface
+
+testARProdModel <- mxModel(model="testARProd", type="RAM",
+    manifestVars=tManifests,
+    latentVars=c(tLGCLatents, tARLatent),
+    productVars=tOps,
+    mxPath(from="I", to='t1', arrows=1, free=FALSE, values=1),
+    mxPath(from="S", to=tManifests, arrows=1, free=FALSE, values=c(0:5)),
+    mxPath(from="I", to="S", arrows=2, free=TRUE, values=0, labels="IScov"),
+    mxPath(from="B", to=tOps, arrows=1, free=FALSE, values=1),
+    mxPath(from=tManifests[1:5], to=tOps, arrows=1, free=FALSE, values=1),
+    mxPath(from=tOps, to=tManifests[2:6], arrows=1, free=FALSE, values=1),
+    
+    mxPath(from=tManifests, arrows=2, free=TRUE, values=1, labels="Ve"),
+    mxPath(from=c(tLGCLatents), arrows=2, free=TRUE, values=c(.53,.52), labels=c("VI", "VS")),
+    mxPath(from=c(tARLatent), arrows=2, free=TRUE, values=.11, labels=c("VB")),
+
+    mxPath(from="one", to=c(tLGCLatents), arrows=1, free=TRUE, values=c(.5,.4), labels=c("muI", "muS")),
+    mxPath(from="one", to=c(tARLatent), arrows=1, free=TRUE, values=1, labels=c("muB")),
+    mxPath(from="one", to=tOps, arrows=1, free=FALSE, values=1),
+    mxData(observed=cov(tsData), type='cov', means=colMeans(tsData),
+           numObs=nrow(tsData))
+)
+
+# N.B. A much shorter test would just check the -2LL at the starting values
+#  for the two models.
+
+testARProdModelFit <- mxRun(testARProdModel)
+expect_equal(testARProdModelFit$output$fit, testARModelFit$output$fit, .001)
+
+#------------------------------------------------------------------------------
+# End

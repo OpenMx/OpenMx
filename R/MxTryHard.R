@@ -525,6 +525,14 @@ THFrankenmodel <- function(finalfit,bestfit,defaultComputePlan,Hesslater,SElater
 	bestfit@output$independentTime <- bestfit@output$independentTime + finalfit@output$independentTime
 	bestfit@output$wallTime <- bestfit@output$wallTime + finalfit@output$wallTime
 	bestfit@output$cpuTime <- bestfit@output$cpuTime + finalfit@output$cpuTime
+	needednames <- names(finalfit@output)[which(!(names(finalfit@output) %in% names(bestfit@output)))]
+	#Whether or not output elements having to do with CIs, SEs, or Hessians should be returned is governed
+	#by user-provided arguments to mxTryHard(); those elements are handled by code above:
+	needednames <- needednames[
+		!(needednames %in% c(
+			"confidenceIntervals","confidenceIntervalCodes","calculatedHessian","hessian","standardErrors","infoDefinite","conditionNumber","vcov"))
+	]
+	bestfit@output[needednames] <- finalfit@output[needednames]
 	bestfit@.modifiedSinceRun <- FALSE
 	return(bestfit)
 }
