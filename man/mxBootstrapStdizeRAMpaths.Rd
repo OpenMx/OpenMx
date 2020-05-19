@@ -78,7 +78,7 @@ m1_booted = mxBootstrap(m1)
 # =    standardized values from each bootstrap.   =
 # =================================================
 
-tmp = mxBootstrapStdizeRAMpaths(m1)
+tmp = mxBootstrapStdizeRAMpaths(m1_booted)
 
 # tmp
 #                name  Estimate         SE
