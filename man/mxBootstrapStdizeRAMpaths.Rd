@@ -38,6 +38,12 @@ bootstraps are required to accurately estimate more extreme quantiles. For a 95\
 If \code{returnRaw=FALSE} (default), it returns a dataframe containing, among other things, the standardized path coefficients as estimated from the real data, their bootstrap SEs, and the lower and upper limits of a bootstrap confidence interval.  If \code{returnRaw=TRUE}, typically, a matrix containing the raw bootstrap results is returned; this matrix has one column per non-zero path coefficient, and one row for each successfully converged bootstrap replication or, if the number of paths varies between bootstraps, a raw list of results is returned.
 }
 
+\references{
+Efron B.  (1982).  \emph{The Jackknife, the Bootstrap, and Other Resampling Plans}.  Philadelphia:  Society for Industrial and Applied Mathematics.
+
+Efron B, Tibshirani RJ.  (1994).  \emph{An Introduction to the Bootstrap}.  Boca Raton: Chapman & Hall/CRC.
+}
+
 \seealso{
 	\code{\link{mxBootstrap}()}, \code{\link{mxStandardizeRAMpaths}()}, \code{\link{mxBootstrapEval}}, \code{\link{mxSummary}}
 }
