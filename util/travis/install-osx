@@ -16,7 +16,7 @@ sudo gtar --no-overwrite-dir --owner=travis --group=staff -zxf openmp-9.0.1-darw
 #cp ./util/gcc.conf ~/.R/Makevars
 
 echo '
-    CPPFLAGS += -Xclang -fopenmp
+    CPPFLAGS += -Xclang -fopenmp -DLIBOMP_ENABLE_SHARED=OFF
     LDFLAGS += -lomp
 ' > ~/.R/Makevars
 
