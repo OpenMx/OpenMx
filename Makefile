@@ -108,7 +108,7 @@ staging-prep: staging-clean
 	git archive --format=tar HEAD | (cd staging; tar -xf -)
 
 cran-build: staging-prep
-	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build .
+	+cd staging && sh ./util/prep cran build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
 build: staging-prep
 	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
