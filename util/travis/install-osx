@@ -9,7 +9,7 @@ xcodebuild -version | head -n 1 | cut -d ' ' -f 2
 
 id
 
-if true; then
+if false; then
 		cp ./util/gcc.conf ~/.R/Makevars
 		curl -Lo /tmp/gcc.tar.gz 'https://sourceforge.net/projects/hpc/files/hpc/gcc/gcc-7.3-bin.tar.gz/download'
 		curl -Lo /tmp/gfort.tar.gz 'https://sourceforge.net/projects/hpc/files/hpc/g95/gfortran-7.3-bin.tar.gz/download'
