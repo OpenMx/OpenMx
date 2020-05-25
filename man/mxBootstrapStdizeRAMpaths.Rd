@@ -18,7 +18,7 @@ mxBootstrapStdizeRAMpaths(model, bq= c(.25, .75),
   \item{model}{An MxModel that uses \link[=mxExpectationRAM]{RAM expectation} and has already been run through \code{\link{mxBootstrap}}.}
   \item{bq}{vector of 2 bootstrap quantiles corresponding to the lower and upper limits of the desired confidence interval.}
   \item{method}{One of 'bcbci' or 'quantile'.}
-  \item{returnRaw}{Whether or not to return the raw bootstrapping results (Defaults to \code{FALSE}: returning a dataframe summarising the results).}
+  \item{returnRaw}{Whether or not to return the raw bootstrapping results (Defaults to \code{FALSE}: returning a dataframe summarizing the results).}
 }
 
 \details{

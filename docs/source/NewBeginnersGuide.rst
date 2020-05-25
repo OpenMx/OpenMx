@@ -1153,7 +1153,7 @@ The ``expression`` of the ``mxEval`` statement can include both matrices, algebr
     nVars <- 4
     mxEval(nVars * harmonic.mean(c(A, submodel.B)), myModel6)
 
-When the name of an entity in a model collides with the name of a built-in or user-defined function in R, the named entity will supercede the function.  We strongly advice against naming entities with the same name as the predefined functions or values in R, such as `c`, `T`, and `F` among others.
+When the name of an entity in a model collides with the name of a built-in or user-defined function in R, the named entity will supersede the function.  We strongly advice against naming entities with the same name as the predefined functions or values in R, such as `c`, `T`, and `F` among others.
 
 The ``mxEval()`` function allows the user to inspect the values of named entities without explicitly poking at the internals of the components of a model.  We encourage the use of ``mxEval()`` to look at the state of a model either before the execution of a model or after model execution.
 
