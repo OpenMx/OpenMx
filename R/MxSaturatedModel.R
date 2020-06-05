@@ -277,6 +277,7 @@ ReferenceModelHelper <- function(x, distribution, equateThresholds) {
 mxRefModels <- function(x, run=FALSE, ..., distribution="default", equateThresholds = TRUE) {
   prohibitDotdotdot(list(...))
 	if(is(x,"MxModel")){
+    warnModelCreatedByOldVersion(x)
 		if(imxHasDefinitionVariable(x)){
 			warning(
 				"argument 'x' is an MxModel that contains definition variables, but mxRefModels() ignores definition variables, and therefore may not do what you expect")

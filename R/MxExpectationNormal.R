@@ -340,6 +340,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=model$name)
 {
+  warnModelCreatedByOldVersion(model)
   if (!is(model[[subname]], "MxModel")) {
     stop(paste("Submodel", subname, "in model", model$name, "is not found"))
   }
@@ -408,6 +409,7 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 }
 
 mxCheckIdentification <- function(model, details=TRUE){
+  warnModelCreatedByOldVersion(model)
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
 	if( class(model$fitfunction) %in% notAllowedFits ){
 		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
@@ -754,6 +756,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		if(is.null(nrows)) nrows <- nrow(model)
 		return(mxGenerateData(fake, nrows, returnModel, empirical=empirical))
 	}
+  warnModelCreatedByOldVersion(model)
 	if(is.null(subname)) subname <- model$name
 	if (is.null(model[[subname]]$expectation) && is(model[[subname]]$fitfunction, 'MxFitFunctionMultigroup')) {
 		todo <- sub(".fitfunction", "", model[[subname]]$fitfunction$groups, fixed=TRUE)

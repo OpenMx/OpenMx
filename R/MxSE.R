@@ -99,6 +99,7 @@
 ##' mxSE(lambda1^2, model = m1)
 mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ...,
 		 defvar.row=as.integer(NA), data='data'){
+  warnModelCreatedByOldVersion(model)
 	if(length(model@output) > 0 && missing(cov)){
 		ParamsCov <- try(vcov(model))
 		if(is(ParamsCov,"try-error")){

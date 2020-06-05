@@ -693,6 +693,7 @@ kalmanFrontendScoreHelper <- function(model, data=NA){
 }
 
 mxKalmanScores <- function(model, data=NA, frontend=TRUE){
+  warnModelCreatedByOldVersion(model)
 	if(!frontend){
 		scores <- kalmanBackendScoreHelper(model, data)
 	} else {

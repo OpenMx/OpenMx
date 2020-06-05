@@ -344,6 +344,7 @@ mxBootstrap <- function(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
 			OK=mxOption(model, "Status OK"), checkHess=FALSE) {
+  warnModelCreatedByOldVersion(model)
     if (!missing(plan)) {
 	    stop("The 'plan' argument is deprecated. Use mxModel(model, plan) and then mxBootstrap")
     }

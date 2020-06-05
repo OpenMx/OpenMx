@@ -427,9 +427,7 @@ mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1L
    if((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
-   if(!is(model, "MxModel")) {
-      stop("'model' argument must be a MxModel object")
-   }
+   warnModelCreatedByOldVersion(model)
 #for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
    eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack, 1L + .extraBack),
       list(x = as.symbol(name))))
@@ -464,6 +462,7 @@ omxBootstrapEvalCov <- function(expression, model, defvar.row = 1L, ...) {
 
 mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.75),
 				method=c('bcbci','quantile')) {
+  warnModelCreatedByOldVersion(model)
   expression <- match.call()$expression
   modelvariable <- match.call()$model
 	method <- match.arg(method)
@@ -477,6 +476,7 @@ mxBootstrapEvalByName <- function(name, model, defvar.row=1L, ..., bq=c(.25,.75)
    if((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
+  warnModelCreatedByOldVersion(model)
    method <- match.arg(method)
    eval(substitute(mxBootstrapEval(x, model, defvar.row, bq=bq, method=method),
       list(x = as.symbol(name))))

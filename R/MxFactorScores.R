@@ -29,6 +29,7 @@ requireMinManifests <- function(row) {
 
 mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minManifests=as.integer(NA))
 {
+  warnModelCreatedByOldVersion(model)
 	if(length(unlist(strsplit(model@name, split=' ', fixed=TRUE))) > 1){
 		message(paste('The model called', omxQuotes(model@name), 'has spaces in the model name.  I cannot handle models with spaces in the model name, so I removed them before getting factor scores.'))
 		model <- mxRename(model, paste(unlist(strsplit(model@name, split=' ', fixed=TRUE)), collapse=''))

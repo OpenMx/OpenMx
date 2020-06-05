@@ -28,6 +28,7 @@
 
 
 mxMI <- function(model, matrices=NA, full=TRUE){
+  warnModelCreatedByOldVersion(model)
 	if(single.na(matrices)){
 		matrices <- names(model$matrices) #names of them rather
 		if (is(model$expectation, "MxExpectationRAM")) {

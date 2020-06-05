@@ -47,6 +47,7 @@ mxTryHard <- function(
 	else if( !(0 %in% OKstatuscodes) ){OKstatuscodes <- c(OKstatuscodes,0)}
 	#if( !("MxModel" %in% class(model)) ){stop("argument 'model' must be an object of class 'MxModel'")}
 	if(initialTolerance<0){stop("value for argument 'initialTolerance' cannot be negative")}
+  warnModelCreatedByOldVersion(model)
 	if (omxHasDefaultComputePlan(model)) {
 		model@compute <- NULL
 	}
@@ -447,6 +448,7 @@ imxJiggle <- function(params, lbounds, ubounds, dsn, loc, scale){
 
 
 mxJiggle <- function(model, classic=FALSE, dsn=c("runif","rnorm","rcauchy"), loc=1, scale=0.25){
+  warnModelCreatedByOldVersion(model)
 	dsn <- match.arg(dsn, c("runif","rnorm","rcauchy"))
 	loc <- as.numeric(loc[1])
 	scale <- as.numeric(scale[1])

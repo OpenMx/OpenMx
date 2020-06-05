@@ -96,6 +96,7 @@ omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
 ##' m1s <- mxAutoStart(m1)
 ##' mxGetExpected(m1s, 'covariance')
 mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
+  warnModelCreatedByOldVersion(model)
 	type <- match.barg(type)
 	wmodel <- mxRun(omxBuildAutoStartModel(model, type), silent=TRUE)
 	newparams <- coef(wmodel)

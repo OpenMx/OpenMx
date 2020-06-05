@@ -132,9 +132,7 @@ mxSave <- function(model, chkpt.directory = ".", chkpt.prefix = "") {
 mxRestore <- function(model, chkpt.directory = mxOption(model, "Checkpoint directory"),
 		      chkpt.prefix = mxOption(model,"Checkpoint Prefix"), line=NULL, strict=FALSE)
 {
-	if (!is(model, "MxModel")) {
-		stop("'model' argument must be a MxModel object")
-	}
+  warnModelCreatedByOldVersion(model)
 	chkpt.directory <- removeTrailingSeparator(chkpt.directory)
 	if (strict && chkpt.prefix == "") {
 		chkpt.prefix <- model$name
@@ -182,6 +180,7 @@ mxRestore <- function(model, chkpt.directory = mxOption(model, "Checkpoint direc
 #' @param checkpoint a data.frame containing the model state
 mxRestoreFromDataFrame <- function(model, checkpoint, line=NULL)
 {
+  warnModelCreatedByOldVersion(model)
   allPar <- names(omxGetParameters(model, indep=TRUE, free=NA))
   badPar <- intersect(c("OpenMxContext","OpenMxNumFree","OpenMxEvals",
 			"iterations","timestamp","objective"), allPar)

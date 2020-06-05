@@ -20,9 +20,7 @@ getAllModelNames <- function(model) {
 }
 
 mxRename <- function(model, newname, oldname = NA) {
-	if( !is(model, "MxModel")) {
-		stop("'model' argument is not a MxModel object")
-	}
+  warnModelCreatedByOldVersion(model)
 	if( !is.character(newname)) {
 		stop("'newname' argument is not a character string")
 	}
