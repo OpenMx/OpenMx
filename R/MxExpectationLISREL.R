@@ -43,7 +43,6 @@ setClass(Class = "MxExpectationLISREL",
 		KA = "MxCharOrNumber",
 		AL = "MxCharOrNumber",
 		numStats = "numeric",
-		thresholds = "MxCharOrNumber",
 		dims = "character",
 		threshnames = "character",
 		depth = "integer", # speed up I-A inverse in RAM; speed up I-B inverse in LISREL
@@ -134,6 +133,7 @@ setMethod("genericExpConvertEntities", "MxExpectationLISREL",
 # **DONE**
 setMethod("qualifyNames", signature("MxExpectationLISREL"), 
 	function(.Object, modelname, namespace) {
+    .Object <- callNextMethod()
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		.Object@LX <- imxConvertIdentifier(.Object@LX, modelname, namespace)
 		.Object@LY <- imxConvertIdentifier(.Object@LY, modelname, namespace)
@@ -149,8 +149,7 @@ setMethod("qualifyNames", signature("MxExpectationLISREL"),
 		.Object@KA <- imxConvertIdentifier(.Object@KA, modelname, namespace)
 		.Object@AL <- imxConvertIdentifier(.Object@AL, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
-		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
-    callNextMethod(.Object, modelname, namespace)
+    .Object
 	}
 )
 
@@ -488,10 +487,11 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 # **DONE**
 setMethod("genericExpDependencies", signature("MxExpectationLISREL"),
 	function(.Object, dependencies) {
+    dependencies <- callNextMethod()
 	sources <- c(.Object@LX, .Object@LY, .Object@BE, .Object@GA, 
 		.Object@PH, .Object@PS, .Object@TD, .Object@TE, 
 		.Object@TH, .Object@TX, .Object@TY, .Object@KA, 
-		.Object@AL, .Object@thresholds)
+		.Object@AL)
 	sources <- sources[!is.na(sources)]
   sink <- .Object@name
   sink <- c(sink, .Object@expectedCovariance, .Object@expectedMean)
@@ -505,6 +505,7 @@ setMethod("genericExpDependencies", signature("MxExpectationLISREL"),
 # **DONE**
 setMethod("genericExpRename", signature("MxExpectationLISREL"),
 	function(.Object, oldname, newname) {
+    .Object <- callNextMethod()
 		.Object@LX <- renameReference(.Object@LX, oldname, newname)
 		.Object@LY <- renameReference(.Object@LY, oldname, newname)
 		.Object@BE <- renameReference(.Object@BE, oldname, newname)
@@ -519,7 +520,6 @@ setMethod("genericExpRename", signature("MxExpectationLISREL"),
 		.Object@KA <- renameReference(.Object@KA, oldname, newname)
 		.Object@AL <- renameReference(.Object@AL, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
-		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
     callNextMethod(.Object, oldname, newname)
 	}
 )
@@ -618,6 +618,11 @@ displayExpectationLISREL <- function(expectation) {
 	} else {
 		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
+	if (single.na(expectation@discrete)) {
+		cat("$discrete : NA \n")
+	} else {
+		cat("$discrete :", omxQuotes(expectation@discrete), '\n')
+	}
 	invisible(expectation)
 }
 
@@ -648,7 +653,7 @@ extractNAname <- function(name, subname){
 
 setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 	  function(.Object, model, what, defvar.row=1, subname=model@name) {
-		  ret <- list()
+		  ret <- callNextMethod()
 		  LXname <- extractNAname(.Object@LX, subname)
 		  LYname <- extractNAname(.Object@LY, subname)
 		  BEname <- extractNAname(.Object@BE, subname)
@@ -733,13 +738,6 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 					mean <- rbind(endoMean, exoMean)
 			  }
 			  ret[['means']] <- mean
-		  }
-		  if ('thresholds' %in% what) {
-			  thrname <- extractNAname(.Object@thresholds, subname)
-			  if(!single.na(thrname)){
-				  thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
-			  } else {thr <- matrix( , 0, 0)}
-			  ret[['thresholds']] <- thr
 		  }
 		  zcomp <- sapply(ret, function(x){prod(dim(x))}) == 0
 		  zcomp <- zcomp[!(names(zcomp) %in% c('thresholds', 'means'))]
