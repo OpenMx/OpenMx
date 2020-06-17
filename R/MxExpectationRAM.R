@@ -215,7 +215,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			if (mxDataObject@type == 'raw') {
 				threshName <- .Object@thresholds
 				verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
-				.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 				if (length(mxDataObject@observed) == 0) {
 					.Object@data <- as.integer(NA)
 				}

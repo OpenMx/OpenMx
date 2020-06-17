@@ -3728,8 +3728,15 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				Eigen::VectorXd vec1(sz);
 				exList[ex]->asVector(fc, 0, vec1);
 				exStats.segment(offset, sz) = vec1;
-				normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat, o1.thresholdMat,
-						  o1.numOrdinal, o1.thresholdCols, vec1);
+				if (o1.thresholdMat) {
+					EigenMatrixAdaptor Eth(o1.thresholdMat);
+					normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat, Eth,
+														o1.thresholdCols, vec1);
+				} else {
+					normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat,
+														[](int r,int c)->double{ return 0; },
+														o1.thresholdCols, vec1);
+				}
 				obStats.segment(offset, sz) = vec1;
 
 				if (o1.acovMat) {
@@ -4032,7 +4039,7 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 	for(size_t index = 0; index < expectationList.size(); index++) {
 		if(OMX_DEBUG) { mxLog("Final Calculation of Expectation %d.", (int) index); }
 		omxExpectation *curExpectation = expectationList[index];
-		omxExpectationRecompute(fc, curExpectation);
+		omxExpectationCompute(fc, curExpectation);
 		SEXP rExpect;
 		Rf_protect(rExpect = Rf_allocVector(LGLSXP, 1)); // placeholder to attach attributes
 		if(OMX_DEBUG) { mxLog("Expectation %d has attribute population.", (int) index); }

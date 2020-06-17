@@ -65,6 +65,7 @@ setMethod("genericExpFunConvert", signature("BaseExpectationNormal"),
                 stop(msg, call.=FALSE)
               }
             }
+            # ensure no column overlap between thresholds and discrete TODO
             .Object
           })
 
@@ -268,7 +269,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 			ret[['means']] <- mean
 		}
 
-    if (!is.null(ret[['thresholds']])) {
+    if (length(ret[['thresholds']])) {
       tnames <- .Object$threshnames
       if(!single.na(tnames)){
         colnames(ret[['thresholds']]) <- tnames

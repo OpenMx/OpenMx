@@ -153,7 +153,10 @@ void omxGREMLExpectation::init()
 }
 
 
-void omxGREMLExpectation::compute(FitContext *fc, const char *, const char *) {
+void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *how)
+{
+	super::compute(fc, what, how);
+
 	omxGREMLExpectation* oge = this;
 	omxRecompute(oge->cov, fc);
   int i=0;

@@ -160,7 +160,6 @@ class mvnByRow {
 	int row;
 	int lastrow;
 	bool firstRow;
-	omxMatrix *thresholdsMat;
 	const std::vector< omxThresholdColumn > &thresholdCols;
 	omxMatrix *cov;
 	omxMatrix *means;
@@ -215,11 +214,12 @@ class mvnByRow {
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
-		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->getThresholdInfo());
+		omxExpectation *ex = expectation;
+		ol.attach(dataColumns, data, [ex](int r, int c)->double{ return ex->getThreshold(r,c); },
+			expectation->getThresholdInfo());
 		row = ofo->rowBegin;
 		lastrow = ofo->rowBegin + ofo->rowCount;
 		firstRow = true;
-		thresholdsMat = expectation->thresholdsMat;
 		cov = ofo->cov;
 		means = ofo->means;
 		fc = _fc;
@@ -259,7 +259,7 @@ class mvnByRow {
 		}
 	};
 
-	bool loadRow()
+	void loadRow()
 	{
 		mxLogSetCurrentRow(row);
 		sortedRow = indexVector[row];
@@ -287,15 +287,7 @@ class mvnByRow {
 		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
 			INCR_COUNTER(expectationCompute);
-
-			for (int jx=0; jx < rowOrdinal; jx++) {
-				int j = ordColBuf[jx];
-				// WLS also needs this check? Refactor? TODO
-				if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
-							  thresholdCols[j].numThresholds, fc)) return false;
-			}
 		}
-		return true;
 	}
 
 	void record(double logLik, int nrows)

@@ -85,7 +85,7 @@ bool condOrdByRow::eval()
 	}
 
 	while(row < lastrow) {
-		if (!loadRow()) return true;
+		loadRow();
 		double iqf = NA_REAL;
 		double residSize = NA_REAL;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
@@ -114,7 +114,6 @@ bool condOrdByRow::eval()
 				bool firstContinuous = prevRowContinuous == 0;
 				if (!parent->ordinalSame[row] || firstContinuous) {
 					std::vector< omxThresholdColumn > &colInfo = expectation->getThresholdInfo();
-					EigenMatrixAdaptor tMat(thresholdsMat);
 					VectorXd uThresh(rowOrdinal);
 					VectorXd lThresh(rowOrdinal);
 					for(int jj=0; jj < rowOrdinal; jj++) {
@@ -130,13 +129,13 @@ bool condOrdByRow::eval()
 						int tcol = colInfo[col].column;
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
-							uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
+							uThresh[jj] = (expectation->getThreshold(pick, tcol) - ordMean[jj]);
 						} else if (pick == colInfo[col].numThresholds) {
-							lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
+							lThresh[jj] = (expectation->getThreshold(pick-1, tcol) - ordMean[jj]);
 							uThresh[jj] = std::numeric_limits<double>::infinity();
 						} else {
-							lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
-							uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
+							lThresh[jj] = (expectation->getThreshold(pick-1, tcol) - ordMean[jj]);
+							uThresh[jj] = (expectation->getThreshold(pick, tcol) - ordMean[jj]);
 						}
 					}
 
@@ -260,7 +259,7 @@ bool condContByRow::eval()
 	bool ordConditioned = false;
 
 	while(row < lastrow) {
-		if (!loadRow()) return true;
+		loadRow();
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 		EigenVectorAdaptor jointMeans(ofo->means);
@@ -1158,10 +1157,5 @@ void omxFIMLFitFunction::init()
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         omxCopyMatrix(newObj->ordContCov, newObj->cov);
-
-	if (!expectation->thresholdsMat) {
-		omxRaiseErrorf("%s: ordinal data found in %d columns but no thresholds",
-			 expectation->name, numOrdinal);
-	}
     }
 }

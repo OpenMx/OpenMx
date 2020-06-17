@@ -99,6 +99,8 @@ void MarkovExpectation::init()
 
 void MarkovExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
 	if (fc) {
 		for (auto c1 : components) {
 			c1->compute(fc, what, how);

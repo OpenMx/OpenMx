@@ -220,6 +220,8 @@ void BA81Expect::prep()
 
 void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
 	omxExpectation *oo = this;
 	BA81Expect *state = (BA81Expect *) oo;
 

@@ -855,28 +855,6 @@ double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2)
 	return mad;
 }
 
-bool thresholdsIncreasing(omxMatrix* om, int column, int count, FitContext *fc)
-{
-	int threshCrossCount = 0;
-	if(count > om->rows) {
-		mxThrow("Too many thresholds (%d) requested from %dx%d thresholds matrix (in column %d)",
-			 count, om->rows, om->cols, column);
-	}
-	for(int j = 1; j < count; j++ ) {
-		double lower = omxMatrixElement(om, j-1, column);
-		double upper = omxMatrixElement(om, j, column);
-		if (upper - lower < sqrt(std::numeric_limits<double>::epsilon()) * (fabs(lower) + fabs(upper))) {
-			threshCrossCount++;
-		}
-	}
-	if(threshCrossCount > 0) {
-		fc->recordIterationError("Found %d thresholds too close together in column %d.",
-					 threshCrossCount, column+1);
-		return false;
-	}
-	return true;
-}
-
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	int totalRows = 0, totalCols = 0, currentCol=0;

@@ -6,7 +6,8 @@ library(OpenMx)
 # Normal, RAM, LISREL
 # with and without regular thresholds
 
-data(demoOneFactor)
+skip("not yet")
+
 factorModel <- mxModel(
   "One Factor",
   mxMatrix("Full", 5, 1, values=0.8,
@@ -22,20 +23,28 @@ factorModel <- mxModel(
                     6, -2, 2, 4, .5),
            name="D"),
   mxExpectationNormal(covariance = "R",
-                      dimnames = names(demoOneFactor),
+                      dimnames = paste0('x',1:5),
                       threshnames = paste0('x',1:3),
                       discrete = "D"),
   mxFitFunctionML())
 
 mxGetExpected(factorModel, "thresholds")
 
-mxGenerateData(factorModel, 20)
+factorModel <- mxGenerateData(factorModel, 200, returnModel = TRUE)
+
+# convert to raw counts
+factorModel$data$observed$x1 <-
+  unclass(factorModel$data$observed$x1) - 1L
+
+fit <- mxRun(factorModel)
+
+stop("here")
 
 # ---------------
 
 library(OpenMx)
 
-manifests <- names(demoOneFactor)
+manifests <- paste0('x',1:5)
 latents <- c("G")
 factorModel <- mxModel(
   "One Factor",

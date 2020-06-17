@@ -34,7 +34,16 @@
 #include <R_ext/Rdynload.h> 
 
 class omxData;
-typedef struct omxThresholdColumn omxThresholdColumn;
+struct omxThresholdColumn {
+	int dColumn;			// Which column in the matrix/data.frame
+	int column;			// Which column in the thresholds matrix
+	int numThresholds;		// And how many thresholds
+
+	// for continuous variables, numThresholds=0
+	omxThresholdColumn() : dColumn(-1), column(0), numThresholds(0) {};
+
+	void log() { mxLog("dCol=%d col=%d #thr=%d", dColumn, column, numThresholds); }
+};
 
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
@@ -50,17 +59,6 @@ struct omxDefinitionVar {
 	int* deps;              // indices of algebra/matrix dependencies
 
 	bool loadData(omxState *state, double val);
-};
-
-struct omxThresholdColumn {
-	int dColumn;			// Which column in the matrix/data.frame
-	int column;			// Which column in the thresholds matrix
-	int numThresholds;		// And how many thresholds
-
-	// for continuous variables, numThresholds=0
-	omxThresholdColumn() : dColumn(-1), column(0), numThresholds(0) {};
-
-	void log() { mxLog("dCol=%d col=%d #thr=%d", dColumn, column, numThresholds); }
 };
 
 enum ColumnDataType {

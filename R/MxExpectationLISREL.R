@@ -54,7 +54,7 @@ setClass(Class = "MxExpectationLISREL",
 # **DONE**
 setMethod("initialize", "MxExpectationLISREL",
 	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL,
-		 dims, thresholds, threshnames, verbose,
+		 dims, thresholds, discrete, threshnames, verbose,
      expectedCovariance, expectedMean, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@LX <- LX
@@ -74,6 +74,7 @@ setMethod("initialize", "MxExpectationLISREL",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
+		.Object@discrete <- discrete
     .Object@expectedCovariance <- expectedCovariance
     .Object@expectedMean <- expectedMean
 		return(.Object)
@@ -460,7 +461,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
-			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 			if (length(mxDataObject@observed) == 0) {
 				.Object@data <- as.integer(NA)
 			}
@@ -540,7 +540,8 @@ checkLISRELargument <- function(x, xname) {
 #--------------------------------------------------------------------
 # **DONE**
 mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = dimnames, verbose=0L,
-                                ..., expectedCovariance=NULL, expectedMean=NULL) {
+                                ..., expectedCovariance=NULL, expectedMean=NULL,
+                                discrete = as.character(NA)) {
 	prohibitDotdotdot(list(...))
 	LX <- checkLISRELargument(LX, "LX")
 	LY <- checkLISRELargument(LY, "LY")
@@ -571,7 +572,7 @@ mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA,
 		stop("NA values are not allowed for dimnames vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, threshnames, as.integer(verbose), expectedCovariance, expectedMean))
+	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, discrete, threshnames, as.integer(verbose), expectedCovariance, expectedMean))
 }
 
 

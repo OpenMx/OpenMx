@@ -32,6 +32,7 @@
 
 #include "omxExpectation.h"
 #include "glue.h"
+#include "Compute.h"
 #include "EnableWarnings.h"
 
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
@@ -57,18 +58,35 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 	delete ox;
 }
 
-void omxExpectationRecompute(FitContext *fc, omxExpectation *ox)
+void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
-	omxExpectationCompute(fc, ox, NULL);
-}
+	if (data) data->recompute(); // for dynamic data
+	if (thresholdsMat) {
+		omxRecompute(thresholdsMat, fc);
 
-void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what, const char *how)
-{
-	if (!ox) return;
-
-	if (ox->data) ox->data->recompute(); // for dynamic data
-	if (ox->thresholdsMat) omxRecompute(ox->thresholdsMat, fc);
-	ox->compute(fc, what, how);
+		for (auto &th : thresholds) {
+			if (!th.numThresholds) continue;
+			int column = th.column;
+			int count = th.numThresholds;
+			int threshCrossCount = 0;
+			omxMatrix *om = thresholdsMat;
+			if(count > om->rows) {
+				mxThrow("Too many thresholds (%d) requested from %dx%d thresholds matrix (in column %d)",
+								count, om->rows, om->cols, column);
+			}
+			for(int j = 1; j < count; j++) {
+				double lower = omxMatrixElement(om, j-1, column);
+				double upper = omxMatrixElement(om, j, column);
+				if (upper - lower < sqrt(std::numeric_limits<double>::epsilon()) * (fabs(lower) + fabs(upper))) {
+					threshCrossCount++;
+				}
+			}
+			if(threshCrossCount > 0) {
+				fc->recordIterationError("Found %d thresholds too close together in column %d",
+																 threshCrossCount, column+1);
+			}
+		}
+	}
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
@@ -98,7 +116,6 @@ void omxExpectation::loadThresholds()
 {
 	bool debug = false;
 	CheckAST(thresholdsMat, 0);
-	numOrdinal = 0;
 
 	//omxPrint(thresholdsMat, "loadThr");
 
@@ -164,13 +181,6 @@ void omxExpectation::loadFromR()
 		numCols = Rf_length(Rdc);
 		ox->saveDataColumnsInfo(Rdc);
 		if(OMX_DEBUG) mxPrintMat("Variable mapping", base::getDataColumns());
-		if (isRaw) {
-			auto dc = base::getDataColumns();
-			for (int cx=0; cx < numCols; ++cx) {
-				int var = dc[cx];
-				data->assertColumnIsData(var);
-			}
-		}
 		if (R_has_slot(rObj, Rf_install("dataColumnNames"))) {
 			ProtectedSEXP Rdcn(R_do_slot(rObj, Rf_install("dataColumnNames")));
 			loadCharVecFromR(name, Rdcn, dataColumnNames);
@@ -187,6 +197,8 @@ void omxExpectation::loadFromR()
 		}
 	}
 
+	numOrdinal = 0;
+
 	if (R_has_slot(rObj, Rf_install("thresholds"))) {
 		if(OMX_DEBUG) {
 			mxLog("Accessing Threshold matrix.");
@@ -196,11 +208,17 @@ void omxExpectation::loadFromR()
 		if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
 			ox->thresholdsMat = omxMatrixLookupFromState1(threshMatrix, ox->currentState);
 			ox->loadThresholds();
-		} else {
-			if (OMX_DEBUG) {
-				mxLog("No thresholds matrix; not processing thresholds.");
-			}
-			ox->numOrdinal = 0;
+		}
+	}
+	if (R_has_slot(rObj, Rf_install("discrete"))) {
+		// TODO
+	}
+	if (isRaw) {
+		auto dc = base::getDataColumns();
+		for (int cx=0; cx < numCols; ++cx) {
+			int var = dc[cx];
+			data->assertColumnIsData(var);
+			// (thresholds[cx].numThresholds>0) == data->columnIsFactor(var)  HOLDS
 		}
 	}
 }
@@ -286,6 +304,12 @@ std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
 	return thresholds;
 }
 
+double omxExpectation::getThreshold(int r, int c)
+{
+	EigenMatrixAdaptor Eth(thresholdsMat);
+	return Eth(r,c);
+}
+
 void omxExpectation::print()
 {
 	mxLog("(Expectation, type %s) ", (name==NULL?"Untyped":name));
@@ -346,86 +370,6 @@ int omxExpectation::numSummaryStats()
 	return count;
 }
 
-void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, omxMatrix *thr,
-		       int numOrdinal, std::vector< omxThresholdColumn > &ti,
-		       Eigen::Ref<Eigen::VectorXd> out)
-{
-	// order of elements: (c.f. lav_model_wls, lavaan 0.6-2)
-	// 1. thresholds + means (interleaved)
-	// 2. slopes (if any, columnwise per exo)
-	// 3. variances (continuous indicators only)
-	// 4. covariances; not correlations (lower triangle)
-
-	EigenMatrixAdaptor Ecov(cov);
-	if (numOrdinal == 0) {
-		int dx = 0;
-		if (mean) {
-			EigenVectorAdaptor Emean(mean);
-			for (int rx=0; rx < cov->cols; ++rx) {
-				out[dx++] = Emean(rx);
-			}
-		}
-		if (slope) {
-			EigenMatrixAdaptor Eslope(slope);
-			for (int cx=0; cx < Eslope.cols(); ++cx) {
-				for (int rx=0; rx < Eslope.rows(); ++rx) {
-					out[dx++] = Eslope(rx,cx);
-				}
-			}
-		}
-		for (int cx=0; cx < cov->cols; ++cx) {
-			out[dx++] = Ecov(cx,cx);
-		}
-		for (int cx=0; cx < cov->cols-1; ++cx) {
-			for (int rx=cx+1; rx < cov->rows; ++rx) {
-				out[dx++] = Ecov(rx,cx);
-			}
-		}
-		return;
-	}
-	if (!mean) mxThrow("ordinal indicators and no mean vector");
-
-	EigenVectorAdaptor Emean(mean);
-	EigenMatrixAdaptor Eth(thr);
-	Eigen::VectorXd sdTmp(1.0/Ecov.diagonal().array().sqrt());
-	Eigen::DiagonalMatrix<double, Eigen::Dynamic> sd(Emean.size());
-	sd.setIdentity();
-	
-	int dx = 0;
-	for (auto &th : ti) {
-		for (int t1=0; t1 < th.numThresholds; ++t1) {
-			double sd1 = sdTmp[th.dColumn];
-			out[dx++] = (Eth(t1, th.column) - Emean[th.dColumn]) * sd1;
-			sd.diagonal()[th.dColumn] = sd1;
-		}
-		if (!th.numThresholds) {
-			out[dx++] = Emean[th.dColumn];
-		}
-	}
-	
-	if (slope) {
-		EigenMatrixAdaptor Eslope(slope);
-		for (int cx=0; cx < Eslope.cols(); ++cx) {
-			for (int rx=0; rx < Eslope.rows(); ++rx) {
-				out[dx++] = Eslope(rx,cx);
-			}
-		}
-	}
-
-	Eigen::MatrixXd stdCov(sd * Ecov * sd);
-
-	for (int cx=0; cx < cov->cols; ++cx) {
-		if (ti[cx].numThresholds) continue;
-		out[dx++] = stdCov(cx,cx);
-	}
-
-	for (int cx=0; cx < cov->cols-1; ++cx) {
-		for (int rx=cx+1; rx < cov->rows; ++rx) {
-			out[dx++] = stdCov(rx,cx);
-		}
-	}
-}
-
 void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::VectorXd> out)
 {
 	loadDefVars(row);
@@ -436,8 +380,9 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 		mxThrow("%s::asVector is not implemented", name);
 	}
 
-	normalToStdVector(cov, getComponent("means"), getComponent("slope"), thresholdsMat,
-			  numOrdinal, getThresholdInfo(), out);
+	normalToStdVector(cov, getComponent("means"), getComponent("slope"),
+										[this](int r, int c)->double{ return this->getThreshold(r,c); },
+										getThresholdInfo(), out);
 }
 
 bool omxExpectation::isClone() const
