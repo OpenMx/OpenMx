@@ -87,6 +87,37 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 			}
 		}
 	}
+	if (discreteMat) {
+		omxRecompute(discreteMat, fc);
+		EigenMatrixAdaptor dm(discreteMat);
+		discreteCache.resize(discreteMat->cols);
+		for (int cx=0; cx < discreteMat->cols; ++cx) {
+			auto &vec = discreteCache[cx];
+			vec.resize(dm(0,cx));
+			switch(int(dm(2,cx))) {
+			case 1:
+				for (int ox = 0; ox < vec.size(); ++ox) vec[ox] = Rf_ppois(ox, dm(3,cx), 1,0);
+				break;
+			case 2:
+				for (int ox = 0; ox < vec.size(); ++ox)
+					vec[ox] = Rf_pnbinom(ox, dm(3,cx), dm(4,cx),1,0);
+				break;
+			case 3:
+				for (int ox = 0; ox < vec.size(); ++ox)
+					vec[ox] = Rf_pnbinom_mu(ox, dm(3,cx), dm(4,cx),1,0);
+				break;
+			default:
+				mxThrow("%s: unknown discrete distribution %d in '%s' column %d",
+								name, dm(2,cx), discreteMat->name(), cx);
+			}
+			double zif = Rf_plogis(dm(1,cx), 0,1,1,0);
+			for(int j = 0; j < vec.size(); j++) {
+				vec[j] = Rf_qnorm5(zif + (1-zif) * vec[j], 0, 1, 1, 0);  // p2z
+			}
+			//mxLog("[%d]", cx);
+			//mxPrintMat("DC", vec);
+		}
+	}
 }
 
 omxMatrix* omxGetExpectationComponent(omxExpectation* ox, const char* component)
@@ -114,68 +145,111 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os)
 
 void omxExpectation::loadThresholds()
 {
+	numOrdinal = 0;
+	if (!thresholdsMat && !discreteMat) return;
+
 	bool debug = false;
-	CheckAST(thresholdsMat, 0);
+	if (thresholdsMat) CheckAST(thresholdsMat, 0);
+	if (discreteMat) CheckAST(discreteMat, 0);
 
 	//omxPrint(thresholdsMat, "loadThr");
 
 	auto dc = base::getDataColumns();
-	thresholds.reserve(dc.size());
-	std::vector<bool> found(thresholdsMat->cols, false);
+	thresholds.resize(dc.size());
 	for(int dx = 0; dx < int(dc.size()); dx++) {
-		int index = dc[dx];
-		omxThresholdColumn col;
-		col.dColumn = index;
+		thresholds[dx].dColumn = dc[dx];
+	}
 
+	std::vector<bool> tfound(thresholdsMat? thresholdsMat->cols : 0, false);
+	std::vector<bool> dfound(discreteMat? discreteMat->cols : 0, false);
+
+	for(int dx = 0; dx < int(dc.size()); dx++) {
+		omxThresholdColumn &col = thresholds[dx];
+		int index = col.dColumn;
 		const char *colname = data->columnName(index);
-		int tc = thresholdsMat->lookupColumnByName(colname);
 
-		if (tc < 0 || (data->isRaw() && !omxDataColumnIsFactor(data, index))) {	// Continuous variable
-			if(debug || OMX_DEBUG) {
-				mxLog("%s: column[%d] '%s' is continuous (tc=%d isFactor=%d)",
-				      name, index, colname, tc, omxDataColumnIsFactor(data, index));
+		if (thresholdsMat) {
+			int tc = thresholdsMat->lookupColumnByName(colname);
+			if (tc >= 0) {
+				tfound[tc] = true;
+				col.column = tc;
+				col.isDiscrete = false;
+				if (data->isRaw()) {
+					col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
+					data->assertColumnIsData(col.dColumn, OMXDATA_ORDINAL);
+				} else {
+					// See omxData
+				}
+				if(debug || OMX_DEBUG) {
+					mxLog("%s: column[%d] '%s' is ordinal with %d thresholds in column %d", 
+								name, index, colname, col.numThresholds, tc);
+				}
+				numOrdinal++;
 			}
-			thresholds.push_back(col);
-		} else {
-			found[tc] = true;
-			col.column = tc;
-			if (data->isRaw()) {
-				col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
-			} else {
-				// See omxData::permute
+		}
+		if (discreteMat) {
+			int tc = discreteMat->lookupColumnByName(colname);
+			if (tc >= 0) {
+				dfound[tc] = true;
+				col.column = tc;
+				col.isDiscrete = true;
+				col.numThresholds = omxMatrixElement(discreteMat, 0, tc);
+				if (data->isRaw()) {
+					data->assertColumnIsData(col.dColumn, OMXDATA_COUNT);
+					ColumnData &cd = data->rawCol(col.dColumn);
+					const auto range =
+						std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
+					mxLog("%s range %d-%d", colname, *range.first, *range.second);
+				} else {
+					// See omxData
+				}
+				if(debug || OMX_DEBUG) {
+					mxLog("%s: column[%d] '%s' is discrete with %d thresholds in column %d", 
+								name, index, colname, col.numThresholds, tc);
+				}
+				numOrdinal++;
 			}
-
-			thresholds.push_back(col);
-			if(debug || OMX_DEBUG) {
-				mxLog("%s: column[%d] '%s' is ordinal with %d thresholds in threshold column %d.", 
-				      name, index, colname, col.numThresholds, tc);
-			}
-			numOrdinal++;
 		}
 	}
 
-	if (numOrdinal != thresholdsMat->cols) {
+	if (thresholdsMat) {
 		std::string buf;
 		for (int cx=0; cx < thresholdsMat->cols; ++cx) {
-			if (found[cx]) continue;
-			buf += string_snprintf(" %d", 1+cx);
+			if (tfound[cx]) continue;
+			buf += string_snprintf(" %s(%d)", thresholdsMat->colnames[cx], 1+cx);
 		}
-		omxRaiseErrorf("%s: cannot find data for threshold columns:%s\n(Do appropriate threshold column names match data column names?)", name, buf.c_str());
+		if (buf.size()) {
+			mxThrow("%s: cannot find data for threshold columns:%s\n(Do appropriate threshold column names match data column names?)", name, buf.c_str());
+		}
+	}
+	if (discreteMat) {
+		std::string buf;
+		for (int cx=0; cx < discreteMat->cols; ++cx) {
+			if (dfound[cx]) continue;
+			buf += string_snprintf(" %s(%d)", discreteMat->colnames[cx], 1+cx);
+		}
+		if (buf.size()) {
+			mxThrow("%s: cannot find data for discrete columns:%s\n(Do appropriate discrete column names match data column names?)", name, buf.c_str());
+		}
 	}
 
-	if(debug || OMX_DEBUG) {
-		mxLog("%d threshold columns processed.", numOrdinal);
+	for (auto &th : thresholds) {
+		if (th.column >= 0) continue;
+		data->assertColumnIsData(th.dColumn, OMXDATA_REAL);
+		if(debug || OMX_DEBUG) {
+			mxLog("%s: column[%d] '%s' is continuous",
+						name, th.dColumn, data->columnName(th.dColumn));
+		}
 	}
 }
 
-void omxExpectation::loadFromR()
+void omxExpectation::loadDataColFromR()
 {
 	if (!rObj || !data) return;
 
 	auto ox = this;
 
 	int numCols=0;
-	bool isRaw = strEQ(omxDataType(data), "raw");
 	{
 		ProtectedSEXP Rdc(R_do_slot(rObj, Rf_install("dataColumns")));
 		numCols = Rf_length(Rdc);
@@ -196,29 +270,31 @@ void omxExpectation::loadFromR()
 			}
 		}
 	}
+}
 
-	numOrdinal = 0;
-
+void omxExpectation::loadThresholdFromR()
+{
 	if (R_has_slot(rObj, Rf_install("thresholds"))) {
-		if(OMX_DEBUG) {
-			mxLog("Accessing Threshold matrix.");
-		}
 		ProtectedSEXP threshMatrix(R_do_slot(rObj, Rf_install("thresholds")));
-
 		if(INTEGER(threshMatrix)[0] != NA_INTEGER) {
-			ox->thresholdsMat = omxMatrixLookupFromState1(threshMatrix, ox->currentState);
-			ox->loadThresholds();
+			thresholdsMat = omxMatrixLookupFromState1(threshMatrix, currentState);
 		}
 	}
 	if (R_has_slot(rObj, Rf_install("discrete"))) {
-		// TODO
+		ProtectedSEXP mat(R_do_slot(rObj, Rf_install("discrete")));
+		if(INTEGER(mat)[0] != NA_INTEGER) {
+			discreteMat = omxMatrixLookupFromState1(mat, currentState);
+		}
 	}
+	loadThresholds();
+	bool isRaw = strEQ(omxDataType(data), "raw");
 	if (isRaw) {
-		auto dc = base::getDataColumns();
-		for (int cx=0; cx < numCols; ++cx) {
-			int var = dc[cx];
-			data->assertColumnIsData(var);
-			// (thresholds[cx].numThresholds>0) == data->columnIsFactor(var)  HOLDS
+		if (thresholds.size() == 0) {
+			auto dc = base::getDataColumns();
+			for (int cx=0; cx < int(dc.size()); ++cx) {
+				int var = dc[cx];
+				data->assertColumnIsData(var, OMXDATA_REAL);
+			}
 		}
 	}
 }
@@ -267,7 +343,6 @@ void omxCompleteExpectation(omxExpectation *ox) {
 	if(ox->isComplete) return;
 	ox->isComplete = TRUE;
 
-	ox->loadFromR();
 	ox->init();
 
 	if (OMX_DEBUG) {
@@ -306,8 +381,15 @@ std::vector< omxThresholdColumn > &omxExpectation::getThresholdInfo()
 
 double omxExpectation::getThreshold(int r, int c)
 {
-	EigenMatrixAdaptor Eth(thresholdsMat);
-	return Eth(r,c);
+	auto &allTh = getThresholdInfo();
+	auto &th = allTh[c];
+	if (th.isDiscrete) {
+		auto &vec = discreteCache[c];
+		return vec[r];
+	} else {
+		EigenMatrixAdaptor Eth(thresholdsMat);
+		return Eth(r,c);
+	}
 }
 
 void omxExpectation::print()

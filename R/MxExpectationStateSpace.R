@@ -42,10 +42,8 @@ setClass(Class = "MxExpectationStateSpace",
 		x0 = "MxCharOrNumber",
 		P0 = "MxCharOrNumber",
 		u = "MxCharOrNumber",
-		thresholds = "MxCharOrNumber",
 		dims = "character",
 		definitionVars = "list",
-		threshnames = "character",
 		t = "MxCharOrNumber",
 		scores = "logical",
 		AIsZero = "logical",
@@ -63,7 +61,7 @@ setClass(Class = "MxExpectationStateSpace",
 #--------------------------------------------------------------------
 # **DONE**
 setMethod("initialize", "MxExpectationStateSpace",
-	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, thresholds, threshnames, t, scores,
+	function(.Object, A, B, C, D, Q, R, x0, P0, u, dims, t, scores,
 		data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
@@ -77,12 +75,10 @@ setMethod("initialize", "MxExpectationStateSpace",
 		.Object@u <- u
 		.Object@data <- data
 		.Object@dims <- dims
-		.Object@thresholds <- thresholds
 		.Object@t <- t
 		.Object@scores <- scores
 		.Object@AIsZero <- FALSE
 		.Object@definitionVars <- list()
-		.Object@threshnames <- threshnames
 		return(.Object)
 	}
 )
@@ -166,7 +162,6 @@ setMethod("genericExpConvertEntities", "MxExpectationStateSpace",
 			checkSSMConformable(Umatrix, udim, 1, 'u', omxQuotes(modelname))
 		}
 		flatModel <- updateSSMdimnames(.Object, flatModel)
-		flatModel <- updateThresholdDimnames(.Object, flatModel, labelsData)
 		
 		return(flatModel)
 	}
@@ -215,7 +210,6 @@ setMethod("qualifyNames", signature("MxExpectationStateSpace"),
 		.Object@P0 <- imxConvertIdentifier(.Object@P0, modelname, namespace)
 		.Object@u <- imxConvertIdentifier(.Object@u, modelname, namespace)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
-		.Object@thresholds <- sapply(.Object@thresholds, imxConvertIdentifier, modelname, namespace)
 		.Object@t <- imxConvertIdentifier(.Object@t, modelname, namespace)
 		#.Object@scores <- imxConvertIdentifier(.Object@scores, modelname, namespace)
 		return(.Object)
@@ -330,11 +324,8 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 		# Do data processing
 		translatedNames <- c(dimnames(cMatrix)[[1]])
 		if (mxDataObject@type == 'raw') {
-			threshName <- .Object@thresholds
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
-			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
-			.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 			if (length(mxDataObject@observed) == 0) {
 				.Object@data <- as.integer(NA)
 			}
@@ -352,7 +343,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationStateSpace"),
 setMethod("genericExpDependencies", signature("MxExpectationStateSpace"),
 	function(.Object, dependencies) {
 		sources <- c(.Object@A, .Object@B, .Object@C, .Object@D, .Object@Q, .Object@R,
-			.Object@x0, .Object@P0, .Object@u, .Object@thresholds, .Object@t)
+			.Object@x0, .Object@P0, .Object@u, .Object@t)
 		sources <- sources[!is.na(sources)]
 		dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 		return(dependencies)
@@ -374,7 +365,6 @@ setMethod("genericExpRename", signature("MxExpectationStateSpace"),
 		.Object@P0 <- renameReference(.Object@P0, oldname, newname)
 		.Object@u <- renameReference(.Object@u, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
-		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)
 		.Object@t <- renameReference(.Object@t, oldname, newname)
 		return(.Object)
 	}
@@ -429,10 +419,6 @@ setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
 				if (wantMean) {
 					ret[['means']] <- 'Not implemented'
 				}
-				if ('thresholds' %in% what) {
-					thr <- matrix( , 0, 0)
-					ret[['thresholds']] <- thr
-				}
 			} else {
 				ks <- mxKalmanScores(model, frontend=FALSE)
 				if(defvar.row =="all"){
@@ -445,10 +431,6 @@ setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
 				}
 				if (wantMean) {
 					ret[['means']] <- ks$yPredicted[defvar.row, , drop=FALSE]
-				}
-				if ('thresholds' %in% what) {
-					thr <- matrix( , 0, 0)
-					ret[['thresholds']] <- thr
 				}
 			}
 			ret
@@ -468,7 +450,7 @@ checkSSMargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = NA, threshnames = dimnames, ..., t=NA, scores=FALSE){
+mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, thresholds = deprecated(), threshnames = deprecated(), ..., t=NA, scores=FALSE){
 	A <- checkSSMargument(A, "A")
 	B <- checkSSMargument(B, "B")
 	C <- checkSSMargument(C, "C")
@@ -482,13 +464,9 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	if (length(scores) > 1 || typeof(scores) != "logical") {
 		stop("'scores' argument is not a logical value")
 	}
-	if (single.na(thresholds)) thresholds <- as.character(NA)
 	if (single.na(dimnames)) dimnames <- as.character(NA)
 	if (!is.vector(dimnames) || typeof(dimnames) != 'character') {
 		stop("Dimnames argument is not a character vector")
-	}
-	if (length(thresholds) != 1) {
-		stop("Thresholds argument must be a single matrix or algebra name")
 	}
 	if (length(dimnames) == 0) {
 		stop("Dimnames argument cannot be an empty vector")
@@ -496,12 +474,11 @@ mxExpectationStateSpace <- function(A, B, C, D, Q, R, x0, P0, u, dimnames = NA, 
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
 	}
-	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames, t=t, scores=scores))
+	return(new("MxExpectationStateSpace", A, B, C, D, Q, R, x0, P0, u, dimnames, t=t, scores=scores))
 }
 
-mxExpectationStateSpaceContinuousTime <- function(A, B, C, D, Q, R, x0, P0, u, t=NA, dimnames = NA, thresholds = NA, threshnames = dimnames, ..., scores=FALSE){
-	mxExpectationStateSpace(t=t, scores=scores, A, B, C, D, Q, R, x0, P0, u, dimnames, thresholds, threshnames)
+mxExpectationStateSpaceContinuousTime <- function(A, B, C, D, Q, R, x0, P0, u, t=NA, dimnames = NA, thresholds = deprecated(), threshnames = deprecated(), ..., scores=FALSE){
+	mxExpectationStateSpace(t=t, scores=scores, A, B, C, D, Q, R, x0, P0, u, dimnames)
 }
 
 mxExpectationSSCT <- mxExpectationStateSpaceContinuousTime
@@ -525,11 +502,6 @@ displayMxExpectationStateSpace <- function(expectation) {
 	} else {
 		cat("$dims :", omxQuotes(expectation@dims), '\n')
 	}		
-	if (single.na(expectation@thresholds)) {
-		cat("$thresholds : NA \n")
-	} else {
-		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
-	}
 	invisible(expectation)
 }
 

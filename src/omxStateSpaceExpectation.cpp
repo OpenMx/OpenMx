@@ -844,7 +844,13 @@ omxExpectation *omxInitStateSpaceExpectation(omxState *st, int num)
 
 void omxStateSpaceExpectation::init()
 {
-	if(OMX_DEBUG) { mxLog("Initializing State Space Expectation."); }
+	loadDataColFromR();
+
+	auto dc = getDataColumns();
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		int var = dc[cx];
+		data->assertColumnIsData(var, OMXDATA_REAL);
+	}
 		
 	int nx, ny, nu;
 	
@@ -897,7 +903,7 @@ void omxStateSpaceExpectation::init()
 	if(OMX_DEBUG) { mxLog("Processing first data row for y."); }
 	SSMexp->y = omxInitMatrix(ny, 1, TRUE, currentState);
 	for(int i = 0; i < ny; i++) {
-		data->assertColumnIsData(i);
+		data->assertColumnIsData(i, OMXDATA_REAL);
 		omxSetMatrixElement(SSMexp->y, i, 0, omxDoubleDataElement(data, 0, i));
 	}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(SSMexp->y, "....State Space: y"); }

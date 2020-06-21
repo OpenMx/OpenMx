@@ -186,6 +186,7 @@ mxThreshold <- function(vars, nThresh=NA, free=FALSE, values=mxNormalQuantiles(n
 	splitThresholds(vars, nThresh, free, values, labels, lbound, ubound)
 	
 }
+mxProbit <- mxThreshold # TODO
 
 generateDataThresholdColumns <- function(covarianceColumnNames, thresholdsMatrix) {
 	covarianceLength <- length(covarianceColumnNames)
@@ -454,7 +455,7 @@ setMethod("print", "MxPoisson", function(x,...) { displayPoisson(x) })
 setMethod("show", "MxPoisson", function(object) { displayPoisson(object) })
 
 mxPoisson <- function(vars, maxCount, lambda, zeroInf=-40,
-                      free=FALSE, labels=NA, lbound=NA, ubound=NA)
+                      free=FALSE, labels=NA, lbound=c(NA,0), ubound=NA)
 {
   for (par in c('maxCount','lambda','zeroInf')) {
     if (length(get(par)) != length(vars) &&
@@ -543,7 +544,7 @@ setMethod("print", "MxNegativeBinomial", function(x,...) { displayNegativeBinomi
 setMethod("show", "MxNegativeBinomial", function(object) { displayNegativeBinomial(object) })
 
 mxNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=-40,
-                      free=FALSE, labels=NA, lbound=NA, ubound=NA)
+                      free=FALSE, labels=NA, lbound=c(NA,0,0), ubound=NA)
 {
   if (!missing(prob) && !missing(mu)) stop("'prob' and 'mu' both specified")
   isMu <- !missing(mu)

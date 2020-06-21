@@ -85,7 +85,8 @@ omxExpectation *omxInitNormalExpectation(omxState *st, int num)
 
 void omxNormalExpectation::init()
 {
-    if(OMX_DEBUG) { mxLog("Initializing Normal expectation."); }
+	loadDataColFromR();
+	loadThresholdFromR();
 
     omxNormalExpectation *one = this;
 	

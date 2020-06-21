@@ -6,10 +6,9 @@ library(OpenMx)
 # Normal, RAM, LISREL
 # with and without regular thresholds
 
-skip("not yet")
-
 factorModel <- mxModel(
   "One Factor",
+  mxMatrix(nrow=1, ncol=5, free=FALSE, values=0, name="M"),
   mxMatrix("Full", 5, 1, values=0.8,
            free=TRUE, name="A"),
   mxMatrix("Symm", 1, 1, values=1,
@@ -18,27 +17,33 @@ factorModel <- mxModel(
            free=TRUE, name="U"),
   mxAlgebra(A %*% L %*% t(A) + U, name="R"),
   mxMatrix(nrow=5, ncol=3,
-           values=c(4, -2, 1, .7, NA,
+           values=c(4, -2, 1, 1.1, NA,
                     5, -2, 1, .6, NA,
                     6, -2, 2, 4, .5),
+           dimnames=list(c(), paste0('x',1:3)),
            name="D"),
   mxExpectationNormal(covariance = "R",
                       dimnames = paste0('x',1:5),
-                      threshnames = paste0('x',1:3),
-                      discrete = "D"),
+                      discrete = "D",
+                      means = "M"),
   mxFitFunctionML())
 
 mxGetExpected(factorModel, "thresholds")
 
-factorModel <- mxGenerateData(factorModel, 200, returnModel = TRUE)
+factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
 
 # convert to raw counts
-factorModel$data$observed$x1 <-
-  unclass(factorModel$data$observed$x1) - 1L
+# factorModel$data$observed$x1 <-
+#   unclass(factorModel$data$observed$x1) - 1L
+
+#factorModel$D$free[2,] <- TRUE
+factorModel$D$free[4:5,] <- !is.na(factorModel$D$values[4:5,])
 
 fit <- mxRun(factorModel)
+summary(fit)
+fit$D
 
-stop("here")
+q()
 
 # ---------------
 

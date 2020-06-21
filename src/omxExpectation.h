@@ -43,6 +43,8 @@ class omxExpectation {					// An Expectation
 	int *dataColumnsPtr;
 	std::vector<const char *> dataColumnNames;
 	omxMatrix *thresholdsMat;
+	omxMatrix *discreteMat;
+	std::vector< Eigen::VectorXd > discreteCache;
 	std::vector< omxThresholdColumn > thresholds;  // size() == numDataColumns
 
 	void loadThresholds();
@@ -67,7 +69,7 @@ class omxExpectation {					// An Expectation
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), numDataColumns(0), rObj(0), name(0),
-		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(state),
+		data(0), thresholdsMat(0), discreteMat(0), numOrdinal(0), isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
@@ -89,7 +91,8 @@ class omxExpectation {					// An Expectation
 	}
 
 	virtual bool usesDataColumnNames() const { return true; }
-	void loadFromR();
+	void loadDataColFromR();
+	void loadThresholdFromR();
 	bool loadDefVars(int row);
 	void loadFakeDefVars();
 

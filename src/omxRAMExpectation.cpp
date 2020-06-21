@@ -250,8 +250,10 @@ omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
 	}
 }
 
-void omxRAMExpectation::init() {
-	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
+void omxRAMExpectation::init()
+{
+	loadDataColFromR();
+	loadThresholdFromR();
 	
 	int l, k;
 

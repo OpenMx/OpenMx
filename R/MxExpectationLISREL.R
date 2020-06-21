@@ -44,7 +44,6 @@ setClass(Class = "MxExpectationLISREL",
 		AL = "MxCharOrNumber",
 		numStats = "numeric",
 		dims = "character",
-		threshnames = "character",
 		depth = "integer", # speed up I-A inverse in RAM; speed up I-B inverse in LISREL
 		verbose = "integer"),
 	contains = "BaseExpectationNormal")
@@ -54,7 +53,7 @@ setClass(Class = "MxExpectationLISREL",
 # **DONE**
 setMethod("initialize", "MxExpectationLISREL",
 	function(.Object, LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL,
-		 dims, thresholds, discrete, threshnames, verbose,
+		 dims, thresholds, discrete, verbose,
      expectedCovariance, expectedMean, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@LX <- LX
@@ -539,10 +538,13 @@ checkLISRELargument <- function(x, xname) {
 
 #--------------------------------------------------------------------
 # **DONE**
-mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = dimnames, verbose=0L,
+mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA, TX = NA, TY = NA, KA = NA, AL = NA, dimnames = NA, thresholds = NA, threshnames = deprecated(), verbose=0L,
                                 ..., expectedCovariance=NULL, expectedMean=NULL,
                                 discrete = as.character(NA)) {
 	prohibitDotdotdot(list(...))
+  if (lifecycle::is_present(threshnames)) {
+    deprecate_warn("2.18", "mxExpectationLISREL(threshnames = )")
+  }
 	LX <- checkLISRELargument(LX, "LX")
 	LY <- checkLISRELargument(LY, "LY")
 	BE <- checkLISRELargument(BE, "BE")
@@ -571,8 +573,7 @@ mxExpectationLISREL <- function(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA,
 	if (length(dimnames) > 1 && any(is.na(dimnames))) {
 		stop("NA values are not allowed for dimnames vector")
 	}
-	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, discrete, threshnames, as.integer(verbose), expectedCovariance, expectedMean))
+	return(new("MxExpectationLISREL", LX, LY, BE, GA, PH, PS, TD, TE, TH, TX, TY, KA, AL, dimnames, thresholds, discrete, as.integer(verbose), expectedCovariance, expectedMean))
 }
 
 

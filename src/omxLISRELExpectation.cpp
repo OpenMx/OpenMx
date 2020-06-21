@@ -433,8 +433,10 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 omxExpectation *omxInitLISRELExpectation(omxState *st, int num)
 { return new omxLISRELExpectation(st, num); }
 
-void omxLISRELExpectation::init() {
-	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }
+void omxLISRELExpectation::init()
+{
+	loadDataColFromR();
+	loadThresholdFromR();
 		
 	slope = 0;
 	verbose = 0;

@@ -19,6 +19,7 @@ setClass(Class = "BaseExpectationNormal",
            expectedCovariance = "MxOptionalCharOrNumber",
            expectedMean = "MxOptionalCharOrNumber",
            thresholds = "MxCharOrNumber",
+           threshnames = "character",
            discrete = "MxCharOrNumber"))
 
 setMethod("qualifyNames", signature("BaseExpectationNormal"), 
@@ -65,7 +66,28 @@ setMethod("genericExpFunConvert", signature("BaseExpectationNormal"),
                 stop(msg, call.=FALSE)
               }
             }
-            # ensure no column overlap between thresholds and discrete TODO
+            
+            tname <- .Object$thresholds
+            dname <- .Object$discrete
+            if (!is.na(dname)) {
+              dmat <- flatModel[[dname]]
+              if (length(colnames(dmat)) == 0) {
+                stop(paste(dname, "must have column names"))
+              }
+              if (any(dmat$free[c(1,3),])) {
+                stop(paste("Cannot free entries in the rows 1 or 3 of", dname))
+              }
+            }
+            if (!is.na(tname) && !is.na(dname)) {
+              dup <- intersect(colnames(flatModel[[tname]]), colnames(flatModel[[dname]]))
+              if (length(dup)) {
+                msg <- paste('Manifest', omxQuotes(dup), 'cannot be modelled as',
+                             'a threshold and as a discrete variable at the',
+                             'same time')
+                stop(msg, call.=FALSE)
+              }
+            }
+
             .Object
           })
 
@@ -88,6 +110,10 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
 			if(!single.na(thrname)){
 				thrname <- .modifyDottedName(subname, thrname, sep=".")
 				thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
+        tnames <- .Object@threshnames
+        if(!single.na(tnames)){
+          colnames(thr) <- tnames
+        }
 			}
       disname <- .Object@discrete
       if (!single.na(disname)) {
@@ -171,7 +197,6 @@ setClass(Class = "MxExpectationNormal",
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
 		dims = "character",
-		threshnames = "character",
 		ExpCov = "matrix",
 		ExpMean = "matrix",
     numStats = "numeric"),
@@ -267,13 +292,6 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 				}
 			} else {mean <- matrix( , 0, 0)}
 			ret[['means']] <- mean
-		}
-
-    if (length(ret[['thresholds']])) {
-      tnames <- .Object$threshnames
-      if(!single.na(tnames)){
-        colnames(ret[['thresholds']]) <- tnames
-      }
 		}
 		ret
 	})
