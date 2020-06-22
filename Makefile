@@ -125,7 +125,7 @@ srcbuild: staging-prep packages-help
 	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD build .
 
 cran-check: cran-build
-	+cd staging && $(REXEC) CMD check --as-cran OpenMx_*.tar.gz | tee cran-check.log
+	+cd staging && _R_CHECK_FORCE_SUGGESTS_=false $(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
 	wc -l staging/OpenMx.Rcheck/00check.log
 	@if [ $$(wc -l staging/OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 77 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
@@ -224,6 +224,7 @@ clean:
 	-rm src/*.dll
 	-rm runtimes.csv
 	-rm src/omxSymbolTable.*
+	-rm -r inst/debug
 
 veryclean: clean
 	-rm DESCRIPTION
