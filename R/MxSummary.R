@@ -576,7 +576,7 @@ print.summary.mxmodel <- function(x,...) {
 	}
 	#
 	# Chi-square goodness of fit test
-	if(x$verbose==TRUE || !is.na(x$Chi)){
+	if(x$verbose==TRUE || (!is.null(x$Chi) && !is.na(x$Chi))) {
 		chival <- x$Chi
 		if(is.na(x$SaturatedLikelihood)){
 			chidof <- NA
