@@ -4,7 +4,9 @@ library(OpenMx)
 
 # to test:
 # Normal, RAM, LISREL
+# ML / WLS
 # with and without regular thresholds
+# ordered factor vs raw count
 
 factorModel <- mxModel(
   "One Factor",
@@ -60,8 +62,8 @@ factorModel <- mxModel(
   mxPath(from=manifests, arrows=2,values=1),
   mxPath(from=latents, arrows=2,
          free=FALSE, values=1.0),
-  mxPoisson(paste0("x",1:2), c(4,5), c(.6,.7)),
-  mxNegativeBinomial("x3", 6, 4, .5))
+  mxMarginalPoisson(paste0("x",1:2), c(4,5), c(.6,.7)),
+  mxMarginalNegativeBinomial("x3", 6, 4, .5))
 
 round(mxGetExpected(factorModel, "thresholds"),3)
 

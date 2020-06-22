@@ -197,9 +197,9 @@ void omxExpectation::loadThresholds()
 				if (data->isRaw()) {
 					data->assertColumnIsData(col.dColumn, OMXDATA_COUNT);
 					ColumnData &cd = data->rawCol(col.dColumn);
-					const auto range =
-						std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
-					mxLog("%s range %d-%d", colname, *range.first, *range.second);
+					// const auto range =
+					// 	std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
+					// mxLog("%s range %d-%d", colname, *range.first, *range.second);
 				} else {
 					// See omxData
 				}

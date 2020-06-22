@@ -186,7 +186,8 @@ mxThreshold <- function(vars, nThresh=NA, free=FALSE, values=mxNormalQuantiles(n
 	splitThresholds(vars, nThresh, free, values, labels, lbound, ubound)
 	
 }
-mxProbit <- mxThreshold # TODO
+
+mxMarginalProbit <- mxThreshold
 
 generateDataThresholdColumns <- function(covarianceColumnNames, thresholdsMatrix) {
 	covarianceLength <- length(covarianceColumnNames)
@@ -391,7 +392,11 @@ setAs("MxThreshold", "MxMatrix", function(from) { as.MxMatrix.MxThreshold(from)}
 
 # --------------
 
-setClass(Class = "DiscreteBase",
+#' An S4 base class for discrete marginal distributions
+#'
+#' @aliases DiscreteBase-class $,DiscreteBase-method $<-,DiscreteBase-method
+#' @seealso \link{mxMarginalPoisson}, \link{mxMarginalNegativeBinomial}
+DiscreteBase <- setClass(Class = "DiscreteBase",
 	representation = representation(
 		variable = "character",
 		maxCount = "integer",
@@ -410,13 +415,13 @@ setReplaceMethod("$", "DiscreteBase",
 	}
 )
 
-setClass(Class = "MxPoisson",
+setClass(Class = "MxMarginalPoisson",
          contains = "DiscreteBase",
          representation = representation(
            zeroInf  = "numeric",
            lambda   = "numeric"))
 
-setMethod("initialize", "MxPoisson",
+setMethod("initialize", "MxMarginalPoisson",
           function(.Object, variable, maxCount, lambda, zeroInf, free,
                    labels, lbound, ubound) {
             .Object@variable <- variable
@@ -430,7 +435,7 @@ setMethod("initialize", "MxPoisson",
             return(.Object)
           })
 
-setAs("MxPoisson", "MxMatrix", function(from) {
+setAs("MxMarginalPoisson", "MxMatrix", function(from) {
   mxMatrix("Full", nrow=5, ncol=1,
            free=c(FALSE, from@free[1], FALSE, from@free[2], FALSE),
            values=c(from@maxCount, from@zeroInf, 1, from@lambda, NA),
@@ -441,8 +446,8 @@ setAs("MxPoisson", "MxMatrix", function(from) {
            condenseSlots=FALSE)
 })
 
-displayPoisson <- function(Ob) {
-	cat("mxPoisson", '\n')
+displayMarginalPoisson <- function(Ob) {
+	cat("mxMarginalPoisson", '\n')
   for (sl in c("variable", "maxCount", "lambda", "zeroInf",
                "free", "labels", "lbound", "ubound")) {
     slname <- paste0("$", sl)
@@ -451,10 +456,22 @@ displayPoisson <- function(Ob) {
   invisible(Ob)
 }
 
-setMethod("print", "MxPoisson", function(x,...) { displayPoisson(x) })
-setMethod("show", "MxPoisson", function(object) { displayPoisson(object) })
+setMethod("print", "MxMarginalPoisson", function(x,...) { displayMarginalPoisson(x) })
+setMethod("show", "MxMarginalPoisson", function(object) { displayMarginalPoisson(object) })
 
-mxPoisson <- function(vars, maxCount, lambda, zeroInf=-40,
+#' Indicator with marginal Poisson distribution
+#'
+#' @param vars character vector of manifest indicators
+#' @param maxCount maximum observed count
+#' @param lambda non-negative means
+#' @param zeroInf zero inflation parameter in logit units
+#' @param free logical vector indicating whether paremeters are free
+#' @param labels character vector of parameter labels
+#' @param lbound numeric vector of lower bounds
+#' @param ubound numeric vector of upper bounds
+#' @return a list of MxMarginPoisson obects
+#' @aliases MxMarginalPoisson-class print,MxMarginalPoisson-method show,MxMarginalPoisson-method $,MxMarginalPoisson-method $<-,MxMarginalPoisson-method
+mxMarginalPoisson <- function(vars, maxCount, lambda, zeroInf=-40,
                       free=FALSE, labels=NA, lbound=c(NA,0), ubound=NA)
 {
   for (par in c('maxCount','lambda','zeroInf')) {
@@ -474,7 +491,7 @@ mxPoisson <- function(vars, maxCount, lambda, zeroInf=-40,
   vx <- 1
   for (xx in 1:length(vars)) {
     poi[[xx]] <-
-      new("MxPoisson", vars[xx],
+      new("MxMarginalPoisson", vars[xx],
           maxCount[1 + (xx-1) %% length(maxCount)],
           lambda[1 + (xx-1) %% length(lambda)],
           zeroInf[1 + (xx-1) %% length(zeroInf)],
@@ -488,7 +505,7 @@ mxPoisson <- function(vars, maxCount, lambda, zeroInf=-40,
   poi
 }
 
-setClass(Class = "MxNegativeBinomial",
+setClass(Class = "MxMarginalNegativeBinomial",
          contains = "DiscreteBase",
          representation = representation(
            zeroInf  = "numeric",
@@ -496,7 +513,7 @@ setClass(Class = "MxNegativeBinomial",
            prob = "MxOptionalNumeric",
            mu = "MxOptionalNumeric"))
 
-setMethod("initialize", "MxNegativeBinomial",
+setMethod("initialize", "MxMarginalNegativeBinomial",
           function(.Object, variable, maxCount, size, prob, mu, zeroInf, free,
                    labels, lbound, ubound) {
             .Object@variable <- variable
@@ -512,7 +529,7 @@ setMethod("initialize", "MxNegativeBinomial",
             return(.Object)
           })
 
-setAs("MxNegativeBinomial", "MxMatrix", function(from) {
+setAs("MxMarginalNegativeBinomial", "MxMatrix", function(from) {
   if (length(from@mu) == 0) {
     id <- 2
     v2 <- from@prob
@@ -530,8 +547,8 @@ setAs("MxNegativeBinomial", "MxMatrix", function(from) {
            condenseSlots=FALSE)
 })
 
-displayNegativeBinomial <- function(Ob) {
-	cat("mxNegativeBinomial", '\n')
+displayMarginalNegativeBinomial <- function(Ob) {
+	cat("mxMarginalNegativeBinomial", '\n')
   for (sl in c("variable", "maxCount", "size", "prob", "mu", "zeroInf",
                "free", "labels", "lbound", "ubound")) {
     slname <- paste0("$", sl)
@@ -540,10 +557,24 @@ displayNegativeBinomial <- function(Ob) {
   invisible(Ob)
 }
 
-setMethod("print", "MxNegativeBinomial", function(x,...) { displayNegativeBinomial(x) })
-setMethod("show", "MxNegativeBinomial", function(object) { displayNegativeBinomial(object) })
+setMethod("print", "MxMarginalNegativeBinomial", function(x,...) { displayMarginalNegativeBinomial(x) })
+setMethod("show", "MxMarginalNegativeBinomial", function(object) { displayMarginalNegativeBinomial(object) })
 
-mxNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=-40,
+#' Indicator with marginal Negative Binomial distribution
+#'
+#' @param vars character vector of manifest indicators
+#' @param maxCount maximum observed count
+#' @param size positive target number of successful trials
+#' @param prob probability of success in each trial -- in logits?
+#' @param mu alternative parametrization via mean
+#' @param zeroInf zero inflation parameter in logit units
+#' @param free logical vector indicating whether paremeters are free
+#' @param labels character vector of parameter labels
+#' @param lbound numeric vector of lower bounds
+#' @param ubound numeric vector of upper bounds
+#' @return a list of MxMarginPoisson obects
+#' @aliases MxMarginalNegativeBinomial-class print,MxMarginalNegativeBinomial-method show,MxMarginalNegativeBinomial-method $,MxMarginalNegativeBinomial-method $<-,MxMarginalNegativeBinomial-method
+mxMarginalNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=-40,
                       free=FALSE, labels=NA, lbound=c(NA,0,0), ubound=NA)
 {
   if (!missing(prob) && !missing(mu)) stop("'prob' and 'mu' both specified")
@@ -567,7 +598,7 @@ mxNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=-
   vx <- 1
   for (xx in 1:length(vars)) {
     poi[[xx]] <-
-      new("MxNegativeBinomial", vars[xx],
+      new("MxMarginalNegativeBinomial", vars[xx],
           maxCount[1 + (xx-1) %% length(maxCount)],
           size[1 + (xx-1) %% length(size)],
           prob[1 + (xx-1) %% length(prob)],

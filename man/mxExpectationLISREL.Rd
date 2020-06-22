@@ -30,7 +30,7 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
                     TX = NA, TY = NA, KA = NA, AL = NA,
                     dimnames = NA, thresholds = NA,
 	 threshnames = deprecated(), verbose=0L, ...,
-  expectedCovariance=NULL, expectedMean=NULL)
+  expectedCovariance=NULL, expectedMean=NULL, discrete = as.character(NA))
 }
 
 
@@ -57,6 +57,7 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
    name of a matrix for the model implied covariance.}
    \item{expectedMean}{An optional character string indicating the name
    of a matrix for the model implied mean.}
+   \item{discrete}{An optional character string indicating the name of the discrete matrix.}
 }
 
 \details{
