@@ -473,8 +473,6 @@ void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, 
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
 
-bool thresholdsIncreasing(omxMatrix* om, int column, int count, FitContext *fc);
-
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result);
 
 void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result);

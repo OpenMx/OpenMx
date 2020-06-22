@@ -171,10 +171,7 @@ addFormulaDetection <- function(formula, sink, dependencies) {
 ##' @param dependencies the dependency graph
 
 imxAddDependency <- function(source, sink, dependencies) {
-	if (length(source) == 0) {
-		warning("imxAddDependency called with no sources (ignored)")
-		return(dependencies)
-	}
+	if (length(source) == 0) return(dependencies)
   dependencies <- addNode(source, dependencies)
   dependencies <- addNode(sink, dependencies)
   for (s1 in sink) {

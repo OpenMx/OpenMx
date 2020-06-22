@@ -28,7 +28,6 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* expectedFlattened;
 	omxMatrix* P;
 	omxMatrix* B;
-	int numOrdinal;
 	int vectorSize;
 	
 	const char *type;
@@ -42,8 +41,6 @@ struct omxWLSFitFunction : omxFitFunction {
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
 	
-	void flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope, omxMatrix *thresholdMat,
-				 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector);
 	void prepData();
 	virtual void invalidateCache()
 	{
@@ -51,14 +48,6 @@ struct omxWLSFitFunction : omxFitFunction {
 		observedFlattened = 0;
 	}
 };
-
-void omxWLSFitFunction::flattenDataToVector(omxMatrix* cov, omxMatrix* means, omxMatrix *slope,
-					    omxMatrix *thresholdMat,
-			 std::vector< omxThresholdColumn > &thresholds, omxMatrix* vector)
-{
-	EigenVectorAdaptor vec1(vector);
-	normalToStdVector(cov, means, slope, thresholdMat, numOrdinal, thresholds, vec1);
-}
 
 omxWLSFitFunction::~omxWLSFitFunction()
 {
@@ -70,7 +59,6 @@ omxWLSFitFunction::~omxWLSFitFunction()
 	omxFreeMatrix(owo->B);
 	omxFreeMatrix(owo->P);
 }
-
 
 void omxWLSFitFunction::compute(int want, FitContext *fc)
 {
@@ -101,9 +89,11 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(fc, expectation, NULL);
 	
-	omxMatrix *expThresholdsMat = expectation->thresholdsMat;
-	
-	flattenDataToVector(eCov, eMeans, expectedSlope, expThresholdsMat, eThresh, eFlat);
+	EigenVectorAdaptor EeFlat(eFlat);
+	omxExpectation *ex = expectation;
+	normalToStdVector(eCov, eMeans, expectedSlope, 
+										[ex](int r, int c)->double{ return ex->getThreshold(r,c); },
+										eThresh, EeFlat);
 	
 	omxCopyMatrix(B, oFlat);
 	
@@ -231,7 +221,6 @@ void omxWLSFitFunction::prepData()
 	omxMatrix *weights = obsStat.acovMat;
 	std::vector< omxThresholdColumn > &oThresh = obsStat.thresholdCols;
 
-	numOrdinal = oo->expectation->numOrdinal;
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
 	// Error Checking: Observed/Expected means must agree.  
@@ -288,23 +277,22 @@ void omxWLSFitFunction::prepData()
 		oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	}
 	
-	if (obsThresholdsMat && oo->expectation->thresholdsMat) {
-		if (obsThresholdsMat->rows != oo->expectation->thresholdsMat->rows ||
-		    obsThresholdsMat->cols != oo->expectation->thresholdsMat->cols) {
-			mxThrow("Observed %dx%d and expected %dx%d threshold matrices must have the same shape",
-							obsThresholdsMat->rows, obsThresholdsMat->cols,
-							expectation->thresholdsMat->rows,
-							expectation->thresholdsMat->cols);
-		}
-	}
-	
 	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
-	flattenDataToVector(cov, means, obsStat.slopeMat, obsThresholdsMat,
-			    oThresh, observedFlattened);
+	EigenVectorAdaptor oFlat(observedFlattened);
+	if (obsThresholdsMat) {
+		EigenMatrixAdaptor oTh(obsThresholdsMat);
+		normalToStdVector(cov, means, obsStat.slopeMat, oTh, oThresh, oFlat);
+	} else {
+		normalToStdVector(cov, means, obsStat.slopeMat, [](int r,int c)->double{ return 0; },
+											oThresh, oFlat);
+	}
 	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
-	flattenDataToVector(newObj->expectedCov, newObj->expectedMeans,
-			    newObj->expectedSlope, oo->expectation->thresholdsMat,
-				eThresh, newObj->expectedFlattened);
+
+	EigenVectorAdaptor EeFlat(newObj->expectedFlattened);
+	omxExpectation *ex = expectation;
+	normalToStdVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedSlope,
+											[ex](int r, int c)->double{ return ex->getThreshold(r,c); },
+											eThresh, EeFlat);
 }
 
 void omxWLSFitFunction::init()

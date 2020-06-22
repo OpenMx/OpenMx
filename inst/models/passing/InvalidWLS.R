@@ -17,7 +17,5 @@ omxCheckError(omxAugmentDataWithWLSSummary(mxData(Bollen1[, 1:8], 'raw')),
               "fake.data: all continuous data with missingness (column 'y1') cannot be handled using the cumulants method. Use na.omit(yourDataFrame) to remove rows with missing values or use allContinuousMethod='marginals' or use maximum likelihood")
 
 ds <- data.frame(a=a, b=ma)
-omxCheckWarning(
-  omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')),
-                "fake.data: variable 'a' must be an ordered factor but is of type unordered factor"),
-  "Column 'a' must be an ordered factor. Please use mxFactor()")
+omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')),
+              "Don't know how to interpret unordered factor 'a' as numeric")

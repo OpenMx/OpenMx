@@ -21,6 +21,7 @@
 #include "omxData.h"
 #include "Connectedness.h"
 #include <limits>
+#include <functional>
 #include "matrix.h"
 #include "Compute.h"
 
@@ -45,6 +46,8 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
 using namespace UndirectedGraph;
 
 class OrdinalLikelihood { // rename to mvn cdf ? TODO
+public:
+	typedef std::function<double(int r, int c)> TFn;
  private:
 	struct block {
 		OrdinalLikelihood *ol;
@@ -118,28 +121,26 @@ class OrdinalLikelihood { // rename to mvn cdf ? TODO
 	std::vector<block> blocks;
 	Eigen::VectorXi dataColumns;
 	omxData *data;
-	omxMatrix *thresholdMat;
+	TFn getThreshold;
 	std::vector< omxThresholdColumn > *colInfoPtr;
 	Eigen::ArrayXi ordColumns;
  public:
 	std::vector<int> itemToThresholdCol;
-	omxMatrix *thresholdsMat;
 	std::vector<int> numThresholds;
 
 	OrdinalLikelihood()
 	{
 		data = 0;
-		thresholdMat = 0;
 		colInfoPtr = 0;
 	}
 
 	template <typename T>
-	void attach(const Eigen::MatrixBase<T> &dc, omxData *_data, omxMatrix *tMat,
+	void attach(const Eigen::MatrixBase<T> &dc, omxData *_data, TFn _getThreshold,
 		    std::vector< omxThresholdColumn > &colInfo)
 	{
 		dataColumns = dc;
 		this->data = _data;
-		this->thresholdMat = tMat;
+		getThreshold = _getThreshold;
 		this->colInfoPtr = &colInfo;
 	}
 
@@ -343,7 +344,6 @@ void OrdinalLikelihood::block::loadRow(int row)
 {
 	std::vector< omxThresholdColumn > &colInfo = *ol->colInfoPtr;
 	Eigen::ArrayXi &ordColumns = ol->ordColumns;
-	EigenMatrixAdaptor tMat(ol->thresholdMat);
 	for (int ox=0, vx=0; ox < ordColumns.size(); ++ox) {
 		if (!varMask[ox]) continue;
 		int j = ordColumns[ox];
@@ -353,15 +353,15 @@ void OrdinalLikelihood::block::loadRow(int row)
 		int tcol = colInfo[j].column;
 		if (pick == 0) {
 			lThresh[vx] = -std::numeric_limits<double>::infinity();
-			uThresh[vx] = (tMat(pick, tcol) - mean[vx]) / sd;
+			uThresh[vx] = (ol->getThreshold(pick, tcol) - mean[vx]) / sd;
 			Infin[vx] = 0;
 		} else if (pick == colInfo[j].numThresholds) {
-			lThresh[vx] = (tMat(pick-1, tcol) - mean[vx]) / sd;
+			lThresh[vx] = (ol->getThreshold(pick-1, tcol) - mean[vx]) / sd;
 			uThresh[vx] = std::numeric_limits<double>::infinity();
 			Infin[vx] = 1;
 		} else {
-			lThresh[vx] = (tMat(pick-1, tcol) - mean[vx]) / sd;
-			uThresh[vx] = (tMat(pick, tcol) - mean[vx]) / sd;
+			lThresh[vx] = (ol->getThreshold(pick-1, tcol) - mean[vx]) / sd;
+			uThresh[vx] = (ol->getThreshold(pick, tcol) - mean[vx]) / sd;
 			Infin[vx] = 2;
 		}
 		vx += 1;

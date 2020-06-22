@@ -251,6 +251,11 @@ addEntriesRAM <- function(model, entries) {
 	if(length(thresholds) > 0) {
 		model <- insertAllThresholdsRAM(model, thresholds)
 	}
+	filter <- sapply(entries, is, "DiscreteBase")
+	discrete <- entries[filter]
+	if(length(discrete)) {
+		model <- insertDiscreteRAM(model, discrete)
+	}
 	filter <- sapply(entries, is, "MxData")
 	data <- entries[filter]
 	if (length(data) > 0) {
@@ -298,17 +303,17 @@ getNotPathsOrData <- function(lst) {
 	pathfilter <- sapply(lst, is, "MxPath")
 	datafilter <- sapply(lst, is, "MxData")
 	thresholdfilter <- sapply(lst, is, "MxThreshold")
-	retval <- lst[!(pathfilter | datafilter | thresholdfilter)]
+	discretefilter <- sapply(lst, is, "DiscreteBase")
+	retval <- lst[!(pathfilter | datafilter | thresholdfilter | discretefilter)]
 	return(retval)
 }
 
-expectationIsMissingThresholds <- function(model) {
+expectationIsMissing <- function(model, what) {
 	expectation <- model@expectation
 	return(!is.null(expectation) &&
-	       (is(expectation, "MxExpectationRAM") || is(expectation, "MxExpectationLISREL")) &&
-		is.na(expectation@thresholds))
+           is(expectation, "BaseExpectationNormal") &&
+           is.na(slot(expectation, what)))
 }
-
 
 expectationIsMissingMeans <- function(model) {
 	expectation <- model@expectation
@@ -317,11 +322,54 @@ expectationIsMissingMeans <- function(model) {
 		is.na(expectation@M))
 }
 
+insertDiscreteRAM <- function(model, discrete) {
+	Disc <- model[[model@expectation@discrete]]
+	if (is.null(Disc)) { 
+		Disc <- mxMatrix("Full", 0, 0, name="Discrete", condenseSlots=FALSE)
+		if(expectationIsMissing(model, 'discrete')) {
+			model@expectation@discrete <- "Discrete"
+		} else {
+			Disc <- model[[model@expectation@thresholds]]
+		}
+	}
+
+	legalVars <- model@manifestVars
+	if (is.list(legalVars)) {
+	  # for LISREL
+	  legalVars <- legalVars$endogenous
+	}
+
+	allVars <- unique(sapply(discrete, slot, "variable"))
+	varExist <- allVars %in% legalVars
+	if(!all(varExist)) {
+		missingVars <- allVars[!varExist]
+		stop(paste("You need to add", omxQuotes(missingVars), 
+               "to the manifestVars before you",
+               "use them as discrete indicators"), call. = FALSE)
+	}
+
+	newVars <- union(colnames(Disc), allVars)
+	if(length(newVars) > ncol(Disc)) {
+		newDisc <- mxMatrix("Full", 5, length(newVars), dimnames=list(NULL, newVars),
+                        name=Disc@name, condenseSlots=FALSE)
+		if (ncol(Disc)) newDisc[1:nrow(Disc), 1:ncol(Disc)] <- Disc
+		Disc <- newDisc
+	}
+	if(!is.list(discrete)) discrete <- list(discrete)
+	for(i in 1:length(discrete)) {
+		d1 <- discrete[[i]]
+		Disc[, d1@variable] <- as(d1, "MxMatrix")
+	}
+
+	model[[Disc@name]] <- Disc
+  model
+}
+
 insertAllThresholdsRAM <- function(model, thresholds) {
 	Thresh <- model[[model@expectation@thresholds]]
 	if (is.null(Thresh)) { 
 		Thresh <- mxMatrix("Full", 0, 0, name="Thresholds", condenseSlots=FALSE)
-		if(expectationIsMissingThresholds(model)) {
+		if(expectationIsMissing(model, 'thresholds')) {
 			model@expectation@thresholds <- "Thresholds"
 		} else {
 			Thresh <- model[[model@expectation@thresholds]]

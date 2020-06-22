@@ -34,13 +34,15 @@ struct omxNormalExpectation : public omxExpectation {
 	virtual omxMatrix *getComponent(const char*);
 };
 
-void omxNormalExpectation::compute(FitContext *fc, const char *, const char *) {
+void omxNormalExpectation::compute(FitContext *fc, const char *what, const char *how)
+{
+	super::compute(fc, what, how);
+
 	omxNormalExpectation* one = this;
 
 	omxRecompute(one->cov, fc);
 	if(one->means != NULL)
 	    omxRecompute(one->means, fc);
-	if (one->thresholdsMat) omxRecompute(one->thresholdsMat, fc);
 }
 
 void omxNormalExpectation::populateAttr(SEXP algebra) {
@@ -83,7 +85,8 @@ omxExpectation *omxInitNormalExpectation(omxState *st, int num)
 
 void omxNormalExpectation::init()
 {
-    if(OMX_DEBUG) { mxLog("Initializing Normal expectation."); }
+	loadDataColFromR();
+	loadThresholdFromR();
 
     omxNormalExpectation *one = this;
 	

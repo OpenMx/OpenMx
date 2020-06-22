@@ -352,13 +352,14 @@ ordModel1 <- mxModel("ordModel1",
     mxMatrix("Full", nThresh, nVars, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
     mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames=oNames1, thresholds="Thresh", threshnames=oNames1)
 )
-# ordinalData1[,nVars] <- as.numeric(NA)
+ordinalData1[,nVars] <- as.numeric(NA)
 ordModel1A <- mxModel("ordModel1A", 
     mxData(ordinalData1, type="raw"),
     mxMatrix("Symm", nVars, nVars, values=start1, free=useOptimizer, name="Cov"),
     mxMatrix("Full", 1, nVars, values=rep(0, nVars), free=useOptimizer, name="Mean"),
     mxMatrix("Full", nThresh, nVars-1, values=seq(-1, 1, length.out=nThresh), free=FALSE, name="Thresh"),
-    mxFitFunctionML(),mxExpectationNormal(covariance="Cov", means="Mean", dimnames = oNames1, thresholds="Thresh", threshnames=oNames1[1:(nVars-1)])
+    mxFitFunctionML(),
+    mxExpectationNormal(covariance="Cov", means="Mean", dimnames = oNames1, thresholds="Thresh", threshnames=oNames1[1:(nVars-1)])
 )
 
 ordModel1 <- mxOption(ordModel1, "Function precision", 1e-9)

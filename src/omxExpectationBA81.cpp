@@ -220,6 +220,8 @@ void BA81Expect::prep()
 
 void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
 	omxExpectation *oo = this;
 	BA81Expect *state = (BA81Expect *) oo;
 
@@ -395,12 +397,18 @@ void getMatrixDims(SEXP r_theta, int *rows, int *cols)
 omxExpectation *omxInitExpectationBA81(omxState *st, int num)
 { return new BA81Expect(st, num); }
 
-void BA81Expect::init() {
+void BA81Expect::init()
+{
+	loadDataColFromR();
+
+	auto colMap = getDataColumns();
+	for (int cx=0; cx < int(colMap.size()); ++cx) {
+		int var = colMap[cx];
+		data->assertColumnIsData(var, OMXDATA_ORDINAL);
+	}
+
 	SEXP tmp;
 	
-	if(OMX_DEBUG) {
-		mxLog("Initializing %s.", name);
-	}
 	if (!Glibrpf_model) {
 #if USE_EXTERNAL_LIBRPF
 		get_librpf_t get_librpf = (get_librpf_t) R_GetCCallable("rpf", "get_librpf_model_GPL");
@@ -540,8 +548,6 @@ void BA81Expect::init() {
 	}
 
 	prep();
-
-	auto colMap = getDataColumns();
 
 	for (int cx = 0; cx < numItems; cx++) {
 		int *col = omxIntDataColumnUnsafe(data, colMap[cx]);

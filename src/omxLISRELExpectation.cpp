@@ -61,8 +61,10 @@ public:
 extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov, omxMatrix* means);
 // TODO: Merge ML and FIML Fit Functions into one unit.
 
-void omxLISRELExpectation::compute(FitContext *fc, const char *, const char *)
+void omxLISRELExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
     omxLISRELExpectation* oro = this;
 	
@@ -431,8 +433,10 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 omxExpectation *omxInitLISRELExpectation(omxState *st, int num)
 { return new omxLISRELExpectation(st, num); }
 
-void omxLISRELExpectation::init() {
-	if(OMX_DEBUG) { mxLog("Initializing LISREL Expectation."); }
+void omxLISRELExpectation::init()
+{
+	loadDataColFromR();
+	loadThresholdFromR();
 		
 	slope = 0;
 	verbose = 0;

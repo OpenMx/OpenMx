@@ -98,6 +98,8 @@ void omxRAMExpectation::getExogenousPredictors(std::vector<int> &out)
 
 void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
 	omxRAMExpectation* oro = this;
 
 	if (what && how && strEQ(how, "flat")) {
@@ -248,8 +250,10 @@ omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
 	}
 }
 
-void omxRAMExpectation::init() {
-	if(OMX_DEBUG) { mxLog("Initializing RAM expectation."); }
+void omxRAMExpectation::init()
+{
+	loadDataColFromR();
+	loadThresholdFromR();
 	
 	int l, k;
 

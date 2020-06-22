@@ -34,7 +34,18 @@
 #include <R_ext/Rdynload.h> 
 
 class omxData;
-typedef struct omxThresholdColumn omxThresholdColumn;
+struct omxThresholdColumn {
+	int dColumn;			// Which column in the matrix/data.frame
+	int column;			// Which column in the thresholds matrix
+	int numThresholds;		// And how many thresholds
+	bool isDiscrete;
+
+	// for continuous variables, column=-1, numThresholds=0
+	omxThresholdColumn() :
+		dColumn(-1), column(-1), numThresholds(0), isDiscrete(false) {};
+
+	void log() { mxLog("dCol=%d col=%d #thr=%d", dColumn, column, numThresholds); }
+};
 
 #include "omxAlgebra.h"
 #include "omxFitFunction.h"
@@ -52,15 +63,10 @@ struct omxDefinitionVar {
 	bool loadData(omxState *state, double val);
 };
 
-struct omxThresholdColumn {
-	int dColumn;			// Which column in the matrix/data.frame
-	int column;			// Which column in the thresholds matrix
-	int numThresholds;		// And how many thresholds
-
-	// for continuous variables, numThresholds=0
-	omxThresholdColumn() : dColumn(-1), column(0), numThresholds(0) {};
-
-	void log() { mxLog("dCol=%d col=%d #thr=%d", dColumn, column, numThresholds); }
+enum OmxDataType {
+									OMXDATA_REAL,
+									OMXDATA_ORDINAL,
+									OMXDATA_COUNT
 };
 
 enum ColumnDataType {
@@ -189,7 +195,7 @@ class omxData {
 	void omxPrintData(const char *header, int maxRows, int *permute);
 	void omxPrintData(const char *header, int maxRows);
 	void omxPrintData(const char *header);
-	void assertColumnIsData(int col);
+	void assertColumnIsData(int col, OmxDataType dt);
 	void setModified() { modified=true; };
 	bool isModified() { return modified; };
 	double getMinVariance() const { return minVariance; };
@@ -214,7 +220,7 @@ class omxData {
 		void clearColumn(int col);
 		~RawData();
 		void refreshHasNa();
-		void assertColumnIsData(int col, bool warn);
+		void assertColumnIsData(int col, OmxDataType dt, bool warn);
 	};
 	RawData filtered;
 	RawData unfiltered;

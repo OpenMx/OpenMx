@@ -60,6 +60,14 @@ MarkovExpectation::~MarkovExpectation()
 
 void MarkovExpectation::init()
 {
+	loadDataColFromR();
+
+	auto dc = getDataColumns();
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		int var = dc[cx];
+		data->assertColumnIsData(var, OMXDATA_REAL);
+	}
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
 
@@ -99,6 +107,8 @@ void MarkovExpectation::init()
 
 void MarkovExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
 	if (fc) {
 		for (auto c1 : components) {
 			c1->compute(fc, what, how);

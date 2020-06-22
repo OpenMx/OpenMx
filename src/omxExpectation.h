@@ -42,14 +42,18 @@ class omxExpectation {					// An Expectation
 	typedef omxExpectation base;
 	int *dataColumnsPtr;
 	std::vector<const char *> dataColumnNames;
+	omxMatrix *thresholdsMat;
+	omxMatrix *discreteMat;
+	std::vector< Eigen::VectorXd > discreteCache;
 	std::vector< omxThresholdColumn > thresholds;  // size() == numDataColumns
+
+	void loadThresholds();
 
  public:
 	int numDataColumns;
 	SEXP rObj;
 	const char *name;   // pointer to a static string, no need to allocate or free
 	omxData* data;
-	omxMatrix *thresholdsMat;
 	int numOrdinal;  // number of thresholds with matrix != 0
 	/* Replication of some of the structures from Matrix */
 	unsigned short isComplete;													// Whether or not this expectation has been initialize
@@ -65,11 +69,11 @@ class omxExpectation {					// An Expectation
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), numDataColumns(0), rObj(0), name(0),
-		data(0), thresholdsMat(0), numOrdinal(0), isComplete(false), currentState(state),
+		data(0), thresholdsMat(0), discreteMat(0), numOrdinal(0), isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
-	virtual void compute(FitContext *fc, const char *what, const char *how) = 0;
+	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void print();
 	virtual void populateAttr(SEXP expectation) {};
 
@@ -87,7 +91,8 @@ class omxExpectation {					// An Expectation
 	}
 
 	virtual bool usesDataColumnNames() const { return true; }
-	void loadFromR();
+	void loadDataColFromR();
+	void loadThresholdFromR();
 	bool loadDefVars(int row);
 	void loadFakeDefVars();
 
@@ -101,8 +106,7 @@ class omxExpectation {					// An Expectation
 	virtual const std::vector<const char *> &getDataColumnNames() const;
 	virtual void getExogenousPredictors(std::vector<int> &out) {};
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo();
-
-	void loadThresholds();
+	double getThreshold(int r, int c);
 };
 
 	void omxCompleteExpectation(omxExpectation *ox);
@@ -113,11 +117,18 @@ omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	
 
 /* Expectation-specific implementations of matrix functions */
-void omxExpectationRecompute(FitContext *fc, omxExpectation *ox);
-void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what, const char *how);
+static inline void omxExpectationCompute(FitContext *fc, omxExpectation *ox,
+																				 const char *what, const char *how)
+{
+	if (!ox) return;
+	ox->compute(fc, what, how);
+}
 
 static inline void omxExpectationCompute(FitContext *fc, omxExpectation *ox, const char *what)
 { omxExpectationCompute(fc, ox, what, NULL); }
+
+static inline void omxExpectationCompute(FitContext *fc, omxExpectation *ox)
+{ omxExpectationCompute(fc, ox, NULL); }
 
 	omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState);
 	
@@ -138,8 +149,83 @@ omxExpectation *InitMixtureExpectation(omxState *, int num);
 
 void complainAboutMissingMeans(omxExpectation *off);
 
-void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, omxMatrix *thr,
-		       int numOrdinal, std::vector< omxThresholdColumn > &ti,
-		       Eigen::Ref<Eigen::VectorXd> out);
+template <typename T>
+void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
+		       std::vector< omxThresholdColumn > &ti, Eigen::Ref<Eigen::VectorXd> out)
+{
+	// order of elements: (c.f. lav_model_wls, lavaan 0.6-2)
+	// 1. thresholds + means (interleaved)
+	// 2. slopes (if any, columnwise per exo)
+	// 3. variances (continuous indicators only)
+	// 4. covariances; not correlations (lower triangle)
+
+	EigenMatrixAdaptor Ecov(cov);
+	if (ti.size() == 0) {
+		int dx = 0;
+		if (mean) {
+			EigenVectorAdaptor Emean(mean);
+			for (int rx=0; rx < cov->cols; ++rx) {
+				out[dx++] = Emean(rx);
+			}
+		}
+		if (slope) {
+			EigenMatrixAdaptor Eslope(slope);
+			for (int cx=0; cx < Eslope.cols(); ++cx) {
+				for (int rx=0; rx < Eslope.rows(); ++rx) {
+					out[dx++] = Eslope(rx,cx);
+				}
+			}
+		}
+		for (int cx=0; cx < cov->cols; ++cx) {
+			out[dx++] = Ecov(cx,cx);
+		}
+		for (int cx=0; cx < cov->cols-1; ++cx) {
+			for (int rx=cx+1; rx < cov->rows; ++rx) {
+				out[dx++] = Ecov(rx,cx);
+			}
+		}
+		return;
+	}
+	if (!mean) mxThrow("ordinal indicators and no mean vector");
+
+	EigenVectorAdaptor Emean(mean);
+	Eigen::VectorXd sdTmp(1.0/Ecov.diagonal().array().sqrt());
+	Eigen::DiagonalMatrix<double, Eigen::Dynamic> sd(Emean.size());
+	sd.setIdentity();
+	
+	int dx = 0;
+	for (auto &th : ti) {
+		for (int t1=0; t1 < th.numThresholds; ++t1) {
+			double sd1 = sdTmp[th.dColumn];
+			out[dx++] = (Eth(t1, th.column) - Emean[th.dColumn]) * sd1;
+			sd.diagonal()[th.dColumn] = sd1;
+		}
+		if (!th.numThresholds) {
+			out[dx++] = Emean[th.dColumn];
+		}
+	}
+	
+	if (slope) {
+		EigenMatrixAdaptor Eslope(slope);
+		for (int cx=0; cx < Eslope.cols(); ++cx) {
+			for (int rx=0; rx < Eslope.rows(); ++rx) {
+				out[dx++] = Eslope(rx,cx);
+			}
+		}
+	}
+
+	Eigen::MatrixXd stdCov(sd * Ecov * sd);
+
+	for (int cx=0; cx < cov->cols; ++cx) {
+		if (ti[cx].numThresholds) continue;
+		out[dx++] = stdCov(cx,cx);
+	}
+
+	for (int cx=0; cx < cov->cols-1; ++cx) {
+		for (int rx=cx+1; rx < cov->rows; ++rx) {
+			out[dx++] = stdCov(rx,cx);
+		}
+	}
+}
 
 #endif /* _OMXEXPECTATION_H_ */

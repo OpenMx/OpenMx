@@ -374,6 +374,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				const char *cn = o1.covMat->colnames[cx];
 				auto it = thrMap.find(cn);
 				omxThresholdColumn tc;
+				tc.isDiscrete = false;
 				tc.dColumn = cx;
 				if (it != thrMap.end()) {
 					tc.column = it->second;
@@ -719,7 +720,7 @@ bool omxDataColumnIsKey(omxData *od, int col)
 	return cd.type != COLUMNDATA_NUMERIC;
 }
 
-void omxData::RawData::assertColumnIsData(int col, bool warn)
+void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 {
 	if (col < 0 || col >= int(rawCols.size())) {
 		mxThrow("Column %d requested but only %d columns of data",
@@ -728,15 +729,30 @@ void omxData::RawData::assertColumnIsData(int col, bool warn)
 	ColumnData &cd = rawCols[col];
 	switch (cd.type) {
 	case COLUMNDATA_ORDERED_FACTOR:
+		if (dt == OMXDATA_ORDINAL || dt == OMXDATA_COUNT) return;
+		mxThrow("Don't know how to interpret factor column '%s' as numeric", cd.name);
 	case COLUMNDATA_NUMERIC:
-		return;
+		if (dt == OMXDATA_REAL) return;
+		mxThrow("Don't know how to interpret numeric column '%s' as ordinal", cd.name);
 	case COLUMNDATA_UNORDERED_FACTOR:
-		if (warn && ++Global->dataTypeWarningCount < 5) {
-			Rf_warning("Column '%s' must be an ordered factor. "
-				   "Please use mxFactor()", cd.name);
+		if (dt == OMXDATA_ORDINAL) {
+			if (warn && ++Global->dataTypeWarningCount < 5) {
+				Rf_warning("Column '%s' must be an ordered factor. "
+									 "Please use mxFactor()", cd.name);
+			}
+		} else if (dt == OMXDATA_COUNT) {
+			mxThrow("Don't know how to interpret unordered factor '%s' as a count", cd.name);
+		} else {
+			mxThrow("Don't know how to interpret unordered factor '%s' as numeric", cd.name);
 		}
-		return;
+		break;
 	case COLUMNDATA_INTEGER:{
+		if (dt == OMXDATA_COUNT) return;
+		if (dt == OMXDATA_ORDINAL) {
+			mxThrow("Don't know how to interpret integer column '%s' as ordinal. "
+							"Please use mxFactor()", cd.name);
+		}
+		// convert for dt == OMXDATA_REAL
 		cd.type = COLUMNDATA_NUMERIC;
 		int *intData = cd.ptr.intData;
 		if (owner) {
@@ -758,11 +774,11 @@ void omxData::RawData::assertColumnIsData(int col, bool warn)
 	}
 }
 
-void omxData::assertColumnIsData(int col)
+void omxData::assertColumnIsData(int col, OmxDataType dt)
 {
 	if (dataMat) return;
-	unfiltered.assertColumnIsData(col, true);
-	filtered.assertColumnIsData(col, false);
+	unfiltered.assertColumnIsData(col, dt, true);
+	filtered.assertColumnIsData(col, dt, false);
 }
 
 int omxData::primaryKeyOfRow(int row)
@@ -2959,6 +2975,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			tc.dColumn = yy;
 			tc.column = -1;
 			tc.numThresholds = 0;
+			tc.isDiscrete = false;
 			o1.thresholdCols.push_back(tc);
 
 			pv.contOffset = numContinuous;
@@ -2977,6 +2994,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			tc.dColumn = yy;
 			tc.column = o1.numOrdinal++;
 			tc.numThresholds = numThr;
+			tc.isDiscrete = false;
 			o1.thresholdCols.push_back(tc);
 
 			pv.contOffset = -1;

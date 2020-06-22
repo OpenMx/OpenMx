@@ -15,6 +15,7 @@
 
 \name{mxThreshold}
 \alias{mxThreshold}
+\alias{mxMarginalProbit}
 \alias{MxThreshold-class}
 \alias{print,MxThreshold-method}
 \alias{show,MxThreshold-method}

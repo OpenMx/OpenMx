@@ -399,6 +399,7 @@ imxLocateIndex <- function(model, name, referant) {
 	if (length(name) == 0) return(name)
 #	if (length(name) > 1) browser()
 	if (is.na(name)) { return(as.integer(name)) }
+  if (is.integer(name)) stop("imxLocateIndex called more than once, OpenMx bug")
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
 	fNames <- names(model@fitfunctions)

@@ -28,7 +28,8 @@ This function creates an MxExpectationRAM object.
 \usage{
 mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
                  threshnames = dimnames, ..., between=NULL, verbose=0L,
-  .useSparse=NA, expectedCovariance=NULL, expectedMean=NULL)
+  .useSparse=NA, expectedCovariance=NULL, expectedMean=NULL,
+  discrete = as.character(NA))
 }
 
 
@@ -49,6 +50,7 @@ mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
    name of a matrix for the model implied covariance.}
    \item{expectedMean}{An optional character string indicating the name
    of a matrix for the model implied mean.}
+   \item{discrete}{An optional character string indicating the name of the discrete matrix.}
 }
 
 \details{
