@@ -565,7 +565,7 @@ setMethod("show", "MxMarginalNegativeBinomial", function(object) { displayMargin
 #' @param vars character vector of manifest indicators
 #' @param maxCount maximum observed count
 #' @param size positive target number of successful trials
-#' @param prob probability of success in each trial -- in logits?
+#' @param prob probability of success in each trial in logit units
 #' @param mu alternative parametrization via mean
 #' @param zeroInf zero inflation parameter in logit units
 #' @param free logical vector indicating whether paremeters are free
@@ -575,7 +575,7 @@ setMethod("show", "MxMarginalNegativeBinomial", function(object) { displayMargin
 #' @return a list of MxMarginPoisson obects
 #' @aliases MxMarginalNegativeBinomial-class print,MxMarginalNegativeBinomial-method show,MxMarginalNegativeBinomial-method $,MxMarginalNegativeBinomial-method $<-,MxMarginalNegativeBinomial-method
 mxMarginalNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=-40,
-                      free=FALSE, labels=NA, lbound=c(NA,0,0), ubound=NA)
+                      free=FALSE, labels=NA, lbound=c(NA,0,NA), ubound=NA)
 {
   if (!missing(prob) && !missing(mu)) stop("'prob' and 'mu' both specified")
   isMu <- !missing(mu)

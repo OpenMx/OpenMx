@@ -131,7 +131,7 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
           if (col[3] == 1) {
             pr <- ppois(outcome, col[4])
           } else if (col[3] == 2) {
-            pr <- pnbinom(outcome, col[4], prob=col[5])
+            pr <- pnbinom(outcome, col[4], prob=plogis(col[5]))
           } else if (col[3] == 3) {
             pr <- pnbinom(outcome, col[4], mu=col[5])
           } else { stop(paste("Unknown discrete distribution code", col[3])) }

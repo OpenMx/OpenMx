@@ -100,7 +100,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 				break;
 			case 2:
 				for (int ox = 0; ox < vec.size(); ++ox)
-					vec[ox] = Rf_pnbinom(ox, dm(3,cx), dm(4,cx),1,0);
+					vec[ox] = Rf_pnbinom(ox, dm(3,cx), Rf_plogis(dm(4,cx), 0,1,1,0),1,0);
 				break;
 			case 3:
 				for (int ox = 0; ox < vec.size(); ++ox)
