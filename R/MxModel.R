@@ -120,6 +120,7 @@ setGeneric("imxInitModel", function(model) {
 ##' @param name name
 ##' @param manifestVars manifestVars
 ##' @param latentVars latentVars
+##' @param productVars productVars
 ##' @param submodels submodels
 ##' @param remove remove
 ##' @param independent independent
