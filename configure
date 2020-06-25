@@ -3,8 +3,8 @@
 #set -o errexit
 #set -v
 
-#wwwHome=openmx.psyc.virginia.edu
-wwwHome=openmx.ssri.psu.edu/software
+#wwwHome=openmx.ssri.psu.edu/software
+wwwHome=vipbg.vcu.edu/vipbg/OpenMx2/software
 
 isdef() {
     tmp1=/tmp/openmx.$$.cpp
@@ -36,10 +36,10 @@ else
 fi
 
 : ${R_HOME:=`R RHOME`}
-if test -z "${R_HOME}"; then 
-   echo "could not determine R_HOME" 
-   exit 1 
-fi 
+if test -z "${R_HOME}"; then
+   echo "could not determine R_HOME"
+   exit 1
+fi
 
 devmode=0
 if [ -f .devmode ]; then
@@ -124,9 +124,9 @@ if [ ! -f inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
 	    npsol_url1="http://$wwwHome/packages/npsol/linux/${omx_arch}/$want"
 	    npsol_url2="http://$wwwHome/packages/npsol/$pick/libnpsol.a"
 	    if [ ! -f src/libnpsol.a ]; then
-		wget -q -O src/libnpsol.a "$npsol_url1" || true
+		wget -O src/libnpsol.a "$npsol_url1" || true
 		if grep -s 'HTML document' src/libnpsol.a; then
-		    wget -q -O src/libnpsol.a "$npsol_url2" || true
+		    wget -O src/libnpsol.a "$npsol_url2" || true
 		fi
 	    fi
 	    got=`sha1sum src/libnpsol.a | cut -f1 -d' '`

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -x
+set -o errexit
+
+./util/prep npsol install
+
+R --no-save <<'EOF'
+install.packages(c("remotes"))
+if (!all(c("remotes") %in% installed.packages())) { q(status = 1)}
+
+deps <- remotes::dev_package_deps(dependencies =
+  c("Depends", "Imports", "LinkingTo", "Suggests"))
+print(deps)
+deps <- deps[deps$package != "Rmpi",]
+deps <- deps[deps$package != "snowfall",]
+
+update(deps, dependencies = NA, quiet = FALSE, 
+        upgrade = "always", build = TRUE,
+        build_opts = c("--no-resave-data", "--no-manual", "--no-build-vignettes"),
+        build_manual = FALSE, build_vignettes = FALSE,
+        type = getOption("pkgType"))
+
+if (!all(deps$package %in% installed.packages())) {
+  message("missing: ", paste(setdiff(deps$package, installed.packages()), collapse=", "))
+  q(status = 1)
+}
+EOF
+
+tar -jcf rcache.tar.bz2 $HOME/R
+scp -v -i /tmp/deploy_rsa -o PreferredAuthentications=publickey -o StrictHostKeyChecking=no -o CheckHostIP=no rcache.tar.bz2 $dhost:

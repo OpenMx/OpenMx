@@ -5,7 +5,6 @@ set -o errexit
 
 if [ "$TRAVIS_OS_NAME" != "osx" ]; then exit; fi
 
-dhost=travis@vps242190.vps.ovh.ca
 ddir=/var/www/html/
 
 scp -v -i /tmp/deploy_rsa -o PreferredAuthentications=publickey -o StrictHostKeyChecking=no -o CheckHostIP=no staging/OpenMx_*.tgz $dhost:$ddir

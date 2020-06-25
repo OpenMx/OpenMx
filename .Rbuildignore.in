@@ -39,3 +39,4 @@ cachegrind.out.*
 ^configure.win$
 ^codecov\.yml$
 ^.covrignore$
+^.editorconfig$

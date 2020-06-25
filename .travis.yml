@@ -1,3 +1,6 @@
+stages:
+- dependencies
+- test
 os:
 - linux
 addons:
@@ -11,27 +14,41 @@ addons:
   homebrew:
     packages:
     - gnu-tar
-  global:
-    - MAKEFLAGS="-j 2"
-matrix:
+jobs:
   include:
-  - os: osx
+  - stage: dependencies
+    latex: false
+    install:
+    - openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+    - eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+    - ./tools/travis/setup
+    script:
+    - ./tools/travis/save_cache
+  - stage: test
+    os: osx
     osx_image: xcode9.4
     env:
     - MODE=build
+    install:
+    - ./util/travis/install-$TRAVIS_OS_NAME
     latex: false
-dist: xenial
-sudo: required
+dist: bionic
+#sudo: required
 latex: true
 language: r
+#cache: packages
 git:
   submodules: false
 install:
-- mkdir -p ~/.R
-- ./util/travis/install-$TRAVIS_OS_NAME
+- openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+- eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+- ./tools/travis/setup
 script: "./util/travis/script"
 env:
-  matrix:
+  global:
+    - MAKEFLAGS="-j 2"
+    - dhost=travis@vps242190.vps.ovh.ca
+  jobs:
   - MODE=test IMX_OPT_ENGINE=NPSOL
   - MODE=test IMX_OPT_ENGINE=CSOLNP
   - MODE=test IMX_OPT_ENGINE=SLSQP
@@ -39,13 +56,7 @@ env:
 branches:
   except:
   - stable   # already tested
-before_deploy:
-- openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
-- eval "$(ssh-agent -s)"
-- chmod 600 /tmp/deploy_rsa
-- ssh-add /tmp/deploy_rsa
 deploy:
   provider: script
-  skip_cleanup: true
   script: ./util/travis/deploy
   on: master
