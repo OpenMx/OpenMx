@@ -43,9 +43,7 @@ factorModel$D$free[4:5,] <- !is.na(factorModel$D$values[4:5,])
 
 fit <- mxRun(factorModel)
 summary(fit)
-fit$D
 
-q()
 
 # ---------------
 
@@ -62,9 +60,16 @@ factorModel <- mxModel(
   mxPath(from=manifests, arrows=2,values=1),
   mxPath(from=latents, arrows=2,
          free=FALSE, values=1.0),
+  mxPath(from = 'one', to = manifests, free=FALSE),
   mxMarginalPoisson(paste0("x",1:2), c(4,5), c(.6,.7)),
   mxMarginalNegativeBinomial("x3", 6, 4, .5))
 
 round(mxGetExpected(factorModel, "thresholds"),3)
 
-mxGenerateData(factorModel, 20)
+factorModel <- mxGenerateData(factorModel, 200, returnModel = TRUE)
+
+factorModel$Discrete$free[4:5,] <-
+  !is.na(factorModel$Discrete$values[4:5,])
+
+fit <- mxRun(factorModel)
+summary(fit)

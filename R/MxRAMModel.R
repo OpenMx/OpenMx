@@ -85,28 +85,6 @@ setMethod("imxVerifyModel", "MxRAMModel",
 				       " mxPath(from = 'x1', to = 'y1')")
 			  stop(msg, call. = FALSE)
 		  }
-		  expectation <- model$expectation
-		  if (!is.null(expectation) && is(expectation, "MxExpectationRAM")) {
-			  if (!is.null(model@data)) {
-				  threshNames <- intersect(getDataThresholdNames(model@data), model@manifestVars)
-				  # Only pay attention to (1) manifest variables (2) that need thresholds.
-				  # This saves the case where an mxFactor is used as a definition variable.
-				  if(!is.null(model[[expectation@thresholds]])) {
-					  missingThresholds <- setdiff(threshNames, colnames(model[[expectation@thresholds]]))
-				  } else {
-					  missingThresholds <- threshNames
-				  }
-				  if(length(missingThresholds)) {
-					  msg <- paste("The RAM model", omxQuotes(model@name),
-						       "contains data that requires thresholds for columns",
-						       omxQuotes(missingThresholds), "but has not specified any",
-							   "thresholds for those columns.",
-							   "You can specify thresholds for your model like this:",
-							   "mxThreshold(vars='x1', nThresh=1, values=0)")
-					  stop(msg, call. = FALSE)
-				  }
-			  }
-		  }
 		  if (length(model@submodels) > 0) {
 			  return(all(sapply(model@submodels, imxVerifyModel)))
 		  }

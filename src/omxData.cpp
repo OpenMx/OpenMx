@@ -730,7 +730,10 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 	switch (cd.type) {
 	case COLUMNDATA_ORDERED_FACTOR:
 		if (dt == OMXDATA_ORDINAL || dt == OMXDATA_COUNT) return;
-		mxThrow("Don't know how to interpret factor column '%s' as numeric", cd.name);
+		mxThrow("Don't know how to interpret factor column '%s' as numeric.\n"
+						"You may want to specify thresholds for your model like this: "
+						"mxThreshold(vars='%s', nThresh=%d)",
+						cd.name, cd.name, int(cd.levels.size() - 1));
 	case COLUMNDATA_NUMERIC:
 		if (dt == OMXDATA_REAL) return;
 		mxThrow("Don't know how to interpret numeric column '%s' as ordinal", cd.name);
