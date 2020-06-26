@@ -73,6 +73,7 @@ setMethod("initialize", "MxExpectationLISREL",
 		.Object@data <- data
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
+		.Object@threshnames <- NA_character_
 		.Object@discrete <- discrete
     .Object@expectedCovariance <- expectedCovariance
     .Object@expectedMean <- expectedMean
