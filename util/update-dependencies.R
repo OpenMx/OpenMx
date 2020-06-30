@@ -1,3 +1,6 @@
+# This is deprecated in favor of the remotes package
+# See tools/travis/save_cache
+
 if (length(options("repos")) == 1 && options("repos") == "@CRAN@") {
 	# avoid user interaction
 	options(repos = c(CRAN = "https://cloud.r-project.org"))
