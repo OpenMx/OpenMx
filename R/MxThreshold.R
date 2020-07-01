@@ -475,7 +475,7 @@ setMethod("show", "MxMarginalPoisson", function(object) { displayMarginalPoisson
 #' @param ubound numeric vector of upper bounds
 #' @return a list of MxMarginPoisson obects
 #' @aliases MxMarginalPoisson-class print,MxMarginalPoisson-method show,MxMarginalPoisson-method $,MxMarginalPoisson-method $<-,MxMarginalPoisson-method
-mxMarginalPoisson <- function(vars, maxCount, lambda, zeroInf=-4,
+mxMarginalPoisson <- function(vars, maxCount, lambda, zeroInf=.01,
                       free=FALSE, labels=NA, lbound=NA, ubound=NA)
 {
   for (par in c('maxCount','lambda','zeroInf')) {
@@ -579,7 +579,7 @@ setMethod("show", "MxMarginalNegativeBinomial", function(object) { displayMargin
 #' @param ubound numeric vector of upper bounds
 #' @return a list of MxMarginPoisson obects
 #' @aliases MxMarginalNegativeBinomial-class print,MxMarginalNegativeBinomial-method show,MxMarginalNegativeBinomial-method $,MxMarginalNegativeBinomial-method $<-,MxMarginalNegativeBinomial-method
-mxMarginalNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=-4,
+mxMarginalNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), zeroInf=.01,
                       free=FALSE, labels=NA, lbound=NA, ubound=NA)
 {
   if (!missing(prob) && !missing(mu)) stop("'prob' and 'mu' both specified")

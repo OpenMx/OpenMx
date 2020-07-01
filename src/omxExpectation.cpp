@@ -101,7 +101,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 				break;
 			case 2:
 				for (int ox = 0; ox < vec.size(); ++ox)
-					vec[ox] = Rf_pnbinom(ox, dm(1,cx), Rf_plogis(dm(2,cx), 0,1,1,0),1,0);
+					vec[ox] = Rf_pnbinom(ox, dm(1,cx), dm(2,cx),1,0);
 				break;
 			case 3:
 				for (int ox = 0; ox < vec.size(); ++ox)
@@ -111,7 +111,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 				mxThrow("%s: unknown discrete distribution %d in '%s' column %d",
 								name, ds(1,cx), discreteMat->name(), cx);
 			}
-			double zif = Rf_plogis(dm(0,cx), 0,1,1,0);
+			double zif = dm(0,cx);
 			for(int j = 0; j < vec.size(); j++) {
 				vec[j] = Rf_qnorm5(zif + (1-zif) * vec[j], 0, 1, 1, 0);  // p2z
 			}

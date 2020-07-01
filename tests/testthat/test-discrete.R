@@ -20,9 +20,9 @@ factorModel <- mxModel(
            free=TRUE, name="U"),
   mxAlgebra(A %*% L %*% t(A) + U, name="R"),
   mxMatrix(nrow=3, ncol=3,
-           values=c(-2, 1.1, NA,
-                    -2, 2, NA,
-                    -2, 4, .5),
+           values=c(.02, 1.1, NA,
+                    .02, 2, NA,
+                    .02, 4, .5),
            dimnames=list(c(), paste0('x',1:3)),
            name="D"),
   mxExpectationNormal(covariance = "R",
@@ -35,7 +35,7 @@ factorModel <- mxModel(
 
 mxGetExpected(factorModel, "thresholds")
 
-qfactorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
+factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
 
 # convert to raw counts
 # factorModel$data$observed$x1 <-
@@ -45,8 +45,6 @@ factorModel$D$free <- !is.na(factorModel$D$values)
 
 fit <- mxRun(factorModel)
 summary(fit)
-
-stop("here")
 
 # ---------------
 

@@ -149,11 +149,11 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
                        "cannot be NA when generating data"))
           }
           outcome <- 1L:as.integer(ds[1,cx]) - 1L
-          zif <- plogis(dis[1,cx])
+          zif <- dis[1,cx]
           if (ds[2,cx] == 1) {
             pr <- ppois(outcome, dis[2,cx])
           } else if (ds[2,cx] == 2) {
-            pr <- pnbinom(outcome, dis[2,cx], prob=plogis(dis[3,cx]))
+            pr <- pnbinom(outcome, dis[2,cx], prob=dis[3,cx])
           } else if (ds[2,cx] == 3) {
             pr <- pnbinom(outcome, dis[2,cx], mu=dis[3,cx])
           } else { stop(paste("Unknown discrete distribution code", ds[2,cx],
