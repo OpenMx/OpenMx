@@ -7,6 +7,7 @@ library(OpenMx)
 # ML / WLS
 # with and without regular thresholds
 # ordered factor vs raw count
+# different column orders for discrete vs discreteSpec
 
 factorModel <- mxModel(
   "One Factor",
@@ -18,32 +19,34 @@ factorModel <- mxModel(
   mxMatrix("Diag", 5, 5, values=1,
            free=TRUE, name="U"),
   mxAlgebra(A %*% L %*% t(A) + U, name="R"),
-  mxMatrix(nrow=5, ncol=3,
-           values=c(4, -2, 1, 1.1, NA,
-                    5, -2, 1, .6, NA,
-                    6, -2, 2, 4, .5),
+  mxMatrix(nrow=3, ncol=3,
+           values=c(-2, 1.1, NA,
+                    -2, 2, NA,
+                    -2, 4, .5),
            dimnames=list(c(), paste0('x',1:3)),
            name="D"),
   mxExpectationNormal(covariance = "R",
                       dimnames = paste0('x',1:5),
                       discrete = "D",
+                      discreteSpec = matrix(c(4, 1, 5, 1, 6, 2), ncol=3,
+                                            dimnames=list(c(), paste0('x',1:3))),
                       means = "M"),
   mxFitFunctionML())
 
 mxGetExpected(factorModel, "thresholds")
 
-factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
+qfactorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
 
 # convert to raw counts
 # factorModel$data$observed$x1 <-
 #   unclass(factorModel$data$observed$x1) - 1L
 
-#factorModel$D$free[2,] <- TRUE
-factorModel$D$free[4:5,] <- !is.na(factorModel$D$values[4:5,])
+factorModel$D$free <- !is.na(factorModel$D$values)
 
 fit <- mxRun(factorModel)
 summary(fit)
 
+stop("here")
 
 # ---------------
 
@@ -61,15 +64,14 @@ factorModel <- mxModel(
   mxPath(from=latents, arrows=2,
          free=FALSE, values=1.0),
   mxPath(from = 'one', to = manifests, free=FALSE),
-  mxMarginalPoisson(paste0("x",1:2), c(4,5), c(.6,.7)),
+  mxMarginalPoisson(paste0("x",1:2), c(4,5), c(1.1, 2)),
   mxMarginalNegativeBinomial("x3", 6, 4, .5))
 
 round(mxGetExpected(factorModel, "thresholds"),3)
 
-factorModel <- mxGenerateData(factorModel, 200, returnModel = TRUE)
+factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
 
-factorModel$Discrete$free[4:5,] <-
-  !is.na(factorModel$Discrete$values[4:5,])
+factorModel$Discrete$free <- !is.na(factorModel$Discrete$values)
 
 fit <- mxRun(factorModel)
 summary(fit)

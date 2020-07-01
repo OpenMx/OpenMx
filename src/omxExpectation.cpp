@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxExpectation.cc
 *
 *  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
@@ -90,27 +90,28 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 	if (discreteMat) {
 		omxRecompute(discreteMat, fc);
 		EigenMatrixAdaptor dm(discreteMat);
+    auto ds = getDiscreteSpec();
 		discreteCache.resize(discreteMat->cols);
 		for (int cx=0; cx < discreteMat->cols; ++cx) {
 			auto &vec = discreteCache[cx];
-			vec.resize(dm(0,cx));
-			switch(int(dm(2,cx))) {
+			vec.resize(ds(0,cx));
+			switch(int(ds(1,cx))) {
 			case 1:
-				for (int ox = 0; ox < vec.size(); ++ox) vec[ox] = Rf_ppois(ox, dm(3,cx), 1,0);
+				for (int ox = 0; ox < vec.size(); ++ox) vec[ox] = Rf_ppois(ox, dm(1,cx), 1,0);
 				break;
 			case 2:
 				for (int ox = 0; ox < vec.size(); ++ox)
-					vec[ox] = Rf_pnbinom(ox, dm(3,cx), Rf_plogis(dm(4,cx), 0,1,1,0),1,0);
+					vec[ox] = Rf_pnbinom(ox, dm(1,cx), Rf_plogis(dm(2,cx), 0,1,1,0),1,0);
 				break;
 			case 3:
 				for (int ox = 0; ox < vec.size(); ++ox)
-					vec[ox] = Rf_pnbinom_mu(ox, dm(3,cx), dm(4,cx),1,0);
+					vec[ox] = Rf_pnbinom_mu(ox, dm(1,cx), dm(2,cx),1,0);
 				break;
 			default:
 				mxThrow("%s: unknown discrete distribution %d in '%s' column %d",
-								name, dm(2,cx), discreteMat->name(), cx);
+								name, ds(1,cx), discreteMat->name(), cx);
 			}
-			double zif = Rf_plogis(dm(1,cx), 0,1,1,0);
+			double zif = Rf_plogis(dm(0,cx), 0,1,1,0);
 			for(int j = 0; j < vec.size(); j++) {
 				vec[j] = Rf_qnorm5(zif + (1-zif) * vec[j], 0, 1, 1, 0);  // p2z
 			}
@@ -181,30 +182,45 @@ void omxExpectation::loadThresholds()
 					// See omxData
 				}
 				if(debug || OMX_DEBUG) {
-					mxLog("%s: column[%d] '%s' is ordinal with %d thresholds in column %d", 
+					mxLog("%s: column[%d] '%s' is ordinal with %d thresholds in column %d",
 								name, index, colname, col.numThresholds, tc);
 				}
 				numOrdinal++;
 			}
 		}
 		if (discreteMat) {
+      auto ds = getDiscreteSpec();
 			int tc = discreteMat->lookupColumnByName(colname);
 			if (tc >= 0) {
 				dfound[tc] = true;
 				col.column = tc;
 				col.isDiscrete = true;
-				col.numThresholds = omxMatrixElement(discreteMat, 0, tc);
+        double nt = ds(0,tc);
 				if (data->isRaw()) {
 					data->assertColumnIsData(col.dColumn, OMXDATA_COUNT);
 					ColumnData &cd = data->rawCol(col.dColumn);
-					// const auto range =
-					// 	std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
-					// mxLog("%s range %d-%d", colname, *range.first, *range.second);
+          const auto range =
+					 	std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
+          int obsMaxCount = *range.second - 1;
+          if (std::isfinite(nt)) {
+            if (nt < obsMaxCount) {
+              mxThrow("%s: discrete column '%s' set to a maximum count of %d "
+                      "but data has maximum count of %d",
+                      name, colname, int(nt), obsMaxCount);
+            } else if (nt > obsMaxCount) {
+              Rf_warning("%s: discrete column '%s' set to a maximum count of %d "
+                         "but data has maximum count of only %d",
+                         name, colname, int(nt), obsMaxCount);
+            }
+          } else {
+            nt = obsMaxCount;
+          }
 				} else {
 					// See omxData
 				}
+        col.numThresholds = nt;
 				if(debug || OMX_DEBUG) {
-					mxLog("%s: column[%d] '%s' is discrete with %d thresholds in column %d", 
+					mxLog("%s: column[%d] '%s' is discrete with %d thresholds in column %d",
 								name, index, colname, col.numThresholds, tc);
 				}
 				numOrdinal++;
@@ -284,6 +300,8 @@ void omxExpectation::loadThresholdFromR()
 		ProtectedSEXP mat(R_do_slot(rObj, Rf_install("discrete")));
 		if(INTEGER(mat)[0] != NA_INTEGER) {
 			discreteMat = omxMatrixLookupFromState1(mat, currentState);
+      ProtectedSEXP ds(R_do_slot(rObj, Rf_install("discreteSpec")));
+      discreteSpecPtr = REAL(ds);
 		}
 	}
 	loadThresholds();
@@ -314,7 +332,7 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 
 	omxExpectation* expect = 0;
 
-	/* Switch based on Expectation type. */ 
+	/* Switch based on Expectation type. */
 	for (size_t ex=0; ex < OMX_STATIC_ARRAY_SIZE(omxExpectationSymbolTable); ex++) {
 		const omxExpectationTableEntry *entry = omxExpectationSymbolTable + ex;
 		if(strEQ(name, entry->name)) {
@@ -329,7 +347,7 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	expect->canDuplicate = true;
 	expect->dynamicDataSource = false;
 	expect->rObj = rObj;
-	
+
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
 	if (TYPEOF(Rdata) == INTSXP) {
 		expect->data = omxDataLookupFromState(Rdata, os);
@@ -339,7 +357,7 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 }
 
 void omxCompleteExpectation(omxExpectation *ox) {
-	
+
 	if(ox->isComplete) return;
 	ox->isComplete = TRUE;
 

@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxExpectation.h
 *
 *  Created: Timothy R. Brick 	Date: 2009-02-17
@@ -30,7 +30,7 @@
 #define _OMXEXPECTATION_H_
 
 #include "omxDefines.h"
-#include <R_ext/Rdynload.h> 
+#include <R_ext/Rdynload.h>
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -43,6 +43,9 @@ class omxExpectation {					// An Expectation
 	int *dataColumnsPtr;
 	std::vector<const char *> dataColumnNames;
 	omxMatrix *thresholdsMat;
+	double *discreteSpecPtr;
+  const Eigen::Map<Eigen::MatrixXd> getDiscreteSpec()
+  { const Eigen::Map<Eigen::MatrixXd> ds(discreteSpecPtr, 2, discreteMat->cols); return ds; }
 	omxMatrix *discreteMat;
 	std::vector< Eigen::VectorXd > discreteCache;
 	std::vector< omxThresholdColumn > thresholds;  // size() == numDataColumns
@@ -69,7 +72,8 @@ class omxExpectation {					// An Expectation
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), numDataColumns(0), rObj(0), name(0),
-		data(0), thresholdsMat(0), discreteMat(0), numOrdinal(0), isComplete(false), currentState(state),
+		data(0), thresholdsMat(0), discreteSpecPtr(0), discreteMat(0), numOrdinal(0),
+    isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
@@ -114,7 +118,7 @@ class omxExpectation {					// An Expectation
 	void omxFreeExpectationArgs(omxExpectation* Expectation);					// Frees all args
 omxExpectation* omxExpectationFromIndex(int expIndex, omxState* os);
 	omxExpectation* omxNewIncompleteExpectation(SEXP mxobj, int expNum, omxState* os);
-	
+
 
 /* Expectation-specific implementations of matrix functions */
 static inline void omxExpectationCompute(FitContext *fc, omxExpectation *ox,
@@ -131,11 +135,11 @@ static inline void omxExpectationCompute(FitContext *fc, omxExpectation *ox)
 { omxExpectationCompute(fc, ox, NULL); }
 
 	omxExpectation* omxDuplicateExpectation(const omxExpectation *src, omxState* newState);
-	
+
 	void omxExpectationPrint(omxExpectation *source, char* d);					// Pretty-print a (small-form) expectation
-	
+
 omxMatrix* omxGetExpectationComponent(omxExpectation *ox, const char* component);
-	
+
 void omxSetExpectationComponent(omxExpectation *ox, const char* component, omxMatrix *om);
 
 omxExpectation *omxInitNormalExpectation(omxState *, int num);
@@ -192,7 +196,7 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 	Eigen::VectorXd sdTmp(1.0/Ecov.diagonal().array().sqrt());
 	Eigen::DiagonalMatrix<double, Eigen::Dynamic> sd(Emean.size());
 	sd.setIdentity();
-	
+
 	int dx = 0;
 	for (auto &th : ti) {
 		for (int t1=0; t1 < th.numThresholds; ++t1) {
@@ -204,7 +208,7 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 			out[dx++] = Emean[th.dColumn];
 		}
 	}
-	
+
 	if (slope) {
 		EigenMatrixAdaptor Eslope(slope);
 		for (int cx=0; cx < Eslope.cols(); ++cx) {

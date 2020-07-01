@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,8 @@ setClass(Class = "BaseExpectationNormal",
            expectedMean = "MxOptionalCharOrNumber",
            thresholds = "MxCharOrNumber",
            threshnames = "character",
-           discrete = "MxCharOrNumber"))
+           discrete = "MxCharOrNumber",
+           discreteSpec = "MxOptionalMatrix"))
 
 setMethod("qualifyNames", signature("BaseExpectationNormal"),
           function(.Object, modelname, namespace) {
@@ -74,8 +75,14 @@ setMethod("genericExpFunConvert", signature("BaseExpectationNormal"),
               if (length(colnames(dmat)) == 0) {
                 stop(paste(dname, "must have column names"))
               }
-              if (any(dmat$free[c(1,3),])) {
-                stop(paste("Cannot free entries in the rows 1 or 3 of", dname))
+              ds <- .Object$discreteSpec
+              if (is.null(ds)) stop("discrete parameters but no discreteSpec")
+              if (length(colnames(ds)) != length(colnames(dmat))) {
+                stop(paste("discreteSpec must have the same number of columns",
+                           "as", dname))
+              }
+              if (any(colnames(ds) != colnames(dmat))) {
+                stop(paste("discreteSpec and", dname, "must have the same column names"))
               }
             }
             if (!is.na(tname) && !is.na(dname)) {
@@ -117,26 +124,43 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
 			}
       disname <- .Object@discrete
       if (!single.na(disname)) {
+        ds <- .Object@discreteSpec
 				disname <- .modifyDottedName(subname, disname, sep=".")
 				dis <- mxEvalByName(disname, model, compute=TRUE, defvar.row=defvar.row)
-        if (nrow(dis) != 5) stop("discrete matrix must have 5 rows")
-        # 5 rows:
-        # number of outcomes
-        # zero inflation
-        # 1 poisson ; 2 negative binomial prob ; 3 neg binomial mu
-        # poisson: lambda; nbinom: size, prob/mu
-        thBlock <- mxSimplify2Array(apply(dis, 2, function(col) {
-          outcome <- 1L:as.integer(col[1]) - 1L
-          zif <- plogis(col[2])
-          if (col[3] == 1) {
-            pr <- ppois(outcome, col[4])
-          } else if (col[3] == 2) {
-            pr <- pnbinom(outcome, col[4], prob=plogis(col[5]))
-          } else if (col[3] == 3) {
-            pr <- pnbinom(outcome, col[4], mu=col[5])
-          } else { stop(paste("Unknown discrete distribution code", col[3])) }
-          p2z(zif + (1-zif) * pr)
-        }))
+        if (length(colnames(ds)) != length(colnames(dis))) {
+          stop(paste("discreteSpec must have the same number of columns",
+                     "as", disname))
+        }
+        if (any(colnames(ds) != colnames(dis))) {
+          stop(paste("discreteSpec and", disname, "must have the same column names"))
+        }
+
+        # discreteSpec:
+        #   number of outcomes
+        #   1 poisson ; 2 negative binomial prob ; 3 neg binomial mu
+        # discrete 3 rows:
+        #   zero inflation
+        #   poisson: lambda; nbinom: size, prob/mu
+        thList <- vector("list", ncol(ds))
+        names(thList) <- colnames(ds)
+        for (cx in colnames(ds)) {
+          if (is.na(ds[1,cx])) {
+            stop(paste("discreteSpec[1,",cx,"], the maximum observed count,",
+                       "cannot be NA when generating data"))
+          }
+          outcome <- 1L:as.integer(ds[1,cx]) - 1L
+          zif <- plogis(dis[1,cx])
+          if (ds[2,cx] == 1) {
+            pr <- ppois(outcome, dis[2,cx])
+          } else if (ds[2,cx] == 2) {
+            pr <- pnbinom(outcome, dis[2,cx], prob=plogis(dis[3,cx]))
+          } else if (ds[2,cx] == 3) {
+            pr <- pnbinom(outcome, dis[2,cx], mu=dis[3,cx])
+          } else { stop(paste("Unknown discrete distribution code", ds[2,cx],
+                              "in column", cx)) }
+          thList[[cx]] <- p2z(zif + (1-zif) * pr)
+        }
+        thBlock <- mxSimplify2Array(thList)
         comb <- matrix(NA,
                        nrow=max(nrow(thr), nrow(thBlock)),
                        ncol=(ncol(thr) + ncol(thBlock)))
@@ -204,7 +228,7 @@ setClass(Class = "MxExpectationNormal",
 
 setMethod("initialize", "MxExpectationNormal",
 	function(.Object, covariance, means, dims, thresholds, threshnames, discrete,
-		data = as.integer(NA), name = 'expectation') {
+           discreteSpec, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
@@ -213,6 +237,7 @@ setMethod("initialize", "MxExpectationNormal",
 		.Object@dims <- dims
 		.Object@threshnames <- threshnames
 		.Object@discrete <- discrete
+		.Object@discreteSpec <- discreteSpec
 		.Object@ExpCov <- matrix()
 		.Object@ExpMean <- matrix()
 		return(.Object)
@@ -326,7 +351,6 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 		nv <- nrow(cov)
 		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
 		mnsNames <- paste0('mean', 1:nv)
-    # if discrete then what? TODO
 		thr <- ret[['thresholds']]
 		if (prod(dim(thr)) == 0) {
 			v <- c(vech(cov), mns[!is.na(mns)])
@@ -347,7 +371,6 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		nv <- nrow(cov)
-    # if discrete, convert to thresholds TODO
 		thr <- ret[['thresholds']]
 		if (prod(dim(thr)) != 0) {
 			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
@@ -1201,7 +1224,8 @@ checkThreshnames <- function(threshnames) {
 
 mxExpectationNormal <-
   function(covariance, means = NA, dimnames = NA, thresholds = NA,
-           threshnames = dimnames, ..., discrete = as.character(NA)) {
+           threshnames = dimnames, ..., discrete = as.character(NA),
+           discreteSpec = NULL) {
 	prohibitDotdotdot(list(...))
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("'covariance' argument is not a string (the name of the expected covariance matrix)")
@@ -1226,7 +1250,7 @@ mxExpectationNormal <-
 	}
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationNormal", covariance, means, dimnames, thresholds, threshnames,
-             discrete))
+             discrete, discreteSpec))
 }
 
 displayMxExpectationNormal <- function(expectation) {
@@ -1242,6 +1266,11 @@ displayMxExpectationNormal <- function(expectation) {
 		cat("$thresholds : NA \n")
 	} else {
 		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
+	}
+	if (is.null(expectation@discreteSpec)) {
+		cat("$discreteSpec : NULL \n")
+	} else {
+		cat("$discreteSpec :", expectation@discreteSpec, '\n')
 	}
 	if (single.na(expectation@discrete)) {
 		cat("$discrete : NA \n")

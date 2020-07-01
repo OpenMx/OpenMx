@@ -26,9 +26,9 @@
 }
 
 \usage{
-mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA,
+mxExpectationNormal(covariance, means=NA, dimnames = NA, thresholds = NA,
                     threshnames = dimnames, ...,
-  discrete = as.character(NA))
+  discrete = as.character(NA), discreteSpec=NULL)
 }
 
 \arguments{
@@ -39,6 +39,8 @@ mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA,
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
    \item{...}{Not used.  Forces remaining arguments to be specified by name.}
    \item{discrete}{An optional character string indicating the name of the discrete matrix.}
+   \item{discreteSpec}{An optional matrix containing maximum counts and
+   model IDs.}
 }
 
 \details{
