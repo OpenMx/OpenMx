@@ -56,6 +56,8 @@ env:
 branches:
   except:
   - stable   # already tested
+before_deploy:
+  - eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
 deploy:
   provider: script
   script: ./util/travis/deploy
