@@ -173,6 +173,7 @@ Collate:
     'MxRetro.R'
     'MxMMI.R'
     'omxReadGRMBin.R'
+    'MxPredict.R'
     'zzz.R'
 RdMacros: 
     lifecycle
