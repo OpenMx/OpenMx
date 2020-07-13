@@ -29,7 +29,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxMatrix* P;
 	omxMatrix* B;
 	int vectorSize;
-	
+
 	const char *type;
 	const char *continuousType;
 	bool fullWeight;
@@ -40,7 +40,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
-	
+
 	void prepData();
 	virtual void invalidateCache()
 	{
@@ -52,7 +52,7 @@ struct omxWLSFitFunction : omxFitFunction {
 omxWLSFitFunction::~omxWLSFitFunction()
 {
 	if(OMX_DEBUG) {mxLog("Freeing WLS FitFunction.");}
-	
+
 	invalidateCache();
 	omxWLSFitFunction* owo = this;
 	omxFreeMatrix(owo->expectedFlattened);
@@ -69,14 +69,14 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 		prepData();
 		return;
 	}
-	
+
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.
-	
+
 	double sum = 0.0;
-	
+
 	omxMatrix *eCov, *eMeans, *oFlat, *eFlat;
-	
+
 	/* Locals for readability.  Compiler should cut through this. */
 	eCov		= owo->expectedCov;
 	eMeans 		= owo->expectedMeans;
@@ -84,23 +84,23 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	if (!observedFlattened) return;
 	oFlat		= observedFlattened;
 	eFlat		= owo->expectedFlattened;
-	
+
 	/* Recompute and recopy */
 	if(OMX_DEBUG) { mxLog("WLSFitFunction Computing expectation"); }
 	omxExpectationCompute(fc, expectation, NULL);
-	
+
 	EigenVectorAdaptor EeFlat(eFlat);
 	omxExpectation *ex = expectation;
-	normalToStdVector(eCov, eMeans, expectedSlope, 
+	normalToStdVector(eCov, eMeans, expectedSlope,
 										[ex](int r, int c)->double{ return ex->getThreshold(r,c); },
 										eThresh, EeFlat);
-	
+
 	omxCopyMatrix(B, oFlat);
-	
+
 	if(OMX_DEBUG) {omxPrintMatrix(eFlat, "....WLS Expected Vector: "); }
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
-	
+
 	omxMatrix *weights = expectation->data->getSingleObsSummaryStats().acovMat;
 	if(weights != NULL) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
@@ -110,31 +110,31 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 		omxCopyMatrix(P, B);
 		omxTransposeMatrix(P);
 	}
-	
+
 	sum = omxDDOT(P, B);
-	
+
 	oo->matrix->data[0] = sum;
-	
+
 	if(OMX_DEBUG) { mxLog("WLSFitFunction value comes to: %f.", oo->matrix->data[0]); }
-	
+
 }
 
 void omxWLSFitFunction::populateAttr(SEXP algebra)
 {
 	if(OMX_DEBUG) { mxLog("Populating WLS Attributes."); }
-	
+
 	omxWLSFitFunction *argStruct = this;
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
 	omxMatrix *weightInt = expectation->data->getSingleObsSummaryStats().acovMat;
-	
+
 	SEXP expCovExt, expMeanExt, gradients;
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
 			REAL(expCovExt)[col * expCovInt->rows + row] =
 				omxMatrixElement(expCovInt, row, col);
-	
+
 	if (expMeanInt != NULL) {
 		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, expMeanInt->rows, expMeanInt->cols));
 		for(int row = 0; row < expMeanInt->rows; row++)
@@ -142,9 +142,9 @@ void omxWLSFitFunction::populateAttr(SEXP algebra)
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
 	}
-	
+
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weightInt, "...WLS Weight Matrix: W"); }
 	SEXP weightExt = NULL;
 	if (weightInt) {
@@ -153,8 +153,8 @@ void omxWLSFitFunction::populateAttr(SEXP algebra)
 			for(int col = 0; col < weightInt->cols; col++)
 				REAL(weightExt)[col * weightInt->rows + row] = weightInt->data[col * weightInt->rows + row];
 	}
-	
-	
+
+
 	if(0) {  /* TODO fix for new internal API
 		int nLocs = Global->numFreeParams;
 		double gradient[Global->numFreeParams];
@@ -163,20 +163,20 @@ void omxWLSFitFunction::populateAttr(SEXP algebra)
 		}
 		//oo->gradientFun(oo, gradient);
 		Rf_protect(gradients = Rf_allocMatrix(REALSXP, 1, nLocs));
-		
+
 		for(int loc = 0; loc < nLocs; loc++)
 			REAL(gradients)[loc] = gradient[loc];
 		 */
 	} else {
 		Rf_protect(gradients = Rf_allocMatrix(REALSXP, 0, 0));
 	}
-	
+
 	if(OMX_DEBUG) { mxLog("Installing populated WLS Attributes."); }
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
 	if (weightExt) Rf_setAttrib(algebra, Rf_install("weights"), weightExt);
 	Rf_setAttrib(algebra, Rf_install("gradients"), gradients);
-	
+
 	ProtectedSEXP Rsat(Rf_ScalarReal(0));
 	Rf_setAttrib(algebra, Rf_install("SaturatedLikelihood"), Rsat);
 	//Rf_setAttrib(algebra, Rf_install("IndependenceLikelihood"), Rf_ScalarReal(0));
@@ -202,7 +202,7 @@ void omxWLSFitFunction::prepData()
 		std::vector<int> exoPred;
 		expectation->getExogenousPredictors(exoPred);
 		// how to prohibit def vars? TODO
-	
+
 		dataMat->prepObsStats(matrix->currentState, expectation->getDataColumnNames(),
 				      exoPred, type, continuousType, fullWeight);
 		if (isErrorRaised()) return;
@@ -223,7 +223,7 @@ void omxWLSFitFunction::prepData()
 
 	auto &eThresh = oo->expectation->getThresholdInfo();
 
-	// Error Checking: Observed/Expected means must agree.  
+	// Error Checking: Observed/Expected means must agree.
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
 		if(newObj->expectedMeans != NULL) {
@@ -239,7 +239,7 @@ void omxWLSFitFunction::prepData()
 			return;
 		}
 	}
-	
+
 	if((eThresh.size()==0) ^ (obsThresholdsMat==0)) {
 		if (eThresh.size()) {
 			omxRaiseError("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
@@ -262,13 +262,13 @@ void omxWLSFitFunction::prepData()
 		mxLog("observed thresholds:");
 		for (auto &th : oThresh) { th.log(); }
 	}
-	
+
 	if(weights) {
 		if (weights->rows != weights->cols || weights->cols != vectorSize) {
 			omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
 			return;
 		}
-	
+
 		EigenMatrixAdaptor Eweight(weights);
 		Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
 		double offDiag = offDiagW.array().abs().sum();
@@ -276,12 +276,14 @@ void omxWLSFitFunction::prepData()
 	} else {
 		oo->units = FIT_UNITS_SQUARED_RESIDUAL;
 	}
-	
+
 	observedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
 	EigenVectorAdaptor oFlat(observedFlattened);
 	if (obsThresholdsMat) {
 		EigenMatrixAdaptor oTh(obsThresholdsMat);
-		normalToStdVector(cov, means, obsStat.slopeMat, oTh, oThresh, oFlat);
+		normalToStdVector(cov, means, obsStat.slopeMat,
+                      [&oThresh, &oTh](int r,int c)->double{ return oTh(r, oThresh[c].column); },
+                      oThresh, oFlat);
 	} else {
 		normalToStdVector(cov, means, obsStat.slopeMat, [](int r,int c)->double{ return 0; },
 											oThresh, oFlat);
@@ -298,11 +300,11 @@ void omxWLSFitFunction::prepData()
 void omxWLSFitFunction::init()
 {
 	auto *oo = this;
-	
+
 	omxState *currentState = oo->matrix->currentState;
-	
+
 	if (!oo->expectation) { mxThrow("%s requires an expectation", name()); }
-	
+
 	if (R_has_slot(rObj, Rf_install("type"))) {
 		ProtectedSEXP RwlsType(R_do_slot(rObj, Rf_install("type")));
 		type = CHAR(STRING_ELT(RwlsType,0));
@@ -327,7 +329,7 @@ void omxWLSFitFunction::init()
 	/* Error check weight matrix size */
 	vectorSize = expectation->numSummaryStats();
 	if(OMX_DEBUG) { mxLog("Intial WLSFitFunction vectorSize comes to: %d.", vectorSize); }
-	
+
 	/* Temporary storage for calculation */
 	observedFlattened = 0;
 	expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, currentState);

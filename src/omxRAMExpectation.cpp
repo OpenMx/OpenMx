@@ -98,8 +98,6 @@ void omxRAMExpectation::getExogenousPredictors(std::vector<int> &out)
 
 void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
-	super::compute(fc, what, how);
-
 	omxRAMExpectation* oro = this;
 
 	if (what && how && strEQ(how, "flat")) {
@@ -115,6 +113,8 @@ void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *ho
 	}
 
 	oro->CalculateRAMCovarianceAndMeans(fc);
+
+	super::compute(fc, what, how);
 }
 
 void omxRAMExpectation::invalidateCache()
@@ -159,13 +159,18 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 	if (oro->rram) {
 		rram->exportInternalState(dbg);
 	} else {
-		oro->CalculateRAMCovarianceAndMeans(0);
+    // This code should be shared with all normal expectations TODO
+    compute(0, 0, 0);
 		EigenMatrixAdaptor Ecov(oro->cov);
 		out.add("covariance", Rcpp::wrap(Ecov));
 		if (oro->means) {
 			EigenVectorAdaptor Emean(oro->means);
 			out.add("mean", Rcpp::wrap(Emean));
 		}
+    Eigen::MatrixXd tmat = buildThresholdMatrix();
+    if (tmat.cols()) {
+			out.add("thresholds", Rcpp::wrap(tmat));
+    }
 		if (hasProductNodes) {
 			dbg.add("polyRep", Rcpp::wrap(pcalc.getPolyRep()));
 		}
@@ -197,16 +202,16 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	if (F->rows == 0) return;
 
 	if (slope) omxRecompute(slope, fc);
-	    
+
 	if(cov == NULL && means == NULL) {
 		return; // We're not populating anything, so why bother running the calculation?
 	}
-	
+
 	EigenMatrixAdaptor Ecov(cov);
 	pcalc.cov(fc, Ecov);
 
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(cov, "....RAM: Model-implied Covariance Matrix:");}
-	
+
 	if (M) {
 		EigenVectorAdaptor Emean(means);
 		pcalc.mean(fc, Emean);
@@ -254,16 +259,16 @@ void omxRAMExpectation::init()
 {
 	loadDataColFromR();
 	loadThresholdFromR();
-	
+
 	int l, k;
 
 	omxRAMExpectation *RAMexp = this;
 	RAMexp->rram = 0;
-	
+
 	auto oo=this;
 
 	oo->canDuplicate = true;
-	
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	RAMexp->verbose = Rf_asInteger(Rverbose) + OMX_DEBUG;
 
@@ -344,7 +349,7 @@ void omxRAMExpectation::init()
 				mxLog("%s: join col %d against %s using between matrix %s",
 				      oo->name, foreignKey, fex->name, bmat->name());
 			}
-				
+
 			RAMexp->between.push_back(bmat);
 		}
 	}
@@ -537,7 +542,7 @@ omxMatrix* omxRAMExpectation::getComponent(const char* component)
 	} else if(strEQ("pvec", component)) {
 		// Once implemented, change compute function and return pvec
 	}
-	
+
 	return retval;
 }
 
@@ -570,7 +575,7 @@ void omxRAMExpectation::analyzeDefVars(FitContext *fc)
 		dvInfluenceMean.assign(numDefVars, M? true : false);
 		if (verbose >= 1) mxLog("%s: defvar effect on mean unknown", name);
 	}
-		
+
 	hasVariance.resize(S->rows);
 	if (S->isSimple()) {
 		omxRecompute(S, fc);
@@ -1231,7 +1236,7 @@ namespace RelationalRAMExpectation {
 						      hasMean, hasVar);
 					}
 				}
-				
+
 				if (hasMean || hasVar) {
 					for (auto it : fromDv) {
 						omxRAMExpectation *dvHome =
@@ -1971,7 +1976,7 @@ namespace RelationalRAMExpectation {
 		for (std::vector<independentGroup*>::iterator it = group.begin() ; it != group.end(); ++it) {
 			delete *it;
 		}
-  
+
 		omxFreeMatrix(smallCol);
 	}
 

@@ -43,7 +43,7 @@
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
 		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
 		     noExoOptimize(true), modified(false), minVariance(0), warnNPDacov(true),
-		     dataObject(0), dataMat(0), meansMat(0), 
+		     dataObject(0), dataMat(0), meansMat(0),
 										 numObs(0), _type(0), naAction(NA_PASS), numFactor(0), numNumeric(0),
 		     cols(0), expectation(0)
 {}
@@ -285,7 +285,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	} else {
 		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
 		od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
-		
+
 		if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
 			omxToggleRowColumnMajor(od->dataMat);
 		}
@@ -887,7 +887,7 @@ void omxContiguousDataRow(omxData *od, int row, int start, int len, omxMatrix* o
 	if(row >= od->nrows()) mxThrow("Invalid row");
 
 	if(om == NULL) mxThrow("Must provide an output matrix");
-	
+
 	if (om->cols < len) mxThrow("omxContiguousDataRow: output matrix is too small");
 	int numcols = od->cols;
 	omxMatrix* dataMat = od->dataMat;
@@ -1280,7 +1280,7 @@ void obsSummaryStats::permute(omxData *data)
 		auto s1 = string_snprintf("var_%s", cn);
 		p2.indices()[px++] = plookup(acovMap, s1.c_str());
 	}
-	
+
 	for (int cx=0; cx < int(dc.size())-1; ++cx) {
 		auto cn = dc[cx];
 		for (int rx=cx+1; rx < int(dc.size()); ++rx) {
@@ -1844,7 +1844,7 @@ void ProbitRegression::evaluateDerivs(int want)
 		-(dxa.transpose().matrix() * weightMat * (dxb.colwise() * pr2).matrix() -
 		  ((Y1.colwise() * gdzi.col(0)).transpose().matrix() * pred.matrix() -
 		   (Y2.colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix()));
-	
+
 	hess.block(numThr,0,pred.cols(),numThr) =
 		hess.block(0,numThr,numThr,pred.cols()).transpose();
 
@@ -2156,7 +2156,7 @@ struct PolychoricCor : NewtonRaphsonObjective {
 
 		double rho = tanh(param);
 		double dx = 0;
-		
+
 		if (pred1.size() || pred2.size() || !data.getNoExoOptimize()) {
 			for (int rx=0; rx < int(index.size()); ++rx) {
 				den[rx] = dbivnorm(z1(rx,1), z2(rx,1), z1(rx,0), z2(rx,0), rho);
@@ -3222,7 +3222,7 @@ void omxData::estimateObservedStats()
 
 	// lavaan divides Efw by numObs, we don't
 	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
-	
+
 	//mxPrintMat("Efw", Efw);
 
 	o1.partial = false;

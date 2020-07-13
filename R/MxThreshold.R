@@ -476,7 +476,7 @@ setMethod("show", "MxMarginalPoisson", function(object) { displayMarginalPoisson
 #' @return a list of MxMarginPoisson obects
 #' @aliases MxMarginalPoisson-class print,MxMarginalPoisson-method show,MxMarginalPoisson-method $,MxMarginalPoisson-method $<-,MxMarginalPoisson-method
 mxMarginalPoisson <- function(vars, maxCount, lambda, zeroInf=.01,
-                      free=FALSE, labels=NA, lbound=NA, ubound=NA)
+                      free=FALSE, labels=NA, lbound=0, ubound=c(1,NA))
 {
   for (par in c('maxCount','lambda','zeroInf')) {
     if (length(get(par)) != length(vars) &&
@@ -534,7 +534,7 @@ setMethod("initialize", "MxMarginalNegativeBinomial",
           })
 
 setMethod("getSpec", "MxMarginalNegativeBinomial",
-          function(mxm) c(mxm@maxCount, ifelse(length(mxm@mu), 2, 3)))
+          function(mxm) c(mxm@maxCount, ifelse(length(mxm@prob), 2, 3)))
 
 setAs("MxMarginalNegativeBinomial", "MxMatrix", function(from) {
   if (length(from@mu) == 0) {
@@ -584,6 +584,13 @@ mxMarginalNegativeBinomial <- function(vars, maxCount, size, prob=c(), mu=c(), z
 {
   if (!missing(prob) && !missing(mu)) stop("'prob' and 'mu' both specified")
   isMu <- !missing(mu)
+  if (!isMu) {
+    if (missing(lbound)) lbound <- c(0,0,0)
+    if (missing(ubound)) ubound <- c(1,NA,1)
+  } else {
+    if (missing(lbound)) lbound <- c(0,0,NA)
+    if (missing(ubound)) ubound <- c(1,NA,NA)
+  }
   parList <- c('maxCount','size','zeroInf', ifelse(isMu,'mu','prob'))
 
   for (par in parList) {

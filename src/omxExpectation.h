@@ -93,6 +93,7 @@ class omxExpectation {					// An Expectation
 	template <typename T> void asVector(FitContext *fc, int row, Eigen::MatrixBase<T> &out) {
 		asVector1(fc, row, out.derived());
 	}
+  Eigen::MatrixXd buildThresholdMatrix();
 
 	virtual bool usesDataColumnNames() const { return true; }
 	void loadDataColFromR();
@@ -201,7 +202,7 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 	for (auto &th : ti) {
 		for (int t1=0; t1 < th.numThresholds; ++t1) {
 			double sd1 = sdTmp[th.dColumn];
-			out[dx++] = (Eth(t1, th.column) - Emean[th.dColumn]) * sd1;
+			out[dx++] = (Eth(t1, th.dColumn) - Emean[th.dColumn]) * sd1;
 			sd.diagonal()[th.dColumn] = sd1;
 		}
 		if (!th.numThresholds) {

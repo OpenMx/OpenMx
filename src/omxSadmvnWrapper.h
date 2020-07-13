@@ -14,7 +14,7 @@
  *  limitations under the License.
  *
  */
- 
+
 #ifndef _OMXSADMVNWRAPPER_H
 #define _OMXSADMVNWRAPPER_H
 
@@ -40,7 +40,7 @@ void F77_SUB(sadmvn)(int*, double*, double*, int*, double*, int*,
 }
 #endif
 
-void omxSadmvnWrapper(FitContext *fc, int numVars, 
+void omxSadmvnWrapper(FitContext *fc, int numVars,
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform);
 
 using namespace UndirectedGraph;
@@ -350,18 +350,17 @@ void OrdinalLikelihood::block::loadRow(int row)
 		int var = ol->dataColumns[j];
 		int pick = omxIntDataElement(ol->data, row, var) - 1;
 		double sd = ol->stddev[ox];
-		int tcol = colInfo[j].column;
 		if (pick == 0) {
 			lThresh[vx] = -std::numeric_limits<double>::infinity();
-			uThresh[vx] = (ol->getThreshold(pick, tcol) - mean[vx]) / sd;
+			uThresh[vx] = (ol->getThreshold(pick, j) - mean[vx]) / sd;
 			Infin[vx] = 0;
 		} else if (pick == colInfo[j].numThresholds) {
-			lThresh[vx] = (ol->getThreshold(pick-1, tcol) - mean[vx]) / sd;
+			lThresh[vx] = (ol->getThreshold(pick-1, j) - mean[vx]) / sd;
 			uThresh[vx] = std::numeric_limits<double>::infinity();
 			Infin[vx] = 1;
 		} else {
-			lThresh[vx] = (ol->getThreshold(pick-1, tcol) - mean[vx]) / sd;
-			uThresh[vx] = (ol->getThreshold(pick, tcol) - mean[vx]) / sd;
+			lThresh[vx] = (ol->getThreshold(pick-1, j) - mean[vx]) / sd;
+			uThresh[vx] = (ol->getThreshold(pick, j) - mean[vx]) / sd;
 			Infin[vx] = 2;
 		}
 		vx += 1;
@@ -445,7 +444,7 @@ bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1>
 
 	MatrixXd AA = sigma;
 	if (InvertSymmetricPosDef(AA, 'L')) return false;
-	
+
 	MatrixXd A_1;
 	struct subset1 {
 		int nn;
@@ -494,18 +493,18 @@ bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1>
 
 /*
 # Computation of the bivariate marginal density F_{q,r}(x_q, x_r) (q != r)
-# of truncated multivariate normal distribution 
+# of truncated multivariate normal distribution
 # following the works of Tallis (1961), Leppard and Tallis (1989)
 #
 # References:
-# Tallis (1961): 
+# Tallis (1961):
 #   "The Moment Generating Function of the Truncated Multi-normal Distribution"
-# Leppard and Tallis (1989): 
+# Leppard and Tallis (1989):
 #   "Evaluation of the Mean and Covariance of the Truncated Multinormal"
-# Manjunath B G and Stefan Wilhelm (2009): 
+# Manjunath B G and Stefan Wilhelm (2009):
 #   "Moments Calculation for the Doubly Truncated Multivariate Normal Distribution"
 #
-# (n-2) Integral, d.h. zweidimensionale Randdichte in Dimension q und r, 
+# (n-2) Integral, d.h. zweidimensionale Randdichte in Dimension q und r,
 # da (n-2) Dimensionen rausintegriert werden.
 # vgl. Tallis (1961), S.224 und Code Leppard (1989), S.550
 #
@@ -545,7 +544,7 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 		ol.setZeroMean();
 		alpha = ol.likelihood(fc, lower, upper);
 	}
-	
+
 	struct subset1 {
 		int qq, rr;
 		bool flip;
@@ -607,10 +606,10 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 		RSRQ = (RR(ii, rr) - RR(ii, qq) * RR(qq, rr)) / sqrt(RSRQ);
 
 		double denom = sqrt((1 - RR(ii, qq)*RR(ii, qq)) * (1 - RSRQ*RSRQ));
-		
+
 		// lower integration bound
 		AQR.col(m2) = ((lowerStd[ii] - BSQR * xqStd.array() - BSRQ * xrStd.array()) / denom);
-		
+
 		// upper integration bound
 		BQR.col(m2) = ((upperStd[ii] - BSQR * xqStd.array() - BSRQ * xrStd.array()) / denom);
 
@@ -622,7 +621,7 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 
 		m2 += 1;
 	}
-	
+
 	for (int ii=0; ii < xq.size(); ++ii) {
 		if (RQR.rows() == 1) {
 			ol.setStandardNormal(1);
@@ -682,7 +681,7 @@ bool _mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
 		}
 	}
 	F2 = F2.selfadjointView<Eigen::Upper>();
-	
+
 	F_a.array() *= lower.array();
 	F_b.array() *= upper.array();
 	for (int kx=0; kx < kk; ++kx) {
@@ -714,4 +713,4 @@ bool _mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
 	return true;
 }
 
-#endif 
+#endif

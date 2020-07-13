@@ -82,7 +82,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 				}
 			}
 			if(threshCrossCount > 0) {
-				fc->recordIterationError("Found %d thresholds too close together in column %d",
+				if (fc) fc->recordIterationError("Found %d thresholds too close together in column %d",
 																 threshCrossCount, column+1);
 			}
 		}
@@ -90,9 +90,16 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 	if (discreteMat) {
 		omxRecompute(discreteMat, fc);
 		EigenMatrixAdaptor dm(discreteMat);
-    auto ds = getDiscreteSpec();
 		discreteCache.resize(discreteMat->cols);
-		for (int cx=0; cx < discreteMat->cols; ++cx) {
+
+    omxMatrix *cov = getComponent("cov");
+    omxMatrix *mean = getComponent("means");
+    auto ds = getDiscreteSpec();
+    auto dc = getDataColumns();
+    for(int dx = 0; dx < int(dc.size()); dx++) {
+      omxThresholdColumn &col = thresholds[dx];
+      if (!col.isDiscrete) continue;
+      int cx = col.column;
 			auto &vec = discreteCache[cx];
 			vec.resize(ds(0,cx));
 			switch(int(ds(1,cx))) {
@@ -111,9 +118,12 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 				mxThrow("%s: unknown discrete distribution %d in '%s' column %d",
 								name, ds(1,cx), discreteMat->name(), cx);
 			}
+      double m1 = !mean? 0 : omxVectorElement(mean, dx);
+      double v1 = omxMatrixElement(cov, dx, dx);
 			double zif = dm(0,cx);
+      zif = (zif < 0) ? 0 : (1 < zif) ? 1 : zif;
 			for(int j = 0; j < vec.size(); j++) {
-				vec[j] = Rf_qnorm5(zif + (1-zif) * vec[j], 0, 1, 1, 0);  // p2z
+				vec[j] = Rf_qnorm5(zif + (1-zif) * vec[j], m1, sqrt(v1), 1, 0);  // p2z
 			}
 			//mxLog("[%d]", cx);
 			//mxPrintMat("DC", vec);
@@ -402,12 +412,34 @@ double omxExpectation::getThreshold(int r, int c)
 	auto &allTh = getThresholdInfo();
 	auto &th = allTh[c];
 	if (th.isDiscrete) {
-		auto &vec = discreteCache[c];
+		auto &vec = discreteCache[th.column];
 		return vec[r];
 	} else {
 		EigenMatrixAdaptor Eth(thresholdsMat);
-		return Eth(r,c);
+		return Eth(r, th.column);
 	}
+}
+
+Eigen::MatrixXd omxExpectation::buildThresholdMatrix()
+{
+  Eigen::MatrixXd ret;
+  int ncol=0, nrow=0;
+	auto &allTh = getThresholdInfo();
+  for (auto &th : allTh) {
+    if (th.numThresholds == 0) continue;
+    ncol += 1;
+    nrow = std::max(nrow, th.numThresholds);
+  }
+  ret.resize(nrow, ncol);
+  ret.setConstant(NA_REAL);
+  for (int dcol = 0, cx=0; cx < int(allTh.size()); cx++) {
+    auto &th = allTh[cx];
+    if (th.numThresholds == 0) continue;
+    for (int tx=0; tx < th.numThresholds; ++tx)
+      ret(tx, dcol) = getThreshold(tx, cx);
+    dcol += 1;
+  }
+  return ret;
 }
 
 void omxExpectation::print()

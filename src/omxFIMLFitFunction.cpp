@@ -126,16 +126,15 @@ bool condOrdByRow::eval()
 						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
 							mxThrow("Out of range");
 						}
-						int tcol = colInfo[col].column;
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
-							uThresh[jj] = (expectation->getThreshold(pick, tcol) - ordMean[jj]);
+							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
 						} else if (pick == colInfo[col].numThresholds) {
-							lThresh[jj] = (expectation->getThreshold(pick-1, tcol) - ordMean[jj]);
+							lThresh[jj] = (expectation->getThreshold(pick-1, col) - ordMean[jj]);
 							uThresh[jj] = std::numeric_limits<double>::infinity();
 						} else {
-							lThresh[jj] = (expectation->getThreshold(pick-1, tcol) - ordMean[jj]);
-							uThresh[jj] = (expectation->getThreshold(pick, tcol) - ordMean[jj]);
+							lThresh[jj] = (expectation->getThreshold(pick-1, col) - ordMean[jj]);
+							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
 						}
 					}
 
@@ -320,10 +319,10 @@ bool condContByRow::eval()
 				covDecomp.refreshInverse();
 			}
 		}
-		
+
 		double iqf = NA_REAL;
 		double residSize = NA_REAL;
-		
+
 		if (rowContinuous) {
 			if (!parent->continuousSame[row] || firstRow) {
 				INCR_COUNTER(contDensity);
@@ -391,11 +390,11 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 	omxFIMLFitFunction *argStruct = this;
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt, rowObsExt, rowDistExt;
 	omxMatrix *expCovInt, *expMeanInt;
-	
+
 	omxExpectationCompute(NULL, off->expectation, NULL);
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
-	
+
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
@@ -408,12 +407,12 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
 	}
-	
+
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	
+
 	if(argStruct->populateRowDiagnostics){
 		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
 		omxMatrix *otherRowwiseValuesInt = argStruct->otherRowwiseValues;
@@ -429,14 +428,14 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 		Rf_setAttrib(algebra, Rf_install("rowDist"), rowDistExt);
 		Rf_setAttrib(algebra, Rf_install("rowObs"), rowObsExt);
 	}
-	
+
 	const char *jointLabels[] = {
 		"auto", "continuous", "ordinal", "old"
 	};
 	Rf_setAttrib(algebra, Rf_install("jointConditionOn"),
 		     makeFactor(Rf_ScalarInteger(1+argStruct->jointStrat),
 				OMX_STATIC_ARRAY_SIZE(jointLabels), jointLabels));
-	
+
 	if (OMX_DEBUG_FIML_STATS) {
 		MxRList count;
 		count.add("expectation", Rf_ScalarInteger(argStruct->expectationComputeCount));
@@ -1043,14 +1042,14 @@ void omxFIMLFitFunction::init()
 	newObj->wantRowLikelihoods = false;
 
 	cov = omxGetExpectationComponent(expectation, "cov");
-	if(cov == NULL) { 
+	if(cov == NULL) {
 		omxRaiseErrorf("%s: covariance not found in expectation '%s'",
 			       name(), expectation->name);
 		return;
 	}
 
 	means = omxGetExpectationComponent(expectation, "means");
-	
+
     newObj->smallMeans = NULL;
     newObj->ordMeans   = NULL;
     newObj->contRow    = NULL;
@@ -1058,7 +1057,7 @@ void omxFIMLFitFunction::init()
     newObj->ordContCov = NULL;
     newObj->halfCov    = NULL;
     newObj->reduceCov  = NULL;
-    
+
 	if(OMX_DEBUG) {
 		mxLog("Accessing data source.");
 	}
@@ -1094,8 +1093,8 @@ void omxFIMLFitFunction::init()
 
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->nrows(), 1, off->matrix->currentState);
 	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->nrows(), 2, off->matrix->currentState);
-	
-	
+
+
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood population option.");
 	}

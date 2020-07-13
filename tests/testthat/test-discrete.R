@@ -8,6 +8,9 @@ library(OpenMx)
 # with and without regular thresholds
 # ordered factor vs raw count
 # different column orders for discrete vs discreteSpec
+# autodetect maximum count
+# check equivalence of parameterizations (total var = 1 vs loading = 1)
+# ensure front and back-end have exactly the same expectations
 
 factorModel <- mxModel(
   "One Factor",
@@ -17,7 +20,7 @@ factorModel <- mxModel(
   mxMatrix("Symm", 1, 1, values=1,
            free=FALSE, name="L"),
   mxMatrix("Diag", 5, 5, values=1,
-           free=TRUE, name="U"),
+           free=FALSE, name="U"),
   mxAlgebra(A %*% L %*% t(A) + U, name="R"),
   mxMatrix(nrow=3, ncol=3,
            values=c(.02, 1.1, NA,
@@ -58,7 +61,7 @@ factorModel <- mxModel(
   manifestVars = manifests,
   latentVars = latents,
   mxPath(from=latents, to=manifests,values=0.8),
-  mxPath(from=manifests, arrows=2,values=1),
+  mxPath(from=manifests, arrows=2,values=1, free=FALSE),
   mxPath(from=latents, arrows=2,
          free=FALSE, values=1.0),
   mxPath(from = 'one', to = manifests, free=FALSE),
@@ -68,6 +71,14 @@ factorModel <- mxModel(
 round(mxGetExpected(factorModel, "thresholds"),3)
 
 factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
+
+if (0) {
+  m1 <- mxRun(mxModel(factorModel, mxComputeSequence(list(
+    mxComputeOnce('expectation'),
+    mxComputeReportExpectation()))))
+  
+  m1$expectation$output
+}
 
 factorModel$Discrete$free <- !is.na(factorModel$Discrete$values)
 

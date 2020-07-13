@@ -16,7 +16,7 @@
  */
 
 /***********************************************************
- * 
+ *
  *  omxData.h
  *
  *  Created: Timothy R. Brick 	Date: 2009-07-15
@@ -31,7 +31,7 @@
 #define _OMXDATA_H_
 
 #include "omxDefines.h"
-#include <R_ext/Rdynload.h> 
+#include <R_ext/Rdynload.h>
 
 class omxData;
 struct omxThresholdColumn {
@@ -362,7 +362,7 @@ double omxDataNumObs(omxData *od);											// Returns number of obs in the dat
 bool omxDataColumnIsKey(omxData *od, int col);
 const char *omxDataColumnName(omxData *od, int col);
 const char *omxDataType(omxData *od);			      // TODO: convert to ENUM
-	
+
 int omxDataNumNumeric(omxData *od);                   // Number of numeric columns in the data set
 int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set
 

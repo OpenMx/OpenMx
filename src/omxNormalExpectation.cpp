@@ -36,13 +36,13 @@ struct omxNormalExpectation : public omxExpectation {
 
 void omxNormalExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
-	super::compute(fc, what, how);
-
 	omxNormalExpectation* one = this;
 
 	omxRecompute(one->cov, fc);
 	if(one->means != NULL)
 	    omxRecompute(one->means, fc);
+
+	super::compute(fc, what, how);
 }
 
 void omxNormalExpectation::populateAttr(SEXP algebra) {
@@ -61,7 +61,7 @@ void omxNormalExpectation::populateAttr(SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("ExpCov"), expCovExt);
 	}
 
-	
+
 	if (means != NULL) {
 		SEXP expMeanExt;
 		ScopedProtect p1(expMeanExt, Rf_allocMatrix(REALSXP, means->rows, means->cols));
@@ -89,7 +89,7 @@ void omxNormalExpectation::init()
 	loadThresholdFromR();
 
     omxNormalExpectation *one = this;
-	
+
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Processing cov."); }
 	one->cov = omxNewMatrixFromSlot(rObj, currentState, "covariance");
@@ -113,6 +113,6 @@ omxMatrix* omxNormalExpectation::getComponent(const char* component){
 		// Once implemented, change compute function and return pvec
 	}
 	if (retval) omxRecompute(retval, NULL);
-	
+
 	return retval;
 }

@@ -63,11 +63,9 @@ extern void omxCreateMLFitFunction(omxFitFunction* oo, SEXP rObj, omxMatrix* cov
 
 void omxLISRELExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
-	super::compute(fc, what, how);
-
     if(OMX_DEBUG) { mxLog("LISREL Expectation Called."); }
     omxLISRELExpectation* oro = this;
-	
+
 	omxRecompute(oro->LX, fc);
 	omxRecompute(oro->LY, fc);
 	omxRecompute(oro->BE, fc);
@@ -86,14 +84,16 @@ void omxLISRELExpectation::compute(FitContext *fc, const char *what, const char 
 		omxRecompute(oro->AL, fc);
 	}
 	if (slope) omxRecompute(slope, fc);
-	
+
 	omxCalculateLISRELCovarianceAndMeans(oro);
+
+	super::compute(fc, what, how);
 }
 
 omxLISRELExpectation::~omxLISRELExpectation()
 {
 	if(OMX_DEBUG) { mxLog("Destroying LISREL Expectation."); }
-	
+
 	omxLISRELExpectation* argStruct = this;
 
 	omxFreeMatrix(argStruct->A);
@@ -112,19 +112,19 @@ omxLISRELExpectation::~omxLISRELExpectation()
 	omxFreeMatrix(argStruct->BOT);
 	omxFreeMatrix(argStruct->MUX);
 	omxFreeMatrix(argStruct->MUY);
-	
+
 	if(argStruct->Lnocol) {
 		omxFreeMatrix(argStruct->GA);
 		omxFreeMatrix(argStruct->TH);
 	}
-	
+
 	if(argStruct->noLY) {
 		omxFreeMatrix(argStruct->LY);
 		omxFreeMatrix(argStruct->PS);
 		omxFreeMatrix(argStruct->BE);
 		omxFreeMatrix(argStruct->TE);
 	}
-	
+
 	if(argStruct->noLX) {
 		omxFreeMatrix(argStruct->LX);
 		omxFreeMatrix(argStruct->PH);
@@ -158,24 +158,24 @@ void omxLISRELExpectation::populateAttr(SEXP algebra)
 	omxMatrix* I = oro->I;
 	int numIters = oro->numIters;
 	double oned = 1.0, zerod = 0.0;
-	
+
 	omxRecompute(LX);
 	omxRecompute(LY);
 	*/ //This block of code works fine but because I do not use any of it later, it throws a huge block of Rf_warnings about unused variables.
 	// In general, I do not yet understand what this function needs to do.
-	
+
 	/*
 	omxShallowInverse(numIters, BE, Z, Ax, I ); // Z = (I-A)^-1
-	
+
 	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c \n %d %d %d \n %f \n %x %d %x %d \n %f %x %d.", *(Z->majority), *(S->majority), (Z->rows), (S->cols), (S->rows), oned, Z->data, (Z->leading), S->data, (S->leading), zerod, Ax->data, (Ax->leading));}
 	// F77_CALL(omxunsafedgemm)(Z->majority, S->majority, &(Z->rows), &(S->cols), &(S->rows), &oned, Z->data, &(Z->leading), S->data, &(S->leading), &zerod, Ax->data, &(Ax->leading)); 	// X = ZS
 	omxDGEMM(FALSE, FALSE, oned, Z, S, zerod, Ax);
 
 	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(Ax->majority), *(Z->minority), (Ax->rows), (Z->rows), (Z->cols), oned, X->data, (X->leading), Z->data, (Z->lagging), zerod, Ax->data, (Ax->leading));}
-	// F77_CALL(omxunsafedgemm)(Ax->majority, Z->minority, &(Ax->rows), &(Z->rows), &(Z->cols), &oned, Ax->data, &(Ax->leading), Z->data, &(Z->leading), &zerod, Ax->data, &(Ax->leading)); 
+	// F77_CALL(omxunsafedgemm)(Ax->majority, Z->minority, &(Ax->rows), &(Z->rows), &(Z->cols), &oned, Ax->data, &(Ax->leading), Z->data, &(Z->leading), &zerod, Ax->data, &(Ax->leading));
 	omxDGEMM(FALSE, TRUE, oned, Ax, Z, zerod, Ax);
 	// Ax = ZSZ' = Covariance matrix including latent variables
-	
+
 	SEXP expCovExt;
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, Ax->rows, Ax->cols));
 	for(int row = 0; row < Ax->rows; row++)
@@ -228,8 +228,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	double oned = 1.0, zerod=0.0; //, minusOned = -1.0;
 	//int ipiv[BE->rows], lwork = 4 * BE->rows * BE->cols; //This is copied from omxShallowInverse()
 	//double work[lwork];									// It lets you get the inverse of a matrix via omxDGETRI()
-	
-	
+
+
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LX, "....LISREL: LX:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(LY, "....LISREL: LY:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(BE, "....LISREL: BE:");}
@@ -239,7 +239,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TD, "....LISREL: TD:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TE, "....LISREL: TE:");}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(TH, "....LISREL: TH:");}
-	
+
 	/* Calculate the lower right quadrant: the covariance of the Xs */
 	if(LX->cols != 0 && LY->cols != 0) {
 	//if( (LX != NULL) && (LY != NULL) ) {
@@ -248,7 +248,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		omxCopyMatrix(B, TD); // B = TD
 		omxDGEMM(FALSE, TRUE, oned, A, LX, oned, B);  // B = LX*PH*LX^T + TD
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(B, "....LISREL: Lower Right Quadrant of Model-implied Covariance Matrix:");}
-		
+
 		/* Calculate (I-BE)^(-1) and LY*(I-BE)^(-1) */
 		if(OMX_DEBUG) {mxLog("Calculating Inverse of I-BE."); }
 		omxShallowInverse(numIters, BE, C, L, I ); // C = (I-BE)^-1
@@ -256,23 +256,23 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		//omxDGEMM(FALSE, FALSE, oned, I, I, minusOned, C); // C = I - BE
 		//omxDGETRF(C, ipiv); //LU Decomp
 		//omxDGETRI(C, ipiv, work, lwork); //Inverse based on LU Decomp ... C = C^(-1) = (I - BE)^(-1)
-		
-		
+
+
 		omxDGEMM(FALSE, FALSE, oned, LY, C, zerod, D); // D = LY*C = LY * (I - BE)^(-1)
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(D, "....LISREL: LY*(I-BE)^(-1)");}
-		
+
 		/* Calculate the lower left quadrant: the covariance of Xs and Ys, nX by nY */
 		if(OMX_DEBUG) {mxLog("Calculating Lower Left Quadrant of Expected Covariance Matrix."); }
 		omxDGEMM(FALSE, TRUE, oned, A, GA, zerod, E); // E = A*GA^T = LX*PH*GA^T
 		omxCopyMatrix(F, TH); // F = TH
 		omxDGEMM(FALSE, TRUE, oned, E, D, oned, F); // F = E*D^T + F = LX*PH*GA^T * (LY * (I - BE)^(-1))^T + TH
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(F, "....LISREL: Lower Left Quadrant of Model-implied Covariance Matrix:");}
-	
-		
+
+
 	/* Calculate the upper right quadrant: NOTE THIS IS MERELY THE LOWER LEFT QUADRANT TRANSPOSED. */
 	//DONE as omxTranspose(F)
-		
-		
+
+
 		/* Calculate the upper left quadrant: the covariance of the Ys */
 		if(OMX_DEBUG) {mxLog("Calculating Upper Left Quadrant of Expected Covariance Matrix."); }
 		if(OMX_DEBUG_ALGEBRA) {mxLog("Calculating G = GA*PH.");}
@@ -285,8 +285,8 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		omxCopyMatrix(J, TE); // J = TE
 		omxDGEMM(FALSE, TRUE, oned, H, D, oned, J); // J = H*D^T + J = LY * (I - BE)^(-1) * (GA*PH*GA^T + PS) * (LY * (I - BE)^(-1))^T + TE
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(J, "....LISREL: Upper Left Quadrant of Model-implied Covariance Matrix:");}
-	
-	
+
+
 	/* Construct the full model-implied covariance matrix from the blocks previously calculated */
 	// SigmaHat = ( J  t(F) )
 	//            ( F    B  )
@@ -306,10 +306,10 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		args[0] = TOP;
 		args[1] = BOT;
 		omxMatrixVertCat(args, 2, Cov);
-	
+
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....LISREL: Model-implied Covariance Matrix:");}
-	
-	
+
+
 		/* Now Calculate the Expected Means */
 		if(Means != NULL) {
 			/* Mean of the Xs */
@@ -317,7 +317,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 				omxCopyMatrix(MUX, TX);
 				omxDGEMV(FALSE, oned, LX, KA, oned, MUX);
 			//}
-			
+
 			/* Mean of Ys */
 			//if(TY != NULL) {
 				omxCopyMatrix(K, AL);
@@ -330,7 +330,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 					Emean += Eslope * oro->exoPredMean;
 				}
 			//}
-		
+
 			/* Build means from blocks */
 			args[0] = MUY;
 			args[1] = MUX;
@@ -349,7 +349,7 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 				omxDGEMV(FALSE, oned, LX, KA, oned, Means);
 		}
 	}
-	
+
 	/* IF THE MODEL ONLY HAS Ys */
 	else if(LY->cols != 0) {
 	//else if(LY != NULL) {
@@ -380,19 +380,19 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		}
 	}
 	if (Means && OMX_DEBUG_ALGEBRA) omxPrintMatrix(Means, "....LISREL: Model-implied Means Vector:");
-/*	
+/*
 	if(OMX_DEBUG) { mxLog("Running RAM computation."); }
-		
+
 	double oned = 1.0, zerod=0.0;
-	
+
 	if(Ax == NULL || I == NULL || Z == NULL || Y == NULL || X == NULL) {
 		mxThrow("Internal Error: RAM Metadata improperly populated.  Please report this to the OpenMx development team.");
 	}
-		
+
 	if(Cov == NULL && Means == NULL) {
 		return; // We're not populating anything, so why bother running the calculation?
 	}
-	
+
 	// if(   (Cov->rows != Cov->cols)  || (A->rows  != A->cols)  // Conformance check
 	// 	|| (X->rows  != Cov->cols)  || (X->cols  != A->rows)
 	// 	|| (Y->rows  != Cov->cols)  || (Y->cols  != A->rows)
@@ -403,9 +403,9 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	// 	|| (Means->rows != 1)       || (Means->cols != Cov->cols) ) {
 	// 		mxThrow("INTERNAL ERROR: Incorrectly sized matrices being passed to omxRAMObjective Calculation.\n Please report this to the OpenMx development team.");
 	// }
-	
+
 	omxShallowInverse(numIters, A, Z, Ax, I );
-		
+
 	// IMPORTANT: Cov = FZSZ'F'
 	if(OMX_DEBUG_ALGEBRA) { mxLog("....DGEMM: %c %c %d %d %d %f %x %d %x %d %f %x %d.", *(F->majority), *(Z->majority), (F->rows), (Z->cols), (Z->rows), oned, F->data, (F->leading), Z->data, (Z->leading), zerod, Y->data, (Y->leading));}
 	// F77_CALL(omxunsafedgemm)(F->majority, Z->majority, &(F->rows), &(Z->cols), &(Z->rows), &oned, F->data, &(F->leading), Z->data, &(Z->leading), &zerod, Y->data, &(Y->leading)); 	// Y = FZ
@@ -419,9 +419,9 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	// F77_CALL(omxunsafedgemm)(X->majority, Y->minority, &(X->rows), &(Y->rows), &(Y->cols), &oned, X->data, &(X->leading), Y->data, &(Y->leading), &zerod, Cov->data, &(Cov->leading));
 	omxDGEMM(FALSE, TRUE, 1.0, X, Y, 0.0, Cov);
 	 // Cov = FZSZ'F' (Because (FZ)' = Z'F')
-	
+
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Cov, "....RAM: Model-implied Covariance Matrix:");}
-	
+
 	if(M != NULL && Means != NULL) {
 		// F77_CALL(omxunsafedgemv)(Y->majority, &(Y->rows), &(Y->cols), &oned, Y->data, &(Y->leading), M->data, &onei, &zerod, Means->data, &onei);
 		omxDGEMV(FALSE, 1.0, Y, M, 0.0, Means);
@@ -437,7 +437,7 @@ void omxLISRELExpectation::init()
 {
 	loadDataColFromR();
 	loadThresholdFromR();
-		
+
 	slope = 0;
 	verbose = 0;
 	if (R_has_slot(rObj, Rf_install("verbose"))) {
@@ -446,39 +446,39 @@ void omxLISRELExpectation::init()
 	}
 
 	int nx, nxi, ny, neta, ntotal;
-	
+
 	SEXP slotValue;
-	
+
 	/* Create and fill expectation */
 	omxLISRELExpectation *LISobj = this;
-	
+
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing LISREL Meta Data for expectation."); }
-	
+
 	if(OMX_DEBUG) { mxLog("Processing LX."); }
 	LISobj->LX = omxNewMatrixFromSlot(rObj, currentState, "LX");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing LY."); }
 	LISobj->LY = omxNewMatrixFromSlot(rObj, currentState, "LY");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing BE."); }
 	LISobj->BE = omxNewMatrixFromSlot(rObj, currentState, "BE");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing GA."); }
 	LISobj->GA = omxNewMatrixFromSlot(rObj, currentState, "GA");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing PH."); }
 	LISobj->PH = omxNewMatrixFromSlot(rObj, currentState, "PH");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing PS."); }
 	LISobj->PS = omxNewMatrixFromSlot(rObj, currentState, "PS");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing TD."); }
 	LISobj->TD = omxNewMatrixFromSlot(rObj, currentState, "TD");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing TE."); }
 	LISobj->TE = omxNewMatrixFromSlot(rObj, currentState, "TE");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing TH."); }
 	LISobj->TH = omxNewMatrixFromSlot(rObj, currentState, "TH");
 
@@ -493,7 +493,7 @@ void omxLISRELExpectation::init()
 
 	if(OMX_DEBUG) { mxLog("Processing AL."); }
 	LISobj->AL = omxNewMatrixFromSlot(rObj, currentState, "AL");
-	
+
 	LISobj->noLY = LISobj->LY == NULL;
 	if(LISobj->noLY) {
 		LISobj->LY = omxInitMatrix(0, 0, TRUE, currentState);
@@ -501,43 +501,43 @@ void omxLISRELExpectation::init()
 		LISobj->BE = omxInitMatrix(0, 0, TRUE, currentState);
 		LISobj->TE = omxInitMatrix(0, 0, TRUE, currentState);
 	}
-	
+
 	LISobj->noLX = LISobj->LX == NULL;
 	if(LISobj->noLX) {
 		LISobj->LX = omxInitMatrix(0, 0, TRUE, currentState);
 		LISobj->PH = omxInitMatrix(0, 0, TRUE, currentState);
 		LISobj->TD = omxInitMatrix(0, 0, TRUE, currentState);
 	}
-	
+
 	LISobj->Lnocol = LISobj->LY->cols == 0 || LISobj->LX->cols == 0;
 	if(LISobj->Lnocol) {
 		LISobj->GA = omxInitMatrix(LISobj->LY->cols, LISobj->LX->cols, TRUE, currentState);
 		LISobj->TH = omxInitMatrix(LISobj->LX->rows, LISobj->LY->rows, TRUE, currentState);
 	}
-	
-	
+
+
 	/* Identity Matrix, Size Of BE */
 	if(OMX_DEBUG) { mxLog("Generating I."); }
 	LISobj->I = omxNewIdentityMatrix(LISobj->BE->rows, currentState);
-	
-	
+
+
 	/* Get the nilpotency index of the BE matrix for I-BE inverse speedup */
 	if(OMX_DEBUG) { mxLog("Processing expansion iteration depth."); }
 	{ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install("depth")));
 	LISobj->numIters = INTEGER(slotValue)[0];
 	if(OMX_DEBUG) { mxLog("Using %d iterations.", LISobj->numIters); }
 	}
-	
+
 	/* Initialize the place holder matrices used in calculations */
 	nx = LISobj->LX->rows;
 	nxi = LISobj->LX->cols;
 	ny = LISobj->LY->rows;
 	neta = LISobj->LY->cols;
 	ntotal = nx + ny;
-	
-	
+
+
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
-	
+
 	LISobj->A = 	omxInitMatrix(nx, nxi, TRUE, currentState);
 	LISobj->B = 	omxInitMatrix(nx, nx, TRUE, currentState);
 	LISobj->C = 	omxInitMatrix(neta, neta, TRUE, currentState);
@@ -553,14 +553,14 @@ void omxLISRELExpectation::init()
 	LISobj->BOT = 	omxInitMatrix(nx, ntotal, TRUE, currentState);
 	LISobj->MUX = 	omxInitMatrix(nx, 1, TRUE, currentState);
 	LISobj->MUY = 	omxInitMatrix(ny, 1, TRUE, currentState);
-	
-	
+
+
 	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", ntotal, ntotal);
 	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
 	else connectMatrixToExpectation(cov, this, "covariance");
 
 	LISobj->args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*));
-	
+
 	/* Means */
 	if(LISobj->TX != NULL || LISobj->TY != NULL || LISobj->KA != NULL || LISobj->AL != NULL) {
 		means = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, ntotal);
@@ -585,7 +585,7 @@ omxMatrix* omxLISRELExpectation::getComponent(const char* component) {
 		if (!slope) studyExoPred();
 		retval = slope;
 	}
-	
+
 	return retval;
 }
 

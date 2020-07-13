@@ -124,6 +124,10 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
 			}
       disname <- .Object@discrete
       if (!single.na(disname)) {
+        npart <- mxGetExpected(model, c('means','covariance'),
+                               defvar.row=defvar.row, subname=subname)
+        means <- npart[['means']]
+        cov <- npart[['covariance']]
         ds <- .Object@discreteSpec
 				disname <- .modifyDottedName(subname, disname, sep=".")
 				dis <- mxEvalByName(disname, model, compute=TRUE, defvar.row=defvar.row)
@@ -158,7 +162,9 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
             pr <- pnbinom(outcome, dis[2,cx], mu=dis[3,cx])
           } else { stop(paste("Unknown discrete distribution code", ds[2,cx],
                               "in column", cx)) }
-          thList[[cx]] <- p2z(zif + (1-zif) * pr)
+          m1 <- 0
+          if (!is.null(means)) m1 <- means[1,cx]
+          thList[[cx]] <- p2z(zif + (1-zif) * pr) * sqrt(cov[cx,cx]) + m1
         }
         thBlock <- mxSimplify2Array(thList)
         comb <- matrix(NA,
