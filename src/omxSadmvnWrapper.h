@@ -428,7 +428,12 @@ bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1>
 	using Eigen::MatrixXd;
 
 	for (int dx=0; dx < xn.size(); dx++) {
-		if (!(lower[nn] <= xn[dx] && xn[dx] <= upper[nn])) mxThrow("xn out of range");
+		if (!(lower[nn] <= xn[dx] && xn[dx] <= upper[nn])) {
+      mxPrintMat("xn", xn);
+      mxPrintMat("lower", lower);
+      mxPrintMat("upper", upper);
+      mxThrow("xn[%d] out of range (nn=%d)", dx, nn);
+    }
 	}
 
 	if (sigma.rows() == 1) {
