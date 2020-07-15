@@ -126,6 +126,7 @@ bool condOrdByRow::eval()
 						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
 							mxThrow("Out of range");
 						}
+            if (!std::isfinite(ordMean[jj])) { reportBadOrdLik(3); return true; }
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
 							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
