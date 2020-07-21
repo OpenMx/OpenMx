@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, shutil
+import os, sys, shutil, stat
 import argparse, subprocess
 
 # Credit for this function to George King (https://github.com/gwk)
@@ -37,15 +37,16 @@ def consolidateLibs(libs, tdir=["/usr/local/lib"], sdir=".", link_path="@loader_
             if folder.startswith(comp):
                 shutil.copy(os.path.join(folder, fname), os.path.join(sdir, fname))
                 moved += [[os.path.join(folder, fname), os.path.join(link_path, fname)]]
+                os.chmod(os.path.join(sdir, fname), stat.S_IWUSR)
                 next
     print "Moved: " + str(moved)
     return moved
-    
+
 def updateLibs(libs, moved):
     for source, target in moved:
         for tlib in libs:
             lib = os.path.basename(tlib)
-            print "Updating " + lib + " to reflect move of " + target
+            print "Updating " + lib + " to reflect move from " + source + " to " + target
             subprocess.Popen(['install_name_tool', '-change', source, target, lib])
 
 
@@ -54,7 +55,7 @@ def updateIDs(libs):
         lib = os.path.basename(tlib)
         print "Updating " + source + " with name " + lib
         subprocess.Popen(['install_name_tool', '-id', lib, lib])
-          
+
 def make_cleaner(bads):
     def cleaner(names):
         # print "Called cleaner."
@@ -73,13 +74,12 @@ if __name__ == "__main__":
     parser.add_argument('-id', '--updateIDs', '--updateids', action="store_true")
     parser.add_argument('lib', help='Initial Library')
     parser.add_argument('locs', nargs='*', default="/opt/local/lib/")
-    
+
     args = parser.parse_args()
-    
+
     print(args.lib)
     print make_cleaner(args.locs)
     libList = getLibList(args.lib, args.recurse, make_cleaner(args.locs))
     moved = consolidateLibs(libList, args.locs)
     updateLibs(libList, moved)
     updateIDs(moved)
-
