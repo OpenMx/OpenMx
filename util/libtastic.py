@@ -36,7 +36,7 @@ def consolidateLibs(libs, tdir=["/usr/local/lib"], sdir=".", link_path="@loader_
             if folder.startswith(comp):
                 shutil.copy(os.path.join(folder, fname), os.path.join(sdir, fname))
                 moved += [[os.path.join(folder, fname), os.path.join(link_path, fname)]]
-                os.chmod(os.path.join(sdir, fname), stat.S_IWUSR)
+                os.chmod(os.path.join(sdir, fname), stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
                 next
     print "Moved: " + str(moved)
     return moved
