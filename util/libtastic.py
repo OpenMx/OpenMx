@@ -13,10 +13,9 @@ def otool(s):
             yield l.split(' ', 1)[0][1:]
 
 
-def getLibList(lib, recursive = True, cleaner=None):
+def getLibList(lib, cleaner=None):
     done=set()
     left=set([lib])
-    print(cleaner)
     while not len(left) == 0:
         tLib = left.pop()
         done.add(tLib)
@@ -69,17 +68,18 @@ def make_cleaner(bads):
     return cleaner
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Libtastic traces OS X libraries and moves and adjusts them.", usage="libtastic.py -r -id OpenMx.so <library_root_dir>",epilog="")
-    parser.add_argument('-r', '--recurse', action="store_true")
+    print "Welcome to libtastic"
+    parser = argparse.ArgumentParser(description="Libtastic traces OS X libraries and moves and adjusts them.", usage="libtastic.py -id OpenMx.so <library_root_dir>",epilog="")
     parser.add_argument('-id', '--updateIDs', '--updateids', action="store_true")
     parser.add_argument('lib', help='Initial Library')
     parser.add_argument('locs', nargs='*', default="/opt/local/lib/")
 
     args = parser.parse_args()
 
-    print(args.lib)
-    print make_cleaner(args.locs)
-    libList = getLibList(args.lib, args.recurse, make_cleaner(args.locs))
+    print("lib=" + args.lib)
+    print("locs=" + args.locs)
+    libList = getLibList(args.lib, make_cleaner(args.locs))
     moved = consolidateLibs(libList, args.locs)
     updateLibs(libList, moved)
     updateIDs(moved)
+    print "Thank you for being libtastic"
