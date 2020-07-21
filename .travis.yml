@@ -13,7 +13,8 @@ addons:
     - gfortran-8
   homebrew:
     packages:
-    - gnu-tar
+    - llvm
+    - libomp
 jobs:
   include:
   - stage: dependencies
@@ -26,11 +27,11 @@ jobs:
     - ./tools/travis/save_cache
   - stage: test
     os: osx
-    osx_image: xcode9.4
+    osx_image: xcode11.6
     env:
     - MODE=build
     install:
-    - ./util/travis/install-$TRAVIS_OS_NAME
+    - ./tools/travis/install-osx
     latex: false
 dist: bionic
 #sudo: required
