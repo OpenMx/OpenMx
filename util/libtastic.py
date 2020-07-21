@@ -77,7 +77,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("lib=" + args.lib)
-    print("locs=" + args.locs)
+    print("locs=" + str(args.locs))
     libList = getLibList(args.lib, make_cleaner(args.locs))
     moved = consolidateLibs(libList, args.locs)
     updateLibs(libList, moved)
