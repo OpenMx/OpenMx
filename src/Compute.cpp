@@ -143,7 +143,7 @@ void FitContext::analyzeHessianBlock(HessianBlock *hb)
 void FitContext::analyzeHessian()
 {
 	// If we knew the minBlockSize was large then we wouldn't even
-	// try to build merge blocks. 
+	// try to build merge blocks.
 	// If maxBlockSize is greater than some threshold then we should
 	// also give up.
 
@@ -373,7 +373,7 @@ SEXP sparseInvert_wrapper(SEXP Rmat)
 
 	Eigen::SparseMatrix<double> imat(rows,cols);
 	if (soleymani2013(mat, imat)) mxThrow("Invert failed");
-	
+
 	SEXP ret;
 	Rf_protect(ret = Rf_allocMatrix(REALSXP, rows, cols));
 	double *retData = REAL(ret);
@@ -389,7 +389,7 @@ SEXP sparseInvert_wrapper(SEXP Rmat)
 void FitContext::testMerge()
 {
 	const int UseId = 2;
-	
+
 	analyzeHessian();
 
 	//std::cout << "block count " << allBlocks.size() << std::endl;
@@ -464,7 +464,7 @@ bool FitContext::refreshSparseIHess()
 			size_t size = hb->mmat.rows();
 
 			InvertSymmetricNR(hb->mmat, hb->imat);
-		
+
 			for (size_t col=0; col < size; ++col) {
 				for (size_t row=0; row <= col; ++row) {
 					int vr = hb->vars[row];
@@ -608,7 +608,7 @@ void HessianBlock::addSubBlocks()
 
 	for (size_t bx=0; bx < subBlocks.size(); ++bx) {
 		HessianBlock *sb = subBlocks[bx];
-		
+
 		//std::cout << "subblock " << sb->id << "\n" << sb->mmat << std::endl;
 
 		size_t numVars = sb->vars.size();
@@ -625,7 +625,7 @@ void HessianBlock::addSubBlocks()
 			}
 		}
 	}
-	
+
 	//std::cout << "result " << id << "\n" << mmat << std::endl;
 }
 
@@ -700,7 +700,7 @@ void FitContext::calcStderrs()
           vcov.rows(), numFree);
 	}
 	const double scale = fabs(Global->llScale);
-	
+
 	if(constraintJacobian.rows()){
 		Eigen::MatrixXd hesstmp(numFree, numFree);
 		if(fitUnits == FIT_UNITS_MINUS2LL){
@@ -755,7 +755,7 @@ void FitContext::calcStderrs()
 		}
 		vcov = U * centr * U.transpose();
 	}
-	
+
 	for(int i = 0; i < numFree; i++) {
 		double got = vcov(i,i);
 		if (got <= 0) {
@@ -846,7 +846,7 @@ void FitContext::updateParent()
 			if (++s1 == svars) break;
 		}
 	}
-	
+
 	// pda(est, 1, svars);
 	// pda(parent->est, 1, dvars);
 }
@@ -1083,19 +1083,19 @@ void FitContext::copyParamToModelClean()
 void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobian"
 {
 	const int eq_n = (int) equality.size();
-	
+
 	if (!eq_n) return;
-	
+
 	/*Note that this needs to happen even if no equality constraints have analytic Jacobians, because
 	 analyticEqJacTmp is copied to the Jacobian matrix the elements of which are populated by code in
 	 finiteDifferences.h, which knows to numerically populate an element if it's NA:*/
 	analyticEqJacTmp.setConstant(NA_REAL);
-	
+
 	int cur=0, j=0, c=0, roffset=0;
 	for(j = 0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
 		if (con.opCode != omxConstraint::EQUALITY) continue;
-		
+
 		con.refreshAndGrab(this, &equality(cur));
 		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
@@ -1108,7 +1108,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 		}
 		cur += con.size;
 	}
-	
+
 	if (verbose >= 3) {
 		mxPrintMat("equality", equality);
 	}
@@ -1117,16 +1117,16 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK)
 {
 	const int ineq_n = (int) inequality.size();
-	
+
 	if (!ineq_n) return;
-	
+
 	analyticIneqJacTmp.setConstant(NA_REAL);
-	
+
 	int cur=0, j=0, c=0, roffset=0;
 	for (j=0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
-		
+
 		con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &inequality(cur));
 		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
@@ -1139,7 +1139,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 		}
 		cur += con.size;
 	}
-	
+
 	if (CSOLNP_HACK) {
 		// CSOLNP doesn't know that inequality constraints can be inactive (by design, since it's an interior-point algorithm)
 	} else {
@@ -1147,13 +1147,13 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 		inequality = inequality.array().max(0.0);
 		if(wantAJ && isUsingAnalyticJacobian()){
 			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
-				/*The Jacobians of each inactive constraint are set to zero here; 
+				/*The Jacobians of each inactive constraint are set to zero here;
 				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
 				if(!inequality[i]){analyticIneqJacTmp.row(i).setZero();}
 			}
 		}
 	}
-	
+
 	if (verbose >= 3) {
 		mxPrintMat("inequality", inequality);
 	}
@@ -1164,9 +1164,9 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 	int c_n = state->numEqC + state->numIneqC;
 	if(!c_n){return;}
 	std::vector<bool> is_inactive_ineq(c_n);
-	
+
 	constraintJacobian.setConstant(NA_REAL);
-	
+
 	int cur=0;
 	for (int j=0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
@@ -1197,23 +1197,23 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 		}
 		cur += con.size;
 	}
-	
+
 	if (CSOLNP_HACK) {
-		
+
 	} else {
 		if(wantAJ && isUsingAnalyticJacobian() && maskInactive){
 			for(int i=0; i<constraintJacobian.rows(); i++){
-				/*The Jacobians of each inactive constraint are set to zero here; 
+				/*The Jacobians of each inactive constraint are set to zero here;
 				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
 				if(is_inactive_ineq[i]){constraintJacobian.row(i).setZero();}
 			}
 		}
 	}
-	
+
 	if (verbose >= 3) {
 		mxPrintMat("constraint Jacobian", constraintJacobian);
 	}
-	
+
 }
 
 
@@ -1222,7 +1222,7 @@ omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
 	if (element == NULL) return NULL;
 	return state->lookupDuplicate(element);
 }
-	
+
 double *FitContext::take(int want)
 {
 	if (!(want & (wanted | FF_COMPUTE_ESTIMATE))) {
@@ -2114,7 +2114,7 @@ class ComputeReportExpectation : public omxCompute {
 
 class ComputeBootstrap : public omxCompute {
 	typedef omxCompute super;
-	
+
 	struct context {
 		omxData *data;
 		int *origRowFreq;
@@ -3780,10 +3780,19 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd q1 = qr1.householderQ();
 	Eigen::MatrixXd jacOC = q1.block(0, qr1.rank(), q1.rows(), q1.cols() - qr1.rank());
 	if (jacOC.cols()) {
+    bool debug = getenv("OMX_DEBUG");
+    if (debug) {
+      mxPrintMat("Wmat", Wmat);
+      mxPrintMat("jacOC", jacOC);
+    }
 		Eigen::MatrixXd zqb = jacOC.transpose() * Wmat * jacOC;
 		MoorePenroseInverse(zqb);
 
 		Eigen::VectorXd diff = obStats - exStats;
+    if (debug) {
+      mxPrintMat("diff", diff);
+      mxPrintMat("zqb", zqb);
+    }
 		x2 = diff.transpose() * jacOC * zqb * jacOC.transpose() * diff;
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
 		df = qr2.rank();
@@ -3878,7 +3887,7 @@ void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
 void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
-	
+
 	/*
 	 * If there are equality MxConstraints, then the quality of the generically calculated Hessian will not be informative;
 	 * we must rely upon the optimizer's status code.
@@ -3950,7 +3959,7 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 	if( fc->state->conListX.size() ){
 		/* After the call to the backend,
 		 * frontend function nameGenericConstraintOutput(), in R/MxRunHelperFunctions.R, uses 'constraintNames',
-		 * 'constraintRows', and 'constraintCols' to populate the dimnames of 'constraintFunctionValues' and 
+		 * 'constraintRows', and 'constraintCols' to populate the dimnames of 'constraintFunctionValues' and
 		 * 'constraintJacobian'.
 		 */
 		SEXP cn, cr, cc, cv, cjac;
@@ -4990,7 +4999,7 @@ struct clmStream {
 	const int row;
 	int curCol;
 	clmStream(Rcpp::DataFrame &_ob, int _row) : observed(_ob), row(_row) { curCol = 0; };
-	
+
 	void operator >> (double& val)
 	{
 		auto vec = observed[curCol];
