@@ -1,6 +1,11 @@
-OPENMP = yes
+ifeq ($(OPENMP),)
+  OPENMP = yes
+endif
+ifeq ($(REXEC),)
+  REXEC = R
+endif
+
 export OPENMP
-REXEC = R
 export REXEC
 
 # --dsym is need for MacOS debug symbols
@@ -9,7 +14,7 @@ BUILDARGS = --force-biarch --dsym
 
 VERSION = $(shell ./inst/tools/findBuildNum.sh)
 
-TARGET = OpenMx_$(VERSION).tar.gz 
+TARGET = OpenMx_$(VERSION).tar.gz
 PDFFILE = staging/OpenMx.pdf
 DOCTESTGEN = inst/tools/docTestGenerator.sh
 DOCTESTFILE = inst/tools/testDocs.R
@@ -40,41 +45,41 @@ RFILES = $(wildcard R/*.R)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo ""	
+	@echo ""
 	@echo "BUILDS"
 	@echo ""
 	@echo "  build         create an OpenMx binary for unix systems (no cross-compilation)"
 	@echo "  build-simple  create an OpenMx binary for unix systems without OpenMP"
 	@echo "  srcbuild      create an OpenMx source release"
 	@echo "  cran-build    build OpenMx without NPSOL"
-	@echo ""		
+	@echo ""
 	@echo "INSTALL"
-	@echo ""	
+	@echo ""
 	@echo "  r-libs-user-dir create R_LIBS_USER to contain installed packages"
 	@echo "  cran-install    install OpenMx without NPSOL"
 	@echo "  install         install OpenMx with NPSOL"
 	@echo ""
 	@echo "DOCUMENTATION"
-	@echo ""	
+	@echo ""
 	@echo "  pdf           create a pdf file (in staging) of the OpenMx R documentation"
 	@echo "  html          create Sphinx documentation (in docs/build/html) in html format"
 	@echo "  doc.tar.bz2   create doc tarball suitable for our website"
 	@echo ""
 	@echo "TESTING"
-	@echo ""	
+	@echo ""
 	@echo "  test               run the test suite"
 	@echo "  cran-check         build OpenMx without NPSOL and run CRAN check"
 	@echo ""
 	@echo "  test-failing  run the failing test collection"
 	@echo "  torture       run the test suite with gctorture(TRUE)"
-	@echo "  nightly       run the nightly test suite"			
-	@echo "  testdocs      test the examples in the Sphinx documentation"	
+	@echo "  nightly       run the nightly test suite"
+	@echo "  testdocs      test the examples in the Sphinx documentation"
 	@echo "  failtest      run the failing test suite"
 	@echo "  memorytest    run the test suite under the Valgrind memory debugger"
 	@echo "  rproftest     run the test suite under the Rprof R profiler"
 	@echo ""
 	@echo "CLEANING"
-	@echo ""	
+	@echo ""
 	@echo "  clean      remove all files from the staging directory"
 	@echo "  veryclean  remove all files from the staging directory and all *~ files"
 	@echo "  autodep    regenerate src/autodep"
