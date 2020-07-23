@@ -366,17 +366,16 @@ void omxRAMExpectation::init()
 	isProductNode.assign(A->cols, false);
 	if (R_has_slot(rObj, Rf_install("isProductNode"))) {
 		ProtectedSEXP RprodNode(R_do_slot(rObj, Rf_install("isProductNode")));
-		if (Rf_length(RprodNode)) {
-			if (Rf_length(RprodNode) != A->cols) {
-				mxThrow("isProductNode must be same dimension as A matrix");
-			}
-			for (int px = 0; px < A->cols; ++px) {
-				if (INTEGER(RprodNode)[px]) {
-					isProductNode[px] = true;
-					hasProductNodes = true;
-				}
-			}
-		}
+    // PPML can transform a model such that RprodNode length does
+    // not match A->cols
+    if (Rf_length(RprodNode) == A->cols) {
+      for (int px = 0; px < A->cols; ++px) {
+        if (INTEGER(RprodNode)[px]) {
+          isProductNode[px] = true;
+          hasProductNodes = true;
+        }
+      }
+    }
 	}
 
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
