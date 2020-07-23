@@ -3729,9 +3729,11 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				exList[ex]->asVector(fc, 0, vec1);
 				exStats.segment(offset, sz) = vec1;
 				if (o1.thresholdMat) {
-					EigenMatrixAdaptor Eth(o1.thresholdMat);
-					normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat, Eth,
-														o1.thresholdCols, vec1);
+					EigenMatrixAdaptor oTh(o1.thresholdMat);
+          auto &oThresh = o1.thresholdCols;
+					normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat,
+                            [&oThresh, &oTh](int r,int c)->double{ return oTh(r, oThresh[c].column); },
+														oThresh, vec1);
 				} else {
 					normalToStdVector(o1.covMat, o1.meansMat, o1.slopeMat,
 														[](int r,int c)->double{ return 0; },
