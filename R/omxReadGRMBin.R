@@ -45,7 +45,7 @@ omxReadGRMBin <- function(prefix, AllN=FALSE, size=4, returnList=FALSE){
 		return(list(diag=grm[i], off=grm[-i], id=id, N=N))
 	}
 	else{
-		GRM <- matrix(0.0, nrow=N, ncol=N, dimnames=list(id$V1+id$V2, id$V1+id$V2))
+		GRM <- matrix(0.0, nrow=n, ncol=n, dimnames=list(id$V1+id$V2, id$V1+id$V2))
 		GRM[!lower.tri(GRM,diag=T)] <- grm[-i]
 		GRM <- GRM + t(GRM)
 		diag(GRM) <- grm[i]
