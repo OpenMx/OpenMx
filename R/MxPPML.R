@@ -102,7 +102,7 @@ imxPPML <- function(model, flag=TRUE) {
 	if(is.null(expectation) || !is(expectation, "MxExpectationRAM")) {
 		return(NA)
 	}
-  if (is.any(expectation$isProductNode)) {
+  if (any(expectation$isProductNode)) {
     stop("Cannot combine latent products and PPML")
   }
 	if (flag) {
