@@ -71,8 +71,9 @@ class omxExpectation {					// An Expectation
 	bool dynamicDataSource;
 
 	omxExpectation(omxState *state, int num) :
-		dataColumnsPtr(0), thresholdsMat(0), numDataColumns(0), rObj(0), name(0),
-		data(0), discreteSpecPtr(0), discreteMat(0), numOrdinal(0),
+		dataColumnsPtr(0), thresholdsMat(0),
+		discreteSpecPtr(0), discreteMat(0),
+    numDataColumns(0), rObj(0), name(0), data(0), numOrdinal(0),
     isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};

@@ -101,7 +101,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
       if (!col.isDiscrete) continue;
       int cx = col.column;
 			auto &vec = discreteCache[cx];
-			vec.resize(ds(0,cx));
+			vec.resize(col.numThresholds);
 			switch(int(ds(1,cx))) {
 			case 1:
 				for (int ox = 0; ox < vec.size(); ++ox) vec[ox] = Rf_ppois(ox, dm(1,cx), 1,0);
