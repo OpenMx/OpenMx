@@ -78,7 +78,7 @@ if [ "$cxx_type" = gcc ]; then
 	if version_ge $cxx_version 5.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	    COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
-	    xcheck_CXXFLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
+	    xcheck_CXXFLAGS="-fsanitize=undefined"
 	    xcheck_LDFLAGS="-fsanitize=undefined"
 	fi
 	if version_ge $cxx_version 6.0; then
