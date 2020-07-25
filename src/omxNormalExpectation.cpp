@@ -46,8 +46,9 @@ void omxNormalExpectation::compute(FitContext *fc, const char *what, const char 
 }
 
 void omxNormalExpectation::populateAttr(SEXP algebra) {
-    if(OMX_DEBUG) { mxLog("Populating Normal Attributes."); }
+  if(OMX_DEBUG) { mxLog("Populating Normal Attributes."); }
 
+  {
 	omxRecompute(cov, NULL);
 	if(means != NULL) omxRecompute(means, NULL);
 
@@ -78,6 +79,11 @@ void omxNormalExpectation::populateAttr(SEXP algebra) {
 
 	ProtectedSEXP RnumStats(Rf_ScalarReal(omxDataDF(data)));
 	Rf_setAttrib(algebra, Rf_install("numStats"), RnumStats);
+  }
+
+	MxRList out;
+  populateNormalAttr(algebra, out);
+	Rf_setAttrib(algebra, Rf_install("output"), out.asR());
 }
 
 omxExpectation *omxInitNormalExpectation(omxState *st, int num)

@@ -167,13 +167,10 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 			EigenVectorAdaptor Emean(oro->means);
 			out.add("mean", Rcpp::wrap(Emean));
 		}
-    Eigen::MatrixXd tmat = buildThresholdMatrix();
-    if (tmat.cols()) {
-			out.add("thresholds", Rcpp::wrap(tmat));
-    }
 		if (hasProductNodes) {
 			dbg.add("polyRep", Rcpp::wrap(pcalc.getPolyRep()));
 		}
+    populateNormalAttr(robj, out);
 	}
 
 	Rf_setAttrib(robj, Rf_install("output"), out.asR());

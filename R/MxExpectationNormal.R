@@ -150,10 +150,10 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
         for (cx in colnames(ds)) {
           if (is.na(ds[1,cx])) {
             stop(paste("discreteSpec[1,",cx,"], the maximum observed count,",
-                       "cannot be NA when generating data"))
+                       "cannot be NA when calcuating the expected distribution"))
           }
           outcome <- 1L:as.integer(ds[1,cx]) - 1L
-          zif <- dis[1,cx]
+          zif <- min(max(dis[1,cx],0),1)
           if (ds[2,cx] == 1) {
             pr <- ppois(outcome, dis[2,cx])
           } else if (ds[2,cx] == 2) {

@@ -33,6 +33,8 @@
 #include "omxExpectation.h"
 #include "glue.h"
 #include "Compute.h"
+#include <Eigen/CholmodSupport>
+#include <RcppEigenWrap.h>
 #include "EnableWarnings.h"
 
 typedef struct omxExpectationTableEntry omxExpectationTableEntry;
@@ -267,6 +269,37 @@ void omxExpectation::loadThresholds()
 						name, th.dColumn, data->columnName(th.dColumn));
 		}
 	}
+}
+
+void omxExpectation::populateNormalAttr(SEXP robj, MxRList &out)
+{
+  if (!discreteMat) return;
+
+	auto dc = base::getDataColumns();
+  auto ds = getDiscreteSpec();
+
+  CharacterVector cn(ds.cols());
+  Eigen::MatrixXd newDS(ds.rows(), ds.cols());
+
+	for (int dx = 0, xx=0; dx < int(dc.size()); dx++) {
+		omxThresholdColumn &col = thresholds[dx];
+    if (!col.isDiscrete) continue;
+		int index = col.dColumn;
+
+		cn[xx] = data->columnName(index);
+    newDS(0,xx) = col.numThresholds;
+    newDS(1,xx) = ds(1,xx);
+    ++xx;
+  }
+
+  NumericMatrix m = wrap(newDS);
+  m.attr("dimnames") = List::create( R_NilValue, cn );
+	Rf_setAttrib(robj, Rf_install("discreteSpec"), m);
+
+  Eigen::MatrixXd tmat = buildThresholdMatrix();
+  if (tmat.cols()) {
+    out.add("thresholds", Rcpp::wrap(tmat));
+  }
 }
 
 void omxExpectation::loadDataColFromR()

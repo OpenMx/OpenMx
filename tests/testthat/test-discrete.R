@@ -8,9 +8,34 @@ library(OpenMx)
 # with and without regular thresholds
 # different column orders for discrete vs discreteSpec
 # check equivalence of parameterizations (total var = 1 vs loading = 1)
-# ensure front and back-end have exactly the same expectations
-# focus on mxMarginalNegativeBinomial recovery
 # ordered factor vs raw count
+
+verifyFrontBackMatch <- function(m1) {
+  t1 <- mxGetExpected(m1, "thresholds")
+  
+  m1 <- mxRun(mxModel(m1, mxComputeSequence(list(
+    mxComputeOnce('expectation'),
+    mxComputeReportExpectation()))))
+  
+  t2 <- m1$expectation$output$thresholds
+  
+  expect_equivalent(is.na(t1), is.na(t2))
+  
+  mask <- !is.na(t1)
+  expect_equal(t1[mask], t2[mask], 1e-9)
+}
+
+# from package countreg
+qzinbinom <- function(p, mu, theta, size, pi, lower.tail = TRUE, log.p = FALSE) {
+  if(any(pi < 0) | any(pi > 1))  warning("'pi' must be in [0, 1]")
+  if(!missing(theta) & !missing(size)) stop("only 'theta' or 'size' may be specified")
+  if(!missing(size)) theta <- size
+  if(log.p) p <- exp(p)
+  if(!lower.tail) p <- 1 - p
+  p <- pmax(0, (p - pi)/(1 - pi))
+  rval <- qnbinom(p, mu = mu, size = theta, lower.tail = TRUE, log.p = FALSE)
+  rval
+}
 
 test_that("Normal", {
   library(OpenMx)
@@ -50,7 +75,7 @@ test_that("Normal", {
   
   factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
   
-  # convert to raw counts
+  # convert to raw counts TODO
   # factorModel$data$observed$x1 <-
   #   unclass(factorModel$data$observed$x1) - 1L
   
@@ -97,18 +122,10 @@ test_that("RAM", {
   
   factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
   
+  verifyFrontBackMatch(factorModel)
+  
   # autodetect maximum count from data
   factorModel$expectation$discreteSpec[1,] <- NA
-  
-  if (0) {
-    m1 <- mxRun(mxModel(factorModel, mxComputeSequence(list(
-      mxComputeOnce('expectation'),
-      mxComputeReportExpectation()))))
-    
-    m1$expectation$output
-  }
-  
-  factorModel$Discrete$free <- !is.na(factorModel$Discrete$values)
   
   fit <- mxRun(factorModel)
   #  summary(fit)
@@ -116,4 +133,68 @@ test_that("RAM", {
   dv <- fit$Discrete$values
   dv <- dv[!is.na(dv)]
   expect_equal(dv, c(0, 1.047, 0.022, 2.072, 0.013, 2.91, 0.411), .01)
+
+  expect_equal(colnames(fit$expectation$discreteSpec), paste0('x',1:3))  
+  verifyFrontBackMatch(fit)
+})
+
+test_that("mediation", {
+  library(OpenMx)
+  library(testthat)
+  library(MASS)
+
+  RNGversion("4.0")
+  set.seed(1)
+  
+  N<-5000
+  A<-matrix(0,3,3)
+  b_1_2<-.5
+  b_2_3<-.5
+  b_1_3<-.5
+  
+  size<- .5
+  prob<- .25
+  zif<-.3
+  mu<- (1-prob)*size/prob
+  
+  A[2,1]<-b_1_2   #X1 to X2
+  A[3,2]<-b_2_3   #X2 to X3
+  A[3,1]<-b_1_3   #X1 to X3
+  S<-diag(c(1,
+            1-b_1_2^2, 
+            1 - b_2_3^2*(1-b_1_2^2) - (b_2_3*b_1_2)^2 - b_1_3^2 -  2*b_1_2*b_2_3*b_1_3
+  ), 3)
+  R<-solve(diag(3)-A)%*%S%*%t(solve(diag(3)-A))
+  
+  z<-mvrnorm(N, rep(0,3), R, empirical=F)
+  z[,2]<-qzinbinom(pnorm(z[,2], 0, 1), size=size, mu=mu, pi=zif)
+  
+  manifests<-paste0("x",1:3)
+  colnames(z)<-manifests
+  
+  z.f<-z<-as.data.frame(z)
+  z.f[,2]<-mxFactor(z[,2], levels=0:max(z[,2]))
+  
+  factorModel<-mxModel(
+    name="countMed",type="RAM", manifestVars = manifests, latentVars =NULL,
+    
+    mxPath(from=c("x1","x2"), to="x3", arrows=1, free=T),
+    mxPath(from="x1", to="x2", arrows=1, free=T),
+    
+    mxPath(from=manifests, arrows=2, values=1, free=c(T,F,T) ),
+    mxPath(from="one", to=manifests, arrows=1, values=0, free=c(T,F,T)),
+    
+    mxMarginalNegativeBinomial(c("x2"), size=1, prob=.5),
+    mxData(z.f, type="raw"))
+  
+  expect_error(mxGetExpected(factorModel, "thresholds"),
+               "maximum observed count")
+
+  fit <-mxRun(factorModel)
+#  summary(fit)
+  expect_equivalent(fit$Discrete$values, c(zif, size, prob), .025)
+  expect_equivalent(fit$M$values, rep(0,3), .01)
+  expect_equivalent(fit$S$values[fit$S$free], diag(S)[c(1,3)], .05)
+  expect_equivalent(fit$A$values[fit$A$free], A[fit$A$free], .1)
+  verifyFrontBackMatch(fit)
 })

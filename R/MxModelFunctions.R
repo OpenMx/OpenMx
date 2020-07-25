@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,7 +64,7 @@ generateMatrixList <- function(model) {
 	joinKey <- extractJoinKey(model, model@matrices)
 	references <- generateMatrixReferences(model)
 	types <- generateMatrixTypes(model@matrices)
-	retval <- mapply(function(x1,x2,x3,x4,x5) { c(list(x1), x2, x3, x4, x5) }, 
+	retval <- mapply(function(x1,x2,x3,x4,x5) { c(list(x1), x2, x3, x4, x5) },
 		matvalues, joinModel, joinKey, types, references,
 		SIMPLIFY = FALSE)
 	return(retval)
@@ -74,7 +74,7 @@ generateAlgebraList <- function(model) {
 	joinModel <- extractJoinModel(model, model@algebras)
 	joinKey <- extractJoinKey(model, model@algebras)
 	mNames <- names(model@matrices)
-	aNames <- append(names(model@algebras), names(model@fitfunctions))	
+	aNames <- append(names(model@algebras), names(model@fitfunctions))
 	mNumbers <- as.list(as.integer(-1 : (-length(mNames))))
 	aNumbers <- as.list(as.integer(0 : (length(aNames) - 1)))
 	names(mNumbers) <- mNames
@@ -88,10 +88,10 @@ findDependencies <- function(triple, flatModel, dependencies) {
 	mNames <- names(flatModel@matrices)
 	matrixNum <- triple[[1]] + 1
 	matrixName <- mNames[[matrixNum]]
-	return(dependencies[[matrixName]])	
+	return(dependencies[[matrixName]])
 }
 
-	
+
 isExpectation <- function(name) {
 	return(length(grep("expectation", name, fixed=TRUE)) > 0)
 }
@@ -177,7 +177,7 @@ generateDefinitionList <- function(flatModel, dependencies) {
 	result <- list()
 	for(i in 1:length(flatModel@matrices)) {
 		result <- matrixDefinitions(flatModel,
-			flatModel@matrices[[i]], 
+			flatModel@matrices[[i]],
 			result, i - 1L)
 	}
 	result <- mapply(definitionDependencyList, result, names(result),
@@ -206,7 +206,7 @@ generateValueHelper <- function(triple, mList) {
 imxUpdateModelValues <- function(model, flatModel, values) {
 	pList <- flatModel@parameters
 	if(length(pList) != length(values)) {
-		stop(paste("This model has", length(pList), 
+		stop(paste("This model has", length(pList),
 			"parameters, but you have given me", length(values),
 			"values"))
 	}
@@ -245,7 +245,7 @@ removeTail <- function(lst, tailSize) {
 updateModelMatrices <- function(model, flatModel, values) {
 	mList <- names(flatModel@matrices)
 	if (length(mList) != length(values)) {
-		stop(paste("This model has", length(mList), 
+		stop(paste("This model has", length(mList),
 			"matrices, but the backend has returned", length(values),
 			"values"))
 	}
@@ -262,7 +262,7 @@ updateModelAlgebras <- function(model, flatModel, values) {
 	oNames <- names(flatModel@fitfunctions)
 	aList <- append(aNames, oNames)
 	if(length(aList) != length(values)) {
-		stop(paste("This model has", length(aList), 
+		stop(paste("This model has", length(aList),
 			"algebras, but the backend has returned", length(values),
 			"values"))
 	}
@@ -365,7 +365,7 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 		}
 	}
     if (length(model@submodels) > 0) {
-        model@submodels <- lapply(model@submodels, 
+        model@submodels <- lapply(model@submodels,
             updateModelEntitiesTargetModel, entNames, values, modelNameMapping)
     }
 	return(model)
@@ -373,7 +373,7 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 
 updateModelEntitiesHelper <- function(entNames, values, model) {
     modelNameMapping <- sapply(entNames, getModelNameString)
-    model <- updateModelEntitiesTargetModel(model, entNames, 
+    model <- updateModelEntitiesTargetModel(model, entNames,
 		values, modelNameMapping)
     return(model)
 }
@@ -404,12 +404,12 @@ imxLocateIndex <- function(model, name, referant) {
 	aNames <- names(model@algebras)
 	fNames <- names(model@fitfunctions)
 	eNames <- names(model@expectations)
-	dNames <- names(model@datasets)		
+	dNames <- names(model@datasets)
 	matrixNumber <- match(name, mNames)
 	algebraNumber <- match(name, append(aNames, fNames))
 	dataNumber <- match(name, dNames)
 	expectationNumber <- match(name, eNames)
-	if (is.na(matrixNumber) && is.na(algebraNumber) 
+	if (is.na(matrixNumber) && is.na(algebraNumber)
 		&& is.na(dataNumber) && is.na(expectationNumber)) {
 		reftype <- "named reference"
 		if (typeof(referant) == "S4") {
