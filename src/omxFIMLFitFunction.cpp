@@ -130,12 +130,16 @@ bool condOrdByRow::eval()
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
 							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
+              if (!std::isfinite(uThresh[jj])) { reportBadOrdLik(4); return true; }
 						} else if (pick == colInfo[col].numThresholds) {
 							lThresh[jj] = (expectation->getThreshold(pick-1, col) - ordMean[jj]);
+              if (!std::isfinite(lThresh[jj])) { reportBadOrdLik(5); return true; }
 							uThresh[jj] = std::numeric_limits<double>::infinity();
 						} else {
 							lThresh[jj] = (expectation->getThreshold(pick-1, col) - ordMean[jj]);
+              if (!std::isfinite(lThresh[jj])) { reportBadOrdLik(5); return true; }
 							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
+              if (!std::isfinite(uThresh[jj])) { reportBadOrdLik(4); return true; }
 						}
 					}
 
