@@ -142,7 +142,9 @@ bool condOrdByRow::eval()
               if (!std::isfinite(uThresh[jj])) { reportBadOrdLik(4); return true; }
 						}
 					}
-
+          if ((lThresh.array() >= uThresh.array()).any()) {
+            reportBadOrdLik(6); return true;
+          }
 					if (ordLik == 0.0 ||
 					    !_mtmvnorm(fc, ordLik, ordCov, lThresh, uThresh, xi, U11)) {
 						reportBadOrdLik(1);
