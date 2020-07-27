@@ -137,8 +137,14 @@ void omxLISRELExpectation::populateAttr(SEXP algebra)
 {
 	auto oo = this;
 
-	ProtectedSEXP RnumStat(Rf_ScalarReal(omxDataDF(oo->data)));
-	Rf_setAttrib(algebra, Rf_install("numStats"), RnumStat);
+  {
+    ProtectedSEXP RnumStat(Rf_ScalarReal(omxDataDF(oo->data)));
+    Rf_setAttrib(algebra, Rf_install("numStats"), RnumStat);
+  }
+
+	MxRList out;
+  populateNormalAttr(algebra, out);
+	Rf_setAttrib(algebra, Rf_install("output"), out.asR());
 
 	/*
 	omxLISRELExpectation* oro = (omxLISRELExpectation*) (oo->argStruct);

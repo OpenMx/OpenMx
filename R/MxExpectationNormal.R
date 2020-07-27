@@ -127,6 +127,8 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
         npart <- mxGetExpected(model, c('means','covariance'),
                                defvar.row=defvar.row, subname=subname)
         means <- npart[['means']]
+        if (!is.null(means) && ncol(means)==1 && colnames(means)=='one')
+          means <- t(means)
         cov <- npart[['covariance']]
         ds <- .Object@discreteSpec
 				disname <- .modifyDottedName(subname, disname, sep=".")

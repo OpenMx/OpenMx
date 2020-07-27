@@ -3,11 +3,9 @@ context("discrete")
 library(OpenMx)
 
 # to test:
-# Normal, RAM, LISREL
 # ML / WLS
 # with and without regular thresholds
-# different column orders for discrete vs discreteSpec
-# check equivalence of parameterizations (total var = 1 vs loading = 1)
+# check equivalence of parameterizations (total var = 1 vs loading = 1) ??
 # ordered factor vs raw count
 
 verifyFrontBackMatch <- function(m1) {
@@ -86,6 +84,13 @@ test_that("Normal", {
   dv <- fit$D$values
   dv <- dv[!is.na(dv)]
   expect_equal(dv, c(0, 1.047, 0.022, 2.072, 0.013, 2.91, 0.411), .01)
+  
+  factorModel$expectation$discreteSpec <-
+    factorModel$expectation$discreteSpec[,c(3,1,2)]
+  expect_error(mxRun(factorModel),
+               "must have the same column names")
+  expect_error(mxGetExpected(factorModel, "thresholds"),
+               "must have the same column names")
 })
 
 # ---------------
@@ -198,3 +203,52 @@ test_that("mediation", {
   expect_equivalent(fit$A$values[fit$A$free], A[fit$A$free], .1)
   verifyFrontBackMatch(fit)
 })
+
+test_that("LISREL", {
+  library(OpenMx)
+  library(testthat)
+  
+  RNGversion("4.0")
+  set.seed(1)
+  
+  manifests <- paste0('x',1:5)
+  latents <- c("G")
+  factorModel <- mxModel(
+    "One Factor",
+    type="LISREL",
+    manifestVars = manifests,
+    latentVars = latents,
+    mxPath(from=latents, to=manifests,values=0.8),
+    mxPath(from=manifests, arrows=2,values=1, free=FALSE),
+    mxPath(from=latents, arrows=2,
+           free=FALSE, values=1.0),
+    mxPath(from = 'one', to = manifests, free=FALSE),
+    mxMarginalPoisson(paste0("x",1:2), c(4,5), c(1.1, 2)),
+    mxMarginalNegativeBinomial("x3", 6, 4, .5))
+  
+  trueDv <- factorModel$Discrete$values
+  trueDv <- trueDv[!is.na(trueDv)]
+  
+  thr <- mxGetExpected(factorModel, "thresholds")
+  expect_equal(thr[1:4,'x1'], c(-0.53, 0.68, 1.65, 2.5), .01)
+  expect_equal(thr[1:5,'x2'], c(-1.36, -0.28, 0.6, 1.38, 2.08), .01)
+  expect_equal(thr[1:6,'x3'], c(-1.87, -1.1, -0.49, 0.02, 0.46, 0.86), .01)
+  
+  factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
+  
+  verifyFrontBackMatch(factorModel)
+  
+  # autodetect maximum count from data
+  factorModel$expectation$discreteSpec[1,] <- NA
+  
+  fit <- mxRun(factorModel)
+  #  summary(fit)
+  expect_equal(fit$output$fit, 6256.76, .01)
+  dv <- fit$Discrete$values
+  dv <- dv[!is.na(dv)]
+  expect_equal(dv, c(0, 1.047, 0.022, 2.072, 0.013, 2.91, 0.411), .01)
+  
+  expect_equal(colnames(fit$expectation$discreteSpec), paste0('x',1:3))  
+  verifyFrontBackMatch(fit)
+})
+
