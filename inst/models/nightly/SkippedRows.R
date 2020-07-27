@@ -24,7 +24,7 @@ for (condOn in c('ordinal', 'continuous')) {
 	# gradient with the same number of skipped rows.
 	m1fit <- mxTryHard(m1, extraTries = 99)
 	print(summary(m1fit))
-	omxCheckCloseEnough(m1fit$output$fit, 40719.05, .01)
+	omxCheckCloseEnough(m1fit$output$fit, 40719.05, .2)
 }
 
 # -----------------------------------------------------------------------
@@ -53,19 +53,19 @@ labFun <- function(name="matrix",nrow=1,ncol=1,lower=FALSE,symmetric=FALSE)
 g1Model <-  mxModel("group1",
                 mxMatrix("Symm", nVar, nVar, diag(2*pi,nVar,nVar), labels=labFun("expCov",nrow=nVar,ncol=nVar,symmetric=T), name="expCov",free=T),
                 mxMatrix("Full", 1, nVar, values=rep(meanDiff/2+1,3), free=T, name="expMean"),
-                mxData(Data, type="raw"), 
+                mxData(Data, type="raw"),
                 mxExpectationNormal("expCov", "expMean",dimnames=selVars), mxFitFunctionML(vector=T)
                 )
 
 # Can repeat for more classes in a loop as needed
-g2Model <-  mxModel(g1Model, name="group2", 
+g2Model <-  mxModel(g1Model, name="group2",
                 mxMatrix("Full", 1, nVar, values=rep(meanDiff/2-1,3), free=T, name="expMean")
                 )
 
 mixtureModel <- mxModel("mixture", g1Model, g2Model,
                     mxMatrix(type="Full", nrow=nClass, ncol=1, values=1:nClass, free=c(F,T), lbound=1e-6, name="pRaw"),
 					mxAlgebra(pRaw/sum(pRaw),name="p"),
-                    mxAlgebra(-2*sum(log(cbind(group1.objective, group2.objective) %*% p )), name="min2LL"), 
+                    mxAlgebra(-2*sum(log(cbind(group1.objective, group2.objective) %*% p )), name="min2LL"),
                     mxFitFunctionAlgebra("min2LL")
                 )
 
