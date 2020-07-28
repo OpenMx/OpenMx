@@ -17,8 +17,8 @@ options(digits=15)
 c1 <- covr::package_coverage(type=c("tests","examples"), quiet=TRUE, pre_clean=FALSE)
 pct <- percent_coverage(c1, by="line")
 print(pct)
+covr::codecov(coverage = c1)
 if (pct < 63) {
   print(paste("Coverage dropped to", pct))
   q(status=1)
 }
-covr::codecov(coverage = c1)
