@@ -175,6 +175,7 @@ setMethod("genericGetExpected", signature("BaseExpectationNormal"),
         if (length(thr)) {
           comb[1:nrow(thr),1:ncol(thr)] <- thr
           comb[1:nrow(thBlock),ncol(thr) + 1:ncol(thBlock)] <- thBlock
+          colnames(comb) <- c(colnames(thr), colnames(thBlock))
           thr <- comb
         } else {
           thr <- thBlock

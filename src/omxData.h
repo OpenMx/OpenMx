@@ -35,16 +35,19 @@
 
 class omxData;
 struct omxThresholdColumn {
-	int dColumn;			// Which column in the matrix/data.frame
+  // Which column in the matrix/data.frame (DataColumns permutation already applied)
+  // Can use data->columnName(dColumn)
+	int dataColumn;
 	int column;			// Which column in the thresholds matrix
 	int numThresholds;		// And how many thresholds
 	bool isDiscrete;
 
 	// for continuous variables, column=-1, numThresholds=0
 	omxThresholdColumn() :
-		dColumn(-1), column(-1), numThresholds(0), isDiscrete(false) {};
+		dataColumn(-1), column(-1), numThresholds(0), isDiscrete(false) {};
 
-	void log() { mxLog("dCol=%d col=%d #thr=%d", dColumn, column, numThresholds); }
+	void log() { mxLog("dCol=%d discrete=%d col=%d #thr=%d",
+                     dataColumn, isDiscrete, column, numThresholds); }
 };
 
 #include "omxAlgebra.h"

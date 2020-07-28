@@ -204,12 +204,12 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 	int dx = 0;
 	for (auto &th : ti) {
 		for (int t1=0; t1 < th.numThresholds; ++t1) {
-			double sd1 = sdTmp[th.dColumn];
-			out[dx++] = (Eth(t1, th.dColumn) - Emean[th.dColumn]) * sd1;
-			sd.diagonal()[th.dColumn] = sd1;
+			double sd1 = sdTmp[th.dataColumn];
+			out[dx++] = (Eth(t1, th.dataColumn) - Emean[th.dataColumn]) * sd1;
+			sd.diagonal()[th.dataColumn] = sd1;
 		}
 		if (!th.numThresholds) {
-			out[dx++] = Emean[th.dColumn];
+			out[dx++] = Emean[th.dataColumn];
 		}
 	}
 

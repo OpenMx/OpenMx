@@ -33,6 +33,7 @@
 imxJiggle.Rd
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
+man/DiscreteBase-class.Rd
 man/expm.Rd
 man/genericFitDependencies-MxBaseFitFunction-method.Rd
 man/imxAddDependency.Rd
@@ -161,6 +162,8 @@ man/MxInterval-class.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
+man/mxMarginalNegativeBinomial.Rd
+man/mxMarginalPoisson.Rd
 man/mxNormalQuantiles.Rd
 man/MxOptionalChar-class.Rd
 man/MxOptionalCharOrNumber-class.Rd
@@ -194,3 +197,4 @@ man/omxNameAnonymousParameters.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
+man/predict.MxModel.Rd

@@ -67,7 +67,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 		omxRecompute(thresholdsMat, fc);
 
 		for (auto &th : thresholds) {
-			if (!th.numThresholds) continue;
+			if (!th.numThresholds || th.isDiscrete) continue;
 			int column = th.column;
 			int count = th.numThresholds;
 			int threshCrossCount = 0;
@@ -170,7 +170,7 @@ void omxExpectation::loadThresholds()
 	auto dc = base::getDataColumns();
 	thresholds.resize(dc.size());
 	for(int dx = 0; dx < int(dc.size()); dx++) {
-		thresholds[dx].dColumn = dc[dx];
+		thresholds[dx].dataColumn = dc[dx];
 	}
 
 	std::vector<bool> tfound(thresholdsMat? thresholdsMat->cols : 0, false);
@@ -178,7 +178,7 @@ void omxExpectation::loadThresholds()
 
 	for(int dx = 0; dx < int(dc.size()); dx++) {
 		omxThresholdColumn &col = thresholds[dx];
-		int index = col.dColumn;
+		int index = col.dataColumn;
 		const char *colname = data->columnName(index);
 
 		if (thresholdsMat) {
@@ -189,7 +189,7 @@ void omxExpectation::loadThresholds()
 				col.isDiscrete = false;
 				if (data->isRaw()) {
 					col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
-					data->assertColumnIsData(col.dColumn, OMXDATA_ORDINAL);
+					data->assertColumnIsData(col.dataColumn, OMXDATA_ORDINAL);
 				} else {
 					// See omxData
 				}
@@ -209,8 +209,8 @@ void omxExpectation::loadThresholds()
 				col.isDiscrete = true;
         double nt = ds(0,tc);
 				if (data->isRaw()) {
-					data->assertColumnIsData(col.dColumn, OMXDATA_COUNT);
-					ColumnData &cd = data->rawCol(col.dColumn);
+					data->assertColumnIsData(col.dataColumn, OMXDATA_COUNT);
+					ColumnData &cd = data->rawCol(col.dataColumn);
           const auto range =
 					 	std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
           int obsMaxCount = *range.second - 1;
@@ -263,42 +263,54 @@ void omxExpectation::loadThresholds()
 
 	for (auto &th : thresholds) {
 		if (th.column >= 0) continue;
-		data->assertColumnIsData(th.dColumn, OMXDATA_REAL);
+		data->assertColumnIsData(th.dataColumn, OMXDATA_REAL);
 		if(debug || OMX_DEBUG) {
 			mxLog("%s: column[%d] '%s' is continuous",
-						name, th.dColumn, data->columnName(th.dColumn));
+						name, th.dataColumn, data->columnName(th.dataColumn));
 		}
 	}
 }
 
 void omxExpectation::populateNormalAttr(SEXP robj, MxRList &out)
 {
-  if (!discreteMat) return;
+  if (!discreteMat && !thresholdsMat) return;
 
-	auto dc = base::getDataColumns();
-  auto ds = getDiscreteSpec();
+  if (discreteMat) { // update discreteSpec
+    auto dc = base::getDataColumns();
+    auto ds = getDiscreteSpec();
+    CharacterVector cn(ds.cols());
+    Eigen::MatrixXd newDS(ds.rows(), ds.cols());
 
-  CharacterVector cn(ds.cols());
-  Eigen::MatrixXd newDS(ds.rows(), ds.cols());
+    for (int dx = 0, xx=0; dx < int(dc.size()); dx++) {
+      omxThresholdColumn &col = thresholds[dx];
+      if (!col.isDiscrete) continue;
+      int index = col.dataColumn;
 
-	for (int dx = 0, xx=0; dx < int(dc.size()); dx++) {
-		omxThresholdColumn &col = thresholds[dx];
-    if (!col.isDiscrete) continue;
-		int index = col.dColumn;
+      cn[xx] = data->columnName(index);
+      newDS(0,xx) = col.numThresholds;
+      newDS(1,xx) = ds(1,xx);
+      ++xx;
+    }
 
-		cn[xx] = data->columnName(index);
-    newDS(0,xx) = col.numThresholds;
-    newDS(1,xx) = ds(1,xx);
-    ++xx;
+    NumericMatrix m = wrap(newDS);
+    m.attr("dimnames") = List::create( R_NilValue, cn );
+    Rf_setAttrib(robj, Rf_install("discreteSpec"), m);
   }
-
-  NumericMatrix m = wrap(newDS);
-  m.attr("dimnames") = List::create( R_NilValue, cn );
-	Rf_setAttrib(robj, Rf_install("discreteSpec"), m);
 
   Eigen::MatrixXd tmat = buildThresholdMatrix();
   if (tmat.cols()) {
-    out.add("thresholds", Rcpp::wrap(tmat));
+    CharacterVector cn(tmat.cols());
+    auto &allTh = getThresholdInfo();
+    for (int xx = 0, cx=0; cx < int(allTh.size()); cx++) {
+      auto &th = allTh[cx];
+      if (th.numThresholds == 0) continue;
+      cn[xx] = data->columnName(th.dataColumn);
+      xx += 1;
+    }
+
+    NumericMatrix m = Rcpp::wrap(tmat);
+    m.attr("dimnames") = List::create( R_NilValue, cn );
+    out.add("thresholds", m);
   }
 }
 
@@ -329,6 +341,8 @@ void omxExpectation::loadDataColFromR()
 			}
 		}
 	}
+  //mxLog("initial dataColumns (%d):", int(dataColumnNames.size()));
+  //for (auto &dc : dataColumnNames) mxLog("%s", dc);
 }
 
 void omxExpectation::loadThresholdFromR()

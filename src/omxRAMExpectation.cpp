@@ -513,12 +513,14 @@ void omxRAMExpectation::studyF()
 			dataCols[dx] = newDest;
 			if (origThresholdInfo.size()) {
 				omxThresholdColumn adj = origThresholdInfo[dest];
-				adj.dColumn = dx;
+				adj.dataColumn = newDest;
 				thresholds.push_back(adj);
 			}
 			dx += 1;
 		}
 	}
+  //mxLog("studyF: dataColumns permuted to (%d):", int(dataColNames.size()));
+  //for (auto &dc : dataColNames) mxLog("%s", dc);
 }
 
 omxMatrix* omxRAMExpectation::getComponent(const char* component)

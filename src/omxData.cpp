@@ -375,7 +375,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				auto it = thrMap.find(cn);
 				omxThresholdColumn tc;
 				tc.isDiscrete = false;
-				tc.dColumn = cx;
+				tc.dataColumn = cx;
 				if (it != thrMap.end()) {
 					tc.column = it->second;
 					int numThr = 0;
@@ -1179,7 +1179,7 @@ void obsSummaryStats::setDimnames(omxData *data)
 		thresholdMat->colnames.resize(thresholdMat->cols);
 		for (auto &th : thresholdCols) {
 			if (!th.numThresholds) continue;
-			thresholdMat->colnames[th.column] = dc[th.dColumn];
+			thresholdMat->colnames[th.column] = dc[th.dataColumn];
 		}
 	}
 
@@ -1190,10 +1190,10 @@ void obsSummaryStats::setDimnames(omxData *data)
 		if (thresholdMat || meansMat) {
 			for (auto &tc : thresholdCols) {
 				if (tc.numThresholds == 0) {
-					acovMat->colnames.push_back(strdup(dc[tc.dColumn]));
+					acovMat->colnames.push_back(strdup(dc[tc.dataColumn]));
 				} else {
 					for (int th=1; th <= tc.numThresholds; ++th) {
-						auto str = string_snprintf("%st%d", dc[tc.dColumn], th);
+						auto str = string_snprintf("%st%d", dc[tc.dataColumn], th);
 						acovMat->colnames.push_back(strdup(str.c_str()));
 					}
 				}
@@ -1311,10 +1311,10 @@ void obsSummaryStats::permute(omxData *data)
 	Eacov.derived() = (p2.transpose() * Eacov * p2).eval();
 	Efw.derived() = (p2.transpose() * Efw * p2).eval();
 
-	for (auto &th : thresh) th.dColumn = invDataColumns[th.dColumn];
+	for (auto &th : thresh) th.dataColumn = invDataColumns[th.dataColumn];
 	std::sort(thresh.begin(), thresh.end(),
 		  [](const omxThresholdColumn &a, const omxThresholdColumn &b) -> bool
-		  { return a.dColumn < b.dColumn; });
+		  { return a.dataColumn < b.dataColumn; });
 }
 
 void obsSummaryStats::log()
@@ -2971,11 +2971,12 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.perVar.resize(numCols);
 	for (int yy=0, thrOffset=0; yy < numCols; ++yy) {
 		auto &pv = o1.perVar[yy];
-		ColumnData &cd = rawCol( rawColMap[dc[yy]] );
+    int dc1 = rawColMap[dc[yy]];
+		ColumnData &cd = rawCol(dc1);
 		thStart[yy] = totalThr;
 		if (cd.type == COLUMNDATA_NUMERIC) {
 			omxThresholdColumn tc;
-			tc.dColumn = yy;
+			tc.dataColumn = yy;
 			tc.column = -1;
 			tc.numThresholds = 0;
 			tc.isDiscrete = false;
@@ -2994,7 +2995,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			int numThr = cd.levels.size() - 1;
 
 			omxThresholdColumn tc;
-			tc.dColumn = yy;
+			tc.dataColumn = yy;
 			tc.column = o1.numOrdinal++;
 			tc.numThresholds = numThr;
 			tc.isDiscrete = false;

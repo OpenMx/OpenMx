@@ -253,6 +253,9 @@ void omxWLSFitFunction::prepData()
 	if (obsThresholdsMat) {
 		for(int i = 0; i < int(oThresh.size()); i++) {
 			eThresh[i].numThresholds = oThresh[i].numThresholds;
+      // We always build the observed stats in the same order
+      // as the expected stats.
+      eThresh[i].dataColumn = i;
 		}
 	}
 
@@ -289,12 +292,6 @@ void omxWLSFitFunction::prepData()
 											oThresh, oFlat);
 	}
 	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
-
-	EigenVectorAdaptor EeFlat(newObj->expectedFlattened);
-	omxExpectation *ex = expectation;
-	normalToStdVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedSlope,
-											[ex](int r, int c)->double{ return ex->getThreshold(r,c); },
-											eThresh, EeFlat);
 }
 
 void omxWLSFitFunction::init()
