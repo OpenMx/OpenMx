@@ -67,7 +67,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 		omxRecompute(thresholdsMat, fc);
 
 		for (auto &th : thresholds) {
-			if (!th.numThresholds || th.isDiscrete) continue;
+			if (!th.numThresholds) continue;
 			int column = th.column;
 			int count = th.numThresholds;
 			int threshCrossCount = 0;
@@ -273,45 +273,32 @@ void omxExpectation::loadThresholds()
 
 void omxExpectation::populateNormalAttr(SEXP robj, MxRList &out)
 {
-  if (!discreteMat && !thresholdsMat) return;
+  if (!discreteMat) return;
 
-  if (discreteMat) { // update discreteSpec
-    auto dc = base::getDataColumns();
-    auto ds = getDiscreteSpec();
-    CharacterVector cn(ds.cols());
-    Eigen::MatrixXd newDS(ds.rows(), ds.cols());
+	auto dc = base::getDataColumns();
+  auto ds = getDiscreteSpec();
 
-    for (int dx = 0, xx=0; dx < int(dc.size()); dx++) {
-      omxThresholdColumn &col = thresholds[dx];
-      if (!col.isDiscrete) continue;
-      int index = col.dColumn;
+  CharacterVector cn(ds.cols());
+  Eigen::MatrixXd newDS(ds.rows(), ds.cols());
 
-      cn[xx] = data->columnName(index);
-      newDS(0,xx) = col.numThresholds;
-      newDS(1,xx) = ds(1,xx);
-      ++xx;
-    }
+	for (int dx = 0, xx=0; dx < int(dc.size()); dx++) {
+		omxThresholdColumn &col = thresholds[dx];
+    if (!col.isDiscrete) continue;
+		int index = col.dColumn;
 
-    NumericMatrix m = wrap(newDS);
-    m.attr("dimnames") = List::create( R_NilValue, cn );
-    Rf_setAttrib(robj, Rf_install("discreteSpec"), m);
+		cn[xx] = data->columnName(index);
+    newDS(0,xx) = col.numThresholds;
+    newDS(1,xx) = ds(1,xx);
+    ++xx;
   }
+
+  NumericMatrix m = wrap(newDS);
+  m.attr("dimnames") = List::create( R_NilValue, cn );
+	Rf_setAttrib(robj, Rf_install("discreteSpec"), m);
 
   Eigen::MatrixXd tmat = buildThresholdMatrix();
   if (tmat.cols()) {
-    auto &dcn = getDataColumnNames();
-    CharacterVector cn(tmat.cols());
-    auto &allTh = getThresholdInfo();
-    for (int xx = 0, cx=0; cx < int(allTh.size()); cx++) {
-      auto &th = allTh[cx];
-      if (th.numThresholds == 0) continue;
-      cn[xx] = dcn[th.dColumn];
-      xx += 1;
-    }
-
-    NumericMatrix m = Rcpp::wrap(tmat);
-    m.attr("dimnames") = List::create( R_NilValue, cn );
-    out.add("thresholds", m);
+    out.add("thresholds", Rcpp::wrap(tmat));
   }
 }
 

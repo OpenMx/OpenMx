@@ -3,6 +3,8 @@ context("discrete")
 library(OpenMx)
 
 # to test:
+# ML / WLS
+# with and without regular thresholds
 # check equivalence of parameterizations (total var = 1 vs loading = 1) ??
 # ordered factor vs raw count
 
@@ -14,8 +16,6 @@ verifyFrontBackMatch <- function(m1) {
     mxComputeReportExpectation()))))
   
   t2 <- m1$expectation$output$thresholds
-
-  t2 <- t2[,colnames(t1)]
   
   expect_equivalent(is.na(t1), is.na(t2))
   
@@ -252,51 +252,3 @@ test_that("LISREL", {
   verifyFrontBackMatch(fit)
 })
 
-test_that("probit+poisson ML+WLS", {
-  library(OpenMx)
-  library(testthat)
-  
-  RNGversion("4.0")
-  set.seed(1)
-  
-  data("jointdata", package ="OpenMx")
-
-  jointdata[,c(2,4,5)] <-
-    mxFactor(jointdata[,c(2,4,5)], 
-             levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
-  
-  build <- function(wls=FALSE) {
-    m1 <- mxModel(
-      "m1", type="RAM",
-      manifestVars = paste0('z',sample.int(5,5)),
-      latentVars='G',
-      mxData(jointdata[,sample.int(5,5)], "raw"),
-      mxPath('one', paste0('z', c(1,3))),
-      mxPath(paste0('z', c(1,3)), arrows=2, values=2),
-      mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
-      mxPath('G', arrows=2, values=1, free=FALSE),
-      mxPath('G', paste0('z', 1:5), values=1),
-      mxMarginalProbit(paste0('z', c(2,5)), nThresh=c(1,2), free=TRUE),
-      mxMarginalPoisson('z4', lambda = .5))
-    if (wls) m1 <- mxModel(m1, mxFitFunctionWLS())
-    m1
-  }
-  
-  m1 <- mxRun(build())
-  verifyFrontBackMatch(m1)
-  m2 <- mxRun(build())
-  verifyFrontBackMatch(m2)
-  m3 <- mxRun(build())
-  verifyFrontBackMatch(m3)
-  expect_equal(m1$output$fit - m2$output$fit, 0, 1e-9)
-  expect_equal(m1$output$fit - m3$output$fit, 0, 1e-9)
-
-  m1 <- mxRun(build(TRUE))
-  verifyFrontBackMatch(m1)
-  m2 <- mxRun(build(TRUE))
-  verifyFrontBackMatch(m2)
-  m3 <- mxRun(build(TRUE))
-  verifyFrontBackMatch(m3)
-  expect_equal(m1$output$fit - m2$output$fit, 0, 1e-9)
-  expect_equal(m1$output$fit - m3$output$fit, 0, 1e-9)
-})

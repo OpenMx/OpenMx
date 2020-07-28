@@ -393,9 +393,8 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 		oldRows <- nrow(Thresh)
 		newCols <- length(newVars)
 		newRows <- max(nrow(Thresh), maxNThresh)
-		newThresh <- mxMatrix("Full", newRows, newCols, dimnames=list(NULL, newVars),
-                          name=Thresh@name, condenseSlots=FALSE)  # Maintains the old ordering
-    newThresh@values[,] <- NA
+		newThresh <- mxMatrix("Full", newRows, newCols, dimnames=list(NULL,
+			newVars), name=Thresh@name, condenseSlots=FALSE)  # Maintains the old ordering
 		if(oldRows > 0 && oldCols > 0) {
 			newThresh[1:oldRows, 1:oldCols] <- Thresh
 		}

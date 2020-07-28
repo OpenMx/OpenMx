@@ -289,6 +289,12 @@ void omxWLSFitFunction::prepData()
 											oThresh, oFlat);
 	}
 	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
+
+	EigenVectorAdaptor EeFlat(newObj->expectedFlattened);
+	omxExpectation *ex = expectation;
+	normalToStdVector(newObj->expectedCov, newObj->expectedMeans, newObj->expectedSlope,
+											[ex](int r, int c)->double{ return ex->getThreshold(r,c); },
+											eThresh, EeFlat);
 }
 
 void omxWLSFitFunction::init()
