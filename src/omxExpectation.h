@@ -89,7 +89,7 @@ class omxExpectation {					// An Expectation
 	// for the expectation and access fields directly or through object methods.
 	virtual omxMatrix *getComponent(const char*) { return 0; }
 	virtual void mutate(const char*, omxMatrix*) {};
-	virtual void invalidateCache() {};
+	virtual void invalidateCache();
 	virtual void generateData(FitContext *fc, MxRList &out);
 	virtual int numSummaryStats();
 	virtual void asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::VectorXd> out);

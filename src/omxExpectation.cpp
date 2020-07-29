@@ -63,10 +63,13 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
 	if (data) data->recompute(); // for dynamic data
+
+  auto &allTh = getThresholdInfo();
+
 	if (thresholdsMat) {
 		omxRecompute(thresholdsMat, fc);
 
-		for (auto &th : thresholds) {
+		for (auto &th : allTh) {
 			if (!th.numThresholds || th.isDiscrete) continue;
 			int column = th.column;
 			int count = th.numThresholds;
@@ -92,17 +95,51 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 	if (discreteMat) {
 		omxRecompute(discreteMat, fc);
 		EigenMatrixAdaptor dm(discreteMat);
+    auto ds = getDiscreteSpec();
+    auto dc = getDataColumns();
+    if (data->isRaw()) {
+      // This is a bit clumsy. We should do this before cloning read-only data for threads. TODO
+      bool firstTime = discreteCache.size() == 0 && !isClone();
+      for(int dx = 0; dx < int(dc.size()); dx++) {
+        omxThresholdColumn &col = allTh[dx];
+        if (!col.isDiscrete) continue;
+        double nt = ds(0, col.column);
+        if (!firstTime && nt > 0) {
+          col.numThresholds = nt;
+          continue;
+        }
+        ColumnData &cd = data->rawCol(col.dataColumn);
+        const auto range =
+          std::minmax_element(cd.i(), cd.i() + data->nrows());
+        int obsMaxCount = *range.second - cd.getMinValue();
+        //mxLog("infer num thresholds for %s is %d", data->columnName(col.dataColumn), obsMaxCount);
+        if (std::isfinite(nt)) {
+          if (nt < obsMaxCount) {
+            mxThrow("%s: discrete column '%s' set to a maximum count of %d "
+                    "but data has maximum count of %d",
+                    name, data->columnName(col.dataColumn), int(nt), obsMaxCount);
+          } else if (nt > obsMaxCount) {
+            Rf_warning("%s: discrete column '%s' set to a maximum count of %d "
+                       "but data has maximum count of only %d",
+                       name, data->columnName(col.dataColumn), int(nt), obsMaxCount);
+          }
+          col.numThresholds = nt;
+        } else {
+          ds(0, col.column) = obsMaxCount;
+          col.numThresholds = obsMaxCount;
+        }
+      }
+    }
 		discreteCache.resize(discreteMat->cols);
 
     omxMatrix *cov = getComponent("cov");
     omxMatrix *mean = getComponent("means");
-    auto ds = getDiscreteSpec();
-    auto dc = getDataColumns();
     for(int dx = 0; dx < int(dc.size()); dx++) {
-      omxThresholdColumn &col = thresholds[dx];
+      omxThresholdColumn &col = allTh[dx];
       if (!col.isDiscrete) continue;
       int cx = col.column;
 			auto &vec = discreteCache[cx];
+      if (col.numThresholds < 1) mxThrow("discrete col.numThresholds < 1");
 			vec.resize(col.numThresholds);
 			switch(int(ds(1,cx))) {
 			case 1:
@@ -161,7 +198,6 @@ void omxExpectation::loadThresholds()
 	numOrdinal = 0;
 	if (!thresholdsMat && !discreteMat) return;
 
-	bool debug = false;
 	if (thresholdsMat) CheckAST(thresholdsMat, 0);
 	if (discreteMat) CheckAST(discreteMat, 0);
 
@@ -189,13 +225,8 @@ void omxExpectation::loadThresholds()
 				col.isDiscrete = false;
 				if (data->isRaw()) {
 					col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
-					data->assertColumnIsData(col.dataColumn, OMXDATA_ORDINAL);
 				} else {
 					// See omxData
-				}
-				if(debug || OMX_DEBUG) {
-					mxLog("%s: column[%d] '%s' is ordinal with %d thresholds in column %d",
-								name, index, colname, col.numThresholds, tc);
 				}
 				numOrdinal++;
 			}
@@ -208,33 +239,7 @@ void omxExpectation::loadThresholds()
 				col.column = tc;
 				col.isDiscrete = true;
         double nt = ds(0,tc);
-				if (data->isRaw()) {
-					data->assertColumnIsData(col.dataColumn, OMXDATA_COUNT);
-					ColumnData &cd = data->rawCol(col.dataColumn);
-          const auto range =
-					 	std::minmax_element(cd.ptr.intData, cd.ptr.intData + data->nrows());
-          int obsMaxCount = *range.second - 1;
-          if (std::isfinite(nt)) {
-            if (nt < obsMaxCount) {
-              mxThrow("%s: discrete column '%s' set to a maximum count of %d "
-                      "but data has maximum count of %d",
-                      name, colname, int(nt), obsMaxCount);
-            } else if (nt > obsMaxCount) {
-              Rf_warning("%s: discrete column '%s' set to a maximum count of %d "
-                         "but data has maximum count of only %d",
-                         name, colname, int(nt), obsMaxCount);
-            }
-          } else {
-            nt = obsMaxCount;
-          }
-				} else {
-					// See omxData
-				}
-        col.numThresholds = nt;
-				if(debug || OMX_DEBUG) {
-					mxLog("%s: column[%d] '%s' is discrete with %d thresholds in column %d",
-								name, index, colname, col.numThresholds, tc);
-				}
+        col.numThresholds = nt; // can be NA
 				numOrdinal++;
 			}
 		}
@@ -260,14 +265,45 @@ void omxExpectation::loadThresholds()
 			mxThrow("%s: cannot find data for discrete columns:%s\n(Do appropriate discrete column names match data column names?)", name, buf.c_str());
 		}
 	}
+}
 
-	for (auto &th : thresholds) {
-		if (th.column >= 0) continue;
-		data->assertColumnIsData(th.dataColumn, OMXDATA_REAL);
-		if(debug || OMX_DEBUG) {
-			mxLog("%s: column[%d] '%s' is continuous",
-						name, th.dataColumn, data->columnName(th.dataColumn));
-		}
+void omxExpectation::invalidateCache()
+{
+	if (!strEQ(omxDataType(data), "raw")) return;
+
+  discreteCache.clear();
+
+	if (!thresholds.size()) {
+    auto &dc = getDataColumns();
+    for (int dx = 0; dx < int(dc.size()); dx++) {
+         data->assertColumnIsData(dc[dx], OMXDATA_REAL);
+    }
+    return;
+  }
+
+	for (auto &col : thresholds) {
+		const char *colname = data->columnName(col.dataColumn);
+    if (col.numThresholds==0) {
+      data->assertColumnIsData(col.dataColumn, OMXDATA_REAL);
+      if (OMX_DEBUG) {
+        mxLog("%s: column[%d] '%s' is continuous",
+              name, col.dataColumn, data->columnName(col.dataColumn));
+      }
+    } else {
+      if (col.isDiscrete) {
+					data->assertColumnIsData(col.dataColumn, OMXDATA_COUNT);
+          if(OMX_DEBUG) {
+            mxLog("%s: column '%s' is discrete with %d thresholds",
+                  name, colname, col.numThresholds);
+          }
+      } else {
+					data->assertColumnIsData(col.dataColumn, OMXDATA_ORDINAL);
+          if(OMX_DEBUG) {
+            mxLog("%s: column '%s' is ordinal with %d thresholds",
+                  name, colname, col.numThresholds);
+          }
+      }
+    }
 	}
 }
 
@@ -276,20 +312,19 @@ void omxExpectation::populateNormalAttr(SEXP robj, MxRList &out)
   if (!discreteMat && !thresholdsMat) return;
 
   if (discreteMat) { // update discreteSpec
-    auto dc = base::getDataColumns();
+    auto &allTh = getThresholdInfo();
     auto ds = getDiscreteSpec();
+    auto &dcn = getDataColumnNames();
     CharacterVector cn(ds.cols());
     Eigen::MatrixXd newDS(ds.rows(), ds.cols());
 
-    for (int dx = 0, xx=0; dx < int(dc.size()); dx++) {
-      omxThresholdColumn &col = thresholds[dx];
-      if (!col.isDiscrete) continue;
-      int index = col.dataColumn;
-
-      cn[xx] = data->columnName(index);
-      newDS(0,xx) = col.numThresholds;
-      newDS(1,xx) = ds(1,xx);
-      ++xx;
+    for (int dx = 0; dx < discreteMat->cols; dx++) {
+      const char *colname = discreteMat->colnames[dx];
+      auto it = std::find_if(dcn.begin(), dcn.end(), [&colname](const char *val)->bool{ return strEQ(val, colname); });
+      int index = it - dcn.begin();
+      cn[dx] = colname;
+      newDS(0,dx) = allTh[index].numThresholds;
+      newDS(1,dx) = ds(1,dx);
     }
 
     NumericMatrix m = wrap(newDS);
@@ -362,16 +397,7 @@ void omxExpectation::loadThresholdFromR()
 		}
 	}
 	loadThresholds();
-	bool isRaw = strEQ(omxDataType(data), "raw");
-	if (isRaw) {
-		if (thresholds.size() == 0) {
-			auto dc = base::getDataColumns();
-			for (int cx=0; cx < int(dc.size()); ++cx) {
-				int var = dc[cx];
-				data->assertColumnIsData(var, OMXDATA_REAL);
-			}
-		}
-	}
+  invalidateCache();
 }
 
 void omxExpectation::generateData(FitContext *, MxRList &out)

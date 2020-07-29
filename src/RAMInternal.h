@@ -395,6 +395,7 @@ class omxRAMExpectation : public omxExpectation {
 	virtual void populateAttr(SEXP expectation);
 	virtual const std::vector<const char *> &getDataColumnNames() const { return dataColNames; };
 	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
+    if (!dataCols.size()) return super::getDataColumns();
 		return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
 	}
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }

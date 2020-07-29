@@ -67,7 +67,7 @@ void ba81NormalQuad::layer::copyStructure(ba81NormalQuad::layer &orig)
 void ba81NormalQuad::cacheOutcomeProb(double *param, bool wantLog)
 {
 	if (layers.size() != 1) mxThrow("layers.size() != 1");
-	
+
 	layer &l1 = layers[0];
 	l1.outcomeProbX.resize(l1.totalOutcomes * l1.totalQuadPoints);
 
@@ -380,20 +380,20 @@ void ifaGroup::import(const List &Rlist)
 		mxThrow("At least %d rows are required in the item parameter matrix, only %d found",
 			 impliedParamRows, paramRows);
 	}
-	
+
 	quad.refresh(meanVec, covMat);
 }
 
 void ifaGroup::setLatentDistribution(double *_mean, double *_cov)
 {
-	if (!mean) {
+	if (!_mean) {
 		mean = (double *) R_alloc(itemDims, sizeof(double));
 		if (itemDims) memset(mean, 0, itemDims * sizeof(double));
 	} else {
 		mean = _mean;
 	}
 
-	if (!cov) {
+	if (!_cov) {
 		cov = (double *) R_alloc(itemDims * itemDims, sizeof(double));
 		Eigen::Map< Eigen::MatrixXd > covMat(cov, itemDims, itemDims);
 		covMat.setIdentity();

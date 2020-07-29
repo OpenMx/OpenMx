@@ -472,7 +472,6 @@ struct ba81sandwichOp {
 		if (ix) gradOffset(thrId) += state->paramPerItem[ix-1];
 		int pick = dataColumns[ix][ rowMap[px(thrId)] ];
 		if (pick == NA_INTEGER) return;
-		pick -= 1;
 		expected.col(thrId).setZero();
 		expected(pick, thrId) = 1.0;
 		const double *spec1 = spec[ix];
@@ -659,7 +658,7 @@ struct ba81gradCovOp {
 		int pick = dataColumns[ix][rowMap[px(thrId)]];
 		if (pick == NA_INTEGER) return;
 		expected.col(thrId).setZero();
-		expected(pick-1, thrId) = weight;
+		expected(pick, thrId) = weight;
 		const double *spec1 = spec[ix];
 		double *iparam = omxMatrixColumn(itemParam, ix);
 		const int id = spec1[RPF_ISpecID];

@@ -25,7 +25,7 @@ using namespace Rcpp;
 
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
-#include <Eigen/Eigenvalues> 
+#include <Eigen/Eigenvalues>
 #include "libifa-rpf.h"
 #include "dmvnorm.h"
 
@@ -37,7 +37,7 @@ namespace ba81quad {
 #ifndef _OPENMP
 	static inline int omp_get_thread_num() { return 0; }
 #endif
-	
+
 	static inline int triangleLoc1(int diag)
 	{
 		return (diag) * (diag+1) / 2;   // 0 1 3 6 10 15 ..
@@ -386,7 +386,7 @@ int ba81NormalQuad::layer::cacheDerivCoef(Eigen::MatrixBase<T1> &meanVec, Eigen:
 	int info = ba81quad::InvertSymmetricPosDef(icov);
 	if (info) return info;
 	icov.triangularView<Eigen::Lower>() = icov.transpose().triangularView<Eigen::Lower>();
-	
+
 	Eigen::VectorXi abx(numAbil());
 	Eigen::VectorXd abscissa(numAbil());
 	if (numSpecific == 0) {
@@ -447,7 +447,7 @@ void ba81NormalQuad::layer::mapLatentDerivS(int sgroup, double piece, int qx, in
 	using ba81quad::triangleLoc0;
 	const int priDerivCoef = primaryDims + triangleLoc1(primaryDims);
 	int base = priDerivCoef + 2 * curGroup;
-	
+
 	int sdim = primaryDims + sgroup;
 	double amt3 = piece * derivCoef(base, qx);
 	derivOut[sdim] += amt3;
@@ -810,7 +810,6 @@ double ba81NormalQuad::layer::computePatternLik(int thrId, int row)
 				oProb += outcomes * totalQuadPoints;
 				continue;
 			}
-			pick -= 1;
 
 			for (int qx=0; qx < totalQuadPoints; ++qx) {
 				out[qx] *= oProb[pick];
@@ -840,7 +839,6 @@ double ba81NormalQuad::layer::computePatternLik(int thrId, int row)
 				oProb += outcomes * totalQuadPoints;
 				continue;
 			}
-			pick -= 1;
 			int Sgroup1 = Sgroup[ix];
 			double *out1 = out;
 			for (int qx=0; qx < totalQuadPoints; qx++) {
@@ -935,7 +933,6 @@ void ba81NormalQuad::layer::addToExpected(int thrId, int px)
 			out += outcomes * totalQuadPoints;
 			continue;
 		}
-		pick -= 1;
 		double *lastQw = &Qweight.coeffRef(0, thrId) + Qweight.rows();
 		if (numSpecific == 0) {
 			double *Qw = &Qweight.coeffRef(0, thrId);
@@ -1291,7 +1288,7 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 		itemsMap.push_back(ix);
 		glItemsMap[ix] = lx++;
 	}
-	
+
 	Eigen::VectorXd mean;
 	Eigen::MatrixXd cov;
 	globalToLocalDist(gmean, gcov, mean, cov);
@@ -1307,7 +1304,7 @@ void ba81NormalQuad::layer::setStructure(Eigen::ArrayBase<T1> &param,
 	}
 
 	numSpecific = 0;
-	
+
 	if (testTwoTier) detectTwoTier(param, mean, cov);
 	if (numSpecific) quad->hasBifactorStructure = true;
 

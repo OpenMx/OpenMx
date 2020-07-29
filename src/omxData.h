@@ -83,18 +83,42 @@ enum ColumnDataType {
 union dataPtr {
 	double *realData;
 	int *intData;
+	dataPtr() : intData(0) {};
 	dataPtr(double *_p) : realData(_p) {};
 	dataPtr(int *_p) : intData(_p) {};
 	void clear() { realData=0; intData=0; };
 };
 
-struct ColumnData {
+class ColumnData {
+private:
+	dataPtr ptr;
+  bool owner;
+  int minValue; // for count/ordinal only
+public:
 	const char *name;
 	ColumnDataType type;
-	dataPtr ptr;
 	std::vector<std::string> levels;       // factors only
 
 	const char *typeName();
+  ColumnData(const char *_name) : owner(false), minValue(1), name(_name),
+                                  type(COLUMNDATA_INVALID) {}
+  ColumnData(const char *_name, ColumnDataType _type, int *col) :
+    ptr(col), owner(true), minValue(1), name(_name), type(_type) {}
+  ~ColumnData() { clear(); }
+  void clear();
+  ColumnData clone() const;
+  void setMinValue(int mv) { minValue = mv; }
+  void setZeroMinValue(int rows);
+  int getMinValue() const { return minValue; }
+  int *i() { return ptr.intData; }
+  double *d() { return ptr.realData; }
+  void setOwn(double *_p) { clear(); ptr.realData = _p; owner=true; }
+  void setOwn(int *_p) { clear(); ptr.intData = _p; owner=true; }
+  void setOwn(dataPtr _p) { clear(); ptr = _p; owner=true; }
+  void setBorrow(double *_p) { clear(); ptr.realData = _p; owner=false; }
+  void setBorrow(int *_p) { clear(); ptr.intData = _p; owner=false; }
+  void setBorrow(dataPtr _p) { clear(); ptr = _p; owner=false; }
+  dataPtr steal() { dataPtr ret = ptr; ptr.clear(); return ret; }
 };
 
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
@@ -217,13 +241,13 @@ class omxData {
 		std::vector<ColumnData> rawCols;
 		std::vector<bool> hasNa;
 		int rows;
-		bool owner;
-		RawData() : rows(0), owner(false) {}
+		RawData() : rows(0) {}
 		void clear();
 		void clearColumn(int col);
 		~RawData();
 		void refreshHasNa();
 		void assertColumnIsData(int col, OmxDataType dt, bool warn);
+    void operator=(const RawData &other);
 	};
 	RawData filtered;
 	RawData unfiltered;
@@ -322,7 +346,7 @@ bool omxDataElementMissing(omxData *od, int row, int col);
 inline int omxKeyDataElement(omxData *od, int row, int col)
 {
 	ColumnData &cd = od->rawCol(col);
-	return cd.ptr.intData[row];
+	return cd.i()[row];
 }
 
 omxMatrix* omxDataCovariance(omxData *od);
@@ -353,12 +377,12 @@ void omxDataRow(omxData *od, int row, const Eigen::MatrixBase<T> &colList, omxMa
 static OMXINLINE int
 omxIntDataElementUnsafe(omxData *od, int row, int col)
 {
-	return od->rawCol(col).ptr.intData[row];
+	return od->rawCol(col).i()[row];
 }
 
 static OMXINLINE int *omxIntDataColumnUnsafe(omxData *od, int col)
 {
-	return od->rawCol(col).ptr.intData;
+	return od->rawCol(col).i();
 }
 
 double omxDataNumObs(omxData *od);											// Returns number of obs in the dataset

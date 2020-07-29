@@ -4431,7 +4431,7 @@ void LoadDataCSVProvider::loadByCol(int index)
 	int offset = (index - stripeStart) * columns.size();
 	auto &rc = *rawCols;
 	for (int cx=0; cx < int(columns.size()); ++cx) {
-		rc[ columns[cx] ].ptr = stripeData[offset + cx];
+		rc[ columns[cx] ].setBorrow(stripeData[offset + cx]);
 	}
 }
 
@@ -4494,7 +4494,7 @@ void LoadDataCSVProvider::loadByRow(int index)
 	}
 	curRecord += 1;
 	for (int cx=0; cx < int(columns.size()); ++cx) {
-		rc[ columns[cx] ].ptr = stripeData[cx];
+		rc[ columns[cx] ].setBorrow(stripeData[cx]);
 	}
 }
 
@@ -4575,7 +4575,7 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 						dr += 1;
 					}
 				}
-				rc[ columns[cx] ].ptr = stripeData[cx];
+				rc[ columns[cx] ].setBorrow(stripeData[cx]);
 			}
 		} else {
 			int colBase = index * columns.size();
@@ -4587,10 +4587,10 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 				RObject vec = observed[colBase + cx];
 				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 					NumericVector avec(vec);
-					rc[ columns[cx] ].ptr.realData = avec.begin();
+					rc[ columns[cx] ].setBorrow(avec.begin());
 				} else {
 					IntegerVector ivec(vec);
-					rc[ columns[cx] ].ptr.intData = ivec.begin();
+					rc[ columns[cx] ].setBorrow(ivec.begin());
 				}
 			}
 		}
@@ -4598,10 +4598,11 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 };
 
 void LoadDataProviderBase2::commonInit(SEXP rObj, const char *_name,
-				      const char *_dataName, int _rows,
-				      std::vector<ColumnData> &_rawCols,
-				      ColMapType &_rawColMap,
-				      std::vector< std::string > &_checkpointValues)
+                                       const char *_dataName, int _rows,
+                                       std::vector<ColumnData> &_rawCols,
+                                       ColMapType &_rawColMap,
+                                       std::vector< std::string > &_checkpointValues,
+                                       bool useOriginalData)
 {
 	name = _name;
 	dataName = _dataName;
@@ -4650,7 +4651,7 @@ void LoadDataProviderBase2::commonInit(SEXP rObj, const char *_name,
 		columns.push_back(rci->second);
 		auto &rc = _rawCols[rci->second];
 		colTypes.push_back(rc.type);
-		origData.emplace_back(rc.ptr);
+		if (useOriginalData) origData.emplace_back(rc.steal());
 	}
 
 	ProtectedSEXP Rcheckpoint(R_do_slot(rObj, Rf_install("checkpointMetadata")));
@@ -4690,7 +4691,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
 			provider->commonInit(rObj, name, data->name, rd.rows, rd.rawCols,
-					     data->rawColMap, Global->checkpointValues);
+                           data->rawColMap, Global->checkpointValues, useOriginalData);
 			provider->init(rObj);
 			break;
 		}

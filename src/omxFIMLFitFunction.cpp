@@ -122,7 +122,7 @@ bool condOrdByRow::eval()
 						if (OMX_DEBUG && !omxDataColumnIsFactor(data, var)) {
 							mxThrow("Must be a factor");
 						}
-						int pick = omxIntDataElement(data, sortedRow, var) - 1;
+						int pick = omxIntDataElement(data, sortedRow, var);
 						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
 							mxThrow("Out of range");
 						}

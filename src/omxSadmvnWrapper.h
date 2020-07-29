@@ -348,7 +348,7 @@ void OrdinalLikelihood::block::loadRow(int row)
 		if (!varMask[ox]) continue;
 		int j = ordColumns[ox];
 		int var = ol->dataColumns[j];
-		int pick = omxIntDataElement(ol->data, row, var) - 1;
+		int pick = omxIntDataElement(ol->data, row, var);
 		double sd = ol->stddev[ox];
 		if (pick == 0) {
 			lThresh[vx] = -std::numeric_limits<double>::infinity();

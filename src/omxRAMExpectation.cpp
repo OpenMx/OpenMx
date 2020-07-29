@@ -119,6 +119,7 @@ void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *ho
 
 void omxRAMExpectation::invalidateCache()
 {
+  super::invalidateCache();
 	if (rram) {
 		delete rram;
 		rram = 0;
@@ -239,7 +240,7 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lo
 }
 
 omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
-	: super(st, num), slope(0)
+	: super(st, num), slope(0), rram(0)
 {
 	if (st->isClone()) {
 		omxRAMExpectation *ram = (omxRAMExpectation *)st->getParent(this);
@@ -485,7 +486,7 @@ void omxRAMExpectation::studyExoPred()
 	exoPredMean.resize(exoDataColumns.size());
 	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
 		auto &e1 = data->rawCol( exoDataColumns[cx] );
-		Eigen::Map< Eigen::VectorXd > vec(e1.ptr.realData, data->numRawRows());
+		Eigen::Map< Eigen::VectorXd > vec(e1.d(), data->numRawRows());
 		exoPredMean[cx] = vec.mean();
 	}
 }
@@ -519,6 +520,9 @@ void omxRAMExpectation::studyF()
 			dx += 1;
 		}
 	}
+  // ensure we don't try to use the wrong stuff
+  origDataColumnNames.clear();
+  origThresholdInfo.clear();
   //mxLog("studyF: dataColumns permuted to (%d):", int(dataColNames.size()));
   //for (auto &dc : dataColNames) mxLog("%s", dc);
 }

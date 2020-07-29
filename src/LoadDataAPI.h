@@ -19,7 +19,7 @@ protected:
 	ColMapType *rawColMap;
 	std::vector< int > columns;
 	std::vector< ColumnDataType > colTypes;
-	std::vector<dataPtr> origData;
+	std::vector<dataPtr> origData;  // who deallocates? TODO
 	bool checkpoint;
 	std::vector< std::string > *checkpointValues;
 
@@ -69,10 +69,11 @@ protected:
 public:
 	const std::vector< int > &getColumns() { return columns; }
 	void commonInit(SEXP rObj, const char *_name,
-			const char *_dataName, int rows,
-			std::vector<ColumnData> &_rawCols,
-			ColMapType &_rawColMap,
-			std::vector< std::string > &_checkpointValues);
+                  const char *_dataName, int rows,
+                  std::vector<ColumnData> &_rawCols,
+                  ColMapType &_rawColMap,
+                  std::vector< std::string > &_checkpointValues,
+                  bool useOriginalData);
 	virtual int getNumVariants() { return 0; }
 	bool wantCheckpoint() const { return checkpoint; }
 	int getLoadCounter() const { return loadCounter; }
@@ -100,7 +101,7 @@ public:
 	void loadOrigRow() {
 		auto rc = *rawCols;
 		for (int cx=0; cx < int(columns.size()); ++cx) {
-			rc[ columns[cx] ].ptr = origData[cx];
+			rc[ columns[cx] ].setBorrow(origData[cx]);
 		}
 	}
 	virtual std::unique_ptr<LoadDataProviderBase2> clone()=0;
