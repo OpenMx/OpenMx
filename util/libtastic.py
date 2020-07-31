@@ -6,8 +6,15 @@ import argparse, subprocess
 # Credit for this function to George King (https://github.com/gwk)
 # Lifted from https://github.com/gwk/gloss/blob/master/python/gloss/otool.py
 
+# Edit history:
+# 2020-07-31: Started keeping edit history
+# 2020-07-31: Added error reporting for 
+
 def otool(s):
-    o = subprocess.Popen(['otool', '-L', s], stdout=subprocess.PIPE)
+    o = subprocess.Popen(['otool', '-L', s], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    error1 = ''.join(i for i in o.stderr.readline())
+    if not "" == error1:
+        print("Error:" + error1)
     for l in o.stdout:
         if l[0] == '\t':
             yield l.split(' ', 1)[0][1:]
@@ -46,14 +53,26 @@ def updateLibs(libs, moved):
         for tlib in libs:
             lib = os.path.basename(tlib)
             print "Updating " + lib + " to reflect move from " + source + " to " + target
-            subprocess.Popen(['install_name_tool', '-change', source, target, lib])
+            pipe=subprocess.Popen(['install_name_tool', '-change', source, target, lib],
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,
+                                            universal_newlines=True)
+            error1 = ''.join(i for i in pipe.stderr.readline())
+            if not "" == error1:
+                print("Error:" + error1)
 
 
 def updateIDs(libs):
     for source, tlib in libs:
         lib = os.path.basename(tlib)
         print "Updating " + source + " with name " + lib
-        subprocess.Popen(['install_name_tool', '-id', lib, lib])
+        pipe = subprocess.Popen(['install_name_tool', '-is', lib, lib],
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,
+                                            universal_newlines=True)
+        error1 = ''.join(i for i in pipe.stderr.readline())
+        if not "" == error1:
+            print("Error:" + error1)
 
 def make_cleaner(bads):
     def cleaner(names):
@@ -79,7 +98,7 @@ if __name__ == "__main__":
     print("lib=" + args.lib)
     print("locs=" + str(args.locs))
     libList = getLibList(args.lib, make_cleaner(args.locs))
-    moved = consolidateLibs(libList, args.locs)
-    updateLibs(libList, moved)
+    # moved = consolidateLibs(libList, args.locs)
+    updateLibs(libList, zip(libList, libList))# moved)
     updateIDs(moved)
     print "Thank you for being libtastic"
