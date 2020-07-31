@@ -49,6 +49,7 @@ env:
   global:
     - MAKEFLAGS="-j 2"
     - dhost=travis@vps242190.vps.ovh.ca
+    - OMP_NUM_THREADS=2
   jobs:
   - MODE=test IMX_OPT_ENGINE=NPSOL
   - MODE=test IMX_OPT_ENGINE=CSOLNP
