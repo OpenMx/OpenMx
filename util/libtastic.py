@@ -8,7 +8,7 @@ import argparse, subprocess
 
 # Edit history:
 # 2020-07-31: Started keeping edit history
-# 2020-07-31: Added error reporting for 
+# 2020-07-31: Added error reporting for
 
 def otool(s):
     o = subprocess.Popen(['otool', '-L', s], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
