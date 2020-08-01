@@ -8,7 +8,7 @@ import argparse, subprocess
 
 # Edit history:
 # 2020-07-31: Started keeping edit history
-# 2020-07-31: Added error reporting for
+# 2020-07-31: Added error reporting for otool and install_name_tool calls
 
 def otool(s):
     o = subprocess.Popen(['otool', '-L', s], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     print("lib=" + args.lib)
     print("locs=" + str(args.locs))
     libList = getLibList(args.lib, make_cleaner(args.locs))
-    # moved = consolidateLibs(libList, args.locs)
-    updateLibs(libList, zip(libList, libList))# moved)
+    moved = consolidateLibs(libList, args.locs)
+    updateLibs(libList, moved)
     updateIDs(moved)
     print "Thank you for being libtastic"
