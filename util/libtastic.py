@@ -66,7 +66,7 @@ def updateIDs(libs):
     for source, tlib in libs:
         lib = os.path.basename(tlib)
         print "Updating " + source + " with name " + lib
-        pipe = subprocess.Popen(['install_name_tool', '-is', lib, lib],
+        pipe = subprocess.Popen(['install_name_tool', '-id', lib, lib],
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,
                                             universal_newlines=True)
