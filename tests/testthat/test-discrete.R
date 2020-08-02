@@ -4,7 +4,6 @@ library(OpenMx)
 
 # to test:
 # check equivalence of parameterizations (total var = 1 vs loading = 1) ??
-# ordered factor vs raw count
 
 verifyFrontBackMatch <- function(m1) {
   t1 <- mxGetExpected(m1, "thresholds")
@@ -72,11 +71,15 @@ test_that("Normal", {
   expect_equal(thr[1:6,'x3'], c(-1.87, -1.1, -0.49, 0.02, 0.46, 0.86), .01)
   
   factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
+
+  # raw counts as integer
+  factorModel$data$observed$x1 <-
+    unclass(factorModel$data$observed$x1) - 1L
   
-  # convert to raw counts TODO
-  # factorModel$data$observed$x1 <-
-  #   unclass(factorModel$data$observed$x1) - 1L
-  
+  # raw counts as numeric
+  factorModel$data$observed$x2 <-
+    unclass(factorModel$data$observed$x2) - 1.0
+
   factorModel$D$free <- !is.na(factorModel$D$values)
   
   fit <- mxRun(factorModel)

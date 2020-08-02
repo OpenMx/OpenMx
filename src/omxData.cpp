@@ -685,7 +685,7 @@ bool omxData::columnIsFactor(int col)
 {
 	if(dataMat != NULL) return FALSE;
 	ColumnData &cd = rawCol(col);
-	return cd.type == COLUMNDATA_ORDERED_FACTOR;
+	return cd.type == COLUMNDATA_ORDERED_FACTOR || cd.type == COLUMNDATA_INTEGER;
 }
 
 bool omxDataColumnIsKey(omxData *od, int col)
@@ -713,9 +713,25 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 						"You may want to specify thresholds for your model like this: "
 						"mxThreshold(vars='%s', nThresh=%d)",
 						cd.name, cd.name, int(cd.levels.size() - 1));
-	case COLUMNDATA_NUMERIC:
+	case COLUMNDATA_NUMERIC:{
 		if (dt == OMXDATA_REAL) return;
-		mxThrow("Don't know how to interpret numeric column '%s' as ordinal", cd.name);
+    if (dt == OMXDATA_ORDINAL) {
+      mxThrow("Don't know how to interpret numeric column '%s' as ordinal", cd.name);
+    }
+		// convert for dt == OMXDATA_COUNT
+		cd.type = COLUMNDATA_INTEGER;
+		double *realData = cd.d();
+    int *intData = new int[rows];
+		for (int rx=0; rx < rows; ++rx) {
+			if (realData[rx] == NA_REAL) {
+				intData[rx] = NA_INTEGER;
+			} else {
+				intData[rx] = realData[rx];
+			}
+		}
+    cd.setOwn(intData);
+    cd.setMinValue(0);
+    break;}
 	case COLUMNDATA_UNORDERED_FACTOR:
 		if (dt == OMXDATA_ORDINAL) {
 			if (warn && ++Global->dataTypeWarningCount < 5) {
