@@ -121,6 +121,18 @@ public:
   dataPtr steal() { dataPtr ret = ptr; ptr.clear(); return ret; }
 };
 
+inline void ColumnData::clear()
+{
+  if (ptr.intData && owner) {
+    if (type == COLUMNDATA_NUMERIC) {
+      delete [] ptr.realData;
+    } else {
+      delete [] ptr.intData;
+    }
+  }
+  ptr.intData = 0;
+}
+
 typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
 
 struct WLSVarData {

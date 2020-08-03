@@ -829,18 +829,6 @@ const char *ColumnData::typeName()
 	return ColumnDataTypeToString(type);
 }
 
-void ColumnData::clear()
-{
-  if (ptr.intData && owner) {
-    if (type == COLUMNDATA_NUMERIC) {
-      delete [] ptr.realData;
-    } else {
-      delete [] ptr.intData;
-    }
-  }
-  ptr.intData = 0;
-}
-
 ColumnData ColumnData::clone() const
 {
   ColumnData ret(name);
