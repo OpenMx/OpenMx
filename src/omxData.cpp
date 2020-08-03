@@ -443,6 +443,7 @@ void omxData::prep()
 			auto &dest = filtered.rawCols[cx];
 			if (dest.d()) continue;
 			filterCount += 1;
+      dest.setMinValue(src.getMinValue());
 			switch (src.type) {
 			case COLUMNDATA_ORDERED_FACTOR:
 			case COLUMNDATA_UNORDERED_FACTOR:
@@ -467,7 +468,7 @@ void omxData::prep()
 		break;}
 	case NA_EXCLUDE:{ // set to zero frequency
 		unfiltered.refreshHasNa();
-    filtered = unfiltered;
+    filtered = unfiltered; // resets minValue; can usually avoid? TODO
 		if (!hasFreq() || int(filtered.rawCols.size()) <= freqCol) {
 			if (verbose >= 1) mxLog("exclude: adding freq column");
 			freqCol = filtered.rawCols.size();
@@ -844,19 +845,26 @@ void ColumnData::setZeroMinValue(int rows)
   if (minValue == 0) return;
   if (type == COLUMNDATA_NUMERIC)
     mxThrow("ColumnData::setZeroMinValue not implemented for numeric data");
-  bool wasOwner = owner;
-  int *oldIntData = ptr.intData;
-  owner = true;
-  ptr.intData = new int[rows];
+  int *oldIntData = i();
+  int *id = new int[rows];
   for (int xx=0; xx < rows; ++xx) {
     if (oldIntData[xx] == NA_INTEGER) {
-      ptr.intData[xx] = NA_INTEGER;
+      id[xx] = NA_INTEGER;
     } else {
-      ptr.intData[xx] = oldIntData[xx] - 1;
+      id[xx] = oldIntData[xx] - 1;
     }
   }
-  if (wasOwner) delete [] oldIntData;
+  setOwn(id);
   minValue = 0;
+
+#ifdef OMX_BOUNDS_CHECK
+  const auto range = std::minmax_element(i(), i() + rows);
+  if (*range.first < 0 || *range.second >= int(levels.size())) {
+    mxThrow("Column '%d' data range [%d,%d] but expected [%d,%d]",
+            name, *range.first, *range.second,
+            0, int(levels.size()) - 1);
+  }
+#endif
 }
 
 void omxData::RawData::operator=(const RawData &other)
