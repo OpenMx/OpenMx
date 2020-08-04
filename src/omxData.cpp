@@ -856,15 +856,6 @@ void ColumnData::setZeroMinValue(int rows)
   }
   setOwn(id);
   minValue = 0;
-
-#ifdef OMX_BOUNDS_CHECK
-  const auto range = std::minmax_element(i(), i() + rows);
-  if (*range.first < 0 || *range.second >= int(levels.size())) {
-    mxThrow("Column '%d' data range [%d,%d] but expected [%d,%d]",
-            name, *range.first, *range.second,
-            0, int(levels.size()) - 1);
-  }
-#endif
 }
 
 void omxData::RawData::operator=(const RawData &other)
