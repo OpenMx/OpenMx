@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,13 +16,13 @@
 library(OpenMx)
 
 #No need to run this test with other than the on-load default GD optimizer:
-if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
+if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
 
 #Ordinal Data test, based on poly3dz.mx (as in models/passing/OrdinalTest.R):
 
 # Data
 nthresh1 <- 1
-nthresh2 <- 12	
+nthresh2 <- 12
 cnames <- c("t1neur1", "t1mddd4l", "t2neur1", "t2mddd4l")
 data <- suppressWarnings(try(read.table("data/mddndzf.dat", na.string=".", col.names=cnames)))
 if (is(data, "try-error")) data <- read.table("../passing/data/mddndzf.dat", na.string=".", col.names=cnames)
@@ -55,11 +55,11 @@ Mx1R <- rbind(
 nameList <- names(data)
 # Define the model
 model <- mxModel(name="m")
-model <- mxModel(model, mxMatrix("Stand", name = "R", # values=c(.2955, .1268, -.0011, .0760, .1869, .4377), 
+model <- mxModel(model, mxMatrix("Stand", name = "R", # values=c(.2955, .1268, -.0011, .0760, .1869, .4377),
 																 nrow = nvar, ncol = nvar, free=TRUE))
 model <- mxModel(model, mxMatrix("Zero", name = "M", nrow = 1, ncol = nvar, free=FALSE))
-model <- mxModel(model, mxMatrix("Full", 
-																 name="thresh", 
+model <- mxModel(model, mxMatrix("Full",
+																 name="thresh",
 																 # values = Mx1Threshold,
 																 values=cbind(
 																 	seq(-1.9, 1.9, length.out=nthresh2),          # t1Neur1: 12 thresholds evenly spaced from -1.9 to 1.9
@@ -67,9 +67,9 @@ model <- mxModel(model, mxMatrix("Full",
 																 	seq(-1.9, 1.9, length.out=nthresh2),          # t2Neur1: 12 thresholds same as t1Neur1
 																 	c(rep(1, nthresh1), rep(0, diff))                # t2mddd4l: 1 threshold same as t1mddd4l
 																 ),
-																 free = c(rep(c( rep(TRUE, nthresh2), 
+																 free = c(rep(c( rep(TRUE, nthresh2),
 																 								rep(TRUE, nthresh1), rep(FALSE, diff)
-																 ), 2)), 
+																 ), 2)),
 																 labels = rep(c(paste("neur", 1:nthresh2, sep=""),
 																 							 paste("mddd4l", 1:nthresh1, sep=""), rep(NA, diff))
 																 )))
@@ -89,7 +89,7 @@ summary(modelOut)
 
 ######################### Nelder-Mead stuff:
 
-#First make sure all four methods of simplex initialization run 
+#First make sure all four methods of simplex initialization run
 #(providing a matrix for the initial simplex is tested in another script):
 
 plan <- omxDefaultComputePlan()
@@ -128,7 +128,7 @@ m5o$output$iterations
 
 #Test greedyMinimize:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	greedyMinimize=TRUE, doPseudoHessian=T)
 m6 <- mxModel(model,plan)
 m6o <- mxRun(m6)
@@ -150,7 +150,7 @@ omxCheckTrue(all(eigen(m6o$compute$steps$GD$output$pseudoHessian,T,T)$values>0))
 
 #Test altContraction:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	altContraction=TRUE, doPseudoHessian=T)
 m7 <- mxModel(model,plan)
 m7o <- mxRun(m7)
@@ -160,7 +160,7 @@ m7o$output$iterations
 
 #Test degenLimit:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	degenLimit=pi/180, doPseudoHessian=T)
 m8 <- mxModel(model,plan)
 m8o <- mxRun(m8)
@@ -170,7 +170,7 @@ m8o$output$iterations
 
 #Test stagnCtrl:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	stagnCtrl=c(10,10), doPseudoHessian=T)
 m9 <- mxModel(model,plan)
 m9o <- mxRun(m9)
@@ -180,7 +180,7 @@ m9o$output$iterations
 
 #Try turning off validation restart:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	validationRestart=FALSE, doPseudoHessian=T)
 m10 <- mxModel(model,plan)
 m10o <- mxRun(m10)
@@ -192,7 +192,7 @@ m10o$output$iterations
 
 #alpha:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9,
 	doPseudoHessian=T)
 m11 <- mxModel(model,plan)
 m11o <- mxRun(m11)
@@ -201,7 +201,7 @@ m11o$output$iterations #<--maxed out
 
 #betao:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	betao=0.4, doPseudoHessian=T)
 m12 <- mxModel(model,plan)
 m12o <- mxRun(m12)
@@ -210,7 +210,7 @@ m12o$output$iterations
 
 #betai:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	betai=0.4, doPseudoHessian=T)
 m13 <- mxModel(model,plan)
 m13o <- mxRun(m13)
@@ -219,7 +219,7 @@ m13o$output$iterations
 
 #gamma:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	gamma=1.5, doPseudoHessian=T)
 m14 <- mxModel(model,plan)
 m14o <- mxRun(m14)
@@ -240,7 +240,7 @@ omxCheckTrue(all(eigen(m14o$compute$steps$GD$output$pseudoHessian,T,T)$values>0)
 
 #gamma<=0:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	gamma=-1.5, doPseudoHessian=T)
 m15 <- mxModel(model,plan)
 m15o <- mxRun(m15)
@@ -262,45 +262,45 @@ omxCheckTrue(all(eigen(m15o$compute$steps$GD$output$pseudoHessian,T,T)$values>0)
 
 #sigma:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	sigma=0.4, doPseudoHessian=T)
 m16 <- mxModel(model,plan)
 m16o <- mxRun(m16)
-summary(m16o) 
+summary(m16o)
 m16o$output$iterations
 
 #sigma<=0:
-#Under 32-bit Windows, if using a non-random simplex for m17, 
+#Under 32-bit Windows, if using a non-random simplex for m17,
 #Nelder-Mead gets stuck in a loop of restarting the simplex
-#to the same state over and over, every iteration 
+#to the same state over and over, every iteration
 #(although using a random simplex doesn't yield a good solution, at least not with this script's RNG seed).
 #All the literature I've read says that shrink transformations are rare, but that has not been my experience
 #so far; the user turns off shrinks at his/her own peril:
 if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386"){
 	plan$steps$GD <- mxComputeNelderMead(
-		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",iniSimplexEdge=0.5, 
+		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="random",iniSimplexEdge=0.5,
 		sigma=-0.4, doPseudoHessian=T)
 } else{
 	plan$steps$GD <- mxComputeNelderMead(
-		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
-		sigma=-0.4, doPseudoHessian=T)	
+		xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
+		sigma=-0.4, doPseudoHessian=T)
 }
 m17 <- mxModel(model,plan)
 m17o <- mxRun(m17)
-summary(m17o) 
+summary(m17o)
 m17o$output$iterations
 
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5,
 	doPseudoHessian=T, centerIniSimplex=TRUE)
 m18 <- mxModel(model,plan)
 m18o <- mxRun(m18)
-summary(m18o) 
+summary(m18o)
 m18o$output$iterations
 
 #Test for Nelder-Mead status code 4:
 plan$steps$GD <- mxComputeNelderMead(
-	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9, 
+	xTolProx=1e-12,fTolProx=1e-8,maxIter=10000L,iniSimplexType="regular",iniSimplexEdge=0.5, alpha=0.9,
 	doPseudoHessian=T)
 plan$steps <- list(GD=plan$steps$GD)
 m19 <- mxModel(model,plan)
