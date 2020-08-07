@@ -35,6 +35,15 @@ def getLibList(lib, cleaner=None):
         left.update(s)
     return done
 
+def showLibList(lib, cleaner=None):
+    fullPath = os.path.abspath(lib)
+    print("Library list for library at " + fullPath)
+    print(set(otool(fullPath)))
+
+def touch(fname, times=None):
+        with open(fname, 'a'):
+            os.utime(fname, times)
+
 def consolidateLibs(libs, tdir=["/usr/local/lib"], sdir=".", link_path="@loader_path"):
     moved = []
     for lib in libs:
@@ -97,8 +106,11 @@ if __name__ == "__main__":
 
     print("lib=" + args.lib)
     print("locs=" + str(args.locs))
+    showLibList(args.lib)
     libList = getLibList(args.lib, make_cleaner(args.locs))
     moved = consolidateLibs(libList, args.locs)
     updateLibs(libList, moved)
     updateIDs(moved)
+    showLibList(args.lib)
+    touch("EditedByLibtastic.txt")
     print "Thank you for being libtastic"
