@@ -65,8 +65,11 @@ PKG_LIBS= $(OPENMP_CXXFLAGS) \
   $(COMPILER_LDFLAGS) $(NPSOL_LDFLAGS) $(NLOPT_LDFLAGS) $(LAPACK_LIBS) \
 	$(BLAS_LIBS) $(MKL_LIBS) $(FLIBS) $(ARCH_SPECIFIC_LINKER_FLAGS) $(DEBUG_LDFLAGS)
 
+all: check-fflags $(SHLIB) save-gcno
 
-all: $(SHLIB) save-gcno
+check-fflags:
+	$(if $(findstring fopenmp,$(ALL_FFLAGS)$(ALL_FCFLAGS)), \
+  $(error You must remove -fopenmp from your FFLAGS and FCFLAGS see https://github.com/OpenMx/OpenMx/issues/284),)
 
 save-gcno: $(SHLIB)
 	mkdir -p ../inst/debug
