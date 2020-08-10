@@ -27,7 +27,7 @@ jobs:
     - ./tools/travis/save_cache
   - stage: test
     os: osx
-    osx_image: xcode9.4
+    osx_image: xcode10.1
     env:
     - MODE=build
     install:
