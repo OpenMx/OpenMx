@@ -328,5 +328,4 @@ void omxWLSFitFunction::init()
 	expectedFlattened = 0;
 	B = 0;
 	P = 0;
-  canDuplicate = true;
 }
