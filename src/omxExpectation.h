@@ -44,6 +44,7 @@ class omxExpectation {					// An Expectation
 	std::vector<const char *> dataColumnNames;
 	omxMatrix *thresholdsMat;
 	double *discreteSpecPtr;
+  bool discreteCheckCount;
   const Eigen::Map<Eigen::MatrixXd> getDiscreteSpec()
   { const Eigen::Map<Eigen::MatrixXd> ds(discreteSpecPtr, 2, discreteMat->cols); return ds; }
 	omxMatrix *discreteMat;

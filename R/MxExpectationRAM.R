@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,6 +52,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@dims <- dims
 		.Object@thresholds <- thresholds
     .Object@discrete <- discrete
+    .Object@.discreteCheckCount <- TRUE
 		.Object@threshnames <- threshnames
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
@@ -82,7 +83,7 @@ setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 	return(dependencies)
 })
 
-setMethod("qualifyNames", signature("MxExpectationRAM"), 
+setMethod("qualifyNames", signature("MxExpectationRAM"),
 	function(.Object, modelname, namespace) {
     .Object <- callNextMethod()
 		.Object@name <- imxIdentifier(modelname, .Object@name)
@@ -91,7 +92,7 @@ setMethod("qualifyNames", signature("MxExpectationRAM"),
 		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace, TRUE)
 		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace, TRUE)
 		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
-		.Object@thresholds <- sapply(.Object@thresholds, 
+		.Object@thresholds <- sapply(.Object@thresholds,
 					     imxConvertIdentifier, modelname, namespace)
 		.Object@between <- imxConvertIdentifier(.Object@between, modelname, namespace)
     .Object
@@ -105,13 +106,13 @@ setMethod("genericExpRename", signature("MxExpectationRAM"),
 		.Object@F <- renameReference(.Object@F, oldname, newname)
 		.Object@M <- renameReference(.Object@M, oldname, newname)
 		.Object@data <- renameReference(.Object@data, oldname, newname)
-		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
+		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)
     .Object
 })
 
-setMethod("genericExpFunConvert", signature("MxExpectationRAM"), 
+setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 	function(.Object, flatModel, model, labelsData, dependencies) {
-		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]	
+		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		aMatrix <- .Object@A
 		sMatrix <- .Object@S
@@ -181,27 +182,27 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			stop(msg, call. = FALSE)
 		}
 		hasMeanModel <- !is.na(mMatrix)
-		mMatrix <- flatModel[[mMatrix]]		
+		mMatrix <- flatModel[[mMatrix]]
 		if (hasMeanModel && !is.null(mMatrix)) {
 			means <- dimnames(mMatrix)
 			if (is.null(means)) {
 				msg <- paste("The M matrix associated",
-				"with the RAM expectation function in model", 
+				"with the RAM expectation function in model",
 				omxQuotes(modelname), "does not contain dimnames.")
-				stop(msg, call. = FALSE)	
+				stop(msg, call. = FALSE)
 			}
 			meanRows <- means[[1]]
 			meanCols <- means[[2]]
 			if (!is.null(meanRows) && length(meanRows) > 1) {
 				msg <- paste("The M matrix associated",
-				"with the RAM expectation function in model", 
+				"with the RAM expectation function in model",
 				omxQuotes(modelname), "is not a 1 x N matrix.")
 				stop(msg, call. = FALSE)
 			}
 			if (!identical(dimnames(fMatrix)[[2]], meanCols)) {
 				msg <- paste("The column names of the F matrix",
 					"and the column names of the M matrix",
-					"in model", 
+					"in model",
 					omxQuotes(modelname), "do not contain identical",
 					"names.")
 				stop(msg, call. = FALSE)
@@ -232,7 +233,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 					if (length(varsNotInData) > 0) {
 						msg <- paste(msg,
 							     "To get you started, the following variables are used but",
-							     "are not in the observed data:", 
+							     "are not in the observed data:",
 							     omxQuotes(varsNotInData))
 					}
 					stop(msg, call. = FALSE)
@@ -293,10 +294,10 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 ##'
 ##' Get the potency of a matrix for inversion speed-up
 ##'
-##' @param A MxMatrix object 
+##' @param A MxMatrix object
 ##' @param maxdepth Numeric. maximum depth to check
 ##' @details This function is used internally by the \link{mxExpectationRAM} function
-##' to determine how far to expand \eqn{(I-A)^{-1} = I + A + A^2 + A^3 + ...}.  It is 
+##' to determine how far to expand \eqn{(I-A)^{-1} = I + A + A^2 + A^3 + ...}.  It is
 ##' similarly used by \link{mxExpectationLISREL} in expanding \eqn{(I-B)^{-1} = I + B + B^2 + B^3 + ...}.
 ##' In many situations \eqn{A^2} is a zero matrix (nilpotent of order 2).  So when \eqn{A} has large
 ##' dimension it is much faster to compute \eqn{I+A} than \eqn{(I-A)^{-1}}.
@@ -319,7 +320,7 @@ generateDepthHelper <- function(aValues, currentProduct, depth, maxdepth) {
 	if (depth > maxdepth) {
 		return(as.integer(NA))
 	}
-	if (all(currentProduct == 0)) { 
+	if (all(currentProduct == 0)) {
 		return(as.integer(depth))
 	} else {
 		return(generateDepthHelper(aValues, currentProduct %*% aValues, depth + 1, maxdepth))
@@ -355,20 +356,20 @@ updateRAMdimnames <- function(flatExpectation, flatJob) {
 	fMatrix <- flatJob[[fMatrixName]]
 	if (is.null(fMatrix)) {
 		modelname <- getModelName(flatExpectation)
-		stop(paste("Unknown F matrix name", 
+		stop(paste("Unknown F matrix name",
 			omxQuotes(simplifyName(fMatrixName, modelname)),
 			"detected in the RAM expectation function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
 	dims <- flatExpectation@dims
-	if (!is.null(dimnames(fMatrix)) && !single.na(dims) && 
+	if (!is.null(dimnames(fMatrix)) && !single.na(dims) &&
 		!identical(dimnames(fMatrix)[[2]], dims)) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The F matrix associated",
-			"with the RAM expectation function in model", 
+			"with the RAM expectation function in model",
 			omxQuotes(modelname), "contains dimnames and",
 			"the expectation function has specified dimnames")
-		stop(msg, call.=FALSE)		
+		stop(msg, call.=FALSE)
 	}
 	if (is.null(dimnames(fMatrix)) && !single.na(dims)) {
 		dimnames(flatJob[[fMatrixName]]) <- list(c(), dims)
@@ -382,10 +383,10 @@ updateRAMdimnames <- function(flatExpectation, flatJob) {
 		!identical(dimnames(mMatrix), list(NULL, dims))) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The M matrix associated",
-			"with the RAM expectation function in model", 
+			"with the RAM expectation function in model",
 			omxQuotes(modelname), "contains dimnames and",
 			"the expectation function has specified dimnames")
-		stop(msg, call.=FALSE)	
+		stop(msg, call.=FALSE)
 	}
 
 	if (is.null(dimnames(mMatrix)) && !single.na(dims)) {
@@ -429,7 +430,7 @@ setMethod("genericExpConvertEntities", "MxExpectationRAM",
 				omxQuotes(modelname))
 			stop(msg, call.=FALSE)
 		}
-		
+
 		flatModel <- updateRAMdimnames(.Object, flatModel)
 
 		if (flatModel@datasets[[.Object@data]]@type != 'raw') {
@@ -473,7 +474,7 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 		msg <- paste("argument 'A' is not a string",
 			"(the name of the 'A' matrix)")
 		stop(msg)
-	}	
+	}
 	if (typeof(S) != "character") {
 		msg <- paste("argument 'S' is not a string",
 			"(the name of the 'S' matrix)")
@@ -524,7 +525,7 @@ displayMxExpectationRAM <- function(expectation) {
 		cat("$dims : NA \n")
 	} else {
 		cat("$dims :", omxQuotes(expectation@dims), '\n')
-	}		
+	}
 	if (single.na(expectation@thresholds)) {
 		cat("$thresholds : NA \n")
 	} else {
@@ -541,12 +542,12 @@ displayMxExpectationRAM <- function(expectation) {
 	invisible(expectation)
 }
 
-setMethod("print", "MxExpectationRAM", function(x,...) { 
-	displayMxExpectationRAM(x) 
+setMethod("print", "MxExpectationRAM", function(x,...) {
+	displayMxExpectationRAM(x)
 })
 
-setMethod("show", "MxExpectationRAM", function(object) { 
-	displayMxExpectationRAM(object) 
+setMethod("show", "MxExpectationRAM", function(object) {
+	displayMxExpectationRAM(object)
 })
 
 

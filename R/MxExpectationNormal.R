@@ -21,7 +21,8 @@ setClass(Class = "BaseExpectationNormal",
            thresholds = "MxCharOrNumber",
            threshnames = "character",
            discrete = "MxCharOrNumber",
-           discreteSpec = "MxOptionalMatrix"))
+           discreteSpec = "MxOptionalMatrix",
+           .discreteCheckCount = "logical"))
 
 setMethod("qualifyNames", signature("BaseExpectationNormal"),
           function(.Object, modelname, namespace) {
@@ -247,6 +248,7 @@ setMethod("initialize", "MxExpectationNormal",
 		.Object@threshnames <- threshnames
 		.Object@discrete <- discrete
 		.Object@discreteSpec <- discreteSpec
+    .Object@.discreteCheckCount <- TRUE
 		.Object@ExpCov <- matrix()
 		.Object@ExpMean <- matrix()
 		return(.Object)

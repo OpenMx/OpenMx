@@ -119,9 +119,11 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
                     "but data has maximum count of %d",
                     name, data->columnName(col.dataColumn), int(nt), obsMaxCount);
           } else if (nt > obsMaxCount) {
-            Rf_warning("%s: discrete column '%s' set to a maximum count of %d "
-                       "but data has maximum count of only %d",
-                       name, data->columnName(col.dataColumn), int(nt), obsMaxCount);
+            if (discreteCheckCount) {
+              Rf_warning("%s: discrete column '%s' set to a maximum count of %d "
+                         "but data has maximum count of only %d",
+                         name, data->columnName(col.dataColumn), int(nt), obsMaxCount);
+            }
           }
           col.numThresholds = nt;
         } else {
@@ -394,7 +396,9 @@ void omxExpectation::loadThresholdFromR()
 			discreteMat = omxMatrixLookupFromState1(mat, currentState);
       ProtectedSEXP ds(R_do_slot(rObj, Rf_install("discreteSpec")));
       discreteSpecPtr = REAL(ds);
-		}
+      ProtectedSEXP dcc(R_do_slot(rObj, Rf_install(".discreteCheckCount")));
+      discreteCheckCount = Rf_asLogical(dcc);
+    }
 	}
 	loadThresholds();
   invalidateCache();
