@@ -240,7 +240,7 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lo
 }
 
 omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
-	: super(st, num), slope(0), rram(0)
+	: super(st, num), studiedF(false), slope(0), rram(0)
 {
 	if (st->isClone()) {
 		omxRAMExpectation *ram = (omxRAMExpectation *)st->getParent(this);
@@ -523,6 +523,7 @@ void omxRAMExpectation::studyF()
   // ensure we don't try to use the wrong stuff
   origDataColumnNames.clear();
   origThresholdInfo.clear();
+  studiedF = true;
   //mxLog("studyF: dataColumns permuted to (%d):", int(dataColNames.size()));
   //for (auto &dc : dataColNames) mxLog("%s", dc);
 }

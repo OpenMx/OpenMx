@@ -284,6 +284,7 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<int> exoDataColumns; // index into omxData
 	Eigen::VectorXd exoPredMean;
 	bool hasProductNodes;
+  bool studiedF;
 
 	struct MpcIO : PathCalcIO {
 		omxMatrix *M0;
@@ -383,7 +384,7 @@ class omxRAMExpectation : public omxExpectation {
 	int lwork;
 
 	std::vector< omxMatrix* > between;
-	RelationalRAMExpectation::state *rram;
+	RelationalRAMExpectation::state *rram; // should use unique_ptr TODO
 	bool forceSingleGroup;
 
 	void studyF();
@@ -393,12 +394,21 @@ class omxRAMExpectation : public omxExpectation {
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);
-	virtual const std::vector<const char *> &getDataColumnNames() const { return dataColNames; };
+	virtual const std::vector<const char *> &getDataColumnNames() const {
+    if (studiedF) return dataColNames;
+    else return super::getDataColumnNames();
+  };
 	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
-    if (!dataCols.size()) return super::getDataColumns();
-		return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
+    if (studiedF)
+      return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
+    else
+      return super::getDataColumns();
 	}
-	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
+	virtual std::vector< omxThresholdColumn > &getThresholdInfo()
+  {
+    if (studiedF) return thresholds;
+    else return super::getThresholdInfo();
+  }
 	virtual void invalidateCache();
 	virtual void generateData(FitContext *fc, MxRList &out);
 	virtual void flatten(FitContext *fc);
