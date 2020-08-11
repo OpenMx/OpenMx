@@ -41,6 +41,7 @@ public:
 			isMixtureInterface(_isMixtureInterface) {};
 	virtual ~MarkovExpectation();
 	virtual void init();
+	virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);
@@ -58,15 +59,19 @@ MarkovExpectation::~MarkovExpectation()
 	omxFreeMatrix(scaledTransition);
 }
 
-void MarkovExpectation::init()
+void MarkovExpectation::connectToData()
 {
-	loadDataColFromR();
-
+  setConnectedToData(true);
 	auto dc = getDataColumns();
 	for (int cx=0; cx < int(dc.size()); ++cx) {
 		int var = dc[cx];
 		data->assertColumnIsData(var, OMXDATA_REAL);
 	}
+}
+
+void MarkovExpectation::init()
+{
+	loadDataColFromR();
 
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);

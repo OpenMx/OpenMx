@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -135,7 +135,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 			resDel <- mxKalmanScores(ss)
 			res[,,1] <- resDel$xUpdated[-1,, drop=FALSE]
 			res[,,2] <- apply(resDel$PUpdated[,,-1, drop=FALSE], 3, function(x){sqrt(diag(x))})
-			
+
 			# Kill the rows with too much missing data
 			useCols <- dimnames(ss[[ss$expectation$C]])[[1]]
 			rawData <- model$data$observed[ , useCols, drop=FALSE]
@@ -166,7 +166,9 @@ lisrelFactorScoreHelper <- function(model){
 	ksiMean <- mxEvalByName(model$expectation$KA, model, compute=TRUE)
 	newKappa <- mxMatrix("Full", nksi, 1, values=ksiMean, free=TRUE, name="Score", labels=paste0("fscore", 1:nksi))
 	scoreKappa <- mxAlgebraFromString(paste("Score -", model$expectation$KA), name="SKAPPA", dimnames=list(dimnames(lx)[[2]], 'one'))
-	newExpect <- mxExpectationLISREL(LX=model$expectation$LX, PH=model$expectation$PH, TD=model$expectation$TD, TX=model$expectation$TX, KA="SKAPPA", thresholds=model$expectation$thresholds)
+	newExpect <- model$expectation
+  newExpect$KA <- "SKAPPA"
+  newExpect@.discreteCheckCount <- FALSE
 	newWeight <- mxAlgebraFromString(paste0("log(det(", model$expectation$PH, ")) + ( (t(SKAPPA)) %&% ", model$expectation$PH, " ) + ", nksi, "*log(2*3.1415926535)"), name="weight")
 	work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newKappa, scoreKappa, newExpect, newWeight)
 	return(work)
@@ -200,7 +202,9 @@ ramFactorScoreHelper <- function(model){
 	newMean <- mxMatrix("Full", 1, tdim, values=scoreStart, free=!OFmat$is.manifest, name="Score", labels=paste0("fscore", dimnames(Fmat)[[2]]))
 	basMean <- mxMatrix("Full", 1, tdim, values=basVal, free=FALSE, name=basNam)
 	scoreMean <- mxAlgebraFromString(paste("Score -", basNam), name="ScoreMinusM", dimnames=list('one', dimnames(Fmat)[[2]]))
-	newExpect <- mxExpectationRAM(A=model$expectation$A, S=model$expectation$S, F=model$expectation$F, M="ScoreMinusM", thresholds=model$expectation$thresholds)
+	newExpect <- model$expectation
+  newExpect@.discreteCheckCount <- FALSE
+  newExpect$M <- "ScoreMinusM"
 	oppF <- mxMatrix('Full', nrow=tdim-mdim, ncol=tdim, values=OFmat$OF, name='oppositeF')
 	imat <- mxMatrix('Iden', tdim, tdim, name='IdentityMatrix')
 	imaInv <- mxAlgebraFromString(paste("solve(IdentityMatrix - ", model$expectation$A, ")"), name='IdentityMinusAInverse')
@@ -223,12 +227,12 @@ RAMrfs <- function(model, res, minManifests) {
 		continublockflag <- ifelse(i<dim(res)[1],TRUE,FALSE)
 		manvars.curr <- manvars[ !is.na(dat[i,manvars]) ]
 		while(continublockflag){
-			#To include a subsequent row in the current block of rows, 
+			#To include a subsequent row in the current block of rows,
 			#we need to be sure that its missingness pattern is the same, and that if there are definition variables,
 			#that their values in the subsequent row are equal to those in the previous rows:
 			if(
 				j<dim(res)[1] &&
-				all(is.na(dat[j,relevantDataCols])==is.na(dat[(j+1),relevantDataCols])) && 
+				all(is.na(dat[j,relevantDataCols])==is.na(dat[(j+1),relevantDataCols])) &&
 				( !length(defvars) || all(dat[j,defvars]==dat[(j+1),defvars]) )
 			){j <- j+1}
 			else{continublockflag <- FALSE}
@@ -236,7 +240,7 @@ RAMrfs <- function(model, res, minManifests) {
 		unfilt <- solve(I-mxEvalByName("A",model,T,defvar.row=i))%*%mxEvalByName("S",model,T,defvar.row=i)%*%
 			t(solve(I-mxEvalByName("A",model,T,defvar.row=i)))
 		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
-		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% t(solve(Ilat-mxEvalByName("A",model,T,defvar.row=i)[latvars,latvars]) %*% 
+		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% t(solve(Ilat-mxEvalByName("A",model,T,defvar.row=i)[latvars,latvars]) %*%
 			matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],ncol=1))
 		missing <- is.na(dat[i,manvars])
 		anyMissing <- any(missing)
@@ -250,13 +254,13 @@ RAMrfs <- function(model, res, minManifests) {
 				res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(unfilt[latvars,latvars])),nrow=1)
 			}
 			else{
-				obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% 
+				obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x%
 				matrix(mxGetExpected(model,"means",defvar.row=i)[,which(!is.na(dat[i,manvars]))],nrow=1)
 				dat.curr <- as.matrix(dat[i:j,manvars.curr])
 				if(i==j){dat.curr <- matrix(dat.curr,nrow=1)} #<--Annoying...
 				res[i:j,,1] <- ( (dat.curr - obsmeans) %*%
 						 (solve(unfilt[manvars.curr,manvars.curr])%*%unfilt[manvars.curr,latvars]) ) + latmeans
-				indeterminateVariance <- unfilt[latvars,latvars] - 
+				indeterminateVariance <- unfilt[latvars,latvars] -
 					(unfilt[latvars,manvars.curr]%*%solve(unfilt[manvars.curr,manvars.curr])%*%
 					 unfilt[manvars.curr,latvars])
 				res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(indeterminateVariance)),nrow=1)
@@ -278,4 +282,3 @@ findIntramodelDefVars <- function(model){
 	}
 	return( defvars )
 }
-

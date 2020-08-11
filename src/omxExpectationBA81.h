@@ -51,10 +51,10 @@ struct BA81LatentSummary {
 
 class BA81Expect : public omxExpectation {
 	typedef omxExpectation super;
-	bool ready;
  public:
 	virtual ~BA81Expect();
 	virtual void init();
+  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void populateAttr(SEXP expectation);
 	virtual omxMatrix *getComponent(const char*);
@@ -65,7 +65,6 @@ class BA81Expect : public omxExpectation {
 	int numItems() { return grp.numItems(); }
 	int getNumUnique() { return (int) grp.rowMap.size(); }
 	int itemOutcomes(int ix) { return grp.itemOutcomes[ix]; }
-	void prep();
 
 	double LogLargestDouble;       // should be const but need constexpr
 	double LargestDouble;          // should be const but need constexpr
@@ -99,7 +98,7 @@ class BA81Expect : public omxExpectation {
 	struct omxFitFunction *fit;  // weak pointer
 
 	BA81Expect(omxState *st, int num) :
-		super(st, num), ready(false), grp(true)
+		super(st, num), grp(true)
 	{
 		grp.quad.setNumThreads(Global->numThreads);
 	};
@@ -120,7 +119,7 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 		omxRecompute(_latentMeanOut, fc);
 		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * dim);
 	}
-	
+
 	cov.derived().resize(dim, dim);
 	if (!_latentCovOut) {
 		cov.setIdentity();

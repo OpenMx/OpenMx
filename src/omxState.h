@@ -62,7 +62,7 @@ class omxFreeVar {
 	double lbound, ubound;
 	std::vector<omxFreeVarLocation> locations;
 	const char* name;
-	
+
 	// Be aware that a free variable might be assigned to more
 	// than 1 location in the same matrix. This API just returns
 	// the first matching location.
@@ -289,7 +289,7 @@ class omxGlobal {
 	const char *getBads();
 	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
 	void checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force);
-	double getGradientThreshold(double fit) { 
+	double getGradientThreshold(double fit) {
 		return( pow(optimalityTolerance, 1.0/3.0) * (1.0 + fabs(fit)) );
 	}
 
@@ -349,6 +349,7 @@ class omxState {
 	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out, FitContext *fc);
 	void invalidateCache();
+	void connectToData();
 	~omxState();
 
 	omxExpectation *getParent(omxExpectation *element) const;
@@ -357,7 +358,7 @@ class omxState {
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
-	
+
 	int numEqC, numIneqC;
 	bool usingAnalyticJacobian;
 
@@ -448,5 +449,3 @@ struct StateInvalidator {
 };
 
 #endif /* _OMXSTATE_H_ */
-
-

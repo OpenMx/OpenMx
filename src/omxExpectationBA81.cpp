@@ -205,9 +205,9 @@ void BA81Expect::refreshPatternLikelihood(bool hasFreeLatent)
 	}
 }
 
-void BA81Expect::prep()
+void BA81Expect::connectToData()
 {
-	if (ready) return;
+  setConnectedToData(true);
 
 	// complain about non-integral rowWeights (EAP can't work) TODO
 	if (data->hasFreq()) {
@@ -276,7 +276,6 @@ void BA81Expect::prep()
 
 	state->grp.buildRowSkip();
 
-	ready = true;
   latentParamVersion = getLatentVersion(state) - 1; //? TODO
 }
 
@@ -286,8 +285,6 @@ void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 
 	omxExpectation *oo = this;
 	BA81Expect *state = (BA81Expect *) oo;
-
-	prep();
 
 	if (what) {
 		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
@@ -607,8 +604,6 @@ void BA81Expect::init()
 		rowMap[rx] = rx;
 	}
 
-	prep();
-
 	if (isErrorRaised()) return;
 
 	{ScopedProtect p1(tmp, R_do_slot(rObj, Rf_install("debugInternal")));
@@ -628,7 +623,7 @@ void BA81Expect::init()
 
 void BA81Expect::invalidateCache()
 {
-	ready = false;
+	setConnectedToData(false);
 }
 
 const char *BA81Expect::getLatentIncompatible(BA81Expect *other)

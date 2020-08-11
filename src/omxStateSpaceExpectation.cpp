@@ -23,9 +23,9 @@
 *  Created: Michael D. Hunter 	Date: 2012-10-28 20:07:36
 *
 *  Contains code to calculate the objective function for a
-*   state space model.  Currently, this is done with a 
+*   state space model.  Currently, this is done with a
 *   Kalman filter in separate Predict and Update steps.
-*   Later this could be done with one of several Kalman 
+*   Later this could be done with one of several Kalman
 *   filter-smoothers (a forward-backward algorithm).
 *
 **********************************************************/
@@ -53,17 +53,18 @@ struct omxStateSpaceExpectation : omxExpectation {
 	double deltaT;
 	int returnScores; // Whether or not to populated the row-by-row expected means, covariances, Kalman scores, and likelihoods back to R
 	int flagAIsZero; //Whether the A matrix is fixed to zero
-	
+
 	/* Eigen Matrix initialization */
 	Eigen::MatrixXd eigenExpA;
 	Eigen::MatrixXd I;
 	Eigen::MatrixXd eigenIA;
 	Eigen::MatrixXd PSI;
 	Eigen::MatrixXd eigenPreX;
-	
+
 	omxStateSpaceExpectation(omxState *st, int num) : super(st, num) {}
 	virtual ~omxStateSpaceExpectation();
 	virtual void init();
+	virtual void connectToData();
 	virtual omxMatrix *getComponent(const char*);
 	virtual void mutate(const char*, omxMatrix*);
 	virtual void compute(FitContext *fc, const char *what, const char *how);
@@ -79,7 +80,7 @@ static void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose);
 void omxStateSpaceExpectation::mutate(const char* component, omxMatrix* om)
 {
 	omxStateSpaceExpectation* ose = this;
-	
+
 	if(!strcmp("y", component)) {
 		for(int i = 0; i < ose->y->rows; i++) {
 			omxSetMatrixElement(ose->y, i, 0, omxVectorElement(om, i));
@@ -100,14 +101,14 @@ void omxStateSpaceExpectation::mutate(const char* component, omxMatrix* om)
 void omxStateSpaceExpectation::compute(FitContext *fc, const char *, const char *) {
     if(OMX_DEBUG) { mxLog("State Space Expectation Called."); }
     omxStateSpaceExpectation* ose = this;
-	
+
 	omxRecompute(ose->A, fc);
 	omxRecompute(ose->B, fc);
 	omxRecompute(ose->C, fc);
 	omxRecompute(ose->D, fc);
 	omxRecompute(ose->Q, fc);
 	omxRecompute(ose->R, fc);
-	
+
 	// Probably should loop through all the data here!!!
 	if(ose->t == NULL){
 		omxKalmanPredict(ose);
@@ -122,9 +123,9 @@ void omxStateSpaceExpectation::compute(FitContext *fc, const char *, const char 
 omxStateSpaceExpectation::~omxStateSpaceExpectation()
 {
 	if(OMX_DEBUG) { mxLog("Destroying State Space Expectation."); }
-	
+
 	omxStateSpaceExpectation* argStruct = this;
-	
+
 	omxFreeMatrix(argStruct->r);
 	omxFreeMatrix(argStruct->s);
 	omxFreeMatrix(argStruct->z);
@@ -151,28 +152,28 @@ omxStateSpaceExpectation::~omxStateSpaceExpectation()
 
 void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 	if(OMX_DEBUG) { mxLog("Populating State Space Attributes.  Currently this does very little!"); }
-	
+
 	/* Initialize */
 	this->mutate("Reset", NULL);
 	auto ose = this;
 	auto ox = this;
-	
+
 	if( !(ose->returnScores) ){
 		if(OMX_DEBUG) { mxLog("Not asking for attributes, this is being skipped!"); }
 		return;
 	}
-	
+
 	SEXP xpred, ypred, ppred, spred, xupda, pupda, xsmoo, psmoo;
 	// yupda, supda
-	
+
 	omxRecompute(ose->A, NULL);
 	omxRecompute(ose->B, NULL);
 	omxRecompute(ose->C, NULL);
 	omxRecompute(ose->D, NULL);
 	omxRecompute(ose->Q, NULL);
 	omxRecompute(ose->R, NULL);
-	
-	
+
+
 	// allocate matrices to be returned
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Allocating initial population matrices ..."); }
 	int nx = ose->C->cols;
@@ -194,10 +195,10 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 	//Rf_protect(supda = Rf_allocMatrix(REALSXP, nt+1, ns));
 	Rf_protect(xsmoo = Rf_allocMatrix(REALSXP, nt+1, nx));
 	Rf_protect(psmoo = Rf_allocMatrix(REALSXP, nt+1, np));
-	
+
 	Eigen::MatrixXd Adisc = Eigen::MatrixXd::Zero(nt, nx*nx);
-	
-	
+
+
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Setting zeroth row ..."); }
 	// Set first row of xpred to x0
 	int row = 0;
@@ -207,7 +208,7 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 		REAL(xupda)[col * (nt+1) + row] =
 			omxMatrixElement(ose->x, col, 0);
 	}
-	
+
 	// Set first row of ppred to vech(P0)
 	int counter = 0;
 	for(int i = 0; i < ose->P->cols; i++) {
@@ -217,7 +218,7 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 			counter++;
 		}
 	}
-	
+
 	// Probably should loop through all the data here!!!
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning forward loop ..."); }
 	for(row=1; row < (nt+1); row++){
@@ -226,10 +227,10 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 		for(int i = 0; i < ny; i++) {
 			omxSetMatrixElement(ose->y, i, 0, omxDoubleDataElement(ox->data, row-1, i));
 		}
-		
+
 		// handle definition variables
 		ox->loadDefVars(row-1);
-		
+
 		/* Run Kalman prediction */
 		if(ose->t == NULL){
 			omxKalmanPredict(ose);
@@ -248,13 +249,13 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				}
 			}
 		}
-		
-		
+
+
 		// Copy latent state
 		for(int col = 0; col < nx; col++)
 			REAL(xpred)[col * (nt+1) + row] =
 				omxMatrixElement(ose->x, col, 0);
-		
+
 		// Copy latent cov
 		counter = 0;
 		for(int i = 0; i < ose->P->cols; i++) {
@@ -263,13 +264,13 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				counter++;
 			}
 		}
-		
+
 		// Create Full observed cov prediction
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Hand prediction of full observed cov ..."); }
 		omxDSYMM(FALSE, ose->P, ose->C, ose->Y); // Y = C P
 		omxCopyMatrix(ose->S, ose->R); // S = R
 		omxDGEMM(FALSE, TRUE, 1.0, ose->Y, ose->C, 1.0, ose->S); // S = Y C^T + S THAT IS C P C^T + R
-		
+
 		// Copy observed cov
 		counter = 0;
 		for(int i = 0; i < ose->S->cols; i++) {
@@ -278,15 +279,15 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				counter++;
 			}
 		}
-		
+
 		/* Run Kalman update */
 		omxKalmanUpdate(ose);
-		
+
 		// Copy latent state
 		for(int col = 0; col < nx; col++)
 			REAL(xupda)[col * (nt+1) + row] =
 				omxMatrixElement(ose->x, col, 0);
-		
+
 		// Copy latent cov
 		counter = 0;
 		for(int i = 0; i < ose->P->cols; i++) {
@@ -295,12 +296,12 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				counter++;
 			}
 		}
-		
+
 		// Copy observed means prediction
 		for(int col = 0; col < ny; col++)
 			REAL(ypred)[col * (nt+1) + row] =
 				omxMatrixElement(ose->s, col, 0);
-		
+
 		// TODO Add m2ll calculation here.
 		// Probably like this
 		/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
@@ -309,19 +310,19 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 		//m2ll += det; // m2ll = m2ll + det THAT IS m2ll = log(det(S)) + y^T S y
 		// Note: this leaves off the S->cols * log(2*pi) THAT IS k*log(2*pi)
 	}
-	
+
 	/* Backward pass through data for Kalman smoother*/
 	// Initialize end of smoothed latents to last updated latents
 	// P = last updated P
 	// x = last updated x
-	
+
 	// Copy x and P as smoothed estimates for export
 	row = nt;
 	// Copy latent state
 	for(int col = 0; col < nx; col++)
 		REAL(xsmoo)[col * (nt+1) + row] =
 			omxMatrixElement(ose->x, col, 0);
-	
+
 	// Copy latent cov
 	counter = 0;
 	for(int i = 0; i < ose->P->cols; i++) {
@@ -330,12 +331,12 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 			counter++;
 		}
 	}
-	
+
 	// loop backwars through all data
 	if(OMX_DEBUG_ALGEBRA) { mxLog("Beginning backward loop ..."); }
 	for(row = nt-1; row > -1; row--){
 		ox->loadDefVars(row);
-		
+
 		// Copy Z = updated P from pupda
 		counter = 0;
 		for(int i = 0; i < nx; i++) {
@@ -346,11 +347,11 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				counter++;
 			}
 		}
-		
+
 		// Copy z = updated x from xupda
 		for(int col = 0; col < nx; col++)
 			omxSetMatrixElement(ose->z, col, 0, REAL(xupda)[col * (nt+1) + row]);
-		
+
 		// Copy I = predicted P from later row of ppred
 		counter = 0;
 		for(int i = 0; i < nx; i++) {
@@ -361,11 +362,11 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				counter++;
 			}
 		}
-		
+
 		// Copy eigenPreX = predicted x from later row of xpred
 		for(int col = 0; col < nx; col++)
 			ose->eigenPreX(col, 0) =  REAL(xpred)[col * (nt+1) + row + 1];
-		
+
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Copying discretized dynamics ..."); }
 		// Copy discrete version of A
 		// eigenExpA = Adisc
@@ -374,15 +375,15 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				ose->eigenExpA(i, j) = Adisc(row, j*nx + i);
 			}
 		}
-		
+
 		// Run Smoother
 		omxRauchTungStriebelSmooth(ose);
-		
+
 		// Copy latent state to xsmoo
 		for(int col = 0; col < nx; col++)
 			REAL(xsmoo)[col * (nt+1) + row] =
 				omxMatrixElement(ose->x, col, 0);
-		
+
 		// Copy latent cov to psmoo
 		counter = 0;
 		for(int i = 0; i < ose->P->cols; i++) {
@@ -392,11 +393,11 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 			}
 		}
 	}
-	
-	
+
+
 	// TODO check on definition variable population
 	//  I suspect this does yet work properly for def vars.
-	
+
 	Rf_setAttrib(algebra, Rf_install("xPredicted"), xpred);
 	Rf_setAttrib(algebra, Rf_install("yPredicted"), ypred);
 	Rf_setAttrib(algebra, Rf_install("PPredicted"), ppred);
@@ -405,13 +406,13 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 	Rf_setAttrib(algebra, Rf_install("PUpdated"), pupda);
 	Rf_setAttrib(algebra, Rf_install("xSmoothed"), xsmoo);
 	Rf_setAttrib(algebra, Rf_install("PSmoothed"), psmoo);
-	
-	
+
+
 	/*
 	omxMatrix *expCovInt, *expMeanInt;
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
-	
+
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
@@ -424,12 +425,12 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
 	}
 
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	
+
 	if(argStruct->populateRowDiagnostics){
 		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
 		Rf_protect(rowLikelihoodsExt = Rf_allocVector(REALSXP, rowLikelihoodsInt->rows));
@@ -438,7 +439,7 @@ void omxStateSpaceExpectation::populateAttr(SEXP algebra) {
 		Rf_setAttrib(algebra, Rf_install("likelihoods"), rowLikelihoodsExt);
 	}
 	*/
-	
+
 }
 
 
@@ -472,7 +473,7 @@ void omxKalmanPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(z, "....State Space: z = A x + B u"); }
 	omxCopyMatrix(x, z); // x = z THAT IS x = A x + B u
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = A x + B u"); }
-	
+
 	/* P = A P A^T + Q */
 	omxDSYMM(FALSE, P, A, Z); // Z = A P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Z, "....State Space: Z = A P"); }
@@ -521,11 +522,11 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	toRemoveNoneLat.setZero();
 	Eigen::VectorXi toRemoveNoneOne(1);
 	toRemoveNoneOne.setZero();
-	
+
 	omxMatrix* covInfo = ose->covInfo;
-	
+
 	omxCopyMatrix(smallS, ose->S);
-	
+
 	/* Reset/Resample aliased matrices */
 	omxCopyMatrix(smallC, ose->C);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Reset)"); }
@@ -537,7 +538,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	omxCopyMatrix(smallK, ose->K);
 	omxCopyMatrix(smallS, ose->S);
 	omxCopyMatrix(smallY, ose->Y);
-	
+
 	/* r = r - C x - D u */
 	/* Alternatively, create just the expected value for the data row, x. */
 	omxDGEMV(FALSE, 1.0, smallC, x, 0.0, s); // s = C x
@@ -548,7 +549,7 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
 	omxTransposeMatrix(Means);
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Means, "....State Space: Means"); }
-	
+
 	//If entire data vector, y, is missing, then set residual, r, to zero.
 	//otherwise, compute residual.
 	toRemoveSS.setZero();
@@ -567,26 +568,26 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 	//omxCopyMatrix(r, y); // r = y
 	//omxDAXPY(-1.0, s, r); // r = r - s THAT IS r = y - (C x + D u)
 	omxCopyMatrix(smallr, ose->r);
-	
+
 	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S"); }
 	if(OMX_DEBUG) { mxLog("Filtering S, R, C, r, K, and Y."); }
 	omxRemoveRowsAndColumns(smallS, toRemoveSS.data(), toRemoveSS.data());
 	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S (Filtered)"); }
-		
+
 	omxRemoveRowsAndColumns(smallR, toRemoveSS.data(), toRemoveSS.data());
-		
+
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C"); }
 	omxRemoveRowsAndColumns(smallC, toRemoveSS.data(), toRemoveNoneLat.data());
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallC, "....State Space: C (Filtered)"); }
-		
+
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(r, "....State Space: r"); }
 	omxRemoveRowsAndColumns(smallr, toRemoveSS.data(), toRemoveNoneOne.data());
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space: r (Filtered)"); }
-		
+
 	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K"); }
 	omxRemoveRowsAndColumns(smallK, toRemoveSS.data(), toRemoveNoneLat.data());
 	//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K (Filtered)"); }
-		
+
 	omxRemoveRowsAndColumns(smallY, toRemoveSS.data(), toRemoveNoneLat.data());
 
 	if(smallY->rows == 0) {
@@ -594,16 +595,16 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 		if(OMX_DEBUG_ALGEBRA) { mxLog("Skipping much of Kalman Update."); }
 		return ;
 	}
-	
-	
+
+
 	/* S = C P C^T + R */
 	omxDSYMM(FALSE, P, smallC, smallY); // Y = C P
 	//omxCopyMatrix(S, smallR); // S = R
 	memcpy(smallS->data, smallR->data, smallR->rows * smallR->cols * sizeof(double)); // Less safe omxCopyMatrix that keeps smallS aliased to S.
 	omxDGEMM(FALSE, TRUE, 1.0, smallY, smallC, 1.0, smallS); // S = Y C^T + S THAT IS C P C^T + R
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: S = C P C^T + R"); }
-	
-	
+
+
 	/* Now compute the Kalman Gain and update the error covariance matrix */
 	/* S = S^-1 */
 	EigenMatrixAdaptor EsmallS(smallS);
@@ -617,25 +618,25 @@ void omxKalmanUpdate(omxStateSpaceExpectation* ose) {
 		*Det->data = sc.log_determinant();
 		EsmallS.derived() = sc.getInverse();
 	}
-	
+
 	/* K = P C^T S^-1 */
 	/* Computed as K^T = S^-1 C P */
 	omxDSYMM(TRUE, smallS, smallY, smallK); // K = Y^T S THAT IS K = P C^T S^-1
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallK, "....State Space: K^T = S^-1 C P"); }
-	
+
 	/* x = x + K r */
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallr, "....State Space Check Residual: r"); }
 	omxDGEMV(true, 1.0, smallK, smallr, 1.0, x); // x = K r + x
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x = K r + x"); }
-	
+
 	/* P = (I - K C) P */
 	/* P = P - K C P */
 	omxDGEMM(TRUE, FALSE, -1.0, smallK, smallY, 1.0, P); // P = -K Y + P THAT IS P = P - K C P
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P = P - K C P"); }
-	
+
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(smallS, "....State Space: Inverse of S"); }
-	
-	
+
+
 	// re-enable this TODO
 	/*m2ll = y^T S y */ // n.b. y originally is the data row but becomes the data residual!
 	//omxDSYMV(1.0, S, y, 0.0, s); // s = S y
@@ -669,7 +670,7 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space oldT on exit:\n" << ose->oldT << std::endl; }
 	double deltaT = ose->deltaT;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
-	
+
 	//EigenMatrixAdaptor eigenA(A);
 	// initializes eigenA as an instance of EigenMatrixAdaptor class, initialized to omxMatrix A
 	// EigenVectorAdaptor
@@ -678,14 +679,14 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	// A * omxElement(B,1,4); A eigen matrix, B omxMatrix
 	// Subtract from diagonal 1.0
 	// A.diagonal() -= 1
-	
+
 	/* Eigen Matrix reference setting */
 	Eigen::MatrixXd &eigenExpA = ose->eigenExpA;
 	Eigen::MatrixXd &eigenIA = ose->eigenIA;
 	Eigen::MatrixXd &PSI = ose->PSI;
 	Eigen::MatrixXd &I = ose->I;
-	
-	
+
+
 	/*R code for the next few lines
 		ldim <- nrow(x$A)
 		I <- diag(1, nrow=ldim)
@@ -693,8 +694,8 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 		intA <- solve(x$A) %*% (expA - I)
 		x$x <- expA %*% x$x + intA %*% x$B %*% x$u
 	*/
-	
-	
+
+
 	/*  Z = A
 		eigenA = Z
 		eigenExpA = eigenA*deltaT  THAT IS eigenExpA = A*deltaT
@@ -704,15 +705,15 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenA:\n" << eigenA << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space deltaT:\n" << deltaT << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space I:\n" << I << std::endl; }
-	
-	
+
+
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 	/* PSI = block matrix
 	0  I
 	0  A
 	*/
 	// PSI = expm(PSI * deltaT)
-	// IA = Integral_0^t e^{As} ds 
+	// IA = Integral_0^t e^{As} ds
 	PSI << Eigen::MatrixXd::Zero(A->rows, A->rows), I, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
 	PSI = PSI * deltaT;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI for expA:\n" << PSI << std::endl; }
@@ -728,33 +729,33 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	/* When A is invertible this is  A^-1 (expA - I) */
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space A^-1 (expA - I):\n" << eigenIA << std::endl; }
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	
-	
+
+
 	/* x = expm(A*deltaT) * x + IA * B * u */
 	EigenMatrixAdaptor eigenx(x); //or vector
 	EigenMatrixAdaptor eigenu(u); //or vector
 	EigenMatrixAdaptor eigenB(B);
 	eigenx.derived() = eigenExpA * eigenx + eigenIA * eigenB * eigenu;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space XPred:\n" << eigenx << std::endl; }
-	
-	
+
+
 	/* SUMMARY */
 	// EA = expm(A*deltaT)
 	// IA = A^-1 (EA - I)
 	// x = EA x + IA B u
-	
-	
+
+
 	/*R code for the next few lines
 		ldim <- nrow(x$A)
 		psi <- cbind(rbind(x$A, matrix(0, nrow=ldim, ncol=ldim)), rbind(x$Q, -x$A))
 		epsi <- as.matrix(expm(psi * x$deltaT)) %*% rbind(x$P, I)
 		x$P <- epsi[1:ldim, ] %*% solve(epsi[(ldim+1):(2*ldim), ])
 	*/
-	
-	
+
+
 	EigenMatrixAdaptor eigenQ(Q);
 	EigenMatrixAdaptor eigenP(P);
-	
+
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 	PSI << -1.0*eigenA.transpose(), eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
 	PSI = PSI * deltaT;
@@ -766,8 +767,8 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	eigenIA = eigenExpA.transpose()*PSI.block(0, A->cols, A->rows, A->cols);
 	eigenP.derived() = eigenIA + eigenExpA*eigenP*eigenExpA.transpose();
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	
-	
+
+
 	/* SUMMARY */
 	// PSI = 	-A^T  Q
 	//			 0    A
@@ -776,9 +777,9 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	// IA is the discretized dynamic error cov Q_d
 	// P = IA + EA * P * t(EA)
 	// with EA = expEigenA
-	// This Prediction for P is the same as with KalmanPredict, but with the 
+	// This Prediction for P is the same as with KalmanPredict, but with the
 	// discretized A and Q.
-	
+
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenX" << eigenx << std::endl; }
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(x, "....State Space: x"); }
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space eigenP:\n" << eigenP << std::endl; }
@@ -799,7 +800,7 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(P, "....State Space: P smoothed"); }
 	omxMatrix* Z = ose->Z;
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(Z, "....State Space: P updated"); }
-	
+
 	/* Eigen Matrix reference setting */
 	Eigen::MatrixXd &eigenPreX = ose->eigenPreX;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space x predicted:\n" << eigenPreX << std::endl; }
@@ -808,14 +809,14 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	Eigen::MatrixXd &eigenIA = ose->eigenIA; // Storage for Sg (RTS smoother gain matrix)
 	Eigen::MatrixXd &eigenA = ose->eigenExpA;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space:A (discretized):\n" << eigenA << std::endl; }
-	
+
 	/* Eigen Adaptor copies (not really copies, more like wrappers) */
 	EigenMatrixAdaptor eigenx(x);
 	EigenMatrixAdaptor eigenz(z);
 	EigenMatrixAdaptor eigenP(P);
 	EigenMatrixAdaptor eigenZ(Z);
-	
-	
+
+
 	/* Create the RTS Gain matrix*/
 	// Sg = Pui * A * Ppi+1 ^-1
 	// eigenIA = Z * A * eigenExpA^-1
@@ -824,17 +825,17 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 	// try also
 	//eigenIA = eigenExpA.ldlt().solve( eigenA.transpose() * eigenZ ).transpose();
 	// with #include <Eigen/Cholesky>
-	
+
 	/* Smooth the latent state */
 	// xsi = xui + Sg * (xsi+1 - xpi+1)
 	// x = z + eigenIA * (x - eigenPreX)
 	eigenx.derived() = eigenz + eigenIA * (eigenx - eigenPreX);
-	
+
 	/* Smooth the latent covariance */
 	// Psi = Pui + Sg * (Psi+1 - Ppi+1) * Sg^T
 	// P = Z + eigenIA * (P - eigenExpA) * eigenIA^T
 	eigenP.derived() = eigenZ + eigenIA * (eigenP - eigenPPred) * eigenIA.transpose();
-	
+
 	// TODO add eigenPreX to struct and initialize
 }
 
@@ -842,72 +843,75 @@ void omxRauchTungStriebelSmooth(omxStateSpaceExpectation* ose) {
 omxExpectation *omxInitStateSpaceExpectation(omxState *st, int num)
 { return new omxStateSpaceExpectation(st, num); }
 
-void omxStateSpaceExpectation::init()
+void omxStateSpaceExpectation::connectToData()
 {
-	loadDataColFromR();
-
+  setConnectedToData(true);
 	auto dc = getDataColumns();
 	for (int cx=0; cx < int(dc.size()); ++cx) {
 		int var = dc[cx];
 		data->assertColumnIsData(var, OMXDATA_REAL);
 	}
-		
+}
+
+void omxStateSpaceExpectation::init()
+{
+	loadDataColFromR();
+
 	int nx, ny, nu;
-	
+
 	//SEXP slotValue;   //Used by PPML
-	
+
 	/* Create and fill expectation */
 	omxStateSpaceExpectation *SSMexp = this;
-	
+
 	canDuplicate = true;
-	
+
 	/* Set up expectation structures */
 	if(OMX_DEBUG) { mxLog("Initializing State Space Meta Data for expectation."); }
-	
+
 	if(OMX_DEBUG) { mxLog("Processing A."); }
 	SSMexp->A = omxNewMatrixFromSlot(rObj, currentState, "A");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing B."); }
 	SSMexp->B = omxNewMatrixFromSlot(rObj, currentState, "B");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing C."); }
 	SSMexp->C = omxNewMatrixFromSlot(rObj, currentState, "C");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing D."); }
 	SSMexp->D = omxNewMatrixFromSlot(rObj, currentState, "D");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing Q."); }
 	SSMexp->Q = omxNewMatrixFromSlot(rObj, currentState, "Q");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing R."); }
 	SSMexp->R = omxNewMatrixFromSlot(rObj, currentState, "R");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing initial x."); }
 	SSMexp->x0 = omxNewMatrixFromSlot(rObj, currentState, "x0");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing initial P."); }
 	SSMexp->P0 = omxNewMatrixFromSlot(rObj, currentState, "P0");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing u."); }
 	SSMexp->u = omxNewMatrixFromSlot(rObj, currentState, "u");
-	
+
 	if(OMX_DEBUG) { mxLog("Processing t."); }
 	SSMexp->t = omxNewMatrixFromSlot(rObj, currentState, "t");
-	
-	
+
+
 	/* Initialize the place holder matrices used in calculations */
 	nx = SSMexp->C->cols;
 	ny = SSMexp->C->rows;
 	nu = SSMexp->D->cols;
-	
+
 	if(OMX_DEBUG) { mxLog("Processing first data row for y."); }
 	SSMexp->y = omxInitMatrix(ny, 1, TRUE, currentState);
 	for(int i = 0; i < ny; i++) {
-		data->assertColumnIsData(i, OMXDATA_REAL);
 		omxSetMatrixElement(SSMexp->y, i, 0, omxDoubleDataElement(data, 0, i));
 	}
 	if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(SSMexp->y, "....State Space: y"); }
-	
+
 	// TODO Make x0 and P0 static (if possible) to save memory
 	// TODO Look into omxMatrix.c/h for a possible new matrix from omxMatrix function
 	if(OMX_DEBUG) { mxLog("Generating static internals for resetting initial values."); }
@@ -915,9 +919,9 @@ void omxStateSpaceExpectation::init()
 	SSMexp->P = 	omxInitMatrix(nx, nx, TRUE, currentState);
 	omxCopyMatrix(SSMexp->x, SSMexp->x0);
 	omxCopyMatrix(SSMexp->P, SSMexp->P0);
-	
+
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
-	
+
 	SSMexp->covInfo = 	omxInitMatrix(1, 1, TRUE, currentState);
 	SSMexp->det = 	omxInitMatrix(1, 1, TRUE, currentState);
 	SSMexp->r = 	omxInitMatrix(ny, 1, TRUE, currentState);
@@ -927,10 +931,10 @@ void omxStateSpaceExpectation::init()
 	SSMexp->S = 	omxInitMatrix(ny, ny, TRUE, currentState);
 	SSMexp->Y = 	omxInitMatrix(ny, nx, TRUE, currentState);
 	SSMexp->Z = 	omxInitMatrix(nx, nx, TRUE, currentState);
-	
+
 	SSMexp->cov = 		omxInitMatrix(ny, ny, TRUE, currentState);
 	SSMexp->means = 	omxInitMatrix(1, ny, TRUE, currentState);
-	
+
 	/* Create alias matrices for missing data filtering */
 	SSMexp->smallC = 	omxInitMatrix(ny, nx, TRUE, currentState);
 	SSMexp->smallD = 	omxInitMatrix(ny, nu, TRUE, currentState);
@@ -939,11 +943,11 @@ void omxStateSpaceExpectation::init()
 	SSMexp->smallK = 	omxInitMatrix(ny, nx, TRUE, currentState);
 	SSMexp->smallS = 	omxInitMatrix(ny, ny, TRUE, currentState);
 	SSMexp->smallY = 	omxInitMatrix(ny, nx, TRUE, currentState);
-	
+
 	//SSMexp->deltaT = 	omxInitMatrix(1, 1, TRUE, currentState);
 	SSMexp->oldT = 0.0;
 	SSMexp->deltaT = 0.0;
-	
+
 	/* Eigen Matrix initialization */
 	SSMexp->eigenExpA.resize(nx, nx);
 	SSMexp->I.resize(nx, nx);
@@ -951,20 +955,20 @@ void omxStateSpaceExpectation::init()
 	SSMexp->eigenIA.resize(nx, nx);
 	SSMexp->PSI.resize(2*nx, 2*nx);
 	SSMexp->eigenPreX.resize(nx, 1);
-	
+
 	/* Population of Kalman scores*/
 	if(OMX_DEBUG) {
 		mxLog("Accessing Kalman score population option.");
 	}
 	SSMexp->returnScores = Rf_asInteger(R_do_slot(rObj, Rf_install("scores")));
-	
+
 	/* Fixed and Zero A matrix Flag*/
 	if(OMX_DEBUG) {
 		mxLog("Accessing flag for fixed, zero A matrix.");
 	}
 	SSMexp->flagAIsZero = Rf_asInteger(R_do_slot(rObj, Rf_install("AIsZero")));
-	
-	
+
+
 	omxCopyMatrix(SSMexp->smallC, SSMexp->C);
 	omxCopyMatrix(SSMexp->smallD, SSMexp->D);
 	omxCopyMatrix(SSMexp->smallR, SSMexp->R);
@@ -995,9 +999,6 @@ omxMatrix* omxStateSpaceExpectation::getComponent(const char* component) {
 	} else if(strEQ("covInfo", component)) {
 		retval = ose->covInfo;
 	}
-	
+
 	return retval;
 }
-
-
-

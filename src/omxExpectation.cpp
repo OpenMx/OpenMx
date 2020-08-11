@@ -62,6 +62,7 @@ void omxFreeExpectationArgs(omxExpectation *ox) {
 
 void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
+  if (!getConnectedToData()) mxThrow("%s: not connected to data", name);
 	if (data) data->recompute(); // for dynamic data
 
   auto &allTh = getThresholdInfo();
@@ -271,11 +272,20 @@ void omxExpectation::loadThresholds()
 
 void omxExpectation::invalidateCache()
 {
+  discreteCache.clear();
+  setConnectedToData(false);
+}
+
+void omxExpectation::connectToData()
+{
+  if (getConnectedToData()) mxThrow("omxExpectation::connectToData() called again");
+  setConnectedToData(true);
+
 	if (!strEQ(omxDataType(data), "raw")) return;
 
-  discreteCache.clear();
+	auto &allTh = getThresholdInfo();
 
-	if (!thresholds.size()) {
+	if (!allTh.size()) {
     auto &dc = getDataColumns();
     for (int dx = 0; dx < int(dc.size()); dx++) {
          data->assertColumnIsData(dc[dx], OMXDATA_REAL);
@@ -283,7 +293,7 @@ void omxExpectation::invalidateCache()
     return;
   }
 
-	for (auto &col : thresholds) {
+	for (auto &col : allTh) {
 		const char *colname = data->columnName(col.dataColumn);
     if (col.numThresholds==0) {
       data->assertColumnIsData(col.dataColumn, OMXDATA_REAL);
@@ -443,12 +453,20 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	return expect;
 }
 
+void omxExpectation::setConnectedToData(bool _to)
+{
+  //mxLog("%s: connectedToData=%d", name, _to);
+  if (_to && getConnectedToData()) mxThrow("omxExpectation::connectToData() called again");
+  _connectedToData = _to;
+}
+
 void omxCompleteExpectation(omxExpectation *ox) {
 
 	if(ox->isComplete) return;
 	ox->isComplete = TRUE;
 
 	ox->init();
+  ox->connectToData();
 
 	if (OMX_DEBUG) {
 		omxData *od = ox->data;

@@ -412,7 +412,7 @@ omxState::omxState(omxState *src) : wantStage(0), parent(src), hasFakeParam(fals
 	init();
 
 	dataList			= src->dataList;
-		
+
 	for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 		// TODO: Smarter inference for which matrices to duplicate
 		matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], this));
@@ -440,7 +440,7 @@ omxState::omxState(omxState *src) : wantStage(0), parent(src), hasFakeParam(fals
 	for (size_t xx=0; xx < src->conListX.size(); ++xx) {
 		conListX.push_back(src->conListX[xx]->duplicate(this));
 	}
-	
+
 	usingAnalyticJacobian = src->usingAnalyticJacobian;
 }
 
@@ -508,6 +508,13 @@ void omxState::invalidateCache()
 	si();
 }
 
+void omxState::connectToData()
+{
+	for(size_t ex = 0; ex < expectationList.size(); ex++) {
+		expectationList[ex]->connectToData();
+	}
+}
+
 omxState::~omxState()
 {
 	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conListX.size());}
@@ -530,7 +537,7 @@ omxState::~omxState()
 		matrixList[mk]->hasMatrixNumber = false;
 		omxFreeMatrix(matrixList[mk]);
 	}
-		
+
 	if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", (int) expectationList.size());}
 	for(size_t ex = 0; ex < expectationList.size(); ex++) {
 		omxFreeExpectationArgs(expectationList[ex]);
@@ -654,7 +661,7 @@ void mxLogBig(const std::string &str)   // thread-safe
 	}
 	fullstr += str;
 	len = ssize_t(fullstr.size());
-	
+
 	const char *outBuf = fullstr.c_str();
 	ssize_t wrote = mxLogWriteSynchronous(outBuf, len);
 	if (wrote != len) mxThrow("mxLogBig only wrote %d/%d, errno %d", int(wrote), int(len), errno);
@@ -981,7 +988,7 @@ void omxCheckpoint::omxWriteCheckpointHeader()
 	fflush(file);
 	wroteHeader = true;
 }
- 
+
 void omxCheckpoint::message(FitContext *fc, double *est, const char *msg)
 {
 	postfit(msg, fc, est, true);

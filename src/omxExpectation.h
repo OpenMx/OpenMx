@@ -45,6 +45,7 @@ class omxExpectation {					// An Expectation
 	omxMatrix *thresholdsMat;
 	double *discreteSpecPtr;
   bool discreteCheckCount;
+  bool _connectedToData;
   const Eigen::Map<Eigen::MatrixXd> getDiscreteSpec()
   { const Eigen::Map<Eigen::MatrixXd> ds(discreteSpecPtr, 2, discreteMat->cols); return ds; }
 	omxMatrix *discreteMat;
@@ -52,6 +53,9 @@ class omxExpectation {					// An Expectation
 	std::vector< omxThresholdColumn > thresholds;  // size() == numDataColumns
 
 	void loadThresholds();
+protected:
+  void setConnectedToData(bool _to);
+  bool getConnectedToData() const { return _connectedToData; }
 
  public:
 	int numDataColumns;
@@ -73,12 +77,13 @@ class omxExpectation {					// An Expectation
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), thresholdsMat(0),
-		discreteSpecPtr(0), discreteMat(0),
+		discreteSpecPtr(0), _connectedToData(false), discreteMat(0),
     numDataColumns(0), rObj(0), name(0), data(0), numOrdinal(0),
     isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
+  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void print();
 	virtual void populateAttr(SEXP expectation) {};
