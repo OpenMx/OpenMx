@@ -23,6 +23,9 @@ class omxLISRELExpectation : public omxExpectation {
 	typedef omxExpectation super;
 	std::vector<int> exoDataColumns; // index into omxData
 	int verbose;
+	int numExoPred;
+  std::vector<int> exoDataColIndex;
+  void addSlopeMatrix();
 
 public:
 	omxMatrix *cov, *means; // expected covariance and means
@@ -47,9 +50,10 @@ public:
 	bool noLY;
 	bool Lnocol;
 
-	omxLISRELExpectation(omxState *st, int num) : super(st, num) {}
+	omxLISRELExpectation(omxState *st, int num) : super(st, num), numExoPred(0) {}
 	virtual ~omxLISRELExpectation();
 	virtual void init();
+  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void populateAttr(SEXP expectation);
 	virtual omxMatrix *getComponent(const char*);
@@ -446,6 +450,7 @@ void omxLISRELExpectation::init()
 
 	slope = 0;
 	verbose = 0;
+  canDuplicate = true;
 	if (R_has_slot(rObj, Rf_install("verbose"))) {
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 		verbose = Rf_asInteger(Rverbose);
@@ -575,6 +580,14 @@ void omxLISRELExpectation::init()
 	} else LISobj->means  = 	NULL;
 	//TODO: Adjust means processing to allow only Xs or only Ys
 
+	if (currentState->isClone()) {
+    auto pex = (omxLISRELExpectation*) currentState->getParent(this);
+    if (pex->slope) {
+      numExoPred = pex->numExoPred;
+      exoDataColIndex = pex->exoDataColIndex;
+      addSlopeMatrix();
+    }
+  }
 }
 
 omxMatrix* omxLISRELExpectation::getComponent(const char* component) {
@@ -615,8 +628,7 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 	EigenMatrixAdaptor eBE(BE);  // to latent loading
 	Eigen::VectorXd hasVariance = ePS.diagonal().array().abs().matrix();
 
-	int found = 0;
-	std::vector<int> exoDataCol(PS->rows, -1);
+	exoDataColIndex.resize(PS->rows, -1);
 	int alNum = ~AL->matrixNumber;
 	for (int k=0; k < int(data->defVars.size()); ++k) {
 		omxDefinitionVar &dv = data->defVars[k];
@@ -627,8 +639,8 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 					 PS->rownames[dv.row], BE->rownames[cx]);
 			}
 			if (eLY.col(dv.row).array().abs().sum() == 0.) continue;
-			exoDataCol[dv.row] = dv.column;
-			found += 1;
+			exoDataColIndex[dv.row] = dv.column;
+			numExoPred += 1;
 			dv.loadData(currentState, 0.);
 			if (verbose >= 1) {
 				mxLog("%s: set defvar '%s' for latent '%s' to exogenous mode",
@@ -640,20 +652,30 @@ void omxLISRELExpectation::studyExoPred() // compare with similar function for R
 
 	currentState->restoreParam(estSave);
 
-	if (!found) return;
+  addSlopeMatrix();
+}
 
-	slope = omxInitMatrix(LY->rows, found, currentState);
+void omxLISRELExpectation::addSlopeMatrix()
+{
+	if (!numExoPred) return;
+
+	slope = omxInitMatrix(LY->rows, numExoPred, currentState);
 	EigenMatrixAdaptor eSl(slope);
 	eSl.setZero();
 
 	for (int cx=0, ex=0; cx < PS->rows; ++cx) {
-		if (exoDataCol[cx] == -1) continue;
-		exoDataColumns.push_back(exoDataCol[cx]);
+		if (exoDataColIndex[cx] == -1) continue;
+		exoDataColumns.push_back(exoDataColIndex[cx]);
 		for (int rx=0; rx < LY->rows; ++rx) {
 			slope->addPopulate(LY, rx, cx, rx, ex);
 		}
 		ex += 1;
 	}
+}
+
+void omxLISRELExpectation::connectToData()
+{
+  super::connectToData();
 
 	exoPredMean.resize(exoDataColumns.size());
 	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {

@@ -285,6 +285,9 @@ class omxRAMExpectation : public omxExpectation {
 	Eigen::VectorXd exoPredMean;
 	bool hasProductNodes;
   bool studiedF;
+	int numExoPred;
+	std::vector<int> exoDataColIndex;
+  void addSlopeMatrix();
 
 	struct MpcIO : PathCalcIO {
 		omxMatrix *M0;
@@ -391,6 +394,7 @@ class omxRAMExpectation : public omxExpectation {
 	void studyExoPred();
 
 	virtual void init();
+  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);

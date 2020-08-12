@@ -240,7 +240,7 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lo
 }
 
 omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
-	: super(st, num), studiedF(false), slope(0), rram(0)
+	: super(st, num), studiedF(false), numExoPred(0), slope(0), rram(0)
 {
 	if (st->isClone()) {
 		omxRAMExpectation *ram = (omxRAMExpectation *)st->getParent(this);
@@ -416,7 +416,14 @@ void omxRAMExpectation::init()
 		pcalc.setAlgo(0, hasProductNodes, useSparse);
 
 		currentState->restoreParam(estSave);
-	}
+	} else {
+    auto pex = (omxRAMExpectation*) currentState->getParent(this);
+    if (pex->slope) {
+      numExoPred = pex->numExoPred;
+      exoDataColIndex = pex->exoDataColIndex;
+      addSlopeMatrix();
+    }
+  }
 }
 
 void omxRAMExpectation::studyExoPred()
@@ -431,8 +438,7 @@ void omxRAMExpectation::studyExoPred()
 	EigenMatrixAdaptor eS(S);
 	hasVariance = eS.diagonal().array().abs().matrix();
 
-	int found = 0;
-	std::vector<int> exoDataCol(S->rows, -1);
+  exoDataColIndex.resize(S->rows, -1);
 	int mNum = ~M->matrixNumber;
 	for (int k=0; k < int(data->defVars.size()); ++k) {
 		omxDefinitionVar &dv = data->defVars[k];
@@ -447,8 +453,8 @@ void omxRAMExpectation::studyExoPred()
 			if (!toManifest && !latentName) continue;
 			if (latentName) mxThrow("%s: latent exogenous variables are not supported (%s -> %s)", name,
 						 S->colnames[dv.col], latentName);
-			exoDataCol[dv.col] = dv.column;
-			found += 1;
+			exoDataColIndex[dv.col] = dv.column;
+			numExoPred += 1;
 			dv.loadData(currentState, 0.);
 			if (OMX_DEBUG + verbose >= 1) {
 				mxLog("%s: set defvar '%s' for latent '%s' to exogenous mode",
@@ -460,21 +466,26 @@ void omxRAMExpectation::studyExoPred()
 
 	currentState->restoreParam(estSave);
 
-	if (!found) return;
+  addSlopeMatrix();
+}
 
-	slope = omxInitMatrix(F->rows, found, currentState);
+void omxRAMExpectation::addSlopeMatrix()
+{
+	if (!numExoPred) return;
+
+	slope = omxInitMatrix(F->rows, numExoPred, currentState);
 	EigenMatrixAdaptor eSl(slope);
 	eSl.setZero();
 
 	for (int cx=0, ex=0; cx < S->rows; ++cx) {
-		if (exoDataCol[cx] == -1) continue;
-		auto &rc = data->rawCol( exoDataCol[cx] );
+		if (exoDataColIndex[cx] == -1) continue;
+		auto &rc = data->rawCol( exoDataColIndex[cx] );
 		if (rc.type != COLUMNDATA_NUMERIC) {
 			omxRaiseErrorf("%s: exogenous predictor '%s' must be type numeric (not '%s')",
 				       name, rc.name, rc.typeName());
 			continue;
 		}
-		exoDataColumns.push_back(exoDataCol[cx]);
+		exoDataColumns.push_back(exoDataColIndex[cx]);
 		for (int rx=0, dx=0; rx < S->rows; ++rx) {
 			if (!latentFilter[rx]) continue;
 			slope->addPopulate(A, rx, cx, dx, ex);
@@ -482,6 +493,11 @@ void omxRAMExpectation::studyExoPred()
 		}
 		ex += 1;
 	}
+}
+
+void omxRAMExpectation::connectToData()
+{
+  super::connectToData();
 
 	exoPredMean.resize(exoDataColumns.size());
 	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {

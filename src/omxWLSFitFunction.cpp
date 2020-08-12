@@ -266,8 +266,7 @@ void omxWLSFitFunction::prepData()
 
 	if(weights) {
 		if (weights->rows != weights->cols || weights->cols != vectorSize) {
-			omxRaiseErrorf("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
-			return;
+			mxThrow("Developer Error in WLS-based FitFunction object: WLS-based expectation specified an incorrectly-sized weight matrix (%d != %d).\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.", vectorSize, weights->cols);
 		}
 
 		EigenMatrixAdaptor Eweight(weights);
@@ -324,8 +323,14 @@ void omxWLSFitFunction::init()
 	expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 	expectedSlope = omxGetExpectationComponent(expectation, "slope");
 
+  if (expectedSlope) {
+    expectation->invalidateCache();
+    expectation->connectToData();
+  }
+
 	observedFlattened = 0;
 	expectedFlattened = 0;
 	B = 0;
 	P = 0;
+  canDuplicate = true;
 }
