@@ -163,6 +163,9 @@ omxExpectation *InitMixtureExpectation(omxState *, int num);
 
 void complainAboutMissingMeans(omxExpectation *off);
 
+// NOTE: omxThresholdColumn.dataColumn is ignored because
+// we assume that summary data is permuted into the
+// expectation order as part of the summarization process.
 template <typename T>
 void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 		       std::vector< omxThresholdColumn > &ti, Eigen::Ref<Eigen::VectorXd> out)
@@ -208,14 +211,15 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 	sd.setIdentity();
 
 	int dx = 0;
-	for (auto &th : ti) {
+  for (int cx=0; cx < int(ti.size()); ++cx) {
+    auto &th = ti[cx];
 		for (int t1=0; t1 < th.numThresholds; ++t1) {
-			double sd1 = sdTmp[th.dataColumn];
-			out[dx++] = (Eth(t1, th.dataColumn) - Emean[th.dataColumn]) * sd1;
-			sd.diagonal()[th.dataColumn] = sd1;
+			double sd1 = sdTmp[cx];
+			out[dx++] = (Eth(t1, cx) - Emean[cx]) * sd1;
+			sd.diagonal()[cx] = sd1;
 		}
 		if (!th.numThresholds) {
-			out[dx++] = Emean[th.dataColumn];
+			out[dx++] = Emean[cx];
 		}
 	}
 

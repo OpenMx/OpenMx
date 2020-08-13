@@ -773,6 +773,10 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 void omxData::assertColumnIsData(int col, OmxDataType dt)
 {
 	if (dataMat) return;
+  if (verbose) {
+    ColumnData &cd = unfiltered.rawCols[col];
+    mxLog("%s: assertColumnIsData(%s(%d), %d)", name, cd.name, col, dt);
+  }
 	unfiltered.assertColumnIsData(col, dt, true);
 	filtered.assertColumnIsData(col, dt, false);
 }

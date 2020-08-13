@@ -249,9 +249,6 @@ void omxWLSFitFunction::prepData()
 	if (obsThresholdsMat) {
 		for(int i = 0; i < int(oThresh.size()); i++) {
 			eThresh[i].numThresholds = oThresh[i].numThresholds;
-      // We always build the observed stats in the same order
-      // as the expected stats.
-      eThresh[i].dataColumn = i;
 		}
 	}
 
