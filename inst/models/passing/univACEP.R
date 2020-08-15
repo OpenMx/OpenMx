@@ -22,6 +22,8 @@
 ##########################################
 
 require(OpenMx)
+library(testthat)
+
 # Prepare Data
 data("twinData", package="OpenMx")
 selVars <- c('bmi1','bmi2')
@@ -107,8 +109,7 @@ DZ = mxModel(share2, name="DZ",
 )
 
 model <- mxModel("twinAE", MZ, DZ,
-    mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
-    mxFitFunctionAlgebra("twin")
+    mxFitFunctionMultigroup(c('MZ','DZ'))
 )
 
 fit <- mxRun(model)
@@ -149,3 +150,21 @@ LRT_ACE_AE
 # omxCheckCloseEnough(C,Mx.C,.001)
 # omxCheckCloseEnough(E,Mx.E,.001)
 # omxCheckCloseEnough(M,Mx.M,.001)
+
+
+# ----------
+
+probMask <- function(spec, prop) {
+  matrix(as.logical(rbinom(prod(dim(spec)), 1, prop)),
+         nrow=nrow(spec), ncol=ncol(spec))
+}
+
+mzfData[probMask(mzfData, .1)] <- NA
+dzfData[probMask(dzfData, .1)] <- NA
+
+model$MZ$data$observed <- mzfData
+model$DZ$data$observed <- dzfData
+
+big <- mxGenerateData(model, nrowsProportion =5)
+expect_equivalent(unlist(lapply(big, function(x) colSums(is.na(x))/ nrow(x))),
+                  rep(.1,4), .2)

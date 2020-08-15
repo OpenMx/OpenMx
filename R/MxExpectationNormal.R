@@ -674,10 +674,11 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 		data <- as.data.frame(data)
 		data <- ordinalizeDataHelper(data, theThresh, origData)
 	}
-        if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
-	  del <- is.na(origData[,colnames(data),drop=FALSE])
+  if (use.miss && !is.null(origData) && origData$type == 'raw' &&
+        all(colnames(data) %in% colnames(origData$observed))) {
+	  del <- is.na(origData$observed[,colnames(data),drop=FALSE])
 	  if (nrows != origRows) {
-	    del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),,drop=FALSE]
+	    del    <- del[sample.int(origRows, nrows, replace=TRUE),,drop=FALSE]
 	  }
 	  data[del] <- NA
 	}
