@@ -76,6 +76,7 @@ struct central_difference_grad  : finite_difference_grad<central_difference_grad
 
 class GradientWithRef {
 	const int ELAPSED_HISTORY_SIZE;
+	const int maxAvailThreads;
 	const int numFree;
 	const GradientAlgorithm algo;
 	const int numIter;
@@ -122,9 +123,10 @@ class GradientWithRef {
 
  public:
 	GradientWithRef(int numThreads, int _numFree, GradientAlgorithm _algo, int _numIter, double _eps) :
-	ELAPSED_HISTORY_SIZE(3), numFree(_numFree), algo(_algo), numIter(_numIter), eps(_eps)
+    ELAPSED_HISTORY_SIZE(3), maxAvailThreads(numThreads), numFree(_numFree), algo(_algo),
+    numIter(_numIter), eps(_eps)
 	{
-		verbose = 0; // permit initialization to some other value TODO
+		verbose = numThreads>1 && Global->parallelDiag;
 		curElapsed = 0;
 		numGradientThreads = std::min(numThreads, numFree); // could break work into smaller pieces TODO
 		if (numGradientThreads == 1) {
@@ -135,6 +137,11 @@ class GradientWithRef {
 		}
 		grid.resize(numIter, numFree);
 	}
+  ~GradientWithRef()
+  {
+    diagParallel(OMX_DEBUG, "Gradient used %d/%d threads for %d free parameters",
+                 numGradientThreads, maxAvailThreads, numFree);
+  }
 
 	template <typename T1, typename T2, typename T3>
 	void operator()(T1 ff, double refFit,
@@ -144,11 +151,7 @@ class GradientWithRef {
 						      __FILE__, __LINE__, numFree, point.size());
 
 		nanotime_t startTime = get_nanotime();
-		curNumThreads = numGradientThreads;
-		if (curElapsed < ELAPSED_HISTORY_SIZE * 2) {
-			curNumThreads -= curElapsed % 1;
-		}
-		if (verbose >= 1) mxLog("curElapsed=%d curNumThreads=%d", curElapsed, curNumThreads);
+		curNumThreads = std::max(1, numGradientThreads - curElapsed % 2);
 
 		switch (algo) {
 		case GradientAlgorithm_Forward:{
@@ -162,17 +165,12 @@ class GradientWithRef {
 		default: mxThrow("Unknown gradient algorithm %d", algo);
 		}
 
-		double el1 = get_nanotime() - startTime;
-		if (el1 < 1000000) { // 1ms, obviously too fast
-			if (numGradientThreads > 2) {
-				if (verbose >= 1) mxLog("elapse time less than 1ms, using fewer threads");
-				curElapsed = 0;
-				numGradientThreads = std::max(numGradientThreads - 1, 1);
-			} else {
-				curElapsed = ELAPSED_HISTORY_SIZE * 2;
-				numGradientThreads = 1;
-			}
-		} else if (curElapsed < ELAPSED_HISTORY_SIZE * 2) {
+		double el1 = (get_nanotime() - startTime);
+    if (curElapsed < ELAPSED_HISTORY_SIZE * 2) {
+      if (verbose >= 2) {
+        mxLog("gradient: test[%d] curNumThreads=%d %fms",
+              curElapsed, curNumThreads, el1/1000000.0);
+      }
 			int repl = curElapsed / 2;
 			if (curElapsed % 2) {
 				elapsed1[repl] = el1;
@@ -185,11 +183,18 @@ class GradientWithRef {
 				std::sort(elapsed1.begin(), elapsed1.end());
 				double e0 = elapsed0[elapsed0.size()/2];
 				double e1 = elapsed1[elapsed1.size()/2];
-				if (e0 > e1) {
-					if (verbose >= 1) mxLog("%f > %f, try %d threads", e0, e1, numGradientThreads-1);
+        if (verbose) {
+          mxLog("gradient took %fms with %d threads and %fms with %d threads",
+                e0/1000000.0, numGradientThreads, e1/1000000.0, std::max(1, numGradientThreads-1));
+        }
+				if (e0 > e1 && numGradientThreads > 1) {
 					numGradientThreads = std::max(numGradientThreads - 1, 1);
 					if (numGradientThreads > 1) curElapsed = 0;
 				}
+        if (verbose && curElapsed > 0) {
+          mxLog("gradient: looks like %d threads offers the best performance",
+                numGradientThreads);
+        }
 			}
 		}
 	}

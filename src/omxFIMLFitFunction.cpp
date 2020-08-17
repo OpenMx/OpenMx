@@ -1014,6 +1014,17 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			mxLog("reducing number of threads to %d", myParent->curParallelism);
 		}
 	}
+	if (!fc->isClone() && want & FF_COMPUTE_BESTFIT) {
+    if (rowwiseParallel) {
+      if (curParallelism == 1) {
+        diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads; "
+                     "recommend rowwiseParallel=FALSE",
+                     name(), curParallelism);
+      } else {
+        diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads", name(), curParallelism);
+      }
+    }
+  }
 }
 
 omxFitFunction *omxInitFIMLFitFunction()

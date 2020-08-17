@@ -46,7 +46,7 @@ void GradientOptimizerContext::setupSimpleBounds() //used with SLSQP.
 	solUB.resize(numFree);
 	copyBounds();
 	//MxConstraints are re-counted in omxInvokeNLOPT().
-} 
+}
 
 void GradientOptimizerContext::setupIneqConstraintBounds() //used with CSOLNP.
 {
@@ -124,7 +124,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
 	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
-	  equality(fc->equality), inequality(fc->inequality), 
+	  equality(fc->equality), inequality(fc->inequality),
 	  analyticEqJacTmp(fc->analyticEqJacTmp), analyticIneqJacTmp(fc->analyticIneqJacTmp),
 	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
@@ -358,7 +358,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 		} else {
 			gradientAlgo = GradientAlgorithm_Central;
 			gradientAlgoName = "central";
-		} 
+		}
 	} else {
 		gradientAlgoName = CHAR(Rf_asChar(slotValue));
 		if (strEQ(gradientAlgoName, "forward")) {
@@ -521,7 +521,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	// Optimizers can terminate with inconsistent fit and parameters
-	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT, fc);
 
 	if (verbose >= 2) {
 		mxLog("%s: final fit is %2f", name, fc->fit);
@@ -534,11 +534,11 @@ void omxComputeGD::computeImpl(FitContext *fc)
 void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
 	omxPopulateFitFunction(fitMatrix, out);
-	
+
 	MxRList output;
 	SEXP pn, cn, cr, cc, cv, cjac, lambdas, cstates, lagrhess;
 	size_t i=0;
-	
+
 	output.add("maxThreads", Rf_ScalarInteger(threads));
 	if( fc->varGroup->vars.size() ){
 		Rf_protect(pn = Rf_allocVector( STRSXP, fc->varGroup->vars.size() ));
@@ -586,7 +586,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 		output.add("LagrHessian", lagrhess);
 	}
 	slots->add("output", output.asR());
-	
+
 	if (engine == OptEngine_NPSOL && hessChol.size()) {
 		out->add("hessianCholesky", Rcpp::wrap(hessChol));
 	}
@@ -1012,7 +1012,7 @@ struct boundAwayCIobj : CIobjective {
 		if (!constrained) {
 			cval = v1.sum()*v1.sum();
 		}
-			     
+
 		fitMat->data[0] = param + cval;
 		//mxLog("param at %f", fitMat->data[0]);
 	}
@@ -1260,7 +1260,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, nearBox, diag);
 			return;
 		}
-	
+
 		if (sqrtCrit95 <= d0/2.0) {
 			Diagnostic better;
 			double val;
@@ -1657,7 +1657,7 @@ void ComputeTryH::computeImpl(FitContext *fc)
 	Map< ArrayXd > curEst(fc->est, numFree);
 	ArrayXd origStart = curEst;
 	bestEst = curEst;
-	
+
 	solLB.resize(curEst.size());
 	solUB.resize(curEst.size());
 	fc->copyBoxConstraintToOptimizer(solLB, solUB);
@@ -1981,7 +1981,7 @@ double ComputeGenSA::getConstraintPenalty(FitContext *fc)
 		}
 		penalty += inequality.max(0.0).sum();
 	}
-	
+
 	if (numEqC) {
 		for(int cur=0, j = 0; j < int(st->conListX.size()); j++) {
 			omxConstraint &con = *st->conListX[j];
