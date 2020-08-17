@@ -33,7 +33,7 @@ jobs:
     install:
     - ./tools/travis/install-osx
     latex: false
-dist: bionic
+#dist: bionic
 #sudo: required
 latex: true
 language: r
