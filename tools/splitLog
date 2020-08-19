@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+#
+# In OpenMx multithreaded debug output, the current thread is indicated
+# by a square bracket block [#] or [#@123] at the beginning of line.
+
+use Modern::Perl '2019';
+use Fatal qw(open);
+
+my $logfile = shift @ARGV;
+
+die "Can't find $logfile" if !-e $logfile;
+
+my %Thr;
+
+open(my $fh, $logfile);
+my $th = 0;
+while (defined(my $l = <$fh>)) {
+  if ($l =~ m/^\[(\d+)(\@\d+)?]/) {
+    $th = $1;
+  }
+  push @{$Thr{$th}}, $l;
+}
+
+my @parts = split /\./, $logfile;
+my $ext = pop @parts;
+my $stem = join '.', @parts;
+
+for my $t (sort { $a <=> $b } keys %Thr) {
+  my $dest = "$stem$t.$ext";
+  open(my $out, ">$dest");
+  print $out @{$Thr{$t}};
+}

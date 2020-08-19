@@ -14,7 +14,7 @@
  *  limitations under the License.
  *
  */
- 
+
 #ifndef _OMXFIMLFITFUNCTION_H_
 #define _OMXFIMLFITFUNCTION_H_
 
@@ -126,18 +126,18 @@ class omxFIMLFitFunction : public omxFitFunction {
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
 	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
-	omxMatrix* ordMeans;		// Memory reserved for ordinal column means    
+	omxMatrix* ordMeans;		// Memory reserved for ordinal column means
     omxMatrix* ordContCov;      // Memory reserved for ordinal/continuous covariance
 	omxMatrix* halfCov;         // Memory reserved for computations
     omxMatrix* reduceCov;       // Memory reserved for computations
-    
+
 	/* Reserved memory for faster calculation */
 	omxMatrix* smallRow;		// Memory reserved for operations on each data row
 	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
 	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
 
 	omxMatrix* RCX;				// Memory reserved for computationxs
-		
+
 	std::vector<int> identicalDefs;
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
@@ -240,7 +240,7 @@ class mvnByRow {
 		useSufficientSets = ofiml->useSufficientSets;
 		verbose = ofiml->verbose;
 
-		if (fc->isClone()) {  // rowwise parallel
+		if (parent->rowwiseParallel && fc->isClone()) {
 			startTime = get_nanotime();
 		}
 
@@ -250,12 +250,13 @@ class mvnByRow {
 	};
 
 	~mvnByRow() {
-		if (fc->isClone()) {  // rowwise parallel
+		if (parent->rowwiseParallel && fc->isClone()) {
 			double el1 = get_nanotime() - startTime;
 			ofo->elapsed[shared_ofo->curElapsed] = el1;
-			if (verbose >= 3) mxLog("%d--%d %.2fms", ofo->rowBegin, ofo->rowCount, el1/1000000.0);
+			if (verbose >= 3) mxLog("%s: %d--%d %.2fms",
+                              parent->name(), ofo->rowBegin, ofo->rowCount, el1/1000000.0);
 		} else {
-			if (verbose >= 3) mxLog("%d--%d", ofo->rowBegin, ofo->rowCount);
+			if (verbose >= 3) mxLog("%s: %d--%d in single thread", parent->name(), ofo->rowBegin, ofo->rowCount);
 		}
 	};
 

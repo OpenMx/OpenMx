@@ -632,7 +632,9 @@ static void addSufficientSet(omxFitFunction *off, int from, int to)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
 	if (!ofiml->useSufficientSets) return;
-	//mxLog("ss from %d to %d length %d", from, to, 1 + to - from);
+	if (ofiml->verbose >= 2) {
+    mxLog("%s: addSufficientSet from %d to %d length %d", off->name(), from, to, 1 + to - from);
+  }
 	omxData *data = ofiml->data;
 	double *rowWeight = data->getWeightColumn();
 	if (rowWeight) return; // too complex, for now
@@ -684,8 +686,8 @@ static void sortData(omxFitFunction *off)
 	cmp.ordinalFirst = ofiml->jointStrat == JOINT_CONDORD;
 
 	if (data->needSort) {
-		if (ofiml->verbose >= 1) mxLog("sort %s strategy %d for %s",
-					       data->name, ofiml->jointStrat, off->name());
+		if (ofiml->verbose >= 1) mxLog("%s: sort %s strategy %d for %s",
+                                   ofiml->name(), data->name, ofiml->jointStrat, off->name());
 		// Maybe already sorted by JOINT_AUTO, but not a big waste to resort
 		std::sort(indexVector.begin(), indexVector.end(), cmp);
 		//data->omxPrintData("sorted", 1000, indexVector.data());
@@ -756,6 +758,7 @@ static void sortData(omxFitFunction *off)
 static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml)
 {
+  if (parent->verbose >= 4) mxLog("%s: jointStrat %d", ofiml->name(), ofiml->jointStrat);
 	switch (ofiml->jointStrat) {
 	case JOINT_CONDORD:{
 		condOrdByRow batch(_fc, _localobj, parent, ofiml);
@@ -840,7 +843,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
 
 	if (!builtCache) {
-		if (fc->isClone()) {
+		if (ofiml->rowwiseParallel && fc->isClone()) {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction;
 			ofiml->elapsed.resize(ELAPSED_HISTORY_SIZE);
@@ -894,7 +897,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	nanotime_t startTime = 0;
 	if (ofiml->verbose >= 3) {
 		startTime = get_nanotime();
-		mxLog("%s eval with par=%d", off->name(), myParent->curParallelism);
+		mxLog("%s: start eval with %d threads", off->name(), myParent->curParallelism);
 	}
 
 	ofiml->skippedRows = 0;
@@ -962,7 +965,9 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		failed |= dispatchByRow(fc, off, myParent, ofiml);
 	}
 
-	if (ofiml->verbose >= 3) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
+	if (ofiml->verbose >= 3) {
+    mxLog("%s: done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
+  }
 
 	if (!returnVector && ofiml->skippedRows == rows) {
 		// all rows skipped
@@ -1014,15 +1019,13 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			mxLog("reducing number of threads to %d", myParent->curParallelism);
 		}
 	}
-	if (!fc->isClone() && want & FF_COMPUTE_BESTFIT) {
-    if (rowwiseParallel) {
-      if (curParallelism == 1) {
-        diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads; "
-                     "recommend rowwiseParallel=FALSE",
-                     name(), curParallelism);
-      } else {
-        diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads", name(), curParallelism);
-      }
+	if (rowwiseParallel && !fc->isClone() && want & FF_COMPUTE_BESTFIT) {
+    if (curParallelism == 1) {
+      diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads; "
+                   "recommend rowwiseParallel=FALSE",
+                   name(), curParallelism);
+    } else {
+      diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads", name(), curParallelism);
     }
   }
 }
