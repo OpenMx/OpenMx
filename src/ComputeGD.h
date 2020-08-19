@@ -20,6 +20,9 @@
 #include "Compute.h"
 #include "finiteDifferences.h"
 
+// The GradientOptimizerContext can manage multiple threads
+// in parallel. Per-thread specific data should be located
+// in the FitContext.
 class GradientOptimizerContext {
  private:
 	void copyBounds();
@@ -65,9 +68,6 @@ class GradientOptimizerContext {
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
 
-	// TODO remove, better to pass as a parameter so we can avoid copies
-	Eigen::VectorXd& equality;
-	Eigen::VectorXd& inequality;
 	bool CSOLNP_HACK;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
@@ -91,9 +91,10 @@ class GradientOptimizerContext {
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
-	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
-	
+  void prepConstraints() { fc->prepConstraints(); }
+  bool isUnconstrained();
+
 	Eigen::VectorXd constraintFunValsOut;
 	Eigen::MatrixXd constraintJacobianOut;
 	Eigen::VectorXd LagrMultipliersOut;
@@ -104,13 +105,19 @@ class GradientOptimizerContext {
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun(bool wantAJ);
 	void myineqFun(bool wantAJ);
+  Eigen::VectorXd &getEqualitySingleThreaded()
+  { return fc->equality; }
+  Eigen::VectorXd &getInequalitySingleThreaded()
+  { return fc->inequality; }
+  Eigen::MatrixXd &getAnalyticEqJacSingleThreaded()
+  { return fc->analyticEqJacTmp; }
+  Eigen::MatrixXd &getAnalyticIneqJacSingleThreaded()
+  { return fc->analyticIneqJacTmp; }
 	template <typename T1, typename T2, typename T3> void allConstraintsFun(
 			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
 	bool isUsingAnalyticJacobian(){ return fc->state->usingAnalyticJacobian; }
-	Eigen::MatrixXd& analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
-	Eigen::MatrixXd& analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
 	void copyFromOptimizer(double *myPars, FitContext *fc2);
@@ -128,7 +135,7 @@ class GradientOptimizerContext {
 		fc->ciobj->gradient(fc, gradOut.derived().data());
 	};
 	omxState *getState() const { return fc->state; };
-	bool doingCI(){ 
+	bool doingCI(){
 		if(fc->ciobj){return(true);}
 		else{return(false);}
 	};
@@ -137,6 +144,12 @@ class GradientOptimizerContext {
 
 	template <typename T1>
 	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint);
+
+  JacobianGadget jgContext;
+  template <typename T1, typename T2, typename T3>
+  void ineqJacobian(Eigen::MatrixBase<T1> &ref,
+                    Eigen::MatrixBase<T2> &point,
+                    Eigen::MatrixBase<T3> &jout);
 };
 
 template <typename T1>
@@ -190,7 +203,7 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 			return fit;
 		}, refFit, Epoint, grad);
 
-	if (true) {
+	if (true) { // replace with robustify TODO
 		Eigen::VectorXd absGrad = grad.array().abs();
 		double m1 = std::max(median(absGrad), 1.0);
 		double big = 1e4 * m1;
@@ -209,6 +222,23 @@ void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &E
 			mxPrintMat("robust grad", grad);
 		}
 	}
+}
+
+template <typename T1, typename T2, typename T3>
+void GradientOptimizerContext::ineqJacobian(Eigen::MatrixBase<T1> &ref,
+                                            Eigen::MatrixBase<T2> &point,
+                                            Eigen::MatrixBase<T3> &jout)
+{
+	jgContext([&](double *myPars, int thrId, auto &result) {
+              FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+              Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+              // Only 1 parameter is different so we could
+              // update only that parameter instead of all
+              // of them.
+              copyFromOptimizer(myPars, fc2);
+              fc2->myineqFun(false, verbose, ineqType, CSOLNP_HACK);
+              result = fc2->inequality;
+            }, ref, point, true, jout);
 }
 
 template <typename T1>

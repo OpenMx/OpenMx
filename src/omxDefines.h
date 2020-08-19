@@ -501,7 +501,7 @@ class AssertProtectStackBalanced {
 	const char *context;
 	int preDepth;
 	PROTECT_INDEX initialpix;
-	
+
 	PROTECT_INDEX getDepth() {
 		PROTECT_INDEX pix;
 		R_ProtectWithIndex(R_NilValue, &pix);
@@ -524,5 +524,7 @@ class AssertProtectStackBalanced {
 		}
 	}
 };
+
+#define OOPS mxThrow("%s at %d: oops", __FILE__, __LINE__)
 
 #endif /* _OMXDEFINES_H_ */

@@ -356,7 +356,7 @@ static void omxMatrixElementMult(FitContext *fc, omxMatrix** matList, int numArg
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
-	
+
 	if (first->colMajor == second->colMajor) {
 		for(int i = 0; i < size; i++) {
 			omxSetVectorElement(result, i,
@@ -666,7 +666,7 @@ static void omxBinaryApproxEquals(FitContext *fc, omxMatrix** matList, int numAr
 {
         omxMatrix* first  = matList[0];
 	omxMatrix* second = matList[1];
-	omxMatrix* epsilon = matList[2]; 
+	omxMatrix* epsilon = matList[2];
 	int rows = first->rows;
 	int cols = first->cols;
 	int size = rows * cols;
@@ -679,7 +679,7 @@ static void omxBinaryApproxEquals(FitContext *fc, omxMatrix** matList, int numAr
                 double ith_value = omxVectorElement(first, i) -
                         		   omxVectorElement(second, i);
 				double epsilon_value = omxVectorElement(epsilon, i);
-				
+
 				if (ith_value < 0.0){
 					ith_value = ith_value * negativeOne;
 				}
@@ -743,7 +743,7 @@ static void omxMatrixAdd(FitContext *fc, omxMatrix** matList, int numArgs, omxMa
 	}
 }
 
-template <typename T> 
+template <typename T>
 static void matrixExtractIndices(omxMatrix *source, int dimLength, Eigen::ArrayBase<T> &out)
 {
 	/* Case 1: the source vector contains no elements */
@@ -982,7 +982,7 @@ static void omxMatrixArithmeticMean(FitContext *fc, omxMatrix** matList, int num
 	double mean = omxVectorElement(input, 0);
 	for(int i = 1; i < matLength; i++) {
 		double val = omxVectorElement(input, i);
-		mean += (val - mean) / (i + 1);	
+		mean += (val - mean) / (i + 1);
 	}
 
 	omxSetMatrixElement(result, 0, 0, mean);
@@ -1181,91 +1181,91 @@ static void omxElementTanh(FitContext *fc, omxMatrix** matList, int numArgs, omx
 static void omxElementArcCosine(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = acos(data[j]);
 	}
-	
+
 }
 
 static void omxElementArcSine(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = asin(data[j]);
 	}
-	
+
 }
 
 static void omxElementArcTangent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = atan(data[j]);
 	}
-	
+
 }
 
 static void omxElementAsinh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = asinh(data[j]);
 	}
-	
+
 }
 
 static void omxElementAcosh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = acosh(data[j]);
 	}
-	
+
 }
 
 static void omxElementAtanh(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = atanh(data[j]);
 	}
-	
+
 }
 
 static void omxElementExponent(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
@@ -1347,11 +1347,11 @@ static void omxElementPtoZ(FitContext *fc, omxMatrix** matList, int numArgs, omx
 static void omxElementLogPtoZ(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = Rf_qnorm5(data[j], 0, 1, 1, 1);
@@ -1375,11 +1375,11 @@ static void omxElementLgamma(FitContext *fc, omxMatrix** matList, int numArgs, o
 static void omxElementLgamma1p(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
-	
+
 	int max = inMat->cols * inMat->rows;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < max; j++) {
 		data[j] = Rf_lgamma1p(data[j]);
@@ -1393,21 +1393,21 @@ static void omxElementDbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxMatrix *b = matList[2];
 	omxMatrix *ncp = matList[3];
 	omxMatrix *give_log = matList[4];
-	
+
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(a);
 	omxEnsureColumnMajor(b);
 	omxEnsureColumnMajor(ncp);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int aDataSize = a->rows * a->cols;
 	int bDataSize = b->rows * b->cols;
 	int ncpDataSize = ncp->rows * ncp->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
@@ -1427,22 +1427,22 @@ static void omxElementPbeta(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxMatrix *ncp = matList[3];
 	omxMatrix *lower_tail = matList[4];
 	omxMatrix *give_log = matList[5];
-	
+
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(a);
 	omxEnsureColumnMajor(b);
 	omxEnsureColumnMajor(ncp);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int aDataSize = a->rows * a->cols;
 	int bDataSize = b->rows * b->cols;
 	int ncpDataSize = ncp->rows * ncp->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
@@ -1459,17 +1459,17 @@ static void omxElementDpois(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxMatrix *inMat = matList[0];
 	omxMatrix *lambda = matList[1];
 	omxMatrix *give_log = matList[2];
-	
+
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(lambda);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int lambdaDataSize = lambda->rows * lambda->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_dpois(data[j],lambda->data[j%lambdaDataSize],give_log_arg);
@@ -1482,18 +1482,18 @@ static void omxElementPpois(FitContext *fc, omxMatrix** matList, int numArgs, om
 	omxMatrix *lambda = matList[1];
 	omxMatrix *lower_tail = matList[2];
 	omxMatrix *give_log = matList[3];
-	
+
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(lambda);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int lambdaDataSize = lambda->rows * lambda->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_ppois(data[j],lambda->data[j%lambdaDataSize],lower_tail_arg,give_log_arg);
@@ -1507,25 +1507,25 @@ static void omxElementDnbinom(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *prob = matList[2];
 	omxMatrix *mu = matList[3];
 	omxMatrix *give_log = matList[4];
-	
+
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(size);
 	omxEnsureColumnMajor(prob);
 	omxEnsureColumnMajor(mu);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int sizeDataSize = size->rows * size->cols;
 	int probDataSize = prob->rows * prob->cols;
 	int muDataSize = mu->rows * mu->cols;
 	int isSizeNeg=0, isProbNeg=0, isMuNeg=0, jumpVal=0;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	double sizecurr=0, probcurr=0, mucurr=0;
-	
+
 	for(int j = 0; j < inMatDataSize; j++) {
 		sizecurr = size->data[j%sizeDataSize];
 		probcurr = prob->data[j%probDataSize];
@@ -1559,26 +1559,26 @@ static void omxElementPnbinom(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *mu = matList[3];
 	omxMatrix *lower_tail = matList[4];
 	omxMatrix *give_log = matList[5];
-	
+
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(size);
 	omxEnsureColumnMajor(prob);
 	omxEnsureColumnMajor(mu);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int sizeDataSize = size->rows * size->cols;
 	int probDataSize = prob->rows * prob->cols;
 	int muDataSize = mu->rows * mu->cols;
 	int isSizeNeg=0, isProbNeg=0, isMuNeg=0, jumpVal=0;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	double sizecurr=0, probcurr=0, mucurr=0;
-	
+
 	for(int j = 0; j < inMatDataSize; j++) {
 		sizecurr = size->data[j%sizeDataSize];
 		probcurr = prob->data[j%probDataSize];
@@ -1610,19 +1610,19 @@ static void omxElementDchisq(FitContext *fc, omxMatrix** matList, int numArgs, o
 	omxMatrix *df = matList[1];
 	omxMatrix *ncp = matList[2];
 	omxMatrix *give_log = matList[3];
-	
+
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(df);
 	omxEnsureColumnMajor(ncp);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int dfDataSize = df->rows * df->cols;
 	int ncpDataSize = ncp->rows * ncp->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
@@ -1641,20 +1641,20 @@ static void omxElementPchisq(FitContext *fc, omxMatrix** matList, int numArgs, o
 	omxMatrix *ncp = matList[2];
 	omxMatrix *lower_tail = matList[3];
 	omxMatrix *give_log = matList[4];
-	
+
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(df);
 	omxEnsureColumnMajor(ncp);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int dfDataSize = df->rows * df->cols;
 	int ncpDataSize = ncp->rows * ncp->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		if( Rf_sign(ncp->data[j%ncpDataSize]) == -1 ){
@@ -1672,19 +1672,19 @@ static void omxElementDbinom(FitContext *fc, omxMatrix** matList, int numArgs, o
 	omxMatrix *n = matList[1];
 	omxMatrix *p = matList[2];
 	omxMatrix *give_log = matList[3];
-	
+
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(n);
 	omxEnsureColumnMajor(p);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int nDataSize = n->rows * n->cols;
 	int pDataSize = p->rows * p->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_dbinom(data[j],n->data[j%nDataSize],p->data[j%pDataSize],give_log_arg);
@@ -1698,20 +1698,20 @@ static void omxElementPbinom(FitContext *fc, omxMatrix** matList, int numArgs, o
 	omxMatrix *p = matList[2];
 	omxMatrix *lower_tail = matList[3];
 	omxMatrix *give_log = matList[4];
-	
+
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(n);
 	omxEnsureColumnMajor(p);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int nDataSize = n->rows * n->cols;
 	int pDataSize = p->rows * p->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_pbinom(data[j],n->data[j%nDataSize],p->data[j%pDataSize],lower_tail_arg,give_log_arg);
@@ -1724,19 +1724,19 @@ static void omxElementDcauchy(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *location = matList[1];
 	omxMatrix *scale = matList[2];
 	omxMatrix *give_log = matList[3];
-	
+
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(location);
 	omxEnsureColumnMajor(scale);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int locationDataSize = location->rows * location->cols;
 	int scaleDataSize = scale->rows * scale->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_dcauchy(data[j],location->data[j%locationDataSize],scale->data[j%scaleDataSize],give_log_arg);
@@ -1750,20 +1750,20 @@ static void omxElementPcauchy(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *scale = matList[2];
 	omxMatrix *lower_tail = matList[3];
 	omxMatrix *give_log = matList[4];
-	
+
 	int lower_tail_arg = (int)(lower_tail->data[0] != 0);
 	int give_log_arg = (int)(give_log->data[0] != 0);
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(location);
 	omxEnsureColumnMajor(scale);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int locationDataSize = location->rows * location->cols;
 	int scaleDataSize = scale->rows * scale->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_pcauchy(data[j],location->data[j%locationDataSize],scale->data[j%scaleDataSize],lower_tail_arg,give_log_arg);
@@ -1775,18 +1775,18 @@ static void omxElementBesselI(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *inMat = matList[0];
 	omxMatrix *nu = matList[1];
 	omxMatrix *expo = matList[2];
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(nu);
 	omxEnsureColumnMajor(expo);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int nuDataSize = nu->rows * nu->cols;
 	int expoDataSize = expo->rows * expo->cols;
 	double expocurr;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		expocurr = (expo->data[j%expoDataSize] != 0) ? 2 : 1;
@@ -1798,15 +1798,15 @@ static void omxElementBesselJ(FitContext *fc, omxMatrix** matList, int numArgs, 
 {
 	omxMatrix *inMat = matList[0];
 	omxMatrix *nu = matList[1];
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(nu);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int nuDataSize = nu->rows * nu->cols;
 
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_bessel_j(data[j],nu->data[j%nuDataSize]);
@@ -1818,18 +1818,18 @@ static void omxElementBesselK(FitContext *fc, omxMatrix** matList, int numArgs, 
 	omxMatrix *inMat = matList[0];
 	omxMatrix *nu = matList[1];
 	omxMatrix *expo = matList[2];
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(nu);
 	omxEnsureColumnMajor(expo);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int nuDataSize = nu->rows * nu->cols;
 	int expoDataSize = expo->rows * expo->cols;
 	double expocurr;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		expocurr = (expo->data[j%expoDataSize] != 0) ? 2 : 1;
@@ -1841,15 +1841,15 @@ static void omxElementBesselY(FitContext *fc, omxMatrix** matList, int numArgs, 
 {
 	omxMatrix *inMat = matList[0];
 	omxMatrix *nu = matList[1];
-	
+
 	omxEnsureColumnMajor(inMat);
 	omxEnsureColumnMajor(nu);
-	
+
 	int inMatDataSize = inMat->rows * inMat->cols;
 	int nuDataSize = nu->rows * nu->cols;
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
 	double* data = result->data;
 	for(int j = 0; j < inMatDataSize; j++) {
 		data[j] = Rf_bessel_y(data[j],nu->data[j%nuDataSize]);
@@ -2276,7 +2276,7 @@ static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	int rows = inMat->rows;
     int selectLength = selector->rows * selector->cols;
     Eigen::VectorXi toRemove(rows);
-    
+
     if((selector->cols != 1) && selector->rows !=1) {
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Selector must have a single row or a single column.\n");
@@ -2292,9 +2292,9 @@ static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 		free(errstr);
 		return;
 	}
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
             toRemove[index] = 1;
@@ -2302,7 +2302,7 @@ static void omxSelectRows(FitContext *fc, omxMatrix** matList, int numArgs, omxM
             toRemove[index] = 0;
         }
     }
-    
+
     std::vector<int> zeros(inMat->cols);
     omxRemoveRowsAndColumns(result, toRemove.data(), zeros.data());
 
@@ -2321,7 +2321,7 @@ static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Selector must have a single row or a single column.\n");
         omxRaiseError(errstr);
-		free(errstr);        
+		free(errstr);
 		return;
     }
 
@@ -2332,9 +2332,9 @@ static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 		free(errstr);
 		return;
 	}
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
             toRemove[index] = 1;
@@ -2342,7 +2342,7 @@ static void omxSelectCols(FitContext *fc, omxMatrix** matList, int numArgs, omxM
             toRemove[index] = 0;
         }
     }
-    
+
     std::vector<int> zeros(inMat->rows);
     omxRemoveRowsAndColumns(result, zeros.data(), toRemove.data());
 }
@@ -2361,7 +2361,7 @@ static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArg
 		char *errstr = (char*) calloc(250, sizeof(char));
 		sprintf(errstr, "Selector must have a single row or a single column.\n");
         omxRaiseError(errstr);
-		free(errstr);        
+		free(errstr);
 		return;
     }
 
@@ -2380,9 +2380,9 @@ static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArg
 		free(errstr);
 		return;
 	}
-	
+
 	omxCopyMatrix(result, inMat);
-	
+
     for(int index = 0; index < selectLength; index++) {
         if(omxVectorElement(selector, index) == 0) {
             toRemove[index] = 1;
@@ -2390,7 +2390,7 @@ static void omxSelectRowsAndCols(FitContext *fc, omxMatrix** matList, int numArg
             toRemove[index] = 0;
         }
     }
-    
+
     omxRemoveRowsAndColumns(result, toRemove.data(), toRemove.data());
 }
 
@@ -2423,14 +2423,14 @@ static void omxCovToCor(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
     if (inMat->colMajor) {
         for(int col = 0; col < rows; col++) {
             for(int row = 0; row < rows; row++) {
-                result->data[col * rows + row] = inMat->data[col * rows + row] * 
+                result->data[col * rows + row] = inMat->data[col * rows + row] *
                     intermediate->data[row] * intermediate->data[col];
             }
         }
     } else {
         for(int col = 0; col < rows; col++) {
             for(int row = 0; row < rows; row++) {
-                result->data[col * rows + row] = inMat->data[row * rows + col] * 
+                result->data[col * rows + row] = inMat->data[row * rows + col] *
                     intermediate->data[row] * intermediate->data[col];
             }
         }
@@ -2462,7 +2462,7 @@ static void omxCholesky(FitContext *fc, omxMatrix** matList, int numArgs, omxMat
 static void omxVechToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
-	
+
 	int dim = (inMat->cols > inMat->rows) ? inMat->cols : inMat->rows;
 
 	int size = sqrt(2.0 * dim + 0.25) - 0.5;
@@ -2500,9 +2500,9 @@ static void omxVechToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, om
 static void omxVechsToMatrix(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix *inMat = matList[0];
-	
+
 	int dim = (inMat->cols > inMat->rows) ? inMat->cols : inMat->rows;
-	
+
 	int size = sqrt(2.0 * dim + 0.25) + 0.5; //note the plus 0.5
 
 	int counter = 0;
@@ -2608,6 +2608,7 @@ static void evaluateOnGrid(FitContext *fc, omxMatrix** matList, int numArgs, omx
 		}
 		abscissaParamMap[rx] = got;
 		fc->profiledOut[got] = true;
+    fc->prepConstraints();
 	}
 
 	omxState *os = result->currentState;
@@ -2698,7 +2699,7 @@ void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
 	}
 }
 
-template <typename T> 
+template <typename T>
 void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
 {
 	if (origCov->rows != origCov->cols) mxThrow("'%s' must be square", origCov->name());
@@ -2745,7 +2746,7 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 
 	omxResizeMatrix(result, origCov->rows, origCov->cols);
 	EigenMatrixAdaptor Eresult(result);
-	
+
 	// cache this in the result matrix somehow? TODO
 	std::vector<bool> filter(origCov->rows, false);
 	buildFilterVec(origCov, newCov, filter);
@@ -2778,7 +2779,7 @@ static void pearsonSelCov(FitContext *fc, omxMatrix** matList, int numArgs, omxM
 	iv11 = iv11.selfadjointView<Eigen::Lower>();
 	Eigen::MatrixXd n12 = nc * iv11 * v12;
 	Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * nc * iv11) * v12;
-	
+
 	partitionCovarianceSet(Eresult, [&](int xx){ return filter[xx]; },
 			       nc, n12, n22);
 }
@@ -2829,7 +2830,7 @@ static void pearsonSelMean(FitContext *fc, omxMatrix** matList, int numArgs, omx
 		return;
 	}
 	iv11 = iv11.selfadjointView<Eigen::Lower>();
-	
+
 	Eigen::VectorXd obsMean;
 	subsetVector(EorigMean, [&](int xx){ return filter[xx]; },
 		     nc.rows(), obsMean);

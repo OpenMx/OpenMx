@@ -120,6 +120,7 @@ namespace FellnerFitFunction {
 
 			fc->profiledOut[vx] = true;
 		}
+    fc->prepConstraints();
 	}
 
 	template <typename T1>

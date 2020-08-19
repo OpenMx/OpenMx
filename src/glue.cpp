@@ -214,7 +214,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	return result.asR();
 }
 
-void omxSadmvnWrapper(FitContext *fc, int numVars, 
+void omxSadmvnWrapper(FitContext *fc, int numVars,
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform)
 {
 	// Eigen::Map< Eigen::ArrayXd > elt(lThresh, numVars);
@@ -250,7 +250,7 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
    	uThresh[1] = 0;
    	Infin[1] = 0;
    	smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
-   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
+   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts,
 		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
 
 	if (fc) fc->recordOrdinalRelativeError(Error / *likelihood);
@@ -273,7 +273,7 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
 			// mxLog("");
 		}
 	}
-} 
+}
 
 static SEXP has_NPSOL()
 { return Rf_ScalarLogical(HAS_NPSOL); }
@@ -563,7 +563,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxDataEntities(data, defvars);
-    
+
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxExpectationEntities(expectList);
 
@@ -840,4 +840,3 @@ void R_unload_OpenMx(DllInfo *) {
 #ifdef  __cplusplus
 }
 #endif
-

@@ -84,7 +84,7 @@ struct HessianBlock {
 };
 
 struct CIobjective {
-	ConfidenceInterval *CI;
+	const ConfidenceInterval *CI;
 
 	enum Diagnostic {
 		DIAG_SUCCESS=1,
@@ -95,6 +95,8 @@ struct CIobjective {
 		DIAG_BOXED
 	};
 
+  CIobjective(const ConfidenceInterval *_CI) : CI(_CI) {}
+  virtual std::unique_ptr<CIobjective> clone() const = 0;
 	virtual bool gradientKnown() { return false; };
 	virtual void gradient(FitContext *fc, double *gradOut) {};
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
@@ -105,7 +107,8 @@ struct CIobjective {
 };
 
 // The idea of FitContext is to eventually enable fitting from
-// multiple starting values in parallel.
+// multiple starting values in parallel. There is one FitContext
+// per thread.
 
 class FitContext {
 	static omxFitFunction *RFitFunction;
@@ -177,14 +180,14 @@ class FitContext {
 	int iterations;
 	int wanted;
 	std::vector< class FitContext* > childList;
-	
+
 	//Outputs from gradient-based optimizers:
 	Eigen::VectorXd constraintFunVals;
 	Eigen::MatrixXd constraintJacobian;
 	Eigen::VectorXd LagrMultipliers;
 	Eigen::VectorXi constraintStates;
 	Eigen::MatrixXd LagrHessian;
-	
+
 	//Constraint-related:
 	void solEqBFun(bool wantAJ, int verbose);
 	void myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK);
@@ -193,12 +196,14 @@ class FitContext {
 	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
+  void prepConstraints();
+  bool isUnconstrained();
 	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
 	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
 	int redundantEqualities;
 
 	// for confidence intervals
-	CIobjective *ciobj;
+  std::unique_ptr<CIobjective> ciobj;
 
 	FitContext(omxState *_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);
@@ -238,7 +243,7 @@ class FitContext {
 		mxThrow("%s: reference fit is not finite", fitMat->name());
 	};
 	~FitContext();
-	
+
 	// deriv related
 	void clearHessian();
 	void negateHessian();
@@ -354,16 +359,16 @@ typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
 struct allconstraints_functional {
 	FitContext &fc;
 	int verbose;
-	
+
 	allconstraints_functional(FitContext &_fc, int _verbose) : fc(_fc), verbose(_verbose) {};
-	
+
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		fc.setEstFromOptimizer(x.derived().data());
 		fc.allConstraintsF(false, verbose, omxConstraint::LESS_THAN, false, true);
 		result = fc.constraintFunVals;
 	}
-	
+
 	template <typename T1, typename T2, typename T3>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		fc.setEstFromOptimizer(x.derived().data());

@@ -40,25 +40,15 @@ void GradientOptimizerContext::copyBounds()
 	fc->copyBoxConstraintToOptimizer(solLB, solUB);
 }
 
-void GradientOptimizerContext::setupSimpleBounds() //used with SLSQP.
+void GradientOptimizerContext::setupSimpleBounds()
 {
 	solLB.resize(numFree);
 	solUB.resize(numFree);
 	copyBounds();
-	//MxConstraints are re-counted in omxInvokeNLOPT().
 }
 
-void GradientOptimizerContext::setupIneqConstraintBounds() //used with CSOLNP.
-{
-	solLB.resize(numFree);
-	solUB.resize(numFree);
-	copyBounds();
-
-	omxState *globalState = fc->state;
-	globalState->countNonlinearConstraints(globalState->numEqC, globalState->numIneqC, false);
-	equality.resize(globalState->numEqC);
-	inequality.resize(globalState->numIneqC);
-}
+bool GradientOptimizerContext::isUnconstrained()
+{ return fc->isUnconstrained(); }
 
 void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 {
@@ -124,9 +114,8 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
 	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
-	  equality(fc->equality), inequality(fc->inequality),
-	  analyticEqJacTmp(fc->analyticEqJacTmp), analyticIneqJacTmp(fc->analyticIneqJacTmp),
-	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
+	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize),
+    jgContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
 	computeName = owner->name;
 	fitMatrix = NULL;
@@ -224,7 +213,6 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobian"
 {
 	fc->solEqBFun(wantAJ, verbose);
-	return;
 }
 
 // NOTE: All non-linear constraints are applied regardless of free
@@ -232,7 +220,6 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
 	fc->myineqFun(wantAJ, verbose, ineqType, CSOLNP_HACK);
-	return;
 }
 
 
@@ -492,11 +479,10 @@ void omxComputeGD::computeImpl(FitContext *fc)
         case OptEngine_SD:{
 		fc->copyParamToModel();
 		rf.setupSimpleBounds();
-		rf.setupIneqConstraintBounds();
 		rf.solEqBFun(false);
 		rf.myineqFun(false);
-		if(rf.inequality.size() == 0 && rf.equality.size() == 0) {
-			omxSD(rf);   // unconstrained problems
+		if(rf.isUnconstrained()) {
+			omxSD(rf);
 			rf.finish();
 		} else {
 			mxThrow("Constrained problems are not implemented");
@@ -693,71 +679,67 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); }
 
-class notImplementedConstraint : public omxConstraint {
-	typedef omxConstraint super;
-public:
-	notImplementedConstraint() : super("not implemented") {};
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
-		mxThrow("Not implemented");
-	};
-	virtual omxConstraint *duplicate(omxState *dest) {
-		mxThrow("Not implemented");
-	}
-};
-
 class ciConstraint : public omxConstraint {
  private:
 	typedef omxConstraint super;
 	omxState *state;
 public:
 	omxMatrix *fitMat;
-	ciConstraint() : super("CI"), state(0) {};
-	virtual ~ciConstraint() {
-		pop();
-	};
-	void push(omxState *_state) {
-		state = _state;
+	ciConstraint(omxState *_state) : super("CI"), state(_state) {}
+  void push()
+  {
 		state->conListX.push_back(this);
-	};
-	void pop() {
-		if (!state) return;
+  }
+  void pop()
+  {
 		size_t sz = state->conListX.size();
-		if (sz && state->conListX[sz-1] == this) {
-			state->conListX.pop_back();
-		}
-		state = 0;
-	};
-	virtual omxConstraint *duplicate(omxState *dest) {
-		return new notImplementedConstraint();
-	};
+		if (!sz || state->conListX[sz-1] != this)
+      mxThrow("Error destroying ciConstraint");
+    state->conListX.pop_back();
+    state = 0;
+  }
+	virtual omxConstraint *duplicate(omxState *dest) const override = 0;
 };
 
 class ciConstraintIneq : public ciConstraint {
  private:
 	typedef ciConstraint super;
  public:
-	ciConstraintIneq(int _size)
+	ciConstraintIneq(omxState *_state, int _size) : super(_state)
 	{ size=_size; opCode = LESS_THAN; };
 
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) override
+  {
 		fc->ciobj->evalIneq(fc, fitMat, out);
 		Eigen::Map< Eigen::ArrayXd > Eout(out, size);
 		if (ineqType != opCode) Eout = -Eout;
 		//mxLog("fit %f diff %f", fit, diff);
 	};
+	virtual omxConstraint *duplicate(omxState *dest) const override
+  {
+    auto *ptr = new ciConstraintIneq(dest, size);
+    ptr->fitMat = dest->lookupDuplicate(fitMat);
+    return ptr;
+  }
 };
 
 class ciConstraintEq : public ciConstraint {
  private:
 	typedef ciConstraint super;
  public:
-	ciConstraintEq(int _size)
+	ciConstraintEq(omxState *_state, int _size) : super(_state)
 	{ size=_size; opCode = EQUALITY; };
 
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
 		fc->ciobj->evalEq(fc, fitMat, out);
 		//mxLog("fit %f diff %f", fit, diff);
 	};
+	virtual omxConstraint *duplicate(omxState *dest) const override
+  {
+    auto *ptr = new ciConstraintEq(dest, size);
+    ptr->fitMat = dest->lookupDuplicate(fitMat);
+    return ptr;
+  }
 };
 
 void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
@@ -792,10 +774,18 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 }
 
 struct regularCIobj : CIobjective {
-	double targetFit;
-	bool lowerBound;
 	bool compositeCIFunction;
+	bool lowerBound;
+	double targetFit;
 	double diff;
+
+  regularCIobj(const ConfidenceInterval *_CI,
+               bool _compositeCIFunction, bool _lowerBound, double _targetFit) :
+    CIobjective(_CI), compositeCIFunction(_compositeCIFunction),
+    lowerBound(_lowerBound), targetFit(_targetFit) {}
+
+  virtual std::unique_ptr<CIobjective> clone() const override
+  { return std::make_unique<regularCIobj>(*this); }
 
 	void computeConstraint(double fit)
 	{
@@ -879,6 +869,13 @@ struct bound1CIobj : CIobjective {
 	bool constrained;
 	Eigen::Array<double,1,1> eq;
 
+  bound1CIobj(const ConfidenceInterval *_CI,
+              double _bound, bool _constrained) :
+    CIobjective(_CI), bound(_bound), constrained(_constrained) {}
+
+  virtual std::unique_ptr<CIobjective> clone() const override
+  { return std::make_unique<bound1CIobj>(*this); }
+
 	template <typename T1>
 	void computeConstraint(FitContext *fc, omxMatrix *fitMat, double fit, Eigen::ArrayBase<T1> &v1)
 	{
@@ -945,6 +942,17 @@ struct boundAwayCIobj : CIobjective {
 	int lower;
 	bool constrained;
 	Eigen::Array<double, 3, 1> ineq;
+
+  boundAwayCIobj(const ConfidenceInterval *_CI,
+                 double _la, double _sq,
+                 double _unboundedLL, double _bestLL,
+                 int _lower, bool _constrained) :
+    CIobjective(_CI), logAlpha(_la), sqrtCrit(_sq),
+    unboundedLL(_unboundedLL), bestLL(_bestLL), lower(_lower),
+    constrained(_constrained) {}
+
+  virtual std::unique_ptr<CIobjective> clone() const override
+  { return std::make_unique<boundAwayCIobj>(*this); }
 
 	virtual bool gradientKnown()
 	{
@@ -1036,9 +1044,21 @@ struct boundNearCIobj : CIobjective {
 	double boundLL, bestLL;
 	int lower;
 	bool constrained;
-	Eigen::Array<double,3,1> ineq;
 	double pN;
 	double lbd, ubd;
+	Eigen::Array<double,3,1> ineq;
+
+  boundNearCIobj(const ConfidenceInterval *_CI,
+                 double _d0, double _logAlpha,
+                 double _boundLL, double _bestLL,
+                 int _lower, bool _constrained,
+                 double _lbd, double _ubd)
+    : CIobjective(_CI),
+      d0(_d0), logAlpha(_logAlpha), boundLL(_boundLL), bestLL(_bestLL),
+      lower(_lower), constrained(_constrained), lbd(_lbd), ubd(_ubd) {}
+
+  virtual std::unique_ptr<CIobjective> clone() const override
+  { return std::make_unique<boundNearCIobj>(*this); }
 
 	virtual bool gradientKnown()
 	{
@@ -1171,29 +1191,27 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		Global->checkpointMessage(mle, mle->est, "%s[%d, %d] adjusted away CI",
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		bool useConstr = useInequality;
-		ciConstraintIneq constr(3);
+		ciConstraintIneq constr(state, 3);
 		constr.fitMat = fitMatrix;
-		if (useConstr) constr.push(state);
-		boundAwayCIobj baobj;
-		baobj.CI = currentCI;
-		baobj.unboundedLL = unboundedLL;
-		baobj.bestLL = mle->fit;
-		baobj.logAlpha = log(1.0 - Rf_pchisq(currentCI->bound[!side], 1, 1, 0));
-		baobj.sqrtCrit = sqrt(currentCI->bound[!side]);
-		baobj.lower = side;
-		baobj.constrained = useConstr;
+		if (useConstr) {
+      constr.push();
+      fc.prepConstraints();
+    }
 		// Could set farBox to the regular UB95, but we'd need to optimize to get it
 		Est = Mle;
-		fc.ciobj = &baobj;
+		fc.ciobj = std::make_unique<boundAwayCIobj>
+      (currentCI,
+       log(1.0 - Rf_pchisq(currentCI->bound[!side], 1, 1, 0)),
+       sqrt(currentCI->bound[!side]), unboundedLL, mle->fit, side, useConstr);
 		runPlan(&fc);
-		constr.pop();
+		if (useConstr) constr.pop();
 
 		omxRecompute(ciMatrix, &fc);
 		double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
-		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		Diagnostic diag = baobj.getDiag();
+		Diagnostic diag = fc.ciobj->getDiag();
+		fc.ciobj.reset();
 		checkOtherBoxConstraints(fc, currentCI, diag);
 		recordCI(WU_NEALE_2012, currentCI, side, fc, detailRow, val, diag);
 	}
@@ -1209,8 +1227,10 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			Est = Mle;
 			Est[currentCI->varIndex] = nearBox; // might be infeasible
 			fc.profiledOut[currentCI->varIndex] = true;
+      fc.prepConstraints();
 			runPlan(&fc);
 			fc.profiledOut[currentCI->varIndex] = false;
+      fc.prepConstraints();
 			if (fc.getInform() == 0) {
 				boundLL = fc.fit;
 			}
@@ -1222,19 +1242,17 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			}
 			if (!std::isfinite(boundLL)) {
 				// Might work if simple approach failed
-				ciConstraintEq constr(1);
+				ciConstraintEq constr(state, 1);
 				constr.fitMat = fitMatrix;
-				constr.push(state);
-				bound1CIobj ciobj;
-				ciobj.constrained = useInequality;
-				ciobj.CI = currentCI;
-				ciobj.bound = nearBox;
-				fc.ciobj = &ciobj;
+				constr.push();
+        fc.prepConstraints();
+				fc.ciobj = std::make_unique<bound1CIobj>
+          (currentCI, nearBox, useInequality);
 				Est = Mle;
 				runPlan(&fc);
 				constr.pop();
 				boundLL = fc.fit;
-				Diagnostic diag = ciobj.getDiag();
+				Diagnostic diag = fc.ciobj->getDiag();
 				if (diag != CIobjective::DIAG_SUCCESS) {
 					recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow,
 						 NA_REAL, diag);
@@ -1271,37 +1289,32 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 		double alphalevel = 1.0 - Rf_pchisq(currentCI->bound[side], 1, 1, 0);
 		bool useConstr = useInequality;
-		ciConstraintIneq constr(3);
+		ciConstraintIneq constr(state, 3);
 		constr.fitMat = fitMatrix;
-		if (useConstr) constr.push(state);
-		boundNearCIobj bnobj;
-		bnobj.CI = currentCI;
-		bnobj.d0 = d0;
-		bnobj.lbd = std::max(d0/2, sqrtCrit90);
-		bnobj.ubd = std::min(d0, sqrtCrit95);
-		bnobj.boundLL = boundLL;
-		bnobj.bestLL = mle->fit;
-		bnobj.logAlpha = log(alphalevel);
-		bnobj.lower = !side;
-		bnobj.constrained = useConstr;
+		if (useConstr) {
+      constr.push();
+      fc.prepConstraints();
+    }
 		double boxSave = farBox;
 		farBox = Mle[currentCI->varIndex];
 		Est = Mle;
 		// Perspective helps? Optimizer seems to like to start further away
 		Est[currentCI->varIndex] = (9*Mle[currentCI->varIndex] + nearBox) / 10.0;
-		fc.ciobj = &bnobj;
+		fc.ciobj = std::make_unique<boundNearCIobj>
+      (currentCI, d0, log(alphalevel), boundLL, mle->fit, !side,
+       useConstr, std::max(d0/2, sqrtCrit90), std::min(d0, sqrtCrit95));
 		runPlan(&fc);
 		farBox = boxSave;
-		constr.pop();
+		if (useConstr) constr.pop();
 
 		omxRecompute(ciMatrix, &fc);
 		double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
 		//mxLog("val=%g", val);
 		//mxPrintMat("bn", bnobj.ineq);
-		fc.ciobj = 0;
 		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-		Diagnostic diag = bnobj.getDiag();
+		Diagnostic diag = fc.ciobj->getDiag();
+		fc.ciobj.reset();
 		checkOtherBoxConstraints(fc, currentCI, diag);
 		recordCI(WU_NEALE_2012, currentCI, !side, fc, detailRow, val, diag);
 	}
@@ -1343,11 +1356,12 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 {
 	omxState *state = fitMatrix->currentState;
 
-	ciConstraintIneq constr(1);
+	ciConstraintIneq constr(state, 1);
 	bool constrained = useInequality;
 	if (constrained) {
 		constr.fitMat = fitMatrix;
-		constr.push(state);
+		constr.push();
+    fc.prepConstraints();
 	}
 
 	// Reset to previous optimum
@@ -1355,27 +1369,23 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	Eigen::Map< Eigen::VectorXd > Est(fc.est, fc.numParam);
 	Est = Mle;
 
-	regularCIobj ciobj;
-	ciobj.CI = currentCI;
-	ciobj.compositeCIFunction = !constrained;
-	ciobj.lowerBound = lower;
-	ciobj.targetFit = currentCI->bound[!lower] + mle->fit;
-	fc.ciobj = &ciobj;
+	fc.ciobj = std::make_unique<regularCIobj>
+    (currentCI, !constrained, lower, currentCI->bound[!lower] + mle->fit);
 	//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 
 	runPlan(&fc);
-	constr.pop();
+	if (constrained) constr.pop();
 
 	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 	omxRecompute(ciMatrix, &fc);
 	val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
+	diag = fc.ciobj->getDiag();
+	fc.ciobj.reset();
+
 	// We check the fit again so we can report it
 	// in the detail data.frame.
-	fc.ciobj = 0;
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
-
-	diag = ciobj.getDiag();
 
 	checkBoxConstraints(fc, -1, diag);
 }

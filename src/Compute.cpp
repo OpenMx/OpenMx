@@ -816,9 +816,11 @@ FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 	infoDefinite = parent->infoDefinite;
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
-	ciobj = parent->ciobj;
-	//equality.resize(state->numEqC);
-	//inequality.resize(state->numIneqC);
+	if (parent->ciobj) ciobj = parent->ciobj->clone();
+	equality.resizeLike(parent->equality);
+	inequality.resizeLike(parent->inequality);
+  analyticEqJacTmp.resizeLike(parent->analyticEqJacTmp);
+  analyticIneqJacTmp.resizeLike(parent->analyticIneqJacTmp);
 }
 
 void FitContext::updateParent()
@@ -1157,6 +1159,31 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	if (verbose >= 3) {
 		mxPrintMat("inequality", inequality);
 	}
+}
+
+void FitContext::prepConstraints()
+{
+  //mxLog("FitContext::prepConstraints()");
+	omxState *st = state;
+	st->usingAnalyticJacobian = false;
+	st->countNonlinearConstraints(st->numEqC, st->numIneqC, false);
+	equality.resize(st->numEqC);
+	inequality.resize(st->numIneqC);
+
+  // What if numFree changes? TODO
+	int numFree = calcNumFree();
+  analyticEqJacTmp.resize(st->numEqC, numFree);
+  analyticIneqJacTmp.resize(st->numIneqC, numFree);
+
+	for (int cx=0; cx < int(childList.size()); ++cx) {
+		childList[cx]->prepConstraints();
+	}
+}
+
+bool FitContext::isUnconstrained()
+{
+	omxState *st = state;
+  return st->numEqC + st->numIneqC == 0;
 }
 
 //Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:

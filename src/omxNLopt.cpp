@@ -67,7 +67,7 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 		return nan("infeasible");
 	}
 	if (!grad) return fit;
-	
+
 	Eigen::Map< Eigen::VectorXd > Epoint((double*) x, n);
 	goc->numericalGradientWithRef(Epoint);
 	Eigen::Map< Eigen::VectorXd > Egrad(grad, n);
@@ -80,24 +80,22 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 
 struct equality_functional {
 	GradientOptimizerContext &goc;
-	
+
 	equality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
-	
+
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		goc.copyFromOptimizer(x.derived().data());
 		goc.solEqBFun(false);
-		result = goc.equality;
+		result = goc.getEqualitySingleThreaded();
 	}
-	
+
 	template <typename T1, typename T2, typename T3>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		goc.copyFromOptimizer(x.derived().data());
-		goc.analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
 		goc.solEqBFun(true);
-		result = goc.equality;
-		jacobian = goc.analyticEqJacTmp;
-		
+		result = goc.getEqualitySingleThreaded();
+		jacobian = goc.getAnalyticEqJacSingleThreaded();
 	}
 };
 
@@ -109,7 +107,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	Eigen::VectorXd Eresult(ctx.origeq);
 	Eigen::MatrixXd jacobian(ctx.origeq, n);
 	equality_functional ff(goc);
-	/*I don't think nloptEqualityFunction is ever called when 'grad' is a null pointer, 
+	/*I don't think nloptEqualityFunction is ever called when 'grad' is a null pointer,
 	but I don't want to assume that:*/
 	if(!grad){ff(Epoint, Eresult);}
 	else{
@@ -173,25 +171,24 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 
 struct inequality_functional {
 	GradientOptimizerContext &goc;
-	
+
 	inequality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
-	
+
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
 		goc.copyFromOptimizer(x.derived().data());
 		goc.myineqFun(false);
-		result = goc.inequality;
+		result = goc.getInequalitySingleThreaded();
 	}
-	
+
 	template <typename T1, typename T2, typename T3>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		goc.copyFromOptimizer(x.derived().data());
-		goc.analyticIneqJacTmp.resize(jacobian.rows(), jacobian.cols());
 		goc.myineqFun(true);
-		result = goc.inequality;
-		jacobian = goc.analyticIneqJacTmp;
+		result = goc.getInequalitySingleThreaded();
+		jacobian = goc.getAnalyticIneqJacSingleThreaded();
 	}
-	
+
 };
 
 static void nloptInequalityFunction(unsigned m, double *result, unsigned n, const double* x, double* grad, void* f_data)
@@ -205,18 +202,19 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 	/*nloptInequalityFunction() is routinely called when 'grad' is a null pointer:*/
 	if(!grad){ff(Epoint,Eresult);}
 	else{
-		ff(Epoint, Eresult, jacobian);
+		ff(Epoint, Eresult, jacobian); // fill in analytically known entries
 		if (goc->verbose >= 2) {
 			mxPrintMat("major iteration ineq", Eresult);
 		}
 		goc->ineqNorm = Eresult.array().abs().sum();
-		fd_jacobian<true>(goc->gradientAlgo, goc->gradientIterations, goc->gradientStepSize,
-              ff, Eresult, Epoint, jacobian);
-		if (!std::isfinite(Eresult.sum())) {
-			// infeasible at start of major iteration
+		if (!std::isfinite(goc->ineqNorm)) { // infeasible at start of major iteration
 			nlopt_opt opt = (nlopt_opt) goc->extraData;
 			nlopt_force_stop(opt);
+      return;
 		}
+
+    goc->ineqJacobian(Eresult, Epoint, jacobian);
+
 		jacobianDest = jacobian.transpose();
 		if (goc->verbose >= 3) {
 			mxPrintMat("inequality jacobian", jacobianDest);
@@ -232,12 +230,12 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump &wkspc, nlopt_opt op
 	int* lengths = wkspc.lengths;
 	double* realwkspc = wkspc.realwkspc;
 	int i=0, ro=0, co=0;
-	
+
 	Eigen::MatrixXd Lmat;
 	Eigen::MatrixXd Dmat;
 	Lmat.setZero(n,n);
 	Dmat.setZero(n,n);
-	
+
 	/*SLSQP Jacobian, starting at beginning of realwkspc, is in column-major order; uninitialized "padding" comes after valid elements.
 	Jacobian starting at realwkspc[sum(lengths[0:5])] is in row-major order and has no padding(?)*/
 	goc.constraintJacobianOut.resize(M,n);
@@ -251,19 +249,19 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump &wkspc, nlopt_opt op
 	}
 	ro=0;
 	co=0;
-	
+
 	goc.constraintFunValsOut.resize(lengths[1]);
 	for(i=0; i<lengths[1]; i++){
 		goc.constraintFunValsOut[i] = realwkspc[lengths[0]+i];
 	}
-	
+
 	int Wst = lengths[0]+lengths[1]+lengths[2]+lengths[3]+lengths[4]+lengths[5]+lengths[6];
-	
+
 	goc.LagrMultipliersOut.resize(M);
 	for(i=0; i<M; i++){
 		goc.LagrMultipliersOut[i] = realwkspc[Wst+i];
 	}
-	
+
 	M = M>0 ? M : 1;
 	for(i=M; i<M+(n*n1/2); i++){
 		if(ro==co){
@@ -280,7 +278,7 @@ static void omxExtractSLSQPConstraintInfo(nlopt_slsqp_wdump &wkspc, nlopt_opt op
 	goc.LagrHessianOut = Lmat * Dmat * Lmat.transpose();
 }
 
-//Ideally, this function should recalculate the gradient and Jacobian 
+//Ideally, this function should recalculate the gradient and Jacobian
 //to make sure they're as numerically accurate as possible:
 static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const double feasTol){
 	int code = 0, i=0, arows=0;
@@ -329,7 +327,7 @@ static int constrainedSLSQPOptimalityCheck(GradientOptimizerContext &goc, const 
 			if(rgnorm > gradThresh){code=6;}
 		}
 	}
-	
+
 	//Finish:
 	return(code);
 }
@@ -341,49 +339,45 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	double *est = goc.est.data();
 	goc.setEngineName("SLSQP");
 	goc.setupSimpleBounds();
-	
+
 	int oldWanted = goc.getWanted();
 	goc.setWanted(0);
-	omxState *globalState = goc.getState();
-	
+
 	nlopt_opt_ptr opt(nlopt_create(NLOPT_LD_SLSQP, goc.numFree));
 	goc.extraData = opt.get();
 	//local_opt = nlopt_create(NLOPT_LD_SLSQP, n); // Subsidiary algorithm
-	
+
 	//nlopt_set_local_optimizer(opt, local_opt);
 	nlopt_set_lower_bounds(opt, goc.solLB.data());
 	nlopt_set_upper_bounds(opt, goc.solUB.data());
-	
-	int eq, ieq;
-	globalState->countNonlinearConstraints(globalState->numEqC, globalState->numIneqC, false);
-	eq = globalState->numEqC;
-	ieq = globalState->numIneqC;
-	
+
+	omxState *globalState = goc.getState();
+	int eq = globalState->numEqC;
+	int ieq = globalState->numIneqC;
+
 	// The *2 is there to roughly equate accuracy with NPSOL.
 	nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
 	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
-	
+
 	nlopt_set_min_objective(opt, SLSQP::nloptObjectiveFunction, &goc);
-	
+
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	SLSQP::context ctx(goc);
 	if (eq + ieq) {
 		ctx.origeq = eq;
 		if (ieq > 0){
 			if (goc.verbose >= 2) mxLog("%d inequality constraints", ieq);
-			goc.inequality.resize(ieq);
 			std::vector<double> tol(ieq, feasibilityTolerance);
 			nlopt_add_inequality_mconstraint(opt, ieq, SLSQP::nloptInequalityFunction, &goc, tol.data());
 		}
-		
+
 		if (eq > 0){
 			if (goc.verbose >= 2) mxLog("%d equality constraints", eq);
-			goc.equality.resize(eq);
 			std::vector<double> tol(eq, feasibilityTolerance);
 			nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
 		}
 	}
-	
+
 	//The following four lines are only sensible if using SLSQP (noted in case we ever use a different optimizer from the NLOPT collection):
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
 	for(int li=0; li<8; li++){
@@ -391,7 +385,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	}
 	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = wkspc.get();
-	
+
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
 	if (ctx.eqredundent) {
@@ -399,19 +393,19 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 		eq -= ctx.eqredundent;
 		std::vector<double> tol(eq, feasibilityTolerance);
 		nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
-		
+
 		code = nlopt_optimize(opt, est, &fit);
 	}
-	
+
 	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
 	if(code > 0){
 		SLSQP::omxExtractSLSQPConstraintInfo(*wkspc, opt, goc);
 	}
-	
+
 	goc.setWanted(oldWanted);
-	
+
 	int constrainedCode = SLSQP::constrainedSLSQPOptimalityCheck(goc, feasibilityTolerance);
-	
+
 	if (code == NLOPT_INVALID_ARGS) {
 		mxThrow("NLOPT invoked with invalid arguments");
 	} else if (code == NLOPT_OUT_OF_MEMORY) {
@@ -429,7 +423,7 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 			mxThrow("%s: Failed due to singular matrix E or C in LSQ subproblem or "
               "rank-deficient equality constraint subproblem or "
               "positive directional derivative in line search "
-				"(eq %.4g ineq %.4g); do you have linearly dependent (i.e., redundant) MxConstraints in your model?", 
+				"(eq %.4g ineq %.4g); do you have linearly dependent (i.e., redundant) MxConstraints in your model?",
 				goc.getOptName(), goc.eqNorm, goc.ineqNorm);
 		} else {
 			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
@@ -468,7 +462,7 @@ void UnconstrainedSLSQPOptimizer::operator()(UnconstrainedObjective &_uo)
 	}
 	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = (nlopt_slsqp_wdump*)&wkspc;
-	
+
 	double fit = 0;
 	int code = nlopt_optimize(opt, uo->getParamVec(), &fit);
 
@@ -529,7 +523,7 @@ void UnconstrainedObjective::getGrad(const double *x, double *out)
 void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt)
 {
 	double *est = gdpt.data();
-	
+
 	nlopt_opt_ptr opt(nlopt_create(NLOPT_LD_SLSQP, nmoc->numFree));
 	nmoc->extraData = opt;
 	nmoc->subsidiarygoc.extraData = opt;
@@ -538,31 +532,29 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	nlopt_set_ftol_rel(opt, nmoc->subsidiarygoc.ControlTolerance);
 	nlopt_set_ftol_abs(opt, std::numeric_limits<double>::epsilon());
 	nlopt_set_min_objective(opt, nmgdfso, nmoc);
-	
+
 	double feasibilityTolerance = nmoc->NMobj->feasTol;
 	SLSQP::context ctx(nmoc->subsidiarygoc);
 	if (nmoc->numEqC + nmoc->numIneqC) {
 		ctx.origeq = nmoc->numEqC;
 		if (nmoc->numIneqC > 0){
-			nmoc->subsidiarygoc.inequality.resize(nmoc->numIneqC);
 			std::vector<double> tol(nmoc->numIneqC, feasibilityTolerance);
 			nlopt_add_inequality_mconstraint(opt, nmoc->numIneqC, SLSQP::nloptInequalityFunction, &(nmoc->subsidiarygoc), tol.data());
 		}
-		
+
 		if (nmoc->numEqC > 0){
-			nmoc->subsidiarygoc.equality.resize(nmoc->numEqC);
 			std::vector<double> tol(nmoc->numEqC, feasibilityTolerance);
 			nlopt_add_equality_mconstraint(opt, nmoc->numEqC, SLSQP::nloptEqualityFunction, &ctx, tol.data());
 		}
 	}
-	
+
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
 	for(int li=0; li<8; li++){
 		wkspc->lengths[li] = 0;
 	}
 	wkspc->realwkspc = (double*)calloc(1, sizeof(double)); //<--Just to initialize it; it'll be resized later.
 	opt->work = wkspc.get();
-	
+
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
 	if(nmoc->verbose){
@@ -573,7 +565,7 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 		int eq = nmoc->numEqC - ctx.eqredundent;
 		std::vector<double> tol(eq, feasibilityTolerance);
 		nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
-		
+
 		code = nlopt_optimize(opt, est, &fit);
 	}
 }

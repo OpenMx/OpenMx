@@ -136,7 +136,7 @@ class omxConstraint {
 	void refreshAndGrab(FitContext *fc, double *out)
 	{ refreshAndGrab(fc, opCode, out); };
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
-	virtual omxConstraint *duplicate(omxState *dest)=0;
+	virtual omxConstraint *duplicate(omxState *dest) const = 0;
 	virtual void prep(FitContext *fc) {};
 };
 
@@ -152,7 +152,7 @@ class UserConstraint : public omxConstraint {
 	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin);
 	virtual ~UserConstraint();
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
-	virtual omxConstraint *duplicate(omxState *dest);
+	virtual omxConstraint *duplicate(omxState *dest) const override;
 	virtual void prep(FitContext *fc);
 };
 

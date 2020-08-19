@@ -43,7 +43,7 @@ void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 	int numDefs = Rf_length(defvars);
 	for(int nextDef = 0; nextDef < numDefs; nextDef++) {
 		omxDefinitionVar dvar;
-		
+
 		SEXP itemList;
 		ScopedProtect p1(itemList, VECTOR_ELT(defvars, nextDef));
 		int *ilist = INTEGER(itemList);
@@ -169,7 +169,7 @@ void omxState::omxProcessMxExpectationEntities(SEXP expList)
 void omxState::omxCompleteMxExpectationEntities()
 {
 	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", (int) expectationList.size());}
-	
+
 	for(size_t index = 0; index < expectationList.size(); index++) {
 		if (isErrorRaised()) return;
 		omxCompleteExpectation(expectationList[index]);
@@ -447,7 +447,6 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		constr->prep(fc);
 		conListX.push_back(constr);
 	}
-	usingAnalyticJacobian = false;
-	countNonlinearConstraints(numEqC, numIneqC, false);
+  fc->prepConstraints();
 	if(OMX_DEBUG){mxLog("Found %d equality and %d inequality constraints", numEqC, numIneqC);}
 }

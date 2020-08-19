@@ -922,7 +922,7 @@ UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg
 	linear = lin;
 }
 
-omxConstraint *UserConstraint::duplicate(omxState *dest)
+omxConstraint *UserConstraint::duplicate(omxState *dest) const
 {
 	omxMatrix *args[2] = {
 		dest->lookupDuplicate(pad->algebra->algArgs[0]),
