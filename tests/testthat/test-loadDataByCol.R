@@ -2,6 +2,8 @@ library(OpenMx)
 library(testthat)
 context("loadDataByCol")
 
+skip_if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386")
+
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
@@ -12,9 +14,9 @@ data("jointdata", package ="OpenMx")
 jointData <- jointdata
 
 # specify ordinal columns as ordered factors
-jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
+jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)],
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
-	
+
 satCov <- mxMatrix("Symm", 5, 5,
 	free=TRUE, values=diag(5), name="C")
 satCov$free[2,2] <- FALSE
@@ -25,13 +27,13 @@ loadings <- mxMatrix("Full", 1, 5,
 	free=TRUE, values=1, name="L", lbound=0)
 loadings$ubound[1,4] <- 2
 loadings$ubound[1,5] <- 2
-	
+
 resid <- mxMatrix("Diag", 5, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
-	
+
 means <- mxMatrix("Full", 1, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=0, name="M")
-	
+
 thresh <- mxMatrix("Full", 3, 3, FALSE, 0, name="T")
 
 thresh$free[,1] <- c(TRUE, FALSE, FALSE)
@@ -98,7 +100,7 @@ omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 2L)
 discardCols <- c("OpenMxEvals", "iterations", "timestamp", "MxComputeLoop1",
                  "objective", "statusCode", "fitUnits")
 thr <- c(9, 9, 9, 8, 9, 9, 8, 9, 9, 9, 9, 8, 8, 9, 4, 10, 10, 9, 9,
-         10, 10, 9, 12, 12, 11, 10, 10, 9, 10, 11, 6, 6, 7, 6, 6, 6, 6, 
+         10, 10, 9, 12, 12, 11, 10, 10, 9, 10, 11, 6, 6, 7, 6, 6, 6, 6,
          6, 7, 6, 6, 6, 6, 7, 6, 11, 11, 10, 11, 12, 11, 10, 12, 12, 12,
          11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12,
          11, 12, 12, 10, 11, 11, 10, 10, 11, 12, 12, 12, 11, 11, 12, 12,
