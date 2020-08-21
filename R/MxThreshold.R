@@ -468,7 +468,7 @@ setMethod("show", "MxMarginalPoisson", function(object) { displayMarginalPoisson
 #' @param vars character vector of manifest indicators
 #' @param maxCount maximum observed count
 #' @param lambda non-negative means
-#' @param zeroInf zero inflation parameter in logit units
+#' @param zeroInf zero inflation parameter in probability units
 #' @param free logical vector indicating whether paremeters are free
 #' @param labels character vector of parameter labels
 #' @param lbound numeric vector of lower bounds
@@ -570,9 +570,9 @@ setMethod("show", "MxMarginalNegativeBinomial", function(object) { displayMargin
 #' @param vars character vector of manifest indicators
 #' @param maxCount maximum observed count
 #' @param size positive target number of successful trials
-#' @param prob probability of success in each trial in logit units
+#' @param prob probability of success in each trial
 #' @param mu alternative parametrization via mean
-#' @param zeroInf zero inflation parameter in logit units
+#' @param zeroInf zero inflation parameter in probability units
 #' @param free logical vector indicating whether paremeters are free
 #' @param labels character vector of parameter labels
 #' @param lbound numeric vector of lower bounds
