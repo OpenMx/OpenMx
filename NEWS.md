@@ -2,7 +2,14 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
+# OpenMx 2.18
+* October 2020 (R 4.0.2)
+* FIXED: Bug in `mxGenerateData` where use.miss was ignored if nrowsProportion was set.
 
+
+# OpenMx 2.17
+* February 2020 (R ???)
+ 
 # OpenMx 2.14.11
 * October 2019 (R 3.6.1)
 * IMPROVED: `mxRun` informs user about any unrecognised parameters (... parameters).
