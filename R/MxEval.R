@@ -20,13 +20,9 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	} else if (missing(model)) {
 		stop("'model' argument is mandatory in call to mxEval function")
 	}
-	# check user got parameters in the right order
-	if(is(expression, "MxModel")){
-		stop("You might have put the model in the first instead of the second parameter of mxEval")
-	}
-	expression    <- match.call()$expression
+	expression <- match.call()$expression
 	modelvariable <- match.call()$model
-	# for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
+  #for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
 	EvalInternal(expression, model, modelvariable, compute, show, defvar.row,
 		       cache, cacheBack, 2L + .extraBack)
 }
