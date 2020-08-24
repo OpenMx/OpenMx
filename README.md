@@ -6,7 +6,7 @@
 [![cran version](http://www.r-pkg.org/badges/version/OpenMx)](https://cran.r-project.org/package=OpenMx)
 [![Monthly Downloads](https://cranlogs.r-pkg.org/badges/OpenMx)](https://cranlogs.r-pkg.org/badges/OpenMx)
 [![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/OpenMx)](https://cranlogs.r-pkg.org/badges/grand-total/OpenMx)
-[![Rdoc](http://www.rdocumentation.org/badges/version/OpenMx)](http://www.rdocumentation.org/packages/OpenMx)
+[![Rdoc](https://www.rdocumentation.org/badges/version/OpenMx)](https://www.rdocumentation.org/packages/OpenMx)
 [![DOI](https://img.shields.io/badge/doi-110.1007/s11336--014--9435--8-yellow.svg?style=flat)](https://doi.org/10.1007/s11336-014-9435-8)
 <!-- badges: end -->
 
