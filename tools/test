@@ -7,5 +7,5 @@ fi
 
 time R --no-save <<EOF
 library(testthat)
-test_dir("tests/testthat", reporter="summary")
+test_dir("tests/testthat", reporter="summary", stop_on_failure=TRUE)
 EOF
