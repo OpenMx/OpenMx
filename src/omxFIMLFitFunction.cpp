@@ -206,7 +206,7 @@ bool condOrdByRow::eval()
 			    ssx < (int)parent->sufficientSets.size()) {
 				INCR_COUNTER(contDensity);
 				sufficientSet &ss = parent->sufficientSets[ssx++];
-				if (ss.start != row) mxThrow("oops");
+				if (ss.start != row) OOPS;
 				if (ordLik == 0.0) {
 					record(-std::numeric_limits<double>::infinity(), ss.length);
 					continue;
@@ -619,7 +619,7 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 			int col = dc[cx];
 			bool lm = omxDataElementMissing(data, sortedRow, col);
 			if (lm) continue;
-			if (dx >= perRow) mxThrow("oops");
+			if (dx >= perRow) OOPS;
 			dvec[row * perRow + dx] = omxDoubleDataElement(data, sortedRow, col);
 			dx += 1;
 		}
@@ -769,7 +769,7 @@ static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 		condContByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
 	}
-	default: mxThrow("oops");
+	default: OOPS;
 	}
 }
 
@@ -906,7 +906,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	if (myParent->curParallelism > 1) {
 		if (OMX_DEBUG) {
 			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, 0);
-			if (!ofo->parent) mxThrow("oops");
+			if (!ofo->parent) OOPS;
 		}
 
 		for (int tx=0; tx < myParent->curParallelism; ++tx) {

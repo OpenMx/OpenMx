@@ -52,7 +52,7 @@ namespace FellnerFitFunction {
 
 		if (numProfiledOut) ram->forceSingleGroup = true;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
-		
+
 		if (numProfiledOut == 0) return;
 
 		RelationalRAMExpectation::state &rram = ram->rram->getParent();
@@ -116,7 +116,7 @@ namespace FellnerFitFunction {
 						weight * (ig.dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
 				}
 			}
-			if (!found) mxThrow("oops");
+			if (!found) OOPS;
 
 			fc->profiledOut[vx] = true;
 		}
@@ -156,7 +156,7 @@ namespace FellnerFitFunction {
 
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
 			if (fc->isClone()) return;
-			
+
 			setupProfiledParam(fc);
 
 			RelationalRAMExpectation::state *rram   = ram->rram;

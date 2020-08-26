@@ -1265,7 +1265,7 @@ void obsSummaryStats::permute(omxData *data)
 	if (int(covMat->colnames.size()) != covMat->cols) mxThrow("%s: cannot permute without cov dimnames", data->name);
 	for (int cx=0; cx < int(covMat->colnames.size()); ++cx) {
 		auto it = dataMap.find(covMat->colnames[cx]);
-		if (it == dataMap.end()) mxThrow("oops");
+		if (it == dataMap.end()) OOPS;
 		invDataColumns[cx] = it->second;
 		//mxLog("%d %s", cx, omxDataColumnName(data, dc[cx]));
 	}

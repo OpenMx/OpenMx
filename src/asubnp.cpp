@@ -559,11 +559,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 
   auto &equality = fit.getEqualitySingleThreaded();
   auto &inequality = fit.getInequalitySingleThreaded();
-	if (neq != equality.size()) mxThrow("oops");
+	if (neq != equality.size()) OOPS;
 	if (optimize_initial_inequality_constraints) {
-		if (nineq != 0) mxThrow("oops");
+		if (nineq != 0) OOPS;
 	} else {
-		if (nineq != inequality.size()) mxThrow("oops");
+		if (nineq != inequality.size()) OOPS;
 	}
 
 	int np = (int)ind[indNumParam];

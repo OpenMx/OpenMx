@@ -1729,7 +1729,7 @@ namespace RelationalRAMExpectation {
 				std::vector<int> dc(a1.clump);
 				std::sort(dc.begin(), dc.end(), RampartClumpCompare(this));
 				for (size_t cx=0; cx < dc.size(); ++cx) {
-					if (dc[cx] != a1.clump[cx]) mxThrow("oops");
+					if (dc[cx] != a1.clump[cx]) OOPS;
 				}
 			}
 		}
