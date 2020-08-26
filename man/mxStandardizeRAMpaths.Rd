@@ -1,5 +1,4 @@
 \name{mxStandardizeRAMpaths}
-\alias{mxStandardizeRAMpaths}
 \alias{mxStandardizeRAMPaths}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Standardize RAM models' path coefficients}
