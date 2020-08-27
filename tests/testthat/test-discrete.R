@@ -7,17 +7,17 @@ library(OpenMx)
 
 verifyFrontBackMatch <- function(m1) {
   t1 <- mxGetExpected(m1, "thresholds")
-  
+
   m1 <- mxRun(mxModel(m1, mxComputeSequence(list(
     mxComputeOnce('expectation'),
     mxComputeReportExpectation()))))
-  
+
   t2 <- m1$expectation$output$thresholds
 
   t2 <- t2[,colnames(t1),drop=FALSE]
 
   expect_equivalent(is.na(t1), is.na(t2))
-  
+
   mask <- !is.na(t1)
   expect_equal(t1[mask], t2[mask], 1e-9)
 }
@@ -37,10 +37,10 @@ qzinbinom <- function(p, mu, theta, size, pi, lower.tail = TRUE, log.p = FALSE) 
 test_that("Normal", {
   library(OpenMx)
   library(testthat)
-  
+
   RNGversion("4.0")
   set.seed(1)
-  
+
   factorModel <- mxModel(
     "One Factor",
     mxMatrix(nrow=1, ncol=5, free=FALSE, values=0, name="M"),
@@ -64,30 +64,30 @@ test_that("Normal", {
                                               dimnames=list(c(), paste0('x',1:3))),
                         means = "M"),
     mxFitFunctionML())
-  
+
   thr <- mxGetExpected(factorModel, "thresholds")
   expect_equal(thr[1:4,'x1'], c(-0.53, 0.68, 1.65, 2.5), .01)
   expect_equal(thr[1:5,'x2'], c(-1.36, -0.28, 0.6, 1.38, 2.08), .01)
   expect_equal(thr[1:6,'x3'], c(-1.87, -1.1, -0.49, 0.02, 0.46, 0.86), .01)
-  
+
   factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
 
   # raw counts as integer
   factorModel$data$observed$x1 <-
     unclass(factorModel$data$observed$x1) - 1L
-  
+
   # raw counts as numeric
   factorModel$data$observed$x2 <-
     unclass(factorModel$data$observed$x2) - 1.0
 
   factorModel$D$free <- !is.na(factorModel$D$values)
-  
+
   fit <- mxRun(factorModel)
   expect_equal(fit$output$fit, 6256.76, .01)
   dv <- fit$D$values
   dv <- dv[!is.na(dv)]
   expect_equal(dv, c(0, 1.047, 0.022, 2.072, 0.013, 2.91, 0.411), .01)
-  
+
   factorModel$expectation$discreteSpec <-
     factorModel$expectation$discreteSpec[,c(3,1,2)]
   expect_error(mxRun(factorModel),
@@ -101,10 +101,10 @@ test_that("Normal", {
 test_that("RAM", {
   library(OpenMx)
   library(testthat)
-  
+
   RNGversion("4.0")
   set.seed(1)
-  
+
   manifests <- paste0('x',1:5)
   latents <- c("G")
   factorModel <- mxModel(
@@ -119,22 +119,22 @@ test_that("RAM", {
     mxPath(from = 'one', to = manifests, free=FALSE),
     mxMarginalPoisson(paste0("x",1:2), c(4,5), c(1.1, 2)),
     mxMarginalNegativeBinomial("x3", 6, 4, .5))
-  
+
   trueDv <- factorModel$Discrete$values
   trueDv <- trueDv[!is.na(trueDv)]
-  
+
   thr <- mxGetExpected(factorModel, "thresholds")
   expect_equal(thr[1:4,'x1'], c(-0.53, 0.68, 1.65, 2.5), .01)
   expect_equal(thr[1:5,'x2'], c(-1.36, -0.28, 0.6, 1.38, 2.08), .01)
   expect_equal(thr[1:6,'x3'], c(-1.87, -1.1, -0.49, 0.02, 0.46, 0.86), .01)
-  
+
   factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
-  
+
   verifyFrontBackMatch(factorModel)
-  
+
   # autodetect maximum count from data
   factorModel$expectation$discreteSpec[1,] <- NA
-  
+
   fit <- mxRun(factorModel)
   #  summary(fit)
   expect_equal(fit$output$fit, 6256.76, .01)
@@ -142,7 +142,7 @@ test_that("RAM", {
   dv <- dv[!is.na(dv)]
   expect_equal(dv, c(0, 1.047, 0.022, 2.072, 0.013, 2.91, 0.411), .01)
 
-  expect_equal(colnames(fit$expectation$discreteSpec), paste0('x',1:3))  
+  expect_equal(colnames(fit$expectation$discreteSpec), paste0('x',1:3))
   verifyFrontBackMatch(fit)
 })
 
@@ -153,48 +153,48 @@ test_that("mediation", {
 
   RNGversion("4.0")
   set.seed(1)
-  
+
   N<-5000
   A<-matrix(0,3,3)
   b_1_2<-.5
   b_2_3<-.5
   b_1_3<-.5
-  
+
   size<- .5
   prob<- .25
   zif<-.3
   mu<- (1-prob)*size/prob
-  
+
   A[2,1]<-b_1_2   #X1 to X2
   A[3,2]<-b_2_3   #X2 to X3
   A[3,1]<-b_1_3   #X1 to X3
   S<-diag(c(1,
-            1-b_1_2^2, 
+            1-b_1_2^2,
             1 - b_2_3^2*(1-b_1_2^2) - (b_2_3*b_1_2)^2 - b_1_3^2 -  2*b_1_2*b_2_3*b_1_3
   ), 3)
   R<-solve(diag(3)-A)%*%S%*%t(solve(diag(3)-A))
-  
+
   z<-mvrnorm(N, rep(0,3), R, empirical=F)
   z[,2]<-qzinbinom(pnorm(z[,2], 0, 1), size=size, mu=mu, pi=zif)
-  
+
   manifests<-paste0("x",1:3)
   colnames(z)<-manifests
-  
+
   z.f<-z<-as.data.frame(z)
   z.f[,2]<-mxFactor(z[,2], levels=0:max(z[,2]))
-  
+
   factorModel<-mxModel(
     name="countMed",type="RAM", manifestVars = manifests, latentVars =NULL,
-    
+
     mxPath(from=c("x1","x2"), to="x3", arrows=1, free=T),
     mxPath(from="x1", to="x2", arrows=1, free=T),
-    
+
     mxPath(from=manifests, arrows=2, values=1, free=c(T,F,T) ),
     mxPath(from="one", to=manifests, arrows=1, values=0, free=c(T,F,T)),
-    
+
     mxMarginalNegativeBinomial(c("x2"), size=1, prob=.5),
     mxData(z.f, type="raw"))
-  
+
   expect_error(mxGetExpected(factorModel, "thresholds"),
                "maximum observed count")
 
@@ -210,10 +210,10 @@ test_that("mediation", {
 test_that("LISREL", {
   library(OpenMx)
   library(testthat)
-  
+
   RNGversion("4.0")
   set.seed(1)
-  
+
   manifests <- paste0('x',1:5)
   latents <- c("G")
   factorModel <- mxModel(
@@ -228,48 +228,48 @@ test_that("LISREL", {
     mxPath(from = 'one', to = manifests, free=FALSE),
     mxMarginalPoisson(paste0("x",1:2), c(4,5), c(1.1, 2)),
     mxMarginalNegativeBinomial("x3", 6, 4, .5))
-  
+
   trueDv <- factorModel$Discrete$values
   trueDv <- trueDv[!is.na(trueDv)]
-  
+
   thr <- mxGetExpected(factorModel, "thresholds")
   expect_equal(thr[1:4,'x1'], c(-0.53, 0.68, 1.65, 2.5), .01)
   expect_equal(thr[1:5,'x2'], c(-1.36, -0.28, 0.6, 1.38, 2.08), .01)
   expect_equal(thr[1:6,'x3'], c(-1.87, -1.1, -0.49, 0.02, 0.46, 0.86), .01)
-  
+
   factorModel <- mxGenerateData(factorModel, 400, returnModel = TRUE)
-  
+
   verifyFrontBackMatch(factorModel)
-  
+
   # autodetect maximum count from data
   factorModel$expectation$discreteSpec[1,] <- NA
-  
+
   fit <- mxRun(factorModel)
   #  summary(fit)
   expect_equal(fit$output$fit, 6256.76, .01)
   dv <- fit$Discrete$values
   dv <- dv[!is.na(dv)]
   expect_equal(dv, c(0, 1.047, 0.022, 2.072, 0.013, 2.91, 0.411), .01)
-  
-  expect_equal(colnames(fit$expectation$discreteSpec), paste0('x',1:3))  
+
+  expect_equal(colnames(fit$expectation$discreteSpec), paste0('x',1:3))
   verifyFrontBackMatch(fit)
 })
 
 test_that("probit+poisson ML+WLS", {
   library(OpenMx)
   library(testthat)
-  
+
   RNGversion("4.0")
   set.seed(1)
-  
+
   data("jointdata", package ="OpenMx")
 
   jointdata[,c(2,4,5)] <-
-    mxFactor(jointdata[,c(2,4,5)], 
+    mxFactor(jointdata[,c(2,4,5)],
              levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
   jointdata$extra <- rnorm(nrow(jointdata))
-  
+
   build <- function(wls=FALSE) {
     m1 <- mxModel(
       "m1", type="RAM",
@@ -286,15 +286,20 @@ test_that("probit+poisson ML+WLS", {
     if (wls) m1 <- mxModel(m1, mxFitFunctionWLS())
     m1
   }
-  
+
   m1 <- mxRun(build())
   verifyFrontBackMatch(m1)
   m2 <- mxRun(build())
   verifyFrontBackMatch(m2)
   m3 <- mxRun(build())
   verifyFrontBackMatch(m3)
-  expect_equal(m1$output$fit - m2$output$fit, 0, 1e-9)
-  expect_equal(m1$output$fit - m3$output$fit, 0, 1e-9)
+  if (mxOption(key="Default optimizer") == 'NPSOL') {
+    expect_equal(m1$output$fit - m2$output$fit, 0, 1e-3)
+    expect_equal(m1$output$fit - m3$output$fit, 0, 1e-3)
+  } else {
+    expect_equal(m1$output$fit - m2$output$fit, 0, 1e-9)
+    expect_equal(m1$output$fit - m3$output$fit, 0, 1e-9)
+  }
 
   m1 <- mxRun(build(TRUE))
   verifyFrontBackMatch(m1)
