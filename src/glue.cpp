@@ -696,8 +696,10 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				Rf_protect(units = Rf_allocVector(STRSXP, 1));
 				SET_STRING_ELT(units, 0, Rf_mkChar(fitUnitsToName(fc->fitUnits)));
 				result.add("fitUnits", units);
+				if(fc->fitUnits == FIT_UNITS_MINUS2LL){
+					result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
+				}
 			}
-			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
 			result.add("maxRelativeOrdinalError",
 				   Rf_ScalarReal(fc->getOrdinalRelativeError()));
 		}
