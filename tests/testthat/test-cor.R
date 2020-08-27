@@ -38,14 +38,19 @@ for (fit in list(fl1, fr1, mg1$L, mg1$R)) {
 expect_equivalent(fl1$output$constraintJacobian[,paste0("L.TD[",1:5,",",1:5,"]")], diag(5))
 expect_equivalent(fr1$output$constraintJacobian[,paste0("R.S[",1:5,",",1:5,"]")], diag(5))
 
-if (mxOption(key="Default optimizer")!="NPSOL") {
+lrConstraintJacobian <- rbind(
+  cbind(fl1$output$constraintJacobian, matrix(0, 5,10)),
+  cbind(matrix(0,5,10), fr1$output$constraintJacobian))
+
+mgConstraintJacobian <- mg1$output$constraintJacobian
+
+if (mxOption(key="Default optimizer") == "NPSOL") {
   # NPSOL has signs flipped, not sure why
-  expect_equivalent(mg1$output$constraintJacobian,
-                    rbind(
-                      cbind(fl1$output$constraintJacobian, matrix(0, 5,10)),
-                      cbind(matrix(0,5,10), fr1$output$constraintJacobian)),
-                    tolerance=1e-6)
+  mgConstraintJacobian <- abs(mgConstraintJacobian)
 }
+
+expect_equivalent(mgConstraintJacobian,
+                  lrConstraintJacobian, tolerance=1e-6)
 
 fr1$expectedCovariance$free[1,1] <- TRUE
 expect_error(mxRun(fr1), "Free parameters are not allowed")
