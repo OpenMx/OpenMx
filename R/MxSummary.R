@@ -986,10 +986,10 @@ logLik.MxModel <- function(object, ...) {
 	moreModels <- list(...)
 	assertModelFreshlyRun(model)
 	ll <- NA
-	if (length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
+	if (length(model@output) && !is.null(model@output$fit) && 
 			!is.null(model@output$fitUnits) ) {
 		if(model@output$fitUnits=="-2lnL"){
-			ll <- -0.5*model@output$Minus2LogLikelihood
+			ll <- -0.5*model@output$fit
 			#TODO: this doesn't count "implicit" free parameters that are "profiled out":
 			attr(ll, "df") <- length(model@output$estimate)
 		} else if(model@output$fitUnits=="r'Wr") {
