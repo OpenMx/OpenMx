@@ -7,7 +7,7 @@ skip_if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386")
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
-if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
+skip_if(mxOption(key="Default optimizer") == 'NPSOL')
 #mxOption(NULL, "Number of Threads", 1L)
 
 data("jointdata", package ="OpenMx")

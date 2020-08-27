@@ -4,13 +4,13 @@ context("loadDataByRow")
 suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
-if (mxOption(NULL,"Default optimizer") == 'NPSOL') stop("SKIP")
+skip_if(mxOption(key="Default optimizer") == 'NPSOL')
 #mxOption(NULL, "Number of Threads", 1L)
 
 data("jointdata", package ="OpenMx")
 
 # specify ordinal columns as ordered factors
-jointdata[,c(2,4,5)] <- mxFactor(jointdata[,c(2,4,5)], 
+jointdata[,c(2,4,5)] <- mxFactor(jointdata[,c(2,4,5)],
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 satCov <- mxMatrix("Symm", 5, 5,
@@ -25,10 +25,10 @@ loadings$ubound[1,4:5] <- 2
 
 resid <- mxMatrix("Diag", 5, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
-	
+
 means <- mxMatrix("Full", 1, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=0, name="M")
-	
+
 thresh <- mxMatrix("Full", 3, 3, FALSE, 0, name="T")
 
 thresh$free[,1] <- c(TRUE, FALSE, FALSE)
