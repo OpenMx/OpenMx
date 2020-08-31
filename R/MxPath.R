@@ -163,21 +163,6 @@ pathCheckSingleLength <- function(numPaths, len, lenName, from, to, loop) {
 }
 
 
-generateSinglePath <- function(from, to, 
-		arrows, values, free,
-		labels, lbound, ubound) {
-	result <- list()
-	result[['from']] <- from
-	result[['to']] <- to
-	result[['arrows']] <- arrows[[1]]
-	result[['values']] <- values[[1]]	
-	result[['free']] <- free[[1]]
-	result[['labels']] <- labels[[1]]	
-	result[['lbound']] <- lbound[[1]]
-	result[['ubound']] <- ubound[[1]]
-	return(result)
-}
-
 ##' imxIsPath
 ##'
 ##' This is an internal function exported for those people who know
