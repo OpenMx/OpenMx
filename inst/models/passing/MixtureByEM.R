@@ -1,6 +1,8 @@
 library(OpenMx)
 set.seed(190127)
 
+#mxOption(key="Parallel diagnostics", value = "Yes")
+
 mu1 <- -1.5
 mu2 <- 1.5
 

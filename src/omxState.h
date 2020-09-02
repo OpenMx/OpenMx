@@ -138,6 +138,7 @@ class omxConstraint {
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
 	virtual omxConstraint *duplicate(omxState *dest) const = 0;
 	virtual void prep(FitContext *fc) {};
+	virtual void preeval(FitContext *fc) {};
 };
 
 class UserConstraint : public omxConstraint {
@@ -154,6 +155,7 @@ class UserConstraint : public omxConstraint {
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
 	virtual omxConstraint *duplicate(omxState *dest) const override;
 	virtual void prep(FitContext *fc);
+	virtual void preeval(FitContext *fc) override;
 };
 
 enum omxCheckpointType {
@@ -331,6 +333,7 @@ class omxState {
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
 	std::vector< omxConstraint* > conListX;
+  void constraintPreeval(FitContext *fc) { for (auto c1 : conListX) c1->preeval(fc); }
 
 	omxState() : wantStage(0), parent(0), hasFakeParam(false) { init(); };
 	omxState(omxState *src);

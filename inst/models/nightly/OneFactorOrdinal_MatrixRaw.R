@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,16 +14,16 @@
 #   limitations under the License.
 
 # -----------------------------------------------------------------------------
-# Program: OneFactorOrdinal_MatrixRaw.R  
+# Program: OneFactorOrdinal_MatrixRaw.R
 # Author: Michael Neale
-# Date: 2010.08.14 
+# Date: 2010.08.14
 #
 # ModelType: Factor
 # DataType: Ordinal
 # Field: None
 #
 # Purpose:
-#      One Factor model to estimate factor loadings, 
+#      One Factor model to estimate factor loadings,
 #      residual variances and means
 #      Matrix style model input - Raw data input - Ordinal data
 #
@@ -33,6 +33,8 @@
 # -----------------------------------------------------------------------------
 
 require(OpenMx)
+
+#mxOption(key="Parallel diagnostics", value = "Yes")
 
 # Load libraries
 # -----------------------------------------------------------------------------
@@ -44,9 +46,9 @@ nSubjects<-500
 isIdentified<-function(nVariables,nFactors) as.logical(1+sign((nVariables*(nVariables-1)/2) -  nVariables*nFactors + nFactors*(nFactors-1)/2))
 
 isIdentified(nVariables,nFactors) # if this function returns FALSE then model is not identified, otherwise it is.
-# Set up simulation parameters: 
-# nVariables>=3, nThresholds>=1, 
-# nSubjects>=nVariables*nThresholds 
+# Set up simulation parameters:
+# nVariables>=3, nThresholds>=1,
+# nSubjects>=nVariables*nThresholds
 # and model should be identified
 # -------------------------------------
 
@@ -66,14 +68,14 @@ for(i in 1:nVariables)
 {
 ordinalData[,i] <- cut(as.vector(continuousData[,i]),c(-Inf,quants,Inf))
 }
-# Chop continuous variables into 
-# ordinal data with nThresholds+1 
-# approximately equal categories, 
+# Chop continuous variables into
+# ordinal data with nThresholds+1
+# approximately equal categories,
 # based on 1st variable
 # -------------------------------------
 
 ordinalData <- mxFactor(as.data.frame(ordinalData),levels=c(1:(nThresholds+1)))
-# Make the ordinal variables into 
+# Make the ordinal variables into
 # R factors
 # -------------------------------------
 
@@ -87,40 +89,40 @@ names(ordinalData)<-fruitynames
 
 oneFactorThresholdModel <- mxModel("oneFactorThresholdModel",
     mxMatrix(
-        type="Full", 
-        nrow=nVariables, 
-        ncol=nFactors, 
-        free=TRUE, 
-        values=0.2, 
-        lbound=-.99, 
-        ubound=.99, 
+        type="Full",
+        nrow=nVariables,
+        ncol=nFactors,
+        free=TRUE,
+        values=0.2,
+        lbound=-.99,
+        ubound=.99,
         name="facLoadings"
     ),
     mxMatrix(
-        type="Unit", 
-        nrow=nVariables, 
-        ncol=1, 
+        type="Unit",
+        nrow=nVariables,
+        ncol=1,
         name="vectorofOnes"
     ),
     mxAlgebra(
-        expression=vectorofOnes - (diag2vec(facLoadings %*% t(facLoadings))) , 
+        expression=vectorofOnes - (diag2vec(facLoadings %*% t(facLoadings))) ,
         name="resVariances"
     ),
     mxAlgebra(
-        expression=facLoadings %*% t(facLoadings) + vec2diag(resVariances), 
+        expression=facLoadings %*% t(facLoadings) + vec2diag(resVariances),
         name="expCovariances"
     ),
     mxMatrix(
-        type="Zero", 
-        nrow=1, 
-        ncol=nVariables, 
+        type="Zero",
+        nrow=1,
+        ncol=nVariables,
         name="expMeans"
     ),
     mxMatrix(
-        type="Full", 
-        nrow=nThresholds, 
+        type="Full",
+        nrow=nThresholds,
         ncol=nVariables,
-        free=TRUE, 
+        free=TRUE,
         values=.2,
         lbound=rep( c(-Inf,rep(.01,(nThresholds-1))) , nVariables),
         dimnames=list(c(), fruitynames),
@@ -135,17 +137,17 @@ oneFactorThresholdModel <- mxModel("oneFactorThresholdModel",
         name="unitLower"
     ),
     mxAlgebra(
-        expression=unitLower %*% thresholdDeviations, 
+        expression=unitLower %*% thresholdDeviations,
         name="expThresholds"
     ),
     mxData(
-        observed=ordinalData, 
+        observed=ordinalData,
         type='raw'
     ),
     mxFitFunctionML(),mxExpectationNormal(
-        covariance="expCovariances", 
-        means="expMeans", 
-        dimnames=fruitynames, 
+        covariance="expCovariances",
+        means="expMeans",
+        dimnames=fruitynames,
         thresholds="expThresholds"
     )
 )

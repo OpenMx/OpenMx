@@ -1333,14 +1333,50 @@ bool FitContext::isClone() const
 	return state->isClone();
 }
 
-void FitContext::createChildren(omxMatrix *alg)
+struct ParallelInvalidator : StateInvalidator {
+  typedef StateInvalidator super;
+  ParallelInvalidator(omxState &_st) : super(_st) {}
+	virtual void doExpectation() {}
+  virtual void doData() {}
+  virtual void doMatrix() {}
+};
+
+void FitContext::createChildren(omxMatrix *alg, bool _permitParallel)
 {
+	if (childList.size()) {
+		diagParallel(OMX_DEBUG, "FitContext::createChildren: ignored, childList already populated");
+    return;
+  }
+
+  openmpUser = false;
 	if (Global->numThreads <= 1) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: max threads set to 1");
-		return;
+    _permitParallel = false;
 	}
-	if (childList.size()) return;
 
+  diagParallel(OMX_DEBUG, "FitContext::createChildren(%s, %d)",
+               alg? alg->name() : "NULL", _permitParallel);
+
+  ParallelInvalidator pi(*state);
+  pi();
+
+  permitParallel = _permitParallel;
+  if (alg) omxAlgebraPreeval(alg, this);
+
+	if (Global->numThreads <= 1)  return;
+
+  createChildren1();
+
+  if (alg) {
+    for (auto kid : childList) omxAlgebraPreeval(alg, kid);
+  }
+  if (!_permitParallel) {
+    if (openmpUser) OOPS;
+  }
+}
+
+void FitContext::createChildren1()
+{
 	for(size_t j = 0; j < state->expectationList.size(); j++) {
 		if (!state->expectationList[j]->canDuplicate) {
 			diagParallel(OMX_DEBUG, "FitContext::createChildren: %s cannot be duplicated",
@@ -1359,8 +1395,8 @@ void FitContext::createChildren(omxMatrix *alg)
 		if (ff->openmpUser) {
 			diagParallel(OMX_DEBUG, "FitContext::createChildren: %s is an OpenMP user",
 				     state->algebraList[j]->name());
+      openmpUser = true;
 		}
-		openmpUser |= ff->openmpUser;
 	}
 
 	diagParallel(OMX_DEBUG, "FitContext::createChildren: create %d FitContext for parallel processing; OpenMP user=%d",
@@ -1374,7 +1410,6 @@ void FitContext::createChildren(omxMatrix *alg)
 		FitContext *kid = new FitContext(this, varGroup);
 		kid->state = new omxState(state);
 		kid->state->initialRecalc(kid);
-		omxAlgebraPreeval(alg, kid);
 		childList.push_back(kid);
 	}
 
@@ -1966,8 +2001,9 @@ struct ParJacobianSense {
 	std::vector<int> numStats;
 	int maxNumStats;
 	int totalNumStats;
+  int numFree;
 	int defvar_row;
-	Eigen::VectorXd ref;
+	Eigen::ArrayXd ref;
 	Eigen::MatrixXd result;
 
 	// default defvar_row to 1 or 0? TODO
@@ -1993,25 +2029,28 @@ struct ParJacobianSense {
 		using Eigen::Map;
 		using Eigen::VectorXd;
 		fc = _fc;
-		int numFree = fc->calcNumFree();
+		numFree = fc->calcNumFree();
 		Map< VectorXd > curEst(fc->est, numFree);
 		result.resize(totalNumStats, numFree);
 		ref.resize(totalNumStats);
-		(*this)(curEst, ref);
+		(*this)(fc->est, -1, ref);
 	}
 
-	template <typename T1, typename T2>
-	void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result1) const {
-		fc->copyParamToModel();
+	template <typename T1>
+	void operator()(double *myPars, int thrId, Eigen::ArrayBase<T1> &result1) const {
+    FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+    Eigen::Map< Eigen::VectorXd > Est(myPars, numFree);
+    fc2->setEstFromOptimizer(Est);
+    omxState *st = fc2->state;
 		Eigen::VectorXd tmp(maxNumStats);
 		for (int ex=0, offset=0; ex < numOf; offset += numStats[ex++]) {
 			if (exList) {
-				(*exList)[ex]->asVector(fc, defvar_row, tmp);
+				st->lookupDuplicate((*exList)[ex])->asVector(fc2, defvar_row, tmp);
 				result1.block(offset, 0, numStats[ex], 1) =
-					tmp.segment(0, numStats[ex]);
+					tmp.array().segment(0, numStats[ex]);
 			} else {
-				omxMatrix *mat = (*alList)[ex];
-				omxRecompute(mat, fc);
+				omxMatrix *mat = st->lookupDuplicate((*alList)[ex]);
+				omxRecompute(mat, fc2);
 				EigenVectorAdaptor vec(mat);
 				if (numStats[ex] != vec.size()) {
 					mxThrow("Algebra '%s' changed size during Jacobian", mat->name());
@@ -2021,46 +2060,6 @@ struct ParJacobianSense {
 		}
 	}
 };
-
-struct ParJacobianSense1 {
-	FitContext *fc;
-	omxMatrix *alg;
-	Eigen::MatrixXd ref;
-	Eigen::MatrixXd result;
-
-	ParJacobianSense1() : alg(0) {};
-
-	void attach(omxMatrix * _alg) {
-		if (_alg) mxThrow("_alg");
-		alg = _alg;
-	};
-
-	void measureRef(FitContext *_fc) {
-		using Eigen::Map;
-		using Eigen::VectorXd;
-		fc = _fc;
-		int numFree = fc->calcNumFree();
-		Map< VectorXd > curEst(fc->est, numFree);
-		result.resize(alg->rows, alg->cols);
-		ref.resize(alg->rows, alg->cols);
-		(*this)(curEst, ref);
-	}
-
-	template <typename T1, typename T2>
-	void operator()(Eigen::MatrixBase<T1> &, Eigen::MatrixBase<T2> &result1) const {
-		fc->copyParamToModel();
-		omxRecompute(alg, fc);
-		EigenMatrixAdaptor Ealg(alg);
-		result1 = Ealg;
-	}
-};
-
-// usage:
-//
-// ParJacobianSense1 sense;
-// sense.attach(myAlgebra);
-// sense.measureRef(fc);
-// fd_jacobian1<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, px, sense.result);
 
 class ComputeJacobian : public omxCompute {
 	typedef omxCompute super;
@@ -3644,8 +3643,12 @@ void ComputeJacobian::computeImpl(FitContext *fc)
 	if (sense.defvar_row != NA_INTEGER) {
 		data->loadDefVars(fc->state, sense.defvar_row - 1);
 	}
-	sense.measureRef(fc);
-	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, sense.result);
+
+  sense.measureRef(fc);
+  fc->createChildren();
+  JacobianGadget jg(fc->childList.size(), numFree, GradientAlgorithm_Forward, 2, 1e-4);
+  jg(sense, sense.ref, curEst, false, sense.result);
+  fc->destroyChildren();
 }
 
 void ComputeJacobian::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
@@ -3803,7 +3806,10 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	ParJacobianSense sense;
 	sense.attach(&exList, 0);
 	sense.measureRef(fc);
-	fd_jacobian<false>(GradientAlgorithm_Forward, 2, 1e-4, sense, sense.ref, curEst, sense.result);
+  fc->createChildren(fitMat, false);
+  JacobianGadget jg(fc->childList.size(), numFree, GradientAlgorithm_Forward, 2, 1e-4);
+  jg(sense, sense.ref, curEst, false, sense.result);
+  fc->destroyChildren();
 
 	Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr1(sense.result);
 	Eigen::MatrixXd q1 = qr1.householderQ();

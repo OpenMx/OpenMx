@@ -23,6 +23,7 @@
 
 struct omxRowFitFunction : omxFitFunction {
 
+  bool setup;
 	/* Parts of the R  MxRowFitFunction Object */
 	omxMatrix* rowAlgebra;		// Row-by-row algebra
 	omxMatrix* rowResults;		// Aggregation of row algebra results
@@ -41,6 +42,7 @@ struct omxRowFitFunction : omxFitFunction {
 	virtual ~omxRowFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
+  virtual void invalidateCache() override;
 };
 
 omxRowFitFunction::~omxRowFitFunction()
@@ -50,7 +52,7 @@ omxRowFitFunction::~omxRowFitFunction()
 }
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
-	
+
 	int i;
 	for(i = 0; i < source->cols; i++) {
 		omxSetMatrixElement(target, row, i, omxMatrixElement(source, 0, i));
@@ -94,7 +96,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
     dataRow         = oro->dataRow;
     filteredDataRow = oro->filteredDataRow;
     existenceVector = oro->existenceVector;
-    
+
 	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
@@ -106,7 +108,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 		omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
 
 		markDataRowDependencies(localobj->matrix->currentState, oro);
-		
+
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(omxDataElementMissing(data, row, j)) {
 				toRemove[j] = 1;
@@ -115,8 +117,8 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 			    toRemove[j] = 0;
 			    omxSetVectorElement(existenceVector, j, 1);
 			}
-		}		
-		
+		}
+
 		omxCopyMatrix(filteredDataRow, dataRow);
 		omxRemoveRowsAndColumns(filteredDataRow, zeros, toRemove);
 
@@ -131,17 +133,27 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 void omxRowFitFunction::compute(int want, FitContext *fc)
 {
 	auto *oo = this;
-	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
+
+  if (!setup) {
+    setup = true;
+    if (!fc->isClone()) {
+			openmpUser = fc->permitParallel;
+      diagParallel(OMX_DEBUG, "%s: openmpUser = %d", name(), openmpUser);
+    }
+  }
+
+  if (want & FF_COMPUTE_PREOPTIMIZE) return;
 
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
 	// Requires: Data, means, covariances.
 
 	omxMatrix* objMatrix  = oo->matrix;
-	int numChildren = fc? fc->childList.size() : 0;
+	int numChildren = fc && openmpUser? fc->childList.size() : 0;
 	int rows = data->nrows();
 
 	/* Michael Spiegel, 7/31/12
-	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel 
+	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel
 	* Hessian calculation if the resizing operation is performed.
 	*
 	omxMatrix *rowAlgebra, *rowResults
@@ -149,15 +161,15 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 	rowResults	    = oro->rowResults;
 
 	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != rows) {
-		if(OMX_DEBUG_ROWS(1)) { 
-			mxLog("Resizing rowResults from %dx%d to %dx%d.", 
-				rowResults->rows, rowResults->cols, 
-				rows, rowAlgebra->cols); 
+		if(OMX_DEBUG_ROWS(1)) {
+			mxLog("Resizing rowResults from %dx%d to %dx%d.",
+				rowResults->rows, rowResults->cols,
+				rows, rowAlgebra->cols);
 		}
 		omxResizeMatrix(rowResults, rows, rowAlgebra->cols);
 	}
 	*/
-		
+
     int parallelism = (numChildren == 0) ? 1 : numChildren;
 
 	if (parallelism > rows) {
@@ -167,7 +179,7 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 	if (parallelism > 1) {
 		int stride = (rows / parallelism);
 
-#pragma omp parallel for num_threads(parallelism) 
+#pragma omp parallel for num_threads(parallelism)
 		for(int i = 0; i < parallelism; i++) {
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(objMatrix);
@@ -278,7 +290,7 @@ void omxRowFitFunction::init()
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	
+
 	if(OMX_DEBUG) {mxLog("Accessing variable mapping structure."); }
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
@@ -296,5 +308,11 @@ void omxRowFitFunction::init()
 	}
 
 	oo->canDuplicate = true;
-	oo->openmpUser = true;
+  invalidateCache();
+}
+
+void omxRowFitFunction::invalidateCache()
+{
+  setup = false;
+	openmpUser = false;
 }

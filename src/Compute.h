@@ -134,6 +134,7 @@ class FitContext {
 	void analyzeHessian();
 	void analyzeHessianBlock(HessianBlock *hb);
 	void testMerge();
+  void createChildren1();
 
 	std::string IterationError;
 	double ordinalRelativeError;
@@ -207,8 +208,10 @@ class FitContext {
 
 	FitContext(omxState *_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);
+  bool permitParallel; // whether openmpUser is permitted
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
-	void createChildren(omxMatrix *alg);
+  void createChildren(omxMatrix *alg=0, bool permitParallel=false);
+  int numOptimizerThreads() { return (childList.size() && !openmpUser)? childList.size() : 1; }
 	void destroyChildren();
 	void calcStderrs();
 	void ensureParamWithinBox(bool nudge);

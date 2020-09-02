@@ -4,6 +4,8 @@
 library(OpenMx)
 library(mvtnorm)
 
+#mxOption(key="Parallel diagnostics", value = "Yes")
+
 set.seed(1)
 
 more.noise <- 0

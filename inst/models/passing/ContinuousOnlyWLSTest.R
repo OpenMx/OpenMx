@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -198,7 +198,7 @@ omxCheckTrue( (mlSum$RMSEA < wlsSum$RMSEACI[2]) & (mlSum$RMSEA >= wlsSum$RMSEACI
 #--------------------------------------
 
 wlsMod$data$observed[,1] <- 0.
-omxCheckError(mxRun(wlsMod), "Test case for WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")
+expect_error(mxRun(wlsMod), "Test case for WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")
 
 wlsMod <- mxModel(wlsMod, mxFitFunctionWLS(allContinuousMethod= 'marginals'))
-omxCheckError(mxRun(wlsMod), "The job for model 'Test case for WLS Objective function from Bollen 1989' exited abnormally with the error message: Test case for WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")
+expect_error(mxRun(wlsMod), "WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")

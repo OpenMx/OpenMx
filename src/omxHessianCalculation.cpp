@@ -115,7 +115,7 @@ class omxComputeNumericDeriv : public omxCompute {
 			Global->reportProgress1(cnd.name, detail);
 		}
 	};
-	
+
  public:
         virtual void initFromFrontend(omxState *, SEXP rObj);
         virtual void computeImpl(FitContext *fc);
@@ -149,15 +149,15 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	double *Gcentral             = hess_work->Gcentral;
 	double *Gforward             = hess_work->Gforward;
 	double *Gbackward            = hess_work->Gbackward;
-	omxMatrix* fitMatrix = hess_work->fitMatrix; 
-	FitContext* fc = hess_work->fc; 
+	omxMatrix* fitMatrix = hess_work->fitMatrix;
+	FitContext* fc = hess_work->fc;
 	double *freeParams         = fc->est;
 
 	/* Part the first: Gradient and diagonal */
 	double iOffset = std::max(fabs(stepSize * optima[i]), stepSize);
 	for(int k = 0; k < numIter; k++) {			// Decreasing step size, starting at k == 0
 		freeParams[ix] = optima[i] + iOffset;
-		
+
 		fc->copyParamToModel();
 
 		++hess_work->probeCount;
@@ -210,8 +210,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
-	omxMatrix* fitMatrix = hess_work->fitMatrix; 
-	FitContext* fc = hess_work->fc; 
+	omxMatrix* fitMatrix = hess_work->fitMatrix;
+	FitContext* fc = hess_work->fc;
 	double *freeParams         = fc->est;
 
 	double iOffset = std::max(fabs(stepSize*optima[i]), stepSize);
@@ -345,9 +345,9 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	Eigen::MatrixXd jactmp(fc->state->numEqC + fc->state->numIneqC, npar);
 	acf(optimaM, resulttmp, jactmp);
 	/*Gradient algorithm, iterations, and stepsize are hardcoded as they are for two reasons.
-	 * 1.  Differentiating the constraint functions should not take long, expecially compared to 
+	 * 1.  Differentiating the constraint functions should not take long, expecially compared to
 	 * twice-differentiating the fitfunction, so it might as well be done carefully.
-	 * 2.  The default behavior during the ComputeNumericDeriv step uses different values of 
+	 * 2.  The default behavior during the ComputeNumericDeriv step uses different values of
 	 * gradient stepsize and iterations depending on whether or not the MxModel contains thresholds,
 	 * since the numerical accuracy of the -2logL is worse when multivariate-normal integration is involved.
 	 * But, that has no bearing on the constraint functions, so it doesn't really make sense to use
@@ -356,7 +356,7 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	fd_jacobian<true>(
 		GradientAlgorithm_Central, 4, 1.0e-7,
     acf, resulttmp, optimaM, jactmp);
-	
+
 	fc->constraintFunVals = resulttmp;
 	fc->constraintJacobian = jactmp;
 	/* Subsequent code assumes that fc->est is set to the optimium
@@ -398,9 +398,6 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		paramMap[px++] = ex;
 	}
 
-	omxAlgebraPreeval(fitMat, fc);
-	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
-
 	fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
 	int c_n = fc->state->numEqC + fc->state->numIneqC;
 	fc->constraintFunVals.resize(c_n);
@@ -411,7 +408,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
-	if (parallel && !fc->openmpUser && fc->childList.size()) numChildren = fc->childList.size();
+  if (parallel) {
+    fc->createChildren(fitMat, false);
+    numChildren = fc->numOptimizerThreads();
+  }
 
 	if (!fc->haveReferenceFit(fitMat)) return;
 
@@ -501,7 +501,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 	double gradNorm = 0.0;
-	
+
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
 		// factor out simliar code in ComputeNR
@@ -519,12 +519,12 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 			mxLog("%s: param[%d] %d %f", name, px, Gsymmetric[px], relsym);
 		}
 	}
-	
+
 	fc->haveGrad.assign(fc->numParam, true);
 	fc->gradZ.resize(fc->numParam);
 	fc->gradZ.setZero();
 	fc->copyGradFromOptimizer(Gc);
-	
+
 	if(c_n){
 		fc->inequality.resize(fc->state->numIneqC);
 		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numParams);
@@ -533,7 +533,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	gradNorm = sqrt(gradNorm);
 	double gradThresh = Global->getGradientThreshold(minimum);
-	//The gradient will generally not be near zero at a local minimum if there are equality constraints 
+	//The gradient will generally not be near zero at a local minimum if there are equality constraints
 	//or active inequality constraints:
 	if ( checkGradient && gradNorm > gradThresh && !(fc->state->numEqC || fc->inequality.array().sum()) ) {
 		if (verbose >= 1) {
@@ -542,6 +542,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
 	}
 
+  fc->destroyChildren();
 	fc->setEstFromOptimizer(optima);
 	// auxillary information like per-row likelihoods need a refresh
 	ComputeFit(name, fitMat, FF_COMPUTE_FIT, fc);
@@ -572,4 +573,3 @@ omxCompute *newComputeNumericDeriv()
 {
 	return new omxComputeNumericDeriv;
 }
-

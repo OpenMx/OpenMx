@@ -200,7 +200,7 @@ bool omxMatrix::canDiscard()
 }
 
 void omxFreeMatrix(omxMatrix *om) {
-    
+
     if(om == NULL) return;
 
 	omxFreeInternalMatrixData(om);
@@ -217,7 +217,7 @@ void omxFreeMatrix(omxMatrix *om) {
 
 	if (om->freeColnames) for (auto cn : om->colnames) free((void*)cn);
 	if (om->freeRownames) for (auto rn : om->rownames) free((void*)rn);
-	
+
 	if (!om->hasMatrixNumber) delete om;
 }
 
@@ -264,18 +264,18 @@ omxMatrix* omxNewIdentityMatrix(int nrows, omxState* state) {
 
 omxMatrix* omxDuplicateMatrix(omxMatrix* src, omxState* newState) {
 	omxMatrix* newMat;
-    
+
 	if(src == NULL) return NULL;
 	newMat = omxInitMatrix(src->rows, src->cols, TRUE, newState);
 	omxCopyMatrix(newMat, src);
 	newMat->hasMatrixNumber = src->hasMatrixNumber;
 	newMat->matrixNumber    = src->matrixNumber;
 	newMat->nameStr = src->nameStr;
-    
+
 	newMat->rownames = src->rownames;
 	newMat->colnames = src->colnames;
 
-    return newMat;    
+    return newMat;
 }
 
 void omxMatrix::copyAttr(omxMatrix *src)
@@ -298,7 +298,7 @@ int omxMatrix::lookupColumnByName(const char *target)
 void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 {
 	// Always Recompute() before you Resize().
-	if(false && OMX_DEBUG) { 
+	if(false && OMX_DEBUG) {
 		mxLog("Resizing matrix from (%d, %d) to (%d, %d)",
 			om->rows, om->cols, nrows, ncols);
 	}
@@ -326,11 +326,11 @@ double* omxLocationOfMatrixElement(omxMatrix *om, int row, int col) {
 
 void vectorElementError(int index, int numrow, int numcol) {
 	if ((numrow > 1) && (numcol > 1)) {
-		mxThrow("Requested improper index (%d) from a malformed vector of dimensions (%d, %d)", 
+		mxThrow("Requested improper index (%d) from a malformed vector of dimensions (%d, %d)",
 			index, numrow, numcol);
 	} else {
 		int Rf_length = (numrow > 1) ? numrow : numcol;
-		mxThrow("Requested improper index (%d) from vector of Rf_length (%d)", 
+		mxThrow("Requested improper index (%d) from vector of Rf_length (%d)",
 			index, Rf_length);
 	}
 }
@@ -347,7 +347,7 @@ void setMatrixError(omxMatrix *om, int row, int col, int numrow, int numcol) {
 	} else {
 		typeString = matrixString;
 	}
-	mxThrow("Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.", 
+	mxThrow("Attempted to set row and column (%d, %d) in %s \"%s\" with dimensions %d x %d.",
 		row, col, typeString, om->name(), numrow, numcol);
 }
 
@@ -358,11 +358,11 @@ void matrixElementError(int row, int col, omxMatrix *om) {
 
 void setVectorError(int index, int numrow, int numcol) {
 	if ((numrow > 1) && (numcol > 1)) {
-		mxThrow("Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d)", 
+		mxThrow("Attempting to set improper index (%d) from a malformed vector of dimensions (%d, %d)",
 			index, numrow, numcol);
 	} else {
 		int Rf_length = (numrow > 1) ? numrow : numcol;
-		mxThrow("Setting improper index (%d) from vector of Rf_length %d", 
+		mxThrow("Setting improper index (%d) from vector of Rf_length %d",
 			index, Rf_length);
 	}
 }
@@ -383,7 +383,7 @@ void omxMarkClean(omxMatrix *om)
 	}
 }
 
-omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state, 
+omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */
 	if (Rf_isMatrix(rObject) && Rf_length(rObject) == 1 &&
@@ -393,7 +393,7 @@ omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state,
 	return omxFillMatrixFromRPrimitive(om, rObject, state, hasMatrixNumber, matrixNumber);
 }
 
-omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state, 
+omxMatrix* omxNewMatrixFromRPrimitive(SEXP rObject, omxState* state,
 	unsigned short hasMatrixNumber, int matrixNumber) {
 /* Creates and populates an omxMatrix with details from an R matrix object. */
 	omxMatrix *om = NULL;
@@ -538,7 +538,7 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 	int i, j;
 	int nrows = mat->rows;
 	int ncols = mat->cols;
-	
+
 	double *newdata = (double*) Calloc(nrows * ncols, double);
 	double *olddata = mat->data;
 
@@ -565,13 +565,13 @@ void omxTransposeMatrix(omxMatrix *mat)
 {
 	std::swap(mat->colnames, mat->rownames);
 	mat->colMajor = !mat->colMajor;
-	
+
 	if(mat->rows != mat->cols){
         int mid = mat->rows;
         mat->rows = mat->cols;
         mat->cols = mid;
 	}
-	
+
 	omxMatrixLeadingLagging(mat);
 }
 
@@ -615,7 +615,7 @@ void omxRemoveRowsAndColumns(omxMatrix *om, int rowsRemoved[], int colsRemoved[]
 
 	om->rows = newRows;
 	om->cols = newCols;
-	
+
 	if (om->colMajor) {
 		int nextCol = 0;
 		for(int j = 0; j < origCols; j++) {
@@ -743,7 +743,7 @@ void omxRecompute(omxMatrix *matrix, FitContext *fc)
 	int want = matrix->currentState->getWantStage();
 	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
-	if(!omxNeedsUpdate(matrix)) return;
+	if(!(want & FF_COMPUTE_PREOPTIMIZE) && !omxNeedsUpdate(matrix)) return;
 
 	if(matrix->algebra) omxAlgebraRecompute(matrix, want, fc);
 	else if(matrix->fitFunction) {
@@ -886,7 +886,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if (allArgumentsColMajor) {
 		int offset = 0;
-		for(int j = 0; j < numArgs; j++) {	
+		for(int j = 0; j < numArgs; j++) {
 			omxMatrix* current = matList[j];
 			int size = current->rows * current->cols;
 			memcpy(result->data + offset, current->data, size * sizeof(double));
@@ -934,9 +934,9 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	if (allArgumentsRowMajor) {
 		int offset = 0;
-		for(int j = 0; j < numArgs; j++) {	
+		for(int j = 0; j < numArgs; j++) {
 			omxMatrix* current = matList[j];
-			int size = current->rows * current->cols;	
+			int size = current->rows * current->cols;
 			memcpy(result->data + offset, current->data, size * sizeof(double));
 			offset += size;
 		}
@@ -991,7 +991,7 @@ int omxMatrix::numNonConstElements() const
 
 	case 2: //Full
 		return rows * cols;
-		
+
 	case 4: //Lower
 	case 7: //Symm
 		return triangleLoc1(rows);

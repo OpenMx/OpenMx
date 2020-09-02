@@ -16,7 +16,7 @@
 
 
 /***********************************************************
-* 
+*
 *  omxAlgebra.cc
 *
 *  Created: Timothy R. Brick 	Date: 2008-11-13 12:33:06
@@ -55,7 +55,7 @@ void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs)
 static omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os) {
 
 	omxMatrix* om = omxInitMatrix(0, 0, TRUE, os);
-	
+
 	omxInitAlgebraWithMatrix(oa, om);
 
 	return om;
@@ -84,7 +84,7 @@ void omxDuplicateAlgebra(omxMatrix* tgt, omxMatrix* src, omxState* newState) {
 
 void omxFreeAlgebraArgs(omxAlgebra *oa) {
 	/* Completely destroy the algebra tree */
-	
+
 	if (oa->processing) return;
 	oa->processing = true;
 	int j;
@@ -116,6 +116,7 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 	if (mat->hasMatrixNumber) mat = fc->lookupDuplicate(mat);
 	SwitchWantStage sws(mat->currentState, FF_COMPUTE_PREOPTIMIZE);
 	omxRecompute(mat, fc);
+  fc->state->constraintPreeval(fc);
 	auto ff = mat->fitFunction;
 	if (ff) fc->fitUnits = ff->units;
 }
@@ -212,7 +213,7 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 			omxCopyMatrix(oa->matrix, oa->algArgs[0]);
 		}
 	} else {
-		if(OMX_DEBUG_ALGEBRA || oa->verbose >= 2) { 
+		if(OMX_DEBUG_ALGEBRA || oa->verbose >= 2) {
 			std::string buf;
 			for (int ax=0; ax < oa->numArgs; ++ax) {
 				if (ax) buf += ", ";
@@ -281,7 +282,7 @@ void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oa
 
 static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::string &name) {
 	omxMatrix* newMat;
-	
+
 	if(!Rf_isInteger(algebraArg)) {
 		omxMatrix *om = omxInitMatrix(0, 0, TRUE, os);
 		om->hasMatrixNumber = 0;
@@ -291,7 +292,7 @@ static omxMatrix* omxAlgebraParseHelper(SEXP algebraArg, omxState* os, std::stri
 	} else {
 		newMat = omxMatrixLookupFromState1(algebraArg, os);
 	}
-	
+
 	return(newMat);
 }
 
@@ -300,7 +301,7 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name,
 {
 	int value;
 	omxAlgebra *oa = NULL;
-	
+
 	value = Rf_asInteger(VECTOR_ELT(algebra, 0));
 
 	if(value > 0) { 			// This is an operator.
@@ -320,18 +321,18 @@ void omxFillMatrixFromMxAlgebra(omxMatrix* om, SEXP algebra, std::string &name,
 		/* TODO: Optimize this by eliminating no-op algebras entirely. */
 		SEXP algebraElt;
 		ScopedProtect p1(algebraElt, VECTOR_ELT(algebra, 1));
-		
+
 		if(!Rf_isInteger(algebraElt)) {   			// A List: only happens if bad optimization has occurred.
 			mxThrow("Internal Error: Algebra has been passed incorrectly: detected NoOp: (Operator Arg ...)\n");
 		} else {			// Still a No-op.  Sadly, we have to keep it that way.
-			
+
 			value = Rf_asInteger(algebraElt);
-			
+
 			oa = new omxAlgebra;
 			oa->fixed = fixed;
 			omxInitAlgebraWithMatrix(oa, om);
 			omxAlgebraAllocArgs(oa, 1);
-			
+
 			if(value < 0) {
 				value = ~value;					// Bitwise reverse of number--this is a matrix index
 				oa->algArgs[0] = (oa->matrix->currentState->matrixList[value]);
@@ -368,7 +369,7 @@ omxMatrix* omxMatrixLookupFromState1(SEXP matrix, omxState* os) {
 		mxThrow("Internal error: string passed to omxMatrixLookupFromState1, did you forget to call imxLocateIndex?");
 	} else {
 		mxThrow("Internal error: unknown type passed to omxMatrixLookupFromState1");
-	}		
+	}
 
 	return os->getMatrixFromIndex(value);
 }
@@ -379,7 +380,7 @@ omxMatrix* omxMatrixLookupFromStateByNumber(int matrix, omxState* os) {
 }
 
 omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int numArgs, omxState* os) {
-	
+
 	if(OMX_DEBUG) {mxLog("Generating new algebra from opcode %d (%s).", opCode, omxAlgebraSymbolTable[opCode].rName);}
 	omxMatrix *om;
 	omxAlgebra *oa = new omxAlgebra;
@@ -387,20 +388,20 @@ omxMatrix* omxNewAlgebraFromOperatorAndArgs(int opCode, omxMatrix* args[], int n
 	if(entry->numArgs >= 0 && entry->numArgs != numArgs) {
 		mxThrow("Internal error: incorrect number of arguments passed to algebra %s.", entry->rName);
 	}
-	
+
 	om = omxInitAlgebra(oa, os);
 	omxFillAlgebraFromTableEntry(oa, entry, entry->numArgs);
 	om->nameStr = entry->opName;
 
 	if(OMX_DEBUG) {mxLog("Calculating args for %s.", entry->rName);}
 	omxAlgebraAllocArgs(oa, numArgs);
-	
+
 	if(OMX_DEBUG) {mxLog("Populating args for %s.", entry->rName);}
-	
+
 	for(int i = 0; i < numArgs;i++) {
 		oa->algArgs[i] = args[i];
 	}
-	
+
 	return om;
-	
+
 }

@@ -113,7 +113,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
-	  numOptimizerThreads((fc->childList.size() && !fc->openmpUser)? fc->childList.size() : 1),
+	  numOptimizerThreads(_fc->numOptimizerThreads()),
 	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize),
     jgContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
@@ -366,15 +366,12 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {
-	omxAlgebraPreeval(fitMatrix, fc);
-	if (isErrorRaised()) return;
-
 	size_t numParam = fc->calcNumFree();
 
 	if (numParam <= 0) { complainNoFreeParam(); return; }
 
 	fc->ensureParamWithinBox(nudge);
-	fc->createChildren(fitMatrix);
+	fc->createChildren(fitMatrix, true);
 
 	int beforeEval = fc->getLocalComputeCount();
 
@@ -2241,7 +2238,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 
 	Map< VectorXd > curEst(fc->est, numFree);
 
-	omxAlgebraPreeval(fitMatrix, fc);
+	omxAlgebraPreeval(fitMatrix, fc); // should enable parallel TODO
 
 	lbound.resize(numFree);
 	ubound.resize(numFree);

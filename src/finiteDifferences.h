@@ -317,7 +317,7 @@ struct finite_difference_jacobian {
 	double *refData;
   int refRows;
 
-  void setRef(Eigen::Ref<Eigen::MatrixXd> ref)
+  void setRef(Eigen::Ref<Eigen::ArrayXd> ref)
   {
     refData = ref.data();
     refRows = ref.rows();
@@ -420,7 +420,7 @@ class JacobianGadget {
 
 	template <typename T1, typename T3, typename T4, typename T5>
 	void myJacobianImpl(T1 ff, Eigen::MatrixBase<T3> &point,
-                      T4 dfn, bool initialized, Eigen::MatrixBase<T5> &out)
+                      T4 dfn, bool initialized, T5 &out)
 	{
 		thrPoint.resize(point.size(), curNumThreads);
 		thrPoint.colwise() = point;
@@ -527,6 +527,7 @@ class JacobianGadget {
     used = false;
 		curElapsed = 0;
 		numThreadsBookmark = std::min(numThreads, numFree); // could break work into smaller pieces TODO
+    if (numThreadsBookmark < 1) numThreadsBookmark = 1;
 		if (numThreadsBookmark == 1) {
 			curElapsed = ELAPSED_HISTORY_SIZE * 2;
 		} else {
@@ -545,8 +546,8 @@ class JacobianGadget {
   }
 
 template <typename T1, typename T2, typename T3, typename T4>
-	void operator()(T1 ff, Eigen::MatrixBase<T2> &ref,
-	      Eigen::MatrixBase<T3> &point, bool initialized, Eigen::MatrixBase<T4> &jacobiOut)
+	void operator()(T1 ff, T2 &ref,
+	      Eigen::MatrixBase<T3> &point, bool initialized, T4 &jacobiOut)
 	{
 		if (point.size() != numFree) mxThrow("%s line %d: expecting %d parameters, got %d",
                                          __FILE__, __LINE__, numFree, point.size());

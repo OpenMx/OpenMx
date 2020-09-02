@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,7 +18,7 @@ library(OpenMx)
 library(testthat)
 context("simplestCI")
 
-mxOption(key='Number of Threads', value=1) 
+mxOption(key='Number of Threads', value=1)
 
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
@@ -58,10 +58,10 @@ fit3 <- mxRun(cimodel, intervals = FALSE)
 omxCheckTrue(is.null(fit3$output$confidenceIntervals))
 
 # For multivariate normal means, SEs match likelihood-based CIs
-omxCheckCloseEnough(fit2$output$estimate['m1'] + fit1$output$standardErrors['m1',] * qnorm(.025),
-                    fit2$output$confidenceIntervals['m1', 'lbound'], .0001)
-omxCheckCloseEnough(fit2$output$estimate['m1'] - fit1$output$standardErrors['m1',] * qnorm(.025),
-                    fit2$output$confidenceIntervals['m1', 'ubound'], .0001)
+expect_equivalent(fit2$output$estimate['m1'] + fit1$output$standardErrors['m1',] * qnorm(.025),
+             fit2$output$confidenceIntervals['m1', 'lbound'], .0001)
+expect_equivalent(fit2$output$estimate['m1'] - fit1$output$standardErrors['m1',] * qnorm(.025),
+             fit2$output$confidenceIntervals['m1', 'ubound'], .0001)
 
 # cat(deparse(round(model$output$confidenceIntervals, 3)))
 omxCheckCloseEnough(fit2$output$confidenceIntervals['var1','lbound'], c(0.9727), .001)

@@ -112,7 +112,7 @@ struct multi_normal_deriv {
 		Eigen::MatrixXd obCov = obCovAdapter;
 		EigenMatrixAdaptor exCovAdapter(omo->expectedCov);
 		Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> exCov = exCovAdapter.cast<T>();
-		
+
 		Eigen::VectorXd obMeans(obCov.rows());
 		Eigen::Matrix<T, Eigen::Dynamic, 1> exMeans;
 		if (omo->observedMeans) {
@@ -228,7 +228,7 @@ void MLFitState::compute(int want, FitContext *fc)
 		}
 		hb->mat.resize(num_param, num_param);
 		hb->mat.setZero();
-		
+
 		try {
 			multi_normal_deriv model(fc, fvMask, omo);
 			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
@@ -286,12 +286,12 @@ void MLFitState::populateAttr(SEXP algebra) {
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
-	}   
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
+	}
 
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	
+
 	double saturated_out;
 	double independence_out;
 	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
@@ -314,11 +314,11 @@ omxFitFunction *MLFitState::initMorph()
 	if (strcmp(expectation->name, "MxExpectationBA81")==0) {
 		return omxChangeFitType(oo, "imxFitFunctionBA81");
 	}
-	
+
 	if (strEQ(expectation->name, "MxExpectationGREML")) {
 		return omxChangeFitType(oo, "imxFitFunciontGRMFIML");
 	}
-	
+
 	if (strEQ(expectation->name, "MxExpectationStateSpace")) {
 		return omxChangeFitType(oo, "imxFitFunciontStateSpace");
 	}
@@ -371,7 +371,7 @@ omxFitFunction *MLFitState::initMorph()
 		} else {
 			to = "imxFitFunctionFIML";
 		}
-		if(OMX_DEBUG) { mxLog("Raw Data: Converting from %s to %s", oo->fitType, to); }
+		if(OMX_DEBUG) { mxLog("%s: Converting from %s to %s", name(), oo->fitType, to); }
 		return omxChangeFitType(oo, to);
 	}
 
@@ -424,7 +424,7 @@ void MLFitState::init()
 		return;
 	}
 
-	// Error Checking: Observed/Expected means must agree.  
+	// Error Checking: Observed/Expected means must agree.
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 		if(newObj->expectedMeans != NULL) {

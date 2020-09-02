@@ -843,14 +843,20 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
 
 	if (!builtCache) {
-		if (ofiml->rowwiseParallel && fc->isClone()) {
-			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
-			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction;
-			ofiml->elapsed.resize(ELAPSED_HISTORY_SIZE);
-			ofiml->curElapsed = NA_INTEGER;
-		} else {
-			off->openmpUser = ofiml->rowwiseParallel != 0;
+    if (!fc->isClone()) {
 			if (!indexVector.size()) sortData(off);
+			openmpUser = rowwiseParallel && fc->permitParallel;
+      diagParallel(OMX_DEBUG, "%s: openmpUser = %d", name(), openmpUser);
+    } else {
+			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
+      auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
+      if (pff->openmpUser) {
+        parent = pff;
+        elapsed.resize(ELAPSED_HISTORY_SIZE);
+        curElapsed = NA_INTEGER;
+      } else {
+        if (!indexVector.size()) sortData(off);
+      }
 		}
 		builtCache = true;
 	}
@@ -1019,7 +1025,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			mxLog("reducing number of threads to %d", myParent->curParallelism);
 		}
 	}
-	if (rowwiseParallel && !fc->isClone() && want & FF_COMPUTE_BESTFIT) {
+	if (openmpUser && !fc->isClone() && want & FF_COMPUTE_BESTFIT) {
     if (curParallelism == 1) {
       diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads; "
                    "recommend rowwiseParallel=FALSE",
@@ -1035,7 +1041,6 @@ omxFitFunction *omxInitFIMLFitFunction()
 
 void omxFIMLFitFunction::init()
 {
-	builtCache = false;
 	auto *off = this;
 	auto *newObj = this;
 
@@ -1084,14 +1089,12 @@ void omxFIMLFitFunction::init()
 	}
 	newObj->data = off->expectation->data;
 	newObj->rowBegin = 0;
-	newObj->rowCount = std::numeric_limits<decltype(rowCount)>::max();
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
 	}
 	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 	// currently treats NA_INTEGER as true, probably should be smarter TODO
-	diagParallel(OMX_DEBUG, "%s: rowwiseParallel = %d", name(), newObj->rowwiseParallel != 0);
 
 	{
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
@@ -1115,6 +1118,7 @@ void omxFIMLFitFunction::init()
 	newObj->rowLikelihoods = omxInitMatrix(newObj->data->nrows(), 1, off->matrix->currentState);
 	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->nrows(), 2, off->matrix->currentState);
 
+  invalidateCache();
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood population option.");

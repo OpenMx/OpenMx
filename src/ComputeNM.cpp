@@ -263,11 +263,8 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 
 void omxComputeNM::computeImpl(FitContext *fc){
 
-	omxAlgebraPreeval(fitMatrix, fc);
-	if (isErrorRaised()) return;
-
 	fc->ensureParamWithinBox(nudge);
-	fc->createChildren(fitMatrix);
+	fc->createChildren(fitMatrix, true);
 
 	NelderMeadOptimizerContext nmoc(fc, this);
 
