@@ -15,7 +15,7 @@
 
 require(OpenMx)
 require(snowfall)
-sfInit(parallel = TRUE, cpus = 8)
+sfInit(parallel = TRUE, cpus = imxGetNumThreads())
 sfLibrary(OpenMx)
 
 set.seed(10)
