@@ -1148,7 +1148,7 @@ void omxFIMLFitFunction::init()
 
 	rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
   if (rowwiseParallel == NA_INTEGER) {
-    rowwiseParallel == numOrdinal >= 10;
+    rowwiseParallel = numOrdinal >= 10;
 		if (verbose >= 1) {
 			mxLog("%s: set rowwiseParallel=%d", name(), rowwiseParallel);
 		}
