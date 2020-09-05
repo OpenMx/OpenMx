@@ -743,6 +743,9 @@ void omxRecompute(omxMatrix *matrix, FitContext *fc)
 	int want = matrix->currentState->getWantStage();
 	matrix->omxPopulateSubstitutions(want, fc); // could be an algebra!
 
+  // FF_COMPUTE_PREOPTIMIZE should use a different set of functions
+  // to traverse the computation graph so we can remove the
+  // conditional here.
 	if(!(want & FF_COMPUTE_PREOPTIMIZE) && !omxNeedsUpdate(matrix)) return;
 
 	if(matrix->algebra) omxAlgebraRecompute(matrix, want, fc);
