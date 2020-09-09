@@ -413,6 +413,12 @@ void omxRAMExpectation::init()
 		sio->S0 = S;
 
 		pcalc.attach(k, l, latentFilter, isProductNode, mio, aio, sio);
+
+    omxMatrix *selVec = omxNewMatrixFromSlot(rObj, currentState, "selectionVector");
+    if (selVec) {
+      DataFrame selPlan(rObj.slot("selectionPlan"));
+      pcalc.attachSelection(selVec, selPlan);
+    }
 		pcalc.setAlgo(0, hasProductNodes, useSparse);
 
 		currentState->restoreParam(estSave);

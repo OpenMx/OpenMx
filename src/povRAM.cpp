@@ -106,6 +106,9 @@ void PathCalc::setAlgo(FitContext *fc, bool _boker2019, int _useSparse)
 																 [](bool x){ return x; })) {
 		mxThrow("Must use Boker2019 when product nodes are present");
 	}
+  if (_boker2019 && selDim) {
+    mxThrow("Must avoid Boker2019 when using arrows=0 paths");
+  }
 	boker2019 = _boker2019;
 	useSparse = _useSparse;
 
@@ -257,12 +260,26 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 	}
 }
 
+void PathCalc::pearsonSelMean1(Eigen::Ref<Eigen::VectorXd> mean)
+{
+  //mxPrintMat("before sel", mean);
+	Eigen::VectorXd selMean;
+	subsetVector(mean, [&](int xx){ return selFilter[xx]; }, selDim, selMean);
+
+	Eigen::VectorXd adj = selAdj.transpose() * selMean;
+	for (int v1=0, a1=0; v1 < mean.size(); ++v1) {
+		if (selFilter[v1]) continue;
+    mean(v1) += adj(a1++);
+	}
+  //mxPrintMat("after sel", mean);
+}
+
 void PathCalc::appendPolyRep(int nn, std::vector<int> &status)
 {
 	if (status[nn] == 2) return;
 	if (status[nn] == 1) mxThrow("Asymmetric matrix is cyclic");
 	status[nn] = 1;
-	
+
 	auto &A = aio->full;
 	for (int ii=0; ii < A.rows(); ++ii) {
 		if (ii == nn || status[ii] == 2 || A(ii,nn) == 0) continue;
@@ -314,9 +331,9 @@ void PathCalc::buildPolynomial(FitContext *fc)
 		}
 	}
 
-	/* old version with Cholesky, doesn't work with non-positive definite S, but probably easier to extend to derivatives. Also, 
+	/* old version with Cholesky, doesn't work with non-positive definite S, but probably easier to extend to derivatives. Also,
 	 * polynomials are more sparse with the Cholesky variant. An alternative could be to use a sign switch in the Cholesky decomposition,
-	 * thereby working with normally distributed variables of variance either 1 or -1. 
+	 * thereby working with normally distributed variables of variance either 1 or -1.
 	 double[][] cholesky = null;
 	 try {
 	 cholesky = Statik.choleskyDecompose(symVal,0.001);

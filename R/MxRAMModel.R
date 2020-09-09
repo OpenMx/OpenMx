@@ -511,6 +511,8 @@ insertPathRAM <- function(path, model) {
 	S_labels <- S@labels
 	S_lbound <- S@lbound
 	S_ubound <- S@ubound
+  selVec <- model[['selectionVector']]
+  selPlan <- model$expectation$selectionPlan
 
 	legalVars <- c(colnames(A), "one")
 
@@ -524,6 +526,7 @@ insertPathRAM <- function(path, model) {
 		nextubound <- allubound[[i %% length(allubound) + 1]]
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
 		nextjoinKey <- alljoinKey[[i %% length(alljoinKey) + 1]]
+    nextstep <- path@step[[i %% length(path@step) + 1]]
 
 		if (!is.na(nextjoinKey)) {
 			upperFrom <- strsplit(from, imxSeparatorChar, fixed = TRUE)
@@ -643,7 +646,24 @@ insertPathRAM <- function(path, model) {
 			next
 		}
 
-		if (arrows == 1) {
+    if (arrows == 0) {
+      # directly modify the unfiltered covariance matrix
+      # expectation: data.frame w/ step, rowname, colname ; name of mxMatrix
+      # mxMatrix: vector of parameters to plop in
+      r1 <- data.frame(step=nextstep, from=from, to=to)
+      selPlan <- rbind(selPlan, r1)
+      oldSelVec <- selVec
+      selVec <- mxMatrix('Full', nrow(selPlan), 1)
+      if (!is.null(oldSelVec)) selVec[1:nrow(oldSelVec),1] <- oldSelVec
+      selVec[nrow(selVec),1]$free <- nextfree
+      selVec[nrow(selVec),1]$values <- nextvalue
+      selVec[nrow(selVec),1]$labels <- nextlabel
+      selVec[nrow(selVec),1]$ubound <- nextubound
+      selVec[nrow(selVec),1]$lbound <- nextlbound
+      p1 <- order(selPlan$step, selPlan$from, selPlan$to)
+      selPlan <- selPlan[p1,]
+      selVec <- selVec[p1,]
+    } else if (arrows == 1) {
 			A_free[to, from] <- nextfree
 			A_values[to, from] <- nextvalue
 			A_labels[to, from] <- nextlabel
@@ -692,6 +712,11 @@ insertPathRAM <- function(path, model) {
 	model[['A']] <- A
 	model[['S']] <- S
 	if (!is.null(M)) model[['M']] <- M
+  if (!is.null(selVec)) {
+    model$expectation$selectionVector <- 'selectionVector'
+    model[['selectionVector']] <- selVec
+  }
+  if (!is.null(selPlan)) model$expectation$selectionPlan <- selPlan
 	model
 }
 

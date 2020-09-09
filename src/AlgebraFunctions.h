@@ -2636,69 +2636,6 @@ static void evaluateOnGrid(FitContext *fc, omxMatrix** matList, int numArgs, omx
 	}
 }
 
-template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void partitionCovariance(const Eigen::MatrixBase<T1> &gcov,
-		     T2 filterTest,
-		     Eigen::MatrixBase<T3> &v11,
-		     Eigen::MatrixBase<T4> &v12,
-		     Eigen::MatrixBase<T5> &v22)
-{
-	for (int gcx=0, c1=0,c2=0,c3=0; gcx < gcov.cols(); gcx++) {
-		for (int grx=0, r1=0,r2=0,r3=0; grx < gcov.rows(); grx++) {
-			if (filterTest(grx)) {
-				if (filterTest(gcx)) {
-					v11(r1++, c1) = gcov(grx, gcx);
-				} else {
-					v12(r2++, c2) = gcov(grx, gcx);
-				}
-			} else {
-				if (!filterTest(gcx)) {
-					v22(r3++, c3) = gcov(grx, gcx);
-				}
-			}
-		}
-		if (filterTest(gcx)) {
-			c1 += 1;
-		} else {
-			c2 += 1;
-			c3 += 1;
-		}
-	}
-}
-
-template <typename T1, typename T2, typename T3, typename T4, typename T5>
-void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
-			    T2 filterTest,
-			    const Eigen::MatrixBase<T3> &v11,
-			    const Eigen::MatrixBase<T4> &v12,
-			    const Eigen::MatrixBase<T5> &v22)
-{
-	for (int gcx=0, c1=0,c2=0,c3=0,c4=0; gcx < gcov.cols(); gcx++) {
-		for (int grx=0, r1=0,r2=0,r3=0,r4=0; grx < gcov.rows(); grx++) {
-			if (filterTest(grx)) {
-				if (filterTest(gcx)) {
-					gcov(grx, gcx) = v11(r1++, c1);
-				} else {
-					gcov(grx, gcx) = v12(r2++, c2);
-				}
-			} else {
-				if (!filterTest(gcx)) {
-					gcov(grx, gcx) = v22(r3++, c3);
-				} else {
-					gcov(grx, gcx) = v12(c4, r4++);
-				}
-			}
-		}
-		if (filterTest(gcx)) {
-			c1 += 1;
-			c4 += 1;
-		} else {
-			c2 += 1;
-			c3 += 1;
-		}
-	}
-}
-
 template <typename T>
 void buildFilterVec(omxMatrix *origCov, omxMatrix *newCov, std::vector<T> &filter)
 {

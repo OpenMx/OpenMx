@@ -59,7 +59,7 @@ protected:
 
  public:
 	int numDataColumns;
-	SEXP rObj;
+	S4 rObj;
 	const char *name;   // pointer to a static string, no need to allocate or free
 	omxData* data;
 	int numOrdinal;  // number of thresholds with matrix != 0
@@ -78,7 +78,7 @@ protected:
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), thresholdsMat(0),
 		discreteSpecPtr(0), _connectedToData(false), discreteMat(0),
-    numDataColumns(0), rObj(0), name(0), data(0), numOrdinal(0),
+    numDataColumns(0), name(0), data(0), numOrdinal(0),
     isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
 	virtual ~omxExpectation() {};

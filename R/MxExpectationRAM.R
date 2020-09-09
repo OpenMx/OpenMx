@@ -42,7 +42,7 @@ setClass(Class = "MxExpectationRAM",
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
            between, verbose, useSparse, expectedCovariance, expectedMean, discrete,
-           data = as.integer(NA), name = 'expectation') {
+           selectionVector, data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -53,6 +53,7 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@thresholds <- thresholds
     .Object@discrete <- discrete
     .Object@.discreteCheckCount <- TRUE
+    .Object@selectionVector <- selectionVector
 		.Object@threshnames <- threshnames
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
@@ -242,6 +243,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		} else {
 			.Object@thresholds <- as.integer(NA)
 		}
+    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, translatedNames)
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
@@ -272,10 +274,23 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  S <- mxEvalByName(Sname, model, compute=TRUE, defvar.row=defvar.row)
 		  F <- mxEvalByName(Fname, model, compute=TRUE, defvar.row=defvar.row)
 		  I <- diag(1, nrow=nrow(A))
+      # need to compute covariance when there is Pearson selection
+      ImA <- solve(I-A)
+      origCov <- ImA %*% S %*% t(ImA)
+      if (single.na(.Object@selectionVector)) {
+        cov <- origCov
+      } else {
+        selPlan <- .Object@selectionPlan
+        selVec <- mxEvalByName(.Object@selectionVector, model, compute=TRUE, defvar.row=defvar.row)
+        newCov <- origCov
+        for (rx in 1:nrow(selPlan)) {
+          newCov[selPlan[rx,'from'],selPlan[rx,'to']] <- selVec[rx,1]
+          newCov[selPlan[rx,'to'],selPlan[rx,'from']] <- selVec[rx,1]
+        }
+        cov <- mxPearsonSelCov(origCov, newCov)
+      }
 		  if (any(c('covariance','covariances') %in% what)) {
-			  ImA <- solve(I-A)
-			  cov <- F %*% ImA %*% S %*% t(ImA) %*% t(F)
-			  ret[['covariance']] <- cov
+			  ret[['covariance']] <- F %*% cov %*% t(F)
 		  }
 		  if (any(c('mean','means') %in% what)) {
 				if(single.na(Mname)){
@@ -283,7 +298,11 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 				} else {
 					Mname <- .modifyDottedName(subname, Mname, sep=".")
 					M <- mxEvalByName(Mname, model, compute=TRUE, defvar.row=defvar.row)
-					mean <- M %*% t(solve(I-A)) %*% t(F)
+					fullMean <- M %*% t(solve(I-A))
+          if (!single.na(.Object@selectionVector)) {
+            fullMean <- t(mxPearsonSelMean(origCov, newCov, t(fullMean)))
+          }
+          mean <- fullMean %*% t(F)
 			  }
 				ret[['means']] <- mean
 			}
@@ -466,7 +485,7 @@ imxSimpleRAMPredicate <- function(model) {
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
                              threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA,
                              expectedCovariance=NULL, expectedMean=NULL,
-                             discrete = as.character(NA)) {
+                             discrete = as.character(NA), selectionVector = as.character(NA)) {
 
 	prohibitDotdotdot(list(...))
 
@@ -508,7 +527,7 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
              between, as.integer(verbose), as.logical(.useSparse),
-             expectedCovariance, expectedMean, discrete))
+             expectedCovariance, expectedMean, discrete, selectionVector))
 }
 
 displayMxExpectationRAM <- function(expectation) {

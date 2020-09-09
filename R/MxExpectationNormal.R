@@ -22,12 +22,14 @@ setClass(Class = "BaseExpectationNormal",
            threshnames = "character",
            discrete = "MxCharOrNumber",
            discreteSpec = "MxOptionalMatrix",
-           .discreteCheckCount = "logical"))
+           .discreteCheckCount = "logical",
+           selectionPlan = "MxOptionalDataFrame",
+           selectionVector = "MxCharOrNumber"))
 
 setMethod("qualifyNames", signature("BaseExpectationNormal"),
           function(.Object, modelname, namespace) {
             for (sl in c(paste0('expected', c('Covariance','Mean')),
-                       'thresholds', 'discrete')) {
+                       'thresholds', 'discrete', 'selectionVector')) {
               if (is.null(slot(.Object, sl))) next
               slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
             }
@@ -36,7 +38,7 @@ setMethod("qualifyNames", signature("BaseExpectationNormal"),
 
 setMethod("genericExpDependencies", signature("BaseExpectationNormal"),
           function(.Object, dependencies) {
-            sources <- c(.Object@discrete, .Object@thresholds)
+            sources <- c(.Object@discrete, .Object@thresholds, .Object@selectionVector)
             sources <- sources[!is.na(sources)]
             dependencies <- imxAddDependency(sources, .Object@name, dependencies)
             return(dependencies)
@@ -45,7 +47,7 @@ setMethod("genericExpDependencies", signature("BaseExpectationNormal"),
 setMethod("genericExpRename", signature("BaseExpectationNormal"),
           function(.Object, oldname, newname) {
             for (sl in c(paste0('expected', c('Covariance','Mean')),
-                         'thresholds', 'discrete')) {
+                         'thresholds', 'discrete', 'selectionVector')) {
               if (is.null(slot(.Object, sl))) next
               slot(.Object,sl) <- renameReference(slot(.Object,sl), oldname, newname)
             }
@@ -96,6 +98,18 @@ setMethod("genericExpFunConvert", signature("BaseExpectationNormal"),
               }
             }
 
+            svname <- .Object$selectionVector
+            if (!is.na(svname)) {
+              sv <- flatModel[[svname]]
+              if (ncol(sv) != 1) stop("selectionVector must be a column vector")
+              svSpec <- .Object@selectionPlan
+              if (nrow(sv) != nrow(svSpec)) {
+                msg <- paste('selectionPlan must have the same number of rows',
+                             'as the selectionVector')
+                stop(msg, call.=FALSE)
+              }
+            }
+
             .Object
           })
 
@@ -103,7 +117,7 @@ setMethod("genericNameToNumber", signature("BaseExpectationNormal"),
 	  function(.Object, flatModel, model) {
 		  name <- .Object@name
       for (sl in c(paste0('expected', c('Covariance','Mean')),
-                   'thresholds', 'discrete')) {
+                   'thresholds', 'discrete', 'selectionVector')) {
         slot(.Object,sl) <- imxLocateIndex(flatModel, slot(.Object,sl), name)
       }
 		  .Object
@@ -238,7 +252,8 @@ setClass(Class = "MxExpectationNormal",
 
 setMethod("initialize", "MxExpectationNormal",
 	function(.Object, covariance, means, dims, thresholds, threshnames, discrete,
-           discreteSpec, data = as.integer(NA), name = 'expectation') {
+           discreteSpec, selectionVector, selectionPlan,
+           data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
@@ -249,6 +264,8 @@ setMethod("initialize", "MxExpectationNormal",
 		.Object@discrete <- discrete
 		.Object@discreteSpec <- discreteSpec
     .Object@.discreteCheckCount <- TRUE
+    .Object@selectionVector <- selectionVector
+    .Object@selectionPlan <- selectionPlan
 		.Object@ExpCov <- matrix()
 		.Object@ExpMean <- matrix()
 		return(.Object)
@@ -960,8 +977,29 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		if (single.na(.Object@dims)) {
 			.Object@dims <- covNames
 		}
+
+    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, covNames)
+
 		return(.Object)
 })
+
+prepSelectionPlan <- function(selPlan, covNames) {
+  if (is.null(selPlan)) return(NULL)
+
+  ind <- match(selPlan$from, covNames)
+  if (any(is.na(ind))) {
+    stop(paste("Can't find selectionPlan from variables",
+               omxQuotes(selPlan$from[is.na(ind)])))
+  }
+  selPlan$from <- ind - 1L
+  ind <- match(selPlan$to, covNames)
+  if (any(is.na(ind))) {
+    stop(paste("Can't find selectionPlan to variables",
+               omxQuotes(selPlan$to[is.na(ind)])))
+  }
+  selPlan$to <- ind - 1L
+  selPlan
+}
 
 verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expectationName) {
 	if (is.na(meansName)) {
@@ -1261,8 +1299,10 @@ mxExpectationNormal <-
 		stop("NA values are not allowed for 'dimnames' vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
+  selectionVector <- NA_character_
+  selectionPlan <- NULL
 	return(new("MxExpectationNormal", covariance, means, dimnames, thresholds, threshnames,
-             discrete, discreteSpec))
+             discrete, discreteSpec, selectionVector, selectionPlan))
 }
 
 displayMxExpectationNormal <- function(expectation) {

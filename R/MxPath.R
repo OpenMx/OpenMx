@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,12 +24,13 @@ setClass(Class = "MxPath",
 		lbound = "numeric",
 		ubound = "numeric",
 	    connect = "character",
-	    joinKey = "character"
+    joinKey = "character",
+    step="MxOptionalInteger"
 ))
 
 setMethod("initialize", "MxPath",
 	function(.Object, from, to, arrows, values,
-		free, labels, lbound, ubound, connect, joinKey) {
+		free, labels, lbound, ubound, connect, joinKey, step) {
 		.Object@from <- from
 		.Object@to <- to
 		.Object@arrows <- arrows
@@ -40,6 +41,7 @@ setMethod("initialize", "MxPath",
 		.Object@ubound <- ubound
 		.Object@connect <- connect
 		.Object@joinKey <- joinKey
+    .Object@step <- step
 		return(.Object)
 	}
 )
@@ -58,7 +60,7 @@ expandPathConnect <- function(from, to, connect) {
 	# now expand the paths to check for errors
 	excludeBivariate <- FALSE
 	excludeSelf      <- FALSE
-	
+
 	# interpret 'connect' argument
 	if ((connect == "unique.pairs" ) || (connect == "unique.bivariate")){
 		excludeBivariate <- TRUE
@@ -66,10 +68,10 @@ expandPathConnect <- function(from, to, connect) {
 	if ((connect == "all.bivariate") || (connect == "unique.bivariate")){
 		excludeSelf <- TRUE
 	}
-	
+
 	# if a variable is a connect = "single" then it does not need to be expanded
-	if ((connect != "single")){ 
-	
+	if ((connect != "single")){
+
 		from <- rep(from, each=length(to))
 		to   <- rep(to, length(from)/length(to))
 
@@ -85,9 +87,9 @@ expandPathConnect <- function(from, to, connect) {
 		if (excludeSelf){
 			exclude <- exclude | (from==to)
 		}
-		
+
 		from <- from[!exclude]
-		to   <- to[!exclude]		
+		to   <- to[!exclude]
 	}
 	return(list(from=from,to=to))
 }
@@ -95,7 +97,7 @@ expandPathConnect <- function(from, to, connect) {
 # returns a list of paths
 generatePath <- function(from, to,
 		connect, arrows, values, free,
-		labels, lbound, ubound, joinKey) {
+		labels, lbound, ubound, joinKey, step) {
 
 	# save exactly what the user typed to pass to mxModel for creation
 	unalteredTo <- to
@@ -108,7 +110,7 @@ generatePath <- function(from, to,
 	} else {
 		loop <- FALSE
 	}
-	
+
 	expanded <- expandPathConnect(from, to, connect)
 	from <- expanded$from
 	to   <- expanded$to
@@ -126,12 +128,12 @@ generatePath <- function(from, to,
 	}
 	# check the labels for illegal references
 	lapply(labels, imxVerifyReference, -1)
-	
+
 	# check for length mismatches
 	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)
-	
+
 	# create a new MxPath in the MxModel
-	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinKey))
+	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinKey, step))
 }
 
 pathCheckToAndFrom <- function(from, to){
@@ -141,7 +143,7 @@ pathCheckToAndFrom <- function(from, to){
 	}
 }
 
-pathCheckLengths <- function(from, to, arrows, values, 
+pathCheckLengths <- function(from, to, arrows, values,
         free, labels, lbound, ubound, loop) {
     numPaths <- max(length(from), length(to))
     pathCheckSingleLength(numPaths, length(arrows), "arrows", from, to, loop)
@@ -155,7 +157,7 @@ pathCheckLengths <- function(from, to, arrows, values,
 pathCheckSingleLength <- function(numPaths, len, lenName, from, to, loop) {
     if (numPaths < len) {
     	if (loop) { to <- NA }
-        stop(paste("mxPath() call will generate", 
+        stop(paste("mxPath() call will generate",
             numPaths, "paths but you have specified",
             len, lenName, "with 'from' argument assigned to", omxQuotes(from),
             "and 'to' argument assigned to", omxQuotes(to)), call. = FALSE)
@@ -170,7 +172,7 @@ pathCheckSingleLength <- function(numPaths, len, lenName, from, to, loop) {
 ##'
 ##' @param value value
 imxIsPath <- function(value) {
-	return(is.list(value) && 
+	return(is.list(value) &&
 		!is.null(value[['from']]) &&
 		!is.null(value[['to']]))
 }
@@ -187,7 +189,7 @@ matrixToPaths <- function(mxMatrix, arrows = c(1,2)) {
 	select <- (values != 0) | (free) | (!is.na(labels))
 	if (length(select) > 0) {
  	    rowFactors <- row(values, as.factor=TRUE)
-	    colFactors <- col(values, as.factor=TRUE)	
+	    colFactors <- col(values, as.factor=TRUE)
 		fromNames <- as.character(colFactors[select])
 		toNames <- as.character(rowFactors[select])
 		if (length(fromNames) > 0 && length(toNames) > 0) {
@@ -215,7 +217,7 @@ meansToPaths <- function(mxMatrix) {
 
 pathCheckVector <- function(value, valname, check, type) {
 	if (!is.vector(value) || !check(value) || length(value) == 0) {
-		stop(paste("The", omxQuotes(valname), 
+		stop(paste("The", omxQuotes(valname),
 			"argument to mxPath must be a",
 			type, "vector of length > 0 in",
 			deparse(width.cutoff = 400L, imxLocateFunction("mxPath")),
@@ -224,10 +226,11 @@ pathCheckVector <- function(value, valname, check, type) {
 	}
 }
 
-mxPath <- function(from, to = NA, 
-	connect = c("single", "all.pairs", "unique.pairs", 
-	            "all.bivariate", "unique.bivariate"), arrows = 1, 
-	free = TRUE, values = NA, labels = NA, lbound = NA, ubound = NA, ..., joinKey=as.character(NA)) {
+mxPath <- function(from, to = NA,
+	connect = c("single", "all.pairs", "unique.pairs",
+	            "all.bivariate", "unique.bivariate"), arrows = 1,
+	free = TRUE, values = NA, labels = NA, lbound = NA, ubound = NA, ...,
+  joinKey=as.character(NA), step=c()) {
 	if (missing(from)) {
 		stop("The 'from' argument to mxPath must have a value.")
 	}
@@ -251,13 +254,13 @@ mxPath <- function(from, to = NA,
 			"with the safer interface 'connect' in OpenMx 1.2. ",
 			"See ?mxPath for more information.")
 		# throw an error if 'all' has illegal value
-		if (!(is.logical(allArgument) && 
-			(length(allArgument) == 1) && 
+		if (!(is.logical(allArgument) &&
+			(length(allArgument) == 1) &&
 			!single.na(allArgument))) {
 			stop(msg)
 		# throw an error if 'all' and 'connect' are both specified
-		} else if (!identical(connect, 
-			c("single", "all.pairs", "unique.pairs", 
+		} else if (!identical(connect,
+			c("single", "all.pairs", "unique.pairs",
 			"all.bivariate", "unique.bivariate"))) {
 			stop(msg)
 		} else {
@@ -273,7 +276,7 @@ mxPath <- function(from, to = NA,
 				"See ?mxPath for more information.")
    		stop(msg)
     }
-	if (identical(connect, c("single", "all.pairs", "unique.pairs", 
+	if (identical(connect, c("single", "all.pairs", "unique.pairs",
 	            "all.bivariate", "unique.bivariate"))) {
 		connect <- "single"
 	}
@@ -285,9 +288,9 @@ mxPath <- function(from, to = NA,
 			connect <- "single"
 		}
 	} else {
-		if (!(length(connect) == 1 && !single.na(connect) && 
-			 is.character(connect) && (connect %in% 
-				c("single", "all.pairs", "unique.pairs", 
+		if (!(length(connect) == 1 && !single.na(connect) &&
+			 is.character(connect) && (connect %in%
+				c("single", "all.pairs", "unique.pairs",
 	            "all.bivariate", "unique.bivariate")))) {
 			msg <- paste("'connect' must be one of",
 					"'single', 'all.pairs', 'unique.pairs',",
@@ -325,13 +328,26 @@ mxPath <- function(from, to = NA,
 			stop(msg)
 		}
 	}
+  if (length(step)) {
+    step <- as.integer(step)
+    if (identical(arrows, 0) || (length(arrows) == length(step) &&
+                                   all(arrows[!is.na(step)] == 0))) {
+      # OK
+    } else {
+      stop(paste("step can only be provided for arrows=0 paths"))
+    }
+  }
+  if (length(step)==0 && any(arrows==0)) {
+    step <- rep(NA_integer_, length(arrows))
+    step[arrows==0] <- 1L  # default step
+  }
 	if (all.na(to)) { to <- as.character(to) }
 	if (all.na(from)) { from <- as.character(from) }
 	if (all.na(values)) { values <- as.numeric(values) }
 	if (all.na(labels)) { labels <- as.character(labels) }
 	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
 	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
-	if (all.na(connect)) { connect <- as.character(connect) } 	
+	if (all.na(connect)) { connect <- as.character(connect) }
 	pathCheckVector(from, 'from', is.character, 'character')
 	pathCheckVector(to, 'to', is.character, 'character')
 	pathCheckVector(arrows, 'arrows', is.numeric, 'numeric')
@@ -343,9 +359,10 @@ mxPath <- function(from, to = NA,
 	pathCheckVector(values, 'values', is.numeric, 'numeric')
 	pathCheckVector(lbound, 'lbound', is.numeric, 'numeric')
 	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
+	if (any(arrows==0)) pathCheckVector(step, 'step', is.numeric, 'numeric')
 	generatePath(from, to, connect, arrows,
-		values, free, labels, 
-		lbound, ubound, joinKey)
+		values, free, labels,
+		lbound, ubound, joinKey, step)
 }
 
 nchar0 <- function(x){
@@ -354,7 +371,7 @@ nchar0 <- function(x){
 
 prepPath <- function(path) {
 	path@values[ is.na(path@values) ] <- 0
-	
+
 	if (single.na(path@to)) {
 		# convert model.var -> var
 		path@to <- sapply(path@from, function(x) {
@@ -362,7 +379,7 @@ prepPath <- function(path) {
 			ifelse(length(pieces) == 2, pieces[2], pieces[1])
 		}, USE.NAMES = FALSE)
 	}
-	
+
 	expanded <- expandPathConnect(path@from, path@to, path@connect)
 	path@from <- expanded$from
 	path@to   <- expanded$to
@@ -381,8 +398,9 @@ displayPath <- function(object) {
 	alllabels <- path@labels
 	alllbound <- path@lbound
 	allubound <- path@ubound
+	allstep <- path@step
 	maxlength <- max(length(allfrom), length(allto))
-	
+
 	for(i in 0:(maxlength - 1)) {
 		from <- allfrom[[i %% length(allfrom) + 1]]
 		to <- allto[[i %% length(allto) + 1]]
@@ -392,6 +410,8 @@ displayPath <- function(object) {
 		nextlabel <- alllabels[[i %% length(alllabels) + 1]]
 		nextubound <- allubound[[i %% length(allubound) + 1]]
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
+    nextjoinkey <- path@joinKey[[i %% length(path@joinKey) + 1]]
+    nextstep <- ifelse(length(allstep)==0, NA, allstep[[i %% length(allstep) + 1]])
 
 		cat(from)
 		cat(paste0(' ', ifelse(arrows==1, "->", "<->"), ' '))
@@ -406,6 +426,12 @@ displayPath <- function(object) {
 		}
 		if (!is.na(nextubound)) {
 			cat(paste0(", ubound=", nextubound))
+		}
+		if (!is.na(nextjoinkey)) {
+			cat(paste0(", joinKey=", nextjoinkey))
+		}
+		if (!is.na(nextstep)) {
+			cat(paste0(", step=", nextstep))
 		}
 		cat("]")
 		cat('\n')

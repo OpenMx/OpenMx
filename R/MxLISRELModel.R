@@ -385,6 +385,7 @@ insertPathLISREL <- function(path, matrices, variables){
 		from <- allfrom[[i %% length(allfrom) + 1]]
 		to <- allto[[i %% length(allto) + 1]]
 		arrows <- allarrows[[i %% length(allarrows) + 1]]
+    if (arrows == 0) stop("MxPath with arrows==0 is not supported by LISREL") # maybe possible TODO
 		new <- list()
 		new$value <- allvalues[[i %% length(allvalues) + 1]]
 		new$free <- allfree[[i %% length(allfree) + 1]]
