@@ -407,7 +407,8 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src) : wantStage(0), parent(src), hasFakeParam(false)
+omxState::omxState(omxState *src, bool isTeam) :
+  wantStage(0), parent(src), workBoss(isTeam? src : 0), hasFakeParam(false)
 {
 	init();
 

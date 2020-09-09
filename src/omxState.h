@@ -320,13 +320,15 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage; // hack because omxRecompute doesn't take 'want' as a parameter TODO
-	omxState *parent;
+	omxState *parent;     // for read-only access to shared state
+	omxState *workBoss; // for OpenMP when multiple omxState want to cooperate
 	bool hasFakeParam;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
-	bool isClone() const { return parent != 0; }
+	bool isClone() const { return workBoss != 0; } // rename to isWorkBoss TODO
+  bool isTopState() const { return parent == 0; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
@@ -335,8 +337,8 @@ class omxState {
 	std::vector< omxConstraint* > conListX;
   void constraintPreeval(FitContext *fc) { for (auto c1 : conListX) c1->preeval(fc); }
 
-	omxState() : wantStage(0), parent(0), hasFakeParam(false) { init(); };
-	omxState(omxState *src);
+	omxState() : wantStage(0), parent(0), workBoss(0), hasFakeParam(false) { init(); };
+	omxState(omxState *src, bool isTeam);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList);

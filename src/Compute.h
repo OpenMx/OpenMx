@@ -208,8 +208,8 @@ class FitContext {
 
 	FitContext(omxState *_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);
-  bool permitParallel; // whether openmpUser is permitted
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
+  bool permitParallel; // whether openmpUser is permitted
   void createChildren(omxMatrix *alg=0, bool permitParallel=false);
   int numOptimizerThreads() { return (childList.size() && !openmpUser)? childList.size() : 1; }
 	void destroyChildren();

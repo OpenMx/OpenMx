@@ -416,7 +416,8 @@ void omxRAMExpectation::init()
 		pcalc.setAlgo(0, hasProductNodes, useSparse);
 
 		currentState->restoreParam(estSave);
-	} else {
+	}
+  if (!currentState->isTopState()) {
     auto pex = (omxRAMExpectation*) currentState->getParent(this);
     if (pex->slope) {
       numExoPred = pex->numExoPred;
@@ -432,6 +433,7 @@ void omxRAMExpectation::studyExoPred()
 
 	Eigen::VectorXd estSave;
 	currentState->setFakeParam(estSave);
+  if (!currentState->isTopState()) OOPS; // can data->defVars.erase only once
 	omxRecompute(A, 0);
 
 	EigenMatrixAdaptor eA(A);

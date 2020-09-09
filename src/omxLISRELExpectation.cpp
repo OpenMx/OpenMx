@@ -580,7 +580,7 @@ void omxLISRELExpectation::init()
 	} else LISobj->means  = 	NULL;
 	//TODO: Adjust means processing to allow only Xs or only Ys
 
-	if (currentState->isClone()) {
+	if (!currentState->isTopState()) {
     auto pex = (omxLISRELExpectation*) currentState->getParent(this);
     if (pex->slope) {
       numExoPred = pex->numExoPred;

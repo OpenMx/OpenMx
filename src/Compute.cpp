@@ -663,6 +663,7 @@ void FitContext::init()
 	openmpUser = false;
 	ordinalRelativeError = 0;
 	computeCount = 0;
+  permitParallel = false;
 
 	hess.resize(numParam, numParam);  // TODO why needed?
 	ihess.resize(numParam, numParam);  // TODO why needed?
@@ -1408,7 +1409,7 @@ void FitContext::createChildren1()
 
 	for(int ii = 0; ii < numThreads; ii++) {
 		FitContext *kid = new FitContext(this, varGroup);
-		kid->state = new omxState(state);
+		kid->state = new omxState(state, openmpUser);
 		kid->state->initialRecalc(kid);
 		childList.push_back(kid);
 	}

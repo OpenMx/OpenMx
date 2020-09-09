@@ -850,13 +850,10 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
     } else {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
       auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
-      if (pff->openmpUser) {
-        parent = pff;
-        elapsed.resize(ELAPSED_HISTORY_SIZE);
-        curElapsed = NA_INTEGER;
-      } else {
-        if (!indexVector.size()) sortData(off);
-      }
+      if (!pff->openmpUser) OOPS;
+      parent = pff;
+      elapsed.resize(ELAPSED_HISTORY_SIZE);
+      curElapsed = NA_INTEGER;
 		}
 		builtCache = true;
 	}

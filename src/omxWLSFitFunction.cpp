@@ -194,7 +194,7 @@ void omxWLSFitFunction::prepData()
 
 	omxData* dataMat = oo->expectation->data;
 
-	if (!matrix->currentState->isClone()) {
+	if (matrix->currentState->isTopState()) {
 		std::vector<int> exoPred;
 		expectation->getExogenousPredictors(exoPred);
 		// how to prohibit def vars? TODO
