@@ -278,12 +278,14 @@ if (.Platform$OS.type != 'windows' && parallel::detectCores() > 1) {
 	omxCheckTrue(startsModel$compute$steps[['GD']]$output$maxThreads > 1)
 }
 
-startsCI <- mxModel(startsModel, mxCI('stability'))
-startsCI <- mxOption(startsCI, "Standard Errors", "No")
-startsCI <- mxOption(startsCI, "Calculate Hessian", "No")
-startsCI <- mxRun(startsCI, intervals = TRUE)
+if (mxOption(key="default optimizer") == 'SLSQP') {
+  startsCI <- mxModel(startsModel, mxCI('stability'))
+  startsCI <- mxOption(startsCI, "Standard Errors", "No")
+  startsCI <- mxOption(startsCI, "Calculate Hessian", "No")
+  startsCI <- mxRun(startsCI, intervals = TRUE)
 
-expect_equal(as.character(startsCI$compute$steps$CI$output$detail[,'diagnostic']),
-             c('success', 'active box constraint'))
-expect_equal(startsCI$compute$steps$CI$output$detail[,'value'],
-             c(0.8907887, 0.9795628), 1e-3)
+  expect_equal(as.character(startsCI$compute$steps$CI$output$detail[,'diagnostic']),
+               c('success', 'active box constraint'))
+  expect_equal(startsCI$compute$steps$CI$output$detail[,'value'],
+               c(0.8907887, 0.9795628), 1e-3)
+}
