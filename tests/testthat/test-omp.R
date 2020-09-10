@@ -4,6 +4,7 @@ context("omp")
 
 skip_if_not(imxHasOpenMP())
 
+oldONT <- Sys.getenv("OMP_NUM_THREADS")
 Sys.setenv(OMP_NUM_THREADS = '1')
 mxOption(key='Number of Threads', value=2)
 
@@ -16,3 +17,9 @@ m1 = mxModel("one_is_the_loneliest_number", type="RAM",
 	mxData(mData, type="cov", numObs = 10)
 )
 expect_error(mxRun(m1), "2 threads requested.")
+
+if (nchar(oldONT) == 0) {
+  Sys.unsetenv('OMP_NUM_THREADS')
+} else {
+  Sys.setenv(OMP_NUM_THREADS = oldONT)
+}
