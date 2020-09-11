@@ -99,8 +99,7 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
     auto ds = getDiscreteSpec();
     auto dc = getDataColumns();
     if (data->isRaw()) {
-      // This is a bit clumsy. We should do this before cloning read-only data for threads. TODO
-      bool firstTime = discreteCache.size() == 0 && !isClone();
+      bool firstTime = discreteCache.size() == 0 && isTopState();
       for(int dx = 0; dx < int(dc.size()); dx++) {
         omxThresholdColumn &col = allTh[dx];
         if (!col.isDiscrete) continue;
@@ -110,10 +109,8 @@ void omxExpectation::compute(FitContext *fc, const char *what, const char *how)
           continue;
         }
         ColumnData &cd = data->rawCol(col.dataColumn);
-        const auto range =
-          std::minmax_element(cd.i(), cd.i() + data->nrows());
-        int obsMaxCount = *range.second - cd.getMinValue();
-        //mxLog("infer num thresholds for %s is %d", data->columnName(col.dataColumn), obsMaxCount);
+        int obsMaxCount = cd.getNumThresholds();
+        //mxLog("num thresholds for %s is %d", data->columnName(col.dataColumn), obsMaxCount);
         if (std::isfinite(nt)) {
           if (nt < obsMaxCount) {
             mxThrow("%s: discrete column '%s' set to a maximum count of %d "
@@ -227,7 +224,7 @@ void omxExpectation::loadThresholds()
 				col.column = tc;
 				col.isDiscrete = false;
 				if (data->isRaw()) {
-					col.numThresholds = omxDataGetNumFactorLevels(data, index) - 1;
+					col.numThresholds = data->rawCol(index).getNumThresholds();
 				} else {
 					// See omxData
 				}
@@ -612,5 +609,5 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 										getThresholdInfo(), out);
 }
 
-bool omxExpectation::isClone() const
-{ return currentState->isClone(); }
+bool omxExpectation::isTopState() const
+{ return currentState->isTopState(); }

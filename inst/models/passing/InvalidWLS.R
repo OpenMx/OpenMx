@@ -1,3 +1,4 @@
+library(testthat)
 library(OpenMx)
 
 a <- factor(sample(c('a', 'b', 'c'), size=100, replace=T))
@@ -7,9 +8,8 @@ mb <- mxFactor(b, levels=levels(b))
 #mb[mb %in% 'c'] <- 'd' #make 'c' the unused level instead of 'd'
 ds <- data.frame(a=ma, b=mb)
 
-omxCheckError(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')), "The job for model 'fake' exited abnormally with the error message: fake.data: variable 'b' has a zero frequency category 'd'.
-Eliminate this level in your mxFactor() or combine categories in some other way.
-Do not pass go. Do not collect $200.")
+expect_error(omxAugmentDataWithWLSSummary(mxData(ds, 'raw')),
+"fake.data: variable 'b' has a zero frequency outcome 'd'.")
 
 Bollen1 <- Bollen
 Bollen1[1,'y1'] <- NA

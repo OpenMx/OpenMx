@@ -180,8 +180,9 @@ static void importDataFrame(SEXP dataLoc, std::vector<ColumnData> &rawCols,
 			cd.setBorrow(INTEGER(rcol));
 			ProtectedSEXP Rlevels(Rf_getAttrib(rcol, R_LevelsSymbol));
 			for (int lx=0; lx < Rf_length(Rlevels); ++lx) {
-				cd.levels.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
+				cd.levelNames.push_back(R_CHAR(STRING_ELT(Rlevels, lx)));
 			}
+      cd.setMaxValueFromLevels();
 			numFactor++;
 		} else if (Rf_isInteger(rcol)) {
 			if(debug+OMX_DEBUG) {mxLog("Column[%d] %s is integer.", j, colname);}
@@ -653,13 +654,6 @@ double *omxDoubleDataColumn(omxData *od, int col)
 	else return cd.d();
 }
 
-int omxDataGetNumFactorLevels(omxData *od, int col)
-{
-	ColumnData &cd = od->rawCol(col);
-	if (cd.levels.size() == 0) mxThrow("omxDataGetNumFactorLevels attempt on non-factor");
-	return cd.levels.size();
-}
-
 int omxIntDataElement(omxData *od, int row, int col) {
 	if(od->dataMat != NULL) {
 		return (int) omxMatrixElement(od->dataMat, row, col);
@@ -696,9 +690,9 @@ bool omxDataColumnIsKey(omxData *od, int col)
 	return cd.type != COLUMNDATA_NUMERIC;
 }
 
-void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
+void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool isUnfiltered)
 {
-  //mxLog("omxData::RawData::assertColumnIsData(%d, %d, %d)", col, dt, warn);
+  //mxLog("omxData::RawData::assertColumnIsData(%d, %d, %d)", col, dt, isUnfiltered);
 	if (col < 0 || col >= int(rawCols.size())) {
 		mxThrow("Column %d requested but only %d columns of data",
 						col, int(rawCols.size()));
@@ -707,13 +701,13 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 	switch (cd.type) {
 	case COLUMNDATA_ORDERED_FACTOR:
 		if (dt == OMXDATA_ORDINAL || dt == OMXDATA_COUNT) {
-      if (!warn) cd.setZeroMinValue(rows);
+      if (!isUnfiltered) cd.setZeroMinValue(rows);
       return;
     }
 		mxThrow("Don't know how to interpret factor column '%s' as numeric.\n"
 						"You may want to specify thresholds for your model like this: "
 						"mxThreshold(vars='%s', nThresh=%d)",
-						cd.name, cd.name, int(cd.levels.size() - 1));
+						cd.name, cd.name, cd.getNumThresholds());
 	case COLUMNDATA_NUMERIC:{
 		if (dt == OMXDATA_REAL) return;
     if (dt == OMXDATA_ORDINAL) {
@@ -732,14 +726,16 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 		}
     cd.setOwn(intData);
     cd.setMinValue(0);
+    cd.verifyMinValue(rows);
+    if (!isUnfiltered) cd.setMaxValueFromData(rows);
     break;}
 	case COLUMNDATA_UNORDERED_FACTOR:
 		if (dt == OMXDATA_ORDINAL) {
-			if (warn && ++Global->dataTypeWarningCount < 5) {
+			if (isUnfiltered && ++Global->dataTypeWarningCount < 5) {
 				Rf_warning("Column '%s' must be an ordered factor. "
 									 "Please use mxFactor()", cd.name);
 			}
-      if (!warn) cd.setZeroMinValue(rows);
+      if (!isUnfiltered) cd.setZeroMinValue(rows);
 		} else if (dt == OMXDATA_COUNT) {
 			mxThrow("Don't know how to interpret unordered factor '%s' as a count", cd.name);
 		} else {
@@ -747,7 +743,11 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool warn)
 		}
 		break;
 	case COLUMNDATA_INTEGER:{
-		if (dt == OMXDATA_COUNT) return;
+		if (dt == OMXDATA_COUNT) {
+      cd.verifyMinValue(rows);
+      if (!isUnfiltered) cd.setMaxValueFromData(rows);
+      return;
+    }
 		if (dt == OMXDATA_ORDINAL) {
 			mxThrow("Don't know how to interpret integer column '%s' as ordinal. "
 							"Please use mxFactor()", cd.name);
@@ -839,9 +839,29 @@ ColumnData ColumnData::clone() const
   ColumnData ret(name);
   ret.type = type;
   ret.setBorrow(ptr);
-  ret.levels = levels;
+  ret.levelNames = levelNames;
   ret.minValue = minValue;
+  ret.maxValue = maxValue;
   return ret;
+}
+
+void ColumnData::verifyMinValue(int nrows)
+{
+  int m0 = std::numeric_limits<int>::max();
+  for (int *it=i(); it < i()+nrows; ++it) {
+    if (*it == NA_INTEGER) continue;
+    if (*it < m0) m0 = *it;
+  }
+  if (m0 != minValue) {
+    mxThrow("column %s: minimum value is %d not %d", name, m0, minValue);
+  }
+}
+
+void ColumnData::setMaxValueFromData(int nrows)
+{
+  // NA_INTEGER is negative so can ignore
+  auto it = std::max_element(i(), i() + nrows);
+  maxValue = *it;
 }
 
 void ColumnData::setZeroMinValue(int rows)
@@ -849,6 +869,7 @@ void ColumnData::setZeroMinValue(int rows)
   if (minValue == 0) return;
   if (type == COLUMNDATA_NUMERIC)
     mxThrow("ColumnData::setZeroMinValue not implemented for numeric data");
+  if (minValue != 1) OOPS;
   int *oldIntData = i();
   int *id = new int[rows];
   for (int xx=0; xx < rows; ++xx) {
@@ -860,6 +881,8 @@ void ColumnData::setZeroMinValue(int rows)
   }
   setOwn(id);
   minValue = 0;
+  if (maxValue == NA_INTEGER) OOPS;
+  maxValue -= 1;
 }
 
 void omxData::RawData::operator=(const RawData &other)
@@ -888,14 +911,14 @@ void omxDataKeysCompatible(omxData *upper, omxData *lower, int foreignKey)
 			 lcd.name, lower->name, ColumnDataTypeToString(lcd.type));
 	}
 	if (ucd.type == COLUMNDATA_ORDERED_FACTOR || ucd.type == COLUMNDATA_UNORDERED_FACTOR) {
-		if (ucd.levels.size() != lcd.levels.size()) {
+		if (ucd.getMaxValue() != lcd.getMaxValue()) {
 			mxThrow("Primary key '%s' in %s has a different number of factor"
 				 " levels compared to foreign key '%s' in %s",
 				 ucd.name, upper->name, lcd.name, lower->name);
 		}
-		for (int lx=0; lx < int(ucd.levels.size()); ++lx) {
-			auto &ul = ucd.levels[lx];
-			auto &ll = lcd.levels[lx];
+		for (int lx=0; lx < int(ucd.levelNames.size()); ++lx) {
+			auto &ul = ucd.levelNames[lx];
+			auto &ll = lcd.levelNames[lx];
 			if (ul == ll) continue;
 			mxThrow("Primary key '%s' in %s has different factor levels ('%s' != '%s')"
 				 " compared to foreign key '%s' in %s",
@@ -1698,7 +1721,7 @@ ProbitRegression(omxData *_d,
 void ProbitRegression::setResponse(ColumnData &_r, WLSVarData &pv, int yy)
 {
 	response = &_r;
-	numThr = response->levels.size()-1;
+	numThr = response->getNumThresholds();
 
 	Eigen::Map< Eigen::VectorXi > ycolFull(response->i(), data.nrows());
 	ycol.resize(pred.rows());
@@ -1710,15 +1733,17 @@ void ProbitRegression::setResponse(ColumnData &_r, WLSVarData &pv, int yy)
 	}
 	Eigen::VectorXi ycolF(ycol.size() - naCount);
 	subsetVector(ycol, notMissingF, ycolF);
-	Eigen::VectorXd tab(response->levels.size());
+	Eigen::VectorXd tab(response->getNumOutcomes());
 	tabulate(ycolF, rowMult.derived(), tab);
 	if ((tab.array()==0).any()) {
 		int x,y;
 		tab.minCoeff(&x,&y);
-		mxThrow("%s: variable '%s' has a zero frequency category '%s'.\n"
-			 "Eliminate this level in your mxFactor() or combine categories in some other way.\n"
-			 "Do not pass go. Do not collect $200.",
-			 data.name, response->name, response->levels[x].c_str());
+    std::string outcome = string_snprintf("%d", 1+x);
+    if (response->levelNames.size()) outcome = response->levelNames[x];
+		mxThrow("%s: variable '%s' has a zero frequency outcome '%s'.\n"
+            "Eliminate this level in your mxFactor() or combine categories in some other way.\n"
+            "Do not pass go. Do not collect $200.",
+            data.name, response->name, outcome.c_str());
 	}
 	Eigen::VectorXd prop = (tab.cast<double>() / double(tab.sum())).
 		segment(0, numThr);
@@ -1768,7 +1793,7 @@ void regressOrdinalThresholds(const Eigen::MatrixBase<T3> &ycol,
 {
 	zi.derived().resize(ycol.size(), 2);
 
-	int numThr = oc.levels.size() - 1;
+	int numThr = oc.getNumThresholds();
 	Eigen::VectorXd th(2 + numThr);  // pass in as argument TODO
 	th.segment(1, numThr) = ov.theta.segment(0, numThr);
 	th[0] = NEG_INF;
@@ -1797,10 +1822,10 @@ void regressOrdinalThresholds(const Eigen::MatrixBase<T3> &ycol,
 
 void ProbitRegression::evaluate0()
 {
-	Eigen::VectorXd th(1 + response->levels.size());
+	Eigen::VectorXd th(1+response->getNumOutcomes());
 	th.segment(1, numThr) = param.segment(0, numThr);
 	th[0] = -std::numeric_limits<double>::infinity();
-	th[response->levels.size()] = std::numeric_limits<double>::infinity();
+	th[response->getNumOutcomes()] = std::numeric_limits<double>::infinity();
 
 	for (int rx=0; rx < ycol.size(); ++rx) {
 		if (ycol[rx] == NA_INTEGER) {
@@ -1954,7 +1979,7 @@ struct PolyserialCor : NewtonRaphsonObjective {
 
 		regressOrdinalThresholds(ycol, pred2, oc, ov, zi);
 
-		numThr = oc.levels.size() - 1;
+		numThr = oc.getNumThresholds();
 
 		int naCount=0;
 		auto notMissingF = [&](int rx){ return ycol[rx] != NA_INTEGER; };
@@ -2104,8 +2129,8 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		lbound.setConstant(NEG_INF);
 		ubound.resize(1);
 		ubound.setConstant(INF);
-		numThr1 = c1.levels.size()-1;
-		numThr2 = c2.levels.size()-1;
+		numThr1 = c1.getNumThresholds();
+		numThr2 = c2.getNumThresholds();
 		th1.resize(2 + numThr1);
 		th1.segment(1, numThr1) = v1.theta.segment(0, numThr1);
 		th1[0] = NEG_INF;
@@ -2148,7 +2173,7 @@ struct PolychoricCor : NewtonRaphsonObjective {
 			regressOrdinalThresholds(y1.matrix(), pred1, c1, v1, z1);
 			regressOrdinalThresholds(y2.matrix(), pred2, c2, v2, z2);
 		} else {
-			obsTable.resize(c1.levels.size(), c2.levels.size());
+			obsTable.resize(c1.getNumOutcomes(), c2.getNumOutcomes());
 			obsTable.setZero();
 			pr.resize(obsTable.size());
 			den.resize(obsTable.size());
@@ -2440,7 +2465,7 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 			EigenMatrixAdaptor Eth(o1.thresholdMat);
 			for (int tx=0; tx <= o1.thresholdMat->rows; ++tx) {
 				if (tx < o1.thresholdMat->rows && std::isfinite(Eth(tx,cx))) continue;
-				int nthr = int(rc.levels.size()) - 1;
+				int nthr = rc.getNumThresholds();
 				if (tx != nthr) {
 					if (verbose >= 1) {
 						mxLog("%s: threshold '%s' implies %d levels but data has %d levels",
@@ -3022,11 +3047,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 			totalThr += 1;  // mean
 			numContinuous += 1;
 		} else {
-			if (cd.type != COLUMNDATA_ORDERED_FACTOR) {
-				mxThrow("%s: variable '%s' must be an ordered factor but is of type %s",
-					 name, cd.name, ColumnDataTypeToString(cd.type));
-			}
-			int numThr = cd.levels.size() - 1;
+			int numThr = cd.getNumThresholds();
 
 			omxThresholdColumn tc;
 			tc.dataColumn = yy;
@@ -3159,7 +3180,7 @@ void omxData::estimateObservedStats()
 	for (int yy=0; yy < numCols; ++yy) {
 		ColumnData &cd = rawCol( rawColMap[dc[yy]] );
 		std::vector<bool> mask(A11_size, false);
-		int numThr = cd.type == COLUMNDATA_NUMERIC? 1 : cd.levels.size() - 1;
+		int numThr = cd.type == COLUMNDATA_NUMERIC? 1 : cd.getNumThresholds();
 		for (int tx=0; tx < numThr; ++tx) mask[thStart[yy] + tx] = true;
 		for (int px=0; px < o1.exoFree.cols(); ++px) {
 			if (o1.exoFree(yy,px)) mask[totalThr + exoOrder(yy,px)] = true;

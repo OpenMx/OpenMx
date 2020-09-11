@@ -4378,10 +4378,10 @@ void LoadDataCSVProvider::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int
 		*out = NA_INTEGER;
 		return;
 	}
-	if (rc.levels.size()) {
+	if (rc.levelNames.size()) {
 		bool found = false; // maybe use a map for better performance?
-		for (int lx=0; lx < int(rc.levels.size()); ++lx) {
-			if (rn == rc.levels[lx]) {
+		for (int lx=0; lx < int(rc.levelNames.size()); ++lx) {
+			if (rn == rc.levelNames[lx]) {
 				found = true;
 				*out = 1+lx;
 				break;
@@ -4565,11 +4565,11 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 				if (vec.hasAttribute("levels")) {
 					CharacterVector lev = vec.attr("levels");
 					auto &rc = (*rawCols)[ columns[cx] ];
-					if (int(rc.levels.size()) != int(lev.size())) {
+					if (int(rc.levelNames.size()) != int(lev.size())) {
 						mxThrow("%s: observed column %d (%s) has a different number"
 								 "of factor levels %d compare to the original data %d",
 								 name, 1+cx, as<const char *>(obNames[cx]),
-								 int(lev.size()), int(rc.levels.size()));
+								 int(lev.size()), int(rc.levelNames.size()));
 					}
 				}
 			}

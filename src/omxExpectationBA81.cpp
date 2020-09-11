@@ -232,24 +232,15 @@ void BA81Expect::connectToData()
 		state->grp.dataColumns.push_back(col);
 	}
 
-	// TODO the max outcome should be available from omxData
-	for (int rx=0; rx < data->nrows(); rx++) {
-		int cols = 0;
-		for (int cx = 0; cx < numItems; cx++) {
-			const int *col = state->grp.dataColumns[cx];
-			int pick = col[rx];
-			if (pick == NA_INTEGER) continue;
-			++cols;
-			const int no = state->grp.itemOutcomes[cx];
-			if (pick >= no) {
-				mxThrow("Data for item '%s' has at least %d outcomes, not %d",
-					 state->itemParam->colnames[cx], pick, no);
-			}
-		}
-		if (cols == 0) {
-			mxThrow("Row %d has all NAs", 1+rx);
-		}
-	}
+  for (int cx = 0; cx < numItems; cx++) {
+    int var = colMap[cx];
+    int pick = data->rawCol(var).getNumOutcomes();
+    const int no = state->grp.itemOutcomes[cx];
+    if (pick > no) {
+      mxThrow("Data column '%s' has %d outcomes but item model only permits %d",
+              state->itemParam->colnames[cx], pick, no);
+    }
+  }
 
 	if (state->_latentMeanOut && state->_latentMeanOut->rows * state->_latentMeanOut->cols != maxAbilities) {
 		mxThrow("The mean matrix '%s' must be a row or column vector of size %d",
