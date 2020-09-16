@@ -75,6 +75,10 @@ class PathCalc {
 	std::vector< Polynomial< double > > polyRep;
 	unsigned versionPoly;
 	Eigen::VectorXd meanOut;
+  omxMatrix *fullMeanAccess;
+  omxMatrix *fullCovAccess;
+  Eigen::MatrixXd tmpFullCov;
+  Eigen::VectorXd tmpFullMean;
   omxMatrix *selVec;
   DataFrame selPlan;
   std::vector<bool> selFilter;
@@ -121,7 +125,8 @@ class PathCalc {
  PathCalc() :
 	 useSparse(false), versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
-	 algoSet(false), versionPoly(0), selDim(0), verbose(0), ignoreVersion(false) {}
+	 algoSet(false), versionPoly(0), fullMeanAccess(0), fullCovAccess(0),
+   selDim(0), verbose(0), ignoreVersion(false) {}
 
 	void clone(PathCalc &pc)
 	{
@@ -140,6 +145,8 @@ class PathCalc {
     selPlan = pc.selPlan;
     selFilter = pc.selFilter;
     selDim = pc.selDim;
+    fullMeanAccess = pc.fullMeanAccess;
+    fullCovAccess = pc.fullCovAccess;
 		init1();
 		init2();
 	}
@@ -177,6 +184,12 @@ class PathCalc {
       selVec = 0;
       selPlan = 0;
     }
+  }
+
+  void attachFullMemory(omxMatrix *_mean, omxMatrix *_cov)
+  {
+    fullMeanAccess = _mean;
+    fullCovAccess = _cov;
   }
 
 	void setAlgo(FitContext *fc, bool _boker2019, int _useSparse);
@@ -233,69 +246,11 @@ class PathCalc {
 	// independentGroup::computeCov
 	// omxRAMExpectation::CalculateRAMCovarianceAndMeans
 	template <typename T>
-	void cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
-	{
-		if (!boker2019) {
-      if (selDim) {
-        Eigen::MatrixXd tmp(numVars, numVars);
-        fullCov(fc, tmp);
-        subsetCovariance(tmp, [&](int cx)->bool{ return (*latentFilter)[cx]; },
-                         numObs, cov);
-      } else {
-        evaluate(fc, true);
-        prepS(fc);
-        if (!useSparse) {
-          cov.derived() = IA.transpose() * sio->full.selfadjointView<Eigen::Lower>() * IA;
-        } else {
-          //sio->copyLowerToUpper();
-          cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
-        }
-      }
-		} else {
-			cov.derived().resize(numObs, numObs);
-			buildPolynomial(fc);
-			auto &symEv = symSolver.eigenvalues();
-			auto &symVec = symSolver.eigenvectors();
-			for (int ii=0; ii<numVars; ii++) {
-				for (int jj=ii; jj<numVars; jj++) {
-					int oii = obsMap[ii];
-					int ojj = obsMap[jj];
-					if (oii < 0 || ojj < 0) continue;
-					auto polyProd = polyRep[ii] * polyRep[jj];
-					cov(oii,ojj) = polynomialToMoment(polyProd, symEv) - meanOut[ii]*meanOut[jj];
-					if (oii != ojj) cov(ojj,oii) = cov(oii,ojj);
-				}
-			}
-		}
-	}
+	void cov(FitContext *fc, Eigen::MatrixBase<T> &cov);
 
 	// called by omxRAMExpectation::CalculateRAMCovarianceAndMeans
 	template <typename T1>
-	void mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut)
-	{
-		if (!boker2019) {
-      prepM(fc);
-      if (selDim) {
-        Eigen::VectorXd tmpMean = fullMean(fc, mio->full);
-        subsetVector(tmpMean, [&](int cx)->bool{ return (*latentFilter)[cx]; },
-                     numObs, copyOut);
-      } else {
-        evaluate(fc, true);
-        if (!useSparse) {
-          copyOut.derived() = IA.transpose() * mio->full;
-        } else {
-          copyOut.derived() = sparseIA.transpose() * mio->full;
-        }
-      }
-		} else {
-			buildPolynomial(fc);
-			for (int vx=0; vx < numVars; ++vx) {
-				int ox = obsMap[vx];
-				if (ox < 0) continue;
-				copyOut[ox] = meanOut[vx];
-			}
-		}
-	}
+	void mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut);
 
 	std::string getPolyRep()
 	{
@@ -310,6 +265,7 @@ class PathCalc {
 };
 
 #include "matrix.h"
+#include "Compute.h"
 
 template <typename T1>
 void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
@@ -339,6 +295,78 @@ void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
 	Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * nc * iv11) * v12;
 	partitionCovarianceSet(cov, [&](int xx){ return selFilter[xx]; }, nc, n12, n22);
   //mxPrintMat("after sel", cov);
+}
+
+template <typename T1>
+void PathCalc::mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut)
+{
+  if (!boker2019) {
+    prepM(fc);
+    if (selDim) {
+      if (!fullMeanAccess) tmpFullMean.resize(numVars);
+      omxMatrix *fma = fullMeanAccess;
+      if (fc) fma = fc->state->lookupDuplicate(fullMeanAccess);
+      Eigen::Map< Eigen::VectorXd > tmpMean(fma? fma->data : tmpFullMean.data(), numVars);
+      tmpMean = fullMean(fc, mio->full);
+      subsetVector(tmpMean, [&](int cx)->bool{ return (*latentFilter)[cx]; },
+                   numObs, copyOut);
+    } else {
+      evaluate(fc, true);
+      if (!useSparse) {
+        copyOut.derived() = IA.transpose() * mio->full;
+      } else {
+        copyOut.derived() = sparseIA.transpose() * mio->full;
+      }
+    }
+  } else {
+    buildPolynomial(fc);
+    for (int vx=0; vx < numVars; ++vx) {
+      int ox = obsMap[vx];
+      if (ox < 0) continue;
+      copyOut[ox] = meanOut[vx];
+    }
+  }
+}
+
+template <typename T>
+void PathCalc::cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
+{
+  if (!boker2019) {
+    if (selDim) {
+      if (!fullCovAccess) tmpFullCov.resize(numVars, numVars);
+      omxMatrix *fca = fullCovAccess;
+      if (fc) fc->state->lookupDuplicate(fullCovAccess);
+      Eigen::Map< Eigen::MatrixXd > tmpCov(fca? fca->data : tmpFullCov.data(),
+                                           numVars, numVars);
+      fullCov(fc, tmpCov);
+      subsetCovariance(tmpCov, [&](int cx)->bool{ return (*latentFilter)[cx]; },
+                       numObs, cov);
+    } else {
+      evaluate(fc, true);
+      prepS(fc);
+      if (!useSparse) {
+        cov.derived() = IA.transpose() * sio->full.selfadjointView<Eigen::Lower>() * IA;
+      } else {
+        //sio->copyLowerToUpper();
+        cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
+      }
+    }
+  } else {
+    cov.derived().resize(numObs, numObs);
+    buildPolynomial(fc);
+    auto &symEv = symSolver.eigenvalues();
+    auto &symVec = symSolver.eigenvectors();
+    for (int ii=0; ii<numVars; ii++) {
+      for (int jj=ii; jj<numVars; jj++) {
+        int oii = obsMap[ii];
+        int ojj = obsMap[jj];
+        if (oii < 0 || ojj < 0) continue;
+        auto polyProd = polyRep[ii] * polyRep[jj];
+        cov(oii,ojj) = polynomialToMoment(polyProd, symEv) - meanOut[ii]*meanOut[jj];
+        if (oii != ojj) cov(ojj,oii) = cov(oii,ojj);
+      }
+    }
+  }
 }
 
 #endif // __path_h_

@@ -321,7 +321,7 @@ omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* currentState, const char* s
 	SEXP slotValue;
 	ScopedProtect p1(slotValue, R_do_slot(rObj, Rf_install(slotName)));
 	omxMatrix* newMatrix = omxMatrixLookupFromState1(slotValue, currentState);
-	return newMatrix;
+	return newMatrix; // NULL when length(slot)==0
 }
 
 omxMatrix *omxNewMatrixFromSlotOrAnon(SEXP rObj, omxState* currentState, const char* slotName,

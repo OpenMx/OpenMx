@@ -276,6 +276,7 @@ omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 
 omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 {
+  if (!element) return 0;
 	if (!element->hasMatrixNumber) mxThrow("lookupDuplicate without matrix number");
 	return getMatrixFromIndex(element->matrixNumber);
 }

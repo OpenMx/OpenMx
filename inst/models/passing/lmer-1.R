@@ -4,6 +4,7 @@ if (!("lme4" %in% libraries)) stop("SKIP")
 library(lme4)
 fm1 <- lmer(Reaction ~ Days + (Days | Subject), sleepstudy, REML=FALSE)
 
+library(testthat)
 library(OpenMx)
 
 # ------------------- hybrid matrix/path spec
@@ -14,7 +15,7 @@ m1 <- mxModel(model="sleep", type="RAM", manifestVars=c("Reaction"), latentVars 
         mxPath(c("one"), "DayEffect", free=FALSE, labels="data.Days"),
         mxPath("DayEffect", "Reaction"),
         mxPath(c("Reaction"), arrows=2, values=1),
-        
+
         # this is the between level mapping
         mxMatrix(name="Z", nrow=1, ncol=2, values=1, labels=c('data.Days', NA),
                  dimnames=list(c("Reaction"), c("slope", "intercept")),
@@ -39,7 +40,7 @@ m1$bySubject$fitfunction <- NULL
 omxCheckError(mxRun(m1), "Join mapping matrix sleep.Z must have 2 rows: 'Reaction' and 'DayEffect'")
 
 # fix map matrix
-map <- mxMatrix(name="Z", nrow=2, ncol=2, 
+map <- mxMatrix(name="Z", nrow=2, ncol=2,
                 dimnames=list(c("Reaction", 'DayEffect'), c("slope", "intercept")),
                 joinKey = "Subject", joinModel = "bySubject")
 map$labels['Reaction','slope'] <- 'data.Days'
@@ -106,5 +107,5 @@ omxCheckCloseEnough(logLik(m2), logLik(fm1), 1e-6)
 
 oldBetween <- m2$expectation$between
 m2$expectation$between <- c(m2$expectation$between, "whatever")
-omxCheckError(mxRun(m2), "Level transition matrix 'whatever' listed in 'sleep.expectation' is not found")
+expect_error(mxRun(m2), "Identifier 'whatever' refers to what?")
 m2$expectation$between <- oldBetween

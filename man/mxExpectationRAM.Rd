@@ -29,7 +29,8 @@ This function creates an MxExpectationRAM object.
 mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
                  threshnames = dimnames, ..., between=NULL, verbose=0L,
   .useSparse=NA, expectedCovariance=NULL, expectedMean=NULL,
-  discrete = as.character(NA), selectionVector = as.character(NA))
+  discrete = as.character(NA), selectionVector = as.character(NA),
+  expectedFullCovariance=NULL, expectedFullMean=NULL)
 }
 
 
@@ -47,13 +48,19 @@ mxExpectationRAM(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
    \item{.useSparse}{logical. Whether to use sparse matrices to compute
    the expectation. The default \code{NA} allows the backend to decide.}
    \item{expectedCovariance}{An optional character string indicating the
-   name of a matrix for the model implied covariance.}
+   name of a matrix for the observed model implied covariance.}
    \item{expectedMean}{An optional character string indicating the name
-   of a matrix for the model implied mean.}
+   of a matrix for the observed model implied mean.}
    \item{discrete}{An optional character string indicating the name of
      the discrete matrix.}
    \item{selectionVector}{An optional character string indicating the name of
      the Pearson selection vector matrix.}
+   \item{expectedFullCovariance}{An optional character string indicating the
+   name of a matrix for the full model implied covariance. Both latent
+   and observed variables are included.}
+   \item{expectedFullMean}{An optional character string indicating the name
+   of a matrix for the full model implied mean. Both latent
+   and observed variables are included.}
 }
 
 \details{

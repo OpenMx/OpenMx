@@ -42,7 +42,8 @@ setClass(Class = "MxExpectationRAM",
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
            between, verbose, useSparse, expectedCovariance, expectedMean, discrete,
-           selectionVector, data = as.integer(NA), name = 'expectation') {
+           selectionVector, expectedFullCovariance, expectedFullMean,
+           data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
 		.Object@S <- S
@@ -69,6 +70,8 @@ setMethod("initialize", "MxExpectationRAM",
     .Object@.useSparse <- useSparse
     .Object@expectedCovariance <- expectedCovariance
     .Object@expectedMean <- expectedMean
+    .Object@expectedFullCovariance <- expectedFullCovariance
+    .Object@expectedFullMean <- expectedFullMean
 		return(.Object)
 	}
 )
@@ -79,7 +82,8 @@ setMethod("genericExpDependencies", signature("MxExpectationRAM"),
 	sources <- c(.Object@A, .Object@S, .Object@F, .Object@M, .Object@thresholds, .Object@between)
 	sources <- sources[!is.na(sources)]
   sink <- .Object@name
-  sink <- c(sink, .Object@expectedCovariance, .Object@expectedMean)
+    sink <- c(sink, .Object@expectedCovariance, .Object@expectedMean,
+              .Object@expectedFullCovariance, .Object@expectedFullMean)
 	dependencies <- imxAddDependency(sources, sink, dependencies)
 	return(dependencies)
 })
@@ -88,26 +92,22 @@ setMethod("qualifyNames", signature("MxExpectationRAM"),
 	function(.Object, modelname, namespace) {
     .Object <- callNextMethod()
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@A <- imxConvertIdentifier(.Object@A, modelname, namespace, TRUE)
-		.Object@S <- imxConvertIdentifier(.Object@S, modelname, namespace, TRUE)
-		.Object@F <- imxConvertIdentifier(.Object@F, modelname, namespace, TRUE)
-		.Object@M <- imxConvertIdentifier(.Object@M, modelname, namespace, TRUE)
-		.Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
-		.Object@thresholds <- sapply(.Object@thresholds,
-					     imxConvertIdentifier, modelname, namespace)
-		.Object@between <- imxConvertIdentifier(.Object@between, modelname, namespace)
+    for (sl in c('A', 'S', 'F', 'M', 'thresholds', 'between',
+                 'expectedCovariance', 'expectedMean',
+                 'expectedFullCovariance', 'expectedFullMean')) {
+      slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace, TRUE)
+    }
     .Object
 })
 
 setMethod("genericExpRename", signature("MxExpectationRAM"),
 	function(.Object, oldname, newname) {
     .Object <- callNextMethod()
-		.Object@A <- renameReference(.Object@A, oldname, newname)
-		.Object@S <- renameReference(.Object@S, oldname, newname)
-		.Object@F <- renameReference(.Object@F, oldname, newname)
-		.Object@M <- renameReference(.Object@M, oldname, newname)
-		.Object@data <- renameReference(.Object@data, oldname, newname)
-		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)
+    for (sl in c('A', 'S', 'F', 'M', 'thresholds', 'between',
+                 'expectedCovariance', 'expectedMean',
+                 'expectedFullCovariance', 'expectedFullMean')) {
+      slot(.Object, sl) <- renameReference(slot(.Object, sl), oldname, newname)
+    }
     .Object
 })
 
@@ -129,7 +129,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		}
 		mxDataObject <- flatModel@datasets[[.Object@data]]
 		if (.hasSlot(.Object, "between") && length(.Object@between)) {
-			.Object@between <- sapply(.Object@between, function(bName) {
+			sapply(.Object@between, function(bName) {
 				zMat <- flatModel[[ bName ]]
 				if (is.null(zMat)) {
 					msg <- paste("Level transition matrix", omxQuotes(bName),
@@ -166,7 +166,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 						     omxQuotes(colnames(upperF)[!upperMatch]))
 					stop(msg, call. = FALSE)
 				}
-				imxLocateIndex(flatModel, bName, name)
 			})
 		}
 		checkNumericData(mxDataObject)
@@ -254,12 +253,10 @@ setMethod("genericNameToNumber", signature("MxExpectationRAM"),
 	  function(.Object, flatModel, model) {
       .Object <- callNextMethod()
 		  name <- .Object@name
-		  data <- .Object@data
-		  .Object@data <- imxLocateIndex(flatModel, data, name)
-		  .Object@A <- imxLocateIndex(flatModel, .Object@A, name)
-		  .Object@S <- imxLocateIndex(flatModel, .Object@S, name)
-		  .Object@F <- imxLocateIndex(flatModel, .Object@F, name)
-		  .Object@M <- imxLocateIndex(flatModel, .Object@M, name)
+    for (sl in c('A', 'S', 'F', 'M', 'between',
+                 'expectedFullCovariance', 'expectedFullMean')) {
+		  slot(.Object,sl) <- imxLocateIndex(flatModel, slot(.Object,sl), name)
+    }
       .Object
 	  })
 
@@ -485,7 +482,8 @@ imxSimpleRAMPredicate <- function(model) {
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
                              threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA,
                              expectedCovariance=NULL, expectedMean=NULL,
-                             discrete = as.character(NA), selectionVector = as.character(NA)) {
+                             discrete = as.character(NA), selectionVector = as.character(NA),
+                             expectedFullCovariance=NULL, expectedFullMean=NULL) {
 
 	prohibitDotdotdot(list(...))
 
@@ -527,7 +525,8 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
              between, as.integer(verbose), as.logical(.useSparse),
-             expectedCovariance, expectedMean, discrete, selectionVector))
+             expectedCovariance, expectedMean, discrete, selectionVector,
+             expectedFullCovariance, expectedFullMean))
 }
 
 displayMxExpectationRAM <- function(expectation) {

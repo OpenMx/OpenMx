@@ -240,7 +240,7 @@ static void recordNonzeroCoeff(omxMatrix *m, std::vector<coeffLoc> &vec, bool lo
 }
 
 omxRAMExpectation::omxRAMExpectation(omxState *st, int num)
-	: super(st, num), studiedF(false), numExoPred(0), slope(0), rram(0)
+	: super(st, num), studiedF(false), openBox(false), numExoPred(0), slope(0), rram(0)
 {
 	if (st->isClone()) {
 		omxRAMExpectation *ram = (omxRAMExpectation *)st->getParent(this);
@@ -380,14 +380,31 @@ void omxRAMExpectation::init()
 
 	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", l, l);
 	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
-	else connectMatrixToExpectation(cov, this, "covariance");
+	else {
+    connectMatrixToExpectation(cov, this, "covariance");
+    openBox = true;
+  }
+  fullCov = omxNewMatrixFromSlot(rObj, currentState, "expectedFullCovariance");
+  if (fullCov) {
+    connectMatrixToExpectation(fullCov, this, "fullCov");
+    openBox = true;
+  }
 
 	if (M) {
 		means =	omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, l);
 		if (!means->hasMatrixNumber) meanOwner = omxMatrixPtr(means);
-		else connectMatrixToExpectation(means, this, "mean");
+		else {
+      connectMatrixToExpectation(means, this, "mean");
+      openBox = true;
+    }
+    fullMean = omxNewMatrixFromSlot(rObj, currentState, "expectedFullMean");
+    if (fullMean) {
+      connectMatrixToExpectation(fullMean, this, "fullMean");
+      openBox = true;
+    }
 	} else {
 		RAMexp->means  = 	NULL;
+    fullMean = 0;
 	}
 
 	RAMexp->studyF();
@@ -419,6 +436,7 @@ void omxRAMExpectation::init()
       DataFrame selPlan(rObj.slot("selectionPlan"));
       pcalc.attachSelection(selVec, selPlan);
     }
+    pcalc.attachFullMemory(fullMean, fullCov);
 		pcalc.setAlgo(0, hasProductNodes, useSparse);
 
 		currentState->restoreParam(estSave);
@@ -1906,6 +1924,17 @@ namespace RelationalRAMExpectation {
 		hasProductNodes = false;
 		for (auto *ex : allEx) {
 			omxRAMExpectation *ram1 = (omxRAMExpectation*) ex;
+      if (ram1->isOpenBox()) {
+        if (ex != homeEx) {
+          mxThrow("Expectation '%s' is part of a multilevel model with '%s';"
+                  "introspection of per-level expectations is not possible",
+                  ex->name, homeEx->name);
+        } else {
+          mxThrow("Expectation '%s' is part of a multilevel model;"
+                  "introspection of per-level expectations is not possible",
+                  ex->name);
+        }
+      }
 			hasProductNodes |= ram1->getHasProductNodes();
 			if (!ex->data->hasWeight() && !ex->data->hasFreq()) continue;
 			mxThrow("%s: row frequencies or weights provided in '%s' are not compatible with joins",

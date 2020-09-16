@@ -18,6 +18,8 @@ setClass(Class = "BaseExpectationNormal",
          representation = representation(
            expectedCovariance = "MxOptionalCharOrNumber",
            expectedMean = "MxOptionalCharOrNumber",
+           expectedFullCovariance = "MxOptionalCharOrNumber",
+           expectedFullMean = "MxOptionalCharOrNumber",
            thresholds = "MxCharOrNumber",
            threshnames = "character",
            discrete = "MxCharOrNumber",
@@ -117,7 +119,7 @@ setMethod("genericNameToNumber", signature("BaseExpectationNormal"),
 	  function(.Object, flatModel, model) {
 		  name <- .Object@name
       for (sl in c(paste0('expected', c('Covariance','Mean')),
-                   'thresholds', 'discrete', 'selectionVector')) {
+                   'data', 'thresholds', 'discrete', 'selectionVector')) {
         slot(.Object,sl) <- imxLocateIndex(flatModel, slot(.Object,sl), name)
       }
 		  .Object
@@ -953,7 +955,6 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 
 		mxDataObject <- flatModel@datasets[[.Object@data]]
 		dataName <- .Object@data
-		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
 		threshName <- .Object@thresholds
 		covName <- .Object@covariance
 		covariance <- flatModel[[covName]]

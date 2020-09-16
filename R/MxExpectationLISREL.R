@@ -308,7 +308,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		.Object@TY <- imxLocateIndex(flatModel, tyMatrix, name)
 		.Object@KA <- imxLocateIndex(flatModel, kaMatrix, name)
 		.Object@AL <- imxLocateIndex(flatModel, alMatrix, name)
-		.Object@data <- as.integer(imxLocateIndex(flatModel, data, name))
 
 		#
 		# Check the data has row and column names as appropriate
