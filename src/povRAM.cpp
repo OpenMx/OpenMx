@@ -106,7 +106,7 @@ void PathCalc::setAlgo(FitContext *fc, bool _boker2019, int _useSparse)
 																 [](bool x){ return x; })) {
 		mxThrow("Must use Boker2019 when product nodes are present");
 	}
-  if (_boker2019 && selDim) {
+  if (_boker2019 && selSteps.size()) {
     mxThrow("Must avoid Boker2019 when using arrows=0 paths");
   }
 	boker2019 = _boker2019;
@@ -263,15 +263,16 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 void PathCalc::pearsonSelMean1(Eigen::Ref<Eigen::VectorXd> mean)
 {
   //mxPrintMat("before sel", mean);
-	Eigen::VectorXd selMean;
-	subsetVector(mean, [&](int xx){ return selFilter[xx]; }, selDim, selMean);
+  for (auto &s1 : selSteps) {
+    Eigen::VectorXd selMean;
+    subsetVector(mean, [&](int xx){ return s1.selFilter[xx]; }, s1.selDim, selMean);
 
-	Eigen::VectorXd adj = selAdj.transpose() * selMean;
-	for (int v1=0, a1=0; v1 < mean.size(); ++v1) {
-		if (selFilter[v1]) continue;
-    mean(v1) += adj(a1++);
-	}
-  //mxPrintMat("after sel", mean);
+    Eigen::VectorXd adj = s1.selAdj.transpose() * selMean;
+    for (int v1=0, a1=0; v1 < mean.size(); ++v1) {
+      if (s1.selFilter[v1]) continue;
+      mean(v1) += adj(a1++);
+    }
+  }  //mxPrintMat("after sel", mean);
 }
 
 void PathCalc::appendPolyRep(int nn, std::vector<int> &status)

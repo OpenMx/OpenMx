@@ -273,18 +273,32 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  I <- diag(1, nrow=nrow(A))
       # need to compute covariance when there is Pearson selection
       ImA <- solve(I-A)
-      origCov <- ImA %*% S %*% t(ImA)
+      origCov <- list()
+      origCov[[1]] <- ImA %*% S %*% t(ImA)
       if (single.na(.Object@selectionVector)) {
-        cov <- origCov
+        cov <- origCov[[1]]
       } else {
         selPlan <- .Object@selectionPlan
         selVec <- mxEvalByName(.Object@selectionVector, model, compute=TRUE, defvar.row=defvar.row)
-        newCov <- origCov
-        for (rx in 1:nrow(selPlan)) {
-          newCov[selPlan[rx,'from'],selPlan[rx,'to']] <- selVec[rx,1]
-          newCov[selPlan[rx,'to'],selPlan[rx,'from']] <- selVec[rx,1]
+        sx <- 1L
+        rx <- 1L
+        curStep <- selPlan[sx,'step']
+        newCov <- list()
+        while (rx <= nrow(selPlan)) {
+          nc <- origCov[[sx]]
+          nc[selPlan[rx,'from'],selPlan[rx,'to']] <- selVec[rx,1]
+          nc[selPlan[rx,'to'],selPlan[rx,'from']] <- selVec[rx,1]
+          if (rx == nrow(selPlan) || (rx < nrow(selPlan) && curStep != selPlan[rx+1,'step'])) {
+            newCov[[sx]] <- nc
+            cov <- mxPearsonSelCov(origCov[[sx]], newCov[[sx]])
+            if (rx < nrow(selPlan)) {
+              sx <- sx + 1
+              origCov[[sx]] <- cov
+              curStep <- selPlan[sx,'step']
+            }
+          }
+          rx <- rx + 1
         }
-        cov <- mxPearsonSelCov(origCov, newCov)
       }
 		  if (any(c('covariance','covariances') %in% what)) {
 			  ret[['covariance']] <- F %*% cov %*% t(F)
@@ -297,7 +311,9 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 					M <- mxEvalByName(Mname, model, compute=TRUE, defvar.row=defvar.row)
 					fullMean <- M %*% t(solve(I-A))
           if (!single.na(.Object@selectionVector)) {
-            fullMean <- t(mxPearsonSelMean(origCov, newCov, t(fullMean)))
+            for (sx in 1:length(origCov)) {
+              fullMean <- t(mxPearsonSelMean(origCov[[sx]], newCov[[sx]], t(fullMean)))
+            }
           }
           mean <- fullMean %*% t(F)
 			  }

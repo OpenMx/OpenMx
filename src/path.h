@@ -81,10 +81,13 @@ class PathCalc {
   Eigen::VectorXd tmpFullMean;
   omxMatrix *selVec;
   DataFrame selPlan;
-  std::vector<bool> selFilter;
-  // add multistep support TODO
-  int selDim;
-  Eigen::MatrixXd selAdj;
+
+  struct selStep {
+    std::vector<bool> selFilter;
+    int selDim;
+    Eigen::MatrixXd selAdj;
+  };
+  std::vector<selStep> selSteps;
 
 	void determineShallowDepth(FitContext *fc);
 	void evaluate(FitContext *fc, bool filter);
@@ -126,7 +129,7 @@ class PathCalc {
 	 useSparse(false), versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
 	 algoSet(false), versionPoly(0), fullMeanAccess(0), fullCovAccess(0),
-   selDim(0), verbose(0), ignoreVersion(false) {}
+   selVec(0), verbose(0), ignoreVersion(false) {}
 
 	void clone(PathCalc &pc)
 	{
@@ -143,8 +146,7 @@ class PathCalc {
 		boker2019 = pc.boker2019;
     selVec = pc.selVec;
     selPlan = pc.selPlan;
-    selFilter = pc.selFilter;
-    selDim = pc.selDim;
+    selSteps = pc.selSteps;
     fullMeanAccess = pc.fullMeanAccess;
     fullCovAccess = pc.fullCovAccess;
 		init1();
@@ -169,20 +171,37 @@ class PathCalc {
 
   void attachSelection(omxMatrix *_selVec, DataFrame _selPlan)
   {
-    selVec = _selVec;
     selPlan = _selPlan;
+    if (selPlan.nrows() == 0) return;
 
-    selFilter.assign(numVars, false);
-    for (int rx=0; rx < selPlan.nrows(); ++rx) {
+    selVec = _selVec;
+    IntegerVector step = selPlan["step"];
+    {
+      int selCount = 1;
+      int prevStep = step[0];
+      for (int sx=1; sx < step.length(); ++sx) {
+        if (step[sx] == prevStep) continue;
+        prevStep = step[sx];
+        ++selCount;
+      }
+      selSteps.resize(selCount);
+      for (auto &s1 : selSteps) s1.selFilter.assign(numVars, false);
+    }
+
+    int curStep = step[0];
+    for (int rx=0, sx=0; rx < selPlan.nrows(); ++rx) {
       IntegerVector from = selPlan["from"];
       IntegerVector to = selPlan["to"];
-      selFilter[ from[rx] ] = true;
-      selFilter[ to[rx] ] = true;
-    }
-    selDim = std::accumulate(selFilter.begin(), selFilter.end(), 0);
-    if (!selDim) {
-      selVec = 0;
-      selPlan = 0;
+      auto &s1 = selSteps[sx];
+      s1.selFilter[ from[rx] ] = true;
+      s1.selFilter[ to[rx] ] = true;
+      if (rx == selPlan.nrows()-1 || step[rx+1] != curStep) {
+        s1.selDim = std::accumulate(s1.selFilter.begin(), s1.selFilter.end(), 0);
+        if (rx < selPlan.nrows()-1) {
+          curStep = step[rx+1];
+          ++sx;
+        }
+      }
     }
   }
 
@@ -207,7 +226,7 @@ class PathCalc {
 				//sio->copyLowerToUpper();
 				cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
 			}
-      if (selDim) pearsonSelCov1(cov);
+      if (selSteps.size()) pearsonSelCov1(cov);
 		} else {
 			buildPolynomial(fc);
 			auto &symEv = symSolver.eigenvalues();
@@ -234,7 +253,7 @@ class PathCalc {
 			} else {
 				meanOut = sparseIA.transpose() * meanIn; // avoids temporary copy? TODO
 			}
-      if (selDim) pearsonSelMean1(meanOut);
+      if (selSteps.size()) pearsonSelMean1(meanOut);
       return meanOut;
 		} else {
 			buildPolynomial(fc);
@@ -270,31 +289,37 @@ class PathCalc {
 template <typename T1>
 void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
 {
+  int rx=0;
+  IntegerVector step = selPlan["step"];
+  for (auto &s1 : selSteps) {
   //mxPrintMat("before sel", cov);
-	Eigen::MatrixXd v11(selDim, selDim);
-	Eigen::MatrixXd v12(selDim, cov.cols() - selDim);
-	Eigen::MatrixXd v22(cov.rows() - selDim, cov.cols() - selDim);
-	partitionCovariance(cov, [&](int xx){ return selFilter[xx]; }, v11, v12, v22);
-  EigenVectorAdaptor EselVec(selVec);
-  for (int rx=0; rx < selPlan.nrows(); ++rx) {
-    IntegerVector from = selPlan["from"];
-    IntegerVector to = selPlan["to"];
-    cov(from[rx], to[rx]) = EselVec[rx];
-    cov(to[rx], from[rx]) = EselVec[rx];
+    Eigen::MatrixXd v11(s1.selDim, s1.selDim);
+    Eigen::MatrixXd v12(s1.selDim, cov.cols() - s1.selDim);
+    Eigen::MatrixXd v22(cov.rows() - s1.selDim, cov.cols() - s1.selDim);
+    partitionCovariance(cov, [&](int xx){ return s1.selFilter[xx]; }, v11, v12, v22);
+    EigenVectorAdaptor EselVec(selVec);
+    int curStep = step[rx];
+    while (rx < selPlan.nrows() && step[rx] == curStep) {
+      IntegerVector from = selPlan["from"];
+      IntegerVector to = selPlan["to"];
+      cov(from[rx], to[rx]) = EselVec[rx];
+      cov(to[rx], from[rx]) = EselVec[rx];
+      ++rx;
+    }
+    Eigen::MatrixXd nc(s1.selDim, s1.selDim);
+    subsetCovariance(cov, [&](int x)->bool{ return s1.selFilter[x]; }, s1.selDim, nc);
+    Eigen::MatrixXd iv11(v11);
+    if (InvertSymmetricPosDef(iv11, 'L')) {
+      // complain TODO
+      return;
+    }
+    iv11 = iv11.selfadjointView<Eigen::Lower>();
+    s1.selAdj = iv11 * v12; // will use for mean too
+    Eigen::MatrixXd n12 = nc * s1.selAdj;
+    Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * nc * iv11) * v12;
+    partitionCovarianceSet(cov, [&](int xx){ return s1.selFilter[xx]; }, nc, n12, n22);
+    //mxPrintMat("after sel", cov);
   }
-	Eigen::MatrixXd nc(selDim, selDim);
-  subsetCovariance(cov, [&](int x)->bool{ return selFilter[x]; }, selDim, nc);
-	Eigen::MatrixXd iv11(v11);
-	if (InvertSymmetricPosDef(iv11, 'L')) {
-		// complain TODO
-		return;
-	}
-	iv11 = iv11.selfadjointView<Eigen::Lower>();
-  selAdj = iv11 * v12; // will use for mean too
-	Eigen::MatrixXd n12 = nc * selAdj;
-	Eigen::MatrixXd n22 = v22 - v12.transpose() * (iv11 - iv11 * nc * iv11) * v12;
-	partitionCovarianceSet(cov, [&](int xx){ return selFilter[xx]; }, nc, n12, n22);
-  //mxPrintMat("after sel", cov);
 }
 
 template <typename T1>
@@ -302,7 +327,7 @@ void PathCalc::mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut)
 {
   if (!boker2019) {
     prepM(fc);
-    if (selDim) {
+    if (selSteps.size()) {
       if (!fullMeanAccess) tmpFullMean.resize(numVars);
       omxMatrix *fma = fullMeanAccess;
       if (fc) fma = fc->state->lookupDuplicate(fullMeanAccess);
@@ -332,7 +357,7 @@ template <typename T>
 void PathCalc::cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 {
   if (!boker2019) {
-    if (selDim) {
+    if (selSteps.size()) {
       if (!fullCovAccess) tmpFullCov.resize(numVars, numVars);
       omxMatrix *fca = fullCovAccess;
       if (fc) fc->state->lookupDuplicate(fullCovAccess);
