@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -141,14 +141,14 @@ npsolOptions <- list(
 )
 
 checkpointOptions <- list(
-	"Checkpoint Directory" = ".", 
+	"Checkpoint Directory" = ".",
 	"Checkpoint Prefix" = "",
 	"Checkpoint Units" = "iterations",
 	"Checkpoint Count" = 1,
         "Checkpoint Fullpath" = "",
-	"Socket Server" = "", 
+	"Socket Server" = "",
 	"Socket Port" = 8080,
-	"Socket Units" = "minutes", 
+	"Socket Units" = "minutes",
 	"Socket Count" = c("minutes" = 0.08, "iterations" = 1)
 )
 
@@ -212,10 +212,7 @@ generateOptionsList <- function(model, constraints, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
 		input <- model@options
-		if (is.null(input[["Standard Errors"]]) && constraints > 0 && imxHasWLS(model)){
-			input[["Standard Errors"]] <- "No"
-		}
-		if( !is.null(input[["UsePPML"]]) 
+		if( !is.null(input[["UsePPML"]])
 		   && (input[["UsePPML"]] == "PartialSolved" || input[["UsePPML"]] == "Split") ) {
 			input[["Calculate Hessian"]] <- "No"
 			input[["Hessian"]] <- "No"
@@ -264,7 +261,7 @@ combineDefaultOptions <- function(input) {
   #overwritten by the defaults:
   namesHandled <- c( names(temp), "Major iterations" )
 	if(sum( !(names(input) %in% namesHandled) )>0){
-    options[names(input)[!(names(input) %in% namesHandled)]] <- 
+    options[names(input)[!(names(input) %in% namesHandled)]] <-
       input[names(input)[!(names(input) %in% namesHandled)]]
   }
 	return(options)
@@ -272,15 +269,15 @@ combineDefaultOptions <- function(input) {
 
 
 ##' imxAutoOptionValue
-##' 
+##'
 ##' Convert "Auto" placeholders in global mxOptions to actual default values.
-##' 
+##'
 ##' This is an internal function exported for documentation purposes.
 ##' Its primary purpose is to convert the on-load value of "Auto"to
 ##' valid values for \link{mxOption}s \sQuote{Gradient step size},
-##' \sQuote{Gradient iterations}, and 
+##' \sQuote{Gradient iterations}, and
 ##' \sQuote{Function precision}--respectively, 1.0e-7, 1L, and 1e-14.
-##' 
+##'
 ##' @param optionName Character string naming the \link{mxOption} for which a numeric or integer value is wanted.
 ##' @param optionList List of options; defaults to list of global \link{mxOption}s.
 ##' imxAutoOptionValue
@@ -288,7 +285,7 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 	#First, check to see if the option already has a valid value (possibly in string form), and if so, return that:
 	numcast <- try(suppressWarnings(as.numeric(optionList[[optionName]])),silent=TRUE)
 	if(!length(numcast)){
-		#NULL numcast is most likely to result from either (1) misspelled optionName, 
+		#NULL numcast is most likely to result from either (1) misspelled optionName,
 		#or (2) user providing non-default value for optionList that lacks an element named optionName.
 		#Throwing an error seems the best behavior in this case.
 		stop(paste("extracting element '",optionName,"' from argument 'optionList' resulted in NULL"),sep="")
@@ -300,7 +297,7 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 		return(numcast)
 	}
 	#Otherwise, if the current value is a string and can be matched to "Auto",
-	#convert to default numerical value for the three motivating cases: 
+	#convert to default numerical value for the three motivating cases:
 	else{
 		if(length(grep(pattern="Auto",x=optionList[[optionName]],ignore.case=T))){
 			if(optionName=="Gradient step size"){return(1.0e-7)}
@@ -310,4 +307,3 @@ imxAutoOptionValue <- function(optionName, optionList=options()$mxOption){
 		else{stop(paste("found unrecognized character string '",optionList[[optionName]],"' as value for mxOption '",optionName,"' in argument 'optionList'",sep=""))}
 	}
 }
-
