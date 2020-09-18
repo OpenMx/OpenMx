@@ -32,7 +32,7 @@ setMethod("qualifyNames", signature("BaseExpectationNormal"),
           function(.Object, modelname, namespace) {
             for (sl in c(paste0('expected', c('Covariance','Mean')),
                        'thresholds', 'discrete', 'selectionVector')) {
-              if (is.null(slot(.Object, sl))) next
+              if (!.hasSlot(.Object, sl) || is.null(slot(.Object, sl))) next
               slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
             }
             .Object
@@ -40,7 +40,7 @@ setMethod("qualifyNames", signature("BaseExpectationNormal"),
 
 setMethod("genericExpDependencies", signature("BaseExpectationNormal"),
           function(.Object, dependencies) {
-            sources <- c(.Object@discrete, .Object@thresholds, .Object@selectionVector)
+            sources <- c(.Object$discrete, .Object@thresholds, .Object$selectionVector)
             sources <- sources[!is.na(sources)]
             dependencies <- imxAddDependency(sources, .Object@name, dependencies)
             return(dependencies)
@@ -50,7 +50,7 @@ setMethod("genericExpRename", signature("BaseExpectationNormal"),
           function(.Object, oldname, newname) {
             for (sl in c(paste0('expected', c('Covariance','Mean')),
                          'thresholds', 'discrete', 'selectionVector')) {
-              if (is.null(slot(.Object, sl))) next
+              if (!.hasSlot(.Object, sl) || is.null(slot(.Object, sl))) next
               slot(.Object,sl) <- renameReference(slot(.Object,sl), oldname, newname)
             }
             .Object
@@ -100,15 +100,17 @@ setMethod("genericExpFunConvert", signature("BaseExpectationNormal"),
               }
             }
 
-            svname <- .Object$selectionVector
-            if (!is.na(svname)) {
-              sv <- flatModel[[svname]]
-              if (ncol(sv) != 1) stop("selectionVector must be a column vector")
-              svSpec <- .Object@selectionPlan
-              if (nrow(sv) != nrow(svSpec)) {
-                msg <- paste('selectionPlan must have the same number of rows',
-                             'as the selectionVector')
-                stop(msg, call.=FALSE)
+            if (.hasSlot(.Object, 'selectionVector')) {
+              svname <- .Object$selectionVector
+              if (!is.na(svname)) {
+                sv <- flatModel[[svname]]
+                if (ncol(sv) != 1) stop("selectionVector must be a column vector")
+                svSpec <- .Object@selectionPlan
+                if (nrow(sv) != nrow(svSpec)) {
+                  msg <- paste('selectionPlan must have the same number of rows',
+                               'as the selectionVector')
+                  stop(msg, call.=FALSE)
+                }
               }
             }
 
@@ -120,6 +122,7 @@ setMethod("genericNameToNumber", signature("BaseExpectationNormal"),
 		  name <- .Object@name
       for (sl in c(paste0('expected', c('Covariance','Mean')),
                    'data', 'thresholds', 'discrete', 'selectionVector')) {
+        if (!.hasSlot(.Object, sl)) next
         slot(.Object,sl) <- imxLocateIndex(flatModel, slot(.Object,sl), name)
       }
 		  .Object
@@ -979,7 +982,9 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 			.Object@dims <- covNames
 		}
 
-    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, covNames)
+    if (.hasSlot(.Object, 'selectionVector')) {
+      .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, covNames)
+    }
 
 		return(.Object)
 })
