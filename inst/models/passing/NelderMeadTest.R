@@ -97,6 +97,12 @@ omxCheckTrue(length(varrun$compute$steps$GD$output$rangeProximityMeasure))
 omxCheckTrue(length(varrun$compute$steps$GD$output$domainProximityMeasure))
 omxCheckTrue(length(varrun$compute$steps$GD$output$penalizedFit))
 
+#Test use of mxAutoStart() with a model that has a custom compute plan and only 1 endogenous variable:
+varmod_as <- mxAutoStart(varmod,type="ULS")
+omxCheckCloseEnough(coef(varmod_as), c(mean(x),var(x)), 1e-5)
+varmod_as2 <- mxAutoStart(varmod,type="DWLS")
+omxCheckCloseEnough(coef(varmod_as2), c(mean(x),var(x)*999/1000), 1e-5)
+
 #Try using inequality-constrained formulation of CI problem:
 plan$steps$CI$constraintType <- "ineq"
 varmod2 <- mxModel(

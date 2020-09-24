@@ -98,10 +98,18 @@ omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
 mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
   warnModelCreatedByOldVersion(model)
 	type <- match.barg(type)
+	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
+	if(!defaultComputePlan){
+		customPlan <- model@compute
+		model@compute <- NULL
+	}
 	wmodel <- mxRun(omxBuildAutoStartModel(model, type), silent=TRUE)
 	newparams <- coef(wmodel)
 	oldparams <- coef(model)
 	model <- omxSetParameters(model, values=newparams, labels=names(oldparams))
+	if(!defaultComputePlan){
+		model@compute <- customPlan
+	}
 	return(model)
 }
 
@@ -126,6 +134,11 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 		}
 	} else if (origDataType == 'raw') {
 		data <- data[,useVars]
+		# This conditional is for cases when the model has only 1 endogenous variable:
+		if(!is.matrix(data) && !is.data.frame(data)){
+			data <- as.matrix(data)
+			colnames(data) <- useVars
+		}
 		if (type == 'ULS' && !any(sapply(data, is.ordered))) {
 			# special case for ULS, all continuous
 			os <- list(cov=cov(data, use='pair'))
