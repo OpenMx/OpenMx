@@ -12,6 +12,7 @@ importFrom("stats", "binomial", "glm", "median", "plogis", 'qlogis', "predict")
 importFrom("stats", "pnbinom", "ppois")
 importFrom("stats", "rWishart")
 importFrom("stats", "logLik")
+importFrom("stats", "lm")
 importFrom("lifecycle", "deprecate_soft", "deprecate_warn", "deprecated")
 
 useDynLib(OpenMx, .registration=TRUE)
