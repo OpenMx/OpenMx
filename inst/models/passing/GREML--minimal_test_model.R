@@ -123,3 +123,12 @@ omxCheckEquals(testrun3summ$GREMLfixeff$name,"x")
 omxCheckCloseEnough(testrun3summ$GREMLfixeff$coeff,mean(dat[,1]),epsilon=10^-5)
 omxCheckCloseEnough(testrun3summ$GREMLfixeff$se,sqrt(var(dat[,1])*99/100/100),epsilon=10^-5)
 
+# Test use of mxAutoStart() :
+testmod_as <- mxAutoStart(testmod)
+omxCheckCloseEnough(coef(testmod_as),coef(testrun)*99/100,1e-7)
+
+testmod2_as <- mxAutoStart(testmod2)
+omxCheckCloseEnough(coef(testmod2_as),coef(testrun2)*99/100,1e-7)
+
+testmod3_as <- mxAutoStart(testmod3)
+omxCheckCloseEnough(coef(testmod3_as),coef(testrun3),1e-7)

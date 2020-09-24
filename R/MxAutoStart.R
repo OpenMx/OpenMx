@@ -97,6 +97,9 @@ omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
 ##' mxGetExpected(m1s, 'covariance')
 mxAutoStart <- function(model, type=c('ULS', 'DWLS')){
   warnModelCreatedByOldVersion(model)
+	if(is(model$expectation,"MxExpectationGREML")){
+		return(autoStartGREML(model))
+	}
 	type <- match.barg(type)
 	defaultComputePlan <- (is.null(model@compute) || is(model@compute, 'MxComputeDefault'))
 	if(!defaultComputePlan){
@@ -152,4 +155,55 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 	}
 	list(mdata, mxFitFunctionWLS(type, ifelse(length(exps$means) > 0, 'marginals', 'cumulants'),
 		type != 'ULS'))
+}
+
+
+autoStartGREML <- function(model){
+	if(model$expectation$dataset.is.yX){
+		y <- model$data$observed[,1]
+		X <- model$data$observed[,-1]
+		casesToDrop <- model$expectation$casesToDrop
+	} else{
+		dat <- mxGREMLDataHandler(
+			data=model$data$observed,
+			yvars=model$expectation$yvars,
+			Xvars=model$expectation$Xvars,
+			addOnes=model$expectation$addOnes,
+			blockByPheno=model$expectation$blockByPheno,
+			staggerZeroes=model$expectation$staggerZeroes
+		)
+		y <- dat$yX[,1]
+		X <- dat$yX[,-1]
+		casesToDrop <- dat$casesToDrop
+		rm(dat)
+	}
+	olsresids <- lm(y~X+0)$residuals
+	rm(X,y)
+	Vdim <- nrow(mxEvalByName(model$expectation$V,model,T))
+	if(length(olsresids) < Vdim){
+		filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=Vdim,free=F,values=1,name="filt")
+		filt_mtx@values[casesToDrop] <- 0
+		aff <- mxAlgebra( sum((S - omxSelectRowsAndCols(V,filt))%^%2), name="algfitfunc")
+	} else{
+		filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filt")
+		aff <- mxAlgebra( sum((S-V)%^%2), name="algfitfunc")
+	}
+	tempmod <- mxModel(
+		"tmp",
+		model,
+		aff,
+		filt_mtx,
+		mxMatrix(type="Symm",nrow=length(olsresids),free=F,values=outer(olsresids,olsresids),name="S",condenseSlots=T),
+		mxAlgebraFromString(paste(model$name,model$expectation$V,sep="."),name="V"),
+		mxFitFunctionAlgebra("algfitfunc")
+	)
+	rm(olsresids,aff,filt_mtx)
+	tempmod <- mxOption(tempmod,"Calculate Hessian","No")
+	tempmod <- mxOption(tempmod,"Standard Errors","No")
+	tempmod <- mxRun(tempmod,silent=T)
+	newparams <- coef(tempmod)
+	rm(tempmod)
+	oldparams <- coef(model)
+	model <- omxSetParameters(model, values=newparams, labels=names(oldparams))
+	return(model)
 }
