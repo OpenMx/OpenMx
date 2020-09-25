@@ -186,8 +186,10 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 	}
   naAction <- match.arg(naAction)
 	if (type == "acov") {
-		return(legacyMxData(observed, type="acov", means=means, numObs=numObs, 
-			acov=acov, fullWeight=fullWeight, thresholds=thresholds))
+		obj <- legacyMxData(observed, type="acov", means=means, numObs=numObs,
+                        acov=acov, fullWeight=fullWeight, thresholds=thresholds)
+    obj@verbose <- as.integer(verbose)
+    return(obj)
 	}
 	if (missing(observedStats)) {
 		observedStats <- list()
