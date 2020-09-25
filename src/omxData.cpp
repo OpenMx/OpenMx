@@ -1381,9 +1381,23 @@ void obsSummaryStats::log()
 	if (covMat) omxPrint(covMat, "cov");
 	if (slopeMat) omxPrint(slopeMat, "slope");
 	if (meansMat) omxPrint(meansMat, "mean");
-	if (acovMat) omxPrint(acovMat, "acov");
+	if (acovMat) {
+    EigenMatrixAdaptor Eacov(acovMat);
+    if (Eacov.cols() < 30) {
+      mxPrintMat("acov", Eacov);
+    } else {
+      mxPrintMat("acov (topleft)", Eacov.block(0,0,30,30));
+    }
+  }
 	if (fullWeight) {
-		if (acovMat != fullWeight) omxPrint(fullWeight, "full");
+		if (acovMat != fullWeight) {
+      EigenMatrixAdaptor Efw(fullWeight);
+      if (Efw.cols() < 30) {
+        mxPrintMat("full", Efw);
+      } else {
+        mxPrintMat("full (topleft)", Efw.block(0,0,30,30));
+      }
+    }
 		else mxLog("fullWeight == acov");
 	}
 	for (auto &th : thresholdCols) { th.log(); }
@@ -2522,7 +2536,10 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 	}
 	//omxPrint(o1.covMat, "cov");
 
-	if (verbose >= 1) mxLog("%s: pre-existing observedStats looks good", name);
+	if (verbose >= 1) {
+    mxLog("%s: pre-existing observedStats looks good", name);
+    if (verbose >= 2) o1.log();
+  }
 
 	return false;
 }
