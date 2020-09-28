@@ -1,0 +1,17 @@
+https://wiki.debian.org/Arm64Qemu
+
+qemu-system-aarch64 -m 4G -M virt -cpu cortex-a57 -smp cpus=2 \
+  -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd \
+  -drive if=none,file=/opt/debian-10.6.0-openstack-arm64.qcow2,id=hd0 -device virtio-blk-device,drive=hd0 \
+  -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp:127.0.0.1:5555-:22 \
+  -nographic
+
+qemu-img info debian-10.6.0-openstack-arm64.qcow2
+qemu-img resize debian-10.6.0-openstack-arm64.qcow2 +20G
+
+ssh root@127.0.0.1 -p 5555
+
+apt install libbz2-dev zlib1g-dev libreadline-dev liblzma-dev libpcre2-dev libcurl4-gnutls-dev make
+
+CC=gcc-8 CXX=g++-8 FC=gfortran-8 ./configure --prefix=/usr --with-x=no
+
