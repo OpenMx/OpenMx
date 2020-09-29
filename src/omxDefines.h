@@ -590,4 +590,16 @@ class AssertProtectStackBalanced {
 
 #define OOPS mxThrow("%s at %d: oops", __FILE__, __LINE__)
 
+inline int cast_with_NA(double val)
+{
+  if (std::isfinite(val)) return int(val);
+  return NA_INTEGER;
+}
+
+inline double cast_with_NA(int val)
+{
+  if (val == NA_INTEGER) return NA_REAL;
+  return double(val);
+}
+
 #endif /* _OMXDEFINES_H_ */

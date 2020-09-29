@@ -239,11 +239,7 @@ void omxExpectation::loadThresholds()
 				col.column = tc;
 				col.isDiscrete = true;
         double nt = ds(0,tc);
-        if (std::isfinite(nt)) {
-          col.numThresholds = nt;
-        } else {
-          col.numThresholds = NA_INTEGER;
-        }
+        col.numThresholds = cast_with_NA(nt);
 				numOrdinal++;
 			}
 		}

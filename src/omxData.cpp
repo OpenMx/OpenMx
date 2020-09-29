@@ -718,11 +718,7 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool isUnfilt
 		double *realData = cd.d();
     int *intData = new int[rows];
 		for (int rx=0; rx < rows; ++rx) {
-			if (realData[rx] == NA_REAL) {
-				intData[rx] = NA_INTEGER;
-			} else {
-				intData[rx] = realData[rx];
-			}
+      intData[rx] = cast_with_NA(realData[rx]);
 		}
     cd.setOwn(intData);
     cd.setMinValue(0);
@@ -757,11 +753,7 @@ void omxData::RawData::assertColumnIsData(int col, OmxDataType dt, bool isUnfilt
 		int *intData = cd.i();
     double *realData = new double[rows];
 		for (int rx=0; rx < rows; ++rx) {
-			if (intData[rx] == NA_INTEGER) {
-				realData[rx] = NA_REAL;
-			} else {
-				realData[rx] = intData[rx];
-			}
+      realData[rx] = cast_with_NA(intData[rx]);
 		}
     cd.setOwn(realData);
 		return;}
