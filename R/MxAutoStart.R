@@ -185,10 +185,10 @@ autoStartGREML <- function(model){
 	if(length(olsresids) < Vdim){
 		filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=Vdim,free=F,values=1,name="filt")
 		filt_mtx@values[casesToDrop] <- 0
-		aff <- mxAlgebra( sum((S - omxSelectRowsAndCols(V,filt))%^%2), name="algfitfunc")
+		aff <- mxAlgebra( sum((vech(S) - vech(omxSelectRowsAndCols(V,filt)))%^%2), name="algfitfunc")
 	} else{
 		filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filt")
-		aff <- mxAlgebra( sum((S-V)%^%2), name="algfitfunc")
+		aff <- mxAlgebra( sum((vech(S)-vech(V))%^%2), name="algfitfunc")
 	}
 	tempmod <- mxModel(
 		"tmp",
