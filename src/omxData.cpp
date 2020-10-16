@@ -462,7 +462,8 @@ void omxData::prep()
 					dest.d()[dx++] = src.d()[sx];
 				}
 				break;
-			default: mxThrow("Column '%s' is unknown type %d", src.name, src.type);
+			default: ;
+        // continue is fine here
 			}
 		}
 		if (verbose >= 1) mxLog("omit: filtered %d columns", filterCount);
