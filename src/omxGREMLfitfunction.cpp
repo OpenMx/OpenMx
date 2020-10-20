@@ -33,9 +33,10 @@ struct omxGREMLFitState : omxFitFunction {
 	std::vector< const char* > dVnames;
 	std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
 	std::vector<int> origdVdim;
+	std::vector<int> didUserGivedV;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
-	int dVlength, usingGREMLExpectation, parallelDerivScheme;
+	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar;
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd avgInfo; //the Average Information matrix
@@ -129,9 +130,7 @@ void omxGREMLFitState::init()
   
   if(newObj->dVlength){
     oo->gradientAvailable = true;
-    newObj->gradient.setZero(newObj->dVlength,1);
     oo->hessianAvailable = true;
-    newObj->avgInfo.setZero(newObj->dVlength,newObj->dVlength);
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
     for(int i=0; i < newObj->dVlength; i++){
@@ -162,6 +161,7 @@ void omxGREMLFitState::init()
 			int* augGradint = INTEGER(RaugGrad);
 			newObj->augGrad = omxMatrixLookupFromStateByNumber(augGradint[0], currentState);
 			if(Rf_length(RaugHess)){
+				//Conformability of augGrad and augHess are checked later, during buildParamMap().
 				int* augHessint = INTEGER(RaugHess);
 				newObj->augHess = omxMatrixLookupFromStateByNumber(augHessint[0], currentState);
 			}
@@ -315,11 +315,14 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		int nThreadz = Global->numThreads;
  		int wantHess = 0;
  		
-		fc->initGrad(gff->dVlength); //<--Resize gradient in FitContext
+		fc->initGrad(gff->numExplicitFreePar); //<--Resize gradient in FitContext
  		
  		//Set up new HessianBlock:
  		HessianBlock *hb = new HessianBlock;
  		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 			if(gff->dVlength < gff->numExplicitFreePar){
+ 				omxRaiseErrorf("GREML fitfunction cannot compute information matrix without analytic derivatives of V with respect to EVERY free parameter");
+ 			}
  			hb->vars.resize(gff->dVlength);
  			hb->mat.resize(gff->dVlength, gff->dVlength);
  			gff->recomputeAug(2, fc);
@@ -491,62 +494,69 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
-		//TODO: Make sure this code is robust to the case of more threads than free parameters:
 		int threadID = omx_absolute_thread_num();
-		int istart = threadID * gff->dVlength / nThreadz;
-		int iend = (threadID+1) * gff->dVlength / nThreadz;
-		if(threadID == nThreadz-1){iend = gff->dVlength;}
+		int istart = threadID * numExplicitFreePar / nThreadz;
+		int iend = (threadID+1) * numExplicitFreePar / nThreadz;
+		if(threadID == nThreadz-1){iend = numExplicitFreePar;}
 		for(i=istart; i < iend; i++){
 			tr=0;
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
-			a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
-			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
-			if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
-				dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
-			}
-			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
-			ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-			for(j=i; j < gff->dVlength; j++){
-				if(j==i){
-					/*Need trace of P*dV_dtheta for gradient element...
-					 Frustratingly, the selfadjointView has no row or column accessor function among its members.
-					 But the trace of a product of two square symmetric matrices is the sum of the elements of
-					 their elementwise product.*/
-					//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
-					for(c=0; c < gff->cov->rows; c++){
-						for(r=c; r < gff->cov->rows; r++){
-							tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
+			if(didUserGivedV[t1]){
+				a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
+				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
+				if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
+					dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
+				}
+				else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
+				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+				for(j=i; j < numExplicitFreePar; j++){
+					if(j==i){
+						/*Need trace of P*dV_dtheta for gradient element...
+						 Frustratingly, the selfadjointView has no row or column accessor function among its members.
+						 But the trace of a product of two square symmetric matrices is the sum of the elements of
+						 their elementwise product.*/
+						//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
+						for(c=0; c < gff->cov->rows; c++){
+							for(r=c; r < gff->cov->rows; r++){
+								tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
+							}
+						}
+						gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+							Scale*gff->pullAugVal(1,a1,0);
+						fc->haveGrad[t1] = true;
+						fc->gradZ(t1) += gff->gradient(t1);
+						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+								Scale*gff->pullAugVal(2,a1,a1);
 						}
 					}
-					gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
-						Scale*gff->pullAugVal(1,a1,0);
-					fc->haveGrad[t1] = true;
-					fc->gradZ(t1) += gff->gradient(t1);
-					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
-							Scale*gff->pullAugVal(2,a1,a1);
-					}
-				}
-				else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-					t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
-					if(t2 < 0){continue;}
-					a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
-					if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
-						dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
-					}
-					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-					gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
-						dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
-					gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
-				}}}}
+					else{
+						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+							t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
+							if(t2 < 0){continue;}
+							a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
+							if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
+								dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
+							}
+							else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
+							gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+								dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
+							gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
+						}}}
+			}
+			else{
+				fc->haveGrad[t1] = false;
+				gff->gradient(t1) = NA_REAL;
+			}
+		}
 	} catch (const std::exception& e) {
 		omxRaiseErrorf("%s", e.what());
 	} catch (...) {
 		omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 	}
 }
- 			break;
+ 		break;
  		}
  			//Assign upper triangle elements of avgInfo to the HessianBlock:
  			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -599,19 +609,32 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 {
 	if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
 	varGroup = newVarGroup;
+	numExplicitFreePar = int(varGroup->vars.size());
+	gradient.setZero(numExplicitFreePar,1);
+	avgInfo.setZero(numExplicitFreePar,numExplicitFreePar);
+	didUserGivedV.resize(numExplicitFreePar);
+	didUserGivedV.assign(size_t(numExplicitFreePar),0);
 	if(dVlength){
-		/*The pointers to the derivatives of V, their names, and their original dimensions get temporariliy 
+		if(dVlength > numExplicitFreePar){
+			mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
+		}
+		/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily 
 		copied here:*/
 		std::vector< omxMatrix* > dV_temp = dV;
 		std::vector< const char* > dVnames_temp = dVnames;
 		std::vector<int> origdVdim_temp = origdVdim;
-		gradMap.resize(dVlength);
-		dAugMap.resize(dVlength);
+		gradMap.resize(numExplicitFreePar);
+		dAugMap.resize(numExplicitFreePar);
 		int gx=0;
-		/*If there are no problems, then every time vx gets incremented, it should become equal to the current 
-		value of gx*/
-		for (int vx=0; vx < int(varGroup->vars.size()); ++vx) {
-			for (int nx=0; nx < dVlength; ++nx) {
+		for (int vx=0; vx < numExplicitFreePar; ++vx) {
+			for (int nx=0; nx <= dVlength; ++nx) {
+				if(nx==dVlength){
+					gradMap[gx] = vx;
+					dAugMap[gx] = -1;
+					//Remember that didUserGivedV was set to all zeroes just above.
+					++gx;
+					break;
+				}
 				if (strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)) {
 					gradMap[gx] = vx;
 					dV[gx] = dV_temp[nx];
@@ -619,19 +642,18 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					origdVdim[gx] = origdVdim_temp[nx];
 					dAugMap[gx] = nx;
 					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
+					didUserGivedV[gx] = 1;
 					++gx;
 					break;
 				}
 			}
 		}/*By the end of the loop, the member objects of the omxGREMLFitState (dV, dVnames, etc.) should have their
 		elements arranged to match the order in which the free parameters appear in the freeVarGroup*/
-		if (gx != dVlength) mxThrow("Problem in dVnames mapping"); //possibly, argument 'dV' has elements not named with free parameter labels
-		if( gx < int(varGroup->vars.size()) ){mxThrow("At least one free parameter has no corresponding element in 'dV'");}
 		
 		if(augGrad){
 			int ngradelem = std::max(augGrad->rows, augGrad->cols);
-			if(ngradelem != dVlength){
-				mxThrow("matrix referenced by 'augGrad' must have same number of elements as argument 'dV'");
+			if(ngradelem != numExplicitFreePar){
+				mxThrow("matrix referenced by 'augGrad' must have as many elements as there are explicit free parameters");
 			}
 			if(augHess){
 				if (augHess->rows != augHess->cols) {
@@ -649,7 +671,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 
 void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
 	//Note: AIM = Average Information Matrix (Hessian)
-	if(wantHess==0 || nThreadz<2){
+	if(wantHess==0 || nThreadz<2 || dVlength < numExplicitFreePar){
 		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
 		return;
 	}
@@ -742,7 +764,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			c++;
 			/*If we're at the end of the row, then we move to the next one,
 			and start at its diagonal element:*/
-			if(c>=dVlength){
+			if(c>=numExplicitFreePar){
 				r++;
 				c = r;
 			}
@@ -757,7 +779,10 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
  
 
 double omxGREMLFitState::pullAugVal(int thing, int row, int col){
-	double val=0;
+	double val=0.0;
+	if(row==-1 || col==-1){
+		return(val);
+	}
 	switch(thing){
 	case 0:
 		if(aug){val = aug->data[0];}
