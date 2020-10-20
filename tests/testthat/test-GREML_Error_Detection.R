@@ -202,39 +202,7 @@ omxCheckError(
 testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",va1="A1",va2="A2",va3="I"))
 omxCheckError(
 	mxRun(testmod),
-	"Problem in dVnames mapping")
-
-
-testmod <- mxModel(
-	"GREMLtest",
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
-	mxData(observed = dat3, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxComputeSequence(steps=list(
-		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
-		mxComputeStandardError(),
-		mxComputeReportDeriv(),
-		mxComputeReportExpectation()
-	)),
-	mxFitFunctionGREML(dV=c(ve="I",va1="A1"))
-)
-omxCheckError(
-	mxRun(testmod),
-	"At least one free parameter has no corresponding element in 'dV'")
-
-
-testmod$compute <- mxComputeDefault()
-omxCheckError(
-	mxRun(testmod),
-	"At least one free parameter has no corresponding element in 'dV'")
+	"length of argument 'dV' is greater than the number of explicit free parameters")
 
 
 
@@ -261,7 +229,7 @@ testmod <- mxModel(
 )
 omxCheckError(
 	mxRun(testmod),
-	"Problem in dVnames mapping")
+	"length of argument 'dV' is greater than the number of explicit free parameters")
 
 
 
@@ -291,7 +259,7 @@ testmod <- mxModel(
 )
 omxCheckError(
 	mxRun(testmod),
-	"matrix referenced by 'augGrad' must have same number of elements as argument 'dV'")
+	"matrix referenced by 'augGrad' must have as many elements as there are explicit free parameters")
 
 
 
