@@ -4776,13 +4776,31 @@ void ComputeLoadData::loadedHook()
 	Providers.push_back(new LoadDataDFProvider());
 }
 
-void AddLoadDataProvider(double version, int ldpbSz, LoadDataProviderBase2 *ldp)
+unsigned int DJBHash(const char *str, std::size_t len)
 {
+   unsigned int hash = 5381;
+
+   for(std::size_t i = 0; i < len; i++) {
+     hash = ((hash << 5) + hash) + str[i];
+   }
+
+   return hash;
+}
+
+void AddLoadDataProvider(double version, unsigned int otherHash,
+                         LoadDataProviderBase2 *ldp)
+{
+  std::size_t sz2[] = {
+               sizeof(dataPtr),
+               sizeof(LoadDataProviderBase2),
+               sizeof(ColumnData)
+  };
+  auto apiHash = DJBHash((char*)sz2, sizeof(sz2));
 	if (version == OPENMX_LOAD_DATA_API_VERSION) {
-		if (ldpbSz != sizeof(LoadDataProviderBase2)) {
+		if (otherHash != apiHash) {
 			mxThrow("Cannot add mxComputeLoadData provider, version matches "
-							"but OpenMx is compiled with different compiler options (%d != %d)",
-							ldpbSz, int(sizeof(LoadDataProviderBase2)));
+							"but OpenMx is compiled with different compiler options (%u != %u)",
+							otherHash, apiHash);
 		}
 	} else {
 		mxThrow("Cannot add mxComputeLoadData provider, version mismatch");

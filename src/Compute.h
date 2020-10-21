@@ -526,6 +526,6 @@ void printSparse(Eigen::SparseMatrixBase<T> &sm) {
 	mxLogBig(buf);
 }
 
-void AddLoadDataProvider(double version, int, class LoadDataProviderBase2 *ldp);
+void AddLoadDataProvider(double version, unsigned int, class LoadDataProviderBase2 *ldp);
 
 #endif

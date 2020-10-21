@@ -133,6 +133,6 @@ public:
 //#define OPENMX_LOAD_DATA_API_VERSION 0.3091921037994325
 #define OPENMX_LOAD_DATA_API_VERSION 0.5240939254872501 // this is a random number
 
-typedef void (*AddLoadDataProviderType)(double version, int ldpbSz, LoadDataProviderBase2 *ldp);
+typedef void (*AddLoadDataProviderType)(double version, unsigned int ldpbSz, LoadDataProviderBase2 *ldp);
 
 #endif
