@@ -74,6 +74,7 @@ struct central_difference_grad  : finite_difference_grad<central_difference_grad
 	}
 };
 
+// can replace with JacobianGadget
 class GradientWithRef {
 	const int ELAPSED_HISTORY_SIZE;
 	const int maxAvailThreads;
@@ -545,6 +546,11 @@ class JacobianGadget {
     }
   }
 
+  // ff -- the function to evaluate
+  // ref -- reference function value
+  // point -- location where to take the jacobian
+  // initialized -- whether to do all entries or only NaN entries
+  // jacobiOut -- output
 template <typename T1, typename T2, typename T3, typename T4>
 	void operator()(T1 ff, T2 &ref,
 	      Eigen::MatrixBase<T3> &point, bool initialized, T4 &jacobiOut)
