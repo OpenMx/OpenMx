@@ -24,6 +24,7 @@
 #include <Rmath.h>
 #include "Compute.h"
 #include "EnableWarnings.h"
+#include "finiteDifferences.h"
 
 struct omxGREMLFitState : omxFitFunction {
 	//TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
@@ -36,7 +37,7 @@ struct omxGREMLFitState : omxFitFunction {
 	std::vector<int> didUserGivedV;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
-	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar;
+	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar, derivType;
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd avgInfo; //the Average Information matrix
@@ -49,11 +50,43 @@ struct omxGREMLFitState : omxFitFunction {
 	std::vector<int> dAugMap;
 	double pullAugVal(int thing, int row, int col);
 	void recomputeAug(int thing, FitContext *fc);
+	JacobianGadget jg;
 
+	omxGREMLFitState() : jg(1, 1, GradientAlgorithm_Forward, 2, 1e-4) {};
 	virtual void init();
 	virtual void compute(int want, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
 }; 
+
+struct GREMLSense {
+	omxGREMLFitState *fs;
+	int parNum, numFree;
+	Eigen::ArrayXd ref;
+	Eigen::MatrixXd result;
+	FitContext *fc;
+	
+	void measureRef(FitContext *_fc) {
+		using Eigen::Map;
+		using Eigen::VectorXd;
+		fc = _fc;
+		numFree = fc->calcNumFree();
+		Map< VectorXd > curEst(fc->est, numFree);
+		//result.resize(totalNumStats, numFree);
+		//ref.resize(totalNumStats);
+		(*this)(fc->est, ref);
+	}
+	
+	template <typename T1>
+	void operator()(double *myPars, Eigen::ArrayBase<T1> &result1) const {
+		Eigen::Map< Eigen::VectorXd > Est(myPars, numFree);
+		fc->setEstFromOptimizer(Est);
+		omxState *st = fc->state;
+		omxMatrix *mat = st->lookupDuplicate(fs->cov);
+		omxRecompute(mat, fc);
+		EigenMatrixAdaptor mat2(mat);
+		result1 = mat2;
+	}
+};
 
 omxFitFunction *omxInitGREMLFitFunction()
 { return new omxGREMLFitState; }
@@ -92,6 +125,7 @@ void omxGREMLFitState::init()
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
   newObj->dVlength = 0;
+  newObj->derivType = 0;
   
   //Augmentation:
   newObj->aug = 0;
@@ -494,6 +528,8 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
+		GREMLSense sense;
+		sense.fs = this;
 		int threadID = omx_absolute_thread_num();
 		int istart = threadID * numExplicitFreePar / nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / nThreadz;
@@ -502,13 +538,18 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 			tr=0;
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
-			if(didUserGivedV[t1]){
+			if(didUserGivedV[t1] || derivType==1){
 				a1 = gff->dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[i] = t1;}
-				if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
-					dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
+				if(didUserGivedV[t1]){
+					if( oge->numcases2drop && (gff->dV[i]->rows > Eigy.rows()) ){
+						dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
+					}
+					else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
 				}
-				else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
+				else{
+					//here, use `sense` to compute the derivative of V w/r/t theta1
+				}
 				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(j=i; j < numExplicitFreePar; j++){
 					if(j==i){
