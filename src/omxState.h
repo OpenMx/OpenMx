@@ -180,8 +180,8 @@ class omxCheckpoint {
 	FILE* file;
 
 	omxCheckpoint();
-	void message(FitContext *fc, double *est, const char *msg);
-	void postfit(const char *callerName, FitContext *fc, double *est, bool force);
+	void message(FitContext *fc, const char *msg);
+	void postfit(const char *callerName, FitContext *fc, bool force);
 	~omxCheckpoint();
 };
 
@@ -283,14 +283,14 @@ class omxGlobal {
 
 	// Will need revision if multiple optimizers are running in parallel
 	std::vector< omxCheckpoint* > checkpointList;
-	std::vector<double> startingValues;
+  Eigen::VectorXd startingValues;
 	FitContext *topFc;
 
 	omxGlobal();
 	void deduplicateVarGroups();
 	const char *getBads();
-	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
-	void checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force);
+	void checkpointMessage(FitContext *fc, const char *fmt, ...) __attribute__((format (printf, 3, 4)));
+	void checkpointPostfit(const char *callerName, FitContext *fc, bool force);
 	double getGradientThreshold(double fit) {
 		return( pow(optimalityTolerance, 1.0/3.0) * (1.0 + fabs(fit)) );
 	}

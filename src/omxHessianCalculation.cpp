@@ -72,7 +72,6 @@ class omxComputeNumericDeriv : public omxCompute {
 	double minimum;
 	Eigen::ArrayXd optima;
 	int numParams;
-	std::vector<int> paramMap;
 	double *gcentral, *gforward, *gbackward;
 	double *hessian;
 	struct hess_struct *hessWorkVector;
@@ -142,7 +141,6 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
  */
 void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work)
 {
-	int ix = paramMap[i];
 	static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
@@ -151,7 +149,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	double *Gbackward            = hess_work->Gbackward;
 	omxMatrix* fitMatrix = hess_work->fitMatrix;
 	FitContext* fc = hess_work->fc;
-	double *freeParams         = fc->est;
+	auto &freeParams         = fc->est;
+	int ix = fc->freeToParamMap[i];
 
 	/* Part the first: Gradient and diagonal */
 	double iOffset = std::max(fabs(stepSize * optima[i]), stepSize);
@@ -205,14 +204,14 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 
 void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work)
 {
-	int ix = paramMap[i];
-	int lx = paramMap[l];
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
 	omxMatrix* fitMatrix = hess_work->fitMatrix;
 	FitContext* fc = hess_work->fc;
-	double *freeParams         = fc->est;
+	auto &freeParams         = fc->est;
+	int ix = fc->freeToParamMap[i];
+	int lx = fc->freeToParamMap[l];
 
 	double iOffset = std::max(fabs(stepSize*optima[i]), stepSize);
 	double lOffset = std::max(fabs(stepSize*optima[l]), stepSize);
@@ -333,7 +332,6 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 	numParams = 0;
 	totalProbeCount = 0;
-	numParams = 0;
 	recordDetail = true;
 	detail = 0;
 }
@@ -378,10 +376,12 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		return; //Possible TODO: calculate Hessian anyway?
 	}
 
+	omxAlgebraPreeval(fitMat, fc);
+
 	int newWanted = fc->wanted | FF_COMPUTE_GRADIENT;
 	if (wantHessian) newWanted |= FF_COMPUTE_HESSIAN;
 
-	int nf = fc->calcNumFree();
+	int nf = fc->getNumFree();
 	if (numParams != 0 && numParams != nf) {
 		mxThrow("%s: number of parameters changed from %d to %d",
 			 name, numParams, nf);
@@ -392,13 +392,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	optima.resize(numParams);
 	fc->copyEstToOptimizer(optima);
-	paramMap.resize(numParams);
-	for (int px=0,ex=0; px < numParams; ++ex) {
-		if (fc->profiledOut[ex]) continue;
-		paramMap[px++] = ex;
-	}
 
-	fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
 	int c_n = fc->state->numEqC + fc->state->numIneqC;
 	fc->constraintFunVals.resize(c_n);
 	fc->constraintJacobian.resize(c_n, numParams);
@@ -506,7 +500,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	for (int px=0; px < numParams; ++px) {
 		// factor out simliar code in ComputeNR
 		Gsymmetric[px] = true;
-		omxFreeVar &fv = *fc->varGroup->vars[ paramMap[px] ];
+		omxFreeVar &fv = *fc->varGroup->vars[ fc->freeToParamMap[px] ];
 		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
 		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
 			Gsymmetric[px] = false;
@@ -520,9 +514,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 	}
 
-	fc->haveGrad.assign(fc->numParam, true);
-	fc->gradZ.resize(fc->numParam);
-	fc->gradZ.setZero();
+  fc->initGrad();
 	fc->copyGradFromOptimizer(Gc);
 
 	if(c_n){

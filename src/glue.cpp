@@ -710,10 +710,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 		int numFree = int(varGroup->vars.size());
 		if (numFree) {
-			SEXP estimate;
-			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
-			memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
-			result.add("estimate", estimate);
+			result.add("estimate", Rcpp::wrap(fc->est));
 
 			if (Global->boundsUpdated) {
 				MxRList bret;

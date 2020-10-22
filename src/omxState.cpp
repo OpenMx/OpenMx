@@ -872,7 +872,7 @@ void omxRaiseError(const char* msg) { // DEPRECATED
 	omxRaiseErrorf("%s", msg);
 }
 
-void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, ...)
+void omxGlobal::checkpointMessage(FitContext *fc, const char *fmt, ...)
 {
 	std::string str;
 	va_list ap;
@@ -883,14 +883,14 @@ void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, 
 	if (OMX_DEBUG) mxLog("checkpointMessage: %s", str.c_str());
 
 	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->message(fc, est, str.c_str());
+		checkpointList[i]->message(fc, str.c_str());
 	}
 }
 
-void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force)
+void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, bool force)
 {
 	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->postfit(callerName, fc, est, force);
+		checkpointList[i]->postfit(callerName, fc, force);
 	}
 }
 
@@ -995,12 +995,12 @@ void omxCheckpoint::omxWriteCheckpointHeader()
 	wroteHeader = true;
 }
 
-void omxCheckpoint::message(FitContext *fc, double *est, const char *msg)
+void omxCheckpoint::message(FitContext *fc, const char *msg)
 {
-	postfit(msg, fc, est, true);
+	postfit(msg, fc, true);
 }
 
-void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bool force)
+void omxCheckpoint::postfit(const char *context, FitContext *fc, bool force)
 {
 	const int timeBufSize = 32;
 	char timeBuf[timeBufSize];
@@ -1028,7 +1028,7 @@ void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bo
 		size_t numParam = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
 		for (size_t px=0; px < numParam; ++px) {
 			if (lx < vars.size() && vars[lx]->id == (int)px) {
-				fprintf(file, "\t%.10g", est[lx]);
+				fprintf(file, "\t%.10g", fc->est[lx]);
 				++lx;
 			} else {
 				fprintf(file, "\tNA");

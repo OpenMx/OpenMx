@@ -2607,8 +2607,8 @@ static void evaluateOnGrid(FitContext *fc, omxMatrix** matList, int numArgs, omx
 			return;
 		}
 		abscissaParamMap[rx] = got;
-		fc->profiledOut[got] = true;
-    fc->prepConstraints();
+		fc->profiledOutZ[got] = true;
+    fc->calcNumFree();
 	}
 
 	omxState *os = result->currentState;

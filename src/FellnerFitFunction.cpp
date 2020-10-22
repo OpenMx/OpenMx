@@ -61,7 +61,6 @@ namespace FellnerFitFunction {
 		}
 
 		RelationalRAMExpectation::independentGroup &ig = *rram.group[0];
-		fc->profiledOut.assign(fc->numParam, false);
 
 		olsVarNum.reserve(numProfiledOut);
 		olsDesign.resize(ig.getParent().dataVec.size(), numProfiledOut);
@@ -118,9 +117,9 @@ namespace FellnerFitFunction {
 			}
 			if (!found) OOPS;
 
-			fc->profiledOut[vx] = true;
+			fc->profiledOutZ[vx] = true;
 		}
-    fc->prepConstraints();
+    fc->calcNumFree();
 	}
 
 	template <typename T1>

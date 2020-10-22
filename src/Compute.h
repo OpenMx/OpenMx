@@ -141,35 +141,31 @@ class FitContext {
 	int computeCount;
 	ComputeInform inform;
 	double previousReportFit;
+  int _numFree;
 
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
 	omxState *getParentState() const { return parent->state; };
 	bool isClone() const;
-	size_t numParam;               // change to int type TODO
+	int numParam;
+  int getNumFree() const { return _numFree; }
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
 	FitStatisticUnits fitUnits;
 	int skippedRows;
-	double *est;
-	Eigen::Map< Eigen::VectorXd > getEst() {
-		Eigen::Map< Eigen::VectorXd > vec(est, numParam);
-		return vec;
-	}
-	std::vector<bool> profiledOut;
-	int calcNumFree() {
-		std::vector<bool> &po = profiledOut;
-		return numParam - std::count(po.begin(), po.end(), true);
-	};
+  std::vector<int> freeToParamMap;  // length=numFree
+	std::vector<bool> profiledOutZ;
+	void calcNumFree();
 	std::vector<bool> haveGrad;
-	Eigen::VectorXd gradZ;
-	void initGrad(int pars) { // should dimension to numParam always? TODO
+  Eigen::ArrayXd est;  // length=numParam
+	Eigen::VectorXd gradZ;  // length=numFree
+	void initGrad() {
+    int pars = getNumFree();
 		haveGrad.assign(pars, false);
 		gradZ = Eigen::VectorXd::Zero(pars);
 	};
-	void initGrad() { initGrad(numParam); };
 	int infoDefinite;
 	double infoCondNum;
 	Eigen::MatrixXd hess;
@@ -197,7 +193,6 @@ class FitContext {
 	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
-  void prepConstraints();
   bool isUnconstrained();
 	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
 	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
@@ -217,7 +212,6 @@ class FitContext {
 	void ensureParamWithinBox(bool nudge);
 	void copyParamToModel();
 	void copyParamToModelClean();
-	double *take(int want);
 	omxMatrix *lookupDuplicate(omxMatrix* element);
 	void maybeCopyParamToModel(omxState* os);
 	void updateParent();
@@ -292,66 +286,56 @@ class FitContext {
 
 	// profiledOut parameters are not subject to optimization
 	template<typename T> void copyEstToOptimizer(T &out) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			out[px] = est[vx];
-			++px;
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			out[vx] = est[ freeToParamMap[vx] ];
 		}
 	};
 	template<typename T> void copyGradToOptimizer(T &out) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			out[px] = haveGrad[vx]? gradZ[vx] : NA_REAL;
-			++px;
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			out[vx] = haveGrad[vx]? gradZ[vx] : NA_REAL;
 		}
 	};
 	template<typename T> void copyGradFromOptimizer(const T &in) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			gradZ[vx] = in[px];
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			gradZ[vx] = in[vx];
 			haveGrad[vx] = true;
-			++px;
 		}
 	};
+	void setParamFromOptimizer(int px, double v1) {
+    est[ freeToParamMap[px] ] = v1;
+		copyParamToModel(); // could be smarter TODO
+	}
 	template<typename T> void setEstFromOptimizer(const T &in) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			est[vx] = in[px];
-			++px;
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			est[ freeToParamMap[vx] ] = in[vx];
 		}
 		copyParamToModel();
 	};
+	template<typename T> void setEstFromOptimizerClean(const T &in) {
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			est[ freeToParamMap[vx] ] = in[vx];
+		}
+		copyParamToModelClean();
+	};
 	template<typename T1, typename T2>
 	void setEstGradFromOptimizer(const T1 &ein, const T2 &gin) {
-		haveGrad.assign(numParam, true);
-		gradZ.resize(numParam);
-		gradZ.setConstant(NA_REAL);
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			est[vx] = ein[px];
-			gradZ[vx] = gin[px];
-			++px;
-		}
+    setEstFromOptimizer(ein);
+    copyGradFromOptimizer(gin);
 		copyParamToModel();
 	};
 	template<typename T1, typename T2>
 	void copyBoxConstraintToOptimizer(Eigen::MatrixBase<T1> &lb, Eigen::MatrixBase<T2> &ub)
 	{
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			lb[px] = varGroup->vars[vx]->lbound;
-			if (!std::isfinite(lb[px])) lb[px] = NEG_INF;
-			ub[px] = varGroup->vars[vx]->ubound;
-			if (!std::isfinite(ub[px])) ub[px] = INF;
-			++px;
+    if (lb.size() != getNumFree()) OOPS;
+		for (int vx=0; vx < getNumFree(); ++vx) {
+      int px = freeToParamMap[vx];
+			lb[vx] = varGroup->vars[px]->lbound;
+			if (!std::isfinite(lb[vx])) lb[vx] = NEG_INF;
+			ub[vx] = varGroup->vars[px]->ubound;
+			if (!std::isfinite(ub[vx])) ub[vx] = INF;
 		}
 	};
+  bool hasActiveBoxConstraint() const;
 	std::string asProgressReport();
 };
 

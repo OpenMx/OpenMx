@@ -26,7 +26,7 @@
 class GradientOptimizerContext {
  private:
 	void copyBounds();
-	int countNumFree();
+	int countNumFree() const { return fc->getNumFree(); }
 
 	// We need to hide this from the optimizer because
 	// some parameters might be profiled out and should
@@ -92,7 +92,6 @@ class GradientOptimizerContext {
 
 	void setupSimpleBounds();          // NLOPT style
 	void setupAllBounds();             // NPSOL style
-  void prepConstraints() { fc->prepConstraints(); }
   bool isUnconstrained();
 
 	Eigen::VectorXd constraintFunValsOut;

@@ -115,6 +115,7 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc)
 {
 	if (mat->hasMatrixNumber) mat = fc->lookupDuplicate(mat);
 	SwitchWantStage sws(mat->currentState, FF_COMPUTE_PREOPTIMIZE);
+  fc->calcNumFree();
 	omxRecompute(mat, fc);
   fc->state->constraintPreeval(fc);
 	auto ff = mat->fitFunction;

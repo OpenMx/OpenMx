@@ -1701,7 +1701,10 @@ struct ProbitRegression : NewtonRaphsonObjective {
 	void calcScores();
 	virtual void evaluateFit();
 	virtual void evaluateDerivs(int want);
-	virtual double *getParamVec() { return param.data(); }
+	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out) override
+  { out = param;  }
+  virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override
+  { param = in; }
 	virtual double *getGrad() { return grad.data(); }
 	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir);
 };
@@ -2024,7 +2027,10 @@ struct PolyserialCor : NewtonRaphsonObjective {
 		}
 		fit = -(pr.log() * rowMult).sum();
 	}
-	virtual double *getParamVec() { return &param; };
+	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out) override
+  { out[0] = param; }
+  virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override
+  { param = in[0]; }
 	virtual double *getGrad() { return &grad; };
 	virtual void evaluateDerivs(int want)
 	{
@@ -2190,7 +2196,10 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		}
 	}
 
-	virtual double *getParamVec() { return &param; };
+	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out) override
+  { out[0] = param; }
+  virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override
+  { param = in[0]; }
 	virtual double *getGrad() { return &grad; };
 	virtual const char *paramIndexToName(int px) { return "rho"; };
 	virtual double getFit() { return fit; };

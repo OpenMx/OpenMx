@@ -75,7 +75,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 {
 	bool steepestDescent = false;
 
-	memcpy(prevEst.data(), nro.getParamVec(), numParam * sizeof(double));
+  nro.getParamVec(prevEst);
 
 	int want = FF_COMPUTE_GRADIENT | FF_COMPUTE_IHESSIAN;
 	if (verbose >= 5) want |= FF_COMPUTE_HESSIAN;
@@ -110,7 +110,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 				for (int px=0; px < numParam; ++px) {
 					if (std::isfinite(grad[px])) continue;
 					mxLog("%s=%f is infeasible; try adding bounds",
-					      nro.paramIndexToName(px), nro.getParamVec()[px]);
+					      nro.paramIndexToName(px), prevEst[px]);
 				}
 			}
 			nro.reportBadDeriv();
@@ -119,12 +119,12 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 		targetImprovement = 1;
 		speed = std::max(speed, .1);  // expect steepestDescent
 	}
-	
+
 	// This is based on the Goldstein test. However, we don't enforce
 	// a lower bound on the improvement.
 
 	int probeCount = 0;
-	Eigen::Map< Eigen::VectorXd > trial(nro.getParamVec(), numParam);
+	Eigen::VectorXd trial;
 	double bestSpeed = 0;
 	double bestImproved = 0;
 	double goodness = 0;
@@ -133,11 +133,12 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
 		if (!steepestDescent && relImprovement(scaledTarget) < tolerance) {
-			trial = prevEst;
+			nro.setParamVec(prevEst);
 			return;
 		}
 		trial = (prevEst - speed * searchDir).
 			cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+    nro.setParamVec(trial);
 		++minorIter;
 		nro.evaluateFit();
 		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
@@ -165,7 +166,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 		break;
 	}
 	if (bestSpeed == 0) {
-		trial = prevEst;
+		nro.setParamVec(prevEst);
 		return;
 	}
 
@@ -182,6 +183,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 			++probeCount;
 			trial = (prevEst - speed * searchDir).
 				cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+      nro.setParamVec(trial);
 			++minorIter;
 			nro.evaluateFit();
 			if (!std::isfinite(nro.getFit())) break;
@@ -206,6 +208,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 
 	trial = (prevEst - bestSpeed * searchDir).
 		cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+  nro.setParamVec(trial);
 
 	maxAdj = 0;
 	for (int px=0; px < numParam; ++px) {
@@ -241,7 +244,8 @@ public:
 struct ComputeNRO : public NewtonRaphsonObjective {
 	ComputeNR &nr;
 	FitContext *fc;
-	ComputeNRO(ComputeNR *_nr, FitContext *_fc) : nr(*_nr), fc(_fc) {};
+	ComputeNRO(ComputeNR *_nr, FitContext *_fc) :
+    nr(*_nr), fc(_fc) {};
 	virtual bool isConverged() {
 		nr.reportProgress(fc);
 		return converged || isErrorRaised() ||
@@ -250,24 +254,27 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 	virtual double getFit() { return fc->fit; };
 	virtual void resetDerivs() {
 		fc->resetOrdinalRelativeError();
-		fc->initGrad(nr.numParam);
+    fc->initGrad();
 		fc->clearHessian();
 	};
 	virtual const char *paramIndexToName(int px)
 	{
 		const char *pname = "none";
-		if (px >= 0) pname = fc->varGroup->vars[px]->name;
+		if (px >= 0) pname = fc->varGroup->vars[ fc->freeToParamMap[px] ]->name;
 		return pname;
 	}
 	virtual void evaluateFit() {
-		fc->copyParamToModel();
 		ComputeFit(nr.engineName, nr.fitMatrix, FF_COMPUTE_FIT, fc);
 	}
 	virtual void evaluateDerivs(int want) {
-		fc->copyParamToModel();
 		ComputeFit(nr.engineName, nr.fitMatrix, want, fc);
 	}
-	virtual double *getParamVec() { return fc->est; };
+	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out) override {
+    fc->copyEstToOptimizer(out);
+  };
+	virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override {
+    fc->setEstFromOptimizer(in);
+  };
 	virtual double *getGrad() { return fc->gradZ.data(); };
 	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) {
 		searchDir = fc->ihessGradProd();
@@ -392,14 +399,14 @@ void omxApproxInvertPackedPosDefTriangular(int dim, int *mask, double *packedHes
 
 void ComputeNR::computeImpl(FitContext *fc)
 {
+	omxAlgebraPreeval(fitMatrix, fc);
+
 	// complain if there are non-linear constraints TODO
 
-	numParam = varGroup->vars.size();
+	numParam = fc->getNumFree();
 	if (numParam <= 0) { complainNoFreeParam(); return; }
 
 	fc->setInform(INFORM_UNINITIALIZED);
-
-	omxAlgebraPreeval(fitMatrix, fc);
 
 	// bounds might have changed
 	ComputeNRO obj(this, fc);

@@ -61,6 +61,33 @@ SEXP allocInformVector(int size)
 			  OMX_STATIC_ARRAY_SIZE(statusCodeLabels), statusCodeLabels);
 }
 
+void FitContext::calcNumFree()
+{
+  std::vector<bool> &po = profiledOutZ;
+  _numFree = numParam - std::count(po.begin(), po.end(), true);
+  if (gradZ.size() != _numFree) initGrad();
+  freeToParamMap.resize(_numFree);
+  for (int fx=0, px=0; px < numParam; ++px) {
+    if (po[px]) continue;
+    freeToParamMap[fx++] = px;
+  }
+
+	omxState *st = state;
+	st->usingAnalyticJacobian = false;
+	st->countNonlinearConstraints(st->numEqC, st->numIneqC, false);
+	equality.resize(st->numEqC);
+	inequality.resize(st->numIneqC);
+
+	int numFree = getNumFree();
+  analyticEqJacTmp.resize(st->numEqC, numFree);
+  analyticIneqJacTmp.resize(st->numIneqC, numFree);
+
+  // ???? TODO
+	// for (int cx=0; cx < int(childList.size()); ++cx) {
+	// 	childList[cx]->prepConstraints();
+	// }
+}
+
 void FitContext::queue(HessianBlock *hb)
 {
 	if (hb->vars.size() == 0) {
@@ -168,7 +195,7 @@ void FitContext::refreshDenseHess()
 {
 	if (haveDenseHess) return;
 
-	int numFree = calcNumFree();
+	int numFree = getNumFree();
 	hess.resize(numFree, numFree);
 
 	hess.triangularView<Eigen::Upper>().setZero();
@@ -209,7 +236,7 @@ void FitContext::copyDenseHess(double *dest)
 
 double *FitContext::getDenseHessUninitialized()
 {
-	int numFree = calcNumFree();
+	int numFree = getNumFree();
 	hess.resize(numFree, numFree);
 
 	// Assume the caller is going to fill it out
@@ -397,12 +424,12 @@ void FitContext::testMerge()
 	sparseHess.resize(numParam, numParam);
 	sparseHess.setZero();
 
-	for (size_t vx=0; vx < numParam; ++vx) {
+	for (int vx=0; vx < numParam; ++vx) {
 		HessianBlock *hb = blockByVar[vx];
 		hb->addSubBlocks();
 	}
 
-	for (size_t vx=0; vx < numParam; ++vx) {
+	for (int vx=0; vx < numParam; ++vx) {
 		HessianBlock *hb = blockByVar[vx];
 		if (hb->useId == UseId) continue;
 		hb->useId = UseId;
@@ -453,7 +480,7 @@ bool FitContext::refreshSparseIHess()
 	}
 	if (maxBlockSize < std::min(int(numParam), AcceptableDenseInvertSize)) {
 		const int UseId = 1;
-		for (size_t vx=0; vx < numParam; ++vx) {
+		for (int vx=0; vx < numParam; ++vx) {
 			HessianBlock *hb = blockByVar[vx];
 			if (!hb) mxThrow("Attempting to invert Hessian, "
 					  "but no Hessian information for '%s'", varGroup->vars[vx]->name);
@@ -500,8 +527,8 @@ bool FitContext::refreshSparseIHess()
 
 		if (0) {
 			int nonZero = 0;
-			for (size_t cx=0; cx < numParam; ++cx) {
-				for (size_t rx=0; rx <= cx; ++rx) {
+			for (int cx=0; cx < numParam; ++cx) {
+				for (int rx=0; rx <= cx; ++rx) {
 					if (hess(rx,cx) != 0) {
 						if (rx == cx) nonZero += 1;
 						else nonZero += 2;
@@ -542,7 +569,7 @@ Eigen::VectorXd FitContext::ihessDiag()
 
 double *FitContext::getDenseIHessUninitialized()
 {
-	int numFree = calcNumFree();
+	int numFree = getNumFree();
 	ihess.resize(numFree, numFree);
 
 	// Assume the caller is going to fill it out
@@ -646,13 +673,14 @@ int HessianBlock::estNonZero() const
 void FitContext::init()
 {
 	numParam = varGroup->vars.size();
+  _numFree = 0;
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
 	previousReportFit = nan("uninit");
 	fitUnits = parent? parent->fitUnits : FIT_UNITS_UNINITIALIZED;
 	skippedRows = 0;
-	est = new double[numParam];
+	est.resize(numParam);
 	infoDefinite = NA_LOGICAL;
 	infoCondNum = NA_REAL;
 	infoA = NULL;
@@ -665,7 +693,7 @@ void FitContext::init()
 	computeCount = 0;
   permitParallel = false;
 
-	hess.resize(numParam, numParam);  // TODO why needed?
+	hess.resize(numParam, numParam);  // TODO why needed? should be numFree, WRONG DIMENSION
 	ihess.resize(numParam, numParam);  // TODO why needed?
 
 	clearHessian();
@@ -692,9 +720,32 @@ void FitContext::clearHessian()
 	maxBlockSize = 0;
 }
 
+bool FitContext::hasActiveBoxConstraint() const
+{
+  const int verbose = 0;
+	double eps = sqrt(std::numeric_limits<double>::epsilon());
+
+  for (int vx=0; vx < getNumFree(); ++vx) {
+		bool active=false;
+    int px = freeToParamMap[vx];
+		if (est[px] <= varGroup->vars[px]->lbound + eps) {
+			if (verbose >= 2)
+				mxLog("Param %s at lbound %f", varGroup->vars[px]->name, est[px]);
+			active=true;
+		}
+		if (est[px] >= varGroup->vars[px]->ubound - eps) {
+			if (verbose >= 2)
+				mxLog("Param %s at ubound %f", varGroup->vars[px]->name, est[px]);
+			active=true;
+		}
+    if (active) return true;
+  }
+  return false;
+}
+
 void FitContext::calcStderrs()
 {
-	int numFree = calcNumFree();
+	int numFree = getNumFree();
 	stderrs.resize(numFree);
 	if (vcov.rows() != numFree || vcov.cols() != numFree) {
 		mxThrow("FitContext::calcStderrs vcov size wrong %d vs %d",
@@ -772,16 +823,16 @@ FitContext::FitContext(omxState *_state)
 	parent = NULL;
 	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 	init();
-	profiledOut.assign(numParam, false);
+	profiledOutZ.assign(numParam, false);
 
 	auto &startingValues = Global->startingValues;
 	state = _state;
 	if (numParam) {
-		if (startingValues.size() != numParam) {
+		if (int(startingValues.size()) != numParam) {
 			mxThrow("Got %d starting values for %d parameters",
 				int(startingValues.size()), int(numParam));
 		}
-		memcpy(est, startingValues.data(), sizeof(double) * numParam);
+    est = startingValues;
 	}
 	//equality.resize(state->numEqC);
 	//inequality.resize(state->numIneqC);
@@ -799,14 +850,14 @@ FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 	size_t dvars = varGroup->vars.size();
 	if (dvars == 0) return;
 	mapToParent.resize(dvars);
-	profiledOut.resize(numParam);
+	profiledOutZ.resize(numParam);
 
 	size_t d1 = 0;
 	for (size_t s1=0; s1 < src->vars.size(); ++s1) {
 		if (src->vars[s1] != dest->vars[d1]) continue;
 		mapToParent[d1] = s1;
 		est[d1] = parent->est[s1];
-		profiledOut[d1] = parent->profiledOut[s1];
+		profiledOutZ[d1] = parent->profiledOutZ[s1];
 		if (++d1 == dvars) break;
 	}
 	if (d1 != dvars) mxThrow("Parent free parameter group (id=%d) is not a superset of %d",
@@ -886,21 +937,22 @@ void FitContext::updateParentAndFree()
 
 void FitContext::log(int what)
 {
-	size_t count = varGroup->vars.size();
 	std::string buf;
 	if (what & FF_COMPUTE_MAXABSCHANGE) buf += string_snprintf("MAC: %.5f\n", mac);
 	if (what & FF_COMPUTE_FIT) buf += string_snprintf("fit: %.5f (scale %f)\n", fit, Global->llScale);
 	if (what & FF_COMPUTE_ESTIMATE) {
+    int count = numParam;
 		buf += string_snprintf("est %d: c(", (int) count);
-		for (size_t vx=0; vx < count; ++vx) {
+		for (int vx=0; vx < count; ++vx) {
 			buf += string_snprintf("%.16f", est[vx]);
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";
 	}
 	if (what & FF_COMPUTE_GRADIENT) {
+    int count = getNumFree();
 		buf += string_snprintf("gradient %d: c(", (int) count);
-		for (size_t vx=0; vx < count; ++vx) {
+		for (int vx=0; vx < count; ++vx) {
 			if (haveGrad[vx]) {
 				buf += string_snprintf("%.5f", gradZ[vx]);
 			} else {
@@ -911,10 +963,11 @@ void FitContext::log(int what)
 		buf += ")\n";
 	}
 	if (what & FF_COMPUTE_HESSIAN) {
+    int count = getNumFree();
 		refreshDenseHess();
 		buf += string_snprintf("hessian %d x %d: c(\n", (int) count, (int) count);
-		for (size_t v1=0; v1 < count; ++v1) {
-			for (size_t v2=0; v2 < count; ++v2) {
+		for (int v1=0; v1 < count; ++v1) {
+			for (int v2=0; v2 < count; ++v2) {
 				double coef;
 				if (v1 > v2) {
 					coef = hess.selfadjointView<Eigen::Upper>()(v2,v1);
@@ -1006,32 +1059,6 @@ static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool fo
 	}
 }
 
-static void omxRepopulateRFitFunction(omxFitFunction* oo, double* x, int n)
-{
-	omxRFitFunction* rFitFunction = (omxRFitFunction*)oo;
-
-	ProtectedSEXP estimate(Rf_allocVector(REALSXP, n));
-	double *est = REAL(estimate);
-	for(int i = 0; i < n ; i++) {
-		est[i] = x[i];
-	}
-
-	ProtectedSEXP theCall(Rf_allocVector(LANGSXP, 4));
-
-		// imxUpdateModelValues does not handle parameters with equality
-		// constraints. This is a bug.
-	SETCAR(theCall, Rf_install("imxUpdateModelValues"));
-	SETCADR(theCall, rFitFunction->model);
-	SETCADDR(theCall, rFitFunction->flatModel);
-	SETCADDDR(theCall, estimate);
-
-	rFitFunction->model = Rf_eval(theCall, R_GlobalEnv);
-
-	Rf_setAttrib(rFitFunction->rObj, Rf_install("model"), rFitFunction->model);
-
-	omxMarkDirty(oo->matrix);
-}
-
 void FitContext::ensureParamWithinBox(bool nudge)
 {
 	if (OMX_DEBUG) mxLog("FitContext::ensureParamWithinBox(nudge=%d)", nudge);
@@ -1069,14 +1096,35 @@ void FitContext::copyParamToModelClean()
 {
 	if(numParam == 0) return;
 
-	copyParamToModelInternal(varGroup, state, est);
+	copyParamToModelInternal(varGroup, state, est.data());
 
-	if (RFitFunction) omxRepopulateRFitFunction(RFitFunction, est, numParam);
+	if (RFitFunction) {  // special hack
+    omxRFitFunction* rFitFunction = (omxRFitFunction*)RFitFunction;
+
+    ProtectedSEXP estimate(Rf_allocVector(REALSXP, getNumFree()));
+    double *eptr = REAL(estimate);
+    copyEstToOptimizer(eptr);
+
+    ProtectedSEXP theCall(Rf_allocVector(LANGSXP, 4));
+
+		// imxUpdateModelValues does not handle parameters with equality
+		// constraints. This is a bug.
+    SETCAR(theCall, Rf_install("imxUpdateModelValues"));
+    SETCADR(theCall, rFitFunction->model);
+    SETCADDR(theCall, rFitFunction->flatModel);
+    SETCADDDR(theCall, estimate);
+
+    rFitFunction->model = Rf_eval(theCall, R_GlobalEnv);
+
+    Rf_setAttrib(rFitFunction->rObj, Rf_install("model"), rFitFunction->model);
+
+    omxMarkDirty(RFitFunction->matrix);
+  }
 
 	if (childList.size() == 0 || !openmpUser) return;
 
 	for(size_t i = 0; i < childList.size(); i++) {
-		memcpy(childList[i]->est, est, sizeof(double) * numParam);
+		childList[i]->est = est;
 		childList[i]->copyParamToModel();
 	}
 }
@@ -1162,25 +1210,6 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 	}
 }
 
-void FitContext::prepConstraints()
-{
-  //mxLog("FitContext::prepConstraints()");
-	omxState *st = state;
-	st->usingAnalyticJacobian = false;
-	st->countNonlinearConstraints(st->numEqC, st->numIneqC, false);
-	equality.resize(st->numEqC);
-	inequality.resize(st->numIneqC);
-
-  // What if numFree changes? TODO
-	int numFree = calcNumFree();
-  analyticEqJacTmp.resize(st->numEqC, numFree);
-  analyticIneqJacTmp.resize(st->numIneqC, numFree);
-
-	for (int cx=0; cx < int(childList.size()); ++cx) {
-		childList[cx]->prepConstraints();
-	}
-}
-
 bool FitContext::isUnconstrained()
 {
 	omxState *st = state;
@@ -1249,25 +1278,6 @@ omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
 {
 	if (element == NULL) return NULL;
 	return state->lookupDuplicate(element);
-}
-
-double *FitContext::take(int want)
-{
-	if (!(want & (wanted | FF_COMPUTE_ESTIMATE))) {
-		mxThrow("Attempt to take %d but not available", want);
-	}
-
-	double *ret = NULL;
-	switch(want) {
-	case FF_COMPUTE_ESTIMATE:
-		ret = est;
-		est = NULL;
-		break;
-	default:
-		mxThrow("Taking of %d is not implemented", want);
-	}
-	if (!ret) mxThrow("Attempt to take %d, already taken", want);
-	return ret;
 }
 
 // Rethink this whole design TODO
@@ -1411,6 +1421,7 @@ void FitContext::createChildren1()
 		FitContext *kid = new FitContext(this, varGroup);
 		kid->state = new omxState(state, openmpUser);
 		kid->state->initialRecalc(kid);
+    kid->calcNumFree();
 		childList.push_back(kid);
 	}
 
@@ -1430,6 +1441,8 @@ void FitContext::destroyChildren()
 
 FitContext::~FitContext()
 {
+  //mxLog("destroy FitContext %p", this);
+
 	destroyChildren();
 
 	if (parent) {
@@ -1440,7 +1453,6 @@ FitContext::~FitContext()
 	}
 
 	clearHessian();
-	if (est) delete [] est;
 	if (infoA) delete [] infoA;
 	if (infoB) delete [] infoB;
 }
@@ -1482,7 +1494,7 @@ protected:
 
 public:
 	EMAccel(FitContext *_fc, int _verbose) : fc(_fc), verbose(_verbose) {
-		numParam = fc->varGroup->vars.size();
+		numParam = fc->getNumFree();
 		prevAdj1.assign(numParam, 0);
 		prevAdj2.resize(numParam);
 		dir.resize(numParam);
@@ -1773,7 +1785,7 @@ struct LeaveComputeWithVarGroup {
 	~LeaveComputeWithVarGroup() {
 		fc->destroyChildren();
 		if (toResetInform) fc->setInform(std::max(origInform, fc->getInform()));
-		Global->checkpointMessage(fc, fc->est, "%s", name);
+		Global->checkpointMessage(fc, "%s", name);
 		if (Global->debugProtectStack) {
 			mxLog("exit %s: protect depth %d", name, Global->mpi->getDepth());
 		}
@@ -2030,11 +2042,12 @@ struct ParJacobianSense {
 		using Eigen::Map;
 		using Eigen::VectorXd;
 		fc = _fc;
-		numFree = fc->calcNumFree();
-		Map< VectorXd > curEst(fc->est, numFree);
+		numFree = fc->getNumFree();
 		result.resize(totalNumStats, numFree);
 		ref.resize(totalNumStats);
-		(*this)(fc->est, -1, ref);
+    VectorXd point(numFree);
+    fc->copyEstToOptimizer(point);
+		(*this)(point.data(), -1, ref);
 	}
 
 	template <typename T1>
@@ -2860,10 +2873,9 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase
 	bool failed = false;
 	probeOffset(paramProbeCount[vx], vx) = offset;
 
-	Eigen::Map< Eigen::VectorXd > Est(fc->est, (int) fc->varGroup->vars.size());
-	Est = optimum;
-	fc->est[vx] += offset;
-	fc->copyParamToModel();
+  Eigen::VectorXd loc = optimum;
+  loc[vx] += offset;
+  fc->setEstFromOptimizer(loc);
 
 	if (verbose >= 3) mxLog("ComputeEM: probe %d of %s offset %.6f",
 				1+paramProbeCount[vx], fc->varGroup->vars[vx]->name, offset);
@@ -2878,7 +2890,8 @@ bool ComputeEM::probeEM(FitContext *fc, int vx, double offset, Eigen::MatrixBase
 	}
 	fc->setInform(informSave);
 
-	rijWork.col(paramProbeCount[vx]) = (Est - optimum) / offset;
+  fc->copyEstToOptimizer(loc);
+	rijWork.col(paramProbeCount[vx]) = (loc - optimum) / offset;
 
 	paramProbeCount[vx] += 1;
 	++semProbeCount;
@@ -2906,7 +2919,6 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork
 
 void ComputeEM::observedFit(FitContext *fc)
 {
-	fc->copyParamToModel();
 	ComputeFit("EM", fit3, FF_COMPUTE_FIT, fc);
 	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->fit);
 
@@ -2921,7 +2933,6 @@ void ComputeEM::observedFit(FitContext *fc)
 template <typename T1>
 void ComputeEM::accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1> &preAccel)
 {
-	Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
 	if (!accel->calcDirection(major)) {
 		observedFit(fc);
 		return;
@@ -2930,14 +2941,15 @@ void ComputeEM::accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1
 	double speed = 1.0;
 	int retry = 3;
 	while (--retry) {
-		pVec = (accel->dir * speed + preAccel).cwiseMax(lbound).cwiseMin(ubound);
+    Eigen::VectorXd pVec((accel->dir * speed + preAccel).cwiseMax(lbound).cwiseMin(ubound));
+    fc->setEstFromOptimizer(pVec);
 		observedFit(fc);
 		if (std::isfinite(fc->fit)) return;
 		speed *= .3;
 		if (verbose >= 3) mxLog("%s: fit NaN; reduce accel speed to %f", name, speed);
 	}
 	// give up
-	pVec = preAccel;
+  fc->setEstFromOptimizer(preAccel);
 	observedFit(fc);
 }
 
@@ -2947,7 +2959,9 @@ void ComputeEM::computeImpl(FitContext *fc)
 	double prevFit = 0;
 	double mac = tolerance * 10;
 	bool converged = false;
-	const int freeVars = int(fc->varGroup->vars.size());
+  // Can't omxAlgebraPreeval because fit function is unknown here
+  fc->calcNumFree();
+	const int freeVars = fc->getNumFree();
 	bool in_middle = false;
 	maxHistLen = 0;
 	EMcycles = 0;
@@ -2961,10 +2975,10 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (useVaradhan) accel = new Varadhan2008(fc, verbose);
 
 	int mstepInform = INFORM_UNINITIALIZED;
-	std::vector<double> prevEst(fc->numParam);
+	std::vector<double> prevEst(fc->getNumFree());
 	while (EMcycles < maxIter) {
 		++ EMcycles;
-		memcpy(&prevEst[0], fc->est, sizeof(double) * fc->numParam);
+    fc->copyEstToOptimizer(prevEst);
 		if (verbose >= 4) mxLog("ComputeEM[%d]: E-step", EMcycles);
 		estep->compute(fc);
 		fc->wanted &= ~FF_COMPUTE_DERIV;
@@ -2996,8 +3010,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 				}
 			}
 
-			Eigen::Map< Eigen::VectorXd > pVec(fc->est, fc->numParam);
-			Eigen::VectorXd preAccel = pVec;
+			Eigen::VectorXd preAccel(fc->getNumFree());
+      fc->copyEstToOptimizer(preAccel);
 			accel->recordTrajectory(prevEst);
 
 			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
@@ -3049,7 +3063,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 
 		if (semMethod == ClassicSEM || ((semMethod == TianSEM || semMethod == AgileSEM) && in_middle)) {
 			double *estCopy = new double[freeVars];
-			memcpy(estCopy, fc->est, sizeof(double) * freeVars);
+      fc->copyEstToOptimizer(estCopy);
 			estHistory.push_back(estCopy);
 		}
 	}
@@ -3064,7 +3078,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (!converged || fc->skippedRows || information == EMInfoNone) return;
 
 	optimum.resize(freeVars);
-	memcpy(optimum.data(), fc->est, sizeof(double) * freeVars);
+  fc->copyEstToOptimizer(optimum);
 
 	if (information == EMInfoMengRubinFamily) {
 		MengRubinFamily(fc);
@@ -3075,8 +3089,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	}
 
 	fc->fit = bestFit;
-	memcpy(fc->est, optimum.data(), sizeof(double) * freeVars);
-	fc->copyParamToModel();
+  fc->setEstFromOptimizer(optimum);
 }
 
 struct estep_jacobian_functional {
@@ -3094,16 +3107,13 @@ struct estep_jacobian_functional {
 template <typename T1, typename T2>
 void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result)
 {
-	Eigen::Map< Eigen::ArrayXd > Est(fc->est, fc->numParam);
-	Est = x;
-	fc->copyParamToModel();
+  fc->setEstFromOptimizer(x);
 
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
 	}
 
-	Est = optimum;
-	fc->copyParamToModelClean();
+  fc->setEstFromOptimizerClean(optimum);
 
 	fc->gradZ = Eigen::VectorXd::Zero(fc->numParam);
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
@@ -3639,8 +3649,10 @@ void ComputeJacobian::initFromFrontend(omxState *state, SEXP rObj)
 
 void ComputeJacobian::computeImpl(FitContext *fc)
 {
-	int numFree = fc->calcNumFree();
-	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
+  fc->calcNumFree();  // can't omxAlgebraPreeval because no fitmat
+	int numFree = fc->getNumFree();
+	Eigen::VectorXd curEst(numFree);
+  fc->copyEstToOptimizer(curEst);
 	if (sense.defvar_row != NA_INTEGER) {
 		data->loadDefVars(fc->state, sense.defvar_row - 1);
 	}
@@ -3706,7 +3718,7 @@ template <typename T1> bool isULS(const Eigen::MatrixBase<T1> &acov)
 void ComputeStandardError::computeImpl(FitContext *fc)
 {
 	if (fc->fitUnits == FIT_UNITS_UNINITIALIZED) return;
-	int numFree = fc->calcNumFree();
+	int numFree = fc->getNumFree();
 	if (fc->fitUnits == FIT_UNITS_MINUS2LL) {
 		if (!fc->vcov.size()) {
 			fc->vcov.resize(numFree, numFree);
@@ -3803,7 +3815,8 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 			});
 	}
 
-	Eigen::Map< Eigen::VectorXd > curEst(fc->est, numFree);
+	Eigen::VectorXd curEst(numFree);
+  fc->copyEstToOptimizer(curEst);
 	ParJacobianSense sense;
 	sense.attach(&exList, 0);
 	sense.measureRef(fc);
@@ -3852,20 +3865,16 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 
 void ComputeStandardError::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 {
-	int numFree=0;
+	int numFree = fc->getNumFree();
 	SEXP parNames=0, dimnames=0;
 
 	if (fc->vcov.size() || fc->stderrs.size()) {
-		numFree = fc->calcNumFree();
-		if (numFree != fc->stderrs.size()) {
-			mxThrow("%s: numFree != fc->stderrs.size() %d != %d",
-				name, numFree, fc->stderrs.size());
-		}
+		if (numFree != fc->stderrs.size()) OOPS;
 
 		parNames = Rf_allocVector(STRSXP, numFree);
 		Rf_protect(parNames);
-		for (int vx=0, px=0; vx < int(fc->numParam) && px < numFree; ++vx) {
-			if (fc->profiledOut[vx]) continue;
+		for (int vx=0, px=0; vx < int(fc->numParam); ++vx) {
+			if (fc->profiledOutZ[vx]) continue;
 			SET_STRING_ELT(parNames, px++, Rf_mkChar(varGroup->vars[vx]->name));
 		}
 
@@ -3925,7 +3934,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 	if(fc->state->conListX.size()){
 		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
 		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
-		int nf = fc->calcNumFree();
+		int nf = fc->getNumFree();
 		fc->inequality.resize(fc->state->numIneqC);
 		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, nf);
 		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
@@ -4018,12 +4027,12 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 
 	if (!(fc->wanted & (FF_COMPUTE_GRADIENT|FF_COMPUTE_HESSIAN|FF_COMPUTE_IHESSIAN))) return;
 
-	int numFree = fc->calcNumFree();
+	int numFree = fc->getNumFree();
 
 	SEXP parNames = Rf_allocVector(STRSXP, numFree);
 	Rf_protect(parNames);
-	for (int vx=0, px=0; vx < int(fc->numParam) && px < numFree; ++vx) {
-		if (fc->profiledOut[vx]) continue;
+	for (int vx=0, px=0; vx < int(fc->numParam); ++vx) {
+		if (fc->profiledOutZ[vx]) continue;
 		SET_STRING_ELT(parNames, px++, Rf_mkChar(varGroup->vars[vx]->name));
 	}
 
@@ -4262,10 +4271,6 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		plan->compute(fc);
 		if (only == NA_INTEGER) {
 			fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
-		}
-		if (verbose >= 3) {
-			auto est = fc->getEst();
-			mxPrintMat("est", est);
 		}
 		REAL(VECTOR_ELT(rawOutput, 1))[repl] = fc->fit;
 		for (int px=0; px < int(fc->numParam); ++px) {
@@ -5239,8 +5244,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	s1.timestamp = time(0);
 	if (inclLoop) s1.computeLoopIndex = Global->computeLoopIndex;
 	if (inclPar) {
-		Eigen::Map< Eigen::VectorXd > Eest(fc->est, fc->numParam);
-		s1.est = Eest;
+		s1.est = fc->est;
 	}
 	s1.fit = fc->fit;
 	s1.fitUnits = fc->fitUnits;

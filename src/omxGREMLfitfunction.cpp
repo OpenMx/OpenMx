@@ -27,7 +27,7 @@
 #include "finiteDifferences.h"
 
 struct omxGREMLFitState : omxFitFunction {
-	//TODO(?): Some of these members might be redundant with what's stored in the FitContext, 
+	//TODO(?): Some of these members might be redundant with what's stored in the FitContext,
 	//and could therefore be cut
 	omxMatrix *y, *X, *cov, *invcov, *means, *origVdim_om;
 	std::vector< omxMatrix* > dV;
@@ -56,7 +56,7 @@ struct omxGREMLFitState : omxFitFunction {
 	virtual void init();
 	virtual void compute(int want, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
-}; 
+};
 
 struct GREMLSense {
 	omxGREMLFitState *fs;
@@ -64,7 +64,7 @@ struct GREMLSense {
 	Eigen::ArrayXd ref;
 	Eigen::MatrixXd result;
 	FitContext *fc;
-	
+
 	void measureRef(FitContext *_fc) {
 		using Eigen::Map;
 		using Eigen::VectorXd;
@@ -75,7 +75,7 @@ struct GREMLSense {
 		//ref.resize(totalNumStats);
 		(*this)(fc->est, ref);
 	}
-	
+
 	template <typename T1>
 	void operator()(double *myPars, Eigen::ArrayBase<T1> &result1) const {
 		Eigen::Map< Eigen::VectorXd > Est(myPars, numFree);
@@ -97,10 +97,10 @@ void omxGREMLFitState::init()
 	auto *newObj = this;
 
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
-  
+
   oo->units = FIT_UNITS_MINUS2LL;
   oo->canDuplicate = true;
-  
+
   omxState* currentState = expectation->currentState;
   newObj->usingGREMLExpectation = (strcmp(expectation->name, "MxExpectationGREML")==0 ? 1 : 0);
   if(!newObj->usingGREMLExpectation){
@@ -126,7 +126,7 @@ void omxGREMLFitState::init()
   newObj->augHess = NULL;
   newObj->dVlength = 0;
   newObj->derivType = 0;
-  
+
   //Augmentation:
   newObj->aug = 0;
   if (R_has_slot(rObj, Rf_install("aug"))) {
@@ -136,12 +136,12 @@ void omxGREMLFitState::init()
 		  newObj->aug = omxMatrixLookupFromStateByNumber(augint[0], currentState);
 	  }
   }
-  
+
   //Derivatives of V:
   if (R_has_slot(rObj, Rf_install("dV"))) {
 	  ProtectedSEXP RdV(R_do_slot(rObj, Rf_install("dV")));
 	  ProtectedSEXP RdVnames(R_do_slot(rObj, Rf_install("dVnames")));
-	  newObj->dVlength = Rf_length(RdV);  
+	  newObj->dVlength = Rf_length(RdV);
 	  newObj->dV.resize(newObj->dVlength);
 	  newObj->indyAlg.resize(newObj->dVlength);
 	  newObj->dVnames.resize(newObj->dVlength);
@@ -161,14 +161,14 @@ void omxGREMLFitState::init()
 		  }
 	  }
   }
-  
+
   if(newObj->dVlength){
     oo->gradientAvailable = true;
     oo->hessianAvailable = true;
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
     for(int i=0; i < newObj->dVlength; i++){
-    	/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the 
+    	/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the
     	dimension of V (implying downsizing due to missing observations):*/
       if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
           ((newObj->y->cols < newObj->cov->rows)&&(newObj->dV[i]->rows == newObj->y->cols)&&
@@ -178,10 +178,10 @@ void omxGREMLFitState::init()
       else{
         mxThrow("all derivatives of V must have the same dimensions as V");
   }}}
-  
+
   //Augmentation derivatives:
 	if(newObj->dVlength && newObj->aug){
-	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied.	
+	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied.
 		ProtectedSEXP RaugGrad(R_do_slot(rObj, Rf_install("augGrad")));
 		ProtectedSEXP RaugHess(R_do_slot(rObj, Rf_install("augHess")));
 		if(!Rf_length(RaugGrad)){
@@ -207,21 +207,21 @@ void omxGREMLFitState::init()
 void omxGREMLFitState::compute(int want, FitContext *fc)
  {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
- 	
+
  	//Recompute Expectation:
  	omxExpectationCompute(fc, expectation, NULL);
- 	
+
  	omxGREMLFitState *gff = this;
 	auto *oo = this;
- 	
+
  	//Ensure that the pointer in the GREML fitfunction is directed at the right FreeVarGroup
  	//(not necessary for most compute plans):
  	if(fc && gff->varGroup != fc->varGroup){
  		gff->buildParamMap(fc->varGroup);
  	}
- 	
+
  	gff->recomputeAug(0, fc);
- 	
+
  	//Declare local variables used in more than one scope in this function:
  	const double Scale = fabs(Global->llScale); //<--absolute value of loglikelihood scale
  	const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
@@ -232,11 +232,11 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  	Eigen::MatrixXd P, Py;
  	P.setZero(gff->invcov->rows, gff->invcov->cols);
  	double logdetV=0, logdetquadX=0, ytPy=0;
- 	
+
  	if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		if(gff->usingGREMLExpectation){
  			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
- 			
+
  			//Check that factorizations of V and the quadratic form in X succeeded:
  			if(oge->cholV_fail_om->data[0]){
  				oo->matrix->data[0] = NA_REAL;
@@ -248,40 +248,40 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  				if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
  				return;
  			}
- 			
+
  			//Log determinant of V:
  			logdetV = oge->logdetV_om->data[0];
- 			
+
  			//Log determinant of quadX:
  			for(i=0; i < gff->X->cols; i++){
  				logdetquadX += log(oge->cholquadX_vectorD[i]);
  			}
  			logdetquadX *= 2;
  			gff->REMLcorrection = Scale*0.5*logdetquadX;
- 			
+
  			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic derivatives in use;
  			otherwise, extraneous calculations can be avoided:*/
  			if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  				P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
- 					(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) - 
+ 					(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) -
  					(EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
  				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
  				if(want & FF_COMPUTE_FIT){
  					ytPy = (Eigy.transpose() * Py)(0,0);
  					if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
- 					oo->matrix->data[0] = gff->REMLcorrection + 
+ 					oo->matrix->data[0] = gff->REMLcorrection +
  						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
  					gff->nll = oo->matrix->data[0];
  					if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
  				}
  			}
- 			/*ytPy can be calculated so that rate-limiting step is O(2kN^2), where k is the number of covariates, 
+ 			/*ytPy can be calculated so that rate-limiting step is O(2kN^2), where k is the number of covariates,
  			and N is the dimension of Vinv (and typically N>>k):*/
  			else{
  				ytPy = (( Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * Eigy ) -
  					( Eigy.transpose() * oge->XtVinv.transpose() * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy ))(0,0);
  				if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
- 				oo->matrix->data[0] = gff->REMLcorrection + 
+ 				oo->matrix->data[0] = gff->REMLcorrection +
  					Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
  				gff->nll = oo->matrix->data[0];
  				if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
@@ -297,7 +297,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			Eigen::LLT< Eigen::MatrixXd > cholV(gff->cov->rows);
  			Eigen::LLT< Eigen::MatrixXd > cholquadX(gff->X->cols);
  			Eigen::VectorXd cholV_vectorD, cholquadX_vectorD;
- 			
+
  			//Cholesky factorization of V:
  			cholV.compute(EigV);
  			if(cholV.info() != Eigen::Success){
@@ -311,11 +311,11 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  				logdetV += log(cholV_vectorD[i]);
  			}
  			logdetV *= 2;
- 			
+
  			Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
- 			
+
  			quadX = EigX.transpose() * Vinv * EigX; //<--Quadratic form in X
- 			
+
  			cholquadX.compute(quadX); //<--Cholesky factorization of quadX
  			if(cholquadX.info() != Eigen::Success){
  				omxRaiseErrorf("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
@@ -328,29 +328,27 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			}
  			logdetquadX *= 2;
  			gff->REMLcorrection = Scale*0.5*logdetquadX;
- 			
+
  			//Finish computing fit:
- 			oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV + 
+ 			oo->matrix->data[0] = gff->REMLcorrection + Scale*0.5*( ((double)gff->y->rows * NATLOG_2PI) + logdetV +
  				( Eigy.transpose() * Vinv * (Eigy - yhat) )(0,0));
- 			gff->nll = oo->matrix->data[0]; 
+ 			gff->nll = oo->matrix->data[0];
  			return;
  		}
  	}
- 	
+
  	if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		//This part requires GREML expectation:
  		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
- 		
+
  		//Recompute derivatives:
  		gff->dVupdate(fc);
  		gff->recomputeAug(1, fc);
- 		
+
  		//Declare local variables for this scope:
  		int nThreadz = Global->numThreads;
  		int wantHess = 0;
- 		
-		fc->initGrad(gff->numExplicitFreePar); //<--Resize gradient in FitContext
- 		
+
  		//Set up new HessianBlock:
  		HessianBlock *hb = new HessianBlock;
  		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -362,12 +360,12 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			gff->recomputeAug(2, fc);
  			wantHess = 1;
  		}
- 		
+
  		if(gff->parallelDerivScheme==0){gff->planParallelDerivs(nThreadz,wantHess,gff->cov->rows);}
- 		
+
 		/*If datapoints need to be dropped due to missingness, and we want the analytic Hessian,
  		then we need to resize any derivatives of V that come from front-end MxAlgebras
-		 ahead of time,	in order to assure thread-safety of the parallelized code for 
+		 ahead of time,	in order to assure thread-safety of the parallelized code for
  		evaluating the gradient and Hessian (AIM):*/
  		if(oge->numcases2drop && wantHess){
 /*#pragma omp parallel num_threads(nThreadz)
@@ -381,7 +379,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		}
 //}
  		}
- 		
+
  		//Begin parallelized evaluation of fitfunction derivatives:
  		switch(gff->parallelDerivScheme){
  		case 2: //bin by row
@@ -419,12 +417,12 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 							tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
 						}
 					}
-					gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+					gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 						Scale*gff->pullAugVal(1,a1,0);
 					fc->haveGrad[hrn] = true;
 					fc->gradZ(hrn) += gff->gradient(hrn);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+						gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 							Scale*gff->pullAugVal(2,a1,a1);
 					}
 				}
@@ -436,7 +434,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
 					}
 					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
-					gff->avgInfo(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+					gff->avgInfo(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
 						dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 					gff->avgInfo(hcn,hrn) = gff->avgInfo(hrn,hcn);
 				}}}}
@@ -485,12 +483,12 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
 					}
 				}
-				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 					Scale*gff->pullAugVal(1,a1,0);
 				fc->haveGrad[hrn] = true;
 				fc->gradZ(hrn) += gff->gradient(hrn);
 				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-					gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+					gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 						Scale*gff->pullAugVal(2,a1,a1);
 				}
 			}
@@ -501,7 +499,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
 				}
 				else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
-				gff->avgInfo(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+				gff->avgInfo(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
 					dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 				gff->avgInfo(hcn,hrn) = gff->avgInfo(hrn,hcn);
 			}}
@@ -563,12 +561,12 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 								tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
 							}
 						}
-						gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) + 
+						gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 							Scale*gff->pullAugVal(1,a1,0);
 						fc->haveGrad[t1] = true;
 						fc->gradZ(t1) += gff->gradient(t1);
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) + 
+							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 								Scale*gff->pullAugVal(2,a1,a1);
 						}
 					}
@@ -581,7 +579,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 								dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
 							}
 							else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-							gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * 
+							gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
 								dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 							gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
 						}}}
@@ -606,14 +604,14 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  						hb->mat(d2,d1) = gff->avgInfo(h2,h1);
  						++d2;
  					}
- 					++d1;	
+ 					++d1;
  				}
  				fc->queue(hb);
  			}
  	}
  	return;
  }
- 
+
 
 
 void omxGREMLFitState::populateAttr(SEXP algebra)
@@ -625,7 +623,7 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
 
   SEXP nval, mlfitval;
   int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation) )->data2->numObs);
-  
+
   //Tell the frontend fitfunction counterpart how many observations there are...:
   {
   //ScopedProtect p1(nval, R_do_slot(rObj, Rf_install("numObs")));
@@ -636,7 +634,7 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
   which is always correct with GREML.  This is a bit of a hack, since it is sneaking this
   negative numObs into the pre-backend fitfunction that summary() looks at...*/
 	}
-	
+
 	{
 	//ScopedProtect p1(mlfitval, R_do_slot(rObj, Rf_install("MLfit")));
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
@@ -659,7 +657,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 		if(dVlength > numExplicitFreePar){
 			mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
 		}
-		/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily 
+		/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily
 		copied here:*/
 		std::vector< omxMatrix* > dV_temp = dV;
 		std::vector< const char* > dVnames_temp = dVnames;
@@ -690,7 +688,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 			}
 		}/*By the end of the loop, the member objects of the omxGREMLFitState (dV, dVnames, etc.) should have their
 		elements arranged to match the order in which the free parameters appear in the freeVarGroup*/
-		
+
 		if(augGrad){
 			int ngradelem = std::max(augGrad->rows, augGrad->cols);
 			if(ngradelem != numExplicitFreePar){
@@ -719,14 +717,14 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 
 	/*Under the AIM-row-binning scheme, each thread will calculate the gradient element and the row
 	of the AIM (starting with its diagonal element) for each of its parameters.*/
-	
+
 	//Stuff for row binning:
 	int i, j, minbin;
 	std::vector<int> rownums(dVlength,0);
 	Eigen::VectorXi rowbinsums(nThreadz);
 	rowbinsums.setZero(nThreadz);
 	for(i=dVlength; i>0; i--){rownums[dVlength-i] = i;}
-	
+
 	//Greedy partitioning algorithm to bin rows of the AIM:
 	for(i=0; i<dVlength; i++){
 		minbin=0;
@@ -737,19 +735,19 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		rowbins[minbin](rowbins[minbin].size()-1) = rownums[i]-1; //C array indexing starts at 0, not 1.
 		rowbinsums(minbin) += rownums[i];
 	}
-	
-	/*Alternately, we could partition the elements ("cells") of the upper triangle of the AIM among the 
-	threads.  The elements are 	numbered sequentially, starting with the upper left element, 
+
+	/*Alternately, we could partition the elements ("cells") of the upper triangle of the AIM among the
+	threads.  The elements are 	numbered sequentially, starting with the upper left element,
 	moving across each row, and starting again at the diagonal element of the next row.  Under
 	this scheme, the elements of the AI matrix are divided among the threads as evenly as possible.*/
-	
+
 	//Stuff for AIM cell binning:
 	int numcells = dVlength*(dVlength+1)/2;
 	int targ = int(trunc(numcells/nThreadz));
 	targ = (targ<1) ? 1 : targ;
 	int remainder = numcells % nThreadz;
 	int jlim, cellnum=0;
-	
+
 	//Bin AIM elements:
 	for(i=0; i<nThreadz && cellnum<numcells; i++){
 		jlim = targ;
@@ -763,10 +761,10 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			cellnum++;
 		}
 	}
-	
+
 	//Stuff for assessing slowest thread under row-binning scheme:
 	double N = double(Vrows);
-	/*The computational cost of computing a diagonal element includes the upfront cost of 
+	/*The computational cost of computing a diagonal element includes the upfront cost of
 	computing ytPdV_dtheta, and the cost of computing the gradient element.
 	2*N^2 for ytPdV_dtheta
 	1.5*N^2 + 0.5*N to efficiently calculate trace of PdV_dtheta
@@ -784,10 +782,10 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		}
 	}
 	double rowslowest = workbins.maxCoeff();
-	
+
 	//Stuff for assessing slowest thread under cell-binning scheme:
 	double inicost = 2*R_pow_di(N,2);
-	/*^^^When the thread starts its work, and whenever it moves to a new row of 
+	/*^^^When the thread starts its work, and whenever it moves to a new row of
 	the AIM, it computes ytPdV_dtheta.*/
 	/*Thread computes a gradient element whenever it computes a diagonal element
 	of the AIM:*/
@@ -812,12 +810,12 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		}
 	}
 	double cellslowest = workbins.maxCoeff();
-	
+
 	parallelDerivScheme = (rowslowest<=cellslowest) ? 2 : 3;
 	//parallelDerivScheme = 3;
 	return;
 }
- 
+
 
 double omxGREMLFitState::pullAugVal(int thing, int row, int col){
 	double val=0.0;
@@ -845,7 +843,7 @@ void omxGREMLFitState::recomputeAug(int thing, FitContext *fc){
 		if(aug){omxRecompute(aug, fc);}
 		break;
 	case 1:
-		if(augGrad){omxRecompute(augGrad, fc);} 
+		if(augGrad){omxRecompute(augGrad, fc);}
 		break;
 	case 2:
 		if(augHess){omxRecompute(augHess, fc);}
@@ -893,7 +891,7 @@ void omxGREMLFitState::dVupdate_final(){
 struct GRMFIMLFitState : omxFitFunction{
 	int verbose;
 	omxMatrix *y, *invcov, *means;
-	
+
 	virtual void init();
 	virtual void compute(int want, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
@@ -907,19 +905,19 @@ void GRMFIMLFitState::init()
 	auto *oo = this;
 	oo->openmpUser = false;
 	oo->units = FIT_UNITS_MINUS2LL;
-	
+
 	//If user has provided rowwiseParallel=FALSE to frontend mxFitFunctionML(), then assume they want parallelized
 	//numeric derivatives:
 	ProtectedSEXP RrowwiseParallel(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 	oo->canDuplicate = !Rf_asLogical(RrowwiseParallel);
-	
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
-	
+
 	oo->y = omxGetExpectationComponent(expectation, "y");
 	oo->invcov = omxGetExpectationComponent(expectation, "invcov");
 	oo->means = omxGetExpectationComponent(expectation, "means");
-	
+
 }
 
 void GRMFIMLFitState::compute(int want, FitContext* fc){
@@ -949,7 +947,7 @@ void GRMFIMLFitState::compute(int want, FitContext* fc){
 		Eigen::MatrixXd resids(means->rows,1);
 		resids = Eigy - Yhat;
 		//Compute ML fit:
-		oo->matrix->data[0] = Scale*0.5*( (((double)oo->y->cols)*NATLOG_2PI) + oge->logdetV_om->data[0] + 
+		oo->matrix->data[0] = Scale*0.5*( (((double)oo->y->cols)*NATLOG_2PI) + oge->logdetV_om->data[0] +
 			(resids.transpose() * Vinv.selfadjointView<Eigen::Lower>() * resids)(0,0) );
 	}
 	return;

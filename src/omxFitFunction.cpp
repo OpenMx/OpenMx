@@ -197,7 +197,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 			if (std::isfinite(fc->fit)) {
 				fc->resetIterationError();
 			}
-			Global->checkpointPostfit(callerName, fc, fc->est, false);
+			Global->checkpointPostfit(callerName, fc, false);
 			if (OMX_DEBUG) {
 				mxLog("%s: completed evaluation, fit=%.12g skippedRows=%d",
 				      fitMat->name(), fc->fit, fc->skippedRows);

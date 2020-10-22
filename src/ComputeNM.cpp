@@ -261,7 +261,9 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 }
 
 
-void omxComputeNM::computeImpl(FitContext *fc){
+void omxComputeNM::computeImpl(FitContext *fc)
+{
+	omxAlgebraPreeval(fitMatrix, fc);
 
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(fitMatrix, true);
@@ -513,7 +515,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 //-------------------------------------------------------
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
-	: fc(_fc), NMobj(_nmo), numFree(_fc->calcNumFree()),
+	: fc(_fc), NMobj(_nmo), numFree(_fc->getNumFree()),
 	  subsidiarygoc(GradientOptimizerContext(_fc, 0L, GradientAlgorithm_Forward, 1L, 1e-5, _nmo))
 {
 	est.resize(numFree);
