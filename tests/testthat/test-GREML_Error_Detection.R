@@ -141,6 +141,19 @@ omxCheckError(mxRun(testmod),
 							"Expected covariance matrix is non-positive-definite at initial values")
 
 
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Unit", nrow = 100, ncol=100, name = "V", condenseSlots = T),
+	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
+	mxFitFunctionML()
+)
+omxCheckError(mxRun(testmod),
+							"Expected covariance matrix is non-positive-definite at initial values")
+
+
+
 z <- matrix(-1,100,2)
 colnames(z) <- c("z1","z2")
 dat2 <- cbind(dat,z)
@@ -155,6 +168,19 @@ testmod <- mxModel(
 )
 omxCheckError(mxRun(testmod),
 	"Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient")
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat2, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",Xvars=list(c("x","z1","z2")),yvars="y",addOnes=F),
+	mxFitFunctionML()
+)
+omxCheckError(mxRun(testmod),
+							"Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient")
 
 
 set.seed(476)
@@ -247,7 +273,7 @@ testmod <- mxModel(
 	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
 	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeOnce('fitfunction', c('fit','gradient','hessian')),
 		mxComputeStandardError(),
 		mxComputeReportDeriv(),
 		mxComputeReportExpectation()
