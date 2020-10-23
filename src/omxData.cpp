@@ -1693,7 +1693,7 @@ struct ProbitRegression : NewtonRaphsonObjective {
 			 const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
 									 std::vector<int> &_index,
 									 std::vector< Eigen::Ref<Eigen::VectorXd> > &predCols);
-	void setResponse(ColumnData &_r, WLSVarData &pv, int yy);
+	void setResponse(ColumnData &_r, int yy);
 	virtual double getFit() { return fit; }
 	virtual const char *paramIndexToName(int px)
 	{ return pnames[px].c_str(); }
@@ -1728,7 +1728,7 @@ ProbitRegression(omxData *_d,
 	}
 }
 
-void ProbitRegression::setResponse(ColumnData &_r, WLSVarData &pv, int yy)
+void ProbitRegression::setResponse(ColumnData &_r, int yy)
 {
 	response = &_r;
 	numThr = response->getNumThresholds();
@@ -2737,7 +2737,7 @@ struct sampleStats {
 			copyScores(o1.SC_VAR, pv.contOffset, olsr.scores.array(), 1+pred.size());
 		} else {
 			ProbitRegression pr(&data, o1, rowMult, index, pred);
-			pr.setResponse(cd, pv, yy);
+			pr.setResponse(cd, yy);
 			if (pred.size()) {
 				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
 				nro(pr);
