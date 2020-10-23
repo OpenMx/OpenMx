@@ -60,12 +60,24 @@ struct omxGREMLFitState : omxFitFunction {
 
 struct GREMLSense {
 	omxGREMLFitState *fs;
-	int parNum, numFree;
+	int parNum, numFreeForReal, numFree=1;
 	Eigen::ArrayXd ref;
-	Eigen::MatrixXd result;
+	Eigen::MatrixXd result; //<--necessary?
 	FitContext *fc;
+	
+	GREMLSense(omxGREMLFitState *_fs, FitContext *_fc)
+		: fs(_fs), fc(_fc), numFreeForReal(_fc->getNumFree()){
+		/*We want to copy the elements of V at the current start values,
+		without copying V's algebra bindings or changing ref's type:*/
+		ref.resize(fs->cov->rows, fs->cov->cols);
+		for(int c=0; c < fs->cov->cols; c++){
+			for(int r=0; r < fs->cov->rows; r++){
+				ref(r,c) = omxMatrixElement(fs->cov, r, c);
+			}
+		}
+	}
 
-	void measureRef(FitContext *_fc) {
+	/*void measureRef(FitContext *_fc) {
 		using Eigen::Map;
 		using Eigen::VectorXd;
 		fc = _fc;
@@ -73,17 +85,23 @@ struct GREMLSense {
 		//result.resize(totalNumStats, numFree);
 		//ref.resize(totalNumStats);
 		(*this)(fc->est.data(), ref);
-	}
+	}*/
 
 	template <typename T1>
-	void operator()(double *myPars, Eigen::ArrayBase<T1> &result1) const {
-		Eigen::Map< Eigen::VectorXd > Est(myPars, numFree);
-		fc->setEstFromOptimizer(Est);
+	void operator()(double *myPars, int thrId, Eigen::ArrayBase<T1> &result1) const {
+		Eigen::Map< Eigen::VectorXd > Est(myPars, numFreeForReal);
+		fc->setParamFromOptimizer(parNum, Est[parNum]);
 		omxState *st = fc->state;
 		omxMatrix *mat = st->lookupDuplicate(fs->cov);
 		omxRecompute(mat, fc);
-		EigenMatrixAdaptor mat2(mat);
-		result1 = mat2;
+		result1.resize(mat->rows, mat->cols);
+		/*We want to copy the elements of mat without copying its algebra bindings or changing result1's type:*/
+		for(int c=0; c < mat->cols; c++){
+			for(int r=0; r < mat->rows; r++){
+				result1(r,c) = omxMatrixElement(mat, r, c);
+			}
+		}
+		//~mat;
 	}
 };
 
@@ -525,8 +543,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
-		GREMLSense sense;
-		sense.fs = this;
+		GREMLSense sense(this, fc);
+		Eigen::VectorXd curEst(fc->getNumFree());
+		fc->copyEstToOptimizer(curEst);
 		int threadID = omx_absolute_thread_num();
 		int istart = threadID * numExplicitFreePar / nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / nThreadz;
@@ -545,7 +564,8 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
 				}
 				else{
-					//here, use `sense` to compute the derivative of V w/r/t theta1
+					sense.parNum = t1;
+					jg(sense, sense.ref, curEst, false, dV_dtheta1);
 				}
 				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(j=i; j < numExplicitFreePar; j++){
@@ -574,15 +594,21 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 							t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
 							if(t2 < 0){continue;}
 							a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
-							if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
-								dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
+							if(didUserGivedV[t2]){
+								if( oge->numcases2drop && (gff->dV[j]->rows > Eigy.rows()) ){
+									dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
+								}
+								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
 							}
-							else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
+							else{
+								sense.parNum = t2;
+								jg(sense, sense.ref, curEst, false, dV_dtheta2);
+							}
 							gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
 								dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 							gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
+							}
 						}}}
-			}
 			else{
 				fc->haveGrad[t1] = false;
 				gff->gradient(t1) = NA_REAL;
