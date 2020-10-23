@@ -69,11 +69,10 @@ struct GREMLSense {
 		using Eigen::Map;
 		using Eigen::VectorXd;
 		fc = _fc;
-		numFree = fc->calcNumFree();
-		Map< VectorXd > curEst(fc->est, numFree);
+		numFree = fc->getNumFree();
 		//result.resize(totalNumStats, numFree);
 		//ref.resize(totalNumStats);
-		(*this)(fc->est, ref);
+		(*this)(fc->est.data(), ref);
 	}
 
 	template <typename T1>
