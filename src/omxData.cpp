@@ -445,6 +445,7 @@ void omxData::prep()
 			if (dest.d()) continue;
 			filterCount += 1;
       dest.setMinValue(src.getMinValue());
+      dest.setMaxValue(src.getMaxValueUnsafe());
 			switch (src.type) {
 			case COLUMNDATA_ORDERED_FACTOR:
 			case COLUMNDATA_UNORDERED_FACTOR:

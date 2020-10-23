@@ -114,6 +114,8 @@ public:
   void setZeroMinValue(int rows);
   int getMinValue() const { return minValue; }
   int getMaxValue() const { if (maxValue==NA_INTEGER) OOPS; return maxValue; }
+  int getMaxValueUnsafe() const { return maxValue; }
+  void setMaxValue(int val) { maxValue = val; }
   void setMaxValueFromLevels() { maxValue = minValue + levelNames.size() - 1; }
   void setMaxValueFromData(int nrows);
   int getNumThresholds() const { if (maxValue==NA_INTEGER) OOPS; return maxValue - minValue; }
