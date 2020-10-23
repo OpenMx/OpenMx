@@ -453,11 +453,11 @@ void omxRAMExpectation::init()
 
 void omxRAMExpectation::studyExoPred()
 {
+  if (!currentState->isTopState()) return; // done in init(); defVar already modified
 	if (data->defVars.size() == 0 || !M || !M->isSimple() || !S->isSimple()) return;
 
 	Eigen::VectorXd estSave;
 	currentState->setFakeParam(estSave);
-  if (!currentState->isTopState()) OOPS; // can data->defVars.erase only once
 	omxRecompute(A, 0);
 
 	EigenMatrixAdaptor eA(A);
