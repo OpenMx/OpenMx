@@ -51,6 +51,10 @@ struct omxGREMLFitState : omxFitFunction {
 	double pullAugVal(int thing, int row, int col);
 	void recomputeAug(int thing, FitContext *fc);
 	JacobianGadget jg;
+	
+	template <typename T1, typename T2>
+	void crude_numeric_dV(
+		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
 
 	omxGREMLFitState() : jg(1, 1, GradientAlgorithm_Forward, 2, 1e-4) {};
 	virtual void init();
@@ -60,48 +64,54 @@ struct omxGREMLFitState : omxFitFunction {
 
 struct GREMLSense {
 	omxGREMLFitState *fs;
-	int parNum, numFreeForReal, numFree=1;
+	int parNum, numFree=1;
 	Eigen::ArrayXd ref;
 	Eigen::MatrixXd result; //<--necessary?
 	FitContext *fc;
+	omxGREMLExpectation *oge;
 	
-	GREMLSense(omxGREMLFitState *_fs, FitContext *_fc)
-		: fs(_fs), fc(_fc), numFreeForReal(_fc->getNumFree()){
+	GREMLSense(omxGREMLFitState *_fs, FitContext *_fc, omxGREMLExpectation *ge)
+		: fs(_fs), fc(_fc), oge(ge){
+		Eigen::MatrixXd EigV(fs->cov->rows, fs->cov->cols);
+		if(oge->numcases2drop && fs->cov->rows > fs->y->cols){
+			dropCasesAndEigenize(fs->cov, EigV, oge->numcases2drop, oge->dropcase, 1, fs->cov->rows);
+		}
+		else{
+			EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(fs->cov), fs->cov->rows, fs->cov->cols);
+		}
 		/*We want to copy the elements of V at the current start values,
-		without copying V's algebra bindings or changing ref's type:*/
-		ref.resize(fs->cov->rows, fs->cov->cols);
-		for(int c=0; c < fs->cov->cols; c++){
-			for(int r=0; r < fs->cov->rows; r++){
-				ref(r,c) = omxMatrixElement(fs->cov, r, c);
+		 without copying V's algebra bindings or changing ref's type:*/
+		int nrev = EigV.rows();
+		ref.resize( (EigV.rows())*(EigV.cols()+1)/2 );
+		for(int c=0; c < EigV.cols(); c++){
+			for(int r=c; r < nrev; r++){
+				ref( (c*nrev) + r ) = EigV(r,c);
 			}
 		}
 	}
-
-	/*void measureRef(FitContext *_fc) {
-		using Eigen::Map;
-		using Eigen::VectorXd;
-		fc = _fc;
-		numFree = fc->getNumFree();
-		//result.resize(totalNumStats, numFree);
-		//ref.resize(totalNumStats);
-		(*this)(fc->est.data(), ref);
-	}*/
-
+	
 	template <typename T1>
 	void operator()(double *myPars, int thrId, Eigen::ArrayBase<T1> &result1) const {
-		Eigen::Map< Eigen::VectorXd > Est(myPars, numFreeForReal);
-		fc->setParamFromOptimizer(parNum, Est[parNum]);
-		omxState *st = fc->state;
+		FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+		fc2->setParamFromOptimizer(parNum, myPars[0]);
+		omxState *st = fc2->state;
 		omxMatrix *mat = st->lookupDuplicate(fs->cov);
-		omxRecompute(mat, fc);
-		result1.resize(mat->rows, mat->cols);
+		omxRecompute(mat, fc2);
+		Eigen::MatrixXd em(mat->rows, mat->cols);
+		if( oge->numcases2drop && mat->rows > fs->y->cols ){
+			dropCasesAndEigenize(mat, em, oge->numcases2drop, oge->dropcase, 1, mat->rows);
+		}
+		else{
+			em = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
+		}
+		int nrem = em.rows();
+		result1.resize( em.rows()*(em.cols()+1)/2 );
 		/*We want to copy the elements of mat without copying its algebra bindings or changing result1's type:*/
-		for(int c=0; c < mat->cols; c++){
-			for(int r=0; r < mat->rows; r++){
-				result1(r,c) = omxMatrixElement(mat, r, c);
+		for(int c=0; c < em.cols(); c++){
+			for(int r=c; r < nrem; r++){
+				result1( (c*nrem) + r ) = em(r,c);
 			}
 		}
-		//~mat;
 	}
 };
 
@@ -365,6 +375,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		//Declare local variables for this scope:
  		int nThreadz = Global->numThreads;
  		int wantHess = 0;
+ 		//GREMLSense sense(this, fc, oge);
 
  		//Set up new HessianBlock:
  		HessianBlock *hb = new HessianBlock;
@@ -543,9 +554,10 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
-		GREMLSense sense(this, fc);
+		//GREMLSense sense(this, fc, oge);
 		Eigen::VectorXd curEst(fc->getNumFree());
 		fc->copyEstToOptimizer(curEst);
+		Eigen::VectorXd curEst1p(1);
 		int threadID = omx_absolute_thread_num();
 		int istart = threadID * numExplicitFreePar / nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / nThreadz;
@@ -564,8 +576,18 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
 				}
 				else{
-					sense.parNum = t1;
-					jg(sense, sense.ref, curEst, false, dV_dtheta1);
+					/*sense.parNum = t1;
+					curEst1p[0] = curEst[t1];
+					Eigen::ArrayXd tmpresult;
+					jg(sense, sense.ref, curEst1p, false, tmpresult);
+					int dVdim = int(sqrt(tmpresult.size() * 2.0));
+					dV_dtheta1.resize(dVdim,dVdim);
+					for(int cc=0; cc < dVdim; cc++){
+						for(int rr=cc; rr < dVdim; rr++){
+							dV_dtheta1(rr,cc) = tmpresult( (cc*dVdim) + rr );
+						}
+					}*/
+					crude_numeric_dV(fc, curEst, dV_dtheta1, t1, oge, threadID);
 				}
 				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(j=i; j < numExplicitFreePar; j++){
@@ -601,8 +623,18 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
 							}
 							else{
-								sense.parNum = t2;
-								jg(sense, sense.ref, curEst, false, dV_dtheta2);
+								/*sense.parNum = t2;
+								curEst1p[0] = curEst[t2];
+								Eigen::ArrayXd tmpresult;
+								jg(sense, sense.ref, curEst1p, false, tmpresult);
+								int dVdim = int(sqrt(tmpresult.size() * 2.0));
+								dV_dtheta2.resize(dVdim,dVdim);
+								for(int cc=0; cc < dVdim; cc++){
+									for(int rr=cc; rr < dVdim; rr++){
+										dV_dtheta2(rr,cc) = tmpresult( (cc*dVdim) + rr );
+									}
+								}*/
+								crude_numeric_dV(fc, curEst, dV_dtheta2, t2, oge, threadID);
 							}
 							gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
 								dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
@@ -636,6 +668,60 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  	}
  	return;
  }
+
+
+template <typename T1, typename T2>
+void omxGREMLFitState::crude_numeric_dV(
+		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId)
+{
+	int c, r;	
+	FitContext *fc2 = thrId >= 0? _fc->childList[thrId] : _fc;
+	omxState *st = fc2->state;
+	
+	//Store current elements of V:
+	Eigen::MatrixXd EigV(cov->rows, cov->cols);
+	if(ge->numcases2drop && cov->rows > y->cols){
+		dropCasesAndEigenize(cov, EigV, ge->numcases2drop, ge->dropcase, 1, cov->rows);
+	}
+	else{
+		EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
+	}
+	Eigen::MatrixXd Vcurr(EigV.rows(), EigV.cols());
+	for(c=0; c < EigV.cols(); c++){
+		for(r=c; r < EigV.rows(); r++){
+			Vcurr(r,c) = EigV(r,c);
+		}
+	}
+	
+	//Shift parameter of interest and compute V at new point in parameter space:
+	_curEst[Parnum] += 1e-4;
+	fc2->setEstFromOptimizer(_curEst);
+	omxMatrix *mat = st->lookupDuplicate(cov);
+	omxRecompute(mat, fc2);
+	
+	if( ge->numcases2drop && mat->rows > y->cols ){
+		dropCasesAndEigenize(mat, dV_dtheta, ge->numcases2drop, ge->dropcase, 1, mat->rows);
+	}
+	else{
+		dV_dtheta = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
+	}
+	
+	//Does this actually save memory...?:
+	dV_dtheta = (dV_dtheta - Vcurr)/1e-4;
+	//^^^TODO: use selfadjointView (if possible?).
+	
+	//Put things back the way they were:
+	_curEst[Parnum] -= 1e-4;
+	fc2->setEstFromOptimizer(_curEst);
+	//omxRecompute(cov, fc2);
+	EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
+	for(c=0; c < cov->rows; c++){
+		for(r=c; r < cov->rows; r++){
+			EigV(r,c) = Vcurr(r,c);
+		}
+	}
+	return;
+}
 
 
 
