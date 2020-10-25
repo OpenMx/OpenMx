@@ -577,16 +577,16 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 				}
 				else{
 					/*sense.parNum = t1;
-					curEst1p[0] = curEst[t1];
-					Eigen::ArrayXd tmpresult;
-					jg(sense, sense.ref, curEst1p, false, tmpresult);
-					int dVdim = int(sqrt(tmpresult.size() * 2.0));
-					dV_dtheta1.resize(dVdim,dVdim);
-					for(int cc=0; cc < dVdim; cc++){
-						for(int rr=cc; rr < dVdim; rr++){
-							dV_dtheta1(rr,cc) = tmpresult( (cc*dVdim) + rr );
-						}
-					}*/
+					 curEst1p[0] = curEst[t1];
+					 Eigen::ArrayXd tmpresult;
+					 jg(sense, sense.ref, curEst1p, false, tmpresult);
+					 int dVdim = int(sqrt(tmpresult.size() * 2.0));
+					 dV_dtheta1.resize(dVdim,dVdim);
+					 for(int cc=0; cc < dVdim; cc++){
+					 for(int rr=cc; rr < dVdim; rr++){
+					 dV_dtheta1(rr,cc) = tmpresult( (cc*dVdim) + rr );
+					 }
+					 }*/
 					crude_numeric_dV(fc, curEst, dV_dtheta1, t1, oge, threadID);
 				}
 				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
@@ -624,23 +624,25 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 							}
 							else{
 								/*sense.parNum = t2;
-								curEst1p[0] = curEst[t2];
-								Eigen::ArrayXd tmpresult;
-								jg(sense, sense.ref, curEst1p, false, tmpresult);
-								int dVdim = int(sqrt(tmpresult.size() * 2.0));
-								dV_dtheta2.resize(dVdim,dVdim);
-								for(int cc=0; cc < dVdim; cc++){
-									for(int rr=cc; rr < dVdim; rr++){
-										dV_dtheta2(rr,cc) = tmpresult( (cc*dVdim) + rr );
-									}
-								}*/
+								 curEst1p[0] = curEst[t2];
+								 Eigen::ArrayXd tmpresult;
+								 jg(sense, sense.ref, curEst1p, false, tmpresult);
+								 int dVdim = int(sqrt(tmpresult.size() * 2.0));
+								 dV_dtheta2.resize(dVdim,dVdim);
+								 for(int cc=0; cc < dVdim; cc++){
+								 for(int rr=cc; rr < dVdim; rr++){
+								 dV_dtheta2(rr,cc) = tmpresult( (cc*dVdim) + rr );
+								 }
+								 }*/
 								crude_numeric_dV(fc, curEst, dV_dtheta2, t2, oge, threadID);
 							}
 							gff->avgInfo(t1,t2) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
 								dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
 							gff->avgInfo(t2,t1) = gff->avgInfo(t1,t2);
-							}
-						}}}
+						}
+					}
+				}
+			}
 			else{
 				fc->haveGrad[t1] = false;
 				gff->gradient(t1) = NA_REAL;
