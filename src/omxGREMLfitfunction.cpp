@@ -74,7 +74,7 @@ struct GREMLSense {
 		: fs(_fs), fc(_fc){
 		numcases2drop = _numcases2drop;
 		dropcase.resize(_dropcase.size());
-		for(int dci=0; dci < dropcase.size(); dci++){
+		for(int dci=0; dci < int(dropcase.size()); dci++){
 			dropcase[dci] = _dropcase[dci];
 		}
 		Eigen::MatrixXd EigV(fs->cov->rows, fs->cov->cols);
@@ -258,9 +258,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
-  // Turn off until Rob can fix it
-  want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
-  fc->gradZ.setConstant(NA_REAL);
+  //fc->gradZ.setConstant(NA_REAL);
 
  	//Recompute Expectation:
  	omxExpectationCompute(fc, expectation, NULL);
@@ -474,7 +472,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					}
 					gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 						Scale*gff->pullAugVal(1,a1,0);
-					fc->gradZ(hrn) += gff->gradient(hrn);
+					fc->gradZ(hrn) = gff->gradient(hrn);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 							Scale*gff->pullAugVal(2,a1,a1);
@@ -539,7 +537,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 				}
 				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 					Scale*gff->pullAugVal(1,a1,0);
-				fc->gradZ(hrn) += gff->gradient(hrn);
+				fc->gradZ(hrn) = gff->gradient(hrn);
 				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 					gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 						Scale*gff->pullAugVal(2,a1,a1);
@@ -635,7 +633,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}
 						gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 							Scale*gff->pullAugVal(1,a1,0);
-						fc->gradZ(t1) += gff->gradient(t1);
+						fc->gradZ(t1) = gff->gradient(t1);
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 								Scale*gff->pullAugVal(2,a1,a1);
@@ -681,6 +679,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 			}
 			else{
 				gff->gradient(t1) = NA_REAL;
+				fc->gradZ(t1) = gff->gradient(t1);
 			}
 		}
 	} catch (const std::exception& e) {
@@ -884,7 +883,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 
 void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
 	//Note: AIM = Average Information Matrix (Hessian)
-	if(wantHess==0 || nThreadz<2 || dVlength < numExplicitFreePar){
+	if(wantHess==0 || nThreadz<2 || (dVlength && (dVlength < numExplicitFreePar))){
 		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
 		return;
 	}
@@ -1102,6 +1101,7 @@ void GRMFIMLFitState::init()
 
 void GRMFIMLFitState::compute(int want, FitContext* fc){
 	auto *oo = this;
+	fc->gradZ.setConstant(NA_REAL);
 	const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
 	const double Scale = fabs(Global->llScale);
 	omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
