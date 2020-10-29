@@ -843,7 +843,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					dAugMap[gx] = nx;
 					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
 					didUserGivedV[gx] = 1;
-					++dx;
+					//++dx;
 					++gx;
 					break;
 				}
