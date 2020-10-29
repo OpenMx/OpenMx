@@ -16,18 +16,4 @@ struct nlopt_opt_ptr : std::unique_ptr< struct nlopt_opt_s, struct nlopt_opt_dto
 	operator struct nlopt_opt_s *() { return get(); };
 };
 
-struct UnconstrainedObjective {
-	Eigen::VectorXd lbound;
-	Eigen::VectorXd ubound;
-	// If no analytic gradient then can use numerical approx,
-	GradientWithRef *gwrContext;
-
-	UnconstrainedObjective();
-	virtual ~UnconstrainedObjective();
-	virtual double *getParamVec()=0;
-	virtual double getFit(const double *)=0;
-	virtual void getGrad(const double *, double *);
-	virtual void panic(const char *why) { mxThrow("%s", why); };
-};
-
 #endif
