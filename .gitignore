@@ -6,7 +6,7 @@
 *.old
 *.bak
 *.dll
-/build
+/staging
 /config.log
 /config.status
 /autom4te.cache
@@ -30,8 +30,10 @@
 /inst/models/passing/testModel.omx
 /inst/models/passing/Rplots.pdf
 /models
+imxJiggle.Rd
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
+man/DiscreteBase-class.Rd
 man/expm.Rd
 man/genericFitDependencies-MxBaseFitFunction-method.Rd
 man/imxAddDependency.Rd
@@ -49,7 +51,6 @@ man/imxDefaultGetSlotDisplayNames.Rd
 man/imxDeparse.Rd
 man/imxDependentModels.Rd
 man/imxDetermineDefaultOptimizer.Rd
-man/imxDiff.Rd
 man/imxDmvnorm.Rd
 man/imxEvalByName.Rd
 man/imxExtractMethod.Rd
@@ -69,12 +70,13 @@ man/imxHasDefinitionVariable.Rd
 man/imxHasNPSOL.Rd
 man/imxHasOpenMP.Rd
 man/imxHasThresholds.Rd
+man/imxHasWLS.Rd
 man/imxIdentifier.Rd
 man/imxIndependentModels.Rd
 man/imxInitModel.Rd
 man/imxIsDefinitionVariable.Rd
+man/imxIsMultilevel.Rd
 man/imxIsPath.Rd
-man/imxJiggle.Rd
 man/imxLocateFunction.Rd
 man/imxLocateIndex.Rd
 man/imxLocateLabel.Rd
@@ -124,6 +126,7 @@ man/MxBaseObjectiveMetaData-class.Rd
 man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
+man/mxComputeCheckpoint.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
@@ -132,6 +135,7 @@ man/mxComputeGenerateData.Rd
 man/mxComputeGradientDescent.Rd
 man/mxComputeHessianQuality.Rd
 man/mxComputeIterate.Rd
+man/mxComputeLoadContext.Rd
 man/mxComputeLoadData.Rd
 man/mxComputeLoop.Rd
 man/mxComputeNewtonRaphson.Rd
@@ -143,6 +147,7 @@ man/mxComputeReportExpectation.Rd
 man/mxComputeSequence.Rd
 man/mxComputeSetOriginalStarts.Rd
 man/mxComputeStandardError.Rd
+man/mxComputeTryCatch.Rd
 man/mxComputeTryHard.Rd
 man/mxDataDynamic.Rd
 man/MxDataFrameOrMatrix-class.Rd
@@ -157,22 +162,27 @@ man/MxInterval-class.Rd
 man/MxLISRELModel-class.Rd
 man/MxListOrNull-class.Rd
 man/mxMakeNames.Rd
+man/mxMarginalNegativeBinomial.Rd
+man/mxMarginalPoisson.Rd
 man/mxNormalQuantiles.Rd
 man/MxOptionalChar-class.Rd
 man/MxOptionalCharOrNumber-class.Rd
 man/MxOptionalDataFrame-class.Rd
+man/MxOptionalInteger-class.Rd
 man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
 man/MxRAMGraph-class.Rd
-man/MxRAMMetaData-class.Rd
 man/MxRAMModel-class.Rd
+man/mxRestore.Rd
 man/mxRetro.Rd
+man/mxSave.Rd
 man/mxSE.Rd
 man/mxSetDefaultOptions.Rd
 man/mxSimplify2Array.Rd
 man/MxVersionType-class.Rd
 man/omxAugmentDataWithWLSSummary.Rd
+man/omxBuildAutoStartModel.Rd
 man/omxCheckCloseEnough.Rd
 man/omxCheckError.Rd
 man/omxCheckNamespace.Rd
@@ -187,3 +197,4 @@ man/omxNameAnonymousParameters.Rd
 man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
+man/predict.MxModel.Rd

@@ -174,9 +174,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA),
 			    verbose=0L, profileOut=c(), rowwiseParallel=as.logical(NA),
 			    jointConditionOn=c('auto', 'ordinal', 'continuous')) {
-	if (length(list(...)) > 0) {
-		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
-	}
+	prohibitDotdotdot(list(...))
 	if (length(vector) > 1 || typeof(vector) != "logical") {
 		stop("'vector' argument is not a logical value")
 	}

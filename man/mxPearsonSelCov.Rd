@@ -5,6 +5,7 @@
 \title{Perform Pearson Aitken selection}
 
 \description{
+\lifecycle{maturing}
    These functions implement the Pearson Aitken selection formulae.
 }
 
@@ -20,10 +21,14 @@ mxPearsonSelMean(origCov, newCov, origMean)
 }
 
 \details{
-
-Both \code{mxPearsonSelCov} and \code{mxPearsonSelMean} match the
-dimnames of \code{newCov} and \code{origCov} to determine which
-partition of \code{origCov} to replace with \code{newCov}.
+  Which dimensions to condition on can be communicated in one
+  of two ways: (1) \code{newCov} is a submatrix of \code{origCov}.
+  The dimnames are matched to determine which
+  partition of \code{origCov} to replace with \code{newCov}.
+  Or (2) \code{newCov} is the same dimension as \code{origCov}.
+  The matrix entries are inspected to determine which entries have
+  changed. The changed entries determine which partition of
+\code{origCov} to replace with \code{newCov}.
 
 Let the \eqn{n \times n} covariance matrix R (\code{origCov}) be partitioned into non-empty,
 disjoint sets p and q.
@@ -38,7 +43,7 @@ Let \eqn{V_{pp}} (\code{newCov}) be an arbitrary covariance matrix of the same
 dimension as \eqn{R_{pp}}.
 If we replace \eqn{R_{pp}} by \eqn{V_{pp}} then the mean
 of q (\code{origMean}) is transformed as
-  \deqn{\mu_q \to \mu_q + R_{qp} R_{pp}^{-1} \mu_p}
+  \deqn{\mu_q \to \mu_q + R_{qp} R_{pp}^{-1} \mu_p}{See PDF version}
 and the covariance of p and q are transformed as
   \deqn{\left[
 \begin{array}{c|c}
@@ -53,7 +58,7 @@ V_{pp} & V_{pp}R_{pp}^{-1}R_{pq} \\
 \hline
 R_{qp}R_{pp}^{-1}V_{pp} & R_{qq}-R_{qp} (R_{pp}^{-1} - R_{pp}^{-1} V_{pp} R_{pp}^{-1}) R_{pq}
 \end{array}
-\right]}
+\right]}{See PDF version}
 
 }
 

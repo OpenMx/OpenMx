@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,13 +20,17 @@
 # 5/30/2007
 
 
-##' imxOriginalMx
+##' Run an classic mx script
 ##'
-##' This is an internal function exported for those people who know
-##' what they are doing.
+##' For this to work, classic mx must be installed, and callable from the command line.
 ##'
-##' @param mx.filename mx.filename
-##' @param output.directory output.directory
+##' @param mx.filename Name of file containing the mx script.
+##' @param output.directory Where to write mxo output from the script
+##' @return processed matrix output.
+##' @examples
+#' \dontrun{
+##' output = imxOriginalMx(mx.filename = "power1.mx", "~/Desktop")
+##' }
 imxOriginalMx <- function(mx.filename, output.directory) {
 	original.directory <- getwd()
 	result <- tryCatch(originalMxHelper(mx.filename, output.directory),

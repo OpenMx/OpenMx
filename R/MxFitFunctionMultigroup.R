@@ -84,10 +84,7 @@ setMethod("generateReferenceModels", "MxFitFunctionMultigroup",
 	})
 
 mxFitFunctionMultigroup <- function(groups, ..., verbose=0L) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxFitFunctionMultigroup does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 
 	if (length(groups) == 0) stop("mxFitFunctionMultigroup: at least 1 fitfunction must be provided")
 

@@ -32,7 +32,8 @@
 # Load package define a useful function
 
 
-require(OpenMx)
+library(OpenMx)
+library(testthat)
 
 if (mxOption(NULL, "Default optimizer") == 'NPSOL') stop('SKIP')
 
@@ -51,27 +52,29 @@ rms <- function(x, y=NA){
 #------------------------------------------------------------------------------
 # Get and Structure Data
 
-jointData <- suppressWarnings(try(read.table("models/passing/data/jointdata.txt", header=TRUE), silent=TRUE))
-jointData <- read.table("data/jointdata.txt", header=TRUE)
+data("jointdata", package ="OpenMx", verbose= TRUE)
+jointData <- jointdata
 
 # specify ordinal columns as ordered factors
 jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
-# Check joint WLS data generation
-set.seed(23)
-simData <- mxGenerateData(jointData)
-omxCheckTrue(dim(simData) == c(250, 5))
-omxCheckCloseEnough(cor(simData$z1, simData$z3), cor(jointData$z1, jointData$z3), 0.01)
+if(1) {
+  # Check joint WLS data generation
+  set.seed(23)
+  simData <- mxGenerateData(jointData)
+  omxCheckTrue(dim(simData) == c(250, 5))
+  omxCheckCloseEnough(cor(simData$z1, simData$z3), cor(jointData$z1, jointData$z3), 0.01)
 
-tabo <- table(simData$z2, simData$z4)
-tabe <- table(jointData$z2, jointData$z4)
-# Chi-square-ish test
-# That is, the vectorized joint distributions are near
-#  the expected value of the chi-square
-omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.6)
-
-omxCheckTrue(all.equal(sapply(jointData, levels), sapply(simData, levels)))
+  tabo <- table(simData$z2, simData$z4)
+  tabe <- table(jointData$z2, jointData$z4)
+  # Chi-square-ish test
+  # That is, the vectorized joint distributions are near
+  #  the expected value of the chi-square
+  omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.6)
+  
+  omxCheckTrue(all.equal(sapply(jointData, levels), sapply(simData, levels)))
+}
 
 
 #------------------------------------------------------------------------------
@@ -123,11 +126,6 @@ jointModel1 <- mxModel("ContinuousOrdinalData",
 				threshnames=c("z2", "z4", "z5"))
 			)
 
-# run it
-jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)
-
-summary(jointResults1)
-
 ramModel1 <- jointRAM <- mxModel(
   "JointRAM", type="RAM", thresh,
   manifestVars = paste0('z', 1:5),
@@ -140,9 +138,6 @@ ramModel1 <- jointRAM <- mxModel(
   mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0))
 
 ramModel1$expectation$thresholds <- 'T'
-
-ramResult1 <- mxRun(ramModel1)
-summary(ramResult1)
 
 # Create WLS Data
 wd <- mxData(jointData, "raw")
@@ -163,8 +158,21 @@ jointUlsResults <- mxRun(jointUlsModel)
 
 ramWlsResults <- mxRun(ramWlsModel)
 
+jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)
+summary(jointResults1)
+
+ramResult1 <- mxRun(ramModel1)
+summary(ramResult1)
+
 omxCheckCloseEnough(coef(jointWlsResults) - coef(ramWlsResults),
                     rep(0,15), 1e-3)
+
+expect_equal(jointDlsResults$output$fit, 5.061, .1)
+expect_equal(summary(jointDlsResults)$Chi, 10.126, .1)
+expect_equal(summary(jointDlsResults)$ChiDoF, 5)
+
+noOptResult <- mxRun(jointDlsResults, useOptimizer = FALSE)
+expect_true(is.null(summary(noOptResult)$Chi))
 
 #------------------------------------------------------------------------------
 # Compare ML and WLS estimates
@@ -219,8 +227,8 @@ omxCheckTrue(shan$ChiDoF == swls$ChiDoF)
 
 
 # Compare Chi-squared values too
-omxCheckCloseEnough(sref$Chi, shan$Chi, 1e-3)
-omxCheckWithinPercentError(shan$Chi, swls$Chi, 28)
+omxCheckCloseEnough(sref$Chi, as.numeric(shan$Chi), 1e-3)
+omxCheckWithinPercentError(as.numeric(shan$Chi), swls$Chi, 28)
 
 
 
@@ -229,6 +237,9 @@ omxCheckWithinPercentError(shan$Chi, swls$Chi, 28)
 #  to the WLS saturated model estimates.
 
 obsStats <- jointWlsResults$data$observedStats
+
+expect_error(mxGetExpected(jointResults2, 'covariance', subname="xyz"),
+             "not found")
 
 mxGetExpected(jointResults2, 'covariance')
 obsStats$cov

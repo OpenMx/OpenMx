@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ funML     <- mxFitFunctionML()
 pars      <- list( pathA, pathC, pathE, covA, covC, covE, covP )
 modelMZ   <- mxModel( pars, meanMZ, covMZ, dataMZ, expMZ, funML, name="MZ" )
 modelDZ   <- mxModel( pars, meanDZ, covDZ, dataDZ, expDZ, funML, name="DZ" )
-fitML     <- mxFitFunctionMultigroup(c("MZ.fitfunction","DZ.fitfunction") )
+fitML     <- mxFitFunctionMultigroup(c("MZ","DZ") )
 twinACEModel  <- mxModel( "ACE", pars, modelMZ, modelDZ, fitML )
 twinACEFit <- mxRun(twinACEModel)
 summary(twinACEFit)

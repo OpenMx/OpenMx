@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -41,8 +41,7 @@ if (system2(rexec, args='--vanilla', stdout=FALSE, stderr=FALSE,
 }
 
 library(OpenMx)
-
-options('mxPrintUnitTests' = FALSE)
+mxVersion()
 
 directories <- c('models/passing')
 
@@ -153,7 +152,7 @@ if (totalErrors > 0) {
 				print(oerr[[i]])
 				cat('\n')
 			}
-			system(paste("cat", outputFilename[[opt]][[ fileName[[i]] ]]))
+			system(paste("cat", outputFilename[[opt]][[ fileName[[i]] ]]), wait=FALSE)
 		}
 	}
 } else {

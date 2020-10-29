@@ -2,7 +2,7 @@
 \alias{dzmData}
 \docType{data}
 \title{
-DZ Male data
+Example twin extended kinship data: DZ Male data
 }
 \description{
 Data for extended twin example ETC88.R

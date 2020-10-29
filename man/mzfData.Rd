@@ -2,7 +2,7 @@
 \alias{mzfData}
 \docType{data}
 \title{
-MZ female example twin data
+Example twin extended kinship data: MZ female twins
 }
 \description{
 Data for extended twin example ETC88.R

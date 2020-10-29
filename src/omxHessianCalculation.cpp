@@ -37,6 +37,7 @@
 #include "Compute.h"
 #include "CovEntrywisePar.h"
 #include "EnableWarnings.h"
+#include "finiteDifferences.h"
 
 struct hess_struct {
 	int probeCount;
@@ -80,6 +81,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
+	void omxCalcFinalConstraintJacobian(FitContext* fc, int npar);
 
 	struct calcHessianEntry {
 		omxComputeNumericDeriv &cnd;
@@ -128,7 +130,6 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
 	hess_work->Gbackward = new double[numIter];
 	hess_work->fitMatrix = fc->lookupDuplicate(fitMat);
 	hess_work->fc = fc;
-	memcpy(fc->est, optima.data(), numParams * sizeof(double));
 }
 
 /**
@@ -146,22 +147,23 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 	double *Gcentral             = hess_work->Gcentral;
 	double *Gforward             = hess_work->Gforward;
 	double *Gbackward            = hess_work->Gbackward;
-	omxMatrix* fitMatrix = hess_work->fitMatrix; 
-	FitContext* fc = hess_work->fc; 
-	double *freeParams         = fc->est;
+	omxMatrix* fitMatrix = hess_work->fitMatrix;
+	FitContext* fc = hess_work->fc;
+	auto &freeParams         = fc->est;
+	int ix = fc->freeToParamMap[i];
 
 	/* Part the first: Gradient and diagonal */
 	double iOffset = std::max(fabs(stepSize * optima[i]), stepSize);
 	for(int k = 0; k < numIter; k++) {			// Decreasing step size, starting at k == 0
-		freeParams[i] = optima[i] + iOffset;
-		
+		freeParams[ix] = optima[i] + iOffset;
+
 		fc->copyParamToModel();
 
 		++hess_work->probeCount;
 		omxRecompute(fitMatrix, fc);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
-		freeParams[i] = optima[i] - iOffset;
+		freeParams[ix] = optima[i] - iOffset;
 
 		fc->copyParamToModel();
 
@@ -173,10 +175,10 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		Gforward[k] = (minimum - f2) / iOffset;
 		Gbackward[k] = (f1 - minimum) / iOffset;
 		Haprox[k] = (f1 - 2.0 * minimum + f2) / (iOffset * iOffset);		// This is second derivative
-		freeParams[i] = optima[i];									// Reset parameter value
+		freeParams[ix] = optima[i];									// Reset parameter value
 		iOffset /= v;
 		if(verbose >= 2) {
-			mxLog("Hessian: diag[%s] Δ%g (#%d) F1 %f F2 %f grad %f hess %f",
+			mxLog("Hessian: diag[%s] Δ%.16g (#%d) F1 %.15f F2 %.15f grad %f hess %f",
 			      fc->varGroup->vars[i]->name, iOffset, k, f1, f2, Gcentral[k], Haprox[k]);
 		}
 	}
@@ -205,16 +207,18 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
     static const double v = 2.0; //Note: NumDeriv comments that this could be a parameter, but is hard-coded in the algorithm
 
 	double *Haprox             = hess_work->Haprox;
-	omxMatrix* fitMatrix = hess_work->fitMatrix; 
-	FitContext* fc = hess_work->fc; 
-	double *freeParams         = fc->est;
+	omxMatrix* fitMatrix = hess_work->fitMatrix;
+	FitContext* fc = hess_work->fc;
+	auto &freeParams         = fc->est;
+	int ix = fc->freeToParamMap[i];
+	int lx = fc->freeToParamMap[l];
 
 	double iOffset = std::max(fabs(stepSize*optima[i]), stepSize);
 	double lOffset = std::max(fabs(stepSize*optima[l]), stepSize);
 
 	for(int k = 0; k < numIter; k++) {
-		freeParams[i] = optima[i] + iOffset;
-		freeParams[l] = optima[l] + lOffset;
+		freeParams[ix] = optima[i] + iOffset;
+		freeParams[lx] = optima[l] + lOffset;
 
 		fc->copyParamToModel();
 
@@ -222,8 +226,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		omxRecompute(fitMatrix, fc);
 		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
-		freeParams[i] = optima[i] - iOffset;
-		freeParams[l] = optima[l] - lOffset;
+		freeParams[ix] = optima[i] - iOffset;
+		freeParams[lx] = optima[l] - lOffset;
 
 		fc->copyParamToModel();
 
@@ -239,8 +243,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 			      v, k, pow(v, k), stepSize*optima[i], stepSize*optima[l]);
 		}
 
-		freeParams[i] = optima[i];				// Reset parameter values
-		freeParams[l] = optima[l];
+		freeParams[ix] = optima[i];				// Reset parameter values
+		freeParams[lx] = optima[l];
 
 		iOffset = iOffset / v;					//  And shrink step
 		lOffset = lOffset / v;
@@ -266,10 +270,10 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 {
 	super::initFromFrontend(state, rObj);
 
-	if (state->conListX.size()) {
+	/*if (state->conListX.size()) {
 		mxThrow("%s: cannot proceed with constraints (%d constraints found)",
 			name, int(state->conListX.size()));
-	}
+	}*/
 
 	fitMat = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 
@@ -328,9 +332,38 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 	numParams = 0;
 	totalProbeCount = 0;
-	numParams = 0;
 	recordDetail = true;
 	detail = 0;
+}
+
+void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int npar){
+	allconstraints_functional acf(*fc, verbose);
+	Eigen::MatrixWrapper< Eigen::ArrayXd > optimaM(optima);
+	Eigen::VectorXd resulttmp(fc->state->numEqC + fc->state->numIneqC);
+	Eigen::MatrixXd jactmp(fc->state->numEqC + fc->state->numIneqC, npar);
+	acf(optimaM, resulttmp, jactmp);
+	/*Gradient algorithm, iterations, and stepsize are hardcoded as they are for two reasons.
+	 * 1.  Differentiating the constraint functions should not take long, expecially compared to
+	 * twice-differentiating the fitfunction, so it might as well be done carefully.
+	 * 2.  The default behavior during the ComputeNumericDeriv step uses different values of
+	 * gradient stepsize and iterations depending on whether or not the MxModel contains thresholds,
+	 * since the numerical accuracy of the -2logL is worse when multivariate-normal integration is involved.
+	 * But, that has no bearing on the constraint functions, so it doesn't really make sense to use
+	 * the stepsize and iterations stored in the omxComputeNumericDeriv object.
+	 */
+	fd_jacobian<true>(
+		GradientAlgorithm_Central, 4, 1.0e-7,
+    acf, resulttmp, optimaM, jactmp);
+
+	fc->constraintFunVals = resulttmp;
+	fc->constraintJacobian = jactmp;
+	/* Subsequent code assumes that fc->est is set to the optimium
+	  point. If there is more than 1 thread then the top-level fc->est
+	  is unchanged, but if there is only 1 thread then the last
+	  parameter in fc->est is offset due to numeric differentiation.
+	  Hence, we set it back to its optimum value: */
+	fc->est[npar-1L] = optima.coeff(npar-1L);
+	return;
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
@@ -340,34 +373,39 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		numParams = 0;
 		if (verbose >= 1) mxLog("%s: derivatives %s units are meaningless",
 					name, fitUnitsToName(fc->fitUnits));
-		return;
+		return; //Possible TODO: calculate Hessian anyway?
 	}
+
+	omxAlgebraPreeval(fitMat, fc);
 
 	int newWanted = fc->wanted | FF_COMPUTE_GRADIENT;
 	if (wantHessian) newWanted |= FF_COMPUTE_HESSIAN;
 
-	if (numParams != 0 && numParams != int(fc->numParam)) {
+	int nf = fc->getNumFree();
+	if (numParams != 0 && numParams != nf) {
 		mxThrow("%s: number of parameters changed from %d to %d",
-			 name, numParams, int(fc->numParam));
+			 name, numParams, nf);
 	}
 
-	numParams = int(fc->numParam);
+	numParams = nf;
 	if (numParams <= 0) { complainNoFreeParam(); return; }
 
 	optima.resize(numParams);
-	memcpy(optima.data(), fc->est, sizeof(double) * numParams);
+	fc->copyEstToOptimizer(optima);
 
-	omxAlgebraPreeval(fitMat, fc);
-	fc->createChildren(fitMat); // allow FIML rowwiseParallel even when parallel=false
-
-	if(wantHessian && fc->state->conListX.size()){
-		Rf_warning("due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes");
+	int c_n = fc->state->numEqC + fc->state->numIneqC;
+	fc->constraintFunVals.resize(c_n);
+	fc->constraintJacobian.resize(c_n, numParams);
+	if(c_n){
+		omxCalcFinalConstraintJacobian(fc, numParams);
 	}
-	// TODO: Adjust algorithm to account for constraints
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
-	if (parallel && !fc->openmpUser && fc->childList.size()) numChildren = fc->childList.size();
+  if (parallel) {
+    fc->createChildren(fitMat, false);
+    numChildren = fc->numOptimizerThreads();
+  }
 
 	if (!fc->haveReferenceFit(fitMat)) return;
 
@@ -381,7 +419,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 			omxPopulateHessianWork(hessWorkVector + i, fc->childList[i]);
 		}
 	}
-	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.2f)",
+	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.16g)",
 			       numChildren, minimum);
 
 	hessian = NULL;
@@ -393,10 +431,18 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		if (knownHessian) {
 			int khSize = int(khMap.size());
 			Eigen::Map< Eigen::MatrixXd > kh(knownHessian, khSize, khMap.size());
+			int warns=0;
 			for (int rx=0; rx < khSize; ++rx) {
 				for (int cx=0; cx < khSize; ++cx) {
 					if (khMap[rx] < 0 || khMap[cx] < 0) continue;
-					eH(khMap[rx], khMap[cx]) = kh(rx, cx);
+					if (!std::isfinite(kh(rx, cx))) continue;
+					if (rx < cx && fabs(kh(rx, cx) - kh(cx, rx)) > 1e-9) {
+						if (++warns < 3) {
+							Rf_warning("%s: knownHessian[%d,%d] is not symmetric",
+								   name, 1+rx, 1+cx);
+						}
+					}
+					eH(khMap[rx], khMap[cx]) = (kh(rx, cx) + kh(cx, rx))/2.0;
 				}
 			}
 		}
@@ -449,11 +495,12 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 	double gradNorm = 0.0;
-	
+
 	double feasibilityTolerance = Global->feasibilityTolerance;
 	for (int px=0; px < numParams; ++px) {
 		// factor out simliar code in ComputeNR
-		omxFreeVar &fv = *fc->varGroup->vars[px];
+		Gsymmetric[px] = true;
+		omxFreeVar &fv = *fc->varGroup->vars[ fc->freeToParamMap[px] ];
 		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
 		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
 			Gsymmetric[px] = false;
@@ -461,26 +508,34 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 		gradNorm += Gc[px] * Gc[px];
 		double relsym = 2 * fabs(Gf[px] + Gb[px]) / (Gb[px] - Gf[px]);
-		Gsymmetric[px] = (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
+		Gsymmetric[px] &= (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
 		if (checkGradient && verbose >= 2 && !Gsymmetric[px]) {
 			mxLog("%s: param[%d] %d %f", name, px, Gsymmetric[px], relsym);
 		}
 	}
-	
-	fc->grad.resize(numParams);
-	fc->grad = Gc.matrix();
+
+  fc->initGrad();
+	fc->copyGradFromOptimizer(Gc);
+
+	if(c_n){
+		fc->inequality.resize(fc->state->numIneqC);
+		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numParams);
+		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
+	}
 
 	gradNorm = sqrt(gradNorm);
 	double gradThresh = Global->getGradientThreshold(minimum);
-	if (checkGradient && gradNorm > gradThresh) {
+	//The gradient will generally not be near zero at a local minimum if there are equality constraints
+	//or active inequality constraints:
+	if ( checkGradient && gradNorm > gradThresh && !(fc->state->numEqC || fc->inequality.array().sum()) ) {
 		if (verbose >= 1) {
 			mxLog("Some gradient entries are too large, norm %f", gradNorm);
 		}
 		if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
 	}
 
-	memcpy(fc->est, optima.data(), sizeof(double) * numParams);
-	fc->copyParamToModel();
+  fc->destroyChildren();
+	fc->setEstFromOptimizer(optima);
 	// auxillary information like per-row likelihoods need a refresh
 	ComputeFit(name, fitMat, FF_COMPUTE_FIT, fc);
 	fc->wanted = newWanted;
@@ -500,7 +555,7 @@ void omxComputeNumericDeriv::reportResults(FitContext *fc, MxRList *slots, MxRLi
 	MxRList out;
 	out.add("probeCount", Rf_ScalarInteger(totalProbeCount));
 	if (detail && recordDetail) {
-		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), fc->numParam);
+		Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 		out.add("gradient", detail);
 	}
 	slots->add("output", out.asR());
@@ -510,4 +565,3 @@ omxCompute *newComputeNumericDeriv()
 {
 	return new omxComputeNumericDeriv;
 }
-

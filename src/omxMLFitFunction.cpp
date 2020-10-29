@@ -16,6 +16,7 @@
 
 #include "omxDefines.h"
 
+#include <utility>
 #include <stan/math/mix/mat.hpp>
 #include "multi_normal_sufficient.hpp"
 
@@ -111,7 +112,7 @@ struct multi_normal_deriv {
 		Eigen::MatrixXd obCov = obCovAdapter;
 		EigenMatrixAdaptor exCovAdapter(omo->expectedCov);
 		Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> exCov = exCovAdapter.cast<T>();
-		
+
 		Eigen::VectorXd obMeans(obCov.rows());
 		Eigen::Matrix<T, Eigen::Dynamic, 1> exMeans;
 		if (omo->observedMeans) {
@@ -153,8 +154,83 @@ void MLFitState::compute(int want, FitContext *fc)
 
 	omxExpectationCompute(fc, expectation, NULL);
 
-	if ((want & FF_COMPUTE_FIT) &&
-	    !(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
+	if (strEQ(expectation->name, "MxExpectationNormal") &&
+		   (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
+		if ((want & FF_COMPUTE_INFO) && fc->infoMethod != INFO_METHOD_HESSIAN) {
+			omxRaiseErrorf("Information matrix approximation method %d is not available",
+				       fc->infoMethod);
+			return;
+		}
+		MLFitState *omo = (MLFitState*) oo;
+		// should forward computation to the expectation TODO
+
+    int numFree = fc->getNumFree();
+		int numSimpleParam = 0;
+		std::vector<bool> fvMask(numFree);
+		for (int fx=0; fx < int(numFree); ++fx) {
+			omxFreeVar *fv = fc->varGroup->vars[fx];
+			bool relevant = fv->getLocation(omo->expectedCov) != NULL;
+			if (omo->expectedMeans) {
+				relevant |= fv->getLocation(omo->expectedMeans) != NULL;
+			}
+			fvMask[fx] = relevant;
+			if (relevant) ++numSimpleParam;
+		}
+    //mxLog("%s: %d/%d analytic derivs", name(), numSimpleParam, numFree);
+
+		if (numSimpleParam == 0) {
+			// if numSimpleParam == 0 then hessian() doesn't compute the fit
+    if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
+			want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
+			if (want) compute(want, fc);
+			return;
+		}
+
+		double init_log_prob = 0.0;
+		Eigen::VectorXd init_grad = Eigen::VectorXd::Zero(numSimpleParam);
+		HessianBlock *hb = new HessianBlock;
+
+		Eigen::VectorXd cont_params = Eigen::VectorXd::Zero(numSimpleParam);
+		int cpx=0;
+		for (int fx=0; fx < int(numFree); ++fx) {
+			if (!fvMask[fx]) continue;
+			hb->vars.push_back(fx);
+			cont_params[cpx++] = fc->est[fx];
+		}
+		hb->mat.resize(numSimpleParam, numSimpleParam);
+		hb->mat.setZero();
+
+		try {
+			multi_normal_deriv model(fc, fvMask, omo);
+			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
+		} catch (const std::exception& e) {
+			init_log_prob = NA_REAL;
+			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
+		} catch (...) {
+			init_log_prob = NA_REAL;
+			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
+		}
+
+		if (want & FF_COMPUTE_FIT) {
+			oo->matrix->data[0] = Scale * init_log_prob;
+		}
+		if (want & FF_COMPUTE_GRADIENT) {
+			int px=0;
+			for (int fx=0; fx < int(numFree); ++fx) {
+				if (!fvMask[fx]) { fc->gradZ[fx] = NA_REAL; continue; }
+				fc->gradZ[fx] += Scale * init_grad[px];
+				++px;
+			}
+		}
+		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO)) {
+			const double HScale = (want & FF_COMPUTE_INFO)? -fabs(Scale) : Scale;
+			hb->mat *= HScale;
+			fc->queue(hb);
+		} else {
+			delete hb;
+		}
+	} else if ((want & FF_COMPUTE_FIT) &&
+	    !(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
 		// works for any multivariate normal expectation (e.g. vanilla, RAM, LISREL, etc)
 
 		MLFitState *omo = (MLFitState*) oo;
@@ -185,78 +261,7 @@ void MLFitState::compute(int want, FitContext *fc)
 			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
 		}
 		oo->matrix->data[0] = Scale * fit;
-	} else if (strEQ(expectation->expType, "MxExpectationNormal") &&
-		   (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
-		if ((want & FF_COMPUTE_INFO) && fc->infoMethod != INFO_METHOD_HESSIAN) {
-			omxRaiseErrorf("Information matrix approximation method %d is not available",
-				       fc->infoMethod);
-			return;
-		}
-		MLFitState *omo = (MLFitState*) oo;
-		// should forward computation to the expectation TODO
-
-		int num_param = 0;
-		std::vector<bool> fvMask(fc->numParam);
-		for (int fx=0; fx < int(fc->numParam); ++fx) {
-			omxFreeVar *fv = fc->varGroup->vars[fx];
-			bool relevant = fv->getLocation(omo->expectedCov) != NULL;
-			if (omo->expectedMeans) {
-				relevant |= fv->getLocation(omo->expectedMeans) != NULL;
-			}
-			fvMask[fx] = relevant;
-			if (relevant) ++num_param;
-		}
-
-		if (num_param == 0) {
-			// if num_param == 0 then hessian() doesn't compute the fit
-			want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
-			if (want) compute(want, fc);
-			return;
-		}
-
-		double init_log_prob = 0.0;
-		Eigen::VectorXd init_grad = Eigen::VectorXd::Zero(num_param);
-		HessianBlock *hb = new HessianBlock;
-
-		Eigen::VectorXd cont_params = Eigen::VectorXd::Zero(num_param);
-		int cpx=0;
-		for (int fx=0; fx < int(fc->numParam); ++fx) {
-			if (!fvMask[fx]) continue;
-			hb->vars.push_back(fx);
-			cont_params[cpx++] = fc->est[fx];
-		}
-		hb->mat.resize(num_param, num_param);
-		hb->mat.setZero();
-		
-		try {
-			multi_normal_deriv model(fc, fvMask, omo);
-			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
-		} catch (const std::exception& e) {
-			init_log_prob = NA_REAL;
-			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
-		} catch (...) {
-			init_log_prob = NA_REAL;
-			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
-		}
-
-		if (want & FF_COMPUTE_FIT) {
-			oo->matrix->data[0] = Scale * init_log_prob;
-		}
-		if (want & FF_COMPUTE_GRADIENT) {
-			int px=0;
-			for (int fx=0; fx < int(fc->numParam); ++fx) {
-				if (!fvMask[fx]) continue;
-				fc->grad[fx] += Scale * init_grad[px];
-				++px;
-			}
-		}
-		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO)) {
-			const double HScale = (want & FF_COMPUTE_INFO)? -fabs(Scale) : Scale;
-			hb->mat *= HScale;
-			fc->queue(hb);
-		} else {
-			delete hb;
-		}
+    if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
 	} else {
 		mxThrow("Not implemented");
 	}
@@ -284,12 +289,12 @@ void MLFitState::populateAttr(SEXP algebra) {
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
-	}   
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
+	}
 
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	
+
 	double saturated_out;
 	double independence_out;
 	calcExtraLikelihoods(oo, &saturated_out, &independence_out);
@@ -309,20 +314,20 @@ omxFitFunction *MLFitState::initMorph()
 	if (!oo->expectation) { mxThrow("%s requires an expectation", oo->fitType); }
 	oo->units = FIT_UNITS_MINUS2LL;
 
-	if (strcmp(expectation->expType, "MxExpectationBA81")==0) {
+	if (strcmp(expectation->name, "MxExpectationBA81")==0) {
 		return omxChangeFitType(oo, "imxFitFunctionBA81");
 	}
-	
-	if (strEQ(expectation->expType, "MxExpectationGREML")) {
+
+	if (strEQ(expectation->name, "MxExpectationGREML")) {
 		return omxChangeFitType(oo, "imxFitFunciontGRMFIML");
 	}
-	
-	if (strEQ(expectation->expType, "MxExpectationStateSpace")) {
+
+	if (strEQ(expectation->name, "MxExpectationStateSpace")) {
 		return omxChangeFitType(oo, "imxFitFunciontStateSpace");
 	}
 
-	if (strEQ(expectation->expType, "MxExpectationHiddenMarkov") ||
-	    strEQ(expectation->expType, "MxExpectationMixture")) {
+	if (strEQ(expectation->name, "MxExpectationHiddenMarkov") ||
+	    strEQ(expectation->name, "MxExpectationMixture")) {
 		return omxChangeFitType(oo, "imxFitFunciontHiddenMarkov");
 	}
 
@@ -334,7 +339,7 @@ omxFitFunction *MLFitState::initMorph()
 	int wantRowwiseLikelihood = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
 
 	bool fellnerPossible = (strEQ(omxDataType(dataMat), "raw") && expectation->numOrdinal == 0 &&
-				strEQ(oo->expectation->expType, "MxExpectationRAM") && !wantRowwiseLikelihood);
+				strEQ(oo->expectation->name, "MxExpectationRAM") && !wantRowwiseLikelihood);
 
 	if (Rf_asLogical(Rfellner) == 1 && !fellnerPossible) {
 		mxThrow("%s: fellner requires raw data (have %s), "
@@ -346,7 +351,7 @@ omxFitFunction *MLFitState::initMorph()
 
 	if (strEQ(omxDataType(dataMat), "raw")) {
 		int useFellner = Rf_asLogical(Rfellner);
-		if (strEQ(oo->expectation->expType, "MxExpectationRAM")) {
+		if (strEQ(oo->expectation->name, "MxExpectationRAM")) {
 			omxRAMExpectation *ram = (omxRAMExpectation*) expectation;
 			if (ram->between.size()) {
 				if (useFellner == 0) {
@@ -369,7 +374,7 @@ omxFitFunction *MLFitState::initMorph()
 		} else {
 			to = "imxFitFunctionFIML";
 		}
-		if(OMX_DEBUG) { mxLog("Raw Data: Converting from %s to %s", oo->fitType, to); }
+		if(OMX_DEBUG) { mxLog("%s: Converting from %s to %s", name(), oo->fitType, to); }
 		return omxChangeFitType(oo, to);
 	}
 
@@ -403,10 +408,10 @@ void MLFitState::init()
 		newObj->observedMeans = omxCreateCopyOfMatrix(newObj->observedMeans, oo->matrix->currentState);
 		Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> pm(dc);
 		EigenMatrixAdaptor Ecov(newObj->observedCov);
-		Ecov.derived() = (pm * Ecov * pm.transpose()).eval();
+		Ecov.derived() = (pm.transpose() * Ecov * pm).eval();
 		if (newObj->observedMeans) {
 			EigenVectorAdaptor Emean(newObj->observedMeans);
-			Emean.derived() = (pm * Emean).eval();
+			Emean.derived() = (pm.transpose() * Emean).eval();
 		}
 	}
 
@@ -422,7 +427,7 @@ void MLFitState::init()
 		return;
 	}
 
-	// Error Checking: Observed/Expected means must agree.  
+	// Error Checking: Observed/Expected means must agree.
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 		if(newObj->expectedMeans != NULL) {
@@ -435,10 +440,9 @@ void MLFitState::init()
 	}
 
 	// add expectation API for derivs TODO
-	if (strEQ(expectation->expType, "MxExpectationNormal") &&
+	if (strEQ(expectation->name, "MxExpectationNormal") &&
 	    newObj->expectedCov->isSimple() &&
 	    (!newObj->expectedMeans || newObj->expectedMeans->isSimple())) {
-		oo->gradientAvailable = true;
 		oo->hessianAvailable = true;
 	}
 

@@ -2,7 +2,7 @@
 \alias{example2}
 \docType{data}
 \title{
-Bivariate twin data example from Classic Mx Manual
+Bivariate twin data, long-format from Classic Mx Manual
 }
 
 \description{
@@ -30,11 +30,11 @@ Classic Mx Manual.
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at https://openmx.ssri.psu.edu/documentation.
 }
 
 \examples{
 data(example2)
-plot(Y ~ X, data=example2)
+plot(Y ~ X, data = example2)
 }
 \keyword{datasets}

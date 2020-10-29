@@ -79,10 +79,7 @@ expandIntervals <- function(intervals) {
 }
 
 mxCI <- function(reference, interval = 0.95, type = c('both', 'lower', 'upper'), ..., boundAdj=TRUE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("Values for the '...' argument are not accepted")
-	}
+  prohibitDotdotdot(list(...))
 	if (!is.numeric(interval) || interval < 0 || interval > 1) {
 		stop("'interval' must be a numeric value between 0 and 1")
 	}
@@ -206,7 +203,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		entityName <- components[[1]]
 		rows <- eval(parse(text = components[[2]]), envir = globalenv())
 		cols <- eval(parse(text = components[[3]]), envir = globalenv())
-		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE),
+		entityValue <- eval(substitute(mxEval(x, flatModel, compute=TRUE, .extraBack=7L),
 			list(x = as.symbol(entityName))))
 		if (is.null(rows)) {
 			rows <- 1:nrow(entityValue)
@@ -351,6 +348,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
 	}
+	assertModelRunAndFresh(model)
 	if(length(model@output) == 0) {
 		stop("'model' argument to omxParallelCI must be a fitted model")
 	}

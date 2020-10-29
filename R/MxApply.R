@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,12 +19,14 @@
 ##' what they are doing.
 ##'
 ##' @param fun fun
+# nocov start
 imxMpiWrap <- function(fun) {
 	function(...) {
 		require(OpenMx, quietly = TRUE)
 		return(fun(...))
 	}
 }
+# nocov end
 
 ##' imxSfClient
 ##'
@@ -45,9 +47,9 @@ omxLapply <- function(x, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-		return(snowfall::sfClusterApplyLB(x, fun, ...))
+		return(snowfall::sfClusterApplyLB(x, fun, ...))  # nocov
 	} else if ("package:Rmpi" %in% libraries) {
-		return(Rmpi::mpi.parLapply(x, imxMpiWrap(fun), ...))
+		return(Rmpi::mpi.parLapply(x, imxMpiWrap(fun), ...))  # nocov
 	} else {
 		return(lapply(x, fun, ...))
 	}
@@ -57,7 +59,7 @@ omxSapply <- function(x, fun, ..., simplify = TRUE, USE.NAMES = TRUE) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-		return(snowfall::sfSapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
+		return(snowfall::sfSapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))  # nocov
 	} else {
 		return(sapply(x, fun, ..., simplify = simplify, USE.NAMES = USE.NAMES))
 	}
@@ -67,7 +69,7 @@ omxApply <- function(x, margin, fun, ...) {
 	if (length(x) == 0) return(x)
 	libraries <- search()
 	if ("package:snowfall" %in% libraries) {
-		return(snowfall::sfApply(x, margin, fun, ...))
+		return(snowfall::sfApply(x, margin, fun, ...))  # nocov
 	} else {
 		return(apply(x, margin, fun, ...))
 	}

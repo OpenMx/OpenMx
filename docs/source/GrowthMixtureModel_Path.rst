@@ -118,18 +118,9 @@ This method for specifying class probabilities consists of two parts. In the fir
                             free=c(TRUE, FALSE), values=1, lbound=0.001, 
                             labels = c("p1","p2"), name="Props" )
 
-We still need probabilities, which require the second step shown below. Dividing the class proportion matrix above by its sum will rescale the proportions into probabilities. This is slightly more difficult that it appears at first, as the k x 1 matrix of class proportions and the scalar sum of that matrix aren't conformable to either matrix or element-wise operations. Instead, we can use a Kronecker product of the class proportion matrix and the inverse of the sum of that matrix. This operation is carried out by the ``mxAlgebra`` function placed in the object ``classS`` below.
+We still need probabilities. Dividing the class proportion matrix above by its sum will rescale the proportions into probabilities. This is slightly more difficult that it appears at first, as the k x 1 matrix of class proportions and the scalar sum of that matrix aren't conformable to either matrix or element-wise operations. This and other operations are, however, carried out by the ``mxExpectationMixture`` function in the container mixture model itself.
 
-.. cssclass:: input
-..
-
-.. code-block:: r
-
-    classS       <- mxAlgebra( Props%x%(1/sum(Props)), name="classProbs" )
-
-There are several alternatives to the two functions above that merit discussion. While the``mxConstraint`` function would appear at first to be a simpler way to specify the class probabilities, but using the ``mxConstraint`` function complicates this type of model estimation. When all k class probabilities are freely estimated then constrained, then the class probability parameters are collinear, creating a parameter covariance matrix that is not of full rank. This prevents OpenMx from calculating standard errors for any model parameters. Additionally, there are multiple ways to use algebras different than the one above to specify the class proportion and/or class probability parameters, each varying in complexity and utility. While specifying models with two classes can be done slightly more simply than presented here, the above method is equally appropriate for all numbers of classes.
-
-Finally, we can specify the mixture model. We must first specify the model's -2 log likelihood function defined as:
+With the models for each class in place, we can specify this mixture model. The model's -2 log likelihood function is:
 
 .. math::
    :nowrap:
@@ -138,25 +129,23 @@ Finally, we can specify the mixture model. We must first specify the model's -2 
    -2LL = -2 * \sum_{i=1}^n \sum_{k=1}^m \log (p_k l_{ki})
    \end{eqnarray*}
 
-This is specified using an ``mxAlgebra`` function, and used as the argument to the ``mxFitFunctionAlgebra`` function. Then the fit function, matrices and algebras used to define the mixture distribution, the models for the respective classes and the data are all placed in one final ``mxModel`` object, shown below.	
+This is implemented by ``mxExpectationMixture`` which also undertakes the appropriate algebra. Then the fit function, matrices and algebras used to define the mixture distribution, the models for the respective classes and the data are all placed in the container model shown below.	
 
 .. cssclass:: input
 ..
 
 .. code-block:: r
 
-    algFit       <- mxAlgebra( -2*sum(log(classProbs[1,1]%x%Class1.fitfunction 
-                               + classProbs[2,1]%x%Class2.fitfunction)), 
-                               name="mixtureObj")
-    fit          <- mxFitFunctionAlgebra("mixtureObj")
-    dataRaw      <- mxData( observed=myGrowthMixtureData, type="raw" )
+	mixExp       <- mxExpectationMixture(components=c('Class1', 'Class2'), weights='Props', scale='sum')
+	fit          <- mxFitFunctionML()
+	dataRaw      <- mxData(myGrowthMixtureData, type="raw")
+      
+	gmm          <- mxModel("Growth Mixture Model",
+	                        class1, class2, classP, mixExp, fit, dataRaw)
 
-    gmm          <- mxModel("Growth Mixture Model",
-                            dataRaw, class1, class2, classP, classS, algFit, fit )      
+	gmmFit       <- mxRun(gmm, suppressWarnings=TRUE)
 
-    gmmFit       <- mxRun(gmm, suppressWarnings=TRUE)
-
-    summary(gmmFit)
+	summary(gmmFit)
 
 Multiple Runs: Serial Method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -237,7 +226,7 @@ The MxModel in the object ``gmm`` can now be run and the results compared with o
             temp2$output$Minus2LogLikelihood,
             temp2$output$status[[1]],
             temp2$output$iterations,
-            round(temp2$classProbs$result[1,1], 4),
+            round(temp2$expectation$output$weights[1], 4),
             temp2$output$wallTime
             )
         }
@@ -335,8 +324,8 @@ From there, parallel optimization requires that a holder or top model (named "To
             model$output$Minus2LogLikelihood,
             model$output$status[[1]],
             model$output$iterations,
-            round(model$classProbs$result[1,1], 4)
-            )
+            round(model$expectation$output$weights[1], 4)
+           )
         return(retval)
     }
 

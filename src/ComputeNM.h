@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017-2018 by the individuals mentioned in the source code history
+ *  Copyright 2017-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 #include "Compute.h"
 #include <Eigen/Core>
 #include <Eigen/Dense>
-
-//TODO: define functions using Eigen-lib templates
 
 class omxComputeNM : public omxCompute {
 	typedef omxCompute super;
@@ -74,8 +72,11 @@ public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);
 	void countConstraintsAndSetupBounds();
 	void copyParamsFromFitContext(double *ocpars);
-	void copyParamsFromOptimizer(Eigen::VectorXd &x, FitContext* fc2);
-
+	
+	template <typename T1>
+	void copyParamsFromOptimizer(Eigen::MatrixBase<T1> &x, FitContext* fc2){
+		fc2->setEstFromOptimizer(x);
+	}
 	
 	omxComputeNM* NMobj;
 	const int numFree;
@@ -102,6 +103,8 @@ public:
 	double bignum;
 	double rho;
 	bool addPenalty;
+	int ineqConstraintMthd, eqConstraintMthd;
+	bool checkRedundantEqualities;
 	
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
@@ -144,8 +147,30 @@ public:
 	GradientOptimizerContext subsidiarygoc;
 	void *extraData;
 	int gdfsIter;
-	
 };
 
 double nmgdfso(unsigned n, const double *x, double *grad, void *f_data);
 void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt);
+
+struct NldrMd_equality_functional {
+	NelderMeadOptimizerContext* nmoc;
+	FitContext* fc;
+	
+	NldrMd_equality_functional(NelderMeadOptimizerContext* _nmoc, FitContext* _fc) : nmoc(_nmoc), fc(_fc) {};
+	
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+		nmoc->copyParamsFromOptimizer(x, fc);
+		fc->solEqBFun(false, nmoc->verbose);
+		result = fc->equality;
+	}
+	
+	template <typename T1, typename T2, typename T3>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+		nmoc->copyParamsFromOptimizer(x, fc);
+		fc->analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
+		fc->solEqBFun(true, nmoc->verbose);
+		result = fc->equality;
+		jacobian = fc->analyticEqJacTmp;
+	}
+};

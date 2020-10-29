@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,18 +25,11 @@ matchStack <- function(syscall, function_name) {
 ##' @param function_name function_name
 imxLocateFunction <- function(function_name) {
     callstack <- sys.calls()
-    if (is.null(callstack)) {
-        msg <- paste("(oops) could not find function",
-            function_name)
-        return(msg)
-    }
     query <- sapply(callstack, matchStack, as.symbol(function_name))
     matches <- which(query)
     if (length(matches) == 0) {
       #If the function being sought is not actually in the call stack...
-      msg <- paste("(oops) could not find function",
-                   function_name)
-      return(msg)
+      return(function_name)
     } else {
         firstmatch <- matches[[1]]
         return(callstack[[firstmatch]])

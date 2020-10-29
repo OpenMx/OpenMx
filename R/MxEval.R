@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row = 1L,
-			cache = new.env(parent = emptyenv()), cacheBack = FALSE) {
+			cache = new.env(parent = emptyenv()), cacheBack = FALSE, .extraBack=0L) {
 	if (missing(expression)) {
 		stop("'expression' argument is mandatory in call to mxEval function")
 	} else if (missing(model)) {
@@ -22,8 +22,9 @@ mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row 
 	}
 	expression <- match.call()$expression
 	modelvariable <- match.call()$model
+  #for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
 	EvalInternal(expression, model, modelvariable, compute, show, defvar.row,
-		       cache, cacheBack, 2L)
+		       cache, cacheBack, 2L + .extraBack)
 }
 
 EvalInternal <- function(expression, model, modelvariable, compute, show, defvar.row,
@@ -56,7 +57,13 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 	if (!is.vector(result)) {
 		result <- eval(result, envir = env)
 	}
-	if (!is.matrix(result)) result <- as.matrix(result)
+	if (!is.matrix(result)) {
+    if (is(result, "MxAlgebra")) {
+      stop(paste("You have referenced algebra",
+                 omxQuotes(result$name), "outside of the model"))
+    }
+    result <- as.matrix(result)
+  }
 	if (cacheBack) {
 		return(list(result, cache))
 	} else {
@@ -187,7 +194,13 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 				result <- definitionStartingValue(key, contextString, model, defvar.row)
 			} else if (is.null(lookup)) {
 				if (!show && !outsideAlgebra && exists(key, envir = env)) {
-					result <- as.matrix(get(key, envir = env))
+					result <- try(as.matrix(get(key, envir = env)), silent=TRUE)
+          if (is(result, 'try-error')){
+          	stop(paste(
+          		"cannot coerce object with symbol", omxQuotes(key), "to a matrix\n",
+          		"(hint: did you neglect to put an object named", omxQuotes(key), "into model",
+          		omxQuotes(model@name),"?)"))
+          }
 				} else {
 					result <- symbol
 				}
@@ -333,33 +346,18 @@ evaluateAlgebraWithContext <- function(algebra, context, flatModel, labelsData, 
 		compute = TRUE, show = FALSE, outsideAlgebra = FALSE, cache = cache))
 }
 
-getEntityType <- function(object) {
-	if(is(object, "MxMatrix")) {
-		entity <- "MxMatrix"
-	} else if(is(object, "MxAlgebra")) {
-		entity <- "MxAlgebra"
-	} else if(is(object, "MxExpectation")) {
-		entity <- "MxExpectation"
-	} else if(is(object, "MxFitFunction")) {
-		entity <- "MxFitFunction"
-	} else {
-		entity <- "entity"
-	}
-	return(entity)
-}
-
 assignDimnames <- function(object, values) {
 	newnames <- dimnames(object)
 	if (!is.null(newnames)) {
 		if (length(newnames) != 2) {
-			entity <- getEntityType(object)
+			entity <- class(object)
 			msg <- paste("The 'dimnames' argument to", entity,
 				omxQuotes(object@name), "must have a length of 2")
 			stop(msg, call. = FALSE)
 		}
 		if (!is.null(newnames[[1]]) && length(newnames[[1]]) != nrow(values) || 
 			!is.null(newnames[[2]]) && length(newnames[[2]]) != ncol(values)) {
-			entity <- getEntityType(object)
+			entity <- class(object)
 			msg <- paste("The", entity, omxQuotes(object@name), 
 				"has specified dimnames with dimensions",
 				length(newnames[[1]]), "x", length(newnames[[2]]), "but the", entity,
@@ -425,14 +423,13 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 }
 
 mxEvalByName <- function(name, model, compute=FALSE, show=FALSE, defvar.row = 1L,
-		cache = new.env(parent = emptyenv()), cacheBack = FALSE) {
+		cache = new.env(parent = emptyenv()), cacheBack = FALSE, .extraBack=0L) {
    if((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
-   if(!is(model, "MxModel")) {
-      stop("'model' argument must be a MxModel object")
-   }
-   eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack),
+   warnModelCreatedByOldVersion(model)
+#for (x in 1:sys.nframe()) cat(x-1, head(ls(parent.frame(x))), fill=TRUE)
+   eval(substitute(mxEval(x, model, compute, show, defvar.row, cache, cacheBack, 1L + .extraBack),
       list(x = as.symbol(name))))
 }
 
@@ -465,6 +462,7 @@ omxBootstrapEvalCov <- function(expression, model, defvar.row = 1L, ...) {
 
 mxBootstrapEval <- function(expression, model, defvar.row = 1L, ..., bq=c(.25,.75),
 				method=c('bcbci','quantile')) {
+  warnModelCreatedByOldVersion(model)
   expression <- match.call()$expression
   modelvariable <- match.call()$model
 	method <- match.arg(method)
@@ -478,6 +476,7 @@ mxBootstrapEvalByName <- function(name, model, defvar.row=1L, ..., bq=c(.25,.75)
    if((length(name) != 1) || typeof(name) != "character") {
       stop("'name' argument must be a character argument")
    }
+  warnModelCreatedByOldVersion(model)
    method <- match.arg(method)
    eval(substitute(mxBootstrapEval(x, model, defvar.row, bq=bq, method=method),
       list(x = as.symbol(name))))

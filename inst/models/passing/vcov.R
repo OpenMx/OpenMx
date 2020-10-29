@@ -23,11 +23,10 @@ oneFactor <- mxOption(oneFactor, "Calculate Hessian", "No")
 
 oneFactor <- mxRun(oneFactor)
 
-if (mxOption(NULL, "Default optimizer") != 'SLSQP') {
-  vc1 <- omxCheckWarning(vcov(oneFactor),
-                         "The 'Calculate Hessian' option is disabled. This may result in a poor accuracy vcov matrix.
+vc1 <- omxCheckWarning(vcov(oneFactor),
+                       "The 'Calculate Hessian' option is disabled. This may result in a poor accuracy vcov matrix.
 Turn on with mxOption(model, 'Calculate Hessian', 'Yes')")
-}
+
 
 oneFactor <- mxOption(oneFactor, "Calculate Hessian", "Yes")
 

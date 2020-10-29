@@ -134,10 +134,10 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionRow"),
 })
 
 generateRowDataColumns <- function(flatModel, expectedNames, dataName) {
-	retval <- c()
+	retval <- numeric(length(expectedNames))
 	dataColumnNames <- dimnames(flatModel@datasets[[dataName]]@observed)[[2]]
 	for(i in 1:length(expectedNames)) {
-		targetName <- expectedNames[[i]]
+		targetName <- expectedNames[i]
 		index <- match(targetName, dataColumnNames)
 		if(is.na(index)) {
 			msg <- paste("The column name", omxQuotes(targetName),
@@ -147,7 +147,7 @@ generateRowDataColumns <- function(flatModel, expectedNames, dataName) {
 				"cannot be found in the column names of the data.")
 			stop(msg, call. = FALSE)
 		}
-		retval[[i]] <- index - 1
+		retval[i] <- index - 1L
 	}
 	return(retval)
 }

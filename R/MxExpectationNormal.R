@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,23 +14,251 @@
 #   limitations under the License.
 
 setClass(Class = "BaseExpectationNormal",
-	 contains = "MxBaseExpectation")
+         contains = "MxBaseExpectation",
+         representation = representation(
+           expectedCovariance = "MxOptionalCharOrNumber",
+           expectedMean = "MxOptionalCharOrNumber",
+           expectedFullCovariance = "MxOptionalCharOrNumber",
+           expectedFullMean = "MxOptionalCharOrNumber",
+           thresholds = "MxCharOrNumber",
+           threshnames = "character",
+           discrete = "MxCharOrNumber",
+           discreteSpec = "MxOptionalMatrix",
+           .discreteCheckCount = "logical",
+           selectionPlan = "MxOptionalDataFrame",
+           selectionVector = "MxCharOrNumber"))
+
+setMethod("qualifyNames", signature("BaseExpectationNormal"),
+          function(.Object, modelname, namespace) {
+            for (sl in c(paste0('expected', c('Covariance','Mean')),
+                       'thresholds', 'discrete', 'selectionVector')) {
+              if (!.hasSlot(.Object, sl) || is.null(slot(.Object, sl))) next
+              slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
+            }
+            .Object
+          })
+
+setMethod("genericExpDependencies", signature("BaseExpectationNormal"),
+          function(.Object, dependencies) {
+            sources <- c(.Object$discrete, .Object@thresholds, .Object$selectionVector)
+            sources <- sources[!is.na(sources)]
+            dependencies <- imxAddDependency(sources, .Object@name, dependencies)
+            return(dependencies)
+          })
+
+setMethod("genericExpRename", signature("BaseExpectationNormal"),
+          function(.Object, oldname, newname) {
+            for (sl in c(paste0('expected', c('Covariance','Mean')),
+                         'thresholds', 'discrete', 'selectionVector')) {
+              if (!.hasSlot(.Object, sl) || is.null(slot(.Object, sl))) next
+              slot(.Object,sl) <- renameReference(slot(.Object,sl), oldname, newname)
+            }
+            .Object
+          })
+
+setMethod("genericExpFunConvert", signature("BaseExpectationNormal"),
+          function(.Object, flatModel, model, labelsData, dependencies) {
+            for (sl in c(paste0('expected', c('Covariance','Mean')))) {
+              matName <- slot(.Object,sl)
+              if (length(matName) == 0) next
+              mat <- flatModel[[matName]]
+              if (any(mat@free)) {
+                msg <- paste('Free parameters are not allowed in matrix',
+                             omxQuotes(matName))
+                stop(msg, call.=FALSE)
+              }
+              if (any(!is.na(mat@labels))) {
+                msg <- paste('Labels are not allowed in matrix', omxQuotes(matName))
+                stop(msg, call.=FALSE)
+              }
+            }
+
+            tname <- .Object$thresholds
+            dname <- .Object$discrete
+            if (!is.na(dname)) {
+              dmat <- flatModel[[dname]]
+              if (length(colnames(dmat)) == 0) {
+                stop(paste(dname, "must have column names"))
+              }
+              ds <- .Object$discreteSpec
+              if (is.null(ds)) stop("discrete parameters but no discreteSpec")
+              if (length(colnames(ds)) != length(colnames(dmat))) {
+                stop(paste("discreteSpec must have the same number of columns",
+                           "as", dname))
+              }
+              if (any(colnames(ds) != colnames(dmat))) {
+                stop(paste("discreteSpec and", dname, "must have the same column names"))
+              }
+            }
+            if (!is.na(tname) && !is.na(dname)) {
+              dup <- intersect(colnames(flatModel[[tname]]), colnames(flatModel[[dname]]))
+              if (length(dup)) {
+                msg <- paste('Manifest', omxQuotes(dup), 'cannot be modelled as',
+                             'a threshold and as a discrete variable at the',
+                             'same time')
+                stop(msg, call.=FALSE)
+              }
+            }
+
+            if (.hasSlot(.Object, 'selectionVector')) {
+              svname <- .Object$selectionVector
+              if (!is.na(svname)) {
+                sv <- flatModel[[svname]]
+                if (ncol(sv) != 1) stop("selectionVector must be a column vector")
+                svSpec <- .Object@selectionPlan
+                if (nrow(sv) != nrow(svSpec)) {
+                  msg <- paste('selectionPlan must have the same number of rows',
+                               'as the selectionVector')
+                  stop(msg, call.=FALSE)
+                }
+              }
+            }
+
+            .Object
+          })
+
+setMethod("genericNameToNumber", signature("BaseExpectationNormal"),
+	  function(.Object, flatModel, model) {
+		  name <- .Object@name
+      for (sl in c(paste0('expected', c('Covariance','Mean')),
+                   'data', 'thresholds', 'discrete', 'selectionVector')) {
+        if (!.hasSlot(.Object, sl)) next
+        slot(.Object,sl) <- imxLocateIndex(flatModel, slot(.Object,sl), name)
+      }
+		  .Object
+	  })
+
+setMethod("genericGetExpected", signature("BaseExpectationNormal"),
+	function(.Object, model, what, defvar.row=1, subname=model@name) {
+		ret <- list()
+		if ('thresholds' %in% what) {
+			thrname <- .Object@thresholds
+      thr <- matrix( , 0 , 0)
+			if(!single.na(thrname)){
+				thrname <- .modifyDottedName(subname, thrname, sep=".")
+				thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
+        tnames <- .Object@threshnames
+        if(!single.na(tnames)){
+          colnames(thr) <- tnames
+        }
+			}
+      disname <- .Object@discrete
+      if (!single.na(disname)) {
+        npart <- mxGetExpected(model, c('means','covariance'),
+                               defvar.row=defvar.row, subname=subname)
+        means <- npart[['means']]
+        if (!is.null(means) && ncol(means)==1 && colnames(means)=='one')
+          means <- t(means)
+        cov <- npart[['covariance']]
+        ds <- .Object@discreteSpec
+				disname <- .modifyDottedName(subname, disname, sep=".")
+				dis <- mxEvalByName(disname, model, compute=TRUE, defvar.row=defvar.row)
+        if (length(colnames(ds)) != length(colnames(dis))) {
+          stop(paste("discreteSpec must have the same number of columns",
+                     "as", disname))
+        }
+        if (any(colnames(ds) != colnames(dis))) {
+          stop(paste("discreteSpec and", disname, "must have the same column names"))
+        }
+
+        # discreteSpec:
+        #   number of outcomes
+        #   1 poisson ; 2 negative binomial prob ; 3 neg binomial mu
+        # discrete 3 rows:
+        #   zero inflation
+        #   poisson: lambda; nbinom: size, prob/mu
+        thList <- vector("list", ncol(ds))
+        names(thList) <- colnames(ds)
+        for (cx in colnames(ds)) {
+          if (is.na(ds[1,cx])) {
+            stop(paste("discreteSpec[1,",cx,"], the maximum observed count,",
+                       "cannot be NA when calcuating the expected distribution"))
+          }
+          outcome <- 1L:as.integer(ds[1,cx]) - 1L
+          zif <- min(max(dis[1,cx],0),1)
+          if (ds[2,cx] == 1) {
+            pr <- ppois(outcome, dis[2,cx])
+          } else if (ds[2,cx] == 2) {
+            pr <- pnbinom(outcome, dis[2,cx], prob=dis[3,cx])
+          } else if (ds[2,cx] == 3) {
+            pr <- pnbinom(outcome, dis[2,cx], mu=dis[3,cx])
+          } else { stop(paste("Unknown discrete distribution code", ds[2,cx],
+                              "in column", cx)) }
+          m1 <- 0
+          if (!is.null(means)) m1 <- means[1,cx]
+          thList[[cx]] <- p2z(zif + (1-zif) * pr) * sqrt(cov[cx,cx]) + m1
+        }
+        thBlock <- mxSimplify2Array(thList)
+        comb <- matrix(NA,
+                       nrow=max(nrow(thr), nrow(thBlock)),
+                       ncol=(ncol(thr) + ncol(thBlock)))
+        if (length(thr)) {
+          comb[1:nrow(thr),1:ncol(thr)] <- thr
+          comb[1:nrow(thBlock),ncol(thr) + 1:ncol(thBlock)] <- thBlock
+          colnames(comb) <- c(colnames(thr), colnames(thBlock))
+          thr <- comb
+        } else {
+          thr <- thBlock
+        }
+      }
+			ret[['thresholds']] <- thr
+      }
+    ret
+    })
+
+constrainCorData <- function(ex, size, model, flatModel) {
+  path <- unlist(strsplit(ex@name, imxSeparatorChar, fixed = TRUE))
+  if (path[1] == model@name) {
+    submodel <- model
+  } else {
+    submodel <- model[[ path[1] ]]
+  }
+  newObj <- model@.newobjects
+  # Don't deal with inherited MxData. That's an indication of
+  # an advanced user who knows what they are doing.
+  if (!is.null(submodel@data) && submodel@data@type == 'cor' && is.null(ex@expectedCovariance)) {
+    for (sl in c('expectedCovariance', 'unit_1_by_nObs', 'constraintForCorData')) {
+      if (!is.null(submodel[[sl]])) {
+        msg <- paste("In model", omxQuotes(submodel@name),
+                     "data has type='cor' with", omxQuotes(class(ex)[1]),
+                     "but an object named", omxQuotes(sl),
+                     "already exists preventing the addition of a constraint",
+                     "on the diagonal of the expected covariance")
+				stop(msg, call.=FALSE)
+      }
+    }
+    ex@expectedCovariance <- 'expectedCovariance'
+    corConstraint <- list(
+      ex,
+      mxMatrix(name="expectedCovariance", nrow=size, ncol=size),
+      mxMatrix(name= "unit_1_by_nObs", type="Unit", ncol=1, nrow=size),
+      mxConstraintFromString(name="constraintForCorData", "diag2vec(expectedCovariance) == unit_1_by_nObs"))
+    submodel <- mxModel(submodel, corConstraint)
+    newObj <- TRUE
+  }
+  if (path[1] == model@name) {
+    model <- submodel
+  } else {
+    model <- mxModel(model, submodel)
+  }
+  model@.newobjects <- newObj
+  model
+}
 
 setClass(Class = "MxExpectationNormal",
 	representation = representation(
 		covariance = "MxCharOrNumber",
 		means = "MxCharOrNumber",
-		thresholds = "MxCharOrNumber",
 		dims = "character",
-		threshnames = "character",
 		ExpCov = "matrix",
 		ExpMean = "matrix",
-	        numStats = "numeric"),
+    numStats = "numeric"),
 	contains = "BaseExpectationNormal")
 
 setMethod("initialize", "MxExpectationNormal",
-	function(.Object, covariance, means, dims, thresholds, threshnames,
-		data = as.integer(NA), name = 'expectation') {
+	function(.Object, covariance, means, dims, thresholds, threshnames, discrete,
+           discreteSpec, selectionVector, selectionPlan,
+           data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@covariance <- covariance
 		.Object@means <- means
@@ -38,29 +266,33 @@ setMethod("initialize", "MxExpectationNormal",
 		.Object@thresholds <- thresholds
 		.Object@dims <- dims
 		.Object@threshnames <- threshnames
+		.Object@discrete <- discrete
+		.Object@discreteSpec <- discreteSpec
+    .Object@.discreteCheckCount <- TRUE
+    .Object@selectionVector <- selectionVector
+    .Object@selectionPlan <- selectionPlan
 		.Object@ExpCov <- matrix()
 		.Object@ExpMean <- matrix()
 		return(.Object)
 	}
 )
 
-setMethod("qualifyNames", signature("MxExpectationNormal"), 
+setMethod("qualifyNames", signature("MxExpectationNormal"),
 	  function(.Object, modelname, namespace) {
+      .Object <- callNextMethod()
 		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@covariance <- imxConvertIdentifier(.Object@covariance, 
-			modelname, namespace)
-		.Object@means <- imxConvertIdentifier(.Object@means, 
-			modelname, namespace)
-		.Object@data <- imxConvertIdentifier(.Object@data, 
-			modelname, namespace)
-		.Object@thresholds <- sapply(.Object@thresholds,
-			imxConvertIdentifier, modelname, namespace)
+		for (s in c("covariance", "means", "data")) {
+			if (is.null(slot(.Object, s))) next
+			slot(.Object, s) <-
+			  imxConvertIdentifier(slot(.Object, s), modelname, namespace)
+		}
 		return(.Object)
 })
 
 setMethod("genericExpDependencies", signature("MxExpectationNormal"),
 	function(.Object, dependencies) {
-	sources <- c(.Object@covariance, .Object@means, .Object@thresholds)
+    dependencies <- callNextMethod()
+    sources <- c(.Object@covariance, .Object@means)
 	sources <- sources[!is.na(sources)]
 	dependencies <- imxAddDependency(sources, .Object@name, dependencies)
 	return(dependencies)
@@ -76,10 +308,11 @@ setMethod("genericExpConvertEntities", "MxExpectationNormal",
 
 setMethod("genericExpRename", signature("MxExpectationNormal"),
 	function(.Object, oldname, newname) {
-		.Object@means <- renameReference(.Object@means, oldname, newname)
-		.Object@covariance <- renameReference(.Object@covariance, oldname, newname)
-		.Object@data <- renameReference(.Object@data, oldname, newname)
-		.Object@thresholds <- sapply(.Object@thresholds, renameReference, oldname, newname)		
+    .Object <- callNextMethod()
+		for (s in c("covariance", "means", "data")) {
+			if (is.null(slot(.Object, s))) next
+			slot(.Object, s) <- renameReference(slot(.Object, s), oldname, newname)
+    }
 		return(.Object)
 })
 
@@ -95,10 +328,10 @@ setMethod("genericExpRename", signature("MxExpectationNormal"),
 
 setMethod("genericGetExpected", signature("MxExpectationNormal"),
 	function(.Object, model, what, defvar.row=1, subname=model@name) {
-		ret <- list()
-		if ('covariance' %in% what) {
+		ret <- callNextMethod()
+		if (any(c('covariance','covariances') %in% what)) {
 			covname <- .modifyDottedName(subname, .Object@covariance)
-			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row)
+			cov <- mxEvalByName(covname, model, compute=TRUE, defvar.row=defvar.row, .extraBack=7L)
 			dnames <- .Object$dims
 			if(!single.na(dnames)){
 				colnames(cov) <- dnames
@@ -106,7 +339,7 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 			}
 			ret[['covariance']] <- cov
 		}
-		if ('means' %in% what) {
+		if (any(c('means', 'mean') %in% what)) {
 			meanname <- .Object@means
 			if(!single.na(meanname)){
 				meanname <- .modifyDottedName(subname, meanname, sep=".")
@@ -117,18 +350,6 @@ setMethod("genericGetExpected", signature("MxExpectationNormal"),
 				}
 			} else {mean <- matrix( , 0, 0)}
 			ret[['means']] <- mean
-		}
-		if ('thresholds' %in% what) {
-			thrname <- .Object@thresholds
-			if(!single.na(thrname)){
-				thrname <- .modifyDottedName(subname, thrname, sep=".")
-				thr <- mxEvalByName(thrname, model, compute=TRUE, defvar.row=defvar.row)
-				tnames <- .Object$threshnames
-				if(!single.na(tnames)){
-					colnames(thr) <- tnames
-				}
-			} else {thr <- matrix( , 0 , 0)}
-			ret[['thresholds']] <- thr
 		}
 		ret
 	})
@@ -183,49 +404,45 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
 		nv <- nrow(cov)
-		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
-		mnsNames <- paste0('mean', 1:nv)
 		thr <- ret[['thresholds']]
-		if (prod(dim(thr)) == 0) {
-			v <- c(vech(cov), mns[!is.na(mns)])
-			names(v) <- c(covNames, mnsNames[!is.na(mns)])
-		} else {
+		if (prod(dim(thr)) != 0) {
 			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
-			v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
 		}
+		v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
 		return(v)
 })
 
 .standardizeCovMeansThresholds <- function(cov, means, thresholds, dth, vector=FALSE){
-	if(!is.null(names(means))){
-		mnames <- names(means)
-	} else if(!is.null(colnames(means)) && length(means) == length(colnames(means))) {
-		mnames <- colnames(means)
-	} else if(!is.null(rownames(means)) && length(means) == length(rownames(means))){
-		mnames <- rownames(means)
-	} else {
-		stop("I give up. Have no idea how to standardize this expectation.\nYour means must have rownames(), colnames(), or names().")
-	}
-	ordInd <- match(colnames(thresholds), mnames)
-	thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)[ordInd]), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
-	means[ordInd] <- means[ordInd] - means[ordInd]
-	cov <- .ordinalCov2Cor(cov, ordInd)
+  mnames <- colnames(cov)
+  if (length(mnames) == 0) {
+    stop("I give up. Have no idea how to standardize this expectation.\nYour covariance matrix must have dimnames.")
+  }
+  if (prod(dim(thresholds)) == 0) {
+    ordInd <- c()
+  } else {
+    ordInd <- match(colnames(thresholds), mnames)
+    thresholds <- matrix( (c(thresholds) - rep(means[ordInd], each=nrow(thresholds)) ) / rep(sqrt(diag(cov)[ordInd]), each=nrow(thresholds)), nrow=nrow(thresholds), ncol=ncol(thresholds) )
+    means[ordInd] <- means[ordInd] - means[ordInd]
+    cov <- .ordinalCov2Cor(cov, ordInd)
+  }
 	if(!vector){
 		return(list(cov=cov, means=means, thresholds=thresholds))
 	} else {
 		v <- c()
 		vn <- c()
-		for (vx in 1:length(mnames)) {
-			tcol <- which(vx == ordInd)
-			if (length(tcol) == 0) {
-				v <- c(v, means[vx])
-				vn <- c(vn, mnames[vx])
-			} else {
-				tcount <- sum(dth[,tcol])
-				v <- c(v, thresholds[1:tcount,tcol])
-				vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
-			}
+		if (length(means)) {
+		  for (vx in 1:length(mnames)) {
+		    tcol <- which(vx == ordInd)
+		    if (length(tcol) == 0) {
+		      v <- c(v, means[vx])
+		      vn <- c(vn, mnames[vx])
+		    } else {
+		      tcount <- sum(dth[,tcol])
+		      v <- c(v, thresholds[1:tcount,tcol])
+		      vn <- c(vn, paste0(mnames[vx], 't', 1:tcount))
+		    }
+		  }
 		}
 		for (vx in 1:length(mnames)) {
 			if (any(vx == ordInd)) next
@@ -258,6 +475,10 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 
 imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=model$name)
 {
+  warnModelCreatedByOldVersion(model)
+  if (!is(model[[subname]], "MxModel")) {
+    stop(paste("Submodel", subname, "in model", model$name, "is not found"))
+  }
 	if(is.null(model[[subname]]$expectation) && (class(model[[subname]]$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()
@@ -292,7 +513,7 @@ sse <- function(x){sum(x^2)}
 #'
 #' @details
 #' The Jacobian is estimated by the central finite difference.
-#' 
+#'
 #' If the \code{standardize} argument is TRUE, then the Jacobian is for the standardized model.
 #' For Normal expectations the standardized manifest model has the covariances returned as correlations, the variances returned as ones, the means returned as zeros, and the thresholds are returned as z-scores.
 #' For the thresholds the z-scores are computed by using the model-implied means and variances.
@@ -318,22 +539,35 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 		jac <- numDeriv::jacobian(func=.mat2param, x=theParams, method.args=list(r=2), model=model, defvar.row=defvar.row, standardize=standardize)
 		dimnames(jac) <- list(names(mxGetExpected(model, 'vector')), names(theParams))
 	}
-	
+
 	return(jac)
 }
 
 mxCheckIdentification <- function(model, details=TRUE){
+  warnModelCreatedByOldVersion(model)
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
 	if( class(model$fitfunction) %in% notAllowedFits ){
 		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
 		stop(msg, call.=FALSE)
 	}
-	if(imxHasConstraint(model)){
-		stop("Whoa Nelly.  I found an MxConstraint in your model.  I just cannot work under these conditions. I will be in my trailer until you reparameterize your model without using mxConstraint().")
+	if(imxHasDefinitionVariable(model)){
+		stop("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
 	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	jac <- omxManifestModelByParameterJacobian(model)
+	if(imxHasConstraint(model)){
+		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(hessian=FALSE), mxComputeReportDeriv())))
+		tmpModel <- mxRun(tmpModel, silent=TRUE)
+		cjac <- tmpModel$output$constraintJacobian
+		# drop model name from constraint name
+		rownames(cjac) <- sapply(strsplit(rownames(cjac), fixed=TRUE, split=imxSeparatorChar), '[', 2)
+	} else {
+		cjac <- matrix(, nrow=0, ncol=length(theParams))
+		colnames(cjac) <- names(theParams)
+	}
+	# Concatenate via rows the model and constraint Jacobians
+	jac <- rbind(jac, cjac)
 	# Check that rank of jac == length(theParams)
 	rank <- qr(jac)$rank
 	if(rank == length(theParams)){
@@ -367,17 +601,49 @@ mxCheckIdentification <- function(model, details=TRUE){
 }
 
 setGeneric("genericGenerateData",
-	function(.Object, model, nrows, subname) {
+	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		   .backend, nrowsProportion) {
 	return(standardGeneric("genericGenerateData"))
 })
 
 setMethod("genericGenerateData", signature("MxExpectationNormal"),
-	function(.Object, model, nrows, subname) {
-		return(generateNormalData(model, nrows, subname))
-})
+	  function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
+		   .backend, nrowsProportion) {
+	    return(generateNormalData(model, nrows, subname, empirical, returnModel,
+				      use.miss, .backend, nrowsProportion))
+	  })
 
-generateNormalData <- function(model, nrows, subname){
-	origData <- findDataForSubmodel(model, subname)
+.rmvnorm <- function(nrow, mean, sigma, empirical) {
+  if (!empirical) {
+    mvtnorm::rmvnorm(nrow, mean, sigma)
+  } else {
+    MASS::mvrnorm(nrow, mu=mean, Sigma=sigma, empirical=TRUE)
+  }
+}
+
+calcNumRows <- function(nrows, nrowsProportion, origRows, subname) {
+  if (is.null(nrows)) {
+    if (is.null(origRows)) stop("You must specify nrows")
+    if (!is.null(nrowsProportion)) {
+      nrows <- round(origRows * nrowsProportion)
+      if (nrows < 1) {
+	nrows <- 1
+	warning(paste("In model", omxQuotes(subname),
+		      "nrowsProportion is too small. Rounding up to 1 row"))
+      }
+    } else {
+      nrows <- origRows
+    }
+  }
+  nrows
+}
+
+generateNormalData <- function(model, nrows, subname, empirical, returnModel, use.miss,
+			       .backend, nrowsProportion) {
+  origData <- findDataForSubmodel(model, subname)
+  origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
+  nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)
+
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model[[subname]])){
 		if (origData$type != 'raw') {
@@ -397,7 +663,7 @@ generateNormalData <- function(model, nrows, subname){
 			theMeans <- imxGetExpectationComponent(model, "means", defvar.row=i, subname=subname)
 			theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i, subname=subname)
 			theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i, subname=subname)
-			data[i,] <- mvtnorm::rmvnorm(1, theMeans, theCov)
+			data[i,] <- .rmvnorm(1, theMeans, theCov, empirical)
 		}
 		data <- ordinalizeDataHelper(data, theThresh, origData)
 		if (!is.null(origData)) {
@@ -405,26 +671,51 @@ generateNormalData <- function(model, nrows, subname){
 				data[[dcol]] <- origData[[dcol]]
 			}
 		}
+	} else if (!is.null(origData) && origData$type == 'cov' && returnModel) {
+		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
+		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
+		if (length(theMeans) == 0) theMeans <- NA
+		if (empirical) {
+		  got <- mxModel(model[[subname]], mxData(theCov, "cov", means=theMeans, numObs=nrows))
+		} else {
+		  newCov <- rWishart(1, nrows, theCov)[,,1] / nrows
+		  dimnames(newCov) <- dimnames(theCov)
+		  got <- mxModel(model[[subname]],
+				 mxData(newCov, "cov", means=theMeans, numObs=nrows))
+		}
+		  return(got)
 	} else{
-		#use generic functions and mvtnorm::rmvnorm() to generate data
 		theMeans <- imxGetExpectationComponent(model, "means", subname=subname)
 		theCov <- imxGetExpectationComponent(model, "covariance", subname=subname)
 		theThresh <- imxGetExpectationComponent(model, "thresholds", subname=subname)
 		if (length(theMeans) == 0) {
 			theMeans <- rep(0, nrow(theCov))
 		}
-		data <- mvtnorm::rmvnorm(nrows, theMeans, theCov)
+		data <- .rmvnorm(nrows, theMeans, theCov, empirical)
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
 		data <- ordinalizeDataHelper(data, theThresh, origData)
 	}
-	return(data)
+  if (use.miss && !is.null(origData) && origData$type == 'raw' &&
+        all(colnames(data) %in% colnames(origData$observed))) {
+	  del <- is.na(origData$observed[,colnames(data),drop=FALSE])
+	  if (nrows != origRows) {
+	    del    <- del[sample.int(origRows, nrows, replace=TRUE),,drop=FALSE]
+	  }
+	  data[del] <- NA
+	}
+	if (returnModel) {
+	  mxModel(model[[subname]], mxData(as.data.frame(data), "raw"))
+	} else {
+	  as.data.frame(data)
+	}
 }
 
 ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
 	if (!is.null(origData) && is(origData, "MxData")) origData <- origData$observed
 	if( prod(dim(thresh)) != 0){
 		ordvars <- colnames(thresh)
+    if (length(ordvars) != ncol(thresh)) stop("thresholds missing column names")
 		for(avar in ordvars){
 			delthr <- thresh[,avar]
 			usethr <- 1:sum(!is.na(delthr))  # assumes NA indicates unused threshold
@@ -443,10 +734,12 @@ ordinalizeDataHelper <- function(data, thresh, origData=NULL) {
 	return(data)
 }
 
-generateRelationalData <- function(model, returnModel, .backend, subname) {
+generateRelationalData <- function(model, returnModel, .backend, subname, empirical) {
 	model <- model[[subname]]
 	# TODO add outside data reference to relational data
 	if (.backend) {
+	  if (empirical) stop("mxGenerateData(..., empirical=TRUE) is not implemented for multilevel models")
+
 		plan <- mxComputeGenerateData()
 		model$expectation$.maxDebugGroups <- 0L
 		model$expectation$.optimizeMean <- 0L
@@ -483,6 +776,7 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 		}
 	}
 
+	# nocov start
 	plan <- mxComputeSequence(list(
 	    mxComputeOnce('expectation', 'distribution', 'flat'),
 	    mxComputeReportExpectation()
@@ -507,8 +801,8 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 		groupTodo <- ed$layout[ed[[groupName]]$layout[,'aIndex'],]
 		for (cx in 1:numCopies) {
 			todo <- groupTodo[seq(1+(cx-1)*clumpSize, cx*clumpSize),]
-			repl1 <- mvtnorm::rmvnorm(1, ed[[groupName]]$mean[seq(1+(cx-1)*cxLength, cx*cxLength)],
-						  sigma=as.matrix(ed[[groupName]]$covariance))
+			repl1 <- .rmvnorm(1, ed[[groupName]]$mean[seq(1+(cx-1)*cxLength, cx*cxLength)],
+					  sigma=as.matrix(ed[[groupName]]$covariance), empirical)
 			dx <- 1
 			for (tx in 1:nrow(todo)) {
 				modelName <- as.character(todo[tx,'model'])
@@ -545,6 +839,7 @@ generateRelationalData <- function(model, returnModel, .backend, subname) {
 		}
 		model
 	}
+	# nocov end
 }
 
 simulate.MxModel <- function(object, nsim = 1, seed = NULL, ...) {
@@ -571,10 +866,13 @@ extractObservedData <- function(model) {
 }
 
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
-			   ..., .backend=TRUE, subname=NULL) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxGenerateData does not accept values for the '...' argument")
+			   ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion=NULL) {
+	prohibitDotdotdot(list(...))
+	if (!is.null(nrows) && !is.null(nrowsProportion)) {
+	  stop("You cannot specify both nrows and nrowsProportion")
+	}
+	if (!is.null(nrows) && nrows != round(nrows)) {
+	  stop(paste("Cannot generate a non-integral number of rows:", nrows))
 	}
 	if (is(model, 'data.frame')) {
 		fake <- omxAugmentDataWithWLSSummary(mxData(model,'raw'), "ULS", "marginals",
@@ -584,15 +882,25 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		fake$M$values <- obsStats$means
 		if (!is.null(obsStats$thresholds)) fake$thresh$values <- obsStats$thresholds
 
+		if (!is.null(nrowsProportion)) {
+		  nrows <- round(nrow(model) * nrowsProportion)
+		  if (nrows < 1) {
+		    nrows <- 1
+		    warning(paste("In model", omxQuotes(model$name),
+				  "nrowsProportion is too small. Rounding up to 1 row"))
+		  }
+		}
 		if(is.null(nrows)) nrows <- nrow(model)
-		return(mxGenerateData(fake, nrows, returnModel))
+		return(mxGenerateData(fake, nrows, returnModel, empirical=empirical))
 	}
+  warnModelCreatedByOldVersion(model)
 	if(is.null(subname)) subname <- model$name
 	if (is.null(model[[subname]]$expectation) && is(model[[subname]]$fitfunction, 'MxFitFunctionMultigroup')) {
 		todo <- sub(".fitfunction", "", model[[subname]]$fitfunction$groups, fixed=TRUE)
 		for (s1 in todo) {
-			model <- mxModel(model, mxGenerateData(model, returnModel=TRUE, nrows=nrows,
-							       use.miss=use.miss, .backend=.backend, subname=s1))
+		  model <- mxModel(model, mxGenerateData(model, returnModel=TRUE, nrows=nrows,
+							 use.miss=use.miss, .backend=.backend, subname=s1,
+							 empirical=empirical, nrowsProportion=nrowsProportion))
 		}
 		if (!returnModel) {
 			return(extractObservedData(model))
@@ -600,41 +908,8 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 			return(model)
 		}
 	}
-	fellner <- is(model[[subname]]$expectation, "MxExpectationRAM") && length(model[[subname]]$expectation$between);
-	if (!fellner) {
-		origData <- NULL
-		if (!is.null(model[[subname]]@data)) {
-			if (model[[subname]]@data@type == 'raw') {
-				origData <- model[[subname]]@data@observed
-				if (length(nrows)==0) nrows <- nrow(origData)
-			} else if (model[[subname]]@data@type %in% c('cov','cor')) {
-				if (length(nrows)==0) nrows <- model[[subname]]@data@numObs
-			}
-		}
-		if (is.null(nrows)) stop("You must specify nrows")
-		if (nrows != round(nrows)) stop(paste("Cannot generate a non-integral number of rows:", nrows))
-		data <- genericGenerateData(model[[subname]]$expectation, model, nrows, subname)
-		if (use.miss && !is.null(origData) && all(colnames(data) %in% colnames(origData))) {
-			del <- is.na(origData[,colnames(data),drop=FALSE])
-			if (nrows != nrow(origData)) {
-				del    <- del[sample.int(nrow(origData), nrows, replace=TRUE),,drop=FALSE]
-			}
-			data[del] <- NA
-		}
-		if (returnModel) {
-			mxModel(model[[subname]], mxData(as.data.frame(data), "raw"))
-		} else {
-			as.data.frame(data)
-		}
-	} else {
-		if (!use.miss) {
-			stop("use.miss=FALSE is not implemented for relational models")
-		}
-		if (length(nrows)) {
-			stop("Specification of the number of rows is not supported for relational models")
-		}
-		generateRelationalData(model, returnModel, .backend, subname)
-	}
+	genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical,
+			    returnModel, use.miss, .backend, nrowsProportion)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {
@@ -651,7 +926,7 @@ verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, obj
 			") and the observed covariance matrix (", omxQuotes(rownames(data)),
 			") in the ", objectiveName, " expectation function in model ",
 			omxQuotes(modelname), " are not identical.")
-		stop(msg, call. = FALSE)		
+		stop(msg, call. = FALSE)
 	}
 }
 
@@ -665,12 +940,13 @@ verifyMeans <- function(meansName, mxDataObject, flatModel, modelname) {
 				"for the observed means.")
 			stop(msg, call. = FALSE)
 		}
-		meanDimnames <- dimnames(means)		
+		meanDimnames <- dimnames(means)
 	}
 }
 
-setMethod("genericExpFunConvert", "MxExpectationNormal", 
+setMethod("genericExpFunConvert", "MxExpectationNormal",
 	function(.Object, flatModel, model, labelsData, dependencies) {
+    .Object <- callNextMethod()
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		if(is.na(.Object@data)) {
@@ -682,9 +958,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 
 		mxDataObject <- flatModel@datasets[[.Object@data]]
 		dataName <- .Object@data
-		.Object@data <- imxLocateIndex(flatModel, .Object@data, name)
 		threshName <- .Object@thresholds
-		.Object@thresholds <- imxLocateIndex(flatModel, threshName, name)
 		covName <- .Object@covariance
 		covariance <- flatModel[[covName]]
 		.Object@covariance <- imxLocateIndex(flatModel, .Object@covariance, name)
@@ -707,8 +981,31 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 		if (single.na(.Object@dims)) {
 			.Object@dims <- covNames
 		}
+
+    if (.hasSlot(.Object, 'selectionVector')) {
+      .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, covNames)
+    }
+
 		return(.Object)
 })
+
+prepSelectionPlan <- function(selPlan, covNames) {
+  if (is.null(selPlan)) return(NULL)
+
+  ind <- match(selPlan$from, covNames)
+  if (any(is.na(ind))) {
+    stop(paste("Can't find selectionPlan from variables",
+               omxQuotes(selPlan$from[is.na(ind)])))
+  }
+  selPlan$from <- ind - 1L
+  ind <- match(selPlan$to, covNames)
+  if (any(is.na(ind))) {
+    stop(paste("Can't find selectionPlan to variables",
+               omxQuotes(selPlan$to[is.na(ind)])))
+  }
+  selPlan$to <- ind - 1L
+  selPlan
+}
 
 verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expectationName) {
 	if (is.na(meansName)) {
@@ -723,7 +1020,7 @@ verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expec
 			msg <- paste("The",type,"covariance matrix associated",
 				     "with", expectationName, "in model",
 				     omxQuotes(modelname), "does not contain dimnames.")
-			stop(msg, call. = FALSE)	
+			stop(msg, call. = FALSE)
 		}
 		covRows <- covDimnames[[1]]
 		covCols <- covDimnames[[2]]
@@ -742,7 +1039,7 @@ verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expec
 			msg <- paste("The",type,"means matrix associated",
 				"with", expectationName, "in model",
 				omxQuotes(modelname), "does not contain dimnames.")
-			stop(msg, call.=FALSE)	
+			stop(msg, call.=FALSE)
 	}
 	meanRows <- meanDimnames[[1]]
 	meanCols <- meanDimnames[[2]]
@@ -768,7 +1065,7 @@ verifyObservedNames <- function(data, means, type, flatModel, modelname, expecta
 	}
 	if (type == "cov" || type == "cor") {
 		if (length(dataNames) < 2 ||
-			is.null(dataNames[[1]]) || is.null(dataNames[[2]]) || 
+			is.null(dataNames[[1]]) || is.null(dataNames[[2]]) ||
 			!identical(dataNames[[1]], dataNames[[2]])) {
 				msg <- paste("The dataset associated with the", expectationName,
 					"expectation function in model", omxQuotes(modelname),
@@ -776,9 +1073,9 @@ verifyObservedNames <- function(data, means, type, flatModel, modelname, expecta
 			stop(msg, call. = FALSE)
 		}
 		if (!single.na(means) && is.null(dimnames(means))) {
-			msg <- paste("In model", omxQuotes(modelname), 
+			msg <- paste("In model", omxQuotes(modelname),
 				", the observed means vector does not contain column names.",
-				"Use the name() function to assign names to the means vector.")
+				"Use the names() function to assign names to the means vector.")
 			stop(msg, call. = FALSE)
 		}
 		if (!single.na(means) && !identical(dataNames[[1]], dimnames(means)[[2]])) {
@@ -803,9 +1100,9 @@ generateDataColumns <- function(flatModel, covNames, dataName) {
 	if (any(is.na(retval))) {
 		msg <- paste("The column name(s)", omxQuotes(covNames[is.na(retval)]),
 			     "in the expected covariance matrix",
-			     "of the expectation function in model",
-			     omxQuotes(flatModel@name),
-			     "cannot be found in the column names of the data.")
+			     "of the expectation function",
+			     "cannot be found in the column names of",
+			     omxQuotes(dataName))
 		stop(msg, call. = FALSE)
 	}
 	return(retval - 1L)
@@ -820,20 +1117,20 @@ updateThresholdDimnames <- function(flatExpectation, flatModel, labelsData) {
 	thresholds <- flatModel[[threshName]]
 	if (is.null(thresholds)) {
 		modelname <- getModelName(flatExpectation)
-		stop(paste("Unknown thresholds name", 
+		stop(paste("Unknown thresholds name",
 			omxQuotes(simplifyName(threshName, modelname)),
 			"detected in the expectation function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
 	dims <- flatExpectation@threshnames
-	if (!is.null(colnames(thresholds)) && !single.na(dims) && 
+	if (!is.null(colnames(thresholds)) && !single.na(dims) &&
 		!identical(colnames(thresholds), dims)) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The thresholds matrix associated",
-		"with the expectation function in model", 
+		"with the expectation function in model",
 		omxQuotes(modelname), "contains column names and",
 		"the expectation function has specified non-identical threshnames.")
-		stop(msg, call.=FALSE)      
+		stop(msg, call.=FALSE)
 	}
 	if (is.null(colnames(thresholds)) && !single.na(dims)) {
 		if (!flatModel@unsafe) {
@@ -842,12 +1139,12 @@ updateThresholdDimnames <- function(flatExpectation, flatModel, labelsData) {
 			if (ncol(threshMatrix) != length(dims)) {
 				modelname <- getModelName(flatExpectation)
 				msg <- paste("The thresholds matrix associated",
-					"with the expectation function in model", 
+					"with the expectation function in model",
 					omxQuotes(modelname), "is not of the same length as the 'threshnames'",
 					"argument provided by the expectation function. The 'threshnames' argument is",
 					"of length", length(dims), "and the expected covariance matrix",
 					"has", ncol(threshMatrix), "columns.")
-				stop(msg, call.=FALSE)      
+				stop(msg, call.=FALSE)
 			}
 		}
 		dimnames(flatModel[[threshName]]) <- list(NULL, dims)
@@ -868,29 +1165,29 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 	covariance <- flatModel[[covName]]
 	if (is.null(covariance)) {
 		modelname <- getModelName(flatExpectation)
-		stop(paste("Unknown expected covariance name", 
+		stop(paste("Unknown expected covariance name",
 			omxQuotes(simplifyName(covName, modelname)),
 			"detected in the expectation function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
 	if (is.null(means)) {
 		modelname <- getModelName(flatExpectation)
-		stop(paste("Unknown expected means name", 
+		stop(paste("Unknown expected means name",
 			omxQuotes(simplifyName(meansName, modelname)),
 			"detected in the expectation function",
 			"of model", omxQuotes(modelname)), call. = FALSE)
 	}
 	dims <- flatExpectation@dims
-	if (!is.null(dimnames(covariance)) && !single.na(dims) && 
+	if (!is.null(dimnames(covariance)) && !single.na(dims) &&
 		!identical(dimnames(covariance), list(dims, dims))) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The expected covariance matrix associated",
-			"with the expectation function in model", 
-			omxQuotes(modelname), "contains dimnames: ", 
+			"with the expectation function in model",
+			omxQuotes(modelname), "contains dimnames: ",
             paste(toString(dimnames(covariance)), ".", sep = ""),
-			"The expectation function has specified dimnames:", 
+			"The expectation function has specified dimnames:",
 			paste(toString(dims), ".", sep =""))
-		stop(msg, call.=FALSE)		
+		stop(msg, call.=FALSE)
 	}
 	if (is.null(dimnames(covariance)) && !single.na(dims)) {
 		if (!unsafe) {
@@ -899,19 +1196,19 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 			if (nrow(covMatrix) != ncol(covMatrix)) {
 				modelname <- getModelName(flatExpectation)
 				msg <- paste("The expected covariance matrix associated",
-					"with the expectation function in model", 
+					"with the expectation function in model",
 					omxQuotes(modelname), "is not a square matrix.")
-				stop(msg, call.=FALSE)		
+				stop(msg, call.=FALSE)
 			}
 			if (nrow(covMatrix) != length(dims)) {
 				modelname <- getModelName(flatExpectation)
 				msg <- paste("The expected covariance matrix associated",
-					"with the expectation function in model", 
+					"with the expectation function in model",
 					omxQuotes(modelname), "is not of the same length as the 'dimnames'",
 					"argument provided by the expectation function. The 'dimnames' argument is",
 					"of length", length(dims), "and the expected covariance matrix",
 					"has", nrow(covMatrix), "rows and columns.")
-				stop(msg, call.=FALSE)		
+				stop(msg, call.=FALSE)
 			}
 		}
 		dimnames(flatModel[[covName]]) <- list(dims, dims)
@@ -925,12 +1222,12 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 		!identical(dimnames(means), list(NULL, dims))) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The expected means matrix associated",
-			"with the expectation function in model", 
-			omxQuotes(modelname), "contains dimnames: ", 
+			"with the expectation function in model",
+			omxQuotes(modelname), "contains dimnames: ",
             paste(toString(dimnames(means)), ".", sep = ""),
-			"The expectation function has specified dimnames:", 
+			"The expectation function has specified dimnames:",
 			paste(toString(dims), ".", sep =""))
-		stop(msg, call.=FALSE)	
+		stop(msg, call.=FALSE)
 	}
 	if (is.null(dimnames(means)) && !single.na(dims)) {
 		if (!unsafe) {
@@ -939,16 +1236,16 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 			if (nrow(meansMatrix) != 1) {
 				modelname <- getModelName(flatExpectation)
 				msg <- paste("The expected means vector associated",
-					"with the expectation function in model", 
+					"with the expectation function in model",
 					omxQuotes(modelname), "is not a 1 x n matrix.",
-					"It has dimensions", nrow(meansMatrix), "x", 
+					"It has dimensions", nrow(meansMatrix), "x",
 					paste(ncol(meansMatrix), '.', sep=''))
-				stop(msg, call.=FALSE)		
+				stop(msg, call.=FALSE)
 			}
 			if (ncol(meansMatrix) != length(dims)) {
 				modelname <- getModelName(flatExpectation)
 				msg <- paste("The expected means vector associated",
-					"with the expectation function in model", 
+					"with the expectation function in model",
 					omxQuotes(modelname), "is not of the same length as the 'dimnames'",
 					"argument provided by the expectation function. The 'dimnames' argument is",
 					"of length", length(dims), "and the expected means vector",
@@ -981,8 +1278,11 @@ checkThreshnames <- function(threshnames) {
 	return(threshnames)
 }
 
-mxExpectationNormal <- function(covariance, means = NA, 
-	dimnames = NA, thresholds = NA, threshnames = dimnames) {
+mxExpectationNormal <-
+  function(covariance, means = NA, dimnames = NA, thresholds = NA,
+           threshnames = dimnames, ..., discrete = as.character(NA),
+           discreteSpec = NULL) {
+	prohibitDotdotdot(list(...))
 	if (missing(covariance) || typeof(covariance) != "character") {
 		stop("'covariance' argument is not a string (the name of the expected covariance matrix)")
 	}
@@ -1005,7 +1305,10 @@ mxExpectationNormal <- function(covariance, means = NA,
 		stop("NA values are not allowed for 'dimnames' vector")
 	}
 	threshnames <- checkThreshnames(threshnames)
-	return(new("MxExpectationNormal", covariance, means, dimnames, thresholds, threshnames))
+  selectionVector <- NA_character_
+  selectionPlan <- NULL
+	return(new("MxExpectationNormal", covariance, means, dimnames, thresholds, threshnames,
+             discrete, discreteSpec, selectionVector, selectionPlan))
 }
 
 displayMxExpectationNormal <- function(expectation) {
@@ -1022,6 +1325,16 @@ displayMxExpectationNormal <- function(expectation) {
 	} else {
 		cat("$thresholds :", omxQuotes(expectation@thresholds), '\n')
 	}
+	if (is.null(expectation@discreteSpec)) {
+		cat("$discreteSpec : NULL \n")
+	} else {
+		cat("$discreteSpec :", expectation@discreteSpec, '\n')
+	}
+	if (single.na(expectation@discrete)) {
+		cat("$discrete : NA \n")
+	} else {
+		cat("$discrete :", omxQuotes(expectation@discrete), '\n')
+	}
 	if (single.na(expectation@threshnames)) {
 		cat("$threshnames : NA \n")
 	} else {
@@ -1031,10 +1344,10 @@ displayMxExpectationNormal <- function(expectation) {
 }
 
 
-setMethod("print", "MxExpectationNormal", function(x,...) { 
-	displayMxExpectationNormal(x) 
+setMethod("print", "MxExpectationNormal", function(x,...) {
+	displayMxExpectationNormal(x)
 })
 
-setMethod("show", "MxExpectationNormal", function(object) { 
-	displayMxExpectationNormal(object) 
+setMethod("show", "MxExpectationNormal", function(object) {
+	displayMxExpectationNormal(object)
 })

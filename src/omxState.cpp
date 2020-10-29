@@ -214,6 +214,7 @@ void FreeVarGroup::log(omxState *os)
 
 omxGlobal::omxGlobal()
 {
+	RNGCheckedOut = false;
 	mpi = 0;
 	silent = true;
 	ComputePersist = false;
@@ -226,7 +227,6 @@ omxGlobal::omxGlobal()
 	analyticGradients = 0;
 	llScale = -2.0;
 	debugProtectStack = OMX_DEBUG;
-	anonAlgebra = 0;
 	rowLikelihoodsWarning = false;
 	unpackedConfidenceIntervals = false;
 	topFc = NULL;
@@ -234,6 +234,9 @@ omxGlobal::omxGlobal()
 	gradientTolerance = 1e-6;
 	boundsUpdated = false;
 	dataTypeWarningCount = 0;
+	userInterrupted = false;
+	lastIndexDone=0;
+	lastIndexDoneTime=0;
 
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
@@ -245,6 +248,25 @@ omxGlobal::omxGlobal()
 	fvg = new FreeVarGroup;
 	fvg->id.push_back(FREEVARGROUP_NONE);  // no variables
 	freeGroup.push_back(fvg);
+
+	// Preallocate a large buffer to avoid reallocations. CRAN runs clang's ASAN
+	// to look for problems. If extensions like gwsem are instrumented and OpenMx
+	// is not instrumented then false positives can result,
+	// https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow
+	checkpointColnames.reserve(100);
+}
+
+void omxState::restoreParam(const Eigen::Ref<const Eigen::VectorXd> point)
+{
+	if (!hasFakeParam) mxThrow("Cannot restore; fake parameters not loaded");
+	hasFakeParam = false;
+
+	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+	size_t numParam = varGroup->vars.size();
+	for(size_t k = 0; k < numParam; k++) {
+		omxFreeVar* freeVar = varGroup->vars[k];
+		freeVar->copyToState(this, point[k]);
+	}
 }
 
 omxMatrix *omxState::getMatrixFromIndex(int matnum) const
@@ -254,12 +276,26 @@ omxMatrix *omxState::getMatrixFromIndex(int matnum) const
 
 omxMatrix *omxState::lookupDuplicate(omxMatrix *element) const
 {
+  if (!element) return 0;
 	if (!element->hasMatrixNumber) mxThrow("lookupDuplicate without matrix number");
 	return getMatrixFromIndex(element->matrixNumber);
 }
 
+omxExpectation *omxState::getParent(omxExpectation *element) const
+{
+	auto *st = this;
+	if (parent) st = parent;
+	return st->expectationList[element->expNum];
+}
+
+omxExpectation *omxState::lookupDuplicate(omxExpectation *element) const
+{
+	return expectationList[element->expNum];
+}
+
 void omxState::setWantStage(int stage)
 {
+	if (wantStage == stage) mxThrow("omxState::setWantStage(%d) is redundent", stage);
 	wantStage = stage;
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
@@ -347,6 +383,11 @@ int omxState::nextId = 0;
 
 void omxState::init()
 {
+	// We use FF_COMPUTE_INITIAL_FIT because an expectation
+	// could depend on the value of an algebra. However, we
+	// don't mark anything clean because an algebra could
+	// depend on an expectation (via a fit function).
+
 	stateId = ++nextId;
 	setWantStage(FF_COMPUTE_INITIAL_FIT);
 }
@@ -359,7 +400,7 @@ void omxState::loadDefinitionVariables(bool start)
 	for(int ex = 0; ex < int(dataList.size()); ++ex) {
 		omxData *e1 = dataList[ex];
 		if (e1->defVars.size() == 0) continue;
-		if (start && e1->rows != 1) {
+		if (start && e1->nrows() != 1) {
 			e1->loadFakeData(this, NA_REAL);
 			continue;
 		}
@@ -367,12 +408,13 @@ void omxState::loadDefinitionVariables(bool start)
 	}
 }
 
-omxState::omxState(omxState *src) : clone(true)
+omxState::omxState(omxState *src, bool isTeam) :
+  wantStage(0), parent(src), workBoss(isTeam? src : 0), hasFakeParam(false)
 {
 	init();
 
 	dataList			= src->dataList;
-		
+
 	for(size_t mx = 0; mx < src->matrixList.size(); mx++) {
 		// TODO: Smarter inference for which matrices to duplicate
 		matrixList.push_back(omxDuplicateMatrix(src->matrixList[mx], this));
@@ -400,6 +442,8 @@ omxState::omxState(omxState *src) : clone(true)
 	for (size_t xx=0; xx < src->conListX.size(); ++xx) {
 		conListX.push_back(src->conListX[xx]->duplicate(this));
 	}
+
+	usingAnalyticJacobian = src->usingAnalyticJacobian;
 }
 
 void omxState::initialRecalc(FitContext *fc)
@@ -421,6 +465,8 @@ void omxState::initialRecalc(FitContext *fc)
 	for (size_t xx=0; xx < conListX.size(); ++xx) {
 		conListX[xx]->prep(fc);
 	}
+
+	setWantStage(FF_COMPUTE_FIT);
 }
 
 void StateInvalidator::doData()
@@ -464,6 +510,13 @@ void omxState::invalidateCache()
 	si();
 }
 
+void omxState::connectToData()
+{
+	for(size_t ex = 0; ex < expectationList.size(); ex++) {
+		expectationList[ex]->connectToData();
+	}
+}
+
 omxState::~omxState()
 {
 	if(OMX_DEBUG) { mxLog("Freeing %d Constraints.", (int) conListX.size());}
@@ -486,7 +539,7 @@ omxState::~omxState()
 		matrixList[mk]->hasMatrixNumber = false;
 		omxFreeMatrix(matrixList[mk]);
 	}
-		
+
 	if(OMX_DEBUG) { mxLog("Freeing %d Model Expectations.", (int) expectationList.size());}
 	for(size_t ex = 0; ex < expectationList.size(); ex++) {
 		omxFreeExpectationArgs(expectationList[ex]);
@@ -593,10 +646,14 @@ static ssize_t mxLogWriteSynchronous(const char *outBuf, int len)
 	return wrote;
 }
 
+static const bool onlyThreadZero = false;
+
 void mxLogBig(const std::string &str)   // thread-safe
 {
 	ssize_t len = ssize_t(str.size());
 	if (len == 0) mxThrow("Attempt to log 0 characters with mxLogBig");
+
+	if (onlyThreadZero && omx_absolute_thread_num() != 0) return;
 
 	std::string fullstr;
 	if (mxLogCurrentRow == -1) {
@@ -606,7 +663,7 @@ void mxLogBig(const std::string &str)   // thread-safe
 	}
 	fullstr += str;
 	len = ssize_t(fullstr.size());
-	
+
 	const char *outBuf = fullstr.c_str();
 	ssize_t wrote = mxLogWriteSynchronous(outBuf, len);
 	if (wrote != len) mxThrow("mxLogBig only wrote %d/%d, errno %d", int(wrote), int(len), errno);
@@ -614,6 +671,8 @@ void mxLogBig(const std::string &str)   // thread-safe
 
 void mxLog(const char* msg, ...)   // thread-safe
 {
+	if (onlyThreadZero && omx_absolute_thread_num() != 0) return;
+
 	const int maxLen = 240;
 	char buf1[maxLen];
 	char buf2[maxLen];
@@ -663,7 +722,10 @@ bool omxGlobal::interrupted()
 	// see Rcpp's checkUserInterrupt
 	auto checkInterruptFn = [](void *dummy){ R_CheckUserInterrupt(); };
 	bool got = R_ToplevelExec(checkInterruptFn, NULL) == FALSE;
-	if (got) omxRaiseErrorf("User interrupt");
+	if (got) {
+		omxRaiseErrorf("User interrupt");
+		userInterrupted = true;
+	}
 	return got;
 }
 
@@ -685,7 +747,47 @@ void omxGlobal::reportProgress1(const char *context, std::string detail)
 
 	lastProgressReport = now;
 
-	std::string str = context;
+	auto &cli = Global->computeLoopIter;
+	auto &clm = Global->computeLoopMax;
+	std::string str;
+	if (cli.size() == 1 && cli[0] != lastIndexDone) {
+		lastIndexDone = cli[0];
+		lastIndexDoneTime = now;
+	}
+	if (cli.size() == 1 && clm[0] != 0 && cli[0] <= clm[0] && lastIndexDone > 0) {
+		str += "[";
+		double pctDone = lastIndexDone / double(clm[0]);
+		auto elapsed = lastIndexDoneTime - Global->startTime;
+		auto estTotal = elapsed / pctDone;
+		int estRemain = estTotal - elapsed;
+		if (estTotal < 60*60) {
+			str += string_snprintf("%02d:%02d", estRemain/60, estRemain%60);
+		} else if (estTotal < 60*60*24) {
+			int hours = estRemain/(60*60);
+			int min = (estRemain - hours*60*60) / 60;
+			int sec = estRemain % 60;
+			str += string_snprintf("%02d:%02d:%02d", hours, min, sec);
+		} else {
+			int days = estRemain/(24*60*60);
+			estRemain -= days*24*60*60;
+			int hours = estRemain/(60*60);
+			estRemain -= hours*60*60;
+			int min = (estRemain) / 60;
+			int sec = estRemain % 60;
+			str += string_snprintf("%d %02d:%02d:%02d", days, hours, min, sec);
+		}
+		str += "] ";
+	} else if (cli.size() > 1) {
+		str += "[";
+		for (int x1=0; x1 < int(cli.size()); ++x1) {
+			std::ostringstream os_temp;
+			os_temp << cli[x1];
+			str += os_temp.str();
+			if (x1 < int(cli.size())-1) str += "/";
+		}
+		str += "] ";
+	}
+	str += context;
 	str += " ";
 	str += detail;
 	reportProgressStr(str);
@@ -747,21 +849,6 @@ void omxRaiseErrorf(const char* msg, ...)
         if (overflow) mxLog("Too many errors: %s", str.c_str());
 }
 
-void mxThrow(const char* msg, ...)
-{
-	std::string str;
-	va_list ap;
-	va_start(ap, msg);
-	string_vsnprintf(msg, ap, str);
-	va_end(ap);
-
-	if(OMX_DEBUG) {
-		mxLog("mxThrow: %s", str.c_str());
-	}
-
-	throw std::runtime_error(str);
-}
-
 const char *omxGlobal::getBads()
 {
 	if (bads.size() == 0) return NULL;
@@ -785,7 +872,7 @@ void omxRaiseError(const char* msg) { // DEPRECATED
 	omxRaiseErrorf("%s", msg);
 }
 
-void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, ...)
+void omxGlobal::checkpointMessage(FitContext *fc, const char *fmt, ...)
 {
 	std::string str;
 	va_list ap;
@@ -796,20 +883,19 @@ void omxGlobal::checkpointMessage(FitContext *fc, double *est, const char *fmt, 
 	if (OMX_DEBUG) mxLog("checkpointMessage: %s", str.c_str());
 
 	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->message(fc, est, str.c_str());
+		checkpointList[i]->message(fc, str.c_str());
 	}
 }
 
-void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force)
+void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, bool force)
 {
 	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->postfit(callerName, fc, est, force);
+		checkpointList[i]->postfit(callerName, fc, force);
 	}
 }
 
 void UserConstraint::prep(FitContext *fc)
 {
-	fc->state->setWantStage(FF_COMPUTE_INITIAL_FIT);
 	refresh(fc);
 	nrows = pad->rows;
 	ncols = pad->cols;
@@ -817,7 +903,6 @@ void UserConstraint::prep(FitContext *fc)
 	if (size == 0) {
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
 	}
-	omxAlgebraPreeval(pad, fc);
 	if(jacobian){
 		jacMap.resize(jacobian->cols);
 		std::vector<const char*> *jacColNames = &jacobian->colnames;
@@ -826,6 +911,11 @@ void UserConstraint::prep(FitContext *fc)
 			jacMap[nx] = to;
 		}
 	}
+}
+
+void UserConstraint::preeval(FitContext *fc)
+{
+	omxRecompute(pad, fc);
 }
 
 UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin) :
@@ -838,7 +928,7 @@ UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg
 	linear = lin;
 }
 
-omxConstraint *UserConstraint::duplicate(omxState *dest)
+omxConstraint *UserConstraint::duplicate(omxState *dest) const
 {
 	omxMatrix *args[2] = {
 		dest->lookupDuplicate(pad->algebra->algArgs[0]),
@@ -904,13 +994,13 @@ void omxCheckpoint::omxWriteCheckpointHeader()
 	fflush(file);
 	wroteHeader = true;
 }
- 
-void omxCheckpoint::message(FitContext *fc, double *est, const char *msg)
+
+void omxCheckpoint::message(FitContext *fc, const char *msg)
 {
-	postfit(msg, fc, est, true);
+	postfit(msg, fc, true);
 }
 
-void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bool force)
+void omxCheckpoint::postfit(const char *context, FitContext *fc, bool force)
 {
 	const int timeBufSize = 32;
 	char timeBuf[timeBufSize];
@@ -938,7 +1028,7 @@ void omxCheckpoint::postfit(const char *context, FitContext *fc, double *est, bo
 		size_t numParam = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
 		for (size_t px=0; px < numParam; ++px) {
 			if (lx < vars.size() && vars[lx]->id == (int)px) {
-				fprintf(file, "\t%.10g", est[lx]);
+				fprintf(file, "\t%.10g", fc->est[lx]);
 				++lx;
 			} else {
 				fprintf(file, "\tNA");
@@ -1007,7 +1097,7 @@ void omxFreeVar::copyToState(omxState *os, double val)
 		int col = loc->col;
 		omxSetMatrixElement(matrix, row, col, val);
 		if (OMX_DEBUG) {
-			mxLog("free var %s, matrix %s[%d, %d] = %f",
+			mxLog("free var %s, matrix %s[%d, %d] = %.17f",
 			      name, matrix->name(), row, col, val);
 		}
 	}

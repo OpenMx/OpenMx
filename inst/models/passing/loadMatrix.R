@@ -32,6 +32,21 @@ e1 <- sapply(1:4, function (x) omxMnor(covariance = Cov[,,x], means = Mean[x,],
 
 omxCheckCloseEnough(log$objective, e1, 1e-4)
 
+#---------
+
+df <- as.data.frame(cbind(Mean, t(apply(Cov, 3, vech))))
+
+plan <- mxComputeLoop(list(
+  mxComputeLoadMatrix(c('mean', 'cov'), observed=df, method = 'data.frame'),
+  mxComputeOnce('fitfunction', 'fit'),
+  CP=mxComputeCheckpoint(toReturn=TRUE)), maxIter = 4L)
+
+m1 <- mxRun(mxModel(m1, plan))
+
+omxCheckCloseEnough(e1, m1$compute$steps$CP$log$objective, 1e-4)
+
+#---------
+
 m2 <- mxModel(m1,   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
 	    path=c('mean.csv', 'cov.csv')),

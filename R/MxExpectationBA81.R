@@ -108,6 +108,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationBA81"),
 		  }
 
 		  .Object@dataColumns <- dc
+		  .Object@dataColumnNames <- colnames(item)
 		  if (!is.na(.Object@weightColumn)) {
 			  wc <- match(.Object@weightColumn, .Object@dims) - 1L
 			  if (is.na(wc)) {
@@ -328,9 +329,7 @@ mxExpectationBA81 <- function(ItemSpec, item="item", ...,
 			      verbose=0L, weightColumn=NA_integer_,
 			      EstepItem=NULL, debugInternal=FALSE) {
 
-	if (length(list(...)) > 0) {
-		stop(paste("Remaining parameters must be passed by name", deparse(list(...))))
-	}
+  prohibitDotdotdot(list(...))
 
 	if (packageVersion("rpf") < "0.28") stop("Please install 'rpf' version 0.28 or newer")
 	if (qpoints < 3) {

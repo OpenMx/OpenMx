@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 
-set -o errexit
+#set -o errexit
+#set -v
 
-#wwwHome=openmx.psyc.virginia.edu
-wwwHome=openmx.ssri.psu.edu/software
+#wwwHome=openmx.ssri.psu.edu/software
+wwwHome=vipbg.vcu.edu/vipbg/OpenMx2/software
 
 isdef() {
     tmp1=/tmp/openmx.$$.cpp
@@ -21,30 +22,27 @@ EOF
     $CXX -c $tmp1 -o $tmp2 > /dev/null 2>&1
 }
 
-compareVersions() {
-  typeset    IFS='.'
-  typeset -a v1=( $1 )
-  typeset -a v2=( $2 )
-  typeset    n diff
-
-  for (( n=0; n<4; n+=1 )); do
-    diff=$((v1[n]-v2[n]))
-    if [ $diff -ne 0 ] ; then
-      [ $diff -le 0 ] && echo '-1' || echo '1'
-      return
-    fi
-  done
-  echo  '0'
-}
+# in case sort doesn't know about -V
+if test "$(echo 1 | sort -V 2>/dev/null)" = 1; then
+  version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
+  version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" = "$1"; }
+  version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
+  version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" = "$1"; }
+else
+  version_gt() { false; }
+  version_le() { false; }
+  version_lt() { false; }
+  version_ge() { false; }
+fi
 
 : ${R_HOME:=`R RHOME`}
-if test -z "${R_HOME}"; then 
-   echo "could not determine R_HOME" 
-   exit 1 
-fi 
+if test -z "${R_HOME}"; then
+   echo "could not determine R_HOME"
+   exit 1
+fi
 
 devmode=0
-if [ -e .devmode ]; then
+if [ -f .devmode ]; then
     echo "NOTE: ./.devmode exists; will enable extra compiler diagnostics"
     devmode=1
 fi
@@ -54,7 +52,7 @@ REXEC=${R_HOME}/bin/R
 echo 'NOTE: ./configure is not an autoconf generated script.'
 echo 'Change default C/C++ compiler and default compile flags by editing ~/.R/Makevars'
 
-CXX=$($REXEC CMD config CXX)
+CXX=`$REXEC CMD config CXX`
 
 if isdef __clang__; then
     cxx_type=clang
@@ -66,35 +64,47 @@ else
     echo "Compiler '$CXX' unrecognized; using defaults"
 fi
 
+min_gcc_version=4.9.3
 if [ "$cxx_type" = gcc ]; then
-    cxx_version=$($CXX -dumpversion | awk -F '.' '{print $1 "." $2}')
-    if [ $(compareVersions $cxx_version 4.6) -lt 0 ]; then
-	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version 4.6"
+    cxx_version=`$CXX -dumpfullversion -dumpversion | awk -F '.' '{print $1 "." $2}'`
+		#echo "gcc -> $cxx_version"
+    if version_lt $cxx_version $min_gcc_version; then
+	echo "Your version of gcc ($cxx_version) is too old to compile OpenMx. You need at least version $min_gcc_version"
 	exit 1
     fi
     if [ $devmode = 1 ]; then
 	COMPILER_CXXFLAGS="-Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-deprecated-declarations -Wno-unused-function -Wno-unused-variable"
 
-	if [ $(compareVersions $cxx_version 5.0) -gt -1 ]; then
+	if version_ge $cxx_version 5.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -fdiagnostics-color=auto -DEXTRA_GCC_DIAG -Wno-misleading-indentation -Wno-pragmas -Wno-ignored-attributes"
 	    COMPILER_LDFLAGS="$COMPILER_LDFLAGS"
-	    xcheck_CXXFLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
+	    xcheck_CXXFLAGS="-fsanitize=undefined"
 	    xcheck_LDFLAGS="-fsanitize=undefined"
 	fi
-	if [ $(compareVersions $cxx_version 6.0) -gt -1 ]; then
-	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation"
+	if version_ge $cxx_version 6.0; then
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-misleading-indentation -Wreorder"
 	fi
-	if [ $(compareVersions $cxx_version 7.0) -gt -1 ]; then
+	if version_ge $cxx_version 7.0; then
 	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-int-in-bool-context"
+	fi
+	if version_ge $cxx_version 8.0; then
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wclass-memaccess"
+	fi
+	if version_ge $cxx_version 9.0; then
+	    # As of RcppEigen 0.3.3.5.0, there is some problem with the
+	    # definition of Eigen::Ref. Try to re-enable this warning
+	    # in a year.
+	    COMPILER_CXXFLAGS="$COMPILER_CXXFLAGS -Wno-deprecated-copy"
+	    :
 	fi
     fi
 fi
 
-if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
-    host_cpu=$(uname -p)
+if [ ! -f inst/no-npsol ] && [ -r inst/npsol/checksum ]; then
+    host_cpu=`uname -p`
     if [ "x$host_cpu" = xunknown ]; then
 	# tanglu 1 has the machine architecture here
-	host_cpu=$(uname -m)
+	host_cpu=`uname -m`
     fi
     case "$host_cpu" in
 	*86_64) omx_arch=x86_64 ;;
@@ -105,21 +115,21 @@ if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
 	    ;;
     esac
 
-    os=$(uname -s)
+    os=`uname -s`
     case "$os" in
 	*Linux)
 	    omx_os=linux
 	    pick="linux/${omx_arch}/gcc${cxx_version}"
-	    want=$(grep "$pick" inst/npsol/checksum | cut -f1 -d' ')
+	    want=`grep "$pick" inst/npsol/checksum | cut -f1 -d' ' | head -1`
 	    npsol_url1="http://$wwwHome/packages/npsol/linux/${omx_arch}/$want"
 	    npsol_url2="http://$wwwHome/packages/npsol/$pick/libnpsol.a"
 	    if [ ! -f src/libnpsol.a ]; then
-		wget -q -O src/libnpsol.a "$npsol_url1" || true
+		wget -O src/libnpsol.a "$npsol_url1" || true
 		if grep -s 'HTML document' src/libnpsol.a; then
-		    wget -q -O src/libnpsol.a "$npsol_url2" || true
+		    wget -O src/libnpsol.a "$npsol_url2" || true
 		fi
 	    fi
-	    got=$(sha1sum src/libnpsol.a | cut -f1 -d' ')
+	    got=`sha1sum src/libnpsol.a | cut -f1 -d' '`
 	    if [ "x$want" = x ]; then
 		echo "************ ************"
 		echo "WARNING: Cannot verify correct libnpsol.a version"
@@ -127,11 +137,12 @@ if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
 		echo "************ ************"
 		npsol_library="src"
 	    elif [ "x$got" != "x$want" ]; then
-		rm -f src/libnpsol.a
 		echo "************ ************"
-		echo "WARNING: Ignoring bad libnpsol.a from $npsol_url1"
+		echo "Remove src/libnpsol.a with sha1sum $got"
 		echo "Please download $npsol_url1 and rename it to src/libnpsol.a"
 		echo "************ ************"
+		npsol_library="src" # comment next line if testing
+		exit 1
 	    else
 		echo "sha1sum libnpsol.a => $got   # GOOD"
 		npsol_library="src"
@@ -139,8 +150,6 @@ if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
 	    ;;
 	*Darwin)
 	    omx_os=osx
-	    arch_LDFLAGS="-mmacosx-version-min=10.7"
-	    arch_CXXFLAGS="-mmacosx-version-min=10.7"
 	    npsol_library="inst/npsol/osx"
 	    ;;
 	*)
@@ -150,56 +159,56 @@ if [ ! -e inst/no-npsol -a -r inst/npsol/checksum ]; then
     esac
 fi
 
-if [ -e src/Makevars ]; then
-    mv -f src/Makevars src/Makevars.old
-fi
-echo "### Generated from Makevars.in" > src/Makevars
-echo >> src/Makevars
+echo "### Generated from Makevars.in" > src/Makevars.new
+echo >> src/Makevars.new
 
-if [ ! -e inst/no-npsol -a -n "${npsol_library+1}" ]; then
+if [ ! -f inst/no-npsol ] && [ -n "${npsol_library+1}" ]; then
     npsol_file="${npsol_library}/libnpsol.a"
     if [ ! -f "$npsol_file" ]; then
 	echo "$npsol_file not found"
 	exit 1
     else
-	echo "NPSOL_LDFLAGS=-L../${npsol_library} -lnpsol" >> src/Makevars
+	echo "NPSOL_LDFLAGS=-L../${npsol_library} -lnpsol" >> src/Makevars.new
     fi
 fi
 
-# if [ $($REXEC --slave --vanilla -e 'cat(suppressWarnings(require("nloptr", quietly=TRUE)) && packageVersion("nloptr") >= "1.0.5")') = TRUE ]; then
+# if [ `$REXEC --slave --vanilla -e 'cat(suppressWarnings(require("nloptr", quietly=TRUE)) && packageVersion("nloptr") >= "1.0.5")'` = TRUE ]; then
 #   echo "
-# NLOPT_CXXFLAGS=$($REXEC --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat("-DHAS_NLOPT", nloptr:::CFlags())')
-# NLOPT_LDFLAGS=$($REXEC  --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat(nloptr:::LdFlags())')
-# " >> src/Makevars
+# NLOPT_CXXFLAGS=`$REXEC --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat("-DHAS_NLOPT", nloptr:::CFlags())'`
+# NLOPT_LDFLAGS=`$REXEC  --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat(nloptr:::LdFlags())'`
+# " >> src/Makevars.new
 # fi
 
 if [ "${OPENMP-yes}" = yes ]; then
     OPENMP_CXXFLAGS='$(SHLIB_OPENMP_CXXFLAGS)'
 fi
 
-echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars
-echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars
-echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars
-echo "COMPILER_LDFLAGS=$COMPILER_LDFLAGS" >> src/Makevars
-echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars
-echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars
-echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars
+echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars.new
+echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars.new
+echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars.new
+echo "COMPILER_LDFLAGS=$COMPILER_LDFLAGS" >> src/Makevars.new
+echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars.new
+echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars.new
+echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars.new
 
 # check for special environment variables
 if [ "x$IMX_SAFE" = x1 ]; then
-    echo 'DEBUG_CXXFLAGS=$(xcheck_CXXFLAGS) -UNDEBUG -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG' >> src/Makevars
-    echo 'DEBUG_LDFLAGS=$(xcheck_LDFLAGS)' >> src/Makevars
+    echo 'DEBUG_CXXFLAGS=$(xcheck_CXXFLAGS) -UNDEBUG -DOMX_BOUNDS_CHECK -D_GLIBCXX_DEBUG' >> src/Makevars.new
+    echo 'DEBUG_LDFLAGS=$(xcheck_LDFLAGS)' >> src/Makevars.new
 elif [ "x$IMX_GCOV" = x1 ]; then
     # To collect gcov statistics (gcc only)
-    echo 'DEBUG_CXXFLAGS=--coverage' >> src/Makevars
-    echo 'DEBUG_LDFLAGS=--coverage' >> src/Makevars
+    echo 'DEBUG_CXXFLAGS=--coverage' >> src/Makevars.new
+    echo 'DEBUG_LDFLAGS=--coverage' >> src/Makevars.new
 fi
 
-echo >> src/Makevars
-echo "# ---- appending Makevars.in ----" >> src/Makevars
-echo >> src/Makevars
-cat src/Makevars.in >> src/Makevars
+echo >> src/Makevars.new
+echo "# ---- appending Makevars.in ----" >> src/Makevars.new
+echo >> src/Makevars.new
+cat src/Makevars.in >> src/Makevars.new
 
-if [ -e src/Makevars.old ] && cmp -s src/Makevars src/Makevars.old; then
-    mv src/Makevars.old src/Makevars
+if [ -f src/Makevars ] && cmp -s src/Makevars src/Makevars.new; then
+    echo "src/Makevars unchanged"
+    rm -f src/Makevars.new
+else
+    mv src/Makevars.new src/Makevars
 fi

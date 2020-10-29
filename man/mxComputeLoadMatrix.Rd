@@ -3,8 +3,9 @@
 \alias{MxComputeLoadMatrix-class}
 \title{Load data from CSV files directly into the backend}
 \usage{
-mxComputeLoadMatrix(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
- row.names=FALSE, col.names=FALSE)
+mxComputeLoadMatrix(dest, method=c('csv','data.frame'), ...,
+ path=NULL, originalDataIsIndexOne=FALSE,
+ row.names=FALSE, col.names=FALSE, observed=NULL)
 }
 \arguments{
 \item{dest}{a character vector of matrix names}
@@ -19,9 +20,12 @@ mxComputeLoadMatrix(dest, method='CSV', ..., path, originalDataIsIndexOne=FALSE,
 for index 1}
 \item{row.names}{logical. Whether row names are present}
 \item{col.names}{logical. Whether column names are present}
+\item{observed}{data frame. The reservoir of data for \code{method='data.frame'}}
 }
 \description{
-  For method='CSV', the file must be formatted in a specific way.
+  THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
+  
+  For method='csv', the file must be formatted in a specific way.
   The number of columns must match the number of entries available
   in the mxMatrix. Matrix types (e.g., symmetric or diagonal) are
   respected (see \link{mxMatrix}). For example, a \emph{Full} 2x2
@@ -44,11 +48,15 @@ for index 1}
 \examples{
 library(OpenMx)
 
+dir <-tempdir()  # safe place to create files
+
 Cov <- rWishart(4, 20, toeplitz(c(2,1)/20))
 write.table(t(apply(Cov, 3, vech)),
-            file="cov.csv", col.names=FALSE, row.names=FALSE)
+            file=file.path(dir, "cov.csv"),
+            col.names=FALSE, row.names=FALSE)
 Mean <- matrix(rnorm(8),4,2)
-write.table(Mean, file="mean.csv", col.names=FALSE, row.names=FALSE)
+write.table(Mean, file=file.path(dir, "mean.csv"),
+            col.names=FALSE, row.names=FALSE)
 
 m1 <- mxModel(
   "test1",
@@ -60,9 +68,9 @@ m1 <- mxModel(
   mxFitFunctionAlgebra("area"),
   mxComputeLoop(list(
     mxComputeLoadMatrix(c('mean', 'cov'),
-                        path=c('mean.csv', 'cov.csv')),
+                        path=file.path(dir, c('mean.csv', 'cov.csv'))),
     mxComputeOnce('fitfunction', 'fit'),
-    mxComputeCheckpoint(path="loadMatrix.csv")
+    mxComputeCheckpoint(path=file.path(dir, "loadMatrix.csv"))
   ), i=1:4))
 
 m1 <- mxRun(m1)

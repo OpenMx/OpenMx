@@ -47,7 +47,7 @@ imxRowGradients <- function(model, robustSE=FALSE){
 			custom.compute <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=FALSE, hessian=FALSE), mxComputeReportDeriv()))
 			for(i in 1:length(model@submodels)){
 				#Ignore submodels that don't contribute to the multigroup fitfunction:
-				if(grep(pattern=model@submodels[[i]]$name,x=contributingModelNames)){
+				if(length(grep(pattern=model@submodels[[i]]$name,x=contributingModelNames))){
 					currModel <- model@submodels[[i]]
 					if(is.null(currModel@data)){
 						if(robustSE){
@@ -149,32 +149,35 @@ imxRowGradients <- function(model, robustSE=FALSE){
 ##' at the maximum-likelihood solution.
 ##' 
 ##' This function does not work correctly with multigroup models in which the 
-##' groups themselves contain subgroups.  This function also does not 
-##' correctly handle multilevel data.
+##' groups themselves contain subgroups, or in which groups contain references
+##' to objects in other groups.  This function also does not correctly handle
+##' multilevel data.
 ##'
-##' @param model An OpenMx model object that has been run
-##' @param details logical. whether to return the full parameter covariance matrix
+##' @param model An OpenMx model object that has been run.
+##' @param details Logical. whether to return the full parameter
+##' covariance matrix.
 imxRobustSE <- function(model, details=FALSE){
 	if(is(model@expectation, "MxExpectationGREML")){
 		stop("robust standard errors cannot be calculated for a single-group model that uses GREML expectation")
 	}
-	if(is(model@fitfunction, "MxFitFunctionWLS")){
-		stop("imxRobustSE() requires a maximum-likelihood fit, but 'model' uses a WLS fitfunction")
+	if(!length(model@output$vcov)){
+		stop("imxRobustSE() requires model to have a nonempty 'vcov' output slot (has the model been run?)")
+	}
+	if(imxHasWLS(model)){
+		stop("'model' uses a WLS fitfunction; robust standard errors are automatically calculated for WLS models when they are run with the default compute plan")
 	}
 	if(!is(model@fitfunction, "MxFitFunctionML") && !is(model@fitfunction, "MxFitFunctionMultigroup")){
 		warning(paste("imxRobustSE() requires a maximum-likelihood fit, but 'model' uses ",class(model@fitfunction),"; robust standard errors will only be correct if the fitfunction units are -2lnL",sep=""))
 	}
-	if(!length(model@output$hessian)){
-		stop("imxRobustSE() requires model to have a nonempty 'hessian' output slot (has the model been run?)")
-	}
-	parnames <- dimnames(model@output$hessian)
-	if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
-		#solve() will fail if Hessian is computationally singular;
-		#chol2inv() will only fail if Hessian is exactly singular.
-		bread <- chol2inv(chol(model@output$hessian/2))
-	}
-	#An indefinite Hessian usually means some SEs will be NaN:
-	else{bread <- solve(model@output$hessian/2)}
+	parnames <- dimnames(model@output$vcov)
+	# if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
+	# 	#solve() will fail if Hessian is computationally singular;
+	# 	#chol2inv() will only fail if Hessian is exactly singular.
+	# 	bread <- chol2inv(chol(model@output$hessian/2))
+	# }
+	# #An indefinite Hessian usually means some SEs will be NaN:
+	# else{bread <- solve(model@output$hessian/2)}
+	bread <- vcov(model)
 	dimnames(bread) <- parnames
 	#The row gradients are the slowest part, so only do them now that we know the bread is good:
 	grads <- imxRowGradients(model, robustSE=TRUE)/-2

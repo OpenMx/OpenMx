@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ generateCommunicationList <- function(model, checkpoint, useSocket, options) {
 				deparse(width.cutoff = 400L, sys.call(-1))), call. = FALSE)
 		}
 		filename <- paste(chkpt.prefix, paste(model$name, 'omx', sep = '.'), sep = '')
-		fullpath <- paste(chkpt.directory, filename, sep="/")
+		fullpath <- file.path(chkpt.directory, filename)
 		override <- mxOption(model, "Checkpoint Fullpath")
 		if (nchar(override)) {
 			fullpath <- override

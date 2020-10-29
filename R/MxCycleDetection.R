@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -171,12 +171,12 @@ addFormulaDetection <- function(formula, sink, dependencies) {
 ##' @param dependencies the dependency graph
 
 imxAddDependency <- function(source, sink, dependencies) {
-	if (length(source) == 0) {
-		warning("imxAddDependency called with no sources (ignored)")
-		return(dependencies)
-	}
-	dependencies <- addNode(source, dependencies)
-	dependencies <- addNode(sink, dependencies)
-	dependencies <- addEdge(source, sink, dependencies)
+	if (length(source) == 0) return(dependencies)
+  dependencies <- addNode(source, dependencies)
+  dependencies <- addNode(sink, dependencies)
+  for (s1 in sink) {
+    dependencies <- addEdge(source, s1, dependencies)
+  }
+  dependencies
 }
 

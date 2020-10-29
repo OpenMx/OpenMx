@@ -1,6 +1,6 @@
 ^OpenMx.Rproj$
 ^Makefile
-^build
+^staging
 ^support
 ^CONTRIBUTING$
 ^.git.*$
@@ -9,6 +9,7 @@
 ^.dir-locals.el
 ^.gdbinit
 ^.travis.yml$
+^_config.yml$
 ^.devmode$
 .*\.log$
 oprofile_data
@@ -28,6 +29,7 @@ cachegrind.out.*
 ^src/autodep$
 ^.Rbuildignore*
 ^man/README$
+^man-roxygen
 .*\.omx$
 ^docs
 ^stan/
@@ -35,3 +37,6 @@ cachegrind.out.*
 ^cran-check.log$
 ^middle
 ^configure.win$
+^codecov\.yml$
+^.covrignore$
+^.editorconfig$

@@ -147,7 +147,7 @@ setParametersCheckVector <- function(values, test, argname, typename) {
 }
 
 
-omxSetParameters <- function(model, labels, free = NULL, values = NULL,
+omxSetParameters <- function(model, labels=names(coef(model)), free = NULL, values = NULL,
 	newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
 	strict = TRUE, name = NULL) {
 	if (missing(labels) || !is.character(labels) || length(labels) == 0) {
@@ -161,6 +161,12 @@ omxSetParameters <- function(model, labels, free = NULL, values = NULL,
 	}
 	if (!is.null(name) && length(name) != 1 && !is.character(name)) {
 		stop("'name' argument must be a character string")
+	}
+	if (missing(free) && missing(values) && missing(newlabels) &&
+		    missing(lbound) && missing(ubound)) {
+		what <- c('free','values','newlabels','lbound','ubound')
+		warning(paste("What do you want to change?",
+			"Pick some of", omxQuotes(what)))
 	}
 	if (strict) {
 		pnames <- names(omxGetParameters(model, indep, NA))

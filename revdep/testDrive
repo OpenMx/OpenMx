@@ -9,27 +9,34 @@ if [ ! -x revdep/testDrive ]; then
   exit 1
 fi
 
-export _R_CHECK_FORCE_SUGGESTS_=0
+export _R_CHECK_FORCE_SUGGESTS_=false
 
 pkgs=$(R --no-save --slave -f revdep/getPackages.R)
 
 pdir=""
 
 for pk in $pkgs; do
-    tarball="https://cran.r-project.org/src/contrib/$pk"
-    if [ -f "$REVDEP_CACHE/$pk" ]; then
-	echo "found $pk"
-    else
-	wget "$tarball" -P "$REVDEP_CACHE"
-    fi
-    dir=$(echo $pk | cut -d_ -f1 )
-    rm -r ./revdep/$dir
-    tar --extract --directory=./revdep --gunzip --file=$REVDEP_CACHE/$pk
-    pdir="$dir $pdir"
+  tarball="https://cran.r-project.org/src/contrib/$pk"
+  if [ -f "$REVDEP_CACHE/$pk" ]; then
+	  echo "found $pk"
+  else
+	  wget "$tarball" -P "$REVDEP_CACHE"
+  fi
+  dir=$(echo $pk | cut -d_ -f1 )
+  [ -d "$REVDEP_CACHE/$dir" ] && rm -r "$REVDEP_CACHE/$dir"
+  tar --extract --directory=./revdep --gunzip --file=$REVDEP_CACHE/$pk
+  $REXEC --no-save <<EOF
+  deps <- remotes::dev_package_deps(pkgdir="$REVDEP_CACHE/$pk", dependencies =
+       c("Depends", "Imports", "LinkingTo", "Suggests"))
+  print(deps)
+  update(deps)
+  if (!all(deps[,'package'] %in% installed.packages())) {
+    message("missing: ", paste(setdiff(deps[,'package'], installed.packages()), collapse=", "))
+    q(status = 1)
+  }
+EOF
+  pdir="$dir $pdir"
 done
-
-R --no-save -f util/update-dependencies.R --args \
-  $(perl -e 'print(join " ", map { "revdep/$_/DESCRIPTION" } @ARGV )' $pdir)
 
 pushd revdep
 

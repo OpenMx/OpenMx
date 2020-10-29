@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,24 +16,32 @@
 
 library(OpenMx)
 
+# =============================================
+# = Find local minimum of ((x-5)*(x-1)*(x+3)) =
+# = It is 1+4/sqrt(3) or approx 3.309401      =
+# =============================================
+
+# This example uses an mxFitFunctionR
+
 cubic <- function(marg, state){
     x <- marg$matrices$param$values[1]
-    got <- (x-5)*(x-1)*(x+3)
+    got <- (x-5) * (x-1) * (x+3)
     return(got)
 }
 
 model <- mxModel(name="root",
-	      mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
-	      mxFitFunctionR(cubic))
+	mxMatrix(name="param", type="Full", ncol=1, nrow=1, free=TRUE, values=0),
+	mxFitFunctionR(cubic)
+)
 model <- mxRun(model, silent=TRUE, suppressWarnings=TRUE)
 omxCheckCloseEnough(model$matrices$param$values, 3.309401, 10^-3)
 
-###
+### Can't optimize infinity
 
 infer <- function(marg,state) return(Inf)
 
 model <- mxModel(name="inf",
-		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
+		 mxMatrix(name="param", type="Full", ncol=1, nrow=1, free=TRUE, values=0),
 		 mxFitFunctionR(infer))
 ign <- omxCheckWarning(try(mxRun(model), silent=TRUE),
 		"In model 'inf' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")
@@ -70,6 +78,4 @@ toomany <- function(marg,state) {
 model <- mxModel(name="toomany",
 		 mxMatrix(type="Full", ncol=1, nrow=1, name="param", free=TRUE, values=0),
 		 mxFitFunctionR(toomany))
-model <- omxCheckWarning(
-  omxCheckError(mxRun(model), "The job for model 'toomany' exited abnormally with the error message: FitFunction returned more than 2 arguments"),
-  "In model 'toomany' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()")
+model <- omxCheckError(mxRun(model), "The job for model 'toomany' exited abnormally with the error message: FitFunction returned more than 2 arguments")

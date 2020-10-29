@@ -7,8 +7,13 @@ importFrom(Matrix, nearPD)
 importFrom(utils, .DollarNames, installed.packages, packageVersion, read.table)
 importFrom(stats, cov, dnorm, na.fail, na.omit, optim, optimize, quantile,
 	   pchisq, pnorm, qchisq, qnorm, rnorm, runif, uniroot, var, sd)
-importFrom("stats", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.methods")
+importFrom("stats", "AIC", "coef", "rcauchy", simulate, "p.adjust", "p.adjust.methods", "vcov")
 importFrom("stats", "binomial", "glm", "median", "plogis", 'qlogis', "predict")
+importFrom("stats", "pnbinom", "ppois")
+importFrom("stats", "rWishart")
+importFrom("stats", "logLik")
+importFrom("stats", "lm")
+importFrom("lifecycle", "deprecate_soft", "deprecate_warn", "deprecated")
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -29,6 +34,7 @@ export(tr, "%&%", "%^%", rvectorize, cvectorize, vech, vechs, 'vechs<-',
 # export S4 classes in the OpenMx library
 exportClassPattern("^.+Matrix")
 exportClassPattern("^Mx.+")
+exportClass("MxRAMModel")
 
 # export S4 methods in the OpenMx library
 exportMethods("[","[[", "$")
@@ -39,12 +45,14 @@ S3method(print, summary.mxmodel)
 S3method(print, result.mxCompareMatrix)
 S3method(print, result.mxPower)
 S3method(logLik, MxModel)
+S3method(AIC, MxModel)
 S3method(coef, MxModel)
 S3method(summary, MxModel)
 S3method(anova, MxModel)
 S3method(simulate, MxModel)
 S3method(confint, MxModel)
 S3method(vcov, MxModel)
+S3method(predict, MxModel)
 
 # Export S3 .DollarNames functions
 S3method(.DollarNames, MxModel)  # MxModel has a unique .DollarNames function

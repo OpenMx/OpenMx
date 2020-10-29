@@ -21,6 +21,7 @@
 #include "EnableWarnings.h"
 
 class MarkovExpectation : public omxExpectation {
+	typedef omxExpectation super;
 public:
 	enum ScaleType { SCALE_SOFTMAX, SCALE_SUM, SCALE_NONE };
 
@@ -35,20 +36,22 @@ public:
 	omxMatrix *scaledTransition;
 	const bool isMixtureInterface;
 
-	MarkovExpectation(bool _isMixtureInterface)
-		: initialV(0), transitionV(0), isMixtureInterface(_isMixtureInterface) {};
+	MarkovExpectation(omxState *st, int num, bool _isMixtureInterface)
+		: super(st, num), initialV(0), transitionV(0),
+			isMixtureInterface(_isMixtureInterface) {};
 	virtual ~MarkovExpectation();
 	virtual void init();
+	virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);
 };
 
-omxExpectation *InitHiddenMarkovExpectation()
-{ return new MarkovExpectation(false); }
+omxExpectation *InitHiddenMarkovExpectation(omxState *st, int num)
+{ return new MarkovExpectation(st, num, false); }
 
-omxExpectation *InitMixtureExpectation()
-{ return new MarkovExpectation(true); }
+omxExpectation *InitMixtureExpectation(omxState *st, int num)
+{ return new MarkovExpectation(st, num, true); }
 
 MarkovExpectation::~MarkovExpectation()
 {
@@ -56,8 +59,20 @@ MarkovExpectation::~MarkovExpectation()
 	omxFreeMatrix(scaledTransition);
 }
 
+void MarkovExpectation::connectToData()
+{
+  setConnectedToData(true);
+	auto dc = getDataColumns();
+	for (int cx=0; cx < int(dc.size()); ++cx) {
+		int var = dc[cx];
+		data->assertColumnIsData(var, OMXDATA_REAL);
+	}
+}
+
 void MarkovExpectation::init()
 {
+	loadDataColFromR();
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
 
@@ -97,6 +112,8 @@ void MarkovExpectation::init()
 
 void MarkovExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
+	super::compute(fc, what, how);
+
 	if (fc) {
 		for (auto c1 : components) {
 			c1->compute(fc, what, how);

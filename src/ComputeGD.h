@@ -20,20 +20,31 @@
 #include "Compute.h"
 #include "finiteDifferences.h"
 
+// The GradientOptimizerContext can manage multiple threads
+// in parallel. Per-thread specific data should be located
+// in the FitContext.
 class GradientOptimizerContext {
  private:
 	void copyBounds();
-	int countNumFree();
+	int countNumFree() const { return fc->getNumFree(); }
 
 	// We need to hide this from the optimizer because
 	// some parameters might be profiled out and should
 	// not be subject to optimization.
 	FitContext *fc;
+	std::string optName;
+	const char *computeName;
 
  public:
 	const int verbose;
 	const int numFree;    // how many parameters are not profiled out
-	const char *optName;  // filled in by the optimizer
+	const char *getOptName() const { return optName.c_str(); };
+	void setEngineName(const char *engine) {
+		optName = computeName;
+		optName += "(";
+		optName += engine;
+		optName += ")";
+	}
 
 	// Maybe the optimizer should not have information about
 	// how the gradient is approximated?
@@ -57,9 +68,6 @@ class GradientOptimizerContext {
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
 
-	// TODO remove, better to pass as a parameter so we can avoid copies
-	Eigen::VectorXd equality;
-	Eigen::VectorXd inequality;
 	bool CSOLNP_HACK;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
@@ -78,13 +86,14 @@ class GradientOptimizerContext {
 	GradientOptimizerContext(FitContext *fc, int verbose,
 				 enum GradientAlgorithm _gradientAlgo,
 				 int _gradientIterations,
-				 double _gradientStepSize);
+				 double _gradientStepSize,
+				 omxCompute *owner);
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
-	void setupIneqConstraintBounds();  // CSOLNP style
 	void setupAllBounds();             // NPSOL style
-	
+  bool isUnconstrained();
+
 	Eigen::VectorXd constraintFunValsOut;
 	Eigen::MatrixXd constraintJacobianOut;
 	Eigen::VectorXd LagrMultipliersOut;
@@ -95,14 +104,19 @@ class GradientOptimizerContext {
 	double recordFit(double *myPars, int* mode);
 	void solEqBFun(bool wantAJ);
 	void myineqFun(bool wantAJ);
+  Eigen::VectorXd &getEqualitySingleThreaded()
+  { return fc->equality; }
+  Eigen::VectorXd &getInequalitySingleThreaded()
+  { return fc->inequality; }
+  Eigen::MatrixXd &getAnalyticEqJacSingleThreaded()
+  { return fc->analyticEqJacTmp; }
+  Eigen::MatrixXd &getAnalyticIneqJacSingleThreaded()
+  { return fc->analyticIneqJacTmp; }
 	template <typename T1, typename T2, typename T3> void allConstraintsFun(
 			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
-	bool usingAnalyticJacobian;
-	void checkForAnalyticJacobians();
-	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
-	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
+	bool isUsingAnalyticJacobian(){ return fc->state->usingAnalyticJacobian; }
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
 	void copyFromOptimizer(double *myPars, FitContext *fc2);
@@ -114,21 +128,17 @@ class GradientOptimizerContext {
 	int iterations;
 	int getWanted() const { return fc->wanted; };
 	void setWanted(int nw) { fc->wanted = nw; };
-	bool hasKnownGradient() const;
-	template <typename T1>
-	void setKnownGradient(Eigen::MatrixBase<T1> &gradOut) {
-		fc->ciobj->gradient(fc, gradOut.derived().data());
-	};
 	omxState *getState() const { return fc->state; };
-	bool doingCI(){ 
+	bool doingCI(){
 		if(fc->ciobj){return(true);}
 		else{return(false);}
 	};
 
-	GradientWithRef gwrContext;
-
-	template <typename T1>
-	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint);
+  JacobianGadget jgContext;
+  template <typename T1, typename T2, typename T3>
+  void ineqJacobian(Eigen::MatrixBase<T1> &ref,
+                    Eigen::MatrixBase<T2> &point,
+                    Eigen::MatrixBase<T3> &jout);
 };
 
 template <typename T1>
@@ -153,54 +163,21 @@ double median(Eigen::MatrixBase<T1> &vec)
 	}
 }
 
-template <typename T1>
-void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint)
+template <typename T1, typename T2, typename T3>
+void GradientOptimizerContext::ineqJacobian(Eigen::MatrixBase<T1> &ref,
+                                            Eigen::MatrixBase<T2> &point,
+                                            Eigen::MatrixBase<T3> &jout)
 {
-	if (getWanted() & FF_COMPUTE_GRADIENT) {
-		return;
-	} else if (hasKnownGradient()) {
-		setKnownGradient(grad);
-		return;
-	}
-
-	// fc assumed to hold the reference fit
-	double refFit = fc->fit;
-
-	gwrContext([&](double *myPars, int thrId)->double{
-			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
-			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
-			// Only 1 parameter is different so we could
-			// update only that parameter instead of all
-			// of them.
-			copyFromOptimizer(myPars, fc2);
-			int want = FF_COMPUTE_FIT;
-			ComputeFit(optName, fc2->lookupDuplicate(fitMatrix), want, fc2);
-			double fit = fc2->fit;
-			if (fc2->outsideFeasibleSet()) {
-				fit = nan("infeasible");
-			}
-			return fit;
-		}, refFit, Epoint, grad);
-
-	if (true) {
-		Eigen::VectorXd absGrad = grad.array().abs();
-		double m1 = std::max(median(absGrad), 1.0);
-		double big = 1e4 * m1;
-		int adj=0;
-		for (int gx=0; gx < grad.size(); ++gx) {
-			if (absGrad[gx] < big) continue;
-			bool neg = grad[gx] < 0;
-			double gg = m1;
-			if (neg) gg = -gg;
-			grad[gx] = gg;
-			++adj;
-		}
-		if (false && adj) {
-			mxLog("%d grad outlier", adj);
-			mxPrintMat("absGrad", absGrad);
-			mxPrintMat("robust grad", grad);
-		}
-	}
+	jgContext([&](double *myPars, int thrId, auto &result) {
+              FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+              Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+              // Only 1 parameter is different so we could
+              // update only that parameter instead of all
+              // of them.
+              copyFromOptimizer(myPars, fc2);
+              fc2->myineqFun(false, verbose, ineqType, CSOLNP_HACK);
+              result = fc2->inequality;
+            }, ref, point, true, jout);
 }
 
 template <typename T1>

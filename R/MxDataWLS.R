@@ -62,10 +62,10 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
 		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
 	}
 	if (type == "acov") {
-		verifyCovarianceMatrix(observed)
-		verifyCovarianceMatrix(acov, nameMatrix="asymptotic")
+		verifyCovarianceMatrix(observed, strictPD=FALSE)
+		verifyCovarianceMatrix(acov, nameMatrix="asymptotic", strictPD=FALSE)
 		if(!single.na(fullWeight)){
-			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic")
+			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic", strictPD=FALSE)
 		}
 		if ( !single.na(thresholds) ) {
 			verifyThresholdNames(thresholds, observed)
@@ -80,6 +80,17 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
 
 	return(new("MxDataLegacyWLS", observed, means, type, as.numeric(numObs), acov, fullWeight,
 		   thresholds))
+}
+
+tryCatch.W <- function(expr) {
+	# see demo(error.catching)
+	W <- NULL
+	w.handler <- function(w) {
+		W <<- c(W,w)
+		invokeRestart("muffleWarning")
+	}
+	list(value = withCallingHandlers(tryCatch(expr), warning = w.handler),
+	     warning = W)
 }
 
 #------------------------------------------------------------------------------
@@ -476,7 +487,8 @@ univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinu
 	return(list(meanEst, varEst, meanHess, varHess, meanJac, varJac))
 }
 
-# useMinusTwo is deprecated
+# mxDataWLS itself is deprecated
+# useMinusTwo parameter is deprecated
 mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, fullWeight=TRUE,
 		      suppressWarnings = TRUE, allContinuousMethod=c("cumulants", "marginals"),
 		      silent=!interactive())
@@ -844,10 +856,7 @@ omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 {
 	type <- match.arg(type)
 	allContinuousMethod <- match.arg(allContinuousMethod)
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("omxAugmentDataWithWLSSummary does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	if (mxd@type != 'raw') stop("Data must contain a raw data frame")
 	data <- mxd@observed
 	notFound <- is.na(match(exogenous, colnames(data)))

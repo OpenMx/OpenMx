@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,6 +29,7 @@ requireMinManifests <- function(row) {
 
 mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minManifests=as.integer(NA))
 {
+  warnModelCreatedByOldVersion(model)
 	if(length(unlist(strsplit(model@name, split=' ', fixed=TRUE))) > 1){
 		message(paste('The model called', omxQuotes(model@name), 'has spaces in the model name.  I cannot handle models with spaces in the model name, so I removed them before getting factor scores.'))
 		model <- mxRename(model, paste(unlist(strsplit(model@name, split=' ', fixed=TRUE)), collapse=''))
@@ -68,10 +69,11 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		factorScoreHelperFUN <- ramFactorScoreHelper
 	}
 	nrows <- nrow(model$data$observed)
-	res <- array(NA, c(nrows, nksi, 2))
+	res <- array(as.numeric(NA), c(nrows, nksi, 2))
 	if(any(type %in% c('ML', 'WeightedML'))){
 		model <- omxSetParameters(model, labels=names(omxGetParameters(model)), free=FALSE)
-			work <- factorScoreHelperFUN(model)
+		work <- factorScoreHelperFUN(model)
+		dataModelName <- work$name
 		if(type[1]=='WeightedML'){
 			wup <- mxModel(model="Container", work,
 				mxAlgebraFromString(paste(work@name, ".weight + ", work@name, ".fitfunction", sep=""), name="wtf"),
@@ -80,41 +82,42 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 			work <- wup
 		}
 		work@data <- NULL
-		plan <- list(GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
-		if (tolower(mxOption(NULL,"Standard Errors")) == "yes") {
-			plan <- c(plan,
-				  ND=mxComputeNumericDeriv(),
-				  SE=mxComputeStandardError())
+		fullData <- as.data.frame(model$data$observed)
+		plan1 <- list(
+			GD=mxComputeGradientDescent(nudgeZeroStarts=FALSE))
+		wantSE <- tolower(mxOption(model=model, key="Standard Errors")) == "yes"
+		if (wantSE) {
+			plan1 <- c(plan1,
+				ND=mxComputeNumericDeriv(),
+				SE=mxComputeStandardError())
 		}
-		plan <- mxComputeSequence(plan)
-		for(i in 1:nrows){
-			rawData <- model$data$observed[i,,drop=FALSE]
-			missing <- is.na(rawData)
-			anyMissing = any(missing)
-			if (anyMissing && is.na(minManifests)) requireMinManifests(i)
-			if (anyMissing && sum(!missing) < minManifests) {
-				res[i,,1] <- NA
-				res[i,,2] <- NA
-			} else {
-				modelName <- paste(work@name, i, "of", nrows, sep="_")
-				if(type[1]=='ML'){
-					fit <- mxModel(model=work, name=modelName, mxData(rawData, 'raw'))
-				} else if(type[1]=='WeightedML'){
-					work@submodels[[1]]@data <- mxData(rawData, 'raw')
-					fit <- mxModel(model=work, name=modelName)
-				}
-				fit <- mxRun(mxModel(fit, plan),
-					     silent=as.logical((i-1)%%100), suppressWarnings=TRUE)
-				res[i,,1] <- omxGetParameters(fit) #params
-				if(length(fit$output$standardErrors)){res[i,,2] <- fit$output$standardErrors} #SEs
-				else if(i==1){
-					msg <- paste0("factor-score standard errors not available from MxModel '",
-						     model$name,"' because calculating SEs is turned off for that ",
-						     "model (possibly due to one or more MxConstraints)")
-					warning(msg, sep="")
-				}
-			}
+		plan <- list(
+			SOS=mxComputeSetOriginalStarts(),
+			LD=mxComputeLoadData(dataModelName, names(fullData),
+				method="data.frame", byrow=FALSE,
+				observed=fullData),
+			TC=mxComputeTryCatch(mxComputeSequence(plan1)),
+			CP=mxComputeCheckpoint(toReturn=TRUE, standardErrors = wantSE))
+		plan <- mxComputeLoop(plan, maxIter = nrow(fullData))
+		rawData <- fullData[1,,drop=FALSE]
+		if(type[1]=='ML'){
+			fit <- mxModel(model=work, mxData(rawData, 'raw'))
+		} else if(type[1]=='WeightedML'){
+			work@submodels[[1]]@data <- mxData(rawData, 'raw')
+			fit <- mxModel(model=work)
 		}
+		fit <- mxRun(mxModel(fit, plan))
+		got <- fit$compute$steps$CP$log
+		res[,,1] <- as.matrix(got[,names(coef(fit)),drop=FALSE])
+		if (wantSE) {
+			res[,,2] <- as.matrix(got[,paste0(names(coef(fit)), 'SE'),drop=FALSE])
+		} else {
+			msg <- paste0("factor-score standard errors not available from MxModel '",
+				model$name,"' because calculating SEs is turned off for that ",
+				"model (possibly due to one or more MxConstraints)")
+			warning(msg, sep="")
+		}
+		res <- clearExcessivelyMissingRows(fullData, minManifests, res)
 	} else if(tolower(type)=='regression'){
 		if(!single.na(model$expectation$thresholds)){
 			stop('Regression factor scores cannot be computed when there are thresholds (ordinal data).')
@@ -132,22 +135,27 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 			resDel <- mxKalmanScores(ss)
 			res[,,1] <- resDel$xUpdated[-1,, drop=FALSE]
 			res[,,2] <- apply(resDel$PUpdated[,,-1, drop=FALSE], 3, function(x){sqrt(diag(x))})
-			
+
 			# Kill the rows with too much missing data
 			useCols <- dimnames(ss[[ss$expectation$C]])[[1]]
 			rawData <- model$data$observed[ , useCols, drop=FALSE]
-			missing <- is.na(rawData)
-			anyMissing <- any(missing)
-			howMissing <- apply(!missing, 1, sum)
-			if (anyMissing && is.na(minManifests)) requireMinManifests(which(howMissing < ncol(rawData))[1])
-			res[howMissing < minManifests, , 1] <- NA
-			res[howMissing < minManifests, , 2] <- NA
+			res <- clearExcessivelyMissingRows(rawData, minManifests, res)
 		}
 	} else {
 		stop('Unknown type argument to mxFactorScores')
 	}
 	dimnames(res) <- list(1:dim(res)[1], factorNames, c('Scores', 'StandardErrors'))
 	return(res)
+}
+
+clearExcessivelyMissingRows <- function(rawData, minManifests, res) {
+	numPresent <- apply(!is.na(rawData), 1, sum)
+	if (any(numPresent < ncol(rawData)) && is.na(minManifests)) {
+		requireMinManifests(which(numPresent < ncol(rawData))[1])
+	}
+	res[numPresent < minManifests, , 1] <- NA
+	res[numPresent < minManifests, , 2] <- NA
+	res
 }
 
 lisrelFactorScoreHelper <- function(model){
@@ -158,7 +166,9 @@ lisrelFactorScoreHelper <- function(model){
 	ksiMean <- mxEvalByName(model$expectation$KA, model, compute=TRUE)
 	newKappa <- mxMatrix("Full", nksi, 1, values=ksiMean, free=TRUE, name="Score", labels=paste0("fscore", 1:nksi))
 	scoreKappa <- mxAlgebraFromString(paste("Score -", model$expectation$KA), name="SKAPPA", dimnames=list(dimnames(lx)[[2]], 'one'))
-	newExpect <- mxExpectationLISREL(LX=model$expectation$LX, PH=model$expectation$PH, TD=model$expectation$TD, TX=model$expectation$TX, KA="SKAPPA", thresholds=model$expectation$thresholds)
+	newExpect <- model$expectation
+  newExpect$KA <- "SKAPPA"
+  newExpect@.discreteCheckCount <- FALSE
 	newWeight <- mxAlgebraFromString(paste0("log(det(", model$expectation$PH, ")) + ( (t(SKAPPA)) %&% ", model$expectation$PH, " ) + ", nksi, "*log(2*3.1415926535)"), name="weight")
 	work <- mxModel(model=model, name=paste("FactorScores", model$name, sep=''), newKappa, scoreKappa, newExpect, newWeight)
 	return(work)
@@ -192,7 +202,9 @@ ramFactorScoreHelper <- function(model){
 	newMean <- mxMatrix("Full", 1, tdim, values=scoreStart, free=!OFmat$is.manifest, name="Score", labels=paste0("fscore", dimnames(Fmat)[[2]]))
 	basMean <- mxMatrix("Full", 1, tdim, values=basVal, free=FALSE, name=basNam)
 	scoreMean <- mxAlgebraFromString(paste("Score -", basNam), name="ScoreMinusM", dimnames=list('one', dimnames(Fmat)[[2]]))
-	newExpect <- mxExpectationRAM(A=model$expectation$A, S=model$expectation$S, F=model$expectation$F, M="ScoreMinusM", thresholds=model$expectation$thresholds)
+	newExpect <- model$expectation
+  newExpect@.discreteCheckCount <- FALSE
+  newExpect$M <- "ScoreMinusM"
 	oppF <- mxMatrix('Full', nrow=tdim-mdim, ncol=tdim, values=OFmat$OF, name='oppositeF')
 	imat <- mxMatrix('Iden', tdim, tdim, name='IdentityMatrix')
 	imaInv <- mxAlgebraFromString(paste("solve(IdentityMatrix - ", model$expectation$A, ")"), name='IdentityMinusAInverse')
@@ -210,16 +222,17 @@ RAMrfs <- function(model, res, minManifests) {
 	relevantDataCols <- c(manvars,defvars)
 	dat <- model@data@observed
 	I <- diag(length(manvars)+length(latvars))
+	Ilat <- diag(length(latvars))
 	while(i<=dim(res)[1]){
 		continublockflag <- ifelse(i<dim(res)[1],TRUE,FALSE)
 		manvars.curr <- manvars[ !is.na(dat[i,manvars]) ]
 		while(continublockflag){
-			#To include a subsequent row in the current block of rows, 
+			#To include a subsequent row in the current block of rows,
 			#we need to be sure that its missingness pattern is the same, and that if there are definition variables,
 			#that their values in the subsequent row are equal to those in the previous rows:
 			if(
 				j<dim(res)[1] &&
-				all(is.na(dat[j,relevantDataCols])==is.na(dat[(j+1),relevantDataCols])) && 
+				all(is.na(dat[j,relevantDataCols])==is.na(dat[(j+1),relevantDataCols])) &&
 				( !length(defvars) || all(dat[j,defvars]==dat[(j+1),defvars]) )
 			){j <- j+1}
 			else{continublockflag <- FALSE}
@@ -227,7 +240,8 @@ RAMrfs <- function(model, res, minManifests) {
 		unfilt <- solve(I-mxEvalByName("A",model,T,defvar.row=i))%*%mxEvalByName("S",model,T,defvar.row=i)%*%
 			t(solve(I-mxEvalByName("A",model,T,defvar.row=i)))
 		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
-		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],nrow=1)
+		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% t(solve(Ilat-mxEvalByName("A",model,T,defvar.row=i)[latvars,latvars]) %*%
+			matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],ncol=1))
 		missing <- is.na(dat[i,manvars])
 		anyMissing <- any(missing)
 		if (anyMissing && is.na(minManifests)) requireMinManifests(i)
@@ -240,13 +254,13 @@ RAMrfs <- function(model, res, minManifests) {
 				res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(unfilt[latvars,latvars])),nrow=1)
 			}
 			else{
-				obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% 
+				obsmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x%
 				matrix(mxGetExpected(model,"means",defvar.row=i)[,which(!is.na(dat[i,manvars]))],nrow=1)
 				dat.curr <- as.matrix(dat[i:j,manvars.curr])
 				if(i==j){dat.curr <- matrix(dat.curr,nrow=1)} #<--Annoying...
 				res[i:j,,1] <- ( (dat.curr - obsmeans) %*%
 						 (solve(unfilt[manvars.curr,manvars.curr])%*%unfilt[manvars.curr,latvars]) ) + latmeans
-				indeterminateVariance <- unfilt[latvars,latvars] - 
+				indeterminateVariance <- unfilt[latvars,latvars] -
 					(unfilt[latvars,manvars.curr]%*%solve(unfilt[manvars.curr,manvars.curr])%*%
 					 unfilt[manvars.curr,latvars])
 				res[i:j,,2] <- matrix(1,ncol=1,nrow=(j-i+1)) %x% matrix(sqrt(diag(indeterminateVariance)),nrow=1)
@@ -268,4 +282,3 @@ findIntramodelDefVars <- function(model){
 	}
 	return( defvars )
 }
-

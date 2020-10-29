@@ -4,7 +4,16 @@ if test -z "${R_HOME}"; then
   exit 1
 fi
 echo $PWD
-if [ -d inst/npsol/windows/x86_64/rtools2.12 ]; then
+RmajorVersion=$(Rscript -e 'cat(version$major, fill=T)')
+host_cpu=`uname -m`
+if [ "$host_cpu"=x86_64 ] && [ "$RmajorVersion" -ge 4 ]; then
+  if [ -d inst/npsol/windows/x86_64/rtools4.0 ]; then
+    cp inst/npsol/windows/x86_64/rtools4.0/libnpsol.dll inst/libnpsol64.dll;
+  fi
+  if [ -d inst/npsol/windows/x86_64/rtools2.12 ]; then
+    cp inst/npsol/windows/x86/rtools2.12/libnpsol.dll inst/libnpsol32.dll;
+  fi
+elif [ -d inst/npsol/windows/x86_64/rtools2.12 ]; then
   cp inst/npsol/windows/x86_64/rtools2.12/libnpsol.dll inst/libnpsol64.dll;
   cp inst/npsol/windows/x86/rtools2.12/libnpsol.dll inst/libnpsol32.dll;
 fi

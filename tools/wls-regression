@@ -1,0 +1,133 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+out=/tmp/wls-regression.$$.log
+trap "rm -f $out" EXIT
+
+opt="-q --vanilla --no-save"
+
+tests="
+inst/models/passing/ContinuousOnlyWLSTest.R
+inst/models/passing/InvalidWLS.R
+inst/models/passing/MultipleGroupWLS.R
+inst/models/passing/WLS+CI.R
+inst/models/passing/WeightedWLS.R
+inst/models/passing/exoPredWLS.R
+inst/models/passing/exoPredWLS2.R
+inst/models/passing/SaturatedWLSTest.R
+inst/models/passing/ifa-grm1.R
+inst/models/passing/jointFactorWls.R
+inst/models/passing/tangleF.R
+tests/testthat/test-loadDataByRow.R
+inst/models/passing/automaticStarts.R
+inst/models/passing/IgnoreFixedConfidenceIntervals.R
+inst/models/nightly/MultigroupWLS.R
+inst/models/nightly/thresholdModel1Factor5VariateWLS.R
+inst/models/nightly/JointWLS.R
+inst/models/nightly/LegacyContinuousOnlyWLSTest.R
+tests/testthat/test-LegacyMultipleGroupWLS.R
+inst/models/nightly/LegacyWLS+CI.R
+"
+# nightly/InvalidComparisonDetection.R CSOLNP only
+
+for t in $tests; do
+  echo -n "$t\t"
+  if false; then
+    R $opt -f $t
+  else
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f $t > $out 2>&1"; then
+      cat $out
+      exit
+    fi
+  fi
+done
+
+exit 0
+
+passing/ContinuousOnlyWLSTest.R	0:03.81 0 81633 45
+passing/IntroSEM-OneFactorCov.R	0:03.97 0 82207 20
+passing/MultipleGroupWLS.R	0:03.46 0 80831 7
+passing/WLS+CI.R	0:14.50 0 80271 229
+passing/ifa-grm1.R	0:10.73 0 127959 150
+passing/jointFactorWls.R	0:18.06 0 85054 113
+passing/tangleF.R	0:30.39 0 85672 98
+nightly/JointWLS.R	8:13.82 0 94542 1652
+nightly/MultigroupWLS.R	0:18.99 0 85125 270
+nightly/thresholdModel1Factor5VariateWLS.R	1:20.04 0 140684 61771
+
+with new backend implementation:
+
+passing/ContinuousOnlyWLSTest.R	0:03.97 0 82737 62
+passing/MultipleGroupWLS.R	0:03.35 0 65528 5
+passing/WLS+CI.R	0:13.06 0 63045 252
+passing/WeightedWLS.R	0:06.40 0 67673 87
+passing/SaturatedWLSTest.R	0:02.04 0 62658 6
+passing/ifa-grm1.R	0:04.60 0 124846 687
+passing/jointFactorWls.R	0:13.10 0 83386 180
+passing/tangleF.R	0:19.22 0 81016 1106
+passing/automaticStarts.R	0:03.88 0 81663 127
+passing/IgnoreFixedConfidenceIntervals.R	0:02.08 0 62651 56
+nightly/MultigroupWLS.R	0:04.31 0 81574 89
+nightly/thresholdModel1Factor5VariateWLS.R	1:02.47 0 147679 95597
+nightly/JointWLS.R	0:11.83 0 82623 620
+
+Optimized polychoric correlation:
+
+passing/ContinuousOnlyWLSTest.R	0:04.47 0 82874 18
+passing/MultipleGroupWLS.R	0:03.76 0 65894 7
+passing/WLS+CI.R	0:14.38 0 63189 323
+passing/WeightedWLS.R	0:06.31 0 68674 238
+passing/SaturatedWLSTest.R	0:02.15 0 62700 5
+passing/ifa-grm1.R	0:04.24 0 124850 75
+passing/jointFactorWls.R	0:14.20 0 82976 111
+passing/tangleF.R	0:19.77 0 81270 208
+passing/automaticStarts.R	0:05.11 0 81788 725
+passing/IgnoreFixedConfidenceIntervals.R	0:02.51 0 62523 40
+nightly/MultigroupWLS.R	0:05.60 0 81879 216
+nightly/thresholdModel1Factor5VariateWLS.R	1:02.69 0 168542 29155
+nightly/JointWLS.R	0:05.56 0 88036 183
+
+2019 Mar 22:
+
+passing/ContinuousOnlyWLSTest.R	0:04.09 0 82896 32
+passing/InvalidWLS.R	0:02.69 0 63122 12
+passing/MultipleGroupWLS.R	0:03.62 0 72077 5
+passing/WLS+CI.R	0:10.57 0 63979 24
+passing/WeightedWLS.R	0:05.96 0 79809 254
+passing/exoPredWLS.R	0:06.76 0 84456 62
+passing/SaturatedWLSTest.R	0:02.07 0 62927 13
+passing/ifa-grm1.R	0:04.05 0 125395 85
+passing/jointFactorWls.R	0:11.81 0 84028 80
+passing/tangleF.R	0:13.88 0 82335 96
+passing/loadDataByRow.R	0:03.39 0 63880 39
+passing/automaticStarts.R	0:03.99 0 82039 31
+passing/IgnoreFixedConfidenceIntervals.R	0:02.11 0 62678 11
+nightly/MultigroupWLS.R	0:04.56 0 82140 34
+nightly/thresholdModel1Factor5VariateWLS.R	0:44.74 0 169846 9281
+nightly/JointWLS.R	0:05.04 0 87819 105
+
+2019 Nov 11
+
+inst/models/passing/ContinuousOnlyWLSTest.R	0:03.68 1 53148 71
+inst/models/passing/InvalidWLS.R	0:02.53 0 51484 321
+inst/models/passing/MultipleGroupWLS.R	0:03.20 0 51481 8
+inst/models/passing/WLS+CI.R	0:09.68 0 51861 90
+inst/models/passing/WeightedWLS.R	0:05.41 0 51593 710
+inst/models/passing/exoPredWLS.R	0:07.24 0 71010 109
+inst/models/passing/exoPredWLS2.R	0:07.19 0 70583 95
+inst/models/passing/SaturatedWLSTest.R	0:01.91 0 51610 3
+inst/models/passing/ifa-grm1.R	0:03.60 0 56345 376
+inst/models/passing/jointFactorWls.R	0:10.92 0 72018 413
+inst/models/passing/tangleF.R	0:12.99 0 52260 260
+tests/testthat/test-loadDataByRow.R	0:03.00 0 51620 19
+inst/models/passing/automaticStarts.R	0:03.41 0 51632 33
+inst/models/passing/IgnoreFixedConfidenceIntervals.R	0:01.83 0 51498 16
+inst/models/nightly/MultigroupWLS.R	0:04.00 0 51971 75
+inst/models/nightly/thresholdModel1Factor5VariateWLS.R	0:44.49 0 129280 18207
+inst/models/nightly/JointWLS.R	0:04.77 0 84122 314
+inst/models/nightly/LegacyContinuousOnlyWLSTest.R	0:03.72 0 51651 40
+tests/testthat/test-LegacyMultipleGroupWLS.R	0:03.09 0 51485 8
+inst/models/nightly/LegacyWLS+CI.R	0:10.94 2 52261 107

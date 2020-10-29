@@ -16,7 +16,7 @@
 mxRun <- function(model, ..., intervals=NULL, silent = FALSE, 
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
-		useOptimizer = TRUE){
+		useOptimizer = TRUE, beginMessage=!silent){
 
 	warnModelCreatedByOldVersion(model)
 
@@ -31,18 +31,16 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 	}
 
 	frontendStart <- Sys.time()
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxRun does not accept values for the '...' argument")
-	}
+  prohibitDotdotdot(list(...))
 	runHelper(model, frontendStart, intervals,
 		silent, suppressWarnings, unsafe,
-		checkpoint, useSocket, onlyFrontend, useOptimizer)
+		checkpoint, useSocket, onlyFrontend, useOptimizer, beginMessage)
 }
 
 runHelper <- function(model, frontendStart, 
 		intervals, silent, suppressWarnings, 
-		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer, parentData = NULL) {
+		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer,
+		beginMessage, parentData = NULL) {
 
 	Rcpp::Module  # ensure Rcpp is loaded
 	model <- imxPreprocessModel(model)
@@ -59,7 +57,8 @@ runHelper <- function(model, frontendStart,
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
-		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer, parentData = model@data)
+		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer,
+		beginMessage=beginMessage, parentData = model@data)
 		indepTimeStop <- Sys.time()
 		indepElapsed <- indepTimeStop - indepTimeStart
 		return(processHollowModel(model, independents, 
@@ -74,7 +73,8 @@ runHelper <- function(model, frontendStart,
 		intervals = intervals, silent = silent, 
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
-		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer)
+		onlyFrontend = onlyFrontend, beginMessage=beginMessage,
+		useOptimizer = useOptimizer)
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
@@ -120,10 +120,10 @@ runHelper <- function(model, frontendStart,
 	flatModel <- eliminateObjectiveFunctions(flatModel)
 	flatModel <- convertAlgebras(flatModel, convertArguments)
 	defVars <- generateDefinitionList(flatModel, list())
+	labelsData <- imxGenerateLabels(model)
 	model <- expectationFunctionAddEntities(model, flatModel, labelsData)
 	model <- preprocessDatasets(model, defVars, model@options) # DEPRECATED
-	flatModel@datasets <- collectDatasets(model)  # done in imxFlattenModel, but confusingly do it again
-	labelsData <- imxGenerateLabels(model)
+	flatModel@datasets <- collectDatasets(model, namespace)  # done in imxFlattenModel, but confusingly do it again
 
 	model <- fitFunctionAddEntities(model, flatModel, labelsData)
 
@@ -208,7 +208,7 @@ runHelper <- function(model, frontendStart,
 	
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
-	if(!silent) message("Running ", model@name, " with ", numParam, " parameter",
+	if(beginMessage) message("Running ", model@name, " with ", numParam, " parameter",
 			    ifelse(numParam==1, "", "s"))
 	if (onlyFrontend) return(model)
 
@@ -219,11 +219,13 @@ runHelper <- function(model, frontendStart,
 			silent || !interactive(), PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop
-	model <- updateModelMatrices(model, flatModel, output$matrices)
-	model <- updateModelAlgebras(model, flatModel, output$algebras)
-	model <- updateModelExpectations(model, flatModel, output$expectations)
-	model <- updateModelExpectationDims(model, expectations)
-	model <- updateModelData(model, flatModel, output$data)
+	if (is.null(output$error)) {
+		model <- updateModelMatrices(model, flatModel, output$matrices)
+		model <- updateModelAlgebras(model, flatModel, output$algebras)
+		model <- updateModelExpectations(model, flatModel, output$expectations)
+		model <- updateModelExpectationDims(model, expectations)
+		model <- updateModelData(model, flatModel, output$data)
+	}
 	model@compute <-updateModelCompute(model, output$computes)
 	output[['computes']] <- NULL
 	if (!is.null(output[['bounds']])) {
@@ -248,12 +250,16 @@ runHelper <- function(model, frontendStart,
 	}
 	mroe <- model@output[['maxRelativeOrdinalError']]
 	if (!is.null(mroe) && mroe > options[["mvnRelEps"]]) {
-		warning(paste("model$output[['maxRelativeOrdinalError']] is larger than mvnRelEps (",
-			      options[["mvnRelEps"]],") at the optimum.\n",
-			      "Standardized ordinal thresholds are too far from zero or",
-			      "you have too many ordinal variables with nonzero covariance.\n",
-			      "Increase the maximum number of integration points or reduce mvnRelEps."))
+		warning(paste("Polite note: Model finished with a larger ordinal error than we typically expect.\n",
+			"This may be fine, but you may wish to re-run the model using\n",
+			"`mxTryHardOrdinal()` in place of `mxRun()` to try for a better fit.\n",
+			"Expert version: model$output[['maxRelativeOrdinalError']] is \n",
+			"larger than the mvnRelEps value of ", options[["mvnRelEps"]], ".\n",
+			"If this is expected for your model, you might wish to increase `mvnRelEps`, e.g:\n",
+			"mxOption(NULL, 'mvnRelEps', value= mxOption(NULL, 'mvnRelEps')*5)\n",
+			"see `?mxOptions`" ))
 	}
+
 
 	# Currently runstate preserves the pre-backend state of the model.
 	# Eventually this needs to capture the post-backend state,
@@ -307,8 +313,9 @@ imxReportProgress <- function(info, eraseLen) {
 enumerateDatasets <- function(model) {
 	datasets <- c()
 	if (!is.null(model@data)) datasets <- c(datasets, model@name)
-	if (length(model@submodels)) {
-		datasets <- c(datasets, sapply(model@submodels, enumerateDatasets))
+	if (length(model@submodels)) for (mx in 1:length(model@submodels)) {
+    got <- enumerateDatasets(model@submodels[[mx]])
+    if (length(got)) datasets <- c(datasets, got)
 	}
 	return(datasets)
 }
@@ -341,6 +348,7 @@ mxBootstrap <- function(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
 			OK=mxOption(model, "Status OK"), checkHess=FALSE) {
+  warnModelCreatedByOldVersion(model)
     if (!missing(plan)) {
 	    stop("The 'plan' argument is deprecated. Use mxModel(model, plan) and then mxBootstrap")
     }
@@ -350,6 +358,7 @@ mxBootstrap <- function(model, replications=200, ...,
     if (missing(data)) {
       data <- enumerateDatasets(model)
     }
+	    # wrap with mxComputeTryCatch ?
     plan <- mxComputeBootstrap(data, model@compute)
   } else {
     plan <- model$compute
@@ -372,8 +381,7 @@ omxGetBootstrapReplications <- function(model) {
   if (is.null(model$compute) || !is(model$compute, "MxComputeBootstrap")) {
 	  stop(paste("Compute plan", class(model$compute), "found in model",
 		     omxQuotes(model$name),
-		     "instead of MxComputeBootstrap. Have you run this model",
-		     "through mxBootstrap already?"))
+		     "instead of MxComputeBootstrap. You need to run this model through mxBootstrap first."))
   }
    assertModelFreshlyRun(model)
   cb <- model@compute

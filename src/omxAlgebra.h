@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 
 typedef struct omxAlgebra omxAlgebra;
 
@@ -30,10 +28,13 @@ typedef struct omxAlgebra omxAlgebra;
 
 struct omxAlgebra {						// A matrix
 										//TODO: Improve encapsulation
-/* Fields unique to Algebras */
 	algebra_op_t funWrapper;					// Wrapper for the algebra function itself
 	omxMatrix** algArgs;
 	int numArgs;						// Length of args
+
+	// hack for expectations
+	omxExpectation *expectation;
+	const char *what;
 
 	omxMatrix* matrix;				// The matrix populated by this algebra
 	bool calcDimnames;
@@ -48,7 +49,6 @@ struct omxAlgebra {						// A matrix
 };
 
 /* Initialize and Destroy */
-	omxMatrix* omxInitAlgebra(omxAlgebra *oa, omxState* os);			// Constructor 
 void omxAlgebraAllocArgs(omxAlgebra *oa, int numArgs);
 void omxFillAlgebraFromTableEntry(omxAlgebra *oa, const omxAlgebraTableEntry* oate, const int realNumArgs);
 	void omxInitAlgebraWithMatrix(omxAlgebra *oa, omxMatrix* om);		// Constructor (with matrix)
@@ -72,5 +72,7 @@ void omxAlgebraPreeval(omxMatrix *mat, FitContext *fc);
 	void omxDuplicateAlgebra(omxMatrix *tgt, omxMatrix* src, omxState* tgtState);
 
 void omxAlgebraPrint(omxAlgebra *source, const char* d);
+
+void connectMatrixToExpectation(omxMatrix *result, omxExpectation *ex, const char *what);
 
 #endif /* _OMXALGEBRA_H_ */

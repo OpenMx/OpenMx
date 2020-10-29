@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2018 by the individuals mentioned in the source code history
+%   Copyright 2007-2019 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 }
 
 \usage{
-omxSetParameters(model, labels, free = NULL, values = NULL,
+omxSetParameters(model, labels=names(coef(model)), free = NULL, values = NULL,
     newlabels = NULL, lbound = NULL, ubound = NULL, indep = FALSE,
     strict = TRUE, name = NULL)
 }
@@ -50,7 +50,7 @@ omxSetParameters(model, labels, free = NULL, values = NULL,
 \examples{
 
 A <- mxMatrix('Full', 3, 3, labels = c('a','b', NA), free = TRUE, name = 'A')
-model <- mxModel(model="testModel", A, name = 'model')
+model <- mxModel(model="testModel7", A, name = 'model')
 
 # set value of cells labelled "a" and "b" to 1 and 2 respectively
 model <- omxSetParameters(model, c('a', 'b'), values = c(1, 2))

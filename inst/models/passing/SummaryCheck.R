@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ raw.fit <- mxRun(raw)
 #------------------------------------------------------------------------------
 # Specify Saturated raw data model
 
-sat.fit <- mxRefModels(raw, run=TRUE)
+sat.fit <- mxRefModels(raw.fit, run=TRUE)
 
 cmp <- mxCompare(sat.fit[['Saturated']], raw.fit)
 omxCheckCloseEnough(cmp$diffLL[2], 49.764, 1e-2)
@@ -87,31 +87,29 @@ factorModel <- mxModel("OneFactor",
       latentVars = latents,
       mxPath(from=latents, to=manifests),
       mxPath(from=manifests, arrows=2),
-      mxPath(from=latents, arrows=2,
-            free=FALSE, values=1.0),
+      mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
       mxPath(from = 'one', to = manifests),
       mxData(demoOneFactor, type="raw"))
+
 manifests <- manifests[-1]
-factorModelLess <- mxModel("OneFactorLess",
+
+factorModelLess <- mxModel("OneVarFewer",
       type="RAM",
       manifestVars = manifests,
       latentVars = latents,
       mxPath(from=latents, to=manifests),
       mxPath(from=manifests, arrows=2),
-      mxPath(from=latents, arrows=2,
-            free=FALSE, values=1.0),
+      mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
       mxPath(from = 'one', to = manifests),
       mxData(demoOneFactor, type="raw"))
-mg <- mxModel("bob", factorModel, factorModelLess, mxFitFunctionMultigroup(c("OneFactor", "OneFactorLess")))
 
-
+mg <- mxModel("bob", factorModel, factorModelLess, mxFitFunctionMultigroup(c("OneFactor", "OneVarFewer")))
 mg.fit <- mxRun(mg)
-
 mg.sat <- mxRefModels(mg.fit, run=TRUE)
 
 omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactor`))[1], 5)
-omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneFactorLess`))[1], 4)
-# the saturated model for OneFactorLess should be only on the variables used x2:x5, not all the variables x1:x5.
+omxCheckEquals(dim(mxEval(satCov, mg.sat[[1]]$`Saturated OneVarFewer`))[1], 4)
+# the saturated model for OneVarFewer should be only on the variables used x2:x5, not all the variables x1:x5.
 
 refStats <- lapply(mg.sat, function(model) {
 	list(model$output$Minus2LogLikelihood, summary(model)$degreesOfFreedom)
@@ -142,56 +140,52 @@ m2 <- mxModel("model2", type = "RAM",
     mxData(cov(demoOneFactor), type = "cov", numObs = 500)
 )
 
-m3 = mxModel("bob", m1, m2,
-    mxFitFunctionMultigroup(c("model1.fitfunction","model2.fitfunction"))
-)
-
-
+m3 = mxModel("bob", m1, m2, mxFitFunctionMultigroup(c("model1","model2")))
 m3r = mxRun(m3)
-ref <- mxRefModels(m3r, run=TRUE)
+ref = mxRefModels(m3r, run=TRUE)
 
-omxCheckError(summary(m3r, SaturatedLikelihood=ref),
-              "List of length two (illegal argument) passed to 'SaturatedLikelihood' argument of summary function. You probably meant to use the refModels argument instead.")
+expecteError = "List of length two (illegal argument) passed to 'SaturatedLikelihood' argument of summary function. You probably meant to use the refModels argument instead."
+omxCheckError(summary(m3r, SaturatedLikelihood=ref), expecteError)
 
-#TODO add checking of fit stats for this model
+# TODO add checking of fit stats for this model
 
 
 #------------------------------------------------------------------------------
 # Specify cov data models
-cov <- mxModel("Covariance Test Model to Check MxSummary",
-	type="RAM", manifestVars=varnames, latentVars=latnames,
+cov <- mxModel("Covariance Test Model to Check MxSummary", type="RAM",
+	manifestVars=varnames, latentVars=latnames,
 	fl, fc, rv,
 	mxData(cov(demoTwoFactor), "cov", numObs=nrow(demoTwoFactor))
 )
 
-cov.fit <- mxRun(cov)
-cov.sat <- mxRefModels(cov.fit, run=TRUE)
+cov.fit = mxRun(cov)
+cov.sat = mxRefModels(cov.fit, run=TRUE)
 
-covm <- mxModel("Covariance and Means Test Model to Check MxSummary",
-	type="RAM", manifestVars=varnames, latentVars=latnames,
+covm = mxModel("Covariance and Means Test Model to Check MxSummary", type="RAM",
+	manifestVars=varnames, latentVars=latnames,
 	fl, fc, rv, mm,
 	mxData(cov(demoTwoFactor), "cov", numObs=nrow(demoTwoFactor), means=colMeans(demoTwoFactor))
 )
 
-covm.fit <- mxRun(covm)
+covm.fit = mxRun(covm)
 
 
 #------------------------------------------------------------------------------
 # Get summaries of models
 
-raw.sum <- summary(raw.fit)
-sat.sum <- summary(sat.fit[[1]])
+sat.sum  <- summary(sat.fit[[1]])
+raw.sum  <- summary(raw.fit)
 raws.sum <- summary(raw.fit, SaturatedLikelihood=sat.fit[[1]])
 rawr.sum <- summary(raw.fit, refModels=sat.fit)
-cov.sum <- summary(cov.fit)
+cov.sum  <- summary(cov.fit)
 covs.sum <- summary(covm.fit)
-mg.sum <- summary(mg.fit, refModels=mg.sat)
+mg.sum   <- summary(mg.fit, refModels=mg.sat)
 
 
 #------------------------------------------------------------------------------
 # Compare Fit statistics to what they should be.
 
-# Things to check for raw w/o sat, raw w/ sat, cov, cov & means, multigroup
+# Things to check for raw w/o sat, raw w/ sat, cov, cov & means, multi-group
 #	number of observed statistics
 #	degrees of freedom
 #	-2LL, sat -2LL, numObs
@@ -226,8 +220,8 @@ omxCheckEquals(mg.sum$degreesOfFreedom, 5*500+4*500-27)
 omxCheckWithinPercentError(raw.sum$Minus2LogLikelihood, 9236.675, percent=1e-4)
 omxCheckTrue(is.na(raw.sum$SaturatedLikelihood))
 omxCheckWithinPercentError(raws.sum$SaturatedLikelihood, 9186.911, percent=1e-4)
-omxCheckWithinPercentError(cov.sum$SaturatedLikelihood, 7.520532, percent=1e-4)
-omxCheckWithinPercentError(covs.sum$SaturatedLikelihood, 7.520532, percent=1e-4)
+omxCheckWithinPercentError(cov.sum$SaturatedLikelihood, -2.464397, percent=1e-4)
+omxCheckWithinPercentError(covs.sum$SaturatedLikelihood, -2.464397, percent=1e-4)
 omxCheckEquals(raw.sum$numObs, 500)
 omxCheckEquals(raws.sum$numObs, 500)
 omxCheckEquals(cov.sum$numObs, 500)
@@ -243,8 +237,10 @@ omxCheckCloseEnough(covs.sum$Chi, 49.75399, epsilon=1e-3)
 
 
 # ChiDoF = df - sat.df, i.e. df = obsStat-ep, sat.df = obsStat-sat.ep, so ChiDoF = sat.ep - ep
-chi.df <- 34
-#omxCheckTrue(is.na(raw.sum$ChiDoF)) # is still populated, but it reported as NA when satLik is NA
+chi.df = 34
+
+# line asserting ChiDoF is na is inconsistent with the next, that it = chi.df...
+# omxCheckTrue(is.na(raw.sum$ChiDoF)) # is still populated, but it reported as NA when satLik is NA
 omxCheckEquals(raws.sum$ChiDoF, chi.df)
 omxCheckEquals(cov.sum$ChiDoF, chi.df)
 omxCheckEquals(covs.sum$ChiDoF, chi.df)
@@ -307,25 +303,23 @@ omxCheckCloseEnough(mg.sum$informationCriteria[c(1:4,6)], c(-6936.958, -28889.34
 library(OpenMx)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
-latents <- c("G1")
+latents   <- "G1"
 fit1 <- mxRun(mxModel(model="One Factor", type="RAM",
-                      manifestVars = manifests, latentVars = latents,
-                      mxPath(from = latents, to=manifests),
-                      mxPath(from = manifests, arrows = 2),
-                      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
-                      mxPath(from = 'one', manifests, free=FALSE),
-                      mxData(cov(demoOneFactor), colMeans(demoOneFactor),
-                             type = "cov", numObs = 500)
+      manifestVars = manifests, latentVars = latents,
+      mxPath(from = latents, to=manifests),
+      mxPath(from = manifests, arrows = 2),
+      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+      mxPath(from = 'one', manifests, free=FALSE),
+      mxData(cov(demoOneFactor), colMeans(demoOneFactor), type = "cov", numObs = 500)
 ))
 
 fit2 <- mxRun(mxModel(model="One Factor", type="RAM",
-                      manifestVars = manifests, latentVars = latents,
-                      mxPath(from = latents, to=manifests, values=0, free=c(F,T,T,T,T)),
-                      mxPath(from = manifests, arrows = 2),
-                      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
-                      mxPath(from = 'one', manifests, free=FALSE),
-                      mxData(cov(demoOneFactor), colMeans(demoOneFactor),
-                             type = "cov", numObs = 500)
+      manifestVars = manifests, latentVars = latents,
+      mxPath(from = latents, to=manifests, values=0, free=c(F,T,T,T,T)),
+      mxPath(from = manifests, arrows = 2),
+      mxPath(from = latents, arrows = 2, free = FALSE, values = 1.0),
+      mxPath(from = 'one', manifests, free=FALSE),
+      mxData(cov(demoOneFactor), colMeans(demoOneFactor), type = "cov", numObs = 500)
 ))
 
 got <- mxCompare(fit1, fit2, boot=T, replications = 10)

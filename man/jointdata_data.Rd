@@ -35,11 +35,6 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 
 \examples{
 data(jointdata)
-par(mfrow=c(2, 3))
-h <- lapply(jointdata, hist)
-par(mfrow=c(1, 1))
-
-plot(z2 ~ z1, jointdata)
-
+head(jointdata)
 }
 \keyword{datasets}

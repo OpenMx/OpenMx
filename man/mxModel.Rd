@@ -53,7 +53,7 @@ The model type is determined by a character vector supplied to the \sQuote{type}
 
 \strong{Expectations and Fit functions}
 
-To be estimated, \link{MxModel} objects must include fit functions and expectations as arguments.  Fit functions include \link{mxFitFunctionML}, \link{mxFitFunctionMultigroup}, \link{mxFitFunctionWLS}, \link{mxFitFunctionAlgebra}, \link{mxFitFunctionGREML}, \link{mxFitFunctionR}, amd \link{mxFitFunctionRow}. Expectations include 
+To be estimated, \link{MxModel} objects must include fit functions and expectations as arguments.  Fit functions include \link{mxFitFunctionML}, \link{mxFitFunctionMultigroup}, \link{mxFitFunctionWLS}, \link{mxFitFunctionAlgebra}, \link{mxFitFunctionGREML}, \link{mxFitFunctionR}, and \link{mxFitFunctionRow}. Expectations include 
 \link{mxExpectationBA81}, \link{mxExpectationGREML}, \link{mxExpectationHiddenMarkov}
 \link{mxExpectationLISREL}, \link{mxExpectationMixture}, \link{mxExpectationNormal}, \link{mxExpectationRAM}, \link{mxExpectationStateSpace}, \link{mxExpectationStateSpaceContinuousTime}. The 'type' of the model may imply a certain fit function or expectation (e.g. type = "RAM" implies mxExpectationRAM). The model data may also constrain which fit and expectation are appropriate.
 

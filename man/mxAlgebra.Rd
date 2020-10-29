@@ -32,7 +32,9 @@
 
 \usage{
 mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
-          joinKey=as.character(NA), joinModel=as.character(NA), verbose=0L)
+          joinKey=as.character(NA), joinModel=as.character(NA),
+	verbose=0L, initial=matrix(as.numeric(NA),1,1),
+        recompute=c('always','onDemand'))
 }
 
 \arguments{
@@ -43,15 +45,19 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
    list is treated as NULL, and a list of length one as row names. The
    list can be named, and the list names will be used as names for the
    dimensions.}
-   \item{...}{Not used.  Forces argument \sQuote{fixed} to be specified by name.}
-   \item{fixed}{If TRUE, this algebra will not be recomputed
-     automatically when things it depends on change. \link{mxComputeOnce}
-     can be used to force it to recompute.}
+   \item{...}{Not used.  Forces other arguments to be specified by name.}
+   \item{fixed}{Deprecated. Use the \sQuote{recompute} argument instead.}
 \item{joinKey}{The name of the column in current model's raw data that
   is used as a foreign key to match against the primary key in
   the joinModel's raw data.}
 \item{joinModel}{The name of the model that this matrix joins against.}
-\item{verbose}{For values greater than zero, enable runtime diagnostics.}
+\item{verbose}{For values greater than zero, enable runtime
+  diagnostics.}
+\item{initial}{a matrix. When \code{recompute='onDemand'},
+  you must provide this initial algebra result.}
+   \item{recompute}{If \sQuote{onDemand}, this algebra will not be recomputed
+     automatically when things it depends on change. \link{mxComputeOnce}
+     can be used to force it to recompute.}
 }
 
 \details{
@@ -144,6 +150,11 @@ Functions
 \item{\code{\link[OpenMx:mxEvaluateOnGrid]{mxEvaluateOnGrid}}}{Evaluate
   an algebra on an abscissa grid and collect column results}
 }
+
+If \code{solve} is used on an uninvertible square matrix in R, via 
+\code{\link[OpenMx:mxEval]{mxEval()}}, it will fail with an error will; if 
+\code{solve} is used on an uninvertible square matrix during 
+\link[OpenMx:mxRun]{runtime}, it will fail silently.
 
 \code{mxRobustLog} is the same as \code{log} except that it returns -745
 instead of -Inf for an argument of 0. The value -745 is less than

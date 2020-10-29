@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@ require(OpenMx)
 if (mxOption(NULL,"Default optimizer") == 'CSOLNP') stop("SKIP")
 set.seed(43L)
 
+#mxOption(key="Parallel diagnostics", value = "Yes")
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
 #Prepare Data
@@ -38,97 +39,95 @@ twinACEModel <- mxModel("twinACE",
 	mxModel("common",
 		# Matrices X, Y, and Z to store a, c, and e path coefficients
 		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=TRUE,  
-			values=.6, lbound=.1, 
-			label="a", 
+			type="Full",
+			nrow=1,
+			ncol=1,
+			free=TRUE,
+			values=.6, lbound=.1,
+			label="a",
 			name="X"
-		), 
+		),
 		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=TRUE,  
+			type="Full",
+			nrow=1,
+			ncol=1,
+			free=TRUE,
 			values=sqrt(.6),
-			label="c", 
+			label="c",
 			name="Y"
 		),
 		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=1, 
-			free=TRUE,  
-			values=.6, lbound=.1, 
-			label="e", 
+			type="Full",
+			nrow=1,
+			ncol=1,
+			free=TRUE,
+			values=.6, lbound=.1,
+			label="e",
 			name="Z"
 		),
 		# Matrices A, C, and E compute variance components
 		mxAlgebra(
-			expression=X %*% t(X), 
+			expression=X %*% t(X),
 			name="A"
-		), 
+		),
 		mxAlgebra(
-			expression=Y %*% t(Y), 
+			expression=Y %*% t(Y),
 			name="C"
-		), 
+		),
 		mxAlgebra(
-			expression=Z %*% t(Z), 
+			expression=Z %*% t(Z),
 			name="E"
 		),
 		mxMatrix(
-			type="Full", 
-			nrow=1, 
-			ncol=2, 
-			free=TRUE, 
+			type="Full",
+			nrow=1,
+			ncol=2,
+			free=TRUE,
 			values= 20, lbound=0, ubound=30,
-			label="mean", 
+			label="mean",
 			name="expMean"
 		),
 	    # Algebra for expected variance/covariance matrix in MZ
 	    mxAlgebra(
 			expression= rbind  (cbind(A+C+E , A+C),
-								cbind(A+C   , A+C+E)), 
+								cbind(A+C   , A+C+E)),
 			name="expCovMZ"
 		),
 	    # Algebra for expected variance/covariance matrix in DZ
 	    # note use of 0.5, converted to 1*1 matrix
 	    mxAlgebra(
 			expression= rbind  (cbind(A+C+E     , 0.5%x%A+C),
-								cbind(0.5%x%A+C , A+C+E)), 
+								cbind(0.5%x%A+C , A+C+E)),
 			name="expCovDZ"
 		)
 	),
 	mxModel("MZ",
 	    mxData(
-			observed=mzfData, 
+			observed=mzfData,
 			type="raw"
-		), 
-	    mxFitFunctionML(),mxExpectationNormal(
-			covariance="common.expCovMZ", 
-			means="common.expMean", 
+		),
+    mxFitFunctionML(rowwiseParallel=FALSE),
+    mxExpectationNormal(
+			covariance="common.expCovMZ",
+			means="common.expMean",
 			dimnames=selVars
 		)
 	),
 	mxModel("DZ",
 	    mxData(
-			observed=dzfData, 
+			observed=dzfData,
 			type="raw"
-		), 
-	    mxFitFunctionML(),mxExpectationNormal(
-			covariance="common.expCovDZ", 
-			means="common.expMean", 
+		),
+    mxFitFunctionML(rowwiseParallel=FALSE),
+    mxExpectationNormal(
+			covariance="common.expCovDZ",
+			means="common.expMean",
 			dimnames=selVars
 		)
 	),
-	mxAlgebra(
-		expression=MZ.objective + DZ.objective, 
-		name="twin"
-	), 
-	mxFitFunctionAlgebra("twin"),
+	mxFitFunctionMultigroup(c('MZ','DZ')),
     mxCI(c("common.A", "common.C[,]", "common.E[1,1]"))
-)	
+)
 #Run ACE model
 # -----------------------------------------------------------------------
 twinACENoIntervals <- mxRun(twinACEModel, suppressWarnings = TRUE)
@@ -169,7 +168,7 @@ maxMisfit <- mxEval(objective, twinACEFit)[1,1] + 3.84
 
 CIaupper <- mxModel(twinACEIntervals, name = 'A_CIupper',
     mxConstraint(MZ.objective + DZ.objective < maxMisfit),
-		mxAlgebra(- common.A, name="upperCIa"), 
+		mxAlgebra(- common.A, name="upperCIa"),
 		mxFitFunctionAlgebra("upperCIa"))
 
 CIalower <- mxModel(twinACEIntervals, name = 'A_CIlower',
@@ -182,14 +181,14 @@ runCIaupper <- suppressWarnings(iterateMxRun(CIaupper, 3))
 
 CIcupper <- mxModel(twinACEIntervals, name = 'C_CIupper',
 		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
-		mxAlgebra(- common.C,name="upperCIc"), 
+		mxAlgebra(- common.C,name="upperCIc"),
 		mxFitFunctionAlgebra("upperCIc"))
 
 runCIcupper <- suppressWarnings(iterateMxRun(CIcupper, 3))
 
 CIeupper <- mxModel(twinACEIntervals, name = 'E_CIupper',
 		mxConstraint(MZ.objective + DZ.objective < maxMisfit),
-		mxAlgebra(- common.E,name="upperCIe"), 
+		mxAlgebra(- common.E,name="upperCIe"),
 		mxFitFunctionAlgebra("upperCIe"))
 
 CIelower <- mxModel(twinACEIntervals, name = 'E_CIlower',

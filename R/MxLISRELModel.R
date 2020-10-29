@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,11 +31,11 @@ imxModelTypes[['LISREL']] <- "MxLISRELModel"
 #--------------------------------------------------------------------
 # Define generic functions
 
-setMethod("imxTypeName", "MxLISRELModel", 
+setMethod("imxTypeName", "MxLISRELModel",
 	function(model) { "LISREL" }
 )
 
-setMethod("imxInitModel", "MxLISRELModel", 
+setMethod("imxInitModel", "MxLISRELModel",
 	function(model) {
 		# Returns an ML fitfunction and an expectation with al NA matrices
 		# add needed matrices later
@@ -97,9 +97,9 @@ createMatrixLISREL <- function(model, rowvariables, colvariables, matrixname){
 	values <- matrix(0, rlen, clen)
 	free <- matrix(FALSE, rlen, clen)
 	labels <- matrix(as.character(NA), rlen, clen)
-	if(matrixname %in% c('LX', 'LY', 'BE', 'GA', 'TX', 'TY', 'KA', 'AL')){
+	if(matrixname %in% c('LX', 'LY', 'BE', 'GA', 'TX', 'TY', 'KA', 'AL', 'TH')){
 		matrixtype <- 'Full'
-	} else if(matrixname %in% c('PH', 'PS', 'TD', 'TE', 'TH')){	
+	} else if(matrixname %in% c('PH', 'PS', 'TD', 'TE')){
 		matrixtype <- 'Symm'
 	}
 	retval <- mxMatrix(matrixtype, values = values, free = free, labels = labels, name = matrixname)
@@ -109,13 +109,13 @@ createMatrixLISREL <- function(model, rowvariables, colvariables, matrixname){
 
 
 
-setMethod("imxModelBuilder", "MxLISRELModel", 
-	function(model, lst, name, manifestVars, latentVars, submodels, remove, independent) {
+setMethod("imxModelBuilder", "MxLISRELModel",
+	function(model, lst, name, manifestVars, latentVars, productVars, submodels, remove, independent) {
 		model <- nameArgument(model, name)
-		model <- variablesArgumentLISREL(model, manifestVars, latentVars, submodels, remove)
+		model <- variablesArgumentLISREL(model, manifestVars, latentVars, productVars, submodels, remove)
 		model <- listArgumentLISREL(model, lst, remove)
 		notPathOrData <- getNotPathsOrData(lst)
-		callNextMethod(model, notPathOrData, NA, character(), character(), list(), remove, independent)
+		callNextMethod(model, notPathOrData, NA, character(), character(), character(), list(), remove, independent)
 		#stop("Not implemented")
 	}
 )
@@ -141,12 +141,15 @@ setReplaceMethod("$", "MxLISRELModel",
 )
 
 # Helpers for LISREL models
-variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, remove){
+variablesArgumentLISREL <- function(model, manifestVars, latentVars, productVars, submodels, remove){
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
 	if (single.na(latentVars)) {
 		latentVars <- character()
+	}
+	if(length(productVars) > 0 && !single.na(productVars)) {
+		stop("Whoopsie! Product nodes/variables are not currently supported for LISREL MxModel objects.")
 	}
 	if (remove == TRUE) {
 		if (length(latentVars) + length(manifestVars) > 0) {
@@ -157,12 +160,11 @@ variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, 
 		}
 	} else {
 		if (length(manifestVars) + length(latentVars) > 0) {
-			if(length(names(latentVars)) == 0 || !is.list(latentVars) ){
-				stop("Unlike RAM, LISREL models must have latent variables.  The latentVars argument of a LISREL model must be a named list.")
+			if(length(latentVars) == 0) {
+				stop("Unlike RAM, LISREL models must have latent variables.")
 			}
-			if(length(names(manifestVars)) == 0 || !is.list(manifestVars) ){
-				stop("The manifestVars argument of a LISREL model must be a named list.")
-			}
+      if (!is.list(latentVars)) latentVars <- list(endo=latentVars)
+			if (length(manifestVars) && !is.list(manifestVars)) manifestVars <- list(endo=manifestVars)
 			latentVars <- varsToCharacter(latentVars, "latent")
 			manifestVars <- varsToCharacter(manifestVars, "manifest")
 			checkVariables(model, latentVars, manifestVars)
@@ -173,7 +175,6 @@ variablesArgumentLISREL <- function(model, manifestVars, latentVars, submodels, 
 		}
 	}
 	return(model)
-	# include check prior to varsToCharacter to see if length(names(latentVars)) == 0 (and if same for manifestVars
 }
 
 removeVariablesLISREL <- function(model, latent, manifest){
@@ -273,7 +274,7 @@ addEntriesLISREL <- function(model, entries){
 	if (length(entries) == 0) {
 		return(model)
 	}
-	
+
 	filter <- sapply(entries, is, "MxPath")
 	paths <- entries[filter]
 	if (length(paths) > 0) {
@@ -284,6 +285,11 @@ addEntriesLISREL <- function(model, entries){
 	if(length(thresholds) > 0) {
 		model <- insertAllThresholdsRAM(model, thresholds) # sic.  Re-use RAM threholds
 	}
+  filter <- sapply(entries, is, "DiscreteBase")
+  discrete <- entries[filter]
+  if(length(discrete)) {
+    model <- insertDiscreteRAM(model, discrete)
+  }
 	filter <- sapply(entries, is, "MxData")
 	data <- entries[filter]
 	if (length(data) > 0) {
@@ -313,30 +319,30 @@ insertAllPathsLISREL <-  function(model, paths){
 	TY <- model[['TY']]
 	KA <- model[['KA']]
 	AL <- model[['AL']]
-	
+
 	legalVars <- c(exvars, envars, "one")
-	
+
 	for(i in 1:length(paths)) {
 		path <- paths[[i]]
-	
+
 		missingvalues <- is.na(path@values)
 		path@values[missingvalues] <- 0
-		
+
 		if (single.na(path@to)) {
 			path@to <- path@from
 			paths[[i]] <- path
 		}
-		
+
 		allFromTo <- unique(c(path@from, path@to))
-		varExist <- allFromTo %in% legalVars 
+		varExist <- allFromTo %in% legalVars
 		if(!all(varExist)) {
 			missingVars <- allFromTo[!varExist]
-			stop(paste("Nice try, you need to add", 
-				omxQuotes(missingVars), 
+			stop(paste("You need to add",
+				omxQuotes(missingVars),
 				"to either manifestVars or latentVars before you",
 				"can use them in a path."), call. = FALSE)
 		}
-		
+
 		if (length(path@from) == 1 && (path@from == "one")) {
 			if ( (is.null(TX) || is.null(KA)) && any(path@to %in% exvars) ) {
 				model <- addExogenousMeansLISREL(model)
@@ -359,9 +365,9 @@ insertAllPathsLISREL <-  function(model, paths){
 			LISRELMeans <- NULL
 		}
 	}
-	
+
 	model <- updateLISRELMatrices(model, theMatrices)
-	
+
 	return(model)
 }
 
@@ -379,13 +385,14 @@ insertPathLISREL <- function(path, matrices, variables){
 		from <- allfrom[[i %% length(allfrom) + 1]]
 		to <- allto[[i %% length(allto) + 1]]
 		arrows <- allarrows[[i %% length(allarrows) + 1]]
+    if (arrows == 0) stop("MxPath with arrows==0 is not supported by LISREL") # maybe possible TODO
 		new <- list()
 		new$value <- allvalues[[i %% length(allvalues) + 1]]
 		new$free <- allfree[[i %% length(allfree) + 1]]
 		new$label <- alllabels[[i %% length(alllabels) + 1]]
 		new$ubound <- allubound[[i %% length(allubound) + 1]]
 		new$lbound <- alllbound[[i %% length(alllbound) + 1]]
-		
+
 		#N.B. assuming that length(from) and length(to) are both 1
 		if(from %in% variables$lex){
 			matrices <- insertLatentExoPathsLISREL(from, to, arrows, old=matrices, new, variables)
@@ -531,11 +538,14 @@ insertLatentEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
 #manifestExo -> 'one'
 #	stop('nonsense')
 
+manifestToLatentError <- function(from, to) {
+  stop(paste('In LISREL, paths are not allowed from manifest variables to latent variables;',
+             'from=',omxQuotes(from), 'to=', omxQuotes(to)))
+}
+
 insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
-	if(to %in% variables$lex){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
-	} else if(to %in% variables$len){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
+	if(to %in% variables$lex || to %in% variables$len){
+    manifestToLatentError(from, to)
 	} else if(to %in% variables$mex){
 		if(arrows==1){
 			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous variables.')
@@ -574,10 +584,8 @@ insertManifestExoPathsLISREL <- function(from, to, arrows, old, new, variables){
 #	stop('nonsense')
 
 insertManifestEndoPathsLISREL <- function(from, to, arrows, old, new, variables){
-	if(to %in% variables$lex){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
-	} else if(to %in% variables$len){
-		stop('In LISREL, paths are not allowed from manifest variables to latent variables.')
+	if(to %in% variables$lex || to %in% variables$len){
+    manifestToLatentError(from, to)
 	} else if(to %in% variables$mex){
 		if(arrows==1){
 			stop('In LISREL, one-headed arrows are not allowed between manifest exogenous variables.')

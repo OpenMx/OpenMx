@@ -21,7 +21,7 @@ model1 <- mxModel('model1', A)
 C <- mxAlgebra(model1.A, name = 'C')
 model3 <- mxModel('model3', C)
 
-B <- mxMatrix(nrow = 2, ncol = 1, free = TRUE, labels = c('A', 'data.A'), name = 'B')
+B <- mxMatrix(nrow = 2, ncol = 1, free = c(TRUE,FALSE), labels = c('A', 'data.A'), name = 'B')
 data <- mxData(matrix(1, dimnames = list(c(), c('A'))), type = 'raw')
 model2 <- mxModel('model2', B, model3, data)
 

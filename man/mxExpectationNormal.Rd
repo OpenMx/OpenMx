@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,8 +26,9 @@
 }
 
 \usage{
-mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA,
-                    threshnames = dimnames)
+mxExpectationNormal(covariance, means=NA, dimnames = NA, thresholds = NA,
+                    threshnames = dimnames, ...,
+  discrete = as.character(NA), discreteSpec=NULL)
 }
 
 \arguments{
@@ -36,6 +37,10 @@ mxExpectationNormal(covariance, means, dimnames = NA, thresholds = NA,
    \item{dimnames}{An optional character vector to be assigned to the dimnames of the covariance and means algebras.}
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
    \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{discrete}{An optional character string indicating the name of the discrete matrix.}
+   \item{discreteSpec}{An optional matrix containing maximum counts and
+   model IDs.}
 }
 
 \details{
@@ -45,18 +50,18 @@ thresholds: The name of the thresholds matrix. When needed (for modelling ordina
 
 threshnames: A character vector consisting of the variables in the thresholds matrix, i.e., the names of ordinal variables in a model. This is necessary for OpenMx to map the thresholds matrix columns onto the variables in your data. If you set the \link{dimnames} of the columns in the thresholds matrix then threshnames is not needed.
 
-Usage Notes: 
+Usage Notes:
 dimnames must be supplied where the matrices referenced by the covariance and means algebras are not themselves labeled. Failure to do so leads to an error noting that the covariance or means matrix associated with the FIML objective does not contain dimnames.
 
 mxExpectationNormal evaluates with respect to an \link{MxData} object. The \link{MxData} object need not be referenced in the mxExpectationNormal function, but must be included in the \link{MxModel} object. When the 'type' argument in the associated \link{MxData} object is equal to 'raw', missing values are permitted in the associated \link{MxData} object.
 
-To evaluate, place an mxExpectationNormal object, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, optional \link{MxBounds} or \link{MxConstraint} objects, and an mxFitFunction such as \link{mxFitFunctionML} in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function. 
+To evaluate, place an mxExpectationNormal object, the \link{mxData} object for which the expected covariance approximates, referenced \link{MxAlgebra} and \link{MxMatrix} objects, optional \link{MxBounds} or \link{MxConstraint} objects, and an mxFitFunction such as \link{mxFitFunctionML} in an \link{MxModel} object. This model may then be evaluated using the \link{mxRun} function.
 
 The results of the optimization can be reported using the \link{summary} function, or accessed directly in the 'output' slot of the resulting model (i.e., modelName$output). Components of the output may be referenced using the \link{Extract} functionality.
 }
 
 \value{
-Returns an MxExpectationNormal object. 
+Returns an MxExpectationNormal object.
 }
 
 \references{
@@ -79,12 +84,12 @@ tmpNames <- names(tmpFrame)
 
 # Define the matrices
 
-M <- mxMatrix(type = "Full", nrow = 1, ncol = 2, values=c(0,0), 
+M <- mxMatrix(type = "Full", nrow = 1, ncol = 2, values=c(0,0),
               free=c(TRUE,TRUE), labels=c("Mx", "My"), name = "M")
-S <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(1,0,0,1), 
+S <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(1,0,0,1),
               free=c(TRUE,FALSE,FALSE,TRUE), labels=c("Vx", NA, NA, "Vy"),
               name = "S")
-A <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(0,1,0,0), 
+A <- mxMatrix(type = "Full", nrow = 2, ncol = 2, values=c(0,1,0,0),
               free=c(FALSE,TRUE,FALSE,FALSE), labels=c(NA, "b", NA, NA),
               name = "A")
 I <- mxMatrix(type="Iden", nrow=2, ncol=2, name="I")

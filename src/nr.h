@@ -31,7 +31,8 @@ struct NewtonRaphsonObjective {
 	virtual const char *paramIndexToName(int px)=0;
 	virtual void evaluateFit()=0;
 	virtual void evaluateDerivs(int want)=0;
-	virtual double *getParamVec()=0;
+	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out)=0;
+	virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in)=0;
 	virtual double *getGrad()=0;
 	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)=0;  // ihess * grad
 	virtual void reportBadDeriv() {};
@@ -45,9 +46,9 @@ class NewtonRaphsonOptimizer {
 	int verbose;
 	int iter;
 	int numParam;
-	double refFit;
+	double refFit; // current fit value
 	double priorSpeed;
-	double improvement;
+	double improvement;  // previous fit - refFit
 	double maxAdj;
 	double maxAdjSigned;
 	int maxAdjParam;

@@ -19,8 +19,7 @@ definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row =
 	dataSet <- flatModel@datasets[[dataName]]
 	if(is.null(dataSet)) {
 		stop(paste("Could not find the dataset", 
-			omxQuotes(simplifyName(dataName, flatModel@name)),
-			"in model", omxQuotes(flatModel@name), 
+			"associated with model", omxQuotes(flatModel@name),
 			"used by the definition variable", 
 			omxQuotes(simplifyName(defName, flatModel@name))),
 			call. = FALSE)

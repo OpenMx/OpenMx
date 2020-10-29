@@ -18,6 +18,7 @@
 #define _OMX_COMPUTE_H_
 
 #include "omxDefines.h"
+#include <map>
 #include <Eigen/SparseCore>
 #include "glue.h"
 #include "omxState.h"
@@ -84,7 +85,7 @@ struct HessianBlock {
 };
 
 struct CIobjective {
-	ConfidenceInterval *CI;
+	const ConfidenceInterval *CI;
 
 	enum Diagnostic {
 		DIAG_SUCCESS=1,
@@ -95,8 +96,10 @@ struct CIobjective {
 		DIAG_BOXED
 	};
 
+  CIobjective(const ConfidenceInterval *_CI) : CI(_CI) {}
+  virtual std::unique_ptr<CIobjective> clone() const = 0;
 	virtual bool gradientKnown() { return false; };
-	virtual void gradient(FitContext *fc, double *gradOut) {};
+	virtual void gradient(FitContext *fc) {};
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
@@ -105,7 +108,8 @@ struct CIobjective {
 };
 
 // The idea of FitContext is to eventually enable fitting from
-// multiple starting values in parallel.
+// multiple starting values in parallel. There is one FitContext
+// per thread.
 
 class FitContext {
 	static omxFitFunction *RFitFunction;
@@ -125,45 +129,48 @@ class FitContext {
 	int maxBlockSize;
 
 	bool haveDenseHess;
-	Eigen::MatrixXd hess;
 	bool haveDenseIHess;
-	Eigen::MatrixXd ihess;
 
 	void init();
 	void analyzeHessian();
 	void analyzeHessianBlock(HessianBlock *hb);
 	void testMerge();
+  void createChildren1();
 
 	std::string IterationError;
 	double ordinalRelativeError;
 	int computeCount;
 	ComputeInform inform;
 	double previousReportFit;
+  int _numFree;
 
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
 	omxState *getParentState() const { return parent->state; };
 	bool isClone() const;
-	size_t numParam;               // change to int type TODO
+	int numParam;
+  int getNumFree() const { return _numFree; }
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
 	FitStatisticUnits fitUnits;
 	int skippedRows;
-	double *est;
-	Eigen::Map< Eigen::VectorXd > getEst() {
-		Eigen::Map< Eigen::VectorXd > vec(est, numParam);
-		return vec;
-	}
-	std::vector<bool> profiledOut;
-	int calcNumFree() {
-		std::vector<bool> &po = profiledOut;
-		return numParam - std::count(po.begin(), po.end(), true);
+  std::map< const char *, int, cstrCmp > freeToIndexMap;
+  std::vector<int> freeToParamMap;  // length=numFree
+	std::vector<bool> profiledOutZ;
+	void calcNumFree();
+  Eigen::ArrayXd est;  // length=numParam
+  std::unique_ptr<class JacobianGadget> numericalGradTool;
+	Eigen::VectorXd gradZ;  // length=numFree
+	void initGrad() {
+    int pars = getNumFree();
+		gradZ = Eigen::VectorXd::Zero(pars);
 	};
-	Eigen::VectorXd grad;
 	int infoDefinite;
 	double infoCondNum;
+	Eigen::MatrixXd hess;
+	Eigen::MatrixXd ihess;
 	Eigen::VectorXd stderrs;   // plural to distinguish from stdio's stderr
 	enum ComputeInfoMethod infoMethod;
 	double *infoA; // sandwich, the bread
@@ -171,31 +178,48 @@ class FitContext {
 	int iterations;
 	int wanted;
 	std::vector< class FitContext* > childList;
+
+	//Outputs from gradient-based optimizers:
 	Eigen::VectorXd constraintFunVals;
 	Eigen::MatrixXd constraintJacobian;
 	Eigen::VectorXd LagrMultipliers;
 	Eigen::VectorXi constraintStates;
 	Eigen::MatrixXd LagrHessian;
 
+	//Constraint-related:
+	void solEqBFun(bool wantAJ, int verbose);
+	void myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK);
+	bool isUsingAnalyticJacobian(){ return state->usingAnalyticJacobian; }
+	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
+	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
+	Eigen::VectorXd equality;
+	Eigen::VectorXd inequality;
+  bool isUnconstrained();
+	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
+	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
+	int redundantEqualities;
+
 	// for confidence intervals
-	CIobjective *ciobj;
+  std::unique_ptr<CIobjective> ciobj;
 
 	FitContext(omxState *_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
-	void createChildren(omxMatrix *alg);
+  bool permitParallel; // whether openmpUser is permitted
+  void createChildren(omxMatrix *alg=0, bool permitParallel=false);
+  int numOptimizerThreads() { return (childList.size() && !openmpUser)? childList.size() : 1; }
 	void destroyChildren();
 	void calcStderrs();
 	void ensureParamWithinBox(bool nudge);
 	void copyParamToModel();
 	void copyParamToModelClean();
-	double *take(int want);
 	omxMatrix *lookupDuplicate(omxMatrix* element);
 	void maybeCopyParamToModel(omxState* os);
 	void updateParent();
 	void updateParentAndFree();
 	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
+	void resetToOriginalStarts();
 	void setInform(int _in) { inform = _in; };
 	int getInform() { return inform; };
 	int wrapInform() {
@@ -217,7 +241,7 @@ class FitContext {
 		mxThrow("%s: reference fit is not finite", fitMat->name());
 	};
 	~FitContext();
-	
+
 	// deriv related
 	void clearHessian();
 	void negateHessian();
@@ -230,6 +254,7 @@ class FitContext {
 	double *getDenseHessUninitialized();
 	double *getDenseIHessUninitialized();
 	double *getDenseHessianish();  // either a Hessian or inverse Hessian, remove TODO
+	int getDenseHessianishSize();
 	void copyDenseHess(double *dest);
 	void copyDenseIHess(double *dest);
 	Eigen::VectorXd ihessDiag();
@@ -261,65 +286,84 @@ class FitContext {
 	static void setRFitFunction(omxFitFunction *rff);
 
 	// profiledOut parameters are not subject to optimization
-	template<typename T> void copyEstToOptimizer(Eigen::MatrixBase<T> &out) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			out[px] = est[vx];
-			++px;
+	template<typename T> void copyEstToOptimizer(T &out) {
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			out[vx] = est[ freeToParamMap[vx] ];
 		}
 	};
-	template<typename T> void copyGradToOptimizer(Eigen::MatrixBase<T> &out) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			out[px] = grad[vx];
-			++px;
+	template<typename T> void copyGradToOptimizer(T &out) {
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			out[vx] = gradZ[vx];
 		}
 	};
-	template<typename T> void setEstFromOptimizer(Eigen::MatrixBase<T> &in) {
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			est[vx] = in[px];
-			++px;
+	template<typename T> void copyGradFromOptimizer(const T &in) {
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			gradZ[vx] = in[vx];
+		}
+	};
+	void setParamFromOptimizer(int px, double v1) {
+    est[ freeToParamMap[px] ] = v1;
+		copyParamToModel(); // could be smarter TODO
+	}
+	template<typename T> void setEstFromOptimizer(const T &in) {
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			est[ freeToParamMap[vx] ] = in[vx];
 		}
 		copyParamToModel();
 	};
-	template<typename T1, typename T2>
-	void setEstGradFromOptimizer(Eigen::MatrixBase<T1> &ein, Eigen::MatrixBase<T2> &gin) {
-		grad.resize(numParam);
-		grad.setConstant(nan("unset"));
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			est[vx] = ein[px];
-			grad[vx] = gin[px];
-			++px;
+	template<typename T> void setEstFromOptimizerClean(const T &in) {
+		for (int vx=0; vx < getNumFree(); ++vx) {
+			est[ freeToParamMap[vx] ] = in[vx];
 		}
+		copyParamToModelClean();
+	};
+	template<typename T1, typename T2>
+	void setEstGradFromOptimizer(const T1 &ein, const T2 &gin) {
+    setEstFromOptimizer(ein);
+    copyGradFromOptimizer(gin);
 		copyParamToModel();
 	};
 	template<typename T1, typename T2>
 	void copyBoxConstraintToOptimizer(Eigen::MatrixBase<T1> &lb, Eigen::MatrixBase<T2> &ub)
 	{
-		int px=0;
-		for (size_t vx=0; vx < numParam; ++vx) {
-			if (profiledOut[vx]) continue;
-			lb[px] = varGroup->vars[vx]->lbound;
-			if (!std::isfinite(lb[px])) lb[px] = NEG_INF;
-			ub[px] = varGroup->vars[vx]->ubound;
-			if (!std::isfinite(ub[px])) ub[px] = INF;
-			++px;
+    if (lb.size() != getNumFree()) OOPS;
+		for (int vx=0; vx < getNumFree(); ++vx) {
+      int px = freeToParamMap[vx];
+			lb[vx] = varGroup->vars[px]->lbound;
+			if (!std::isfinite(lb[vx])) lb[vx] = NEG_INF;
+			ub[vx] = varGroup->vars[px]->ubound;
+			if (!std::isfinite(ub[vx])) ub[vx] = INF;
 		}
 	};
+  bool hasActiveBoxConstraint() const;
 	std::string asProgressReport();
 };
 
 void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at);
-void copyParamToModelFake1(omxState *os, Eigen::Ref<Eigen::VectorXd> point);
-void copyParamToModelRestore(omxState *os, const Eigen::Ref<const Eigen::VectorXd> point);
 
 typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
+
+struct allconstraints_functional {
+	FitContext &fc;
+	int verbose;
+
+	allconstraints_functional(FitContext &_fc, int _verbose) : fc(_fc), verbose(_verbose) {};
+
+	template <typename T1, typename T2>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+		fc.setEstFromOptimizer(x.derived().data());
+		fc.allConstraintsF(false, verbose, omxConstraint::LESS_THAN, false, true);
+		result = fc.constraintFunVals;
+	}
+
+	template <typename T1, typename T2, typename T3>
+	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+		fc.setEstFromOptimizer(x.derived().data());
+		fc.allConstraintsF(true, verbose, omxConstraint::LESS_THAN, false, true);
+		result = fc.constraintFunVals;
+		jacobian = fc.constraintJacobian;
+	}
+};
 
 class omxCompute {
 	int computeId;
@@ -331,10 +375,11 @@ class omxCompute {
 	static enum ComputeInfoMethod stringToInfoMethod(const char *iMethod);
 	void complainNoFreeParam();
  public:
+
 	const char *name;
 	FreeVarGroup *varGroup;
 	omxCompute();
-	virtual bool resetInform() { return true; };
+	virtual bool accumulateInform() { return true; };
         virtual void initFromFrontend(omxState *, SEXP rObj);
         void compute(FitContext *fc);
 	void computeWithVarGroup(FitContext *fc);
@@ -342,9 +387,60 @@ class omxCompute {
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
         virtual ~omxCompute();
 	void reportProgress(FitContext *fc) { Global->reportProgress(name, fc); }
-	void pushIndex(int ix);
-	void popIndex();
 	bool isPersist() { return dotPersist; };
+};
+
+class PushLoopIndex {
+	void init(const char *name, int ix, int ii, int last)
+	{
+		Global->computeLoopContext.push_back(name);
+		Global->computeLoopIndex.push_back(ix);
+		Global->computeLoopIter.push_back(ii);
+		Global->computeLoopMax.push_back(last);
+	}
+public:
+	PushLoopIndex(const char *name, int ix, int last)
+	{ init(name, ix, ix, last); }
+	PushLoopIndex(const char *name, int ix, int ii, int last)
+	{ init(name, ix, ii, last); }
+	PushLoopIndex(const char *name)
+	{ init(name, NA_INTEGER, 0, 0); }
+	~PushLoopIndex() {
+		Global->computeLoopContext.pop_back();
+		Global->computeLoopIndex.pop_back();
+		Global->computeLoopIter.pop_back();
+		Global->computeLoopMax.pop_back();
+	}
+};
+
+class RNGStateManager {
+ protected:
+	void checkOut()
+	{
+		if (Global->RNGCheckedOut) {
+			mxThrow("Attempt to check out RNG but already checked out");
+		}
+		GetRNGstate();
+		Global->RNGCheckedOut = true;
+	}
+	void checkIn()
+	{
+		if (!Global->RNGCheckedOut) {
+			mxThrow("Attempt to return RNG but already returned");
+		}
+		PutRNGstate();
+		Global->RNGCheckedOut = false;
+	}
+};
+
+struct BorrowRNGState : public RNGStateManager {
+	BorrowRNGState() { checkOut(); }
+	~BorrowRNGState() { checkIn(); }
+};
+
+struct ReturnRNGState : public RNGStateManager {
+	ReturnRNGState() { checkIn(); }
+	~ReturnRNGState() { checkOut(); }
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type);
@@ -414,18 +510,6 @@ void printSparse(Eigen::SparseMatrixBase<T> &sm) {
 	mxLogBig(buf);
 }
 
-template <typename T1>
-void copyParamToModelFake1(omxState *os, Eigen::MatrixBase<T1> &point)
-{
-	auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
-	size_t numParam = varGroup->vars.size();
-	point.derived().resize(numParam);
-
-	for(size_t k = 0; k < numParam; k++) {
-		omxFreeVar* freeVar = varGroup->vars[k];
-		point[k] = freeVar->getCurValue(os);
-		freeVar->copyToState(os, 1.0);
-	}
-}
+void AddLoadDataProvider(double version, unsigned int, class LoadDataProviderBase2 *ldp);
 
 #endif

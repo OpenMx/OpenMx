@@ -26,9 +26,8 @@ struct ssMLFitState : omxFitFunction {
 	omxMatrix *smallRow;
 	omxMatrix *contRow;
 	omxMatrix *rowLikelihoods;
-	omxMatrix *RCX;
 	omxMatrix* otherRowwiseValues;
-	
+
 	virtual ~ssMLFitState();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
@@ -38,7 +37,7 @@ struct ssMLFitState : omxFitFunction {
 void ssMLFitState::populateAttr(SEXP algebra)
 {
 	ssMLFitState *argStruct = this;
-	
+
 	if(argStruct->populateRowDiagnostics){
 		SEXP rowLikelihoodsExt;
 		SEXP rowObsExt;
@@ -62,33 +61,35 @@ void ssMLFitState::populateAttr(SEXP algebra)
 void ssMLFitState::compute(int want, FitContext *fc)
 {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
-	
+
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+
 	auto *oo = this;
 	ssMLFitState *state = this;
 	auto dataColumns	= expectation->getDataColumns();
 	omxData *data = expectation->data;
-	int rowcount = data->rows;
-	
+	int rowcount = data->nrows();
+
 	Eigen::VectorXi contRemove(cov->cols);
-	
+
 	for (int row=0; row < rowcount; ++row) {
 		mxLogSetCurrentRow(row);
-		
+
 		omxDataRow(data, row, dataColumns, smallRow);
 		if (verbose >= 2) {
 			mxLog("row %d", row);
 			omxPrint(smallRow, "row");
 		}
-		
+
 		omxSetExpectationComponent(expectation, "y", smallRow);
-		
+
 		expectation->loadDefVars(row);
 		if(row == 0){
 			omxSetExpectationComponent(expectation, "Reset", NULL);
 		}
-		
+
 		omxExpectationCompute(fc, expectation, NULL);
-		
+
 		int numCont = 0;
 		for(int j = 0; j < dataColumns.size(); j++) {
 			if (omxDataElementMissing(data, row, dataColumns[j])) {
@@ -104,7 +105,7 @@ void ssMLFitState::compute(int want, FitContext *fc)
 			omxSetMatrixElement(otherRowwiseValues, row, 0, NA_REAL); // set first column to NA
 			continue;
 		}
-		
+
 		omxMatrix *smallMeans = omxGetExpectationComponent(expectation, "means");
 		omxRemoveElements(smallMeans, contRemove.data());
 		omxMatrix *smallCov = omxGetExpectationComponent(expectation, "inverse");
@@ -127,27 +128,26 @@ void ssMLFitState::compute(int want, FitContext *fc)
 			omxSetMatrixElement(oo->matrix, 0, 0, NA_REAL);
 			return;
 		}
-		
+
 		double determinant = *omxGetExpectationComponent(expectation, "determinant")->data;
 		if(OMX_DEBUG_ROWS(row)) { mxLog("0.5*log(det(Cov)) is: %3.3f", determinant);}
-		
+
 		omxCopyMatrix(contRow, smallRow);
 		omxRemoveElements(contRow, contRemove.data()); 	// Reduce the row to just continuous.
 		if (verbose >= 2) {
 			omxPrint(contRow, "contRow");
 			omxPrint(smallMeans, "smallMeans");
 		}
-		double minusoned = -1.0;
-		int onei = 1;
-		F77_CALL(daxpy)(&(contRow->cols), &minusoned, smallMeans->data, &onei, contRow->data, &onei);
-		
+		omxDAXPY(-1.0, smallMeans, contRow);
+
 		/* Calculate Row Likelihood */
 		/* Mathematically: (2*pi)^cols * 1/sqrt(determinant(ExpectedCov)) * (dataRow %*% (solve(ExpectedCov)) %*% t(dataRow))^(1/2) */
-		double zerod = 0.0;
-		char u = 'U';
-		double oned = 1.0;
-		F77_CALL(dsymv)(&u, &(smallCov->rows), &oned, smallCov->data, &(smallCov->cols), contRow->data, &onei, &zerod, RCX->data, &onei);       // RCX is the continuous-column mahalanobis distance.
-		double Q = F77_CALL(ddot)(&(contRow->cols), contRow->data, &onei, RCX->data, &onei);
+		double Q;
+		{
+			EigenMatrixAdaptor EsmallCov(smallCov);
+			EigenVectorAdaptor EcontRow(contRow);
+			Q = EcontRow.transpose() * EsmallCov.selfadjointView<Eigen::Upper>() * EcontRow;
+		}
 		if (verbose >= 2) {
 			EigenMatrixAdaptor EsmallCov(smallCov);
 			EsmallCov.derived() = EsmallCov.selfadjointView<Eigen::Upper>();
@@ -156,21 +156,21 @@ void ssMLFitState::compute(int want, FitContext *fc)
 			mxLog("Q=%f", Q);
 		}
 		omxSetMatrixElement(otherRowwiseValues, row, 0, Q);
-		
+
 		double rowLikelihood = pow(2 * M_PI, -.5 * numCont) * (1.0/exp(determinant)) * exp(-.5 * Q);
-		
+
 		omxSetMatrixElement(rowLikelihoods, row, 0, rowLikelihood);
 	}
-	
+
 	if (!state->returnRowLikelihoods) {
 		double sum = 0.0;
 		// floating-point addition is not associative,
 		// so we serialized the following reduction operation.
-		for(int i = 0; i < data->rows; i++) {
+		for(int i = 0; i < data->nrows(); i++) {
 			double prob = omxVectorElement(state->rowLikelihoods, i);
 			//mxLog("[%d] %g", i, -2.0 * log(prob));
 			sum += log(prob);
-		}	
+		}
 		if(OMX_DEBUG) {mxLog("%s: total likelihood is %3.3f", oo->name(), sum);}
 		omxSetMatrixElement(oo->matrix, 0, 0, -2.0 * sum);
 	} else {
@@ -184,7 +184,6 @@ ssMLFitState::~ssMLFitState()
 	omxFreeMatrix(state->smallRow);
 	omxFreeMatrix(state->contRow);
 	omxFreeMatrix(state->rowLikelihoods);
-	omxFreeMatrix(state->RCX);
 	omxFreeMatrix(state->otherRowwiseValues);
 }
 
@@ -195,31 +194,31 @@ void ssMLFitState::init()
 {
 	auto *oo = this;
 	auto *state = this;
-	
+
 	oo->openmpUser = false;
 	oo->canDuplicate = true;
-	
+
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
-	
+
 	state->returnRowLikelihoods = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("vector")));
 	units = returnRowLikelihoods? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
-	
+
 	state->populateRowDiagnostics = Rf_asInteger(R_do_slot(oo->rObj, Rf_install("rowDiagnostics")));
-	
+
 	auto *data = expectation->data;
 	if (data->hasWeight() || data->hasFreq()) {
 		mxThrow("%s: row frequencies or weights provided in '%s' are not supported",
 			 expectation->name, data->name);
 	}
 
+	int rows = data->nrows();
 	omxState *currentState = oo->matrix->currentState;
-	state->rowLikelihoods = omxInitMatrix(data->rows, 1, TRUE, currentState);
-	state->otherRowwiseValues = omxInitMatrix(data->rows, 2, TRUE, currentState);
+	state->rowLikelihoods = omxInitMatrix(rows, 1, currentState);
+	state->otherRowwiseValues = omxInitMatrix(rows, 2, currentState);
 	state->cov = omxGetExpectationComponent(expectation, "cov");
-	
+
 	int covCols = state->cov->cols;
 	state->smallRow = omxInitMatrix(1, covCols, TRUE, currentState);
 	state->contRow = omxInitMatrix(covCols, 1, TRUE, currentState);
-	state->RCX = omxInitMatrix(1, covCols, TRUE, currentState);
 }

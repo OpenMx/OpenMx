@@ -150,6 +150,8 @@ setMethod("show", "MxFitFunctionWLS", function(object) {
 })
 
 
+# deprecated
+# nocov start
 imxWlsStandardErrors <- function(model){
 	#TODO add safety check
 	# Is it a WLS fit function
@@ -197,8 +199,10 @@ imxWlsStandardErrors <- function(model){
 	#Cov is the analog of the Hessian for WLS
 	return(list(SE=wls.se, Cov=nacov, Jac=d))
 }
+# nocov end
 
-
+# deprecated
+# nocov start
 imxWlsChiSquare <- function(model, J=NA){
 	samp.param <- mxGetExpected(model, 'standVector')
 	theParams <- omxGetParameters(model)
@@ -284,6 +288,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	x2mv <- x2mv*ifelse(all(V[V!=0] == I[V != 0]), 1/numObs, 1)
 	return(list(Chi=x2, ChiDoF=df, ChiM=x2m, ChiMV=x2mv, mAdjust=madj, mvAdjust=mvadj, dstar=dstar))
 }
+# nocov end
 
 approveWLSIntervals <- function(flatModel, modelName) {
 	ff <- flatModel@fitfunctions[[ paste0(modelName, '.fitfunction') ]]
@@ -299,10 +304,15 @@ approveWLSIntervals <- function(flatModel, modelName) {
 	}
 }
 
-#' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS
+#' Determine whether a dataset will have weights and summary statistics for the means if used with mxFitFunctionWLS
 #'
-#' Determine whether a set of data will have weights and summary statistics for the means when used with mxFitFunctionWLS.
-#' Currently, all-continuous data processed using the "marginals" method lack means.
+#' Given either a data.frame or an mxData of type raw, this function determines whether \code{mxFitFunctionWLS}
+#' will generate expectations for means.
+#' 
+#' All-continuous data processed using the "cumulants" method lack means, while
+#' all continuous data processed with allContinuousMethod = "marginals" will have means.
+#' 
+#' When data are not all continuous, allContinuousMethod is ignored, and means are modelled.
 #'
 #' @param data the (currently raw) data being used in a \code{\link{mxFitFunctionWLS}} model.
 #' @param allContinuousMethod the method used to process data when all columns are continuous.
@@ -312,33 +322,80 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #' @seealso - \code{\link{mxFitFunctionWLS}}, \code{\link{omxAugmentDataWithWLSSummary}}
 #' @examples
 #'
-#' # =======================
-#' # = All continuous data =
-#' # =======================
+#' # ====================================
+#' # = All continuous, data.frame input =
+#' # ====================================
 #'
-#' mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # TRUE
-#' mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals")$hasMeans  # FALSE - no means with marginals
+#' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)
+#' tmp$hasMeans # FALSE - no means with cumulants
+#' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals") 
+#' tmp$hasMeans # TRUE we get means with marginals
 #'
-#' # =======================
-#' # = One var is a factor =
-#' # =======================
+#' # ==========================
+#' # = mxData object as input =
+#' # ==========================
+#' tmp = mxData(mtcars, type="raw")
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants", verbose = TRUE)$hasMeans # FALSE
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans  # TRUE
+#'
+#' # =======================================
+#' # = One var is a factor: Means modelled =
+#' # =======================================
 #' tmp = mtcars
 #' tmp$cyl = factor(tmp$cyl)
-#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants")$hasMeans # TRUE
-#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans # TRUE - always has means
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants")$hasMeans # TRUE - always has means
+#' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans # TRUE
 #' 
 mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "marginals"), verbose=FALSE){
 	allContinuousMethod = match.arg(allContinuousMethod)
+	if(class(data) == "data.frame"){
+		# all good
+	} else if(class(data) == "MxDataStatic" && data$type == "raw"){
+		data = data$observed
+	}else{
+		message("mxDescribeDataWLS currently only knows how to process dataframes and mxData of type = 'raw'.\n",
+		"You offered up an object of class: ", omxQuotes(class(data)))
+	}
+
 	if(all(sapply(data, FUN= is.numeric))){
-		if(verbose){
-			print("all continuous")
-		}
-		if(allContinuousMethod == "marginals"){
-			list(hasMeans = FALSE)
+		if(verbose){ print("all continuous") }
+
+		if(allContinuousMethod == "cumulants"){
+			return(list(hasMeans = FALSE))
 		} else {
-			list(hasMeans = TRUE)
+			return(list(hasMeans = TRUE))
 		}
 	}else{
-		list(hasMeans = TRUE)
+		# Data with any non-continuous vars have means under WLS
+		return(list(hasMeans = TRUE))
 	}
+}
+
+
+##' imxHasWLS
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model uses a
+##' fitfunction with WLS units.
+##'
+##' @param model model
+imxHasWLS <- function(model){
+	if(!is.null(model@output$fitUnits)){
+		if(model@output$fitUnits=="r'Wr"){return(TRUE)}
+		else{return(FALSE)}
+	}
+	if(is.null(model@fitfunction)){return(FALSE)}
+	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
+	if(length(model@fitfunction$units) && model@fitfunction$units=="r'Wr"){return(TRUE)}
+	if( is(model@fitfunction, "MXFitFunctionMultigroup") ){
+		#Just in case the user provided 'modelName.fitfunction':
+		submodnames <- unlist(lapply(strsplit(model@fitfunction@groups,"[.]"),function(x){x[1]}))
+		for(i in 1:length(model@submodels)){
+			if(model@submodels[[i]]@name %in% submodnames){
+				probe <- imxHasWLS(model@submodels[[i]])
+				if(probe){return(probe)}
+			}
+		}
+	}
+	return(FALSE)
 }

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# nocov start
+
 ##' omxGetNPSOL
 ##'
 ##' Get the non-CRAN version of OpenMx from the OpenMx website.
@@ -22,7 +24,7 @@
 ##' @return
 ##' Invisible NULL
 ##' @examples
-##' \dontrun{omxGetNPSOL()}
+##' \donttest{omxGetNPSOL()}
 ##'
 
 omxGetNPSOL <- function() {
@@ -33,10 +35,9 @@ omxGetNPSOL <- function() {
 	}
 	if(.Platform$OS.type=="windows"){
 		message(
-			paste("Windows users should either restart R or run\n",
-						"detach('package:OpenMx',unload=TRUE)\n",
-						", and then run\n",
-						"source('http://openmx.ssri.psu.edu/getOpenMx.R')\n")
+			paste("Windows users must clear R's workspace, restart R, run\n",
+						"source('http://openmx.ssri.psu.edu/getOpenMx.R')\n",
+						", and then restart R again before trying to load OpenMx.")
 		)
 		return()
 	}
@@ -51,3 +52,4 @@ omxGetNPSOL <- function() {
         source("http://openmx.ssri.psu.edu/getOpenMx.R")
     }
 }
+# nocov end

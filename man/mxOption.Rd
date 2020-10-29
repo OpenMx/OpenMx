@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ The function sets, shows, or clears an option that is specific to the optimizer 
 }
 
 \usage{
-mxOption(model, key, value, reset = FALSE)
+mxOption(model=NULL, key=NULL, value, reset = FALSE)
 }
 
 \arguments{
@@ -37,11 +37,11 @@ mxOption(model, key, value, reset = FALSE)
 mxOption is used to set, clear, or query an option (given in the \sQuote{key} argument)
 in the back-end optimizer. Valid option keys are listed below.
 
-Use value = NULL to remove an existing option. Leaving value blank will return 
+Use value = NULL to remove an existing option. Leaving value blank will return
 the current value of the option specified by \sQuote{key}.
 
-To reset all options to their default values, use \sQuote{reset = TRUE}. 
-When reset = TRUE, \sQuote{key} and \sQuote{value} are ignored. 
+To reset all options to their default values, use \sQuote{reset = TRUE}.
+When reset = TRUE, \sQuote{key} and \sQuote{value} are ignored.
 
 If the \sQuote{model} argument is set to NULL, the default optimizer option (i.e
 those applying to all models by default) will be set.
@@ -55,7 +55,13 @@ The \dQuote{Default optimizer} option can only be set globally (i.e., with \code
 
 Options \dQuote{Gradient step size}, \dQuote{Gradient iterations}, and \dQuote{Function precision} have on-load global defaults of \code{"Auto"}.  If value \code{"Auto"} is in effect for any of these three options at \link[=mxRun]{runtime}, then OpenMx selects a reasonable numerical value in its place.  These automated numerical values are intended to (1) adjust for the limited precision of the algorithm for computing multivariate-normal probability integrals, and (2) calculate accurate numeric derivatives at the optimizer's solution.  If the user replaces \code{"Auto"} with a valid numerical value, then OpenMx uses that value as-is.
 
-Some options only affect certain optimizers. Option \dQuote{Analytic Gradients} affects all three optimizers. Option \dQuote{Gradient algorithm} is used by CSOLNP and SLSQP, and ignored by NPSOL. Option \dQuote{Gradient iterations} only affects SLSQP. Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details). If the MxModel contains\link[=MxConstraint]{MxConstraints}, OpenMx's interface to NPSOL scales \dQuote{Feasibility tolerance} by multiplying it by 0.02 and dividing it by 0.05 before passing it to NPSOL; if there are no MxConstraints, OpenMx passes NPSOL a hard-coded value of 1e-5.  Note that NPSOL's criterion for returning a status code of 0 versus 1 for a given solution depends partly on \dQuote{Optimality tolerance}.
+\strong{Optimizer specific options}
+
+Some options only affect certain optimizers. Option \dQuote{Analytic Gradients} affects all three optimizers. Option \dQuote{Gradient algorithm} is used by CSOLNP and SLSQP, and ignored by NPSOL. Option \dQuote{Gradient iterations} only affects SLSQP. Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
+
+If an mxModel contains \link[=MxConstraint]{mxConstraints}, NPSOL is given .4 times the value of the option \dQuote{Feasibility tolerance}. If there are no constraints, NPSOL is given a hard-coded value of 1e-5 (its own native default).
+
+\emph{Note}: Where constraints are present, NPSOL is given 0.4 times the value of the mxOption \dQuote{Feasibility Tolerance}, and this is about a million times bigger than NPSOL's own native default. Values of \dQuote{Feasibility Tolerance} around 1e-5 may be needed to get constraint performance similar to NPSOL's default. Note also that NPSOL's criterion for returning a status code of 0 versus 1 for a given solution depends partly on \dQuote{Optimality tolerance}.
 
 For a block of \code{n} ordinal variables, the maximum number of integration points that OpenMx may use to calculate multivariate-normal probability integrals is given by
 \code{mvnMaxPointsA + mvnMaxPointsB*n + mvnMaxPointsC*n*n +
@@ -64,10 +70,10 @@ Integral approximation is stopped once either \sQuote{mvnAbsEps} or
 \sQuote{mvnRelEps} is satisfied.
 Use of \sQuote{mvnAbsEps} is deprecated.
 
-The maximum number of major iterations (the option  \dQuote{Major iterations}) 
-for optimization for NPSOL  can be specified either by using a 
+The maximum number of major iterations (the option  \dQuote{Major iterations})
+for optimization for NPSOL  can be specified either by using a
 numeric value (such as 50, 1000, etc) or by specifying a user-defined function.
-The user-defined function should accept two arguments as input, the number of 
+The user-defined function should accept two arguments as input, the number of
 parameters and the number of constraints, and return a numeric value as output.
 
 OpenMx options
@@ -104,7 +110,7 @@ Minor print level     \tab \var{i} \tab the value of \var{i} controls the amount
 Print file            \tab \var{i} \tab for \var{i} > 0 a full log is sent to the file with logical unit number \var{i}. \cr
 Summary file          \tab \var{i} \tab for \var{i} > 0 a brief log will be output to file \var{i}. \cr
 Function precision    \tab \var{r} \tab a measure of accuracy with which the fitfunction and constraint functions can be computed. \cr
-Infinite bound size   \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr 
+Infinite bound size   \tab \var{r} \tab if \var{r} > 0 defines the "infinite" bound bigbnd. \cr
 Major iterations      \tab \var{i} or a function \tab the maximum number of major iterations before termination. \cr
 Verify level          \tab [-1:3 | Yes | No]     \tab see NPSOL manual. \cr
 Line search tolerance \tab \var{r}    \tab controls the accuracy with which a step is taken. \cr
@@ -148,7 +154,7 @@ mvnRelEps     \tab \var{i} \tab relative error tolerance \cr
 }
 
 }
-    
+
 \value{
 If a model is provided, it is returned with the optimizer option either set
 or cleared. If value is empty, the current value is returned.
@@ -165,9 +171,9 @@ See \code{\link{mxModel}()}, as almost all uses of \code{mxOption()} are via an 
 
 \examples{
 # set the Numbder of Threads (cores to use)
-mxOption(NULL, "Number of Threads", parallel::detectCores() - 1)
+mxOption(key="Number of Threads", value=imxGetNumThreads())
 
-testModel <- mxModel(model = "testModel") # make a model to use for example
+testModel <- mxModel(model = "testModel5") # make a model to use for example
 testModel$options   # show the model options (none yet)
 options()$mxOptions # list all mxOptions (global settings)
 

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ require(OpenMx)
 # ----------------------------------
 # Read the data and print descriptive statistics.
 
-multiData1 <- read.csv("data/multiData.csv")
+multiData1 <- suppressWarnings(try(read.csv("models/passing/data/multiData.csv"), silent=TRUE))
+if (is(multiData1, "try-error")) multiData1 <- read.csv("data/multiData.csv")
 
 # ----------------------------------
 # Build an OpenMx bivariate regression model using y and x1

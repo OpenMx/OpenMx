@@ -1,12 +1,12 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,7 @@
 
 ##############################################################################
 # Stable Trait, Autoregressive Trait, State Model with Multiple Indicators  ##
-#                                                                           ##  
+#                                                                           ##
 # There are three indicators of the construct at each of 10 waves.  However ##
 # two of the waves (waves 5 and 7) are missing, so phantom variables are    ##
 # used in these years. A latent occasion factor is modeled in each year     ##
@@ -37,14 +37,18 @@ indicators <- 3
 phantom <- c(5,7) #List of waves that are missing
 stabilitySV <- .85 #Starting value for stability
 require(OpenMx)
-  
+library(testthat)
+
+#mxOption(key='Number of Threads', value=parallel::detectCores())
+#mxOption(key="Parallel diagnostics", value = "Yes")
+
 #SETUP FOR PHANTOM VARIABLES
 indicatorPrefix <- c(paste("ind",1:indicators,sep=""))
 allOccasions <- c(paste("occ",1:waves,sep=""))
 if(phantom[1]=="0") obsOccasions <- allOccasions else
   obsOccasions <- allOccasions[-phantom]
 nActualWaves <- length(obsOccasions)
-x <- matrix(obsOccasions,nrow=indicators,ncol=nActualWaves,byrow=T) 
+x <- matrix(obsOccasions,nrow=indicators,ncol=nActualWaves,byrow=T)
 indicatorNames <- c(paste(x,indicatorPrefix,sep=""))
 occNamesForPaths <- as.vector(x)
 allStates <- c(paste("state",1:waves,sep=""))
@@ -107,7 +111,7 @@ ar1Var <- mxPath(from=arTraits[1],
                  arrows=2,
                  labels="ar1Trait",
                  free=TRUE,
-                 values=ar1SV) 
+                 values=ar1SV)
 arVar <- mxPath(from=arTraits[2:waves],
                 arrows=2,
                 labels="arTrait",
@@ -123,7 +127,7 @@ stateVar <- mxPath(from=obsStates,
                    labels="States",
                    free=TRUE,
                    values=stateSV,
-                   lbound=0) 
+                   lbound=0)
 
 ##Factor Loadings
 stLoadings <- mxPath(from=stableTraits,
@@ -159,7 +163,7 @@ indicatorLoadings <- mxPath(from=occNamesForPaths[-first],
                             free=TRUE,
                             values=1)
 
- 
+
 ##Stabilities
 stabilityPath <- mxPath(from=arTraits[1:(waves-1)],
                    to=arTraits[2:waves],
@@ -182,7 +186,7 @@ arMeans <- mxPath(from="one", to=arTraits, arrows=1, free=FALSE, values=0)
 occMeans <- mxPath(from="one", to=obsOccasions, arrows=1, free=FALSE, values=0)
 stateMeans <- mxPath(from="one", to=obsStates, arrows=1, free=FALSE, values=0)
 residualMeans <- mxPath(from="one",to=residualNames,arrows=1,free=FALSE,values=0)
-  
+
 #Constraints:  Stationarity Constraint for Autoregressive Component
 matrixAr <- mxMatrix("Full",
                      nrow=1,
@@ -233,7 +237,7 @@ correlatedResiduals <- mxPath(from=residualNames[residCorrMatrix[,1]],
                               arrows=2,
                               free=TRUE,
                               values=.05)
-                                
+
 
 #MODEL
 STARTSM <- mxModel("STARTS",
@@ -270,6 +274,18 @@ STARTSM <- mxModel("STARTS",
 startsModel <- mxRun(STARTSM)
 omxCheckCloseEnough(startsModel$output$fit, 2718.410, .1)
 
-if (.Platform$OS.type != 'windows' && detectCores() > 1) {
+if (.Platform$OS.type != 'windows' && parallel::detectCores() > 1) {
 	omxCheckTrue(startsModel$compute$steps[['GD']]$output$maxThreads > 1)
+}
+
+if (mxOption(key="default optimizer") == 'SLSQP') {
+  startsCI <- mxModel(startsModel, mxCI('stability'))
+  startsCI <- mxOption(startsCI, "Standard Errors", "No")
+  startsCI <- mxOption(startsCI, "Calculate Hessian", "No")
+  startsCI <- mxRun(startsCI, intervals = TRUE)
+
+  expect_equal(as.character(startsCI$compute$steps$CI$output$detail[,'diagnostic']),
+               c('success', 'active box constraint'))
+  expect_equal(startsCI$compute$steps$CI$output$detail[,'value'],
+               c(0.8907887, 0.9795628), 1e-3)
 }

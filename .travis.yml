@@ -1,3 +1,6 @@
+stages:
+- dependencies
+- test
 os:
 - linux
 addons:
@@ -5,28 +8,49 @@ addons:
     sources:
     - ubuntu-toolchain-r-test
     packages:
-    - gcc-7
-    - g++-7
-    - gfortran-7
-matrix:
+    - gcc-8
+    - g++-8
+    - gfortran-8
+  homebrew:
+    packages:
+    - llvm
+    - libomp
+jobs:
   include:
-  - os: osx
-    osx_image: xcode7.3
+  - stage: dependencies
+    latex: false
+    install:
+    - openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+    - eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+    - ./tools/travis/setup
+    script:
+    - ./tools/travis/save_cache
+  - stage: test
+    os: osx
+    osx_image: xcode11.3
     env:
     - MODE=build
-dist: xenial
-sudo: required
+    install:
+    - ./tools/travis/install-osx
+    latex: false
+#dist: bionic
+#sudo: required
 latex: true
 language: r
+#cache: packages
 git:
   submodules: false
 install:
-- mkdir -p ~/.R
-- ./util/travis/install-$TRAVIS_OS_NAME
+- openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+- eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+- ./tools/travis/setup
 script: "./util/travis/script"
 env:
-  matrix:
-  - MODE=test IMX_OPT_ENGINE=NPSOL
+  global:
+    - MAKEFLAGS="-j 2"
+    - dhost=travis@vps242190.vps.ovh.ca
+    - OMP_NUM_THREADS=2
+  jobs:
   - MODE=test IMX_OPT_ENGINE=CSOLNP
   - MODE=test IMX_OPT_ENGINE=SLSQP
   - MODE=cran-check
@@ -34,12 +58,10 @@ branches:
   except:
   - stable   # already tested
 before_deploy:
-- openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
-- eval "$(ssh-agent -s)"
-- chmod 600 /tmp/deploy_rsa
-- ssh-add /tmp/deploy_rsa
+  - openssl aes-256-cbc -K $encrypted_45bb258eabb3_key -iv $encrypted_45bb258eabb3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+  - eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
 deploy:
-  provider: script
   skip_cleanup: true
+  provider: script
   script: ./util/travis/deploy
   on: master

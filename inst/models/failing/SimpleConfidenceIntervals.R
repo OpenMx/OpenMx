@@ -1,10 +1,5 @@
-# ===========
-# = history =
-# ===========
-# 2017-04-14 04:35PM TBATES: update for mxFitFunctionMultigroup(c("MZ", "DZ"))
-# CHECK stil FAILING at line 167
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,6 +12,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+# ===========
+# = history =
+# ===========
+# ~/bin/OpenMx/inst/models/failing/SimpleConfidenceIntervals.R
+# 2017-04-14 04:35PM TBATES: update for mxFitFunctionMultigroup(c("MZ", "DZ"))
+# 2019-03-24 05:06PM TBATES: Still FAILING at line > 167)
+
 
 require(OpenMx)
 
@@ -165,6 +168,8 @@ omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[1, 'ubound'], mxEval(c
 # omxCheckTrue(is.na(twinACEFit$output$confidenceIntervals[2, 'lbound']))
 
 # Next check still failing under 2.7.9
+# Still failing as of OpenMx version: 2.12.2.233 [GIT v2.12.2-233-ga7a310a]
+
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[2, 'ubound'], mxEval(common.C, runCIcupper), .001)
 
 omxCheckCloseEnough(twinACEFit$output$confidenceIntervals[3, 'lbound'], mxEval(common.E, runCIelower), .005)

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -107,10 +107,7 @@ mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 				 gradient=NA_character_, hessian=NA_character_,
 				 verbose=0L, units="-2lnL")
 {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxFitFunctionAlgebra does not accept values for the '...' argument")
-	}
+	prohibitDotdotdot(list(...))
 
 	if (is.null(algebra)) {
 		algebra <- NA_character_

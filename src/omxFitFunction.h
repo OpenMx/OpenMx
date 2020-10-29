@@ -15,7 +15,7 @@
  */
 
 /***********************************************************
-* 
+*
 *  omxFitFunction.h
 *
 *  Created: Timothy R. Brick 	Date: 2009-02-17
@@ -31,9 +31,7 @@
 
 #include <functional>
 #include "omxDefines.h"
-#include <R_ext/Rdynload.h> 
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
+#include <R_ext/Rdynload.h>
 
 #include "omxMatrix.h"
 #include "omxAlgebra.h"
@@ -51,14 +49,19 @@ struct omxFitFunction {
 
 	omxMatrix* matrix;
 	bool initialized;
-	bool gradientAvailable;
 	bool hessianAvailable;
 	FitStatisticUnits units;
 	bool canDuplicate;
 	bool openmpUser; // can decide this in omxAlgebraPreeval
+  int verbose;
 
-	omxFitFunction() : rObj(0), expectation(0), initialized(false), gradientAvailable(false),
-		hessianAvailable(false), units(FIT_UNITS_UNINITIALIZED), canDuplicate(false), openmpUser(false) {};
+	int derivCount;
+	std::vector<int> gradMap;
+	std::vector<int> missingGrad;
+
+	omxFitFunction() : rObj(0), expectation(0), initialized(false),
+		hessianAvailable(false), units(FIT_UNITS_UNINITIALIZED), canDuplicate(false),
+    openmpUser(false), verbose(0), derivCount(0) {};
 	virtual ~omxFitFunction() {};
 	virtual omxFitFunction *initMorph();
 	virtual void init()=0;
@@ -72,6 +75,8 @@ struct omxFitFunction {
 	// populateAttr should be used for returning results specific to fit functions or expectations
 	virtual void populateAttr(SEXP algebra) {};
 
+  void buildGradMap(FitContext *fc, std::vector<const char *> &names);
+  void invalidateGradient(FitContext *fc);
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }
 };
@@ -92,6 +97,8 @@ void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
+omxMatrix *omxNewMatrixFromSlotOrAnon(SEXP rObj, omxState* currentState, const char* slotName,
+																			int rows, int cols);
 
 omxFitFunction *omxInitFIMLFitFunction();
 omxFitFunction *omxInitAlgebraFitFunction();
@@ -115,5 +122,6 @@ double totalLogLikelihood(omxMatrix *fitMat);
 
 const char *fitUnitsToName(FitStatisticUnits units);
 bool fitUnitsIsChiSq(FitStatisticUnits units);
+SEXP makeFitUnitsFactor(SEXP obj);
 
 #endif /* _OMXFITFUNCTION_H_ */

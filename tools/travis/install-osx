@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -ve
+
+set +x
+
+# Workaround for travis-ci/travis-ci#8973
+python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
+
+xcodebuild -version | head -n 1 | cut -d ' ' -f 2
+
+id
+
+echo '
+#include <stdlib.h>
+#include <stdio.h>
+#include <omp.h>
+
+int main() {
+  #pragma omp parallel num_threads(4)
+  {
+    printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(), omp_get_num_threads());
+  }
+  return EXIT_SUCCESS;
+}
+' > omptest.c
+
+LLVMBASE=`brew --prefix llvm`
+$LLVMBASE/bin/clang -fopenmp -L$LLVMBASE/lib omptest.c -o omptest
+./omptest
+
+mkdir -p ~/.R
+cp tools/travis/llvm.conf ~/.R/Makevars
+
+R --no-save -f util/update-dependencies.R --args ./DESCRIPTION.in

@@ -31,8 +31,6 @@
 #include "omxDefines.h"
 
 #include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 #include <sys/types.h>
 
 #include <time.h>
@@ -64,7 +62,7 @@ class omxFreeVar {
 	double lbound, ubound;
 	std::vector<omxFreeVarLocation> locations;
 	const char* name;
-	
+
 	// Be aware that a free variable might be assigned to more
 	// than 1 location in the same matrix. This API just returns
 	// the first matching location.
@@ -138,8 +136,9 @@ class omxConstraint {
 	void refreshAndGrab(FitContext *fc, double *out)
 	{ refreshAndGrab(fc, opCode, out); };
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
-	virtual omxConstraint *duplicate(omxState *dest)=0;
+	virtual omxConstraint *duplicate(omxState *dest) const = 0;
 	virtual void prep(FitContext *fc) {};
+	virtual void preeval(FitContext *fc) {};
 };
 
 class UserConstraint : public omxConstraint {
@@ -154,8 +153,9 @@ class UserConstraint : public omxConstraint {
 	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin);
 	virtual ~UserConstraint();
 	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
-	virtual omxConstraint *duplicate(omxState *dest);
+	virtual omxConstraint *duplicate(omxState *dest) const override;
 	virtual void prep(FitContext *fc);
+	virtual void preeval(FitContext *fc) override;
 };
 
 enum omxCheckpointType {
@@ -180,8 +180,8 @@ class omxCheckpoint {
 	FILE* file;
 
 	omxCheckpoint();
-	void message(FitContext *fc, double *est, const char *msg);
-	void postfit(const char *callerName, FitContext *fc, double *est, bool force);
+	void message(FitContext *fc, const char *msg);
+	void postfit(const char *callerName, FitContext *fc, bool force);
 	~omxCheckpoint();
 };
 
@@ -213,6 +213,7 @@ class omxGlobal {
 	void reportProgressStr(std::string &str);
 
  public:
+	bool RNGCheckedOut;
 	ProtectAutoBalanceDoodad *mpi;
 	bool silent;
 	bool ComputePersist;
@@ -221,7 +222,6 @@ class omxGlobal {
 	int analyticGradients;
 	double llScale;
 	int debugProtectStack;
-	int anonAlgebra;
 	bool rowLikelihoodsWarning;
 	double feasibilityTolerance;
 	double optimalityTolerance;
@@ -268,21 +268,30 @@ class omxGlobal {
 	std::vector< omxCompute* > computeList;
 	void omxProcessMxComputeEntities(SEXP rObj, omxState *currentState);
 
+	// bundle computeLoop* into a structure?
 	std::vector<const char *> computeLoopContext;
 	std::vector<int> computeLoopIndex;
+	std::vector<int> computeLoopIter;
+	std::vector<int> computeLoopMax;
+	int lastIndexDone;
+	time_t lastIndexDoneTime;
+
+	std::vector< std::string > checkpointColnames;
+	std::vector< std::string > checkpointValues;
 	std::vector< std::string > bads;
+	bool userInterrupted;
 
 	// Will need revision if multiple optimizers are running in parallel
 	std::vector< omxCheckpoint* > checkpointList;
-	std::vector<double> startingValues;
+  Eigen::VectorXd startingValues;
 	FitContext *topFc;
 
 	omxGlobal();
 	void deduplicateVarGroups();
 	const char *getBads();
-	void checkpointMessage(FitContext *fc, double *est, const char *fmt, ...) __attribute__((format (printf, 4, 5)));
-	void checkpointPostfit(const char *callerName, FitContext *fc, double *est, bool force);
-	double getGradientThreshold(double fit) { 
+	void checkpointMessage(FitContext *fc, const char *fmt, ...) __attribute__((format (printf, 3, 4)));
+	void checkpointPostfit(const char *callerName, FitContext *fc, bool force);
+	double getGradientThreshold(double fit) {
 		return( pow(optimalityTolerance, 1.0/3.0) * (1.0 + fabs(fit)) );
 	}
 
@@ -294,12 +303,15 @@ class omxGlobal {
 
 	~omxGlobal();
 	void reportProgress(const char *context, FitContext *fc);
-	static bool interrupted();
+	bool interrupted();
 	void reportProgress1(const char *context, std::string detail);
+	void throwOnUserInterrupted() { if (interrupted()) mxThrow("User interrupt"); };
 };
 
 // Use a pointer to ensure correct initialization and destruction
 extern class omxGlobal *Global;
+
+
 
 // omxState is for stuff that must be duplicated for thread safety.
 class omxState {
@@ -308,21 +320,25 @@ class omxState {
 	static int nextId;
 	int stateId;
 	int wantStage; // hack because omxRecompute doesn't take 'want' as a parameter TODO
-	bool clone;
+	omxState *parent;     // for read-only access to shared state
+	omxState *workBoss; // for OpenMP when multiple omxState want to cooperate
+	bool hasFakeParam;
  public:
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
-	bool isClone() const { return clone; }
+	bool isClone() const { return workBoss != 0; } // rename to isWorkBoss TODO
+  bool isTopState() const { return parent == 0; }
 
 	std::vector< omxMatrix* > matrixList;
 	std::vector< omxMatrix* > algebraList;
 	std::vector< omxExpectation* > expectationList;
 	std::vector< omxData* > dataList;
 	std::vector< omxConstraint* > conListX;
+  void constraintPreeval(FitContext *fc) { for (auto c1 : conListX) c1->preeval(fc); }
 
- 	omxState() : clone(false) { init(); };
-	omxState(omxState *src);
+	omxState() : wantStage(0), parent(0), workBoss(0), hasFakeParam(false) { init(); };
+	omxState(omxState *src, bool isTeam);
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList);
@@ -338,12 +354,18 @@ class omxState {
 	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out, FitContext *fc);
 	void invalidateCache();
+	void connectToData();
 	~omxState();
 
+	omxExpectation *getParent(omxExpectation *element) const;
+	omxExpectation *lookupDuplicate(omxExpectation *element) const;
 	omxMatrix *lookupDuplicate(omxMatrix *element) const;
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
+
+	int numEqC, numIneqC;
+	bool usingAnalyticJacobian;
 
 	void countNonlinearConstraints(int &equality, int &inequality, bool distinguishLinear)
 	{
@@ -356,6 +378,9 @@ class omxState {
 				equality += cs->size;
 			} else {
 				inequality += cs->size;
+			}
+			if(!usingAnalyticJacobian && cs->jacobian){
+				usingAnalyticJacobian = true;
 			}
 		}
 	};
@@ -371,15 +396,41 @@ class omxState {
 			} else {
 				l_inequality += cs->size;
 			}
+			if(!usingAnalyticJacobian && cs->jacobian){
+				usingAnalyticJacobian = true;
+			}
 		}
 	};
+
+	bool isFakeParamSet() const { return hasFakeParam; }
+
+	template <typename T1>
+	void setFakeParam(Eigen::MatrixBase<T1> &point)
+	{
+		if (hasFakeParam) mxThrow("already has fake parameters loaded");
+		hasFakeParam = true;
+
+		auto varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
+		size_t numParam = varGroup->vars.size();
+		point.derived().resize(numParam);
+
+		for(size_t k = 0; k < numParam; k++) {
+			omxFreeVar* freeVar = varGroup->vars[k];
+			point[k] = freeVar->getCurValue(this);
+			freeVar->copyToState(this, 1.0);
+		}
+	}
+
+	void restoreParam(const Eigen::Ref<const Eigen::VectorXd> point);
+
 };
 
-inline bool isErrorRaised() { return Global->bads.size() != 0; }
-inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0; }
+inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInterrupted || Global->timedOut; }
+inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0 || Global->userInterrupted; }
 
-void omxRaiseError(const char* mxThrowMsg); // DEPRECATED
-void omxRaiseErrorf(const char* mxThrowMsg, ...) __attribute__((format (printf, 1, 2)));
+// rename from "Raise" to "Record" since no exception is thrown
+void omxRaiseError(const char* msg); // DEPRECATED
+void omxRaiseErrorf(const char* fmt, ...) __attribute__((format (printf, 1, 2)));
 
 void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);
 
@@ -403,5 +454,3 @@ struct StateInvalidator {
 };
 
 #endif /* _OMXSTATE_H_ */
-
-

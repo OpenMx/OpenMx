@@ -155,7 +155,7 @@ expDZm <- mxExpectationNormal( covariance="expCorDZm", means="M", dimnames=selVa
 
 #FitFunctions
 fun <- mxFitFunctionML()
-fitFunction <- mxFitFunctionMultigroup(c("MZf.fitfunction", "MZm.fitfunction", "DZf.fitfunction", "DZm.fitfunction"))
+fitFunction <- mxFitFunctionMultigroup(c("MZf", "MZm", "DZf", "DZm"))
 
 # Combine Groups
 modelMZf	<- mxModel( obsAge1, obsAge2, Mean, betaAf, Tmzf, inc, ThresMZf, CorMZf, dataMZf, expMZf, fun, name="MZf" )
@@ -182,6 +182,12 @@ mod1 <- mxModel(obsAge1, obsAge2, Mean, betaAf, Tmzf, inc,
                 ThresMZf, CorMZf, dataMZf, expMZf, fun,
                 name="MZf", mxFitFunctionML())
 mod1Res <- mxRun(mod1)
+
+if (mxOption(NULL, "Default optimizer") == 'NPSOL' &&
+	    max(abs(c(mod1Res$ThMZf$values) - c(0.779, 0.341))) < .01) {
+	# NPSOL can get stuck in a local minimum
+	mod1Res <- mxTryHard(mod1Res)
+}
 
 # definition variables and dependencies should be set to NA upon return
 omxCheckEquals(mod1Res$Age1$values, dataMZf$observed[1,'age1'])

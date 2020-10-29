@@ -15,6 +15,7 @@
 #   limitations under the License.
 
 require(OpenMx)
+library(testthat)
 #This test does not need to be run with all three GD optimizers:
 if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 options(mxCondenseMatrixSlots=TRUE)  #<--Saves memory
@@ -182,7 +183,5 @@ oneFactorCovWLS <- omxSetParameters(model=oneFactorCovWLS,labels="b_x1",free=F,v
 
 oneFactorCovWLSOut <- mxRun(oneFactorCovWLS)
 
-omxCheckError(
-	mxCompare(oneFactorCov1Out,oneFactorCovWLSOut),
-	" MxModel 'Single Factor Covariance Model with Fixed Variance' has '-2lnL' fit units, but MxModel 'WLS' has 'r'Wr' fit units"
-)
+expect_error(mxCompare(oneFactorCov1Out,oneFactorCovWLSOut),
+	     "but MxModel 'WLS' has 'r'Wr' fit units")

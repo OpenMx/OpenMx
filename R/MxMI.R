@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -28,12 +28,14 @@
 
 
 mxMI <- function(model, matrices=NA, full=TRUE){
+  warnModelCreatedByOldVersion(model)
 	if(single.na(matrices)){
 		matrices <- names(model$matrices) #names of them rather
 		if (is(model$expectation, "MxExpectationRAM")) {
 			matrices <- setdiff(matrices, model$expectation$F)
 		}
 	}
+	if(imxHasWLS(model)){stop("modification indices not implemented for WLS fitfunction")}
 	param <- omxGetParameters(model)
 	param.names <- names(param)
 	gmodel <- omxSetParameters(model, free=FALSE, labels=param.names)
@@ -102,7 +104,13 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				
 				# Create and run the single-parameter model for the LISREL-type/partial/[lower bound] MI
 				gmodel <- mxModel(gmodel, custom.compute)
-				grun <- mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE) #suppress Warnings =TRUE
+				grun <- try(mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)) #suppress War
+nings =TRUE
+        if (is(grun, "try-error")) {
+          # oops, not happy about that parameter (e.g., diag of RAM's A)
+          gmodel <- omxSetParameters(gmodel, labels=names(omxGetParameters(gmodel)), free=FALSE)
+          next
+        }
 				
 				# restricted MI
 				grad <- grun$output$gradient #get gradient

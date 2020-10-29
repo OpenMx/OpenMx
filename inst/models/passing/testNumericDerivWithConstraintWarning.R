@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -32,13 +32,13 @@ varmod <- mxModel(
 	mxFitFunctionML(),
 	mxConstraint(Sigma2 - Mu > 0, name="pointless")
 )
-#NPSOL also warns about status code 1:
-if(mxOption(NULL,"Default optimizer")!='NPSOL'){
-	omxCheckWarning(varrun <- mxRun(varmod), 
-									"due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes")
-#(^^^Ironically, the SEs are probably fine in this case, since the only constraint is an inactive inequality...)
-	summary(varrun)
-}
+# #NPSOL also warns about status code 1:
+# if(mxOption(NULL,"Default optimizer")!='NPSOL'){
+# 	omxCheckWarning(varrun <- mxRun(varmod), 
+# 									"due to presence of MxConstraints, Hessian matrix and standard errors may not be valid for statistical-inferential purposes")
+# #(^^^Ironically, the SEs are probably fine in this case, since the only constraint is an inactive inequality...)
+# 	summary(varrun)
+# }
 
 
 plan2 <- omxDefaultComputePlan(modelName="mod")

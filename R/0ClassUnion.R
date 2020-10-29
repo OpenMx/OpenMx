@@ -52,6 +52,10 @@ setClassUnion("MxOptionalMatrix", c("NULL", "matrix"))
 ##' @name MxOptionalNumeric-class
 setClassUnion("MxOptionalNumeric", c("NULL", "numeric"))
 
+##' An optional integer
+##' @name MxOptionalInteger-class
+setClassUnion("MxOptionalInteger", c("NULL", "integer"))
+
 ##' A character or logical
 ##' @name MxCharOrLogical-class
 setClassUnion("MxCharOrLogical", c("character", "logical"))
@@ -127,5 +131,13 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 	} else {
 		return(factorize(x, levels, labels, exclude, collapse))
 	}
+}
+
+prohibitDotdotdot <- function(args) {
+  if (length(args) == 0) return()
+  stop(paste0(as.character(sys.call(-1))[1], " does not accept ... arguments. ",
+              "The first parameter in ... was named ", omxQuotes(names(args)[1]), 
+              " with value '", args[[1]], "'"),
+       call.=FALSE)
 }
 

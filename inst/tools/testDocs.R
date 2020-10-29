@@ -19,7 +19,7 @@ dummies <- ls()
 
 options('mxPrintUnitTests' = FALSE)
 
-directories <- c('build/doctest')
+directories <- c('staging/doctest')
 
 null <- tryCatch(suppressWarnings(file('/dev/null', 'w')),  
 	error = function(e) { file('nul', 'w') } )

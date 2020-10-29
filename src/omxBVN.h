@@ -11,13 +11,18 @@ double F77_CALL(bvnd)(double*, double*, double*);
 }
 #endif
 
+inline double pbivnorm1(double pt1, double pt2, double cor)
+{
+	return F77_CALL(bvnd)(&pt1, &pt2, &cor);
+}
+
 inline double pbivnorm(double lower1, double lower2,
 		       double upper1, double upper2, double cor)
 {
-	double p1 = F77_CALL(bvnd)(&upper1, &upper2, &cor);
-	double p2 = -F77_CALL(bvnd)(&lower1, &upper2, &cor);
-	double p3 = -F77_CALL(bvnd)(&upper1, &lower2, &cor);
-	double p4 = F77_CALL(bvnd)(&lower1, &lower2, &cor);
+	double p1 = pbivnorm1(upper1, upper2, cor);
+	double p2 = -pbivnorm1(lower1, upper2, cor);
+	double p3 = -pbivnorm1(upper1, lower2, cor);
+	double p4 = pbivnorm1(lower1, lower2, cor);
 	return p1 + p2 + p3 + p4;
 }
 

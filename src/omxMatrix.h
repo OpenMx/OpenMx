@@ -31,11 +31,12 @@
 #define _OMXMATRIX_H_
 
 #include <R_ext/Arith.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
+#include <memory>
 
 #include "omxDefines.h"
 #include <Eigen/Core>
+#include <Eigen/Dense>
+#include "minicsv.h"
 
 struct populateLocation {
 	int from;
@@ -48,11 +49,14 @@ struct populateLocation {
 	void transpose() { std::swap(destRow, destCol); }
 };
 
-namespace mini {
-	namespace csv {
-		class ifstream;
-	}
-}
+//
+// Ways that values can be loaded into plain matrices (not algebras)
+// and how to ensure that non-zero values are loaded into these cells,
+//
+// + Free parameters, omxState->setFakeParam(estSave);
+// + Populated labels, omxMatrix->markPopulatedEntries();
+// + Definition variables, omxData->loadFakeData(currentState, 1.0);
+//
 
 class omxMatrix {
 	std::vector< populateLocation > populate;  // For inclusion of values from other matrices
@@ -62,10 +66,13 @@ class omxMatrix {
 	int joinKey;
 	class omxExpectation *joinModel;
 	int shape;
+	bool allocationLock;   // whether the data can be moved
  public:
  	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1),
-		joinModel(0), shape(0), freeRownames(false), freeColnames(false)
+								joinModel(0), shape(0), allocationLock(false),
+								freeRownames(false), freeColnames(false)
 		{};
+	struct dtor;
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
@@ -73,6 +80,8 @@ class omxMatrix {
 	bool hasPopulateSubstitutions() const { return populate.size(); };
 	void addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow, int destCol);
 	void transposePopulate();
+	void lockAllocation() { allocationLock = true; }
+	void setData(double *ptr);
 	void setJoinInfo(SEXP Rmodel, SEXP Rkey);
 	void omxProcessMatrixPopulationList(SEXP matStruct);
 	void omxPopulateSubstitutions(int want, FitContext *fc);
@@ -111,6 +120,9 @@ class omxMatrix {
 	bool freeRownames, freeColnames;
 	std::vector<const char *> rownames;
 	std::vector<const char *> colnames;
+	bool hasDimnames() const { return rownames.size() && colnames.size(); }
+	bool sameSize(omxMatrix *other) const { return other->rows == rows && other->cols == cols; }
+	bool sameDimnames(omxMatrix *other) const;
 	int lookupColumnByName(const char *target);
 
 	friend void omxCopyMatrix(omxMatrix *dest, omxMatrix *src);  // turn into method later TODO
@@ -125,8 +137,10 @@ class omxMatrix {
 		return what;
 	}
 	void copyAttr(omxMatrix *src);
-	bool isSimple() { return !algebra && !fitFunction && populate.size()==0; };
-	void loadFromStream(mini::csv::ifstream &st);
+	bool isSimple() const { return !algebra && !fitFunction && populate.size()==0; };
+	bool isAlgebra() const { return algebra != 0; }
+	int numNonConstElements() const;
+	template <typename T> void loadFromStream(T &st);
 	int size() const { return rows * cols; }
 	SEXP asR();
 	bool isValidElem(int row, int col)
@@ -179,6 +193,12 @@ inline omxMatrix* omxInitMatrix(int nrows, int ncols, omxState* os)
 omxMatrix *omxCreateCopyOfMatrix(omxMatrix *orig, omxState *os);
 
 	void omxFreeMatrix(omxMatrix* om);						// Ditto, traversing argument trees
+
+struct omxMatrix::dtor {
+	void operator()(omxMatrix *om) { omxFreeMatrix(om); }
+};
+
+typedef std::unique_ptr< omxMatrix, omxMatrix::dtor > omxMatrixPtr;
 
 /* Matrix Creation Functions */
 omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state, 
@@ -406,10 +426,7 @@ static OMXINLINE void omxDGEMV(bool transpose, double alpha, omxMatrix* mat,	// 
 
 static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // result <- alpha * A %*% B + beta * C
 				omxMatrix* vec, double beta, omxMatrix* result) {       // only A is symmetric, and B is a vector
-	char u='U';
-    int onei = 1;
-
-	if(OMX_DEBUG_MATRIX) {
+	if(OMX_DEBUG) {
 		int nVecEl = vec->rows * vec->cols;
 		// mxLog("DSYMV: %c, %d, %f, 0x%x, %d, 0x%x, %d, %f, 0x%x, %d\n", u, (mat->cols),alpha, mat->data, (mat->leading), 
 	                    // vec->data, onei, beta, result->data, onei); //:::DEBUG:::
@@ -418,60 +435,43 @@ static OMXINLINE void omxDSYMV(double alpha, omxMatrix* mat,            // resul
 		}
 	}
 
-    F77_CALL(dsymv)(&u, &(mat->cols), &alpha, mat->data, &(mat->leading), 
-                    vec->data, &onei, &beta, result->data, &onei);
-
-    // if(!result->colMajor) omxToggleRowColumnMajor(result);
+	EigenMatrixAdaptor Emat(mat);
+	EigenVectorAdaptor Evec(vec);
+	EigenVectorAdaptor Eresult(result);
+	
+	Eresult.derived() = alpha * (Emat.selfadjointView<Eigen::Upper>() * Evec).array() + beta;
 }
 
-static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, double alpha, omxMatrix* symmetric, 		// result <- alpha * A %*% B + beta * C
-				omxMatrix *other, double beta, omxMatrix* result) {	                            // One of A or B is symmetric
+static OMXINLINE void omxDSYMM(unsigned short int symmOnLeft, omxMatrix* symmetric,
+			       omxMatrix *other, omxMatrix* result) {
+	EigenMatrixAdaptor Es(symmetric);
+	EigenMatrixAdaptor Eo(other);
+	EigenMatrixAdaptor Eresult(result);
 
-	char r='R', l = 'L';
-	char u='U';
-	F77_CALL(dsymm)((symmOnLeft?&l:&r), &u, &(result->rows), &(result->cols),
-					&alpha, symmetric->data, &(symmetric->leading),
- 					other->data, &(other->leading),
-					&beta, result->data, &(result->leading));
-
-	if(!result->colMajor) omxToggleRowColumnMajor(result);
+	if (symmOnLeft) {
+		Eresult.derived() = Es.template selfadjointView<Eigen::Upper>() * Eo;
+	} else {
+		Eresult.derived() = Eo * Es.template selfadjointView<Eigen::Upper>();
+	}
 }
 
-static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs) {              // RHS += alpha*lhs  
-    // N.B.  Not fully tested.                                                              // Assumes common majority or vectordom.
-    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
-    int len = lhs->rows * lhs->cols;
-    int onei = 1;
-    F77_CALL(daxpy)(&len, &alpha, lhs->data, &onei, rhs->data, &onei);
-
+static OMXINLINE void omxDAXPY(double alpha, omxMatrix* lhs, omxMatrix* rhs)
+{
+	EigenVectorAdaptor El(lhs);
+	EigenVectorAdaptor Er(rhs);
+	Er += alpha * El;
 }
 
-static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs) {              // returns dot product, as if they were vectors
-    // N.B.  Not fully tested.                                                  // Assumes common majority or vectordom.
-    if(lhs->colMajor != rhs->colMajor) { omxToggleRowColumnMajor(rhs);}
-    int len = lhs->rows * lhs->cols;
-    int onei = 1;
-    return(F77_CALL(ddot)(&len, lhs->data, &onei, rhs->data, &onei));
+static OMXINLINE double omxDDOT(omxMatrix* lhs, omxMatrix* rhs)
+{
+	EigenVectorAdaptor El(lhs);
+	EigenVectorAdaptor Er(rhs);
+	return El.transpose() * Er;
 }
 
-static OMXINLINE void omxDPOTRF(omxMatrix* mat, int* info) {										// Cholesky decomposition of mat
-	// TODO: Add mxThrow checking, and/or adjustments for row vs. column majority.
-	// N.B. Not fully tested.
-	char u = 'U'; //l = 'L'; //U for storing upper triangle
-	F77_CALL(dpotrf)(&u, &(mat->rows), mat->data, &(mat->cols), info);
-}
-static OMXINLINE void omxDPOTRI(omxMatrix* mat, int* info) {										// Invert mat from Cholesky
-	// TODO: Add mxThrow checking, and/or adjustments for row vs. column majority.
-	// N.B. Not fully tested.
-	char u = 'U'; //l = 'L'; // U for storing upper triangle
-	F77_CALL(dpotri)(&u, &(mat->rows), mat->data, &(mat->cols), info);
-}
-
-void omxShallowInverse(FitContext *fc, int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
+void omxShallowInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I );
 
 double omxMaxAbsDiff(omxMatrix *m1, omxMatrix *m2);
-
-bool thresholdsIncreasing(omxMatrix* om, int column, int count, FitContext *fc);
 
 void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result);
 
@@ -516,7 +516,7 @@ std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, 
 				} else {
 					val = mat(j,k);
 				}
-				buf += string_snprintf(" %3.6g", val);
+				buf += string_snprintf(" %3.15g", val);
 			}
 		}
 	}
@@ -579,5 +579,98 @@ double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &
 }
 
 void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat);
+
+// https://forum.kde.org/viewtopic.php?f=74&t=96706
+// https://forum.kde.org/viewtopic.php?f=74&t=124421
+// https://forum.kde.org/viewtopic.php?f=74&t=91271
+template <typename T1>
+void filterJacobianRows(Eigen::MatrixBase<T1>& A, int& rankA){
+	//TODO: check for conformability
+	Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qra(A.transpose());
+	rankA = qra.rank();
+	Eigen::MatrixXd Q(A.cols(), A.rows());
+	Q.setIdentity(A.cols(), A.rows());
+	qra.householderQ().applyThisOnTheLeft(Q);
+	Eigen::MatrixXd R = qra.matrixR().triangularView<Eigen::Upper>();
+	R.conservativeResize(A.rows(), rankA);
+	//mxLog("rank: %d",rankA[0]);
+	//mxPrintMat("Q ",Q);
+	//mxPrintMat("R ",R);
+	A = (Q * R).transpose();
+}
+
+template <typename T> void omxMatrix::loadFromStream(T &st)
+{
+	using namespace mini::csv;
+	EigenMatrixAdaptor v(this);
+
+	switch(shape) {
+	case 1: //Diag
+		for (int rx=0; rx < rows; ++rx) {
+			st >> v(rx, rx);
+		}
+		break;
+
+	case 2: //Full
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=0; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+		
+	case 4: //Lower
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=cx; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+
+	case 5: //Sdiag
+		for (int cx=0; cx < cols-1; ++cx) {
+			for (int rx=cx+1; rx < rows; ++rx) {
+				st >> v(rx,cx);
+			}
+		}
+		break;
+
+	case 6: //Stand
+		for (int cx=0; cx < cols-1; ++cx) {
+			for (int rx=cx+1; rx < rows; ++rx) {
+				double tmp;
+				st >> tmp;
+				v(rx,cx) = tmp;
+				v(cx,rx) = tmp;
+			}
+		}
+		break;
+
+	case 7: //Symm
+		for (int cx=0; cx < cols; ++cx) {
+			for (int rx=cx; rx < rows; ++rx) {
+				double tmp;
+				st >> tmp;
+				v(rx,cx) = tmp;
+				v(cx,rx) = tmp;
+			}
+		}
+		break;
+
+	case 8: //Unit
+	case 9: //Zero
+	case 3: //Iden
+		mxThrow("loadFromStream: matrix '%s' is constant (type %d);"
+			 " use a Full matrix if you wish to update it", name(), shape);
+		break;
+
+	default:
+		mxThrow("loadFromStream: matrix '%s' with shape %d is unimplemented",
+			 name(), shape);
+		break;
+	}
+}
+
+void MatrixInvert1(omxMatrix *target);
 
 #endif /* _OMXMATRIX_H_ */

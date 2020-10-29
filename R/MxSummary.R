@@ -60,7 +60,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		return(list(0, historySet))
 	}
 	obsStats <- data@observedStats
-	if (data@type == 'cov' || data@type == 'sscp') {
+	if (data@type == 'cov') {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
 		}
@@ -83,10 +83,10 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	} else if (is(expectation, "MxExpectationBA81")) {  # refactor TODO
 		if (!is.na(expectation@weightColumn) || !is.na(data@weight)) {
 			dof <- nrow(data@observed) - 1
-			historySet <- append(data, historySet)
 		} else {
-			return(list(NA, historySet))
+			dof <- nrow(rpf::compressDataFrame(data@observed)) - 1
 		}
+    historySet <- append(data, historySet)
 	} else if (!is.null(obsStats[['cov']])) {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
@@ -211,20 +211,22 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	likelihood <- retval[['Minus2LogLikelihood']]
 	saturated <- retval[['SaturatedLikelihood']]
 	independence <- retval[['IndependenceLikelihood']]
-	if(is.null(model@output$chi)){
+  if (is.null(model@output$fitUnits)) return(retval)
+	if (model@output$fitUnits=="-2lnL" && is.null(model@output$chi)) {
 		chi <- likelihood - saturated
 	} else {chi <- model@output$chi}
+  if (is.null(chi)) return(retval)
 	DoF <- retval$degreesOfFreedom
 	satDoF <- retval$saturatedDoF
 	indDoF <- retval$independenceDoF
 	nParam <- dim(retval$parameters)[1]
 	Fvalue <- computeFValue(datalist, likelihood, chi)
-	if(is.null(model@output$chiDoF)){
+	if (model@output$fitUnits=="-2lnL" && is.null(model@output$chiDoF)) {
 		chiDoF <- DoF - satDoF # DoF = obsStat-model.ep; satDoF = obsStat-sat.ep; So sat.ep-model.ep == DoF-satDoF
 	} else {chiDoF <- model@output$chiDoF}
 	retval[['ChiDoF']] <- chiDoF
 	retval[['Chi']] <- chi
-	retval[['p']] <- suppressWarnings(pchisq(chi, chiDoF, lower.tail = FALSE))
+	retval[['p']] <- suppressWarnings(ifelse(chiDoF==0,1.0,pchisq(chi, chiDoF, lower.tail = FALSE)))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
 	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) 
 	AIC.p <- Fvalue + 2 * nParam
@@ -265,7 +267,7 @@ rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
 	# Lower confidence interval
 	if( pchisq(chi.squared, df=df, ncp=0) >= upper){ #sic
 		lower.lam <- uniroot(f=pChiSqFun, interval=c(1e-10, 1e4), val=chi.squared,
-			degf=df, goal=upper, extendInt="upX")$root
+			degf=df, goal=upper, extendInt="upX", maxiter=100L)$root
 		# solve pchisq(ch, df=df, ncp=x) == upper for x
 	} else{
 		lower.lam <- 0
@@ -273,7 +275,7 @@ rmseaConfidenceIntervalHelper <- function(chi.squared, df, N, lower, upper){
 	# Upper confidence interval
 	if( pchisq(chi.squared, df=df, ncp=0) >= lower){ #sic
 		upper.lam <- uniroot(f=pChiSqFun, interval=c(1e-10, 1e4), val=chi.squared,
-			degf=df, goal=lower, extendInt="upX")$root
+			degf=df, goal=lower, extendInt="upX", maxiter=100L)$root
 		# solve pchisq(ch, df=df, ncp=x) == lower for x
 	} else{
 		upper.lam <- 0
@@ -307,11 +309,10 @@ parameterListHelper <- function(model, withModelName) {
 	ptable <- data.frame()
 	if(length(model@output) == 0) { return(ptable) }
 	estimates <- model@output$estimate
-    if (!is.null(model@output$standardErrors) && 
- 		length(model@output$standardErrors) == length(estimates)) { 
- 		errorEstimates <- model@output$standardErrors 
-	} else { 
-		errorEstimates <- rep.int(as.numeric(NA), length(estimates)) 
+	errorEstimates <- rep.int(as.numeric(NA), length(estimates)) 
+    if (!is.null(model@output$standardErrors)) {
+	    se <- model@output$standardErrors 
+	    errorEstimates[match(rownames(se), names(estimates))] <- se
 	}
 	matrices <- model@runstate$matrices
 	parameters <- model@runstate$parameters
@@ -321,17 +322,12 @@ parameterListHelper <- function(model, withModelName) {
 			mLocation <- parameters[[i]][[5]][[1]] + 1
 			mRow <- parameters[[i]][[5]][[2]] + 1
 			mCol <- parameters[[i]][[5]][[3]] + 1
+      mat <- matrices[[mLocation]][[1]]
+      dn <- dimnames(mat)
+      if (!is.null(dn[[1]])) mRow <- dn[[1]][mRow]
+      if (!is.null(dn[[2]])) mCol <- dn[[2]][mCol]
 			lbound <- parameters[[i]][[1]]
 			ubound <- parameters[[i]][[2]]
-			aMatrix <- matrices[[mLocation]][[1]]
-			if (getOption('mxShowDimnames')) {
-				if (!is.null(rownames(aMatrix))) {
-					mRow <- rownames(aMatrix)[[mRow]]
-				}
-				if (!is.null(colnames(aMatrix))) {
-					mCol <- colnames(aMatrix)[[mCol]]
-				}
-			}
 			if (withModelName) {
 				ptable[i, 'model'] <- model@name
 			}
@@ -508,10 +504,12 @@ print.summary.mxmodel <- function(x,...) {
 			seCol <- match('Std.Error', colnames(params))
 			before <- params[1:seCol]
 			stars <- mapply(highlightProblem, rep('',length(x[['seSuspect']])), x[['seSuspect']])
+			fullStars <- rep('', nrow(params))
+			fullStars[match(names(x[['seSuspect']]), params$name)] <- stars
 			if (length(params) > seCol) {
-				params <- cbind(before, 'A'=stars, params[(seCol+1):length(params)])
+				params <- cbind(before, 'A'=fullStars, params[(seCol+1):length(params)])
 			} else {
-				params <- cbind(before, 'A'=stars)
+				params <- cbind(before, 'A'=fullStars)
 			}
 		}
 		if (!is.null(x$bootstrapQuantile) && nrow(x$bootstrapQuantile) == nrow(params)) {
@@ -563,6 +561,7 @@ print.summary.mxmodel <- function(x,...) {
 			else plural <- 's'
 			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
 				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
+			if(i==length(constraints)){cat("\n")}
 		}
 	}
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {
@@ -577,7 +576,7 @@ print.summary.mxmodel <- function(x,...) {
 	}
 	#
 	# Chi-square goodness of fit test
-	if(x$verbose==TRUE || !is.na(x$Chi)){
+	if(x$verbose==TRUE || (!is.null(x$Chi) && !is.na(x$Chi))) {
 		chival <- x$Chi
 		if(is.na(x$SaturatedLikelihood)){
 			chidof <- NA
@@ -875,7 +874,9 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	retval$parameters <- parameterList(model, useSubmodels)
 	if (!is.null(model@compute$steps[['ND']]) && model@compute$steps[['ND']]$checkGradient &&
 	    !is.null(model@compute$steps[['ND']]$output$gradient)) {
-		retval$seSuspect <- !model@compute$steps[['ND']]$output$gradient[,'symmetric']
+		gdetail <- model@compute$steps[['ND']]$output$gradient
+		retval$seSuspect <- !gdetail[,'symmetric']
+		names(retval$seSuspect) <- rownames(gdetail)
 	}
 	if (is(model@compute, "MxComputeBootstrap")) {
 		bq <- c(.25,.75)
@@ -963,8 +964,8 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 
 assertModelRunAndFresh <- function(model) {
 	warnModelCreatedByOldVersion(model)
-	if (!model@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
-	if (model@.modifiedSinceRun) {
+	if (.hasSlot(model,".wasRun") && !model@.wasRun) stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+	if (.hasSlot(model,".modifiedSinceRun") && model@.modifiedSinceRun) {
 		msg <- paste("MxModel", omxQuotes(model@name), "was modified",
 			     "since it was run.")
 		warning(msg)
@@ -985,26 +986,63 @@ logLik.MxModel <- function(object, ...) {
 	moreModels <- list(...)
 	assertModelFreshlyRun(model)
 	ll <- NA
-	if (length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
-			!is.null(model@output$fitUnits) && model@output$fitUnits=="-2lnL") {
-		ll <- -0.5*model@output$Minus2LogLikelihood
+	if (length(model@output) && !is.null(model@output$fit) && 
+			!is.null(model@output$fitUnits) ) {
+		if(model@output$fitUnits=="-2lnL"){
+			ll <- -0.5*model@output$fit
+			#TODO: this doesn't count "implicit" free parameters that are "profiled out":
+			attr(ll, "df") <- length(model@output$estimate)
+		} else if(model@output$fitUnits=="r'Wr") {
+			ll <- model@output$chi
+			attr(ll, "df") <- model@output$chiDoF
+			# TODO is this right?
+		}
+	} else {
+		attr(ll,"df") <- NA
 	}
-
+	
 	nobs <- numberObservations(model@runstate$datalist, model@runstate$fitfunctions)
 	if (!is.na(nobs)) {
 		attr(ll,"nobs") <- nobs
 	}
-
-	if (!is.null(model@output))
-		#TODO: this doesn't count "implicit" free parameters that are "profiled out":
-		attr(ll,"df")<- length(model@output$estimate)
-	else
-		attr(ll,"df") <- NA
+	
 	class(ll) <- "logLik"
 	if (length(moreModels)) {
 		c(list(ll), lapply(moreModels, logLik.MxModel))
 	} else {
 		ll
+	}
+}
+
+AIC.MxModel <- function(object, ..., k=2){
+	model <- object
+	if( length(model@output) && !is.null(model@output$Minus2LogLikelihood) && 
+			!is.null(model@output$fitUnits) && model@output$fitUnits=="r'Wr" ){
+		aicMult <- 1
+	} else {
+		aicMult <- -2
+	}
+	# Copied from AIC.default
+	# Modified by using logLik instead of -2*logLik for WLS
+	# because logLik on a WLS model returns the Chi-Squared value
+	if (!missing(...)) {
+		lls <- lapply(list(object, ...), logLik)
+		vals <- sapply(lls, function(el) {
+			no <- attr(el, "nobs")
+			c(as.numeric(el), attr(el, "df"), if (is.null(no)) NA_integer_ else no)
+		})
+		val <- data.frame(df = vals[2L, ], ll = vals[1L, ])
+		nos <- na.omit(vals[3L, ])
+		if (length(nos) && any(nos != nos[1L])) 
+			warning("models are not all fitted to the same number of observations")
+		val <- data.frame(df = val$df, AIC = aicMult * val$ll + k * val$df)
+		Call <- match.call()
+		Call$k <- NULL
+		row.names(val) <- as.character(Call[-1L])
+		return(val)
+	} else {
+		lls <- logLik(object)
+		return(aicMult * as.numeric(lls) + k * attr(lls, "df"))
 	}
 }
 
@@ -1154,7 +1192,7 @@ logLik.MxModel <- function(object, ...) {
   			paste(paramnames[!(paramnames %in% rownames(ParamsCov))],collapse=", "),sep=""))
   	}
     #From Mike Hunter's delta method example:
-    covParam <- ParamsCov[paramnames,paramnames]#<--submodel will usually not contain all free param.s
+    covParam <- ParamsCov[paramnames,paramnames,drop=FALSE]#<--submodel will usually not contain all free param.s
     jacStand <- numDeriv::jacobian(func=.standardizeParams, x=freeparams, model=model, Apos=Apos, Spos=Spos, Mpos=Mpos)
     covSparam <- jacStand %*% covParam %*% t(jacStand)
     dimnames(covSparam) <- list(names(zout),names(zout))
@@ -1170,8 +1208,19 @@ logLik.MxModel <- function(object, ...) {
     for(i in 1:numelem){
       if( (out$name[i] %in% paramnames) | 
             (out$label[i] %in% paramnames) ){
-        out$Raw.SE[i] <- sqrt(covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
-                                       ifelse(is.na(out$label[i]),out$name[i],out$label[i])])
+        tdiags <- covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
+                                       ifelse(is.na(out$label[i]),out$name[i],out$label[i])]
+	if (length(tdiags) == 1) {
+		# For diag, R will return a square identity matrix of size given by the scalar
+		if(tdiags < 0 || is.na(tdiags)) {
+			warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+		}
+	} else {
+		if(any(diag(tdiags) < 0) || any(is.na(tdiags))){
+			warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+		}
+	}
+        out$Raw.SE[i] <- suppressWarnings(sqrt(tdiags))
   }}}
   else{out$Raw.SE <- "not_requested"}
   return(out)
@@ -1207,19 +1256,19 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   if(SE){
   	#If user requests SEs and provided no covariance matrix, check to be sure SEs can and should be computed:
   	if(!length(cov)){
-  		if(length(model@constraints)>0){
-  			msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
-  			warning(msg)
-  			SE <- FALSE
-  		}
-  		if(SE & length(model@output$hessian)==0){
+  		# if(length(model@constraints)>0){
+  		# 	msg <- paste("standard errors will not be computed because model '",model@name,"' contains at least one mxConstraint",sep="")
+  		# 	warning(msg)
+  		# 	SE <- FALSE
+  		# }
+  		if(SE & length(model@output$vcov)==0){
   			if(!model@.wasRun){
   				msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run, and no matrix was provided for argument 'cov'",sep="")
   				warning(msg)
   				SE <- FALSE
   			}
   			else{
-  				warning("argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'")
+  				warning("argument 'SE=TRUE' requires model to have a nonempty 'vcov' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'")
   				SE <- FALSE
   			}}
   		libraries <- rownames(installed.packages())
@@ -1229,22 +1278,15 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   			SE <- FALSE
   		}
   		if(SE){
-  			if(!is.na(model@output$infoDefinite) && model@output$infoDefinite){
-  				#solve() will fail if Hessian is computationally singular;
-  				#chol2inv() will still fail if Hessian is exactly singular.
-  				covParam <- 2*chol2inv(chol(model@output$hessian))
-  				dimnames(covParam) <- dimnames(model@output$hessian)
-  			}
-  			#An indefinite Hessian usually means some SEs will be NaN:
-  			else{covParam <- 2*solve(model@output$hessian)}
+  			covParam <- vcov(model)
   		}
   	}
   	#If user requests SEs and provided a covariance matrix:
   	else{
   		#Conceivably, the user could provide a sampling covariance matrix that IS valid in the presence of MxConstraints...
   		if(length(model@constraints)>0){
-  			msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
-  			warning(msg)
+  			#msg <- paste("standard errors may be invalid because model '",model@name,"' contains at least one mxConstraint",sep="")
+  			#warning(msg)
   		}
   		#Sanity checks on the value of argument 'cov':
   		if(!is.matrix(cov)){ #<--Is it a matrix?

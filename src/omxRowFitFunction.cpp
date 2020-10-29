@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 
 struct omxRowFitFunction : omxFitFunction {
 
+  bool setup;
 	/* Parts of the R  MxRowFitFunction Object */
 	omxMatrix* rowAlgebra;		// Row-by-row algebra
 	omxMatrix* rowResults;		// Aggregation of row algebra results
@@ -30,9 +31,6 @@ struct omxRowFitFunction : omxFitFunction {
     omxMatrix* filteredDataRow; // Data row minus NAs
     omxMatrix* existenceVector; // Set of NAs
     omxMatrix* dataColumns;		// The order of columns in the data matrix
-
-    /* Contiguous data note for contiguity speedup */
-	omxContiguousData contiguous;		// Are the dataColumns contiguous within the data set
 
 	/* Structures determined from info in the MxRowFitFunction Object*/
 	omxMatrix* dataRow;         // One row of data, kept for aliasing only
@@ -44,6 +42,7 @@ struct omxRowFitFunction : omxFitFunction {
 	virtual ~omxRowFitFunction();
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
+  virtual void invalidateCache() override;
 };
 
 omxRowFitFunction::~omxRowFitFunction()
@@ -53,7 +52,7 @@ omxRowFitFunction::~omxRowFitFunction()
 }
 
 void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target) {
-	
+
 	int i;
 	for(i = 0; i < source->cols; i++) {
 		omxSetMatrixElement(target, row, i, omxMatrixElement(source, 0, i));
@@ -88,37 +87,28 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
     omxMatrix *filteredDataRow, *dataRow, *existenceVector;
     omxMatrix *dataColumns;
 	omxData *data;
-	int isContiguous, contiguousStart, contiguousLength;
 
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = shared_oro->rowResults;
 	data		    = oro->data;
+	int rows = data->nrows();
     dataColumns     = oro->dataColumns;
     dataRow         = oro->dataRow;
     filteredDataRow = oro->filteredDataRow;
     existenceVector = oro->existenceVector;
-    
-    isContiguous    = oro->contiguous.isContiguous;
-	contiguousStart = oro->contiguous.start;
-	contiguousLength = oro->contiguous.length;
 
 	int *toRemove = (int*) malloc(sizeof(int) * dataColumns->cols);
 	int *zeros = (int*) calloc(dataColumns->cols, sizeof(int));
 
-	for(int row = rowbegin; row < data->rows && (row - rowbegin) < rowcount; row++) {
+	for(int row = rowbegin; row < rows && (row - rowbegin) < rowcount; row++) {
 		mxLogSetCurrentRow(row);
 
 		data->loadDefVars(localobj->matrix->currentState, row);
 
-        // Populate data row
-		if (isContiguous) {
-			omxContiguousDataRow(data, row, contiguousStart, contiguousLength, dataRow);
-		} else {
-			omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
-		}
+		omxDataRow(data, row, dataColumns, dataRow);	// Populate data row
 
 		markDataRowDependencies(localobj->matrix->currentState, oro);
-		
+
 		for(int j = 0; j < dataColumns->cols; j++) {
 			if(omxDataElementMissing(data, row, j)) {
 				toRemove[j] = 1;
@@ -127,8 +117,8 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 			    toRemove[j] = 0;
 			    omxSetVectorElement(existenceVector, j, 1);
 			}
-		}		
-		
+		}
+
 		omxCopyMatrix(filteredDataRow, dataRow);
 		omxRemoveRowsAndColumns(filteredDataRow, zeros, toRemove);
 
@@ -143,54 +133,73 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 void omxRowFitFunction::compute(int want, FitContext *fc)
 {
 	auto *oo = this;
-	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
+	if (want & FF_COMPUTE_INITIAL_FIT) return;
+
+  if (!setup) {
+    setup = true;
+    if (!fc->isClone()) {
+			openmpUser = fc->permitParallel;
+      diagParallel(OMX_DEBUG, "%s: openmpUser = %d", name(), openmpUser);
+    }
+  }
+
+  if (want & FF_COMPUTE_PREOPTIMIZE) return;
+
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
 
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
 	// Requires: Data, means, covariances.
 
 	omxMatrix* objMatrix  = oo->matrix;
-	int numChildren = fc? fc->childList.size() : 0;
+	int numChildren = fc && openmpUser? fc->childList.size() : 0;
+	int rows = data->nrows();
 
 	/* Michael Spiegel, 7/31/12
-	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel 
+	* The demo "RowFitFunctionSimpleExamples" will fail in the parallel
 	* Hessian calculation if the resizing operation is performed.
 	*
 	omxMatrix *rowAlgebra, *rowResults
 	rowAlgebra	    = oro->rowAlgebra;
 	rowResults	    = oro->rowResults;
 
-	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != data->rows) {
-		if(OMX_DEBUG_ROWS(1)) { 
-			mxLog("Resizing rowResults from %dx%d to %dx%d.", 
-				rowResults->rows, rowResults->cols, 
-				data->rows, rowAlgebra->cols); 
+	if(rowResults->cols != rowAlgebra->cols || rowResults->rows != rows) {
+		if(OMX_DEBUG_ROWS(1)) {
+			mxLog("Resizing rowResults from %dx%d to %dx%d.",
+				rowResults->rows, rowResults->cols,
+				rows, rowAlgebra->cols);
 		}
-		omxResizeMatrix(rowResults, data->rows, rowAlgebra->cols);
+		omxResizeMatrix(rowResults, rows, rowAlgebra->cols);
 	}
 	*/
-		
+
     int parallelism = (numChildren == 0) ? 1 : numChildren;
 
-	if (parallelism > data->rows) {
-		parallelism = data->rows;
+	if (parallelism > rows) {
+		parallelism = rows;
 	}
 
 	if (parallelism > 1) {
-		int stride = (data->rows / parallelism);
+		int stride = (rows / parallelism);
 
-#pragma omp parallel for num_threads(parallelism) 
+#pragma omp parallel for num_threads(parallelism)
 		for(int i = 0; i < parallelism; i++) {
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(objMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
-			if (i == parallelism - 1) {
-				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, data->rows - stride * i, fc);
-			} else {
-				omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride, fc);
+			try {
+				if (i == parallelism - 1) {
+					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, rows - stride * i, fc);
+				} else {
+					omxRowFitFunctionSingleIteration(childFit, oo, stride * i, stride, fc);
+				}
+			} catch (const std::exception& e) {
+				omxRaiseErrorf("%s", e.what());
+			} catch (...) {
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 			}
 		}
 	} else {
-		omxRowFitFunctionSingleIteration(oo, oo, 0, data->rows, fc);
+		omxRowFitFunctionSingleIteration(oo, oo, 0, rows, fc);
 	}
 
 	omxRecompute(reduceAlgebra, fc);
@@ -283,7 +292,7 @@ void omxRowFitFunction::init()
 		omxRaiseError(errstr);
 		free(errstr);
 	}
-	
+
 	if(OMX_DEBUG) {mxLog("Accessing variable mapping structure."); }
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("dataColumns")));
 	newObj->dataColumns = omxNewMatrixFromRPrimitive(nextMatrix, oo->matrix->currentState, 0, 0);
@@ -300,10 +309,12 @@ void omxRowFitFunction::init()
 	}
 	}
 
-	/* Set up data columns */
-	EigenVectorAdaptor dc(newObj->dataColumns);
-	omxSetContiguousDataColumns(&(newObj->contiguous), newObj->data, dc);
-
 	oo->canDuplicate = true;
-	oo->openmpUser = true;
+  invalidateCache();
+}
+
+void omxRowFitFunction::invalidateCache()
+{
+  setup = false;
+	openmpUser = false;
 }

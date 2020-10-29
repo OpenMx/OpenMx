@@ -2,7 +2,7 @@
 
 set -o errexit
 
-export _R_CHECK_FORCE_SUGGESTS_=0
+export _R_CHECK_FORCE_SUGGESTS_=false
 export OMP_NUM_THREADS=2
 
 fold_start() {
@@ -13,12 +13,10 @@ fold_end() {
   echo -e "\ntravis_fold:end:$1\r"
 }
 
-do_cran_check() {
-    make cran-check &
-
+travis_wait() {
     # https://github.com/travis-ci/travis-ci/issues/4190#issuecomment-169987525
     local minutes=0
-    local limit=30
+    local limit=40
     while kill -0 $! >/dev/null 2>&1; do
 	echo -n -e " \b" # never leave evidences!
 	if [ $minutes == $limit ]; then break; fi
@@ -41,14 +39,16 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
     if [ "x$MODE" = xtest ]; then
 	make test
     elif [ "x$MODE" = xcran-check ]; then
-	do_cran_check
+	make cran-check &
+	travis_wait
     fi
 elif [ "x$TRAVIS_OS_NAME" = xosx ]; then
     if [ "x$MODE" = xbuild ]; then
 	git fetch --unshallow  # need tags to compute version string
-	make build
-	pushd build && tar zxf OpenMx_*.tgz && popd
-	pushd build/OpenMx/libs && ../../../util/libtastic.py -r -id OpenMx.so /usr/local/ && popd
-	pushd build && tar zcf OpenMx_*.tgz OpenMx && popd
+	make build &
+	travis_wait
+	pushd staging && tar zxf OpenMx_*.tgz && popd
+	pushd staging/OpenMx/libs && ../../../util/libtastic.py -id OpenMx.so /usr/local/ && popd
+	pushd staging && tar zcf OpenMx_*.tgz OpenMx && popd
     fi
 fi

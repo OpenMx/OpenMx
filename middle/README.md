@@ -1,13 +1,15 @@
-== Install
+### Install
 
 npm install
 nodejs ./coord.js
 
-== Development
+###  Development
 
-http://www.jslint.com/
+<http://www.jslint.com/>
 
-== Debugging
+### Debugging
 
+```shell
 sudo npm install -g node-inspector
 node-debug coord.js
+```

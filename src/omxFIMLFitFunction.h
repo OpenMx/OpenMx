@@ -14,7 +14,7 @@
  *  limitations under the License.
  *
  */
- 
+
 #ifndef _OMXFIMLFITFUNCTION_H_
 #define _OMXFIMLFITFUNCTION_H_
 
@@ -64,7 +64,7 @@ class omxFIMLFitFunction : public omxFitFunction {
 	static const int ELAPSED_HISTORY_SIZE = 5;
 
 	omxFIMLFitFunction *parent;
-	int rowwiseParallel;
+  int rowwiseParallel;
 	omxMatrix* cov;				// Covariance Matrix
 	omxMatrix* means;			// Vector of means
 	omxData* data;				// The data
@@ -126,18 +126,18 @@ class omxFIMLFitFunction : public omxFitFunction {
 	/* Structures for JointFIMLFitFunction */
 	omxMatrix* contRow;		    // Memory reserved for continuous data row
 	omxMatrix* ordCov;	    	// Memory reserved for ordinal covariance matrix
-	omxMatrix* ordMeans;		// Memory reserved for ordinal column means    
+	omxMatrix* ordMeans;		// Memory reserved for ordinal column means
     omxMatrix* ordContCov;      // Memory reserved for ordinal/continuous covariance
 	omxMatrix* halfCov;         // Memory reserved for computations
     omxMatrix* reduceCov;       // Memory reserved for computations
-    
+
 	/* Reserved memory for faster calculation */
 	omxMatrix* smallRow;		// Memory reserved for operations on each data row
 	omxMatrix* smallCov;		// Memory reserved for operations on covariance matrix
 	omxMatrix* smallMeans;		// Memory reserved for operations on the means matrix
 
 	omxMatrix* RCX;				// Memory reserved for computationxs
-		
+
 	std::vector<int> identicalDefs;
 	std::vector<int> identicalMissingness;
 	std::vector<int> identicalRows;
@@ -160,7 +160,6 @@ class mvnByRow {
 	int row;
 	int lastrow;
 	bool firstRow;
-	omxMatrix *thresholdsMat;
 	const std::vector< omxThresholdColumn > &thresholdCols;
 	omxMatrix *cov;
 	omxMatrix *means;
@@ -215,11 +214,12 @@ class mvnByRow {
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
-		ol.attach(dataColumns, data, expectation->thresholdsMat, expectation->getThresholdInfo());
+		omxExpectation *ex = expectation;
+		ol.attach(dataColumns, data, [ex](int r, int c)->double{ return ex->getThreshold(r,c); },
+			expectation->getThresholdInfo());
 		row = ofo->rowBegin;
 		lastrow = ofo->rowBegin + ofo->rowCount;
 		firstRow = true;
-		thresholdsMat = expectation->thresholdsMat;
 		cov = ofo->cov;
 		means = ofo->means;
 		fc = _fc;
@@ -240,7 +240,7 @@ class mvnByRow {
 		useSufficientSets = ofiml->useSufficientSets;
 		verbose = ofiml->verbose;
 
-		if (fc->isClone()) {  // rowwise parallel
+		if (parent->openmpUser && fc->isClone()) {
 			startTime = get_nanotime();
 		}
 
@@ -250,16 +250,17 @@ class mvnByRow {
 	};
 
 	~mvnByRow() {
-		if (fc->isClone()) {  // rowwise parallel
+		if (parent->openmpUser && fc->isClone()) {
 			double el1 = get_nanotime() - startTime;
 			ofo->elapsed[shared_ofo->curElapsed] = el1;
-			if (verbose >= 3) mxLog("%d--%d %.2fms", ofo->rowBegin, ofo->rowCount, el1/1000000.0);
+			if (verbose >= 3) mxLog("%s: %d--%d %.2fms",
+                              parent->name(), ofo->rowBegin, ofo->rowCount, el1/1000000.0);
 		} else {
-			if (verbose >= 3) mxLog("%d--%d", ofo->rowBegin, ofo->rowCount);
+			if (verbose >= 3) mxLog("%s: %d--%d in single thread", parent->name(), ofo->rowBegin, ofo->rowCount);
 		}
 	};
 
-	bool loadRow()
+	void loadRow()
 	{
 		mxLogSetCurrentRow(row);
 		sortedRow = indexVector[row];
@@ -287,15 +288,7 @@ class mvnByRow {
 		if (numVarsFilled || firstRow) {
 			omxExpectationCompute(fc, expectation, NULL);
 			INCR_COUNTER(expectationCompute);
-
-			for (int jx=0; jx < rowOrdinal; jx++) {
-				int j = ordColBuf[jx];
-				// WLS also needs this check? Refactor? TODO
-				if (!thresholdsIncreasing(thresholdsMat, thresholdCols[j].column,
-							  thresholdCols[j].numThresholds, fc)) return false;
-			}
 		}
-		return true;
 	}
 
 	void record(double logLik, int nrows)

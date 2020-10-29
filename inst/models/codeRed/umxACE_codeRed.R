@@ -1,13 +1,11 @@
-# All three optimizers give code RED
-# SLSQP quits at start
+# OK with OpenMx version: 2.12.2.233 [GIT v2.12.2-233-ga7a310a]
+# Used to be all three optimizers gave code RED
+# SLSQP quit at start
 # CSOLNP AND NPSOL appear to get good solutions
 
 # ============================
 # = How heritable is height? =
 # ============================
-# get a fresh build of umx
-# requires umx 1.8 for inline optimizer switching
-# install_github("tbates/umx")
 require(umx)
 oldJoint <- function(model){
 	# https://github.com/OpenMx/OpenMx/commit/4fb4c0f190395f2b63b9710d986e547b835bfe92

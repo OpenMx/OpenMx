@@ -1,12 +1,12 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,23 +53,75 @@ m1 <- mxModel(
 	"mod1",
 	mxdat,
 	#plan,
-	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
+	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S", lbound=-10, ubound=10),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau"),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=5),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
 	safeT,
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying")
 )
-m2 <- mxRun(m1)
+#CSOLNP needs extra tries to reach the solution:
+if(mxOption(NULL,"Default optimizer")=="CSOLNP"){
+	m2 <- mxTryHardOrdinal(m1)
+	m2 <- mxRun(m2) #<--Re-run at solution to avoid FrankenModel from mxTryHard*().
+} else{
+	m2 <- mxRun(m1)
+}
 summary(m2)
 mxEval(Sigma,m2,T)
 omxCheckCloseEnough(mxEval(Tau,m2,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m2,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
+
 omxCheckCloseEnough(diag(mxEval(Sigma,m2,T)),c(1,1,1),as.numeric(mxOption(NULL,"Feasibility tolerance")))
+omxCheckEquals(length(m2$output$vcov),81)
+omxCheckEquals(rownames(m2$output$vcov),c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3"))
+omxCheckEquals(colnames(m2$output$vcov),c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3"))
+
+#Tests regarding constraint-related output:
+omxCheckEquals(length(m2$compute$steps$GD$output$constraintFunctionValues),12)
+omxCheckEquals(length(m2$output$constraintFunctionValues),12)
+omxCheckEquals(
+	names(m2$output$constraintFunctionValues),
+	c(
+		"mod1.safety[1,1]","mod1.safety[2,1]","mod1.safety[3,1]","mod1.safety[1,2]","mod1.safety[2,2]","mod1.safety[3,2]",
+		"mod1.safety[1,3]","mod1.safety[2,3]","mod1.safety[3,3]","mod1.identifying[1,1]","mod1.identifying[2,1]","mod1.identifying[3,1]")
+)
+omxCheckEquals(length(names(m2$compute$steps$GD$output$constraintFunctionValues)),0)
+omxCheckCloseEnough(m2$compute$steps$GD$output$constraintFunctionValues, m2$output$constraintFunctionValues)
+
+omxCheckEquals(length(m2$compute$steps$GD$output$constraintJacobian),108)
+omxCheckEquals(length(rownames(m2$compute$steps$GD$output$constraintJacobian)),0)
+omxCheckEquals(length(colnames(m2$compute$steps$GD$output$constraintJacobian)),0)
+omxCheckEquals(length(m2$output$constraintJacobian),108)
+omxCheckEquals(
+	rownames(m2$output$constraintJacobian),
+	c(
+		"mod1.safety[1,1]","mod1.safety[2,1]","mod1.safety[3,1]","mod1.safety[1,2]","mod1.safety[2,2]","mod1.safety[3,2]",
+		"mod1.safety[1,3]","mod1.safety[2,3]","mod1.safety[3,3]","mod1.identifying[1,1]","mod1.identifying[2,1]","mod1.identifying[3,1]")
+)
+omxCheckEquals(
+	colnames(m2$output$constraintJacobian),
+	c("s11","s21","s31","s22","s32","s33","tau1","tau2","tau3")
+)
+omxCheckCloseEnough(m2$compute$steps$GD$output$constraintJacobian, m2$output$constraintJacobian, 1e-8)
+
+omxCheckTrue(is.null(m2$output$constraintNames))
+omxCheckTrue(is.null(m2$output$constraintRows))
+omxCheckTrue(is.null(m2$output$constraintCols))
+omxCheckEquals(length(m2$output$hessian),81)
+omxCheckEquals(length(m2$output$gradient),9)
+omxCheckEquals(length(m2$output$standardErrors),9)
+omxCheckTrue(length(m2$output$LagrangeMultipliers)>0)
+if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+	omxCheckTrue(length(m2$output$istate)>0)
+	omxCheckTrue(length(m2$output$hessianCholesky)>0)
+} else{
+	omxCheckTrue(length(m2$output$LagrHessian)>0)
+}
 
 
 
@@ -107,25 +159,27 @@ m3 <- mxModel(
 	"mod3",
 	mxdat,
 	#plan,
-	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
+	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S", lbound=-10, ubound=10),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau"),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=4),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
 	safeT,#safeT2,
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying",jac="eqJac"),
-	eqjsub, taueqjac, eqjac#, 
+	eqjsub, taueqjac, eqjac#,
 	#tauineqjac, ineqjsub, ineqjac, sgn
 )
 m4 <- mxRun(m3)
+m4Eval <- m4$output$evaluations
+m4 <- mxRun(m4)  # help NPSOL get to the solution
+m4Eval <- m4Eval + m4$output$evaluations
 summary(m4)
 mxEval(Sigma,m4,T)
-if(mxOption(NULL,"Default optimizer") %in% c("NPSOL","SLSQP")){
-	omxCheckTrue(m2$output$evaluations > m4$output$evaluations)
-}
+omxCheckTrue(m2$output$evaluations > m4$output$evaluations)
+
 omxCheckCloseEnough(mxEval(Tau,m4,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m4,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
 omxCheckCloseEnough(diag(mxEval(Sigma,m4,T)),c(1,1,1),as.numeric(mxOption(NULL,"Feasibility tolerance")))
@@ -141,26 +195,31 @@ m5 <- mxModel(
 	"mod5",
 	mxdat,
 	#plan,
-	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S"),
+	mxMatrix(type="Lower",nrow=3,free=T,values=c(1,1e-7,1e-7,1,1e-7,1),labels=c("s11","s21","s31","s22","s32","s33"),name="S", lbound=-10, ubound=10),
 	mxMatrix(type="Zero",nrow=1,ncol=3,name="Mu"),
 	mxMatrix(type="Unit",nrow=3,ncol=1,name="ONE"),
 	mxMatrix(type="Zero",nrow=3,ncol=3,name="Zilch"),
-	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau"),
+	mxMatrix(type="Full",nrow=1,ncol=3,free=T,values=1.64,labels=c("tau1","tau2","tau3"),name="Tau",ubound=4),
 	mxAlgebra(S%*%t(S),name="Sigma"),
 	mxFitFunctionML(),
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("y1","y2","y3"),thresholds="Tau",threshnames=c("y1","y2","y3")),
 	safeT2,
 	mxConstraint(diag2vec(Sigma)==ONE,name="identifying",jac="eqJac"),
-	eqjsub, taueqjac, eqjac, 
+	eqjsub, taueqjac, eqjac,
 	tauineqjac, ineqjsub, ineqjac, sgn
 )
-m6 <- mxRun(m5)
+#CSOLNP needs extra tries to reach the solution:
+if(mxOption(NULL,"Default optimizer") == "CSOLNP"){
+	m6 <- mxTryHardOrdinal(m5)
+} else{
+	m6 <- mxRun(m5)
+}
 summary(m6)
 mxEval(Sigma,m6,T)
 #Interestingly, SLSQP doesn't gain any advantage in function evaluations by adding analytic derivatives
 #for the inequality constraints, but NPSOL does:
 if(mxOption(NULL,"Default optimizer") %in% c("CSOLNP","NPSOL")){
-	omxCheckTrue(m4$output$evaluations > m6$output$evaluations)
+  omxCheckTrue(m4Eval > m6$output$evaluations)
 }
 omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m6,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)

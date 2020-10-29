@@ -29,7 +29,8 @@
 mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=NA,
                     TX = NA, TY = NA, KA = NA, AL = NA,
                     dimnames = NA, thresholds = NA,
-	 threshnames = dimnames, verbose=0L)
+	 threshnames = deprecated(), verbose=0L, ...,
+  expectedCovariance=NULL, expectedMean=NULL, discrete = as.character(NA))
 }
 
 
@@ -49,8 +50,14 @@ mxExpectationLISREL(LX=NA, LY=NA, BE=NA, GA=NA, PH=NA, PS=NA, TD=NA, TE=NA, TH=N
    \item{AL}{An optional character string indicating the name of the 'AL' matrix.}
    \item{dimnames}{An optional character vector that is currently ignored}%to be assigned to the column names of the 'F' and 'M' matrices.}   
    \item{thresholds}{An optional character string indicating the name of the thresholds matrix.}
-   \item{threshnames}{An optional character vector to be assigned to the column names of the thresholds matrix.}
+   \item{threshnames}{\lifecycle{deprecated}}
    \item{verbose}{integer. Level of runtime diagnostic output.}
+   \item{...}{Not used.  Forces remaining arguments to be specified by name.}
+   \item{expectedCovariance}{An optional character string indicating the
+   name of a matrix for the model implied covariance.}
+   \item{expectedMean}{An optional character string indicating the name
+   of a matrix for the model implied mean.}
+   \item{discrete}{An optional character string indicating the name of the discrete matrix.}
 }
 
 \details{

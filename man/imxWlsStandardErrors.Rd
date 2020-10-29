@@ -32,7 +32,7 @@ imxWlsStandardErrors(model)
 }
 
 \details{
-The standard errors for models fit with maximum likelihood are related to the second derivative (Hessian) of the likelihood function with respect to the free parameters.  For models fit with weighted least squares a different expression is required.  If \eqn{J} is the first derivative (Jacobian) of the mapping from the free parameters to the unique elements of the expected covariance, means, and threholds, \eqn{V} is the weight matrix used, \eqn{W} is the inverse of the full weight matrix, and \eqn{U= V J (J' V J)^{-1}}, then the asymptotic covariance matrix of the free parameters is
+The standard errors for models fit with maximum likelihood are related to the second derivative (Hessian) of the likelihood function with respect to the free parameters.  For models fit with weighted least squares a different expression is required.  If \eqn{J} is the first derivative (Jacobian) of the mapping from the free parameters to the unique elements of the expected covariance, means, and thresholds, \eqn{V} is the weight matrix used, \eqn{W} is the inverse of the full weight matrix, and \eqn{U= V J (J' V J)^{-1}}, then the asymptotic covariance matrix of the free parameters is
 \deqn{Acov(\theta) = U' W U}
 with \eqn{U'} indicating the transpose of \eqn{U}.
 }
@@ -47,9 +47,9 @@ A named list with components
 }
 
 \references{
-M. W. Browne. (1984).  Asymptotically Distribution-Free Methods for the Analysis of Covariance Structures. \emph{British Journal of Mathematical and Statistical Psychology, 37}, 62-83.
+M. W. Browne. (1984).  Asymptotically Distribution-Free Methods for the Analysis of Covariance Structures. \emph{British Journal of Mathematical and Statistical Psychology}, \strong{37}, 62-83.
 
-F. Yang-Wallentin, K. G. J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog, & H. Luo.  (2010).   Confirmatory Factor Analysis of Ordinal Variables with Misspecified Models.  \emph{Structural Equation Modeling, 17}, 392-423.
+F. Yang-Wallentin, K. G. J\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}reskog, & H. Luo.  (2010).   Confirmatory Factor Analysis of Ordinal Variables with Misspecified Models.  \emph{Structural Equation Modeling}, \strong{17}, 392-423.
 }
 
 

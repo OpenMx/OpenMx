@@ -20,7 +20,6 @@
 #include "omxExpectationBA81.h"
 #include "libifa-rpf.h"
 #include "matrix.h"
-#include "omxBuffer.h"
 #include "Compute.h"
 #include "EnableWarnings.h"
 
@@ -244,16 +243,16 @@ static void buildItemParamMap(omxFitFunction* oo, FitContext *fc)
 			const int outer_at1 = state->paramMap[cx * state->itemDerivPadSize + p1];
 			if (outer_at1 < 0) continue;
 			const int outer_hb1 = std::lower_bound(hb.vars.begin(), hb.vars.end(), outer_at1) - hb.vars.begin();
-			if (hb.vars[outer_hb1] != outer_at1) mxThrow("oops");
+			if (hb.vars[outer_hb1] != outer_at1) OOPS;
 
 			for (int p2=0; p2 <= p1; p2++) {
 				int at1 = outer_at1;
 				int hb1 = outer_hb1;
 				int at2 = state->paramMap[cx * state->itemDerivPadSize + p2];
 				if (at2 < 0) continue;
-				if (p1 == p2 && at1 != at2) mxThrow("oops");
+				if (p1 == p2 && at1 != at2) OOPS;
 				int hb2 = std::lower_bound(hb.vars.begin(), hb.vars.end(), at2) - hb.vars.begin();
-				if (hb.vars[hb2] != at2) mxThrow("oops");
+				if (hb.vars[hb2] != at2) OOPS;
 
 				if (at1 < at2) std::swap(at1, at2); // outer_at1 unaffected
 				if (hb1 < hb2) std::swap(hb1, hb2); // outer_hb1 unaffected
@@ -382,7 +381,7 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 				if (to < numFreeParams) {
 					if (want & FF_COMPUTE_GRADIENT) {
-						fc->grad(to) -= Scale * deriv0[ox];
+						fc->gradZ(to) -= Scale * deriv0[ox];
 					}
 				} else {
 					if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
@@ -472,7 +471,6 @@ struct ba81sandwichOp {
 		if (ix) gradOffset(thrId) += state->paramPerItem[ix-1];
 		int pick = dataColumns[ix][ rowMap[px(thrId)] ];
 		if (pick == NA_INTEGER) return;
-		pick -= 1;
 		expected.col(thrId).setZero();
 		expected(pick, thrId) = 1.0;
 		const double *spec1 = spec[ix];
@@ -534,7 +532,7 @@ static void sandwich(omxFitFunction *oo, FitContext *fc)
 
 	ba81sandwichOp op(numThreads, estate, numParam, state, itemParam, abScale);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers();
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -659,14 +657,14 @@ struct ba81gradCovOp {
 		int pick = dataColumns[ix][rowMap[px(thrId)]];
 		if (pick == NA_INTEGER) return;
 		expected.col(thrId).setZero();
-		expected(pick-1, thrId) = weight;
+		expected(pick, thrId) = weight;
 		const double *spec1 = spec[ix];
 		double *iparam = omxMatrixColumn(itemParam, ix);
 		const int id = spec1[RPF_ISpecID];
 		double *myDeriv = &ideriv.coeffRef(ix * itemDerivPadSize, thrId);
 		(*Glibrpf_model[id].dLL1)(spec1, iparam, abscissa.derived().data(),
 					  &expected.coeffRef(0, thrId), myDeriv);
-	};
+	}
 
 	void endQuadPoint(int thrId) {};
 };
@@ -710,7 +708,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 			 estate, state->itemDerivPadSize, itemParam,
 			 numThreads, itemDerivSize);
 
-	quad.allocBuffers(numThreads);
+	quad.allocBuffers();
 
 #pragma omp parallel for num_threads(numThreads)
 	for (int px=0; px < numUnique; px++) {
@@ -781,7 +779,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		}
 	}
 	for (size_t d1=0; d1 < numParam; ++d1) {
-		fc->grad(d1) += thrGrad[d1];
+		fc->gradZ(d1) += thrGrad[d1];
 	}
 	if (fc->infoB) {
 		for (size_t d1=0; d1 < numParam; ++d1) {
@@ -798,6 +796,7 @@ void BA81FitState::compute(int want, FitContext *fc)
 	auto *oo = this;
 	BA81FitState *state = (BA81FitState*) this;
 	BA81Expect *estate = (BA81Expect*) oo->expectation;
+
 	if (fc) state->numFreeParam = fc->varGroup->vars.size();
 
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_FINAL_FIT)) return;
@@ -935,7 +934,6 @@ void BA81FitState::init()
 			       name());
 	}
 
-	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 
 	int maxParam = estate->itemParam->rows;

@@ -1,4 +1,6 @@
-library(mice)
+# library(mice)
+# install.packages("Amelia")
+library(Amelia)
 
 # 1. make a variable with missingness
 demoOneFactor$x = demoOneFactor$x2
@@ -17,10 +19,17 @@ m1 = umxRun(m1, setLabels = T, setValues = T)
 summary(m1)$parameters
 
 # 3. impute some data and mouse it
-imp <- mice(demoOneFactor, m = 5)
+
+# imp = mice(demoOneFactor, m = 5)
+imp = amelia(demoOneFactor, m = 5)
+
+for (i in seq) {
+	imp$imputations$imp1
+}
+
 m2 = with(data= imp, expr = m1)
 
-summary(pool(m2))
+summary(m2)$parameters
 # Error: No glance method for objects of class MxRAMModel
 
 # This error is not desirable :-)

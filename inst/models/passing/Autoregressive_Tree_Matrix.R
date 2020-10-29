@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 # This is not really flexible enough to model a pedigree
 # because it is not easy to set the initial conditions.
 
+suppressWarnings(RNGversion("3.5"))
 set.seed(1)
 
 maleEffect <- 13 #cm

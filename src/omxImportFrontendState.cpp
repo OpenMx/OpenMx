@@ -43,7 +43,7 @@ void omxState::omxProcessMxDataEntities(SEXP data, SEXP defvars)
 	int numDefs = Rf_length(defvars);
 	for(int nextDef = 0; nextDef < numDefs; nextDef++) {
 		omxDefinitionVar dvar;
-		
+
 		SEXP itemList;
 		ScopedProtect p1(itemList, VECTOR_ELT(defvars, nextDef));
 		int *ilist = INTEGER(itemList);
@@ -73,7 +73,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 	matrixList.clear();
 	ProtectedSEXP matListNames(Rf_getAttrib(matList, R_NamesSymbol));
 
-	AssertProtectStackBalanced apsb(__FUNCTION__, *Global->mpi);
+	AssertProtectStackBalanced apsb(__FUNCTION__);
 
 	for(int index = 0; index < Rf_length(matList); index++) {
 		ProtectedSEXP nextLoc(VECTOR_ELT(matList, index));		// This is the matrix + populations
@@ -91,7 +91,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 {
 	ProtectedSEXP algListNames(Rf_getAttrib(algList, R_NamesSymbol));
-	AssertProtectStackBalanced apsb(__FUNCTION__, *Global->mpi);
+	AssertProtectStackBalanced apsb(__FUNCTION__);
 
 	if(OMX_DEBUG) { mxLog("Processing %d algebras.", Rf_length(algList)); }
 
@@ -156,13 +156,11 @@ void omxState::omxProcessMxExpectationEntities(SEXP expList)
 {
 	if(OMX_DEBUG) { mxLog("Initializing %d Model Expectation(s).", Rf_length(expList));}
 	SEXP nextExp;
-	SEXP eNames = Rf_getAttrib(expList, R_NamesSymbol);
 
 	for(int index = 0; index < Rf_length(expList); index++) {
 		if (isErrorRaised()) return;
 		Rf_protect(nextExp = VECTOR_ELT(expList, index));
 		omxExpectation *ex = omxNewIncompleteExpectation(nextExp, index, this);
-		ex->name = CHAR(STRING_ELT(eNames, index));
 		expectationList.push_back(ex);
 	}
 }
@@ -171,7 +169,7 @@ void omxState::omxProcessMxExpectationEntities(SEXP expList)
 void omxState::omxCompleteMxExpectationEntities()
 {
 	if(OMX_DEBUG) { mxLog("Completing %d Model Expectation(s).", (int) expectationList.size());}
-	
+
 	for(size_t index = 0; index < expectationList.size(); index++) {
 		if (isErrorRaised()) return;
 		omxCompleteExpectation(expectationList[index]);
@@ -188,8 +186,12 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 	compute->initFromFrontend(currentState, rObj);
 	computeList.push_back(compute);
 
-	if (Global->computeLoopContext.size())
-		mxThrow("computeLoopContext imbalance in initFromFrontend");
+	if (Global->computeLoopContext.size()) {
+		mxThrow("computeLoopContext imbalance of %d in initFromFrontend",
+			int(Global->computeLoopContext.size()));
+	}
+
+	Global->checkpointValues.resize(Global->checkpointColnames.size());
 }
 
 // This is called at initialization and when we copy
@@ -222,25 +224,22 @@ void omxState::omxInitialMatrixAlgebraCompute(FitContext *fc)
 		}
 	}
 
-	// We use FF_COMPUTE_INITIAL_FIT because an expectation
-	// could depend on the value of an algebra. However, we
-	// don't mark anything clean because an algebra could
-	// depend on an expectation (via a fit function).
-
 	size_t numMats = matrixList.size();
 	int numAlgs = algebraList.size();
 
 	if(OMX_DEBUG) mxLog("omxInitialMatrixAlgebraCompute(state[%d], ...)", getId());
 
-	setWantStage(FF_COMPUTE_INITIAL_FIT);
-
-	// Need something finite for definition variables to avoid exceptions
-
 	for (int ex = 0; ex < (int) dataList.size(); ++ex) {
+		auto *d1 = dataList[ex];
+
+		if (fc->childList.size()==0) {
+			d1->evalAlgebras(fc);
+		}
+
 		// It is necessary to load some number (like 1) instead
 		// of NAs because algebra can use definition variables
 		// for indexing. We will load real data later.
-		dataList[ex]->loadFakeData(this, 1);
+		d1->loadFakeData(this, 1);
 	}
 
 	for(size_t index = 0; index < numMats; index++) {
@@ -313,7 +312,7 @@ void omxProcessCheckpointOptions(SEXP checkpointList)
 
 void omxState::omxProcessFreeVarList(SEXP varList)
 {
-	AssertProtectStackBalanced apsb(__FUNCTION__, *Global->mpi);
+	AssertProtectStackBalanced apsb(__FUNCTION__);
 	if(OMX_DEBUG) { mxLog("Processing Free Parameters."); }
 
 	int numVars = Rf_length(varList);
@@ -448,9 +447,5 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		constr->prep(fc);
 		conListX.push_back(constr);
 	}
-	if(OMX_DEBUG) {
-		int equality, inequality;
-		countNonlinearConstraints(equality, inequality, false);
-		mxLog("Found %d equality and %d inequality constraints", equality, inequality);
-	}
+	if(OMX_DEBUG){mxLog("Found %d equality and %d inequality constraints", numEqC, numIneqC);}
 }

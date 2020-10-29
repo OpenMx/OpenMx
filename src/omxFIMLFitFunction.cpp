@@ -14,13 +14,13 @@
  *  limitations under the License.
  */
 
+#include <limits>
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
 #include "omxData.h"
 #include <Eigen/Cholesky>
-#include "EnableWarnings.h"
 #include "omxFIMLFitFunction.h"
-#include <limits>
+#include "EnableWarnings.h"
 
 nanotime_t omxFIMLFitFunction::getMedianElapsedTime()
 {
@@ -85,7 +85,7 @@ bool condOrdByRow::eval()
 	}
 
 	while(row < lastrow) {
-		if (!loadRow()) return true;
+		loadRow();
 		double iqf = NA_REAL;
 		double residSize = NA_REAL;
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
@@ -114,7 +114,6 @@ bool condOrdByRow::eval()
 				bool firstContinuous = prevRowContinuous == 0;
 				if (!parent->ordinalSame[row] || firstContinuous) {
 					std::vector< omxThresholdColumn > &colInfo = expectation->getThresholdInfo();
-					EigenMatrixAdaptor tMat(thresholdsMat);
 					VectorXd uThresh(rowOrdinal);
 					VectorXd lThresh(rowOrdinal);
 					for(int jj=0; jj < rowOrdinal; jj++) {
@@ -123,23 +122,29 @@ bool condOrdByRow::eval()
 						if (OMX_DEBUG && !omxDataColumnIsFactor(data, var)) {
 							mxThrow("Must be a factor");
 						}
-						int pick = omxIntDataElement(data, sortedRow, var) - 1;
+						int pick = omxIntDataElement(data, sortedRow, var);
 						if (OMX_DEBUG && (pick < 0 || pick > colInfo[col].numThresholds)) {
 							mxThrow("Out of range");
 						}
-						int tcol = colInfo[col].column;
+            if (!std::isfinite(ordMean[jj])) { reportBadOrdLik(3); return true; }
 						if (pick == 0) {
 							lThresh[jj] = -std::numeric_limits<double>::infinity();
-							uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
+							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
+              if (!std::isfinite(uThresh[jj])) { reportBadOrdLik(4); return true; }
 						} else if (pick == colInfo[col].numThresholds) {
-							lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
+							lThresh[jj] = (expectation->getThreshold(pick-1, col) - ordMean[jj]);
+              if (!std::isfinite(lThresh[jj])) { reportBadOrdLik(5); return true; }
 							uThresh[jj] = std::numeric_limits<double>::infinity();
 						} else {
-							lThresh[jj] = (tMat(pick-1, tcol) - ordMean[jj]);
-							uThresh[jj] = (tMat(pick, tcol) - ordMean[jj]);
+							lThresh[jj] = (expectation->getThreshold(pick-1, col) - ordMean[jj]);
+              if (!std::isfinite(lThresh[jj])) { reportBadOrdLik(5); return true; }
+							uThresh[jj] = (expectation->getThreshold(pick, col) - ordMean[jj]);
+              if (!std::isfinite(uThresh[jj])) { reportBadOrdLik(4); return true; }
 						}
 					}
-
+          if ((lThresh.array() >= uThresh.array()).any()) {
+            reportBadOrdLik(6); return true;
+          }
 					if (ordLik == 0.0 ||
 					    !_mtmvnorm(fc, ordLik, ordCov, lThresh, uThresh, xi, U11)) {
 						reportBadOrdLik(1);
@@ -201,7 +206,7 @@ bool condOrdByRow::eval()
 			    ssx < (int)parent->sufficientSets.size()) {
 				INCR_COUNTER(contDensity);
 				sufficientSet &ss = parent->sufficientSets[ssx++];
-				if (ss.start != row) mxThrow("oops");
+				if (ss.start != row) OOPS;
 				if (ordLik == 0.0) {
 					record(-std::numeric_limits<double>::infinity(), ss.length);
 					continue;
@@ -214,7 +219,7 @@ bool condOrdByRow::eval()
 				//mxPrintMat("resid", resid);
 				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double tr1 = trace_prod(iV, ss.dataCov);
-				double logDet = covDecomp.log_determinant();
+				double logDet = 2.0 * covDecomp.log_determinant();
 				double cterm = M_LN_2PI * residSize;
 				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
 				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
@@ -228,7 +233,7 @@ bool condOrdByRow::eval()
 			residSize = resid.size();
 			iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 			double cterm = M_LN_2PI * residSize;
-			double logDet = covDecomp.log_determinant();
+			double logDet = 2.0 * covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLogLik = -0.5 * (iqf + cterm + logDet);
 			if (!std::isfinite(contLogLik)) reportBadContRow(cData, resid, contCov);
@@ -260,7 +265,7 @@ bool condContByRow::eval()
 	bool ordConditioned = false;
 
 	while(row < lastrow) {
-		if (!loadRow()) return true;
+		loadRow();
 		Map< VectorXd > cData(cDataBuf.data(), rowContinuous);
 		Map< VectorXi > iData(iDataBuf.data(), rowOrdinal);
 		EigenVectorAdaptor jointMeans(ofo->means);
@@ -321,10 +326,10 @@ bool condContByRow::eval()
 				covDecomp.refreshInverse();
 			}
 		}
-		
+
 		double iqf = NA_REAL;
 		double residSize = NA_REAL;
-		
+
 		if (rowContinuous) {
 			if (!parent->continuousSame[row] || firstRow) {
 				INCR_COUNTER(contDensity);
@@ -333,7 +338,7 @@ bool condContByRow::eval()
 				const Eigen::MatrixXd &iV = covDecomp.getInverse();
 				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
 				double cterm = M_LN_2PI * residSize;
-				double logDet = covDecomp.log_determinant();
+				double logDet = 2.0 * covDecomp.log_determinant();
 				contLogLik = -0.5 * (iqf + cterm + logDet);
 				if (!std::isfinite(contLogLik)) {
 					reportBadContRow(cData, resid, contCov);
@@ -392,11 +397,11 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 	omxFIMLFitFunction *argStruct = this;
 	SEXP expCovExt, expMeanExt, rowLikelihoodsExt, rowObsExt, rowDistExt;
 	omxMatrix *expCovInt, *expMeanInt;
-	
+
 	omxExpectationCompute(NULL, off->expectation, NULL);
 	expCovInt = argStruct->cov;
 	expMeanInt = argStruct->means;
-	
+
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
 	for(int row = 0; row < expCovInt->rows; row++)
 		for(int col = 0; col < expCovInt->cols; col++)
@@ -409,12 +414,12 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 				REAL(expMeanExt)[col * expMeanInt->rows + row] =
 					omxMatrixElement(expMeanInt, row, col);
 	} else {
-		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));		
+		Rf_protect(expMeanExt = Rf_allocMatrix(REALSXP, 0, 0));
 	}
-	
+
 	Rf_setAttrib(algebra, Rf_install("expCov"), expCovExt);
 	Rf_setAttrib(algebra, Rf_install("expMean"), expMeanExt);
-	
+
 	if(argStruct->populateRowDiagnostics){
 		omxMatrix *rowLikelihoodsInt = argStruct->rowLikelihoods;
 		omxMatrix *otherRowwiseValuesInt = argStruct->otherRowwiseValues;
@@ -430,14 +435,14 @@ void omxFIMLFitFunction::populateAttr(SEXP algebra)
 		Rf_setAttrib(algebra, Rf_install("rowDist"), rowDistExt);
 		Rf_setAttrib(algebra, Rf_install("rowObs"), rowObsExt);
 	}
-	
+
 	const char *jointLabels[] = {
 		"auto", "continuous", "ordinal", "old"
 	};
 	Rf_setAttrib(algebra, Rf_install("jointConditionOn"),
 		     makeFactor(Rf_ScalarInteger(1+argStruct->jointStrat),
 				OMX_STATIC_ARRAY_SIZE(jointLabels), jointLabels));
-	
+
 	if (OMX_DEBUG_FIML_STATS) {
 		MxRList count;
 		count.add("expectation", Rf_ScalarInteger(argStruct->expectationComputeCount));
@@ -614,7 +619,7 @@ static void loadSufficientSet(omxFitFunction *off, int from, sufficientSet &ss)
 			int col = dc[cx];
 			bool lm = omxDataElementMissing(data, sortedRow, col);
 			if (lm) continue;
-			if (dx >= perRow) mxThrow("oops");
+			if (dx >= perRow) OOPS;
 			dvec[row * perRow + dx] = omxDoubleDataElement(data, sortedRow, col);
 			dx += 1;
 		}
@@ -627,7 +632,9 @@ static void addSufficientSet(omxFitFunction *off, int from, int to)
 {
 	omxFIMLFitFunction* ofiml = ((omxFIMLFitFunction*)off);
 	if (!ofiml->useSufficientSets) return;
-	//mxLog("ss from %d to %d length %d", from, to, 1 + to - from);
+	if (ofiml->verbose >= 2) {
+    mxLog("%s: addSufficientSet from %d to %d length %d", off->name(), from, to, 1 + to - from);
+  }
 	omxData *data = ofiml->data;
 	double *rowWeight = data->getWeightColumn();
 	if (rowWeight) return; // too complex, for now
@@ -679,8 +686,8 @@ static void sortData(omxFitFunction *off)
 	cmp.ordinalFirst = ofiml->jointStrat == JOINT_CONDORD;
 
 	if (data->needSort) {
-		if (ofiml->verbose >= 1) mxLog("sort %s strategy %d for %s",
-					       data->name, ofiml->jointStrat, off->name());
+		if (ofiml->verbose >= 1) mxLog("%s: sort %s strategy %d for %s",
+                                   ofiml->name(), data->name, ofiml->jointStrat, off->name());
 		// Maybe already sorted by JOINT_AUTO, but not a big waste to resort
 		std::sort(indexVector.begin(), indexVector.end(), cmp);
 		//data->omxPrintData("sorted", 1000, indexVector.data());
@@ -751,6 +758,7 @@ static void sortData(omxFitFunction *off)
 static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml)
 {
+  if (parent->verbose >= 4) mxLog("%s: jointStrat %d", ofiml->name(), ofiml->jointStrat);
 	switch (ofiml->jointStrat) {
 	case JOINT_CONDORD:{
 		condOrdByRow batch(_fc, _localobj, parent, ofiml);
@@ -761,7 +769,7 @@ static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
 		condContByRow batch(_fc, _localobj, parent, ofiml);
 		return batch.eval();
 	}
-	default: mxThrow("oops");
+	default: OOPS;
 	}
 }
 
@@ -824,7 +832,7 @@ void omxFIMLFitFunction::invalidateCache()
 	openmpUser = false;
 
 	rowCount = std::numeric_limits<decltype(rowCount)>::max();
-	omxResizeMatrix(rowLikelihoods, data->rows, 1);
+	omxResizeMatrix(rowLikelihoods, data->nrows(), 1);
 }
 
 void omxFIMLFitFunction::compute(int want, FitContext *fc)
@@ -835,14 +843,17 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
 
 	if (!builtCache) {
-		if (fc->isClone()) {
-			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
-			ofiml->parent = (omxFIMLFitFunction*) pfitMat->fitFunction;
-			ofiml->elapsed.resize(ELAPSED_HISTORY_SIZE);
-			ofiml->curElapsed = NA_INTEGER;
-		} else {
-			off->openmpUser = ofiml->rowwiseParallel != 0;
+    if (!fc->isClone()) {
 			if (!indexVector.size()) sortData(off);
+			openmpUser = rowwiseParallel && fc->permitParallel;
+      diagParallel(OMX_DEBUG, "%s: openmpUser = %d", name(), openmpUser);
+    } else {
+			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
+      auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
+      if (!pff->openmpUser) OOPS;
+      parent = pff;
+      elapsed.resize(ELAPSED_HISTORY_SIZE);
+      curElapsed = NA_INTEGER;
 		}
 		builtCache = true;
 	}
@@ -864,6 +875,8 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		complainAboutMissingMeans(expectation);
 		return;
 	}
+
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
 
 	bool failed = false;
 
@@ -889,7 +902,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	nanotime_t startTime = 0;
 	if (ofiml->verbose >= 3) {
 		startTime = get_nanotime();
-		mxLog("%s eval with par=%d", off->name(), myParent->curParallelism);
+		mxLog("%s: start eval with %d threads", off->name(), myParent->curParallelism);
 	}
 
 	ofiml->skippedRows = 0;
@@ -898,7 +911,7 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 	if (myParent->curParallelism > 1) {
 		if (OMX_DEBUG) {
 			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, 0);
-			if (!ofo->parent) mxThrow("oops");
+			if (!ofo->parent) OOPS;
 		}
 
 		for (int tx=0; tx < myParent->curParallelism; ++tx) {
@@ -910,7 +923,13 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			FitContext *kid = fc->childList[i];
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
-			failed |= dispatchByRow(kid, childFit, myParent, ofiml);
+			try {
+				failed |= dispatchByRow(kid, childFit, myParent, ofiml);
+			} catch (const std::exception& e) {
+				omxRaiseErrorf("%s", e.what());
+			} catch (...) {
+				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+			}
 		}
 		for (int tx = 0; tx < myParent->curParallelism; tx++) {
 			omxFIMLFitFunction *ofo = getChildFIMLObj(fc, fitMatrix, tx);
@@ -951,7 +970,9 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		failed |= dispatchByRow(fc, off, myParent, ofiml);
 	}
 
-	if (ofiml->verbose >= 3) mxLog("%s done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
+	if (ofiml->verbose >= 3) {
+    mxLog("%s: done in %.2fms", off->name(), (get_nanotime() - startTime)/1000000.0);
+  }
 
 	if (!returnVector && ofiml->skippedRows == rows) {
 		// all rows skipped
@@ -1003,6 +1024,15 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 			mxLog("reducing number of threads to %d", myParent->curParallelism);
 		}
 	}
+	if (openmpUser && !fc->isClone() && want & FF_COMPUTE_BESTFIT) {
+    if (curParallelism == 1) {
+      diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads; "
+                   "recommend rowwiseParallel=FALSE",
+                   name(), curParallelism);
+    } else {
+      diagParallel(OMX_DEBUG, "%s: rowwiseParallel used %d threads", name(), curParallelism);
+    }
+  }
 }
 
 omxFitFunction *omxInitFIMLFitFunction()
@@ -1010,7 +1040,6 @@ omxFitFunction *omxInitFIMLFitFunction()
 
 void omxFIMLFitFunction::init()
 {
-	builtCache = false;
 	auto *off = this;
 	auto *newObj = this;
 
@@ -1038,14 +1067,14 @@ void omxFIMLFitFunction::init()
 	newObj->wantRowLikelihoods = false;
 
 	cov = omxGetExpectationComponent(expectation, "cov");
-	if(cov == NULL) { 
+	if(cov == NULL) {
 		omxRaiseErrorf("%s: covariance not found in expectation '%s'",
 			       name(), expectation->name);
 		return;
 	}
 
 	means = omxGetExpectationComponent(expectation, "means");
-	
+
     newObj->smallMeans = NULL;
     newObj->ordMeans   = NULL;
     newObj->contRow    = NULL;
@@ -1053,18 +1082,16 @@ void omxFIMLFitFunction::init()
     newObj->ordContCov = NULL;
     newObj->halfCov    = NULL;
     newObj->reduceCov  = NULL;
-    
+
 	if(OMX_DEBUG) {
 		mxLog("Accessing data source.");
 	}
 	newObj->data = off->expectation->data;
 	newObj->rowBegin = 0;
-	newObj->rowCount = std::numeric_limits<decltype(rowCount)>::max();
 
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood option.");
 	}
-	newObj->rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
 
 	{
 		ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
@@ -1085,10 +1112,11 @@ void omxFIMLFitFunction::init()
 	units = returnVector? FIT_UNITS_PROBABILITY : FIT_UNITS_MINUS2LL;
 	if (returnVector) wantRowLikelihoods = true;
 
-	newObj->rowLikelihoods = omxInitMatrix(newObj->data->rows, 1, TRUE, off->matrix->currentState);
-	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->rows, 2, TRUE, off->matrix->currentState);
-	
-	
+	newObj->rowLikelihoods = omxInitMatrix(newObj->data->nrows(), 1, off->matrix->currentState);
+	newObj->otherRowwiseValues = omxInitMatrix(newObj->data->nrows(), 2, off->matrix->currentState);
+
+  invalidateCache();
+
 	if(OMX_DEBUG) {
 		mxLog("Accessing row likelihood population option.");
 	}
@@ -1117,6 +1145,13 @@ void omxFIMLFitFunction::init()
 		else numContinuous += 1;
 	}
 
+	rowwiseParallel = Rf_asLogical(R_do_slot(rObj, Rf_install("rowwiseParallel")));
+  if (rowwiseParallel == NA_INTEGER) {
+    rowwiseParallel = numOrdinal >= 10;
+		if (verbose >= 1) {
+			mxLog("%s: set rowwiseParallel=%d", name(), rowwiseParallel);
+		}
+  }
 	if (newObj->jointStrat == JOINT_AUTO && 0 == numOrdinal) {
 		newObj->jointStrat = JOINT_CONDORD;
 	}
@@ -1150,10 +1185,5 @@ void omxFIMLFitFunction::init()
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         omxCopyMatrix(newObj->ordContCov, newObj->cov);
-
-	if (!expectation->thresholdsMat) {
-		omxRaiseErrorf("%s: ordinal data found in %d columns but no thresholds",
-			 expectation->name, numOrdinal);
-	}
     }
 }

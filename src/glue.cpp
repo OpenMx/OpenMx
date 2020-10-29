@@ -20,8 +20,6 @@
 
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h>
-#include <R_ext/BLAS.h>
-#include <R_ext/Lapack.h>
 
 #include "glue.h"
 #include "omxState.h"
@@ -73,7 +71,13 @@ void markAsDataFrame(SEXP list, int rows)
 
 SEXP makeFactor(SEXP vec, int levels, const char **labels)
 {
+	bool debug = false;
 	Rf_protect(vec);
+	if (debug) {
+		int len = Rf_length(vec);
+		int *data = INTEGER(vec);
+		for (int xx=0; xx < len; ++xx) data[xx] = 1;
+	}
 
 	SEXP classes;
 	Rf_protect(classes = Rf_allocVector(STRSXP, 1));
@@ -210,7 +214,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	return result.asR();
 }
 
-void omxSadmvnWrapper(FitContext *fc, int numVars, 
+void omxSadmvnWrapper(FitContext *fc, int numVars,
 	double *corList, double *lThresh, double *uThresh, int *Infin, double *likelihood, int *inform)
 {
 	// Eigen::Map< Eigen::ArrayXd > elt(lThresh, numVars);
@@ -227,9 +231,9 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
    	//	Infin	int*		Array of flags: 0 = (-Inf, upper] 1 = [lower, Inf), 2 = [lower, upper]
    	//	Correl	double*		Array of correlation coeffs: in row-major lower triangular order
    	//	MaxPts	int			Maximum # of function values (use 1000*N or 1000*N*N)
-   	//	Abseps	double		Absolute mxThrow tolerance.  Yick.
-   	//	Releps	double		Relative mxThrow tolerance.  Use EPSILON.
-   	//	Error	&double		On return: absolute real mxThrow, 99% confidence
+   	//	Abseps	double		Absolute stop tolerance.  Yick.
+   	//	Releps	double		Relative stop tolerance.  Use EPSILON.
+   	//	Error	&double		On return: absolute real stop, 99% confidence
    	//	Value	&double		On return: evaluated value
    	//	Inform	&int		On return: 0 = OK; 1 = Rerun, increase MaxPts; 2 = Bad input
    	double Error;
@@ -246,7 +250,7 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
    	uThresh[1] = 0;
    	Infin[1] = 0;
    	smallCor[0] = 1.0; smallCor[1] = 0; smallCor[2] = 1.0; */
-   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts, 
+   	F77_CALL(sadmvn)(&numVars, lThresh, uThresh, Infin, corList, &MaxPts,
 		&absEps, &relEps, &Error, likelihood, inform, &fortranThreadId);
 
 	if (fc) fc->recordOrdinalRelativeError(Error / *likelihood);
@@ -269,7 +273,7 @@ void omxSadmvnWrapper(FitContext *fc, int numVars,
 			// mxLog("");
 		}
 	}
-} 
+}
 
 static SEXP has_NPSOL()
 { return Rf_ScalarLogical(HAS_NPSOL); }
@@ -293,6 +297,13 @@ static int untitledCounter = 0;
 
 static SEXP untitledNumberReset() {
 	untitledCounter = 0;
+	return Rf_ScalarLogical(1);
+}
+
+static SEXP loadedHook() {
+	void ComputeLoadDataLoadedHook();
+	untitledCounter = 0;
+	ComputeLoadDataLoadedHook();
 	return Rf_ScalarLogical(1);
 }
 
@@ -363,7 +374,7 @@ void friendlyStringToLogical(const char *key, SEXP rawValue, int *out)
 }
 
 // TODO: make member of omxGlobal class
-static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
+static void readOpts(SEXP options)
 {
 		int numOptions = Rf_length(options);
 		SEXP optionNames;
@@ -373,18 +384,29 @@ static void readOpts(SEXP options, int *numThreads, int *analyticGradients)
 			SEXP rawValue = VECTOR_ELT(options, i);
 			const char *nextOptionValue = CHAR(Rf_asChar(rawValue));
 			if(matchCaseInsensitive(nextOptionName, "Analytic Gradients")) {
-				friendlyStringToLogical(nextOptionName, rawValue, analyticGradients);
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->analyticGradients);
 			} else if(matchCaseInsensitive(nextOptionName, "loglikelihoodScale")) {
 				Global->llScale = atof(nextOptionValue);
 			} else if(matchCaseInsensitive(nextOptionName, "debug protect stack")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->debugProtectStack);
 			} else if(matchCaseInsensitive(nextOptionName, "Number of Threads")) {
 #ifdef _OPENMP
-				*numThreads = atoi(nextOptionValue);
-				if (*numThreads < 1) {
-					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", *numThreads);
-					*numThreads = 1;
+				int nt = atoi(nextOptionValue);
+				if (nt < 1) {
+					Rf_warning("Computation will be too slow with %d threads; using 1 thread instead", nt);
+					nt = 1;
 				}
+				char *ont = getenv("OMP_NUM_THREADS");
+				if (ont && nt > atoi(ont)) {
+					mxThrow("I'm confused! %d threads requested. "
+									"Either request fewer threads in the mxOption() "
+									"statement, or submit your batch job with OMP_NUM_THREADS "
+									"environment varible set to %d (instead of %s).  This env variable may be "
+									"controlled by PBS’s -ncpus argument, "
+									"or similar on other batch systems.",
+									nt, nt, ont);
+				}
+        Global->numThreads = nt;
 #endif
 			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->parallelDiag);
@@ -452,7 +474,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 
 	omxState *globalState = new omxState;
 
-	readOpts(options, &Global->numThreads, &Global->analyticGradients);
+	readOpts(options);
 
 	/* Retrieve All Matrices From the MatList */
 
@@ -522,8 +544,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 {
 	/* Sanity Check and Parse Inputs */
 	/* TODO: Need to find a way to account for nullness in these.  For now, all checking is done on the front-end. */
-//	if(!isVector(matList)) mxThrow ("matList must be a list");
-//	if(!isVector(algList)) mxThrow ("algList must be a list");
+//	if(!isVector(matList)) stop ("matList must be a list");
+//	if(!isVector(algList)) stop ("algList must be a list");
 
 	ProtectAutoBalanceDoodad protectManager;
 
@@ -535,14 +557,14 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	/* Create new omxState for current state storage and initialize it. */
 	omxState *globalState = new omxState;
 
-	readOpts(options, &Global->numThreads, &Global->analyticGradients);
+	readOpts(options);
 #if HAS_NPSOL
 	omxSetNPSOLOpts(options);
 #endif
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxDataEntities(data, defvars);
-    
+
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	globalState->omxProcessMxExpectationEntities(expectList);
 
@@ -617,6 +639,11 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		mxThrow("Protection stack too large; report this problem to the OpenMx forum");
 	}
 
+	if (globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT) {
+		mxThrow("globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT");
+	}
+	globalState->setWantStage(FF_COMPUTE_FIT);
+
 	if (topCompute && !isErrorRaised()) {
 		topCompute->compute(fc);
 		if (Global->computeLoopContext.size() != 0) mxThrow("computeLoopContext imbalance");
@@ -645,7 +672,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	MxRList result;
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	globalState->omxExportResults(&result, fc);
+	if (!isErrorRaisedIgnTime()) globalState->omxExportResults(&result, fc);
 
 	if (topCompute && !isErrorRaisedIgnTime()) {
 		LocalComputeResult cResult;
@@ -670,8 +697,10 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 				Rf_protect(units = Rf_allocVector(STRSXP, 1));
 				SET_STRING_ELT(units, 0, Rf_mkChar(fitUnitsToName(fc->fitUnits)));
 				result.add("fitUnits", units);
+				if(fc->fitUnits == FIT_UNITS_MINUS2LL){
+					result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
+				}
 			}
-			result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
 			result.add("maxRelativeOrdinalError",
 				   Rf_ScalarReal(fc->getOrdinalRelativeError()));
 		}
@@ -682,10 +711,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
 		int numFree = int(varGroup->vars.size());
 		if (numFree) {
-			SEXP estimate;
-			Rf_protect(estimate = Rf_allocVector(REALSXP, numFree));
-			memcpy(REAL(estimate), fc->est, sizeof(double)*numFree);
-			result.add("estimate", estimate);
+			result.add("estimate", Rcpp::wrap(fc->est));
 
 			if (Global->boundsUpdated) {
 				MxRList bret;
@@ -713,7 +739,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	backwardCompatStatus.add("code", Rf_ScalarInteger(fc->getInform()));
 	backwardCompatStatus.add("status", Rf_ScalarInteger(-isErrorRaisedIgnTime()));
 
-	if (isErrorRaisedIgnTime()) {
+	if (Global->getBads()) {
 		SEXP msg;
 		Rf_protect(msg = Rf_allocVector(STRSXP, 1));
 		SET_STRING_ELT(msg, 0, Rf_mkChar(Global->getBads()));
@@ -766,8 +792,6 @@ static SEXP testEigenDebug()
 	return Rf_ScalarLogical(false);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
 static R_CallMethodDef callMethods[] = {
 	{"backend", (DL_FUNC) omxBackend, 12},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
@@ -785,9 +809,9 @@ static R_CallMethodDef callMethods[] = {
 	{".dtmvnorm.marginal2", (DL_FUNC) dtmvnorm_marginal2, 7},
 	{".mtmvnorm", (DL_FUNC) mtmvnorm, 3},
 	{".enableMxLog", (DL_FUNC) &enableMxLog, 0},
+	{".OpenMxLoaded", (DL_FUNC) &loadedHook, 0},
 	{NULL, NULL, 0}
 };
-#pragma GCC diagnostic pop
 
 #ifdef  __cplusplus
 extern "C" {
@@ -796,6 +820,7 @@ extern "C" {
 void R_init_OpenMx(DllInfo *info) {
 	R_registerRoutines(info, NULL, callMethods, NULL, NULL);
 	R_useDynamicSymbols(info, FALSE);
+	R_RegisterCCallable("OpenMx", "AddLoadDataProvider", (DL_FUNC) AddLoadDataProvider);
 	R_forceSymbols(info, TRUE);
 
 	// There is no code that will change behavior whether openmp
@@ -813,4 +838,3 @@ void R_unload_OpenMx(DllInfo *) {
 #ifdef  __cplusplus
 }
 #endif
-

@@ -51,7 +51,7 @@
 	# VII - Plug values matrix from named model back in to original model
 
 
-setClass("PPMLSolveType", 
+setClass("PPMLSolveType",
 	representation(
 		result = "character",
 		isMultiLayer = "logical",
@@ -62,7 +62,7 @@ setClass("PPMLSolveType",
 		hasMissingness = "logical",
 		hasNoLatentCovariances = "logical",
 		latentCovNotSaturated = "logical",
-		hasFixedExpectedLatentMean = "logical", 
+		hasFixedExpectedLatentMean = "logical",
 		manifestVars = "vector",
 		latentVars = "vector",
 		fakeLatents = "vector"
@@ -87,7 +87,7 @@ setClass("PPMLSolveType",
 ##' imxPPML
 ##'
 ##' Potentially enable the PPML optimization for the given model.
-##' 
+##'
 ##' @param model the MxModel to evaluate
 ##' @param flag whether to potentially enable PPML
 imxPPML <- function(model, flag=TRUE) {
@@ -102,6 +102,9 @@ imxPPML <- function(model, flag=TRUE) {
 	if(is.null(expectation) || !is(expectation, "MxExpectationRAM")) {
 		return(NA)
 	}
+  if (any(expectation$isProductNode)) {
+    stop("Cannot combine latent products and PPML")
+  }
 	if (flag) {
 		model@options$UsePPML <- "Yes"
 	} else {
@@ -139,9 +142,9 @@ PPMLTransformModel <- function(model.original) {
 	# Remove changes made to data by the mxRun function
 	if (!is.null(model.pretransformed$data@means))
 		model.pretransformed@data <- mxData(numObs=model.pretransformed@data@numObs, observed=model.pretransformed@data@observed, type=model.pretransformed@data@type, means=as.vector(model.pretransformed@data@means))
-		
 
-	
+
+
 	# Fold in fakelatents
 	if (length(solveType@fakeLatents))
 	{
@@ -159,12 +162,12 @@ PPMLTransformModel <- function(model.original) {
 				if (any(as.logical(Fmatrix@values[,i])))
 					manifestVars <- c(manifestVars, as.numeric(i))
 				else
-					latentVars <- c(latentVars, as.numeric(i))	
+					latentVars <- c(latentVars, as.numeric(i))
 			}
 			solveType@manifestVars <- manifestVars
 			solveType@latentVars <- latentVars
 		}
-	}	
+	}
 
 
 	model.noFakeLatents <- model.pretransformed
@@ -179,7 +182,7 @@ PPMLTransformModel <- function(model.original) {
 		model.original@options$UsePPML <- "Inapplicable"
 		return(model.original)
 	}
-	
+
 
 	# Fix NHEV
 	if (solveType@hasNHEV)
@@ -244,15 +247,15 @@ PPMLTransformModel <- function(model.original) {
 		results <- PPML.Post.UnfoldNHEV(results, model.noFakeLatents, solveType)
 	}
 
-	
+
 
 
 
 	# Extract parameters and reinsert to named model
 	params <- omxGetParameters(results)
 	model.named <- omxSetParameters(model.named, names(params), values=as.vector(params))
-	
-	
+
+
 	# Plug values matrix from named model back in to original model
 	model.original[[model.original$expectation@S]]@values <- model.named[[model.original$expectation@S]]@values
 	if (!single.na(model.original$expectation@M))
@@ -270,7 +273,7 @@ PPMLTransformModel <- function(model.original) {
 
 
 PPML.CheckApplicable <- function(model) {
-	solveType = new("PPMLSolveType")	
+	solveType = new("PPMLSolveType")
 
 
 	# Explicitly, don't use PPML -OR- no explicit instruction to use PPML and default is no
@@ -279,7 +282,7 @@ PPML.CheckApplicable <- function(model) {
 		#print("PPML abort: disabled")
 		return(NA)
 	}
- 
+
 	#is the model a RAM model?
 	# NOTE: This could be made redundant by implementing the transform call
 	# from the MxExpectationRAM function
@@ -302,13 +305,13 @@ PPML.CheckApplicable <- function(model) {
 		Mmatrix <- model[[Mname]]
 	}
 	constraints <- model@constraints
-	
+
 	# Matrices must be MxMatrices
 	if(!is(Amatrix, "MxMatrix") || !is(Smatrix, "MxMatrix") || !is(Fmatrix, "MxMatrix") || (!single.na(Mname) && !is(Mmatrix, "MxMatrix"))) {
 		#print("PPML abort: Matrices not MxMatrices")
 		return(NA)
 	}
-	
+
 	# Make sure data is present, and raw or covariance
 	if( !is.null(model$data) ) {
 		if ( !(model$data@type == "raw" || model$data@type == "cov") )  {
@@ -319,12 +322,12 @@ PPML.CheckApplicable <- function(model) {
 		#print("PPML abort: Model has no data")
 		return(NA)
 	}
-	
+
 	# Structure matrix must be fixed
 	# TODO: Optimization possible for cases where only part of the structure matrix is fixed
 	if(any(Amatrix@free)) {
 		#print("PPML abort: Structure matrix not fixed")
-		return(NA)	
+		return(NA)
 	}
 
 
@@ -384,28 +387,28 @@ PPML.CheckApplicable <- function(model) {
 		if (!all(Mmatrix@free[,realLatents]))
 			solveType@hasFixedExpectedLatentMean <- TRUE
 	}
-	
+
 	# DEVELOPMENT -- Some of these models should be transformable
 	# TODO: Multilayered models
 	if (length(nonRootLatents) > 0) {
 		solveType@isMultiLayer <- TRUE
 	}
-	
+
 	# (I-Lambda)^-1 -- Structure matrix must be invertible
 	# Check for multi-layered models
 	# PROFILING: Expensive
 #	if ( det( diag(dim(Amatrix@values)[[1]]) - Amatrix@values ) == 0 ) {
 #		return(NA)
 #	}
-	
+
 	# BASIC: Model must have manifestvars and latentvars and more manifests than latents
-	if (length(realLatents) == 0 || length(manifestVars) == 0 || 
+	if (length(realLatents) == 0 || length(manifestVars) == 0 ||
 		length(realLatents) >= length(manifestVars)) {
 		#print("PPML abort: Must have manifests, latents, and more manifests than latents")
 		return(NA)
 	}
-	
-	# DATA MISSINGNESS CHECK	
+
+	# DATA MISSINGNESS CHECK
 	if (model$data@type == "raw" && any(is.na(model$data@observed))) {
 		# Check missingness patterns: if none of the patterns have more manifests than latents,
 		# then PPML cannot be applied at all
@@ -413,10 +416,10 @@ PPML.CheckApplicable <- function(model) {
 			#print("PPML abort: No missingness patterns are transformable")
 			return(NA)
 		}
-		
+
 		# Might be solvable, but for now, split only
 		solveType@hasMissingness <- TRUE
-		#solveType <- "Split" 
+		#solveType <- "Split"
 	}
 
 	#  Partial Solve possible when all covariances between latents are fixed to zero but all
@@ -428,12 +431,12 @@ PPML.CheckApplicable <- function(model) {
 	#  There are no free covariances between the latents
 	hasNoFreeCovariances <- !any(Smatrix@free[realLatents, realLatents] & !diag(TRUE, length(realLatents), length(realLatents)) )
 	#  All latent covariances are (effectively) zero
-	allLatentCovsZero <- all( abs(Smatrix@values[realLatents, realLatents] - diag(diag(Smatrix@values[realLatents,realLatents]))) < .001 ) 
+	allLatentCovsZero <- all( abs(Smatrix@values[realLatents, realLatents] - diag(diag(Smatrix@values[realLatents,realLatents]))) < .001 )
 
 	if ( hasNoFreeCovariances && allLatentCovsZero ) {
 
 		if ( all(as.logical(diag(Smatrix@free[realLatents, realLatents]))) ) {
-			# All latent variances are free 
+			# All latent variances are free
 			#if (solveType != "Split") solveType <- "PartialSolve"
 			solveType@hasNoLatentCovariances <- TRUE
 		} else {
@@ -441,12 +444,12 @@ PPML.CheckApplicable <- function(model) {
 				#print("PPML abort: One or more latent variance is fixed")
 				#return(NA)
 				solveType@latentCovNotSaturated <- TRUE
-				
+
 		}
 
 	} else if ( !all(Smatrix@free[realLatents, realLatents]) ) {
 #		# If some less structured combination of variances and covariances of the latents
-#		# is fixed, probably not applicable 
+#		# is fixed, probably not applicable
 #		print("PPML abort: Inapplicable variance/covariance structure (Fixedness)")
 #		return(NA)
 		solveType@latentCovNotSaturated <- TRUE
@@ -471,11 +474,11 @@ PPML.CheckApplicable <- function(model) {
 		# Data missingness
 		solveType@result <- "MissingData"
 	}
-	
+
 	# Although not explicit in the code,
 	# solveType <- "Solve" happens implicitly when Smatrix@free[latentVars, latentVars] is all free
 	# (saturated covariance matrix)
-	
+
 	# BROKEN CASE: Covariance data + means, not analytical solution
 	# BLOCK THIS CASE
 	# Covariance data
@@ -485,7 +488,7 @@ PPML.CheckApplicable <- function(model) {
 		return(NA)
 
 	return(solveType)
-	
+
 }
 
 PPML.Check.UseOptimizer <- function(opt)
@@ -502,7 +505,7 @@ PPML.Pre.UpdateSolveType <- function(model, solveType)
 {
 	manifestVars <- solveType@manifestVars
 	latentVars <- solveType@latentVars
-	
+
 	# Extract RAM matrices
 	expectation <- model$expectation
 	Aname <- expectation@A
@@ -526,7 +529,7 @@ PPML.Pre.UpdateSolveType <- function(model, solveType)
 
 	# TODO: In NHEV cases, constraints that aren't part of the error covariance matrix -- can PPML
 	# be applied with any other constraint on the model, or will further constraints always break it?
-	
+
 	# Any free values off the diagonal in the manifest covariance matrix?
 	hasFreeValuesOffDiagonal <- any(as.logical( Smatrix@free[manifestVars,manifestVars] & !diag(rep(TRUE, length(manifestVars))) ) )
 
@@ -556,7 +559,7 @@ PPML.Pre.UpdateSolveType <- function(model, solveType)
 #			print("PPML abort: Unconstrained error variance")
 			return(NA)
 		}
-		
+
 		if (!hasMultipleDiagErrorLabels)
 		{
 			# Matrix diagonals are all equal
@@ -578,7 +581,7 @@ PPML.Pre.UpdateSolveType <- function(model, solveType)
 		# Second half of check happens after fakeLatents are folded in to model,
 		# Partway through the pretransform phase
 		# TODO: Maybe make a second parameter, maybeNHEV, for clarity?
-	} 
+	}
 	# Second case, diagonal matrix
 	else
 	{
@@ -588,7 +591,7 @@ PPML.Pre.UpdateSolveType <- function(model, solveType)
 			if (!hasConstraints)
 			{
 #				print("PPML abort: Constraints required on error matrix for NHEV transform")
-				return(NA)			
+				return(NA)
 			}
 			maybeNHEV <- TRUE
 		}
@@ -663,7 +666,7 @@ PPMLClassifyLatents <- function(Amatrix, Smatrix, latentVars) {
 	for(latentVar in latentVars){
 		# Get nonzero loadings from the asymmetric matrix
 		loads <- which(Amatrix@values[,latentVar] != 0)
-		
+
 		# Fake latents only load on to one manifest variable
 		if ( length(loads) == 1) {
 			# Load must have value 1
@@ -685,7 +688,7 @@ PPMLClassifyLatents <- function(Amatrix, Smatrix, latentVars) {
 				}
 			}
 		}
-		
+
 		# Check if it's a root latent - no loadings from other latents
 		inLoads = which(Amatrix@values[latentVar, latentVars] != 0)
 		if (length(inLoads) == 0) {
@@ -716,7 +719,7 @@ PPML.Pre.FakeLatents <- function(model, solveType)
 		Mmatrix <- model[[Mname]]
 	}
 
-	latentVars <- solveType@latentVars	
+	latentVars <- solveType@latentVars
 	manifestVars <- solveType@manifestVars
 	fakeLatents <- solveType@fakeLatents
 
@@ -727,13 +730,13 @@ PPML.Pre.FakeLatents <- function(model, solveType)
 
 		Smatrix@values[forWhich, forWhich] <- Smatrix@values[fakeLatent,fakeLatent] # Move starting value
 		Smatrix@free[forWhich, forWhich] <- TRUE # The manifest is now free
-		Smatrix@labels[forWhich, forWhich] <- Smatrix@labels[fakeLatent,fakeLatent] # Give the manifest the fakeLatent's label				
+		Smatrix@labels[forWhich, forWhich] <- Smatrix@labels[fakeLatent,fakeLatent] # Give the manifest the fakeLatent's label
 
 	}
 
 	# Remove fakeLatents from A, S, and F matrices
 	remainingVars <- c(manifestVars, setdiff(latentVars, fakeLatents))
-	
+
 	# Get remainingVars in correct order
 	if (solveType@isMatrixSpecified)
 	{
@@ -750,7 +753,7 @@ PPML.Pre.FakeLatents <- function(model, solveType)
 		}
 		remainingVars <- sortedVars
 	}
-	
+
 	Amatrix <- Amatrix[remainingVars, remainingVars]
 	Smatrix <- Smatrix[remainingVars, remainingVars]
 	Fmatrix <- Fmatrix[ ,remainingVars]
@@ -801,13 +804,13 @@ PPML.Pre.FixNHEV <- function(model, solveType) {
 
 	# Find transformation matrix R^-1
 	Rinv <- (solve(chol(Cerr)))
-	
+
 	# Apply it to original Cerror to get transformed C'error
 	# (Actually, just generate appropriately sized identity matrix)
 	CerrPrime <- diag(rep(1, dim(Cerr)[1]))
-	
+
 	Smatrix@values[manifestVars, manifestVars] <- CerrPrime # Reinsert to Smatrix
-	
+
 	# Set all labels for the errors to the same label
 	Smatrix@free[manifestVars, manifestVars] <- FALSE
 	Smatrix@labels[manifestVars, manifestVars] <- NA
@@ -855,7 +858,7 @@ PPML.Pre.FixNHEV <- function(model, solveType) {
 
 		if (!single.na(model$data@means))
 			model$data@means <- as.matrix(model$data@means) %*% (Rinv)
-		
+
 		# Restore dimnames
 		if (!(is.numeric(manifestVars) && is.numeric(latentVars))) {
 			# For path-specified models:
@@ -888,7 +891,7 @@ PPML.Post.UnfoldNHEV <- function(result, model.noFakeLatents, solveType)
 
 	# Extract solved error param
 	errParam <- omxGetParameters(result)[['_PPML_NHEV_ErrParam']]
-	
+
 	# Scale Cerr matrix appropriately
 	scaledCerr <- solveType@Cerr * errParam
 
@@ -902,7 +905,7 @@ PPML.Post.UnfoldNHEV <- function(result, model.noFakeLatents, solveType)
 	result[[Sname]]@free[manifestVars,manifestVars] <- freeMatrix
 
 	return(result)
-	
+
 }
 
 
@@ -933,7 +936,7 @@ PPMLMissingData <- function(model, solveType) {
 	for ( patt in patterns) {
 		patternLocs <- append(patternLocs, list(which(apply(is.na(model$data@observed), 1, function(row) { if (all(row == patt)) TRUE else FALSE } ))))
 	}
-	
+
 	# Create a submodel for each missingness pattern with the appropriate
 	# manifest variables removed
 	bigModel <- mxModel(paste("(PPML Missing Data)", model@name))
@@ -946,10 +949,10 @@ PPMLMissingData <- function(model, solveType) {
 	if (!single.na(Mname))
 		meanLatentMeans <- vector(mode="numeric", length=length(latMeanVarNames))
 
-	for (m in 1:length(patterns)) {	
+	for (m in 1:length(patterns)) {
 		newSubmodel <- mxModel(model)
 		newSolveType <- solveType
-		
+
 		# Path specified versus matrix specified
 		# Get label sets from data dimnames using LIVs
 		removedMans <- (dimnames(newSubmodel$data@observed)[[2]])[patterns[[m]]]
@@ -966,13 +969,13 @@ PPMLMissingData <- function(model, solveType) {
 				removedMansLoc <- c(removedMansLoc, which(model$expectation@dims == removedMan))
 			}
 			if (length(removedMans)) removedMans <- sort(removedMansLoc)
-			
+
 			remainingMansLoc <- c()
 			for (remainingMan in remainingMans) {
 				remainingMansLoc <- c(remainingMansLoc, which(model$expectation@dims == remainingMan))
 			}
 			remainingMans <- sort(remainingMansLoc)
-			
+
 			remainingVarsLoc <- c()
 			for (remainingVar in remainingVars) {
 				remainingVarsLoc <- c(remainingVarsLoc, which(model$expectation@dims == remainingVar))
@@ -982,7 +985,7 @@ PPMLMissingData <- function(model, solveType) {
 
 			remainingVars <- c(remainingMans, newSolveType@latentVars)
 		}
-	
+
 		# If any manifests are missing from the data, remove those manifests from the submodel
 		if (!is.null(removedMans))
 		{
@@ -997,7 +1000,7 @@ PPMLMissingData <- function(model, solveType) {
 			if (!single.na(newSubmodel$data@means)) {
 				newSubmodel$data@means <- newSubmodel$data@means[, remainingMans]
 			}
-		
+
 			# Fix list of manifestVars
 			if ( !solveType@isMatrixSpecified ) {
 				# PATH
@@ -1033,10 +1036,10 @@ PPMLMissingData <- function(model, solveType) {
 			colnames(newSubmodel$data@observed) <- remainingMansData
 		}
 
-		
+
 		# Rename each submodel
 		newSubmodel@name <- paste('PPML_MG_Submodel', m, sep="")
-		
+
 		# Transform each of these submodels with PPML,
 		# if applicable
 		if (length(newSolveType@manifestVars) > length(newSolveType@latentVars))
@@ -1044,16 +1047,16 @@ PPMLMissingData <- function(model, solveType) {
 			pair <- PPML.Transform(newSubmodel, newSolveType)
 			newSubmodel <- PPML.SolveOrPartialSolve(pair[[1]], pair[[2]], newSolveType)
 			newSubmodel <- PPML.Split(newSubmodel, newSolveType)
-		}		
+		}
 		submodelNames <- c(submodelNames, newSubmodel@name)
-		
+
 		# Check if PPML was applicable on the submodel
-		if (!is.null(newSubmodel@options$UsePPML) && 
-			(newSubmodel@options$UsePPML == "Solved" || newSubmodel@options$UsePPML == "PartialSolved" || newSubmodel@options$UsePPML == "Split")) { 
+		if (!is.null(newSubmodel@options$UsePPML) &&
+			(newSubmodel@options$UsePPML == "Solved" || newSubmodel@options$UsePPML == "PartialSolved" || newSubmodel@options$UsePPML == "Split")) {
 			PPMLAppliedCount <- PPMLAppliedCount + 1
 
 			# Below should be zero, as solution should not be applied to missing data submodels
-			if (newSubmodel@options$UsePPML == "Solved") 
+			if (newSubmodel@options$UsePPML == "Solved")
 				PPMLSolvedCount <- PPMLSolvedCount + 1
 
 			# Track mean of the solved error variances to produce best estimate for starting point
@@ -1068,19 +1071,19 @@ PPMLMissingData <- function(model, solveType) {
 					if (!single.na(meanLatentMeans[latName]))
 						meanLatentMeans[i] <- meanLatentMeans[i] + meanLatentMeans[latName]
 				}
-				
+
 				meanLatentMeans <- meanLatentMeans
 			}
 
-		} 
+		}
 
 		# Set UsePPML to "No" to allow optimization to occur
 		newSubmodel@options$UsePPML <- "No"
-		
+
 		# Combine these submodels in to a larger model
 		bigModel <- mxModel(bigModel, newSubmodel)
 	}
-	
+
 	# Need to check if any of the submodels were successfully transformed; if not, reject transformation
 	if (PPMLAppliedCount == 0) {
 		return(NA)
@@ -1089,7 +1092,7 @@ PPMLMissingData <- function(model, solveType) {
 	meanVarE <- meanVarE/PPMLAppliedCount
 	meanLatentMeans <- meanLatentMeans/PPMLAppliedCount
 	bigModel <- omxSetParameters(bigModel, c(errVarName, latMeanVarNames), values=c(meanVarE,meanLatentMeans))
-	
+
 	# Objective = sum
 	# TODO: Combine algebra objectives from PPML-transformed models?
 	#objectives <- paste(submodelNames, "objective", sep = ".")
@@ -1127,14 +1130,14 @@ PPML.Transform <- function(model, solveType)
 	manifestVars <- solveType@manifestVars
 	latentVars <- solveType@latentVars
 
-	#transform A to E	
+	#transform A to E
 	E <- solve(diag(nrow(Amatrix)) - Amatrix@values)
 	#select only these columns of A which are real latents
 	#get loadings matrix:= The part of A which goes from the latents to the manifests
 	lambda <- as.matrix(E[manifestVars, latentVars])
-	
+
 	qrDecom <- qr(lambda)
-	
+
 	#check if loadings matrix is of full rank
 	k <- length(latentVars)
 	#if (qrDecom$rank != dim(lambda)[2] || k != qrDecom$rank){
@@ -1144,7 +1147,7 @@ PPML.Transform <- function(model, solveType)
 
 	#calculate upper triangle matrix
 	#orthogonal
-	Q <- t(qr.Q(qrDecom, complete = TRUE)) 
+	Q <- t(qr.Q(qrDecom, complete = TRUE))
 
 	#transform loadings matrix
 	lambda <- Q %*% lambda
@@ -1162,7 +1165,7 @@ PPML.Transform <- function(model, solveType)
 	if (!single.na(Mname)) {
 		model[[Mname]] <- Mmatrix
 	}
-	
+
 	#transform data or cov
 	if(model$data@type == "raw") {
 		model$data@observed <- as.matrix(model$data@observed) %*% t(Q)
@@ -1198,7 +1201,7 @@ PPML.Transform <- function(model, solveType)
 			else
 				colnames(model$data@means) <- model$expectation@dims[manifestVars] # Matrix-specified
 		}
-		
+
 	}
 
 	return(list(model, lambda))
@@ -1257,11 +1260,11 @@ PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 			varE <- varE + sum(model$data@means[,(K+1):M]^2) / (M-K) * N/(N-1)
 		}
 	}
-	
+
 
 	# Calculate lambdaInv
 	lambdaInv <- solve(lambda[1:length(latentVars), ])
-	
+
 	# Analytical solution for means of latents
 	if (!is.null(Mmatrix)) {
 		muLatent <- NULL
@@ -1286,7 +1289,7 @@ PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 				for (i in 1:length(solveType@latentVars))
 				{
 					latentVar <- solveType@latentVars[i]
-					if (Mmatrix@free[latentVar])	
+					if (Mmatrix@free[latentVar])
 						Mmatrix@values[latentVar] <- solvedM[i]
 				}
 			}
@@ -1315,7 +1318,7 @@ PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 				Mmatrix@values[ latentIndices ] <- lambdaInv %*% muLatent
 
 		}
-		
+
 
 		# Analytical solution for the means:
 		# Fix means values so optimizer doesn't bother with them (if partialsolved; if free, don't bother)
@@ -1350,10 +1353,10 @@ PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 
 	# IMPLICIT  solveType@result == "Solve"
 	# Full analytical solution is possible
-		
+
 	# Calculate covariance of the latentVars
 	SigmaLatent <- NULL
-	
+
 	if (model$data@type == 'raw')
 	{
 		# Using R's covariance matrix function does not work
@@ -1370,19 +1373,19 @@ PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 		# Covariance matrix in SigmaLatent
 		SigmaLatent <- sigma - as.matrix(muLatent) %*% t(as.matrix(muLatent))
 
-		
+
 	}
 	else if (model$data@type == 'cov')
 		SigmaLatent <- as.matrix(model$data@observed[1:length(latentVars), 1:length(latentVars)])
-		
+
 	# Calculate latent covariance matrix and reinsert in to the S matrix
 	# NOTE: Kludgy fix for symmetrization issues
 	CLatent <- lambdaInv %*% (SigmaLatent - diag(x=varE, nrow=length(latentVars), ncol=length(latentVars))) %*% t(lambdaInv)
-	Smatrix@values[latentVars, latentVars] <- (CLatent + t(CLatent))/2		
-	
+	Smatrix@values[latentVars, latentVars] <- (CLatent + t(CLatent))/2
+
 	# Reinsert error variance in to S matrix
 	Smatrix@values[manifestVars, manifestVars] <- diag(x=varE, nrow=length(manifestVars), ncol=length(manifestVars)) # Implicitly: off-diagonal values of this submatrix are zeroed
-	
+
 	# Reinsert Smatrix to model
 	model[[Sname]] <- Smatrix
 
@@ -1394,7 +1397,7 @@ PPML.SolveOrPartialSolve <- function(model, lambda, solveType)
 PPML.Split <- function(model, solveType) {
 	# Extract matrices from model
 	expectation <- model$expectation
-	
+
 	Aname <- expectation@A
 	Sname <- expectation@S
 	Fname <- expectation@F
@@ -1413,7 +1416,7 @@ PPML.Split <- function(model, solveType) {
 	#Flatten spaces, commas out of model name to prevent problems with expectation functions
 	model@name <- gsub(" ", "_", model@name)
 	model@name <- gsub(",", "", model@name)
-	
+
 	#leftmodel
 	#calculate A realLatents indices for left model
 	#first k manifest vars
@@ -1431,7 +1434,7 @@ PPML.Split <- function(model, solveType) {
 	leftmodel@options$UsePPML <- "No"
 
 	# DEVELOPMENT: This will cause problems for models where the left and right model are solved simultaneously
-	# Will need to put in a conditional	
+	# Will need to put in a conditional
 	# In cases where the left and right model are solved simultaneously,
 	# Need to wrap both in a bigModel and put the data in to that bigModel
 	# TODO: Move this block to selectsubmodelfdata ?
@@ -1459,7 +1462,7 @@ PPML.Split <- function(model, solveType) {
 		selectData <- model$expectation@dims[selectManifests]
 	else
 		selectData <- selectManifests
-	
+
 	if (model$data@type == 'raw') # RAW DATA
 	{
 		errData <- sum(model$data@observed[ ,selectData]^2)
@@ -1484,73 +1487,73 @@ PPML.Split <- function(model, solveType) {
 			# sqrt(N/(N-1)) factor
 			# (N+1)/N
 			# (N-1)/(N-2)
-					
+
 			errData <- errData + sum(model$data@means[,selectData]^2)
 		}
 
 		errData <- errData * N
 		numErrData <- N * length(selectData)
 	}
-	
+
 	# IN DEVELOPMENT: Rightmodel represented algebraically
 	# DEV: Old code, useful for left and right model solved simultaneously?
-		# rightmodel <- mxRename(model, paste(model@name,'_rightmodel',sep=""))	
+		# rightmodel <- mxRename(model, paste(model@name,'_rightmodel',sep=""))
 		# rightmodel <- selectSubModelFData(rightmodel, selectLatents, selectManifests)
 		# rightmodel <- mxOption(rightmodel, "UsePPML", "Split")
-	
-	
+
+
 	### Create separate 1x1 "error matrix" to be referenced by expectation, constrain to error variance with a label
 	# Find error label for Smatrix
 	errorLabel <- unique(diag(Smatrix@labels[manifestVars, manifestVars])) # NOTE: Works as long as there's only one error label
 	# Create mxMatrix for error parameter
 	#  (Value will be first appropriately labeled parameter in the Smatrix, although all should be set the same anyways)
 	varE <- mxMatrix( "Full", nrow=1, ncol=1, labels=errorLabel, values=leftmodel$S@values[[ which(leftmodel$S@labels == errorLabel)[[1]] ]], free=TRUE, name="varE" )
-	
-	
+
+
 	### Create algebra expectation
 	sumSqData <- mxMatrix("Full", nrow=1, ncol=1, values = errData, name = "sumSqData")
 	numData <- mxMatrix("Full", nrow=1, ncol=1, values = numErrData, name="numData")
-	
+
 	# (Build this algebra:)
 	# 		errorLLAlgebra <- mxAlgebra(numData * log(eval(errorLabel)) + sumSqData/eval(errorLabel), name="errorLL")
 	# Build algebra string
 	expression <- paste("mxAlgebra(numData[1,1] * log(varE[1,1]) + sumSqData[1,1]/varE[1,1], name='errorLL')", sep="")
 	# Create algebra
 	errorLLAlgebra <- eval(parse(text=expression))
-	
+
 
 	# DEV: Old code, useful for simultaneously solving left and right models?
 		#reunite the two submodel
 		# result <-  mxModel(paste('PPMLTransformed_', model@name,sep=""), leftmodel, rightmodel)
-	
-	
+
+
 	# Build algebra string
 	#expression <- paste(paste(model@name,'_leftmodel',sep=""), "objective", sep=".") # "model@name_leftmodel.objective"
 	expression <- paste(paste(model@name,'_leftmodel',sep=""), "fitfunction", sep=".") # "model@name_leftmodel.fitfunction"
 	expression <- paste(c(expression, "errorLL"), collapse = " + ") # "model@name_leftmodel.objective + errorLL"
 	expression <- paste("mxAlgebra(", expression, ", name='TotObj')", sep="") # mxAlgebra(model@name_leftmodel.objective + errorLL, name='TotObj')
 	# Create algebra
-	objAlgebra <- eval(parse(text=expression)) 
+	objAlgebra <- eval(parse(text=expression))
 
 
 	#algObjective <- mxAlgebraObjective("TotObj") # Create algebraobjective that call this algebra
 	#result <- mxModel(name=model@name, submodels=leftmodel, objective=algObjective, objAlgebra, sumSqData, numData, errorLLAlgebra, varE)
 	algFit <- mxFitFunctionAlgebra("TotObj") # Create algebraobjective that call this algebra
 	#result <- mxModel(name=model@name, submodels=leftmodel, objective=algObjective, objAlgebra, sumSqData, numData, errorLLAlgebra, varE)
-	
-	
+
+
 	result <- mxModel(name=model@name, submodels=leftmodel, fitfunction=algFit, objAlgebra, sumSqData, numData, errorLLAlgebra, varE)
-	
+
 
 #		DEV: Will be necessary for models where left and right model are solved simultaneously,
-#		and right model cannot be represented algebraically		
+#		and right model cannot be represented algebraically
 #		# Include data in combination model for raw data
 #		if (model$data@type == 'raw') {
 #			result$data <- model$data
 #		}
-	
+
 	result <- mxOption(result, "UsePPML", "Split")
-	
+
 	# DEV: old code -- could be useful for true splitmodel case, where error and
 	# leftmodel need to be optimized simultaneously
 		# modelnames <- c(paste(model@name,'_leftmodel',sep=""), paste(model@name,'_rightmodel',sep=""))
@@ -1560,7 +1563,7 @@ PPML.Split <- function(model, solveType) {
 		# algebra <- eval(parse(text=expression))
 		# objective <- mxAlgebraObjective("TotObj")
 		# result <- mxModel(result, objective, algebra)
-	
+
 	return(result)
 }
 
@@ -1577,7 +1580,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 
 	#build the new model
 	submodel <- model
-	
+
 	submodel$A <- model$A[Aindices,Aindices]
 	submodel$S <- model$S[Aindices,Aindices]
 	if (!(is.numeric(selectManifests) && is.numeric(selectLatents))) {
@@ -1593,7 +1596,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 		}
 		submodel$F <- model$F[Frows, Aindices]
 	}
-	
+
 	# Restore dimnames to new matrices
 	# Only necessary for path specified models
 	if (!(is.numeric(selectManifests) && is.numeric(selectLatents))) {
@@ -1610,7 +1613,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 	{
 		submodel$expectation@dims <- submodel$expectation@dims[Aindices]
 	}
-	
+
 	if(!is.null(submodel$M)){
 		submodel$M <- model$M[1,Aindices]
 		# submodel$M@values <- t(submodel$M@values)
@@ -1619,7 +1622,7 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 		# submodel$M@lbound <- t(submodel$M@lbound)
 		# submodel$M@ubound <- t(submodel$M@ubound)
 	}
-	
+
 	if (is.numeric(selectManifests))
 		selectData <- model$expectation@dims[selectManifests]
 	else
@@ -1636,13 +1639,13 @@ selectSubModelFData <- function(model, selectLatents, selectManifests) {
 		# If means data exists, pull out the appropriate manifest variables
 		if (!single.na(submodel$data@means))
 			submodel$data@means <- t(as.matrix(submodel$data@means[1,selectData]))
-	
+
 		# Restore dimnames to the new covariance matrix
 		colnames(submodel$data@observed) <- selectData
 		rownames(submodel$data@observed) <- selectData
 		if (!single.na(submodel$data@means))
 			colnames(submodel$data@means) <- selectData
-			
+
 	}
 	return(submodel)
 }
@@ -1658,8 +1661,8 @@ PPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
 	diff <- omxRes@output$minimum - ppmlRes@output$minimum
 
 	if (diff < -tolerance)
-		#stop("ppmlRes@output$Minus2LogLikelihood not less than or equal to omxRes@output$Minus2LogLikelihood within tolerance of ", tolerance,"\n",omxRes@output$Minus2LogLikelihood," vs ",ppmlRes@output$Minus2LogLikelihood)	
-		stop("ppmlRes@output$minimum not less than or equal to omxRes@output$minimum within tolerance of ", tolerance,"\n",omxRes@output$minimum," vs ",ppmlRes@output$minimum)	
+		#stop("ppmlRes@output$Minus2LogLikelihood not less than or equal to omxRes@output$Minus2LogLikelihood within tolerance of ", tolerance,"\n",omxRes@output$Minus2LogLikelihood," vs ",ppmlRes@output$Minus2LogLikelihood)
+		stop("ppmlRes@output$minimum not less than or equal to omxRes@output$minimum within tolerance of ", tolerance,"\n",omxRes@output$minimum," vs ",ppmlRes@output$minimum)
 
 
 	if (diff > tolerance)
@@ -1680,7 +1683,7 @@ PPML.Tool.CheckPPMLDidEqualOrBetter <- function(omxRes, ppmlRes, tolerance)
 ##' imxPPML.Test.Test
 ##'
 ##' Test that PPML solutions match non-PPML solutions.
-##' 
+##'
 ##' @param model the MxModel to evaluate
 ##' @param checkLL whether to check log likelihood
 ##' @param checkByName check values using their names
@@ -1707,18 +1710,18 @@ imxPPML.Test.Test <- function(model, checkLL = TRUE, checkByName = FALSE, tolera
 	omxCheckTrue( usedPPMLon2 )
 
 
-	
+
 	# NOTE: Not checking Hessians, they're never very close -- not sure that
 	# a comparison is actually meaningful
 
 	# NOTE: checkLL parameter can turn off log likelihood checking for this test,
-	# useful for non-homogeneous error variance cases where the transformed log 
+	# useful for non-homogeneous error variance cases where the transformed log
 	# likelihood is different.
 	if (testEstimates)
 		PPML.Test.CheckFits(res1, res2, tolerance=tolerance, checkLL = checkLL, checkByName = checkByName, checkHessians = FALSE) # Check standard fit vs PPML model
 	else
 		PPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)
-	
+
 }
 
 PPML.Test.CheckFits <- function(res1, res2, tolerance, checkHessians = TRUE, checkLL, checkByName) {
@@ -1726,50 +1729,50 @@ PPML.Test.CheckFits <- function(res1, res2, tolerance, checkHessians = TRUE, che
 	# PPML must be <= OpenMx version, w/in tolerance
 	if (checkLL)
 	{
-		PPMLDidBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)	
+		PPMLDidBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(res1, res2, tolerance)
 		if (PPMLDidBetter)
 			return() # Estimates, etc are not going to be the same if PPML found a different minimum
-	}	
-		
+	}
+
 	if (checkByName) {
-		
+
 		for (label in labels(res1@output$estimate)) {
 			omxCheckCloseEnough(res1@output$estimate[label], res2@output$estimate[label], tolerance)
 		}
-		
+
 		oneInTwo <- lapply(labels(res1@output$estimate), function(l) { which(labels(res2@output$estimate) == l) })
-		
+
 		omxCheckCloseEnough(res1@output$standardErrors, as.matrix(res2@output$standardErrors[unlist(oneInTwo)]), tolerance)
-		
+
 	} else {
 		# Check parameters versus each other
 		# Parameters will be in the same order, so a simple iteration should work
 		for ( i in 1:length(res1@output$estimate) ) {
 			omxCheckCloseEnough(res1@output$estimate[i], res2@output$estimate[i], tolerance)
 		}
-		
+
 		# Check standard errors versus each other
 		# Should just be able to check the two vectors directly against each other
 #		if (!single.na(res1@output$standardErrors) && !single.na(res2@output$standardErrors))
 	#		omxCheckWithinPercentError(res1@output$standardErrors, res2@output$standardErrors, 1) # 1% difference allowed for
 	}
 
-	
+
 	# TODO: Check if @expMeans are replicated...
-	# 
+	#
 
 	# Hessians will be wrong for reversed PPML transforms
 	if (checkHessians) {
 		# Very loose epsilons for these
 		# Check hessianCholeskys versus each other
 		omxCheckCloseEnough(res1@output$hessianCholesky, res2@output$hessianCholesky, 0.3)
-		
+
 		# Check calculatedHessians versus each other
-		omxCheckCloseEnough(res1@output$calculatedHessian, res2@output$calculatedHessian, 0.3)	
-		
+		omxCheckCloseEnough(res1@output$calculatedHessian, res2@output$calculatedHessian, 0.3)
+
 		# Estimated Hessians are way, way far off from each other -- doesn't seem worth checking
 		## Check estimatedHessians versus each other
-		##omxCheckCloseEnough(res1@output$estimatedHessian, res2@output$estimatedHessian, 0.5)	
+		##omxCheckCloseEnough(res1@output$estimatedHessian, res2@output$estimatedHessian, 0.5)
 	}
 }
 
@@ -1819,7 +1822,7 @@ imxPPML.Test.Battery <- function(model, verbose=FALSE, testMissingness = TRUE, t
 	else
 		nM <- 0
 
-	
+
 
 	# No missingness, missingness
 	for ( missingness in 0:nM)
@@ -1836,14 +1839,14 @@ imxPPML.Test.Battery <- function(model, verbose=FALSE, testMissingness = TRUE, t
 		# Test with varying numbers of fakeLatents
 		if (testFakeLatents) {
 			for (i in 1:length(model@manifestVars))
-			{ 
+			{
 				if (verbose) print(sprintf("Testing with %d fake latents: ", i))
 				testModel@options$UsePPML <- "Yes" # Needs to be enabled for fakeLatentFoldout to get solveType
 				testModel <- PPML.Tool.fakeLatentFoldout(testModel, i)
 				PPML.Test.Battery.LowLevel(testModel, verbose=verbose, missingness=as.logical(missingness), tolerances=tolerances, testPermutations=testPermutations, testEstimates=testEstimates	)
 				gc()
 			}
-		}		
+		}
 	}
 }
 
@@ -1853,7 +1856,7 @@ PPML.Tool.EnumerateMissingnessPatterns <- function(nMans)
 {
 	patt <- logical(nMans)
 	patt[1] <- TRUE
-	
+
 	M <- rbind(patt)
 	while(TRUE)
 	{
@@ -1881,12 +1884,12 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 
 	# Function only called by imxPPML.Test.Battery
 	# --> Guaranteed to be path-specified
-	
+
 	# Get tolerances
 	covMTolerance <- tolerances[1]
 	covTolerance <- tolerances[2]
 	rawTolerance <- tolerances[3]
-	
+
 	# Determine flags -- NA tolerance -> Don't check
 	checkCovM <- !single.na(covMTolerance)
 	checkCov <- !single.na(covTolerance)
@@ -1896,7 +1899,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 	# Pulled this out: means=as.vector(model$data@means),
 	# Don't specify means for raw data
 	rawData <- mxData(type="raw", numObs = model$data@numObs, mvrnorm(n=model$data@numObs, mu = model$data@means, model$data@observed) )
-	
+
 	if (missingness)
 	{
 		# Number of patterns = 2^num_mans - 1  (-1 because there is no data-less pattern)
@@ -1909,11 +1912,11 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 			return(NULL) # Not enough observations to do all missingness patterns, abort
 
 		patts <- PPML.Tool.EnumerateMissingnessPatterns(length(model@manifestVars))
-		
+
 		for ( i in 0:(dim(patts)[[1]]-1) )
 		{
 			patt <- as.vector(patts[i+1, ])
-			
+
 			for ( j in 1:length(patt) )
 			{
 				for ( k in 1:pattLen )
@@ -1923,10 +1926,10 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 				}
 			}
 		}
-	
+
 	}
-	
-	
+
+
 	#### Path
 	if (verbose) print("Testing Path-specified Models:")
 	testModel <- model
@@ -1938,14 +1941,14 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		if (verbose) print("Testing Covariance Data w/ Expected Means...")
 		imxPPML.Test.Test(testModel, tolerance=covMTolerance, testEstimates=testEstimates)
 	}
-	
+
 	## Raw
 	if (checkRaw)
 	{
 		if (verbose) print("Testing Raw Data w/ Expected Means...")
 		imxPPML.Test.Test(mxModel(testModel, rawData), tolerance=rawTolerance, testEstimates=testEstimates)
 	}
-		
+
 	### -Expected Means
 	if (checkCov && !missingness)
 	{
@@ -1956,11 +1959,11 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		imxPPML.Test.Test(mxModel(testModel, mxData(type=testModel$data@type, numObs=testModel$data@numObs, observed=testModel$data@observed)), tolerance=covTolerance, testEstimates=testEstimates)
 		## Raw: Can't test for Raw -Expected Means, as raw data requires an expected means vector
 	}
-	
-	
+
+
 	#### Matrix
 	if (verbose) print("Testing Matrix-specified Models:")
-	
+
 	matrixModel <- PPML.Tool.PathToMatrix(model)
 	# Try each unique permutation
 
@@ -1968,7 +1971,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 	# -OpenMx doesn't like having its matrices permuted, so just get the unPPMLed
 	# output from the unpermuted case, and permute it accordingly to check
 	# against PPMLed results
-	
+
 	testModel <- matrixModel
 	if (verbose) print("Testing unpermuted model...")
 	### +Means
@@ -1996,8 +1999,8 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		if (verbose) print("Testing Raw Data w/ Expected Means...")
 		testModel@options$UsePPML <- "No"
 		vanillaRawRes <- mxRun(mxModel(testModel, rawData) )
-	
-	
+
+
 		testModel@options$UsePPML <- "Yes"
 		PPMLRawRes <- mxRun(mxModel(testModel, rawData))
 		usedPPML <- (!is.null(PPMLRawRes@options$UsePPML) &&
@@ -2005,7 +2008,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		omxCheckTrue( usedPPML )
 		didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaRawRes, PPMLRawRes, tolerance=rawTolerance)
 		if (!didBetter && testEstimates)
-			omxCheckCloseEnough(vanillaRawRes@output$estimate, PPMLRawRes@output$estimate, rawTolerance)	
+			omxCheckCloseEnough(vanillaRawRes@output$estimate, PPMLRawRes@output$estimate, rawTolerance)
 	}
 
 	### -Means
@@ -2028,14 +2031,14 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		if (!didBetter && testEstimates)
 			omxCheckCloseEnough(vanillaCovRes@output$estimate, PPMLCovRes@output$estimate, covTolerance)
 	}
-	
+
 
 	if (!testPermutations)
 		return();
 
 	# Want to check all relevant permutations of manifests and latents; however,
 	# switching the order of any two latents or any two manifests should not pose any
-	# kind of problem.  So, do only unique permutations treating all manifests as 
+	# kind of problem.  So, do only unique permutations treating all manifests as
 	# the same and all latents as the same for the purposes of the permutation.
 	defPerm <- 1:dim(model[[model$expectation@F]])[[2]]
 	manOrLat <- apply(model[[model$expectation@F]]@values, 2, sum)
@@ -2063,19 +2066,19 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		{
 			print("Testing permutation: ")
 			print(as.vector(perms[i,]))
-		} 
+		}
 		testModel <- matrixModel
 		# PERMUTING THE MODEL
 		# Build permutation matrix
 		#P <- matrix(nrow=length(defPerm), ncol=length(defPerm),
 		#	unlist(lapply(perms[i,], function(item){ as.numeric(defPerm == item) } )) )
-		
+
 		# Permute matrices
 		# A %*% P
 		testModel[[testModel$expectation@A]] <- testModel[[testModel$expectation@A]][ , perms[i, ] ]
 		# t(P) %*% (A %*% P)
 		testModel[[testModel$expectation@A]] <- testModel[[testModel$expectation@A]][ perms[i, ], ]
-		
+
 		# For S -- Special considerations necessary, as the operating on S in this manner breaks
 		# the symmetry of the matrix and changes the output
 		#   So, instead of directly: Extract labels, free, values, operate on them, reinsert
@@ -2094,7 +2097,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 		testModel[[testModel$expectation@S]]@free <- Sfree
 		testModel[[testModel$expectation@S]]@labels <- Slabels
 		testModel[[testModel$expectation@S]]@values <- Svalues
-		
+
 		# F %*% P
 		testModel[[testModel$expectation@F]] <- testModel[[testModel$expectation@F]][ , perms[i, ] ]
 
@@ -2112,7 +2115,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 #		dmeans <- t(as.matrix(testModel$data@means[ intersect(perms[i, ], manIndices) ]))
 #		dimnames(dmeans)[[2]] <- (dimnames(testModel$data@means)[[2]])[ intersect(perms[i,], manIndices) ]
 #		testModel$data@means <- dmeans
-		
+
 
 		# Permute raw data
 #		rawDataPerm <- rawData
@@ -2120,7 +2123,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 
 		# Permute expectation dims
 		testModel$expectation@dims <- testModel$expectation@dims[ perms[i, ] ]
-		
+
 		# Enable PPML for testing permuted model
 		testModel@options$UsePPML <- "Yes"
 
@@ -2151,10 +2154,10 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 			 !(PPMLRawRes@options$UsePPML == "Inapplicable" || PPMLRawRes@options$UsePPML == "Yes" || PPMLRawRes@options$UsePPML == "No" ))
 			omxCheckTrue( usedPPML )
 			didBetter <- PPML.Tool.CheckPPMLDidEqualOrBetter(vanillaRawRes, PPMLRawRes, rawTolerance)
-			#omxCheckCloseEnough(vanillaRawRes@output$estimate, PPMLRawRes@output$estimate, .05)	
+			#omxCheckCloseEnough(vanillaRawRes@output$estimate, PPMLRawRes@output$estimate, .05)
 			#rawEsts <- append(rawEsts, list(PPMLRawRes@output$estimate[estNamesM]))
 		}
-		
+
 		### -Means
 		if (checkCov && !missingness)
 		{
@@ -2173,7 +2176,7 @@ PPML.Test.Battery.LowLevel <- function(model, verbose = FALSE, missingness = FAL
 }
 
 PPML.Tool.EnumeratePermutations <- function(elements) {
-	if (length(elements) == 1) 
+	if (length(elements) == 1)
 		return(elements)
 	pMat <- matrix(nrow=factorial(length(elements)), ncol=length(elements))
 	blockSize <- factorial(length(elements) - 1)
@@ -2191,25 +2194,25 @@ PPML.Tool.PathToMatrix <- function(model) {
 	if(is.null(expectation) || !is(expectation, "MxExpectationRAM")) {
 		return(NA)
 	}
-	
+
 	### Safely extract ASF(M) matrices by using names from the objective
 	Aname <- expectation@A
 	Sname <- expectation@S
 	Fname <- expectation@F
 	Mname <- expectation@M
-	
+
 	Amatrix <- model[[Aname]]
 	Smatrix <- model[[Sname]]
 	Fmatrix <- model[[Fname]]
-	
+
 	# Extract variable names for new expectation
 	varNames <- dimnames(Fmatrix)[[2]]
-	
+
 	### Remove dimnames from matrices
 	dimnames(Amatrix) <- NULL
 	dimnames(Smatrix) <- NULL
 	dimnames(Fmatrix) <- NULL
-	
+
 	# Special: Matrix of expected means
 	Mmatrix <- NULL
 	if (!single.na(Mname)) {
@@ -2231,7 +2234,7 @@ PPML.Tool.PathToMatrix <- function(model) {
 # Takes the manifest variable at manIndex, and folds its variance out in to a fake latent
 # Fake latent := Manifest variance specified by a latent variable with only one loading
 #  of value 1, to the manifest in question ==> Variance of the manifest is specified
-#  in the fakelatent, not in the manifest variable itself 
+#  in the fakelatent, not in the manifest variable itself
 PPML.Tool.fakeLatentFoldout <- function(model, manIndex)
 {
 	# Path-specified check
@@ -2241,7 +2244,7 @@ PPML.Tool.fakeLatentFoldout <- function(model, manIndex)
 	Sname <- model$expectation@S
 	Smatrix <- model[[Sname]]
 
-	
+
 	# Idiot check: Make sure manifest[manIndex] exists
 	if ( manIndex > length(model@manifestVars) )
 		return(NULL)
@@ -2259,19 +2262,19 @@ PPML.Tool.fakeLatentFoldout <- function(model, manIndex)
 	Smatrix@labels[man,man] <- NA
 
 	# Reinsert stripped Smatrix
-	model[[Sname]] <- Smatrix	
+	model[[Sname]] <- Smatrix
 
 	## Add fakeLatent
 	# Generate name -- man is the name of the variable in path-specified models
 	FLname <- sprintf("%s_FL", man)
-	
+
 	# Create path from fakelatent to manifest variable
 	oneHeadedPath <- mxPath(from=FLname, to=man, arrows=1, free=FALSE, values=1)
-	
+
 	# Create two-headed arrow on fake latent
 	twoHeadedPath <- mxPath(from=FLname, arrows=2, free=FLfree, values = FLvar, labels = FLlabel)
 
 	# Recreate model
 	model <- mxModel(model, latentVars=FLname, oneHeadedPath, twoHeadedPath)
-	return(model)	
+	return(model)
 }

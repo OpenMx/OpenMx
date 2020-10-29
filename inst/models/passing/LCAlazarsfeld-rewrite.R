@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -28,10 +28,9 @@ require(OpenMx)
 # .5560    0.42838    0.18218    .09394      .05627    |
 #------------------------------------------------------+
 
-# Data
-cn <- c("Armyrun", "Favatt", "squaredeal", "welfare", "freq")
-data <- suppressWarnings(try(read.table("models/passing/data/lazarsfeld.ord", col.names=cn), silent=TRUE))
-if (is(data, "try-error")) data <- read.table("data/lazarsfeld.ord", col.names=cn)
+data("lazarsfeld", package ="OpenMx", verbose= TRUE)
+data <- lazarsfeld
+
 freq <- data[,5]
 data[,1] <- as.ordered(data[,1])
 data[,2] <- as.ordered(data[,2])

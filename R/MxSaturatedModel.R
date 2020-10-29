@@ -67,7 +67,7 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 			sampcov <- cov(obsdata, use="pairwise.complete.obs")
 			startcov <- try(t(chol(sampcov)))
 			# if the cholesky fails, just use the diagonal elements
-			if(class(startcov) %in% "try-error"){
+			if("try-error" %in% class(startcov)){
 				startcov <- t(chol(diag(diag(sampcov), nrow=nrow(sampcov))))
 			}
 			startcov <- startcov[lower.tri(startcov, TRUE)]
@@ -275,9 +275,16 @@ ReferenceModelHelper <- function(x, distribution, equateThresholds) {
 }
 
 mxRefModels <- function(x, run=FALSE, ..., distribution="default", equateThresholds = TRUE) {
-	garbageArguments <- list(...)
-	if (length(garbageArguments) > 0) {
-		stop("mxRefModels does not accept values for the '...' argument")
+  prohibitDotdotdot(list(...))
+	if(is(x,"MxModel")){
+    warnModelCreatedByOldVersion(x)
+		if(imxHasDefinitionVariable(x)){
+			warning(
+				"argument 'x' is an MxModel that contains definition variables, but mxRefModels() ignores definition variables, and therefore may not do what you expect")
+		}
+		if(imxIsMultilevel(x)){
+			warning("The right reference models for the multilevel case are not yet known.\nI made reference models for level 1.\nI hope you know what you're doing because I don't.")
+		}
 	}
 	models <- lapply(ReferenceModelHelper(x, distribution, equateThresholds), function(model) {
 		if (!isS4(model)) return(model)

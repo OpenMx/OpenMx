@@ -83,8 +83,7 @@ mklatent <- function(name) {
   m1
 }
 
-latent <- mxModel("latent",
-                  mxFitFunctionMultigroup(paste(paste(groups[-1],"latent",sep=""), "fitfunction", sep=".")))
+latent <- mxModel("latent", mxFitFunctionMultigroup(paste0(groups[-1],"latent")))
 
 g2.latent <- mklatent("g2")
 g3.latent <- mklatent("g3")
@@ -109,7 +108,7 @@ if (0) {
 }
 
 grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent,
-                    mxFitFunctionMultigroup(paste(groups, "fitfunction", sep=".")),
+                    mxFitFunctionMultigroup(groups),
                     mxComputeSequence(list(
                       mxComputeEM(paste(groups, 'expectation', sep='.'), 'scores',
                                   mxComputeSequence(list(
@@ -120,7 +119,8 @@ grpModel <- mxModel(model="groupModel", g1, g2, g3, g2.latent, g3.latent, latent
                                   infoArgs=list(fitfunction=c("fitfunction", "latent.fitfunction"))),
                       mxComputeStandardError(),
                       mxComputeHessianQuality(),
-                    mxComputeOnce('fitfunction', 'gradient'),
+                    mxComputeOnce(c('fitfunction', paste0('g',2:3,'latent.fitfunction')),
+                                  'gradient'),
                    mxComputeReportDeriv())))
 
   #grpModel <- mxOption(grpModel, "Number of Threads", 1)
@@ -202,3 +202,5 @@ if (0) {
   got$GroupPars <- NULL
   round(m2$matrices$item$values - simplify2array(got), 2)
 }
+
+  

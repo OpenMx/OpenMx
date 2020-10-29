@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -96,7 +96,9 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 					function(.Object, model, what, defvar.row=1) {
 						ret <- list()
 						
-						if ( ('covariance' %in% what) || ('means' %in% what) ) {
+						wantMean <- any(c('mean','means') %in% what)
+						wantCov <- any(c('covariance','covariances') %in% what)
+						if ( wantCov || wantMean ) {
 							mxDataObject <- model@data
 							if(!length(mxDataObject)){
 								msg <- paste("the GREML expectation function",
@@ -135,11 +137,11 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 							if(length(casesToDrop)){V <- V[-casesToDrop, -casesToDrop]}
 						}
 						
-						if('covariance' %in% what){
+						if(wantCov){
 							ret[['covariance']] <- V
 						}
 						
-						if ('means' %in% what) {
+						if (wantMean) {
 							Vinv <- try(chol2inv(chol(V)))
 							rm(V)
 							if(is(Vinv,"try-error")){
@@ -231,7 +233,8 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               .Object@X <- as.matrix(mxDataObject@observed[,-1])
               .Object@yXcolnames <- colnames(mxDataObject@observed)
               .Object@numFixEff <- as.integer(ncol(mxDataObject@observed)-1)
-              .Object@dataColumns <- 0:(nrow(mxDataObject@observed)-1L)
+              .Object@dataColumnNames <- colnames(mxDataObject@observed)
+              .Object@dataColumns <- 0:(ncol(mxDataObject@observed)-1L)
             }
             else{
               if(length(.Object@Xvars)){
@@ -259,7 +262,8 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               .Object@yXcolnames <- colnames(mm$yX)
               .Object@casesToDrop <- mm$casesToDrop
               .Object@numFixEff <- ncol(.Object@X)
-              .Object@dataColumns <- 0:(nrow(.Object@X)-1L)
+              .Object@dataColumnNames <- colnames(.Object@X)
+              .Object@dataColumns <- 0:(ncol(mxDataObject@observed)-1L)
             }
             #Get number of observed statistics BEFORE call to backend, so summary() can use it:
             .Object@numStats <- nrow(.Object@X)

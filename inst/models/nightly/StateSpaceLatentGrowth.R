@@ -16,6 +16,12 @@ for(i in 1:nrow(myLongitudinalData)){
 nSubj <- length(dataL)
 
 
+# require(EasyMx)
+# gmod <- emxGrowthModel(1, data=myLongitudinalData, use=paste0('x', 1:5), times=0:4, run=TRUE)
+# faml <- mxFactorScores(gmod)
+# fare <- mxFactorScores(gmod, 'regression')
+
+
 #------------------------------------------------------------------------------
 # Create state space matrices for latent growth
 
@@ -66,6 +72,15 @@ summary(multiSubjGrowthRun)
 
 # Kalman Scores for Subject 1
 ks <- mxKalmanScores(multiSubjGrowthRun$Subject1LatentGrowth, frontend=FALSE)
+ksf <- mxKalmanScores(multiSubjGrowthRun$Subject1LatentGrowth, frontend=TRUE)
+
+# Check that all frontend and backend components are the same
+compDiff <- 0
+for(comp in names(ksf)){
+	compDiff <- compDiff + sum((ks[[comp]] - ksf[[comp]])^2)
+}
+omxCheckCloseEnough(compDiff, 0, 1e-10)
+
 
 # These are equal to the empirical Bayes random effects estimates
 #  from the nlme and lme4 packages
@@ -74,7 +89,7 @@ ks$xSmoothed
 
 ksAll <- matrix(0, nrow=length(multiSubjGrowthRun$submodels), ncol=2)
 for(i in 1:length(multiSubjGrowthRun$submodels)){
-	ksAll[i,] <- mxKalmanScores(multiSubjGrowthRun$submodels[[i]], frontend=TRUE)$xSmoothed[1,]
+	ksAll[i,] <- mxKalmanScores(multiSubjGrowthRun$submodels[[i]], frontend=FALSE)$xSmoothed[1,]
 }
 
 # TODO Bug fix: when frontend=FALSE the results are different

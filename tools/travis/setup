@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -x
+set -o errexit
+
+mkdir -p ~/.R
+cp ./tools/travis/gcc8.conf ~/.R/Makevars
+
+mkdir -p $HOME/R/Library
+
+if scp -v -i /tmp/deploy_rsa -o PreferredAuthentications=publickey -o StrictHostKeyChecking=no -o CheckHostIP=no $dhost:rcache.tar.bz2 . ; then
+  tar --directory=/ -jxf rcache.tar.bz2
+fi

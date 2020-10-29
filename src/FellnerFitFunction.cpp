@@ -52,7 +52,7 @@ namespace FellnerFitFunction {
 
 		if (numProfiledOut) ram->forceSingleGroup = true;
 		omxExpectationCompute(fc, expectation, "nothing", "flat");
-		
+
 		if (numProfiledOut == 0) return;
 
 		RelationalRAMExpectation::state &rram = ram->rram->getParent();
@@ -61,7 +61,6 @@ namespace FellnerFitFunction {
 		}
 
 		RelationalRAMExpectation::independentGroup &ig = *rram.group[0];
-		fc->profiledOut.assign(fc->numParam, false);
 
 		olsVarNum.reserve(numProfiledOut);
 		olsDesign.resize(ig.getParent().dataVec.size(), numProfiledOut);
@@ -116,10 +115,11 @@ namespace FellnerFitFunction {
 						weight * (ig.dataColumn.segment(pl.obsStart, a1.numObs()) == rnum).cast<double>();
 				}
 			}
-			if (!found) mxThrow("oops");
+			if (!found) OOPS;
 
-			fc->profiledOut[vx] = true;
+			fc->profiledOutZ[vx] = true;
 		}
+    fc->calcNumFree();
 	}
 
 	template <typename T1>
@@ -127,8 +127,7 @@ namespace FellnerFitFunction {
 	{
 		if (0 == ig.getParent().dataVec.size()) return 0;
 
-		ig.computeCov1(fc);
-		ig.computeCov2();
+		ig.computeCov(fc);
 
 		/*
 		if (!ig.analyzedCov) {
@@ -139,7 +138,7 @@ namespace FellnerFitFunction {
 		ig.covDecomp.factorize(ig.fullCov);
 		*/
 
-		Eigen::MatrixXd denseCov = ig.fullCov;
+		Eigen::MatrixXd &denseCov = ig.fullCov;
 		covDecomp.compute(denseCov);
 
 		if (covDecomp.info() != Eigen::Success || !(covDecomp.vectorD().array() > 0.0).all()) return 1;
@@ -156,7 +155,7 @@ namespace FellnerFitFunction {
 
 		if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
 			if (fc->isClone()) return;
-			
+
 			setupProfiledParam(fc);
 
 			RelationalRAMExpectation::state *rram   = ram->rram;
@@ -167,7 +166,10 @@ namespace FellnerFitFunction {
 			return;
 		}
 
-		if (!(want & (FF_COMPUTE_FIT))) mxThrow("Not implemented");
+    if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+
+		if (want & ~(FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_FINAL_FIT | FF_COMPUTE_BESTFIT))
+      mxThrow("Not implemented (want=%d)", want);
 
 		double lpOut = NA_REAL;
 		try {
@@ -238,7 +240,7 @@ namespace FellnerFitFunction {
 				//mxPrintMat("expectedVec", ig.expectedVec);
 
 				const Eigen::MatrixXd &iV = covDecomp.getInverse();
-				double logDet = covDecomp.log_determinant();
+				double logDet = 2.0 * covDecomp.log_determinant();
 				//mxPrintMat("iV", iV);
 				int clumps = ig.numLooseClumps();
 				if (clumps) {
@@ -302,7 +304,7 @@ namespace FellnerFitFunction {
 			omxRaiseErrorf("%s cannot fit without a model expectation", oo->fitType);
 			return;
 		}
-		if (!strEQ(expectation->expType, "MxExpectationRAM")) {
+		if (!strEQ(expectation->name, "MxExpectationRAM")) {
 			mxThrow("%s: only MxExpectationRAM is implemented", oo->matrix->name());
 		}
 

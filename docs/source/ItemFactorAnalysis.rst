@@ -188,7 +188,7 @@ will only consider the positive affect part of the scale.
    PANASItem <- c("Very Slightly or Not at All",  "A Little",
 		"Moderately", "Quite a Bit",	"Extremely")
    spec <- list()
-   spec[1:10] <- rpf.grm(outcomes = length(PANASItem))  # grm="graded response model"
+   spec[1:10] <- list(rpf.grm(outcomes = length(PANASItem)))  # grm="graded response model"
 
    # replace with your own data
    data <- rpf.sample(750, spec, sapply(spec, rpf.rparam))
@@ -224,7 +224,7 @@ collapsing two outcomes and see how the model fit changes.
 .. code-block:: r
 
    spec <- list()
-   spec[1:10] <- rpf.grm(outcomes = length(PANASItem))
+   spec[1:10] <- list(rpf.grm(outcomes = length(PANASItem)))
 
 The ``rpf.grm`` function creates an ``rpf.base`` class object that
 represents an item response function. An item response function
@@ -697,7 +697,7 @@ probability units using the logistic function, :math:`(1+\exp(-g))^{-1}`.
 .. code-block:: r
 
    spec <- list()
-   spec[1:8] <- rpf.drm()  # drm="dichotomous response model"
+   spec[1:8] <- list(rpf.drm())  # drm="dichotomous response model"
 
    # replace with your own data
    simParam <- sapply(spec, rpf.rparam)
@@ -966,7 +966,7 @@ the general population mean.
                     mxComputeSequence(list(
                       mxComputeEM('panas.expectation', 'scores',
 		                  mxComputeGradientDescent(fitfunction="latent.fitfunction")),
-                      mxComputeConfidenceInterval())))
+                      omxDefaultComputePlan(intervals=TRUE)$steps[['CI']])))
 
    e1Model <- mxRun(e1Model)
    summary(e1Model)
@@ -1073,7 +1073,7 @@ perception accuracy.
 
    # replace with published item parameters
    spec <- list()
-   spec[1:21] <- rpf.grm(factors=9, outcomes=5)
+   spec[1:21] <- list(rpf.grm(factors=9, outcomes=5))
    factors <- c('tonal', 'rhythm', paste('s', 1:7, sep=""))
    imat <- mxMatrix(name="item", values=simplify2array(lapply(spec, rpf.rparam)),
                  dimnames=list(c(factors, paste('b', 1:4, sep="")),

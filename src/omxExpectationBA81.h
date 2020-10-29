@@ -50,9 +50,11 @@ struct BA81LatentSummary {
 };
 
 class BA81Expect : public omxExpectation {
+	typedef omxExpectation super;
  public:
 	virtual ~BA81Expect();
 	virtual void init();
+  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual void populateAttr(SEXP expectation);
 	virtual omxMatrix *getComponent(const char*);
@@ -95,7 +97,11 @@ class BA81Expect : public omxExpectation {
 	bool debugInternal;
 	struct omxFitFunction *fit;  // weak pointer
 
-	BA81Expect() : grp(Global->numThreads, true) {};
+	BA81Expect(omxState *st, int num) :
+		super(st, num), grp(true)
+	{
+		grp.quad.setNumThreads(Global->numThreads);
+	};
 	const char *getLatentIncompatible(BA81Expect *other);
 
 	void refreshPatternLikelihood(bool hasFreeLatent);
@@ -113,7 +119,7 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 		omxRecompute(_latentMeanOut, fc);
 		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * dim);
 	}
-	
+
 	cov.derived().resize(dim, dim);
 	if (!_latentCovOut) {
 		cov.setIdentity();

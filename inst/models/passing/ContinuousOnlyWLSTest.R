@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,7 +31,7 @@
 #--------------------------------------
 # Needed packages
 
-
+library(testthat)
 require(OpenMx)
 data(Bollen)
 
@@ -142,6 +142,12 @@ fitParam <- c(mxEval(Lam, wlsRun)[1:4,1], diag(mxEval(Theta, wlsRun)))
 
 omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
 
+j1 <- expect_warning(omxManifestModelByParameterJacobian(wlsRun, standardize = TRUE),
+                     "Means requested, but model has no means")
+# Tedious to check all entries, but if variances match then
+# other labels are probably correct.
+expect_equivalent(j1[1:8, paste0('var',1:8)], diag(8))
+
 #--------------------------------------
 # Marginals should be fairly close to cumulants
 
@@ -188,3 +194,11 @@ omxCheckEquals(mlSum$ChiDoF, wlsSum$ChiDoF)
 omxCheckTrue( (wlsSum$RMSEA < mlSum$RMSEACI[2]) & (wlsSum$RMSEA > mlSum$RMSEACI[1]))
 omxCheckTrue( (mlSum$RMSEA < wlsSum$RMSEACI[2]) & (mlSum$RMSEA >= wlsSum$RMSEACI[1]))
 
+
+#--------------------------------------
+
+wlsMod$data$observed[,1] <- 0.
+expect_error(mxRun(wlsMod), "Test case for WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")
+
+wlsMod <- mxModel(wlsMod, mxFitFunctionWLS(allContinuousMethod= 'marginals'))
+expect_error(mxRun(wlsMod), "WLS Objective function from Bollen 1989.data: 'y1' has observed variance less than 1.49012e-08")

@@ -1,5 +1,5 @@
  /*
- *  Copyright 2007-2018 by the individuals mentioned in the source code history
+ *  Copyright 2007-2019 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,8 +13,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
- 
+
 struct omxGREMLExpectation : public omxExpectation {
+	typedef omxExpectation super;
   omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, *origVdim_om;
   omxData *y, *data2;
   int alwaysComputeMeans, numcases2drop, cholquadX_fail;
@@ -24,11 +25,14 @@ struct omxGREMLExpectation : public omxExpectation {
   Eigen::MatrixXd XtVinv, quadXinv;
   std::vector< const char* > yXcolnames;
 
+	omxGREMLExpectation(omxState *st, int num) : super(st, num) {}
   virtual ~omxGREMLExpectation();
   virtual void init();
+  virtual void connectToData();
   virtual void compute(FitContext *fc, const char *what, const char *how);
   virtual void populateAttr(SEXP expectation);
   virtual omxMatrix *getComponent(const char*);
+	virtual bool usesDataColumnNames() const { return false; }
 };
 
 double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);
@@ -36,20 +40,20 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);
 template <typename T1>
 void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixBase<T1> &em, int num2drop, std::vector< int > &todrop,
                           int symmetric, int origDim){
-	
+
 	if(OMX_DEBUG) { mxLog("Trimming out cases with missing data..."); }
-	
+
 	if(num2drop < 1){ return; }
-	
+
 	omxEnsureColumnMajor(om);
-	
+
 	if(om->algebra == NULL){ //i.e., if omxMatrix is from a frontend MxMatrix
-		
+
 		em.derived().setZero(om->rows - num2drop, om->cols - num2drop);
-		
+
 		int nextCol = 0;
 		int nextRow = 0;
-		
+
 		for(int j = 0; j < om->cols; j++) {
 			if(todrop[j]) continue;
 			nextRow = (symmetric ? nextCol : 0);
@@ -70,16 +74,16 @@ void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixBase<T1> &em, int num2drop
  	mxThrow("More than one attempt made to downsize algebra %s", om->name());
  	//return;
  }
- 
+
  //int oldRows = om->originalRows;
  //int oldCols = om->originalCols;
- 
+
  int nextCol = 0;
  int nextRow = 0;
- 
+
  om->rows = origDim - num2drop;
  om->cols = origDim - num2drop;
- 
+
  for(int j = 0; j < origDim; j++){ //<--j indexes columns
  	if(todrop[j]) continue;
  	nextRow = (symmetric ? nextCol : 0);
@@ -98,5 +102,4 @@ void dropCasesAndEigenize(omxMatrix* om, Eigen::MatrixBase<T1> &em, int num2drop
 	if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }
 
-void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > todrop, int symmetric, int origDim);
-
+void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > &todrop, int symmetric, int origDim);

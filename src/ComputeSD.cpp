@@ -44,7 +44,9 @@ void omxSD(GradientOptimizerContext &rf)
     Eigen::VectorXd majorEst = currEst;
 
     while(++iter < maxIter && !isErrorRaised()) {
-	    rf.numericalGradientWithRef(majorEst);
+      // don't need the fit here, only gradient TODO
+      int majMode = 1;
+      rf.solFun(majorEst.data(), &majMode);
 
 	    if (rf.verbose >= 3) mxPrintMat("grad", rf.grad);
 

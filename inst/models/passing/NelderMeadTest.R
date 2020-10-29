@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 library(OpenMx)
+library(testthat)
+
 #This test involves CIs, so use it with SLSQP, since the inequality-constrained formulation is theoretically more correct:
 if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
 #Need to use stricter convergence tolerances to avoid status Red:
@@ -81,11 +83,10 @@ omxCheckCloseEnough(
 
 varrunGD$output$confidenceIntervals
 varrun$output$confidenceIntervals
-omxCheckCloseEnough(
-	varrunGD$output$confidenceIntervals,
-	varrun$output$confidenceIntervals,
-	0.01
-)
+
+expect_equal(varrunGD$output$confidenceIntervals,
+             varrun$output$confidenceIntervals, .006)
+
 
 omxCheckTrue(length(varrun$compute$steps$GD$output$paramNames))
 omxCheckTrue(length(varrun$compute$steps$GD$output$finalSimplexMat))
@@ -96,6 +97,12 @@ omxCheckTrue(length(varrun$compute$steps$GD$output$simplexGradient))
 omxCheckTrue(length(varrun$compute$steps$GD$output$rangeProximityMeasure))
 omxCheckTrue(length(varrun$compute$steps$GD$output$domainProximityMeasure))
 omxCheckTrue(length(varrun$compute$steps$GD$output$penalizedFit))
+
+#Test use of mxAutoStart() with a model that has a custom compute plan and only 1 endogenous variable:
+varmod_as <- mxAutoStart(varmod,type="ULS")
+omxCheckCloseEnough(coef(varmod_as), c(mean(x),var(x)), 1e-5)
+varmod_as2 <- mxAutoStart(varmod,type="DWLS")
+omxCheckCloseEnough(coef(varmod_as2), c(mean(x),var(x)*999/1000), 1e-5)
 
 #Try using inequality-constrained formulation of CI problem:
 plan$steps$CI$constraintType <- "ineq"
@@ -113,10 +120,10 @@ varmod2 <- mxModel(
 varrun2 <- mxRun(varmod2,intervals=T)
 varrunGD$output$confidenceIntervals
 varrun2$output$confidenceIntervals
-omxCheckCloseEnough(
+expect_equal(
 	varrunGD$output$confidenceIntervals,
 	varrun2$output$confidenceIntervals,
-	0.01 
+	0.006
 )
 #The change in fit is off by 0.05, which is the on-load default feasibility tolerance:
 omxCheckCloseEnough(varrun2$compute$steps$CI$output$detail$fit - varrun2$output$fit - 0.05, rep(qchisq(0.95,1),4), 1e-6)

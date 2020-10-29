@@ -1,0 +1,145 @@
+#!/bin/sh
+
+set -o errexit
+set -o nounset
+set -o noclobber
+
+out=/tmp/irt-regression.$$.log
+
+opt="-q --vanilla --no-save"
+
+tests="
+ inst/models/passing/ifa-allna.R
+ tests/testthat/test-ifa-drm1.R
+ inst/models/passing/ifa-grm1.R
+ inst/models/passing/ifa-drm-mg.R
+ inst/models/passing/ifa-missingdata.R
+ inst/models/passing/ifa-drm-mg2.R
+ inst/models/passing/fm-example2-2.R
+ inst/models/passing/ifa-lmp.R
+ inst/models/nightly/fm-example2-8.R
+ inst/models/nightly/ifa-ms.R
+ inst/models/nightly/ifa-2d-mg.R
+ inst/models/nightly/ifa-bifactor.R
+ inst/models/nightly/ifa-cai2009.R
+ inst/models/nightly/fm-example2-1.R
+ inst/models/nightly/fm-example2-4.R
+ inst/models/nightly/ifa-dLL.R
+ inst/models/nightly/ifa-meat-2d.R
+ inst/models/nightly/ifa-meat-2tier.R
+ inst/models/nightly/ifa-latent-2d.R
+ inst/models/nightly/ifa-fisher-info.R
+ inst/models/nightly/ifa-drm-wide.R
+"
+
+for t in $tests; do
+  echo -n "$t\t"
+  if false; then
+    R $opt -f $t
+  else
+    if ! /usr/bin/time --format "%E %F %R %c" bash -c "R $opt -f $t > $out 2>&1"; then
+      cat $out
+      exit
+    else
+      rm -f $out
+    fi
+  fi
+done
+
+exit 0  # --------------------------------------
+
+24 jan 2016 (prior to code refactor)
+
+passing/ifa-allna.R	0:01.63 0 76617 40
+passing/ifa-drm1.R	0:01.82 0 75991 34
+passing/ifa-grm1.R	0:01.89 0 77200 49
+passing/ifa-drm-mg.R	0:01.91 0 77777 29
+passing/ifa-missingdata.R	0:01.66 0 74647 19
+passing/ifa-drm-mg2.R	0:02.80 0 77661 80
+passing/fm-example2-2.R	0:02.01 0 73498 30
+passing/ifa-lmp.R	0:01.81 0 73525 41
+nightly/fm-example2-8.R	0:01.66 0 72667 49
+nightly/ifa-ms.R	0:03.29 0 96127 408
+nightly/ifa-2d-mg.R	0:03.14 0 78676 130
+nightly/ifa-bifactor.R	0:03.50 0 83350 224
+nightly/ifa-cai2009.R	0:03.84 0 97347 246
+nightly/fm-example2-1.R	0:02.14 0 73793 58
+nightly/fm-example2-4.R	0:01.73 0 74191 20
+nightly/ifa-dLL.R	0:02.23 0 77548 67
+nightly/ifa-meat-2d.R	0:09.54 0 136373 672
+nightly/ifa-meat-2tier.R	1:21.25 0 152557 18061
+nightly/ifa-latent-2d.R	0:02.71 0 80189 24
+nightly/ifa-fisher-info.R	0:02.57 0 58832 76
+nightly/ifa-drm-wide.R	0:41.37 0 346556 3022
+
+24 jan 2016 (after code refactor)
+
+passing/ifa-allna.R	0:01.61 0 76623 14
+passing/ifa-drm1.R	0:01.85 0 75999 61
+passing/ifa-grm1.R	0:01.88 0 77190 33
+passing/ifa-drm-mg.R	0:01.90 0 77780 39
+passing/ifa-missingdata.R	0:01.69 0 74651 26
+passing/ifa-drm-mg2.R	0:02.65 0 77663 43
+passing/fm-example2-2.R	0:02.00 0 73491 67
+passing/ifa-lmp.R	0:01.78 0 73531 43
+nightly/fm-example2-8.R	0:01.66 0 72663 42
+nightly/ifa-ms.R	0:02.86 0 80687 408
+nightly/ifa-2d-mg.R	0:03.22 0 94732 280
+nightly/ifa-bifactor.R	0:02.85 0 83005 128
+nightly/ifa-cai2009.R	0:03.15 0 97160 389
+nightly/fm-example2-1.R	0:01.99 0 73784 28
+nightly/fm-example2-4.R	0:01.68 0 74202 18
+nightly/ifa-dLL.R	0:02.18 0 77567 44
+nightly/ifa-meat-2d.R	0:07.34 0 124799 1570
+nightly/ifa-meat-2tier.R	0:50.77 0 148716 11446
+nightly/ifa-latent-2d.R	0:02.34 0 80184 40
+nightly/ifa-fisher-info.R	0:02.22 0 58835 44
+nightly/ifa-drm-wide.R	0:37.78 0 353020 7076
+
+28 Mar 2017 (after ComputeEM API change; big drop in performance before that though)
+
+passing/ifa-allna.R	0:01.46 0 61691 23
+passing/ifa-drm1.R	0:01.74 0 61342 35
+passing/ifa-grm1.R	0:01.97 0 61980 70
+passing/ifa-drm-mg.R	0:01.77 0 62219 33
+passing/ifa-missingdata.R	0:01.70 0 61309 43
+passing/ifa-drm-mg2.R	0:02.88 0 62180 131
+passing/fm-example2-2.R	0:02.08 0 60630 46
+passing/ifa-lmp.R	0:02.30 0 60220 127
+nightly/fm-example2-8.R	0:01.51 0 59567 21
+nightly/ifa-ms.R	0:08.32 0 61274 917
+nightly/ifa-2d-mg.R	0:03.51 0 63342 203
+nightly/ifa-bifactor.R	0:04.33 0 62549 333
+nightly/ifa-cai2009.R	0:09.09 0 61267 1215
+nightly/fm-example2-1.R	0:02.94 0 60682 174
+nightly/fm-example2-4.R	0:01.73 0 60705 31
+nightly/ifa-dLL.R	0:02.47 0 62392 73
+nightly/ifa-meat-2d.R	0:41.90 0 61736 32707
+nightly/ifa-meat-2tier.R	8:09.40 0 63383 225073
+nightly/ifa-latent-2d.R	0:02.60 0 65071 977
+nightly/ifa-fisher-info.R	0:02.86 0 50735 248
+nightly/ifa-drm-wide.R	1:45.72 0 89085 12216
+
+v2.13.2-132-gc8942afb1 or v2.13.2-135-ga3123dfb2 (2019 Aug 07)
+
+passing/ifa-allna.R	0:01.35 0 55405 33
+passing/ifa-drm1.R	0:04.10 0 54693 372
+passing/ifa-grm1.R	0:03.44 0 56341 133
+passing/ifa-drm-mg.R	0:02.89 0 57452 62
+passing/ifa-missingdata.R	0:02.90 0 53390 62
+passing/ifa-drm-mg2.R	0:03.82 0 58660 201
+passing/fm-example2-2.R	0:03.19 0 51929 99
+passing/ifa-lmp.R	0:02.67 0 51972 177
+nightly/fm-example2-8.R	0:02.74 0 51917 23
+nightly/ifa-ms.R	0:03.47 0 52704 265
+nightly/ifa-2d-mg.R	0:03.21 0 59432 174
+nightly/ifa-bifactor.R	0:03.63 0 58719 374
+nightly/ifa-cai2009.R	0:04.60 0 51965 463
+nightly/fm-example2-1.R	0:04.70 1 68740 1795
+nightly/fm-example2-4.R	0:01.57 0 52376 32
+nightly/ifa-dLL.R	0:02.91 0 57413 152
+nightly/ifa-meat-2d.R	0:08.20 0 55369 1315
+nightly/ifa-meat-2tier.R	0:43.37 0 62118 9481
+nightly/ifa-latent-2d.R	0:02.92 0 63939 324
+nightly/ifa-fisher-info.R	0:03.04 0 53049 211
+nightly/ifa-drm-wide.R	1:06.97 0 85393 4115

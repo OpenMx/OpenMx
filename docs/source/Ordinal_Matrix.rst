@@ -284,6 +284,7 @@ Our first step to running this model is to include the data to be analyzed. The 
     mu           <- matrix(0,nrow=nVariables,ncol=1)
     
     # Step 2: simulate multivariate normal data
+		library(MASS)  # for mvrnorm
     set.seed(1234)
     continuousData <- mvrnorm(n=nSubjects,mu,sigma)
 

@@ -48,8 +48,18 @@ void FitMultigroup::compute(int want, FitContext *fc)
 			if (want & FF_COMPUTE_MAXABSCHANGE) {
 				mac = std::max(fc->mac, mac);
 			}
+			if (want & FF_COMPUTE_PREOPTIMIZE) {
+				if (units == FIT_UNITS_UNINITIALIZED) {
+					units = f1->fitFunction->units;
+				} else if (units != f1->fitFunction->units) {
+					mxThrow("%s: cannot combine units %s and %s (from %s)",
+						matrix->name(), fitUnitsToName(units),
+						fitUnitsToName(f1->fitFunction->units), f1->name());
+				}
+			}
 		} else {
 			omxRecompute(f1, fc);
+      if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
 		}
 		if (want & FF_COMPUTE_FIT) {
 			if(f1->rows != 1 || f1->cols != 1) {
@@ -94,7 +104,6 @@ void FitMultigroup::init()
 	if (mg->fits.size()) return; // hack to prevent double initialization, remove TOOD
 
 	oo->units = FIT_UNITS_UNINITIALIZED;
-	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 	oo->canDuplicate = true;
 
@@ -117,17 +126,8 @@ void FitMultigroup::init()
 		mg->fits.push_back(mat);
 		if (mat->fitFunction) {
 			omxCompleteFitFunction(mat);
-			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
-			if (oo->units == FIT_UNITS_UNINITIALIZED) {
-				oo->units = mat->fitFunction->units;
-			} else if (oo->units != mat->fitFunction->units) {
-				mxThrow("%s: cannot combine units %s and %s (from %s)",
-					 oo->matrix->name(),
-					 fitUnitsToName(oo->units), fitUnitsToName(mat->fitFunction->units), mat->name());
-			}
 		} else {
-			oo->gradientAvailable = FALSE;
 			oo->hessianAvailable = FALSE;
 		}
 	}

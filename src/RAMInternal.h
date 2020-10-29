@@ -11,333 +11,16 @@
 #include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>
 //#include <RcppEigenCholmod.h>
+#include "path.h"
 #include "Connectedness.h"
 
-template <typename T1>
-class AsymTool {
-	int AshallowDepth;
-	double signA;
-	std::vector<T1> &latentFilter;
-	Eigen::SparseMatrix<double>      ident;
-	bool analyzed;
-	bool hasDeterminedDepth;
-	Eigen::SparseLU< Eigen::SparseMatrix<double>,
-		Eigen::COLAMDOrdering<Eigen::SparseMatrix<double>::Index> > Asolver;
-	//Eigen::UmfPackLU< Eigen::SparseMatrix<double> > Asolver;
-	int clumpObs;
-	bool filtered;
-	int invertCount;
-	int filterCount;
- public:
-	bool determinedDepth() const { return hasDeterminedDepth; };
-	bool isFiltered() const { return filtered; };
-	int getDepth() const { return AshallowDepth; };
-	void setDepth(int depth) {
-		AshallowDepth = depth;
-		hasDeterminedDepth = true;
-		if (depth >= 0) signA = 1.0;
-	};
-	double getSign() const { return signA; };
-	int getInvertCount() const { return invertCount; };
-	int getFilterCount() const { return filterCount; };
+struct coeffLoc {
+	int off;
+	int r, c;
 
-	Eigen::SparseMatrix<double> fullA;
-	Eigen::SparseMatrix<double> IAF;
-
-	AsymTool(std::vector<T1> &_latentFilter) :
-	AshallowDepth(-1), signA(-1.0), latentFilter(_latentFilter), analyzed(false), hasDeterminedDepth(false),
-		invertCount(0), filterCount(0) {};
-	void resize(int clumpVars, int _clumpObs)
-	{
-		fullA.resize(clumpVars, clumpVars);
-		ident.resize(clumpVars, clumpVars);
-		ident.setIdentity();
-		clumpObs = _clumpObs;
-	};
-	void determineShallowDepth(FitContext *fc);
-	void invert();
-	void filter();
+coeffLoc(int _off, int _r, int _c) :
+	off(_off), r(_r), c(_c) {}
 };
-
-template <typename T1> void AsymTool<T1>::determineShallowDepth(FitContext *fc)
-{
-	int maxDepth = std::min(fullA.cols(), 30);
-	if (Global->RAMMaxDepth != NA_INTEGER) maxDepth = Global->RAMMaxDepth;
-	Eigen::SparseMatrix<double> curProd = fullA;
-	for (int tx=1; tx <= maxDepth; ++tx) {
-		if (false) {
-			Eigen::MatrixXd tmp = curProd;
-			mxPrintMat("curProd", tmp);
-		}
-		curProd = (curProd * fullA.transpose()).eval();
-		bool allZero = true;
-		for (int k=0; k < curProd.outerSize(); ++k) {
-			for (Eigen::SparseMatrix<double>::InnerIterator it(curProd, k); it; ++it) {
-				if (it.value() != 0.0) {
-					allZero = false;
-					break;
-				}
-			}
-		}
-		if (allZero) {
-			AshallowDepth = tx - 1;
-			break;
-		}
-	}
-	fullA.setZero();
-
-	if (AshallowDepth >= 0) signA = 1.0;
-	hasDeterminedDepth = true;
-}
-
-template <typename T1> void AsymTool<T1>::invert()
-{
-	// consider http://users.clas.ufl.edu/hager/papers/Lightning/update.pdf ?
-	if (AshallowDepth >= 0) {
-		fullA.makeCompressed();
-		IAF = fullA + ident;
-		for (int iter=1; iter <= AshallowDepth; ++iter) {
-			IAF = (IAF * fullA + ident).eval();
-			//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
-		}
-	} else {
-		fullA += ident;
-		if (!analyzed) {
-			analyzed = true;
-			fullA.makeCompressed();
-			Asolver.analyzePattern(fullA);
-		}
-		Asolver.factorize(fullA);
-		if (Asolver.info() != Eigen::Success) {
-			mxThrow("Failed to invert flattened A matrix; %s",
-				 Asolver.lastErrorMessage().c_str());
-		}
-
-		IAF = Asolver.solve(ident);
-		fullA -= ident;  // leave unchanged
-		//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
-	}
-	filtered = false;
-	++invertCount;
-}
-
-template <typename T1> void AsymTool<T1>::filter()
-{
-	const bool doubleCheck = false;
-	Eigen::MatrixXd denseA;
-	if (doubleCheck) {
-		denseA = IAF;
-	}
-
-	// We built A transposed so we can quickly filter columns
-	// Switch to filterOuter http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1130 TODO
-	IAF.uncompress();
-	Eigen::SparseMatrix<double>::Index *op = IAF.outerIndexPtr();
-	Eigen::SparseMatrix<double>::Index *nzp = IAF.innerNonZeroPtr();
-	int dx = 0;
-	for (int cx=0; cx < fullA.cols(); ++cx) {
-		if (!latentFilter[cx]) continue;
-		op[dx] = op[cx];
-		nzp[dx] = nzp[cx];
-		++dx;
-	}
-	op[dx] = op[fullA.cols()];
-	IAF.conservativeResize(fullA.rows(), clumpObs);
-
-	// I've screwed this up 3-4 times, better check it!
-	if (OMX_DEBUG && dx != clumpObs) mxThrow("latentFilter has wrong count %d != %d",
-						  dx, clumpObs);
-
-	if (doubleCheck) {
-		Eigen::MatrixXd denseAF;
-		denseAF.resize(fullA.rows(), clumpObs);
-		int xx=0;
-		for (int cx=0; cx < fullA.cols(); ++cx) {
-			if (!latentFilter[cx]) continue;
-			denseAF.col(xx) = denseA.col(cx);
-			++xx;
-		}
-		if (xx != clumpObs) mxThrow("latentFilter has wrong count %d != %d",
-					     xx, clumpObs);
-
-		// ensure inner iterator works
-		for (int k=0; k< IAF.outerSize(); ++k) {
-			for (Eigen::SparseMatrix<double>::InnerIterator it(IAF, k); it; ++it) {
-				if (denseAF.coeff(it.row(), it.col()) != it.value()) {
-					mxLog("[%d,%d] %f != %f",
-					      it.row(), it.col(), denseAF.coeff(it.row(), it.col()), it.value());
-				}
-			}
-		}
-
-		Eigen::MatrixXd denseFilteredA = IAF;
-		if ((denseAF.array() != denseFilteredA.array()).any()) {
-			for (int rx=0; rx<denseAF.rows(); ++rx) {
-				for (int cx=0; cx<denseAF.cols(); ++cx) {
-					if (denseAF.coeff(rx,cx) != denseFilteredA.coeff(rx,cx)) {
-						mxLog("[%d,%d] %f != %f",
-						      rx, cx, denseAF.coeff(rx,cx), denseFilteredA.coeff(rx,cx));
-					}
-				}
-			}
-			mxThrow("stop");
-		}
-	}
-	filtered = true;
-	++filterCount;
-	//{ Eigen::MatrixXd tmp = out; mxPrintMat("out", tmp); }
-}
-
-/*
-template<typename _MatrixType, int _UpLo = Eigen::Lower>
-class SimpCholesky : public Eigen::SimplicialLDLT<_MatrixType, _UpLo> {
- private:
-	Eigen::MatrixXd ident;
-	Eigen::MatrixXd inverse;
-
- public:
-	typedef Eigen::SimplicialLDLT<_MatrixType, _UpLo> Base;
-	
-	double log_determinant() const {
-		typename Base::Scalar detL = Base::vectorD().array().log().sum();
-		return detL;
-	}
-
-	void refreshInverse()
-	{
-		if (ident.rows() != Base::m_matrix.rows()) {
-			ident.setIdentity(Base::m_matrix.rows(), Base::m_matrix.rows());
-		}
-
-		inverse = Base::solve(ident);
-	};
-
- 	const Eigen::MatrixXd &getInverse() const { return inverse; };
-};
-*/
-
-/*
-	// Based on lme4CholmodDecomposition.h from lme4
-	template<typename _MatrixType, int _UpLo = Eigen::Lower>
-	class Cholmod : public Eigen::CholmodDecomposition<_MatrixType, _UpLo> {
-	private:
-		Eigen::MatrixXd ident;
-		cholmod_dense* x_cd;
-
-	protected:
-		typedef Eigen::CholmodDecomposition<_MatrixType, _UpLo> Base;
-		using Base::m_factorizationIsOk;
-		typedef void (*cholmod_error_type)(int status, const char *file, int line, const char *message);
-
-	        cholmod_factor* factor() const { return Base::m_cholmodFactor; }
-		cholmod_common& cholmod() const {
-			return const_cast<Cholmod<_MatrixType, _UpLo>*>(this)->Base::cholmod();
-		}
-
-		cholmod_error_type oldHandler;
-		static void cholmod_error(int status, const char *file, int line, const char *message) {
-			// cannot throw exception here because we might be in an OpenMP section
-			failed = true;
-		}
-
-     // * If you are going to factorize hundreds or more matrices with the same
-     // * nonzero pattern, you may wish to spend a great deal of time finding a
-     // * good permutation.  In this case, try setting Common->nmethods to CHOLMOD_MAXMETHODS
-     // * The time spent in cholmod_analysis will be very high, but you need to
-     // * call it only once. TODO
-
-	public:
-		static int failed;
-
-		Cholmod() : x_cd(NULL) {
-			oldHandler = cholmod().error_handler;
-			cholmod().error_handler = cholmod_error;
-			cholmod().supernodal = CHOLMOD_AUTO;
-			cholmod().nmethods = CHOLMOD_MAXMETHODS;
-			if (0) {
-				cholmod().nmethods = 2;
-				cholmod().method[0].ordering = CHOLMOD_NESDIS;
-				cholmod().method[1].ordering = CHOLMOD_AMD;
-			}
-		};
-		~Cholmod() {
-			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
-			cholmod().error_handler = oldHandler;
-		};
-
-		void analyzePattern(const typename Base::MatrixType& matrix)
-		{
-			if (ident.rows() != matrix.rows()) {
-				ident.setIdentity(matrix.rows(), matrix.rows());
-			}
-			Base::analyzePattern(matrix);
-			cholmod_common &cm = cholmod();
-			if (OMX_DEBUG) {
-				mxLog("Cholmod: selected ordering %d lnz=%f fl=%f super=%d",
-				      cm.method[cm.selected].ordering,
-				      cm.method[cm.selected].lnz, cm.method[cm.selected].fl, factor()->is_super);
-			}
-		}
-
-		double log_determinant() const {
-			// Based on https://github.com/njsmith/scikits-sparse/blob/master/scikits/sparse/cholmod.pyx
-			cholmod_factor *cf = factor();
-			if (cf->xtype == CHOLMOD_PATTERN) mxThrow("Cannot extract diagonal from symbolic factor");
-			double logDet = 0;
-			double *x = (double*) cf->x;
-			if (cf->is_super) {
-				// This is a supernodal factorization, which is stored as a bunch
-				// of dense, lower-triangular, column-major arrays packed into the
-				// x vector. This is not documented in the CHOLMOD user-guide, or
-				// anywhere else as far as I can tell; I got the details from
-				// CVXOPT's C/cholmod.c.
-
-				int *super = (int*) cf->super;
-				int *pi = (int*) cf->pi;
-				int *px = (int*) cf->px;
-				for (size_t sx=0; sx < cf->nsuper; ++sx) {
-					int ncols = super[sx + 1] - super[sx];
-					int nrows = pi[sx + 1] - pi[sx];
-
-					Eigen::Map<const Eigen::Array<double,1,Eigen::Dynamic>, 0, Eigen::InnerStride<> >
-						s1(x + px[sx], ncols, Eigen::InnerStride<>(nrows+1));
-					logDet += s1.real().log().sum();
-				}
-			} else {
-				// This is a simplicial factorization, which is simply stored as a
-				// sparse CSC matrix in x, p, i. We want the diagonal, which is
-				// just the first entry in each column; p gives the offsets in x to
-				// the beginning of each column.
-				//
-				// The ->p array actually has n+1 entries, but only the first n
-				// entries actually point to real columns (the last entry is a
-				// sentinel)
-				int *p = (int*) cf->p;
-				for (size_t ex=0; ex < cf->n; ++ex) {
-					logDet += log( x[p[ex]] );
-				}
-			}
-			if (cf->is_ll) {
-				logDet *= 2.0;
-			}
-			return logDet;
-		};
-
-		double *getInverseData() const
-		{
-			return (double*) x_cd->x;
-		}
-
-		void refreshInverse()
-		{
-			eigen_assert(m_factorizationIsOk && "The decomposition is not in a valid state for solving, you must first call either compute() or symbolic()/numeric()");
-			cholmod_dense b_cd(viewAsCholmod(ident));
-			if (x_cd) cholmod_free_dense(&x_cd, &cholmod());
-			x_cd = cholmod_solve(CHOLMOD_A, factor(), &b_cd, &cholmod());
-			if(!x_cd) throw std::runtime_error("cholmod_solve failed"); // impossibe?
-		};
-	};
-*/
 
 class omxRAMExpectation;
 
@@ -349,8 +32,8 @@ namespace RelationalRAMExpectation {
 	// analysis of the data.
 
 	struct addrSetup {
-		int numKids;
-		int numJoins;
+		int numKids;  // how many lower level units (kids) join with this unit?
+		int numJoins; // how many parents does this unit join with?
 		int parent1;  // first parent
 		int fk1;      // first foreign key
 
@@ -358,7 +41,7 @@ namespace RelationalRAMExpectation {
 		// are considered a compound component of this model.
 		std::vector<int> clump;
 		bool clumped;
-		int rset;
+		int rset; // "rotation set" annotation for debugging
 		int skipMean;
 		bool heterogenousMean;
 	};
@@ -434,6 +117,51 @@ namespace RelationalRAMExpectation {
 		void refreshModel(FitContext *fc);
 		void refreshUnitA(FitContext *fc, int px);
 		void invertAndFilterA();
+
+		struct MpcIO : PathCalcIO {
+			independentGroup &par;
+			int clumpSize;
+			MpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			virtual void recompute(FitContext *fc);
+			virtual unsigned getVersion(FitContext *fc);
+			virtual void refresh(FitContext *fc);
+			virtual PathCalcIO *clone()
+			{ return new MpcIO(par); }
+		};
+
+		struct ApcIO : PathCalcIO {
+			independentGroup &par;
+			int clumpSize;
+			bool useRampart;
+			ApcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize), useRampart(true) {}
+			virtual void recompute(FitContext *fc);
+			virtual unsigned getVersion(FitContext *fc);
+			template <typename T>
+			void _refresh(FitContext *fc, T &mat, double sign);
+			virtual void refreshA(FitContext *fc, double sign)
+			{ _refresh(fc, full, sign); }
+			virtual void refreshSparse1(FitContext *fc, double sign)
+			{ _refresh(fc, sparse, sign); }
+			virtual PathCalcIO *clone()
+			{ return new ApcIO(par); }
+		};
+
+		struct SpcIO : PathCalcIO {
+			independentGroup &par;
+			int clumpSize;
+			SpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			virtual void recompute(FitContext *fc);
+			virtual unsigned getVersion(FitContext *fc);
+			template <typename T>
+			void _refresh(FitContext *fc, T &mat);
+			virtual void refresh(FitContext *fc)
+			{ _refresh(fc, full); }
+			virtual void refreshSparse1(FitContext *fc, double sign)
+			{ _refresh(fc, sparse); }
+			virtual PathCalcIO *clone()
+			{ return new SpcIO(par); }
+		};
+
 	public:
 		int arrayIndex;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToPlacementMapType;
@@ -449,24 +177,18 @@ namespace RelationalRAMExpectation {
 		Eigen::ArrayXi                   dataColumn; // for OLS profiled constant parameters
 		Eigen::VectorXd                  dataVec;
 		Eigen::VectorXd                  simDataVec;
-		Eigen::VectorXd                  fullMean;
+		Eigen::VectorXd                  fullMean;  // rename, latents are filtered out
 		Eigen::VectorXd                  rawFullMean;
+		int                              skipMean;
 		Eigen::VectorXd                  expectedVec;
-		Eigen::SparseMatrix<double>      fullCov;
-		bool                             analyzedCov;
-		//Cholmod< Eigen::SparseMatrix<double> > covDecomp;
-		//SimpCholesky< Eigen::MatrixXd >  covDecomp;
-		Eigen::SparseMatrix<double>      fullS;
+		Eigen::MatrixXd                  fullCov;   // rename, latents are filtered out
 		std::vector<bool>                latentFilter; // false when latent or missing
+    std::vector<bool>                isProductNode;
 
-		// could store coeff extraction plan in addr TODO
-		AsymTool<bool>          asymT;
+		PathCalc pcalc;
 		double                           fit;  // most recent fit for debugging
 
-		independentGroup(class state *_st, int size, int _clumpSize)
-			: st(*_st), clumpSize(_clumpSize),
-			analyzedCov(false), asymT(latentFilter)
-		{ placements.reserve(size); };
+		independentGroup(class state *_st, int size, int _clumpSize);
 		independentGroup(independentGroup *ig);
 		int numLooseClumps() {
 			independentGroup &par = getParent();
@@ -483,8 +205,8 @@ namespace RelationalRAMExpectation {
 		void filterFullMean();
 		void finalizeData();
 		Eigen::SparseMatrix<double> getInputMatrix() const;
-		void computeCov1(FitContext *fc);
-		void computeCov2();
+		void computeCov(FitContext *fc);
+		void computeMean(FitContext *fc);
 		void simulate();
 		void exportInternalState(MxRList &out, MxRList &dbg);
 		independentGroup &getParent();
@@ -501,9 +223,11 @@ namespace RelationalRAMExpectation {
 		int rotationCount;
 
 	public:
+		bool isChild() const { return this != parent; }
 		typedef std::vector< std::set<int> > SubgraphType;
 		struct omxExpectation *homeEx;
 		std::set<struct omxExpectation *> allEx;
+		bool hasProductNodes;
 		typedef std::map< std::pair<omxData*,int>, int, RowToLayoutMapCompare> RowToLayoutMapType;
 		RowToLayoutMapType               rowToLayoutMap;
 		std::vector<addrSetup>		 layoutSetup;
@@ -531,9 +255,12 @@ namespace RelationalRAMExpectation {
 		template <typename T> void unapplyRotationPlan(T accessor);
 		template <typename T> void applyRotationPlan(T accessor);
 		template <typename T> void appendClump(int ax, std::vector<T> &clump);
-		void propagateDefVar(omxRAMExpectation *to, omxMatrix *_transition,
-				     omxRAMExpectation *from);
+		template <typename T>
+		void propagateDefVar(omxRAMExpectation *to, Eigen::MatrixBase<T> &transition,
+												 omxRAMExpectation *from);
 		void computeConnected(std::vector<int> &region, SubgraphType &connected);
+		void computeMeanByModel(FitContext *fc);
+		void computeMeanByGroup(FitContext *fc);
 	public:
 		~state();
 		void computeCov(FitContext *fc);
@@ -551,13 +278,72 @@ namespace RelationalRAMExpectation {
 
 class omxRAMExpectation : public omxExpectation {
 	typedef omxExpectation super;
-	unsigned Zversion;
-	omxMatrix *_Z;
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector<const char *> dataColNames;
 	std::vector< omxThresholdColumn > thresholds;
 	std::vector<int> exoDataColumns; // index into omxData
 	Eigen::VectorXd exoPredMean;
+	bool hasProductNodes;
+  bool studiedF;
+  bool openBox;  // can the user access the expectation during optimization?
+	int numExoPred;
+	std::vector<int> exoDataColIndex;
+  void addSlopeMatrix();
+
+	struct MpcIO : PathCalcIO {
+		omxMatrix *M0;
+		MpcIO() {}
+		virtual void recompute(FitContext *fc);
+		virtual unsigned getVersion(FitContext *fc);
+		virtual void refresh(FitContext *fc);
+		virtual PathCalcIO *clone()
+		{
+			auto *mio = new MpcIO;
+			mio->M0 = M0;
+			return mio;
+		}
+	};
+
+	struct ApcIO : PathCalcIO {
+		omxMatrix *A0;
+		std::vector<coeffLoc> &vec;
+		ApcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
+		virtual void recompute(FitContext *fc);
+		virtual unsigned getVersion(FitContext *fc);
+		template <typename T>
+		void _refresh(FitContext *fc, T &mat, double sign);
+		virtual void refreshA(FitContext *fc,double sign)
+		{ _refresh(fc, full, sign); }
+		virtual void refreshSparse1(FitContext *fc, double sign)
+		{ _refresh(fc, sparse, sign); }
+		virtual PathCalcIO *clone()
+		{
+			auto *aio = new ApcIO(vec);
+			aio->A0 = A0;
+			return aio;
+		}
+	};
+
+	struct SpcIO : PathCalcIO {
+		omxMatrix *S0;
+		std::vector<coeffLoc> &vec;
+		SpcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
+		virtual void recompute(FitContext *fc);
+		virtual unsigned getVersion(FitContext *fc);
+		template <typename T>
+		void _refresh(FitContext *fc, T &mat);
+		virtual void refresh(FitContext *fc)
+		{ _refresh(fc, full); }
+		virtual void refreshSparse1(FitContext *fc, double sign)
+		{ _refresh(fc, sparse); }
+		virtual PathCalcIO *clone()
+		{
+			auto *sio = new SpcIO(vec);
+			sio->S0 = S0;
+			return sio;
+		}
+	};
+
  public:
 	typedef std::pair< omxExpectation*, int> dvRefType; // int is offset into data->defVars array
 	typedef std::set< dvRefType > dvRefSetType;
@@ -568,27 +354,35 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<bool> dvInfluenceMean;
 	std::vector<bool> dvInfluenceVar;
 	std::vector<bool> latentFilter; // false when latent
+	std::vector<bool> isProductNode;
+	bool getHasProductNodes() const { return hasProductNodes; }
+	std::vector<coeffLoc> ScoeffStorage;
+	std::vector<coeffLoc> AcoeffStorage;
+	std::vector<coeffLoc> *Scoeff;
+	std::vector<coeffLoc> *Acoeff;
+	PathCalc pcalc;
 
-	omxRAMExpectation() : Zversion(0), _Z(0), slope(0) {};
+	omxRAMExpectation(omxState *st, int num);
 	virtual ~omxRAMExpectation();
 
-	omxMatrix *getZ(FitContext *fc);
 	void CalculateRAMCovarianceAndMeans(FitContext *fc);
 	void analyzeDefVars(FitContext *fc);
 	void logDefVarsInfluence();
+  bool isOpenBox() const { return openBox; }
 
 	omxMatrix *cov, *means; // observed covariance and means
+	omxMatrixPtr covOwner, meanOwner;
+	omxMatrix *fullCov, *fullMean;
 	omxMatrix *slope;       // exogenous predictor slopes
-	omxMatrix *A, *S, *F, *M, *I;
-	omxMatrix *X, *Y, *Ax;
+	omxMatrix *A, *S, *F, *M;
 
 	int verbose;
-	int numIters;
 	int rampartCycleLimit;
 	int rampartUnitLimit;
 	int maxDebugGroups;
 	bool useSufficientSets;
 	int optimizeMean;
+	int useSparse;
 	bool rampartEnabled() { return (rampartCycleLimit == NA_INTEGER || rampartCycleLimit > 0) && !forceSingleGroup; };
 	double logDetObserved;
 	double n;
@@ -596,21 +390,32 @@ class omxRAMExpectation : public omxExpectation {
 	int lwork;
 
 	std::vector< omxMatrix* > between;
-	RelationalRAMExpectation::state *rram;
+	RelationalRAMExpectation::state *rram; // should use unique_ptr TODO
 	bool forceSingleGroup;
 
 	void studyF();
 	void studyExoPred();
 
 	virtual void init();
+  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);
-	virtual const std::vector<const char *> &getDataColumnNames() const { return dataColNames; };
+	virtual const std::vector<const char *> &getDataColumnNames() const {
+    if (studiedF) return dataColNames;
+    else return super::getDataColumnNames();
+  };
 	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
-		return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
+    if (studiedF)
+      return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
+    else
+      return super::getDataColumns();
 	}
-	virtual std::vector< omxThresholdColumn > &getThresholdInfo() { return thresholds; }
+	virtual std::vector< omxThresholdColumn > &getThresholdInfo()
+  {
+    if (studiedF) return thresholds;
+    else return super::getThresholdInfo();
+  }
 	virtual void invalidateCache();
 	virtual void generateData(FitContext *fc, MxRList &out);
 	virtual void flatten(FitContext *fc);

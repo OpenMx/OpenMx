@@ -136,8 +136,8 @@ mxModelAverage <- function(
 		model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
 		out <- try(mxEvalByName(alg, model, compute=TRUE),silent=T)
 		if(is(out,"try-error")){
-			model <- mxModel(model,mxAlgebraFromString(algString=alg,name="onTheFlyAlgebra"))
-			out <- mxEvalByName(name="onTheFlyAlgebra",model=model,compute=T)
+			model <- mxModel(model,mxAlgebraFromString(algString=alg,name="onTheFlyAlgebra2"))
+			out <- mxEvalByName(name="onTheFlyAlgebra2",model=model,compute=T)
 		}
 		return(out)
 	}
@@ -154,8 +154,8 @@ mxModelAverage <- function(
 		for(j in 1:length(reference)){
 			xx <- try(mxEvalByName(name=reference[j],model=currmod,compute=T),silent=TRUE)
 			if(is(xx,"try-error")){
-				currmod <- mxModel(currmod,mxAlgebraFromString(algString=reference[j],name="onTheFlyAlgebra"))
-				xx <- try(mxEvalByName(name="onTheFlyAlgebra",model=currmod,compute=T),silent=TRUE)
+				currmod <- mxModel(currmod,mxAlgebraFromString(algString=reference[j],name="onTheFlyAlgebra2"))
+				xx <- try(mxEvalByName(name="onTheFlyAlgebra2",model=currmod,compute=T),silent=TRUE)
 			}
 			if(is(xx,"try-error") || !length(xx)){
 				if(refAsBlock){stop(paste("reference",omxQuotes(reference[j]),"could not be evaluated in model",omxQuotes(currmod@name)))}
@@ -219,31 +219,33 @@ mxModelAverage <- function(
 					covmAvailable <- TRUE
 				}
 				else{
-					if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
-						currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
-						dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
-						covmAvailable <- TRUE
-					}
-					else{
-						currmodcovm <- try(solve(currmod@output$hessian/2))
-						if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-					}
-					if(imxHasConstraint(currmod) && covmAvailable){
-						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix and standard errors for model-average point estimates may not be valid"))
-					}
+					currmodcovm <- try(vcov(currmod))
+					if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
+					# if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
+					# 	currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
+					# 	dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
+					# 	covmAvailable <- TRUE
+					# }
+					# else{
+					# 	currmodcovm <- try(solve(currmod@output$hessian/2))
+					# 	if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
+					# }
+					# if(imxHasConstraint(currmod) && covmAvailable){
+					# 	warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix and standard errors for model-average point estimates may not be valid"))
+					# }
 				}
 			}
 			currmod <- mxModel(
 				currmod,
-				mxAlgebraFromString(algString=paste("rbind(",paste(longlabels,collapse=","),")",sep=""),name="onTheFlyAlgebra"))
-			thetamtx[,i] <- mxEvalByName(name="onTheFlyAlgebra",model=currmod,compute=T)[,1]
+				mxAlgebraFromString(algString=paste("rbind(",paste(longlabels,collapse=","),")",sep=""),name="onTheFlyAlgebra2"))
+			thetamtx[,i] <- mxEvalByName(name="onTheFlyAlgebra2",model=currmod,compute=T)[,1]
 			if(!covmAvailable && SE){
 				#Not sure what else to do in this case:
 				warning(paste("model",omxQuotes(currmod@name),"has no covariance matrix for its free parameters; continuing with argument 'SE' coerced to FALSE"))
 				SE <- FALSE
 			}
 			if(covmAvailable && SE){
-				refcov <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=T)$Cov
+				refcov <- mxSE(x="onTheFlyAlgebra2",model=currmod,details=T,cov=currmodcovm,silent=T)$Cov
 				#TODO more informative error message:
 				if(include=="onlyFree" && any(diag(refcov) <= .Machine$double.eps)){
 					stop("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
@@ -251,7 +253,7 @@ mxModelAverage <- function(
 				refcovlist[[i]] <- refcov
 			}
 			else if(include=="onlyFree"){
-				jac <- numDeriv::jacobian(func=sefun,x=omxGetParameters(currmod),model=currmod,alg="onTheFlyAlgebra")
+				jac <- numDeriv::jacobian(func=sefun,x=omxGetParameters(currmod),model=currmod,alg="onTheFlyAlgebra2")
 				if( any(apply(X=jac,MARGIN=1,FUN=function(x){all(x==0)})) ){
 					#TODO more informative error message:
 					stop("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
@@ -304,23 +306,25 @@ mxModelAverage <- function(
 				covmAvailable <- TRUE
 			}
 			else{
-				if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
-					currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
-					dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
-					covmAvailable <- TRUE
-				}
-				else{
-					currmodcovm <- try(solve(currmod@output$hessian/2))
-					if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-				}
-				if(imxHasConstraint(currmod) && covmAvailable){
-					if(SE){
-						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances, as well as the standard errors for model-average point estimates, may not be valid"))
-					}
-					else{
-						warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances may not be valid"))
-					}
-				}
+				currmodcovm <- try(vcov(currmod))
+				if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
+				# if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
+				# 	currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
+				# 	dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
+				# 	covmAvailable <- TRUE
+				# }
+				# else{
+				# 	currmodcovm <- try(solve(currmod@output$hessian/2))
+				# 	if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
+				# }
+				# if(imxHasConstraint(currmod) && covmAvailable){
+				# 	if(SE){
+				# 		warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances, as well as the standard errors for model-average point estimates, may not be valid"))
+				# 	}
+				# 	else{
+				# 		warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances may not be valid"))
+				# 	}
+				# }
 			}
 			if(!covmAvailable && SE){
 				#We don't want the subset of models contributing to the model-average point estimates to be different from the subset of models 
@@ -355,8 +359,8 @@ mxModelAverage <- function(
 					if(covmAvailable){
 						xv <- try(mxSE(x=reference[j],model=currmod,details=T,cov=currmodcovm,forceName=T,silent=T),silent=T)
 						if(is(xv,"try-error")){
-							currmod <- mxModel(currmod,mxAlgebraFromString(algString=reference[j],name="onTheFlyAlgebra"))
-							xv <- mxSE(x="onTheFlyAlgebra",model=currmod,details=T,cov=currmodcovm,silent=T)
+							currmod <- mxModel(currmod,mxAlgebraFromString(algString=reference[j],name="onTheFlyAlgebra2"))
+							xv <- mxSE(x="onTheFlyAlgebra2",model=currmod,details=T,cov=currmodcovm,silent=T)
 						}
 						xv <- xv$Cov
 						for(k in 1:nrow(xv)){

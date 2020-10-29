@@ -15,25 +15,16 @@
  *
  */
 
-/***********************************************************
- * 
- *  omxDefines.h
- *
- *  Created: Timothy R. Brick 	Date: 2009-09-23
- *
- *	Contains #define information for debugging purposes.
- *
- **********************************************************/
 #ifndef _OMXDEFINES_H_
 #define _OMXDEFINES_H_
 
-#include <string.h>
-#include <string>
-
-#define R_NO_REMAP
 #include <Rcpp.h>
-#include <Rmath.h>
-#include <Rinternals.h>
+using namespace Rcpp;
+
+template <typename... Args>
+inline void NORET mxThrow(const char* fmt, Args&&... args) {
+    throw std::runtime_error( tfm::format(fmt, std::forward<Args>(args)... ).c_str() );
+}
 
 typedef uint64_t nanotime_t;
 nanotime_t get_nanotime(void);
@@ -84,12 +75,6 @@ static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)=
 #else
 #define OMX_DEBUG_ROWS(row) 0
 #endif /* DEBUGMX_ROWS */
-
-#ifdef DEBUGMX_MATRIX
-#define OMX_DEBUG_MATRIX 1
-#else
-#define OMX_DEBUG_MATRIX 0
-#endif /* DEBUGMX_MATRIX */
 
 #ifdef DEBUGMX_ALGEBRA
 #define OMX_DEBUG_ALGEBRA 1
@@ -151,7 +136,7 @@ class MxRList;
 class omxCompute;
 class FitContext;
 class GradientOptimizerContext;
-struct Matrix;
+struct ThinMatrix;
 struct Param_Obj;
 
 // debug tools
@@ -161,7 +146,6 @@ std::string string_snprintf(const char *fmt, ...) __attribute__((format (printf,
 void mxLog(const char* msg, ...) __attribute__((format (printf, 1, 2)));   // thread-safe
 void mxLogSetCurrentRow(int row);
 void mxLogBig(const std::string &str);
-void mxThrow(const char* msg, ...) __attribute__((format (printf, 1, 2))) __attribute__((noreturn));
 
 static inline int triangleLoc1(int diag)
 {
@@ -246,6 +230,7 @@ static inline int omp_get_thread_num() { return 0; }
 static inline int omp_get_num_threads(void) { return 1; }
 #endif
 
+#include <stan/math/prim/mat/fun/Eigen.hpp>
 #include <Eigen/Core>
 
 // Refactor as a single split function that pulls out all 3 parts
@@ -411,6 +396,69 @@ void subsetRows(const Eigen::MatrixBase<T1> &in, T2 includeTest,
 	}
 }
 
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void partitionCovariance(const Eigen::MatrixBase<T1> &gcov,
+		     T2 filterTest,
+		     Eigen::MatrixBase<T3> &v11,
+		     Eigen::MatrixBase<T4> &v12,
+		     Eigen::MatrixBase<T5> &v22)
+{
+	for (int gcx=0, c1=0,c2=0,c3=0; gcx < gcov.cols(); gcx++) {
+		for (int grx=0, r1=0,r2=0,r3=0; grx < gcov.rows(); grx++) {
+			if (filterTest(grx)) {
+				if (filterTest(gcx)) {
+					v11(r1++, c1) = gcov(grx, gcx);
+				} else {
+					v12(r2++, c2) = gcov(grx, gcx);
+				}
+			} else {
+				if (!filterTest(gcx)) {
+					v22(r3++, c3) = gcov(grx, gcx);
+				}
+			}
+		}
+		if (filterTest(gcx)) {
+			c1 += 1;
+		} else {
+			c2 += 1;
+			c3 += 1;
+		}
+	}
+}
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void partitionCovarianceSet(Eigen::MatrixBase<T1> &gcov,
+			    T2 filterTest,
+			    const Eigen::MatrixBase<T3> &v11,
+			    const Eigen::MatrixBase<T4> &v12,
+			    const Eigen::MatrixBase<T5> &v22)
+{
+	for (int gcx=0, c1=0,c2=0,c3=0,c4=0; gcx < gcov.cols(); gcx++) {
+		for (int grx=0, r1=0,r2=0,r3=0,r4=0; grx < gcov.rows(); grx++) {
+			if (filterTest(grx)) {
+				if (filterTest(gcx)) {
+					gcov(grx, gcx) = v11(r1++, c1);
+				} else {
+					gcov(grx, gcx) = v12(r2++, c2);
+				}
+			} else {
+				if (!filterTest(gcx)) {
+					gcov(grx, gcx) = v22(r3++, c3);
+				} else {
+					gcov(grx, gcx) = v12(c4, r4++);
+				}
+			}
+		}
+		if (filterTest(gcx)) {
+			c1 += 1;
+			c4 += 1;
+		} else {
+			c2 += 1;
+			c3 += 1;
+		}
+	}
+}
+
 template<typename _MatrixType, int _UpLo = Eigen::Lower>
 class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
  private:
@@ -419,9 +467,15 @@ class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
  public:
 	typedef Eigen::LDLT<_MatrixType, _UpLo> Base;
 
+	SimpCholesky() : Base() {};
+	template<typename InputType>
+	explicit SimpCholesky(const Eigen::EigenBase<InputType>& matrix) : Base(matrix) {};
+	template<typename InputType>
+	explicit SimpCholesky(Eigen::EigenBase<InputType>& matrix) : Base(matrix) {};
+
 	double log_determinant() const {
 		typename Base::Scalar detL = Base::vectorD().array().log().sum();
-		return detL;
+		return detL * 0.5;
 	}
 
 	void refreshInverse()
@@ -507,24 +561,50 @@ class ProtectAutoBalanceDoodad {
 };
 
 class AssertProtectStackBalanced {
-	ProtectAutoBalanceDoodad &myDoodad;
 	const char *context;
 	int preDepth;
-	
+	PROTECT_INDEX initialpix;
+
+	PROTECT_INDEX getDepth() {
+		PROTECT_INDEX pix;
+		R_ProtectWithIndex(R_NilValue, &pix);
+		PROTECT_INDEX diff = pix - initialpix;
+		Rf_unprotect(1);
+		return diff;
+	}
  public:
- 	AssertProtectStackBalanced(const char *_context,
-			    ProtectAutoBalanceDoodad &_myDoodad) :
-	myDoodad(_myDoodad), context(_context) {
-		preDepth = myDoodad.getDepth();
+ 	AssertProtectStackBalanced(const char *_context) : context(_context) {
+		R_ProtectWithIndex(R_NilValue, &initialpix);
+		Rf_unprotect(1);
+		preDepth = getDepth();
 	};
 	~AssertProtectStackBalanced() {
-		int postDepth = myDoodad.getDepth();
+		int postDepth = getDepth();
 		if (preDepth != postDepth) {
 			Rf_warning("%s: "
 				   "protect stack usage %d > 0, PLEASE REPORT TO OPENMX DEVELOPERS",
 				   context, postDepth - preDepth);
 		}
 	}
+};
+
+#define OOPS mxThrow("%s at %d: oops", __FILE__, __LINE__)
+
+inline int cast_with_NA(double val)
+{
+  if (std::isfinite(val)) return int(val);
+  return NA_INTEGER;
+}
+
+inline double cast_with_NA(int val)
+{
+  if (val == NA_INTEGER) return NA_REAL;
+  return double(val);
+}
+
+struct cstrCmp {
+	bool operator() (const char *s1, const char *s2) const
+	{ return strcmp(s1,s2) < 0; }
 };
 
 #endif /* _OMXDEFINES_H_ */

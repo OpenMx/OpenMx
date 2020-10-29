@@ -147,11 +147,13 @@ imxVerifyReference <- function(reference, stackNumber) {
 
 #' mxMakeNames
 #'
-#' Adjust a character vector so that it can be used as MxMatrix column
-#' or row names. OpenMx is (much) more restrictive than base R's make.names.
+#' Adjust a character vector so that it is valid when used as MxMatrix column
+#' or row names.
+#' 
+#' \emph{note}: OpenMx is (much) more restrictive than base R's make.names.
 #'
 #' @param names a character vector
-#' @param unique whether the pass the result through \link[base]{make.unique}
+#' @param unique whether to pass the result through \link[base]{make.unique}
 #' @seealso
 #' \link[base]{make.names}
 #' @examples
@@ -328,6 +330,27 @@ imxHasDefinitionVariable <- function(model) {
 	}
 	
 	# All checks find nothing, return FALSE
+	return(FALSE)
+}
+
+##' imxIsMultilevel
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  If you don't know what you're doing, but want to,
+##' here's a brief description of the function.  You give this function an MxModel. It 
+##' returns TRUE if the model is multilevel and FALSE otherwise.
+##'
+##' @param model model
+imxIsMultilevel <- function(model){
+	if(length(model$submodels) > 0){
+		attempt <- sapply(model@submodels, imxIsMultilevel)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	if(!is.null(model$expectation) && length(model$expectation$between) > 0){
+		return(TRUE)
+	}
 	return(FALSE)
 }
 
@@ -569,14 +592,14 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 	overlap <- intersect(allEntities, namespace$parameters)
 	if (length(overlap) > 0) {
 		item1 = overlap[1]
-		stop(paste("In model", omxQuotes(model@name),
-			"the following are both named",
-			"entities and free parameters:",
+		stop(paste("In model ", omxQuotes(model@name),
+			" the following are used both as named ",
+			"entities and free parameters: ",
 			omxQuotes(overlap),
-			"\nIf you are trying to set a path using an mxAlgebra, then",
-			"refer to the Algebra with square-bracket notation.",
-			"\ni.,e, instead of labels=\"", omxQuotes(overlap), "\"",
-			"use: labels=\"", omxQuotes(overlap), "[1,1]\""), call. = FALSE)
+			"\nIf you are trying to set a path using an mxAlgebra, then ",
+			"refer to the algebra with square-bracket notation.",
+			"\ni.e., instead of labels=", omxQuotes(overlap),
+			" use: labels='", overlap, "[1,1]'", sep= ""), call. = FALSE)
 	}
 	overlap <- intersect(allEntities, namespace$values)
 	if (length(overlap) > 0) {
@@ -593,7 +616,7 @@ checkNamespaceHelper <- function(model, topmodel, namespace) {
 		stop(paste("In model", omxQuotes(topmodel@name),
 			"the name", omxQuotes(select),
 			"is used as a free parameter in", omxQuotes(freelocation),
-			"and as a fixed parameter in", omxQuotes(fixedlocation)), call. = FALSE)
+			"but as a fixed parameter in", omxQuotes(fixedlocation)), call. = FALSE)
 	}
 }
 
@@ -630,11 +653,12 @@ locateLabelHelper <- function(matrix, model, label, parameter) {
 }
 
 legalGlobalReference <- function(name) {
-	if(exists(name, envir = globalenv())) {
-		value <- get(name, envir = globalenv())
-		return(is.numeric(value) || is.character(value))
-	}
-	return(FALSE);
+  topEnv <- parent.frame(10L)
+  if(exists(name, envir=topEnv)) {
+    value <- get(name, envir=topEnv)
+    return(is.numeric(value) || is.character(value))
+  }
+  return(FALSE)
 }
 
 checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
@@ -810,6 +834,16 @@ qualifyNamesMatrix <- function(matrix, modelname, dataname, namespace) {
 		refNames <- labels[select]
 		matrix@labels[select] <- sapply(refNames, imxConvertLabel, modelname, dataname, namespace)
 	}
+	select <- (free) & (!is.na(labels))
+	if (any(select)) {
+    parNames <- labels[select]
+    confused <- sapply(parNames, imxIsDefinitionVariable)
+    if (any(confused)) {
+      stop(paste("In matrix", omxQuotes(matrix@name),
+                 "free=TRUE but label looks like a definition variable:",
+                 omxQuotes(parNames[confused])))
+    }
+  }
 	return(matrix)
 }
 
@@ -859,11 +893,4 @@ safeQualifyNames <- function(obj, modelname, namespace) {
 		obj <- qualifyNames(obj, modelname, namespace)
 	}
 	obj
-}
-
-qualifyNamesData <- function(data, modelname) {
-	if (!is.null(data)) {
-		data@name <- imxIdentifier(modelname, data@name)
-	}
-	return(data)
 }

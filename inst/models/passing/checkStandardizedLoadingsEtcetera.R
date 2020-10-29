@@ -88,10 +88,6 @@ omxCheckWarning(
 )
 pointlessConstraint <- mxModel(factorModelPath, mxConstraint(1==1))
 pointlessConstraint <- mxRun(pointlessConstraint)
-omxCheckWarning(
-	mxStandardizeRAMpaths(pointlessConstraint,T),
-	"standard errors will not be computed because model 'OneFactorPath' contains at least one mxConstraint"
-)
 #NPSOL populates the 'hessian' slot of the output with its own final Hessian when there is no MxComputeNumericDeriv step:
 if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	plan <- omxDefaultComputePlan()
@@ -100,7 +96,7 @@ if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	nohess <- mxRun(nohess)
 	omxCheckWarning(
 		mxStandardizeRAMpaths(nohess,T),
-		"argument 'SE=TRUE' requires model to have a nonempty 'hessian' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
+		"argument 'SE=TRUE' requires model to have a nonempty 'vcov' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'"
 	)
 }
 
@@ -223,8 +219,8 @@ growthCurveModel <- mxModel("LinearGrowthCurveModel_MatrixSpecification",
 
 bigmod <- mxModel(
   model="foo",factorModelPath,factorModelMatrix,twinACEModel,growthCurveModel,
-  mxFitFunctionMultigroup(c("OneFactorPath.fitfunction","OneFactorMatrix.fitfunction","twinACE.fitfunction",
-                            "LinearGrowthCurveModel_MatrixSpecification.fitfunction"))
+  mxFitFunctionMultigroup(c("OneFactorPath","OneFactorMatrix","twinACE",
+                            "LinearGrowthCurveModel_MatrixSpecification"))
 )
 bigrun <- mxRun(bigmod, suppressWarnings = T)
 zpath2 <- mxStandardizeRAMpaths(bigrun,T)
@@ -241,6 +237,10 @@ omxCheckCloseEnough(
 	zpath2$twinACE$DZ$Std.Value[15],
 	1e-12
 )
+
+omxCheckEquals(colnames(bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov),
+               bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$dims)
+
 omxCheckCloseEnough(
 	bigrun$LinearGrowthCurveModel_MatrixSpecification$M$values[6] / 
 		sqrt(bigrun$LinearGrowthCurveModel_MatrixSpecification$expectation$UnfilteredExpCov[6,6]),
@@ -258,7 +258,7 @@ omxCheckCloseEnough(
 bigmod2 <- mxModel(
   model="foo",mxModel(factorModelPath,independent=T),mxModel(factorModelMatrix,independent=T),
   twinACEModel,growthCurveModel,
-  mxFitFunctionMultigroup(c("twinACE.fitfunction","LinearGrowthCurveModel_MatrixSpecification.fitfunction"))
+  mxFitFunctionMultigroup(c("twinACE","LinearGrowthCurveModel_MatrixSpecification"))
 )
 bigrun2 <- mxRun(bigmod2, suppressWarnings = T)
 zpath3 <- mxStandardizeRAMpaths(bigrun2,T)

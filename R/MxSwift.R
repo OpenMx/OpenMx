@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# nocov start
 
 ##' imxGenSwift
 ##'
@@ -25,3 +26,4 @@ imxGenSwift <- function(tc, sites, sfile) {
 	cmdline <- paste("swift -tc.file ",tc," -sites.file ",sites," ",sfile)
 	system(cmdline)
 }
+# nocov end

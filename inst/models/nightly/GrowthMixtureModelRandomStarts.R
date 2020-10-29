@@ -160,9 +160,3 @@ results$output$wallTime
 
 # Compare Model Estimation Times
 # -----------------------------------------------------------------------------
-
-
-library(OpenMx)
-
-# Reload OpenMx to offload the snowfall OpenMx library
-# -----------------------------------------------------------------------------

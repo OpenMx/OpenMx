@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2018 by the individuals mentioned in the source code history
+#   Copyright 2007-2019 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -33,9 +33,9 @@ setClass(Class = "MxModel",
 		runstate = "list",
 		.newobjects = "logical",
 		.resetdata = "logical",
-	        .wasRun = "logical",
-	    .modifiedSinceRun = "logical",
-	    .version = "MxVersionType"
+		.wasRun = "logical",
+		.modifiedSinceRun = "logical",
+		.version = "MxVersionType"
 ))
 
 imxModelTypes[['default']] <- "MxModel"
@@ -59,8 +59,8 @@ setMethod("initialize", "MxModel",
 		.Object@runstate <- list()
 		.Object@.newobjects <- FALSE
 		.Object@.resetdata <- FALSE
-	        .Object@.wasRun <- FALSE
-	        .Object@.modifiedSinceRun <- FALSE
+		.Object@.wasRun <- FALSE
+		.Object@.modifiedSinceRun <- FALSE
 		if (.hasSlot(.Object, '.version')) {
 			.Object@.version <- as.character(pkg_globals$myVersion)
 		}
@@ -120,6 +120,7 @@ setGeneric("imxInitModel", function(model) {
 ##' @param name name
 ##' @param manifestVars manifestVars
 ##' @param latentVars latentVars
+##' @param productVars productVars
 ##' @param submodels submodels
 ##' @param remove remove
 ##' @param independent independent
@@ -128,7 +129,7 @@ setGeneric("imxInitModel", function(model) {
 ##' imxModelBuilder,MxModel-method
 ##' imxModelBuilder,MxRAMModel-method
 setGeneric("imxModelBuilder", function(model, lst, name, 
-	manifestVars, latentVars, submodels, remove, independent) {
+	manifestVars, latentVars, productVars, submodels, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
 
 ##' imxTypeName
@@ -221,10 +222,10 @@ visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
 
 setMethod("$", "MxModel",
 	function(x, name) {
-        result <- imxExtractMethod(x, name)
-        if(name %in% publicMxModelSlots) {
-            result <- imxExtractSlot(x, name)
-        }
+		result <- imxExtractMethod(x, name)
+		if(name %in% publicMxModelSlots) {
+			result <- imxExtractSlot(x, name)
+		}
 		return(result)
 	}
 )
@@ -293,13 +294,32 @@ mxModel <- function(model = NA, ..., manifestVars = NA, latentVars = NA,
 	name  <- retval[[3]]
 	model <- typeArgument(model, type)
 	lst <- c(first, list(...))
+	prods <- productArgument(lst)
+	lst <- prods[[1]]
+	productVars <- prods[[2]]
 	lst <- unlist(lst)
 	filter <- sapply(lst, is, "MxModel")
 	submodels <- lst[filter]
 	lst <- lst[!filter]
 	model <- imxModelBuilder(model, lst, name, manifestVars,
-		latentVars, submodels, remove, independent)
+		latentVars, productVars, submodels, remove, independent)
 	return(model)
+}
+
+productArgument <- function(x){
+	nam <- names(x)
+	filter0 <- nam %in% c('product', 'productVars')
+	# What if multiple names match?
+	if(sum(filter0) > 1){
+		stop(paste("Multiple objects in the '...' argument matched 'productVars'.",
+			"To specify multiple product variables, hand 'productVars' a vector of the names of the product variables."))
+	} else if(sum(filter0) == 1){
+		productVars <- x[[which(filter0)]]
+		x <- x[!filter0]
+	} else {
+		productVars <- character()
+	}
+	return(list(x, productVars=productVars))
 }
 
 firstArgument <- function(model, name) {
@@ -332,6 +352,7 @@ typeArgument <- function(model, type) {
 				omxQuotes(names(imxModelTypes))), call. = FALSE)
 		}
 		typename <- imxModelTypes[[type]]
+		attr(typename,"package") <- "OpenMx"
 		class(model) <- typename
 		model <- imxInitModel(model)
 	}
@@ -348,13 +369,14 @@ typeArgument <- function(model, type) {
 ##' @param name name
 ##' @param manifestVars manifestVars
 ##' @param latentVars latentVars
+##' @param productVars productVars
 ##' @param submodels submodels
 ##' @param remove remove
 ##' @param independent independent
 imxGenericModelBuilder <- function(model, lst, name, 
-	manifestVars, latentVars, submodels, remove, independent) {
+	manifestVars, latentVars, productVars, submodels, remove, independent) {
 	model <- nameArgument(model, name)
-	model <- variablesArgument(model, manifestVars, latentVars, submodels, remove)
+	model <- variablesArgument(model, manifestVars, latentVars, productVars, submodels, remove)
 	model <- listArgument(model, lst, remove)
 	model <- independentArgument(model, independent)
 	return(model)
@@ -410,12 +432,15 @@ varsToCharacter2 <- function(vars, vartype) {
 	}
 }
 
-variablesArgument <- function(model, manifestVars, latentVars, submodels, remove) {
+variablesArgument <- function(model, manifestVars, latentVars, productVars, submodels, remove) {
 	if (single.na(manifestVars)) {
 		manifestVars <- character()
 	}
 	if (single.na(latentVars)) {
 		latentVars <- character()
+	}
+	if(length(productVars) > 0 && !single.na(productVars)) {
+		stop("Whoopsie! Product nodes/variables are not currently supported for generic MxModel objects.")
 	}
 	if (remove == TRUE) {
 		model <- modelRemoveVariables(model, latentVars, manifestVars)
@@ -530,14 +555,14 @@ setMethod("imxVerifyModel", "MxModel", function(model) {
 
 addVariablesHelper <- function(model, vartype, vars) {
 	modelvars <- slot(model, vartype)
-
+	
 	if (length(vars) == 0) {
 		return(model)
 	} else if (length(modelvars) == 0) {
 		slot(model, vartype) <- vars
 		return(model)
 	}
-
+	
 	if (is.list(vars) && !is.list(modelvars)) {
 		msg <- paste("The", vartype, "variables in",
 			"the call to mxModel() have been separated",
@@ -551,7 +576,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 			"variables do have categories.")
 		stop(msg, call. = FALSE)
 	}
-
+	
 	if (is.character(vars) && is.character(modelvars)) {
 		modelvars <- c(modelvars, vars)
 		slot(model, vartype) <- modelvars
@@ -565,7 +590,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 		}
 		slot(model, vartype) <- modelvars
 	}
-
+	
 	return(model)
 }
 
@@ -628,10 +653,11 @@ modelModifyFilter <- function(model, entries, action) {
   thresholdFilter <- sapply(entries, is, "MxThreshold")
 	unknownFilter <- !(boundsFilter | namedEntityFilter | intervalFilter | characterFilter | thresholdFilter)
 	if (any(pathFilter)) {
-		stop(paste("The model",
+		stop(paste("The model of class",
 			omxQuotes(class(model)),
 			"named",
-			omxQuotes(model@name), "does not recognize paths."),
+			omxQuotes(model@name), "does not recognize paths.\n",
+			"Add one of", paste0("type='", paste0(setdiff(mxTypes(), 'default'), "'"), collapse=' or '), 'to your model.'),
 			call. = FALSE)
 	}
 	if (any(thresholdFilter)) {
@@ -700,11 +726,12 @@ vcov.MxModel <- function(object, ...) {
   fu <- object$output$fitUnits
   if (fu %in% c("-2lnL", "r'Wr")) {
 	  got <- NULL
-	  if (!is.null(object$output[['ihessian']])) {
-		  got <- 2 * object$output[['ihessian']]
-	  } else if (!is.null(object$output[['hessian']])) {
-		  got <- 2 * solve(object$output$hessian)
-	  }
+	  if(!is.null(object$output[["vcov"]])){got <- object$output[["vcov"]]}
+	#   if (!is.null(object$output[['ihessian']])) {
+	# 	  got <- 2 * object$output[['ihessian']]
+	#   } else if (!is.null(object$output[['hessian']])) {
+	# 	  got <- 2 * solve(object$output$hessian)
+	#   }
 	  if (is.null(got)) {
 		  stop(paste("Parameter variance covariance matrix is not available.",
 			     "Turn on with mxOption(model, 'Calculate Hessian', 'Yes')", sep="\n"))

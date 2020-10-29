@@ -84,8 +84,8 @@ setGeneric("generateReferenceModels",
 
 setMethod("generateReferenceModels", "MxBaseFitFunction",
 	function(.Object, model, distribution) {
-		msg <- paste("Don't know how to make", distribution, "distribution",
-			     "reference models for a model with a ",
+		msg <- paste("Don't know how to make ", omxQuotes(distribution), 
+			" distribution reference models for a model with a ",
 			     class(.Object), " fit function.", sep="")
 		stop(msg)
 	})

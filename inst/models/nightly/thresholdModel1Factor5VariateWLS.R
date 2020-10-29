@@ -23,6 +23,8 @@
 # Step 1: load libraries
 require(OpenMx)
 
+if (mxOption(NULL, "Default optimizer") == 'NPSOL') stop('SKIP')
+
 #
 # Step 2: set up simulation parameters 
 # Note: nVariables>=3, nThresholds>=1, nSubjects>=nVariables*nThresholds (maybe more)
@@ -75,8 +77,8 @@ thresholdModel <- mxModel("thresholdModel",
             dimnames = list(c(), fruitynames)),
     mxMatrix("Lower",nThresholds,nThresholds,values=1,free=F,name="unitLower"),
     mxAlgebra(unitLower %*% thresholdDeviations, name="thresholdMatrix"),
-            mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = fruitynames, thresholds="thresholdMatrix"),
-            mxData(observed=ordinalData, type='raw')
+    mxFitFunctionML(),mxExpectationNormal(covariance="impliedCovs", means="M", dimnames = fruitynames, thresholds="thresholdMatrix"),
+    mxData(observed=ordinalData, type='raw')
 )
 
 thresholdModelrun <- mxRun(thresholdModel)
@@ -86,7 +88,7 @@ summary(thresholdModelrun, refModels=thresholdSaturated)
 a <- Sys.time()
 thresholdModelAuto <- mxAutoStart(thresholdModel)
 b <- Sys.time()
-b-a #about 2 seconds on my laptop
+b-a # about 2 seconds on my laptop (as of 2.12.2.169 [GIT v2.12.2-169-gb745620], this is ~ .07 seconds on 3.3 GHz Intel Core i7 iMac)
 
 thresholdModelAutoRun <- mxRun(thresholdModelAuto)
 
@@ -96,6 +98,8 @@ summary(thresholdModelrun)$wallTime
 # 64 sec for the estimation time from the user starts
 # auto starts provides a net boost in performance
 
+# As of 2.12.2.169 [GIT v2.12.2-169-gb745620], this is auto+ = 13.62 Secs vs 10.38 Secs for user starts (on 3.3 GHz Intel Core i7 iMac)
+
 a <- proc.time()
 thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel",
 	mxData(ordinalData, 'raw'),
@@ -104,10 +108,8 @@ thresholdModelWLS <- mxModel(thresholdModel, name="WLSThresholdModel",
 	mxFitFunctionWLS('ULS'))
 thresholdModelWLSrun <- mxRun(thresholdModelWLS)
 b <- proc.time()
-b-a
-summary(thresholdModelrun)$wallTime
-
-summary(thresholdModelWLSrun)
+b-a # 0.065 Secs 2.12.2.169 [GIT v2.12.2-169-gb745620] on 3.3 GHz Intel Core i7 iMac)
+summary(thresholdModelWLSrun)$wallTime # .035 Secs
 
 wls.L <- mxEval(L, thresholdModelWLSrun) #should be all 0.7
 wls.T <- mxEval(thresholdMatrix, thresholdModelWLSrun) #should be all quants
@@ -132,7 +134,7 @@ omxCheckTrue(rms(wls.L, auto.L) < 1e-6)
 print(rms(wls.T, auto.T))
 omxCheckTrue(rms(wls.T, auto.T) < 2e-5)
 
-ml.sum <- summary(thresholdModelrun, refModels=thresholdSaturated)
+ml.sum  <- summary(thresholdModelrun, refModels=thresholdSaturated)
 wls.sum <- summary(thresholdModelWLSrun)
 omxCheckWithinPercentError(wls.sum$Chi, 0.653, percent=10)
 omxCheckWithinPercentError(ml.sum$Chi, wls.sum$Chi, percent=16)

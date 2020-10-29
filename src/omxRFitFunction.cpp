@@ -19,7 +19,7 @@
 #include "omxRFitFunction.h"
 #include "EnableWarnings.h"
 
-void omxRFitFunction::compute(int want, FitContext *)
+void omxRFitFunction::compute(int want, FitContext *fc)
 {
 	auto *oo = this;
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
@@ -46,6 +46,8 @@ void omxRFitFunction::compute(int want, FitContext *)
 	} else if (LENGTH(theReturn) > 2) {
 		omxRaiseErrorf("FitFunction returned more than 2 arguments");
 	}
+
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
 }
 
 omxFitFunction *omxInitRFitFunction()
@@ -57,8 +59,8 @@ void omxRFitFunction::init()
 
 	if(OMX_DEBUG) { mxLog("Initializing R fit function."); }
 	omxRFitFunction *newObj = this;
-	
-	
+
+
 	ProtectedSEXP Runit(R_do_slot(rObj, Rf_install("units")));
 	setUnitsFromName(CHAR(STRING_ELT(Runit, 0)));
 

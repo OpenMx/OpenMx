@@ -2,11 +2,11 @@
 \alias{myTwinData}
 \docType{data}
 \title{
-Twin data on weight and height
+Duplicate of twinData
 }
 
 \description{
-Data set used in some of OpenMx's examples.
+Legacy dataset from early teaching examples. See \code{\link{twinData}} for a more current file.
 }
 
 \usage{data("myTwinData")}
@@ -16,7 +16,7 @@ Data set used in some of OpenMx's examples.
     \item{\code{fam}}{Family ID variable}
     \item{\code{age}}{Age of the twin pair.  Range: 17 to 88.}
     \item{\code{zyg}}{Integer codes for zygosity and gender combinations}
-    \item{\code{part}}{}
+    \item{\code{part}}{Cohort}
     \item{\code{wt1}}{Weight in kilograms for twin 1}
     \item{\code{wt2}}{Weight in kilograms for twin 2}
     \item{\code{ht1}}{Height in meters for twin 1}

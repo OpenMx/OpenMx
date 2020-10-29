@@ -5,6 +5,9 @@
 require(OpenMx)
 require(rpf)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
+
 data(LSAT6)
 dat<-expandDataFrame(LSAT6, freqName="Freq")
 dat<-mxFactor(as.data.frame(dat), levels=0:1)
@@ -19,7 +22,7 @@ colnames(dat)<-paste("X",1:ni,sep="")
 k<-0
 par<-c(.1,0)
 spec<-list()
-spec[1:ni]<- list(rpf.lmp(k=k))
+spec[1:ni]<- list(rpf.lmp(k))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))
@@ -77,7 +80,7 @@ pmtau<- -1
 pvar<-50
 
 spec<-list()
-spec[1:ni]<-list(rpf.lmp(k=k))
+spec[1:ni]<-list(rpf.lmp(k))
 
 startingValues<-matrix(par,ncol=length(spec),
   nrow=length(par))
@@ -129,8 +132,7 @@ itemModel <- mxModel(model="itemModel", imat,
   mxExpectationBA81(spec,qwidth=5,qpoints=49),
   mxFitFunctionML())
 
-fit<-mxFitFunctionMultigroup(groups=c('itemModel.fitfunction',
-  'gaussModelAlpha.fitfunction','gaussModelTau.fitfunction'))
+fit<- mxFitFunctionMultigroup(groups=c('itemModel', 'gaussModelAlpha','gaussModelTau'))
 
 k1PriorModel <- mxModel(model="k1PriorModel", itemModel, gaussModelAlpha, gaussModelTau,
   fit,

@@ -2,7 +2,7 @@
 \alias{dzoData}
 \docType{data}
 \title{
-DZ opposite sex data
+Example twin extended kinship data: DZ opposite sex twins
 }
 \description{
 Data for extended twin example ETC88.R
