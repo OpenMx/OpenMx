@@ -56,7 +56,7 @@ struct omxGREMLFitState : omxFitFunction {
 	void crude_numeric_dV(
 		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
 
-	omxGREMLFitState() : jg(1, 1, GradientAlgorithm_Forward, 2, 1e-4) {};
+	omxGREMLFitState() : jg(1, 1) {};
 	virtual void init();
 	virtual void compute(int want, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
@@ -131,6 +131,7 @@ void omxGREMLFitState::init()
 
   if(OMX_DEBUG) { mxLog("Initializing GREML fitfunction."); }
 
+  jg.setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
   oo->units = FIT_UNITS_MINUS2LL;
   oo->canDuplicate = true;
 

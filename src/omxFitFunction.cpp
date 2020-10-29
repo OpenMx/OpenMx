@@ -246,8 +246,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
     // allow option customization TODO
     fc->numericalGradTool =
       std::unique_ptr<JacobianGadget>
-      (new JacobianGadget(std::max(1, int(fc->childList.size())), numFree,
-                          GradientAlgorithm_Central, 1, 1e-7));
+      (new JacobianGadget(std::max(1, int(fc->childList.size())), numFree));
   }
   auto &ngt = *fc->numericalGradTool;
 

@@ -516,7 +516,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
 	: fc(_fc), NMobj(_nmo), numFree(_fc->getNumFree()),
-	  subsidiarygoc(GradientOptimizerContext(_fc, 0L, GradientAlgorithm_Forward, 1L, 1e-5, _nmo))
+	  subsidiarygoc(GradientOptimizerContext(_fc, 0L, _nmo))
 {
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());
@@ -579,7 +579,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	if(numEqC + numIneqC || eqConstraintMthd==3){
 		subsidiarygoc.setEngineName("SLSQP");
 		subsidiarygoc.ControlTolerance = 2 * Global->optimalityTolerance;
-		subsidiarygoc.useGradient = true;
 		subsidiarygoc.maxMajorIterations = Global->majorIterations;
 		subsidiarygoc.setupSimpleBounds();
 		//mxThrow("so far, so good");

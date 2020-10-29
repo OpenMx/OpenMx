@@ -203,6 +203,21 @@ struct ConfidenceInterval {
 	}
 };
 
+enum GradientAlgorithm {
+	GradientAlgorithm_Auto,
+	GradientAlgorithm_Forward,
+	GradientAlgorithm_Central
+};
+
+enum OptEngine {
+	OptEngine_NPSOL,
+	OptEngine_CSOLNP,
+    OptEngine_NLOPT,
+    OptEngine_SD
+};
+
+OptEngine nameToGradOptEngine(const char *engineName);
+
 // omxGlobal is for state that is read-only during parallel sections.
 class omxGlobal {
 	bool unpackedConfidenceIntervals;
@@ -219,6 +234,11 @@ class omxGlobal {
 	bool ComputePersist;
 	int numThreads;
 	int parallelDiag;
+  OptEngine engine;
+  GradientAlgorithm gradientAlgo;
+  void setDefaultGradientAlgo();
+  int gradientIter;
+  double gradientStepSize;
 	int analyticGradients;
 	double llScale;
 	int debugProtectStack;

@@ -434,6 +434,30 @@ static void readOpts(SEXP options)
 				Global->feasibilityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "max minutes")) {
 				Global->maxSeconds = nearbyint(atof(nextOptionValue) * 60);
+			} else if (matchCaseInsensitive(nextOptionName, "Default optimizer")) {
+        Global->engine = nameToGradOptEngine(nextOptionValue);
+      } else if (matchCaseInsensitive(nextOptionName, "Gradient algorithm")) {
+        if (rawValue == R_NilValue) {
+          // OK
+        } else if (strEQ(nextOptionValue, "forward")) {
+          Global->gradientAlgo = GradientAlgorithm_Forward;
+        } else if (strEQ(nextOptionValue, "central")) {
+          Global->gradientAlgo = GradientAlgorithm_Central;
+        } else {
+          mxThrow("Gradient algorithm '%s' unknown", nextOptionValue);
+        }
+      } else if (matchCaseInsensitive(nextOptionName, "Gradient iterations")) {
+        if (strEQ(nextOptionValue, "Auto")) {
+          // OK
+        } else {
+          Global->gradientIter = std::max(Rf_asInteger(rawValue), 1);
+        }
+      } else if (matchCaseInsensitive(nextOptionName, "Gradient step size")) {
+        if (strEQ(nextOptionValue, "Auto")) {
+          // OK
+        } else {
+          Global->gradientStepSize = Rf_asReal(rawValue);
+        }
 			} else if (matchCaseInsensitive(nextOptionName, "Optimality tolerance")) {
 				Global->optimalityTolerance = atof(nextOptionValue);
 			} else if (matchCaseInsensitive(nextOptionName, "Major iterations")) {
@@ -454,6 +478,7 @@ static void readOpts(SEXP options)
 				// ignore
 			}
 		}
+    Global->setDefaultGradientAlgo();
 }
 
 /* Main functions */

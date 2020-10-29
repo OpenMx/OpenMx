@@ -46,12 +46,6 @@ class GradientOptimizerContext {
 		optName += ")";
 	}
 
-	// Maybe the optimizer should not have information about
-	// how the gradient is approximated?
-	enum GradientAlgorithm gradientAlgo;
-	int gradientIterations;
-	double gradientStepSize;
-
 	bool feasible;
 	void *extraData;
 	omxMatrix *fitMatrix;
@@ -62,7 +56,6 @@ class GradientOptimizerContext {
 	double ControlRho;
 	double ControlTolerance;
 	bool warmStart;
-	bool useGradient;
 	int ineqType;
 
 	Eigen::VectorXd solLB;
@@ -84,10 +77,7 @@ class GradientOptimizerContext {
 	Eigen::MatrixXd hessOut;  // in-out for warmstart
 
 	GradientOptimizerContext(FitContext *fc, int verbose,
-				 enum GradientAlgorithm _gradientAlgo,
-				 int _gradientIterations,
-				 double _gradientStepSize,
-				 omxCompute *owner);
+                           omxCompute *owner);
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style

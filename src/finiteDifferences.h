@@ -5,209 +5,6 @@
 
 // See http://en.wikipedia.org/wiki/Finite_difference
 
-enum GradientAlgorithm {
-	GradientAlgorithm_Forward,
-	GradientAlgorithm_Central
-};
-
-template <class Derived>
-struct finite_difference_grad {
-	double refFit;
-	int thrId;
-	double *point;
-	double orig;
-
-	template <typename T1>
-	double approx(T1 ff, double offset, int px)
-	{
-		return static_cast<Derived *>(this)->approx(ff, offset, px);
-	}
-
-	template <typename T1>
-	void operator()(T1 ff, double _refFit, int _thrId, double *_point,
-			double offset, int px, int numIter, double *Gaprox, int verbose)
-	{
-		refFit = _refFit;
-		thrId = _thrId;
-		point = _point;
-		orig = point[px];
-
-		for(int k = 0; k < numIter;) {
-			double grad = 0;
-			if (offset > std::numeric_limits<double>::epsilon()) {
-				grad = approx(ff, offset, px);
-			}
-			offset *= .5;
-			if (!std::isfinite(grad)) {
-				if (verbose + OMX_DEBUG >= 1) {
-					mxLog("finite differences[%d]: retry with offset %.4g",
-					      px, offset);
-				}
-				continue;
-			}
-			Gaprox[k] = grad;
-			k += 1;
-		}
-		point[px] = orig;
-	}
-};
-
-struct forward_difference_grad : finite_difference_grad<forward_difference_grad> {
-	template <typename T1>
-	double approx(T1 ff, double offset, int px)
-	{
-		point[px] = orig + offset;
-		double f1 = ff(point, thrId);
-		return (f1 - refFit) / offset;
-	}
-};
-
-struct central_difference_grad  : finite_difference_grad<central_difference_grad> {
-	template <typename T1>
-	double approx(T1 ff, double offset, int px)
-	{
-		point[px] = orig + offset;
-		double f1 = ff(point, thrId);
-		point[px] = orig - offset;
-		double f2 = ff(point, thrId);
-		return (f1 - f2) / (2.0 * offset);
-	}
-};
-
-// can replace with JacobianGadget
-class GradientWithRef {
-	const int ELAPSED_HISTORY_SIZE;
-	const int maxAvailThreads;
-	const int numFree;
-	const GradientAlgorithm algo;
-	const int numIter;
-	const double eps;
-	int verbose;
-  bool used;
-	int curElapsed;
-	int numThreadsBookmark;
-	int curNumThreads;
-	std::vector<nanotime_t> elapsed0;
-	std::vector<nanotime_t> elapsed1;
-	Eigen::MatrixXd grid;
-	Eigen::MatrixXd thrPoint;
-
-	template <typename T1, typename T2, typename T3, typename T4>
-	void gradientImpl(T1 ff, double refFit, Eigen::MatrixBase<T2> &point,
-			  T4 dfn, Eigen::MatrixBase<T3> &gradOut)
-	{
-		thrPoint.resize(point.size(), curNumThreads);
-		thrPoint.colwise() = point;
-
-#pragma omp parallel for num_threads(curNumThreads)
-		for (int px=0; px < int(point.size()); ++px) {
-			int thrId = omp_get_thread_num();
-			int thrSelect = curNumThreads==1? -1 : thrId;
-			double offset = std::max(fabs(point[px] * eps), eps);
-			try {
-				dfn[thrId](ff, refFit, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px,
-					   numIter, &grid.coeffRef(0,px), verbose);
-			} catch (const std::exception& e) {
-				omxRaiseErrorf("%s", e.what());
-			} catch (...) {
-				omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
-			}
-			// push down into per-thread code TODO
-			for(int m = 1; m < numIter; m++) {	// Richardson Step
-				for(int k = 0; k < (numIter - m); k++) {
-					// NumDeriv Hard-wires 4s for r here. Why?
-					grid(k,px) = (grid(k+1,px) * pow(4.0, m) - grid(k,px))/(pow(4.0, m)-1);
-				}
-			}
-			gradOut[px] = grid(0,px);
-		}
-	}
-
- public:
-	GradientWithRef(int numThreads, int _numFree, GradientAlgorithm _algo, int _numIter, double _eps) :
-    ELAPSED_HISTORY_SIZE(3), maxAvailThreads(numThreads), numFree(_numFree), algo(_algo),
-    numIter(_numIter), eps(_eps)
-	{
-		verbose = numThreads>1 && Global->parallelDiag;
-    used = false;
-		curElapsed = 0;
-		numThreadsBookmark = std::min(numThreads, numFree); // could break work into smaller pieces TODO
-		if (numThreadsBookmark == 1) {
-			curElapsed = ELAPSED_HISTORY_SIZE * 2;
-		} else {
-			elapsed0.resize(ELAPSED_HISTORY_SIZE);
-			elapsed1.resize(ELAPSED_HISTORY_SIZE);
-		}
-		grid.resize(numIter, numFree);
-	}
-  ~GradientWithRef()
-  {
-    if (used) {
-      diagParallel(OMX_DEBUG, "Gradient used %d/%d threads for %d free parameters",
-                   numThreadsBookmark, maxAvailThreads, numFree);
-    } else {
-      diagParallel(OMX_DEBUG, "Gradient not used (analytic?)");
-    }
-  }
-
-	template <typename T1, typename T2, typename T3>
-	void operator()(T1 ff, double refFit,
-			Eigen::MatrixBase<T2> &point, Eigen::MatrixBase<T3> &gradOut)
-	{
-		if (point.size() != numFree) mxThrow("%s line %d: expecting %d parameters, got %d",
-						      __FILE__, __LINE__, numFree, point.size());
-
-    used = true;
-		nanotime_t startTime = get_nanotime();
-		curNumThreads = std::max(1, numThreadsBookmark - curElapsed % 2);
-
-		switch (algo) {
-		case GradientAlgorithm_Forward:{
-			std::vector<forward_difference_grad> dfn(curNumThreads);
-			gradientImpl(ff, refFit, point, dfn, gradOut);
-			break;}
-		case GradientAlgorithm_Central:{
-			std::vector<central_difference_grad> dfn(curNumThreads);
-			gradientImpl(ff, refFit, point, dfn, gradOut);
-			break;}
-		default: mxThrow("Unknown gradient algorithm %d", algo);
-		}
-
-		double el1 = (get_nanotime() - startTime);
-    if (curElapsed < ELAPSED_HISTORY_SIZE * 2) {
-      if (verbose >= 2) {
-        mxLog("gradient: test[%d] curNumThreads=%d %fms",
-              curElapsed, curNumThreads, el1/1000000.0);
-      }
-			int repl = curElapsed / 2;
-			if (curElapsed % 2) {
-				elapsed1[repl] = el1;
-			} else {
-				elapsed0[repl] = el1;
-			}
-			curElapsed += 1;
-			if (curElapsed == ELAPSED_HISTORY_SIZE * 2) {
-				std::sort(elapsed0.begin(), elapsed0.end());
-				std::sort(elapsed1.begin(), elapsed1.end());
-				double e0 = elapsed0[elapsed0.size()/2];
-				double e1 = elapsed1[elapsed1.size()/2];
-        if (verbose) {
-          mxLog("gradient took %fms with %d threads and %fms with %d threads",
-                e0/1000000.0, numThreadsBookmark, e1/1000000.0, std::max(1, numThreadsBookmark-1));
-        }
-				if (e0 > e1 && numThreadsBookmark > 1) {
-					numThreadsBookmark = std::max(numThreadsBookmark - 1, 1);
-					if (numThreadsBookmark > 1) curElapsed = 0;
-				}
-        if (verbose && curElapsed > 0) {
-          mxLog("gradient: looks like %d threads offer the best performance",
-                numThreadsBookmark);
-        }
-			}
-		}
-	}
-};
-
 struct forward_difference_jacobi {
 	template <typename T1, typename T2, typename T3, typename T4>
 	void operator()(T1 ff, Eigen::MatrixBase<T4> &refFit, Eigen::MatrixBase<T2> &point,
@@ -405,9 +202,9 @@ class JacobianGadget {
 	const int ELAPSED_HISTORY_SIZE;
 	const int maxAvailThreads;
 	const int numFree;
-	const GradientAlgorithm algo;
-	const int numIter;
-	const double eps;
+	GradientAlgorithm algo;
+	int numIter;
+	double eps;
 	int verbose;
   bool used;
 	int curElapsed;
@@ -496,9 +293,10 @@ class JacobianGadget {
 
  public:
 
-	JacobianGadget(int numThreads, int _numFree, GradientAlgorithm _algo, int _numIter, double _eps) :
+	JacobianGadget(int numThreads, int _numFree) :
     name("JacobianGadget"), ELAPSED_HISTORY_SIZE(3), maxAvailThreads(numThreads),
-    numFree(_numFree), algo(_algo), numIter(_numIter), eps(_eps)
+    numFree(_numFree), algo(Global->gradientAlgo), numIter(Global->gradientIter),
+    eps(Global->gradientStepSize)
 	{
 		verbose = numThreads>1 && Global->parallelDiag;
     used = false;
@@ -520,6 +318,13 @@ class JacobianGadget {
     } else {
       diagParallel(OMX_DEBUG, "%s: not used (analytic?)", name);
     }
+  }
+
+  void setAlgoOptions(GradientAlgorithm _algo,	int _numIter, double _eps)
+  {
+    algo = _algo;
+    numIter = _numIter;
+    eps = _eps;
   }
 
   // ff -- the function to evaluate

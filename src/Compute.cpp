@@ -3660,7 +3660,8 @@ void ComputeJacobian::computeImpl(FitContext *fc)
 
   sense.measureRef(fc);
   fc->createChildren();
-  JacobianGadget jg(fc->childList.size(), numFree, GradientAlgorithm_Forward, 2, 1e-4);
+  JacobianGadget jg(fc->childList.size(), numFree);
+  jg.setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
   jg(sense, sense.ref, curEst, false, sense.result);
   fc->destroyChildren();
 }
@@ -3822,7 +3823,8 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	sense.attach(&exList, 0);
 	sense.measureRef(fc);
   fc->createChildren(fitMat, false);
-  JacobianGadget jg(fc->childList.size(), numFree, GradientAlgorithm_Forward, 2, 1e-4);
+  JacobianGadget jg(fc->childList.size(), numFree);
+  jg.setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
   jg(sense, sense.ref, curEst, false, sense.result);
   fc->destroyChildren();
 

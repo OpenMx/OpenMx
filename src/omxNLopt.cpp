@@ -112,7 +112,7 @@ static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const 
 	else{
 		ff(Epoint, Eresult, jacobian);
 		goc.eqNorm = Eresult.array().abs().sum();
-		fd_jacobian<true>(goc.gradientAlgo, goc.gradientIterations, goc.gradientStepSize,
+		fd_jacobian<true>(Global->gradientAlgo, Global->gradientIter, Global->gradientStepSize,
               ff, Eresult, Epoint, jacobian);
 		//int rank;
 		//filterJacobianRows(jacobian, &rank);

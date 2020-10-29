@@ -101,22 +101,16 @@ void GradientOptimizerContext::reset()
 }
 
 GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
-						   enum GradientAlgorithm _gradientAlgo,
-						   int _gradientIterations,
-						   double _gradientStepSize,
 						   omxCompute *owner)
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
-	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
-	  gradientStepSize(_gradientStepSize),
 	  numOptimizerThreads(_fc->numOptimizerThreads()),
-    jgContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
+    jgContext(numOptimizerThreads, numFree)
 {
 	computeName = owner->name;
 	fitMatrix = NULL;
 	ControlMinorLimit = 800;
 	ControlRho = 1.0;
 	ControlTolerance = nan("uninit");
-	useGradient = false;
 	warmStart = false;
 	ineqType = omxConstraint::LESS_THAN;
 	est.resize(numFree);
@@ -210,18 +204,10 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 
 // ------------------------------------------------------------
 
-enum OptEngine {
-	OptEngine_NPSOL,
-	OptEngine_CSOLNP,
-    OptEngine_NLOPT,
-    OptEngine_SD
-};
-
 class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
 	const char *engineName;
 	enum OptEngine engine;
-	const char *gradientAlgoName;
 	enum GradientAlgorithm gradientAlgo;
 	int gradientIterations;
 	double gradientStepSize;
@@ -229,8 +215,6 @@ class omxComputeGD : public omxCompute {
 	int verbose;
 	double optimalityTolerance;
 	int maxIter;
-
-	bool useGradient;
 
 	int nudge;
 
@@ -274,29 +258,7 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
-	engineName = CHAR(Rf_asChar(slotValue));
-	if (strEQ(engineName, "CSOLNP")) {
-		engine = OptEngine_CSOLNP;
-	} else if (strEQ(engineName, "SLSQP")) {
-		engine = OptEngine_NLOPT;
-	} else if (strEQ(engineName, "NPSOL")) {
-#if HAS_NPSOL
-		engine = OptEngine_NPSOL;
-#else
-		mxThrow("NPSOL is not available in this build. See ?omxGetNPSOL() to download this optimizer");
-#endif
-	} else if(strEQ(engineName, "SD")){
-		engine = OptEngine_SD;
-	} else {
-		mxThrow("%s: engine %s unknown", name, engineName);
-	}
-
-	ScopedProtect p5(slotValue, R_do_slot(rObj, Rf_install("useGradient")));
-	if (Rf_length(slotValue)) {
-		useGradient = Rf_asLogical(slotValue);
-	} else {
-		useGradient = Global->analyticGradients;
-	}
+  engine = nameToGradOptEngine(CHAR(Rf_asChar(slotValue)));
 
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = false;
@@ -321,32 +283,6 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	} else {
 		maxIter = -1; // different engines have different defaults
 	}
-
-	ScopedProtect p8(slotValue, R_do_slot(rObj, Rf_install("gradientAlgo")));
-	if (Rf_isNull(slotValue)) {
-		if (engine == OptEngine_CSOLNP || engine == OptEngine_SD) {
-			gradientAlgo = GradientAlgorithm_Forward;
-			gradientAlgoName = "forward";
-		} else {
-			gradientAlgo = GradientAlgorithm_Central;
-			gradientAlgoName = "central";
-		}
-	} else {
-		gradientAlgoName = CHAR(Rf_asChar(slotValue));
-		if (strEQ(gradientAlgoName, "forward")) {
-			gradientAlgo = GradientAlgorithm_Forward;
-		} else if (strEQ(gradientAlgoName, "central")) {
-			gradientAlgo = GradientAlgorithm_Central;
-		} else {
-		mxThrow("%s: gradient algorithm '%s' unknown", name, gradientAlgoName);
-		}
-	}
-
-	ScopedProtect p9(slotValue, R_do_slot(rObj, Rf_install("gradientIterations")));
-	gradientIterations = std::max(Rf_asInteger(slotValue), 1);
-
-	ScopedProtect p10(slotValue, R_do_slot(rObj, Rf_install("gradientStepSize")));
-	gradientStepSize = Rf_asReal(slotValue);
 }
 
 void omxComputeGD::computeImpl(FitContext *fc)
@@ -364,19 +300,16 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (verbose >= 1) {
 		int numConstr = fitMatrix->currentState->conListX.size();
-		mxLog("%s: engine %s (ID %d) #P=%d gradient=%s tol=%g constraints=%d",
-		      name, engineName, engine, int(numParam), gradientAlgoName, optimalityTolerance,
+		mxLog("%s: engine %s (ID %d) #P=%d tol=%g constraints=%d",
+		      name, engineName, engine, int(numParam), optimalityTolerance,
 		      numConstr);
 	}
 
 	//if (fc->ciobj) verbose=2;
-	double effectiveGradientStepSize = gradientStepSize;
-	if (engine == OptEngine_NLOPT) effectiveGradientStepSize *= GRADIENT_FUDGE_FACTOR(2.0);
-	GradientOptimizerContext rf(fc, verbose, gradientAlgo, gradientIterations, effectiveGradientStepSize,this);
+	GradientOptimizerContext rf(fc, verbose, this);
 	threads = rf.numOptimizerThreads;
 	rf.fitMatrix = fitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
-	rf.useGradient = useGradient;
 	if (maxIter == -1) {
 		rf.maxMajorIterations = -1;
 	} else {
