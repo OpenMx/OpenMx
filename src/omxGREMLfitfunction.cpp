@@ -158,7 +158,15 @@ void omxGREMLFitState::init()
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
   newObj->dVlength = 0;
-  newObj->derivType = 0; //<--
+  //newObj->derivType = 0; //<--
+  
+	//autoDerivType:
+  {
+  	ProtectedSEXP adt(R_do_slot(rObj, Rf_install("autoDerivType")));
+  	if(strEQ(CHAR(Rf_asChar(adt)),"semiAnalyt")){derivType = 1;}
+  	else if(strEQ(CHAR(Rf_asChar(adt)),"numeric")){derivType = 0;}
+  	else{mxThrow("unrecognized character string provided for GREML fitfunction 'autoDerivType'");}
+  }
 
   //Augmentation:
   newObj->aug = 0;
