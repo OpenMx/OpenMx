@@ -158,7 +158,7 @@ void omxGREMLFitState::init()
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
   newObj->dVlength = 0;
-  newObj->derivType = 0;
+  newObj->derivType = 0; //<--
 
   //Augmentation:
   newObj->aug = 0;
@@ -172,30 +172,34 @@ void omxGREMLFitState::init()
 
   //Derivatives of V:
   if (R_has_slot(rObj, Rf_install("dV"))) {
-	  ProtectedSEXP RdV(R_do_slot(rObj, Rf_install("dV")));
-	  ProtectedSEXP RdVnames(R_do_slot(rObj, Rf_install("dVnames")));
-	  newObj->dVlength = Rf_length(RdV);
-	  newObj->dV.resize(newObj->dVlength);
-	  newObj->indyAlg.resize(newObj->dVlength);
-	  newObj->dVnames.resize(newObj->dVlength);
-	  newObj->origdVdim.resize(newObj->dVlength);
-	  if(newObj->dVlength){
-		  if(!newObj->usingGREMLExpectation){
-			  //Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
-			  mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
-		  }
-		  if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
-		  int* dVint = INTEGER(RdV);
-		  for(int i=0; i < newObj->dVlength; i++){
-			  newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
-			  SEXP elem;
-			  {ScopedProtect p3(elem, STRING_ELT(RdVnames, i));
-				  newObj->dVnames[i] = CHAR(elem);}
-		  }
-	  }
+  	ProtectedSEXP RdV(R_do_slot(rObj, Rf_install("dV")));
+  	ProtectedSEXP RdVnames(R_do_slot(rObj, Rf_install("dVnames")));
+  	newObj->dVlength = Rf_length(RdV);
+  	newObj->dV.resize(newObj->dVlength);
+  	newObj->indyAlg.resize(newObj->dVlength);
+  	newObj->dVnames.resize(newObj->dVlength);
+  	newObj->origdVdim.resize(newObj->dVlength);
+  	if(newObj->dVlength){
+  		if(!newObj->usingGREMLExpectation){
+  			//Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
+  			mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
+  		}
+  		if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
+  		int* dVint = INTEGER(RdV);
+  		for(int i=0; i < newObj->dVlength; i++){
+  			newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
+  			SEXP elem;
+  			{ScopedProtect p3(elem, STRING_ELT(RdVnames, i));
+  				newObj->dVnames[i] = CHAR(elem);}
+  		}
+  	}
   }
-
-  if(newObj->dVlength){
+  
+  if(derivType==1 && !newObj->usingGREMLExpectation){
+  	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
+  }
+  
+  if(newObj->dVlength || derivType==1){
     oo->gradientAvailable = true;
     oo->hessianAvailable = true;
     newObj->rowbins.resize(Global->numThreads);
@@ -213,28 +217,34 @@ void omxGREMLFitState::init()
   }}}
 
   //Augmentation derivatives:
-	if(newObj->dVlength && newObj->aug){
-	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied.
-		ProtectedSEXP RaugGrad(R_do_slot(rObj, Rf_install("augGrad")));
-		ProtectedSEXP RaugHess(R_do_slot(rObj, Rf_install("augHess")));
-		if(!Rf_length(RaugGrad)){
-			if(Rf_length(RaugHess)){
-				mxThrow("if argument 'augHess' has nonzero length, then argument 'augGrad' must as well");
-			}
-			else{
-				mxThrow("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
-		}}
-		else{
-			int* augGradint = INTEGER(RaugGrad);
-			newObj->augGrad = omxMatrixLookupFromStateByNumber(augGradint[0], currentState);
-			if(Rf_length(RaugHess)){
-				//Conformability of augGrad and augHess are checked later, during buildParamMap().
-				int* augHessint = INTEGER(RaugHess);
-				newObj->augHess = omxMatrixLookupFromStateByNumber(augHessint[0], currentState);
-			}
-			else{oo->hessianAvailable = false;}
-		}
-	}
+  if( (newObj->dVlength || derivType==1) && newObj->aug){
+  	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied, or if aug is provided and derivType==1.
+  	ProtectedSEXP RaugGrad(R_do_slot(rObj, Rf_install("augGrad")));
+  	ProtectedSEXP RaugHess(R_do_slot(rObj, Rf_install("augHess")));
+  	if(!Rf_length(RaugGrad)){
+  		if(Rf_length(RaugHess)){
+  			mxThrow("if argument 'augHess' has nonzero length, then argument 'augGrad' must as well");
+  		}
+  		else{
+  			if(dVlength){
+  				mxThrow("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
+  			}
+  			else{
+  				mxThrow("if using semi-analytic derivatives and 'aug' has nonzero length, then 'augGrad' must as well");
+  			}
+  		}
+  	}
+  	else{
+  		int* augGradint = INTEGER(RaugGrad);
+  		newObj->augGrad = omxMatrixLookupFromStateByNumber(augGradint[0], currentState);
+  		if(Rf_length(RaugHess)){
+  			//Conformability of augGrad and augHess are checked later, during buildParamMap().
+  			int* augHessint = INTEGER(RaugHess);
+  			newObj->augHess = omxMatrixLookupFromStateByNumber(augHessint[0], currentState);
+  		}
+  		else{oo->hessianAvailable = false;}
+  	}
+  }
 }
 
 void omxGREMLFitState::compute(int want, FitContext *fc)
@@ -386,11 +396,11 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		//Set up new HessianBlock:
  		HessianBlock *hb = new HessianBlock;
  		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
- 			if(gff->dVlength < gff->numExplicitFreePar){
+ 			if(gff->dVlength < gff->numExplicitFreePar && derivType==0){
  				omxRaiseErrorf("GREML fitfunction cannot compute information matrix without analytic derivatives of V with respect to EVERY free parameter");
  			}
- 			hb->vars.resize(gff->dVlength);
- 			hb->mat.resize(gff->dVlength, gff->dVlength);
+ 			hb->vars.resize(gff->numExplicitFreePar);
+ 			hb->mat.resize(gff->numExplicitFreePar, gff->numExplicitFreePar);
  			gff->recomputeAug(2, fc);
  			wantHess = 1;
  		}
@@ -554,21 +564,23 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 #pragma omp parallel num_threads(nThreadz)
 {
 	try{
-		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
+		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;//, di, dj;
+		//bool incrementdi = false;
 		double tr=0;
 		Eigen::MatrixXd ytPdV_dtheta1;
 		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
-		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
 		//GREMLSense sense(this, fc, oge->numcases2drop, oge->dropcase);
-		Eigen::VectorXd curEst(fc->getNumFree());
+		Eigen::VectorXd curEst(numExplicitFreePar);
 		fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
 		int threadID = omx_absolute_thread_num();
 		int istart = threadID * numExplicitFreePar / nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / nThreadz;
 		if(threadID == nThreadz-1){iend = numExplicitFreePar;}
+		//di = istart;
 		for(i=istart; i < iend; i++){
+			//incrementdi = false;
 			tr=0;
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
@@ -580,6 +592,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
 					}
 					else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
+					//incrementdi = true;//++di;
 				}
 				else{
 					/*
@@ -598,6 +611,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					crude_numeric_dV(fc, curEst, dV_dtheta1, t1, oge, (nThreadz>1 ? threadID : -1));
 				}
 				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+				//dj=di;
 				for(j=i; j < numExplicitFreePar; j++){
 					if(j==i){
 						/*Need trace of P*dV_dtheta for gradient element...
@@ -618,9 +632,11 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 								Scale*gff->pullAugVal(2,a1,a1);
 						}
+						//++dj;
 					}
 					else{
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+							Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter j.
 							t2 = gff->gradMap[j]; //<--Parameter number for parameter j.
 							if(t2 < 0){continue;}
 							a2 = gff->dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
@@ -629,6 +645,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 									dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
 								}
 								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
+								//++dj;
 							}
 							else{
 								/*
@@ -652,6 +669,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}
 					}
 				}
+				//if(incrementdi){++di;}
 			}
 			else{
 				fc->haveGrad[t1] = false;
@@ -728,11 +746,15 @@ void omxGREMLFitState::crude_numeric_dV(
 	//Put things back the way they were:
 	_curEst[Parnum] -= 1e-4;
 	fc2->setEstFromOptimizer(_curEst);
-	//omxRecompute(cov, fc2);
-	EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
-	for(c=0; c < cov->rows; c++){
-		for(r=c; r < cov->rows; r++){
-			EigV(r,c) = Vcurr(r,c);
+	if(thrId<0){
+		omxRecompute(cov, fc2);
+	}
+	else{
+		EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
+		for(c=0; c < cov->rows; c++){
+			for(r=c; r < cov->rows; r++){
+				EigV(r,c) = Vcurr(r,c);
+			}
 		}
 	}
 	return;
@@ -775,10 +797,16 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
 	varGroup = newVarGroup;
 	numExplicitFreePar = int(varGroup->vars.size());
-	gradient.setZero(numExplicitFreePar,1);
+	gradient.setZero(numExplicitFreePar);
 	avgInfo.setZero(numExplicitFreePar,numExplicitFreePar);
 	didUserGivedV.resize(numExplicitFreePar);
 	didUserGivedV.assign(size_t(numExplicitFreePar),0);
+	gradMap.resize(numExplicitFreePar);
+	dAugMap.resize(numExplicitFreePar);
+	dAugMap.assign(size_t(numExplicitFreePar),-1);
+	indyAlg.resize(numExplicitFreePar);
+	indyAlg.assign(size_t(numExplicitFreePar),0);
+	int gx=0;
 	if(dVlength){
 		if(dVlength > numExplicitFreePar){
 			mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
@@ -788,16 +816,22 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 		std::vector< omxMatrix* > dV_temp = dV;
 		std::vector< const char* > dVnames_temp = dVnames;
 		std::vector<int> origdVdim_temp = origdVdim;
-		gradMap.resize(numExplicitFreePar);
-		dAugMap.resize(numExplicitFreePar);
-		int gx=0;
-		//TODO: rewrite this entire loop:
+		dV.resize(numExplicitFreePar);
+		dVnames.resize(numExplicitFreePar);
+		origdVdim.resize(numExplicitFreePar);
+		/*gx holds the write location for objects with length equal to numExplicitFreePar;
+		dx holds the write location for objects with length equal to dVlength:*/
+		//int dx=0;
+		//vx holds the read location for free parameters in varGroup:
 		for (int vx=0; vx < numExplicitFreePar; ++vx) {
+			//nx holds the read location for objects with length equal to dVlength:
 			for (int nx=0; nx <= dVlength; ++nx) {
 				if(nx==dVlength){
 					gradMap[gx] = vx;
-					dAugMap[gx] = -1;
-					//Remember that didUserGivedV was set to all zeroes just above.
+					dV[gx] = NULL;
+					dVnames[gx] = NULL;
+					origdVdim[gx] = 0;
+					//Remember that didUserGivedV was set to all zeroes just above, and dAugMap to all -1s.
 					++gx;
 					break;
 				}
@@ -809,13 +843,14 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					dAugMap[gx] = nx;
 					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
 					didUserGivedV[gx] = 1;
+					++dx;
 					++gx;
 					break;
 				}
 			}
-		}/*By the end of the loop, the member objects of the omxGREMLFitState (dV, dVnames, etc.) should have their
-		elements arranged to match the order in which the free parameters appear in the freeVarGroup*/
-
+		}
+		//if (gx != numExplicitFreePar || dx != dVlength) mxThrow("Problem in dVnames mapping");
+		if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
 		if(augGrad){
 			int ngradelem = std::max(augGrad->rows, augGrad->cols);
 			if(ngradelem != numExplicitFreePar){
@@ -830,6 +865,11 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					mxThrow("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
               ngradelem, augHess->rows, augHess->cols);
 			}}
+		}
+	}
+	else{
+		for(gx=0; gx < numExplicitFreePar; ++gx){
+			gradMap[gx] = gx;
 		}
 	}
 }
@@ -980,7 +1020,10 @@ void omxGREMLFitState::recomputeAug(int thing, FitContext *fc){
 
 
 void omxGREMLFitState::dVupdate(FitContext *fc){
-	for(int i=0; i < dVlength; i++){
+	for(int i=0; i < numExplicitFreePar; i++){
+		if(!didUserGivedV[i]){
+			continue;
+		}
 		if(OMX_DEBUG){
 			mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
 			mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
@@ -997,7 +1040,10 @@ void omxGREMLFitState::dVupdate(FitContext *fc){
 
 
 void omxGREMLFitState::dVupdate_final(){
-	for(int i=0; i < dVlength; i++){
+	for(int i=0; i < numExplicitFreePar; i++){
+		if(!didUserGivedV[i]){
+			continue;
+		}
 		if(indyAlg[i]){
 			if(OMX_DEBUG){
 				mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
