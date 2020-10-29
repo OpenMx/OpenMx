@@ -1502,7 +1502,6 @@ mxComputeNelderMead <- function(
 	validationRestart <- as.logical(validationRestart[1])
 	xTolProx <- as.numeric(xTolProx[1])
 	fTolProx <- as.numeric(fTolProx[1])
-	backtrackCtrl=c(0.5,5)
 	doPseudoHessian <- as.logical(doPseudoHessian[1])
 	ineqConstraintMthd <- as.character(match.barg(ineqConstraintMthd,c("soft","eqMthd")))
 	eqConstraintMthd <- as.character(match.barg(eqConstraintMthd,c("GDsearch","soft","backtrack","l1p")))
