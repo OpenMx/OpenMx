@@ -494,32 +494,8 @@ class JacobianGadget {
 		}
   }
 
-  template <typename T5>
-  void robustify(Eigen::MatrixBase<T5> &out)
-  {
-		Eigen::ArrayXXd absOut = out.array().abs();
-    std::nth_element(absOut.data(), absOut.data() + absOut.size()/2,
-                     absOut.data()+absOut.size());
-		double m1 = std::max(absOut.data()[absOut.size()/2], 1.0);
-		double big = 1e4 * m1;
-		int adj=0;
-    for (int cx=0; cx < out.cols(); ++cx) {
-      for (int rx=0; rx < out.rows(); ++rx) {
-        if (fabs(out(rx,cx)) < big) continue;
-        bool neg = out(rx,cx) < 0;
-        double gg = m1;
-        if (neg) gg = -gg;
-        out(rx,cx) = gg;
-        ++adj;
-      }
-    }
-		if (false && adj) {
-			mxLog("robustify: %d outlier", adj);
-			mxPrintMat("robust", out);
-		}
-	}
-
  public:
+
 	JacobianGadget(int numThreads, int _numFree, GradientAlgorithm _algo, int _numIter, double _eps) :
     name("JacobianGadget"), ELAPSED_HISTORY_SIZE(3), maxAvailThreads(numThreads),
     numFree(_numFree), algo(_algo), numIter(_numIter), eps(_eps)
@@ -582,6 +558,33 @@ template <typename T1, typename T2, typename T3, typename T4>
 
     //for (int rx=0; rx < jacobiOut.rows(); ++rx) robustify(jacobiOut.row(rx)); // TODO
 	}
+
+  bool needRefFit() const { return algo == GradientAlgorithm_Forward; }
 };
+
+template <typename T5>
+void robustifyInplace(Eigen::MatrixBase<T5> &out)
+{
+  Eigen::ArrayXXd absOut = out.array().abs();
+  std::nth_element(absOut.data(), absOut.data() + absOut.size()/2,
+                   absOut.data()+absOut.size());
+  double m1 = std::max(absOut.data()[absOut.size()/2], 1.0);
+  double big = 1e4 * m1;
+  int adj=0;
+  for (int cx=0; cx < out.cols(); ++cx) {
+    for (int rx=0; rx < out.rows(); ++rx) {
+      if (fabs(out(rx,cx)) < big) continue;
+      bool neg = out(rx,cx) < 0;
+      double gg = m1;
+      if (neg) gg = -gg;
+      out(rx,cx) = gg;
+      ++adj;
+    }
+  }
+  if (false && adj) {
+    mxLog("robustify: %d outlier", adj);
+    mxPrintMat("robust", out);
+  }
+}
 
 #endif

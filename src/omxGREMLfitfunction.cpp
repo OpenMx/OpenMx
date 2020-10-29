@@ -51,7 +51,7 @@ struct omxGREMLFitState : omxFitFunction {
 	double pullAugVal(int thing, int row, int col);
 	void recomputeAug(int thing, FitContext *fc);
 	JacobianGadget jg;
-	
+
 	template <typename T1, typename T2>
 	void crude_numeric_dV(
 		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
@@ -69,7 +69,7 @@ struct GREMLSense {
 	Eigen::ArrayXd ref;
 	Eigen::MatrixXd result; //<--necessary?
 	FitContext *fc;
-	
+
 	GREMLSense(omxGREMLFitState *_fs, FitContext *_fc, int _numcases2drop,  std::vector< int > &_dropcase)
 		: fs(_fs), fc(_fc){
 		numcases2drop = _numcases2drop;
@@ -94,7 +94,7 @@ struct GREMLSense {
 			}
 		}
 	}
-	
+
 	template <typename T1>
 	void operator()(double *myPars, int thrId, Eigen::ArrayBase<T1> &result1) const {
 		FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
@@ -159,7 +159,7 @@ void omxGREMLFitState::init()
   newObj->augHess = NULL;
   newObj->dVlength = 0;
   //newObj->derivType = 0; //<--
-  
+
 	//autoDerivType:
   {
   	ProtectedSEXP adt(R_do_slot(rObj, Rf_install("autoDerivType")));
@@ -202,13 +202,12 @@ void omxGREMLFitState::init()
   		}
   	}
   }
-  
+
   if(derivType==1 && !newObj->usingGREMLExpectation){
   	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
   }
-  
+
   if(newObj->dVlength || derivType==1){
-    oo->gradientAvailable = true;
     oo->hessianAvailable = true;
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
@@ -258,6 +257,10 @@ void omxGREMLFitState::init()
 void omxGREMLFitState::compute(int want, FitContext *fc)
  {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
+
+  // Turn off until Rob can fix it
+  want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN);
+  fc->gradZ.setConstant(NA_REAL);
 
  	//Recompute Expectation:
  	omxExpectationCompute(fc, expectation, NULL);
@@ -471,7 +474,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					}
 					gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 						Scale*gff->pullAugVal(1,a1,0);
-					fc->haveGrad[hrn] = true;
 					fc->gradZ(hrn) += gff->gradient(hrn);
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
@@ -537,7 +539,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 				}
 				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 					Scale*gff->pullAugVal(1,a1,0);
-				fc->haveGrad[hrn] = true;
 				fc->gradZ(hrn) += gff->gradient(hrn);
 				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 					gff->avgInfo(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
@@ -634,7 +635,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}
 						gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 							Scale*gff->pullAugVal(1,a1,0);
-						fc->haveGrad[t1] = true;
 						fc->gradZ(t1) += gff->gradient(t1);
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
@@ -680,7 +680,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 				//if(incrementdi){++di;}
 			}
 			else{
-				fc->haveGrad[t1] = false;
 				gff->gradient(t1) = NA_REAL;
 			}
 		}
@@ -712,13 +711,13 @@ template <typename T1, typename T2>
 void omxGREMLFitState::crude_numeric_dV(
 		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId)
 {
-	int c, r;	
+	int c, r;
 	FitContext *fc2 = _fc;
 	if(thrId >= 0){
 		fc2 = _fc->childList[thrId];
 	}
 	omxState *st = fc2->state;
-	
+
 	//Store current elements of V:
 	Eigen::MatrixXd EigV(cov->rows, cov->cols);
 	if(ge->numcases2drop && cov->rows > y->cols){
@@ -733,24 +732,24 @@ void omxGREMLFitState::crude_numeric_dV(
 			Vcurr(r,c) = EigV(r,c);
 		}
 	}
-	
+
 	//Shift parameter of interest and compute V at new point in parameter space:
 	_curEst[Parnum] += 1e-4;
 	fc2->setEstFromOptimizer(_curEst);
 	omxMatrix *mat = st->lookupDuplicate(cov);
 	omxRecompute(mat, fc2);
-	
+
 	if( ge->numcases2drop && mat->rows > y->cols ){
 		dropCasesAndEigenize(mat, dV_dtheta, ge->numcases2drop, ge->dropcase, 1, mat->rows);
 	}
 	else{
 		dV_dtheta = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
 	}
-	
+
 	//Does this actually save memory...?:
 	dV_dtheta = (dV_dtheta - Vcurr)/1e-4;
 	//^^^TODO: use selfadjointView (if possible?).
-	
+
 	//Put things back the way they were:
 	_curEst[Parnum] -= 1e-4;
 	fc2->setEstFromOptimizer(_curEst);

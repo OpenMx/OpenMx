@@ -154,8 +154,83 @@ void MLFitState::compute(int want, FitContext *fc)
 
 	omxExpectationCompute(fc, expectation, NULL);
 
-	if ((want & FF_COMPUTE_FIT) &&
-	    !(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
+	if (strEQ(expectation->name, "MxExpectationNormal") &&
+		   (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
+		if ((want & FF_COMPUTE_INFO) && fc->infoMethod != INFO_METHOD_HESSIAN) {
+			omxRaiseErrorf("Information matrix approximation method %d is not available",
+				       fc->infoMethod);
+			return;
+		}
+		MLFitState *omo = (MLFitState*) oo;
+		// should forward computation to the expectation TODO
+
+    int numFree = fc->getNumFree();
+		int numSimpleParam = 0;
+		std::vector<bool> fvMask(numFree);
+		for (int fx=0; fx < int(numFree); ++fx) {
+			omxFreeVar *fv = fc->varGroup->vars[fx];
+			bool relevant = fv->getLocation(omo->expectedCov) != NULL;
+			if (omo->expectedMeans) {
+				relevant |= fv->getLocation(omo->expectedMeans) != NULL;
+			}
+			fvMask[fx] = relevant;
+			if (relevant) ++numSimpleParam;
+		}
+    //mxLog("%s: %d/%d analytic derivs", name(), numSimpleParam, numFree);
+
+		if (numSimpleParam == 0) {
+			// if numSimpleParam == 0 then hessian() doesn't compute the fit
+    if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
+			want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
+			if (want) compute(want, fc);
+			return;
+		}
+
+		double init_log_prob = 0.0;
+		Eigen::VectorXd init_grad = Eigen::VectorXd::Zero(numSimpleParam);
+		HessianBlock *hb = new HessianBlock;
+
+		Eigen::VectorXd cont_params = Eigen::VectorXd::Zero(numSimpleParam);
+		int cpx=0;
+		for (int fx=0; fx < int(numFree); ++fx) {
+			if (!fvMask[fx]) continue;
+			hb->vars.push_back(fx);
+			cont_params[cpx++] = fc->est[fx];
+		}
+		hb->mat.resize(numSimpleParam, numSimpleParam);
+		hb->mat.setZero();
+
+		try {
+			multi_normal_deriv model(fc, fvMask, omo);
+			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
+		} catch (const std::exception& e) {
+			init_log_prob = NA_REAL;
+			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
+		} catch (...) {
+			init_log_prob = NA_REAL;
+			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
+		}
+
+		if (want & FF_COMPUTE_FIT) {
+			oo->matrix->data[0] = Scale * init_log_prob;
+		}
+		if (want & FF_COMPUTE_GRADIENT) {
+			int px=0;
+			for (int fx=0; fx < int(numFree); ++fx) {
+				if (!fvMask[fx]) { fc->gradZ[fx] = NA_REAL; continue; }
+				fc->gradZ[fx] += Scale * init_grad[px];
+				++px;
+			}
+		}
+		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO)) {
+			const double HScale = (want & FF_COMPUTE_INFO)? -fabs(Scale) : Scale;
+			hb->mat *= HScale;
+			fc->queue(hb);
+		} else {
+			delete hb;
+		}
+	} else if ((want & FF_COMPUTE_FIT) &&
+	    !(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
 		// works for any multivariate normal expectation (e.g. vanilla, RAM, LISREL, etc)
 
 		MLFitState *omo = (MLFitState*) oo;
@@ -186,79 +261,7 @@ void MLFitState::compute(int want, FitContext *fc)
 			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
 		}
 		oo->matrix->data[0] = Scale * fit;
-	} else if (strEQ(expectation->name, "MxExpectationNormal") &&
-		   (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
-		if ((want & FF_COMPUTE_INFO) && fc->infoMethod != INFO_METHOD_HESSIAN) {
-			omxRaiseErrorf("Information matrix approximation method %d is not available",
-				       fc->infoMethod);
-			return;
-		}
-		MLFitState *omo = (MLFitState*) oo;
-		// should forward computation to the expectation TODO
-
-		int num_param = 0;
-		std::vector<bool> fvMask(fc->numParam);
-		for (int fx=0; fx < int(fc->numParam); ++fx) {
-			omxFreeVar *fv = fc->varGroup->vars[fx];
-			bool relevant = fv->getLocation(omo->expectedCov) != NULL;
-			if (omo->expectedMeans) {
-				relevant |= fv->getLocation(omo->expectedMeans) != NULL;
-			}
-			fvMask[fx] = relevant;
-			if (relevant) ++num_param;
-		}
-
-		if (num_param == 0) {
-			// if num_param == 0 then hessian() doesn't compute the fit
-			want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
-			if (want) compute(want, fc);
-			return;
-		}
-
-		double init_log_prob = 0.0;
-		Eigen::VectorXd init_grad = Eigen::VectorXd::Zero(num_param);
-		HessianBlock *hb = new HessianBlock;
-
-		Eigen::VectorXd cont_params = Eigen::VectorXd::Zero(num_param);
-		int cpx=0;
-		for (int fx=0; fx < int(fc->numParam); ++fx) {
-			if (!fvMask[fx]) continue;
-			hb->vars.push_back(fx);
-			cont_params[cpx++] = fc->est[fx];
-		}
-		hb->mat.resize(num_param, num_param);
-		hb->mat.setZero();
-
-		try {
-			multi_normal_deriv model(fc, fvMask, omo);
-			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
-		} catch (const std::exception& e) {
-			init_log_prob = NA_REAL;
-			if (fc) fc->recordIterationError("%s: %s", oo->name(), e.what());
-		} catch (...) {
-			init_log_prob = NA_REAL;
-			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
-		}
-
-		if (want & FF_COMPUTE_FIT) {
-			oo->matrix->data[0] = Scale * init_log_prob;
-		}
-		if (want & FF_COMPUTE_GRADIENT) {
-			int px=0;
-			for (int fx=0; fx < int(fc->numParam); ++fx) {
-				if (!fvMask[fx]) continue;
-				fc->haveGrad[fx] = true;
-				fc->gradZ[fx] += Scale * init_grad[px];
-				++px;
-			}
-		}
-		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO)) {
-			const double HScale = (want & FF_COMPUTE_INFO)? -fabs(Scale) : Scale;
-			hb->mat *= HScale;
-			fc->queue(hb);
-		} else {
-			delete hb;
-		}
+    if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
 	} else {
 		mxThrow("Not implemented");
 	}
@@ -440,7 +443,6 @@ void MLFitState::init()
 	if (strEQ(expectation->name, "MxExpectationNormal") &&
 	    newObj->expectedCov->isSimple() &&
 	    (!newObj->expectedMeans || newObj->expectedMeans->isSimple())) {
-		oo->gradientAvailable = true;
 		oo->hessianAvailable = true;
 	}
 

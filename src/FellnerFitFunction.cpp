@@ -166,7 +166,10 @@ namespace FellnerFitFunction {
 			return;
 		}
 
-		if (!(want & (FF_COMPUTE_FIT))) mxThrow("Not implemented");
+    if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+
+		if (want & ~(FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_FINAL_FIT | FF_COMPUTE_BESTFIT))
+      mxThrow("Not implemented (want=%d)", want);
 
 		double lpOut = NA_REAL;
 		try {

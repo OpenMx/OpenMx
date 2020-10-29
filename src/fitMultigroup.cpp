@@ -59,6 +59,7 @@ void FitMultigroup::compute(int want, FitContext *fc)
 			}
 		} else {
 			omxRecompute(f1, fc);
+      if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
 		}
 		if (want & FF_COMPUTE_FIT) {
 			if(f1->rows != 1 || f1->cols != 1) {
@@ -103,7 +104,6 @@ void FitMultigroup::init()
 	if (mg->fits.size()) return; // hack to prevent double initialization, remove TOOD
 
 	oo->units = FIT_UNITS_UNINITIALIZED;
-	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 	oo->canDuplicate = true;
 
@@ -126,10 +126,8 @@ void FitMultigroup::init()
 		mg->fits.push_back(mat);
 		if (mat->fitFunction) {
 			omxCompleteFitFunction(mat);
-			oo->gradientAvailable = (oo->gradientAvailable && mat->fitFunction->gradientAvailable);
 			oo->hessianAvailable = (oo->hessianAvailable && mat->fitFunction->hessianAvailable);
 		} else {
-			oo->gradientAvailable = FALSE;
 			oo->hessianAvailable = FALSE;
 		}
 	}

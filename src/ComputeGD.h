@@ -128,21 +128,11 @@ class GradientOptimizerContext {
 	int iterations;
 	int getWanted() const { return fc->wanted; };
 	void setWanted(int nw) { fc->wanted = nw; };
-	bool hasKnownGradient() const;
-	template <typename T1>
-	void setKnownGradient(Eigen::MatrixBase<T1> &gradOut) {
-		fc->ciobj->gradient(fc, gradOut.derived().data());
-	};
 	omxState *getState() const { return fc->state; };
 	bool doingCI(){
 		if(fc->ciobj){return(true);}
 		else{return(false);}
 	};
-
-	GradientWithRef gwrContext;
-
-	template <typename T1>
-	void numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint);
 
   JacobianGadget jgContext;
   template <typename T1, typename T2, typename T3>
@@ -170,56 +160,6 @@ double median(Eigen::MatrixBase<T1> &vec)
 	} else {
 		int mid = vec.size() / 2;
 		return vec[ind[mid]];
-	}
-}
-
-template <typename T1>
-void GradientOptimizerContext::numericalGradientWithRef(Eigen::MatrixBase<T1> &Epoint)
-{
-	if (getWanted() & FF_COMPUTE_GRADIENT) {
-		return;
-	} else if (hasKnownGradient()) {
-		setKnownGradient(grad);
-		return;
-	}
-
-	// fc assumed to hold the reference fit
-	double refFit = fc->fit;
-
-	gwrContext([&](double *myPars, int thrId)->double{
-			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
-			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
-			// Only 1 parameter is different so we could
-			// update only that parameter instead of all
-			// of them.
-			copyFromOptimizer(myPars, fc2);
-			int want = FF_COMPUTE_FIT;
-			ComputeFit(getOptName(), fc2->lookupDuplicate(fitMatrix), want, fc2);
-			double fit = fc2->fit;
-			if (fc2->outsideFeasibleSet()) {
-				fit = nan("infeasible");
-			}
-			return fit;
-		}, refFit, Epoint, grad);
-
-	if (true) { // replace with robustify TODO
-		Eigen::VectorXd absGrad = grad.array().abs();
-		double m1 = std::max(median(absGrad), 1.0);
-		double big = 1e4 * m1;
-		int adj=0;
-		for (int gx=0; gx < grad.size(); ++gx) {
-			if (absGrad[gx] < big) continue;
-			bool neg = grad[gx] < 0;
-			double gg = m1;
-			if (neg) gg = -gg;
-			grad[gx] = gg;
-			++adj;
-		}
-		if (false && adj) {
-			mxLog("%d grad outlier", adj);
-			mxPrintMat("absGrad", absGrad);
-			mxPrintMat("robust grad", grad);
-		}
 	}
 }
 

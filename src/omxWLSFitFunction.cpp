@@ -77,6 +77,8 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	if(OMX_DEBUG) { mxLog("Beginning WLS Evaluation.");}
 	// Requires: Data, means, covariances.
 
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+
 	double sum = 0.0;
 
 	omxMatrix *eCov, *eMeans, *oFlat, *eFlat;

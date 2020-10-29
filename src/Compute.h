@@ -18,6 +18,7 @@
 #define _OMX_COMPUTE_H_
 
 #include "omxDefines.h"
+#include <map>
 #include <Eigen/SparseCore>
 #include "glue.h"
 #include "omxState.h"
@@ -98,7 +99,7 @@ struct CIobjective {
   CIobjective(const ConfidenceInterval *_CI) : CI(_CI) {}
   virtual std::unique_ptr<CIobjective> clone() const = 0;
 	virtual bool gradientKnown() { return false; };
-	virtual void gradient(FitContext *fc, double *gradOut) {};
+	virtual void gradient(FitContext *fc) {};
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
@@ -155,15 +156,15 @@ class FitContext {
 	double fit;
 	FitStatisticUnits fitUnits;
 	int skippedRows;
+  std::map< const char *, int, cstrCmp > freeToIndexMap;
   std::vector<int> freeToParamMap;  // length=numFree
 	std::vector<bool> profiledOutZ;
 	void calcNumFree();
-	std::vector<bool> haveGrad;
   Eigen::ArrayXd est;  // length=numParam
+  std::unique_ptr<class JacobianGadget> numericalGradTool;
 	Eigen::VectorXd gradZ;  // length=numFree
 	void initGrad() {
     int pars = getNumFree();
-		haveGrad.assign(pars, false);
 		gradZ = Eigen::VectorXd::Zero(pars);
 	};
 	int infoDefinite;
@@ -292,13 +293,12 @@ class FitContext {
 	};
 	template<typename T> void copyGradToOptimizer(T &out) {
 		for (int vx=0; vx < getNumFree(); ++vx) {
-			out[vx] = haveGrad[vx]? gradZ[vx] : NA_REAL;
+			out[vx] = gradZ[vx];
 		}
 	};
 	template<typename T> void copyGradFromOptimizer(const T &in) {
 		for (int vx=0; vx < getNumFree(); ++vx) {
 			gradZ[vx] = in[vx];
-			haveGrad[vx] = true;
 		}
 	};
 	void setParamFromOptimizer(int px, double v1) {

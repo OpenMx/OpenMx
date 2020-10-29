@@ -109,7 +109,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	  gradientAlgo(_gradientAlgo), gradientIterations(_gradientIterations),
 	  gradientStepSize(_gradientStepSize),
 	  numOptimizerThreads(_fc->numOptimizerThreads()),
-	  gwrContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize),
     jgContext(numOptimizerThreads, numFree, _gradientAlgo, _gradientIterations, _gradientStepSize)
 {
 	computeName = owner->name;
@@ -136,11 +135,6 @@ double GradientOptimizerContext::recordFit(double *myPars, int* mode)
 		bestEst = pvec;
 	}
 	return fit;
-}
-
-bool GradientOptimizerContext::hasKnownGradient() const
-{
-	return fc->ciobj && fc->ciobj->gradientKnown();
 }
 
 void GradientOptimizerContext::copyToOptimizer(double *myPars)
@@ -177,12 +171,8 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	copyFromOptimizer(myPars, fc);
 
 	int want = FF_COMPUTE_FIT;
-	// eventually want to permit analytic gradient during CI
-	if (*mode > 0 && !fc->ciobj && useGradient && fitMatrix->fitFunction->gradientAvailable) {
-		fc->initGrad();
-		fc->gradZ.setZero();
-		want |= FF_COMPUTE_GRADIENT;
-	}
+	if (*mode > 0) want |= FF_COMPUTE_GRADIENT;
+
 	ComputeFit(getOptName(), fitMatrix, want, fc);
 
 	if (*mode == 1) Global->reportProgress(getOptName(), fc);
@@ -449,7 +439,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
-			fc->haveGrad.assign(numParam, true);
 			fc->gradZ = rf.gradOut.tail(numParam);
 			Eigen::Map< Eigen::MatrixXd > hess(fc->getDenseHessUninitialized(), numParam, numParam);
 			hess = rf.hessOut.bottomRightCorner(numParam, numParam);
@@ -789,10 +778,9 @@ struct regularCIobj : CIobjective {
 		return CI->varIndex >= 0 && !compositeCIFunction;
 	}
 
-	virtual void gradient(FitContext *fc, double *gradOut) {
-		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
-		Egrad.setZero();
-		Egrad[ CI->varIndex ] = lowerBound? 1 : -1;
+	virtual void gradient(FitContext *fc) override
+  {
+		fc->gradZ[ CI->varIndex ] = lowerBound? 1 : -1;
 	}
 
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out)
@@ -951,10 +939,9 @@ struct boundAwayCIobj : CIobjective {
 		return CI->varIndex >= 0 && constrained;
 	}
 
-	virtual void gradient(FitContext *fc, double *gradOut) {
-		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
-		Egrad.setZero();
-		Egrad[ CI->varIndex ] = lower? 1 : -1;
+	virtual void gradient(FitContext *fc) override
+  {
+		fc->gradZ[ CI->varIndex ] = lower? 1 : -1;
 	}
 
 	template <typename T1>
@@ -1057,10 +1044,9 @@ struct boundNearCIobj : CIobjective {
 		return CI->varIndex >= 0 && constrained;
 	}
 
-	virtual void gradient(FitContext *fc, double *gradOut) {
-		Eigen::Map< Eigen::VectorXd > Egrad(gradOut, fc->numParam);
-		Egrad.setZero();
-		Egrad[ CI->varIndex ] = lower? 1 : -1;
+	virtual void gradient(FitContext *fc) override
+  {
+		fc->gradZ[ CI->varIndex ] = lower? 1 : -1;
 	}
 
 	template <typename T1>
