@@ -883,7 +883,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 
 void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
 	//Note: AIM = Average Information Matrix (Hessian)
-	if(wantHess==0 || nThreadz<2 || (dVlength && (dVlength < numExplicitFreePar))){
+	if(wantHess==0 || nThreadz<2 || dVlength < numExplicitFreePar){
 		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
 		return;
 	}
