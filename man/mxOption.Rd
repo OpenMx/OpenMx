@@ -51,13 +51,38 @@ To see the defaults, use \code{getOption('mxOptions')}.
 Before the model is submitted to the back-end, all keys and values are converted into
 strings using the \link{as.character} function.
 
+\strong{Optimizer specific options}
+
 The \dQuote{Default optimizer} option can only be set globally (i.e., with \code{model=NULL}), and not locally (i.e., specifically to a given MxModel).  Although the checkpointing options may be set globally, OpenMx's behavior is only affected by locally set checkpointing options (that is, global checkpointing options are ignored at \link[=mxRun]{runtime}).
+
+Gradient-based optimizers require the gradient of the fit
+function. When analytic derivatives are not available,
+the gradient is estimated numerically. There are a variety
+of options to control the numerical estimation of the
+gradient. One option for CSOLNP and SLSQP is
+the gradient algorithm. CSOLNP uses the \code{forward} method
+by default, while SLSQP uses the \code{central} method. The
+\code{forward} method requires 1 time \dQuote{Gradient iterations}
+function evaluation per parameter
+per gradient, while \code{central} method requires 2 times
+\dQuote{Gradient iterations} function evaluations per parameter
+per gradient. Users can change the default methods for either of these
+optimizers by setting the \dQuote{Gradient algorithm} option.
+NPSOL usually uses the \code{forward} method, but
+adaptively switches to \code{central} under certain circumstances.
 
 Options \dQuote{Gradient step size}, \dQuote{Gradient iterations}, and \dQuote{Function precision} have on-load global defaults of \code{"Auto"}.  If value \code{"Auto"} is in effect for any of these three options at \link[=mxRun]{runtime}, then OpenMx selects a reasonable numerical value in its place.  These automated numerical values are intended to (1) adjust for the limited precision of the algorithm for computing multivariate-normal probability integrals, and (2) calculate accurate numeric derivatives at the optimizer's solution.  If the user replaces \code{"Auto"} with a valid numerical value, then OpenMx uses that value as-is.
 
-\strong{Optimizer specific options}
+By default, CSOLNP uses a step size of 10^-7 whereas SLSQP uses
+10^-5. The purpose of this difference is to obtain roughly the same
+accuracy given other differences in numerical procedure.
+If you set a non-default \dQuote{Gradient step size},
+it will be used as-is. NPSOL ignores
+\dQuote{Gradient step size}, and instead uses a function of
+\link{mxOption} \dQuote{Function precision} to determine its gradient
+step size.
 
-Some options only affect certain optimizers. Option \dQuote{Analytic Gradients} affects all three optimizers. Option \dQuote{Gradient algorithm} is used by CSOLNP and SLSQP, and ignored by NPSOL. Option \dQuote{Gradient iterations} only affects SLSQP. Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
+Option \dQuote{Analytic Gradients} affects all three optimizers, but some options only affect certain optimizers. Option \dQuote{Gradient algorithm} is used by CSOLNP and SLSQP, and ignored by NPSOL. Option \dQuote{Gradient iterations} only affects SLSQP. Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
 
 If an mxModel contains \link[=MxConstraint]{mxConstraints}, NPSOL is given .4 times the value of the option \dQuote{Feasibility tolerance}. If there are no constraints, NPSOL is given a hard-coded value of 1e-5 (its own native default).
 

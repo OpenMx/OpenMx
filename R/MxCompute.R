@@ -333,26 +333,9 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' CSOLNP and SLSQP (from the NLOPT collection).  The OpenMx Team's version of
 ##' OpenMx offers the choice of three optimizers: CSOLNP, SLSQP, and NPSOL.
 ##'
-##' One option for CSOLNP and SLSQP is
-##' \code{gradientAlgo}. CSOLNP uses \code{forward} method
-##' by default, while SLSQP uses \code{central} method. \code{forward} method requires
-##' 1 time \code{gradientIterations} function evaluation per parameter
-##' per gradient, while \code{central} method requires 2 times
-##' \code{gradientIterations} function evaluations per parameter
-##' per gradient. Users can change the default methods for either of these optimizers.
-##' NPSOL usually uses the \code{forward} method, but
-##' adaptively switches to \code{central} under certain circumstances.
-##'
-##' CSOLNP uses the value of argument \code{gradientStepSize} as-is,
-##' whereas SLSQP internally scales it by a factor of 100. The
-##' purpose of this transformation is to obtain roughly the same
-##' accuracy given other differences in numerical procedure.
-##' NPSOL ignores \code{gradientStepSize}, and instead uses a function
-##' of \link{mxOption} \dQuote{Function precision} to determine its gradient
-##' step size.
-##'
-##' All three optimizers can use analytic gradients,
-##' and only NPSOL uses \code{warmStart}.
+##' All three optimizers can use analytic gradients, and only NPSOL
+##' uses \code{warmStart}. To customize more options, see
+##' \link{mxOption}.
 ##'
 ##' @param freeSet names of matrices containing free parameters.
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
@@ -403,20 +386,20 @@ mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
   if (lifecycle::is_present(useGradient)) {
-    deprecate_soft("2.18.2", "mxComputeGradientDescent(useGradient = )",
-                   details="see mxOption(key='Analytic Gradients')")
+    deprecate_soft("2.18.2", "OpenMx::mxComputeGradientDescent(useGradient = )",
+                   details="For similar functionality, see mxOption(key='Analytic Gradients')")
   }
   if (lifecycle::is_present(gradientAlgo)) {
-    deprecate_soft("2.18.2", "mxComputeGradientDescent(gradientAlgo = )",
-                   details="see mxOption(key='Gradient algorithm')")
+    deprecate_soft("2.18.2", "OpenMx::mxComputeGradientDescent(gradientAlgo = )",
+                   details="For similar functionality, see mxOption(key='Gradient algorithm')")
   }
   if (lifecycle::is_present(gradientIterations)) {
-    deprecate_soft("2.18.2", "mxComputeGradientDescent(gradientIterations = )",
-                   details="see mxOption(key='Gradient iterations')")
+    deprecate_soft("2.18.2", "OpenMx::mxComputeGradientDescent(gradientIterations = )",
+                   details="For similar functionality, see mxOption(key='Gradient iterations')")
   }
   if (lifecycle::is_present(gradientStepSize)) {
-    deprecate_soft("2.18.2", "mxComputeGradientDescent(gradientStepSize = )",
-                   details="see mxOption(key='Gradient step size')")
+    deprecate_soft("2.18.2", "OpenMx::mxComputeGradientDescent(gradientStepSize = )",
+                   details="For similar functionality, see mxOption(key='Gradient step size')")
   }
 
 	if (!is.null(warmStart) && engine != "NPSOL") {
