@@ -326,7 +326,8 @@ class FitContext {
 	template<typename T1, typename T2>
 	void copyBoxConstraintToOptimizer(Eigen::MatrixBase<T1> &lb, Eigen::MatrixBase<T2> &ub)
 	{
-    if (lb.size() != getNumFree()) OOPS;
+    // lb.size can be larger than numFree (see NPSOL)
+    if (lb.size() < getNumFree()) OOPS;
 		for (int vx=0; vx < getNumFree(); ++vx) {
       int px = freeToParamMap[vx];
 			lb[vx] = varGroup->vars[px]->lbound;

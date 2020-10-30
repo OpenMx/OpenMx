@@ -62,6 +62,7 @@ class GradientOptimizerContext {
 	Eigen::VectorXd solUB;
 
 	bool CSOLNP_HACK;
+  bool NPSOL_HACK;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
 	// even when optimization proceeds correctly.

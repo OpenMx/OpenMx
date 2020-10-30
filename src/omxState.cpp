@@ -22,6 +22,7 @@
 #include "omxState.h"
 #include "Compute.h"
 #include "omxImportFrontendState.h"
+#include "npsolswitch.h"
 #include "EnableWarnings.h"
 
 struct omxGlobal *Global = NULL;

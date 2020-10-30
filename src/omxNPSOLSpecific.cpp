@@ -26,7 +26,7 @@
 #include "EnableWarnings.h"
 
 template <typename T1, typename T2, typename T3>
-void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, 
+void GradientOptimizerContext::allConstraintsFun(Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut,
                                                  Eigen::MatrixBase<T3> &needcIn, int mode)
 {
 	omxState *st = fc->state;
@@ -112,7 +112,7 @@ extern "C" {
 
 /* NPSOL-related functions */
 extern void F77_SUB(npsol)(int *n, int *nclin, int *ncnln, int *ldA, int *ldJ, int *ldR, double *A,
-                            double *bl, double *bu, void* funcon, void* funobj, int *inform, int *iter, 
+                            double *bl, double *bu, void* funcon, void* funobj, int *inform, int *iter,
                             int *istate, double *c, double *cJac, double *clambda, double *f, double *g, double *R,
                             double *x, int *iw, int *leniw, double *w, int *lenw);
 extern void F77_SUB(npoptn)(char* string, int Rf_length);
@@ -153,7 +153,7 @@ void F77_SUB(npsolConstraintFunction)
 	NPSOL_GOpt->allConstraintsFun(cE, cJacE, needcE, *mode);
 }
 
-template <typename T1> 
+template <typename T1>
 void GradientOptimizerContext::linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc)
 {
 	omxState *st = fc->state;
@@ -186,6 +186,7 @@ static double getNPSOLFeasibilityTolerance()
 static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality, int nl_inequality, int l_equality, int l_inequality)
 {
 	rf.setEngineName("NPSOL");
+  rf.NPSOL_HACK = true;
 	rf.setupAllBounds();
 	{
 		double ft = (nl_equality+nl_inequality+l_inequality+l_equality)? getNPSOLFeasibilityTolerance() : 1e-5;
@@ -217,7 +218,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
     int nlinwid = std::max(1, nclin);
     int ncnln = nl_equality + nl_inequality;
     int nlnwid = std::max(1, ncnln);
- 
+
 	if (ncnln + nclin == 0) { //<--We might have to move to a worse fit to satisfy even linear constraints.
 		// ensure we never move to a worse point
 		int mode = 0;
@@ -234,16 +235,16 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	}
 
 	int n = rf.numFree;
- 
+
         int nctotl = n + nlinwid + nlnwid;
- 
+
         int leniw = 3 * n + nclin + 2 * ncnln;
         int lenw = 2 * n * n + n * nclin + 2 * n * ncnln + 20 * n + 11 * nclin + 21 * ncnln;
- 
+
         int ldA = nlinwid;          // NPSOL specifies this should be either 1 or nclin, whichever is greater
         int ldJ = nlnwid;           // NPSOL specifies this should be either 1 or nclin, whichever is greater
         int ldR = n;                // TODO: Test alternative versions of the size of R to see what's best.
- 
+
     /* Allocate arrays */
 	Eigen::MatrixXd A(ldA, n);  // maybe transposed?
 	if(nclin){
@@ -256,7 +257,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 	Eigen::VectorXd w(lenw);
 	rf.constraintStatesOut.resize(nctotl);//Eigen::VectorXi istate(nctotl);
 	Eigen::VectorXi iw(leniw);
- 
+
 	if (rf.warmStart) {
 		rf.constraintStatesOut.setZero();
 		rf.LagrMultipliersOut.setZero();
@@ -289,25 +290,25 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
             double *w,              -- Array of length lenw. Need not be initialized.  Provides workspace.
             int *lenw               -- Length of w.  Must be at least 2n^2 + n*nclin + 2*n*ncnln + 20*n + 11*nclin +21*ncnln
         )
- 
+
         bl, bu, istate, and clambda are all length n+nclin+ncnln.
             First n elements refer to the vars, in order.
             Next nclin elements refer to bounds on Ax
             Last ncnln elements refer to bounds on c(x)
- 
+
         All arrays must be in column-major order.
         */
- 
+
 	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
-	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR, 
-          A.data(), rf.solLB.data(), rf.solUB.data(), 
-          (void*)F77_SUB(npsolConstraintFunction), (void*) F77_SUB(npsolObjectiveFunction), 
-          &rf.informOut, &iter_out, rf.constraintStatesOut.data(), 
+	F77_CALL(npsol)(&n, &nclin, &ncnln, &ldA, &ldJ, &ldR,
+          A.data(), rf.solLB.data(), rf.solUB.data(),
+          (void*)F77_SUB(npsolConstraintFunction), (void*) F77_SUB(npsolObjectiveFunction),
+          &rf.informOut, &iter_out, rf.constraintStatesOut.data(),
           rf.constraintFunValsOut.data(), rf.constraintJacobianOut.data(), rf.LagrMultipliersOut.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
           iw.data(), &leniw, w.data(), &lenw);
-	
+
 	/*We tell NPSOL that all of the MxConstraints are nonlinear, because NPSOL's special handling of linear constraints doesn't seem to
 	work as documented.  However, nlinwid = max(1,nclin), and nctotl = n + nlinwid + nlnwid, so arrays that are sized to nctotl will always
 	have at least one element that NPSOL never uses.  Obviously, if ncnln==0, the only constraints will be box constraints, and there will be a
@@ -322,7 +323,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
 		rf.LagrMultipliersOut.conservativeResize(n+ncnln);
 		rf.constraintStatesOut.conservativeResize(n+ncnln);
 	}
-	
+
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
 	if (rf.bestEst.size() && ncnln+nclin == 0) {
@@ -386,7 +387,7 @@ void omxNPSOL(GradientOptimizerContext &rf)
 void omxSetNPSOLOpts(SEXP options)
 {
     ProtectAutoBalanceDoodad mpi;
-    
+
     static const char *whitelist[] = {
         "Central Difference Interval",
         "Crash Tolerance",
@@ -413,7 +414,7 @@ void omxSetNPSOLOpts(SEXP options)
         "Verify level",
         0
     };
-    
+
     const int opBufLen = 250;
     char optionCharArray[opBufLen];
     int numOptions = Rf_length(options);
