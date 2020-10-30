@@ -1240,7 +1240,7 @@ void ComputeCI::checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *cur
 void ComputeCI::checkBoxConstraints(FitContext &fc, int skip, Diagnostic &diag)
 {
 	if (diag != CIobjective::DIAG_SUCCESS) return;
-  if (fc.hasActiveBoxConstraint()) diag = CIobjective::DIAG_BOXED;
+  if (fc.hasActiveBoxConstraint(skip)) diag = CIobjective::DIAG_BOXED;
 }
 
 void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,

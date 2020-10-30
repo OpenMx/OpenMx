@@ -721,12 +721,13 @@ void FitContext::clearHessian()
 	maxBlockSize = 0;
 }
 
-bool FitContext::hasActiveBoxConstraint() const
+bool FitContext::hasActiveBoxConstraint(int skip) const
 {
   const int verbose = 0;
 	double eps = sqrt(std::numeric_limits<double>::epsilon());
 
   for (int vx=0; vx < getNumFree(); ++vx) {
+    if (vx == skip) continue;
 		bool active=false;
     int px = freeToParamMap[vx];
 		if (est[px] <= varGroup->vars[px]->lbound + eps) {

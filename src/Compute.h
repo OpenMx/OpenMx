@@ -335,7 +335,7 @@ class FitContext {
 			if (!std::isfinite(ub[vx])) ub[vx] = INF;
 		}
 	};
-  bool hasActiveBoxConstraint() const;
+  bool hasActiveBoxConstraint(int skip) const;
 	std::string asProgressReport();
 };
 
