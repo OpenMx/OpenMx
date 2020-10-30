@@ -238,6 +238,7 @@ omxGlobal::omxGlobal()
 	userInterrupted = false;
 	lastIndexDone=0;
 	lastIndexDoneTime=0;
+  NPSOL_HACK = 0;
 
   gradientAlgo = GradientAlgorithm_Auto;
   gradientIter = 1;

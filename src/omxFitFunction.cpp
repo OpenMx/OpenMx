@@ -305,7 +305,7 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 		}
 		if (want & FF_COMPUTE_GRADIENT) {
       if (!Global->analyticGradients) fc->gradZ.setConstant(NA_REAL);
-      if (!fc->gradZ.allFinite()) {
+      if (Global->NPSOL_HACK==0 && !fc->gradZ.allFinite()) {
         numericalGradientApprox(ff, fc, want & FF_COMPUTE_FIT);
       }
     }

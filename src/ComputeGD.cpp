@@ -117,7 +117,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
 	CSOLNP_HACK = false;
-	NPSOL_HACK = false;
 	reset();
 }
 
@@ -166,7 +165,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	copyFromOptimizer(myPars, fc);
 
 	int want = FF_COMPUTE_FIT;
-	if (*mode > 0 && !NPSOL_HACK) want |= FF_COMPUTE_GRADIENT;
+	if (*mode > 0) want |= FF_COMPUTE_GRADIENT;
 
 	ComputeFit(getOptName(), fitMatrix, want, fc);
 

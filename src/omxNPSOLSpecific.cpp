@@ -131,6 +131,13 @@ void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 	if (x != NPSOL_GOpt->est.data()) return;  // this is strange but necessary
 	double fit = NPSOL_GOpt->recordFit(x, mode);
 	*f = fit;
+
+  if (*mode > 0) {
+    for (int vx = 0; vx < *n; ++vx) {
+      if (!std::isfinite(NPSOL_GOpt->grad[vx])) continue;;
+      g[vx] = NPSOL_GOpt->grad[vx];
+    }
+  }
 }
 
 /* (Non)Linear Constraint Functions */
@@ -183,10 +190,15 @@ static double getNPSOLFeasibilityTolerance()
 	return Global->feasibilityTolerance * 2e-2 / 5e-2;
 }
 
+struct NPSOLModeSwitch {
+  NPSOLModeSwitch() { Global->NPSOL_HACK += 1; }
+  ~NPSOLModeSwitch() { Global->NPSOL_HACK -= 1; }
+};
+
 static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality, int nl_inequality, int l_equality, int l_inequality)
 {
+  NPSOLModeSwitch modeSwitch;
 	rf.setEngineName("NPSOL");
-  rf.NPSOL_HACK = true;
 	rf.setupAllBounds();
 	{
 		double ft = (nl_equality+nl_inequality+l_inequality+l_equality)? getNPSOLFeasibilityTolerance() : 1e-5;
@@ -299,6 +311,8 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
         All arrays must be in column-major order.
         */
 
+  Eigen::ArrayXd workingGrad(n);
+  workingGrad.setZero();
 	rf.hessOut.resize(n, n);
 	double fit; // do not pass in &fc->fit
 	int iter_out; // ignored
@@ -306,7 +320,7 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nl_equality
           A.data(), rf.solLB.data(), rf.solUB.data(),
           (void*)F77_SUB(npsolConstraintFunction), (void*) F77_SUB(npsolObjectiveFunction),
           &rf.informOut, &iter_out, rf.constraintStatesOut.data(),
-          rf.constraintFunValsOut.data(), rf.constraintJacobianOut.data(), rf.LagrMultipliersOut.data(), &fit, rf.grad.data(), rf.hessOut.data(), rf.est.data(),
+          rf.constraintFunValsOut.data(), rf.constraintJacobianOut.data(), rf.LagrMultipliersOut.data(), &fit, workingGrad.data(), rf.hessOut.data(), rf.est.data(),
           iw.data(), &leniw, w.data(), &lenw);
 
 	/*We tell NPSOL that all of the MxConstraints are nonlinear, because NPSOL's special handling of linear constraints doesn't seem to

@@ -253,6 +253,7 @@ class omxGlobal {
 	double gradientTolerance;
 	int dataTypeWarningCount;
 
+  int NPSOL_HACK;
 	int maxOrdinalPerBlock;
 	double maxptsa;
 	double maxptsb;

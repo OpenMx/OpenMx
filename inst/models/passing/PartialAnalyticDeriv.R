@@ -41,10 +41,8 @@ powellrun2 <- mxRun(powellmod1)
 
 expect_equal(coef(powellrun1), coef(powellrun2), 1e-6)
 
-if (mxOption(key="Default optimizer") != 'NPSOL') {
-  expect_equal(powellrun2$output$evaluations - powellrun1$output$evaluations,
-               148, 10)
-}
+expect_equal(powellrun2$output$evaluations - powellrun1$output$evaluations,
+             148, 10)
 
 #cat(deparse(round(coef(powellrun1), 3)))
 expect_equal(coef(powellrun1),
