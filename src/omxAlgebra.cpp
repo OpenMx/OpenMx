@@ -250,6 +250,7 @@ void omxAlgebraRecompute(omxMatrix *mat, int want, FitContext *fc)
 						   Emat.rows(), Emat.cols());
 		mxPrintMat(name.c_str(), Emat.topLeftCorner(nr, nc));
 	}
+	oa->processing = false;
 }
 
 omxAlgebra::omxAlgebra() :

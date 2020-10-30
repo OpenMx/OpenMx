@@ -214,7 +214,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 		double rho   = fit.ControlRho;
 		int maxit = fit.maxMajorIterations;
 		int minit = fit.ControlMinorLimit;
-		double delta = fit.gradientStepSize;
+		double delta = Global->gradientStepSize;
 		double tol   = fit.ControlTolerance;
 
 		int tc = nineq + neq;
@@ -754,7 +754,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
 			else g_e = fit.grad.transpose();
 		} else {
-			if (fit.gradientAlgo == GradientAlgorithm_Forward)
+			if (Global->gradientAlgo == GradientAlgorithm_Forward)
 				calculateGrad_forward(np, delta, p0_e, vscale_e, g_e, j, verbose);
 			else
 				calculateGrad_central(np, delta, p0_e, vscale_e, g_e, j, verbose);
@@ -771,13 +771,13 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
       auto &analyticEqJacTmp = fit.getAnalyticEqJacSingleThreaded();
 			a_e.block(0, nineq, neq, np) = analyticEqJacTmp;
 			if (((a_e.array() != a_e.array())).any()){
-				if (fit.gradientAlgo == GradientAlgorithm_Forward)
+				if (Global->gradientAlgo == GradientAlgorithm_Forward)
 					calculateJac_forward(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 				else
 					calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 			}
 		} else {
-			if (fit.gradientAlgo == GradientAlgorithm_Forward)
+			if (Global->gradientAlgo == GradientAlgorithm_Forward)
 				calculateJac_forward(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
 			else
 				calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
@@ -1019,7 +1019,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
 				else g_e = fit.grad.transpose();
 			} else {
-				if (fit.gradientAlgo == GradientAlgorithm_Forward)
+				if (Global->gradientAlgo == GradientAlgorithm_Forward)
 					calculateGradAug_forward(np, delta, p_e, vscale_e, g_e, a_e, constraint_e, b_e, yy_e, obm_e, j, rho, verbose);
 				else
 					calculateGradAug_central(np, delta, p_e, vscale_e, g_e, a_e, constraint_e, b_e, yy_e, obm_e, j, rho, verbose);

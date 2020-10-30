@@ -254,7 +254,6 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 	virtual double getFit() { return fc->fit; };
 	virtual void resetDerivs() {
 		fc->resetOrdinalRelativeError();
-    fc->initGrad();
 		fc->clearHessian();
 	};
 	virtual const char *paramIndexToName(int px)
@@ -307,9 +306,8 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 	fitMatrix = omxNewMatrixFromSlot(rObj, state, "fitfunction");
 	omxCompleteFitFunction(fitMatrix);
 
-	if (!fitMatrix->fitFunction->hessianAvailable ||
-	    !fitMatrix->fitFunction->gradientAvailable) {
-		mxThrow("Newton-Raphson requires derivatives");
+	if (!fitMatrix->fitFunction->hessianAvailable) {
+		mxThrow("Newton-Raphson requires analytic Hessian");
 	}
 
 	SEXP slotValue;

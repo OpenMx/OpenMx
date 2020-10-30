@@ -31,6 +31,7 @@
 #include "omxFitFunction.h"
 #include "fitMultigroup.h"
 #include "Compute.h"
+#include "finiteDifferences.h"
 #include "EnableWarnings.h"
 
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
@@ -46,6 +47,48 @@ omxFitFunction *omxFitFunction::initMorph()
 {
 	init();
 	return this;
+}
+
+void omxFitFunction::buildGradMap(FitContext *fc, std::vector<const char *> &names)
+{
+  if (fc->getNumFree() == -1) mxThrow("Forgot to call fc->calcNumFree");
+
+  std::vector<bool> haveGrad(fc->getNumFree(), false);
+  derivCount = 0;
+  int numNames = names.size();
+	gradMap.resize(numNames);
+  auto &fim = fc->freeToIndexMap;
+
+	for (int nx=0; nx < numNames; ++nx) {
+		auto it = fim.find(names[nx]);
+    if (it == fim.end()) {
+      gradMap[nx] = -1;
+    } else {
+      gradMap[nx] = it->second;
+      haveGrad[it->second] = true;
+      ++derivCount;
+      if (verbose) {
+        mxLog("%s: name '%s' mapped to free parameter %d",
+              matrix->name(), names[nx], it->second);
+      }
+    }
+	}
+
+  missingGrad.clear();
+  missingGrad.reserve(fc->getNumFree() - derivCount);
+  for (int fx=0; fx < fc->getNumFree(); ++fx) {
+    if (haveGrad[fx]) continue;
+    missingGrad.push_back(fx);
+  }
+}
+
+void omxFitFunction::invalidateGradient(FitContext *fc)
+{
+  if (derivCount == 0) {
+    fc->gradZ.setConstant(NA_REAL);
+  } else {
+    for (int ix : missingGrad) fc->gradZ[ix] = NA_REAL;
+  }
 }
 
 static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
@@ -115,6 +158,19 @@ static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
 {
 	if (fitUnitsIsChiSq(ff->units)) {
 		fc->ciobj->evalFit(ff, want, fc);
+
+    // constraint jacobian is a function of the regular gradient TODO
+    // std::unique_ptr<CIobjective> tmpci = std::move(fc->ciobj);
+    // ComputeFit("grad", ff->matrix, FF_COMPUTE_GRADIENT, fc)
+    // fc->ciobj = std::move(tmpci);
+
+    if (want & FF_COMPUTE_GRADIENT) {
+      if (fc->ciobj->gradientKnown()) {
+        fc->ciobj->gradient(fc);
+      } else {
+        fc->gradZ.setConstant(NA_REAL);
+      }
+    }
 	} else {
 		mxThrow("Confidence intervals are not supported for units %s",
 			 fitUnitsToName(ff->units));
@@ -179,12 +235,56 @@ double totalLogLikelihood(omxMatrix *fitMat)
 	}
 }
 
+static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool haveFreshFit)
+{
+  if (isErrorRaised()) return;
+
+  double fitSave = fc->fit;
+  const int numFree = fc->getNumFree();
+
+  if (!fc->numericalGradTool) {
+    // allow option customization TODO
+    fc->numericalGradTool =
+      std::unique_ptr<JacobianGadget>
+      (new JacobianGadget(std::max(1, int(fc->childList.size())), numFree));
+  }
+  auto &ngt = *fc->numericalGradTool;
+
+  if (ngt.needRefFit() && !haveFreshFit) {
+    ComputeFit("gradient", ff->matrix, FF_COMPUTE_FIT, fc);
+  }
+
+  Eigen::VectorXd point(numFree);
+  fc->copyEstToOptimizer(point);
+  Eigen::ArrayXd ref(1);
+  ref[0] = fc->fit;
+  Eigen::Map< Eigen::RowVectorXd > gradOut(fc->gradZ.data(), fc->gradZ.size());
+
+	ngt([&](double *myPars, int thrId, Eigen::Ref<Eigen::ArrayXd> result)->void{
+			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
+			// Only 1 parameter is different so we could
+			// update only that parameter instead of all
+			// of them.
+			fc2->setEstFromOptimizer(myPars);
+			ComputeFit("gradient", fc2->lookupDuplicate(ff->matrix), FF_COMPUTE_FIT, fc2);
+			double fit = fc2->fit;
+			if (fc2->outsideFeasibleSet()) fit = nan("infeasible");
+      result[0] = fit;
+      }, ref, point, true, gradOut);
+
+  robustifyInplace(fc->gradZ);
+
+  fc->fit = fitSave;
+}
+
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
 {
 	fc->incrComputeCount();
 	fc->skippedRows = 0;
 	omxFitFunction *ff = fitMat->fitFunction;
 	if (ff) {
+		if (want & FF_COMPUTE_GRADIENT) fc->initGrad();
 		omxFitFunctionComputeAuto(ff, want, fc);
 	} else {
 		if (want != FF_COMPUTE_FIT) mxThrow("Only fit is available");
@@ -203,6 +303,12 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 				      fitMat->name(), fc->fit, fc->skippedRows);
 			}
 		}
+		if (want & FF_COMPUTE_GRADIENT) {
+      if (!Global->analyticGradients) fc->gradZ.setConstant(NA_REAL);
+      if (!fc->gradZ.allFinite()) {
+        numericalGradientApprox(ff, fc, want & FF_COMPUTE_FIT);
+      }
+    }
 	}
 }
 

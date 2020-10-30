@@ -876,6 +876,8 @@ void omxFIMLFitFunction::compute(int want, FitContext *fc)
 		return;
 	}
 
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+
 	bool failed = false;
 
 	if (fc->childList.size() == 0) {

@@ -145,6 +145,8 @@ void omxRowFitFunction::compute(int want, FitContext *fc)
 
   if (want & FF_COMPUTE_PREOPTIMIZE) return;
 
+  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+
     if(OMX_DEBUG) { mxLog("Beginning Row Evaluation.");}
 	// Requires: Data, means, covariances.
 

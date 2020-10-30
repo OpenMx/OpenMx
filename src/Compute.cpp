@@ -65,10 +65,11 @@ void FitContext::calcNumFree()
 {
   std::vector<bool> &po = profiledOutZ;
   _numFree = numParam - std::count(po.begin(), po.end(), true);
-  if (gradZ.size() != _numFree) initGrad();
+  freeToIndexMap.clear();
   freeToParamMap.resize(_numFree);
   for (int fx=0, px=0; px < numParam; ++px) {
     if (po[px]) continue;
+    freeToIndexMap.emplace(varGroup->vars[px]->name, fx);
     freeToParamMap[fx++] = px;
   }
 
@@ -547,10 +548,10 @@ bool FitContext::refreshSparseIHess()
 
 Eigen::VectorXd FitContext::ihessGradProd()
 {
-	for (int px=0; px < int(haveGrad.size()); ++px) {
-		if (haveGrad[px]) continue;
+	for (int px=0; px < int(gradZ.size()); ++px) {
+		if (std::isfinite(gradZ[px])) continue;
 		mxLog("FitContext::ihessGradProd grad[%d/%s] missing",
-		      px, varGroup->vars[px]->name);
+		      px, varGroup->vars[freeToParamMap[px]]->name);
 	}
 	if (refreshSparseIHess()) {
 		return sparseIHess.selfadjointView<Eigen::Upper>() * gradZ;
@@ -673,7 +674,7 @@ int HessianBlock::estNonZero() const
 void FitContext::init()
 {
 	numParam = varGroup->vars.size();
-  _numFree = 0;
+  _numFree = -1;
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
@@ -953,11 +954,7 @@ void FitContext::log(int what)
     int count = getNumFree();
 		buf += string_snprintf("gradient %d: c(", (int) count);
 		for (int vx=0; vx < count; ++vx) {
-			if (haveGrad[vx]) {
-				buf += string_snprintf("%.5f", gradZ[vx]);
-			} else {
-				buf += '-';
-			}
+      buf += string_snprintf("%.5f", gradZ[vx]);
 			if (vx < count - 1) buf += ", ";
 		}
 		buf += ")\n";
@@ -1783,6 +1780,7 @@ struct LeaveComputeWithVarGroup {
 		}
 	};
 	~LeaveComputeWithVarGroup() {
+    fc->numericalGradTool.reset();
 		fc->destroyChildren();
 		if (toResetInform) fc->setInform(std::max(origInform, fc->getInform()));
 		Global->checkpointMessage(fc, "%s", name);
@@ -2802,6 +2800,8 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 			const char *key = R_CHAR(STRING_ELT(argNames, ax));
 			slotValue = VECTOR_ELT(infoArgs, ax);
 			if (strEQ(key, "fitfunction")) {
+        // Why do we allow more than one here? How is this
+        // different from a multigroup fit function?
 				for (int fx=0; fx < Rf_length(slotValue); ++fx) {
 					omxMatrix *ff = globalState->algebraList[INTEGER(slotValue)[fx]];
 					if (!ff->fitFunction) mxThrow("infoArgs$fitfunction is %s, not a fitfunction", ff->name());
@@ -3115,7 +3115,7 @@ void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBa
 
   fc->setEstFromOptimizerClean(optimum);
 
-	fc->gradZ = Eigen::VectorXd::Zero(fc->numParam);
+	fc->gradZ = Eigen::VectorXd::Zero(fc->getNumFree());
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
 		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
 	}
@@ -3528,7 +3528,7 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	for (int ax=0; ax < (int) algebras.size(); ++ax) {
 		omxFitFunction *ff = algebras[ax]->fitFunction;
-		if (gradient && (!ff || !ff->gradientAvailable)) {
+		if (gradient && !ff) {
 			mxThrow("Gradient requested but not available");
 		}
 		if ((hessian || ihessian || hgprod) && (!ff || !ff->hessianAvailable)) {
@@ -3541,6 +3541,8 @@ void omxComputeOnce::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxComputeOnce::computeImpl(FitContext *fc)
 {
+  fc->calcNumFree();
+
 	if (algebras.size()) {
 		int want = 0;
 		if (starting) {
@@ -3557,7 +3559,6 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
-			fc->initGrad();
 		}
 		if (hessian) {
 			want |= FF_COMPUTE_HESSIAN;
@@ -3566,7 +3567,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (infoMat) {
 			want |= FF_COMPUTE_INFO;
 			fc->infoMethod = infoMethod;
-			fc->initGrad();
+			fc->initGrad(); // remove? TODO
 			fc->clearHessian();
 			fc->preInfo();
 		}
@@ -3659,7 +3660,8 @@ void ComputeJacobian::computeImpl(FitContext *fc)
 
   sense.measureRef(fc);
   fc->createChildren();
-  JacobianGadget jg(fc->childList.size(), numFree, GradientAlgorithm_Forward, 2, 1e-4);
+  JacobianGadget jg(fc->childList.size(), numFree);
+  jg.setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
   jg(sense, sense.ref, curEst, false, sense.result);
   fc->destroyChildren();
 }
@@ -3821,7 +3823,8 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	sense.attach(&exList, 0);
 	sense.measureRef(fc);
   fc->createChildren(fitMat, false);
-  JacobianGadget jg(fc->childList.size(), numFree, GradientAlgorithm_Forward, 2, 1e-4);
+  JacobianGadget jg(fc->childList.size(), numFree);
+  jg.setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
   jg(sense, sense.ref, curEst, false, sense.result);
   fc->destroyChildren();
 

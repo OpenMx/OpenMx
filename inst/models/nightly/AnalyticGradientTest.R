@@ -55,6 +55,7 @@ testmod2$compute <- mxComputeSequence(steps=list(
 	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer"),useGradient=FALSE),
 	mxComputeReportExpectation()
 ))
+testmod2$fitfunction <- mxFitFunctionGREML(autoDerivType="numeric")
 testrun2 <- mxRun(testmod2)
 
 #One thing that definitely should be smaller with analytic gradient is the number of fitfunction evaluations:

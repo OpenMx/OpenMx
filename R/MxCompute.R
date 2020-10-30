@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -139,7 +139,7 @@ setMethod("updateFromBackend", signature("BaseCompute"),
 		}
 		.Object
 	})
-    
+
 setMethod("$", "BaseCompute", imxExtractSlot)
 
 setReplaceMethod("$", "BaseCompute",
@@ -269,7 +269,6 @@ setMethod("displayCompute", signature(Ob="MxComputeOnce", indent="integer"),
 setClass(Class = "MxComputeGradientDescent",
 	 contains = "BaseCompute",
 	 representation = representation(
-	   useGradient = "MxOptionalLogical",
 	   fitfunction = "MxCharOrNumber",
 	   engine = "character",
 	     availableEngines = "character",
@@ -277,9 +276,6 @@ setClass(Class = "MxComputeGradientDescent",
 	   nudgeZeroStarts = "MxCharOrLogical",
 	   verbose = "integer",
 	     maxMajorIter = "integer",
-	     gradientAlgo = "MxOptionalChar",
-	     gradientIterations = "integer",
-	   gradientStepSize = "numeric",
 	   defaultCImethod = "character",
 	     warmStart = "MxOptionalMatrix"))  # rename to 'preconditioner'?
 
@@ -302,8 +298,8 @@ setMethod("convertForBackend", signature("MxComputeGradientDescent"),
 	})
 
 setMethod("initialize", "MxComputeGradientDescent",
-	  function(.Object, freeSet, engine, fit, useGradient, verbose, tolerance, warmStart,
-		   nudgeZeroStarts, maxMajorIter, gradientAlgo, gradientIterations, gradientStepSize) {
+	  function(.Object, freeSet, engine, fit, verbose, tolerance, warmStart,
+		   nudgeZeroStarts, maxMajorIter) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -311,15 +307,11 @@ setMethod("initialize", "MxComputeGradientDescent",
 		  .Object@engine <- engine
 		  .Object@defaultCImethod <- 'none'
 		  if (engine == 'SLSQP') .Object@defaultCImethod <- 'ineq'
-		  .Object@useGradient <- useGradient
 		  .Object@verbose <- verbose
 		  .Object@tolerance <- tolerance
 		  .Object@warmStart <- warmStart
 		  .Object@nudgeZeroStarts <- nudgeZeroStarts
 		  .Object@maxMajorIter <- maxMajorIter
-		  .Object@gradientAlgo <- gradientAlgo
-		  .Object@gradientIterations <- gradientIterations
-		  .Object@gradientStepSize <- gradientStepSize
 		  .Object@availableEngines <- c("CSOLNP", "SLSQP")
 		  if (imxHasNPSOL()) {
 			  .Object@availableEngines <- c(.Object@availableEngines, "NPSOL")
@@ -346,19 +338,19 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' by default, while SLSQP uses \code{central} method. \code{forward} method requires
 ##' 1 time \code{gradientIterations} function evaluation per parameter
 ##' per gradient, while \code{central} method requires 2 times
-##' \code{gradientIterations} function evaluations per parameter 
+##' \code{gradientIterations} function evaluations per parameter
 ##' per gradient. Users can change the default methods for either of these optimizers.
 ##' NPSOL usually uses the \code{forward} method, but
 ##' adaptively switches to \code{central} under certain circumstances.
-##' 
-##' CSOLNP uses the value of argument \code{gradientStepSize} as-is, 
+##'
+##' CSOLNP uses the value of argument \code{gradientStepSize} as-is,
 ##' whereas SLSQP internally scales it by a factor of 100. The
 ##' purpose of this transformation is to obtain roughly the same
 ##' accuracy given other differences in numerical procedure.
 ##' NPSOL ignores \code{gradientStepSize}, and instead uses a function
 ##' of \link{mxOption} \dQuote{Function precision} to determine its gradient
 ##' step size.
-##' 
+##'
 ##' All three optimizers can use analytic gradients,
 ##' and only NPSOL uses \code{warmStart}.
 ##'
@@ -368,13 +360,13 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 ##' @param fitfunction name of the fitfunction (defaults to 'fitfunction')
 ##' @template args-verbose
 ##' @param tolerance how close to the optimum is close enough (also known as the optimality tolerance)
-##' @param useGradient whether to use the analytic gradient (if available)
+##' @param useGradient \lifecycle{soft-deprecated}
 ##' @param warmStart a Cholesky factored Hessian to use as the NPSOL Hessian starting value (preconditioner)
 ##' @param nudgeZeroStarts whether to nudge any zero starting values prior to optimization (default TRUE)
 ##' @param maxMajorIter maximum number of major iterations
-##' @param gradientAlgo one of c('forward','central')
-##' @param gradientIterations number of Richardson iterations to use for the gradient
-##' @param gradientStepSize the step size for the gradient
+##' @param gradientAlgo \lifecycle{soft-deprecated}
+##' @param gradientIterations \lifecycle{soft-deprecated}
+##' @param gradientStepSize \lifecycle{soft-deprecated}
 ##' @aliases
 ##' MxComputeGradientDescent-class
 ##' @references
@@ -400,36 +392,49 @@ imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
 mxComputeGradientDescent <- function(freeSet=NA_character_, ...,
 				     engine=NULL, fitfunction='fitfunction', verbose=0L,
-				     tolerance=NA_real_, useGradient=NULL, warmStart=NULL,
+				     tolerance=NA_real_, useGradient=deprecated(), warmStart=NULL,
 				     nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), maxMajorIter=NULL,
-				     gradientAlgo=mxOption(NULL, "Gradient algorithm"),
-				     gradientIterations=imxAutoOptionValue("Gradient iterations"),
-				     gradientStepSize=imxAutoOptionValue("Gradient step size")) {
+				     gradientAlgo=deprecated(),
+				     gradientIterations=deprecated(),
+				     gradientStepSize=deprecated()) {
 
   prohibitDotdotdot(list(...))
 	if (missing(engine)) {
 		engine <- options()$mxOptions[["Default optimizer"]]
 	}
+  if (lifecycle::is_present(useGradient)) {
+    deprecate_soft("2.18.2", "mxComputeGradientDescent(useGradient = )",
+                   details="see mxOption(key='Analytic Gradients')")
+  }
+  if (lifecycle::is_present(gradientAlgo)) {
+    deprecate_soft("2.18.2", "mxComputeGradientDescent(gradientAlgo = )",
+                   details="see mxOption(key='Gradient algorithm')")
+  }
+  if (lifecycle::is_present(gradientIterations)) {
+    deprecate_soft("2.18.2", "mxComputeGradientDescent(gradientIterations = )",
+                   details="see mxOption(key='Gradient iterations')")
+  }
+  if (lifecycle::is_present(gradientStepSize)) {
+    deprecate_soft("2.18.2", "mxComputeGradientDescent(gradientStepSize = )",
+                   details="see mxOption(key='Gradient step size')")
+  }
 
 	if (!is.null(warmStart) && engine != "NPSOL") {
 		stop("Only NPSOL supports warmStart")
 	}
 	verbose <- as.integer(verbose)
 	maxMajorIter <- as.integer(maxMajorIter)
-	gradientIterations <- as.integer(gradientIterations)
 
-	new("MxComputeGradientDescent", freeSet, engine, fitfunction, useGradient, verbose,
-	    tolerance, warmStart, nudgeZeroStarts, maxMajorIter,
-	    gradientAlgo, gradientIterations, gradientStepSize)
+	new("MxComputeGradientDescent", freeSet, engine, fitfunction, verbose,
+	    tolerance, warmStart, nudgeZeroStarts, maxMajorIter)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeGradientDescent", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod();
 		  sp <- paste(rep('  ', indent), collapse="")
-		  for (sl in c("engine", "fitfunction", "verbose", "tolerance", "useGradient",
-			       "nudgeZeroStarts", "maxMajorIter",
-			       "gradientAlgo", "gradientIterations", "gradientStepSize")) {
+		  for (sl in c("engine", "fitfunction", "verbose", "tolerance",
+			       "nudgeZeroStarts", "maxMajorIter")) {
 			  val <- slot(Ob, sl)
 			  if (length(val)==0 || is.na(val)) next
 			  slname <- paste("$", sl, sep="")
@@ -530,7 +535,7 @@ setMethod("initialize", "MxComputeTryHard",
 ##' start value is multiplied by a random draw and then added to a
 ##' random draw from a distribution with the same \code{scale} but
 ##' with a median of zero.
-##' 
+##'
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
@@ -742,8 +747,8 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' problems required to estimate confidence intervals. Most accurate
 ##' solutions are achieved when the problem is posed using non-linear
 ##' constraints. However, the available optimizers (CSOLNP, SLSQP, and NPSOL) often have difficulty with non-linear
-##' constraints. 
-##' 
+##' constraints.
+##'
 ##' @param plan compute plan to optimize the model
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
@@ -756,7 +761,7 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' Neale, M. C. & Miller M. B. (1997). The use of likelihood based
 ##' confidence intervals in genetic models.  \emph{Behavior Genetics,
 ##' 27}(2), 113-120.
-##' 
+##'
 ##' Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals and regions for structural equation models.
 ##' \emph{Psychometrika, 80}(4), 1123-1145.
 ##'
@@ -1189,7 +1194,7 @@ setMethod("assignId", signature("MxComputeEM"),
 			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
 			id <- slot(.Object, sl)@id + 1L
 		}
-		.Object@id <- id 
+		.Object@id <- id
 		.Object
 	})
 
@@ -1318,7 +1323,7 @@ setMethod("initialize", "MxComputeEM",
 ##' Bock, R. D., Gibbons, R., & Muraki, E. (1988). Full-information
 ##' item factor analysis. \emph{Applied Psychological Measurement,
 ##' 6}(4), 431-444.
-##' 
+##'
 ##' Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from
 ##' incomplete data via the EM algorithm. \emph{Journal of the Royal Statistical Society.
 ##' Series B (Methodological)}, 1-38.
@@ -1330,7 +1335,7 @@ setMethod("initialize", "MxComputeEM",
 ##' Oakes, D. (1999). Direct calculation of the information matrix via
 ##' the EM algorithm.  \emph{Journal of the Royal Statistical Society:
 ##' Series B (Statistical Methodology), 61}(2), 479-482.
-##' 
+##'
 ##' Ramsay, J. O. (1975). Solving implicit equations in psychometric data analysis.
 ##' \emph{Psychometrika, 40} (3), 337-360.
 ##'
@@ -1340,20 +1345,20 @@ setMethod("initialize", "MxComputeEM",
 ##' @examples
 ##' library(OpenMx)
 ##' set.seed(190127)
-##' 
+##'
 ##' N <- 200
 ##' x <- matrix(c(rnorm(N/2,0,1),
 ##'               rnorm(N/2,3,1)),ncol=1,dimnames=list(NULL,"x"))
 ##' data4mx <- mxData(observed=x,type="raw")
-##' 
+##'
 ##' class1 <- mxModel("Class1",
 ##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=TRUE,values=0,name="Mu"),
 ##' 	mxMatrix(type="Full",nrow=1,ncol=1,free=TRUE,values=4,name="Sigma"),
 ##' 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames="x"),
 ##' 	mxFitFunctionML(vector=TRUE))
-##' 
+##'
 ##' class2 <- mxRename(class1, "Class2")
-##' 
+##'
 ##' mm <- mxModel(
 ##' 	"Mixture", data4mx, class1, class2,
 ##' 	mxAlgebra((1-Posteriors) * Class1.fitfunction, name="PL1"),
@@ -1366,7 +1371,7 @@ setMethod("initialize", "MxComputeEM",
 ##' 	mxComputeEM(
 ##' 	  estep=mxComputeOnce("Mixture.Posteriors"),
 ##' 	  mstep=mxComputeGradientDescent(fitfunction="Mixture.fitfunction")))
-##' 
+##'
 ##' mm <- mxOption(mm, "Max minutes", 1/20)  # remove this line to find optimum
 ##' mmfit <- mxRun(mm)
 ##' summary(mmfit)
@@ -1413,46 +1418,46 @@ setMethod("displayCompute", signature(Ob="MxComputeEM", indent="integer"),
 
 #----------------------------------------------------
 #Mike Hunter's "better match.arg" function
-match.barg <- function (arg, choices, several.ok = FALSE) 
+match.barg <- function (arg, choices, several.ok = FALSE)
 {
 	if (missing(choices)) {
 		formal.args <- formals(sys.function(sys.parent()))
 		choices <- eval(formal.args[[deparse(substitute(arg))]])
 	}
-	if (is.null(arg)) 
+	if (is.null(arg))
 		return(choices[1L])
-	else if (!is.character(arg)) 
+	else if (!is.character(arg))
 		stop("'arg' must be NULL or a character vector")
 	if (!several.ok) {
-		if (identical(arg, choices)) 
+		if (identical(arg, choices))
 			return(arg[1L])
-		if (length(arg) > 1L) 
+		if (length(arg) > 1L)
 			stop("'arg' must be of length 1")
 	}
-	else if (length(arg) == 0L) 
+	else if (length(arg) == 0L)
 		stop("'arg' must be of length >= 1")
 	i <- pmatch(arg, choices, nomatch = 0L, duplicates.ok = TRUE)
-	if (all(i == 0L)) 
+	if (all(i == 0L))
 		stop(gettextf("%s should be one of %s", omxQuotes(arg), omxQuotes(choices)
 		), domain = NA)
 	i <- i[i > 0L]
-	if (!several.ok && length(i) > 1) 
+	if (!several.ok && length(i) > 1)
 		stop("there is more than one match in 'match.arg'")
 	choices[i]
 }
 
 mxComputeNelderMead <- function(
-	freeSet=NA_character_, fitfunction="fitfunction", verbose=0L, 
-	nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"), 
+	freeSet=NA_character_, fitfunction="fitfunction", verbose=0L,
+	nudgeZeroStarts=mxOption(NULL,"Nudge zero starts"),
 	maxIter=NULL,	...,
-	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35, 
+	alpha=1, betao=0.5, betai=0.5, gamma=2, sigma=0.5, bignum=1e35,
 	iniSimplexType=c("regular","right","smartRight","random"),
-	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE, 
+	iniSimplexEdge=1, iniSimplexMat=NULL, greedyMinimize=FALSE,
 	altContraction=FALSE, degenLimit=0, stagnCtrl=c(-1L,-1L),
 	validationRestart=TRUE,
 	xTolProx=1e-8, fTolProx=1e-8,
 	doPseudoHessian=TRUE,
-	ineqConstraintMthd=c("soft","eqMthd"), 
+	ineqConstraintMthd=c("soft","eqMthd"),
 	eqConstraintMthd=c("GDsearch","soft","backtrack","l1p"),
 	backtrackCtrl=c(0.5,5),
 	centerIniSimplex=FALSE
@@ -1509,10 +1514,10 @@ mxComputeNelderMead <- function(
 	backtrackCtrl1 <- as.numeric(backtrackCtrl[1])
 	backtrackCtrl2 <- as.integer(backtrackCtrl[2])
 	centerIniSimplex <- as.logical(centerIniSimplex[1])
-	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
-						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
+	return(new("MxComputeNelderMead", freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha,
+						 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
 						 iniSimplexColnames, validationRestart,
-						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
+						 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx,
 						 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian,
 						 centerIniSimplex))
 }
@@ -1554,10 +1559,10 @@ setClass(
 #so typecasting should also occur here:
 setMethod(
 	"initialize", "MxComputeNelderMead",
-	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha, 
-					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat, 
+	function(.Object, freeSet, fitfunction, verbose, nudgeZeroStarts, maxIter, alpha,
+					 betao, betai, gamma, sigma, bignum, iniSimplexType, iniSimplexEdge, iniSimplexMat,
 					 iniSimplexColnames, validationRestart,
-					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx, 
+					 greedyMinimize, altContraction, degenLimit, stagnCtrl, xTolProx, fTolProx,
 					 ineqConstraintMthd, eqConstraintMthd, backtrackCtrl1, backtrackCtrl2, doPseudoHessian,
 					 centerIniSimplex){
 		.Object@name <- 'compute'
@@ -1568,7 +1573,7 @@ setMethod(
 		.Object@nudgeZeroStarts <- nudgeZeroStarts
 		.Object@defaultMaxIter <- ifelse(length(maxIter),FALSE,TRUE)
 		.Object@maxIter <- as.integer(maxIter)
-		
+
 		.Object@alpha <- alpha
 		.Object@betao <- betao
 		.Object@betai <- betai
@@ -1682,7 +1687,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' In addition to an estimate of the Hessian, forward, central, and
 ##' backward estimates of the gradient are made available in this
 ##' compute plan's output slot.
-##' 
+##'
 ##' When \code{checkGradient=TRUE}, the central difference estimate of
 ##' the gradient is used to determine whether the first order
 ##' convergence criterion is met. In addition, the forward and
@@ -1714,13 +1719,13 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' library(OpenMx)
 ##' data(demoOneFactor)
 ##' factorModel <- mxModel(name ="One Factor",
-##' 	mxMatrix(type = "Full", nrow = 5, ncol = 1, free = FALSE, values = .2, name = "A"), 
-##' 	mxMatrix(type = "Symm", nrow = 1, ncol = 1, free = FALSE, values = 1 , name = "L"), 
-##' 	mxMatrix(type = "Diag", nrow = 5, ncol = 5, free = TRUE , values = 1 , name = "U"), 
+##' 	mxMatrix(type = "Full", nrow = 5, ncol = 1, free = FALSE, values = .2, name = "A"),
+##' 	mxMatrix(type = "Symm", nrow = 1, ncol = 1, free = FALSE, values = 1 , name = "L"),
+##' 	mxMatrix(type = "Diag", nrow = 5, ncol = 5, free = TRUE , values = 1 , name = "U"),
 ##' 	mxAlgebra(A %*% L %*% t(A) + U, name = "R"),
-##' 	mxExpectationNormal(covariance = "R", dimnames = names(demoOneFactor)), 
-##' 	mxFitFunctionML(), 
-##' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500), 
+##' 	mxExpectationNormal(covariance = "R", dimnames = names(demoOneFactor)),
+##' 	mxFitFunctionML(),
+##' 	mxData(cov(demoOneFactor), type = "cov", numObs = 500),
 ##' 	mxComputeSequence(
 ##' 		list(mxComputeNumericDeriv(), mxComputeReportDeriv())
 ##' 	)
@@ -1873,9 +1878,9 @@ setMethod("initialize", "MxComputeStandardError",
 ##' When the fit is in -2 log likelihood units, the SEs are derived
 ##' from the diagonal of the Hessian or inverse Hessian. The Hessian
 ##' (in some form) must already be available.
-##' 
+##'
 ##' If there are active MxConstraints and the fit is in -2logL units,
-##' the SEs are derived from the Hessian and the Jacobian of the 
+##' the SEs are derived from the Hessian and the Jacobian of the
 ##' constraint functions (see references).
 ##'
 ##' @param freeSet names of matrices containing free variables
@@ -1883,8 +1888,8 @@ setMethod("initialize", "MxComputeStandardError",
 ##' @aliases
 ##' MxComputeStandardError-class
 ##' @references
-##' Moore T & Sadler B.  (2006).  \emph{Maximum-Likelihood Estimation and 
-##'      Scoring Under Parametric Constraints}.  Army Research Laboratory 
+##' Moore T & Sadler B.  (2006).  \emph{Maximum-Likelihood Estimation and
+##'      Scoring Under Parametric Constraints}.  Army Research Laboratory
 ##'      report ARL-TR-3805.
 ##' Schoenberg R.  (1997).  Constrained maximum likelihood.
 ##'      \emph{Computational Economics, 10}, p. 251-266.
@@ -1920,7 +1925,7 @@ setMethod("initialize", "MxComputeHessianQuality",
 ##' \mathrm{norm}(H^{-1})}{norm(H) * norm(solve(H))} where H is the
 ##' Hessian. The norm is either the 1- or infinity-norm (both obtain
 ##' the same result due to symmetry).
-##' 
+##'
 ##' @param freeSet names of matrices containing free variables
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @template args-verbose
@@ -2352,7 +2357,7 @@ setMethod("initialize", "MxComputeLoadContext",
 ##' provided, the \code{col.names} take precedence. If
 ##' \code{header=FALSE} and no \code{col.names} are provided then
 ##' the column names consist of the file name and column offset.
-##' 
+##'
 ##' An \code{originalDataIsIndexOne} option is not offered. You'll need to
 ##' add an extra line at the start on your file if you wish to make
 ##' use of \code{originalDataIsIndexOne} in \code{mxComputeLoad*}.
@@ -2412,7 +2417,7 @@ setMethod("initialize", "MxComputeLoadMatrix",
 		  .Object
 	  })
 
-setMethod("qualifyNames", signature("MxComputeLoadMatrix"), 
+setMethod("qualifyNames", signature("MxComputeLoadMatrix"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod();
 		.Object@dest <- imxConvertIdentifier(.Object@dest, modelname, namespace)
@@ -2500,7 +2505,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 	})
 
 #' Log parameters and state to disk or memory
-#' 
+#'
 #' @param what a character vector of algebra names to include in each checkpoint
 #' @template args-dots-barrier
 #' @param path a character vector of where to write the checkpoint file
@@ -2526,25 +2531,25 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 #' @seealso
 #' \code{\link{mxComputeLoadData}}, \code{\link{mxComputeLoadMatrix}},
 #' \code{\link{mxComputeLoadContext}}, \code{\link{mxComputeLoop}}
-#' 
+#'
 #' @family model state
 #' @examples
 #' library(OpenMx)
-#' 
+#'
 #' m1 <- mxModel(
 #'   "poly22", # Eqn 22 from Tsallis & Stariolo (1996)
 #'   mxMatrix(type='Full', values=runif(4, min=-1e6, max=1e6),
 #'            ncol=1, nrow=4, free=TRUE, name='x'),
 #'   mxAlgebra(sum((x*x-8)^2) + 5*sum(x) + 57.3276, name="fit"),
 #'   mxFitFunctionAlgebra('fit'))
-#' 
+#'
 #' plan <- mxComputeLoop(list(
 #'   mxComputeSetOriginalStarts(),
 #'     mxComputeSimAnnealing(method="tsallis1996",
 #'                           control=list(tempEnd=1)),
 #'     mxComputeCheckpoint(path = "result.log")),
 #'   i=1:4)
-#' 
+#'
 #' m1 <- mxRun(mxModel(m1, plan)) # see the file 'result.log'
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE,
@@ -2616,7 +2621,7 @@ mxComputeDefault <- function(freeSet=NA_character_) {
 ##' Note that this compute plan actually does nothing whereas
 ##' \code{mxComputeOnce("expectation", "nothing")} may remove the
 ##' prediction of an expectation.
-##' 
+##'
 mxComputeNothing <- function() {
 	mxComputeSequence(freeSet=c())
 }
@@ -2691,30 +2696,24 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 		} else{
 		steps <- list(GD=mxComputeGradientDescent(
 			fitfunction=fitNum,
-			verbose=0L,	
-			gradientAlgo=optionList[['Gradient algorithm']],
-			gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
-			gradientStepSize=imxAutoOptionValue('Gradient step size',optionList)))
+			verbose=0L))
 			if (intervals){
 				ciOpt <- mxComputeGradientDescent(
 					verbose=0L,
-					fitfunction=fitNum, 
-					nudgeZeroStarts=FALSE,
-					gradientAlgo=optionList[['Gradient algorithm']],
-					gradientIterations=imxAutoOptionValue('Gradient iterations',optionList),
-					gradientStepSize=imxAutoOptionValue('Gradient step size',optionList))
+					fitfunction=fitNum,
+					nudgeZeroStarts=FALSE)
 				cType <- ciOpt$defaultCImethod
 				if (cType == 'ineq') {
 					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
 				}
 				steps <- c(steps, CI=mxComputeConfidenceInterval(
-					fitfunction=fitNum, 
+					fitfunction=fitNum,
 					constraintType=cType,
 					verbose=0L, plan=ciOpt))
 			}
 			if (optionList[["Calculate Hessian"]] == "Yes") {
 				steps <- c(steps, ND=mxComputeNumericDeriv(
-					fitfunction=fitNum, 
+					fitfunction=fitNum,
 					stepSize=imxAutoOptionValue('Gradient step size',optionList)))
 			}
 			if (optionList[["Standard Errors"]] == "Yes") {
@@ -2727,4 +2726,3 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 	compute@.persist <- TRUE
 	return(compute)
 }
-

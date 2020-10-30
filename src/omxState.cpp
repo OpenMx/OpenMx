@@ -238,6 +238,10 @@ omxGlobal::omxGlobal()
 	lastIndexDone=0;
 	lastIndexDoneTime=0;
 
+  gradientAlgo = GradientAlgorithm_Auto;
+  gradientIter = 1;
+  gradientStepSize = NA_REAL;
+
 	RAMInverseOpt = true;
 	RAMMaxDepth = 30;
 
@@ -254,6 +258,29 @@ omxGlobal::omxGlobal()
 	// is not instrumented then false positives can result,
 	// https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow
 	checkpointColnames.reserve(100);
+}
+
+void omxGlobal::setDefaultGradientAlgo()
+{
+  if (gradientAlgo == GradientAlgorithm_Auto) {
+    if (engine == OptEngine_CSOLNP || engine == OptEngine_SD) {
+      gradientAlgo = GradientAlgorithm_Forward;
+    } else {
+      gradientAlgo = GradientAlgorithm_Central;
+    }
+  }
+
+  if (!std::isfinite(gradientStepSize)) {
+    gradientStepSize = 1e-7;
+    if (engine == OptEngine_NLOPT) {
+      gradientStepSize *= GRADIENT_FUDGE_FACTOR(2.0);
+    }
+  }
+
+  if (OMX_DEBUG) {
+    mxLog("omxGlobal::setDefaultGradientAlgo algo=%d iter=%d stepsize=%g",
+          gradientAlgo, gradientIter, gradientStepSize);
+  }
 }
 
 void omxState::restoreParam(const Eigen::Ref<const Eigen::VectorXd> point)
@@ -1108,4 +1135,25 @@ double omxFreeVar::getCurValue(omxState *os)
 	omxFreeVarLocation &loc = locations[0];
 	EigenMatrixAdaptor Emat(os->matrixList[loc.matrix]);
 	return Emat(loc.row, loc.col);
+}
+
+OptEngine nameToGradOptEngine(const char *engineName)
+{
+  OptEngine engine;
+	if (strEQ(engineName, "CSOLNP")) {
+		engine = OptEngine_CSOLNP;
+	} else if (strEQ(engineName, "SLSQP")) {
+		engine = OptEngine_NLOPT;
+	} else if (strEQ(engineName, "NPSOL")) {
+#if HAS_NPSOL
+		engine = OptEngine_NPSOL;
+#else
+		mxThrow("NPSOL is not available in this build. See ?omxGetNPSOL() to download this optimizer");
+#endif
+	} else if(strEQ(engineName, "SD")){
+		engine = OptEngine_SD;
+	} else {
+		mxThrow("Gradient descent engine '%s' is not recognized", engineName);
+	}
+  return engine;
 }

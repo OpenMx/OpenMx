@@ -381,7 +381,6 @@ ba81ComputeEMFit(omxFitFunction* oo, int want, FitContext *fc)
 
 				if (to < numFreeParams) {
 					if (want & FF_COMPUTE_GRADIENT) {
-						fc->haveGrad[to] = true;
 						fc->gradZ(to) -= Scale * deriv0[ox];
 					}
 				} else {
@@ -780,7 +779,6 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 		}
 	}
 	for (size_t d1=0; d1 < numParam; ++d1) {
-		fc->haveGrad[d1] = true;
 		fc->gradZ(d1) += thrGrad[d1];
 	}
 	if (fc->infoB) {
@@ -936,7 +934,6 @@ void BA81FitState::init()
 			       name());
 	}
 
-	oo->gradientAvailable = TRUE;
 	oo->hessianAvailable = TRUE;
 
 	int maxParam = estate->itemParam->rows;

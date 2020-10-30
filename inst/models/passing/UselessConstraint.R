@@ -51,7 +51,7 @@ if (mxOption(NULL, "Default optimizer") != 'NPSOL') {
 	# Any constraints that show up here by mistake will have a zero gradient.
 	omxCheckTrue(all(factorFit$output$gradient != 0))
 }
-omxCheckCloseEnough(sqrt(sum(factorFit$output$gradient^2)), 0, .021)
+omxCheckCloseEnough(sqrt(sum(factorFit$output$gradient^2)), 0, .05)
 
 
 if (mxOption(NULL, "Default optimizer") != 'CSOLNP') {  # TODO

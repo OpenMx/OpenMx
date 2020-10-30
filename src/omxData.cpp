@@ -2103,7 +2103,6 @@ struct PolyserialCor : NewtonRaphsonObjective {
 };
 
 struct PolychoricCor : NewtonRaphsonObjective {
-	typedef UnconstrainedObjective super;
 	double totalWeight;
 	const Eigen::Ref<const Eigen::ArrayXd> rowMult;
 	std::vector<int> &index;
