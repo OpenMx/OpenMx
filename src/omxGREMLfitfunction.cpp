@@ -1100,6 +1100,7 @@ void GRMFIMLFitState::init()
 
 void GRMFIMLFitState::compute(int want, FitContext* fc){
 	auto *oo = this;
+	if(want & FF_COMPUTE_GRADIENT){invalidateGradient(fc);}
 	const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)
 	const double Scale = fabs(Global->llScale);
 	omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
