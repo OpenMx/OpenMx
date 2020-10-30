@@ -177,8 +177,6 @@ generateAlgebraHelper <- function(algebra, joinModel, joinKey, matrixNumbers, al
 	retval <- eval(substitute(substitute(e, algebraNumbers), list(e = retval)))
 	retval <- substituteOperators(as.list(retval), algebra@name)
 	algebraSymbolCheck(retval, algebra@name)
-	return(list(algebra@.dimnames, algebra@verbose, algebra@fixed,
-		algebra@initial, joinModel, joinKey, retval))
 	initial <- matrix(as.numeric(NA),1,1)
 	if (.hasSlot(algebra, 'initial')) {
 		initial <- algebra@initial
