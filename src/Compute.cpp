@@ -3578,10 +3578,13 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		}
 		if (!want) return;
 
+    fc->createChildren();
+
 		for (size_t wx=0; wx < algebras.size(); ++wx) {
 			omxMatrix *algebra = algebras[wx];
 			if (algebra->fitFunction) {
 				omxAlgebraPreeval(algebra, fc);
+
 				ComputeFit("Once", algebra, want, fc);
 				if (infoMat) {
 					fc->postInfo();
