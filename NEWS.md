@@ -4,6 +4,7 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 
 # OpenMx 2.19
 * TBD 2020 (R 4.0.2)
+* NEW: `RAM` supports arrows=0 (Pearson selection, single step)
 * IMPROVED: `rowwiseParallel` is more intelligent: Users should see a 2x speed-up for many models.
 * IMPROVED: `logLik.MxModel` works with WLS models with constraints.
 * IMPROVED: `mxSE` evaluates (Jacobian) in parallel.
@@ -16,9 +17,8 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 * CHANGE: `mxRun` throws an error if OMP_NUM_THREADS is exceeded.
 * NEW: `predict` implemented (only) for state-space models.
 * NEW: `suport for count variables` Poisson or negative-binomial distribution, with or without zero-inflation.
-* FIXED: Bug in `mxGenerateData` where use.miss was ignored if nrowsProportion was set.
+* FIXED: Bug in `mxGenerateData` where use.miss was ignored if nrowsProportion was set.  closes #287
 * FIXED: Bug in `mxTryHard` returning incorrect chi-square for WLS fixed.
-* FIXED: Bug in `mxGenerateData` with use.miss=TRUE and non-missing argument nrowsProportion.
 * FIXED: Bug leading to random number of threads being used for SLSQP gradient elements.
 * IMPROVED: `SLSQP` can calculate gradients in parallel when optimizing the WLS models.
 * IMPROVED: `WLS` fit statistics much faster.
