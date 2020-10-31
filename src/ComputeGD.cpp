@@ -206,7 +206,6 @@ void GradientOptimizerContext::myineqFun(bool wantAJ)
 
 class omxComputeGD : public omxCompute {
 	typedef omxCompute super;
-	const char *engineName;
 	enum OptEngine engine;
 	enum GradientAlgorithm gradientAlgo;
 	int gradientIterations;
@@ -300,8 +299,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (verbose >= 1) {
 		int numConstr = fitMatrix->currentState->conListX.size();
-		mxLog("%s: engine %s (ID %d) #P=%d tol=%g constraints=%d",
-		      name, engineName, engine, int(numParam), optimalityTolerance,
+		mxLog("%s: engine %d #P=%d tol=%g constraints=%d",
+		      name, engine, int(numParam), optimalityTolerance,
 		      numConstr);
 	}
 
@@ -418,8 +417,8 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	if (verbose >= 1) {
-		mxLog("%s: engine %s done, iter=%d inform=%d",
-		      name, engineName, fc->getLocalComputeCount() - beforeEval, fc->getInform());
+		mxLog("%s: done, iter=%d inform=%d",
+		      name, fc->getLocalComputeCount() - beforeEval, fc->getInform());
 	}
 
 	// Optimizers can terminate with inconsistent fit and parameters
