@@ -37,7 +37,7 @@ struct omxGREMLFitState : omxFitFunction {
 	std::vector<int> didUserGivedV;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
-	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar, derivType;
+	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess;
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd avgInfo; //the Average Information matrix
@@ -159,7 +159,7 @@ void omxGREMLFitState::init()
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
   newObj->dVlength = 0;
-  //newObj->derivType = 0; //<--
+  newObj->oldWantHess = 0;
 
 	//autoDerivType:
   {
@@ -411,6 +411,11 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			hb->mat.resize(gff->numExplicitFreePar, gff->numExplicitFreePar);
  			gff->recomputeAug(2, fc);
  			wantHess = 1;
+ 		}
+ 		
+ 		if(oldWantHess != wantHess){
+ 			parallelDerivScheme = 0;
+ 			oldWantHess = wantHess;
  		}
 
  		if(gff->parallelDerivScheme==0){gff->planParallelDerivs(nThreadz,wantHess,gff->cov->rows);}
@@ -691,7 +696,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		}
  			//Assign upper triangle elements of avgInfo to the HessianBlock:
  			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
- 				for (size_t d1=0, h1=0; h1 < numExplicitFreePar; ++h1) {
+ 				for (size_t d1=0, h1=0; h1 < size_t(numExplicitFreePar); ++h1) {
  					for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
  						hb->mat(d2,d1) = gff->avgInfo(h2,h1);
  						++d2;
