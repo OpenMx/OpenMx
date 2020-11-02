@@ -691,7 +691,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		}
  			//Assign upper triangle elements of avgInfo to the HessianBlock:
  			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
- 				for (size_t d1=0, h1=0; h1 < gff->dV.size(); ++h1) {
+ 				for (size_t d1=0, h1=0; h1 < numExplicitFreePar; ++h1) {
  					for (size_t d2=0, h2=0; h2 <= h1; ++h2) {
  						hb->mat(d2,d1) = gff->avgInfo(h2,h1);
  						++d2;
