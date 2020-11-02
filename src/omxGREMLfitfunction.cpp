@@ -424,19 +424,14 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  		then we need to resize any derivatives of V that come from front-end MxAlgebras
 		 ahead of time,	in order to assure thread-safety of the parallelized code for
  		evaluating the gradient and Hessian (AIM):*/
- 		if(oge->numcases2drop && wantHess){
-/*#pragma omp parallel num_threads(nThreadz)
-{
-	int threadID = omx_absolute_thread_num();
-	int istart = threadID * gff->dVlength / nThreadz;
-	int iend = (threadID+1) * gff->dVlength / nThreadz;
-	if(threadID == nThreadz-1){iend = gff->dVlength;}*/
-		for(i=0; i < gff->dVlength; i++){ //TODO: Make this loop thread-safe and parallelize it.
-			if(gff->dV[i]->rows > Eigy.rows()){dropCasesFromAlgdV(gff->dV[i], oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);}
+		if(oge->numcases2drop && wantHess){
+			for(i=0; i < numExplicitFreePar; i++){
+				if(didUserGivedV[i] &&	gff->dV[i]->rows > Eigy.rows()){
+					dropCasesFromAlgdV(gff->dV[i], oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
+				}
+			}
 		}
-//}
- 		}
-
+		
  		//Begin parallelized evaluation of fitfunction derivatives:
  		switch(gff->parallelDerivScheme){
  		case 2: //bin by row
@@ -468,7 +463,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					 Frustratingly, the selfadjointView has no row or column accessor function among its members.
 					 But the trace of a product of two square symmetric matrices is the sum of the elements of
 					 their elementwise product.*/
-					//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
 					for(c=0; c < gff->cov->rows; c++){
 						for(r=c; r < gff->cov->rows; r++){
 							tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
@@ -575,11 +569,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 #pragma omp parallel num_threads(nThreadz)
 {
 	try{
-		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;//, di, dj;
-		//bool incrementdi = false;
+		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
 		double tr=0;
 		Eigen::MatrixXd ytPdV_dtheta1;
-		//Eigen::VectorXd diagPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter i.
 		//GREMLSense sense(this, fc, oge->numcases2drop, oge->dropcase);
 		Eigen::VectorXd curEst(numExplicitFreePar);
@@ -589,9 +581,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		int istart = threadID * numExplicitFreePar / nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / nThreadz;
 		if(threadID == nThreadz-1){iend = numExplicitFreePar;}
-		//di = istart;
 		for(i=istart; i < iend; i++){
-			//incrementdi = false;
 			tr=0;
 			t1 = gff->gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
@@ -603,7 +593,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						dropCasesAndEigenize(gff->dV[i], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[i]);
 					}
 					else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[i]), gff->dV[i]->rows, gff->dV[i]->cols);}
-					//incrementdi = true;//++di;
 				}
 				else{
 					/*
@@ -622,14 +611,12 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					crude_numeric_dV(fc, curEst, dV_dtheta1, t1, oge, (nThreadz>1 ? threadID : -1));
 				}
 				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-				//dj=di;
 				for(j=i; j < numExplicitFreePar; j++){
 					if(j==i){
 						/*Need trace of P*dV_dtheta for gradient element...
 						 Frustratingly, the selfadjointView has no row or column accessor function among its members.
 						 But the trace of a product of two square symmetric matrices is the sum of the elements of
 						 their elementwise product.*/
-						//diagPdV_dtheta1(k) = (P.selfadjointView<Eigen::Lower>()).row(k) * (dV_dtheta1.selfadjointView<Eigen::Lower>()).col(k);
 						for(c=0; c < gff->cov->rows; c++){
 							for(r=c; r < gff->cov->rows; r++){
 								tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
@@ -642,7 +629,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 							gff->avgInfo(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 								Scale*gff->pullAugVal(2,a1,a1);
 						}
-						//++dj;
 					}
 					else{
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -655,7 +641,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 									dropCasesAndEigenize(gff->dV[j], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[j]);
 								}
 								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[j]), gff->dV[j]->rows, gff->dV[j]->cols);}
-								//++dj;
 							}
 							else{
 								/*
@@ -679,7 +664,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}
 					}
 				}
-				//if(incrementdi){++di;}
 			}
 			else{
 				gff->gradient(t1) = NA_REAL;
@@ -784,7 +768,6 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
 
   //Tell the frontend fitfunction counterpart how many observations there are...:
   {
-  //ScopedProtect p1(nval, R_do_slot(rObj, Rf_install("numObs")));
   ScopedProtect p1(nval, Rf_allocVector(INTSXP, 1));
   INTEGER(nval)[0] = 1L - userSuppliedDataNumObs;
   R_do_slot_assign(rObj, Rf_install("numObs"), nval);
@@ -794,7 +777,6 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
 	}
 
 	{
-	//ScopedProtect p1(mlfitval, R_do_slot(rObj, Rf_install("MLfit")));
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
 	REAL(mlfitval)[0] = gff->nll - gff->REMLcorrection;
 	Rf_setAttrib(algebra, Rf_install("MLfit"), mlfitval);
@@ -829,10 +811,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 		dV.resize(numExplicitFreePar);
 		dVnames.resize(numExplicitFreePar);
 		origdVdim.resize(numExplicitFreePar);
-		/*gx holds the write location for objects with length equal to numExplicitFreePar;
-		dx holds the write location for objects with length equal to dVlength:*/
-		//int dx=0;
-		//vx holds the read location for free parameters in varGroup:
+		/*gx holds the write location for objects with length equal to numExplicitFreePar,
+		 vx holds the read location for free parameters in varGroup:*/
 		for (int vx=0; vx < numExplicitFreePar; ++vx) {
 			//nx holds the read location for objects with length equal to dVlength:
 			for (int nx=0; nx <= dVlength; ++nx) {
@@ -853,13 +833,11 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					dAugMap[gx] = nx;
 					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
 					didUserGivedV[gx] = 1;
-					//++dx;
 					++gx;
 					break;
 				}
 			}
 		}
-		//if (gx != numExplicitFreePar || dx != dVlength) mxThrow("Problem in dVnames mapping");
 		if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
 		if(augGrad){
 			int ngradelem = std::max(augGrad->rows, augGrad->cols);
