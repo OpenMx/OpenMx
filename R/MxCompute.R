@@ -2333,7 +2333,7 @@ setMethod("initialize", "MxComputeLoadContext",
 
 ##' Load contextual data to supplement checkpoint
 ##'
-##' THIS INTERFACE IS EXPERIMENTAL AND SUBJECT TO CHANGE.
+##' \lifecycle{experimental}
 ##'
 ##' Currently, this only supports comma separated value format and no
 ##' row names. If \code{header=TRUE} and \code{col.names} are
@@ -2444,12 +2444,14 @@ setClass(Class = "MxComputeCheckpoint",
 		 status = "logical",
 		 standardErrors = "logical",
 		 gradient = "logical",
-		 vcov = "logical"
+		 vcov = "logical",
+     vcovFilter = "MxOptionalChar"
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
 	function(.Object, what, path, append, header, toReturn, parameters,
-		 loopIndices, fit, counters, status, standardErrors, gradient, vcov) {
+           loopIndices, fit, counters, status, standardErrors, gradient, vcov,
+           vcovFilter) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2466,6 +2468,7 @@ setMethod("initialize", "MxComputeCheckpoint",
 		  .Object@standardErrors <- standardErrors
 		  .Object@gradient <- gradient
 		  .Object@vcov <- vcov
+		  .Object@vcovFilter <- vcovFilter
 		  .Object
 	  })
 
@@ -2503,6 +2506,9 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 #' @param standardErrors logical. Whether to include the standard errors
 #' @param gradient logical. Whether to include the gradients
 #' @param vcov logical. Whether to include the vcov in half-vectorized order
+#' @param vcovFilter character vector. Vector of parameters indicating
+#'   which parameter covariances to include. Only the variance is
+#'   included for those parameters not mentioned.
 #'
 #' @description
 #' Captures the current state of the backend. When \code{path} is set, the
@@ -2536,13 +2542,15 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 #' m1 <- mxRun(mxModel(m1, plan)) # see the file 'result.log'
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE,
-				status=TRUE, standardErrors=FALSE, gradient=FALSE, vcov=FALSE) {
+				status=TRUE, standardErrors=FALSE, gradient=FALSE, vcov=FALSE,
+        vcovFilter=c()) {
   prohibitDotdotdot(list(...))
 	what <- as.character(what)
 	path <- as.character(path)
 	new("MxComputeCheckpoint", what, path, as.logical(append), as.logical(header), as.logical(toReturn),
 		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
-		as.logical(status), as.logical(standardErrors), as.logical(gradient), as.logical(vcov))
+		as.logical(status), as.logical(standardErrors), as.logical(gradient), as.logical(vcov),
+    vcovFilter)
 }
 
 #----------------------------------------------------

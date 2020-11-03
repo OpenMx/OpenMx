@@ -2134,6 +2134,8 @@ class ComputeCheckpoint : public omxCompute {
 	bool inclSEs;
 	bool inclGradient;
 	bool inclVcov;
+  std::vector<bool> vcovFilter;
+  int vcovEntries;
 	bool badSEWarning;
 	bool firstTime;
 	size_t numExtraCols;
@@ -5161,6 +5163,26 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rvcov(R_do_slot(rObj, Rf_install("vcov")));
 	inclVcov = Rf_asLogical(Rvcov);
 
+  auto &vg = *Global->findVarGroup(FREEVARGROUP_ALL);
+  numParam = vg.vars.size();
+
+  if (inclVcov) {
+    S4 ro(rObj);
+    if (ro.slot("vcovFilter") == R_NilValue) {
+      vcovFilter.assign(numParam, true);
+    } else {
+      CharacterVector filter = ro.slot("vcovFilter");
+      vcovFilter.assign(numParam, false);
+      for (int fx=0; fx < filter.size(); ++fx) {
+        String pstr = filter[fx];
+        auto pname = pstr.get_cstring();
+        int vx = vg.lookupVar(pname);
+        if (vx < 0) mxThrow("%s: can't find parameter called '%s'", name, pname);
+        vcovFilter[vx] = true;
+      }
+    }
+  }
+
 	ProtectedSEXP Rwhat(R_do_slot(rObj, Rf_install("what")));
 	for (int wx=0; wx < Rf_length(Rwhat); ++wx) {
 		if (isErrorRaised()) return;
@@ -5185,7 +5207,6 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 
 	std::vector< omxFreeVar* > &vars = Global->findVarGroup(FREEVARGROUP_ALL)->vars;
-	numParam = vars.size();
 
 	if (inclPar) {
 		for(int j = 0; j < numParam; j++) {
@@ -5213,13 +5234,16 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 	}
 	if (inclVcov) {
+    vcovEntries = 0;
 		for (int cx=0; cx < numParam; ++cx) {
 			for (int rx=cx; rx < numParam; ++rx) {
+        if (cx != rx && (!vcovFilter[cx] || !vcovFilter[rx])) continue;
 				std::string c1 = "V";
 				c1 += vars[rx]->name;
 				c1 += ":";
 				c1 += vars[cx]->name;
 				colnames.push_back(c1);
+        vcovEntries += 1;
 			}
 		}
 	}
@@ -5268,10 +5292,11 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	}
 	if (inclGradient) s1.gradient = fc->gradZ;
 	if (inclVcov && fc->vcov.rows() == numParam) {
-		s1.vcov.resize(triangleLoc1(numParam));
+		s1.vcov.resize(vcovEntries);
 		int lx=0;
 		for (int cx=0; cx < numParam; ++cx) {
 			for (int rx=cx; rx < numParam; ++rx) {
+        if (cx != rx && (!vcovFilter[cx] || !vcovFilter[rx])) continue;
 				s1.vcov[lx++] = fc->vcov(rx, cx);
 			}
 		}
@@ -5371,7 +5396,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			}
 		}
 		if (inclVcov) {
-			int numVcov = triangleLoc1(numParam);
+			int numVcov = vcovEntries;
 			if (s1.vcov.size()) {
 				for (int x1=0; x1 < numVcov; ++x1) {
 					ofs << '\t' << std::setprecision(digits) << s1.vcov[x1];
@@ -5520,7 +5545,7 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		}
 	}
 	if (inclVcov) {
-		int numVcov = triangleLoc1(numParam);
+		int numVcov = vcovEntries;
 		for (int x1=0; x1 < numVcov; ++x1) {
 			SEXP col = Rf_allocVector(REALSXP, numSnaps);
 			SET_VECTOR_ELT(log, curCol++, col);
