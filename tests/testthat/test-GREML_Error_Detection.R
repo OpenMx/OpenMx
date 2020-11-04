@@ -129,7 +129,7 @@ omxCheckError(mxRefModels(testmod),
 							"Reference models for GREML expectation are not implemented")
 
 
-testmod <- mxModel(
+omxCheckError(mxModel(
 	"GREMLtest",
 	mxData(observed=dat, type="raw", sort=F),
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
@@ -137,9 +137,7 @@ testmod <- mxModel(
 	mxAlgebra(I %x% Ve,name="V"),
 	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
 	mxFitFunctionGREML(autoDerivType="muneric")
-)
-omxCheckError(mxRun(testmod),
-							"'muneric' should be one of 'semiAnalyt' and 'numeric'")
+),"'muneric' should be one of 'semiAnalyt' and 'numeric'")
 
 
 testmod <- mxModel(
