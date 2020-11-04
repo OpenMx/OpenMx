@@ -9,7 +9,8 @@ This function creates a new \code{\link{MxFitFunctionGREML}} object.
 }
 \usage{
 mxFitFunctionGREML(dV=character(0), aug=character(0),
-   augGrad=character(0), augHess=character(0), autoDerivType=c("semiAnalyt","numeric"))
+   augGrad=character(0), augHess=character(0), 
+   autoDerivType=c("semiAnalyt","numeric"),infoMatType=c("average","expected"))
 }
 
 \arguments{
@@ -18,6 +19,7 @@ mxFitFunctionGREML(dV=character(0), aug=character(0),
   \item{augGrad}{Character string; defaults to a character vector of length zero.  Any elements after the first are ignored.  The string should name a \code{\link{MxMatrix}} or an \code{\link{MxAlgebra}} that evaluates to the gradient of \code{aug} with respect to free parameters.  The gradient can be either a column or row vector.  The free parameters corresponding to the elements of the gradient vector are taken from the names of argument \code{dV}, e.g. if the third name of \code{dV} is \code{'va'}, then the third element of the gradient vector should be the first partial derivative of the augmentation function with respect to \code{'va'}.  Ignored unless both \code{dV} and \code{aug} have nonzero length.}
   \item{augHess}{Character string; defaults to a character vector of length zero.  Any elements after the first are ignored.  The string should name a \code{\link{MxMatrix}} or an \code{\link{MxAlgebra}} that evaluates to the Hessian of \code{aug} with respect to free parameters.  The free parameters corresponding to each row and column of this matrix are dictated by the names of argument \code{dV}, in the same manner as for the elements of \code{augGrad}.  Ignored unless both \code{dV} and \code{aug} have nonzero length.  Providing a nonzero-length value for \code{augHess} but not \code{augGrad} will result in an error at runtime.}
   \item{autoDerivType}{autoDerivType.}
+  \item{infoMatType}{infoMatType.}
 }
 \details{
 Making effective use of arguments \code{dV}, \code{augGrad}, and \code{augHess} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  The loglikelihood's first derivatives thus computed will always be valid, but its second derivatives will only be approximate unless (1) the derivatives of 'V' evaluate to symmetric matrices the same size as 'V,' and (2) 'V' is linear in the model's free parameters.  Note also that these loglikelihood derivatives do not reflect the influence of any parameter bounds or \code{\link{MxConstraint}}s. Internally, the derivatives of the 'V' matrix are assumed to be symmetric, and the elements above their main diagonals are ignored.
