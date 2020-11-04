@@ -51,6 +51,16 @@ struct omxGREMLFitState : omxFitFunction {
 	double pullAugVal(int thing, int row, int col);
 	void recomputeAug(int thing, FitContext *fc);
 	JacobianGadget jg;
+	
+	//Foundation for separate functions that compute fitfunction derivatives from dV:
+	template <typename T1, typename T2>
+	void gradientAndAIM1(
+			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
+			double _Scale, Eigen::MatrixBase<T2> &_Py);
+	template <typename T1, typename T2>
+	void gradientAndEIM1(
+			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
+			double _Scale, Eigen::MatrixBase<T2> &_Py);
 
 	template <typename T1, typename T2>
 	void crude_numeric_dV(
@@ -692,6 +702,21 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  	}
  	return;
  }
+
+
+//Foundation for separate functions that compute fitfunction derivatives from dV:
+template <typename T1, typename T2>
+void omxGREMLFitState::gradientAndAIM1(
+		int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
+    double _Scale, Eigen::MatrixBase<T2> &_Py){
+	return;
+}
+template <typename T1, typename T2>
+void omxGREMLFitState::gradientAndEIM1(
+		int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
+		double _Scale, Eigen::MatrixBase<T2> &_Py){
+	return;
+}
 
 
 template <typename T1, typename T2>
