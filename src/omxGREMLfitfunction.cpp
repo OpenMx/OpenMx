@@ -299,7 +299,6 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  	Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
  	EigenMatrixAdaptor EigX(gff->X);
  	Eigen::MatrixXd P, Py;
- 	P.setZero(gff->invcov->rows, gff->invcov->cols);
  	double logdetV=0, logdetquadX=0, ytPy=0;
 
  	if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -331,10 +330,12 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic derivatives in use;
  			otherwise, extraneous calculations can be avoided:*/
  			if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 				P.setZero(gff->invcov->rows, gff->invcov->cols);
  				P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
  					(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) -
  					(EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
  				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
+ 				P.triangularView<Eigen::Upper>() = P.triangularView<Eigen::Lower>().transpose();
  				if(want & FF_COMPUTE_FIT){
  					ytPy = (Eigy.transpose() * Py)(0,0);
  					if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
@@ -778,7 +779,8 @@ void omxGREMLFitState::gradientAndEIM1(
 						 */
 						crude_numeric_dV(_fc, curEst, dV_dtheta1, t1, _oge, (_nThreadz>1 ? threadID : -1));
 					}
-					dV_dtheta1P = dV_dtheta1 * _P;//.template selfadjointView<Eigen::Lower>();
+					//Eigen does not define a multiplication operator for selfadjointView times selfadjointView:
+					dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * _P;
 					tr1 = dV_dtheta1P.trace();
 					for(j=i; j < numExplicitFreePar; j++){
 						tr2=0;
@@ -819,7 +821,7 @@ void omxGREMLFitState::gradientAndEIM1(
 								 */
 								crude_numeric_dV(_fc, curEst, dV_dtheta2, t2, _oge, (_nThreadz>1 ? threadID : -1));
 							}
-							dV_dtheta2P = dV_dtheta2 * _P;//.template selfadjointView<Eigen::Lower>();
+							dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * _P;//.template selfadjointView<Eigen::Lower>();
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
 									tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
