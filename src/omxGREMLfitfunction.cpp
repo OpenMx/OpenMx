@@ -1169,7 +1169,8 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	double cellslowest = workbins.maxCoeff();
 
 	parallelDerivScheme = (rowslowest<=cellslowest) ? 2 : 3;
-	//parallelDerivScheme = 3;
+	//The bin-by-row code assumes nThreadz <= numExplicitFreePar:
+	if(nThreadz > numExplicitFreePar){parallelDerivScheme = 3;}
 	return;
 }
 
