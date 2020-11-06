@@ -935,8 +935,7 @@ void omxGREMLFitState::crude_numeric_dV(
 	}
 
 	//Does this actually save memory...?:
-	dV_dtheta = (dV_dtheta - Vcurr)/1e-4;
-	//^^^TODO: use selfadjointView (if possible?).
+	dV_dtheta.template triangularView<Eigen::Lower>() = (dV_dtheta - Vcurr)/1e-4;
 
 	//Put things back the way they were:
 	_curEst[Parnum] -= 1e-4;
