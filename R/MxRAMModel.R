@@ -650,7 +650,8 @@ insertPathRAM <- function(path, model) {
       # directly modify the unfiltered covariance matrix
       # expectation: data.frame w/ step, rowname, colname ; name of mxMatrix
       # mxMatrix: vector of parameters to plop in
-      r1 <- data.frame(step=nextstep, from=from, to=to)
+      pair <- c(from,to)[order(match(c(from,to), legalVars))]  # canonical order
+      r1 <- data.frame(step=nextstep, from=pair[1], to=pair[2])
       selPlan <- rbind(selPlan, r1)
       oldSelVec <- selVec
       selVec <- mxMatrix('Full', nrow(selPlan), 1)
