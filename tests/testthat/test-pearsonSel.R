@@ -33,6 +33,9 @@ t2 <- mxModel(
   mxPath('V1','V2', arrows=0, values=.2),
   mxData(dat, 'raw'))
 
+expect_error(mxModel(t2, mxPath('one', 'V1', arrows=0)),
+             "means path must be a single-headed arrow")
+
 t2 <- mxRun(t2)
 summary(t2)
 
