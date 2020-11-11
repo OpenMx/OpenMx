@@ -229,9 +229,12 @@ void MLFitState::compute(int want, FitContext *fc)
 		} else {
 			delete hb;
 		}
-	} else if ((want & FF_COMPUTE_FIT) &&
+	} else if ((want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT)) &&
 	    !(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
 		// works for any multivariate normal expectation (e.g. vanilla, RAM, LISREL, etc)
+
+    if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
+    if (!(want & FF_COMPUTE_FIT)) return;
 
 		MLFitState *omo = (MLFitState*) oo;
 		EigenMatrixAdaptor obCovAdapter(omo->observedCov);
@@ -261,7 +264,6 @@ void MLFitState::compute(int want, FitContext *fc)
 			if (fc) fc->recordIterationError("%s: unknown error", oo->name());
 		}
 		oo->matrix->data[0] = Scale * fit;
-    if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
 	} else {
 		mxThrow("Not implemented");
 	}
