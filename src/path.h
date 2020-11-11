@@ -80,7 +80,13 @@ class PathCalc {
   Eigen::MatrixXd tmpFullCov;
   Eigen::VectorXd tmpFullMean;
   omxMatrix *selVec;
-  DataFrame selPlan;
+
+  struct selPlanRow {
+    int step;
+    int from;
+    int to;
+  };
+  std::vector<selPlanRow> selPlan;
 
   struct selStep {
     std::vector<bool> selFilter;
@@ -171,11 +177,11 @@ class PathCalc {
 
   void attachSelection(omxMatrix *_selVec, DataFrame _selPlan)
   {
-    selPlan = _selPlan;
-    if (selPlan.nrows() == 0) return;
+    if (_selPlan.nrows() == 0) return;
+    selPlan.resize(_selPlan.nrows());
 
     selVec = _selVec;
-    IntegerVector step = selPlan["step"];
+    IntegerVector step = _selPlan["step"];
     {
       int selCount = 1;
       int prevStep = step[0];
@@ -189,15 +195,20 @@ class PathCalc {
     }
 
     int curStep = step[0];
-    for (int rx=0, sx=0; rx < selPlan.nrows(); ++rx) {
-      IntegerVector from = selPlan["from"];
-      IntegerVector to = selPlan["to"];
+    for (int rx=0, sx=0; rx < _selPlan.nrows(); ++rx) {
+      IntegerVector step = _selPlan["step"];
+      IntegerVector from = _selPlan["from"];
+      IntegerVector to = _selPlan["to"];
+      auto &spr = selPlan[rx];
+      spr.step = step[rx];
+      spr.from = from[rx];
+      spr.to = to[rx];
       auto &s1 = selSteps[sx];
       s1.selFilter[ from[rx] ] = true;
       s1.selFilter[ to[rx] ] = true;
-      if (rx == selPlan.nrows()-1 || step[rx+1] != curStep) {
+      if (rx == _selPlan.nrows()-1 || step[rx+1] != curStep) {
         s1.selDim = std::accumulate(s1.selFilter.begin(), s1.selFilter.end(), 0);
-        if (rx < selPlan.nrows()-1) {
+        if (rx < _selPlan.nrows()-1) {
           curStep = step[rx+1];
           ++sx;
         }
@@ -290,7 +301,6 @@ template <typename T1>
 void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
 {
   int rx=0;
-  IntegerVector step = selPlan["step"];
   for (auto &s1 : selSteps) {
   //mxPrintMat("before sel", cov);
     Eigen::MatrixXd v11(s1.selDim, s1.selDim);
@@ -298,12 +308,12 @@ void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
     Eigen::MatrixXd v22(cov.rows() - s1.selDim, cov.cols() - s1.selDim);
     partitionCovariance(cov, [&](int xx){ return s1.selFilter[xx]; }, v11, v12, v22);
     EigenVectorAdaptor EselVec(selVec);
-    int curStep = step[rx];
-    while (rx < selPlan.nrows() && step[rx] == curStep) {
-      IntegerVector from = selPlan["from"];
-      IntegerVector to = selPlan["to"];
-      cov(from[rx], to[rx]) = EselVec[rx];
-      cov(to[rx], from[rx]) = EselVec[rx];
+    int curStep = selPlan[rx].step;
+    while (rx < int(selPlan.size()) && selPlan[rx].step == curStep) {
+      int from = selPlan[rx].from;
+      int to = selPlan[rx].to;
+      cov(from, to) = EselVec[rx];
+      cov(to, from) = EselVec[rx];
       ++rx;
     }
     Eigen::MatrixXd nc(s1.selDim, s1.selDim);
