@@ -457,31 +457,169 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 #pragma omp parallel num_threads(nThreadz)
 {
 	try{
-		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0;
+		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, t1, t2;
 		double tr=0;
 		Eigen::MatrixXd ytPdV_dtheta1;
 		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hrn.
-		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
+		//GREMLSense sense(this, fc, oge->numcases2drop, oge->dropcase);
+		Eigen::VectorXd curEst(numExplicitFreePar);
+		fc->copyEstToOptimizer(curEst);
+		Eigen::VectorXd curEst1p(1);
 		int threadID = omx_absolute_thread_num();
 		int istart = 0;
 		int iend = gff->rowbins[threadID].size();
 		for(i=istart; i < iend; i++){
 			tr=0;
 			hrn = gff->rowbins[threadID](i); //Current row number of the AIM.
-			if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
-			a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
-			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = gff->gradMap[hrn];}
-			if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
-				dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
+			t1 = gff->gradMap[hrn];
+			if(t1 < 0){continue;} //Check for negative parameter number.
+			if(didUserGivedV[t1] || derivType==1){
+				a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
+				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = t1;}
+				if(didUserGivedV[t1]){
+					if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
+						dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
+					}
+					else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hrn]), gff->dV[hrn]->rows, gff->dV[hrn]->cols);}
+				}
+				else{
+					/*
+					 sense.parNum = t1;
+					 curEst1p[0] = curEst[t1];
+					 Eigen::MatrixXd tmpresult(sense.ref.size(), 1);
+					 jg(sense, sense.ref, curEst1p, false, tmpresult);
+					 int dVdim = int(sqrt(tmpresult.rows() * 2.0));
+					 dV_dtheta1.resize(dVdim,dVdim);
+					 for(int cc=0; cc < dVdim; cc++){
+					 for(int rr=cc; rr < dVdim; rr++){
+					 dV_dtheta1(rr,cc) = tmpresult((cc*dVdim)+rr, 0);
+					 }
+					 }
+					 */
+					crude_numeric_dV(fc, curEst, dV_dtheta1, t1, oge, (nThreadz>1 ? threadID : -1));
+				}
+				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+				for(hcn=hrn; hcn < numExplicitFreePar; hcn++){
+					if(hcn==hrn){
+						/*Need trace of P*dV_dtheta for gradient element...
+						 Frustratingly, the selfadjointView has no row or column accessor function among its members.
+						 But the trace of a product of two square symmetric matrices is the sum of the elements of
+						 their elementwise product.*/
+						for(c=0; c < gff->cov->rows; c++){
+							for(r=c; r < gff->cov->rows; r++){
+								tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
+							}
+						}
+						gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
+							Scale*gff->pullAugVal(1,a1,0);
+						fc->gradZ(hrn) += gff->gradient(hrn);
+						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+							gff->infoMat(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
+								Scale*gff->pullAugVal(2,a1,a1);
+						}
+					}
+					//I think it can be assumed at this point that the Hessian is wanted?:
+					else{
+						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+							Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
+							t2 = gff->gradMap[hcn];
+							if(t2 < 0){continue;}
+							a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
+							if(didUserGivedV[t2]){
+								if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
+									dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
+								}
+								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
+							}
+							else{
+								/*
+								 sense.parNum = t2;
+								 curEst1p[0] = curEst[t2];
+								 Eigen::MatrixXd tmpresult(sense.ref.size(), 1);
+								 jg(sense, sense.ref, curEst1p, false, tmpresult);
+								 int dVdim = int(sqrt(tmpresult.rows() * 2.0));
+								 dV_dtheta2.resize(dVdim,dVdim);
+								 for(int cc=0; cc < dVdim; cc++){
+								 for(int rr=cc; rr < dVdim; rr++){
+								 dV_dtheta2(rr,cc) = tmpresult((cc*dVdim)+rr, 0);
+								 }
+								 }
+								 */
+								crude_numeric_dV(fc, curEst, dV_dtheta2, t2, oge, (nThreadz>1 ? threadID : -1));
+							}
+							gff->infoMat(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
+								dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
+							gff->infoMat(hcn,hrn) = gff->infoMat(hrn,hcn);
+						}}}}
+			else{
+				gff->gradient(hrn) = NA_REAL;
+				fc->gradZ(hrn) = NA_REAL;
 			}
-			else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hrn]), gff->dV[hrn]->rows, gff->dV[hrn]->cols);}
-			ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-			for(hcn=hrn; hcn < gff->dVlength; hcn++){
-				if(hcn==hrn){
-					/*Need trace of P*dV_dtheta for gradient element...
-					 Frustratingly, the selfadjointView has no row or column accessor function among its members.
-					 But the trace of a product of two square symmetric matrices is the sum of the elements of
-					 their elementwise product.*/
+		}
+	} catch (const std::exception& e) {
+		omxRaiseErrorf("%s", e.what());
+	} catch (...) {
+		omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+	}
+}
+ 			break;
+ 		case 3: //bin by cell
+#pragma omp parallel num_threads(nThreadz)
+{
+	try{
+		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0, t1, t2;
+		double tr=0;
+		Eigen::MatrixXd ytPdV_dtheta1;
+		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hrn.
+		//GREMLSense sense(this, fc, oge->numcases2drop, oge->dropcase);
+		Eigen::VectorXd curEst(numExplicitFreePar);
+		fc->copyEstToOptimizer(curEst);
+		Eigen::VectorXd curEst1p(1);
+		int threadID = omx_absolute_thread_num();
+		int iend = gff->AIMelembins[threadID].size();
+		if(iend){inielem = gff->AIMelembins[threadID](0);}
+		while(inielem > 0){
+			hcn++;
+			inielem--;
+			if(hcn == numExplicitFreePar){
+				hrn++;
+				hcn=hrn;
+			}
+		}
+		while(i < iend){
+			tr=0;
+			t1 = gradMap[hrn];
+			if(t1 < 0){continue;} //Check for negative parameter number.
+			if(didUserGivedV[t1] || derivType==1){
+				a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
+				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = t1;}
+				if(hrn==hcn || i==0){
+					if(didUserGivedV[t1]){
+						if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
+							dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
+						}
+						else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hrn]), gff->dV[hrn]->rows, gff->dV[hrn]->cols);}
+						ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+					}
+					else{
+						/*
+						 sense.parNum = t1;
+						 curEst1p[0] = curEst[t1];
+						 Eigen::MatrixXd tmpresult(sense.ref.size(), 1);
+						 jg(sense, sense.ref, curEst1p, false, tmpresult);
+						 int dVdim = int(sqrt(tmpresult.rows() * 2.0));
+						 dV_dtheta1.resize(dVdim,dVdim);
+						 for(int cc=0; cc < dVdim; cc++){
+						 for(int rr=cc; rr < dVdim; rr++){
+						 dV_dtheta1(rr,cc) = tmpresult((cc*dVdim)+rr, 0);
+						 }
+						 }
+						 */
+						crude_numeric_dV(fc, curEst, dV_dtheta1, t1, oge, (nThreadz>1 ? threadID : -1));
+						ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+					}
+				}
+				if(hrn==hcn){
 					for(c=0; c < gff->cov->rows; c++){
 						for(r=c; r < gff->cov->rows; r++){
 							tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
@@ -495,88 +633,51 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 							Scale*gff->pullAugVal(2,a1,a1);
 					}
 				}
-				//I think it can be assumed at this point that the Hessian is wanted?:
-				else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-					if(gff->gradMap[hcn] < 0){continue;}
-					a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
-					if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
-						dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
+				else{
+					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+						Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
+						t2 = gff->gradMap[hcn];
+						if(t2 < 0){continue;}
+						a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
+						if(didUserGivedV[t2]){
+							if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
+								dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
+							}
+							else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
+						}
+						else{
+							/*
+							 sense.parNum = t2;
+							 curEst1p[0] = curEst[t2];
+							 Eigen::MatrixXd tmpresult(sense.ref.size(), 1);
+							 jg(sense, sense.ref, curEst1p, false, tmpresult);
+							 int dVdim = int(sqrt(tmpresult.rows() * 2.0));
+							 dV_dtheta2.resize(dVdim,dVdim);
+							 for(int cc=0; cc < dVdim; cc++){
+							 for(int rr=cc; rr < dVdim; rr++){
+							 dV_dtheta2(rr,cc) = tmpresult((cc*dVdim)+rr, 0);
+							 }
+							 }
+							 */
+							crude_numeric_dV(fc, curEst, dV_dtheta2, t2, oge, (nThreadz>1 ? threadID : -1));
+						}
+						gff->infoMat(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
+							dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
+						gff->infoMat(hcn,hrn) = gff->infoMat(hrn,hcn);
 					}
-					else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
-					gff->infoMat(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
-						dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
-					gff->infoMat(hcn,hrn) = gff->infoMat(hrn,hcn);
-				}}}}
-	} catch (const std::exception& e) {
-		omxRaiseErrorf("%s", e.what());
-	} catch (...) {
-		omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
-	}
-}
- 			break;
- 		case 3: //bin by cell
-#pragma omp parallel num_threads(nThreadz)
-{
-	try{
-		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0;
-		double tr=0;
-		Eigen::MatrixXd ytPdV_dtheta1;
-		Eigen::MatrixXd dV_dtheta1(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hrn.
-		Eigen::MatrixXd dV_dtheta2(Eigy.rows(), Eigy.rows()); //<--Derivative of V w/r/t parameter hcn.
-		int threadID = omx_absolute_thread_num();
-		int iend = gff->AIMelembins[threadID].size();
-		if(iend){inielem = gff->AIMelembins[threadID](0);}
-		while(inielem > 0){
+				}
+			}
+			else{
+				gff->gradient(t1) = NA_REAL;
+				fc->gradZ(t1) = NA_REAL;
+			}
 			hcn++;
-			inielem--;
-			if(hcn == gff->dVlength){
+			i++;
+			if(hcn == numExplicitFreePar){
 				hrn++;
 				hcn=hrn;
 			}
 		}
-		while(i < iend){
-			if(gff->gradMap[hrn] < 0){continue;} //Check for negative parameter number.
-			tr=0;
-			a1 = gff->dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
-			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){hb->vars[hrn] = gff->gradMap[hrn];}
-			if(hrn==hcn || i==0){
-				if( oge->numcases2drop && (gff->dV[hrn]->rows > Eigy.rows()) ){
-					dropCasesAndEigenize(gff->dV[hrn], dV_dtheta1, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hrn]);
-				}
-				else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hrn]), gff->dV[hrn]->rows, gff->dV[hrn]->cols);}
-				ytPdV_dtheta1 = Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-			}
-			if(hrn==hcn){
-				for(c=0; c < gff->cov->rows; c++){
-					for(r=c; r < gff->cov->rows; r++){
-						tr += (r==c) ? P(r,c)*dV_dtheta1(r,c) : 2*P(r,c)*dV_dtheta1(r,c);
-					}
-				}
-				gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
-					Scale*gff->pullAugVal(1,a1,0);
-				fc->gradZ(hrn) += gff->gradient(hrn);
-				if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-					gff->infoMat(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
-						Scale*gff->pullAugVal(2,a1,a1);
-				}
-			}
-			else{if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-				if(gff->gradMap[hcn] < 0){continue;}
-				a2 = gff->dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
-				if( oge->numcases2drop && (gff->dV[hcn]->rows > Eigy.rows()) ){
-					dropCasesAndEigenize(gff->dV[hcn], dV_dtheta2, oge->numcases2drop, oge->dropcase, 1, gff->origdVdim[hcn]);
-				}
-				else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(gff->dV[hcn]), gff->dV[hcn]->rows, gff->dV[hcn]->cols);}
-				gff->infoMat(hrn,hcn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() *
-					dV_dtheta2.selfadjointView<Eigen::Lower>() * Py)(0,0) + Scale*gff->pullAugVal(2,a1,a2);
-				gff->infoMat(hcn,hrn) = gff->infoMat(hrn,hcn);
-			}}
-			hcn++;
-			i++;
-			if(hcn == gff->dVlength){
-				hrn++;
-				hcn=hrn;
-			}}
 	} catch (const std::exception& e) {
 		omxRaiseErrorf("%s", e.what());
 	} catch (...) {
@@ -1065,8 +1166,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 
 void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
 	//Note: AIM = Average Information Matrix (Hessian)
-	if(wantHess==0 || nThreadz<2 || numExplicitFreePar==1 || dVlength < numExplicitFreePar || infoMatType==1){
-		//^^^TODO: relax the last two conditions.
+	if(wantHess==0 || nThreadz<2 || numExplicitFreePar < 2 || infoMatType==1){
+		//^^^TODO: relax the last condition.
 		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
 		return;
 	}
@@ -1076,13 +1177,13 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 
 	//Stuff for row binning:
 	int i, j, minbin;
-	std::vector<int> rownums(dVlength,0);
+	std::vector<int> rownums(numExplicitFreePar,0);
 	Eigen::VectorXi rowbinsums(nThreadz);
 	rowbinsums.setZero(nThreadz);
-	for(i=dVlength; i>0; i--){rownums[dVlength-i] = i;}
+	for(i=numExplicitFreePar; i>0; i--){rownums[numExplicitFreePar-i] = i;}
 
 	//Greedy partitioning algorithm to bin rows of the AIM:
-	for(i=0; i<dVlength; i++){
+	for(i=0; i<numExplicitFreePar; i++){
 		minbin=0;
 		for(j=1; j<nThreadz; j++){
 			if(rowbinsums(j) < rowbinsums(j-1)){minbin=j;}
@@ -1098,7 +1199,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	this scheme, the elements of the AI matrix are divided among the threads as evenly as possible.*/
 
 	//Stuff for AIM cell binning:
-	int numcells = dVlength*(dVlength+1)/2;
+	int numcells = numExplicitFreePar*(numExplicitFreePar+1)/2;
 	int targ = int(trunc(numcells/nThreadz));
 	targ = (targ<1) ? 1 : targ;
 	int remainder = numcells % nThreadz;
