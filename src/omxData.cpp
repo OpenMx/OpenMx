@@ -429,6 +429,10 @@ void omxData::prep()
 		unfiltered.refreshHasNa();
 		int rows = std::count(unfiltered.hasNa.begin(),
 													unfiltered.hasNa.end(), false);
+    if (rows == unfiltered.hasNa.size()) {
+      if (verbose >= 1) mxLog("omit: detected no NAs");
+      break;
+    }
 		if (filtered.rows != rows || filtered.hasNa != unfiltered.hasNa) {
 			if (verbose >= 1) mxLog("omit: NA pattern changed, clearing cache");
 			filtered.rows = rows;
