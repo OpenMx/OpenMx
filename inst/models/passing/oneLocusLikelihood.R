@@ -16,7 +16,7 @@
 library(OpenMx)
 library(testthat)
 
-skip_if(mxOption(key='Default optimizer') == "CSOLNP")
+if (mxOption(key='Default optimizer') == "CSOLNP") stop("SKIP")
 
 #Single locus Likelihood example
 #Author: Mike Neale
