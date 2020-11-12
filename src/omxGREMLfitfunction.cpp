@@ -1218,17 +1218,22 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			cellnum++;
 		}
 	}
+	
+	if(nThreadz > numExplicitFreePar){
+		parallelDerivScheme = 3;
+		return;
+	}
 
 	//Stuff for assessing slowest thread under row-binning scheme:
 	double N = double(Vrows);
 	/*The computational cost of computing a diagonal element includes the upfront cost of
 	computing ytPdV_dtheta, and the cost of computing the gradient element.
-	2*N^2 for ytPdV_dtheta
-	1.5*N^2 + 0.5*N to efficiently calculate trace of PdV_dtheta
-	2*N to finish gradient element
-	(2*N^2) + 2*N for diagonal element:*/
-	double diagcost = 5.5*R_pow_di(N,2) + 4.5*N;
-	double offdiagcost = 4*R_pow_di(N,2) + 2*N;
+	N^2 for ytPdV_dtheta
+	1.5*N^2 - 0.5*N to efficiently calculate trace of PdV_dtheta
+	N to finish gradient element
+	(N^2) + N for diagonal element:*/
+	double diagcost = 3.5*R_pow_di(N,2) + 1.5*N;
+	double offdiagcost = 2*R_pow_di(N,2) + N;
 	/*workbins will hold the total number of operations each thread will carry out to do
 	matrix arithmetic:*/
 	Eigen::VectorXd workbins(nThreadz);
@@ -1241,12 +1246,12 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	double rowslowest = workbins.maxCoeff();
 
 	//Stuff for assessing slowest thread under cell-binning scheme:
-	double inicost = 2*R_pow_di(N,2);
+	double inicost = R_pow_di(N,2);
 	/*^^^When the thread starts its work, and whenever it moves to a new row of
 	the AIM, it computes ytPdV_dtheta.*/
 	/*Thread computes a gradient element whenever it computes a diagonal element
 	of the AIM:*/
-	diagcost = 3.5*R_pow_di(N,2) + 4.5*N;
+	diagcost = 2.5*R_pow_di(N,2) + 1.5*N;
 	workbins.setConstant(nThreadz, inicost);
 	int r=0, c=0;
 	for(i=0; i<nThreadz; i++){
@@ -1269,8 +1274,6 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	double cellslowest = workbins.maxCoeff();
 
 	parallelDerivScheme = (rowslowest<=cellslowest) ? 2 : 3;
-	//The bin-by-row code assumes nThreadz <= numExplicitFreePar:
-	if(nThreadz > numExplicitFreePar){parallelDerivScheme = 3;}
 	return;
 }
 
