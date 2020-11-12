@@ -37,7 +37,8 @@ if [ "x$TRAVIS_OS_NAME" = xlinux ]; then
     fi
 
     if [ "x$MODE" = xtest ]; then
-	make test
+	make test &
+	travis_wait
     elif [ "x$MODE" = xcran-check ]; then
 	make cran-check &
 	travis_wait
