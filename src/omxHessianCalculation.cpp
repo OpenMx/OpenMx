@@ -280,8 +280,9 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	SEXP slotValue;
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("iterations")));
-	numIter = INTEGER(slotValue)[0];
-	if (numIter < 2) mxThrow("stepSize must be 2 or greater");
+	numIter = Rf_asInteger(slotValue);
+	if (numIter < 2) mxThrow("%s: iterations must be 2 or greater (currently %d)",
+                           name, numIter);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("parallel")));
 	parallel = Rf_asLogical(slotValue);
