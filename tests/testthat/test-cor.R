@@ -31,12 +31,12 @@ fr1 <- mxRun(fr)
 mg1 <- mxRun(mg)
 
 for (fit in list(fl1, fr1, mg1$L, mg1$R)) {
-  expect_equal(diag(fit$expectedCovariance$values), rep(1,5))
-  expect_equivalent(diag(mxGetExpected(fit, 'covariance')), rep(1,5))
+  expect_equal(diag(fit$expectedCovariance$values), rep(1,5), 1e-6)
+  expect_equivalent(diag(mxGetExpected(fit, 'covariance')), rep(1,5), 1e-6)
 }
 
-expect_equivalent(fl1$output$constraintJacobian[,paste0("L.TD[",1:5,",",1:5,"]")], diag(5))
-expect_equivalent(fr1$output$constraintJacobian[,paste0("R.S[",1:5,",",1:5,"]")], diag(5))
+expect_equivalent(fl1$output$constraintJacobian[,paste0("L.TD[",1:5,",",1:5,"]")], diag(5), 1e-6)
+expect_equivalent(fr1$output$constraintJacobian[,paste0("R.S[",1:5,",",1:5,"]")], diag(5), 1e-6)
 
 lrConstraintJacobian <- rbind(
   cbind(fl1$output$constraintJacobian, matrix(0, 5,10)),
