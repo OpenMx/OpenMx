@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -89,13 +89,13 @@ errorRecover <- function(script, opt, index) {
 	  list(value = withCallingHandlers(tryCatch(expr, error = function(e) e),
                                      warning = w.handler), warning = W)
 	}
-	
+
 	got <- tryCatch.W.E(source(script, chdir = TRUE))
-  
+
 	stop.tm <- Sys.time()
 	timeDifference <- stop.tm - start
 	runtimes[[paste(opt,script,sep=":")]] <<- as.double(timeDifference, units = "secs")
-  
+
 	err <- got$value
 	sink(type = 'output')
 	close(outputFile)
@@ -108,9 +108,9 @@ errorRecover <- function(script, opt, index) {
 		file.remove(outputFilename[[opt]][[script]])
 	}
 	warnRec[[opt]][[script]] <<- got$warning
-	
-	rm(envir=globalenv(), 
-		list=setdiff(ls(envir=globalenv()), 
+
+	rm(envir=globalenv(),
+		list=setdiff(ls(envir=globalenv()),
 			     c('warnRec', 'errors', 'errorRecover', 'opt', 'outputFile', 'outputFilename',
 			       'files', 'directories', 'runtimes', 'beginTravisFold', 'endTravisFold')))
 }
@@ -118,9 +118,9 @@ errorRecover <- function(script, opt, index) {
 optimizers <- strsplit(Sys.getenv("IMX_OPT_ENGINE"), "\\s")[[1]]
 
 if (length(optimizers) == 0) {
-	optimizers <- c('CSOLNP')
+	optimizers <- c('SLSQP')
 	if (!any(args == 'gctorture')) {
-		optimizers <- c(optimizers, 'SLSQP')
+		optimizers <- c(optimizers, 'CSOLNP')
 		if (imxHasNPSOL()) {
 			optimizers <- c(optimizers, 'NPSOL')
 		}
@@ -138,7 +138,7 @@ for (opt in optimizers) {
 		}
 	}
 	endTravisFold(opt)
-}	
+}
 
 totalErrors <- sum(sapply(errors, length))
 cat("Number of errors:", totalErrors, '\n')
