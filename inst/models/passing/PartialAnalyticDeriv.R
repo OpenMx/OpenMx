@@ -1,7 +1,7 @@
 library(OpenMx)
 library(testthat)
 
-skip_if(mxOption(key="Default optimizer") == 'CSOLNP')
+if(mxOption(key="Default optimizer") == 'CSOLNP') stop("SKIP")
 
 #mxOption(NULL,"Print level",20)
 #mxOption(NULL,"Print file",1)
