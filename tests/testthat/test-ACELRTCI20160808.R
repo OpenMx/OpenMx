@@ -633,8 +633,8 @@ set.seed(8)
 SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));
 SigmaDZ0<-array(c(1,.8,.8,1),dim=c(2,2));
 ace <- mkmodel(SigmaMZ0,SigmaDZ0)
-got <- expect_warning(cmpInterval(ace, 'A.LB', 'a', 'lbound'),
-                      "non-zero status code 6")
+got <- cmpInterval(ace, 'A.LB', 'a', 'lbound')
+
 #print(got)
 omxCheckCloseEnough(got[1], 0.0687491, 1e-4)
 omxCheckCloseEnough(got[2:3], rep(0.07511647, 2), 1e-5)

@@ -297,8 +297,8 @@ test_that("probit+poisson ML+WLS", {
     expect_equal(m1$output$fit - m2$output$fit, 0, 1e-3)
     expect_equal(m1$output$fit - m3$output$fit, 0, 1e-3)
   } else {
-    expect_equal(m1$output$fit - m2$output$fit, 0, 1e-9)
-    expect_equal(m1$output$fit - m3$output$fit, 0, 1e-9)
+    expect_equal(m1$output$fit - m2$output$fit, 0, 1e-8)
+    expect_equal(m1$output$fit - m3$output$fit, 0, 1e-8)
   }
 
   m1 <- mxRun(build(TRUE))
@@ -307,6 +307,6 @@ test_that("probit+poisson ML+WLS", {
   verifyFrontBackMatch(m2)
   m3 <- mxRun(build(TRUE))
   verifyFrontBackMatch(m3)
-  expect_equal(m1$output$fit - m2$output$fit, 0, 1e-9)
-  expect_equal(m1$output$fit - m3$output$fit, 0, 1e-9)
+  expect_equal(m1$output$fit - m2$output$fit, 0, 1e-8)
+  expect_equal(m1$output$fit - m3$output$fit, 0, 1e-8)
 })
