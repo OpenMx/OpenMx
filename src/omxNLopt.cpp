@@ -428,9 +428,12 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // is this correct? TODO
 		}
 	} else if (code < 0) {
-		// No idea what this code means, but often resolved
-		// different starting values.
-		goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		// Optimizer got stuck.
+		if (!goc.feasible) {
+			goc.informOut = INFORM_STARTING_VALUES_INFEASIBLE;
+		} else {
+			goc.informOut = INFORM_NOT_AT_OPTIMUM;  // Can happen when box constraints are too tight.
+    }
 	} else if (code == NLOPT_MAXEVAL_REACHED) {
 		goc.informOut = INFORM_ITERATION_LIMIT;
 	} else if(constrainedCode==6){

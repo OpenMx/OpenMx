@@ -174,7 +174,10 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	if (fc->outsideFeasibleSet() || isErrorRaised()) {
 		*mode = -1;
 	} else {
-		feasible = true;
+    if (!feasible) {
+      feasible = true;
+      if (verbose >= 2) mxLog("%s: Congratulations! Starting values are feasible!", getOptName());
+    }
 		if (want & FF_COMPUTE_GRADIENT) {
 			fc->copyGradToOptimizer(grad);
 		}
