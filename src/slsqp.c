@@ -1938,7 +1938,7 @@ typedef struct {
         away += MAX2(-c__[j], 0.0);
       }
     }
-    d__1 = 1.0 + away / MAX2(*f * 10, 1.0);
+    d__1 = 1.0 + away / MAX2(*f, 1.0);
     //printf("bound scale %f %f %f @%d\n", away, MAX2(*f, 1.0), d__1, d__1 <= 1 + 1e-4);
     dscal_sl__(n, &d__1, &u[1], 1);
     dscal_sl__(n, &d__1, &v[1], 1);
