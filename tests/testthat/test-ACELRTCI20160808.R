@@ -626,7 +626,7 @@ ace <- mkmodel(SigmaMZ0,SigmaDZ0)
 got <- cmpInterval(ace, 'A.UB', 'a', 'ubound')
 #print(got)
 omxCheckCloseEnough(got[1], 0.040689, 1e-4)
-omxCheckCloseEnough(got[2:3], rep(0.0331, 2), 1e-4)
+omxCheckCloseEnough(got[2:3], rep(0.0332, 2), 3e-4)
 
 ### a = 0.2, c = 0.7, e = 0.1 Test A LB ###
 set.seed(8)
