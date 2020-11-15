@@ -128,6 +128,7 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 				amat->take(initial);
 				omxFreeMatrix(initial);
 			}
+      if (fixed) amat->unshareMemoryWithR();
 			omxFillMatrixFromMxAlgebra(amat, formula, name, dimnames,
 						   verbose, fixed);
 		}

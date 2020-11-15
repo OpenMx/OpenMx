@@ -1,4 +1,5 @@
 library(OpenMx)
+library(testthat)
 
 t1 <- mxModel(
   "test",
@@ -6,7 +7,8 @@ t1 <- mxModel(
   mxAlgebra(z, name="zCopy", fixed=TRUE, initial=matrix(1., 2,2))
   )
 
-t1 <- mxRun(t1)
+t1 <- expect_warning(mxRun(t1),
+                     "set for onDemand recompute yet is still at initial values")
 omxCheckEquals(t1$zCopy$result, matrix(1., 2,2))
 
 t2 <- mxModel(t1, mxComputeOnce("zCopy", 'fit'))
