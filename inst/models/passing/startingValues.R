@@ -15,6 +15,7 @@
 
 
 library(OpenMx)
+library(testthat)
 
 covMatrix <- matrix( c(0.77642931, 0.39590663, 0.39590663, 0.49115615), 
 	nrow = 2, ncol = 2, byrow = TRUE, dimnames = list(c('a','b'), c('a','b')))
@@ -54,7 +55,10 @@ testm<-mxModel(
 )
 omxCheckEquals(length(omxGetParameters(testm)), 1L)
 
-vn <- omxCheckWarning(mxModel("varName", type="RAM",
-                              manifestVars=':-<', latentVars = ":-)"),
-                      c("The name ':-)' is illegal because it contains the characters '-' and ':' in FUN(X[[i]], ...)",
-                        "The name ':-<' is illegal because it contains the characters '-', ':', and '<' in FUN(X[[i]], ...)"))
+vn <- expect_warning(mxModel("varName", type="RAM",
+                              manifestVars=':-<'),
+                      "illegal because it contains the characters")
+
+vn <- expect_warning(mxModel("varName", type="RAM",
+                             latentVars = ":-)"),
+                     "illegal because it contains the characters")
