@@ -79,11 +79,11 @@ test1sa <- mxModel(
 test1sa <- mxRun(test1sa)
 summary(test1sa)
 omxCheckCloseEnough(test0$output$fit, test1sa$output$fit, 1e-12)
-omxCheckCloseEnough(coef(test0),coef(test1sa),1e-10)
-omxCheckCloseEnough(test0$output$standardErrors,test1sa$output$standardErrors,1e-10)
-omxCheckCloseEnough(test0$output$gradient,test1sa$output$gradient,1e-10)
-omxCheckCloseEnough(test0$expectation$b,test1sa$expectation$b,1e-12)
-omxCheckCloseEnough(test0$expectation$bcov,test1sa$expectation$bcov,1e-12)
+omxCheckCloseEnough(coef(test0),coef(test1sa),1e-7)
+omxCheckCloseEnough(test0$output$standardErrors,test1sa$output$standardErrors,1e-8)
+omxCheckCloseEnough(test0$output$gradient,test1sa$output$gradient,1e-6)
+omxCheckCloseEnough(test0$expectation$b,test1sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$expectation$bcov,test1sa$expectation$bcov,1e-9)
 
 
 test1num <- mxModel(
@@ -128,11 +128,11 @@ test2sa <- mxModel(
 test2sa <- mxRun(test2sa)
 summary(test2sa)
 omxCheckCloseEnough(test0$output$fit, test2sa$output$fit, 1e-12)
-omxCheckCloseEnough(coef(test0),coef(test2sa),1e-10)
-omxCheckCloseEnough(test0$output$standardErrors,test2sa$output$standardErrors,1e-10)
-omxCheckCloseEnough(test0$output$gradient,test2sa$output$gradient,1e-10)
-omxCheckCloseEnough(test0$expectation$b,test2sa$expectation$b,1e-12)
-omxCheckCloseEnough(test0$expectation$bcov,test2sa$expectation$bcov,1e-12)
+omxCheckCloseEnough(coef(test0),coef(test2sa),1e-7)
+omxCheckCloseEnough(test0$output$standardErrors,test2sa$output$standardErrors,1e-8)
+omxCheckCloseEnough(test0$output$gradient,test2sa$output$gradient,1e-6)
+omxCheckCloseEnough(test0$expectation$b,test2sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$expectation$bcov,test2sa$expectation$bcov,1e-10)
 
 
 test2num <- mxModel(
@@ -177,11 +177,11 @@ test3sa <- mxModel(
 test3sa <- mxRun(test3sa)
 summary(test3sa)
 omxCheckCloseEnough(test0$output$fit, test3sa$output$fit, 1e-12)
-omxCheckCloseEnough(coef(test0),coef(test3sa),1e-10)
-omxCheckCloseEnough(test0$output$standardErrors,test3sa$output$standardErrors,1e-10)
-omxCheckCloseEnough(test0$output$gradient,test3sa$output$gradient,1e-10)
-omxCheckCloseEnough(test0$expectation$b,test3sa$expectation$b,1e-12)
-omxCheckCloseEnough(test0$expectation$bcov,test3sa$expectation$bcov,1e-12)
+omxCheckCloseEnough(coef(test0),coef(test3sa),1e-7)
+omxCheckCloseEnough(test0$output$standardErrors,test3sa$output$standardErrors,1e-8)
+omxCheckCloseEnough(test0$output$gradient,test3sa$output$gradient,1e-6)
+omxCheckCloseEnough(test0$expectation$b,test3sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$expectation$bcov,test3sa$expectation$bcov,1e-10)
 
 
 test3num <- mxModel(
@@ -226,11 +226,11 @@ test4sa <- mxModel(
 test4sa <- mxRun(test4sa)
 summary(test4sa)
 omxCheckCloseEnough(test0$output$fit, test4sa$output$fit, 1e-12)
-omxCheckCloseEnough(coef(test0),coef(test4sa),1e-10)
-omxCheckCloseEnough(test0$output$standardErrors,test4sa$output$standardErrors,1e-10)
-omxCheckCloseEnough(test0$output$gradient,test4sa$output$gradient,1e-10)
-omxCheckCloseEnough(test0$expectation$b,test4sa$expectation$b,1e-12)
-omxCheckCloseEnough(test0$expectation$bcov,test4sa$expectation$bcov,1e-12)
+omxCheckCloseEnough(coef(test0),coef(test4sa),1e-7)
+omxCheckCloseEnough(test0$output$standardErrors,test4sa$output$standardErrors,1e-8)
+omxCheckCloseEnough(test0$output$gradient,test4sa$output$gradient,1e-6)
+omxCheckCloseEnough(test0$expectation$b,test4sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$expectation$bcov,test4sa$expectation$bcov,1e-10)
 
 
 test4num <- mxModel(
@@ -275,11 +275,11 @@ test5sa <- mxModel(
 test5sa <- mxRun(test5sa)
 summary(test5sa)
 omxCheckCloseEnough(test0$output$fit, test5sa$output$fit, 1e-12)
-omxCheckCloseEnough(coef(test0),coef(test5sa),1e-10)
-omxCheckCloseEnough(test0$output$standardErrors,test5sa$output$standardErrors,1e-10)
-omxCheckCloseEnough(test0$output$gradient,test5sa$output$gradient,1e-10)
-omxCheckCloseEnough(test0$expectation$b,test5sa$expectation$b,1e-12)
-omxCheckCloseEnough(test0$expectation$bcov,test5sa$expectation$bcov,1e-12)
+omxCheckCloseEnough(coef(test0),coef(test5sa),1e-7)
+omxCheckCloseEnough(test0$output$standardErrors,test5sa$output$standardErrors,1e-8)
+omxCheckCloseEnough(test0$output$gradient,test5sa$output$gradient,1e-6)
+omxCheckCloseEnough(test0$expectation$b,test5sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$expectation$bcov,test5sa$expectation$bcov,1e-10)
 
 
 test5num <- mxModel(
@@ -324,11 +324,11 @@ test6sa <- mxModel(
 test6sa <- mxRun(test6sa)
 summary(test6sa)
 omxCheckCloseEnough(test0$output$fit, test6sa$output$fit, 1e-12)
-omxCheckCloseEnough(coef(test0),coef(test6sa),1e-10)
-omxCheckCloseEnough(test0$output$standardErrors,test6sa$output$standardErrors,1e-10)
-omxCheckCloseEnough(test0$output$gradient,test6sa$output$gradient,1e-10)
-omxCheckCloseEnough(test0$expectation$b,test6sa$expectation$b,1e-12)
-omxCheckCloseEnough(test0$expectation$bcov,test6sa$expectation$bcov,1e-12)
+omxCheckCloseEnough(coef(test0),coef(test6sa),1e-7)
+omxCheckCloseEnough(test0$output$standardErrors,test6sa$output$standardErrors,1e-8)
+omxCheckCloseEnough(test0$output$gradient,test6sa$output$gradient,1e-6)
+omxCheckCloseEnough(test0$expectation$b,test6sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$expectation$bcov,test6sa$expectation$bcov,1e-10)
 
 
 test6num <- mxModel(
