@@ -398,8 +398,8 @@ clearModifiedSinceRunRecursive <- function(model) {
 imxLocateIndex <- function(model, name, referant) {
 	if (length(name) == 0) return(name)
 #	if (length(name) > 1) browser()
-	if (is.na(name)) { return(as.integer(name)) }
-  if (is.integer(name)) stop("imxLocateIndex called more than once, OpenMx bug")
+	if (all(is.na(name))) { return(as.integer(name)) }
+  if (any(is.integer(name))) stop("imxLocateIndex called more than once, OpenMx bug")
 	mNames <- names(model@matrices)
 	aNames <- names(model@algebras)
 	fNames <- names(model@fitfunctions)
@@ -409,8 +409,8 @@ imxLocateIndex <- function(model, name, referant) {
 	algebraNumber <- match(name, append(aNames, fNames))
 	dataNumber <- match(name, dNames)
 	expectationNumber <- match(name, eNames)
-	if (is.na(matrixNumber) && is.na(algebraNumber)
-		&& is.na(dataNumber) && is.na(expectationNumber)) {
+	if (all(is.na(matrixNumber)) && all(is.na(algebraNumber)) &&
+        all(is.na(dataNumber)) && all(is.na(expectationNumber))) {
 		reftype <- "named reference"
 		if (typeof(referant) == "S4") {
 			reftype <- 'object'
@@ -419,11 +419,11 @@ imxLocateIndex <- function(model, name, referant) {
 			"does not exist.  It is used by",
 			     reftype, omxQuotes(referant), ".")
 		stop(msg, call.=FALSE)
-	} else if (!is.na(matrixNumber)) {
+	} else if (all(!is.na(matrixNumber))) {
 		return(- matrixNumber)
-	} else if (!is.na(dataNumber)) {
+	} else if (all(!is.na(dataNumber))) {
 		return(dataNumber - 1L)
-	} else if (!is.na(expectationNumber)) {
+	} else if (all(!is.na(expectationNumber))) {
 		return(expectationNumber - 1L)
 	} else {
 		return(algebraNumber - 1L)
