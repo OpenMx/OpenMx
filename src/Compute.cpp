@@ -3834,8 +3834,8 @@ void ComputeStandardError::computeImpl(FitContext *fc)
   jg(sense, sense.ref, curEst, false, sense.result);
   fc->destroyChildren();
 
-	Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr1(sense.result);
-	Eigen::MatrixXd q1 = qr1.householderQ();
+	Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr1(sense.result);
+	Eigen::MatrixXd q1 = qr1.matrixQ();
 	Eigen::MatrixXd jacOC = q1.block(0, qr1.rank(), q1.rows(), q1.cols() - qr1.rank());
 	if (jacOC.cols()) {
 		Eigen::MatrixXd zqb = jacOC.transpose() * Wmat * jacOC;
@@ -3843,7 +3843,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 
 		Eigen::VectorXd diff = obStats - exStats;
 		x2 = diff.transpose() * jacOC * zqb * jacOC.transpose() * diff;
-		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
+		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr2(jacOC);
 		df = qr2.rank();
 	} else {
 		x2 = 0;
