@@ -56,7 +56,6 @@ class GradientOptimizerContext {
 	double ControlRho;
 	double ControlTolerance;
 	bool warmStart;
-	int ineqType;
 
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
@@ -165,7 +164,7 @@ void GradientOptimizerContext::ineqJacobian(Eigen::MatrixBase<T1> &ref,
               // update only that parameter instead of all
               // of them.
               copyFromOptimizer(myPars, fc2);
-              fc2->myineqFun(false, verbose, ineqType, CSOLNP_HACK);
+              fc2->myineqFun(false, verbose, CSOLNP_HACK);
               result = fc2->inequality;
             }, ref, point, true, jout);
 }

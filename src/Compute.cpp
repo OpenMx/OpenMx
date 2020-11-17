@@ -1163,7 +1163,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 	}
 }
 
-void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK)
+void FitContext::myineqFun(bool wantAJ, int verbose, bool CSOLNP_HACK)
 {
 	const int ineq_n = (int) inequality.size();
 
@@ -1176,7 +1176,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, int ineqType, bool CSOLNP_H
 		omxConstraint &con = *state->conListX[j];
 		if (con.opCode == omxConstraint::EQUALITY) continue;
 
-		con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &inequality(cur));
+		con.refreshAndGrab(this, omxConstraint::LESS_THAN, &inequality(cur));
 		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
 			omxRecompute(con.jacobian, this);
 			for(c=0; c<con.jacobian->cols; c++){
@@ -3946,7 +3946,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		int nf = fc->getNumFree();
 		fc->inequality.resize(fc->state->numIneqC);
 		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, nf);
-		fc->myineqFun(true, verbose, omxConstraint::LESS_THAN, false);
+		fc->myineqFun(true, verbose, false);
 		if(fc->state->numEqC || fc->inequality.array().sum()){return;}
 	}
 

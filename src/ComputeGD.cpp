@@ -112,7 +112,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	ControlRho = 1.0;
 	ControlTolerance = nan("uninit");
 	warmStart = false;
-	ineqType = omxConstraint::LESS_THAN;
 	est.resize(numFree);
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
@@ -201,7 +200,7 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 // variable group.
 void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
-	fc->myineqFun(wantAJ, verbose, ineqType, CSOLNP_HACK);
+	fc->myineqFun(wantAJ, verbose, CSOLNP_HACK);
 }
 
 
