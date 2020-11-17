@@ -215,6 +215,7 @@ class omxData {
 	int freqCol;
 	int *currentFreqColumn;
 	std::unique_ptr< obsSummaryStats > oss;
+  int numEstimatedEntries;
 	bool parallel;
 	bool noExoOptimize;
 	bool modified;

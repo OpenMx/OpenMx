@@ -41,7 +41,8 @@
 #include "EnableWarnings.h"
 
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
-		     freqCol(NA_INTEGER), currentFreqColumn(0), parallel(true),
+                     freqCol(NA_INTEGER), currentFreqColumn(0), numEstimatedEntries(0),
+                     parallel(true),
 		     noExoOptimize(true), modified(false), minVariance(0), warnNPDacov(true),
 		     dataObject(0), dataMat(0), meansMat(0),
 										 numObs(0), _type(0), naAction(NA_PASS), numFactor(0), numNumeric(0),
@@ -429,7 +430,7 @@ void omxData::prep()
 		unfiltered.refreshHasNa();
 		int rows = std::count(unfiltered.hasNa.begin(),
 													unfiltered.hasNa.end(), false);
-    if (rows == unfiltered.hasNa.size()) {
+    if (rows == int(unfiltered.hasNa.size())) {
       if (verbose >= 1) mxLog("omit: detected no NAs");
       break;
     }
@@ -1441,6 +1442,7 @@ void omxData::reportResults(MxRList &out)
 	if (o1.slopeMat) out.add("slope", o1.slopeMat->asR());
 	if (o1.fullWeight) out.add("fullWeight", o1.fullWeight->asR());
 	if (o1.thresholdMat) out.add("thresholds", o1.thresholdMat->asR());
+  out.add("numEstimatedEntries", Rcpp::wrap(numEstimatedEntries));
 }
 
 template <typename T>
@@ -3153,6 +3155,8 @@ void omxData::estimateObservedStats()
 	}
 
 	{
+		EigenMatrixAdaptor Ecov(o1.covMat);
+    numEstimatedEntries += triangleLoc1(Ecov.rows()) - Ecov.array().isFinite().count();
 		sampleStats ss(this, dc, exoOrder, o1);
 		int numThr = parallel? Global->numThreads : 1;
 		//int numThr = 1;
@@ -3344,6 +3348,7 @@ void omxData::invalidateColumnsCache(const std::vector< int > &columns)
 		o1.partial = true;
 	}
 	if (fail) invalidateCache();
+  //else mxThrow("partial!");
 }
 
 void omxData::evalAlgebras(FitContext *fc)

@@ -95,6 +95,7 @@ model3$compute$steps[['LD']]$method <- 'csv'
 model3Fit <- mxRun(model3)
 
 omxCheckEquals(model3Fit$compute$steps[['LD']]$debug$loadCounter, 1L)
+expect_equal(model3Fit$data$observedStats[['numEstimatedEntries']], 57)
 
 discardCols <- c("OpenMxEvals", "iterations", "timestamp",
                  "MxComputeLoop1", "objective", "statusCode", "fitUnits",
