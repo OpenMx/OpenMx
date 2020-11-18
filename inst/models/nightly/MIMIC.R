@@ -29,7 +29,7 @@ MIMIC <- mxModel("MIMIC", type="RAM",
     latentVars   = latents,
  
     # Factor loadings
-    mxPath(from = sources , to = "social", lbound=0),
+    mxPath(from = sources , to = "social", lbound=0, ubound=2),
     mxPath(from = "social", to = receivers, lbound=0),
  
     # Correlated formative sources for F1, each with variance = 1
