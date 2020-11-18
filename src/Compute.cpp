@@ -1163,7 +1163,7 @@ void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobia
 	}
 }
 
-void FitContext::myineqFun(bool wantAJ, int verbose, bool CSOLNP_HACK)
+void FitContext::myineqFun(bool wantAJ, bool alwaysActive)
 {
 	const int ineq_n = (int) inequality.size();
 
@@ -1189,7 +1189,7 @@ void FitContext::myineqFun(bool wantAJ, int verbose, bool CSOLNP_HACK)
 		cur += con.size;
 	}
 
-	if (CSOLNP_HACK) {
+	if (alwaysActive) {
 		// CSOLNP doesn't know that inequality constraints can be inactive (by design, since it's an interior-point algorithm)
 	} else {
 		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
@@ -1201,10 +1201,6 @@ void FitContext::myineqFun(bool wantAJ, int verbose, bool CSOLNP_HACK)
 				if(!inequality[i]){analyticIneqJacTmp.row(i).setZero();}
 			}
 		}
-	}
-
-	if (verbose >= 3) {
-		mxPrintMat("inequality", inequality);
 	}
 }
 
@@ -3946,7 +3942,7 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		int nf = fc->getNumFree();
 		fc->inequality.resize(fc->state->numIneqC);
 		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, nf);
-		fc->myineqFun(true, verbose, false);
+		fc->myineqFun(true, false);
 		if(fc->state->numEqC || fc->inequality.array().sum()){return;}
 	}
 

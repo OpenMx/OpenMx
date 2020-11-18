@@ -200,7 +200,7 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 // variable group.
 void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
-	fc->myineqFun(wantAJ, verbose, CSOLNP_HACK);
+	fc->myineqFun(wantAJ, CSOLNP_HACK);
 }
 
 

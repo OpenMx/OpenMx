@@ -521,7 +521,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	if(c_n){
 		fc->inequality.resize(fc->state->numIneqC);
 		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numParams);
-		fc->myineqFun(true, verbose, false);
+		fc->myineqFun(true, false);
 	}
 
 	gradNorm = sqrt(gradNorm);
