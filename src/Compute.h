@@ -320,7 +320,7 @@ class FitContext {
 	template<typename T1, typename T2>
 	void setEstGradFromOptimizer(const T1 &ein, const T2 &gin) {
     setEstFromOptimizer(ein);
-    copyGradFromOptimizer(gin);
+    if (gradZ.size()) copyGradFromOptimizer(gin);
 		copyParamToModel();
 	};
 	template<typename T1, typename T2>

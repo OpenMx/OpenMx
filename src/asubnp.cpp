@@ -42,7 +42,6 @@ struct CSOLNP {
 	int mode;
 	int neq, nineq;
 	bool optimize_initial_inequality_constraints;
-	bool gradFlag;
 	bool jacFlag;
 	bool noFeasibleFlag;
 	int numCallsToCSOLNP;
@@ -57,18 +56,6 @@ struct CSOLNP {
 	void obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2>& eqval, Eigen::MatrixBase<T2>& ineqval, Eigen::MatrixBase<T1>& fitVal, int verbose);
 
 	void handleAnalyticGradJac();
-
-	template <typename T2>
-	void calculateGrad_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, double j, int verbose);
-
-	template <typename T2>
-	void calculateGrad_central(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, double j, int verbose);
-
-	template <typename T1, typename T2>
-	void calculateGradAug_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, Eigen::MatrixBase<T1>& b_e, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& obm_e, double j, double rho, int verbose);
-
-	template <typename T1, typename T2>
-	void calculateGradAug_central(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, Eigen::MatrixBase<T1>& b_e, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& obm_e, double j, double rho, int verbose);
 
 	template <typename T1, typename T2>
 	void calculateJac_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, double j, int verbose);
@@ -132,10 +119,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	ind[indHasGradient] = 0;
 	//# do function checks and return starting value
 
-	gradFlag = FALSE;
 	jacFlag = FALSE;
 
-	mode = 1;
+	mode = 0;
 	funv = fit.solFun(pars.data(), &mode);
 	// does not have a hessian (currently not supported in Rsolnp)
 	ind[indHasHessian] = 0;
@@ -172,7 +158,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
 
 		if (optimize_initial_inequality_constraints){
 			nineq = 0;
-			gradFlag = FALSE;
 			jacFlag = FALSE;
 		}
 		else {
@@ -305,7 +290,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 			subnp_ctrl[2] = delta;
 			subnp_ctrl[3] = tol;
 
-			if (gradFlag || jacFlag){
+			if (1 || jacFlag){
 				vscale_e.resize(1, 1 + neq);
 				vscale_e.setOnes();
 			}
@@ -388,7 +373,7 @@ void CSOLNP::solnp(double *solPars, int verbose)
 			Eigen::MatrixXd temp;
 			temp = p_e.block(0, nineq, 1, np);
 
-			mode = 1;
+			mode = 0;
 			funv = fit.solFun(temp.data(), &mode);
 
 			if (mode == -1)
@@ -750,15 +735,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 		fit.copyFromOptimizer(tmpv_e.derived().data());
 		funv = fit.solFun(tmpv_e.data(), &mode);
 
-		if (gradFlag) {
-			if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
-			else g_e = fit.grad.transpose();
-		} else {
-			if (Global->gradientAlgo == GradientAlgorithm_Forward)
-				calculateGrad_forward(np, delta, p0_e, vscale_e, g_e, j, verbose);
-			else
-				calculateGrad_central(np, delta, p0_e, vscale_e, g_e, j, verbose);
-		}
+    if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
+    else g_e = fit.grad.transpose();
 
 		if (jacFlag){
 			fit.myineqFun(jacFlag);
@@ -953,6 +931,7 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 		Eigen::MatrixXd tmpv_e;
 		tmpv_e = p_e.block(0, nineq, 1, npic-nineq);
 		tmpv_e = tmpv_e.array() * vscale_e.block(0, nc+1, 1, np).array();
+    mode = 0;
 		funv = fit.solFun(tmpv_e.data(), &mode);
 		if (verbose >= 3){
 			mxLog("funv is: \n");
@@ -1015,15 +994,8 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			Eigen::MatrixXd tmpv_e = p_e.block(0, nineq, 1, npic - nineq).array() * vscale_e.block(0, nc+1, 1, np).array();
 			funv = fit.solFun(tmpv_e.data(), &mode);
 
-			if (gradFlag) {
-				if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
-				else g_e = fit.grad.transpose();
-			} else {
-				if (Global->gradientAlgo == GradientAlgorithm_Forward)
-					calculateGradAug_forward(np, delta, p_e, vscale_e, g_e, a_e, constraint_e, b_e, yy_e, obm_e, j, rho, verbose);
-				else
-					calculateGradAug_central(np, delta, p_e, vscale_e, g_e, a_e, constraint_e, b_e, yy_e, obm_e, j, rho, verbose);
-			}
+      if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
+      else g_e = fit.grad.transpose();
 
 			if (ind[indHasIneq] > 0.5){
 				Eigen::RowVectorXd temp;
@@ -1509,255 +1481,6 @@ void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2
 	if (verbose >= 4) mxPrintMat("fitVal", fitVal);
 }
 
-template <typename T2>
-void CSOLNP::calculateGrad_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, double j, int verbose)
-{
-	for (int i=0; i<np; i++){
-		int index = nineq + i;
-		p0_e[index] = p0_e[index] + delta;
-		Eigen::MatrixXd tmpv_e;
-		tmpv_e = p0_e.block(0, nineq, 1, np);
-		tmpv_e = tmpv_e.array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		double funv = fit.solFun(tmpv_e.data(), &mode);
-
-		Eigen::RowVectorXd firstPart_e(1);
-
-		Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-
-		if (!std::isfinite(funv_e(0))) {
-			funv_e.setConstant(1e24);
-		}
-
-		firstPart_e = funv_e;
-		Eigen::RowVectorXd secondPart_e;
-		secondPart_e = vscale_e.block(0, 0, 1, 1);
-		firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
-		g_e[index] = (firstPart_e(0, 0)-j) / delta;
-		if (verbose >= 3){
-			mxPrintMat("g", g_e);
-		}
-
-		p0_e[index] = p0_e[index] - delta;
-	}
-}
-
-template <typename T2>
-void CSOLNP::calculateGrad_central(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, double j, int verbose)
-{
-	Eigen::RowVectorXd p0_e1 = p0_e;
-	Eigen::RowVectorXd p0_e2 = p0_e;
-
-	for (int i=0; i<np; i++){
-		int index = nineq + i;
-		p0_e1[index] = p0_e1[index] + delta;
-		p0_e2[index] = p0_e2[index] - delta;
-		Eigen::MatrixXd tmpv1_e;
-		tmpv1_e = p0_e1.block(0, nineq, 1, np);
-		tmpv1_e = tmpv1_e.array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		double funv1 = fit.solFun(tmpv1_e.data(), &mode);
-
-		Eigen::RowVectorXd firstPart1_e(1);
-
-		Eigen::RowVectorXd funv1_e(1); funv1_e[0] = funv1;
-
-		if (!std::isfinite(funv1_e(0))) {
-			funv1_e.setConstant(1e24);
-		}
-
-		firstPart1_e = funv1_e;
-		Eigen::RowVectorXd secondPart_e;
-		secondPart_e = vscale_e.block(0, 0, 1, 1);
-		firstPart1_e = firstPart1_e.cwiseQuotient(secondPart_e);
-
-		Eigen::MatrixXd tmpv2_e;
-		tmpv2_e = p0_e2.block(0, nineq, 1, np);
-		tmpv2_e = tmpv2_e.array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		double funv2 = fit.solFun(tmpv2_e.data(), &mode);
-
-		Eigen::RowVectorXd firstPart2_e(1);
-
-		Eigen::RowVectorXd funv2_e(1); funv2_e[0] = funv2;
-
-		if (!std::isfinite(funv2_e(0))) {
-			funv2_e.setConstant(1e24);
-		}
-
-		firstPart2_e = funv2_e;
-		firstPart2_e = firstPart2_e.cwiseQuotient(secondPart_e);
-
-		g_e[index] = (firstPart1_e(0) - firstPart2_e(0)) / (2*delta);
-
-		if (verbose >= 3){
-			mxPrintMat("g", g_e);
-		}
-
-		p0_e1[index] = p0_e1[index] - delta;
-		p0_e2[index] = p0_e2[index] + delta;
-	}
-}
-
-template <typename T1, typename T2>
-void CSOLNP::calculateGradAug_forward(int np, double delta, Eigen::MatrixBase<T2>& p_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, Eigen::MatrixBase<T1>& b_e, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& obm_e, double j, double rho, int verbose)
-{
-
-	for (int i=0; i<np; i++){
-		int index = nineq + i;
-		p_e[index] = p_e[index] + delta;
-		Eigen::MatrixXd tmpv_e = p_e.block(0, nineq, 1, np).array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-		mode = 0;
-		double funv = fit.solFun(tmpv_e.data(), &mode);
-
-		if (mode == -1)
-		{
-			funv = 1e24;
-			mode = 0;
-		}
-
-		fit.solEqBFun(jacFlag);
-		fit.myineqFun(jacFlag);
-    auto &equality = fit.getEqualitySingleThreaded();
-    auto &inequality = fit.getInequalitySingleThreaded();
-
-		Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
-		Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-		Eigen::RowVectorXd eqv_e(neq); eqv_e = equality;
-		Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -inequality;
-
-		obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
-
-		Eigen::RowVectorXd secondPart_e;
-		secondPart_e = vscale_e.block(0, 0, 1, neq+nineq+1);
-
-		firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
-		obm_e = firstPart_e;
-
-		if (ind[indHasIneq] > 0.5){
-			obm_e.block(0, neq+1, 1, nineq) -= p_e.block(0, 0, 1, nineq);
-		}
-
-		double obm = obm_e(0, 0);
-		if (neq+nineq > 0){
-			Eigen::MatrixXd result_e = obm_e.block(0, 1, 1, neq+nineq);
-			result_e -= (a_e * p_e.transpose()).transpose();
-			result_e += b_e;
-			obm_e.block(0, 1, 1, neq+nineq) = result_e;
-			double vnormTerm = obm_e.block(0, 1, 1, neq+nineq).squaredNorm();
-			double dotProductTerm = yy_e.transpose().row(0).dot(obm_e.block(0, 1, 1, neq+nineq).row(0));
-			obm = obm_e(0, 0) - dotProductTerm + rho * vnormTerm;
-		}
-
-		g_e[index] = (obm - j)/delta;
-		p_e[index] = p_e[index] - delta;
-
-		if (verbose >= 3){
-			mxPrintMat("g", g_e);
-			mxPrintMat("p", p_e);
-		}
-	}
-}
-
-template <typename T1, typename T2>
-void CSOLNP::calculateGradAug_central(int np, double delta, Eigen::MatrixBase<T2>& p_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T2>& g_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, Eigen::MatrixBase<T1>& b_e, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& obm_e, double j, double rho, int verbose)
-{
-	Eigen::RowVectorXd p1_e = p_e;
-	Eigen::RowVectorXd p2_e = p_e;
-
-	for (int i=0; i<np; i++){
-		int index = nineq + i;
-		p1_e[index] = p1_e[index] + delta;
-		p2_e[index] = p2_e[index] - delta;
-
-		Eigen::MatrixXd tmpv1_e = p1_e.block(0, nineq, 1, np).array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		Eigen::MatrixXd tmpv2_e = p2_e.block(0, nineq, 1, np).array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		mode = 0;
-		double funv1 = fit.solFun(tmpv1_e.data(), &mode);
-
-		if (mode == -1)
-		{
-			funv1 = 1e24;
-			mode = 0;
-		}
-
-		fit.solEqBFun(jacFlag);
-		fit.myineqFun(jacFlag);
-    auto &equality = fit.getEqualitySingleThreaded();
-    auto &inequality = fit.getInequalitySingleThreaded();
-
-		Eigen::MatrixXd firstPart1_e(1, 1 + neq + nineq);
-		Eigen::RowVectorXd funv1_e(1); funv1_e[0] = funv1;
-		Eigen::RowVectorXd eqv1_e(neq); eqv1_e = equality;
-		Eigen::RowVectorXd ineqv1_e(nineq); ineqv1_e= -inequality;
-
-		obj_constr_eval(funv1_e, eqv1_e, ineqv1_e, firstPart1_e, verbose);
-
-		Eigen::RowVectorXd secondPart_e;
-		secondPart_e = vscale_e.block(0, 0, 1, neq+nineq+1);
-
-		firstPart1_e = firstPart1_e.cwiseQuotient(secondPart_e);
-		Eigen::MatrixXd obm1_e = firstPart1_e;
-
-		double funv2 = fit.solFun(tmpv2_e.data(), &mode);
-
-		if (mode == -1)
-		{
-			funv2 = 1e24;
-			mode = 0;
-		}
-		fit.solEqBFun(jacFlag);
-		fit.myineqFun(jacFlag);
-		Eigen::MatrixXd firstPart2_e(1, 1 + neq + nineq);
-		Eigen::RowVectorXd funv2_e(1); funv2_e[0] = funv2;
-		Eigen::RowVectorXd eqv2_e(neq); eqv2_e = equality;
-		Eigen::RowVectorXd ineqv2_e(nineq); ineqv2_e= -inequality;
-
-		obj_constr_eval(funv2_e, eqv2_e, ineqv2_e, firstPart2_e, verbose);
-
-		firstPart2_e = firstPart2_e.cwiseQuotient(secondPart_e);
-		Eigen::MatrixXd obm2_e = firstPart2_e;
-
-		if (ind[indHasIneq] > 0.5){
-			obm1_e.block(0, neq+1, 1, nineq) -= p1_e.block(0, 0, 1, nineq);
-			obm2_e.block(0, neq+1, 1, nineq) -= p2_e.block(0, 0, 1, nineq);
-		}
-
-		double obm1 = obm1_e(0, 0);
-		double obm2 = obm2_e(0, 0);
-
-		if (neq+nineq > 0){
-			Eigen::MatrixXd result1_e = obm1_e.block(0, 1, 1, neq+nineq);
-			result1_e -= (a_e * p1_e.transpose()).transpose();
-			result1_e += b_e;
-			obm1_e.block(0, 1, 1, neq+nineq) = result1_e;
-			double vnormTerm1 = obm1_e.block(0, 1, 1, neq+nineq).squaredNorm();
-			double dotProductTerm1 = yy_e.transpose().row(0).dot(obm1_e.block(0, 1, 1, neq+nineq).row(0));
-			obm1 = obm1_e(0, 0) - dotProductTerm1 + rho * vnormTerm1;
-
-			Eigen::MatrixXd result2_e = obm2_e.block(0, 1, 1, neq+nineq);
-			result2_e -= (a_e * p2_e.transpose()).transpose();
-			result2_e += b_e;
-			obm2_e.block(0, 1, 1, neq+nineq) = result2_e;
-			double vnormTerm2 = obm2_e.block(0, 1, 1, neq+nineq).squaredNorm();
-			double dotProductTerm2 = yy_e.transpose().row(0).dot(obm2_e.block(0, 1, 1, neq+nineq).row(0));
-			obm2 = obm2_e(0, 0) - dotProductTerm2 + rho * vnormTerm2;
-		}
-
-		g_e[index] = (obm1 - obm2)/(2*delta);
-
-		p1_e[index] = p1_e[index] - delta;
-		p2_e[index] = p2_e[index] + delta;
-
-		if (verbose >= 3){
-			mxPrintMat("g", g_e);
-			mxPrintMat("p", p_e);
-		}
-	}
-}
-
 template <typename T1, typename T2>
 void CSOLNP::calculateJac_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, double j, int verbose)
 {
@@ -1889,11 +1612,9 @@ void CSOLNP::calculateJac_central(int np, double delta, Eigen::MatrixBase<T2>& p
 void CSOLNP::handleAnalyticGradJac()
 {
 	if ( fit.getWanted() & FF_COMPUTE_GRADIENT && fit.isUsingAnalyticJacobian() ){
-		gradFlag = TRUE;
 		jacFlag = TRUE;
 		return;
 	} else if (fit.getWanted() & FF_COMPUTE_GRADIENT) {
-		gradFlag = TRUE;
 	}
 	else if (fit.isUsingAnalyticJacobian())   jacFlag = TRUE;
 }
