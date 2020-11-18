@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -104,7 +104,7 @@ testrun3 <- mxRun(testmod3)
 #I had thought this would be obvious, but evidently it wasn't.  The tests below are checking to see if the ML estimate of the variance is
 #close enough to the directly calculated sample variance with N, not N-1, in the denominator.
 #Note that var() uses N-1 in the denominator.
-#In contrast, the REML estimate is supposed to beclose to the directly calculated sample variance with N-1 in the denominator 
+#In contrast, the REML estimate is supposed to beclose to the directly calculated sample variance with N-1 in the denominator
 #(as in testrun and testrun2 above):
 omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,1])*99/100,epsilon=10^-5)
 omxCheckCloseEnough(testrun3$expectation$b,mean(dat[,1]),epsilon=10^-5)
@@ -125,10 +125,10 @@ omxCheckCloseEnough(testrun3summ$GREMLfixeff$se,sqrt(var(dat[,1])*99/100/100),ep
 
 # Test use of mxAutoStart() :
 testmod_as <- mxAutoStart(testmod)
-omxCheckCloseEnough(coef(testmod_as),coef(testrun)*99/100,1e-7)
+omxCheckCloseEnough(coef(testmod_as),coef(testrun)*99/100,2e-7)
 
 testmod2_as <- mxAutoStart(testmod2)
-omxCheckCloseEnough(coef(testmod2_as),coef(testrun2)*99/100,1e-7)
+omxCheckCloseEnough(coef(testmod2_as),coef(testrun2)*99/100,2e-7)
 
 testmod3_as <- mxAutoStart(testmod3)
-omxCheckCloseEnough(coef(testmod3_as),coef(testrun3),1e-7)
+omxCheckCloseEnough(coef(testmod3_as),coef(testrun3),2e-7)
