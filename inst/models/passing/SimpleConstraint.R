@@ -15,6 +15,7 @@
 
 
 library(OpenMx)
+library(testthat)
 
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
@@ -27,7 +28,8 @@ model <- mxModel(model="con_test",
                  mxFitFunctionAlgebra("minK")
 )
 
-fit <- mxRun(model)
+fit <- expect_warning(mxRun(model),
+                      "no basis could be found for the nullspace of the constraint Jacobian")
 
 omxCheckCloseEnough(fit$output$fit, 1, 1e-4)
 omxCheckCloseEnough(c(fit$matrices$K$values), 1:4, 1e-3)

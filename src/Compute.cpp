@@ -779,8 +779,8 @@ void FitContext::calcStderrs()
 				hesstmp = cholVcov.solve(Eigen::MatrixXd::Identity( vcov.rows(), vcov.cols() ));
 			}
 		}
-		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
-		Eigen::MatrixXd Q = qrj.householderQ();
+		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj(constraintJacobian.transpose());
+		Eigen::MatrixXd Q = qrj.matrixQ();
 		Eigen::MatrixXd U = Q.block(0, qrj.rank(), Q.rows(), Q.cols()-qrj.rank());
 		if(U.rows()==0 || U.cols()==0){
 			Rf_warning(
