@@ -353,6 +353,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			} else if (strEQ(key, "thresholds")) {
 				o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			} else if (strEQ(key, "numEstimatedEntries")) {
+        // ignore, just diagnostic output
 			} else {
 				Rf_warning("%s: observedStats key '%s' ignored", name, key);
 			}
