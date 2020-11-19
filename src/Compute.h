@@ -195,7 +195,7 @@ class FitContext {
 	Eigen::VectorXd equality;
 	Eigen::VectorXd inequality;
   bool isUnconstrained();
-	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive);
+	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool ineqAlwaysActive, bool maskInactive);
 	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
 	int redundantEqualities;
 

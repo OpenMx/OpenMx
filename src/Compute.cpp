@@ -1211,7 +1211,7 @@ bool FitContext::isUnconstrained()
 }
 
 //Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:
-void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CSOLNP_HACK, bool maskInactive){
+void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool ineqAlwaysActive, bool maskInactive){
 	int c_n = state->numEqC + state->numIneqC;
 	if(!c_n){return;}
 	std::vector<bool> is_inactive_ineq(c_n);
@@ -1249,7 +1249,7 @@ void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool CS
 		cur += con.size;
 	}
 
-	if (CSOLNP_HACK) {
+	if (ineqAlwaysActive) {
 
 	} else {
 		if(wantAJ && isUsingAnalyticJacobian() && maskInactive){

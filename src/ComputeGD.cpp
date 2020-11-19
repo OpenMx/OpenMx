@@ -115,7 +115,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	est.resize(numFree);
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
-	CSOLNP_HACK = false;
+	ineqAlwaysActive = false;
 	reset();
 }
 
@@ -200,7 +200,7 @@ void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobi
 // variable group.
 void GradientOptimizerContext::myineqFun(bool wantAJ)
 {
-	fc->myineqFun(wantAJ, CSOLNP_HACK);
+	fc->myineqFun(wantAJ, ineqAlwaysActive);
 }
 
 
@@ -370,7 +370,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;}
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
-		rf.CSOLNP_HACK = true;
+		rf.ineqAlwaysActive = true;
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {

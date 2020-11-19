@@ -60,7 +60,7 @@ class GradientOptimizerContext {
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
 
-	bool CSOLNP_HACK;
+	bool ineqAlwaysActive;
 
 	// NPSOL has bugs and can return the wrong fit & estimates
 	// even when optimization proceeds correctly.
@@ -164,7 +164,7 @@ void GradientOptimizerContext::ineqJacobian(Eigen::MatrixBase<T1> &ref,
               // update only that parameter instead of all
               // of them.
               copyFromOptimizer(myPars, fc2);
-              fc2->myineqFun(false, CSOLNP_HACK);
+              fc2->myineqFun(false, ineqAlwaysActive);
               result = fc2->inequality;
             }, ref, point, true, jout);
 }
