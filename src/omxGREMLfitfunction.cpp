@@ -919,7 +919,7 @@ void omxGREMLFitState::gradientAndEIM1(
 						if(j==i){
 							gradient(t1) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
 								_Scale*pullAugVal(1,a1,0);
-							if(want & FF_COMPUTE_GRADIENT){
+							if(_want & FF_COMPUTE_GRADIENT){
 								_fc->gradZ(t1) += gradient(t1);
 							}
 							for(c=0; c < cov->rows; c++){
@@ -968,7 +968,7 @@ void omxGREMLFitState::gradientAndEIM1(
 				}
 				else{
 					gradient(t1) = NA_REAL;
-					if(want & FF_COMPUTE_GRADIENT){
+					if(_want & FF_COMPUTE_GRADIENT){
 						_fc->gradZ(t1) = NA_REAL;
 					}
 				}
@@ -1012,13 +1012,13 @@ void omxGREMLFitState::gradientAndEIM1(
 					}
 					gradient(t1) = _Scale*0.5*(tr1 - (ytPdV_dtheta1 * _Py)(0,0)) +
 						_Scale*pullAugVal(1,a1,0);
-					if(want & FF_COMPUTE_GRADIENT){
+					if(_want & FF_COMPUTE_GRADIENT){
 						_fc->gradZ(t1) += gradient(t1);
 					}
 				}
 				else{
 					gradient(t1) = NA_REAL;
-					if(want & FF_COMPUTE_GRADIENT){
+					if(_want & FF_COMPUTE_GRADIENT){
 						_fc->gradZ(t1) = NA_REAL;
 					}
 				}
@@ -1091,7 +1091,7 @@ void omxGREMLFitState::gradientAndEIM2(
 					if(hcn==hrn){
 						gradient(hrn) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
 							_Scale*pullAugVal(1,a1,0);
-						if(want & FF_COMPUTE_GRADIENT){
+						if(_want & FF_COMPUTE_GRADIENT){
 							_fc->gradZ(hrn) += gradient(hrn);
 						}
 						if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -1146,7 +1146,7 @@ void omxGREMLFitState::gradientAndEIM2(
 			}
 			else{
 				gradient(hrn) = NA_REAL;
-				if(want & FF_COMPUTE_GRADIENT){
+				if(_want & FF_COMPUTE_GRADIENT){
 					_fc->gradZ(hrn) = NA_REAL;
 				}
 			}
@@ -1223,7 +1223,7 @@ void omxGREMLFitState::gradientAndEIM3(
 				if(hrn==hcn){
 					gradient(hrn) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
 						_Scale*pullAugVal(1,a1,0);
-					if(want & FF_COMPUTE_GRADIENT){
+					if(_want & FF_COMPUTE_GRADIENT){
 						_fc->gradZ(hrn) += gradient(hrn);
 					}
 					if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -1276,7 +1276,7 @@ void omxGREMLFitState::gradientAndEIM3(
 			}
 			else{
 				gradient(t1) = NA_REAL;
-				if(want & FF_COMPUTE_GRADIENT){
+				if(_want & FF_COMPUTE_GRADIENT){
 					_fc->gradZ(t1) = NA_REAL;
 				}
 			}
@@ -1524,7 +1524,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	else{
 		for(i=0; i<numcells; ++i){
 			AIMelembins[i].resize(1);
-			AIMelembins[i] = i;
+			AIMelembins[i](0) = i;
 		}
 	}
 	
