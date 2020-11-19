@@ -245,10 +245,11 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
   if (!fc->numericalGradTool) {
     // allow option customization TODO
     fc->numericalGradTool =
-      std::unique_ptr<JacobianGadget>
-      (new JacobianGadget(std::max(1, int(fc->childList.size())), numFree));
+      std::unique_ptr< AutoTune<JacobianGadget> >(new AutoTune<JacobianGadget>("numericalGradTool"));
+    fc->numericalGradTool->setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
+    fc->numericalGradTool->setMaxThreads(fc->childList.size());
   }
-  auto &ngt = *fc->numericalGradTool;
+  auto &ngt = fc->numericalGradTool->work();
 
   if (ngt.needRefFit() && !haveFreshFit) {
     ComputeFit("gradient", ff->matrix, FF_COMPUTE_FIT, fc);
@@ -260,7 +261,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
   ref[0] = fc->fit;
   Eigen::Map< Eigen::RowVectorXd > gradOut(fc->gradZ.data(), fc->gradZ.size());
 
-	ngt([&](double *myPars, int thrId, Eigen::Ref<Eigen::ArrayXd> result)->void{
+	(*fc->numericalGradTool)([&](double *myPars, int thrId, Eigen::Ref<Eigen::ArrayXd> result)->void{
 			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
 			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
 			// Only 1 parameter is different so we could

@@ -19,6 +19,7 @@
 
 #include "Compute.h"
 #include "finiteDifferences.h"
+#include "autoTune.h"
 
 // The GradientOptimizerContext can manage multiple threads
 // in parallel. Per-thread specific data should be located
@@ -123,7 +124,7 @@ class GradientOptimizerContext {
 		else{return(false);}
 	};
 
-  JacobianGadget jgContext;
+  AutoTune<JacobianGadget> jgContext;
   template <typename T1, typename T2, typename T3>
   void ineqJacobian(Eigen::MatrixBase<T1> &ref,
                     Eigen::MatrixBase<T2> &point,

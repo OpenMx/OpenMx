@@ -51,7 +51,7 @@ struct omxGREMLFitState : omxFitFunction {
 	double pullAugVal(int thing, int row, int col);
 	void recomputeAug(int thing, FitContext *fc);
 	JacobianGadget jg;
-	
+
 	//Foundation for separate functions that compute fitfunction derivatives from dV:
 	template <typename T1, typename T2>
 	void gradientAndAIM1(
@@ -62,12 +62,12 @@ struct omxGREMLFitState : omxFitFunction {
 	void gradientAndEIM1(
 			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
 			double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy);
-	
+
 	template <typename T1, typename T2, typename T3>
 	void gradientAndEIM2(
 			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
 			double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy);
-	
+
 	template <typename T1, typename T2, typename T3>
 	void gradientAndEIM3(
 			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
@@ -77,7 +77,7 @@ struct omxGREMLFitState : omxFitFunction {
 	void crude_numeric_dV(
 		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
 
-	omxGREMLFitState() : jg(1, 1) {};
+	omxGREMLFitState() : jg(1) {};
 	virtual void init();
 	virtual void compute(int want, FitContext *fc);
 	virtual void populateAttr(SEXP algebra);
@@ -189,7 +189,7 @@ void omxGREMLFitState::init()
   	else if(strEQ(CHAR(Rf_asChar(adt)),"numeric")){derivType = 0;}
   	else{mxThrow("unrecognized character string provided for GREML fitfunction 'autoDerivType'");}
   }
-  
+
   //infoMatType:
   {
   	ProtectedSEXP imt(R_do_slot(rObj, Rf_install("infoMatType")));
@@ -442,7 +442,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
  			gff->recomputeAug(2, fc);
  			wantHess = 1;
  		}
- 		
+
  		if(oldWantHess != wantHess){
  			parallelDerivScheme = 0;
  			oldWantHess = wantHess;
@@ -461,7 +461,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 				}
 			}
 		}
-		
+
  		//Begin parallelized evaluation of fitfunction derivatives:
  		switch(gff->parallelDerivScheme){
  		case 2: //bin by row
@@ -831,7 +831,7 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 		omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
 	}
 }
-} 		
+}
  		break;
  		}
  			//Assign upper triangle elements of infoMat to the HessianBlock:
@@ -880,7 +880,7 @@ void omxGREMLFitState::gradientAndEIM1(
 			t1 = gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
 			//If the Hessian isn't wanted, then we compute the gradient elements the fast way.
-			//If the Hessian is wanted, then we compute the gradient in a slower way, but 
+			//If the Hessian is wanted, then we compute the gradient in a slower way, but
 			//which saves time when computing the expected information matrix:
 			if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 				Eigen::MatrixXd dV_dtheta2(Eigyrows, Eigyrows), dV_dtheta1P, dV_dtheta2P;
@@ -973,7 +973,7 @@ void omxGREMLFitState::gradientAndEIM1(
 					}
 				}
 			}
-			
+
 			else{
 				Eigen::MatrixXd ytPdV_dtheta1;
 				if(didUserGivedV[t1] || derivType==1){
@@ -1024,7 +1024,7 @@ void omxGREMLFitState::gradientAndEIM1(
 				}
 			}
 		}
-		
+
 	} catch (const std::exception& e) {
 		omxRaiseErrorf("%s", e.what());
 	} catch (...) {
@@ -1527,7 +1527,7 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 			AIMelembins[i](0) = i;
 		}
 	}
-	
+
 	//Stuff for assessing slowest thread under row-binning scheme:
 	double N = double(Vrows);
 	/*The computational cost of computing a diagonal element includes the upfront cost of

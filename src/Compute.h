@@ -22,6 +22,7 @@
 #include <Eigen/SparseCore>
 #include "glue.h"
 #include "omxState.h"
+#include "autoTune.h"
 
 // See R/MxRunHelperFunctions.R optimizerMessages
 // Also see the NPSOL manual, section 6 "Error Indicators and Warnings"
@@ -161,7 +162,7 @@ class FitContext {
 	std::vector<bool> profiledOutZ;
 	void calcNumFree();
   Eigen::ArrayXd est;  // length=numParam
-  std::unique_ptr<class JacobianGadget> numericalGradTool;
+  std::unique_ptr<class AutoTune<class JacobianGadget>> numericalGradTool;
 	Eigen::VectorXd gradZ;  // length=numFree
 	void initGrad() {
     int pars = getNumFree();

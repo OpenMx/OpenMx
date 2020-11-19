@@ -134,7 +134,7 @@ struct finite_difference_jacobian {
 
 	template <typename T1>
 	void operator()(T1 ff, int _thrId, double *_point,
-			double offset, int px, int numIter, double *grid, int verbose)
+			double offset, int px, int numIter, double *grid)
 	{
 		thrId = _thrId;
 		point = _point;
@@ -147,7 +147,7 @@ struct finite_difference_jacobian {
         offset *= .5;
         if (k==0 && !Egrid.col(k).isFinite().all()) {
           if (offset > std::numeric_limits<double>::epsilon()) {
-            if (verbose + OMX_DEBUG >= 1) {
+            if (OMX_DEBUG >= 1) {
               mxLog("finite differences[%d]: retry with offset %.4g",
                     px, offset);
             }
@@ -199,23 +199,15 @@ struct central_difference_jacobian  : finite_difference_jacobian<central_differe
 
 class JacobianGadget {
   const char *name;
-	const int ELAPSED_HISTORY_SIZE;
-	const int maxAvailThreads;
 	const int numFree;
 	GradientAlgorithm algo;
 	int numIter;
 	double eps;
-	int verbose;
-  bool used;
-	int curElapsed;
-	int numThreadsBookmark;
-	int curNumThreads;
-  nanotime_t startTime;
-	std::vector<nanotime_t> elapsed0;
-	std::vector<nanotime_t> elapsed1;
 	Eigen::ArrayXXd grid;
 	Eigen::MatrixXd thrPoint;
+  int curNumThreads;
 
+  // could break work into smaller pieces TODO
 	template <typename T1, typename T3, typename T4, typename T5>
 	void myJacobianImpl(T1 ff, Eigen::MatrixBase<T3> &point,
                       T4 dfn, bool initialized, T5 &out)
@@ -231,7 +223,7 @@ class JacobianGadget {
       if (!initialized || !out.col(px).array().isFinite().all()) {
         try {
           dfn[thrId](ff, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px,
-                     numIter, &grid.coeffRef(0,thrId), verbose);
+                     numIter, &grid.coeffRef(0,thrId));
         } catch (const std::exception& e) {
           omxRaiseErrorf("%s", e.what());
         } catch (...) {
@@ -248,77 +240,18 @@ class JacobianGadget {
 		}
 	}
 
-  void start()
-  {
-    used = true;
-		startTime = get_nanotime();
-		curNumThreads = std::max(1, numThreadsBookmark - curElapsed % 2);
-  }
-
-  void finish()
-  {
-		double el1 = (get_nanotime() - startTime);
-    if (curElapsed < ELAPSED_HISTORY_SIZE * 2) {
-      if (verbose >= 2) {
-        mxLog("%s: test[%d] curNumThreads=%d %fms",
-              name, curElapsed, curNumThreads, el1/1000000.0);
-      }
-			int repl = curElapsed / 2;
-			if (curElapsed % 2) {
-				elapsed1[repl] = el1;
-			} else {
-				elapsed0[repl] = el1;
-			}
-			curElapsed += 1;
-			if (curElapsed == ELAPSED_HISTORY_SIZE * 2) {
-				std::sort(elapsed0.begin(), elapsed0.end());
-				std::sort(elapsed1.begin(), elapsed1.end());
-				double e0 = elapsed0[elapsed0.size()/2];
-				double e1 = elapsed1[elapsed1.size()/2];
-        if (verbose) {
-          mxLog("%s: took %fms with %d threads and %fms with %d threads",
-                name, e0/1000000.0, numThreadsBookmark, e1/1000000.0, std::max(1, numThreadsBookmark-1));
-        }
-				if (e0 > e1 && numThreadsBookmark > 1) {
-					numThreadsBookmark = std::max(numThreadsBookmark - 1, 1);
-					if (numThreadsBookmark > 1) curElapsed = 0;
-				}
-        if (verbose && curElapsed > 0) {
-          mxLog("%s: looks like %d threads offer the best performance",
-                name, numThreadsBookmark);
-        }
-			}
-		}
-  }
-
  public:
 
-	JacobianGadget(int numThreads, int _numFree) :
-    name("JacobianGadget"), ELAPSED_HISTORY_SIZE(3), maxAvailThreads(numThreads),
+	JacobianGadget(int _numFree) :
+    name("JacobianGadget"),
     numFree(_numFree), algo(Global->gradientAlgo), numIter(Global->gradientIter),
-    eps(Global->gradientStepSize)
-	{
-		verbose = numThreads>1 && Global->parallelDiag;
-    used = false;
-		curElapsed = 0;
-		numThreadsBookmark = std::min(numThreads, numFree); // could break work into smaller pieces TODO
-    if (numThreadsBookmark < 1) numThreadsBookmark = 1;
-		if (numThreadsBookmark == 1) {
-			curElapsed = ELAPSED_HISTORY_SIZE * 2;
-		} else {
-			elapsed0.resize(ELAPSED_HISTORY_SIZE);
-			elapsed1.resize(ELAPSED_HISTORY_SIZE);
-		}
-	}
-  ~JacobianGadget()
-  {
-    if (used) {
-      diagParallel(OMX_DEBUG, "%s: used %d/%d threads for %d free parameters",
-                   name, numThreadsBookmark, maxAvailThreads, numFree);
-    } else {
-      diagParallel(OMX_DEBUG, "%s: not used (analytic?)", name);
-    }
-  }
+    eps(Global->gradientStepSize), curNumThreads(1)
+	{}
+
+  int getMaxUsableThreads() const { return numFree; }
+
+  void setNumThreads(int th)
+  { curNumThreads = th; }
 
   void setAlgoOptions(GradientAlgorithm _algo,	int _numIter, double _eps)
   {
@@ -342,7 +275,6 @@ template <typename T1, typename T2, typename T3, typename T4>
                                                   __FILE__, __LINE__, jacobiOut.cols(), point.size());
     if (ref.size() != jacobiOut.rows()) OOPS;
 
-    start();
 		grid.resize(numIter * jacobiOut.rows(), curNumThreads);
 
     switch (algo) {
@@ -358,8 +290,6 @@ template <typename T1, typename T2, typename T3, typename T4>
       break;}
     default: mxThrow("%s: Unknown algorithm %d", name, algo);
     }
-
-    finish();
 
     //for (int rx=0; rx < jacobiOut.rows(); ++rx) robustify(jacobiOut.row(rx)); // TODO
 	}

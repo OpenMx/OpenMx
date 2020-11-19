@@ -104,7 +104,7 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 						   omxCompute *owner)
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
 	  numOptimizerThreads(_fc->numOptimizerThreads()),
-    jgContext(numOptimizerThreads, numFree)
+    jgContext("ineq jacobian")
 {
 	computeName = owner->name;
 	fitMatrix = NULL;
@@ -116,6 +116,8 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
 	ineqAlwaysActive = false;
+  jgContext.setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
+  jgContext.setMaxThreads(numOptimizerThreads);
 	reset();
 }
 
