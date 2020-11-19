@@ -527,7 +527,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}
 						gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 							Scale*gff->pullAugVal(1,a1,0);
-						fc->gradZ(hrn) += gff->gradient(hrn);
+						if(want & FF_COMPUTE_GRADIENT){
+							fc->gradZ(hrn) += gff->gradient(hrn);
+						}
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							gff->infoMat(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 								Scale*gff->pullAugVal(2,a1,a1);
@@ -568,7 +570,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}}}}
 			else{
 				gff->gradient(hrn) = NA_REAL;
-				fc->gradZ(hrn) = NA_REAL;
+				if(want & FF_COMPUTE_GRADIENT){
+					fc->gradZ(hrn) = NA_REAL;
+				}
 			}
 		}
 	} catch (const std::exception& e) {
@@ -646,7 +650,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 					}
 					gff->gradient(hrn) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 						Scale*gff->pullAugVal(1,a1,0);
-					fc->gradZ(hrn) += gff->gradient(hrn);
+					if(want & FF_COMPUTE_GRADIENT){
+						fc->gradZ(hrn) += gff->gradient(hrn);
+					}
 					if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						gff->infoMat(hrn,hrn) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 							Scale*gff->pullAugVal(2,a1,a1);
@@ -688,7 +694,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 			}
 			else{
 				gff->gradient(t1) = NA_REAL;
-				fc->gradZ(t1) = NA_REAL;
+				if(want & FF_COMPUTE_GRADIENT){
+					fc->gradZ(t1) = NA_REAL;
+				}
 			}
 			hcn++;
 			i++;
@@ -767,7 +775,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 						}
 						gff->gradient(t1) = Scale*0.5*(tr - (ytPdV_dtheta1 * Py)(0,0)) +
 							Scale*gff->pullAugVal(1,a1,0);
-						fc->gradZ(t1) += gff->gradient(t1);
+						if(want & FF_COMPUTE_GRADIENT){
+							fc->gradZ(t1) += gff->gradient(t1);
+						}
 						if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							gff->infoMat(t1,t1) = Scale*0.5*(ytPdV_dtheta1 * P.selfadjointView<Eigen::Lower>() * ytPdV_dtheta1.transpose())(0,0) +
 								Scale*gff->pullAugVal(2,a1,a1);
@@ -810,7 +820,9 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 			}
 			else{
 				gff->gradient(t1) = NA_REAL;
-				fc->gradZ(t1) = NA_REAL;
+				if(want & FF_COMPUTE_GRADIENT){
+					fc->gradZ(t1) = NA_REAL;
+				}
 			}
 		}
 	} catch (const std::exception& e) {
@@ -907,7 +919,9 @@ void omxGREMLFitState::gradientAndEIM1(
 						if(j==i){
 							gradient(t1) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
 								_Scale*pullAugVal(1,a1,0);
-							_fc->gradZ(t1) += gradient(t1);
+							if(want & FF_COMPUTE_GRADIENT){
+								_fc->gradZ(t1) += gradient(t1);
+							}
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
 									tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
@@ -954,7 +968,9 @@ void omxGREMLFitState::gradientAndEIM1(
 				}
 				else{
 					gradient(t1) = NA_REAL;
-					_fc->gradZ(t1) = NA_REAL;
+					if(want & FF_COMPUTE_GRADIENT){
+						_fc->gradZ(t1) = NA_REAL;
+					}
 				}
 			}
 			
@@ -996,11 +1012,15 @@ void omxGREMLFitState::gradientAndEIM1(
 					}
 					gradient(t1) = _Scale*0.5*(tr1 - (ytPdV_dtheta1 * _Py)(0,0)) +
 						_Scale*pullAugVal(1,a1,0);
-					_fc->gradZ(t1) += gradient(t1);
+					if(want & FF_COMPUTE_GRADIENT){
+						_fc->gradZ(t1) += gradient(t1);
+					}
 				}
 				else{
 					gradient(t1) = NA_REAL;
-					_fc->gradZ(t1) = NA_REAL;
+					if(want & FF_COMPUTE_GRADIENT){
+						_fc->gradZ(t1) = NA_REAL;
+					}
 				}
 			}
 		}
@@ -1071,7 +1091,9 @@ void omxGREMLFitState::gradientAndEIM2(
 					if(hcn==hrn){
 						gradient(hrn) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
 							_Scale*pullAugVal(1,a1,0);
-						_fc->gradZ(hrn) += gradient(hrn);
+						if(want & FF_COMPUTE_GRADIENT){
+							_fc->gradZ(hrn) += gradient(hrn);
+						}
 						if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
@@ -1124,7 +1146,9 @@ void omxGREMLFitState::gradientAndEIM2(
 			}
 			else{
 				gradient(hrn) = NA_REAL;
-				_fc->gradZ(hrn) = NA_REAL;
+				if(want & FF_COMPUTE_GRADIENT){
+					_fc->gradZ(hrn) = NA_REAL;
+				}
 			}
 		}
 	} catch (const std::exception& e) {
@@ -1199,7 +1223,9 @@ void omxGREMLFitState::gradientAndEIM3(
 				if(hrn==hcn){
 					gradient(hrn) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
 						_Scale*pullAugVal(1,a1,0);
-					_fc->gradZ(hrn) += gradient(hrn);
+					if(want & FF_COMPUTE_GRADIENT){
+						_fc->gradZ(hrn) += gradient(hrn);
+					}
 					if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						for(c=0; c < cov->rows; c++){
 							for(r=0; r < cov->rows; r++){
@@ -1250,7 +1276,9 @@ void omxGREMLFitState::gradientAndEIM3(
 			}
 			else{
 				gradient(t1) = NA_REAL;
-				_fc->gradZ(t1) = NA_REAL;
+				if(want & FF_COMPUTE_GRADIENT){
+					_fc->gradZ(t1) = NA_REAL;
+				}
 			}
 			hcn++;
 			i++;
