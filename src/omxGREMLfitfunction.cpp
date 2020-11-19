@@ -1479,16 +1479,24 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 	int jlim, cellnum=0;
 
 	//Bin AIM elements:
-	for(i=0; i<nThreadz && cellnum<numcells; i++){
-		jlim = targ;
-		if(remainder){
-			jlim++;
-			remainder--;
+	if(numcells >= nThreadz){
+		for(i=0; i<nThreadz && cellnum<numcells; i++){
+			jlim = targ;
+			if(remainder){
+				jlim++;
+				remainder--;
+			}
+			AIMelembins[i].resize(jlim);
+			for(j=0; j<jlim && cellnum<numcells; j++){
+				AIMelembins[i](j) = cellnum;
+				cellnum++;
+			}
 		}
-		AIMelembins[i].resize(jlim);
-		for(j=0; j<jlim && cellnum<numcells; j++){
-			AIMelembins[i](j) = cellnum;
-			cellnum++;
+	}
+	else{
+		for(i=0; i<numcells; ++i){
+			AIMelembins[i].resize(1);
+			AIMelembins[i] = i;
 		}
 	}
 	
