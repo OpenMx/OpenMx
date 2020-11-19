@@ -1492,11 +1492,6 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		}
 	}
 	
-	if(nThreadz > numExplicitFreePar){
-		parallelDerivScheme = 3;
-		return;
-	}
-
 	//Stuff for assessing slowest thread under row-binning scheme:
 	double N = double(Vrows);
 	/*The computational cost of computing a diagonal element includes the upfront cost of
