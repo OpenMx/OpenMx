@@ -91,7 +91,7 @@ P <- Vinv - Vinv%*%X%*%chol2inv(chol(t(X)%*%Vinv%*%X))%*%t(X)%*%Vinv
 I <- diag(1000)
 mygrad[1] <- tr(I%*%P) - t(P%*%y)%*%I%*%P%*%y
 mygrad[2] <- tr(A%*%P) - t(P%*%y)%*%A%*%P%*%y
-omxCheckCloseEnough(mygrad, testrun$output$gradient, 1e-12)
+omxCheckCloseEnough(mygrad, testrun$output$gradient, 5e-12)
 
 myEIM[1,1] <- sum((I%*%P)*(I%*%P))
 myEIM[1,2] <- sum((I%*%P)*(A%*%P) )
@@ -128,7 +128,7 @@ testrun2$output$hessian
 
 mygrad[1] <- sum(I*P) - t(P%*%y)%*%I%*%P%*%y
 mygrad[2] <- sum(A*P) - t(P%*%y)%*%A%*%P%*%y
-omxCheckCloseEnough(mygrad, testrun2$output$gradient, 1e-12)
+omxCheckCloseEnough(mygrad, testrun2$output$gradient, 5e-12)
 
 myEIM[1,1] <- t(P%*%y)%*%I%*%P%*%I%*%P%*%y
 myEIM[1,2] <- t(P%*%y)%*%I%*%P%*%A%*%P%*%y

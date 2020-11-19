@@ -183,4 +183,4 @@ testmod4_as <- mxAutoStart(testmod4)
 omxCheckCloseEnough(coef(testmod4_as),coef(testrun4)*99/100,0.001)
 
 testmod5_as <- mxAutoStart(testmod5)
-omxCheckCloseEnough(coef(testmod5_as),coef(testrun5),1e-7)
+omxCheckCloseEnough(coef(testmod5_as),coef(testrun5),5e-7)
