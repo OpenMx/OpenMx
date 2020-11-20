@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,7 +40,7 @@ setMethod("initialize", "MxFitFunctionML",
 	}
 )
 
-setMethod("qualifyNames", signature("MxFitFunctionML"), 
+setMethod("qualifyNames", signature("MxFitFunctionML"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)
@@ -54,7 +54,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionML",
 		expectName <- paste(modelname, "expectation", sep=".")
 
 		expectation <- flatModel@expectations[[expectName]]
-		dataname <- expectation@data		
+		dataname <- expectation@data
 
 		if (flatModel@datasets[[dataname]]@type != 'raw') {
 			if (.Object@vector) {
@@ -76,7 +76,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionML",
 		return(flatModel)
 })
 
-setMethod("genericFitFunConvert", "MxFitFunctionML", 
+setMethod("genericFitFunConvert", "MxFitFunctionML",
 	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
@@ -122,7 +122,7 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionML",
 			}
 			mxDataObject <- flatModel@datasets[[expectation@data]]
 			if (mxDataObject@type != 'raw') {
-				msg <- paste("The dataset associated with the ML expectation function", 
+				msg <- paste("The dataset associated with the ML expectation function",
 					"in model", omxQuotes(modelname), "is not raw data.")
 				stop(msg, call.=FALSE)
 			}
@@ -165,7 +165,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 				"of all the variables in the data will be made.  For reference models",
 				"of only the variables used in the model, provide the model after it has been run."))
 		}
-		
+
 		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)),
 			datanobs, datasource@means, distribution=distribution,
 			equateThresholds)
@@ -201,15 +201,16 @@ displayMxFitFunctionML <- function(fitfunction) {
 	cat("$verbose :", fitfunction@verbose, '\n')
 	cat("$rowwiseParallel :", fitfunction@rowwiseParallel, '\n')
 	cat("$jointConditionOn :", fitfunction@jointConditionOn, '\n')
-	print(fitfunction@result)
+	cat("$result :", head(fitfunction@result),
+      ifelse(length(fitfunction@result)>6, "...", ""), '\n')
 	invisible(fitfunction)
 }
 
 
-setMethod("print", "MxFitFunctionML", function(x, ...) { 
-	displayMxFitFunctionML(x) 
+setMethod("print", "MxFitFunctionML", function(x, ...) {
+	displayMxFitFunctionML(x)
 })
 
-setMethod("show", "MxFitFunctionML", function(object) { 
-	displayMxFitFunctionML(object) 
+setMethod("show", "MxFitFunctionML", function(object) {
+	displayMxFitFunctionML(object)
 })
