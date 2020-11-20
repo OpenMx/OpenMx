@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,7 @@
 }
 
 \usage{
-   mxData(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+   mxData(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
@@ -34,7 +34,8 @@
 }
 
 \arguments{
-   \item{observed}{A matrix or data.frame which provides data to the MxData object.}
+   \item{observed}{A matrix or data.frame which provides data to the
+   MxData object. Can be NULL when summary data are provided via \sQuote{observedStats}.}
    \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, or \dQuote{acov}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
@@ -176,18 +177,18 @@ To generate data, see \code{\link{mxGenerateData}}; For objects which may be ent
 For WLS data, see \link{mxDataWLS} (deprecated). More information about the OpenMx package may be found
 \link[=OpenMx]{here}.
 
- 
+
 }
 
-\examples{  
-    
+\examples{
+
 library(OpenMx)
 
 # Simple covariance model. See other mxFitFunctions for examples with different data types
 
 # 1. Create a covariance matrix x and y
 covMatrix <- matrix(nrow = 2, ncol = 2, byrow = TRUE,
-	c(0.77642931, 0.39590663, 
+	c(0.77642931, 0.39590663,
       0.39590663, 0.49115615)
 )
 covNames <- c("x", "y")

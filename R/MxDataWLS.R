@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +47,7 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
 	if (length(acov) == 1 && is.na(acov)) acov <- matrix(as.numeric(NA))
 	if (length(fullWeight) == 1 && is.na(fullWeight)) fullWeight <- matrix(as.numeric(NA))
 	if (length(thresholds) == 1 && is.na(thresholds)) thresholds <- matrix(as.numeric(NA))
-	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
+	if (missing(observed) || !is(observed, "MxOptionalDataFrameOrMatrix")) {
 		stop("Observed argument is neither a data frame nor a matrix")
 	}
 	dups <- duplicated(colnames(observed))
@@ -105,15 +105,15 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 	if(numRows-1 < numColsStar){
 		stop(paste0('Too few rows (', numRows, ') for number of variables (', numCols, ').\nFor WLS, you need at least n*(n+1)/2 + 1 = ', numColsStar+1, ' rows.\nBetter start rubbing two pennies together.'))
 	}
-	
+
 	if(type=="ULS") {
 		useWeight <- diag(1, numColsStar)
 	}
-	
+
 	x <- x - rep(colMeans(x), each=nrow(x))
 	V <- cov(x)*(numRows-1)/numRows
 	U <- matrix(0, nrow=numColsStar, ncol=numColsStar)
-	
+
 	# Now construct the U MATRIX, from the W ARRAY
 	#  Step 1: Generate index matrix M
 	row <- 1
@@ -122,14 +122,14 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 		M[row:(row+numCols-j),] <- cbind(j:numCols, j)
 		row <- row+numCols-j+1
 	}
-	
+
 	if(type=="DLS" || type=="DWLS") {
 		for(i in 1:numColsStar){
 			U[i,i] <- 1/(sum((x[,M[i, 1]]**2) * (x[,M[i, 2]]**2)) / numRows - V[M[i, 1], M[i, 2]]**2)
 		}
 		useWeight <- U
 	}
-	
+
 	#  Step 2: Create the U MATRIX
 	for(j in 1:numColsStar){
 		for(i in j:numColsStar){
@@ -163,7 +163,7 @@ wlsContinuousOnlyHelper <- function(x, type="WLS"){
 
 
 threshLogLik <- function(thresh, rawData, return="individual", useMinusTwo=TRUE){
-	# individual: returns -log likelihood for each category 
+	# individual: returns -log likelihood for each category
 	#	given particular threshold values
 	#	to be used for jacobian
 	# model: returns model -log likelihood
@@ -177,7 +177,7 @@ threshLogLik <- function(thresh, rawData, return="individual", useMinusTwo=TRUE)
 	}
 
 pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMinusTwo=TRUE){
-	# individual: returns -log likelihood for each category 
+	# individual: returns -log likelihood for each category
 	#	given particular threshold values
 	#	to be used for jacobian
 	# model: returns model -log likelihood
@@ -186,7 +186,7 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
 	pcThresh  <- rbind(-Inf, thresh, Inf)
 	pcThresh[is.na(pcThresh)] <- Inf
-	
+
 	# make the frequency counts
 	# table() drops missing values
 	dataTable <- table(rawData)
@@ -201,8 +201,8 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 	dtt$xMax <- pcThresh[dtt$x + 1,1]
 	dtt$yMin <- pcThresh[dtt$y,    2]
 	dtt$yMax <- pcThresh[dtt$y + 1,2]
-	
-	# make correlation matrix for 
+
+	# make correlation matrix for
 	k <- max(min(k,.999),-.999)
 	corMatrix <- matrix(c(1, k, k, 1), 2, 2)
 	for (i in 1:dim(dtt)[1]){
@@ -213,7 +213,7 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 			corr=corMatrix
 			))
 		}
-	
+
 	if (return=="individual"){return(as.vector(dtt$mLL))}
 	if (return=="model"){return(sum(dtt$count*dtt$mLL))}
 	if (return=="table"){return(dtt)}
@@ -222,13 +222,13 @@ pcLogLik <- function(k, means, vars, thresh, rawData, return="individual", useMi
 rcLogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
 	if (ncol(rawData)!=2)stop("Raw data must contain exactly two variables.")
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
-	
+
 	if(is.null(means)){ means <- apply(rawData, 2, mean, na.rm=TRUE)}
 	if(is.null(vars)){ vars <- apply(rawData, 2, var, na.rm=TRUE)}
-	
+
 	sigma <- matrix(c(vars[1], k, k, vars[2]), 2, 2)
 	lik <- apply(rawData, 1, mvtnorm::dmvnorm, means, sigma)
-	
+
 	if (return=="model"){ return( (- 1 - useMinusTwo)*sum(log(lik), na.rm=TRUE) ) }
 	if (return=="individual") { return( (-1-useMinusTwo)*log(lik) ) }
 	}
@@ -238,16 +238,16 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	if (length(k)!=1)stop("Please provide a single correlation to be tested.")
 	isOrd <- unlist(lapply(rawData, is.ordered))
 	if (sum(isOrd)!=1)stop("Raw data must contain one ordinal variable and one numeric variable.")
-	
+
 	# prep the threshold matrix
 	#pcThresh  <- rbind(-Inf, thresh, Inf)
 	#pcThresh[is.na(pcThresh)] <- Inf
-	
+
 	#wideData <- rawData
 	#wideData$min <- pcThresh[as.numeric(wideData[,isOrd])]
 	#wideData$max <- pcThresh[as.numeric(wideData[,isOrd])+1]
-	
-	
+
+
 	llC <- log(dnorm(rawData[,!isOrd], means[!isOrd], sqrt(vars[!isOrd])))
 	#oMean <- (rawData[,!isOrd] - means[!isOrd]) * k / vars[!isOrd]
 	#oVar <- vars[isOrd] - k*(1/vars[!isOrd])*k
@@ -259,13 +259,13 @@ psLogLik <- function(k, means, vars, thresh, rawData, return="model", useMinusTw
 	cumProb <- cbind(cumProb, 1)
 	levProb <- cbind(cumProb[,1,drop=F], cumProb[,-1,drop=F] - cumProb[,-(length(thresh)+1),drop=F])
 	sel <- unclass(rawData[,isOrd])
-	
+
 	llO <- rep(NA, length(llC))
 	for (i in 1:(length(thresh)+1)){
 		llO[sel %in% i] <- levProb[sel %in% i, i]
 	}
 	llO <- log(llO)
-	
+
 	if(return=="model"){
 		if(print.res) {
 			print(paste('k =', k))
@@ -330,8 +330,8 @@ normLogLikHess <- function(pars, rawData, return="model", useMinusTwo=TRUE){
 # S = a b
 #     b c
 # is
-# 1/(det(S))^2 * 
-# c^2       
+# 1/(det(S))^2 *
+# c^2
 # -2*b*c    2*(b^2 + a*c)
 # b^2       -2*a*b           a^2
 #
@@ -346,12 +346,12 @@ normLogLikHess <- function(pars, rawData, return="model", useMinusTwo=TRUE){
 rc3LogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
 	if (ncol(rawData)!=2)stop("Raw data must contain exactly two variables.")
 	if (length(k)!=3)stop("Please provide a variance, a covariance, and another variance to be tested.")
-	
+
 	if(is.null(means)){ means <- apply(rawData, 2, mean, na.rm=TRUE)}
-	
+
 	sigma <- matrix(c(k[1], k[2], k[2], k[3]), 2, 2)
 	lik <- (-1-useMinusTwo)*log(apply(rawData, 1, mvtnorm::dmvnorm, means, sigma))
-	
+
 	if (return=="model"){ return(sum(lik)) }
 	if (return=="individual") { return(lik) }
 }
@@ -359,9 +359,9 @@ rc3LogLik <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="mo
 rc3Hess <- function(k, means=NULL, vars=NULL, thresh=NULL, rawData, return="model", useMinusTwo=TRUE){
 	if (ncol(rawData)!=2)stop("Raw data must contain exactly two variables.")
 	if (length(k)!=3)stop("Please provide a variance, a covariance, and another variance to be tested.")
-	
+
 	if(is.null(means)){ means <- apply(rawData, 2, mean, na.rm=TRUE)}
-	
+
 	S <- matrix(c(k[1], k[2], k[2], k[3]), 2, 2)
 	D <- matrix(c(1,0,0,0,0,1,1,0,0,0,0,1), 4, 3) #duplication matrix of order 2
 	Sinv <- solve2x2(S) #matrix(c(S[2,2], -S[1,2], -S[2,1], S[1,1]), 2, 2)/(S[1,1]*S[2,2] - S[1,2]*S[2,1])
@@ -392,7 +392,7 @@ solve2x2 <- function(x){
 }
 
 univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMinusTwo){
-	### univariate thresholds 
+	### univariate thresholds
 	# prep objects
 	nlevel <- unlist(lapply(od, nlevels))
 	counts <- lapply(od, table)
@@ -400,7 +400,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 	threshHess <- list(NULL)
 	threshWarn <- rep(0, nvar)
 	if(nvar > 0) {threshJac <- list(NULL)} else threshJac <- NULL
-	
+
 	# get the thresholds, their hessians & their jacobians
 	if(nvar > 0){
 		for (i in 1:nvar){
@@ -413,14 +413,14 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 			}
 			startVals <- qnorm(cumsum(tab)/sum(!is.na(od[,i])))
 			if (length(startVals)>2){
-				uni <- optim(startVals[1:(length(startVals) - 1)], 
+				uni <- optim(startVals[1:(length(startVals) - 1)],
 					threshLogLik, return="model", rawData=od[,i], useMinusTwo=useMinusTwo, hessian=TRUE, method="BFGS")
 			} else {
 				result <- tryCatch.W(optimize(threshLogLik, lower=-6.28, upper=6.28,
 							     return="model", rawData=od[,i]))
 				threshWarn[i] <- length(result$warning)
 				tHold <- result$value
-				hHold <- numDeriv::hessian(threshLogLik, x=tHold$minimum, 
+				hHold <- numDeriv::hessian(threshLogLik, x=tHold$minimum,
 					return="model", rawData=od[,i])
 				uni <- list(par=tHold$minimum, hessian=hHold)
 			}
@@ -443,7 +443,7 @@ univariateThresholdStatisticsHelper <- function(od, data, nvar, n, ntvar, useMin
 
 univariateMeanVarianceStatisticsHelper <- function(ntvar, n, ords, data, useMinusTwo){
 	### put the means in!
-	
+
 	### Use normLogLik function to get ML estimates of univariate
 	# means and variances.
 	# And use optim to get Jacobians and Hessians of these ML estimates.
@@ -498,7 +498,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	#
 	#available types
 	wlsTypes <- c("ULS", "DLS", "DWLS", "WLS", "XLS")
-	
+
 	# error checking
 	if (!is.data.frame(data)){
 		stop("'data' must be a data frame.")
@@ -522,7 +522,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	# standardize spelling
 	if (allContinuousMethod == 'cumulant') allContinuousMethod <- 'cumulants'
 	if (allContinuousMethod == 'marginal') allContinuousMethod <- 'marginals'
-		
+
 	# select ordinal variables
 	ords <- unlist(lapply(data, is.ordered))
 	badFactors <- !ords & unlist(lapply(data, is.factor))
@@ -534,14 +534,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	nvar <- sum(ords)
 	ntvar <- ncol(data)
 	n <- dim(data)[1]
-	
-	
+
+
 	msg <- paste("Calculating asymptotic summary statistics for",
 		ntvar - nvar, "continuous and", nvar, "ordinal variables ...")
 	msgLen <- nchar(msg)
 	#message(msg)
 	if (!silent) imxReportProgress(msg, 0)
-	
+
 	# if no ordinal variables, use continuous-only helper
 	if(nvar == 0 && allContinuousMethod %in% c("cumulant", "cumulants")){
 		if (!silent) imxReportProgress("", msgLen)
@@ -555,18 +555,18 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		retVal <- legacyMxData(cov(data), type="acov", acov=wls$use, fullWeight=wls$full, numObs=n)
 		return(wls.permute(retVal))
 	}
-	
+
 	# separate ordinal and continuous variables (temporary)
 	od <- data[,ords,drop=FALSE]
 	cd <- data[,!ords,drop=FALSE]
-	
+
 	# thresholds, their hessians & their jacobians
 	utsList <- univariateThresholdStatisticsHelper(od, data, nvar, n, ntvar, useMinusTwo)
 	thresh <- utsList[[1]]
 	threshHess <- utsList[[2]]
 	threshJac <- utsList[[3]]
 	threshWarn <- utsList[[4]]
-	
+
 	# means and variances with their hessians & their jacobians
 	umvsList <- univariateMeanVarianceStatisticsHelper(ntvar, n, ords, data, useMinusTwo)
 	meanEst <- umvsList[[1]]
@@ -575,7 +575,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	varHess <- umvsList[[4]]
 	meanJac <- umvsList[[5]]
 	varJac <- umvsList[[6]]
-	
+
 	### bivariate polychorics
 	pcMatrix <- matrix(NA, ntvar, ntvar)
 	diag(pcMatrix) <- 1
@@ -640,7 +640,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 					small <- min(abs(pcBounds - pc$minimum))/2
 				}
 				# Compute actual Hessian
-				hessHold[indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(logLikFUN, x=pc$minimum, 
+				hessHold[indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(logLikFUN, x=pc$minimum,
 						means=pcMeans, vars=pcVars, thresh=pcThresh, return="model", rawData=pcData, useMinusTwo=useMinusTwo, method.args=list(d=small))
 #				if(ordPair==0){ #Continuous variables
 #					r3hess[,,indexCov2to1(i, j, ntvar)] <- numDeriv::hessian(rc3LogLik, x=c(pcVars[1], pc$minimum, pcVars[2]),
@@ -653,21 +653,21 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 				#pcHess[i, j]   <- pcHess[j, i]
 				# get jacobian
 				if( ordPair == 0 ) { # Continuous variables
-					assignJac <- matrix(numDeriv::jacobian(func=logLikFUN, x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh, 
-						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
-						nrow=n, 
+					assignJac <- matrix(numDeriv::jacobian(func=logLikFUN, x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh,
+						rawData=pcData, return="individual", useMinusTwo=useMinusTwo),
+						nrow=n,
 						ncol=1)
 				}
 				else if( ordPair == 1 ) { #Joint variables
-					assignJac <- matrix(numDeriv::jacobian(func=logLikFUN, method.args=list(eps=1e-4, d=1e-4, zero.tol=sqrt(.Machine$double.eps/7e-7), r=4, v=2, show.details=FALSE), x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh, 
-						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
-						nrow=n, 
+					assignJac <- matrix(numDeriv::jacobian(func=logLikFUN, method.args=list(eps=1e-4, d=1e-4, zero.tol=sqrt(.Machine$double.eps/7e-7), r=4, v=2, show.details=FALSE), x=pc$minimum, means=pcMeans, vars=pcVars, thresh=pcThresh,
+						rawData=pcData, return="individual", useMinusTwo=useMinusTwo),
+						nrow=n,
 						ncol=1)
 					#stop("Jacobian for joint ordinal and continuous variables is not yet implemented.")
 				} else { # Ordinal variables
-					localJac <- matrix(numDeriv::jacobian(func=logLikFUN, x=pc$minimum, vars=pcVars, thresh=pcThresh, 
-						rawData=pcData, return="individual", useMinusTwo=useMinusTwo), 
-						nrow=nlevels(pcData[,1]), 
+					localJac <- matrix(numDeriv::jacobian(func=logLikFUN, x=pc$minimum, vars=pcVars, thresh=pcThresh,
+						rawData=pcData, return="individual", useMinusTwo=useMinusTwo),
+						nrow=nlevels(pcData[,1]),
 						ncol=nlevels(pcData[,2]))
 					# For all ordinal data this is the n1 x n2 table of the 1x1 gradients in each combination
 					#  of levels of the ordered variables.
@@ -684,24 +684,24 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 			}
 		}
 	# nparam <- nvar*(nvar+1)/2 + length(threshHess) #N.B. not used anywhere
-	
-	
+
+
 	covHess[lower.tri(covHess)] <- t(covHess)[lower.tri(covHess)]
 	diag(covHess) <- hessHold
 	colnames(covHess) <- parName
 	rownames(covHess) <- parName
-	
+
 	### put names on everything
-	
+
 	# put names on the polychorics
 	dimnames(pcMatrix) <- list(names(data), names(data))
-	
+
 	# put names on the jacobian
 	colnames(pcJac) <- parName
-	
+
 	# put names on the hessian
 	names(hessHold) <- parName
-	
+
 	# Now doing something about the means!
 	# To replicate old behavior set,
 	# The following two lines should be deleted.
@@ -714,7 +714,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	} else {
 		fullHess <- diag(c(hessHold, meanHess))
 	}
-	
+
 	#TODO Figure out why certain elements of fullJac end up missing when the data are missing.
 	quad <- (n-1)*var(fullJac, use="pairwise.complete.obs") #bc colMeans all zero == t(fullJac) %*% fullJac
 	quad[is.na(quad)] <- 0
@@ -727,7 +727,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	} else {
 		iqj[sel,sel] <- attIqj
 	}
-	
+
 	# make the weight matrix!!!
 	wls <- fullHess %*% iqj %*% fullHess
 	fullNames <- c(parName, colnames(data))
@@ -753,14 +753,14 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	# try the weird non-hao version
 	xls <- quad
 	dimnames(xls) <- dimnames(wls)
-	
+
 	dummy <- diag(1, nrow=nrow(pcMatrix))
 	dimnames(dummy) <- dimnames(pcMatrix)
 	if(nvar > 0){
-		retVal <- legacyMxData(dummy, type="acov", numObs=n, 
+		retVal <- legacyMxData(dummy, type="acov", numObs=n,
 			acov=diag(1), fullWeight=NA, thresholds=thresh)
 	} else {
-		retVal <- legacyMxData(dummy, type="acov", numObs=n, 
+		retVal <- legacyMxData(dummy, type="acov", numObs=n,
 			acov=diag(1), fullWeight=NA, thresholds=NA)
 	}
 	retVal@observed <- pcMatrix
@@ -774,7 +774,7 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 		}
 	if (type=="DLS" || type=="DWLS"){
 		retVal@acov <- dls
-		}	
+		}
 	if (type=="WLS"){
 		retVal@acov <- wls
 		}

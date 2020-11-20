@@ -4,27 +4,14 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-##' @name MxDataFrameOrMatrix-class
-##' @rdname MxDataFrameOrMatrix-class
-##' @title MxDataFrameOrMatrix
-##'
-##' @description
-##' Internal class that is the union of data.frame and matrix.
-##'
-##' @aliases
-##' MxDataFrameOrMatrix
-##' @details
-##' Not to be used.
-setClassUnion("MxDataFrameOrMatrix", c("data.frame", "matrix"))
 
 setClass(Class = "NonNullData",
 	representation = representation(
@@ -47,7 +34,7 @@ setClass(Class = "NonNullData",
 setClass(Class = "MxDataStatic",
 	 contains = "NonNullData",
 	 representation = representation(
-		observed = "MxDataFrameOrMatrix",
+		observed = "MxOptionalDataFrameOrMatrix",
 		means  = "matrix",
 		type   = "character",
 		numObs = "numeric",
@@ -161,7 +148,7 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 	return(new("MxDataDynamic", type, expectation, verbose))
 }
 
-mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
@@ -169,18 +156,15 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 		   warnNPDacov=TRUE, exoFree=NULL, naAction=c("pass","fail","omit","exclude")) {
   prohibitDotdotdot(list(...))
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
-	if (missing(observed) || !is(observed, "MxDataFrameOrMatrix")) {
-		stop("Observed argument is neither a data frame nor a matrix")
-	}
 	dups <- duplicated(colnames(observed))
 	if (any(dups)) {
 		stop(paste("Column names must be unique. Duplicated:",
 			   omxQuotes(colnames(observed)[dups])))
 	}
-	if (missing(type) || (!is.character(type)) || (length(type) > 1) || 
+	if (missing(type) || (!is.character(type)) || (length(type) > 1) ||
 		is.na(match(type, imxDataTypes))) {
 			numTypes = length(imxDataTypes)
-			stop(paste("Type must be set to one of: ", "'", 
+			stop(paste("Type must be set to one of: ", "'",
 			paste(imxDataTypes[1:(numTypes-1)], collapse="' '"),
 			"' or '", imxDataTypes[numTypes], "'", sep=""))
 	}
@@ -273,7 +257,7 @@ mxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=
 				   "must be provided in the observed data"))
 		}
 	}
-	if (type == "raw") {
+	if (type == "raw" && !is.null(observed)) {
 		if (!is.na(frequency)) {
 			obsCount <- sum(observed[,frequency])
 		} else {
@@ -522,7 +506,7 @@ verifyCovarianceMatrix <- function(covMatrix, nameMatrix="observed", strictPD=TR
 	if (any(is.na(covMatrix))) {
 		msg <- paste("The", nameMatrix, "covariance matrix",
 			"contains NA values. Perhaps ensure you are excluding NAs in your cov() statement?")
-		stop(msg, call. = FALSE)	
+		stop(msg, call. = FALSE)
 	}
 	verifySymmetric(covMatrix, nameMatrix)
 	if (is.data.frame(covMatrix)) covMatrix <- as.matrix(covMatrix)
@@ -571,7 +555,7 @@ verifyCorrelationMatrix <- function(corMatrix) {
 	if (any(is.na(corMatrix))) {
 		msg <- paste("The observed correlation matrix",
 			"contains NA values")
-		stop(msg, call. = FALSE)	
+		stop(msg, call. = FALSE)
 	}
 	verifySymmetric(corMatrix)
 	if (is.data.frame(corMatrix)) corMatrix <- as.matrix(corMatrix)
@@ -589,7 +573,7 @@ verifyCorrelationMatrix <- function(corMatrix) {
 			msg <- paste("The observed correlation matrix",
 				"is not 1's along the diagonal")
 		}
-		stop(msg, call. = FALSE)	
+		stop(msg, call. = FALSE)
 	}
 }
 
@@ -615,13 +599,13 @@ displayMxData <- function(object) {
 		cat("primary key :", omxQuotes(object@primaryKey), '\n')
 	}
 	cat("numObs :", omxQuotes(object@numObs), '\n')
-	cat("observed : \n") 
+	cat("observed : \n")
 	print(object@observed)
 	if (length(object@means) == 1 && is.na(object@means)) {
 		cat("means : NA \n")
 	} else {
-		cat("means : \n") 
-		print(object@means)		
+		cat("means : \n")
+		print(object@means)
 	}
 	if (.hasSlot(object, 'observedStats') && length(object@observedStats)) {
 		cat("observedStats : \n")
@@ -631,11 +615,11 @@ displayMxData <- function(object) {
 }
 
 setMethod("print", "MxDataStatic", function(x,...) {
-	displayMxData(x) 
+	displayMxData(x)
 })
 
 setMethod("show", "MxDataStatic", function(object) {
-	displayMxData(object) 
+	displayMxData(object)
 })
 
 displayMxDataDynamic <- function(object) {
@@ -647,9 +631,9 @@ displayMxDataDynamic <- function(object) {
 }
 
 setMethod("print", "MxDataDynamic", function(x,...) {
-	displayMxDataDynamic(x) 
+	displayMxDataDynamic(x)
 })
 
 setMethod("show", "MxDataDynamic", function(object) {
-	displayMxDataDynamic(object) 
+	displayMxDataDynamic(object)
 })

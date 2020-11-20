@@ -1056,6 +1056,7 @@ verifyMvnNames <- function(covName, meansName, type, flatModel, modelname, expec
 }
 
 verifyObservedNames <- function(data, means, type, flatModel, modelname, expectationName) {
+  if (is.null(data)) return()
 	dataNames <- dimnames(data)
 	if(is.null(dataNames)) {
 		msg <- paste("The observed data associated with the",
@@ -1095,7 +1096,16 @@ verifyObservedNames <- function(data, means, type, flatModel, modelname, expecta
 generateDataColumns <- function(flatModel, covNames, dataName) {
 	retval <- c()
 	if (length(covNames) == 0) return(retval)
-	dataColumnNames <- colnames(flatModel@datasets[[dataName]]@observed)
+  mxd <- flatModel@datasets[[dataName]]
+  if (!is.null(mxd@observed)) {
+    dataColumnNames <- colnames(mxd@observed)
+  } else if (!is.null(mxd$observedStats[['cov']])) {
+    dataColumnNames <- colnames(mxd$observedStats[['cov']])
+  } else {
+    msg <- paste(omxQuotes(dataName), "is type='raw' but",
+                 "raw observed data seems to be unavailable")
+    stop(msg, call.=FALSE)
+  }
 	retval <- match(covNames, dataColumnNames)
 	if (any(is.na(retval))) {
 		msg <- paste("The column name(s)", omxQuotes(covNames[is.na(retval)]),

@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,10 @@ setClassUnion("MxOptionalChar", c("NULL", "character"))
 ##' An optional data.frame
 ##' @name MxOptionalDataFrame-class
 setClassUnion("MxOptionalDataFrame", c("NULL", "data.frame"))
+
+##' An optional data.frame or matrix
+##' @name MxOptionalDataFrameOrMatrix-class
+setClassUnion("MxOptionalDataFrameOrMatrix", c("data.frame", "matrix", "NULL"))
 
 ##' @title An optional logical
 ##' @name MxOptionalLogical-class
@@ -136,8 +140,7 @@ mxFactor <- function(x = character(), levels, labels = levels, exclude = NA, ord
 prohibitDotdotdot <- function(args) {
   if (length(args) == 0) return()
   stop(paste0(as.character(sys.call(-1))[1], " does not accept ... arguments. ",
-              "The first parameter in ... was named ", omxQuotes(names(args)[1]), 
+              "The first parameter in ... was named ", omxQuotes(names(args)[1]),
               " with value '", args[[1]], "'"),
        call.=FALSE)
 }
-

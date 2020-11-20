@@ -261,44 +261,46 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
 
-	if (Rf_isFrame(dataLoc)) {
-		auto &rd = unfiltered;
-		rd.rows = Rf_length(VECTOR_ELT(dataLoc, 0));
-		importDataFrame(dataLoc, rd.rawCols, od->numNumeric, od->numFactor);
-		cols = int(rd.rawCols.size());
-		for (int cx=0; cx < cols; ++cx) {
-			rawColMap.emplace(rd.rawCols[cx].name, cx);
-		}
+    if (dataLoc == R_NilValue) {
+      // OK, probably observedStats only
+    } else if (Rf_isFrame(dataLoc)) {
+      auto &rd = unfiltered;
+      rd.rows = Rf_length(VECTOR_ELT(dataLoc, 0));
+      importDataFrame(dataLoc, rd.rawCols, od->numNumeric, od->numFactor);
+      cols = int(rd.rawCols.size());
+      for (int cx=0; cx < cols; ++cx) {
+        rawColMap.emplace(rd.rawCols[cx].name, cx);
+      }
 
-		if (hasPrimaryKey()) {
-			int kt = rd.rawCols[primaryKey].type;
-			if (kt != COLUMNDATA_INTEGER &&
-					kt != COLUMNDATA_ORDERED_FACTOR && kt != COLUMNDATA_UNORDERED_FACTOR) {
-				mxThrow("%s: primary key must be an integer or factor column in raw observed data", name);
-			}
-		}
+      if (hasPrimaryKey()) {
+        int kt = rd.rawCols[primaryKey].type;
+        if (kt != COLUMNDATA_INTEGER &&
+            kt != COLUMNDATA_ORDERED_FACTOR && kt != COLUMNDATA_UNORDERED_FACTOR) {
+          mxThrow("%s: primary key must be an integer or factor column in raw observed data", name);
+        }
+      }
 
-		if (hasWeight() && rd.rawCols[weightCol].type != COLUMNDATA_NUMERIC) {
-			mxThrow("%s: weight must be a numeric column in raw observed data", name);
-		}
+      if (hasWeight() && rd.rawCols[weightCol].type != COLUMNDATA_NUMERIC) {
+        mxThrow("%s: weight must be a numeric column in raw observed data", name);
+      }
 
-		if (hasFreq() && rd.rawCols[freqCol].type != COLUMNDATA_INTEGER) {
-			mxThrow("%s: frequency must be an integer column in raw observed data", name);
-		}
-	} else {
-		if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
-		od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
+      if (hasFreq() && rd.rawCols[freqCol].type != COLUMNDATA_INTEGER) {
+        mxThrow("%s: frequency must be an integer column in raw observed data", name);
+      }
+    } else {
+      if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
+      od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 
-		if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
-			omxToggleRowColumnMajor(od->dataMat);
-		}
-		od->cols = od->dataMat->cols;
-		unfiltered.rows = od->dataMat->rows;
-		od->numNumeric = od->cols;
+      if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
+        omxToggleRowColumnMajor(od->dataMat);
+      }
+      od->cols = od->dataMat->cols;
+      unfiltered.rows = od->dataMat->rows;
+      od->numNumeric = od->cols;
 
-		// Raw data is already stored like a data frame
-		if (strEQ(_type, "raw")) convertToDataFrame();
-	}
+      // Raw data is already stored like a data frame
+      if (strEQ(_type, "raw")) convertToDataFrame();
+    }
 	}
 
 	if (!strEQ(_type, "raw") && (hasPrimaryKey() || hasWeight() || hasFreq())) {

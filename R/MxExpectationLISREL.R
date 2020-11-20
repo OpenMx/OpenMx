@@ -462,9 +462,6 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 			.Object@dataColumnNames <- translatedNames
 			.Object@dataColumns <- generateDataColumns(flatModel, translatedNames, data)
 			verifyThresholds(flatModel, model, labelsData, data, translatedNames, threshName)
-			if (length(mxDataObject@observed) == 0) {
-				.Object@data <- as.integer(NA)
-			}
 			if (single.na(.Object@dims)) {
 				.Object@dims <- translatedNames
 			}

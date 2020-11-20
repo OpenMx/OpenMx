@@ -279,6 +279,7 @@ void omxExpectation::connectToData()
   setConnectedToData(true);
 
 	if (!strEQ(omxDataType(data), "raw")) return;
+  if (data->nrows() == 0 && data->hasSummaryStats()) return;
 
 	auto &allTh = getThresholdInfo();
 
