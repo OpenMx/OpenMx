@@ -14,6 +14,7 @@ importFrom("stats", "rWishart")
 importFrom("stats", "logLik")
 importFrom("stats", "lm")
 importFrom("lifecycle", "deprecate_soft", "deprecate_warn", "deprecated")
+importFrom("utils", "head")
 
 useDynLib(OpenMx, .registration=TRUE)
 
@@ -28,7 +29,7 @@ exportPattern("^imx.+")
 
 # matrix algebra functions exported by the library
 export(tr, "%&%", "%^%", rvectorize, cvectorize, vech, vechs, 'vechs<-',
-	diag2vec, vec2diag, eigenvec, eigenval, ieigenvec, 
+	diag2vec, vec2diag, eigenvec, eigenval, ieigenvec,
 	ieigenval, vech2full, vechs2full, logm, expm, p2z, logp2z, lgamma1p, as.statusCode)
 
 # export S4 classes in the OpenMx library
