@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +16,7 @@
 
 library(mvtnorm)
 library(OpenMx)
+library(testthat)
 
 set.seed(1)
 
@@ -35,9 +36,8 @@ lk2 <- omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1))
 omxCheckCloseEnough(lk1, lk2, 1e-7)
 
 mxOption(NULL, "maxOrdinalPerBlock", 3)
-foo <- try(omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1)))
-omxCheckTrue(is(foo, 'try-error'))
-omxCheckTrue(foo[1] == "Error in omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1)) : \n  Ordinal covariance has dependent block larger than 3x3. You must increase mxOption maxOrdinalPerBlock\n")
+expect_error(omxMnor(cov, mean, matrix(-1, 12, 1), matrix(1, 12, 1)),
+             "Ordinal covariance has dependent block larger than")
 
 # ----------------
 
@@ -78,4 +78,3 @@ lk1 <- omxMnor(cov, mean,
                matrix(1, blocks*perBlock, 1))
 
 omxCheckCloseEnough(log(lk1), -115.15, .1)
-

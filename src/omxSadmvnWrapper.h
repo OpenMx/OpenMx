@@ -201,8 +201,9 @@ public:
 			} else {
 				int opb = Global->maxOrdinalPerBlock;
 				omxRaiseErrorf("Ordinal covariance has dependent block larger than %dx%d. "
-					       "You must increase mxOption maxOrdinalPerBlock",
-					       opb, opb);
+                       "You must increase the maximum block size, "
+                       "e.g. mxOption(m1, key = 'maxOrdinalPerBlock', value=%d)",
+                       opb, opb, cc.getSizeIfConnected(row, col));
 				break;
 			}
 		}
