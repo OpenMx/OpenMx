@@ -255,8 +255,6 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
     ComputeFit("gradient", ff->matrix, FF_COMPUTE_FIT, fc);
   }
 
-  Eigen::VectorXd point(numFree);
-  fc->copyEstToOptimizer(point);
   Eigen::ArrayXd ref(1);
   ref[0] = fc->fit;
   Eigen::Map< Eigen::RowVectorXd > gradOut(fc->gradZ.data(), fc->gradZ.size());
@@ -272,7 +270,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
 			double fit = fc2->fit;
 			if (fc2->outsideFeasibleSet()) fit = nan("infeasible");
       result[0] = fit;
-      }, ref, point, true, gradOut);
+      }, ref, [&fc](){ return fc->getCurrentFree(); }, true, gradOut);
 
   robustifyInplace(fc->gradZ);
 

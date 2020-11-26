@@ -127,7 +127,7 @@ class GradientOptimizerContext {
   AutoTune<JacobianGadget> jgContext;
   template <typename T1, typename T2, typename T3>
   void ineqJacobian(Eigen::MatrixBase<T1> &ref,
-                    Eigen::MatrixBase<T2> &point,
+                    T2 point,
                     Eigen::MatrixBase<T3> &jout);
 };
 
@@ -155,7 +155,7 @@ double median(Eigen::MatrixBase<T1> &vec)
 
 template <typename T1, typename T2, typename T3>
 void GradientOptimizerContext::ineqJacobian(Eigen::MatrixBase<T1> &ref,
-                                            Eigen::MatrixBase<T2> &point,
+                                            T2 point,
                                             Eigen::MatrixBase<T3> &jout)
 {
 	jgContext([&](double *myPars, int thrId, auto &result) {

@@ -3655,8 +3655,6 @@ void ComputeJacobian::computeImpl(FitContext *fc)
 {
   fc->calcNumFree();  // can't omxAlgebraPreeval because no fitmat
 	int numFree = fc->getNumFree();
-	Eigen::VectorXd curEst(numFree);
-  fc->copyEstToOptimizer(curEst);
 	if (sense.defvar_row != NA_INTEGER) {
 		data->loadDefVars(fc->state, sense.defvar_row - 1);
 	}
@@ -3666,7 +3664,7 @@ void ComputeJacobian::computeImpl(FitContext *fc)
   AutoTune<JacobianGadget> jg(name);
   jg.setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
   jg.work().setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
-  jg(sense, sense.ref, curEst, false, sense.result);
+  jg(sense, sense.ref, [&fc](){ return fc->getCurrentFree(); }, false, sense.result);
   fc->destroyChildren();
 }
 
@@ -3821,8 +3819,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 			});
 	}
 
-	Eigen::VectorXd curEst(numFree);
-  fc->copyEstToOptimizer(curEst);
 	ParJacobianSense sense;
 	sense.attach(&exList, 0);
 	sense.measureRef(fc);
@@ -3830,7 +3826,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
   AutoTune<JacobianGadget> jg(name);
   jg.setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
   jg.work().setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
-  jg(sense, sense.ref, curEst, false, sense.result);
+  jg(sense, sense.ref, [&fc](){ return fc->getCurrentFree(); }, false, sense.result);
   fc->destroyChildren();
 
 	Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr1(sense.result);

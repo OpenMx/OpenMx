@@ -144,6 +144,7 @@ class FitContext {
 	ComputeInform inform;
 	double previousReportFit;
   int _numFree;
+  Eigen::ArrayXd curFree;  // length=numFree
 
  public:
 	FreeVarGroup *varGroup;
@@ -162,6 +163,12 @@ class FitContext {
 	std::vector<bool> profiledOutZ;
 	void calcNumFree();
   Eigen::ArrayXd est;  // length=numParam
+  const Eigen::ArrayXd &getCurrentFree() {
+    if (numParam == getNumFree()) return est;
+    curFree.resize(getNumFree());
+    copyEstToOptimizer(curFree);
+    return curFree;
+  }
   std::unique_ptr<class AutoTune<class JacobianGadget>> numericalGradTool;
 	Eigen::VectorXd gradZ;  // length=numFree
 	void initGrad() {

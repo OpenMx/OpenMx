@@ -204,22 +204,22 @@ class JacobianGadget {
 	int numIter;
 	double eps;
 	Eigen::ArrayXXd grid;
-	Eigen::MatrixXd thrPoint;
+	Eigen::ArrayXXd thrPoint;
   int curNumThreads;
 
   // could break work into smaller pieces TODO
 	template <typename T1, typename T3, typename T4, typename T5>
-	void myJacobianImpl(T1 ff, Eigen::MatrixBase<T3> &point,
+	void myJacobianImpl(T1 ff, T3 getPoint,
                       T4 dfn, bool initialized, T5 &out)
 	{
-		thrPoint.resize(point.size(), curNumThreads);
-		thrPoint.colwise() = point;
+		thrPoint.resize(getPoint().size(), curNumThreads);
+		thrPoint.colwise() = getPoint().array();
 
 #pragma omp parallel for num_threads(curNumThreads)
-		for (int px=0; px < int(point.size()); ++px) {
+		for (int px=0; px < int(thrPoint.rows()); ++px) {
 			int thrId = omp_get_thread_num();
 			int thrSelect = curNumThreads==1? -1 : thrId;
-			double offset = std::max(fabs(point[px] * eps), eps);
+			double offset = std::max(fabs(thrPoint(px, thrId) * eps), eps);
       if (!initialized || !out.col(px).array().isFinite().all()) {
         try {
           dfn[thrId](ff, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px,
@@ -262,17 +262,18 @@ class JacobianGadget {
 
   // ff -- the function to evaluate
   // ref -- reference function value
-  // point -- location where to take the jacobian
+  // getPoint -- a function that returns where to take the jacobian
   // initialized -- whether to do all entries or only NaN entries
   // jacobiOut -- output
 template <typename T1, typename T2, typename T3, typename T4>
 	void operator()(T1 ff, T2 &ref,
-	      Eigen::MatrixBase<T3> &point, bool initialized, T4 &jacobiOut)
+                  T3 getPoint, bool initialized, T4 &jacobiOut)
 	{
-		if (point.size() != numFree) mxThrow("%s line %d: expecting %d parameters, got %d",
-                                         __FILE__, __LINE__, numFree, point.size());
-    if (jacobiOut.cols() != point.size()) mxThrow("%s line %d: non-conformable %d != %d",
-                                                  __FILE__, __LINE__, jacobiOut.cols(), point.size());
+		if (getPoint().size() != numFree) mxThrow("%s line %d: expecting %d parameters, got %d",
+                                              __FILE__, __LINE__, numFree, getPoint().size());
+    if (jacobiOut.cols() != getPoint().size()) mxThrow("%s line %d: non-conformable %d != %d",
+                                                       __FILE__, __LINE__, jacobiOut.cols(),
+                                                       getPoint().size());
     if (ref.size() != jacobiOut.rows()) OOPS;
 
 		grid.resize(numIter * jacobiOut.rows(), curNumThreads);
@@ -281,12 +282,12 @@ template <typename T1, typename T2, typename T3, typename T4>
     case GradientAlgorithm_Forward:{
       std::vector<forward_difference_jacobian> dfn(curNumThreads);
       for (auto &fd : dfn) fd.setRef(ref);
-      myJacobianImpl(ff, point, dfn, initialized, jacobiOut);
+      myJacobianImpl(ff, getPoint, dfn, initialized, jacobiOut);
       break;}
     case GradientAlgorithm_Central:{
       std::vector<central_difference_jacobian> dfn(curNumThreads);
       for (auto &fd : dfn) fd.setRef(ref);
-      myJacobianImpl(ff, point, dfn, initialized, jacobiOut);
+      myJacobianImpl(ff, getPoint, dfn, initialized, jacobiOut);
       break;}
     default: mxThrow("%s: Unknown algorithm %d", name, algo);
     }

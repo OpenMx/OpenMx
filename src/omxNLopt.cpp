@@ -174,14 +174,14 @@ struct inequality_functional {
 	inequality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
 
 	template <typename T1, typename T2>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
+	void operator()(T1 &x, Eigen::MatrixBase<T2> &result) const {
 		goc.copyFromOptimizer(x.derived().data());
 		goc.myineqFun(false);
 		result = goc.getInequalitySingleThreaded();
 	}
 
 	template <typename T1, typename T2, typename T3>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
+	void operator()(T1 &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
 		goc.copyFromOptimizer(x.derived().data());
 		goc.myineqFun(true);
 		result = goc.getInequalitySingleThreaded();
@@ -193,13 +193,13 @@ struct inequality_functional {
 static void nloptInequalityFunction(unsigned m, double *result, unsigned n, const double* x, double* grad, void* f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
-	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
+	Eigen::Map< Eigen::ArrayXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobianDest(grad, n, m);
 	Eigen::MatrixXd jacobian(m, n);
 	inequality_functional ff(*goc);
 	/*nloptInequalityFunction() is routinely called when 'grad' is a null pointer:*/
-	if(!grad){ff(Epoint,Eresult);}
+	if(!grad){ff(Epoint, Eresult);}
 	else{
 		ff(Epoint, Eresult, jacobian); // fill in analytically known entries
 		if (goc->verbose >= 2) {
@@ -212,7 +212,7 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
       return;
 		}
 
-    goc->ineqJacobian(Eresult, Epoint, jacobian);
+    goc->ineqJacobian(Eresult, [&Epoint](){ return Epoint; }, jacobian);
 
 		jacobianDest = jacobian.transpose();
 		if (goc->verbose >= 3) {
