@@ -16,6 +16,8 @@
 library(OpenMx)
 library(testthat)
 
+mxOption(key="feasibility tolerance", value = .0001)
+
 #This test involves CIs, so use it with SLSQP, since the inequality-constrained formulation is theoretically more correct:
 if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
 #Need to use stricter convergence tolerances to avoid status Red:
@@ -125,5 +127,6 @@ expect_equal(
 	varrun2$output$confidenceIntervals,
 	0.006
 )
-#The change in fit is off by 0.05, which is the on-load default feasibility tolerance:
-omxCheckCloseEnough(varrun2$compute$steps$CI$output$detail$fit - varrun2$output$fit - 0.05, rep(qchisq(0.95,1),4), 1e-6)
+
+omxCheckCloseEnough(varrun2$compute$steps$CI$output$detail$fit - varrun2$output$fit,
+                    rep(qchisq(0.95,1),4), 1e-4)

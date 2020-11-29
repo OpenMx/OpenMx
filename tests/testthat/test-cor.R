@@ -3,6 +3,8 @@ library(testthat)
 
 data(demoOneFactor)
 
+mxOption(key="feasibility tolerance", value = .001)
+
 myData   <- mxData(cor(demoOneFactor), type = "cor", numObs = 500)
 manifests = names(demoOneFactor)
 latents <- c("G")
@@ -89,3 +91,5 @@ fm <- mxRun(fm)
 expect_equivalent(fm$expectedMean$values, colMeans(demoOneFactor), tolerance=1e-5)
 expect_equivalent(max(abs(fm$expectedCovariance$values - cov(demoOneFactor))),
                   0, tolerance=1e-2)
+
+mxOption(reset=TRUE)

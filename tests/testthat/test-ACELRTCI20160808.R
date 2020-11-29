@@ -598,6 +598,8 @@ cmpInterval <- function(model, iname, param, col) {
     ref=ref$CI[[iname]])
 }
 
+mxOption(key="feasibility tolerance", value = .00001)
+
 ### a = 0.9, c = 0, e = 0.1 Test C UB ###
 set.seed(3)
 SigmaMZ0<-array(c(1,.9,.9,1),dim=c(2,2));

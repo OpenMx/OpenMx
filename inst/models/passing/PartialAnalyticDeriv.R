@@ -3,6 +3,8 @@ library(testthat)
 
 if(mxOption(key="Default optimizer") == 'CSOLNP') stop("SKIP")
 
+mxOption(key="feasibility tolerance", value = .001)
+
 #mxOption(NULL,"Print level",20)
 #mxOption(NULL,"Print file",1)
 #mxOption(NULL,"Verify level",3)

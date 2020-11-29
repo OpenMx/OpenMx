@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,10 +14,12 @@
 #   limitations under the License.
 
 #The quadratic fitfunction in this model has a solution on a parameter boundary, a zero-gradient point outside the feasible space, and a
-#Hessian matrix that is nowhere PD.  OpenMx should warn about status code 5 (non-convex Hessian), but the optimizers themselves should be 
+#Hessian matrix that is nowhere PD.  OpenMx should warn about status code 5 (non-convex Hessian), but the optimizers themselves should be
 #more-or-less satisfied if they reach the analytically correct solution.
 
 library(OpenMx)
+
+mxOption(key="feasibility tolerance", value = .00001)
 
 startvals <- c(-5.1, 2.9)
 

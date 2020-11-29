@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,8 @@
 library(OpenMx)
 #mxOption(NULL,"Default optimizer","SLSQP")
 
+mxOption(key="feasibility tolerance", value = .001)
+
 powellmod1 <- mxModel(
 	"PowellBenchmarkNoJacobians",
 	mxMatrix(type="Full",nrow=1,ncol=5,free=T,values=c(-2,2,2,-1,-1),labels=paste("x",1:5,sep=""),name="X"),
@@ -25,8 +27,8 @@ powellmod1 <- mxModel(
 									 powellfunc*X[1,1]*X[1,3]*X[1,4]*X[1,5],
 									 powellfunc*X[1,1]*X[1,2]*X[1,4]*X[1,5],
 									 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,5],
-									 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]), 
-						 name="objgrad", 
+									 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]),
+						 name="objgrad",
 						 dimnames=list(NULL,paste("x",1:5,sep="")) ),
 	mxConstraint(sum(X%^%2) - 10 == 0, name="c1"),
 	mxConstraint(X[1,2]*X[1,3]-5*X[1,4]*X[1,5] == 0, name="c2"),
@@ -51,8 +53,8 @@ powellmod2 <- mxModel(
 									 powellfunc*X[1,1]*X[1,3]*X[1,4]*X[1,5],
 									 powellfunc*X[1,1]*X[1,2]*X[1,4]*X[1,5],
 									 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,5],
-									 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]), 
-						 name="objgrad", 
+									 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]),
+						 name="objgrad",
 						 dimnames=list(NULL,paste("x",1:5,sep="")) ),
 	mxConstraint(sum(X%^%2) - 10 == 0, name="c1",jac="jac1" ),
 	mxConstraint(X[1,2]*X[1,3]-5*X[1,4]*X[1,5] == 0, name="c2",jac="jac2" ),
@@ -78,15 +80,15 @@ summary(powellrun2)
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
   #Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
 	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
-	
+
 	#At the solution, bounds should not be active, and equality constraints should be satisfied:
 	omxCheckEquals(powellrun1$compute$steps$GD$output$istate,c(0,0,0,0,0,3,3,3))
 	omxCheckEquals(powellrun2$compute$steps$GD$output$istate,c(0,0,0,0,0,3,3,3))
-	
+
 	#The numerical and analytic Jacobians should agree closely:
 	omxCheckCloseEnough(a=powellrun1$compute$steps$GD$output$constraintJacobian,b=powellrun2$compute$steps$GD$output$constraintJacobian,
 											epsilon=1e-5)
-	
+
 	#Check naming of constraint-related information:
 	omxCheckEquals(
 		names(powellrun1$output$constraintFunctionValues),
@@ -129,17 +131,17 @@ if(mxOption(NULL,"Default optimizer")=="NPSOL"){
 } else if(mxOption(NULL,"Default optimizer") %in% c("CSOLNP","SLSQP")){
 	#Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:
 	omxCheckEquals(omxGreaterThan(powellrun1$output$evaluations,powellrun2$output$evaluations),1)
-	
+
 	#At the solution, equality constraints should be satisfied within feasibility tolerance:
 	omxCheckCloseEnough(powellrun1$compute$steps$GD$output$constraintFunctionValues,c(0,0,0),
 											as.numeric(mxOption(NULL,"Feasibility tolerance")))
 	omxCheckCloseEnough(powellrun2$compute$steps$GD$output$constraintFunctionValues,c(0,0,0),
 											as.numeric(mxOption(NULL,"Feasibility tolerance")))
-	
+
 	#The numerical and analytic Jacobians should agree closely:
 	omxCheckCloseEnough(a=powellrun1$compute$steps$GD$output$constraintJacobian,b=powellrun2$compute$steps$GD$output$constraintJacobian,
 											epsilon=1e-5)
-	
+
 	#Check naming of constraint-related information:
 	omxCheckEquals(
 		names(powellrun1$output$constraintFunctionValues),
@@ -190,7 +192,7 @@ powellmod3 <- mxModel(
 									 powellfunc*A*B*D*E,
 									 powellfunc*A*B*C*E,
 									 powellfunc*A*B*C*D),
-						 name="objgrad", 
+						 name="objgrad",
 						 dimnames=list(NULL,c(letters[1:5])) ),
 	mxConstraint( (A^2)+(B^2)+(C^2)+(D^2)+(E^2) - 10 == 0, name="c1",jac="jac1" ),
 	mxConstraint(B*C - 5*D*E == 0, name="c2",jac="jac2" ),
@@ -236,7 +238,7 @@ powellmod4 <- mxModel(
 									 powellfunc*A*B*D*E,
 									 powellfunc*A*B*C*E,
 									 powellfunc*A*B*C*D),
-						 name="objgrad", 
+						 name="objgrad",
 						 dimnames=list(NULL,c(letters[1:5])) ),
 	mxConstraint( (A^2)+(B^2)+(C^2)+(D^2)+(E^2) - 10 == 0, name="c1",jac="jac1" ),
 	mxConstraint(B*C - 5*D*E == 0, name="c2",jac="jac2" ),
@@ -280,7 +282,7 @@ powellmod5 <- mxModel(
 									 powellfunc*A*B*D*E,
 									 powellfunc*A*B*C*E,
 									 powellfunc*A*B*C*D),
-						 name="objgrad", 
+						 name="objgrad",
 						 dimnames=list(NULL,c(letters[1:5])) ),
 	mxConstraint( (A^2)+(B^2)+(C^2)+(D^2)+(E^2) - 10 == 0, name="c1",jac="jac1" ),
 	mxConstraint(B*C - 5*D*E == 0, name="c2",jac="jac2" ),
@@ -318,8 +320,8 @@ powellmod6 <- mxModel(
 	# 								 powellfunc*X[1,1]*X[1,3]*X[1,4]*X[1,5],
 	# 								 powellfunc*X[1,1]*X[1,2]*X[1,4]*X[1,5],
 	# 								 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,5],
-	# 								 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]), 
-	# 					 name="objgrad", 
+	# 								 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]),
+	# 					 name="objgrad",
 	# 					 dimnames=list(NULL,paste("x",1:5,sep="")) ),
 	mxConstraint(sum(X%^%2) - 10 == 0, name="c1",jac="jac1"),
 	mxConstraint(X[1,2]*X[1,3]-5*X[1,4]*X[1,5] == 0, name="c2",jac="jac2" ),
@@ -351,8 +353,8 @@ powellmod7 <- mxModel(
 	# 								 powellfunc*X[1,1]*X[1,3]*X[1,4]*X[1,5],
 	# 								 powellfunc*X[1,1]*X[1,2]*X[1,4]*X[1,5],
 	# 								 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,5],
-	# 								 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]), 
-	# 					 name="objgrad", 
+	# 								 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]),
+	# 					 name="objgrad",
 	# 					 dimnames=list(NULL,paste("x",1:5,sep="")) ),
 	mxConstraint(sum(X%^%2) - 10 == 0, name="c1"),
 	mxConstraint(X[1,2]*X[1,3]-5*X[1,4]*X[1,5] == 0, name="c2"),
@@ -381,7 +383,7 @@ if(mxOption(NULL,"Default optimizer") == "SLSQP"){
 	#With GDsearch, Nelder-Mead can get a good solution even though none of its initial vertices is feasible,
 	#but it has to be held to a strict feasibility tolerance:
 	foo <- mxComputeNelderMead(
-		iniSimplexType="smartRight", xTolProx=1e-12, fTolProx=1e-8, eqConstraintMthd="GDsearch", 
+		iniSimplexType="smartRight", xTolProx=1e-12, fTolProx=1e-8, eqConstraintMthd="GDsearch",
 		nudgeZeroStarts=F)
 	plan <- omxDefaultComputePlan()
 	plan$steps <- list(foo, plan$steps$RE)
@@ -394,8 +396,8 @@ if(mxOption(NULL,"Default optimizer") == "SLSQP"){
 										 powellfunc*X[1,1]*X[1,3]*X[1,4]*X[1,5],
 										 powellfunc*X[1,1]*X[1,2]*X[1,4]*X[1,5],
 										 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,5],
-										 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]), 
-							 name="objgrad", 
+										 powellfunc*X[1,1]*X[1,2]*X[1,3]*X[1,4]),
+							 name="objgrad",
 							 dimnames=list(NULL,paste("x",1:5,sep="")) ),
 		#Nelder-Mead benefits from analytic Jacobians if using eqConstraintMthd="GDsearch":
 		mxConstraint(sum(X%^%2) - 10 == 0, name="c1",jac="jac1" ),
