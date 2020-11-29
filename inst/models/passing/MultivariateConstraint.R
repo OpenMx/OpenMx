@@ -16,6 +16,8 @@
 library(OpenMx)
 library(testthat)
 
+if(mxOption(key="Default optimizer") == 'CSOLNP') stop("SKIP")
+
 varNames <- c('x','y','z')
 
 origCov <- matrix(c(3.6,2.2,0.5,2.2,3.2,2,0.5,2,3.9), nrow = 3,
