@@ -1,4 +1,4 @@
-# Program: ExtremeMultiformity_Mdd_Can.R  
+# Program: ExtremeMultiformity_Mdd_Can.R
 # Models of Comorbidity for Multifactorial Disorders; Michael C. Neale & Kenneth S. Kendler
 # A. J. Hum. Genet. 57:935-953, 1995
 #
@@ -10,6 +10,8 @@
 # ****************
 
 library(OpenMx)
+
+mxOption(key="feasibility tolerance", value = .001)
 
 nv                <- 1
 MZtot		<- 565
@@ -51,10 +53,10 @@ Meanf2  <- mxMatrix( type="Zero", nrow=1, ncol=2, name="expMeanf2" )
 
 # Algebra for expected variance/covariance matrix in MZ & DZ pairs
 covMZf1	<- mxAlgebra( expression= rbind  ( cbind(Af1+Cf1+Ef1 , Af1+Cf1)		,cbind(Af1+Cf1   , Af1+Cf1+Ef1)), name="expCovMZf1" )
-covDZf1	<- mxAlgebra( expression= rbind  ( cbind(Af1+Cf1+Ef1 , 0.5%x%Af1+Cf1)	,cbind(0.5%x%Af1+Cf1 , Af1+Cf1+Ef1)),  name="expCovDZf1" ) 
+covDZf1	<- mxAlgebra( expression= rbind  ( cbind(Af1+Cf1+Ef1 , 0.5%x%Af1+Cf1)	,cbind(0.5%x%Af1+Cf1 , Af1+Cf1+Ef1)),  name="expCovDZf1" )
 
 covMZf2 <- mxAlgebra( expression= rbind  ( cbind(Af2+Cf2+Ef2 , Af2+Cf2)		,cbind(Af2+Cf2   , Af2+Cf2+Ef2)), name="expCovMZf2" )
-covDZf2	<- mxAlgebra( expression= rbind  ( cbind(Af2+Cf2+Ef2 , 0.5%x%Af2+Cf2)	,cbind(0.5%x%Af2+Cf2 , Af2+Cf2+Ef2)),  name="expCovDZf2" ) 
+covDZf2	<- mxAlgebra( expression= rbind  ( cbind(Af2+Cf2+Ef2 , 0.5%x%Af2+Cf2)	,cbind(0.5%x%Af2+Cf2 , Af2+Cf2+Ef2)),  name="expCovDZf2" )
 
 # Matrix & Algebra for expected thresholds
 
@@ -113,11 +115,11 @@ MZexpFr	        <- mxAlgebra(rbind(
         2.0*(DMZ*IMZ) ,
         2.0*(EMZ*(IMZ+JMZ+KMZ) + DMZ*(JMZ+KMZ) + CMZ*KMZ) ,
         CMZ*LMZ ,
-        2.0*(DMZ*JMZ) , 
+        2.0*(DMZ*JMZ) ,
         2.0*(EMZ*(JMZ+LMZ+MMZ) + DMZ*(LMZ+MMZ) + CMZ*MMZ) ,
         FMZ*IMZ ,
         2.0*(GMZ*(IMZ+JMZ+KMZ) +FMZ*(JMZ+KMZ) + DMZ*KMZ) ,
-        HMZ + NMZ - HMZ*NMZ + GMZ*(JMZ+KMZ+LMZ+MMZ+MMZ) + EMZ*(KMZ+MMZ) + GMZ*(JMZ+LMZ+MMZ+KMZ+MMZ) + FMZ*(LMZ+MMZ+MMZ) + 
+        HMZ + NMZ - HMZ*NMZ + GMZ*(JMZ+KMZ+LMZ+MMZ+MMZ) + EMZ*(KMZ+MMZ) + GMZ*(JMZ+LMZ+MMZ+KMZ+MMZ) + FMZ*(LMZ+MMZ+MMZ) +
                 DMZ*MMZ + EMZ*(KMZ+MMZ) + DMZ*MMZ), name="MZExpectedProb" )
 
 # The DZ model
@@ -128,24 +130,24 @@ DZexpFr         <- mxAlgebra(rbind(
         2.0*(DDZ*IDZ) ,
         2.0*(EDZ*(IDZ+JDZ+KDZ) + DDZ*(JDZ+KDZ) + CDZ*KDZ) ,
         CDZ*LDZ ,
-        2.0*(DDZ*JDZ) , 
+        2.0*(DDZ*JDZ) ,
         2.0*(EDZ*(JDZ+LDZ+MDZ) + DDZ*(LDZ+MDZ) + CDZ*MDZ) ,
         FDZ*IDZ ,
         2.0*(GDZ*(IDZ+JDZ+KDZ) +FDZ*(JDZ+KDZ) + DDZ*KDZ) ,
-        HDZ + NDZ - HDZ*NDZ + GDZ*(JDZ+KDZ+LDZ+MDZ+MDZ) + EDZ*(KDZ+MDZ) + GDZ*(JDZ+LDZ+MDZ+KDZ+MDZ) + FDZ*(LDZ+MDZ+MDZ) + 
+        HDZ + NDZ - HDZ*NDZ + GDZ*(JDZ+KDZ+LDZ+MDZ+MDZ) + EDZ*(KDZ+MDZ) + GDZ*(JDZ+LDZ+MDZ+KDZ+MDZ) + FDZ*(LDZ+MDZ+MDZ) +
                 DDZ*MDZ + EDZ*(KDZ+MDZ) + DDZ*MDZ), name="DZExpectedProb" )
 
 Munit   	<- mxMatrix( type="Unit", nrow=10, ncol=1, name="mU10")
 MZOfreq	<- mxAlgebra( MZExpectedProb * (mU10 %x% MZtot), name="MZExpectedFrequencies" )
 DZOfreq	<- mxAlgebra( DZExpectedProb * (mU10 %x% DZtot), name="DZExpectedFrequencies" )
 
-# DATA: cell Frequency inputs 
+# DATA: cell Frequency inputs
 dataMZ	<- mxMatrix(type="Full", nrow=10, ncol=1, free=FALSE, values=c(273,96,46,23,39,9,12,23,25,19), name="MZObservedFrequencies")
 dataDZ	<- mxMatrix(type="Full", nrow=10, ncol=1, free=FALSE, values=c(251,109,74,52,26,29,18,35,35,12), name="DZObservedFrequencies")
 
 # Specify the User Defined Fitfunctions for each group: likelihood
-#objMZ	<- mxAlgebra( -2 * sum(MZObservedFrequencies * log(MZExpectedFrequencies)),name="MZobj")		
-#objDZ	<- mxAlgebra( -2 * sum(DZObservedFrequencies * log(DZExpectedFrequencies)),name="DZobj")		
+#objMZ	<- mxAlgebra( -2 * sum(MZObservedFrequencies * log(MZExpectedFrequencies)),name="MZobj")
+#objDZ	<- mxAlgebra( -2 * sum(DZObservedFrequencies * log(DZExpectedFrequencies)),name="DZobj")
 
 # Specify the User Defined Fitfunctions for each group: Chi-square
 objMZ	<- mxAlgebra(sum ( (  (MZObservedFrequencies - MZExpectedFrequencies) * (MZObservedFrequencies - MZExpectedFrequencies))/MZExpectedFrequencies ), name="MZobj")
@@ -160,7 +162,7 @@ minus2ll	<- mxAlgebra(expression=MZ.MZobj + DZ.DZobj, name="ChiSq")
 obj		<- mxFitFunctionAlgebra("ChiSq")
 ConfACE         <- mxCI (c ('MZ.Af1[1,1]', 'MZ.Cf1[1,1]', 'MZ.Ef1[1,1]',
                             'MZ.Af2[1,1]', 'MZ.Cf2[1,1]', 'MZ.Ef2[1,1]'))
-ExtremeMultiformityModel	<-mxModel("ExtremeMultiformity", pars, modelMZ, modelDZ, minus2ll, obj,ConfACE) 
+ExtremeMultiformityModel	<-mxModel("ExtremeMultiformity", pars, modelMZ, modelDZ, minus2ll, obj,ConfACE)
 
 #ExtremeMultiformityRun<-mxTryHardOrdinal(ExtremeMultiformityModel, greenOK = TRUE, checkHess = FALSE, finetuneGradient=FALSE, exhaustive=TRUE, OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev"),intervals=F )
 
@@ -179,7 +181,7 @@ omxCheckCloseEnough(mxEval(MZ.Ef2, ExtremeMultiformityFit), 0.5574, .05)
 # Get Chi Square
 (chisquare	<-mxEval(objective,ExtremeMultiformityFit))
 
-# Work out degrees of freedom 
+# Work out degrees of freedom
 pTable	<-data.frame(ExtremeMultiformitySumm$parameters)
 (np		<-nrow(pTable))
 (df		<-20-np)
@@ -205,7 +207,7 @@ sub1Fit	<- mxRun(sub1Model, intervals=T)
 # Get Chi Square
 (chisquare	<-mxEval(objective,sub1Fit))
 
-# Work out degrees of freedom 
+# Work out degrees of freedom
 pTable	<-data.frame(sub1Summ$parameters)
 (np		<-nrow(pTable))
 (df		<-20-np)
@@ -233,7 +235,7 @@ sub2Fit	<- mxRun(sub2Model,intervals=T)
 (chisquare	<-mxEval(objective,sub2Fit))
 omxCheckCloseEnough(chisquare, 37.3105, 1e-2)
 
-# Work out degrees of freedom 
+# Work out degrees of freedom
 pTable	<-data.frame(sub2Summ$parameters)
 (np		<-nrow(pTable))
 (df		<-20-np)

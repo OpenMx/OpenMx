@@ -64,7 +64,7 @@ twoplModel <- mxModel(model="twoplModel", imat,
 
 twoplModel<-mxRun(twoplModel)
 
-## 4933.307  
+## 4933.307
 omxCheckCloseEnough(k0Model$output$fit,twoplModel$output$fit,.0001)
 
 ################################################################################
@@ -143,9 +143,9 @@ k1PriorModel <- mxModel(model="k1PriorModel", itemModel, gaussModelAlpha, gaussM
                    )))
 
 k1PriorModel<-mxRun(k1PriorModel)
-  
+
 ## log likelihood if Bayesian estimates substituted into ML fit function
-omxCheckCloseEnough(k1PriorModel$output$algebras$itemModel.fitfunction,4929.897,1e-3)
+omxCheckCloseEnough(k1PriorModel$output$algebras$itemModel.fitfunction,4929.896,1e-2)
 
 est<-k1PriorModel$output$estimate
 
@@ -154,6 +154,6 @@ myEst<-c(-0.27386336, 2.69911765,-0.06118075,-3.03394846,
   -0.60439972, 0.65458936, 1.23987805,-1.55414690,
   -2.09965081, 1.09230606,-2.87804350,-0.82664116,
   -0.91245939, 1.74431613,-1.42863857,-2.27822768)
-  
+
 ## Should be close, but maybe not exact due to the scaling of some parameters
 omxCheckCloseEnough(est,myEst,.1)

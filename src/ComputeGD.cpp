@@ -55,11 +55,9 @@ void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 	omxState *st = fc->state;
 	int n = (int) numFree;
 
-	// treat all constraints as non-linear
-	// st->countNonlinearConstraints(eqn, nineqn, false);
-	// ^^^Does the special handling of linear constraints work properly in NPSOL version 6??
-	st->countNonlinearConstraints(st->numEqC, st->numIneqC, false);
-	int ncnln = st->numEqC + st->numIneqC;
+	// Treat all constraints as non-linear.
+	// Does the special handling of linear constraints work in NPSOL version 6? TODO
+	int ncnln = AllC.getCount();
 	solLB.resize(n + ncnln);
 	solUB.resize(n + ncnln);
 
@@ -80,6 +78,7 @@ void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 			break;
 		case omxConstraint::EQUALITY:
 			for(int offset = 0; offset < cs.size; offset++) {
+        if (cs.redundent[offset]) continue;
 				solLB[index] = -0.0;
 				solUB[index] = 0.0;
 				index++;
@@ -104,7 +103,12 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 						   omxCompute *owner)
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
 	  numOptimizerThreads(_fc->numOptimizerThreads()),
-    jgContext("ineq jacobian")
+    AllC(_fc->state, "constraint",
+         [](const omxConstraint &con){ return true; }),
+    IneqC(_fc->state, "ineq",
+          [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; }),
+    EqC(_fc->state, "eq",
+        [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; })
 {
 	computeName = owner->name;
 	fitMatrix = NULL;
@@ -115,9 +119,6 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 	est.resize(numFree);
 	grad.resize(numFree);
 	copyToOptimizer(est.data());
-	ineqAlwaysActive = false;
-  jgContext.setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
-  jgContext.setMaxThreads(numOptimizerThreads);
 	reset();
 }
 
@@ -145,9 +146,9 @@ void GradientOptimizerContext::useBestFit()
 	// restore gradient too? TODO
 }
 
-void GradientOptimizerContext::copyFromOptimizer(double *myPars, FitContext *fc2)
+void GradientOptimizerContext::copyFromOptimizer(const double *myPars, FitContext *fc2)
 {
-	Eigen::Map<Eigen::VectorXd> vec(myPars, numFree);
+	Eigen::Map<const Eigen::VectorXd> vec(myPars, numFree);
 	fc2->setEstFromOptimizer(vec);
 }
 
@@ -190,21 +191,6 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 
 	return fc->fit;
 }
-
-// NOTE: All non-linear constraints are applied regardless of free
-// variable group.
-void GradientOptimizerContext::solEqBFun(bool wantAJ) //<--"want analytic Jacobian"
-{
-	fc->solEqBFun(wantAJ, verbose);
-}
-
-// NOTE: All non-linear constraints are applied regardless of free
-// variable group.
-void GradientOptimizerContext::myineqFun(bool wantAJ)
-{
-	fc->myineqFun(wantAJ, ineqAlwaysActive);
-}
-
 
 // ------------------------------------------------------------
 
@@ -372,7 +358,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;}
         case OptEngine_CSOLNP:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
-		rf.ineqAlwaysActive = true;
+		rf.IneqC.setIneqAlwaysActive();
 		omxCSOLNP(rf);
 		rf.finish();
 		if (rf.gradOut.size()) {
@@ -398,8 +384,6 @@ void omxComputeGD::computeImpl(FitContext *fc)
 		break;
         case OptEngine_SD:{
 		rf.setupSimpleBounds();
-		rf.solEqBFun(false);
-		rf.myineqFun(false);
 		if(rf.isUnconstrained()) {
 			omxSD(rf);
 			rf.finish();
@@ -441,7 +425,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 	omxPopulateFitFunction(fitMatrix, out);
 
 	MxRList output;
-	SEXP pn, cn, cr, cc, cv, cjac, lambdas, cstates, lagrhess;
+	SEXP pn, cv, cjac, lambdas, cstates, lagrhess;
 	size_t i=0;
 
 	output.add("maxThreads", Rf_ScalarInteger(threads));
@@ -452,19 +436,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 		}
 		output.add("paramNames", pn);
 	}
-	if( fc->state->conListX.size() ){
-		Rf_protect(cn = Rf_allocVector( STRSXP, fc->state->conListX.size() ));
-		Rf_protect(cr = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
-		Rf_protect(cc = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
-		for(i=0; i < fc->state->conListX.size(); i++){
-			SET_STRING_ELT( cn, i, Rf_mkChar(fc->state->conListX[i]->name) );
-			INTEGER(cr)[i] = fc->state->conListX[i]->nrows;
-			INTEGER(cc)[i] = fc->state->conListX[i]->ncols;
-		}
-		output.add("constraintNames", cn);
-		output.add("constraintRows", cr);
-		output.add("constraintCols", cc);
-	}
+  fc->state->reportConstraints(output);
 	if( fc->constraintFunVals.size() ){
 		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
 		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
@@ -605,6 +577,8 @@ class ciConstraint : public omxConstraint {
 public:
 	omxMatrix *fitMat;
 	ciConstraint(omxState *_state) : super("CI"), state(_state) {}
+  virtual void getDim(int *rowsOut, int *colsOut) const override
+  { *rowsOut = size; *colsOut = 1; }
   void push()
   {
 		state->conListX.push_back(this);
@@ -618,6 +592,7 @@ public:
     state = 0;
   }
 	virtual omxConstraint *duplicate(omxState *dest) const override = 0;
+  virtual bool hasAnalyticJac() const override { return false; }
 };
 
 class ciConstraintIneq : public ciConstraint {
@@ -625,13 +600,12 @@ class ciConstraintIneq : public ciConstraint {
 	typedef ciConstraint super;
  public:
 	ciConstraintIneq(omxState *_state, int _size) : super(_state)
-	{ size=_size; opCode = LESS_THAN; };
+	{ size=_size; opCode = LESS_THAN; redundent.assign(size, false); };
 
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) override
+	virtual void refreshAndGrab(FitContext *fc, double *out) override
   {
 		fc->ciobj->evalIneq(fc, fitMat, out);
 		Eigen::Map< Eigen::ArrayXd > Eout(out, size);
-		if (ineqType != opCode) Eout = -Eout;
 		//mxLog("fit %f diff %f", fit, diff);
 	};
 	virtual omxConstraint *duplicate(omxState *dest) const override
@@ -647,9 +621,9 @@ class ciConstraintEq : public ciConstraint {
 	typedef ciConstraint super;
  public:
 	ciConstraintEq(omxState *_state, int _size) : super(_state)
-	{ size=_size; opCode = EQUALITY; };
+	{ size=_size; opCode = EQUALITY; redundent.assign(size, false); };
 
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) {
+	virtual void refreshAndGrab(FitContext *fc, double *out) override {
 		fc->ciobj->evalEq(fc, fitMat, out);
 		//mxLog("fit %f diff %f", fit, diff);
 	};
@@ -1660,8 +1634,6 @@ class ComputeGenSA : public omxCompute {
 	const char *methodName;
 	std::string contextStr;
 	int numFree;
-	int numIneqC;
-	int numEqC;
 	Eigen::ArrayXd equality;
 	Eigen::ArrayXd inequality;
 	omxMatrix *fitMatrix;
@@ -1680,6 +1652,7 @@ class ComputeGenSA : public omxCompute {
 	double temEnd;
 	int stepsPerTemp;
 	double visita(double temp);
+  std::unique_ptr<ConstraintVec> cvec;
 	double getConstraintPenalty(FitContext *fc);
 	std::string asaOut;
 	Eigen::VectorXd quenchParamScale;
@@ -1875,28 +1848,15 @@ double ComputeGenSA::visita(double temp)
 
 double ComputeGenSA::getConstraintPenalty(FitContext *fc)
 {
-	omxState *st = fc->state;
-	double penalty = 0;
+  if (!cvec) {
+    cvec =  std::make_unique<ConstraintVec>(fc->state, "constraint",
+                                            [](const omxConstraint &con){ return true; });
+  }
 
-	if (numIneqC) {
-		for (int cur=0, j=0; j < int(st->conListX.size()); j++) {
-			omxConstraint &con = *st->conListX[j];
-			if (con.opCode == omxConstraint::EQUALITY) continue;
-			con.refreshAndGrab(fc, omxConstraint::LESS_THAN, &inequality(cur));
-			cur += con.size;
-		}
-		penalty += inequality.max(0.0).sum();
-	}
+  Eigen::ArrayXd constr(cvec->getCount());
+  cvec->eval(fc, constr.data());
 
-	if (numEqC) {
-		for(int cur=0, j = 0; j < int(st->conListX.size()); j++) {
-			omxConstraint &con = *st->conListX[j];
-			if (con.opCode != omxConstraint::EQUALITY) continue;
-			con.refreshAndGrab(fc, &equality(cur));
-			cur += con.size;
-		}
-		penalty += equality.abs().sum();
-	}
+	double penalty = constr.abs().sum();
 	return penalty;
 }
 
@@ -2125,10 +2085,6 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 void ComputeGenSA::computeImpl(FitContext *fc)
 {
 	omxAlgebraPreeval(fitMatrix, fc); // should enable parallel TODO
-  numEqC = fc->state->numEqC;
-  numIneqC = fc->state->numIneqC;
-  equality.resize(numEqC);
-  inequality.resize(numIneqC);
 
 	using Eigen::Map;
 	using Eigen::VectorXd;

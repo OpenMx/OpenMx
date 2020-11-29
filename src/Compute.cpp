@@ -74,16 +74,6 @@ void FitContext::calcNumFree()
     freeToParamMap[fx++] = px;
   }
 
-	omxState *st = state;
-	st->usingAnalyticJacobian = false;
-	st->countNonlinearConstraints(st->numEqC, st->numIneqC, false);
-	equality.resize(st->numEqC);
-	inequality.resize(st->numIneqC);
-
-	int numFree = getNumFree();
-  analyticEqJacTmp.resize(st->numEqC, numFree);
-  analyticIneqJacTmp.resize(st->numIneqC, numFree);
-
   // ???? TODO
 	// for (int cx=0; cx < int(childList.size()); ++cx) {
 	// 	childList[cx]->prepConstraints();
@@ -872,10 +862,6 @@ FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
 	infoCondNum = parent->infoCondNum;
 	iterations = parent->iterations;
 	if (parent->ciobj) ciobj = parent->ciobj->clone();
-	equality.resizeLike(parent->equality);
-	inequality.resizeLike(parent->inequality);
-  analyticEqJacTmp.resizeLike(parent->analyticEqJacTmp);
-  analyticIneqJacTmp.resizeLike(parent->analyticIneqJacTmp);
 }
 
 void FitContext::updateParent()
@@ -1128,146 +1114,11 @@ void FitContext::copyParamToModelClean()
 	}
 }
 
-// NOTE: All non-linear constraints are applied regardless of free
-// variable group.
-void FitContext::solEqBFun(bool wantAJ, int verbose) //<--"want analytic Jacobian"
-{
-	const int eq_n = (int) equality.size();
-
-	if (!eq_n) return;
-
-	/*Note that this needs to happen even if no equality constraints have analytic Jacobians, because
-	 analyticEqJacTmp is copied to the Jacobian matrix the elements of which are populated by code in
-	 finiteDifferences.h, which knows to numerically populate an element if it's NA:*/
-	analyticEqJacTmp.setConstant(NA_REAL);
-
-	int cur=0, j=0, c=0, roffset=0;
-	for(j = 0; j < int(state->conListX.size()); j++) {
-		omxConstraint &con = *state->conListX[j];
-		if (con.opCode != omxConstraint::EQUALITY) continue;
-
-		con.refreshAndGrab(this, &equality(cur));
-		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
-			omxRecompute(con.jacobian, this);
-			for(c=0; c<con.jacobian->cols; c++){
-				if(con.jacMap[c]<0){continue;}
-				for(roffset=0; roffset<con.size; roffset++){
-					analyticEqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-				}
-			}
-		}
-		cur += con.size;
-	}
-
-	if (verbose >= 3) {
-		mxPrintMat("equality", equality);
-	}
-}
-
-void FitContext::myineqFun(bool wantAJ, bool alwaysActive)
-{
-	const int ineq_n = (int) inequality.size();
-
-	if (!ineq_n) return;
-
-	analyticIneqJacTmp.setConstant(NA_REAL);
-
-	int cur=0, j=0, c=0, roffset=0;
-	for (j=0; j < int(state->conListX.size()); j++) {
-		omxConstraint &con = *state->conListX[j];
-		if (con.opCode == omxConstraint::EQUALITY) continue;
-
-		con.refreshAndGrab(this, omxConstraint::LESS_THAN, &inequality(cur));
-		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
-			omxRecompute(con.jacobian, this);
-			for(c=0; c<con.jacobian->cols; c++){
-				if(con.jacMap[c]<0){continue;}
-				for(roffset=0; roffset<con.size; roffset++){
-					analyticIneqJacTmp(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-				}
-			}
-		}
-		cur += con.size;
-	}
-
-	if (alwaysActive) {
-		// CSOLNP doesn't know that inequality constraints can be inactive (by design, since it's an interior-point algorithm)
-	} else {
-		//SLSQP seems to require inactive inequality constraint functions to be held constant at zero:
-		inequality = inequality.array().max(0.0);
-		if(wantAJ && isUsingAnalyticJacobian()){
-			for(int i=0; i<analyticIneqJacTmp.rows(); i++){
-				/*The Jacobians of each inactive constraint are set to zero here;
-				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
-				if(!inequality[i]){analyticIneqJacTmp.row(i).setZero();}
-			}
-		}
-	}
-}
-
 bool FitContext::isUnconstrained()
 {
 	omxState *st = state;
-  return st->numEqC + st->numIneqC == 0;
+  return st->conListX.size() == 0;
 }
-
-//Optimizers care about separating equality and inequality constraints, but the ComputeNumericDeriv step doesn't:
-void FitContext::allConstraintsF(bool wantAJ, int verbose, int ineqType, bool ineqAlwaysActive, bool maskInactive){
-	int c_n = state->numEqC + state->numIneqC;
-	if(!c_n){return;}
-	std::vector<bool> is_inactive_ineq(c_n);
-
-	constraintJacobian.setConstant(NA_REAL);
-
-	int cur=0;
-	for (int j=0; j < int(state->conListX.size()); j++) {
-		omxConstraint &con = *state->conListX[j];
-		if (con.opCode == omxConstraint::EQUALITY) {
-			con.refreshAndGrab(this, &constraintFunVals(cur));
-			for(int i=0; i < con.size; i++){
-				is_inactive_ineq[cur+i] = false;
-			}
-		} else{
-			con.refreshAndGrab(this, (omxConstraint::Type) ineqType, &constraintFunVals(cur));
-			for(int i=0; i < con.size; i++){
-				if(constraintFunVals(cur+i) < 0 && maskInactive){
-					constraintFunVals(cur+i) = 0;
-					is_inactive_ineq[cur+i] = true;
-				} else{
-					is_inactive_ineq[cur+i] = false;
-				}
-			}
-		}
-		if(wantAJ && isUsingAnalyticJacobian() && con.jacobian != NULL){
-			omxRecompute(con.jacobian, this);
-			for(int c=0; c<con.jacobian->cols; c++){
-				if(con.jacMap[c]<0){continue;}
-				for(int roffset=0; roffset<con.size; roffset++){
-					constraintJacobian(cur+roffset,con.jacMap[c]) = con.jacobian->data[c * con.size + roffset];
-				}
-			}
-		}
-		cur += con.size;
-	}
-
-	if (ineqAlwaysActive) {
-
-	} else {
-		if(wantAJ && isUsingAnalyticJacobian() && maskInactive){
-			for(int i=0; i<constraintJacobian.rows(); i++){
-				/*The Jacobians of each inactive constraint are set to zero here;
-				 as their elements will be zero rather than NaN, the code in finiteDifferences.h will leave them alone:*/
-				if(is_inactive_ineq[i]){constraintJacobian.row(i).setZero();}
-			}
-		}
-	}
-
-	if (verbose >= 3) {
-		mxPrintMat("constraint Jacobian", constraintJacobian);
-	}
-
-}
-
 
 omxMatrix *FitContext::lookupDuplicate(omxMatrix* element)
 {
@@ -3924,9 +3775,9 @@ void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
 	verbose = Rf_asInteger(slotValue);
 }
 
-void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+bool FitContext::isEffectivelyUnconstrained()
 {
-	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+  if (isUnconstrained()) return true;
 
 	/*
 	 * If there are equality MxConstraints, then the quality of the generically calculated Hessian will not be informative;
@@ -3935,15 +3786,31 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 	 * The quality of the generically calculated Hessian is likewise uninformative if there are active inequality MxConstraints.
 	 * But, if there are no equalities, and all of the inequalities are inactive, then we might as well proceed (corner case as that may be):
 	*/
-	if(fc->state->conListX.size()){
-		//Any compute step that cares about how many constraints there are needs to ask the omxState to recount:
-		fc->state->countNonlinearConstraints(fc->state->numEqC, fc->state->numIneqC, false);
-		int nf = fc->getNumFree();
-		fc->inequality.resize(fc->state->numIneqC);
-		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, nf);
-		fc->myineqFun(true, false);
-		if(fc->state->numEqC || fc->inequality.array().sum()){return;}
-	}
+  ConstraintVec EqC(state, "eq",
+                    [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; });
+  if (EqC.getCount()) {
+    if (EqC.verbose >= 1) mxLog("isEffectivelyUnconstrained: equality constraint active");
+    return false;
+  }
+
+  ConstraintVec IneqC(state, "ineq",
+                      [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; });
+  Eigen::ArrayXd ineq(IneqC.getCount());
+  IneqC.eval(this, ineq.data());
+  if (ineq.sum() != 0.0) {
+    if (IneqC.verbose >= 1) mxLog("isEffectivelyUnconstrained: inequality "
+                                  "constraint active (%f)", ineq.sum());
+    return false;
+  }
+
+  return true;
+}
+
+void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	if (!(fc->wanted & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN))) return;
+
+  if (!fc->isEffectivelyUnconstrained()) return;
 
 	// See Luenberger & Ye (2008) Second Order Test (p. 190) and Condition Number (p. 239)
 
@@ -4002,21 +3869,8 @@ void ComputeReportDeriv::reportResults(FitContext *fc, MxRList *, MxRList *resul
 		 * 'constraintRows', and 'constraintCols' to populate the dimnames of 'constraintFunctionValues' and
 		 * 'constraintJacobian'.
 		 */
-		SEXP cn, cr, cc, cv, cjac;
-		size_t i=0;
-		{
-			Rf_protect(cn = Rf_allocVector( STRSXP, fc->state->conListX.size() ));
-			Rf_protect(cr = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
-			Rf_protect(cc = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
-			for(i=0; i < fc->state->conListX.size(); i++){
-				SET_STRING_ELT( cn, i, Rf_mkChar(fc->state->conListX[i]->name) );
-				INTEGER(cr)[i] = fc->state->conListX[i]->nrows;
-				INTEGER(cc)[i] = fc->state->conListX[i]->ncols;
-			}
-			result->add("constraintNames", cn);
-			result->add("constraintRows", cr);
-			result->add("constraintCols", cc);
-		}
+		SEXP cv, cjac;
+    fc->state->reportConstraints(*result);
 		if( fc->constraintFunVals.size() ){
 			Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
 			memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );

@@ -225,9 +225,9 @@ class JacobianGadget {
           dfn[thrId](ff, thrSelect, &thrPoint.coeffRef(0, thrId), offset, px,
                      numIter, &grid.coeffRef(0,thrId));
         } catch (const std::exception& e) {
-          omxRaiseErrorf("%s", e.what());
+          mxThrow("%s", e.what());
         } catch (...) {
-          omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+          mxThrow("%s line %d: unknown exception", __FILE__, __LINE__);
         }
         if (!initialized) {
           out.col(px) = grid.block(0, thrId, out.rows(), 1);

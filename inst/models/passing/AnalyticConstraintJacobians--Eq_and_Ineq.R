@@ -39,10 +39,8 @@ mxdat <- mxData(observed=obsdat,type="raw")
 
 safeT <- mxConstraint(-1%x%Sigma<Zilch,name="safety")
 safeT2 <- mxConstraint(-1%x%Sigma<Zilch,name="safety",jac="ineqJac")
-sgn <- mxMatrix(type="Full",nrow=1,ncol=1,free=F, #This is weird but necessary.
-								values=ifelse(mxOption(NULL,"Default optimizer")=="NPSOL",-1,1),
-								#values=1,
-								name="Sgn")
+sgn <- mxMatrix(type="Full",nrow=1,ncol=1,free=F, # NPSOL fixed in backend
+								values=1, name="Sgn")
 
 #mxOption(NULL,"Standard Errors","No")
 #mxOption(NULL,"Calculate Hessian","No")

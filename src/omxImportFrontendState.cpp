@@ -441,11 +441,30 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 				   cname);
 		}
 		omxMatrix *jac = omxMatrixLookupFromState1(nextLoc, this);
-		int lin = INTEGER(VECTOR_ELT(nextVar,4))[0];
-		omxConstraint *constr = new UserConstraint(fc, cname, arg1, arg2, jac, lin);
+		//int lin = INTEGER(VECTOR_ELT(nextVar,4))[0];  // not implemented yet
+		omxConstraint *constr = new UserConstraint(fc, cname, arg1, arg2, jac,
+                                               Rcpp::as<int>(VECTOR_ELT(nextVar,5)));
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
 		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
 		constr->prep(fc);
 		conListX.push_back(constr);
 	}
+}
+
+void omxState::hideBadConstraints(FitContext *fc)
+{
+  fc->calcNumFree();
+  if (!fc->getNumFree()) return;
+
+  int lastPar = fc->getNumFree() - 1;
+  double saveLastPar = fc->est[lastPar];
+
+  // enable parallel? TODO
+
+  ConstraintVec EqC(fc->state, "eq",
+                    [](const omxConstraint &con){
+                      return con.opCode == omxConstraint::EQUALITY; });
+  EqC.markUselessConstraints(fc);
+
+	fc->est[lastPar] = saveLastPar;
 }

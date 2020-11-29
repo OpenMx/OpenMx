@@ -4,21 +4,19 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#Currently, only NPSOL can deal with non-identical but linearly dependent equality constraints.
-
 library(OpenMx)
-if(mxOption(NULL,"Default optimizer")=="CSOLNP"){stop("SKIP")}
+library(testthat)
 
-if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+if(TRUE){
 	m1 <- mxModel(
 		"MultinomialWithLinearConstraints",
 		mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.25,labels="pred",name="Pred",lbound=0,ubound=1),
@@ -42,7 +40,7 @@ if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 	plan <- omxDefaultComputePlan()
 	plan$steps <- list(GD=plan$steps$GD)
 	plan$steps$GD <- mxComputeNelderMead(nudgeZeroStarts=FALSE, eqConstraintMthd="GDsearch")
-	
+
 	m1 <- mxModel(
 		"MultinomialWithLinearConstraints",
 		plan,
@@ -60,9 +58,5 @@ if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 		mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying",jac="jac"),
 		mxConstraint(2*(Pred + Pyellow + Pgreen + Pblue) - 2 == 0,name="indentifying2",jac="jac2")
 	)
-	omxCheckWarning(
-		mxRun(m1),
-		"counted 2 equality constraints, but equality-constraint Jacobian is apparently rank 1 at the start values; Nelder-Mead will not work correctly unless equality constraints are linearly independent (this warning may be spurious if there are non-smooth equality constraints)"
-	)
-	
+	expect_warning(mxRun(m1), NA)
 }

@@ -471,8 +471,6 @@ omxState::omxState(omxState *src, bool isTeam) :
 	for (size_t xx=0; xx < src->conListX.size(); ++xx) {
 		conListX.push_back(src->conListX[xx]->duplicate(this));
 	}
-
-	usingAnalyticJacobian = src->usingAnalyticJacobian;
 }
 
 void omxState::initialRecalc(FitContext *fc)
@@ -489,10 +487,6 @@ void omxState::initialRecalc(FitContext *fc)
 		if (!matrix->fitFunction) continue;
 		omxCompleteFitFunction(matrix);
 		omxFitFunctionCompute(matrix->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
-	}
-
-	for (size_t xx=0; xx < conListX.size(); ++xx) {
-		conListX[xx]->prep(fc);
 	}
 
 	setWantStage(FF_COMPUTE_FIT);
@@ -544,6 +538,28 @@ void omxState::connectToData()
 	for(size_t ex = 0; ex < expectationList.size(); ex++) {
 		expectationList[ex]->connectToData();
 	}
+}
+
+void omxState::reportConstraints(MxRList &out)
+{
+	if (!conListX.size()) return;
+
+  SEXP cn, cr, cc;
+
+  Rf_protect(cn = Rf_allocVector( STRSXP, conListX.size() ));
+  Rf_protect(cr = Rf_allocVector( INTSXP, conListX.size() ));
+  Rf_protect(cc = Rf_allocVector( INTSXP, conListX.size() ));
+  for(int i=0; i < int(conListX.size()); i++){
+    auto &con = *conListX[i];
+    SET_STRING_ELT( cn, i, Rf_mkChar(con.name) );
+    int rows, cols;
+    con.getDim(&rows, &cols);
+    INTEGER(cr)[i] = rows;
+    INTEGER(cc)[i] = cols;
+  }
+  out.add("constraintNames", cn);
+  out.add("constraintRows", cr);
+  out.add("constraintCols", cc);
 }
 
 omxState::~omxState()
@@ -926,17 +942,18 @@ void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, bool f
 void UserConstraint::prep(FitContext *fc)
 {
 	refresh(fc);
-	nrows = pad->rows;
-	ncols = pad->cols;
-	size = nrows * ncols;
+	size = pad->rows * pad->cols;
+  redundent.assign(size, false);
 	if (size == 0) {
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
 	}
 	if(jacobian){
 		jacMap.resize(jacobian->cols);
-		std::vector<const char*> *jacColNames = &jacobian->colnames;
-		for (size_t nx=0; nx < jacColNames->size(); ++nx) {
-			int to = fc->varGroup->lookupVar((*jacColNames)[nx]);
+		auto &jacColNames = jacobian->colnames;
+		for (size_t nx=0; nx < jacColNames.size(); ++nx) {
+			int to = fc->varGroup->lookupVar(jacColNames[nx]);
+      // Too much work for user
+      // if (to < 0) mxThrow("Constraint '%s' has Jacobian for unrecognized parameter '%s'", name, jacColNames[nx]);
 			jacMap[nx] = to;
 		}
 	}
@@ -947,14 +964,20 @@ void UserConstraint::preeval(FitContext *fc)
 	omxRecompute(pad, fc);
 }
 
-UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin) :
-	super(_name)
+UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1,
+                               omxMatrix *arg2, omxMatrix *jac, int _verbose) :
+	super(_name), verbose(_verbose)
 {
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
 	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
 	jacobian = jac;
-	linear = lin;
+}
+
+void UserConstraint::getDim(int *rowsOut, int *colsOut) const
+{
+  *rowsOut = pad->rows;
+  *colsOut = pad->cols;
 }
 
 omxConstraint *UserConstraint::duplicate(omxState *dest) const
@@ -966,22 +989,49 @@ omxConstraint *UserConstraint::duplicate(omxState *dest) const
 
 	UserConstraint *uc = new UserConstraint(name);
 	uc->opCode = opCode;
+  uc->redundent = redundent;
+  uc->size = size;
 	uc->pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, dest); // 10 = binary subtract
 	uc->jacobian = jacobian;
-	uc->linear = linear;
+  uc->jacMap = jacMap;
+  uc->verbose = verbose;
 	return uc;
 }
 
-void UserConstraint::refreshAndGrab(FitContext *fc, Type ineqType, double *out)
+void UserConstraint::refreshAndGrab(FitContext *fc, double *out)
 {
-	fc->incrComputeCount();
 	refresh(fc);
 
-	for(int k = 0; k < size; k++) {
+	for(int k = 0, d = 0; k < int(redundent.size()); k++) {
+    if (redundent[k]) continue;
 		double got = pad->data[k];
-		if (opCode != ineqType) got = -got;
-		out[k] = got;
+    // ineq constraints are always translated to LESS_THAN
+		if (opCode == GREATER_THAN) got = -got;
+		out[d++] = got;
 	}
+}
+
+void UserConstraint::analyticJac(FitContext *fc, MatrixStoreFn out)
+{
+  if (!jacobian) return;
+
+  omxRecompute(jacobian, fc);
+  EigenArrayAdaptor cj(jacobian);
+
+  for (int rx=0, dx=0; rx < int(redundent.size()); ++rx) {
+    if (redundent[rx]) continue;
+
+    for (int c=0; c < jacobian->cols; c++){
+      if (jacMap[c] < 0) continue;
+      out(dx, jacMap[c], cj(rx, c));
+    }
+    dx += 1;
+  }
+}
+
+int UserConstraint::getVerbose() const
+{
+  return verbose;
 }
 
 UserConstraint::~UserConstraint()
@@ -992,7 +1042,181 @@ UserConstraint::~UserConstraint()
 void UserConstraint::refresh(FitContext *fc)
 {
 	omxRecompute(pad, fc);
-	//omxRecompute(jacobian, fc); //<--Not sure if Jacobian needs to be recomputed every time constraint function does.
+}
+
+void omxConstraint::recalcSize()
+{
+  size = std::count(redundent.begin(), redundent.end(), false);
+}
+
+ConstraintVec::ConstraintVec(omxState *state, const char *_name,
+                             ConstraintVec::ClassifyFn _cf) :
+  name(_name), cf(_cf), ineqAlwaysActive(false)
+{
+  verbose = 0;
+  count = 0;
+  anyAnalyticJacCache = false;
+  for (int j=0; j < int(state->conListX.size()); j++) {
+    omxConstraint &con = *state->conListX[j];
+    if (!cf(con)) continue;
+    count += con.size;
+    verbose = std::max(verbose, con.getVerbose());
+    anyAnalyticJacCache |= con.hasAnalyticJac();
+  }
+}
+
+void ConstraintVec::allocJacTool(FitContext *fc)
+{
+  if (jacTool) return;
+  jacTool =
+    std::unique_ptr< AutoTune<JacobianGadget> >(new AutoTune<JacobianGadget>(name));
+  jacTool->setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(fc->getNumFree())));
+  jacTool->setMaxThreads(fc->childList.size());
+  if (verbose >= 1) mxLog("%s: allocJacTool count=%d", name, getCount());
+}
+
+// This is called once before the compute plan begins execution
+void ConstraintVec::markUselessConstraints(FitContext *fc)
+{
+  if (!count) return;
+
+  Eigen::ArrayXd constr(count);
+  Eigen::ArrayXXd ej(count, fc->getNumFree());
+  ej.setConstant(NA_REAL);
+  eval(fc, constr.data(), ej.data());
+
+  //mxPrintMat("ej", ej);
+  auto *state = fc->state;
+
+	for (int j=0, cur=0, d1=0; j < int(state->conListX.size()); j++) {
+		omxConstraint &con = *state->conListX[j];
+    if (!cf(con)) continue;
+    if (con.opCode != omxConstraint::EQUALITY) OOPS;
+    for (int kk=0; kk < con.size; ++kk) {
+      if ((ej.row(cur+kk) == 0.0).all()) {
+        con.redundent[kk] = true;
+        count -= 1;
+        if (con.getVerbose()) {
+          mxLog("Ignoring constraint '%s[%d]' because it does not depend "
+                "on any free parameters", con.name, 1+kk);
+        }
+      }
+      if (d1 < cur+kk) ej.row(d1) = ej.row(cur+kk);
+      if (!con.redundent[kk]) d1 += 1;
+    }
+    cur += con.size;
+    con.recalcSize();
+  }
+
+  if (count <= 1) return;
+
+  Eigen::MatrixXd tmp = ej.block(0,0,count,ej.cols()).transpose();
+  Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrOp(tmp);
+  Eigen::ArrayXi perm = qrOp.colsPermutation().indices();
+  //mxPrintMat("perm", perm);
+  Eigen::MatrixXd qr = qrOp.matrixQR();
+  //mxPrintMat("qr", qr);
+  double thr = qrOp.maxPivot() * qrOp.threshold();
+
+	for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
+		omxConstraint &con = *state->conListX[j];
+    if (!cf(con)) continue;
+    if (con.opCode != omxConstraint::EQUALITY) OOPS;
+    for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
+      if (con.redundent[kk]) continue;
+      int xx = perm[cur+dx];
+      if (abs(qr(xx,xx)) < thr) {
+        con.redundent[kk] = true;
+        if (con.getVerbose()) {
+          mxLog("Ignoring constraint '%s[%d]' because it is redundent",
+                con.name, 1+kk);
+        }
+      }
+    }
+    cur += con.size;
+    con.recalcSize();
+  }
+}
+
+void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
+{
+	if (count==0) return;
+
+  auto *state = fc->state;
+  Eigen::Map< Eigen::ArrayXd > constr(constrOut, count);
+  Eigen::Map< Eigen::ArrayXXd > constrJac(jacOut, count, fc->getNumFree());
+  if (!constrOut && jacOut) mxThrow("Can't request jacOut without constrOut");
+  if (!constrOut) OOPS;
+  if (jacOut) constrJac.setConstant(NA_REAL);
+
+	for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
+		omxConstraint &con = *state->conListX[j];
+		if (!cf(con)) continue;
+
+    con.refreshAndGrab(fc, &constr(cur));
+    if (jacOut) {
+      con.analyticJac(fc, [&constrJac, cur](int r, int c, double val){
+                            constrJac(cur+r,c) = val; });
+    }
+    if (con.opCode != omxConstraint::EQUALITY) {
+      if (ineqAlwaysActive) {
+        // For CSOLNP, inequality constraints are always active.
+        // This is by design, since it's an interior-point algorithm.
+      } else {
+        // NPSOL/SLSQP require inactive inequality constraint to be held constant at zero:
+        for (int cx=cur; cx < cur+con.size; ++cx) {
+          constr[cx] = std::max(0.0, constr[cx]);
+          if(jacOut && constr[cx] == 0) {
+            /*The Jacobians of each inactive constraint are set to zero here;
+              as their elements will be zero rather than NaN,
+              the code in finiteDifferences.h will leave them alone:*/
+            constrJac.row(cx).setZero();
+          }
+        }
+      }
+    }
+		cur += con.size;
+	}
+
+	fc->incrComputeCount();
+
+  bool verifyJac = verbose >= 3;
+  if (jacOut) {
+    Eigen::ArrayXXd analyticJac;
+    if (verifyJac) {
+      analyticJac = constrJac;
+      constrJac.setConstant(NA_REAL);
+    }
+
+    allocJacTool(fc);
+    (*jacTool)([&](double *myPars, int thrId, auto &result) {
+                FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+                Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->getNumFree());
+                // Only 1 parameter is different so we could
+                // update only that parameter instead of all
+                // of them.
+                fc2->setEstFromOptimizer(Est);
+                eval(fc2, result.data(), 0);
+              }, constr, [&fc](){ return fc->getCurrentFree(); }, true, constrJac);
+
+    if (verifyJac) {
+      for (int cx=0; cx < analyticJac.cols(); ++cx) {
+        for (int rx=0; rx < analyticJac.rows(); ++rx) {
+          if (std::isfinite(analyticJac(rx,cx))) continue;
+          analyticJac(rx,cx) = constrJac(rx,cx);
+        }
+      }
+
+      for (int rx=0; rx < constrJac.rows(); ++rx) {
+        Eigen::ArrayXd diff = analyticJac.row(rx) - constrJac.row(rx);
+        if (diff.abs().maxCoeff() < 1e-7) continue;
+        std::string info = string_snprintf("%s[%d,]", name, rx);
+        mxPrintMat(info.c_str(), diff);
+      }
+      // restore
+      constrJac = analyticJac;
+    }
+  }
 }
 
 omxCheckpoint::omxCheckpoint() : wroteHeader(false), lastCheckpoint(0), lastIterations(0),

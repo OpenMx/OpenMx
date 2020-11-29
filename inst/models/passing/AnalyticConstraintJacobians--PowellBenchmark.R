@@ -15,6 +15,7 @@
 
 
 library(OpenMx)
+library(testthat)
 #mxOption(NULL,"Default optimizer","SLSQP")
 
 mxOption(key="feasibility tolerance", value = .001)
@@ -76,6 +77,8 @@ powellrun2$output$iterations
 powellrun2$output$evaluations
 summary(powellrun2)
 
+expect_equal(powellrun2$output$iterations, powellrun1$output$iterations, 8)
+expect_true(powellrun2$output$evaluations < powellrun1$output$evaluations)
 
 if(mxOption(NULL,"Default optimizer")=="NPSOL"){
   #Analytic Jacobians should, if nothing else, cut down on the number of fitfunction evaluations:

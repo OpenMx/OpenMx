@@ -42,11 +42,9 @@ struct CSOLNP {
 	int mode;
 	int neq, nineq;
 	bool optimize_initial_inequality_constraints;
-	bool jacFlag;
 	bool noFeasibleFlag;
 	int numCallsToCSOLNP;
 	GradientOptimizerContext &fit;
-	bool checkJacobianRank;
 
 	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
 
@@ -54,14 +52,6 @@ struct CSOLNP {
 
 	template <typename T1, typename T2>
 	void obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2>& eqval, Eigen::MatrixBase<T2>& ineqval, Eigen::MatrixBase<T1>& fitVal, int verbose);
-
-	void handleAnalyticGradJac();
-
-	template <typename T1, typename T2>
-	void calculateJac_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, double j, int verbose);
-
-	template <typename T1, typename T2>
-	void calculateJac_central(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, double j, int verbose);
 
 	template <typename T1, typename T2>
 	void subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eigen::MatrixBase<T1>& ob_e, Eigen::MatrixBase<T1>& hessv_e, double lambda, Eigen::MatrixBase<T2>& vscale_e,
@@ -100,7 +90,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	double funv;
 	double resultForTT;
 	double solnp_nfn = 0;
-	checkJacobianRank = true;
 
 	//time_t sec;
 	//sec = time (NULL);
@@ -119,8 +108,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	ind[indHasGradient] = 0;
 	//# do function checks and return starting value
 
-	jacFlag = FALSE;
-
 	mode = 0;
 	funv = fit.solFun(pars.data(), &mode);
 	// does not have a hessian (currently not supported in Rsolnp)
@@ -128,19 +115,16 @@ void CSOLNP::solnp(double *solPars, int verbose)
 	// no jacobian (not implemented)
 	ind[indHasJacobianIneq] = 0;
 
-  auto &equality = fit.getEqualitySingleThreaded();
-  neq = equality.size();
+  neq = fit.EqC.getCount();
 	ind[indHasEq] = neq > 0;
 	ind[indHasJacobianEq] = 0;
 
-	fit.myineqFun(jacFlag);
-  auto &inequality = fit.getInequalitySingleThreaded();
-	Eigen::RowVectorXd ineqv_e(inequality.size());
-	ineqv_e= -inequality;
+	Eigen::RowVectorXd ineqv_e(fit.IneqC.getCount());
+	fit.evalIneq(ineqv_e.data());
+	ineqv_e = -ineqv_e;
 
-	fit.solEqBFun(jacFlag);
 	Eigen::RowVectorXd eqv_e(neq);
-	eqv_e = equality;
+  fit.evalEq(eqv_e.data());
 
 	Eigen::MatrixXd hessv_e;
 
@@ -158,11 +142,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
 
 		if (optimize_initial_inequality_constraints){
 			nineq = 0;
-			jacFlag = FALSE;
 		}
 		else {
-			nineq = inequality.size();
-			handleAnalyticGradJac();
+			nineq = fit.IneqC.getCount();
 		}
 
 		ind[indHasIneq] = nineq > 0;
@@ -285,22 +267,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
 			subnp_ctrl[2] = delta;
 			subnp_ctrl[3] = tol;
 
-			if (1 || jacFlag){
-				vscale_e.resize(1, 1 + neq);
-				vscale_e.setOnes();
-			}
-			else if ( ind[indHasEq] > 0){
+      vscale_e.resize(1, 1 + neq);
+      vscale_e.setOnes();
 
-				double max = ob_e.block(0, 1, 1, neq).cwiseAbs().maxCoeff();
-				Eigen::MatrixXd temp2_e(1, neq);
-				temp2_e = temp2_e.setOnes() * max;
-				Eigen::MatrixXd temp1_e(1, 1); temp1_e(0, 0) = ob_e(0, 0);
-				vscale_e.resize(1, temp1_e.cols() + temp2_e.cols());
-				vscale_e << temp1_e, temp2_e;
-			}
-			else{
-				vscale_e.resize(1, 1); vscale_e.setOnes();
-			}
 			Eigen::RowVectorXd onesMatrix(1, p_e.size()); onesMatrix.setOnes();
 			Eigen::RowVectorXd vscale_t = vscale_e;
 			vscale_e.resize(1, vscale_t.cols() + onesMatrix.cols());
@@ -330,10 +299,9 @@ void CSOLNP::solnp(double *solPars, int verbose)
 				temp = p_e.block(0, nineq, 1, np);
 				funv = fit.solFun(temp.data(), &mode);
 				funvMatrix_e[0] = funv;
-				fit.solEqBFun(jacFlag);
-				eqv_e = equality;
-				fit.myineqFun(jacFlag);
-				ineqv_e = -inequality;
+				fit.evalEq(eqv_e.data());
+        fit.evalIneq(ineqv_e.data());
+        ineqv_e = -ineqv_e;
 				obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
 
 				if ( ind[indHasEq] > 0){
@@ -380,11 +348,10 @@ void CSOLNP::solnp(double *solPars, int verbose)
 
 			solnp_nfn = solnp_nfn + 1;
 
-			fit.solEqBFun(jacFlag);
-			eqv_e = equality;
+			fit.evalEq(eqv_e.data());
 			funvMatrix_e[0] = funv;
-			fit.myineqFun(jacFlag);
-			ineqv_e = -inequality;
+      fit.evalIneq(ineqv_e.data());
+			ineqv_e = -ineqv_e;
 
 			obj_constr_eval(funvMatrix_e, eqv_e, ineqv_e, ob_e, verbose);
 
@@ -534,16 +501,11 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 	//for (int ilog = 0; ilog < ctrl.cols; ilog++) mxLog("%f",ctrl.t[ilog]);
 	double rho   = ctrl[0];
 	int maxit = ctrl[1];
-	double delta = ctrl[2];
+	//double delta = ctrl[2];  unused
 	double tol =   ctrl[3];
 
-  auto &equality = fit.getEqualitySingleThreaded();
-  auto &inequality = fit.getInequalitySingleThreaded();
-	if (neq != equality.size()) OOPS;
 	if (optimize_initial_inequality_constraints) {
 		if (nineq != 0) OOPS;
-	} else {
-		if (nineq != inequality.size()) OOPS;
 	}
 
 	int np = (int)ind[indNumParam];
@@ -698,12 +660,10 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 	if ( (ind[indHasEq] > 0) && ind[indHasIneq] <= 0 ){
 		a_e.resize(neq, np);
 		a_e.setZero();
-		//a = fill(np, neq, (double)0.0);
 	}
 	if (ind[indHasEq]<= 0 && (ind[indHasIneq] <= 0)){
 		a_e.resize(1, np);
 		a_e.setZero();
-		//a = fill(np, 1, (double)0.0);
 	}
 
 	Eigen::RowVectorXd g_e; g_e.setZero(npic);
@@ -733,49 +693,18 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
     if (nineq) g_e.block(0, nineq, 1, np) = fit.grad.transpose();
     else g_e = fit.grad.transpose();
 
-		if (jacFlag){
-			fit.myineqFun(jacFlag);
-			fit.solEqBFun(jacFlag);
-      auto &analyticIneqJacTmp = fit.getAnalyticIneqJacSingleThreaded();
-			if (numCallsToCSOLNP > 1)
-				a_e.block(neq, nineq, nineq, np) = -analyticIneqJacTmp;
-			else
-				a_e.block(neq, nineq, nineq, np) = analyticIneqJacTmp;
-      auto &analyticEqJacTmp = fit.getAnalyticEqJacSingleThreaded();
-			a_e.block(0, nineq, neq, np) = analyticEqJacTmp;
-			if (((a_e.array() != a_e.array())).any()){
-				if (Global->gradientAlgo == GradientAlgorithm_Forward)
-					calculateJac_forward(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
-				else
-					calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
-			}
-		} else {
-			if (Global->gradientAlgo == GradientAlgorithm_Forward)
-				calculateJac_forward(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
-			else
-				calculateJac_central(np, delta, p0_e, vscale_e, a_e, constraint_e, j, verbose);
-		}
+    Eigen::ArrayXd ineqTmp(nineq);
+    Eigen::ArrayXXd ineqJacTmp(nineq, np);
+    fit.evalIneq(ineqTmp.data(), ineqJacTmp.data());
+    if (numCallsToCSOLNP > 1)
+      a_e.block(neq, nineq, nineq, np) = -ineqJacTmp;
+    else
+      a_e.block(neq, nineq, nineq, np) = ineqJacTmp;
 
-		if(neq > 1 && checkJacobianRank){ //We only care about redundancies if there are equality constraints
-			Eigen::MatrixXd aet;
-			if(a_e.rows() <= a_e.cols()){
-				aet = a_e.transpose();
-			}
-			else{
-				aet = a_e;
-			}
-			Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
-			qrj.compute(aet);
-			if( qrj.rank() < std::min(a_e.rows(),a_e.cols()) ){
-				Rf_warning(
-					"constraint Jacobian may be rank-deficient at the start values; "
-					"if this rank-deficiency is due to linearly dependent equality MxConstraints, "
-					"CSOLNP will not work correctly "
-					"(but if CSOLNP gives reasonable-looking results in a reasonable amount of time, then this warning is probably spurious)"
-				);
-			}
-			checkJacobianRank = false;
-		}
+    Eigen::ArrayXd eqTmp(neq);
+    Eigen::ArrayXXd eqJacTmp(neq, np);
+    fit.evalEq(eqTmp.data(), eqJacTmp.data());
+    a_e.block(0, nineq, neq, np) = eqJacTmp;
 
 		if (mode == -1)
 		{
@@ -939,15 +868,14 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			mode = 0;
 		}
 
-		fit.solEqBFun(jacFlag);
-
-		fit.myineqFun(jacFlag);
-
 		solnp_nfn = solnp_nfn + 1;
 		Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
 		Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-		Eigen::RowVectorXd eqv_e(neq); eqv_e = equality;
-		Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -inequality;
+		Eigen::RowVectorXd eqv_e(neq);
+		fit.evalEq(eqv_e.data());
+		Eigen::RowVectorXd ineqv_e(fit.IneqC.getCount());
+    fit.evalIneq(ineqv_e.data());
+    ineqv_e= -ineqv_e;
 
 		obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
 
@@ -1178,17 +1106,17 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 			mode = 0;
 		}
 
-		fit.solEqBFun(jacFlag);
-		fit.myineqFun(jacFlag);
-
 		solnp_nfn = solnp_nfn + 1;
 
 		Eigen::MatrixXd ob3_e;
 		{
 			Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
 			Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-			Eigen::RowVectorXd eqv_e(neq); eqv_e = equality;
-			Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -inequality;
+			Eigen::RowVectorXd eqv_e(neq);
+      fit.evalEq(eqv_e.data());
+      Eigen::RowVectorXd ineqv_e(fit.IneqC.getCount());
+      fit.evalIneq(ineqv_e.data());
+			ineqv_e= -ineqv_e;
 
 			obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
 
@@ -1244,14 +1172,15 @@ void CSOLNP::subnp(Eigen::MatrixBase<T2>& pars, Eigen::MatrixBase<T1>& yy_e, Eig
 				mode = 0;
 			}
 
-			fit.solEqBFun(jacFlag);
-			fit.myineqFun(jacFlag);
+			Eigen::RowVectorXd ineqv_e(fit.IneqC.getCount());
+			fit.evalIneq(ineqv_e.data());
+      ineqv_e= -ineqv_e;
 
 			solnp_nfn = solnp_nfn + 1;
 			Eigen::MatrixXd firstPart_e(1, 1 + neq + nineq);
 			Eigen::RowVectorXd funv_e(1); funv_e[0] = funv;
-			Eigen::RowVectorXd eqv_e(neq); eqv_e = equality;
-			Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -inequality;
+			Eigen::RowVectorXd eqv_e(neq);
+			fit.evalEq(eqv_e.data());
 
 			obj_constr_eval(funv_e, eqv_e, ineqv_e, firstPart_e, verbose);
 
@@ -1474,144 +1403,6 @@ void CSOLNP::obj_constr_eval(Eigen::MatrixBase<T2>& objVal, Eigen::MatrixBase<T2
 		return;
 	}
 	if (verbose >= 4) mxPrintMat("fitVal", fitVal);
-}
-
-template <typename T1, typename T2>
-void CSOLNP::calculateJac_forward(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, double j, int verbose)
-{
-  auto &equality = fit.getEqualitySingleThreaded();
-  auto &inequality = fit.getInequalitySingleThreaded();
-  auto &analyticEqJacTmp = fit.getAnalyticEqJacSingleThreaded();
-  auto &analyticIneqJacTmp = fit.getAnalyticIneqJacSingleThreaded();
-	for (int i=0; i<np; i++){
-
-		if(!std::isnan(analyticEqJacTmp.col(i).sum()) && !std::isnan(analyticIneqJacTmp.col(i).sum()))
-			continue;
-
-		int index = nineq + i;
-		p0_e[index] = p0_e[index] + delta;
-		Eigen::MatrixXd tmpv_e;
-		tmpv_e = p0_e.block(0, nineq, 1, np);
-		tmpv_e = tmpv_e.array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		fit.copyFromOptimizer(tmpv_e.derived().data());
-		if (std::isnan(analyticEqJacTmp.col(i).sum()))
-			fit.solEqBFun(false);
-		if (std::isnan(analyticIneqJacTmp.col(i).sum()))
-			fit.myineqFun(false);
-		Eigen::RowVectorXd eqv_e(neq); eqv_e = equality;
-		Eigen::RowVectorXd ineqv_e(nineq); ineqv_e= -inequality;
-		Eigen::RowVectorXd firstPart_e(neq + nineq);
-		if (neq && nineq)
-			firstPart_e << eqv_e, ineqv_e;
-		else if (neq)
-			firstPart_e << eqv_e;
-		else if (nineq)
-			firstPart_e << ineqv_e;
-		Eigen::RowVectorXd secondPart_e;
-		secondPart_e = vscale_e.block(0, 1, 1, neq+nineq);
-		firstPart_e = firstPart_e.cwiseQuotient(secondPart_e);
-
-		if (std::isnan(analyticEqJacTmp.col(i).sum()))
-			a_e.block(0, index, neq, 1) = (firstPart_e.block(0, 0, 1, neq) - constraint_e.block(0, 0, 1, neq)).transpose() / delta;
-		if (std::isnan(analyticIneqJacTmp.col(i).sum()))
-			a_e.block(neq, index, nineq, 1) = (firstPart_e.block(0, neq, 1, nineq) - constraint_e.block(0, neq, 1, nineq)).transpose() / delta;
-
-		p0_e[index] = p0_e[index] - delta;
-	}
-	//int rnk;
-	//filterJacobianRows(a_e, rnk);
-}
-
-template <typename T1, typename T2>
-void CSOLNP::calculateJac_central(int np, double delta, Eigen::MatrixBase<T2>& p0_e, Eigen::MatrixBase<T2>& vscale_e, Eigen::MatrixBase<T1>& a_e, Eigen::MatrixBase<T1>& constraint_e, double j, int verbose)
-{
-	Eigen::RowVectorXd p0_e1 = p0_e;
-	Eigen::RowVectorXd p0_e2 = p0_e;
-
-  auto &equality = fit.getEqualitySingleThreaded();
-  auto &inequality = fit.getInequalitySingleThreaded();
-  auto &analyticEqJacTmp = fit.getAnalyticEqJacSingleThreaded();
-  auto &analyticIneqJacTmp = fit.getAnalyticIneqJacSingleThreaded();
-
-	for (int i=0; i<np; i++){
-
-		if(!std::isnan(analyticEqJacTmp.col(i).sum()) && !std::isnan(analyticIneqJacTmp.col(i).sum()))
-			continue;
-
-		int index = nineq + i;
-		p0_e1[index] = p0_e1[index] + delta;
-		p0_e2[index] = p0_e2[index] - delta;
-
-		Eigen::MatrixXd tmpv1_e;
-		tmpv1_e = p0_e1.block(0, nineq, 1, np);
-		tmpv1_e = tmpv1_e.array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		fit.copyFromOptimizer(tmpv1_e.derived().data());
-		if (std::isnan(analyticEqJacTmp.col(i).sum()))
-			fit.solEqBFun(false);
-		if (std::isnan(analyticIneqJacTmp.col(i).sum()))
-			fit.myineqFun(false);
-
-		Eigen::RowVectorXd eqv1_e(neq); eqv1_e = equality;
-		Eigen::RowVectorXd ineqv1_e(nineq); ineqv1_e= -inequality;
-
-		Eigen::RowVectorXd firstPart1_e(neq + nineq);
-		if (neq && nineq)
-			firstPart1_e << eqv1_e, ineqv1_e;
-		else if (neq)
-			firstPart1_e << eqv1_e;
-		else if (nineq)
-			firstPart1_e << ineqv1_e;
-
-		Eigen::RowVectorXd secondPart_e;
-		secondPart_e = vscale_e.block(0, 1, 1, neq+nineq);
-		firstPart1_e = firstPart1_e.cwiseQuotient(secondPart_e);
-
-		Eigen::MatrixXd tmpv2_e;
-		tmpv2_e = p0_e2.block(0, nineq, 1, np);
-		tmpv2_e = tmpv2_e.array() * vscale_e.block(0, neq+nineq+1, 1, np).array();
-
-		fit.copyFromOptimizer(tmpv2_e.derived().data());
-		if (std::isnan(analyticEqJacTmp.col(i).sum()))
-			fit.solEqBFun(false);
-		if (std::isnan(analyticIneqJacTmp.col(i).sum()))
-			fit.myineqFun(false);
-
-		Eigen::RowVectorXd eqv2_e(neq); eqv2_e = equality;
-		Eigen::RowVectorXd ineqv2_e(nineq); ineqv2_e= -inequality;
-
-		Eigen::RowVectorXd firstPart2_e(neq + nineq);
-
-		if (neq && nineq)
-			firstPart2_e << eqv2_e, ineqv2_e;
-		else if (neq)
-			firstPart2_e << eqv2_e;
-		else if (nineq)
-			firstPart2_e << ineqv2_e;
-
-		firstPart2_e = firstPart2_e.cwiseQuotient(secondPart_e);
-
-		if (std::isnan(analyticEqJacTmp.col(i).sum()))
-			a_e.block(0, index, neq, 1) = (firstPart1_e.block(0, 0, 1, neq) - firstPart2_e.block(0, 0, 1, neq)).transpose() / (2*delta);
-		if (std::isnan(analyticIneqJacTmp.col(i).sum()))
-			a_e.block(neq, index, nineq, 1) = (firstPart1_e.block(0, neq, 1, nineq) - firstPart2_e.block(0, neq, 1, nineq)).transpose() / (2*delta);
-
-		p0_e1[index] = p0_e1[index] - delta;
-		p0_e2[index] = p0_e2[index] + delta;
-	}
-	//int rnk;
-	//filterJacobianRows(a_e, rnk);
-}
-
-void CSOLNP::handleAnalyticGradJac()
-{
-	if ( fit.getWanted() & FF_COMPUTE_GRADIENT && fit.isUsingAnalyticJacobian() ){
-		jacFlag = TRUE;
-		return;
-	} else if (fit.getWanted() & FF_COMPUTE_GRADIENT) {
-	}
-	else if (fit.isUsingAnalyticJacobian())   jacFlag = TRUE;
 }
 
 void omxCSOLNP(GradientOptimizerContext &go)

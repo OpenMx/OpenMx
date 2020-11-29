@@ -21,7 +21,7 @@
 class omxComputeNM : public omxCompute {
 	typedef omxCompute super;
 	bool nudge;
-	
+
 public:
 	omxMatrix *fitMatrix;
 	int verbose;
@@ -72,17 +72,15 @@ public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);
 	void countConstraintsAndSetupBounds();
 	void copyParamsFromFitContext(double *ocpars);
-	
+
 	template <typename T1>
 	void copyParamsFromOptimizer(Eigen::MatrixBase<T1> &x, FitContext* fc2){
 		fc2->setEstFromOptimizer(x);
 	}
-	
+
 	omxComputeNM* NMobj;
 	const int numFree;
 	int verbose;
-	int numIneqC;
-	int numEqC;
 	int n; //<--number of free parameters minus number of equality constraints
 	int backtrackSteps;
 	int maxIter;
@@ -104,12 +102,13 @@ public:
 	double rho;
 	bool addPenalty;
 	int ineqConstraintMthd, eqConstraintMthd;
-	bool checkRedundantEqualities;
-	
+  ConstraintVec IneqC;
+  ConstraintVec EqC;
+
 	bool checkBounds(Eigen::VectorXd &x);
 	void enforceBounds(Eigen::VectorXd &x);
-	void evalIneqC();
-	void evalEqC();
+  void evalIneqC();
+  void evalEqC();
 	double evalFit(Eigen::VectorXd &x);
 	void checkNewPointInfeas(Eigen::VectorXd &x, Eigen::Vector2i &ifcr);
 	void evalFirstPoint(Eigen::VectorXd &x, double &fv, int &infeas);
@@ -126,8 +125,8 @@ public:
 	void printNewPoint(Eigen::VectorXd &x, double fv, int isbad);
 	void calculatePseudoHessian();
 	void finalize();
-	
-	std::vector<Eigen::VectorXd> vertices;	
+
+	std::vector<Eigen::VectorXd> vertices;
 	Eigen::VectorXd est;
 	Eigen::VectorXd fvals;
 	Eigen::VectorXi vertexInfeas;
@@ -151,26 +150,3 @@ public:
 
 double nmgdfso(unsigned n, const double *x, double *grad, void *f_data);
 void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::VectorXd &gdpt);
-
-struct NldrMd_equality_functional {
-	NelderMeadOptimizerContext* nmoc;
-	FitContext* fc;
-	
-	NldrMd_equality_functional(NelderMeadOptimizerContext* _nmoc, FitContext* _fc) : nmoc(_nmoc), fc(_fc) {};
-	
-	template <typename T1, typename T2>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-		nmoc->copyParamsFromOptimizer(x, fc);
-		fc->solEqBFun(false, nmoc->verbose);
-		result = fc->equality;
-	}
-	
-	template <typename T1, typename T2, typename T3>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-		nmoc->copyParamsFromOptimizer(x, fc);
-		fc->analyticEqJacTmp.resize(jacobian.rows(), jacobian.cols());
-		fc->solEqBFun(true, nmoc->verbose);
-		result = fc->equality;
-		jacobian = fc->analyticEqJacTmp;
-	}
-};

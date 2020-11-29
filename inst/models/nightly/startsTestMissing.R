@@ -39,6 +39,8 @@ stabilitySV <- .85 #Starting value for stability
 require(OpenMx)
 library(testthat)
 
+mxOption(key="feasibility tolerance", value = .0001)
+
 #mxOption(key='Number of Threads', value=parallel::detectCores())
 #mxOption(key="Parallel diagnostics", value = "Yes")
 

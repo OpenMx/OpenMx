@@ -23,6 +23,10 @@ mxOption(key="feasibility tolerance", value = .00001)
 
 startvals <- c(-5.1, 2.9)
 
+plan <- omxDefaultComputePlan()
+plan$steps <- list(plan$steps$GD)
+#plan$steps[[1]]$verbose <- 1L
+
 m1 <- mxModel(
 	"BukinN2",
 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=startvals[1],labels="x1",lbound=-15,ubound=-5,name="X1"),
@@ -30,7 +34,7 @@ m1 <- mxModel(
 	mxAlgebra( 100*( (X2^2) - 0.01*(X1^2) + 1) + 0.01*(X1+10)^2,
 						 name="BukinN2Func"),
 	#Interestingly, given an analytic gradient to NPSOL and SLSQP makes them FAIL to find the correct solution...
-	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","X2"))),
+	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","x2"))),
 	mxFitFunctionAlgebra(algebra="BukinN2Func")#,gradient="grad")
 )
 m1 <- mxRun(m1)
@@ -42,8 +46,6 @@ omxCheckCloseEnough(m1$output$gradient[1],29.9,0.01)
 omxCheckEquals(m1$output$status$code,5)
 
 
-plan <- omxDefaultComputePlan()
-plan$steps <- list(plan$steps$GD)
 m2 <- mxModel(
 	"BukinN2",
 	plan,
@@ -52,7 +54,7 @@ m2 <- mxModel(
 	mxAlgebra( 100*( (X2^2) - 0.01*(X1^2) + 1) + 0.01*(X1+10)^2,
 						 name="BukinN2Func"),
 	#Interestingly, given an analytic gradient to NPSOL and SLSQP makes them FAIL to find the correct solution...
-	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","X2"))),
+	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","x2"))),
 	mxFitFunctionAlgebra(algebra="BukinN2Func")#,gradient="grad")
 )
 m2 <- mxRun(m2)
@@ -77,11 +79,10 @@ m3 <- mxModel(
 	mxConstraint(X2 < 3, name="u2"),
 	mxAlgebra( 100*( (X2^2) - 0.01*(X1^2) + 1) + 0.01*(X1+10)^2,
 						 name="BukinN2Func"),
-	#Interestingly, given an analytic gradient to NPSOL and SLSQP makes them FAIL to find the correct solution...
-	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","X2"))),
-	mxFitFunctionAlgebra(algebra="BukinN2Func")#,gradient="grad")
+	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","x2"))),
+	mxFitFunctionAlgebra(algebra="BukinN2Func",gradient="grad")
 )
 m3 <- mxRun(m3)
 summary(m3)
 omxCheckCloseEnough(coef(m3), c(-15,0), 0.1)
-omxCheckCloseEnough(m3$output$fit, -124.7500, 5e-5)
+omxCheckCloseEnough(m3$output$fit, -124.7501, .0002)

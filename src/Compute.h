@@ -195,17 +195,9 @@ class FitContext {
 	Eigen::MatrixXd LagrHessian;
 
 	//Constraint-related:
-	void solEqBFun(bool wantAJ, int verbose);
-	void myineqFun(bool wantAJ, bool alwaysActive);
-	bool isUsingAnalyticJacobian(){ return state->usingAnalyticJacobian; }
-	Eigen::MatrixXd analyticEqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an equality constraint
-	Eigen::MatrixXd analyticIneqJacTmp; //<--temporarily holds analytic Jacobian (if present) for an inequality constraint
-	Eigen::VectorXd equality;
-	Eigen::VectorXd inequality;
   bool isUnconstrained();
-	void allConstraintsF(bool wantAJ, int verbose, int ineqType, bool ineqAlwaysActive, bool maskInactive);
+  bool isEffectivelyUnconstrained();
 	Eigen::MatrixXd vcov; //<--Repeated-sampling covariance matrix of the MLEs.
-	int redundantEqualities;
 
 	// for confidence intervals
   std::unique_ptr<CIobjective> ciobj;
@@ -351,28 +343,6 @@ class FitContext {
 void copyParamToModelInternal(FreeVarGroup *varGroup, omxState *os, double *at);
 
 typedef std::vector< std::pair<int, MxRList*> > LocalComputeResult;
-
-struct allconstraints_functional {
-	FitContext &fc;
-	int verbose;
-
-	allconstraints_functional(FitContext &_fc, int _verbose) : fc(_fc), verbose(_verbose) {};
-
-	template <typename T1, typename T2>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-		fc.setEstFromOptimizer(x.derived().data());
-		fc.allConstraintsF(false, verbose, omxConstraint::LESS_THAN, false, true);
-		result = fc.constraintFunVals;
-	}
-
-	template <typename T1, typename T2, typename T3>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-		fc.setEstFromOptimizer(x.derived().data());
-		fc.allConstraintsF(true, verbose, omxConstraint::LESS_THAN, false, true);
-		result = fc.constraintFunVals;
-		jacobian = fc.constraintJacobian;
-	}
-};
 
 class omxCompute {
 	int computeId;

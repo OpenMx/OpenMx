@@ -1,6 +1,8 @@
 #ifndef _AutoTune_H_
 #define _AutoTune_H_
 
+#include "omxDefines.h"
+
 template <typename T>
 class AutoTune {
   const char *name;

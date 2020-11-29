@@ -24,6 +24,24 @@ passing/rowAlgTest140708.R
 passing/StateSpaceOsc.R
 passing/SubStateSpaceOsc.R
 passing/StateSpaceInputs.R
+passing/AnalyticConstraintJacobians--Eq_and_Ineq.R
+passing/AnalyticConstraintJacobians--PowellBenchmark.R
+passing/BukinN2_regressiontest.R
+passing/DogChain.R
+passing/NelderMeadTest--eqConstraint.R
+passing/NelderMeadTest--ineqConstraints.R
+passing/PartialAnalyticDeriv.R
+passing/RemoveEntriesTest.R
+passing/SimpleConfidenceIntervals.R
+passing/checkStandardizedLoadingsEtcetera.R
+passing/dependentConstraintTest.R
+passing/multinomSE.R
+passing/redundantConstraintTest.R
+passing/stdizedRAMpaths--UserProvidedCov.R
+passing/testNumericDerivWithConstraintWarning.R
+nightly/180209--defvars.R
+nightly/Extreme_Multiformity_chi.R
+nightly/startsTestMissing.R
 "
 
 for t in $tests; do
@@ -32,8 +50,13 @@ for t in $tests; do
     R $opt -f models/$t
   else
     if ! R $opt -f models/$t > $out 2>&1; then
-      cat $out
-      exit
+      if grep -q -F "Error: SKIP" $out; then
+        echo "  ... skipped"
+        rm -f $out
+      else
+        cat $out
+        exit
+      fi
     else
       rm -f $out
     fi

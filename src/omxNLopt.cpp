@@ -35,16 +35,6 @@ namespace SLSQP {
 
 	typedef std::unique_ptr< struct nlopt_slsqp_wdump, nlopt_slsqp_wdump_dtor > nlopt_slsqp_wdump_ptr;
 
-struct context {
-	GradientOptimizerContext &goc;
-	int origeq;
-	int eqredundent;
-	std::vector<bool> eqmask;
-	context(GradientOptimizerContext &_goc) : goc(_goc) {
-		eqredundent = 0;
-	};
-};
-
 static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, void *f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
@@ -77,131 +67,41 @@ static double nloptObjectiveFunction(unsigned n, const double *x, double *grad, 
 	return fit;
 }
 
-struct equality_functional {
-	GradientOptimizerContext &goc;
-
-	equality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
-
-	template <typename T1, typename T2>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
-		goc.copyFromOptimizer(x.derived().data());
-		goc.solEqBFun(false);
-		result = goc.getEqualitySingleThreaded();
-	}
-
-	template <typename T1, typename T2, typename T3>
-	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-		goc.copyFromOptimizer(x.derived().data());
-		goc.solEqBFun(true);
-		result = goc.getEqualitySingleThreaded();
-		jacobian = goc.getAnalyticEqJacSingleThreaded();
-	}
-};
-
 static void nloptEqualityFunction(unsigned m, double* result, unsigned n, const double* x, double* grad, void* f_data)
 {
-	context &ctx = *(context *)f_data;
-	GradientOptimizerContext &goc = ctx.goc;
-	Eigen::Map< Eigen::VectorXd > Epoint((double*)x, n);
-	Eigen::VectorXd Eresult(ctx.origeq);
-	Eigen::MatrixXd jacobian(ctx.origeq, n);
-	equality_functional ff(goc);
+  GradientOptimizerContext &goc = *(GradientOptimizerContext*)f_data;
+	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
+	Eigen::Map< Eigen::MatrixXd > jacobianDest(grad, n, m);
+	Eigen::MatrixXd jacobian(m, n);
+  goc.copyFromOptimizer(x);
+
 	/*I don't think nloptEqualityFunction is ever called when 'grad' is a null pointer,
 	but I don't want to assume that:*/
-	if(!grad){ff(Epoint, Eresult);}
-	else{
-		ff(Epoint, Eresult, jacobian);
+	if(!grad) {
+    goc.evalEq(Eresult.data());
+  } else{
+    goc.evalEq(Eresult.data(), jacobian.data());
 		goc.eqNorm = Eresult.array().abs().sum();
-		fd_jacobian<true>(Global->gradientAlgo, Global->gradientIter, Global->gradientStepSize,
-              ff, Eresult, Epoint, jacobian);
-		//int rank;
-		//filterJacobianRows(jacobian, &rank);
-		if (ctx.eqmask.size() == 0) {
-			ctx.eqmask.assign(m, false);
-			for (int c1=0; c1 < int(m-1); ++c1) {
-				for (int c2=c1+1; c2 < int(m); ++c2) {
-					bool match = (Eresult[c1] == Eresult[c2] &&
-                   (jacobian.row(c1) == jacobian.row(c2)));
-					if (match && !ctx.eqmask[c2]) {
-						ctx.eqmask[c2] = true;
-						++ctx.eqredundent;
-						if (goc.verbose >= 2) {
-							mxLog("nlopt: eq constraint %d is redundant with %d",
-             c1, c2);
-						}
-					}
-				}
-			}
-			for (int c1=0; c1 < int(m); ++c1) {
-				if (ctx.eqmask[c1]) continue;
-				if ((jacobian.row(c1).array() == 0.0).all()) {
-					ctx.eqmask[c1] = true;
-					++ctx.eqredundent;
-					if (goc.verbose >= 2) {
-						mxLog("nlopt: eq constraint %d is never active", c1);
-					}
-				}
-			}
-			if (ctx.eqredundent) {
-				if (goc.verbose >= 1) {
-					mxLog("nlopt: detected %d redundant equality constraints; retrying",
-           ctx.eqredundent);
-				}
-				nlopt_opt opt = (nlopt_opt) goc.extraData;
-				nlopt_force_stop(opt);
-			}
-		}
-	}
-	Eigen::Map< Eigen::VectorXd > Uresult(result, m);
-	Eigen::Map< Eigen::MatrixXd > Ujacobian(grad, n, m);
-	int dx=0;
-	for (int cx=0; cx < int(m); ++cx) {
-		if (ctx.eqmask[cx]) continue;
-		Uresult[dx] = Eresult[cx];
-		if (grad) {
-			Ujacobian.col(dx) = jacobian.row(cx);
-		}
-		++dx;
+    jacobianDest = jacobian.transpose();
 	}
 	if (goc.verbose >= 3 && grad) {
-		mxPrintMat("eq jacobian", Ujacobian);
+		mxPrintMat("eq jacobian", jacobian);
 	}
 }
-
-struct inequality_functional {
-	GradientOptimizerContext &goc;
-
-	inequality_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
-
-	template <typename T1, typename T2>
-	void operator()(T1 &x, Eigen::MatrixBase<T2> &result) const {
-		goc.copyFromOptimizer(x.derived().data());
-		goc.myineqFun(false);
-		result = goc.getInequalitySingleThreaded();
-	}
-
-	template <typename T1, typename T2, typename T3>
-	void operator()(T1 &x, Eigen::MatrixBase<T2> &result, Eigen::MatrixBase<T3> &jacobian) const {
-		goc.copyFromOptimizer(x.derived().data());
-		goc.myineqFun(true);
-		result = goc.getInequalitySingleThreaded();
-		jacobian = goc.getAnalyticIneqJacSingleThreaded();
-	}
-
-};
 
 static void nloptInequalityFunction(unsigned m, double *result, unsigned n, const double* x, double* grad, void* f_data)
 {
 	GradientOptimizerContext *goc = (GradientOptimizerContext *) f_data;
-	Eigen::Map< Eigen::ArrayXd > Epoint((double*)x, n);
 	Eigen::Map< Eigen::VectorXd > Eresult(result, m);
 	Eigen::Map< Eigen::MatrixXd > jacobianDest(grad, n, m);
 	Eigen::MatrixXd jacobian(m, n);
-	inequality_functional ff(*goc);
 	/*nloptInequalityFunction() is routinely called when 'grad' is a null pointer:*/
-	if(!grad){ff(Epoint, Eresult);}
-	else{
-		ff(Epoint, Eresult, jacobian); // fill in analytically known entries
+  goc->copyFromOptimizer(x);
+	if(!grad) {
+		goc->evalIneq(result);
+  } else {
+		goc->evalIneq(result, jacobian.data());
+
 		if (goc->verbose >= 2) {
 			mxPrintMat("major iteration ineq", Eresult);
 		}
@@ -211,12 +111,6 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 			nlopt_force_stop(opt);
       return;
 		}
-
-    goc->ineqJacobian(Eresult, [&Epoint](){ return Epoint; }, jacobian);
-
-    for (int rx=0; rx < jacobian.rows(); ++rx) {
-      if (Eresult[rx] == 0.0) jacobian.row(rx).setZero();
-    }
 
 		jacobianDest = jacobian.transpose();
 		if (goc->verbose >= 3) {
@@ -354,9 +248,8 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	nlopt_set_lower_bounds(opt, goc.solLB.data());
 	nlopt_set_upper_bounds(opt, goc.solUB.data());
 
-	omxState *globalState = goc.getState();
-	int eq = globalState->numEqC;
-	int ieq = globalState->numIneqC;
+	int eq = goc.EqC.getCount();
+	int ieq = goc.IneqC.getCount();
 
 	// The *2 is there to roughly equate accuracy with NPSOL.
 	nlopt_set_ftol_rel(opt, goc.ControlTolerance * 2);
@@ -365,21 +258,16 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	nlopt_set_min_objective(opt, SLSQP::nloptObjectiveFunction, &goc);
 
 	double feasibilityTolerance = Global->feasibilityTolerance;
-	SLSQP::context ctx(goc);
-	if (eq + ieq) {
-		ctx.origeq = eq;
-		if (ieq > 0){
-			if (goc.verbose >= 2) mxLog("%d inequality constraints", ieq);
-			std::vector<double> tol(ieq, feasibilityTolerance);
-			nlopt_add_inequality_mconstraint(opt, ieq, SLSQP::nloptInequalityFunction, &goc, tol.data());
-		}
-
-		if (eq > 0){
-			if (goc.verbose >= 2) mxLog("%d equality constraints", eq);
-			std::vector<double> tol(eq, feasibilityTolerance);
-			nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
-		}
-	}
+  if (ieq > 0){
+    if (goc.verbose >= 2) mxLog("SLSQP: %d inequality constraints", ieq);
+    std::vector<double> tol(ieq, feasibilityTolerance);
+    nlopt_add_inequality_mconstraint(opt, ieq, SLSQP::nloptInequalityFunction, &goc, tol.data());
+  }
+  if (eq > 0){
+    if (goc.verbose >= 2) mxLog("SLSQP: %d equality constraints", eq);
+    std::vector<double> tol(eq, feasibilityTolerance);
+    nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &goc, tol.data());
+  }
 
 	//The following four lines are only sensible if using SLSQP (noted in case we ever use a different optimizer from the NLOPT collection):
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
@@ -391,14 +279,6 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
-	if (ctx.eqredundent) {
-		nlopt_remove_equality_constraints(opt);
-		eq -= ctx.eqredundent;
-		std::vector<double> tol(eq, feasibilityTolerance);
-		nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
-
-		code = nlopt_optimize(opt, est, &fit);
-	}
 
 	if (goc.verbose >= 2) mxLog("nlopt_optimize returned %d", code);
 	if(code > 0){
@@ -463,19 +343,16 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	nlopt_set_min_objective(opt, nmgdfso, nmoc);
 
 	double feasibilityTolerance = nmoc->NMobj->feasTol;
-	SLSQP::context ctx(nmoc->subsidiarygoc);
-	if (nmoc->numEqC + nmoc->numIneqC) {
-		ctx.origeq = nmoc->numEqC;
-		if (nmoc->numIneqC > 0){
-			std::vector<double> tol(nmoc->numIneqC, feasibilityTolerance);
-			nlopt_add_inequality_mconstraint(opt, nmoc->numIneqC, SLSQP::nloptInequalityFunction, &(nmoc->subsidiarygoc), tol.data());
-		}
-
-		if (nmoc->numEqC > 0){
-			std::vector<double> tol(nmoc->numEqC, feasibilityTolerance);
-			nlopt_add_equality_mconstraint(opt, nmoc->numEqC, SLSQP::nloptEqualityFunction, &ctx, tol.data());
-		}
-	}
+  int numIneqC = nmoc->IneqC.getCount();
+  int numEqC = nmoc->EqC.getCount();
+  if (numIneqC > 0){
+    std::vector<double> tol(numIneqC, feasibilityTolerance);
+    nlopt_add_inequality_mconstraint(opt, numIneqC, SLSQP::nloptInequalityFunction, &(nmoc->subsidiarygoc), tol.data());
+  }
+  if (numEqC > 0){
+    std::vector<double> tol(numEqC, feasibilityTolerance);
+    nlopt_add_equality_mconstraint(opt, numEqC, SLSQP::nloptEqualityFunction, &nmoc->subsidiarygoc, tol.data());
+  }
 
 	SLSQP::nlopt_slsqp_wdump_ptr wkspc(new nlopt_slsqp_wdump);
 	for(int li=0; li<8; li++){
@@ -488,13 +365,5 @@ void omxInvokeSLSQPfromNelderMead(NelderMeadOptimizerContext* nmoc, Eigen::Vecto
 	int code = nlopt_optimize(opt, est, &fit);
 	if(nmoc->verbose){
 		mxLog("subsidiary SLSQP job returned NLOPT code %d", code);
-	}
-	if (ctx.eqredundent) {
-		nlopt_remove_equality_constraints(opt);
-		int eq = nmoc->numEqC - ctx.eqredundent;
-		std::vector<double> tol(eq, feasibilityTolerance);
-		nlopt_add_equality_mconstraint(opt, eq, SLSQP::nloptEqualityFunction, &ctx, tol.data());
-
-		code = nlopt_optimize(opt, est, &fit);
 	}
 }

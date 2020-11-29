@@ -32,7 +32,7 @@
 
 #include <R_ext/Rdynload.h>
 #include <sys/types.h>
-
+#include <functional>
 #include <time.h>
 #include <unistd.h>
 #include <string>
@@ -124,38 +124,51 @@ class omxConstraint {
 	};
 
 	const char *name;
-	int size, nrows, ncols;
+	int size;  // number of non-redundent constraints
+  void recalcSize();
 	enum Type opCode;
-	int linear;
-	omxMatrix* jacobian;
-	std::vector<int> jacMap;
+  // NPSOL is documented to have some special support for linear
+  // constraints. Rob tried it out with NPSOL version 5 and it
+  // didn't seem to work.
+  const int linear;
+  std::vector<bool> redundent;
 
 	//Constraints created by backend for CIs use this, the base-class constructor:
-        omxConstraint(const char *name) : name(name), linear(0), jacobian(NULL) {};
+  omxConstraint(const char *name) : name(name), linear(0) {};
 	virtual ~omxConstraint() {};
-	void refreshAndGrab(FitContext *fc, double *out)
-	{ refreshAndGrab(fc, opCode, out); };
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out) = 0;
+  virtual void getDim(int *rowsOut, int *colsOut) const = 0;
+	virtual void refreshAndGrab(FitContext *fc, double *out) = 0;
+  typedef std::function<void(int r, int c, double val)> MatrixStoreFn;
+	virtual void analyticJac(FitContext *fc, MatrixStoreFn out) {}
 	virtual omxConstraint *duplicate(omxState *dest) const = 0;
-	virtual void prep(FitContext *fc) {};
+	virtual void prep(FitContext *fc) {}; // only called once, not per-thread
 	virtual void preeval(FitContext *fc) {};
+  virtual int getVerbose() const { return 0; }
+  virtual bool hasAnalyticJac() const = 0;
 };
 
 class UserConstraint : public omxConstraint {
  private:
 	typedef omxConstraint super;
 	omxMatrix *pad;
+	omxMatrix *jacobian;
+	std::vector<int> jacMap;
+  int verbose;
 	void refresh(FitContext *fc);
 	UserConstraint(const char *name) : super(name) {};
 
  public:
  	//Constraints created from frontend MxConstraints use this, the derived-class constructor:
-	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int lin);
+	UserConstraint(FitContext *fc, const char *name, omxMatrix *arg1, omxMatrix *arg2, omxMatrix *jac, int verbose);
 	virtual ~UserConstraint();
-	virtual void refreshAndGrab(FitContext *fc, Type ineqType, double *out);
+  virtual void getDim(int *rowsOut, int *colsOut) const override;
+	virtual void refreshAndGrab(FitContext *fc, double *out) override;
+	virtual void analyticJac(FitContext *fc, MatrixStoreFn out) override;
 	virtual omxConstraint *duplicate(omxState *dest) const override;
 	virtual void prep(FitContext *fc);
 	virtual void preeval(FitContext *fc) override;
+  virtual int getVerbose() const override;
+  virtual bool hasAnalyticJac() const override { return jacobian; }
 };
 
 enum omxCheckpointType {
@@ -332,7 +345,7 @@ class omxGlobal {
 // Use a pointer to ensure correct initialization and destruction
 extern class omxGlobal *Global;
 
-
+void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
 // omxState is for stuff that must be duplicated for thread safety.
 class omxState {
@@ -370,10 +383,12 @@ class omxState {
 	void omxCompleteMxExpectationEntities();
 	void omxInitialMatrixAlgebraCompute(FitContext *fc);
 	void omxProcessConstraints(SEXP constraints, FitContext *fc);
+  void hideBadConstraints(FitContext *fc);
 	void omxProcessMxDataEntities(SEXP data, SEXP defvars);
 	omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
 	void loadDefinitionVariables(bool start);
 	void omxExportResults(MxRList *out, FitContext *fc);
+  void reportConstraints(MxRList &out);
 	void invalidateCache();
 	void connectToData();
 	~omxState();
@@ -384,44 +399,6 @@ class omxState {
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
-
-	int numEqC, numIneqC;
-	bool usingAnalyticJacobian;
-
-	void countNonlinearConstraints(int &equality, int &inequality, bool distinguishLinear)
-	{
-		equality = 0;
-		inequality = 0;
-		for(int j = 0; j < int(conListX.size()); j++) {
-			omxConstraint *cs = conListX[j];
-			if(distinguishLinear && cs->linear){continue;}
-			if (cs->opCode == omxConstraint::EQUALITY) {
-				equality += cs->size;
-			} else {
-				inequality += cs->size;
-			}
-			if(!usingAnalyticJacobian && cs->jacobian){
-				usingAnalyticJacobian = true;
-			}
-		}
-	};
-	void countLinearConstraints(int &l_equality, int &l_inequality)
-	{
-		l_equality = 0;
-		l_inequality = 0;
-		for(int j = 0; j < int(conListX.size()); j++) {
-			omxConstraint *cs = conListX[j];
-			if(!cs->linear){continue;}
-			if (cs->opCode == omxConstraint::EQUALITY) {
-				l_equality += cs->size;
-			} else {
-				l_inequality += cs->size;
-			}
-			if(!usingAnalyticJacobian && cs->jacobian){
-				usingAnalyticJacobian = true;
-			}
-		}
-	};
 
 	bool isFakeParamSet() const { return hasFakeParam; }
 
@@ -446,6 +423,39 @@ class omxState {
 
 };
 
+#include "autoTune.h"
+#include "finiteDifferences.h"
+
+// NOTE: All non-linear constraints are applied regardless of free
+// variable group.
+class ConstraintVec {
+public:
+  typedef std::function<bool(const omxConstraint&)> ClassifyFn;
+  int verbose;
+
+private:
+  const char *name;
+  ClassifyFn cf;
+  int count;
+  bool ineqAlwaysActive;
+  bool anyAnalyticJacCache;
+  std::unique_ptr<class AutoTune<class JacobianGadget>> jacTool;
+
+public:
+  ConstraintVec(omxState *_st, const char *_name, ClassifyFn _cf);
+  int getCount() const { return count; }
+  void setIneqAlwaysActive() { ineqAlwaysActive = true; }
+  void markUselessConstraints(FitContext *fc);
+  void allocJacTool(FitContext *fc);
+  void setAlgoOptions(GradientAlgorithm _algo,	int _numIter, double _eps)
+  { jacTool->work().setAlgoOptions(_algo, _numIter, _eps); }
+  // constrOut is a vector of size getCount
+  // jacOut is a matrix of dimension getCount by numFree
+  void eval(FitContext *fc, double *constrOut, double *jacOut);
+  void eval(FitContext *fc, double *constrOut) { eval(fc, constrOut, 0); }
+  bool anyAnalyticJac() const { return anyAnalyticJacCache; }
+};
+
 inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInterrupted || Global->timedOut; }
 inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0 || Global->userInterrupted; }
 
@@ -455,7 +465,6 @@ void omxRaiseErrorf(const char* fmt, ...) __attribute__((format (printf, 1, 2)))
 
 void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);
 
-void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 SEXP enableMxLog();
 
 struct StateInvalidator {

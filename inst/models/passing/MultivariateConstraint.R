@@ -16,7 +16,7 @@
 library(OpenMx)
 library(testthat)
 
-if(mxOption(key="Default optimizer") == 'CSOLNP') stop("SKIP")
+if(mxOption(key="Default optimizer") != 'SLSQP') stop("SKIP")
 
 varNames <- c('x','y','z')
 

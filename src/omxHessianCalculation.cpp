@@ -81,7 +81,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
-	void omxCalcFinalConstraintJacobian(FitContext* fc, int npar);
+	void omxCalcFinalConstraintJacobian(FitContext* fc);
 
 	struct calcHessianEntry {
 		omxComputeNumericDeriv &cnd;
@@ -337,12 +337,12 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	detail = 0;
 }
 
-void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int npar){
-	allconstraints_functional acf(*fc, verbose);
-	Eigen::MatrixWrapper< Eigen::ArrayXd > optimaM(optima);
-	Eigen::VectorXd resulttmp(fc->state->numEqC + fc->state->numIneqC);
-	Eigen::MatrixXd jactmp(fc->state->numEqC + fc->state->numIneqC, npar);
-	acf(optimaM, resulttmp, jactmp);
+void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc)
+{
+  ConstraintVec cvec(fc->state, "constraint",
+                     [](const omxConstraint &con){ return true; });
+  if (cvec.getCount() == 0) return;
+
 	/*Gradient algorithm, iterations, and stepsize are hardcoded as they are for two reasons.
 	 * 1.  Differentiating the constraint functions should not take long, expecially compared to
 	 * twice-differentiating the fitfunction, so it might as well be done carefully.
@@ -352,19 +352,20 @@ void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc, int 
 	 * But, that has no bearing on the constraint functions, so it doesn't really make sense to use
 	 * the stepsize and iterations stored in the omxComputeNumericDeriv object.
 	 */
-	fd_jacobian<true>(
-		GradientAlgorithm_Central, 4, 1.0e-7,
-    acf, resulttmp, optimaM, jactmp);
+  cvec.allocJacTool(fc);
+  cvec.setAlgoOptions(GradientAlgorithm_Central, 4, 1.0e-7);
 
-	fc->constraintFunVals = resulttmp;
-	fc->constraintJacobian = jactmp;
+	fc->constraintFunVals.resize(cvec.getCount());
+	fc->constraintJacobian.resize(cvec.getCount(), fc->getNumFree());
+  cvec.eval(fc, fc->constraintFunVals.data(), fc->constraintJacobian.data());
+
 	/* Subsequent code assumes that fc->est is set to the optimium
 	  point. If there is more than 1 thread then the top-level fc->est
 	  is unchanged, but if there is only 1 thread then the last
 	  parameter in fc->est is offset due to numeric differentiation.
 	  Hence, we set it back to its optimum value: */
-	fc->est[npar-1L] = optima.coeff(npar-1L);
-	return;
+  int lastPar = fc->getNumFree() - 1;
+	fc->est[lastPar] = optima.coeff(lastPar);
 }
 
 void omxComputeNumericDeriv::computeImpl(FitContext *fc)
@@ -394,12 +395,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 	optima.resize(numParams);
 	fc->copyEstToOptimizer(optima);
 
-	int c_n = fc->state->numEqC + fc->state->numIneqC;
-	fc->constraintFunVals.resize(c_n);
-	fc->constraintJacobian.resize(c_n, numParams);
-	if(c_n){
-		omxCalcFinalConstraintJacobian(fc, numParams);
-	}
+  omxCalcFinalConstraintJacobian(fc);
+
 	// TODO: Allow more than one hessian value for calculation
 
 	int numChildren = 1;
@@ -518,17 +515,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
   fc->initGrad();
 	fc->copyGradFromOptimizer(Gc);
 
-	if(c_n){
-		fc->inequality.resize(fc->state->numIneqC);
-		fc->analyticIneqJacTmp.resize(fc->state->numIneqC, numParams);
-		fc->myineqFun(true, false);
-	}
-
 	gradNorm = sqrt(gradNorm);
 	double gradThresh = Global->getGradientThreshold(minimum);
-	//The gradient will generally not be near zero at a local minimum if there are equality constraints
-	//or active inequality constraints:
-	if ( checkGradient && gradNorm > gradThresh && !(fc->state->numEqC || fc->inequality.array().sum()) ) {
+
+	if ( checkGradient && gradNorm > gradThresh && fc->isEffectivelyUnconstrained()) {
 		if (verbose >= 1) {
 			mxLog("Some gradient entries are too large, norm %f", gradNorm);
 		}

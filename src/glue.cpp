@@ -664,6 +664,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		mxThrow("Protection stack too large; report this problem to the OpenMx forum");
 	}
 
+  globalState->hideBadConstraints(fc);
+
 	if (globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT) {
 		mxThrow("globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT");
 	}

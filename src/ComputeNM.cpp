@@ -283,7 +283,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 	nmoc.ineqConstraintMthd = ineqConstraintMthd;
 	nmoc.eqConstraintMthd = eqConstraintMthd;
 	nmoc.countConstraintsAndSetupBounds();
-	if(nmoc.eqConstraintMthd==4 && (nmoc.numEqC || (nmoc.ineqConstraintMthd && nmoc.numIneqC))){
+	if(nmoc.eqConstraintMthd==4 && (nmoc.EqC.getCount() || (nmoc.ineqConstraintMthd && nmoc.IneqC.getCount()))){
 		if(verbose){mxLog("starting l1-penalty algorithm");}
 		fc->iterations = 0; //<--Not sure about this
 		nmoc.maxIter = maxIter/10;
@@ -370,7 +370,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 		fc->iterations += nmoc2.itersElapsed;
 	}
 
-	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.numEqC && !nmoc.addPenalty){
+	if(doPseudoHessian && (nmoc.statuscode==0 || nmoc.statuscode==4) && !nmoc.vertexInfeas.sum() && !nmoc.EqC.getCount() && !nmoc.addPenalty){
 		nmoc.calculatePseudoHessian();
 	}
 
@@ -409,7 +409,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 	}
 	fproxOut = fdiffs.array().maxCoeff();
 	for(i=0; i < size_t(nmoc.n); i++){
-		if(!nmoc.numEqC){
+		if(!nmoc.EqC.getCount()){
 			Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
 			xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
 		}
@@ -418,7 +418,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 		}
 	}
 	xproxOut = xdiffs.array().maxCoeff();
-	if(!nmoc.vertexInfeas.sum() && !nmoc.numEqC && !nmoc.addPenalty){
+	if(!nmoc.vertexInfeas.sum() && !nmoc.EqC.getCount() && !nmoc.addPenalty){
 		Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
 		if(luq.isInvertible()){
 			Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
@@ -441,7 +441,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	omxPopulateFitFunction(fitMatrix, out);
 
 	MxRList output;
-	SEXP pn, cn, cr, cc, cv, vrt, fv, vinf, fpm, xpm, phess, sg, bf;
+	SEXP pn, cv, vrt, fv, vinf, fpm, xpm, phess, sg, bf;
 	size_t i=0;
 
 	if( fc->varGroup->vars.size() ){
@@ -451,19 +451,7 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 		}
 		output.add("paramNames", pn);
 	}
-	if( fc->state->conListX.size() ){
-		Rf_protect(cn = Rf_allocVector( STRSXP, fc->state->conListX.size() ));
-		Rf_protect(cr = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
-		Rf_protect(cc = Rf_allocVector( INTSXP, fc->state->conListX.size() ));
-		for(i=0; i < fc->state->conListX.size(); i++){
-			SET_STRING_ELT( cn, i, Rf_mkChar(fc->state->conListX[i]->name) );
-			INTEGER(cr)[i] = fc->state->conListX[i]->nrows;
-			INTEGER(cc)[i] = fc->state->conListX[i]->ncols;
-		}
-		output.add("constraintNames", cn);
-		output.add("constraintRows", cr);
-		output.add("constraintCols", cc);
-	}
+  fc->state->reportConstraints(output);
 	if( fc->constraintFunVals.size() ){
 		Rf_protect(cv = Rf_allocVector( REALSXP, fc->constraintFunVals.size() ));
 		memcpy( REAL(cv), fc->constraintFunVals.data(), sizeof(double) * fc->constraintFunVals.size() );
@@ -509,13 +497,16 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 	output.add("penalizedFit", bf);
 
 	slots->add("output", output.asR());
-	return;
 }
 
 //-------------------------------------------------------
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
 	: fc(_fc), NMobj(_nmo), numFree(_fc->getNumFree()),
+    IneqC(_fc->state, "ineq",
+          [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; }),
+    EqC(_fc->state, "eq",
+        [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; }),
 	  subsidiarygoc(_fc, 0L, _nmo)
 {
 	est.resize(numFree);
@@ -523,7 +514,6 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxCompu
 	statuscode = -1;
 	addPenalty = false;
 	rho = 1;
-	checkRedundantEqualities = true;
 }
 
 void NelderMeadOptimizerContext::copyBounds()
@@ -537,8 +527,8 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	solUB.resize(numFree);
 	copyBounds();
 
-	omxState *globalState = fc->state;
-	globalState->countNonlinearConstraints(numEqC, numIneqC, false);
+	int numEqC = EqC.getCount();
+  int numIneqC = IneqC.getCount();
 	if(verbose){
 		mxLog("counted %d equality constraints",numEqC);
 		mxLog("counted %d inequality constraints",numIneqC);
@@ -550,31 +540,6 @@ void NelderMeadOptimizerContext::countConstraintsAndSetupBounds()
 	if(!numIneqC){ineqConstraintMthd = 0;}
 	equality.resize(numEqC);
 	inequality.resize(numIneqC);
-
-	fc->equality.resize(numEqC);
-
-	//Check for redundant equality constraints, and warn if found:
-	if(numEqC > 1 && checkRedundantEqualities){
-		NldrMd_equality_functional eqf(this, fc);
-		Eigen::MatrixXd ej(numEqC, numFree);
-		ej.setConstant(NA_REAL);
-		eqf(est, equality);
-		fd_jacobian<true>(
-			GradientAlgorithm_Central, 4, 1.0e-7,
-			eqf, equality, est, ej);
-		Eigen::MatrixXd ejt = ej.transpose();
-		//mxPrintMat("ej: ",ej);
-		Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrj;
-		qrj.compute(ejt);
-		if(qrj.rank() < numEqC){
-			Rf_warning(
-				"counted %d equality constraints, but equality-constraint Jacobian is apparently rank %d at the start values; "
-				"Nelder-Mead will not work correctly unless equality constraints are linearly independent "
-				"(this warning may be spurious if there are non-smooth equality constraints)", numEqC, qrj.rank()
-			);
-			checkRedundantEqualities = false;
-		}
-	}
 
 	if(numEqC + numIneqC || eqConstraintMthd==3){
 		subsidiarygoc.setEngineName("SLSQP");
@@ -616,42 +581,20 @@ bool NelderMeadOptimizerContext::checkBounds(Eigen::VectorXd &x){
 
 void NelderMeadOptimizerContext::evalIneqC()
 {
-	if(!numIneqC){return;}
+  if (!IneqC.getCount()) return;
 
-	omxState *st = fc->state;
-	int ineqType = omxConstraint::LESS_THAN;
-
-	int cur=0, j=0;
-	for (j=0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		if (con.opCode == omxConstraint::EQUALITY) continue;
-		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &inequality(cur));
-		//Nelder-Mead, of course, does not use constraint Jacobians...
-		cur += con.size;
-	}
-	//Nelder-Mead will not care about the function values of inactive inequality constraints:
-	inequality = inequality.array().max(0.0);
+  IneqC.eval(fc, inequality.data());
 
 	if (NMobj->verbose >= 3) {
 		mxPrintMat("inequality", inequality);
 	}
-
 }
 
 void NelderMeadOptimizerContext::evalEqC()
 {
-	if(!numEqC){return;}
+	if(!EqC.getCount()) return;
 
-	omxState *st = fc->state;
-
-	int cur=0, j=0;
-	for(j = 0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		if (con.opCode != omxConstraint::EQUALITY) continue;
-		con.refreshAndGrab(fc, &equality(cur));
-		//Nelder-Mead, of course, does not use constraint Jacobians...
-		cur += con.size;
-	}
+  EqC.eval(fc, equality.data());
 
 	if (NMobj->verbose >= 3) {
 		mxPrintMat("equality", equality);
@@ -689,6 +632,8 @@ void NelderMeadOptimizerContext::checkNewPointInfeas(Eigen::VectorXd &x, Eigen::
 	int i=0;
 	double feasTol = NMobj->feasTol;
 	ifcr.setZero(2);
+	int numEqC = EqC.getCount();
+  int numIneqC = IneqC.getCount();
 	if(!numIneqC && !numEqC){return;}
 	copyParamsFromOptimizer(x,fc);
 	evalIneqC();
@@ -1363,7 +1308,7 @@ bool NelderMeadOptimizerContext::checkProgress(){
 
 
 void NelderMeadOptimizerContext::invokeNelderMead(){
-	n = numFree - numEqC;
+	n = numFree - EqC.getCount();
 	vertices.resize(n+1);
 	fvals.resize(n+1);
 	vertexInfeas.resize(n+1);
@@ -1608,18 +1553,9 @@ void NelderMeadOptimizerContext::finalize()
 	MxConstraints, and status code 10 for	all other kinds of infeasible solutions:*/
 	if(!fc->insideFeasibleSet() && (statuscode==0 || statuscode==4)){fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);}
 
-	omxState *st = fc->state;
-	int ineqType = omxConstraint::LESS_THAN;
-	int cur=0, j=0;
-	Eigen::VectorXd cfv(numEqC + numIneqC);
-
-	for (j=0; j < int(st->conListX.size()); j++) {
-		omxConstraint &con = *st->conListX[j];
-		con.refreshAndGrab(fc, (omxConstraint::Type) ineqType, &cfv(cur));
-		cur += con.size;
-	}
-
-	fc->constraintFunVals = cfv;
+  ConstraintVec cv(fc->state, "constraint", [](const omxConstraint &con){ return true; });
+  fc->constraintFunVals.resize(cv.getCount());
+  cv.eval(fc, fc->constraintFunVals.data());
 }
 
 

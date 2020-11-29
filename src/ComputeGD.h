@@ -61,14 +61,18 @@ class GradientOptimizerContext {
 	Eigen::VectorXd solLB;
 	Eigen::VectorXd solUB;
 
-	bool ineqAlwaysActive;
-
 	// NPSOL has bugs and can return the wrong fit & estimates
 	// even when optimization proceeds correctly.
 	double bestFit;
 	Eigen::VectorXd est;    //like fc->est but omitting profiled out params
 	Eigen::VectorXd bestEst;
 	Eigen::VectorXd grad;
+  ConstraintVec AllC;
+  ConstraintVec IneqC;
+  ConstraintVec EqC;
+  void evalAllC(double *constrOut, double *jacOut=0) { AllC.eval(fc, constrOut, jacOut); }
+  void evalIneq(double *constrOut, double *jacOut=0) { IneqC.eval(fc, constrOut, jacOut); }
+  void evalEq(double *constrOut, double *jacOut=0) { EqC.eval(fc, constrOut, jacOut); }
 	double eqNorm, ineqNorm;
 
 	// output
@@ -81,7 +85,7 @@ class GradientOptimizerContext {
 	void reset();
 
 	void setupSimpleBounds();          // NLOPT style
-	void setupAllBounds();             // NPSOL style
+  void setupAllBounds(); //used with NPSOL.
   bool isUnconstrained();
 
 	Eigen::VectorXd constraintFunValsOut;
@@ -92,25 +96,12 @@ class GradientOptimizerContext {
 
 	double solFun(double *myPars, int* mode);
 	double recordFit(double *myPars, int* mode);
-	void solEqBFun(bool wantAJ);
-	void myineqFun(bool wantAJ);
-  Eigen::VectorXd &getEqualitySingleThreaded()
-  { return fc->equality; }
-  Eigen::VectorXd &getInequalitySingleThreaded()
-  { return fc->inequality; }
-  Eigen::MatrixXd &getAnalyticEqJacSingleThreaded()
-  { return fc->analyticEqJacTmp; }
-  Eigen::MatrixXd &getAnalyticIneqJacSingleThreaded()
-  { return fc->analyticIneqJacTmp; }
-	template <typename T1, typename T2, typename T3> void allConstraintsFun(
-			Eigen::MatrixBase<T1> &constraintOut, Eigen::MatrixBase<T2> &jacobianOut, Eigen::MatrixBase<T3> &needcIn, int mode);
 	template <typename T1> void checkActiveBoxConstraints(Eigen::MatrixBase<T1> &nextEst);
 	template <typename T1> void linearConstraintCoefficients(Eigen::MatrixBase<T1> &lcc);
-	bool isUsingAnalyticJacobian(){ return fc->state->usingAnalyticJacobian; }
 	void useBestFit();
 	void copyToOptimizer(double *myPars);
-	void copyFromOptimizer(double *myPars, FitContext *fc2);
-	void copyFromOptimizer(double *myPars) { copyFromOptimizer(myPars, fc); };
+	void copyFromOptimizer(const double *myPars, FitContext *fc2);
+	void copyFromOptimizer(const double *myPars) { copyFromOptimizer(myPars, fc); };
 	void finish();
 	double getFit() const { return fc->fit; };
 	// fc->iterations is a global counter that includes multiple optimizer runs
@@ -123,12 +114,6 @@ class GradientOptimizerContext {
 		if(fc->ciobj){return(true);}
 		else{return(false);}
 	};
-
-  AutoTune<JacobianGadget> jgContext;
-  template <typename T1, typename T2, typename T3>
-  void ineqJacobian(Eigen::MatrixBase<T1> &ref,
-                    T2 point,
-                    Eigen::MatrixBase<T3> &jout);
 };
 
 template <typename T1>
@@ -151,23 +136,6 @@ double median(Eigen::MatrixBase<T1> &vec)
 		int mid = vec.size() / 2;
 		return vec[ind[mid]];
 	}
-}
-
-template <typename T1, typename T2, typename T3>
-void GradientOptimizerContext::ineqJacobian(Eigen::MatrixBase<T1> &ref,
-                                            T2 point,
-                                            Eigen::MatrixBase<T3> &jout)
-{
-	jgContext([&](double *myPars, int thrId, auto &result) {
-              FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
-              Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
-              // Only 1 parameter is different so we could
-              // update only that parameter instead of all
-              // of them.
-              copyFromOptimizer(myPars, fc2);
-              fc2->myineqFun(false, ineqAlwaysActive);
-              result = fc2->inequality;
-            }, ref, point, true, jout);
 }
 
 template <typename T1>
