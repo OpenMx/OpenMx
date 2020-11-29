@@ -214,9 +214,13 @@ static void nloptInequalityFunction(unsigned m, double *result, unsigned n, cons
 
     goc->ineqJacobian(Eresult, [&Epoint](){ return Epoint; }, jacobian);
 
+    for (int rx=0; rx < jacobian.rows(); ++rx) {
+      if (Eresult[rx] == 0.0) jacobian.row(rx).setZero();
+    }
+
 		jacobianDest = jacobian.transpose();
 		if (goc->verbose >= 3) {
-			mxPrintMat("inequality jacobian", jacobianDest);
+			mxPrintMat("inequality jacobian", jacobian);
 		}
 	}
 }
