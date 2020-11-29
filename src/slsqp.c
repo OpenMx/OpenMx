@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+//#include <stdio.h>
 
 #include "slsqp.h"
 
@@ -2580,7 +2581,7 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	  if ((mode == -1 && !nlopt_isinf(minor.fval)) || !nlopt_isfinite(cur.par[0])) {
 		  estimate_copy(&cur, &minor);
 		  //printf("best minor %f %f feasible %d\n",
-		  //minor.fval, minor.infeasibility, minor.feasible);
+      //             minor.fval, minor.infeasibility, minor.feasible);
 
 		  if (!constrained || (constrained && minor.feasible)) {
 			  if (!nlopt_isinf(major.fval)) {
@@ -2709,14 +2710,21 @@ nlopt_result nlopt_slsqp(unsigned n, nlopt_func f, void *f_data,
 	  prev_mode = mode;
 
 	  /* update best point so far */
-	  if (mode != -1 && nlopt_isfinite(cur.fval) && nlopt_isfinite(cur.infeasibility) &&
-	      (cur.fval < minor.fval ||
-         (!minor.feasible && cur.infeasibility < minor.infeasibility))) {
-
-		  //printf("best eval so far %f %f feasible %d\n", cur.fval, cur.infeasibility, cur.feasible);
-		  estimate_copy(&minor, &cur);
-		  makingProgress = 1;
-	  }
+	  if (mode != -1) {
+      if (nlopt_isfinite(cur.fval) && nlopt_isfinite(cur.infeasibility) &&
+          (cur.fval < minor.fval ||
+           (!minor.feasible && cur.infeasibility < minor.infeasibility))) {
+        //printf("impr %.6f %.6f feasible %d vs prev %.6f %.6f feasible %d\n",
+        //cur.fval, cur.infeasibility, cur.feasible,
+        //minor.fval, minor.infeasibility, minor.feasible);
+        estimate_copy(&minor, &cur);
+        makingProgress = 1;
+      } else {
+        //printf("rej %.6f %.6f feasible %d vs prev %.6f %.6f feasible %d\n",
+        //               cur.fval, cur.infeasibility, cur.feasible,
+        //               minor.fval, minor.infeasibility, minor.feasible);
+      }
+    }
 
 	  /* do some additional termination tests */
 	  if (nlopt_stop_evals(stop)) ret = NLOPT_MAXEVAL_REACHED;
