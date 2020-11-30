@@ -167,11 +167,6 @@ void CSOLNP::solnp(double *solPars, int verbose)
 
 		ind[indHasIneq] = nineq > 0;
 
-		if (verbose >= 2){
-			mxLog("ind is: \n");
-			for (int ii = 0; ii < ind.size(); i++) mxLog("%f",ind[ii]);
-		}
-
 		Eigen::RowVectorXd ineqx0_e(nineq); ineqx0_e.setZero();
 		Eigen::MatrixXd pb_e;
 
