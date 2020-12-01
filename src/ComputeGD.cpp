@@ -601,7 +601,7 @@ class ciConstraintIneq : public ciConstraint {
 	typedef ciConstraint super;
  public:
 	ciConstraintIneq(omxState *_state, int _size) : super(_state)
-	{ size=_size; opCode = LESS_THAN; redundent.assign(size, false); };
+	{ size=_size; opCode = LESS_THAN; setInitialSize(size); };
 
 	virtual void refreshAndGrab(FitContext *fc, double *out) override
   {
@@ -622,7 +622,7 @@ class ciConstraintEq : public ciConstraint {
 	typedef ciConstraint super;
  public:
 	ciConstraintEq(omxState *_state, int _size) : super(_state)
-	{ size=_size; opCode = EQUALITY; redundent.assign(size, false); };
+	{ size=_size; opCode = EQUALITY; setInitialSize(size); };
 
 	virtual void refreshAndGrab(FitContext *fc, double *out) override {
 		fc->ciobj->evalEq(fc, fitMat, out);

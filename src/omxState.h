@@ -124,7 +124,9 @@ class omxConstraint {
 	};
 
 	const char *name;
-	int size;  // number of non-redundent constraints
+  int origSize;  // number of constraints
+	int size;      // number of non-redundent constraints
+  void setInitialSize(int sz);
   void recalcSize();
 	enum Type opCode;
   // NPSOL is documented to have some special support for linear
@@ -132,6 +134,8 @@ class omxConstraint {
   // didn't seem to work.
   const int linear;
   std::vector<bool> redundent;
+  std::vector<bool> seenActive;
+  Eigen::ArrayXXd initialJac;
 
 	//Constraints created by backend for CIs use this, the base-class constructor:
   omxConstraint(const char *name) : name(name), linear(0) {};

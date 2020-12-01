@@ -939,14 +939,27 @@ void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, bool f
 	}
 }
 
+void omxConstraint::setInitialSize(int sz)
+{
+  origSize = sz;
+	size = sz;
+  redundent.assign(size, false);
+  seenActive.assign(size, false);
+	if (sz == 0) {
+		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and "
+               "will have no effect", name);
+	}
+
+  int maxVars = Global->findVarGroup(FREEVARGROUP_ALL)->vars.size();
+  initialJac.resize(origSize, maxVars);
+  initialJac.setConstant(NA_REAL);
+}
+
 void UserConstraint::prep(FitContext *fc)
 {
 	refresh(fc);
-	size = pad->rows * pad->cols;
-  redundent.assign(size, false);
-	if (size == 0) {
-		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and will have no effect", name);
-	}
+  setInitialSize(pad->rows * pad->cols);
+
 	if(jacobian){
 		jacMap.resize(jacobian->cols);
 		auto &jacColNames = jacobian->colnames;
@@ -1147,14 +1160,23 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
   Eigen::Map< Eigen::ArrayXXd > constrJac(jacOut, count, fc->getNumFree());
   if (!constrOut && jacOut) mxThrow("Can't request jacOut without constrOut");
   if (!constrOut) OOPS;
-  if (jacOut) constrJac.setConstant(NA_REAL);
 
 	for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
 		if (!cf(con)) continue;
 
     con.refreshAndGrab(fc, &constr(cur));
+
     if (jacOut) {
+      auto &vars = fc->varGroup->vars;
+      for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
+        if (con.redundent[kk]) continue;
+        for (int vx=0; vx < int(vars.size()); ++vx) {
+          constrJac(cur+dx, vx) = con.initialJac(kk, vars[vx]->id);
+        }
+        dx += 1;
+      }
+
       con.analyticJac(fc, [&constrJac, cur](int r, int c, double val){
                             constrJac(cur+r,c) = val; });
     }
@@ -1215,6 +1237,28 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
       }
       // restore
       constrJac = analyticJac;
+    }
+
+    for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
+      omxConstraint &con = *state->conListX[j];
+      if (!cf(con)) continue;
+      auto &vars = fc->varGroup->vars;
+      for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
+        if (con.redundent[kk]) continue;
+        if (constr[cur+dx] != 0.0 && !con.seenActive[kk]) {
+          for (int vx=0; vx < int(vars.size()); ++vx) {
+            if (constrJac(cur+dx, vx) != 0.0) continue;
+            con.initialJac(kk, vars[vx]->id) = 0;
+            if (con.getVerbose() >= 2) {
+              mxLog("Assuming Jacobian %s[%d,%s] is zero",
+                    con.name, 1+kk, vars[vx]->name);
+            }
+          }
+          con.seenActive[kk] = true;
+        }
+        dx += 1;
+      }
+      cur += con.size;
     }
   }
 }
