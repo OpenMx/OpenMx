@@ -71,6 +71,7 @@ void GradientOptimizerContext::setupAllBounds() //used with NPSOL.
 		case omxConstraint::LESS_THAN:
 		case omxConstraint::GREATER_THAN:
 			for(int offset = 0; offset < cs.size; offset++) {
+        if (cs.redundent[offset]) continue;
 				solLB[index] = NEG_INF;
 				solUB[index] = -0.0;
 				index++;
