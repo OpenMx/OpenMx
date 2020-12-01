@@ -145,7 +145,7 @@ void AlgebraFitFunction::compute(int want, FitContext *fc)
 			addSymOuterProd(1, grad.data(), varGroup->vars.size(), fc->infoB);
 		}
 	} else {
-    fc->gradZ.setConstant(NA_REAL);
+		if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
   }
 	if (hessian && ((want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) ||
 			(want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_HESSIAN))) {
