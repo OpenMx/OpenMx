@@ -125,7 +125,6 @@ void AlgebraFitFunction::compute(int want, FitContext *fc)
 		setVarGroup(fc);
 	}
 
-  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
 	if (gradient) {
 		omxRecompute(gradient, fc);
 		if (want & FF_COMPUTE_GRADIENT) {
@@ -134,6 +133,7 @@ void AlgebraFitFunction::compute(int want, FitContext *fc)
 				if (to < 0) continue;
 				fc->gradZ(to) += omxVectorElement(gradient, v1);
 			}
+      invalidateGradient(fc);
 		}
 		if (want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_MEAT) {
 			std::vector<double> grad(varGroup->vars.size()); // wrong size TODO
@@ -144,7 +144,9 @@ void AlgebraFitFunction::compute(int want, FitContext *fc)
 			}
 			addSymOuterProd(1, grad.data(), varGroup->vars.size(), fc->infoB);
 		}
-	}
+	} else {
+    fc->gradZ.setConstant(NA_REAL);
+  }
 	if (hessian && ((want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) ||
 			(want & FF_COMPUTE_INFO && fc->infoMethod == INFO_METHOD_HESSIAN))) {
 		omxRecompute(hessian, fc);

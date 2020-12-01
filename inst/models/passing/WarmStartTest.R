@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,12 @@
 require(OpenMx)
 
 if (mxOption(NULL,"Default optimizer")!='NPSOL') stop("SKIP")
+
+if (0) {
+   mxOption(NULL,"Print level",20)
+   mxOption(NULL,"Print file",1)
+   mxOption(NULL,"Verify level",3)
+}
 
 set.seed(1611150)
 x <- matrix(rnorm(1000))
@@ -53,6 +59,14 @@ m2 <- mxModel(
 	mxExpectationNormal(covariance="Sigma",means="Mu",dimnames=c("x")),
 	mxFitFunctionML()
 )
+
+if (0) {
+  m2 <- mxOption(m2,"Always Checkpoint","Yes")
+  m2 <- mxOption(m2,"Checkpoint Units","evaluations")
+  m2 <- mxOption(m2,"Checkpoint Count",1)
+  m2 <- mxOption(m2, "Checkpoint Fullpath", "/dev/fd/2")
+}
+
 run2 <- mxRun(m2)
 
 omxCheckTrue(run2$output$evaluations < run1$output$evaluations)
@@ -107,6 +121,14 @@ m4 <- mxModel(
 	), name="hess",dimnames=list(c("mu","sigma2"),c("mu","sigma2")) ),
 	mxFitFunctionAlgebra(algebra="sub.fitfunction",hessian="hess",numObs=1000)
 )
+
+if (0) {
+  m4 <- mxOption(m4,"Always Checkpoint","Yes")
+  m4 <- mxOption(m4,"Checkpoint Units","evaluations")
+  m4 <- mxOption(m4,"Checkpoint Count",1)
+  m4 <- mxOption(m4, "Checkpoint Fullpath", "/dev/fd/2")
+}
+
 run4 <- mxRun(m4)
 
 omxCheckTrue(run4$output$evaluations < run1$output$evaluations)
