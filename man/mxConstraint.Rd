@@ -24,7 +24,7 @@ This function creates a new \link{MxConstraint} object.
 }
 
 \usage{
-mxConstraint(expression, name=NA, ..., jac=character(0), verbose=0L)
+mxConstraint(expression, name=NA, ..., jac=character(0), verbose=0L, strict=TRUE)
 }
 
 \arguments{
@@ -35,7 +35,9 @@ mxConstraint(expression, name=NA, ..., jac=character(0), verbose=0L)
    or \link{MxMatrix} representing the Jacobian for the constraint
    function.}
  \item{verbose}{For values greater than zero, enable runtime
-  diagnostics.}
+   diagnostics.}
+ \item{strict}{Whether to require that all Jacobian entries references
+   free parameters.}
 }
 
 \details{

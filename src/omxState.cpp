@@ -965,8 +965,13 @@ void UserConstraint::prep(FitContext *fc)
 		auto &jacColNames = jacobian->colnames;
 		for (size_t nx=0; nx < jacColNames.size(); ++nx) {
 			int to = fc->varGroup->lookupVar(jacColNames[nx]);
-      // Too much work for user
-      // if (to < 0) mxThrow("Constraint '%s' has Jacobian for unrecognized parameter '%s'", name, jacColNames[nx]);
+      if (strict && to < 0) {
+        mxThrow("Constraint '%s' has a Jacobian entry for unrecognized "
+                "parameter '%s'. If this is not an mistake and you "
+                "have merely fixed this parameter then you can "
+                "use the strict=FALSE argument to mxConstraint "
+                "to turn off this precautionary check", name, jacColNames[nx]);
+      }
 			jacMap[nx] = to;
 		}
 	}

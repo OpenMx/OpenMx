@@ -23,11 +23,12 @@ setClass(Class = "MxConstraint",
 		relation = "MxCharOrNumber",
 		jac = "MxCharOrNumber",
 		linear = "logical",
+    strict = "logical",
     verbose = "integer"
 	))
 
 setMethod("initialize", "MxConstraint",
-	function(.Object, name, formula, jac=character(0), verbose){#, linear=FALSE) {
+          function(.Object, name, formula, jac=character(0), verbose, strict){#, linear=FALSE) {
 		.Object@name <- name
 		.Object@formula <- formula
 		.Object@alg1 <- as.character(NA)
@@ -37,16 +38,17 @@ setMethod("initialize", "MxConstraint",
 		.Object@jac <- jac
 		.Object@linear <- FALSE
     .Object@verbose <- verbose
+    .Object@strict <- strict
 		return(.Object)
-	}
-)
+          }
+    )
 
 mxConstraintFromString <- function(exprString, name = NA,...) {
 	eval(substitute(mxConstraint(tExp, name=name, ...),
 			list(tExp = parse(text=exprString)[[1]])))
 }
 
-mxConstraint <- function(expression, name=NA, ..., jac=character(0), verbose=0L){#, linear=FALSE) {
+mxConstraint <- function(expression, name=NA, ..., jac=character(0), verbose=0L, strict=TRUE){#, linear=FALSE) {
   prohibitDotdotdot(list(...))
 	if (single.na(name)) {
 		name <- imxUntitledName()
@@ -70,7 +72,8 @@ mxConstraint <- function(expression, name=NA, ..., jac=character(0), verbose=0L)
 	}
     algebraErrorChecking(formula[[2]], "mxConstraint")
     algebraErrorChecking(formula[[3]], "mxConstraint")
-	return(new("MxConstraint", name, formula, jac, as.integer(verbose)))#, linear))
+	return(new("MxConstraint", name, formula, jac, as.integer(verbose),
+             as.logical(strict)))#, linear))
 }
 
 convertConstraints <- function(flatModel) {
@@ -96,7 +99,8 @@ convertSingleConstraint <- function(constraint, flatModel) {
 	}
 	index4 <- imxLocateIndex(flatModel, constraint@jac, constraint@name)
 	lin <- FALSE
-	return(list(index1,index2,index3 - 1,index4,lin,constraint@verbose))
+	return(list(index1,index2,index3 - 1,index4,lin,
+              constraint@verbose, constraint@strict))
 }
 
 ##' imxConstraintRelations

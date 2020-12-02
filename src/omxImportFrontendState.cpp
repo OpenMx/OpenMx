@@ -445,7 +445,9 @@ void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 		omxConstraint *constr = new UserConstraint(fc, cname, arg1, arg2, jac,
                                                Rcpp::as<int>(VECTOR_ELT(nextVar,5)));
 		constr->opCode = (omxConstraint::Type) Rf_asInteger(VECTOR_ELT(nextVar, 2));
-		if (OMX_DEBUG) mxLog("constraint '%s' is type %d", constr->name, constr->opCode);
+    constr->strict = Rcpp::as<bool>(VECTOR_ELT(nextVar,6));
+		if (OMX_DEBUG) mxLog("constraint '%s' is type %d strict=%d",
+                              constr->name, constr->opCode, int(constr->strict));
 		constr->prep(fc);
 		conListX.push_back(constr);
 	}

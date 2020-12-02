@@ -136,6 +136,7 @@ class omxConstraint {
   std::vector<bool> redundent;
   std::vector<bool> seenActive;
   Eigen::ArrayXXd initialJac;
+  bool strict;
 
 	//Constraints created by backend for CIs use this, the base-class constructor:
   omxConstraint(const char *name) : name(name), linear(0) {};

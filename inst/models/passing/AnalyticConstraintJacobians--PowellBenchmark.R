@@ -306,6 +306,11 @@ powellmod5 <- mxModel(
 # powellmod5 <- mxRun(powellmod5,onlyFrontend=T)
 # powellmod5$compute$steps$GD$verbose <- 3L
 # powellmod5$compute$.persist <- TRUE
+expect_error(mxRun(powellmod5),
+             "Constraint 'PowellBenchmarkWithJacobians.c1' has a Jacobian entry for unrecognized parameter 'z'.")
+powellmod5$c1$strict <- FALSE
+powellmod5$c2$strict <- FALSE
+powellmod5 <- mxModel(powellmod5, mxConstraint(A^3 + B^3 + 1 == 0, name="c3",jac="jac3", strict=FALSE ))
 powellrun5 <- mxRun(powellmod5)
 omxCheckCloseEnough(powellrun4$fitfunction$result, powellrun5$fitfunction$result)
 omxCheckEquals(powellrun4$output$iterations,powellrun5$output$iterations)
