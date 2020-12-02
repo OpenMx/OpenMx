@@ -13,12 +13,12 @@ mask <- matrix(as.logical(rbinom(prod(dim(dof)), size = 1, .1)),
 dof[mask] <- NA
 manifests <- names(dof)
 latents <- c("G")
-model <- mxModel("OneFactor", 
+model <- mxModel("OneFactor",
                  type="LISREL",
-                 manifestVars=list(exo=manifests), 
+                 manifestVars=list(exo=manifests),
                  latentVars=list(exo=latents),
                  mxPath(from=latents, to=manifests),
-                 mxPath(from=manifests, arrows=2),
+                 mxPath(from=manifests, arrows=2, values=1.0),
                  mxPath(from=latents, arrows=2, free=FALSE, values=1.0),
                  mxPath(from='one', to=manifests),
                  mxData(observed=dof, type="raw", naAction = 'fail'))
