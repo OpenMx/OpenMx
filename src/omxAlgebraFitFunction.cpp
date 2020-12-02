@@ -28,6 +28,7 @@ struct AlgebraFitFunction : omxFitFunction {
 
 	FreeVarGroup *varGroup;
 	bool vec2diag;
+  bool strict;
 
 	AlgebraFitFunction() : ff(0), gradient(0), hessian(0), varGroup(0) {};
 	virtual void init();
@@ -96,7 +97,7 @@ void AlgebraFitFunction::setVarGroup(FitContext *fc)
 	}
 	if (!names) return;
 
-  buildGradMap(fc, *names);
+  buildGradMap(fc, *names, strict);
 }
 
 // writes to upper triangle of full matrix
@@ -223,4 +224,7 @@ void AlgebraFitFunction::init()
 	ProtectedSEXP Rverb(R_do_slot(rObj, Rf_install("verbose")));
 	aff->verbose = Rf_asInteger(Rverb);
 	off->canDuplicate = true;
+
+	ProtectedSEXP Rstrict(R_do_slot(rObj, Rf_install("strict")));
+  aff->strict = Rcpp::as<bool>(Rstrict);
 }

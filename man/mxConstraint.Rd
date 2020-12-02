@@ -36,7 +36,7 @@ mxConstraint(expression, name=NA, ..., jac=character(0), verbose=0L, strict=TRUE
    function.}
  \item{verbose}{For values greater than zero, enable runtime
    diagnostics.}
- \item{strict}{Whether to require that all Jacobian entries references
+ \item{strict}{Whether to require that all Jacobian entries reference
    free parameters.}
 }
 

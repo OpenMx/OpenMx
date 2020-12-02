@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,11 +22,12 @@ setClass(Class = "MxFitFunctionAlgebra",
 		numStats = "numeric",
 	    gradient = "MxCharOrNumber",
 	    hessian = "MxCharOrNumber",
-	    verbose = "integer"),
+    verbose = "integer",
+    strict = "logical"),
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionAlgebra",
-	function(.Object, algebra, units, numObs, numStats, gradient, hessian, verbose, name = 'fitfunction') {
+	function(.Object, algebra, units, numObs, numStats, gradient, hessian, verbose, strict, name = 'fitfunction') {
 		.Object@name <- name
 		.Object@algebra <- algebra
 		.Object@units <- units
@@ -35,6 +36,7 @@ setMethod("initialize", "MxFitFunctionAlgebra",
 		.Object@gradient <- gradient
 		.Object@hessian <- hessian
 		.Object@verbose <- verbose
+    .Object@strict <- strict
 		return(.Object)
 	}
 )
@@ -50,7 +52,7 @@ setMethod("genericFitDependencies", signature("MxFitFunctionAlgebra"),
 	return(dependencies)
 })
 
-setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"), 
+setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		algebra <- .Object@algebra
@@ -74,7 +76,7 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 		return(.Object)
 })
 
-setMethod("qualifyNames", signature("MxFitFunctionAlgebra"), 
+setMethod("qualifyNames", signature("MxFitFunctionAlgebra"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		for (sl in c('algebra', 'gradient', 'hessian')) {
@@ -105,7 +107,7 @@ setMethod("generateReferenceModels", "MxFitFunctionAlgebra",
 
 mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 				 gradient=NA_character_, hessian=NA_character_,
-				 verbose=0L, units="-2lnL")
+				 verbose=0L, units="-2lnL", strict=TRUE)
 {
 	prohibitDotdotdot(list(...))
 
@@ -120,13 +122,13 @@ mxFitFunctionAlgebra <- function(algebra, numObs = NA, numStats = NA, ...,
 	if (single.na(numStats)) {
 		numStats <- as.numeric(NA)
 	}
-	return(new("MxFitFunctionAlgebra", algebra, units, numObs, numStats, gradient, hessian, verbose))
+	return(new("MxFitFunctionAlgebra", algebra, units, numObs, numStats, gradient, hessian, verbose, as.logical(strict)))
 }
 
 displayMxFitFunctionAlgebra <- function(fitfunction) {
 	cat("MxFitFunctionAlgebra", omxQuotes(fitfunction@name), '\n')
-	cat("$algebra: ", omxQuotes(fitfunction@algebra), '\n')	
-	cat("$units: ", omxQuotes(fitfunction@units), '\n')	
+	cat("$algebra: ", omxQuotes(fitfunction@algebra), '\n')
+	cat("$units: ", omxQuotes(fitfunction@units), '\n')
 	cat("$numObs: ", fitfunction@numObs, '\n')
 	cat("$numStats: ", fitfunction@numStats, '\n')
 	if (length(fitfunction@result) == 0) {
@@ -138,10 +140,10 @@ displayMxFitFunctionAlgebra <- function(fitfunction) {
 	invisible(fitfunction)
 }
 
-setMethod("print", "MxFitFunctionAlgebra", function(x,...) { 
-	displayMxFitFunctionAlgebra(x) 
+setMethod("print", "MxFitFunctionAlgebra", function(x,...) {
+	displayMxFitFunctionAlgebra(x)
 })
 
-setMethod("show", "MxFitFunctionAlgebra", function(object) { 
-	displayMxFitFunctionAlgebra(object) 
+setMethod("show", "MxFitFunctionAlgebra", function(object) {
+	displayMxFitFunctionAlgebra(object)
 })

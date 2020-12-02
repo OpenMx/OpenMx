@@ -18,6 +18,7 @@
 #more-or-less satisfied if they reach the analytically correct solution.
 
 library(OpenMx)
+library(testthat)
 
 mxOption(key="feasibility tolerance", value = .00001)
 
@@ -79,9 +80,11 @@ m3 <- mxModel(
 	mxConstraint(X2 < 3, name="u2"),
 	mxAlgebra( 100*( (X2^2) - 0.01*(X1^2) + 1) + 0.01*(X1+10)^2,
 						 name="BukinN2Func"),
-	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","x2"))),
+	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","X2"))),
 	mxFitFunctionAlgebra(algebra="BukinN2Func",gradient="grad")
 )
+expect_error(mxRun(m3), "'BukinN2.fitfunction' has a derivative entry for unrecognized parameter 'X2'")
+colnames(m3$grad) <- c("x1","x2")
 m3 <- mxRun(m3)
 summary(m3)
 omxCheckCloseEnough(coef(m3), c(-15,0), 0.1)

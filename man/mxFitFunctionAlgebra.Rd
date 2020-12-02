@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,8 @@
 
 \usage{
 mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient =
-                 NA_character_, hessian = NA_character_, verbose = 0L, units="-2lnL")
+                 NA_character_, hessian = NA_character_, verbose = 0L,
+   units="-2lnL", strict=TRUE)
 }
 
 \arguments{
@@ -43,6 +44,8 @@ mxFitFunctionAlgebra(algebra, numObs = NA, numStats = NA, ..., gradient =
    \item{verbose}{(optional An integer to increase the level of runtime
      log output.}
    \item{units}{(optional) The units of the fit statistic.}
+   \item{strict}{Whether to require that all derivative entries reference
+   free parameters.}
 }
 
 \details{
@@ -73,13 +76,13 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 
 \seealso{
 Other fit functions:
-\code{\link{mxFitFunctionMultigroup}}, \code{\link{mxFitFunctionML}}, 
-\code{\link{mxFitFunctionWLS}}, \code{\link{mxFitFunctionGREML}}, 
+\code{\link{mxFitFunctionMultigroup}}, \code{\link{mxFitFunctionML}},
+\code{\link{mxFitFunctionWLS}}, \code{\link{mxFitFunctionGREML}},
 \code{\link{mxFitFunctionR}}, \code{\link{mxFitFunctionRow}}
 
 To create an algebra suitable as a reference function to be minimized see: \link{mxAlgebra}
 
-More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 
 \examples{
@@ -97,7 +100,7 @@ B <- mxAlgebra(A + A, name = 'B')
 # Define the objective function for algebra 'B'
 objective <- mxFitFunctionAlgebra('B')
 
-# Place the algebra, its associated matrix and 
+# Place the algebra, its associated matrix and
 # its objective function in a model
 tmpModel <- mxModel(model="Addition", A, B, objective)
 

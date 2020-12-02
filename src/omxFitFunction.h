@@ -75,7 +75,7 @@ struct omxFitFunction {
 	// populateAttr should be used for returning results specific to fit functions or expectations
 	virtual void populateAttr(SEXP algebra) {};
 
-  void buildGradMap(FitContext *fc, std::vector<const char *> &names);
+  void buildGradMap(FitContext *fc, std::vector<const char *> &names, bool strict);
   void invalidateGradient(FitContext *fc);
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }

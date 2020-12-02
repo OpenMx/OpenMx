@@ -49,7 +49,8 @@ omxFitFunction *omxFitFunction::initMorph()
 	return this;
 }
 
-void omxFitFunction::buildGradMap(FitContext *fc, std::vector<const char *> &names)
+void omxFitFunction::buildGradMap(FitContext *fc, std::vector<const char *> &names,
+                                  bool strict)
 {
   if (fc->getNumFree() == -1) mxThrow("Forgot to call fc->calcNumFree");
 
@@ -63,6 +64,13 @@ void omxFitFunction::buildGradMap(FitContext *fc, std::vector<const char *> &nam
 		auto it = fim.find(names[nx]);
     if (it == fim.end()) {
       gradMap[nx] = -1;
+      if (strict) {
+        mxThrow("Fit function '%s' has a derivative entry for unrecognized "
+                "parameter '%s'. If this is not an mistake and you "
+                "have merely fixed this parameter then you can "
+                "use the strict=FALSE argument to mxFitFunction "
+                "to turn off this precautionary check", name(), names[nx]);
+      }
     } else {
       gradMap[nx] = it->second;
       haveGrad[it->second] = true;
