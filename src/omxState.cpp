@@ -1171,8 +1171,9 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
       auto &vars = fc->varGroup->vars;
       for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
         if (con.redundent[kk]) continue;
-        for (int vx=0; vx < int(vars.size()); ++vx) {
-          constrJac(cur+dx, vx) = con.initialJac(kk, vars[vx]->id);
+        for (int vx=0, px=0; vx < int(vars.size()); ++vx) {
+          if (fc->profiledOutZ[vx]) continue;
+          constrJac(cur+dx, px++) = con.initialJac(kk, vars[vx]->id);
         }
         dx += 1;
       }
@@ -1246,13 +1247,16 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
       for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
         if (con.redundent[kk]) continue;
         if (constr[cur+dx] != 0.0 && !con.seenActive[kk]) {
-          for (int vx=0; vx < int(vars.size()); ++vx) {
-            if (constrJac(cur+dx, vx) != 0.0) continue;
-            con.initialJac(kk, vars[vx]->id) = 0;
-            if (con.getVerbose() >= 2) {
-              mxLog("Assuming Jacobian %s[%d,%s] is zero",
-                    con.name, 1+kk, vars[vx]->name);
+          for (int vx=0, px=0; vx < int(vars.size()); ++vx) {
+            if (fc->profiledOutZ[vx]) continue;
+            if (constrJac(cur+dx, px) == 0.0) {
+              con.initialJac(kk, vars[vx]->id) = 0;
+              if (con.getVerbose() >= 2) {
+                mxLog("Assuming Jacobian %s[%d,%s] is zero",
+                      con.name, 1+kk, vars[vx]->name);
+              }
             }
+            px+=1;
           }
           con.seenActive[kk] = true;
         }
