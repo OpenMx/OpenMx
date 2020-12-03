@@ -109,6 +109,8 @@ struct FreeVarGroup {
 	bool isDisjoint(FreeVarGroup *other);
 };
 
+typedef std::function<void(int r, int c, double val)> MatrixStoreFn;
+
 // These were set in view of NPSOL option Infinite Bound Size. It
 // probably makes sense to use std::numeric_limits<double>::max() and
 // min().
@@ -143,13 +145,12 @@ class omxConstraint {
 	virtual ~omxConstraint() {};
   virtual void getDim(int *rowsOut, int *colsOut) const = 0;
 	virtual void refreshAndGrab(FitContext *fc, double *out) = 0;
-  typedef std::function<void(int r, int c, double val)> MatrixStoreFn;
 	virtual void analyticJac(FitContext *fc, MatrixStoreFn out) {}
 	virtual omxConstraint *duplicate(omxState *dest) const = 0;
 	virtual void prep(FitContext *fc) {}; // only called once, not per-thread
 	virtual void preeval(FitContext *fc) {};
   virtual int getVerbose() const { return 0; }
-  virtual bool hasAnalyticJac() const = 0;
+  virtual bool hasAnalyticJac(FitContext *fc) const = 0;
 };
 
 class UserConstraint : public omxConstraint {
@@ -173,7 +174,7 @@ class UserConstraint : public omxConstraint {
 	virtual void prep(FitContext *fc);
 	virtual void preeval(FitContext *fc) override;
   virtual int getVerbose() const override;
-  virtual bool hasAnalyticJac() const override { return jacobian; }
+  virtual bool hasAnalyticJac(FitContext *fc) const override { return jacobian; }
 };
 
 enum omxCheckpointType {
@@ -437,6 +438,7 @@ class ConstraintVec {
 public:
   typedef std::function<bool(const omxConstraint&)> ClassifyFn;
   int verbose;
+  bool verifyJac;
 
 private:
   const char *name;
@@ -447,7 +449,7 @@ private:
   std::unique_ptr<class AutoTune<class JacobianGadget>> jacTool;
 
 public:
-  ConstraintVec(omxState *_st, const char *_name, ClassifyFn _cf);
+  ConstraintVec(FitContext *fc, const char *_name, ClassifyFn _cf);
   int getCount() const { return count; }
   void setIneqAlwaysActive() { ineqAlwaysActive = true; }
   void markUselessConstraints(FitContext *fc);

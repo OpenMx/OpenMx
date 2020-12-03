@@ -162,56 +162,33 @@ void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* newSt
 	omxFillMatrixFromMxFitFunction(tgt, src->matrixNumber, ff->rObj);
 }
 
-static void ciFunction(omxFitFunction *ff, int want, FitContext *fc)
+static void omxFitFunctionComputeAuto(omxFitFunction *ff, int want, FitContext *fc)
 {
-	if (fitUnitsIsChiSq(ff->units)) {
-		fc->ciobj->evalFit(ff, want, fc);
-
-    // constraint jacobian is a function of the regular gradient TODO
-    // std::unique_ptr<CIobjective> tmpci = std::move(fc->ciobj);
-    // ComputeFit("grad", ff->matrix, FF_COMPUTE_GRADIENT, fc)
-    // fc->ciobj = std::move(tmpci);
-
-    if (want & FF_COMPUTE_GRADIENT) {
-      if (fc->ciobj->gradientKnown()) {
-        fc->ciobj->gradient(fc);
-      } else {
-        fc->gradZ.setConstant(NA_REAL);
-      }
-    }
-	} else {
-		mxThrow("Confidence intervals are not supported for units %s",
-			 fitUnitsToName(ff->units));
-	}
-}
-
-void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc)
-{
-	if (!off->initialized) return;
+	if (!ff->initialized) return;
 
 	if (!fc->ciobj) {
-		off->compute(want, fc);
+		ff->compute(want, fc);
 	} else {
-		ciFunction(off, want, fc);
+    if (fitUnitsIsChiSq(ff->units)) {
+      fc->ciobj->evalFit(ff, want, fc);
+    } else {
+      mxThrow("Confidence intervals are not supported for units %s",
+              fitUnitsToName(ff->units));
+    }
 	}
 
 	if (fc) fc->wanted |= want;
 }
 
+// Can replace with
+//   fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+// ?
 void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc)
 {
-	if (!off->initialized) return;
+       if (!off->initialized) return;
 
-	off->compute(want, fc);
-	if (fc) fc->wanted |= want;
-}
-
-void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc)
-{
-	if (!off->initialized) return;
-
-	ciFunction(off, want, fc);
-	if (fc) fc->wanted |= want;
+       off->compute(want, fc);
+       if (fc) fc->wanted |= want;
 }
 
 double totalLogLikelihood(omxMatrix *fitMat)
@@ -255,7 +232,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
     fc->numericalGradTool =
       std::unique_ptr< AutoTune<JacobianGadget> >(new AutoTune<JacobianGadget>("numericalGradTool"));
     fc->numericalGradTool->setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
-    fc->numericalGradTool->setMaxThreads(fc->childList.size());
+    fc->numericalGradTool->setMaxThreads(fc->numOptimizerThreads());
   }
   auto &ngt = fc->numericalGradTool->work();
 

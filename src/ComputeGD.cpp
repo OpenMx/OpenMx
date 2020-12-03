@@ -104,11 +104,11 @@ GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose
 						   omxCompute *owner)
 	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
 	  numOptimizerThreads(_fc->numOptimizerThreads()),
-    AllC(_fc->state, "constraint",
+    AllC(_fc, "constraint",
          [](const omxConstraint &con){ return true; }),
-    IneqC(_fc->state, "ineq",
+    IneqC(_fc, "ineq",
           [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; }),
-    EqC(_fc->state, "eq",
+    EqC(_fc, "eq",
         [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; })
 {
 	computeName = owner->name;
@@ -593,7 +593,9 @@ public:
     state = 0;
   }
 	virtual omxConstraint *duplicate(omxState *dest) const override = 0;
-  virtual bool hasAnalyticJac() const override { return false; }
+  virtual bool hasAnalyticJac(FitContext *fc) const override
+  { return fc->ciobj->hasAnalyticJac(); }
+  virtual int getVerbose() const override { return 0; }
 };
 
 class ciConstraintIneq : public ciConstraint {
@@ -609,6 +611,8 @@ class ciConstraintIneq : public ciConstraint {
 		Eigen::Map< Eigen::ArrayXd > Eout(out, size);
 		//mxLog("fit %f diff %f", fit, diff);
 	};
+	virtual void analyticJac(FitContext *fc, MatrixStoreFn out) override
+  { fc->ciobj->ineqAnalyticJac(fc, fitMat, out); }
 	virtual omxConstraint *duplicate(omxState *dest) const override
   {
     auto *ptr = new ciConstraintIneq(dest, size);
@@ -628,6 +632,8 @@ class ciConstraintEq : public ciConstraint {
 		fc->ciobj->evalEq(fc, fitMat, out);
 		//mxLog("fit %f diff %f", fit, diff);
 	};
+	virtual void analyticJac(FitContext *fc, MatrixStoreFn out) override
+  { fc->ciobj->eqAnalyticJac(fc, fitMat, out); }
 	virtual omxConstraint *duplicate(omxState *dest) const override
   {
     auto *ptr = new ciConstraintEq(dest, size);
@@ -667,15 +673,12 @@ void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, 
 }
 
 struct regularCIobj : CIobjective {
-	bool compositeCIFunction;
-	bool lowerBound;
 	double targetFit;
 	double diff;
 
   regularCIobj(const ConfidenceInterval *_CI,
-               bool _compositeCIFunction, bool _lowerBound, double _targetFit) :
-    CIobjective(_CI), compositeCIFunction(_compositeCIFunction),
-    lowerBound(_lowerBound), targetFit(_targetFit) {}
+               bool _constrained, bool _lowerBound, double _targetFit) :
+    CIobjective(_CI, _constrained, _lowerBound), targetFit(_targetFit) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<regularCIobj>(*this); }
@@ -683,16 +686,6 @@ struct regularCIobj : CIobjective {
 	void computeConstraint(double fit)
 	{
 		diff = fit - targetFit;
-	}
-
-	virtual bool gradientKnown()
-	{
-		return CI->varIndex >= 0 && !compositeCIFunction;
-	}
-
-	virtual void gradient(FitContext *fc) override
-  {
-		fc->gradZ[ CI->varIndex ] = lowerBound? 1 : -1;
 	}
 
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out)
@@ -705,20 +698,20 @@ struct regularCIobj : CIobjective {
 
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
 	{
-		omxMatrix *fitMat = ff->matrix;
+    omxMatrix *fitMat = ff->matrix;
 
 		if (!(want & FF_COMPUTE_FIT)) {
 			if (want & (FF_COMPUTE_PREOPTIMIZE | FF_COMPUTE_INITIAL_FIT)) return;
 			mxThrow("Not implemented yet");
 		}
+		if (want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
+      mxThrow("Not implemeneted");
+		}
 
-		// We need to compute the fit here because that's the only way to
-		// check our soft feasibility constraints. If parameters don't
-		// change between here and the constraint evaluation then we
-		// should avoid recomputing the fit again in the constraint. TODO
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
 
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+		const double fit = fc->fit;
+
 		omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
 		omxRecompute(ciMatrix, fc);
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
@@ -734,16 +727,14 @@ struct regularCIobj : CIobjective {
 			double param = (lowerBound? CIElement : -CIElement);
 			computeConstraint(fit);
 			if (fabs(diff) > 100) param = nan("infeasible");
-			if (compositeCIFunction) {
+			if (constrained) {
 				fitMat->data[0] = diff*diff + param;
 			} else {
 				fitMat->data[0] = param;
 			}
 			//mxLog("param at %f", fitMat->data[0]);
 		}
-		if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)) {
-			// add deriv adjustments here TODO
-		}
+    if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
 	virtual Diagnostic getDiag()
@@ -754,16 +745,28 @@ struct regularCIobj : CIobjective {
 		}
 		return diag;
 	}
+
+  virtual bool hasAnalyticJac() override { return !Global->NPSOL_HACK; }
+
+	virtual void ineqAnalyticJac(FitContext *fc, omxMatrix *fitMat, MatrixStoreFn out) override
+  {
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_GRADIENT, fc); });
+
+    auto &gr = fc->gradZ;
+    for (int gx=0; gx < gr.size(); ++gx) out(0,gx,gr[gx]);
+  }
+
+	virtual void eqAnalyticJac(FitContext *fc, omxMatrix *fitMat, MatrixStoreFn out) override
+  { mxThrow("Not implemented"); }
 };
 
 struct bound1CIobj : CIobjective {
-	double bound;
-	bool constrained;
+  double bound;
 	Eigen::Array<double,1,1> eq;
 
   bound1CIobj(const ConfidenceInterval *_CI,
               double _bound, bool _constrained) :
-    CIobjective(_CI), bound(_bound), constrained(_constrained) {}
+    CIobjective(_CI, _constrained, true), bound(_bound) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<bound1CIobj>(*this); }
@@ -816,6 +819,8 @@ struct bound1CIobj : CIobjective {
 		}
 
 		fitMat->data[0] = fit + cval;
+
+    if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
 	virtual Diagnostic getDiag()
@@ -831,30 +836,17 @@ struct bound1CIobj : CIobjective {
 struct boundAwayCIobj : CIobjective {
 	double logAlpha, sqrtCrit;
 	double unboundedLL, bestLL;
-	int lower;
-	bool constrained;
 	Eigen::Array<double, 3, 1> ineq;
 
   boundAwayCIobj(const ConfidenceInterval *_CI,
                  double _la, double _sq,
                  double _unboundedLL, double _bestLL,
                  int _lower, bool _constrained) :
-    CIobjective(_CI), logAlpha(_la), sqrtCrit(_sq),
-    unboundedLL(_unboundedLL), bestLL(_bestLL), lower(_lower),
-    constrained(_constrained) {}
+    CIobjective(_CI, _constrained, _lower), logAlpha(_la), sqrtCrit(_sq),
+    unboundedLL(_unboundedLL), bestLL(_bestLL) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<boundAwayCIobj>(*this); }
-
-	virtual bool gradientKnown()
-	{
-		return CI->varIndex >= 0 && constrained;
-	}
-
-	virtual void gradient(FitContext *fc) override
-  {
-		fc->gradZ[ CI->varIndex ] = lower? 1 : -1;
-	}
 
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
@@ -903,7 +895,7 @@ struct boundAwayCIobj : CIobjective {
 			return;
 		}
 
-		double param = (lower? CIElement : -CIElement);
+		double param = (lowerBound? CIElement : -CIElement);
 		double cval = 0.0;
 		Eigen::Array<double,3,1> v1;
 		computeConstraint(fit, v1);
@@ -914,6 +906,8 @@ struct boundAwayCIobj : CIobjective {
 
 		fitMat->data[0] = param + cval;
 		//mxLog("param at %f", fitMat->data[0]);
+
+    if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
 	virtual Diagnostic getDiag()
@@ -933,8 +927,6 @@ struct boundAwayCIobj : CIobjective {
 struct boundNearCIobj : CIobjective {
 	double d0, logAlpha;
 	double boundLL, bestLL;
-	int lower;
-	bool constrained;
 	double pN;
 	double lbd, ubd;
 	Eigen::Array<double,3,1> ineq;
@@ -944,22 +936,12 @@ struct boundNearCIobj : CIobjective {
                  double _boundLL, double _bestLL,
                  int _lower, bool _constrained,
                  double _lbd, double _ubd)
-    : CIobjective(_CI),
+    : CIobjective(_CI, _constrained, _lower),
       d0(_d0), logAlpha(_logAlpha), boundLL(_boundLL), bestLL(_bestLL),
-      lower(_lower), constrained(_constrained), lbd(_lbd), ubd(_ubd) {}
+      lbd(_lbd), ubd(_ubd) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<boundNearCIobj>(*this); }
-
-	virtual bool gradientKnown()
-	{
-		return CI->varIndex >= 0 && constrained;
-	}
-
-	virtual void gradient(FitContext *fc) override
-  {
-		fc->gradZ[ CI->varIndex ] = lower? 1 : -1;
-	}
 
 	template <typename T1>
 	void computeConstraint(double fit, Eigen::ArrayBase<T1> &v1)
@@ -1009,7 +991,7 @@ struct boundNearCIobj : CIobjective {
 			return;
 		}
 
-		double param = (lower? CIElement : -CIElement);
+		double param = (lowerBound? CIElement : -CIElement);
 		double cval = 0.0;
 		Eigen::Array<double,3,1> v1;
 		computeConstraint(fit, v1);
@@ -1020,6 +1002,8 @@ struct boundNearCIobj : CIobjective {
 
 		fitMat->data[0] = param  + cval;
 		//mxLog("param at %f", fitMat->data[0]);
+
+    if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
 	virtual Diagnostic getDiag()
@@ -1850,7 +1834,7 @@ double ComputeGenSA::visita(double temp)
 double ComputeGenSA::getConstraintPenalty(FitContext *fc)
 {
   if (!cvec) {
-    cvec =  std::make_unique<ConstraintVec>(fc->state, "constraint",
+    cvec =  std::make_unique<ConstraintVec>(fc, "constraint",
                                             [](const omxConstraint &con){ return true; });
   }
 

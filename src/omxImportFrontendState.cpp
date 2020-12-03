@@ -149,7 +149,7 @@ void omxState::omxCompleteMxFitFunction(SEXP algList, FitContext *fc)
 		if(!s4) continue;
 		omxMatrix *fm = algebraList[index];
 		omxCompleteFitFunction(fm);
-		omxFitFunctionComputeAuto(fm->fitFunction, FF_COMPUTE_INITIAL_FIT, fc);
+		ComputeFit("init", fm, FF_COMPUTE_INITIAL_FIT, fc);
 	}
 }
 
@@ -463,7 +463,7 @@ void omxState::hideBadConstraints(FitContext *fc)
 
   // enable parallel? TODO
 
-  ConstraintVec EqC(fc->state, "eq",
+  ConstraintVec EqC(fc, "eq",
                     [](const omxConstraint &con){
                       return con.opCode == omxConstraint::EQUALITY; });
   EqC.markUselessConstraints(fc);

@@ -1316,6 +1316,21 @@ void FitContext::setRFitFunction(omxFitFunction *rff)
 	RFitFunction = rff;
 }
 
+void FitContext::withoutCIobjective(std::function<void()> fn)
+{
+  if (!ciobj) OOPS;
+  if (disabledCiobj) OOPS;
+  toggleCIObjective();
+  fn();
+  toggleCIObjective();
+}
+
+void FitContext::toggleCIObjective()
+{
+  std::swap(ciobj, disabledCiobj);
+  for (auto kid : childList) kid->toggleCIObjective();
+}
+
 void CIobjective::evalFit(omxFitFunction *ff, int want, FitContext *fc)
 {
 	omxFitFunctionCompute(ff, want, fc);
@@ -1328,6 +1343,16 @@ void CIobjective::checkSolution(FitContext *fc)
 	if (getDiag() != DIAG_SUCCESS) {
 		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
 	}
+}
+
+void CIobjective::setGrad(FitContext *fc)
+{
+  if (CI->varIndex >= 0 && !constrained) {
+    fc->gradZ.setZero();
+    fc->gradZ[ CI->varIndex ] = lowerBound? 1 : -1;
+  } else {
+    fc->gradZ.setConstant(NA_REAL);
+  }
 }
 
 class EMAccel {
@@ -3786,14 +3811,14 @@ bool FitContext::isEffectivelyUnconstrained()
 	 * The quality of the generically calculated Hessian is likewise uninformative if there are active inequality MxConstraints.
 	 * But, if there are no equalities, and all of the inequalities are inactive, then we might as well proceed (corner case as that may be):
 	*/
-  ConstraintVec EqC(state, "eq",
+  ConstraintVec EqC(this, "eq",
                     [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; });
   if (EqC.getCount()) {
     if (EqC.verbose >= 1) mxLog("isEffectivelyUnconstrained: equality constraint active");
     return false;
   }
 
-  ConstraintVec IneqC(state, "ineq",
+  ConstraintVec IneqC(this, "ineq",
                       [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; });
   Eigen::ArrayXd ineq(IneqC.getCount());
   IneqC.eval(this, ineq.data());

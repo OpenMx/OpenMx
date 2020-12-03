@@ -339,7 +339,7 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 
 void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc)
 {
-  ConstraintVec cvec(fc->state, "constraint",
+  ConstraintVec cvec(fc, "constraint",
                      [](const omxConstraint &con){ return true; });
   if (cvec.getCount() == 0) return;
 

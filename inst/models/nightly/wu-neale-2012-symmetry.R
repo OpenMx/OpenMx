@@ -5,6 +5,8 @@ library(OpenMx)
 
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
 
+mxOption(key="feasibility tolerance", value = 1e-6)
+
 resVars      <- mxPath( from=c("x1","x2","x3","x4","x5"), arrows=2,
                         free=TRUE,  values = c(1,1,1,1,1),
                         labels=c("residual","residual","residual","residual","residual") )

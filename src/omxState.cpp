@@ -1067,20 +1067,22 @@ void omxConstraint::recalcSize()
   size = std::count(redundent.begin(), redundent.end(), false);
 }
 
-ConstraintVec::ConstraintVec(omxState *state, const char *_name,
+ConstraintVec::ConstraintVec(FitContext *fc, const char *_name,
                              ConstraintVec::ClassifyFn _cf) :
   name(_name), cf(_cf), ineqAlwaysActive(false)
 {
   verbose = 0;
   count = 0;
   anyAnalyticJacCache = false;
-  for (int j=0; j < int(state->conListX.size()); j++) {
-    omxConstraint &con = *state->conListX[j];
+  auto &conList = fc->state->conListX;
+  for (int j=0; j < int(conList.size()); j++) {
+    omxConstraint &con = *conList[j];
     if (!cf(con)) continue;
     count += con.size;
     verbose = std::max(verbose, con.getVerbose());
-    anyAnalyticJacCache |= con.hasAnalyticJac();
+    anyAnalyticJacCache |= con.hasAnalyticJac(fc);
   }
+  verifyJac = verbose >= 3;
 }
 
 void ConstraintVec::allocJacTool(FitContext *fc)
@@ -1089,8 +1091,9 @@ void ConstraintVec::allocJacTool(FitContext *fc)
   jacTool =
     std::unique_ptr< AutoTune<JacobianGadget> >(new AutoTune<JacobianGadget>(name));
   jacTool->setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(fc->getNumFree())));
-  jacTool->setMaxThreads(fc->childList.size());
+  jacTool->setMaxThreads(fc->numOptimizerThreads());
   if (verbose >= 1) mxLog("%s: allocJacTool count=%d", name, getCount());
+  if (verifyJac) mxLog("%s: constraint Jacobian verification enabled", name);
 }
 
 // This is called once before the compute plan begins execution
@@ -1208,7 +1211,6 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
 
 	fc->incrComputeCount();
 
-  bool verifyJac = verbose >= 3;
   if (jacOut) {
     Eigen::ArrayXXd analyticJac;
     if (verifyJac) {
@@ -1238,7 +1240,7 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
       for (int rx=0; rx < constrJac.rows(); ++rx) {
         Eigen::ArrayXd diff = analyticJac.row(rx) - constrJac.row(rx);
         if (diff.abs().maxCoeff() < 1e-7) continue;
-        std::string info = string_snprintf("%s[%d,]", name, rx);
+        std::string info = string_snprintf("%s[%d,]-true", name, rx);
         mxPrintMat(info.c_str(), diff);
       }
       // restore

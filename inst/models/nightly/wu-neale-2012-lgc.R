@@ -2,6 +2,8 @@ library(OpenMx)
 
 if (mxOption(NULL, 'Default optimizer') != "SLSQP") stop("SKIP")
 
+mxOption(key="feasibility tolerance", value = 1e-6)
+
 #mxOption(NULL, "Default optimizer", "SLSQP")
 #print(mxOption(NULL, "Default optimizer"))
 
@@ -57,9 +59,9 @@ for (rx in 1:nrow(result)) {
 }
 
 omxCheckCloseEnough(table(is.na(result[!result$adj,'lbound']))[[1]],
-               100,1)
+               100,4)
 omxCheckCloseEnough(sum(diff(result[!result$adj,'lbound']) > 0, na.rm = TRUE),
-                    99, 1)
+                    99, 5)
 omxCheckCloseEnough(table(is.na(result[!result$adj,'ubound']))[[1]],
                     100,1)
 omxCheckCloseEnough(sum(diff(result[!result$adj,'ubound']) > 0, na.rm = TRUE),
@@ -74,7 +76,7 @@ omxCheckCloseEnough(sum(diff(result[result$adj,'lbound']) > 0, na.rm = TRUE),
 omxCheckCloseEnough(table(is.na(result[result$adj,'ubound']))[[1]],
                     101,1)
 omxCheckCloseEnough(sum(diff(result[result$adj,'ubound']) > 0, na.rm = TRUE),
-                    98, 1)
+                    98, 5)
 omxCheckEquals(fivenum(result[result$adj, 'retries'])[c(1,3)],
                c(2,2))
 

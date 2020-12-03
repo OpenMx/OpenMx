@@ -87,6 +87,8 @@ struct HessianBlock {
 
 struct CIobjective {
 	const ConfidenceInterval *CI;
+	const bool constrained;
+	const bool lowerBound;  // otherwise doing upper bound
 
 	enum Diagnostic {
 		DIAG_SUCCESS=1,
@@ -97,15 +99,19 @@ struct CIobjective {
 		DIAG_BOXED
 	};
 
-  CIobjective(const ConfidenceInterval *_CI) : CI(_CI) {}
+  void setGrad(FitContext *fc);
+
+  CIobjective(const ConfidenceInterval *_CI, bool _constrained, bool _lower)
+    : CI(_CI), constrained(_constrained), lowerBound(_lower) {}
   virtual std::unique_ptr<CIobjective> clone() const = 0;
-	virtual bool gradientKnown() { return false; };
-	virtual void gradient(FitContext *fc) {};
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc);
 	virtual void checkSolution(FitContext *fc);
 	virtual Diagnostic getDiag() = 0;
+  virtual bool hasAnalyticJac() { return false; }
+	virtual void ineqAnalyticJac(FitContext *fc, omxMatrix *fitMat, MatrixStoreFn out) {}
+	virtual void eqAnalyticJac(FitContext *fc, omxMatrix *fitMat, MatrixStoreFn out) {}
 };
 
 // The idea of FitContext is to eventually enable fitting from
@@ -145,6 +151,8 @@ class FitContext {
 	double previousReportFit;
   int _numFree;
   Eigen::ArrayXd curFree;  // length=numFree
+  std::unique_ptr<CIobjective> disabledCiobj;
+  void toggleCIObjective();
 
  public:
 	FreeVarGroup *varGroup;
@@ -201,6 +209,7 @@ class FitContext {
 
 	// for confidence intervals
   std::unique_ptr<CIobjective> ciobj;
+  void withoutCIobjective(std::function<void()> fn);
 
 	FitContext(omxState *_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);

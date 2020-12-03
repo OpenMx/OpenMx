@@ -503,9 +503,9 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 
 NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
 	: fc(_fc), NMobj(_nmo), numFree(_fc->getNumFree()),
-    IneqC(_fc->state, "ineq",
+    IneqC(_fc, "ineq",
           [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; }),
-    EqC(_fc->state, "eq",
+    EqC(_fc, "eq",
         [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; }),
 	  subsidiarygoc(_fc, 0L, _nmo)
 {
@@ -1553,7 +1553,7 @@ void NelderMeadOptimizerContext::finalize()
 	MxConstraints, and status code 10 for	all other kinds of infeasible solutions:*/
 	if(!fc->insideFeasibleSet() && (statuscode==0 || statuscode==4)){fc->setInform(INFORM_STARTING_VALUES_INFEASIBLE);}
 
-  ConstraintVec cv(fc->state, "constraint", [](const omxConstraint &con){ return true; });
+  ConstraintVec cv(fc, "constraint", [](const omxConstraint &con){ return true; });
   fc->constraintFunVals.resize(cv.getCount());
   cv.eval(fc, fc->constraintFunVals.data());
 }

@@ -91,9 +91,7 @@ void omxCompleteFitFunction(omxMatrix *om);
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
 /* FitFunction-specific implementations of matrix functions */
-void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);
-void omxFitFunctionComputeAuto(omxFitFunction *off, int want, FitContext *fc);
-void omxFitFunctionComputeCI(omxFitFunction *off, int want, FitContext *fc);
+void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);  // deprecated, use ComputeFit
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
@@ -118,7 +116,7 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
 
-double totalLogLikelihood(omxMatrix *fitMat);
+double totalLogLikelihood(omxMatrix *fitMat); // deprecated, use ComputeFit
 
 const char *fitUnitsToName(FitStatisticUnits units);
 bool fitUnitsIsChiSq(FitStatisticUnits units);
