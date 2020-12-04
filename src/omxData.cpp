@@ -435,10 +435,6 @@ void omxData::prep()
 		unfiltered.refreshHasNa();
 		int rows = std::count(unfiltered.hasNa.begin(),
 													unfiltered.hasNa.end(), false);
-    if (rows == int(unfiltered.hasNa.size())) {
-      if (verbose >= 1) mxLog("omit: detected no NAs");
-      break;
-    }
 		if (filtered.rows != rows || filtered.hasNa != unfiltered.hasNa) {
 			if (verbose >= 1) mxLog("omit: NA pattern changed, clearing cache");
 			filtered.rows = rows;
@@ -509,6 +505,10 @@ void omxData::prep()
 
 	currentWeightColumn = getWeightColumn();
 	currentFreqColumn = getOriginalFreqColumn();
+
+  for (auto &col : filtered.rawCols) {
+    if (!col.i()) OOPS;
+  }
 
 	if (verbose >= 2) omxPrintData("prep", 10);
 }
