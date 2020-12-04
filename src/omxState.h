@@ -127,7 +127,7 @@ class omxConstraint {
 
 	const char *name;
   int origSize;  // number of constraints
-	int size;      // number of non-redundent constraints
+	int size;      // number of non-redundant constraints
   void setInitialSize(int sz);
   void recalcSize();
 	enum Type opCode;
@@ -135,7 +135,7 @@ class omxConstraint {
   // constraints. Rob tried it out with NPSOL version 5 and it
   // didn't seem to work.
   const int linear;
-  std::vector<bool> redundent;
+  std::vector<bool> redundant;
   std::vector<bool> seenActive;
   Eigen::ArrayXXd initialJac;
   bool strict;

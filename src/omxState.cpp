@@ -324,7 +324,7 @@ omxExpectation *omxState::lookupDuplicate(omxExpectation *element) const
 
 void omxState::setWantStage(int stage)
 {
-	if (wantStage == stage) mxThrow("omxState::setWantStage(%d) is redundent", stage);
+	if (wantStage == stage) mxThrow("omxState::setWantStage(%d) is redundant", stage);
 	wantStage = stage;
 	if (OMX_DEBUG) mxLog("wantStage set to 0x%x", stage);
 }
@@ -943,7 +943,7 @@ void omxConstraint::setInitialSize(int sz)
 {
   origSize = sz;
 	size = sz;
-  redundent.assign(size, false);
+  redundant.assign(size, false);
   seenActive.assign(size, false);
 	if (sz == 0) {
 		Rf_warning("Constraint '%s' evaluated to a 0x0 matrix and "
@@ -1007,7 +1007,7 @@ omxConstraint *UserConstraint::duplicate(omxState *dest) const
 
 	UserConstraint *uc = new UserConstraint(name);
 	uc->opCode = opCode;
-  uc->redundent = redundent;
+  uc->redundant = redundant;
   uc->size = size;
 	uc->pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, dest); // 10 = binary subtract
 	uc->jacobian = jacobian;
@@ -1020,8 +1020,8 @@ void UserConstraint::refreshAndGrab(FitContext *fc, double *out)
 {
 	refresh(fc);
 
-	for(int k = 0, d = 0; k < int(redundent.size()); k++) {
-    if (redundent[k]) continue;
+	for(int k = 0, d = 0; k < int(redundant.size()); k++) {
+    if (redundant[k]) continue;
 		double got = pad->data[k];
     // ineq constraints are always translated to LESS_THAN
 		if (opCode == GREATER_THAN) got = -got;
@@ -1036,8 +1036,8 @@ void UserConstraint::analyticJac(FitContext *fc, MatrixStoreFn out)
   omxRecompute(jacobian, fc);
   EigenArrayAdaptor cj(jacobian);
 
-  for (int rx=0, dx=0; rx < int(redundent.size()); ++rx) {
-    if (redundent[rx]) continue;
+  for (int rx=0, dx=0; rx < int(redundant.size()); ++rx) {
+    if (redundant[rx]) continue;
 
     for (int c=0; c < jacobian->cols; c++){
       if (jacMap[c] < 0) continue;
@@ -1064,7 +1064,7 @@ void UserConstraint::refresh(FitContext *fc)
 
 void omxConstraint::recalcSize()
 {
-  size = std::count(redundent.begin(), redundent.end(), false);
+  size = std::count(redundant.begin(), redundant.end(), false);
 }
 
 ConstraintVec::ConstraintVec(FitContext *fc, const char *_name,
@@ -1115,7 +1115,7 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
     if (con.opCode != omxConstraint::EQUALITY) OOPS;
     for (int kk=0; kk < con.size; ++kk) {
       if ((ej.row(cur+kk) == 0.0).all()) {
-        con.redundent[kk] = true;
+        con.redundant[kk] = true;
         count -= 1;
         if (con.getVerbose()) {
           mxLog("Ignoring constraint '%s[%d]' because it does not depend "
@@ -1123,7 +1123,7 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
         }
       }
       if (d1 < cur+kk) ej.row(d1) = ej.row(cur+kk);
-      if (!con.redundent[kk]) d1 += 1;
+      if (!con.redundant[kk]) d1 += 1;
     }
     cur += con.size;
     con.recalcSize();
@@ -1143,13 +1143,13 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
 		omxConstraint &con = *state->conListX[j];
     if (!cf(con)) continue;
     if (con.opCode != omxConstraint::EQUALITY) OOPS;
-    for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
-      if (con.redundent[kk]) continue;
+    for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
+      if (con.redundant[kk]) continue;
       int xx = perm[cur+dx];
       if (abs(qr(xx,xx)) < thr) {
-        con.redundent[kk] = true;
+        con.redundant[kk] = true;
         if (con.getVerbose()) {
-          mxLog("Ignoring constraint '%s[%d]' because it is redundent",
+          mxLog("Ignoring constraint '%s[%d]' because it is redundant",
                 con.name, 1+kk);
         }
       }
@@ -1177,8 +1177,8 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
 
     if (jacOut) {
       auto &vars = fc->varGroup->vars;
-      for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
-        if (con.redundent[kk]) continue;
+      for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
+        if (con.redundant[kk]) continue;
         for (int vx=0, px=0; vx < int(vars.size()); ++vx) {
           if (fc->profiledOutZ[vx]) continue;
           constrJac(cur+dx, px++) = con.initialJac(kk, vars[vx]->id);
@@ -1251,8 +1251,8 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
       omxConstraint &con = *state->conListX[j];
       if (!cf(con)) continue;
       auto &vars = fc->varGroup->vars;
-      for (int kk=0, dx=0; kk < int(con.redundent.size()); ++kk) {
-        if (con.redundent[kk]) continue;
+      for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
+        if (con.redundant[kk]) continue;
         if (constr[cur+dx] != 0.0 && !con.seenActive[kk]) {
           for (int vx=0, px=0; vx < int(vars.size()); ++vx) {
             if (fc->profiledOutZ[vx]) continue;
