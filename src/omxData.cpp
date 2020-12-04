@@ -361,13 +361,14 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				Rf_warning("%s: observedStats key '%s' ignored", name, key);
 			}
 		}
+    if (oss && !oss->covMat) oss = 0;
 	}
 	if (oss) {
 		auto &o1 = *oss;
-		if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
-			mxThrow("%s: observedStats$cov must have colnames", name);
 		if (o1.thresholdMat) o1.numOrdinal = o1.thresholdMat->cols;
 		if (!o1.covMat) mxThrow("%s: observedStats must include a covariance matrix", name);
+		if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
+			mxThrow("%s: observedStats$cov must have colnames", name);
 		if (o1.numOrdinal) {
 			if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols)
 				mxThrow("%s: observedStats$thresholds must have colnames", name);
