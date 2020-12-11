@@ -25,8 +25,7 @@ int main() {
 }
 ' > omptest.c
 
-LLVMBASE=`brew --prefix llvm`
-$LLVMBASE/bin/clang -fopenmp -L$LLVMBASE/lib omptest.c -o omptest
+clang -fopenmp omptest.c -o omptest
 ./omptest
 
 mkdir -p ~/.R
