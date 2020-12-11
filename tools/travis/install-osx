@@ -11,6 +11,11 @@ xcodebuild -version | head -n 1 | cut -d ' ' -f 2
 
 id
 
+omp=openmp-9.0.1-darwin17-Release.tar.gz
+curl -O https://mac.r-project.org/openmp/$omp
+sudo tar fvx $omp -C /
+rm -r $omp
+
 echo '
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,7 +30,7 @@ int main() {
 }
 ' > omptest.c
 
-clang -fopenmp omptest.c -o omptest
+clang -Xclang -fopenmp omptest.c -o omptest
 ./omptest
 
 mkdir -p ~/.R
