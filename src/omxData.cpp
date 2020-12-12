@@ -1706,19 +1706,19 @@ struct ProbitRegression : NewtonRaphsonObjective {
 									 std::vector<int> &_index,
 									 std::vector< Eigen::Ref<Eigen::VectorXd> > &predCols);
 	void setResponse(ColumnData &_r, int yy);
-	virtual double getFit() { return fit; }
-	virtual const char *paramIndexToName(int px)
+	virtual double getFit() override { return fit; }
+	virtual const char *paramIndexToName(int px) override
 	{ return pnames[px].c_str(); }
 	void evaluate0();
 	void calcScores();
-	virtual void evaluateFit();
-	virtual void evaluateDerivs(int want);
+	virtual void evaluateFit() override;
+	virtual void evaluateDerivs(int want) override;
 	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out) override
   { out = param;  }
   virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override
   { param = in; }
-	virtual double *getGrad() { return grad.data(); }
-	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir);
+	virtual double *getGrad() override { return grad.data(); }
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) override;
 };
 
 ProbitRegression::
@@ -2024,9 +2024,9 @@ struct PolyserialCor : NewtonRaphsonObjective {
 		if (data.verbose >= 3) mxLog("starting ps rho = %f", rho);
 		param = atanh(rho);
 	}
-	virtual double getFit() { return fit; };
-	virtual const char *paramIndexToName(int px) { return "rho"; }
-	virtual void evaluateFit()
+	virtual double getFit() override { return fit; };
+	virtual const char *paramIndexToName(int px) override { return "rho"; }
+	virtual void evaluateFit() override
 	{
 		double rho = tanh(param);
 		double R = sqrt(1 - rho * rho);
@@ -2043,8 +2043,8 @@ struct PolyserialCor : NewtonRaphsonObjective {
   { out[0] = param; }
   virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override
   { param = in[0]; }
-	virtual double *getGrad() { return &grad; };
-	virtual void evaluateDerivs(int want)
+	virtual double *getGrad() override { return &grad; };
+	virtual void evaluateDerivs(int want) override
 	{
 		if (want & FF_COMPUTE_FIT) evaluateFit();
 
@@ -2061,7 +2061,7 @@ struct PolyserialCor : NewtonRaphsonObjective {
 		double cosh_x = cosh(param);
 		grad = -dx_rho * 1./(cosh_x * cosh_x);
 	}
-	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) override
 	{
 		// Can fix Hessian at 1.0 because only 1 parameter.
 		// Line search takes care of scaling.

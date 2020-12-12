@@ -171,7 +171,7 @@ class UserConstraint : public omxConstraint {
 	virtual void refreshAndGrab(FitContext *fc, double *out) override;
 	virtual void analyticJac(FitContext *fc, MatrixStoreFn out) override;
 	virtual omxConstraint *duplicate(omxState *dest) const override;
-	virtual void prep(FitContext *fc);
+	virtual void prep(FitContext *fc) override;
 	virtual void preeval(FitContext *fc) override;
   virtual int getVerbose() const override;
   virtual bool hasAnalyticJac(FitContext *fc) const override { return jacobian; }

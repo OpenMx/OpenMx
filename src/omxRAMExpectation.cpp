@@ -938,8 +938,8 @@ namespace RelationalRAMExpectation {
 			rowToLayoutMap[ std::make_pair(data, frow) ] = -1;
 		}
 
-		struct addr a1;
-		struct addrSetup as1;
+		class addr a1;
+		class addrSetup as1;
 		as1.clumped = false;
 		a1.ig = 0;
 		as1.parent1 = NA_INTEGER;

@@ -73,7 +73,7 @@ class BA81Expect : public omxExpectation {
 	double freqSum;                // sum of rowFreq
 
 	// quadrature related
-	struct ba81NormalQuad &getQuad() { return grp.quad; }
+	class ba81NormalQuad &getQuad() { return grp.quad; }
 
 	// estimation related
 	omxMatrix *itemParam;
@@ -134,7 +134,7 @@ extern int Grpf_numModels;
 
 void ba81RefreshQuadrature(omxExpectation* oo);
 
-void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
+void ba81AggregateDistributions(std::vector<class omxExpectation *> &expectation,
 				int *version, omxMatrix *meanMat, omxMatrix *covMat);
 
 #endif

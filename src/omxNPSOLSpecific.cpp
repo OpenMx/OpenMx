@@ -42,7 +42,7 @@ extern void F77_SUB(npoptn)(char* string, int Rf_length);
 
 #if HAS_NPSOL
 
-static struct GradientOptimizerContext *NPSOL_GOpt;
+static class GradientOptimizerContext *NPSOL_GOpt;
 
 void F77_SUB(npsolObjectiveFunction)(int* mode, int* n, double* x,
 				     double* f, double* g, int* nstate)
