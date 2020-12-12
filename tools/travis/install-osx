@@ -13,7 +13,7 @@ id
 
 omp=openmp-9.0.1-darwin17-Release.tar.gz
 curl -O https://mac.r-project.org/openmp/$omp
-sudo tar fvx $omp -C /
+sudo gtar --no-overwrite-dir --owner=travis --group=staff -zxf $omp -C /
 rm -r $omp
 
 echo '

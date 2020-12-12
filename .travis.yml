@@ -11,6 +11,9 @@ addons:
     - gcc-8
     - g++-8
     - gfortran-8
+  homebrew:
+    packages:
+    - gnu-tar
 jobs:
   include:
   - stage: dependencies
