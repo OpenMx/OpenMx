@@ -24,6 +24,7 @@ MAKEFLAGS=$(echo $MAKEFLAGS | sed -e 's/--jobserver-auth=[0-9,]*//')
 
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
+pkgbuild::check_build_tools(debug = TRUE)
 pkgbuild::compile_dll()
 roxygenize('.', roclets=c('rd'))
 EOF
