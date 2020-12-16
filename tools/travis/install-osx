@@ -12,7 +12,7 @@ xcodebuild -version | head -n 1 | cut -d ' ' -f 2
 id
 
 # See https://mac.r-project.org/openmp/
-omp=openmp-9.0.1-darwin17-Release.tar.gz
+omp=openmp-7.1.0-darwin17-Release.tar.gz
 curl -O https://mac.r-project.org/openmp/$omp
 sudo gtar --no-overwrite-dir --owner=travis --group=staff -zxf $omp -C /
 rm -r $omp
