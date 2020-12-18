@@ -243,6 +243,10 @@ void MLFitState::compute(int want, FitContext *fc)
 		Eigen::MatrixXd exCov = exCovAdapter;
 		double fit;
 		try {
+      // If we want to drop dependency on stan::math,
+      // it looks like analytic expressions for derivs are available in
+      // https://www.academia.edu/23179079/Finite_Normal_Mixture_Sem_Analysis_by_Fitting_Multiple_Conventional_Sem_Models
+      // Appendix B
 			if (omo->observedMeans) {
 				EigenVectorAdaptor obMeansAdapter(omo->observedMeans);
 				Eigen::VectorXd obMeans = obMeansAdapter;
