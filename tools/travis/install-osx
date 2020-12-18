@@ -11,12 +11,6 @@ xcodebuild -version | head -n 1 | cut -d ' ' -f 2
 
 id
 
-# See https://mac.r-project.org/openmp/
-omp=openmp-7.1.0-darwin17-Release.tar.gz
-curl -O https://mac.r-project.org/openmp/$omp
-sudo gtar --no-overwrite-dir --owner=travis --group=staff -zxf $omp -C /
-rm -r $omp
-
 echo '
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +25,8 @@ int main() {
 }
 ' > omptest.c
 
-clang -Xclang -fopenmp -lomp omptest.c -o omptest
+LLVMBASE=`brew --prefix llvm`
+$LLVMBASE/bin/clang -fopenmp -L$LLVMBASE/lib omptest.c -o omptest
 ./omptest
 
 mkdir -p ~/.R
