@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,7 @@ G <- mxMatrix(values = c(0, -1, 1, -1), nrow=2, ncol=2, name='G')
 Gprime <- mxMatrix(values = c(0, -1, 1, -1), nrow=2, ncol=2,
 		   labels=paste0('D[1,',1:4,']'),
 		   name='Gprime')
-H <- mxMatrix(values = c(-9.0912244, 11.1561436, 12.9500773, -0.8400564, -5.2556798, -1.3265166, -4.8423977, 
+H <- mxMatrix(values = c(-9.0912244, 11.1561436, 12.9500773, -0.8400564, -5.2556798, -1.3265166, -4.8423977,
 												 -14.4462163, -15.3022383, 17.1928667, -2.4835399, -18.1943775, 2.8587299, 18.6432244,
 												 -13.5789122, -2.2622090), nrow=4, ncol=4, name='H')
 # For Mnor
@@ -545,7 +545,7 @@ omxCheckCloseEnough(modelOut[['test72c']]$result, atanh(A$values), .001)
 omxCheckCloseEnough(modelOut[['test73']]$result, lgamma(A$values+1), .001)
 omxCheckCloseEnough(modelOut[['test71b']]$result, qnorm(log(A$values),log.p=T), .001)
 omxCheckCloseEnough(modelOut[['test71b']]$result, mxEval(logp2z(log(A)),model,T), .001)
-omxCheckCloseEnough(modelOut[['test74a']]$result, dbeta(x=A$values,shape1=A$values,shape2=A$values,ncp=A$values,log=T), 
+omxCheckCloseEnough(modelOut[['test74a']]$result, dbeta(x=A$values,shape1=A$values,shape2=A$values,ncp=A$values,log=T),
 										.001)
 omxCheckCloseEnough(modelOut[['test74a']]$result, mxEval(dbeta(A,A,A,A,T),model,T), .001)
 omxCheckCloseEnough(modelOut[['test75a']]$result, pbeta(q=A$values,shape1=A$values,shape2=A$values,ncp=A$values,
@@ -594,9 +594,9 @@ omxCheckCloseEnough(modelOut[['test89a']]$result, pbinom(q=D$values,size=D$value
 omxCheckCloseEnough(modelOut[['test89b']]$result, pbinom(q=D$values,size=D$values,prob=A$values[1:10],lower.tail=TRUE,log.p=TRUE), .001)
 omxCheckCloseEnough(modelOut[['test90a']]$result, dcauchy(x=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],log=FALSE), .001)
 omxCheckCloseEnough(modelOut[['test90b']]$result, dcauchy(x=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],log=TRUE), .001)
-omxCheckCloseEnough(modelOut[['test91a']]$result, pcauchy(q=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],lower.tail=FALSE,log=TRUE), 
+omxCheckCloseEnough(modelOut[['test91a']]$result, pcauchy(q=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],lower.tail=FALSE,log=TRUE),
 										.001)
-omxCheckCloseEnough(modelOut[['test91b']]$result, pcauchy(q=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],lower.tail=TRUE,log=FALSE), 
+omxCheckCloseEnough(modelOut[['test91b']]$result, pcauchy(q=H$values,location=A$values[1:16],scale=D$values[c(1:10,1:6)],lower.tail=TRUE,log=FALSE),
 										.001)
 
 

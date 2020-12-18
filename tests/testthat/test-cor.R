@@ -10,7 +10,7 @@ manifests = names(demoOneFactor)
 latents <- c("G")
 
 paths <- list(mxPath(from=latents, to=manifests, values=0.1),
-              mxPath(from=manifests, arrows=2, values=2.0),
+              mxPath(from=manifests, arrows=2, values=2.0, lbound=.001),
               mxPath(from=latents, arrows=2, free=FALSE, values=1.0))
 
 fl <- mxModel("L",
