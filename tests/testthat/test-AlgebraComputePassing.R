@@ -438,7 +438,7 @@ check_eigen_decomp <- function(mat, suffix) {
             1i * modelOut[[ algName[4] ]]$result)
   z <- matrix(as.complex(0), nrow(mat), ncol(mat))
   expect_equivalent(vec %*% diag(c(val)) %*% solve(vec) - mat, z,
-                    tolerance=1e-14, scale=1)
+                    tolerance=1e-13, scale=1)
 }
 
 check_eigen_decomp(A$values, '')
