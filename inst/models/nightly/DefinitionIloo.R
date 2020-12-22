@@ -5,7 +5,7 @@ set.seed(1)
 library(OpenMx)
 library(testthat)
 
-skip_if_not(imxHasOpenMP())
+if (!imxHasOpenMP()) stop("SKIP")
 
 N <- 2000
 u <- rbinom(N,1,.5)
