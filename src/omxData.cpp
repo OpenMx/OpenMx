@@ -506,8 +506,12 @@ void omxData::prep()
 	currentWeightColumn = getWeightColumn();
 	currentFreqColumn = getOriginalFreqColumn();
 
-  for (auto &col : filtered.rawCols) {
-    if (!col.i()) OOPS;
+  if (OMX_DEBUG) {
+    for (auto &col : filtered.rawCols) {
+      // This check is too strict. It is legitimate to for the
+      // data.frame to contain non-data columns.
+      if (!col.i()) OOPS;
+    }
   }
 
 	if (verbose >= 2) omxPrintData("prep", 10);
