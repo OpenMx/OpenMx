@@ -327,6 +327,18 @@ void omxWLSFitFunction::init()
     expectation->connectToData();
   }
 
+  if (false) {
+    // This is too strict because we might use def vars in a way that
+    // doesn't affect the model expectation (i.e. generate a column of
+    // the interaction between two other columns).
+    omxData *data = expectation->data;
+    if (data->defVars.size()) {
+      mxThrow("%s: There are %d definition variables. "
+              "The WLS fit function cannot handle definition variables except as exogenous predictors.",
+              name(), int(data->defVars.size()));
+    }
+  }
+
 	observedFlattened = 0;
 	expectedFlattened = 0;
 	B = 0;

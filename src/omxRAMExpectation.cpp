@@ -454,7 +454,33 @@ void omxRAMExpectation::init()
 void omxRAMExpectation::studyExoPred()
 {
   if (!currentState->isTopState()) return; // done in init(); defVar already modified
-	if (data->defVars.size() == 0 || !M || !M->isSimple() || !S->isSimple()) return;
+  // We check each condition separately so we can log the outcome, if requested.
+	if (data->defVars.size() == 0) {
+    if (verbose >= 1) mxLog("%s::studyExoPred: no def vars", name);
+    return;
+  }
+  if (verbose >= 1) mxLog("%s::studyExoPred: found %d def vars",
+                          name, int(data->defVars.size()));
+  if (!M) {
+    if (verbose >= 1) mxLog("%s::studyExoPred: no means", name);
+    return;
+  }
+  if (M->isAlgebra()) {
+    if (verbose >= 1) mxLog("%s::studyExoPred: means model is an algebra", name);
+    return;
+  }
+  if (M->populateDependsOnDefinitionVariables()) {
+    if (verbose >= 1) mxLog("%s::studyExoPred: means model depends on def vars", name);
+    return;
+  }
+  if (S->isAlgebra()) {
+    if (verbose >= 1) mxLog("%s::studyExoPred: S (covariance) is an algebra", name);
+    return;
+  }
+  if (S->populateDependsOnDefinitionVariables()) {
+    if (verbose >= 1) mxLog("%s::studyExoPred: S (covariance) depends on def vars", name);
+    return;
+  }
 
 	Eigen::VectorXd estSave;
 	currentState->setFakeParam(estSave);
@@ -476,7 +502,11 @@ void omxRAMExpectation::studyExoPred()
 				if (latentFilter[cx]) toManifest = true;
 				else latentName = S->colnames[cx];
 			}
-			if (!toManifest && !latentName) continue;
+			if (!toManifest && !latentName) {
+        if (verbose >= 1) mxLog("%s::studyExoPred: def var '%s' has unknown effect",
+                                name, data->columnName(dv.column));
+        continue;
+      }
 			if (latentName) mxThrow("%s: latent exogenous variables are not supported (%s -> %s)", name,
 						 S->colnames[dv.col], latentName);
 			exoDataColIndex[dv.col] = dv.column;

@@ -664,6 +664,23 @@ void omxMatrix::markPopulatedEntries()
 	}
 }
 
+bool omxMatrix::populateDependsOnDefinitionVariables()
+{
+	if (populate.size() == 0) return false;
+	for (size_t pi = 0; pi < populate.size(); pi++) {
+		populateLocation &pl = populate[pi];
+		int index = pl.from;
+		omxMatrix* sourceMatrix;
+		if (index < 0) {
+			sourceMatrix = currentState->matrixList[~index];
+		} else {
+			sourceMatrix = currentState->algebraList[index];
+		}
+    if (sourceMatrix->dependsOnDefinitionVariables()) return true;
+  }
+  return false;
+}
+
 void omxMatrix::omxPopulateSubstitutions(int want, FitContext *fc)
 {
 	if (populate.size() == 0) return;

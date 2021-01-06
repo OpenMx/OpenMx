@@ -77,6 +77,7 @@ class omxMatrix {
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
 	bool dependsOnDefinitionVariables() const { return dependsOnDefVarCache; };
+  bool populateDependsOnDefinitionVariables();
 	bool hasPopulateSubstitutions() const { return populate.size(); };
 	void addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow, int destCol);
 	void transposePopulate();
