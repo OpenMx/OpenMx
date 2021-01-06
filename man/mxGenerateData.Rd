@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,8 @@ See below for important details
 
 \usage{
 mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
- ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion)
+ ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion,
+ silent=FALSE)
 }
 
 
@@ -45,6 +46,8 @@ mxGenerateData(model, nrows, returnModel=FALSE, use.miss = TRUE,
    \link[mvtnorm]{rmvnorm}}
  \item{nrowsProportion}{Numeric. The number of rows of data to generate
    expressed as a proportion of the current number of rows.}
+ \item{silent}{Logical. Whether to report progress during time consuming
+   data generation.}
 }
 
 \details{
@@ -52,7 +55,7 @@ When given a data.frame as a model, the model is assumed to be
 saturated multivariate Gaussian and the expected distribution
 is obtained using \link{mxDataWLS}.  In this case, the default number of rows is assumed to be the number of rows in the original data.frame, but any other number of rows can also be requested.
 
-When given an MxModel, 
+When given an MxModel,
 the model-implied means and covariance are extracted.  It then generates data with the same mean and covariance.  Data can be generated based on Normal (\link{mxExpectationNormal}), RAM (\link{mxExpectationRAM}), LISREL (\link{mxExpectationLISREL}), and state space (\link{mxExpectationStateSpace}) models.
 
 Please note that this function samples data from the model-implied distribution(s); it does not sample from the data object in the model.  That is, this function generates new data rather than pulling data that already exist from the model.
@@ -140,7 +143,7 @@ originalModel <- mxModel("One Factor", type="RAM",
 )
 
 factorData <- mxGenerateData(originalModel, 1000)
-newData = mxData(cov(factorData), type="cov", 
+newData = mxData(cov(factorData), type="cov",
 	numObs=nrow(factorData), means = colMeans(factorData)
 )
 newModel <- mxModel(originalModel, newData)
@@ -149,7 +152,7 @@ cbind(
 	Original = omxGetParameters(originalModel),
 	Generated = round(omxGetParameters(newModel), 4),
 	Delta = round(
-		omxGetParameters(originalModel) - 
+		omxGetParameters(originalModel) -
 		omxGetParameters(newModel), 3)
 )
 
@@ -157,7 +160,7 @@ cbind(
 
 factorData <- mxGenerateData(originalModel, 1000, empirical = TRUE)
 newData = mxData(cov(factorData),
-	type = "cov", 
+	type = "cov",
 	numObs = nrow(factorData),
 	means = colMeans(factorData)
 )
@@ -168,7 +171,7 @@ newModel <- mxRun(newModel)
 cbind(
 	Original  = omxGetParameters(originalModel),
 	Generated = round(omxGetParameters(newModel), 4),
-	Delta     = omxGetParameters(originalModel) - 
+	Delta     = omxGetParameters(originalModel) -
 		 	    omxGetParameters(newModel)
 )
 

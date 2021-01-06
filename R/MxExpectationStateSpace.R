@@ -699,7 +699,7 @@ mxKalmanScores <- function(model, data=NA, frontend=TRUE){
 #--------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
-		   .backend, nrowsProportion) {
+		   .backend, nrowsProportion, silent) {
   origData <- findDataForSubmodel(model, subname)
   origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
   nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)

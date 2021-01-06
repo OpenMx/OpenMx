@@ -602,15 +602,15 @@ mxCheckIdentification <- function(model, details=TRUE){
 
 setGeneric("genericGenerateData",
 	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
-		   .backend, nrowsProportion) {
+		   .backend, nrowsProportion, silent) {
 	return(standardGeneric("genericGenerateData"))
 })
 
 setMethod("genericGenerateData", signature("MxExpectationNormal"),
 	  function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
-		   .backend, nrowsProportion) {
+		   .backend, nrowsProportion, silent) {
 	    return(generateNormalData(model, nrows, subname, empirical, returnModel,
-				      use.miss, .backend, nrowsProportion))
+				      use.miss, .backend, nrowsProportion, silent))
 	  })
 
 .rmvnorm <- function(nrow, mean, sigma, empirical) {
@@ -639,7 +639,7 @@ calcNumRows <- function(nrows, nrowsProportion, origRows, subname) {
 }
 
 generateNormalData <- function(model, nrows, subname, empirical, returnModel, use.miss,
-			       .backend, nrowsProportion) {
+			       .backend, nrowsProportion, silent) {
   origData <- findDataForSubmodel(model, subname)
   origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
   nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)
@@ -659,12 +659,17 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 		data <- matrix(NA, nrow=nrows, ncol=ncol(theCov))
 		colnames(data) <- colnames(theCov)
 		data <- as.data.frame(data)
+    prevProgressLen <- 0L
 		for(i in 1:nrows){
 			theMeans <- imxGetExpectationComponent(model, "means", defvar.row=i, subname=subname)
 			theCov <- imxGetExpectationComponent(model, "covariance", defvar.row=i, subname=subname)
 			theThresh <- imxGetExpectationComponent(model, "thresholds", defvar.row=i, subname=subname)
 			data[i,] <- .rmvnorm(1, theMeans, theCov, empirical)
+      info <- paste0(subname,' ', i, '/', nrows)
+      if (!silent) imxReportProgress(info, prevProgressLen)
+      prevProgressLen <- nchar(info)
 		}
+    if (!silent) imxReportProgress('', prevProgressLen)
 		data <- ordinalizeDataHelper(data, theThresh, origData)
 		if (!is.null(origData)) {
 			for (dcol in setdiff(colnames(origData), colnames(data))) {
@@ -866,7 +871,7 @@ extractObservedData <- function(model) {
 }
 
 mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE,
-			   ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion=NULL) {
+			   ..., .backend=TRUE, subname=NULL, empirical=FALSE, nrowsProportion=NULL, silent=FALSE) {
 	prohibitDotdotdot(list(...))
 	if (!is.null(nrows) && !is.null(nrowsProportion)) {
 	  stop("You cannot specify both nrows and nrowsProportion")
@@ -909,7 +914,7 @@ mxGenerateData <- function(model, nrows=NULL, returnModel=FALSE, use.miss = TRUE
 		}
 	}
 	genericGenerateData(model[[subname]]$expectation, model, nrows, subname, empirical,
-			    returnModel, use.miss, .backend, nrowsProportion)
+			    returnModel, use.miss, .backend, nrowsProportion, silent)
 }
 
 verifyExpectedObservedNames <- function(data, covName, flatModel, modelname, objectiveName) {

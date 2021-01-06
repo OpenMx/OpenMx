@@ -588,12 +588,12 @@ setMethod("show", "MxExpectationRAM", function(object) {
 #------------------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationRAM"),
 	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
-		 .backend, nrowsProportion)
+		 .backend, nrowsProportion, silent)
 	{
 	  fellner <- length(model$expectation$between)
 	  if (!fellner) {
 	    return(generateNormalData(model, nrows, subname, empirical, returnModel, use.miss,
-				      .backend, nrowsProportion))
+				      .backend, nrowsProportion, silent))
 	  } else {
 	    if (!use.miss) {
 	      stop("use.miss=FALSE is not implemented for relational models")

@@ -755,9 +755,9 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 #------------------------------------------------------------------------------
 setMethod("genericGenerateData", signature("MxExpectationLISREL"),
 	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
-		   .backend, nrowsProportion) {
+		   .backend, nrowsProportion, silent) {
 		return(generateNormalData(model, nrows, subname, empirical, returnModel, use.miss,
-		   .backend, nrowsProportion))
+		   .backend, nrowsProportion, silent))
 })
 
 

@@ -88,7 +88,7 @@ setMethod("genericGetExpected", signature("MxExpectationMixture"),
 
 setMethod("genericGenerateData", signature("MxExpectationMixture"),
 	function(.Object, model, nrows, subname, empirical, returnModel, use.miss,
-		   .backend, nrowsProportion) {
+		   .backend, nrowsProportion, silent) {
 		origData <- findDataForSubmodel(model, subname)
 		origRows <- if (!is.null(origData)) { nrowMxData(origData) } else { NULL }
 		nrows <- calcNumRows(nrows, nrowsProportion, origRows, subname)
