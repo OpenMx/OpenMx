@@ -70,8 +70,9 @@ summary(jointRAM1)
 # plot(jointRAM1) # (if using umx)
 
 # Where do these come from?
-param <-  c(0.5808, 0.5903, 0.6526, 0.6066, 0.1745, 0.0871, 0.0504, 0.5476,  0.4639, 7.8323,
-            2.0759, 0.0785, -0.3664, 0.1271, 0.7919, -0.6475,  -0.296)
+# cat(deparse(round(unname(coef(jointRAM1)), 4)))
+param <-  c(0.5803, 0.5888, 0.6529, 0.6059, 0.1743, 0.0878, 0.0464, 0.5476,
+            0.4629, 7.832, 2.081, 0.078, -0.3653, 0.1281, 0.7912, -0.6482,  -0.2959)
 omxCheckCloseEnough(coef(jointRAM1), param, 1e-3)
 
 param.se <- c(0.0613, 0.1056, 0.0684, 0.0942, 0.0665, 0.0541, 0.0648, 0.0559,  0.0644, 0.1054,
@@ -180,4 +181,4 @@ m1 <- mxRun(m1)
 personData$snpsex <- with(personData, snp * isMale)
 c1 <- coef(lm(phenotype ~ isMale + snp + snpsex, personData))
 
-omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')], 1e-3)
+omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')] * sqrt(c(mxGetExpected(m1, 'covariance'))), 1e-8)
