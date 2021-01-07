@@ -108,6 +108,9 @@ setMethod("genericGenerateData", signature("MxExpectationMixture"),
 		cpick <- NULL
 		doDefVar <- imxHasDefinitionVariable(model)
 		if(doDefVar){
+      if (is.null(origData)) {
+        stop("Definition variable(s) found, but no data is available")
+      }
 			if (origData$type != 'raw') {
 				stop(paste("Definition variable(s) found, but original data is type",
 					omxQuotes(origData$type)))

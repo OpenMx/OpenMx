@@ -646,6 +646,9 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model[[subname]])){
+    if (is.null(origData)) {
+      stop("Definition variable(s) found, but no data is available")
+    }
 		if (origData$type != 'raw') {
 			stop(paste("Definition variable(s) found, but original data is type",
 				omxQuotes(origData$type)))

@@ -19,10 +19,14 @@ model <- mxModel( 'BinCont',
   mxAlgebra( Means + Betas%x%U , name='eMean'),
   mxMatrix('Full',nrow=1,ncol=1,free=T,name='Thresh'),
   mxMatrix('Symm',nrow=2,ncol=2,free=c(T,T,F),values=c(1,0,1),name='Cov'),
-  mxData( data.frame(x,y,u) , type='raw'),
   mxExpectationNormal( means='eMean', covariance='Cov',thresholds='Thresh',threshnames='y',dimnames=c('x','y') ),
   mxFitFunctionML(vector=TRUE)
 )                                        
+
+expect_error(mxGenerateData(model, 100),
+             "no data is available")
+
+model <- mxModel(model, mxData( data.frame(x,y,u) , type='raw'))
 
 maxThreads <- imxGetNumThreads()
 rowLik <- matrix(NA, N, maxThreads)
