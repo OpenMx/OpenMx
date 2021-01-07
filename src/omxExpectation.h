@@ -227,7 +227,7 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 		EigenMatrixAdaptor Eslope(slope);
 		for (int cx=0; cx < Eslope.cols(); ++cx) {
 			for (int rx=0; rx < Eslope.rows(); ++rx) {
-				out[dx++] = Eslope(rx,cx);
+				out[dx++] = Eslope(rx,cx) * sdTmp[rx];
 			}
 		}
 	}
