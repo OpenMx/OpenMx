@@ -3735,7 +3735,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	double trUW = UW.diagonal().array().sum();
 	madj = trUW / df;
 	x2m = fc->fit / madj;
-	dstar = round((trUW * trUW) / UW2.diagonal().array().sum());
+	dstar = (trUW * trUW) / UW2.diagonal().array().sum();
 	mvadj = (trUW*trUW) / dstar;
 	x2mv = fc->fit / mvadj;
 	// N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
