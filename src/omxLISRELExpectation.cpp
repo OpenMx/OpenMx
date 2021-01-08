@@ -615,7 +615,9 @@ void omxLISRELExpectation::getExogenousPredictors(std::vector<int> &out)
 
 void omxLISRELExpectation::studyExoPred() // compare with similar function for RAM
 {
-	if (data->defVars.size() == 0 || !TY || !TY->isSimple() || !PS->isSimple()) return;
+	if (data->defVars.size() == 0 || !TY ||
+      TY->isAlgebra() || TY->populateDependsOnDefinitionVariables() ||
+      PS->isAlgebra() || PS->populateDependsOnDefinitionVariables()) return;
 
 	Eigen::VectorXd estSave;
 	currentState->setFakeParam(estSave);
