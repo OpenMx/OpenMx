@@ -181,4 +181,4 @@ m1 <- mxRun(m1)
 personData$snpsex <- with(personData, snp * isMale)
 c1 <- coef(lm(phenotype ~ isMale + snp + snpsex, personData))
 
-omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')] * sqrt(c(mxGetExpected(m1, 'covariance'))), 1e-8)
+omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')] * sqrt(c(mxGetExpected(m1, 'covariance'))), 1e-6)
