@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2019 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -57,14 +57,14 @@ mxCompareMatrix <- function(models,
 	
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
-
+	
 	diagpick <- match.arg(diag)
 	offdiagpick <- match.arg(stat)
-
+	
 	resultsTable <- iterateNestedModels(models, boot, replications, previousRun, checkHess)
-
+	
 	if (wholeTable) return(resultsTable)
-
+	
 	modelNames <- sapply(models, function(m) m$name)
 	mat <- matrix(NA, length(models), length(models),
 		      dimnames=list(modelNames, modelNames))
@@ -82,7 +82,7 @@ print.result.mxCompareMatrix <- function(x,...) print(x[,])
 anova.MxModel <- function(object, ...) {
 	args <- list(...)
 	boot <- FALSE
-
+	
 	replications <- 400L
 	ap <- match('replications', names(args))
 	if (!is.na(ap)) {
@@ -98,20 +98,20 @@ anova.MxModel <- function(object, ...) {
 		previousRun <- args[[ap]]
 		args <- args[-ap]
 	}
-
+	
 	checkHess <- as.logical(NA)
 	ap <- match('checkHess', names(args))
 	if (!is.na(ap)) {
 		checkHess <- args[[ap]]
 		args <- args[-ap]
 	}
-
+	
 	ap <- match('boot', names(args))
 	if (!is.na(ap)) {
 		boot <- args[[ap]]
 		args <- args[-ap]
 	}
-
+	
 	comparison <- args
 	if (length(comparison) == 0) {
 		stop(paste("Compare model",omxQuotes(object$name),
@@ -140,12 +140,12 @@ anova.MxModel <- function(object, ...) {
 		bootData <- setupBootData(models, models, bootTodo, replications, previousRun)
 		bootData <- fillBootData(models, models, bootTodo, bootData, checkHess)
 	}
-
+	
 	result <- list()
-
+	
 	result[[ length(result) + 1L ]] <- 
 		collectBaseStatistics(newEmptyCompareRow(), models[[1]])
-
+	
 	for (i in 2:length(models)) {
 		if (stats[i-1,'m2ll'] > stats[i,'m2ll']) {
 			result[[ length(result) + 1L ]] <-
@@ -156,7 +156,7 @@ anova.MxModel <- function(object, ...) {
 		result[[ length(result) + 1L ]] <-
 			collectStatistics(newEmptyCompareRow(), models[[i-1]], models[[i]], boot1)
 	}
-
+	
 	ret <- do.call(rbind, result)
 	if (boot) {
 		attr(ret, "bootData") <- bootData
@@ -181,7 +181,7 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 	result <- list()
 	
 	summaries <- lapply(models, summary)
-
+	
 	bd <- NULL
 	if (boot) {
 		bootTodo <- list()
@@ -193,11 +193,11 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 				bootTodo[[cxChar]] <- c(bootTodo[[cxChar]], rx)
 			}
 		}
-
+	
 		bd <- setupBootData(models, models, bootTodo, replications, previousRun)
 		bd <- fillBootData(models, models, bootTodo, bd, checkHess)
 	}
-
+	
 	for (rx in seq_along(models)) {
 		for (cx in seq_along(models)) {
 			if (cx == rx) {
@@ -216,7 +216,7 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 			}
 		}
 	}
-
+	
 	ret <- do.call(rbind, result)
 	if (boot) {
 		attr(ret, "bootData") <- bd
@@ -225,25 +225,25 @@ iterateNestedModels <- function(models, boot, replications, previousRun, checkHe
 }
 
 assertIsRawData <- function(model) {
-  type <- model$data$type
-  if (type == 'raw') return()
-  stop(paste("Model", omxQuotes(model$name), "contains", omxQuotes(type),
-	     "data. Only type='raw' data is supported by",
-	     "mxPowerSearch(..., method='empirical')"))
+	type <- model$data$type
+	if (type == 'raw') return()
+	stop(paste("Model", omxQuotes(model$name), "contains", omxQuotes(type),
+		"data. Only type='raw' data is supported by",
+		"mxPowerSearch(..., method='empirical')"))
 }
 
 loadDataIntoModel <- function(model, dataList, assertRaw=FALSE) {
-  for (modelName in names(dataList)) {
-    dataobj <- mxData(dataList[[modelName]], type='raw')
-    if (modelName == model$name) {
-      if (assertRaw) assertIsRawData(model)
-      model <- mxModel(model, dataobj)
-    } else {
-      if (assertRaw) assertIsRawData(model[[modelName]])
-      model <- mxModel(model, mxModel(model[[modelName]], dataobj))
-    }
-  }
-  model
+	for (modelName in names(dataList)) {
+		dataobj <- mxData(dataList[[modelName]], type='raw')
+		if (modelName == model$name) {
+			if (assertRaw) assertIsRawData(model)
+			model <- mxModel(model, dataobj)
+		} else {
+			if (assertRaw) assertIsRawData(model[[modelName]])
+			model <- mxModel(model, mxModel(model[[modelName]], dataobj))
+		}
+	}
+	model
 }
 
 setupBootData <- function(nullHyp, comparison, todo,
@@ -384,7 +384,7 @@ showFitStatistics <- function(base, compare, all, boot, replications, previousRu
 				bootTodo[[ciChar]] <- c(bootTodo[[ciChar]], baseIndex)
 			}
 		}
-
+		
 		bootData <- setupBootData(compare, base, bootTodo, replications, previousRun)
 		bootData <- fillBootData(compare, base, bootTodo, bootData, checkHess)
 	}
@@ -492,9 +492,9 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	otherStats[,c('diffLL','diffdf')] <-
 		c(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
 		  otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom)
-
-  diffdf <- otherStats[['diffdf']]
-  diffdf <- diffdf[!is.na(diffdf)]
+	
+	diffdf <- otherStats[['diffdf']]
+	diffdf <- diffdf[!is.na(diffdf)]
 	if (length(diffdf) && any(diffdf < 0)) {
 		msg <- paste("Model", omxQuotes(refSummary$modelName), "has more degrees of freedom than",
 			     otherSummary$modelName, "which means that the models need to be",
@@ -525,7 +525,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 					       "converged acceptably. Accuracy is much less than the ", nrow(raw),
 					       " replications requested"), call.=FALSE)
 			}
-
+			
 			diffLL <- baseData[mask,'fit'] - cmpData[mask,'fit']
 			otherStats[['p']] <- sum(diffLL > otherStats[['diffLL']]) / sum(mask)
 		}
@@ -624,52 +624,52 @@ mxParametricBootstrap <- function(nullModel, labels,
 }
 
 totalSampleSize <- function(model, default=100L) {
-  sizes <- sapply(extractData(model), function(mxd) {
-    if (mxd@type == 'raw') {
-      nrow(mxd@observed)
-    } else {
-      mxd@numObs
-    }
-  })
-  if (length(sizes) == 0) sizes <- default
-  sum(sizes)
+	sizes <- sapply(extractData(model), function(mxd) {
+		if (mxd@type == 'raw') {
+			nrow(mxd@observed)
+		} else {
+			mxd@numObs
+		}
+	})
+	if (length(sizes) == 0) sizes <- default
+	sum(sizes)
 }
 
 fitPowerModel <- function(rx, result) {
-  # rx is which(is.na(result$reject))[1] - 1L
-  result <- result[!is.na(result$x),]
-  algRle <- rle(result$alg)
-  if (algRle$values[1] == 'init') {
-    # skip outliers from early probe sequence
-    newFirst <- max(1, algRle$lengths[1] - 3L)
-    result <- result[newFirst:nrow(result),]
-  }
-  m1 <- suppressWarnings(glm(reject ~ x, data = result, family = binomial))
-  if (all(!is.na(coef(m1))) && summary(m1)$coefficients['x','Pr(>|z|)'] < .25) {
-    curX <- as.numeric(((rx %% 3) - coef(m1)[1]) / coef(m1)[2])
-    alg <- '2p'
-  } else {
-    m2 <- glm(reject ~ 1, data = result, family = binomial)
-    from <- max(nrow(result)-9, 1)
-    curX <- mean(result$x[from:nrow(result)]) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
-    alg <- '1p'
-  }
-    # Can only consider one-sided hypotheses
-  if (sign(curX) != sign(result[1,'x'])) curX <- 0
-  list(curX=curX, m1=m1, alg=alg)
+	# rx is which(is.na(result$reject))[1] - 1L
+	result <- result[!is.na(result$x),]
+	algRle <- rle(result$alg)
+	if (algRle$values[1] == 'init') {
+		# skip outliers from early probe sequence
+		newFirst <- max(1, algRle$lengths[1] - 3L)
+		result <- result[newFirst:nrow(result),]
+	}
+	m1 <- suppressWarnings(glm(reject ~ x, data = result, family = binomial))
+	if (all(!is.na(coef(m1))) && summary(m1)$coefficients['x','Pr(>|z|)'] < .25) {
+		curX <- as.numeric(((rx %% 3) - coef(m1)[1]) / coef(m1)[2])
+		alg <- '2p'
+	} else {
+		m2 <- glm(reject ~ 1, data = result, family = binomial)
+		from <- max(nrow(result)-9, 1)
+		curX <- mean(result$x[from:nrow(result)]) * ifelse(coef(m2)[1] < 0, 1.1, 0.9)
+		alg <- '1p'
+	}
+	# Can only consider one-sided hypotheses
+	if (sign(curX) != sign(result[1,'x'])) curX <- 0
+	list(curX=curX, m1=m1, alg=alg)
 }
 
 validateSigLevel <- function(sl) {
-  if (length(sl) > 1) {
-    stop(paste("Can only evaluate one sig.level at a time.",
-	       "To evaluate power across a range of sig.levels",
-	       "you need to call mxPower in a loop and accumulate",
-	       "estimates that way"))
-  } else if (length(sl) == 0) {
-    stop("At what sig.level?")
-  } else if (sl <= 0 || sl >= 1) {
-    stop("sig.level must be between 0 and 1")
-  }
+	if (length(sl) > 1) {
+		stop(paste("Can only evaluate one sig.level at a time.",
+			"To evaluate power across a range of sig.levels",
+			"you need to call mxPower in a loop and accumulate",
+			"estimates that way"))
+	} else if (length(sl) == 0) {
+		stop("At what sig.level?")
+	} else if (sl <= 0 || sl >= 1) {
+		stop("sig.level must be between 0 and 1")
+	}
 }
 
 mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
