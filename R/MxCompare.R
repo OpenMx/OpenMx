@@ -127,7 +127,7 @@ anova.MxModel <- function(object, ...) {
 	mo <- with(stats, order(df, m2ll))
 	models <- models[mo]
 	stats <- stats[mo,]
-
+	
 	bootData <- NULL
 	if (boot) {
 		bootTodo <- list()
@@ -388,51 +388,50 @@ showFitStatistics <- function(base, compare, all, boot, replications, previousRu
 		bootData <- setupBootData(compare, base, bootTodo, replications, previousRun)
 		bootData <- fillBootData(compare, base, bootTodo, bootData, checkHess)
 	}
-
-    statistics <- list()
-    if (all) {
-        for (i in seq_along(base)) {
-            nextBase <- base[[i]]
-            statistics[[length(statistics) + 1]] <-
-		    collectBaseStatistics(newEmptyCompareRow(), nextBase)
-            for (j in seq_along(compare)) {
-                nextCompare <- compare[[j]]
-		boot1 <- extractLRTBootstrapPair(bootData, i, j)
-                statistics[[length(statistics) + 1]] <-
-			collectStatistics(newEmptyCompareRow(), nextBase, nextCompare, boot1)
-            }
-        }
-    }
-    else {
-		if(length(compare)==0){
-	        for (i in seq_along(base)) {
+	
+	statistics <- list()
+	if (all) {
+		for (i in seq_along(base)) {
+			nextBase <- base[[i]]
 			statistics[[length(statistics) + 1]] <-
-				collectBaseStatistics(newEmptyCompareRow(), base[[i]])
-	        }
+			collectBaseStatistics(newEmptyCompareRow(), nextBase)
+			for (j in seq_along(compare)) {
+				nextCompare <- compare[[j]]
+				boot1 <- extractLRTBootstrapPair(bootData, i, j)
+				statistics[[length(statistics) + 1]] <-
+					collectStatistics(newEmptyCompareRow(), nextBase, nextCompare, boot1)
+			}
+		}
+	} else {
+		if(length(compare)==0){
+			for (i in seq_along(base)) {
+				statistics[[length(statistics) + 1]] <-
+					collectBaseStatistics(newEmptyCompareRow(), base[[i]])
+			}
 		} else {
-	        maxLength <- max(length(base), length(compare))
-	        previousBaseIndex <- -1
-	        for (i in 1:maxLength) {
-	            nextBaseIndex <- (i - 1)%%length(base) + 1
-	            nextCompareIndex <- (i - 1)%%length(compare) + 1
-	            nextBase <- base[[nextBaseIndex]]
-	            nextCompare <- compare[[nextCompareIndex]]
-	            if (previousBaseIndex != nextBaseIndex) {
-	                statistics[[length(statistics) + 1]] <-
-				collectBaseStatistics(newEmptyCompareRow(), nextBase)
-	            }
-		    boot1 <- extractLRTBootstrapPair(bootData, nextBaseIndex, nextCompareIndex)
-	            statistics[[length(statistics) + 1]] <-
-			    collectStatistics(newEmptyCompareRow(), nextBase, nextCompare, boot1)
-	            previousBaseIndex <- nextBaseIndex
-	        }
-		}		
-    }
+			maxLength <- max(length(base), length(compare))
+			previousBaseIndex <- -1
+			for (i in 1:maxLength) {
+				nextBaseIndex <- (i - 1)%%length(base) + 1
+				nextCompareIndex <- (i - 1)%%length(compare) + 1
+				nextBase <- base[[nextBaseIndex]]
+				nextCompare <- compare[[nextCompareIndex]]
+				if (previousBaseIndex != nextBaseIndex) {
+					statistics[[length(statistics) + 1]] <-
+						collectBaseStatistics(newEmptyCompareRow(), nextBase)
+				}
+				boot1 <- extractLRTBootstrapPair(bootData, nextBaseIndex, nextCompareIndex)
+				statistics[[length(statistics) + 1]] <-
+					collectStatistics(newEmptyCompareRow(), nextBase, nextCompare, boot1)
+				previousBaseIndex <- nextBaseIndex
+			}
+		}
+	}
 	statistics <- do.call(rbind, statistics)
 	if (boot) {
 		attr(statistics, "bootData") <- bootData
 	}
-    return(statistics)
+	return(statistics)
 }
 
 collectBaseStatistics <- function(row, ref) {
