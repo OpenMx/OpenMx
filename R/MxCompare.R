@@ -13,6 +13,67 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+##' The MxCompare Class
+##' 
+##' @aliases
+##' $,MxCompare-method
+##' [,MxCompare-method
+##' as.data.frame.MxCompare
+##' print,MxCompare-method
+##' show,MxCompare-method
+##' 
+##' @details
+##' This is an internal class structure.  You should not use it directly.
+##' Use \code{\link{mxCompare}} instead.
+setClass(Class =  "MxCompare", 
+	representation = representation(
+		results = 'data.frame',
+		base = 'list',
+		comparison = 'list'
+	)
+)
+
+# Initialize method for the new() function
+setMethod("initialize", "MxCompare",
+	function(.Object, results, base, comparison){
+		.Object@results <- results
+		.Object@base <- base
+		.Object@comparison <- comparison
+		return(.Object)
+	}
+)
+
+displayCompare <- function(obj){
+	pnames <- names(obj@results) #'AIC'
+	# TODO subset which names get prints depending on model type
+	print(obj@results[, pnames, drop=FALSE])
+}
+setMethod("print", "MxCompare", function(x,...) { displayCompare(x) })
+setMethod("show", "MxCompare", function(object) { displayCompare(object) })
+
+setMethod("$", "MxCompare",
+          function(x, name){x@results[ , name]}
+)
+
+.DollarNames.MxCompare <- function(x, pattern){
+	if(missing(pattern)){
+		pattern <- ''
+	}
+	output <- names(x@results)
+	output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+	return(grep(pattern, output, value=TRUE))
+}
+
+setMethod("[", "MxCompare",
+	function (x, i, j, drop=if (missing(i)) TRUE else !missing(j) && length(j) == 1){
+		x@results[i, j, drop]
+	}
+)
+
+as.data.frame.MxCompare <- function(x, row.names = NULL, optional = FALSE, ...){
+	return(data.frame(x@results, row.names=row.names))
+}
+
 mxCompare <- function(base, comparison, ..., all = FALSE,
 		      boot=FALSE, replications=400, previousRun=NULL, checkHess=FALSE) {
 	prohibitDotdotdot(list(...))
@@ -45,7 +106,7 @@ mxCompare <- function(base, comparison, ..., all = FALSE,
 	if (missing(checkHess)) checkHess <- as.logical(NA)
 	if (missing(boot) && (!missing(replications) || !missing(previousRun))) boot <- TRUE
 	resultsTable <- showFitStatistics(base, comparison, all, boot, replications, previousRun, checkHess)
-	return(resultsTable)
+	return(new("MxCompare", resultsTable, base, comparison))
 }
 
 mxCompareMatrix <- function(models,
