@@ -4,7 +4,6 @@ set -ve
 
 set +x
 
-brew uninstall --force gcc
 brew install --overwrite gcc llvm libomp
 
 # Workaround for travis-ci/travis-ci#8973
