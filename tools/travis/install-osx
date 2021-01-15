@@ -4,6 +4,8 @@ set -ve
 
 set +x
 
+brew link --overwrite gcc
+
 # Workaround for travis-ci/travis-ci#8973
 python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
 
