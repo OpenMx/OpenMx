@@ -11,10 +11,6 @@ addons:
     - gcc-8
     - g++-8
     - gfortran-8
-  homebrew:
-    packages:
-    - llvm
-    - libomp
 jobs:
   include:
   - stage: dependencies
