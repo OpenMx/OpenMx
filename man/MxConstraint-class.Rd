@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,7 @@
 \title{Class \code{"MxConstraint"}}
 
 \description{
-   MxConstraint is an S4 class. An MxConstraint object 
+   MxConstraint is an S4 class. An MxConstraint object
    is a \link[=Named-entity]{named entity}. New instances of this class can
    be created using the function \code{\link{mxConstraint}()}.
 }
@@ -41,6 +41,10 @@
     \item{\code{relation}:}{Object of class \code{"MxCharOrNumber"}.  For internal use.}
     \item{\code{jac}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \link{MxAlgebra} representing the Jacobian for the constraint function.}
     \item{\code{linear}:}{Logical. For internal use.}
+    \item{\code{strict}:}{Logical. Whether to require that all Jacobian entries reference
+   free parameters.}
+    \item{\code{verbose}:}{integer. For values greater than zero, enable runtime
+   diagnostics.}
   }
 }
 
