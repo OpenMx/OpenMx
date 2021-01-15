@@ -34,7 +34,9 @@
 # ----------------------------------
 # Read libraries and set options.
 
-require(OpenMx)
+library(OpenMx)
+
+suppressWarnings(RNGversion("3.5"))
 
 # ----------------------------------
 # Read the data and print descriptive statistics.
@@ -110,7 +112,7 @@ set.seed(42)
 biRegModelRawBoot <- mxBootstrap(biRegModelRawOut, 10)
 omxCheckTrue(is.null(biRegModelRawBoot$output[["standardErrors"]]))
 bq1 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
-omxCheckCloseEnough(cor(bq1, biRegModelRawOut$output$standardErrors), .89, .01)
+omxCheckCloseEnough(cor(bq1, biRegModelRawOut$output$standardErrors), 1, .16)
 
 biRegModelRawBoot <- mxBootstrap(biRegModelRawBoot)
 bq2 <- summary(biRegModelRawBoot)[["bootstrapSE"]]
