@@ -4,7 +4,7 @@ set -ve
 
 set +x
 
-brew install --overwrite gcc llvm libomp
+brew install --force gcc llvm libomp
 
 # Workaround for travis-ci/travis-ci#8973
 python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
