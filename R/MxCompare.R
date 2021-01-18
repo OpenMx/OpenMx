@@ -43,8 +43,14 @@ setMethod("initialize", "MxCompare",
 	}
 )
 
+cmpMlNames <- c('base', 'comparison', 'ep', 'minus2LL', 'df', 'AIC', 'diffLL', 'diffdf', 'p')
+cmpWlsNames <- c('base', 'comparison', 'ep', 'chisq', 'df', 'AIC', 'SBchisq', 'diffdf', 'p')
+cmpCommonNames <- intersect(cmpMlNames, cmpWlsNames)
+cmpAbstractNames <- c('fit', 'fitUnits', 'diffFit')
+
 displayCompare <- function(obj){
-	pnames <- names(obj@results) #'AIC'
+	rfu <- obj@results[1, c('fitUnits')]
+	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
 	# TODO subset which names get prints depending on model type
 	print(obj@results[, pnames, drop=FALSE])
 }
@@ -235,7 +241,12 @@ newEmptyCompareRow <- function() {
 		   AIC=as.numeric(NA),
 		   diffLL=as.numeric(NA),
 		   diffdf=as.numeric(NA), 
-		   p=as.numeric(NA))
+		   p=as.numeric(NA),
+		   fit=as.numeric(NA),
+		   fitUnits=as.character(NA),
+		   diffFit=as.numeric(NA),
+		   chisq=as.numeric(NA),
+		   SBchisq=as.numeric(NA))
 }
 
 iterateNestedModels <- function(models, boot, replications, previousRun, checkHess) {
@@ -498,12 +509,31 @@ showFitStatistics <- function(base, compare, all, boot, replications, previousRu
 collectBaseStatistics <- function(row, ref) {
 	refSummary <- summary(ref)
 	row[,'base'] <- refSummary$modelName
-	row[,c('ep','minus2LL','df','AIC')] <-
+	row[,c('ep', 'minus2LL', 'AIC')] <-
 		c(refSummary$estimatedParameters,
 		  refSummary$Minus2LogLikelihood,
-		  refSummary$degreesOfFreedom,
-		  refSummary$AIC.Mx)
+		  AIC(ref))
+	rfu <- ref$output$fitUnits
+	row[, 'fitUnits'] <- rfu
+	row[, 'chisq'] <- ref$output$chi
+	row[, c('fit', 'df')] <- if(rfu == "r'Wr"){
+			c(ref$output$chi, ref$output$chiDoF)
+		} else if(rfu == '-2lnL'){
+			c(refSummary$Minus2LogLikelihood, refSummary$degreesOfFreedom)
+		} else {
+			stop("Can't compare models with these fit units: ", rfu)
+		}
 	row
+}
+
+# Satorra-Bentler Chi-squared fit (Fit Satorra Bentler = FSB)
+fsb <- function(chi0, chi1, df0, df1, chim0, chim1){
+	sb <- (chi0 - chi1)*(df0 - df1) / (df0*chi0/chim0 - df1*chi1/chim1)
+	return(list(chi=sb, df=df0-df1))
+}
+
+fsb_helper <- function(model0, model1){
+	fsb(model0$output$chi, model1$output$chi, model0$output$chiDoF, model1$output$chiDoF, model0$output$chiM, model1$output$chiM)
 }
 
 collectStatistics <- function(otherStats, ref, other, bootPair) {
@@ -552,6 +582,10 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	otherStats[,c('diffLL','diffdf')] <-
 		c(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
 		  otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom)
+	# TODO ? need to adjust DoF for Chi-sq with WLS?  In Theory these should always be the same.
+	otherStats[,c('SBchisq')] <- fsb_helper(other, ref)$chi
+	
+	otherStats[,c('diffFit')] <- if(rfu[[1]] == "r'Wr"){otherStats[,'SBchisq']} else if(rfu[[1]] == '-2lnL'){otherStats[,'diffLL']} else {stop("Unknown fitUnits")}
 	
 	diffdf <- otherStats[['diffdf']]
 	diffdf <- diffdf[!is.na(diffdf)]
@@ -562,7 +596,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 		warning(msg)
 	} else {
 		if (is.null(bootPair)) {
-			otherStats[['p']] <- pchisq(otherStats[['diffLL']], otherStats[['diffdf']], lower.tail=FALSE)
+			otherStats[['p']] <- pchisq(otherStats[['diffFit']], otherStats[['diffdf']], lower.tail=FALSE)
 		} else {
 			baseData <- bootPair[[1]] # null hypothesis
 			cmpData <- bootPair[[2]]
