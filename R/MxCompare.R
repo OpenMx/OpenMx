@@ -51,7 +51,6 @@ cmpAbstractNames <- c('fit', 'fitUnits', 'diffFit')
 displayCompare <- function(obj){
 	rfu <- obj@results[1, c('fitUnits')]
 	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
-	# TODO subset which names get prints depending on model type
 	print(obj@results[, pnames, drop=FALSE])
 }
 setMethod("print", "MxCompare", function(x,...) { displayCompare(x) })
@@ -72,7 +71,10 @@ setMethod("$", "MxCompare",
 
 setMethod("[", "MxCompare",
 	function (x, i, j, drop=if (missing(i)) TRUE else !missing(j) && length(j) == 1){
-		x@results[i, j, drop]
+		rfu <- x@results[1, c('fitUnits')]
+		pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
+		tmp <- x@results[, c(pnames, setdiff(pnames, cmpCommonNames), cmpAbstractNames), drop=FALSE]
+		tmp[i, j, drop]
 	}
 )
 
