@@ -191,9 +191,9 @@ anova.MxModel <- function(object, ...) {
 	}
 	models <- c(list(object), comparison)
 	summaries <- lapply(models, summary)
-	stats <- data.frame(m2ll=unlist(Map(function(x) x$Minus2LogLikelihood, summaries)),
+	stats <- data.frame(fit=unlist(Map(function(x) x$fit, summaries)),
 			    df  =unlist(Map(function(x) x$degreesOfFreedom, summaries)))
-	mo <- with(stats, order(df, m2ll))
+	mo <- with(stats, order(df, fit))
 	models <- models[mo]
 	stats <- stats[mo,]
 	
@@ -201,7 +201,7 @@ anova.MxModel <- function(object, ...) {
 	if (boot) {
 		bootTodo <- list()
 		for (rx in 2:length(models)) {
-			if (stats[rx-1,'m2ll'] >= stats[rx,'m2ll'] ||
+			if (stats[rx-1,'fit'] >= stats[rx,'fit'] ||
 			    stats[rx-1,'df'] >= stats[rx,'df']) next
 			nChar <- as.character(rx)
 			bootTodo[[ nChar ]] <- rx-1
@@ -216,7 +216,7 @@ anova.MxModel <- function(object, ...) {
 		collectBaseStatistics(newEmptyCompareRow(), models[[1]])
 	
 	for (i in 2:length(models)) {
-		if (stats[i-1,'m2ll'] > stats[i,'m2ll']) {
+		if ( stats[i-1,'fit'] > stats[i,'fit'] ) {
 			result[[ length(result) + 1L ]] <-
 				collectBaseStatistics(newEmptyCompareRow(), models[[i]])
 			next
@@ -230,6 +230,11 @@ anova.MxModel <- function(object, ...) {
 	if (boot) {
 		attr(ret, "bootData") <- bootData
 	}
+	
+	rfu <- ret[1, c('fitUnits')]
+	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {names(retval)}
+	ret <- ret[, pnames, drop=FALSE]
+	
 	ret
 }
 

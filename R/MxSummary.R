@@ -245,6 +245,7 @@ fitStatistics <- function(model, useSubmodels, retval) {
 	}
 	
 	retval$fitUnits <- model@output$fitUnits
+	retval$fit <- if(retval$fitUnits == '-2lnL'){ retval[['Minus2LogLikelihood']] } else if(retval$fitUnits == "r'Wr") {retval[['Chi']]}
 	
 	fi <- computeFitStatistics(likelihood, DoF, chi, chiDoF,
 		retval[['numObs']], independence, indDoF, saturated, satDoF)
