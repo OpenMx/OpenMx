@@ -53,8 +53,15 @@ mxCompareMatrix(models,
 
 Model comparisons are made by subtracting the fit statistics for the comparison model from the fit statistics for the base model. Raw fit statistics of each \sQuote{base} model are also listed in the output table.
 
-If a comparison is made where the comparison model has a
-higher minus 2 log likelihood (-2LL) than the base model, then the
+The fit statistics compared depend on the kinds of models compared.  Models fit with maximum likelihood are compared based on their minus two log likelihood values.  Under certain regularity conditions, the difference in minus two log likelihood values from nested models is chi-squared distributed and forms a likelihood ratio test statistic.  Models fit with weighted least squares are compared based on their Satorra-Bentler (2001) scaled difference chi-squared test statistics.  Under full weighted least squares, the Satorra-Bentler chi-squared value is equal to the difference in the model chi-squared values; however, for unweighted and diagonally weighted least squares, the two are no longer equal.  Satorra and Bentler (2001) showed that that their test statistic behaved well under a variety of conditions, including small sample sizes.  By contrast the much simpler difference in the chi-squared statistics only behaved well under large sample sizes (e.g., greater than or equal to 300 rows of data).
+
+Specific to weighted least squares, researchers sometimes use mean-adjusted chi-squared statistics and mean-and-variance scaled chi-suqared statistics.  Some programs call these WLSM and WLSMV statistics.  In some cases, it is fine to evaluate the total fit of a model using adjusted and scaled chi-squared statistics.  However, never, ever, ever, ..., ever take differences in mean-adjusted chi-squared statistics, and use them for nested model comparisons.  Similarly, never, ever, ever, ..., ever, ever take differences in mean-and-variance scaled chi-suqared statistics, and use them for nested model comparisons.  The differences in these adjusted and scaled chi-squared statistics are not chi-squared distributed and do not form a valid basis for model comparison.  So, just don't do it.
+
+Although not always checked by \code{mxCompare}, you should never compare models with different data sets or that use different variables from the same data set.  \code{mxCompare} might not stop you from doing this, so be thoughtful when comparing models.  Make sure your models are nested and use the same data.  One case of comparing different data sets to be particularly careful of involves our friend weighted least squares.  When comparing WLS models, make sure you are using the same exogenous covariates for all compared models.  Because WLS is a multi-stage estimation approach, exogenous covariates residualize and change the data fitted in WLS.  Consequently, WLS models with different exogenous covariates actually have different data.  By contrast, maximum likelihood models with different exogenous covariates still use the same data and are valid to compare.
+
+The \code{mxCompare} function makes an effort to only make valid comparisons.
+If a comparison is made where the \code{comparison} model has a
+higher minus 2 log likelihood (-2LL) than the \code{base} model, then the
 difference in their -2LLs will be negative. P-values for likelihood
 ratio tests will not be reported when either the -2LL or degrees of
 freedom for the comparison are negative. 
