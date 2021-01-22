@@ -17,7 +17,7 @@
 ##' 
 ##' @aliases
 ##' $,MxCompare-method
-##' [,MxCompare-method
+##' [,MxCompare,ANY,ANY,ANY-method
 ##' as.data.frame.MxCompare
 ##' print,MxCompare-method
 ##' show,MxCompare-method
