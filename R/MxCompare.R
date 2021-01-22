@@ -232,7 +232,7 @@ anova.MxModel <- function(object, ...) {
 	}
 	
 	rfu <- ret[1, c('fitUnits')]
-	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {names(retval)}
+	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {names(ret)}
 	ret <- ret[, pnames, drop=FALSE]
 	
 	ret
