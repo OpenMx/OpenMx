@@ -55,9 +55,9 @@ Model comparisons are made by subtracting the fit statistics for the comparison 
 
 The fit statistics compared depend on the kinds of models compared.  Models fit with maximum likelihood are compared based on their minus two log likelihood values.  Under certain regularity conditions, the difference in minus two log likelihood values from nested models is chi-squared distributed and forms a likelihood ratio test statistic.  Models fit with weighted least squares are compared based on their Satorra-Bentler (2001) scaled difference chi-squared test statistics.  Under full weighted least squares, the Satorra-Bentler chi-squared value is equal to the difference in the model chi-squared values; however, for unweighted and diagonally weighted least squares, the two are no longer equal.  Satorra and Bentler (2001) showed that that their test statistic behaved well under a variety of conditions, including small sample sizes.  By contrast the much simpler difference in the chi-squared statistics only behaved well under large sample sizes (e.g., greater than or equal to 300 rows of data).
 
-Specific to weighted least squares, researchers sometimes use mean-adjusted chi-squared statistics and mean-and-variance scaled chi-suqared statistics.  Some programs call these WLSM and WLSMV statistics.  In some cases, it is fine to evaluate the total fit of a model using adjusted and scaled chi-squared statistics.  However, never, ever, ever, ..., ever take differences in mean-adjusted chi-squared statistics, and use them for nested model comparisons.  Similarly, never, ever, ever, ..., ever, ever take differences in mean-and-variance scaled chi-suqared statistics, and use them for nested model comparisons.  The differences in these adjusted and scaled chi-squared statistics are not chi-squared distributed and do not form a valid basis for model comparison.  So, just don't do it.
+Specific to weighted least squares, researchers sometimes use mean-adjusted chi-squared statistics and mean-and-variance scaled chi-squared statistics.  Some programs call these WLSM and WLSMV statistics.  In some cases, it is fine to evaluate the total fit of a model using adjusted and scaled chi-squared statistics.  However, never, ever, ever, ..., ever take differences in mean-adjusted chi-squared statistics, and use them for nested model comparisons.  Similarly, never, ever, ever, ..., ever, ever take differences in mean-and-variance scaled chi-squared statistics, and use them for nested model comparisons.  The differences in these adjusted and scaled chi-squared statistics are not chi-squared distributed and do not form a valid basis for model comparison.  So, just don't do it.
 
-Although not always checked by \code{mxCompare}, you should never compare models with different data sets or that use different variables from the same data set.  \code{mxCompare} might not stop you from doing this, so be thoughtful when comparing models.  Make sure your models are nested and use the same data.  One case of comparing different data sets to be particularly careful of involves our friend weighted least squares.  When comparing WLS models, make sure you are using the same exogenous covariates for all compared models.  Because WLS is a multi-stage estimation approach, exogenous covariates residualize and change the data fitted in WLS.  Consequently, WLS models with different exogenous covariates actually have different data.  By contrast, maximum likelihood models with different exogenous covariates still use the same data and are valid to compare.
+Although not always checked by \code{mxCompare}, you should never compare models with different data sets or that use different variables from the same data set.  \code{mxCompare} might not stop you from doing this, so be thoughtful when comparing models.  Make sure your models are nested and use the same data.  Weighted least squares models are one case of comparing different data sets that requires particular care.  \emph{When comparing WLS models, make sure you are using the same exogenous covariates for all compared models.}  Because WLS is a multi-stage estimation approach, exogenous covariates residualize and change the data fitted in WLS.  Consequently, WLS models with different exogenous covariates actually have different data.  By contrast, maximum likelihood models with different exogenous covariates still use the same data and are valid to compare.
 
 The \code{mxCompare} function makes an effort to only make valid comparisons.
 If a comparison is made where the \code{comparison} model has a
@@ -75,7 +75,7 @@ When multiple models are included in both the \sQuote{base} and \sQuote{comparis
 
 If \sQuote{all} is set to TRUE, all possible comparisons between base and comparison models are made, and one entry is made for each base model. All comparisons involving the first model in \sQuote{base} are made first, followed by all comparisons with the second \sQuote{base} model, and so on. When there are multiple models in either the \sQuote{base} or \sQuote{comparison} arguments but not both, then the \sQuote{all} argument does not affect the set of comparisons made.
 
-The following columns appear in the output:
+The following columns appear in the output for maximum likelihood comparisons:
 \describe{
 \item{base}{Name of the base model.}
 \item{comparison}{Name of the comparison model. Is <NA> for the first }
@@ -86,6 +86,19 @@ The following columns appear in the output:
 \item{diffLL}{Difference in minus 2*log-likelihoods of the base and comparison models. Will be positive when base model -2LL is higher than comparison model -2LL.}
 \item{diffdf}{Difference in degrees of freedoms of the base and comparison models. Will be positive when base model DF is lower than comparison model DF (base model estimated parameters is higher than comparison model estimated parameters)}
 \item{p}{P-value for likelihood ratio test based on diffLL and diffdf values.}}
+
+Weighted least squares reports a similar set of columns with four substitutions:
+\describe{
+\item{chisq}{Replaces the \code{minus2LL} column.  This is the comparison model's chi-squared statistic from Browne (1984, Equation 2.20a), accounting for some misspecification of the weight matrix.}
+\item{AIC}{Although this has the same name as that in maximum likelihood, it is really a pseudo-AIC using the comparison model chi-squared and its associated degrees of freedom.}
+\item{SBchisq}{Replaces the \code{diffLL} column.  This is the Satorra-Bentler (2001, p. 511) scaled difference chi-squared statisic between the base model and the comparison model.  If your models use full weighted least squares, then this will be the same as the difference between the individual model chi-squared statistics.  However, for unweighted and diagonally weighted least square, the \code{SB chisq} will not be equal to the difference between the component model chi-squared statistics.}
+\item{p}{p-value for the Satorra-Bentler chi-squared statistic.}}
+
+In addition to the particular columns for maximum likelihood and weighted least squares, there are three general columns that are not printed but are accessible via the \code{$} and \code{[} extractors.
+\describe{
+\item{fit}{The individual model fit value: \code{m2ll} for maximum likelihood models, \code{chisq} for WLS models.}
+\item{fitUnits}{The units of the fit function: \code{"-2LL"} for ML models, \code{"r'Wr"} for WLS models.}
+\item{diffFit}{The difference in fit values between the base and comparison models: \code{diffLL} for ML models, \code{SBchisq} for WLS models.}}
 
 \code{mxCompare} will give a p-value for any comparison in which
 both \sQuote{diffLL} and \sQuote{diffdf} are non-negative. However, this
