@@ -848,7 +848,6 @@ wls.permute <- function(mxd) {
 ##' \link{mxFitFunctionWLS}
 ##' @examples
 ##' omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'))
-
 omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 			      allContinuousMethod=c("cumulants", "marginals"),
 			      ..., exogenous=c(), fullWeight=TRUE, returnModel=FALSE,
