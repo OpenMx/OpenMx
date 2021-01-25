@@ -20,8 +20,8 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(dV)}.
     \item{\code{aug}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object used to "augment" the fitfunction value at each function evaluation during optimization.}
     \item{\code{augGrad}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the first derivatives of \code{aug} with respect to free parameters.}
     \item{\code{augHess}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the second derivatives of \code{aug} with respect to free parameters.}
-    \item{\code{autoDerivType}:}{Object of class \code{"character"}.}
-    \item{\code{infoMatType}:}{Object of class \code{"character"}.}
+    \item{\code{autoDerivType}:}{Object of class \code{"character"}.  Dictates whether fitfunction derivatives automatically calculated by OpenMx should be numeric or "semi-analytic."}
+    \item{\code{infoMatType}:}{Object of class \code{"character"}.  Dictates whether to calculate the average or expected information matrix.}
     \item{\code{info}:}{Object of class \code{"list"}.}
     \item{\code{dependencies}:}{Object of class \code{"integer"}.}
     \item{\code{expectation}:}{Object of class \code{"integer"}.}
