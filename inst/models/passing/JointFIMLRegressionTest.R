@@ -19,6 +19,8 @@
 # test both logistic regression and simple regression
 
 library(OpenMx)
+
+suppressWarnings(RNGversion("3.5"))
 set.seed(1110221056)
 
 # sample size and threshold
