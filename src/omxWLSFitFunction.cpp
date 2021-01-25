@@ -106,7 +106,15 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	omxMatrix *weights = expectation->data->getSingleObsSummaryStats().acovMat;
 	if(weights != NULL) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
-		omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
+
+		if (units == FIT_UNITS_SQUARED_RESIDUAL) { // diagonally weighted
+      EigenMatrixAdaptor Ew(weights);
+      EigenVectorAdaptor EB(B);
+      EigenVectorAdaptor EP(P);
+      EP.derived() = Ew.diagonal().array() * EB.array();
+    } else {
+      omxDGEMV(TRUE, 1.0, weights, B, 0.0, P);
+    }
 	} else {
 		// ULS Case: Memcpy faster than dgemv.
 		omxCopyMatrix(P, B);
