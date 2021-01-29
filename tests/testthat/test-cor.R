@@ -1,6 +1,8 @@
 library(OpenMx)
 library(testthat)
 
+skip_if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386")
+
 data(demoOneFactor)
 
 mxOption(key="feasibility tolerance", value = .001)
