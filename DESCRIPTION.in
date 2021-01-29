@@ -53,7 +53,7 @@ Imports: digest,
     MASS,
     Matrix,
     methods,
-	Rcpp, 
+	Rcpp,
     parallel, lifecycle
 Depends: R (>= 3.5.0)
 Suggests:
@@ -65,7 +65,9 @@ Suggests:
     snowfall,
     lme4,
     covr,
-    testthat
+    testthat,
+    umx,
+    ifaTools
 LazyLoad: yes
 LazyData: yes
 Collate:
@@ -175,7 +177,7 @@ Collate:
     'omxReadGRMBin.R'
     'MxPredict.R'
     'zzz.R'
-RdMacros: 
+RdMacros:
     lifecycle
 Biarch: true
 Version: @VERSION@
