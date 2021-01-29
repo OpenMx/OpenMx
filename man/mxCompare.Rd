@@ -82,7 +82,7 @@ The following columns appear in the output for maximum likelihood comparisons:
 \item{ep}{Estimated parameters of the comparison model.}
 \item{minus2LL}{Minus 2*log-likelihood of the comparison model. If the comparison model is <NA>, then the minus 2*log-likelihood of the base model is given.}
 \item{df}{Degrees in freedom of the comparison model. If the comparison model is <NA>, then the degrees of freedom of the base model is given.}
-\item{AIC}{Akaike's Information Criterion for the comparison model. If the comparison model is <NA>, then the AIC of the base model is given.}
+\item{AIC}{Akaike's An Information Criterion for the comparison model. If the comparison model is <NA>, then the AIC of the base model is given.}
 \item{diffLL}{Difference in minus 2*log-likelihoods of the base and comparison models. Will be positive when base model -2LL is higher than comparison model -2LL.}
 \item{diffdf}{Difference in degrees of freedoms of the base and comparison models. Will be positive when base model DF is lower than comparison model DF (base model estimated parameters is higher than comparison model estimated parameters)}
 \item{p}{P-value for likelihood ratio test based on diffLL and diffdf values.}}
@@ -90,7 +90,7 @@ The following columns appear in the output for maximum likelihood comparisons:
 Weighted least squares reports a similar set of columns with four substitutions:
 \describe{
 \item{chisq}{Replaces the \code{minus2LL} column.  This is the comparison model's chi-squared statistic from Browne (1984, Equation 2.20a), accounting for some misspecification of the weight matrix.}
-\item{AIC}{Although this has the same name as that in maximum likelihood, it is really a pseudo-AIC using the comparison model chi-squared and its associated degrees of freedom.}
+\item{AIC}{Although this has the same name as that in maximum likelihood, it is really a pseudo-AIC using the comparison model chi-squared and the number of estimated parameters.  It is the chi-squared value plus two times the number of free parameters.}
 \item{SBchisq}{Replaces the \code{diffLL} column.  This is the Satorra-Bentler (2001, p. 511) scaled difference chi-squared statisic between the base model and the comparison model.  If your models use full weighted least squares, then this will be the same as the difference between the individual model chi-squared statistics.  However, for unweighted and diagonally weighted least square, the \code{SB chisq} will not be equal to the difference between the component model chi-squared statistics.}
 \item{p}{p-value for the Satorra-Bentler chi-squared statistic.}}
 
@@ -128,6 +128,10 @@ primary interest.
 \emph{note}: The mxCompare function does not directly accept a digits argument, and depends
 on the value of the 'digits' option. To set the minimum number of significant digits
 printed, use options('digits' = N) (see example).
+}
+
+\value{
+    Returns a new \code{MxCompare} object.  If you want something more like a table of results, use \code{as.data.frame()} on the returned \code{MxCompare} object.
 }
 
 \seealso{
