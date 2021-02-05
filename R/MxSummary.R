@@ -140,13 +140,13 @@ numberObservations <- function(datalist, fitfunctions) {
 computeFValue <- function(datalist, likelihood, chi) {
 	if(length(datalist) == 0) return(NA)
 	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), datalist)
-	if(all(sapply(datalist, function(x) 
+	if(all(sapply(datalist, function(x)
 		{length(x@observedStats) > 0 || is(x,"MxDataLegacyWLS") }))) return(chi)
-	if(all(sapply(datalist, function(x) 
+	if(all(sapply(datalist, function(x)
 		{x@type == 'raw'}))) return(likelihood)
-	if(all(sapply(datalist, function(x) 
+	if(all(sapply(datalist, function(x)
 		{x@type == 'cov'}))) return(chi)
-	if(all(sapply(datalist, function(x) 
+	if(all(sapply(datalist, function(x)
 		{x@type == 'cor'}))) return(chi)
 	return(NA)
 }
@@ -171,8 +171,8 @@ computeFitStatistics <- function(likelihood, DoF, chi, chiDoF, numObs,
 					# for sample sizes over 30. RMSEA should not be taken seriously
 					# such small samples anyway.
 		rmseaSquared <- (chi / (chiDoF) - 1) / numObs
-		if (length(rmseaSquared) == 0 || is.na(rmseaSquared) || 
-		    is.nan(rmseaSquared)) { 
+		if (length(rmseaSquared) == 0 || is.na(rmseaSquared) ||
+		    is.nan(rmseaSquared)) {
 					# || (rmseaSquared < 0)) { # changed so 'rmseaSquared < 0' yields zero with comment
 			RMSEA <- NA
 		} else {
@@ -218,9 +218,9 @@ fitStatistics <- function(model, retval) {
 	retval[['Chi']] <- chi
 	retval[['p']] <- suppressWarnings(ifelse(chiDoF==0,1.0,pchisq(chi, chiDoF, lower.tail = FALSE)))
 	retval[['AIC.Mx']] <- Fvalue - 2 * DoF
-	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']])) 
+	retval[['BIC.Mx']] <- (Fvalue - DoF * log(retval[['numObs']]))
 	AIC.p <- Fvalue + 2 * nParam
-	BIC.p <- (Fvalue + nParam * log(retval[['numObs']])) 
+	BIC.p <- (Fvalue + nParam * log(retval[['numObs']]))
 	sBIC <- (Fvalue + nParam * log((retval[['numObs']]+2)/24))
 	AICc <- Fvalue + 2*nParam + (2*nParam*(nParam+1))/(retval[['numObs']]-nParam-1)
 	retval[['satDoF']] <- satDoF
@@ -233,10 +233,10 @@ fitStatistics <- function(model, retval) {
 	if(length(model@output) && (is.null(model@output$fitUnits) || model@output$fitUnits=="-2lnL")){
 		retval[['informationCriteria']] <- IC
 	}
-	
+
 	retval$fitUnits <- model@output$fitUnits
 	retval$fit <- if(retval$fitUnits == '-2lnL'){ retval[['Minus2LogLikelihood']] } else if(retval$fitUnits == "r'Wr") {retval[['Chi']]}
-	
+
 	fi <- computeFitStatistics(likelihood, DoF, chi, chiDoF,
 		retval[['numObs']], independence, indDoF, saturated, satDoF)
 	for (k in names(fi)) retval[[k]] <- fi[[k]]
@@ -377,7 +377,7 @@ computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedD
 			thresholdLevels <- rep(NA, nvar)
 		}
 	} else {
-		thresholdLevels <- NULL	
+		thresholdLevels <- NULL
 	}
 	# number of continuous variables, provided there is just one expectation
 	if (!is.null(thresholdLevels)){
@@ -423,7 +423,7 @@ computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedD
 			#TODO: the GREML expectation doesn't currently have a way to know how many phenotypes there are in every case.
 			#For now, leave the GREML independence model undefined
 			# #With GREML expectation, the independence model has a variance for each phenotype, and the same fixed effects as the fitted model:
-			# retval[['independenceDoF']] <- 
+			# retval[['independenceDoF']] <-
 			# 	retval$observedStatistics - sum(sapply(obj,function(x){length(x@yvars)})) - sum(sapply(obj,imxExtractSlot,name="numFixEff"))
 			retval[['independenceDoF']] <- NA
 		}
@@ -617,7 +617,7 @@ setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, r
 	} else {
 		retval$SaturatedLikelihood <- saturatedLikelihood
 	}
-	# populate independence -2 log likelihood	
+	# populate independence -2 log likelihood
 	if(is.null(independenceLikelihood)) {
 		retval$IndependenceLikelihood <- attr(model@fitfunction$result, "IndependenceLikelihood")
 	} else {
@@ -672,7 +672,7 @@ imxEvalByName <- function(name, model, compute=FALSE, show=FALSE) {
    if (hasSquareBrackets(name)) {
       components <- splitSubstitution(name)
       eval(substitute(mxEval(x[y,z], model, compute, show),
-         list(x = as.name(components[[1]]), 
+         list(x = as.name(components[[1]]),
             y = parse(text=components[[2]])[[1]],
             z = parse(text=components[[3]])[[1]])))
    } else {
@@ -978,7 +978,7 @@ logLik.MxModel <- function(object, ...) {
 	moreModels <- list(...)
 	assertModelFreshlyRun(model)
 	ll <- NA
-	if (length(model@output) && !is.null(model@output$fit) && 
+	if (length(model@output) && !is.null(model@output$fit) &&
 			!is.null(model@output$fitUnits) ) {
 		if(model@output$fitUnits=="-2lnL"){
 			ll <- -0.5*model@output$fit
@@ -1054,8 +1054,8 @@ logLik.MxModel <- function(object, ...) {
   if(length(model@submodels) && !ignoreSubmodels){
     return(lapply(
       model@submodels[which(
-        sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
-          sapply(model@submodels,function(x){length(x@submodels)>0})  
+        sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" |
+          sapply(model@submodels,function(x){length(x@submodels)>0})
       )],
       .mxStandardizeRAMhelper,SE=SE,ParamsCov=ParamsCov,inde.subs.flag=inde.subs.flag,ignoreSubmodels=FALSE))
   }
@@ -1145,7 +1145,7 @@ logLik.MxModel <- function(object, ...) {
   paramnames <- names(freeparams)
   zout <- .standardizeParams(x=freeparams,model=model,Apos=Apos,Spos=Spos,Mpos=Mpos)
   #Compute SEs, or assign them 'not requested' values, as the case may be:
-  if(SE){ 
+  if(SE){
   	if(!all(paramnames %in% rownames(ParamsCov))){
   		stop(paste(
   			"some free parameter labels do not appear in the dimnames of the parameter estimates' covariance matrix;\n",
@@ -1168,7 +1168,7 @@ logLik.MxModel <- function(object, ...) {
   #Pull in raw SEs if requested:
   if(SE){
     for(i in 1:numelem){
-      if( (out$name[i] %in% paramnames) | 
+      if( (out$name[i] %in% paramnames) |
             (out$label[i] %in% paramnames) ){
         tdiags <- covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
                                        ifelse(is.na(out$label[i]),out$name[i],out$label[i])]
@@ -1189,7 +1189,7 @@ logLik.MxModel <- function(object, ...) {
 }
 mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
 	assertModelFreshlyRun(model)
-	
+
 	if(imxHasDefinitionVariable(model)){
 		warning("'model' (or one of its submodels) contains definition variables; interpret results of mxStandardizeRAMpaths() cautiously")
 	}
@@ -1198,15 +1198,15 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   #recur main function as appropriate:
   inde.subs.flag <- FALSE
   if(SE & length(model$submodels)>0){
-    RAM.subs <- (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+    RAM.subs <- (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" |
                    sapply(model@submodels,function(x){length(x@submodels)>0}))
     inde.subs <- sapply(model@submodels,function(x){x@independent})==TRUE &
-      (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+      (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" |
          sapply(model@submodels,function(x){length(x@submodels)>0}))
     if(sum(inde.subs)>0){
     	out2 <- NULL
       #if ALL submodels are either independent RAM models or non-RAM models:
-      if(all(RAM.subs==inde.subs)){ 
+      if(all(RAM.subs==inde.subs)){
         out <- lapply(model@submodels[which(inde.subs)],mxStandardizeRAMpaths,SE=T)
         if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use RAM expectation",sep=""))}
         return(out)
@@ -1294,7 +1294,7 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
     if(!inde.subs.flag){
       out <- c(out,lapply(
         model@submodels[which(
-          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" |
           sapply(model@submodels,function(x){length(x@submodels)>0}))
           )],
         .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam))
@@ -1304,15 +1304,15 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
     else{
       out1 <- lapply(
         model@submodels[which(
-          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
-             sapply(model@submodels,function(x){length(x@submodels)>0})) & 
+          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" |
+             sapply(model@submodels,function(x){length(x@submodels)>0})) &
             !sapply(model@submodels,function(x){x@independent})
         )],
         .mxStandardizeRAMhelper,SE=SE,ParamsCov=covParam)
       out <- c(out,out1,out2)
       if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use RAM expectation",sep=""))}
       out <- out[names(model@submodels[which(
-        (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" | 
+        (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationRAM" |
            sapply(model@submodels,function(x){length(x@submodels)>0}))
       )])]
       return(out)
@@ -1335,11 +1335,11 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 	method <- match.arg(method)
 	realstdpaths <- .mxStandardizeRAMhelper(model=model,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
 	rawParams <- as.matrix(omxGetBootstrapReplications(model))
-	
+
 	#The tricky thing is that the output length of mxStandardizeRAMpaths() is not guaranteed to be the same for every replication...
 	outputlist <- vector("list",nrow(rawParams))
 	conformableFlag <- TRUE
-	
+
 	for(i in 1:nrow(rawParams)){
 		modelcurr <- omxSetParameters(model,labels=colnames(rawParams),values=rawParams[i,])
 		stdpaths <- .mxStandardizeRAMhelper(model=modelcurr,SE=FALSE,ParamsCov=NULL,inde.subs.flag=FALSE,ignoreSubmodels=TRUE)
@@ -1349,7 +1349,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 			conformableFlag <- FALSE
 		}
 	}
-	
+
 	if( !conformableFlag ){
 		if(returnRaw){
 			warning("names of nonzero paths varied among bootstrap replications; returning raw list of standardized paths")
@@ -1365,7 +1365,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 		}
 		if(returnRaw){return(outmtx)}
 	}
-	
+
 	out <- data.frame(realstdpaths$name,realstdpaths$label,realstdpaths$matrix,realstdpaths$row,realstdpaths$col,
 										realstdpaths$Std.Value,apply(outmtx,2,sd),numeric(length(realstdpaths$name)),numeric(length(realstdpaths$name)))
 	colnames(out) <- c("name","label","matrix","row","col","Std.Value","Boot.SE",
