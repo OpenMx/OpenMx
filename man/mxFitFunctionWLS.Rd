@@ -102,10 +102,10 @@ varNames = names(tmpFrame)
 # = A RAM model example =
 # =======================
 
-m1 = mxModel("my_first_WLS", type="RAM",
+m1 = mxModel("my_first_WLS", type = "RAM",
 	manifestVars = c("x", "y"),
-	mxPath(c("x", "y"), arrows=2, values=1),
-	mxPath("x", to="y"),
+	mxPath(c("x", "y"), arrows = 2, values = 1, labels = c("xVar", "yVar")),
+	mxPath("x", to = "y", labels = "x_to_y"),
 	mxFitFunctionWLS(),
 	mxData(tmpFrame, 'raw')
 )
@@ -113,25 +113,24 @@ m1 = mxModel("my_first_WLS", type="RAM",
 m1 = mxRun(m1)
 summary(m1)$parameters
 
-originalSE <- m1$output$standardErrors
-
-# Here are the summary statistics
+# Here are the cov, acov and Weight matrices:
 print(m1$data$observedStats)
 
 # Use a different weight matrix
+m2 = m1
 os <- m1$data$observedStats
-os$acov <- rWishart(1, nrow(tmpFrame)/2, diag(3))[,,1]
+os$acov <- rWishart(n=1, df= nrow(tmpFrame)/2, Sigma= diag(3))[,,1]
 os$fullWeight <- os$acov
-m1$data$observedStats <- os
+m2$data$observedStats <- os
 
-# Can check whether our new weights are used
-m1$data$verbose <- 1L
+# Set verbose to check if our new weights are used
+m2$data$verbose <- 1L
 
 # Run model
-m1 <- mxRun(m1)
+m2 <- mxRun(m2)
 
 # SE indeed changed due to new weights
-print(m1$output$standardErrors - originalSE)
+print(m2$output$standardErrors - m1$output$standardErrors)
 
 # ==========================
 # = A matrix-based example =
