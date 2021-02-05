@@ -84,11 +84,11 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		if (data@name %in% historySet) {
 			return (list(0, historySet))
 		}
-		numThresh <- sum(!is.na(obsStats$thresholds))
-		numMeans <- sum(!is.na(obsStats$means))
+		numThresh <- sum(!is.na(obsStats[['thresholds']]))
+		numMeans <- sum(!is.na(obsStats[['means']]))
+		numSlope <- sum(!is.na(obsStats[['slope']]))
 		n <- nrow(obsStats[['cov']])
-		# Include diagonal of observed when no thresholds
-		dof <- numThresh + numMeans + ifelse(numThresh > 0, n*(n-1)/2, n*(n+1)/2)
+		dof <- numThresh + numMeans + numSlope + n*(n+1)/2 - sum(ncol(obsStats[['thresholds']]))
 		historySet <- append(data, historySet)
 	} else {
 		# Incorporate row frequency and weight information? TODO
@@ -96,7 +96,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		observed <- data@observed
 		for (i in 1:ncol(observed)) {
 			colname <- colnames(observed)[[i]]
-			fullname <- paste(expectation@name, colname, sep='.')
+			fullname <- paste(data@name, colname, sep='.')
 			if ((colname %in% expectation@dims) && !(fullname %in% historySet)) {
 				dof <- dof + sum(!is.na(observed[,i]))
 				historySet <- append(fullname, historySet)
@@ -107,7 +107,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 }
 
 observedStatistics <- function(model, flatModel, constraintOffset) {
-	datalist <- generateDataList(model)
+	datalist <- flatModel@datasets
 	labelsData <- imxGenerateLabels(model)
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
 	retval <- constraintOffset
@@ -333,7 +333,7 @@ parameterListHelper <- function(model, flatModel, withModelName) {
 }
 
 computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedDoF, independenceDoF, retval) {
-  datalist <- generateDataList(model)
+  datalist <- flatModel@datasets
 	labelsData <- imxGenerateLabels(model)
 	expectations <- convertExpectationFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
 	# get estimated parameters
@@ -908,7 +908,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
 	labelsData <- imxGenerateLabels(model)
   fitfunctions <- convertFitFunctions(flatModel, model, labelsData, dependencies)
-	retval <- setNumberObservations(numObs, generateDataList(model), fitfunctions, retval)
+	retval <- setNumberObservations(numObs, flatModel@datasets, fitfunctions, retval)
 	retval <- computeOptimizationStatistics(model, flatModel, numStats, saturatedDoF, independenceDoF, retval)
 	retval$dataSummary <- generateDataSummary(model)
 	retval$CI <- as.data.frame(model@output$confidenceIntervals)
@@ -996,7 +996,7 @@ logLik.MxModel <- function(object, ...) {
 	labelsData <- imxGenerateLabels(model)
   fitfunctions <- convertFitFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
 
-	nobs <- numberObservations(generateDataList(model), fitfunctions)
+	nobs <- numberObservations(flatModel@datasets, fitfunctions)
 	if (!is.na(nobs)) {
 		attr(ll,"nobs") <- nobs
 	}
