@@ -1366,20 +1366,18 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
 	gff->dVupdate_final();
   if(OMX_DEBUG) { mxLog("Populating GREML Attributes."); }
 
-  SEXP nval, mlfitval;
-  int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation) )->data2->numObs);
-
-  //Tell the frontend fitfunction counterpart how many observations there are...:
   {
-  ScopedProtect p1(nval, Rf_allocVector(INTSXP, 1));
-  INTEGER(nval)[0] = 1L - userSuppliedDataNumObs;
-  R_do_slot_assign(rObj, Rf_install("numObs"), nval);
-  /*^^^^The end result is that number of observations will be reported as 1 in summary()...
-  which is always correct with GREML.  This is a bit of a hack, since it is sneaking this
-  negative numObs into the pre-backend fitfunction that summary() looks at...*/
-	}
+    //Tell the frontend fitfunction counterpart how many observations there are...:
+    /*^^^^The end result is that number of observations will be reported as 1 in summary()...
+      which is always correct with GREML.  This is a bit of a hack, since it is sneaking this
+      negative numObs into the pre-backend fitfunction that summary() looks at...*/
+    int userSuppliedDataNumObs = (int)(( (omxGREMLExpectation*)(oo->expectation) )->data2->numObs);
+    ProtectedSEXP numObs(Rf_ScalarInteger(1L - userSuppliedDataNumObs));
+    Rf_setAttrib(algebra, Rf_install("numObsAdjust"), numObs);
+  }
 
 	{
+  SEXP mlfitval;
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
 	REAL(mlfitval)[0] = gff->nll - gff->REMLcorrection;
 	Rf_setAttrib(algebra, Rf_install("MLfit"), mlfitval);

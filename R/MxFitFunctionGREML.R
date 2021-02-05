@@ -13,12 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-setClass(Class = "MxFitFunctionGREML", 
+setClass(Class = "MxFitFunctionGREML",
          slots=c(
            dV = "MxCharOrNumber",
            dVnames = "character",
            MLfit = "numeric",
-           numObs = "integer",
+           numObsAdjust = "integer",
            aug = "MxCharOrNumber",
            augGrad = "MxCharOrNumber",
            augHess = "MxCharOrNumber",
@@ -28,14 +28,14 @@ setClass(Class = "MxFitFunctionGREML",
 
 
 setMethod("initialize", "MxFitFunctionGREML",
-          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, numObs=0L, aug=character(0),
+          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, aug=character(0),
           				 augGrad=character(0), augHess=character(0), autoDerivType=character(0), infoMatType=character(0)) {
             .Object@name <- name
             .Object@dV <- dV
             .Object@dVnames <- as.character(names(dV))
             .Object@MLfit <- MLfit
             .Object@vector <- vector
-            .Object@numObs <- numObs
+            .Object@numObsAdjust <- 0L
             .Object@aug <- aug
             .Object@augGrad <- augGrad
             .Object@augHess <- augHess

@@ -68,9 +68,6 @@ omxCheckError(confint(biRegModelOut, parm="foobar"), "Parameter 'foobar' not rec
 
 ci <- confint(biRegModelOut)
 
-# ensure summary looks in model's runstate
-biRegModelOut$compute$steps[["GD"]]$engine <- 'XYZ'
-
 brmSum <- summary(biRegModelOut)
 omxCheckCloseEnough(brmSum$CFI, 1, 1e-5)
 omxCheckCloseEnough(brmSum$TLI, 1, 1e-6)

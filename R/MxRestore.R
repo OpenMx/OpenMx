@@ -250,10 +250,6 @@ mxRestoreFromDataFrame <- function(model, checkpoint, line=NULL)
     matrices <- generateMatrixList(flatModel)
     parameters <- flatModel@parameters
 
-    runstate <- model@runstate
-    runstate$parameters <- parameters
-    runstate$matrices <- matrices
-    model@runstate <- runstate
     model@.wasRun <- TRUE
     model@.modifiedSinceRun <- FALSE #?
   }

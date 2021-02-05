@@ -4,26 +4,20 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-calculateConstraints <- function(model, useSubmodels) {
-	constraints <- model@runstate$constraints
+calculateConstraints <- function(model, flatModel) {
+	constraints <- flatModel@constraints
 	retval <- c()
 	if (length(constraints) > 0) {
 		retval <- sapply(constraints, calculateConstraintsHelper, model)
-	}
-	if (useSubmodels && length(model@runstate$independents) > 0) {
-		submodelConstraints <- lapply(model@runstate$independents, calculateConstraints, FALSE)
-		names(submodelConstraints) <- NULL
-		submodelConstraints <- unlist(submodelConstraints)
-		retval <- c(retval, submodelConstraints)
 	}
 	return(retval)
 }
@@ -31,7 +25,6 @@ calculateConstraints <- function(model, useSubmodels) {
 calculateConstraintsHelper <- function(constraint, model) {
 	if (constraint@relation == "==") {
 		leftHandSide <- constraint@formula[[2]]
-					# summary should not use mxEval but only examine the information in runstate
 		value <- eval(substitute(mxEval(x, model, compute=TRUE),
 			list(x = leftHandSide)))
 		value <- as.matrix(value)
@@ -53,7 +46,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	if (is.numeric(expectation@data)) {
 		data <- datalist[[expectation@data + 1]]
 	} else {
-		data <- model[[expectation@data]] 
+		data <- model[[expectation@data]]
 	}
 	if (is(data, "MxDataDynamic")) {
 		# need to revisit TODO
@@ -77,7 +70,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		n <- nrow(data@observed)
 		dof <- n * (n - 1) / 2
 		if (!single.na(data@means)) {
-			dof <- dof + length(data@means) 
+			dof <- dof + length(data@means)
 		}
 		historySet <- append(data, historySet)
 	} else if (is(expectation, "MxExpectationBA81")) {  # refactor TODO
@@ -93,7 +86,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		}
 		numThresh <- sum(!is.na(obsStats$thresholds))
 		numMeans <- sum(!is.na(obsStats$means))
-		n <- nrow(data@observed)
+		n <- nrow(obsStats[['cov']])
 		# Include diagonal of observed when no thresholds
 		dof <- numThresh + numMeans + ifelse(numThresh > 0, n*(n-1)/2, n*(n+1)/2)
 		historySet <- append(data, historySet)
@@ -103,7 +96,7 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		observed <- data@observed
 		for (i in 1:ncol(observed)) {
 			colname <- colnames(observed)[[i]]
-			fullname <- paste(data@name, colname, sep='.')
+			fullname <- paste(expectation@name, colname, sep='.')
 			if ((colname %in% expectation@dims) && !(fullname %in% historySet)) {
 				dof <- dof + sum(!is.na(observed[,i]))
 				historySet <- append(fullname, historySet)
@@ -113,9 +106,10 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 	return(list(dof, historySet))
 }
 
-observedStatistics <- function(model, useSubmodels, constraintOffset) {
-	datalist <- model@runstate$datalist
-	expectations <- model@runstate$expectations
+observedStatistics <- function(model, flatModel, constraintOffset) {
+	datalist <- generateDataList(model)
+	labelsData <- imxGenerateLabels(model)
+	expectations <- convertExpectationFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
 	retval <- constraintOffset
 	if (length(expectations) > 0) {
 		historySet <- character()
@@ -125,16 +119,12 @@ observedStatistics <- function(model, useSubmodels, constraintOffset) {
 			historySet <- result[[2]]
 		}
 	}
-	if (useSubmodels && length(model@runstate$independents) > 0) {
-		submodelStatistics <- sapply(model@runstate$independents, observedStatistics, FALSE, 0)
-		retval <- retval + sum(submodelStatistics)
-	}
 	return(retval)
 }
 
 fitfunctionNumberObservations <- function(fitfunction) {
-	if (("numObs" %in% slotNames(fitfunction)) && !single.na(fitfunction@numObs)) {
-		return(fitfunction@numObs)
+	if (("numObsAdjust" %in% slotNames(fitfunction)) && !single.na(fitfunction@numObsAdjust)) {
+		return(fitfunction@numObsAdjust)
 	} else {
 		return(0)
 	}
@@ -206,8 +196,8 @@ catFitStatistics <- function(x) {
 	cat("Prob(RMSEA <= ", x$RMSEANull, "): ", x$RMSEAClose, '\n', sep='')
 }
 
-fitStatistics <- function(model, useSubmodels, retval) {
-	datalist <- model@runstate$datalist
+fitStatistics <- function(model, retval) {
+	datalist <- generateDataList(model)
 	likelihood <- retval[['Minus2LogLikelihood']]
 	saturated <- retval[['SaturatedLikelihood']]
 	independence <- retval[['IndependenceLikelihood']]
@@ -295,28 +285,21 @@ rmseaPCloseHelper <- function(x2, df, N, null){
 }
 
 
-parameterList <- function(model, useSubmodels) {
-	if (useSubmodels && length(model@runstate$independents) > 0) {
-		ptable <- parameterListHelper(model, TRUE)
-		submodelParameters <- lapply(model@runstate$independents, parameterListHelper, TRUE)
-		ptable <- Reduce(rbind, submodelParameters, ptable)
-	} else {
-		ptable <- parameterListHelper(model, FALSE)
-	}
-	return(ptable)
+parameterList <- function(model, flatModel) {
+  parameterListHelper(model, flatModel, FALSE)
 }
 
-parameterListHelper <- function(model, withModelName) {
+parameterListHelper <- function(model, flatModel, withModelName) {
 	ptable <- data.frame()
 	if(length(model@output) == 0) { return(ptable) }
 	estimates <- model@output$estimate
-	errorEstimates <- rep.int(as.numeric(NA), length(estimates)) 
+	errorEstimates <- rep.int(as.numeric(NA), length(estimates))
     if (!is.null(model@output$standardErrors)) {
-	    se <- model@output$standardErrors 
+	    se <- model@output$standardErrors
 	    errorEstimates[match(rownames(se), names(estimates))] <- se
 	}
-	matrices <- model@runstate$matrices
-	parameters <- model@runstate$parameters
+	matrices <- generateMatrixList(flatModel)
+  parameters <- flatModel@parameters
 	if (length(estimates) > 0) {
 		matrixNames <- names(matrices)
 		for(i in 1:length(estimates)) {
@@ -349,13 +332,16 @@ parameterListHelper <- function(model, withModelName) {
 	return(ptable)
 }
 
-computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval) {
+computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedDoF, independenceDoF, retval) {
+  datalist <- generateDataList(model)
+	labelsData <- imxGenerateLabels(model)
+	expectations <- convertExpectationFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
 	# get estimated parameters
 	estimates <- model@output$estimate
 	# should saturated/independence models include means?
-	if(length(model@runstate$datalist)==1){
-		type <- model@runstate$datalist[[1]]@type
-		means <- model@runstate$datalist[[1]]@means
+	if(length(datalist)==1){
+		type <- datalist[[1]]@type
+		means <- datalist[[1]]@means
 		# if there's raw data, then use means in saturated/independence models
 		if(type=="raw"){
 			useMeans <- TRUE
@@ -364,25 +350,24 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 			if((dim(means)[2]==1)&is.na(means[1,1])){
 				useMeans <- FALSE
 			} else{
-				useMeans <- TRUE	
+				useMeans <- TRUE
 			}
 		}
 		# number of variables
-		if(model@runstate$datalist[[1]]@type != 'raw'){
-			nvar <- dim(model@runstate$datalist[[1]]@observed)[2]
-		} else if( length(model@runstate$expectations) == 1 ) {
-			nvar <- length(model@runstate$expectations[[1]]@dims)
+		if(datalist[[1]]@type != 'raw'){
+			nvar <- dim(datalist[[1]]@observed)[2]
+		} else if( length(expectations) == 1 ) {
+			nvar <- length(expectations[[1]]@dims)
 		} else {
 			nvar <- 0
 		}
 	# if there are multiple or zero datalists, then do nothing
 	} else {
-		useMeans <- NA	
+		useMeans <- NA
 		nvar <- 0
 	}
 		# how many thresholds does each variable have (needed for saturated and independence DoF calculation)
-	# grab the expectation
-	obj <- model@runstate$expectation
+	obj <- expectations
 	# grab the thresholdLevels object and expected means; punt if there is more than one expectation
 	if (length(obj)==1){
 		if ("thresholdLevels" %in% slotNames(obj[[1]])){
@@ -407,14 +392,14 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 		thresh <- NA
 	}
 	# constraints, parameters, model degrees of freedom
-	retval[['constraints']] <- calculateConstraints(model, useSubmodels)
+	retval[['constraints']] <- calculateConstraints(model, flatModel)
 	retval[['estimatedParameters']] <- nrow(retval$parameters)
   if(any(sapply(obj,function(x){"MxExpectationGREML" %in% class(x)}))){
-    retval[['estimatedParameters']] <- retval[['estimatedParameters']] + 
+    retval[['estimatedParameters']] <- retval[['estimatedParameters']] +
       sum(sapply(obj,imxExtractSlot,name="numFixEff"))
   }
 	if (is.null(numStats)) {
-		retval[['observedStatistics']] <- observedStatistics(model, useSubmodels, sum(retval$constraints))
+		retval[['observedStatistics']] <- observedStatistics(model, flatModel, sum(retval$constraints))
 	} else {
 		retval[['observedStatistics']] <- numStats
 	}
@@ -455,7 +440,7 @@ computeOptimizationStatistics <- function(model, numStats, useSubmodels, saturat
 	retval[['saturatedParameters']] <- retval[['observedStatistics']] - retval[['saturatedDoF']]
 	retval[['independenceParameters']] <- retval[['observedStatistics']] - retval[['independenceDoF']]
 	# calculate fit statistics
-	retval <- fitStatistics(model, useSubmodels, retval)
+	retval <- fitStatistics(model, retval)
 	return(retval)
 }
 
@@ -662,15 +647,9 @@ setNumberObservations <- function(numObs, datalist, fitfunctions, retval) {
 	return(retval)
 }
 
-generateDataSummary <- function(model, useSubmodels) {
-	datalist <- model@runstate$datalist
+generateDataSummary <- function(model) {
+	datalist <- generateDataList(model)
 	retval <- lapply(datalist, summarize)
-	if (useSubmodels && length(model@runstate$independents) > 0) {
-		submodelSummary <- lapply(model@runstate$independents, generateDataSummary, FALSE)
-		names(submodelSummary) <- NULL
-		submodelSummary <- unlist(submodelSummary, recursive = FALSE)
-		retval <- c(retval, submodelSummary)
-	}
 	return(retval)
 }
 
@@ -678,9 +657,6 @@ generateDataSummary <- function(model, useSubmodels) {
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
-##'
-##' This function should not be used in MxSummary. All summary
-##' information should be extracted from runstate.
 ##'
 ##' @param name name
 ##' @param model model
@@ -871,8 +847,30 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	numStats <- dotArguments$numStats
 	useSubmodels <- dotArguments$indep
 	if (is.null(useSubmodels)) { useSubmodels <- TRUE }
+  if (!useSubmodels) {
+    # TODO needs testing
+    dshare <- shareData(model)
+    independents <- getAllIndependents(dshare)
+    frozen <- lapply(independents, imxFreezeModel)
+    model <- imxReplaceModels(model, frozen)
+  }
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace, TRUE)
+	flatModel <- constraintsToAlgebras(flatModel)
+	flatModel <- eliminateObjectiveFunctions(flatModel)
+	convertArguments <- imxCheckVariables(flatModel, namespace)
+	flatModel <- convertAlgebras(flatModel, convertArguments)
+	labelsData <- imxGenerateLabels(model)
+	flatModel <- expectationFunctionConvertEntities(flatModel, namespace, labelsData)
+	flatModel <- populateDefInitialValues(flatModel)
+	flatModel <- checkEvaluation(model, flatModel)
+	dependencies <- cycleDetection(flatModel)
+	dependencies <- transitiveClosure(flatModel, dependencies)
+	freeVarGroups <- buildFreeVarGroupList(flatModel)
+	flatModel <- generateParameterList(flatModel, dependencies, freeVarGroups)
+
 	retval <- list(wasRun=model@.wasRun, stale=model@.modifiedSinceRun)
-	retval$parameters <- parameterList(model, useSubmodels)
+	retval$parameters <- parameterList(model, flatModel)
 	if (!is.null(model@compute$steps[['ND']]) && model@compute$steps[['ND']]$checkGradient &&
 	    !is.null(model@compute$steps[['ND']]$output$gradient)) {
 		gdetail <- model@compute$steps[['ND']]$output$gradient
@@ -917,9 +915,11 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	}
 	retval <- boundsMet(model, retval)
 	retval <- setLikelihoods(model, saturatedLikelihood, independenceLikelihood, retval)
-	retval <- setNumberObservations(numObs, model@runstate$datalist, model@runstate$fitfunctions, retval)
-	retval <- computeOptimizationStatistics(model, numStats, useSubmodels, saturatedDoF, independenceDoF, retval)
-	retval$dataSummary <- generateDataSummary(model, useSubmodels)
+	labelsData <- imxGenerateLabels(model)
+  fitfunctions <- convertFitFunctions(flatModel, model, labelsData, dependencies)
+	retval <- setNumberObservations(numObs, generateDataList(model), fitfunctions, retval)
+	retval <- computeOptimizationStatistics(model, flatModel, numStats, saturatedDoF, independenceDoF, retval)
+	retval$dataSummary <- generateDataSummary(model)
 	retval$CI <- as.data.frame(model@output$confidenceIntervals)
 	if (length(retval$CI) && nrow(retval$CI)) {
 		retval$CI <- cbind(retval$CI, note=apply(retval$CI, 1, function(ci) {
@@ -951,7 +951,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	retval$cpuTime <- model@output$cpuTime
 	retval$mxVersion <- model@output$mxVersion
 	retval$modelName <- model@name
-	plan <- model@runstate$compute
+	plan <- model@compute
 	if (is(plan, "MxComputeSequence")) {
 		gd <- plan$steps[['GD']]
 		if (is(gd, "MxComputeGradientDescent")) {
@@ -999,12 +999,17 @@ logLik.MxModel <- function(object, ...) {
 	} else {
 		attr(ll,"df") <- NA
 	}
-	
-	nobs <- numberObservations(model@runstate$datalist, model@runstate$fitfunctions)
+
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace, TRUE)
+	labelsData <- imxGenerateLabels(model)
+  fitfunctions <- convertFitFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
+
+	nobs <- numberObservations(generateDataList(model), fitfunctions)
 	if (!is.na(nobs)) {
 		attr(ll,"nobs") <- nobs
 	}
-	
+
 	class(ll) <- "logLik"
 	if (length(moreModels)) {
 		c(list(ll), lapply(moreModels, logLik.MxModel))

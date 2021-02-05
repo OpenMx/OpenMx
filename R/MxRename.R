@@ -44,15 +44,9 @@ propagateModelName <- function(model, oldname, newname) {
 	if(model@name == oldname) {
 		model@name <- newname
 	}
-	model@matrices <- lapply(model@matrices, renameMatrix, oldname, newname)	
+	model@matrices <- lapply(model@matrices, renameMatrix, oldname, newname)
 	model@algebras <- lapply(model@algebras, renameAlgebra, oldname, newname)
 	model@constraints <- lapply(model@constraints, renameConstraint, oldname, newname)
-	# It is inappropriate to rename stuff in runstate. The reason this is here
-	# is to allow summary to work on renamed models. Summary should be fixed
-	# to report that the runstate is stale with respect to the model.
-	if(length(model@runstate) > 0){
-		model@runstate$constraints <- lapply(model@runstate$constraints, renameConstraint, oldname, newname)
-	}
 	model@intervals <- lapply(model@intervals, renameConfidenceIntervals, oldname, newname)
 	model@expectation <- genericExpRename(model@expectation, oldname, newname)
 	model@fitfunction <- genericFitRename(model@fitfunction, oldname, newname)

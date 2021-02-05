@@ -260,11 +260,16 @@ runHelper <- function(model, frontendStart,
 			"see `?mxOptions`" ))
 	}
 
-
-	# Currently runstate preserves the pre-backend state of the model.
-	# Eventually this needs to capture the post-backend state,
-	# but we need tests in place for summary output to ensure that we
-	# don't cause regressions.
+	# Although runstate currently preserves the pre-backend state of the
+	# model, it was envisioned to store the post-backend state (circa
+	# 2014). The idea was that summary(model) would show the
+	# post-backend state regardless of subsequent modifications to
+	# model. This was before the invention of
+	# model@.modifiedSinceRun. Now that we have .modifiedSinceRun,
+	# runstate is deprecated. It was never implemented properly and it
+	# increases the maintanance burden because backend initiated
+	# modifications to the model must modify both regular model state
+	# and runstate, violating the principle of single source of truth.
 
 	runstate <- model@runstate
 	runstate$parameters <- parameters
