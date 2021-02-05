@@ -48,7 +48,7 @@ mxSummary allows the user to set or override the following parameters of the mod
 \item{SaturatedDoF}{Numeric. Specify the degrees of freedom of the saturated likelihood for testing.}
 \item{IndependenceLikelihood}{Numeric or MxModel object. Specify an independence likelihood for testing.}
 \item{IndependenceDoF}{Numeric. Specify the degrees of freedom of the independence likelihood for testing.}
-\item{indep}{Logical. Set to FALSE to ignore independent submodels in summary.}
+\item{indep}{\lifecycle{deprecated}}
 \item{verbose}{logical. Changes the printing style for summary (see Details)}
 \item{boot.quantile}{numeric. A vector of quantiles to be used to
   summarize bootstrap replication.}

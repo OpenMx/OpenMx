@@ -845,15 +845,6 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	}
 	numObs <- dotArguments$numObs
 	numStats <- dotArguments$numStats
-	useSubmodels <- dotArguments$indep
-	if (is.null(useSubmodels)) { useSubmodels <- TRUE }
-  if (!useSubmodels) {
-    # TODO needs testing
-    dshare <- shareData(model)
-    independents <- getAllIndependents(dshare)
-    frozen <- lapply(independents, imxFreezeModel)
-    model <- imxReplaceModels(model, frozen)
-  }
 	namespace <- imxGenerateNamespace(model)
 	flatModel <- imxFlattenModel(model, namespace, TRUE)
 	flatModel <- constraintsToAlgebras(flatModel)
