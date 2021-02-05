@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,6 +35,8 @@
 require(OpenMx)
 data(Bollen)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
 got <- mxGenerateData(Bollen[, 1:8], nrows=10)
 omxCheckEquals(nrow(got), 10)
 
@@ -174,4 +176,3 @@ omxCheckEquals(mlSum$ChiDoF, wlsSum$ChiDoF)
 # RMSEA confidence intervals overlap
 omxCheckTrue( (wlsSum$RMSEA < mlSum$RMSEACI[2]) & (wlsSum$RMSEA > mlSum$RMSEACI[1]))
 omxCheckTrue( (mlSum$RMSEA < wlsSum$RMSEACI[2]) & (mlSum$RMSEA >= wlsSum$RMSEACI[1]))
-

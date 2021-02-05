@@ -156,6 +156,9 @@ jointWlsResults <- mxRun(jointWlsModel)
 jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
+expect_equal(median(log(diag(jointWlsResults$data$observedStats$acov))),
+             median(log(diag(jointDlsResults$data$observedStats$acov))), .2)
+
 ramWlsResults <- mxRun(ramWlsModel)
 
 jointResults1 <- mxRun(jointModel1, suppressWarnings = TRUE)

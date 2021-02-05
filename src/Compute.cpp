@@ -3672,24 +3672,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				}
 
 				EigenMatrixAdaptor fw(o1.fullWeight);
-				int nonZeroDims = (fw.diagonal().array() != 0.0).count();
-				if (nonZeroDims == 0) {
-					omxRaiseErrorf("%s: fullWeight matrix is missing", exList[ex]->name);
-					return;
-				}
-				Eigen::MatrixXd ifw(fw.rows(), fw.cols());
-				ifw.setZero();
-				Eigen::MatrixXd dense;
-				subsetCovariance(fw, [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
-						 nonZeroDims, dense);
-				if (InvertSymmetricIndef(dense, 'L') > 0) {
-					MoorePenroseInverse(dense);
-				}
-				Eigen::MatrixXd idense = dense.selfadjointView<Eigen::Lower>();
-				subsetCovarianceStore(ifw,
-						      [&](int xx){ return fw.diagonal().coeff(xx,xx) != 0.0; },
-						      idense);
-				Wmat.block(offset,offset,sz,sz) = ifw;
+				Wmat.block(offset,offset,sz,sz) = fw;
 				offset += sz;
 				sx += 1;
 			});

@@ -95,7 +95,7 @@ dimnames(obsThr) <- list(NULL, letters[(27-nvar):26])
 obsMns <- as.numeric(matrix(0, 1, 3))
 names(obsMns) <- dimnames(obsCor)[[2]]
 
-obsStats <- list(means=obsMns, cov=obsCor, thresholds=obsThr, acov=obsAcov, fullWeight=obsAcov)
+obsStats <- list(means=obsMns, cov=obsCor, thresholds=obsThr, acov=obsAcov, fullWeight=solve(obsAcov))
 
 obsWDat <- mxData(observed=rawData, type='raw', observedStats=obsStats)
 

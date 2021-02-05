@@ -66,6 +66,7 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
 		verifyCovarianceMatrix(acov, nameMatrix="asymptotic", strictPD=FALSE)
 		if(!single.na(fullWeight)){
 			verifyCovarianceMatrix(fullWeight, nameMatrix="asymptotic", strictPD=FALSE)
+      fullWeight <- solve(fullWeight)
 		}
 		if ( !single.na(thresholds) ) {
 			verifyThresholdNames(thresholds, observed)

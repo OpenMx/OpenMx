@@ -35,6 +35,8 @@ library(testthat)
 require(OpenMx)
 data(Bollen)
 
+suppressWarnings(RNGversion("3.5"))
+set.seed(1)
 got <- mxGenerateData(Bollen[, 1:8], nrows=10)
 omxCheckEquals(nrow(got), 10)
 
@@ -124,6 +126,12 @@ dwlsRun <- mxRun(dwlsMod)
 
 ulsRun <- mxRun(ulsMod)
 
+expect_equal(median(log(diag(wlsRun$data$observedStats$acov))),
+             median(log(diag(dwlsRun$data$observedStats$acov))), 1)
+
+expect_equal(diag(wlsRun$data$observedStats$fullWeight),
+             diag(dwlsRun$data$observedStats$fullWeight))
+
 print(cbind(coef(wlsRun), coef(dwlsRun), coef(ulsRun)))
 
 omxCheckCloseEnough(vechs(cor(cbind(coef(wlsRun), coef(dwlsRun), coef(ulsRun)))),
@@ -181,13 +189,13 @@ wlsSum <- summary(wlsRun)
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
 # parameters are sort of close
-omxCheckTrue(rms(mlSum$parameters[,5], wlsSum$parameters[,5]) < 0.7)
+expect_equal(rms(mlSum$parameters[,5], wlsSum$parameters[,5]), 0, 0.65)
 
 # standard errors are close
-omxCheckTrue(rms(mlSum$parameters[,6], wlsSum$parameters[,6]) < 0.2)
+expect_equal(rms(mlSum$parameters[,6], wlsSum$parameters[,6]), 0, 0.18)
 
 # Chi square is on par
-omxCheckWithinPercentError(mlSum$Chi, wlsSum$Chi, percent=85)
+expect_equal(mlSum$Chi - wlsSum$Chi, 0, 11)
 
 # Chi square df are the same
 omxCheckEquals(mlSum$ChiDoF, wlsSum$ChiDoF)

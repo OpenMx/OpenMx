@@ -633,7 +633,7 @@ obsSummaryStats::~obsSummaryStats()
 	omxFreeMatrix(slopeMat);
 	omxFreeMatrix(meansMat);
 	omxFreeMatrix(acovMat);
-	if (acovMat != fullWeight) omxFreeMatrix(fullWeight);
+	omxFreeMatrix(fullWeight);
 	omxFreeMatrix(thresholdMat);
 }
 
@@ -1398,15 +1398,12 @@ void obsSummaryStats::log()
     }
   }
 	if (fullWeight) {
-		if (acovMat != fullWeight) {
-      EigenMatrixAdaptor Efw(fullWeight);
-      if (Efw.cols() < 30) {
-        mxPrintMat("full", Efw);
-      } else {
-        mxPrintMat("full (topleft)", Efw.block(0,0,30,30));
-      }
+    EigenMatrixAdaptor Efw(fullWeight);
+    if (Efw.cols() < 30) {
+      mxPrintMat("full", Efw);
+    } else {
+      mxPrintMat("full (topleft)", Efw.block(0,0,30,30));
     }
-		else mxLog("fullWeight == acov");
 	}
 	for (auto &th : thresholdCols) { th.log(); }
 	if (thresholdMat) omxPrint(thresholdMat, "thr");
@@ -1531,7 +1528,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 
 	Eigen::Array<double, 4, 1> ind;
 	for (int jx=0; jx < numColsStar; ++jx) {
-		for (int ix=jx; ix < numColsStar; ++ix) {
+		for (int ix=jx; ix < numColsStar; ++ix) { // lower triangle!
 			ind.segment(0,2) = M.row(ix);
 			ind.segment(2,2) = M.row(jx);
 			Umat(ix,jx) = (data.col(ind[0]) * data.col(ind[1]) *
@@ -1539,14 +1536,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 				Vmat(ind[0],ind[1]) * Vmat(ind[2],ind[3]);
 		}
 	}
-
-	int singular = InvertSymmetricPosDef(Umat, 'L');
-	if (singular) {
-		mxThrow("%s: full weight matrix is rank deficient; cannot invert", name);
-		return;
-	}
-	Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
-	Umat *= totalWeight;
+  Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
 
 	Eigen::PermutationMatrix<Eigen::Dynamic> p1(o1.fullWeight->cols);
 	for (int vx=0; vx < Ecov.cols(); ++vx) {
@@ -1556,11 +1546,18 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 		if (p1.indices()[v1] == vx - Ecov.cols() + v1) v1 += 1;
 		p1.indices()[vx] = vx - Ecov.cols() + v1;
 	}
-
 	Umat.derived() = (p1.transpose() * Umat * p1).eval();
 
 	if (strEQ(wlsType, "WLS")) {
-		o1.acovMat = o1.fullWeight;
+    o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
+    EigenMatrixAdaptor acov(o1.acovMat);
+    acov = Umat;
+    int singular = InvertSymmetricPosDef(acov, 'L');
+    if (singular) {
+      mxThrow("%s: weight matrix is rank deficient; cannot invert", name);
+      return;
+    }
+    acov.triangularView<Eigen::Upper>() = acov.transpose().triangularView<Eigen::Upper>();
 	} else {
 		if (strEQ(wlsType, "ULS")) {
 			// OK
@@ -1569,14 +1566,15 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 			EigenMatrixAdaptor acov(o1.acovMat);
 			acov.setZero();
 			for (int ix=0; ix < numColsStar; ++ix) {
-				acov(ix,ix) = 1./((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
+				acov(ix,ix) = totalWeight/((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
 						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / totalWeight -
 						  Vmat(M(ix, 0), M(ix, 1)) * Vmat(M(ix, 0), M(ix, 1)));
 			}
-			acov *= totalWeight;
 			acov.derived() = (p1.transpose() * acov * p1).eval();
 		}
 	}
+
+  Umat /= totalWeight;
 }
 
 template <typename T1, typename T2, typename T3>
@@ -3279,7 +3277,31 @@ void omxData::estimateObservedStats()
 	//mxPrintMat("Efw", Efw);
 
 	if (strEQ(wlsType, "WLS")) {
-		o1.acovMat = o1.fullWeight;
+			EigenMatrixAdaptor acov(o1.acovMat);
+      acov.derived() = Efw;
+
+      if (InvertSymmetricPosDef(acov, 'L')) {
+        if (InvertSymmetricIndef(acov, 'L')) {
+          std::ostringstream temp;
+          Eigen::DiagonalMatrix<double, Eigen::Dynamic>
+            isd((1.0 / INNER.diagonal().array().sqrt()).matrix());
+          Eigen::MatrixXd innerCor = isd * INNER * isd;
+          for (int cx=0; cx < innerCor.cols()-1; ++cx) {
+            for (int rx=cx+1; rx < innerCor.rows(); ++rx) {
+              if (fabs(fabs(innerCor(rx,cx)) - 1.0) > 1e-6) continue;
+              // Better if we reported the names of the summary stats
+              temp << " [" << (1+rx) << "," << (1+cx) << "]";
+            }
+          }
+          std::string diag = temp.str();
+          mxThrow("%s: the acov matrix is rank deficient as "
+                  "determined by LU factorization; perfectly correlated gradients:%s",
+                  name, diag.c_str());
+        }
+        else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
+      }
+
+      acov.triangularView<Eigen::Upper>() = acov.transpose().triangularView<Eigen::Upper>();
 	} else {
 		if (strEQ(wlsType, "ULS")) {
 			// OK
@@ -3287,34 +3309,10 @@ void omxData::estimateObservedStats()
 			EigenMatrixAdaptor acov(o1.acovMat);
 			acov.setZero();
 			for (int ix=0; ix < acov.cols(); ++ix) {
-				acov(ix,ix) = 1.0 / Efw(ix,ix); // DWLS
+				acov(ix,ix) = 1. / Efw(ix,ix); // DWLS
 			}
 		}
 	}
-	if (InvertSymmetricPosDef(Efw, 'L')) {
-		if (InvertSymmetricIndef(Efw, 'L')) {
-			std::ostringstream temp;
-			Eigen::DiagonalMatrix<double, Eigen::Dynamic>
-				isd((1.0 / INNER.diagonal().array().sqrt()).matrix());
-			Eigen::MatrixXd innerCor = isd * INNER * isd;
-			for (int cx=0; cx < innerCor.cols()-1; ++cx) {
-				for (int rx=cx+1; rx < innerCor.rows(); ++rx) {
-					if (fabs(fabs(innerCor(rx,cx)) - 1.0) > 1e-6) continue;
-					// Better if we reported the names of the summary stats
-					temp << " [" << (1+rx) << "," << (1+cx) << "]";
-				}
-			}
-			std::string diag = temp.str();
-			mxThrow("%s: the acov matrix is rank deficient as "
-							"determined by LU factorization; perfectly correlated gradients:%s",
-							name, diag.c_str());
-		}
-		else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
-	}
-
-	// lavaan divides Efw by numObs, we don't
-	Efw.derived() = Efw.selfadjointView<Eigen::Lower>();
-
 	//mxPrintMat("Efw", Efw);
 
 	o1.partial = false;
