@@ -399,7 +399,8 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 
 setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	function(.Object, model, defvar.row=1, subname=model@name) {
-		ret <- genericGetExpected(.Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname)
+		ret <- suppressWarnings(genericGetExpected(
+      .Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname))
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")

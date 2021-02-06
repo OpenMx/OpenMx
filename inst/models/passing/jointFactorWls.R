@@ -174,6 +174,9 @@ expect_equal(summary(jointDlsResults)$ChiDoF, 5)
 noOptResult <- mxRun(jointDlsResults, useOptimizer = FALSE)
 expect_true(is.null(summary(noOptResult)$Chi))
 
+expect_equal(length(mxGetExpected(jointWlsResults, 'standvector')),
+             summary(jointWlsResults)$observedStatistics)
+
 #------------------------------------------------------------------------------
 # Compare ML and WLS estimates
 

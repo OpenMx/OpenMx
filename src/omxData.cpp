@@ -3042,7 +3042,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	if (exoPred.size()) {
 		o1.slopeMat = omxInitMatrix(numCols, exoPred.size(), state);
 		EigenMatrixAdaptor Eslope(o1.slopeMat);
-		Eslope.setConstant(nan("unset"));
+		Eslope.setZero();
 	}
 
 	o1.covMat = omxInitMatrix(numCols, numCols, state);

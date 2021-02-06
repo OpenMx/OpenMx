@@ -117,6 +117,9 @@ wlsRun <- mxRun(wlsMod)
 summary(wlsRun)
 omxCheckTrue(is.null(wlsRun$output$calculatedHessian))
 
+expect_equal(length(mxGetExpected(wlsRun, 'standvector')),
+             summary(wlsRun)$observedStatistics)
+
 dwlsRun <- mxRun(dwlsMod)
 
 ulsRun <- mxRun(ulsMod)
@@ -142,8 +145,7 @@ fitParam <- c(mxEval(Lam, wlsRun)[1:4,1], diag(mxEval(Theta, wlsRun)))
 
 omxCheckCloseEnough(bollenParam, fitParam, epsilon=0.01)
 
-j1 <- expect_warning(omxManifestModelByParameterJacobian(wlsRun, standardize = TRUE),
-                     "Means requested, but model has no means")
+j1 <- omxManifestModelByParameterJacobian(wlsRun, standardize = TRUE)
 # Tedious to check all entries, but if variances match then
 # other labels are probably correct.
 expect_equivalent(j1[1:8, paste0('var',1:8)], diag(8))

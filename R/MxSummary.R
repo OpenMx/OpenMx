@@ -86,9 +86,8 @@ observedStatisticsHelper <- function(model, expectation, datalist, historySet) {
 		}
 		numThresh <- sum(!is.na(obsStats[['thresholds']]))
 		numMeans <- sum(!is.na(obsStats[['means']]))
-		numSlope <- sum(!is.na(obsStats[['slope']]))
 		n <- nrow(obsStats[['cov']])
-		dof <- numThresh + numMeans + numSlope + n*(n+1)/2 - sum(ncol(obsStats[['thresholds']]))
+		dof <- numThresh + numMeans + n*(n+1)/2 - 2*sum(ncol(obsStats[['thresholds']]))
 		historySet <- append(data, historySet)
 	} else {
 		# Incorporate row frequency and weight information? TODO
