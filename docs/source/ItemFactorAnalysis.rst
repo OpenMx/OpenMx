@@ -57,7 +57,7 @@ An Intuitive Appeal
 Educational assessments are often scored *correct* and *incorrect*.
 Some items may also offer partial credit for partially correct answers.
 One approach to analyze these ordinal data is Classical Test Theory (CTT).
-CTT includes statistics like Cronbach's α for estimating reliability,
+CTT includes statistics like Cronbach's alpha for estimating reliability,
 proportion correct as an estimate of item difficulty,
 and item-total correlation as an estimate of item discrimination.
 However, a disadvantage of CTT is the need for huge
