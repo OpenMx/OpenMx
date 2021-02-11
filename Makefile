@@ -52,6 +52,7 @@ help:
 	@echo "  build-simple  create an OpenMx binary for unix systems without OpenMP"
 	@echo "  srcbuild      create an OpenMx source release"
 	@echo "  cran-build    build OpenMx without NPSOL"
+	@echo "  packages-help print some hints for generating PACKAGES files"
 	@echo ""
 	@echo "INSTALL"
 	@echo ""
