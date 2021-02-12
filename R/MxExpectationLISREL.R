@@ -708,6 +708,17 @@ setMethod("genericGetExpected", signature("MxExpectationLISREL"),
 				       cbind(exenBlock, exoBlock))
 			  ret[['covariance']] <- cov
 		  }
+		  if (any(c('slope','slopes') %in% what)) {
+				if (!single.na(ALname)){
+          AL <- model[[ ALname ]]
+          latents <- rownames(AL)
+          exo <- latents[grep('data.', AL$labels, fixed=TRUE)]
+          if (!single.na(LY) && length(exo)) {
+            LY <- mxEvalByName(LYname, model, compute=TRUE, defvar.row=defvar.row)
+            ret[['slope']] <- LY[,exo]
+          }
+        }
+      }
 		  if (any(c('mean', 'means') %in% what)) {
 			  if(single.na(TXname) & single.na(TYname)){
 					warning("Means requested, but model has no means.\nAdd appropriate TX, TY, KA, and/or AL matrices to get real means.")

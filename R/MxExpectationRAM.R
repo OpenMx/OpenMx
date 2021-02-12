@@ -266,7 +266,7 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  Aname <- .modifyDottedName(subname, .Object@A, sep=".")
 		  Sname <- .modifyDottedName(subname, .Object@S, sep=".")
 		  Fname <- .modifyDottedName(subname, .Object@F, sep=".")
-		  Mname <- .Object@M
+		  Mname <- .modifyDottedName(subname, .Object@M, sep=".")
 		  A <- mxEvalByName(Aname, model, compute=TRUE, defvar.row=defvar.row)
 		  S <- mxEvalByName(Sname, model, compute=TRUE, defvar.row=defvar.row)
 		  F <- mxEvalByName(Fname, model, compute=TRUE, defvar.row=defvar.row)
@@ -303,6 +303,16 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 		  if (any(c('covariance','covariances') %in% what)) {
 			  ret[['covariance']] <- F %*% cov %*% t(F)
 		  }
+		  if (any(c('slope','slopes') %in% what)) {
+				if (!single.na(Mname)){
+          latents <- setdiff(colnames(F), rownames(F))
+          M <- model[[ Mname ]]
+          exo <- latents[grep('data.', M[,latents]$labels, fixed=TRUE)]
+          if (length(exo)) {
+            ret[['slope']] <- A[rownames(F), exo]
+          }
+        }
+      }
 		  if (any(c('mean','means') %in% what)) {
 				if(single.na(Mname)){
 					mean <- matrix( , 0, 0)

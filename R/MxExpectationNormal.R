@@ -400,7 +400,7 @@ setMethod("genericGetExpectedVector", signature("BaseExpectationNormal"),
 setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 	function(.Object, model, defvar.row=1, subname=model@name) {
 		ret <- suppressWarnings(genericGetExpected(
-      .Object, model, c('covariance', 'means', 'thresholds'), defvar.row, subname))
+      .Object, model, c('covariance', 'means', 'thresholds', 'slope'), defvar.row, subname))
 		cov <- ret[['covariance']]
 		mns <- ret[['means']]
 		if (is.null(mns)) stop("mns is null")
@@ -410,11 +410,11 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 			thrNames <- outer(paste0('thr', 1:nrow(thr)), 1:ncol(thr), paste, sep='_')
 			dth <- getThresholdMask(model, colnames(thr), subname)
 		}
-		v <- .standardizeCovMeansThresholds(cov, mns, thr, dth, vector=TRUE)
+		v <- .standardizeCovMeansThresholds(cov, mns, thr, ret[['slope']], dth, vector=TRUE)
 		return(v)
 })
 
-.standardizeCovMeansThresholds <- function(cov, means, thresholds, dth, vector=FALSE){
+.standardizeCovMeansThresholds <- function(cov, means, thresholds, slope, dth, vector=FALSE){
   mnames <- colnames(cov)
   if (length(mnames) == 0) {
     stop("I give up. Have no idea how to standardize this expectation.\nYour covariance matrix must have dimnames.")
@@ -428,7 +428,7 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
     cov <- .ordinalCov2Cor(cov, ordInd)
   }
 	if(!vector){
-		return(list(cov=cov, means=means, thresholds=thresholds))
+		return(list(cov=cov, means=means, thresholds=thresholds, slope=slope))
 	} else {
 		v <- c()
 		vn <- c()
@@ -445,6 +445,12 @@ setMethod("genericGetExpectedStandVector", signature("BaseExpectationNormal"),
 		    }
 		  }
 		}
+    if (length(slope)) {
+      v <- c(v, slope)
+      sname <- apply(expand.grid(row=rownames(slope),
+                                 col=colnames(slope))[,c(2,1)], 1, paste, collapse='_')
+      vn <- c(vn, sname)
+    }
 		for (vx in 1:length(mnames)) {
 			if (any(vx == ordInd)) next
 			v <- c(v, cov[vx,vx])

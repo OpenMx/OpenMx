@@ -146,6 +146,9 @@ jointLISREL <- mxModel("JointLISREL", type="LISREL",
 
 jointLISREL <- mxRun(jointLISREL)
 
+expect_equal(length(mxGetExpected(jointLISREL, 'standvector')),
+             summary(jointLISREL)$observedStatistics)
+
 # Compare parameter estimates from the RAM and LISREL models
 print(max(abs(coef(jointLISREL) - coef(jointRAM1))))
 omxCheckCloseEnough(coef(jointLISREL), coef(jointRAM1), 2e-5)
