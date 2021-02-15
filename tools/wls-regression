@@ -11,6 +11,7 @@ opt="-q --vanilla --no-save"
 
 tests="
 inst/models/passing/ContinuousOnlyWLSTest.R
+tests/testthat/test-WLS-acov.R
 inst/models/passing/InvalidWLS.R
 inst/models/passing/MultipleGroupWLS.R
 inst/models/passing/WLS+CI.R

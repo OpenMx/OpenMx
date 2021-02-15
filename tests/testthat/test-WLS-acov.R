@@ -88,8 +88,8 @@ dwlsMod2 <- dwlsMod
 dwlsMod2$data <- mxData(
 	mxdw$observedStats$cov, numObs = 75, means = NA, type = "acov", 
 	#acov=diag(diag(mxdw$observedStats$acov)),
-	acov=mxdw$observedStats$acov,
-	fullWeight=mxdw$observedStats$fullWeight)
+	fullWeight=mxdw$observedStats$asymCov * 75,
+	acov=mxdw$observedStats$useWeight)
 dwlsRun2 <- mxRun(dwlsMod2)
 expect_equivalent(coef(dwlsRun) - coef(dwlsRun2),
                   rep(0, length(coef(wlsRun))))
@@ -108,8 +108,8 @@ wlsMod2 <- wlsMod
 wlsMod2$data <- mxData(
   mxw$observedStats$cov, numObs = 75, means = NA, type = "acov", 
   #acov=diag(diag(mxdw$observedStats$acov)),
-  acov=mxw$observedStats$acov,
-  fullWeight=mxw$observedStats$fullWeight)
+  fullWeight=mxw$observedStats$asymCov * 75,
+  acov=mxw$observedStats$useWeight)
 wlsRun2 <- mxRun(wlsMod2)
 expect_equivalent(coef(wlsRun) - coef(wlsRun2),
                   rep(0, length(coef(wlsRun))))
