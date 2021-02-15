@@ -25,6 +25,7 @@ inst/models/passing/tangleF.R
 tests/testthat/test-loadDataByRow.R
 inst/models/passing/automaticStarts.R
 inst/models/passing/IgnoreFixedConfidenceIntervals.R
+inst/models/passing/acov_regression_test.R
 inst/models/nightly/MultigroupWLS.R
 inst/models/nightly/thresholdModel1Factor5VariateWLS.R
 inst/models/nightly/JointWLS.R
