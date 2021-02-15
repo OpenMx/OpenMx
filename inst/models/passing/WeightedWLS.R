@@ -70,7 +70,7 @@ omxCheckCloseEnough(os1$means, os2$means, 1e-12)
 omxCheckCloseEnough(os1$slope, os2$slope, 1e-12)
 mask <- !is.na(os1$thresholds)
 omxCheckCloseEnough(os1$thresholds[mask], os2$thresholds[mask], 1e-12)
-omxCheckCloseEnough(vech(os1$acov), vech(os2$acov), 1e-10)
+omxCheckCloseEnough(vech(os1$asymCov), vech(os2$asymCov), 1e-10)
 
 #omxCheckCloseEnough(cor(coef(uwModel), coef(wModel)), 1, 1e-9)
 
@@ -97,7 +97,7 @@ wData <- omxAugmentDataWithWLSSummary(mxData(weighted, 'raw', frequency="freq"))
 os1 <- uwData$observedStats
 os2 <- wData$observedStats
 omxCheckCloseEnough(os1$cov, os2$cov, 1e-12)
-omxCheckCloseEnough(os1$fullWeight, os2$fullWeight, 2e-12)
+omxCheckCloseEnough(os1$asymCov, os2$asymCov, 2e-12)
 
 # -----------
 

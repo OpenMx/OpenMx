@@ -1862,9 +1862,9 @@ class ComputeStandardError : public omxCompute {
 			}
 			omxData *d1 = e1->data;
 			d1->visitObsStats([this, d1](obsSummaryStats &o1) {
-					if (o1.fullWeight) return;
+					if (o1.asymCov) return;
 					mxThrow("%s: terribly sorry, master, but '%s' does not "
-						"include the full weight matrix hence "
+						"include the asymptotic covariance matrix hence "
 						"standard errors cannot be computed",
 						top.name, d1->name);
 				});
@@ -3629,7 +3629,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 		e1->data->visitObsStats([&](obsSummaryStats &o1){
 				numOrdinal += o1.numOrdinal;
 				totalWeight += o1.totalWeight;
-				int sz = o1.fullWeight->rows;
+				int sz = o1.asymCov->rows;
 				numStats.push_back(sz);
 				totalStats += sz;
 			});
@@ -3664,15 +3664,15 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				}
 				obStats.segment(offset, sz) = vec1;
 
-				if (o1.acovMat) {
-					EigenMatrixAdaptor acov(o1.acovMat);
-					Vmat.block(offset,offset,sz,sz) = acov;
+				if (o1.useWeight) {
+					EigenMatrixAdaptor uw(o1.useWeight);
+					Vmat.block(offset,offset,sz,sz) = uw;
 				} else {
 					Vmat.block(offset,offset,sz,sz).setIdentity();
 				}
 
-				EigenMatrixAdaptor fw(o1.fullWeight);
-				Wmat.block(offset,offset,sz,sz) = fw;
+				EigenMatrixAdaptor ac(o1.asymCov);
+				Wmat.block(offset,offset,sz,sz) = ac;
 				offset += sz;
 				sx += 1;
 			});

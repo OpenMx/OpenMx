@@ -48,7 +48,7 @@ setClass(Class = "MxDataStatic",
 	     frequency = "MxCharOrNumber",
 	     minVariance = "numeric",
 	   algebra = "MxOptionalCharOrNumber",
-    warnNPDacov = "logical",
+    warnNPDuseWeight = "logical",
     exoFree = "MxOptionalMatrix",
     naAction = "character"))
 
@@ -64,7 +64,7 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
 		   sort, primaryKey, weight, frequency, verbose, .parallel, .noExoOptimize,
-		   minVariance, algebra, warnNPDacov, exoFree, naAction) {
+		   minVariance, algebra, warnNPDuseWeight, exoFree, naAction) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -91,7 +91,7 @@ setMethod("initialize", "MxDataStatic",
 		.Object@verbose <- verbose
 		.Object@minVariance <- minVariance
 		.Object@algebra <- algebra
-		.Object@warnNPDacov <- warnNPDacov
+		.Object@warnNPDuseWeight <- warnNPDuseWeight
 		.Object@exoFree <- exoFree
 		.Object@naAction <- naAction
 		return(.Object)
@@ -153,7 +153,8 @@ mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWe
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
 		   minVariance=sqrt(.Machine$double.eps), algebra=c(),
-		   warnNPDacov=TRUE, exoFree=NULL, naAction=c("pass","fail","omit","exclude")) {
+		   warnNPDacov=TRUE, warnNPDuseWeight=TRUE,
+       exoFree=NULL, naAction=c("pass","fail","omit","exclude")) {
   prohibitDotdotdot(list(...))
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	dups <- duplicated(colnames(observed))
@@ -279,7 +280,7 @@ mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWe
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
 		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
 		as.logical(.parallel), as.logical(.noExoOptimize), minVariance,
-		as.character(algebra), as.logical(warnNPDacov), exoFree, naAction))
+		as.character(algebra), as.logical(warnNPDacov && warnNPDuseWeight), exoFree, naAction))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED

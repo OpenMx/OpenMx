@@ -29,7 +29,7 @@
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
      minVariance=sqrt(.Machine$double.eps), algebra=c(),
-   warnNPDacov=TRUE, exoFree=NULL,
+   warnNPDacov=TRUE, warnNPDuseWeight=TRUE, exoFree=NULL,
    naAction=c("pass","fail","omit","exclude"))
 }
 
@@ -54,7 +54,8 @@
    \item{thresholds}{Deprecated in favor of the thresholds element of observedStats.}
    \item{algebra}{character vector. Names of algebras used to fill in
      calculated columns of raw data. \lifecycle{experimental}}
-   \item{warnNPDacov}{logical. Whether to warn when the asymptotic
+   \item{warnNPDacov}{\lifecycle{deprecated}}
+   \item{warnNPDuseWeight}{logical. Whether to warn when the asymptotic
      covariance matrix is non-positive definite.}
    \item{exoFree}{logical matrix of observed manifests by
    exogenous predictors. Defaults to all TRUE, but you can fix some
@@ -107,7 +108,7 @@ Otherwise, you will need to add this constraint yourself.
 
 \strong{WLS data}
 
-The \code{observedStats} contains the following named objects: cov, slope, means, acov, fullWeight, and thresholds.
+The \code{observedStats} contains the following named objects: cov, slope, means, asymCov, useWeight, and thresholds.
 
 \sQuote{cov} The (polychoric) covariance matrix of raw data variables. An error is raised if any variance is smaller \code{minVariance}.
 
@@ -117,9 +118,12 @@ The \code{observedStats} contains the following named objects: cov, slope, means
 
 \sQuote{thresholds} Thresholds of ordinal variables. Required for models including ordinal variables.
 
-\sQuote{acov} The asymptotic covariance matrix. Can be diagonal for diagonally weighted least squares.
+\sQuote{asymCov} The asymptotic covariance matrix (all entries
+non-zero). This matrix is sample size independent.
 
-\sQuote{fullWeight} (optional) is the complete asymptotic weight matrix (all entries non-zero).
+\sQuote{useWeight} (optional) The weight matrix used in the
+\link{mxFitFunctionWLS}. Can be dense or diagonal for diagonally
+weighted least squares. This matrix is scaled by the sample size.
 
 \emph{note}: WLS data typically use the \link{mxFitFunctionWLS} function.
 

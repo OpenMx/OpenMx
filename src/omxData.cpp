@@ -43,7 +43,7 @@
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
                      freqCol(NA_INTEGER), currentFreqColumn(0), numEstimatedEntries(0),
                      parallel(true),
-		     noExoOptimize(true), modified(false), minVariance(0), warnNPDacov(true),
+		     noExoOptimize(true), modified(false), minVariance(0), warnNPDuseWeight(true),
 		     dataObject(0), dataMat(0), meansMat(0),
 										 numObs(0), _type(0), naAction(NA_PASS), numFactor(0), numNumeric(0),
 		     cols(0), expectation(0)
@@ -254,9 +254,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		ProtectedSEXP Rmv(R_do_slot(dataObj, Rf_install("minVariance")));
 		minVariance = Rf_asReal(Rmv);
 	}
-	if (R_has_slot(dataObj, Rf_install("warnNPDacov"))) {
-		ProtectedSEXP Rnpd(R_do_slot(dataObj, Rf_install("warnNPDacov")));
-		warnNPDacov = Rf_asLogical(Rnpd);
+	if (R_has_slot(dataObj, Rf_install("warnNPDuseWeight"))) {
+		ProtectedSEXP Rnpd(R_do_slot(dataObj, Rf_install("warnNPDuseWeight")));
+		warnNPDuseWeight = Rf_asLogical(Rnpd);
 	}
 
 	{ScopedProtect pdl(dataLoc, R_do_slot(dataObj, Rf_install("observed")));
@@ -316,6 +316,10 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	        if(od->meansMat == NULL) {mxLog("No means found.");}
 		else {omxPrint(od->meansMat, "Means Matrix is:");}
 	}
+	{
+		ProtectedSEXP RdataLoc(R_do_slot(dataObj, Rf_install("numObs")));
+		od->numObs = Rf_asReal(RdataLoc);
+	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
 	if (strEQ(od->_type, "acov")) {  // old style for backward compatibility
@@ -328,9 +332,9 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		meansMat = 0;
 		// slopeMat unimplemented for legacy version
 		ProtectedSEXP Racov(R_do_slot(dataObj, Rf_install("acov")));
-		o1.acovMat = omxNewMatrixFromRPrimitive(Racov, state, 0, 0);
+		o1.useWeight = omxNewMatrixFromRPrimitive(Racov, state, 0, 0);
 		ProtectedSEXP Rfw(R_do_slot(dataObj, Rf_install("fullWeight")));
-		o1.fullWeight = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
+		o1.asymCov = omxNewMatrixFromRPrimitive0(Rfw, state, 0, 0);
 		ProtectedSEXP Rthr(R_do_slot(dataObj, Rf_install("thresholds")));
 		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
 	}
@@ -338,6 +342,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
 		if (Rf_length(RobsStats)) oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
+    int apiVersion = NA_INTEGER;
 		for (int ax=0; ax < Rf_length(RobsStats); ++ax) {
 			const char *key = R_CHAR(STRING_ELT(RobsStatsName, ax));
 			auto &o1 = *oss;
@@ -349,10 +354,26 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 					mxThrow("%s: observedStats$slope must have colnames", name);
 			} else if (strEQ(key, "means")) {
 				o1.meansMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+			} else if (strEQ(key, "asymCov")) {
+        if (apiVersion == NA_INTEGER || apiVersion == 1) apiVersion = 1;
+        else mxThrow("%s: observedStats contains 'asymCov'; i'm confused", name);
+				o1.asymCov = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+        EigenMatrixAdaptor ac(o1.asymCov);
+        ac *= od->numObs;
+			} else if (strEQ(key, "useWeight")) {
+        if (apiVersion == NA_INTEGER || apiVersion == 1) apiVersion = 1;
+        else mxThrow("%s: observedStats contains 'useWeight'; i'm confused", name);
+				o1.useWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			} else if (strEQ(key, "acov")) {
-				o1.acovMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+        if (apiVersion == NA_INTEGER || apiVersion == 0) apiVersion = 0;
+        else mxThrow("%s: observedStats contains 'acov'; i'm confused", name);
+				o1.useWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+        Rf_warning("%s: observedStats item 'acov' is deprecated", name);
 			} else if (strEQ(key, "fullWeight")) {
-				o1.fullWeight = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+        if (apiVersion == NA_INTEGER || apiVersion == 0) apiVersion = 0;
+        else mxThrow("%s: observedStats contains 'fullWeight'; i'm confused", name);
+				o1.asymCov = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+        Rf_warning("%s: observedStats item 'fullWeight' is deprecated", name);
 			} else if (strEQ(key, "thresholds")) {
 				o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			} else if (strEQ(key, "numEstimatedEntries")) {
@@ -396,10 +417,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 			}
 			if (foundOrd != o1.numOrdinal) mxThrow("%s: cannot match all threshold columns", name);
 		}
-	}
-	{
-		ProtectedSEXP RdataLoc(R_do_slot(dataObj, Rf_install("numObs")));
-		od->numObs = Rf_asReal(RdataLoc);
 	}
 
 	if (R_has_slot(dataObj, Rf_install("algebra"))) {
@@ -632,8 +649,8 @@ obsSummaryStats::~obsSummaryStats()
 	omxFreeMatrix(covMat);
 	omxFreeMatrix(slopeMat);
 	omxFreeMatrix(meansMat);
-	omxFreeMatrix(acovMat);
-	omxFreeMatrix(fullWeight);
+	omxFreeMatrix(asymCov);
+	omxFreeMatrix(useWeight);
 	omxFreeMatrix(thresholdMat);
 }
 
@@ -1249,18 +1266,18 @@ void obsSummaryStats::setDimnames(omxData *data)
 		}
 	}
 
-	if (acovMat) {
-		acovMat->colnames.clear();
-		acovMat->rownames.clear();
-		acovMat->colnames.reserve(acovMat->cols);
+	if (asymCov) {
+		asymCov->colnames.clear();
+		asymCov->rownames.clear();
+		asymCov->colnames.reserve(asymCov->cols);
 		if (thresholdMat || meansMat) {
 			for (auto &tc : thresholdCols) {
 				if (tc.numThresholds == 0) {
-					acovMat->colnames.push_back(strdup(dc[tc.dataColumn]));
+					asymCov->colnames.push_back(strdup(dc[tc.dataColumn]));
 				} else {
 					for (int th=1; th <= tc.numThresholds; ++th) {
 						auto str = string_snprintf("%st%d", dc[tc.dataColumn], th);
-						acovMat->colnames.push_back(strdup(str.c_str()));
+						asymCov->colnames.push_back(strdup(str.c_str()));
 					}
 				}
 			}
@@ -1269,16 +1286,16 @@ void obsSummaryStats::setDimnames(omxData *data)
 		for (int cx=0; cx < covMat->cols; ++cx) {
 			if (thresholdMat && thresholdCols[cx].numThresholds) continue;
 			auto str = string_snprintf("var_%s", dc[cx]);
-			acovMat->colnames.push_back(strdup(str.c_str()));
+			asymCov->colnames.push_back(strdup(str.c_str()));
 		}
 		for (int cx=0; cx < covMat->cols-1; ++cx) {
 			for (int rx=cx+1; rx < covMat->cols; ++rx) {
 				auto str = string_snprintf("poly_%s_%s", dc[rx], dc[cx]);
-				acovMat->colnames.push_back(strdup(str.c_str()));
+				asymCov->colnames.push_back(strdup(str.c_str()));
 			}
 		}
-		acovMat->freeColnames = true;
-		acovMat->rownames = acovMat->colnames;
+		asymCov->freeColnames = true;
+		asymCov->rownames = asymCov->colnames;
 	}
 }
 
@@ -1286,8 +1303,8 @@ void obsSummaryStats::permute(omxData *data)
 {
 	covMat->unshareMemoryWithR();
 	if (meansMat) meansMat->unshareMemoryWithR();
-	if (acovMat) acovMat->unshareMemoryWithR();
-	if (fullWeight) fullWeight->unshareMemoryWithR();
+	if (asymCov) asymCov->unshareMemoryWithR();
+	if (useWeight) useWeight->unshareMemoryWithR();
 
 	ColMapType dataMap;
 	for (int cx=0; cx < int(dc.size()); ++cx) dataMap.emplace(dc[cx], cx);
@@ -1304,15 +1321,15 @@ void obsSummaryStats::permute(omxData *data)
 	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> p1(invDataColumns);
 
 	ColMapType acovMap;
-	if (int(acovMat->colnames.size()) != acovMat->cols) mxThrow("%s: cannot permute without acov dimnames", data->name);
-	for (int cx=0; cx < int(acovMat->colnames.size()); ++cx) {
-		//mxLog("%s -> %d", acovMat->colnames[cx], cx);
-		acovMap.emplace(acovMat->colnames[cx], cx);
+	if (int(asymCov->colnames.size()) != asymCov->cols) mxThrow("%s: cannot permute without acov dimnames", data->name);
+	for (int cx=0; cx < int(asymCov->colnames.size()); ++cx) {
+		//mxLog("%s -> %d", asymCov->colnames[cx], cx);
+		acovMap.emplace(asymCov->colnames[cx], cx);
 	}
 
 	auto &thresh = thresholdCols;
 
-	Eigen::PermutationMatrix<Eigen::Dynamic> p2(acovMat->cols);
+	Eigen::PermutationMatrix<Eigen::Dynamic> p2(asymCov->cols);
 	int px = 0;
 
 	ColMapType thrMap;
@@ -1365,8 +1382,7 @@ void obsSummaryStats::permute(omxData *data)
 
 	EigenVectorAdaptor Emean(meansMat);
 	EigenMatrixAdaptor Ecov(covMat);
-	EigenMatrixAdaptor Eacov(acovMat);
-	EigenMatrixAdaptor Efw(fullWeight);
+	EigenMatrixAdaptor Eacov(asymCov);
 
 	//Eigen::MatrixXi mp1 = p1;
 	//mxPrintMat("p1", mp1);
@@ -1375,7 +1391,10 @@ void obsSummaryStats::permute(omxData *data)
 	Emean.derived() = (p1 * Emean).eval();
 	Ecov.derived() = (p1 * Ecov * p1.transpose()).eval();
 	Eacov.derived() = (p2.transpose() * Eacov * p2).eval();
-	Efw.derived() = (p2.transpose() * Efw * p2).eval();
+  if (useWeight) {
+    EigenMatrixAdaptor Euw(useWeight);
+    Euw.derived() = (p2.transpose() * Euw * p2).eval();
+  }
 
 	for (auto &th : thresh) th.dataColumn = invDataColumns[th.dataColumn];
 	std::sort(thresh.begin(), thresh.end(),
@@ -1389,20 +1408,20 @@ void obsSummaryStats::log()
 	if (covMat) omxPrint(covMat, "cov");
 	if (slopeMat) omxPrint(slopeMat, "slope");
 	if (meansMat) omxPrint(meansMat, "mean");
-	if (acovMat) {
-    EigenMatrixAdaptor Eacov(acovMat);
+	if (asymCov) {
+    EigenMatrixAdaptor Eacov(asymCov);
     if (Eacov.cols() < 30) {
-      mxPrintMat("acov", Eacov);
+      mxPrintMat("asymCov", Eacov);
     } else {
-      mxPrintMat("acov (topleft)", Eacov.block(0,0,30,30));
+      mxPrintMat("asymCov (topleft)", Eacov.block(0,0,30,30));
     }
   }
-	if (fullWeight) {
-    EigenMatrixAdaptor Efw(fullWeight);
+	if (useWeight) {
+    EigenMatrixAdaptor Efw(useWeight);
     if (Efw.cols() < 30) {
-      mxPrintMat("full", Efw);
+      mxPrintMat("useW", Efw);
     } else {
-      mxPrintMat("full (topleft)", Efw.block(0,0,30,30));
+      mxPrintMat("useW (topleft)", Efw.block(0,0,30,30));
     }
 	}
 	for (auto &th : thresholdCols) { th.log(); }
@@ -1444,9 +1463,15 @@ void omxData::reportResults(MxRList &out)
 
 	if (o1.covMat) out.add("cov", o1.covMat->asR());
 	if (o1.meansMat) out.add("means", o1.meansMat->asR());
-	if (o1.acovMat) out.add("acov", o1.acovMat->asR());
+	if (o1.asymCov) {
+    double Ninv = 1 / omxDataNumObs(this);
+    EigenMatrixAdaptor ac(o1.asymCov);
+    ac *= Ninv;
+    out.add("asymCov", o1.asymCov->asR());
+    ac *= omxDataNumObs(this);
+  }
 	if (o1.slopeMat) out.add("slope", o1.slopeMat->asR());
-	if (o1.fullWeight) out.add("fullWeight", o1.fullWeight->asR());
+	if (o1.useWeight) out.add("useWeight", o1.useWeight->asR());
 	if (o1.thresholdMat) out.add("thresholds", o1.thresholdMat->asR());
   out.add("numEstimatedEntries", Rcpp::wrap(numEstimatedEntries));
 }
@@ -1489,7 +1514,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 
 	double totalWeight = o1.totalWeight;
 	o1.covMat = omxInitMatrix(numCols, numCols, state);
-	o1.fullWeight = omxInitMatrix(numColsStar, numColsStar, state);
+	o1.asymCov = omxInitMatrix(numColsStar, numColsStar, state);
 	EigenMatrixAdaptor Ecov(o1.covMat);
 	Eigen::VectorXd Emean(numCols);
 	Ecov.setZero();
@@ -1515,7 +1540,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 
 	data.rowwise() -= Emean.array().transpose();
 	Eigen::MatrixXd Vmat = Ecov * (totalWeight-1.) / totalWeight;
-	EigenMatrixAdaptor Umat(o1.fullWeight);
+	EigenMatrixAdaptor Umat(o1.asymCov);
 
 	Eigen::ArrayXXd M(numColsStar, 2);
 	for (int x1=0, mx=0; x1 < numCols; ++x1) {
@@ -1538,39 +1563,39 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 	}
   Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
 
-	Eigen::PermutationMatrix<Eigen::Dynamic> p1(o1.fullWeight->cols);
+	Eigen::PermutationMatrix<Eigen::Dynamic> p1(o1.asymCov->cols);
 	for (int vx=0; vx < Ecov.cols(); ++vx) {
-		p1.indices()[vx] = o1.fullWeight->cols - triangleLoc0(Ecov.cols() - vx - 1) - 1;
+		p1.indices()[vx] = o1.asymCov->cols - triangleLoc0(Ecov.cols() - vx - 1) - 1;
 	}
-	for (int v1=0, vx=Ecov.cols(); vx < o1.fullWeight->cols; ++vx) {
+	for (int v1=0, vx=Ecov.cols(); vx < o1.asymCov->cols; ++vx) {
 		if (p1.indices()[v1] == vx - Ecov.cols() + v1) v1 += 1;
 		p1.indices()[vx] = vx - Ecov.cols() + v1;
 	}
 	Umat.derived() = (p1.transpose() * Umat * p1).eval();
 
 	if (strEQ(wlsType, "WLS")) {
-    o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
-    EigenMatrixAdaptor acov(o1.acovMat);
-    acov = Umat;
-    int singular = InvertSymmetricPosDef(acov, 'L');
+    o1.useWeight = omxInitMatrix(numColsStar, numColsStar, state);
+    EigenMatrixAdaptor uw(o1.useWeight);
+    uw = Umat;
+    int singular = InvertSymmetricPosDef(uw, 'L');
     if (singular) {
       mxThrow("%s: weight matrix is rank deficient; cannot invert", name);
       return;
     }
-    acov.triangularView<Eigen::Upper>() = acov.transpose().triangularView<Eigen::Upper>();
+    uw.triangularView<Eigen::Upper>() = uw.transpose().triangularView<Eigen::Upper>();
 	} else {
 		if (strEQ(wlsType, "ULS")) {
 			// OK
 		} else { // DWLS
-			o1.acovMat = omxInitMatrix(numColsStar, numColsStar, state);
-			EigenMatrixAdaptor acov(o1.acovMat);
-			acov.setZero();
+			o1.useWeight = omxInitMatrix(numColsStar, numColsStar, state);
+			EigenMatrixAdaptor uw(o1.useWeight);
+			uw.setZero();
 			for (int ix=0; ix < numColsStar; ++ix) {
-				acov(ix,ix) = totalWeight/((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
+				uw(ix,ix) = totalWeight/((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
 						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / totalWeight -
 						  Vmat(M(ix, 0), M(ix, 1)) * Vmat(M(ix, 0), M(ix, 1)));
 			}
-			acov.derived() = (p1.transpose() * acov * p1).eval();
+			uw.derived() = (p1.transpose() * uw * p1).eval();
 		}
 	}
 
@@ -2508,10 +2533,10 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 	}
 
 	if (strEQ(wlsType, "ULS")) {
-		omxFreeMatrix(o1.acovMat);
-		o1.acovMat = 0;
+		omxFreeMatrix(o1.useWeight);
+		o1.useWeight = 0;
 	} else {
-		EigenMatrixAdaptor Eweight(o1.acovMat);
+		EigenMatrixAdaptor Eweight(o1.useWeight);
 		Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
 		double offDiag = offDiagW.array().abs().sum();
 		if (strEQ(wlsType, "DWLS")) {
@@ -2539,11 +2564,11 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 			return true;
 		}
 		if (int(o1.covMat->colnames.size()) != o1.covMat->cols ||
-		    !o1.acovMat || int(o1.acovMat->colnames.size()) != o1.acovMat->cols) {
+		    !o1.asymCov || int(o1.asymCov->colnames.size()) != o1.asymCov->cols) {
 			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are "
 						"unavailable (cov=%d, acov=%d)", name,
 						int(o1.covMat->colnames.size()),
-						o1.acovMat? int(o1.acovMat->colnames.size()) : -1);
+						o1.asymCov? int(o1.asymCov->colnames.size()) : -1);
 			return true;
 		}
 		if (verbose >= 1) mxLog("%s: observedStats needs permutation", name);
@@ -2573,10 +2598,10 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 		} else {
 			continuousType = "marginals";
 		}
-		if (!o1.acovMat) {
+		if (!o1.useWeight) {
 			type = "ULS";
 		} else {
-			EigenMatrixAdaptor Eweight(o1.acovMat);
+			EigenMatrixAdaptor Eweight(o1.useWeight);
 			Eigen::MatrixXd offDiagW = Eweight.triangularView<Eigen::StrictlyUpper>();
 			double offDiag = offDiagW.array().abs().sum();
 			if (offDiag > 0) type = "WLS";
@@ -2965,7 +2990,7 @@ void obsSummaryStats::loadExoFree(SEXP Ref)
 
 void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *wlsType,
-			  const char *continuousType, bool fullWeight)
+			  const char *continuousType, bool wantAsymCov)
 {
 	if (!dc.size()) return;
 
@@ -2977,9 +3002,9 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	if (!isRaw()) {
-		mxThrow("%s: requested WLS summary stats are not available (%s; %s; fullWeight=%d) "
+		mxThrow("%s: requested WLS summary stats are not available (%s; %s; wantAsymCov=%d) "
 				 "and raw data are also not available",
-				 name, wlsType, continuousType, fullWeight);
+				 name, wlsType, continuousType, wantAsymCov);
 	}
 
 	int numCols = dc.size();
@@ -3005,7 +3030,7 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	o1.totalExoFree = o1.exoFree.sum();
 	o1.wlsType = wlsType;
 	o1.continuousType = continuousType;
-	o1.wantFullWeight = fullWeight;
+	o1.wantAsymCov = wantAsymCov;
 	o1.output = true;
 	Eigen::ArrayXd rowMultFull;
 	std::vector<int> &index = o1.index;
@@ -3120,10 +3145,10 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	int A11_size = o1.SC_TH.cols() + o1.SC_SL.cols() + o1.SC_VAR.cols();
 	int full_acov_size = o1.SC_TH.cols() + o1.exoFree.size() + o1.SC_VAR.cols() + pstar;
 	if (!strEQ(wlsType, "ULS")) {
-		o1.acovMat = omxInitMatrix(full_acov_size, full_acov_size, state);
+		o1.useWeight = omxInitMatrix(full_acov_size, full_acov_size, state);
 	}
-	if (fullWeight) {
-		o1.fullWeight = omxInitMatrix(full_acov_size, full_acov_size, state);
+	if (wantAsymCov) {
+		o1.asymCov = omxInitMatrix(full_acov_size, full_acov_size, state);
 	}
 
 	auto &A21 = o1.A21;
@@ -3183,7 +3208,7 @@ void omxData::estimateObservedStats()
 
 	// Small optimization opportunity:
 	// We could avoid above score computations if !fullWeight
-	if (!o1.wantFullWeight) return;
+	if (!o1.wantAsymCov) return;
 
 	//mxPrintMat("SC_TH", o1.SC_TH.block(0,0,4,o1.SC_TH.cols())); // good
 	//mxPrintMat("SC_SL", o1.SC_SL.block(0,0,4,o1.SC_SL.cols())); // good
@@ -3261,27 +3286,27 @@ void omxData::estimateObservedStats()
 		fw = (H * fw * H.transpose()).eval();
 	}
 
-	EigenMatrixAdaptor Efw(o1.fullWeight);
+	EigenMatrixAdaptor Eac(o1.asymCov);
 	if (totalExoFree == o1.exoFree.size()) {
-		Efw.derived() = fw;
+		Eac.derived() = fw;
 	} else {
-		Efw.setIdentity();
-		std::vector<bool> mask(Efw.cols(), true);
+		Eac.setIdentity();
+		std::vector<bool> mask(Eac.cols(), true);
 		for (int cx=0,dx=0; cx < o1.exoFree.cols(); ++cx) {
 			for (int rx=0; rx < o1.exoFree.rows(); ++rx) {
 				mask[totalThr + dx++] = o1.exoFree(rx,cx);
 			}
 		}
-		subsetCovarianceStore(Efw, [&mask](int x){ return mask[x]; }, fw);
+		subsetCovarianceStore(Eac, [&mask](int x){ return mask[x]; }, fw);
 	}
-	//mxPrintMat("Efw", Efw);
+	//mxPrintMat("Eac", Eac);
 
 	if (strEQ(wlsType, "WLS")) {
-			EigenMatrixAdaptor acov(o1.acovMat);
-      acov.derived() = Efw;
+			EigenMatrixAdaptor uw(o1.useWeight);
+      uw.derived() = Eac;
 
-      if (InvertSymmetricPosDef(acov, 'L')) {
-        if (InvertSymmetricIndef(acov, 'L')) {
+      if (InvertSymmetricPosDef(uw, 'L')) {
+        if (InvertSymmetricIndef(uw, 'L')) {
           std::ostringstream temp;
           Eigen::DiagonalMatrix<double, Eigen::Dynamic>
             isd((1.0 / INNER.diagonal().array().sqrt()).matrix());
@@ -3294,26 +3319,26 @@ void omxData::estimateObservedStats()
             }
           }
           std::string diag = temp.str();
-          mxThrow("%s: the acov matrix is rank deficient as "
+          mxThrow("%s: the uw matrix is rank deficient as "
                   "determined by LU factorization; perfectly correlated gradients:%s",
                   name, diag.c_str());
         }
-        else if (warnNPDacov) Rf_warning("%s: acov matrix is not positive definite", name);
+        else if (warnNPDuseWeight) Rf_warning("%s: useWeight matrix is not positive definite", name);
       }
 
-      acov.triangularView<Eigen::Upper>() = acov.transpose().triangularView<Eigen::Upper>();
+      uw.triangularView<Eigen::Upper>() = uw.transpose().triangularView<Eigen::Upper>();
 	} else {
 		if (strEQ(wlsType, "ULS")) {
 			// OK
 		} else {
-			EigenMatrixAdaptor acov(o1.acovMat);
-			acov.setZero();
-			for (int ix=0; ix < acov.cols(); ++ix) {
-				acov(ix,ix) = 1. / Efw(ix,ix); // DWLS
+			EigenMatrixAdaptor uw(o1.useWeight);
+			uw.setZero();
+			for (int ix=0; ix < uw.cols(); ++ix) {
+				uw(ix,ix) = 1. / Eac(ix,ix); // DWLS
 			}
 		}
 	}
-	//mxPrintMat("Efw", Efw);
+	//mxPrintMat("Eac", Eac);
 
 	o1.partial = false;
 	if (verbose >= 2) o1.log();

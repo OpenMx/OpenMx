@@ -166,10 +166,10 @@ dwlsMO <- omxAugmentDataWithWLSSummary(mxData(Bollen[,1:8], 'raw'), "DWLS", allC
 
 omxCheckCloseEnough(cor(vech(wlsMO$observedStats$cov),
                         vech(wlsRun$data$observedStats$cov)), 1, 5e-3)
-omxCheckCloseEnough(cor(vech(wlsMO$observedStats$acov[-1:-8,-1:-8]),
-                        vech(wlsRun$data$observedStats$acov)), 1, .15)
-omxCheckCloseEnough(cor(diag(dwlsMO$observedStats$acov)[-1:-8],
-                        diag(dwlsRun$data$observedStats$acov)), 1, .21)
+omxCheckCloseEnough(cor(vech(wlsMO$observedStats$asymCov[-1:-8,-1:-8]),
+                        vech(wlsRun$data$observedStats$asymCov)), 1, .31)
+omxCheckCloseEnough(cor(diag(dwlsMO$observedStats$useWeight)[-1:-8],
+                        diag(dwlsRun$data$observedStats$useWeight)), 1, .21)
 
 #--------------------------------------
 # Re-run with ML

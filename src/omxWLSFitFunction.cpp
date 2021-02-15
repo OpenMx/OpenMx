@@ -103,7 +103,7 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
 
-	omxMatrix *weights = expectation->data->getSingleObsSummaryStats().acovMat;
+	omxMatrix *weights = expectation->data->getSingleObsSummaryStats().useWeight;
 	if(weights != NULL) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
 
@@ -136,7 +136,7 @@ void omxWLSFitFunction::populateAttr(SEXP algebra)
 	omxWLSFitFunction *argStruct = this;
 	omxMatrix *expCovInt = argStruct->expectedCov;	    		// Expected covariance
 	omxMatrix *expMeanInt = argStruct->expectedMeans;			// Expected means
-	omxMatrix *weightInt = expectation->data->getSingleObsSummaryStats().acovMat;
+	omxMatrix *weightInt = expectation->data->getSingleObsSummaryStats().useWeight;
 
 	SEXP expCovExt, expMeanExt, gradients;
 	Rf_protect(expCovExt = Rf_allocMatrix(REALSXP, expCovInt->rows, expCovInt->cols));
@@ -224,7 +224,7 @@ void omxWLSFitFunction::prepData()
 
 	omxMatrix *means = obsStat.meansMat;
 	omxMatrix *obsThresholdsMat = obsStat.thresholdMat;
-	omxMatrix *weights = obsStat.acovMat;
+	omxMatrix *weights = obsStat.useWeight;
 	std::vector< omxThresholdColumn > &oThresh = obsStat.thresholdCols;
 
 	auto &eThresh = oo->expectation->getThresholdInfo();

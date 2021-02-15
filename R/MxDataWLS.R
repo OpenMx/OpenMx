@@ -42,6 +42,7 @@ setMethod("initialize", "MxDataLegacyWLS",
 	}
 )
 
+# Due to confusion, acov is actually useWeight and fullWeight is asymCov
 legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullWeight=NA, thresholds=NA) {
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	if (length(acov) == 1 && is.na(acov)) acov <- matrix(as.numeric(NA))

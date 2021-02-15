@@ -163,7 +163,7 @@ class obsSummaryStats {
 	int totalExoFree;
 	const char *wlsType;
 	const char *continuousType;
-	bool wantFullWeight;
+	bool wantAsymCov;
 	std::vector<int> index; // rowMult.rows() == index.size()
 	Eigen::ArrayXd rowMult;
 
@@ -175,8 +175,8 @@ class obsSummaryStats {
 	omxMatrix* covMat;
 	omxMatrix *slopeMat; // manifest by exo predictor matrix
 	omxMatrix* meansMat;
-	omxMatrix* acovMat;			// The asymptotic covariance
-	omxMatrix *fullWeight;
+	omxMatrix *asymCov;			// The asymptotic covariance
+	omxMatrix *useWeight;
 	omxMatrix* thresholdMat;
 	std::vector< omxThresholdColumn > thresholdCols; // size() == covMat.cols()
 	ColMapType colMap;
@@ -195,10 +195,10 @@ class obsSummaryStats {
 	Eigen::ArrayXXd H21;
 
  	obsSummaryStats() :
-		wlsType(0), continuousType(0), wantFullWeight(true),
+		wlsType(0), continuousType(0), wantAsymCov(true),
 		partial(false), output(false), totalWeight(0), numOrdinal(0), numContinuous(0),
 		covMat(0), slopeMat(0), meansMat(0),
-		acovMat(0), fullWeight(0), thresholdMat(0), totalThr(0) {};
+		asymCov(0), useWeight(0), thresholdMat(0), totalThr(0) {};
 	~obsSummaryStats();
 	void setDimnames(omxData *data);
 	void permute(omxData *data);
@@ -220,7 +220,7 @@ class omxData {
 	bool noExoOptimize;
 	bool modified;
 	double minVariance;
-	bool warnNPDacov;
+	bool warnNPDuseWeight;
 	std::vector<int> algebra;
 
 	void estimateObservedStats();
