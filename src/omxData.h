@@ -227,7 +227,7 @@ class omxData {
 	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *type,
 			  const char *continuousType, bool fullWeight);
-	bool regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
+  std::string regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
 	void wlsAllContinuousCumulants(omxState *state);
 	void convertToDataFrame();
 

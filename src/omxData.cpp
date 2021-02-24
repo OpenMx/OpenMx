@@ -2440,16 +2440,15 @@ void copyBlockwise(const Eigen::MatrixBase<T1> &in, Eigen::MatrixBase<T3> &out, 
 	}
 }
 
-bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wlsType)
+std::string omxData::regenObsStats(const std::vector<const char *> &dc, const char *wlsType)
 {
-	if (!oss) return true;
+	if (!oss) return string_snprintf("%s: no observed data summary available", name);
 	auto &o1 = *oss;
 	// implement checks for exoPred (slope matrix) TODO
 
 	if (int(dc.size()) != o1.covMat->cols) {
-		if (verbose >= 1) mxLog("%s: cov is dimension %d but model is dimension %d",
-					name, o1.covMat->cols, int(dc.size()));
-		return true;
+    return string_snprintf("%s: cov is dimension %d but model is dimension %d",
+                           name, o1.covMat->cols, int(dc.size()));
 	}
 
 	o1.dc = dc;
@@ -2464,10 +2463,7 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 	ColMapType thrMap;
 	if (o1.thresholdMat) {
 		if (int(o1.thresholdMat->colnames.size()) != o1.thresholdMat->cols) {
-			if (verbose >= 1) {
-				mxLog("%s: thresholdMat has no colnames", name);
-			}
-			return true;
+      return string_snprintf("%s: thresholdMat has no colnames", name);
 		}
 		for (int cx=0; cx < int(o1.thresholdMat->colnames.size()); ++cx) {
 			thrMap.emplace(o1.thresholdMat->colnames[cx], cx);
@@ -2476,17 +2472,13 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 
 	bool permute = false;
 	if (int(o1.covMat->colnames.size()) != o1.covMat->cols) {
-			if (verbose >= 1) {
-				mxLog("%s: cov has no colnames", name);
-			}
-			return true;
+    return string_snprintf("%s: cov has no colnames", name);
 	}
 	for (int cx=0; cx < int(o1.covMat->colnames.size()); ++cx) {
 		const char *cn = o1.covMat->colnames[cx];
 		auto it = dataMap.find(cn);
 		if (it == dataMap.end()) {
-			if (verbose >= 1) mxLog("%s: observedStats don't include column '%s'", name, cn);
-			return true;
+			return string_snprintf("%s: observedStats don't include column '%s'", name, cn);
 		}
 		//mxLog("%d %d %s", cx, it->second, cn);
 		if (cx != it->second) permute = true;
@@ -2496,16 +2488,13 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 		auto it2 = thrMap.find(cn);
 		if (it2 == thrMap.end()) {
 			if (rc.type != COLUMNDATA_NUMERIC) {
-				if (verbose >= 1) mxLog("%s: column '%s' is continuous but found %s",
-							name, cn, ColumnDataTypeToString(rc.type));
-				return true;
+				return string_snprintf("%s: column '%s' is continuous but found %s",
+                               name, cn, ColumnDataTypeToString(rc.type));
 			}
 		} else {
 			if (rc.type != COLUMNDATA_ORDERED_FACTOR) {
-				if (verbose >= 1) mxLog("%s: column '%s' is ordinal data but found %s",
-							name, cn,
-							ColumnDataTypeToString(rc.type));
-				return true;
+				return string_snprintf("%s: column '%s' is ordinal data but found %s",
+                               name, cn, ColumnDataTypeToString(rc.type));
 			}
 			o1.thresholdCols[cx].column = it2->second;
 		}
@@ -2521,11 +2510,8 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 				if (tx < o1.thresholdMat->rows && std::isfinite(Eth(tx,cx))) continue;
 				int nthr = rc.getNumThresholds();
 				if (tx != nthr) {
-					if (verbose >= 1) {
-						mxLog("%s: threshold '%s' implies %d levels but data has %d levels",
-						      name, o1.thresholdMat->colnames[cx], 1+tx, 1+nthr);
-					}
-					return true;
+          return string_snprintf("%s: threshold '%s' implies %d levels but data has %d levels",
+                                 name, o1.thresholdMat->colnames[cx], 1+tx, 1+nthr);
 				}
 				break;
 			}
@@ -2541,35 +2527,27 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
 		double offDiag = offDiagW.array().abs().sum();
 		if (strEQ(wlsType, "DWLS")) {
 			if (offDiag > 0) {
-				if (verbose >= 1) {
-					mxLog("%s: DWLS requested but full weight matrix found", name);
-				}
-				return true;
+        return string_snprintf("%s: DWLS requested but full weight matrix found", name);
 			}
 		} else {
 			if (offDiag == 0.0) {
-				if (verbose >= 1) {
-					mxLog("%s: WLS requested but diagonal weight matrix found", name);
-				}
-				return true;
-			}
+        return string_snprintf("%s: WLS requested but diagonal weight matrix found", name);
+      }
 		}
 	}
 
 	//omxPrint(o1.covMat, "cov");
 	if (permute) {
 		if (o1.slopeMat) {
-			if (verbose >= 1) mxLog("%s: observedStats could be permuted but "
-						"has slopes (not implemented)", name);
-			return true;
+      return string_snprintf("%s: observedStats could be permuted but "
+                             "has slopes (not implemented)", name);
 		}
 		if (int(o1.covMat->colnames.size()) != o1.covMat->cols ||
 		    !o1.asymCov || int(o1.asymCov->colnames.size()) != o1.asymCov->cols) {
-			if (verbose >= 1) mxLog("%s: observedStats could be permuted but dimnames are "
-						"unavailable (cov=%d, acov=%d)", name,
-						int(o1.covMat->colnames.size()),
-						o1.asymCov? int(o1.asymCov->colnames.size()) : -1);
-			return true;
+			return string_snprintf("%s: observedStats could be permuted but dimnames are "
+                             "unavailable (cov=%d, acov=%d)", name,
+                             int(o1.covMat->colnames.size()),
+                             o1.asymCov? int(o1.asymCov->colnames.size()) : -1);
 		}
 		if (verbose >= 1) mxLog("%s: observedStats needs permutation", name);
 		o1.permute(this);
@@ -2581,7 +2559,7 @@ bool omxData::regenObsStats(const std::vector<const char *> &dc, const char *wls
     if (verbose >= 2) o1.log();
   }
 
-	return false;
+	return "";
 }
 
 void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
@@ -2994,7 +2972,8 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 {
 	if (!dc.size()) return;
 
-	if (!regenObsStats(dc, wlsType)) {
+  std::string reason = regenObsStats(dc, wlsType);
+  if (reason.empty()) {
 		if (verbose >= 1) mxLog("%s: reusing pre-existing observedStats (partial=%d)",
 					name, int(oss->partial));
 		if (oss->partial) estimateObservedStats();
@@ -3002,10 +2981,10 @@ void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc
 	}
 
 	if (!isRaw()) {
-		mxThrow("%s: requested WLS summary stats are not available (%s; %s; wantAsymCov=%d) "
-				 "and raw data are also not available",
-				 name, wlsType, continuousType, wantAsymCov);
-	}
+		mxThrow("%s and raw data are also not available", reason);
+	} else {
+    if (verbose >= 1) mxLog("%s", reason.c_str());
+  }
 
 	int numCols = dc.size();
 	int numColsStar = triangleLoc1(numCols);
