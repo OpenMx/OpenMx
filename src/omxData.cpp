@@ -358,6 +358,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
         if (apiVersion == NA_INTEGER || apiVersion == 1) apiVersion = 1;
         else mxThrow("%s: observedStats contains 'asymCov'; i'm confused", name);
 				o1.asymCov = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
+        o1.asymCov->unshareMemoryWithR();
         EigenMatrixAdaptor ac(o1.asymCov);
         ac *= od->numObs;
 			} else if (strEQ(key, "useWeight")) {
