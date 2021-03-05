@@ -17,7 +17,11 @@
 #include "omxDefines.h"
 
 #include <utility>
+#if STAN_MATH_MAJOR >= 4
+#include <stan/math/mix.hpp>
+#else
 #include <stan/math/mix/mat.hpp>
+#endif
 #include "multi_normal_sufficient.hpp"
 
 #include "omxExpectation.h"
@@ -453,11 +457,15 @@ void MLFitState::init()
 	}
 
 	EigenMatrixAdaptor obCov(newObj->observedCov);
+#if STAN_MATH_MAJOR >= 4
+	auto ldlt_obCov = stan::math::make_ldlt_factor(obCov);
+#else
 	stan::math::LDLT_factor<double,Eigen::Dynamic,Eigen::Dynamic> ldlt_obCov(obCov);
 	if (!ldlt_obCov.success()) {
 		omxRaiseErrorf("Observed Covariance Matrix is non-positive-definite.");
 		return;
 	}
+#endif
 	newObj->logDetObserved = log_determinant_ldlt(ldlt_obCov);
 	if(OMX_DEBUG) { mxLog("Log Determinant of Observed Cov: %f", newObj->logDetObserved); }
 }

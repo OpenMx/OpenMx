@@ -230,7 +230,12 @@ static inline int omp_get_thread_num() { return 0; }
 static inline int omp_get_num_threads(void) { return 1; }
 #endif
 
+#include <stan/math/version.hpp>
+#if STAN_MATH_MAJOR >= 4
+#include <stan/math/prim/fun/Eigen.hpp>
+#else
 #include <stan/math/prim/mat/fun/Eigen.hpp>
+#endif
 #include <Eigen/Core>
 
 // Refactor as a single split function that pulls out all 3 parts
