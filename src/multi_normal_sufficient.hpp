@@ -3,6 +3,21 @@
 
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/variate_generator.hpp>
+
+#include <stan/math/version.hpp>
+#if STAN_MATH_MAJOR >= 4
+#include <stan/math/prim/err/check_ldlt_factor.hpp>
+#include <stan/math/prim/err/check_symmetric.hpp>
+#include <stan/math/prim/err/check_size_match.hpp>
+#include <stan/math/prim/err/check_finite.hpp>
+#include <stan/math/prim/err/check_not_nan.hpp>
+#include <stan/math/prim/err/check_positive.hpp>
+#include <stan/math/prim/fun/trace_inv_quad_form_ldlt.hpp>
+#include <stan/math/prim/fun/log_determinant_ldlt.hpp>
+#include <stan/math/prim/fun/max_size_mvt.hpp>
+#include <stan/math/prim/meta/return_type.hpp>
+#include <stan/math/prim/meta/include_summand.hpp>
+#else
 #include <stan/math/prim/mat/err/check_ldlt_factor.hpp>
 #include <stan/math/prim/mat/err/check_symmetric.hpp>
 #include <stan/math/prim/scal/err/check_size_match.hpp>
@@ -14,6 +29,7 @@
 #include <stan/math/prim/scal/meta/return_type.hpp>
 #include <stan/math/prim/scal/meta/max_size_mvt.hpp>
 #include <stan/math/prim/scal/meta/include_summand.hpp>
+#endif
 
 namespace stan {
 
@@ -59,7 +75,11 @@ namespace stan {
                        "Size of data covariance", sampleSigma.rows(), 
                        "size of model covariance", Sigma.rows());
   
+#if STAN_MATH_MAJOR >= 4
+      auto ldlt_Sigma = stan::math::make_ldlt_factor(Sigma);
+#else
       stan::math::LDLT_factor<param_t,Eigen::Dynamic,Eigen::Dynamic> ldlt_Sigma(Sigma);
+#endif
       check_ldlt_factor(function, "LDLT_Factor of covariance parameter", ldlt_Sigma);
 
       Eigen::Matrix<param_t, Eigen::Dynamic, Eigen::Dynamic> ss;
