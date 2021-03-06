@@ -27,7 +27,12 @@
 \title{Create MxAlgebra Object}
 
 \description{
-   This function creates a new \link{MxAlgebra} object.
+   This function creates a new \link{MxAlgebra}. The common use is to compute a value in a model: for instance a
+   standardized value of a parameter, or a parameter which is a function of other values. It is also used in 
+   models with an  \link{mxFitFunctionAlgebra} objective function.
+
+   \strong{note}: Unless needed in the model objective, algebras are only computed twice: once at the
+   beginning and once at the end of running a model, so adding them doesn't often add a lot of overhead.
 }
 
 \usage{
@@ -67,7 +72,9 @@ it must be placed in an \link{MxModel} object, along with all referenced \code{M
 objects and the \code{mxFitFunctionAlgebra} function. 
 The \code{mxFitFunctionAlgebra} function must reference by name the \code{MxAlgebra} object to be evaluated.
 
-Note that, if the result for an \link{MxAlgebra} depends upon one or more "definition variables" (see \code{\link{mxMatrix}()}), then the value returned after the call to \code{\link{mxRun}()} will be computed using the values of those definition variables in the first (i.e., first before any automated sorting is done) row of the raw dataset.
+\strong{Note}: f the result for an \link{MxAlgebra} depends upon one or more "definition variables" (see \code{\link{mxMatrix}()}), 
+then the value returned after the call to \code{\link{mxRun}()} will be computed using the values of those definition 
+variables in the first (i.e., first before any automated sorting is done) row of the raw dataset.
 
 The following operators and functions are supported in mxAlgebra:
 
