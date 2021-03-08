@@ -860,7 +860,6 @@ static void hfti_(double *a, int *mda, int *m, int *
   a_dim1 = *mda;
   a_offset = 1 + a_dim1;
   a -= a_offset;
-  --rnorm;
   b_dim1 = *mdb;
   b_offset = 1 + b_dim1;
   b -= b_offset;
@@ -954,10 +953,10 @@ static void hfti_(double *a, int *mda, int *m, int *
   kp1 = k + 1;
   /*   NORM OF RESIDUALS */
   i__2 = *nb;
-  for (jb = 1; jb <= i__2; ++jb) {
+  for (jb = 0; jb < i__2; ++jb) {
     /* L130: */
     i__1 = *m - k;
-    rnorm[jb] = dnrm2___(&i__1, &b[kp1 + jb * b_dim1], 1);
+    rnorm[jb] = dnrm2___(&i__1, &b[kp1 + (jb+1) * b_dim1], 1);
   }
   if (k > 0) {
     goto L160;
