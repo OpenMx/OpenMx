@@ -31,8 +31,8 @@ struct AlgebraFitFunction : omxFitFunction {
   bool strict;
 
 	AlgebraFitFunction() : ff(0), gradient(0), hessian(0), varGroup(0) {};
-	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void init() override;
+	virtual void compute(int ffcompute, FitContext *fc) override;
 	void setVarGroup(FitContext *);
 };
 

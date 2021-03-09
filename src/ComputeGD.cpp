@@ -215,9 +215,9 @@ class omxComputeGD : public omxCompute {
 
 public:
 	omxComputeGD();
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class omxCompute *newComputeGradientDescent()
@@ -500,10 +500,10 @@ class ComputeCI : public omxCompute {
 public:
 	ComputeCI();
 	virtual ~ComputeCI();
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
 };
 
 omxCompute *newComputeConfidenceInterval()
@@ -688,7 +688,7 @@ struct regularCIobj : CIobjective {
 		diff = fit - targetFit;
 	}
 
-	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out)
+	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
 		const double fit = totalLogLikelihood(fitMat);
@@ -696,7 +696,7 @@ struct regularCIobj : CIobjective {
 		*out = std::max(diff, 0.0);
 	}
 
-	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc) override
 	{
     omxMatrix *fitMat = ff->matrix;
 
@@ -737,7 +737,7 @@ struct regularCIobj : CIobjective {
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
-	virtual Diagnostic getDiag()
+	virtual Diagnostic getDiag() override
 	{
 		Diagnostic diag = DIAG_SUCCESS;
 		if (fabs(diff) > 1e-1) {
@@ -782,7 +782,7 @@ struct bound1CIobj : CIobjective {
 		//mxPrintMat("v1", v1);
 	}
 
-	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out)
+	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
 		const double fit = totalLogLikelihood(fitMat);
@@ -791,7 +791,7 @@ struct bound1CIobj : CIobjective {
 		*out = v1(0);
 	}
 
-	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc) override
 	{
 		omxMatrix *fitMat = ff->matrix;
 
@@ -823,7 +823,7 @@ struct bound1CIobj : CIobjective {
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
-	virtual Diagnostic getDiag()
+	virtual Diagnostic getDiag() override
 	{
 		Diagnostic diag = DIAG_SUCCESS;
 		if (fabs(eq(0)) > 1e-3) {
@@ -865,7 +865,7 @@ struct boundAwayCIobj : CIobjective {
 		//fit, sqrtCrit, d1, d2, exp(logAlpha), pA);
 	}
 
-	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out)
+	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
 		const double fit = totalLogLikelihood(fitMat);
@@ -873,7 +873,7 @@ struct boundAwayCIobj : CIobjective {
 		computeConstraint(fit, v1);
 	}
 
-	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc) override
 	{
 		omxMatrix *fitMat = ff->matrix;
 
@@ -910,7 +910,7 @@ struct boundAwayCIobj : CIobjective {
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
-	virtual Diagnostic getDiag()
+	virtual Diagnostic getDiag() override
 	{
 		Diagnostic diag = DIAG_SUCCESS;
 		if (ineq[0] > 1e-3) {
@@ -961,7 +961,7 @@ struct boundNearCIobj : CIobjective {
 		//       fit, lbd, dd, ubd, alpha, pN);
 	}
 
-	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out)
+	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
 		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
 		const double fit = totalLogLikelihood(fitMat);
@@ -969,7 +969,7 @@ struct boundNearCIobj : CIobjective {
 		computeConstraint(fit, v1);
 	}
 
-	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc)
+	virtual void evalFit(omxFitFunction *ff, int want, FitContext *fc) override
 	{
 		omxMatrix *fitMat = ff->matrix;
 
@@ -1006,7 +1006,7 @@ struct boundNearCIobj : CIobjective {
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
 
-	virtual Diagnostic getDiag()
+	virtual Diagnostic getDiag() override
 	{
 		Diagnostic diag = DIAG_SUCCESS;
 		if (ineq[0] > 1e-3) {
@@ -1466,10 +1466,10 @@ class ComputeTryH : public omxCompute {
 
 	static bool satisfied(FitContext *fc);
 public:
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
-	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
 };
 
 omxCompute *newComputeTryHard()
@@ -1654,9 +1654,9 @@ class ComputeGenSA : public omxCompute {
  public:
 	ComputeGenSA() : plan(0) {};
 	virtual ~ComputeGenSA();
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 
 	double asa_cost(double *x, int *cost_flag, int *exit_code, USER_DEFINES *opt);
 };

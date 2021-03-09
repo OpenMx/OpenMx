@@ -1193,9 +1193,9 @@ bool FitContext::isClone() const
 struct ParallelInvalidator : StateInvalidator {
   typedef StateInvalidator super;
   ParallelInvalidator(omxState &_st) : super(_st) {}
-	virtual void doExpectation() {}
-  virtual void doData() {}
-  virtual void doMatrix() {}
+	virtual void doExpectation() override {}
+  virtual void doData() override {}
+  virtual void doMatrix() override {}
 };
 
 void FitContext::createChildren(omxMatrix *alg, bool _permitParallel)
@@ -1398,8 +1398,8 @@ public:
 	double caution;
 
 	Ramsay1975(FitContext *fc, int verbose, double minCaution);
-	virtual void recalibrate();
-	virtual bool calcDirection(bool major);
+	virtual void recalibrate() override;
+	virtual bool calcDirection(bool major) override;
 };
 
 Ramsay1975::Ramsay1975(FitContext *_fc, int _verbose, double _minCaution) :
@@ -1504,9 +1504,9 @@ public:
 		maxAlpha = 0;
 		retried = false;
 	};
-	virtual void recalibrate();
-	virtual bool retry();
-	virtual bool calcDirection(bool major);
+	virtual void recalibrate() override;
+	virtual bool retry() override;
+	virtual bool calcDirection(bool major) override;
 };
 
 bool Varadhan2008::calcDirection(bool major)
@@ -1676,7 +1676,7 @@ class ComputeContainer : public omxCompute {
 protected:
 	std::vector< omxCompute* > clist;
 public:
-	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
 };
 
 void ComputeContainer::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out)
@@ -1690,8 +1690,8 @@ class omxComputeSequence : public ComputeContainer {
 	bool independent;
 
  public:
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
 	virtual ~omxComputeSequence();
 };
 
@@ -1704,9 +1704,9 @@ class omxComputeIterate : public ComputeContainer {
 	int verbose;
 
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 	virtual ~omxComputeIterate();
 };
 
@@ -1721,9 +1721,9 @@ class ComputeLoop : public ComputeContainer {
 	int startFrom;
 
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 	virtual ~ComputeLoop();
 };
 
@@ -1746,9 +1746,9 @@ class omxComputeOnce : public omxCompute {
 	bool isBestFit; // for backward compatibility
 
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeEM : public omxCompute {
@@ -1817,10 +1817,10 @@ class ComputeEM : public omxCompute {
 	template <typename T1, typename T2>
 	void dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result);
 
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 	virtual ~ComputeEM();
 };
 
@@ -1828,8 +1828,8 @@ const double ComputeEM::MIDDLE_START = 0.105360515657826281366; // -log(.9) cons
 const double ComputeEM::MIDDLE_END = 0.001000500333583534363566; // -log(.999) constexpr
 
 struct ComputeSetOriginalStarts : public omxCompute {
-	virtual bool accumulateInform() { return false; };
-        virtual void computeImpl(FitContext *fc);
+	virtual bool accumulateInform() override { return false; };
+        virtual void computeImpl(FitContext *fc) override;
 };
 
 class ComputeStandardError : public omxCompute {
@@ -1873,9 +1873,9 @@ class ComputeStandardError : public omxCompute {
 	};
 
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 struct ParJacobianSense {
@@ -1955,23 +1955,23 @@ class ComputeJacobian : public omxCompute {
 	ParJacobianSense sense;
 
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeHessianQuality : public omxCompute {
 	typedef omxCompute super;
 	int verbose;
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeReportDeriv : public omxCompute {
 	typedef omxCompute super;
  public:
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeCheckpoint : public omxCompute {
@@ -2014,16 +2014,16 @@ class ComputeCheckpoint : public omxCompute {
 	size_t numExtraCols;
 
  public:
-	virtual bool accumulateInform() { return false; };
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual bool accumulateInform() override { return false; };
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeReportExpectation : public omxCompute {
 	typedef omxCompute super;
  public:
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeBootstrap : public omxCompute {
@@ -2052,11 +2052,11 @@ class ComputeBootstrap : public omxCompute {
  public:
 	ComputeBootstrap() : plan(0) {};
 	virtual ~ComputeBootstrap();
-	virtual bool accumulateInform() { return false; };
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
-	virtual void reportResults(FitContext *fc, MxRList *, MxRList *result);
+	virtual bool accumulateInform() override { return false; };
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
+	virtual void reportResults(FitContext *fc, MxRList *, MxRList *result) override;
 };
 
 class ComputeGenerateData : public omxCompute {
@@ -2065,9 +2065,9 @@ class ComputeGenerateData : public omxCompute {
 	MxRList simData;
 
  public:
-	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 class ComputeLoadData : public omxCompute {
@@ -2086,15 +2086,15 @@ class ComputeLoadData : public omxCompute {
 		ColumnInvalidator(omxState &_st, omxData *_data,
 				  const std::vector< int > &_columns) :
 			super(_st), data(_data), columns(_columns) {};
-		virtual void doData() { data->invalidateColumnsCache(columns); };
+		virtual void doData() override { data->invalidateColumnsCache(columns); };
 	};
 
  public:
 	static void loadedHook();
 	static void addProvider(LoadDataProviderBase2 *ldp) { Providers.push_back(ldp); }
-	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *);
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *) override;
 };
 
 std::vector<LoadDataProviderBase2*> ComputeLoadData::Providers;
@@ -2124,8 +2124,8 @@ class ComputeLoadMatrix : public omxCompute {
 
  public:
 	virtual ~ComputeLoadMatrix();
-	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
 };
 
 class ComputeLoadContext : public omxCompute {
@@ -2147,9 +2147,9 @@ class ComputeLoadContext : public omxCompute {
 	void reopen();
 
  public:
-	virtual void initFromFrontend(omxState *globalState, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *);
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *) override;
 };
 
 class ComputeTryCatch : public omxCompute {
@@ -2158,9 +2158,9 @@ class ComputeTryCatch : public omxCompute {
 	int cpIndex;
 
 public:
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out);
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
 };
 
 static class omxCompute *newComputeSequence()
@@ -4210,8 +4210,8 @@ class LoadDataCSVProvider : public LoadDataProvider<LoadDataCSVProvider> {
 	int cpIndex;
 	bool byrow;
 
-	virtual const char *getName() { return "csv"; };
-	virtual void init(SEXP rObj) {
+	virtual const char *getName() override { return "csv"; };
+	virtual void init(SEXP rObj) override {
 		ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
 		byrow = Rf_asLogical(Rbyrow);
 		ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
@@ -4219,7 +4219,7 @@ class LoadDataCSVProvider : public LoadDataProvider<LoadDataCSVProvider> {
 		if (!byrow) stripeSize = std::max(Rf_asInteger(Rcs), 1);
 		requireFile(rObj);
 	}
-	virtual void addCheckpointColumns(std::vector< std::string > &cp)
+	virtual void addCheckpointColumns(std::vector< std::string > &cp) override
 	{
 		if (rowNames == 0 || !byrow) return;
 		cpIndex = cp.size();
@@ -4231,7 +4231,7 @@ class LoadDataCSVProvider : public LoadDataProvider<LoadDataCSVProvider> {
 	}
 	void loadByCol(int index);
 	void loadByRow(int index);
-	virtual void loadRowImpl(int index)
+	virtual void loadRowImpl(int index) override
 	{
 		if (!byrow) {
 			loadByCol(index);
@@ -4399,11 +4399,11 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	bool byrow;
 	Rcpp::DataFrame observed;
 
-	virtual const char *getName() { return "data.frame"; };
-	virtual int getNumVariants() {
+	virtual const char *getName() override { return "data.frame"; };
+	virtual int getNumVariants() override {
 		return (observed.nrows() / srcRows) * (observed.ncol() / columns.size());
 	}
-	virtual void init(SEXP rObj) {
+	virtual void init(SEXP rObj) override {
 		ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
 		byrow = Rf_asLogical(Rbyrow);
 		if (byrow) mxThrow("byrow=TRUE not implemented for data.frame data");
@@ -4446,7 +4446,7 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 			}
 		}
 	}
-	virtual void loadRowImpl(int index)
+	virtual void loadRowImpl(int index) override
 	{
 		auto &rc = *rawCols;
 		if (observed.nrows() != srcRows) {

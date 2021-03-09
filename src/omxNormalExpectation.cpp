@@ -28,10 +28,10 @@ struct omxNormalExpectation : public omxExpectation {
 	double n;
 
 	omxNormalExpectation(omxState *st, int num) : super(st, num) {}
-	virtual void init();
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual void populateAttr(SEXP expectation);
-	virtual omxMatrix *getComponent(const char*);
+	virtual void init() override;
+	virtual void compute(FitContext *fc, const char *what, const char *how) override;
+	virtual void populateAttr(SEXP expectation) override;
+	virtual omxMatrix *getComponent(const char*) override;
 };
 
 void omxNormalExpectation::compute(FitContext *fc, const char *what, const char *how)

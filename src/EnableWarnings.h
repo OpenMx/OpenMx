@@ -17,4 +17,5 @@
 #pragma GCC diagnostic warning "-Wint-in-bool-context"
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 #pragma GCC diagnostic warning "-Wunused-variable"
+#pragma GCC diagnostic warning "-Wsuggest-override"
 #endif

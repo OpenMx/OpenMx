@@ -2129,16 +2129,6 @@ struct PolyserialCor : NewtonRaphsonObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
-	virtual void panic(const char *why) {
-		mxLog("Internal error in PolyserialCor: %s", why);
-		mxLog("param=%f", param);
-		std::string buf, xtra;
-		buf += mxStringifyMatrix("tau", tau, xtra, true);
-		buf += mxStringifyMatrix("pr", pr, xtra, true);
-		buf += mxStringifyMatrix("dzi", dzi, xtra, true);
-		mxLogBig(buf);
-		mxThrow("Report this failure to OpenMx developers");
-	};
 };
 
 struct PolychoricCor : NewtonRaphsonObjective {
@@ -2239,10 +2229,10 @@ struct PolychoricCor : NewtonRaphsonObjective {
   { out[0] = param; }
   virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override
   { param = in[0]; }
-	virtual double *getGrad() { return &grad; };
-	virtual const char *paramIndexToName(int px) { return "rho"; };
-	virtual double getFit() { return fit; };
-	virtual void evaluateFit()
+	virtual double *getGrad() override { return &grad; };
+	virtual const char *paramIndexToName(int px) override { return "rho"; };
+	virtual double getFit() override { return fit; };
+	virtual void evaluateFit() override
 	{
 		double rho = tanh(param);
 
@@ -2265,7 +2255,7 @@ struct PolychoricCor : NewtonRaphsonObjective {
 			}
 		}
 	}
-	virtual void evaluateDerivs(int want)
+	virtual void evaluateDerivs(int want) override
 	{
 		if (want & FF_COMPUTE_FIT) evaluateFit();
 
@@ -2290,7 +2280,7 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		double cosh_x = cosh(param);
 		grad = -dx / (cosh_x * cosh_x);
 	}
-	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) override
 	{
 		// Can fix Hessian at 1.0 because only 1 parameter.
 		// Line search takes care of scaling.
@@ -2372,15 +2362,6 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		}
 		scores.colwise() *= rowMult;
 	}
-	virtual void panic(const char *why) {
-		mxLog("Internal error in PolychoricCor: %s", why);
-		mxLog("param=%f", param);
-		std::string buf, xtra;
-		buf += mxStringifyMatrix("pr", pr, xtra, true);
-		buf += mxStringifyMatrix("den", den, xtra, true);
-		mxLogBig(buf);
-		mxThrow("Report this failure to OpenMx developers");
-	};
 };
 
 struct PearsonCor {

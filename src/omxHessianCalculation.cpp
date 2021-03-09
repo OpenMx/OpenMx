@@ -116,9 +116,9 @@ class omxComputeNumericDeriv : public omxCompute {
 	};
 
  public:
-        virtual void initFromFrontend(omxState *, SEXP rObj);
-        virtual void computeImpl(FitContext *fc);
-        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+        virtual void initFromFrontend(omxState *, SEXP rObj) override;
+        virtual void computeImpl(FitContext *fc) override;
+        virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc)

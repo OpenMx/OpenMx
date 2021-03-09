@@ -62,8 +62,8 @@ struct BA81FitState : omxFitFunction {
 
 	BA81FitState();
 	virtual ~BA81FitState();
-	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void init() override;
+	virtual void compute(int ffcompute, FitContext *fc) override;
 };
 
 // writes to upper triangle of full matrix

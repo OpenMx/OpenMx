@@ -40,11 +40,11 @@ public:
 		: super(st, num), initialV(0), transitionV(0),
 			isMixtureInterface(_isMixtureInterface) {};
 	virtual ~MarkovExpectation();
-	virtual void init();
-	virtual void connectToData();
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual omxMatrix *getComponent(const char*);
-	virtual void populateAttr(SEXP expectation);
+	virtual void init() override;
+	virtual void connectToData() override;
+	virtual void compute(FitContext *fc, const char *what, const char *how) override;
+	virtual omxMatrix *getComponent(const char*) override;
+	virtual void populateAttr(SEXP expectation) override;
 };
 
 omxExpectation *InitHiddenMarkovExpectation(omxState *st, int num)

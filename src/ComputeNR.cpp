@@ -236,9 +236,9 @@ public:
 	omxMatrix *fitMatrix;
 	int numParam;
 	const char *engineName;
-	virtual void initFromFrontend(omxState *state, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void initFromFrontend(omxState *state, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 struct ComputeNRO : public NewtonRaphsonObjective {
@@ -246,26 +246,26 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 	FitContext *fc;
 	ComputeNRO(ComputeNR *_nr, FitContext *_fc) :
     nr(*_nr), fc(_fc) {};
-	virtual bool isConverged() {
+	virtual bool isConverged() override {
 		nr.reportProgress(fc);
 		return converged || isErrorRaised() ||
 			fc->getInform() != INFORM_UNINITIALIZED;
 	}
-	virtual double getFit() { return fc->fit; };
-	virtual void resetDerivs() {
+	virtual double getFit() override { return fc->fit; };
+	virtual void resetDerivs() override {
 		fc->resetOrdinalRelativeError();
 		fc->clearHessian();
 	};
-	virtual const char *paramIndexToName(int px)
+	virtual const char *paramIndexToName(int px) override
 	{
 		const char *pname = "none";
 		if (px >= 0) pname = fc->varGroup->vars[ fc->freeToParamMap[px] ]->name;
 		return pname;
 	}
-	virtual void evaluateFit() {
+	virtual void evaluateFit() override {
 		ComputeFit(nr.engineName, nr.fitMatrix, FF_COMPUTE_FIT, fc);
 	}
-	virtual void evaluateDerivs(int want) {
+	virtual void evaluateDerivs(int want) override {
 		ComputeFit(nr.engineName, nr.fitMatrix, want, fc);
 	}
 	virtual void getParamVec(Eigen::Ref<Eigen::VectorXd> out) override {
@@ -274,14 +274,14 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 	virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in) override {
     fc->setEstFromOptimizer(in);
   };
-	virtual double *getGrad() { return fc->gradZ.data(); };
-	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) {
+	virtual double *getGrad() override { return fc->gradZ.data(); };
+	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) override {
 		searchDir = fc->ihessGradProd();
 	}
-	virtual void reportBadDeriv() {
+	virtual void reportBadDeriv() override {
 		fc->setInform(INFORM_BAD_DERIVATIVES);
 	};
-	virtual void debugDeriv(const Eigen::Ref<Eigen::VectorXd> searchDir) {
+	virtual void debugDeriv(const Eigen::Ref<Eigen::VectorXd> searchDir) override {
 		fc->log(FF_COMPUTE_FIT | FF_COMPUTE_ESTIMATE | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN);
 		std::string buf;
 		buf += "searchDir: c(";

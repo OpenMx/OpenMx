@@ -40,8 +40,8 @@ struct omxRowFitFunction : omxFitFunction {
 	int *dataRowDeps;           // indices of algebra/matrix dependencies
 
 	virtual ~omxRowFitFunction();
-	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void init() override;
+	virtual void compute(int ffcompute, FitContext *fc) override;
   virtual void invalidateCache() override;
 };
 

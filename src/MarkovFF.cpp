@@ -27,8 +27,8 @@ namespace MarkovFF {
 		omxMatrix *transition;
 		FitStatisticUnits componentUnits;
 
-		virtual void init();
-		virtual void compute(int ffcompute, FitContext *fc);
+		virtual void init() override;
+		virtual void compute(int ffcompute, FitContext *fc) override;
 	};
 
 	void state::compute(int want, FitContext *fc)
@@ -149,4 +149,3 @@ namespace MarkovFF {
 
 omxFitFunction *InitMarkovFF()
 { return new MarkovFF::state; }
-

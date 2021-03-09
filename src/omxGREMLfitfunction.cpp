@@ -78,9 +78,9 @@ struct omxGREMLFitState : omxFitFunction {
 		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
 
 	omxGREMLFitState() : jg(1) {};
-	virtual void init();
-	virtual void compute(int want, FitContext *fc);
-	virtual void populateAttr(SEXP algebra);
+	virtual void init() override;
+	virtual void compute(int want, FitContext *fc) override;
+	virtual void populateAttr(SEXP algebra) override;
 };
 
 struct GREMLSense {
@@ -1661,9 +1661,9 @@ struct GRMFIMLFitState : omxFitFunction{
 	int verbose;
 	omxMatrix *y, *invcov, *means;
 
-	virtual void init();
-	virtual void compute(int want, FitContext *fc);
-	virtual void populateAttr(SEXP algebra);
+	virtual void init() override;
+	virtual void compute(int want, FitContext *fc) override;
+	virtual void populateAttr(SEXP algebra) override;
 };
 
 omxFitFunction *GRMFIMLFitInit()

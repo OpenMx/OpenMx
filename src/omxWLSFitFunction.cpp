@@ -36,12 +36,12 @@ struct omxWLSFitFunction : omxFitFunction {
 	omxWLSFitFunction() :
 		type("WLS"), continuousType("cumulants"), fullWeight(true) {};
 	virtual ~omxWLSFitFunction();
-	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
-	virtual void populateAttr(SEXP algebra);
+	virtual void init() override;
+	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void populateAttr(SEXP algebra) override;
 
 	void prepData();
-	virtual void invalidateCache()
+	virtual void invalidateCache() override
 	{
 		omxFreeMatrix(observedFlattened);
 		observedFlattened = 0;

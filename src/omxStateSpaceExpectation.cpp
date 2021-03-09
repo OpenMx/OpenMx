@@ -63,12 +63,12 @@ struct omxStateSpaceExpectation : omxExpectation {
 
 	omxStateSpaceExpectation(omxState *st, int num) : super(st, num) {}
 	virtual ~omxStateSpaceExpectation();
-	virtual void init();
-	virtual void connectToData();
-	virtual omxMatrix *getComponent(const char*);
-	virtual void mutate(const char*, omxMatrix*);
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual void populateAttr(SEXP expectation);
+	virtual void init() override;
+	virtual void connectToData() override;
+	virtual omxMatrix *getComponent(const char*) override;
+	virtual void mutate(const char*, omxMatrix*) override;
+	virtual void compute(FitContext *fc, const char *what, const char *how) override;
+	virtual void populateAttr(SEXP expectation) override;
 };
 
 

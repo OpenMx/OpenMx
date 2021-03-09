@@ -44,11 +44,11 @@ struct MLFitState : omxFitFunction {
 
 	MLFitState() : copiedData(false) {};
 	virtual ~MLFitState();
-	virtual omxFitFunction *initMorph();
-	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
-	virtual void populateAttr(SEXP algebra);
-	virtual void addOutput(MxRList *out);
+	virtual omxFitFunction *initMorph() override;
+	virtual void init() override;
+	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void populateAttr(SEXP algebra) override;
+	virtual void addOutput(MxRList *out) override;
 };
 
 MLFitState::~MLFitState()
