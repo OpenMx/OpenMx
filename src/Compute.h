@@ -103,6 +103,7 @@ struct CIobjective {
 
   CIobjective(const ConfidenceInterval *_CI, bool _constrained, bool _lower)
     : CI(_CI), constrained(_constrained), lowerBound(_lower) {}
+  virtual ~CIobjective() {}
   virtual std::unique_ptr<CIobjective> clone() const = 0;
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
 	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) {};
