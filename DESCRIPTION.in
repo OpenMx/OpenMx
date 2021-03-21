@@ -60,7 +60,6 @@ Suggests:
     mvtnorm,
     numDeriv,
     roxygen2 (>= 6.1),
-    Rmpi,
     rpf (>= 0.45),
     snowfall,
     lme4,
