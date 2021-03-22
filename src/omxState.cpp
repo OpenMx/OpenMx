@@ -1226,7 +1226,7 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
                 // update only that parameter instead of all
                 // of them.
                 fc2->setEstFromOptimizer(Est);
-                eval(fc2, result.data(), 0);
+                this->eval(fc2, result.data(), 0);
               }, constr, [&fc](){ return fc->getCurrentFree(); }, true, constrJac);
 
     if (verifyJac) {
