@@ -27,8 +27,8 @@
  *
  **********************************************************/
 
-#ifndef _OMXDATA_H_
-#define _OMXDATA_H_
+#ifndef u_OMXDATA_H_
+#define u_OMXDATA_H_
 
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h>
@@ -84,8 +84,8 @@ union dataPtr {
 	double *realData;
 	int *intData;
 	dataPtr() : intData(0) {};
-	dataPtr(double *_p) : realData(_p) {};
-	dataPtr(int *_p) : intData(_p) {};
+	dataPtr(double *u_p) : realData(u_p) {};
+	dataPtr(int *u_p) : intData(u_p) {};
 	void clear() { realData=0; intData=0; };
 };
 
@@ -101,11 +101,11 @@ public:
 	std::vector<std::string> levelNames;       // factors only
 
 	const char *typeName();
-  ColumnData(const char *_name) : owner(false), minValue(1), maxValue(NA_INTEGER),
-                                  name(_name), type(COLUMNDATA_INVALID) {}
-  ColumnData(const char *_name, ColumnDataType _type, int *col) :
+  ColumnData(const char *u_name) : owner(false), minValue(1), maxValue(NA_INTEGER),
+                                  name(u_name), type(COLUMNDATA_INVALID) {}
+  ColumnData(const char *u_name, ColumnDataType u_type, int *col) :
     ptr(col), owner(true), minValue(1), maxValue(NA_INTEGER),
-    name(_name), type(_type) {}
+    name(u_name), type(u_type) {}
   ~ColumnData() { clear(); }
   void clear();
   ColumnData clone() const;
@@ -122,12 +122,12 @@ public:
   int getNumOutcomes() const { return 1 + getNumThresholds(); }
   int *i() { return ptr.intData; }
   double *d() { return ptr.realData; }
-  void setOwn(double *_p) { clear(); ptr.realData = _p; owner=true; }
-  void setOwn(int *_p) { clear(); ptr.intData = _p; owner=true; }
-  void setOwn(dataPtr _p) { clear(); ptr = _p; owner=true; }
-  void setBorrow(double *_p) { clear(); ptr.realData = _p; owner=false; }
-  void setBorrow(int *_p) { clear(); ptr.intData = _p; owner=false; }
-  void setBorrow(dataPtr _p) { clear(); ptr = _p; owner=false; }
+  void setOwn(double *u_p) { clear(); ptr.realData = u_p; owner=true; }
+  void setOwn(int *u_p) { clear(); ptr.intData = u_p; owner=true; }
+  void setOwn(dataPtr u_p) { clear(); ptr = u_p; owner=true; }
+  void setBorrow(double *u_p) { clear(); ptr.realData = u_p; owner=false; }
+  void setBorrow(int *u_p) { clear(); ptr.intData = u_p; owner=false; }
+  void setBorrow(dataPtr u_p) { clear(); ptr = u_p; owner=false; }
   dataPtr steal() { dataPtr ret = ptr; ptr.clear(); return ret; }
 };
 
@@ -224,7 +224,7 @@ class omxData {
 	std::vector<int> algebra;
 
 	void estimateObservedStats();
-	void _prepObsStats(omxState *state, const std::vector<const char *> &dc,
+	void u_prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *type,
 			  const char *continuousType, bool fullWeight);
   std::string regenObsStats(const std::vector<const char *> &dc, const char *wlsType);
@@ -251,8 +251,8 @@ class omxData {
 	omxMatrix* dataMat;                             // do not use directly
 	omxMatrix* meansMat;				// The means, as an omxMatrixObject
 	double numObs;						// Number of observations (sum of rowWeight)
-	const char *_type;
-	const char *getType() const { return _type; };
+	const char *u_type;
+	const char *getType() const { return u_type; };
 
 	// type=="raw"
 	struct RawData {
@@ -436,4 +436,4 @@ void omxData::recalcRowWeights(Eigen::ArrayBase<T1> &rowMult, std::vector<int> &
 	}
 }
 
-#endif /* _OMXDATA_H_ */
+#endif /* u_OMXDATA_H_ */

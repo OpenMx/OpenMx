@@ -30,7 +30,7 @@
 #include "nlopt.h"
 
 /* workaround for Solaris + gcc 3.4.x bug (see configure.ac) */
-#if defined(__GNUC__) && defined(REPLACEMENT_HUGE_VAL)
+#if defined(u__GNUC__) && defined(REPLACEMENT_HUGE_VAL)
 #  undef HUGE_VAL
 #  define HUGE_VAL REPLACEMENT_HUGE_VAL
 #endif
@@ -97,7 +97,7 @@ extern int nlopt_stop_forced(const nlopt_stopping *stop);
 /* like vsprintf, but reallocs p to whatever size is needed */
 extern char *nlopt_vsprintf(char *p, const char *format, va_list ap);
 extern void nlopt_stop_msg(const nlopt_stopping *s, const char *format, ...)
-#ifdef __GNUC__
+#ifdef u__GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
 ;

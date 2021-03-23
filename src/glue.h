@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _GLUE_H
-#define _GLUE_H
+#ifndef u_GLUE_H
+#define u_GLUE_H
 
 #include <exception>
 #include <string>
@@ -51,4 +51,4 @@ void loadCharVecFromR(const char *context, SEXP names, std::vector<const char *>
 #define M_LN_2PI        1.837877066409345483560659472811        /* log(2*pi) */
 #endif
 
-#endif // #define _GLUE_H
+#endif // #define u_GLUE_H

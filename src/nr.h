@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_NR_H_
-#define _OMX_NR_H_
+#ifndef u_OMX_NR_H_
+#define u_OMX_NR_H_
 
 struct NewtonRaphsonObjective {
 	bool converged;
@@ -58,8 +58,8 @@ class NewtonRaphsonOptimizer {
 	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
 	void lineSearch(NewtonRaphsonObjective &nro);
 public:
-	NewtonRaphsonOptimizer(const char *_name, int _maxIter, double tol, int _verbose) :
-		name(_name), maxIter(_maxIter), tolerance(tol), verbose(_verbose) {};
+	NewtonRaphsonOptimizer(const char *u_name, int u_maxIter, double tol, int u_verbose) :
+		name(u_name), maxIter(u_maxIter), tolerance(tol), verbose(u_verbose) {};
 	void operator()(NewtonRaphsonObjective &nro);
 	int getIter() { return iter; };
 	int getMinorIter() { return minorIter; };

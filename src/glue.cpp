@@ -160,7 +160,7 @@ SEXP dtmvnorm_marginal2(SEXP Rxq, SEXP Rxr, SEXP Rq, SEXP Rr,
 
 	omxState *globalState = new omxState;
 	FitContext *fc = new FitContext(globalState);
-	_dtmvnorm_marginal2(fc, NA_REAL, xq, xr, qq, rr, sigma, lower, upper, density);
+	u_dtmvnorm_marginal2(fc, NA_REAL, xq, xr, qq, rr, sigma, lower, upper, density);
 	delete fc;
 	delete globalState;
 
@@ -182,7 +182,7 @@ SEXP dtmvnorm_marginal(SEXP Rxn, SEXP Rn, SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 
 	omxState *globalState = new omxState;
 	FitContext *fc = new FitContext(globalState);
-	_dtmvnorm_marginal(fc, NA_REAL, xn, nn, sigma, lower, upper, density);
+	u_dtmvnorm_marginal(fc, NA_REAL, xn, nn, sigma, lower, upper, density);
 	delete fc;
 	delete globalState;
 
@@ -203,7 +203,7 @@ SEXP mtmvnorm(SEXP Rsigma, SEXP Rlower, SEXP Rupper)
 	MatrixXd tcov;
 	omxState *globalState = new omxState;
 	FitContext *fc = new FitContext(globalState);
-	_mtmvnorm(fc, NA_REAL, sigma, fullLower, fullUpper, tmean, tcov);
+	u_mtmvnorm(fc, NA_REAL, sigma, fullLower, fullUpper, tmean, tcov);
 	delete fc;
 	delete globalState;
 
@@ -549,8 +549,8 @@ SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
 {
 	try {
 		return omxCallAlgebra2(matList, algNum, options);
-	} catch( std::exception& __ex__ ) {
-		exception_to_Rf_error( __ex__ );
+	} catch( std::exception& u__ex__ ) {
+		exception_to_Rf_error( u__ex__ );
 	} catch(...) {
 		string_to_Rf_error( "c++ exception (unknown reason)" );
 	}
@@ -801,8 +801,8 @@ static SEXP omxBackend(SEXP constraints, SEXP matList,
 				   varList, algList, expectList, computeList,
 				   data, intervalList, checkpointList, options, defvars,
 				   Rf_asLogical(Rsilent));
-	} catch( std::exception& __ex__ ) {
-		exception_to_Rf_error( __ex__ );
+	} catch( std::exception& u__ex__ ) {
+		exception_to_Rf_error( u__ex__ );
 	} catch(...) {
 		string_to_Rf_error( "c++ exception (unknown reason)" );
 	}

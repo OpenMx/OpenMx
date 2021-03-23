@@ -85,8 +85,8 @@ BA81FitState::BA81FitState()
 void BA81FitState::copyEstimates(BA81Expect *estate)
 {
 	omxCopyMatrix(itemParam, estate->itemParam);
-	if (estate->_latentMeanOut) omxCopyMatrix(latentMean, estate->_latentMeanOut);
-	if (estate->_latentCovOut)  omxCopyMatrix(latentCov, estate->_latentCovOut);
+	if (estate->u_latentMeanOut) omxCopyMatrix(latentMean, estate->u_latentMeanOut);
+	if (estate->u_latentCovOut)  omxCopyMatrix(latentCov, estate->u_latentCovOut);
 }
 
 static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
@@ -107,9 +107,9 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 	latentMap.assign(numLatents, -1);
 
 	int meanNum = 0;
-	if (estate->_latentMeanOut) meanNum = ~estate->_latentMeanOut->matrixNumber;
+	if (estate->u_latentMeanOut) meanNum = ~estate->u_latentMeanOut->matrixNumber;
 	int covNum = 0;
-	if (estate->_latentCovOut) covNum = ~estate->_latentCovOut->matrixNumber;
+	if (estate->u_latentCovOut) covNum = ~estate->u_latentCovOut->matrixNumber;
 
 	int numParam = int(fvg->vars.size());
 	for (int px=0; px < numParam; px++) {
@@ -117,10 +117,10 @@ static void buildLatentParamMap(omxFitFunction* oo, FitContext *fc)
 		for (size_t lx=0; lx < fv->locations.size(); lx++) {
 			omxFreeVarLocation *loc = &fv->locations[lx];
 			int matNum = loc->matrix;
-			if (matNum == meanNum && estate->_latentMeanOut) {
+			if (matNum == meanNum && estate->u_latentMeanOut) {
 				latentMap[loc->row + loc->col] = px;
 				state->freeLatents = true;
-			} else if (matNum == covNum && estate->_latentCovOut) {
+			} else if (matNum == covNum && estate->u_latentCovOut) {
 				int a1 = loc->row;
 				int a2 = loc->col;
 				if (a1 < a2) std::swap(a1, a2);
@@ -279,12 +279,12 @@ struct ba81mstepEval {
 	const rpf_dLL1_t dLL1;
 	const double *iparam;
 	double *myDeriv;
-	ba81mstepEval(int _ix, const double *_spec, BA81Expect *_estate,
-		      double *_myDeriv) :
-		ix(_ix), spec(_spec),
-		id(_spec[RPF_ISpecID]), dLL1(Glibrpf_model[id].dLL1),
-		iparam(omxMatrixColumn(_estate->itemParam, ix)),
-		myDeriv(_myDeriv)
+	ba81mstepEval(int u_ix, const double *u_spec, BA81Expect *u_estate,
+		      double *u_myDeriv) :
+		ix(u_ix), spec(u_spec),
+		id(u_spec[RPF_ISpecID]), dLL1(Glibrpf_model[id].dLL1),
+		iparam(omxMatrixColumn(u_estate->itemParam, ix)),
+		myDeriv(u_myDeriv)
 	{};
 	void operator()(double *abscissa, double *outcomeCol, double *iexp)
 	{
@@ -433,12 +433,12 @@ struct ba81sandwichOp {
 	Eigen::ArrayXXd breadG;
 	Eigen::ArrayXXd breadH;
 
-	ba81sandwichOp(int numThreads, BA81Expect *estate, int _numParam, BA81FitState *_state,
-		       omxMatrix *_itemParam, double _abScale) :
-		numItems(estate->grp.numItems()), numParam(_numParam), state(_state),
+	ba81sandwichOp(int numThreads, BA81Expect *estate, int u_numParam, BA81FitState *u_state,
+		       omxMatrix *u_itemParam, double u_abScale) :
+		numItems(estate->grp.numItems()), numParam(u_numParam), state(u_state),
 		dataColumns(estate->grp.dataColumns), itemOutcomes(estate->grp.itemOutcomes),
-		rowMap(estate->grp.rowMap), spec(estate->grp.spec), itemParam(_itemParam),
-		itemDerivPadSize(_state->itemDerivPadSize), abScale(_abScale),
+		rowMap(estate->grp.rowMap), spec(estate->grp.spec), itemParam(u_itemParam),
+		itemDerivPadSize(u_state->itemDerivPadSize), abScale(u_abScale),
 		rowWeight(estate->grp.rowMult)
 	{
 		gradBuf.resize(numParam, numThreads);
@@ -634,13 +634,13 @@ struct ba81gradCovOp {
 	const int itemDerivPadSize;
 	Eigen::ArrayXi px;
 
-	ba81gradCovOp(int _numItems, BA81Expect *estate,
-		      int _itemDerivPadSize, omxMatrix *_itemParam,
+	ba81gradCovOp(int u_numItems, BA81Expect *estate,
+		      int u_itemDerivPadSize, omxMatrix *u_itemParam,
 		      int numThreads, int itemDerivSize) :
-		numItems(_numItems), dataColumns(estate->grp.dataColumns),
+		numItems(u_numItems), dataColumns(estate->grp.dataColumns),
 		rowMap(estate->grp.rowMap),
-		spec(estate->grp.spec), itemParam(_itemParam),
-		itemDerivPadSize(_itemDerivPadSize)
+		spec(estate->grp.spec), itemParam(u_itemParam),
+		itemDerivPadSize(u_itemDerivPadSize)
 	{
 		px.resize(numThreads);
 		expected.resize(estate->grp.maxOutcomes, numThreads);
@@ -869,8 +869,8 @@ void BA81FitState::compute(int want, FitContext *fc)
 
 		if (want & FF_COMPUTE_MAXABSCHANGE) {
 			double mac = std::max(omxMaxAbsDiff(state->itemParam, estate->itemParam),
-					      omxMaxAbsDiff(state->latentMean, estate->_latentMeanOut));
-			fc->mac = std::max(mac, omxMaxAbsDiff(state->latentCov, estate->_latentCovOut));
+					      omxMaxAbsDiff(state->latentMean, estate->u_latentMeanOut));
+			fc->mac = std::max(mac, omxMaxAbsDiff(state->latentCov, estate->u_latentCovOut));
 			state->copyEstimates(estate);
 		}
 

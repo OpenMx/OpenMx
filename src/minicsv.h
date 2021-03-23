@@ -49,7 +49,7 @@
 
 #define NEWLINE '\n'
 
-#ifdef _WIN32
+#ifdef u_WIN32
 	#define MY_FUNC_SIG __FUNCTION__
 #else
 	#define MY_FUNC_SIG __PRETTY_FUNCTION__

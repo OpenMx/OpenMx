@@ -1,5 +1,5 @@
-#ifndef __polynomial_h_
-#define __polynomial_h_
+#ifndef u__polynomial_h_
+#define u__polynomial_h_
 
 #include <functional>
 #include <sstream>
@@ -14,15 +14,15 @@ template <typename F> class Monomial {
 	std::vector<int> exponent;
 
 	Monomial() { coeff = 0; }
-	Monomial(F _coeff) {
-		coeff = _coeff;
+	Monomial(F u_coeff) {
+		coeff = u_coeff;
 	};
-	Monomial(F _coeff, int ex) {
-		coeff = _coeff;
+	Monomial(F u_coeff, int ex) {
+		coeff = u_coeff;
 		exponent.assign(ex+1, 0);
 		exponent[ex] = 1;
 	}
-	Monomial(F _coeff, const std::vector<int> &_e) { coeff=_coeff; exponent=_e; }
+	Monomial(F u_coeff, const std::vector<int> &u_e) { coeff=u_coeff; exponent=u_e; }
 	Monomial(const Monomial<F> &from) { coeff = from.coeff; exponent = from.exponent; }
 	int getExponent(int xx) const {
 		if (xx >= int(exponent.size())) return 0;
@@ -128,8 +128,8 @@ template <typename F> class Polynomial {
 		}
 		monomials.insert(m);
 	}
-	void addMonomial(F _coeff, int ex) {
-		addMonomial(Monomial<F>(_coeff, ex));
+	void addMonomial(F u_coeff, int ex) {
+		addMonomial(Monomial<F>(u_coeff, ex));
 	}
 	Polynomial<F> monomialMultiply(const Monomial<F> &monom) const {
 		Polynomial<F> erg;
@@ -192,4 +192,4 @@ template <typename F> class Polynomial {
 	};
 };
 
-#endif // __polynomial_h_
+#endif // u__polynomial_h_

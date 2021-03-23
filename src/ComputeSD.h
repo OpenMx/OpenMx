@@ -1,5 +1,5 @@
-#ifndef __SteepDescent_H_
-#define __SteepDescent_H_
+#ifndef u__SteepDescent_H_
+#define u__SteepDescent_H_
 
 #include <valarray>
 #include <math.h>

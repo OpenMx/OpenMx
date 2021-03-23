@@ -1,5 +1,5 @@
-#ifndef _NLOPTCPP_H_
-#define _NLOPTCPP_H_
+#ifndef u_NLOPTCPP_H_
+#define u_NLOPTCPP_H_
 
 #include "finiteDifferences.h"
 

@@ -100,7 +100,7 @@ struct SwitchWantStage {
 	omxState *st;
 	int prevWant;
 
-	SwitchWantStage(omxState *_st, int to) : st(_st)
+	SwitchWantStage(omxState *u_st, int to) : st(u_st)
 	{
 		prevWant = st->getWantStage();
 		st->setWantStage(to);
@@ -148,7 +148,7 @@ void CheckAST(omxAlgebra *oa, FitContext *fc)
 
 struct AlgebraProcessingGuard {
 	omxAlgebra *al;
-	AlgebraProcessingGuard(omxAlgebra *_al) : al(_al) {
+	AlgebraProcessingGuard(omxAlgebra *u_al) : al(u_al) {
 		al->processing = true;
 	};
 	~AlgebraProcessingGuard() {

@@ -65,9 +65,9 @@ SEXP allocInformVector(int size)
 void FitContext::calcNumFree()
 {
   std::vector<bool> &po = profiledOutZ;
-  _numFree = numParam - std::count(po.begin(), po.end(), true);
+  u_numFree = numParam - std::count(po.begin(), po.end(), true);
   freeToIndexMap.clear();
-  freeToParamMap.resize(_numFree);
+  freeToParamMap.resize(u_numFree);
   for (int fx=0, px=0; px < numParam; ++px) {
     if (po[px]) continue;
     freeToIndexMap.emplace(varGroup->vars[px]->name, fx);
@@ -665,7 +665,7 @@ int HessianBlock::estNonZero() const
 void FitContext::init()
 {
 	numParam = varGroup->vars.size();
-  _numFree = -1;
+  u_numFree = -1;
 	wanted = 0;
 	mac = parent? parent->mac : 0;
 	fit = parent? parent->fit : NA_REAL;
@@ -811,7 +811,7 @@ void FitContext::calcStderrs()
 	}
 }
 
-FitContext::FitContext(omxState *_state)
+FitContext::FitContext(omxState *u_state)
 {
 	parent = NULL;
 	varGroup = Global->findVarGroup(FREEVARGROUP_ALL);
@@ -819,7 +819,7 @@ FitContext::FitContext(omxState *_state)
 	profiledOutZ.assign(numParam, false);
 
 	auto &startingValues = Global->startingValues;
-	state = _state;
+	state = u_state;
 	if (numParam) {
 		if (int(startingValues.size()) != numParam) {
 			mxThrow("Got %d starting values for %d parameters",
@@ -831,10 +831,10 @@ FitContext::FitContext(omxState *_state)
 	//inequality.resize(state->numIneqC);
 }
 
-FitContext::FitContext(FitContext *_parent, FreeVarGroup *_varGroup)
+FitContext::FitContext(FitContext *u_parent, FreeVarGroup *u_varGroup)
 {
-	this->parent = _parent;
-	this->varGroup = _varGroup;
+	this->parent = u_parent;
+	this->varGroup = u_varGroup;
 	init();
 
 	state = parent->state;
@@ -1031,7 +1031,7 @@ std::string FitContext::getIterationError()
 	}
 }
 
-static void _fixSymmetry(const char *name, double *mat, size_t numParam, bool force)
+static void u_fixSymmetry(const char *name, double *mat, size_t numParam, bool force)
 {
 	for (size_t h1=1; h1 < numParam; h1++) {
 		for (size_t h2=0; h2 < h1; h2++) {
@@ -1160,7 +1160,7 @@ void FitContext::postInfo()
 		std::vector<double> work(numParam * numParam);
 		ThinMatrix amat(infoA, numParam, numParam);
 		InvertSymmetricIndef(amat, 'U');
-		_fixSymmetry("InfoB", infoB, numParam, false);
+		u_fixSymmetry("InfoB", infoB, numParam, false);
 		ThinMatrix bmat(infoB, numParam, numParam);
 		ThinMatrix wmat(work.data(), numParam, numParam);
 		ThinMatrix hmat(getDenseIHessUninitialized(), numParam, numParam);
@@ -1192,13 +1192,13 @@ bool FitContext::isClone() const
 
 struct ParallelInvalidator : StateInvalidator {
   typedef StateInvalidator super;
-  ParallelInvalidator(omxState &_st) : super(_st) {}
+  ParallelInvalidator(omxState &u_st) : super(u_st) {}
 	virtual void doExpectation() override {}
   virtual void doData() override {}
   virtual void doMatrix() override {}
 };
 
-void FitContext::createChildren(omxMatrix *alg, bool _permitParallel)
+void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
 {
 	if (childList.size()) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: ignored, childList already populated");
@@ -1208,16 +1208,16 @@ void FitContext::createChildren(omxMatrix *alg, bool _permitParallel)
   openmpUser = false;
 	if (Global->numThreads <= 1) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: max threads set to 1");
-    _permitParallel = false;
+    u_permitParallel = false;
 	}
 
   diagParallel(OMX_DEBUG, "FitContext::createChildren(%s, %d)",
-               alg? alg->name() : "NULL", _permitParallel);
+               alg? alg->name() : "NULL", u_permitParallel);
 
   ParallelInvalidator pi(*state);
   pi();
 
-  permitParallel = _permitParallel;
+  permitParallel = u_permitParallel;
   if (alg) omxAlgebraPreeval(alg, this);
 
 	if (Global->numThreads <= 1)  return;
@@ -1227,7 +1227,7 @@ void FitContext::createChildren(omxMatrix *alg, bool _permitParallel)
   if (alg) {
     for (auto kid : childList) omxAlgebraPreeval(alg, kid);
   }
-  if (!_permitParallel) {
+  if (!u_permitParallel) {
     if (openmpUser) OOPS;
   }
 }
@@ -1364,7 +1364,7 @@ protected:
 	int verbose;
 
 public:
-	EMAccel(FitContext *_fc, int _verbose) : fc(_fc), verbose(_verbose) {
+	EMAccel(FitContext *u_fc, int u_verbose) : fc(u_fc), verbose(u_verbose) {
 		numParam = fc->getNumFree();
 		prevAdj1.assign(numParam, 0);
 		prevAdj2.resize(numParam);
@@ -1402,8 +1402,8 @@ public:
 	virtual bool calcDirection(bool major) override;
 };
 
-Ramsay1975::Ramsay1975(FitContext *_fc, int _verbose, double _minCaution) :
-	EMAccel(_fc, _verbose), minCaution(_minCaution)
+Ramsay1975::Ramsay1975(FitContext *u_fc, int u_verbose, double u_minCaution) :
+	EMAccel(u_fc, u_verbose), minCaution(u_minCaution)
 {
 	maxCaution = 0.0;
 	caution = 0;
@@ -1497,8 +1497,8 @@ class Varadhan2008 : public EMAccel {
 	Eigen::VectorXd vv;
 
 public:
-	Varadhan2008(FitContext *_fc, int _verbose) :
-		EMAccel(_fc, _verbose), rr(&prevAdj2[0], numParam), vv(numParam)
+	Varadhan2008(FitContext *u_fc, int u_verbose) :
+		EMAccel(u_fc, u_verbose), rr(&prevAdj2[0], numParam), vv(numParam)
 	{
 		alpha = 0;
 		maxAlpha = 0;
@@ -1645,7 +1645,7 @@ struct LeaveComputeWithVarGroup {
 	ComputeInform origInform;
 	const char *name;
 
-	LeaveComputeWithVarGroup(FitContext *_fc, struct omxCompute *compute) : fc(_fc), name(compute->name) {
+	LeaveComputeWithVarGroup(FitContext *u_fc, struct omxCompute *compute) : fc(u_fc), name(compute->name) {
 		origInform = fc->getInform();
 		toResetInform = compute->accumulateInform();
 		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);
@@ -1894,10 +1894,10 @@ struct ParJacobianSense {
 	// default defvar_row to 1 or 0? TODO
 	ParJacobianSense() : exList(0), alList(0), defvar_row(1) {};
 
-	void attach(std::vector<omxExpectation *> *_exList, std::vector<omxMatrix *> *_alList) {
-		if (_exList && _alList) mxThrow("_exList && _alList");
-		exList = _exList;
-		alList = _alList;
+	void attach(std::vector<omxExpectation *> *u_exList, std::vector<omxMatrix *> *u_alList) {
+		if (u_exList && u_alList) mxThrow("u_exList && u_alList");
+		exList = u_exList;
+		alList = u_alList;
 		numOf = exList? exList->size() : alList->size();
 		numStats.reserve(numOf);
 		maxNumStats = 0;
@@ -1910,10 +1910,10 @@ struct ParJacobianSense {
 		}
 	};
 
-	void measureRef(FitContext *_fc) {
+	void measureRef(FitContext *u_fc) {
 		using Eigen::Map;
 		using Eigen::VectorXd;
-		fc = _fc;
+		fc = u_fc;
 		numFree = fc->getNumFree();
 		result.resize(totalNumStats, numFree);
 		ref.resize(totalNumStats);
@@ -2083,9 +2083,9 @@ class ComputeLoadData : public omxCompute {
 		typedef StateInvalidator super;
 		omxData *data;
 		const std::vector< int > &columns;
-		ColumnInvalidator(omxState &_st, omxData *_data,
-				  const std::vector< int > &_columns) :
-			super(_st), data(_data), columns(_columns) {};
+		ColumnInvalidator(omxState &u_st, omxData *u_data,
+				  const std::vector< int > &u_columns) :
+			super(u_st), data(u_data), columns(u_columns) {};
 		virtual void doData() override { data->invalidateColumnsCache(columns); };
 	};
 
@@ -2972,7 +2972,7 @@ struct estep_jacobian_functional {
 	ComputeEM *em;
 	FitContext *fc;
 
-	estep_jacobian_functional(ComputeEM *_em, FitContext *_fc) : em(_em), fc(_fc) {};
+	estep_jacobian_functional(ComputeEM *u_em, FitContext *u_fc) : em(u_em), fc(u_fc) {};
 
 	template <typename T1, typename T2>
 	void operator()(Eigen::MatrixBase<T1> &x, Eigen::MatrixBase<T2> &result) const {
@@ -4494,20 +4494,20 @@ class LoadDataDFProvider : public LoadDataProvider<LoadDataDFProvider> {
 	}
 };
 
-void LoadDataProviderBase2::commonInit(SEXP rObj, const char *_name,
-                                       const char *_dataName, int _rows,
-                                       std::vector<ColumnData> &_rawCols,
-                                       ColMapType &_rawColMap,
-                                       std::vector< std::string > &_checkpointValues,
+void LoadDataProviderBase2::commonInit(SEXP rObj, const char *u_name,
+                                       const char *u_dataName, int u_rows,
+                                       std::vector<ColumnData> &u_rawCols,
+                                       ColMapType &u_rawColMap,
+                                       std::vector< std::string > &u_checkpointValues,
                                        bool useOriginalData)
 {
-	name = _name;
-	dataName = _dataName;
-	destRows = _rows;
-	srcRows = _rows;
-	rawCols = &_rawCols;
-	rawColMap = &_rawColMap;
-	checkpointValues = &_checkpointValues;
+	name = u_name;
+	dataName = u_dataName;
+	destRows = u_rows;
+	srcRows = u_rows;
+	rawCols = &u_rawCols;
+	rawColMap = &u_rawColMap;
+	checkpointValues = &u_checkpointValues;
 
 	curRecord = -1;
 	loadCounter = 0;
@@ -4546,7 +4546,7 @@ void LoadDataProviderBase2::commonInit(SEXP rObj, const char *_name,
 			continue;
 		}
 		columns.push_back(rci->second);
-		auto &rc = _rawCols[rci->second];
+		auto &rc = u_rawCols[rci->second];
 		colTypes.push_back(rc.type);
 		if (useOriginalData) origData.emplace_back(rc.steal());
 	}
@@ -4918,7 +4918,7 @@ struct clmStream {
 	Rcpp::DataFrame &observed;
 	const int row;
 	int curCol;
-	clmStream(Rcpp::DataFrame &_ob, int _row) : observed(_ob), row(_row) { curCol = 0; };
+	clmStream(Rcpp::DataFrame &u_ob, int u_row) : observed(u_ob), row(u_row) { curCol = 0; };
 
 	void operator >> (double& val)
 	{

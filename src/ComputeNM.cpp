@@ -501,13 +501,13 @@ void omxComputeNM::reportResults(FitContext *fc, MxRList *slots, MxRList *out){
 
 //-------------------------------------------------------
 
-NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* _fc, omxComputeNM* _nmo)
-	: fc(_fc), NMobj(_nmo), numFree(_fc->getNumFree()),
-    IneqC(_fc, "ineq",
+NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* u_fc, omxComputeNM* u_nmo)
+	: fc(u_fc), NMobj(u_nmo), numFree(u_fc->getNumFree()),
+    IneqC(u_fc, "ineq",
           [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; }),
-    EqC(_fc, "eq",
+    EqC(u_fc, "eq",
         [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; }),
-	  subsidiarygoc(_fc, 0L, _nmo)
+	  subsidiarygoc(u_fc, 0L, u_nmo)
 {
 	est.resize(numFree);
 	copyParamsFromFitContext(est.data());

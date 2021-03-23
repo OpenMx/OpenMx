@@ -45,7 +45,7 @@ omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeigh
                      parallel(true),
 		     noExoOptimize(true), modified(false), minVariance(0), warnNPDuseWeight(true),
 		     dataObject(0), dataMat(0), meansMat(0),
-										 numObs(0), _type(0), naAction(NA_PASS), numFactor(0), numNumeric(0),
+										 numObs(0), u_type(0), naAction(NA_PASS), numFactor(0), numNumeric(0),
 		     cols(0), expectation(0)
 {}
 
@@ -64,7 +64,7 @@ static void newDataDynamic(SEXP dataObject, omxData *od)
 {
 	SEXP dataLoc;
 	ScopedProtect p1(dataLoc, R_do_slot(dataObject, Rf_install("type")));
-	od->_type = CHAR(STRING_ELT(dataLoc,0));
+	od->u_type = CHAR(STRING_ELT(dataLoc,0));
 	od->dataObject = dataObject;
 	if (!strEQ(od->getType(), "cov")) {
 		omxRaiseErrorf("Don't know how to create dynamic data with type '%s'", od->getType());
@@ -215,8 +215,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
 	{
 		ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("type")));
-		od->_type = CHAR(STRING_ELT(dataLoc,0));
-		if(OMX_DEBUG) {mxLog("Element is type %s.", od->_type);}
+		od->u_type = CHAR(STRING_ELT(dataLoc,0));
+		if(OMX_DEBUG) {mxLog("Element is type %s.", od->u_type);}
 
 		if (R_has_slot(dataObj, Rf_install("naAction"))) {
 			ProtectedSEXP RactStr(R_do_slot(dataObj, Rf_install("naAction")));
@@ -291,7 +291,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
       if(OMX_DEBUG) {mxLog("Data contains a matrix.");}
       od->dataMat = omxNewMatrixFromRPrimitive0(dataLoc, state, 0, 0);
 
-      if (od->dataMat->colMajor && strEQ(od->_type, "raw")) {
+      if (od->dataMat->colMajor && strEQ(od->u_type, "raw")) {
         omxToggleRowColumnMajor(od->dataMat);
       }
       od->cols = od->dataMat->cols;
@@ -299,11 +299,11 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
       od->numNumeric = od->cols;
 
       // Raw data is already stored like a data frame
-      if (strEQ(_type, "raw")) convertToDataFrame();
+      if (strEQ(u_type, "raw")) convertToDataFrame();
     }
 	}
 
-	if (!strEQ(_type, "raw") && (hasPrimaryKey() || hasWeight() || hasFreq())) {
+	if (!strEQ(u_type, "raw") && (hasPrimaryKey() || hasWeight() || hasFreq())) {
 		mxThrow("%s: weight, freq, or primary key require raw data", name);
 	}
 
@@ -322,7 +322,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 
 	if(OMX_DEBUG) {mxLog("Processing Asymptotic Covariance Matrix.");}
-	if (strEQ(od->_type, "acov")) {  // old style for backward compatibility
+	if (strEQ(od->u_type, "acov")) {  // old style for backward compatibility
 		oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
 		auto &o1 = *oss;
 		o1.covMat = omxCreateCopyOfMatrix(dataMat, state);
@@ -707,7 +707,7 @@ omxMatrix* omxDataCovariance(omxData *od)
 		return omxGetExpectationComponent(ex, "covariance");
 	}
 
-	mxThrow("%s: type='%s' data must be in matrix storage", od->name, od->_type);
+	mxThrow("%s: type='%s' data must be in matrix storage", od->name, od->u_type);
 }
 
 bool omxData::columnIsFactor(int col)
@@ -1000,7 +1000,7 @@ int omxDataNumNumeric(omxData *od) {
 }
 
 const char *omxDataType(omxData *od) {
-	return od->_type;
+	return od->u_type;
 }
 
 void omxData::omxPrintData(const char *header, int maxRows, int *permute)
@@ -1014,7 +1014,7 @@ void omxData::omxPrintData(const char *header, int maxRows, int *permute)
 	}
 
 	std::string buf;
-	buf += string_snprintf("%s(%s): %f observations %d x %d\n", header, od->_type, od->numObs,
+	buf += string_snprintf("%s(%s): %f observations %d x %d\n", header, od->u_type, od->numObs,
 												 nrows(), cols);
 	if (hasPrimaryKey()) {
 		buf += string_snprintf("primaryKey %d\n", od->primaryKey);
@@ -1083,7 +1083,7 @@ void omxData::omxPrintData(const char *header, int maxRows)
 
 double omxDataDF(omxData *od)
 {
-	const char *type = od->_type;
+	const char *type = od->u_type;
 	if (strEQ(type, "cov")) {
 		omxMatrix *cov = omxDataCovariance(od);
 		int df = triangleLoc1(cov->rows);
@@ -1634,19 +1634,19 @@ struct OLSRegression {
 	Eigen::MatrixXd scores;
 	double var;
 	Eigen::VectorXd ycol;
-	OLSRegression(omxData *_d, double _totalWeight,
-		      const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
-		      std::vector<int> &_index);
+	OLSRegression(omxData *u_d, double u_totalWeight,
+		      const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
+		      std::vector<int> &u_index);
 	void setResponse(ColumnData &cd, WLSVarData &pv,
 									 std::vector< Eigen::Ref<Eigen::VectorXd> > &predCols);
 	void calcScores();
 };
 
-OLSRegression::OLSRegression(omxData *_d,
-			     double _totalWeight,
-			     const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
-			     std::vector<int> &_index)
-	: data(*_d), totalWeight(_totalWeight), rowMult(_rowMult), index(_index)
+OLSRegression::OLSRegression(omxData *u_d,
+			     double u_totalWeight,
+			     const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
+			     std::vector<int> &u_index)
+	: data(*u_d), totalWeight(u_totalWeight), rowMult(u_rowMult), index(u_index)
 {
 }
 
@@ -1728,12 +1728,12 @@ struct ProbitRegression : NewtonRaphsonObjective {
 	Eigen::VectorXi ycol;
 
 	// Could merge setResponse with constructor
-	ProbitRegression(omxData *_d,
-									 obsSummaryStats &_o1,
-			 const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
-									 std::vector<int> &_index,
+	ProbitRegression(omxData *u_d,
+									 obsSummaryStats &u_o1,
+			 const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
+									 std::vector<int> &u_index,
 									 std::vector< Eigen::Ref<Eigen::VectorXd> > &predCols);
-	void setResponse(ColumnData &_r, int yy);
+	void setResponse(ColumnData &u_r, int yy);
 	virtual double getFit() override { return fit; }
 	virtual const char *paramIndexToName(int px) override
 	{ return pnames[px].c_str(); }
@@ -1750,13 +1750,13 @@ struct ProbitRegression : NewtonRaphsonObjective {
 };
 
 ProbitRegression::
-ProbitRegression(omxData *_d,
-								 obsSummaryStats &_o1,
-								 const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
-								 std::vector<int> &_index,
-								 std::vector< Eigen::Ref<Eigen::VectorXd> > &_predCols) :
-	data(*_d), o1(_o1), totalWeight(_o1.totalWeight), rowMult(_rowMult),
-	index(_index), predCols(_predCols), numThr(0),
+ProbitRegression(omxData *u_d,
+								 obsSummaryStats &u_o1,
+								 const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
+								 std::vector<int> &u_index,
+								 std::vector< Eigen::Ref<Eigen::VectorXd> > &u_predCols) :
+	data(*u_d), o1(u_o1), totalWeight(u_o1.totalWeight), rowMult(u_rowMult),
+	index(u_index), predCols(u_predCols), numThr(0),
 	response(0), verbose(data.verbose), stale(true)
 {
 	zi.resize(index.size(), 2);
@@ -1768,9 +1768,9 @@ ProbitRegression(omxData *_d,
 	}
 }
 
-void ProbitRegression::setResponse(ColumnData &_r, int yy)
+void ProbitRegression::setResponse(ColumnData &u_r, int yy)
 {
-	response = &_r;
+	response = &u_r;
 	numThr = response->getNumThresholds();
 
 	Eigen::Map< Eigen::VectorXi > ycolFull(response->i(), data.nrows());
@@ -2002,15 +2002,15 @@ struct PolyserialCor : NewtonRaphsonObjective {
 	Eigen::ArrayXXd scores;
 	Eigen::VectorXd ycol;
 
-	PolyserialCor(omxData *_d, WLSVarData &cv, ColumnData &_oc, WLSVarData &_ov,
-								std::vector< Eigen::Ref<Eigen::VectorXd> > &_pred1,
-								std::vector< Eigen::Ref<Eigen::VectorXd> > &_pred2,
-		      double _totalWeight,
-		      const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
-		      std::vector<int> &_index) :
-		totalWeight(_totalWeight), rowMult(_rowMult), index(_index),
-		resid(cv.resid), data(*_d), oc(_oc), ov(_ov), pred1(_pred1),
-		pred2(_pred2)
+	PolyserialCor(omxData *u_d, WLSVarData &cv, ColumnData &u_oc, WLSVarData &u_ov,
+								std::vector< Eigen::Ref<Eigen::VectorXd> > &u_pred1,
+								std::vector< Eigen::Ref<Eigen::VectorXd> > &u_pred2,
+		      double u_totalWeight,
+		      const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
+		      std::vector<int> &u_index) :
+		totalWeight(u_totalWeight), rowMult(u_rowMult), index(u_index),
+		resid(cv.resid), data(*u_d), oc(u_oc), ov(u_ov), pred1(u_pred1),
+		pred2(u_pred2)
 	{
 		lbound.resize(1);
 		lbound.setConstant(NEG_INF);
@@ -2157,15 +2157,15 @@ struct PolychoricCor : NewtonRaphsonObjective {
 	Eigen::ArrayXd th2;
 	Eigen::ArrayXXd obsTable;
 
-	PolychoricCor(omxData *_d, ColumnData &_c1, WLSVarData &_v1,
-		      ColumnData &_c2, WLSVarData &_v2,
-								std::vector< Eigen::Ref<Eigen::VectorXd> > &_pred1,
-								std::vector< Eigen::Ref<Eigen::VectorXd> > &_pred2,
-		      double _totalWeight,
-		      const Eigen::Ref<const Eigen::ArrayXd> _rowMult,
-		      std::vector<int> &_index)
-		: totalWeight(_totalWeight), rowMult(_rowMult), index(_index),
-		  data(*_d), c1(_c1), v1(_v1), c2(_c2), v2(_v2), pred1(_pred1), pred2(_pred2)
+	PolychoricCor(omxData *u_d, ColumnData &u_c1, WLSVarData &u_v1,
+		      ColumnData &u_c2, WLSVarData &u_v2,
+								std::vector< Eigen::Ref<Eigen::VectorXd> > &u_pred1,
+								std::vector< Eigen::Ref<Eigen::VectorXd> > &u_pred2,
+		      double u_totalWeight,
+		      const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
+		      std::vector<int> &u_index)
+		: totalWeight(u_totalWeight), rowMult(u_rowMult), index(u_index),
+		  data(*u_d), c1(u_c1), v1(u_v1), c2(u_c2), v2(u_v2), pred1(u_pred1), pred2(u_pred2)
 	{
 		lbound.resize(1);
 		lbound.setConstant(NEG_INF);
@@ -2550,7 +2550,7 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 {
 	if (state->isClone()) mxThrow("omxData::prepObsStats called in a thread context");
 
-	if (strEQ(_type, "acov")) {
+	if (strEQ(u_type, "acov")) {
 		// ignore request from fit function (legacy, deprecated)
 		auto &o1 = *oss;
 		if (!o1.thresholdMat && !o1.meansMat) {
@@ -2569,7 +2569,7 @@ void omxData::prepObsStats(omxState *state, const std::vector<const char *> &dc,
 		}
 	}
 
-	_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
+	u_prepObsStats(state, dc, exoPred, type, continuousType, fullWeight);
 	if (oss) oss->setDimnames(this);
 }
 
@@ -2582,10 +2582,10 @@ struct sampleStats {
 		std::vector<int> &exoPred;
 		std::vector<Eigen::VectorXd> allPred;
 
-		FilterPred(omxData *_d, obsSummaryStats &_o1,
+		FilterPred(omxData *u_d, obsSummaryStats &u_o1,
 							 int rows, std::vector<int> &index) :
-			data(*_d), rawCols(data.filtered.rawCols),
-			exoPred(_o1.exoPred),
+			data(*u_d), rawCols(data.filtered.rawCols),
+			exoPred(u_o1.exoPred),
 			allPred(exoPred.size())
 		{
 			for (auto &v : allPred) v.resize(rows);
@@ -2626,13 +2626,13 @@ struct sampleStats {
 	Eigen::ArrayXXd &H21;
 	Eigen::Map< Eigen::ArrayXi > freq;
 
-	sampleStats(omxData *_d, const std::vector<const char *> &_dc,
-							Eigen::Ref<Eigen::ArrayXXi> _exoOrder, obsSummaryStats &_o1) :
-		data(*_d), dc(_dc), exoOrder(_exoOrder),
-		o1(_o1), rowMult(o1.rowMult), index(o1.index),
+	sampleStats(omxData *u_d, const std::vector<const char *> &u_dc,
+							Eigen::Ref<Eigen::ArrayXXi> u_exoOrder, obsSummaryStats &u_o1) :
+		data(*u_d), dc(u_dc), exoOrder(u_exoOrder),
+		o1(u_o1), rowMult(o1.rowMult), index(o1.index),
 		Emean(o1.meansMat), Ecov(o1.covMat), Ethr(o1.thresholdMat),
-		fPred(_d, _o1, rowMult.rows(), index),
-		totalExoFree(_o1.totalExoFree),
+		fPred(u_d, u_o1, rowMult.rows(), index),
+		totalExoFree(u_o1.totalExoFree),
 		rows(data.nrows()),
 		rawColMap(data.rawColMap),
 		rawCols(data.filtered.rawCols),
@@ -2948,7 +2948,7 @@ void obsSummaryStats::loadExoFree(SEXP Ref)
 	// check dimnames? TODO
 }
 
-void omxData::_prepObsStats(omxState *state, const std::vector<const char *> &dc,
+void omxData::u_prepObsStats(omxState *state, const std::vector<const char *> &dc,
 			   std::vector<int> &exoPred, const char *wlsType,
 			  const char *continuousType, bool wantAsymCov)
 {

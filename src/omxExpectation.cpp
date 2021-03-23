@@ -451,11 +451,11 @@ omxNewIncompleteExpectation(SEXP rObj, int expNum, omxState* os)
 	return expect;
 }
 
-void omxExpectation::setConnectedToData(bool _to)
+void omxExpectation::setConnectedToData(bool u_to)
 {
-  //mxLog("%s: connectedToData=%d", name, _to);
-  if (_to && getConnectedToData()) mxThrow("omxExpectation::connectToData() called again");
-  _connectedToData = _to;
+  //mxLog("%s: connectedToData=%d", name, u_to);
+  if (u_to && getConnectedToData()) mxThrow("omxExpectation::connectToData() called again");
+  u_connectedToData = u_to;
 }
 
 void omxCompleteExpectation(omxExpectation *ox) {

@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_ROW_FITFUNCTION_
-#define _OMX_ROW_FITFUNCTION_ TRUE
+#ifndef u_OMX_ROW_FITFUNCTION_
+#define u_OMX_ROW_FITFUNCTION_ TRUE
 
 #include "omxDefines.h"
 #include "omxSymbolTable.h"
@@ -28,4 +28,4 @@ void omxCopyMatrixToRow(omxMatrix* source, int row, omxMatrix* target);
 
 void omxInitRowFitFunction(omxFitFunction* oo);
 
-#endif /* _OMX_ROW_FITFUNCTION_ */
+#endif /* u_OMX_ROW_FITFUNCTION_ */

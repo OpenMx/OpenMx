@@ -25,8 +25,8 @@
 *
 **********************************************************/
 
-#ifndef _OMXSTATE_H_
-#define _OMXSTATE_H_
+#ifndef u_OMXSTATE_H_
+#define u_OMXSTATE_H_
 
 #include "omxDefines.h"
 
@@ -72,9 +72,9 @@ class omxFreeVar {
 	const omxFreeVarLocation *getOnlyOneLocation(int matrix, bool &moreThanOne) const;
 	const omxFreeVarLocation *getOnlyOneLocation(omxMatrix *mat, bool &moreThanOne) const;
 
-	void setDeps(int _numDeps, int *_deps) {
-		numDeps = _numDeps;
-		depsPtr = _deps;
+	void setDeps(int u_numDeps, int *u_deps) {
+		numDeps = u_numDeps;
+		depsPtr = u_deps;
 	}
 	const Eigen::Map< Eigen::VectorXi > getDeps() {
 		Eigen::Map< Eigen::VectorXi > map(depsPtr, numDeps);
@@ -449,13 +449,13 @@ private:
   std::unique_ptr<class AutoTune<class JacobianGadget>> jacTool;
 
 public:
-  ConstraintVec(FitContext *fc, const char *_name, ClassifyFn _cf);
+  ConstraintVec(FitContext *fc, const char *u_name, ClassifyFn u_cf);
   int getCount() const { return count; }
   void setIneqAlwaysActive() { ineqAlwaysActive = true; }
   void markUselessConstraints(FitContext *fc);
   void allocJacTool(FitContext *fc);
-  void setAlgoOptions(GradientAlgorithm _algo,	int _numIter, double _eps)
-  { jacTool->work().setAlgoOptions(_algo, _numIter, _eps); }
+  void setAlgoOptions(GradientAlgorithm u_algo,	int u_numIter, double u_eps)
+  { jacTool->work().setAlgoOptions(u_algo, u_numIter, u_eps); }
   // constrOut is a vector of size getCount
   // jacOut is a matrix of dimension getCount by numFree
   void eval(FitContext *fc, double *constrOut, double *jacOut);
@@ -476,7 +476,7 @@ SEXP enableMxLog();
 
 struct StateInvalidator {
 	omxState &st;
-	StateInvalidator(omxState &_st) : st(_st) {};
+	StateInvalidator(omxState &u_st) : st(u_st) {};
 	virtual void doData();
 	virtual void doMatrix();
 	virtual void doExpectation();
@@ -490,4 +490,4 @@ struct StateInvalidator {
 	}
 };
 
-#endif /* _OMXSTATE_H_ */
+#endif /* u_OMXSTATE_H_ */

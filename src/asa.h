@@ -1,5 +1,5 @@
-#ifndef _ASA_H_
-#define _ASA_H_
+#ifndef u_ASA_H_
+#define u_ASA_H_
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -134,7 +134,7 @@ extern "C" {
 #endif
 
   /* IABS(i)
-     absolute value for integers, in stdlib.h on _some_ machines */
+     absolute value for integers, in stdlib.h on u_some_ machines */
 #define IABS(i) ((i) < 0? -(i) : (i))
 
   /*  NO_REANNEAL(x)
@@ -413,4 +413,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* _ASA_H_ */
+#endif                          /* u_ASA_H_ */

@@ -46,7 +46,7 @@ struct CSOLNP {
 	int numCallsToCSOLNP;
 	GradientOptimizerContext &fit;
 
-	CSOLNP(GradientOptimizerContext &_fit) : fit(_fit) {};
+	CSOLNP(GradientOptimizerContext &u_fit) : fit(u_fit) {};
 
 	void solnp(double *pars, int verbose);
 

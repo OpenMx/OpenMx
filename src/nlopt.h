@@ -26,11 +26,11 @@
 #include <stddef.h> /* for ptrdiff_t and size_t */
 
 /* Change 0 to 1 to use stdcall convention under Win32 */
-#if 0 && (defined(_WIN32) || defined(__WIN32__))
-#  if defined(__GNUC__)
+#if 0 && (defined(u_WIN32) || defined(u__WIN32__))
+#  if defined(u__GNUC__)
 #    define NLOPT_STDCALL __attribute__((stdcall))
-#  elif defined(_MSC_VER) || defined(_ICC) || defined(_STDCALL_SUPPORTED)
-#    define NLOPT_STDCALL __stdcall
+#  elif defined(u_MSC_VER) || defined(u_ICC) || defined(u_STDCALL_SUPPORTED)
+#    define NLOPT_STDCALL u__stdcall
 #  else
 #    define NLOPT_STDCALL
 #  endif
@@ -42,12 +42,12 @@
            #define NLOPT_DLL
    when using NLopt from a DLL, in order to do the proper
    Windows importing nonsense. */
-#if defined(NLOPT_DLL) && (defined(_WIN32) || defined(__WIN32__)) && !defined(__LCC__)
+#if defined(NLOPT_DLL) && (defined(u_WIN32) || defined(u__WIN32__)) && !defined(u__LCC__)
 /* annoying Windows syntax for calling functions in a DLL */
 #  if defined(NLOPT_DLL_EXPORT)
-#    define NLOPT_EXTERN(T) extern __declspec(dllexport) T NLOPT_STDCALL
+#    define NLOPT_EXTERN(T) extern u__declspec(dllexport) T NLOPT_STDCALL
 #  else
-#    define NLOPT_EXTERN(T) extern __declspec(dllimport) T NLOPT_STDCALL
+#    define NLOPT_EXTERN(T) extern u__declspec(dllimport) T NLOPT_STDCALL
 #  endif
 #else
 #  define NLOPT_EXTERN(T) extern T NLOPT_STDCALL
@@ -79,9 +79,9 @@ typedef enum {
 	    = global/local derivative/no-derivative optimization, 
               respectively 
  
-	*_RAND algorithms involve some randomization.
+	*u_RAND algorithms involve some randomization.
 
-	*_NOSCAL algorithms are *not* scaled to a unit hypercube
+	*u_NOSCAL algorithms are *not* scaled to a unit hypercube
 	         (i.e. they are sensitive to the units of x)
 	*/
 
@@ -318,7 +318,7 @@ NLOPT_EXTERN(void) nlopt_munge_data(nlopt_opt opt,
 
 /* Where possible (e.g. for gcc >= 3.1), enable a compiler warning
    for code that uses a deprecated function */
-#if defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__==3 && __GNUC_MINOR__ > 0))
+#if defined(u__GNUC__) && (u__GNUC__ > 3 || (u__GNUC__==3 && u__GNUC_MINOR__ > 0))
 #  define NLOPT_DEPRECATED __attribute__((deprecated))
 #else
 #  define NLOPT_DEPRECATED 

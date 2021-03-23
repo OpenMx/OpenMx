@@ -26,8 +26,8 @@
 *
 **********************************************************/
 
-#ifndef _OMXEXPECTATION_H_
-#define _OMXEXPECTATION_H_
+#ifndef u_OMXEXPECTATION_H_
+#define u_OMXEXPECTATION_H_
 
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h>
@@ -45,7 +45,7 @@ class omxExpectation {					// An Expectation
 	omxMatrix *thresholdsMat;
 	double *discreteSpecPtr;
   bool discreteCheckCount;
-  bool _connectedToData;
+  bool u_connectedToData;
   const Eigen::Map<Eigen::MatrixXd> getDiscreteSpec()
   { const Eigen::Map<Eigen::MatrixXd> ds(discreteSpecPtr, 2, discreteMat->cols); return ds; }
 	omxMatrix *discreteMat;
@@ -54,8 +54,8 @@ class omxExpectation {					// An Expectation
 
 	void loadThresholds();
 protected:
-  void setConnectedToData(bool _to);
-  bool getConnectedToData() const { return _connectedToData; }
+  void setConnectedToData(bool u_to);
+  bool getConnectedToData() const { return u_connectedToData; }
 
  public:
 	int numDataColumns;
@@ -77,7 +77,7 @@ protected:
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), thresholdsMat(0),
-		discreteSpecPtr(0), _connectedToData(false), discreteMat(0),
+		discreteSpecPtr(0), u_connectedToData(false), discreteMat(0),
     numDataColumns(0), name(0), data(0), numOrdinal(0),
     isComplete(false), currentState(state),
 		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
@@ -246,4 +246,4 @@ void normalToStdVector(omxMatrix *cov, omxMatrix *mean, omxMatrix *slope, T Eth,
 	}
 }
 
-#endif /* _OMXEXPECTATION_H_ */
+#endif /* u_OMXEXPECTATION_H_ */

@@ -1,5 +1,5 @@
-#ifndef _finiteDifferences_H_
-#define _finiteDifferences_H_
+#ifndef u_finiteDifferences_H_
+#define u_finiteDifferences_H_
 
 #include <limits>
 
@@ -133,11 +133,11 @@ struct finite_difference_jacobian {
 	{ static_cast<Derived *>(this)->approx(ff, offset, px, out); }
 
 	template <typename T1>
-	void operator()(T1 ff, int _thrId, double *_point,
+	void operator()(T1 ff, int u_thrId, double *u_point,
 			double offset, int px, int numIter, double *grid)
 	{
-		thrId = _thrId;
-		point = _point;
+		thrId = u_thrId;
+		point = u_point;
 		orig = point[px];
     Eigen::Map< Eigen::ArrayXXd > Egrid(grid, refRows, numIter);
 
@@ -242,9 +242,9 @@ class JacobianGadget {
 
  public:
 
-	JacobianGadget(int _numFree) :
+	JacobianGadget(int u_numFree) :
     name("JacobianGadget"),
-    numFree(_numFree), algo(Global->gradientAlgo), numIter(Global->gradientIter),
+    numFree(u_numFree), algo(Global->gradientAlgo), numIter(Global->gradientIter),
     eps(Global->gradientStepSize), curNumThreads(1)
 	{}
 
@@ -253,11 +253,11 @@ class JacobianGadget {
   void setNumThreads(int th)
   { curNumThreads = th; }
 
-  void setAlgoOptions(GradientAlgorithm _algo,	int _numIter, double _eps)
+  void setAlgoOptions(GradientAlgorithm u_algo,	int u_numIter, double u_eps)
   {
-    algo = _algo;
-    numIter = _numIter;
-    eps = _eps;
+    algo = u_algo;
+    numIter = u_numIter;
+    eps = u_eps;
   }
 
   // ff -- the function to evaluate

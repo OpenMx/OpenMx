@@ -27,8 +27,8 @@
  *
  **********************************************************/
 
-#ifndef _OMXMATRIX_H_
-#define _OMXMATRIX_H_
+#ifndef u_OMXMATRIX_H_
+#define u_OMXMATRIX_H_
 
 #include <R_ext/Arith.h>
 #include <memory>
@@ -44,8 +44,8 @@ struct populateLocation {
 	int destRow, destCol;
 
 	populateLocation() {};
-	populateLocation(int _from, int _srcRow, int _srcCol, int _destRow, int _destCol)
-	: from(_from), srcRow(_srcRow), srcCol(_srcCol), destRow(_destRow), destCol(_destCol) {};
+	populateLocation(int u_from, int u_srcRow, int u_srcCol, int u_destRow, int u_destCol)
+	: from(u_from), srcRow(u_srcRow), srcCol(u_srcCol), destRow(u_destRow), destCol(u_destCol) {};
 	void transpose() { std::swap(destRow, destCol); }
 };
 
@@ -674,4 +674,4 @@ template <typename T> void omxMatrix::loadFromStream(T &st)
 
 void MatrixInvert1(omxMatrix *target);
 
-#endif /* _OMXMATRIX_H_ */
+#endif /* u_OMXMATRIX_H_ */

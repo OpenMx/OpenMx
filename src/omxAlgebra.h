@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMXALGEBRA_H_
-#define _OMXALGEBRA_H_
+#ifndef u_OMXALGEBRA_H_
+#define u_OMXALGEBRA_H_
 
 #include "omxDefines.h"
 #include <R_ext/Rdynload.h> 
@@ -75,4 +75,4 @@ void omxAlgebraPrint(omxAlgebra *source, const char* d);
 
 void connectMatrixToExpectation(omxMatrix *result, omxExpectation *ex, const char *what);
 
-#endif /* _OMXALGEBRA_H_ */
+#endif /* u_OMXALGEBRA_H_ */

@@ -1,5 +1,5 @@
-#ifndef __path_h_
-#define __path_h_
+#ifndef u__path_h_
+#define u__path_h_
 
 #include <Eigen/Eigenvalues>
 #include <Eigen/Sparse>
@@ -159,29 +159,29 @@ class PathCalc {
 		init2();
 	}
 
-	void attach(int _numVars, int _numObs,
-							std::vector<bool> &_latentFilter,
-							std::vector<bool> &_isProductNode,
-							PathCalcIO *_mio,
-							PathCalcIO *_aio,
-							PathCalcIO *_sio)
+	void attach(int u_numVars, int u_numObs,
+							std::vector<bool> &u_latentFilter,
+							std::vector<bool> &u_isProductNode,
+							PathCalcIO *u_mio,
+							PathCalcIO *u_aio,
+							PathCalcIO *u_sio)
 	{
-		numVars = _numVars;
-		numObs = _numObs;
-		latentFilter = &_latentFilter;
-		isProductNode = &_isProductNode;
-		if (_mio) mio = std::unique_ptr<PathCalcIO>(_mio);
-		aio = std::unique_ptr<PathCalcIO>(_aio);
-		sio = std::unique_ptr<PathCalcIO>(_sio);
+		numVars = u_numVars;
+		numObs = u_numObs;
+		latentFilter = &u_latentFilter;
+		isProductNode = &u_isProductNode;
+		if (u_mio) mio = std::unique_ptr<PathCalcIO>(u_mio);
+		aio = std::unique_ptr<PathCalcIO>(u_aio);
+		sio = std::unique_ptr<PathCalcIO>(u_sio);
 	}
 
-  void attachSelection(omxMatrix *_selVec, DataFrame _selPlan)
+  void attachSelection(omxMatrix *u_selVec, DataFrame u_selPlan)
   {
-    if (_selPlan.nrows() == 0) return;
-    selPlan.resize(_selPlan.nrows());
+    if (u_selPlan.nrows() == 0) return;
+    selPlan.resize(u_selPlan.nrows());
 
-    selVec = _selVec;
-    IntegerVector step = _selPlan["step"];
+    selVec = u_selVec;
+    IntegerVector step = u_selPlan["step"];
     {
       int selCount = 1;
       int prevStep = step[0];
@@ -195,10 +195,10 @@ class PathCalc {
     }
 
     int curStep = step[0];
-    for (int rx=0, sx=0; rx < _selPlan.nrows(); ++rx) {
-      IntegerVector step = _selPlan["step"];
-      IntegerVector from = _selPlan["from"];
-      IntegerVector to = _selPlan["to"];
+    for (int rx=0, sx=0; rx < u_selPlan.nrows(); ++rx) {
+      IntegerVector step = u_selPlan["step"];
+      IntegerVector from = u_selPlan["from"];
+      IntegerVector to = u_selPlan["to"];
       auto &spr = selPlan[rx];
       spr.step = step[rx];
       spr.from = from[rx];
@@ -206,9 +206,9 @@ class PathCalc {
       auto &s1 = selSteps[sx];
       s1.selFilter[ from[rx] ] = true;
       s1.selFilter[ to[rx] ] = true;
-      if (rx == _selPlan.nrows()-1 || step[rx+1] != curStep) {
+      if (rx == u_selPlan.nrows()-1 || step[rx+1] != curStep) {
         s1.selDim = std::accumulate(s1.selFilter.begin(), s1.selFilter.end(), 0);
-        if (rx < _selPlan.nrows()-1) {
+        if (rx < u_selPlan.nrows()-1) {
           curStep = step[rx+1];
           ++sx;
         }
@@ -216,13 +216,13 @@ class PathCalc {
     }
   }
 
-  void attachFullMemory(omxMatrix *_mean, omxMatrix *_cov)
+  void attachFullMemory(omxMatrix *u_mean, omxMatrix *u_cov)
   {
-    fullMeanAccess = _mean;
-    fullCovAccess = _cov;
+    fullMeanAccess = u_mean;
+    fullCovAccess = u_cov;
   }
 
-	void setAlgo(FitContext *fc, bool _boker2019, int _useSparse);
+	void setAlgo(FitContext *fc, bool u_boker2019, int u_useSparse);
 
 	// called by omxRAMExpectation::populateAttr
 	template <typename T>
@@ -404,4 +404,4 @@ void PathCalc::cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
   }
 }
 
-#endif // __path_h_
+#endif // u__path_h_

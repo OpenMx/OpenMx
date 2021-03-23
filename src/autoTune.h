@@ -1,5 +1,5 @@
-#ifndef _AutoTune_H_
-#define _AutoTune_H_
+#ifndef u_AutoTune_H_
+#define u_AutoTune_H_
 
 #include "omxDefines.h"
 
@@ -66,8 +66,8 @@ class AutoTune {
   }
 
  public:
-  AutoTune(const char *_name) :
-  name(_name), ELAPSED_HISTORY_SIZE(3), used(false) {
+  AutoTune(const char *u_name) :
+  name(u_name), ELAPSED_HISTORY_SIZE(3), used(false) {
     setMaxThreads(1);
   }
 

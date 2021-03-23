@@ -100,17 +100,17 @@ void PathCalc::init2()
 	algoSet = true;
 }
 
-void PathCalc::setAlgo(FitContext *fc, bool _boker2019, int _useSparse)
+void PathCalc::setAlgo(FitContext *fc, bool u_boker2019, int u_useSparse)
 {
-	if (!_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
+	if (!u_boker2019 && std::any_of(isProductNode->begin(), isProductNode->end(),
 																 [](bool x){ return x; })) {
 		mxThrow("Must use Boker2019 when product nodes are present");
 	}
-  if (_boker2019 && selSteps.size()) {
+  if (u_boker2019 && selSteps.size()) {
     mxThrow("Must avoid Boker2019 when using arrows=0 paths");
   }
-	boker2019 = _boker2019;
-	useSparse = _useSparse;
+	boker2019 = u_boker2019;
+	useSparse = u_useSparse;
 
 	init1();
 

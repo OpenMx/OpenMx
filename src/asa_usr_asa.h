@@ -1,5 +1,5 @@
-#ifndef _ASA_USER_ASA_H_
-#define _ASA_USER_ASA_H_
+#ifndef u_ASA_USER_ASA_H_
+#define u_ASA_USER_ASA_H_
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -780,4 +780,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* _ASA_USER_ASA_H_ */
+#endif                          /* u_ASA_USER_ASA_H_ */

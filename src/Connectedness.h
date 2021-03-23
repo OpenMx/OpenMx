@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _CONNECTEDNESS_HPP_
-#define _CONNECTEDNESS_HPP_
+#ifndef u_CONNECTEDNESS_HPP_
+#define u_CONNECTEDNESS_HPP_
 
 #include <set>
 
@@ -51,9 +51,9 @@ namespace UndirectedGraph {
 			}
 		}
 	public:
-		Connectedness(std::vector<int> &_region, SubgraphType &_connected,
-			      int size, bool _verbose) :
-			region(_region), connected(_connected), verbose(_verbose)
+		Connectedness(std::vector<int> &u_region, SubgraphType &u_connected,
+			      int size, bool u_verbose) :
+			region(u_region), connected(u_connected), verbose(u_verbose)
 		{
 			region.assign(size, -1);
 			connected.clear();

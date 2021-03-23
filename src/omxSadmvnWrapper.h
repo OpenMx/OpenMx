@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef _OMXSADMVNWRAPPER_H
-#define _OMXSADMVNWRAPPER_H
+#ifndef u_OMXSADMVNWRAPPER_H
+#define u_OMXSADMVNWRAPPER_H
 
 #include "omxData.h"
 #include "Connectedness.h"
@@ -135,12 +135,12 @@ public:
 	}
 
 	template <typename T>
-	void attach(const Eigen::MatrixBase<T> &dc, omxData *_data, TFn _getThreshold,
+	void attach(const Eigen::MatrixBase<T> &dc, omxData *u_data, TFn u_getThreshold,
 		    std::vector< omxThresholdColumn > &colInfo)
 	{
 		dataColumns = dc;
-		this->data = _data;
-		getThreshold = _getThreshold;
+		this->data = u_data;
+		getThreshold = u_getThreshold;
 		this->colInfoPtr = &colInfo;
 	}
 
@@ -420,7 +420,7 @@ double OrdinalLikelihood::block::likelihood(FitContext *fc, int row)
 */
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &xn, int nn,
+bool u_dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &xn, int nn,
 			const Eigen::MatrixBase<T2> &sigma,
 			const Eigen::MatrixBase<T3> &lower, const Eigen::MatrixBase<T4> &upper,
 			Eigen::MatrixBase<T5> &density)
@@ -454,7 +454,7 @@ bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1>
 	MatrixXd A_1;
 	struct subset1 {
 		int nn;
-		subset1(int _nn) : nn(_nn) {};
+		subset1(int u_nn) : nn(u_nn) {};
 		bool operator()(int rr) { return rr != nn; };
 	} op1(nn);
 
@@ -524,7 +524,7 @@ bool _dtmvnorm_marginal(FitContext *fc, double prob, const Eigen::MatrixBase<T1>
 # pmvnorm(corr=) kann ich verwenden
  */
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
+bool u_dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T1> &xq, const Eigen::MatrixBase<T2> &xr,
 			 int qq, int rr,
 			 const Eigen::MatrixBase<T3> &sigma,
 			 const Eigen::MatrixBase<T4> &lower, const Eigen::MatrixBase<T5> &upper,
@@ -554,7 +554,7 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 	struct subset1 {
 		int qq, rr;
 		bool flip;
-		subset1(int _qq, int _rr) : qq(_qq), rr(_rr), flip(false) {};
+		subset1(int u_qq, int u_rr) : qq(u_qq), rr(u_rr), flip(false) {};
 		bool operator()(int nn) { return (rr == nn || qq == nn) ^ flip; };
 	} op1(qq, rr);
 
@@ -648,7 +648,7 @@ bool _dtmvnorm_marginal2(FitContext *fc, double alpha, const Eigen::MatrixBase<T
 // are a large number of ordinal patterns.
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
-bool _mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
+bool u_mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
 	       const Eigen::MatrixBase<T2> &lower, const Eigen::MatrixBase<T3> &upper,
 	       Eigen::MatrixBase<T4> &xi, Eigen::MatrixBase<T5> &U11)
 {
@@ -667,7 +667,7 @@ bool _mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
 	for (int qq=0; qq < kk; ++qq) {
 		marginalBounds[0] = lower[qq];
 		marginalBounds[1] = upper[qq];
-		if (!_dtmvnorm_marginal(fc, prob, marginalBounds, qq, sigma, lower, upper, marginalOut)) return false;
+		if (!u_dtmvnorm_marginal(fc, prob, marginalBounds, qq, sigma, lower, upper, marginalOut)) return false;
 		F_a[qq] = marginalOut[0];
 		F_b[qq] = marginalOut[1];
 	}
@@ -682,7 +682,7 @@ bool _mtmvnorm(FitContext *fc, double prob, const Eigen::MatrixBase<T1> &sigma,
 		for (int ss=qq+1; ss < kk; ++ss) { //row
 			xq << lower[qq], upper[qq], lower[qq], upper[qq];
 			xr << lower[ss], lower[ss], upper[ss], upper[ss];
-			if (!_dtmvnorm_marginal2(fc, prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out)) return false;
+			if (!u_dtmvnorm_marginal2(fc, prob, xq, xr, qq, ss, sigma, lower, upper, marginal2Out)) return false;
 			F2(qq,ss) = (marginal2Out[0] - marginal2Out[1]) - (marginal2Out[2] - marginal2Out[3]);
 		}
 	}

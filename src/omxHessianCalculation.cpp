@@ -88,8 +88,8 @@ class omxComputeNumericDeriv : public omxCompute {
 		const int numParams;
 		double *hessian;
 		struct hess_struct *hessWorkVector;
-		calcHessianEntry(omxComputeNumericDeriv *_cnd) :
-			cnd(*_cnd), numParams(cnd.numParams), hessian(cnd.hessian),
+		calcHessianEntry(omxComputeNumericDeriv *u_cnd) :
+			cnd(*u_cnd), numParams(cnd.numParams), hessian(cnd.hessian),
 			hessWorkVector(cnd.hessWorkVector)
 		{};
 		int getNumCols() { return numParams; };

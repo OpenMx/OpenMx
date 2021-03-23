@@ -7,7 +7,7 @@
 struct fit_functional {
 	GradientOptimizerContext &goc;
 
-	fit_functional(GradientOptimizerContext &_goc) : goc(_goc) {};
+	fit_functional(GradientOptimizerContext &u_goc) : goc(u_goc) {};
 
 	double operator()(double *x, int thrId) const {
 		int mode = 0;

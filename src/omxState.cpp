@@ -862,7 +862,7 @@ void diagParallel(int verbose, const char* msg, ...)
 	}
 }
 
-void _omxRaiseError()
+void u_omxRaiseError()
 {
 	// keep for debugger breakpoints
 }
@@ -874,7 +874,7 @@ void omxRaiseErrorf(const char* msg, ...)
 	va_start(ap, msg);
 	string_vsnprintf(msg, ap, str);
 	va_end(ap);
-	_omxRaiseError();
+	u_omxRaiseError();
 
 	if(OMX_DEBUG) {
 		mxLog("Error raised: %s", str.c_str());
@@ -982,9 +982,9 @@ void UserConstraint::preeval(FitContext *fc)
 	omxRecompute(pad, fc);
 }
 
-UserConstraint::UserConstraint(FitContext *fc, const char *_name, omxMatrix *arg1,
-                               omxMatrix *arg2, omxMatrix *jac, int _verbose) :
-	super(_name), verbose(_verbose)
+UserConstraint::UserConstraint(FitContext *fc, const char *u_name, omxMatrix *arg1,
+                               omxMatrix *arg2, omxMatrix *jac, int u_verbose) :
+	super(u_name), verbose(u_verbose)
 {
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
@@ -1067,9 +1067,9 @@ void omxConstraint::recalcSize()
   size = std::count(redundant.begin(), redundant.end(), false);
 }
 
-ConstraintVec::ConstraintVec(FitContext *fc, const char *_name,
-                             ConstraintVec::ClassifyFn _cf) :
-  name(_name), cf(_cf), ineqAlwaysActive(false)
+ConstraintVec::ConstraintVec(FitContext *fc, const char *u_name,
+                             ConstraintVec::ClassifyFn u_cf) :
+  name(u_name), cf(u_cf), ineqAlwaysActive(false)
 {
   verbose = 0;
   count = 0;

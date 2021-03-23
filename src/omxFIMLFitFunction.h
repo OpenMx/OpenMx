@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef _OMXFIMLFITFUNCTION_H_
-#define _OMXFIMLFITFUNCTION_H_
+#ifndef u_OMXFIMLFITFUNCTION_H_
+#define u_OMXFIMLFITFUNCTION_H_
 
 #include "omxFitFunction.h"
 #include "omxSadmvnWrapper.h"
@@ -191,25 +191,25 @@ class mvnByRow {
 		std::vector<bool> &isOrdinal;
 		std::vector<bool> &isMissing;
 		bool wantOrdinal;
-	subsetOp(std::vector<bool> &_isOrdinal,
-		 std::vector<bool> &_isMissing) : isOrdinal(_isOrdinal), isMissing(_isMissing) {};
+	subsetOp(std::vector<bool> &u_isOrdinal,
+		 std::vector<bool> &u_isMissing) : isOrdinal(u_isOrdinal), isMissing(u_isMissing) {};
 		// true to include
 		bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
 	} op;
 
-	mvnByRow(FitContext *_fc, omxFitFunction *_localobj,
-		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
+	mvnByRow(FitContext *u_fc, omxFitFunction *u_localobj,
+		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
 	:
-	ofo((omxFIMLFitFunction*) _localobj),
+	ofo((omxFIMLFitFunction*) u_localobj),
 		shared_ofo(ofo->parent? ofo->parent : ofo),
-		expectation(_localobj->expectation),
+		expectation(u_localobj->expectation),
 		ol(ofo->ol),
 		indexVector(shared_ofo->indexVector),
 		rows(int(indexVector.size())),
 		sameAsPrevious(shared_ofo->sameAsPrevious),
 		thresholdCols(expectation->getThresholdInfo()),
 		dataColumns(expectation->getDataColumns()),
-		isOrdinal(_ofiml->isOrdinal),
+		isOrdinal(u_ofiml->isOrdinal),
 		rowMult(shared_ofo->rowMult),
 		op(isOrdinal, isMissing)
 	{
@@ -222,14 +222,14 @@ class mvnByRow {
 		firstRow = true;
 		cov = ofo->cov;
 		means = ofo->means;
-		fc = _fc;
-		ofiml = _ofiml;
-		parent = _parent;
+		fc = u_fc;
+		ofiml = u_ofiml;
+		parent = u_parent;
 		rowLikelihoods = ofiml->rowLikelihoods;
 		returnVector = ofiml->returnVector;
 		wantRowLikelihoods = ofiml->wantRowLikelihoods;
 		otherRowwiseValues = ofiml->otherRowwiseValues;
-		localobj = _localobj;
+		localobj = u_localobj;
 		omxSetMatrixElement(localobj->matrix, 0, 0, 0.0);
 		numOrdinal = ofiml->numOrdinal;
 		numContinuous = ofiml->numContinuous;
@@ -442,26 +442,26 @@ class mvnByRow {
 
 struct condContByRow : mvnByRow {
 	typedef mvnByRow super;
-	condContByRow(FitContext *_fc, omxFitFunction *_localobj,
-		      omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
-		: super(_fc, _localobj, _parent, _ofiml) {};
+	condContByRow(FitContext *u_fc, omxFitFunction *u_localobj,
+		      omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
+		: super(u_fc, u_localobj, u_parent, u_ofiml) {};
 	bool eval();
 };
 
 struct oldByRow : mvnByRow {
 	typedef mvnByRow super;
-	oldByRow(FitContext *_fc, omxFitFunction *_localobj,
-		 omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
-		: super(_fc, _localobj, _parent, _ofiml) {};
+	oldByRow(FitContext *u_fc, omxFitFunction *u_localobj,
+		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
+		: super(u_fc, u_localobj, u_parent, u_ofiml) {};
 	bool eval();
 };
 
 struct condOrdByRow : mvnByRow {
 	typedef mvnByRow super;
-	condOrdByRow(FitContext *_fc, omxFitFunction *_localobj,
-		     omxFIMLFitFunction *_parent, omxFIMLFitFunction *_ofiml)
-		: super(_fc, _localobj, _parent, _ofiml) {};
+	condOrdByRow(FitContext *u_fc, omxFitFunction *u_localobj,
+		     omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
+		: super(u_fc, u_localobj, u_parent, u_ofiml) {};
 	bool eval();
 };
 
-#endif /* _OMXFIMLFITFUNCTION_H_ */
+#endif /* u_OMXFIMLFITFUNCTION_H_ */

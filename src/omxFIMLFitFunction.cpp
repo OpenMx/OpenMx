@@ -146,7 +146,7 @@ bool condOrdByRow::eval()
             reportBadOrdLik(6); return true;
           }
 					if (ordLik == 0.0 ||
-					    !_mtmvnorm(fc, ordLik, ordCov, lThresh, uThresh, xi, U11)) {
+					    !u_mtmvnorm(fc, ordLik, ordCov, lThresh, uThresh, xi, U11)) {
 						reportBadOrdLik(1);
 						return true;
 					}
@@ -462,8 +462,8 @@ struct FIMLCompare {
 	std::vector<bool> ordinal;
 	bool ordinalFirst;
 
-	FIMLCompare(omxExpectation *_ex) {
-		ex = _ex;
+	FIMLCompare(omxExpectation *u_ex) {
+		ex = u_ex;
 		ordinalFirst = true;
 		data = ex->data;
 
@@ -755,18 +755,18 @@ static void sortData(omxFitFunction *off)
 	}
 }
 
-static bool dispatchByRow(FitContext *_fc, omxFitFunction *_localobj,
+static bool dispatchByRow(FitContext *u_fc, omxFitFunction *u_localobj,
 			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml)
 {
   if (parent->verbose >= 4) mxLog("%s: jointStrat %d", ofiml->name(), ofiml->jointStrat);
 	switch (ofiml->jointStrat) {
 	case JOINT_CONDORD:{
-		condOrdByRow batch(_fc, _localobj, parent, ofiml);
+		condOrdByRow batch(u_fc, u_localobj, parent, ofiml);
 		return batch.eval();
 	}
 	case JOINT_AUTO:
 	case JOINT_CONDCONT:{
-		condContByRow batch(_fc, _localobj, parent, ofiml);
+		condContByRow batch(u_fc, u_localobj, parent, ofiml);
 		return batch.eval();
 	}
 	default: OOPS;

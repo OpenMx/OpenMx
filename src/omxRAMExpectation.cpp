@@ -54,7 +54,7 @@ unsigned omxRAMExpectation::ApcIO::getVersion(FitContext *fc)
 
 template <typename T>
 void omxRAMExpectation::ApcIO::
-_refresh(FitContext *fc, T &mat, double sign)
+u_refresh(FitContext *fc, T &mat, double sign)
 {
 	omxMatrix *A = !fc? A0 : fc->state->lookupDuplicate(A0);
 	if (sign == 1) {
@@ -77,7 +77,7 @@ unsigned omxRAMExpectation::SpcIO::getVersion(FitContext *fc)
 }
 
 template <typename T>
-void omxRAMExpectation::SpcIO::_refresh(FitContext *fc, T &mat)
+void omxRAMExpectation::SpcIO::u_refresh(FitContext *fc, T &mat)
 {
 	omxMatrix *S = !fc? S0 : fc->state->lookupDuplicate(S0);
 	omxRecompute(S, fc);
@@ -862,7 +862,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	template <typename T>
-	void independentGroup::ApcIO::_refresh(FitContext *fc, T &mat, double sign)
+	void independentGroup::ApcIO::u_refresh(FitContext *fc, T &mat, double sign)
 	{
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
@@ -933,7 +933,7 @@ namespace RelationalRAMExpectation {
 	}
 
 	template <typename T>
-	void independentGroup::SpcIO::_refresh(FitContext *fc, T &mat)
+	void independentGroup::SpcIO::u_refresh(FitContext *fc, T &mat)
 	{
 		for (int ax=0; ax < clumpSize; ++ax) {
 			placement &pl = par.placements[ax];
@@ -1057,7 +1057,7 @@ namespace RelationalRAMExpectation {
 
 	struct CompareLib {
 		state &st;
-		CompareLib(state *_st) : st(_st->getParent()) {};
+		CompareLib(state *u_st) : st(u_st->getParent()) {};
 
 		// actually stores !missingness
 		template <typename T>
@@ -1165,7 +1165,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct CompatibleCovCompare : CompareLib {
-		CompatibleCovCompare(state *_st) : CompareLib(_st) {};
+		CompatibleCovCompare(state *u_st) : CompareLib(u_st) {};
 
 		bool operator() (const std::vector<int> &lhs, const std::vector<int> &rhs) const
 		{
@@ -1182,7 +1182,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct CompatibleMeanCompare : CompareLib {
-		CompatibleMeanCompare(state *_st) : CompareLib(_st) {};
+		CompatibleMeanCompare(state *u_st) : CompareLib(u_st) {};
 
 		addr *joinedWith(const addr &la, int jx) const
 		{
@@ -1236,7 +1236,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct RampartTodoCompare : CompareLib {
-		RampartTodoCompare(state *_st) : CompareLib(_st) {};
+		RampartTodoCompare(state *u_st) : CompareLib(u_st) {};
 
 		bool operator() (const addr *lhs, const addr *rhs) const
 		{
@@ -1251,7 +1251,7 @@ namespace RelationalRAMExpectation {
 	};
 
 	struct RampartClumpCompare : CompareLib {
-		RampartClumpCompare(state *_st) : CompareLib(_st) {};
+		RampartClumpCompare(state *u_st) : CompareLib(u_st) {};
 
 		bool clumpCmp(const int lhs, const int rhs) const {
 			bool mismatch;
@@ -1565,8 +1565,8 @@ namespace RelationalRAMExpectation {
 		gMap.push_back(ax);
 	}
 
-	independentGroup::independentGroup(class state *_st, int size, int _clumpSize)
-		: st(*_st), clumpSize(_clumpSize)
+	independentGroup::independentGroup(class state *u_st, int size, int u_clumpSize)
+		: st(*u_st), clumpSize(u_clumpSize)
 	{
 		placements.reserve(size);
 	}
@@ -1795,7 +1795,7 @@ namespace RelationalRAMExpectation {
 	template <bool model>
 	struct UnitAccessor {
 		state &st;
-		UnitAccessor(state *_st) : st(*_st) {};
+		UnitAccessor(state *u_st) : st(*u_st) {};
 		bool isModel() const { return model; };
 
 		// split into coeff & coeffRef versions TODO
@@ -2146,7 +2146,7 @@ namespace RelationalRAMExpectation {
 
 	struct SimUnitAccessor {
 		state &st;
-		SimUnitAccessor(state *_st) : st(*_st) {};
+		SimUnitAccessor(state *u_st) : st(*u_st) {};
 
 		double &operator() (const int unit, const int obs)
 		{

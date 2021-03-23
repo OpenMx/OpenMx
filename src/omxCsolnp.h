@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_CSOLNP_SPECIFIC_H
-#define _OMX_CSOLNP_SPECIFIC_H
+#ifndef u_OMX_CSOLNP_SPECIFIC_H
+#define u_OMX_CSOLNP_SPECIFIC_H
 
 #include "omxMatrix.h"
 #include "Compute.h"
@@ -31,4 +31,4 @@ void omxInvokeCSOLNP(omxMatrix *fitMatrix, FitContext *fc, int *inform_out,
 void omxCSOLNPConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, int verbose,
                                   double tolerance);
 
-#endif // #define _OMX_CSOLNP_SPECIFIC_H
+#endif // #define u_OMX_CSOLNP_SPECIFIC_H

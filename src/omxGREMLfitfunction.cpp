@@ -55,27 +55,27 @@ struct omxGREMLFitState : omxFitFunction {
 	//Foundation for separate functions that compute fitfunction derivatives from dV:
 	template <typename T1, typename T2>
 	void gradientAndAIM1(
-			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-			double _Scale, Eigen::MatrixBase<T2> &_Py);
+			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py);
 
 	template <typename T1, typename T2, typename T3>
 	void gradientAndEIM1(
-			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-			double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy);
+			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy);
 
 	template <typename T1, typename T2, typename T3>
 	void gradientAndEIM2(
-			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-			double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy);
+			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy);
 
 	template <typename T1, typename T2, typename T3>
 	void gradientAndEIM3(
-			int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-			double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy);
+			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy);
 
 	template <typename T1, typename T2>
 	void crude_numeric_dV(
-		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
+		FitContext *u_fc, Eigen::MatrixBase<T1> &u_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
 
 	omxGREMLFitState() : jg(1) {};
 	virtual void init() override;
@@ -91,12 +91,12 @@ struct GREMLSense {
 	Eigen::MatrixXd result; //<--necessary?
 	FitContext *fc;
 
-	GREMLSense(omxGREMLFitState *_fs, FitContext *_fc, int _numcases2drop,  std::vector< int > &_dropcase)
-		: fs(_fs), fc(_fc){
-		numcases2drop = _numcases2drop;
-		dropcase.resize(_dropcase.size());
+	GREMLSense(omxGREMLFitState *u_fs, FitContext *u_fc, int u_numcases2drop,  std::vector< int > &u_dropcase)
+		: fs(u_fs), fc(u_fc){
+		numcases2drop = u_numcases2drop;
+		dropcase.resize(u_dropcase.size());
 		for(int dci=0; dci < int(dropcase.size()); dci++){
-			dropcase[dci] = _dropcase[dci];
+			dropcase[dci] = u_dropcase[dci];
 		}
 		Eigen::MatrixXd EigV(fs->cov->rows, fs->cov->cols);
 		if(numcases2drop && fs->cov->rows > fs->y->cols){
@@ -853,28 +853,28 @@ void omxGREMLFitState::compute(int want, FitContext *fc)
 //Foundation for separate functions that compute fitfunction derivatives from dV:
 template <typename T1, typename T2>
 void omxGREMLFitState::gradientAndAIM1(
-		int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-    double _Scale, Eigen::MatrixBase<T2> &_Py){
+		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+    double u_Scale, Eigen::MatrixBase<T2> &u_Py){
 	return;
 }
 template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndEIM1(
-		int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-		double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy){
-#pragma omp parallel num_threads(_nThreadz)
+		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy){
+#pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
 		int i=0, t1=0, a1=0, r=0, c=0;
 		double tr1=0;
 		Eigen::MatrixXd dV_dtheta1(Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter i.
-		//GREMLSense sense(this, _fc, _oge->numcases2drop, _oge->dropcase);
+		//GREMLSense sense(this, u_fc, u_oge->numcases2drop, u_oge->dropcase);
 		Eigen::VectorXd curEst(numExplicitFreePar);
-		_fc->copyEstToOptimizer(curEst);
+		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
 		int threadID = omx_absolute_thread_num();
-		int istart = threadID * numExplicitFreePar / _nThreadz;
-		int iend = (threadID+1) * numExplicitFreePar / _nThreadz;
-		if(threadID == _nThreadz-1){iend = numExplicitFreePar;}
+		int istart = threadID * numExplicitFreePar / u_nThreadz;
+		int iend = (threadID+1) * numExplicitFreePar / u_nThreadz;
+		if(threadID == u_nThreadz-1){iend = numExplicitFreePar;}
 		for(i=istart; i < iend; i++){
 			tr1=0;
 			t1 = gradMap[i]; //<--Parameter number for parameter i.
@@ -882,16 +882,16 @@ void omxGREMLFitState::gradientAndEIM1(
 			//If the Hessian isn't wanted, then we compute the gradient elements the fast way.
 			//If the Hessian is wanted, then we compute the gradient in a slower way, but
 			//which saves time when computing the expected information matrix:
-			if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+			if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 				Eigen::MatrixXd dV_dtheta2(Eigyrows, Eigyrows), dV_dtheta1P, dV_dtheta2P;
 				int j=0, t2=0, a2=0;
 				double tr2=0;
-				_hb->vars[i] = t1;
+				u_hb->vars[i] = t1;
 				if(didUserGivedV[t1] || derivType==1){
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 					if(didUserGivedV[t1]){
-						if( _oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[i], dV_dtheta1, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[i]);
+						if( u_oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
+							dropCasesAndEigenize(dV[i], dV_dtheta1, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[i]);
 						}
 						else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[i]), dV[i]->rows, dV[i]->cols);}
 					}
@@ -909,33 +909,33 @@ void omxGREMLFitState::gradientAndEIM1(
 						 }
 						 }
 						 */
-						crude_numeric_dV(_fc, curEst, dV_dtheta1, t1, _oge, (_nThreadz>1 ? threadID : -1));
+						crude_numeric_dV(u_fc, curEst, dV_dtheta1, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
 					}
 					//Eigen does not define a multiplication operator for selfadjointView times selfadjointView:
-					dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * _P;
+					dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_P;
 					tr1 = dV_dtheta1P.trace();
 					for(j=i; j < numExplicitFreePar; j++){
 						tr2=0;
 						if(j==i){
-							gradient(t1) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
-								_Scale*pullAugVal(1,a1,0);
-							if(_want & FF_COMPUTE_GRADIENT){
-								_fc->gradZ(t1) += gradient(t1);
+							gradient(t1) = u_Scale*0.5*(tr1 - (u_Py.transpose() * dV_dtheta1P * u_Eigy)(0,0)) +
+								u_Scale*pullAugVal(1,a1,0);
+							if(u_want & FF_COMPUTE_GRADIENT){
+								u_fc->gradZ(t1) += gradient(t1);
 							}
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
 									tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
 								}
 							}
-							infoMat(t1,t1) = _Scale*0.5*tr2 + _Scale*pullAugVal(2,a1,a1);
+							infoMat(t1,t1) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 						}
 						else{
 							t2 = gradMap[j]; //<--Parameter number for parameter j.
 							if(t2 < 0){continue;}
 							a2 = dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 							if(didUserGivedV[t2]){
-								if( _oge->numcases2drop && (dV[j]->rows > Eigyrows) ){
-									dropCasesAndEigenize(dV[j], dV_dtheta2, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[j]);
+								if( u_oge->numcases2drop && (dV[j]->rows > Eigyrows) ){
+									dropCasesAndEigenize(dV[j], dV_dtheta2, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[j]);
 								}
 								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[j]), dV[j]->rows, dV[j]->cols);}
 							}
@@ -953,23 +953,23 @@ void omxGREMLFitState::gradientAndEIM1(
 								 }
 								 }
 								 */
-								crude_numeric_dV(_fc, curEst, dV_dtheta2, t2, _oge, (_nThreadz>1 ? threadID : -1));
+								crude_numeric_dV(u_fc, curEst, dV_dtheta2, t2, u_oge, (u_nThreadz>1 ? threadID : -1));
 							}
-							dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * _P;//.template selfadjointView<Eigen::Lower>();
+							dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;//.template selfadjointView<Eigen::Lower>();
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
 									tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
 								}
 							}
-							infoMat(t1,t2) = _Scale*0.5*tr2 + _Scale*pullAugVal(2,a1,a2);
+							infoMat(t1,t2) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 							infoMat(t2,t1) = infoMat(t1,t2);
 						}
 					}
 				}
 				else{
 					gradient(t1) = NA_REAL;
-					if(_want & FF_COMPUTE_GRADIENT){
-						_fc->gradZ(t1) = NA_REAL;
+					if(u_want & FF_COMPUTE_GRADIENT){
+						u_fc->gradZ(t1) = NA_REAL;
 					}
 				}
 			}
@@ -979,8 +979,8 @@ void omxGREMLFitState::gradientAndEIM1(
 				if(didUserGivedV[t1] || derivType==1){
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 					if(didUserGivedV[t1]){
-						if( _oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[i], dV_dtheta1, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[i]);
+						if( u_oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
+							dropCasesAndEigenize(dV[i], dV_dtheta1, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[i]);
 						}
 						else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[i]), dV[i]->rows, dV[i]->cols);}
 					}
@@ -998,28 +998,28 @@ void omxGREMLFitState::gradientAndEIM1(
 						 }
 						 }
 						 */
-						crude_numeric_dV(_fc, curEst, dV_dtheta1, t1, _oge, (_nThreadz>1 ? threadID : -1));
+						crude_numeric_dV(u_fc, curEst, dV_dtheta1, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
 					}
-					ytPdV_dtheta1 = _Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
+					ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 					/*Need trace of P*dV_dtheta for gradient element...
 					 Frustratingly, the selfadjointView has no row or column accessor function among its members.
 					 But the trace of a product of two square symmetric matrices is the sum of the elements of
 					 their elementwise product.*/
 					for(c=0; c < cov->rows; c++){
 						for(r=c; r < cov->rows; r++){
-							tr1 += (r==c) ? _P(r,c)*dV_dtheta1(r,c) : 2*_P(r,c)*dV_dtheta1(r,c);
+							tr1 += (r==c) ? u_P(r,c)*dV_dtheta1(r,c) : 2*u_P(r,c)*dV_dtheta1(r,c);
 						}
 					}
-					gradient(t1) = _Scale*0.5*(tr1 - (ytPdV_dtheta1 * _Py)(0,0)) +
-						_Scale*pullAugVal(1,a1,0);
-					if(_want & FF_COMPUTE_GRADIENT){
-						_fc->gradZ(t1) += gradient(t1);
+					gradient(t1) = u_Scale*0.5*(tr1 - (ytPdV_dtheta1 * u_Py)(0,0)) +
+						u_Scale*pullAugVal(1,a1,0);
+					if(u_want & FF_COMPUTE_GRADIENT){
+						u_fc->gradZ(t1) += gradient(t1);
 					}
 				}
 				else{
 					gradient(t1) = NA_REAL;
-					if(_want & FF_COMPUTE_GRADIENT){
-						_fc->gradZ(t1) = NA_REAL;
+					if(u_want & FF_COMPUTE_GRADIENT){
+						u_fc->gradZ(t1) = NA_REAL;
 					}
 				}
 			}
@@ -1037,18 +1037,18 @@ void omxGREMLFitState::gradientAndEIM1(
 
 template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndEIM2(
-		int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-		double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy){
-#pragma omp parallel num_threads(_nThreadz)
+		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy){
+#pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
 		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, t1, t2;
 		double tr1=0, tr2=0;
 		Eigen::MatrixXd dV_dtheta1(Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hrn.
 		Eigen::MatrixXd dV_dtheta1P, dV_dtheta2P;
-		//GREMLSense sense(this, _fc, _oge->numcases2drop, _oge->dropcase);
+		//GREMLSense sense(this, u_fc, u_oge->numcases2drop, u_oge->dropcase);
 		Eigen::VectorXd curEst(numExplicitFreePar);
-		_fc->copyEstToOptimizer(curEst);
+		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
 		int threadID = omx_absolute_thread_num();
 		int istart = 0;
@@ -1060,10 +1060,10 @@ void omxGREMLFitState::gradientAndEIM2(
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
-				if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){_hb->vars[hrn] = t1;}
+				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
 				if(didUserGivedV[t1]){
-					if( _oge->numcases2drop && (dV[hrn]->rows > Eigyrows)){
-						dropCasesAndEigenize(dV[hrn], dV_dtheta1, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[hrn]);
+					if( u_oge->numcases2drop && (dV[hrn]->rows > Eigyrows)){
+						dropCasesAndEigenize(dV[hrn], dV_dtheta1, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[hrn]);
 					}
            else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[hrn]), dV[hrn]->rows, dV[hrn]->cols);}
 				}
@@ -1081,38 +1081,38 @@ void omxGREMLFitState::gradientAndEIM2(
 					 }
 					 }
 					 */
-					crude_numeric_dV(_fc, curEst, dV_dtheta1, t1, _oge, (_nThreadz>1 ? threadID : -1));
+					crude_numeric_dV(u_fc, curEst, dV_dtheta1, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
 				}
 				//Eigen does not define a multiplication operator for selfadjointView times selfadjointView:
-				dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * _P;
+				dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_P;
 				tr1 = dV_dtheta1P.trace();
 				for(hcn=hrn; hcn < numExplicitFreePar; hcn++){
 					tr2=0;
 					if(hcn==hrn){
-						gradient(hrn) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
-							_Scale*pullAugVal(1,a1,0);
-						if(_want & FF_COMPUTE_GRADIENT){
-							_fc->gradZ(hrn) += gradient(hrn);
+						gradient(hrn) = u_Scale*0.5*(tr1 - (u_Py.transpose() * dV_dtheta1P * u_Eigy)(0,0)) +
+							u_Scale*pullAugVal(1,a1,0);
+						if(u_want & FF_COMPUTE_GRADIENT){
+							u_fc->gradZ(hrn) += gradient(hrn);
 						}
-						if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
 									tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
 								}
 							}
-							infoMat(hrn,hrn)  = _Scale*0.5*tr2 + _Scale*pullAugVal(2,a1,a1);
+							infoMat(hrn,hrn)  = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 						}
 					}
 					//I think it can be assumed at this point that the Hessian is wanted?:
 					else{
-						if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							Eigen::MatrixXd dV_dtheta2(Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hcn.
 							t2 = gradMap[hcn];
 							if(t2 < 0){continue;}
 							a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 							if(didUserGivedV[t2]){
-								if( _oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
-									dropCasesAndEigenize(dV[hcn], dV_dtheta2, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[hcn]);
+								if( u_oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
+									dropCasesAndEigenize(dV[hcn], dV_dtheta2, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[hcn]);
 								}
 								else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[hcn]), dV[hcn]->rows, dV[hcn]->cols);}
 							}
@@ -1130,15 +1130,15 @@ void omxGREMLFitState::gradientAndEIM2(
 								 }
 								 }
 								 */
-								crude_numeric_dV(_fc, curEst, dV_dtheta2, t2, _oge, (_nThreadz>1 ? threadID : -1));
+								crude_numeric_dV(u_fc, curEst, dV_dtheta2, t2, u_oge, (u_nThreadz>1 ? threadID : -1));
 							}
-							dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * _P;
+							dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
 							for(c=0; c < cov->rows; c++){
 								for(r=0; r < cov->rows; r++){
 									tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
 								}
 							}
-							infoMat(hrn,hcn) = _Scale*0.5*tr2 + _Scale*pullAugVal(2,a1,a2);
+							infoMat(hrn,hcn) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 							infoMat(hcn,hrn) = infoMat(hrn,hcn);
 						}
 					}
@@ -1146,8 +1146,8 @@ void omxGREMLFitState::gradientAndEIM2(
 			}
 			else{
 				gradient(hrn) = NA_REAL;
-				if(_want & FF_COMPUTE_GRADIENT){
-					_fc->gradZ(hrn) = NA_REAL;
+				if(u_want & FF_COMPUTE_GRADIENT){
+					u_fc->gradZ(hrn) = NA_REAL;
 				}
 			}
 		}
@@ -1163,18 +1163,18 @@ void omxGREMLFitState::gradientAndEIM2(
 
 template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndEIM3(
-		int _nThreadz, int Eigyrows, FitContext *_fc, int _want, HessianBlock *_hb, omxGREMLExpectation *_oge, Eigen::MatrixBase<T1> &_P,
-		double _Scale, Eigen::MatrixBase<T2> &_Py, Eigen::MatrixBase<T3> &_Eigy){
-#pragma omp parallel num_threads(_nThreadz)
+		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy){
+#pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
 		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0, t1, t2;
 		double tr1=0, tr2=0;
 		Eigen::MatrixXd dV_dtheta1(Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hrn.
 		Eigen::MatrixXd dV_dtheta1P, dV_dtheta2P;
-		//GREMLSense sense(this, _fc, _oge->numcases2drop, _oge->dropcase);
+		//GREMLSense sense(this, u_fc, u_oge->numcases2drop, u_oge->dropcase);
 		Eigen::VectorXd curEst(numExplicitFreePar);
-		_fc->copyEstToOptimizer(curEst);
+		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
 		int threadID = omx_absolute_thread_num();
 		int iend = AIMelembins[threadID].size();
@@ -1193,11 +1193,11 @@ void omxGREMLFitState::gradientAndEIM3(
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
-				if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){_hb->vars[hrn] = t1;}
+				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
 				if(hrn==hcn || i==0){
 					if(didUserGivedV[t1]){
-						if( _oge->numcases2drop && (dV[hrn]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[hrn], dV_dtheta1, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[hrn]);
+						if( u_oge->numcases2drop && (dV[hrn]->rows > Eigyrows) ){
+							dropCasesAndEigenize(dV[hrn], dV_dtheta1, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[hrn]);
 						}
 						else{dV_dtheta1 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[hrn]), dV[hrn]->rows, dV[hrn]->cols);}
 					}
@@ -1215,35 +1215,35 @@ void omxGREMLFitState::gradientAndEIM3(
 						 }
 						 }
 						 */
-						crude_numeric_dV(_fc, curEst, dV_dtheta1, t1, _oge, (_nThreadz>1 ? threadID : -1));
+						crude_numeric_dV(u_fc, curEst, dV_dtheta1, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
 					}
-					dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * _P;
+					dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_P;
 					tr1 = dV_dtheta1P.trace();
 				}
 				if(hrn==hcn){
-					gradient(hrn) = _Scale*0.5*(tr1 - (_Py.transpose() * dV_dtheta1P * _Eigy)(0,0)) +
-						_Scale*pullAugVal(1,a1,0);
-					if(_want & FF_COMPUTE_GRADIENT){
-						_fc->gradZ(hrn) += gradient(hrn);
+					gradient(hrn) = u_Scale*0.5*(tr1 - (u_Py.transpose() * dV_dtheta1P * u_Eigy)(0,0)) +
+						u_Scale*pullAugVal(1,a1,0);
+					if(u_want & FF_COMPUTE_GRADIENT){
+						u_fc->gradZ(hrn) += gradient(hrn);
 					}
-					if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						for(c=0; c < cov->rows; c++){
 							for(r=0; r < cov->rows; r++){
 								tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
 							}
 						}
-						infoMat(hrn,hrn)  = _Scale*0.5*tr2 + _Scale*pullAugVal(2,a1,a1);
+						infoMat(hrn,hrn)  = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 					}
 				}
 				else{
-					if(_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						Eigen::MatrixXd dV_dtheta2(Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hcn.
 						t2 = gradMap[hcn];
 						if(t2 < 0){continue;}
 						a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 						if(didUserGivedV[t2]){
-							if( _oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
-								dropCasesAndEigenize(dV[hcn], dV_dtheta2, _oge->numcases2drop, _oge->dropcase, 1, origdVdim[hcn]);
+							if( u_oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
+								dropCasesAndEigenize(dV[hcn], dV_dtheta2, u_oge->numcases2drop, u_oge->dropcase, 1, origdVdim[hcn]);
 							}
 							else{dV_dtheta2 = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(dV[hcn]), dV[hcn]->rows, dV[hcn]->cols);}
 						}
@@ -1261,23 +1261,23 @@ void omxGREMLFitState::gradientAndEIM3(
 							 }
 							 }
 							 */
-							crude_numeric_dV(_fc, curEst, dV_dtheta2, t2, _oge, (_nThreadz>1 ? threadID : -1));
+							crude_numeric_dV(u_fc, curEst, dV_dtheta2, t2, u_oge, (u_nThreadz>1 ? threadID : -1));
 						}
-						dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * _P;
+						dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
 						for(c=0; c < cov->rows; c++){
 							for(r=0; r < cov->rows; r++){
 								tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
 							}
 						}
-						infoMat(hrn,hcn) = _Scale*0.5*tr2 + _Scale*pullAugVal(2,a1,a2);
+						infoMat(hrn,hcn) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 						infoMat(hcn,hrn) = infoMat(hrn,hcn);
 					}
 				}
 			}
 			else{
 				gradient(t1) = NA_REAL;
-				if(_want & FF_COMPUTE_GRADIENT){
-					_fc->gradZ(t1) = NA_REAL;
+				if(u_want & FF_COMPUTE_GRADIENT){
+					u_fc->gradZ(t1) = NA_REAL;
 				}
 			}
 			hcn++;
@@ -1300,12 +1300,12 @@ void omxGREMLFitState::gradientAndEIM3(
 
 template <typename T1, typename T2>
 void omxGREMLFitState::crude_numeric_dV(
-		FitContext *_fc, Eigen::MatrixBase<T1> &_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId)
+		FitContext *u_fc, Eigen::MatrixBase<T1> &u_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId)
 {
 	int c, r;
-	FitContext *fc2 = _fc;
+	FitContext *fc2 = u_fc;
 	if(thrId >= 0){
-		fc2 = _fc->childList[thrId];
+		fc2 = u_fc->childList[thrId];
 	}
 	omxState *st = fc2->state;
 
@@ -1325,8 +1325,8 @@ void omxGREMLFitState::crude_numeric_dV(
 	}
 
 	//Shift parameter of interest and compute V at new point in parameter space:
-	_curEst[Parnum] += 1e-4;
-	fc2->setEstFromOptimizer(_curEst);
+	u_curEst[Parnum] += 1e-4;
+	fc2->setEstFromOptimizer(u_curEst);
 	omxMatrix *mat = st->lookupDuplicate(cov);
 	omxRecompute(mat, fc2);
 
@@ -1341,8 +1341,8 @@ void omxGREMLFitState::crude_numeric_dV(
 	dV_dtheta.template triangularView<Eigen::Lower>() = (dV_dtheta - Vcurr)/1e-4;
 
 	//Put things back the way they were:
-	_curEst[Parnum] -= 1e-4;
-	fc2->setEstFromOptimizer(_curEst);
+	u_curEst[Parnum] -= 1e-4;
+	fc2->setEstFromOptimizer(u_curEst);
 	if(thrId<0){
 		omxRecompute(cov, fc2);
 	}

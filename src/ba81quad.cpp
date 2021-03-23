@@ -103,9 +103,9 @@ void ba81NormalQuad::addSummary(ba81NormalQuad &quad)
 	}
 }
 
-ifaGroup::ifaGroup(bool _twotier) :
+ifaGroup::ifaGroup(bool u_twotier) :
 	itemDims(-1), qwidth(6.0), qpoints(49),
-	twotier(_twotier), mean(0), cov(0),
+	twotier(u_twotier), mean(0), cov(0),
 	weightColumnName(0), rowWeight(0), freqColumnName(0), rowFreq(0),
 	minItemsPerScore(NA_INTEGER), excludedPatterns(-1)
 {}
@@ -384,21 +384,21 @@ void ifaGroup::import(const List &Rlist)
 	quad.refresh(meanVec, covMat);
 }
 
-void ifaGroup::setLatentDistribution(double *_mean, double *_cov)
+void ifaGroup::setLatentDistribution(double *u_mean, double *u_cov)
 {
-	if (!_mean) {
+	if (!u_mean) {
 		mean = (double *) R_alloc(itemDims, sizeof(double));
 		if (itemDims) memset(mean, 0, itemDims * sizeof(double));
 	} else {
-		mean = _mean;
+		mean = u_mean;
 	}
 
-	if (!_cov) {
+	if (!u_cov) {
 		cov = (double *) R_alloc(itemDims * itemDims, sizeof(double));
 		Eigen::Map< Eigen::MatrixXd > covMat(cov, itemDims, itemDims);
 		covMat.setIdentity();
 	} else {
-		cov = _cov;
+		cov = u_cov;
 	}
 }
 

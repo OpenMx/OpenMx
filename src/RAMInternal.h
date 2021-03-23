@@ -1,5 +1,5 @@
-#ifndef _RAMINTERNAL_H_
-#define _RAMINTERNAL_H_
+#ifndef u_RAMINTERNAL_H_
+#define u_RAMINTERNAL_H_
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
@@ -18,8 +18,8 @@ struct coeffLoc {
 	int off;
 	int r, c;
 
-coeffLoc(int _off, int _r, int _c) :
-	off(_off), r(_r), c(_c) {}
+coeffLoc(int u_off, int u_r, int u_c) :
+	off(u_off), r(u_r), c(u_c) {}
 };
 
 class omxRAMExpectation;
@@ -121,7 +121,7 @@ namespace RelationalRAMExpectation {
 		struct MpcIO : PathCalcIO {
 			independentGroup &par;
 			int clumpSize;
-			MpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			MpcIO(independentGroup &u_par) : par(u_par), clumpSize(u_par.clumpSize) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
 			virtual void refresh(FitContext *fc);
@@ -133,15 +133,15 @@ namespace RelationalRAMExpectation {
 			independentGroup &par;
 			int clumpSize;
 			bool useRampart;
-			ApcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize), useRampart(true) {}
+			ApcIO(independentGroup &u_par) : par(u_par), clumpSize(u_par.clumpSize), useRampart(true) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
 			template <typename T>
-			void _refresh(FitContext *fc, T &mat, double sign);
+			void u_refresh(FitContext *fc, T &mat, double sign);
 			virtual void refreshA(FitContext *fc, double sign)
-			{ _refresh(fc, full, sign); }
+			{ u_refresh(fc, full, sign); }
 			virtual void refreshSparse1(FitContext *fc, double sign)
-			{ _refresh(fc, sparse, sign); }
+			{ u_refresh(fc, sparse, sign); }
 			virtual PathCalcIO *clone()
 			{ return new ApcIO(par); }
 		};
@@ -149,15 +149,15 @@ namespace RelationalRAMExpectation {
 		struct SpcIO : PathCalcIO {
 			independentGroup &par;
 			int clumpSize;
-			SpcIO(independentGroup &_par) : par(_par), clumpSize(_par.clumpSize) {}
+			SpcIO(independentGroup &u_par) : par(u_par), clumpSize(u_par.clumpSize) {}
 			virtual void recompute(FitContext *fc);
 			virtual unsigned getVersion(FitContext *fc);
 			template <typename T>
-			void _refresh(FitContext *fc, T &mat);
+			void u_refresh(FitContext *fc, T &mat);
 			virtual void refresh(FitContext *fc)
-			{ _refresh(fc, full); }
+			{ u_refresh(fc, full); }
 			virtual void refreshSparse1(FitContext *fc, double sign)
-			{ _refresh(fc, sparse); }
+			{ u_refresh(fc, sparse); }
 			virtual PathCalcIO *clone()
 			{ return new SpcIO(par); }
 		};
@@ -188,7 +188,7 @@ namespace RelationalRAMExpectation {
 		PathCalc pcalc;
 		double                           fit;  // most recent fit for debugging
 
-		independentGroup(class state *_st, int size, int _clumpSize);
+		independentGroup(class state *u_st, int size, int u_clumpSize);
 		independentGroup(independentGroup *ig);
 		int numLooseClumps() {
 			independentGroup &par = getParent();
@@ -307,15 +307,15 @@ class omxRAMExpectation : public omxExpectation {
 	struct ApcIO : PathCalcIO {
 		omxMatrix *A0;
 		std::vector<coeffLoc> &vec;
-		ApcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
+		ApcIO(std::vector<coeffLoc> &u_vec) : vec(u_vec) {}
 		virtual void recompute(FitContext *fc);
 		virtual unsigned getVersion(FitContext *fc);
 		template <typename T>
-		void _refresh(FitContext *fc, T &mat, double sign);
+		void u_refresh(FitContext *fc, T &mat, double sign);
 		virtual void refreshA(FitContext *fc,double sign)
-		{ _refresh(fc, full, sign); }
+		{ u_refresh(fc, full, sign); }
 		virtual void refreshSparse1(FitContext *fc, double sign)
-		{ _refresh(fc, sparse, sign); }
+		{ u_refresh(fc, sparse, sign); }
 		virtual PathCalcIO *clone()
 		{
 			auto *aio = new ApcIO(vec);
@@ -327,15 +327,15 @@ class omxRAMExpectation : public omxExpectation {
 	struct SpcIO : PathCalcIO {
 		omxMatrix *S0;
 		std::vector<coeffLoc> &vec;
-		SpcIO(std::vector<coeffLoc> &_vec) : vec(_vec) {}
+		SpcIO(std::vector<coeffLoc> &u_vec) : vec(u_vec) {}
 		virtual void recompute(FitContext *fc);
 		virtual unsigned getVersion(FitContext *fc);
 		template <typename T>
-		void _refresh(FitContext *fc, T &mat);
+		void u_refresh(FitContext *fc, T &mat);
 		virtual void refresh(FitContext *fc)
-		{ _refresh(fc, full); }
+		{ u_refresh(fc, full); }
 		virtual void refreshSparse1(FitContext *fc, double sign)
-		{ _refresh(fc, sparse); }
+		{ u_refresh(fc, sparse); }
 		virtual PathCalcIO *clone()
 		{
 			auto *sio = new SpcIO(vec);

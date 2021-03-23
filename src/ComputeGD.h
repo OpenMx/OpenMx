@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_COMPUTEGD_H_
-#define _OMX_COMPUTEGD_H_
+#ifndef u_OMX_COMPUTEGD_H_
+#define u_OMX_COMPUTEGD_H_
 
 #include "Compute.h"
 #include "finiteDifferences.h"

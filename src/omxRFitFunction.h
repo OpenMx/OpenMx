@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_R_FITFUNCTION_
-#define _OMX_R_FITFUNCTION_
+#ifndef u_OMX_R_FITFUNCTION_
+#define u_OMX_R_FITFUNCTION_
 
 struct omxRFitFunction : omxFitFunction {
 
@@ -30,4 +30,4 @@ struct omxRFitFunction : omxFitFunction {
 
 void omxInitRFitFunction(omxFitFunction* oo);
 
-#endif /* _OMX_R_FITFUNCTION_ */
+#endif /* u_OMX_R_FITFUNCTION_ */

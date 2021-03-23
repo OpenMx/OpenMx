@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_COMPUTE_H_
-#define _OMX_COMPUTE_H_
+#ifndef u_OMX_COMPUTE_H_
+#define u_OMX_COMPUTE_H_
 
 #include "omxDefines.h"
 #include <map>
@@ -101,8 +101,8 @@ struct CIobjective {
 
   void setGrad(FitContext *fc);
 
-  CIobjective(const ConfidenceInterval *_CI, bool _constrained, bool _lower)
-    : CI(_CI), constrained(_constrained), lowerBound(_lower) {}
+  CIobjective(const ConfidenceInterval *u_CI, bool u_constrained, bool u_lower)
+    : CI(u_CI), constrained(u_constrained), lowerBound(u_lower) {}
   virtual ~CIobjective() {}
   virtual std::unique_ptr<CIobjective> clone() const = 0;
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) {};
@@ -150,7 +150,7 @@ class FitContext {
 	int computeCount;
 	ComputeInform inform;
 	double previousReportFit;
-  int _numFree;
+  int u_numFree;
   Eigen::ArrayXd curFree;  // length=numFree
   std::unique_ptr<CIobjective> disabledCiobj;
   void toggleCIObjective();
@@ -161,7 +161,7 @@ class FitContext {
 	omxState *getParentState() const { return parent->state; };
 	bool isClone() const;
 	int numParam;
-  int getNumFree() const { return _numFree; }
+  int getNumFree() const { return u_numFree; }
 	std::vector<int> mapToParent;
 	double mac;
 	double fit;
@@ -212,7 +212,7 @@ class FitContext {
   std::unique_ptr<CIobjective> ciobj;
   void withoutCIobjective(std::function<void()> fn);
 
-	FitContext(omxState *_state);
+	FitContext(omxState *u_state);
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
   bool permitParallel; // whether openmpUser is permitted
@@ -230,7 +230,7 @@ class FitContext {
 	template <typename T> void moveInsideBounds(std::vector<T> &prevEst);
 	void log(int what);
 	void resetToOriginalStarts();
-	void setInform(int _in) { inform = _in; };
+	void setInform(int u_in) { inform = u_in; };
 	int getInform() { return inform; };
 	int wrapInform() {
 		if (inform == INFORM_UNINITIALIZED) return NA_INTEGER;

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _OMX_EXPECTATIONBA81_H_
-#define _OMX_EXPECTATIONBA81_H_
+#ifndef u_OMX_EXPECTATIONBA81_H_
+#define u_OMX_EXPECTATIONBA81_H_
 
 #include "omxExpectation.h"
 #include "ba81quad.h"
@@ -82,8 +82,8 @@ class BA81Expect : public omxExpectation {
 	bool expectedUsed;
 	int ElatentVersion;
 
-	omxMatrix *_latentMeanOut;
-	omxMatrix *_latentCovOut;
+	omxMatrix *u_latentMeanOut;
+	omxMatrix *u_latentCovOut;
 	template <typename Tmean, typename Tcov>
 	void getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> &mean, Eigen::MatrixBase<Tcov> &cov);
 
@@ -113,19 +113,19 @@ void BA81Expect::getLatentDistribution(FitContext *fc, Eigen::MatrixBase<Tmean> 
 {
 	int dim = grp.quad.abilities();
 	mean.derived().resize(dim);
-	if (!_latentMeanOut) {
+	if (!u_latentMeanOut) {
 		mean.setZero();
 	} else {
-		omxRecompute(_latentMeanOut, fc);
-		memcpy(mean.derived().data(), _latentMeanOut->data, sizeof(double) * dim);
+		omxRecompute(u_latentMeanOut, fc);
+		memcpy(mean.derived().data(), u_latentMeanOut->data, sizeof(double) * dim);
 	}
 
 	cov.derived().resize(dim, dim);
-	if (!_latentCovOut) {
+	if (!u_latentCovOut) {
 		cov.setIdentity();
 	} else {
-		omxRecompute(_latentCovOut, fc);
-		memcpy(cov.derived().data(), _latentCovOut->data, sizeof(double) * dim * dim);
+		omxRecompute(u_latentCovOut, fc);
+		memcpy(cov.derived().data(), u_latentCovOut->data, sizeof(double) * dim * dim);
 	}
 }
 

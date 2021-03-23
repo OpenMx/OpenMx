@@ -96,7 +96,7 @@ extern unsigned nlopt_stochastic_population;
 } while (0)
 
 extern const char *nlopt_set_errmsg(nlopt_opt opt, const char *format, ...)
-#ifdef __GNUC__
+#ifdef u__GNUC__
 __attribute__ ((format (printf, 2, 3)))
 #endif
 ;

@@ -196,7 +196,7 @@ asa (user_cost_function,
 #endif /* ASA_PARALLEL */
 
   /* used to index repeated and recursive calls to asa */
-  /* This assumes that multiple calls (>= 1) _or_ recursive
+  /* This assumes that multiple calls (>= 1) u_or_ recursive
      calls are being made to asa */
   static int asa_open = FALSE;
   static int number_asa_open = 0;

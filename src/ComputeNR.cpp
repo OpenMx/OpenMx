@@ -244,8 +244,8 @@ public:
 struct ComputeNRO : public NewtonRaphsonObjective {
 	ComputeNR &nr;
 	FitContext *fc;
-	ComputeNRO(ComputeNR *_nr, FitContext *_fc) :
-    nr(*_nr), fc(_fc) {};
+	ComputeNRO(ComputeNR *u_nr, FitContext *u_fc) :
+    nr(*u_nr), fc(u_fc) {};
 	virtual bool isConverged() override {
 		nr.reportProgress(fc);
 		return converged || isErrorRaised() ||

@@ -15,8 +15,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _BA81QUAD_H_
-#define _BA81QUAD_H_
+#ifndef u_BA81QUAD_H_
+#define u_BA81QUAD_H_
 
 #include "omxDefines.h" // need OpenMx's Eigen customizations
 
@@ -50,13 +50,13 @@ namespace ba81quad {
 
 	static inline bool strEQ(const char *s1, const char *s2) { return strcmp(s1,s2)==0; }
 
-	template<typename _MatrixType, int _UpLo = Eigen::Lower>
-	class SimpCholesky : public Eigen::LDLT<_MatrixType, _UpLo> {
+	template<typename u_MatrixType, int u_UpLo = Eigen::Lower>
+	class SimpCholesky : public Eigen::LDLT<u_MatrixType, u_UpLo> {
 	private:
 		Eigen::MatrixXd inverse;
 
 	public:
-		typedef Eigen::LDLT<_MatrixType, _UpLo> Base;
+		typedef Eigen::LDLT<u_MatrixType, u_UpLo> Base;
 
 		SimpCholesky() : Base() {};
 		template<typename InputType>
@@ -755,11 +755,11 @@ public:
 	inline static bool validPatternLik(double pl)
 	{ return std::isfinite(pl) && pl > SmallestPatternLik; }
 
-	ifaGroup(bool _twotier);
+	ifaGroup(bool u_twotier);
 	~ifaGroup();
-	void setRowWeight(double *_in) { rowWeight = _in; }
+	void setRowWeight(double *u_in) { rowWeight = u_in; }
 	double getRowWeight(int rx) { return rowWeight ? rowWeight[rx] : 1.0; }
-	void setRowFreq(int *_in) { rowFreq = _in; }
+	void setRowFreq(int *u_in) { rowFreq = u_in; }
 	void setGridFineness(double width, int points);
 	void import(const List &Rlist);
 	void importSpec(const List &slotValue);

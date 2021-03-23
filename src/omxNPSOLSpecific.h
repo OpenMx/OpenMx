@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef _OMX_NPSOL_SPECIFIC_H
-#define _OMX_NPSOL_SPECIFIC_H
+#ifndef u_OMX_NPSOL_SPECIFIC_H
+#define u_OMX_NPSOL_SPECIFIC_H
 
 /* NPSOL-specific globals */
 extern const double NPSOL_BIGBND;
@@ -30,4 +30,4 @@ void omxNPSOLConfidenceIntervals(omxMatrix *fitMatrix, FitContext *fc, double to
  
 void omxSetNPSOLOpts(SEXP options);
 
-#endif // #define _OMX_NPSOL_SPECIFIC_H
+#endif // #define u_OMX_NPSOL_SPECIFIC_H

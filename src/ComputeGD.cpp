@@ -100,15 +100,15 @@ void GradientOptimizerContext::reset()
 	iterations = 0;
 }
 
-GradientOptimizerContext::GradientOptimizerContext(FitContext *_fc, int _verbose,
+GradientOptimizerContext::GradientOptimizerContext(FitContext *u_fc, int u_verbose,
 						   omxCompute *owner)
-	: fc(_fc), verbose(_verbose), numFree(countNumFree()),
-	  numOptimizerThreads(_fc->numOptimizerThreads()),
-    AllC(_fc, "constraint",
+	: fc(u_fc), verbose(u_verbose), numFree(countNumFree()),
+	  numOptimizerThreads(u_fc->numOptimizerThreads()),
+    AllC(u_fc, "constraint",
          [](const omxConstraint &con){ return true; }),
-    IneqC(_fc, "ineq",
+    IneqC(u_fc, "ineq",
           [](const omxConstraint &con){ return con.opCode != omxConstraint::EQUALITY; }),
-    EqC(_fc, "eq",
+    EqC(u_fc, "eq",
         [](const omxConstraint &con){ return con.opCode == omxConstraint::EQUALITY; })
 {
 	computeName = owner->name;
@@ -577,7 +577,7 @@ class ciConstraint : public omxConstraint {
 	omxState *state;
 public:
 	omxMatrix *fitMat;
-	ciConstraint(omxState *_state) : super("CI"), state(_state) {}
+	ciConstraint(omxState *u_state) : super("CI"), state(u_state) {}
   virtual void getDim(int *rowsOut, int *colsOut) const override
   { *rowsOut = size; *colsOut = 1; }
   void push()
@@ -602,8 +602,8 @@ class ciConstraintIneq : public ciConstraint {
  private:
 	typedef ciConstraint super;
  public:
-	ciConstraintIneq(omxState *_state, int _size) : super(_state)
-	{ size=_size; opCode = LESS_THAN; setInitialSize(size); };
+	ciConstraintIneq(omxState *u_state, int u_size) : super(u_state)
+	{ size=u_size; opCode = LESS_THAN; setInitialSize(size); };
 
 	virtual void refreshAndGrab(FitContext *fc, double *out) override
   {
@@ -625,8 +625,8 @@ class ciConstraintEq : public ciConstraint {
  private:
 	typedef ciConstraint super;
  public:
-	ciConstraintEq(omxState *_state, int _size) : super(_state)
-	{ size=_size; opCode = EQUALITY; setInitialSize(size); };
+	ciConstraintEq(omxState *u_state, int u_size) : super(u_state)
+	{ size=u_size; opCode = EQUALITY; setInitialSize(size); };
 
 	virtual void refreshAndGrab(FitContext *fc, double *out) override {
 		fc->ciobj->evalEq(fc, fitMat, out);
@@ -676,9 +676,9 @@ struct regularCIobj : CIobjective {
 	double targetFit;
 	double diff;
 
-  regularCIobj(const ConfidenceInterval *_CI,
-               bool _constrained, bool _lowerBound, double _targetFit) :
-    CIobjective(_CI, _constrained, _lowerBound), targetFit(_targetFit) {}
+  regularCIobj(const ConfidenceInterval *u_CI,
+               bool u_constrained, bool u_lowerBound, double u_targetFit) :
+    CIobjective(u_CI, u_constrained, u_lowerBound), targetFit(u_targetFit) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<regularCIobj>(*this); }
@@ -764,9 +764,9 @@ struct bound1CIobj : CIobjective {
   double bound;
 	Eigen::Array<double,1,1> eq;
 
-  bound1CIobj(const ConfidenceInterval *_CI,
-              double _bound, bool _constrained) :
-    CIobjective(_CI, _constrained, true), bound(_bound) {}
+  bound1CIobj(const ConfidenceInterval *u_CI,
+              double u_bound, bool u_constrained) :
+    CIobjective(u_CI, u_constrained, true), bound(u_bound) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<bound1CIobj>(*this); }
@@ -838,12 +838,12 @@ struct boundAwayCIobj : CIobjective {
 	double unboundedLL, bestLL;
 	Eigen::Array<double, 3, 1> ineq;
 
-  boundAwayCIobj(const ConfidenceInterval *_CI,
-                 double _la, double _sq,
-                 double _unboundedLL, double _bestLL,
-                 int _lower, bool _constrained) :
-    CIobjective(_CI, _constrained, _lower), logAlpha(_la), sqrtCrit(_sq),
-    unboundedLL(_unboundedLL), bestLL(_bestLL) {}
+  boundAwayCIobj(const ConfidenceInterval *u_CI,
+                 double u_la, double u_sq,
+                 double u_unboundedLL, double u_bestLL,
+                 int u_lower, bool u_constrained) :
+    CIobjective(u_CI, u_constrained, u_lower), logAlpha(u_la), sqrtCrit(u_sq),
+    unboundedLL(u_unboundedLL), bestLL(u_bestLL) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<boundAwayCIobj>(*this); }
@@ -931,14 +931,14 @@ struct boundNearCIobj : CIobjective {
 	double lbd, ubd;
 	Eigen::Array<double,3,1> ineq;
 
-  boundNearCIobj(const ConfidenceInterval *_CI,
-                 double _d0, double _logAlpha,
-                 double _boundLL, double _bestLL,
-                 int _lower, bool _constrained,
-                 double _lbd, double _ubd)
-    : CIobjective(_CI, _constrained, _lower),
-      d0(_d0), logAlpha(_logAlpha), boundLL(_boundLL), bestLL(_bestLL),
-      lbd(_lbd), ubd(_ubd) {}
+  boundNearCIobj(const ConfidenceInterval *u_CI,
+                 double u_d0, double u_logAlpha,
+                 double u_boundLL, double u_bestLL,
+                 int u_lower, bool u_constrained,
+                 double u_lbd, double u_ubd)
+    : CIobjective(u_CI, u_constrained, u_lower),
+      d0(u_d0), logAlpha(u_logAlpha), boundLL(u_boundLL), bestLL(u_bestLL),
+      lbd(u_lbd), ubd(u_ubd) {}
 
   virtual std::unique_ptr<CIobjective> clone() const override
   { return std::make_unique<boundNearCIobj>(*this); }
@@ -1647,7 +1647,7 @@ class ComputeGenSA : public omxCompute {
 		ALGO_TSALLIS1996,
 		ALGO_INGBER2012,
 	} method;
-	FitContext *_fc;
+	FitContext *u_fc;
 	void tsallis1996(FitContext *fc);
 	void ingber2012(FitContext *fc);
 
@@ -1859,7 +1859,7 @@ double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DE
 	using Eigen::Map;
 	using Eigen::VectorXd;
 
-	FitContext *fc = _fc;
+	FitContext *fc = u_fc;
 	Map< VectorXd > proposal(x, numFree);
 
 	{
@@ -1887,7 +1887,7 @@ asa_random_generator(LONG_INT *)
 
 void ComputeGenSA::ingber2012(FitContext *fc)
 {
-	_fc = fc;
+	u_fc = fc;
 	LONG_INT seed = 0; //unused
 	ALLOC_INT num_parameters = numFree;
 	Eigen::VectorXd tangents(numFree);

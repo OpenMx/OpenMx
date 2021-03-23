@@ -26,8 +26,8 @@
 *
 **********************************************************/
 
-#ifndef _OMXFITFUNCTION_H_
-#define _OMXFITFUNCTION_H_
+#ifndef u_OMXFITFUNCTION_H_
+#define u_OMXFITFUNCTION_H_
 
 #include <functional>
 #include "omxDefines.h"
@@ -122,4 +122,4 @@ const char *fitUnitsToName(FitStatisticUnits units);
 bool fitUnitsIsChiSq(FitStatisticUnits units);
 SEXP makeFitUnitsFactor(SEXP obj);
 
-#endif /* _OMXFITFUNCTION_H_ */
+#endif /* u_OMXFITFUNCTION_H_ */

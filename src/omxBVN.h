@@ -1,5 +1,5 @@
-#ifndef _OMX_BVN_H
-#define _OMX_BVN_H
+#ifndef u_OMX_BVN_H
+#define u_OMX_BVN_H
 
 #ifdef  __cplusplus
 extern "C" {

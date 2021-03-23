@@ -249,7 +249,7 @@ void omxState::omxInitialMatrixAlgebraCompute(FitContext *fc)
 
 	// This is required because we have chosen to compute algebras
 	// in models without a fitfunction. This is the only place
-	// that we loop over _all_ algebras and compute them.
+	// that we loop over u_all_ algebras and compute them.
 
 	for(int index = 0; index < numAlgs; index++) {
 		omxMatrix *matrix = algebraList[index];

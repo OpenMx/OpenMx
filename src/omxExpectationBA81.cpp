@@ -167,8 +167,8 @@ void BA81Estep<T>::recordTable(class ifaGroup *state)
 static unsigned getLatentVersion(BA81Expect *state)
 {
 	unsigned vv = 1;  // to ensure it doesn't match on the first test
-	if (state->_latentMeanOut) vv += omxGetMatrixVersion(state->_latentMeanOut);
-	if (state->_latentCovOut) vv += omxGetMatrixVersion(state->_latentCovOut);
+	if (state->u_latentMeanOut) vv += omxGetMatrixVersion(state->u_latentMeanOut);
+	if (state->u_latentCovOut) vv += omxGetMatrixVersion(state->u_latentCovOut);
 	return vv;
 }
 
@@ -242,19 +242,19 @@ void BA81Expect::connectToData()
     }
   }
 
-	if (state->_latentMeanOut && state->_latentMeanOut->rows * state->_latentMeanOut->cols != maxAbilities) {
+	if (state->u_latentMeanOut && state->u_latentMeanOut->rows * state->u_latentMeanOut->cols != maxAbilities) {
 		mxThrow("The mean matrix '%s' must be a row or column vector of size %d",
-			 state->_latentMeanOut->name(), maxAbilities);
+			 state->u_latentMeanOut->name(), maxAbilities);
 	}
 
-	if (state->_latentCovOut && (state->_latentCovOut->rows != maxAbilities ||
-				    state->_latentCovOut->cols != maxAbilities)) {
+	if (state->u_latentCovOut && (state->u_latentCovOut->rows != maxAbilities ||
+				    state->u_latentCovOut->cols != maxAbilities)) {
 		mxThrow("The cov matrix '%s' must be %dx%d",
-			 state->_latentCovOut->name(), maxAbilities, maxAbilities);
+			 state->u_latentCovOut->name(), maxAbilities, maxAbilities);
 	}
 
-	state->grp.setLatentDistribution(state->_latentMeanOut? state->_latentMeanOut->data : NULL,
-					 state->_latentCovOut? state->_latentCovOut->data : NULL);
+	state->grp.setLatentDistribution(state->u_latentMeanOut? state->u_latentMeanOut->data : NULL,
+					 state->u_latentCovOut? state->u_latentCovOut->data : NULL);
 
 	{
 		EigenArrayAdaptor Eparam(state->itemParam);
@@ -279,13 +279,13 @@ void BA81Expect::compute(FitContext *fc, const char *what, const char *how)
 
 	if (what) {
 		if (strcmp(what, "latentDistribution")==0 && how && strcmp(how, "copy")==0) {
-			omxCopyMatrix(state->_latentMeanOut, state->estLatentMean);
-			omxCopyMatrix(state->_latentCovOut, state->estLatentCov);
+			omxCopyMatrix(state->u_latentMeanOut, state->estLatentMean);
+			omxCopyMatrix(state->u_latentCovOut, state->estLatentCov);
 
 			double sampleSizeAdj = (state->freqSum - 1.0) / state->freqSum;
-			int covSize = state->_latentCovOut->rows * state->_latentCovOut->cols;
+			int covSize = state->u_latentCovOut->rows * state->u_latentCovOut->cols;
 			for (int cx=0; cx < covSize; ++cx) {
-				state->_latentCovOut->data[cx] *= sampleSizeAdj;
+				state->u_latentCovOut->data[cx] *= sampleSizeAdj;
 			}
 			return;
 		}
@@ -515,8 +515,8 @@ void BA81Expect::init()
 	if (state->verbose >= 2) mxLog("%s: found %d item specs", name, state->numItems());
 	}
 
-	state->_latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
-	state->_latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
+	state->u_latentMeanOut = omxNewMatrixFromSlot(rObj, currentState, "mean");
+	state->u_latentCovOut  = omxNewMatrixFromSlot(rObj, currentState, "cov");
 
 	state->itemParam = omxNewMatrixFromSlot(rObj, currentState, "item");
 	state->grp.param = state->itemParam->data; // algebra not allowed yet TODO
@@ -602,13 +602,13 @@ void BA81Expect::init()
 	}
 
 	state->ElatentVersion = 0;
-	if (state->_latentMeanOut) {
+	if (state->u_latentMeanOut) {
 		state->estLatentMean = omxInitMatrix(maxAbilities, 1, TRUE, currentState);
-		omxCopyMatrix(state->estLatentMean, state->_latentMeanOut); // rename matrices TODO
+		omxCopyMatrix(state->estLatentMean, state->u_latentMeanOut); // rename matrices TODO
 	}
-	if (state->_latentCovOut) {
+	if (state->u_latentCovOut) {
 		state->estLatentCov = omxInitMatrix(maxAbilities, maxAbilities, TRUE, currentState);
-		omxCopyMatrix(state->estLatentCov, state->_latentCovOut);
+		omxCopyMatrix(state->estLatentCov, state->u_latentCovOut);
 	}
 }
 

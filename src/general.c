@@ -103,7 +103,7 @@ const char * NLOPT_STDCALL nlopt_algorithm_name(nlopt_algorithm a)
    different threads have a different default seed even if they are called
    simultaneously */
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined(u_WIN32) || defined(u__WIN32__)
 #  include <windows.h>
 #  define my_gettid GetCurrentThreadId
 #elif defined(HAVE_GETTID_SYSCALL)

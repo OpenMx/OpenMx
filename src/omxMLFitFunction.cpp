@@ -107,8 +107,8 @@ struct multi_normal_deriv {
 	std::vector<bool> &fvMask;
 	MLFitState *omo;
 
-	multi_normal_deriv(FitContext *_fc, std::vector<bool> &_fvMask, MLFitState *_omo) :
-		fc(_fc), fvMask(_fvMask), omo(_omo) {};
+	multi_normal_deriv(FitContext *u_fc, std::vector<bool> &u_fvMask, MLFitState *u_omo) :
+		fc(u_fc), fvMask(u_fvMask), omo(u_omo) {};
 
 	template <typename T>
 	T operator()(const Eigen::Matrix<T, Eigen::Dynamic, 1>& x) const {

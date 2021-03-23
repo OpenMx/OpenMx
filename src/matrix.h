@@ -1,5 +1,5 @@
-#ifndef _MATRIX_H_
-#define _MATRIX_H_
+#ifndef u_MATRIX_H_
+#define u_MATRIX_H_
 
 #include <math.h>
 #include <float.h>
@@ -16,7 +16,7 @@ struct ThinMatrix { // deprecated
     double *t;
     
     ThinMatrix() : rows(0), cols(0), t(NULL) {};
-    ThinMatrix(double *_t, int _r, int _c) : rows(_r), cols(_c), t(_t) {}
+    ThinMatrix(double *u_t, int u_r, int u_c) : rows(u_r), cols(u_c), t(u_t) {}
     ThinMatrix(omxMatrix *mat);
 
 	template <typename T1> void copyDimsFromEigen(Eigen::MatrixBase<T1> &mb) {
