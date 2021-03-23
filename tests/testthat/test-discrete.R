@@ -2,6 +2,8 @@ library(testthat)
 context("discrete")
 library(OpenMx)
 
+skip_on_cran()
+
 # to test:
 # check equivalence of parameterizations (total var = 1 vs loading = 1) ??
 
