@@ -2,6 +2,8 @@ library(testthat)
 library(OpenMx)
 context("Pearson selection")
 
+skip_if(.Platform$OS.type=="windows" && .Platform$r_arch=="i386")
+
 t1 <- mxModel(
   "t1",
   mxMatrix("Symm", 3,3, FALSE, values=diag(3)+.2, name="c1"),
