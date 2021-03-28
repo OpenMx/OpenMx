@@ -16,10 +16,11 @@
 \name{mxRename}
 \alias{mxRename}
 
-\title{Rename MxModel or a Submodel}
+\title{Rename a model or submodel}
 
 \description{
-  This functions renames either the top model or a submodel to a new name.  All internal references to the old model name are replaced with references to the new name.
+  This function re-names a model. By default, the top model will be renamed. To rename a specific model, set oldname (see examples).
+  Importantly, all internal references to the old model name (e.g. in algebras) will be updated to reference the new name.
 }
 
 \usage{
@@ -43,21 +44,20 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 
 
 \examples{
-
 library(OpenMx)
 
-# create two empty models
-modelA <- mxModel(model='modelA')
-modelB <- mxModel(model='modelB')
+# Create a parent model with two submodels:
+modelC <- mxModel(model='modelC', 
+	mxModel(model= 'modelA')
+	mxModel(model= 'modelB')
+	modelA, modelB
+)
 
-# create a parent model with two submodels
-modelC <- mxModel(model='modelC', modelA, modelB)
+# Rename modelC (the top model) to "model1"
+model1 <- mxRename(modelC, 'model_1')
 
-# Rename modelC to model1
-model1 <- mxRename(modelC, 'model1')
-
-# Rename submodel modelB to model2
-model1 <- mxRename(model1, oldname = 'modelB', newname = 'model2')
+# Rename submodel "modelB" to "model_2"
+model1 <- mxRename(model1, oldname = 'modelB', newname = 'model_2')
 
 model1
 
