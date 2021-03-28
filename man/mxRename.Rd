@@ -47,10 +47,9 @@ The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation
 library(OpenMx)
 
 # Create a parent model with two submodels:
-modelC <- mxModel(model='modelC', 
-	mxModel(model= 'modelA')
+modelC <- mxModel(model= 'modelC', 
+	mxModel(model= 'modelA'),
 	mxModel(model= 'modelB')
-	modelA, modelB
 )
 
 # Rename modelC (the top model) to "model1"
