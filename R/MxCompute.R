@@ -2445,13 +2445,14 @@ setClass(Class = "MxComputeCheckpoint",
 		 standardErrors = "logical",
 		 gradient = "logical",
 		 vcov = "logical",
-     vcovFilter = "MxOptionalChar"
+     vcovFilter = "MxOptionalChar",
+     sampleSize = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
 	function(.Object, what, path, append, header, toReturn, parameters,
            loopIndices, fit, counters, status, standardErrors, gradient, vcov,
-           vcovFilter) {
+           vcovFilter, sampleSize) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2469,6 +2470,7 @@ setMethod("initialize", "MxComputeCheckpoint",
 		  .Object@gradient <- gradient
 		  .Object@vcov <- vcov
 		  .Object@vcovFilter <- vcovFilter
+		  .Object@sampleSize <- sampleSize
 		  .Object
 	  })
 
@@ -2509,6 +2511,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 #' @param vcovFilter character vector. Vector of parameters indicating
 #'   which parameter covariances to include. Only the variance is
 #'   included for those parameters not mentioned.
+#' @param sampleSize logical. Whether to include the sample size of the mxData. \lifecycle{experimental}
 #'
 #' @description
 #' Captures the current state of the backend. When \code{path} is set, the
@@ -2543,14 +2546,14 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE,
 				status=TRUE, standardErrors=FALSE, gradient=FALSE, vcov=FALSE,
-        vcovFilter=c()) {
+        vcovFilter=c(), sampleSize=FALSE) {
   prohibitDotdotdot(list(...))
 	what <- as.character(what)
 	path <- as.character(path)
 	new("MxComputeCheckpoint", what, path, as.logical(append), as.logical(header), as.logical(toReturn),
 		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
 		as.logical(status), as.logical(standardErrors), as.logical(gradient), as.logical(vcov),
-    vcovFilter)
+    vcovFilter, as.logical(sampleSize))
 }
 
 #----------------------------------------------------

@@ -1990,6 +1990,7 @@ class ComputeCheckpoint : public omxCompute {
 		Eigen::VectorXd gradient;
 		Eigen::VectorXd vcov;
 		Eigen::VectorXd algebraEnt;
+    Eigen::VectorXd sampleSize;
 		std::vector< std::string > extra;
 	};
 
@@ -2009,6 +2010,7 @@ class ComputeCheckpoint : public omxCompute {
 	bool inclVcov;
   std::vector<bool> vcovFilter;
   int vcovEntries;
+  bool inclSampleSize;
 	bool badSEWarning;
 	bool firstTime;
 	size_t numExtraCols;
@@ -5020,6 +5022,12 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rvcov(R_do_slot(rObj, Rf_install("vcov")));
 	inclVcov = Rf_asLogical(Rvcov);
 
+  inclSampleSize = false;
+  if (R_has_slot(rObj, Rf_install("sampleSize"))) {
+    ProtectedSEXP Rss(R_do_slot(rObj, Rf_install("sampleSize")));
+    inclSampleSize = Rf_asLogical(Rss);
+  }
+
   auto &vg = *Global->findVarGroup(FREEVARGROUP_ALL);
   numParam = vg.vars.size();
 
@@ -5114,6 +5122,15 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 		}
 		numAlgebraEnt += mat->cols * mat->rows;
 	}
+
+  if (inclSampleSize) {
+    for (auto dat : globalState->dataList) {
+      std::string str = dat->name;
+      str += ".nrow";
+      colnames.push_back(str);
+    }
+  }
+
 	// TODO: confidence intervals, hessian, constraint algebras
 	// what does Eric Schmidt include in per-voxel output?
 	// remove old checkpoint code?
@@ -5170,6 +5187,12 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 			}
 		}
 	}}
+
+  auto &dataList = fc->state->dataList;
+  s1.sampleSize.resize(dataList.size());
+  for (int dx=0; dx < int(dataList.size()); ++dx) {
+    s1.sampleSize[dx] = dataList[dx]->nrows();
+  }
 
 	if (firstTime) {
 		auto &xcn = Global->checkpointColnames;
@@ -5267,6 +5290,11 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 		for (int x1=0; x1 < int(s1.algebraEnt.size()); ++x1) {
 			ofs << '\t' << std::setprecision(digits) << s1.algebraEnt[x1];
 		}
+		if (inclSampleSize) {
+      for (int dx=0; dx < s1.sampleSize.size(); ++dx) {
+        ofs << '\t' << s1.sampleSize[dx];
+      }
+    }
 		for (auto &x1 : s1.extra) ofs << '\t' << x1;
 		ofs << std::endl;
 		ofs.flush();
@@ -5420,6 +5448,18 @@ void ComputeCheckpoint::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 		auto *v = REAL(col);
 		int sx=0;
 		for (auto &s1 : snaps) v[sx++] = s1.algebraEnt[x1];
+	}
+	if (inclSampleSize) {
+		auto numSS = int(snaps.front().sampleSize.size());
+		for (int x1=0; x1 < numSS; ++x1) {
+			SEXP col = Rf_allocVector(REALSXP, numSnaps);
+			if (debug) mxLog("log[%d] = %s (parameter %d/%d)", curCol, colnames[curCol].c_str(),
+			      x1, numSS);
+			SET_VECTOR_ELT(log, curCol++, col);
+			auto *v = REAL(col);
+			int sx=0;
+			for (auto &s1 : snaps) v[sx++] = s1.sampleSize[x1];
+		}
 	}
 	auto &xcn = Global->checkpointColnames;
 	if (xcn.size() != numExtraCols) {

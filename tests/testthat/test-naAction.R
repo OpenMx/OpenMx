@@ -65,7 +65,7 @@ m1 <- mxModel(
                          byrow=FALSE, observed=ob),
     mxComputeSetOriginalStarts(),
     mxComputeOnce('fitfunction','fit'),
-    CP=mxComputeCheckpoint(toReturn = TRUE, parameters=FALSE))))
+    CP=mxComputeCheckpoint(toReturn = TRUE, parameters=FALSE, sampleSize = TRUE))))
 
 m1 <- mxRun(m1)
 
@@ -73,6 +73,11 @@ m2 <- m1
 m2$data$naAction <- 'omit'
 m2 <- mxRun(m2)
 expect_equal(m2$compute$steps$CP$log$objective, m1$compute$steps$CP$log$objective)
+
+# exclude doesn't change sample size
+expect_equal(m1$compute$steps$CP$log$OneFactor.data.nrow, rep(500, numSets))
+# omit does
+expect_true(length(table(m2$compute$steps$CP$log$OneFactor.data.nrow)) > 1)
 
 # ----
 
@@ -87,6 +92,9 @@ m4 <- mxRun(m4)
 expect_equal(m3$compute$steps$CP$log$objective,
              m4$compute$steps$CP$log$objective)
 expect_equal(nrow(m3$data$observed), 500)
+expect_equal(m3$compute$steps$CP$log$OneFactor.data.nrow, rep(500, numSets))
+# 
+expect_true(length(table(m4$compute$steps$CP$log$OneFactor.data.nrow)) > 1)
 expect_equal(nrow(m4$data$observed), 300,10)
 
 # ----
@@ -106,7 +114,7 @@ m1 <- mxModel(
                          byrow=FALSE, observed=ob),
     mxComputeSetOriginalStarts(),
     mxComputeOnce('fitfunction','fit'),
-    CP=mxComputeCheckpoint(toReturn = TRUE, parameters=FALSE))))
+    CP=mxComputeCheckpoint(toReturn = TRUE, parameters=FALSE, sampleSize = TRUE))))
 
 m1 <- mxRun(m1)
 
@@ -114,5 +122,8 @@ m2 <- m1
 m2$data$naAction <- 'omit'
 m2 <- mxRun(m2)
 expect_equal(m2$compute$steps$CP$log$objective, m1$compute$steps$CP$log$objective)
+expect_equal(m1$compute$steps$CP$log$OneFactor.data.nrow, rep(500, numSets))
+expect_equal(length(table(m2$compute$steps$CP$log$OneFactor.data.nrow)), 1)
+expect_true(m2$compute$steps$CP$log$OneFactor.data.nrow[1] < 500)
 
 # ----
