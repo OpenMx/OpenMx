@@ -27,14 +27,20 @@ setMethod("genericFitDependencies", signature("MxFitFunctionMultigroup"),
 	return(dependencies)
 })
 
-setMethod("qualifyNames", signature("MxFitFunctionMultigroup"), 
+setMethod("genericFitRename", signature("MxFitFunctionMultigroup"),
+	function(.Object, oldname, newname) {
+		.Object@groups <- sapply(.Object@groups, function(x) renameReference(x, oldname, newname))
+		.Object
+})
+
+setMethod("qualifyNames", signature("MxFitFunctionMultigroup"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)
 })
 
 # "model.algebra" or "model" for "model.fitfunction"
-setMethod("genericFitFunConvert", "MxFitFunctionMultigroup", 
+setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		if (length(.Object@groups)) {

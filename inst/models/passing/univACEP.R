@@ -115,6 +115,14 @@ model <- mxModel("twinAE", MZ, DZ,
 fit <- mxRun(model)
 summary(fit)
 
+if (TRUE) { # test mxRename w/ mxFitFunctionMultigroup
+  ledom = mxRename(model, "twinEA", oldname = "twinAE")
+  ledom = mxRename(ledom, "MZ1" , oldname = "MZ")
+  ledom = mxRename(ledom, "DZ1" , oldname = "DZ")
+  ledom <- mxRun(ledom)
+  expect_equal(fit$output$fit, ledom$output$fit, 1e-8)
+}
+
 MZc <- fit$MZ.fitfunction$info$expCov
 DZc <- fit$DZ.fitfunction$info$expCov
 M   <- fit$MZ.fitfunction$info$expMean
