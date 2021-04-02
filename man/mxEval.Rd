@@ -61,7 +61,7 @@ The \sQuote{cache} is used to speedup calculation by storing previously computin
 to TRUE will return the pair list(value, cache) where value is the result of the mxEval() computation and cache is the updated cache.}
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \seealso{

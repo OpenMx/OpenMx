@@ -186,7 +186,7 @@ or cleared. If value is empty, the current value is returned.
 }
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \seealso{

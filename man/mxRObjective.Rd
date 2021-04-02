@@ -63,7 +63,7 @@ Returns a list containing a NULL mxExpectation object and an MxFitFunctionR obje
 }
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \examples{

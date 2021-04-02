@@ -68,7 +68,7 @@ Estabrook, R. & Neale, M. C.  (2013).  A Comparison of Factor Score Estimation M
 
 Priestley, M. & Subba Rao, T.  (1975).  The estimation of factor scores and Kalman filtering for discrete parameter stationary processes.  \emph{International Journal of Control, 21}, 971-975.
 
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \examples{

@@ -37,7 +37,7 @@ Arguments \sQuote{a} and \sQuote{b} must be of the same type, ie. they must be e
 }
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \seealso{

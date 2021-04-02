@@ -64,7 +64,7 @@ Slots may be referenced with the $ symbol. See the documentation for \link[metho
 }
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \seealso{

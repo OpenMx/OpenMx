@@ -134,7 +134,7 @@ R.E. Kalman and R.S. Bucy  (1961).  New Results in Linear Filtering and Predicti
 
 G. Petris  (2010).  An R Package for Dynamic Linear Models.  \emph{Journal of Statistical Software, 36}, 1-16.
 
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \examples{

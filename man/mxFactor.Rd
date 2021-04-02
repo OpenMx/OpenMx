@@ -48,7 +48,7 @@ If \sQuote{x} is a data.frame, then all of the columns of \sQuote{x} are convert
 }
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \examples{

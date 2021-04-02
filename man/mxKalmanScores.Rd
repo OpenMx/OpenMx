@@ -66,7 +66,7 @@ R.E. Kalman  (1960).  A New Approach to Linear Filtering and Prediction Problems
 
 H.E. Rauch, F. Tung, C.T. Striebel.  (1965).  Maximum Likelihood Estimates of Linear Dynamic Systems.   \emph{American Institute of Aeronautics and Astronautics Journal, 3}, 1445-1450.
 
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \examples{

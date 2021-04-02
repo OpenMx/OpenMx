@@ -69,7 +69,7 @@ The mxData function does not currently place restrictions on the size, shape, or
 }
 
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \seealso{
