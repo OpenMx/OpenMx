@@ -114,7 +114,7 @@ Summarization of bootstrap replications is controlled by two options: \sQuote{bo
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 
 Hu, L., & Bentler, P. M. (1999). Cutoff criteria for fit indexes in covariance structure analysis: Conventional criteria versus new alternatives. \emph{Structural Equation Modeling, 6,} 1-55.
 

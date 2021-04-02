@@ -43,7 +43,7 @@ Returns a new \link{MxBounds} object. If used as an argument in an \link{MxModel
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.}
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}}
 
 \seealso{
 \link{MxBounds} for the S4 class created by mxBounds. \link{MxMatrix} and \link{mxMatrix} for free parameter specification. More information about the OpenMx package may be found \link[=OpenMx]{here}. 

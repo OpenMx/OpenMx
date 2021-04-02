@@ -46,7 +46,7 @@ Returns a new matrix with the filtered data.
 }
 
 \references{
-The function is most often used when filtering data for missingness. This can be seen in the demo: RowObjectiveFIMLBivariateSaturated. The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation. The omxSelect* functions share some similarity to the Extract function in the R programming language.
+The function is most often used when filtering data for missingness. This can be seen in the demo: RowObjectiveFIMLBivariateSaturated. The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}. The omxSelect* functions share some similarity to the Extract function in the R programming language.
 }
 
 \examples{

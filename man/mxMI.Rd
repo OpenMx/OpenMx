@@ -57,7 +57,7 @@ Users should be cautious in their use of modification indices.  If a model was c
 \references{
 S\ifelse{latex}{\out{\"o}}{\ifelse{html}{\out{&ouml;}}{o}}rbom, D.  (1989).  Model Modification.  \emph{Psychometrika, 54}, 371-384.
 
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 }
 
 \examples{

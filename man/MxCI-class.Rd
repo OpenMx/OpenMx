@@ -44,7 +44,7 @@ Likelihood-based confidence intervals may be specified by including one or more 
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 }
 
 \seealso{

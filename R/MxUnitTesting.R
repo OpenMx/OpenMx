@@ -68,7 +68,7 @@ omxCheckTrue <- function(a) {
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
-##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+##' The OpenMx User's guide can be found at <https://openmx.ssri.psu.edu/documentation>.
 ##' @examples
 ##' omxCheckCloseEnough(c(1, 2, 3), c(1.1, 1.9 ,3.0), epsilon = 0.5)
 ##' omxCheckCloseEnough(matrix(3, 3, 3), matrix(4, 3, 3), epsilon = 2)
@@ -113,7 +113,7 @@ omxCheckWithinPercentError <- function(a, b, percent = 0.1) {
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
-##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+##' The OpenMx User's guide can be found at <https://openmx.ssri.psu.edu/documentation>.
 ##' @examples
 ##' foo <- omxCheckWarning(mxFIMLObjective('cov', 'mean'), "deprecated")
 ##' 
@@ -143,7 +143,7 @@ omxCheckWarning <- function(expression, message) {
 ##' \code{\link{omxCheckIdentical}}, \code{\link{omxCheckSetEquals}},
 ##' \code{\link{omxCheckTrue}}, \code{\link{omxCheckEquals}}
 ##' @references
-##' The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+##' The OpenMx User's guide can be found at <https://openmx.ssri.psu.edu/documentation>.
 omxCheckError <- function(expression, message) {
   if (requireNamespace('testthat', quietly = TRUE)) {
     testthat::expect_error(expression, message, fixed=TRUE)

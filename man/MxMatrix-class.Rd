@@ -98,7 +98,7 @@ MxMatrix is a virtual S4 class that comprises the nine types of matrix objects u
 Note that some methods are documented separately (see below, under "See Also").
 }
 \references{
-The OpenMx User's guide can be found at \url{http://openmx.ssri.psu.edu/documentation}.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}.
 }
 \seealso{
 \code{\link{mxMatrix}()} for creating MxMatrix objects.  Note that functions \code{\link{imxCreateMatrix}()}, \code{\link{imxDeparse}()}, \code{\link{imxSquareMatrix}()}, \code{\link{imxSymmetricMatrix}()}, and \code{\link{imxVerifyMatrix}()} are separately documented methods for this class.  More information about the OpenMx package may be found \link[=OpenMx]{here}. 

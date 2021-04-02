@@ -35,7 +35,7 @@ Performs the \sQuote{identical} comparison on the two arguments. If the two argu
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 }
 
 \seealso{

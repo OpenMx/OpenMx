@@ -38,7 +38,7 @@ Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale, MC.  (2021).  Combining structu
 One of the first uses of the acronym "GREML":\cr
 Benjamin DJ, Cesarini D, van der Loos MJHM, Dawes CT, Koellinger PD, et al. (2012) The genetic architecture of economic and political preferences. Proceedings of the National Academy of Sciences 109: 8026-8031. doi: 10.1073/pnas.1120666109
 
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 }
 
 \seealso{

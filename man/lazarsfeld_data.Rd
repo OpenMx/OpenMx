@@ -34,7 +34,7 @@ http://www.people.vcu.edu/~nhenry/LSA50.htm
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 }
 
 \examples{

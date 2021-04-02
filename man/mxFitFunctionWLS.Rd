@@ -71,7 +71,7 @@ Returns a new MxFitFunctionWLS object. One and only one fit function object shou
 }
 
 \references{
-The OpenMx User's guide can be found at http://openmx.ssri.psu.edu/documentation.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}
 
 Browne, M. W. (1984). Asymptotically distribution-free methods for the analysis of covariance structures. \emph{British Journal of Mathematical and Statistical Psychology}, \strong{37}, 62-83.
 }

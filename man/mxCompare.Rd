@@ -82,7 +82,7 @@ The following columns appear in the output for maximum likelihood comparisons:
 \item{ep}{Estimated parameters of the comparison model.}
 \item{minus2LL}{Minus 2*log-likelihood of the comparison model. If the comparison model is <NA>, then the minus 2*log-likelihood of the base model is given.}
 \item{df}{Degrees in freedom of the comparison model. If the comparison model is <NA>, then the degrees of freedom of the base model is given.}
-\item{AIC}{Akaike's An Information Criterion for the comparison model. If the comparison model is <NA>, then the AIC of the base model is given.}
+\item{AIC}{Akaike's Information Criterion for the comparison model. If the comparison model is <NA>, then the AIC of the base model is given.}
 \item{diffLL}{Difference in minus 2*log-likelihoods of the base and comparison models. Will be positive when base model -2LL is higher than comparison model -2LL.}
 \item{diffdf}{Difference in degrees of freedoms of the base and comparison models. Will be positive when base model DF is lower than comparison model DF (base model estimated parameters is higher than comparison model estimated parameters)}
 \item{p}{P-value for likelihood ratio test based on diffLL and diffdf values.}}

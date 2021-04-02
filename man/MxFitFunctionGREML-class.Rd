@@ -42,7 +42,7 @@ Class \code{"MxFitFunction"}, by class "MxBaseFitFunction", distance 2.
 No methods defined with class "MxFitFunctionGREML" in the signature.
 }
 \references{
-The OpenMx User's guide can be found at \url{http://openmx.ssri.psu.edu/documentation}.
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}.
 }
 
 \seealso{

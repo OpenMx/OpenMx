@@ -2,17 +2,22 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
-# OpenMx 2.19
-* TBD 2020 (R 4.0.2)
+# OpenMx 2.xx
+* TBD 2021
+* FIXED: `mxRename` Now ensures that names referenced in `mxFitFunctionMultigroup` are updated.
+* CHANGED: In WLS, `acov` and `fullWeight` are now called `asymCov` and  `useWeight`
+
+# OpenMx 2.19.1
+* March 2021 (R 4.0.2)
 * NEW: `RAM` supports arrows=0 (Pearson selection, single step)
 * IMPROVED: `rowwiseParallel` is more intelligent: Users should see a 2x speed-up for many models.
+* IMPROVED: `mxSE` evaluates (Jacobian) in parallel for a speed-up
 * IMPROVED: `logLik.MxModel` works with WLS models with constraints.
-* IMPROVED: `mxSE` evaluates (Jacobian) in parallel.
 * KNOWN: `mxCompare` not working correctly for WLS models.
 
 # OpenMx 2.18.1
 * September 2020 (R 4.0.1)
-* CHANGE: SLSQP, not CSOLNP, is now the on-load default optimizer.
+* CHANGE: SLSQP is now the on-load default optimizer (was CSOLNP).
 * CHANGE: `omxSetParameters` defaults to affecting all free parameters in the model.
 * CHANGE: `mxRun` throws an error if OMP_NUM_THREADS is exceeded.
 * NEW: `predict` implemented (only) for state-space models.
