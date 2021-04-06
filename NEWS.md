@@ -10,7 +10,9 @@ OpenMx developers, being lazy and incorrigible, often forget to update the NEWS 
 # OpenMx 2.19.1
 * March 2021 (R 4.0.2)
 * NEW: `RAM` supports arrows=0 (Pearson selection, single step)
-* IMPROVED: `rowwiseParallel` is more intelligent: Users should see a 2x speed-up for many models.
+* IMPROVED: Models with a GREML fitfunction  uses semi-analytic derivatives which is much faster.
+* IMPROVED: Diagonally-weighted least-squares (DWLS) models are now much faster.
+* IMPROVED: `rowwiseParallel` smart-defaults give a 2x speed-up for many models.
 * IMPROVED: `mxSE` evaluates (Jacobian) in parallel for a speed-up
 * IMPROVED: `logLik.MxModel` works with WLS models with constraints.
 * KNOWN: `mxCompare` not working correctly for WLS models.
