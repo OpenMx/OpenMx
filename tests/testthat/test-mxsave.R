@@ -86,3 +86,10 @@ expect_true(all(!is.na(match(c("VtestFish.expCov[1,1]:testFish.expCov[1,1]",
                                "VtestFish.expCov[2,2]:testFish.expCov[2,2]"),
                              colnames(bckpt)))))
 expect_equal(colnames(bckpt), colnames(bckpt2))
+
+# ---------
+
+m1 <- mxModel("case")
+m1 <- mxOption(m1, "checkPoint Directory", "./tmp")
+expect_equal(mxOption(m1, "Checkpoint directory"), "./tmp")
+expect_equal(names(m1$options), "Checkpoint Directory")

@@ -24,6 +24,15 @@ mxOption <- function(model=NULL, key=NULL, value, reset = FALSE) {
 	if (is.null(model) && reset) {
 		return(invisible(mxSetDefaultOptions()))
 	}
+	optionsNames <- names(getOption('mxOptions'))
+	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
+		ignore.case=TRUE)
+	if(length(match) == 0) {
+		stop(paste("argument 'key' is the character string",
+			omxQuotes(key), "and cannot be found in",
+			"getOption('mxOptions')"))
+	}
+	key <- optionsNames[[match]] # repair capitalization
 	if (missing(value)) {
 		if (length(model) && !is.null(model@options[[key]])) {
 			return(model@options[[key]])
@@ -62,15 +71,6 @@ mxOption <- function(model=NULL, key=NULL, value, reset = FALSE) {
 		model@options <- list()
 		return(model)
 	}
-	optionsNames <- names(getOption('mxOptions'))
-	match <- grep(paste("^", key, "$", sep = ""), optionsNames,
-		ignore.case=TRUE)
-	if(length(match) == 0) {
-		stop(paste("argument 'key' is the character string",
-			omxQuotes(key), "and cannot be found in",
-			"getOption('mxOptions')"))
-	}
-	key <- optionsNames[[match]] # repair capitalization
 	if (key == "Default optimizer" || key == "Gradient algorithm" ||
         key == "Gradient iterations" || key == "Gradient step size") {
 		stop(paste(omxQuotes(key), " is a global option and cannot be set on models.\n",
