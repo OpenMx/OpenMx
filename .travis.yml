@@ -43,7 +43,7 @@ install:
 script: "./util/travis/script"
 env:
   global:
-    - MAKEFLAGS="-j 2"
+    - MAKEFLAGS="-j2"
     - dhost=travis@vps242190.vps.ovh.ca
     - OMP_NUM_THREADS=2
   jobs:

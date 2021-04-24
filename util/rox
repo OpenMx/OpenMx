@@ -20,12 +20,20 @@ fi
 fold_start roxygenize "roxygenize"
 
 # Work around make bug
+echo "MAKEFLAGS=$MAKEFLAGS"
 MAKEFLAGS=$(echo $MAKEFLAGS | sed -e 's/--jobserver-auth=[0-9,]*//')
+MAKEFLAGS=$(echo $MAKEFLAGS | sed -e 's/--jobserver-fds=[0-9,]*//')
+echo "MAKEFLAGS=$MAKEFLAGS"
+if echo "$MAKEFLAGS" | grep -q '[0-9]'; then
+  : # ok
+else
+  MAKEFLAGS='-j2'
+fi
+echo "MAKEFLAGS=$MAKEFLAGS"
 
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
-pkgbuild::check_build_tools(debug = TRUE)
-pkgbuild::compile_dll()
+pkgbuild::compile_dll(debug=FALSE)
 roxygenize('.', roclets=c('rd'))
 EOF
 

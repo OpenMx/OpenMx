@@ -44,8 +44,8 @@ pkg <- c()
 for (arg in args) {
 	pkg <- union(pkg, extractDependencies(arg))
 }
-pkg <- setdiff(pkg, c('R', 'methods', 'parallel', 'Rmpi',
-                      'OpenMx', 'stats', 'utils', 'graphics', 'grDevices'))
+pkg <- setdiff(pkg, c('R', 'methods', 'parallel', 'Rmpi', 'covr', 'umx', 'ifaTools',
+                      'OpenMx', 'stats', 'utils', 'graphics', 'grDevices', 'snowfall'))
 cat(deparse(pkg), fill=TRUE)
-updateDependencies(c('nloptr', 'rjson'))  # mysteriously undeclared dependencies
+updateDependencies(c('pkgbuild', 'nloptr'))  # mysteriously undeclared dependencies
 updateDependencies(pkg)

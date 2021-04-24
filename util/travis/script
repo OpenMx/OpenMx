@@ -4,6 +4,7 @@ set -o errexit
 
 export _R_CHECK_FORCE_SUGGESTS_=false
 export OMP_NUM_THREADS=2
+rm -f .devmode
 
 fold_start() {
   echo -e "travis_fold:start:$1\033[33;1m$2\033[0m"
