@@ -121,6 +121,9 @@ variablesArgumentRAM <- function(model, manifestVars, latentVars, productVars, s
 			checkVariables(model, latentVars, manifestVars)
 			model <- addVariablesRAM(model, latentVars, manifestVars)
 			model[['expectation']]$isProductNode <- colnames(model$A) %in% productVars
+      if (length(productVars) && !is.null(model[['M']])) {
+        model[['M']]$values[1,productVars] <- 1
+      }
 		}
 		if (length(submodels)) for(i in 1:length(submodels)) {
 			model <- addSingleNamedEntity(model, submodels[[i]])
@@ -515,6 +518,8 @@ insertPathRAM <- function(path, model) {
   selPlan <- model$expectation$selectionPlan
 
 	legalVars <- c(colnames(A), "one")
+	isProductNode <- model$expectation$isProductNode
+	names(isProductNode) <- colnames(A)
 
 	for(i in 0:(maxlength - 1)) {
 		from <- allfrom[[i %% length(allfrom) + 1]]
@@ -638,6 +643,10 @@ insertPathRAM <- function(path, model) {
 				stop(paste('The means path must be a single-headed arrow\n',
 					   'path from "one" to', omxQuotes(to)), call. = FALSE)
 			}
+		  if (isProductNode[to]) {
+		    stop(paste('Cannot change mean of product node', omxQuotes(to),
+		               'from the identity value of 1'), call.=FALSE)
+		  }
 			M@free[1, to] <- nextfree
 			M@values[1, to] <- nextvalue
 			M@labels[1, to] <- nextlabel
@@ -781,7 +790,7 @@ createMatrixM <- function(model) {
 	variables <- c(model@manifestVars, model@latentVars)
 	len <- length(variables)
 	names <- list(NULL, variables)
-	values <- matrix(0, 1, len)
+	values <- matrix(as.numeric(model$expectation$isProductNode), 1, len)
 	labels <- matrix(as.character(NA), 1, len)
 	free <- matrix(c(rep.int(FALSE, length(model@manifestVars)),
 		rep.int(FALSE, length(model@latentVars))), 1, len)
