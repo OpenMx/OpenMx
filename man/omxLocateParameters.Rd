@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,21 +22,22 @@
     Returns a data.frame summarizing the \emph{free} parameters in a model,
 	possibly filtered using \sQuote{labels}.
 
-	For each located parameter, the label, model, matrix, row, col, value, 
+	For each located parameter, the label, model, matrix, row, col, value,
 	and lbound & ubound are given as a row in the dataframe.
-	
-	Duplicated labels return a row for each location in which they are found. 
+
+	Duplicated labels return a row for each location in which they are found.
 
 }
 
 \usage{
-omxLocateParameters(model, labels = NULL, indep = FALSE)
+omxLocateParameters(model, labels = NULL, indep = FALSE, free = c(TRUE, FALSE, NA))
 }
 
 \arguments{
    \item{model}{a MxModel object}
    \item{labels}{optionally specify which free parameters to retrieve.}
    \item{indep}{fetch parameters from independent submodels.}
+   \item{free}{fetch either free parameters (TRUE), or fixed parameters or both types. Default value is TRUE.}
 }
 
 \details{
@@ -47,7 +48,7 @@ omxLocateParameters(model, labels = NULL, indep = FALSE)
 }
 
 \seealso{
-\code{\link{omxGetParameters}}, \code{\link{omxSetParameters}}, \code{\link{omxAssignFirstParameters}} 
+\code{\link{omxGetParameters}}, \code{\link{omxSetParameters}}, \code{\link{omxAssignFirstParameters}}
 }
 
 \examples{

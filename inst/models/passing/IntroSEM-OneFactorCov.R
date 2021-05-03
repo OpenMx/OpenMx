@@ -34,6 +34,7 @@
 # Read libraries and set options.
 
 require(OpenMx)
+library(testthat)
 
 # ----------------------------------
 # Read the data and print descriptive statistics.
@@ -69,6 +70,17 @@ oneFactorCov1 <- mxModel("Single Factor Covariance Model with Fixed Variance",
            labels=factorVarLabels),
     mxData(observed=cov(factorExample1), type="cov", numObs=500)
     )
+
+l1 <- omxLocateParameters(oneFactorCov1, "Var_F1", free=FALSE)
+expect_equal(nrow(l1), 1)
+expect_equal(l1$matrix, "S")
+expect_equal(l1$row, 10)
+expect_equal(l1$col, 10)
+
+l2 <- omxLocateParameters(oneFactorCov1, "Var_F1", free=NA)
+expect_equal(l1, l2)
+
+expect_equal(nrow(omxLocateParameters(oneFactorCov1, "Var_F1")), 0)
 
 oneFactorCov1Out <- mxRun(oneFactorCov1, suppressWarnings=TRUE)
 

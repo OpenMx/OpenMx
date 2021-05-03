@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,8 +14,12 @@
 #   limitations under the License.
 
 
-omxLocateParameters <- function(model, labels = NULL, indep = FALSE) {
-	retval <- locateParametersInternal(model, labels, indep)
+omxLocateParameters <- function(model, labels = NULL, indep = FALSE,
+                                free = c(TRUE, FALSE, NA)) {
+	if (identical(free, c(TRUE, FALSE, NA))) {
+		free <- TRUE
+	}
+	retval <- locateParametersInternal(model, labels, indep, free)
 	if (nrow(retval) > 0) {
 		retval <- retval[order(retval$label),]
 	}
@@ -23,11 +27,11 @@ omxLocateParameters <- function(model, labels = NULL, indep = FALSE) {
 	return(retval)
 }
 
-locateParametersInternal <- function(model, labels, indep) {
+locateParametersInternal <- function(model, labels, indep, free) {
 	if (!is.null(labels) && !single.na(labels) && !is.character(labels)) {
 		stop("'labels' argument must be NULL or a character vector")
 	}
-	retval <- lapply(model@matrices, locateParametersHelper, model@name, labels)
+	retval <- lapply(model@matrices, locateParametersHelper, model@name, labels, free)
 	retval <- do.call(rbind, retval)
 	if(indep) {
 		submodels <- model@submodels
@@ -35,30 +39,32 @@ locateParametersInternal <- function(model, labels, indep) {
 		submodels <- imxDependentModels(model)
 	}
 	if (length(submodels) > 0) {
-		subparams <- lapply(submodels, locateParametersInternal, labels, indep)
+		subparams <- lapply(submodels, locateParametersInternal, labels, indep, free)
 		subparams <- do.call(rbind, subparams)
-		retval <- rbind(retval, subparams)		
+		retval <- rbind(retval, subparams)
 	}
 	return(retval)
 }
 
-locateParametersHelper <- function(matrix, modelname, target) {
+locateParametersHelper <- function(matrix, modelname, target, free) {
 	retval <- data.frame(label = character(0), model = character(0),
-		matrix = character(0), row = numeric(0), 
+		matrix = character(0), row = numeric(0),
 		col = numeric(0), value = numeric(0),
 		lbound = numeric(0), ubound = numeric(0),
 		stringsAsFactors = FALSE)
-	free <- matrix@free
-	count <- sum(free)
+	freeMask <- matrix@free
+  if (is.na(free)) freeMask[,] <- TRUE
+  else freeMask <- freeMask == free
+	count <- sum(freeMask)
 	if (count == 0) {
-		return(retval)		
+		return(retval)
 	} else {
-		labels <- matrix@labels[free]
-		rows <- row(free)[free]
-		cols <- col(free)[free]
-		values <- matrix@values[free]
-		lbound <- matrix@lbound[free]
-		ubound <- matrix@ubound[free]
+		labels <- matrix@labels[freeMask]
+		rows <- row(freeMask)[freeMask]
+		cols <- col(freeMask)[freeMask]
+		values <- matrix@values[freeMask]
+		lbound <- matrix@lbound[freeMask]
+		ubound <- matrix@ubound[freeMask]
 		for(i in 1:count) {
 			pname <- labels[[i]]
 			if (is.null(target) || (is.na(pname) && any(is.na(target))) ||
@@ -78,7 +84,7 @@ locateParametersHelper <- function(matrix, modelname, target) {
 	return(retval)
 }
 
-omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA), 
+omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 			     fetch = c('values', 'free', 'lbound', 'ubound', 'all'),
 			     labels=c()) {
 	if (identical(free, c(TRUE, FALSE, NA))) {
@@ -90,7 +96,7 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 	if (!is.logical(free) || length(free) != 1) {
 		stop("argument 'free' must be a 'TRUE', 'FALSE', or NA")
 	}
-	if (!is.character(fetch) || length(fetch) != 1 || 
+	if (!is.character(fetch) || length(fetch) != 1 ||
 		!(fetch %in% c('values', 'free', 'lbound', 'ubound', 'all'))) {
 		stop("argument 'fetch' must be one of c('values', 'free', 'lbound', 'ubound', 'all')")
 	}
@@ -140,7 +146,7 @@ omxGetParameters <- function(model, indep = FALSE, free = c(TRUE, FALSE, NA),
 setParametersCheckVector <- function(values, test, argname, typename) {
 	if (is.null(values)) return()
 	if (!test(values)) {
-		stop(paste(omxQuotes(argname), 
+		stop(paste(omxQuotes(argname),
 			"argument must either be NA or a",
 			typename, "vector"), call. = FALSE)
 	}
@@ -154,10 +160,10 @@ omxSetParameters <- function(model, labels=names(coef(model)), free = NULL, valu
 		stop("'labels' argument must be a character vector")
 	}
 	if (any(is.na(labels))) {
-		stop("'labels' argument must not contain NA values")	
+		stop("'labels' argument must not contain NA values")
 	}
 	if (any(duplicated(labels))) {
-		stop("'labels' argument must not contain duplicate values")		
+		stop("'labels' argument must not contain duplicate values")
 	}
 	if (!is.null(name) && length(name) != 1 && !is.character(name)) {
 		stop("'name' argument must be a character string")
@@ -216,7 +222,7 @@ detectSBMatches <- function(model, labels) {
 setParametersHelper <- function(model, labels, free, values,
 	newlabels, lbound, ubound, indep) {
 	squarebrackets <- detectSBMatches(model, labels)
-	model@matrices <- lapply(model@matrices, setParametersMatrix, 
+	model@matrices <- lapply(model@matrices, setParametersMatrix,
 		labels, free, values, newlabels, lbound, ubound)
 	if (length(squarebrackets) > 0) {
 		model <- setSquareBracketsHelper(model, squarebrackets, labels, free, values, newlabels, lbound, ubound)
@@ -225,14 +231,14 @@ setParametersHelper <- function(model, labels, free, values,
 		if (length(model@submodels) == 0) {
 			return(model)
 		}
-		model@submodels <- lapply(model@submodels, setParametersHelper, 
+		model@submodels <- lapply(model@submodels, setParametersHelper,
 			labels, free, values, newlabels, lbound, ubound, indep)
 	} else {
 		select <- imxDependentModels(model)
 		if (length(select) == 0) {
 			return(model)
 		}
-		select <- lapply(select, setParametersHelper, 
+		select <- lapply(select, setParametersHelper,
 			labels, free, values, newlabels, lbound, ubound, indep)
 		model@submodels <- c(select, imxIndependentModels(model))
 	}
@@ -250,7 +256,7 @@ extractSecond <- function(x) {
 ##' omxNameAnonymousParameters
 ##'
 ##' Assign new names to the unnamed parameters
-##' 
+##'
 ##' @param model the MxModel
 ##' @param indep whether models are independent
 ##' @return
@@ -326,7 +332,7 @@ omxAssignFirstParameters <- function(model, indep = FALSE) {
 	params <- omxGetParameters(model, indep)
 	if (!length(params)) return(model)
 	pnames <- names(params)
-	model <- omxSetParameters(model, pnames[!is.na(pnames)], 
+	model <- omxSetParameters(model, pnames[!is.na(pnames)],
 		values = params[!is.na(pnames)], indep = indep)
 	return(model)
 }
@@ -359,14 +365,14 @@ getParametersHelper <- function(matName, model, selection, fetch, labels) {
 	if (imxSymmetricMatrix(amatrix)) {
 		triangle <- upper.tri(select, diag=TRUE)
 		select <- select & triangle
-	} 
+	}
 	theNames <- amatrix@labels[select]
 	if (any(is.na(theNames))) {
 		rows <- row(select)[select]
 		cols <- col(select)[select]
 		for(i in 1:length(theNames)) {
 			if (is.na(theNames[[i]])) {
-				theNames[[i]] <- paste(modelname, ".", amatrix@name, 
+				theNames[[i]] <- paste(modelname, ".", amatrix@name,
 				"[", rows[i], ",", cols[i], "]", sep ="")
 			}
 		}
@@ -385,7 +391,7 @@ getParametersHelper <- function(matName, model, selection, fetch, labels) {
 }
 
 #Need to use $ instead of @ accessor for all slots that can be condensed:
-setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {	
+setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound, ubound) {
 	labels <- amatrix@labels
 	locations <- which(labels %in% names)
 	indices <- match(labels[locations], names)
@@ -412,7 +418,7 @@ setParametersMatrix <- function(amatrix, names, free, values, newlabels, lbound,
 	return(amatrix)
 }
 
-setSquareBracketsHelper <- function(model, squarebrackets, labels, 
+setSquareBracketsHelper <- function(model, squarebrackets, labels,
 	free, values, newlabels, lbound, ubound) {
 	for(i in 1:length(squarebrackets)) {
 		nextbracket <- squarebrackets[[i]]
@@ -465,5 +471,3 @@ setSquareBracketsHelper <- function(model, squarebrackets, labels,
 	}
 	return(model)
 }
-
-
