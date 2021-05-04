@@ -100,7 +100,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 	if(om->rows == 0 || om->cols == 0) {
 		om->data = NULL;
 	} else {
-		om->data = (double*) Calloc(nrows * ncols, double);
+		om->data = (double*) R_Calloc(nrows * ncols, double);
 	}
 
 	om->algebra = NULL;
@@ -120,7 +120,7 @@ omxMatrix* omxInitMatrix(int nrows, int ncols, unsigned short isColMajor, omxSta
 static void omxFreeInternalMatrixData(omxMatrix * om)
 {
 	if(!om->owner && om->data != NULL) {
-		Free(om->data);
+		R_Free(om->data);
 	}
 	om->owner = NULL;
 	om->data = NULL;
@@ -154,7 +154,7 @@ void omxCopyMatrix(omxMatrix *dest, omxMatrix *orig) {
 	} else {
 		if(regenerateMemory) {
 			omxFreeInternalMatrixData(dest);											// Free and regenerate memory
-			dest->setData((double*) Calloc(dest->rows * dest->cols, double));
+			dest->setData((double*) R_Calloc(dest->rows * dest->cols, double));
 		}
 		if (dest->data != orig->data) {  // if equal then programmer stop? TODO
 			memcpy(dest->data, orig->data, dest->rows * dest->cols * sizeof(double));
@@ -305,7 +305,7 @@ void omxResizeMatrix(omxMatrix *om, int nrows, int ncols)
 
 	if( (om->rows != nrows || om->cols != ncols)) {
 		omxFreeInternalMatrixData(om);
-		om->setData((double*) Calloc(nrows * ncols, double));
+		om->setData((double*) R_Calloc(nrows * ncols, double));
 	}
 
 	om->rows = nrows;
@@ -521,7 +521,7 @@ void omxMatrix::unshareMemoryWithR()
 {
 	if (!owner) return;
 
-	double *copy = (double*) Realloc(NULL, rows * cols, double);
+	double *copy = (double*) R_Realloc(NULL, rows * cols, double);
 	memcpy(copy, data, rows * cols * sizeof(double));
 	setData(copy);
 	owner = NULL;
@@ -539,7 +539,7 @@ void omxToggleRowColumnMajor(omxMatrix *mat) {
 	int nrows = mat->rows;
 	int ncols = mat->cols;
 
-	double *newdata = (double*) Calloc(nrows * ncols, double);
+	double *newdata = (double*) R_Calloc(nrows * ncols, double);
 	double *olddata = mat->data;
 
 	if (mat->colMajor) {
