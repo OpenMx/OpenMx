@@ -742,7 +742,7 @@ private:
 	int minItemsPerScore;
 	double weightSum;
 public:
-	void setMinItemsPerScore(int mips);
+	void setMinItemsPerScore(int mips_);
 	std::vector<bool> rowSkip;     // whether to treat the row as NA
 
 	// workspace
