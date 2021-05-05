@@ -29,7 +29,7 @@ setMethod("genericFitDependencies", signature("MxFitFunctionMultigroup"),
 
 setMethod("genericFitRename", signature("MxFitFunctionMultigroup"),
 	function(.Object, oldname, newname) {
-		.Object@groups <- sapply(.Object@groups, function(x) renameReference(x, oldname, newname))
+		.Object@groups <- sapply(.Object@groups, renameUnqualifiedReference, oldname, newname)
 		.Object
 })
 

@@ -66,7 +66,23 @@ renameReference <- function(reference, oldname, newname) {
 	if (length(components) == 2 && components[[1]] == oldname) {
 		return(paste(newname, components[[2]], sep = imxSeparatorChar))
   } else if (length(components) == 1 && components[[1]] == oldname) {
-    newname
+    # Don't have enough context to know whether this is a model name or not.
+		reference
+	} else {
+		reference
+	}
+}
+
+renameUnqualifiedReference <- function(reference, oldname, newname) {
+  if (length(reference) == 0) return(reference)
+	if (is.na(reference)) {
+		return(reference)
+	}
+	components <- unlist(strsplit(reference, imxSeparatorChar, fixed = TRUE))
+	if (length(components) == 2 && components[[1]] == oldname) {
+		return(paste(newname, components[[2]], sep = imxSeparatorChar))
+  } else if (length(components) == 1 && components[[1]] == oldname) {
+    newname  # assume it's a model name
 	} else {
 		reference
 	}

@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,7 @@
 # SCRIPT: univACEP.R
 # History:  Sat 26 Sep 2009 16:20:23 BST
 #    (tb) Built MZ/DZ models from shared model correctly;  Adapt to data(); Added summary() calls
-# TODO: could use omxCheckCloseEnough on the reduced model (tb) 
+# TODO: could use omxCheckCloseEnough on the reduced model (tb)
 # OpenMx: http://www.openmx.virginia.com
 ##########################################
 
@@ -52,11 +52,11 @@ MZ = mxModel(share, name="MZ",
 
 DZ = mxModel(share, name="DZ",
     mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=.5),
-    mxData(dzfData, type="raw") 
+    mxData(dzfData, type="raw")
 )
 
 twinACEModel <- mxModel("twinACE", MZ, DZ,
-    mxAlgebra(MZ.objective + DZ.objective, name="twin"), 
+    mxAlgebra(MZ.objective + DZ.objective, name="twin"),
     mxFitFunctionAlgebra("twin")
 )
 
@@ -105,7 +105,7 @@ MZ = mxModel(share2, name="MZ",
 
 DZ = mxModel(share2, name="DZ",
     mxPath(from="A1", to="A2", arrows=2, free=FALSE, values=.5),
-    mxData(dzfData, type="raw") 
+    mxData(dzfData, type="raw")
 )
 
 model <- mxModel("twinAE", MZ, DZ,
@@ -121,6 +121,17 @@ if (TRUE) { # test mxRename w/ mxFitFunctionMultigroup
   ledom = mxRename(ledom, "DZ1" , oldname = "DZ")
   ledom <- mxRun(ledom)
   expect_equal(fit$output$fit, ledom$output$fit, 1e-8)
+}
+
+if (TRUE) {
+  # test that we are not renaming algebra formulae too greedily
+  tmp = mxModel(
+    'junk',
+    mxMatrix(name="bob", "Full", 2,2,values=1),
+    mxAlgebra(name="tmp", bob %*% bob))
+  tmp2 = mxRename(tmp, oldname = "bob", newname = "buggered")
+  tmp2 = mxRun(tmp2)
+  expect_equal(tmp2$tmp$result, matrix(2,2,2))
 }
 
 MZc <- fit$MZ.fitfunction$info$expCov
