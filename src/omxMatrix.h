@@ -579,7 +579,8 @@ double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &
 	return sum;
 }
 
-void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat);
+void MoorePenroseInverseSq(Eigen::Ref<Eigen::MatrixXd> mat);
+void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> in, Eigen::Ref<Eigen::MatrixXd> out);
 
 // https://forum.kde.org/viewtopic.php?f=74&t=96706
 // https://forum.kde.org/viewtopic.php?f=74&t=124421

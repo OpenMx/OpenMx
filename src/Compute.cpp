@@ -3695,7 +3695,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd jacOC = q1.block(0, qr1.rank(), q1.rows(), q1.cols() - qr1.rank());
 	if (jacOC.cols()) {
 		Eigen::MatrixXd zqb = jacOC.transpose() * Wmat * jacOC;
-		MoorePenroseInverse(zqb);
+		MoorePenroseInverseSq(zqb);
 
 		Eigen::VectorXd diff = obStats - exStats;
 		x2 = diff.transpose() * jacOC * zqb * jacOC.transpose() * diff;

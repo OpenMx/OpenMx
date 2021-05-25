@@ -3212,7 +3212,7 @@ void omxData::estimateObservedStats()
 	//mxPrintMat("A11", A11); // good
 
 	if (InvertSymmetricPosDef(A11, 'L')) {
-		MoorePenroseInverse(A11);
+		MoorePenroseInverseSq(A11);
 	}
 
 	int pstar = H22.rows();

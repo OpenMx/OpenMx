@@ -1032,17 +1032,22 @@ int omxMatrix::numNonConstElements() const
 	}
 }
 
-void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> mat)
+void MoorePenroseInverseSq(Eigen::Ref<Eigen::MatrixXd> mat)
 {
-	Eigen::BDCSVD<Eigen::MatrixXd> svd(mat, Eigen::ComputeFullV | Eigen::ComputeFullU);
+  if (mat.rows() != mat.cols()) mxThrow("MoorePenroseInverseSq must be square");
+  MoorePenroseInverse(mat, mat);
+}
+
+void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> in, Eigen::Ref<Eigen::MatrixXd> out)
+{
+	Eigen::BDCSVD<Eigen::MatrixXd> svd(in, Eigen::ComputeFullV | Eigen::ComputeThinU);
 	Eigen::VectorXd sv = svd.singularValues();
 	for (int v1=0; v1 < sv.size(); ++v1) {
 		if (sv[v1] > 1e-6) sv[v1] = 1.0/sv[v1];
 		else sv[v1] = 0;
 	}
-	mat.derived() = svd.matrixV() * sv.asDiagonal() * svd.matrixU().transpose();
+	out.derived() = svd.matrixV() * sv.asDiagonal() * svd.matrixU().transpose();
 }
-
 
 SEXP omxMatrix::asR()
 {
