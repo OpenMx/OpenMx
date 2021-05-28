@@ -95,3 +95,4 @@
 93	"Element-wise robust log"	"mxRobustLog"		1	"omxElementRobustLog"
 94	"Pearson Selection covariance"   "mxPearsonSelCov"		2	"pearsonSelCov"
 95	"Pearson Selection mean"   "mxPearsonSelMean"		3	"pearsonSelMean"
+96		"Moore Penrose Inverse" 		"mpinv" 		1 			"MoorePenroseInvert"

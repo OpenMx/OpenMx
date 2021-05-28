@@ -82,6 +82,7 @@ static void omxMatrixVertCatOpCheck(FitContext *fc, omxMatrix** matList, int num
 }
 
 #define omxMatrixInvertCheck omxUnaryCheck
+#define MoorePenroseInvertCheck omxUnaryCheck
 #define omxMatrixTransposeCheck omxSkipCheck
 #define omxElementPowerCheck omxUnaryCheck
 #define omxMatrixElementMultCheck omxUnaryCheck
@@ -190,16 +191,23 @@ static void omxMatrixTranspose(FitContext *fc, omxMatrix** matList, int numArgs,
 static void omxMatrixInvert(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
 {
 	omxMatrix* inMat = matList[0];
-  if (inMat->rows == inMat->cols) {
-    omxCopyMatrix(result, inMat);
-    MatrixInvert1(result);
-    // recordIterationError if failed TODO
-  } else {
-		omxResizeMatrix(result, inMat->cols, inMat->rows);
-    EigenMatrixAdaptor in(inMat);
-    EigenMatrixAdaptor out(result);
-    MoorePenroseInverse(in, out);
+  if (inMat->rows != inMat->cols) {
+		mxThrow("Can only invert square matrices: '%s' is %dx%d; do you want mpinv?",
+            inMat->name(), inMat->rows, inMat->cols);
   }
+
+  omxCopyMatrix(result, inMat);
+  MatrixInvert1(result);
+  // recordIterationError if failed TODO
+}
+
+static void MoorePenroseInvert(FitContext *fc, omxMatrix** matList, int numArgs, omxMatrix* result)
+{
+	omxMatrix* inMat = matList[0];
+  omxResizeMatrix(result, inMat->cols, inMat->rows);
+  EigenMatrixAdaptor in(inMat);
+  EigenMatrixAdaptor out(result);
+  MoorePenroseInverse(in, out);
 }
 
 static int BroadcastIndex = 0;

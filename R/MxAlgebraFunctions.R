@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,7 @@ tr <- function(x) {
 	return(kronecker(x, y, '^'))
 }
 
-cvectorize <- function(x) {	
+cvectorize <- function(x) {
 	return(matrix(x, length(x), 1))
 }
 
@@ -70,7 +70,7 @@ vec2diag <- function(x) {
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
-##' 
+##'
 ##' @param name name
 imxLookupSymbolTable <- function(name) {
 	index <- which(omxSymbolTable["R.name"] == name)
@@ -81,7 +81,7 @@ imxLookupSymbolTable <- function(name) {
 	} else if (length(index) > 1) {
 		stop(paste("Internal error, function",
 			name, "appears twice in OpenMx symbol table"),
-			call. = FALSE)	
+			call. = FALSE)
 	}
 	return(as.integer(index - 1))
 }
@@ -155,12 +155,12 @@ omxMnor <- function(covariance, means, lbound, ubound) {
     	stop("'means' argument must be row or column vector")
     }
     if(nrow(lbound) > 1 && ncol(lbound) > 1) {
-    	stop("'lbound' argument must be row or column vector")    
+    	stop("'lbound' argument must be row or column vector")
     }
     if(nrow(ubound) > 1 && ncol(ubound) > 1) {
-    	stop("'ubound' argument must be row or column vector")    
+    	stop("'ubound' argument must be row or column vector")
     }
-    
+
     if(ncol(covariance) != length(means)) {
         stop("'means' must have length equal to diag(covariance)")
     }
@@ -170,16 +170,16 @@ omxMnor <- function(covariance, means, lbound, ubound) {
     if(ncol(covariance) != length(ubound)) {
         stop("'ubound' must have length equal to diag(covariance)")
     }
-    
+
     retVal <- .Call(callAlgebra,
-    	list(covariance, means, lbound, ubound), 
-    	imxLookupSymbolTable("omxMnor"), 
+    	list(covariance, means, lbound, ubound),
+    	imxLookupSymbolTable("omxMnor"),
 		    generateOptionsList(NULL, 0, FALSE))
 	if(single.na(retVal)){
 		warning('Correlation with absolute value greater than one found.')
 	}
     return(as.matrix(as.numeric(retVal)))
-    
+
 }
 
 omxAllInt <- function(covariance, means, ...) {
@@ -196,7 +196,7 @@ omxAllInt <- function(covariance, means, ...) {
     if(ncol(covariance) != length(means)) {
         stop("'means' must have length equal to diag(cov)")
     }
-    
+
     if(sum(sapply(thresholdMats, ncol)) < ncol(covariance)) {
         stop("'thresholds' must have at least as many total columns as 'covariance'")
     }
@@ -204,12 +204,12 @@ omxAllInt <- function(covariance, means, ...) {
     if(min(sapply(thresholdMats, nrow)) < 2) {
         stop("every column of 'thresholds' must have at least two rows: one lower bound and one upper")
     }
-    
+
     retVal <- .Call(callAlgebra,
         c(list(covariance, means), thresholdMats),         # Flatten args into a single list
-        imxLookupSymbolTable("omxAllInt"), 
+        imxLookupSymbolTable("omxAllInt"),
 		    generateOptionsList(NULL, 0, FALSE))
-    
+
     return(as.matrix(as.numeric(retVal)))
 
 }
@@ -219,12 +219,12 @@ eigenvec <- function(x) {
     if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
-    
+
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
-        imxLookupSymbolTable("eigenvec"), 
+        imxLookupSymbolTable("eigenvec"),
         generateOptionsList(NULL, 0, FALSE))
-        
+
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
 
@@ -233,12 +233,12 @@ ieigenvec <- function(x) {
     if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
-    
+
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
-        imxLookupSymbolTable("ieigenvec"), 
+        imxLookupSymbolTable("ieigenvec"),
         generateOptionsList(NULL, 0, FALSE))
-        
+
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
 
@@ -247,10 +247,10 @@ eigenval <- function(x) {
     if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
-    
+
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
-        imxLookupSymbolTable("eigenval"), 
+        imxLookupSymbolTable("eigenval"),
         generateOptionsList(NULL, 0, FALSE))
 
     return(as.matrix(as.numeric(retval)))
@@ -261,12 +261,12 @@ ieigenval <- function(x) {
     if(nrow(x) != ncol(x)) {
         stop("matrix must be square")
     }
-    
+
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
-        imxLookupSymbolTable("ieigenval"), 
+        imxLookupSymbolTable("ieigenval"),
         generateOptionsList(NULL, 0, FALSE))
-        
+
     return(as.matrix(as.numeric(retval)))
 }
 
@@ -288,8 +288,8 @@ omxSelectCols <- function(x, selector) {
     }
     if(ncol(x) != ncol(selector)) {
         stop("selector must have one column for each column of x")
-    }    
-    return(x[, as.logical(selector), drop=FALSE])    
+    }
+    return(x[, as.logical(selector), drop=FALSE])
 }
 
 omxSelectRowsAndCols <- function(x, selector) {
@@ -301,26 +301,26 @@ omxSelectRowsAndCols <- function(x, selector) {
         stop("selector must have one column for each row and column of x")
     }
     selector <- as.logical(selector)
-    return(x[selector, selector, drop=FALSE])    
+    return(x[selector, selector, drop=FALSE])
 }
 
 vech2full <- function(x) {
-	
+
 	if(is.matrix(x)) {
 		if (nrow(x) > 1 && ncol(x) > 1) {
 			stop("Input to the full vech2full must be a (1 x n) or (n x 1) matrix.")
 		}
-		
+
 		dimension <- max(dim(x))
-		
+
 	} else if(is.vector(x)) {
 		dimension <- length(x)
 	} else {
 		stop("Input to the function vech2full must be either a matrix or a vector.")
 	}
-	
+
 	k <- sqrt(2.0 * dimension + 0.25) - 0.5
-	
+
 	ret <- matrix(0, nrow=k, ncol=k)
 	if(nrow(ret) != k) {
 		stop("Incorrect number of elements in vector to construct a matrix from a half-vectorization.")
@@ -336,17 +336,17 @@ vechs2full <- function(x) {
 		if (nrow(x) > 1 && ncol(x) > 1) {
 			stop("Input to the full vechs2full must be a (1 x n) or (n x 1) matrix.")
 		}
-		
+
 		dimension <- max(dim(x))
-		
+
 	} else if(is.vector(x)) {
 		dimension <- length(x)
 	} else {
 		stop("Input to the function vechs2full must be either a matrix or a vector.")
 	}
-	
+
 	k <- sqrt(2.0 * dimension + 0.25) + 0.5
-	
+
 	ret <- matrix(0, nrow=k, ncol=k)
 	if(nrow(ret) != k) {
 		stop("Incorrect number of elements in vector to construct a matrix from a strict half-vectorization.")
@@ -364,7 +364,7 @@ logp2z <- function(x){
 }
 lgamma1p <- function(x){
 	x <- as.matrix(x)
-	retVal <- .Call(callAlgebra, list(x), imxLookupSymbolTable("lgamma1p"), 
+	retVal <- .Call(callAlgebra, list(x), imxLookupSymbolTable("lgamma1p"),
 									generateOptionsList(NULL, 0, FALSE))
 	return(retVal)
 }
@@ -377,7 +377,7 @@ omxDnbinom <- function(x,size,prob,mu,give_log){
 	prob <- as.matrix(prob)
 	mu <- as.matrix(mu)
 	give_log <- as.matrix(give_log)
-	retval <- .Call(callAlgebra, list(x,size,prob,mu,give_log), imxLookupSymbolTable("omxDnbinom"), 
+	retval <- .Call(callAlgebra, list(x,size,prob,mu,give_log), imxLookupSymbolTable("omxDnbinom"),
 									generateOptionsList(NULL, 0, FALSE))
 	return(retval)
 }
@@ -388,7 +388,7 @@ omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
 	mu <- as.matrix(mu)
 	lower_tail <- as.matrix(lower_tail)
 	give_log <- as.matrix(give_log)
-	retval <- .Call(callAlgebra, list(q,size,prob,mu,lower_tail,give_log), imxLookupSymbolTable("omxPnbinom"), 
+	retval <- .Call(callAlgebra, list(q,size,prob,mu,lower_tail,give_log), imxLookupSymbolTable("omxPnbinom"),
 									generateOptionsList(NULL, 0, FALSE))
 	return(retval)
 }
@@ -450,7 +450,7 @@ mxPearsonSelMean <- function(origCov, newCov, origMean) {
     newCov <- newCov[m1,m1]
   } else {
     m1 <- match(colnames(newCov), colnames(origCov))
-    
+
     if (any(is.na(m1))) {
       stop(paste("schurComplementC: cannot find variables",
                  omxQuotes(colnames(newCov)[is.na(m1)])))
@@ -463,3 +463,5 @@ mxPearsonSelMean <- function(origCov, newCov, origMean) {
   origMean[-m1,] <- origMean[-m1,] + rqp %*% irpp %*% origMean[m1,,drop=F]
   origMean
 }
+
+mpinv <- MASS::ginv
