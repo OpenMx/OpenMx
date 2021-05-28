@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,12 +23,13 @@
 \alias{mxRobustLog}
 \alias{\%&\%}
 \alias{\%^\%}
+\alias{mpinv}
 
 \title{Create MxAlgebra Object}
 
 \description{
    This function creates a new \link{MxAlgebra}. The common use is to compute a value in a model: for instance a
-   standardized value of a parameter, or a parameter which is a function of other values. It is also used in 
+   standardized value of a parameter, or a parameter which is a function of other values. It is also used in
    models with an  \link{mxFitFunctionAlgebra} objective function.
 
    \strong{note}: Unless needed in the model objective, algebras are only computed twice: once at the
@@ -66,14 +67,14 @@ mxAlgebra(expression, name = NA, dimnames = NA, ..., fixed = FALSE,
 }
 
 \details{
-The mxAlgebra function is used to create algebraic expressions that operate on one or more 
-\link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object, 
-it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix} 
-objects and the \code{mxFitFunctionAlgebra} function. 
+The mxAlgebra function is used to create algebraic expressions that operate on one or more
+\link{MxMatrix} objects. To evaluate an \link{MxAlgebra} object,
+it must be placed in an \link{MxModel} object, along with all referenced \code{MxMatrix}
+objects and the \code{mxFitFunctionAlgebra} function.
 The \code{mxFitFunctionAlgebra} function must reference by name the \code{MxAlgebra} object to be evaluated.
 
-\strong{Note}: f the result for an \link{MxAlgebra} depends upon one or more "definition variables" (see \code{\link{mxMatrix}()}), 
-then the value returned after the call to \code{\link{mxRun}()} will be computed using the values of those definition 
+\strong{Note}: f the result for an \link{MxAlgebra} depends upon one or more "definition variables" (see \code{\link{mxMatrix}()}),
+then the value returned after the call to \code{\link{mxRun}()} will be computed using the values of those definition
 variables in the first (i.e., first before any automated sorting is done) row of the raw dataset.
 
 The following operators and functions are supported in mxAlgebra:
@@ -156,11 +157,12 @@ Functions
 \item{\code{\link[OpenMx:omxSelectRowsAndCols]{omxSelectRowsAndCols}}}{Filter rows and columns from a matrix}
 \item{\code{\link[OpenMx:mxEvaluateOnGrid]{mxEvaluateOnGrid}}}{Evaluate
   an algebra on an abscissa grid and collect column results}
+\item{\code{\link[OpenMx:mpinv]{mpinv}}}{Moore-Penrose Inverse}
 }
 
-If \code{solve} is used on an uninvertible square matrix in R, via 
-\code{\link[OpenMx:mxEval]{mxEval()}}, it will fail with an error will; if 
-\code{solve} is used on an uninvertible square matrix during 
+If \code{solve} is used on an uninvertible square matrix in R, via
+\code{\link[OpenMx:mxEval]{mxEval()}}, it will fail with an error will; if
+\code{solve} is used on an uninvertible square matrix during
 \link[OpenMx:mxRun]{runtime}, it will fail silently.
 
 \code{mxRobustLog} is the same as \code{log} except that it returns -745
@@ -198,8 +200,8 @@ The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documen
 }
 
 \seealso{
-\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{mxFitFunctionAlgebra} for an objective function which takes an  MxAlgebra or MxMatrix object as the function to be minimized. 
-\link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the \code{expression} argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{MxAlgebra} for the S4 class created by mxAlgebra. \link{mxFitFunctionAlgebra} for an objective function which takes an  MxAlgebra or MxMatrix object as the function to be minimized.
+\link{MxMatrix} and \link{mxMatrix} for objects which may be entered in the \code{expression} argument and the function that creates them. More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 
 \examples{
@@ -228,9 +230,9 @@ A  <- mxMatrix(type="Full", nrow=3, ncol=3, value=c(1:9), name="A")
 m1 <- mxModel(model="kron", A, mxAlgebra(A \%^\% 2, name="KroneckerPower"))
 mxRun(m1)$KroneckerPower
 
-# Running kron 
-# mxAlgebra 'KroneckerPower' 
-# $formula:  A %^% 2 
+# Running kron
+# mxAlgebra 'KroneckerPower'
+# $formula:  A %^% 2
 # $result:
 #      [,1] [,2] [,3]
 # [1,]    1   16   49
