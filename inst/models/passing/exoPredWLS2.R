@@ -72,6 +72,12 @@ buildModel <- function(manifests= paste0('z', 1:5), type = 'WLS', slopes= TRUE) 
 
 jointRAM1 <- buildModel()
 jointRAM1 <- mxRun(jointRAM1)
+
+omxCheckCloseEnough(jointRAM1$data$observedStats$z1.vcov,
+                    vcov(lm(z1 ~ z1c + z2c, jointdata)))
+omxCheckCloseEnough(jointRAM1$data$observedStats$z3.vcov,
+                    vcov(lm(z3 ~ z1c + z2c, jointdata)))
+
 summary(jointRAM1)
 # plot(jointRAM1) # (if using umx)
 

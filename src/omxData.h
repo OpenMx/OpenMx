@@ -151,6 +151,7 @@ struct WLSVarData {
 	Eigen::ArrayXd resid;
 	int contOffset;
 	int thrOffset;
+  Eigen::MatrixXd vcov;
 };
 
 typedef std::map< const char *, int, cstrCmp > ColMapType;

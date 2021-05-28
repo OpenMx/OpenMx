@@ -1475,6 +1475,25 @@ void omxData::reportResults(MxRList &out)
 	if (o1.useWeight) out.add("useWeight", o1.useWeight->asR());
 	if (o1.thresholdMat) out.add("thresholds", o1.thresholdMat->asR());
   out.add("numEstimatedEntries", Rcpp::wrap(numEstimatedEntries));
+
+  for (int vx=0; vx < int(o1.perVar.size()); ++vx) {
+    auto &pv = o1.perVar[vx];
+    if (pv.vcov.rows() == 0) continue;
+    std::string key = o1.dc[vx];
+    key += ".vcov";
+    int ef = o1.exoFree.row(vx).sum();
+    if (pv.vcov.rows() != 1+ef) mxThrow("pv.vcov.rows() %d != ef %d", pv.vcov.rows(), ef);
+    Rcpp::NumericMatrix vcov = Rcpp::wrap(pv.vcov);
+    Rcpp::CharacterVector ch(1+ef);
+    ch(0) = "(intercept)";
+    for (int xx=0, nx=1; xx < int(o1.exoPred.size()); ++xx) {
+      if (!o1.exoFree(vx, xx)) continue;
+      ch(nx++) = columnName(o1.exoPred[xx]);
+    }
+    colnames(vcov) = ch;
+    rownames(vcov) = ch;
+    out.add(key.c_str(), vcov);
+  }
 }
 
 template <typename T>
@@ -1634,6 +1653,7 @@ struct OLSRegression {
 	Eigen::MatrixXd scores;
 	double var;
 	Eigen::VectorXd ycol;
+  Eigen::MatrixXd vcov;
 	OLSRegression(omxData *u_d, double u_totalWeight,
 		      const Eigen::Ref<const Eigen::ArrayXd> u_rowMult,
 		      std::vector<int> &u_index);
@@ -1671,11 +1691,11 @@ void OLSRegression::setResponse(ColumnData &cd, WLSVarData &pv,
 	subsetVector(ycol, notMissingF, ycolF);
 	Eigen::ArrayXd rowMultF(rowMult.size() - naCount);
 	subsetVector(rowMult, notMissingF, rowMultF);
+  Eigen::MatrixXd predCov;
 	if (pred.cols() > 1) {
 		Eigen::DiagonalMatrix<double, Eigen::Dynamic> weightMat(rowMultF.matrix());
 		Eigen::MatrixXd predF(pred.rows() - naCount, pred.cols());
 		subsetRows(pred, notMissingF, predF);
-		Eigen::MatrixXd predCov;
 		predCov = predF.transpose() * weightMat * predF;
 		int singular = InvertSymmetricPosDef(predCov, 'L');
 		if (singular) {
@@ -1686,10 +1706,14 @@ void OLSRegression::setResponse(ColumnData &cd, WLSVarData &pv,
 		beta = predCov.selfadjointView<Eigen::Lower>() * predF.transpose() * weightMat * ycolF;
 		resid = ycol - pred * beta;
 	} else {
+    predCov.resize(1, 1);
+    predCov(0,0) = 1 / totalWeight;
 		beta.resize(1);
 		beta[0] = (ycolF.array() * rowMultF).sum() / totalWeight;
 		resid = ycol.array() - beta[0];
 	}
+  double sigma2 = resid.matrix().dot(resid.matrix()) / (totalWeight - beta.size());
+  vcov = sigma2 * predCov.selfadjointView<Eigen::Lower>();
 	subsetVectorStore(resid, [&](int rx){ return !std::isfinite(ycol[rx]); }, 0.);
 	var = (resid.square() * rowMult).sum() / totalWeight;
 }
@@ -2714,6 +2738,7 @@ struct sampleStats {
 			pv.theta.resize(olsr.beta.size() + 1);
 			pv.theta.segment(0, olsr.beta.size()) = olsr.beta;
 			pv.theta[olsr.beta.size()] = olsr.var;
+      pv.vcov = olsr.vcov;
 			Ecov(yy,yy) = olsr.var;
 			if (olsr.var < data.getMinVariance()) {
 				omxRaiseErrorf("%s: '%s' has observed variance less than %g",
