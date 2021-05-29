@@ -1482,11 +1482,22 @@ void omxData::reportResults(MxRList &out)
     std::string key = o1.dc[vx];
     key += ".vcov";
     int ef = o1.exoFree.row(vx).sum();
-    if (pv.vcov.rows() != 1+ef) mxThrow("pv.vcov.rows() %d != ef %d", pv.vcov.rows(), ef);
+    int numTh = o1.thresholdCols[vx].numThresholds;
+    if (numTh == 0) numTh = 1;
+    if (pv.vcov.rows() != numTh+ef)
+      mxThrow("%s pv.vcov.rows() %d != ef %d", key.c_str(), pv.vcov.rows(), ef);
     Rcpp::NumericMatrix vcov = Rcpp::wrap(pv.vcov);
-    Rcpp::CharacterVector ch(1+ef);
-    ch(0) = "(intercept)";
-    for (int xx=0, nx=1; xx < int(o1.exoPred.size()); ++xx) {
+    Rcpp::CharacterVector ch(pv.vcov.rows());
+    int nx=0;
+    if (o1.thresholdCols[vx].numThresholds == 0) {
+      ch(nx++) = "(intercept)";
+    } else {
+      for (int xx=0; xx < numTh; ++xx) {
+        std::string tname = string_snprintf("th%d", 1+xx);
+        ch(nx++) = tname.c_str();
+      }
+    }
+    for (int xx=0; xx < int(o1.exoPred.size()); ++xx) {
       if (!o1.exoFree(vx, xx)) continue;
       ch(nx++) = columnName(o1.exoPred[xx]);
     }
@@ -2766,7 +2777,11 @@ struct sampleStats {
 				nro(pr);
 			} else {
 				pr.calcScores();
+        pr.evaluateDerivs(FF_COMPUTE_HESSIAN);
 			}
+      pv.vcov = pr.hess;
+      InvertSymmetricIndef(pv.vcov, 'U');
+      pv.vcov.triangularView<Eigen::Lower>() = pv.vcov.transpose().triangularView<Eigen::Lower>();
 			pv.theta = pr.param;
 			auto &tc = o1.thresholdCols[yy];
 			Ethr.block(0,tc.column,tc.numThresholds,1) = pv.theta.segment(0,tc.numThresholds);

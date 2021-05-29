@@ -75,8 +75,17 @@ jointRAM1 <- mxRun(jointRAM1)
 
 omxCheckCloseEnough(jointRAM1$data$observedStats$z1.vcov,
                     vcov(lm(z1 ~ z1c + z2c, jointdata)))
+# glm binomial is set up a little different
+# omxCheckCloseEnough(jointRAM1$data$observedStats$z2.vcov,
+#                     vcov(glm(z2 ~ z1c + z2c, jointdata, family = binomial(link="probit"))),
+#                     .01)
 omxCheckCloseEnough(jointRAM1$data$observedStats$z3.vcov,
                     vcov(lm(z3 ~ z1c + z2c, jointdata)))
+perm <- c(2,3,4,1)
+omxCheckCloseEnough(jointRAM1$data$observedStats$z4.vcov,
+                    vcov(MASS::polr(z4 ~ z2c, jointdata, method="probit"))[perm,perm], 1e-7)
+omxCheckCloseEnough(jointRAM1$data$observedStats$z5.vcov,
+                    vcov(MASS::polr(z5 ~ 1, jointdata, method="probit")), 1e-8)
 
 summary(jointRAM1)
 # plot(jointRAM1) # (if using umx)
