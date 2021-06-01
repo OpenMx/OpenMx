@@ -185,7 +185,8 @@ static void importDataFrame(SEXP dataLoc, std::vector<ColumnData> &rawCols,
 			}
       cd.setMaxValueFromLevels();
 			numFactor++;
-		} else if (Rf_isInteger(rcol)) {
+		} else if (Rf_isInteger(rcol) || Rf_isLogical(rcol)) {
+      // Otherwise logical will be handled by isNumeric
 			if(debug+OMX_DEBUG) {mxLog("Column[%d] %s is integer.", j, colname);}
 			cd.setBorrow(INTEGER(rcol));
 			cd.type = COLUMNDATA_INTEGER;
