@@ -33,7 +33,7 @@
 # ----------------------------------
 # Read libraries and set options.
 
-require(OpenMx)
+library(OpenMx)
 
 # ----------------------------------
 # Read the data and print descriptive statistics.
@@ -99,3 +99,57 @@ omxCheckCloseEnough(expectVal, multivariateRegModelOut$output$estimate, 0.002)
 
 omxCheckCloseEnough(expectSE, 
     as.vector(multivariateRegModelOut$output[['standardErrors']]), 0.001)
+
+# ----------------------------
+
+multiData1$x1o <- cut(multiData1$x1, breaks = 4, ordered_result = TRUE)
+
+outcomes <- c('y', 'x1o')
+
+r2 <- mxModel("regr", type="RAM",
+              latentVars = predictors,
+              manifestVars = outcomes,
+              mxPath("one", predictors, free=FALSE, labels=paste0('data.', predictors)),
+              mxPath(predictors, outcomes),
+              mxPath("one", outcomes),
+              mxPath(outcomes, arrows=2, values=1),
+              mxThreshold(vars='x1o', nThresh=3),
+              mxData(observed=multiData1, type="raw"),
+              mxFitFunctionWLS(),
+              mxComputeSequence(list(
+                GD=mxComputeGradientDescent(),
+                CK=mxComputeCheckpoint(toReturn = TRUE, vcov=TRUE, vcovWLS=TRUE, vcovFilter =
+                                      c("regr.data.y.x2", "regr.data.y.x3",
+                                        "regr.data.x1o.th1", "regr.data.x1o.th2")))))
+
+r2 <- mxRun(r2)
+
+l1 <- r2$compute$steps$CK$log
+
+yv <- r2$data$observedStats$y.vcov
+x1ov <- r2$data$observedStats$x1o.vcov
+
+omxCheckCloseEnough(l1["regr.data.y.V(intercept):(intercept)"],
+                    yv["(intercept)","(intercept)"])
+omxCheckCloseEnough(l1["regr.data.y.Vx2:x2"],
+                    yv["x2","x2"])
+omxCheckCloseEnough(l1["regr.data.y.Vx3:x2"],
+                    yv["x3","x2"])
+omxCheckCloseEnough(l1["regr.data.y.Vx3:x3"],
+                    yv["x3","x3"])
+omxCheckCloseEnough(l1["regr.data.y.Vx4:x4"],
+                    yv["x4","x4"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vth1:th1"],
+                    x1ov["th1","th1"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vth2:th1"],
+                    x1ov["th2","th1"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vth2:th2"],
+                    x1ov["th2","th2"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vth3:th3"],
+                    x1ov["th3","th3"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vx2:x2"],
+                    x1ov["x2","x2"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vx3:x3"],
+                    x1ov["x3","x3"])
+omxCheckCloseEnough(l1["regr.data.x1o.Vx4:x4"],
+                    x1ov["x4","x4"])

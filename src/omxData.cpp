@@ -1430,6 +1430,37 @@ void obsSummaryStats::log()
 	if (thresholdMat) omxPrint(thresholdMat, "thr");
 }
 
+int obsSummaryStats::numPredictors(int vx)
+{
+    int numTh = thresholdCols[vx].numThresholds;
+    if (numTh == 0) numTh = 1;
+    int ef = exoFree.row(vx).sum();
+    return numTh + ef;
+}
+
+std::string omxData::getExoPredictorName(int vx, int nx)
+{
+  auto &o1 = *oss;
+
+  if (!(0 <= nx && nx < o1.numPredictors(vx))) mxThrow("nx %d out of range for vx %d", nx, vx);
+
+  int numTh = o1.thresholdCols[vx].numThresholds;
+  if (numTh == 0) { // continuous
+    if (nx == 0) return "(intercept)";
+    nx -= 1;
+  } else {  // ordinal
+    if (nx < numTh) return string_snprintf("th%d", 1+nx);
+    nx -= numTh;
+  }
+
+  for (int xx=0, px=0; xx < int(o1.exoPred.size()); ++xx) {
+    if (!o1.exoFree(vx, xx)) continue;
+    if (nx == px) return columnName(o1.exoPred[xx]);
+    px += 1;
+  }
+  return "unknown";
+}
+
 void omxData::reportResults(MxRList &out)
 {
 	out.add("numObs", Rf_ScalarReal(omxDataNumObs(this)));

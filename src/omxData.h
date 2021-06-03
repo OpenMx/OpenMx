@@ -205,6 +205,7 @@ class obsSummaryStats {
 	void permute(omxData *data);
 	void log();
 	void loadExoFree(SEXP Ref);
+  int numPredictors(int vx);
 };
 
 class omxData {
@@ -246,6 +247,7 @@ class omxData {
 	bool isModified() { return modified; };
 	double getMinVariance() const { return minVariance; };
 	void evalAlgebras(FitContext *fc);
+  std::string getExoPredictorName(int vx, int nx);
 
 	const char *name;
 	SEXP dataObject;                                // only used for dynamic data
@@ -333,6 +335,7 @@ class omxData {
 		if (!oss) mxThrow("No observed summary stats");
 		return *oss;
 	};
+  bool hasVcov() { return oss && oss->perVar.size(); }
 	const char *columnName(int col);
 	bool columnIsFactor(int col);
 	bool hasSummaryStats() { return dataMat != 0 || oss; }
