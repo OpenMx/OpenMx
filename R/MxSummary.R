@@ -515,7 +515,9 @@ print.summary.mxmodel <- function(x,...) {
 			cat("  To investigate missing CIs, run summary() again, with verbose=T, to see CI details.", '\n')
 		}
 		cat('\n')
-	}
+	} else if (x$CI.Requested) {
+    cat("To obtain confidence intervals re-run with intervals=TRUE\n\n")
+  }
 	if(x$verbose && length(x$CIdetail)){
 		cat("CI details:\n")
 		print(x$CIdetail)
@@ -911,6 +913,7 @@ summary.MxModel <- function(object, ..., verbose=FALSE) {
 	retval <- setNumberObservations(numObs, flatModel@datasets, fitfunctions, retval)
 	retval <- computeOptimizationStatistics(model, flatModel, numStats, saturatedDoF, independenceDoF, retval)
 	retval$dataSummary <- generateDataSummary(model)
+  retval$CI.Requested <- length(model@intervals) > 0
 	retval$CI <- as.data.frame(model@output$confidenceIntervals)
 	if (length(retval$CI) && nrow(retval$CI)) {
 		retval$CI <- cbind(retval$CI, note=apply(retval$CI, 1, function(ci) {
