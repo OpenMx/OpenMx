@@ -4,18 +4,18 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-mxRun <- function(model, ..., intervals=NULL, silent = FALSE, 
+mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		suppressWarnings = FALSE, unsafe = FALSE,
-		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE, 
+		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE,
 		useOptimizer = TRUE, beginMessage=!silent){
 
 	warnModelCreatedByOldVersion(model)
@@ -37,8 +37,8 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		checkpoint, useSocket, onlyFrontend, useOptimizer, beginMessage)
 }
 
-runHelper <- function(model, frontendStart, 
-		intervals, silent, suppressWarnings, 
+runHelper <- function(model, frontendStart,
+		intervals, silent, suppressWarnings,
 		unsafe, checkpoint, useSocket, onlyFrontend, useOptimizer,
 		beginMessage, parentData = NULL) {
 
@@ -53,15 +53,15 @@ runHelper <- function(model, frontendStart,
 		independents <- getAllIndependents(model)
 		indepTimeStart <- Sys.time()
 	    independents <- omxLapply(independents, runHelper,
-		frontendStart = frontendStart, 
-		intervals = intervals, silent = silent, 
+		frontendStart = frontendStart,
+		intervals = intervals, silent = silent,
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
 		onlyFrontend = onlyFrontend, useOptimizer = useOptimizer,
 		beginMessage=beginMessage, parentData = model@data)
 		indepTimeStop <- Sys.time()
 		indepElapsed <- indepTimeStop - indepTimeStart
-		return(processHollowModel(model, independents, 
+		return(processHollowModel(model, independents,
 			frontendStart, indepElapsed))
 	}
 
@@ -69,8 +69,8 @@ runHelper <- function(model, frontendStart,
 	dshare <- shareData(model)
 	independents <- getAllIndependents(dshare)
 	indepTimeStart <- Sys.time()
-	independents <- omxLapply(independents, mxRun, 
-		intervals = intervals, silent = silent, 
+	independents <- omxLapply(independents, mxRun,
+		intervals = intervals, silent = silent,
 		suppressWarnings = suppressWarnings, unsafe = unsafe,
 		checkpoint = checkpoint, useSocket = useSocket,
 		onlyFrontend = onlyFrontend, beginMessage=beginMessage,
@@ -78,7 +78,7 @@ runHelper <- function(model, frontendStart,
 	indepTimeStop <- Sys.time()
 	indepElapsed <- indepTimeStop - indepTimeStart
 	if (modelIsHollow(model)) {
-		return(processHollowModel(model, independents, 
+		return(processHollowModel(model, independents,
 					  frontendStart, indepElapsed))
 	}
 	frozen <- lapply(independents, imxFreezeModel)
@@ -205,7 +205,7 @@ runHelper <- function(model, frontendStart,
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
 	options <- limitMajorIterations(options, numParam, length(constraints))
 	computes <- convertComputes(flatModel, model)
-	
+
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
 	if(beginMessage) message("Running ", model@name, " with ", numParam, " parameter",
@@ -239,7 +239,7 @@ runHelper <- function(model, frontendStart,
 	model@output <- nameOptimizerOutput(suppressWarnings, flatModel,
 		names(matrices), names(algebras),
 		names(parameters), names(constraints), model@compute, output)
-	
+
 	theFitUnits <- model$output$fitUnits
 	if (is.na(model@output$status$code) ||
 	    (!is.na(model@output$status$code) && model@output$status$code < 5)) {
@@ -291,7 +291,7 @@ runHelper <- function(model, frontendStart,
 
 	model <- clearModifiedSinceRunRecursive(model)
 
-	return(model)		
+	return(model)
 }
 
 updateModelExpectationDims <- function(model, expectations){
@@ -374,7 +374,7 @@ mxBootstrap <- function(model, replications=200, ...,
   plan$parallel <- as.logical(parallel)
   plan$only <- as.integer(only)
   plan$OK <- as.statusCode(OK)
-  
+
   model <- mxModel(model, plan)
   mxRun(model, suppressWarnings=TRUE)
 }
@@ -406,10 +406,6 @@ omxGetBootstrapReplications <- function(model) {
   raw <- cb@output$raw
   mask <- raw[,'statusCode'] %in% cb@OK
   bootData <- raw[mask, 3:(length(coef(model))+2), drop=FALSE]
-  if (sum(mask) < 3) {
-	  stop(paste("Fewer than 3 replications are available.",
-		     "Use mxBootstrap to increase the number of replications."))
-  }
    if (sum(mask) < .95*length(mask)) {
 	   pct <- round(100*sum(mask) / length(mask))
 	   warning(paste0("Only ",pct,"% of the bootstrap replications ",
