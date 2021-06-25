@@ -48,12 +48,12 @@ SystemRequirements: GNU make
 ByteCompile: @BC@
 Language: en-US
 License: @LICENSE@
-LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
+LinkingTo: Rcpp, RcppEigen, RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
 Imports: digest,
     MASS,
     Matrix,
     methods,
-	Rcpp,
+	Rcpp, RcppParallel,
     parallel, lifecycle
 Depends: R (>= 3.5.0)
 Suggests:

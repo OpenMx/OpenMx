@@ -1,4 +1,5 @@
 import(parallel)
+importFrom(RcppParallel, RcppParallelLibs)
 import(methods)
 import(MASS)
 import(digest)
