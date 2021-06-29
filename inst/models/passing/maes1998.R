@@ -146,3 +146,5 @@ fig6s <- summary(fig6, refModels=fig6r)
 expect_equal(fig6s$ChiDoF, 65)
 expect_equal(fig6s$Chi, 544.0544, 1e-3)
 expect_equal(fig6s$CFI, .8756, 1e-4)
+
+expect_equal(length(mxGetExpected(fig6, "covariance")), 2)

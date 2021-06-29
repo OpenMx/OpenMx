@@ -279,7 +279,8 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
         cov <- origCov[[1]]
       } else {
         selPlan <- .Object@selectionPlan
-        selVec <- mxEvalByName(.Object@selectionVector, model, compute=TRUE, defvar.row=defvar.row)
+        selVecName <- .modifyDottedName(subname, .Object@selectionVector)
+        selVec <- mxEvalByName(selVecName, model, compute=TRUE, defvar.row=defvar.row)
         sx <- 1L
         rx <- 1L
         curStep <- selPlan[sx,'step']
