@@ -1,7 +1,7 @@
 # OpenMx
 
 <!-- badges: start -->
-[![Build Status](https://travis-ci.org/OpenMx/OpenMx.svg?branch=master)](https://travis-ci.org/OpenMx/OpenMx)
+[![Build Status](https://api.travis-ci.com/OpenMx/OpenMx.svg?branch=master)](https://travis-ci.com/OpenMx/OpenMx)
 [![Codecov test coverage](https://codecov.io/gh/OpenMx/OpenMx/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenMx/OpenMx?branch=master)
 [![cran version](http://www.r-pkg.org/badges/version/OpenMx)](https://cran.r-project.org/package=OpenMx)
 [![Monthly Downloads](https://cranlogs.r-pkg.org/badges/OpenMx)](https://cranlogs.r-pkg.org/badges/OpenMx)
