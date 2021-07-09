@@ -116,11 +116,24 @@ protected:
 	}
 
 	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
-	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns();
+	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() const;
 	virtual const std::vector<const char *> &getDataColumnNames() const;
 	virtual void getExogenousPredictors(std::vector<int> &out) {};
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo();
 	double getThreshold(int r, int c);
+	virtual int numObservedStats() {
+    mxThrow("%s::numObservedStats() is not implemented", name);
+  }
+  virtual int numManifestVars() const { return dataColumnNames.size(); }
+  virtual int numLatentVars() const { return 0; }
+};
+
+class MVNExpectation : public omxExpectation {
+  typedef omxExpectation super;
+public:
+	MVNExpectation(omxState *state, int num) : super(state, num) {};
+	virtual int numObservedStats() override;
+  virtual void populateAttr(SEXP algebra) override;
 };
 
 	void omxCompleteExpectation(omxExpectation *ox);

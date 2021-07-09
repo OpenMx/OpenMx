@@ -273,11 +273,12 @@ namespace RelationalRAMExpectation {
 		void simulate(FitContext *fc, MxRList &out);
 		int getOptimizeMean();
 		void optimizeModelRotation();
+    int numObservedStats();
 	};
 };
 
-class omxRAMExpectation : public omxExpectation {
-	typedef omxExpectation super;
+class omxRAMExpectation : public MVNExpectation {
+	typedef MVNExpectation super;
 	Eigen::VectorXi dataCols;  // composition of F permutation and expectation->dataColumns
 	std::vector<const char *> dataColNames;
 	std::vector< omxThresholdColumn > thresholds;
@@ -418,6 +419,8 @@ class omxRAMExpectation : public omxExpectation {
 	virtual void generateData(FitContext *fc, MxRList &out);
 	virtual void flatten(FitContext *fc);
 	virtual void getExogenousPredictors(std::vector<int> &out);
+  virtual int numLatentVars() const override;
+  virtual int numObservedStats() override;
 };
 
 namespace RelationalRAMExpectation {

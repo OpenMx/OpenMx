@@ -19,8 +19,8 @@
 #include "Compute.h"
 #include "EnableWarnings.h"
 
-class omxLISRELExpectation : public omxExpectation {
-	typedef omxExpectation super;
+class omxLISRELExpectation : public MVNExpectation {
+	typedef MVNExpectation super;
 	std::vector<int> exoDataColumns; // index into omxData
 	int verbose;
 	int numExoPred;
@@ -56,6 +56,7 @@ public:
 	virtual void populateAttr(SEXP expectation) override;
 	virtual omxMatrix *getComponent(const char*) override;
 	virtual void getExogenousPredictors(std::vector<int> &out) override;
+  virtual int numLatentVars() const override { return PS->cols; }
 
 	void studyExoPred();
 };
@@ -137,12 +138,7 @@ omxLISRELExpectation::~omxLISRELExpectation()
 
 void omxLISRELExpectation::populateAttr(SEXP algebra)
 {
-	auto oo = this;
-
-  {
-    ProtectedSEXP RnumStat(Rf_ScalarReal(omxDataDF(oo->data)));
-    Rf_setAttrib(algebra, Rf_install("numStats"), RnumStat);
-  }
+  super::populateAttr(algebra);
 
 	MxRList out;
   populateNormalAttr(algebra, out);

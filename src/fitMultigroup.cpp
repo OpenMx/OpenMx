@@ -30,7 +30,7 @@ struct FitMultigroup : omxFitFunction {
 	virtual void init();
 	virtual void compute(int ffcompute, FitContext *fc);
 	virtual void addOutput(MxRList *out);
-	virtual void traverse(std::function<void(omxMatrix*)> &fn);
+	virtual void traverse(std::function<void(omxMatrix*)> fn) override;
 };
 
 void FitMultigroup::compute(int want, FitContext *fc)
@@ -133,7 +133,7 @@ void FitMultigroup::init()
 	}
 }
 
-void FitMultigroup::traverse(std::function<void(omxMatrix*)> &fn)
+void FitMultigroup::traverse(std::function<void(omxMatrix*)> fn)
 {
 	fn(matrix);
 	for (auto &f1 : fits) {

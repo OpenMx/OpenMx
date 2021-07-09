@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -68,7 +68,7 @@ doFlatNamespaceSearch <- function(model, name) {
 
 	if (!is.null(result)) {
 		return(result)
-	} 
+	}
 
 	result <- model@constraints[[name]]
 
@@ -101,7 +101,7 @@ doFlatNamespaceSearch <- function(model, name) {
 # Provide the list of named entities valid in the namespace
 #
 flatNamespaceList <- function(model) {
-	result <- c(names(model@matrices), 
+	result <- c(names(model@matrices),
 	names(model@algebras),
 	names(model@constraints),
 	names(model@fitfunctions),
@@ -155,10 +155,10 @@ doFlatNamespaceSearchReplace <- function(model, name, value) {
 	if (is.null(current) && is.null(value)) {
 		return(model)
 	}
-	if(!is.null(current) && !is.null(value) && 
+	if(!is.null(current) && !is.null(value) &&
 			!imxSameType(current, value)) {
-		stop(paste("There already exists an object", 
-				omxQuotes(name), 
+		stop(paste("There already exists an object",
+				omxQuotes(name),
 				"in this model of different type"), call. = FALSE)
 	}
 	if(!is.null(value)) {
@@ -179,6 +179,8 @@ doFlatNamespaceSearchReplace <- function(model, name, value) {
 		model@datasets[[name]] <- value
 	} else if (is(test,"MxConstraint")) {
 		model@constraints[[name]] <- value
+	} else if (is(test,"MxPenalty")) {
+		model@regularizations[[name]] <- value
 	} else {
 		stop(paste(test, "is of unknown value for replacement using name",
 			name, "in model", model@name), call. = FALSE)

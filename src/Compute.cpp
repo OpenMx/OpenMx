@@ -1049,7 +1049,7 @@ void FitContext::ensureParamWithinBox(bool nudge)
 	if (OMX_DEBUG) mxLog("FitContext::ensureParamWithinBox(nudge=%d)", nudge);
 	for (size_t px = 0; px < varGroup->vars.size(); ++px) {
 		omxFreeVar *fv = varGroup->vars[px];
-		if (nudge && est[px] == 0.0) {
+		if (nudge && !profiledOutZ[px] && est[px] == 0.0) {
 			est[px] += 0.1;
 		}
 		if (fv->lbound > est[px]) {
@@ -2168,6 +2168,171 @@ public:
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
 };
 
+class ComputeRegularize : public omxCompute {
+	typedef omxCompute super;
+
+	int verbose;
+	std::vector< omxMatrix* > fitfunction;
+	std::unique_ptr< omxCompute > plan;
+  double ebicGamma;
+  bool fixZeros;
+  DataFrame result;
+
+ public:
+	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *) override;
+};
+
+void ComputeRegularize::initFromFrontend(omxState *globalState, SEXP rObj)
+{
+	super::initFromFrontend(globalState, rObj);
+
+  S4 obj(rObj);
+
+	PushLoopIndex pli(name);
+
+  verbose = Rf_asInteger(obj.slot("verbose"));
+  IntegerVector ffv = obj.slot("fitfunction");
+  if (ffv.size() != 1) mxThrow("%s: can add the regularization penalty to "
+                               "exactly one fit function (not %d of them)", ffv.size());
+	for (int wx=0; wx < ffv.size(); ++wx) {
+    omxMatrix *mat = globalState->algebraList[ ffv[wx] ];
+    if (!mat->isFitFunction()) mxThrow("%s: %s is not a fit function", name, mat->name());
+    fitfunction.push_back(mat);
+  }
+  if (fitfunction.size() != 1) mxThrow("%s: a fitfunction is required", name);
+
+  const char *approach = obj.slot("approach");
+  if (!strEQ(approach, "EBIC"))
+    mxThrow("%s: approach '%s' not implemented", name, approach);
+
+  ebicGamma = Rf_asReal(obj.slot("ebicGamma"));
+
+  fixZeros = as<bool>(obj.slot("fixZeros"));
+
+  S4 Rplan = obj.slot("plan");
+	plan = std::unique_ptr< omxCompute >(omxNewCompute(globalState, Rplan.attr("class")));
+	plan->initFromFrontend(globalState, Rplan);
+}
+
+void ComputeRegularize::computeImpl(FitContext *fc)
+{
+  auto &fvg = *Global->findVarGroup(FREEVARGROUP_ALL);
+  if (int(fvg.vars.size()) != fc->numParam)
+    mxThrow("%s: FitContext narrowed to %d parameters", name, fc->numParam);
+  auto &pg = Global->penaltyGrid;
+  auto &pl = Global->penalties;
+
+  int gridSize = 1;
+  for (auto it = pg.cbegin(); it != pg.cend(); ++it) {
+    NumericVector g1(it->second);
+    gridSize *= g1.size();
+  }
+  if (verbose >= 1) mxLog("%s: grid size %d", name, gridSize);
+
+  CharacterVector rnames;
+  rnames.push_back("EBIC");
+  result.push_back(NumericVector(gridSize));
+  rnames.push_back("EP");
+  result.push_back(IntegerVector(gridSize));
+  rnames.push_back("fit");
+  result.push_back(NumericVector(gridSize));
+  rnames.push_back("objective");
+  result.push_back(NumericVector(gridSize));
+  rnames.push_back("statusCode");
+  result.push_back(allocInformVector(gridSize));
+  int resultParamOffset = result.size();
+  for (int px=0; px < fc->numParam; ++px) {
+    rnames.push_back(fvg.vars[px]->name);
+    result.push_back(NumericVector(gridSize));
+  }
+  result.attr("names") = rnames;
+
+  double bestEBIC = NA_REAL;
+  int bestGridIndex = -1;
+  for (int gx=0; gx < gridSize; ++gx) {
+		PushLoopIndex pli(name, gx, gridSize);
+    int abscissa = gx;
+    for (auto it = pg.cbegin(); it != pg.cend(); ++it) {
+      NumericVector g1(it->second);
+      fc->est[it->first] = g1[abscissa % g1.size()];
+      //mxLog("%s: [%d] %s = %f", name, gx, fvg.vars[it->first]->name, fc->est[it->first]);
+      abscissa /= g1.size();
+    }
+    plan->compute(fc);
+    int zero = 0;
+    for (auto &p1 : pl) zero += p1->countNumZero(fc);
+    int EP = fc->getNumFree() - zero; //estimatedParameters
+    int observedStats = 0;
+    fitfunction[0]->fitFunction->traverse([&observedStats](omxMatrix *f1){
+      auto ff = f1->fitFunction;
+      if (ff->expectation) observedStats += ff->expectation->numObservedStats();
+    });
+    int DF = observedStats - EP;
+
+    // how to extend support to multiple groups? TODO
+    auto ex = fitfunction[0]->fitFunction->expectation;
+    if (!ex) mxThrow("%s: fitfunction '%s' does not have an expectation", fitfunction[0]->name());
+    int np = ex->numManifestVars();
+    int nfac = ex->numLatentVars();
+    if (nfac < 1) nfac = 1;
+    double cvDF = ((np*np+1)/2. + np - EP)/DF;
+    if (!ex->data) mxThrow("%s: expectation '%s' has no associated data", ex->name);
+    if (fitfunction[0]->fitFunction->units != FIT_UNITS_MINUS2LL) {
+      mxThrow("%s: fit function '%s' must be -2ll units (not %s)",
+              name, fitfunction[0]->name(), fitUnitsToName(fitfunction[0]->fitFunction->units));
+    }
+    double ll = fitfunction[0]->data[0];
+    double N = omxDataNumObs(ex->data);
+    double EBIC;
+    if (strEQ(ex->data->getType(), "raw")) {
+      EBIC = ll * cvDF + (log(N) * EP + 2*EP * ebicGamma * log(np+nfac));
+    } else {
+      EBIC = ll +         log(N) * EP + 2*EP * ebicGamma * log(np+nfac);
+    }
+    if (bestGridIndex == -1 || EBIC < bestEBIC) {
+      bestGridIndex = gx;
+      bestEBIC = EBIC;
+    }
+    {NumericVector v = result[0]; v[gx] = EBIC;}
+    {IntegerVector v = result[1]; v[gx] = EP;}
+    {NumericVector v = result[2]; v[gx] = ll;}
+    {NumericVector v = result[3]; v[gx] = fc->fit;}
+    {IntegerVector v = result[4]; v[gx] = fc->wrapInform();}
+    for (int px=0; px < fc->numParam; ++px) {
+      NumericVector vec = result[resultParamOffset+px];
+      vec[gx] = fc->est[px];
+    }
+    std::string detail = std::to_string(gx+1) + "/" + std::to_string(gridSize);
+    Global->reportProgress1(name, detail);
+  }
+
+  if (verbose >= 1) mxLog("-> best[%d] %f", bestGridIndex, bestEBIC);
+
+  for (int px=0; px < fc->numParam; ++px) {
+    NumericVector vec = result[resultParamOffset+px];
+    fc->est[px] = vec[bestGridIndex];
+  }
+  if (fixZeros) {
+    for (auto &p1 : Global->penalties) p1->fixZeros(fc);
+    Global->penalties.clear();
+    fc->copyParamToModel();
+    plan->compute(fc);
+  } else {
+    fc->wanted &= ~FF_COMPUTE_FIT;  // discard garbage
+    // auxillary information like per-row likelihoods need a refresh
+    ComputeFit(name, fitfunction[0], FF_COMPUTE_FIT, fc);
+  }
+}
+
+void ComputeRegularize::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+{
+	MxRList output;
+	output.add("detail", result);
+	slots->add("output", output.asR());
+}
+
 static class omxCompute *newComputeSequence()
 { return new omxComputeSequence(); }
 
@@ -2240,7 +2405,9 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	{"MxComputeTryCatch",
 	 []()->omxCompute* { return new ComputeTryCatch; }},
 	{"MxComputeLoadContext",
-	 []()->omxCompute* { return new ComputeLoadContext; }}
+	 []()->omxCompute* { return new ComputeLoadContext; }},
+	{"MxComputeRegularize",
+	 []()->omxCompute* { return new ComputeRegularize; }}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3562,6 +3729,7 @@ void FitContext::resetToOriginalStarts()
 	auto &startingValues = Global->startingValues;
 	auto &vars = varGroup->vars;
 	for (int vx=0; vx < int(vars.size()); ++vx) {
+    if (profiledOutZ[vx]) continue;
 		auto *fv = vars[vx];
 		est[vx] = startingValues[fv->id];
 	}

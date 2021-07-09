@@ -96,6 +96,18 @@ void omxRAMExpectation::getExogenousPredictors(std::vector<int> &out)
 	out = exoDataColumns;
 }
 
+int omxRAMExpectation::numLatentVars() const
+{
+  if (rram) mxThrow("omxRAMExpectation::numLatentVars() not implemented for multilevel models");
+  return F->cols - F->rows;
+}
+
+int omxRAMExpectation::numObservedStats()
+{
+  if (!rram) return super::numObservedStats();
+  return rram->numObservedStats();
+}
+
 void omxRAMExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
 	omxRAMExpectation* oro = this;
@@ -149,8 +161,7 @@ void omxRAMExpectation::populateAttr(SEXP robj)
 			Rf_setAttrib(expCovExt, R_DimNamesSymbol, dimnames);
 		}
 
-		ProtectedSEXP RnumStats(Rf_ScalarReal(omxDataDF(data)));
-		Rf_setAttrib(robj, Rf_install("numStats"), RnumStats);
+    super::populateAttr(robj);
 	}
 
 	MxRList out;
@@ -1900,6 +1911,19 @@ namespace RelationalRAMExpectation {
 			}
 		}
 	}
+
+	int state::numObservedStats()
+  {
+    int stats = 0;
+		for (auto *ex : allEx) {
+			omxRAMExpectation *ram1 = (omxRAMExpectation*) ex;
+      auto &dc = ram1->getDataColumns();
+      stats += dc.size() * ram1->data->nrows();
+
+      // no thresholds since our multilevel is limited to continuous only
+    }
+    return stats;
+  }
 
 	void state::init(omxExpectation *expectation, FitContext *fc)
 	{
