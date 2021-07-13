@@ -380,6 +380,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				o1.thresholdMat = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
 			} else if (strEQ(key, "numEstimatedEntries")) {
         // ignore, just diagnostic output
+      } else if (strstr(key, ".vcov")) {
+        // Ignore for now. Is the vcov regenerated?
 			} else {
 				Rf_warning("%s: observedStats key '%s' ignored", name, key);
 			}
@@ -1755,10 +1757,11 @@ void OLSRegression::setResponse(ColumnData &cd, WLSVarData &pv,
 		beta[0] = (ycolF.array() * rowMultF).sum() / totalWeight;
 		resid = ycol.array() - beta[0];
 	}
-  double sigma2 = resid.matrix().dot(resid.matrix()) / (totalWeight - beta.size());
-  vcov = sigma2 * predCov.selfadjointView<Eigen::Lower>();
 	subsetVectorStore(resid, [&](int rx){ return !std::isfinite(ycol[rx]); }, 0.);
-	var = (resid.square() * rowMult).sum() / totalWeight;
+  double residSqSum = (resid.square() * rowMult).sum();
+  double sigma2 = residSqSum / (totalWeight - beta.size());
+  vcov = sigma2 * predCov.selfadjointView<Eigen::Lower>();
+	var = residSqSum / totalWeight;
 }
 
 void OLSRegression::calcScores()

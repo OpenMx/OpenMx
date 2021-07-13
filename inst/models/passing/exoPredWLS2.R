@@ -92,13 +92,15 @@ summary(jointRAM1)
 
 # Where do these come from?
 #cat(deparse(round(unname(coef(jointRAM1)),4)))
-param <-  c(0.5929, 0.5773, 0.661, 0.6089, 0.1722, 0.0851, 0.0274, 0.5475,  0.4579,
-            7.8364, 2.0767, 0.065, -0.3714, 0.1242, 0.7867, -0.6529,  -0.2965)
+param <-  c(0.5929, 0.5773, 0.661, 0.6089, 0.1722, 0.0851, 0.0274, 0.5475,
+            0.4579, 7.9062, 2.0767, 0.0563, -0.3714, 0.1242, 0.7867, -0.6529,
+            -0.2965)
 omxCheckCloseEnough(coef(jointRAM1), param, 1e-3)
 
 #cat(deparse(round(unname(c(jointRAM1$output$standardErrors)),4)))
-param.se <- c(0.0616, 0.1021, 0.0682, 0.094, 0.0657, 0.0566, 0.0682, 0.057,  0.065,
-              0.1097, 0.0601, 0.0821, 0.0783, 0.0728, 0.0925, 0.0653,  0.0586)
+param.se <- c(0.0616, 0.1021, 0.0682, 0.094, 0.0657, 0.0566, 0.0682, 0.057, 
+              0.065, 0.0754, 0.0601, 0.0741, 0.0783, 0.0728, 0.0925, 0.0653, 
+              0.0586)
 omxCheckCloseEnough(c(jointRAM1$output$standardErrors), param.se, 1e-3)
 
 # ===============================================================
@@ -114,7 +116,7 @@ estCmp <- cbind(coef(jointRAM2), coef(jointRAM1))
 omxCheckCloseEnough(cor(estCmp)[2,1], 1, 1e-4)
 
 seCmp <- cbind(jointRAM2$output$standardErrors, jointRAM1$output$standardErrors)
-omxCheckCloseEnough(cor(seCmp)[2,1], 1, .22)
+omxCheckCloseEnough(cor(seCmp)[2,1], 1, .05)
 
 # ===============================================================
 # = Iterate over model types allowed by the buildModel function =
@@ -130,3 +132,4 @@ for (slopes in c(TRUE,FALSE)) {
 		jm4 <- mxRun(jm4)
 	}
 }
+

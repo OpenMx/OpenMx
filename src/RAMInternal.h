@@ -282,7 +282,6 @@ class omxRAMExpectation : public omxExpectation {
 	std::vector<const char *> dataColNames;
 	std::vector< omxThresholdColumn > thresholds;
 	std::vector<int> exoDataColumns; // index into omxData
-	Eigen::VectorXd exoPredMean;
 	bool hasProductNodes;
   bool studiedF;
   bool openBox;  // can the user access the expectation during optimization?
@@ -397,7 +396,6 @@ class omxRAMExpectation : public omxExpectation {
 	void studyExoPred();
 
 	virtual void init();
-  virtual void connectToData();
 	virtual void compute(FitContext *fc, const char *what, const char *how);
 	virtual omxMatrix *getComponent(const char*);
 	virtual void populateAttr(SEXP expectation);

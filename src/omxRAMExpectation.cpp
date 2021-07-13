@@ -213,10 +213,6 @@ void omxRAMExpectation::CalculateRAMCovarianceAndMeans(FitContext *fc)
 	if (M) {
 		EigenVectorAdaptor Emean(means);
 		pcalc.mean(fc, Emean);
-		if (slope) {
-			EigenMatrixAdaptor Eslope(slope);
-			Emean += Eslope * exoPredMean;
-		}
 		if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(means, "....RAM: Model-implied Means Vector:");}
 	}
 }
@@ -548,18 +544,6 @@ void omxRAMExpectation::addSlopeMatrix()
 			dx += 1;
 		}
 		ex += 1;
-	}
-}
-
-void omxRAMExpectation::connectToData()
-{
-  super::connectToData();
-
-	exoPredMean.resize(exoDataColumns.size());
-	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
-		auto &e1 = data->rawCol( exoDataColumns[cx] );
-		Eigen::Map< Eigen::VectorXd > vec(e1.d(), data->numRawRows());
-		exoPredMean[cx] = vec.mean();
 	}
 }
 

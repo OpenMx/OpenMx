@@ -37,7 +37,6 @@ public:
 	omxMatrix *MUX, *MUY; //Place holder matrices for building means from blocks
 	//omxMatrix *C, *P, *V, *Mns; // Other Matrices, not sure what these are for.
 	omxMatrix *slope;       // exogenous predictor slopes
-	Eigen::VectorXd exoPredMean;
 
 	int numIters; // used by omxFastRAM/LISRELInverse
 	double n;
@@ -53,7 +52,6 @@ public:
 	omxLISRELExpectation(omxState *st, int num) : super(st, num), numExoPred(0) {}
 	virtual ~omxLISRELExpectation();
 	virtual void init() override;
-  virtual void connectToData() override;
 	virtual void compute(FitContext *fc, const char *what, const char *how) override;
 	virtual void populateAttr(SEXP expectation) override;
 	virtual omxMatrix *getComponent(const char*) override;
@@ -232,7 +230,6 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 	omxMatrix* BOT = oro->BOT;
 	omxMatrix* MUX = oro->MUX;
 	omxMatrix* MUY = oro->MUY;
-	omxMatrix *slope = oro->slope;
 	omxMatrix** args = oro->args;
 	if(OMX_DEBUG) { mxLog("Running LISREL computation in omxCalculateLISRELCovarianceAndMeans."); }
 	double oned = 1.0, zerod=0.0; //, minusOned = -1.0;
@@ -334,11 +331,6 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 				omxDGEMV(FALSE, oned, GA, KA, oned, K);
 				omxCopyMatrix(MUY, TY);
 				omxDGEMV(FALSE, oned, D, K, oned, MUY);
-				if (slope) {
-					EigenVectorAdaptor Emean(MUY);
-					EigenMatrixAdaptor Eslope(slope);
-					Emean += Eslope * oro->exoPredMean;
-				}
 			//}
 
 			/* Build means from blocks */
@@ -382,11 +374,6 @@ void omxCalculateLISRELCovarianceAndMeans(omxLISRELExpectation* oro) {
 		if(Means != NULL) {
 				omxCopyMatrix(Means, TY);
 				omxDGEMV(FALSE, oned, D, AL, oned, Means);
-				if (slope) {
-					EigenVectorAdaptor Emean(Means);
-					EigenMatrixAdaptor Eslope(slope);
-					Emean += Eslope * oro->exoPredMean;
-				}
 		}
 	}
 	if (Means && OMX_DEBUG_ALGEBRA) omxPrintMatrix(Means, "....LISREL: Model-implied Means Vector:");
@@ -672,17 +659,5 @@ void omxLISRELExpectation::addSlopeMatrix()
 			slope->addPopulate(LY, rx, cx, rx, ex);
 		}
 		ex += 1;
-	}
-}
-
-void omxLISRELExpectation::connectToData()
-{
-  super::connectToData();
-
-	exoPredMean.resize(exoDataColumns.size());
-	for (int cx=0; cx < int(exoDataColumns.size()); ++cx) {
-		auto &e1 = data->rawCol( exoDataColumns[cx] );
-		Eigen::Map< Eigen::VectorXd > vec(e1.d(), data->numRawRows());
-		exoPredMean[cx] = vec.mean();
 	}
 }

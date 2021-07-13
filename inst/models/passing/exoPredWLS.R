@@ -76,12 +76,14 @@ expect_equal(length(mxGetExpected(jointRAM1, 'standvector')),
 
 # Where do these come from?
 # cat(deparse(round(unname(coef(jointRAM1)), 4)))
-param <-  c(0.5803, 0.5888, 0.6529, 0.6059, 0.1743, 0.0878, 0.0464, 0.5476,
-            0.4629, 7.832, 2.081, 0.078, -0.3653, 0.1281, 0.7912, -0.6482,  -0.2959)
+param <-  c(0.5809, 0.5898, 0.6528, 0.6061, 0.1744, 0.0871, 0.0504, 0.5475,
+            0.4638, 7.9037, 2.0759, 0.0624, -0.3663, 0.127, 0.7916, -0.6475,
+            -0.296)
 omxCheckCloseEnough(coef(jointRAM1), param, 1e-3)
 
-param.se <- c(0.0613, 0.1056, 0.0684, 0.0942, 0.0665, 0.0541, 0.0648, 0.0559,  0.0644, 0.1054,
-              0.0593, 0.0819, 0.0777, 0.0726, 0.0922, 0.0655,  0.0585)
+param.se <- c(0.0613, 0.1056, 0.0684, 0.0941, 0.0665, 0.0541, 0.0648, 
+              0.0559, 0.0645, 0.0736, 0.0593, 0.0745, 0.0776, 0.0726, 0.0921, 
+              0.0655, 0.0585)
 omxCheckCloseEnough(c(jointRAM1$output$standardErrors), param.se, 1e-3)
 
 # ===============================================================
@@ -97,7 +99,7 @@ estCmp <- cbind(coef(jointRAM2), coef(jointRAM1))
 omxCheckCloseEnough(cor(estCmp)[2,1], 1, 1e-4)
 
 seCmp <- cbind(jointRAM2$output$standardErrors, jointRAM1$output$standardErrors)
-omxCheckCloseEnough(cor(seCmp)[2,1], 1, .18)
+omxCheckCloseEnough(cor(seCmp)[2,1], 1, .04)
 
 # ===============================================================
 # = Iterate over model types allowed by the buildModel function =
@@ -189,4 +191,4 @@ m1 <- mxRun(m1)
 personData$snpsex <- with(personData, snp * isMale)
 c1 <- coef(lm(phenotype ~ isMale + snp + snpsex, personData))
 
-omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')] * sqrt(c(mxGetExpected(m1, 'covariance'))), 1e-6)
+omxCheckCloseEnough(c1[-1], coef(m1)[c('gwsem.A[1,3]', 'gwsem.A[1,2]', 'gwsem.A[1,4]')], 1e-6)
