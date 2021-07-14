@@ -87,10 +87,9 @@ int FreeVarGroup::lookupVar(omxMatrix *matrix, int row, int col)
 
 int FreeVarGroup::lookupVar(const char *name)
 {
-	for (size_t vx=0; vx < vars.size(); ++vx) {
-		if (strcmp(name, vars[vx]->name) == 0) return vx;
-	}
-	return -1;
+  auto got = byName.find(name);
+  if (got == byName.end()) return -1;
+  return got->second;
 }
 
 /* might be useful?
@@ -104,6 +103,17 @@ int FreeVarGroup::lookupVar(int id)
 	return -1;
 }
 */
+
+void FreeVarGroup::reIndex()
+{
+  byName.clear();
+	for (int vx = 0; vx < int(vars.size()); vx++) {
+		omxFreeVar *fv = vars[vx];
+    // In FREEVARGROUP_ALL, vx == fv->id
+    auto ret = byName.emplace(fv->name, vx);
+    if (!ret.second) mxThrow("Two free variables with same name '%s'", fv->name);
+  }
+}
 
 void FreeVarGroup::cacheDependencies(omxState *os)
 {
@@ -406,6 +416,9 @@ void omxGlobal::deduplicateVarGroups()
 			}
 		}
 	}
+	for (size_t g1=0; g1 < freeGroup.size(); ++g1) {
+    freeGroup[g1]->reIndex();
+  }
 }
 
 int omxState::nextId = 0;
