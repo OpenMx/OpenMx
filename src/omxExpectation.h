@@ -116,7 +116,7 @@ protected:
 	}
 
 	typedef Eigen::Matrix<int, Eigen::Dynamic, 1> DataColumnIndexVector;
-	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() const;
+	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns();  // NOT const
 	virtual const std::vector<const char *> &getDataColumnNames() const;
 	virtual void getExogenousPredictors(std::vector<int> &out) {};
 	virtual std::vector< omxThresholdColumn > &getThresholdInfo();
