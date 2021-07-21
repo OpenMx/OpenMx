@@ -90,5 +90,5 @@ for (cx in 1:(D * (D-1)/2)) {
   val[val < 0.01] <- 0
   if (all(diff(val) <= 0)) next
   thr <- limit[regGroup[cx]]
-  expect_true(table(diff(val) <= 0)["FALSE"] <= thr)
+  expect_equivalent(table(diff(val) <= 0)["FALSE"], 0, thr)
 }
