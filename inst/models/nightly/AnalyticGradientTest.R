@@ -22,11 +22,13 @@ ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T)
 gff <- mxFitFunctionGREML(dV=c(va="A",ve="I"))
 
 plan <- mxComputeSequence(steps=list(
-	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer"),useGradient=TRUE),
+	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer")),
 	mxComputeReportExpectation()
 ))
 
 mxdat <- mxData(observed = dat, type="raw", sort=FALSE)
+
+mxOption(NULL,"Analytic Gradients","Yes")
 
 testmod <- mxModel(
 	"GREML_1GRM_1trait", #<--Model name
@@ -50,9 +52,10 @@ testmod <- mxModel(
 )
 testrun <- mxRun(testmod)
 
+mxOption(NULL,"Analytic Gradients","No")
 testmod2 <- testmod
 testmod2$compute <- mxComputeSequence(steps=list(
-	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer"),useGradient=FALSE),
+	mxComputeGradientDescent(engine=mxOption(NULL,"Default optimizer")),
 	mxComputeReportExpectation()
 ))
 testmod2$fitfunction <- mxFitFunctionGREML(autoDerivType="numeric")
