@@ -46,7 +46,7 @@ omxCheckCloseEnough(got[2,'p'], 0, 1/nrow(attr(got@results,'bootData')[[1]]))
 pgot <- mxCompare(base, cmp2)
 
 got <-  mxCompare(base, cmp2, replications=10)
-omxCheckEquals(nrow(attr(got,'bootData')[[1]]), 10)
+omxCheckEquals(nrow(attr(got@results,'bootData')[[1]]), 10)
 
 got <-  mxCompare(base, cmp2, previousRun = got, replications=500)
 omxCheckCloseEnough(got[2,'p'], pgot[2,'p'], .01)
