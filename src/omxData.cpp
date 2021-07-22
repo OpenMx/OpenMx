@@ -1159,6 +1159,32 @@ bool omxData::containsNAs(int col)
 	return false;
 }
 
+double omxData::countObs(int col)
+{
+  double obs = 0;
+	int rows = nrows();
+	if (dataMat) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(omxMatrixElement(dataMat, rx, col))) obs += 1;
+		}
+		return obs;
+	}
+
+	if (col == weightCol || col == freqCol) return false;
+
+	ColumnData &cd = rawCol(col);
+	if (cd.type == COLUMNDATA_NUMERIC) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(cd.d()[rx])) obs += rowMultiplier(rx);
+		}
+	} else {
+		for (int rx=0; rx < rows; ++rx) {
+			if (cd.i()[rx] != NA_INTEGER) obs += rowMultiplier(rx);
+		}
+	}
+	return obs;
+}
+
 void omxData::prohibitFactor(int col)
 {
 	if (!isRaw()) return;
