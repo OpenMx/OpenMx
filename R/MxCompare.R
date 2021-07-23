@@ -522,7 +522,7 @@ collectBaseStatistics <- function(row, ref) {
 		  AIC(ref))
 	rfu <- ref$output$fitUnits
 	row[, 'fitUnits'] <- rfu
-	row[, 'chisq'] <- ref$output$chi
+	row[, 'chisq'] <- ifelse(!is.null(ref$output$chi), ref$output$chi, NA)
 	row[, c('fit', 'df')] <- if(rfu == "r'Wr"){
 			c(ref$output$chi, ref$output$chiDoF)
 		} else if(rfu == '-2lnL'){
