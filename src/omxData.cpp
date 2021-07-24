@@ -2033,7 +2033,7 @@ void ProbitRegression::evaluateDerivs(int want)
 		   (Y2.colwise() * gdzi.col(1)).transpose().matrix() * pred.matrix()));
 
 	hess.block(numThr,0,pred.cols(),numThr) =
-		hess.block(0,numThr,numThr,pred.cols()).transpose();
+		hess.block(0,numThr,numThr,pred.cols()).transpose().eval();
 
 	if (data.verbose >= 3) mxPrintMat("hess", hess);
 
