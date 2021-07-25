@@ -39,8 +39,8 @@ pgot <- anova(cmp1, cmp2, cmp3, base)
 omxCheckEquals(is.na(pgot[,'p']), c(T,F,T,T))
 
 set.seed(170623)
-got <-  mxCompare(base, cmp1, boot=TRUE, replications=10)
-omxCheckCloseEnough(nrow(attr(got@results,'bootData')[[1]]), 10)
+got <-  mxCompare(base, cmp1, boot=TRUE)
+omxCheckCloseEnough(nrow(attr(got@results,'bootData')[[1]]), 400)
 omxCheckCloseEnough(got[2,'p'], 0, 1/nrow(attr(got@results,'bootData')[[1]]))
 
 pgot <- mxCompare(base, cmp2)
