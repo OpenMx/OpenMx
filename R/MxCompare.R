@@ -330,7 +330,7 @@ setupBootData <- function(nullHyp, comparison, todo,
 
   # pre-check data compatibility of nullHyp and comparison? TODO
 
-	if (!is.null(previousRun)) previousRun <- attr(previousRun, "bootData")
+	if (!is.null(previousRun)) previousRun <- attr(previousRun@results, "bootData")
 
   seedVec <- as.integer(runif(replications, min = -2e9, max=2e9))
 
