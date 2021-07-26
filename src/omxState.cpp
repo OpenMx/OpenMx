@@ -1144,31 +1144,33 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
 
   if (count <= 1) return;
 
-  Eigen::MatrixXd tmp = ej.block(0,0,count,ej.cols()).transpose();
-  Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrOp(tmp);
-  Eigen::ArrayXi perm = qrOp.colsPermutation().indices();
-  //mxPrintMat("perm", perm);
-  Eigen::MatrixXd qr = qrOp.matrixQR();
-  //mxPrintMat("qr", qr);
-  double thr = qrOp.maxPivot() * qrOp.threshold();
+  if (fc->getNumFree() >= count) {
+    // Cannot work when more constraints than parameters
+    // see models/nightly/CSOLNP_segfault_regression_test--unidentifed_EFA.R
+    Eigen::MatrixXd tmp = ej.block(0,0,count,ej.cols()).transpose();
+    Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrOp(tmp);
+    Eigen::ArrayXi perm = qrOp.colsPermutation().indices();
+    Eigen::MatrixXd qr = qrOp.matrixQR();
+    double thr = qrOp.maxPivot() * qrOp.threshold();
 
-	for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
-		omxConstraint &con = *state->conListX[j];
-    if (!cf(con)) continue;
-    if (con.opCode != omxConstraint::EQUALITY) OOPS;
-    for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
-      if (con.redundant[kk]) continue;
-      int xx = perm[cur+dx];
-      if (abs(qr(xx,xx)) < thr) {
-        con.redundant[kk] = true;
-        if (con.getVerbose()) {
-          mxLog("Ignoring constraint '%s[%d]' because it is redundant",
-                con.name, 1+kk);
+    for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
+      omxConstraint &con = *state->conListX[j];
+      if (!cf(con)) continue;
+      if (con.opCode != omxConstraint::EQUALITY) OOPS;
+      for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
+        if (con.redundant[kk]) continue;
+        int xx = perm[cur+dx];
+        if (abs(qr(xx,xx)) < thr) {
+          con.redundant[kk] = true;
+          if (con.getVerbose()) {
+            mxLog("Ignoring constraint '%s[%d]' because it is redundant",
+                  con.name, 1+kk);
+          }
         }
       }
+      cur += con.size;
+      con.recalcSize();
     }
-    cur += con.size;
-    con.recalcSize();
   }
 }
 
