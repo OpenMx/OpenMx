@@ -1186,7 +1186,7 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
 
 	for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
 		omxConstraint &con = *state->conListX[j];
-		if (!cf(con)) continue;
+		if (!cf(con) || con.size == 0) continue;
 
     con.refreshAndGrab(fc, &constr(cur));
 
@@ -1264,7 +1264,7 @@ void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)
 
     for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
       omxConstraint &con = *state->conListX[j];
-      if (!cf(con)) continue;
+      if (!cf(con) || con.size == 0) continue;
       auto &vars = fc->varGroup->vars;
       for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
         if (con.redundant[kk]) continue;
