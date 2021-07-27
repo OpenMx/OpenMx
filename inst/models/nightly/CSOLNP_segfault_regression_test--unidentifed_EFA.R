@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 # This script (written by Rob K.) is a regression test for a CSOLNP bug he repaired in April 2019 (2d34c67).
-# It first run an unidentified exploratory factor analysis of unstandardized data, and then tries to 
+# It first run an unidentified exploratory factor analysis of unstandardized data, and then tries to
 # rotate the solution by minimizing an oblique rotation criterion, subject to the constraint
 # that the model-expected covariance matrix remains the same as in the unrotated solution.
 # The second MxModel (for rotation) is notable as an instance of the general case of a
@@ -23,7 +23,7 @@
 # does not segfault or raise C++ runtime errors.
 
 library(OpenMx)
-if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
+#if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 set.seed(47402087)
 data(HS.ability.data)
 
