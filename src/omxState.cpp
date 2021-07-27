@@ -997,12 +997,13 @@ void UserConstraint::preeval(FitContext *fc)
 
 UserConstraint::UserConstraint(FitContext *fc, const char *u_name, omxMatrix *arg1,
                                omxMatrix *arg2, omxMatrix *jac, int u_verbose) :
-	super(u_name), verbose(u_verbose)
+	super(u_name)
 {
 	omxState *state = fc->state;
 	omxMatrix *args[2] = {arg1, arg2};
 	pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, state); // 10 = binary subtract
 	jacobian = jac;
+  verbose = u_verbose;
 }
 
 void UserConstraint::getDim(int *rowsOut, int *colsOut) const
@@ -1078,6 +1079,8 @@ void UserConstraint::refresh(FitContext *fc)
 void omxConstraint::recalcSize()
 {
   size = std::count(redundant.begin(), redundant.end(), false);
+  if (verbose >= 1) mxLog("%s::recalcSize %d/%d constraints not redundant",
+                          name, size, int(redundant.size()));
 }
 
 ConstraintVec::ConstraintVec(FitContext *fc, const char *u_name,
@@ -1144,33 +1147,33 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
 
   if (count <= 1) return;
 
-  if (fc->getNumFree() >= count) {
-    // Cannot work when more constraints than parameters
-    // see models/nightly/CSOLNP_segfault_regression_test--unidentifed_EFA.R
-    Eigen::MatrixXd tmp = ej.block(0,0,count,ej.cols()).transpose();
-    Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrOp(tmp);
-    Eigen::ArrayXi perm = qrOp.colsPermutation().indices();
-    Eigen::MatrixXd qr = qrOp.matrixQR();
-    double thr = qrOp.maxPivot() * qrOp.threshold();
+  // pad with dummy parameters so #constraints <= #param
+  Eigen::MatrixXd tmp(std::max(count,ej.cols()), count);
+  tmp.setZero();
+  tmp.block(0,0,ej.cols(),count) = ej.block(0,0,count,ej.cols()).transpose();
+  Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qrOp(tmp);
+  Eigen::ArrayXi perm = qrOp.colsPermutation().indices();
+  Eigen::MatrixXd qr = qrOp.matrixQR();
+  double thr = qrOp.maxPivot() * qrOp.threshold();
 
-    for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
-      omxConstraint &con = *state->conListX[j];
-      if (!cf(con)) continue;
-      if (con.opCode != omxConstraint::EQUALITY) OOPS;
-      for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
-        if (con.redundant[kk]) continue;
-        int xx = perm[cur+dx];
-        if (abs(qr(xx,xx)) < thr) {
-          con.redundant[kk] = true;
-          if (con.getVerbose()) {
-            mxLog("Ignoring constraint '%s[%d]' because it is redundant",
-                  con.name, 1+kk);
-          }
+  for (int j=0, cur=0; j < int(state->conListX.size()); j++) {
+    omxConstraint &con = *state->conListX[j];
+    if (!cf(con)) continue;
+    if (con.opCode != omxConstraint::EQUALITY) OOPS;
+    for (int kk=0, dx=0; kk < int(con.redundant.size()); ++kk) {
+      if (con.redundant[kk]) continue;
+      int xx = perm[cur+dx];
+      if (abs(qr(xx,xx)) < thr) {
+        con.redundant[kk] = true;
+        if (con.getVerbose()) {
+          mxLog("Ignoring constraint '%s[%d]' because it is redundant (|%f| < %f)",
+                con.name, 1+kk, qr(xx,xx), thr);
         }
       }
-      cur += con.size;
-      con.recalcSize();
+      dx += 1;
     }
+    cur += con.size;
+    con.recalcSize();
   }
 }
 

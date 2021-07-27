@@ -141,9 +141,10 @@ class omxConstraint {
   std::vector<bool> seenActive;
   Eigen::ArrayXXd initialJac;
   bool strict;
+  int verbose;
 
 	//Constraints created by backend for CIs use this, the base-class constructor:
-  omxConstraint(const char *name) : name(name), linear(0) {};
+  omxConstraint(const char *name) : name(name), linear(0), verbose(0) {};
 	virtual ~omxConstraint() {};
   virtual void getDim(int *rowsOut, int *colsOut) const = 0;
 	virtual void refreshAndGrab(FitContext *fc, double *out) = 0;
@@ -161,7 +162,6 @@ class UserConstraint : public omxConstraint {
 	omxMatrix *pad;
 	omxMatrix *jacobian;
 	std::vector<int> jacMap;
-  int verbose;
 	void refresh(FitContext *fc);
 	UserConstraint(const char *name) : super(name) {};
 
