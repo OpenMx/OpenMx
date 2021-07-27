@@ -1465,6 +1465,8 @@ RegularizingPenalty::RegularizingPenalty(S4 obj)
   smoothProportion = as<double>(obj.slot("smoothProportion"));
 }
 
+RegularizingPenalty::~RegularizingPenalty() {}
+
 int RegularizingPenalty::countNumZero(FitContext *fc) const
 {
   int count = 0;
