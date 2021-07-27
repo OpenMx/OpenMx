@@ -77,16 +77,7 @@ rotmodel <- mxModel(
 	mxFitFunctionAlgebra(algebra="fitfunc",numObs=301,numStats=7224)
 )
 
-# If we copy the target values exactly then the equality constraint starts inactive and are ignored
-# rotmodel <- omxSetParameters(model=rotmodel,labels=names(coef(fitModel)),values=coef(fitModel),free=c(rep(T,24),rep(T,99)))
-# mxEval(vech(xpecCov2) - vech(xpecCov1), rotmodel, compute = TRUE)   # SHOULD BE ALL NON-ZERO!
-
-# rotmodel$Sxx$values[upper.tri(diag(3))] <-
-#   fitModel$Sxx$values[upper.tri(diag(3))] * .95
-# rotmodel$Sxx$values[lower.tri(diag(3))] <-
-#   fitModel$Sxx$values[lower.tri(diag(3))] * .95
-# rotmodel$Lambda$values <- fitModel$Lambda$values * .95
-# rotmodel$Psi2$values <- fitModel$Psi2$values * 1.05
+rotmodel <- omxSetParameters(model=rotmodel,labels=names(coef(fitModel)),values=coef(fitModel),free=c(rep(T,24),rep(T,99)))
 
 rotfit <- mxRun(rotmodel)
 rotfit <- mxModel(
