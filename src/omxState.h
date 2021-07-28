@@ -304,6 +304,7 @@ class omxGlobal {
 	double llScale;
 	int debugProtectStack;
 	bool rowLikelihoodsWarning;
+	bool RAMmultilevelWarning;
 	double feasibilityTolerance;
 	double optimalityTolerance;
 	int majorIterations;
