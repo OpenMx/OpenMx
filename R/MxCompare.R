@@ -967,6 +967,7 @@ mxPowerSearch <- function(trueModel, falseModel, n=NULL, sig.level=0.05, ...,
       curX <- pm$curX
       alg <- pm$alg
     }
+    if (is.null(n)) curX <- max(curX, 2/origSampleSize) # lower bound for N
   }
   if (!silent) imxReportProgress('', prevProgressLen)
   if (is.null(m1)) stop("Logistic model failed to converge")
