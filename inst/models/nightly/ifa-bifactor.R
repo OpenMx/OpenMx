@@ -29,7 +29,7 @@ correct.mat <- rbind(correct.mat[1:2,], a3=0, correct.mat[3:5,])
 correct.mat['a3',11:20] <- correct.mat['a2',11:20]
 correct.mat['a2',11:20] <- 0
 maxDim <- 3
-items[1:numItems] <- rpf.drm(factors=maxDim)
+items[1:numItems] <- list(rpf.drm(factors=maxDim))
 
 maxParam <- max(vapply(items, rpf.numParam, 0))
 maxOutcomes <- max(vapply(items, function(i) i$outcomes, 0))
