@@ -41,7 +41,8 @@ MIMIC <- mxModel("MIMIC", type="RAM",
     mxData(data, type = "cov", numObs = 530)
 )
 
-MIMIC <- mxRun(MIMIC)
+MIMIC <- omxCheckWarning(mxRun(MIMIC),
+                         "The Hessian at the solution does not appear to be convex.")
 
 omxCheckCloseEnough(MIMIC$output$fit, 2893.2189, .01)
 

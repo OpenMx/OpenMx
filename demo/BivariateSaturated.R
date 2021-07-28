@@ -319,7 +319,8 @@ bivSatModel5 <- mxModel("bivSat5",
     ),
     mxFitFunctionML()
     )
-bivSatFit5 <- mxRun(bivSatModel5)
+bivSatFit5 <- omxCheckWarning(mxRun(bivSatModel5),
+                              "Hessian at the solution does not appear to be convex.")
 EC5 <- mxEval(expCov, bivSatFit5)
 LL5 <- mxEval(fitfunction,bivSatFit5)
 SL5 <- summary(bivSatFit5)$SaturatedLikelihood
