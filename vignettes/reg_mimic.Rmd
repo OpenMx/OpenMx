@@ -68,7 +68,7 @@ mimicModel <- mxModel(
   mimicModel,
   mxMatrix('Full',1,1,free=TRUE,values=0,labels="lambda",name="hparam"),
   # Set scale to ML estimates for adaptive lasso
-  mxRegularizeLASSO(what=covariates, name="LASSO",
+  mxPenaltyLASSO(what=covariates, name="LASSO",
                     scale = coef(mimicModel)[covariates],
                     lambda =  0, lambda.max =2, lambda.step=.04)
 )
@@ -78,15 +78,10 @@ Run the regularization. With only three covariates, the plot of results is not v
 
 
 ```{r}
-plan <- omxDefaultComputePlan(mimicModel$name, regularize = TRUE)
 
-# After regularizing, fix zerod parameters to zero, discard the
-# regularization penalty, and re-fit model.
-plan$steps$REG$fixZeros <- TRUE
+regMIMIC <- mxPenaltySearch(mimicModel)
 
-regMIMIC <- mxRun(mxModel(mimicModel, plan))
-
-detail <- regMIMIC$compute$steps$REG$output$detail
+detail <- regMIMIC$compute$steps$PS$output$detail
 
 library(reshape2)
 library(ggplot2)
@@ -107,9 +102,14 @@ detail[detail$EBIC == min(detail$EBIC), covariates]
 
 ```
 
-However, due to `fixZeros`, the final covariate estimates are either exactly zero or estimated without the regularization penalty.
+The regularization causes a lot of bias. One way to deal with this is
+to fix zerod parameters to zero,
+discard the regularization penalty, and re-fit model.
 
 ```{r}
+
+regMIMIC <- mxPenaltyZap(regMIMIC)
+regMIMIC <- mxRun(regMIMIC)
 
 summary(regMIMIC)
 

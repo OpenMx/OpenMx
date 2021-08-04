@@ -46,7 +46,7 @@ struct MLFitState : omxFitFunction {
 	virtual ~MLFitState();
 	virtual omxFitFunction *initMorph() override;
 	virtual void init() override;
-	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void compute2(int ffcompute, FitContext *fc) override;
 	virtual void populateAttr(SEXP algebra) override;
 	virtual void addOutput(MxRList *out) override;
 };
@@ -150,7 +150,7 @@ struct multi_normal_deriv {
 	}
 };
 
-void MLFitState::compute(int want, FitContext *fc)
+void MLFitState::compute2(int want, FitContext *fc)
 {
 	auto *oo = this;
 	const double Scale = Global->llScale;

@@ -13,10 +13,28 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+mxPenaltySearch <-
+  function(model, ..., silent = FALSE,
+           suppressWarnings = FALSE, unsafe = FALSE,
+           checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE,
+           beginMessage=!silent)
+  {
+    options <- generateOptionsList(model, useOptimizer=TRUE)
+		compute <- omxDefaultComputePlan(modelName=model@name, intervals=FALSE,
+                                     useOptimizer=TRUE, optionList=options,
+                                     penaltySearch=TRUE)
+		model@compute <- compute
+    model <- mxRun(model, ..., silent=silent, suppressWarnings=suppressWarnings,
+          unsafe=unsafe, checkpoint=checkpoint, useSocket=useSocket,
+          onlyFrontend=onlyFrontend, beginMessage=beginMessage)
+		model@compute@.persist <- FALSE
+    model
+}
+
 mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 		suppressWarnings = FALSE, unsafe = FALSE,
 		checkpoint = FALSE, useSocket = FALSE, onlyFrontend = FALSE,
-		useOptimizer = TRUE, beginMessage=!silent){
+		useOptimizer = TRUE, beginMessage=!silent) {
 
 	warnModelCreatedByOldVersion(model)
 
@@ -106,7 +124,7 @@ runHelper <- function(model, frontendStart,
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
 		if (is.null(intervals)) intervals <- FALSE
 		compute <- omxDefaultComputePlan(modelName=model@name, intervals=intervals,
-					useOptimizer=useOptimizer, optionList=options, length(model@regularizations)>0)
+					useOptimizer=useOptimizer, optionList=options)
 		compute@.persist <- FALSE
 		model@compute <- compute
 	}
@@ -182,10 +200,11 @@ runHelper <- function(model, frontendStart,
 	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, dependencies)
 	data <- convertDatasets(flatModel@datasets, model, flatModel)
 	numAlgebras <- length(algebras)
-	algebras <- append(algebras, fitfunctions)
-	constraints <- convertConstraints(flatModel)
 	parameters <- flatModel@parameters
 	numParam <- length(parameters)
+  penaltyList <- generatePenaltyList(flatModel, model@name, parameters, labelsData)
+	algebras <- append(append(algebras, fitfunctions), penaltyList)
+	constraints <- convertConstraints(flatModel)
 	if (numParam == 0 && defaultComputePlan && !is.null(model@fitfunction)) {
 		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=paste(model@name, 'fitfunction', sep="."),
 								   'fit', .is.bestfit=TRUE),
@@ -200,7 +219,6 @@ runHelper <- function(model, frontendStart,
 	if (intervals) {
 		intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
 	}
-  penaltyList <- generatePenaltyList(flatModel, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
@@ -216,7 +234,7 @@ runHelper <- function(model, frontendStart,
 	output <- .Call(backend,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
-			data, intervalList, penaltyList, communication, options, defVars,
+			data, intervalList, communication, options, defVars,
 			silent || !interactive(), PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop

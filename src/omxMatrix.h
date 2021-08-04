@@ -37,6 +37,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include "minicsv.h"
+#include "penalty.h"
 
 struct populateLocation {
 	int from;
@@ -96,6 +97,10 @@ class omxMatrix {
 	unsigned short colMajor;			// used for quick transpose
 	unsigned short hasMatrixNumber;		// is this object in the matrix or algebra arrays?
 	int matrixNumber;					// the offset into the matrices or algebras arrays
+  void setMatrixNumber(int xx) {
+    hasMatrixNumber = 1;
+    matrixNumber = xx;
+  };
 
 	SEXP owner;	// The R object owning data or NULL if we own it.
 
@@ -114,6 +119,7 @@ class omxMatrix {
 	bool canDiscard();
 	omxAlgebra* algebra;				// If it's not an algebra, this is NULL.
 	omxFitFunction* fitFunction;		// If it's not a fit function, this is NULL.
+  std::unique_ptr<Penalty> penalty;
 
 	std::string nameStr;
 	const char *name() const { return nameStr.c_str(); }
@@ -141,6 +147,7 @@ class omxMatrix {
 	bool isSimple() const { return !algebra && !fitFunction && populate.size()==0; };
 	bool isAlgebra() const { return algebra != 0; }
 	bool isFitFunction() const { return fitFunction != 0; }
+	bool isPenalty() const { return penalty != 0; }
 	int numNonConstElements() const;
 	template <typename T> void loadFromStream(T &st);
 	int size() const { return rows * cols; }

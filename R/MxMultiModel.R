@@ -116,7 +116,7 @@ imxFlattenModel <- function(model, namespace, unsafe=FALSE) {
 	flatModel@algebras <- collectComponents(model, namespace, "algebras", qualifyNamesAlgebra)
 	flatModel@constraints <- collectComponents(model, namespace, "constraints", qualifyNamesConstraint)
 	flatModel@intervals <- collectComponents(model, namespace, "intervals", qualifyNamesInterval)
-	flatModel@regularizations <- collectComponents(model, namespace, "regularizations", qualifyNamesPenalty)
+	flatModel@penalties <- collectComponents(model, namespace, "penalties", qualifyNames)
 	flatModel@datasets <- collectDatasets(model, namespace)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)

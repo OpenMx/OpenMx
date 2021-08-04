@@ -690,8 +690,8 @@ struct regularCIobj : CIobjective {
 
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		const double fit = fc->fit;
 		computeConstraint(fit);
 		*out = std::max(diff, 0.0);
 	}
@@ -715,11 +715,10 @@ struct regularCIobj : CIobjective {
 		omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
 		omxRecompute(ciMatrix, fc);
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
-		omxResizeMatrix(fitMat, 1, 1);
 
 		if (!std::isfinite(fit)) {
 			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-			fitMat->data[0] = nan("infeasible");
+			fc->fit = nan("infeasible");
 			return;
 		}
 
@@ -728,11 +727,10 @@ struct regularCIobj : CIobjective {
 			computeConstraint(fit);
 			if (fabs(diff) > 100) param = nan("infeasible");
 			if (constrained) {
-				fitMat->data[0] = diff*diff + param;
+				fc->fit = diff*diff + param;
 			} else {
-				fitMat->data[0] = param;
+				fc->fit = param;
 			}
-			//mxLog("param at %f", fitMat->data[0]);
 		}
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
@@ -784,8 +782,8 @@ struct bound1CIobj : CIobjective {
 
 	virtual void evalEq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		const double fit = fc->fit;
 		Eigen::Array<double,1,1> v1;
 		computeConstraint(fc, fitMat, fit, v1);
 		*out = v1(0);
@@ -800,13 +798,12 @@ struct bound1CIobj : CIobjective {
 			mxThrow("Not implemented yet");
 		}
 
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		double fit = totalLogLikelihood(fitMat);
-		omxResizeMatrix(fitMat, 1, 1);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		double fit = fc->fit;
 
 		if (!std::isfinite(fit)) {
 			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-			fitMat->data[0] = nan("infeasible");
+			fc->fit = nan("infeasible");
 			return;
 		}
 
@@ -818,7 +815,7 @@ struct bound1CIobj : CIobjective {
 			cval = v1(0) * v1(0);
 		}
 
-		fitMat->data[0] = fit + cval;
+		fc->fit = fit + cval;
 
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
@@ -867,8 +864,8 @@ struct boundAwayCIobj : CIobjective {
 
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		double fit = fc->fit;
 		Eigen::Map< Eigen::Array<double,3,1> >v1(out);
 		computeConstraint(fit, v1);
 	}
@@ -882,16 +879,15 @@ struct boundAwayCIobj : CIobjective {
 			mxThrow("Not implemented yet");
 		}
 
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		double fit = fc->fit;
 		omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
 		omxRecompute(ciMatrix, fc);
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
-		omxResizeMatrix(fitMat, 1, 1);
 
 		if (!std::isfinite(fit)) {
 			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-			fitMat->data[0] = nan("infeasible");
+			fc->fit = nan("infeasible");
 			return;
 		}
 
@@ -904,7 +900,7 @@ struct boundAwayCIobj : CIobjective {
 			cval = v1.sum()*v1.sum();
 		}
 
-		fitMat->data[0] = param + cval;
+		fc->fit = param + cval;
 		//mxLog("param at %f", fitMat->data[0]);
 
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
@@ -963,8 +959,8 @@ struct boundNearCIobj : CIobjective {
 
 	virtual void evalIneq(FitContext *fc, omxMatrix *fitMat, double *out) override
 	{
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		double fit = fc->fit;
 		Eigen::Map< Eigen::Array<double,3,1> > v1(out);
 		computeConstraint(fit, v1);
 	}
@@ -978,16 +974,15 @@ struct boundNearCIobj : CIobjective {
 			mxThrow("Not implemented yet");
 		}
 
-		omxFitFunctionCompute(fitMat->fitFunction, FF_COMPUTE_FIT, fc);
-		const double fit = totalLogLikelihood(fitMat);
+    fc->withoutCIobjective([&](){ ComputeFit("CI", fitMat, FF_COMPUTE_FIT, fc); });
+		double fit = fc->fit;
 		omxMatrix *ciMatrix = CI->getMatrix(fitMat->currentState);
 		omxRecompute(ciMatrix, fc);
 		double CIElement = omxMatrixElement(ciMatrix, CI->row, CI->col);
-		omxResizeMatrix(fitMat, 1, 1);
 
 		if (!std::isfinite(fit) || !std::isfinite(CIElement)) {
 			fc->recordIterationError("Confidence interval is in a range that is currently incalculable. Add constraints to keep the value in the region where it can be calculated.");
-			fitMat->data[0] = nan("infeasible");
+			fc->fit = nan("infeasible");
 			return;
 		}
 
@@ -1000,8 +995,7 @@ struct boundNearCIobj : CIobjective {
 			cval = v1.sum() * v1.sum();
 		}
 
-		fitMat->data[0] = param  + cval;
-		//mxLog("param at %f", fitMat->data[0]);
+		fc->fit = param  + cval;
 
     if (want & FF_COMPUTE_GRADIENT) setGrad(fc);
 	}
@@ -1278,6 +1272,10 @@ void ComputeCI::computeImpl(FitContext *mle)
 	// steps.
 	omxAlgebraPreeval(fitMatrix, mle);
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, mle);
+  auto *ff = fitMatrix->fitFunction;
+  if (!fitUnitsIsChiSq(ff->units)) {
+    mxThrow("%s: units '%s' are not supported", name, fitUnitsToName(ff->units));
+  }
 
 	int numInts = (int) Global->intervalList.size();
 	if (verbose >= 1) mxLog("%s: %d intervals of '%s' (ref fit %f %s)",

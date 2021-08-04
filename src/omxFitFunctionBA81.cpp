@@ -63,7 +63,7 @@ struct BA81FitState : omxFitFunction {
 	BA81FitState();
 	virtual ~BA81FitState();
 	virtual void init() override;
-	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void compute2(int ffcompute, FitContext *fc) override;
 };
 
 // writes to upper triangle of full matrix
@@ -791,7 +791,7 @@ static void gradCov(omxFitFunction *oo, FitContext *fc)
 	}
 }
 
-void BA81FitState::compute(int want, FitContext *fc)
+void BA81FitState::compute2(int want, FitContext *fc)
 {
 	auto *oo = this;
 	BA81FitState *state = (BA81FitState*) this;

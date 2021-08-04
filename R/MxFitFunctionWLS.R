@@ -35,13 +35,12 @@ setClass(Class = "MxFitFunctionWLS",
 
 # **DONE**
 setMethod("initialize", "MxFitFunctionWLS",
-	function(.Object, type, allContinuousMethod, fullWeight, name = 'fitfunction') {
-		.Object@name <- name
-		.Object@vector <- FALSE
-		.Object@type <- type
-		.Object@continuousType <- allContinuousMethod
-		.Object@fullWeight <- fullWeight
-		return(.Object)
+	function(.Object, ...) {
+    .Object <- callNextMethod()
+		.Object@type <- ..1
+		.Object@continuousType <- ..2
+		.Object@fullWeight <- ..3
+		.Object
 	}
 )
 

@@ -829,6 +829,22 @@ summarizeBootstrap <- function(mle, bootData, bq, summaryType) {
 }
 
 summary.MxModel <- function(object, ..., verbose=FALSE) {
+  out <- try(summary.MxModel.Impl(object, ..., verbose=verbose), silent=TRUE)
+  if (is(out, "try-error")) {
+    if (!object@.wasRun) {
+      # Maybe should never happen?
+      stop("This model has not been run yet. Tip: Use\n  model = mxRun(model)\nto estimate a model.")
+    } else if (object@.modifiedSinceRun) {
+      stop(paste("This model is in an inconsistent state.",
+                 "Tip: Use\n  model = mxRun(model)\nto re-estimate the model."))
+    } else {
+      stop(out)
+    }
+  }
+  out
+}
+
+summary.MxModel.Impl <- function(object, ..., verbose) {
 	model <- object
 	dotArguments <- list(...)
 	if (!is.null(dotArguments[["refModels"]])) {

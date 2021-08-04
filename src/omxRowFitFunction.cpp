@@ -41,7 +41,7 @@ struct omxRowFitFunction : omxFitFunction {
 
 	virtual ~omxRowFitFunction();
 	virtual void init() override;
-	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void compute2(int ffcompute, FitContext *fc) override;
   virtual void invalidateCache() override;
 };
 
@@ -130,7 +130,7 @@ static void omxRowFitFunctionSingleIteration(omxFitFunction *localobj, omxFitFun
 	free(zeros);
 }
 
-void omxRowFitFunction::compute(int want, FitContext *fc)
+void omxRowFitFunction::compute2(int want, FitContext *fc)
 {
 	auto *oo = this;
 	if (want & FF_COMPUTE_INITIAL_FIT) return;

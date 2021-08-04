@@ -28,12 +28,12 @@ struct FitMultigroup : omxFitFunction {
 	int verbose;
 
 	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void compute2(int ffcompute, FitContext *fc) override;
 	virtual void addOutput(MxRList *out);
 	virtual void traverse(std::function<void(omxMatrix*)> fn) override;
 };
 
-void FitMultigroup::compute(int want, FitContext *fc)
+void FitMultigroup::compute2(int want, FitContext *fc)
 {
 	omxMatrix *fitMatrix = matrix;
 	double fit = 0;
@@ -44,13 +44,15 @@ void FitMultigroup::compute(int want, FitContext *fc)
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = mg->fits[ex];
 		if (f1->fitFunction) {
-			omxFitFunctionCompute(f1->fitFunction, want, fc);
+			f1->fitFunction->subCompute(want, fc);
 			if (want & FF_COMPUTE_MAXABSCHANGE) {
 				mac = std::max(fc->mac, mac);
 			}
 			if (want & FF_COMPUTE_PREOPTIMIZE) {
 				if (units == FIT_UNITS_UNINITIALIZED) {
 					units = f1->fitFunction->units;
+        } else if (units == FIT_UNITS_ANY) {
+          // don't check anything
 				} else if (units != f1->fitFunction->units) {
 					mxThrow("%s: cannot combine units %s and %s (from %s)",
 						matrix->name(), fitUnitsToName(units),

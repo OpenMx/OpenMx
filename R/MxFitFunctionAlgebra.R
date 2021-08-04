@@ -27,19 +27,18 @@ setClass(Class = "MxFitFunctionAlgebra",
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionAlgebra",
-	function(.Object, algebra, units, numObs, numStats, gradient, hessian, verbose, strict, name = 'fitfunction') {
-		.Object@name <- name
-		.Object@algebra <- algebra
-		.Object@units <- units
-		.Object@numObs <- numObs
-		.Object@numStats <- numStats
-		.Object@gradient <- gradient
-		.Object@hessian <- hessian
-		.Object@verbose <- verbose
-    .Object@strict <- strict
-		return(.Object)
-	}
-)
+          function(.Object, ...) {
+            .Object <- callNextMethod()
+            .Object@algebra <- ..1
+            .Object@units <- ..2
+            .Object@numObs <- ..3
+            .Object@numStats <- ..4
+            .Object@gradient <- ..5
+            .Object@hessian <- ..6
+            .Object@verbose <- ..7
+            .Object@strict <- ..8
+            .Object
+          })
 
 setMethod("genericFitDependencies", signature("MxFitFunctionAlgebra"),
 	function(.Object, flatModel, dependencies) {
@@ -54,6 +53,7 @@ setMethod("genericFitDependencies", signature("MxFitFunctionAlgebra"),
 
 setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 	function(.Object, flatModel, model, labelsData, dependencies) {
+    .Object <- callNextMethod()
 		name <- .Object@name
 		algebra <- .Object@algebra
 		if (is.na(algebra) && is.na(.Object@gradient) && is.na(.Object@hessian)) {
@@ -78,7 +78,7 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionAlgebra"),
 
 setMethod("qualifyNames", signature("MxFitFunctionAlgebra"),
 	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
+		.Object <- callNextMethod()
 		for (sl in c('algebra', 'gradient', 'hessian')) {
 			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
 		}

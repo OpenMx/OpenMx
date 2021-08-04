@@ -88,7 +88,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 	}
 }
 
-void omxState::omxProcessMxAlgebraEntities(SEXP algList)
+void omxState::omxProcessMxAlgebraEntities(SEXP algList, FitContext *fc)
 {
 	ProtectedSEXP algListNames(Rf_getAttrib(algList, R_NamesSymbol));
 	AssertProtectStackBalanced apsb(__FUNCTION__);
@@ -103,7 +103,13 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 		ProtectedSEXP nextAlgTuple(VECTOR_ELT(algList, index));
 		if(IS_S4_OBJECT(nextAlgTuple)) {
 			omxMatrix *fm = algebraList[index];
-			omxFillMatrixFromMxFitFunction(fm, index, nextAlgTuple);
+      if (Rf_inherits(nextAlgTuple, "MxPenalty")) {
+        SEXP obj = nextAlgTuple;
+        Global->importPenalty(fm, obj, fc);
+      } else {
+        omxFillMatrixFromMxFitFunction(fm, index, nextAlgTuple);
+      }
+      fm->setMatrixNumber(index);
 			fm->nameStr = CHAR(STRING_ELT(algListNames, index));
 		} else {
 			int tx=0;
@@ -138,16 +144,9 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList)
 
 void omxState::omxCompleteMxFitFunction(SEXP algList, FitContext *fc)
 {
-	SEXP nextAlgTuple;
-
 	for(int index = 0; index < Rf_length(algList); index++) {
-		bool s4;
-		{
-			ScopedProtect p1(nextAlgTuple, VECTOR_ELT(algList, index));
-			s4 = IS_S4_OBJECT(nextAlgTuple);
-		}
-		if(!s4) continue;
 		omxMatrix *fm = algebraList[index];
+    if (!fm->isFitFunction()) continue;
 		omxCompleteFitFunction(fm);
 		ComputeFit("init", fm, FF_COMPUTE_INITIAL_FIT, fc);
 	}
@@ -415,50 +414,6 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP iList, omxState *currentState
 		oCI->boundAdj = (bool) intervalInfo[5];
 		Global->intervalList.push_back(oCI);
 	}
-}
-
-// unify hpranges
-void omxGlobal::processPenalties(List penaltyList, FitContext *fc)
-{
-  auto &fvg = *Global->findVarGroup(FREEVARGROUP_ALL);
-
-  for (int px=0; px < penaltyList.size(); ++px) {
-    S4 obj = penaltyList[px];
-    const char *type = obj.slot("type");
-    std::unique_ptr<RegularizingPenalty> rp;
-    if (strEQ(type, "lasso")) rp = std::make_unique<LassoPenalty>(obj);
-    else if (strEQ(type, "ridge")) rp = std::make_unique<RidgePenalty>(obj);
-    else if (strEQ(type, "elasticNet")) rp = std::make_unique<ElasticNetPenalty>(obj);
-    else mxThrow("Unknown type of mxPenalty '%s'", type);
-    penalties.push_back(std::move(rp));
-
-    List hpr = obj.slot("hpranges");
-    for (int rx=0; rx < hpr.size(); ++rx) {
-      CharacterVector hprNames = hpr.names();
-      const char *varName = hprNames[rx];
-      int vx = fvg.lookupVar(varName);
-      if (vx == -1) mxThrow("Cannot find free variable named '%s' for penalty '%s'",
-                            varName, type);
-      auto got = penaltyGrid.find(vx);
-      if (got != penaltyGrid.end()) {
-        NumericVector g1(got->second);
-        NumericVector g2(hpr[rx]);
-        if (g1.size() != g2.size()) mxThrow("Different size grids for '%s'", varName);
-        for (int gx=0; gx < g1.size(); ++gx) {
-          if (g1[gx] != g2[gx]) mxThrow("Different grids for '%s'", varName);
-        }
-      } else {
-        NumericVector g1(hpr[rx]);
-        penaltyGrid.emplace(vx, g1);
-        if (fc->profiledOutZ[vx]) {
-          mxThrow("processPenalties: parameter '%s' is unexpectedly already profiled out",
-                  varName);
-        }
-        fc->profiledOutZ[vx] = true;
-      }
-    }
-  }
-  fc->calcNumFree();
 }
 
 void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)

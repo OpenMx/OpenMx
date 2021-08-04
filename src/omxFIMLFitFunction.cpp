@@ -835,7 +835,7 @@ void omxFIMLFitFunction::invalidateCache()
 	omxResizeMatrix(rowLikelihoods, data->nrows(), 1);
 }
 
-void omxFIMLFitFunction::compute(int want, FitContext *fc)
+void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 {
 	auto *off = this;
 	omxFIMLFitFunction* ofiml = this;

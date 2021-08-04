@@ -18,6 +18,7 @@
 
 #include "omxDefines.h"
 #include "omxState.h"
+#include "Compute.h"
 #include "omxNPSOLSpecific.h"
 #include "glue.h"
 #include "omxExportBackendState.h"
@@ -43,6 +44,10 @@ void omxState::omxExportResults(MxRList *out, FitContext *fc)
 		SET_VECTOR_ELT(matrices, index, nextMat);
 	}
 
+  // Should not mess with fit value or estimates
+	FitContext tmpfc(fc, fc->varGroup);
+  tmpfc.calcNumFree();
+
 	setWantStage(FF_COMPUTE_FIT | FF_COMPUTE_FINAL_FIT);
 
 	for(size_t index = 0; index < algebraList.size(); index++) {
@@ -52,7 +57,7 @@ void omxState::omxExportResults(MxRList *out, FitContext *fc)
 		// but the fitfunction does not depend on those algebra
 		// then they need to be recomputed based on the final
 		// estimates.
-		if (!isErrorRaised()) omxRecompute(nextAlgebra, fc);
+		if (!isErrorRaised()) omxRecompute(nextAlgebra, &tmpfc);
 		algebra = omxExportMatrix(nextAlgebra);
 		/* If an fit function, populate attributes.  Will skip if not fit function. */
 		omxFitFunction* currentFit = nextAlgebra->fitFunction;
@@ -65,7 +70,7 @@ void omxState::omxExportResults(MxRList *out, FitContext *fc)
 		SET_VECTOR_ELT(algebras, index, algebra);
 	}
 	if(OMX_DEBUG) { mxLog("All Algebras complete."); }
-	
+
 	for(size_t index = 0; index < dataList.size(); ++index) {
 		omxData* dat = dataList[index];
 		MxRList tmp;

@@ -28,17 +28,17 @@ namespace MarkovFF {
 		FitStatisticUnits componentUnits;
 
 		virtual void init() override;
-		virtual void compute(int ffcompute, FitContext *fc) override;
+		virtual void compute2(int ffcompute, FitContext *fc) override;
 	};
 
-	void state::compute(int want, FitContext *fc)
+	void state::compute2(int want, FitContext *fc)
 	{
 		state *st = (state*) this;
 		auto *oo = this;
 
 		for (auto c1 : components) {
 			if (c1->fitFunction) {
-				omxFitFunctionCompute(c1->fitFunction, want, fc);
+				c1->fitFunction->subCompute(want, fc);
 			} else {
 				omxRecompute(c1, fc);
 			}

@@ -188,3 +188,4 @@ RdMacros:
     lifecycle
 Biarch: true
 Version: 2.19.6-6
+RoxygenNote: 7.1.1

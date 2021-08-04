@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,7 @@
 ##' @aliases
 ##' MxBaseNamed
 ##' @rdname MxBaseNamed-class
-setClass(Class = "MxBaseNamed", 
+setClass(Class = "MxBaseNamed",
 	 representation = representation(
 	   name = "character",
 	   "VIRTUAL"))
@@ -32,7 +32,13 @@ setClass(Class = "MxBaseNamed",
 setGeneric("qualifyNames",
 	   function(.Object, modelname, namespace) standardGeneric("qualifyNames"))
 
-setGeneric("genericNameToNumber", 
+setMethod("qualifyNames", signature("MxBaseNamed"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+    .Object
+  })
+
+setGeneric("genericNameToNumber",
 	   function(.Object, flatModel, model) standardGeneric("genericNameToNumber"))
 
 setMethod("genericNameToNumber", signature("MxBaseNamed"),
@@ -68,7 +74,7 @@ imxExtractSlot <- function(x, name) {
 imxGetSlotDisplayNames <- function(object, pattern='.*', slotList=slotNames(object), showDots=FALSE, showEmpty=FALSE) {
 	dotSlots <- slotList[substr(slotList,1,1) == "."]	# Eliminate .<anything> slots
 	emptySlots <- slotList[sapply(slotList, 			# Eliminate 0-length slots
-					function(x, object) { .hasSlot(object,x) && length(slot(object, x)) == 0 }, 
+					function(x, object) { .hasSlot(object,x) && length(slot(object, x)) == 0 },
 					object=object)]
 	if(!showDots) {
 		slotList <- setdiff(slotList, dotSlots)
@@ -80,7 +86,7 @@ imxGetSlotDisplayNames <- function(object, pattern='.*', slotList=slotNames(obje
 }
 
 ##' imxDefaultGetSlotDisplayNames
-##' 
+##'
 ##' Returns a list of display-friendly object slot names
 ##' This is an internal function exported for those people who know
 ##' what they are doing.

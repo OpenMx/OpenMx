@@ -32,7 +32,7 @@ struct AlgebraFitFunction : omxFitFunction {
 
 	AlgebraFitFunction() : ff(0), gradient(0), hessian(0), varGroup(0) {};
 	virtual void init() override;
-	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void compute2(int ffcompute, FitContext *fc) override;
 	void setVarGroup(FitContext *);
 };
 
@@ -110,7 +110,7 @@ static void addSymOuterProd(const double weight, const double *vec, const int le
 	}
 }
 
-void AlgebraFitFunction::compute(int want, FitContext *fc)
+void AlgebraFitFunction::compute2(int want, FitContext *fc)
 {
 	if (want & (FF_COMPUTE_FIT | FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) {
 		if (algebra) {

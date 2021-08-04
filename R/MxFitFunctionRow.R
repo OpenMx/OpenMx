@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,23 +28,20 @@ setClass(Class = "MxFitFunctionRow",
 		dataRowDeps = "integer"),
 	contains = "MxBaseFitFunction")
 
-setMethod("initialize", "MxFitFunctionRow",
-	function(.Object, rowAlgebra, rowResults, units, filteredDataRow, 
-		existenceVector, reduceAlgebra, dims,
-		data = as.integer(NA), name = 'fitfunction') {
-		.Object@name <- name
-		.Object@rowAlgebra <- rowAlgebra
-		.Object@rowResults <- rowResults
-		.Object@units <- units
-		.Object@reduceAlgebra <- reduceAlgebra
-		.Object@filteredDataRow <- filteredDataRow
-		.Object@existenceVector <- existenceVector
-		.Object@data <- data
-		.Object@dims <- dims
+setMethod("initialize", signature("MxFitFunctionRow"),
+	function(.Object, ...) {
+		.Object <- callNextMethod()
+		.Object@rowAlgebra <- ..1
+		.Object@rowResults <- ..2
+		.Object@units <- ..3
+		.Object@filteredDataRow <- ..4
+		.Object@existenceVector <- ..5
+		.Object@reduceAlgebra <- ..6
+		.Object@dims <- ..7
+		.Object@data <- as.integer(NA)
 		.Object@expectation <- as.integer(NA)
-		return(.Object)
-	}
-)
+		.Object
+	})
 
 setMethod("genericFitNewEntities", signature("MxFitFunctionRow"),
 	function(.Object) {
@@ -68,25 +65,25 @@ setMethod("genericFitDependencies", signature("MxFitFunctionRow"),
 		rowAlgebra <- .Object@rowAlgebra
 		rowResults <- .Object@rowResults
 		dependencies <- imxAddDependency(reduceAlgebra, .Object@name, dependencies)
-		dependencies <- imxAddDependency(rowAlgebra, rowResults, dependencies)		
+		dependencies <- imxAddDependency(rowAlgebra, rowResults, dependencies)
 		return(dependencies)
 })
 
 
-setMethod("qualifyNames", signature("MxFitFunctionRow"), 
+setMethod("qualifyNames", signature("MxFitFunctionRow"),
 	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		.Object@rowAlgebra <- imxConvertIdentifier(.Object@rowAlgebra, 
+    .Object <- callNextMethod()
+		.Object@rowAlgebra <- imxConvertIdentifier(.Object@rowAlgebra,
 			modelname, namespace)
 		.Object@rowResults <- imxConvertIdentifier(.Object@rowResults,
 			modelname, namespace)
-		.Object@filteredDataRow <- imxConvertIdentifier(.Object@filteredDataRow, 
+		.Object@filteredDataRow <- imxConvertIdentifier(.Object@filteredDataRow,
 			modelname, namespace)
-		.Object@existenceVector <- imxConvertIdentifier(.Object@existenceVector, 
+		.Object@existenceVector <- imxConvertIdentifier(.Object@existenceVector,
 			modelname, namespace)
-		.Object@reduceAlgebra <- imxConvertIdentifier(.Object@reduceAlgebra, 
+		.Object@reduceAlgebra <- imxConvertIdentifier(.Object@reduceAlgebra,
 			modelname, namespace)
-		.Object@data <- imxConvertIdentifier(.Object@data, 
+		.Object@data <- imxConvertIdentifier(.Object@data,
 			modelname, namespace)
 		return(.Object)
 })
@@ -99,8 +96,9 @@ setMethod("genericFitRename", signature("MxFitFunctionRow"),
 		return(.Object)
 })
 
-setMethod("genericFitFunConvert", signature("MxFitFunctionRow"), 
+setMethod("genericFitFunConvert", signature("MxFitFunctionRow"),
 	function(.Object, flatModel, model, labelsData, dependencies) {
+    .Object <- callNextMethod()
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		name <- .Object@name
 		dataName <- .Object@data
@@ -112,7 +110,7 @@ setMethod("genericFitFunConvert", signature("MxFitFunctionRow"),
 		}
 		mxDataObject <- flatModel@datasets[[dataName]]
 		if (mxDataObject@type != 'raw') {
-			msg <- paste("The dataset associated with the MxFitFunctionRow fit function", 
+			msg <- paste("The dataset associated with the MxFitFunctionRow fit function",
 				"in model", omxQuotes(modelname), "is not raw data.")
 			stop(msg, call. = FALSE)
 		}
@@ -167,8 +165,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 		# Create the filtered data row
 		filteredDataRow <- flatJob[[filteredDataRowName]]
 		if (!is.null(filteredDataRow)) {
-			msg <- paste("The filteredDataRow cannot have name", 
-				omxQuotes(filteredDataRowName), 
+			msg <- paste("The filteredDataRow cannot have name",
+				omxQuotes(filteredDataRowName),
 				"because this entity already exists in the model")
 			stop(msg, call. = FALSE)
 		}
@@ -181,8 +179,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 		if (!is.na(existenceVectorName)) {
 			existenceVector <- job[[existenceVectorName]]
 			if (!is.null(existenceVector)) {
-				msg <- paste("The existenceVector cannot have name", 
-					omxQuotes(existenceVectorName), 
+				msg <- paste("The existenceVector cannot have name",
+					omxQuotes(existenceVectorName),
 					"because this entity already exists in the model")
 				stop(msg, call. = FALSE)
 			}
@@ -195,24 +193,24 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 		# Locate the row algebra
 		rowAlgebra <- job[[rowAlgebraName]]
 		if (is.null(rowAlgebra)) {
-			msg <- paste("The rowAlgebra with name", 
-				omxQuotes(rowAlgebraName), 
+			msg <- paste("The rowAlgebra with name",
+				omxQuotes(rowAlgebraName),
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
 		tuple <- evaluateMxObject(rowAlgebraName, flatJob, labelsData, new.env(parent = emptyenv()))
 		result <- tuple[[1]]
 		if (nrow(result) != 1) {
-			msg <- paste("The rowAlgebra with name", 
-				omxQuotes(rowAlgebraName), 
+			msg <- paste("The rowAlgebra with name",
+				omxQuotes(rowAlgebraName),
 				"does not evaluate to a row vector")
-			stop(msg, call. = FALSE)			
+			stop(msg, call. = FALSE)
 		}
 		if (is.na(.Object@data)) {
 			msg <- paste("The MxFitFunctionRow fit function",
 				"does not have a dataset associated with it in model",
 				omxQuotes(modelname))
-			stop(msg, call.=FALSE)		
+			stop(msg, call.=FALSE)
 		}
 		mxDataObject <- flatJob@datasets[[.Object@data]]
 
@@ -221,8 +219,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 		cols <- ncol(result)
 		rowResults <- job[[rowResultsName]]
 		if (!is.null(rowResults)) {
-			msg <- paste("The rowResults cannot have name", 
-				omxQuotes(rowResultsName), 
+			msg <- paste("The rowResults cannot have name",
+				omxQuotes(rowResultsName),
 				"because this entity already exists in the model")
 			stop(msg, call. = FALSE)
 		}
@@ -233,8 +231,8 @@ setMethod("genericFitAddEntities", "MxFitFunctionRow",
 		# Locate the reduce algebra
 		reduceAlgebra <- job[[reduceAlgebraName]]
 		if (is.null(reduceAlgebra)) {
-			msg <- paste("The reduceAlgebra with name", 
-				omxQuotes(reduceAlgebraName), 
+			msg <- paste("The reduceAlgebra with name",
+				omxQuotes(reduceAlgebraName),
 				"is not defined in the model")
 			stop(msg, call. = FALSE)
 		}
@@ -254,21 +252,21 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionRow",
 
 checkStringArgument <- function(arg, name) {
 	if (single.na(arg)) {
-		arg <- as.character(NA)	
+		arg <- as.character(NA)
 	} else if (length(unlist(strsplit(arg, imxSeparatorChar, fixed = TRUE))) > 1) {
-		stop(paste("the", omxQuotes(name), "argument cannot contain the", 
-			omxQuotes(imxSeparatorChar), 
+		stop(paste("the", omxQuotes(name), "argument cannot contain the",
+			omxQuotes(imxSeparatorChar),
 			"character"))
 	}
-	if (!(is.vector(arg) && 
-		(typeof(arg) == 'character') && 
+	if (!(is.vector(arg) &&
+		(typeof(arg) == 'character') &&
 		(length(arg) == 1))) {
 		stop("the", omxQuotes(name), "argument is not a string")
 	}
 	return(arg)
 }
 
-mxFitFunctionRow <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "rowResults", 
+mxFitFunctionRow <- function(rowAlgebra, reduceAlgebra, dimnames, rowResults = "rowResults",
 	filteredDataRow = "filteredDataRow", existenceVector = "existenceVector", units="-2lnL") {
 	if (missing(rowAlgebra) || typeof(rowAlgebra) != "character") {
 		stop("the 'rowAlgebra' argument is not a string (the name of the row-by-row algebra)")
@@ -317,10 +315,10 @@ displayRowFitFunction <- function(fitfunction) {
 }
 
 
-setMethod("print", "MxFitFunctionRow", function(x,...) { 
-	displayRowFitFunction(x) 
+setMethod("print", "MxFitFunctionRow", function(x,...) {
+	displayRowFitFunction(x)
 })
 
-setMethod("show", "MxFitFunctionRow", function(object) { 
-	displayRowFitFunction(object) 
+setMethod("show", "MxFitFunctionRow", function(object) {
+	displayRowFitFunction(object)
 })

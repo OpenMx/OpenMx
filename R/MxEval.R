@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,14 +42,14 @@ EvalInternal <- function(expression, model, modelvariable, compute, show, defvar
 		expression <- qualifyNamesFormula(expression, model@name, namespace)
 	}
 	if (show) {
-		tuple <- evaluateExpression(expression, deparse(expression), model, 
+		tuple <- evaluateExpression(expression, deparse(expression), model,
 			labelsData, env, compute, show = TRUE, outsideAlgebra = TRUE,
 			cache = new.env(parent = emptyenv()))
 		showResult <- tuple[[1]]
 		showResult <- eval(substitute(substitute(x, list(.zzz = modelvariable)), list(x = showResult)))
 		print(deparse(showResult), width.cutoff = 450L)
 	}
-	tuple <- evaluateExpression(expression, deparse(expression), model, 
+	tuple <- evaluateExpression(expression, deparse(expression), model,
 		labelsData, env, compute, show = FALSE, outsideAlgebra = TRUE, defvar.row,
 		cache = cache)
 	result <- tuple[[1]]
@@ -93,14 +93,14 @@ translateErrorFormula <- function(formula, model) {
 	return(formula)
 }
 
-evaluateExpression <- function(formula, contextString, model, labelsData, 
+evaluateExpression <- function(formula, contextString, model, labelsData,
 	env, compute, show, outsideAlgebra, defvar.row = 1, cache = new.env(parent = emptyenv())) {
 	len <- length(formula)
 	if (len == 0) {
 		stop("mxEval has reached an invalid state")
 	} else if (len == 1) {
 		if (!identical(as.character(formula), "")) {
-			tuple <- evaluateSymbol(formula, contextString, model, 
+			tuple <- evaluateSymbol(formula, contextString, model,
 				labelsData, env, compute, show, outsideAlgebra, defvar.row,
 				cache)
 			return(tuple)
@@ -110,8 +110,8 @@ evaluateExpression <- function(formula, contextString, model, labelsData,
 	}
 	originalFormula <- formula
 	for(i in 2:length(formula)) {
-		tuple <- evaluateExpression(formula[[i]], contextString, 
-			model, labelsData, env, compute, show, 
+		tuple <- evaluateExpression(formula[[i]], contextString,
+			model, labelsData, env, compute, show,
 			outsideAlgebra, defvar.row, cache)
 		formula[[i]] <- tuple[[1]]
 		cache <- tuple[[2]]
@@ -147,7 +147,7 @@ evaluateExpression <- function(formula, contextString, model, labelsData,
 				formulaString <- deparse(originalFormula, width.cutoff = 500L)
 				if(identical(formulaString, contextString)) {
 					msg <- paste("The following error occurred while",
-						"evaluating the expression", omxQuotes(formulaString), 
+						"evaluating the expression", omxQuotes(formulaString),
 						"in model", omxQuotes(model@name),
 						":", x$message)
 				} else {
@@ -163,13 +163,13 @@ evaluateExpression <- function(formula, contextString, model, labelsData,
 }
 
 evaluateSymbol <- function(symbol, contextString, model, labelsData,
-			env, compute, show, outsideAlgebra, defvar.row = 1, 
+			env, compute, show, outsideAlgebra, defvar.row = 1,
 			cache) {
 	key <- deparse(symbol)
 	if (exists(key, envir = cache)) {
 		result <- get(key, envir = cache)
 	} else {
-		index <- match(key, dimnames(labelsData)[[1]])
+		index <- match(key, rownames(labelsData))
 		if (!is.na(index)) {
 			targetmodel <- labelsData[index, "model"]
 			matrix <- labelsData[index, "matrix"]
@@ -212,6 +212,8 @@ evaluateSymbol <- function(symbol, contextString, model, labelsData,
 				tuple <- evaluateAlgebra(lookup, model, labelsData, env, show, compute, defvar.row, cache)
 				result <- tuple[[1]]
 				cache <- tuple[[2]]
+			} else if (is(lookup, "MxPenalty")) {
+        result <- evaluatePenalty(lookup, model, labelsData, env, show, compute)
 			} else if (is(lookup, "MxData")) {
 				if (show) {
 					result <- substitute(.zzz[[x]]@observed, list(x = key))
@@ -285,23 +287,33 @@ computeMatrix <- function(matrix, model, labelsData, defvar.row, env, cache) {
 		components <- splitSubstitution(substitution)
 		expression <- parse(text = paste('`', components[[1]], '`[',
 			as.integer(components[[2]]), ',', as.integer(components[[3]]), ']', sep=''))[[1]]
-		contextString <- paste("label at row ", row, " and column ", col, " of matrix ", 
+		contextString <- paste("label at row ", row, " and column ", col, " of matrix ",
 			omxQuotes(simplifyName(matrix@name, model@name)), sep = '')
-		tuple <- evaluateExpression(expression, contextString, model, labelsData, env, 
+		tuple <- evaluateExpression(expression, contextString, model, labelsData, env,
 			compute=TRUE, show=FALSE, outsideAlgebra=FALSE, defvar.row=defvar.row, cache=cache)
 		result <- tuple[[1]]
 		cache <- tuple[[2]]
 		result <- as.matrix(result)
 		if (nrow(result) != 1 || ncol(result) != 1) {
-			stop(paste("The label", 
+			stop(paste("The label",
 				omxQuotes(substitution),
 				"of matrix", omxQuotes(simplifyName(matrix@name, model@name)),
-				"in model", omxQuotes(model@name), 
+				"in model", omxQuotes(model@name),
 				"does not evaluate to a (1 x 1) matrix."), call. = FALSE)
 		}
 		values[row, col] <- result[1,1]
 	}
 	return(list(values, cache))
+}
+
+labelToValue <- function(label, labelsData, model) {
+  index <- match(label, rownames(labelsData))
+  targetmodel <- labelsData[index, "model"]
+  matrix <- labelsData[index, "matrix"]
+  fullname <- imxIdentifier(targetmodel, matrix)
+  row <- labelsData[index, "row"]
+  col <- labelsData[index, "col"]
+  mapply(function(fn,r,c) model[[fn]]@values[r,c], fullname, row, col)
 }
 
 evaluateAlgebra <- function(algebra, model, labelsData, env, show, compute, defvar.row, cache) {
@@ -324,7 +336,7 @@ evaluateAlgebra <- function(algebra, model, labelsData, env, show, compute, defv
 
 computeAlgebra <- function(algebra, model, labelsData, show, defvar.row, env, cache) {
 	contextString <- simplifyName(algebra@name, model@name)
-	tuple <- evaluateExpression(algebra@formula, contextString, model, labelsData, env, 
+	tuple <- evaluateExpression(algebra@formula, contextString, model, labelsData, env,
 		compute = TRUE, show, outsideAlgebra = FALSE, defvar.row, cache)
 	return(tuple)
 }
@@ -334,15 +346,15 @@ evaluateMxObject <- function(objname, flatModel, labelsData, cache) {
 		#stop("evaluateMxObject must be avoided in unsafe context")
 		# mxFitFunctionRow genericFitAddEntities still needs this
 	}
-	return(eval(substitute(evaluateSymbol(x, objname, flatModel, 
-			labelsData, globalenv(), compute = TRUE, 
-			show = FALSE, outsideAlgebra = FALSE, defvar.row = 1, 
+	return(eval(substitute(evaluateSymbol(x, objname, flatModel,
+			labelsData, globalenv(), compute = TRUE,
+			show = FALSE, outsideAlgebra = FALSE, defvar.row = 1,
 			cache = cache),
 			list(x = quote(as.symbol(objname))))))
 }
 
 evaluateAlgebraWithContext <- function(algebra, context, flatModel, labelsData, cache) {
-	return(evaluateExpression(algebra@formula, context, flatModel, labelsData, globalenv(), 
+	return(evaluateExpression(algebra@formula, context, flatModel, labelsData, globalenv(),
 		compute = TRUE, show = FALSE, outsideAlgebra = FALSE, cache = cache))
 }
 
@@ -355,10 +367,10 @@ assignDimnames <- function(object, values) {
 				omxQuotes(object@name), "must have a length of 2")
 			stop(msg, call. = FALSE)
 		}
-		if (!is.null(newnames[[1]]) && length(newnames[[1]]) != nrow(values) || 
+		if (!is.null(newnames[[1]]) && length(newnames[[1]]) != nrow(values) ||
 			!is.null(newnames[[2]]) && length(newnames[[2]]) != ncol(values)) {
 			entity <- class(object)
-			msg <- paste("The", entity, omxQuotes(object@name), 
+			msg <- paste("The", entity, omxQuotes(object@name),
 				"has specified dimnames with dimensions",
 				length(newnames[[1]]), "x", length(newnames[[2]]), "but the", entity,
 					"is of dimensions", nrow(values), "x", ncol(values))
@@ -394,7 +406,7 @@ generateLabelsHelper <- function(model, labelsData) {
 }
 
 retainLabel <- function(label, existing) {
-    return(!imxIsDefinitionVariable(label) && 
+    return(!imxIsDefinitionVariable(label) &&
 			!hasSquareBrackets(label) &&
 			!(label %in% existing))
 }
@@ -406,14 +418,14 @@ generateLabelsMatrix <- function(modelName, matrix, labelsData) {
 	rows <- row(labels)[test]
 	cols <- col(labels)[test]
 	if (length(select) > 0) {
-		retain <- !duplicated(select) & sapply(select, 
+		retain <- !duplicated(select) & sapply(select,
 			retainLabel, rownames(labelsData))
 		select <- select[retain]
 		rows <- rows[retain]
 		cols <- cols[retain]
 		if (length(select) > 0) {
-			newLabels <- data.frame(model=modelName, 
-				matrix=matrix@name, row=rows, 
+			newLabels <- data.frame(model=modelName,
+				matrix=matrix@name, row=rows,
 				col=cols, stringsAsFactors=FALSE)
 			rownames(newLabels) <- select
 			labelsData <- rbind(labelsData, newLabels)

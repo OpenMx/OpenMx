@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,28 +24,22 @@ setClass(Class = "MxFitFunctionR",
 	contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionR",
-	function(.Object, fitfun, state,  units, name = 'fitfunction') {
-		.Object@fitfun <- fitfun
-		.Object@name <- name
-		.Object@state <- state
+	function(.Object, ...) {
+    .Object <- callNextMethod()
+		.Object@fitfun <- ..1
+		.Object@state <- ..2
 		.Object@expectation <- as.integer(NA)
-		.Object@units <- units
-		return(.Object)
-	}
-)
+		.Object@units <- ..3
+		.Object
+	})
 
-setMethod("genericFitFunConvert", signature("MxFitFunctionR"), 
+setMethod("genericFitFunConvert", signature("MxFitFunctionR"),
 	function(.Object, flatModel, model, labelsData, dependencies) {
+    .Object <- callNextMethod()
 		.Object@model <- model
 		.Object@flatModel <- flatModel
-		return(.Object)
-})
-
-setMethod("qualifyNames", signature("MxFitFunctionR"), 
-	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		return(.Object)
-})
+		.Object
+  })
 
 mxFitFunctionR <- function(fitfun, ..., units="-2lnL") {
 	if (!is.function(fitfun)) {
@@ -73,10 +67,10 @@ displayRFitFun <- function(fitfunction) {
 }
 
 
-setMethod("print", "MxFitFunctionR", function(x,...) { 
-	displayRFitFun(x) 
+setMethod("print", "MxFitFunctionR", function(x,...) {
+	displayRFitFun(x)
 })
 
-setMethod("show", "MxFitFunctionR", function(object) { 
-	displayRFitFun(object) 
+setMethod("show", "MxFitFunctionR", function(object) {
+	displayRFitFun(object)
 })

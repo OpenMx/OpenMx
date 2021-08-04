@@ -5,13 +5,12 @@ setClass(Class = "MxFitFunctionMultigroup",
 	 contains = "MxBaseFitFunction")
 
 setMethod("initialize", "MxFitFunctionMultigroup",
-	function(.Object, groups, verbose, name = 'fitfunction') {
-		.Object@name <- name
-		.Object@groups <- groups
-		.Object@verbose <- verbose
-		return(.Object)
-	}
-)
+	function(.Object, ...) {
+    .Object <- callNextMethod()
+		.Object@groups <- ..1
+		.Object@verbose <- ..2
+		.Object
+	})
 
 setMethod("genericFitDependencies", signature("MxFitFunctionMultigroup"),
 	function(.Object, flatModel, dependencies) {
@@ -33,15 +32,10 @@ setMethod("genericFitRename", signature("MxFitFunctionMultigroup"),
 		.Object
 })
 
-setMethod("qualifyNames", signature("MxFitFunctionMultigroup"),
-	function(.Object, modelname, namespace) {
-		.Object@name <- imxIdentifier(modelname, .Object@name)
-		return(.Object)
-})
-
 # "model.algebra" or "model" for "model.fitfunction"
 setMethod("genericFitFunConvert", "MxFitFunctionMultigroup",
 	function(.Object, flatModel, model, labelsData, dependencies) {
+    .Object <- callNextMethod()
 		name <- .Object@name
 		if (length(.Object@groups)) {
 			origGroups <- .Object@groups

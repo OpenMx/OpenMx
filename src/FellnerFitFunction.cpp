@@ -40,7 +40,7 @@ namespace FellnerFitFunction {
 		virtual void init();
 		template <typename T1>
 		int computeCov(RelationalRAMExpectation::independentGroup &ig, FitContext *fc, T1 &covDecomp);
-		virtual void compute(int want, FitContext *fc);
+		virtual void compute2(int want, FitContext *fc) override;
 		void setupProfiledParam(FitContext *fc);
 	};
 
@@ -147,7 +147,7 @@ namespace FellnerFitFunction {
 		return 0;
 	}
 
-	void state::compute(int want, FitContext *fc)
+	void state::compute2(int want, FitContext *fc)
 	{
 		auto *oo = this;
 		omxExpectation *expectation             = oo->expectation;

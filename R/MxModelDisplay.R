@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,7 @@
 ##' omxQuotes
 ##'
 ##' Quote helper function, often for error messages.
-##' 
+##'
 ##' @param name a character vector
 ##' @details
 ##' This is a helper function for creating a nicely
@@ -51,7 +51,7 @@ omxQuotes <- function(name) {
 
 printOptions <- function(options) {
 	retval <- ""
-	
+
 	if (length(options) == 0) {
 		return(retval)
 	}
@@ -72,6 +72,7 @@ displayModel <- function(model, expand = FALSE) {
 	cat("type :", imxTypeName(model), '\n')
 	cat("$matrices :", omxQuotes(names(model@matrices)), '\n')
 	cat("$algebras :", omxQuotes(names(model@algebras)), '\n')
+	cat("$penalties :", omxQuotes(names(model@penalties)), '\n')
 	cat("$constraints :", omxQuotes(names(model@constraints)), '\n')
 	cat("$intervals :", omxQuotes(names(model@intervals)), '\n')
 
@@ -108,7 +109,7 @@ displayModel <- function(model, expand = FALSE) {
 			cat("$data type:", omxQuotes(data@type), '\n')
 			cat("$data$expectation :", omxQuotes(data@expectation), "\n")
 		} else {
-			cat("$data :", nrow(data@observed), 
+			cat("$data :", nrow(data@observed),
 			    "x", ncol(data@observed), "\n")
 			if(length(data@means) == 1 && is.na(data@means)) {
 				cat("$data means : NA\n")
@@ -190,10 +191,10 @@ displayModel <- function(model, expand = FALSE) {
 	invisible(model)
 }
 
-setMethod("print", "MxModel", function(x,...) { 
-	displayModel(x, TRUE) 
+setMethod("print", "MxModel", function(x,...) {
+	displayModel(x, TRUE)
 })
 
-setMethod("show", "MxModel", function(object) { 
-	displayModel(object) 
+setMethod("show", "MxModel", function(object) {
+	displayModel(object)
 })

@@ -118,6 +118,7 @@ enum FitStatisticUnits {
 	FIT_UNITS_MINUS2LL,
 	FIT_UNITS_SQUARED_RESIDUAL,
 	FIT_UNITS_SQUARED_RESIDUAL_CHISQ,  // full weight matrix
+	FIT_UNITS_ANY,
 };
 
 #define GRADIENT_FUDGE_FACTOR(x) (pow(10.0,x))

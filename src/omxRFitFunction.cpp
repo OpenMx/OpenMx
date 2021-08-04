@@ -19,7 +19,7 @@
 #include "omxRFitFunction.h"
 #include "EnableWarnings.h"
 
-void omxRFitFunction::compute(int want, FitContext *fc)
+void omxRFitFunction::compute2(int want, FitContext *fc)
 {
 	auto *oo = this;
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;

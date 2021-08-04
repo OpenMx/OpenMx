@@ -79,7 +79,7 @@ struct omxGREMLFitState : omxFitFunction {
 
 	omxGREMLFitState() : jg(1) {};
 	virtual void init() override;
-	virtual void compute(int want, FitContext *fc) override;
+	virtual void compute2(int want, FitContext *fc) override;
 	virtual void populateAttr(SEXP algebra) override;
 };
 
@@ -284,7 +284,7 @@ void omxGREMLFitState::init()
   }
 }
 
-void omxGREMLFitState::compute(int want, FitContext *fc)
+void omxGREMLFitState::compute2(int want, FitContext *fc)
  {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
@@ -1662,7 +1662,7 @@ struct GRMFIMLFitState : omxFitFunction{
 	omxMatrix *y, *invcov, *means;
 
 	virtual void init() override;
-	virtual void compute(int want, FitContext *fc) override;
+	virtual void compute2(int want, FitContext *fc) override;
 	virtual void populateAttr(SEXP algebra) override;
 };
 
@@ -1689,7 +1689,7 @@ void GRMFIMLFitState::init()
 
 }
 
-void GRMFIMLFitState::compute(int want, FitContext* fc){
+void GRMFIMLFitState::compute2(int want, FitContext* fc){
 	auto *oo = this;
 	if(want & FF_COMPUTE_GRADIENT){invalidateGradient(fc);}
 	const double NATLOG_2PI = 1.837877066409345483560659472811;	//<--log(2*pi)

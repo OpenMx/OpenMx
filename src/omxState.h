@@ -239,46 +239,6 @@ enum OptEngine {
 
 OptEngine nameToGradOptEngine(const char *engineName);
 
-class RegularizingPenalty {
-protected:
-  IntegerVector params;
-  NumericVector epsilon;
-  NumericVector scale;
-  double smoothProportion;
-public:
-  RegularizingPenalty(S4 obj);
-  virtual ~RegularizingPenalty();
-  double penaltyStrength(double absPar, int px) const;
-  int countNumZero(FitContext *fc) const;
-  void fixZeros(FitContext *fc);
-  virtual double eval(FitContext *fc)=0;
-  virtual void gradient(FitContext *fc)=0;
-};
-
-class LassoPenalty : public RegularizingPenalty {
-  int lambda;
-public:
-  LassoPenalty(S4 obj);
-  virtual double eval(FitContext *fc) override;
-  virtual void gradient(FitContext *fc) override;
-};
-
-class RidgePenalty : public RegularizingPenalty {
-  int lambda;
-public:
-  RidgePenalty(S4 obj);
-  virtual double eval(FitContext *fc) override;
-  virtual void gradient(FitContext *fc) override;
-};
-
-class ElasticNetPenalty : public RegularizingPenalty {
-  int lambda, alpha;
-public:
-  ElasticNetPenalty(S4 obj);
-  virtual double eval(FitContext *fc) override;
-  virtual void gradient(FitContext *fc) override;
-};
-
 // omxGlobal is for state that is read-only during parallel sections.
 class omxGlobal {
 	bool unpackedConfidenceIntervals;
@@ -341,10 +301,9 @@ class omxGlobal {
 
 	std::vector< ConfidenceInterval* > intervalList;
   std::map< int, NumericVector > penaltyGrid;
-  std::vector< std::unique_ptr<RegularizingPenalty> > penalties;
 	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
-	void processPenalties(List penaltyList, FitContext *fc);
+  void importPenalty(omxMatrix *mat, S4 obj, FitContext *fc);
 
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);
@@ -428,7 +387,7 @@ class omxState {
 	void initialRecalc(FitContext *fc);
 	void omxProcessMxMatrixEntities(SEXP matList);
 	void omxProcessFreeVarList(SEXP varList);
-	void omxProcessMxAlgebraEntities(SEXP algList);
+	void omxProcessMxAlgebraEntities(SEXP algList, FitContext *fc);
 	void omxCompleteMxFitFunction(SEXP algList, FitContext *fc);
 	void omxProcessConfidenceIntervals(SEXP intervalList);
 	void omxProcessMxExpectationEntities(SEXP expList);
@@ -451,6 +410,11 @@ class omxState {
 	omxMatrix *getMatrixFromIndex(int matnum) const; // matrix (2s complement) or algebra
 	omxMatrix *getMatrixFromIndex(omxMatrix *mat) const { return lookupDuplicate(mat); };
 	const char *matrixToName(int matnum) const { return getMatrixFromIndex(matnum)->name(); };
+  Penalty *indexToPenalty(int index) const {
+    Penalty *got = algebraList[index]->penalty.get();
+    if (!got) mxThrow("algebra[%d] is not a Penalty", index);
+    return got;
+  }
 
 	bool isFakeParamSet() const { return hasFakeParam; }
 

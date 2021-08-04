@@ -791,17 +791,16 @@ setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="
 
 #----------------------------------------------------
 
-setClass(Class = "MxComputeRegularize",
+setClass(Class = "MxComputePenaltySearch",
 	 contains = "BaseCompute",
 	 representation = representation(
 	     plan = "MxCompute",
        fitfunction = "MxCharOrNumber",
 	     verbose = "integer",
        approach = "character",
-       ebicGamma = "numeric",
-       fixZeros = "logical"))
+       ebicGamma = "numeric"))
 
-setMethod("assignId", signature("MxComputeRegularize"),
+setMethod("assignId", signature("MxComputePenaltySearch"),
 	function(.Object, id, defaultFreeSet) {
 		.Object <- callNextMethod()
 		defaultFreeSet <- .Object@freeSet
@@ -814,7 +813,7 @@ setMethod("assignId", signature("MxComputeRegularize"),
 		.Object
 	})
 
-setMethod("getFreeVarGroup", signature("MxComputeRegularize"),
+setMethod("getFreeVarGroup", signature("MxComputePenaltySearch"),
 	function(.Object) {
 		result <- callNextMethod()
 		for (step in c(.Object@plan)) {
@@ -824,7 +823,7 @@ setMethod("getFreeVarGroup", signature("MxComputeRegularize"),
 		result
 	})
 
-setMethod("qualifyNames", signature("MxComputeRegularize"),
+setMethod("qualifyNames", signature("MxComputePenaltySearch"),
 	function(.Object, modelname, namespace) {
 		.Object <- callNextMethod()
 		for (sl in c('plan')) {
@@ -836,7 +835,7 @@ setMethod("qualifyNames", signature("MxComputeRegularize"),
 		.Object
 	})
 
-setMethod("convertForBackend", signature("MxComputeRegularize"),
+setMethod("convertForBackend", signature("MxComputePenaltySearch"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
 		for (sl in c('plan')) {
@@ -848,8 +847,8 @@ setMethod("convertForBackend", signature("MxComputeRegularize"),
 		.Object
 	})
 
-setMethod("initialize", "MxComputeRegularize",
-	  function(.Object, freeSet, plan, verbose, fitfunction, approach, ebicGamma, fixZeros) {
+setMethod("initialize", "MxComputePenaltySearch",
+	  function(.Object, freeSet, plan, verbose, fitfunction, approach, ebicGamma) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -858,7 +857,6 @@ setMethod("initialize", "MxComputeRegularize",
 		  .Object@fitfunction <- fitfunction
       .Object@approach <- approach
       .Object@ebicGamma <- ebicGamma
-      .Object@fixZeros <- fixZeros
 		  .Object
 	  })
 
@@ -871,7 +869,6 @@ setMethod("initialize", "MxComputeRegularize",
 ##' @param freeSet names of matrices containing free variables
 ##' @template args-verbose
 ##' @param fitfunction the name of the deviance function
-##' @param fixZeros fix all regularized-to-zero values to zero, and rerun fit without regularization
 ##' @param approach what fit function to use to compare regularized models? Currently only EBIC is available
 ##' @param ebicGamma what Gamma value to use for EBIC? Must be between 0 and 1
 ##' @references
@@ -879,20 +876,19 @@ setMethod("initialize", "MxComputeRegularize",
 ##' Regularized structural equation modeling.
 ##' <i>Structural equation modeling: a multidisciplinary journal, 23</i>(4), 555-566.
 ##' @aliases
-##' MxComputeRegularize-class
-mxComputeRegularize <- function(plan, ..., freeSet=NA_character_, verbose=0L,
+##' MxComputePenaltySearch-class
+mxComputePenaltySearch <- function(plan, ..., freeSet=NA_character_, verbose=0L,
                                 fitfunction='fitfunction',
-                                fixZeros=FALSE, approach='EBIC', ebicGamma = 0.5) {
+                                approach='EBIC', ebicGamma = 0.5) {
   prohibitDotdotdot(list(...))
 	verbose <- as.integer(verbose)
-  fixZeros <- as.logical(fixZeros)
 	approach <- match.arg(approach)
   if (ebicGamma < 0 || ebicGamma > 1) stop("ebicGamma must be between 0 and 1")
-	new("MxComputeRegularize", freeSet, plan, verbose, fitfunction, approach,
-      ebicGamma, fixZeros)
+	new("MxComputePenaltySearch", freeSet, plan, verbose, fitfunction, approach,
+      ebicGamma)
 }
 
-setMethod("updateFromBackend", signature("MxComputeRegularize"),
+setMethod("updateFromBackend", signature("MxComputePenaltySearch"),
 	function(.Object, computes) {
 		.Object <- callNextMethod()
 		for (sl in c('plan')) {
@@ -901,7 +897,7 @@ setMethod("updateFromBackend", signature("MxComputeRegularize"),
 		.Object
 	})
 
-setMethod("displayCompute", signature(Ob="MxComputeRegularize", indent="integer"),
+setMethod("displayCompute", signature(Ob="MxComputePenaltySearch", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod()
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -2813,7 +2809,7 @@ omxHasDefaultComputePlan <- function(model) {
 }
 
 omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE,
-				  optionList=options()$mxOption, regularize=FALSE) {
+				  optionList=options()$mxOption, penaltySearch=FALSE) {
 	if(length(modelName) && !is.character(modelName[1])){stop("argument 'modelName' must be a character string")}
 	compute <- NULL
 	fitNum <- ifelse(length(modelName), paste(modelName, 'fitfunction', sep="."), "fitfunction")
@@ -2821,8 +2817,8 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
 																			RE=mxComputeReportExpectation()))
   } else{
-    if (regularize) {
-      steps <- list(REG=mxComputeRegularize(plan=mxComputeSequence(list(
+    if (penaltySearch) {
+      steps <- list(PS=mxComputePenaltySearch(plan=mxComputeSequence(list(
         SV=mxComputeSetOriginalStarts(),
         GD=mxComputeGradientDescent(fitfunction=fitNum)))))
     } else {

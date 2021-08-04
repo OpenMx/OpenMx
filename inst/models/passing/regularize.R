@@ -32,16 +32,16 @@ m1 <- mxModel(
            labels=c('lambda','alpha')),
   mxExpectationNormal('cov'),
   mxFitFunctionML(),
-  mxRegularizeLASSO(what = paste0('c', 1:(D * (D-1)/2))[regGroup=='lasso'],
+  mxPenaltyLASSO(what = paste0('c', 1:(D * (D-1)/2))[regGroup=='lasso'],
                     name = "lasso", epsilon=.01),
-  mxRegularizeRidge(what = paste0('c', 1:(D * (D-1)/2))[regGroup=='ridge'],
+  mxPenaltyRidge(what = paste0('c', 1:(D * (D-1)/2))[regGroup=='ridge'],
                          name = "ridge", epsilon=.01),
-  mxRegularizeElasticNet(what = paste0('c', 1:(D * (D-1)/2))[regGroup=='elasticNet'],
+  mxPenaltyElasticNet(what = paste0('c', 1:(D * (D-1)/2))[regGroup=='elasticNet'],
                     name = "en", epsilon=.01, lambda.step=.01,
                     alpha = .4, alpha.max = .4))
 
 m1 <- mxModel(m1, lapply(
-  m1$regularizations,
+  m1$penalties,
   function(reg) {
     reg$hpranges$lambda <- 400*reg$hpranges$lambda
     reg
@@ -53,6 +53,9 @@ if (0) {
   m1 <- mxOption(m1,"Checkpoint Count",1)
   m1 <- mxOption(m1, "Checkpoint Fullpath", "/dev/fd/2")
 }
+
+expect_equal(mxEval(lasso, m1), matrix(0,0,0))
+expect_equivalent(mxEval(lasso, m1, compute = TRUE), matrix(0.4, 1, 1))
 
 for (rep in 1:10) {
   fit1 <- mxModel(m1,
@@ -67,6 +70,20 @@ for (rep in 1:10) {
                           mxComputeReportDeriv()))), silent = TRUE)
   expect_equal(fit1$output$evaluations, 2)
 
+  # Added correctly?  
+  expect_equal(sum(
+    fit1$fitfunction$result[1,1],
+    sapply(fit1$penalties, function(x) x$result[1,1])),
+    fit1$output$fit)
+
+  # Also test mxEval
+  expect_equal(fit1$fitfunction$result[1,1],
+               mxEval(fitfunction, fit1, compute = TRUE)[1,1])
+  for (p1 in fit1$penalties) {
+    expect_equivalent(fit1[[p1$name]]$result[1,1],
+                      mxEvalByName(p1$name, fit1, compute = TRUE)[1,1])
+  }
+
   mxOption(key="Analytic Gradients", value="No")
 
   fit2 <- mxRun(mxModel(fit1,
@@ -78,9 +95,10 @@ for (rep in 1:10) {
   expect_equal(fit1$output$gradient, fit2$output$gradient, 1e-6)
 }
 
-m1 <- mxRun(m1)
+m1 <- expect_warning(mxPenaltySearch(m1),
+                     "model does not satisfy the first-order optimality conditions")
 
-detail <- m1$compute$steps$REG$output$detail
+detail <- m1$compute$steps$PS$output$detail
 
 limit <- c(lasso=1, ridge=11, elasticNet=2)
 for (cx in 1:(D * (D-1)/2)) {
@@ -92,3 +110,17 @@ for (cx in 1:(D * (D-1)/2)) {
   thr <- limit[regGroup[cx]]
   expect_equivalent(table(diff(val) <= 0)["FALSE"], 0, thr)
 }
+
+m2 <- mxPenaltyZap(m1, silent = TRUE)
+expect_error(summary(m2), "This model is in an inconsistent state.")
+fit2 <- mxRun(m2)
+expect_equal(fit2$output$fit, 853.759, 1e-2)
+
+m3 <- m1
+m3$fitfunction$applyPenalty <- FALSE
+fit3 <- mxRun(m3)
+
+expect_equivalent(sapply(fit3$penalties, function(x) x$result[1,1]),
+             rep(0,3))
+expect_equal(fit3$fitfunction$result[1,1], fit3$output$fit)
+expect_true(mxEval(lasso, fit3, compute = TRUE) != 0)

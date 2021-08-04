@@ -70,6 +70,9 @@ doFlatNamespaceSearch <- function(model, name) {
 		return(result)
 	}
 
+	result <- model@penalties[[name]]
+  if (!is.null(result)) return(result)
+
 	result <- model@constraints[[name]]
 
 	if (!is.null(result)) {
@@ -180,7 +183,7 @@ doFlatNamespaceSearchReplace <- function(model, name, value) {
 	} else if (is(test,"MxConstraint")) {
 		model@constraints[[name]] <- value
 	} else if (is(test,"MxPenalty")) {
-		model@regularizations[[name]] <- value
+		model@penalties[[name]] <- value
 	} else {
 		stop(paste(test, "is of unknown value for replacement using name",
 			name, "in model", model@name), call. = FALSE)

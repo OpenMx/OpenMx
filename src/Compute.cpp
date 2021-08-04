@@ -1333,7 +1333,7 @@ void FitContext::toggleCIObjective()
 
 void CIobjective::evalFit(omxFitFunction *ff, int want, FitContext *fc)
 {
-	omxFitFunctionCompute(ff, want, fc);
+  fc->withoutCIobjective([&](){ ComputeFit("CI", ff->matrix, FF_COMPUTE_FIT, fc); });
 }
 
 void CIobjective::checkSolution(FitContext *fc)
@@ -2168,14 +2168,13 @@ public:
 	virtual void collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList *out) override;
 };
 
-class ComputeRegularize : public omxCompute {
+class ComputePenaltySearch : public omxCompute {
 	typedef omxCompute super;
 
 	int verbose;
 	std::vector< omxMatrix* > fitfunction;
 	std::unique_ptr< omxCompute > plan;
   double ebicGamma;
-  bool fixZeros;
   DataFrame result;
 
  public:
@@ -2184,7 +2183,7 @@ class ComputeRegularize : public omxCompute {
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *) override;
 };
 
-void ComputeRegularize::initFromFrontend(omxState *globalState, SEXP rObj)
+void ComputePenaltySearch::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
 
@@ -2209,20 +2208,17 @@ void ComputeRegularize::initFromFrontend(omxState *globalState, SEXP rObj)
 
   ebicGamma = Rf_asReal(obj.slot("ebicGamma"));
 
-  fixZeros = as<bool>(obj.slot("fixZeros"));
-
   S4 Rplan = obj.slot("plan");
 	plan = std::unique_ptr< omxCompute >(omxNewCompute(globalState, Rplan.attr("class")));
 	plan->initFromFrontend(globalState, Rplan);
 }
 
-void ComputeRegularize::computeImpl(FitContext *fc)
+void ComputePenaltySearch::computeImpl(FitContext *fc)
 {
   auto &fvg = *Global->findVarGroup(FREEVARGROUP_ALL);
   if (int(fvg.vars.size()) != fc->numParam)
     mxThrow("%s: FitContext narrowed to %d parameters", name, fc->numParam);
   auto &pg = Global->penaltyGrid;
-  auto &pl = Global->penalties;
 
   int gridSize = 1;
   for (auto it = pg.cbegin(); it != pg.cend(); ++it) {
@@ -2262,7 +2258,10 @@ void ComputeRegularize::computeImpl(FitContext *fc)
     }
     plan->compute(fc);
     int zero = 0;
-    for (auto &p1 : pl) zero += p1->countNumZero(fc);
+    for (auto &a1 : fc->state->algebraList) {
+      if (!a1->isPenalty()) continue;
+      zero += a1->penalty->countNumZero(fc);
+    }
     int EP = fc->getNumFree() - zero; //estimatedParameters
     int observedStats = 0;
     fitfunction[0]->fitFunction->traverse([&observedStats](omxMatrix *f1){
@@ -2314,19 +2313,12 @@ void ComputeRegularize::computeImpl(FitContext *fc)
     NumericVector vec = result[resultParamOffset+px];
     fc->est[px] = vec[bestGridIndex];
   }
-  if (fixZeros) {
-    for (auto &p1 : Global->penalties) p1->fixZeros(fc);
-    Global->penalties.clear();
-    fc->copyParamToModel();
-    plan->compute(fc);
-  } else {
-    fc->wanted &= ~FF_COMPUTE_FIT;  // discard garbage
-    // auxillary information like per-row likelihoods need a refresh
-    ComputeFit(name, fitfunction[0], FF_COMPUTE_FIT, fc);
-  }
+  fc->wanted &= ~FF_COMPUTE_FIT;  // discard garbage
+  // auxillary information like per-row likelihoods need a refresh
+  ComputeFit(name, fitfunction[0], FF_COMPUTE_FIT, fc);
 }
 
-void ComputeRegularize::reportResults(FitContext *fc, MxRList *slots, MxRList *)
+void ComputePenaltySearch::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 {
 	MxRList output;
 	output.add("detail", result);
@@ -2406,8 +2398,8 @@ static const struct omxComputeTableEntry omxComputeTable[] = {
 	 []()->omxCompute* { return new ComputeTryCatch; }},
 	{"MxComputeLoadContext",
 	 []()->omxCompute* { return new ComputeLoadContext; }},
-	{"MxComputeRegularize",
-	 []()->omxCompute* { return new ComputeRegularize; }}
+	{"MxComputePenaltySearch",
+	 []()->omxCompute* { return new ComputePenaltySearch; }}
 };
 
 omxCompute *omxNewCompute(omxState* os, const char *type)
@@ -3158,14 +3150,14 @@ void ComputeEM::dEstep(FitContext *fc, Eigen::MatrixBase<T1> &x, Eigen::MatrixBa
   fc->setEstFromOptimizer(x);
 
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
+    ComputeFit("EM", infoFitFunction[fx], FF_COMPUTE_PREOPTIMIZE, fc);
 	}
 
   fc->setEstFromOptimizerClean(optimum);
 
 	fc->gradZ = Eigen::VectorXd::Zero(fc->getNumFree());
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
+    ComputeFit("EM", infoFitFunction[fx], FF_COMPUTE_GRADIENT, fc);
 	}
 	result = fc->gradZ;
 	reportProgress(fc);
@@ -3183,8 +3175,8 @@ void ComputeEM::Oakes(FitContext *fc)
 
 	fc->initGrad();
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_PREOPTIMIZE, fc);
-		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_GRADIENT, fc);
+    ComputeFit("EM", infoFitFunction[fx], FF_COMPUTE_PREOPTIMIZE, fc);
+    ComputeFit("EM", infoFitFunction[fx], FF_COMPUTE_GRADIENT, fc);
 	}
 
 	Eigen::VectorXd optimumCopy = optimum;  // will be modified
@@ -3199,7 +3191,7 @@ void ComputeEM::Oakes(FitContext *fc)
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
+    ComputeFit("EM", infoFitFunction[fx], FF_COMPUTE_INFO, fc);
 	}
 	fc->postInfo();
 
@@ -3349,7 +3341,7 @@ void ComputeEM::MengRubinFamily(FitContext *fc)
 	fc->infoMethod = infoMethod;
 	fc->preInfo();
 	for (size_t fx=0; fx < infoFitFunction.size(); ++fx) {
-		omxFitFunctionCompute(infoFitFunction[fx]->fitFunction, FF_COMPUTE_INFO, fc);
+    ComputeFit("EM", infoFitFunction[fx], FF_COMPUTE_INFO, fc);
 	}
 	fc->postInfo();
 

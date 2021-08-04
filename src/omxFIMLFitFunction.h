@@ -117,7 +117,7 @@ class omxFIMLFitFunction : public omxFitFunction {
 
 	virtual ~omxFIMLFitFunction();
 	virtual void init();
-	virtual void compute(int ffcompute, FitContext *fc);
+	virtual void compute2(int ffcompute, FitContext *fc) override;
 	virtual void populateAttr(SEXP algebra);
 	virtual void invalidateCache();
 

@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,13 +29,15 @@
 ##' \link{mxFitFunctionR}, \link{mxFitFunctionWLS}, \link{mxFitFunctionRow},
 ##' \link{mxFitFunctionGREML}
 ##' @rdname MxBaseFitFunction-class
-setClass(Class = "MxBaseFitFunction", 
+setClass(Class = "MxBaseFitFunction",
 	 representation = representation(
 		info = "list",
 		dependencies = "integer",
 		expectation = "integer",
 		vector = "logical",
 		rowDiagnostics = "logical",
+    penalties = "MxOptionalCharOrNumber",
+    applyPenalty = "logical",
 		result = "matrix", "VIRTUAL"),
 	 contains = "MxBaseNamed")
 
@@ -72,19 +74,19 @@ setGeneric("genericFitNewEntities",
 })
 
 
-setGeneric("genericFitFunConvert", 
+setGeneric("genericFitFunConvert",
 	function(.Object, flatModel, model, labelsData, dependencies) {
-	return(standardGeneric("genericFitFunConvert"))	
+	return(standardGeneric("genericFitFunConvert"))
 })
 
-setGeneric("generateReferenceModels", 
+setGeneric("generateReferenceModels",
 	function(.Object, model, distribution, equateThresholds) {
 	return(standardGeneric("generateReferenceModels"))
 })
 
 setMethod("generateReferenceModels", "MxBaseFitFunction",
 	function(.Object, model, distribution) {
-		msg <- paste("Don't know how to make ", omxQuotes(distribution), 
+		msg <- paste("Don't know how to make ", omxQuotes(distribution),
 			" distribution reference models for a model with a ",
 			     class(.Object), " fit function.", sep="")
 		stop(msg)
@@ -216,7 +218,41 @@ fitFunctionModifyEntities <- function(flatModel, namespace, labelsData) {
 }
 
 convertFitFunctions <- function(flatModel, model, labelsData, dependencies) {
-	retval <- lapply(flatModel@fitfunctions, genericFitFunConvert, 
+	retval <- lapply(flatModel@fitfunctions, genericFitFunConvert,
 		flatModel, model, labelsData, dependencies)
 	return(retval)
 }
+
+setMethod("initialize", signature("MxBaseFitFunction"),
+	function(.Object, ...) {
+		.Object@name <- 'fitfunction'
+    .Object@vector <- FALSE
+    .Object@applyPenalty <- TRUE
+    .Object@penalties <- c()
+		.Object
+	})
+
+setMethod("qualifyNames", signature("MxBaseFitFunction"),
+	function(.Object, modelname, namespace) {
+		.Object@name <- imxIdentifier(modelname, .Object@name)
+    .Object@penalties <- imxConvertIdentifier(.Object@penalties, modelname, namespace)
+		.Object
+  })
+
+setMethod("genericFitFunConvert", signature("MxBaseFitFunction"),
+          function(.Object, flatModel, model, labelsData, dependencies) {
+            if (length(.Object@penalties) == 0) {
+              .Object@penalties <- imxIdentifier(model@name, names(model@penalties))
+            }
+            name <- .Object@name
+            if (.Object@vector && .Object@applyPenalty && length(.Object@penalties) > 0) {
+              stop(paste("Model", omxQuotes(model@name), "has penalties",
+                         omxQuotes(.Object@penalties), "but it is not clear",
+                         "how to apply these penalties because",
+                         omxQuotes(paste0(name, "$vector")), "is TRUE!\n  (The mind boggles)"))
+
+            }
+            .Object@penalties <- imxLocateIndex(flatModel, .Object@penalties,
+                                                paste0(name, "@penalties"))
+            .Object
+          })

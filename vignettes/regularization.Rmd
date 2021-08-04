@@ -56,8 +56,8 @@ summary(fit)$parameters[1:8,]
 One of the difficult pieces in using regularization is that the penalty has to be calibrated for each particular problem. In running this code, I first tested the default, but this was too small given that there were some parameters > 0.4. After plotting this initial run, I saw that some parameters weren't penalized enough, therefore, I increased the penalty step to 1.2 and with 41 different values. This tested a model that had most estimates as zero. In some cases, it isn't necessary to test a sequence of penalties that would set "large" parameters to zero, as either the model could fail to converge then, or there is not uncertainty about those parameters inclusion.
 
 ```{r,results='hide'}
-regFit <- mxRun(mxModel(
-  fit, mxRegularizeLASSO(paste0('c',1:8),"lasso",lambda.step=1.2),
+regFit <- mxPenaltySearch(mxModel(
+  fit, mxPenaltyLASSO(paste0('c',1:8),"lasso",lambda.step=1.2),
   mxMatrix('Full',1,1,free=TRUE,values=0, labels="lambda")))
                                                
 ```
@@ -75,7 +75,7 @@ were any optimization failures.
 
 ```{r}
 
-detail <- regFit$compute$steps$REG$output$detail
+detail <- regFit$compute$steps$PS$output$detail
 table(detail$statusCode)
 
 ```
@@ -114,4 +114,4 @@ OpenMx uses EBIC to choose a final model. See what the best fitting parameter es
 summary(regFit)$parameters[1:8,]
 ```
 
-In this final model, we set the regression paths for x1, x2, x3, x4, x5, and x6 to zero. We make a mistake for x6, but we also correctly identify x7 and x8 as true paths. Compare these results with the maximum likelihood estimates.
+In this final model, we set the regression paths for x1, x2, x3, x4, x5, and x6 to zero. We also correctly identify x7 and x8 as true paths. Compare these results with the maximum likelihood estimates.

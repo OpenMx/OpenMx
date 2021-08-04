@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,27 +28,24 @@ setClass(Class = "MxFitFunctionGREML",
 
 
 setMethod("initialize", "MxFitFunctionGREML",
-          function(.Object, name = 'fitfunction', dV=character(0), MLfit=0, vector=FALSE, aug=character(0),
-          				 augGrad=character(0), augHess=character(0), autoDerivType=character(0), infoMatType=character(0)) {
-            .Object@name <- name
-            .Object@dV <- dV
-            .Object@dVnames <- as.character(names(dV))
-            .Object@MLfit <- MLfit
-            .Object@vector <- vector
+          function(.Object, ...) {
+            .Object <- callNextMethod()
+            .Object@dV <- ..1
+            .Object@dVnames <- as.character(names(..1))
+            .Object@MLfit <- 0
+            .Object@vector <- FALSE
             .Object@numObsAdjust <- 0L
-            .Object@aug <- aug
-            .Object@augGrad <- augGrad
-            .Object@augHess <- augHess
-            .Object@autoDerivType <- autoDerivType
-            .Object@infoMatType <- infoMatType
-            return(.Object)
-          }
-)
+            .Object@aug <- ..2
+            .Object@augGrad <- ..3
+            .Object@augHess <- ..4
+            .Object@autoDerivType <- ..5
+            .Object@infoMatType <- ..6
+            .Object
+          })
 
-
-setMethod("qualifyNames", signature("MxFitFunctionGREML"), 
+setMethod("qualifyNames", signature("MxFitFunctionGREML"),
           function(.Object, modelname, namespace) {
-            .Object@name <- imxIdentifier(modelname, .Object@name)
+            .Object <- callNextMethod()
             if(length(.Object@dV)){
               .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
               .Object@dVnames <- names(.Object@dV)
@@ -80,20 +77,21 @@ setMethod("genericFitRename", signature("MxFitFunctionGREML"),
 
 setMethod("genericFitConvertEntities", "MxFitFunctionGREML",
           function(.Object, flatModel, namespace, labelsData) {
-            
+
             name <- .Object@name
             modelname <- imxReverseIdentifier(flatModel, .Object@name)[[1]]
             expectName <- paste(modelname, "expectation", sep=".")
-            
+
             expectation <- flatModel@expectations[[expectName]]
-            dataname <- expectation@data		
-            
+            dataname <- expectation@data
+
             return(flatModel)
           })
 
 
-setMethod("genericFitFunConvert", "MxFitFunctionGREML", 
+setMethod("genericFitFunConvert", "MxFitFunctionGREML",
           function(.Object, flatModel, model, labelsData, dependencies) {
+            .Object <- callNextMethod()
             name <- .Object@name
             modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
             expectName <- paste(modelname, "expectation", sep=".")

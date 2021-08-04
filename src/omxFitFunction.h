@@ -39,7 +39,15 @@
 #include "omxState.h"
 #include "omxExpectation.h"
 
-struct omxFitFunction {
+class omxFitFunction {
+ private:
+  bool applyPenalty;
+  std::vector< Penalty* > penalties;
+protected:
+ public:
+  void subCompute(int want, FitContext *fc); // used by multigroup, hidden markov
+  void recompute(int want, FitContext *fc) { subCompute(want, fc); } // used by omxRecompute
+
 	SEXP rObj;
 	omxExpectation* expectation;
 
@@ -65,7 +73,8 @@ struct omxFitFunction {
 	virtual ~omxFitFunction() {};
 	virtual omxFitFunction *initMorph();
 	virtual void init()=0;
-	virtual void compute(int ffcompute, FitContext *fc)=0;
+	void compute(int ffcompute, FitContext *fc);
+	virtual void compute2(int ffcompute, FitContext *fc)=0;
 	virtual void invalidateCache() {};
 	virtual void traverse(std::function<void(omxMatrix*)> fn);
 
@@ -79,6 +88,7 @@ struct omxFitFunction {
   void invalidateGradient(FitContext *fc);
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }
+  void connectPenalties();
 };
 
 /* Initialize and Destroy */
@@ -91,7 +101,6 @@ void omxCompleteFitFunction(omxMatrix *om);
 	void omxGetFitFunctionStandardErrors(omxFitFunction *oo);					// Get Standard Errors
 
 /* FitFunction-specific implementations of matrix functions */
-void omxFitFunctionCompute(omxFitFunction *off, int want, FitContext *fc);  // deprecated, use ComputeFit
 	void omxDuplicateFitMatrix(omxMatrix *tgt, const omxMatrix *src, omxState* targetState);
 
 omxMatrix* omxNewMatrixFromSlot(SEXP rObj, omxState* state, const char* slotName);
@@ -115,8 +124,6 @@ void ba81SetFreeVarGroup(omxFitFunction *oo, FreeVarGroup *fvg);
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc);
 void loglikelihoodCIFun(omxFitFunction* oo, int ffcompute, FitContext *fc);
-
-double totalLogLikelihood(omxMatrix *fitMat); // deprecated, use ComputeFit
 
 const char *fitUnitsToName(FitStatisticUnits units);
 bool fitUnitsIsChiSq(FitStatisticUnits units);

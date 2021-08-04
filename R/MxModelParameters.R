@@ -201,6 +201,7 @@ omxSetParameters <- function(model, labels=names(coef(model)), free = NULL, valu
 	if (!is.null(name)) {
 		retval <- mxRename(retval, name)
 	}
+  retval@.modifiedSinceRun <- TRUE
 	return(retval)
 }
 

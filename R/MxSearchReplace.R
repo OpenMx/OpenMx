@@ -146,6 +146,9 @@ namespaceLocalSearch <- function(model, name) {
 		return(result)
 	}
 
+	result <- model@penalties[[name]]
+	if (!is.null(result)) return(result)
+
 	result <- model@submodels[[name]]
 
 	if (!is.null(result)) {
@@ -241,7 +244,7 @@ localNamespaceSearchReplace <- function(model, name, value) {
 	}
 	current <- namespaceLocalSearch(model, name)
 	if (is.null(current) && is.null(value)) {
-		if (!is.na(match(name, c("matrices", "algebras", "constraints",
+		if (!is.na(match(name, c("matrices", "algebras", "penalties", "constraints",
 					 "intervals", "submodels")))) {
 			msg <- paste("I'm very sorry, but direct modification of objects inside an mxModel is not",
 				     "supported.  The recommended approach to modifying an mxMatrix, mxAlgebra or",
@@ -268,6 +271,8 @@ localNamespaceSearchReplace <- function(model, name, value) {
 		model@matrices[[name]] <- value
 	} else if (is(test,"MxAlgebra")) {
 		model@algebras[[name]] <- value
+	} else if (is(test,"MxPenalty")) {
+		model@penalties[[name]] <- value
 	} else if (is(test,"MxModel")) {
 		model@submodels[[name]] <- value
 	} else if (is(test,"MxFitFunction")) {
@@ -279,7 +284,7 @@ localNamespaceSearchReplace <- function(model, name, value) {
 	} else if (is(test,"MxConstraint")) {
 		model@constraints[[name]] <- value
 	} else if (is(test,"MxPenalty")) {
-		model@regularizations[[name]] <- value
+		model@penalties[[name]] <- value
 	} else if (is(test, "MxCompute")) {
 		model@compute <- value
 	} else {

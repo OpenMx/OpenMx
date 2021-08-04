@@ -458,6 +458,7 @@ generateLocalNamespace <- function(model) {
 	thisEntities <- character()
 	thisEntities <- namespaceGetEntities(model, "matrices", thisEntities)
 	thisEntities <- namespaceGetEntities(model, "algebras", thisEntities)
+	thisEntities <- namespaceGetEntities(model, "penalties", thisEntities)
 	thisEntities <- namespaceGetEntities(model, "submodels", thisEntities)
 	thisEntities <- namespaceGetEntities(model, "constraints", thisEntities)
 	fitfunction <- model@fitfunction
@@ -845,11 +846,6 @@ qualifyNamesMatrix <- function(matrix, modelname, dataname, namespace) {
     }
   }
 	return(matrix)
-}
-
-qualifyNamesPenalty <- function(penalty, modelname, namespace) {
-	penalty@name <- imxIdentifier(modelname, penalty@name)
-  penalty
 }
 
 qualifyNamesAlgebra <- function(algebra, modelname, namespace) {

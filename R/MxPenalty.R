@@ -23,16 +23,16 @@
 #' [[<-,MxPenalty-method
 setClass(Class = "MxPenalty",
           representation = representation(
-           name = "character",
            type = "character",
            params = "MxCharOrNumber",
            epsilon = "numeric",
            scale = "numeric",
            smoothProportion = "numeric",
            hyperparameters = "MxCharOrNumber",
-           hpranges = "list"
-          )
-         )
+           hpranges = "list",
+           result = "matrix"
+          ),
+         contains = "MxBaseNamed")
 
 setMethod("initialize", "MxPenalty",
           function(.Object, name, type, reg_params, epsilon, scale,
@@ -45,7 +45,7 @@ setMethod("initialize", "MxPenalty",
             .Object@smoothProportion <- smoothProportion
             .Object@hyperparameters <- hyperparams
             .Object@hpranges <- hpranges
-            return(.Object)
+            .Object
           }
 )
 
@@ -53,29 +53,32 @@ setMethod("$", "MxPenalty", imxExtractSlot)
 
 setReplaceMethod("$", "MxPenalty",
 	function(x, name, value) {
+        if(name == "result") {
+            stop("You cannot set the result of a penalty.  Use mxRun() to populate the result, or mxEval() to compute it.")
+        }
 		return(imxReplaceSlot(x, name, value, check=TRUE))
 	}
 )
 
 setMethod("names", "MxPenalty", slotNames)
 
-##' imxRegularizationTypes
+##' imxPenaltyTypes
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
 ##' @details Types of regularization penalties.
-imxRegularizationTypes <- c('lasso', 'ridge', 'elasticNet')
+imxPenaltyTypes <- c('lasso', 'ridge', 'elasticNet')
 
-##' This function creates a regularization penalty object
+##' This function creates a penalty object
 ##'
-##' @param how what kind of regularization function to use
-##' @param hyperparams a character vecot of hyperparameter names
+##' @param how what kind of function to use
+##' @param hyperparams a character vector of hyperparameter names
 ##' @param hpranges a named list of hyperparameter ranges. Used in search if no ranges are specified.
 ##' @template args-regularize
 ##' @param smoothProportion what proportion of the region between \code{epsilon} and zero should be used to smooth the penalty function
 ##'
-##' @details \code{mxRegularize} expects to find an \link{mxMatrix} with
+##' @details \code{mxPenalty} expects to find an \link{mxMatrix} with
 ##'   free parameters that correspond to all named hyperparameters.
 ##'
 ##' Gradient descent optimizers are designed for and work best on
@@ -86,8 +89,8 @@ imxRegularizationTypes <- c('lasso', 'ridge', 'elasticNet')
 ##' the traditional discontinuous functions are used. Otherwise,
 ##' \code{smoothProportion} of the region between \code{epsilon} and
 ##' zero is used for smoothing.
-mxRegularize <- function(what, epsilon=1e-5, scale=1,
-                         how=imxRegularizationTypes,
+mxPenalty <- function(what, epsilon=1e-5, scale=1,
+                         how=imxPenaltyTypes,
                          smoothProportion = 0.05,
                          hyperparams=c(),
                          hpranges=list(),
@@ -95,8 +98,8 @@ mxRegularize <- function(what, epsilon=1e-5, scale=1,
     how <- match.arg(how)
     if(is.null(name)) name <- imxUntitledName()
     if(length(grep("data[\\.]", what))>0) {
-      stop("Error in regularization penalty ", name,
-           ": cannot regularize definition vars")
+      stop("Error in penalty ", name,
+           ": cannot apply penalty to definition vars")
     }
     if (length(what) %% length(epsilon) != 0) {
       stop("length(what) %% length(epsilon) != 0")
@@ -108,7 +111,35 @@ mxRegularize <- function(what, epsilon=1e-5, scale=1,
         smoothProportion=smoothProportion, hyperparams=hyperparams, hpranges=hpranges)
 }
 
-##' MxRegularizeLASSO
+regularizedToZeroParameters <- function(pen, model) {
+  mask <- coef(model)[pen@params] / pen@scale <= pen@epsilon
+  pen@params[mask]
+}
+
+zapModelHelper <- function(model) {
+  if (length(model@submodels)) for (m1 in model@submodels) {
+    model <- mxModel(model, zapModelHelper(m1))
+  }
+  model@penalties <- list()
+  model
+}
+
+# mxPenaltyShrinkToZero mxPenaltyZap mxPenaltyFixSmall
+mxPenaltyZap <- function(model, silent=FALSE) {
+  penalties <- collectComponents(model, NULL, "penalties", qualifyNames)
+  toZap <- Reduce(union, mapply(regularizedToZeroParameters,
+                                model@penalties, MoreArgs=list(model)))
+  if (!silent && length(toZap)) message(paste("Zapping", omxQuotes(toZap)))
+  model <- omxSetParameters(model, labels=toZap, values = 0, free=FALSE)
+  toFix <- Reduce(union, mapply(function(pen) pen@hyperparameters, model@penalties))
+  if (!silent && length(toFix)) message(paste("Fixing", omxQuotes(toFix)))
+  model <- omxSetParameters(model, labels=toFix, free=FALSE)
+  if (!silent) message(paste("Tip: Use\n  model = mxRun(model)\nto re-estimate the model",
+                             "without any penalty terms."))
+  zapModelHelper(model)
+}
+
+##' mxPenaltyLASSO
 ##'
 ##' Least Absolute Selection and Shrinkage Operator regularization
 ##'
@@ -119,14 +150,14 @@ mxRegularize <- function(what, epsilon=1e-5, scale=1,
 ##' @template args-regularize
 ##'
 #' @export
-mxRegularizeLASSO <- function(what, name, lambda=0, lambda.step=.01, lambda.max=NA, lambda.min=NA,
+mxPenaltyLASSO <- function(what, name, lambda=0, lambda.step=.01, lambda.max=NA, lambda.min=NA,
                               epsilon=1e-5, scale=1) {
   if(is.na(lambda.min)) lambda.min=lambda
   if(is.na(lambda.max)) lambda.max=lambda.min+40*lambda.step
-  mxRegularize(what, epsilon, scale, how="lasso", hyperparams=c('lambda'), hpranges=list(lambda=seq(lambda, lambda.max, by=lambda.step)), name=name)
+  mxPenalty(what, epsilon, scale, how="lasso", hyperparams=c('lambda'), hpranges=list(lambda=seq(lambda, lambda.max, by=lambda.step)), name=name)
 }
 
-##' MxRegularizeRidge
+##' mxPenaltyRidge
 ##'
 ##' Ridge regression regularization
 ##'
@@ -137,14 +168,14 @@ mxRegularizeLASSO <- function(what, name, lambda=0, lambda.step=.01, lambda.max=
 ##' @template args-regularize
 ##'
 #' @export
-mxRegularizeRidge <- function(what, name, lambda=0, lambda.step=.01, lambda.max=.4, lambda.min=NA,
+mxPenaltyRidge <- function(what, name, lambda=0, lambda.step=.01, lambda.max=.4, lambda.min=NA,
                               epsilon=1e-5, scale=1) {
   if(is.na(lambda.min)) lambda.min=lambda
-  mxRegularize(what, epsilon, scale, how="ridge", hyperparams=c('lambda'),
+  mxPenalty(what, epsilon, scale, how="ridge", hyperparams=c('lambda'),
                hpranges = list(lambda=seq(lambda, lambda.max, lambda.step)), name=name)
 }
 
-##' MxRegularizeElasticNet
+##' mxPenaltyElasticNet
 ##'
 ##' Elastic net regularization
 ##'
@@ -161,23 +192,53 @@ mxRegularizeRidge <- function(what, name, lambda=0, lambda.step=.01, lambda.max=
 ##' @details Applies elastic net regularization.  Elastic net is a weighted combination of ridge and LASSO penalties.
 ##'
 #' @export
-mxRegularizeElasticNet <- function(what, name,
+mxPenaltyElasticNet <- function(what, name,
                                    alpha=0,  alpha.step=.1,  alpha.max=1,
                                    lambda=0, lambda.step=.1, lambda.max=.4,
                                    alpha.min=NA, lambda.min=NA,
                                    epsilon=1e-5, scale=1) {
   if(is.na(lambda.min)) lambda.min=lambda
   if(is.na(alpha.min)) alpha.min=alpha
-  mxRegularize(what, epsilon, scale, how="elasticNet", hyperparams=c('alpha', 'lambda'),
+  mxPenalty(what, epsilon, scale, how="elasticNet", hyperparams=c('alpha', 'lambda'),
                hpranges = list(alpha=seq(alpha, alpha.max, alpha.step), lambda=seq(lambda, lambda.max, by=lambda.step)), name=name)
 }
 
+evaluatePenalty <- function(penalty, model, labelsData, env, show, compute) {
+  if (!compute) return(penalty@result)
+
+  # MxPenalty is an opaque object like MxFitFunction. show=TRUE should just
+  # show the name, not the formula.
+
+  value <- labelToValue(penalty@params, labelsData, model)
+  svalue <- abs(value) / penalty@scale
+  width <- penalty@epsilon * penalty@smoothProportion
+  inactive <- penalty@epsilon - width
+  strength <- (svalue - inactive) / width
+  strength[strength > 1] <- 1
+  strength[strength < 0] <- 0
+  lasso <- sum(strength * svalue)
+  ridge <- sum(strength * svalue * svalue)
+
+  if (penalty@type == "lasso") {
+    lambda <- labelToValue(penalty@hyperparameters[1], labelsData, model)
+    result <- lambda * lasso
+  } else if (penalty@type == "ridge") {
+    lambda <- labelToValue(penalty@hyperparameters[1], labelsData, model)
+    result <- lambda * ridge
+  } else if (penalty@type == "elasticNet") {
+    alpha <- labelToValue(penalty@hyperparameters[1], labelsData, model)
+    lambda <- labelToValue(penalty@hyperparameters[2], labelsData, model)
+    result <- lambda * ((1-alpha) * ridge + alpha * lasso)
+  } else stop(paste("penalty@type", omxQuotes(penalty@type), "is not implemented"))
+  result
+}
+
 generatePenaltyList <- function(flatModel, modelname, parameters, labelsData) {
-	got <- lapply(flatModel@regularizations, function(p1) {
+	got <- lapply(flatModel@penalties, function(p1) {
     hpnames <- p1@hyperparameters
     p1@hyperparameters <- match(p1@hyperparameters, names(parameters)) - 1L
     if (any(is.na(p1@hyperparameters))) {
-      stop(paste("Cannot locate regularization parameters",
+      stop(paste("Cannot locate penalty parameters",
                  omxQuotes(hpnames[is.na(p1@hyperparameters)])))
     }
     pnames <- p1@params
@@ -185,13 +246,13 @@ generatePenaltyList <- function(flatModel, modelname, parameters, labelsData) {
     if (any(is.na(p1@params))) {
       # maybe too strict?
       stop(paste("Cannot locate parameters",
-                 omxQuotes(pnames[is.na(p1@params)]), "to regularize"))
+                 omxQuotes(pnames[is.na(p1@params)]), "for penalty search"))
     }
     p1
   })
   if (length(got)) {
-    totalParams <- sum(sapply(flatModel@regularizations, function(p1) length(p1@params)))
-    if (totalParams != length(Reduce(union, lapply(flatModel@regularizations, function(p1) p1@params))))
+    totalParams <- sum(sapply(flatModel@penalties, function(p1) length(p1@params)))
+    if (totalParams != length(Reduce(union, lapply(flatModel@penalties, function(p1) p1@params))))
       stop("Attempt to regularize the same parameter more than once")
   }
   got

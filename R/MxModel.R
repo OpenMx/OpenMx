@@ -20,7 +20,7 @@ setClass(Class = "MxModel",
 		algebras = "list",
 		constraints = "list",
 		intervals = "list",
-    regularizations = "list",
+    penalties = "list",
 		latentVars = "MxCharOrList",
 		manifestVars = "MxCharOrList",
 		data = "MxData",
@@ -218,8 +218,8 @@ setReplaceMethod("[[", "MxModel",
 
 # These are slots that are intended to be directly viewable by the user.
 # Included separately so that they are the same between the $ and names() operators.
-publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals", "manifestVars", "latentVars", "regularizations") # accessible via model$
-visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals", "regularizations")
+publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals", "manifestVars", "latentVars", "penalties") # accessible via model$
+visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals", "penalties")
 
 setMethod("$", "MxModel",
 	function(x, name) {
@@ -280,6 +280,7 @@ imxSameType <- function(a, b) {
 	return( (is(a, "MxModel") && is(b, "MxModel")) ||
 			(is(a, "MxMatrix") && is(b, "MxMatrix")) ||
 			(is(a, "MxAlgebra") && is(b, "MxAlgebra")) ||
+			(is(a, "MxPenalty") && is(b, "MxPenalty")) ||
 			(is(a, "MxExpectation") && is(b, "MxExpectation")) ||
 			(is(a, "MxFitFunction") && is(b, "MxFitFunction")) ||
 			(is(a, "MxCompute") && is(b, "MxCompute")) ||

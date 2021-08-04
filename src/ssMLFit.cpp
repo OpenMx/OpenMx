@@ -30,7 +30,7 @@ struct ssMLFitState : omxFitFunction {
 
 	virtual ~ssMLFitState();
 	virtual void init() override;
-	virtual void compute(int ffcompute, FitContext *fc) override;
+	virtual void compute2(int ffcompute, FitContext *fc) override;
 	virtual void populateAttr(SEXP algebra) override;
 };
 
@@ -58,7 +58,7 @@ void ssMLFitState::populateAttr(SEXP algebra)
 	}
 }
 
-void ssMLFitState::compute(int want, FitContext *fc)
+void ssMLFitState::compute2(int want, FitContext *fc)
 {
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 
