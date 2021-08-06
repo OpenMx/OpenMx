@@ -137,6 +137,12 @@ generateParameterList <- function(flatModel, dependencies, freeVarGroups) {
 
 	if (length(pList)) for(i in 1:length(pList)) {
 		original <- pList[[i]]
+    bounds <- unlist(original[1:2])
+    if (all(!is.na(bounds)) && diff(bounds) <= 0) {
+      stop(paste("Parameter", omxQuotes(names(pList)[i]),
+                 "has a lower bound (", bounds[1], ") greater than or",
+                 "equal to an upper bound (", bounds[2], ")"), call.=FALSE)
+    }
 		svalues <- original[5:length(original)]
 		svalue <- NA
 		if (length(svalues) > 1) {

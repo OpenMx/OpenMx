@@ -15,6 +15,7 @@
 
 
 library(OpenMx)
+library(testthat)
 
 # Try with 2 appearances of 'x', one starting at 1.0 and the other NA
 
@@ -56,3 +57,30 @@ m1$mat1$values[1,1] <- NA
 m1$mat2$values[1,1] <- NA
 
 omxCheckError(mxRun(m1), "Parameter 'x' has no starting value")
+
+#-----------------
+
+test_that("mismatched starting values", {
+  m2 <- mxModel(mxMatrix("Full", 2, 1, TRUE, values=c(1,2),
+                         labels="same", name="A"))
+  expect_error(mxRun(m2), "assigned multiple starting values")
+})
+
+test_that("mismatched lbound", {
+  m2 <- mxModel(mxMatrix("Full", 2, 1, TRUE, values=1,
+                         labels="same", lbound=c(.1,.2), name="A"))
+  expect_error(mxRun(m2), "assigned multiple lower bounds")
+  mxRun(omxAssignFirstParameters(m2))
+})
+
+test_that("mismatched ubound", {
+  m2 <- mxModel(mxMatrix("Full", 2, 1, TRUE, values=1,
+                         labels="same", ubound=c(.1,.2), name="A"))
+  expect_error(mxRun(m2), "assigned multiple upper bounds")
+})
+
+test_that("equal bounds", {
+  m2 <- mxModel(mxMatrix("Full", 1, 1, TRUE, values=1.5,
+                         lbound=2, ubound=1, name="A"))
+  expect_error(mxRun(m2), "greater than or equal to an upper bound")
+})
