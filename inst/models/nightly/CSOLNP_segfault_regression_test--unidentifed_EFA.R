@@ -79,4 +79,11 @@ rotmodel <- mxModel(
 
 rotmodel <- omxSetParameters(model=rotmodel,labels=names(coef(fitModel)),values=coef(fitModel),free=c(rep(T,24),rep(T,99)))
 
+if (0) {
+  rotmodel <- mxOption(rotmodel,"Always Checkpoint","Yes")
+  rotmodel <- mxOption(rotmodel,"Checkpoint Units","evaluations")
+  rotmodel <- mxOption(rotmodel,"Checkpoint Count",1)
+  rotmodel <- mxOption(rotmodel, "Checkpoint Fullpath", "/dev/fd/2")
+}
+
 rotfit <- mxRun(rotmodel)
