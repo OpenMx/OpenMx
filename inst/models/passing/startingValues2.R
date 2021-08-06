@@ -84,3 +84,11 @@ test_that("equal bounds", {
                          lbound=2, ubound=1, name="A"))
   expect_error(mxRun(m2), "greater than or equal to an upper bound")
 })
+
+test_that("mxPath bounds", {
+  lb <- seq(.75,3,length.out=10)
+  lb[6] <- NA
+  expect_error(mxPath(letters[1:5], connect = "unique.bivariate",
+                      lbound = lb, ubound = 2),
+               "2.25 is greater than or equal to upper bound")
+})

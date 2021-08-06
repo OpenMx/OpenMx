@@ -132,6 +132,15 @@ generatePath <- function(from, to,
 	# check for length mismatches
 	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)
 
+  numBounds <- max(length(lbound), length(ubound))
+  for (bx in 1:numBounds) {
+    l1 <- lbound[ 1 + (bx-1) %% length(lbound) ]
+    u1 <- ubound[ 1 + (bx-1) %% length(ubound) ]
+    if (!is.na(l1) && !is.na(u1) && l1 >= u1) {
+      stop(paste("Lower bound", l1, "is greater than or equal to upper bound", u1))
+    }
+  }
+
 	# create a new MxPath in the MxModel
 	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinKey, step))
 }
