@@ -218,6 +218,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		ScopedProtect p1(dataLoc, R_do_slot(dataObj, Rf_install("type")));
 		od->u_type = CHAR(STRING_ELT(dataLoc,0));
 		if(OMX_DEBUG) {mxLog("Element is type %s.", od->u_type);}
+    if (strEQ(od->u_type, "none")) od->u_type = "raw";
 
 		if (R_has_slot(dataObj, Rf_install("naAction"))) {
 			ProtectedSEXP RactStr(R_do_slot(dataObj, Rf_install("naAction")));

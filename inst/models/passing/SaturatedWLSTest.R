@@ -97,7 +97,7 @@ names(obsMns) <- dimnames(obsCor)[[2]]
 
 obsStats <- list(means=obsMns, cov=obsCor, thresholds=obsThr, acov=obsAcov, fullWeight=solve(obsAcov))
 
-obsWDat <- mxData(observed=rawData, type='raw', observedStats=obsStats)
+obsWDat <- mxData(observedStats=obsStats)
 
 #------------------------------
 # Make WLS saturated model

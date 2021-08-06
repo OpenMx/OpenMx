@@ -24,7 +24,7 @@
 }
 
 \usage{
-   mxData(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+   mxData(observed=NULL, type="none", means = NA, numObs = NA, acov=NA, fullWeight=NA,
           thresholds=NA, ..., observedStats=NA, sort=NA, primaryKey = as.character(NA),
           weight = as.character(NA), frequency = as.character(NA),
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
@@ -36,7 +36,10 @@
 \arguments{
    \item{observed}{A matrix or data.frame which provides data to the
    MxData object. Can be NULL when summary data are provided via \sQuote{observedStats}.}
-   \item{type}{A character string defining the type of data in the \sQuote{observed} argument. Must be one of \dQuote{raw}, \dQuote{cov}, \dQuote{cor}, or \dQuote{acov}.}
+   \item{type}{A character string defining the type of data in the
+   \sQuote{observed} argument. Must be one of \dQuote{raw},
+   \dQuote{cov}, \dQuote{cor}, or \dQuote{acov}. If no observed data are
+   provided then use \dQuote{none}.}
    \item{means}{An optional vector of means for use when \sQuote{type} is \dQuote{cov}, or \dQuote{cor}.}
    \item{numObs}{The number of observations in the data supplied in the \sQuote{observed} argument. Required unless \sQuote{type} equals \dQuote{raw}.}
    \item{...}{Not used. Forces remaining arguments to be specified by name.}

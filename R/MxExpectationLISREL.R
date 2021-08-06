@@ -468,7 +468,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationLISREL"),
 		} else {# Non-Raw data checking
 			.Object@thresholds <- as.integer(NA)
 			# Check the observed covariance matrix is separated into endo and exo blocks
-			if (!identical(translatedNames, rownames(mxDataObject@observed))) {
+			if (!identical(translatedNames, observedDataNames(mxDataObject))) {
 				msg <- paste("The names of the manifest",
 					"variables in the LY and LX matrices of model",
 					omxQuotes(modelname), "do not match the",

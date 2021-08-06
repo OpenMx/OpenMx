@@ -225,10 +225,11 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 
 	tuple <- evaluateMxObject(threshName, flatModel, labelsData, new.env(parent = emptyenv()))
 	thresholds <- tuple[[1]]
-	observed <- flatModel@datasets[[dataName]]@observed
-	dataType <- flatModel@datasets[[dataName]]@type
+  mxd <- flatModel@datasets[[dataName]]
+	observed <- mxd@observed
+	dataType <- mxd@type
 
-	threshNames <- verifyThresholdNames(thresholds, observed, modelName, observedThresholds=FALSE)
+	threshNames <- verifyThresholdNames(thresholds, mxd, modelName, observedThresholds=FALSE)
 
 	dataThresh <- NA
 	if(dataType == "acov") {
@@ -330,7 +331,9 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 	}
 }
 
-verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThresholds=TRUE) {
+verifyThresholdNames <- function(thresholds, obsNames, modelName=NA, observedThresholds=TRUE) {
+  if (is(obsNames, "MxData")) obsNames <- observedDataNames(obsNames)
+
 	if(is.na(modelName)) {
 		modelName = "[Model Name Unknown]"
 	}
@@ -346,7 +349,7 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 				 call. = FALSE)
 		}
 	}
-	if (is.null(dimnames(observed)) || is.null(dimnames(observed)[[2]])) {
+	if (is.null(obsNames)) {
 		if(!observedThresholds) {
 			stop(paste("The observed data frame for model",
 				omxQuotes(modelName), "does not contain column names"),
@@ -357,7 +360,6 @@ verifyThresholdNames <- function(thresholds, observed, modelName=NA, observedThr
 		}
 	}
 	threshNames <- dimnames(thresholds)[[2]]
-	obsNames <- dimnames(observed)[[2]]
 	missingNames <- setdiff(threshNames, obsNames)
 	if (length(missingNames) > 0) {
 		if(!observedThresholds) {

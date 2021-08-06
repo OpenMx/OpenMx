@@ -223,7 +223,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 				}
 			} else {
 				.Object@thresholds <- as.integer(NA)
-				targetNames <- rownames(mxDataObject@observed)
+				targetNames <- observedDataNames(mxDataObject)
 				if (!identical(translatedNames, targetNames)) {
 					varsNotInData <- translatedNames[!(translatedNames %in% targetNames)]
 					msg <- paste("The names of the manifest",

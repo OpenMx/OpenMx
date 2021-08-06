@@ -70,7 +70,7 @@ legacyMxData <- function(observed, type, means = NA, numObs = NA, acov=NA, fullW
       fullWeight <- solve(fullWeight)
 		}
 		if ( !single.na(thresholds) ) {
-			verifyThresholdNames(thresholds, observed)
+			verifyThresholdNames(thresholds, colnames(observed))
 		}
 	}
 
@@ -920,4 +920,4 @@ omxAugmentDataWithWLSSummary <- function(mxd, type=c('WLS','DWLS','ULS'),
 	fake$data
 }
 
-dataIsRawish <- function(mxd) mxd@type == 'raw' || mxd@type == 'acov'
+dataIsRawish <- function(mxd) mxd@type %in% c('none', 'raw', 'acov')

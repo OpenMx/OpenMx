@@ -982,7 +982,7 @@ setMethod("genericExpFunConvert", "MxExpectationNormal",
 
 		if (inherits(mxDataObject, "MxDataDynamic")) return(.Object)
 
-		if (mxDataObject@type != "raw") {
+		if (!(mxDataObject@type %in% c("none","raw"))) {
 			verifyExpectedObservedNames(mxDataObject@observed, covName, flatModel, modelname, "Normal")
 			verifyMeans(meansName, mxDataObject, flatModel, modelname)
 		}

@@ -96,8 +96,7 @@ expect_equivalent(coef(dwlsRun) - coef(dwlsRun2),
 
 dwlsMod3 <- dwlsMod
 dwlsMod3$data <- mxData(
-  observedStats = mxdw$observedStats, numObs = 75,
-  type = "raw")
+  observedStats = mxdw$observedStats, numObs = 75)
 dwlsRun3 <- mxRun(dwlsMod3)
 expect_equivalent(coef(dwlsRun) - coef(dwlsRun3),
                   rep(0, length(coef(wlsRun))))
@@ -116,8 +115,7 @@ expect_equivalent(coef(wlsRun) - coef(wlsRun2),
 
 wlsMod3 <- wlsMod
 wlsMod3$data <- mxData(
-  observedStats = mxw$observedStats, numObs = 75,
-  type = "raw")
+  observedStats = mxw$observedStats, numObs = 75)
 wlsRun3 <- mxRun(wlsMod3)
 expect_equivalent(coef(wlsRun) - coef(wlsRun3),
                   rep(0, length(coef(wlsRun))))

@@ -203,6 +203,7 @@ void omxExpectation::loadThresholds()
 
 	//omxPrint(thresholdsMat, "loadThr");
 
+  auto dcn = base::getDataColumnNames();
 	auto dc = base::getDataColumns();
 	thresholds.resize(dc.size());
 	for(int dx = 0; dx < int(dc.size()); dx++) {
@@ -215,7 +216,7 @@ void omxExpectation::loadThresholds()
 	for(int dx = 0; dx < int(dc.size()); dx++) {
 		omxThresholdColumn &col = thresholds[dx];
 		int index = col.dataColumn;
-		const char *colname = data->columnName(index);
+		const char *colname = data->isRaw()? data->columnName(index) : dcn[index];
 
 		if (thresholdsMat) {
 			int tc = thresholdsMat->lookupColumnByName(colname);
@@ -321,10 +322,11 @@ void omxExpectation::populateNormalAttr(SEXP robj, MxRList &out)
 {
   if (!discreteMat && !thresholdsMat) return;
 
+  auto &dcn = getDataColumnNames();
+
   if (discreteMat) { // update discreteSpec
     auto &allTh = getThresholdInfo();
     auto ds = getDiscreteSpec();
-    auto &dcn = getDataColumnNames();
     CharacterVector cn(ds.cols());
     Eigen::MatrixXd newDS(ds.rows(), ds.cols());
 
@@ -349,7 +351,7 @@ void omxExpectation::populateNormalAttr(SEXP robj, MxRList &out)
     for (int xx = 0, cx=0; cx < int(allTh.size()); cx++) {
       auto &th = allTh[cx];
       if (th.numThresholds == 0) continue;
-      cn[xx] = data->columnName(th.dataColumn);
+      cn[xx] = data->isRaw()? data->columnName(th.dataColumn) : dcn[cx];
       xx += 1;
     }
 

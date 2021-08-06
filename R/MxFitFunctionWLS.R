@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,11 +15,11 @@
 
 #------------------------------------------------------------------------------
 # Revision History
-#  Fri 08 Mar 2013 15:35:29 Central Standard Time -- Michael Hunter copied file from 
+#  Fri 08 Mar 2013 15:35:29 Central Standard Time -- Michael Hunter copied file from
 #    OpenMx\branches\dependency-tracking\R\WLSObjective.R
 #    I think Tim Brick wrote the original.
 #    Michael Hunter edited the file to use fitfunctions
-#  
+#
 
 
 #------------------------------------------------------------------------------
@@ -46,22 +46,22 @@ setMethod("initialize", "MxFitFunctionWLS",
 )
 
 # **DONE**
-setMethod("qualifyNames", signature("MxFitFunctionWLS"), 
+setMethod("qualifyNames", signature("MxFitFunctionWLS"),
 	function(.Object, modelname, namespace) {
 		.Object@name <- imxIdentifier(modelname, .Object@name)
 		return(.Object)
 })
 
 # **DONE**
-setMethod("genericFitConvertEntities", "MxFitFunctionWLS", 
+setMethod("genericFitConvertEntities", "MxFitFunctionWLS",
 	function(.Object, flatModel, namespace, labelsData) {
 		name <- .Object@name
 		modelname <- imxReverseIdentifier(flatModel, .Object@name)[[1]]
 		expectName <- paste(modelname, "expectation", sep=".")
-		
+
 		expectation <- flatModel@expectations[[expectName]]
 		dataname <- expectation@data
-		
+
 		if (flatModel@datasets[[dataname]]@type != 'raw') {
 			if (.Object@vector) {
 				modelname <- getModelName(.Object)
@@ -75,7 +75,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionWLS",
 })
 
 # **DONE**
-setMethod("genericFitFunConvert", "MxFitFunctionWLS", 
+setMethod("genericFitFunConvert", "MxFitFunctionWLS",
 	function(.Object, flatModel, model, labelsData, dependencies) {
 		name <- .Object@name
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
@@ -110,8 +110,8 @@ setMethod("genericFitInitialMatrix", "MxFitFunctionWLS",
 			stop(msg, call.=FALSE)
 		}
 		mxDataObject <- flatModel@datasets[[expectation@data]]
-		if (mxDataObject@type != 'raw') {
-			msg <- paste("The dataset associated with the WLS expectation function", 
+		if (!(mxDataObject@type %in% c('raw','none'))) {
+			msg <- paste("The dataset associated with the WLS expectation function",
 				"in model", omxQuotes(modelname), "is not raw data.")
 			stop(msg, call.=FALSE)
 		}
@@ -141,12 +141,12 @@ displayMxFitFunctionWLS <- function(fitfunction) {
 }
 
 # **DONE**
-setMethod("print", "MxFitFunctionWLS", function(x, ...) { 
-	displayMxFitFunctionWLS(x) 
+setMethod("print", "MxFitFunctionWLS", function(x, ...) {
+	displayMxFitFunctionWLS(x)
 })
 
-setMethod("show", "MxFitFunctionWLS", function(object) { 
-	displayMxFitFunctionWLS(object) 
+setMethod("show", "MxFitFunctionWLS", function(object) {
+	displayMxFitFunctionWLS(object)
 })
 
 
@@ -252,13 +252,13 @@ imxWlsChiSquare <- function(model, J=NA){
 		if(single.na(fullWeight)){stop(paste(fwMsg, '\nOffending model is', model@name))}
 		W <- MASS::ginv(fullWeight)
 	}
-	
+
 	if( !(all(sD == TRUE) || all(sD == FALSE)) ){
 		stop("I'm getting some mixed signals.  You have some ordinal data, and some continuous data, and I'm not sure what to do.  Post this on the developer forums.")
 	}
-	
+
 	e <- samp.param - expd.param
-	
+
 	if(single.na(J)){
 		jac <- omxManifestModelByParameterJacobian(model, standardize=!any(sD))
 	} else {jac <- J}
@@ -267,7 +267,7 @@ imxWlsChiSquare <- function(model, J=NA){
 		x2 <- t(e) %*% jacOC %*% ginv( as.matrix(t(jacOC) %*% W %*% jacOC) ) %*% t(jacOC) %*% e
 	} else {x2 <- 0}
 	df <- qr(jacOC)$rank
-	
+
 	dvd <- try(solve( t(jac) %*% V %*% jac ), silent=TRUE)
 	if(class(dvd) != "try-error"){
 		U <- V - V %*% jac %*% dvd %*% t(jac) %*% V
@@ -308,10 +308,10 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #'
 #' Given either a data.frame or an mxData of type raw, this function determines whether \code{mxFitFunctionWLS}
 #' will generate expectations for means.
-#' 
+#'
 #' All-continuous data processed using the "cumulants" method lack means, while
 #' all continuous data processed with allContinuousMethod = "marginals" will have means.
-#' 
+#'
 #' When data are not all continuous, allContinuousMethod is ignored, and means are modelled.
 #'
 #' @param data the (currently raw) data being used in a \code{\link{mxFitFunctionWLS}} model.
@@ -328,7 +328,7 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #'
 #' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "cumulants", verbose = TRUE)
 #' tmp$hasMeans # FALSE - no means with cumulants
-#' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals") 
+#' tmp = mxDescribeDataWLS(mtcars, allContinuousMethod= "marginals")
 #' tmp$hasMeans # TRUE we get means with marginals
 #'
 #' # ==========================
@@ -345,7 +345,7 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #' tmp$cyl = factor(tmp$cyl)
 #' mxDescribeDataWLS(tmp, allContinuousMethod= "cumulants")$hasMeans # TRUE - always has means
 #' mxDescribeDataWLS(tmp, allContinuousMethod= "marginals")$hasMeans # TRUE
-#' 
+#'
 mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "marginals"), verbose=FALSE){
 	allContinuousMethod = match.arg(allContinuousMethod)
 	if(class(data) == "data.frame"){

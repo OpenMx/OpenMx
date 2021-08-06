@@ -131,6 +131,17 @@ nrowMxData <- function(mxd) {
     }
 }
 
+observedDataNames <- function(mxd) {
+  if (mxd@type == 'none') {
+    obs <- mxd@observedStats[['cov']]
+    if (!is.null(obs)) {
+      colnames(obs)
+    } else c()
+  } else {
+    colnames(mxd@observed)
+  }
+}
+
 ##' Create dynamic data
 ##'
 ##' @param type type of data
@@ -148,7 +159,8 @@ mxDataDynamic <- function(type, ..., expectation, verbose=0L) {
 	return(new("MxDataDynamic", type, expectation, verbose))
 }
 
-mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWeight=NA,
+mxData <- function(observed=NULL, type="none",
+                   means = NA, numObs = NA, acov=NA, fullWeight=NA,
 		   thresholds=NA, ...,
 		   observedStats=NA, sort=NA, primaryKey = as.character(NA), weight = as.character(NA),
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
@@ -162,8 +174,12 @@ mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWe
 		stop(paste("Column names must be unique. Duplicated:",
 			   omxQuotes(colnames(observed)[dups])))
 	}
-	if (missing(type) || (!is.character(type)) || (length(type) > 1) ||
-		is.na(match(type, imxDataTypes))) {
+  if (missing(observed) && type != 'none') {
+    # We use 'none' instead of NA to avoid adding is.null checks everywhere
+    stop(paste0("No observed data but type='", type,"' (should be 'none')"))
+  }
+	if (!missing(observed) && (missing(type) || (!is.character(type)) || (length(type) > 1) ||
+		is.na(match(type, imxDataTypes)))) {
 			numTypes = length(imxDataTypes)
 			stop(paste("Type must be set to one of: ", "'",
 			paste(imxDataTypes[1:(numTypes-1)], collapse="' '"),
@@ -192,18 +208,20 @@ mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWe
 	if ((!is.vector(means) && !(prod(dim(means)) == length(means))) || !is.numeric(means)) {
 		stop("Means argument must be of numeric vector type")
 	}
-	if (type != "raw" && is.na(numObs)) {
-		stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
-	}
-	if (length(algebra) && type != 'raw') {
-		stop("algebra only permitted for type='raw' data")
-	}
-	if (type == "cov") {
-		verifyCovarianceMatrix(observed)
-	}
-	if (type == "cor") {
-		verifyCorrelationMatrix(observed)
-	}
+  if (type != 'none') {
+    if (type != "raw" && is.na(numObs)) {
+      stop("Number of observations must be specified for non-raw data, i.e., add numObs=XXX to mxData()")
+    }
+    if (length(algebra) && type != 'raw') {
+      stop("algebra only permitted for type='raw' data")
+    }
+    if (type == "cov") {
+      verifyCovarianceMatrix(observed)
+    }
+    if (type == "cor") {
+      verifyCorrelationMatrix(observed)
+    }
+  }
 	if (!is.null(observedStats[['cov']])) {
 		verifyCovarianceMatrix(observedStats[['cov']], nameMatrix="covariance")
 	}
@@ -216,66 +234,70 @@ mxData <- function(observed=NULL, type, means = NA, numObs = NA, acov=NA, fullWe
 	}
 	thr <- observedStats[['thresholds']]
 	if (!is.null(thr)) {
-		verifyThresholdNames(thr, observed)
+		verifyThresholdNames(thr, colnames(observedStats[['cov']]))
 	}
-	lapply(dimnames(observed)[[2]], imxVerifyName, -1)
+  if (!is.null(observed)) {
+    lapply(dimnames(observed)[[2]], imxVerifyName, -1)
+  }
 	if(is.matrix(means)){meanNames <- colnames(means)} else {meanNames <- names(means)}
 	means <- as.matrix(means)
 	dim(means) <- c(1, length(means))
 	colnames(means) <- meanNames
 
-	if (length(primaryKey) > 1) {
-		stop("More than 1 primary key is not implemented yet")
-	} else if (!is.na(primaryKey)) {
-		if (type != "raw") {
-			stop(paste("Raw data is required when a primary key is provided"))
-		}
-		if (!(primaryKey %in% colnames(observed))) {
-			stop(paste("Primary key", omxQuotes(primaryKey),
-				   "must be provided in the observed data"))
-		}
-	}
+  if (!is.null(observed)) {
+    if (length(primaryKey) > 1) {
+      stop("More than 1 primary key is not implemented yet")
+    } else if (!is.na(primaryKey)) {
+      if (type != "raw") {
+        stop(paste("Raw data is required when a primary key is provided"))
+      }
+      if (!(primaryKey %in% colnames(observed))) {
+        stop(paste("Primary key", omxQuotes(primaryKey),
+                   "must be provided in the observed data"))
+      }
+    }
 
-	if (length(weight) > 1) {
-		stop("Only one weight column can be specified")
-	} else if (!is.na(weight)) {
-		if (type != "raw") {
-			stop(paste("Raw data is required when a weight column is provided"))
-		}
-		if (!(weight %in% colnames(observed))) {
-			stop(paste("Weight column", omxQuotes(weight),
-				   "must be provided in the observed data"))
-		}
-	}
-	if (length(frequency) > 1) {
-		stop("Only one frequency column can be specified")
-	} else if (!is.na(frequency)) {
-		if (type != "raw") {
-			stop(paste("Raw data is required when a frequency column is provided"))
-		}
-		if (!(frequency %in% colnames(observed))) {
-			stop(paste("Frequency column", omxQuotes(frequency),
-				   "must be provided in the observed data"))
-		}
-	}
-	if (type == "raw" && !is.null(observed)) {
-		if (!is.na(frequency)) {
-			obsCount <- sum(observed[,frequency])
-		} else {
-			obsCount <- nrow(observed)
-		}
+    if (length(weight) > 1) {
+      stop("Only one weight column can be specified")
+    } else if (!is.na(weight)) {
+      if (type != "raw") {
+        stop(paste("Raw data is required when a weight column is provided"))
+      }
+      if (!(weight %in% colnames(observed))) {
+        stop(paste("Weight column", omxQuotes(weight),
+                   "must be provided in the observed data"))
+      }
+    }
+    if (length(frequency) > 1) {
+      stop("Only one frequency column can be specified")
+    } else if (!is.na(frequency)) {
+      if (type != "raw") {
+        stop(paste("Raw data is required when a frequency column is provided"))
+      }
+      if (!(frequency %in% colnames(observed))) {
+        stop(paste("Frequency column", omxQuotes(frequency),
+                   "must be provided in the observed data"))
+      }
+    }
+    if (type == "raw") {
+      if (!is.na(frequency)) {
+        obsCount <- sum(observed[,frequency])
+      } else {
+        obsCount <- nrow(observed)
+      }
 
-		if (missing(numObs)) {
-			numObs <- obsCount
-		} else {
-			if (numObs != obsCount) {
-				# stop?
-				warning(paste("numObs of", numObs, "does not match the number of observations",
-					      "found in the observed data", obsCount,
-					      "(maybe specify weight='frequency' instead of numObs =",numObs,")"))
-			}
-		}
-	}
+      if (missing(numObs)) {
+        numObs <- obsCount
+      } else {
+        if (numObs != obsCount) {
+          # stop?
+          warning(paste("numObs of", numObs, "does not match the number of observations",
+                        "found in the observed data", obsCount,
+                        "(maybe specify weight='frequency' instead of numObs =",numObs,")"))
+        }
+      }
+    }
+  }
 
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
 		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
@@ -392,7 +414,7 @@ setMethod("preprocessDataForBackend", signature("MxDataStatic"),
 			if(!is.null(data) && length(data@observedStats)) {
 				obsStats <- data@observedStats
 				if (!is.null(obsStats$thresholds)) {
-					verifyThresholdNames(obsStats$thresholds, data@observed, model@name)
+					verifyThresholdNames(obsStats$thresholds, data, model@name)
 				}
 			}
 			data
