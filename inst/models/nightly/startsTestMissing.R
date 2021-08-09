@@ -274,7 +274,7 @@ STARTSM <- mxModel("STARTS",
                   correlatedResiduals,
 		  mxFitFunctionML(rowwiseParallel=FALSE))
 startsModel <- mxRun(STARTSM)
-omxCheckCloseEnough(startsModel$output$fit, 2718.410, .1)
+omxCheckCloseEnough(startsModel$output$fit, 2718.410, .15)
 
 if (.Platform$OS.type != 'windows' && parallel::detectCores() > 1) {
 	omxCheckTrue(startsModel$compute$steps[['GD']]$output$maxThreads > 1)
