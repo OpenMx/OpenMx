@@ -14,7 +14,7 @@ withr::with_makevars(getOption("covr.flags"), assignment = "+=", {
 })
 roxygenize('.', roclets=c('rd'))
 options(digits=15)
-c1 <- covr::package_coverage(type=c("tests","examples"), quiet=TRUE, pre_clean=FALSE)
+c1 <- covr::package_coverage(type=c("tests","examples","vignettes"), quiet=TRUE, pre_clean=FALSE)
 pct <- percent_coverage(c1, by="line")
 print(pct)
 covr::codecov(coverage = c1)
