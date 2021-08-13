@@ -417,6 +417,50 @@ void omxGlobal::omxProcessConfidenceIntervals(SEXP iList, omxState *currentState
 	}
 }
 
+// unify hpranges
+void omxGlobal::processPenalties(List penaltyList, FitContext *fc)
+{
+  auto &fvg = *Global->findVarGroup(FREEVARGROUP_ALL);
+
+  for (int px=0; px < penaltyList.size(); ++px) {
+    S4 obj = penaltyList[px];
+    const char *type = obj.slot("type");
+    std::unique_ptr<RegularizingPenalty> rp;
+    if (strEQ(type, "lasso")) rp = std::make_unique<LassoPenalty>(obj);
+    else if (strEQ(type, "ridge")) rp = std::make_unique<RidgePenalty>(obj);
+    else if (strEQ(type, "elasticNet")) rp = std::make_unique<ElasticNetPenalty>(obj);
+    else mxThrow("Unknown type of mxPenalty '%s'", type);
+    penalties.push_back(std::move(rp));
+
+    List hpr = obj.slot("hpranges");
+    for (int rx=0; rx < hpr.size(); ++rx) {
+      CharacterVector hprNames = hpr.names();
+      const char *varName = hprNames[rx];
+      int vx = fvg.lookupVar(varName);
+      if (vx == -1) mxThrow("Cannot find free variable named '%s' for penalty '%s'",
+                            varName, type);
+      auto got = penaltyGrid.find(vx);
+      if (got != penaltyGrid.end()) {
+        NumericVector g1(got->second);
+        NumericVector g2(hpr[rx]);
+        if (g1.size() != g2.size()) mxThrow("Different size grids for '%s'", varName);
+        for (int gx=0; gx < g1.size(); ++gx) {
+          if (g1[gx] != g2[gx]) mxThrow("Different grids for '%s'", varName);
+        }
+      } else {
+        NumericVector g1(hpr[rx]);
+        penaltyGrid.emplace(vx, g1);
+        if (fc->profiledOutZ[vx]) {
+          mxThrow("processPenalties: parameter '%s' is unexpectedly already profiled out",
+                  varName);
+        }
+        fc->profiledOutZ[vx] = true;
+      }
+    }
+  }
+  fc->calcNumFree();
+}
+
 void omxState::omxProcessConstraints(SEXP constraints, FitContext *fc)
 {
 	SEXP names = Rf_getAttrib(constraints, R_NamesSymbol);

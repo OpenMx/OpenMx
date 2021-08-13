@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,15 +24,15 @@ isNumber <- function(input) {
     return(length(match) > 0)
 }
 
-explode <- function(string) { 
-	strsplit(string, split=character())[[1]] 
+explode <- function(string) {
+	strsplit(string, split=character())[[1]]
 }
 
 illegalChars <- "+-!~?:*/^%<>=&|$"
 illegalCharsVector <- explode(illegalChars)
 
 availableName <- function(model, namespace, name) {
-	return(is.null(model[[name]]) && 
+	return(is.null(model[[name]]) &&
 			!(name %in% namespace$parameters) &&
 			!(name %in% namespace$values))
 }
@@ -55,22 +55,22 @@ imxVerifyReference <- function(reference, stackNumber) {
 	}
     if (isNumber(reference)) {
         stop(paste("The reference", omxQuotes(reference),
-            "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+            "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 			"is illegal because it can be interpreted",
             "as a number"), call. = FALSE)
     }
     if (identical(reference, "")) {
         stop(paste("The reference", omxQuotes(reference),
-            "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+            "in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 			"is illegal because references",
             "of zero length are not allowed"), call. = FALSE)
     }
-	if (!is.na(reference) && substring(reference, nchar(reference), 
+	if (!is.na(reference) && substring(reference, nchar(reference),
 				nchar(reference)) == imxSeparatorChar) {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 				"is illegal because it contains a",
-				omxQuotes(imxSeparatorChar), 
+				omxQuotes(imxSeparatorChar),
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
 	}
@@ -79,9 +79,9 @@ imxVerifyReference <- function(reference, stackNumber) {
 		component <- components[[i]]
 		if (nchar(component) == 0) {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 				"is illegal because it contains a",
-				omxQuotes(imxSeparatorChar), 
+				omxQuotes(imxSeparatorChar),
 				"with either a missing prefix or suffix."),
 			call. = FALSE)
 		}
@@ -90,9 +90,9 @@ imxVerifyReference <- function(reference, stackNumber) {
 		if ((components[[1]] != "data") && !hasSquareBrackets(reference)) {
 			stop(paste("The reference", omxQuotes(reference),
 				"is illegal because it contains the",
-				omxQuotes(imxSeparatorChar), "character in", 
+				omxQuotes(imxSeparatorChar), "character in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
-				". To write a definition variable use", 
+				". To write a definition variable use",
 				omxQuotes(paste("data", components[[2]], sep = "."))),
 			call. = FALSE)
 		}
@@ -101,7 +101,7 @@ imxVerifyReference <- function(reference, stackNumber) {
 			stop(paste("The reference", omxQuotes(reference),
 				"is illegal because it contains the",
 				omxQuotes(imxSeparatorChar), "character",
-				"but it is not a valid definition variable in", 
+				"but it is not a valid definition variable in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 		}
@@ -109,7 +109,7 @@ imxVerifyReference <- function(reference, stackNumber) {
 			stop(paste("The reference", omxQuotes(reference),
 				"is illegal because it contains the",
 				omxQuotes(imxSeparatorChar), "character",
-				"but it is not a valid definition variable in", 
+				"but it is not a valid definition variable in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
@@ -118,17 +118,17 @@ imxVerifyReference <- function(reference, stackNumber) {
 		badChars <- illegalCharsVector[badCharacterMatch]
 		if(length(badChars) == 1) {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 				"is illegal because it contains the",
-				omxQuotes(badChars[[1]]), 
+				omxQuotes(badChars[[1]]),
 				"character."),
-			call. = FALSE)		
+			call. = FALSE)
 		} else {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 				"is illegal because it contains the characters",
 				paste(omxQuotes(badChars), '.', sep = '')),
-			call. = FALSE)		
+			call. = FALSE)
 		}
 	}
 	leftSquareBracket <- length(grep("[", reference, fixed=TRUE)) > 0
@@ -138,7 +138,7 @@ imxVerifyReference <- function(reference, stackNumber) {
 		(!leftSquareBracket && !rightSquareBracket && !comma)) {
 	} else {
 			stop(paste("The reference", omxQuotes(reference),
-				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)), 
+				"in", deparse(width.cutoff = 400L, sys.call(stackNumber - 1)),
 				"is illegal because it is",
 				"a partial square-bracket reference."),
 			call. = FALSE)
@@ -149,7 +149,7 @@ imxVerifyReference <- function(reference, stackNumber) {
 #'
 #' Adjust a character vector so that it is valid when used as MxMatrix column
 #' or row names.
-#' 
+#'
 #' \emph{note}: OpenMx is (much) more restrictive than base R's make.names.
 #'
 #' @param names a character vector
@@ -187,23 +187,23 @@ mxMakeNames <- function(names, unique = FALSE) {
 ##' @param stackNumber stackNumber
 imxVerifyName <- function(name, stackNumber) {
     if (length(name) == 0) {
-        stop(paste("The empty character vector is an invalid name in", 
+        stop(paste("The empty character vector is an invalid name in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
             call. = FALSE)
     }
     if (length(name) > 1) {
-        stop(paste("The 'name' argument must be a single character argument in", 
+        stop(paste("The 'name' argument must be a single character argument in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
             call. = FALSE)
     }
     if (identical(name, "")) {
-        stop(paste("The empty string is an invalid name in", 
+        stop(paste("The empty string is an invalid name in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))), call. = FALSE)
     }
     if (isNumber(name)) {
         stop(paste("The name", omxQuotes(name),
             "is illegal because it can be interpreted",
-            "as a number in", 
+            "as a number in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))), call. = FALSE)
     }
 	components <- unlist(strsplit(name, imxSeparatorChar, fixed = TRUE))
@@ -211,34 +211,34 @@ imxVerifyName <- function(name, stackNumber) {
 		if (components[[1]] != "data") {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the",
-				omxQuotes(imxSeparatorChar), "character in", 
+				omxQuotes(imxSeparatorChar), "character in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
-			call. = FALSE)			
+			call. = FALSE)
 		}
 	} else if (length(components) > 2) {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains multiple",
-				omxQuotes(imxSeparatorChar), "characters in", 
+				omxQuotes(imxSeparatorChar), "characters in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	if (name %in% imxReservedNames) {
 		stop(paste("The name", omxQuotes(name),
-			"is illegal because it is a reserved name in", 
+			"is illegal because it is a reserved name in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	components <- unlist(strsplit(name, '[', fixed = TRUE))
 	if (length(components) > 1) {
 		stop(paste("The name", omxQuotes(name),
-			"is illegal because it contains the '[' character in", 
+			"is illegal because it contains the '[' character in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
 	components <- unlist(strsplit(name, ']', fixed = TRUE))
 	if (length(components) > 1) {
 		stop(paste("The name", omxQuotes(name),
-			"is illegal because it contains the ']' character in", 
+			"is illegal because it contains the ']' character in",
 			deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 	}
@@ -248,19 +248,19 @@ imxVerifyName <- function(name, stackNumber) {
 		if(length(badChars) == 1) {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the",
-				omxQuotes(badChars[[1]]), 
-				"character in", 
+				omxQuotes(badChars[[1]]),
+				"character in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
-			call. = FALSE)		
+			call. = FALSE)
 		} else {
 			stop(paste("The name", omxQuotes(name),
 				"is illegal because it contains the characters",
-				paste(omxQuotes(badChars), sep = ''), "in", 
+				paste(omxQuotes(badChars), sep = ''), "in",
 				deparse(width.cutoff = 400L, sys.call(stackNumber - 1))),
 			call. = FALSE)
 		}
-	}	
-	
+	}
+
 }
 
 ##' imxIsDefinitionVariable
@@ -308,7 +308,7 @@ imxHasDefinitionVariable <- function(model) {
 				return(TRUE)
 			}
 	}
-	
+
 	# Check the matrices for defvar
 	if(length(model@matrices) > 0){
 		for(i in 1:length(model@matrices)){
@@ -318,7 +318,7 @@ imxHasDefinitionVariable <- function(model) {
 			}
 		}
 	}
-	
+
 	# Check the algebras for defvar
 	if(length(model@algebras) > 0){
 		for(i in 1:length(model@algebras)){
@@ -328,7 +328,7 @@ imxHasDefinitionVariable <- function(model) {
 			}
 		}
 	}
-	
+
 	# All checks find nothing, return FALSE
 	return(FALSE)
 }
@@ -337,7 +337,7 @@ imxHasDefinitionVariable <- function(model) {
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.  If you don't know what you're doing, but want to,
-##' here's a brief description of the function.  You give this function an MxModel. It 
+##' here's a brief description of the function.  You give this function an MxModel. It
 ##' returns TRUE if the model is multilevel and FALSE otherwise.
 ##'
 ##' @param model model
@@ -413,7 +413,7 @@ imxReverseIdentifier <- function(model, name) {
 }
 
 ##' imxGenerateNamespace
-##' 
+##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
@@ -443,15 +443,15 @@ imxGenerateNamespace <- function(model) {
 }
 
 getEntities <- function(namespace) {
-	return(namespace[['entities']])	
+	return(namespace[['entities']])
 }
 
 getParameters <- function(namespace) {
-	return(namespace[['parameters']])	
+	return(namespace[['parameters']])
 }
 
 getValues <- function(namespace) {
-	return(namespace[['values']])	
+	return(namespace[['values']])
 }
 
 generateLocalNamespace <- function(model) {
@@ -528,10 +528,10 @@ namespaceGetEntities <- function(model, slotname, thisEntities) {
 
 namespaceErrorMessage <- function(rlist) {
 	if (length(rlist) == 1) {
-		return(paste("The name", omxQuotes(rlist), 
+		return(paste("The name", omxQuotes(rlist),
 		"appears more than once in the model\n"))
 	} else {
-		return(paste("The names", omxQuotes(rlist), 
+		return(paste("The names", omxQuotes(rlist),
 		"appear more than once in the model\n"))
 	}
 }
@@ -638,7 +638,7 @@ imxLocateLabel <- function(label, model, parameter) {
 	if ((length(parameter) != 1) || !is.logical(parameter) || is.na(parameter)) {
 		stop("'parameter' must be either TRUE or FALSE")
 	}
-	values <- sapply(model@matrices, locateLabelHelper, model, label, parameter)	
+	values <- sapply(model@matrices, locateLabelHelper, model, label, parameter)
 	values <- setdiff(values, '')
 	children <- lapply(model@submodels, imxLocateLabel, label = label, parameter = parameter)
 	children <- unlist(children, recursive = TRUE)
@@ -675,7 +675,7 @@ checkNamespaceIdentifier <- function(identifier, model, entity, namespace) {
          !(name %in% values) &&
          !(legalGlobalReference(name)) &&
 		 !(name %in% imxReservedNames)) {
-		stop(paste("Unknown reference", 
+		stop(paste("Unknown reference",
 			omxQuotes(simplifyName(imxIdentifier(space, name), model@name)),
 			"detected in the entity", omxQuotes(entity),
 			"in model", omxQuotes(model@name)), call. = FALSE)
@@ -752,7 +752,7 @@ imxConvertSubstitution <- function(substitution, modelname, namespace) {
 }
 
 ##' imxConvertIdentifier
-##' 
+##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
@@ -847,6 +847,11 @@ qualifyNamesMatrix <- function(matrix, modelname, dataname, namespace) {
 	return(matrix)
 }
 
+qualifyNamesPenalty <- function(penalty, modelname, namespace) {
+	penalty@name <- imxIdentifier(modelname, penalty@name)
+  penalty
+}
+
 qualifyNamesAlgebra <- function(algebra, modelname, namespace) {
 	algebra@name <- imxIdentifier(modelname, algebra@name)
 	algebra@formula <- qualifyNamesFormula(algebra@formula, modelname, namespace)
@@ -855,8 +860,8 @@ qualifyNamesAlgebra <- function(algebra, modelname, namespace) {
 
 qualifyNamesFormula <- function(formula, modelname, namespace) {
 	if (length(formula) == 1) {
-        if (is.symbol(formula) && 
-            (as.character(formula) %in% namespace$parameters || 
+        if (is.symbol(formula) &&
+            (as.character(formula) %in% namespace$parameters ||
              as.character(formula) %in% namespace$values)) {
         } else if (is.numeric(formula)) {
         } else if (identical(as.character(formula), "")) {

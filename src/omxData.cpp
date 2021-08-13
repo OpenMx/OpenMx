@@ -1085,25 +1085,6 @@ void omxData::omxPrintData(const char *header, int maxRows)
         omxPrintData(header, maxRows, 0);
 }
 
-double omxDataDF(omxData *od)
-{
-	const char *type = od->u_type;
-	if (strEQ(type, "cov")) {
-		omxMatrix *cov = omxDataCovariance(od);
-		int df = triangleLoc1(cov->rows);
-		omxMatrix *mm = omxDataMeans(od);
-		if (mm) df += mm->rows * mm->cols;
-		return df;
-	} else if (strEQ(type, "cor")) {
-		omxMatrix *cov = omxDataCovariance(od);
-		int df = triangleLoc1(cov->rows - 1);
-		omxMatrix *mm = omxDataMeans(od);
-		if (mm) df += mm->rows * mm->cols;
-		return df;
-	}
-	return NA_REAL;
-}
-
 static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 {
 	int numDeps = defVar->numDeps;
