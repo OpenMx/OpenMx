@@ -621,11 +621,8 @@ int MVNExpectation::numObservedStats()
     if (data->hasSummaryStats()) return numSummaryStats();
 
     auto &dc = getDataColumns();
-    // More accurate to use sufficient statistics for each missingness pattern? TODO
-    int stats = 0;
-    for (int cx=0; cx < int(dc.size()); ++cx) {
-      stats += data->countObs(dc[cx]);
-    }
+    // More accurate to use sufficient statistics for each missingness pattern TODO
+    int stats = dc.size() * data->nrows();
 
     auto &allTh = getThresholdInfo();
     for (auto &col : allTh) stats += col.numThresholds;

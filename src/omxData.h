@@ -323,7 +323,6 @@ class omxData {
 	}
 	int numRawRows();
 	double rowMultiplier(int rx);
-  double countObs(int col);
 	bool containsNAs(int col);
 	void prohibitFactor(int col);
 	void prohibitNAdefVar(int col);
