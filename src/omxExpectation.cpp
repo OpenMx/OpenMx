@@ -492,7 +492,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 const std::vector<const char *> &omxExpectation::getDataColumnNames() const
 { return dataColumnNames; }
 
-const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataColumns() const
+const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataColumns() // NOT const
 {
 	return Eigen::Map<DataColumnIndexVector>(dataColumnsPtr, numDataColumns);
 }
