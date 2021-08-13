@@ -247,6 +247,7 @@ protected:
   double smoothProportion;
 public:
   RegularizingPenalty(S4 obj);
+  virtual ~RegularizingPenalty();
   double penaltyStrength(double absPar, int px) const;
   int countNumZero(FitContext *fc) const;
   void fixZeros(FitContext *fc);
