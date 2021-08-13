@@ -112,7 +112,7 @@ OneLocusFit <- mxRun(OneLocusModel)
 omxCheckCloseEnough(OneLocusFit$output$fit, 855.887, .01)
 omxCheckCloseEnough(
   OneLocusFit$output$estimate,
-  c(-0.058, -0.051, 0.424, -0.986, 2.045, 0.069, 1.207, 0.1, 0.1 ), .01)
+  c(-0.058, -0.051, 0.424, -0.986, 2.045, 0.069, 1.207, 0, 0 ), .01)
 omxCheckCloseEnough(OneLocusFit$output$gradient, rep(0,7), 1e-3)
 omxCheckCloseEnough(log(det(OneLocusFit$output$hessian)), 38.17, .1)
 se <- c(OneLocusFit$output$standardErrors)
