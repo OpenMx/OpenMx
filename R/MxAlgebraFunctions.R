@@ -174,7 +174,7 @@ omxMnor <- function(covariance, means, lbound, ubound) {
     retVal <- .Call(callAlgebra,
     	list(covariance, means, lbound, ubound),
     	imxLookupSymbolTable("omxMnor"),
-		    generateOptionsList(NULL, 0, FALSE))
+		    generateOptionsList(NULL, FALSE))
 	if(single.na(retVal)){
 		warning('Correlation with absolute value greater than one found.')
 	}
@@ -208,7 +208,7 @@ omxAllInt <- function(covariance, means, ...) {
     retVal <- .Call(callAlgebra,
         c(list(covariance, means), thresholdMats),         # Flatten args into a single list
         imxLookupSymbolTable("omxAllInt"),
-		    generateOptionsList(NULL, 0, FALSE))
+		    generateOptionsList(NULL, FALSE))
 
     return(as.matrix(as.numeric(retVal)))
 
@@ -223,7 +223,7 @@ eigenvec <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("eigenvec"),
-        generateOptionsList(NULL, 0, FALSE))
+        generateOptionsList(NULL, FALSE))
 
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
@@ -237,7 +237,7 @@ ieigenvec <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("ieigenvec"),
-        generateOptionsList(NULL, 0, FALSE))
+        generateOptionsList(NULL, FALSE))
 
     return(matrix(as.numeric(retval), nrow(x), ncol(x)))
 }
@@ -251,7 +251,7 @@ eigenval <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("eigenval"),
-        generateOptionsList(NULL, 0, FALSE))
+        generateOptionsList(NULL, FALSE))
 
     return(as.matrix(as.numeric(retval)))
 }
@@ -265,7 +265,7 @@ ieigenval <- function(x) {
     retval <- .Call(callAlgebra,
         list(x),         # Flatten args into a single list
         imxLookupSymbolTable("ieigenval"),
-        generateOptionsList(NULL, 0, FALSE))
+        generateOptionsList(NULL, FALSE))
 
     return(as.matrix(as.numeric(retval)))
 }
@@ -365,7 +365,7 @@ logp2z <- function(x){
 lgamma1p <- function(x){
 	x <- as.matrix(x)
 	retVal <- .Call(callAlgebra, list(x), imxLookupSymbolTable("lgamma1p"),
-									generateOptionsList(NULL, 0, FALSE))
+									generateOptionsList(NULL, FALSE))
 	return(retVal)
 }
 
@@ -378,7 +378,7 @@ omxDnbinom <- function(x,size,prob,mu,give_log){
 	mu <- as.matrix(mu)
 	give_log <- as.matrix(give_log)
 	retval <- .Call(callAlgebra, list(x,size,prob,mu,give_log), imxLookupSymbolTable("omxDnbinom"),
-									generateOptionsList(NULL, 0, FALSE))
+									generateOptionsList(NULL, FALSE))
 	return(retval)
 }
 omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
@@ -389,7 +389,7 @@ omxPnbinom <- function(q,size,prob,mu,lower_tail,give_log){
 	lower_tail <- as.matrix(lower_tail)
 	give_log <- as.matrix(give_log)
 	retval <- .Call(callAlgebra, list(q,size,prob,mu,lower_tail,give_log), imxLookupSymbolTable("omxPnbinom"),
-									generateOptionsList(NULL, 0, FALSE))
+									generateOptionsList(NULL, FALSE))
 	return(retval)
 }
 

@@ -209,7 +209,7 @@ imxGetNumThreads <- function() {
 	}
 }
 
-generateOptionsList <- function(model, constraints, useOptimizer) {
+generateOptionsList <- function(model, useOptimizer) {
 	input <- list()
 	if (!is.null(model)) {
 		input <- model@options
