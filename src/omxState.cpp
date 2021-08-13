@@ -239,6 +239,7 @@ omxGlobal::omxGlobal()
 	llScale = -2.0;
 	debugProtectStack = OMX_DEBUG;
 	rowLikelihoodsWarning = false;
+	RAMmultilevelWarning = false;
 	unpackedConfidenceIntervals = false;
 	topFc = NULL;
 	intervals = true;
