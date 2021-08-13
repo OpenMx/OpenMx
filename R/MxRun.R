@@ -85,7 +85,7 @@ runHelper <- function(model, frontendStart,
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
 	flatModel <- imxFlattenModel(model, namespace, unsafe)
-	options <- generateOptionsList(model, length(flatModel@constraints), useOptimizer)
+	options <- generateOptionsList(model, useOptimizer)
 	options[['intervals']] <- intervals
 
 	if (!is.null(model@compute) && (!.hasSlot(model@compute, '.persist') || !model@compute@.persist)) {

@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,7 +64,7 @@ expandSingleInterval <- function(interval) {
 	if (length(references) == 1) {
 		return(interval)
 	} else {
-		return(lapply(references, createNewInterval, 
+		return(lapply(references, createNewInterval,
 			interval@lowerdelta, interval@upperdelta, interval@boundAdj))
 	}
 }
@@ -134,14 +134,14 @@ modelRemoveIntervals <- function(model, intervals) {
 		return(model)
 	}
 	iNames <- names(intervals)
-	for(i in 1:length(intervals)) {		
+	for(i in 1:length(intervals)) {
 		model@intervals[[iNames[[i]]]] <- NULL
 	}
 	return(model)
 }
 
 generateIntervalList <- function(flatModel, modelname, parameters, labelsData) {
-	retval <- lapply(flatModel@intervals, generateIntervalListHelper, 
+	retval <- lapply(flatModel@intervals, generateIntervalListHelper,
 		flatModel, modelname, parameters, labelsData)
 	names(retval) <- NULL
 	retval <- unlist(retval, recursive = FALSE)
@@ -158,7 +158,7 @@ makeIntervalReference <- function(entityNumber, row, col, iobj) {
 	return(c(entityNumber, row - 1, col - 1, iobj@lowerdelta, iobj@upperdelta, iobj@boundAdj))
 }
 
-generateIntervalListHelper <- function(interval, flatModel, modelname, 
+generateIntervalListHelper <- function(interval, flatModel, modelname,
 			parameters, labelsData) {
 	reference <- interval@reference
 					# length(reference)==1 because of expandSingleInterval
@@ -174,7 +174,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 	entity <- flatModel[[reference]]
 	retval <- list()
 	if (!is.null(entity)) {
-		entityNumber <- imxLocateIndex(flatModel, reference, 
+		entityNumber <- imxLocateIndex(flatModel, reference,
 					       paste("confidence interval", reference))
 		if (is(entity, "MxAlgebra")) {
 			newName <- reference
@@ -212,7 +212,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 			cols <- 1:ncol(entityValue)
 		}
 		entity <- flatModel[[entityName]]
-		entityNumber <- imxLocateIndex(flatModel, entityName, 
+		entityNumber <- imxLocateIndex(flatModel, entityName,
 			paste("confidence interval", reference))
 		retval <- list()
 		for(i in rows) {
@@ -233,7 +233,7 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 					if (free[i, j]) next
 					label <- entity@labels[i,j]
 					if (is.na(label) || label != reference) next
-					entityNumber <- imxLocateIndex(flatModel, entityName, 
+					entityNumber <- imxLocateIndex(flatModel, entityName,
 								       paste("confidence interval", reference))
 					retval[[label]] <- makeIntervalReference(entityNumber, i, j, interval)
 					return(retval)
@@ -242,9 +242,9 @@ generateIntervalListHelper <- function(interval, flatModel, modelname,
 		}
 		stop(paste("Unknown reference to", omxQuotes(reference),
 			"detected in a confidence interval",
-			"specification in model", omxQuotes(modelname), 
-			"\nYou should check spelling (case-sensitive), and also addressing the right model: to refer to an algebra", 
-			"\nSee help(mxCI) to see how to refer to an algebra in a submodel.\n", 
+			"specification in model", omxQuotes(modelname),
+			"\nYou should check spelling (case-sensitive), and also addressing the right model: to refer to an algebra",
+			"\nSee help(mxCI) to see how to refer to an algebra in a submodel.\n",
 			"FYI, I got as far as: ", deparse(width.cutoff = 400L, sys.call(-3))), call. = FALSE)
 	}
 }
@@ -343,7 +343,7 @@ removeAllIntervals <- function(model) {
 	return(model)
 }
 
-omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TRUE, 
+omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TRUE,
 													optimizer=mxOption(NULL,"Default optimizer")) {
 	if(missing(model) || !is(model, "MxModel")) {
 		stop("first argument must be a MxModel object")
@@ -356,7 +356,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 		stop("argument 'optimizer' must be one of 'NPSOL', 'CSOLNP', or 'SLSQP'")
 	}
 	if(!independentSubmodels){
-		optionList <- generateOptionsList(model, imxHasConstraint(model), TRUE)
+		optionList <- generateOptionsList(model, TRUE)
 		ctype <- ifelse(optimizer=="SLSQP","ineq","none")
 		ciOpt <- mxComputeGradientDescent(
 			verbose=verbose, engine=optimizer,
@@ -391,7 +391,7 @@ omxParallelCI <- function(model, run = TRUE, verbose=0L, independentSubmodels=TR
 		intervals <- expandConfidenceIntervals(model, intervals)
 		template <- model
 		template <- removeAllIntervals(template)
-		optionList <- generateOptionsList(model, imxHasConstraint(model), TRUE)
+		optionList <- generateOptionsList(model, TRUE)
 		ctype <- ifelse(optimizer=="SLSQP","ineq","none")
 		ciOpt <- mxComputeGradientDescent(
 			verbose=verbose, engine=optimizer,
