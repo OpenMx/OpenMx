@@ -239,45 +239,6 @@ enum OptEngine {
 
 OptEngine nameToGradOptEngine(const char *engineName);
 
-class RegularizingPenalty {
-protected:
-  IntegerVector params;
-  NumericVector epsilon;
-  NumericVector scale;
-  double smoothProportion;
-public:
-  RegularizingPenalty(S4 obj);
-  double penaltyStrength(double absPar, int px) const;
-  int countNumZero(FitContext *fc) const;
-  void fixZeros(FitContext *fc);
-  virtual double eval(FitContext *fc)=0;
-  virtual void gradient(FitContext *fc)=0;
-};
-
-class LassoPenalty : public RegularizingPenalty {
-  int lambda;
-public:
-  LassoPenalty(S4 obj);
-  virtual double eval(FitContext *fc) override;
-  virtual void gradient(FitContext *fc) override;
-};
-
-class RidgePenalty : public RegularizingPenalty {
-  int lambda;
-public:
-  RidgePenalty(S4 obj);
-  virtual double eval(FitContext *fc) override;
-  virtual void gradient(FitContext *fc) override;
-};
-
-class ElasticNetPenalty : public RegularizingPenalty {
-  int lambda, alpha;
-public:
-  ElasticNetPenalty(S4 obj);
-  virtual double eval(FitContext *fc) override;
-  virtual void gradient(FitContext *fc) override;
-};
-
 // omxGlobal is for state that is read-only during parallel sections.
 class omxGlobal {
 	bool unpackedConfidenceIntervals;
@@ -338,11 +299,8 @@ class omxGlobal {
 	int maxStackDepth;
 
 	std::vector< ConfidenceInterval* > intervalList;
-  std::map< int, NumericVector > penaltyGrid;
-  std::vector< std::unique_ptr<RegularizingPenalty> > penalties;
 	void unpackConfidenceIntervals(omxState *currentState);
 	void omxProcessConfidenceIntervals(SEXP intervalList, omxState *currentState);
-	void processPenalties(List penaltyList, FitContext *fc);
 
 	FreeVarGroup *findOrCreateVarGroup(int id);
 	FreeVarGroup *findVarGroup(int id);

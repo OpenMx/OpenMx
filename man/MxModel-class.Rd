@@ -4,9 +4,9 @@
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-%
+% 
 %        http://www.apache.org/licenses/LICENSE-2.0
-%
+% 
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,10 +43,7 @@ Objects can be created by calls of the form \code{\link{mxModel}()}.
     \item{\code{matrices}:}{List of the model's \link{MxMatrix} objects.}
     \item{\code{algebras}:}{List of the model's \link{MxAlgebra} objects.}
     \item{\code{constraints}:}{List of the model's \link{MxConstraint} objects.}
-    \item{\code{intervals}:}{List of the model's \link{MxInterval}
-      objects, requested via \code{\link{mxCI}()}.}
-    \item{\code{regularizations}:}{List of the model's \link[=MxPenalty-class]{MxPenalty}
-  objects.}
+    \item{\code{intervals}:}{List of the model's \link{MxInterval} objects, requested via \code{\link{mxCI}()}.}
     \item{\code{latentVars}:}{"Latent variables;" object of class \code{"MxCharOrList"}.}
     \item{\code{manifestVars}:}{"Manifest variables;" object of class \code{"MxCharOrList"}.}
     \item{\code{data}:}{Object of class \link{MxData}.}
@@ -133,3 +130,4 @@ The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documen
 showClass("MxModel")
 }
 \keyword{classes}
+

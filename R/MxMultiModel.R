@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-#
+# 
 #        http://www.apache.org/licenses/LICENSE-2.0
-#
+# 
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,7 @@ shareDataHelper <- function(model, default) {
 	} else if (!is.null(model@data)) {
 		default <- model@data
 	}
-	submodels <- lapply(model@submodels,
+	submodels <- lapply(model@submodels, 
 		shareDataHelper, default)
 	model@submodels <- submodels
 	return(model)
@@ -51,7 +51,7 @@ freezeMatrix <- function(mxMatrix) {
 
 freezeAlgebra <- function(mxAlgebra) {
 	if(is.null(mxAlgebra@result)) return(NULL)
-	res <- mxMatrix(values = mxAlgebra@result,
+	res <- mxMatrix(values = mxAlgebra@result, 
 		name = mxAlgebra@name)
 	return(res)
 }
@@ -114,9 +114,8 @@ imxFlattenModel <- function(model, namespace, unsafe=FALSE) {
 	flatModel@data <- defaultData
 	flatModel@matrices <- collectMatrices(model, namespace, defaultData)
 	flatModel@algebras <- collectComponents(model, namespace, "algebras", qualifyNamesAlgebra)
-	flatModel@constraints <- collectComponents(model, namespace, "constraints", qualifyNamesConstraint)
+	flatModel@constraints <- collectComponents(model, namespace, "constraints", qualifyNamesConstraint)	
 	flatModel@intervals <- collectComponents(model, namespace, "intervals", qualifyNamesInterval)
-	flatModel@regularizations <- collectComponents(model, namespace, "regularizations", qualifyNamesPenalty)
 	flatModel@datasets <- collectDatasets(model, namespace)
 	flatModel@fitfunctions <- collectFitFunctions(model, namespace, defaultData)
 	flatModel@expectations <- collectExpectations(model, namespace, defaultData)
@@ -175,7 +174,7 @@ collectMatricesHelper <- function(model, namespace, defaultData) {
 	modeldata <- safeQualifyNames(model@data, model@name, namespace)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
-	}
+	} 
 	if (is.null(defaultData)) {
 		defaultDataName <- NULL
 	} else {
@@ -189,7 +188,7 @@ collectMatricesHelper <- function(model, namespace, defaultData) {
 			model@name, modeldata@name, namespace)
 	}
 	if (length(model@submodels) > 0) {
-		submodel_matrices <- lapply(model@submodels, collectMatricesHelper, namespace, defaultData)
+		submodel_matrices <- lapply(model@submodels, collectMatricesHelper, namespace, defaultData)		
 		submodel_matrices <- unlist(submodel_matrices, recursive = FALSE, use.names = FALSE)
 		retval <- append(retval, submodel_matrices)
 	}
@@ -214,7 +213,7 @@ collectExpectationsHelper <- function(model, namespace, defaultData) {
 	modeldata <- safeQualifyNames(model@data, model@name, namespace)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
-	}
+	} 	
 	container <- character(0)
 	if (!is.null(expectation)) {
 		if(is.na(expectation@data) && is.null(modeldata) && !is.null(defaultData)) {
@@ -226,7 +225,7 @@ collectExpectationsHelper <- function(model, namespace, defaultData) {
 	}
 	submodel_expectations <- c()
 	if (length(model@submodels) > 0) {
-		submodel_expectations <- lapply(model@submodels, collectExpectationsHelper, namespace, defaultData)
+		submodel_expectations <- lapply(model@submodels, collectExpectationsHelper, namespace, defaultData)		
 		submodel_expectations <- unlist(submodel_expectations, recursive = FALSE, use.names = FALSE)
 	}
 	return(c(expectation, submodel_expectations))
@@ -237,7 +236,7 @@ collectFitFunctionsHelper <- function(model, namespace, defaultData) {
 	modeldata <- safeQualifyNames(model@data, model@name, namespace)
 	if (is.null(defaultData)) {
 		defaultData <- modeldata
-	}
+	} 	
 
 	if (!is.null(fitfunction)) {
 		if ("data" %in% slotNames(fitfunction)) {
@@ -253,11 +252,11 @@ collectFitFunctionsHelper <- function(model, namespace, defaultData) {
 	}
 
 	if (length(model@submodels) > 0) {
-		submodel_fitfunctions <- lapply(model@submodels, collectFitFunctionsHelper, namespace, defaultData)
+		submodel_fitfunctions <- lapply(model@submodels, collectFitFunctionsHelper, namespace, defaultData)		
 		submodel_fitfunctions <- unlist(submodel_fitfunctions, recursive = FALSE, use.names = FALSE)
 		retval <- append(retval, submodel_fitfunctions)
 	}
-	return(retval)
+	return(retval)	
 }
 
 ##' Are submodels dependence?

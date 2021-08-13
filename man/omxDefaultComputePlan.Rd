@@ -9,16 +9,14 @@ This function generates a default compute plan, where "default compute plan" ref
 }
 \usage{
 omxDefaultComputePlan(modelName=NULL, intervals=FALSE,
-  useOptimizer=TRUE, optionList=options()$mxOption, regularize=FALSE)
+  useOptimizer=TRUE, optionList=options()$mxOption)
 }
 
 \arguments{
   \item{modelName}{Optional (defaults to \code{NULL}) character string, providing the name of the \link{MxModel} the fitfunction of which is to be evaluated, and usually, optimized.}
   \item{intervals}{Logical; will \link[=mxCI]{confidence intervals} be computed? Defaults to \code{FALSE}.}
   \item{useOptimizer}{Logical; will a fitfunction be minimized?  Defaults to \code{TRUE}.}
-  \item{optionList}{List of \link{mxOption}s.  Defaults to the current
-    list of global \link{mxOption}s.}
-  \item{regularize}{Logical; whether to wrap the optimizer step with \link{mxComputeRegularize}}
+  \item{optionList}{List of \link{mxOption}s.  Defaults to the current list of global \link{mxOption}s.}
 }
 
 \details{

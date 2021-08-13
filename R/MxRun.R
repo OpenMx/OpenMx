@@ -106,7 +106,7 @@ runHelper <- function(model, frontendStart,
 	if (!is.null(model@fitfunction) && defaultComputePlan) {
 		if (is.null(intervals)) intervals <- FALSE
 		compute <- omxDefaultComputePlan(modelName=model@name, intervals=intervals,
-					useOptimizer=useOptimizer, optionList=options, length(model@regularizations)>0)
+					useOptimizer=useOptimizer, optionList=options)
 		compute@.persist <- FALSE
 		model@compute <- compute
 	}
@@ -200,7 +200,6 @@ runHelper <- function(model, frontendStart,
 	if (intervals) {
 		intervalList <- generateIntervalList(flatModel, model@name, parameters, labelsData)
 	}
-  penaltyList <- generatePenaltyList(flatModel, model@name, parameters, labelsData)
 	communication <- generateCommunicationList(model, checkpoint, useSocket, model@options)
 
 	useOptimizer <- useOptimizer && PPML.Check.UseOptimizer(model@options$UsePPML)
@@ -216,7 +215,7 @@ runHelper <- function(model, frontendStart,
 	output <- .Call(backend,
 			constraints, matrices, parameters,
 			algebras, expectations, computes,
-			data, intervalList, penaltyList, communication, options, defVars,
+			data, intervalList, communication, options, defVars,
 			silent || !interactive(), PACKAGE = "OpenMx")
 	backendStop <- Sys.time()
 	backendElapsed <- backendStop - frontendStop

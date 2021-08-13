@@ -90,7 +90,6 @@ man/imxPPML.Rd
 man/imxPPML.Test.Battery.Rd
 man/imxPPML.Test.Test.Rd
 man/imxPreprocessModel.Rd
-man/imxRegularizationTypes.Rd
 man/imxReplaceMethod.Rd
 man/imxReplaceModels.Rd
 man/imxReplaceSlot.Rd
@@ -127,7 +126,6 @@ man/MxBaseObjectiveMetaData-class.Rd
 man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
-man/MxCompare-class.Rd
 man/mxComputeCheckpoint.Rd
 man/MxCompute-class.Rd
 man/mxComputeConfidenceInterval.Rd
@@ -144,7 +142,6 @@ man/mxComputeNewtonRaphson.Rd
 man/mxComputeNothing.Rd
 man/mxComputeNumericDeriv.Rd
 man/mxComputeOnce.Rd
-man/mxComputeRegularize.Rd
 man/mxComputeReportDeriv.Rd
 man/mxComputeReportExpectation.Rd
 man/mxComputeSequence.Rd
@@ -153,6 +150,7 @@ man/mxComputeStandardError.Rd
 man/mxComputeTryCatch.Rd
 man/mxComputeTryHard.Rd
 man/mxDataDynamic.Rd
+man/MxDataFrameOrMatrix-class.Rd
 man/MxDataStatic-class.Rd
 man/mxDescribeDataWLS.Rd
 man/MxDirectedGraph-class.Rd
@@ -170,18 +168,12 @@ man/mxNormalQuantiles.Rd
 man/MxOptionalChar-class.Rd
 man/MxOptionalCharOrNumber-class.Rd
 man/MxOptionalDataFrame-class.Rd
-man/MxOptionalDataFrameOrMatrix-class.Rd
 man/MxOptionalInteger-class.Rd
 man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
-man/MxPenalty-class.Rd
 man/MxRAMGraph-class.Rd
 man/MxRAMModel-class.Rd
-man/mxRegularizeElasticNet.Rd
-man/mxRegularizeLASSO.Rd
-man/mxRegularize.Rd
-man/mxRegularizeRidge.Rd
 man/mxRestore.Rd
 man/mxRetro.Rd
 man/mxSave.Rd

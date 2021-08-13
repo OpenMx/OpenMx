@@ -140,7 +140,6 @@ class omxMatrix {
 	void copyAttr(omxMatrix *src);
 	bool isSimple() const { return !algebra && !fitFunction && populate.size()==0; };
 	bool isAlgebra() const { return algebra != 0; }
-	bool isFitFunction() const { return fitFunction != 0; }
 	int numNonConstElements() const;
 	template <typename T> void loadFromStream(T &st);
 	int size() const { return rows * cols; }

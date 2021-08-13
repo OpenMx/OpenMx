@@ -416,6 +416,8 @@ int omxDataNumFactor(omxData *od);                    // Number of factor column
 
 /* Function wrappers that switch based on inclusion of algebras */
 
+double omxDataDF(omxData *od);
+
 inline bool omxDataColumnIsFactor(omxData *od, int col) { return od->columnIsFactor(col); }
 
 // Should not be stored long-term because freq are updated by bootstrap

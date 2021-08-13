@@ -280,8 +280,6 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 	if (ff) {
 		if (want & FF_COMPUTE_FIT) {
 			fc->fit = totalLogLikelihood(fitMat);
-      auto &pl = Global->penalties;
-      for (auto &p1 : pl) fc->fit += p1->eval(fc);
 			if (std::isfinite(fc->fit)) {
 				fc->resetIterationError();
 			}
@@ -295,9 +293,6 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
       if (!Global->analyticGradients) fc->gradZ.setConstant(NA_REAL);
       if (Global->NPSOL_HACK==0 && !fc->gradZ.allFinite()) {
         numericalGradientApprox(ff, fc, want & FF_COMPUTE_FIT);
-      } else {
-        auto &pl = Global->penalties;
-        for (auto &p1 : pl) p1->gradient(fc);
       }
     }
 	}
@@ -438,7 +433,7 @@ omxMatrix *omxNewMatrixFromSlotOrAnon(SEXP rObj, omxState* currentState, const c
 	return newMatrix;
 }
 
-void omxFitFunction::traverse(std::function<void(omxMatrix*)> fn)
+void omxFitFunction::traverse(std::function<void(omxMatrix*)> &fn)
 {
 	fn(matrix);
 }

@@ -160,16 +160,16 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 		fc->copyParamToModel();
 
 		++hess_work->probeCount;
-    ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f1 = fc->fit;
+		omxRecompute(fitMatrix, fc);
+		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		freeParams[ix] = optima[i] - iOffset;
 
 		fc->copyParamToModel();
 
 		++hess_work->probeCount;
-    ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f2 = fc->fit;
+		omxRecompute(fitMatrix, fc);
+		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Gcentral[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
 		Gforward[k] = (minimum - f2) / iOffset;
@@ -223,8 +223,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		fc->copyParamToModel();
 
 		++hess_work->probeCount;
-    ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f1 = fc->fit;
+		omxRecompute(fitMatrix, fc);
+		double f1 = omxMatrixElement(fitMatrix, 0, 0);
 
 		freeParams[ix] = optima[i] - iOffset;
 		freeParams[lx] = optima[l] - lOffset;
@@ -232,8 +232,8 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 		fc->copyParamToModel();
 
 		++hess_work->probeCount;
-    ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f2 = fc->fit;
+		omxRecompute(fitMatrix, fc);
+		double f2 = omxMatrixElement(fitMatrix, 0, 0);
 
 		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 						hessian[l*numParams+l]*lOffset*lOffset)/(2.0*iOffset*lOffset);
@@ -417,8 +417,8 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 			omxPopulateHessianWork(hessWorkVector + i, fc->childList[i]);
 		}
 	}
-	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d free, %d children, ref fit %.16g)",
-                         numParams, numChildren, minimum);
+	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d children, ref fit %.16g)",
+			       numChildren, minimum);
 
 	hessian = NULL;
 	if (wantHessian) {

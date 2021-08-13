@@ -492,7 +492,7 @@ void omxCompleteExpectation(omxExpectation *ox) {
 const std::vector<const char *> &omxExpectation::getDataColumnNames() const
 { return dataColumnNames; }
 
-const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataColumns() const
+const Eigen::Map<omxExpectation::DataColumnIndexVector> omxExpectation::getDataColumns()
 {
 	return Eigen::Map<DataColumnIndexVector>(dataColumnsPtr, numDataColumns);
 }
@@ -614,36 +614,3 @@ void omxExpectation::asVector1(FitContext *fc, int row, Eigen::Ref<Eigen::Vector
 
 bool omxExpectation::isTopState() const
 { return currentState->isTopState(); }
-
-int MVNExpectation::numObservedStats()
-{
-  if (strEQ(data->getType(), "raw")) {
-    if (data->hasSummaryStats()) return numSummaryStats();
-
-    auto &dc = getDataColumns();
-    // More accurate to use sufficient statistics for each missingness pattern TODO
-    int stats = dc.size() * data->nrows();
-
-    auto &allTh = getThresholdInfo();
-    for (auto &col : allTh) stats += col.numThresholds;
-
-    return stats;
-
-  } else if (strEQ(data->getType(), "cov") || strEQ(data->getType(), "cor")) {
-    omxMatrix *cov = omxDataCovariance(data);
-    int size = cov->rows;
-    if (strEQ(data->getType(), "cor")) size -= 1;
-    int stats = triangleLoc1(size);
-    omxMatrix *means = omxDataMeans(data);
-    if (means) stats += means->rows * means->cols;
-    return stats;
-  } else {
-    return NA_INTEGER;
-  }
-}
-
-void MVNExpectation::populateAttr(SEXP algebra)
-{
-  IntegerVector RobStat = Rcpp::wrap(numObservedStats());
-  Rf_setAttrib(algebra, Rf_install("numStats"), RobStat);
-}

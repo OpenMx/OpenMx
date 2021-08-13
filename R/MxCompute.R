@@ -736,9 +736,9 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 ##' @param ...  Not used.  Forces remaining arguments to be specified by name.
 ##' @param freeSet names of matrices containing free variables
 ##' @template args-verbose
-##' @param engine \lifecycle{deprecated}
+##' @param engine deprecated
 ##' @param fitfunction the name of the deviance function
-##' @param tolerance \lifecycle{deprecated}
+##' @param tolerance deprecated
 ##' @param constraintType one of c('ineq', 'none')
 ##' @references
 ##' Neale, M. C. & Miller M. B. (1997). The use of likelihood based
@@ -772,136 +772,6 @@ setMethod("updateFromBackend", signature("MxComputeConfidenceInterval"),
 	})
 
 setMethod("displayCompute", signature(Ob="MxComputeConfidenceInterval", indent="integer"),
-	  function(Ob, indent) {
-		  callNextMethod()
-		  sp <- paste(rep('  ', indent), collapse="")
-		  cat(sp, "$plan :", '\n')
-		  displayCompute(Ob@plan, indent+1L)
-		  for (sl in c("verbose")) {
-			  if (is.na(slot(Ob, sl))) next
-			  slname <- paste("$", sl, sep="")
-			  if (is.character(slot(Ob, sl))) {
-				  cat(sp, slname, ":", omxQuotes(slot(Ob, sl)), '\n')
-			  } else {
-				  cat(sp, slname, ":", slot(Ob, sl), '\n')
-			  }
-		  }
-		  invisible(Ob)
-	  })
-
-#----------------------------------------------------
-
-setClass(Class = "MxComputeRegularize",
-	 contains = "BaseCompute",
-	 representation = representation(
-	     plan = "MxCompute",
-       fitfunction = "MxCharOrNumber",
-	     verbose = "integer",
-       approach = "character",
-       ebicGamma = "numeric",
-       fixZeros = "logical"))
-
-setMethod("assignId", signature("MxComputeRegularize"),
-	function(.Object, id, defaultFreeSet) {
-		.Object <- callNextMethod()
-		defaultFreeSet <- .Object@freeSet
-		id <- .Object@id
-		for (sl in c('plan')) {
-			slot(.Object, sl) <- assignId(slot(.Object, sl), id, defaultFreeSet)
-			id <- slot(.Object, sl)@id + 1L
-		}
-		.Object@id <- id
-		.Object
-	})
-
-setMethod("getFreeVarGroup", signature("MxComputeRegularize"),
-	function(.Object) {
-		result <- callNextMethod()
-		for (step in c(.Object@plan)) {
-			got <- getFreeVarGroup(step)
-			if (length(got)) result <- append(result, got)
-		}
-		result
-	})
-
-setMethod("qualifyNames", signature("MxComputeRegularize"),
-	function(.Object, modelname, namespace) {
-		.Object <- callNextMethod()
-		for (sl in c('plan')) {
-			slot(.Object, sl) <- qualifyNames(slot(.Object, sl), modelname, namespace)
-		}
-		for (sl in c('fitfunction')) {
-			slot(.Object, sl) <- imxConvertIdentifier(slot(.Object, sl), modelname, namespace)
-		}
-		.Object
-	})
-
-setMethod("convertForBackend", signature("MxComputeRegularize"),
-	function(.Object, flatModel, model) {
-		name <- .Object@name
-		for (sl in c('plan')) {
-			slot(.Object, sl) <- convertForBackend(slot(.Object, sl), flatModel, model)
-		}
-		if (is.character(.Object@fitfunction)) {
-			.Object@fitfunction <- imxLocateIndex(flatModel, .Object@fitfunction, .Object)
-		}
-		.Object
-	})
-
-setMethod("initialize", "MxComputeRegularize",
-	  function(.Object, freeSet, plan, verbose, fitfunction, approach, ebicGamma, fixZeros) {
-		  .Object@name <- 'compute'
-		  .Object@.persist <- TRUE
-		  .Object@freeSet <- freeSet
-		  .Object@plan <- plan
-		  .Object@verbose <- verbose
-		  .Object@fitfunction <- fitfunction
-      .Object@approach <- approach
-      .Object@ebicGamma <- ebicGamma
-      .Object@fixZeros <- fixZeros
-		  .Object
-	  })
-
-##' Regularize parameter estimates
-##'
-##' Add a penalty to push some subset of the parameter estimates toward zero.
-##'
-##' @param plan compute plan to optimize the model
-##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param freeSet names of matrices containing free variables
-##' @template args-verbose
-##' @param fitfunction the name of the deviance function
-##' @param fixZeros fix all regularized-to-zero values to zero, and rerun fit without regularization
-##' @param approach what fit function to use to compare regularized models? Currently only EBIC is available
-##' @param ebicGamma what Gamma value to use for EBIC? Must be between 0 and 1
-##' @references
-##' Jacobucci, R., Grimm, K. J., & McArdle, J. J. (2016).
-##' Regularized structural equation modeling.
-##' <i>Structural equation modeling: a multidisciplinary journal, 23</i>(4), 555-566.
-##' @aliases
-##' MxComputeRegularize-class
-mxComputeRegularize <- function(plan, ..., freeSet=NA_character_, verbose=0L,
-                                fitfunction='fitfunction',
-                                fixZeros=FALSE, approach='EBIC', ebicGamma = 0.5) {
-  prohibitDotdotdot(list(...))
-	verbose <- as.integer(verbose)
-  fixZeros <- as.logical(fixZeros)
-	approach <- match.arg(approach)
-  if (ebicGamma < 0 || ebicGamma > 1) stop("ebicGamma must be between 0 and 1")
-	new("MxComputeRegularize", freeSet, plan, verbose, fitfunction, approach,
-      ebicGamma, fixZeros)
-}
-
-setMethod("updateFromBackend", signature("MxComputeRegularize"),
-	function(.Object, computes) {
-		.Object <- callNextMethod()
-		for (sl in c('plan')) {
-			slot(.Object, sl) <- updateFromBackend(slot(.Object, sl), computes)
-		}
-		.Object
-	})
-
-setMethod("displayCompute", signature(Ob="MxComputeRegularize", indent="integer"),
 	  function(Ob, indent) {
 		  callNextMethod()
 		  sp <- paste(rep('  ', indent), collapse="")
@@ -2813,46 +2683,42 @@ omxHasDefaultComputePlan <- function(model) {
 }
 
 omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=TRUE,
-				  optionList=options()$mxOption, regularize=FALSE) {
+				  optionList=options()$mxOption) {
 	if(length(modelName) && !is.character(modelName[1])){stop("argument 'modelName' must be a character string")}
 	compute <- NULL
 	fitNum <- ifelse(length(modelName), paste(modelName, 'fitfunction', sep="."), "fitfunction")
 	if (!useOptimizer) {
 		compute <- mxComputeSequence(list(CO=mxComputeOnce(from=fitNum, 'fit', .is.bestfit=TRUE),
 																			RE=mxComputeReportExpectation()))
-  } else{
-    if (regularize) {
-      steps <- list(REG=mxComputeRegularize(plan=mxComputeSequence(list(
-        SV=mxComputeSetOriginalStarts(),
-        GD=mxComputeGradientDescent(fitfunction=fitNum)))))
-    } else {
-      steps <- list(GD=mxComputeGradientDescent(fitfunction=fitNum, verbose=0L))
-    }
-    if (intervals){
-      ciOpt <- mxComputeGradientDescent(
-        verbose=0L,
-        fitfunction=fitNum,
-        nudgeZeroStarts=FALSE)
-      cType <- ciOpt$defaultCImethod
-      if (cType == 'ineq') {
-        ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
-      }
-      steps <- c(steps, CI=mxComputeConfidenceInterval(
-        fitfunction=fitNum,
-        constraintType=cType,
-        verbose=0L, plan=ciOpt))
-    }
-    if (optionList[["Calculate Hessian"]] == "Yes") {
-      steps <- c(steps, ND=mxComputeNumericDeriv(
-        fitfunction=fitNum,
-        stepSize=imxAutoOptionValue('Gradient step size',optionList)))
-    }
-    if (optionList[["Standard Errors"]] == "Yes") {
-      steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
-    }
-    compute <- mxComputeSequence(c(steps,
-                                   RD=mxComputeReportDeriv(),
-                                   RE=mxComputeReportExpectation()))
+		} else{
+		steps <- list(GD=mxComputeGradientDescent(
+			fitfunction=fitNum,
+			verbose=0L))
+			if (intervals){
+				ciOpt <- mxComputeGradientDescent(
+					verbose=0L,
+					fitfunction=fitNum,
+					nudgeZeroStarts=FALSE)
+				cType <- ciOpt$defaultCImethod
+				if (cType == 'ineq') {
+					ciOpt <- mxComputeTryHard(plan=ciOpt, scale=0.05)
+				}
+				steps <- c(steps, CI=mxComputeConfidenceInterval(
+					fitfunction=fitNum,
+					constraintType=cType,
+					verbose=0L, plan=ciOpt))
+			}
+			if (optionList[["Calculate Hessian"]] == "Yes") {
+				steps <- c(steps, ND=mxComputeNumericDeriv(
+					fitfunction=fitNum,
+					stepSize=imxAutoOptionValue('Gradient step size',optionList)))
+			}
+			if (optionList[["Standard Errors"]] == "Yes") {
+				steps <- c(steps, SE=mxComputeStandardError(), HQ=mxComputeHessianQuality())
+			}
+			compute <- mxComputeSequence(c(steps,
+																		 RD=mxComputeReportDeriv(),
+																		 RE=mxComputeReportExpectation()))
 	}
 	compute@.persist <- TRUE
 	return(compute)
