@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,7 @@ setClass(Class = "MxModel",
 		algebras = "list",
 		constraints = "list",
 		intervals = "list",
+    regularizations = "list",
 		latentVars = "MxCharOrList",
 		manifestVars = "MxCharOrList",
 		data = "MxData",
@@ -109,7 +110,7 @@ setGeneric("imxInitModel", function(model) {
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
-##' 
+##'
 ##' TODO: It probably makes sense to split this into separate
 ##' methods. For example, modelAddVariables and modelRemoveVariables
 ##' could be their own methods. This would reduce some cut&paste
@@ -128,7 +129,7 @@ setGeneric("imxInitModel", function(model) {
 ##' imxModelBuilder,MxLISRELModel-method
 ##' imxModelBuilder,MxModel-method
 ##' imxModelBuilder,MxRAMModel-method
-setGeneric("imxModelBuilder", function(model, lst, name, 
+setGeneric("imxModelBuilder", function(model, lst, name,
 	manifestVars, latentVars, productVars, submodels, remove, independent) {
 	return(standardGeneric("imxModelBuilder")) } )
 
@@ -142,12 +143,12 @@ setGeneric("imxModelBuilder", function(model, lst, name,
 ##' imxTypeName,MxLISRELModel-method
 ##' imxTypeName,MxModel-method
 ##' imxTypeName,MxRAMModel-method
-setGeneric("imxTypeName", function(model) { 
-	return(standardGeneric("imxTypeName")) 
+setGeneric("imxTypeName", function(model) {
+	return(standardGeneric("imxTypeName"))
 })
 
 ##' imxVerifyModel
-##' 
+##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
@@ -173,7 +174,7 @@ generateParentNames <- function(model) {
 }
 
 generateChildNames <- function(model) {
-	retval <- generateLocalNames(model)	
+	retval <- generateLocalNames(model)
 	if (!is.null(retval)) {
 		retval <- paste(model@name, retval, sep = ".")
 	}
@@ -217,8 +218,8 @@ setReplaceMethod("[[", "MxModel",
 
 # These are slots that are intended to be directly viewable by the user.
 # Included separately so that they are the same between the $ and names() operators.
-publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals", "manifestVars", "latentVars") # accessible via model$
-visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals")
+publicMxModelSlots <- c("name", "matrices", "algebras", "constraints", "data", "submodels", "output", "compute", "options", "intervals", "manifestVars", "latentVars", "regularizations") # accessible via model$
+visibleMxModelSlots <- c("name", "options", "compute", "output", "intervals", "regularizations")
 
 setMethod("$", "MxModel",
 	function(x, name) {
@@ -255,7 +256,7 @@ setReplaceMethod("$", "MxModel",
 	function(x, name, value) {
 		if(name == "output") {
 			stop("You cannot directly set the output of a model.  Use mxRun() if you want output.")
-		} 
+		}
 		if(name == "name") {
 			stop("You cannot directly set the name of a model.  To rename the model, use model<-mxModel(model, name=\"NewName\").")
 		}
@@ -269,7 +270,7 @@ setReplaceMethod("$", "MxModel",
 
 
 ##' imxSameType
-##' 
+##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.
 ##'
@@ -347,7 +348,7 @@ firstArgument <- function(model, name) {
 typeArgument <- function(model, type) {
 	if (!is.na(type)) {
 		if (is.null(imxModelTypes[[type]])) {
-			stop(paste("The model type", omxQuotes(type), 
+			stop(paste("The model type", omxQuotes(type),
 				"is not in the the list of acceptable types:",
 				omxQuotes(names(imxModelTypes))), call. = FALSE)
 		}
@@ -373,7 +374,7 @@ typeArgument <- function(model, type) {
 ##' @param submodels submodels
 ##' @param remove remove
 ##' @param independent independent
-imxGenericModelBuilder <- function(model, lst, name, 
+imxGenericModelBuilder <- function(model, lst, name,
 	manifestVars, latentVars, productVars, submodels, remove, independent) {
 	model <- nameArgument(model, name)
 	model <- variablesArgument(model, manifestVars, latentVars, productVars, submodels, remove)
@@ -404,7 +405,7 @@ varsToCharacter2 <- function(vars, vartype) {
 	if (is.list(vars)) {
 		varnames <- names(vars)
 		if (length(varnames) == 0) {
-			return(as.character(unlist(vars)))	
+			return(as.character(unlist(vars)))
 		} else {
 			result <- pmatch(varnames, imxVariableTypes)
 			illegal <- which(is.na(result))
@@ -489,7 +490,7 @@ checkVariables <- function(model, latentVars, manifestVars, submodels) {
 	manifestVars <- unlist(manifestVars, use.names = FALSE)
 	modelLatent <- unlist(model@latentVars, use.names = FALSE)
 	modelManifest <- unlist(model@manifestVars, use.names = FALSE)
-	common <- intersect(latentVars, manifestVars)    
+	common <- intersect(latentVars, manifestVars)
 	if (length(common) > 0) {
 		stop(paste("The following variables cannot",
 			"be both latent and manifest:",
@@ -526,11 +527,11 @@ checkVariables <- function(model, latentVars, manifestVars, submodels) {
 		stop("NA is not allowed as a manifest variable", call. = FALSE)
 	}
 	if (length(unique(latentVars)) != length(latentVars)) {
-		stop(paste("The following variables in the latentVars list are duplicated:", 
+		stop(paste("The following variables in the latentVars list are duplicated:",
 		omxQuotes(latentVars[duplicated(latentVars)])), call. = FALSE)
 	}
 	if (length(unique(manifestVars)) != length(manifestVars)) {
-		stop(paste("The following variables in the manifestVars list are duplicated:", 
+		stop(paste("The following variables in the manifestVars list are duplicated:",
 		omxQuotes(manifestVars[duplicated(manifestVars)])), call. = FALSE)
 	}
 }
@@ -539,11 +540,11 @@ checkVariables <- function(model, latentVars, manifestVars, submodels) {
 
 setMethod("imxModelBuilder", "MxModel", imxGenericModelBuilder)
 
-setMethod("imxInitModel", "MxModel", function(model) { 
+setMethod("imxInitModel", "MxModel", function(model) {
 	return(model)
 })
 
-setMethod("imxTypeName", "MxModel", function(model) { 
+setMethod("imxTypeName", "MxModel", function(model) {
 	return("default")
 })
 
@@ -555,14 +556,14 @@ setMethod("imxVerifyModel", "MxModel", function(model) {
 
 addVariablesHelper <- function(model, vartype, vars) {
 	modelvars <- slot(model, vartype)
-	
+
 	if (length(vars) == 0) {
 		return(model)
 	} else if (length(modelvars) == 0) {
 		slot(model, vartype) <- vars
 		return(model)
 	}
-	
+
 	if (is.list(vars) && !is.list(modelvars)) {
 		msg <- paste("The", vartype, "variables in",
 			"the call to mxModel() have been separated",
@@ -576,7 +577,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 			"variables do have categories.")
 		stop(msg, call. = FALSE)
 	}
-	
+
 	if (is.character(vars) && is.character(modelvars)) {
 		modelvars <- c(modelvars, vars)
 		slot(model, vartype) <- modelvars
@@ -590,7 +591,7 @@ addVariablesHelper <- function(model, vartype, vars) {
 		}
 		slot(model, vartype) <- modelvars
 	}
-	
+
 	return(model)
 }
 
@@ -605,7 +606,7 @@ modelRemoveVariables <- function(model, latent, manifest) {
 	model@manifestVars <- setdiff(model@manifestVars, manifest)
 	return(model)
 }
-	
+
 modelAddEntries <- function(model, entries) {
 	if (length(entries) == 0) {
 		return(model)
@@ -632,7 +633,7 @@ modelRemoveEntries <- function(model, entries) {
 	namedEntities <- tuple[[1]]
 	bounds        <- tuple[[2]]
 	intervals     <- tuple[[3]]
-	intervals     <- expandIntervals(intervals)	
+	intervals     <- expandIntervals(intervals)
 	names(intervals) <- sapply(intervals, slot, "reference")
 	if (length(namedEntities) > 0) for(i in 1:length(namedEntities)) {
 		model <- removeSingleNamedEntity(model, namedEntities[[i]])
@@ -668,8 +669,8 @@ modelModifyFilter <- function(model, entries, action) {
 	       call. = FALSE)
 	}
 	if (any(unknownFilter)) {
-		stop(paste("Cannot", action, "the following item(s)", 
-			actionCorrespondingPredicate[[action]], "the model:", 
+		stop(paste("Cannot", action, "the following item(s)",
+			actionCorrespondingPredicate[[action]], "the model:",
 			omxQuotes(sapply(entries[unknownFilter], deparse))), call. = FALSE)
 	}
 	if (any(namedEntityFilter) && action == 'remove') {
@@ -752,11 +753,11 @@ omxModelDeleteData <- function(model) {
   if (length(names(model$submodels))) for (sm in names(model$submodels)) {
     model <- mxModel(model, omxModelDeleteData(model[[sm]]))
   }
-  
+
   if (!is.null(model@data)) {
     model@data <- NULL
   }
-  
+
   if (!is.null(model@runstate) && !is.null(model@runstate$datalist)) {
     model@runstate$datalist <- NULL
   }

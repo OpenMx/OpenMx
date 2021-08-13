@@ -323,6 +323,7 @@ class omxData {
 	}
 	int numRawRows();
 	double rowMultiplier(int rx);
+  double countObs(int col);
 	bool containsNAs(int col);
 	void prohibitFactor(int col);
 	void prohibitNAdefVar(int col);
@@ -415,8 +416,6 @@ int omxDataNumNumeric(omxData *od);                   // Number of numeric colum
 int omxDataNumFactor(omxData *od);                    // Number of factor columns in the data set
 
 /* Function wrappers that switch based on inclusion of algebras */
-
-double omxDataDF(omxData *od);
 
 inline bool omxDataColumnIsFactor(omxData *od, int col) { return od->columnIsFactor(col); }
 

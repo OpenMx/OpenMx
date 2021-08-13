@@ -1085,25 +1085,6 @@ void omxData::omxPrintData(const char *header, int maxRows)
         omxPrintData(header, maxRows, 0);
 }
 
-double omxDataDF(omxData *od)
-{
-	const char *type = od->u_type;
-	if (strEQ(type, "cov")) {
-		omxMatrix *cov = omxDataCovariance(od);
-		int df = triangleLoc1(cov->rows);
-		omxMatrix *mm = omxDataMeans(od);
-		if (mm) df += mm->rows * mm->cols;
-		return df;
-	} else if (strEQ(type, "cor")) {
-		omxMatrix *cov = omxDataCovariance(od);
-		int df = triangleLoc1(cov->rows - 1);
-		omxMatrix *mm = omxDataMeans(od);
-		if (mm) df += mm->rows * mm->cols;
-		return df;
-	}
-	return NA_REAL;
-}
-
 static void markDefVarDependencies(omxState* os, omxDefinitionVar* defVar)
 {
 	int numDeps = defVar->numDeps;
@@ -1177,6 +1158,32 @@ bool omxData::containsNAs(int col)
 		}
 	}
 	return false;
+}
+
+double omxData::countObs(int col)
+{
+  double obs = 0;
+	int rows = nrows();
+	if (dataMat) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(omxMatrixElement(dataMat, rx, col))) obs += 1;
+		}
+		return obs;
+	}
+
+	if (col == weightCol || col == freqCol) return false;
+
+	ColumnData &cd = rawCol(col);
+	if (cd.type == COLUMNDATA_NUMERIC) {
+		for (int rx=0; rx < rows; ++rx) {
+			if (std::isfinite(cd.d()[rx])) obs += rowMultiplier(rx);
+		}
+	} else {
+		for (int rx=0; rx < rows; ++rx) {
+			if (cd.i()[rx] != NA_INTEGER) obs += rowMultiplier(rx);
+		}
+	}
+	return obs;
 }
 
 void omxData::prohibitFactor(int col)

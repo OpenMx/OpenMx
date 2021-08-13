@@ -1,6 +1,6 @@
 Encoding: UTF-8
 Package: OpenMx
-Date: 2019-05-14
+Date: 2021-07-21
 Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -15,6 +15,7 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"),
     person(c("Robert", "M."), "Kirkpatrick", role="aut"),
     person(c("Yang"), "Wang", role="ctb"),
+		person("Ben", "Goodrich", email="goodrich.ben@gmail.com", role="ctb"),
     person(c("Charles"), "Driver", email="driver@mpib-berlin.mpg.de", role="ctb"),
     person("Massachusetts Institute of Technology", role="cph"),
     person("S. G.", "Johnson", role="cph"),
@@ -30,12 +31,8 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Wong", "Shao Voon", role="cph"),
     person("Juan", "Palacios", role="cph"),
     person("Jiang", "Yang", role="cph"),
-    person("Gavin", "Band", role="cph"),
-    person("Yann", "Collet", role="cph"),
-    person("Facebook, Inc.", role="cph"),
-    person("Yuta", "Mori", role="cph"),
-    person("Shaun", "Purcell", role="cph"),
-    person("Christopher", "Chang", role="cph"))
+		person("Gael", "Guennebaud", role="cph"),
+		person("Jitse", "Niesen", role="cph"))
 URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
 BugReports: http://openmx.ssri.psu.edu/forums
 Description: Create structural equation models that can be manipulated programmatically.
@@ -51,24 +48,32 @@ SystemRequirements: GNU make
 ByteCompile: no
 Language: en-US
 License: Apache License (== 2.0)
-LinkingTo: Rcpp, RcppEigen, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
+LinkingTo: Rcpp, RcppEigen, RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
 Imports: digest,
     MASS,
     Matrix,
     methods,
-	Rcpp, 
-    parallel
-Depends: R (>= 3.1.0)
+	Rcpp, RcppParallel,
+    parallel, lifecycle
+Depends: R (>= 3.5.0)
 Suggests:
     mvtnorm,
     numDeriv,
     roxygen2 (>= 6.1),
-    Rmpi,
     rpf (>= 0.45),
     snowfall,
     lme4,
     covr,
-    testthat
+    testthat,
+    umx,
+    ifaTools,
+    knitr,
+    markdown,
+    rmarkdown,
+    reshape2,
+    ggplot2
+VignetteBuilder:
+    knitr
 LazyLoad: yes
 LazyData: yes
 Collate:
@@ -174,8 +179,12 @@ Collate:
     'MxSE.R'
     'MxAutoStart.R'
     'MxRetro.R'
+    'MxPenalty.R'
     'MxMMI.R'
     'omxReadGRMBin.R'
+    'MxPredict.R'
     'zzz.R'
+RdMacros:
+    lifecycle
 Biarch: true
-Version: 2.12.2-425
+Version: 2.19.6-6

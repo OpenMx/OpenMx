@@ -564,7 +564,7 @@ static double internalToUserBound(double val, double inf)
 
 SEXP omxBackend2(SEXP constraints, SEXP matList,
 		 SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
-		 SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
+                 SEXP data, SEXP intervalList, SEXP penaltyList, SEXP checkpointList, SEXP options,
 		 SEXP defvars, bool silent)
 {
 	/* Sanity Check and Parse Inputs */
@@ -654,6 +654,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 	Global->omxProcessConfidenceIntervals(intervalList, globalState);
+	Global->processPenalties(penaltyList, fc);
 
 	omxProcessCheckpointOptions(checkpointList);
 
@@ -793,13 +794,14 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 
 static SEXP omxBackend(SEXP constraints, SEXP matList,
 		SEXP varList, SEXP algList, SEXP expectList, SEXP computeList,
-		SEXP data, SEXP intervalList, SEXP checkpointList, SEXP options,
-		       SEXP defvars, SEXP Rsilent)
+                       SEXP data, SEXP intervalList, SEXP penaltyList,
+                       SEXP checkpointList, SEXP options,
+                       SEXP defvars, SEXP Rsilent)
 {
 	try {
 		return omxBackend2(constraints, matList,
 				   varList, algList, expectList, computeList,
-				   data, intervalList, checkpointList, options, defvars,
+                       data, intervalList, penaltyList, checkpointList, options, defvars,
 				   Rf_asLogical(Rsilent));
 	} catch( std::exception& u__ex__ ) {
 		exception_to_Rf_error( u__ex__ );
@@ -820,7 +822,7 @@ static SEXP testEigenDebug()
 }
 
 static R_CallMethodDef callMethods[] = {
-	{"backend", (DL_FUNC) omxBackend, 12},
+	{"backend", (DL_FUNC) omxBackend, 13},
 	{"callAlgebra", (DL_FUNC) omxCallAlgebra, 3},
 	{"Dmvnorm_wrapper", (DL_FUNC) dmvnorm_wrapper, 3},
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},

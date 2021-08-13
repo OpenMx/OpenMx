@@ -66,7 +66,14 @@ Suggests:
     covr,
     testthat,
     umx,
-    ifaTools
+    ifaTools,
+    knitr,
+    markdown,
+    rmarkdown,
+    reshape2,
+    ggplot2
+VignetteBuilder:
+    knitr
 LazyLoad: yes
 LazyData: yes
 Collate:
@@ -172,6 +179,7 @@ Collate:
     'MxSE.R'
     'MxAutoStart.R'
     'MxRetro.R'
+    'MxPenalty.R'
     'MxMMI.R'
     'omxReadGRMBin.R'
     'MxPredict.R'
