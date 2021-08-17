@@ -52,7 +52,7 @@ void FitMultigroup::compute(int want, FitContext *fc)
 				if (units == FIT_UNITS_UNINITIALIZED) {
 					units = f1->fitFunction->units;
 				} else if (units != f1->fitFunction->units) {
-					Rf_warning("%s: adding units %s and %s (from %s)",
+					mxThrow("%s: cannot combine units %s and %s (from %s)",
 						matrix->name(), fitUnitsToName(units),
 						fitUnitsToName(f1->fitFunction->units), f1->name());
 				}

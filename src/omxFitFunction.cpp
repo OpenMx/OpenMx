@@ -119,8 +119,6 @@ void omxFitFunction::setUnitsFromName(const char *name)
 {
 	if (strEQ(name, "-2lnL")) {
 		units = FIT_UNITS_MINUS2LL;
-  } else if (strEQ(name, "r'Wr")) {
-    units = FIT_UNITS_SQUARED_RESIDUAL;
 	} else {
 		Rf_warning("Unknown units '%s' passed to fit function '%s'",
 			   name, matrix->name());
