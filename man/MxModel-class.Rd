@@ -45,7 +45,7 @@ Objects can be created by calls of the form \code{\link{mxModel}()}.
     \item{\code{constraints}:}{List of the model's \link{MxConstraint} objects.}
     \item{\code{intervals}:}{List of the model's \link{MxInterval}
       objects, requested via \code{\link{mxCI}()}.}
-    \item{\code{regularizations}:}{List of the model's \link[=MxPenalty-class]{MxPenalty}
+    \item{\code{penalties}:}{List of the model's \link[=MxPenalty-class]{MxPenalty}
   objects.}
     \item{\code{latentVars}:}{"Latent variables;" object of class \code{"MxCharOrList"}.}
     \item{\code{manifestVars}:}{"Manifest variables;" object of class \code{"MxCharOrList"}.}

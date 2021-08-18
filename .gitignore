@@ -180,6 +180,8 @@ man/mxPenaltyElasticNet.Rd
 man/mxPenaltyLASSO.Rd
 man/mxPenalty.Rd
 man/mxPenaltyRidge.Rd
+man/mxPenaltySearch.Rd
+man/mxPenaltyZap.Rd
 man/MxRAMGraph-class.Rd
 man/MxRAMModel-class.Rd
 man/mxRestore.Rd

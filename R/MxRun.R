@@ -13,6 +13,24 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+#' mxPenaltySearch
+#'
+#' Grid search for the best \link{MxPenalty} hyperparameters. Uses
+#' \link{omxDefaultComputePlan} with
+#' \code{penaltySearch=TRUE}. Specifically, wraps
+#' \link{mxComputeGradientDescent} with \link{mxComputePenaltySearch}
+#' and passes the model to the backend.
+#'
+#' @param model A \link{MxModel} object to be optimized.
+#' @template args-dots-barrier
+#' @param silent A boolean indicating whether to print status to terminal.
+#' @param suppressWarnings A boolean indicating whether to suppress warnings.
+#' @param unsafe A boolean indicating whether to ignore errors.
+#' @param checkpoint A boolean indicating whether to periodically write parameter values to a file.
+#' @param useSocket A boolean indicating whether to periodically write parameter values to a socket.
+#' @param onlyFrontend A boolean indicating whether to run only front-end model transformations.
+#' @param beginMessage A boolean indicating whether to print the number of parameters before invoking the backend.
+
 mxPenaltySearch <-
   function(model, ..., silent = FALSE,
            suppressWarnings = FALSE, unsafe = FALSE,

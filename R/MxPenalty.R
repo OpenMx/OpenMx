@@ -124,16 +124,27 @@ zapModelHelper <- function(model) {
   model
 }
 
-# mxPenaltyShrinkToZero mxPenaltyZap mxPenaltyFixSmall
+#' mxPenaltyZap
+#'
+#' Fix any free parameters within \code{epsilon} of zero to
+#' zero. These parameters are no longer estimated. Remove all
+#' \link{MxPenalty} objects from the model.  This is envisioned to be
+#' used after using \link{mxPenaltySearch} to locate the best penalty
+#' hyperparameters and apply penalties to model estimation. While
+#' penalties can simplify a model, they also bias parameters toward
+#' zero. By re-estimating the model after using \code{mxPenaltyZap},
+#' parameters that remain free are likely to exhibit less bias.
+#'
+#' @param model an \link{MxModel}
+#' @param silent whether to suppress diagnostic output
+
+# alternate names mxPenaltyShrinkToZero mxPenaltyFixSmall
 mxPenaltyZap <- function(model, silent=FALSE) {
   penalties <- collectComponents(model, NULL, "penalties", qualifyNames)
   toZap <- Reduce(union, mapply(regularizedToZeroParameters,
                                 model@penalties, MoreArgs=list(model)))
   if (!silent && length(toZap)) message(paste("Zapping", omxQuotes(toZap)))
   model <- omxSetParameters(model, labels=toZap, values = 0, free=FALSE)
-  toFix <- Reduce(union, mapply(function(pen) pen@hyperparameters, model@penalties))
-  if (!silent && length(toFix)) message(paste("Fixing", omxQuotes(toFix)))
-  model <- omxSetParameters(model, labels=toFix, free=FALSE)
   if (!silent) message(paste("Tip: Use\n  model = mxRun(model)\nto re-estimate the model",
                              "without any penalty terms."))
   zapModelHelper(model)
