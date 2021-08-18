@@ -15,7 +15,7 @@
 
 #' mxPenaltySearch
 #'
-#' Grid search for the best \link{MxPenalty} hyperparameters. Uses
+#' Grid search for the best \link[=MxPenalty-class]{MxPenalty} hyperparameters. Uses
 #' \link{omxDefaultComputePlan} with
 #' \code{penaltySearch=TRUE}. Specifically, wraps
 #' \link{mxComputeGradientDescent} with \link{mxComputePenaltySearch}

@@ -128,7 +128,7 @@ zapModelHelper <- function(model) {
 #'
 #' Fix any free parameters within \code{epsilon} of zero to
 #' zero. These parameters are no longer estimated. Remove all
-#' \link{MxPenalty} objects from the model.  This is envisioned to be
+#' \link[=MxPenalty-class]{MxPenalty} objects from the model.  This is envisioned to be
 #' used after using \link{mxPenaltySearch} to locate the best penalty
 #' hyperparameters and apply penalties to model estimation. While
 #' penalties can simplify a model, they also bias parameters toward
