@@ -76,6 +76,7 @@ setMethod("genericFitConvertEntities", "MxFitFunctionWLS",
 # **DONE**
 setMethod("genericFitFunConvert", "MxFitFunctionWLS",
 	function(.Object, flatModel, model, labelsData, dependencies) {
+    .Object <- callNextMethod()
 		name <- .Object@name
 		modelname <- imxReverseIdentifier(model, .Object@name)[[1]]
 		expectName <- paste(modelname, "expectation", sep=".")
