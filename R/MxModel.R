@@ -192,6 +192,7 @@ generateLocalNames <- function(model) {
 	constraints <- names(model@constraints)
 	retval <- union(matrices, algebras)
 	retval <- union(retval, constraints)
+  retval <- union(retval, names(model@penalties))
 	if (!is.null(model@fitfunction)) {
 		retval <- union(retval, model@fitfunction@name)
 	}
