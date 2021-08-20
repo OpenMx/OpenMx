@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,7 @@ data("jointdata", package ="OpenMx", verbose= TRUE)
 jointData <- jointdata
 
 # specify ordinal columns as ordered factors
-jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
+jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)],
 	levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 if(1) {
@@ -72,7 +72,7 @@ if(1) {
   # That is, the vectorized joint distributions are near
   #  the expected value of the chi-square
   omxCheckTrue(sum((tabo-tabe)^2/tabe)/(4*2-1) < 1.6)
-  
+
   omxCheckTrue(all.equal(sapply(jointData, levels), sapply(simData, levels)))
 }
 
@@ -87,15 +87,15 @@ satCov$free[4,4] <- FALSE
 satCov$free[5,5] <- FALSE
 
 loadings <- mxMatrix("Full", 1, 5,
-	free=TRUE, values=1, name="L", lbound=0)
+	free=TRUE, values=1, name="L", lbound=0, labels=paste0('l',1:5))
 loadings$ubound[1,5] <- 2
-	
+
 resid <- mxMatrix("Diag", 5, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=.5, name="U")
-	
+
 means <- mxMatrix("Full", 1, 5,
 	free=c(TRUE, FALSE, TRUE, FALSE, FALSE), values=0, name="M")
-	
+
 thresh <- mxMatrix("Full", 3, 3, FALSE, 0, name="T")
 
 thresh$free[,1] <- c(TRUE, FALSE, FALSE)
@@ -135,7 +135,8 @@ ramModel1 <- jointRAM <- mxModel(
   mxPath(paste0('z', c(1,3)), arrows=2, free=TRUE, values=.5),
   mxPath(paste0('z', c(2,4,5)), arrows=2, free=FALSE, values=.5),
   mxPath('G', arrows=2, values=1, free=FALSE),
-  mxPath('G', paste0('z', 1:5), free=TRUE, values=1, lbound=0))
+  mxPath('G', paste0('z', 1:5),
+         free=TRUE, values=1, lbound=0))
 
 ramModel1$expectation$thresholds <- 'T'
 
@@ -265,3 +266,13 @@ omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009
 
 #------------------------------------------------------------------------------
 
+regTest <- mxModel(jointWlsModel,
+        mxPenaltyLASSO(paste0('l', 1:5), name="lasso"),
+        mxMatrix(nrow=1, ncol=1, free=TRUE, values=1, labels="lambda"))
+regTest <- mxRun(regTest)
+expect_equivalent(regTest$fitfunction$result[1,1],
+                   mxEval(fitfunction, regTest)[1,1])
+expect_equivalent(regTest$lasso$result[1,1],
+             mxEval(lasso, regTest))
+expect_equivalent(regTest$lasso$result[1,1],
+             mxEval(lasso, regTest, compute=TRUE))
