@@ -145,6 +145,9 @@ mxPenaltyZap <- function(model, silent=FALSE) {
                                 model@penalties, MoreArgs=list(model)))
   if (!silent && length(toZap)) message(paste("Zapping", omxQuotes(toZap)))
   model <- omxSetParameters(model, labels=toZap, values = 0, free=FALSE)
+  toFix <- Reduce(union, mapply(function(pen) pen@hyperparameters, model@penalties))
+  if (!silent && length(toFix)) message(paste("Fixing", omxQuotes(toFix)))
+  model <- omxSetParameters(model, labels=toFix, free=FALSE)
   if (!silent) message(paste("Tip: Use\n  model = mxRun(model)\nto re-estimate the model",
                              "without any penalty terms."))
   zapModelHelper(model)
