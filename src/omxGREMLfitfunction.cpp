@@ -1343,15 +1343,10 @@ void omxGREMLFitState::crude_numeric_dV(
 	//Put things back the way they were:
 	u_curEst[Parnum] -= 1e-4;
 	fc2->setEstFromOptimizer(u_curEst);
-	if(thrId<0){
-		omxRecompute(cov, fc2);
-	}
-	else{
-		EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
-		for(c=0; c < cov->rows; c++){
-			for(r=c; r < cov->rows; r++){
-				EigV(r,c) = Vcurr(r,c);
-			}
+	EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
+	for(c=0; c < cov->rows; c++){
+		for(r=c; r < cov->rows; r++){
+			EigV(r,c) = Vcurr(r,c);
 		}
 	}
 	return;
