@@ -2573,13 +2573,14 @@ setClass(Class = "MxComputeCheckpoint",
 		 vcov = "logical",
 		 vcovWLS = "logical",
      vcovFilter = "MxOptionalChar",
-     sampleSize = "logical"
+     sampleSize = "logical",
+     useVcovFilter = "logical"
 	 ))
 
 setMethod("initialize", "MxComputeCheckpoint",
 	function(.Object, what, path, append, header, toReturn, parameters,
            loopIndices, fit, counters, status, standardErrors, gradient, vcov,
-           vcovFilter, sampleSize, vcovWLS) {
+           vcovFilter, sampleSize, vcovWLS, useVcovFilter) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- NA_character_
@@ -2599,6 +2600,7 @@ setMethod("initialize", "MxComputeCheckpoint",
 		  .Object@vcovFilter <- vcovFilter
 		  .Object@sampleSize <- sampleSize
 		  .Object@vcovWLS <- vcovWLS
+		  .Object@useVcovFilter <- useVcovFilter
 		  .Object
 	  })
 
@@ -2640,6 +2642,7 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 #' @param vcovFilter character vector. Vector of parameters indicating
 #'   which parameter covariances to include. Only the variance is
 #'   included for those parameters not mentioned.
+#' @param useVcovFilter logical. Whether to use the vcovFilter (TRUE) or include all entries (FALSE)
 #' @param sampleSize logical. Whether to include the sample size of the mxData. \lifecycle{experimental}
 #'
 #' @description
@@ -2675,14 +2678,14 @@ setMethod("convertForBackend", signature("MxComputeCheckpoint"),
 mxComputeCheckpoint <- function(what=NULL, ..., path=NULL, append=FALSE, header=TRUE, toReturn=FALSE,
 				parameters=TRUE, loopIndices=TRUE, fit=TRUE, counters=TRUE,
 				status=TRUE, standardErrors=FALSE, gradient=FALSE, vcov=FALSE,
-        vcovFilter=c(), sampleSize=FALSE, vcovWLS=FALSE) {
+        vcovFilter=c(), sampleSize=FALSE, vcovWLS=FALSE, useVcovFilter=FALSE) {
   prohibitDotdotdot(list(...))
 	what <- as.character(what)
 	path <- as.character(path)
 	new("MxComputeCheckpoint", what, path, as.logical(append), as.logical(header), as.logical(toReturn),
 		as.logical(parameters), as.logical(loopIndices), as.logical(fit), as.logical(counters),
 		as.logical(status), as.logical(standardErrors), as.logical(gradient), as.logical(vcov),
-    vcovFilter, as.logical(sampleSize), as.logical(vcovWLS))
+    vcovFilter, as.logical(sampleSize), as.logical(vcovWLS), as.logical(useVcovFilter))
 }
 
 #----------------------------------------------------
