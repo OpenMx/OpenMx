@@ -5043,17 +5043,20 @@ void ComputeCheckpoint::initFromFrontend(omxState *globalState, SEXP rObj)
 
   if (inclVcov) {
     S4 ro(rObj);
-    if (ro.slot("vcovFilter") == R_NilValue) {
-      vcovFilter.assign(numParam, true);
-    } else {
-      CharacterVector filter = ro.slot("vcovFilter");
+    vcovFilter.assign(numParam, true);
+    bool filter = false;
+    if (ro.hasSlot("useVcovFilter")) filter = ro.slot("useVcovFilter");
+    if (filter) {
       vcovFilter.assign(numParam, false);
-      for (int fx=0; fx < filter.size(); ++fx) {
-        String pstr = filter[fx];
-        auto pname = pstr.get_cstring();
-        vcovFilterSet.insert(pname);
-        int vx = vg.lookupVar(pname);
-        if (vx >= 0) vcovFilter[vx] = true;
+      if (ro.slot("vcovFilter") != R_NilValue) {
+        CharacterVector vcf = ro.slot("vcovFilter");
+        for (int fx=0; fx < vcf.size(); ++fx) {
+          String pstr = vcf[fx];
+          auto pname = pstr.get_cstring();
+          vcovFilterSet.insert(pname);
+          int vx = vg.lookupVar(pname);
+          if (vx >= 0) vcovFilter[vx] = true;
+        }
       }
     }
   }
