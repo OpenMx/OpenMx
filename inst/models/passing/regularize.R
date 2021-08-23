@@ -111,6 +111,14 @@ for (cx in 1:(D * (D-1)/2)) {
   expect_equivalent(table(diff(val) <= 0)["FALSE"], 0, thr)
 }
 
+# Try with fixed hyperparam
+m3 <- omxSetParameters(m1, labels = c('lambda','alpha'), free = FALSE)
+expect_equivalent(mxEval(lasso, m3),
+                  mxEval(lasso, m3, compute = TRUE))
+m3 <- mxRun(m3)
+expect_equivalent(mxEval(lasso, m3),
+                  mxEval(lasso, m3, compute = TRUE))
+
 m2 <- mxPenaltyZap(m1, silent = TRUE)
 expect_error(summary(m2), "This model is in an inconsistent state.")
 fit2 <- mxRun(m2)

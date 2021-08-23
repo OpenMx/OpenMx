@@ -63,67 +63,69 @@ void Penalty::copyFrom(const Penalty *pen)
 
 double Penalty::getValue() const { return matrix->data[0]; }
 
-LassoPenalty::LassoPenalty(S4 obj, omxMatrix *mat) : Penalty(obj, mat)
+double Penalty::getHP(FitContext *fc, int xx)
 {
-  IntegerVector pv = obj.slot("hyperparameters");
-  if (pv.size() != 1) mxThrow("LassoPenalty should have 1 hyperparameter (not %d)", pv.size());
-  lambda = pv[0];
+  if (!hpCache.size()) {
+    IntegerVector pv = robj.slot("hyperparameters");
+    int numHP = pv.size() / 3;
+    if (3*numHP != pv.size()) mxThrow("%s: hyperparameters specified incorrectly", name());
+    for (int p1=0; p1 < numHP; ++p1) {
+      omxState *state = fc->state;
+      hpCache.emplace_back(hp{state->matrixList[pv[p1 * 3]],
+          pv[1 + p1 * 3], pv[2 + p1 * 3]});
+    }
+  }
+  auto &hp1 = hpCache[xx];
+  return omxMatrixElement(hp1.m, hp1.r, hp1.c);
 }
 
 std::unique_ptr<Penalty> LassoPenalty::clone(omxMatrix *mat) const
 {
   auto pen = std::make_unique<LassoPenalty>(robj, mat);
   pen->copyFrom(this);
-  pen->lambda = lambda;
   return pen;
 }
 
 void LassoPenalty::compute(int want, FitContext *fc)
 {
+  double lambda = getHP(fc, 0);
 	if (want & FF_COMPUTE_FIT) {
     double tmp = 0;
     for (int px = 0; px < params.size(); ++px) {
       double par = fabs(fc->est[ params[px] ] / scale[px % scale.size()]);
       tmp += penaltyStrength(par, px) * par;
     }
-    matrix->data[0] = tmp * fc->est[lambda];
+    matrix->data[0] = tmp * lambda;
   }
   if (want & FF_COMPUTE_GRADIENT) {
-    double la = fc->est[lambda];
     for (int px = 0; px < params.size(); ++px) {
       double par = fabs(fc->est[ params[px] ] / scale[px % scale.size()]);
-      fc->gradZ[ params[px] ] += penaltyStrength(par, px) * copysign(la, fc->est[ params[px] ]);
+      fc->gradZ[ params[px] ] +=
+        penaltyStrength(par, px) * copysign(lambda, fc->est[ params[px] ]);
     }
   }
-}
-
-RidgePenalty::RidgePenalty(S4 obj, omxMatrix *mat) : Penalty(obj, mat)
-{
-  IntegerVector pv = obj.slot("hyperparameters");
-  if (pv.size() != 1) mxThrow("RidgePenalty should have 1 hyperparameter (not %d)", pv.size());
-  lambda = pv[0];
 }
 
 std::unique_ptr<Penalty> RidgePenalty::clone(omxMatrix *mat) const
 {
   auto pen = std::make_unique<RidgePenalty>(robj, mat);
   pen->copyFrom(this);
-  pen->lambda = lambda;
   return pen;
 }
 
 void RidgePenalty::compute(int want, FitContext *fc)
 {
+  double lambda = getHP(fc, 0);
 	if (want & FF_COMPUTE_FIT) {
     double tmp = 0;
     for (int px = 0; px < params.size(); ++px) {
       double p1 = fabs(fc->est[ params[px] ] / scale[px % scale.size()]);
       tmp += penaltyStrength(p1, px) * p1 * p1;
     }
-    matrix->data[0] = tmp * fc->est[lambda];
+    matrix->data[0] = tmp * lambda;
   }
   if (want & FF_COMPUTE_GRADIENT) {
-    double la2 = 2 * fc->est[lambda];
+    double la2 = 2 * lambda;
     for (int px = 0; px < params.size(); ++px) {
       double p1 = fabs(fc->est[ params[px] ] / scale[px % scale.size()]);
       fc->gradZ[ params[px] ] += la2 * penaltyStrength(p1, px) * p1;
@@ -131,25 +133,17 @@ void RidgePenalty::compute(int want, FitContext *fc)
   }
 }
 
-ElasticNetPenalty::ElasticNetPenalty(S4 obj, omxMatrix *mat) : Penalty(obj, mat)
-{
-  IntegerVector pv = obj.slot("hyperparameters");
-  if (pv.size() != 2) mxThrow("ElasticNetPenalty should have 2 hyperparameters (not %d)", pv.size());
-  alpha = pv[0];
-  lambda = pv[1];
-}
-
 std::unique_ptr<Penalty> ElasticNetPenalty::clone(omxMatrix *mat) const
 {
   auto pen = std::make_unique<ElasticNetPenalty>(robj, mat);
   pen->copyFrom(this);
-  pen->alpha = alpha;
-  pen->lambda = lambda;
   return pen;
 }
 
 void ElasticNetPenalty::compute(int want, FitContext *fc)
 {
+  double alpha = getHP(fc, 0);
+  double lambda = getHP(fc, 1);
 	if (want & FF_COMPUTE_FIT) {
     double lasso = 0;
     double ridge = 0;
@@ -159,17 +153,14 @@ void ElasticNetPenalty::compute(int want, FitContext *fc)
       lasso += str * p1;
       ridge += str * p1 * p1;
     }
-    double prop = fc->est[ alpha ];
-    matrix->data[0] = fc->est[lambda] * ((1-prop) * ridge + prop * lasso);
+    matrix->data[0] = lambda * ((1-alpha) * ridge + alpha * lasso);
   }
   if (want & FF_COMPUTE_GRADIENT) {
-    double prop = fc->est[ alpha ];
-    double la = fc->est[lambda];
     for (int px = 0; px < params.size(); ++px) {
       double p1 = fabs(fc->est[ params[px] ] / scale[px % scale.size()]);
       double str = penaltyStrength(p1, px);
       fc->gradZ[ params[px] ] +=
-        prop * str * copysign(la, fc->est[ params[px] ]) + (1-prop) * 2 * la * str * p1;
+        alpha * str * copysign(lambda, fc->est[ params[px] ]) + (1-alpha) * 2 * lambda * str * p1;
     }
   }
 }
@@ -192,8 +183,7 @@ void omxGlobal::importPenalty(omxMatrix *mat, S4 obj, FitContext *fc)
     CharacterVector hprNames = hpr.names();
     const char *varName = hprNames[rx];
     int vx = fvg.lookupVar(varName);
-    if (vx == -1) mxThrow("Cannot find free variable named '%s' for penalty '%s'",
-                          varName, type);
+    if (vx == -1) continue; // fixed so skip it
     auto got = penaltyGrid.find(vx);
     if (got != penaltyGrid.end()) {
       NumericVector g1(got->second);

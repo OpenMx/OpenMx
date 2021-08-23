@@ -161,14 +161,17 @@ mxPenaltyZap <- function(model, silent=FALSE) {
 ##' @param lambda.step step function for lambda step (default .01)
 ##' @param lambda.max end of lambda range (default .4)
 ##' @param lambda.min minimum lambda value (default lambda)
+##' @template args-dots-barrier
 ##' @template args-regularize
 ##'
 #' @export
 mxPenaltyLASSO <- function(what, name, lambda=0, lambda.step=.01, lambda.max=NA, lambda.min=NA,
-                              epsilon=1e-5, scale=1) {
+                              epsilon=1e-5, scale=1, ..., hyperparams=c('lambda')) {
+  prohibitDotdotdot(list(...))
   if(is.na(lambda.min)) lambda.min=lambda
   if(is.na(lambda.max)) lambda.max=lambda.min+40*lambda.step
-  mxPenalty(what, epsilon, scale, how="lasso", hyperparams=c('lambda'), hpranges=list(lambda=seq(lambda, lambda.max, by=lambda.step)), name=name)
+  if (length(hyperparams) != 1) stop("Provide exactly one hyperparam")
+  mxPenalty(what, epsilon, scale, how="lasso", hyperparams=hyperparams, hpranges=list(lambda=seq(lambda, lambda.max, by=lambda.step)), name=name)
 }
 
 ##' mxPenaltyRidge
@@ -180,12 +183,15 @@ mxPenaltyLASSO <- function(what, name, lambda=0, lambda.step=.01, lambda.max=NA,
 ##' @param lambda.max when to end the lambda search (default 0.4)
 ##' @param lambda.min minimum lambda value (default lambda)
 ##' @template args-regularize
+##' @template args-dots-barrier
 ##'
 #' @export
 mxPenaltyRidge <- function(what, name, lambda=0, lambda.step=.01, lambda.max=.4, lambda.min=NA,
-                              epsilon=1e-5, scale=1) {
+                              epsilon=1e-5, scale=1, ..., hyperparams=c('lambda')) {
+  prohibitDotdotdot(list(...))
   if(is.na(lambda.min)) lambda.min=lambda
-  mxPenalty(what, epsilon, scale, how="ridge", hyperparams=c('lambda'),
+  if (length(hyperparams) != 1) stop("Provide exactly one hyperparam")
+  mxPenalty(what, epsilon, scale, how="ridge", hyperparams=hyperparams,
                hpranges = list(lambda=seq(lambda, lambda.max, lambda.step)), name=name)
 }
 
@@ -202,6 +208,7 @@ mxPenaltyRidge <- function(what, name, lambda=0, lambda.step=.01, lambda.max=.4,
 ##' @param lambda.min beginning of the lambda range (default lambda)
 ##' @param alpha.min beginning of the alpha range (default 0)
 ##' @template args-regularize
+##' @template args-dots-barrier
 ##'
 ##' @details Applies elastic net regularization.  Elastic net is a weighted combination of ridge and LASSO penalties.
 ##'
@@ -210,10 +217,12 @@ mxPenaltyElasticNet <- function(what, name,
                                    alpha=0,  alpha.step=.1,  alpha.max=1,
                                    lambda=0, lambda.step=.1, lambda.max=.4,
                                    alpha.min=NA, lambda.min=NA,
-                                   epsilon=1e-5, scale=1) {
+                                   epsilon=1e-5, scale=1, ..., hyperparams=c('alpha', 'lambda')) {
+  prohibitDotdotdot(list(...))
   if(is.na(lambda.min)) lambda.min=lambda
   if(is.na(alpha.min)) alpha.min=alpha
-  mxPenalty(what, epsilon, scale, how="elasticNet", hyperparams=c('alpha', 'lambda'),
+  if (length(hyperparams) != 2) stop("Provide exactly two hyperparameters")
+  mxPenalty(what, epsilon, scale, how="elasticNet", hyperparams=hyperparams,
                hpranges = list(alpha=seq(alpha, alpha.max, alpha.step), lambda=seq(lambda, lambda.max, by=lambda.step)), name=name)
 }
 
@@ -250,11 +259,17 @@ evaluatePenalty <- function(penalty, model, labelsData, env, show, compute) {
 generatePenaltyList <- function(flatModel, modelname, parameters, labelsData) {
 	got <- lapply(flatModel@penalties, function(p1) {
     hpnames <- p1@hyperparameters
-    p1@hyperparameters <- match(p1@hyperparameters, names(parameters)) - 1L
-    if (any(is.na(p1@hyperparameters))) {
+    lx <- match(p1@hyperparameters, rownames(labelsData))
+    if (any(is.na(lx))) {
       stop(paste("Cannot locate penalty parameters",
-                 omxQuotes(hpnames[is.na(p1@hyperparameters)])))
+                 omxQuotes(hpnames[is.na(lx)])))
     }
+    coord <- sapply(lx, function(hp1) {
+      mat <- match(imxIdentifier(labelsData[hp1, 'model'], labelsData[hp1, 'matrix']),
+                   names(flatModel@matrices)) - 1L
+      c(mat, labelsData[hp1, 'row'] - 1L, labelsData[hp1, 'col'] - 1L)
+    })
+    p1@hyperparameters <- c(coord)
     pnames <- p1@params
     p1@params <- match(p1@params, names(parameters)) - 1L
     if (any(is.na(p1@params))) {

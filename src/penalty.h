@@ -20,6 +20,11 @@
 class omxMatrix;
 
 class Penalty {
+  struct hp {
+    omxMatrix *m;
+    int r, c;
+  };
+  std::vector<hp> hpCache;
 protected:
   S4 robj;
 	omxMatrix *matrix;
@@ -38,31 +43,29 @@ protected:
 	const char *name() const;
   virtual std::unique_ptr<Penalty> clone(omxMatrix *mat) const = 0;
   double getValue() const;
+  double getHP(FitContext *fc, int xx);
 };
 
 class LassoPenalty : public Penalty {
   typedef Penalty super;
-  int lambda;
 public:
-  LassoPenalty(S4 obj, omxMatrix *_mat);
+  LassoPenalty(S4 _obj, omxMatrix *_mat) : Penalty(_obj, _mat) {}
 	virtual void compute(int ffcompute, FitContext *fc) override;
   virtual std::unique_ptr<Penalty> clone(omxMatrix *mat) const override;
 };
 
 class RidgePenalty : public Penalty {
   typedef Penalty super;
-  int lambda;
 public:
-  RidgePenalty(S4 obj, omxMatrix *_mat);
+  RidgePenalty(S4 _obj, omxMatrix *_mat) : Penalty(_obj, _mat) {}
 	virtual void compute(int ffcompute, FitContext *fc) override;
   virtual std::unique_ptr<Penalty> clone(omxMatrix *mat) const override;
 };
 
 class ElasticNetPenalty : public Penalty {
   typedef Penalty super;
-  int lambda, alpha;
 public:
-  ElasticNetPenalty(S4 obj, omxMatrix *_mat);
+  ElasticNetPenalty(S4 _obj, omxMatrix *_mat) : Penalty(_obj, _mat) {}
 	virtual void compute(int ffcompute, FitContext *fc) override;
   virtual std::unique_ptr<Penalty> clone(omxMatrix *mat) const override;
 };
