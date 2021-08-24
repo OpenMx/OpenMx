@@ -49,7 +49,7 @@ Our first step to running this model is to include the data to be analyzed. The 
 As mentioned, one method of data specification is through loading a raw set of observations on variables. The data for this example is the packaged `myFADataRaw` dataset, which contains 500 observations on nine observed variables. In accordance with the path diagram above, we specify the first six variables for analysis in the model.
 
 ```{r}
-require(OpenMx)
+library(OpenMx)
 data(myFADataRaw)
 
 dataRawOneFactor <- mxData( observed=myFADataRaw[,c("x1","x2","x3","x4","x5","x6")], type="raw" )
