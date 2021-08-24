@@ -167,6 +167,7 @@ Finally, we insantiate our unfitted model using `mxModel()`. This model begins w
 oneFactorPathModel <- mxModel("Common Factor Model Path Specification", type="RAM",
                         manifestVars=c("x1","x2","x3","x4","x5","x6"), latentVars="F1",
                         dataRawOneFactor, resVars, latVar, facLoads, means)
+
 ```
 ### Path Specification for Multiple Factors
 We will focus on the changes this model makes to the `mxPath` functions and their relevant inputs. To start, the last three variables of our `manifestVars` argument have changed from $x_4, x_5, x_6$ to $y_1, y_2, y_3$, and `latentVars` now includes a second variable, `F_2`. The `mxPath` functions which detail residual variances and intercepts accommodate the changes in manifest and latent variables but carry out identical functions to the common factor model. 
@@ -208,14 +209,223 @@ facLoadsY    <- mxPath( from="F2", to=c("y1","y2","y3"), arrows=1,
 Finally, we instantiate the `mxModel` object. 
 Specifying the two factor model is virtually identical to the single factor case, with the only change being our manifest and latent variable labels.
 ```{r}
-twoFactorModel <- mxModel("Two Factor Model Path Specification", type="RAM",
+twoFactorPathModel <- mxModel("Two Factor Model Path Specification", type="RAM",
                         manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),
                         latentVars=c("F1","F2"),
                         dataRawTwoFactor, resVars, latVars, facLoadsX, facLoadsY, means)
 ```
 
 ### Matrix Specification
+Alternatively to specifying the paths for an `MxModel`, we have the option of manually specifying the matricies in a RAM model. In this case, `MxModel` specification is carried out using `mxMatrix` functions to create matrices. In the following section, we will go through the necessary setup to do manual model setup for the same one and two factor examples as path specification.
+
+The $A$ matrix specifies all of the asymmetric paths or regressions in our model. In the common factor model, these parameters are the factor loadings. This matrix is square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). Regressions are specified in the A matrix by placing a free parameter in the row of the dependent variable and the column of independent variable.
+
+The common factor model requires that one parameter (typically either a factor loading or factor variance) be constrained to a constant value. In our model, we will constrain the first factor loading to a value of 1, and let all other loadings be freely estimated. All factor loadings have a starting value of one and labels of `"l1"` - `"l6"`.
+```{r}
+
+
+# asymmetric paths
+matrA        <- mxMatrix( type="Full", nrow=7, ncol=7,
+                          free=  c(F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,F),
+                          values=c(0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0),
+                          labels=c(NA,NA,NA,NA,NA,NA,"l1",
+                                   NA,NA,NA,NA,NA,NA,"l2",
+                                   NA,NA,NA,NA,NA,NA,"l3",
+                                   NA,NA,NA,NA,NA,NA,"l4",
+                                   NA,NA,NA,NA,NA,NA,"l5",
+                                   NA,NA,NA,NA,NA,NA,"l6",
+                                   NA,NA,NA,NA,NA,NA,NA),
+                          byrow=TRUE, name="A" )
+```
+The second matrix in a RAM model is the $S$ matrix, which specifies the symmetric or covariance paths in our model. This matrix is symmetric and square, and contains as many rows and columns as variables in the model (manifest and latent, typically in that order). The symmetric paths in our model consist of six residual variances and one factor variance. All of these variances are given starting values of one and labels `"e1"` - `"e6"` and `"varF1"`.
+
+```{r}
+# symmetric paths
+matrS        <- mxMatrix( type="Symm", nrow=7, ncol=7,
+                          free=  c(T,F,F,F,F,F,F,
+                                   F,T,F,F,F,F,F,
+                                   F,F,T,F,F,F,F,
+                                   F,F,F,T,F,F,F,
+                                   F,F,F,F,T,F,F,
+                                   F,F,F,F,F,T,F,
+                                   F,F,F,F,F,F,T),
+                          values=c(1,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,
+                                   0,0,0,1,0,0,0,
+                                   0,0,0,0,1,0,0,
+                                   0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,1),
+                          labels=c("e1",NA,  NA,  NA,  NA,  NA,  NA,
+                                   NA, "e2", NA,  NA,  NA,  NA,  NA,
+                                   NA,  NA, "e3", NA,  NA,  NA,  NA,
+                                   NA,  NA,  NA, "e4", NA,  NA,  NA,
+                                   NA,  NA,  NA,  NA, "e5", NA,  NA,
+                                   NA,  NA,  NA,  NA,  NA, "e6", NA,
+                                   NA,  NA,  NA,  NA,  NA,  NA, "varF1"),
+                          byrow=TRUE, name="S" )
+```
+The third matrix in our RAM model is the $F$ or filter matrix. Our data contains six observed variables, but the $A$ and $S$ matrices contain seven rows and columns. For our model to define the covariances present in our data, we must have some way of projecting the relationships defined in the $A$ and $S$ matrices onto our data. The $F$ matrix filters the latent variables out of the expected covariance matrix, and can also be used to reorder variables.
+
+The $F$ matrix will always contain the same number of rows as manifest variables and columns as total (manifest and latent) variables. If the manifest variables in the $A$ and $S$ matrices precede the latent variables and are in the same order as the data, then the $F$ matrix will be the horizontal adhesion of an identity matrix and a zero matrix. This matrix contains no free parameters, and is made with the `mxMatrix` function below.
+```{r}
+# filter matrix
+matrF        <- mxMatrix( type="Full", nrow=6, ncol=7,
+                          free=FALSE,
+                          values=c(1,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,
+                                   0,0,0,1,0,0,0,
+                                   0,0,0,0,1,0,0,
+                                   0,0,0,0,0,1,0),
+                          byrow=TRUE, name="F" )
+
+```
+The last matrix of our model is the $M$ matrix, which defines the means and intercepts for our model. This matrix describes all of the regressions on the constant in a path model, or the means conditional on the means of exogenous variables. This matrix contains a single row, and one column for every manifest and latent variable in the model. In our model, the latent variable has a constrained mean of zero, while the manifest variables have freely estimated means, labeled `"meanx1"` through `"meanx6"`.
+```{r}
+# means
+matrM        <- mxMatrix( type="Full", nrow=1, ncol=7,
+                          free=c(T,T,T,T,T,T,F),
+                          values=c(1,1,1,1,1,1,0),
+                          labels=c("meanx1","meanx2","meanx3",
+                                   "meanx4","meanx5","meanx6",NA),
+                          name="M" )
+```
+The final parts of this model are the expectation function and the fit function. The expectation defines how the specified matrices combine to create the expected covariance matrix of the data. The fit defines how the expectation is compared to the data to create a single scalar number that is minimized. In a RAM specified model, the expected covariance matrix is defined as:
+
+\begin{eqnarray*} ExpCovariance = F * (I - A)^{-1} * S * ((I - A)^{-1})' * F' \end{eqnarray*}
+
+The expected means are defined as:
+
+\begin{eqnarray*} ExpMean = F * (I - A)^{-1} * M \end{eqnarray*}
+
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using `mxExpectationNormal` and other functions in OpenMx, the `mxExpectationRAM` function computes the expected covariance and means matrices when the $A$, $S$, $F$ and $M$ matrices are specified. The $M$ matrix is required both for raw data and for covariance or correlation data that includes a means vector. The `mxExpectationRAM` function takes four arguments, which are the names of the $A$, $S$, $F$ and $M$ matrices in your model. The `mxFitFunctionML` yields maximum likelihood estimates of structural equation models. It uses full information maximum likelihood when the data are raw.
+```{r}
+exp          <- mxExpectationRAM("A","S","F","M",
+                                  dimnames=c(manifestVars, latentVars))
+funML        <- mxFitFunctionML()
+```
+We now have all of the prerequisite structures for defining our model. As opposed to the path specification, the model now includes data of observed variables (i.e., raw data or manifest variable covariances in `MxData` form), model matrices, an expectation function, and a fit function. As such, the model has all the required elements to define the expected covariance matrix and estimate parameters.
+
+```{r}
+oneFactorMatrixModel <- mxModel("Common Factor Model Matrix Specification",
+                          dataRawOneFactor, matrA, matrS, matrF, matrM, exp, funML)
+```
 
 ### Matrix Specification for Multiple Factors
+To account for the second latent variable $F_2$,we must modify the constituent RAM matricies.
 
+The $A$ matrix, shown below, is used to specify the regressions of the manifest variables on the factors. The first three manifest variables (`"x1"`-`"x3"`) are regressed on `"F1"`, and the second three manifest variables (`"y1"`-`"y3"`) are regressed on `"F2"`. We must again constrain the model to identify and scale the latent variables, which we do by constraining the first loading for each latent variable to a value of one.
+```{r}
+# asymmetric paths
+matrA        <- mxMatrix( type="Full", nrow=8, ncol=8,
+                          free=  c(F,F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,T,F,
+                                   F,F,F,F,F,F,T,F,
+                                   F,F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,F,T,
+                                   F,F,F,F,F,F,F,F,
+                                   F,F,F,F,F,F,F,F),
+                          values=c(0,0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,1,0,
+                                   0,0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0,1,
+                                   0,0,0,0,0,0,0,0,
+                                   0,0,0,0,0,0,0,0),
+                          labels=c(NA,NA,NA,NA,NA,NA,"l1",NA,
+                                   NA,NA,NA,NA,NA,NA,"l2",NA,
+                                   NA,NA,NA,NA,NA,NA,"l3",NA,
+                                   NA,NA,NA,NA,NA,NA,NA,"l4",
+                                   NA,NA,NA,NA,NA,NA,NA,"l5",
+                                   NA,NA,NA,NA,NA,NA,NA,"l6",
+                                   NA,NA,NA,NA,NA,NA,NA,NA,
+                                   NA,NA,NA,NA,NA,NA,NA,NA),
+                          byrow=TRUE, name="A" )
+```
+The $S$ matrix has an additional row and column, and two additional parameters. For the two factor model, we must add a variance term for the second latent variable and a covariance between the two latent variables.
+```{r}
+# symmetric paths
+matrS        <- mxMatrix( type="Symm", nrow=8, ncol=8,
+                          free=  c(T,F,F,F,F,F,F,F,
+                                   F,T,F,F,F,F,F,F,
+                                   F,F,T,F,F,F,F,F,
+                                   F,F,F,T,F,F,F,F,
+                                   F,F,F,F,T,F,F,F,
+                                   F,F,F,F,F,T,F,F,
+                                   F,F,F,F,F,F,T,T,
+                                   F,F,F,F,F,F,T,T),
+                          values=c(1,0,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,0,
+                                   0,0,0,1,0,0,0,0,
+                                   0,0,0,0,1,0,0,0,
+                                   0,0,0,0,0,1,0,0,
+                                   0,0,0,0,0,0,1,.5,
+                                   0,0,0,0,0,0,.5,1),
+                          labels=c("e1",NA,  NA,  NA,  NA,  NA,  NA,  NA,
+                                   NA, "e2", NA,  NA,  NA,  NA,  NA,  NA,
+                                   NA,  NA, "e3", NA,  NA,  NA,  NA,  NA,
+                                   NA,  NA,  NA, "e4", NA,  NA,  NA,  NA,
+                                   NA,  NA,  NA,  NA, "e5", NA,  NA,  NA,
+                                   NA,  NA,  NA,  NA,  NA, "e6", NA,  NA,
+                                   NA,  NA,  NA,  NA,  NA,  NA,"varF1","cov",
+                                   NA,  NA,  NA,  NA,  NA,  NA,"cov","varF2"),
+                          byrow=TRUE, name="S" )
+```
+The F and M matrices contain only minor changes. The F matrix is now of order 6x8, but the additional column is simply a column of zeros. The M matrix contains an additional column (with only a single row), which contains the mean of the second latent variable. As this model does not contain a parameter for that latent variable, this mean is constrained to zero.
+```{r}
+matrF        <- mxMatrix( type="Full", nrow=6, ncol=8,
+                          free=FALSE,
+                          values=c(1,0,0,0,0,0,0,0,
+                                   0,1,0,0,0,0,0,0,
+                                   0,0,1,0,0,0,0,0,
+                                   0,0,0,1,0,0,0,0,
+                                   0,0,0,0,1,0,0,0,
+                                   0,0,0,0,0,1,0,0),
+                          byrow=TRUE, name="F" )
+matrM        <- mxMatrix( type="Full", nrow=1, ncol=8,
+                          free=c(T,T,T,T,T,T,F,F),
+                          values=c(1,1,1,1,1,1,0,0),
+                          labels=c("meanx1","meanx2","meanx3",
+                                   "meanx4","meanx5","meanx6",NA,NA),
+                          name="M" )
+```
+Finally, we specify our expectation and fit functions as well as instantiating the `MxModel` itself. These are completely identical to the one factor model, only with the data variable changed from `dataRawOneFactor` to `dataRawTwoFactor`.
+
+```{r}
+exp          <- mxExpectationRAM("A","S","F","M",
+                                  dimnames=c(manifestVars, latentVars))
+funML        <- mxFitFunctionML()
+
+twoFactorMatrixModel <- mxModel("Two Factor Model Matrix Specification",
+                          dataRawTwoFactor, matrA, matrS, matrF, matrM, exp, funML)
+```
 ## Running Model & Results
+Our model can now be run using the `mxRun` function. `mxRun` returns an `MxModel` structured on its input `MxModel` with the free parameters fitted. This fitting does not modify the input model, and as such `mxRun` must assign its output to a new object for continued reference.
+
+```{r}
+twoFactorMatrixFit <- mxRun(twoFactorMatrixModel)
+```
+`summary(twoFactorMatrixFit)` will provide us with the estimation and standard errors on all free paramaters, along with several model statistics and criteria for assessing model fit.
+```{r}
+summary(twoFactorMatrixFit)
+```
+If more detailed output is desired, accessing the `$output` field on an `MxModel` object will provide more detailed information including the fit matricies in raw form, the derived Hessian matrix, and data about execution environment and timing.
+```{r eval=FALSE}
+output(twoFactorMatrixFit)
+```
