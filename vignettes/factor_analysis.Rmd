@@ -14,7 +14,7 @@ vignette: |
 ---
 This vignette will demonstrate latent variable modeling and confirmatory analysis via the common factor model. Factor analysis provides an easily understandable application of OpenMx, and this vignette should serve as an appropriate introduction to the data structures and workflow patterns necessary to define and fit a model using OpenMx. 
 
-OpenMX handles model definition through the `MxModel` class, instantiated via the `mxModel()` function. Model definition requires input data for analysis and the model specification itself. Input data can be either in the form of a set of variable observations or by having a correlation/covariance matrix and associated variable means, while the model specification can either be produced via specifying a path diagram or the actual matrices from the RAM model.
+OpenMX handles model definition through the `MxModel` class, instantiated via the `mxModel()` function. Model definition requires input data for analysis and the model specification itself. Input data can be either in the form of a set of variable observations or by having a covariance matrix and associated variable means, while the model specification can either be produced via specifying a path diagram or the actual matrices from the RAM model.
 
 We’ll walk through the construction of a single and multiple factor model first through specifying the path diagram, and then an alternate form of model specification manually defining the matrices in a RAM-type model. Additionally, we will demonstrate how to specify data for analysis using either raw data or a covariance matrix of manifest variables. Scripts for [a variety of implementations are located within the `/demo/` directory of the OpenMx GitHub repository](https://github.com/OpenMx/OpenMx/tree/master/demo) and are named in accordance with their specific implementation (eg. "OneFactorModel_PathRaw.R", "TwoFactorModel_MatrixCov.R", etc.)
 
@@ -54,7 +54,7 @@ data(myFADataRaw)
 
 dataRawOneFactor <- mxData( observed=myFADataRaw[,c("x1","x2","x3","x4","x5","x6")], type="raw" )
 ```
-Alternatively, our data could be specificed via a correlation/covariance matrix with variable means and number of observations. A type argument of `"cov"` is specified in the below example with a covariance matrix, and would be `"cor"` if we provided a correlation matrix (other inputs being the same).
+Alternatively, our data could be specificed via a covariance matrix with variable means and number of observations. A type argument of `"cov"` is specified in the below example with a covariance matrix (other inputs being the same).
 
 ```{r}
 myFADataCov<-matrix(
@@ -311,7 +311,7 @@ The expected means are defined as:
 
 \begin{eqnarray*} ExpMean = F * (I - A)^{-1} * M \end{eqnarray*}
 
-The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using `mxExpectationNormal` and other functions in OpenMx, the `mxExpectationRAM` function computes the expected covariance and means matrices when the $A$, $S$, $F$ and $M$ matrices are specified. The $M$ matrix is required both for raw data and for covariance or correlation data that includes a means vector. The `mxExpectationRAM` function takes four arguments, which are the names of the $A$, $S$, $F$ and $M$ matrices in your model. The `mxFitFunctionML` yields maximum likelihood estimates of structural equation models. It uses full information maximum likelihood when the data are raw.
+The free parameters in the model can then be estimated using maximum likelihood for covariance and means data, and full information maximum likelihood for raw data. Although users may define their own expected covariance matrices using `mxExpectationNormal` and other functions in OpenMx, the `mxExpectationRAM` function computes the expected covariance and means matrices when the $A$, $S$, $F$ and $M$ matrices are specified. The $M$ matrix is required both for raw data and for covariance data that includes a means vector. The `mxExpectationRAM` function takes four arguments, which are the names of the $A$, $S$, $F$ and $M$ matrices in your model. The `mxFitFunctionML` yields maximum likelihood estimates of structural equation models. It uses full information maximum likelihood when the data are raw.
 ```{r}
 exp          <- mxExpectationRAM("A","S","F","M",
                                   dimnames=c(manifestVars, latentVars))
