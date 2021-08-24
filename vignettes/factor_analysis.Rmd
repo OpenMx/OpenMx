@@ -4,6 +4,7 @@ date: "`r Sys.Date()`"
 output:
   html_document:
     df_print: paged
+    toc: true
   rmarkdown::html_vignette: default
   pdf_document: default
 vignette: |
@@ -11,7 +12,11 @@ vignette: |
   %\VignetteIndexEntry{Model Specification for Confirmatory Factor Analysis} 
   %\usepackage[UTF-8]{inputenc}
 ---
-This vignette will demonstrate latent variable modeling and confirmatory analysis via the common factor model. We’ll walk through the construction of a single and multiple factor model first through specifying the path diagram, and then an alternate form of model specification through manually defining the matrices in a RAM-type model. Additionally, we will demonstrate how to specify data for analysis using either raw data or a covariance matrix of manifest variables. Scripts for [a variety of implementations are located within the `/demo/` directory of the OpenMx GitHub repository](https://github.com/OpenMx/OpenMx/tree/master/demo) and are named in accordance with their specific implementation (eg. "OneFactorModel_PathRaw.R", "TwoFactorModel_MatrixCov.R", etc.)
+This vignette will demonstrate latent variable modeling and confirmatory analysis via the common factor model. Factor analysis provides an easily understandable application of OpenMx, and this vignette should serve as an appropriate introduction to the data structures and workflow patterns necessary to define and fit a model using OpenMx. 
+
+OpenMX handles model definition through the `MxModel` class, instantiated via the `mxModel()` function. Model definition requires input data for analysis and the model specification itself. Input data can be either in the form of a set of variable observations or by having a correlation/covariance matrix and associated variable means, while the model specification can either be produced via specifying a path diagram or the actual matrices from the RAM model.
+
+We’ll walk through the construction of a single and multiple factor model first through specifying the path diagram, and then an alternate form of model specification manually defining the matrices in a RAM-type model. Additionally, we will demonstrate how to specify data for analysis using either raw data or a covariance matrix of manifest variables. Scripts for [a variety of implementations are located within the `/demo/` directory of the OpenMx GitHub repository](https://github.com/OpenMx/OpenMx/tree/master/demo) and are named in accordance with their specific implementation (eg. "OneFactorModel_PathRaw.R", "TwoFactorModel_MatrixCov.R", etc.)
 
 ## Common Factor Model
 The common factor model is a method for modeling the relationships between observed variables believed to measure or indicate the same latent variable. While there are a number of exploratory approaches to extracting latent factor(s), this example uses structural modeling to fit confirmatory factor models. The model for any person and path diagram of the common factor model for a set of variables $x_{1}-x_{6}$ are given below.
@@ -24,11 +29,21 @@ The common factor model is a method for modeling the relationships between obser
 
 </center>
 
+### Multiple Factor Model
+The common factor model can be extended to include multiple latent variables. The model for any person and path diagram of the common factor model for a set of variables $x_{1}-x_{3}$ and $y_{1}-y_{3}$ are given below.
+
+\begin{eqnarray*} x_{ij} = \mu_{j} + \lambda_{j} * \eta_{1i} + \epsilon_{ij}\\ y_{ij} = \mu_{j} + \lambda_{j} * \eta_{2i} + \epsilon_{ij} \end{eqnarray*}
+
+<center>
+
+![Two Factor Model](img/TwoFactorModel.png)
+
+</center>
+
 While 19 parameters are displayed in the equation and path diagram above (six manifest variances, six manifest means, six factor loadings and one factor variance), we must constrain either the factor variance or one factor loading to a constant to identify the model and scale the latent variable. As such, this model contains 18 parameters. The means and covariance matrix for six observed variables contain 27 degrees of freedom, and thus our model contains 9 degrees of freedom.
 
-OpenMX handles model definition through the `MxModel` class, instantiated via the `mxModel()` function. Model definition requires input data for analysis and the model specification itself. Input data can be either in the form of a set of variable observations or by having a correlation/covariance matrix and associated variable means, while the model specification can either be produced via specifying a path diagram or the actual matrices from the RAM model.
 
-### Input Data
+## Input Data
 Our first step to running this model is to include the data to be analyzed. The `MxData` class instantiated through `mxData()` is used for representing data within the `MxModel`. 
 
 As mentioned, one method of data specification is through loading a raw set of observations on variables. The data for this example is the packaged `myFADataRaw` dataset, which contains 500 observations on nine observed variables. In accordance with the path diagram above, we specify the first six variables for analysis in the model.
@@ -37,8 +52,7 @@ As mentioned, one method of data specification is through loading a raw set of o
 require(OpenMx)
 data(myFADataRaw)
 
-myFADataRaw <- myFADataRaw[,c("x1","x2","x3","x4","x5","x6")]
-dataRaw      <- mxData( observed=myFADataRaw, type="raw" )
+dataRawOneFactor <- mxData( observed=myFADataRaw[,c("x1","x2","x3","x4","x5","x6")], type="raw" )
 ```
 Alternatively, our data could be specificed via a correlation/covariance matrix with variable means and number of observations. A type argument of `"cov"` is specified in the below example with a covariance matrix, and would be `"cor"` if we provided a correlation matrix (other inputs being the same).
 
@@ -59,13 +73,51 @@ myFADataCov<-matrix(
 myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010)
 names(myFADataMeans) <- c("x1","x2","x3","x4","x5","x6")
 
-dataCov      <- mxData( observed=myFADataCov, type="cov", numObs=500,
+dataCovOneFactor  <- mxData( observed=myFADataCov, type="cov", numObs=500,
                         mean=myFADataMeans )
 ```
 
-### Model Specification
+### Input Data, Multiple Factors
 
-#### Path Diagram Specification
+The only difference in setting up data for multiple factor analysis is to label the manifest variables appropriately. The below code reads in the first six variables from the `myFADataRaw` dataset once again, but this time the labels for $y_n$ observed variables for the second factor, $F_2$ are changed to match the two factor path diagram above.
+
+```{r}
+dataRawTwoFactor <- mxData( observed=myFADataRaw[,c("x1","x2","x3","y1","y2","y3")], type="raw" )
+```
+
+Setting up a covariance data input for multiple factors involves similar changes from the single factor case. The below code block sets up a covariance matrix of 9 observed variables, 6 of which are labeled as $x_n$, and 3 of which are $y_n$. For the `MxData` selection, $x_{1}-x_{3}$ and $y_{1}-y_{3}$ are used in line with our desired path diagram.
+
+```{r}
+myFADataCov <- matrix(
+      c(0.997, 0.642, 0.611, 0.672, 0.637, 0.677, 0.342, 0.299, 0.337,
+        0.642, 1.025, 0.608, 0.668, 0.643, 0.676, 0.273, 0.282, 0.287,
+        0.611, 0.608, 0.984, 0.633, 0.657, 0.626, 0.286, 0.287, 0.264,
+        0.672, 0.668, 0.633, 1.003, 0.676, 0.665, 0.330, 0.290, 0.274,
+        0.637, 0.643, 0.657, 0.676, 1.028, 0.654, 0.328, 0.317, 0.331,
+        0.677, 0.676, 0.626, 0.665, 0.654, 1.020, 0.323, 0.341, 0.349,
+        0.342, 0.273, 0.286, 0.330, 0.328, 0.323, 0.993, 0.472, 0.467,
+        0.299, 0.282, 0.287, 0.290, 0.317, 0.341, 0.472, 0.978, 0.507,
+        0.337, 0.287, 0.264, 0.274, 0.331, 0.349, 0.467, 0.507, 1.059),
+      nrow=9,
+      dimnames=list(
+          c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3"),
+          c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")),
+)
+
+twoFactorCov <- myFADataCov[c("x1","x2","x3","y1","y2","y3"),c("x1","x2","x3","y1","y2","y3")]
+  
+myFADataMeans <- c(2.988, 3.011, 2.986, 3.053, 3.016, 3.010, 2.955, 2.956, 2.967)
+names(myFADataMeans) <- c("x1", "x2", "x3", "x4", "x5", "x6", "y1", "y2", "y3")
+  
+twoFactorMeans <- myFADataMeans[c(1:3,7:9)]
+# Prepare Data
+# -----------------------------------------------------------------------------
+
+dataCovTwoFactor  <- mxData( observed=twoFactorCov, type="cov", numObs=500, means=twoFactorMeans )
+```
+## Model Specification
+
+### Path Diagram Specification
 One method of model specification is through defining the model via the existing path diagram. In this instance, our model instantiation will take as arguments the `MxData` defined previously, as well as lists of manifest variables & latent variables, and an arbitrary number of `MxPath` objects defining the paths between these variables. First, we will start by defining our manifest and latent variables in accordance to the path diagram.
 
 ```{r}
@@ -109,19 +161,61 @@ means        <- mxPath( from="one", to=c("x1","x2","x3","x4","x5","x6","F1"), ar
                         labels =c("meanx1","meanx2","meanx3","meanx4","meanx5","meanx6",NA) )
 ```
 
-Finally, we insantiate our unfitted model using `mxModel()`. This model begins with a name (“Common Factor Model Path Specification”) for the model and a `type="RAM"` argument. The name for the model may be omitted, or may be specified in any other place in the model using the name argument. Including type="RAM" allows the mxModel function to interpret the mxPath functions that follow and turn those paths into an expected covariance matrix and means vector for the ensuing data. The raw data specification from before (`dataRaw`) is included as the model data.
+Finally, we insantiate our unfitted model using `mxModel()`. This model begins with a name (“Common Factor Model Path Specification”) for the model and a `type="RAM"` argument. The name for the model may be omitted, or may be specified in any other place in the model using the name argument. Including `type="RAM"` allows the mxModel function to interpret the mxPath functions that follow and turn those paths into an expected covariance matrix and means vector for the ensuing data. The raw data specification is included as the model data.
 
 ```{r}
 oneFactorPathModel <- mxModel("Common Factor Model Path Specification", type="RAM",
                         manifestVars=c("x1","x2","x3","x4","x5","x6"), latentVars="F1",
-                        dataRaw, resVars, latVar, facLoads, means)
+                        dataRawOneFactor, resVars, latVar, facLoads, means)
 ```
-#### Matrix Specification
+### Path Specification for Multiple Factors
+We will focus on the changes this model makes to the `mxPath` functions and their relevant inputs. To start, the last three variables of our `manifestVars` argument have changed from $x_4, x_5, x_6$ to $y_1, y_2, y_3$, and `latentVars` now includes a second variable, `F_2`. The `mxPath` functions which detail residual variances and intercepts accommodate the changes in manifest and latent variables but carry out identical functions to the common factor model. 
+```{r}
+manifestVars <- c("x1","x2","x3","y1","y2","y3")
+latentVars <- c("F1","F2")
 
-### Running Model & Results
+# residual variances
+resVars      <- mxPath( from=c("x1", "x2", "x3", "y1", "y2", "y3"), arrows=2,
+                        free=TRUE, values=c(1,1,1,1,1,1),
+                        labels=c("e1","e2","e3","e4","e5","e6") )
+# means
+means        <- mxPath( from="one", to=c("x1","x2","x3","y1","y2","y3","F1","F2"),
+                        arrows=1,
+                        free=c(T,T,T,T,T,T,F,F), values=c(1,1,1,1,1,1,0,0),
+                        labels=c("meanx1","meanx2","meanx3",
+                                 "meany1","meany2","meany3",NA,NA) )
+```
 
-## Multiple Factor Model
+The remaining `mxPath` functions provide some changes to the model. The `latVars` `mxPath` function specifies the variances and covariance of the two latent variables. Like previous examples, we’ve omitted the `to` argument for this set of two-headed paths. Unlike previous examples, we’ve set the `connect` argument to `unique.pairs`, which creates all unique paths between the variables. As omitting the `to` argument is identical to putting identical variables in the `from` and `to` arguments, we are creating all unique paths from and to our two latent variables. This results in three paths: from $F_1$ to $F_1$ (the variance of $F_1$), from $F_1$ to $F_2$ (the covariance of the latent variables), and from $F_2$ to $F_2$ (the variance of $F_2$).
 
-#### Path Diagram Specification
+```{r}
+# latent variances and covariance
+latVars      <- mxPath( from=c("F1","F2"), arrows=2, connect="unique.pairs",
+                        free=TRUE, values=c(1,.5,1), labels=c("varF1","cov","varF2") )
 
-#### Matrix Specification
+```
+
+The final two `mxPath` functions define the factor loadings for each of the latent variables. We’ve split these loadings into two functions, one for each latent variable. The first loading for each latent variable is fixed to a value of one, just as in the previous example.
+
+```{r}
+# factor loadings for x variables
+facLoadsX    <- mxPath( from="F1", to=c("x1","x2","x3"), arrows=1,
+                        free=c(F,T,T), values=c(1,1,1), labels=c("l1","l2","l3") )
+# factor loadings for y variables
+facLoadsY    <- mxPath( from="F2", to=c("y1","y2","y3"), arrows=1,
+                        free=c(F,T,T), values=c(1,1,1), labels=c("l4","l5","l6") )
+```
+Finally, we instantiate the `mxModel` object. 
+Specifying the two factor model is virtually identical to the single factor case, with the only change being our manifest and latent variable labels.
+```{r}
+twoFactorModel <- mxModel("Two Factor Model Path Specification", type="RAM",
+                        manifestVars=c("x1", "x2", "x3", "y1", "y2", "y3"),
+                        latentVars=c("F1","F2"),
+                        dataRawTwoFactor, resVars, latVars, facLoadsX, facLoadsY, means)
+```
+
+### Matrix Specification
+
+### Matrix Specification for Multiple Factors
+
+## Running Model & Results
