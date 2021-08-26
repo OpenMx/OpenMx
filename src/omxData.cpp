@@ -1523,7 +1523,8 @@ void omxData::reportResults(MxRList &out)
     if (pv.vcov.rows() == 0) continue;
     std::string key = o1.dc[vx];
     key += ".vcov";
-    int ef = o1.exoFree.row(vx).sum();
+    int ef = 0;
+    if (o1.exoPred.size()) ef = o1.exoFree.row(vx).sum();
     int numTh = o1.thresholdCols[vx].numThresholds;
     if (numTh == 0) numTh = 1;
     if (pv.vcov.rows() != numTh+ef)
