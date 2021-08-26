@@ -2407,18 +2407,20 @@ namespace RelationalRAMExpectation {
 		dbg.add("numSufficientSets", Rcpp::wrap(int(sufficientSets.size())));
 		dbg.add("fit", Rcpp::wrap(fit));
 
-		int digits = ceilf(log10f(sufficientSets.size()));
-		std::string fmt = string_snprintf("ss%%0%dd", digits);
-		for (size_t gx=0; gx < sufficientSets.size(); ++gx) {
-			sufficientSet &ss = sufficientSets[gx];
-			MxRList info;
-			info.add("start", Rcpp::wrap(1 + ss.start));
-			info.add("length", Rcpp::wrap(ss.length));
-			info.add("mean", Rcpp::wrap(ss.dataMean));
-			info.add("covariance", Rcpp::wrap(ss.dataCov));
-			std::string name = string_snprintf(fmt.c_str(), int(1+gx));
-			dbg.add(name.c_str(), info.asR());
-		}
+    if (sufficientSets.size()) {
+      int digits = ceilf(log10f(sufficientSets.size()));
+      std::string fmt = string_snprintf("ss%%0%dd", digits);
+      for (size_t gx=0; gx < sufficientSets.size(); ++gx) {
+        sufficientSet &ss = sufficientSets[gx];
+        MxRList info;
+        info.add("start", Rcpp::wrap(1 + ss.start));
+        info.add("length", Rcpp::wrap(ss.length));
+        info.add("mean", Rcpp::wrap(ss.dataMean));
+        info.add("covariance", Rcpp::wrap(ss.dataCov));
+        std::string name = string_snprintf(fmt.c_str(), int(1+gx));
+        dbg.add(name.c_str(), info.asR());
+      }
+    }
 	}
 
 	void state::exportInternalState(MxRList &dbg)
