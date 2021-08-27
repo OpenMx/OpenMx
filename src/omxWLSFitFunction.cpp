@@ -131,6 +131,8 @@ void omxWLSFitFunction::compute(int want, FitContext *fc)
 
 void omxWLSFitFunction::populateAttr(SEXP algebra)
 {
+  if (!observedFlattened) return;
+
 	if(OMX_DEBUG) { mxLog("Populating WLS Attributes."); }
 
 	omxWLSFitFunction *argStruct = this;
