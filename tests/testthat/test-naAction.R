@@ -69,6 +69,8 @@ m1 <- mxModel(
 
 m1 <- mxRun(m1)
 
+expect_equal(m1$compute$steps$LD$output$rowsAvailable, ncol(ob))
+
 m2 <- m1
 m2$data$naAction <- 'omit'
 m2 <- mxRun(m2)
