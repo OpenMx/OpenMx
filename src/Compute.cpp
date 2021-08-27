@@ -4777,8 +4777,8 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 void ComputeLoadData::computeImpl(FitContext *fc)
 {
 	std::vector<int> &clc = Global->computeLoopIndex;
-	if (clc.size() == 0) mxThrow("%s: must be used within a loop", name);
-	int index = clc[clc.size()-1] - 1;  // innermost loop index
+  int index = 0;
+	if (clc.size()) index = clc[clc.size()-1] - 1;  // innermost loop index
 
 	data->setModified();
 	if (useOriginalData && index == 0) {
@@ -4786,9 +4786,11 @@ void ComputeLoadData::computeImpl(FitContext *fc)
 	} else {
 		index -= useOriginalData; // 0 == the first record
 		provider->loadRow(index);
-		auto &clm = Global->computeLoopMax;
-		auto &max = clm.at(clm.size()-1);
-		if (max == 0) max = provider->getNumVariants();
+    if (clc.size()) {
+      auto &clm = Global->computeLoopMax;
+      auto &max = clm.at(clm.size()-1);
+      if (max == 0) max = provider->getNumVariants();
+    }
 	}
 
 	auto &columns = provider->getColumns();
