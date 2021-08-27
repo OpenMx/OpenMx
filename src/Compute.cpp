@@ -4643,6 +4643,10 @@ void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 	MxRList dbg;
 	dbg.add("loadCounter", Rf_ScalarInteger(provider->getLoadCounter()));
 	slots->add("debug", dbg.asR());
+
+	MxRList output;
+	output.add("rowsAvailable", Rcpp::wrap(provider->getNumVariants()));
+	slots->add("output", output.asR());
 }
 
 void ComputeLoadData::loadedHook()
