@@ -106,17 +106,18 @@ public:
 	}
 	virtual std::unique_ptr<LoadDataProviderBase2> clone()=0;
 	virtual ~LoadDataProviderBase2() {
-		int stripes = stripeData.size() / columns.size();
-		for (int sx=0; sx < stripes; ++sx) {
-			for (int cx=0; cx < int(columns.size()); ++cx) {
-				int dx = sx * columns.size() + cx;
-				if (colTypes[cx] == COLUMNDATA_NUMERIC) {
-					delete [] stripeData[dx].realData;
-				} else {
-					delete [] stripeData[dx].intData;
-				}
-			}
-		}
+    if (!columns.size()) return;
+    int stripes = stripeData.size() / columns.size();
+    for (int sx=0; sx < stripes; ++sx) {
+      for (int cx=0; cx < int(columns.size()); ++cx) {
+        int dx = sx * columns.size() + cx;
+        if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+          delete [] stripeData[dx].realData;
+        } else {
+          delete [] stripeData[dx].intData;
+        }
+      }
+    }
 		stripeData.clear();
 	}
 };

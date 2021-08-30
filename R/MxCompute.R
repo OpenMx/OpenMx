@@ -2173,7 +2173,7 @@ setClass(Class = "MxComputeLoadData",
 	 contains = "BaseCompute",
 	 representation = representation(
 		 dest = "MxCharOrNumber",
-		 column = "character",
+		 column = "MxOptionalChar",
 		 path = "MxOptionalChar",
 		 originalDataIsIndexOne = "logical",
 		 byrow = "logical",
@@ -2219,6 +2219,7 @@ setMethod("initialize", "MxComputeLoadData",
 setMethod("convertForBackend", signature("MxComputeLoadData"),
 	function(.Object, flatModel, model) {
 		name <- .Object@name
+    if (length(.Object@column) == 0) .Object@dest <- -1L
 		if (is.character(.Object@dest)) {
 			full <- grepl('.', .Object@dest, fixed=TRUE)
 			for (dx in 1:length(.Object@dest)) {
