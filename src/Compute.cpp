@@ -4742,18 +4742,29 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	ProtectedSEXP Rmethod(R_do_slot(rObj, Rf_install("method")));
 	const char *methodName = R_CHAR(STRING_ELT(Rmethod, 0));
 
+  data = 0;
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("dest")));
-	if (Rf_length(Rdata) != 1)
+	if (Rf_length(Rdata) > 1)
 		mxThrow("%s: can only handle 1 destination MxData", name);
-	int objNum = Rf_asInteger(Rdata);
-	data = globalState->dataList[objNum];
-	auto &rd = data->getUnfilteredRawData();
+  int rows = 0;
+  std::vector<ColumnData> rawCols;
+  ColMapType rawColMap;
+  const char *u_dataName = 0;
+  int objNum = Rf_asInteger(Rdata);
+  if (objNum != -1) {
+    data = globalState->dataList[objNum];
+    u_dataName = data->name;
+    auto &rd = data->getUnfilteredRawData();
+    rows = rd.rows;
+    rawCols = rd.rawCols;
+    rawColMap = data->rawColMap;
+  }
 
 	for (auto pr : Providers) {
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
-			provider->commonInit(rObj, name, data->name, rd.rows, rd.rawCols,
-                           data->rawColMap, Global->checkpointValues, useOriginalData);
+			provider->commonInit(rObj, name, u_dataName, rows, rawCols,
+                           rawColMap, Global->checkpointValues, useOriginalData);
 			provider->init(rObj);
 			break;
 		}
@@ -4780,7 +4791,7 @@ void ComputeLoadData::computeImpl(FitContext *fc)
   int index = 0;
 	if (clc.size()) index = clc[clc.size()-1] - 1;  // innermost loop index
 
-	data->setModified();
+	if (data) data->setModified();
 	if (useOriginalData && index == 0) {
 		provider->loadOrigRow();
 	} else {
@@ -4793,11 +4804,13 @@ void ComputeLoadData::computeImpl(FitContext *fc)
     }
 	}
 
-	auto &columns = provider->getColumns();
-	ColumnInvalidator ci(*fc->state, data, columns);
-	ci();
-	data->evalAlgebras(fc);
-  fc->state->connectToData();
+  if (data) {
+    auto &columns = provider->getColumns();
+    ColumnInvalidator ci(*fc->state, data, columns);
+    ci();
+    data->evalAlgebras(fc);
+    fc->state->connectToData();
+  }
 }
 
 void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)

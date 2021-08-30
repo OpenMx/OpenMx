@@ -4,14 +4,18 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+modelIsHollowAndNotEmpty <- function(model) {
+  length(model@submodels) > 0 && modelIsHollow(model)
+}
 
 modelIsHollow <- function(model) {
 	if (!isHollow(model)) {
@@ -20,12 +24,12 @@ modelIsHollow <- function(model) {
 	submodels <- imxDependentModels(model)
 	if (length(submodels) == 0) return(TRUE)
 	children <- sapply(submodels, modelIsHollow)
-	return(all(children))	
+	return(all(children))
 }
 
 isHollow <- function(model) {
-	return(is.null(model@fitfunction) && 
-		length(model@matrices) == 0 && 
+	return(is.null(model@fitfunction) &&
+		length(model@matrices) == 0 &&
 		length(model@algebras) == 0)
 }
 
@@ -50,7 +54,7 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 	model <- imxReplaceModels(model, independents)
 	frontendStop <- Sys.time()
 	frontendElapsed <- (frontendStop - frontendStart) - indepElapsed
-	model@output <- calculateTiming(model@output, frontendElapsed, 
+	model@output <- calculateTiming(model@output, frontendElapsed,
 		0, indepElapsed, frontendStop, independents)
 	model@output$mxVersion <- mxVersion(verbose=FALSE)
 	model@runstate$independents <- independents
@@ -58,8 +62,8 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 }
 
 
-nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames, 
-		algebraNames, parameterNames, constraintNames, computeSeq, 
+nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
+		algebraNames, parameterNames, constraintNames, computeSeq,
 		output) {
 	output$mxVersion <- mxVersion(verbose=FALSE)
 	if (length(output$estimate) == length(parameterNames)) {
@@ -92,13 +96,13 @@ nameOptimizerOutput <- function(suppressWarnings, flatModel, matrixNames,
 
 nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep, output){
 	if(GDstep@engine=="NPSOL"){
-		
+
 		#Initialize variables:
 		cfvNames <- NULL
 		lmNames <- NULL
 		constraintRows <- NULL
 		constraintCols <- NULL
-		
+
 		#Filter extraneous elements and generate vectors of names:
 		if(length(paramNames)){lmNames <- paste(paramNames,"bound",sep=".")}
 		if(length(constraintNames) && length(GDstep@output$constraintRows) && length(GDstep@output$constraintCols)){
@@ -118,7 +122,7 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 			}
 			lmNames <- c(lmNames, cfvNames)
 		}
-		
+
 		#Assign names to components, and components to 'output' list:
 		if(is.null(output$constraintFunctionValues)){
 			if(length(GDstep@output$constraintFunctionValues)){
@@ -153,12 +157,12 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 		}
 	}
 	else if(GDstep@engine=="CSOLNP" || GDstep@engine=="SLSQP"){
-		
+
 		#Initialize variables:
 		cfvNames <- NULL
 		constraintRows <- NULL
 		constraintCols <- NULL
-		
+
 		#Filter extraneous elements and generate vectors of names:
 		if(length(constraintNames) && length(GDstep@output$constraintRows) && length(GDstep@output$constraintCols)){
 			emptyConstraints <- (GDstep@output$constraintRows==0 | GDstep@output$constraintCols==0)
@@ -176,7 +180,7 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 				}
 			}
 		}
-		
+
 		#Assign names to components, and components to 'output' list:
 		if(is.null(output$constraintFunctionValues)){
 			if(length(GDstep@output$constraintFunctionValues)){
@@ -204,7 +208,7 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 			output$LagrangeMultipliers <- GDstep@output$LagrangeMultipliers
 		}
 		if(length(GDstep@output$LagrHessian)){
-			if(ncol(GDstep@output$LagrHessian) && ncol(GDstep@output$LagrHessian)==length(paramNames) && 
+			if(ncol(GDstep@output$LagrHessian) && ncol(GDstep@output$LagrHessian)==length(paramNames) &&
 				 nrow(GDstep@output$LagrHessian)==length(paramNames)){
 				dimnames(GDstep@output$LagrHessian) <- list(paramNames,paramNames)
 			}
@@ -217,16 +221,16 @@ nameGDOptimizerConstraintOutput <- function(paramNames, constraintNames, GDstep,
 
 nameGenericConstraintOutput <- function(paramNames, constraintNames, output){
 	#Name columns of vcov, if it exists:
-	if(!is.null(output$vcov)){ 
+	if(!is.null(output$vcov)){
 		 if(ncol(output$vcov) && nrow(output$vcov) && nrow(output$vcov)==ncol(output$vcov)){
 			colnames(output$vcov) <- rownames(output$vcov)
 	}}
-	
+
 	#Initialize variables:
 	cfvNames <- NULL
 	constraintRows <- NULL
 	constraintCols <- NULL
-	
+
 	#Filter extraneous elements and generate vectors of names:
 	if(length(constraintNames) && length(output$constraintRows) && length(output$constraintCols)){
 		emptyConstraints <- (output$constraintRows==0 | output$constraintCols==0)
@@ -244,7 +248,7 @@ nameGenericConstraintOutput <- function(paramNames, constraintNames, output){
 			}
 		}
 	}
-	
+
 	if(length(output$constraintFunctionValues) && length(output$constraintFunctionValues)==length(cfvNames)){
 		names(output$constraintFunctionValues) <- cfvNames
 	}
@@ -256,12 +260,12 @@ nameGenericConstraintOutput <- function(paramNames, constraintNames, output){
 			rownames(output$constraintJacobian) <- cfvNames
 		}
 	}
-	
+
 	#Remove clutter from output list:
 	output$constraintNames <- NULL
 	output$constraintCols <- NULL
 	output$constraintRows <- NULL
-	
+
 	return(output)
 }
 
@@ -325,7 +329,7 @@ optimizerMessages <- list('1' = paste('The final iterate satisfies',
 npsolWarnings <- function(prefix, status) {
 	message <- optimizerMessages[[as.character(status)]]
 	if(!is.null(message)) {
-		warning(paste(prefix, 
+		warning(paste(prefix,
 			"Optimizer returned a non-zero status code",
 			paste(status, '.', sep = ''), message), call. = FALSE)
 	}
