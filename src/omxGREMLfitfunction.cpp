@@ -1308,45 +1308,66 @@ void omxGREMLFitState::crude_numeric_dV(
 		fc2 = u_fc->childList[thrId];
 	}
 	omxState *st = fc2->state;
-
+	
 	//Store current elements of V:
-	Eigen::MatrixXd EigV(cov->rows, cov->cols);
-	if(ge->numcases2drop && cov->rows > y->cols){
-		dropCasesAndEigenize(cov, EigV, ge->numcases2drop, ge->dropcase, 1, cov->rows);
-	}
-	else{
-		EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
-	}
-	Eigen::MatrixXd Vcurr(EigV.rows(), EigV.cols());
-	for(c=0; c < EigV.cols(); c++){
-		for(r=c; r < EigV.rows(); r++){
-			Vcurr(r,c) = EigV(r,c);
+	Eigen::MatrixXd Vcurr(cov->rows, cov->cols);
+	{
+		Eigen::MatrixXd EigV(cov->rows, cov->cols); //<--Not needed outside this scope.
+		if(ge->numcases2drop && cov->rows > y->cols){
+			dropCasesAndEigenize(cov, EigV, ge->numcases2drop, ge->dropcase, 1, cov->rows);
+		}
+		else{
+			EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
+		}
+		for(c=0; c < EigV.cols(); c++){
+			for(r=c; r < EigV.rows(); r++){
+				Vcurr(r,c) = EigV(r,c);
+			}
 		}
 	}
-
+	
 	//Shift parameter of interest and compute V at new point in parameter space:
 	u_curEst[Parnum] += 1e-4;
 	fc2->setEstFromOptimizer(u_curEst);
 	omxMatrix *mat = st->lookupDuplicate(cov);
 	omxRecompute(mat, fc2);
 
-	if( ge->numcases2drop && mat->rows > y->cols ){
-		dropCasesAndEigenize(mat, dV_dtheta, ge->numcases2drop, ge->dropcase, 1, mat->rows);
+	//dV_dtheta_tmp is only needed in the single-threaded case:
+	if(thrId >= 0){
+		if( ge->numcases2drop && mat->rows > y->cols ){
+			dropCasesAndEigenize(mat, dV_dtheta, ge->numcases2drop, ge->dropcase, 1, mat->rows);
+		}
+		else{
+			dV_dtheta = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
+		}
 	}
 	else{
-		dV_dtheta = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
+		{
+			Eigen::MatrixXd dV_dtheta_tmp; //<--Not needed outside this scope.
+			if( ge->numcases2drop && mat->rows > y->cols ){
+				dropCasesAndEigenize(mat, dV_dtheta_tmp, ge->numcases2drop, ge->dropcase, 1, mat->rows);
+			}
+			else{
+				dV_dtheta_tmp = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
+			}
+			dV_dtheta.resize(dV_dtheta_tmp.rows(), dV_dtheta_tmp.rows());
+			for(c=0; c < dV_dtheta.rows(); c++){
+				for(r=c; r < dV_dtheta.rows(); r++){
+					dV_dtheta(r,c) = dV_dtheta_tmp(r,c);
+				}
+			}
+		}
 	}
-
 	//Does this actually save memory...?:
 	dV_dtheta.template triangularView<Eigen::Lower>() = (dV_dtheta - Vcurr)/1e-4;
 
 	//Put things back the way they were:
 	u_curEst[Parnum] -= 1e-4;
 	fc2->setEstFromOptimizer(u_curEst);
-	EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
+	Eigen::Map< Eigen::MatrixXd > EigV2(omxMatrixDataColumnMajor(cov), cov->rows, cov->cols);
 	for(c=0; c < cov->rows; c++){
 		for(r=c; r < cov->rows; r++){
-			EigV(r,c) = Vcurr(r,c);
+			EigV2(r,c) = Vcurr(r,c);
 		}
 	}
 	return;
