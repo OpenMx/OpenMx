@@ -762,31 +762,27 @@ generateRelationalData <- function(model, returnModel, .backend, subname, empiri
 		modelE <- mxRun(modelE, silent=TRUE)
 		simData <- modelE$compute$output
 
-		datalist <- modelE@runstate$datalist
-		for (dName in names(datalist)) {
-			if (is.null(simData[[dName]])) {
-				simData[[dName]] <- datalist[[dName]]$observed
-			} else {
-				orig <- datalist[[dName]]$observed
-				toCopy <- setdiff(colnames(orig), colnames(simData[[dName]]))
-				for (col in toCopy) {
-					simData[[dName]][[col]] <- orig[[col]]
-				}
-			}
-		}
-
 		names(simData) <- substr(names(simData), 1, nchar(names(simData))-5) #strip .data
 
+    for (modelName in names(simData)) {
+      if (modelName == model$name) {
+        dat <- model@data@observed
+      } else {
+        dat <- model[[modelName]]@data@observed
+      }
+      newDat <- simData[[modelName]]
+      toCopy <- setdiff(colnames(dat), colnames(newDat))
+      for (col in toCopy) newDat[[col]] <- dat[[col]]
+      simData[[modelName]] <- newDat
+      if (modelName == model$name) {
+        model@data@observed <- newDat
+      } else {
+        model[[modelName]]@data@observed <- newDat
+      }
+    }
 		if (!returnModel) {
 			return(simData)
 		} else {
-			for (modelName in names(simData)) {
-				if (modelName == model$name) {
-					model@data@observed <- simData[[modelName]]
-				} else {
-					model[[modelName]]@data@observed <- simData[[modelName]]
-				}
-			}
 			return(model)
 		}
 	}
