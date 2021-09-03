@@ -107,6 +107,10 @@ mxPenalty <- function(what, epsilon=1e-5, scale=1,
     if (length(what) %% length(scale) != 0) {
       stop("length(what) %% length(scale) != 0")
     }
+    if (any(duplicated(what))) {
+      stop(paste0("Parameters", omxQuotes(what[duplicated(what)]),
+                  "added to penalty more than once"))
+    }
     new("MxPenalty", name=name, type=how, reg_params=what, epsilon=epsilon, scale=scale,
         smoothProportion=smoothProportion, hyperparams=hyperparams, hpranges=hpranges)
 }
