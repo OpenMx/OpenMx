@@ -794,12 +794,14 @@ generateRelationalData <- function(model, returnModel, .backend, subname, empiri
 	))
 
 	modelE <- mxModel(model, plan)
+  modelE$expectation$.maxDebugGroups <- 100L
 	modelE$expectation$.rampartCycleLimit <- 0L
 	modelE <- mxRun(modelE, silent=TRUE)
 	dataEnv <- new.env()
-	for (dName in names(modelE@runstate$datalist)) {
+  datasets <- collectDatasets(modelE, imxGenerateNamespace(model))
+	for (dName in names(datasets)) {
 		modelName <- substr(dName, 1, nchar(dName)-5)  # remove .data
-		assign(modelName, modelE@runstate$datalist[[ dName ]]@observed, envir=dataEnv)
+		assign(modelName, datasets[[ dName ]]@observed, envir=dataEnv)
 	}
 	ed <- modelE$expectation$debug
 	layout <- ed$layout

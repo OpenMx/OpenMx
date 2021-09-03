@@ -48,9 +48,6 @@ specified to avoid errors during optimization.
 * MxCompute controls what happens in the backend.
 * After the backend returns, the model is updated with everything that
   changed.
-* The model\@runstate slot is suppose to preserve the post-backend
-  state of the model so that summary output doesn't change after the
-  user changes something in the model after mxRun.
 
 Note that MxEval is almost pure R code.
 

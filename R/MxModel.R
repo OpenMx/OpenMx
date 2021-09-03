@@ -31,7 +31,6 @@ setClass(Class = "MxModel",
 		independent = "logical",
 		options = "list",
 		output = "list",
-		runstate = "list",  # DEPRECATED
 		.newobjects = "logical",
 		.resetdata = "logical",
 		.wasRun = "logical",
@@ -57,7 +56,6 @@ setMethod("initialize", "MxModel",
 		.Object@independent <- FALSE
 		.Object@options <- list()
 		.Object@output <- list()
-		.Object@runstate <- list()
 		.Object@.newobjects <- FALSE
 		.Object@.resetdata <- FALSE
 		.Object@.wasRun <- FALSE
@@ -760,8 +758,5 @@ omxModelDeleteData <- function(model) {
     model@data <- NULL
   }
 
-  if (!is.null(model@runstate) && !is.null(model@runstate$datalist)) {
-    model@runstate$datalist <- NULL
-  }
   model
 }
