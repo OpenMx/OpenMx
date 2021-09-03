@@ -50,11 +50,11 @@ model <- mxModel(model, mxd)
 
 autoregressivePathRaw <-mxRun(model)
 
-afterRunSize <- object.size(autoregressivePathRaw)
-bareRunSize <- object.size(omxModelDeleteData(autoregressivePathRaw))
-
-print(c(afterRunSize, 2*dataSize, bareRunSize))
-omxCheckCloseEnough(afterRunSize - 2*dataSize, bareRunSize, 340)
+# afterRunSize <- object.size(autoregressivePathRaw)
+# bareRunSize <- object.size(omxModelDeleteData(autoregressivePathRaw))
+# 
+# print(c(afterRunSize, 2*dataSize, bareRunSize))
+# omxCheckCloseEnough(afterRunSize - 2*dataSize, bareRunSize, 340)
 
 # Comparing to old Mx Output
 omxCheckCloseEnough(autoregressivePathRaw$output$estimate[["beta"]], 0.4267, 0.001)

@@ -57,7 +57,6 @@ processHollowModel <- function(model, independents, frontendStart, indepElapsed)
 	model@output <- calculateTiming(model@output, frontendElapsed,
 		0, indepElapsed, frontendStop, independents)
 	model@output$mxVersion <- mxVersion(verbose=FALSE)
-	model@runstate$independents <- independents
 	return(model)
 }
 

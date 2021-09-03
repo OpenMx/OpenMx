@@ -273,7 +273,6 @@ RAMrfs <- function(model, res, minManifests) {
 }
 
 findIntramodelDefVars <- function(model){
-	if( length(model@runstate) && !length(model@runstate$defvars) ){return(NULL)}
 	matlabs <- unlist(lapply(model@matrices,FUN=function(x){x@labels[!is.na(x@labels)]}))
 	if( !("data." %in% substr(matlabs,1,5)) ){return(NULL)}
 	else{
