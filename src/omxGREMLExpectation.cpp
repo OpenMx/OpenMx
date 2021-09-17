@@ -124,16 +124,21 @@ void omxGREMLExpectation::init()
   oge->cholquadX_fail = 0;
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
-  Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
+  //Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
+  double *ptrToMatrix;
   Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
   //Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
   quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1, int(oge->origVdim_om->data[0]));
+    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
   }
-  else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
+  else{
+  	//EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);
+  	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
+  }
+  Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
   //invcov:
   oge->invcov = omxInitMatrix(EigV.rows(), EigV.cols(), 1, currentState);
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), EigV.rows(), EigV.cols());
@@ -178,16 +183,21 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
-  Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
+  //Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
+  double *ptrToMatrix;
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
   quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV, oge->numcases2drop, oge->dropcase, 1, int(oge->origVdim_om->data[0]));
+    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
   }
-  else{EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);}
+  else{
+  	//EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);
+  	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
+  }
+  Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
     oge->cholV_fail_om->data[0] = 1;
