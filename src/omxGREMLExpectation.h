@@ -88,9 +88,6 @@ void dropCasesAndEigenize(
  	//return;
  }
 
- //int oldRows = om->originalRows;
- //int oldCols = om->originalCols;
-
  int nextCol = 0;
  int nextRow = 0;
 

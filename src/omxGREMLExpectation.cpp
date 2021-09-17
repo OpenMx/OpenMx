@@ -183,7 +183,6 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
-  //Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
   double *ptrToMatrix;
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
@@ -194,7 +193,6 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
     dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
   }
   else{
-  	//EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
   }
   Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
