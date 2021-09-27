@@ -421,19 +421,7 @@ void ComputeNR::computeImpl(FitContext *fc)
 	fc->iterations += nro.getIter();
 
 	if (obj.converged) {
-		double gradNorm = 0.0;
-		double feasibilityTolerance = Global->feasibilityTolerance;
-		// factor out simliar code in omxHessianCalculation
-		for (int gx=0; gx < numParam; ++gx) {
-			if ((fc->gradZ[gx] > 0 && fabs(fc->est[gx] - obj.lbound[gx]) < feasibilityTolerance) ||
-			    (fc->gradZ[gx] < 0 && fabs(fc->est[gx] - obj.ubound[gx]) < feasibilityTolerance)) continue;
-			double g1 = fc->gradZ[gx];
-			gradNorm += g1 * g1;
-		}
-		gradNorm = sqrt(gradNorm);
-		if (gradNorm > Global->getGradientThreshold(fc->fit)) {
-			if (verbose >= 1) mxLog("gradient norm=%f gradient thresh=%f",
-						gradNorm, Global->getGradientThreshold(fc->fit));
+		if (fc->isGradientTooLarge()) {
 			fc->setInform(INFORM_NOT_AT_OPTIMUM);
 		} else {
 			fc->setInform(INFORM_CONVERGED_OPTIMUM);

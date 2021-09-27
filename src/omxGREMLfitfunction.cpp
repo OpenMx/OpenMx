@@ -386,6 +386,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  		HessianBlock *hb = new HessianBlock;
  		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  			if(gff->dVlength < gff->numExplicitFreePar && derivType==0){
+        if (gff->hessianAvailable) mxThrow("%s: sorry, i lied about whether analytic derivs were availabe", gff->name());
  				omxRaiseErrorf("GREML fitfunction cannot compute information matrix without analytic derivatives of V with respect to EVERY free parameter");
  			}
  			hb->vars.resize(gff->numExplicitFreePar);

@@ -75,6 +75,7 @@ class omxComputeNumericDeriv : public omxCompute {
 	double *gcentral, *gforward, *gbackward;
 	double *hessian;
 	struct hess_struct *hessWorkVector;
+	bool analytic;
 	bool recordDetail;
 	SEXP detail;
 
@@ -335,6 +336,10 @@ void omxComputeNumericDeriv::initFromFrontend(omxState *state, SEXP rObj)
 	totalProbeCount = 0;
 	recordDetail = true;
 	detail = 0;
+
+  analytic = false;
+  S4 myobj(rObj);
+  if (myobj.hasSlot("analytic") && as<bool>(myobj.slot("analytic"))) analytic = true;
 }
 
 void omxComputeNumericDeriv::omxCalcFinalConstraintJacobian(FitContext* fc)
@@ -421,7 +426,29 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
                          numParams, numChildren, minimum);
 
 	hessian = NULL;
-	if (wantHessian) {
+  bool analyticDeriv = false;
+  if (wantHessian && analytic && fitMat->isFitFunction()) {
+    auto *ff = fitMat->fitFunction;
+    if (ff->hessianAvailable) {
+      //mxLog("shortcut hessian");
+      int want = 0;
+      if (!(fc->wanted & FF_COMPUTE_GRADIENT)) want |= FF_COMPUTE_GRADIENT;
+      if (!(fc->wanted & FF_COMPUTE_HESSIAN)) {
+        fc->clearHessian();
+        want |= FF_COMPUTE_HESSIAN;
+      }
+      if (want) ComputeFit(name, fitMat, want, fc);
+      if (want & FF_COMPUTE_HESSIAN) {
+        fc->refreshDenseHess();
+        fc->hess.triangularView<Eigen::Lower>() =
+          fc->hess.transpose().triangularView<Eigen::Lower>();
+      }
+      hessian = fc->hess.data();
+      analyticDeriv = true;
+    }
+  }
+
+	if (!analyticDeriv && wantHessian) {
 		hessian = fc->getDenseHessUninitialized();
 		Eigen::Map< Eigen::MatrixXd > eH(hessian, numParams, numParams);
 		eH.setConstant(NA_REAL);
@@ -446,7 +473,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		}
 	}
 
-	if (detail) {
+	if (detail || analyticDeriv) {
 		recordDetail = false; // already done it once
 	} else {
 		Rf_protect(detail = Rf_allocVector(VECSXP, 4));
@@ -471,59 +498,56 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 		markAsDataFrame(detail);
 	}
 
-	gforward = REAL(VECTOR_ELT(detail, 1));
-	gcentral = REAL(VECTOR_ELT(detail, 2));
-	gbackward = REAL(VECTOR_ELT(detail, 3));
-	Eigen::Map< Eigen::ArrayXd > Gf(gforward, numParams);
-	Eigen::Map< Eigen::ArrayXd > Gc(gcentral, numParams);
-	Eigen::Map< Eigen::ArrayXd > Gb(gbackward, numParams);
-	Gf.setConstant(NA_REAL);
-	Gc.setConstant(NA_REAL);
-	Gb.setConstant(NA_REAL);
+  if (!analyticDeriv) {
+    gforward = REAL(VECTOR_ELT(detail, 1));
+    gcentral = REAL(VECTOR_ELT(detail, 2));
+    gbackward = REAL(VECTOR_ELT(detail, 3));
+    Eigen::Map< Eigen::ArrayXd > Gf(gforward, numParams);
+    Eigen::Map< Eigen::ArrayXd > Gc(gcentral, numParams);
+    Eigen::Map< Eigen::ArrayXd > Gb(gbackward, numParams);
+    Gf.setConstant(NA_REAL);
+    Gc.setConstant(NA_REAL);
+    Gb.setConstant(NA_REAL);
 
-	calcHessianEntry che(this);
-	CovEntrywiseParallel(numChildren, che);
+    calcHessianEntry che(this);
+    CovEntrywiseParallel(numChildren, che);
 
-	for(int i = 0; i < numChildren; i++) {
-		struct hess_struct *hw = hessWorkVector + i;
-		totalProbeCount += hw->probeCount;
-	}
-	delete [] hessWorkVector;
-	if (isErrorRaised()) return;
+    for(int i = 0; i < numChildren; i++) {
+      struct hess_struct *hw = hessWorkVector + i;
+      totalProbeCount += hw->probeCount;
+    }
+    delete [] hessWorkVector;
+    if (isErrorRaised()) return;
 
-	Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
-	double gradNorm = 0.0;
+    Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);
 
-	double feasibilityTolerance = Global->feasibilityTolerance;
-	for (int px=0; px < numParams; ++px) {
-		// factor out simliar code in ComputeNR
-		Gsymmetric[px] = true;
-		omxFreeVar &fv = *fc->varGroup->vars[ fc->freeToParamMap[px] ];
-		if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
-		    (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
-			Gsymmetric[px] = false;
-			continue;
-		}
-		gradNorm += Gc[px] * Gc[px];
-		double relsym = 2 * fabs(Gf[px] + Gb[px]) / (Gb[px] - Gf[px]);
-		Gsymmetric[px] &= (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
-		if (checkGradient && verbose >= 2 && !Gsymmetric[px]) {
-			mxLog("%s: param[%d] %d %f", name, px, Gsymmetric[px], relsym);
-		}
-	}
+    double feasibilityTolerance = Global->feasibilityTolerance;
+    for (int px=0; px < numParams; ++px) {
+      // factor out simliar code in ComputeNR
+      Gsymmetric[px] = true;
+      omxFreeVar &fv = *fc->varGroup->vars[ fc->freeToParamMap[px] ];
+      if ((fabs(optima[px] - fv.lbound) < feasibilityTolerance && Gc[px] > 0) ||
+          (fabs(optima[px] - fv.ubound) < feasibilityTolerance && Gc[px] < 0)) {
+        Gsymmetric[px] = false;
+        continue;
+      }
+      double relsym = 2 * fabs(Gf[px] + Gb[px]) / (Gb[px] - Gf[px]);
+      Gsymmetric[px] &= (Gf[px] < 0 && 0 < Gb[px] && relsym < 1.5);
+      if (checkGradient && verbose >= 2 && !Gsymmetric[px]) {
+        mxLog("%s: param[%d] %d %f", name, px, Gsymmetric[px], relsym);
+      }
+    }
 
-  fc->initGrad();
-	fc->copyGradFromOptimizer(Gc);
+    fc->initGrad();
+    fc->copyGradFromOptimizer(Gc);
+  }
 
-	gradNorm = sqrt(gradNorm);
-	double gradThresh = Global->getGradientThreshold(minimum);
-
-	if ( checkGradient && gradNorm > gradThresh && fc->isEffectivelyUnconstrained()) {
-		if (verbose >= 1) {
-			mxLog("Some gradient entries are too large, norm %f", gradNorm);
-		}
-		if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
-	}
+  fc->fit = minimum;
+  if (checkGradient) {
+    if (fc->isGradientTooLarge() && fc->isEffectivelyUnconstrained()) {
+      if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);
+    }
+  }
 
   fc->destroyChildren();
 	fc->setEstFromOptimizer(optima);

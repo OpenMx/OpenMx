@@ -184,6 +184,7 @@ class FitContext {
     int pars = getNumFree();
 		gradZ = Eigen::VectorXd::Zero(pars);
 	};
+  bool isGradientTooLarge();
 	int infoDefinite;
 	double infoCondNum;
 	Eigen::MatrixXd hess;

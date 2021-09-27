@@ -3948,6 +3948,22 @@ void ComputeHessianQuality::initFromFrontend(omxState *globalState, SEXP rObj)
 	verbose = Rf_asInteger(slotValue);
 }
 
+bool FitContext::isGradientTooLarge()
+{
+		double gradNorm = 0.0;
+		double feasibilityTolerance = Global->feasibilityTolerance;
+    int numFree = getNumFree();
+		for (int gx=0; gx < numFree; ++gx) {
+      omxFreeVar &fv = *varGroup->vars[ freeToParamMap[gx] ];
+			if ((gradZ[gx] > 0 && fabs(est[gx] - fv.lbound) < feasibilityTolerance) ||
+			    (gradZ[gx] < 0 && fabs(est[gx] - fv.ubound) < feasibilityTolerance)) continue;
+			double g1 = gradZ[gx];
+			gradNorm += g1 * g1;
+		}
+		gradNorm = sqrt(gradNorm);
+    return gradNorm > Global->getGradientThreshold(fit);
+}
+
 bool FitContext::isEffectivelyUnconstrained()
 {
   if (isUnconstrained()) return true;

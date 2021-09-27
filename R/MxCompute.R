@@ -1740,8 +1740,9 @@ setClass(Class = "MxComputeNumericDeriv",
 	     iterations = "integer",
 	     verbose="integer",
 	     knownHessian="MxOptionalMatrix",
-	     checkGradient="logical",
-	 hessian="logical"))
+     checkGradient="logical",
+     hessian="logical",
+     analytic="logical"))
 
 setMethod("qualifyNames", signature("MxComputeNumericDeriv"),
 	function(.Object, modelname, namespace) {
@@ -1761,7 +1762,7 @@ setMethod("convertForBackend", signature("MxComputeNumericDeriv"),
 
 setMethod("initialize", "MxComputeNumericDeriv",
 	  function(.Object, freeSet, fit, parallel, stepSize, iterations, verbose, knownHessian,
-		   checkGradient, hessian) {
+		   checkGradient, hessian, analytic) {
 		  .Object@name <- 'compute'
 		  .Object@.persist <- TRUE
 		  .Object@freeSet <- freeSet
@@ -1773,6 +1774,7 @@ setMethod("initialize", "MxComputeNumericDeriv",
 		  .Object@knownHessian <- knownHessian
 		  .Object@checkGradient <- checkGradient
 		  .Object@hessian <- hessian
+		  .Object@analytic <- analytic
 		  .Object
 	  })
 
@@ -1822,6 +1824,7 @@ adjustDefaultNumericDeriv <- function(m, iterations, stepSize) {
 ##' @param knownHessian an optional matrix of known Hessian entries
 ##' @param checkGradient whether to check the first order convergence criterion (gradient is near zero)
 ##' @param hessian whether to estimate the Hessian. If FALSE then only the gradient is estimated.
+##' @param analytic Use the analytic Hessian, if available.
 ##' @aliases
 ##' MxComputeNumericDeriv-class
 ##' @examples
@@ -1846,7 +1849,7 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 				  parallel=TRUE,
 				  stepSize=imxAutoOptionValue("Gradient step size"),
 				  iterations=4L, verbose=0L,
-				  knownHessian=NULL, checkGradient=TRUE, hessian=TRUE)
+				  knownHessian=NULL, checkGradient=TRUE, hessian=TRUE, analytic=TRUE)
 {
   prohibitDotdotdot(list(...))
 	verbose <- as.integer(verbose)
@@ -1863,7 +1866,7 @@ mxComputeNumericDeriv <- function(freeSet=NA_character_, ..., fitfunction='fitfu
 	}
 
 	new("MxComputeNumericDeriv", freeSet, fitfunction, parallel, stepSize, iterations,
-	    verbose, knownHessian, checkGradient, hessian)
+	    verbose, knownHessian, checkGradient, hessian, analytic)
 }
 
 setMethod("displayCompute", signature(Ob="MxComputeNumericDeriv", indent="integer"),

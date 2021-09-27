@@ -422,6 +422,7 @@ void omxCompleteFitFunction(omxMatrix *om)
   obj->connectPenalties();
 
 	obj->initialized = TRUE;
+  //mxLog("%s: Hessian available %d", obj->name(), obj->hessianAvailable);
 }
 
 /* Helper functions */
