@@ -1,0 +1,98 @@
+---
+title: "Testing Derivatives"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+It is fairly easy to use OpenMx to compare numerical and analytic
+function derivatives. This vignette shows how to do it. The main
+tool that we are going to use are two custom compute plans
+called `aPlan` and `nPlan`.
+
+```{r}
+library(OpenMx)
+
+aPlan <- mxComputeSequence(list(  #analytic
+  mxComputeOnce('fitfunction', c('gradient')),
+  mxComputeReportDeriv()))
+  
+nPlan <- mxComputeSequence(list(  #numerical
+  mxComputeNumericDeriv(analytic = FALSE, hessian=FALSE, checkGradient = FALSE),
+  mxComputeReportDeriv()))
+```
+
+Now that we have the plans ready, we can use them to debug
+a fitfunction. Here's a fitfunction from the test suite that is
+somewhat contrived, but can serve our pedagogical needs.
+
+```{r}
+mat1 <- mxMatrix("Full", rnorm(1), free=TRUE, nrow=1, ncol=1, labels="m1", name="mat1")
+obj <- mxAlgebra(-.5 * (log(2*pi) + log(2) + (mat1[1,1])^2/2), name = "obj")
+grad <- mxAlgebra(-(mat1[1,1]) + 2, name = "grad", dimnames=list("m1", NULL))
+mv1 <- mxModel("mv1", mat1, obj, grad,
+                  mxFitFunctionAlgebra("obj", gradient="grad"))
+
+```
+
+Since we are not very good at calculus,
+the gradient function contains some errors. 
+
+```{r}
+nu <- mxRun(mxModel(mv1, nPlan), silent = TRUE)
+an <- mxRun(mxModel(mv1, aPlan), silent = TRUE)
+
+cbind(numerical=nu$output$gradient, analytic=an$output$gradient)
+
+```
+The optimizer is not run so we get the results immediately, even for
+large complex models. The function also does not need to be (approximately) convex.
+Any function will do.
+
+The numerical approximation can be pretty different from the analytic
+even when there are no errors. We can try another point in the
+parameter space.
+
+```{r}
+p1 <- runif(2, -10,10)
+mv1 <- omxSetParameters(mv1, labels = 'm1', values=p1)
+
+nu <- mxRun(mxModel(mv1, nPlan), silent = TRUE)
+an <- mxRun(mxModel(mv1, aPlan), silent = TRUE)
+
+cbind(numerical=nu$output$gradient, analytic=an$output$gradient)
+
+```
+The results do not correspond very closely so we look for math
+errors. Indeed, there are errors in the gradient function. We
+replace it with the correct gradient,
+
+```{r}
+
+grad <- mxAlgebra(-(mat1[1,1])/2, name = "grad", dimnames=list("m1", NULL))
+mv2 <- mxModel(mv1, grad)
+
+```
+
+Let's check the correspondence now.
+
+```{r}
+nu <- mxRun(mxModel(mv2, nPlan), silent = TRUE)
+an <- mxRun(mxModel(mv2, aPlan), silent = TRUE)
+
+cbind(numerical=nu$output$gradient, analytic=an$output$gradient)
+
+```
+Wow, looks much better! Still, it is prudent to check at a few more points.
+
+```{r}
+mv2 <- omxSetParameters(mv2, labels = 'm1', values=rnorm(1))
+
+nu <- mxRun(mxModel(mv2, nPlan), silent = TRUE)
+an <- mxRun(mxModel(mv2, aPlan), silent = TRUE)
+
+cbind(numerical=nu$output$gradient, analytic=an$output$gradient)
+```
+
