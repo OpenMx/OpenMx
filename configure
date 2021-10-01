@@ -232,7 +232,7 @@ elif [ "x$IMX_GCOV" = x1 ]; then
 fi
 
 if [ "${GPU_BUILD:-no}" = yes ]; then
-  echo "GPU CONFIRMED!"
+  echo "TODO: Compile .cu to .o; set Makevars OBJECTS; include CUDA specific CXXFLAGS"
 fi
 
 echo >> src/Makevars.new
