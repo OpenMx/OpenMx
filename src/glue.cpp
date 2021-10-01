@@ -33,11 +33,14 @@
 #include "Compute.h"
 #include "dmvnorm.h"
 #include "npsolswitch.h"
+#include "cudaswitch.h"
 #include "omxCsolnp.h"
 #include <Rcpp.h>
 #include <RcppEigen.h>
 #include "EnableWarnings.h"
 #include "omxSadmvnWrapper.h"
+
+// Test CUDA file for seeing if GPU called from R
 
 void loadCharVecFromR(const char *context, SEXP names, std::vector<const char *> &dest)
 {
@@ -287,6 +290,8 @@ static SEXP has_openmp()
 #endif
 	return Rf_ScalarLogical(opm);
 }
+static SEXP has_CUDA()
+{ return Rf_ScalarLogical(HAS_CUDA); }
 
 static SEXP testMxLog(SEXP Rstr) {
 	mxLog("%s", CHAR(Rf_asChar(Rstr)));
@@ -827,6 +832,7 @@ static R_CallMethodDef callMethods[] = {
 	{"hasNPSOL_wrapper", (DL_FUNC) has_NPSOL, 0},
 	{"sparseInvert_wrapper", (DL_FUNC) sparseInvert_wrapper, 1},
 	{"hasOpenMP_wrapper", (DL_FUNC) has_openmp, 0},
+	{"hasCUDA_wrapper", (DL_FUNC) has_CUDA, 0},
 	{"do_logm_eigen", (DL_FUNC) &do_logm_eigen, 1},
 	{"do_expm_eigen", (DL_FUNC) &do_expm_eigen, 1},
 	{"Log_wrapper", (DL_FUNC) &testMxLog, 1},

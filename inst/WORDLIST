@@ -200,6 +200,7 @@ imxGenSwift
 imxGetNumThreads
 imxGetSlotDisplayNames
 imxHasConstraint
+imxHasCUDA
 imxHasDefinitionVariable
 imxHasNPSOL
 imxHasOpenMP
