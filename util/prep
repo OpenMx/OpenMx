@@ -5,6 +5,7 @@ set -o nounset
 
 flavor=$1
 for=$2
+gpu=${3:-no}
 
 case "$flavor" in
   npsol)
@@ -84,6 +85,17 @@ else
   echo 'NPSOL_LIBS=' > src/Makevars.win.new
   cat src/Makevars.win.in >> src/Makevars.win.new
   cp .Rbuildignore.in .Rbuildignore
+fi
+
+if [ $gpu = include-cuda ]; then
+  echo "TODO: Update Marevars.win.new with NVCC environment variables"
+  if [ ! -e src/cudaswitch.h ] || ! grep -q 1 src/cudaswitch.h; then
+    echo '#define HAS_CUDA 1' > src/cudaswitch.h;
+  fi
+else
+  if [ ! -e src/cudaswitch.h ] || ! grep -q 0 src/cudaswitch.h; then
+    echo '#define HAS_CUDA 0' > src/cudaswitch.h; 
+  fi
 fi
 
 if [ -e src/Makevars.win ] && cmp -s src/Makevars.win.new src/Makevars.win ; then

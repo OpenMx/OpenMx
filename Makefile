@@ -174,6 +174,11 @@ cran-install: code-style
 	+$(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 
+gpu-install: code-style
+	sh ./util/prep npsol install include-cuda
+	+GPU_BUILD=yes $(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
+	git checkout DESCRIPTION
+
 rproftest:
 	$(REXEC) --vanilla --slave < $(RPROFTESTFILE)
 
