@@ -326,6 +326,13 @@ setMethod("initialize", "MxComputeGradientDescent",
 ##' linked with OpenMx. Otherwise FALSE.
 imxHasNPSOL <- function() .Call(hasNPSOL_wrapper)
 
+##' imxHasCUDA
+##'
+##' @return
+##' Returns TRUE if optional .cu files for CUDA-compatible Nvidia GPU-based
+##' calculation have been compiled and linked with OpenMx. Otherwise FALSE.
+imxHasCUDA <- function() .Call(hasCUDA_wrapper)
+
 ##' Optimize parameters using a gradient descent optimizer
 ##'
 ##' This optimizer does not require analytic derivatives of the fit
