@@ -206,6 +206,10 @@ elif [ "x$IMX_GCOV" = x1 ]; then
     echo 'DEBUG_LDFLAGS=--coverage' >> src/Makevars.new
 fi
 
+if [ "${GPU_BUILD:-no}" = yes ]; then
+  echo "GPU CONFIRMED!"
+fi
+
 echo >> src/Makevars.new
 echo "# ---- appending Makevars.in ----" >> src/Makevars.new
 echo >> src/Makevars.new
