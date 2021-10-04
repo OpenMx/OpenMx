@@ -702,7 +702,7 @@ void omxGREMLFitState::gradientAndAIM3(
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
-				double *ptrToMatrix1;
+				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
@@ -1086,7 +1086,7 @@ void omxGREMLFitState::gradientAndEIM3(
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
-				double *ptrToMatrix1;
+				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
