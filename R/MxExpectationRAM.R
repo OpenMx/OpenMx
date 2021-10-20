@@ -224,7 +224,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 			} else {
 				.Object@thresholds <- as.integer(NA)
 				targetNames <- observedDataNames(mxDataObject)
-				if (!identical(translatedNames, targetNames)) {
+				if (!setequal(translatedNames, targetNames)) {
 					varsNotInData <- translatedNames[!(translatedNames %in% targetNames)]
 					msg <- paste("The names of the manifest",
 						     "variables in the F matrix of model",
