@@ -830,23 +830,21 @@ createMatrixF <- function(model) {
 	names <- list(model@manifestVars, variables)
 	if (!is.null(model@data)) {
 		manifestNames <- observedDataNames(model@data)
-		extraData <- setdiff(manifestNames, model@manifestVars)
 		extraVars <- setdiff(model@manifestVars, manifestNames)
-		if (length(extraData) > 0) {
-			msg <- paste("The observed data contains the variables:",
-				omxQuotes(extraData), "that have not been declared in the",
-				"manifest variables.")
-			stop(msg, call. = FALSE)
-		}
+    # would need to exclude freq, weight, keys, etc TODO
+		## extraData <- setdiff(manifestNames, model@manifestVars)
+		## if (length(extraData) > 0) {
+		## 	msg <- paste("The observed data contains the variables:",
+		## 		omxQuotes(extraData), "that have not been declared in the",
+		## 		"manifest variables.")
+		## 	stop(msg, call. = FALSE)
+		## }
 		if (length(extraVars) > 0) {
 			msg <- paste("The manifest variables include",
 				omxQuotes(extraVars), "that have not been found in the",
 				"observed data.")
 			stop(msg, call. = FALSE)
 		}
-		dimnames(values) <- names
-		values <- values[manifestNames,]
-		names <- list(manifestNames, variables)
 	}
 	free <- matrix(FALSE, length(model@manifestVars), len)
 	labels <- matrix(as.character(NA), length(model@manifestVars), len)
