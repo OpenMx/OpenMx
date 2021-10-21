@@ -159,6 +159,11 @@ void omxGREMLFitState::init()
 	  }
   }
 
+	/*
+	 * Possible TODO: If we want GREML fitfunction to work properly in scenarios where the freeVarGroup changes after the 
+	 * omxGREMLFitState has been initialized, then all code from here to the end of this function would need to be moved 
+	 * to buildParamMap().
+	*/
   //Derivatives of V:
   if (R_has_slot(rObj, Rf_install("dV"))) {
   	ProtectedSEXP RdV(R_do_slot(rObj, Rf_install("dV")));
@@ -190,7 +195,8 @@ void omxGREMLFitState::init()
   }
 
   if(newObj->dVlength || derivType==1){
-    oo->hessianAvailable = true;
+    oo->hessianAvailable = true; 
+  	//^^^Gets changed to false in buildParamMap() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
     for(int i=0; i < newObj->dVlength; i++){
@@ -386,7 +392,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  		HessianBlock *hb = new HessianBlock;
  		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  			if(gff->dVlength < gff->numExplicitFreePar && derivType==0){
-        if (gff->hessianAvailable) mxThrow("%s: sorry, i lied about whether analytic derivs were availabe", gff->name());
+        if (gff->hessianAvailable) mxThrow("%s: sorry, i lied about whether analytic derivs were available", gff->name());
  				omxRaiseErrorf("GREML fitfunction cannot compute information matrix without analytic derivatives of V with respect to EVERY free parameter");
  			}
  			hb->vars.resize(gff->numExplicitFreePar);
@@ -1283,6 +1289,11 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
 	varGroup = newVarGroup;
 	numExplicitFreePar = int(varGroup->vars.size());
+	//Now that numExplicitFreePar is known, check to see if derivType=0 and 0 < dVlength < numExplicitFreePar: 
+	if(dVlength < numExplicitFreePar && derivType==0){
+		//The fitfunction is not allowed to claim to be able to provide a Hessian in this case:
+		hessianAvailable = false;
+	}
 	gradient.setZero(numExplicitFreePar);
 	infoMat.setZero(numExplicitFreePar,numExplicitFreePar);
 	didUserGivedV.resize(numExplicitFreePar);
