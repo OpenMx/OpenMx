@@ -1,6 +1,12 @@
 ---
 title: "Testing Derivatives"
-output: html_document
+author: "Joshua Pritikin"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Testing Derivatives}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, include=FALSE}
@@ -18,7 +24,7 @@ library(OpenMx)
 aPlan <- mxComputeSequence(list(  #analytic
   mxComputeOnce('fitfunction', c('gradient')),
   mxComputeReportDeriv()))
-  
+
 nPlan <- mxComputeSequence(list(  #numerical
   mxComputeNumericDeriv(analytic = FALSE, hessian=FALSE, checkGradient = FALSE),
   mxComputeReportDeriv()))
@@ -38,7 +44,7 @@ mv1 <- mxModel("mv1", mat1, obj, grad,
 ```
 
 Since we are not very good at calculus,
-the gradient function contains some errors. 
+the gradient function contains some errors.
 
 ```{r}
 nu <- mxRun(mxModel(mv1, nPlan), silent = TRUE)
@@ -95,4 +101,3 @@ an <- mxRun(mxModel(mv2, aPlan), silent = TRUE)
 
 cbind(numerical=nu$output$gradient, analytic=an$output$gradient)
 ```
-
