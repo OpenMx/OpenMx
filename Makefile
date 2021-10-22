@@ -133,7 +133,7 @@ srcbuild: staging-prep packages-help
 cran-check: cran-build
 	+cd staging && _R_CHECK_FORCE_SUGGESTS_=false $(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
 	wc -l staging/OpenMx.Rcheck/00check.log
-	@if [ $$(wc -l staging/OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 80 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
+	@if [ $$(wc -l staging/OpenMx.Rcheck/00check.log | cut -d ' ' -f 1) -gt 82 ]; then echo "CRAN check problems have grown; see cran-check.log" ; false; fi
 
 roxygen:
 	sh ./util/rox
