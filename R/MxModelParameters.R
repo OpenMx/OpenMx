@@ -330,12 +330,11 @@ getAnonymousNames <- function(rows) {
 }
 
 omxAssignFirstParameters <- function(model, indep = FALSE) {
-	params <- omxGetParameters(model, indep)
-	if (!length(params)) return(model)
-	pnames <- names(params)
-	model <- omxSetParameters(model, pnames[!is.na(pnames)],
-		values = params[!is.na(pnames)], indep = indep)
-	return(model)
+	params <- omxGetParameters(model, indep, fetch='all')
+	if (!nrow(params)) return(model)
+	model <- omxSetParameters(model, rownames(params),
+		values = params$value, lbound = params$lbound, ubound = params$ubound, indep = indep)
+  model
 }
 
 getParametersHelper <- function(matName, model, selection, fetch, labels) {

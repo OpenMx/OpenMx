@@ -64,6 +64,7 @@ test_that("mismatched starting values", {
   m2 <- mxModel(mxMatrix("Full", 2, 1, TRUE, values=c(1,2),
                          labels="same", name="A"))
   expect_error(mxRun(m2), "assigned multiple starting values")
+  mxRun(omxAssignFirstParameters(m2))
 })
 
 test_that("mismatched lbound", {
@@ -77,6 +78,7 @@ test_that("mismatched ubound", {
   m2 <- mxModel(mxMatrix("Full", 2, 1, TRUE, values=1,
                          labels="same", ubound=c(.1,.2), name="A"))
   expect_error(mxRun(m2), "assigned multiple upper bounds")
+  mxRun(omxAssignFirstParameters(m2))
 })
 
 test_that("equal bounds", {
