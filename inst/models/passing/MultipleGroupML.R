@@ -4,9 +4,9 @@
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #        http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,7 +52,7 @@ mgmodel <- mxRun(mgmodel, suppressWarnings = TRUE)
 omxCheckCloseEnough(omxGetParameters(model), omxGetParameters(mgmodel), 1e-3)
 
 #check standard errors
-omxCheckCloseEnough(summary(model)$parameters[,6], summary(mgmodel)$parameters[,6], 1e-3)
+omxCheckCloseEnough(summary(model)$parameters[,6], summary(mgmodel)$parameters[,6], 0.005)
 
 mgmodel$output$hessian
 mgmodel$output$calculatedHessian
@@ -61,4 +61,3 @@ mgmodel$output$hessianCholesky
 
 omxCheckError(mxCheckIdentification(model), "Identification check is not possible for models with 'MxFitFunctionAlgebra', 'MxFitFunctionRow', and 'MxFitFunctionR' fit functions.
  If you have a multigroup model, use mxFitFunctionMultigroup.")
-
