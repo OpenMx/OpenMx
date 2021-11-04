@@ -486,7 +486,7 @@ void omxGREMLFitState::gradientAndAIM1(
 			t1 = gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
 			if(didUserGivedV[t1] || derivType==1){
-				double *ptrToMatrix1;
+				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[i] = t1;}
@@ -529,7 +529,7 @@ void omxGREMLFitState::gradientAndAIM1(
 					else{
 						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							Eigen::MatrixXd filteredCopy2;
-							double *ptrToMatrix2;
+							double *ptrToMatrix2=0;
 							t2 = gradMap[j]; //<--Parameter number for parameter j.
 							if(t2 < 0){continue;}
 							a2 = dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
@@ -594,7 +594,7 @@ void omxGREMLFitState::gradientAndAIM2(
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
 				Eigen::MatrixXd filteredCopy1;
-				double *ptrToMatrix1;
+				double *ptrToMatrix1=0;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
 				if(didUserGivedV[t1]){
@@ -637,7 +637,7 @@ void omxGREMLFitState::gradientAndAIM2(
 					else{
 						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							Eigen::MatrixXd filteredCopy2;
-							double *ptrToMatrix2;
+							double *ptrToMatrix2=0;
 							t2 = gradMap[hcn];
 							if(t2 < 0){continue;}
 							a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
@@ -748,7 +748,7 @@ void omxGREMLFitState::gradientAndAIM3(
 				else{
 					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						Eigen::MatrixXd filteredCopy2;
-						double *ptrToMatrix2;
+						double *ptrToMatrix2=0;
 						t2 = gradMap[hcn];
 						if(t2 < 0){continue;}
 						a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
@@ -824,7 +824,7 @@ void omxGREMLFitState::gradientAndEIM1(
 				double tr2=0;
 				u_hb->vars[i] = t1;
 				if(didUserGivedV[t1] || derivType==1){
-					double *ptrToMatrix1;
+					double *ptrToMatrix1=0;
 					Eigen::MatrixXd filteredCopy1;
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 					if(didUserGivedV[t1]){
@@ -861,7 +861,7 @@ void omxGREMLFitState::gradientAndEIM1(
 						}
 						else{
 							Eigen::MatrixXd filteredCopy2;
-							double *ptrToMatrix2;
+							double *ptrToMatrix2=0;
 							t2 = gradMap[j]; //<--Parameter number for parameter j.
 							if(t2 < 0){continue;}
 							a2 = dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
@@ -900,7 +900,7 @@ void omxGREMLFitState::gradientAndEIM1(
 
 			else{
 				if(didUserGivedV[t1] || derivType==1){
-					double *ptrToMatrix1;
+					double *ptrToMatrix1=0;
 					Eigen::MatrixXd filteredCopy1;
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 					if(didUserGivedV[t1]){
@@ -974,7 +974,7 @@ void omxGREMLFitState::gradientAndEIM2(
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
-				double *ptrToMatrix1;
+				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
@@ -1016,7 +1016,7 @@ void omxGREMLFitState::gradientAndEIM2(
 					else{
 						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 							Eigen::MatrixXd filteredCopy2;
-							double *ptrToMatrix2;
+							double *ptrToMatrix2=0;
 							t2 = gradMap[hcn];
 							if(t2 < 0){continue;}
 							a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
@@ -1132,7 +1132,7 @@ void omxGREMLFitState::gradientAndEIM3(
 				else{
 					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						Eigen::MatrixXd filteredCopy2;
-						double *ptrToMatrix2;
+						double *ptrToMatrix2=0;
 						t2 = gradMap[hcn];
 						if(t2 < 0){continue;}
 						a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
@@ -1191,7 +1191,7 @@ void omxGREMLFitState::crude_numeric_dV(
 {
 	int c, r;
 	FitContext *fc2 = u_fc;
-	double *ptrToMatrix1, *ptrToMatrix2;
+	double *ptrToMatrix1=0, *ptrToMatrix2=0;
 	if(thrId >= 0){
 		fc2 = u_fc->childList[thrId];
 	}
