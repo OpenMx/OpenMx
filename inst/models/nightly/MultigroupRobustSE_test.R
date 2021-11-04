@@ -142,3 +142,37 @@ omxCheckTrue(length(singlegroupRSE$meat))
 omxCheckEquals(rownames(singlegroupRSE$meat),pn)
 omxCheckEquals(colnames(singlegroupRSE$meat),pn)
 omxCheckTrue(length(singlegroupRSE$TIC))
+
+#Multigroup twin model, with a dependency group:
+covMZ     <- mxAlgebra( expression=rbind( cbind(U.V, A+C), 
+																					cbind(A+C, U.V)), name="expCovMZ" )
+covDZ     <- mxAlgebra( expression=rbind( cbind(U.V, 0.5%x%A+C), 
+																					cbind(0.5%x%A+C , U.V)), name="expCovDZ" )
+
+pars      <- list( pathA, pathC, pathE, covA, covC, covE )
+modelU <- mxModel("U",covP,pars)
+modelMZ   <- mxModel( pars, meanMZ, covMZ, dataMZ, expMZ, funML, name="MZ" )
+modelDZ   <- mxModel( pars, meanDZ, covDZ, dataDZ, expDZ, funML, name="DZ" )
+fitML     <- mxFitFunctionMultigroup(c("MZ","DZ") )
+twinACEModel  <- mxModel( "ACE", pars, modelMZ, modelDZ, modelU, fitML )
+twinACEFit <- mxRun(twinACEModel)
+multigroupRSE2 <- imxRobustSE(twinACEFit,T,"U")
+
+omxCheckCloseEnough(multigroupRSE[[1]], multigroupRSE2[[1]], 1e-5)
+omxCheckCloseEnough(multigroupRSE[[2]], multigroupRSE2[[2]], 1e-6)
+omxCheckCloseEnough(multigroupRSE[[3]], multigroupRSE2[[3]], 1e-5)
+omxCheckCloseEnough(multigroupRSE[[4]], multigroupRSE2[[4]], 5e-3)
+omxCheckCloseEnough(multigroupRSE[[5]], multigroupRSE2[[5]], 1e-4)
+
+omxCheckTrue(length(multigroupRSE2$SE))
+omxCheckEquals(names(multigroupRSE2$SE),pn)
+omxCheckTrue(length(multigroupRSE2$cov))
+omxCheckEquals(rownames(multigroupRSE2$cov),pn)
+omxCheckEquals(colnames(multigroupRSE2$cov),pn)
+omxCheckTrue(length(multigroupRSE2$bread))
+omxCheckEquals(rownames(multigroupRSE2$bread),pn)
+omxCheckEquals(colnames(multigroupRSE2$bread),pn)
+omxCheckTrue(length(multigroupRSE2$meat))
+omxCheckEquals(rownames(multigroupRSE2$meat),pn)
+omxCheckEquals(colnames(multigroupRSE2$meat),pn)
+omxCheckTrue(length(multigroupRSE2$TIC))

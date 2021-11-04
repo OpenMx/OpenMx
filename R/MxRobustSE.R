@@ -32,7 +32,10 @@
 ##'
 ##' @param model An OpenMx model object that has been run
 ##' @param robustSE Logical; are the row gradients being requested to calculate robust standard errors?
-imxRowGradients <- function(model, robustSE=FALSE){
+##' @param dependencyModels Vector of character strings naming 
+##' submodels that do not contain data, but contain objects 
+##' to which data-containing models make reference.
+imxRowGradients <- function(model, robustSE=FALSE, dependencyModels=character(0)){
 	if(is.null(model@output)){
 		stop("The 'model' argument has no output.  Give me a model that has been run.")
 	}
@@ -74,6 +77,9 @@ imxRowGradients <- function(model, robustSE=FALSE){
 							warning(paste("submodel '",currModel@name,
 														"' contains submodels of its own; support for submodels of submodels not implemented",sep=""))
 						}
+					}
+					if(length(dependencyModels)){
+						currModel <- mxModel(currModel,model@submodels[dependencyModels])
 					}
 					#By itself, a GREML model can't get robust SEs; you'd end up calculating the variance of the row derivatives for a sample of n=1 row.
 					#But, if it's a submodel contributing to a multigroup fit (admittedly a corner case), then it's just another data row
@@ -149,14 +155,14 @@ imxRowGradients <- function(model, robustSE=FALSE){
 ##' at the maximum-likelihood solution.
 ##' 
 ##' This function does not work correctly with multigroup models in which the 
-##' groups themselves contain subgroups, or in which groups contain references
-##' to objects in other groups.  This function also does not correctly handle
+##' groups themselves contain subgroups. This function also does not correctly handle
 ##' multilevel data.
 ##'
 ##' @param model An OpenMx model object that has been run.
 ##' @param details Logical. whether to return the full parameter
 ##' covariance matrix.
-imxRobustSE <- function(model, details=FALSE){
+##' @param dependencyModels Passed to \code{imxRowGradients()}.
+imxRobustSE <- function(model, details=FALSE, dependencyModels=character(0)){
 	if(is(model@expectation, "MxExpectationGREML")){
 		stop("robust standard errors cannot be calculated for a single-group model that uses GREML expectation")
 	}
@@ -180,7 +186,7 @@ imxRobustSE <- function(model, details=FALSE){
 	bread <- vcov(model)
 	dimnames(bread) <- parnames
 	#The row gradients are the slowest part, so only do them now that we know the bread is good:
-	grads <- imxRowGradients(model, robustSE=TRUE)/-2
+	grads <- imxRowGradients(model, robustSE=TRUE, dependencyModels)/-2
 	meat <- nrow(grads)*var(grads)
 	rm(grads) #<--Could be huge in Big Data contexts...
 	dimnames(meat) <- parnames
