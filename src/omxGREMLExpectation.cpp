@@ -23,6 +23,9 @@
 #include <Eigen/Dense>
 #include "EnableWarnings.h"
 
+#include "cudaswitch.h"
+#include "omxCUDASpecific.h"
+
 omxExpectation *omxInitGREMLExpectation(omxState *st, int num)
 { return new omxGREMLExpectation(st, num); }
 
@@ -130,6 +133,7 @@ void omxGREMLExpectation::init()
   //Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
   quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
+
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
     dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
@@ -180,6 +184,10 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   oge->cholquadX_fail = 0;
   oge->logdetV_om->data[0] = 0;
 
+  #if HAS_CUDA
+    callHelloWorld();
+  #endif
+
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
@@ -207,7 +215,11 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   }
   oge->logdetV_om->data[0] *= 2;
   //V inverse:
-  Vinv.triangularView<Eigen::Lower>() = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>();
+  //mxLog("Preparing GREML expectation to handle missing data.");
+  Eigen::MatrixXd solvedV = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ));
+  //std::cout << solvedV << std::endl;
+  Vinv.triangularView<Eigen::Lower>() = solvedV.triangularView<Eigen::Lower>();
+  //Vinv.triangularView<Eigen::Lower>() = (cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ))).triangularView<Eigen::Lower>();
   oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
   quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
   cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
