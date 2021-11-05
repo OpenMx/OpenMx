@@ -185,6 +185,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   oge->logdetV_om->data[0] = 0;
 
   #if HAS_CUDA
+    callHelloWorld();
   #endif
 
   EigenMatrixAdaptor EigX(oge->X);
