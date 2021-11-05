@@ -173,6 +173,35 @@ if [ ! -f inst/no-npsol ] && [ -n "${npsol_library+1}" ]; then
     fi
 fi
 
+
+if [ "${GPU_BUILD:-no}" = yes ]; then
+  cd src
+
+  echo "TODO: ERROR HANDLING FOR NVCC"
+  nvcc -c omxCUDASpecific.cu
+
+  OBJECT_LIST=""
+
+  for f in *.c; do
+    OBJECT_LIST="$OBJECT_LIST${f%.*}.o "
+  done
+  for f in *.cpp; do
+    OBJECT_LIST="$OBJECT_LIST${f%.*}.o "
+  done
+  for f in *.f; do
+    OBJECT_LIST="$OBJECT_LIST${f%.*}.o "
+  done
+  for f in *.cu; do
+    OBJECT_LIST="$OBJECT_LIST${f%.*}.o "
+  done
+
+  echo "$OBJECT_LIST"
+  echo "OBJECTS=$OBJECT_LIST" >> Makevars.new
+  echo 'CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart' >> Makevars.new
+  cd ..
+fi
+
+
 # if [ `$REXEC --slave --vanilla -e 'cat(suppressWarnings(require("nloptr", quietly=TRUE)) && packageVersion("nloptr") >= "1.0.5")'` = TRUE ]; then
 #   echo "
 # NLOPT_CXXFLAGS=`$REXEC --slave --vanilla -e 'suppressPackageStartupMessages(require(nloptr)); cat("-DHAS_NLOPT", nloptr:::CFlags())'`
@@ -200,10 +229,6 @@ elif [ "x$IMX_GCOV" = x1 ]; then
     # To collect gcov statistics (gcc only)
     echo 'DEBUG_CXXFLAGS=--coverage' >> src/Makevars.new
     echo 'DEBUG_LDFLAGS=--coverage' >> src/Makevars.new
-fi
-
-if [ "${GPU_BUILD:-no}" = yes ]; then
-  echo "TODO: Compile .cu to .o; set Makevars OBJECTS; include CUDA specific CXXFLAGS"
 fi
 
 echo >> src/Makevars.new
