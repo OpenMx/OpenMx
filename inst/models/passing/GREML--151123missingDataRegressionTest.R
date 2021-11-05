@@ -154,5 +154,3 @@ testmod4 <- mxModel(
 	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
 )
 testrun4 <- mxRun(testmod4) #<--Should run without error.
-
-
