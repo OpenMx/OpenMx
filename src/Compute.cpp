@@ -4395,6 +4395,7 @@ class LoadDataCSVProvider : public LoadDataProvider<LoadDataCSVProvider> {
 	virtual void init(SEXP rObj) override {
 		ProtectedSEXP Rbyrow(R_do_slot(rObj, Rf_install("byrow")));
 		byrow = Rf_asLogical(Rbyrow);
+    if (verbose) mxLog("%s: byrow=%d", name, byrow);
 		ProtectedSEXP Rcs(R_do_slot(rObj, Rf_install("cacheSize")));
 
 		if (!byrow) stripeSize = std::max(Rf_asInteger(Rcs), 1);
@@ -4449,6 +4450,7 @@ void LoadDataCSVProvider::mxScanInt(mini::csv::ifstream &st, ColumnData &rc, int
 
 void LoadDataCSVProvider::loadByCol(int index)
 {
+  //if (verbose >= 2) mxLog("%s::loadByCol(%d)", name, index);
 	if (stripeStart == -1 ||
 	    index < stripeStart || index >= stripeEnd) {
 		bool backward = index < stripeStart;
@@ -4517,6 +4519,7 @@ void LoadDataCSVProvider::loadByRow(int index)
 {
 	auto &rc = *rawCols;
 	if (!icsv || index < curRecord) {
+    if (verbose >= 2) mxLog("%s: reconnecting to %s", name, filePath.c_str());
 		icsv = std::unique_ptr< mini::csv::ifstream >(new mini::csv::ifstream(filePath));
 		icsv->set_delimiter(' ', "##");
 		for (int rx=0; rx < skipRows; ++rx) {
@@ -4556,6 +4559,9 @@ void LoadDataCSVProvider::loadByRow(int index)
 				} else {
 					std::istringstream is(str);
 					is >> stripeData[cx].realData[dr];
+          if (verbose >= 3 && dr < 20) {
+            mxLog("%s >> %d %f", str.c_str(), dr, stripeData[cx].realData[dr]);
+          }
 				}
 				dr += 1;
 			}
@@ -4573,6 +4579,21 @@ void LoadDataCSVProvider::loadByRow(int index)
 	}
 	curRecord += 1;
 	for (int cx=0; cx < int(columns.size()); ++cx) {
+    if (verbose >= 2) {
+      std::string buf;
+      if (colTypes[cx] == COLUMNDATA_NUMERIC) {
+        for (int rx=0; rx < std::min(12, srcRows); ++rx) {
+          auto val = stripeData[cx].realData[rx];
+          if (std::isfinite(val)) {
+            buf += string_snprintf("%f ", stripeData[cx].realData[rx]);
+          } else { buf += "NA "; }
+        }
+      } else {
+        for (int rx=0; rx < std::min(12, srcRows); ++rx)
+          buf += string_snprintf("%d ", stripeData[cx].intData[rx]);
+      }
+      mxLog("%s: replace column %d with %s", name, columns[cx], buf.c_str());
+    }
 		rc[ columns[cx] ].setBorrow(stripeData[cx]);
 	}
 }
