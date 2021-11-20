@@ -4404,7 +4404,7 @@ class LoadDataCSVProvider : public LoadDataProvider<LoadDataCSVProvider> {
 	{
 		if (rowNames == 0 || !byrow) return;
 		cpIndex = cp.size();
-		auto rc = *rawCols;
+		auto &rc = *rawCols;
 		for (int cx=0; cx < int(columns.size()); ++cx) {
 			std::string c1 = fileName + ":" + rc[ columns[cx] ].name;
 			cp.push_back(c1);
@@ -4477,7 +4477,7 @@ void LoadDataCSVProvider::loadByCol(int index)
 				st >> rn;
 			}
 			for (int sx=0,dx=0; sx < stripeAvail; ++sx) {
-				auto rc = *rawCols;
+				auto &rc = *rawCols;
 				try {
 					for (int cx=0; cx < int(columns.size()); ++cx) {
 						if (colTypes[cx] == COLUMNDATA_NUMERIC) {
