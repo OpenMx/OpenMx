@@ -4549,6 +4549,7 @@ void LoadDataCSVProvider::loadByRow(int index)
 		if (colTypes[cx] == COLUMNDATA_NUMERIC) {
 			for (int rx=0, dr=0; rx < srcRows; ++rx) {
 				const std::string& str = icsv->get_delimited_str();
+        if (!str.size()) mxThrow("%s: cannot find column %d (row %d in file)", name, dr, rx);
 				if (skipRow(rx)) continue;
 				if (isNA(str)) {
 					stripeData[cx].realData[dr] = NA_REAL;
