@@ -138,7 +138,7 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 			mdata$observedStats$means <- meanData
 		}
 	} else if (origDataType == 'raw') {
-		data <- data[,useVars]
+		data <- data[,useVars, drop = FALSE]
 		# This conditional is for cases when the model has only 1 endogenous variable:
 		if(!is.matrix(data) && !is.data.frame(data)){
 			data <- as.matrix(data)
