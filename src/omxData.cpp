@@ -1632,7 +1632,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 			ind.segment(2,2) = M.row(jx);
 			Umat(ix,jx) = (data.col(ind[0]) * data.col(ind[1]) *
 				       data.col(ind[2]) * data.col(ind[3]) * rowMult).sum() / totalWeight -
-				Vmat(ind[0],ind[1]) * Vmat(ind[2],ind[3]);
+			  Vmat(static_cast<int>(ind[0]),static_cast<int>(ind[1])) * Vmat(static_cast<int>(ind[2]),static_cast<int>(ind[3]));
 		}
 	}
   Umat.triangularView<Eigen::Upper>() = Umat.transpose().triangularView<Eigen::Upper>();
@@ -1667,7 +1667,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 			for (int ix=0; ix < numColsStar; ++ix) {
 				uw(ix,ix) = totalWeight/((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
 						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / totalWeight -
-						  Vmat(M(ix, 0), M(ix, 1)) * Vmat(M(ix, 0), M(ix, 1)));
+							 Vmat(static_cast<int>(M(ix, 0)), static_cast<int>(M(ix, 1))) * Vmat(static_cast<int>(M(ix, 0)), static_cast<int>(M(ix, 1))));
 			}
 			uw.derived() = (p1.transpose() * uw * p1).eval();
 		}
@@ -2193,9 +2193,9 @@ struct PolyserialCor : NewtonRaphsonObjective {
 				1.0/(2*var) * ((zee[rx]*zee[rx] - 1.0) +
 					       rho*zee[rx] * irpr * (dzi(rx,0)-dzi(rx,1)));
 			if (ycol(rx) < numThr)
-				scores(rx, 2 + ycol(rx)) = dzi(rx,0) * irpr;
+  			        scores(rx, 2 + static_cast<int>(ycol(rx))) = dzi(rx,0) * irpr;
 			if (ycol(rx)-1 >= 0)
-				scores(rx, 2 + ycol(rx)-1) = -dzi(rx,1) * irpr;
+				scores(rx, 2 + static_cast<int>(ycol(rx))-1) = -dzi(rx,1) * irpr;
 			for (int px=0; px < int(pred1.size()); ++px) {
 				scores(rx, 2+numThr+px) = scores(rx,0) * pred1[px][rx];
 			}
