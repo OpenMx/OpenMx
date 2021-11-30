@@ -15,16 +15,22 @@
 #ifndef EIGEN_SELFADJOINTEIGENSOLVERNOSORT_H
 #define EIGEN_SELFADJOINTEIGENSOLVERNOSORT_H
 
-//#include "./Tridiagonalization.h"
+#include "Tridiagonalization34.h"
 
-namespace Eigen { 
+#ifndef EIGEN_USING_STD
+#define EIGEN_USING_STD(fn) using std::fn
+#endif
 
-template<typename u_MatrixType>
+namespace Eigen {
+
+template<typename _MatrixType>
 class GeneralizedSelfAdjointEigenSolver;
 
 namespace internal {
 template<typename SolverType,int Size,bool IsComplex> struct direct_selfadjoint_eigenvalues;
+
 template<typename MatrixType, typename DiagType, typename SubDiagType>
+EIGEN_DEVICE_FUNC
 ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& subdiag, const Index maxIterations, bool computeEigenvectors, MatrixType& eivec);
 }
 
@@ -35,7 +41,7 @@ ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& s
   *
   * \brief Computes eigenvalues and eigenvectors of selfadjoint matrices
   *
-  * \tparam u_MatrixType the type of the matrix of which we are computing the
+  * \tparam _MatrixType the type of the matrix of which we are computing the
   * eigendecomposition; this is expected to be an instantiation of the Matrix
   * class template.
   *
@@ -46,9 +52,13 @@ ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& s
   * \f$ v \f$ such that \f$ Av = \lambda v \f$.  The eigenvalues of a
   * selfadjoint matrix are always real. If \f$ D \f$ is a diagonal matrix with
   * the eigenvalues on the diagonal, and \f$ V \f$ is a matrix with the
-  * eigenvectors as its columns, then \f$ A = V D V^{-1} \f$ (for selfadjoint
-  * matrices, the matrix \f$ V \f$ is always invertible). This is called the
+  * eigenvectors as its columns, then \f$ A = V D V^{-1} \f$. This is called the
   * eigendecomposition.
+  *
+  * For a selfadjoint matrix, \f$ V \f$ is unitary, meaning its inverse is equal
+  * to its adjoint, \f$ V^{-1} = V^{\dagger} \f$. If \f$ A \f$ is real, then
+  * \f$ V \f$ is also real and therefore orthogonal, meaning its inverse is
+  * equal to its transpose, \f$ V^{-1} = V^T \f$.
   *
   * The algorithm exploits the fact that the matrix is selfadjoint, making it
   * faster and more accurate than the general purpose eigenvalue algorithms
@@ -71,38 +81,38 @@ ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& s
   *
   * \sa MatrixBase::eigenvalues(), class EigenSolver, class ComplexEigenSolver
   */
-template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
+template<typename _MatrixType> class SelfAdjointEigenSolverNosort
 {
   public:
 
-    typedef u_MatrixType MatrixType;
+    typedef _MatrixType MatrixType;
     enum {
       Size = MatrixType::RowsAtCompileTime,
       ColsAtCompileTime = MatrixType::ColsAtCompileTime,
       Options = MatrixType::Options,
       MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
     };
-    
-    /** \brief Scalar type for matrices of type \p u_MatrixType. */
+
+    /** \brief Scalar type for matrices of type \p _MatrixType. */
     typedef typename MatrixType::Scalar Scalar;
     typedef Eigen::Index Index; ///< \deprecated since Eigen 3.3
-    
+
     typedef Matrix<Scalar,Size,Size,ColMajor,MaxColsAtCompileTime,MaxColsAtCompileTime> EigenvectorsType;
 
-    /** \brief Real scalar type for \p u_MatrixType.
+    /** \brief Real scalar type for \p _MatrixType.
       *
       * This is just \c Scalar if #Scalar is real (e.g., \c float or
       * \c double), and the type of the real part of \c Scalar if #Scalar is
       * complex.
       */
     typedef typename NumTraits<Scalar>::Real RealScalar;
-    
+
     friend struct internal::direct_selfadjoint_eigenvalues<SelfAdjointEigenSolverNosort,Size,NumTraits<Scalar>::IsComplex>;
 
     /** \brief Type for vector of eigenvalues as returned by eigenvalues().
       *
       * This is a column vector with entries of type #RealScalar.
-      * The length of the vector is the size of \p u_MatrixType.
+      * The length of the vector is the size of \p _MatrixType.
       */
     typedef typename internal::plain_col_type<MatrixType, RealScalar>::type RealVectorType;
     typedef Tridiagonalization<MatrixType> TridiagonalizationType;
@@ -112,7 +122,7 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
       *
       * The default constructor is useful in cases in which the user intends to
       * perform decompositions via compute(). This constructor
-      * can only be used if \p u_MatrixType is a fixed-size matrix; use
+      * can only be used if \p _MatrixType is a fixed-size matrix; use
       * SelfAdjointEigenSolver(Index) for dynamic-size matrices.
       *
       * Example: \include SelfAdjointEigenSolver_SelfAdjointEigenSolver.cpp
@@ -123,7 +133,10 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
         : m_eivec(),
           m_eivalues(),
           m_subdiag(),
-          m_isInitialized(false)
+          m_hcoeffs(),
+          m_info(InvalidInput),
+          m_isInitialized(false),
+          m_eigenvectorsOk(false)
     { }
 
     /** \brief Constructor, pre-allocates memory for dynamic-size matrices.
@@ -143,7 +156,9 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
         : m_eivec(size, size),
           m_eivalues(size),
           m_subdiag(size > 1 ? size - 1 : 1),
-          m_isInitialized(false)
+          m_hcoeffs(size > 1 ? size - 1 : 1),
+          m_isInitialized(false),
+          m_eigenvectorsOk(false)
     {}
 
     /** \brief Constructor; computes eigendecomposition of given matrix.
@@ -167,7 +182,9 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
       : m_eivec(matrix.rows(), matrix.cols()),
         m_eivalues(matrix.cols()),
         m_subdiag(matrix.rows() > 1 ? matrix.rows() - 1 : 1),
-        m_isInitialized(false)
+        m_hcoeffs(matrix.cols() > 1 ? matrix.cols() - 1 : 1),
+        m_isInitialized(false),
+        m_eigenvectorsOk(false)
     {
       compute(matrix.derived(), options);
     }
@@ -205,19 +222,19 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
     template<typename InputType>
     EIGEN_DEVICE_FUNC
     SelfAdjointEigenSolverNosort& compute(const EigenBase<InputType>& matrix, int options = ComputeEigenvectors);
-    
+
     /** \brief Computes eigendecomposition of given matrix using a closed-form algorithm
       *
       * This is a variant of compute(const MatrixType&, int options) which
       * directly solves the underlying polynomial equation.
-      * 
+      *
       * Currently only 2x2 and 3x3 matrices for which the sizes are known at compile time are supported (e.g., Matrix3d).
-      * 
+      *
       * This method is usually significantly faster than the QR iterative algorithm
       * but it might also be less accurate. It is also worth noting that
       * for 3x3 matrices it involves trigonometric operations which are
       * not necessarily available for all scalar types.
-      * 
+      *
       * For the 3x3 case, we observed the following worst case relative error regarding the eigenvalues:
       *   - double: 1e-8
       *   - float:  1e-3
@@ -253,6 +270,11 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
       * this object was used to solve the eigenproblem for the selfadjoint
       * matrix \f$ A \f$, then the matrix returned by this function is the
       * matrix \f$ V \f$ in the eigendecomposition \f$ A = V D V^{-1} \f$.
+      *
+      * For a selfadjoint matrix, \f$ V \f$ is unitary, meaning its inverse is equal
+      * to its adjoint, \f$ V^{-1} = V^{\dagger} \f$. If \f$ A \f$ is real, then
+      * \f$ V \f$ is also real and therefore orthogonal, meaning its inverse is
+      * equal to its transpose, \f$ V^{-1} = V^T \f$.
       *
       * Example: \include SelfAdjointEigenSolver_eigenvectors.cpp
       * Output: \verbinclude SelfAdjointEigenSolver_eigenvectors.out
@@ -341,7 +363,7 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
 
     /** \brief Reports whether previous computation was successful.
       *
-      * \returns \c Success if computation was succesful, \c NoConvergence otherwise.
+      * \returns \c Success if computation was successful, \c NoConvergence otherwise.
       */
     EIGEN_DEVICE_FUNC
     ComputationInfo info() const
@@ -358,14 +380,16 @@ template<typename u_MatrixType> class SelfAdjointEigenSolverNosort
     static const int m_maxIterations = 30;
 
   protected:
-    static void check_template_parameters()
+    static EIGEN_DEVICE_FUNC
+    void check_template_parameters()
     {
       EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar);
     }
-    
+
     EigenvectorsType m_eivec;
     RealVectorType m_eivalues;
     typename TridiagonalizationType::SubDiagonalType m_subdiag;
+    typename TridiagonalizationType::CoeffVectorType m_hcoeffs;
     ComputationInfo m_info;
     bool m_isInitialized;
     bool m_eigenvectorsOk;
@@ -404,10 +428,10 @@ SelfAdjointEigenSolverNosort<MatrixType>& SelfAdjointEigenSolverNosort<MatrixTyp
 ::compute(const EigenBase<InputType>& a_matrix, int options)
 {
   check_template_parameters();
-  
+
   const InputType &matrix(a_matrix.derived());
-  
-  using std::abs;
+
+  EIGEN_USING_STD(abs);
   eigen_assert(matrix.cols() == matrix.rows());
   eigen_assert((options&~(EigVecMask|GenEigMask))==0
           && (options&EigVecMask)!=EigVecMask
@@ -438,10 +462,12 @@ SelfAdjointEigenSolverNosort<MatrixType>& SelfAdjointEigenSolverNosort<MatrixTyp
   if(scale==RealScalar(0)) scale = RealScalar(1);
   mat.template triangularView<Lower>() /= scale;
   m_subdiag.resize(n-1);
-  internal::tridiagonalization_inplace(mat, diag, m_subdiag, computeEigenvectors);
+  m_hcoeffs.resize(n-1);
+  // API changed from Eigen 3.3.x to 3.4
+  internal::tridiagonalization_inplace_3_4(mat, diag, m_subdiag, m_hcoeffs, computeEigenvectors);
 
   m_info = internal::computeFromTridiagonalNosort_impl(diag, m_subdiag, m_maxIterations, computeEigenvectors, m_eivec);
-  
+
   // scale back the eigen values
   m_eivalues *= scale;
 
@@ -483,10 +509,9 @@ namespace internal {
   * \returns \c Success or \c NoConvergence
   */
 template<typename MatrixType, typename DiagType, typename SubDiagType>
+EIGEN_DEVICE_FUNC
 ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& subdiag, const Index maxIterations, bool computeEigenvectors, MatrixType& eivec)
 {
-  using std::abs;
-
   ComputationInfo info;
   typedef typename MatrixType::Scalar Scalar;
 
@@ -494,18 +519,26 @@ ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& s
   Index end = n-1;
   Index start = 0;
   Index iter = 0; // total number of iterations
-  
+
   typedef typename DiagType::RealScalar RealScalar;
   const RealScalar considerAsZero = (std::numeric_limits<RealScalar>::min)();
-  const RealScalar precision = RealScalar(2)*NumTraits<RealScalar>::epsilon();
-  
+  const RealScalar precision_inv = RealScalar(1)/NumTraits<RealScalar>::epsilon();
   while (end>0)
   {
-    for (Index i = start; i<end; ++i)
-      if (internal::isMuchSmallerThan(abs(subdiag[i]),(abs(diag[i])+abs(diag[i+1])),precision) || abs(subdiag[i]) <= considerAsZero)
-        subdiag[i] = 0;
+    for (Index i = start; i<end; ++i) {
+      if (numext::abs(subdiag[i]) < considerAsZero) {
+        subdiag[i] = RealScalar(0);
+      } else {
+        // abs(subdiag[i]) <= epsilon * sqrt(abs(diag[i]) + abs(diag[i+1]))
+        // Scaled to prevent underflows.
+        const RealScalar scaled_subdiag = precision_inv * subdiag[i];
+        if (scaled_subdiag * scaled_subdiag <= (numext::abs(diag[i])+numext::abs(diag[i+1]))) {
+          subdiag[i] = RealScalar(0);
+        }
+      }
+    }
 
-    // find the largest unreduced block
+    // find the largest unreduced block at the end of the matrix.
     while (end>0 && subdiag[end-1]==RealScalar(0))
     {
       end--;
@@ -530,9 +563,9 @@ ComputationInfo computeFromTridiagonalNosort_impl(DiagType& diag, SubDiagType& s
 
   return info;
 }
-  
-} // end namespace internal
+
+}
 
 } // end namespace Eigen
 
-#endif // EIGEN_SELFADJOINTEIGENSOLVERNOSORT_H
+#endif // EIGEN_SELFADJOINTEIGENSOLVER_H
