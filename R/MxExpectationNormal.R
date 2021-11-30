@@ -1242,13 +1242,13 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 	}
 
 	if (!is.null(dimnames(means)) && !single.na(dims) &&
-		!identical(dimnames(means), list(NULL, dims))) {
+		!identical(colnames(means), dims)) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The expected means matrix associated",
 			"with the expectation function in model",
-			omxQuotes(modelname), "contains dimnames: ",
-            paste(toString(dimnames(means)), ".", sep = ""),
-			"The expectation function has specified dimnames:",
+			omxQuotes(modelname), "contains colnames: ",
+            paste(toString(colnames(means)), ".", sep = ""),
+			"The expectation function has specified colnames:",
 			paste(toString(dims), ".", sep =""))
 		stop(msg, call.=FALSE)
 	}
