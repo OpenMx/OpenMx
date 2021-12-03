@@ -157,8 +157,8 @@ jointWlsResults <- mxRun(jointWlsModel)
 jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
-expect_equal(median(log(diag(jointWlsResults$data$observedStats$acov))),
-             median(log(diag(jointDlsResults$data$observedStats$acov))), .2)
+expect_equal(diag(jointWlsResults$data$observedStats$asymCov),
+             diag(jointDlsResults$data$observedStats$asymCov))
 
 ramWlsResults <- mxRun(ramWlsModel)
 
@@ -199,8 +199,8 @@ round(seCmp <- cbind(ML=jointResults1$output$standardErrors,
 
 omxCheckCloseEnough(cor(seCmp)[1,2:4], rep(1,3), .04)
 
-se1 <- c(0.065, 0.113, 0.072, 0.106, 0.068, 0.064, 0.067,  0.061,
-         0.061, 0.074, 0.083, 0.075, 0.098, 0.067, 0.06)
+se1 <- c(0.26, 0.45, 0.286, 0.42, 0.272, 0.254, 0.268, 0.243, 0.244, 
+         0.296, 0.329, 0.3, 0.389, 0.267, 0.237)
 omxCheckCloseEnough(c(jointDlsResults$output$standardErrors), se1, .01)
 
 #------------------------------------------------------------------------------
@@ -261,7 +261,7 @@ ml.sat <- mxGetExpected(jointResults2, 'vector')
 wls.sat <- c(vech(obsStats$cov), obsStats$means, na.omit(c(obsStats$thresholds)))
 
 omxCheckTrue(rms(ml.sat, wls.sat) < .01)
-omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009
+omxCheckCloseEnough(ml.sat, wls.sat, .01)
 
 
 #------------------------------------------------------------------------------

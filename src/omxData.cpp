@@ -341,6 +341,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
 	}
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
+    if (!std::isfinite(numObs))
+      mxThrow("%s: numObs is required when using observedStats", name);
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
 		if (Rf_length(RobsStats)) oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
@@ -361,8 +363,6 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
         else mxThrow("%s: observedStats contains 'asymCov'; i'm confused", name);
 				o1.asymCov = omxNewMatrixFromRPrimitive(VECTOR_ELT(RobsStats, ax), state, 0, 0);
         o1.asymCov->unshareMemoryWithR();
-        EigenMatrixAdaptor ac(o1.asymCov);
-        ac *= od->numObs;
 			} else if (strEQ(key, "useWeight")) {
         if (apiVersion == NA_INTEGER || apiVersion == 1) apiVersion = 1;
         else mxThrow("%s: observedStats contains 'useWeight'; i'm confused", name);
@@ -391,6 +391,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	if (oss) {
 		auto &o1 = *oss;
+    o1.totalWeight = numObs; // may not have data available to recalc
 		if (o1.thresholdMat) o1.numOrdinal = o1.thresholdMat->cols;
 		if (!o1.covMat) mxThrow("%s: observedStats must include a covariance matrix", name);
 		if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
@@ -2507,6 +2508,8 @@ std::string omxData::regenObsStats(const std::vector<const char *> &dc, const ch
 	auto &o1 = *oss;
 	// implement checks for exoPred (slope matrix) TODO
 
+  if (o1.totalWeight <= 0) mxThrow("%s: o1.totalWeight <= 0", name);
+
 	if (int(dc.size()) != o1.covMat->cols) {
     return string_snprintf("%s: cov is dimension %d but model is dimension %d",
                            name, o1.covMat->cols, int(dc.size()));
@@ -3330,6 +3333,8 @@ void omxData::estimateObservedStats()
 
 		fw = (H * fw * H.transpose()).eval();
 	}
+	// mxPrintMat("WLS.W", fw); //good
+  fw *= o1.totalWeight; // lavaan's NACOV
 
 	EigenMatrixAdaptor Eac(o1.asymCov);
 	if (totalExoFree == o1.exoFree.size()) {
@@ -3384,6 +3389,10 @@ void omxData::estimateObservedStats()
 		}
 	}
 	//mxPrintMat("Eac", Eac);
+  if (0) {
+    EigenMatrixAdaptor uw(o1.useWeight);
+    mxPrintMat("uw", uw); // lavaan's WLS.V
+  }
 
 	o1.partial = false;
 	if (verbose >= 2) o1.log();

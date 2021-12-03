@@ -97,7 +97,7 @@ names(obsMns) <- dimnames(obsCor)[[2]]
 
 obsStats <- list(means=obsMns, cov=obsCor, thresholds=obsThr, acov=obsAcov, fullWeight=solve(obsAcov))
 
-obsWDat <- mxData(observedStats=obsStats)
+obsWDat <- mxData(observedStats=obsStats, numObs = 100)
 
 #------------------------------
 # Make WLS saturated model
@@ -118,11 +118,9 @@ satwls2 <- mxModel(name="ExpNormWLSSat",
 #satwls2 <- mxOption(satwls2, "Major iterations", 1)
 
 
-
-
-
-
-satwls2Run <- mxRun(satwls2)
+plan <- omxDefaultComputePlan()
+# plan$steps$GD$verbose <- 0L
+satwls2Run <- mxRun(mxModel(satwls2, plan))
 
 
 #------------------------------

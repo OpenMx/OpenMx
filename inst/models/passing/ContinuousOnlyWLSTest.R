@@ -189,10 +189,12 @@ wlsSum <- summary(wlsRun)
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 
 # parameters are sort of close
+expect_equal(cor(mlSum$parameters[,5], wlsSum$parameters[,5]), 1, .05)
 expect_equal(rms(mlSum$parameters[,5], wlsSum$parameters[,5]), 0, 0.65)
 
 # standard errors are close
-expect_equal(rms(mlSum$parameters[,6], wlsSum$parameters[,6]), 0, 0.18)
+expect_equal(cor(mlSum$parameters[,6], wlsSum$parameters[,6]), 1, 0.05)
+expect_equal(rms(mlSum$parameters[,6], wlsSum$parameters[,6]), 0, 0.67)
 
 # Chi square is on par
 expect_equal(mlSum$Chi - wlsSum$Chi, 0, 11)
