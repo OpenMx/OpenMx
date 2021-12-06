@@ -165,7 +165,7 @@ rms <- function(x, y){sqrt(mean((x-y)^2))}
 omxCheckTrue(rms(mlSum$parameters[,5], wlsSum$parameters[,5]) < 0.7)
 
 # standard errors are close
-omxCheckTrue(rms(mlSum$parameters[,6], wlsSum$parameters[,6]) < 0.7)
+omxCheckTrue(rms(mlSum$parameters[,6], wlsSum$parameters[,6]) < 0.2)
 
 # Chi square is on par
 omxCheckWithinPercentError(mlSum$Chi, wlsSum$Chi, percent=85)

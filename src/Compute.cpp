@@ -3842,7 +3842,6 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 				sx += 1;
 			});
 	}
-  Wmat /= sqrt(totalWeight);
 
 	ParJacobianSense sense;
 	sense.attach(&exList, 0);
