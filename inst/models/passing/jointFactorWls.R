@@ -157,8 +157,8 @@ jointWlsResults <- mxRun(jointWlsModel)
 jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
-expect_equal(median(log(diag(jointWlsResults$data$observedStats$acov))),
-             median(log(diag(jointDlsResults$data$observedStats$acov))), .2)
+expect_equal(diag(jointWlsResults$data$observedStats$asymCov),
+             diag(jointDlsResults$data$observedStats$asymCov))
 
 ramWlsResults <- mxRun(ramWlsModel)
 

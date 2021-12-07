@@ -341,6 +341,8 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 		o1.thresholdMat = omxNewMatrixFromRPrimitive0(Rthr, state, 0, 0);
 	}
 	if (R_has_slot(dataObj, Rf_install("observedStats"))) {
+    if (!std::isfinite(numObs))
+      mxThrow("%s: numObs is required when using observedStats", name);
 		ProtectedSEXP RobsStats(R_do_slot(dataObj, Rf_install("observedStats")));
 		ProtectedSEXP RobsStatsName(Rf_getAttrib(RobsStats, R_NamesSymbol));
 		if (Rf_length(RobsStats)) oss = std::unique_ptr< obsSummaryStats >(new obsSummaryStats);
@@ -391,6 +393,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 	}
 	if (oss) {
 		auto &o1 = *oss;
+    o1.totalWeight = numObs; // may not have data available to recalc
 		if (o1.thresholdMat) o1.numOrdinal = o1.thresholdMat->cols;
 		if (!o1.covMat) mxThrow("%s: observedStats must include a covariance matrix", name);
 		if (int(o1.covMat->colnames.size()) != o1.covMat->cols)
@@ -2506,6 +2509,8 @@ std::string omxData::regenObsStats(const std::vector<const char *> &dc, const ch
 	if (!oss) return string_snprintf("%s: no observed data summary available", name);
 	auto &o1 = *oss;
 	// implement checks for exoPred (slope matrix) TODO
+
+  if (o1.totalWeight <= 0) mxThrow("%s: o1.totalWeight <= 0", name);
 
 	if (int(dc.size()) != o1.covMat->cols) {
     return string_snprintf("%s: cov is dimension %d but model is dimension %d",
