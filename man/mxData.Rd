@@ -122,11 +122,13 @@ The \code{observedStats} contains the following named objects: cov, slope, means
 \sQuote{thresholds} Thresholds of ordinal variables. Required for models including ordinal variables.
 
 \sQuote{asymCov} The asymptotic covariance matrix (all entries
-non-zero). This matrix is sample size independent.
+non-zero). This matrix is sample size independent. Lavaan's \code{NACOV} is
+comparable to \code{asymCov} multiplied by N^2.
 
 \sQuote{useWeight} (optional) The weight matrix used in the
 \link{mxFitFunctionWLS}. Can be dense or diagonal for diagonally
 weighted least squares. This matrix is scaled by the sample size.
+Lavaan's \code{WLS.V} is comparable to \code{useWeight} divided by N.
 
 \emph{note}: WLS data typically use the \link{mxFitFunctionWLS} function.
 

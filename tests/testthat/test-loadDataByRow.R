@@ -100,8 +100,6 @@ expect_equal(model3Fit$data$observedStats[['numEstimatedEntries']], 57)
 discardCols <- c("OpenMxEvals", "iterations", "timestamp",
                  "MxComputeLoop1", "objective", "statusCode", "fitUnits",
                  'testCols.csv:z1', 'testCols.csv:z2')
-thr <- c(7, 8, 7, 7, 8, 8, 7, 8, 8, 7, 7, 8, 7, 7, 4, 8, 8, 8, 9, 8,
-         9, 9, 11, 10, 10, 9, 9, 8, 10, 10) - 2
 
 log <- model3Fit$compute$steps[['CPT']]$log
 
@@ -112,8 +110,8 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
-# print(lmad - thr)
-omxCheckTrue(all(lmad - thr > 0))
+# print(lmad - 3)
+omxCheckTrue(all(lmad - 3 > 0))
 
 # --------------
 
@@ -137,5 +135,5 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
-# print(lmad - thr)
-omxCheckTrue(all(lmad - thr > 0))
+# print(lmad - 3)
+omxCheckTrue(all(lmad - 3 > 0))
