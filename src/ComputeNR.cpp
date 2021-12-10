@@ -65,7 +65,7 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 		if (!std::isfinite(refFit)) return;
 
 		nro.converged =
-			relImprovement(improvement) < tolerance || iter >= maxIter;
+			relImprovement(improvement) <= tolerance || iter >= maxIter;
 
 		if (nro.isConverged()) break;
 	}
@@ -132,7 +132,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 
 	while (++probeCount < 16) {
 		const double scaledTarget = speed * targetImprovement;
-		if (!steepestDescent && relImprovement(scaledTarget) < tolerance) {
+		if (!steepestDescent && relImprovement(scaledTarget) <= tolerance) {
 			nro.setParamVec(prevEst);
 			return;
 		}
@@ -148,13 +148,19 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 			continue;
 		}
 		const double improved = refFit - nro.getFit();
-		if (improved <= 0) {
-			double guess = scaledTarget/(scaledTarget-improved);
+    if (improved == 0) {
 			if (verbose >= 4) {
-				mxLog("%s: improved %.2g (%.2g), suspect excessive speed",
-				      name, improved, guess);
+				mxLog("%s: fit unchanged at speed %.2g, giving up", name, speed);
 			}
-			speed *= std::min(0.1, guess);
+      return;
+    }
+		if (improved < 0) {
+      // Can't assume curve is remotely symmetric
+			//double guess = scaledTarget/(scaledTarget-improved);
+			if (verbose >= 4) {
+				mxLog("%s: improved %.2g, suspect excessive speed", name, improved);
+			}
+			speed *= 0.1;
 			continue;
 		}
 		bestImproved = improved;
@@ -197,7 +203,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 			bestFit = nro.getFit();
 			bestImproved = improved;
 			bestSpeed = speed;
-			if (speed == 1 || relImprovement(improvementOverBest) < tolerance) break;
+			if (speed == 1 || relImprovement(improvementOverBest) <= tolerance) break;
 		}
 	}
 
@@ -316,7 +322,7 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) mxThrow("tolerance must be positive");
+	if (tolerance < 0) mxThrow("tolerance must be non-negative");
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);
