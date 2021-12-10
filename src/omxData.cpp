@@ -2169,7 +2169,7 @@ struct PolyserialCor : NewtonRaphsonObjective {
 		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1)) * rowMult).sum();
 
 		double cosh_x = cosh(param);
-		grad = -dx_rho * 1./(cosh_x * cosh_x);
+		grad = -dx_rho/(cosh_x * cosh_x);
 	}
 	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir) override
 	{
@@ -2728,7 +2728,7 @@ struct sampleStats {
 		H21(o1.H21),
 		freq(data.getFreqColumn(), rows)
 	{
-		eps = sqrt(std::numeric_limits<double>::epsilon());
+		eps = 0;
 		numCols = dc.size();
 		pstar = triangleLoc1(numCols-1);
 		verbose = data.verbose;

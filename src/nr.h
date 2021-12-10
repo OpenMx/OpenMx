@@ -53,16 +53,21 @@ class NewtonRaphsonOptimizer {
 	double maxAdjSigned;
 	int maxAdjParam;
 	int minorIter;
+  double stepMultiplier;
+  int lineSearchMax;
 	Eigen::VectorXd prevEst;
 	Eigen::VectorXd searchDir;
 	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
 	void lineSearch(NewtonRaphsonObjective &nro);
 public:
 	NewtonRaphsonOptimizer(const char *u_name, int u_maxIter, double tol, int u_verbose) :
-		name(u_name), maxIter(u_maxIter), tolerance(tol), verbose(u_verbose) {};
+		name(u_name), maxIter(u_maxIter), tolerance(tol), verbose(u_verbose) {
+    setStepMultiplier(0.1);
+  };
 	void operator()(NewtonRaphsonObjective &nro);
 	int getIter() { return iter; };
 	int getMinorIter() { return minorIter; };
+  void setStepMultiplier(double sm);
 };
 
 #endif

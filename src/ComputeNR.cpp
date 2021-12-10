@@ -71,6 +71,13 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 	}
 }
 
+void NewtonRaphsonOptimizer::setStepMultiplier(double sm)
+{
+  if (sm >= 1 || sm <= 0) mxThrow("NewtonRaphsonOptimizer::setStepMultiplier must be in (0,1)");
+  stepMultiplier = sm;
+  lineSearchMax = log10(std::numeric_limits<double>::epsilon()) / log10(sm);
+}
+
 void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 {
 	bool steepestDescent = false;
@@ -85,7 +92,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 
 	nro.evaluateDerivs(want);
 
-	double speed = std::min(priorSpeed * 1.5, 1.0);
+	double speed = std::min(priorSpeed / sqrt(stepMultiplier), 1.0);
 	nro.setSearchDir(searchDir);
 	Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
 	double targetImprovement = searchDir.dot(grad);
@@ -130,7 +137,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 	double goodness = 0;
 	double bestFit = 0;
 
-	while (++probeCount < 16) {
+	while (++probeCount < lineSearchMax) {
 		const double scaledTarget = speed * targetImprovement;
 		if (!steepestDescent && relImprovement(scaledTarget) <= tolerance) {
 			nro.setParamVec(prevEst);
@@ -144,7 +151,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
 					name, speed, scaledTarget, nro.getFit(), refFit);
 		if (!std::isfinite(nro.getFit())) {
-			speed *= .1;
+			speed *= stepMultiplier;
 			continue;
 		}
 		const double improved = refFit - nro.getFit();
@@ -160,7 +167,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 			if (verbose >= 4) {
 				mxLog("%s: improved %.2g, suspect excessive speed", name, improved);
 			}
-			speed *= 0.1;
+			speed *= stepMultiplier;
 			continue;
 		}
 		bestImproved = improved;
