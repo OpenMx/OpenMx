@@ -69,6 +69,49 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 
 		if (nro.isConverged()) break;
 	}
+
+  if (tolerance == 0) {
+    nro.getParamVec(prevEst);
+    Eigen::VectorXd bestOne = prevEst;
+    int want = FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT;
+    Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
+    priorSpeed = sqrt(priorSpeed);
+    while (++iter < maxIter) {
+      double priorGradNorm = grad.norm();
+      if (verbose >= 3) mxLog("%s: iter %d/%d polish grad=%.3g", name, iter, maxIter, priorGradNorm);
+      double speed = std::min(priorSpeed / sqrt(stepMultiplier), 1.0);
+      int probeCount = 0;
+      while (++probeCount < 20) {
+        Eigen::VectorXd trial = (prevEst - speed * grad).cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+        nro.setParamVec(trial);
+        nro.evaluateDerivs(want);
+        if (grad.norm() < priorGradNorm) {
+          if (verbose >= 3) mxLog("%s: grad speed %.3g grad %.3g", name, speed, grad.norm());
+          priorSpeed = speed;
+          prevEst = trial;
+          break;
+        } else if (grad.norm() == priorGradNorm) {
+          const double improved = refFit - nro.getFit();
+          if (improved < 0) {
+            prevEst = bestOne;
+            if (verbose >= 3) mxLog("%s: grad polish failed", name);
+          } else {
+            if (verbose >= 3) mxLog("%s: grad unchanged at speed %.3g grad %.3g, polish improved %.3g",
+                                    name, speed, grad.norm(), improved);
+          }
+          iter = maxIter;
+          break;
+        } else {
+          if (verbose >= 4) {
+            mxLog("%s: grad %.3g, suspect excessive speed", name, grad.norm());
+          }
+          speed *= stepMultiplier;
+          priorSpeed = speed;
+        }
+      }
+    }
+    nro.setParamVec(prevEst);
+  }
 }
 
 void NewtonRaphsonOptimizer::setStepMultiplier(double sm)

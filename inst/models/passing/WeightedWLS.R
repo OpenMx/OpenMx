@@ -65,7 +65,7 @@ wModel <- mxRun(wModel)
 os1 <- uwModel$data$observedStats
 os2 <- wModel$data$observedStats
 
-omxCheckCloseEnough(vech(os1$cov), vech(os2$cov), 1e-12)
+omxCheckCloseEnough(vech(os1$cov), vech(os2$cov), 1e-10)
 omxCheckCloseEnough(os1$means, os2$means, 1e-12)
 omxCheckCloseEnough(os1$slope, os2$slope, 1e-12)
 mask <- !is.na(os1$thresholds)
