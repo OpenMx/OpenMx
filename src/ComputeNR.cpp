@@ -36,8 +36,8 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 	minorIter = 0;
 
 	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
-		      (int)numParam, tolerance, maxIter);
+		mxLog("Welcome to Newton-Raphson (%d param, fitTol %.3g, gradTol %.3g, max iter %d)",
+		      (int)numParam, tolerance, gradTolerance, maxIter);
 		if (verbose >= 3) {
 			mxPrintMat("lbound", nro.lbound);
 			mxPrintMat("ubound", nro.ubound);
@@ -70,47 +70,52 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 		if (nro.isConverged()) break;
 	}
 
-  if (tolerance == 0) {
+  Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
+  if (grad.norm() > gradTolerance) {
+    double bestFit = refFit;
     nro.getParamVec(prevEst);
-    Eigen::VectorXd bestOne = prevEst;
-    int want = FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT;
-    Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
-    priorSpeed = sqrt(priorSpeed);
+    Eigen::VectorXd bestEst = prevEst;
+    const int want = FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT;
+    double speed = priorSpeed;
+    nro.adjustSpeed(speed);
     while (++iter < maxIter) {
+      Eigen::VectorXd prevGrad = grad;
       double priorGradNorm = grad.norm();
       if (verbose >= 3) mxLog("%s: iter %d/%d polish grad=%.3g", name, iter, maxIter, priorGradNorm);
-      double speed = std::min(priorSpeed / sqrt(stepMultiplier), 1.0);
       int probeCount = 0;
-      while (++probeCount < 20) {
-        Eigen::VectorXd trial = (prevEst - speed * grad).cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+      while (++probeCount < lineSearchMax) {
+        Eigen::VectorXd trial = (prevEst - speed * prevGrad).cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+        if (!trial.array().isFinite().all()) mxThrow("!trial.array().isFinite().all()");
         nro.setParamVec(trial);
-        nro.evaluateDerivs(want);
-        if (grad.norm() < priorGradNorm) {
-          if (verbose >= 3) mxLog("%s: grad speed %.3g grad %.3g", name, speed, grad.norm());
-          priorSpeed = speed;
-          prevEst = trial;
-          break;
-        } else if (grad.norm() == priorGradNorm) {
-          const double improved = refFit - nro.getFit();
-          if (improved < 0) {
-            prevEst = bestOne;
+        nro.evaluateDerivs(want); // updates grad
+        double curGradNorm = grad.norm();
+        if (!std::isfinite(curGradNorm)) mxThrow("!std::isfinite(curGradNorm)");
+        if (nro.getFit() < bestFit) { bestFit = nro.getFit(); bestEst = trial; }
+        if (curGradNorm == priorGradNorm || curGradNorm < gradTolerance) {
+          const double improved = refFit - bestFit;
+          if (improved == 0) {
             if (verbose >= 3) mxLog("%s: grad polish failed", name);
           } else {
-            if (verbose >= 3) mxLog("%s: grad unchanged at speed %.3g grad %.3g, polish improved %.3g",
-                                    name, speed, grad.norm(), improved);
+            if (verbose >= 3) mxLog("%s: grad < tol at speed %.3g grad %.3g, polish improved fit %.3g",
+                                    name, speed, curGradNorm, improved);
           }
-          iter = maxIter;
+          iter = maxIter; break;
+        } else if (curGradNorm < priorGradNorm) {
+          if (verbose >= 3) mxLog("%s: grad speed %.3g grad %.3g", name, speed, grad.norm());
+          //speed = std::min(speed / sqrt(stepMultiplier), 1.0); Seems to not help
+          prevEst = trial;
           break;
         } else {
-          if (verbose >= 4) {
-            mxLog("%s: grad %.3g, suspect excessive speed", name, grad.norm());
-          }
+          double oldSpeed = speed;
           speed *= stepMultiplier;
-          priorSpeed = speed;
+          if (verbose >= 4) {
+            mxLog("%s: grad %.3g, suspect excessive speed %.3g->%.3g",
+                  name, curGradNorm, oldSpeed, speed);
+          }
         }
       }
     }
-    nro.setParamVec(prevEst);
+    nro.setParamVec(bestEst);
   }
 }
 
@@ -137,6 +142,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 
 	double speed = std::min(priorSpeed / sqrt(stepMultiplier), 1.0);
 	nro.setSearchDir(searchDir);
+  if (priorSpeed == 1) nro.adjustSpeed(speed); // only first line search
 	Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
 	double targetImprovement = searchDir.dot(grad);
 

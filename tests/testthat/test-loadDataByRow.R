@@ -111,7 +111,7 @@ lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
 # print(lmad - 3)
-omxCheckTrue(all(lmad - 3 > 0))
+omxCheckTrue(all(lmad - 4 > 0))
 
 # --------------
 

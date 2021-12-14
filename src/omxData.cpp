@@ -40,6 +40,10 @@
 #include "Compute.h"
 #include "EnableWarnings.h"
 
+static double clamp(double v, double lo, double hi) { // replace with std::clamp C++-17
+  return v < lo ? lo : hi < v ? hi : v;
+}
+
 omxData::omxData() : primaryKey(NA_INTEGER), weightCol(NA_INTEGER), currentWeightColumn(0),
                      freqCol(NA_INTEGER), currentFreqColumn(0), numEstimatedEntries(0),
                      parallel(true),
@@ -231,6 +235,16 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 				else mxThrow("%s: unknown naAction '%s'", name, naActStr);
 			}
 		}
+    fitTolerance = sqrt(std::numeric_limits<double>::epsilon());
+		if (R_has_slot(dataObj, Rf_install("fitTolerance"))) {
+			ProtectedSEXP Rft(R_do_slot(dataObj, Rf_install("fitTolerance")));
+      fitTolerance = Rf_asReal(Rft);
+    }
+    gradientTolerance = 0.01;
+		if (R_has_slot(dataObj, Rf_install("gradientTolerance"))) {
+			ProtectedSEXP Rgt(R_do_slot(dataObj, Rf_install("gradientTolerance")));
+      gradientTolerance = Rf_asReal(Rgt);
+    }
 
 		ProtectedSEXP needsort(R_do_slot(dataObj, Rf_install(".needSort")));
 		od->needSort = Rf_asLogical(needsort);
@@ -2138,7 +2152,7 @@ struct PolyserialCor : NewtonRaphsonObjective {
 	virtual const char *paramIndexToName(int px) override { return "rho"; }
 	virtual void evaluateFit() override
 	{
-		double rho = tanh(param);
+		double rho = tanh(clamp(param,-100,100));
 		double R = sqrt(1 - rho * rho);
 		tau = (zi.colwise() - rho * zee) / R;
 
@@ -2163,7 +2177,7 @@ struct PolyserialCor : NewtonRaphsonObjective {
 			dzi(rx,1) = Rf_dnorm4(tau(rx,1), 0., 1., 0);
 		}
 
-		double rho = tanh(param);
+		double rho = tanh(clamp(param,-100,100));
 		double R = sqrt(1 - rho * rho);
 		tauj = dzi * ((zi * rho).colwise() - zee);
 		double dx_rho = (1./(R*R*R*pr) * (tauj.col(0) - tauj.col(1)) * rowMult).sum();
@@ -2177,6 +2191,8 @@ struct PolyserialCor : NewtonRaphsonObjective {
 		// Line search takes care of scaling.
 		searchDir[0] = grad;
 	}
+	virtual void adjustSpeed(double &speed) override
+  { speed = fabs(0.1 / grad); }
 	void calcScores()
 	{
 		// mu1 var1 th2 beta1 beta2 rho
@@ -2316,7 +2332,7 @@ struct PolychoricCor : NewtonRaphsonObjective {
 	virtual double getFit() override { return fit; };
 	virtual void evaluateFit() override
 	{
-		double rho = tanh(param);
+		double rho = tanh(clamp(param,-100,100));
 
 		const double eps = std::numeric_limits<double>::epsilon();
 
@@ -2341,7 +2357,7 @@ struct PolychoricCor : NewtonRaphsonObjective {
 	{
 		if (want & FF_COMPUTE_FIT) evaluateFit();
 
-		double rho = tanh(param);
+		double rho = tanh(clamp(param,-100,100));
 		double dx = 0;
 
 		if (pred1.size() || pred2.size() || !data.getNoExoOptimize()) {
@@ -2368,6 +2384,8 @@ struct PolychoricCor : NewtonRaphsonObjective {
 		// Line search takes care of scaling.
 		searchDir[0] = grad;
 	}
+	virtual void adjustSpeed(double &speed) override
+  { speed = fabs(0.1 / grad); }
 	void calcScores()
 	{
 		// th1 th2 beta1 beta2 rho
@@ -2728,7 +2746,7 @@ struct sampleStats {
 		H21(o1.H21),
 		freq(data.getFreqColumn(), rows)
 	{
-		eps = 0;
+		eps = u_d->getFitTolerance();
 		numCols = dc.size();
 		pstar = triangleLoc1(numCols-1);
 		verbose = data.verbose;
@@ -2823,6 +2841,7 @@ struct sampleStats {
 			pr.setResponse(cd, yy);
 			if (pred.size()) {
 				NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+        nro.setGradTolerance(data.getGradientTolerance());
 				nro(pr);
 			} else {
 				pr.calcScores();
@@ -2902,6 +2921,7 @@ struct sampleStats {
 			PolyserialCor ps(&data, pv1, cd2, pv2, predj, predi,
 											 o1.totalWeight, rowMult, index);
 			NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+      nro.setGradTolerance(data.getGradientTolerance());
 			nro(ps);
 			ps.calcScores();
 			//mxPrintMat("PolyserialScores", ps.scores.block(0,0,4,ps.scores.cols()));
@@ -2931,6 +2951,7 @@ struct sampleStats {
 			PolyserialCor ps(&data, pv2, cd1, pv1, predi, predj,
 											 o1.totalWeight, rowMult, index);
 			NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+      nro.setGradTolerance(data.getGradientTolerance());
 			nro(ps);
 			ps.calcScores();
 			//mxPrintMat("PolyserialScores", ps.scores.block(0,0,4,ps.scores.cols()));
@@ -2960,6 +2981,7 @@ struct sampleStats {
 			PolychoricCor pc(&data, cd2, pv2, cd1, pv1, predi, predj,
 											 o1.totalWeight, rowMult, index);
 			NewtonRaphsonOptimizer nro("nr", 100, eps, verbose);
+      nro.setGradTolerance(data.getGradientTolerance());
 			nro(pc);
 			H22(pstar_idx,pstar_idx) = 1.0;
 			rho = tanh(pc.param);

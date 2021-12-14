@@ -30,7 +30,9 @@
           verbose = 0L, .parallel=TRUE, .noExoOptimize=TRUE,
      minVariance=sqrt(.Machine$double.eps), algebra=c(),
    warnNPDacov=TRUE, warnNPDuseWeight=TRUE, exoFree=NULL,
-   naAction=c("pass","fail","omit","exclude"))
+   naAction=c("pass","fail","omit","exclude"),
+   fitTolerance=sqrt(as.numeric(mxOption(key="Optimality tolerance"))),
+   gradientTolerance=1e-2)
 }
 
 \arguments{
@@ -65,6 +67,8 @@
    regression coefficients in the \code{observedStats} \code{slope}
    matrix to zero by setting entries to FALSE. \lifecycle{experimental}}
  \item{naAction}{Specify treatment of missing data. See details. \lifecycle{maturing}}
+ \item{fitTolerance}{fit tolerance used for WLS summary statistics \lifecycle{experimental}}
+ \item{gradientTolerance}{gradient tolerance used for WLS summary statistics \lifecycle{experimental}}
 }
 
 \details{
@@ -129,6 +133,14 @@ comparable to \code{asymCov} multiplied by N^2.
 \link{mxFitFunctionWLS}. Can be dense or diagonal for diagonally
 weighted least squares. This matrix is scaled by the sample size.
 Lavaan's \code{WLS.V} is comparable to \code{useWeight} divided by N.
+
+A simple Newton Raphson optimizer is used to obtain the summary
+statistics from the raw data. There are two parameters that control the
+accuracy of the optimization. In a first pass, the fit function is
+optimized to \sQuote{fitTolerance}. However, fit function becomes
+imprecise as the amount of data increases due to catastrophic
+cancellation. To fine-tune the fit, the gradient is optimized to
+\sQuote{gradientTolerance}.
 
 \emph{note}: WLS data typically use the \link{mxFitFunctionWLS} function.
 

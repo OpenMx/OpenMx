@@ -224,6 +224,8 @@ class omxData {
 	double minVariance;
 	bool warnNPDuseWeight;
 	std::vector<int> algebra;
+  double fitTolerance;
+  double gradientTolerance;
 
 	void estimateObservedStats();
 	void u_prepObsStats(omxState *state, const std::vector<const char *> &dc,
@@ -351,6 +353,8 @@ class omxData {
 	// When TRUE, PolychoricCor uses summary data (if possible).
 	// Both should obtain the same result when no exogenous covariates.
 	bool getNoExoOptimize() const { return noExoOptimize; };
+  double getFitTolerance() const { return fitTolerance; }
+  double getGradientTolerance() const { return gradientTolerance; }
 };
 
 omxData* omxNewDataFromMxData(SEXP dataObject, const char *name);
