@@ -14,10 +14,8 @@
  *  limitations under the License.
  *
  */
- #ifndef u_OMX_CUDA_SPECIFIC_H_
- #define u_OMX_CUDA_SPECIFIC_H_
-
-void callHelloWorld();
+#ifndef u_OMX_CUDA_SPECIFIC_H_
+#define u_OMX_CUDA_SPECIFIC_H_
 
 
 #endif // #define u_OMX_CUDA_SPECIFIC_H
