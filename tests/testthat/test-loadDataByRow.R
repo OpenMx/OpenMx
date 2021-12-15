@@ -110,8 +110,8 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
-# print(lmad - 3)
-omxCheckTrue(all(lmad - 4 > 0))
+# print(lmad - 7)
+omxCheckTrue(all(lmad - 7 > 0))
 
 # --------------
 
@@ -135,5 +135,5 @@ for (col in discardCols) log[[col]] <- NULL
 lmad <- -log10(apply(abs(as.matrix(log - result1)), 2, max))
 # names(lmad) <- c()
 # cat(deparse(floor(lmad)))
-# print(lmad - 3)
-omxCheckTrue(all(lmad - 3 > 0))
+# print(lmad - 7)
+omxCheckTrue(all(lmad - 7 > 0))
