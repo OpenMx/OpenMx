@@ -59,6 +59,7 @@ help:
 	@echo "  r-libs-user-dir create R_LIBS_USER to contain installed packages"
 	@echo "  cran-install    install OpenMx without NPSOL"
 	@echo "  install         install OpenMx with NPSOL"
+	@echo "  gpu-install     install OpenMx with CUDA (requires CUDA toolkit)"
 	@echo ""
 	@echo "DOCUMENTATION"
 	@echo ""
