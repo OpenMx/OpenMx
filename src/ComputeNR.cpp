@@ -90,7 +90,8 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
         nro.evaluateDerivs(want); // updates grad
         double curGradNorm = grad.norm();
         if (!std::isfinite(curGradNorm)) mxThrow("!std::isfinite(curGradNorm)");
-        if (nro.getFit() < bestFit) { bestFit = nro.getFit(); bestEst = trial; }
+        // <= important in next line because nro.getFit() == bestFit is likely!
+        if (nro.getFit() <= bestFit) { bestFit = nro.getFit(); bestEst = trial; }
         if (curGradNorm == priorGradNorm || curGradNorm < gradTolerance) {
           const double improved = refFit - bestFit;
           if (improved == 0) {
