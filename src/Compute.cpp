@@ -3849,7 +3849,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
   fc->createChildren(fitMat, false);
   AutoTune<JacobianGadget> jg(name);
   jg.setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
-  jg.work().setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
+  jg.work().setAlgoOptions(GradientAlgorithm_Central, 4, 1e-4);
   jg(sense, sense.ref, [&fc](){ return fc->getCurrentFree(); }, false, sense.result);
   fc->destroyChildren();
 
