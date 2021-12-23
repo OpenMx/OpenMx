@@ -89,7 +89,15 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
         nro.setParamVec(trial);
         nro.evaluateDerivs(want); // updates grad
         double curGradNorm = grad.norm();
-        if (!std::isfinite(curGradNorm)) mxThrow("!std::isfinite(curGradNorm)");
+        if (!std::isfinite(curGradNorm)) {
+          double oldSpeed = speed;
+          speed *= stepMultiplier;
+          if (verbose >= 4) {
+            mxLog("%s: grad NaN, suspect excessive speed %.3g->%.3g",
+                  name, oldSpeed, speed);
+          }
+          continue;
+        }
         // <= important in next line because nro.getFit() == bestFit is likely!
         if (nro.getFit() <= bestFit) { bestFit = nro.getFit(); bestEst = trial; }
         if (curGradNorm == priorGradNorm || curGradNorm < gradTolerance) {
