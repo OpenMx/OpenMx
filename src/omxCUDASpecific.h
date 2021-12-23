@@ -17,4 +17,8 @@
 #ifndef u_OMX_CUDA_SPECIFIC_H_
 #define u_OMX_CUDA_SPECIFIC_H_
 
+void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag, int N, int* h_devinfo);
+void initIdentityMatrix(double* array, int N);
+void getDiagonalFromDevice(double* d_array, double* h_diagvec, int N);
+
 #endif // #define u_OMX_CUDA_SPECIFIC_H
