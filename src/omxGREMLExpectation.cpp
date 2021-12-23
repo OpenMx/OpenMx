@@ -184,10 +184,6 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   oge->cholquadX_fail = 0;
   oge->logdetV_om->data[0] = 0;
 
-  #if HAS_CUDA
-    callHelloWorld();
-  #endif
-
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
@@ -195,40 +191,77 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
   quadX.setZero(oge->X->cols, oge->X->cols);
-  Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
-  Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
+
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
     dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
   }
   else{
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
   }
-  Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
-  cholV.compute(EigV.selfadjointView<Eigen::Lower>());
-  if(cholV.info() != Eigen::Success){
-    oge->cholV_fail_om->data[0] = 1;
-    return;
-  }
-  oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
-  for(i=0; i < oge->X->rows; i++){
-    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
-  }
-  oge->logdetV_om->data[0] *= 2;
-  //V inverse:
-  //mxLog("Preparing GREML expectation to handle missing data.");
-  Eigen::MatrixXd solvedV = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ));
-  //std::cout << solvedV << std::endl;
-  Vinv.triangularView<Eigen::Lower>() = solvedV.triangularView<Eigen::Lower>();
-  //Vinv.triangularView<Eigen::Lower>() = (cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ))).triangularView<Eigen::Lower>();
-  oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
-  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
-  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
-  if(cholquadX.info() != Eigen::Success){
-    oge->cholquadX_fail = 1;
-    return;
-  }
-  oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
+
+
+  #if HAS_CUDA
+    int devinfo;
+    gpuCholeskyInvertAndDiag(ptrToMatrix, omxMatrixDataColumnMajor(oge->invcov),
+                      oge->cholV_vectorD.data(), oge->cov->rows, &devinfo);
+
+    if(devinfo != 0){
+      oge->cholV_fail_om->data[0] = 1;
+      return;
+    }
+
+    for(i=0; i < oge->X->rows; i++){
+      oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
+    }
+    oge->logdetV_om->data[0] *= 2;
+
+    oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
+    quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+    //std::cout << quadX << std::endl;
+
+    gpuCholeskyInvertAndDiag(quadX.data(), omxMatrixDataColumnMajor(oge->invcov),
+                      oge->cholquadX_vectorD.data(), oge->X->cols, &devinfo);
+    if(devinfo != 0){
+      oge->cholV_fail_om->data[0] = 1;
+      return;
+    }
+
+
+
+  #else
+    Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
+    Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
+    cholV.compute(EigV.selfadjointView<Eigen::Lower>());
+    if(cholV.info() != Eigen::Success){
+      oge->cholV_fail_om->data[0] = 1;
+      return;
+    }
+    oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
+    for(i=0; i < oge->X->rows; i++){
+      oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
+    }
+    oge->logdetV_om->data[0] *= 2;
+    //V inverse:
+    Eigen::MatrixXd solvedV = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ));
+    //std::cout << solvedV << std::endl;
+
+    Vinv.triangularView<Eigen::Lower>() = solvedV.triangularView<Eigen::Lower>();
+    //Vinv.triangularView<Eigen::Lower>() = (cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ))).triangularView<Eigen::Lower>();
+    oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
+    quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+    //std::cout << quadX << std::endl;
+
+    Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
+    cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
+    if(cholquadX.info() != Eigen::Success){
+      oge->cholquadX_fail = 1;
+      return;
+    }
+    oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
+    oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
+
+  #endif
+
   if(oge->alwaysComputeMeans){
     yhat = EigX * (oge->quadXinv.selfadjointView<Eigen::Lower>() * (oge->XtVinv * Eigy));
   }

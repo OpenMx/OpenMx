@@ -182,7 +182,7 @@ if [ "${GPU_BUILD:-no}" = yes ]; then
   cd src
 
   echo "TODO: ERROR HANDLING FOR NVCC"
-  nvcc -c omxCUDASpecific.cu
+  nvcc -shared -Xcompiler -fPIC -c omxCUDASpecific.cu
 
   OBJECT_LIST=""
 
@@ -201,7 +201,7 @@ if [ "${GPU_BUILD:-no}" = yes ]; then
 
   echo "$OBJECT_LIST"
   echo "OBJECTS=$OBJECT_LIST" >> Makevars.new
-  echo 'CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart' >> Makevars.new
+  echo 'CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart -lcusolver' >> Makevars.new
   cd ..
 fi
 
