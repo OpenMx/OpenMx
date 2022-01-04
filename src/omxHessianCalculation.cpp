@@ -162,7 +162,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 
 		++hess_work->probeCount;
     ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f1 = fc->fit;
+		double f1 = fc->getFit();
 
 		freeParams[ix] = optima[i] - iOffset;
 
@@ -170,7 +170,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOnDiagonal(int i, struct hess_str
 
 		++hess_work->probeCount;
     ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f2 = fc->fit;
+		double f2 = fc->getFit();
 
 		Gcentral[k] = (f1 - f2) / (2.0*iOffset); 						// This is for the gradient
 		Gforward[k] = (minimum - f2) / iOffset;
@@ -225,7 +225,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 
 		++hess_work->probeCount;
     ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f1 = fc->fit;
+		double f1 = fc->getFit();
 
 		freeParams[ix] = optima[i] - iOffset;
 		freeParams[lx] = optima[l] - lOffset;
@@ -234,7 +234,7 @@ void omxComputeNumericDeriv::omxEstimateHessianOffDiagonal(int i, int l, struct 
 
 		++hess_work->probeCount;
     ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, fc);
-		double f2 = fc->fit;
+		double f2 = fc->getFit();
 
 		Haprox[k] = (f1 - 2.0 * minimum + f2 - hessian[i*numParams+i]*iOffset*iOffset -
 						hessian[l*numParams+l]*lOffset*lOffset)/(2.0*iOffset*lOffset);
@@ -412,7 +412,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	if (!fc->haveReferenceFit(fitMat)) return;
 
-	minimum = fc->fit;
+	minimum = fc->getFit();
 
 	hessWorkVector = new hess_struct[numChildren];
 	if (numChildren == 1) {
@@ -542,7 +542,7 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
     fc->copyGradFromOptimizer(Gc);
   }
 
-  fc->fit = minimum;
+  fc->setFit(minimum);
   if (checkGradient) {
     if (fc->isGradientTooLarge() && fc->isEffectivelyUnconstrained()) {
       if (fc->getInform() < INFORM_NOT_AT_OPTIMUM) fc->setInform(INFORM_NOT_AT_OPTIMUM);

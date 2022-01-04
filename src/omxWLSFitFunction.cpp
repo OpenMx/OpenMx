@@ -103,7 +103,8 @@ void omxWLSFitFunction::compute2(int want, FitContext *fc)
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
 
-	omxMatrix *weights = expectation->data->getSingleObsSummaryStats().useWeight;
+  auto &oss = expectation->data->getSingleObsSummaryStats();
+	omxMatrix *weights = oss.useWeight;
 	if(weights != NULL) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
 
@@ -123,10 +124,10 @@ void omxWLSFitFunction::compute2(int want, FitContext *fc)
 
 	sum = omxDDOT(P, B);
 
-	oo->matrix->data[0] = sum;
+	matrix->data[0] = sum;
+  scale = oss.totalWeight;
 
-	if(OMX_DEBUG) { mxLog("WLSFitFunction value comes to: %f.", oo->matrix->data[0]); }
-
+	if(OMX_DEBUG) { mxLog("WLSFitFunction %.5g %f", oo->matrix->data[0], oo->scale); }
 }
 
 void omxWLSFitFunction::populateAttr(SEXP algebra)

@@ -56,6 +56,7 @@ protected:
 	const char* fitType;
 
 	omxMatrix* matrix;
+  double scale;
 	bool initialized;
 	bool hessianAvailable;
 	FitStatisticUnits units;
@@ -67,7 +68,7 @@ protected:
 	std::vector<int> gradMap;
 	std::vector<int> missingGrad;
 
-	omxFitFunction() : rObj(0), expectation(0), initialized(false),
+	omxFitFunction() : rObj(0), expectation(0), scale(1), initialized(false),
 		hessianAvailable(false), units(FIT_UNITS_UNINITIALIZED), canDuplicate(false),
     openmpUser(false), verbose(0), derivCount(0) {};
 	virtual ~omxFitFunction() {};

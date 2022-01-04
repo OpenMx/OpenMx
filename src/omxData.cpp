@@ -1674,6 +1674,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
       return;
     }
     uw.triangularView<Eigen::Upper>() = uw.transpose().triangularView<Eigen::Upper>();
+    uw /= totalWeight;
 	} else {
 		if (strEQ(wlsType, "ULS")) {
 			// OK
@@ -1682,7 +1683,7 @@ void omxData::wlsAllContinuousCumulants(omxState *state)
 			EigenMatrixAdaptor uw(o1.useWeight);
 			uw.setZero();
 			for (int ix=0; ix < numColsStar; ++ix) {
-				uw(ix,ix) = totalWeight/((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
+				uw(ix,ix) = 1/((data.col(M(ix, 0)) * data.col(M(ix, 0)) *
 						  data.col(M(ix, 1)) * data.col(M(ix, 1))).sum() / totalWeight -
 							 Vmat(static_cast<int>(M(ix, 0)), static_cast<int>(M(ix, 1))) * Vmat(static_cast<int>(M(ix, 0)), static_cast<int>(M(ix, 1))));
 			}
@@ -3399,6 +3400,7 @@ void omxData::estimateObservedStats()
       }
 
       uw.triangularView<Eigen::Upper>() = uw.transpose().triangularView<Eigen::Upper>();
+      uw /= o1.totalWeight;
 	} else {
 		if (strEQ(wlsType, "ULS")) {
 			// OK
@@ -3406,7 +3408,7 @@ void omxData::estimateObservedStats()
 			EigenMatrixAdaptor uw(o1.useWeight);
 			uw.setZero();
 			for (int ix=0; ix < uw.cols(); ++ix) {
-				uw(ix,ix) = 1. / Eac(ix,ix); // DWLS
+				uw(ix,ix) = 1. / (o1.totalWeight * Eac(ix,ix)); // DWLS
 			}
 		}
 	}

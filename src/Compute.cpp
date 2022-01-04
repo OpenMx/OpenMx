@@ -2297,7 +2297,7 @@ void ComputePenaltySearch::computeImpl(FitContext *fc)
     {NumericVector v = result[0]; v[gx] = EBIC;}
     {IntegerVector v = result[1]; v[gx] = EP;}
     {NumericVector v = result[2]; v[gx] = ll;}
-    {NumericVector v = result[3]; v[gx] = fc->fit;}
+    {NumericVector v = result[3]; v[gx] = fc->getFit();}
     {IntegerVector v = result[4]; v[gx] = fc->wrapInform();}
     for (int px=0; px < fc->numParam; ++px) {
       NumericVector vec = result[resultParamOffset+px];
@@ -2584,18 +2584,18 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 			}
 		}
 		if (fc->wanted & FF_COMPUTE_FIT) {
-			if (fc->fit == 0) {
+			if (fc->getFit() == 0) {
 				Rf_warning("Fit estimated at 0; something is wrong");
 				break;
 			}
 			if (prevFit != 0) {
-				double change = (prevFit - fc->fit) / fc->fit;
-				if (verbose) mxLog("ComputeIterate: fit %.9g rel change %.9g", fc->fit, change);
+				double change = (prevFit - fc->getFit()) / fc->getFit();
+				if (verbose) mxLog("ComputeIterate: fit %.9g rel change %.9g", fc->getFit(), change);
 				mac = fabs(change);
 			} else {
-				if (verbose) mxLog("ComputeIterate: initial fit %.9g", fc->fit);
+				if (verbose) mxLog("ComputeIterate: initial fit %.9g", fc->getFit());
 			}
-			prevFit = fc->fit;
+			prevFit = fc->getFit();
 		}
 		if (std::isfinite(tolerance)) {
 			if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
@@ -2960,12 +2960,12 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork
 void ComputeEM::observedFit(FitContext *fc)
 {
 	ComputeFit("EM", fit3, FF_COMPUTE_FIT, fc);
-	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->fit);
+	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->getFit());
 
 	if (!(fc->wanted & FF_COMPUTE_FIT)) {
 		omxRaiseErrorf("ComputeEM: fit not available");
 	}
-	if (fc->fit == 0) {
+	if (fc->getFit() == 0) {
 		omxRaiseErrorf("Fit estimated at 0; something is wrong");
 	}
 }
@@ -2984,7 +2984,7 @@ void ComputeEM::accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1
     Eigen::VectorXd pVec((accel->dir * speed + preAccel).cwiseMax(lbound).cwiseMin(ubound));
     fc->setEstFromOptimizer(pVec);
 		observedFit(fc);
-		if (std::isfinite(fc->fit)) return;
+		if (std::isfinite(fc->getFit())) return;
 		speed *= .3;
 		if (verbose >= 3) mxLog("%s: fit NaN; reduce accel speed to %f", name, speed);
 	}
@@ -3057,7 +3057,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
 				accel->recalibrate();
 				accelLineSearch(true, fc, preAccel);
-				while (prevFit < fc->fit) {
+				while (prevFit < fc->getFit()) {
 					if (!accel->retry()) break;
 					accelLineSearch(true, fc, preAccel);
 				}
@@ -3068,7 +3068,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			observedFit(fc);
 		}
 
-		if (!std::isfinite(fc->fit)) {
+		if (!std::isfinite(fc->getFit())) {
 			omxRaiseErrorf("%s: fit not finite in iteration %d", name, EMcycles);
 		}
 
@@ -3082,21 +3082,21 @@ void ComputeEM::computeImpl(FitContext *fc)
 				}
 			}
 
-			change = (prevFit - fc->fit) / fc->fit;
+			change = (prevFit - fc->getFit()) / fc->getFit();
 			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g rel change %.9g",
-						EMcycles, mstepIter, fc->fit, change);
+                              EMcycles, mstepIter, fc->getFit(), change);
 			mac = fabs(change);
 
 			// For Tian, in_middle depends on the absolute (not relative) change in LL!
-			const double absMac = fabs(prevFit - fc->fit);
+			const double absMac = fabs(prevFit - fc->getFit());
 			if (absMac < MIDDLE_START * Scale) in_middle = true;
 			if (absMac < MIDDLE_END * Scale) in_middle = false;
 		} else {
 			if (verbose >= 2) mxLog("ComputeEM: msteps %d initial fit %.9g",
-						mstepIter, fc->fit);
+                              mstepIter, fc->getFit());
 		}
 
-		prevFit = fc->fit;
+		prevFit = fc->getFit();
 		converged = mac < tolerance;
 		++fc->iterations;
 		if (isErrorRaised() || converged) break;
@@ -3111,7 +3111,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
 	fc->wanted = wanted;
 	fc->setInform(converged? mstepInform : INFORM_ITERATION_LIMIT);
-	bestFit = fc->fit;
+	bestFit = fc->getFit();
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f inform %d",
 				EMcycles, maxIter, totalMstepIter, bestFit, fc->getInform());
 
@@ -3128,7 +3128,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		mxThrow("Unknown information method %d", information);
 	}
 
-	fc->fit = bestFit;
+	fc->setFit(bestFit);
   fc->setEstFromOptimizer(optimum);
 }
 
@@ -3595,7 +3595,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (fit) {
 			want |= FF_COMPUTE_FIT;
 			if (isBestFit) want |= FF_COMPUTE_BESTFIT;
-			fc->fit = 0;
+			fc->setFit(0);
 		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
@@ -3882,10 +3882,10 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	Eigen::MatrixXd UW2 = UW * UW; // unclear if this should be UW^2 i.e. elementwise power
 	double trUW = UW.diagonal().array().sum();
 	madj = trUW / df;
-	x2m = fc->fit / madj;
+	x2m = fc->getFit() / madj;
 	dstar = (trUW * trUW) / UW2.diagonal().array().sum();
 	mvadj = (trUW*trUW) / dstar;
-	x2mv = fc->fit / mvadj;
+	x2mv = fc->getFit() / mvadj;
 	// N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
 	if (isULS(Vmat)) x2mv /= totalWeight;
 	wlsStats = true;
@@ -4319,7 +4319,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		if (only == NA_INTEGER) {
 			fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
 		}
-		REAL(VECTOR_ELT(rawOutput, 1))[repl] = fc->fit;
+		REAL(VECTOR_ELT(rawOutput, 1))[repl] = fc->getFit();
 		for (int px=0; px < int(fc->numParam); ++px) {
 			REAL(VECTOR_ELT(rawOutput, 2 + px))[repl] = fc->est[px];
 		}
@@ -5421,7 +5421,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	if (inclPar) {
 		s1.est = fc->est;
 	}
-	s1.fit = fc->fit;
+	s1.fit = fc->getFit();
 	s1.fitUnits = fc->fitUnits;
 	s1.inform = fc->wrapInform();
 	if (inclSEs) {

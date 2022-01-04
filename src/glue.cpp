@@ -676,7 +676,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		if (Global->computeLoopContext.size() != 0) mxThrow("computeLoopContext imbalance");
 
 		if (fc->wanted & FF_COMPUTE_FIT) {
-			if (!std::isfinite(fc->fit)) {
+			if (!std::isfinite(fc->getFit())) {
 				std::string diag = fc->getIterationError();
 				if (diag.size()) {
 					omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
@@ -718,21 +718,21 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		}
 
 		if (fc->wanted & FF_COMPUTE_FIT) {
-			result.add("fit", Rf_ScalarReal(fc->fit));
+			result.add("fit", Rf_ScalarReal(fc->getFit()));
 			if (fc->fitUnits) {
 				SEXP units;
 				Rf_protect(units = Rf_allocVector(STRSXP, 1));
 				SET_STRING_ELT(units, 0, Rf_mkChar(fitUnitsToName(fc->fitUnits)));
 				result.add("fitUnits", units);
 				if(fc->fitUnits == FIT_UNITS_MINUS2LL){
-					result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->fit));
+					result.add("Minus2LogLikelihood", Rf_ScalarReal(fc->getFit()));
 				}
 			}
 			result.add("maxRelativeOrdinalError",
 				   Rf_ScalarReal(fc->getOrdinalRelativeError()));
 		}
 		if (fc->wanted & FF_COMPUTE_BESTFIT) {
-			result.add("minimum", Rf_ScalarReal(fc->fit));
+			result.add("minimum", Rf_ScalarReal(fc->getFit()));
 		}
 
 		FreeVarGroup *varGroup = Global->findVarGroup(FREEVARGROUP_ALL);

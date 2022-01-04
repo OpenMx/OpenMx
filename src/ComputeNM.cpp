@@ -609,8 +609,8 @@ double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 		return(bignum);
 	}
 	else{
-		if(fc->fit > bignum){bignum = 10 * fc->fit;}
-		double fv = fc->fit;
+		double fv = fc->getUnscaledFit();
+		if(fv > bignum){bignum = 10 * fv;}
 		if(eqConstraintMthd==4 && addPenalty){
 			int i;
 			for(i=0; i < equality.size(); i++){

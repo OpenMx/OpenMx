@@ -103,7 +103,7 @@ class GradientOptimizerContext {
 	void copyFromOptimizer(const double *myPars, FitContext *fc2);
 	void copyFromOptimizer(const double *myPars) { copyFromOptimizer(myPars, fc); };
 	void finish();
-	double getFit() const { return fc->fit; };
+	double getFit() const { return fc->getUnscaledFit(); };
 	// fc->iterations is a global counter that includes multiple optimizer runs
 	//int getIteration() const { return fc->iterations; };
 	int iterations;

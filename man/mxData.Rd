@@ -132,7 +132,7 @@ comparable to \code{asymCov} multiplied by N^2.
 \sQuote{useWeight} (optional) The weight matrix used in the
 \link{mxFitFunctionWLS}. Can be dense or diagonal for diagonally
 weighted least squares. This matrix is scaled by the sample size.
-Lavaan's \code{WLS.V} is comparable to \code{useWeight} divided by N.
+Lavaan's \code{WLS.V} is comparable to \code{useWeight}.
 
 A simple Newton Raphson optimizer is used to obtain the summary
 statistics from the raw data. There are two parameters that control the

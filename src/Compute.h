@@ -154,6 +154,8 @@ class FitContext {
   Eigen::ArrayXd curFree;  // length=numFree
   std::unique_ptr<CIobjective> disabledCiobj;
   void toggleCIObjective();
+	double fit;
+	double fitScale;
 
  public:
 	FreeVarGroup *varGroup;
@@ -164,7 +166,11 @@ class FitContext {
   int getNumFree() const { return u_numFree; }
 	std::vector<int> mapToParent;
 	double mac;
-	double fit;
+  double getFit() const { return fit * fitScale; }
+  double getFitScale() const { return fitScale; }
+  double getUnscaledFit() const { return fit; }
+  void setFit(double _fit, double _fitScale=1) { fit=_fit; fitScale=_fitScale; }
+  void setUnscaledFit(double _fit) { fit=_fit; }
 	FitStatisticUnits fitUnits;
 	int skippedRows;
   std::map< const char *, int, cstrCmp > freeToIndexMap;

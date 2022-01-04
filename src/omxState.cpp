@@ -1361,7 +1361,7 @@ void omxCheckpoint::postfit(const char *context, FitContext *fc, bool force)
 				fprintf(file, "\tNA");
 			}
 		}
-		fprintf(file, "\t%.10g\n", fc->fit);
+		fprintf(file, "\t%.10g\n", fc->getFit());
 		fflush(file);
 		lastCheckpoint = now;
 		lastIterations = fc->iterations;

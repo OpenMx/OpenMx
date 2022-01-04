@@ -322,7 +322,7 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 		return converged || isErrorRaised() ||
 			fc->getInform() != INFORM_UNINITIALIZED;
 	}
-	virtual double getFit() override { return fc->fit; };
+	virtual double getFit() override { return fc->getUnscaledFit(); };
 	virtual void resetDerivs() override {
 		fc->resetOrdinalRelativeError();
 		fc->clearHessian();
