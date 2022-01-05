@@ -1,7 +1,7 @@
 #!/bin/bash
 
-anchor=v2.18.1-188-g3c5c0c305  # Immediately after the previous year's copyright update
-year=2021
+anchor=v2.19.8-87-g6916439dd  # Immediately after the previous year's copyright update
+year=2022
 
 fileList=$(comm -12 <(git grep -l 'Copyright' | sort) <(git diff --name-only $anchor | sort))
 
