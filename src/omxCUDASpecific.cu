@@ -35,16 +35,16 @@ void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag,
 
   // Determine block allocations for optimized Cholesky factorization
   int worksize = 0;
-  cusolverDnDpotrf_bufferSize(solver_handle, CUBLAS_FILL_MODE_LOWER, N, d_input, N, &worksize);
+  cusolverDnDpotrf_bufferSize(solver_handle, CUBLAS_FILL_MODE_UPPER, N, d_input, N, &worksize);
   double *work;
   cudaMalloc(&work, worksize*sizeof(double));
   int* d_devinfo;
   cudaMalloc(&d_devinfo, sizeof(int));
 
   // Run Cholesky Factorization
-  cusolverDnDpotrf(solver_handle, CUBLAS_FILL_MODE_LOWER, N, d_input, N, work, worksize, d_devinfo);
+  cusolverDnDpotrf(solver_handle, CUBLAS_FILL_MODE_UPPER, N, d_input, N, work, worksize, d_devinfo);
   cudaMemcpy(h_devinfo, d_devinfo, sizeof(int), cudaMemcpyDeviceToHost);
-  std::cout << *h_devinfo <<std::endl;
+  //std::cout << *h_devinfo <<std::endl;
   if (*h_devinfo != 0){
     std::cout << "GPU Cholesky Factorization failed!" << std::endl;
     return;
@@ -58,7 +58,7 @@ void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag,
   double *d_identity;
   cudaMalloc(&d_identity, N*N*sizeof(double));
   cudaMemcpy(d_identity, h_identity, N*N*sizeof(double), cudaMemcpyHostToDevice);
-  cusolverDnDpotrs(solver_handle, CUBLAS_FILL_MODE_LOWER, N, N, d_input, N, d_identity, N, d_devinfo);
+  cusolverDnDpotrs(solver_handle, CUBLAS_FILL_MODE_UPPER, N, N, d_input, N, d_identity, N, d_devinfo);
   cudaMemcpy(h_devinfo, d_devinfo, sizeof(int), cudaMemcpyDeviceToHost);
   if (*h_devinfo != 0){
     std::cout << "GPU Solve for Inversion failed!" << std::endl;
