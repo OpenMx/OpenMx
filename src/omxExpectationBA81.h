@@ -53,11 +53,11 @@ class BA81Expect : public omxExpectation {
 	typedef omxExpectation super;
  public:
 	virtual ~BA81Expect();
-	virtual void init();
-  virtual void connectToData();
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual void populateAttr(SEXP expectation);
-	virtual omxMatrix *getComponent(const char*);
+	virtual void init() override;
+  virtual void connectToData() override;
+	virtual void compute(FitContext *fc, const char *what, const char *how) override;
+	virtual void populateAttr(SEXP expectation) override;
+	virtual omxMatrix *getComponent(const char*) override;
 
 	class ifaGroup grp;
 	int totalOutcomes() { return grp.totalOutcomes; }
@@ -105,7 +105,7 @@ class BA81Expect : public omxExpectation {
 	const char *getLatentIncompatible(BA81Expect *other);
 
 	void refreshPatternLikelihood(bool hasFreeLatent);
-	virtual void invalidateCache();
+	virtual void invalidateCache() override;
 };
 
 template <typename Tmean, typename Tcov>

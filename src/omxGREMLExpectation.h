@@ -27,12 +27,12 @@ struct omxGREMLExpectation : public omxExpectation {
 
 	omxGREMLExpectation(omxState *st, int num) : super(st, num) {}
   virtual ~omxGREMLExpectation();
-  virtual void init();
-  virtual void connectToData();
-  virtual void compute(FitContext *fc, const char *what, const char *how);
-  virtual void populateAttr(SEXP expectation);
-  virtual omxMatrix *getComponent(const char*);
-	virtual bool usesDataColumnNames() const { return false; }
+  virtual void init() override;
+  virtual void connectToData() override;
+  virtual void compute(FitContext *fc, const char *what, const char *how) override;
+  virtual void populateAttr(SEXP expectation) override;
+  virtual omxMatrix *getComponent(const char*) override;
+	virtual bool usesDataColumnNames() const override { return false; }
 	virtual int numObservedStats() override { return 1; }
 };
 
@@ -40,9 +40,9 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);
 
 template <typename T1>
 void dropCasesAndEigenize(
-		/*An omxMatrix, from which rows and columns corresponding to missing observations must be dropped, 
+		/*An omxMatrix, from which rows and columns corresponding to missing observations must be dropped,
 		  and which must be made usable with the Eigen API:*/
-		omxMatrix* om, 
+		omxMatrix* om,
 		//An Eigen object of appropriate type.  If `om` comes from a frontend MxMatrix, its elements will be copied into `em`:
 		Eigen::MatrixBase<T1> &em,
 		double* &ptrToMatrix, //<--Pointer to data array, for use with Eigen Map subsequent to this function call.

@@ -116,10 +116,10 @@ class omxFIMLFitFunction : public omxFitFunction {
 	int contDensityCount;
 
 	virtual ~omxFIMLFitFunction();
-	virtual void init();
+	virtual void init() override;
 	virtual void compute2(int ffcompute, FitContext *fc) override;
-	virtual void populateAttr(SEXP algebra);
-	virtual void invalidateCache();
+	virtual void populateAttr(SEXP algebra) override;
+	virtual void invalidateCache() override;
 
 	// --- old stuff below
 

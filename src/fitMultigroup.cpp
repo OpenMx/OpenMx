@@ -27,9 +27,9 @@ struct FitMultigroup : omxFitFunction {
 	std::vector< omxMatrix* > fits;
 	int verbose;
 
-	virtual void init();
+	virtual void init() override;
 	virtual void compute2(int ffcompute, FitContext *fc) override;
-	virtual void addOutput(MxRList *out);
+	virtual void addOutput(MxRList *out) override;
 	virtual void traverse(std::function<void(omxMatrix*)> fn) override;
 };
 

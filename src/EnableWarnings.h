@@ -5,7 +5,7 @@
 #endif
 
 #ifdef EXTRA_GCC_DIAG
-#pragma GCC diagnostic warning "-Wshadow"
+#pragma GCC diagnostic warning "-Wshadow -Werror=shadow"
 #pragma GCC diagnostic warning "-Wpedantic"
 #pragma GCC diagnostic warning "-Wmisleading-indentation"
 #pragma GCC diagnostic warning "-Wall"
@@ -17,5 +17,5 @@
 #pragma GCC diagnostic warning "-Wint-in-bool-context"
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 #pragma GCC diagnostic warning "-Wunused-variable"
-#pragma GCC diagnostic warning "-Wsuggest-override"
+#pragma GCC diagnostic warning "-Werror=suggest-override"
 #endif

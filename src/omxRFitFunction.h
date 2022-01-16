@@ -24,7 +24,7 @@ struct omxRFitFunction : omxFitFunction {
 	SEXP flatModel;
 	SEXP state;
 
-	virtual void init();
+	virtual void init() override;
 	virtual void compute2(int ffcompute, FitContext *fc) override;
 };
 

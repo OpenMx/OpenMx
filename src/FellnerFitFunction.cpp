@@ -37,7 +37,7 @@ namespace FellnerFitFunction {
 		std::vector<int> olsVarNum;     // index into fc->est
 		Eigen::MatrixXd olsDesign;      // a.k.a "X"
 
-		virtual void init();
+		virtual void init() override;
 		template <typename T1>
 		int computeCov(RelationalRAMExpectation::independentGroup &ig, FitContext *fc, T1 &covDecomp);
 		virtual void compute2(int want, FitContext *fc) override;

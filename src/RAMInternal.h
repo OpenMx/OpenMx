@@ -122,10 +122,10 @@ namespace RelationalRAMExpectation {
 			independentGroup &par;
 			int clumpSize;
 			MpcIO(independentGroup &u_par) : par(u_par), clumpSize(u_par.clumpSize) {}
-			virtual void recompute(FitContext *fc);
-			virtual unsigned getVersion(FitContext *fc);
-			virtual void refresh(FitContext *fc);
-			virtual PathCalcIO *clone()
+			virtual void recompute(FitContext *fc) override;
+			virtual unsigned getVersion(FitContext *fc) override;
+			virtual void refresh(FitContext *fc) override;
+			virtual PathCalcIO *clone() override
 			{ return new MpcIO(par); }
 		};
 
@@ -134,15 +134,15 @@ namespace RelationalRAMExpectation {
 			int clumpSize;
 			bool useRampart;
 			ApcIO(independentGroup &u_par) : par(u_par), clumpSize(u_par.clumpSize), useRampart(true) {}
-			virtual void recompute(FitContext *fc);
-			virtual unsigned getVersion(FitContext *fc);
+			virtual void recompute(FitContext *fc) override;
+			virtual unsigned getVersion(FitContext *fc) override;
 			template <typename T>
 			void u_refresh(FitContext *fc, T &mat, double sign);
-			virtual void refreshA(FitContext *fc, double sign)
+			virtual void refreshA(FitContext *fc, double sign) override
 			{ u_refresh(fc, full, sign); }
-			virtual void refreshSparse1(FitContext *fc, double sign)
+			virtual void refreshSparse1(FitContext *fc, double sign) override
 			{ u_refresh(fc, sparse, sign); }
-			virtual PathCalcIO *clone()
+			virtual PathCalcIO *clone() override
 			{ return new ApcIO(par); }
 		};
 
@@ -150,15 +150,15 @@ namespace RelationalRAMExpectation {
 			independentGroup &par;
 			int clumpSize;
 			SpcIO(independentGroup &u_par) : par(u_par), clumpSize(u_par.clumpSize) {}
-			virtual void recompute(FitContext *fc);
-			virtual unsigned getVersion(FitContext *fc);
+			virtual void recompute(FitContext *fc) override;
+			virtual unsigned getVersion(FitContext *fc) override;
 			template <typename T>
 			void u_refresh(FitContext *fc, T &mat);
-			virtual void refresh(FitContext *fc)
+			virtual void refresh(FitContext *fc) override
 			{ u_refresh(fc, full); }
-			virtual void refreshSparse1(FitContext *fc, double sign)
+			virtual void refreshSparse1(FitContext *fc, double sign) override
 			{ u_refresh(fc, sparse); }
-			virtual PathCalcIO *clone()
+			virtual PathCalcIO *clone() override
 			{ return new SpcIO(par); }
 		};
 
@@ -293,10 +293,10 @@ class omxRAMExpectation : public MVNExpectation {
 	struct MpcIO : PathCalcIO {
 		omxMatrix *M0;
 		MpcIO() {}
-		virtual void recompute(FitContext *fc);
-		virtual unsigned getVersion(FitContext *fc);
-		virtual void refresh(FitContext *fc);
-		virtual PathCalcIO *clone()
+		virtual void recompute(FitContext *fc) override;
+		virtual unsigned getVersion(FitContext *fc) override;
+		virtual void refresh(FitContext *fc) override;
+		virtual PathCalcIO *clone() override
 		{
 			auto *mio = new MpcIO;
 			mio->M0 = M0;
@@ -308,15 +308,15 @@ class omxRAMExpectation : public MVNExpectation {
 		omxMatrix *A0;
 		std::vector<coeffLoc> &vec;
 		ApcIO(std::vector<coeffLoc> &u_vec) : vec(u_vec) {}
-		virtual void recompute(FitContext *fc);
-		virtual unsigned getVersion(FitContext *fc);
+		virtual void recompute(FitContext *fc) override;
+		virtual unsigned getVersion(FitContext *fc) override;
 		template <typename T>
 		void u_refresh(FitContext *fc, T &mat, double sign);
-		virtual void refreshA(FitContext *fc,double sign)
+		virtual void refreshA(FitContext *fc,double sign) override
 		{ u_refresh(fc, full, sign); }
-		virtual void refreshSparse1(FitContext *fc, double sign)
+		virtual void refreshSparse1(FitContext *fc, double sign) override
 		{ u_refresh(fc, sparse, sign); }
-		virtual PathCalcIO *clone()
+		virtual PathCalcIO *clone() override
 		{
 			auto *aio = new ApcIO(vec);
 			aio->A0 = A0;
@@ -328,15 +328,15 @@ class omxRAMExpectation : public MVNExpectation {
 		omxMatrix *S0;
 		std::vector<coeffLoc> &vec;
 		SpcIO(std::vector<coeffLoc> &u_vec) : vec(u_vec) {}
-		virtual void recompute(FitContext *fc);
-		virtual unsigned getVersion(FitContext *fc);
+		virtual void recompute(FitContext *fc) override;
+		virtual unsigned getVersion(FitContext *fc) override;
 		template <typename T>
 		void u_refresh(FitContext *fc, T &mat);
-		virtual void refresh(FitContext *fc)
+		virtual void refresh(FitContext *fc) override
 		{ u_refresh(fc, full); }
-		virtual void refreshSparse1(FitContext *fc, double sign)
+		virtual void refreshSparse1(FitContext *fc, double sign) override
 		{ u_refresh(fc, sparse); }
-		virtual PathCalcIO *clone()
+		virtual PathCalcIO *clone() override
 		{
 			auto *sio = new SpcIO(vec);
 			sio->S0 = S0;
@@ -396,29 +396,29 @@ class omxRAMExpectation : public MVNExpectation {
 	void studyF();
 	void studyExoPred();
 
-	virtual void init();
-	virtual void compute(FitContext *fc, const char *what, const char *how);
-	virtual omxMatrix *getComponent(const char*);
-	virtual void populateAttr(SEXP expectation);
-	virtual const std::vector<const char *> &getDataColumnNames() const {
+	virtual void init() override;
+	virtual void compute(FitContext *fc, const char *what, const char *how) override;
+	virtual omxMatrix *getComponent(const char*) override;
+	virtual void populateAttr(SEXP expectation) override;
+	virtual const std::vector<const char *> &getDataColumnNames() const override {
     if (studiedF) return dataColNames;
     else return super::getDataColumnNames();
   };
-	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() {
+	virtual const Eigen::Map<DataColumnIndexVector> getDataColumns() override {
     if (studiedF)
       return Eigen::Map<DataColumnIndexVector>(dataCols.data(), numDataColumns);
     else
       return super::getDataColumns();
 	}
-	virtual std::vector< omxThresholdColumn > &getThresholdInfo()
+	virtual std::vector< omxThresholdColumn > &getThresholdInfo() override
   {
     if (studiedF) return thresholds;
     else return super::getThresholdInfo();
   }
-	virtual void invalidateCache();
-	virtual void generateData(FitContext *fc, MxRList &out);
-	virtual void flatten(FitContext *fc);
-	virtual void getExogenousPredictors(std::vector<int> &out);
+	virtual void invalidateCache() override;
+	virtual void generateData(FitContext *fc, MxRList &out) override;
+	void flatten(FitContext *fc);
+	virtual void getExogenousPredictors(std::vector<int> &out) override;
   virtual int numLatentVars() const override;
   virtual int numObservedStats() override;
 };

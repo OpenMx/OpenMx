@@ -125,7 +125,7 @@ public:
 template <typename Derived>
 class LoadDataProvider : public LoadDataProviderBase2 {
 public:
-	virtual std::unique_ptr<LoadDataProviderBase2> clone() {
+	virtual std::unique_ptr<LoadDataProviderBase2> clone() override {
 		return std::unique_ptr<LoadDataProviderBase2>(new Derived());
 	}
 };
