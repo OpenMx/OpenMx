@@ -65,6 +65,11 @@ void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag,
     return;
   }
   cudaMemcpy(h_result, d_identity, N*N*sizeof(double), cudaMemcpyDeviceToHost);
+  cudaFree(d_identity);
+  cudaFree(d_devinfo);
+  cudaFree(work);
+  cudaFree(d_input);
+  cusolverDnDestroy(solver_handle);
   return;
 }
 
