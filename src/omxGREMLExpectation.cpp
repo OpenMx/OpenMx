@@ -201,36 +201,60 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
 
 
   #if HAS_CUDA
-    int devinfo;
-    gpuCholeskyInvertAndDiag(ptrToMatrix, omxMatrixDataColumnMajor(oge->invcov),
-                      oge->cholV_vectorD.data(), oge->cov->rows, &devinfo);
+    int N = oge->cov->rows;
+    int devinfo = -1;
+    double* gpu_Vinv = (double*)malloc(N*N*sizeof(double));
+    double* gpu_cholVDiag = (double*)malloc(N*sizeof(double));
+    gpuCholeskyInvertAndDiag(ptrToMatrix, gpu_Vinv, gpu_cholVDiag, N, &devinfo);
+    //std::cout << "pt1 success\n";
 
     if(devinfo != 0){
       oge->cholV_fail_om->data[0] = 1;
       return;
     }
 
+    Eigen::Map< Eigen::VectorXd > gpuCholVDiagEigen(gpu_cholVDiag, N);
+    oge->cholV_vectorD = gpuCholVDiagEigen;
     for(i=0; i < oge->X->rows; i++){
       oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
     }
     oge->logdetV_om->data[0] *= 2;
 
+    Eigen::Map< Eigen::MatrixXd > gpuVinvEigen(gpu_Vinv, N, N);
+    Vinv.triangularView<Eigen::Lower>() = gpuVinvEigen.triangularView<Eigen::Lower>();
+    //~~~
     oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
     quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
     //std::cout << quadX << std::endl;
 
-    gpuCholeskyInvertAndDiag(quadX.data(), omxMatrixDataColumnMajor(oge->invcov),
-                      oge->cholquadX_vectorD.data(), oge->X->cols, &devinfo);
+    N = oge->X->cols;
+    devinfo = -1;
+    double* gpu_quadXinv = (double*)malloc(N*N*sizeof(double));
+    double* gpu_cholquadXDiag = (double*)malloc(N*sizeof(double));
+
+    double* quadXData = (double*)malloc(N*N*sizeof(double));
+    for(int col = 0; col < N; col++){
+      for(int row = 0; row < N; row++){
+        quadXData[col*N+row] = quadX.coeff(col, row);
+      }
+    }
+    gpuCholeskyInvertAndDiag(quadXData, gpu_quadXinv, gpu_cholquadXDiag, N, &devinfo);
+
+    //std::cout << "pt2 success\n";
     if(devinfo != 0){
       oge->cholV_fail_om->data[0] = 1;
       return;
     }
 
-
+    Eigen::Map< Eigen::VectorXd > gpuCholquadXDiagEigen(gpu_cholquadXDiag, N);
+    oge->cholquadX_vectorD = gpuCholquadXDiagEigen;
+    Eigen::Map< Eigen::MatrixXd > gpuquadXinvEigen(gpu_quadXinv, N, N);
+    oge->quadXinv = gpuquadXinvEigen.triangularView<Eigen::Lower>();
 
   #else
     Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
     Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
+    //std::cout << Eigy.rows() << '\n';
     cholV.compute(EigV.selfadjointView<Eigen::Lower>());
     if(cholV.info() != Eigen::Success){
       oge->cholV_fail_om->data[0] = 1;
@@ -249,9 +273,10 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
     //Vinv.triangularView<Eigen::Lower>() = (cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() ))).triangularView<Eigen::Lower>();
     oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
     quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
-    //std::cout << quadX << std::endl;
+    //std::cout << quadX.data() << std::endl;
 
     Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
+    //std::cout << oge->X->cols << '\n';
     cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
     if(cholquadX.info() != Eigen::Success){
       oge->cholquadX_fail = 1;
