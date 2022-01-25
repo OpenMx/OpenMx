@@ -74,12 +74,12 @@ class omxComputeNumericDeriv : public omxCompute {
 	int numParams;
 	double *gcentral, *gforward, *gbackward;
 	double *hessian;
-	struct hess_struct *hessWorkVector;
+  std::vector<std::unique_ptr<hess_struct> > hessWorkVector;
 	bool analytic;
 	bool recordDetail;
 	SEXP detail;
 
-	void omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc);
+	void omxPopulateHessianWork(int tx, FitContext* fc);
 	void omxEstimateHessianOnDiagonal(int i, struct hess_struct* hess_work);
 	void omxEstimateHessianOffDiagonal(int i, int l, struct hess_struct* hess_work);
 	void omxCalcFinalConstraintJacobian(FitContext* fc);
@@ -88,7 +88,7 @@ class omxComputeNumericDeriv : public omxCompute {
 		omxComputeNumericDeriv &cnd;
 		const int numParams;
 		double *hessian;
-		struct hess_struct *hessWorkVector;
+    std::vector<std::unique_ptr<hess_struct> > &hessWorkVector;
 		calcHessianEntry(omxComputeNumericDeriv *u_cnd) :
 			cnd(*u_cnd), numParams(cnd.numParams), hessian(cnd.hessian),
 			hessWorkVector(cnd.hessWorkVector)
@@ -103,12 +103,12 @@ class omxComputeNumericDeriv : public omxCompute {
 		}
 		void onDiag(int ii) {
 			int threadId = omx_absolute_thread_num();
-			cnd.omxEstimateHessianOnDiagonal(ii, hessWorkVector + threadId);
+			cnd.omxEstimateHessianOnDiagonal(ii, hessWorkVector[threadId].get());
 		}
 		void offDiag(int rx, int cx) {
 			int threadId = omx_absolute_thread_num();
       if (cnd.wantHessian) {
-        cnd.omxEstimateHessianOffDiagonal(rx, cx, hessWorkVector + threadId);
+        cnd.omxEstimateHessianOffDiagonal(rx, cx, hessWorkVector[threadId].get());
       }
 		}
 		void reportProgress(int numDone) {
@@ -124,8 +124,9 @@ class omxComputeNumericDeriv : public omxCompute {
         virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
-void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_work, FitContext* fc)
+void omxComputeNumericDeriv::omxPopulateHessianWork(int tx, FitContext* fc)
 {
+  std::unique_ptr<hess_struct> hess_work = std::make_unique<hess_struct>();
 	hess_work->probeCount = 0;
 	hess_work->Haprox = new double[numIter];
 	hess_work->Gcentral = new double[numIter];
@@ -133,6 +134,7 @@ void omxComputeNumericDeriv::omxPopulateHessianWork(struct hess_struct *hess_wor
 	hess_work->Gbackward = new double[numIter];
 	hess_work->fitMatrix = fc->lookupDuplicate(fitMat);
 	hess_work->fc = fc;
+  hessWorkVector[tx] = std::move(hess_work);
 }
 
 /**
@@ -416,12 +418,12 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
 
 	minimum = fc->getFit();
 
-	hessWorkVector = new hess_struct[numChildren];
+	hessWorkVector.resize(numChildren);
 	if (numChildren == 1) {
-		omxPopulateHessianWork(hessWorkVector, fc);
+		omxPopulateHessianWork(0, fc);
 	} else {
 		for(int i = 0; i < numChildren; i++) {
-			omxPopulateHessianWork(hessWorkVector + i, fc->childList[i]);
+			omxPopulateHessianWork(i, fc->childList[i]);
 		}
 	}
 	if(verbose >= 1) mxLog("Numerical Hessian approximation (%d free, %d children, ref fit %.16g)",
@@ -515,10 +517,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
     CovEntrywiseParallel(numChildren, che);
 
     for(int i = 0; i < numChildren; i++) {
-      struct hess_struct *hw = hessWorkVector + i;
+      struct hess_struct *hw = hessWorkVector[i].get();
       totalProbeCount += hw->probeCount;
     }
-    delete [] hessWorkVector;
+    hessWorkVector.clear();
     if (isErrorRaised()) return;
 
     Eigen::Map< Eigen::ArrayXi > Gsymmetric(LOGICAL(VECTOR_ELT(detail, 0)), numParams);

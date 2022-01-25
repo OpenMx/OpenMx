@@ -34,7 +34,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	bool fullWeight;
 
 	omxWLSFitFunction() :
-		type("WLS"), continuousType("cumulants"), fullWeight(true) {};
+		expectedFlattened(0), P(0), B(0), type("WLS"), continuousType("cumulants"), fullWeight(true) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init() override;
 	virtual void compute2(int ffcompute, FitContext *fc) override;
@@ -301,9 +301,12 @@ void omxWLSFitFunction::prepData()
 	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
 
 	/* Temporary storage for calculation */
-	expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
-	P = omxInitMatrix(1, vectorSize, TRUE, matrix->currentState);
-	B = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
+	if (!expectedFlattened) expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
+  omxResizeMatrix(expectedFlattened, vectorSize, 1);
+	if (!P) P = omxInitMatrix(1, vectorSize, TRUE, matrix->currentState);
+  omxResizeMatrix(P, 1, vectorSize);
+	if (!B) B = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
+  omxResizeMatrix(B, vectorSize, 1);
 }
 
 void omxWLSFitFunction::init()
@@ -351,8 +354,5 @@ void omxWLSFitFunction::init()
   }
 
 	observedFlattened = 0;
-	expectedFlattened = 0;
-	B = 0;
-	P = 0;
   canDuplicate = true;
 }

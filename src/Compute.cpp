@@ -1768,7 +1768,7 @@ class ComputeEM : public omxCompute {
 	const char *accelName;
 	bool useRamsay;
 	bool useVaradhan;
-	EMAccel *accel;
+  std::unique_ptr<EMAccel> accel;
 	enum EMInfoMethod {
 		EMInfoNone,
 		EMInfoMengRubinFamily,
@@ -3011,8 +3011,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g accel=%s info=%d",
 				tolerance, accelName, information);
 
-	if (useRamsay) accel = new Ramsay1975(fc, verbose, -1.25);
-	if (useVaradhan) accel = new Varadhan2008(fc, verbose);
+	if (useRamsay) accel = std::make_unique<Ramsay1975>(fc, verbose, -1.25);
+	if (useVaradhan) accel = std::make_unique<Varadhan2008>(fc, verbose);
 
 	int mstepInform = INFORM_UNINITIALIZED;
 	std::vector<double> prevEst(fc->getNumFree());
@@ -3448,8 +3448,6 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 
 ComputeEM::~ComputeEM()
 {
-	if (accel) delete accel;
-
 	delete estep;
 	delete mstep;
 
