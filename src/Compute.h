@@ -247,7 +247,7 @@ class FitContext {
 		if (std::isfinite(fit)) return true;
 		if (inform == INFORM_UNINITIALIZED) {
 			omxRecompute(fitMat, this);
-			fit = omxMatrixElement(fitMat, 0, 0);
+			setFit(omxMatrixElement(fitMat, 0, 0));
 			if (std::isfinite(fit)) return true;
 			setInform(INFORM_STARTING_VALUES_INFEASIBLE);
 		}

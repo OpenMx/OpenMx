@@ -107,7 +107,9 @@ class omxComputeNumericDeriv : public omxCompute {
 		}
 		void offDiag(int rx, int cx) {
 			int threadId = omx_absolute_thread_num();
-			cnd.omxEstimateHessianOffDiagonal(rx, cx, hessWorkVector + threadId);
+      if (cnd.wantHessian) {
+        cnd.omxEstimateHessianOffDiagonal(rx, cx, hessWorkVector + threadId);
+      }
 		}
 		void reportProgress(int numDone) {
 			std::string detail = std::to_string(numDone) + "/" +
