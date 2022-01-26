@@ -25,6 +25,7 @@
 
 #include "cudaswitch.h"
 #include "omxCUDASpecific.h"
+#include "omxMatrix.h"
 
 omxExpectation *omxInitGREMLExpectation(omxState *st, int num)
 { return new omxGREMLExpectation(st, num); }
@@ -205,7 +206,14 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
     int devinfo = -1;
     double* gpu_Vinv = (double*)malloc(N*N*sizeof(double));
     double* gpu_cholVDiag = (double*)malloc(N*sizeof(double));
-    gpuCholeskyInvertAndDiag(ptrToMatrix, gpu_Vinv, gpu_cholVDiag, N, &devinfo);
+
+    double* gpu_V = (double*)malloc(N*N*sizeof(double));
+    for(int row = 0; row < N; row++){
+      for(int col = 0; col < N; col++){
+        gpu_V[row*N + col] = omxMatrixElement(oge->cov, row, col);
+      }
+    }
+    gpuCholeskyInvertAndDiag(gpu_V, gpu_Vinv, gpu_cholVDiag, N, &devinfo);
     //std::cout << "pt1 success\n";
 
     if(devinfo != 0){
