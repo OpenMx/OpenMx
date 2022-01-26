@@ -43,10 +43,11 @@ void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag,
 
   // Run Cholesky Factorization
   cusolverDnDpotrf(solver_handle, CUBLAS_FILL_MODE_UPPER, N, d_input, N, work, worksize, d_devinfo);
+  cudaDeviceSynchronize();
   cudaMemcpy(h_devinfo, d_devinfo, sizeof(int), cudaMemcpyDeviceToHost);
   //std::cout << *h_devinfo <<std::endl;
   if (*h_devinfo != 0){
-    std::cout << "GPU Cholesky Factorization failed!" << std::endl;
+    //std::cout << "GPU Cholesky Factorization failed!" << std::endl;
     return;
   }
   getDiagonalFromDevice(d_input, h_diag, N);
@@ -59,9 +60,10 @@ void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag,
   cudaMalloc(&d_identity, N*N*sizeof(double));
   cudaMemcpy(d_identity, h_identity, N*N*sizeof(double), cudaMemcpyHostToDevice);
   cusolverDnDpotrs(solver_handle, CUBLAS_FILL_MODE_UPPER, N, N, d_input, N, d_identity, N, d_devinfo);
+  cudaDeviceSynchronize();
   cudaMemcpy(h_devinfo, d_devinfo, sizeof(int), cudaMemcpyDeviceToHost);
   if (*h_devinfo != 0){
-    std::cout << "GPU Solve for Inversion failed!" << std::endl;
+    //std::cout << "GPU Solve for Inversion failed!" << std::endl;
     return;
   }
   cudaMemcpy(h_result, d_identity, N*N*sizeof(double), cudaMemcpyDeviceToHost);
