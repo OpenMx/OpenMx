@@ -4326,7 +4326,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	}
 
 	for (auto &ctx : contexts) {
-		ctx.data->setFreqColumn(ctx.origRowFreq);
+		ctx.data->setFreqColumn(ctx.data->getOriginalFreqColumn());
 	}
 
 	if (only == NA_INTEGER) {
