@@ -25,8 +25,8 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # pass debug flags to linker, i.e., -fsanitize=undefined
 
 # To use gcc's address sanitizer, uncomment:
-# COMMON_FLAGS += -fsanitize=address -fno-omit-frame-pointer -fno-common
-# then run with env LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/10/libasan.so R -f ...
+# COMMON_FLAGS += -fsanitize=address -fno-omit-frame-pointer -fno-common -fsanitize-address-use-after-scope
+# then run with env LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/11/libasan.so ASAN_OPTIONS=strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1 R -f ...
 
 # Uncomment if you want to link OpenMx against Intel's MKL, if you installed the MKL directly from an Intel product, under Linux/GNU:
 # MKL_CXXFLAGS= -D EIGEN_USE_MKL_ALL -I"/opt/intel/mkl/include"
