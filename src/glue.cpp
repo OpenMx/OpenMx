@@ -509,7 +509,7 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	for(k = 0; k < Rf_length(matList); k++) {
 		Rf_protect(nextMat = VECTOR_ELT(matList, k));	// This is the matrix + populations
 		args[k] = omxNewMatrixFromRPrimitive(nextMat, globalState, 1, - k - 1);
-		globalState->matrixList.push_back(args[k]);
+		globalState->matrixList.emplace_back(args[k]);
 		if(OMX_DEBUG) {
 			mxLog("Matrix[%d] initialized (%d x %d)",
 				k, globalState->matrixList[k]->rows, globalState->matrixList[k]->cols);

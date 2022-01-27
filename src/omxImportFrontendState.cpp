@@ -80,7 +80,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 		ProtectedSEXP nextMat(VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, this, 1, -index - 1);
 		mat->nameStr = CHAR(STRING_ELT(matListNames, index));
-		matrixList.push_back(mat);
+		matrixList.emplace_back(mat);
 
 		if(OMX_DEBUG) { omxPrintMatrix(mat, NULL); }
 

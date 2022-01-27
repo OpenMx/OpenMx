@@ -317,7 +317,7 @@ static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitTy
 		obj->matrix = omxInitMatrix(1, 1, TRUE, os);
 		obj->matrix->hasMatrixNumber = TRUE;
 		obj->matrix->matrixNumber = ~os->algebraList.size();
-		os->algebraList.push_back(obj->matrix);
+		os->algebraList.emplace_back(obj->matrix);
 	} else {
 		obj->matrix = matrix;
 	}
