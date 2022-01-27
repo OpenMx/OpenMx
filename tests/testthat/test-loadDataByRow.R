@@ -117,7 +117,7 @@ omxCheckTrue(all(lmad - 7 > 0))
 
 totalCol <- ncol(flat) + length(letters)
 lcol <- sample.int(totalCol, length(letters))
-print(sort(lcol))
+#print(sort(lcol))
 flatMap <- (1:totalCol)[-lcol]
 flat2 <- matrix("", nrow(flat), totalCol)
 flat2[,lcol] <- letters
