@@ -1296,8 +1296,7 @@ void obsSummaryStats::setDimnames(omxData *data)
 	}
 
 	if (asymCov) {
-		asymCov->colnames.clear();
-		asymCov->rownames.clear();
+		asymCov->clearDimnames();
 		asymCov->colnames.reserve(asymCov->cols);
 		if (thresholdMat || meansMat) {
 			for (auto &tc : thresholdCols) {

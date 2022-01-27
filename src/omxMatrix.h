@@ -74,6 +74,7 @@ class omxMatrix {
 								freeRownames(false), freeColnames(false)
 		{};
 	struct dtor;
+  void clearDimnames();
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };

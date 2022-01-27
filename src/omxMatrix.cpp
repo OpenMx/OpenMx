@@ -215,10 +215,17 @@ void omxFreeMatrix(omxMatrix *om) {
 		om->fitFunction = NULL;
 	}
 
-	if (om->freeColnames) for (auto cn : om->colnames) free((void*)cn);
-	if (om->freeRownames) for (auto rn : om->rownames) free((void*)rn);
+  om->clearDimnames();
 
 	if (!om->hasMatrixNumber) delete om;
+}
+
+void omxMatrix::clearDimnames()
+{
+	if (freeColnames) { for (auto cn : colnames) free((void*)cn); freeColnames=false; }
+	if (freeRownames) { for (auto rn : rownames) free((void*)rn); freeRownames=false; }
+  colnames.clear();
+  rownames.clear();
 }
 
 /**
