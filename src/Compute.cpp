@@ -2036,7 +2036,6 @@ class ComputeBootstrap : public omxCompute {
 
 	struct context {
 		omxData *data;
-		int *origRowFreq;
 		std::vector<int> origCumSum;
 		std::vector<int> resample;
 	};
@@ -4168,11 +4167,11 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 			mxThrow("%s: data '%s' of type '%s' cannot have row weights",
 				 name, ctx.data->name, ctx.data->getType());
 		}
-		ctx.origRowFreq = ctx.data->getFreqColumn();
+		int *origRowFreq = ctx.data->getFreqColumn();
 		ctx.origCumSum.resize(numRows);
 		ctx.resample.resize(ctx.origCumSum.size());
-		if (ctx.origRowFreq) {
-			std::partial_sum(ctx.origRowFreq, ctx.origRowFreq + ctx.origCumSum.size(),
+		if (origRowFreq) {
+			std::partial_sum(origRowFreq, origRowFreq + ctx.origCumSum.size(),
 					 ctx.origCumSum.begin());
 		} else {
 			for (int rx=0; rx < numRows; ++rx) ctx.origCumSum[rx] = 1+rx;
