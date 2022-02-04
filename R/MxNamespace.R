@@ -354,6 +354,28 @@ imxIsMultilevel <- function(model){
 	return(FALSE)
 }
 
+##' imxIsStateSpace
+##' 
+##' This is an internal function exported for those people who know
+##' what they are doing.  If you don't know what you're doing, but want to,
+##' here's a brief description of the function.  You give this function an MxModel. It
+##' returns TRUE if the model is a state space model and FALSE otherwise.
+##' 
+##' @param model model
+imxIsStateSpace <- function(model){
+	if(length(model$submodels) > 0){
+		attempt <- sapply(model@submodels, imxIsStateSpace)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	if(!is.null(model$expectation) && ("MxExpectationStateSpace" %in% class(model$expectation))){
+		return(TRUE)
+	}
+	return(FALSE)
+}
+
+
 ##' imxIdentifier
 ##'
 ##' This is an internal function exported for those people who know
