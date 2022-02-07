@@ -2077,7 +2077,7 @@ class ComputeGenerateData : public omxCompute {
 class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
 
-	static std::vector<LoadDataProviderBase2*> Providers;
+	static std::vector< std::unique_ptr<LoadDataProviderBase2> > Providers;
 	std::unique_ptr<LoadDataProviderBase2> provider;
 
 	omxData *data;
@@ -2095,13 +2095,14 @@ class ComputeLoadData : public omxCompute {
 
  public:
 	static void loadedHook();
-	static void addProvider(LoadDataProviderBase2 *ldp) { Providers.push_back(ldp); }
+	static void addProvider(std::unique_ptr<LoadDataProviderBase2> ldp)
+  { Providers.emplace_back(std::move(ldp)); }
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
 	virtual void computeImpl(FitContext *fc) override;
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *) override;
 };
 
-std::vector<LoadDataProviderBase2*> ComputeLoadData::Providers;
+std::vector<std::unique_ptr<LoadDataProviderBase2> > ComputeLoadData::Providers;
 
 void ComputeLoadDataLoadedHook()
 { ComputeLoadData::loadedHook(); }
@@ -4786,7 +4787,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
     data = globalState->dataList[objNum];
   }
 
-	for (auto pr : Providers) {
+	for (auto &pr : Providers) {
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
       if (data) {
@@ -4806,7 +4807,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 	if (!provider) {
 		std::string avail;
-		for (auto pr : Providers) {
+		for (auto &pr : Providers) {
 			avail += " ";
 			avail += pr->getName();
 		}
@@ -4862,8 +4863,8 @@ void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 void ComputeLoadData::loadedHook()
 {
 	Providers.clear();
-	Providers.push_back(new LoadDataCSVProvider());
-	Providers.push_back(new LoadDataDFProvider());
+	Providers.push_back(std::make_unique<LoadDataCSVProvider>());
+	Providers.push_back(std::make_unique<LoadDataDFProvider>());
 }
 
 unsigned int DJBHash(const char *str, std::size_t len)
@@ -4878,7 +4879,7 @@ unsigned int DJBHash(const char *str, std::size_t len)
 }
 
 void AddLoadDataProvider(double version, unsigned int otherHash,
-                         LoadDataProviderBase2 *ldp)
+                         std::unique_ptr<LoadDataProviderBase2> ldp)
 {
   std::size_t sz2[] = {
                sizeof(dataPtr),
@@ -4895,7 +4896,7 @@ void AddLoadDataProvider(double version, unsigned int otherHash,
 	} else {
 		mxThrow("Cannot add mxComputeLoadData provider, version mismatch");
 	}
-	ComputeLoadData::addProvider(ldp);
+	ComputeLoadData::addProvider(std::move(ldp));
 }
 
 void ComputeLoadContext::reopen()
