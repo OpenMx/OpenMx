@@ -25,7 +25,7 @@
 #include "npsolswitch.h"
 #include "EnableWarnings.h"
 
-struct omxGlobal *Global = NULL;
+struct std::unique_ptr<omxGlobal> Global;
 static bool mxLogEnabled = false;
 
 SEXP enableMxLog()
@@ -271,6 +271,8 @@ omxGlobal::omxGlobal()
 	// is not instrumented then false positives can result,
 	// https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow
 	checkpointColnames.reserve(100);
+
+  globalState = std::make_unique<omxState>();
 }
 
 void omxGlobal::setDefaultGradientAlgo()
@@ -607,14 +609,19 @@ omxState::~omxState()
 
 omxGlobal::~omxGlobal()
 {
+	// Data are not modified and not copied. The same memory
+	// is shared across all instances of state.
+	// NOTE: This may need to change for MxDataDynamic
+	for(size_t dx = 0; dx < globalState->dataList.size(); dx++) {
+		omxFreeData(globalState->dataList[dx]);
+	}
+
 	if (!previousReport.empty()) {
 		std::string empty;
 		reportProgressStr(empty);
 	}
 	if (topFc) {
-		omxState *state = topFc->state;
 		delete topFc;
-		delete state;
 	}
 	for (size_t cx=0; cx < intervalList.size(); ++cx) {
 		delete intervalList[cx];

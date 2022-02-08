@@ -330,6 +330,7 @@ class omxGlobal {
 	std::vector< omxCheckpoint* > checkpointList;
   Eigen::VectorXd startingValues;
 	FitContext *topFc;
+  std::unique_ptr<class omxState> globalState;
 
 	omxGlobal();
 	void deduplicateVarGroups();
@@ -354,7 +355,7 @@ class omxGlobal {
 };
 
 // Use a pointer to ensure correct initialization and destruction
-extern class omxGlobal *Global;
+extern std::unique_ptr<class omxGlobal> Global;
 
 void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 

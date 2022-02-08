@@ -34,6 +34,7 @@ struct omxWLSFitFunction : omxFitFunction {
 	bool fullWeight;
 
 	omxWLSFitFunction() :
+    expectedCov(0), expectedMeans(0), expectedSlope(0), observedFlattened(0),
 		expectedFlattened(0), P(0), B(0), type("WLS"), continuousType("cumulants"), fullWeight(true) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init() override;

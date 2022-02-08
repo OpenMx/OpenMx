@@ -25,7 +25,9 @@ struct omxGREMLExpectation : public omxExpectation {
   Eigen::MatrixXd XtVinv, quadXinv, EigV_filtered;
   std::vector< const char* > yXcolnames;
 
-	omxGREMLExpectation(omxState *st, int num) : super(st, num) {}
+	omxGREMLExpectation(omxState *st, int num) :
+    super(st, num), cov(0), invcov(0), means(0), X(0), logdetV_om(0), cholV_fail_om(0),
+    origVdim_om(0), y(0), data2(0) {}
   virtual ~omxGREMLExpectation();
   virtual void init() override;
   virtual void connectToData() override;

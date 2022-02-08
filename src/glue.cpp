@@ -495,9 +495,10 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	SEXP ans, nextMat;
 
 	FitContext::setRFitFunction(NULL);
-	Global = new omxGlobal;
+  if (Global) mxThrow("BUG: Global not destroyed from previous session");
+	Global = std::make_unique<omxGlobal>();
 
-	omxState *globalState = new omxState;
+	omxState *globalState = Global->globalState.get();
 
 	readOpts(options);
 
@@ -537,21 +538,37 @@ SEXP omxCallAlgebra2(SEXP matList, SEXP algNum, SEXP options) {
 	const char *bads = Global->getBads();
 
 	omxFreeMatrix(algebra);
-	delete globalState;
-	delete Global;
 
 	if (bads) mxThrow("%s", bads);
 
 	return ans;
 }
 
-SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
+static void FinalDeallocate()
 {
 	try {
-		return omxCallAlgebra2(matList, algNum, options);
+    // This must succeed before we return to R, otherwise any
+    // memory that we allocated using R_alloc will likely be
+    // overwritten with random garbage.
+    Global.reset();
 	} catch( std::exception& u__ex__ ) {
 		exception_to_Rf_error( u__ex__ );
 	} catch(...) {
+		string_to_Rf_error( "c++ exception in FinalDeallocate, memory corruption is likely" );
+	}
+}
+
+SEXP omxCallAlgebra(SEXP matList, SEXP algNum, SEXP options)
+{
+	try {
+		SEXP ret = omxCallAlgebra2(matList, algNum, options);
+    FinalDeallocate();
+    return ret;
+	} catch( std::exception& u__ex__ ) {
+    FinalDeallocate();
+		exception_to_Rf_error( u__ex__ );
+	} catch(...) {
+    FinalDeallocate();
 		string_to_Rf_error( "c++ exception (unknown reason)" );
 	}
 }
@@ -575,12 +592,13 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	ProtectAutoBalanceDoodad protectManager;
 
 	FitContext::setRFitFunction(NULL);
-	Global = new omxGlobal;
+  if (Global) mxThrow("BUG: Global not destroyed from previous session");
+	Global = std::make_unique<omxGlobal>();
 	Global->silent = silent;
 	Global->mpi = &protectManager;
 
 	/* Create new omxState for current state storage and initialize it. */
-	omxState *globalState = new omxState;
+	omxState *globalState = Global->globalState.get();
 
 	readOpts(options);
 #if HAS_NPSOL
@@ -778,15 +796,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
 
-	// Data are not modified and not copied. The same memory
-	// is shared across all instances of state.
-	// NOTE: This may need to change for MxDataDynamic
-	for(size_t dx = 0; dx < globalState->dataList.size(); dx++) {
-		omxFreeData(globalState->dataList[dx]);
-	}
-
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
-	delete Global;
 
 	return result.asR();
 }
@@ -798,13 +808,17 @@ static SEXP omxBackend(SEXP constraints, SEXP matList,
                        SEXP defvars, SEXP Rsilent)
 {
 	try {
-		return omxBackend2(constraints, matList,
-				   varList, algList, expectList, computeList,
-                       data, intervalList, checkpointList, options, defvars,
-				   Rf_asLogical(Rsilent));
+    SEXP ret = omxBackend2(constraints, matList,
+                           varList, algList, expectList, computeList,
+                           data, intervalList, checkpointList, options, defvars,
+                           Rf_asLogical(Rsilent));
+    FinalDeallocate();
+    return ret;
 	} catch( std::exception& u__ex__ ) {
+    FinalDeallocate();
 		exception_to_Rf_error( u__ex__ );
 	} catch(...) {
+    FinalDeallocate();
 		string_to_Rf_error( "c++ exception (unknown reason)" );
 	}
 }
