@@ -28,7 +28,7 @@
 //#undef PROTECT_WITH_INDEX
 //#undef UNPROTECT
 
-void string_to_Rf_error( const std::string& str) __attribute__ ((noreturn));
+void string_to_Rf_error( const char *str) __attribute__ ((noreturn));
 
 void exception_to_Rf_error( const std::exception& ex ) __attribute__ ((noreturn));
 

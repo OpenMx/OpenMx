@@ -311,14 +311,14 @@ static SEXP untitledNumber() {
 	return Rf_ScalarInteger(++untitledCounter);
 }
 
-void string_to_Rf_error( const std::string& str )
+void string_to_Rf_error( const char *str )
 {
-	Rf_error("%s", str.c_str());
+	Rf_error("%s", str);
 }
 
 void exception_to_Rf_error( const std::exception& ex )
 {
-	string_to_Rf_error(ex.what());
+  string_to_Rf_error(ex.what());
 }
 
 SEXP MxRList::asR()
