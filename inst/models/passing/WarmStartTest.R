@@ -43,7 +43,7 @@ ws <- chol(hess.ini)
 
 plan <- mxComputeSequence(steps=list(
 	mxComputeGradientDescent(engine="NPSOL",warmStart=ws),
-	mxComputeNumericDeriv(),
+	mxComputeNumericDeriv(analytic=FALSE),
 	mxComputeStandardError(),
 	mxComputeHessianQuality(),
 	mxComputeReportDeriv(),
@@ -73,7 +73,7 @@ omxCheckTrue(run2$output$evaluations < run1$output$evaluations)
 
 plan2 <- mxComputeSequence(steps=list(
 	mxComputeGradientDescent(engine="NPSOL",warmStart=matrix(1,1,1)),
-	mxComputeNumericDeriv(),
+	mxComputeNumericDeriv(analytic=FALSE),
 	mxComputeStandardError(),
 	mxComputeHessianQuality(),
 	mxComputeReportDeriv(),
@@ -96,7 +96,7 @@ omxCheckWarning(mxRun(m3),"MxComputeGradientDescent: warmStart size 1 does not m
 plan3 <- mxComputeSequence(steps=list(
 	mxComputeOnce(from="m4.fitfunction",what="hessian"),
 	mxComputeGradientDescent(engine="NPSOL"),
-	mxComputeNumericDeriv(),
+	mxComputeNumericDeriv(analytic=FALSE),
 	mxComputeStandardError(),
 	mxComputeHessianQuality(),
 	mxComputeReportDeriv(),
