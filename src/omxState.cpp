@@ -380,6 +380,7 @@ void omxGlobal::unpackConfidenceIntervals(omxState *currentState)
 			} else if (ci->cmpBoundAndType(**iter)) {
 				Rf_warning("Different confidence intervals '%s' and '%s' refer to the same thing",
 					   ci->name.c_str(), (*iter)->name.c_str());
+        delete ci;
 			}
 			continue;
 		}
