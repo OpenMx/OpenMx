@@ -1753,8 +1753,8 @@ class omxComputeOnce : public omxCompute {
 
 class ComputeEM : public omxCompute {
 	typedef omxCompute super;
-	omxCompute *estep;
-	omxCompute *mstep;
+  std::unique_ptr<omxCompute> estep;
+  std::unique_ptr<omxCompute> mstep;
 	omxMatrix *fit3;   // rename to observedFit
 	int EMcycles;
 	int maxIter;
@@ -2040,7 +2040,7 @@ class ComputeBootstrap : public omxCompute {
 		std::vector<int> resample;
 	};
 	std::vector< context > contexts;
-	omxCompute *plan;
+  std::unique_ptr<omxCompute> plan;
 	int verbose;
 	int numReplications;
 	int seed;
@@ -2054,8 +2054,6 @@ class ComputeBootstrap : public omxCompute {
 	MxRList onlyWeight;
 
  public:
-	ComputeBootstrap() : plan(0) {};
-	virtual ~ComputeBootstrap();
 	virtual bool accumulateInform() override { return false; };
 	virtual void initFromFrontend(omxState *, SEXP rObj) override;
 	virtual void computeImpl(FitContext *fc) override;
@@ -2440,9 +2438,9 @@ void omxComputeSequence::initFromFrontend(omxState *globalState, SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
+		clist.push_back(compute);
 		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
-		clist.push_back(compute);
 	}
 
 	if (independent) {
@@ -2550,9 +2548,9 @@ void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
-		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
+		compute->initFromFrontend(globalState, step);
 	}
 
 	{
@@ -2657,9 +2655,9 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
-		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
+		compute->initFromFrontend(globalState, step);
 	}
 
 	iterations = 0;
@@ -2735,12 +2733,12 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("estep")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	estep = omxNewCompute(globalState, CHAR(s4class));
+	estep = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	estep->initFromFrontend(globalState, slotValue);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("mstep")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	mstep = omxNewCompute(globalState, CHAR(s4class));
+	mstep = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	mstep->initFromFrontend(globalState, slotValue);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observedFit")));
@@ -3396,7 +3394,7 @@ void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 	super::collectResults(fc, lcr, out);
 
 	std::vector< omxCompute* > clist(1);
-	clist[0] = mstep;
+	clist[0] = mstep.get();
 
 	collectResultsHelper(fc, clist, lcr, out);
 }
@@ -3448,9 +3446,6 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 
 ComputeEM::~ComputeEM()
 {
-	delete estep;
-	delete mstep;
-
 	for (size_t hx=0; hx < estHistory.size(); ++hx) {
 		delete [] estHistory[hx];
 	}
@@ -4140,11 +4135,6 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 	result->add("expectations", expectations);
 }
 
-ComputeBootstrap::~ComputeBootstrap()
-{
-	if (plan) delete plan;
-}
-
 void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
@@ -4154,7 +4144,7 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	plan->initFromFrontend(globalState, slotValue);
 
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
@@ -4340,7 +4330,7 @@ void ComputeBootstrap::collectResults(FitContext *fc, LocalComputeResult *lcr, M
 {
 	super::collectResults(fc, lcr, out);
 	std::vector< omxCompute* > clist(1);
-	clist[0] = plan;
+	clist[0] = plan.get();
 	collectResultsHelper(fc, clist, lcr, out);
 }
 

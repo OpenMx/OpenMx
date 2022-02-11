@@ -475,7 +475,7 @@ void omxComputeGD::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 class ComputeCI : public omxCompute {
 	typedef omxCompute super;
 	typedef CIobjective::Diagnostic Diagnostic;
-	omxCompute *plan;
+  std::unique_ptr<omxCompute> plan;
 	omxMatrix *fitMatrix;
 	int verbose;
 	int totalIntervals;
@@ -499,7 +499,6 @@ class ComputeCI : public omxCompute {
 	void runPlan(FitContext *fc);
 public:
 	ComputeCI();
-	virtual ~ComputeCI();
 	virtual void initFromFrontend(omxState *, SEXP rObj) override;
 	virtual void computeImpl(FitContext *fc) override;
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
@@ -519,9 +518,6 @@ ComputeCI::ComputeCI()
 	detail = 0;
 	useInequality = false;
 }
-
-ComputeCI::~ComputeCI()
-{ if (plan) delete plan; }
 
 void ComputeCI::runPlan(FitContext *fc)
 {
@@ -565,7 +561,7 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	plan->initFromFrontend(globalState, slotValue);
 }
 
@@ -1398,7 +1394,7 @@ void ComputeCI::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 {
 	super::collectResults(fc, lcr, out);
 	std::vector< omxCompute* > clist(1);
-	clist[0] = plan;
+	clist[0] = plan.get();
 	collectResultsHelper(fc, clist, lcr, out);
 }
 
@@ -1613,7 +1609,7 @@ void ComputeTryH::reportResults(FitContext *fc, MxRList *slots, MxRList *out)
 
 class ComputeGenSA : public omxCompute {
 	typedef omxCompute super;
-	omxCompute *plan;
+  std::unique_ptr<omxCompute> plan;
 	static const char *optName;
 	const char *methodName;
 	std::string contextStr;
@@ -1651,7 +1647,6 @@ class ComputeGenSA : public omxCompute {
 	void ingber2012(FitContext *fc);
 
  public:
-	ComputeGenSA() : plan(0) {};
 	virtual ~ComputeGenSA();
         virtual void initFromFrontend(omxState *, SEXP rObj) override;
         virtual void computeImpl(FitContext *fc) override;
@@ -1667,7 +1662,6 @@ class omxCompute *newComputeGenSA()
 
 ComputeGenSA::~ComputeGenSA()
 {
-	if (plan) delete plan;
 	delete OPTIONS;
 }
 
@@ -1800,7 +1794,7 @@ void ComputeGenSA::initFromFrontend(omxState *state, SEXP rObj)
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	plan = omxNewCompute(state, CHAR(s4class));
+	plan = std::unique_ptr<omxCompute>(omxNewCompute(state, CHAR(s4class)));
 	plan->initFromFrontend(state, slotValue);
 }
 
