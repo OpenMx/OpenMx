@@ -199,22 +199,26 @@ bool omxMatrix::canDiscard()
 	return true;
 }
 
+void omxMatrix::disconnect()
+{
+	if(algebra) {
+		omxFreeAlgebraArgs(algebra);
+		algebra = NULL;
+	}
+
+	if(fitFunction) {
+		delete fitFunction;
+		fitFunction = NULL;
+	}
+}
+
 void omxFreeMatrix(omxMatrix *om) {
 
     if(om == NULL) return;
 
 	omxFreeInternalMatrixData(om);
 
-	if(om->algebra != NULL) {
-		omxFreeAlgebraArgs(om->algebra);
-		om->algebra = NULL;
-	}
-
-	if(om->fitFunction != NULL) {
-		delete om->fitFunction;
-		om->fitFunction = NULL;
-	}
-
+  om->disconnect();
   om->clearDimnames();
 
 	if (!om->hasMatrixNumber) delete om;

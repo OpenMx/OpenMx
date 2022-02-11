@@ -586,8 +586,7 @@ omxState::~omxState()
 	}
 
 	for(size_t ax = 0; ax < algebraList.size(); ax++) {
-		// free argument tree
-		omxFreeMatrix(algebraList[ax]);
+		algebraList[ax]->disconnect();
 	}
 
 	for(size_t ax = 0; ax < algebraList.size(); ax++) {
