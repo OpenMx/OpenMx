@@ -625,9 +625,6 @@ omxGlobal::~omxGlobal()
 	for (size_t cx=0; cx < intervalList.size(); ++cx) {
 		delete intervalList[cx];
 	}
-	for (size_t cx=0; cx < computeList.size(); ++cx) {
-		delete computeList[cx];
-	}
 	for (size_t cx=0; cx < checkpointList.size(); ++cx) {
 		delete checkpointList[cx];
 	}

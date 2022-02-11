@@ -310,7 +310,7 @@ class omxGlobal {
 	bool boundsUpdated;
 
 	// These lists exist only to free memory
-	std::vector< omxCompute* > computeList;
+	std::unique_ptr< omxCompute > topCompute;
 	void omxProcessMxComputeEntities(SEXP rObj, omxState *currentState);
 
 	// bundle computeLoop* into a structure?

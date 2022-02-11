@@ -182,9 +182,8 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
-	omxCompute *compute = omxNewCompute(currentState, CHAR(s4class));
-	compute->initFromFrontend(currentState, rObj);
-	computeList.push_back(compute);
+	topCompute = std::unique_ptr<omxCompute>(omxNewCompute(currentState, CHAR(s4class)));
+	topCompute->initFromFrontend(currentState, rObj);
 
 	if (Global->computeLoopContext.size()) {
 		mxThrow("computeLoopContext imbalance of %d in initFromFrontend",

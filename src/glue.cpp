@@ -665,8 +665,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	globalState->loadDefinitionVariables(true);
 
 	omxCompute *topCompute = NULL;
-	if (Global->computeList.size()) {
-		topCompute = Global->computeList[0];
+	if (Global->topCompute) {
+		topCompute = Global->topCompute.get();
 		Global->ComputePersist = topCompute->isPersist();
 	}
 
