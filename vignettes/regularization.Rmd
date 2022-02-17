@@ -9,6 +9,15 @@ vignette: >
   %\usepackage[UTF-8]{inputenc}
 ---
 
+```{r, include = FALSE}
+is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
+if (!is_CRAN) {
+   options(mc.cores = parallel::detectCores())
+} else {
+  knitr::opts_chunk$set(eval = FALSE)
+  knitr::knit_hooks$set(evaluate.inline = function(x, envir) x)
+}
+```
 ### Simulate Data
 
 We will first simulate data
@@ -59,7 +68,7 @@ One of the difficult pieces in using regularization is that the penalty has to b
 regFit <- mxPenaltySearch(mxModel(
   fit, mxPenaltyLASSO(paste0('c',1:8),"lasso",lambda.step=1.2),
   mxMatrix('Full',1,1,free=TRUE,values=0, labels="lambda")))
-                                               
+
 ```
 A status code 6 warning is issued because the parameters affected
 by regularization have relatively large gradients.

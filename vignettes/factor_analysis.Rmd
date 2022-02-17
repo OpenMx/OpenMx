@@ -8,11 +8,22 @@ output:
   rmarkdown::html_vignette: default
   pdf_document: default
 vignette: |
-  %\VignetteEngine{knitr::knitr} 
-  %\VignetteIndexEntry{Model Specification for Confirmatory Factor Analysis} 
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Model Specification for Confirmatory Factor Analysis}
   %\usepackage[UTF-8]{inputenc}
 ---
-This vignette will demonstrate latent variable modeling and confirmatory analysis via the common factor model. Factor analysis is a rudimentary application of OpenMx, and hopefully will serve as an easily understandable introduction to the data structures and workflow patterns necessary to define and fit a model using OpenMx. 
+
+```{r, include = FALSE}
+is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
+if (!is_CRAN) {
+   options(mc.cores = parallel::detectCores())
+} else {
+  knitr::opts_chunk$set(eval = FALSE)
+  knitr::knit_hooks$set(evaluate.inline = function(x, envir) x)
+}
+```
+
+This vignette will demonstrate latent variable modeling and confirmatory analysis via the common factor model. Factor analysis is a rudimentary application of OpenMx, and hopefully will serve as an easily understandable introduction to the data structures and workflow patterns necessary to define and fit a model using OpenMx.
 
 OpenMX handles model definition through the `MxModel` class, instantiated via the `mxModel()` function. Model definition requires input data for analysis and the model specification itself. Input data can be either in the form of a set of variable observations or by having a covariance matrix and associated variable means. The model specification can either be produced via specifying a path diagram or, for advanced users, the matrices to define the desired RAM or LISREL model.
 
@@ -44,7 +55,7 @@ While 19 parameters are displayed in the equation and path diagram above (six ma
 
 
 ## Input Data
-Our first step to running this model is to include the data to be analyzed. The `MxData` class instantiated through `mxData()` is used for representing data within the `MxModel`. 
+Our first step to running this model is to include the data to be analyzed. The `MxData` class instantiated through `mxData()` is used for representing data within the `MxModel`.
 
 As mentioned, a raw set of observations on variables can be provided as data. The data for this example is available from the `myFADataRaw` dataset, which contains 500 observations on nine observed variables. In accordance with the path diagram above, we specify the first six variables for analysis in the model.
 
@@ -163,7 +174,7 @@ oneFactorPathModel <- mxModel("Common Factor Model Path Specification", type="RA
 
 ```
 ### Path Specification for Multiple Factors
-We will focus on the changes this model makes to the `mxPath` functions and their relevant inputs. To start, the last three variables of our `manifestVars` argument have changed from $x_4, x_5, x_6$ to $y_1, y_2, y_3$, and `latentVars` now includes a second variable, `F_2`. The `mxPath` functions which detail residual variances and intercepts accommodate the changes in manifest and latent variables but carry out identical functions to the common factor model. 
+We will focus on the changes this model makes to the `mxPath` functions and their relevant inputs. To start, the last three variables of our `manifestVars` argument have changed from $x_4, x_5, x_6$ to $y_1, y_2, y_3$, and `latentVars` now includes a second variable, `F_2`. The `mxPath` functions which detail residual variances and intercepts accommodate the changes in manifest and latent variables but carry out identical functions to the common factor model.
 ```{r}
 manifestVars <- c("x1","x2","x3","y1","y2","y3")
 latentVars <- c("F1","F2")
@@ -205,7 +216,7 @@ facLoadsX    <- mxPath( from="F1", to=c("x1","x2","x3"), arrows=1,
 facLoadsY    <- mxPath( from="F2", to=c("y1","y2","y3"), arrows=1,
                         free=c(F,T,T), values=c(1,1,1), labels=c("l4","l5","l6") )
 ```
-Finally, we instantiate the `mxModel` object. 
+Finally, we instantiate the `mxModel` object.
 Specifying the two factor model is virtually identical to the single factor case, with the only change being our manifest and latent variable labels.
 ```{r}
 twoFactorPathModel <- mxModel("Two Factor Model Path Specification", type="RAM",
