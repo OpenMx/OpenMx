@@ -1,12 +1,17 @@
 ifeq ($(OPENMP),)
   OPENMP = yes
 endif
+export OPENMP
+
 ifeq ($(REXEC),)
   REXEC = R
 endif
-
-export OPENMP
 export REXEC
+
+ifeq ($(NOT_CRAN),)
+  NOT_CRAN = true
+endif
+export NOT_CRAN
 
 # --dsym is need for MacOS debug symbols
 # --force-biarch is for Windows 64/32 fat binary packages
