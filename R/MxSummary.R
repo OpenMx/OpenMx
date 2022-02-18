@@ -355,7 +355,12 @@ computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedD
 		}
 		# number of variables
 		if(datalist[[1]]@type != 'raw'){
-			nvar <- dim(datalist[[1]]@observed)[2]
+			if(datalist[[1]]@type == 'none'){
+				nvar <- nrow(datalist[[1]]@observedStats$cov)
+			}
+			else{
+				nvar <- dim(datalist[[1]]@observed)[2]
+			}
 		} else if( length(expectations) == 1 ) {
 			nvar <- length(expectations[[1]]@dims)
 		} else {
