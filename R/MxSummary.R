@@ -1149,7 +1149,7 @@ logLik.MxModel <- function(object, ...) {
   	for(i in 1:length(M_need_pos)){
   		Mpos[1,M_need_pos[i]] <- out$name[j] <- paste(
   			model@name,".M[1,",M_need_pos[i],"]",sep="")
-  		if(!all.na(model_M$labels)){
+  		if(!is.null(model_M$labels) && !all.na(model_M$labels)){
   			out$label[j] <- model_M$labels[1,M_need_pos[i]]
   		}
   		out$matrix[j] <- "M"
