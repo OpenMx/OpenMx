@@ -149,6 +149,10 @@ The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documen
 
 require(OpenMx)
 
+# Limit to 2 cores for CRAN
+mxOption(key="Number of Threads",
+ values=min(2,parallel::detectCores()))
+
 set.seed(405)
 tlen <- 200
 t <- seq(1.2, 50, length.out=tlen)
