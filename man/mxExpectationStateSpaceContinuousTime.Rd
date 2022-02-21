@@ -151,7 +151,7 @@ require(OpenMx)
 
 # Limit to 2 cores for CRAN
 mxOption(key="Number of Threads",
- values=min(2,parallel::detectCores()))
+ value=min(2,parallel::detectCores()))
 
 set.seed(405)
 tlen <- 200
