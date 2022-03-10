@@ -1305,13 +1305,13 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   }
   #Check if single-group model uses RAM expectation, and proceed if so:
   if(length(model@submodels)==0){
-    if(class(model$expectation)!="MxExpectationRAM"){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
+    if(!inherits(model$expectation, "MxExpectationRAM")){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
     return(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam))
   }
   #Handle multi-group model:
   if(length(model@submodels)>0){
   	out <- NULL
-  	if(class(model$expectation)=="MxExpectationRAM"){
+  	if(inherits(model$expectation, "MxExpectationRAM")){
   		out <- list(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam,ignoreSubmodels=TRUE))
   		names(out)[1] <- model@name
   	}
