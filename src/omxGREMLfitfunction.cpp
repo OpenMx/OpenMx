@@ -57,12 +57,12 @@ struct omxGREMLFitState : omxFitFunction {
 	void gradientAndAIM1(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 			double u_Scale, Eigen::MatrixBase<T2> &u_Py);
-	
+
 	template <typename T1, typename T2>
 	void gradientAndAIM2(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 			double u_Scale, Eigen::MatrixBase<T2> &u_Py);
-	
+
 	template <typename T1, typename T2>
 	void gradientAndAIM3(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
@@ -160,8 +160,8 @@ void omxGREMLFitState::init()
   }
 
 	/*
-	 * Possible TODO: If we want GREML fitfunction to work properly in scenarios where the freeVarGroup changes after the 
-	 * omxGREMLFitState has been initialized, then all code from here to the end of this function would need to be moved 
+	 * Possible TODO: If we want GREML fitfunction to work properly in scenarios where the freeVarGroup changes after the
+	 * omxGREMLFitState has been initialized, then all code from here to the end of this function would need to be moved
 	 * to buildParamMap().
 	*/
   //Derivatives of V:
@@ -195,7 +195,7 @@ void omxGREMLFitState::init()
   }
 
   if(newObj->dVlength || derivType==1){
-    oo->hessianAvailable = true; 
+    oo->hessianAvailable = true;
   	//^^^Gets changed to false in buildParamMap() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
@@ -419,7 +419,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
 				}
 			}
 		}
-		
+
 
  		//Begin parallelized evaluation of fitfunction derivatives:
  		switch(gff->parallelDerivScheme){
@@ -459,6 +459,9 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				}
  				fc->queue(hb);
  			}
+			else{
+				delete hb;
+			}
  	}
  	return;
  }
@@ -1196,7 +1199,7 @@ void omxGREMLFitState::crude_numeric_dV(
 		fc2 = u_fc->childList[thrId];
 	}
 	omxState *st = fc2->state;
-	
+
 	/*
 	 * Store current elements of V:
 	 */
@@ -1208,7 +1211,7 @@ void omxGREMLFitState::crude_numeric_dV(
 			Vcurr(r,c) = EigVmap(r,c);
 		}
 	}
-	
+
 	//Shift parameter of interest and compute V at new point in parameter space:
 	u_curEst[Parnum] += 1e-4;
 	fc2->setEstFromOptimizer(u_curEst);
@@ -1289,7 +1292,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	if(OMX_DEBUG) { mxLog("Building parameter map for GREML fitfunction."); }
 	varGroup = newVarGroup;
 	numExplicitFreePar = int(varGroup->vars.size());
-	//Now that numExplicitFreePar is known, check to see if derivType=0 and 0 < dVlength < numExplicitFreePar: 
+	//Now that numExplicitFreePar is known, check to see if derivType=0 and 0 < dVlength < numExplicitFreePar:
 	if(dVlength < numExplicitFreePar && derivType==0){
 		//The fitfunction is not allowed to claim to be able to provide a Hessian in this case:
 		hessianAvailable = false;
