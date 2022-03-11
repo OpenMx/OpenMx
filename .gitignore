@@ -77,6 +77,7 @@ man/imxInitModel.Rd
 man/imxIsDefinitionVariable.Rd
 man/imxIsMultilevel.Rd
 man/imxIsPath.Rd
+man/imxIsStateSpace.Rd
 man/imxLocateFunction.Rd
 man/imxLocateIndex.Rd
 man/imxLocateLabel.Rd
