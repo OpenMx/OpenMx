@@ -178,7 +178,7 @@ to try IFA. Here is how you might do it. Without loss of generality, we
 will only consider the positive affect part of the scale.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -198,7 +198,7 @@ will only consider the positive affect part of the scale.
                        "alert", "inspired", "determined", "attentive", "active")
    head(data)  # much easier to understand with labels
    origData <- data
-   
+
    startingValues <- matrix(c(1, seq(1,-1,length.out=4)), ncol=length(spec), nrow=5)
    imat <- mxMatrix(name="item", values=startingValues,
                    free=TRUE, dimnames=list(names(rpf.rparam(spec[[1]])), colnames(data)))
@@ -219,7 +219,7 @@ can adapt to adding or removing outcomes. Even for PANAS, we could try
 collapsing two outcomes and see how the model fit changes.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -235,7 +235,7 @@ manual page with ``?rpf.grm``. Experiment with the ``rpf.*`` functions
 to get a feel for how they work.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -253,7 +253,7 @@ line, you would typically read in your data using ``read.csv`` and
 convert it to ordered factors using ``mxFactor``.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -268,7 +268,7 @@ must be ordered. Alternately, a good way to obtain random starting
 values is with,
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -289,7 +289,7 @@ you might start with random starting values and then override any rows
 and columns as needed.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -307,7 +307,7 @@ of our items are the same, we can use the default item parameter
 names. The column names must match the column names of the data.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -320,7 +320,7 @@ This constraint is what makes the difference between a Rasch model and
 any other kind of IFA model. A Rasch model makes this assumption.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -333,7 +333,7 @@ any other kind of IFA model. A Rasch model makes this assumption.
 Here we put everything together. There are a few things that are new.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -342,7 +342,7 @@ Here we put everything together. There are a few things that are new.
 The ``mxComputeEM`` plan is a somewhat more sophisticated version of
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -363,7 +363,7 @@ options to speed up convergence and estimate standard errors.
 After running the model, we can inspect the parameters estimates,
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -379,7 +379,7 @@ can check. We can look at the count of EM cycles and M-step
 Newton-Raphson iterations.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -392,7 +392,7 @@ we were looking for. Instead of digging into the ``MxComputeEM`` output, we
 can also re-run the model with extra diagnostics enabled.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -409,7 +409,7 @@ parameters are changing, but we still do not know whether the solution
 is a candidate global optimum.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -428,7 +428,7 @@ The first thing to look at is the condition number of the
 information matrix.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -440,7 +440,7 @@ zero than to positive infinity, there is a good chance that the parameters
 are at a candidate global optimum. We can examine the standard errors.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -453,7 +453,7 @@ information is packaged up into an IFA group object.
 A convenient way to create an IFA group object is to use ``as.IFAgroup``.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -466,7 +466,7 @@ item parameters and examinee skill, not on the outcome of other items.
 At least some attempt should be made to check this assumption.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -483,9 +483,9 @@ Since we have a single factor Rasch model, the residuals are easily
 interpretable. We can examine Rasch fit statistics *infit* and
 *outfit*.  Before we do that, however, we need to compute EAP
 scores.
- 
+
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -538,7 +538,7 @@ An item plot assigns to every outcome the mean of the ability of
 every examinee who picked that outcome (:num:`Figure #figure-1pl-itemmap`).
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -561,7 +561,7 @@ Continuing our previous example,
 all that is needed is to remove the label from the item parameter matrix.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -581,7 +581,7 @@ As usual, we start by inspecting the condition number of the Hessian
 then look at the parameter estimates with standard errors.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -593,7 +593,7 @@ to determine whether ``panas2`` fits the data significantly better than
 our Rasch constrained model ``panas1``.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -606,7 +606,7 @@ we need to create IFA group object for ``panas2`` then we can run the
 S test [OrlandoThissen2000]_.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -692,7 +692,7 @@ asymptote parameters should be transformed back into
 probability units using the logistic function, :math:`(1+\exp(-g))^{-1}`.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -716,7 +716,7 @@ probability units using the logistic function, :math:`(1+\exp(-g))^{-1}`.
 
    # the other half get a Gaussian prior
    gaussRange <- (1+length(spec)/2):length(spec)
-   
+
    # Create matrices that contain only a subset of the parameters from
    # the item matrix so the priors are easier to set up.
    betaPrior <- mxMatrix(name="betaPrior", nrow=1, ncol=length(betaRange),
@@ -762,7 +762,7 @@ to develop your mathematical imagination.
 	    optimizer to handle in comparison to the beta density.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -810,14 +810,14 @@ to develop your mathematical imagination.
                          mxComputeOnce('fitfunction', c('fit', 'gradient', 'hessian')),
                          mxComputeReportDeriv())))
      testDeriv <- mxRun(testDeriv)
-  
+
      dSum <- 0
      for (px in betaRange) {
        bpar <- betaParam[,px]
        dSum <- dSum + dbeta(1/(1+exp(-betaPrior$values[,px])), bpar['a']+1, bpar['b']+1, log=TRUE)
      }
      omxCheckCloseEnough(testDeriv$output$fit, -2 * dSum, .01)
-  
+
      require("numDeriv")
      got <- genD(function(x) {
        betaPrior$values[,] <- x
@@ -835,7 +835,7 @@ the standard deviation can be regarded as the strength of the prior.
 A standard deviation of 0.5 was suggested by [CaiYangHansen2011]_.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -867,7 +867,7 @@ A standard deviation of 0.5 was suggested by [CaiYangHansen2011]_.
 		      'gaussModel.fitfunction')),
                     mxComputeSequence(list(
                       mxComputeEM('itemModel.expectation', 'scores', mxComputeNewtonRaphson()),
-                      mxComputeNumericDeriv(),
+                      mxComputeNumericDeriv(analytic=FALSE),
                       mxComputeHessianQuality(),
                       mxComputeStandardError()
                     )))
@@ -881,7 +881,7 @@ Instead, we use ``mxComputeNumericDeriv()``,
 an implementation of Richardson extrapolation.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -899,7 +899,7 @@ since you are required to specify the model exactly,
 you will feel confident that you know what you are doing.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -935,7 +935,7 @@ your sample has significantly more positive affect than
 the general population mean.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -982,7 +982,7 @@ to a likelihood ratio test against a nested model
 with the mean constrained to 0.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -994,7 +994,7 @@ to use ``panas.expectation`` as a data source of type ``cov``. Not any
 knows how to provide a Normal distribution as data.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -1019,7 +1019,7 @@ to ``mxExpectationBA81``.
 	    EAP scores with a standard Normal latent distribution (wrong) and estimated Normal distribution (correct).
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -1067,7 +1067,7 @@ and wish to know about the distribution of their tonal and rhythmic
 perception accuracy.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -1143,7 +1143,7 @@ The factors that make up
 Furthermore, each item is permitted to load on at most one specific factor.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
@@ -1157,7 +1157,7 @@ ranging from Z score -5 to 5.
 This reduces the number of quadrature points to :math:`15^3 = 3375`.
 
 .. cssclass:: input
-..   
+..
 
 .. code-block:: r
 
