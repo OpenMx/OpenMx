@@ -2480,8 +2480,13 @@ struct PearsonCor {
 		double sd_y1 = sqrt(var_y1);
 		double var_y2 = pv2.theta[pv2.theta.size()-1];
 		double sd_y2 = sqrt(var_y2);
-		rho = 2.*(pv1.resid * pv2.resid * rowMult).sum() /
-			((pv1.resid.square() * rowMult).sum()+(pv2.resid.square() * rowMult).sum());
+		double joint_N = ((pv1.resid != 0.).cast<double>() * (pv2.resid != 0.).cast<double>() * rowMult).sum();
+		// rho is the correlation, computed as the standardized covariance
+		rho = ((pv1.resid * pv2.resid * rowMult).sum() / joint_N) / (sd_y1 * sd_y2);
+		// original rho computation.  looks similar to correlation, but not quite
+		// no totally sure what rho is or should be
+		//rho = 2.*(pv1.resid * pv2.resid * rowMult).sum() /
+		//	((pv1.resid.square() * rowMult).sum()+(pv2.resid.square() * rowMult).sum());
 		double R = (1 - rho*rho);
 		double i2r = 1./(2.*R);
 
