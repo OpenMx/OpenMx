@@ -265,6 +265,24 @@ omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009
 
 
 #------------------------------------------------------------------------------
+# Check that observed statistics are correct
+
+numCovs <- 5*4/2
+numMeans <- 2
+numVaris <- 2
+numLevel <- sapply(sapply(jointData, levels), length)
+numThres <- sum((numLevel - 1) * (numLevel > 0))
+numObsSummaryStats <- numCovs + numMeans + numVaris + numThres
+
+omxCheckEquals(summary(jointWlsResults)$observedStatistics, numObsSummaryStats)
+omxCheckEquals(summary(jointDlsResults)$observedStatistics, numObsSummaryStats)
+omxCheckEquals(summary(jointUlsResults)$observedStatistics, numObsSummaryStats)
+
+omxCheckEquals(summary(jointResults1)$observedStatistics, prod(dim(jointData)))
+
+
+#------------------------------------------------------------------------------
+# Regularization Test
 
 regTest <- mxModel(jointWlsModel,
         mxPenaltyLASSO(paste0('l', 1:5), name="lasso"),

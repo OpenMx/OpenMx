@@ -627,9 +627,6 @@ int MVNExpectation::numObservedStats()
       stats += data->countObs(dc[cx]);
     }
 
-    auto &allTh = getThresholdInfo();
-    for (auto &col : allTh) stats += col.numThresholds;
-
     return stats;
 
   } else if (strEQ(data->getType(), "cov") || strEQ(data->getType(), "cor")) {
