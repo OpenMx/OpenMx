@@ -569,7 +569,9 @@ mxCheckIdentification <- function(model, details=TRUE){
 		tmpModel <- mxRun(tmpModel, silent=TRUE)
 		cjac <- tmpModel$output$constraintJacobian
 		# drop model name from constraint name
-		rownames(cjac) <- sapply(strsplit(rownames(cjac), fixed=TRUE, split=imxSeparatorChar), '[', 2)
+		if(length(rownames(cjac))){
+			rownames(cjac) <- sapply(strsplit(rownames(cjac), fixed=TRUE, split=imxSeparatorChar), '[', 2)
+		}
 	} else {
 		cjac <- matrix(, nrow=0, ncol=length(theParams))
 		colnames(cjac) <- names(theParams)
