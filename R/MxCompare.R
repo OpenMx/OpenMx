@@ -523,7 +523,9 @@ collectBaseStatistics <- function(row, ref) {
 	rfu <- ref$output$fitUnits
 	row[, 'fitUnits'] <- rfu
 	row[, 'chisq'] <- ifelse(!is.null(ref$output$chi), ref$output$chi, NA)
-	row[, c('fit', 'df')] <- if(rfu == "r'Wr"){
+	row[, c('fit', 'df')] <- if(length(rfu) == 0 && !ref@.wasRun){
+			stop("Model ", omxQuotes(ref@name), " has not been run.  Please, mxRun() your model before trying to compare it.")
+		} else if(rfu == "r'Wr"){
 			c(ref$output$chi, ref$output$chiDoF)
 		} else if(rfu == '-2lnL'){
 			c(refSummary$Minus2LogLikelihood, refSummary$degreesOfFreedom)

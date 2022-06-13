@@ -74,6 +74,9 @@ cmp <- omxCheckWarning(mxCompare(raw.fit, sat.fit[['Saturated']]),
 		       "Model 'Raw Test Model to Check MxSummary' has more degrees of freedom than Saturated Raw Test Model to Check MxSummary which means that the models need to be compared in the opposite order")
 omxCheckTrue(is.na(cmp$p[2]))
 
+omxCheckError(mxCompare(raw.fit, raw), "Model 'Raw Test Model to Check MxSummary' has not been run.  Please, mxRun() your model before trying to compare it.")
+
+
 #------------------------------------------------------------------------------
 # Specify a multiple group model
 
