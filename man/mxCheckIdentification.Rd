@@ -35,11 +35,13 @@ mxCheckIdentification(model, details=TRUE)
 \details{
 The mxCheckIdentification function is used to check that a model is identified.  That is, the function will tell you if the model has a unique solution in parameter space.  The function is most useful when applied to either (a) a model that has been run and had some NA standard errors, or (b) a model that has not been run but has reasonable starting values.  In the former situation, mxCheckIdentification is used as a diagnostic after a problem was indicated.  In the latter situation, mxCheckIdentification is used as a sanity check.
 
-The method uses the Jacobian of the model expected means and the unique elements of the expected covariance matrix with respect to the free parameters.  It is the first derivative of the mapping between the free parameters and the sufficient statistics for the Normal distribution.  The method does not depend on data, but does depend on the current values of the free parameters.  Thus, it only provides local identification, not global identification.  Because the method does not depend on data, the model still could be empirically unidentified due to missing data.
+The method uses the Jacobian of the model expected means and the unique elements of the expected covariance matrix with respect to the free parameters.  It is the first derivative of the mapping between the free parameters and the sufficient statistics for the Normal distribution.  The method does not depend on data, but does depend on the current values of the free parameters.  Thus, it only provides local identification, not global identification.  \emph{You might get different answers about model identification depending on the free parameter values}.  Because the method does not depend on data, the model still could be empirically unidentified due to missing data.
 
 The Jacobian is evaluated numerically and generally takes a few seconds, but much less than a minute.
 
 The identification may not be accurate for models using definition variables.  Currently, only the first row of the definition variable is evaluated.
+
+Model identification should be accurate for models with linear or nonlinear equality and inequality constraints.  When there are constraints, mxCheckIdentification uses the Jacobian of the summary statistics with respect to the free parameters and the Jacobian of the summary statistics with respect to the constraints.  The combined extended Jacobian must have rank equal to the number of free parameters for the model to be identified.  So, a model can be identified with constraints that is not identified without constraints.
 
 When TRUE, the 'details' argument provides the names of the non-identified parameters.  Otherwise, only the status and Jacobian are returned.
 }
