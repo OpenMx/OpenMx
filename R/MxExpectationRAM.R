@@ -242,7 +242,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		} else {
 			.Object@thresholds <- as.integer(NA)
 		}
-    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, translatedNames)
+    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, colnames(fMatrix))
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
