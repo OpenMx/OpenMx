@@ -230,6 +230,14 @@ checkSSMNotMissing <- function(matrixobj, matrixname, modelname){
 }
 
 checkSSMConformable <- function(mat, rows, cols, matname, modname){
+	if(!is.matrix(mat)){
+		msg <- paste0("The ", matname, " part of the state space expectation in model ",
+			modname, " is not a matrix or algebra.\n",
+			"There is probably a typo between the name of the matrix/algebra in the model ",
+			"and the name given to the expectation.\n",
+			"Check that you named it correctly. Check it twice.")
+		stop(msg, call. = FALSE)
+	}
 	if( nrow(mat) != rows || ncol(mat) != cols ){
 		msg <- paste("The ", matname, " matrix is not the correct size",
 			" in the state space expectation of model ", modname,
