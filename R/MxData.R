@@ -642,6 +642,10 @@ displayMxData <- function(object) {
 		cat("observedStats : \n")
 		print(object@observedStats)
 	}
+	if (.hasSlot(object, 'weight') && !is.na(object@weight)){
+		cat("weight :", omxQuotes(object@weight), "\n")
+		# AND / OR print(object@observed[,object@weight])
+	}
 	invisible(object)
 }
 
