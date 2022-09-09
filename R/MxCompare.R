@@ -584,6 +584,10 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 		#be NA, so the output for the comparison won't even look valid):
 		warning(paste("the names of the fixed effects in MxModels '",ref$name,"' and '",other$name,"' do not match; comparison of REML fit values is only valid for models that use the same covariates",sep=""))
 	}
+	if(rfu %in% wlsUnits){warning(paste0("The OpenMx Development Team has observed poor behavior of SBchisq.\n",
+		"Do not use the current p-values for WLS models.\n",
+		"Use chisq difference testing instead until this is resolved.\n",
+		"Something like: pchisq(diffchisq, df=diffdf, lower.tail=FALSE)"), call.=FALSE)}
 	#End validity checks
 
 	otherStats[,c('base','comparison')] <-
