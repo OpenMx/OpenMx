@@ -51,7 +51,7 @@ License: @LICENSE@
 LinkingTo: Rcpp, RcppEigen, RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
 Imports: digest,
     MASS,
-    Matrix,
+    Matrix (>= 1.2-16),
     methods,
 	Rcpp, RcppParallel,
     parallel, lifecycle
