@@ -722,6 +722,12 @@ setMethod("imxVerifyModel", "MxModel",
     }
 )
 
+
+
+`+.MxModel`  <- function (e1, e2) { 
+  mxModel(e1, e2)
+}
+
 vcov.MxModel <- function(object, ...) {
 	assertModelRunAndFresh(object)
   fu <- object$output$fitUnits
