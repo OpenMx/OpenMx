@@ -2,11 +2,6 @@
 
 OpenMx developers, being lazy and incorrigible, often forget to update the NEWS file. To learn about new and exciting features, please visit https://openmx.ssri.psu.edu/
 
-# OpenMx 2.xx
-* TBD 2021
-* FIXED: `mxRename` Now ensures that names referenced in `mxFitFunctionMultigroup` are updated.
-* CHANGED: In WLS, `acov` and `fullWeight` are now called `asymCov` and  `useWeight`
-
 # OpenMx 2.19.1
 * March 2021 (R 4.0.2)
 * NEW: `RAM` supports arrows=0 (Pearson selection, single step)
