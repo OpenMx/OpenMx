@@ -300,13 +300,6 @@ Some other functions and changes that might interest you
 * FIXED: Serious GREML bugs fixed. Now safe to use mxFitFunctionGREML(dv=)
 * NOTE: mxFactorScores() using 'ML' or'WeightedML' are deviations from the latent variable's mean.
 	* If latent mean != 0, the scores must be shifted manually.
-
-
-# Older changes
-
-trunk
-=====
-
 * Prevent Varadhan2008 from failing near convergence
 * Throw error on attempt to invert incomplete Hessian
 * CSOLNP: Correct exclusion of inequality constraints from gradient/Hessian
