@@ -108,7 +108,7 @@ mxTryHard <- function(
 		RE=mxComputeReportExpectation()))
 	model@compute@.persist <- TRUE
 	modelAtStartValues <- suppressWarnings(try(runWithCounter(model, 0, silent, F)))
-	if(class(modelAtStartValues) != "try-error"){ 
+	if (!inherits(modelAtStartValues, "try-error")) {
 		fitvalAtStarts <- modelAtStartValues@fitfunction@result[1]
 		#If there are MxConstraints, we don't know if they're satisfied at the start values,
 		#so we don't want to treat the fit at the start values as the lowest so far,
@@ -207,7 +207,7 @@ mxTryHard <- function(
 		
 		
 		#If fit resulted in error:
-		if( class(fit) == "try-error" || !is.finite(fit@fitfunction@result[1]) || fit$output$status$status== -1){
+		if (inherits(fit, "try-error") || !is.finite(fit@fitfunction@result[1]) || fit$output$status$status== -1) {
 			#^^^is.finite() returns FALSE for Inf, -Inf, NA, and NaN
 			lastBestFitCount <- 0
 			lastNoError<-FALSE
@@ -217,7 +217,7 @@ mxTryHard <- function(
 		
 		
 		#If fit did NOT result in error:
-		if(class(fit) != "try-error" && is.finite(fit@fitfunction@result[1]) && fit$output$status$status != -1){
+		if (!inherits(fit, "try-error") && is.finite(fit@fitfunction@result[1]) && fit$output$status$status != -1) {
 			lastNoError <- TRUE
 			validcount <- validcount + 1
 			if(fit@fitfunction@result[1] >= lowestminsofar){
@@ -262,12 +262,12 @@ mxTryHard <- function(
 				if(checkHess==TRUE) {
 					fit@output["infoDefinite"] <- TRUE
 					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values,silent=T)
-					if(class(hessEigenval)=='try-error') {
+					if (inherits(hessEigenval, 'try-error')) {
 						if(!silent){message(paste0(' Eigenvalues of Hessian could not be calculated'))}
 						goodflag <- FALSE
 						fit@output["infoDefinite"] <- FALSE
 					}
-					if(class(hessEigenval)!='try-error' && any(hessEigenval < 0)) {
+					if (!inherits(hessEigenval, 'try-error') && any(hessEigenval < 0)) {
 						if(!silent){message(paste0(' Not all eigenvalues of the Hessian are positive: ', paste(hessEigenval,collapse=', ')))}
 						goodflag <- FALSE
 						fit@output["infoDefinite"] <- FALSE
@@ -327,7 +327,7 @@ mxTryHard <- function(
 				finalfit <- OpenMx::mxModel(finalfit,mxComputeSequence(steps=steps))
 			}
 			finalfit <- suppressWarnings(try(runWithCounter(finalfit, numdone, silent, intervals=doIntervals)))
-			if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
+			if (inherits(finalfit, "try-error") || finalfit$output$status$status== -1) {
 				if(!silent){message(' Errors during final fit for Hessian/SEs/CIs\n')}
 			} else {
 				if (length(summary(finalfit)$npsolMessage) > 0){
@@ -380,7 +380,7 @@ mxTryHard <- function(
 					finalfit <- OpenMx::mxModel(bestfit,mxComputeSequence(steps=steps))
 				}
 				finalfit <- suppressWarnings(try(runWithCounter(finalfit, numdone, silent, intervals=doIntervals)))
-				if(class(finalfit) == "try-error" || finalfit$output$status$status== -1) {
+				if (inherits(finalfit, "try-error") || finalfit$output$status$status== -1) {
 					if(!silent){message('Errors occurred during final run for Hessian/SEs/CIs; returning best fit as-is\n')}
 				}
 			}
@@ -411,7 +411,7 @@ mxTryHard <- function(
 	}
 	
 	if (!exists("bestfit")) {
-		if(class(fit) == 'try-error') warning(fit[[length(fit)]])
+		if (inherits(fit, 'try-error')) warning(fit[[length(fit)]])
 		imxReportProgress("", previousLen)
 		message('\n All fit attempts resulted in errors - check starting values or model specification\n')
 		bestfit<-fit
