@@ -674,12 +674,12 @@ void omxRAMExpectation::analyzeDefVars(FitContext *fc)
 
 		if (M && dv.matrix == mNum) {
 			dvInfluenceMean[k] = true;
-			dvInfluenceVar[k] = dvInfluenceVar[k] | (hasVariance[ dv.col ] != 0.0);
+			dvInfluenceVar[k] = dvInfluenceVar[k] || (hasVariance[ dv.col ] != 0.0);
 			dvContribution[dv.col].insert(std::make_pair(this, k));
 			continue;
 		}
 		if (dv.matrix == sNum) {
-			dvInfluenceMean[k] = dvInfluenceMean[k] | (hasMean[ dv.col ] != 0.0);
+			dvInfluenceMean[k] = dvInfluenceMean[k] || (hasMean[ dv.col ] != 0.0);
 			dvInfluenceVar[k] = true;
 			dvContribution[dv.col].insert(std::make_pair(this, k));
 			continue;

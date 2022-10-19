@@ -185,7 +185,7 @@ imxWlsStandardErrors <- function(model){
 		W <- MASS::ginv(fullWeight)
 	}
 	dvd <- try(solve( t(d) %*% V %*% d ), silent=TRUE)
-	if(!inherits(dvd, "try-error")){
+	if (!inherits(dvd, "try-error")) {
 		nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
 		wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
 	} else {
@@ -269,7 +269,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	df <- qr(jacOC)$rank
 
 	dvd <- try(solve( t(jac) %*% V %*% jac ), silent=TRUE)
-	if(!inherits(dvd, "try-error")){
+	if (!inherits(dvd, "try-error")) {
 		U <- V - V %*% jac %*% dvd %*% t(jac) %*% V
 	} else {
 		U <- matrix(NA, nrow=nrow(W), ncol=ncol(W))

@@ -1305,13 +1305,13 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   }
   #Check if single-group model uses RAM expectation, and proceed if so:
   if(length(model@submodels)==0){
-    if(!inherits(model$expectation, "MxExpectationRAM")){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
+    if (!inherits(model$expectation, "MxExpectationRAM")) {stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
     return(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam))
   }
   #Handle multi-group model:
   if(length(model@submodels)>0){
   	out <- NULL
-  	if(inherits(model$expectation, "MxExpectationRAM")){
+  	if (inherits(model$expectation, "MxExpectationRAM")) {
   		out <- list(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam,ignoreSubmodels=TRUE))
   		names(out)[1] <- model@name
   	}
@@ -1350,7 +1350,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 	if(!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}
-	if(!length(model@expectation) || class(model@expectation) != "MxExpectationRAM"){
+	if(!length(model@expectation) || !inherits(model@expectation, "MxExpectationRAM")) {
 		msg <- paste(
 			"MxModel ",omxQuotes(model@name),
 			" does not use RAM expectation\n(to use mxBootstrapStdizeRAMpaths() on a RAM submodel, run the function directly on that submodel",sep="")
