@@ -3871,17 +3871,14 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 
 	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
 		sense.result.transpose() * Vmat;
-	Eigen::MatrixXd UW = Umat * Wmat;
+	Eigen::MatrixXd UW = Umat * Wmat * totalWeight;
 	Eigen::MatrixXd UW2 = UW * UW; // unclear if this should be UW^2 i.e. elementwise power
 	double trUW = UW.diagonal().array().sum();
-	// the problem with SB chi-squared might be around here
-	madj = trUW / df; //	madj = totalWeight * trUW / df / 2; might be a fix
+	madj = trUW / df;
 	x2m = fc->getFit() / madj;
 	dstar = (trUW * trUW) / UW2.diagonal().array().sum();
-	mvadj = (trUW*trUW) / dstar; // mvadj = totalWeight * (trUW*trUW) / dstar / 2; might be a fix
+	mvadj = trUW / dstar;
 	x2mv = fc->getFit() / mvadj;
-	// N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
-	if (isULS(Vmat)) x2mv /= totalWeight;
 	wlsStats = true;
 }
 
