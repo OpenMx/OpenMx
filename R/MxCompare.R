@@ -543,7 +543,7 @@ fsb <- function(chi0, chi1, df0, df1, chim0, chim1){
 }
 
 fsb_helper <- function(model0, model1){
-	fsb(model0$output$chi, model1$output$chi, model0$output$chiDoF, model1$output$chiDoF, model0$output$chiM, model1$output$chiM)
+	fsb(model0$output$fit, model1$output$fit, model0$output$chiDoF, model1$output$chiDoF, model0$output$chiM, model1$output$chiM)
 }
 
 collectStatistics <- function(otherStats, ref, other, bootPair) {
