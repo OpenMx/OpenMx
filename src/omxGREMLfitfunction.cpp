@@ -692,6 +692,7 @@ void omxGREMLFitState::gradientAndAIM3(
 	try{
 		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0, t1, t2;
 		double tr=0;
+		double *ptrToMatrix1=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
@@ -711,7 +712,6 @@ void omxGREMLFitState::gradientAndAIM3(
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
-				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
@@ -1076,6 +1076,7 @@ void omxGREMLFitState::gradientAndEIM3(
 	try{
 		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0, t1, t2;
 		double tr1=0, tr2=0;
+		double *ptrToMatrix1=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
@@ -1095,7 +1096,6 @@ void omxGREMLFitState::gradientAndEIM3(
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
 			if(didUserGivedV[t1] || derivType==1){
-				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
