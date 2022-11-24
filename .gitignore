@@ -209,3 +209,4 @@ man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
 man/predict.MxModel.Rd
+.DS_Store
