@@ -32,7 +32,24 @@ struct omxNormalExpectation : public MVNExpectation {
 	virtual void compute(FitContext *fc, const char *what, const char *how) override;
 	virtual void populateAttr(SEXP expectation) override;
 	virtual omxMatrix *getComponent(const char*) override;
+	// virtual void gradient(FitContext *fc) override;
 };
+
+/******************************************************************************
+void omxNormalExpectation::gradient(FitContext *fc)
+{
+	mean = expectation.mean;
+	cov = expectation.cov;
+	dataRow = current data;
+	I = MatrixXd::Identity(cov->rows, cov->cols);
+	Sinv = cov.llt().solve(I);
+	r = dataRow - mean;
+	dS = numerically evaluated derivative of cov wrt each free parameter;
+	t1 = (Sinv * dS) * (I - Sinv * r * r.adjoint());
+	t2 = 2 * dr.adjoint() * Sinv * r;
+	grad = t1.diagonal().array().sum() + t2;
+}
+******************************************************************************/
 
 void omxNormalExpectation::compute(FitContext *fc, const char *what, const char *how)
 {
