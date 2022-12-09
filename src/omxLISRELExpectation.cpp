@@ -550,7 +550,7 @@ void omxLISRELExpectation::init()
 
 
 	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", ntotal, ntotal);
-	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
+	if (!cov->hasMatrixNumber) covOwner = cov;
 	else connectMatrixToExpectation(cov, this, "covariance");
 
 	LISobj->args = (omxMatrix**) R_alloc(2, sizeof(omxMatrix*));
@@ -558,7 +558,7 @@ void omxLISRELExpectation::init()
 	/* Means */
 	if(LISobj->TX != NULL || LISobj->TY != NULL || LISobj->KA != NULL || LISobj->AL != NULL) {
 		means = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, ntotal);
-		if (!means->hasMatrixNumber) meanOwner = omxMatrixPtr(means);
+		if (!means->hasMatrixNumber) meanOwner = means;
 		else connectMatrixToExpectation(means, this, "mean");
 	} else LISobj->means  = 	NULL;
 	//TODO: Adjust means processing to allow only Xs or only Ys

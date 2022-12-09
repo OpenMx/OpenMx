@@ -208,7 +208,16 @@ struct omxMatrix::dtor {
 	void operator()(omxMatrix *om) { omxFreeMatrix(om); }
 };
 
-typedef std::unique_ptr< omxMatrix, omxMatrix::dtor > omxMatrixPtr;
+class omxMatrixPtr : public std::unique_ptr< omxMatrix, omxMatrix::dtor > {
+public:
+  omxMatrixPtr() = default;
+  omxMatrixPtr(omxMatrixPtr&& u) noexcept = default;
+  omxMatrixPtr(omxMatrix *a) { reset(a); }
+  omxMatrixPtr &operator=(omxMatrix *a) { reset(a); return *this; };
+  omxMatrixPtr &operator=(omxMatrixPtr &a) { reset(a.get()); a.reset(nullptr); return *this; }
+  // confuses compiler?
+  // operator omxMatrix*() const { return get(); };
+};
 
 /* Matrix Creation Functions */
 omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state,

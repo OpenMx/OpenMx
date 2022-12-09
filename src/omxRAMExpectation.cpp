@@ -386,7 +386,7 @@ void omxRAMExpectation::init()
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 
 	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", l, l);
-	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
+	if (!cov->hasMatrixNumber) covOwner = cov;
 	else {
     connectMatrixToExpectation(cov, this, "covariance");
     openBox = true;
@@ -399,7 +399,7 @@ void omxRAMExpectation::init()
 
 	if (M) {
 		means =	omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, l);
-		if (!means->hasMatrixNumber) meanOwner = omxMatrixPtr(means);
+		if (!means->hasMatrixNumber) meanOwner = means;
 		else {
       connectMatrixToExpectation(means, this, "mean");
       openBox = true;

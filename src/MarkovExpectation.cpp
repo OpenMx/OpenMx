@@ -32,14 +32,13 @@ public:
 	unsigned transitionV;
 	int verbose;
 	ScaleType scale;
-	omxMatrix *scaledInitial;
-	omxMatrix *scaledTransition;
+	omxMatrixPtr scaledInitial;
+	omxMatrixPtr scaledTransition;
 	const bool isMixtureInterface;
 
 	MarkovExpectation(omxState *st, int num, bool u_isMixtureInterface)
 		: super(st, num), initialV(0), transitionV(0),
 			isMixtureInterface(u_isMixtureInterface) {};
-	virtual ~MarkovExpectation();
 	virtual void init() override;
 	virtual void connectToData() override;
 	virtual void compute(FitContext *fc, const char *what, const char *how) override;
@@ -52,12 +51,6 @@ omxExpectation *InitHiddenMarkovExpectation(omxState *st, int num)
 
 omxExpectation *InitMixtureExpectation(omxState *st, int num)
 { return new MarkovExpectation(st, num, true); }
-
-MarkovExpectation::~MarkovExpectation()
-{
-	omxFreeMatrix(scaledInitial);
-	omxFreeMatrix(scaledTransition);
-}
 
 void MarkovExpectation::connectToData()
 {
@@ -122,8 +115,8 @@ void MarkovExpectation::compute(FitContext *fc, const char *what, const char *ho
 
 	omxRecompute(initial, fc);
 	if (initialV != omxGetMatrixVersion(initial)) {
-		omxCopyMatrix(scaledInitial, initial);
-		EigenVectorAdaptor Ei(scaledInitial);
+		omxCopyMatrix(scaledInitial.get(), initial);
+		EigenVectorAdaptor Ei(scaledInitial.get());
 		if (scale == SCALE_SOFTMAX) Ei.derived() = Ei.array().exp();
 		if (scale != SCALE_NONE) {
 			Ei /= Ei.sum();
@@ -135,8 +128,8 @@ void MarkovExpectation::compute(FitContext *fc, const char *what, const char *ho
 	if (transition) {
 		omxRecompute(transition, fc);
 		if (transitionV != omxGetMatrixVersion(transition)) {
-			omxCopyMatrix(scaledTransition, transition);
-			EigenArrayAdaptor Et(scaledTransition);
+			omxCopyMatrix(scaledTransition.get(), transition);
+			EigenArrayAdaptor Et(scaledTransition.get());
 			if (scale == SCALE_SOFTMAX) Et.derived() = Et.array().exp();
 			if (scale != SCALE_NONE) {
 				Eigen::ArrayXd v = Et.colwise().sum();
@@ -154,12 +147,12 @@ void MarkovExpectation::populateAttr(SEXP robj)
 
 	MxRList out;
 
-	EigenVectorAdaptor Ei(scaledInitial);
+	EigenVectorAdaptor Ei(scaledInitial.get());
 	const char *initialName = isMixtureInterface? "weights" : "initial";
 	out.add(initialName, Rcpp::wrap(Ei));
 
 	if (scaledTransition) {
-		EigenMatrixAdaptor Et(scaledTransition);
+		EigenMatrixAdaptor Et(scaledTransition.get());
 		out.add("transition", Rcpp::wrap(Et));
 	}
 
@@ -171,9 +164,9 @@ omxMatrix *MarkovExpectation::getComponent(const char* component)
 	omxMatrix *retval = 0;
 
 	if (strEQ("initial", component)) {
-		retval = scaledInitial;
+		retval = scaledInitial.get();
 	} else if (strEQ("transition", component)) {
-		retval = scaledTransition;
+		retval = scaledTransition.get();
 	}
 	return retval;
 }

@@ -207,8 +207,9 @@ void omxMatrix::disconnect()
 	}
 
 	if(fitFunction) {
-		delete fitFunction;
-		fitFunction = NULL;
+    auto *ff = fitFunction;
+		fitFunction = 0;
+		delete ff;
 	}
 }
 
