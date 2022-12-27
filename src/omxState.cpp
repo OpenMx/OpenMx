@@ -931,10 +931,6 @@ const char *omxGlobal::getBads()
 	return mem;
 }
 
-void omxRaiseError(const char* msg) { // DEPRECATED
-	omxRaiseErrorf("%s", msg);
-}
-
 void omxGlobal::checkpointMessage(FitContext *fc, const char *fmt, ...)
 {
 	std::string str;

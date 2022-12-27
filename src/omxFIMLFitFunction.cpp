@@ -1049,7 +1049,7 @@ void omxFIMLFitFunction::init()
 	off->canDuplicate = TRUE;
 
 	if(expectation == NULL) {
-		omxRaiseError("FIML cannot fit without model expectations.");
+		omxRaiseErrorf("FIML cannot fit without model expectations.");
 		return;
 	}
 

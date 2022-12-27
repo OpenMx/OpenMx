@@ -478,7 +478,6 @@ inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInt
 inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0 || Global->userInterrupted; }
 
 // rename from "Raise" to "Record" since no exception is thrown
-void omxRaiseError(const char* msg); // DEPRECATED
 void omxRaiseErrorf(const char* fmt, ...) __attribute__((format (printf, 1, 2)));
 
 void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);

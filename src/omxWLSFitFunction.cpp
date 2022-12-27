@@ -238,24 +238,24 @@ void omxWLSFitFunction::prepData()
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
 		if(newObj->expectedMeans != NULL) {
 			if (eThresh.size() == 0) {
-				omxRaiseError("Observed means not detected, but expected means specified.\n"
+				omxRaiseErrorf("Observed means not detected, but expected means specified.\n"
 				   "To model means with all continuous data, you need to set allContinuousMethod='marginals'");
 			} else {
-				omxRaiseError("Means are required when the data include ordinal measurements");
+				omxRaiseErrorf("Means are required when the data include ordinal measurements");
 			}
 			return;
 		} else {
-			omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			omxRaiseErrorf("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		}
 	}
 
 	if((eThresh.size()==0) ^ (obsThresholdsMat==0)) {
 		if (eThresh.size()) {
-			omxRaiseError("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
+			omxRaiseErrorf("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 			return;
 		} else {
-			omxRaiseError("Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
+			omxRaiseErrorf("Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
 			return;
 		}
 	}

@@ -92,7 +92,7 @@ void omxData::connectDynamicData(omxState *currentState)
 	SEXP dataLoc;
 	Rf_protect(dataLoc = R_do_slot(dataObject, Rf_install("expectation")));
 	if (Rf_length(dataLoc) == 0) {
-		omxRaiseError("mxDataDynamic is not connected to a data source");
+		omxRaiseErrorf("mxDataDynamic is not connected to a data source");
 		return;
 	}
 
