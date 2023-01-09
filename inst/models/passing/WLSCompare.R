@@ -273,6 +273,8 @@ mrgrad <- suppressWarnings(mxRun(mgrad))
 
 hi <- mxRun(mxModel(mrgrad, mxComputeJacobian()))
 J <- hi$compute$output$jacobian
+ho <- suppressWarnings(mxRun(mxModel(mrgrad, mxComputeNumericDeriv())))
+g <- ho$compute$output$gradient$central/N
 
 W <- mrgrad$data$observedStats$useWeight
 obs <- c(
@@ -288,7 +290,7 @@ omxCheckCloseEnough(
 
 # Analytic and numeric gradients
 anagrad <- -2 * t(J) %*% W %*% (obs - mi)
-numgrad <- mrgrad$output$gradient
+numgrad <- g #mrgrad$output$gradient works for SLSQP, but not NPSOL
 
 # plot(cbind(anagrad, numgrad))
 # text(anagrad, numgrad, labels=names(numgrad))
