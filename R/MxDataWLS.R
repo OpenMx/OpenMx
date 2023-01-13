@@ -723,7 +723,8 @@ mxDataWLS <- function(data, type="WLS", useMinusTwo=TRUE, returnInverted=TRUE, f
 	sel  <- diag(quad)!=0
 	iqj  <- matrix(0, dim(quad)[1], dim(quad)[2])
 	attIqj <- try(solve(quad[sel, sel]))
-	if(class(attIqj) %in% "try-error"){
+  # condition has length > 1 error
+	if(inherits(attIqj, "try-error" )){
 		iqj[sel,sel] <- MASS::ginv(quad[sel, sel])
 		warning('First derivative matrix was not intertible. Used pseudo-inverse instead.')
 	} else {

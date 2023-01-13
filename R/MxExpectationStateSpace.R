@@ -415,7 +415,7 @@ setMethod("genericGetExpected", signature("MxExpectationStateSpace"),
 				R <- mxEvalByName(Rname, model, compute=TRUE)
 				I <- diag(1, nrow=nrow(A)*nrow(A))
 				ImA <- try(solve(I - A %x% A))
-				if(class(ImA) %in% "try-error"){
+				if(inherits(ImA, "try-error")){
 					stop("Could not invert I - A %x% A\nAsymptotic expectations are not valid in this case.")
 				}
 				Pinf <- ImA %*% matrix(c(Q), ncol=1)
