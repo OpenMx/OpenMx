@@ -397,6 +397,7 @@ static void readOpts(SEXP options)
 					nt = 1;
 				}
 				char *ont = getenv("OMP_NUM_THREADS");
+        if (ont) diagParallel(OMX_DEBUG, "OMP_NUM_THREADS=%s", ont);
 				if (ont && nt > atoi(ont)) {
 					mxThrow("I'm confused! %d threads requested. "
 									"Either request fewer threads in the mxOption() "
@@ -407,6 +408,7 @@ static void readOpts(SEXP options)
 									nt, nt, ont);
 				}
         Global->numThreads = nt;
+        diagParallel(OMX_DEBUG, "Global->numThreads=%d", nt);
 #endif
 			} else if(matchCaseInsensitive(nextOptionName, "Parallel diagnostics")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->parallelDiag);
