@@ -119,7 +119,7 @@ staging-prep: staging-clean
 	git archive --format=tar HEAD | (cd staging; tar -xf -)
 
 cran-build: staging-prep
-	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build .
+	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build --resave-data .
 
 build: staging-prep
 	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
@@ -133,7 +133,7 @@ packages-help:
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='mac.binary'"', latestOnly=FALSE)" | R --vanilla # for OS/X'
 
 srcbuild: staging-prep packages-help
-	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD build .
+	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD build --resave-data .
 
 cran-check: cran-build
 	+cd staging && _R_CHECK_FORCE_SUGGESTS_=false $(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
