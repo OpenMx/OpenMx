@@ -8,7 +8,8 @@ CXX_STD = CXX14
 # I'm not sure that the -g0 is even needed, so maybe just
 #  CXX14FLAGS = -Wa,-mbig-obj -O2
 
-PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS)
+PKG_LIBS=$(FLIBS) $(BLAS_LIBS) $(LAPACK_LIBS) $(NPSOL_LIBS) \
+  $(shell ${R_HOME}/bin/Rscript -e "RcppParallel::RcppParallelLibs()")
 # Uncomment the next line to link to OpenBLAS:
 # PKG_LIBS=$(FLIBS) $(NPSOL_LIBS) -L"C:/path/to/OpenBLAS/lib" -l:libopenblas.a $(LAPACK_LIBS)
 
@@ -35,7 +36,8 @@ COMMON_FLAGS=-I. -Iinclude \
 -D SQLITE_ENABLE_STAT4 \
 -D SQLITE_MAX_EXPR_DEPTH=10000 \
 -D SQLITE_USE_URI=1 \
-$(BGEN_DEBUG)
+$(BGEN_DEBUG) \
+ $(shell ${R_HOME}/bin/Rscript -e "StanHeaders:::CxxFlags()")
 
 ifeq "$(WIN)" "64"
 PKG_CFLAGS +=
@@ -43,8 +45,7 @@ else
 PKG_CFLAGS += -DEIGEN_DONT_VECTORIZE -DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
 endif
 
-PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(PKG_CFLAGS) $(COMMON_FLAGS) -DSTRICT_R_HEADERS \
- $(shell ${R_HOME}/bin/Rscript -e "StanHeaders:::CxxFlags()")
+PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(PKG_CFLAGS) $(COMMON_FLAGS) -DSTRICT_R_HEADERS
 # Uncomment the next line to compile with OpenBLAS:
 # PKG_CXXFLAGS=$(OPENMP_CXXFLAGS) $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) -D EIGEN_USE_BLAS -I"C:/path/to/OpenBLAS/include" $(PKG_CFLAGS) $(COMMON_FLAGS)
 PKG_CFLAGS += $(COMMON_FLAGS) -DSTRICT_R_HEADERS
