@@ -39,14 +39,14 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      - name: Configure Build
+        run: sh ./util/prep cran install
+        shell: bash
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
           needs: check
-
-      - name: Configure Build
-        run: sh ./util/prep cran install
-        shell: bash
 
       - uses: r-lib/actions/check-r-package@v2
         with:
