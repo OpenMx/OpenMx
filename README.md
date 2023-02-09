@@ -7,7 +7,6 @@
 [![Monthly Downloads](https://cranlogs.r-pkg.org/badges/OpenMx)](https://cranlogs.r-pkg.org/badges/OpenMx)
 [![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/OpenMx)](https://cranlogs.r-pkg.org/badges/grand-total/OpenMx)
 [![DOI](https://img.shields.io/badge/doi-110.1007/s11336--014--9435--8-yellow.svg?style=flat)](https://doi.org/10.1007/s11336-014-9435-8)
-[![R-CMD-check](https://github.com/OpenMx/OpenMx/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/OpenMx/OpenMx/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 > OpenMx is a [Structural Equation Modeling](https://en.wikipedia.org/wiki/Structural_equation_modeling)
