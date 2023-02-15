@@ -20,7 +20,7 @@ fi
 fold_start roxygenize "roxygenize"
 
 # Work around make bug
-echo "MAKEFLAGS=$MAKEFLAGS"
+echo "Inital rox MAKEFLAGS=$MAKEFLAGS"
 MAKEFLAGS=$(echo $MAKEFLAGS | sed -e 's/--jobserver-auth=[0-9,]*//')
 MAKEFLAGS=$(echo $MAKEFLAGS | sed -e 's/--jobserver-fds=[0-9,]*//')
 echo "MAKEFLAGS=$MAKEFLAGS"
@@ -29,7 +29,7 @@ if echo "$MAKEFLAGS" | grep -q '[0-9]'; then
 else
   MAKEFLAGS='-j2'
 fi
-echo "MAKEFLAGS=$MAKEFLAGS"
+echo "Final rox MAKEFLAGS=$MAKEFLAGS"
 
 ${REXEC:-R} --no-restore --no-save --no-readline <<EOF
 library(roxygen2)
