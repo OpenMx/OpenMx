@@ -44,7 +44,7 @@ script: "./util/travis/script"
 env:
   global:
     - MAKEFLAGS="-j2"
-    - dhost=travis@vps242190.vps.ovh.ca
+    - dhost=openmx_travis@vps32986.dreamhostps.com
     - OMP_NUM_THREADS=2
   jobs:
   - MODE=test IMX_OPT_ENGINE=CSOLNP
