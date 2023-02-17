@@ -236,6 +236,7 @@ clean:
 	-rm runtimes.csv
 	-rm src/omxSymbolTable.*
 	-rm -r inst/debug
+	-rm R/*.R.bak
 
 veryclean: clean
 	-rm DESCRIPTION
