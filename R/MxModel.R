@@ -731,7 +731,7 @@ setMethod("imxVerifyModel", "MxModel",
 vcov.MxModel <- function(object, ...) {
 	assertModelRunAndFresh(object)
   fu <- object$output$fitUnits
-  if (fu %in% c("-2lnL", "r'Wr")) {
+  if (fu %in% c("-2lnL", "r'Wr", "r'wr")) {
 	  got <- NULL
 	  if(!is.null(object$output[["vcov"]])){got <- object$output[["vcov"]]}
 	#   if (!is.null(object$output[['ihessian']])) {
