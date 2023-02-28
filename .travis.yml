@@ -33,6 +33,8 @@ jobs:
 #sudo: required
 latex: true
 language: r
+r:
+  - release
 #cache: packages
 git:
   submodules: false
