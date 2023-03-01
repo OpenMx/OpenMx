@@ -3,7 +3,7 @@ stages:
 - test
 os:
 - linux
-dist: focal
+dist: bionic
 addons:
   apt:
     sources:
