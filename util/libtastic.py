@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, sys, shutil, stat
 import argparse, subprocess, re
@@ -23,7 +23,7 @@ def getRpaths(s, root=None, rpaths=[]):
     libPaths.append('.')
     libPaths.append(os.path.join(localPath, '..'))
     o = subprocess.Popen(['otool', '-l', s], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    error1 = ''.join(i for i in o.stderr.readline())
+    error1 = ''.join(i for i in o.stderr.readline().decode("UTF-8"))
     if not "" == error1:
         print("Error:" + error1)
         print("Otool called on " + s + " from:")
@@ -38,7 +38,7 @@ def getRpaths(s, root=None, rpaths=[]):
     pathmatch = re.compile("cmd LC_RPATH\n[^\n]*\n[\s]*path ([\s\S]*?) \(offset [\w]+?\)\n")
     rpath_hit = re.compile("@loader_path|@executable_path|@rpath")
     rpath_miss = re.compile("((?!@loader_path|@executable_path|@rpath).*)")
-    libPaths += [x for x in pathmatch.findall(o.stdout.read())]
+    libPaths += [x for x in pathmatch.findall(o.stdout.read().decode("UTF-8"))]
     # print(libPaths)
     for aPath in filter(rpath_hit.match, libPaths):
         for bPath in filter(rpath_miss.match, libPaths):
@@ -51,13 +51,14 @@ def getRpaths(s, root=None, rpaths=[]):
 
 def otool(s):
     o = subprocess.Popen(['otool', '-L', s], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    error1 = ''.join(i for i in o.stderr.readline())
+    error1 = ''.join(i for i in o.stderr.readline().decode("UTF-8"))
     if not "" == error1:
         print("Error:" + error1)
         print("Otool called on " + s + " from:")
         print(traceback.print_stack())
     output = []
     for l in o.stdout:
+        l = l.decode("UTF-8")
         if l[0] == '\t':
             output.append(l.split(' ', 1)[0][1:])
     return output[1:]
@@ -82,7 +83,7 @@ def getLibList(lib, keepOnly=None, *args, **kwargs):
 
     while not len(left) == 0:
         tLib = left.pop()
-        print "Inspecting " + str(tLib)
+        print("Inspecting " + str(tLib))
         if tLib in completed:  # Did this one already
             next
         needed = otool(tLib) # Does the actual work
@@ -167,7 +168,7 @@ def consolidateLibs(libs, target={'source':"/usr/local/lib", 'target':".",  'lin
                 lib["moved"] = os.path.join(link["target"], fname)
                 lib["link_path"] = os.path.join(link['link_path'], fname)
                 os.chmod(os.path.join(link["target"], fname), stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
-                print "Moved: " + lib['full'] + " to " + lib['moved'] + " (called " + lib['short'] + " in library " + lib['root'] + ") to link as " + lib['link_path']
+                print("Moved: " + lib['full'] + " to " + lib['moved'] + " (called " + lib['short'] + " in library " + lib['root'] + ") to link as " + lib['link_path'])
                 newLibs.append(lib)
                 rootmap[lib['full']] = lib['moved']
     print("Consolidated: " + str(newLibs))
@@ -186,12 +187,12 @@ def updateLibs(libs):
     for tlib in libs:
         print("Updating "+ str(tlib))
         lib = os.path.basename(tlib['short'])
-        print "Updating " + tlib['short'] + " to " + tlib['link_path'] + " in " + tlib["root"] + " to reflect move from " + tlib['full'] + " to " + tlib['moved']
+        print("Updating " + tlib['short'] + " to " + tlib['link_path'] + " in " + tlib["root"] + " to reflect move from " + tlib['full'] + " to " + tlib['moved'])
         pipe=subprocess.Popen(['install_name_tool', '-change', tlib['short'], tlib['link_path'], tlib['root']],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         universal_newlines=True)
-        error1 = ''.join(i for i in pipe.stderr.readline())
+        error1 = ''.join(i for i in pipe.stderr.readline().decode("UTF-8"))
         if not "" == error1:
             print("Error:" + error1)
 
@@ -202,19 +203,19 @@ def updateIDs(libs):
     for tlib in libs:
         lib = os.path.basename(tlib['short'])
         src = tlib['moved']
-        print "Updating " + tlib['moved'] + " with name " + lib
+        print("Updating " + tlib['moved'] + " with name " + lib)
         pipe = subprocess.Popen(['install_name_tool', '-id', lib, tlib['moved']],
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,
                                             universal_newlines=True)
-        error1 = ''.join(i for i in pipe.stderr.readline())
+        error1 = ''.join(i for i in pipe.stderr.readline().decode("UTF-8"))
         if not "" == error1:
             print("Error:" + error1)
 
 
 if __name__ == "__main__":
   try:
-    print "Welcome to libtastic"
+    print("Welcome to libtastic")
     parser = argparse.ArgumentParser(description="Libtastic traces OS X libraries and moves and adjusts them.", usage="libtastic.py -id OpenMx.so <library_root_dir>",epilog="")
     parser.add_argument('-id', '--updateIDs', '--updateids', action="store_true", help="update library links to new locations (omit for dry run)")
     parser.add_argument('-rp', '--rpath', help="Search list of folders to follow for @rpath links", action ="append", default=[str(os.environ["HOME"])+"/lib:/usr/local/lib:/lib:/usr/lib"])
@@ -241,6 +242,6 @@ if __name__ == "__main__":
         updateIDs(moved)
     showLibList(args.lib)
     touch("EditedByLibtastic.txt")
-    print "Thank you for being libtastic"
+    print("Thank you for being libtastic")
   except Exception:
     print(traceback.format_exc())

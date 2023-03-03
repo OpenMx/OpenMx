@@ -235,7 +235,7 @@ fitStatistics <- function(model, retval) {
 	}
 
 	retval$fitUnits <- model@output$fitUnits
-	retval$fit <- if(retval$fitUnits == '-2lnL'){ retval[['Minus2LogLikelihood']] } else if(retval$fitUnits == "r'Wr") {retval[['Chi']]}
+	retval$fit <- if(retval$fitUnits == '-2lnL'){ retval[['Minus2LogLikelihood']] } else if(retval$fitUnits %in% c("r'Wr", "r'wr")) {retval[['Chi']]}
 
 	fi <- computeFitStatistics(likelihood, DoF, chi, chiDoF,
 		retval[['numObs']], independence, indDoF, saturated, satDoF)
@@ -1006,7 +1006,7 @@ logLik.MxModel <- function(object, ...) {
 			!is.null(model@output$fitUnits) ) {
 		if(model@output$fitUnits=="-2lnL"){
 			ll <- -0.5*model@output$fit
-		} else if(model@output$fitUnits=="r'Wr") {
+		} else if(model@output$fitUnits %in% c("r'Wr", "r'wr")) {
 			ll <- -0.5*model@output$chi
 		}
 		#TODO: this doesn't count "implicit" free parameters that are "profiled out":

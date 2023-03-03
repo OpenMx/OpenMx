@@ -380,13 +380,14 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 ##'
 ##' @param model model
 imxHasWLS <- function(model){
+	wlsUnits <- c("r'Wr", "r'wr")
 	if(!is.null(model@output$fitUnits)){
-		if(model@output$fitUnits=="r'Wr"){return(TRUE)}
+		if(model@output$fitUnits %in% wlsUnits){return(TRUE)}
 		else{return(FALSE)}
 	}
 	if(is.null(model@fitfunction)){return(FALSE)}
 	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
-	if(length(model@fitfunction$units) && model@fitfunction$units=="r'Wr"){return(TRUE)}
+	if(length(model@fitfunction$units) && model@fitfunction$units %in% wlsUnits){return(TRUE)}
 	if( is(model@fitfunction, "MXFitFunctionMultigroup") ){
 		#Just in case the user provided 'modelName.fitfunction':
 		submodnames <- unlist(lapply(strsplit(model@fitfunction@groups,"[.]"),function(x){x[1]}))
