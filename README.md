@@ -265,7 +265,7 @@ First read the team's conduct policy [here](https://github.com/OpenMx/OpenMx/blo
 
 1. Do you have a well documented script (from one of our several workshops) that would make a great vignette? Great, because you don't even need to know how to use git. Simply go to the vignette folder and click in add file. This will automate the forking and uploading. 
 2. There are several issues that can be handled by new users. Go over to our oldest issues [here](https://github.com/OpenMx/OpenMx/issues?q=is%3Aissue+is%3Aopen+sort%3Acreated-asc), browse until something you find an issue you feel you can contribute to, and announce that you are planning to tackle it in the issue thread.
-3. Have a completely new functionality that you want to discuss? Just create a PR and we will discuss whether it aligns with the package direction.
+3. Have a completely new functionality that you want to discuss? Just create a PR and we will discuss whether it aligns with the package direction. In this case please add proper documentation for the new functionality. If you use RStudio there is a stub at File > New File > R Documentation. Also create a test unit in the tests/testthat folder, we currently use [testthat](https://testthat.r-lib.org/) to manage this. 
 <br>
 
 </details>
