@@ -240,7 +240,7 @@ Need help?  See help(mxSummary)
 
 # Related work
 
-[umx()](https://github.com/tbates/umx) is a sister R package that bridges the gap between [lavaan](https://github.com/yrosseel/lavaan) and OpenMx. If you are coming from lavaan it is perhaps useful to check umx() too.
+[umx()](https://github.com/tbates/umx) is a sister R package that bridges the gap between [lavaan](https://github.com/yrosseel/lavaan) and OpenMx. If you are coming from lavaan it is perhaps useful to check umx() too. [Onyx](https://onyx-sem.com/) is a software that allows you to design nice diagrams, and syncs (exports and imports) the diagrams with OpenMX code.
 
 # Community and getting help
 
@@ -251,3 +251,21 @@ Need help?  See help(mxSummary)
 ## Training
 
 We gather annually in beautiful [Boulder, CO](https://www.colorado.edu/ibg/workshop) for the international workshop for traning in behavioral genetics applications of OpenMx.
+
+
+# Contributing
+
+<details>
+<summary>How can I contribute to this project?</summary>
+<br>
+OpenMx is maintained by a small team and all help is appreciated.
+
+First read the team's conduct policy [here](https://github.com/OpenMx/OpenMx/blob/master/CONTRIBUTING). If you agree with it you can choose one of the below paths:
+
+1. Do you have a well documented script (from one of our several workshops) that would make a great vignette? Great, because you don't even need to know how to use git. Simply go to the vignette folder and click in add file. This will automate the forking and uploading. 
+2. There are several issues that can be handled by new users. Go over to our oldest issues [here](https://github.com/OpenMx/OpenMx/issues?q=is%3Aissue+is%3Aopen+sort%3Acreated-asc), browse until something you find an issue you feel you can contribute to, and announce that you are planning to tackle it in the issue thread.
+3. Have a completely new functionality that you want to discuss? Just create a PR and we will discuss whether it aligns with the package direction.
+<br>
+
+</details>
+
