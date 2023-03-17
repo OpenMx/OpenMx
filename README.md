@@ -25,6 +25,7 @@ and manipulated programmatically.
 - [Related work](#related-work)
 - [Community and getting help](#community-and-getting-help)
   * [Training](#training)
+- [Contributing](#contributing)
 
 
 # Overview
