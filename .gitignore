@@ -1,6 +1,6 @@
 .RData
 .Rhistory
-.Rapp.history 
+.Rapp.history
 *.o
 *.so
 *.old
@@ -21,7 +21,6 @@
 /src/Makevars.win
 /src/libnpsol.a
 /inst/no-npsol
-/inst/CITATION
 /DESCRIPTION
 /R/MxVersion.R
 /R/sysdata.rda
