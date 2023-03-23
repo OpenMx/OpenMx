@@ -44,7 +44,7 @@ Description: Create structural equation models that can be manipulated programma
 	Support and advanced package binaries available at <http://openmx.ssri.psu.edu>.
     The software is described in Neale, Hunter, Pritikin, Zahery, Brick,
     Kirkpatrick, Estabrook, Bates, Maes, & Boker (2016) <doi:10.1007/s11336-014-9435-8>.
-SystemRequirements: GNU make
+SystemRequirements: GNU make, C++14
 ByteCompile: @BC@
 Language: en-US
 License: @LICENSE@
