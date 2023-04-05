@@ -54,7 +54,8 @@ Details of the bootstrap replications are stored in the
 \sQuote{bootData} attribute on the data frame.
 }
 
-\examples{
+% donttest as gives NOTE Examples with CPU time > 2.5 times elapsed time
+\donttest{
 library(OpenMx)
 
 data(demoOneFactor)
