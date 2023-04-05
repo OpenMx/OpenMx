@@ -1,4 +1,4 @@
-CXX_STD = CXX14
+CXX_STD = CXX17
 
 # Developer's Note: As of R 3.5.3 and Rtools35.exe you must set the following flags
 #  CXX14 = $(BINPREF)g++ $(M_ARCH)
