@@ -136,6 +136,10 @@ The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documen
 }
 
 % donttest as gives NOTE Examples with CPU time > 2.5 times elapsed time
+
+
+\examples{
+
 \donttest{
 # Create and fit a model using mxMatrix, mxExpectationStateSpace, and mxFitFunctionML
 require(OpenMx)
@@ -190,5 +194,7 @@ summary(ssRun)
 #  are both near zero as they should be for the independent rows of data
 #  from the factor model that does not have inputs, covariates,
 #  or exogenous variables.
+
+}
 
 }
