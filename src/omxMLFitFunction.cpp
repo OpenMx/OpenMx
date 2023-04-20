@@ -1,5 +1,5 @@
  /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -433,7 +433,7 @@ void MLFitState::init()
 	newObj->expectedMeans = omxGetExpectationComponent(oo->expectation, "means");
 
 	if(newObj->expectedCov == NULL) {
-		omxRaiseError("Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
+		omxRaiseErrorf("Developer Error in ML-based fit function object: ML's expectation must specify a model-implied covariance matrix.\nIf you are not developing a new expectation type, you should probably post this to the OpenMx forums.");
 		return;
 	}
 
@@ -441,7 +441,7 @@ void MLFitState::init()
 	// ^ is XOR: true when one is false and the other is not.
 	if((newObj->expectedMeans == NULL) ^ (newObj->observedMeans == NULL)) {
 		if(newObj->expectedMeans != NULL) {
-			omxRaiseError("Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			omxRaiseErrorf("Observed means not detected, but an expected means matrix was specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		} else {
 			omxRaiseErrorf("%s: Observed means were provided, but an expected means matrix was not specified.\n  If you  wish to model the means, you must provide observed means.\n", oo->name());

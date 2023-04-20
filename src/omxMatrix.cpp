@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -199,26 +199,38 @@ bool omxMatrix::canDiscard()
 	return true;
 }
 
+void omxMatrix::disconnect()
+{
+	if(algebra) {
+		omxFreeAlgebraArgs(algebra);
+		algebra = NULL;
+	}
+
+	if(fitFunction) {
+    auto *ff = fitFunction;
+		fitFunction = 0;
+		delete ff;
+	}
+}
+
 void omxFreeMatrix(omxMatrix *om) {
 
     if(om == NULL) return;
 
 	omxFreeInternalMatrixData(om);
 
-	if(om->algebra != NULL) {
-		omxFreeAlgebraArgs(om->algebra);
-		om->algebra = NULL;
-	}
-
-	if(om->fitFunction != NULL) {
-		delete om->fitFunction;
-		om->fitFunction = NULL;
-	}
-
-	if (om->freeColnames) for (auto cn : om->colnames) free((void*)cn);
-	if (om->freeRownames) for (auto rn : om->rownames) free((void*)rn);
+  om->disconnect();
+  om->clearDimnames();
 
 	if (!om->hasMatrixNumber) delete om;
+}
+
+void omxMatrix::clearDimnames()
+{
+	if (freeColnames) { for (auto cn : colnames) free((void*)cn); freeColnames=false; }
+	if (freeRownames) { for (auto rn : rownames) free((void*)rn); freeRownames=false; }
+  colnames.clear();
+  rownames.clear();
 }
 
 /**
@@ -887,10 +899,7 @@ void omxMatrixHorizCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalRows != matList[j]->rows) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
-			omxRaiseError(errstr);
-			free(errstr);
+			omxRaiseErrorf("Non-conformable matrices in horizontal concatenation (cbind). First argument has %d rows, and argument #%d has %d rows.", totalRows, j + 1, matList[j]->rows);
 			return;
 		}
 		totalCols += matList[j]->cols;
@@ -936,10 +945,7 @@ void omxMatrixVertCat(omxMatrix** matList, int numArgs, omxMatrix* result)
 
 	for(int j = 0; j < numArgs; j++) {
 		if(totalCols != matList[j]->cols) {
-			char *errstr = (char*) calloc(250, sizeof(char));
-			sprintf(errstr, "Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
-			omxRaiseError(errstr);
-			free(errstr);
+			omxRaiseErrorf("Non-conformable matrices in vertical concatenation (rbind). First argument has %d cols, and argument #%d has %d cols.", totalCols, j + 1, matList[j]->cols);
 			return;
 		}
 		totalRows += matList[j]->rows;
@@ -990,10 +996,7 @@ void omxMatrixTrace(omxMatrix** matList, int numArgs, omxMatrix* result)
         int ncol  = inMat->cols;
 
     	if(nrow != ncol) {
-    		char *errstr = (char*) calloc(250, sizeof(char));
-    		sprintf(errstr, "Non-square matrix in Trace().\n");
-    		omxRaiseError(errstr);
-    		free(errstr);
+    		omxRaiseErrorf("Non-square matrix in Trace().\n");
             return;
     	}
 

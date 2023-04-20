@@ -1,5 +1,5 @@
  /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ struct omxWLSFitFunction : omxFitFunction {
 	bool fullWeight;
 
 	omxWLSFitFunction() :
-		type("WLS"), continuousType("cumulants"), fullWeight(true) {};
+    expectedCov(0), expectedMeans(0), expectedSlope(0), observedFlattened(0),
+		expectedFlattened(0), P(0), B(0), type("WLS"), continuousType("cumulants"), fullWeight(true) {};
 	virtual ~omxWLSFitFunction();
 	virtual void init() override;
 	virtual void compute2(int ffcompute, FitContext *fc) override;
@@ -103,7 +104,8 @@ void omxWLSFitFunction::compute2(int want, FitContext *fc)
 	omxDAXPY(-1.0, eFlat, B);
 	//if(OMX_DEBUG) {omxPrintMatrix(B, "....WLS Observed - Expected Vector: "); }
 
-	omxMatrix *weights = expectation->data->getSingleObsSummaryStats().useWeight;
+  auto &oss = expectation->data->getSingleObsSummaryStats();
+	omxMatrix *weights = oss.useWeight;
 	if(weights != NULL) {
 		//if(OMX_DEBUG_ALGEBRA) {omxPrintMatrix(weights, "....WLS Weight Matrix: "); }
 
@@ -123,10 +125,10 @@ void omxWLSFitFunction::compute2(int want, FitContext *fc)
 
 	sum = omxDDOT(P, B);
 
-	oo->matrix->data[0] = sum;
+	matrix->data[0] = sum;
+  scale = oss.totalWeight;
 
-	if(OMX_DEBUG) { mxLog("WLSFitFunction value comes to: %f.", oo->matrix->data[0]); }
-
+	if(OMX_DEBUG) { mxLog("WLSFitFunction %.5g %f", oo->matrix->data[0], oo->scale); }
 }
 
 void omxWLSFitFunction::populateAttr(SEXP algebra)
@@ -236,24 +238,24 @@ void omxWLSFitFunction::prepData()
 	if((newObj->expectedMeans == NULL) ^ (means == NULL)) {
 		if(newObj->expectedMeans != NULL) {
 			if (eThresh.size() == 0) {
-				omxRaiseError("Observed means not detected, but expected means specified.\n"
+				omxRaiseErrorf("Observed means not detected, but expected means specified.\n"
 				   "To model means with all continuous data, you need to set allContinuousMethod='marginals'");
 			} else {
-				omxRaiseError("Means are required when the data include ordinal measurements");
+				omxRaiseErrorf("Means are required when the data include ordinal measurements");
 			}
 			return;
 		} else {
-			omxRaiseError("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
+			omxRaiseErrorf("Observed means were provided, but an expected means matrix was not specified.\n  If you provide observed means, you must specify a model for the means.\n");
 			return;
 		}
 	}
 
 	if((eThresh.size()==0) ^ (obsThresholdsMat==0)) {
 		if (eThresh.size()) {
-			omxRaiseError("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
+			omxRaiseErrorf("Observed thresholds not detected, but an expected thresholds matrix was specified.\n   If you wish to model the thresholds, you must provide observed thresholds.\n ");
 			return;
 		} else {
-			omxRaiseError("Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
+			omxRaiseErrorf("Observed thresholds were provided, but an expected thresholds matrix was not specified.\nIf you provide observed thresholds, you must specify a model for the thresholds.\n");
 			return;
 		}
 	}
@@ -300,9 +302,12 @@ void omxWLSFitFunction::prepData()
 	if(OMX_DEBUG) {omxPrintMatrix(observedFlattened, "....WLS Observed Vector: "); }
 
 	/* Temporary storage for calculation */
-	expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
-	P = omxInitMatrix(1, vectorSize, TRUE, matrix->currentState);
-	B = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
+	if (!expectedFlattened) expectedFlattened = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
+  omxResizeMatrix(expectedFlattened, vectorSize, 1);
+	if (!P) P = omxInitMatrix(1, vectorSize, TRUE, matrix->currentState);
+  omxResizeMatrix(P, 1, vectorSize);
+	if (!B) B = omxInitMatrix(vectorSize, 1, TRUE, matrix->currentState);
+  omxResizeMatrix(B, vectorSize, 1);
 }
 
 void omxWLSFitFunction::init()
@@ -350,8 +355,5 @@ void omxWLSFitFunction::init()
   }
 
 	observedFlattened = 0;
-	expectedFlattened = 0;
-	B = 0;
-	P = 0;
   canDuplicate = true;
 }

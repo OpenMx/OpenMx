@@ -47,10 +47,11 @@ cmpMlNames <- c('base', 'comparison', 'ep', 'minus2LL', 'df', 'AIC', 'diffLL', '
 cmpWlsNames <- c('base', 'comparison', 'ep', 'chisq', 'df', 'AIC', 'SBchisq', 'diffdf', 'p')
 cmpCommonNames <- intersect(cmpMlNames, cmpWlsNames)
 cmpAbstractNames <- c('fit', 'fitUnits', 'diffFit')
+wlsUnits <- c("r'Wr", "r'wr")
 
 displayCompare <- function(obj){
 	rfu <- obj@results[1, c('fitUnits')]
-	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
+	pnames <- if(rfu %in% wlsUnits){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
 	print(obj@results[, pnames, drop=FALSE])
 }
 setMethod("print", "MxCompare", function(x,...) { displayCompare(x) })
@@ -72,7 +73,7 @@ setMethod("$", "MxCompare",
 setMethod("[", "MxCompare",
 	function (x, i, j, drop=if (missing(i)) TRUE else !missing(j) && length(j) == 1){
 		rfu <- x@results[1, c('fitUnits')]
-		pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
+		pnames <- if(rfu %in% wlsUnits){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {stop("OpenMx can't handle the fit units you have.")}
 		tmp <- x@results[, c(pnames, setdiff(pnames, cmpCommonNames), cmpAbstractNames), drop=FALSE]
 		tmp[i, j, drop]
 	}
@@ -232,7 +233,7 @@ anova.MxModel <- function(object, ...) {
 	}
 
 	rfu <- ret[1, c('fitUnits')]
-	pnames <- if(rfu == "r'Wr"){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {names(ret)}
+	pnames <- if(rfu %in% wlsUnits){cmpWlsNames} else if(rfu == '-2lnL'){cmpMlNames} else {names(ret)}
 	ret <- ret[, pnames, drop=FALSE]
 
 	ret
@@ -523,7 +524,9 @@ collectBaseStatistics <- function(row, ref) {
 	rfu <- ref$output$fitUnits
 	row[, 'fitUnits'] <- rfu
 	row[, 'chisq'] <- ifelse(!is.null(ref$output$chi), ref$output$chi, NA)
-	row[, c('fit', 'df')] <- if(rfu == "r'Wr"){
+	row[, c('fit', 'df')] <- if(length(rfu) == 0 && !ref@.wasRun){
+			stop("Model ", omxQuotes(ref@name), " has not been run.  Please, mxRun() your model before trying to compare it.")
+		} else if(rfu %in% wlsUnits){
 			c(ref$output$chi, ref$output$chiDoF)
 		} else if(rfu == '-2lnL'){
 			c(refSummary$Minus2LogLikelihood, refSummary$degreesOfFreedom)
@@ -540,7 +543,7 @@ fsb <- function(chi0, chi1, df0, df1, chim0, chim1){
 }
 
 fsb_helper <- function(model0, model1){
-	fsb(model0$output$chi, model1$output$chi, model0$output$chiDoF, model1$output$chiDoF, model0$output$chiM, model1$output$chiM)
+	fsb(model0$output$fit, model1$output$fit, model0$output$chiDoF, model1$output$chiDoF, model0$output$chiM, model1$output$chiM)
 }
 
 collectStatistics <- function(otherStats, ref, other, bootPair) {
@@ -592,7 +595,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	# TODO ? need to adjust DoF for Chi-sq with WLS?  In Theory these should always be the same.
 	otherStats[,c('SBchisq')] <- fsb_helper(other, ref)$chi
 
-	otherStats[,c('diffFit')] <- if(rfu[[1]] == "r'Wr"){otherStats[,'SBchisq']} else if(rfu[[1]] == '-2lnL'){otherStats[,'diffLL']} else {stop("Unknown fitUnits")}
+	otherStats[,c('diffFit')] <- if(rfu[[1]] %in% wlsUnits ){otherStats[,'SBchisq']} else if(rfu[[1]] == '-2lnL'){otherStats[,'diffLL']} else {stop("Unknown fitUnits")}
 
 	diffdf <- otherStats[['diffdf']]
 	diffdf <- diffdf[!is.na(diffdf)]

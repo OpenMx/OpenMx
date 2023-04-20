@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -366,8 +366,19 @@ as.statusCode <- function(code) {
 mxBootstrap <- function(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
-			OK=mxOption(model, "Status OK"), checkHess=FALSE) {
+			OK=mxOption(model, "Status OK"), checkHess=FALSE, unsafe=FALSE) {
   warnModelCreatedByOldVersion(model)
+  # Stop multilevel and state space models from using bootstrapping
+  # unless unsafe=TRUE
+  if(imxIsMultilevel(model) || imxIsStateSpace(model)){
+    msg <- paste0("Found multilevel or state space model, implying dependent rows of data.",
+      "\n'mxBootstrap' assumes that rows of data are independent.")
+    if(unsafe == TRUE){
+      warning(paste0(msg, "\nProceed with caution."))
+    } else {
+      stop(paste0(msg, "\nSet unsafe=TRUE in 'mxBootstrap' to override this error."))
+    }
+  }
     if (!missing(plan)) {
 	    stop("The 'plan' argument is deprecated. Use mxModel(model, plan) and then mxBootstrap")
     }

@@ -6,7 +6,7 @@
 #
 # Now edit to Makeconf to adjust the default compiler flags.
 
-CXX_STD = CXX14
+CXX_STD = CXX17
 
 NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 
@@ -25,8 +25,8 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # pass debug flags to linker, i.e., -fsanitize=undefined
 
 # To use gcc's address sanitizer, uncomment:
-# COMMON_FLAGS += -fsanitize=address -fno-omit-frame-pointer -fno-common
-# then run with env LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/10/libasan.so R -f ...
+# COMMON_FLAGS += -fsanitize=address -fno-omit-frame-pointer -fno-common -fsanitize-address-use-after-scope
+# then run with env LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/11/libasan.so ASAN_OPTIONS=strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1 R -f ...
 
 # Uncomment if you want to link OpenMx against Intel's MKL, if you installed the MKL directly from an Intel product, under Linux/GNU:
 # MKL_CXXFLAGS= -D EIGEN_USE_MKL_ALL -I"/opt/intel/mkl/include"
@@ -61,7 +61,8 @@ UMFPACK_LIBS=-lumfpack -lamd
 
 PKG_CXXFLAGS= $(OPENMP_CXXFLAGS) $(MKL_CXXFLAGS) \
  $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) \
- $(COMMON_FLAGS) -DSTRICT_R_HEADERS
+ $(COMMON_FLAGS) -DSTRICT_R_HEADERS -D_HAS_AUTO_PTR_ETC=0 \
+ $(shell ${R_HOME}/bin/Rscript -e "StanHeaders:::CxxFlags()")
 
 PKG_CFLAGS=$(COMMON_FLAGS) -DSTRICT_R_HEADERS
 

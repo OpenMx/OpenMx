@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -242,7 +242,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		} else {
 			.Object@thresholds <- as.integer(NA)
 		}
-    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, translatedNames)
+    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, colnames(fMatrix))
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}

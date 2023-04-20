@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -722,10 +722,16 @@ setMethod("imxVerifyModel", "MxModel",
     }
 )
 
+
+
+`+.MxModel`  <- function (e1, e2) { 
+  mxModel(e1, e2)
+}
+
 vcov.MxModel <- function(object, ...) {
 	assertModelRunAndFresh(object)
   fu <- object$output$fitUnits
-  if (fu %in% c("-2lnL", "r'Wr")) {
+  if (fu %in% c("-2lnL", "r'Wr", "r'wr")) {
 	  got <- NULL
 	  if(!is.null(object$output[["vcov"]])){got <- object$output[["vcov"]]}
 	#   if (!is.null(object$output[['ihessian']])) {

@@ -23,7 +23,7 @@
 mxBootstrap(model, replications=200, ...,
                         data=NULL, plan=NULL, verbose=0L,
                         parallel=TRUE, only=as.integer(NA),
-			OK=mxOption(model, "Status OK"), checkHess=FALSE)
+			OK=mxOption(model, "Status OK"), checkHess=FALSE, unsafe=FALSE)
 }
 
 \arguments{
@@ -39,6 +39,7 @@ mxBootstrap(model, replications=200, ...,
     run of \code{mxBootstrap} will be performed. See details.}
   \item{OK}{The set of status code that are considered successful}
   \item{checkHess}{Whether to approximate the Hessian in each replication}
+  \item{unsafe}{A boolean indicating whether to ignore errors.}
 }
 
 \details{
@@ -74,8 +75,15 @@ mxBootstrap(model, replications=200, ...,
   internal random number generator so that identical weights can be
   regenerated.
 
-  \sQuote{mxBootstrap} does not currently offer special support for nested or
-  multilevel data. Rows are assumed model-wise independent.
+  \code{mxBootstrap} does not currently offer special support for nested,
+  multilevel, or other dependent data structures. \emph{\code{mxBootstrap}
+  assumes rows of data are independent.}  Multilevel models and state space
+  models violate the independence assumption employed by \code{mxBootstrap}.
+  By default the \code{unsafe} argument prevents multilevel and state space
+  models from using \code{mxBootstrap}; however, setting \code{unsafe=TRUE}
+  allows multilevel and state space models to use bootstrapping under the --
+  perhaps foolish -- assumption that the user is sufficiently knowledgeable to
+  interpret the results.
 }
 
 \value{

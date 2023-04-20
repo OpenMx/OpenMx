@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2020 by the individuals mentioned in the source code history
+%   Copyright 2007-2021 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -128,7 +128,4 @@ The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documen
 \link{mxExpectationRAM}, \link{mxExpectationLISREL}, \link{mxModel} for creating MxModel objects. More information about the OpenMx package may be found \link[=OpenMx]{here}.
 }
 
-\examples{
-showClass("MxModel")
-}
 \keyword{classes}

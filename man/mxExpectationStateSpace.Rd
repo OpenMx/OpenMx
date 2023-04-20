@@ -1,12 +1,12 @@
 %
-%   Copyright 2007-2020 by the individuals mentioned in the source code history
+%   Copyright 2007-2021 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
 %   You may obtain a copy of the License at
-% 
+%
 %        http://www.apache.org/licenses/LICENSE-2.0
-% 
+%
 %   Unless required by applicable law or agreed to in writing, software
 %   distributed under the License is distributed on an "AS IS" BASIS,
 %   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,7 @@ The hybrid Kalman filter (combination of classical Kalman and Kalman-Bucy filter
 
 Missing data handling is implemented in the same fashion as full information maximum likelihood for partially missing rows of data.  Additionally, completely missing rows of data are handled by only using the prediction step from the Kalman filter and omitting the update step.
 
-This model uses notation for the model matrices commonly found in engineering and control theory.  
+This model uses notation for the model matrices commonly found in engineering and control theory.
 
  The 'A', 'B', 'C', 'D', 'Q', 'R', 'x0', and 'P0' arguments must be the names of \link{MxMatrix} or \link{MxAlgebra}objects with the associated properties of the A, B, C, D, Q, R, x0, and P0 matrices in the state space modeling approach.
 
@@ -89,7 +89,7 @@ The 'dimnames' arguments takes an optional character vector.  % TODO: Decide how
 
 The 'A' argument refers to the \eqn{A} matrix in the State Space approach. This matrix consists of time regressive coefficients from the latent variable in column \eqn{j} at time \eqn{t-1} to the latent variable in row \eqn{i} at time \eqn{t}.  Entries in the diagonal are autoregressive coefficients.  Entries in the off-diagonal are cross-lagged regressive coefficients.  If the \eqn{A} and \eqn{B} matrices are zero matrices, then the state space model reduces to a factor analysis.  The \eqn{A} matrix is sometimes called the state-transition model.
 
-The 'B' argument refers to the \eqn{B} matrix in the State Space approach. This matrix consists of regressive coefficients from the input (manifest covariate) variable \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t}.  Note that the covariate effect is contemporaneous: the covariate at time \eqn{t} has influence on the latent state also at time \eqn{t}.  A lagged effect can be created by lagged the observed variable.  The \eqn{B} matrix is sometimes called the control-input model. 
+The 'B' argument refers to the \eqn{B} matrix in the State Space approach. This matrix consists of regressive coefficients from the input (manifest covariate) variable \eqn{j} at time \eqn{t} to the latent variable in row \eqn{i} at time \eqn{t}.  Note that the covariate effect is contemporaneous: the covariate at time \eqn{t} has influence on the latent state also at time \eqn{t}.  A lagged effect can be created by lagged the observed variable.  The \eqn{B} matrix is sometimes called the control-input model.
 
 The 'C' argument refers to the \eqn{C} matrix in the State Space approach. This matrix consists of contemporaneous regression coefficients from the latent variable in column \eqn{j} to the observed variable in row \eqn{i}.  This matrix is directly analogous to the factor loadings matrix in LISREL and Mplus models.  The \eqn{C} matrix is sometimes called the observation model.
 
@@ -135,8 +135,12 @@ G. Petris  (2010).  An R Package for Dynamic Linear Models.  \emph{Journal of St
 The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
+% donttest as gives NOTE Examples with CPU time > 2.5 times elapsed time
+
+
 \examples{
-   
+
+\donttest{
 # Create and fit a model using mxMatrix, mxExpectationStateSpace, and mxFitFunctionML
 require(OpenMx)
 data(demoOneFactor)
@@ -190,5 +194,7 @@ summary(ssRun)
 #  are both near zero as they should be for the independent rows of data
 #  from the factor model that does not have inputs, covariates,
 #  or exogenous variables.
+
+}
 
 }

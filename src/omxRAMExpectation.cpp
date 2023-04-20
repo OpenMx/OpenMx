@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2020 by the individuals mentioned in the source code history
+ * Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -386,7 +386,7 @@ void omxRAMExpectation::init()
 	if(OMX_DEBUG) { mxLog("Generating internals for computation."); }
 
 	cov = omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedCovariance", l, l);
-	if (!cov->hasMatrixNumber) covOwner = omxMatrixPtr(cov);
+	if (!cov->hasMatrixNumber) covOwner = cov;
 	else {
     connectMatrixToExpectation(cov, this, "covariance");
     openBox = true;
@@ -399,7 +399,7 @@ void omxRAMExpectation::init()
 
 	if (M) {
 		means =	omxNewMatrixFromSlotOrAnon(rObj, currentState, "expectedMean", 1, l);
-		if (!means->hasMatrixNumber) meanOwner = omxMatrixPtr(means);
+		if (!means->hasMatrixNumber) meanOwner = means;
 		else {
       connectMatrixToExpectation(means, this, "mean");
       openBox = true;
@@ -674,12 +674,12 @@ void omxRAMExpectation::analyzeDefVars(FitContext *fc)
 
 		if (M && dv.matrix == mNum) {
 			dvInfluenceMean[k] = true;
-			dvInfluenceVar[k] = dvInfluenceVar[k] | (hasVariance[ dv.col ] != 0.0);
+			dvInfluenceVar[k] = dvInfluenceVar[k] || (hasVariance[ dv.col ] != 0.0);
 			dvContribution[dv.col].insert(std::make_pair(this, k));
 			continue;
 		}
 		if (dv.matrix == sNum) {
-			dvInfluenceMean[k] = dvInfluenceMean[k] | (hasMean[ dv.col ] != 0.0);
+			dvInfluenceMean[k] = dvInfluenceMean[k] || (hasMean[ dv.col ] != 0.0);
 			dvInfluenceVar[k] = true;
 			dvContribution[dv.col].insert(std::make_pair(this, k));
 			continue;

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -626,9 +626,6 @@ int MVNExpectation::numObservedStats()
     for (int cx=0; cx < int(dc.size()); ++cx) {
       stats += data->countObs(dc[cx]);
     }
-
-    auto &allTh = getThresholdInfo();
-    for (auto &col : allTh) stats += col.numThresholds;
 
     return stats;
 

@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2019 by the individuals mentioned in the source code history
+%   Copyright 2007-2021 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -64,13 +64,13 @@ The standard output consists of a table of free parameters, tables of model and 
 
 Free parameters in the model are reported in a table with columns for the name (label) of the parameter, the matrix, row and col containing the parameter, the parameter estimate itself, and any lower or upper bounds set for the parameter.
 
-\emph{note:} An exclamation mark ("!") printed after a bound in the lbound or ubound columns indicates that the solution was sufficiently close to the bound that the optimizer could not ignore the bound during its last few iterations.
-
-\strong{Additional columns: standard errors and 'A' (asymmetry) warning column}
+\strong{Additional columns: standard errors, exclamation marks ("!"), and the 'A' (asymmetry) warning column}
 
 When the information matrix is available, either approximated by the Hessian or from bootstrap resampling, standard errors are reported in the column "Std.Error".
 
-If the information matrix was estimated using finite differences then an additional diagnostic column 'A' is displayed. An exclamation point in the 'A' column indicates that the gradient appears to be asymmetric and the standard error may not accurately reflect the variability of that parameter. As a precaution, it is recommended that you compare the SEs with likelihood-based or bootstrap confidence intervals.
+An exclamation mark ("!") can appear in two places: after a lower or upper bound, and in the 'A' column.  When an exclamation mark appears after a bound in the lbound or ubound columns, it indicates that the solution was sufficiently close to the bound that the optimizer could not ignore the bound during its last few iterations.
+
+An exclamation mark may also appear under the 'A' column, but in this case it has a different meaning.  If the information matrix was estimated using finite differences then an additional diagnostic column 'A' is displayed. An exclamation point in the 'A' column indicates that the gradient appears to be asymmetric and the standard error might not accurately reflect the sampling variability of that parameter.  As a precaution, it is recommended that you compare the SEs with profile likelihood-based confidence intervals (\link{mxCI}) or bootstrap confidence intervals.
 
 
 \strong{Fit statistics}

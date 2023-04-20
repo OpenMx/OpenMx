@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ void omxState::omxProcessMxMatrixEntities(SEXP matList)
 		ProtectedSEXP nextMat(VECTOR_ELT(nextLoc, 0));		// The first element of the list is the matrix of values
 		omxMatrix *mat = omxNewMatrixFromRPrimitive(nextMat, this, 1, -index - 1);
 		mat->nameStr = CHAR(STRING_ELT(matListNames, index));
-		matrixList.push_back(mat);
+		matrixList.emplace_back(mat);
 
 		if(OMX_DEBUG) { omxPrintMatrix(mat, NULL); }
 
@@ -182,9 +182,8 @@ void omxGlobal::omxProcessMxComputeEntities(SEXP rObj, omxState *currentState)
 
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(rObj, R_ClassSymbol), 0));
-	omxCompute *compute = omxNewCompute(currentState, CHAR(s4class));
-	compute->initFromFrontend(currentState, rObj);
-	computeList.push_back(compute);
+	topCompute = std::unique_ptr<omxCompute>(omxNewCompute(currentState, CHAR(s4class)));
+	topCompute->initFromFrontend(currentState, rObj);
 
 	if (Global->computeLoopContext.size()) {
 		mxThrow("computeLoopContext imbalance of %d in initFromFrontend",

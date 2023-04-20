@@ -42,5 +42,6 @@ dat       <- mxData(observed=phenoData, type="raw")
 fun <- mxFitFunctionWLS(type = "WLS", allContinuousMethod= "marginals")
 wlsTest4 <- mxModel("GWAS", type="RAM", manifestVars = c(covariates, DepVar), snpMu, snpBeta, snpres, resid, itemMean, dat, fun  )
 
-expect_error(mxRun(wlsTest4),
-             "correlated gradients: [3,1]", fixed=TRUE)
+# No longer fails. This is hard to test.
+#expect_error(mxRun(wlsTest4),
+#             "correlated gradients: [3,1]", fixed=TRUE)

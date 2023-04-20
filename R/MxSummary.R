@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -235,7 +235,7 @@ fitStatistics <- function(model, retval) {
 	}
 
 	retval$fitUnits <- model@output$fitUnits
-	retval$fit <- if(retval$fitUnits == '-2lnL'){ retval[['Minus2LogLikelihood']] } else if(retval$fitUnits == "r'Wr") {retval[['Chi']]}
+	retval$fit <- if(retval$fitUnits == '-2lnL'){ retval[['Minus2LogLikelihood']] } else if(retval$fitUnits %in% c("r'Wr", "r'wr")) {retval[['Chi']]}
 
 	fi <- computeFitStatistics(likelihood, DoF, chi, chiDoF,
 		retval[['numObs']], independence, indDoF, saturated, satDoF)
@@ -355,7 +355,12 @@ computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedD
 		}
 		# number of variables
 		if(datalist[[1]]@type != 'raw'){
-			nvar <- dim(datalist[[1]]@observed)[2]
+			if(datalist[[1]]@type == 'none'){
+				nvar <- nrow(datalist[[1]]@observedStats$cov)
+			}
+			else{
+				nvar <- dim(datalist[[1]]@observed)[2]
+			}
 		} else if( length(expectations) == 1 ) {
 			nvar <- length(expectations[[1]]@dims)
 		} else {
@@ -1001,7 +1006,7 @@ logLik.MxModel <- function(object, ...) {
 			!is.null(model@output$fitUnits) ) {
 		if(model@output$fitUnits=="-2lnL"){
 			ll <- -0.5*model@output$fit
-		} else if(model@output$fitUnits=="r'Wr") {
+		} else if(model@output$fitUnits %in% c("r'Wr", "r'wr")) {
 			ll <- -0.5*model@output$chi
 		}
 		#TODO: this doesn't count "implicit" free parameters that are "profiled out":
@@ -1149,7 +1154,7 @@ logLik.MxModel <- function(object, ...) {
   	for(i in 1:length(M_need_pos)){
   		Mpos[1,M_need_pos[i]] <- out$name[j] <- paste(
   			model@name,".M[1,",M_need_pos[i],"]",sep="")
-  		if(!all.na(model_M$labels)){
+  		if(!is.null(model_M$labels) && !all.na(model_M$labels)){
   			out$label[j] <- model_M$labels[1,M_need_pos[i]]
   		}
   		out$matrix[j] <- "M"
@@ -1300,13 +1305,13 @@ mxStandardizeRAMpaths <- function(model, SE=FALSE, cov=NULL){
   }
   #Check if single-group model uses RAM expectation, and proceed if so:
   if(length(model@submodels)==0){
-    if(class(model$expectation)!="MxExpectationRAM"){stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
+    if (!inherits(model$expectation, "MxExpectationRAM")) {stop(paste("model '",model@name,"' does not use RAM expectation",sep=""))}
     return(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam))
   }
   #Handle multi-group model:
   if(length(model@submodels)>0){
   	out <- NULL
-  	if(class(model$expectation)=="MxExpectationRAM"){
+  	if (inherits(model$expectation, "MxExpectationRAM")) {
   		out <- list(.mxStandardizeRAMhelper(model=model,SE=SE,ParamsCov=covParam,ignoreSubmodels=TRUE))
   		names(out)[1] <- model@name
   	}
@@ -1345,7 +1350,7 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 	if(!is(model, "MxModel")) {
 		stop("'model' argument must be a MxModel object")
 	}
-	if(!length(model@expectation) || class(model@expectation) != "MxExpectationRAM"){
+	if(!length(model@expectation) || !inherits(model@expectation, "MxExpectationRAM")) {
 		msg <- paste(
 			"MxModel ",omxQuotes(model@name),
 			" does not use RAM expectation\n(to use mxBootstrapStdizeRAMpaths() on a RAM submodel, run the function directly on that submodel",sep="")

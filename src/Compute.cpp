@@ -1,5 +1,5 @@
 /*
- *  Copyright 2013-2020 by the individuals mentioned in the source code history
+ *  Copyright 2013-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1753,8 +1753,8 @@ class omxComputeOnce : public omxCompute {
 
 class ComputeEM : public omxCompute {
 	typedef omxCompute super;
-	omxCompute *estep;
-	omxCompute *mstep;
+  std::unique_ptr<omxCompute> estep;
+  std::unique_ptr<omxCompute> mstep;
 	omxMatrix *fit3;   // rename to observedFit
 	int EMcycles;
 	int maxIter;
@@ -1768,7 +1768,7 @@ class ComputeEM : public omxCompute {
 	const char *accelName;
 	bool useRamsay;
 	bool useVaradhan;
-	EMAccel *accel;
+  std::unique_ptr<EMAccel> accel;
 	enum EMInfoMethod {
 		EMInfoNone,
 		EMInfoMengRubinFamily,
@@ -2036,12 +2036,11 @@ class ComputeBootstrap : public omxCompute {
 
 	struct context {
 		omxData *data;
-		int *origRowFreq;
 		std::vector<int> origCumSum;
 		std::vector<int> resample;
 	};
 	std::vector< context > contexts;
-	omxCompute *plan;
+  std::unique_ptr<omxCompute> plan;
 	int verbose;
 	int numReplications;
 	int seed;
@@ -2055,8 +2054,6 @@ class ComputeBootstrap : public omxCompute {
 	MxRList onlyWeight;
 
  public:
-	ComputeBootstrap() : plan(0) {};
-	virtual ~ComputeBootstrap();
 	virtual bool accumulateInform() override { return false; };
 	virtual void initFromFrontend(omxState *, SEXP rObj) override;
 	virtual void computeImpl(FitContext *fc) override;
@@ -2078,7 +2075,7 @@ class ComputeGenerateData : public omxCompute {
 class ComputeLoadData : public omxCompute {
 	typedef omxCompute super;
 
-	static std::vector<LoadDataProviderBase2*> Providers;
+	static std::vector< std::unique_ptr<LoadDataProviderBase2> > Providers;
 	std::unique_ptr<LoadDataProviderBase2> provider;
 
 	omxData *data;
@@ -2096,13 +2093,14 @@ class ComputeLoadData : public omxCompute {
 
  public:
 	static void loadedHook();
-	static void addProvider(LoadDataProviderBase2 *ldp) { Providers.push_back(ldp); }
+	static void addProvider(std::unique_ptr<LoadDataProviderBase2> ldp)
+  { Providers.emplace_back(std::move(ldp)); }
 	virtual void initFromFrontend(omxState *globalState, SEXP rObj) override;
 	virtual void computeImpl(FitContext *fc) override;
 	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *) override;
 };
 
-std::vector<LoadDataProviderBase2*> ComputeLoadData::Providers;
+std::vector<std::unique_ptr<LoadDataProviderBase2> > ComputeLoadData::Providers;
 
 void ComputeLoadDataLoadedHook()
 { ComputeLoadData::loadedHook(); }
@@ -2297,7 +2295,7 @@ void ComputePenaltySearch::computeImpl(FitContext *fc)
     {NumericVector v = result[0]; v[gx] = EBIC;}
     {IntegerVector v = result[1]; v[gx] = EP;}
     {NumericVector v = result[2]; v[gx] = ll;}
-    {NumericVector v = result[3]; v[gx] = fc->fit;}
+    {NumericVector v = result[3]; v[gx] = fc->getFit();}
     {IntegerVector v = result[4]; v[gx] = fc->wrapInform();}
     for (int px=0; px < fc->numParam; ++px) {
       NumericVector vec = result[resultParamOffset+px];
@@ -2440,9 +2438,9 @@ void omxComputeSequence::initFromFrontend(omxState *globalState, SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
+		clist.push_back(compute);
 		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
-		clist.push_back(compute);
 	}
 
 	if (independent) {
@@ -2550,9 +2548,9 @@ void omxComputeIterate::initFromFrontend(omxState *globalState, SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
-		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
+		compute->initFromFrontend(globalState, step);
 	}
 
 	{
@@ -2584,18 +2582,18 @@ void omxComputeIterate::computeImpl(FitContext *fc)
 			}
 		}
 		if (fc->wanted & FF_COMPUTE_FIT) {
-			if (fc->fit == 0) {
+			if (fc->getFit() == 0) {
 				Rf_warning("Fit estimated at 0; something is wrong");
 				break;
 			}
 			if (prevFit != 0) {
-				double change = (prevFit - fc->fit) / fc->fit;
-				if (verbose) mxLog("ComputeIterate: fit %.9g rel change %.9g", fc->fit, change);
+				double change = (prevFit - fc->getFit()) / fc->getFit();
+				if (verbose) mxLog("ComputeIterate: fit %.9g rel change %.9g", fc->getFit(), change);
 				mac = fabs(change);
 			} else {
-				if (verbose) mxLog("ComputeIterate: initial fit %.9g", fc->fit);
+				if (verbose) mxLog("ComputeIterate: initial fit %.9g", fc->getFit());
 			}
-			prevFit = fc->fit;
+			prevFit = fc->getFit();
 		}
 		if (std::isfinite(tolerance)) {
 			if (!(fc->wanted & (FF_COMPUTE_MAXABSCHANGE | FF_COMPUTE_FIT))) {
@@ -2657,9 +2655,9 @@ void ComputeLoop::initFromFrontend(omxState *globalState, SEXP rObj)
 			s4name = CHAR(s4class);
 		}
 		omxCompute *compute = omxNewCompute(globalState, s4name);
-		compute->initFromFrontend(globalState, step);
 		if (isErrorRaised()) break;
 		clist.push_back(compute);
+		compute->initFromFrontend(globalState, step);
 	}
 
 	iterations = 0;
@@ -2735,12 +2733,12 @@ void ComputeEM::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("estep")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	estep = omxNewCompute(globalState, CHAR(s4class));
+	estep = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	estep->initFromFrontend(globalState, slotValue);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("mstep")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	mstep = omxNewCompute(globalState, CHAR(s4class));
+	mstep = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	mstep->initFromFrontend(globalState, slotValue);
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("observedFit")));
@@ -2960,12 +2958,12 @@ void ComputeEM::recordDiff(FitContext *fc, int v1, Eigen::MatrixBase<T> &rijWork
 void ComputeEM::observedFit(FitContext *fc)
 {
 	ComputeFit("EM", fit3, FF_COMPUTE_FIT, fc);
-	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->fit);
+	if (verbose >= 4) mxLog("ComputeEM[%d]: observed fit = %f", EMcycles, fc->getFit());
 
 	if (!(fc->wanted & FF_COMPUTE_FIT)) {
 		omxRaiseErrorf("ComputeEM: fit not available");
 	}
-	if (fc->fit == 0) {
+	if (fc->getFit() == 0) {
 		omxRaiseErrorf("Fit estimated at 0; something is wrong");
 	}
 }
@@ -2984,7 +2982,7 @@ void ComputeEM::accelLineSearch(bool major, FitContext *fc, Eigen::MatrixBase<T1
     Eigen::VectorXd pVec((accel->dir * speed + preAccel).cwiseMax(lbound).cwiseMin(ubound));
     fc->setEstFromOptimizer(pVec);
 		observedFit(fc);
-		if (std::isfinite(fc->fit)) return;
+		if (std::isfinite(fc->getFit())) return;
 		speed *= .3;
 		if (verbose >= 3) mxLog("%s: fit NaN; reduce accel speed to %f", name, speed);
 	}
@@ -3011,8 +3009,8 @@ void ComputeEM::computeImpl(FitContext *fc)
 	if (verbose >= 1) mxLog("ComputeEM: Welcome, tolerance=%g accel=%s info=%d",
 				tolerance, accelName, information);
 
-	if (useRamsay) accel = new Ramsay1975(fc, verbose, -1.25);
-	if (useVaradhan) accel = new Varadhan2008(fc, verbose);
+	if (useRamsay) accel = std::make_unique<Ramsay1975>(fc, verbose, -1.25);
+	if (useVaradhan) accel = std::make_unique<Varadhan2008>(fc, verbose);
 
 	int mstepInform = INFORM_UNINITIALIZED;
 	std::vector<double> prevEst(fc->getNumFree());
@@ -3057,7 +3055,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			if (EMcycles > 3 && (EMcycles + 1) % 3 == 0) {
 				accel->recalibrate();
 				accelLineSearch(true, fc, preAccel);
-				while (prevFit < fc->fit) {
+				while (prevFit < fc->getFit()) {
 					if (!accel->retry()) break;
 					accelLineSearch(true, fc, preAccel);
 				}
@@ -3068,7 +3066,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 			observedFit(fc);
 		}
 
-		if (!std::isfinite(fc->fit)) {
+		if (!std::isfinite(fc->getFit())) {
 			omxRaiseErrorf("%s: fit not finite in iteration %d", name, EMcycles);
 		}
 
@@ -3082,21 +3080,21 @@ void ComputeEM::computeImpl(FitContext *fc)
 				}
 			}
 
-			change = (prevFit - fc->fit) / fc->fit;
+			change = (prevFit - fc->getFit()) / fc->getFit();
 			if (verbose >= 2) mxLog("ComputeEM[%d]: msteps %d fit %.9g rel change %.9g",
-						EMcycles, mstepIter, fc->fit, change);
+                              EMcycles, mstepIter, fc->getFit(), change);
 			mac = fabs(change);
 
 			// For Tian, in_middle depends on the absolute (not relative) change in LL!
-			const double absMac = fabs(prevFit - fc->fit);
+			const double absMac = fabs(prevFit - fc->getFit());
 			if (absMac < MIDDLE_START * Scale) in_middle = true;
 			if (absMac < MIDDLE_END * Scale) in_middle = false;
 		} else {
 			if (verbose >= 2) mxLog("ComputeEM: msteps %d initial fit %.9g",
-						mstepIter, fc->fit);
+                              mstepIter, fc->getFit());
 		}
 
-		prevFit = fc->fit;
+		prevFit = fc->getFit();
 		converged = mac < tolerance;
 		++fc->iterations;
 		if (isErrorRaised() || converged) break;
@@ -3111,7 +3109,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 	int wanted = FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT | FF_COMPUTE_ESTIMATE;
 	fc->wanted = wanted;
 	fc->setInform(converged? mstepInform : INFORM_ITERATION_LIMIT);
-	bestFit = fc->fit;
+	bestFit = fc->getFit();
 	if (verbose >= 1) mxLog("ComputeEM: cycles %d/%d total mstep %d fit %f inform %d",
 				EMcycles, maxIter, totalMstepIter, bestFit, fc->getInform());
 
@@ -3128,7 +3126,7 @@ void ComputeEM::computeImpl(FitContext *fc)
 		mxThrow("Unknown information method %d", information);
 	}
 
-	fc->fit = bestFit;
+	fc->setFit(bestFit);
   fc->setEstFromOptimizer(optimum);
 }
 
@@ -3396,7 +3394,7 @@ void ComputeEM::collectResults(FitContext *fc, LocalComputeResult *lcr, MxRList 
 	super::collectResults(fc, lcr, out);
 
 	std::vector< omxCompute* > clist(1);
-	clist[0] = mstep;
+	clist[0] = mstep.get();
 
 	collectResultsHelper(fc, clist, lcr, out);
 }
@@ -3448,11 +3446,6 @@ void ComputeEM::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 
 ComputeEM::~ComputeEM()
 {
-	if (accel) delete accel;
-
-	delete estep;
-	delete mstep;
-
 	for (size_t hx=0; hx < estHistory.size(); ++hx) {
 		delete [] estHistory[hx];
 	}
@@ -3595,7 +3588,7 @@ void omxComputeOnce::computeImpl(FitContext *fc)
 		if (fit) {
 			want |= FF_COMPUTE_FIT;
 			if (isBestFit) want |= FF_COMPUTE_BESTFIT;
-			fc->fit = 0;
+			fc->setFit(0);
 		}
 		if (gradient) {
 			want |= FF_COMPUTE_GRADIENT;
@@ -3849,7 +3842,7 @@ void ComputeStandardError::computeImpl(FitContext *fc)
   fc->createChildren(fitMat, false);
   AutoTune<JacobianGadget> jg(name);
   jg.setWork(std::unique_ptr<JacobianGadget>(new JacobianGadget(numFree)));
-  jg.work().setAlgoOptions(GradientAlgorithm_Forward, 2, 1e-4);
+  jg.work().setAlgoOptions(GradientAlgorithm_Central, 4, 1e-4);
   jg(sense, sense.ref, [&fc](){ return fc->getCurrentFree(); }, false, sense.result);
   fc->destroyChildren();
 
@@ -3878,16 +3871,14 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 
 	Eigen::MatrixXd Umat = Vmat - Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>() *
 		sense.result.transpose() * Vmat;
-	Eigen::MatrixXd UW = Umat * Wmat;
+	Eigen::MatrixXd UW = Umat * Wmat * totalWeight;
 	Eigen::MatrixXd UW2 = UW * UW; // unclear if this should be UW^2 i.e. elementwise power
 	double trUW = UW.diagonal().array().sum();
 	madj = trUW / df;
-	x2m = fc->fit / madj;
+	x2m = fc->getFit() / madj;
 	dstar = (trUW * trUW) / UW2.diagonal().array().sum();
-	mvadj = (trUW*trUW) / dstar;
-	x2mv = fc->fit / mvadj;
-	// N.B. x2mv is off by a factor of N where N is the total number of rows in all data sets for the ULS case.
-	if (isULS(Vmat)) x2mv /= totalWeight;
+	mvadj = trUW / dstar;
+	x2mv = fc->getFit() / mvadj;
 	wlsStats = true;
 }
 
@@ -4142,11 +4133,6 @@ void ComputeReportExpectation::reportResults(FitContext *fc, MxRList *, MxRList 
 	result->add("expectations", expectations);
 }
 
-ComputeBootstrap::~ComputeBootstrap()
-{
-	if (plan) delete plan;
-}
-
 void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 {
 	super::initFromFrontend(globalState, rObj);
@@ -4156,7 +4142,7 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
-	plan = omxNewCompute(globalState, CHAR(s4class));
+	plan = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	plan->initFromFrontend(globalState, slotValue);
 
 	ProtectedSEXP Rdata(R_do_slot(rObj, Rf_install("data")));
@@ -4170,11 +4156,11 @@ void ComputeBootstrap::initFromFrontend(omxState *globalState, SEXP rObj)
 			mxThrow("%s: data '%s' of type '%s' cannot have row weights",
 				 name, ctx.data->name, ctx.data->getType());
 		}
-		ctx.origRowFreq = ctx.data->getFreqColumn();
+		int *origRowFreq = ctx.data->getFreqColumn();
 		ctx.origCumSum.resize(numRows);
 		ctx.resample.resize(ctx.origCumSum.size());
-		if (ctx.origRowFreq) {
-			std::partial_sum(ctx.origRowFreq, ctx.origRowFreq + ctx.origCumSum.size(),
+		if (origRowFreq) {
+			std::partial_sum(origRowFreq, origRowFreq + ctx.origCumSum.size(),
 					 ctx.origCumSum.begin());
 		} else {
 			for (int rx=0; rx < numRows; ++rx) ctx.origCumSum[rx] = 1+rx;
@@ -4319,7 +4305,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 		if (only == NA_INTEGER) {
 			fc->wanted &= ~FF_COMPUTE_DERIV;  // discard garbage
 		}
-		REAL(VECTOR_ELT(rawOutput, 1))[repl] = fc->fit;
+		REAL(VECTOR_ELT(rawOutput, 1))[repl] = fc->getFit();
 		for (int px=0; px < int(fc->numParam); ++px) {
 			REAL(VECTOR_ELT(rawOutput, 2 + px))[repl] = fc->est[px];
 		}
@@ -4328,7 +4314,7 @@ void ComputeBootstrap::computeImpl(FitContext *fc)
 	}
 
 	for (auto &ctx : contexts) {
-		ctx.data->setFreqColumn(ctx.origRowFreq);
+		ctx.data->setFreqColumn(ctx.data->getOriginalFreqColumn());
 	}
 
 	if (only == NA_INTEGER) {
@@ -4342,7 +4328,7 @@ void ComputeBootstrap::collectResults(FitContext *fc, LocalComputeResult *lcr, M
 {
 	super::collectResults(fc, lcr, out);
 	std::vector< omxCompute* > clist(1);
-	clist[0] = plan;
+	clist[0] = plan.get();
 	collectResultsHelper(fc, clist, lcr, out);
 }
 
@@ -4789,7 +4775,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
     data = globalState->dataList[objNum];
   }
 
-	for (auto pr : Providers) {
+	for (auto &pr : Providers) {
 		if (strEQ(methodName, pr->getName())) {
 			provider = pr->clone();
       if (data) {
@@ -4809,7 +4795,7 @@ void ComputeLoadData::initFromFrontend(omxState *globalState, SEXP rObj)
 	}
 	if (!provider) {
 		std::string avail;
-		for (auto pr : Providers) {
+		for (auto &pr : Providers) {
 			avail += " ";
 			avail += pr->getName();
 		}
@@ -4865,8 +4851,8 @@ void ComputeLoadData::reportResults(FitContext *fc, MxRList *slots, MxRList *)
 void ComputeLoadData::loadedHook()
 {
 	Providers.clear();
-	Providers.push_back(new LoadDataCSVProvider());
-	Providers.push_back(new LoadDataDFProvider());
+	Providers.push_back(std::make_unique<LoadDataCSVProvider>());
+	Providers.push_back(std::make_unique<LoadDataDFProvider>());
 }
 
 unsigned int DJBHash(const char *str, std::size_t len)
@@ -4881,7 +4867,7 @@ unsigned int DJBHash(const char *str, std::size_t len)
 }
 
 void AddLoadDataProvider(double version, unsigned int otherHash,
-                         LoadDataProviderBase2 *ldp)
+                         std::unique_ptr<LoadDataProviderBase2> ldp)
 {
   std::size_t sz2[] = {
                sizeof(dataPtr),
@@ -4898,7 +4884,7 @@ void AddLoadDataProvider(double version, unsigned int otherHash,
 	} else {
 		mxThrow("Cannot add mxComputeLoadData provider, version mismatch");
 	}
-	ComputeLoadData::addProvider(ldp);
+	ComputeLoadData::addProvider(std::move(ldp));
 }
 
 void ComputeLoadContext::reopen()
@@ -5421,7 +5407,7 @@ void ComputeCheckpoint::computeImpl(FitContext *fc)
 	if (inclPar) {
 		s1.est = fc->est;
 	}
-	s1.fit = fc->fit;
+	s1.fit = fc->getFit();
 	s1.fitUnits = fc->fitUnits;
 	s1.inform = fc->wrapInform();
 	if (inclSEs) {

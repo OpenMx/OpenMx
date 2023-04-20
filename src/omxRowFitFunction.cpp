@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -225,20 +225,14 @@ void omxRowFitFunction::init()
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("data")));
 	newObj->data = omxDataLookupFromState(nextMatrix, oo->matrix->currentState);
 	if(newObj->data == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "No data provided to omxRowFitFunction.");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("No data provided to omxRowFitFunction.");
 	}
 	}
 
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("rowAlgebra")));
 	newObj->rowAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	if(newObj->rowAlgebra == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "No row-wise algebra in omxRowFitFunction.");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("No row-wise algebra in omxRowFitFunction.");
 	}
 	}
 
@@ -251,10 +245,7 @@ void omxRowFitFunction::init()
 	newObj->filteredDataRow = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	}
 	if(newObj->filteredDataRow == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("No row results matrix in omxRowFitFunction.");
 	}
 	// Create the original data row from which to filter.
 	newObj->dataRow = omxInitMatrix(newObj->filteredDataRow->rows,
@@ -266,10 +257,7 @@ void omxRowFitFunction::init()
 	}
     // Do we allow NULL existence?  (Whoa, man. That's, like, deep, or something.)
 	if(newObj->existenceVector == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "No existance matrix in omxRowFitFunction.");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("No existance matrix in omxRowFitFunction.");
 	}
 
 
@@ -277,20 +265,14 @@ void omxRowFitFunction::init()
 	newObj->rowResults = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	}
 	if(newObj->rowResults == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "No row results matrix in omxRowFitFunction.");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("No row results matrix in omxRowFitFunction.");
 	}
 
 	{ScopedProtect p1(nextMatrix, R_do_slot(rObj, Rf_install("reduceAlgebra")));
 	newObj->reduceAlgebra = omxMatrixLookupFromState1(nextMatrix, oo->matrix->currentState);
 	}
 	if(newObj->reduceAlgebra == NULL) {
-		char *errstr = (char*) calloc(250, sizeof(char));
-		sprintf(errstr, "No row reduction algebra in omxRowFitFunction.");
-		omxRaiseError(errstr);
-		free(errstr);
+		omxRaiseErrorf("No row reduction algebra in omxRowFitFunction.");
 	}
 
 	if(OMX_DEBUG) {mxLog("Accessing variable mapping structure."); }

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2019 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -69,4 +69,28 @@ autStart <- mxAutoStart(autGroup)
 # Starting values from mxAutoStart are close to the final estimates from multigroup WLS
 omxCheckCloseEnough(coef(autStart)[names(coef(twoGroup))], coef(twoGroup), 1e-3)
 
+# ---------------------
+# Are SEs correct?
 
+mgen <- mxModel('mg', type='RAM', manifestVars = c('a','b'),
+              mxPath(c('a','b'), arrows=2, values=1, labels=paste0(c('a','b'),'Var')),
+              mxPath('a', 'b', values=.5, labels="reg"))
+# marginals TODO
+              #mxPath('one', c('a','b'), labels=paste0(c('a','b'),'Mean'))
+
+data1 <- mxGenerateData(mgen, nrows = 400)
+
+mgen$S$values['a','a'] <- .5
+mgen$S$values['b','b'] <- .5
+
+data2 <- mxGenerateData(mgen, nrows = 200)  # unequal sample size!
+
+m1 <- mxModel(mgen, mxData(data1, 'raw'), mxFitFunctionWLS(), name='g1')
+m2 <- mxModel(mgen, mxData(data2, 'raw'), mxFitFunctionWLS(), name='g2')
+mg <- mxModel('two', m1,m2, mxFitFunctionMultigroup(paste0('g', 1:2)))
+mg <- mxRun(mg)
+
+mc <- mxModel(mgen, mxData(rbind(data1,data2), 'raw'), mxFitFunctionWLS())
+mc <- mxRun(mc)
+
+c(mg$output$standardErrors - mc$output$standardErrors) # should be zero TODO

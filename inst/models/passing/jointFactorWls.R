@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -157,8 +157,8 @@ jointWlsResults <- mxRun(jointWlsModel)
 jointDlsResults <- mxRun(jointDlsModel)
 jointUlsResults <- mxRun(jointUlsModel)
 
-expect_equal(median(log(diag(jointWlsResults$data$observedStats$acov))),
-             median(log(diag(jointDlsResults$data$observedStats$acov))), .2)
+expect_equal(diag(jointWlsResults$data$observedStats$asymCov),
+             diag(jointDlsResults$data$observedStats$asymCov))
 
 ramWlsResults <- mxRun(ramWlsModel)
 
@@ -265,6 +265,24 @@ omxCheckCloseEnough(ml.sat, wls.sat, .03) #could adjust to 0.009
 
 
 #------------------------------------------------------------------------------
+# Check that observed statistics are correct
+
+numCovs <- 5*4/2
+numMeans <- 2
+numVaris <- 2
+numLevel <- sapply(sapply(jointData, levels), length)
+numThres <- sum((numLevel - 1) * (numLevel > 0))
+numObsSummaryStats <- numCovs + numMeans + numVaris + numThres
+
+omxCheckEquals(summary(jointWlsResults)$observedStatistics, numObsSummaryStats)
+omxCheckEquals(summary(jointDlsResults)$observedStatistics, numObsSummaryStats)
+omxCheckEquals(summary(jointUlsResults)$observedStatistics, numObsSummaryStats)
+
+omxCheckEquals(summary(jointResults1)$observedStatistics, prod(dim(jointData)))
+
+
+#------------------------------------------------------------------------------
+# Regularization Test
 
 regTest <- mxModel(jointWlsModel,
         mxPenaltyLASSO(paste0('l', 1:5), name="lasso"),

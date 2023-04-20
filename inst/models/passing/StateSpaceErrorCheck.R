@@ -14,21 +14,21 @@
 #   limitations under the License.
 
 
-#--------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Author: Michael D. Hunter
 # Date: 2014.03.13
 # Filename: StateSpaceErrorCheck.R
 # Purpose: Test the error checking for the state space expectation.
-#--------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 
-#--------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Revision History
 # Thu 13 Mar 2014 12:57:28 Central Daylight Time -- Michael Hunter created file
 # 
 
 
-#--------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Load required packages
 
 require(OpenMx)
@@ -36,7 +36,7 @@ require(mvtnorm) # used to generate data
 
 
 
-#--------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Generate Data
 
 xdim <- 3
@@ -70,7 +70,7 @@ rownames(tx) <- paste('x', 1:xdim, sep='')
 
 
 
-#--------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Fit state space model to data via OpenMx package
 
 
@@ -153,5 +153,25 @@ serr <- mxModel(smod,
 omxCheckError(mxRun(serr), "The u matrix is not the correct size in the state space expectation of model 'State Space Error Check'.  It is 2 by 2 and should be 2 by 1.")
 
 
-# Done
+#------------------------------------------------------------------------------
+# Bootstrap error check
 
+
+# Check that error is thrown for bootstrapping state space model
+omxCheckError(mxBootstrap(smod, 10), "Found multilevel or state space model, implying dependent rows of data.\n'mxBootstrap' assumes that rows of data are independent.\nSet unsafe=TRUE in 'mxBootstrap' to override this error.")
+
+# Check that warning is thrown for bootstrapping state space model with unsafe=TRUE
+omxCheckWarning(mxBootstrap(smod, 3, unsafe=TRUE), "Found multilevel or state space model, implying dependent rows of data.\n'mxBootstrap' assumes that rows of data are independent.\nProceed with caution.")
+
+
+#------------------------------------------------------------------------------
+# Incorrect name given to expectation
+
+serr <- mxModel(smod,
+	mxExpectationStateSpace(A='A', B='B', C='C', D='D', Q='Q', R='R', x0='x', P0='p0', u='u'))
+omxCheckError(mxRun(serr),
+	"The P0 part of the state space expectation in model 'State Space Error Check' is not a matrix or algebra.\nThere is probably a typo between the name of the matrix/algebra in the model and the name given to the expectation.\nCheck that you named it correctly. Check it twice.")
+
+
+#------------------------------------------------------------------------------
+# Done

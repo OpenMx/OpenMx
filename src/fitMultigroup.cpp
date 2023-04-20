@@ -27,9 +27,9 @@ struct FitMultigroup : omxFitFunction {
 	std::vector< omxMatrix* > fits;
 	int verbose;
 
-	virtual void init();
+	virtual void init() override;
 	virtual void compute2(int ffcompute, FitContext *fc) override;
-	virtual void addOutput(MxRList *out);
+	virtual void addOutput(MxRList *out) override;
 	virtual void traverse(std::function<void(omxMatrix*)> fn) override;
 };
 
@@ -38,12 +38,24 @@ void FitMultigroup::compute2(int want, FitContext *fc)
 	omxMatrix *fitMatrix = matrix;
 	double fit = 0;
 	double mac = 0;
+  double totalWeight = 0;
 
 	FitMultigroup *mg = (FitMultigroup*) this;
 
 	for (size_t ex=0; ex < mg->fits.size(); ex++) {
 		omxMatrix* f1 = mg->fits[ex];
 		if (f1->fitFunction) {
+      totalWeight += f1->fitFunction->scale;
+    } else {
+      totalWeight += 1;
+    }
+  }
+
+	for (size_t ex=0; ex < mg->fits.size(); ex++) {
+		omxMatrix* f1 = mg->fits[ex];
+    double subScale = 1;
+		if (f1->fitFunction) {
+      subScale = f1->fitFunction->scale;
 			f1->fitFunction->subCompute(want, fc);
 			if (want & FF_COMPUTE_MAXABSCHANGE) {
 				mac = std::max(fc->mac, mac);
@@ -68,16 +80,30 @@ void FitMultigroup::compute2(int want, FitContext *fc)
 				omxRaiseErrorf("%s[%d]: %s of type %s does not evaluate to a 1x1 matrix",
 					       fitMatrix->name(), (int)ex, f1->name(), f1->fitFunction->fitType);
 			}
-			fit += f1->data[0];
-			if (mg->verbose >= 1) { mxLog("%s: %s fit=%f", fitMatrix->name(), f1->name(), f1->data[0]); }
+      if (units != FIT_UNITS_SQUARED_RESIDUAL &&
+          units != FIT_UNITS_SQUARED_RESIDUAL_CHISQ) {
+        // Need to restrict to WLS only because we expose the fit value
+        // in the mxAlgebra API. Although combining groups using proportions
+        // improves numerical precision, it's a hazard for backward compatibility.
+        // For example, custom mxConstraints will not be scaled correctly if we enable
+        // this for all models.
+        // TODO: Make an option?
+        totalWeight = 1;
+      }
+      double prop = subScale / totalWeight;
+			fit += prop * f1->data[0];
+			if (mg->verbose >= 1) {
+        mxLog("%s: %s fit=%.6g prop=%f", fitMatrix->name(), f1->name(), f1->data[0], prop);
+      }
 		}
 	}
 
 	if (fc) fc->mac = mac;
 
 	if (want & FF_COMPUTE_FIT) {
+    scale = totalWeight;
 		fitMatrix->data[0] = fit;
-		if (mg->verbose >= 1) { mxLog("%s: fit=%f", fitMatrix->name(), fit); }
+		if (mg->verbose >= 1) { mxLog("%s: fit=%.6g scale=%f", fitMatrix->name(), fit, totalWeight); }
 	}
 }
 

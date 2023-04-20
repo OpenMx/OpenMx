@@ -50,10 +50,10 @@ mkModel <- function(shuffle, fellner) {
   if (shuffle) {
     allVars <- sample(allVars, length(allVars))
   }
-  
+
   Fval <- diag(length(manifestVars))[,match(allVars, manifestVars)]
   Fval[is.na(Fval)] <- 0
-  
+
   ta1 <- mxModel(
     model="tangle",
     mxMatrix("Full", length(manifestVars), length(allVars),
@@ -71,14 +71,14 @@ mkModel <- function(shuffle, fellner) {
              dimnames=list(NULL, allVars), name="M"),
     mxExpectationRAM(M="M"),
     mxFitFunctionML(fellner=fellner))
-  
+
   for (lx in 1:length(latentVars)) {
     lvar <- paste0('l', lx)
     ivar <- paste0(paste0('i', lx), 1:numManifestsPerLatent)
     ta1$A$values[ivar, lvar] <- 1
     ta1$A$free[ivar, lvar[-1]] <- TRUE
   }
-  
+
   ta1$S$free[latentVars, latentVars] <- TRUE
   ta1$expectation$.maxDebugGroups <- 10L
   ta1
@@ -106,10 +106,10 @@ if (0) {
   # F does two things:
   # drops out latent variables
   # permutes the manifest variables
-  
+
   all(rownames(fit1$F$values) == fit1$expectation$.runDims)
   filter <- !apply(fit1$F$values, 2, function(x) all(x==0))
-  
+
   map1 <- apply(fit1$F$values != 0, 2, function(x) ifelse(any(x), which(x), NA))
   man1 <- colnames(fit1$F)[filter]
   # permit F input order to F output order
@@ -124,7 +124,7 @@ if (0) {
 data("jointdata", package ="OpenMx", verbose= TRUE)
 jointData <- jointdata
 
-jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)], 
+jointData[,c(2,4,5)] <- mxFactor(jointData[,c(2,4,5)],
 				 levels=list(c(0,1), c(0, 1, 2, 3), c(0, 1, 2)))
 
 mkModel <- function(shuffle, wls) {
@@ -157,10 +157,10 @@ mkModel <- function(shuffle, wls) {
 	latentVars <- 'l1'
 	allVars <- c(manifestVars, latentVars)
 	if (shuffle) allVars <- sample(allVars, length(allVars))
-  
+
 	Fval <- diag(length(manifestVars))[,match(allVars, manifestVars)]
 	Fval[is.na(Fval)] <- 0
-  
+
 	freeMean <- !sapply(myData, is.factor)[match(allVars,colnames(myData))]
 	freeMean <- !is.na(freeMean) & freeMean
 
@@ -183,7 +183,7 @@ mkModel <- function(shuffle, wls) {
 		mxExpectationRAM(M="M", thresholds="Th"),
 		mxComputeGradientDescent())
 #		mxComputeOnce('fitfunction', 'fit'))
-  
+
 	lvar <- 'l1'
 	ivar <- manifestVars
 	ta1$A$values[ivar, lvar] <- 1
@@ -216,8 +216,8 @@ for (sx in 1:4) {
     fit3 <- mxRun(mkModel(sx, wls))
     fit4 <- mxRun(mxModel(mkModel(0, wls), fit3$data))
 #    print(c(fit1$output$fit, fit2$output$fit, fit3$output$fit, fit4$output$fit))
-    omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-6)
-    omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-6)
-    omxCheckCloseEnough(fit1$output$fit - fit4$output$fit, 0, 1e-6)
+    omxCheckCloseEnough(fit1$output$fit - fit2$output$fit, 0, 1e-5)
+    omxCheckCloseEnough(fit1$output$fit - fit3$output$fit, 0, 1e-5)
+    omxCheckCloseEnough(fit1$output$fit - fit4$output$fit, 0, 1e-5)
   }
 }

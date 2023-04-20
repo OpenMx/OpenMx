@@ -57,9 +57,9 @@ public:
 	Eigen::VectorXd simplexGradient;
 
 	omxComputeNM();
-	virtual void initFromFrontend(omxState *, SEXP rObj);
-	virtual void computeImpl(FitContext *fc);
-	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out);
+	virtual void initFromFrontend(omxState *, SEXP rObj) override;
+	virtual void computeImpl(FitContext *fc) override;
+	virtual void reportResults(FitContext *fc, MxRList *slots, MxRList *out) override;
 };
 
 

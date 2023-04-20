@@ -1,6 +1,6 @@
 .RData
 .Rhistory
-.Rapp.history 
+.Rapp.history
 *.o
 *.so
 *.old
@@ -21,7 +21,6 @@
 /src/Makevars.win
 /src/libnpsol.a
 /inst/no-npsol
-/inst/CITATION
 /DESCRIPTION
 /R/MxVersion.R
 /R/sysdata.rda
@@ -77,6 +76,7 @@ man/imxInitModel.Rd
 man/imxIsDefinitionVariable.Rd
 man/imxIsMultilevel.Rd
 man/imxIsPath.Rd
+man/imxIsStateSpace.Rd
 man/imxLocateFunction.Rd
 man/imxLocateIndex.Rd
 man/imxLocateLabel.Rd
@@ -208,3 +208,4 @@ man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
 man/predict.MxModel.Rd
+.DS_Store

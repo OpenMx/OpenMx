@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ void omxFitFunction::compute(int want, FitContext *fc)
       p1->compute(want, fc);
       if (want & FF_COMPUTE_FIT) {
         //mxLog("%s: fit %f add penalty %f want %d", p1->name(), fc->fit, p1->getValue(), want);
-        fc->fit += p1->getValue();
+        fc->setUnscaledFit(fc->getUnscaledFit() + p1->getValue());
       }
     }
   }
@@ -223,7 +223,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
 {
   if (isErrorRaised()) return;
 
-  double fitSave = fc->fit;
+  double fitSave = fc->getUnscaledFit();
   const int numFree = fc->getNumFree();
 
   if (!fc->numericalGradTool) {
@@ -240,7 +240,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
   }
 
   Eigen::ArrayXd ref(1);
-  ref[0] = fc->fit;
+  ref[0] = fc->getUnscaledFit();
   Eigen::Map< Eigen::RowVectorXd > gradOut(fc->gradZ.data(), fc->gradZ.size());
 
 	(*fc->numericalGradTool)([&](double *myPars, int thrId, Eigen::Ref<Eigen::ArrayXd> result)->void{
@@ -251,14 +251,14 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
 			// of them.
 			fc2->setEstFromOptimizer(myPars);
 			ComputeFit("gradient", fc2->lookupDuplicate(ff->matrix), FF_COMPUTE_FIT, fc2);
-			double fit = fc2->fit;
+			double fit = fc2->getUnscaledFit();
 			if (fc2->outsideFeasibleSet()) fit = nan("infeasible");
       result[0] = fit;
       }, ref, [&fc](){ return fc->getCurrentFree(); }, true, gradOut);
 
   robustifyInplace(fc->gradZ);
 
-  fc->fit = fitSave;
+  fc->setUnscaledFit(fitSave);
 }
 
 void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext *fc)
@@ -270,20 +270,20 @@ void ComputeFit(const char *callerName, omxMatrix *fitMat, int want, FitContext 
 	fc->skippedRows = 0;
   if (want & FF_COMPUTE_FIT) {
     //mxLog("fit = 0");
-    fc->fit = 0;
+    fc->setFit(0);
   }
   if (want & FF_COMPUTE_GRADIENT) fc->initGrad();
   if (!fc->ciobj) {
     ff->compute(want, fc);
     if (want & FF_COMPUTE_FIT) {
-      fc->fit += totalLogLikelihood(fitMat);
-      if (std::isfinite(fc->fit)) {
+      fc->setFit(fc->getUnscaledFit() + totalLogLikelihood(fitMat), ff->scale);
+      if (std::isfinite(fc->getFit())) {
         fc->resetIterationError();
       }
       Global->checkpointPostfit(callerName, fc, false);
       if (OMX_DEBUG) {
         mxLog("%s: completed evaluation, fit=%.12g skippedRows=%d",
-              fitMat->name(), fc->fit, fc->skippedRows);
+              fitMat->name(), fc->getFit(), fc->skippedRows);
       }
     }
   } else {
@@ -317,7 +317,7 @@ static omxFitFunction *omxNewInternalFitFunction(omxState* os, const char *fitTy
 		obj->matrix = omxInitMatrix(1, 1, TRUE, os);
 		obj->matrix->hasMatrixNumber = TRUE;
 		obj->matrix->matrixNumber = ~os->algebraList.size();
-		os->algebraList.push_back(obj->matrix);
+		os->algebraList.emplace_back(obj->matrix);
 	} else {
 		obj->matrix = matrix;
 	}

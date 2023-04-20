@@ -5,7 +5,7 @@ set -o errexit
 
 if [ "$TRAVIS_OS_NAME" != "osx" ]; then exit; fi
 
-ddir=/var/www/html/
+ddir=/home/openmx_travis/builds/
 
 scp -v -i /tmp/deploy_rsa -o PreferredAuthentications=publickey -o StrictHostKeyChecking=no -o CheckHostIP=no staging/OpenMx_*.tgz $dhost:$ddir
 ssh -v -i /tmp/deploy_rsa -o PreferredAuthentications=publickey -o StrictHostKeyChecking=no -o CheckHostIP=no $dhost "cd $ddir"' && ln -sf $(ls -t | head -1) OpenMx_latest.tgz'

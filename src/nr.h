@@ -1,5 +1,5 @@
 /*
- *  Copyright 2013-2020 by the individuals mentioned in the source code history
+ *  Copyright 2013-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ struct NewtonRaphsonObjective {
 	virtual void setParamVec(const Eigen::Ref<const Eigen::VectorXd> in)=0;
 	virtual double *getGrad()=0;
 	virtual void setSearchDir(Eigen::Ref<Eigen::VectorXd> searchDir)=0;  // ihess * grad
+	virtual void adjustSpeed(double &speed) {};
 	virtual void reportBadDeriv() {};
 	virtual void debugDeriv(const Eigen::Ref<Eigen::VectorXd> searchDir) {};
 };
@@ -43,6 +44,7 @@ class NewtonRaphsonOptimizer {
 	const char *name;
 	int maxIter;
 	double tolerance;
+  double gradTolerance;
 	int verbose;
 	int iter;
 	int numParam;
@@ -53,16 +55,22 @@ class NewtonRaphsonOptimizer {
 	double maxAdjSigned;
 	int maxAdjParam;
 	int minorIter;
+  double stepMultiplier;
+  int lineSearchMax;
 	Eigen::VectorXd prevEst;
 	Eigen::VectorXd searchDir;
 	double relImprovement(double im) { return im / (1 + fabs(refFit)); }
 	void lineSearch(NewtonRaphsonObjective &nro);
 public:
 	NewtonRaphsonOptimizer(const char *u_name, int u_maxIter, double tol, int u_verbose) :
-		name(u_name), maxIter(u_maxIter), tolerance(tol), verbose(u_verbose) {};
+		name(u_name), maxIter(u_maxIter), tolerance(tol), gradTolerance(1e9), verbose(u_verbose) {
+    setStepMultiplier(0.1);
+  };
 	void operator()(NewtonRaphsonObjective &nro);
 	int getIter() { return iter; };
 	int getMinorIter() { return minorIter; };
+  void setStepMultiplier(double sm);
+  void setGradTolerance(double gt) { gradTolerance = gt; }
 };
 
 #endif

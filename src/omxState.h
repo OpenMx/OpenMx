@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -310,7 +310,7 @@ class omxGlobal {
 	bool boundsUpdated;
 
 	// These lists exist only to free memory
-	std::vector< omxCompute* > computeList;
+	std::unique_ptr< omxCompute > topCompute;
 	void omxProcessMxComputeEntities(SEXP rObj, omxState *currentState);
 
 	// bundle computeLoop* into a structure?
@@ -330,6 +330,7 @@ class omxGlobal {
 	std::vector< omxCheckpoint* > checkpointList;
   Eigen::VectorXd startingValues;
 	FitContext *topFc;
+  std::unique_ptr<class omxState> globalState;
 
 	omxGlobal();
 	void deduplicateVarGroups();
@@ -354,7 +355,7 @@ class omxGlobal {
 };
 
 // Use a pointer to ensure correct initialization and destruction
-extern class omxGlobal *Global;
+extern std::unique_ptr<class omxGlobal> Global;
 
 void diagParallel(int verbose, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 
@@ -477,7 +478,6 @@ inline bool isErrorRaised() { return Global->bads.size() != 0 || Global->userInt
 inline bool isErrorRaisedIgnTime() { return Global->bads.size() != 0 || Global->userInterrupted; }
 
 // rename from "Raise" to "Record" since no exception is thrown
-void omxRaiseError(const char* msg); // DEPRECATED
 void omxRaiseErrorf(const char* fmt, ...) __attribute__((format (printf, 1, 2)));
 
 void string_vsnprintf(const char *fmt, va_list orig_ap, std::string &dest);

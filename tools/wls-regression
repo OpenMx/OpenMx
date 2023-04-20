@@ -133,3 +133,28 @@ inst/models/nightly/JointWLS.R	0:04.77 0 84122 314
 inst/models/nightly/LegacyContinuousOnlyWLSTest.R	0:03.72 0 51651 40
 tests/testthat/test-LegacyMultipleGroupWLS.R	0:03.09 0 51485 8
 inst/models/nightly/LegacyWLS+CI.R	0:10.94 2 52261 107
+
+2021 Dec 23
+
+inst/models/passing/ContinuousOnlyWLSTest.R	0:03.87 35 83849 1319
+tests/testthat/test-WLS-acov.R	0:03.26 1 81309 132
+inst/models/passing/InvalidWLS.R	0:02.44 0 53507 154
+inst/models/passing/MultipleGroupWLS.R	0:03.77 0 74287 3475
+inst/models/passing/WLS+CI.R	0:04.92 3 54053 3850
+inst/models/passing/WeightedWLS.R	0:05.47 0 72411 3402
+inst/models/passing/exoPredWLS.R	0:05.51 4 75808 3070
+inst/models/passing/exoPredWLS2.R	0:04.70 7 76396 2463
+inst/models/passing/SaturatedWLSTest.R	0:01.78 0 53535 44
+inst/models/passing/ifa-grm1.R	0:03.21 9 75260 699
+inst/models/passing/jointFactorWls.R	0:06.24 13 78401 4708
+inst/models/passing/tangleF.R	0:06.50 1 75692 4354
+tests/testthat/test-loadDataByRow.R	0:03.02 4 74711 1076
+inst/models/passing/automaticStarts.R	0:03.37 0 74945 738
+inst/models/passing/IgnoreFixedConfidenceIntervals.R	0:02.13 0 53248 229
+inst/models/passing/acov_regression_test.R	0:02.64 0 72799 171
+inst/models/nightly/MultigroupWLS.R	0:03.96 0 74886 1313
+inst/models/nightly/thresholdModel1Factor5VariateWLS.R	0:22.83 1 75213 45863
+inst/models/nightly/JointWLS.R	0:06.00 0 68766 3082
+inst/models/nightly/LegacyContinuousOnlyWLSTest.R	0:03.46 0 77308 363
+tests/testthat/test-LegacyMultipleGroupWLS.R	0:02.87 0 73400 264
+inst/models/nightly/LegacyWLS+CI.R	0:05.80 2 73552 4928

@@ -48,6 +48,7 @@ omxCheckCloseEnough(mix4Fit$expectation$output$weights,
                     start_prob/sum(start_prob), .04)
 
 # ------------------
+# Model that estimates row weights?
 
 mix3 <- mxModel(
 	"mix3", classes,
@@ -94,3 +95,30 @@ mix2 <- mxModel(
 
 mix2Fit <- mxRun(mix2)
 omxCheckCloseEnough(mix2Fit$output$fit, mix1Fit$output$fit, 1e-6)
+
+
+#--------------------------------------
+# Test the scale='none' setting of
+#  mixture models
+
+mix4 <- mxModel(
+	"mix4", classes,
+	mxData(data.frame(ob=trailN), "raw"),
+	# Note that p1 is fixed and uses square bracket [1,1] labels
+	mxMatrix(values=1/3, nrow=1, ncol=3, free=c(FALSE,TRUE,TRUE),
+		lbound=0, ubound=1, labels=c('cprob1[1,1]', 'cprob2', 'cprob3'),
+		name="weights"),
+	# Do your own scaling as p1 = 1 - sum(p2, p3, ..., pk)
+	mxAlgebra(1 - cprob2 - cprob3, name='cprob1'),
+	mxExpectationMixture(paste0("class", 1:3), scale="none"),
+	mxFitFunctionML(),
+	mxComputeSequence(list(
+		mxComputeGradientDescent(),
+		mxComputeReportExpectation())))
+
+mix4Fit <- mxRun(mix4)
+
+omxCheckCloseEnough(
+	mxEval(exp(weights)/sum(exp(weights)), mix1Fit),
+	mxEval(weights, mix4Fit), 1e-6)
+

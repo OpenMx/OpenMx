@@ -93,7 +93,7 @@ m3 <- mxRun(m3, silent=TRUE)
 m5 <- mxModel(m2,
               mxComputeSequence(steps=list(
                 mxComputeOnce('fitfunction', 'fit'),
-                mxComputeNumericDeriv(parallel=FALSE, iterations=2L),
+                mxComputeNumericDeriv(parallel=FALSE, iterations=2L, analytic=FALSE),
                 mxComputeStandardError(),
                 mxComputeHessianQuality(),
                 mxComputeReportDeriv())))
@@ -121,7 +121,7 @@ quantifyAsymmetry <- function(info) {
   asymV <- (info - t(info))/2
   max(svd(sym2 %*% asymV %*% sym2, 0, 0)$d)
 }
-  
+
 if(1) {
   iinfo <- m2$compute$steps[[1]]$debug$inputInfo
 #  print(iinfo[1:5,1:5])
@@ -141,12 +141,12 @@ if(1) {
 #  max(sv)/min(sv)
   omxCheckCloseEnough(kappa(emHess, exact=TRUE), 51, 1)
 #  kappa(m2$output$ihessian, exact=TRUE)
-  
+
   omxCheckCloseEnough(max(abs(diag(emHess) - diag(solve(m5$output$hessian)))), 0, .001)
   omxCheckCloseEnough(quantifyAsymmetry(emHess), .071, .05)
   omxCheckCloseEnough(quantifyAsymmetry(emHess2), 0, 1e-6)
   #hist(abs(diag(emHess) - diag(solve(m5$output$hessian))))
-  
+
   omxCheckCloseEnough(max(sqrt(abs(Scale)*diag(emHess)) - c(m2$output$standardErrors)), 0, 2e-4)
   #print(m2$matrices$item$values - fmfit)
 }

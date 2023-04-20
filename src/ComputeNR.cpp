@@ -1,5 +1,5 @@
 /*
- *  Copyright 2013-2020 by the individuals mentioned in the source code history
+ *  Copyright 2013-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,8 +36,8 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 	minorIter = 0;
 
 	if (verbose >= 2) {
-		mxLog("Welcome to Newton-Raphson (%d param, tolerance %.3g, max iter %d)",
-		      (int)numParam, tolerance, maxIter);
+		mxLog("Welcome to Newton-Raphson (%d param, fitTol %.3g, gradTol %.3g, max iter %d)",
+		      (int)numParam, tolerance, gradTolerance, maxIter);
 		if (verbose >= 3) {
 			mxPrintMat("lbound", nro.lbound);
 			mxPrintMat("ubound", nro.ubound);
@@ -65,10 +65,74 @@ void NewtonRaphsonOptimizer::operator()(NewtonRaphsonObjective &nro)
 		if (!std::isfinite(refFit)) return;
 
 		nro.converged =
-			relImprovement(improvement) < tolerance || iter >= maxIter;
+			relImprovement(improvement) <= tolerance || iter >= maxIter;
 
 		if (nro.isConverged()) break;
 	}
+
+  Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
+  if (grad.norm() > gradTolerance) {
+    double bestFit = refFit;
+    nro.getParamVec(prevEst);
+    Eigen::VectorXd bestEst = prevEst;
+    const int want = FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT;
+    double speed = priorSpeed;
+    nro.adjustSpeed(speed);
+    while (++iter < maxIter) {
+      Eigen::VectorXd prevGrad = grad;
+      double priorGradNorm = grad.norm();
+      if (verbose >= 3) mxLog("%s: iter %d/%d polish grad=%.3g", name, iter, maxIter, priorGradNorm);
+      int probeCount = 0;
+      while (++probeCount < lineSearchMax) {
+        Eigen::VectorXd trial = (prevEst - speed * prevGrad).cwiseMax(nro.lbound).cwiseMin(nro.ubound);
+        if (!trial.array().isFinite().all()) mxThrow("!trial.array().isFinite().all()");
+        nro.setParamVec(trial);
+        nro.evaluateDerivs(want); // updates grad
+        double curGradNorm = grad.norm();
+        if (!std::isfinite(curGradNorm)) {
+          double oldSpeed = speed;
+          speed *= stepMultiplier;
+          if (verbose >= 4) {
+            mxLog("%s: grad NaN, suspect excessive speed %.3g->%.3g",
+                  name, oldSpeed, speed);
+          }
+          continue;
+        }
+        // <= important in next line because nro.getFit() == bestFit is likely!
+        if (nro.getFit() <= bestFit) { bestFit = nro.getFit(); bestEst = trial; }
+        if (curGradNorm == priorGradNorm || curGradNorm < gradTolerance) {
+          const double improved = refFit - bestFit;
+          if (improved == 0) {
+            if (verbose >= 3) mxLog("%s: grad polish failed", name);
+          } else {
+            if (verbose >= 3) mxLog("%s: grad < tol at speed %.3g grad %.3g, polish improved fit %.3g",
+                                    name, speed, curGradNorm, improved);
+          }
+          iter = maxIter; break;
+        } else if (curGradNorm < priorGradNorm) {
+          if (verbose >= 3) mxLog("%s: grad speed %.3g grad %.3g", name, speed, grad.norm());
+          //speed = std::min(speed / sqrt(stepMultiplier), 1.0); Seems to not help
+          prevEst = trial;
+          break;
+        } else {
+          double oldSpeed = speed;
+          speed *= stepMultiplier;
+          if (verbose >= 4) {
+            mxLog("%s: grad %.3g, suspect excessive speed %.3g->%.3g",
+                  name, curGradNorm, oldSpeed, speed);
+          }
+        }
+      }
+    }
+    nro.setParamVec(bestEst);
+  }
+}
+
+void NewtonRaphsonOptimizer::setStepMultiplier(double sm)
+{
+  if (sm >= 1 || sm <= 0) mxThrow("NewtonRaphsonOptimizer::setStepMultiplier must be in (0,1)");
+  stepMultiplier = sm;
+  lineSearchMax = log10(std::numeric_limits<double>::epsilon()) / log10(sm);
 }
 
 void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
@@ -85,8 +149,9 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 
 	nro.evaluateDerivs(want);
 
-	double speed = std::min(priorSpeed * 1.5, 1.0);
+	double speed = std::min(priorSpeed / sqrt(stepMultiplier), 1.0);
 	nro.setSearchDir(searchDir);
+  if (priorSpeed == 1) nro.adjustSpeed(speed); // only first line search
 	Eigen::Map<Eigen::VectorXd> grad(nro.getGrad(), numParam);
 	double targetImprovement = searchDir.dot(grad);
 
@@ -130,9 +195,9 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 	double goodness = 0;
 	double bestFit = 0;
 
-	while (++probeCount < 16) {
+	while (++probeCount < lineSearchMax) {
 		const double scaledTarget = speed * targetImprovement;
-		if (!steepestDescent && relImprovement(scaledTarget) < tolerance) {
+		if (!steepestDescent && relImprovement(scaledTarget) <= tolerance) {
 			nro.setParamVec(prevEst);
 			return;
 		}
@@ -144,17 +209,23 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 		if (verbose >= 4) mxLog("%s: speed %.3g for target %.3g fit %f ref %f",
 					name, speed, scaledTarget, nro.getFit(), refFit);
 		if (!std::isfinite(nro.getFit())) {
-			speed *= .1;
+			speed *= stepMultiplier;
 			continue;
 		}
 		const double improved = refFit - nro.getFit();
-		if (improved <= 0) {
-			double guess = scaledTarget/(scaledTarget-improved);
+    if (improved == 0) {
 			if (verbose >= 4) {
-				mxLog("%s: improved %.2g (%.2g), suspect excessive speed",
-				      name, improved, guess);
+				mxLog("%s: fit unchanged at speed %.2g, giving up", name, speed);
 			}
-			speed *= std::min(0.1, guess);
+      return;
+    }
+		if (improved < 0) {
+      // Can't assume curve is remotely symmetric
+			//double guess = scaledTarget/(scaledTarget-improved);
+			if (verbose >= 4) {
+				mxLog("%s: improved %.2g, suspect excessive speed", name, improved);
+			}
+			speed *= stepMultiplier;
 			continue;
 		}
 		bestImproved = improved;
@@ -197,7 +268,7 @@ void NewtonRaphsonOptimizer::lineSearch(NewtonRaphsonObjective &nro)
 			bestFit = nro.getFit();
 			bestImproved = improved;
 			bestSpeed = speed;
-			if (speed == 1 || relImprovement(improvementOverBest) < tolerance) break;
+			if (speed == 1 || relImprovement(improvementOverBest) <= tolerance) break;
 		}
 	}
 
@@ -251,7 +322,7 @@ struct ComputeNRO : public NewtonRaphsonObjective {
 		return converged || isErrorRaised() ||
 			fc->getInform() != INFORM_UNINITIALIZED;
 	}
-	virtual double getFit() override { return fc->fit; };
+	virtual double getFit() override { return fc->getUnscaledFit(); };
 	virtual void resetDerivs() override {
 		fc->resetOrdinalRelativeError();
 		fc->clearHessian();
@@ -316,7 +387,7 @@ void ComputeNR::initFromFrontend(omxState *state, SEXP rObj)
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("tolerance")));
 	tolerance = REAL(slotValue)[0];
-	if (tolerance <= 0) mxThrow("tolerance must be positive");
+	if (tolerance < 0) mxThrow("tolerance must be non-negative");
 
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(slotValue);

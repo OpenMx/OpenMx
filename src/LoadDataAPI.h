@@ -125,15 +125,17 @@ public:
 template <typename Derived>
 class LoadDataProvider : public LoadDataProviderBase2 {
 public:
-	virtual std::unique_ptr<LoadDataProviderBase2> clone() {
+	virtual std::unique_ptr<LoadDataProviderBase2> clone() override {
 		return std::unique_ptr<LoadDataProviderBase2>(new Derived());
 	}
 };
 
 //#define OPENMX_LOAD_DATA_API_VERSION 0.17789282277226448059
 //#define OPENMX_LOAD_DATA_API_VERSION 0.3091921037994325
-#define OPENMX_LOAD_DATA_API_VERSION 0.5240939254872501 // this is a random number
+//#define OPENMX_LOAD_DATA_API_VERSION 0.5240939254872501
+#define OPENMX_LOAD_DATA_API_VERSION 0.86661313916556537151 // this is a random number
 
-typedef void (*AddLoadDataProviderType)(double version, unsigned int ldpbSz, LoadDataProviderBase2 *ldp);
+typedef void (*AddLoadDataProviderType)(double version, unsigned int ldpbSz,
+                                        std::unique_ptr<LoadDataProviderBase2> ldp);
 
 #endif

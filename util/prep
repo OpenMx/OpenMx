@@ -40,7 +40,6 @@ DATE=$(git log -n 1 --date=short --format=%cd)
 YEAR=$(echo $DATE | cut -d '-' -f 1)
 
 cat DESCRIPTION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@DATE@/$DATE/" -e "s/@LICENSE@/$LICENSE/" -e "s/@BC@/$BC/" > DESCRIPTION
-cat inst/CITATION.in | sed -e "s/@VERSION@/$VERSION/" -e "s/@YEAR@/$YEAR/" -e "s/@AUTHORS@/$AUTHORS/" > inst/CITATION
 
 mxV=R/MxVersion.R
 sed -e s/GIT_VERSION/$(git describe --dirty)/ $mxV.in > $mxV

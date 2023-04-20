@@ -39,6 +39,12 @@ omxMnor(covariance, means, lbound, ubound)
    The value of ubound[i] or lbound[i] may be set to Inf or -Inf if a boundary at positive or negative infinity is desired.
    
    For all i, ubound[i] must be strictly greater than lbound[i].
+
+   The algorithm for multivariate normal integration we use is Alan Genz's FORTRAN implementation of the SADMVN routine described by Genz (1992).
+}
+
+\references{
+Genz, A.  (1992).  Numerical Computation of Multivariate Normal Probabilities.  \emph{Journal of Computational Graphical Statistics, 1,}  141-149.
 }
 
 \examples{

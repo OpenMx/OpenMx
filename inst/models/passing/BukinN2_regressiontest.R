@@ -86,6 +86,7 @@ m3 <- mxModel(
 expect_error(mxRun(m3), "'BukinN2.fitfunction' has a derivative entry for unrecognized parameter 'X2'")
 colnames(m3$grad) <- c("x1","x2")
 m3 <- mxRun(m3)
+m3 <- mxRun(m3)
 summary(m3)
 omxCheckCloseEnough(coef(m3), c(-15,0), 0.1)
 omxCheckCloseEnough(m3$output$fit, -124.7501, .0002)

@@ -1,5 +1,5 @@
  /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,14 +25,16 @@ struct omxGREMLExpectation : public omxExpectation {
   Eigen::MatrixXd XtVinv, quadXinv, EigV_filtered;
   std::vector< const char* > yXcolnames;
 
-	omxGREMLExpectation(omxState *st, int num) : super(st, num) {}
+	omxGREMLExpectation(omxState *st, int num) :
+    super(st, num), cov(0), invcov(0), means(0), X(0), logdetV_om(0), cholV_fail_om(0),
+    origVdim_om(0), y(0), data2(0) {}
   virtual ~omxGREMLExpectation();
-  virtual void init();
-  virtual void connectToData();
-  virtual void compute(FitContext *fc, const char *what, const char *how);
-  virtual void populateAttr(SEXP expectation);
-  virtual omxMatrix *getComponent(const char*);
-	virtual bool usesDataColumnNames() const { return false; }
+  virtual void init() override;
+  virtual void connectToData() override;
+  virtual void compute(FitContext *fc, const char *what, const char *how) override;
+  virtual void populateAttr(SEXP expectation) override;
+  virtual omxMatrix *getComponent(const char*) override;
+	virtual bool usesDataColumnNames() const override { return false; }
 	virtual int numObservedStats() override { return 1; }
 };
 
@@ -40,9 +42,9 @@ double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);
 
 template <typename T1>
 void dropCasesAndEigenize(
-		/*An omxMatrix, from which rows and columns corresponding to missing observations must be dropped, 
+		/*An omxMatrix, from which rows and columns corresponding to missing observations must be dropped,
 		  and which must be made usable with the Eigen API:*/
-		omxMatrix* om, 
+		omxMatrix* om,
 		//An Eigen object of appropriate type.  If `om` comes from a frontend MxMatrix, its elements will be copied into `em`:
 		Eigen::MatrixBase<T1> &em,
 		double* &ptrToMatrix, //<--Pointer to data array, for use with Eigen Map subsequent to this function call.

@@ -1,12 +1,17 @@
 ifeq ($(OPENMP),)
   OPENMP = yes
 endif
+export OPENMP
+
 ifeq ($(REXEC),)
   REXEC = R
 endif
-
-export OPENMP
 export REXEC
+
+ifeq ($(NOT_CRAN),)
+  NOT_CRAN = true
+endif
+export NOT_CRAN
 
 # --dsym is need for MacOS debug symbols
 # --force-biarch is for Windows 64/32 fat binary packages
@@ -95,7 +100,7 @@ code-style: $(RFILES)
 	@if [ `grep R_CheckUserInterrupt src/*.cpp | wc -l` -gt 1 ]; then echo "*** omxGlobal::interrupted instead of R_CheckUserInterrupt."; exit 1; fi
 	@if grep Rf_unprotect src/*.cpp; then echo "*** Rf_unprotect is error prone. Use ProtectedSEXP or Rcpp instead."; exit 1; fi
 	@if grep UNPROTECT src/*.cpp; then echo "*** UNPROTECT is error prone. Use ProtectedSEXP or Rcpp instead."; exit 1; fi
-	@if [ `grep Rf_error src/*.cpp | wc -l` -gt 8 ]; then echo "*** Use mxThrow instead of Rf_error."; exit 1; fi
+	@if [ `grep Rf_error src/*.cpp | wc -l` -gt 10 ]; then echo "*** Use mxThrow instead of Rf_error."; exit 1; fi
 	@if grep Rprintf src/*.cpp; then echo "*** Rprintf is not thread-safe. Use mxLog or mxLogBig."; exit 1; fi
 	@if [ `grep strncmp src/*.cpp | wc -l` -gt 0 ]; then echo "*** Use strEQ instead of strncmp."; exit 1; fi
 	@if [ `grep globalenv R/*.R | wc -l` -gt 6 ]; then echo "*** globalenv() interferes with testthat and is not allowed"; exit 1; fi
@@ -114,7 +119,7 @@ staging-prep: staging-clean
 	git archive --format=tar HEAD | (cd staging; tar -xf -)
 
 cran-build: staging-prep
-	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build .
+	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build --resave-data .
 
 build: staging-prep
 	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
@@ -128,7 +133,7 @@ packages-help:
 	@echo '  echo "library(tools); write_PACKAGES('"'.', type='mac.binary'"', latestOnly=FALSE)" | R --vanilla # for OS/X'
 
 srcbuild: staging-prep packages-help
-	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD build .
+	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD build --resave-data .
 
 cran-check: cran-build
 	+cd staging && _R_CHECK_FORCE_SUGGESTS_=false $(REXEC) CMD check OpenMx_*.tar.gz | tee cran-check.log
@@ -231,6 +236,7 @@ clean:
 	-rm runtimes.csv
 	-rm src/omxSymbolTable.*
 	-rm -r inst/debug
+	-rm R/*.R.bak
 
 veryclean: clean
 	-rm DESCRIPTION

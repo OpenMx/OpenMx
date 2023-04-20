@@ -40,7 +40,7 @@ definitionStartingValue <- function(defName, matrixName, flatModel, defvar.row =
 			"\nOne possibility is you didn't add this variable to the data for this group?"
 		), call. = FALSE)
 	}
-	return(dataSet@observed[defvar.row, components[[3]]])
+	return(dataSet@observed[defvar.row, components[[3]], drop=TRUE])
 }
 
 populateDefInitialValues <- function(flatModel) {

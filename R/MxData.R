@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -50,7 +50,9 @@ setClass(Class = "MxDataStatic",
 	   algebra = "MxOptionalCharOrNumber",
     warnNPDuseWeight = "logical",
     exoFree = "MxOptionalMatrix",
-    naAction = "character"))
+    naAction = "character",
+    fitTolerance = "numeric",
+    gradientTolerance = "numeric"))
 
 setClass(Class = "MxDataDynamic",
 	 contains = "NonNullData",
@@ -64,7 +66,8 @@ setClassUnion("MxData", c("NULL", "MxDataStatic", "MxDataDynamic"))
 setMethod("initialize", "MxDataStatic",
 	  function(.Object, observed, means, type, numObs, observedStats,
 		   sort, primaryKey, weight, frequency, verbose, .parallel, .noExoOptimize,
-		   minVariance, algebra, warnNPDuseWeight, exoFree, naAction) {
+		   minVariance, algebra, warnNPDuseWeight, exoFree, naAction,
+       fitTolerance, gradientTolerance) {
 		.Object@observed <- observed
 		.Object@means <- means
 		.Object@type <- type
@@ -94,6 +97,8 @@ setMethod("initialize", "MxDataStatic",
 		.Object@warnNPDuseWeight <- warnNPDuseWeight
 		.Object@exoFree <- exoFree
 		.Object@naAction <- naAction
+    .Object@fitTolerance <- fitTolerance
+    .Object@gradientTolerance <- gradientTolerance
 		return(.Object)
 	}
 )
@@ -166,7 +171,9 @@ mxData <- function(observed=NULL, type="none",
 		   frequency = as.character(NA), verbose=0L, .parallel=TRUE, .noExoOptimize=TRUE,
 		   minVariance=sqrt(.Machine$double.eps), algebra=c(),
 		   warnNPDacov=TRUE, warnNPDuseWeight=TRUE,
-       exoFree=NULL, naAction=c("pass","fail","omit","exclude")) {
+       exoFree=NULL, naAction=c("pass","fail","omit","exclude"),
+       fitTolerance=sqrt(as.numeric(mxOption(key="Optimality tolerance"))),
+       gradientTolerance=1e-2) {
   prohibitDotdotdot(list(...))
 	if (length(means) == 1 && is.na(means)) means <- as.numeric(NA)
 	dups <- duplicated(colnames(observed))
@@ -302,7 +309,8 @@ mxData <- function(observed=NULL, type="none",
 	return(new("MxDataStatic", observed, means, type, as.numeric(numObs),
 		observedStats, sort, primaryKey, weight, frequency, as.integer(verbose),
 		as.logical(.parallel), as.logical(.noExoOptimize), minVariance,
-		as.character(algebra), as.logical(warnNPDacov && warnNPDuseWeight), exoFree, naAction))
+		as.character(algebra), as.logical(warnNPDacov && warnNPDuseWeight), exoFree, naAction,
+    as.numeric(fitTolerance), as.numeric(gradientTolerance)))
 }
 
 setGeneric("preprocessDataForBackend", # DEPRECATED
@@ -633,6 +641,10 @@ displayMxData <- function(object) {
 	if (.hasSlot(object, 'observedStats') && length(object@observedStats)) {
 		cat("observedStats : \n")
 		print(object@observedStats)
+	}
+	if (.hasSlot(object, 'weight') && !is.na(object@weight)){
+		cat("weight :", omxQuotes(object@weight), "\n")
+		# AND / OR print(object@observed[,object@weight])
 	}
 	invisible(object)
 }

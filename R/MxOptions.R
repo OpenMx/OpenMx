@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -198,13 +198,15 @@ imxGetNumThreads <- function() {
 		if (!is.na(thrlimit)) {
 			return(thrlimit)
 		} else {
-			detect <- omxDetectCores()
-			if(is.na(detect)) detect <- 1L
-					# Due to demand by CRAN maintainers, we default to 2 cores
-					# when OMP_NUM_THREADS is not set. This seems like a bad
-					# policy to the OpenMx team, but we have no choice.
-			else detect <- 2L
-			return(detect)
+      # CRAN allows use of up to 2 CPUs when OMP_NUM_THREADS is not
+      # set, but for some reason some examples finish too fast as if
+      # we're using more than 2 CPUs:
+      #
+      # "Examples with CPU time > 2.5 times elapsed time"
+      #
+      # To work around this issue, never use more than 1 CPU when
+      # OMP_NUM_THREADS is not set.
+			return(1L)
 		}
 	}
 }

@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2019 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -185,7 +185,7 @@ imxWlsStandardErrors <- function(model){
 		W <- MASS::ginv(fullWeight)
 	}
 	dvd <- try(solve( t(d) %*% V %*% d ), silent=TRUE)
-	if(class(dvd) != "try-error"){
+	if (!inherits(dvd, "try-error")) {
 		nacov <- as.matrix(dvd %*% t(d) %*% V %*% W %*% V %*% d %*% dvd)
 		wls.se <- matrix(sqrt(diag(nacov)), ncol=1)
 	} else {
@@ -269,7 +269,7 @@ imxWlsChiSquare <- function(model, J=NA){
 	df <- qr(jacOC)$rank
 
 	dvd <- try(solve( t(jac) %*% V %*% jac ), silent=TRUE)
-	if(class(dvd) != "try-error"){
+	if (!inherits(dvd, "try-error")) {
 		U <- V - V %*% jac %*% dvd %*% t(jac) %*% V
 	} else {
 		U <- matrix(NA, nrow=nrow(W), ncol=ncol(W))
@@ -348,9 +348,9 @@ approveWLSIntervals <- function(flatModel, modelName) {
 #'
 mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "marginals"), verbose=FALSE){
 	allContinuousMethod = match.arg(allContinuousMethod)
-	if(class(data) == "data.frame"){
+	if(inherits(data, "data.frame")){
 		# all good
-	} else if(class(data) == "MxDataStatic" && data$type == "raw"){
+	} else if(inherits(data, "MxDataStatic") && data$type == "raw"){
 		data = data$observed
 	}else{
 		message("mxDescribeDataWLS currently only knows how to process dataframes and mxData of type = 'raw'.\n",
@@ -380,13 +380,14 @@ mxDescribeDataWLS <- function(data, allContinuousMethod = c("cumulants", "margin
 ##'
 ##' @param model model
 imxHasWLS <- function(model){
+	wlsUnits <- c("r'Wr", "r'wr")
 	if(!is.null(model@output$fitUnits)){
-		if(model@output$fitUnits=="r'Wr"){return(TRUE)}
+		if(model@output$fitUnits %in% wlsUnits){return(TRUE)}
 		else{return(FALSE)}
 	}
 	if(is.null(model@fitfunction)){return(FALSE)}
 	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
-	if(length(model@fitfunction$units) && model@fitfunction$units=="r'Wr"){return(TRUE)}
+	if(length(model@fitfunction$units) && model@fitfunction$units %in% wlsUnits){return(TRUE)}
 	if( is(model@fitfunction, "MXFitFunctionMultigroup") ){
 		#Just in case the user provided 'modelName.fitfunction':
 		submodnames <- unlist(lapply(strsplit(model@fitfunction@groups,"[.]"),function(x){x[1]}))

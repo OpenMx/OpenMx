@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -35,6 +35,9 @@ omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
 	if(imxHasDefinitionVariable(model)){
 		stop("Definition variables found. Automatic start values are not implemented for models with definition variables.\nNo plans have been made to add these soon.")
 	}
+	if(imxIsMultilevel(model)){
+		stop("Multilevel model found. Automatic start values are not implemented for multilevel models.\nNo plans have been made to add these soon.")
+	}
 
 	isMultiGroupModel <- is.null(model$expectation) && (class(model$fitfunction) %in% "MxFitFunctionMultigroup")
 
@@ -62,7 +65,7 @@ omxBuildAutoStartModel <- function(model, type=c('ULS', 'DWLS')) {
 ##' This function automatically picks very good starting values for many models (RAM, LISREL, Normal), including multiple group versions of these.
 ##' It works for models with algebras. Models of continuous, ordinal, and joint ordinal-continuous variables are also acceptable.
 ##' It works for models with covariance or raw data.
-##' However, it does not currently work for models with definition variables, state space models, and item factor analysis models.
+##' However, it does not currently work for models with definition variables, state space models, item factor analysis models, or multilevel models.
 ##'
 ##' The method used to obtain new starting values is quite simple. The user's model is changed to an unweighted least squares (ULS) model. The ULS model is estimated and its final point estimates are returned as the new starting values. Optionally, diagonally weighted least squares (DWLS) can be used instead with the \code{type} argument.
 ##'

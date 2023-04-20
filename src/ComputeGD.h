@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017-2020 by the individuals mentioned in the source code history
+ *  Copyright 2017-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -103,7 +103,7 @@ class GradientOptimizerContext {
 	void copyFromOptimizer(const double *myPars, FitContext *fc2);
 	void copyFromOptimizer(const double *myPars) { copyFromOptimizer(myPars, fc); };
 	void finish();
-	double getFit() const { return fc->fit; };
+	double getFit() const { return fc->getUnscaledFit(); };
 	// fc->iterations is a global counter that includes multiple optimizer runs
 	//int getIteration() const { return fc->iterations; };
 	int iterations;

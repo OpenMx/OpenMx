@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -564,11 +564,14 @@ mxCheckIdentification <- function(model, details=TRUE){
 	theParams <- omxGetParameters(model)
 	jac <- omxManifestModelByParameterJacobian(model)
 	if(imxHasConstraint(model)){
+    # Better if there was a separate compute step to estimate the constraintJacobian
 		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(hessian=FALSE), mxComputeReportDeriv())))
 		tmpModel <- mxRun(tmpModel, silent=TRUE)
 		cjac <- tmpModel$output$constraintJacobian
 		# drop model name from constraint name
-		rownames(cjac) <- sapply(strsplit(rownames(cjac), fixed=TRUE, split=imxSeparatorChar), '[', 2)
+		if(length(rownames(cjac))){
+			rownames(cjac) <- sapply(strsplit(rownames(cjac), fixed=TRUE, split=imxSeparatorChar), '[', 2)
+		}
 	} else {
 		cjac <- matrix(, nrow=0, ncol=length(theParams))
 		colnames(cjac) <- names(theParams)
@@ -1242,13 +1245,13 @@ updateExpectationDimnames <- function(flatExpectation, flatModel,
 	}
 
 	if (!is.null(dimnames(means)) && !single.na(dims) &&
-		!identical(dimnames(means), list(NULL, dims))) {
+		!identical(colnames(means), dims)) {
 		modelname <- getModelName(flatExpectation)
 		msg <- paste("The expected means matrix associated",
 			"with the expectation function in model",
-			omxQuotes(modelname), "contains dimnames: ",
-            paste(toString(dimnames(means)), ".", sep = ""),
-			"The expectation function has specified dimnames:",
+			omxQuotes(modelname), "contains colnames: ",
+            paste(toString(colnames(means)), ".", sep = ""),
+			"The expectation function has specified colnames:",
 			paste(toString(dims), ".", sep =""))
 		stop(msg, call.=FALSE)
 	}

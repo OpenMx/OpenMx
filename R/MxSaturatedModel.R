@@ -49,10 +49,17 @@
 # Saturated Model function definition
 
 generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE, numObs, means=NA,
-					  distribution, equateThresholds) {
-	datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs, means=means)
-	numVar <- ncol(obsdata)
-	varnam <- colnames(obsdata)
+					  distribution, equateThresholds, weight = NULL) {
+  if (!is.null(weight) && !is.na(weight)) {
+	  datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs, means=means, weight=weight)
+    obsdata <- obsdata[,!names(obsdata) %in% weight]
+    numVar <- ncol(obsdata)
+	  varnam <- colnames(obsdata)
+  } else{
+	  datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs, means=means)
+    numVar <- ncol(obsdata)
+	  varnam <- colnames(obsdata)
+  }
 	if(is.null(varnam)) {
 		varnam <- paste("V", 1:numVar, sep="")
 		dimnames(obsdata) <- list(varnam, varnam)

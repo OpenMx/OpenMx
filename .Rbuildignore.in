@@ -5,7 +5,6 @@
 ^CONTRIBUTING$
 ^.git.*$
 ^inst/npsol
-^inst/CITATION.in
 ^.dir-locals.el
 ^.gdbinit
 ^.travis.yml$

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2007-2020 by the individuals mentioned in the source code history
+ *  Copyright 2007-2021 by the individuals mentioned in the source code history
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -69,11 +69,15 @@ class omxMatrix {
 	int shape;
 	bool allocationLock;   // whether the data can be moved
  public:
+	double* data;						// Actual Data Pointer
+	SEXP owner;	// The R object owning data or NULL if we own it.
  	omxMatrix() : dependsOnParametersCache(false), dependsOnDefVarCache(false), joinKey(-1),
-								joinModel(0), shape(0), allocationLock(false),
+								joinModel(0), shape(0), allocationLock(false), data(0), owner(0),
 								freeRownames(false), freeColnames(false)
 		{};
 	struct dtor;
+  void clearDimnames();
+  void disconnect();
 	void setDependsOnParameters() { dependsOnParametersCache = true; };
 	void setDependsOnDefinitionVariables() { dependsOnDefVarCache = true; };
 	bool dependsOnParameters() const { return dependsOnParametersCache; };
@@ -93,7 +97,6 @@ class omxMatrix {
 										//TODO: Improve encapsulation
 /* Actually Useful Members */
 	int rows, cols;						// Matrix size  (specifically, its leading edge)
-	double* data;						// Actual Data Pointer
 	unsigned short colMajor;			// used for quick transpose
 	unsigned short hasMatrixNumber;		// is this object in the matrix or algebra arrays?
 	int matrixNumber;					// the offset into the matrices or algebras arrays
@@ -101,8 +104,6 @@ class omxMatrix {
     hasMatrixNumber = 1;
     matrixNumber = xx;
   };
-
-	SEXP owner;	// The R object owning data or NULL if we own it.
 
 /* For BLAS Multiplication Speedup */ 	// TODO: Replace some of these with inlines or macros.
 	const char* majority;				// Filled by compute(), included for speed
@@ -207,7 +208,16 @@ struct omxMatrix::dtor {
 	void operator()(omxMatrix *om) { omxFreeMatrix(om); }
 };
 
-typedef std::unique_ptr< omxMatrix, omxMatrix::dtor > omxMatrixPtr;
+class omxMatrixPtr : public std::unique_ptr< omxMatrix, omxMatrix::dtor > {
+public:
+  omxMatrixPtr() = default;
+  omxMatrixPtr(omxMatrixPtr&& u) noexcept = default;
+  omxMatrixPtr(omxMatrix *a) { reset(a); }
+  omxMatrixPtr &operator=(omxMatrix *a) { reset(a); return *this; };
+  omxMatrixPtr &operator=(omxMatrixPtr &a) { reset(a.get()); a.reset(nullptr); return *this; }
+  // confuses compiler?
+  // operator omxMatrix*() const { return get(); };
+};
 
 /* Matrix Creation Functions */
 omxMatrix* omxNewMatrixFromRPrimitive0(SEXP rObject, omxState* state,
@@ -497,7 +507,7 @@ std::string mxStringifyMatrix(const char *name, const Eigen::DenseBase<T> &mat, 
 {
 	std::string buf;
 
-	if (!debug && mat.rows() * mat.cols() > 1000) {
+	if (!debug && mat.rows() * mat.cols() > 1500) {
 		buf = string_snprintf("%s is too large to print # %dx%d\n",
 				name, mat.rows(), mat.cols());
 		return buf;

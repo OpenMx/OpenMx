@@ -1,5 +1,5 @@
 #
-#   Copyright 2007-2020 by the individuals mentioned in the source code history
+#   Copyright 2007-2021 by the individuals mentioned in the source code history
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -145,9 +145,16 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 		obsdata <- datasource@observed
 		datanobs <- datasource@numObs
 		wasRun <- model@.wasRun
+    weight = datasource$weight 
+
 		if(wasRun) {
 			if (is.null(model@expectation@.runDims)) stop("Not clear which data were used to fit model")
-			selVars <- model@expectation@.runDims
+			if (!is.na(weight)) {
+          selVars <- model@expectation@.runDims
+          selVars <- append(selVars, weight)
+      } else {
+          selVars <- model@expectation@.runDims
+      }
 			if(nrow(obsdata) == ncol(obsdata)){
 				if(!single.na(model@expectation@.runDims)) { obsdata <- obsdata[selVars, selVars] }
 				#variable subsets are not run for covariance data
@@ -161,7 +168,7 @@ setMethod("generateReferenceModels", "MxFitFunctionML",
 
 		generateNormalReferenceModels(modelName, obsdata, datatype, any(!is.na(datasource@means)),
 			datanobs, datasource@means, distribution=distribution,
-			equateThresholds)
+			equateThresholds, weight)
 	})
 
 mxFitFunctionML <- function(vector = FALSE, rowDiagnostics=FALSE, ..., fellner=as.logical(NA),
