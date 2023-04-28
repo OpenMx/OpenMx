@@ -241,7 +241,7 @@ Need help?  See help(mxSummary)
 
 # Related work
 
-[umx()](https://github.com/tbates/umx) is a sister R package that bridges the gap between [lavaan](https://github.com/yrosseel/lavaan) and OpenMx. If you are coming from lavaan it is perhaps useful to check umx() too. [Onyx](https://onyx-sem.com/) is a software that allows you to design nice diagrams, and syncs (exports and imports) the diagrams with OpenMX code.
+[umx()](https://github.com/tbates/umx) is a sister R package that bridges the gap between [lavaan](https://github.com/yrosseel/lavaan) and OpenMx. If you are coming from lavaan it is perhaps useful to check umx() too. [Onyx](https://onyx-sem.com/) is a software that allows you to design nice diagrams, and syncs (exports and imports) the diagrams with OpenMx code.
 
 # Community and getting help
 
