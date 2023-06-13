@@ -383,7 +383,6 @@ imxHasWLS <- function(model){
 	wlsUnits <- c("r'Wr", "r'wr")
 	if(!is.null(model@output$fitUnits)){
 		if(model@output$fitUnits %in% wlsUnits){return(TRUE)}
-		else{return(FALSE)}
 	}
 	if(is.null(model@fitfunction)){return(FALSE)}
 	if(is(model@fitfunction, "MxFitFunctionWLS")){return(TRUE)}
