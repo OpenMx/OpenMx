@@ -490,7 +490,7 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=m
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()
 		for(amod in submNames){
-			got[[amod]] <- imxGetExpectationComponent(model, component, defvar.row=1, subname=amod)
+			got[[amod]] <- imxGetExpectationComponent(model, component, defvar.row, subname=amod)
 		}
 		if(component=='vector' || tolower(component)=='standvector'){got <- unlist(got)}
 		got
