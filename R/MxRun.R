@@ -67,7 +67,11 @@ mxRun <- function(model, ..., intervals=NULL, silent = FALSE,
 	}
 
 	frontendStart <- Sys.time()
-  prohibitDotdotdot(list(...))
+  	prohibitDotdotdot(list(...))
+	if(imxIsMultilevel(model) && imxHasWLS(model)){
+		msg <- paste("Found Weighted Least Squares fit function in a multilevel model.\nWLS is not supported for multilevel models.")
+		stop(msg, call. = FALSE)
+	}
 	runHelper(model, frontendStart, intervals,
 		silent, suppressWarnings, unsafe,
 		checkpoint, useSocket, onlyFrontend, useOptimizer, beginMessage)

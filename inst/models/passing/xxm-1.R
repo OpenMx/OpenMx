@@ -94,3 +94,9 @@ summary(sMod)
 omxCheckCloseEnough(sMod$output$fit, 445.4331, .01)
 omxCheckCloseEnough(sMod$expectation$debug$numGroups, 2)
 omxCheckCloseEnough(sMod$expectation$debug$rampartUsage, 50)
+
+#------------------------------------------------------------------------------
+# Check that multilevel throws a reasonable error message when tried with WLS
+
+sModW <- mxModel(sMod, mxFitFunctionWLS())
+omxCheckError(mxRun(sModW), "Found Weighted Least Squares fit function in a multilevel model.\nWLS is not supported for multilevel models.")

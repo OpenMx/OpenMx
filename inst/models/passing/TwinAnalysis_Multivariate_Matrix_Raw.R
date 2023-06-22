@@ -61,7 +61,7 @@ meanLabels = paste("Trait", rep(1:nVar,2),  "mean", sep=""); # make labels for t
 expMZMeans = mxMatrix("Full", nrow=1, ncol=(nVar*2), free=TRUE, values=meanStarts, label=meanLabels, dimnames=list("means", selVars), name="expMeanMZ");
 # Clone the MZ means matrix for  DZs
 expDZMeans = expMZMeans; 
-expDZMeans$name="expMeanDZ"; 
+expDZMeans$name="expMeanDZ";
 
 # Matrices for path coefficients
 lb <- matrix(NA, nVar, nVar); diag(lb) <- 0
@@ -146,3 +146,22 @@ LL_ACE = mxEval(fitfunction, fit); print(LL_ACE)
 
 #           [,1]
 # [1,] -1500.460
+
+#------------------------------------------------------------------------------
+# Check that definition variables work for multigroup models in mxGetExpected
+
+defMean <- mxMatrix("Full", nrow=1, ncol=(nVar*2), free=FALSE,
+	labels=paste0('data.', c('ht2', 'bmi2', 'ht1', 'bmi1')), dimnames=list("means", selVars), name="expMeanMZ")
+defMeanDz <- defMean
+defMeanDz$name <- "expMeanDZ"
+
+defMz <- mxModel(mzGroup, defMean)
+defDz <- mxModel(dzGroup, defMeanDz)
+
+defModel <- mxModel("ACE", defMz, defDz,
+	mxFitFunctionMultigroup(c('mz', 'dz'))
+)
+
+exmean <- mxGetExpected(defModel, 'means', defvar.row=2)
+omxCheckCloseEnough(exmean$dz, dzfData[2, c('ht2', 'bmi2', 'ht1', 'bmi1')], 1e-10)
+omxCheckCloseEnough(exmean$mz, mzfData[2, c('ht2', 'bmi2', 'ht1', 'bmi1')], 1e-10)

@@ -103,7 +103,30 @@ imxRowGradients <- function(model, robustSE=FALSE, dependencyModels=character(0)
 				}
 			}
 		}
-		else{stop("to obtain gradients for data rows in submodels, please use an MxFitFunctionMultigroup in 'model'")}
+		else {
+		  if (inherits(model@expectation, "MxExpectationMixture")) {
+		    paramLabels <- names(omxGetParameters(model))
+		    numParam <- length(paramLabels)
+		    custom.compute <-
+		      mxComputeSequence(list(
+		        mxComputeNumericDeriv(checkGradient = FALSE,
+		                              hessian = FALSE),
+		        mxComputeReportDeriv()
+		      ))
+		    grads <- do.call(rbind, lapply(1:nrow(model@data$observed), function(i) {
+		      tryCatch({
+		        mxRun(mxModel(model, custom.compute, mxData(model@data$observed[i, , drop = FALSE], "raw")), silent = TRUE)$output$gradient
+		      },
+		      error = function(e) {
+		        rep(NA, length(numParam))
+		      })
+		    }))
+		  } else {
+		    stop(
+		      "to obtain gradients for data rows in submodels, please use an MxFitFunctionMultigroup in 'model'"
+		    )
+		  }
+		} 
 	}
 	else{ #i.e., if no submodels
 		if(is.null(model@data)){

@@ -54,7 +54,11 @@ Details of the bootstrap replications are stored in the
 \sQuote{bootData} attribute on the data frame.
 }
 
+% donttest as gives NOTE Examples with CPU time > 2.5 times elapsed time
+
 \examples{
+
+\donttest{
 library(OpenMx)
 
 data(demoOneFactor)
@@ -76,4 +80,6 @@ base <- mxRun(base)
 # use more replications, 8 is for demonstration purpose only
 mxParametricBootstrap(base, paste0('l', 1:length(manifests)),
                       "two.sided", replications=8)
+}
+
 }

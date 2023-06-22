@@ -6,7 +6,7 @@
 #
 # Now edit to Makeconf to adjust the default compiler flags.
 
-CXX_STD = CXX14
+CXX_STD = CXX17
 
 NO_INLINE=-fno-inline -fno-inline-small-functions -fno-default-inline
 
@@ -61,7 +61,7 @@ UMFPACK_LIBS=-lumfpack -lamd
 
 PKG_CXXFLAGS= $(OPENMP_CXXFLAGS) $(MKL_CXXFLAGS) \
  $(COMPILER_CXXFLAGS) $(ARCH_SPECIFIC_COMPILER_FLAGS) $(DEBUG_CXXFLAGS) $(NLOPT_CXXFLAGS) \
- $(COMMON_FLAGS) -DSTRICT_R_HEADERS \
+ $(COMMON_FLAGS) -DSTRICT_R_HEADERS -D_HAS_AUTO_PTR_ETC=0 \
  $(shell ${R_HOME}/bin/Rscript -e "StanHeaders:::CxxFlags()")
 
 PKG_CFLAGS=$(COMMON_FLAGS) -DSTRICT_R_HEADERS
