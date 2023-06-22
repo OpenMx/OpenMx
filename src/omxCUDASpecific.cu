@@ -24,6 +24,7 @@
 
 void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag, int N, int* h_devinfo)
 {
+  
   // Instantiate solver GPU context
   cusolverDnHandle_t solver_handle;
   cusolverDnCreate(&solver_handle);
@@ -72,6 +73,9 @@ void gpuCholeskyInvertAndDiag(double* h_input, double* h_result, double* h_diag,
   cudaFree(work);
   cudaFree(d_input);
   cusolverDnDestroy(solver_handle);
+  
+  // Wacky things happen if contexts are reused
+  cudaDeviceReset();
   return;
 }
 
