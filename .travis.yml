@@ -3,6 +3,7 @@ stages:
 - test
 os:
 - linux
+dist: bionic
 addons:
   apt:
     sources:
@@ -33,6 +34,8 @@ jobs:
 #sudo: required
 latex: true
 language: r
+r:
+  - release
 #cache: packages
 git:
   submodules: false
