@@ -284,9 +284,9 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
         sx <- 1L
         rx <- 1L
         curStep <- selPlan[sx,'step']
+        nc <- origCov[[sx]]
         newCov <- list()
         while (rx <= nrow(selPlan)) {
-          nc <- origCov[[sx]]
           nc[selPlan[rx,'from'],selPlan[rx,'to']] <- selVec[rx,1]
           nc[selPlan[rx,'to'],selPlan[rx,'from']] <- selVec[rx,1]
           if (rx == nrow(selPlan) || (rx < nrow(selPlan) && curStep != selPlan[rx+1,'step'])) {
@@ -295,6 +295,7 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
             if (rx < nrow(selPlan)) {
               sx <- sx + 1
               origCov[[sx]] <- cov
+              nc <- origCov[[sx]]
               curStep <- selPlan[sx,'step']
             }
           }
