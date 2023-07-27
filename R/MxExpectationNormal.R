@@ -657,11 +657,15 @@ generateNormalData <- function(model, nrows, subname, empirical, returnModel, us
 	# Check for definition variables
 	if(imxHasDefinitionVariable(model[[subname]])){
     if (is.null(origData)) {
-      stop("Definition variable(s) found, but no data is available")
+      stop("Definition variable(s) found, but no data are available")
     }
 		if (origData$type != 'raw') {
 			stop(paste("Definition variable(s) found, but original data is type",
 				omxQuotes(origData$type)))
+		}
+		#Trying to use .rmvnorm() with empirical=TRUE and nrow=1 leads to an R error raised in MASS::mvrnorm():
+		if(empirical){
+			stop("argument 'empirical=TRUE' to mxGenerateData() is not compatible with definition variables")
 		}
 		origData <- origData$observed
 		if(nrows != nrow(origData)){
