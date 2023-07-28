@@ -734,7 +734,7 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		I <- diag(1, nrow=nrow(A))
 		Z <- diag(0, nrow=nrow(A))
 		
-		tx[,1] <- x0
+		tx[,1] <- t(.rmvnorm(1, x0, P0, empirical))
 		oldT <- 0
 		for(i in 2:(tdim+1)){
 			if(hasDefVars){
