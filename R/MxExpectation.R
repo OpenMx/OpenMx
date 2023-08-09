@@ -38,6 +38,7 @@ setClass(Class = "MxBaseExpectation",
 		 dataColumns = "integer",      # deprecated
 		 dataColumnNames = "MxOptionalChar",  # subset and permutation of data columns
 	     .runDims = "character",
+		 .canProvideSufficientDerivs = "logical",
 	     output = "list",
 	     debug = "list",
 	   "VIRTUAL"),
