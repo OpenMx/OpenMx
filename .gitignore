@@ -30,6 +30,7 @@
 /inst/models/passing/Rplots.pdf
 /models
 imxJiggle.Rd
+.DS_Store
 # The following list of roxygen built man pages is automatically updated
 man/BaseCompute-class.Rd
 man/DiscreteBase-class.Rd
@@ -51,6 +52,7 @@ man/imxDeparse.Rd
 man/imxDependentModels.Rd
 man/imxDetermineDefaultOptimizer.Rd
 man/imxDmvnorm.Rd
+man/imxEligibleForSufficientDerivs.Rd
 man/imxEvalByName.Rd
 man/imxExtractMethod.Rd
 man/imxExtractNames.Rd
@@ -64,6 +66,7 @@ man/imxGenericModelBuilder.Rd
 man/imxGenSwift.Rd
 man/imxGentleResize.Rd
 man/imxGetSlotDisplayNames.Rd
+man/imxHasAlgebraOnPath.Rd
 man/imxHasConstraint.Rd
 man/imxHasDefinitionVariable.Rd
 man/imxHasNPSOL.Rd
@@ -208,4 +211,3 @@ man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
 man/predict.MxModel.Rd
-.DS_Store
