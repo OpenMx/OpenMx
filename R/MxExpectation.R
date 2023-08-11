@@ -271,6 +271,6 @@ imxHasThresholds <- function(model) {
 imxEligibleForSufficientDerivs <- function(model){
 	return(
 		AllRAMOrLISREL(model) && AllCovData(model) && AllMLFitFunction(model) && !imxHasAlgebraOnPath(model) && 
-			!imxHasDefinitionVariable(model) && !imxHasThresholds(model)
+			!imxHasDefinitionVariable(model) && !imxHasThresholds(model) && !imxIsMultilevel(model)
 	)
 }
