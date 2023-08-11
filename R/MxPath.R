@@ -449,3 +449,69 @@ displayPath <- function(object) {
 
 setMethod("print", "MxPath", function(x,...) { displayPath(x) })
 setMethod("show", "MxPath", function(object) { displayPath(object) })
+
+#Maybe export this as an imx* function?:
+AllRAMOrLISREL <- function(model){
+	out <- TRUE
+	if(length(model$expectation)>0){
+		# TODO: Add LISREL expectation once the backend knows how to calculate analytic matrix derivs for it:
+		# out <- out && ( is(model$expectation,"MxExpectationRAM") || is(model$expectation,"MxExpectationLISREL") )
+		out <- out && is(model$expectation,"MxExpectationRAM")
+	}
+	else{
+		return(FALSE) #<--It has neither RAM (nor--TODO--LISREL) expectation, because it has no expectation.
+	}
+	if(length(model$submodels) > 0){
+		out <- out && all(sapply(model@submodels, AllRAMOrLISREL))
+	}
+	return(out)
+}
+
+##' imxHasAlgebraOnPath
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model (or any of its
+##' submodels) either (1) has labels on MxPaths that reference one or more
+##' MxAlgebras, or (2) defines any of the RAM matrices as MxAlgebras.
+##'
+##' @param model an MxModel object
+##' @param strict logical; raise error if `model` contains no paths?
+imxHasAlgebraOnPath <- function(model, strict=FALSE){
+	#out <- FALSE
+	if(!AllRAMOrLISREL(model)){
+		if(strict){
+			#Throw error when strict, because model has no paths:
+			stop(paste0(omxQuotes(model$name)," or one of its submodels does not use MxPaths")) 
+		}
+		else{
+			return(FALSE) #<--Can't have algebras on paths if there are no paths!
+		}
+	}
+	if(length(model@algebras)){
+		allAlgNames <- names(model@algebras)
+		#We need to check to see if the RAM matrices themselves are algebras:
+		if( (model$expectation$A %in% allAlgNames) || (model$expectation$S %in% allAlgNames) || 
+				(model$expectation$F %in% allAlgNames) ){
+			#^^^Admittedly, it is difficult to imagine a scenario in which the user has specified the 'F' matrix as an *algebra*,
+			#but we'd better check just in case.
+			return(TRUE)
+		}
+		if( !is.na(model$expectation$M) && (model$expectation$M %in% allAlgNames) ){
+			return(TRUE)
+		}
+		allPathLabels <- names(omxGetParameters(model,free=F)) #<--Paths that have labels referencing an algebra must be fixed.
+		for(i in 1:length(allAlgNames)){
+			#out <- out || length(grep(paste0(allAlgNames[i],"\\["),allPathLabels))
+			#We are looking for the complete algebra name, followed by an opening square bracket:
+			if(length(grep(paste0(allAlgNames[i],"\\["),allPathLabels))){ 
+				return(TRUE)
+			}
+			# if(out){
+			# 	return(out)
+			# }
+		}
+	}
+	if(length(model$submodels) > 0){
+		return(any(sapply(model$submodels,imxHasAlgebraOnPath)))
+	}
+}

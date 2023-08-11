@@ -256,3 +256,21 @@ setMethod("genericFitFunConvert", signature("MxBaseFitFunction"),
                                                 paste0(name, "@penalties"))
             .Object
           })
+
+#Maybe export this as an imx* function?:
+AllMLFitFunction <- function(model){
+	out <- TRUE
+	if(length(model$fitfunction)){
+		out <- out && (is(model$fitfunction,"MxFitFunctionML") || is(model$fitfunction,"MxFitFunctionMultigroup"))
+	}
+	else{
+		return(FALSE) #<--It doesn't have an ML fitfunction, because it has no fitfunction at all.
+	}
+	if(length(model$submodels) > 0){
+		out <- out && all(sapply(model@submodels, function(x){
+			return(length(x$fitfunction) && (is(x$fitfunction,"MxFitFunctionML") || is(x$fitfunction,"MxFitFunctionMultigroup")))
+				}))
+	}
+	return(out)
+}
+#^^^This function assumes that OpenMx will raise a runtime error in the case of every fitfunction being multigroup.

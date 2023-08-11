@@ -672,3 +672,18 @@ setMethod("print", "MxDataDynamic", function(x,...) {
 setMethod("show", "MxDataDynamic", function(object) {
 	displayMxDataDynamic(object)
 })
+
+#Maybe export this as an imx* function?:
+AllCovData <- function(model){
+	out <- TRUE
+	if(length(model$data)>0){
+		out <- out && (model$data$type=="cov")
+	}
+	else{
+		return(FALSE) #<--It doesn't have data of type "cov", because it has no data at all.
+	}
+	if(length(model$submodels) > 0){
+		out <- out && all(sapply(model@submodels, function(x)return(length(x$data) && x$data$type=="cov")))
+	}
+	return(out)
+}
