@@ -322,11 +322,11 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
 					Mname <- .modifyDottedName(subname, Mname, sep=".")
 					M <- mxEvalByName(Mname, model, compute=TRUE, defvar.row=defvar.row)
 					fullMean <- M %*% t(solve(I-A))
-          if (!single.na(.Object@selectionVector)) {
-            for (sx in 1:length(origCov)) {
-              fullMean <- t(mxPearsonSelMean(origCov[[sx]], newCov[[sx]], t(fullMean)))
-            }
-          }
+#          if (!single.na(.Object@selectionVector)) {
+#            for (sx in 1:length(origCov)) {
+#              fullMean <- t(mxPearsonSelMean(origCov[[sx]], newCov[[sx]], t(fullMean)))
+#            }
+#          }
           mean <- fullMean %*% t(F)
 			  }
 				ret[['means']] <- mean

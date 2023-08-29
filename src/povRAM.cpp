@@ -4,6 +4,8 @@
 #include "Compute.h"
 #include "EnableWarnings.h"
 
+#include <iostream>
+
 void PathCalc::prepM(FitContext *fc)
 {
 	if (!mio) mxThrow("PathCalc::prepM but no PathCalcIO for mean");
@@ -263,15 +265,21 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 void PathCalc::pearsonSelMean1(Eigen::Ref<Eigen::VectorXd> mean)
 {
   //mxPrintMat("before sel", mean);
+  std::cout << "original mean\n" << mean << "\n" <<  std::endl;
   for (auto &s1 : selSteps) {
     Eigen::VectorXd selMean;
     subsetVector(mean, [&](int xx){ return s1.selFilter[xx]; }, s1.selDim, selMean);
+  std::cout << "sel mean\n" << selMean << "\n" <<  std::endl;
+  std::cout << "adj_what\n" <<s1.selAdj << "\n" <<  std::endl;
+  
 
     Eigen::VectorXd adj = s1.selAdj.transpose() * selMean;
+    std::cout << "adj\n" << adj << "\n" <<  std::endl;
     for (int v1=0, a1=0; v1 < mean.size(); ++v1) {
       if (s1.selFilter[v1]) continue;
       mean(v1) += adj(a1++);
     }
+    std::cout << "new mean\n" << mean << "\n" <<  std::endl;
   }  //mxPrintMat("after sel", mean);
 }
 

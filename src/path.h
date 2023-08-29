@@ -264,7 +264,7 @@ class PathCalc {
 			} else {
 				meanOut = sparseIA.transpose() * meanIn; // avoids temporary copy? TODO
 			}
-      if (selSteps.size()) pearsonSelMean1(meanOut);
+      #if (selSteps.size()) pearsonSelMean1(meanOut);
       return meanOut;
 		} else {
 			buildPolynomial(fc);
