@@ -74,6 +74,7 @@ protected:
 
 	bool canDuplicate;
 	bool dynamicDataSource;
+	bool canProvideSufficientDerivs;
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), thresholdsMat(0),
