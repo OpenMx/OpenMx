@@ -244,14 +244,14 @@ getPrecisionPerExpectation <- function(expectation, optionsList){
 ##' submodels) has any thresholds.
 ##'
 ##' @param model model
-imxHasThresholds <- function(model) {
+imxHasThresholds <- function(model,submodels=TRUE) {
 	if(length(model@expectation) && 
 		 (class(model@expectation) %in% c("MxExpectationNormal","MxExpectationLISREL","MxExpectationRAM")) && 
 		 !single.na(model@expectation@thresholds)  ){
 		return(TRUE)
 	}
 	# Check submodels
-	if(length(model@submodels)){
+	if(submodels && length(model@submodels)){
 		attempt <- sapply(model@submodels, imxHasThresholds)
 		if(any(attempt)){
 			return(TRUE)
@@ -273,4 +273,9 @@ imxEligibleForSufficientDerivs <- function(model){
 		AllRAMOrLISREL(model) && AllCovData(model) && AllMLFitFunction(model) && !imxHasAlgebraOnPath(model) && 
 			!imxHasDefinitionVariable(model) && !imxHasThresholds(model) && !imxIsMultilevel(model)
 	)
+}
+
+#Placeholder:
+markExpectationsEligibleForSufficientDerivs <- function(model){
+	return(NULL)
 }

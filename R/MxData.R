@@ -674,7 +674,7 @@ setMethod("show", "MxDataDynamic", function(object) {
 })
 
 #Maybe export this as an imx* function?:
-AllCovData <- function(model){
+AllCovData <- function(model,submodels=TRUE){
 	out <- TRUE
 	if(length(model$data)>0){
 		out <- out && (model$data$type=="cov")
@@ -682,7 +682,7 @@ AllCovData <- function(model){
 	else{
 		return(FALSE) #<--It doesn't have data of type "cov", because it has no data at all.
 	}
-	if(length(model$submodels) > 0){
+	if(submodels && length(model$submodels) > 0){
 		out <- out && all(sapply(model@submodels, function(x)return(length(x$data) && x$data$type=="cov")))
 	}
 	return(out)

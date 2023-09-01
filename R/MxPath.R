@@ -451,7 +451,7 @@ setMethod("print", "MxPath", function(x,...) { displayPath(x) })
 setMethod("show", "MxPath", function(object) { displayPath(object) })
 
 #Maybe export this as an imx* function?:
-AllRAMOrLISREL <- function(model){
+AllRAMOrLISREL <- function(model,submodels=TRUE){
 	out <- TRUE
 	if(length(model$expectation)>0){
 		# TODO: Add LISREL expectation once the backend knows how to calculate analytic matrix derivs for it:
@@ -461,8 +461,27 @@ AllRAMOrLISREL <- function(model){
 	else{
 		return(FALSE) #<--It has neither RAM (nor--TODO--LISREL) expectation, because it has no expectation.
 	}
-	if(length(model$submodels) > 0){
+	if(submodels && length(model$submodels) > 0){
 		out <- out && all(sapply(model@submodels, AllRAMOrLISREL))
+	}
+	return(out)
+}
+
+#Maybe export this as an imx* function?:
+AnyRAMOrLISREL <- function(model,submodels=TRUE){
+	out <- FALSE
+	if(length(model$expectation)>0){
+		# TODO: Add LISREL expectation once the backend knows how to calculate analytic matrix derivs for it:
+		# out <- out || is(model$expectation,"MxExpectationRAM") || is(model$expectation,"MxExpectationLISREL")
+		out <- out || is(model$expectation,"MxExpectationRAM")
+	}
+	else{
+		if(!submodels){
+			return(FALSE) #<--It has neither RAM (nor--TODO--LISREL) expectation, because it has no expectation.
+		}
+	}
+	if(submodels && length(model$submodels) > 0){
+		out <- out || all(sapply(model@submodels, AllRAMOrLISREL))
 	}
 	return(out)
 }
@@ -476,9 +495,9 @@ AllRAMOrLISREL <- function(model){
 ##'
 ##' @param model an MxModel object
 ##' @param strict logical; raise error if `model` contains no paths?
-imxHasAlgebraOnPath <- function(model, strict=FALSE){
+imxHasAlgebraOnPath <- function(model, strict=FALSE, submodels=TRUE){
 	#out <- FALSE
-	if(!AllRAMOrLISREL(model)){
+	if(!AnyRAMOrLISREL(model,submodels=TRUE)){
 		if(strict){
 			#Throw error when strict, because model has no paths:
 			stop(paste0(omxQuotes(model$name)," or one of its submodels does not use MxPaths")) 
@@ -511,7 +530,7 @@ imxHasAlgebraOnPath <- function(model, strict=FALSE){
 			# }
 		}
 	}
-	if(length(model$submodels) > 0){
+	if(submodels && length(model$submodels) > 0){
 		return(any(sapply(model$submodels,imxHasAlgebraOnPath)))
 	}
 }
