@@ -495,6 +495,7 @@ AnyRAMOrLISREL <- function(model,submodels=TRUE){
 ##'
 ##' @param model an MxModel object
 ##' @param strict logical; raise error if `model` contains no paths?
+##' @submodels logical; recursion over child models?
 imxHasAlgebraOnPath <- function(model, strict=FALSE, submodels=TRUE){
 	#out <- FALSE
 	if(!AnyRAMOrLISREL(model,submodels=TRUE)){
