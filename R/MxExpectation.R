@@ -260,15 +260,7 @@ imxHasThresholds <- function(model,submodels=TRUE) {
 	return(FALSE)
 }
 
-##' 
-##'
-##' This is an internal function exported for those people who know
-##' what they are doing.  This function checks if a model (including its 
-##' submodels) is "eligible" for its expectation to automatically provide the 
-##' fitfunction with derivatives of the matrices of sufficient statistics.
-##'
-##' @param model an MxModel object
-imxEligibleForSufficientDerivs <- function(model){
+eligibleForSufficientDerivs <- function(model){
 	return(
 		AllRAMOrLISREL(model) && AllCovData(model) && AllMLFitFunction(model) && !imxHasAlgebraOnPath(model) && 
 			!imxHasDefinitionVariable(model) && !imxHasThresholds(model) && !imxIsMultilevel(model)
