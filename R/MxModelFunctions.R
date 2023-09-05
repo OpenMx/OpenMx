@@ -491,3 +491,15 @@ imxCheckMatrices <- function(model) {
 	submodels <- imxDependentModels(model)
 	lapply(submodels, imxCheckMatrices)
 }
+
+getAllModelNames <- function(model){
+	modNames <- character(0)
+	getName <- function(model){
+		modNames <<- c(modNames,model@name)
+		if(length(model@submodels)){
+			lapply(model@submodels,getName)
+		}
+	}
+	getName(model)
+	return(modNames)
+}

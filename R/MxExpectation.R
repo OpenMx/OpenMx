@@ -268,7 +268,22 @@ eligibleForSufficientDerivs <- function(model){
 	)
 }
 
-#Placeholder:
 markExpectationsEligibleForSufficientDerivs <- function(model){
-	return(NULL)
+	#return(NULL)
+	wich <- 1
+	#Defvars and multilevel are global disqualifiers:
+	if(imxHasDefinitionVariable(model) || imxIsMultilevel(model)){
+		wich <- 2
+	}
+	allModNames <- getAllModelNames(model)
+	for(m in allModNames){
+		if(length(model[[m]]$expectation)){
+			model[[m]]$expectation@.canProvideSufficientDerivs <- 
+				c(is(model[[m]]$expectation,"MxExpectationRAM") && identical(model[[m]]$data$type,"cov") && 
+						is(model[[m]]$fitfunction,"MxFitFunctionML") && !imxHasAlgebraOnPath(model[[m]],submodels=F) && 
+						!imxHasThresholds(model[[m]],submodels=F),
+					FALSE)[wich]
+		}
+	}
+	return(model)
 }
