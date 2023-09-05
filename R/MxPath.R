@@ -534,4 +534,5 @@ imxHasAlgebraOnPath <- function(model, strict=FALSE, submodels=TRUE){
 	if(submodels && length(model$submodels) > 0){
 		return(any(sapply(model$submodels,imxHasAlgebraOnPath)))
 	}
+	return(FALSE) #<--Function couldn't find any reason to return TRUE.
 }
