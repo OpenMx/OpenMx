@@ -52,7 +52,6 @@ man/imxDeparse.Rd
 man/imxDependentModels.Rd
 man/imxDetermineDefaultOptimizer.Rd
 man/imxDmvnorm.Rd
-man/imxEligibleForSufficientDerivs.Rd
 man/imxEvalByName.Rd
 man/imxExtractMethod.Rd
 man/imxExtractNames.Rd
