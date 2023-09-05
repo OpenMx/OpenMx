@@ -79,21 +79,24 @@ class PathCalc {
   omxMatrix *fullCovAccess;
   Eigen::MatrixXd tmpFullCov;
   Eigen::VectorXd tmpFullMean;
-  omxMatrix *selVec;
+  omxMatrix *selVecCov;
+  omxMatrix *selVecMean;
 
   struct selPlanRow {
     int step;
     int from;
     int to;
   };
-  std::vector<selPlanRow> selPlan;
+  std::vector<selPlanRow> selPlanCov;
+  std::vector<selPlanRow> selPlanMean;
 
   struct selStep {
     std::vector<bool> selFilter;
     int selDim;
     Eigen::MatrixXd selAdj;
   };
-  std::vector<selStep> selSteps;
+  std::vector<selStep> selStepsCov;
+  std::vector<selStep> selStepsMean;
 
 	void determineShallowDepth(FitContext *fc);
 	void evaluate(FitContext *fc, bool filter);
@@ -135,7 +138,7 @@ class PathCalc {
 	 useSparse(false), versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
 	 algoSet(false), versionPoly(0), fullMeanAccess(0), fullCovAccess(0),
-   selVec(0), verbose(0), ignoreVersion(false) {}
+   selVecCov(0), selVecMean(0), verbose(0), ignoreVersion(false) {}
 
 	void clone(PathCalc &pc)
 	{
@@ -150,9 +153,15 @@ class PathCalc {
 		sio = std::unique_ptr<PathCalcIO>(pc.sio->clone());
 		numIters = pc.numIters;
 		boker2019 = pc.boker2019;
-    selVec = pc.selVec;
-    selPlan = pc.selPlan;
-    selSteps = pc.selSteps;
+    selVecCov = pc.selVecCov;
+	selVecMean = pc.selVecMean;
+	
+    selPlanCov = pc.selPlanCov;
+	selPlanMean = pc.selPlanMean;
+	
+    selStepsCov = pc.selStepsCov;
+	selStepsMean = pc.selStepsMean;
+	
     fullMeanAccess = pc.fullMeanAccess;
     fullCovAccess = pc.fullCovAccess;
 		init1();
@@ -175,12 +184,12 @@ class PathCalc {
 		sio = std::unique_ptr<PathCalcIO>(u_sio);
 	}
 
-  void attachSelection(omxMatrix *u_selVec, DataFrame u_selPlan)
+  void attachSelectionCov(omxMatrix *u_selVec, DataFrame u_selPlan)
   {
     if (u_selPlan.nrows() == 0) return;
-    selPlan.resize(u_selPlan.nrows());
+    selPlanCov.resize(u_selPlan.nrows());
 
-    selVec = u_selVec;
+    selVecCov = u_selVec;
     IntegerVector step = u_selPlan["step"];
     {
       int selCount = 1;
@@ -190,8 +199,8 @@ class PathCalc {
         prevStep = step[sx];
         ++selCount;
       }
-      selSteps.resize(selCount);
-      for (auto &s1 : selSteps) s1.selFilter.assign(numVars, false);
+      selStepsCov.resize(selCount);
+      for (auto &s1 : selStepsCov) s1.selFilter.assign(numVars, false);
     }
 
     int curStep = step[0];
@@ -199,11 +208,11 @@ class PathCalc {
       IntegerVector step = u_selPlan["step"];
       IntegerVector from = u_selPlan["from"];
       IntegerVector to = u_selPlan["to"];
-      auto &spr = selPlan[rx];
+      auto &spr = selPlanCov[rx];
       spr.step = step[rx];
       spr.from = from[rx];
       spr.to = to[rx];
-      auto &s1 = selSteps[sx];
+      auto &s1 = selStepsCov[sx];
       s1.selFilter[ from[rx] ] = true;
       s1.selFilter[ to[rx] ] = true;
       if (rx == u_selPlan.nrows()-1 || step[rx+1] != curStep) {
@@ -237,7 +246,7 @@ class PathCalc {
 				//sio->copyLowerToUpper();
 				cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
 			}
-      if (selSteps.size()) pearsonSelCov1(cov);
+      if (selStepsCov.size()) pearsonSelCov1(cov);
 		} else {
 			buildPolynomial(fc);
 			auto &symEv = symSolver.eigenvalues();
@@ -264,7 +273,7 @@ class PathCalc {
 			} else {
 				meanOut = sparseIA.transpose() * meanIn; // avoids temporary copy? TODO
 			}
-      #if (selSteps.size()) pearsonSelMean1(meanOut);
+      //if (selSteps.size()) pearsonSelMean1(meanOut);
       return meanOut;
 		} else {
 			buildPolynomial(fc);
@@ -301,17 +310,17 @@ template <typename T1>
 void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
 {
   int rx=0;
-  for (auto &s1 : selSteps) {
+  for (auto &s1 : selStepsCov) {
   //mxPrintMat("before sel", cov);
     Eigen::MatrixXd v11(s1.selDim, s1.selDim);
     Eigen::MatrixXd v12(s1.selDim, cov.cols() - s1.selDim);
     Eigen::MatrixXd v22(cov.rows() - s1.selDim, cov.cols() - s1.selDim);
     partitionCovariance(cov, [&](int xx){ return s1.selFilter[xx]; }, v11, v12, v22);
-    EigenVectorAdaptor EselVec(selVec);
-    int curStep = selPlan[rx].step;
-    while (rx < int(selPlan.size()) && selPlan[rx].step == curStep) {
-      int from = selPlan[rx].from;
-      int to = selPlan[rx].to;
+    EigenVectorAdaptor EselVec(selVecCov);
+    int curStep = selPlanCov[rx].step;
+    while (rx < int(selPlanCov.size()) && selPlanCov[rx].step == curStep) {
+      int from = selPlanCov[rx].from;
+      int to = selPlanCov[rx].to;
       cov(from, to) = EselVec[rx];
       cov(to, from) = EselVec[rx];
       ++rx;
@@ -337,7 +346,7 @@ void PathCalc::mean(FitContext *fc, Eigen::MatrixBase<T1> &copyOut)
 {
   if (!boker2019) {
     prepM(fc);
-    if (selSteps.size()) {
+    if (selStepsMean.size()) {
       if (!fullMeanAccess) tmpFullMean.resize(numVars);
       omxMatrix *fma = fullMeanAccess;
       if (fc) fma = fc->state->lookupDuplicate(fullMeanAccess);
@@ -367,7 +376,7 @@ template <typename T>
 void PathCalc::cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
 {
   if (!boker2019) {
-    if (selSteps.size()) {
+    if (selStepsCov.size()) {
       if (!fullCovAccess) tmpFullCov.resize(numVars, numVars);
       omxMatrix *fca = fullCovAccess;
       if (fc) fc->state->lookupDuplicate(fullCovAccess);

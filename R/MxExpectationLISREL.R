@@ -76,7 +76,8 @@ setMethod("initialize", "MxExpectationLISREL",
 		.Object@threshnames <- NA_character_
 		.Object@discrete <- discrete
     .Object@.discreteCheckCount <- TRUE
-    .Object@selectionVector <- NA_character_
+    .Object@selectionVectorCov <- NA_character_
+	.Object@selectionVectorMean <- NA_character_
     .Object@expectedCovariance <- expectedCovariance
     .Object@expectedMean <- expectedMean
 		return(.Object)

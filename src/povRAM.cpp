@@ -108,7 +108,7 @@ void PathCalc::setAlgo(FitContext *fc, bool u_boker2019, int u_useSparse)
 																 [](bool x){ return x; })) {
 		mxThrow("Must use Boker2019 when product nodes are present");
 	}
-  if (u_boker2019 && selSteps.size()) {
+  if (u_boker2019 && (selStepsMean.size() || selStepsCov.size())) {
     mxThrow("Must avoid Boker2019 when using arrows=0 paths");
   }
 	boker2019 = u_boker2019;
@@ -266,7 +266,7 @@ void PathCalc::pearsonSelMean1(Eigen::Ref<Eigen::VectorXd> mean)
 {
   //mxPrintMat("before sel", mean);
   std::cout << "original mean\n" << mean << "\n" <<  std::endl;
-  for (auto &s1 : selSteps) {
+  for (auto &s1 : selStepsMean) {
     Eigen::VectorXd selMean;
     subsetVector(mean, [&](int xx){ return s1.selFilter[xx]; }, s1.selDim, selMean);
   std::cout << "sel mean\n" << selMean << "\n" <<  std::endl;

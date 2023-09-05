@@ -514,8 +514,10 @@ insertPathRAM <- function(path, model) {
 	S_labels <- S@labels
 	S_lbound <- S@lbound
 	S_ubound <- S@ubound
-  selVec <- model[['selectionVector']]
-  selPlan <- model$expectation$selectionPlan
+  selVecCov <- model[['selectionVectorCov']]
+  selPlanCov <- model$expectation$selectionPlanCov
+  selVecMean <- model[['selectionVectorMean']]
+  selPlanMean <- model$expectation$selectionPlanMean
 
 	legalVars <- c(colnames(A), "one")
 	isProductNode <- model$expectation$isProductNode
@@ -661,18 +663,18 @@ insertPathRAM <- function(path, model) {
       # mxMatrix: vector of parameters to plop in
       pair <- c(from,to)[order(match(c(from,to), legalVars))]  # canonical order
       r1 <- data.frame(step=nextstep, from=pair[1], to=pair[2])
-      selPlan <- rbind(selPlan, r1)
-      oldSelVec <- selVec
-      selVec <- mxMatrix('Full', nrow(selPlan), 1)
-      if (!is.null(oldSelVec)) selVec[1:nrow(oldSelVec),1] <- oldSelVec
-      selVec[nrow(selVec),1]$free <- nextfree
-      selVec[nrow(selVec),1]$values <- nextvalue
-      selVec[nrow(selVec),1]$labels <- nextlabel
-      selVec[nrow(selVec),1]$ubound <- nextubound
-      selVec[nrow(selVec),1]$lbound <- nextlbound
-      p1 <- order(selPlan$step, selPlan$from, selPlan$to)
-      selPlan <- selPlan[p1,]
-      selVec <- selVec[p1,]
+      selPlanCov <- rbind(selPlanCov, r1)
+      oldSelVec <- selVecCov
+      selVecCov <- mxMatrix('Full', nrow(selPlanCov), 1)
+      if (!is.null(oldSelVec)) selVecCov[1:nrow(oldSelVec),1] <- oldSelVec
+      selVecCov[nrow(selVecCov),1]$free <- nextfree
+      selVecCov[nrow(selVecCov),1]$values <- nextvalue
+      selVecCov[nrow(selVecCov),1]$labels <- nextlabel
+      selVecCov[nrow(selVecCov),1]$ubound <- nextubound
+      selVecCov[nrow(selVecCov),1]$lbound <- nextlbound
+      p1 <- order(selPlanCov$step, selPlanCov$from, selPlanCov$to)
+      selPlanCov <- selPlanCov[p1,]
+      selVecCov <- selVecCov[p1,]
     } else if (arrows == 1) {
 			A_free[to, from] <- nextfree
 			A_values[to, from] <- nextvalue
@@ -722,11 +724,17 @@ insertPathRAM <- function(path, model) {
 	model[['A']] <- A
 	model[['S']] <- S
 	if (!is.null(M)) model[['M']] <- M
-  if (!is.null(selVec)) {
-    model$expectation$selectionVector <- 'selectionVector'
-    model[['selectionVector']] <- selVec
+  if (!is.null(selVecCov)) {
+    model$expectation$selectionVectorCov <- 'selectionVectorCov'
+    model[['selectionVectorCov']] <- selVecCov
   }
-  if (!is.null(selPlan)) model$expectation$selectionPlan <- selPlan
+  if (!is.null(selPlanCov)) model$expectation$selectionPlanCov <- selPlanCov
+  
+  if (!is.null(selVecMean)) {
+    model$expectation$selectionVectorMean <- 'selectionVectorMean'
+    model[['selectionVectorMean']] <- selVecMean
+  }
+  if (!is.null(selPlanMean)) model$expectation$selectionPlanMean <- selPlanMean
 	model
 }
 

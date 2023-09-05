@@ -21,6 +21,9 @@
 //#include <Eigen/LU>
 #include "EnableWarnings.h"
 
+
+#include <iostream>
+
 void omxRAMExpectation::MpcIO::recompute(FitContext *fc)
 {
 	omxMatrix *M = !fc? M0 : fc->state->lookupDuplicate(M0);
@@ -438,10 +441,10 @@ void omxRAMExpectation::init()
 
 		pcalc.attach(k, l, latentFilter, isProductNode, mio, aio, sio);
 
-    omxMatrix *selVec = omxNewMatrixFromSlot(rObj, currentState, "selectionVector");
-    if (selVec) {
-      DataFrame selPlan(rObj.slot("selectionPlan"));
-      pcalc.attachSelection(selVec, selPlan);
+    omxMatrix *selVecCov = omxNewMatrixFromSlot(rObj, currentState, "selectionVectorCov");
+    if (selVecCov) {
+      DataFrame selPlanCov(rObj.slot("selectionPlanCov"));
+      pcalc.attachSelectionCov(selVecCov, selPlanCov);
     }
     pcalc.attachFullMemory(fullMean, fullCov);
 		pcalc.setAlgo(0, hasProductNodes, useSparse);

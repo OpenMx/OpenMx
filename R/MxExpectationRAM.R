@@ -42,7 +42,7 @@ setClass(Class = "MxExpectationRAM",
 setMethod("initialize", "MxExpectationRAM",
 	function(.Object, A, S, F, M, dims, thresholds, threshnames,
            between, verbose, useSparse, expectedCovariance, expectedMean, discrete,
-           selectionVector, expectedFullCovariance, expectedFullMean,
+           selectionVectorCov, selectionVectorMean, expectedFullCovariance, expectedFullMean,
            data = as.integer(NA), name = 'expectation') {
 		.Object@name <- name
 		.Object@A <- A
@@ -54,7 +54,8 @@ setMethod("initialize", "MxExpectationRAM",
 		.Object@thresholds <- thresholds
     .Object@discrete <- discrete
     .Object@.discreteCheckCount <- TRUE
-    .Object@selectionVector <- selectionVector
+    .Object@selectionVectorCov <- selectionVectorCov
+	.Object@selectionVectorMean <- selectionVectorMean
 		.Object@threshnames <- threshnames
 		.Object@usePPML <- FALSE
 		.Object@UnfilteredExpCov <- matrix()
@@ -242,7 +243,7 @@ setMethod("genericExpFunConvert", signature("MxExpectationRAM"),
 		} else {
 			.Object@thresholds <- as.integer(NA)
 		}
-    .Object@selectionPlan <- prepSelectionPlan(.Object@selectionPlan, colnames(fMatrix))
+    .Object@selectionPlanCov <- prepSelectionPlanCov(.Object@selectionPlanCov, colnames(fMatrix))
 		if(length(.Object@dims) > nrow(fMatrix) && length(translatedNames) == nrow(fMatrix)){
 			.Object@dims <- translatedNames
 		}
@@ -275,11 +276,13 @@ setMethod("genericGetExpected", signature("MxExpectationRAM"),
       ImA <- solve(I-A)
       origCov <- list()
       origCov[[1]] <- ImA %*% S %*% t(ImA)
-      if (single.na(.Object@selectionVector)) {
+      if (single.na(.Object@selectionVectorCov) & single.na(.Object@selectionVectorMean)) {
         cov <- origCov[[1]]
+		
+	  # Covariance Selection
       } else {
-        selPlan <- .Object@selectionPlan
-        selVecName <- .modifyDottedName(subname, .Object@selectionVector)
+        selPlan <- .Object@selectionPlanCov
+        selVecName <- .modifyDottedName(subname, .Object@selectionVectorCov)
         selVec <- mxEvalByName(selVecName, model, compute=TRUE, defvar.row=defvar.row)
         sx <- 1L
         rx <- 1L
@@ -510,7 +513,8 @@ imxSimpleRAMPredicate <- function(model) {
 mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresholds = NA,
                              threshnames = dimnames, ..., between=NULL, verbose=0L, .useSparse=NA,
                              expectedCovariance=NULL, expectedMean=NULL,
-                             discrete = as.character(NA), selectionVector = as.character(NA),
+                             discrete = as.character(NA), selectionVectorCov = as.character(NA),
+							 selctionVectorMean = as.character(NA),
                              expectedFullCovariance=NULL, expectedFullMean=NULL) {
 
 	prohibitDotdotdot(list(...))
@@ -553,7 +557,7 @@ mxExpectationRAM <- function(A="A", S="S", F="F", M = NA, dimnames = NA, thresho
 	threshnames <- checkThreshnames(threshnames)
 	return(new("MxExpectationRAM", A, S, F, M, dimnames, thresholds, threshnames,
              between, as.integer(verbose), as.logical(.useSparse),
-             expectedCovariance, expectedMean, discrete, selectionVector,
+             expectedCovariance, expectedMean, discrete, selectionVectorCov, selctionVectorMean,
              expectedFullCovariance, expectedFullMean))
 }
 
