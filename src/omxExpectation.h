@@ -74,14 +74,15 @@ protected:
 
 	bool canDuplicate;
 	bool dynamicDataSource;
-	bool canProvideSufficientDerivs;
+	
+	int canProvideSufficientDerivs;
 
 	omxExpectation(omxState *state, int num) :
 		dataColumnsPtr(0), thresholdsMat(0),
 		discreteSpecPtr(0), u_connectedToData(false), discreteMat(0),
     numDataColumns(0), name(0), data(0), numOrdinal(0),
     isComplete(false), currentState(state),
-		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false) {};
+		expNum(num), freeVarGroup(0), canDuplicate(false), dynamicDataSource(false), canProvideSufficientDerivs(0) {};
 	virtual ~omxExpectation() {};
 	virtual void init() {};
   virtual void connectToData();

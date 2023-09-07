@@ -375,6 +375,10 @@ class omxRAMExpectation : public MVNExpectation {
 	omxMatrix *fullCov, *fullMean;
 	omxMatrix *slope;       // exogenous predictor slopes
 	omxMatrix *A, *S, *F, *M;
+	
+	std::vector< omxMatrix* > dS_dtheta;
+	std::vector< omxMatrix* > dA_dtheta;
+	std::vector< omxMatrix* > dM_dtheta;
 
 	int verbose;
 	int rampartCycleLimit;

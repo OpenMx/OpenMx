@@ -324,6 +324,11 @@ void omxRAMExpectation::init()
 		ProtectedSEXP Rus(R_do_slot(rObj, Rf_install(".useSparse")));
 		useSparse = Rf_asInteger(Rus);
 	}
+	
+	if (R_has_slot(rObj, Rf_install(".canProvideSufficientDerivs"))) {
+		ProtectedSEXP Rcpsd(R_do_slot(rObj, Rf_install(".canProvideSufficientDerivs")));
+		RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd);
+	}
 
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
 	if (Rf_length(Rbetween)) {

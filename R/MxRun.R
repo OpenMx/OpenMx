@@ -124,6 +124,7 @@ runHelper <- function(model, frontendStart,
 	frozen <- lapply(independents, imxFreezeModel)
 	model <- imxReplaceModels(model, frozen)
 	namespace <- imxGenerateNamespace(model)
+	model <- markExpectationsEligibleForSufficientDerivs(model)
 	flatModel <- imxFlattenModel(model, namespace, unsafe)
 	options <- generateOptionsList(model, useOptimizer)
 	options[['intervals']] <- intervals
