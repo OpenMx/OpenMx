@@ -21,6 +21,7 @@
 //#include <Eigen/LU>
 #include "EnableWarnings.h"
 
+
 void omxRAMExpectation::MpcIO::recompute(FitContext *fc)
 {
 	omxMatrix *M = !fc? M0 : fc->state->lookupDuplicate(M0);
@@ -141,6 +142,22 @@ void omxRAMExpectation::invalidateCache()
 omxRAMExpectation::~omxRAMExpectation()
 {
 	if (rram) delete rram;
+	
+	if(dS_dtheta.size()){
+		for(size_t i=0; i < dS_dtheta.size(); i++){
+			omxFreeMatrix(dS_dtheta[i]);
+		}
+	}
+	if(dA_dtheta.size()){
+		for(size_t j=0; j < dA_dtheta.size(); j++){
+			omxFreeMatrix(dA_dtheta[j]);
+		}
+	}
+	if(dM_dtheta.size()){
+		for(size_t k=0; k < dM_dtheta.size(); k++){
+			omxFreeMatrix(dM_dtheta[k]);
+		}
+	}
 }
 
 void omxRAMExpectation::populateAttr(SEXP robj)
@@ -324,11 +341,6 @@ void omxRAMExpectation::init()
 		ProtectedSEXP Rus(R_do_slot(rObj, Rf_install(".useSparse")));
 		useSparse = Rf_asInteger(Rus);
 	}
-	
-	if (R_has_slot(rObj, Rf_install(".canProvideSufficientDerivs"))) {
-		ProtectedSEXP Rcpsd(R_do_slot(rObj, Rf_install(".canProvideSufficientDerivs")));
-		RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd);
-	}
 
 	ProtectedSEXP Rbetween(R_do_slot(rObj, Rf_install("between")));
 	if (Rf_length(Rbetween)) {
@@ -460,6 +472,57 @@ void omxRAMExpectation::init()
       exoDataColIndex = pex->exoDataColIndex;
       addSlopeMatrix();
     }
+  }
+  
+  if (R_has_slot(rObj, Rf_install(".canProvideSufficientDerivs"))) {
+  	ProtectedSEXP Rcpsd(R_do_slot(rObj, Rf_install(".canProvideSufficientDerivs")));
+  	RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd) && !hasProductNodes && Global->analyticGradients;
+  }
+  if(RAMexp->canProvideSufficientDerivs){
+  	FitContext *fc = Global->topFc;
+  	freeVarGroup = fc->varGroup; //TODO: generalize to the case where there is more than one varGroup.
+  	dS_dtheta.resize(freeVarGroup->vars.size());
+  	dA_dtheta.resize(freeVarGroup->vars.size());
+  	if(M){
+  		dM_dtheta.resize(freeVarGroup->vars.size());
+  	}
+  	std::vector<int> samPos(3);
+  	for(size_t mi=0; mi < Global->globalState->matrixList.size(); mi++){
+  		if(strEQ(Global->globalState->matrixList[mi]->name(),S->name())){
+  			samPos[0] = mi;
+  		}
+  		if(strEQ(Global->globalState->matrixList[mi]->name(),A->name())){
+  			samPos[1] = mi;
+  		}
+  		if(M){
+  			if(strEQ(Global->globalState->matrixList[mi]->name(),M->name())){
+  				samPos[2] = mi;
+  			}
+  		}
+  	}
+  	for(size_t px=0; px < freeVarGroup->vars.size(); px++){
+  		dS_dtheta[px] = omxInitMatrix(S->rows, S->cols, 1, currentState);
+  		dA_dtheta[px] = omxInitMatrix(A->rows, A->cols, 1, currentState);
+  		if(M){
+  			dM_dtheta[px] = omxInitMatrix(M->rows, M->cols, 1, currentState);
+  		}
+  		for(size_t li=0; li < freeVarGroup->vars[px]->locations.size(); li++){
+  			if(freeVarGroup->vars[px]->locations[li].matrix == samPos[0]){
+  				omxSetMatrixElement(
+  					dS_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
+  			}
+  			if(freeVarGroup->vars[px]->locations[li].matrix == samPos[1]){
+  				omxSetMatrixElement(
+  					dA_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
+  			}
+  			if(M){
+  				if(freeVarGroup->vars[px]->locations[li].matrix == samPos[2]){
+  					omxSetMatrixElement(
+  						dM_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
+  				}
+  			}
+  		}
+  	}
   }
 }
 

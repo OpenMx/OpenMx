@@ -353,7 +353,7 @@ void omxState::omxProcessFreeVarList(SEXP varList)
 			int* theVarList = INTEGER(nextLoc);
 
 			omxFreeVarLocation loc;
-			//This is not the matrixNumber; it appears to be the matrix's serial position in globalState->matrixList :
+			//This is not the matrixNumber; it appears to be the matrix's serial position in Global->globalState->matrixList :
 			loc.matrix = theVarList[0]; 
 			loc.row = theVarList[1];
 			loc.col = theVarList[2];

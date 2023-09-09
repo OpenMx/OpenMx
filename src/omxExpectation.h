@@ -69,8 +69,8 @@ protected:
 	bool isTopState() const;
 	int expNum;  // index in omxState's vector
 
-	// omxExpectation should not need to know about free variables.
-	FreeVarGroup *freeVarGroup; // TODO remove
+	//Some expectation classes do need to know about free variables:
+	FreeVarGroup *freeVarGroup;
 
 	bool canDuplicate;
 	bool dynamicDataSource;
