@@ -494,9 +494,9 @@ AnyRAMOrLISREL <- function(model,submodels=TRUE){
 ##' MxAlgebras, or (2) defines any of the RAM matrices as MxAlgebras.
 ##'
 ##' @param model an MxModel object
-##' @param strict logical; raise error if `model` contains no paths?
 ##' @submodels logical; recursion over child models?
-imxHasAlgebraOnPath <- function(model, strict=FALSE, submodels=TRUE){
+##' @param strict logical; raise error if `model` contains no paths?
+imxHasAlgebraOnPath <- function(model, submodels=TRUE, strict=FALSE){
 	#out <- FALSE
 	if(!AnyRAMOrLISREL(model,submodels=TRUE)){
 		if(strict){
