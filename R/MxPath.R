@@ -481,7 +481,7 @@ AnyRAMOrLISREL <- function(model,submodels=TRUE){
 		}
 	}
 	if(submodels && length(model$submodels) > 0){
-		out <- out || all(sapply(model@submodels, AllRAMOrLISREL))
+		out <- out || all(sapply(model@submodels, AnyRAMOrLISREL))
 	}
 	return(out)
 }
