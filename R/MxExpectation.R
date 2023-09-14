@@ -244,7 +244,7 @@ getPrecisionPerExpectation <- function(expectation, optionsList){
 ##' submodels) has any thresholds.
 ##'
 ##' @param model model
-##' @submodels logical; recursion over child models?
+##' @param submodels logical; recursion over child models?
 imxHasThresholds <- function(model,submodels=TRUE) {
 	if(length(model@expectation) && 
 		 (class(model@expectation) %in% c("MxExpectationNormal","MxExpectationLISREL","MxExpectationRAM")) && 
