@@ -90,6 +90,7 @@ protected:
 	void setUnitsFromName(const char *name);
 	const char *name() const { return matrix->name(); }
   void connectPenalties();
+	virtual void sufficientDerivs2Grad() {};
 };
 
 /* Initialize and Destroy */

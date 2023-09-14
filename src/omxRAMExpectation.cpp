@@ -2576,3 +2576,8 @@ namespace RelationalRAMExpectation {
 		}
 	}
 }
+
+void omxRAMExpectation::provideSufficientDerivs()
+{
+	
+}

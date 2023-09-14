@@ -105,6 +105,8 @@ protected:
 		asVector1(fc, row, out.derived());
 	}
   Eigen::MatrixXd buildThresholdMatrix();
+	
+	virtual void provideSufficientDerivs() {};
 
 	virtual bool usesDataColumnNames() const { return true; }
 	void loadDataColFromR();
