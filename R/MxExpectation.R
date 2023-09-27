@@ -280,6 +280,9 @@ markExpectationsEligibleForSufficientDerivs <- function(model){
 		if(length(model[[m]]$expectation)){
 			model[[m]]$expectation@.canProvideSufficientDerivs <- 
 				c(is(model[[m]]$expectation,"MxExpectationRAM") && identical(model[[m]]$data$type,"cov") && 
+						#!is.na(model[[m]]$expectation$M) && 
+						is.na(model[[m]]$expectation$selectionVector) &&
+						!any(model[[m]]$expectation$isProductNode) &&
 						is(model[[m]]$fitfunction,"MxFitFunctionML") && !imxHasAlgebraOnPath(model[[m]],submodels=F) && 
 						!imxHasThresholds(model[[m]],submodels=F),
 					FALSE)[wich]
