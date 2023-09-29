@@ -469,3 +469,48 @@ void MLFitState::init()
 	newObj->logDetObserved = log_determinant_ldlt(ldlt_obCov);
 	if(OMX_DEBUG) { mxLog("Log Determinant of Observed Cov: %f", newObj->logDetObserved); }
 }
+
+/*TODO: It is wasteful to Cholesky-factor (and subsequently invert) the model-expected covariance
+when computing the gradient (here) as well as when computing the fit:*/
+void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc){
+	//TODO triangularView and selfadjointView anywhere else?
+	auto *oo = this;
+	MLFitState *omo = (MLFitState*) oo;
+	int numFree = fc->getNumFree();
+	EigenMatrixAdaptor obCov(omo->observedCov);
+	EigenMatrixAdaptor exCov(omo->expectedCov);
+	Eigen::LLT< Eigen::MatrixXd > cholC(exCov.rows());
+	cholC.compute(exCov.selfadjointView<Eigen::Lower>());
+	if(cholC.info() != Eigen::Success){
+		ig.setConstant(NA_REAL);
+		if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
+		return;
+	}
+	Eigen::MatrixXd Cinv(exCov.rows(), exCov.cols());
+	Cinv.triangularView<Eigen::Lower>() = cholC.solve(Eigen::MatrixXd::Identity(exCov.rows(), exCov.cols())).triangularView<Eigen::Lower>();
+	oo->expectation->provideSufficientDerivs(fc, dSigma_dtheta, dMu_dtheta);
+	if(oo->expectedMeans){
+		EigenVectorAdaptor obMeans(omo->observedMeans);
+		EigenVectorAdaptor exMeans(omo->expectedMeans);
+		Eigen::MatrixXd Nu = (obMeans - exMeans).transpose(); //<--Column vector
+		Eigen::MatrixXd CinvNu = Cinv.selfadjointView<Eigen::Lower>() * Nu;
+		Eigen::MatrixXd const2ndTraceFactor = CinvNu * Nu.transpose();
+		const2ndTraceFactor *= -1.0; //<--First step in subtraction from identity matrix.
+		const2ndTraceFactor.diagonal().array() += 1.0; //<--Second step.
+		const2ndTraceFactor *= Cinv.selfadjointView<Eigen::Lower>(); //<--Possble because trace of a matrix product is invariant under cyclic permutation of the factors.
+		for(int i=0; i < numFree; i++){ //<--Could this loop be parallelized?
+			//Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
+			ig[i] = -2.0*(dMu_dtheta[i]*CinvNu)(0,0) + (dSigma_dtheta[i].array() * const2ndTraceFactor.array()).sum();
+			//^^^The compiler doesn't know that dMu_dtheta[i]*CinvNu will always evaluate to a scalar.
+			ig[i] *= 0.5;
+		}
+	}
+	else{
+		Eigen::MatrixXd CinvObCov = Cinv.selfadjointView<Eigen::Lower>() * obCov;
+		for(int i=0; i < numFree; i++){ //<--Could this loop be parallelized?
+			Eigen::MatrixXd CinvDer = Cinv.selfadjointView<Eigen::Lower>() * dSigma_dtheta[i];
+			//Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
+			ig[i] = 0.5*(CinvDer.trace() - (CinvObCov.array() * CinvDer.array()).sum());
+		}
+	}
+}
