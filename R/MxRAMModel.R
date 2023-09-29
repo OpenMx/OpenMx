@@ -514,10 +514,10 @@ insertPathRAM <- function(path, model) {
 	S_labels <- S@labels
 	S_lbound <- S@lbound
 	S_ubound <- S@ubound
-  selVecCov <- model[['selectionVectorCov']]
-  selPlanCov <- model$expectation$selectionPlanCov
-  selVecMean <- model[['selectionVectorMean']]
-  selPlanMean <- model$expectation$selectionPlanMean
+	selVecCov <- model[['selectionVectorCov']]
+	selPlanCov <- model$expectation$selectionPlanCov
+	selVecMean <- model[['selectionVectorMean']]
+	selPlanMean <- model$expectation$selectionPlanMean
 
 	legalVars <- c(colnames(A), "one")
 	isProductNode <- model$expectation$isProductNode
@@ -533,7 +533,7 @@ insertPathRAM <- function(path, model) {
 		nextubound <- allubound[[i %% length(allubound) + 1]]
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
 		nextjoinKey <- alljoinKey[[i %% length(alljoinKey) + 1]]
-    nextstep <- path@step[[i %% length(path@step) + 1]]
+		nextstep <- path@step[[i %% length(path@step) + 1]]
 
 		if (!is.na(nextjoinKey)) {
 			upperFrom <- strsplit(from, imxSeparatorChar, fixed = TRUE)
@@ -663,18 +663,35 @@ insertPathRAM <- function(path, model) {
       # mxMatrix: vector of parameters to plop in
       pair <- c(from,to)[order(match(c(from,to), legalVars))]  # canonical order
       r1 <- data.frame(step=nextstep, from=pair[1], to=pair[2])
-      selPlanCov <- rbind(selPlanCov, r1)
-      oldSelVec <- selVecCov
-      selVecCov <- mxMatrix('Full', nrow(selPlanCov), 1)
-      if (!is.null(oldSelVec)) selVecCov[1:nrow(oldSelVec),1] <- oldSelVec
-      selVecCov[nrow(selVecCov),1]$free <- nextfree
-      selVecCov[nrow(selVecCov),1]$values <- nextvalue
-      selVecCov[nrow(selVecCov),1]$labels <- nextlabel
-      selVecCov[nrow(selVecCov),1]$ubound <- nextubound
-      selVecCov[nrow(selVecCov),1]$lbound <- nextlbound
-      p1 <- order(selPlanCov$step, selPlanCov$from, selPlanCov$to)
-      selPlanCov <- selPlanCov[p1,]
-      selVecCov <- selVecCov[p1,]
+	  
+	  # If connected to 'one', set mean selection for path; otherwise covariance
+	  if (pair[1] == 'one' | pair[2] == 'one'){
+		  selPlanMean <- rbind(selPlanMean, r1)
+		  oldSelVec <- selVecMean
+		  selVecMean <- mxMatrix('Full', nrow(selPlanMean), 1)
+		  if (!is.null(oldSelVec)) selVecMean[1:nrow(oldSelVec),1] <- oldSelVec
+		  selVecMean[nrow(selVecMean),1]$free <- nextfree
+		  selVecMean[nrow(selVecMean),1]$values <- nextvalue
+		  selVecMean[nrow(selVecMean),1]$labels <- nextlabel
+		  selVecMean[nrow(selVecMean),1]$ubound <- nextubound
+		  selVecMean[nrow(selVecMean),1]$lbound <- nextlbound
+		  p1 <- order(selPlanMean$step, selPlanMean$from, selPlanMean$to)
+		  selPlanMean <- selPlanMean[p1,]
+		  selVecMean <- selVecMean[p1,]
+	  } else {
+		  selPlanCov <- rbind(selPlanCov, r1)
+		  oldSelVec <- selVecCov
+		  selVecCov <- mxMatrix('Full', nrow(selPlanCov), 1)
+		  if (!is.null(oldSelVec)) selVecCov[1:nrow(oldSelVec),1] <- oldSelVec
+		  selVecCov[nrow(selVecCov),1]$free <- nextfree
+		  selVecCov[nrow(selVecCov),1]$values <- nextvalue
+		  selVecCov[nrow(selVecCov),1]$labels <- nextlabel
+		  selVecCov[nrow(selVecCov),1]$ubound <- nextubound
+		  selVecCov[nrow(selVecCov),1]$lbound <- nextlbound
+		  p1 <- order(selPlanCov$step, selPlanCov$from, selPlanCov$to)
+		  selPlanCov <- selPlanCov[p1,]
+		  selVecCov <- selVecCov[p1,]
+	  }
     } else if (arrows == 1) {
 			A_free[to, from] <- nextfree
 			A_values[to, from] <- nextvalue
@@ -724,17 +741,17 @@ insertPathRAM <- function(path, model) {
 	model[['A']] <- A
 	model[['S']] <- S
 	if (!is.null(M)) model[['M']] <- M
-  if (!is.null(selVecCov)) {
-    model$expectation$selectionVectorCov <- 'selectionVectorCov'
-    model[['selectionVectorCov']] <- selVecCov
-  }
-  if (!is.null(selPlanCov)) model$expectation$selectionPlanCov <- selPlanCov
+	if (!is.null(selVecCov)) {
+		model$expectation$selectionVectorCov <- 'selectionVectorCov'
+		model[['selectionVectorCov']] <- selVecCov
+	}
+	if (!is.null(selPlanCov)) model$expectation$selectionPlanCov <- selPlanCov
   
-  if (!is.null(selVecMean)) {
-    model$expectation$selectionVectorMean <- 'selectionVectorMean'
-    model[['selectionVectorMean']] <- selVecMean
-  }
-  if (!is.null(selPlanMean)) model$expectation$selectionPlanMean <- selPlanMean
+	if (!is.null(selVecMean)) {
+		model$expectation$selectionVectorMean <- 'selectionVectorMean'
+		model[['selectionVectorMean']] <- selVecMean
+	}
+	if (!is.null(selPlanMean)) model$expectation$selectionPlanMean <- selPlanMean
 	model
 }
 

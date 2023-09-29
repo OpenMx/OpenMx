@@ -1360,8 +1360,8 @@ mxExpectationNormal <-
   selectionVectorMean <- NA_character_
   selectionPlanMean <- NULL
 	return(new("MxExpectationNormal", covariance, means, dimnames, thresholds, threshnames,
-             discrete, discreteSpec, selectionVectorCov, selectionPlanCov,
-			 selectionVectorMean, selectionPlanMean))
+             discrete, discreteSpec, selectionVectorCov, selectionVectorMean, selectionPlanCov,
+			 selectionPlanMean))
 }
 
 displayMxExpectationNormal <- function(expectation) {
