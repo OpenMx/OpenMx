@@ -226,6 +226,9 @@ autodep:
 	cd src && gcc \
     -MM *.cpp *.c | perl -pe 's,\S*/(R|Rcpp|BH|RcppEigen|rpf|StanHeaders)/include/\S*,,g' | perl -pe 's,^\s*\\\n,,'  |perl -pe 's,:,: Makevars,'  > autodep
 
+vignettes: docprep
+	Rscript -e "devtools::build_vignettes()"	
+
 clean:
 	cd docs && make clean
 	mkdir -p staging
