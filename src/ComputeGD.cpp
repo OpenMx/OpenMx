@@ -29,7 +29,7 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Dense>
-#include <Eigen/CholmodSupport>
+#include <RcppEigenCholmod.h>
 #include <RcppEigenWrap.h>
 #include "asa.h"
 

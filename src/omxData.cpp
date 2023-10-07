@@ -34,7 +34,7 @@
 #include "nr.h"
 #include "omxBVN.h"
 #include "omxNLopt.h"
-#include <Eigen/CholmodSupport>
+#include <RcppEigenCholmod.h>
 #include <RcppEigenWrap.h>
 #include "CovEntrywisePar.h"
 #include "Compute.h"
