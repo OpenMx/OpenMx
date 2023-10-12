@@ -80,7 +80,7 @@ class PathCalc {
   Eigen::MatrixXd tmpFullCov;
   Eigen::VectorXd tmpFullMean;
   omxMatrix *selVec;
-
+  
   struct selPlanRow {
     int step;
     int from;
@@ -130,12 +130,15 @@ class PathCalc {
 	std::unique_ptr<PathCalcIO> mio, aio, sio;
 	const int verbose;
 	const bool ignoreVersion;
+	
+	bool doCacheUnfilteredIA; //cache unfiltered (I-A) inverse?
+	Eigen::MatrixXd I_A; //cached unfiltered (I-A) inverse
 
  PathCalc() :
 	 useSparse(false), versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
 	 algoSet(false), versionPoly(0), fullMeanAccess(0), fullCovAccess(0),
-   selVec(0), verbose(0), ignoreVersion(false) {}
+   selVec(0), verbose(0), ignoreVersion(false), doCacheUnfilteredIA(false) {}
 
 	void clone(PathCalc &pc)
 	{

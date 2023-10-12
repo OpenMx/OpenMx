@@ -226,6 +226,10 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 			}
 		}
 	}
+	
+	if(doCacheUnfilteredIA){
+		I_A = IA;
+	}
 
 	if (doFilter) {
 		// We built A transposed so we can quickly filter columns

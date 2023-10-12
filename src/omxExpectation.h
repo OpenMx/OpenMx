@@ -106,7 +106,8 @@ protected:
 	}
   Eigen::MatrixXd buildThresholdMatrix();
 	
-	virtual void provideSufficientDerivs() {};
+	virtual void provideSufficientDerivs(
+			FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dMu_dtheta) {};
 
 	virtual bool usesDataColumnNames() const { return true; }
 	void loadDataColFromR();

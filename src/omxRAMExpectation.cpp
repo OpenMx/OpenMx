@@ -476,7 +476,8 @@ void omxRAMExpectation::init()
   
   if (R_has_slot(rObj, Rf_install(".canProvideSufficientDerivs"))) {
   	ProtectedSEXP Rcpsd(R_do_slot(rObj, Rf_install(".canProvideSufficientDerivs")));
-  	RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd) && !hasProductNodes && Global->analyticGradients;
+  	RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd) && Global->analyticGradients;
+  	RAMexp->pcalc.doCacheUnfilteredIA = true;
   }
   if(RAMexp->canProvideSufficientDerivs){
   	FitContext *fc = Global->topFc;
@@ -2577,7 +2578,31 @@ namespace RelationalRAMExpectation {
 	}
 }
 
-void omxRAMExpectation::provideSufficientDerivs()
+void omxRAMExpectation::provideSufficientDerivs(
+		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dMu_dtheta)
 {
-	
+	EigenMatrixAdaptor eF(F);
+	Eigen::MatrixXd eFullCov;
+	pcalc.fullCov(fc, eFullCov); //<--Does this have to be invoked during every call to provideSufficientDerivs()...?
+	Eigen::MatrixXd I_At = pcalc.I_A.transpose();
+	omxMatrix *dA = omxInitMatrix(A->rows, A->cols, 1, currentState);
+	for(size_t px=0; px < u_dSigma_dtheta.size(); px++){
+		EigenMatrixAdaptor edS(dS_dtheta[px]);
+		omxCopyMatrix(dA, dA_dtheta[px]);
+		EigenMatrixAdaptor edA(dA);
+		edA *= -1.0;  //First step of I-dA
+		edA.diagonal().array() += 1.0; //Second step of I-dA
+		Eigen::MatrixXd edAt = edA.transpose();
+		//TODO selfadjointView and triangularView:
+		u_dSigma_dtheta[px] = eF * 
+			(-1.0*pcalc.I_A*edA*eFullCov + pcalc.I_A*edS*I_At - eFullCov*edAt*I_At) * eF.transpose();
+		//^^^Can we avoid multiplication by the filter matrix somehow?
+		if(M){
+			EigenMatrixAdaptor eM(M);
+			EigenMatrixAdaptor edM(dM_dtheta[px]);
+			//Remember that eM and edM are row vectors:
+			u_dMu_dtheta[px] = (-1.0*eF*(pcalc.I_A*edA*pcalc.I_A*eM.transpose() + pcalc.I_A*edM.transpose())).transpose();
+		}
+	}
+	omxFreeMatrix(dA);
 }
