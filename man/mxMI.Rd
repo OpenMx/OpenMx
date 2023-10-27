@@ -35,7 +35,7 @@ mxMI(model, matrices=NA, full=TRUE)
 }
 
 \details{
-Modification indices provide an estimate of how much the fit function value would change if a parameter that is currently fixed was instead freely estimated.  There are two versions of this estimate: a restricted version and an full version.  The restricted version is reported as the MI and is much faster to compute.  The full version is reported as MI.Full.  The full version accounts for the \emph{total} change in fit function value resulting from the newly freed parameter.  The restricted version only accounts for the change in the fit function due to the movement of the new free parameter.  In particular, the restricted version does not account for the change in fit function value due to the other free parameters moving in response to the new parameter.
+Modification indices provide an estimate of how much the fit function value would change if a parameter that is currently fixed was instead freely estimated.  There are two versions of this estimate: a restricted version and an full version.  The restricted version is reported as the MI and is much faster to compute.  The full version is reported as MI.Full.  The full version accounts for the \emph{total} change in fit function value resulting from the newly freed parameter.  The restricted version only accounts for the change in the fit function due to the movement of the new free parameter.  In particular, the restricted version does not account for the change in fit function value due to the other free parameters moving in response to the new parameter.  In addition to the fit function value change, the expected parameter change (EPC) can be computed for each parameter that is newly freed.
 
 The algorithm respects fixed parameter labels.  That is, when a fixed parameter has a label and occurs in more than one spot, then that fixed parameter is freed in all locations in which it occurs to evaluate the modification index for that fixed parameter.
 
@@ -50,6 +50,7 @@ Users should be cautious in their use of modification indices.  If a model was c
         \item{MI}{The restricted modification index.}
         \item{MI.Full}{The full modification index.}
         \item{plusOneParamModels}{A list of models with one additional free parameter}
+        \item{EPC}{The expected parameter change.  Only available when \code{full=TRUE}}
     }
 }
 
