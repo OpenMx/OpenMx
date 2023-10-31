@@ -29,6 +29,7 @@
 #include "matrix.h"
 #include "Compute.h"
 #include "EnableWarnings.h"
+#include "omxMatrix.h"
 
 static const double MIN_VARIANCE = 1e-6;
 
@@ -238,8 +239,14 @@ void MLFitState::compute2(int want, FitContext *fc)
 				}
 				oo->sufficientDerivs2Grad(init_grad, fc);
 				//Seriously consider combining this for loop and the next one.
+				if(OMX_DEBUG_NEWSTUFF){ mxLog("Scale: %f",Scale); }
 				for (int px=0; px < int(numFree); ++px) {
+					if(OMX_DEBUG_NEWSTUFF){
+						mxLog("gradZ[px]: %f", fc->gradZ[px]);
+						mxLog("init_grad[px]: %f", init_grad[px]);
+					}
 					fc->gradZ[px] += Scale * init_grad[px];
+					if(OMX_DEBUG_NEWSTUFF){ mxLog("gradZ[px] post-assignment: %f", fc->gradZ[px]); }
 				}
 			}
 			else{
@@ -274,8 +281,14 @@ void MLFitState::compute2(int want, FitContext *fc)
 					}
 				}
 				oo->sufficientDerivs2Grad(init_grad, fc);
+				if(OMX_DEBUG_NEWSTUFF){ mxLog("Scale: %f",Scale); }
 				for (int px=0; px < int(numFree); ++px) {
+					if(OMX_DEBUG_NEWSTUFF){
+						mxLog("gradZ[px]: %f", fc->gradZ[px]);
+						mxLog("init_grad[px]: %f", init_grad[px]);
+					}
 					fc->gradZ[px] += Scale * init_grad[px];
+					if(OMX_DEBUG_NEWSTUFF){ mxLog("gradZ[px] post-assignment: %f", fc->gradZ[px]); }
 				}
 			}
 			else{
@@ -550,11 +563,21 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 		}
 	}
 	else{
+		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Cinv:",Cinv); }
 		Eigen::MatrixXd CinvObCov = Cinv * obCov;
+		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvObCov:",CinvObCov); }
 		for(int i=0; i < numFree; i++){ //<--Could this loop be parallelized?
+			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Der:",dSigma_dtheta[i]); }
 			Eigen::MatrixXd CinvDer = Cinv * dSigma_dtheta[i];
+			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvDer:",CinvDer); }
+			//double secondTerm = (CinvObCov.array() * CinvDer.array()).sum();
+			double secondTerm = (CinvObCov * CinvDer).trace();
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("secondTerm: %f", secondTerm); }
+			double CinvDer_trace = CinvDer.trace();
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("CinvDer_trace: %f", CinvDer_trace); }
 			//Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
-			ig[i] = (n-1)*-0.5*(CinvDer.trace() - (CinvObCov.array() * CinvDer.array()).sum());
+			ig[i] = (n-1)*-0.5*(CinvDer_trace - secondTerm + 1/fc->varGroup->vars[0])
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i]: %f", ig[i]); }
 			//ig[i] = (n-1)*-0.5*(CinvDer.trace() - (CinvObCov * CinvDer).trace());
 		}
 	}
