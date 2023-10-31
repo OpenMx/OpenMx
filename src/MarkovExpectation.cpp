@@ -16,7 +16,7 @@
 
 #include "omxExpectation.h"
 #include <Eigen/SparseCore>
-#include <Eigen/CholmodSupport>
+#include <RcppEigenCholmod.h>
 #include <RcppEigenWrap.h>
 #include "EnableWarnings.h"
 

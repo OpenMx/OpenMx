@@ -6,11 +6,9 @@
 #include <Eigen/SparseLU>
 #include <Eigen/Cholesky>
 //#include <Eigen/SparseCholesky>
-#include <Eigen/CholmodSupport>
-//#include <RcppEigenStubs.h>
-#include <RcppEigenWrap.h>
 //#include <Eigen/UmfPackSupport>
-//#include <RcppEigenCholmod.h>
+#include <RcppEigenCholmod.h>
+#include <RcppEigenWrap.h>
 #include "path.h"
 #include "Connectedness.h"
 

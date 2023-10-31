@@ -42,6 +42,7 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 	#same as original model but with all parameters fixed
 	mi.r <- NULL
 	mi.f <- NULL
+	epc.f <- NULL
 	a.names <- NULL
 	new.models <- list()
 	for(amat in matrices){
@@ -104,14 +105,13 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				
 				# Create and run the single-parameter model for the LISREL-type/partial/[lower bound] MI
 				gmodel <- mxModel(gmodel, custom.compute)
-				grun <- try(mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)) #suppress War
-nings =TRUE
+				grun <- try(mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)) #suppress Warnings =TRUE
         if (is(grun, "try-error")) {
           # oops, not happy about that parameter (e.g., diag of RAM's A)
           gmodel <- omxSetParameters(gmodel, labels=names(omxGetParameters(gmodel)), free=FALSE)
           next
         }
-				
+
 				# restricted MI
 				grad <- grun$output$gradient #get gradient
 				hess <- grun$output$hessian #get Hessian
@@ -129,8 +129,13 @@ nings =TRUE
 					grad.full[is.na(grad.full)] <- 0
 					hess.full <- plusOneParamRun$output$hessian
 					modind.full <- 0.5*t(matrix(grad.full)) %*% solve(hess.full) %*% matrix(grad.full)
+					if(sum(grad.full != 0) == 1){
+						exppar.full <- - modind.full/grad.full[grad.full != 0]
+					} else {stop("Something strange in the neighborhood.\nFound a one-parameter model with more than one parameter.\nPost this to the OpenMx forums.")}
+					# Note: the above should be safe, but assumes only one grad.full is not zero
 				} else {
 					modind.full <- NULL
+					exppar.full <- NULL
 				}
 				
 				n.names <- names(omxGetParameters(grun))
@@ -138,13 +143,14 @@ nings =TRUE
 					a.names <- c(a.names, n.names)
 					mi.r <- c(mi.r, modind)
 					mi.f <- c(mi.f, modind.full)
+					epc.f <- c(epc.f, exppar.full)
 					new.models <- c(new.models, plusOneParamModel)
 				}
 				gmodel <- omxSetParameters(gmodel, labels=names(omxGetParameters(gmodel)), free=FALSE)
 			}
 		}
 		names(mi.r) <- a.names
-		if(full==TRUE) {names(mi.f) <- a.names}
+		if(full==TRUE) {names(mi.f) <- a.names; names(epc.f) <- a.names}
 		names(new.models) <- a.names
 	}
 	# not yet tested
@@ -153,7 +159,7 @@ nings =TRUE
 			ret <- c(ret, mxMI(asubmodel)) #probably won't work.
 		}
 	}
-	return(list(MI=mi.r, MI.Full=mi.f, plusOneParamModels=new.models))
+	return(list(MI=mi.r, MI.Full=mi.f, plusOneParamModels=new.models, EPC=epc.f))
 }
 
 

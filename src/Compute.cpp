@@ -32,14 +32,16 @@
 #include "omxData.h"
 #include <Eigen/Cholesky>
 #include <Eigen/QR>
-#include <Eigen/CholmodSupport>
 #include <Eigen/Dense>
+#include <RcppEigenCholmod.h>
 #include <RcppEigenWrap.h>
 #include "finiteDifferences.h"
 #include "autoTune.h"
 #include "minicsv.h"
 #include "LoadDataAPI.h"
 #include "EnableWarnings.h"
+
+#include <RcppEigenStubs.cpp>
 
 void pda(const double *ar, int rows, int cols);
 
