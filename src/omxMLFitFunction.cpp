@@ -566,7 +566,7 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Cinv:",Cinv); }
 		Eigen::MatrixXd CinvObCov = Cinv * obCov;
 		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvObCov:",CinvObCov); }
-		for(int i=0; i < numFree; i++){ //<--Could this loop be parallelized?
+		for(int i=0; i < numFree; i++){ 
 			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Der:",dSigma_dtheta[i]); }
 			Eigen::MatrixXd CinvDer = Cinv * dSigma_dtheta[i];
 			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvDer:",CinvDer); }
@@ -576,7 +576,7 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 			double CinvDer_trace = CinvDer.trace();
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("CinvDer_trace: %f", CinvDer_trace); }
 			//Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
-			ig[i] = (n-1)*-0.5*(CinvDer_trace - secondTerm + 1/fc->varGroup->vars[0])
+			ig[i] = (n-1)*-0.5*(CinvDer_trace - secondTerm);
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i]: %f", ig[i]); }
 			//ig[i] = (n-1)*-0.5*(CinvDer.trace() - (CinvObCov * CinvDer).trace());
 		}
