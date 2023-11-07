@@ -162,7 +162,7 @@ removeVariablesRAM <- function(model, latent, manifest) {
 	model[['A']] <- A
 	model[['S']] <- S
 	Thresh <- model[['Thresholds']]
-	if(!all.na(Thresh)) {
+	if(!isAllNa(Thresh)) {
 		newCols <- setdiff(colnames(Thresh), manifest)
 		newRows <- nrow(Thresh) - min(colSums(is.na(Thresh@values[,newCols])))
 		model[['Thresholds']] <- Thresh[1:newRows,newCols]
@@ -409,7 +409,7 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 		thisThresh <- thresholds[[i]]
 		values <- thisThresh@values
 		msg = NULL
-		if(all.na(values)) {
+		if(isAllNa(values)) {
 			msg = paste("The thresholds you are attempting to specify",
 				"does not have any starting values, but type='RAM' models require them.")
 		}

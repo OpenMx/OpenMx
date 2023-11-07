@@ -350,13 +350,13 @@ mxPath <- function(from, to = NA,
     step <- rep(NA_integer_, length(arrows))
     step[arrows==0] <- 1L  # default step
   }
-	if (all.na(to)) { to <- as.character(to) }
-	if (all.na(from)) { from <- as.character(from) }
-	if (all.na(values)) { values <- as.numeric(values) }
-	if (all.na(labels)) { labels <- as.character(labels) }
-	if (all.na(lbound)) { lbound <- as.numeric(lbound) }
-	if (all.na(ubound)) { ubound <- as.numeric(ubound) }
-	if (all.na(connect)) { connect <- as.character(connect) }
+	if (isAllNa(to)) { to <- as.character(to) }
+	if (isAllNa(from)) { from <- as.character(from) }
+	if (isAllNa(values)) { values <- as.numeric(values) }
+	if (isAllNa(labels)) { labels <- as.character(labels) }
+	if (isAllNa(lbound)) { lbound <- as.numeric(lbound) }
+	if (isAllNa(ubound)) { ubound <- as.numeric(ubound) }
+	if (isAllNa(connect)) { connect <- as.character(connect) }
 	pathCheckVector(from, 'from', is.character, 'character')
 	pathCheckVector(to, 'to', is.character, 'character')
 	pathCheckVector(arrows, 'arrows', is.numeric, 'numeric')
