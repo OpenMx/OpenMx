@@ -81,6 +81,8 @@ namespace stan {
       stan::math::LDLT_factor<param_t,Eigen::Dynamic,Eigen::Dynamic> ldlt_Sigma(Sigma);
 #endif
       check_ldlt_factor(function, "LDLT_Factor of covariance parameter", ldlt_Sigma);
+      
+      double crrctn = (double(sampleSize)-1.0)/double(sampleSize);
 
       Eigen::Matrix<param_t, Eigen::Dynamic, Eigen::Dynamic> ss;
       ss = mdivide_left_ldlt(ldlt_Sigma, sampleSigma);
@@ -92,7 +94,8 @@ namespace stan {
 	      lp += log_determinant_ldlt(ldlt_Sigma) * sampleSize;
 
       if (include_summand<propto, T_covar, T_sample>::value)
-	      lp += ss.trace() * (sampleSize-1);
+	      //lp += ss.trace() * (sampleSize-1.0) * crrctn;
+        lp += ss.trace() * (sampleSize-1.0);
 
       if (include_summand<propto, T_covar, T_loc>::value) {
 	Eigen::Matrix<param_t, Eigen::Dynamic, 1> y_minus_mu(mu.size());

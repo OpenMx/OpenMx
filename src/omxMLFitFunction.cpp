@@ -73,8 +73,10 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	double det = 0.0;
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
+	double crrctn = (double(state->n)-1.0)/double(state->n);
 
-	*saturated_out = (state->logDetObserved * state->n) + ncols * (state->n - 1);
+	//*saturated_out = (state->logDetObserved * state->n) + ncols * (state->n - 1);
+	*saturated_out = (state->logDetObserved + ncols*log(crrctn))*state->n + ncols*(state->n - 1);
 
 	// Independence model assumes all-zero manifest covariances.
 	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
@@ -564,7 +566,8 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 	}
 	else{
 		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Cinv:",Cinv); }
-		Eigen::MatrixXd CinvObCov = Cinv * obCov;
+		Eigen::MatrixXd CinvObCov = Cinv * ((n-1)/n*obCov);
+		//Eigen::MatrixXd CinvObCov = Cinv * obCov;
 		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvObCov:",CinvObCov); }
 		for(int i=0; i < numFree; i++){ 
 			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Der:",dSigma_dtheta[i]); }
