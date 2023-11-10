@@ -579,7 +579,13 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 			double CinvDer_trace = CinvDer.trace();
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("CinvDer_trace: %f", CinvDer_trace); }
 			//Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
-			ig[i] = (n-1)*-0.5*(CinvDer_trace - secondTerm);
+			ig[i] = (n)*-0.5*(CinvDer_trace - secondTerm);
+			/*
+			 * ^^^The right-hand side "should" be multiplied by (n-1).  However, multiplying by (n-1) results in a gradient element that is
+			 * smaller than the corresponding numerical gradient by a factor of (n-1)/n.  Thus, we multiply by a correction factor of n/(n-1),
+			 * and the (n-1)s cancel from division.  Yes, this is a kludge.
+			 * Ideally, in the future, we will identify where in the math & code the "n vs. n-1" discrepancy actually exists.
+			*/
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i]: %f", ig[i]); }
 			//ig[i] = (n-1)*-0.5*(CinvDer.trace() - (CinvObCov * CinvDer).trace());
 		}
