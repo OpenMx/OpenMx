@@ -2600,7 +2600,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("edS:",edS); }
 		omxCopyMatrix(dA, dA_dtheta[px]);
 		EigenMatrixAdaptor edA(dA);
-		edA *= -1.0;  //First step of I-dA
+		edA *= -1.0;  //First step of 0-dA
 		//edA.diagonal().array() += 1.0; //Second step of I-dA
 		Eigen::MatrixXd edAt = edA.transpose();
 		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("edA transpose",edAt); }
