@@ -525,6 +525,8 @@ void omxRAMExpectation::init()
   				if(freeVarGroup->vars[px]->locations[li].matrix == samPos[2]){
   					omxSetMatrixElement(
   						dM_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
+  					EigenMatrixAdaptor edM_dtheta_px(dM_dtheta[px]);
+  					if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dM_dtheta[px]:",edM_dtheta_px); }
   				}
   			}
   		}
@@ -2588,7 +2590,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dMu_dtheta)
 {
 	EigenMatrixAdaptor eF(F);
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("F:",eF); }
+	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("F:",eF); }
 	/*
 	 * pcalc.doAlwaysComputeUnfilteredIAUponEval is only relevant to pcalc's behavior within the context of the present function.
 	 * So, we store what it is at the start of the function call, set it to true for this function's purposes, and then, at the end
@@ -2598,37 +2600,38 @@ void omxRAMExpectation::provideSufficientDerivs(
 	pcalc.doAlwaysComputeUnfilteredIAUponEval = true;
 	Eigen::MatrixXd eFullCov;
 	pcalc.fullCov(fc, eFullCov); //<--Does this have to be invoked during every call to provideSufficientDerivs()...?  Seemingly, yes.
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("fullCov:",eFullCov); }
+	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("fullCov:",eFullCov); }
 	//N.B. pcalc.I_A is solve(I - t(A)):
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("(I-A) inverse transpose:",pcalc.I_A); }
+	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse transpose:",pcalc.I_A); }
 	Eigen::MatrixXd I_At = pcalc.I_A.transpose();
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("(I-A) inverse:",I_At); }
+	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse:",I_At); }
 	omxMatrix *dA = omxInitMatrix(A->rows, A->cols, 1, currentState);
 	for(size_t px=0; px < u_dSigma_dtheta.size(); px++){
 		EigenMatrixAdaptor edS(dS_dtheta[px]);
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("edS:",edS); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("edS:",edS); }
 		omxCopyMatrix(dA, dA_dtheta[px]);
 		EigenMatrixAdaptor edA(dA);
 		edA *= -1.0;  //0-dA, in-place.
 		Eigen::MatrixXd edAt = edA.transpose();
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("edA transpose",edAt); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("edA transpose",edAt); }
 		//TODO selfadjointView and triangularView:
 		Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov;
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("firstPart:", firstPart); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
 		Eigen::MatrixXd secondPart = I_At*edS*pcalc.I_A;
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("secondPart:", secondPart); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 		Eigen::MatrixXd thirdPart = -1.0*eFullCov*edAt*pcalc.I_A;
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("thirdPart:", thirdPart); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
 		u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart) * eF.transpose();
 		//u_dSigma_dtheta[px] = eF * 
 		//	(-1.0*pcalc.I_A*edA*eFullCov + pcalc.I_A*edS*I_At - eFullCov*edAt*I_At) * eF.transpose();
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
 		//^^^Can we avoid multiplication by the filter matrix somehow?
 		if(M){
 			EigenMatrixAdaptor eM(M);
 			EigenMatrixAdaptor edM(dM_dtheta[px]);
 			//Remember that eM and edM are row vectors:
 			u_dMu_dtheta[px] = (-1.0*eF*(I_At*edA*I_At*eM.transpose() + I_At*edM.transpose())).transpose();
+			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dMu_dtheta[px]:", u_dMu_dtheta[px]); }
 		}
 	}
 	pcalc.doAlwaysComputeUnfilteredIAUponEval = tmpflag; //<--Restore value to what it was before this function messed with it.
