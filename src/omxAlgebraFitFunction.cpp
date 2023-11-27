@@ -173,8 +173,7 @@ void AlgebraFitFunction::compute2(int want, FitContext *fc)
 						double coef2 = omxMatrixElement(hessian, h1, h2);
 						if (coef1 != coef2) {
 							Rf_warning("%s: Hessian algebra '%s' is not symmetric at [%d,%d]",
-								ff->matrix->name(), hessian->name(), 1L+int(h2), 1L+int(h1));
-
+								ff->matrix->name(), hessian->name(), int(1+h2), int(1+h1));
 						}
 						hb->mat(d2,d1) = coef1;
 					}
