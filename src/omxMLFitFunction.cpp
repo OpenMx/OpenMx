@@ -547,6 +547,7 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 	}
 	Eigen::MatrixXd Cinv(exCov.rows(), exCov.cols());
 	Cinv = cholC.solve(Eigen::MatrixXd::Identity(exCov.rows(), exCov.cols()));
+	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Cinv:",Cinv); }
 	Eigen::MatrixXd Nu, CinvNu;
 	if(oo->expectedMeans){
 		EigenVectorAdaptor obMeans(omo->observedMeans);
@@ -582,19 +583,18 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 	 }
 	 }
 	 else{*/
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Cinv:",Cinv); }
 	Eigen::MatrixXd CinvObCov = Cinv * ((n-1)/n*obCov);
 	//Eigen::MatrixXd CinvObCov = Cinv * obCov;
-	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvObCov:",CinvObCov); }
+	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvObCov:",CinvObCov); }
 	for(int i=0; i < numFree; i++){ 
-		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Der:",dSigma_dtheta[i]); }
+		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Der:",dSigma_dtheta[i]); }
 		Eigen::MatrixXd CinvDer = Cinv * dSigma_dtheta[i];
-		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvDer:",CinvDer); }
+		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvDer:",CinvDer); }
 		//double secondTerm = (CinvObCov.array() * CinvDer.array()).sum();
 		double secondTerm = (CinvObCov * CinvDer).trace();
-		if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
+		if(OMX_DEBUG_NEWSTUFF){ mxLog("secondTerm: %f", secondTerm); }
 		double CinvDer_trace = CinvDer.trace();
-		if(OMX_DEBUG_ALGEBRA){ mxLog("CinvDer_trace: %f", CinvDer_trace); }
+		if(OMX_DEBUG_NEWSTUFF){ mxLog("CinvDer_trace: %f", CinvDer_trace); }
 		//Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
 		ig[i] = (n)*-0.5*(CinvDer_trace - secondTerm);
 		/*
@@ -607,7 +607,8 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 		if(oo->expectedMeans){
 			Eigen::MatrixXd dMu_dtheta_i_CinvNu = dMu_dtheta[i]*CinvNu;
 			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dMu_dtheta[i]*CinvNu:",dMu_dtheta_i_CinvNu); }
-			ig[i] += -1.0*n*(dMu_dtheta_i_CinvNu)(0,0);
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction: %f", 1.0*n*(dMu_dtheta_i_CinvNu)(0,0)); }
+			ig[i] += 1.0*n*(dMu_dtheta_i_CinvNu)(0,0);
 			//^^^The compiler doesn't know that dMu_dtheta[i]*CinvNu will always evaluate to a scalar.
 			//Also, -1.0 = -0.5 * 2.
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i], with means correction: %f", ig[i]); }
