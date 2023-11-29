@@ -2587,7 +2587,7 @@ namespace RelationalRAMExpectation {
 
 //TODO: two separate codepaths for when pcalc.useSparse is true versus false?:
 void omxRAMExpectation::provideSufficientDerivs(
-		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dMu_dtheta)
+		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta)
 {
 	EigenMatrixAdaptor eF(F);
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("F:",eF); }
@@ -2630,8 +2630,8 @@ void omxRAMExpectation::provideSufficientDerivs(
 			EigenMatrixAdaptor eM(M);
 			EigenMatrixAdaptor edM(dM_dtheta[px]);
 			//Remember that eM and edM are row vectors:
-			u_dMu_dtheta[px] = (-1.0*eF*(I_At*edA*I_At*eM.transpose() + I_At*edM.transpose())).transpose();
-			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dMu_dtheta[px]:", u_dMu_dtheta[px]); }
+			u_dNu_dtheta[px] = (-1.0*eF*(I_At*edA*I_At*eM.transpose() + I_At*edM.transpose())).transpose();
+			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]); }
 		}
 	}
 	pcalc.doAlwaysComputeUnfilteredIAUponEval = tmpflag; //<--Restore value to what it was before this function messed with it.
