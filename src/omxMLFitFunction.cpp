@@ -547,7 +547,7 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 	}
 	Eigen::MatrixXd Cinv(exCov.rows(), exCov.cols());
 	Cinv = cholC.solve(Eigen::MatrixXd::Identity(exCov.rows(), exCov.cols()));
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Cinv:",Cinv); }
+	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Cinv:",Cinv); }
 	Eigen::MatrixXd Nu, CinvNu;
 	if(oo->expectedMeans){
 		EigenVectorAdaptor obMeans(omo->observedMeans);
@@ -563,33 +563,33 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 	 EigenVectorAdaptor obMeans(omo->observedMeans);
 	 EigenVectorAdaptor exMeans(omo->expectedMeans);
 	 Eigen::MatrixXd Nu = (obMeans - exMeans).transpose(); //<--Column vector
-	 if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Nu:",Nu); }
+	 if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Nu:",Nu); }
 	 Eigen::MatrixXd CinvNu = Cinv * Nu;
-	 if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvNu:",CinvNu); }
+	 if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvNu:",CinvNu); }
 	 Eigen::MatrixXd const2ndTraceFactor = CinvNu * Nu.transpose();
-	 if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("const2ndTraceFactor, 1st:",const2ndTraceFactor); }
+	 if(OMX_DEBUG_ALGEBRA){ mxPrintMat("const2ndTraceFactor, 1st:",const2ndTraceFactor); }
 	 const2ndTraceFactor *= -1.0; //<--First step in subtraction from identity matrix.
-	 if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("const2ndTraceFactor, 2nd:",const2ndTraceFactor); }
+	 if(OMX_DEBUG_ALGEBRA){ mxPrintMat("const2ndTraceFactor, 2nd:",const2ndTraceFactor); }
 	 const2ndTraceFactor.diagonal().array() += 1.0; //<--Second step.
-	 if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("const2ndTraceFactor, 3rd:",const2ndTraceFactor); }
+	 if(OMX_DEBUG_ALGEBRA){ mxPrintMat("const2ndTraceFactor, 3rd:",const2ndTraceFactor); }
 	 const2ndTraceFactor *= Cinv; //<--Possble because trace of a matrix product is invariant under cyclic permutation of the factors.
-	 if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("const2ndTraceFactor, 4th:",const2ndTraceFactor); }
+	 if(OMX_DEBUG_ALGEBRA){ mxPrintMat("const2ndTraceFactor, 4th:",const2ndTraceFactor); }
 	 for(int i=0; i < numFree; i++){ //<--Could this loop be parallelized?
 	 //Remember that the elements of ig will be multiplied by Global->llscale before being copied to the FitContext's gradient.
 	 ig[i] = -2.0*n/(n-1)*(dNu_dtheta[i]*CinvNu)(0,0) + (n-1)*(dSigma_dtheta[i].array() * const2ndTraceFactor.array()).sum();
 	 //^^^The compiler doesn't know that dNu_dtheta[i]*CinvNu will always evaluate to a scalar.
 	 ig[i] *= -0.5;
-	 if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i]: %f", ig[i]); }
+	 if(OMX_DEBUG_ALGEBRA){ mxLog("ig[i]: %f", ig[i]); }
 	 }
 	 }
 	 else{*/
 	Eigen::MatrixXd CinvObCov = Cinv * ((n-1)/n*obCov);
 	//Eigen::MatrixXd CinvObCov = Cinv * obCov;
-	if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvObCov:",CinvObCov); }
+	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvObCov:",CinvObCov); }
 	for(int i=0; i < numFree; i++){ 
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Der:",dSigma_dtheta[i]); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Der:",dSigma_dtheta[i]); }
 		Eigen::MatrixXd CinvDer = Cinv * dSigma_dtheta[i];
-		if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvDer:",CinvDer); }
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvDer:",CinvDer); }
 		//double secondTerm = (CinvObCov.array() * CinvDer.array()).sum();
 		double secondTerm = (CinvObCov * CinvDer).trace();
 		if(OMX_DEBUG_NEWSTUFF){ mxLog("secondTerm: %f", secondTerm); }
@@ -603,12 +603,17 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 		 * and the (n-1)s cancel from division.  Yes, this is a kludge.
 		 * Ideally, in the future, we will identify where in the math & code the "n vs. n-1" discrepancy actually exists.
 		 */
-		if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i]: %f", ig[i]); }
+		if(OMX_DEBUG_NEWSTUFF){ mxLog("i: %d", i); }
+		if(OMX_DEBUG_NEWSTUFF){ mxLog("covariancePart i: %f", ig[i]); }
 		if(oo->expectedMeans){
+			//double k = (fabs(ig[i])<1e-14 ? -1.0 : 1.0);
+			//if(OMX_DEBUG_ALGEBRA){ mxLog("k: %f", k); }
+			double k = -1.0;
 			Eigen::MatrixXd dNu_dtheta_i_CinvNu = dNu_dtheta[i]*CinvNu;
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("i: %d", i); }
 			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dNu_dtheta[i]*CinvNu:",dNu_dtheta_i_CinvNu); }
-			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction: %f", 1.0*n*(dNu_dtheta_i_CinvNu)(0,0)); }
-			ig[i] += 1.0*n*(dNu_dtheta_i_CinvNu)(0,0);
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction: %f", 1.0*k*n*(dNu_dtheta_i_CinvNu)(0,0)); }
+			ig[i] += k*1.0*n*(dNu_dtheta_i_CinvNu)(0,0);
 			//^^^The compiler doesn't know that dNu_dtheta[i]*CinvNu will always evaluate to a scalar.
 			//Also, -1.0 = -0.5 * 2.
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i], with means correction: %f", ig[i]); }
@@ -620,9 +625,9 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
  EigenVectorAdaptor obMeans(omo->observedMeans);
  EigenVectorAdaptor exMeans(omo->expectedMeans);
  Eigen::MatrixXd Nu = (obMeans - exMeans).transpose(); //<--Column vector
- if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("Nu:",Nu); }
+ if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Nu:",Nu); }
  Eigen::MatrixXd CinvNu = Cinv * Nu;
- if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("CinvNu:",CinvNu); }
+ if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvNu:",CinvNu); }
  for(int i=0; i < numFree; i++){ 
  ig[i] += 2.0*n/(n-1)*(dNu_dtheta[i]*CinvNu)(0,0)
  }

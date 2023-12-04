@@ -513,20 +513,20 @@ void omxRAMExpectation::init()
   				omxSetMatrixElement(
   					dS_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
   				EigenMatrixAdaptor edS_dtheta_px(dS_dtheta[px]);
-  				if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dS_dtheta[px]:",edS_dtheta_px); }
+  				if(OMX_DEBUG){ mxPrintMat("dS_dtheta[px]:",edS_dtheta_px); }
   			}
   			if(freeVarGroup->vars[px]->locations[li].matrix == samPos[1]){
   				omxSetMatrixElement(
   					dA_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
   				EigenMatrixAdaptor edA_dtheta_px(dA_dtheta[px]);
-  				if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dA_dtheta[px]:",edA_dtheta_px); }
+  				if(OMX_DEBUG){ mxPrintMat("dA_dtheta[px]:",edA_dtheta_px); }
   			}
   			if(M){
   				if(freeVarGroup->vars[px]->locations[li].matrix == samPos[2]){
   					omxSetMatrixElement(
   						dM_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);
   					EigenMatrixAdaptor edM_dtheta_px(dM_dtheta[px]);
-  					if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dM_dtheta[px]:",edM_dtheta_px); }
+  					if(OMX_DEBUG){ mxPrintMat("dM_dtheta[px]:",edM_dtheta_px); }
   				}
   			}
   		}
@@ -2625,13 +2625,15 @@ void omxRAMExpectation::provideSufficientDerivs(
 		//u_dSigma_dtheta[px] = eF * 
 		//	(-1.0*pcalc.I_A*edA*eFullCov + pcalc.I_A*edS*I_At - eFullCov*edAt*I_At) * eF.transpose();
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
-		//^^^Can we avoid multiplication by the filter matrix somehow?
 		if(M){
 			EigenMatrixAdaptor eM(M);
 			EigenMatrixAdaptor edM(dM_dtheta[px]);
 			//Remember that eM and edM are row vectors:
-			u_dNu_dtheta[px] = (-1.0*eF*(I_At*edA*I_At*eM.transpose() + I_At*edM.transpose())).transpose();
-			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]); }
+			u_dNu_dtheta[px] = (-1.0*eF*(-1.0*I_At*edA*I_At*eM.transpose() + I_At*edM.transpose())).transpose();
+			if(OMX_DEBUG_NEWSTUFF){ 
+				mxLog("px: %d", int(px));
+				mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]);
+			}
 		}
 	}
 	pcalc.doAlwaysComputeUnfilteredIAUponEval = tmpflag; //<--Restore value to what it was before this function messed with it.
