@@ -1,3 +1,18 @@
+#
+#   Copyright 2007-2023 by the individuals mentioned in the source code history
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+# 
+#        http://www.apache.org/licenses/LICENSE-2.0
+# 
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 require(OpenMx)
 
 gb <- function(m,verbose=FALSE,N=500){
@@ -166,7 +181,8 @@ m4n <- mxModel(
 m4n <- mxRun(m4n)
 m4n$output$gradient
 
-# omxCheckCloseEnough(m4a$output$gradient-m4n$output$gradient, c(0,0,0), 5e-7)
+#Currently failing:
+omxCheckCloseEnough(m4a$output$gradient-m4n$output$gradient, c(0,0,0), 5e-7)
 
 
 ## A paths & m2 free ####
@@ -234,6 +250,44 @@ m6n <- mxModel(
 m6n <- mxRun(m6n)
 m6n$output$gradient
 
+#Currently failing:
+omxCheckCloseEnough(m6a$output$gradient-m6n$output$gradient, c(0,0), 5e-8)
+
+# gb_m1 <- function(m,verbose=FALSE,N=500){
+# 	Sigma <- mxGetExpected(m,"covariance")
+# 	A <- m$A$values
+# 	C <- matrix(c(1,.5,.5,1),2,2,dimnames=list(c("x","y"), c("x","y")))
+# 	SigmaInv <- solve(Sigma)
+# 	edA <- -1*matrix(c(0,1,0,0),2,2)
+# 	I_A <- solve(diag(2) - A)
+# 	if(verbose){print("I_A:"); print(I_A)}
+# 	firstPart <- -1*I_A%*%edA%*%Sigma
+# 	if(verbose){print("firstPart:"); print(firstPart)}
+# 	secondPart <- matrix(0,2,2)
+# 	thirdPart <- -1*Sigma%*%t(edA)%*%t(I_A)
+# 	if(verbose){print("thirdPart:"); print(thirdPart)}
+# 	Der <- firstPart+secondPart+thirdPart
+# 	CinvDer_trace <- sum(diag(SigmaInv%*%Der))
+# 	if(verbose){message(paste0("CinvDer_trace: ",CinvDer_trace))}
+# 	secondTerm <- sum(diag((N-1)/N*SigmaInv%*%C%*%SigmaInv%*%Der))
+# 	if(verbose){message(paste0("secondTerm: ",secondTerm))}
+# 	#return((N)*(CinvDer_trace - secondTerm))
+# 	covPart <- (N)*(CinvDer_trace - secondTerm)
+# 	if(verbose){message(paste0("covPart: ",covPart))}
+# 	
+# 	Nu <- c(1.0,1.5) - mxGetExpected(m,"means")
+# 	if(verbose){print("Nu:");print(Nu)}
+# 	dMu_dtheta <- c(0,mxEval(m1,m,T)[1])
+# 	if(verbose){print("dMu_dtheta:");print(dMu_dtheta)}
+# 	CinvNu <- SigmaInv %*% t(Nu)
+# 	if(verbose){print("CinvNu:");print(CinvNu)}
+# 	dMu_dtheta_CinvNu <- dMu_dtheta %*% CinvNu
+# 	if(verbose){print("dMu_dtheta_CinvNu:");print(dMu_dtheta_CinvNu)}
+# 	meanscorrection <- -N*dMu_dtheta_CinvNu
+# 	if(verbose){message(paste0("meanscorrection: ",meanscorrection))}
+# 	return(covPart + 2*meanscorrection)
+# }
+
 
 # All paths free ####
 
@@ -264,3 +318,6 @@ m7n <- mxModel(
 )
 m7n <- mxRun(m7n)
 m7n$output$gradient
+
+#Currently failing:
+omxCheckCloseEnough(m7a$output$gradient-m7n$output$gradient, rep(0,5), 5e-7)
