@@ -608,12 +608,18 @@ void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContex
 		if(oo->expectedMeans){
 			//double k = (fabs(ig[i])<1e-14 ? -1.0 : 1.0);
 			//if(OMX_DEBUG_ALGEBRA){ mxLog("k: %f", k); }
-			double k = -1.0;
+			//double k = -1.0;
 			Eigen::MatrixXd dNu_dtheta_i_CinvNu = dNu_dtheta[i]*CinvNu;
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("i: %d", i); }
 			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dNu_dtheta[i]*CinvNu:",dNu_dtheta_i_CinvNu); }
-			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction: %f", 1.0*k*n*(dNu_dtheta_i_CinvNu)(0,0)); }
-			ig[i] += k*1.0*n*(dNu_dtheta_i_CinvNu)(0,0);
+			double meansCorrectionPart1 = -0.5*n*(dNu_dtheta_i_CinvNu)(0,0);
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction part 1: %f", meansCorrectionPart1); }
+			// TODO: make this more computationally streamlined once we've got it correct:
+			double meansCorrectionPart2 = 0.5*n*(Nu.transpose()*CinvDer*CinvNu)(0,0);
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction part 2: %f", meansCorrectionPart2); }
+			double meansCorrectionPart3 = -0.5*n*(Nu.transpose()*Cinv*dNu_dtheta[i].transpose())(0,0);
+			if(OMX_DEBUG_NEWSTUFF){ mxLog("means correction part 3: %f", meansCorrectionPart3); }
+			ig[i] += meansCorrectionPart1 + meansCorrectionPart2 + meansCorrectionPart3;
 			//^^^The compiler doesn't know that dNu_dtheta[i]*CinvNu will always evaluate to a scalar.
 			//Also, -1.0 = -0.5 * 2.
 			if(OMX_DEBUG_NEWSTUFF){ mxLog("ig[i], with means correction: %f", ig[i]); }
