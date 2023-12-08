@@ -32,6 +32,7 @@ model <- mxModel('ErrorModel',
     mxData(data, type="cov", numObs = 50),
     mxFitFunctionML(),mxExpectationNormal("cov")
 )
-model$data$observed[1,1] <- -1
-omxCheckError(mxRun(model), 
-		"Observed Covariance Matrix is non-positive-definite.")
+if(imxStanMathMajor() < 4){
+	model$data$observed[1,1] <- -1
+	omxCheckError(mxRun(model), "Observed Covariance Matrix is non-positive-definite.")
+}
