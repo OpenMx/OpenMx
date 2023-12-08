@@ -31,6 +31,12 @@ mxSetDefaultOptions <- function() {
 ##' what they are doing.
 imxHasOpenMP <- function() .Call(hasOpenMP_wrapper)
 
+##' imxStanMathMajor
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.
+imxStanMathMajor <- function() .Call(stanMathMajor_wrapper)
+
 # Don't use .onAttach except for packageStartupMessage,
 # see https://github.com/OpenMx/OpenMx/issues/98
 .onLoad <- function(libname, pkgname) {

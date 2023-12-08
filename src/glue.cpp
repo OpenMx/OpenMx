@@ -39,6 +39,8 @@
 #include "EnableWarnings.h"
 #include "omxSadmvnWrapper.h"
 
+#include <stan/math/version.hpp>
+
 void loadCharVecFromR(const char *context, SEXP names, std::vector<const char *> &dest)
 {
 	if (!Rf_isNull(names) && !Rf_isString(names)) {
@@ -309,6 +311,10 @@ static SEXP loadedHook() {
 
 static SEXP untitledNumber() {
 	return Rf_ScalarInteger(++untitledCounter);
+}
+
+static SEXP whatIsStanMathMajorVersion(){
+	return Rf_ScalarInteger(STAN_MATH_MAJOR);
 }
 
 void string_to_Rf_error( const char *str )
@@ -854,6 +860,7 @@ static R_CallMethodDef callMethods[] = {
 	{".mtmvnorm", (DL_FUNC) mtmvnorm, 3},
 	{".enableMxLog", (DL_FUNC) &enableMxLog, 0},
 	{".OpenMxLoaded", (DL_FUNC) &loadedHook, 0},
+	{"stanMathMajor_wrapper", (DL_FUNC) whatIsStanMathMajorVersion, 0},
 	{NULL, NULL, 0}
 };
 
