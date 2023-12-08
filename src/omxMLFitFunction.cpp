@@ -75,8 +75,8 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	int ncols = state->observedCov->cols;
 	double crrctn = (double(state->n)-1.0)/double(state->n);
 
-	//*saturated_out = (state->logDetObserved * state->n) + ncols * (state->n - 1);
-	*saturated_out = (state->logDetObserved + ncols*log(crrctn))*state->n + ncols*(state->n - 1);
+	*saturated_out = (state->logDetObserved * state->n) + ncols * (state->n - 1);
+	//*saturated_out = (state->logDetObserved + ncols*log(crrctn))*state->n + ncols*(state->n - 1);
 
 	// Independence model assumes all-zero manifest covariances.
 	// (det(expected) + tr(observed * expected^-1)) * (n - 1);
