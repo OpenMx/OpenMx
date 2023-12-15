@@ -101,9 +101,10 @@ m1 <- expect_warning(mxPenaltySearch(m1),
 detail <- m1$compute$steps$PS$output$detail
 
 limit <- c(lasso=1, ridge=11, elasticNet=2)
+
 for (cx in 1:(D * (D-1)/2)) {
   col <- paste0('c', cx)
-#  print(paste(regGroup[cx], col))
+  #print(paste(regGroup[cx], col))
   val <- abs(detail[[col]])
   val[val < 0.01] <- 0
   if (all(diff(val) <= 0)) next

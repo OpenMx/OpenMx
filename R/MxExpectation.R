@@ -264,7 +264,7 @@ imxHasThresholds <- function(model,submodels=TRUE) {
 eligibleForSufficientDerivs <- function(model){
 	return(
 		AllRAMOrLISREL(model) && AllCovData(model) && AllMLFitFunction(model) && !imxHasAlgebraOnPath(model) && 
-			!imxHasDefinitionVariable(model) && !imxHasThresholds(model) && !imxIsMultilevel(model)
+			!imxHasDefinitionVariable(model) && !imxHasThresholds(model) && !imxIsMultilevel(model) && !imxHasPenalties(model)
 	)
 }
 
@@ -284,7 +284,7 @@ markExpectationsEligibleForSufficientDerivs <- function(model){
 						is.na(model[[m]]$expectation$selectionVector) &&
 						!any(model[[m]]$expectation$isProductNode) &&
 						is(model[[m]]$fitfunction,"MxFitFunctionML") && !imxHasAlgebraOnPath(model[[m]],submodels=F) && 
-						!imxHasThresholds(model[[m]],submodels=F),
+						!imxHasThresholds(model[[m]],submodels=F) && !length(model[[m]]@penalties),
 					FALSE)[wich]
 		}
 	}

@@ -290,3 +290,24 @@ generatePenaltyList <- function(flatModel, modelname, parameters, labelsData) {
   }
   got
 }
+
+##' imxHasPenalties
+##'
+##' This is an internal function exported for those people who know
+##' what they are doing.  This function checks if a model (or its
+##' submodels) has any penalties.
+##'
+##' @param model model
+imxHasPenalty <- function(model) {
+	if(length(model@penalties) > 0 ){
+		return(TRUE)
+	}
+	# Check submodels for penalties
+	if(length(model$submodels) > 0){
+		attempt <- sapply(model@submodels, imxHasPenalty)
+		if(any(attempt)){
+			return(TRUE)
+		}
+	}
+	return(FALSE)
+}
