@@ -97,6 +97,9 @@ for (rep in 1:10) {
 
 m1 <- expect_warning(mxPenaltySearch(m1),
                      "model does not satisfy the first-order optimality conditions")
+expect_equal((-2*logLik(m1))[1],m1$output$fit)
+#Now fails, because OpenMx reaches a smaller fit value:
+expect_equal((-2*logLik(m1))[1],876.4839,5e-5)
 
 detail <- m1$compute$steps$PS$output$detail
 
@@ -132,4 +135,7 @@ fit3 <- mxRun(m3)
 expect_equivalent(sapply(fit3$penalties, function(x) x$result[1,1]),
              rep(0,3))
 expect_equal(fit3$fitfunction$result[1,1], fit3$output$fit)
+expect_equal(fit3$output$fit, 822.757, 5e-5)
+#Now fails; is that a problem if OpenMx reached the same fit value, albeit with a 
+#zeroed lasso penalty?:
 expect_true(mxEval(lasso, fit3, compute = TRUE) != 0)
