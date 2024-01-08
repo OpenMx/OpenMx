@@ -1,0 +1,66 @@
+stages:
+- dependencies
+- test
+os:
+- linux
+dist: bionic
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-8
+    - g++-8
+    - gfortran-8
+jobs:
+  include:
+  - stage: dependencies
+    latex: false
+    install:
+    - openssl aes-256-cbc -K $encrypted_db2095f63ba3_key -iv $encrypted_db2095f63ba3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+    - eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+    - ./tools/travis/setup
+    script:
+    - ./tools/travis/save_cache
+  - stage: test
+    os: osx
+    osx_image: xcode11.4
+    env:
+    - MODE=build
+    install:
+    - ./tools/travis/install-osx
+    latex: false
+#dist: bionic
+#sudo: required
+latex: true
+language: r
+r:
+  - release
+#cache: packages
+git:
+  submodules: false
+install:
+- openssl aes-256-cbc -K $encrypted_db2095f63ba3_key -iv $encrypted_db2095f63ba3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+- eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+- ./tools/travis/setup
+script: "./util/travis/script"
+env:
+  global:
+    - MAKEFLAGS="-j2"
+    - dhost=openmx_travis@vps32986.dreamhostps.com
+    - OMP_NUM_THREADS=2
+  jobs:
+  - MODE=test IMX_OPT_ENGINE=CSOLNP
+  - MODE=test IMX_OPT_ENGINE=SLSQP
+  - MODE=cran-check
+branches:
+  except:
+  - stable   # already tested
+before_deploy:
+  - openssl aes-256-cbc -K $encrypted_db2095f63ba3_key -iv $encrypted_db2095f63ba3_iv -in util/travis/deploy_rsa.enc -out /tmp/deploy_rsa -d
+  - eval "$(ssh-agent -s)"; chmod 600 /tmp/deploy_rsa; ssh-add /tmp/deploy_rsa
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: ./util/travis/deploy
+  on: master
