@@ -43,7 +43,7 @@ struct MLFitState : omxFitFunction {
 	std::vector< Eigen::MatrixXd > dSigma_dtheta;
 	std::vector< Eigen::MatrixXd > dNu_dtheta; //<--column vectors
 	
-	void sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc);
+	void sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc);
 
 	double n;
 	double logDetObserved;
@@ -239,7 +239,7 @@ void MLFitState::compute2(int want, FitContext *fc)
 						dNu_dtheta.resize(numFree);
 					}
 				}
-				oo->sufficientDerivs2Grad(init_grad, fc);
+				oo->sufficientDerivs2Grad_NormalContinuous(init_grad, fc);
 				//Seriously consider combining this for loop and the next one.
 				if(OMX_DEBUG_ALGEBRA){ mxLog("Scale: %f",Scale); }
 				for (int px=0; px < int(numFree); ++px) {
@@ -282,7 +282,7 @@ void MLFitState::compute2(int want, FitContext *fc)
 						dNu_dtheta.resize(numFree);
 					}
 				}
-				oo->sufficientDerivs2Grad(init_grad, fc);
+				oo->sufficientDerivs2Grad_NormalContinuous(init_grad, fc);
 				if(OMX_DEBUG_ALGEBRA){ mxLog("Scale: %f",Scale); }
 				for (int px=0; px < int(numFree); ++px) {
 					if(OMX_DEBUG_NEWSTUFF){
@@ -531,7 +531,7 @@ void MLFitState::init()
 
 /*TODO: It is wasteful to Cholesky-factor (and subsequently invert) the model-expected covariance
 when computing the gradient (here) as well as when computing the fit:*/
-void MLFitState::sufficientDerivs2Grad(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc){
+void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc){
 	//TODO triangularView and selfadjointView anywhere else?
 	auto *oo = this;
 	MLFitState *omo = (MLFitState*) oo;
