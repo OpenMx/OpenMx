@@ -266,6 +266,8 @@ void subsetNormalDist(const Eigen::MatrixBase<T1> &gmean, const Eigen::MatrixBas
 		cx += 1;
 	}
 }
+//^^^This is what filters out rows and columns of the mean vector and covariance matrix due to missingness, when the
+//sufficient-statistics FIML speedup is in use.
 
 // Refactor as a single split function that pulls out all 3 parts
 // of the covariance matrix in one iteration through the elements?

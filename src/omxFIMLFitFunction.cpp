@@ -44,7 +44,7 @@ void upperRightCovariance(const Eigen::MatrixBase<T1> &gcov,
 	}
 }
 
-bool condOrdByRow::eval()
+bool condOrdByRow::eval() //<--This is what gets called when all manifest variables are continuous.
 {
 	using Eigen::Map;
 	using Eigen::MatrixXd;

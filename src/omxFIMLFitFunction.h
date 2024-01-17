@@ -193,9 +193,9 @@ class mvnByRow {
 		bool wantOrdinal;
 	subsetOp(std::vector<bool> &u_isOrdinal,
 		 std::vector<bool> &u_isMissing) : isOrdinal(u_isOrdinal), isMissing(u_isMissing) {};
-		// true to include
+		// true to include(?)
 		bool operator()(int gx) { return !((wantOrdinal ^ isOrdinal[gx]) || isMissing[gx]); };
-	} op;
+	} op; //<--This is what decides which rows and columns of the mean vector and covariance matrix to keep, in condOrdByRow::eval()
 
 	mvnByRow(FitContext *u_fc, omxFitFunction *u_localobj,
 		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
