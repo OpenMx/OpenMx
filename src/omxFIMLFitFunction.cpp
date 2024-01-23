@@ -55,6 +55,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 	SimpCholesky< MatrixXd >  covDecomp;
 	double ordLik = 1.0;
 	double contLogLik = 0.0;
+	const double Scale = Global->llScale;
 
 	VectorXd contMean;
 	MatrixXd contCov;
@@ -225,6 +226,19 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
 				record(-0.5 * ll + ss.rows * log(ordLik), ss.length);
 				contLogLik = 0.0;
+				/*if (want & FF_COMPUTE_GRADIENT){
+					if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
+						ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta);
+						for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
+							double ssDerivCurr=0; //<--Fit derivative for current parameter for current sufficient set
+							Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
+							Eigen::MatrixXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].rows(),1);
+							//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
+							subsetNormalDist(ofiml->dNu_dtheta[px], ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
+							//Do analytic derivs here.
+							fc->gradZ[px] += Scale * ssDerivCurr;
+						}
+					}}*/
 				continue;
 			}
 
@@ -756,17 +770,17 @@ static void sortData(omxFitFunction *off)
 }
 
 static bool dispatchByRow(FitContext *u_fc, omxFitFunction *u_localobj,
-			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml)
+			  omxFIMLFitFunction *parent, omxFIMLFitFunction *ofiml, int &want)
 {
   if (parent->verbose >= 4) mxLog("%s: jointStrat %d", ofiml->name(), ofiml->jointStrat);
 	switch (ofiml->jointStrat) {
 	case JOINT_CONDORD:{
-		condOrdByRow batch(u_fc, u_localobj, parent, ofiml);
+		condOrdByRow batch(u_fc, u_localobj, parent, ofiml, want);
 		return batch.eval();
 	}
 	case JOINT_AUTO:
 	case JOINT_CONDCONT:{
-		condContByRow batch(u_fc, u_localobj, parent, ofiml);
+		condContByRow batch(u_fc, u_localobj, parent, ofiml, want);
 		return batch.eval();
 	}
 	default: OOPS;
@@ -841,6 +855,8 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 	omxFIMLFitFunction* ofiml = this;
 
 	if (want & FF_COMPUTE_INITIAL_FIT) return;
+	
+	int numFree = fc->getNumFree();
 
 	if (!builtCache) {
     if (!fc->isClone()) {
@@ -876,7 +892,20 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 		return;
 	}
 
-  if (want & FF_COMPUTE_GRADIENT) invalidateGradient(fc);
+  if (want & FF_COMPUTE_GRADIENT){
+  	if(Global->analyticGradients && off->expectation->canProvideSufficientDerivs){
+  		if(dSigma_dtheta.size() != size_t(numFree)){ 
+  			dSigma_dtheta.resize(numFree);
+  		}
+  		if(dNu_dtheta.size() != size_t(numFree)){
+  			dNu_dtheta.resize(numFree);
+  		}
+  		off->expectation->provideSufficientDerivs(fc, dSigma_dtheta, dNu_dtheta);
+  	}
+  	else{	
+  		invalidateGradient(fc);
+  	}
+  }
 
 	bool failed = false;
 
@@ -924,7 +953,7 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 			omxMatrix *childMatrix = kid->lookupDuplicate(fitMatrix);
 			omxFitFunction *childFit = childMatrix->fitFunction;
 			try {
-				failed |= dispatchByRow(kid, childFit, myParent, ofiml);
+				failed |= dispatchByRow(kid, childFit, myParent, ofiml, want);
 			} catch (const std::exception& e) {
 				omxRaiseErrorf("%s", e.what());
 			} catch (...) {
@@ -967,7 +996,7 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 			}
 		}
 	} else {
-		failed |= dispatchByRow(fc, off, myParent, ofiml);
+		failed |= dispatchByRow(fc, off, myParent, ofiml, want);
 	}
 
 	if (ofiml->verbose >= 3) {

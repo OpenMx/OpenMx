@@ -120,6 +120,9 @@ class omxFIMLFitFunction : public omxFitFunction {
 	virtual void compute2(int ffcompute, FitContext *fc) override;
 	virtual void populateAttr(SEXP algebra) override;
 	virtual void invalidateCache() override;
+	
+	std::vector< Eigen::MatrixXd > dSigma_dtheta;
+	std::vector< Eigen::MatrixXd > dNu_dtheta;
 
 	// --- old stuff below
 
@@ -177,6 +180,7 @@ class mvnByRow {
 	int sortedRow;  // it's really the unsorted row (row in the original data); rename TODO
 	bool useSufficientSets;
 	Eigen::ArrayXd &rowMult;
+	int want;
 
 	int rowOrdinal;
 	int rowContinuous;
@@ -198,7 +202,7 @@ class mvnByRow {
 	} op; //<--This is what decides which rows and columns of the mean vector and covariance matrix to keep, in condOrdByRow::eval()
 
 	mvnByRow(FitContext *u_fc, omxFitFunction *u_localobj,
-		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
+		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml, int &u_want)
 	:
 	ofo((omxFIMLFitFunction*) u_localobj),
 		shared_ofo(ofo->parent? ofo->parent : ofo),
@@ -211,6 +215,7 @@ class mvnByRow {
 		dataColumns(expectation->getDataColumns()),
 		isOrdinal(u_ofiml->isOrdinal),
 		rowMult(shared_ofo->rowMult),
+		want(u_want),
 		op(isOrdinal, isMissing)
 	{
 		data = ofo->data;
@@ -443,24 +448,24 @@ class mvnByRow {
 struct condContByRow : mvnByRow {
 	typedef mvnByRow super;
 	condContByRow(FitContext *u_fc, omxFitFunction *u_localobj,
-		      omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
-		: super(u_fc, u_localobj, u_parent, u_ofiml) {};
+		      omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml, int &u_want)
+		: super(u_fc, u_localobj, u_parent, u_ofiml, u_want) {};
 	bool eval();
 };
 
 struct oldByRow : mvnByRow {
 	typedef mvnByRow super;
 	oldByRow(FitContext *u_fc, omxFitFunction *u_localobj,
-		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
-		: super(u_fc, u_localobj, u_parent, u_ofiml) {};
+		 omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml, int &u_want)
+		: super(u_fc, u_localobj, u_parent, u_ofiml, u_want) {};
 	bool eval();
 };
 
 struct condOrdByRow : mvnByRow {
 	typedef mvnByRow super;
 	condOrdByRow(FitContext *u_fc, omxFitFunction *u_localobj,
-		     omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml)
-		: super(u_fc, u_localobj, u_parent, u_ofiml) {};
+		     omxFIMLFitFunction *u_parent, omxFIMLFitFunction *u_ofiml, int &u_want)
+		: super(u_fc, u_localobj, u_parent, u_ofiml, u_want) {};
 	bool eval();
 };
 
