@@ -122,7 +122,7 @@ class omxFIMLFitFunction : public omxFitFunction {
 	virtual void invalidateCache() override;
 	
 	std::vector< Eigen::MatrixXd > dSigma_dtheta;
-	std::vector< Eigen::MatrixXd > dNu_dtheta;
+	std::vector< Eigen::VectorXd > dNu_dtheta;
 
 	// --- old stuff below
 

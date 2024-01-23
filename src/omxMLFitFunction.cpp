@@ -41,7 +41,7 @@ struct MLFitState : omxFitFunction {
 	omxMatrix* expectedMeans;
 	
 	std::vector< Eigen::MatrixXd > dSigma_dtheta;
-	std::vector< Eigen::MatrixXd > dNu_dtheta; //<--column vectors
+	std::vector< Eigen::VectorXd > dNu_dtheta;
 	
 	void sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc);
 
