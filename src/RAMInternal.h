@@ -379,7 +379,7 @@ class omxRAMExpectation : public MVNExpectation {
 	std::vector< omxMatrix* > dM_dtheta;
 	
 	void provideSufficientDerivs(
-			FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::VectorXd > &u_dNu_dtheta);
+			FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta);
 
 	int verbose;
 	int rampartCycleLimit;
