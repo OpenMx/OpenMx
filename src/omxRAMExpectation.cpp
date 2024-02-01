@@ -2630,7 +2630,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 			EigenMatrixAdaptor edM(dM_dtheta[px]);
 			//Remember that eM and edM are row vectors:
 			u_dNu_dtheta[px] = (-1.0*eF*(-1.0*I_At*edA*I_At*eM.transpose() + I_At*edM.transpose())).transpose();
-			if(OMX_DEBUG_NEWSTUFF){ 
+			if(OMX_DEBUG_ALGEBRA){ 
 				mxLog("px: %d", int(px));
 				mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]);
 			}
