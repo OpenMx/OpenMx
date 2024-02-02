@@ -234,6 +234,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							mxPrintMat("contMean", contMean);
 							mxPrintMat("dataMean", ss.dataMean);
 							mxPrintMat("resid", resid);
+							mxPrintMat("iV",iV);
 						}
 						for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 							double ssDerivCurr=0; //<--Fit derivative for current parameter for current sufficient set
@@ -251,8 +252,14 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							if(OMX_DEBUG_NEWSTUFF){ mxLog("firstTerm: %f", firstTerm); }
 							double secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(ss.dataCov * iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr * iV.selfadjointView<Eigen::Lower>()).trace();
 							if(OMX_DEBUG_NEWSTUFF){ mxLog("secondTerm: %f", secondTerm); }
-							double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("thirdTerm: %f", thirdTerm); }
+							if(OMX_DEBUG_NEWSTUFF){
+								mxLog("ss.rows: %d",ss.rows);
+								mxPrintMat("dNu_dtheta_curr",dNu_dtheta_curr);
+								mxPrintMat("iV",iV);
+								mxPrintMat("resid",resid);
+							}
+							double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							if(OMX_DEBUG_NEWSTUFF){ mxLog("THIRDTERM: %f", thirdTerm); }
 							double fourthTerm = 0.5*ss.rows*(resid*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
 							if(OMX_DEBUG_NEWSTUFF){ mxLog("fourthTerm: %f", fourthTerm); }
 							ssDerivCurr = firstTerm + secondTerm + thirdTerm + fourthTerm;
