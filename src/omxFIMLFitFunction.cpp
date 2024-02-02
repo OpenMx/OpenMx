@@ -260,7 +260,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							}
 							double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
 							if(OMX_DEBUG_NEWSTUFF){ mxLog("THIRDTERM: %f", thirdTerm); }
-							double fourthTerm = 0.5*ss.rows*(resid*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							double fourthTerm = 0.5*ss.rows*(resid.transpose()*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
 							if(OMX_DEBUG_NEWSTUFF){ mxLog("fourthTerm: %f", fourthTerm); }
 							ssDerivCurr = firstTerm + secondTerm + thirdTerm + fourthTerm;
 							if(OMX_DEBUG_NEWSTUFF){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
