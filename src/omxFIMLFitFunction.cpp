@@ -280,11 +280,33 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 			double logDet = 2.0 * covDecomp.log_determinant();
 			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
 			contLogLik = -0.5 * (iqf + cterm + logDet);
-			if (!std::isfinite(contLogLik)) reportBadContRow(cData, resid, contCov);
+			if (!std::isfinite(contLogLik)){
+				reportBadContRow(cData, resid, contCov);
+			}
+			
+			if (want & FF_COMPUTE_GRADIENT){
+				if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
+					ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta);
+					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
+						Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
+						Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].rows());
+						if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
+						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
+						//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
+						subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
+						if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
+						//Eigen::MatrixXd::Identity I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() );
+						Eigen::MatrixXd I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() ); I.setIdentity();
+						fc->gradZ[px] += Scale * -0.5*( 
+							(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace() +
+							2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid );
+					}
+				}}
 		} else { contLogLik = 0.0; }
 
 		recordRow(contLogLik, ordLik, iqf, residSize);
 		prevRowContinuous = rowContinuous;
+		
 	}
 
 	return false;

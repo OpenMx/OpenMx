@@ -35,6 +35,10 @@
 # Read libraries and set options.
 
 library(OpenMx)
+#NPSOL counts major iterations differently when it is provided with analytic gradients:
+if(mxOption(NULL,"Default optimizer")=="NPSOL"){
+	mxOption(NULL,"Analytic gradients","No")
+}
 
 suppressWarnings(RNGversion("3.5"))
 
