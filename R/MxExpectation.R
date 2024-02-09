@@ -283,7 +283,8 @@ markExpectationsEligibleForSufficientDerivs <- function(model){
 						(identical(model[[m]]$data$type,"cov") || identical(model[[m]]$data$type,"raw")) && 
 						is.na(model[[m]]$expectation$selectionVector) && !length(model[[m]]$expectation@discreteSpec) &&
 						!any(model[[m]]$expectation$isProductNode) &&
-						is(model[[m]]$fitfunction,"MxFitFunctionML") && !imxHasAlgebraOnPath(model[[m]],submodels=F) && 
+						is(model[[m]]$fitfunction,"MxFitFunctionML") && !identical(model[[m]]$fitfunction$fellner,FALSE) && 
+						!imxHasAlgebraOnPath(model[[m]],submodels=F) && 
 						!imxHasThresholds(model[[m]],submodels=F) && !length(model[[m]]@penalties),
 					FALSE)[wich]
 		}
