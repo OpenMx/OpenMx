@@ -229,7 +229,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				if (want & FF_COMPUTE_GRADIENT){
 					if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
 						ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta);
-						if(OMX_DEBUG_NEWSTUFF){
+						if(OMX_DEBUG_ALGEBRA){
 							mxPrintMat("dataCov", ss.dataCov);
 							mxPrintMat("contMean", contMean);
 							mxPrintMat("dataMean", ss.dataMean);
@@ -240,33 +240,33 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							double ssDerivCurr=0; //<--Fit derivative for current parameter for current sufficient set
 							Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
 							Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].rows());
-							if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
+							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
 							Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
 							//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
 							subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
-							if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
+							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 							//Analytic derivs start here.
 							//TODO more efficient code
 							Eigen::MatrixXd SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
 							double firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); //(iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr).trace()
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("firstTerm: %f", firstTerm); }
+							if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
 							double secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(ss.dataCov * iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr * iV.selfadjointView<Eigen::Lower>()).trace();
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("secondTerm: %f", secondTerm); }
-							if(OMX_DEBUG_NEWSTUFF){
+							if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
+							if(OMX_DEBUG_ALGEBRA){
 								mxLog("ss.rows: %d",ss.rows);
 								mxPrintMat("dNu_dtheta_curr",dNu_dtheta_curr);
 								mxPrintMat("iV",iV);
 								mxPrintMat("resid",resid);
 							}
 							double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("THIRDTERM: %f", thirdTerm); }
+							if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
 							double fourthTerm = 0.5*ss.rows*(resid.transpose()*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("fourthTerm: %f", fourthTerm); }
+							if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
 							ssDerivCurr = firstTerm + secondTerm + thirdTerm + fourthTerm;
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
+							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
 							//fc->gradZ[px] += Scale * ss.rows/(ss.rows-1) * ssDerivCurr;
 							fc->gradZ[px] += Scale * ssDerivCurr;
-							if(OMX_DEBUG_NEWSTUFF){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
+							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
 						}
 					}}
 				continue;
@@ -290,11 +290,11 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 						Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
 						Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].rows());
-						if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
+						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
 						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
 						//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
 						subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
-						if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
+						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 						//Eigen::MatrixXd::Identity I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() );
 						Eigen::MatrixXd I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() ); I.setIdentity();
 						fc->gradZ[px] += Scale * -0.5*( 
