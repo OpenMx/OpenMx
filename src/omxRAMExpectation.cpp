@@ -476,7 +476,7 @@ void omxRAMExpectation::init()
   
   if (R_has_slot(rObj, Rf_install(".canProvideSufficientDerivs"))) {
   	ProtectedSEXP Rcpsd(R_do_slot(rObj, Rf_install(".canProvideSufficientDerivs")));
-  	RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd) && Global->analyticGradients;
+  	RAMexp->canProvideSufficientDerivs = Rf_asInteger(Rcpsd); //&& Global->analyticGradients;
   	RAMexp->pcalc.doCacheUnfilteredIA = true;
   }
   if(RAMexp->canProvideSufficientDerivs){
