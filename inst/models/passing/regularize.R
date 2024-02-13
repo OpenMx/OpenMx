@@ -84,7 +84,7 @@ for (rep in 1:10) {
                       mxEvalByName(p1$name, fit1, compute = TRUE)[1,1])
   }
 
-  mxOption(key="Analytic Gradients", value="No")
+  #mxOption(key="Analytic Gradients", value="No")
 
   fit2 <- mxRun(mxModel(fit1,
                         mxComputeSequence(list(
@@ -95,10 +95,12 @@ for (rep in 1:10) {
   expect_equal(fit1$output$gradient, fit2$output$gradient, 1e-6)
 }
 
+#mxOption(key="Analytic Gradients", value="No")
+
 m1 <- expect_warning(mxPenaltySearch(m1),
                      "model does not satisfy the first-order optimality conditions")
 expect_equal((-2*logLik(m1))[1],m1$output$fit)
-#Now fails, because OpenMx reaches a smaller fit value:
+#Now fails:
 expect_equal((-2*logLik(m1))[1],876.4839,5e-5)
 
 detail <- m1$compute$steps$PS$output$detail

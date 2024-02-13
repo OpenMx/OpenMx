@@ -190,7 +190,8 @@ void MLFitState::compute2(int want, FitContext *fc)
 		}
     //mxLog("%s: %d/%d analytic derivs", name(), numSimpleParam, numFree);
 
-    if (!Global->analyticGradients || (!omo->expectation->canProvideSufficientDerivs && numSimpleParam == 0)) {
+    mxLog("Global->analyticGradients: %d",Global->analyticGradients);
+    if (Global->analyticGradients==0 || (!omo->expectation->canProvideSufficientDerivs && numSimpleParam == 0)) {
     	// if numSimpleParam == 0 then hessian() doesn't compute the fit
     	if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
     	want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
@@ -271,7 +272,7 @@ void MLFitState::compute2(int want, FitContext *fc)
 		!(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO))) {
 		// works for any multivariate normal expectation (e.g. vanilla, RAM, LISREL, etc)
 		if (want & FF_COMPUTE_GRADIENT){
-			if(Global->analyticGradients && oo->expectation->canProvideSufficientDerivs){
+			if(Global->analyticGradients==1 && oo->expectation->canProvideSufficientDerivs){
 				int numFree = fc->getNumFree();
 				Eigen::VectorXd init_grad = Eigen::VectorXd::Zero(numFree);
 				if(dSigma_dtheta.size() != size_t(numFree)){ 

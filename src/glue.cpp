@@ -370,6 +370,9 @@ void friendlyStringToLogical(const char *key, SEXP rawValue, int *out)
 	} else if (isdigit(str[0]) && (atoi(str) == 1 || atoi(str) == 0)) {
 		understood = TRUE;
 		newVal = atoi(str);
+	} else if (matchCaseInsensitive(str, "Simple")) {
+		understood = TRUE;
+		newVal = 2;
 	}
 	if (!understood) {
 		Rf_warning("Expecting 'Yes' or 'No' for '%s' but got '%s', ignoring", key, str);
