@@ -904,16 +904,16 @@ addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) 
 	currentLatent <- length(model@latentVars) - newLatent
 	newSize <- length(model@manifestVars) + length(model@latentVars)
 	if (currentManifest > 0) {
-		manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest]
+		manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest, drop=FALSE]
 	} else {
 		manifestXmanifest <- matrix(value, 0, 0)
 	}
 	if (currentLatent > 0) {
 		latentStart <- currentManifest + 1
 		latentEnd <- currentManifest + currentLatent
-		manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd]
-		latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest]
-		latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd]
+		manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd, drop=FALSE]
+		latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest, drop=FALSE]
+		latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd, drop=FALSE]
 	} else {
 		manifestXlatent <- matrix(value, 0, 0)
 		latentXmanifest <- matrix(value, 0, 0)
