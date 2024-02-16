@@ -533,7 +533,6 @@ void MLFitState::init()
 /*TODO: It is wasteful to Cholesky-factor (and subsequently invert) the model-expected covariance
 when computing the gradient (here) as well as when computing the fit:*/
 void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::VectorXd> ig, FitContext *fc){
-	//TODO triangularView and selfadjointView anywhere else?
 	auto *oo = this;
 	MLFitState *omo = (MLFitState*) oo;
 	int numFree = fc->getNumFree();
@@ -547,6 +546,7 @@ void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::Vector
 		return;
 	}
 	Eigen::MatrixXd Cinv(exCov.rows(), exCov.cols());
+	//Cinv.triangularView<Eigen::Lower>() = cholC.solve(Eigen::MatrixXd::Identity(exCov.rows(), exCov.cols()));
 	Cinv = cholC.solve(Eigen::MatrixXd::Identity(exCov.rows(), exCov.cols()));
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Cinv:",Cinv); }
 	Eigen::MatrixXd Nu, CinvNu;
@@ -584,15 +584,20 @@ void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::Vector
 	 }
 	 }
 	 else{*/
-	Eigen::MatrixXd CinvObCov = Cinv * ((n-1)/n*obCov);
+	Eigen::MatrixXd CinvObCov = Cinv.selfadjointView<Eigen::Lower>() * ((n-1)/n*obCov);
 	//Eigen::MatrixXd CinvObCov = Cinv * obCov;
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvObCov:",CinvObCov); }
 	for(int i=0; i < numFree; i++){ 
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Der:",dSigma_dtheta[i]); }
-		Eigen::MatrixXd CinvDer = Cinv * dSigma_dtheta[i];
+		Eigen::MatrixXd CinvDer = Cinv.selfadjointView<Eigen::Lower>() * dSigma_dtheta[i];
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvDer:",CinvDer); }
 		//double secondTerm = (CinvObCov.array() * CinvDer.array()).sum();
 		double secondTerm = (CinvObCov * CinvDer).trace();
+		/*double secondTerm=0;
+		for(int c=0; c<CinvObCov.rows(); c++){
+			for(int r=0; r<CinvObCov.rows(); r++){
+				secondTerm += CinvObCov(r,c)*CinvDer(r,c);
+			}}*/
 		if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 		double CinvDer_trace = CinvDer.trace();
 		if(OMX_DEBUG_ALGEBRA){ mxLog("CinvDer_trace: %f", CinvDer_trace); }
@@ -614,15 +619,13 @@ void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::Vector
 			if(OMX_DEBUG_ALGEBRA){ mxLog("i: %d", i); }
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dNu_dtheta[i]*CinvNu:",dNu_dtheta_i_CinvNu); }
 			double meansCorrectionPart1 = -0.5*n*(dNu_dtheta_i_CinvNu)(0,0);
+			//^^^The compiler doesn't know that dNu_dtheta[i]*CinvNu will always evaluate to a scalar.
 			if(OMX_DEBUG_ALGEBRA){ mxLog("means correction part 1: %f", meansCorrectionPart1); }
-			// TODO: make this more computationally streamlined once we've got it correct:
 			double meansCorrectionPart2 = 0.5*n*(Nu.transpose()*CinvDer*CinvNu)(0,0);
 			if(OMX_DEBUG_ALGEBRA){ mxLog("means correction part 2: %f", meansCorrectionPart2); }
-			double meansCorrectionPart3 = -0.5*n*(Nu.transpose()*Cinv*dNu_dtheta[i].transpose())(0,0);
+			double meansCorrectionPart3 = -0.5*n*(Nu.transpose()*Cinv.selfadjointView<Eigen::Lower>()*dNu_dtheta[i].transpose())(0,0);
 			if(OMX_DEBUG_ALGEBRA){ mxLog("means correction part 3: %f", meansCorrectionPart3); }
 			ig[i] += meansCorrectionPart1 + meansCorrectionPart2 + meansCorrectionPart3;
-			//^^^The compiler doesn't know that dNu_dtheta[i]*CinvNu will always evaluate to a scalar.
-			//Also, -1.0 = -0.5 * 2.
 			if(OMX_DEBUG_ALGEBRA){ mxLog("ig[i], with means correction: %f", ig[i]); }
 		}
 	}

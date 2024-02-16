@@ -2614,14 +2614,15 @@ void omxRAMExpectation::provideSufficientDerivs(
 		edA *= -1.0;  //0-dA, in-place.
 		Eigen::MatrixXd edAt = edA.transpose();
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("edA transpose",edAt); }
-		//TODO selfadjointView and triangularView:
-		Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov;
+		Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov.selfadjointView<Eigen::Lower>();
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
-		Eigen::MatrixXd secondPart = I_At*edS*pcalc.I_A;
+		//Eigen::MatrixXd secondPart(I_At.rows(),I_At.cols());
+		//secondPart.triangularView<Eigen::Lower>() = I_At*edS.selfadjointView<Eigen::Lower>()*pcalc.I_A;
+		Eigen::MatrixXd secondPart = I_At*edS.selfadjointView<Eigen::Lower>()*pcalc.I_A;
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
-		Eigen::MatrixXd thirdPart = -1.0*eFullCov*edAt*pcalc.I_A;
+		Eigen::MatrixXd thirdPart = -1.0*eFullCov.selfadjointView<Eigen::Lower>()*edAt*pcalc.I_A;
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
-		u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart) * eF.transpose();
+		u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 		//u_dSigma_dtheta[px] = eF * 
 		//	(-1.0*pcalc.I_A*edA*eFullCov + pcalc.I_A*edS*I_At - eFullCov*edAt*I_At) * eF.transpose();
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
