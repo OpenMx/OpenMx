@@ -190,7 +190,8 @@ void MLFitState::compute2(int want, FitContext *fc)
 		}
     //mxLog("%s: %d/%d analytic derivs", name(), numSimpleParam, numFree);
 
-    if (!Global->analyticGradients || (!omo->expectation->canProvideSufficientDerivs && numSimpleParam == 0)) {
+    if( !((Global->analyticGradients && omo->expectation->canProvideSufficientDerivs) || (numSimpleParam)) ){
+    //if (!Global->analyticGradients || (!omo->expectation->canProvideSufficientDerivs && numSimpleParam == 0)) {
     	// if numSimpleParam == 0 then hessian() doesn't compute the fit
     	if (want & FF_COMPUTE_GRADIENT) fc->gradZ.setConstant(NA_REAL);
     	want &= ~(FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN | FF_COMPUTE_INFO);
