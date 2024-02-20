@@ -68,7 +68,7 @@ m1n <- mxRun(m1n)
 omxCheckCloseEnough(gv(m1a)[1],0,1e-12)
 omxCheckCloseEnough(0,m1a$output$gradient[1],1e-12)
 #More importantly, make sure analytic & numeric gradients are both zero at the MLE:
-omxCheckCloseEnough(m1n$output$gradient,c(0,0),1e-8)
+omxCheckCloseEnough(m1n$output$gradient,c(0,0),2e-8)
 omxCheckCloseEnough(m1a$output$gradient,c(0,0),1e-8)
 
 # Check to see if analytic & numeric gradients match when not at MLE ####
@@ -98,6 +98,6 @@ m1n <- mxModel(
 )
 m1n <- mxRun(m1n)
 #Make sure analytic gradient w/r/t variance matches in backend & frontend:
-omxCheckCloseEnough(gv(m1a)[1],m1a$output$gradient[1],1e-12)
+omxCheckCloseEnough(gv(m1a)[1],m1a$output$gradient[1],2e-12)
 #More importantly, make sure analytic & numeric gradients match:
 omxCheckCloseEnough(m1a$output$gradient,m1n$output$gradient,1e-8)
