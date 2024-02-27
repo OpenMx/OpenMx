@@ -248,9 +248,11 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							//Analytic derivs start here.
 							//TODO more efficient code
 							Eigen::MatrixXd SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
+							Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
 							double firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); //(iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr).trace()
 							if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
-							double secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(ss.dataCov * iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr * iV.selfadjointView<Eigen::Lower>()).trace();
+							//double secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(ss.dataCov * iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr * iV.selfadjointView<Eigen::Lower>()).trace();
+							double secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov * SigmaInvDer).trace();
 							if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 							if(OMX_DEBUG_ALGEBRA){
 								mxLog("ss.rows: %d",ss.rows);
@@ -258,13 +260,16 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 								mxPrintMat("iV",iV);
 								mxPrintMat("resid",resid);
 							}
-							double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
+							//double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							double thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
 							if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
-							double fourthTerm = 0.5*ss.rows*(resid.transpose()*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							//double fourthTerm = 0.5*ss.rows*(resid.transpose()*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							//double fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
+							double fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
 							if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
 							ssDerivCurr = firstTerm + secondTerm + thirdTerm + fourthTerm;
 							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
-							//fc->gradZ[px] += Scale * ss.rows/(ss.rows-1) * ssDerivCurr;
 							fc->gradZ[px] += Scale * ssDerivCurr;
 							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
 						}
