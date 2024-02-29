@@ -232,7 +232,7 @@ void PathCalc::evaluate(FitContext *fc, bool doFilter)
 	if(doCacheUnfilteredIA){
 		//TODO: In the sparse case, this currently casts a sparse matrix to a dense matrix:
 		if(useSparse){
-			I_A = sparseIA;
+			sparseI_A = sparseIA;
 		} else{
 			I_A = IA;
 		}

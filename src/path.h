@@ -55,7 +55,6 @@ double polynomialToMoment(Polynomial< double > &polyRep, T& symEv)
 class PathCalc {
 	std::vector<bool> *latentFilter; // false when latent
 	std::vector<bool> *isProductNode; // change to enum?
-	int useSparse;
 	unsigned versionM;
 	unsigned versionS;
 	unsigned versionIA;
@@ -131,15 +130,18 @@ class PathCalc {
 	const int verbose;
 	const bool ignoreVersion;
 	
+	int useSparse;
 	bool doCacheUnfilteredIA; //cache unfiltered (I-A) inverse transpose?
 	Eigen::MatrixXd I_A; //cached unfiltered (I-A) inverse transpose
+	Eigen::SparseMatrix<double> sparseI_A; //cached unfiltered (I-A) inverse transpose
 	bool doAlwaysComputeUnfilteredIAUponEval; //compute (I-A) inverse transpose with every call to PathCalc::evaluate()? 
 
  PathCalc() :
-	 useSparse(false), versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
+	 versionM(0), versionS(0), versionIA(0), sparseLUanal(false),
 	 numIters(NA_INTEGER),
 	 algoSet(false), versionPoly(0), fullMeanAccess(0), fullCovAccess(0),
-   selVec(0), verbose(0), ignoreVersion(false), doCacheUnfilteredIA(false), doAlwaysComputeUnfilteredIAUponEval(false) {}
+   selVec(0), verbose(0), ignoreVersion(false), useSparse(false), doCacheUnfilteredIA(false), 
+   doAlwaysComputeUnfilteredIAUponEval(false) {}
 
 	void clone(PathCalc &pc)
 	{
