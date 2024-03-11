@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 require(OpenMx)
+#This script does not actually invoke the optimizer, so there's no need to test it with all 3:
+if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")} 
 #dimnames=list(c("x","y"), c("x","y"))),
 dat <- MASS::mvrnorm(n=500,mu=c(0,0),Sigma=matrix(c(1,0.5,0.5,1),2,2),empirical=T)
 colnames(dat) <- c("x","y")

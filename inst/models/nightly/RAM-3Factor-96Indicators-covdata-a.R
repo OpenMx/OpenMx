@@ -127,3 +127,16 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
 omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 105106.956, .5)
+
+# Compare with vs. without analytic gradients ####
+mxOption(NULL,"Analytic gradients","Yes")
+foo <- mxRun(threeFactorOrthogonal)
+mxOption(NULL,"Analytic gradients","No")
+bar <- mxRun(threeFactorOrthogonal)
+omxCheckCloseEnough(foo$output$fit, bar$output$fit, .5)
+omxCheckTrue(summary(foo)$wallTime < summary(bar)$wallTime) #<--FALSE with NPSOL.
+summary(foo)$wallTime; summary(bar)$wallTime
+omxCheckTrue(foo$output$iterations <= bar$output$iterations) #<--FALSE with SLSQP.
+foo$output$iterations; bar$output$iterations
+omxCheckTrue(foo$output$evaluations < bar$output$evaluations)
+foo$output$evaluations; bar$output$evaluations

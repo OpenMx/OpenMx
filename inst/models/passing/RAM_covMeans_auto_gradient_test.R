@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 require(OpenMx)
+#This script does not actually invoke the optimizer, so there's no need to test it with all 3:
+if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")} 
 ga <- function(m,verbose=TRUE,N=500){
 	Sigma <- mxGetExpected(m,"covariance")
 	Mu <- mxGetExpected(m,"mean")

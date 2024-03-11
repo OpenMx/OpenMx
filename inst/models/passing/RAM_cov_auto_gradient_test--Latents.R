@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 require(OpenMx)
+#mxOption(NULL,"Default optimizer","SLSQP")
+#mxOption(NULL,"Verify level",-1)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
@@ -36,3 +38,11 @@ f2 <- mxRun(factorModel)
 omxCheckCloseEnough(coef(f1)-coef(f2),rep(0,10),2e-6)
 omxCheckCloseEnough(f1$output$gradient-f2$output$gradient,rep(0,10),1.5e-2)
 omxCheckCloseEnough(f1$output$fit-f2$output$fit,0,5e-8)
+
+#Using analytic derivatives should be faster:
+omxCheckTrue(f1$output$iterations <= f2$output$iterations)
+f1$output$iterations; f2$output$iterations
+omxCheckTrue(f1$output$evaluations < f2$output$evaluations)
+f1$output$evaluations ; f2$output$evaluations
+omxCheckTrue(summary(f1)$wallTime < summary(f2)$wallTime)
+summary(f1)$wallTime ; summary(f2)$wallTime

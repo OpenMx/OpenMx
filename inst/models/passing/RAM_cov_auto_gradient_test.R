@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 require(OpenMx)
+#This script does not actually invoke the optimizer, so there's no need to test it with all 3:
+if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")} 
 require(numDeriv)
 g <- function(m,verbose=FALSE,N=500){
 	Sigma <- mxGetExpected(m,"covariance")
@@ -38,6 +40,9 @@ results <-
 		truevals=truevals,m1aBack=rep(NA_real_,22),m1aFront=rep(NA_real_,22),m2aBack=rep(NA_real_,22),m2aFront=rep(NA_real_,22),
 		m3aBack=rep(NA_real_,22),m3aFront=rep(NA_real_,22),m3aFront2=rep(NA_real_,22),m3aFront3=rep(NA_real_,22)
 	)
+wallTimes <- data.frame(
+	truevals=truevals, m1a=rep(NA,22), m2a=rep(NA,22)
+)
 
 for(i in 1:22){
 	
@@ -56,6 +61,7 @@ for(i in 1:22){
 	results$m1aBack[i] <- m1a$output$gradient[1]
 	results$m1aFront[i] <- g(m1a)[1]
 	coef(m1a)
+	wallTimes$m1a[i] <- summary(m1a)$wallTime
 	
 	
 	mxOption(NULL,"Analytic gradients","No")
@@ -63,6 +69,7 @@ for(i in 1:22){
 	results$m2aBack[i] <- m2a$output$gradient[1]
 	results$m2aFront[i] <- g(m2a)[1]
 	coef(m2a)
+	wallTimes$m2a[i] <- summary(m2a)$wallTime
 	
 	plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
 	m3 <- mxModel(
@@ -102,4 +109,6 @@ omxCheckCloseEnough(results$m3aFront[10],0.0,1e-8)
 omxCheckCloseEnough(results$m1aBack-results$m3aBack,rep(0.0,22),1e-7)
 omxCheckCloseEnough((results$m3aBack/results$m1aBack)[-10],rep(1.0,21),1e-8)
 
-
+#Analytic gradient should be faster:
+omxCheckTrue(all(wallTimes$m1a < wallTimes$m2a)) #<--FALSE
+wallTimes$m1a - wallTimes$m2a
