@@ -468,10 +468,6 @@ struct condOrdByRow : mvnByRow {
 		: super(u_fc, u_localobj, u_parent, u_ofiml, u_want) {};
 	bool eval();
 	
-	//Stuff for analytic derivs (profiling suggests storing them is faster than repeatedly re-/de-allocating them):
-	Eigen::MatrixXd dSigma_dtheta_curr, SigmaInvDer, SigmaInvDataCov, SigmaInvResid;
-	Eigen::VectorXd dNu_dtheta_curr;
-	double firstTerm, secondTerm, thirdTerm, fourthTerm;
 };
 
 #endif /* u_OMXFIMLFITFUNCTION_H_ */
