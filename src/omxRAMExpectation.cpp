@@ -2632,7 +2632,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 			//secondPart.triangularView<Eigen::Lower>() = I_At*edS.selfadjointView<Eigen::Lower>()*pcalc.I_A;
 			Eigen::MatrixXd secondPart = I_At*dS_dtheta[px].selfadjointView<Eigen::Lower>()*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
-			Eigen::MatrixXd thirdPart = -1.0*eFullCov*edAt*pcalc.I_A;
+			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
 			u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 			//u_dSigma_dtheta[px] = eF * 
@@ -2670,7 +2670,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
 			Eigen::MatrixXd secondPart = I_At*dS_dtheta[px]*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
-			Eigen::MatrixXd thirdPart = -1.0*eFullCov*edAt*pcalc.sparseI_A;
+			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
 			u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }

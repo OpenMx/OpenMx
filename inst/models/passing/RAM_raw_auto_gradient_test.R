@@ -100,6 +100,6 @@ m1n <- mxModel(
 )
 m1n <- mxRun(m1n)
 #Make sure analytic gradient w/r/t variance matches in backend & frontend:
-omxCheckCloseEnough(gv(m1a)[1],m1a$output$gradient[1],2e-12)
+omxCheckCloseEnough(gv(m1a)[1],m1a$output$gradient[1],5e-12)
 #More importantly, make sure analytic & numeric gradients match:
 omxCheckCloseEnough(m1a$output$gradient,m1n$output$gradient,1e-8)
