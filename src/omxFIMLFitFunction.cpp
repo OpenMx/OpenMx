@@ -213,19 +213,27 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					continue;
 				}
 				Eigen::VectorXd resid = ss.dataMean - contMean;
-				residSize = ss.dataMean.size();
-				//mxPrintMat("dataCov", ss.dataCov);
-				//mxPrintMat("contMean", contMean);
-				//mxPrintMat("dataMean", ss.dataMean);
-				//mxPrintMat("resid", resid);
-				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-				double tr1 = trace_prod(iV, ss.dataCov);
-				double logDet = 2.0 * covDecomp.log_determinant();
-				double cterm = M_LN_2PI * residSize;
-				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
-				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
-				record(-0.5 * ll + ss.rows * log(ordLik), ss.length);
-				contLogLik = 0.0;
+				if (want & FF_COMPUTE_FIT){
+					//Something in this codeblock needs to happen to prevent segfault when CI constraints are freed.
+					residSize = ss.dataMean.size();
+					//mxPrintMat("dataCov", ss.dataCov);
+					//mxPrintMat("contMean", contMean);
+					//mxPrintMat("dataMean", ss.dataMean);
+					//mxPrintMat("resid", resid);
+					iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+					double tr1 = trace_prod(iV, ss.dataCov);
+					double logDet = 2.0 * covDecomp.log_determinant();
+					double cterm = M_LN_2PI * residSize;
+					//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
+					double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
+					record(-0.5 * ll + ss.rows * log(ordLik), ss.length);
+					contLogLik = 0.0;
+				} else{
+					/*For some reason, if this doesn't happen, then the inequality constraint used in the constrained
+					representation of the confidence-limit problem will be uninitialized when freed:*/
+					record(0.0, ss.length); 
+				}
+				
 				if (want & FF_COMPUTE_GRADIENT){
 					if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
 						ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta);
@@ -246,7 +254,6 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 							//Analytic derivs start here.
-							//TODO more efficient code
 							SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
 							SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
 							firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); //(iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr).trace()
@@ -273,20 +280,23 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							fc->gradZ[px] += Scale * ssDerivCurr;
 							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
 						}
-					}}
+					}
+				}
 				continue;
 			}
 
-			INCR_COUNTER(contDensity);
 			VectorXd resid = cData - contMean;
-			residSize = resid.size();
-			iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-			double cterm = M_LN_2PI * residSize;
-			double logDet = 2.0 * covDecomp.log_determinant();
-			//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
-			contLogLik = -0.5 * (iqf + cterm + logDet);
-			if (!std::isfinite(contLogLik)){
-				reportBadContRow(cData, resid, contCov);
+			if (want & FF_COMPUTE_FIT){
+				INCR_COUNTER(contDensity);
+				residSize = resid.size();
+				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
+				double cterm = M_LN_2PI * residSize;
+				double logDet = 2.0 * covDecomp.log_determinant();
+				//mxLog("[%d] cont %f %f %f", sortedRow, iqf, cterm, logDet);
+				contLogLik = -0.5 * (iqf + cterm + logDet);
+				if (!std::isfinite(contLogLik)){
+					reportBadContRow(cData, resid, contCov);
+				}
 			}
 			
 			if (want & FF_COMPUTE_GRADIENT){
@@ -306,7 +316,8 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace() +
 							2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid );
 					}
-				}}
+				}
+			}
 		} else { contLogLik = 0.0; }
 
 		recordRow(contLogLik, ordLik, iqf, residSize);
