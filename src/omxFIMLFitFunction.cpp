@@ -267,9 +267,8 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 								if(!zeroCovDeriv){
 									Eigen::MatrixXd SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
 									Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
-									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); //(iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr).trace()
+									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); 
 									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
-									//secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(ss.dataCov * iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr * iV.selfadjointView<Eigen::Lower>()).trace();
 									secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov * SigmaInvDer).trace();
 									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 									// fourthTerm = 0.5*ss.rows*(resid.transpose()*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);

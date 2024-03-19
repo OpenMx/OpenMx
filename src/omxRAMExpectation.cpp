@@ -2634,7 +2634,8 @@ void omxRAMExpectation::provideSufficientDerivs(
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
-			u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
+			//u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
+			u_dSigma_dtheta[px] = (firstPart + secondPart + thirdPart).topLeftCorner(eF.rows(),eF.rows());
 			//u_dSigma_dtheta[px] = eF * 
 			//	(-1.0*pcalc.I_A*edA*eFullCov + pcalc.I_A*edS*I_At - eFullCov*edAt*I_At) * eF.transpose();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
@@ -2642,7 +2643,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 				EigenMatrixAdaptor eM(M);
 				//EigenMatrixAdaptor edM(dM_dtheta[px]);
 				//Remember that eM and edM are row vectors:
-				u_dNu_dtheta[px] = (-1.0*eF*(-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose();
+				u_dNu_dtheta[px] = -1.0*(((-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose()).block(0,0,1,eF.rows());
 				if(OMX_DEBUG_ALGEBRA){ 
 					mxLog("px: %d", int(px));
 					mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]);
@@ -2672,13 +2673,14 @@ void omxRAMExpectation::provideSufficientDerivs(
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
-			u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
+			//u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
+			u_dSigma_dtheta[px] = (firstPart + secondPart + thirdPart).topLeftCorner(eF.rows(),eF.rows());
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
 			if(M){
 				EigenMatrixAdaptor eM(M);
 				//EigenMatrixAdaptor edM(dM_dtheta[px]);
 				//Remember that eM and edM are row vectors:
-				u_dNu_dtheta[px] = (-1.0*eF*(-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose();
+				u_dNu_dtheta[px] = -1.0*(((-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose()).block(0,0,1,eF.rows());
 				if(OMX_DEBUG_ALGEBRA){ 
 					mxLog("px: %d", int(px));
 					mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]);
