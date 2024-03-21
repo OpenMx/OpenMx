@@ -374,9 +374,6 @@ class omxRAMExpectation : public MVNExpectation {
 	omxMatrix *slope;       // exogenous predictor slopes
 	omxMatrix *A, *S, *F, *M;
 	
-	/*std::vector< omxMatrix* > dS_dtheta;
-	std::vector< omxMatrix* > dA_dtheta;
-	std::vector< omxMatrix* > dM_dtheta;*/
 	std::vector< Eigen::SparseMatrix<double> > dS_dtheta;
 	std::vector< Eigen::SparseMatrix<double> > dA_dtheta;
 	std::vector< Eigen::SparseMatrix<double> > dM_dtheta;

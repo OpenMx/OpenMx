@@ -214,7 +214,6 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				}
 				Eigen::VectorXd resid = ss.dataMean - contMean;
 				if (want & FF_COMPUTE_FIT){
-					//Something in this codeblock needs to happen to prevent segfault when CI constraints are freed.
 					residSize = ss.dataMean.size();
 					//mxPrintMat("dataCov", ss.dataCov);
 					//mxPrintMat("contMean", contMean);
@@ -271,13 +270,10 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
 									secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov * SigmaInvDer).trace();
 									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
-									// fourthTerm = 0.5*ss.rows*(resid.transpose()*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
-									// fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
 									fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
 									if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
 								}
 								if(!zeroMeanDeriv){
-									// thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid)(0,0);
 									thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
 									if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
 								}
@@ -320,7 +316,6 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 						bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 						bool zeroMeanDeriv = dNu_dtheta_curr.isZero();
-						//Eigen::MatrixXd::Identity I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() );
 						if(!zeroCovDeriv){
 							Eigen::MatrixXd I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() ); I.setIdentity();
 							term1=(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace();

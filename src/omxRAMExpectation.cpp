@@ -504,15 +504,13 @@ void omxRAMExpectation::init()
   	}
   	for(size_t px=0; px < freeVarGroup->vars.size(); px++){
   		//Eigen initializes sparse matrices with all-zero elements.
-  		dS_dtheta[px].resize(S->rows, S->cols); //= omxInitMatrix(S->rows, S->cols, 1, currentState);
-  		dA_dtheta[px].resize(A->rows, A->cols); //= omxInitMatrix(A->rows, A->cols, 1, currentState);
+  		dS_dtheta[px].resize(S->rows, S->cols); 
+  		dA_dtheta[px].resize(A->rows, A->cols); 
   		if(M){
-  			dM_dtheta[px].resize(M->rows, M->cols); //= omxInitMatrix(M->rows, M->cols, 1, currentState);
+  			dM_dtheta[px].resize(M->rows, M->cols);
   		}
   		for(size_t li=0; li < freeVarGroup->vars[px]->locations.size(); li++){
   			if(freeVarGroup->vars[px]->locations[li].matrix == samPos[0]){
-  				/*omxSetMatrixElement(
-  					dS_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);*/
   				dS_dtheta[px].coeffRef(freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col) = 1.0;
   				if(OMX_DEBUG){
   					//EigenMatrixAdaptor edS_dtheta_px(dS_dtheta[px]);
@@ -520,8 +518,6 @@ void omxRAMExpectation::init()
   				}
   			}
   			if(freeVarGroup->vars[px]->locations[li].matrix == samPos[1]){
-  				/*omxSetMatrixElement(
-  					dA_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);*/
   				dA_dtheta[px].coeffRef(freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col) = 1.0;
   				if(OMX_DEBUG){
   					//EigenMatrixAdaptor edA_dtheta_px(dA_dtheta[px]);
@@ -530,8 +526,6 @@ void omxRAMExpectation::init()
   			}
   			if(M){
   				if(freeVarGroup->vars[px]->locations[li].matrix == samPos[2]){
-  					/*omxSetMatrixElement(
-  						dM_dtheta[px], freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col, 1.0);*/
   					dM_dtheta[px].coeffRef(freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col) = 1.0;
   					if(OMX_DEBUG){
   						//EigenMatrixAdaptor edM_dtheta_px(dM_dtheta[px]);
@@ -2614,35 +2608,22 @@ void omxRAMExpectation::provideSufficientDerivs(
 		//N.B. pcalc.I_A is solve(I - t(A)):
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse transpose:",pcalc.I_A); }
 		Eigen::MatrixXd I_At = pcalc.I_A.transpose();
-		//auto I_At = pcalc.I_A.transpose();
-		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse:",I_At); }
-		//omxMatrix *dA = omxInitMatrix(A->rows, A->cols, 1, currentState);
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse:",I_At); };
 		for(size_t px=0; px < u_dSigma_dtheta.size(); px++){
-			//EigenMatrixAdaptor edS(dS_dtheta[px]);
-			//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dS_dtheta[px]:",dS_dtheta[px]); }
-			//omxCopyMatrix(dA, dA_dtheta[px]);
-			//EigenMatrixAdaptor edA(dA);
 			Eigen::SparseMatrix<double> edA = dA_dtheta[px]; //<--Need to temporarily copy it, since we modify it in-place.
 			edA *= -1.0;  //<--0-dA, in-place.
 			Eigen::SparseMatrix<double> edAt = edA.transpose(); //dA_dtheta[px].transpose();
-			//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("edA transpose",edAt); }
 			Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov.selfadjointView<Eigen::Lower>();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
-			//Eigen::MatrixXd secondPart(I_At.rows(),I_At.cols());
-			//secondPart.triangularView<Eigen::Lower>() = I_At*edS.selfadjointView<Eigen::Lower>()*pcalc.I_A;
 			Eigen::MatrixXd secondPart = I_At*dS_dtheta[px].selfadjointView<Eigen::Lower>()*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
-			//u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 			u_dSigma_dtheta[px] = (firstPart + secondPart + thirdPart).topLeftCorner(eF.rows(),eF.rows());
-			//u_dSigma_dtheta[px] = eF * 
-			//	(-1.0*pcalc.I_A*edA*eFullCov + pcalc.I_A*edS*I_At - eFullCov*edAt*I_At) * eF.transpose();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
 			if(M){
 				EigenMatrixAdaptor eM(M);
-				//EigenMatrixAdaptor edM(dM_dtheta[px]);
-				//Remember that eM and edM are row vectors:
+				//Remember that eM is a row vector:
 				u_dNu_dtheta[px] = -1.0*(((-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose()).block(0,0,1,eF.rows());
 				if(OMX_DEBUG_ALGEBRA){ 
 					mxLog("px: %d", int(px));
@@ -2650,36 +2631,25 @@ void omxRAMExpectation::provideSufficientDerivs(
 				}
 			}
 		}
-		//omxFreeMatrix(dA);
 	}
 	else{
 		//N.B. pcalc.I_A is solve(I - t(A)):
-		//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse transpose:",pcalc.sparseI_A); }
 		Eigen::SparseMatrix<double> I_At = pcalc.sparseI_A.transpose();
-		//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse:",I_At); }
-		//omxMatrix *dA = omxInitMatrix(A->rows, A->cols, 1, currentState);
 		for(size_t px=0; px < u_dSigma_dtheta.size(); px++){
-			//EigenMatrixAdaptor edS(dS_dtheta[px]);
-			//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dS_dtheta[px]:",dS_dtheta[px]); }
-			//omxCopyMatrix(dA, dA_dtheta[px]);
-			//EigenMatrixAdaptor edA(dA);
 			Eigen::SparseMatrix<double> edA = dA_dtheta[px]; //<--Need to temporarily copy it, since we modify it in-place.
 			edA *= -1.0;  //0-dA, in-place.
 			Eigen::SparseMatrix<double> edAt = edA.transpose();//dA_dtheta[px].transpose();
-			//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("edA transpose",edAt); }
 			Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
 			Eigen::MatrixXd secondPart = I_At*dS_dtheta[px]*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
-			//u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 			u_dSigma_dtheta[px] = (firstPart + secondPart + thirdPart).topLeftCorner(eF.rows(),eF.rows());
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
 			if(M){
 				EigenMatrixAdaptor eM(M);
-				//EigenMatrixAdaptor edM(dM_dtheta[px]);
-				//Remember that eM and edM are row vectors:
+				//Remember that eM is a row vector:
 				u_dNu_dtheta[px] = -1.0*(((-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose()).block(0,0,1,eF.rows());
 				if(OMX_DEBUG_ALGEBRA){ 
 					mxLog("px: %d", int(px));
@@ -2687,7 +2657,6 @@ void omxRAMExpectation::provideSufficientDerivs(
 				}
 			}
 		}
-		//omxFreeMatrix(dA);
 	}
 	pcalc.doAlwaysComputeUnfilteredIAUponEval = tmpflag; //<--Restore value to what it was before this function messed with it.
 }
