@@ -377,9 +377,13 @@ class omxRAMExpectation : public MVNExpectation {
 	std::vector< Eigen::SparseMatrix<double> > dS_dtheta;
 	std::vector< Eigen::SparseMatrix<double> > dA_dtheta;
 	std::vector< Eigen::SparseMatrix<double> > dM_dtheta;
+	std::vector<bool> alwaysZeroSDeriv;
+	std::vector<bool> alwaysZeroADeriv;
+	std::vector<bool> alwaysZeroMDeriv;
 	
 	void provideSufficientDerivs(
-			FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta);
+			FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta,
+			std::vector<bool> &u_alwaysZeroCovDeriv, std::vector<bool> &u_alwaysZeroMeanDeriv);
 
 	int verbose;
 	int rampartCycleLimit;

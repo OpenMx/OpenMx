@@ -484,10 +484,13 @@ void omxRAMExpectation::init()
   	freeVarGroup = fc->varGroup; //TODO: generalize to the case where there is more than one varGroup.
   	dS_dtheta.resize(freeVarGroup->vars.size());
   	dA_dtheta.resize(freeVarGroup->vars.size());
+  	alwaysZeroSDeriv.resize(freeVarGroup->vars.size());
+  	alwaysZeroADeriv.resize(freeVarGroup->vars.size());
   	if(M){
   		dM_dtheta.resize(freeVarGroup->vars.size());
+  		alwaysZeroMDeriv.resize(freeVarGroup->vars.size());
   	}
-  	std::vector<int> samPos(3);
+  	std::vector<int> samPos(3); //<--Positions of S, A, & M matrices in matrixList.
   	for(size_t mi=0; mi < Global->globalState->matrixList.size(); mi++){
   		if(strEQ(Global->globalState->matrixList[mi]->name(),S->name())){
   			samPos[0] = mi;
@@ -502,17 +505,18 @@ void omxRAMExpectation::init()
   			}
   		}
   	}
-  	for(size_t px=0; px < freeVarGroup->vars.size(); px++){
+  	for(size_t px=0; px < freeVarGroup->vars.size(); px++){ //<--Loop across free parameters.
   		//Eigen initializes sparse matrices with all-zero elements.
   		dS_dtheta[px].resize(S->rows, S->cols); 
   		dA_dtheta[px].resize(A->rows, A->cols); 
   		if(M){
   			dM_dtheta[px].resize(M->rows, M->cols);
   		}
-  		for(size_t li=0; li < freeVarGroup->vars[px]->locations.size(); li++){
+  		for(size_t li=0; li < freeVarGroup->vars[px]->locations.size(); li++){ //<--Loop across locations of current (px) free parameter.
   			if(freeVarGroup->vars[px]->locations[li].matrix == samPos[0]){
   				dS_dtheta[px].coeffRef(freeVarGroup->vars[px]->locations[li].row, freeVarGroup->vars[px]->locations[li].col) = 1.0;
   				if(OMX_DEBUG){
+  					//TODO: print function for sparse Eigen matrices
   					//EigenMatrixAdaptor edS_dtheta_px(dS_dtheta[px]);
   					//mxPrintMat("dS_dtheta[px]:",dS_dtheta[px]);
   				}
@@ -533,6 +537,13 @@ void omxRAMExpectation::init()
   					}
   				}
   			}
+  		}
+  		//The elements of the derivative matrices will all be zeroes and ones, so checking for a sum of zero
+  		//suffices to check that all the elements are zero:
+  		alwaysZeroSDeriv[px] = dS_dtheta[px].sum()==0.0;
+  		alwaysZeroADeriv[px] = dA_dtheta[px].sum()==0.0;
+  		if(M){
+  			alwaysZeroMDeriv[px] = dM_dtheta[px].sum()==0.0;
   		}
   	}
   }
@@ -2590,10 +2601,26 @@ namespace RelationalRAMExpectation {
 }
 
 void omxRAMExpectation::provideSufficientDerivs(
-		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta)
+		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta,
+		std::vector<bool> &u_alwaysZeroCovDeriv, std::vector<bool> &u_alwaysZeroMeanDeriv)
 {
 	EigenMatrixAdaptor eF(F);
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("F:",eF); }
+	
+	//If the two input "always-zero?" boolean vectors haven't been populated, that happens here (should only happen once):
+	if(!u_alwaysZeroCovDeriv.size()){
+		u_alwaysZeroCovDeriv.resize(alwaysZeroSDeriv.size());
+		for(size_t i=0; i < alwaysZeroSDeriv.size(); i++){
+			u_alwaysZeroCovDeriv[i] = alwaysZeroSDeriv[i] && alwaysZeroADeriv[i];
+		}
+	}
+	if(!u_alwaysZeroMeanDeriv.size() && M){
+		u_alwaysZeroMeanDeriv.resize(alwaysZeroMDeriv.size());
+		for(size_t i=0; i < alwaysZeroMDeriv.size(); i++){
+			u_alwaysZeroMeanDeriv[i] = alwaysZeroMDeriv[i];
+		}
+	}
+	
 	/*
 	 * pcalc.doAlwaysComputeUnfilteredIAUponEval is only relevant to pcalc's behavior within the context of the present function.
 	 * So, we store what it is at the start of the function call, set it to true for this function's purposes, and then, at the end

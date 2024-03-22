@@ -235,7 +235,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				
 				if (want & FF_COMPUTE_GRADIENT){
 					if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
-						ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta);
+						ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv);
 						if(OMX_DEBUG_ALGEBRA){
 							mxPrintMat("dataCov", ss.dataCov);
 							mxPrintMat("contMean", contMean);
@@ -304,7 +304,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 			
 			if (want & FF_COMPUTE_GRADIENT){
 				if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
-					ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta);
+					ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv);
 					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 						double term1=0.0, term2=0.0;
 						Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
@@ -977,7 +977,7 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
   		if(dNu_dtheta.size() != size_t(numFree)){
   			dNu_dtheta.resize(numFree);
   		}
-  		off->expectation->provideSufficientDerivs(fc, dSigma_dtheta, dNu_dtheta);
+  		off->expectation->provideSufficientDerivs(fc, dSigma_dtheta, dNu_dtheta, alwaysZeroCovDeriv, alwaysZeroMeanDeriv);
   	}
   	else{	
   		invalidateGradient(fc);

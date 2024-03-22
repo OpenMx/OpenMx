@@ -123,6 +123,8 @@ class omxFIMLFitFunction : public omxFitFunction {
 	
 	std::vector< Eigen::MatrixXd > dSigma_dtheta;
 	std::vector< Eigen::MatrixXd > dNu_dtheta;
+	std::vector<bool> alwaysZeroCovDeriv;
+	std::vector<bool> alwaysZeroMeanDeriv;
 
 	// --- old stuff below
 
