@@ -251,7 +251,13 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
 							Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
 							//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
+							//if(0){
 							subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
+							//}
+							/*else{
+								dNu_dtheta_curr = dNu_dtheta_vec;
+								dSigma_dtheta_curr = ofiml->dSigma_dtheta[px];
+							}*/
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 							if(OMX_DEBUG_ALGEBRA){
 								mxLog("ss.rows: %d",ss.rows);
@@ -268,7 +274,8 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
 									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); 
 									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
-									secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov * SigmaInvDer).trace();
+									secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
+									//secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov.array() * SigmaInvDer.array()).sum();
 									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 									fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
 									if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
@@ -312,7 +319,13 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
 						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
 						//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
+						//if(0){
 						subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
+						//}
+						/*else{
+							dNu_dtheta_curr = dNu_dtheta_vec;
+							dSigma_dtheta_curr = ofiml->dSigma_dtheta[px];
+						}*/
 						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 						bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 						bool zeroMeanDeriv = dNu_dtheta_curr.isZero();

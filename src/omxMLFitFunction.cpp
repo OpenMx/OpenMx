@@ -566,7 +566,8 @@ void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::Vector
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("Der:",dSigma_dtheta[i]); }
 		Eigen::MatrixXd CinvDer = Cinv.selfadjointView<Eigen::Lower>() * dSigma_dtheta[i];
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvDer:",CinvDer); }
-		double secondTerm = (CinvObCov * CinvDer).trace();
+		//double secondTerm = (CinvObCov * CinvDer).trace();
+		double secondTerm = (CinvObCov.array() * CinvDer.transpose().array()).sum();
 		if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 		double CinvDer_trace = CinvDer.trace();
 		if(OMX_DEBUG_ALGEBRA){ mxLog("CinvDer_trace: %f", CinvDer_trace); }

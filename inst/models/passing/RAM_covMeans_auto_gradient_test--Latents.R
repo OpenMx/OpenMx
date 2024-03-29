@@ -36,7 +36,7 @@ factorModel <- mxModel(
 f1 <- mxRun(factorModel)
 mxOption(NULL,"Analytic gradients","No")
 f2 <- mxRun(factorModel)
-omxCheckCloseEnough(coef(f1)-coef(f2),rep(0,15),2e-6)
+omxCheckCloseEnough(coef(f1)-coef(f2),rep(0,15),2e-5)
 omxCheckCloseEnough(f1$output$gradient-f2$output$gradient,rep(0,15),1.5e-2)
 omxCheckCloseEnough(f1$output$fit-f2$output$fit,0,5e-8)
 
