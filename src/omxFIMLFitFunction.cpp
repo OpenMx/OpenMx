@@ -247,7 +247,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							double ssDerivCurr=0.0; //<--Fit derivative for current parameter for current sufficient set
 							double firstTerm=0.0, secondTerm=0.0, thirdTerm=0.0, fourthTerm=0.0;
 							Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
-							Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].rows());
+							Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].size());
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
 							Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
 							//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
@@ -255,8 +255,14 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
 							//}
 							/*else{
-								dNu_dtheta_curr = dNu_dtheta_vec;
-								dSigma_dtheta_curr = ofiml->dSigma_dtheta[px];
+								for (int gcx=0; gcx < ofiml->dSigma_dtheta[px].cols(); gcx++) {
+									dNu_dtheta_curr[gcx] = dNu_dtheta_vec[gcx];
+									for (int grx=0; grx < ofiml->dSigma_dtheta[px].rows(); grx++) {
+										dSigma_dtheta_curr(grx,gcx) = ofiml->dSigma_dtheta[px](grx, gcx);
+									}
+								}
+								//dNu_dtheta_curr = dNu_dtheta_vec;
+								//dSigma_dtheta_curr = ofiml->dSigma_dtheta[px];
 							}*/
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
 							if(OMX_DEBUG_ALGEBRA){
@@ -315,7 +321,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 						double term1=0.0, term2=0.0;
 						Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
-						Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].rows());
+						Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].size());
 						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
 						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
 						//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
