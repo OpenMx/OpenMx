@@ -17,7 +17,7 @@
 #------------------------------------------------------------------------------
 # Author: Michael D. Hunter
 # Date: 2014.12.17
-# Filename: ModelIdentification.R
+# Filename: test-ModelIdentification.R
 # Purpose: Check the model identification checking function.
 #------------------------------------------------------------------------------
 
