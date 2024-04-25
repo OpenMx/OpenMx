@@ -233,9 +233,17 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					record(0.0, ss.length); 
 				}
 				
-				if (want & FF_COMPUTE_GRADIENT){
+				if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
 					if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
-						ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv);
+						ofiml->expectation->provideSufficientDerivs(
+								fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv,
+								(want & FF_COMPUTE_HESSIAN), ofiml->d2Sigma_dtheta1dtheta2, ofiml->d2Nu_dtheta1dtheta2);
+						HessianBlock *hb = new HessianBlock;
+						hb->vars.resize(fc->getNumFree());
+						hb->mat.resize(fc->getNumFree(), fc->getNumFree());
+						for(int vi=0; vi < fc->getNumFree(); vi++){
+							hb->vars[vi] = vi;
+						}
 						if(OMX_DEBUG_ALGEBRA){
 							mxPrintMat("dataCov", ss.dataCov);
 							mxPrintMat("contMean", contMean);
@@ -243,13 +251,16 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							mxPrintMat("resid", resid);
 							mxPrintMat("iV",iV);
 						}
+						Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
+						Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
 						for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 							double ssDerivCurr=0.0; //<--Fit derivative for current parameter for current sufficient set
 							double firstTerm=0.0, secondTerm=0.0, thirdTerm=0.0, fourthTerm=0.0;
-							Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
-							Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].size());
+							int nManifestVar = ofiml->dSigma_dtheta[0].rows();
+							Eigen::MatrixXd dSigma_dtheta_curr(nManifestVar,nManifestVar);
+							Eigen::VectorXd dNu_dtheta_curr(nManifestVar);
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
-							Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
+							Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),nManifestVar);
 							//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
 							//if(0){
 							subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
@@ -273,15 +284,13 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							}
 							bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 							bool zeroMeanDeriv = dNu_dtheta_curr.isZero();
+							Eigen::MatrixXd SigmaInvDer; SigmaInvDer.setZero(nManifestVar,nManifestVar);
 							if( !(zeroCovDeriv && zeroMeanDeriv) ){ //Analytic derivs start here.
-								Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
 								if(!zeroCovDeriv){
-									Eigen::MatrixXd SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
-									Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
+									SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
 									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); 
 									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
 									secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
-									//secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov.array() * SigmaInvDer.array()).sum();
 									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 									fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
 									if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
@@ -295,6 +304,55 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
 							fc->gradZ[px] += Scale * ssDerivCurr;
 							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
+							
+							if(want & FF_COMPUTE_HESSIAN){
+								for(size_t qx=px; qx < ofiml->dSigma_dtheta.size(); qx++){
+									//1st derivs w/r/t parameter qx...
+									Eigen::MatrixXd dSigma_dtheta_curr2(nManifestVar,nManifestVar);
+									Eigen::VectorXd dNu_dtheta_curr2(nManifestVar);
+									Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec2(ofiml->dNu_dtheta[qx].data(),nManifestVar);
+									subsetNormalDist(dNu_dtheta_vec2, ofiml->dSigma_dtheta[qx], op, rowContinuous, dNu_dtheta_curr2, dSigma_dtheta_curr2);
+									//2nd derivs w/r/t paramters px & qx...
+									Eigen::MatrixXd d2Sigma_dtheta1dtheta2_curr(nManifestVar,nManifestVar);
+									Eigen::VectorXd d2Nu_dtheta1dtheta2_curr(nManifestVar);
+									Eigen::Map< Eigen::VectorXd > d2Nu_dtheta1dtheta2_vec(ofiml->d2Nu_dtheta1dtheta2[px][qx].data(),nManifestVar);
+									subsetNormalDist(d2Nu_dtheta1dtheta2_vec, ofiml->d2Sigma_dtheta1dtheta2[px][qx], op, rowContinuous, d2Nu_dtheta1dtheta2_curr, d2Sigma_dtheta1dtheta2_curr);
+								
+									Eigen::MatrixXd SigmaInv2ndDer = iV.selfadjointView<Eigen::Lower>() * d2Sigma_dtheta1dtheta2_curr;
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
+									Eigen::MatrixXd SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
+									Eigen::MatrixXd C = SigmaInvDataCov; //<--Copy to modify in-place.
+									C *= -1.0; //First step of I-SigmaInvDataCov.
+									C.diagonal().array() += 1.0; //Second step of I-SigmaInvDataCov.
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("C",C); }
+									
+									double trace23 = (SigmaInv2ndDer.array()*C.transpose().array()).sum() + 
+										((SigmaInvDer*SigmaInvDer2).array()*C.transpose().array()).sum() + 
+										((SigmaInvDer2*SigmaInvDer).array()*SigmaInvDataCov.transpose().array()).sum();
+									if(OMX_DEBUG_ALGEBRA){ mxLog("trace23: %f", trace23); }
+									double t0 = 2.0*(resid.transpose()*SigmaInvDer*SigmaInvDer2*SigmaInvResid)(0,0);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t0: %f", t0); }
+									double t1 = -1.0*(resid.transpose()*SigmaInv2ndDer*SigmaInvResid)(0,0);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t1: %f", t1); }
+									double t2 = 2.0*(dNu_dtheta_curr.transpose()*SigmaInvDer2*SigmaInvResid)(0,0);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t2: %f", t2); }
+									double t3 = 2.0*(dNu_dtheta_curr2.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t3: %f", t3); }
+									double t4 = 2.0*(dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*dNu_dtheta_curr2)(0,0);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t4: %f", t4); }
+									double t5 = -2.0*(d2Nu_dtheta1dtheta2_curr.transpose()*SigmaInvResid)(0,0);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t5: %f", t5); }
+									hb->mat(px,qx) = (trace23 + t0 + t1 + t2 + t3 + t4 + t5)*ss.rows;
+									//mxLog("hb->mat(px,qx): %f", hb->mat(px,qx));
+								}
+							}
+						}
+						if(want & FF_COMPUTE_HESSIAN){
+							fc->queue(hb);
+						}
+						else{
+							delete hb;
 						}
 					}
 				}
@@ -315,15 +373,19 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				}
 			}
 			
-			if (want & FF_COMPUTE_GRADIENT){
+			if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
 				if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
-					ofiml->expectation->provideSufficientDerivs(fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv);
+					ofiml->expectation->provideSufficientDerivs(
+							fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv,
+							(want & FF_COMPUTE_HESSIAN), ofiml->d2Sigma_dtheta1dtheta2, ofiml->d2Nu_dtheta1dtheta2);
+					Eigen::MatrixXd SigmaInvDataCov,SigmaInvResid;
 					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 						double term1=0.0, term2=0.0;
-						Eigen::MatrixXd dSigma_dtheta_curr(ofiml->dSigma_dtheta[0].rows(),ofiml->dSigma_dtheta[0].cols());
-						Eigen::VectorXd dNu_dtheta_curr(ofiml->dNu_dtheta[0].size());
+						int nManifestVar = ofiml->dSigma_dtheta[0].rows();
+						Eigen::MatrixXd dSigma_dtheta_curr(nManifestVar,nManifestVar);
+						Eigen::VectorXd dNu_dtheta_curr(nManifestVar);
 						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
-						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),ofiml->dNu_dtheta[0].size());
+						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),nManifestVar);
 						//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
 						//if(0){
 						subsetNormalDist(dNu_dtheta_vec, ofiml->dSigma_dtheta[px], op, rowContinuous, dNu_dtheta_curr, dSigma_dtheta_curr);
@@ -336,7 +398,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 						bool zeroMeanDeriv = dNu_dtheta_curr.isZero();
 						if(!zeroCovDeriv){
-							Eigen::MatrixXd I( dSigma_dtheta_curr.rows(), dSigma_dtheta_curr.cols() ); I.setIdentity();
+							Eigen::MatrixXd I( nManifestVar, nManifestVar ); I.setIdentity();
 							term1=(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace();
 						}
 						if(!zeroMeanDeriv){
@@ -988,7 +1050,7 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 		return;
 	}
 
-  if (want & FF_COMPUTE_GRADIENT){
+  if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
   	if(Global->analyticGradients && off->expectation->canProvideSufficientDerivs){
   		if(dSigma_dtheta.size() != size_t(numFree)){ 
   			dSigma_dtheta.resize(numFree);
@@ -996,7 +1058,21 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
   		if(dNu_dtheta.size() != size_t(numFree)){
   			dNu_dtheta.resize(numFree);
   		}
-  		off->expectation->provideSufficientDerivs(fc, dSigma_dtheta, dNu_dtheta, alwaysZeroCovDeriv, alwaysZeroMeanDeriv);
+  		if(d2Sigma_dtheta1dtheta2.size() != size_t(numFree)){
+  			d2Sigma_dtheta1dtheta2.resize(numFree);
+  			for(size_t i=0; i<size_t(numFree); i++){
+  				d2Sigma_dtheta1dtheta2[i].resize(numFree);
+  			}
+  		}
+  		if(d2Nu_dtheta1dtheta2.size() != size_t(numFree)){
+  			d2Nu_dtheta1dtheta2.resize(numFree);
+  			for(size_t i=0; i<size_t(numFree); i++){
+  				d2Nu_dtheta1dtheta2[i].resize(numFree);
+  			}
+  		}
+  		off->expectation->provideSufficientDerivs(
+  				fc, dSigma_dtheta, dNu_dtheta, alwaysZeroCovDeriv, alwaysZeroMeanDeriv, (want & FF_COMPUTE_HESSIAN), 
+  				d2Sigma_dtheta1dtheta2, d2Nu_dtheta1dtheta2);
   	}
   	else{	
   		invalidateGradient(fc);
@@ -1310,5 +1386,8 @@ void omxFIMLFitFunction::init()
         newObj->halfCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         newObj->reduceCov = omxInitMatrix(covCols, covCols, TRUE, off->matrix->currentState);
         omxCopyMatrix(newObj->ordContCov, newObj->cov);
+    }
+    if(Global->analyticGradients && expectation->canProvideSufficientDerivs){
+    	hessianAvailable = true;
     }
 }

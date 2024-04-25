@@ -42,6 +42,8 @@ struct MLFitState : omxFitFunction {
 	
 	std::vector< Eigen::MatrixXd > dSigma_dtheta;
 	std::vector< Eigen::MatrixXd > dNu_dtheta; //<--column vectors
+	std::vector< std::vector< Eigen::MatrixXd >> d2Sigma_dtheta1dtheta2;
+	std::vector< std::vector< Eigen::MatrixXd >> d2Nu_dtheta1dtheta2;
 	std::vector<bool> alwaysZeroCovDeriv;
 	std::vector<bool> alwaysZeroMeanDeriv;
 	
@@ -559,7 +561,8 @@ void MLFitState::sufficientDerivs2Grad_NormalContinuous(Eigen::Ref<Eigen::Vector
 		CinvNu = Cinv * Nu;
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvNu:",CinvNu); }
 	}
-	oo->expectation->provideSufficientDerivs(fc, dSigma_dtheta, dNu_dtheta, alwaysZeroCovDeriv, alwaysZeroMeanDeriv);
+	oo->expectation->provideSufficientDerivs(
+			fc, dSigma_dtheta, dNu_dtheta, alwaysZeroCovDeriv, alwaysZeroMeanDeriv, false, d2Sigma_dtheta1dtheta2, d2Nu_dtheta1dtheta2);
 	Eigen::MatrixXd CinvObCov = Cinv.selfadjointView<Eigen::Lower>() * ((n-1)/n*obCov);
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("CinvObCov:",CinvObCov); }
 	for(int i=0; i < numFree; i++){ 

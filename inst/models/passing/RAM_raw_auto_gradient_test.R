@@ -41,7 +41,7 @@ gv <- function(m,verbose=TRUE,N=500){
 
 # Check to see if gradient is zero at MLE ####
 
-plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient","hessian")),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","Yes")
 m1a <- mxModel(
 	"Simple",
@@ -54,7 +54,7 @@ m1a <- mxModel(
 )
 m1a <- mxRun(m1a)
 
-plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=T),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","No")
 m1n <- mxModel(
 	"Simple",
@@ -72,6 +72,10 @@ omxCheckCloseEnough(0,m1a$output$gradient[1],1e-12)
 #More importantly, make sure analytic & numeric gradients are both zero at the MLE:
 omxCheckCloseEnough(m1n$output$gradient,c(0,0),2e-8)
 omxCheckCloseEnough(m1a$output$gradient,c(0,0),1e-8)
+#Verify the elements of the Hessian:
+omxCheckCloseEnough(m1a$output$hessian[1,1],500/0.998/0.998,1e-12)
+omxCheckCloseEnough(m1a$output$hessian[1,2],0,1e-3)
+omxCheckCloseEnough(m1a$output$hessian[2,2],2*500/0.998,1e-12)
 
 # Check to see if analytic & numeric gradients match when not at MLE ####
 plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
