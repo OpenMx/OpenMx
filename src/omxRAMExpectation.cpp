@@ -2682,9 +2682,11 @@ void omxRAMExpectation::provideSufficientDerivs(
 					Eigen::MatrixXd part17 = eF * B * dA_dtheta[qx] * eFullCov.selfadjointView<Eigen::Lower>(); //part13.transpose();
 					Eigen::MatrixXd part16p = eF * B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose(); //part12p.transpose(); 
 					
-					u_d2Sigma_dtheta1dtheta2[px][qx] = part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + 
-						part10q*part12p + part14q*part15p + part14p*part15q + part16q*part15p + part17*part15p + part16p*part15q;
-					if(OMX_DEBUG_ALGEBRA){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Nu_dtheta1dtheta2[px][qx]); }
+					Eigen::MatrixXd tmp1 = part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + part10q*part12p;
+					
+					u_d2Sigma_dtheta1dtheta2[px][qx] = tmp1 + tmp1.transpose();/*part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + 
+						part10q*part12p;// + part14q*part15p + part14p*part15q + part16q*part15p + part17*part15p + part16p*part15q;*/
+					if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Sigma_dtheta1dtheta2[px][qx]); }
 					u_d2Sigma_dtheta1dtheta2[qx][px] = u_d2Sigma_dtheta1dtheta2[px][qx];
 					
 					if(M){
@@ -2750,14 +2752,18 @@ void omxRAMExpectation::provideSufficientDerivs(
 					Eigen::MatrixXd part17 = part13.transpose(); //eF * B * dA_dtheta[qx] * eFullCov.selfadjointView<Eigen::Lower>();
 					Eigen::MatrixXd part16p = part12p.transpose(); //eF * B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose();
 					
-					u_d2Sigma_dtheta1dtheta2[px][qx] = part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + 
-						part10q*part12p + part14q*part15p + part14p*part15q + part16q*part15p + part17*part15p + part16p*part15q;
+					Eigen::MatrixXd tmp1 = part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + part10q*part12p;
+					
+					u_d2Sigma_dtheta1dtheta2[px][qx] = tmp1 + tmp1.transpose();/*part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + 
+			 part10q*part12p + part14q*part15p + part14p*part15q + part16q*part15p + part17*part15p + part16p*part15q;*/
+			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Sigma_dtheta1dtheta2[px][qx]); }
 					u_d2Sigma_dtheta1dtheta2[qx][px] = u_d2Sigma_dtheta1dtheta2[px][qx];
 					
 					if(M){
 						EigenMatrixAdaptor eM(M);
 						//^^^Remember that eM is a row vector.
-						u_d2Nu_dtheta1dtheta2[px][qx] = -1.0*eF*B*B*( dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
+						//TODO(?): save Bm?
+						u_d2Nu_dtheta1dtheta2[px][qx] = -1.0*eF*B*( dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
 							dA_dtheta[px]*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[px]*dM_dtheta[qx].transpose() + 
 							dA_dtheta[qx]*(B*dM_dtheta[px].transpose()) ); //<--Parens are necessary to keep Eigen from getting confused.
 						u_d2Nu_dtheta1dtheta2[qx][px] = u_d2Nu_dtheta1dtheta2[px][qx];
