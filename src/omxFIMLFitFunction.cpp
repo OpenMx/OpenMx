@@ -251,7 +251,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							mxPrintMat("resid", resid);
 							mxPrintMat("iV",iV);
 						}
-						Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov;
+						Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov*(ss.rows-1.0)/ss.rows;
 						Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
 						for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 							double ssDerivCurr=0.0; //<--Fit derivative for current parameter for current sufficient set
@@ -290,7 +290,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
 									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); 
 									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
-									secondTerm = 0.5*(ss.rows)*(ss.rows-1)/ss.rows*(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
+									secondTerm = 0.5*(ss.rows)*(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
 									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
 									fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
 									if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
