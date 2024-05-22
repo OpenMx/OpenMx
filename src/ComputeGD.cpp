@@ -369,9 +369,9 @@ void omxComputeGD::computeImpl(FitContext *fc)
 			fc->wanted |= FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN;
 		}
 		fc->constraintFunVals = rf.constraintFunValsOut;
-                fc->LagrMultipliers = rf.LagrMultipliersOut;
-                fc->constraintJacobian = rf.constraintJacobianOut;
-                fc->LagrHessian = rf.LagrHessianOut;
+		fc->LagrMultipliers = rf.LagrMultipliersOut;
+		fc->constraintJacobian = rf.constraintJacobianOut;
+		fc->LagrHessian = rf.LagrHessianOut;
 		break;
         case OptEngine_NLOPT:
 		if (rf.maxMajorIterations == -1) rf.maxMajorIterations = Global->majorIterations;
