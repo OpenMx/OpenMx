@@ -52,7 +52,7 @@ gb <- function(m,verbose=FALSE,N=500){
 
 # No A paths, all params at MLE ####
 
-plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient","hessian")),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","Yes")
 m0a <- mxModel(
 	"TwoByTwo",
@@ -66,7 +66,7 @@ m0a <- mxModel(
 )
 m0a <- mxRun(m0a)
 
-plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=T),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","No")
 m0n <- mxModel(
 	"TwoByTwo",
@@ -83,10 +83,11 @@ m0a$output$gradient
 omxCheckCloseEnough(m0a$output$gradient,rep(0,5),5e-11)
 m0n$output$gradient
 omxCheckCloseEnough(m0n$output$gradient,rep(0,5),5e-8)
+omxCheckCloseEnough(vech(m0a$output$hessian),vech(m0n$output$hessian),0.1)
 
 # No A paths, no params at MLE ####
 
-plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient","hessian")),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","Yes")
 m0a <- mxModel(
 	"TwoByTwo",
@@ -100,7 +101,7 @@ m0a <- mxModel(
 )
 m0a <- mxRun(m0a)
 
-plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=T),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","No")
 m0n <- mxModel(
 	"TwoByTwo",
@@ -119,7 +120,7 @@ omxCheckCloseEnough(m0a$output$gradient,m0n$output$gradient,1e-4)
 
 # Only S paths free ####
 
-plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient","hessian")),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","Yes")
 m1a <- mxModel(
 	"TwoByTwo",
@@ -135,7 +136,7 @@ m1a <- mxRun(m1a)
 m1a$output$gradient
 #gb(m1a,T)
 
-plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
+plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=T),mxComputeReportDeriv(),mxComputeReportExpectation()))
 mxOption(NULL,"Analytic gradients","No")
 m1n <- mxModel(
 	"TwoByTwo",
@@ -335,6 +336,7 @@ m7a <- mxModel(
 )
 m7a <- mxRun(m7a)
 m7a$output$gradient
+m7a$output$hessian
 
 mxOption(NULL,"Analytic gradients","No")
 m7n <- mxModel(
@@ -349,5 +351,6 @@ m7n <- mxModel(
 )
 m7n <- mxRun(m7n)
 m7n$output$gradient
+m7n$output$hessian
 
 omxCheckCloseEnough(m7a$output$gradient-m7n$output$gradient, rep(0,5), 5e-7)
