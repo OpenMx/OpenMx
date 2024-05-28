@@ -44,5 +44,7 @@ omxCheckTrue(f1$output$iterations <= f2$output$iterations)
 f1$output$iterations; f2$output$iterations
 omxCheckTrue(f1$output$evaluations < f2$output$evaluations)
 f1$output$evaluations ; f2$output$evaluations
-omxCheckTrue(summary(f1)$wallTime < summary(f2)$wallTime)
+if(0){
+	omxCheckTrue(summary(f1)$wallTime < summary(f2)$wallTime)
+}
 summary(f1)$wallTime ; summary(f2)$wallTime

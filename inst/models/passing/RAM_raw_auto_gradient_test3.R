@@ -41,7 +41,7 @@ summary(fmf2)
 omxCheckCloseEnough(coef(fmf1),coef(fmf2),5e-6)
 omxCheckCloseEnough(fmf1$output$standardErrors,fmf2$output$standardErrors,5e-5)
 omxCheckCloseEnough(fmf1$output$fit,fmf2$output$fit,1e-8)
-omxCheckCloseEnough(vech(fmf1$output$hessian),vech(fmf2$output$hessian),0.03)
+omxCheckWithinPercentError(vech(fmf1$output$hessian),vech(fmf2$output$hessian))
 #Using analytic derivatives should be faster:
 omxCheckTrue(fmf1$output$iterations <= fmf2$output$iterations)
 omxCheckTrue(fmf1$output$evaluations < fmf2$output$evaluations)

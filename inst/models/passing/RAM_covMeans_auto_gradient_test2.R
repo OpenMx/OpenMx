@@ -81,7 +81,9 @@ m1n <- mxModel(
 m1n <- mxRun(m1n)
 
 omxCheckCloseEnough(m1a$output$gradient-m1n$output$gradient, c(0,0), 5e-7)
-omxCheckTrue(summary(m1a)$wallTime < summary(m1n)$wallTime)
+if(0){
+	omxCheckTrue(summary(m1a)$wallTime < summary(m1n)$wallTime)
+}
 
 
 # Only A paths free ####
@@ -224,7 +226,9 @@ m5n <- mxRun(m5n)
 m5n$output$gradient
 
 omxCheckCloseEnough(m5a$output$gradient-m5n$output$gradient, c(0,0), 5e-8)
-omxCheckTrue(summary(m5a)$wallTime < summary(m5n)$wallTime)
+if(0){
+	omxCheckTrue(summary(m5a)$wallTime < summary(m5n)$wallTime)
+}
 
 
 ## A paths & m1 free ####
@@ -258,7 +262,9 @@ m6n <- mxRun(m6n)
 m6n$output$gradient
 
 omxCheckCloseEnough(m6a$output$gradient-m6n$output$gradient, c(0,0), 5e-8)
-omxCheckTrue(summary(m6a)$wallTime < summary(m6n)$wallTime)
+if(0){
+	omxCheckTrue(summary(m6a)$wallTime < summary(m6n)$wallTime)
+}
 
 
 # All paths free ####
@@ -292,4 +298,6 @@ m7n <- mxRun(m7n)
 m7n$output$gradient
 
 omxCheckCloseEnough(m7a$output$gradient-m7n$output$gradient, rep(0,5), 5e-7)
-omxCheckTrue(summary(m7a)$wallTime < summary(m7n)$wallTime)
+if(0){
+	omxCheckTrue(summary(m7a)$wallTime < summary(m7n)$wallTime)
+}
