@@ -436,8 +436,10 @@ void omxComputeNumericDeriv::computeImpl(FitContext *fc)
     if (ff->hessianAvailable) {
       //mxLog("shortcut hessian");
       int want = 0;
-    	if (!(fc->wanted & FF_COMPUTE_GRADIENT)) want |= FF_COMPUTE_GRADIENT;
-    	if (!(fc->wanted & FF_COMPUTE_HESSIAN)) {
+    	//if (!(fc->wanted & FF_COMPUTE_GRADIENT)) want |= FF_COMPUTE_GRADIENT;
+    	if (true) want |= FF_COMPUTE_GRADIENT;
+    	//if (!(fc->wanted & FF_COMPUTE_HESSIAN)) {
+    	if (true) {
     		fc->clearHessian();
         want |= FF_COMPUTE_HESSIAN; //want = want | FF_COMPUTE_HESSIAN;
       }
