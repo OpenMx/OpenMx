@@ -2686,7 +2686,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 					
 					u_d2Sigma_dtheta1dtheta2[px][qx] = tmp1 + tmp1.transpose();/*part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + 
 						part10q*part12p;// + part14q*part15p + part14p*part15q + part16q*part15p + part17*part15p + part16p*part15q;*/
-					if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Sigma_dtheta1dtheta2[px][qx]); }
+					if(OMX_DEBUG_ALGEBRA){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Sigma_dtheta1dtheta2[px][qx]); }
 					u_d2Sigma_dtheta1dtheta2[qx][px] = u_d2Sigma_dtheta1dtheta2[px][qx];
 					
 					if(M){
@@ -2756,7 +2756,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 					
 					u_d2Sigma_dtheta1dtheta2[px][qx] = tmp1 + tmp1.transpose();/*part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + 
 			 part10q*part12p + part14q*part15p + part14p*part15q + part16q*part15p + part17*part15p + part16p*part15q;*/
-			if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Sigma_dtheta1dtheta2[px][qx]); }
+			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("u_d2Sigma_dtheta1dtheta2[px][qx]:", u_d2Sigma_dtheta1dtheta2[px][qx]); }
 					u_d2Sigma_dtheta1dtheta2[qx][px] = u_d2Sigma_dtheta1dtheta2[px][qx];
 					
 					if(M){

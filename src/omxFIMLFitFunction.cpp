@@ -319,31 +319,31 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									subsetNormalDist(d2Nu_dtheta1dtheta2_vec, ofiml->d2Sigma_dtheta1dtheta2[px][qx], op, rowContinuous, d2Nu_dtheta1dtheta2_curr, d2Sigma_dtheta1dtheta2_curr);
 								
 									Eigen::MatrixXd SigmaInv2ndDer = iV.selfadjointView<Eigen::Lower>() * d2Sigma_dtheta1dtheta2_curr;
-									if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
 									Eigen::MatrixXd SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
-									if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
 									Eigen::MatrixXd C = SigmaInvDataCov; //<--Copy to modify in-place.
 									C *= -1.0; //First step of I-SigmaInvDataCov.
 									C.diagonal().array() += 1.0; //Second step of I-SigmaInvDataCov.
-									if(OMX_DEBUG_NEWSTUFF){ mxPrintMat("C",C); }
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("C",C); }
 									
 									/*double trace23 = (SigmaInv2ndDer.array()*C.transpose().array()).sum() + 
 										((SigmaInvDer*SigmaInvDer2).array()*C.transpose().array()).sum() + 
 										((SigmaInvDer2*SigmaInvDer).array()*SigmaInvDataCov.transpose().array()).sum();*/
 									double trace23 = (SigmaInv2ndDer*C - SigmaInvDer*SigmaInvDer2*C + SigmaInvDer2*SigmaInvDer*SigmaInvDataCov).trace();
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("trace23: %f", trace23); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("trace23: %f", trace23); }
 									double t0 = 2.0*(resid.transpose()*SigmaInvDer*SigmaInvDer2*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("t0: %f", t0); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t0: %f", t0); }
 									double t1 = -1.0*(resid.transpose()*SigmaInv2ndDer*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("t1: %f", t1); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t1: %f", t1); }
 									double t2 = -2.0*(dNu_dtheta_curr.transpose()*SigmaInvDer2*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("t2: %f", t2); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t2: %f", t2); }
 									double t3 = -2.0*(dNu_dtheta_curr2.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("t3: %f", t3); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t3: %f", t3); }
 									double t4 = 2.0*(dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*dNu_dtheta_curr2)(0,0);
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("t4: %f", t4); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t4: %f", t4); }
 									double t5 = -2.0*(d2Nu_dtheta1dtheta2_curr.transpose()*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_NEWSTUFF){ mxLog("t5: %f", t5); }
+									if(OMX_DEBUG_ALGEBRA){ mxLog("t5: %f", t5); }
 									hb->mat(px,qx) = (trace23 + t0 + t1 + t2 + t3 + t4 + t5)*ss.rows;
 									//mxLog("hb->mat(px,qx): %f", hb->mat(px,qx));
 								}
