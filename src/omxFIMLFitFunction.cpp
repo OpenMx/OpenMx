@@ -350,7 +350,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							}
 						}
 						if(want & FF_COMPUTE_HESSIAN){
-							mxPrintMat("hb->mat",hb->mat);
+							//mxPrintMat("hb->mat",hb->mat);
 							fc->queue(hb);
 						}
 						else{
