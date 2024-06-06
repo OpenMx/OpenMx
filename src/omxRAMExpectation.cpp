@@ -2604,7 +2604,7 @@ void omxRAMExpectation::provideSufficientDerivs(
 		FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta,
 		std::vector<bool> &u_alwaysZeroCovDeriv, std::vector<bool> &u_alwaysZeroMeanDeriv, bool wantHess, 
 		std::vector< std::vector< Eigen::MatrixXd >> &u_d2Sigma_dtheta1dtheta2, 
-		std::vector< std::vector< Eigen::MatrixXd >> &u_d2Nu_dtheta1dtheta2)
+		std::vector< std::vector< Eigen::MatrixXd >> &u_d2Mu_dtheta1dtheta2)
 {
 	EigenMatrixAdaptor eF(F);
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("F:",eF); }
@@ -2692,14 +2692,14 @@ void omxRAMExpectation::provideSufficientDerivs(
 					if(M){
 						EigenMatrixAdaptor eM(M);
 						//^^^Remember that eM is a row vector.
-						/*u_d2Nu_dtheta1dtheta2[px][qx] = -1.0*eF*B*B*(dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
+						/*u_d2Mu_dtheta1dtheta2[px][qx] = -1.0*eF*B*B*(dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
 							dA_dtheta[px]*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[px]*dM_dtheta[qx].transpose() + 
 							dA_dtheta[qx]*B*dM_dtheta[px].transpose());*/
-						u_d2Nu_dtheta1dtheta2[px][qx] = eF*B*(dA_dtheta[qx]*B*dA_dtheta[px]*B*eM.transpose() + 
+						u_d2Mu_dtheta1dtheta2[px][qx] = eF*B*(dA_dtheta[qx]*B*dA_dtheta[px]*B*eM.transpose() + 
 							dA_dtheta[px]*B*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[qx]*B*dM_dtheta[px].transpose() + 
 							dA_dtheta[px]*B*dM_dtheta[qx].transpose());
-						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("u_d2Nu_dtheta1dtheta2[px][qx]:", u_d2Nu_dtheta1dtheta2[px][qx]); }
-						u_d2Nu_dtheta1dtheta2[qx][px] = u_d2Nu_dtheta1dtheta2[px][qx];
+						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("u_d2Mu_dtheta1dtheta2[px][qx]:", u_d2Mu_dtheta1dtheta2[px][qx]); }
+						u_d2Mu_dtheta1dtheta2[qx][px] = u_d2Mu_dtheta1dtheta2[px][qx];
 					}
 				}
 			}
@@ -2763,10 +2763,10 @@ void omxRAMExpectation::provideSufficientDerivs(
 						EigenMatrixAdaptor eM(M);
 						//^^^Remember that eM is a row vector.
 						//TODO(?): save Bm?
-						u_d2Nu_dtheta1dtheta2[px][qx] = -1.0*eF*B*( dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
+						u_d2Mu_dtheta1dtheta2[px][qx] = -1.0*eF*B*( dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
 							dA_dtheta[px]*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[px]*dM_dtheta[qx].transpose() + 
 							dA_dtheta[qx]*(B*dM_dtheta[px].transpose()) ); //<--Parens are necessary to keep Eigen from getting confused.
-						u_d2Nu_dtheta1dtheta2[qx][px] = u_d2Nu_dtheta1dtheta2[px][qx];
+						u_d2Mu_dtheta1dtheta2[qx][px] = u_d2Mu_dtheta1dtheta2[px][qx];
 					}
 				}
 			}

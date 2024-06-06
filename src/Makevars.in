@@ -23,7 +23,7 @@ UMFPACK_LIBS=-lumfpack -lamd
 # DEBUG_CXXFLAGS+=-fno-omit-frame-pointer $(NO_INLINE)  # oprofile
 # DEBUG_CXXFLAGS+=-UNDEBUG                      # always uncomment this when you debug
 # DEBUG_LDFLAGS += $(xcheck_LDFLAGS)            # pass debug flags to linker, i.e., -fsanitize=undefined
-DEBUG_CXXFLAGS+=-DDEBUGMX_NEWSTUFF            # to specifically debug new features being implemented
+# DEBUG_CXXFLAGS+=-DDEBUGMX_NEWSTUFF            # to specifically debug new features being implemented
 
 # To use gcc's address sanitizer, uncomment:
 # COMMON_FLAGS += -fsanitize=address -fno-omit-frame-pointer -fno-common -fsanitize-address-use-after-scope

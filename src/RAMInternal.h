@@ -385,7 +385,7 @@ class omxRAMExpectation : public MVNExpectation {
 			FitContext *fc, std::vector< Eigen::MatrixXd > &u_dSigma_dtheta, std::vector< Eigen::MatrixXd > &u_dNu_dtheta,
 			std::vector<bool> &u_alwaysZeroCovDeriv, std::vector<bool> &u_alwaysZeroMeanDeriv, bool wantHess, 
 			std::vector< std::vector< Eigen::MatrixXd >> &u_d2Sigma_dtheta1dtheta2, 
-			std::vector< std::vector< Eigen::MatrixXd >> &u_d2Nu_dtheta1dtheta2);
+			std::vector< std::vector< Eigen::MatrixXd >> &u_d2Mu_dtheta1dtheta2);
 
 	int verbose;
 	int rampartCycleLimit;
