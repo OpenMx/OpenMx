@@ -2673,14 +2673,14 @@ void omxRAMExpectation::provideSufficientDerivs(
 					Eigen::MatrixXd part12q = B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * B.transpose() * eF.transpose();
 					Eigen::MatrixXd part13 = eFullCov * dA_dtheta[qx].transpose() * B.transpose() * eF.transpose();
 					Eigen::MatrixXd part12p = B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose() * eF.transpose();
-					Eigen::MatrixXd part14q = eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[qx].transpose() * B.transpose(); //part11q.transpose();
-					Eigen::MatrixXd part15p = dA_dtheta[px].transpose() * B.transpose() * eF.transpose(); //part10p.transpose();
-					Eigen::MatrixXd part14p = eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[px].transpose() * B.transpose(); //part11p.transpose();
-					Eigen::MatrixXd part15q = dA_dtheta[qx].transpose() * B.transpose() * eF.transpose(); //part10q.transpose();
-					Eigen::MatrixXd part16q = eF * B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * B.transpose(); //part12q.transpose();
+					Eigen::MatrixXd part14q = part11q.transpose(); //eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[qx].transpose() * B.transpose(); //
+					Eigen::MatrixXd part15p = part10p.transpose(); //dA_dtheta[px].transpose() * B.transpose() * eF.transpose(); //
+					Eigen::MatrixXd part14p = part11p.transpose(); //eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[px].transpose() * B.transpose(); //
+					Eigen::MatrixXd part15q = part10q.transpose(); //dA_dtheta[qx].transpose() * B.transpose() * eF.transpose(); //
+					Eigen::MatrixXd part16q = part12q.transpose(); //eF * B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * B.transpose(); //
 					//Eigen::MatrixXd part15p = dA_dtheta[px].transpose() * B.transpose() * eF.transpose();
-					Eigen::MatrixXd part17 = eF * B * dA_dtheta[qx] * eFullCov.selfadjointView<Eigen::Lower>(); //part13.transpose();
-					Eigen::MatrixXd part16p = eF * B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose(); //part12p.transpose(); 
+					Eigen::MatrixXd part17 = part13.transpose(); //eF * B * dA_dtheta[qx] * eFullCov.selfadjointView<Eigen::Lower>(); //
+					Eigen::MatrixXd part16p = part12p.transpose(); //eF * B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose(); //
 					
 					Eigen::MatrixXd tmp1 = part10p*part11q + part10q*part11p + part10p*part12q + part10p*part13 + part10q*part12p;
 					
