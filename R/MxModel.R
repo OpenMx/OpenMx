@@ -336,7 +336,7 @@ firstArgument <- function(model, name) {
 		} else {
 			first <- list(model)
 		}
-		if (length(name) > 0 && all.na(name)) {
+		if (length(name) > 0 && isAllNa(name)) {
 			name <- imxUntitledName()
 		}
 		imxVerifyName(name, -1)
