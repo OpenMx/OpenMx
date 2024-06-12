@@ -45,13 +45,13 @@ Users should be cautious in their use of modification indices.  If a model was c
 }
 
 \value{
-    A named list with components
+    A data.frame with named columns
     \describe{
         \item{MI}{The restricted modification index.}
         \item{MI.Full}{The full modification index.}
         \item{plusOneParamModels}{A list of models with one additional free parameter}
         \item{EPC}{The expected parameter change.  Only available when \code{full=TRUE}}
-    }
+			}
 }
 
 

@@ -63,7 +63,7 @@ setMethod("imxCreateMatrix", "LowerMatrix",
 		if (is.vector(values)) {
 			values <- populateLowerTriangle(values, nrow, 0, byrow, 'values')
 		}
-		if(condenseSlots && all.false(free) && all.na(labels)){
+		if(condenseSlots && isAllFalse(free) && isAllNa(labels)){
 		  labels <- as.character(NA)
 		  free <- FALSE
 		}
@@ -74,11 +74,11 @@ setMethod("imxCreateMatrix", "LowerMatrix",
   		if (is.vector(free)) {
   			free <- populateLowerTriangle(free, nrow, FALSE, byrow, 'free')
   	}}
-    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+    if(condenseSlots && isAllNa(lbound)){lbound <- as.numeric(NA)}
 		else{if (is.vector(lbound)) {
 			lbound <- populateLowerTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
 		}}
-		if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+		if(condenseSlots && isAllNa(ubound)){ubound <- as.numeric(NA)}
 		else{if (is.vector(ubound)) {
 			ubound <- populateLowerTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}}
@@ -108,19 +108,19 @@ setMethod("imxVerifyMatrix", "LowerMatrix",
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all.na(labels) && !all(is.na(labels[upper.tri(labels)]))) {
+		if (!isAllNa(labels) && !all(is.na(labels[upper.tri(labels)]))) {
 			stop(paste("upper triangle of 'labels' matrix in Lower MxMatrix", omxQuotes(.Object@name), 
 				"is not all NAs in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all.na(lbound) && !all(is.na(lbound[upper.tri(lbound)]))) {
+		if (!isAllNa(lbound) && !all(is.na(lbound[upper.tri(lbound)]))) {
 			stop(paste("upper triangle of 'lbound' matrix in Lower MxMatrix", omxQuotes(.Object@name), 
 				"is not all NAs in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),
 				call. = FALSE)
 		}
-		if (!all.na(ubound) && !all(is.na(ubound[upper.tri(ubound)]))) {
+		if (!isAllNa(ubound) && !all(is.na(ubound[upper.tri(ubound)]))) {
 			stop(paste("upper triangle of 'ubound' matrix in Lower MxMatrix", omxQuotes(.Object@name), 
 				"is not all NAs in", 
 				deparse(width.cutoff = 400L, imxLocateFunction("mxMatrix"))),

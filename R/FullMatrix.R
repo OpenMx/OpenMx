@@ -27,7 +27,7 @@ setMethod("imxCreateMatrix", "FullMatrix",
 		if (is.vector(values)) {
 			values <- matrix(values, nrow, ncol, byrow = byrow)
 		}
-    if(condenseSlots && all.false(free) && all.na(labels)){
+    if(condenseSlots && isAllFalse(free) && isAllNa(labels)){
       labels <- as.character(NA)
       free <- FALSE
     }
@@ -35,11 +35,11 @@ setMethod("imxCreateMatrix", "FullMatrix",
   		if (is.vector(labels)) {labels <- matrix(labels, nrow, ncol, byrow = byrow)}
   		if (is.vector(free)) {free <- matrix(free, nrow, ncol, byrow = byrow)}
     }
-    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+    if(condenseSlots && isAllNa(lbound)){lbound <- as.numeric(NA)}
 		else{if (is.vector(lbound)) {
 			lbound <- matrix(lbound, nrow, ncol, byrow = byrow)
 		}}
-		if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+		if(condenseSlots && isAllNa(ubound)){ubound <- as.numeric(NA)}
 		else{if (is.vector(ubound)) {
 			ubound <- matrix(ubound, nrow, ncol, byrow = byrow)
 		}}

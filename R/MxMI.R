@@ -28,7 +28,7 @@
 
 
 mxMI <- function(model, matrices=NA, full=TRUE){
-  warnModelCreatedByOldVersion(model)
+	warnModelCreatedByOldVersion(model)
 	if(single.na(matrices)){
 		matrices <- names(model$matrices) #names of them rather
 		if (is(model$expectation, "MxExpectationRAM")) {
@@ -106,12 +106,12 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 				# Create and run the single-parameter model for the LISREL-type/partial/[lower bound] MI
 				gmodel <- mxModel(gmodel, custom.compute)
 				grun <- try(mxRun(gmodel, silent = FALSE, suppressWarnings = FALSE, unsafe=TRUE)) #suppress Warnings =TRUE
-        if (is(grun, "try-error")) {
-          # oops, not happy about that parameter (e.g., diag of RAM's A)
-          gmodel <- omxSetParameters(gmodel, labels=names(omxGetParameters(gmodel)), free=FALSE)
-          next
-        }
-
+				if (is(grun, "try-error")) {
+					# oops, not happy about that parameter (e.g., diag of RAM's A)
+					gmodel <- omxSetParameters(gmodel, labels=names(omxGetParameters(gmodel)), free=FALSE)
+					next
+				}
+				
 				# restricted MI
 				grad <- grun$output$gradient #get gradient
 				hess <- grun$output$hessian #get Hessian
@@ -159,9 +159,10 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 			ret <- c(ret, mxMI(asubmodel)) #probably won't work.
 		}
 	}
-	return(list(MI=mi.r, MI.Full=mi.f, plusOneParamModels=new.models, EPC=epc.f))
+	if(is.null(mi.f)) mi.f <- rep(NA, length(mi.r))
+	if(is.null(epc.f)) epc.f <- rep(NA, length(mi.r))
+	retList <- list2DF(list(MI=mi.r, MI.Full=mi.f, plusOneParamModels=new.models, EPC=epc.f), nrow=length(mi.r))
+	return(retList)
 }
-
-
 
 

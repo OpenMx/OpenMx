@@ -745,10 +745,10 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 				Q <- mxEvalByName(model[[subname]]@expectation@Q, model, compute=TRUE, defvar.row=i-1)
 				R <- mxEvalByName(model[[subname]]@expectation@R, model, compute=TRUE, defvar.row=i-1)
 				u <- mxEvalByName(model[[subname]]@expectation@u, model, compute=TRUE, defvar.row=i-1)
-				newT <- mxEvalByName(model[[subname]]@expectation@t, model, compute=TRUE, defvar.row=i-1)
 			}
 			if(continuousTime){
 				#browser()
+				newT <- mxEvalByName(model[[subname]]@expectation@t, model, compute=TRUE, defvar.row=i-1)
 				deltaT <- c(newT - oldT)
 				oldT <- newT
 				kd <- kalmanDiscretize(A, B, Q, deltaT, I)

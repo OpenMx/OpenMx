@@ -550,19 +550,40 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 	return(jac)
 }
 
+minimumObservations <- function(model){
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace, TRUE)
+	labelsData <- imxGenerateLabels(model)
+	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
+	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), flatModel@datasets)
+	dataObservations <- sapply(lapply(datalist, slot, name = "observed"), nrow)
+	dataObservations <- dataObservations[dataObservations > 0]
+	fitfunctionObservations <- sapply(fitfunctions, fitfunctionNumberObservations)
+	fitfunctionObservations <- fitfunctionObservations[fitfunctionObservations > 0]
+	return(min(c(as.numeric(dataObservations), as.numeric(fitfunctionObservations)), na.rm=TRUE))
+}
+
+
 mxCheckIdentification <- function(model, details=TRUE){
-  warnModelCreatedByOldVersion(model)
+	warnModelCreatedByOldVersion(model)
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
 	if( class(model$fitfunction) %in% notAllowedFits ){
 		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
 		stop(msg, call.=FALSE)
 	}
-	if(imxHasDefinitionVariable(model)){
-		stop("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
-	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
-	jac <- omxManifestModelByParameterJacobian(model)
+	if(imxHasDefinitionVariable(model)){
+		warning("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
+		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=1)
+		rownames(jac1) <- paste0(rownames(jac1), 'def', 1)
+		maxRow <- minimumObservations(model)
+		jac2 <- omxManifestModelByParameterJacobian(model, defvar.row=maxRow)
+		rownames(jac2) <- paste0(rownames(jac2), 'def', maxRow)
+		jac <- rbind(jac1, jac2)
+	} else {
+		jac <- omxManifestModelByParameterJacobian(model)
+	}
 	if(imxHasConstraint(model)){
     # Better if there was a separate compute step to estimate the constraintJacobian
 		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(hessian=FALSE), mxComputeReportDeriv())))

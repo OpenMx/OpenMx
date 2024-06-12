@@ -65,7 +65,7 @@ setMethod("imxCreateMatrix", "SymmMatrix",
 		if (is.vector(values)) {
 			values <- populateSymmTriangle(values, nrow, 0, byrow, 'values')
 		}
-		if(condenseSlots && all.false(free) && all.na(labels)){
+		if(condenseSlots && isAllFalse(free) && isAllNa(labels)){
 		  labels <- as.character(NA)
 		  free <- FALSE
 		}
@@ -76,11 +76,11 @@ setMethod("imxCreateMatrix", "SymmMatrix",
   		if (is.vector(free)) {
   			free <- populateSymmTriangle(free, nrow, FALSE, byrow, 'free')
 		}}
-    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+    if(condenseSlots && isAllNa(lbound)){lbound <- as.numeric(NA)}
 		else{if (is.vector(lbound)) {
 			lbound <- populateSymmTriangle(lbound, nrow, as.numeric(NA), byrow, 'lbound')
 		}}
-		if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+		if(condenseSlots && isAllNa(ubound)){ubound <- as.numeric(NA)}
     else{if (is.vector(ubound)) {
 			ubound <- populateSymmTriangle(ubound, nrow, as.numeric(NA), byrow, 'ubound')
 		}}

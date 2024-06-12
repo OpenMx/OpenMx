@@ -48,7 +48,7 @@ SystemRequirements: GNU make, C++17
 ByteCompile: @BC@
 Language: en-US
 License: @LICENSE@
-LinkingTo: Rcpp, RcppEigen (>= 0.3.3.9.3.2), RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45), Matrix
+LinkingTo: Rcpp, RcppEigen (>= 0.3.3.9.4), RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45), Matrix
 Imports: digest,
     MASS,
     Matrix (>= 1.2-16),

@@ -37,7 +37,7 @@ setMethod("imxCreateMatrix", "DiagMatrix",
 			diag(tmp) <- values
 			values <- tmp
 		}
-		if(condenseSlots && all.na(labels) && all.false(free)){
+		if(condenseSlots && isAllNa(labels) && isAllFalse(free)){
       labels <- as.character(NA)
 		  free <- FALSE
 		}
@@ -52,13 +52,13 @@ setMethod("imxCreateMatrix", "DiagMatrix",
 		  diag(tmp) <- free
 		  free <- tmp
 		}}
-    if(condenseSlots && all.na(lbound)){lbound <- as.numeric(NA)}
+    if(condenseSlots && isAllNa(lbound)){lbound <- as.numeric(NA)}
 		else{if(is.vector(lbound)) {
 		  tmp <- matrix(as.numeric(NA), nrow, ncol)
 		  diag(tmp) <- lbound
 		  lbound <- tmp
 		}}
-    if(condenseSlots && all.na(ubound)){ubound <- as.numeric(NA)}
+    if(condenseSlots && isAllNa(ubound)){ubound <- as.numeric(NA)}
 		else{if(is.vector(ubound)) {
 		  tmp <- matrix(as.numeric(NA), nrow, ncol)
 		  diag(tmp) <- ubound
