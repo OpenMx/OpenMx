@@ -329,15 +329,11 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
 									Eigen::MatrixXd SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
 									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
-									Eigen::MatrixXd C = SigmaInvDataCov; //<--Copy to modify in-place.
-									C *= -1.0; //First step of I-SigmaInvDataCov.
-									C.diagonal().array() += 1.0; //Second step of I-SigmaInvDataCov.
-									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("C",C); }
 									
-									/*double trace23 = (SigmaInv2ndDer.array()*C.transpose().array()).sum() + 
+									double trace23 = (SigmaInv2ndDer.array()*C.transpose().array()).sum() - 
 										((SigmaInvDer*SigmaInvDer2).array()*C.transpose().array()).sum() + 
-										((SigmaInvDer2*SigmaInvDer).array()*SigmaInvDataCov.transpose().array()).sum();*/
-									double trace23 = (SigmaInv2ndDer*C - SigmaInvDer*SigmaInvDer2*C + SigmaInvDer2*SigmaInvDer*SigmaInvDataCov).trace();
+										((SigmaInvDer2*SigmaInvDer).array()*SigmaInvDataCov.transpose().array()).sum();
+									//double trace23 = (SigmaInv2ndDer*C - SigmaInvDer*SigmaInvDer2*C + SigmaInvDer2*SigmaInvDer*SigmaInvDataCov).trace();
 									if(OMX_DEBUG_ALGEBRA){ mxLog("trace23: %f", trace23); }
 									double t0 = 2.0*(resid.transpose()*SigmaInvDer*SigmaInvDer2*SigmaInvResid)(0,0);
 									if(OMX_DEBUG_ALGEBRA){ mxLog("t0: %f", t0); }
