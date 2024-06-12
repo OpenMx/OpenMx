@@ -379,6 +379,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 			}
 			
 			if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
+				//mxLog("derivs wanted when sufficient sets not in use");
 				if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
 					ofiml->expectation->provideSufficientDerivs(
 							fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv,
