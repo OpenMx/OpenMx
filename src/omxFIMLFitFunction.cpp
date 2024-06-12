@@ -253,6 +253,13 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						}
 						Eigen::MatrixXd SigmaInvDataCov = iV.selfadjointView<Eigen::Lower>() * ss.dataCov*(ss.rows-1.0)/ss.rows;
 						Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
+						//We only need C for second derivatives, but we want to compute it outside the loop across parameters:
+						Eigen::MatrixXd C = SigmaInvDataCov; //<--Copy to modify in-place.
+						if(want & FF_COMPUTE_HESSIAN){
+							C *= -1.0; //First step of I-SigmaInvDataCov.
+							C.diagonal().array() += 1.0; //Second step of I-SigmaInvDataCov.
+							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("C",C); }
+						}
 						for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 							double ssDerivCurr=0.0; //<--Fit derivative for current parameter for current sufficient set
 							double firstTerm=0.0, secondTerm=0.0, thirdTerm=0.0, fourthTerm=0.0;
