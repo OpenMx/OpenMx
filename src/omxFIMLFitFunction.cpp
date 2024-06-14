@@ -83,6 +83,9 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 			auto &prev = sufficientSets[ssx-1];
 			if (row <= prev.start + prev.length - 1) row = prev.start + prev.length;
 		}
+	} else{
+		//We have not implemented analytic Hessians yet for the case of zero sufficient sets:
+		setHessianAvailable(false);
 	}
 
 	while(row < lastrow) {
@@ -378,19 +381,24 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				}
 			}
 			
-			if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
+			//if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
+			if(want & FF_COMPUTE_GRADIENT){
 				//mxLog("derivs wanted when sufficient sets not in use");
 				if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
 					ofiml->expectation->provideSufficientDerivs(
 							fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv,
-							(want & FF_COMPUTE_HESSIAN), ofiml->d2Sigma_dtheta1dtheta2, ofiml->d2Mu_dtheta1dtheta2);
+							//(want & FF_COMPUTE_HESSIAN), 
+							false,
+							ofiml->d2Sigma_dtheta1dtheta2, ofiml->d2Mu_dtheta1dtheta2);
 					Eigen::MatrixXd SigmaInvDataCov,SigmaInvResid;
 					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 						double term1=0.0, term2=0.0;
 						int nManifestVar = ofiml->dSigma_dtheta[0].rows();
 						Eigen::MatrixXd dSigma_dtheta_curr(nManifestVar,nManifestVar);
 						Eigen::VectorXd dNu_dtheta_curr(nManifestVar);
-						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); }
+						if(OMX_DEBUG_ALGEBRA){ 
+							mxPrintMat("ofiml->dNu_dtheta[px]:",ofiml->dNu_dtheta[px]); 
+						}
 						Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec(ofiml->dNu_dtheta[px].data(),nManifestVar);
 						//Use `subsetNormalDist()` to filter dSigma_dtheta[px] & dNu_dtheta[px] for missingness...
 						//if(0){
@@ -400,17 +408,30 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							dNu_dtheta_curr = dNu_dtheta_vec;
 							dSigma_dtheta_curr = ofiml->dSigma_dtheta[px];
 						}*/
-						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); }
+						if(OMX_DEBUG_ALGEBRA){ 
+							mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); 
+						}
 						bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 						bool zeroMeanDeriv = dNu_dtheta_curr.isZero();
 						if(!zeroCovDeriv){
 							Eigen::MatrixXd I( nManifestVar, nManifestVar ); I.setIdentity();
+							//mxPrintMat("I:",I);
 							term1=(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace();
+							if(OMX_DEBUG_ALGEBRA){ mxLog("term1: %f",term1); }
 						}
 						if(!zeroMeanDeriv){
 							term2=2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid;
+							if(OMX_DEBUG_ALGEBRA){ mxLog("term2: %f",term2); }
 						}
 						fc->gradZ[px] += Scale * -0.5*(term1+term2); 
+						if(OMX_DEBUG_ALGEBRA){
+							mxLog("row: %d",row);
+							mxLog("px: %ld",px);
+							mxLog("fc->gradZ[px]: %f",fc->gradZ[px]);
+						}
+					}
+					if(want & FF_COMPUTE_HESSIAN){
+						Rf_warning("Analytic Hessian Not Yet Implemented in this case");
 					}
 				}
 			}

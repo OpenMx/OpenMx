@@ -447,6 +447,16 @@ class mvnByRow {
 							 loc, data->name, 1+sortedRow, buf.c_str());
 		}
 	}
+	
+	bool getHessianAvailable()
+	{
+		return(localobj->hessianAvailable);
+	}
+	
+	void setHessianAvailable(bool input)
+	{
+		localobj->hessianAvailable = input;
+	}
 };
 
 struct condContByRow : mvnByRow {
