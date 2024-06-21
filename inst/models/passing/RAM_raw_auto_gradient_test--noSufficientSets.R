@@ -56,6 +56,9 @@ omxCheckCloseEnough(coef(fmf5),coef(fmf6),5e-6)
 omxCheckCloseEnough(fmf5$output$standardErrors,fmf6$output$standardErrors,0.01)
 omxCheckCloseEnough(fmf5$output$fit,fmf6$output$fit,1e-8)
 omxCheckTrue(fmf5$output$status$code==0)
+#Check for zero gradient:
+omxCheckCloseEnough(fmf5$output$gradient,c(0,0,0),5e-4)
+omxCheckCloseEnough(fmf6$output$gradient,c(0,0,0),5e-4)
 #Using analytic derivatives should be faster:
 omxCheckTrue(fmf5$output$iterations <= fmf6$output$iterations)
 omxCheckTrue(fmf5$output$evaluations < fmf6$output$evaluations)
