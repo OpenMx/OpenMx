@@ -83,9 +83,6 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 			auto &prev = sufficientSets[ssx-1];
 			if (row <= prev.start + prev.length - 1) row = prev.start + prev.length;
 		}
-	} else{
-		//We have not implemented analytic Hessians yet for the case of zero sufficient sets:
-		setHessianAvailable(false);
 	}
 
 	while(row < lastrow) {
@@ -236,6 +233,8 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					record(0.0, ss.length); 
 				}
 				
+				/*TODO: Some of the code below may be relevant to computing the gradient but not the Hessian; condition such code on
+				the gradient actually being wanted:*/
 				if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
 					if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
 						ofiml->expectation->provideSufficientDerivs(
@@ -333,6 +332,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									Eigen::MatrixXd SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
 									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
 									
+									//TODO: Allow for different loglikelihood scales (i.e., don't hardcode -2):
 									double trace23 = (SigmaInv2ndDer.array()*C.transpose().array()).sum() - 
 										((SigmaInvDer*SigmaInvDer2).array()*C.transpose().array()).sum() + 
 										((SigmaInvDer2*SigmaInvDer).array()*SigmaInvDataCov.transpose().array()).sum();
@@ -381,19 +381,27 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 				}
 			}
 			
-			//if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
-			if(want & FF_COMPUTE_GRADIENT){
+			if (want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN)){
+			//if(want & FF_COMPUTE_GRADIENT){
 				//mxLog("derivs wanted when sufficient sets not in use");
 				if(Global->analyticGradients && ofiml->expectation->canProvideSufficientDerivs){
 					ofiml->expectation->provideSufficientDerivs(
 							fc, ofiml->dSigma_dtheta, ofiml->dNu_dtheta, ofiml->alwaysZeroCovDeriv, ofiml->alwaysZeroMeanDeriv,
-							//(want & FF_COMPUTE_HESSIAN), 
-							false,
+							(want & FF_COMPUTE_HESSIAN), 
+							//false,
 							ofiml->d2Sigma_dtheta1dtheta2, ofiml->d2Mu_dtheta1dtheta2);
-					Eigen::MatrixXd SigmaInvDataCov,SigmaInvResid;
+					HessianBlock *hb = new HessianBlock;
+					hb->vars.resize(fc->getNumFree());
+					hb->mat.resize(fc->getNumFree(), fc->getNumFree());
+					for(int vi=0; vi < fc->getNumFree(); vi++){
+						hb->vars[vi] = vi;
+					}
+					Eigen::MatrixXd SigmaInvResid;
+					int nManifestVar = ofiml->dSigma_dtheta[0].rows();
+					Eigen::MatrixXd I( nManifestVar, nManifestVar ); I.setIdentity();
+					//mxPrintMat("I:",I);
 					for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
 						double term1=0.0, term2=0.0;
-						int nManifestVar = ofiml->dSigma_dtheta[0].rows();
 						Eigen::MatrixXd dSigma_dtheta_curr(nManifestVar,nManifestVar);
 						Eigen::VectorXd dNu_dtheta_curr(nManifestVar);
 						if(OMX_DEBUG_ALGEBRA){ 
@@ -414,8 +422,6 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 						bool zeroMeanDeriv = dNu_dtheta_curr.isZero();
 						if(!zeroCovDeriv){
-							Eigen::MatrixXd I( nManifestVar, nManifestVar ); I.setIdentity();
-							//mxPrintMat("I:",I);
 							term1=(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace();
 							if(OMX_DEBUG_ALGEBRA){ mxLog("term1: %f",term1); }
 						}
@@ -429,9 +435,48 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							mxLog("px: %ld",px);
 							mxLog("fc->gradZ[px]: %f",fc->gradZ[px]);
 						}
+						if(want & FF_COMPUTE_HESSIAN){
+							for(size_t qx=0; qx < ofiml->dSigma_dtheta.size(); qx++){
+								//1st derivs w/r/t parameter qx...
+								Eigen::MatrixXd dSigma_dtheta_curr2(nManifestVar,nManifestVar);
+								Eigen::VectorXd dNu_dtheta_curr2(nManifestVar);
+								Eigen::Map< Eigen::VectorXd > dNu_dtheta_vec2(ofiml->dNu_dtheta[qx].data(),nManifestVar);
+								subsetNormalDist(dNu_dtheta_vec2, ofiml->dSigma_dtheta[qx], op, rowContinuous, dNu_dtheta_curr2, dSigma_dtheta_curr2);
+								//2nd derivs w/r/t paramters px & qx...
+								Eigen::MatrixXd d2Sigma_dtheta1dtheta2_curr(nManifestVar,nManifestVar);
+								Eigen::VectorXd d2Mu_dtheta1dtheta2_curr(nManifestVar);
+								Eigen::Map< Eigen::VectorXd > d2Mu_dtheta1dtheta2_vec(ofiml->d2Mu_dtheta1dtheta2[px][qx].data(),nManifestVar);
+								subsetNormalDist(d2Mu_dtheta1dtheta2_vec, ofiml->d2Sigma_dtheta1dtheta2[px][qx], op, rowContinuous, d2Mu_dtheta1dtheta2_curr, d2Sigma_dtheta1dtheta2_curr);
+								
+								/*Eigen::MatrixXd SigmaInv2ndDer = iV.selfadjointView<Eigen::Lower>() * d2Sigma_dtheta1dtheta2_curr;
+								if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
+								Eigen::MatrixXd SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
+								if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }*/
+								
+								double tt0 = 
+									-0.5*((iV.selfadjointView<Eigen::Lower>()*d2Sigma_dtheta1dtheta2_curr - 
+									iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr2*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr)*
+									(I - iV)*resid*resid.transpose()).trace();
+								double tt1 = 
+									-0.5*(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*
+									dSigma_dtheta_curr2*iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose()).trace();
+								double tt2 = 
+									0.5*(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*
+									(dNu_dtheta_curr2*resid.transpose() + resid*dNu_dtheta_curr2.transpose())).trace();
+								//N.B. positive sign, because mu instead of nu:
+								double tt3 = d2Mu_dtheta1dtheta2_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid;
+								double tt4 = -1.0*(dNu_dtheta_curr.transpose()*dSigma_dtheta_curr2*resid)(0,0);
+								double tt5 = -1.0*(dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*dNu_dtheta_curr2)(0,0);
+								hb->mat(px,qx) = Scale*(tt0 + tt1 + tt2 + tt3 + tt4 + tt5);
+							}
+						}
 					}
 					if(want & FF_COMPUTE_HESSIAN){
-						Rf_warning("Analytic Hessian Not Yet Implemented in this case");
+						//mxPrintMat("hb->mat",hb->mat);
+						fc->queue(hb);
+					}
+					else{
+						delete hb;
 					}
 				}
 			}
