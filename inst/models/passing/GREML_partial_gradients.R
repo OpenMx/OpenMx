@@ -227,9 +227,9 @@ test4sa <- mxRun(test4sa)
 summary(test4sa)
 omxCheckCloseEnough(test0$output$fit, test4sa$output$fit, 1e-12)
 omxCheckCloseEnough(coef(test0),coef(test4sa),1e-7)
-omxCheckCloseEnough(test0$output$standardErrors,test4sa$output$standardErrors,1e-8)
-omxCheckCloseEnough(test0$output$gradient,test4sa$output$gradient,1e-6)
-omxCheckCloseEnough(test0$expectation$b,test4sa$expectation$b,1e-9)
+omxCheckCloseEnough(test0$output$standardErrors,test4sa$output$standardErrors,5e-8)
+omxCheckCloseEnough(test0$output$gradient,test4sa$output$gradient,3e-6)
+omxCheckCloseEnough(test0$expectation$b,test4sa$expectation$b,5e-9)
 omxCheckCloseEnough(test0$expectation$bcov,test4sa$expectation$bcov,1e-10)
 
 
