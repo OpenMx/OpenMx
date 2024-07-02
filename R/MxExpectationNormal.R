@@ -489,8 +489,17 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=m
 	if(is.null(model[[subname]]$expectation) && (class(model[[subname]]$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()
+		if(length(defvar.row) == length(submNames) && !is.null(names(defvar.row)) && all(names(defvar.row) %in% submNames) && !any(duplicated(names(defvar.row)))){
+			theDefVarRows <- defvar.row
+		} else if(length(defvar.row) == 1) {
+			theDefVarRows <- rep(defvar.row[1], length(submNames))
+			names(theDefVarRows) <- submNames
+		} else {
+			stop("Terribly sorry, but I don't understand your defvar.row argument.\nIt should be a single numeric value, or a named vector that corresponds to each submodel.")
+		}
 		for(amod in submNames){
-			got[[amod]] <- imxGetExpectationComponent(model, component, defvar.row, subname=amod)
+			got[[amod]] <- imxGetExpectationComponent(model, component,
+				defvar.row=theDefVarRows[[amod]], subname=amod)
 		}
 		if(component=='vector' || tolower(component)=='standvector'){got <- unlist(got)}
 		got
