@@ -558,18 +558,43 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 
 	return(jac)
 }
-
 minimumObservations <- function(model){
+   # browser()
 	namespace <- imxGenerateNamespace(model)
 	flatModel <- imxFlattenModel(model, namespace, TRUE)
-	labelsData <- imxGenerateLabels(model)
-	fitfunctions <- convertFitFunctions(flatModel, model, labelsData, new("MxDirectedGraph"))
 	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), flatModel@datasets)
-	dataObservations <- sapply(lapply(datalist, slot, name = "observed"), nrow)
-	dataObservations <- dataObservations[dataObservations > 0]
-	fitfunctionObservations <- sapply(fitfunctions, fitfunctionNumberObservations)
-	fitfunctionObservations <- fitfunctionObservations[fitfunctionObservations > 0]
-	return(min(c(as.numeric(dataObservations), as.numeric(fitfunctionObservations)), na.rm=TRUE))
+	convertArguments <- imxCheckVariables(flatModel, namespace)
+	flatModel <- constraintsToAlgebras(flatModel)
+	flatModel <- eliminateObjectiveFunctions(flatModel)
+	flatModel <- convertAlgebras(flatModel, convertArguments)
+	defVars <- generateDefinitionList(flatModel, list())
+	defVarsData <- sapply(defVars, '[', 1) + 1 # indices of the data for each defvar
+	defVarsCols <- sapply(defVars, '[', 2) + 1 # column indices of the definition variables
+	# Transfer NAMES of submodels as the names of the uniDef to mxCheckID
+	# Then use these as args to defvar.row=c(MZ=1, DZ=3) etc.
+	# Model names of corresponding definition variables
+	smartSel <- function(x){if(length(x) > 0) x[[1]] else NA}
+	defVarsMods <- sapply(strsplit(names(defVarsData), split=imxSeparatorChar, fixed=TRUE), smartSel)
+	# For each unique defVarsData,
+	defVarsDups <- duplicated(defVarsData)
+	uniData <- defVarsData[!defVarsDups]
+	uniMods <- defVarsMods[!defVarsDups]
+	uniDef <- list()
+	for(ind in 1L:length(uniData)){
+		tmpData <- datalist[[ind]]$observed
+		curDefVarCols <- defVarsCols[defVarsData %in% ind]
+		tmpDef <- tmpData[, curDefVarCols, drop=FALSE]
+		uniDef[[ind]] <- which(!duplicated(tmpDef)) # unique(tmpDef, MARGIN=1)
+	}
+	names(uniDef) <- uniMods
+	#  grab tmpData <- datalist[[aUniDefVarData]]$observed
+	#  grab ALL the columns that go with those data:
+	#    s <- defVarsData[defVarsData %in% aUniDefVarData]
+	#    curDefVarCols <- defVarsCols[s]
+	#    tmpDef <- tmpData[,curDefVarCols]
+	#  Find unique patterns of defvar values with unique(tmpDef, margin=??)
+	#return(min(c(as.numeric(dataObservations), as.numeric(fitfunctionObservations)), na.rm=TRUE))
+	return(uniDef)
 }
 
 
@@ -583,10 +608,13 @@ mxCheckIdentification <- function(model, details=TRUE){
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	if(imxHasDefinitionVariable(model)){
+   #  browser()
 		warning("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
-		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=1)
-		rownames(jac1) <- paste0(rownames(jac1), 'def', 1)
-		maxRow <- minimumObservations(model)
+		uniRow <- minimumObservations(model)
+		minRow <- uniRow[[1]][1] # TODO Handle multiple groups/data
+		maxRow <- uniRow[[1]][length(uniRow[[1]])] # TODO What if there's only one non-duplicated value?
+		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=minRow)
+		rownames(jac1) <- paste0(rownames(jac1), 'def', minRow)
 		jac2 <- omxManifestModelByParameterJacobian(model, defvar.row=maxRow)
 		rownames(jac2) <- paste0(rownames(jac2), 'def', maxRow)
 		jac <- rbind(jac1, jac2)
