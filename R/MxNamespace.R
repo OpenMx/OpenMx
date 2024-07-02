@@ -322,7 +322,8 @@ imxHasDefinitionVariable <- function(model) {
 	# Check the algebras for defvar
 	if(length(model@algebras) > 0){
 		for(i in 1:length(model@algebras)){
-			attempt <- sapply(as.character(model@algebras[[i]]$formula), imxIsDefinitionVariable)
+			attempt <- grepl(paste0('data', imxSeparatorChar),
+				as.character(model@algebras[[i]]$formula), fixed=TRUE)
 			if(any(attempt)){
 				return(TRUE)
 			}
