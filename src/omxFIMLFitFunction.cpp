@@ -454,9 +454,9 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 								if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }*/
 								
 								double tt0 = 
-									-0.5*((iV.selfadjointView<Eigen::Lower>()*d2Sigma_dtheta1dtheta2_curr - 
+									-0.5*( (iV.selfadjointView<Eigen::Lower>()*d2Sigma_dtheta1dtheta2_curr - 
 									iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr2*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr)*
-									(I - iV)*resid*resid.transpose()).trace();
+									(I - iV*resid*resid.transpose() ) ).trace();
 								double tt1 = 
 									-0.5*(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*
 									dSigma_dtheta_curr2*iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose()).trace();

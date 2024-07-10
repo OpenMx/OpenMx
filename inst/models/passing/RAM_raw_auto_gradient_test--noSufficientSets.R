@@ -53,7 +53,7 @@ mxOption(NULL,"Analytic gradients","No")
 fmf6 <- mxRun(factorModel)
 summary(fmf6)
 omxCheckCloseEnough(coef(fmf5),coef(fmf6),5e-6)
-omxCheckCloseEnough(fmf5$output$standardErrors,fmf6$output$standardErrors,0.01)
+omxCheckCloseEnough(fmf5$output$standardErrors,fmf6$output$standardErrors,5e-7)
 omxCheckCloseEnough(fmf5$output$fit,fmf6$output$fit,1e-8)
 omxCheckTrue(fmf5$output$status$code==0)
 #Check for zero gradient:
