@@ -396,7 +396,8 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					for(int vi=0; vi < fc->getNumFree(); vi++){
 						hb->vars[vi] = vi;
 					}
-					Eigen::MatrixXd SigmaInvResid;
+					Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
+					Eigen::MatrixXd SigmaInvResidResidT = SigmaInvResid*resid.transpose();
 					int nManifestVar = ofiml->dSigma_dtheta[0].rows();
 					Eigen::MatrixXd I( nManifestVar, nManifestVar ); I.setIdentity();
 					//mxPrintMat("I:",I);
@@ -419,14 +420,16 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						if(OMX_DEBUG_ALGEBRA){ 
 							mxPrintMat("dSigma_dtheta_curr:",dSigma_dtheta_curr); 
 						}
+						Eigen::MatrixXd SigmaInvDer = iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr;
 						bool zeroCovDeriv = dSigma_dtheta_curr.isZero();
 						bool zeroMeanDeriv = dNu_dtheta_curr.isZero();
 						if(!zeroCovDeriv){
-							term1=(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*(I-iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose())).trace();
+							term1=SigmaInvDer.trace() - (SigmaInvDer.array()*SigmaInvResidResidT.transpose().array()).sum();
+							//term1=SigmaInvDer.trace() - (SigmaInvDer.array()*(resid*SigmaInvResid.transpose()).array()).sum();
 							if(OMX_DEBUG_ALGEBRA){ mxLog("term1: %f",term1); }
 						}
 						if(!zeroMeanDeriv){
-							term2=2*dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid;
+							term2=2*(dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
 							if(OMX_DEBUG_ALGEBRA){ mxLog("term2: %f",term2); }
 						}
 						fc->gradZ[px] += Scale * -0.5*(term1+term2); 
@@ -448,23 +451,24 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 								Eigen::Map< Eigen::VectorXd > d2Mu_dtheta1dtheta2_vec(ofiml->d2Mu_dtheta1dtheta2[px][qx].data(),nManifestVar);
 								subsetNormalDist(d2Mu_dtheta1dtheta2_vec, ofiml->d2Sigma_dtheta1dtheta2[px][qx], op, rowContinuous, d2Mu_dtheta1dtheta2_curr, d2Sigma_dtheta1dtheta2_curr);
 								
-								/*Eigen::MatrixXd SigmaInv2ndDer = iV.selfadjointView<Eigen::Lower>() * d2Sigma_dtheta1dtheta2_curr;
-								if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
+								Eigen::MatrixXd SigmaInv2ndDer = iV.selfadjointView<Eigen::Lower>() * d2Sigma_dtheta1dtheta2_curr;
+								//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInv2ndDer",SigmaInv2ndDer); }
 								Eigen::MatrixXd SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
-								if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }*/
+								//if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
 								
 								double tt0 = 
-									-0.5*( (iV.selfadjointView<Eigen::Lower>()*d2Sigma_dtheta1dtheta2_curr - 
+									-0.5*( SigmaInv2ndDer.trace() - (SigmaInvDer2.array()*SigmaInvDer.transpose().array()).sum() -
+									(SigmaInv2ndDer.array()*SigmaInvResidResidT.transpose().array()).sum() + 
+									(SigmaInvDer2*SigmaInvDer*SigmaInvResidResidT).trace() );
+									/*-0.5*( (iV.selfadjointView<Eigen::Lower>()*d2Sigma_dtheta1dtheta2_curr - 
 									iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr2*iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr)*
-									(I - iV*resid*resid.transpose() ) ).trace();
-								double tt1 = 
-									-0.5*(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*
-									dSigma_dtheta_curr2*iV.selfadjointView<Eigen::Lower>()*resid*resid.transpose()).trace();
+									(I - iV*resid*resid.transpose() ) ).trace();*/
+								double tt1 = -0.5*(SigmaInvDer*SigmaInvDer2*SigmaInvResidResidT).trace();
 								double tt2 = 
-									0.5*(iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr*iV.selfadjointView<Eigen::Lower>()*
+									0.5*(SigmaInvDer*iV.selfadjointView<Eigen::Lower>()*
 									(dNu_dtheta_curr2*resid.transpose() + resid*dNu_dtheta_curr2.transpose())).trace();
 								//N.B. positive sign, because mu instead of nu:
-								double tt3 = d2Mu_dtheta1dtheta2_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*resid;
+								double tt3 = (d2Mu_dtheta1dtheta2_curr.transpose()*SigmaInvResid)(0,0);
 								double tt4 = -1.0*(dNu_dtheta_curr.transpose()*dSigma_dtheta_curr2*resid)(0,0);
 								double tt5 = -1.0*(dNu_dtheta_curr.transpose()*iV.selfadjointView<Eigen::Lower>()*dNu_dtheta_curr2)(0,0);
 								hb->mat(px,qx) = Scale*(tt0 + tt1 + tt2 + tt3 + tt4 + tt5);
