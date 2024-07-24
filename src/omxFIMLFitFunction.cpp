@@ -391,10 +391,13 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							//false,
 							ofiml->d2Sigma_dtheta1dtheta2, ofiml->d2Mu_dtheta1dtheta2);
 					HessianBlock *hb = new HessianBlock;
-					hb->vars.resize(fc->getNumFree());
-					hb->mat.resize(fc->getNumFree(), fc->getNumFree());
-					for(int vi=0; vi < fc->getNumFree(); vi++){
-						hb->vars[vi] = vi;
+					//We need to declare hb above, but we should only allocate more memory to it if the Hessian is wanted:
+					if(want & FF_COMPUTE_HESSIAN){
+						hb->vars.resize(fc->getNumFree());
+						hb->mat.resize(fc->getNumFree(), fc->getNumFree());
+						for(int vi=0; vi < fc->getNumFree(); vi++){
+							hb->vars[vi] = vi;
+						}
 					}
 					Eigen::MatrixXd SigmaInvResid = iV.selfadjointView<Eigen::Lower>()*resid;
 					Eigen::MatrixXd SigmaInvResidResidT = SigmaInvResid*resid.transpose();
