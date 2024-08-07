@@ -2630,8 +2630,8 @@ void omxRAMExpectation::provideSufficientDerivs(
 	 */
 	bool tmpflag = pcalc.doAlwaysComputeUnfilteredIAUponEval;
 	pcalc.doAlwaysComputeUnfilteredIAUponEval = true;
-	Eigen::MatrixXd eFullCov;
-	pcalc.fullCov(fc, eFullCov); //<--Does this have to be invoked during every call to provideSufficientDerivs()...?  Seemingly, yes.
+	Eigen::MatrixXd eFullCov; eFullCov.setZero(F->rows,F->rows);
+	pcalc.fullCov(fc, eFullCov);
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("fullCov:",eFullCov); }
 	if(!pcalc.useSparse){
 		//N.B. pcalc.I_A is solve(I - t(A)):

@@ -72,6 +72,7 @@ setMethod("initialize", "MxExpectationRAM",
     .Object@expectedMean <- expectedMean
     .Object@expectedFullCovariance <- expectedFullCovariance
     .Object@expectedFullMean <- expectedFullMean
+    .Object@.canProvideSufficientDerivs <- FALSE
 		return(.Object)
 	}
 )
