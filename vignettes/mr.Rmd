@@ -1,0 +1,1762 @@
+---
+title: Mendelian randomization using the twin design
+author:
+  - Luis Araujo
+date: 2024 
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Mendelian randomization using the twin design}
+  %\usepackage[UTF-8]{inputenc}
+---
+
+```{r setup, include = F}
+is_CRAN <- !identical(Sys.getenv("NOT_CRAN"), "true")
+if (!is_CRAN) {
+   options(mc.cores = parallel::detectCores())
+} else {
+  knitr::opts_chunk$set(eval = FALSE)
+  knitr::knit_hooks$set(evaluate.inline = function(x, envir) x)
+}
+```
+
+
+This script is a modified version of Minica & Neale 2018 AGES workshop
+In this script we will test the (bidirectional) causal effect between two
+phenotypes, think of BMI on SBP (systolic blood pressure) and vice-versa,
+and polygenic scores for each.
+In the interest of brevity we will always refer to BMI as variable X, and SBP
+as variable Y, with the respective instruments iX and iY.
+
+There are four main take away messages that you should focus:
+  1. How to setup a simulation in OpenMX using mxGenerateData
+  2. That a two-stages least squares test can be specified in SEM in OpenMX
+  3. That MR-DoC recovers the same estimates from 2sls test
+  4. That in the presence of horizontal pleiotropy estimates are biased
+        in the 2sls test and unbiased in MR-DoC
+
+The script contains four scenarios,
+  - no pleiotropy between the instrument and the outcome (Scenario 1),
+  - where there is pleiotropy (Scenario 2),
+  - presence of a bidirectional causal effect (Scenario 3)
+  - absence of a  causal effect (Scenario 4)
+See presentation slides for path diagrams.
+If you are using RStudio you can navigate using the outline dropdown menu
+Setting the stage ------------------------------------------------------------
+
+
+```r
+rm(list=ls())  # Emptying the R environment, not recommended usually but useful
+# for this workshop
+
+
+# loading required packages
+library(OpenMx)
+library(MASS)
+library(dplyr)
+
+options(digits = 2, scipen = 999)  # we dont want scientific notation
+mxOption(NULL, "Default optimizer", "SLSQP")
+```
+
+The models are specified in three objects, top (for common parts), MZ and DZ
+spend some time recognizing the elements in the model, by now you should
+have seen similar code. Notice two minor style changes, I am naming
+the objects at the beginning and the matrices labels spelled out in the
+positions they will end up in the matrix.
+The final objects (mrdoc1, mrdoc2) will be reused throughout the script.
+The matrix containing regressions for causal paths and instruments
+
+
+```r
+BE <- mxMatrix(name = "BE", type = "Full",nrow=3,  ncol = 3, byrow = TRUE,
+               labels = c(NA,   "g2", "b1",
+                          "g1", NA,   "b2",
+                          NA,   NA,   NA),
+               free = c(FALSE, FALSE, TRUE,
+                        TRUE,  FALSE, TRUE,
+                        FALSE, FALSE, FALSE),
+               dimnames = list(c("X", "Y", "iX"),
+                               c("X", "Y", "iX")))
+```
+
+ACE decomposition
+
+
+```r
+A <-  mxMatrix(name = 'A', type='Symm', nrow=3,ncol = 3,byrow = TRUE,
+               labels=c("ax2", "covA", NA,
+                        "covA","ay2",  NA,
+                        NA,    NA,     "sigma_x"),
+               free=c(TRUE, TRUE, FALSE,
+                      TRUE, TRUE, FALSE,
+                      FALSE,FALSE,TRUE),
+               dimnames = list(c("X", "Y", "iX"),
+                               c("X", "Y", "iX")))
+
+C <-  mxMatrix(name = 'C', type='Symm',nrow=3, ncol = 3,byrow = TRUE,
+               labels =c("cx2", "covC", NA,
+                         "covC","cy2",  NA,
+                         NA,    NA,     NA),
+               free=c(TRUE, TRUE, FALSE,
+                      TRUE, TRUE, FALSE,
+                      FALSE,FALSE,FALSE),
+               dimnames = list(c("X", "Y", "iX"),
+                               c("X", "Y", "iX")))
+
+E <-  mxMatrix(name = 'E', type='Symm', nrow=3, ncol = 3,byrow = TRUE,
+               labels =c("ex2", "covE",NA,
+                         "covE","ey2", NA,
+                         NA,     NA,   NA),
+               free= c(TRUE, FALSE,FALSE,
+                       FALSE,TRUE, FALSE,
+                       FALSE,FALSE,FALSE),
+               dimnames = list(c("X", "Y", "iX"),
+                               c("X", "Y", "iX")))
+```
+
+The filter matrix is used to remove the PRS from _T2 in MZs,
+if we kept it the matrix would become redundant resulting
+in the Hessian not positive
+
+
+```r
+filter <-  mxMatrix(name = 'filter', type='Full', nrow=5, ncol=6, free=FALSE,
+                    byrow = TRUE,
+                    values=c(1,0,0,0,0,0,
+                             0,1,0,0,0,0,
+                             0,0,1,0,0,0,
+                             0,0,0,1,0,0,
+                             0,0,0,0,1,0),
+                    dimnames = list(c("X_T1", "Y_T1", "iX_T1","X_T2", "Y_T2"),
+                                    c("X_T1", "Y_T1", "iX_T1","X_T2", "Y_T2", "iX_T2")))
+```
+
+This lambda (LY) matrix is fixing total variances to 1 for PRSs and
+phenotypes
+
+
+```r
+LY <-  mxMatrix(name = 'LY', type='Full',nrow=3, ncol = 3, free = FALSE,
+                values = diag(3), labels = NA,
+                dimnames = list(c("X", "Y", "iX"),
+                                c("X", "Y", "iX")))
+```
+
+Means objects
+
+
+```r
+mean_dz <-  mxMatrix(name = 'mean_dz', type='Full', nrow=1, ncol=6,
+                     free=TRUE, values= 0, byrow = TRUE,
+                     labels=c('mX1','mY2','miX1','mX1','mY2','miX1'))
+
+mean_mz <-  mxAlgebra('mean_mz', expression = mean_dz%*%t(filter))
+```
+
+Identity matrix for the algebras
+
+
+```r
+I <-  mxMatrix(name = 'I', type='Iden', nrow= 3,ncol= 3)
+
+algebras <- list(
+  mxAlgebra('A_'  , expression = LY %&% solve(I - BE)%&%A),
+  mxAlgebra('C_'  , expression = LY %&% solve(I - BE)%&%C),
+  mxAlgebra('E_'  , expression = LY %&% solve(I - BE)%&%E),
+  mxAlgebra('SPh' , expression = A_ + C_ + E_),
+  mxAlgebra('variance_mz_', expression = rbind(
+    cbind(SPh, A_+C_),
+    cbind(A_+C_, SPh))),
+  mxAlgebra('variance_dz', expression= rbind(
+    cbind(SPh, .5%x%A_+C_),
+    cbind(.5%x%A_+C_, SPh))),
+  mxAlgebra('variance_mz', expression= filter%&%variance_mz_))
+
+top_mr1 <- mxModel("top", BE, A, C, E, filter, LY,  mean_dz, mean_mz, I, algebras)
+```
+
+Preparing the objects for the multiple groups (MZ, DZ) analysis
+
+
+```r
+MZ_mr1 = mxModel("MZ",mxFitFunctionML(),
+                 mxExpectationNormal(covariance = "top.variance_mz", means = "top.mean_mz",
+                                     dimnames =  c("X_T1", "Y_T1", "iX_T1",
+                                                   "X_T2", "Y_T2")))
+
+DZ_mr1 = mxModel("DZ", mxFitFunctionML(),
+                 mxExpectationNormal(covariance = "top.variance_dz", means = "top.mean_dz",
+                                     dimnames =  c("X_T1", "Y_T1", "iX_T1",
+                                                   "X_T2", "Y_T2", "iX_T2")))
+```
+
+Combining objects to generate the final model
+
+
+```r
+mrdoc1 = mxModel("mrdoc1", top_mr1, MZ_mr1, DZ_mr1,
+                 mxFitFunctionMultigroup(c("MZ","DZ") ) )
+```
+
+Scenario 1: no pleiotropy  ---------------------------------------------------
+Generate simulated data for mrdoc1
+Fit the model in unrelateds using a structural equation model
+Fit the model in twins - using the MR-doc
+Compare the NCPs of the models in unrelateds and twins
+Look at the 2 stage least squares results
+Let's generate  simulated data where b2 (the pleiotropic path) is zero,
+in other words, no pleiotropy present in the data.
+As such we need to set the true values, this is a way of doing this:
+
+
+```r
+true_model <-  mrdoc1 |>
+  omxSetParameters(labels =  c("g1","b1", "b2",
+                               "ax2", "ay2", "cx2", "cy2", "ex2", "ey2",
+                               "covA", "covC", "covE","sigma_x"),
+                   values = c(0.316, 0.316, 0,
+                              0.424, 0.671, 0.671, 0.424, 0.519, 0.519,
+                              0.411,0.221,0, 1)) |>
+  omxSetParameters(labels = c("b2"), free = FALSE) # remember, no pleiotropy
+```
+
+Simulating data according to the exact covariance matrix from mrdoc1 (above),
+this is done using the switch empirical = T, this should be quick
+
+
+```r
+sim_data <- mxGenerateData(true_model, nrows = 1000, empirical = TRUE)
+```
+
+The data does not comes with the instrument column for the second twin,
+we have to duplicate the column. In your analysis, this step will not happen,
+we are doing this because of how I coded the simulation for this workshop.
+
+
+```r
+sim_data$MZ <- mutate(sim_data$MZ, iX_T2 = iX_T1)
+
+dnpmz <- sim_data$MZ
+dnpdz <- sim_data$DZ
+
+dim(dnpdz) #
+```
+
+```
+## [1] 1000    6
+```
+
+```r
+head(dnpdz)
+```
+
+```
+##    X_T1  Y_T1 iX_T1   X_T2  Y_T2 iX_T2
+## 1  1.17  1.63 -0.43  1.469  1.88 -0.28
+## 2 -0.79 -0.79  0.39 -2.307 -2.29 -1.81
+## 3  0.18  1.21  0.65  0.286  1.38  0.04
+## 4 -1.74 -0.73  0.64 -0.908 -1.79  0.79
+## 5  0.96  1.04 -0.36 -1.348  0.06 -1.50
+## 6 -0.85 -0.56 -0.47 -0.074 -0.40 -1.21
+```
+
+```r
+summary(dnpdz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1           X_T2           Y_T2          iX_T2      
+##  Min.   :-5.0   Min.   :-4.4   Min.   :-3.4   Min.   :-4.9   Min.   :-4.8   Min.   :-3.05  
+##  1st Qu.:-0.9   1st Qu.:-1.0   1st Qu.:-0.7   1st Qu.:-0.9   1st Qu.:-1.0   1st Qu.:-0.64  
+##  Median :-0.1   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.07  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.00  
+##  3rd Qu.: 0.8   3rd Qu.: 1.0   3rd Qu.: 0.7   3rd Qu.: 0.9   3rd Qu.: 1.0   3rd Qu.: 0.64  
+##  Max.   : 4.5   Max.   : 5.4   Max.   : 3.9   Max.   : 4.6   Max.   : 4.2   Max.   : 2.83
+```
+
+```r
+dim(dnpmz) #
+```
+
+```
+## [1] 1000    6
+```
+
+```r
+head(dnpmz)
+```
+
+```
+##     X_T1  Y_T1 iX_T1  X_T2   Y_T2 iX_T2
+## 1 -0.064  1.70 -1.32 -0.39  1.160 -1.32
+## 2 -1.285 -1.36 -0.60 -1.43  0.021 -0.60
+## 3  0.299  0.44 -1.39  1.17  0.449 -1.39
+## 4 -0.733 -2.93 -0.94 -0.61 -2.126 -0.94
+## 5  1.016 -0.11  0.30  1.44  0.035  0.30
+## 6 -1.071  0.18 -1.67 -1.21 -0.562 -1.67
+```
+
+```r
+summary(dnpmz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1           X_T2           Y_T2          iX_T2     
+##  Min.   :-4.2   Min.   :-5.5   Min.   :-3.4   Min.   :-5.4   Min.   :-6.7   Min.   :-3.4  
+##  1st Qu.:-0.9   1st Qu.:-1.0   1st Qu.:-0.7   1st Qu.:-0.9   1st Qu.:-1.0   1st Qu.:-0.7  
+##  Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0  
+##  3rd Qu.: 0.9   3rd Qu.: 1.0   3rd Qu.: 0.7   3rd Qu.: 0.8   3rd Qu.: 1.0   3rd Qu.: 0.7  
+##  Max.   : 3.8   Max.   : 4.3   Max.   : 2.9   Max.   : 4.3   Max.   : 4.7   Max.   : 2.9
+```
+
+We now add the data to the model object created before.
+Notice that the plus sign is overloaded in OpenMx as it is, for example,
+in ggplot2. So you can combine objects with the
+syntax below instead of `model = mxModel(model, mxData(data, type = "raw"))`
+This syntax is optional, but helps reducing the lenght of the script
+
+
+```r
+mrdoc1$MZ <- mrdoc1$MZ +  mxData(dnpmz, type = "raw")
+mrdoc1$DZ <- mrdoc1$DZ +  mxData(dnpdz, type = "raw")
+
+m1 <- mrdoc1 |>
+  # Remember, no b2 in data, no b2 in the model
+  omxSetParameters(labels = "b2", free = FALSE) |>
+  # The poing of examining the data a few lines above is to set sensible
+  # starting values for the model. Here, in the interest of brevity, we ask
+  # OpenMx to pick starting values for us.
+  mxAutoStart()
+
+m1 <- mxRun(m1)
+```
+
+```
+## Running mrdoc1 with 14 parameters
+```
+
+```r
+# In your analyses, make sure to test for local identification frequently:
+# mxCheckIdentification(m1)$status
+# Model is locally identified
+# [1] TRUE
+
+summary(m1)
+```
+
+```
+## Summary of mrdoc1 
+##  
+## free parameters:
+##       name      matrix row   col        Estimate Std.Error A
+## 1       g1      top.BE   Y     X  0.316000000123     0.028  
+## 2       b1      top.BE   X    iX  0.316000000040     0.021  
+## 3      ax2       top.A   X     X  0.423575999118     0.077  
+## 4     covA       top.A   X     Y  0.410588999655     0.064  
+## 5      ay2       top.A   Y     Y  0.670328999037     0.089  
+## 6  sigma_x       top.A  iX    iX  0.999000000056     0.026  
+## 7      cx2       top.C   X     X  0.670329000971     0.074  
+## 8     covC       top.C   X     Y  0.220779000217     0.054  
+## 9      cy2       top.C   Y     Y  0.423576000776     0.080  
+## 10     ex2       top.E   X     X  0.518481000185     0.023  
+## 11     ey2       top.E   Y     Y  0.518481000190     0.023  
+## 12     mX1 top.mean_dz   1  X_T1 -0.000000000056     0.026  
+## 13     mY2 top.mean_dz   1  Y_T1 -0.000000000034     0.030  
+## 14    miX1 top.mean_dz   1 iX_T1 -0.000000000032     0.021  
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:             14                  10986                 32383
+##    Saturated:             NA                     NA                    NA
+## Independence:             NA                     NA                    NA
+## Number of observations/statistics: 2000/11000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:          10411                  32411                    32411
+## BIC:         -51120                  32490                    32445
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:49 
+## Wall clock time: 0.17 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+One way of assessing whether the causal path is significant is by dropping it
+
+
+```r
+m2 <- omxSetParameters(m1, name = "nog1", labels="g1", free = FALSE,
+                       values = 0)
+m2 <- mxRun(m2)
+```
+
+```
+## Running nog1 with 13 parameters
+```
+
+```r
+# Comparing the two models
+mxCompare(m1, m2)
+```
+
+```
+##     base comparison ep minus2LL    df   AIC diffLL diffdf                              p
+## 1 mrdoc1       <NA> 14    32383 10986 32411     NA     NA                             NA
+## 2 mrdoc1       nog1 13    32499 10987 32525    115      1 0.0000000000000000000000000066
+```
+
+Q1: We dropped the causal path, what is the interpretation for the above
+result?
+ANSWER: The causal path is significant, model m2 was worse.
+Can we specify a model for a 2-stage least squares test using SEM and OpenMX?
+
+
+```r
+IVModel = mxModel("MR", type = "RAM", manifestVars = c("X", "Y", "I"),
+                  latentVars = c("eX", "eY"),
+                  # Path from instrument to exposure
+                  mxPath(from = "I" , to = "X", arrows = 1, label = "b1"),
+                  # Path from exposure to outcome, g1
+                  mxPath(from = "X", to = "Y", label = "g1"),
+                  # Latent error+ setting up variance and means for variables
+                  mxPath(from = c("I"), arrows = 2, label = "vI"),
+                  mxPath(from = c("eX", "eY"), to = c("X","Y"), value = 1, free = FALSE),
+                  # Variance of residual errors
+                  mxPath(from = c("eX", "eY"), arrows =  2, free = TRUE,
+                         labels = c("vX", "vY")),
+                  mxPath(connect = "unique.bivariate", from =  c("eX", "eY"),   arrows = 2,
+                         values = 0.2, labels = "re"), # Correlation among residuals
+                  mxPath("one", to = c("X","Y", "I"), labels = c("mX", "mY", "mI")))
+
+# The above specification closely follows the slides in the presentation
+# If you have umx installed you can look at it:
+# library(umx)
+# plot(IVModel)
+```
+
+Let's generate a new data set by taking only twin 1 from mzs and dzs
+
+
+```r
+dat1 <- rbind(dnpmz[,1:3],dnpdz[,1:3]) |>
+  # we need to rename the variables to match the dimension names set in the
+  # IVmodel above
+  rename(X = X_T1,
+         Y = Y_T1,
+         I = iX_T1)
+```
+
+Adding the data to the model
+
+
+```r
+unrel <- IVModel + mxData(dat1, type = "raw")
+```
+
+Know your data, check variable skewness, kurtosis and means, but
+in the interest of brevity, let's autostart
+
+
+```r
+unrel <- mxAutoStart(unrel)
+unrel <- mxRun(unrel)
+```
+
+```
+## Running MR with 9 parameters
+```
+
+```r
+summary(unrel)
+```
+
+```
+## Summary of MR 
+##  
+## free parameters:
+##   name matrix row col   Estimate Std.Error A
+## 1   g1      A   Y   X  0.3159990     0.090  
+## 2   b1      A   X   I  0.3159993     0.028  
+## 3   vI      S   I   I  0.9990026     0.032  
+## 4   vX      S  eX  eX  1.6123920     0.051 !
+## 5   re      S  eX  eY  0.6313694     0.150  
+## 6   vY      S  eY  eY  1.6123882     0.124  
+## 7   mX      M   1   X  0.0000090     0.028 !
+## 8   mY      M   1   Y -0.0000113     0.028 !
+## 9   mI      M   1   I  0.0000033     0.022 !
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:              9                   5991                 18603
+##    Saturated:              9                   5991                    NA
+## Independence:              6                   5994                    NA
+## Number of observations/statistics: 2000/6000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:           6621                  18621                    18621
+## BIC:         -26934                  18672                    18643
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:50 
+## Wall clock time: 0.038 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+```r
+unrel2 <- omxSetParameters(name = "no_causal", unrel, label="g1", free = FALSE,
+                           values = 0)
+unrel2 <- mxRun(unrel2)
+```
+
+```
+## Running no_causal with 8 parameters
+```
+
+```r
+mxCompare(unrel,unrel2)
+```
+
+```
+##   base comparison ep minus2LL   df   AIC diffLL diffdf      p
+## 1   MR       <NA>  9    18603 5991 18621     NA     NA     NA
+## 2   MR  no_causal  8    18612 5992 18628    9.1      1 0.0025
+```
+
+Q2: The line above is a Likelihood ratio test with 1 degree of freedom, what is
+the meaning of a significant p-value in this case?
+ANSWER: The causal path is significant, dropping it made the model (no_causal)
+ significantly worse
+
+
+```r
+# Now let's compare with a typical 2sls test
+TSLS1=lm(X~I,data=dat1)
+Xhat=predict(TSLS1)
+TSLS2=lm(Y~Xhat,data=dat1)
+summary(TSLS2)
+```
+
+```
+## 
+## Call:
+## lm(formula = Y ~ Xhat, data = dat1)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -5.477 -1.017  0.004  1.018  5.287 
+## 
+## Coefficients:
+##                           Estimate             Std. Error t value Pr(>|t|)   
+## (Intercept) 0.00000000000000000429 0.03297416855661412793    0.00   1.0000   
+## Xhat        0.31599999999999939249 0.10440084815354150338    3.03   0.0025 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.5 on 1998 degrees of freedom
+## Multiple R-squared:  0.00456,	Adjusted R-squared:  0.00407 
+## F-statistic: 9.16 on 1 and 1998 DF,  p-value: 0.0025
+```
+
+```r
+# In the specialized ivreg package the syntax would be:
+# library(ivreg)
+# TSLS2=ivreg(Y~X|I,data=dat1)
+```
+
+Q3: Check out the estimate for Xhat in the previous summary and compare
+to unrel estimate. Did MR-DoC estimated same values as 2sls?
+ANSWER: Yes, the estimates are equal (0.316)
+Now let's check the power to reject the hypothesis of g1=0 using the
+non-centrality parameter for related and unrelated individuals.
+
+
+```r
+lambdam1=mxCompare(m1,m2)[2,7]
+dfs=mxCompare(m1,m2)[2,8]
+alpha=0.05
+ca=qchisq(alpha,dfs,ncp=0,lower.tail=F)
+powerm1=pchisq(ca,dfs,ncp=lambdam1,lower.tail=F)
+powerm1
+```
+
+```
+## [1] 1
+```
+
+```r
+lambdaunrel=mxCompare(unrel,unrel2)[2,7]
+dfs=mxCompare(unrel,unrel2)[2,8]
+alpha=0.05 	# user specified: type I error prob.
+ca=qchisq(alpha,dfs,ncp=0,lower.tail=F)
+powerUnrel=pchisq(ca,dfs,ncp=lambdaunrel,lower.tail=F)
+powerUnrel
+```
+
+```
+## [1] 0.86
+```
+
+Q4: Which method had better power to detect the causal effect?
+ANSWER: MR-DoC has a power of 0.99, 2sls has a power of 0.86
+   Scenario 2: Pleiotropy -------------------------------------------------
+Next consider the scenario with pleiotropy, assume re=0 and test g1 = 0
+Check the results: does MR-DoC model recover correctly the parameters b2, g1,
+and b1.
+Do we detect a causal effect if we don't account for pleiotropy
+(SEM, 2stage least squares, 2-sample MR)?
+
+
+```r
+sim_data2 <-  mrdoc1 |>
+  omxSetParameters(labels =  c("g1","b1", "b2",
+                               "ax2", "ay2", "cx2", "cy2", "ex2", "ey2",
+                               "covA", "covC", "covE","sigma_x"),
+                   values = c(0.143, 0.316, 0.127,
+                              0.424, 0.67, 0.670, 0.424, 0.519, 0.519,
+                              0.411,0.221,0, 1)) |>
+  mxGenerateData( nrows = 1000, empirical = TRUE)
+
+sim_data2$MZ <- mutate(sim_data2$MZ, iX_T2 = iX_T1)
+
+dwpmz <- sim_data2$MZ
+dwpdz <- sim_data2$DZ
+
+dim(dwpdz) #
+```
+
+```
+## [1] 1000    6
+```
+
+```r
+head(dwpdz)
+```
+
+```
+##     X_T1  Y_T1 iX_T1 X_T2   Y_T2 iX_T2
+## 1 -0.035 -0.27  1.03 -1.1  1.461  1.16
+## 2  0.481  1.56  1.29  1.5  0.156  2.26
+## 3 -1.018 -1.55 -0.65 -1.4  0.011 -0.76
+## 4  1.193 -0.93 -0.64  2.0 -0.079  0.68
+## 5  1.600  2.11  0.62 -1.3 -0.314  1.37
+## 6  0.050 -0.89 -0.50  1.4  0.766  0.80
+```
+
+```r
+summary(dwpdz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1            X_T2           Y_T2          iX_T2      
+##  Min.   :-3.9   Min.   :-4.2   Min.   :-3.06   Min.   :-4.1   Min.   :-4.2   Min.   :-3.01  
+##  1st Qu.:-0.9   1st Qu.:-0.9   1st Qu.:-0.68   1st Qu.:-0.9   1st Qu.:-0.9   1st Qu.:-0.66  
+##  Median : 0.0   Median : 0.0   Median : 0.00   Median : 0.0   Median : 0.0   Median :-0.05  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.00   Mean   : 0.0   Mean   : 0.0   Mean   : 0.00  
+##  3rd Qu.: 0.9   3rd Qu.: 1.0   3rd Qu.: 0.69   3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.68  
+##  Max.   : 4.4   Max.   : 4.3   Max.   : 2.92   Max.   : 3.8   Max.   : 4.1   Max.   : 2.96
+```
+
+```r
+dim(dwpmz) #
+```
+
+```
+## [1] 1000    6
+```
+
+```r
+head(dwpmz)
+```
+
+```
+##    X_T1    Y_T1  iX_T1    X_T2   Y_T2  iX_T2
+## 1 -0.89 -1.5548 -0.490 -0.1428 -3.586 -0.490
+## 2 -0.14  1.3320 -0.553  0.7621  0.332 -0.553
+## 3 -1.22 -0.0653 -0.034 -0.0076  1.245 -0.034
+## 4  0.72 -0.0053  0.166  1.6579  0.067  0.166
+## 5 -0.92 -0.8504  0.171 -1.3165 -1.570  0.171
+## 6 -1.78  0.9096 -1.363 -2.7041 -1.469 -1.363
+```
+
+```r
+summary(dwpmz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1           X_T2           Y_T2          iX_T2     
+##  Min.   :-3.7   Min.   :-4.6   Min.   :-3.0   Min.   :-4.0   Min.   :-4.1   Min.   :-3.0  
+##  1st Qu.:-0.9   1st Qu.:-1.0   1st Qu.:-0.6   1st Qu.:-0.9   1st Qu.:-1.0   1st Qu.:-0.6  
+##  Median :-0.1   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0  
+##  3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.6   3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.6  
+##  Max.   : 4.6   Max.   : 4.4   Max.   : 3.7   Max.   : 4.7   Max.   : 4.2   Max.   : 3.7
+```
+
+```r
+pleio = mrdoc1
+pleio$MZ <- mrdoc1$MZ + mxData(dwpmz, type = "raw")
+pleio$DZ <- mrdoc1$DZ + mxData(dwpdz, type = "raw")
+
+pleio <- mxRun(pleio)
+```
+
+```
+## Running mrdoc1 with 15 parameters
+```
+
+```r
+summary(pleio)
+```
+
+```
+## Summary of mrdoc1 
+##  
+## free parameters:
+##       name      matrix row   col    Estimate Std.Error A
+## 1       g1      top.BE   Y     X  0.14300289     0.031  
+## 2       b1      top.BE   X    iX  0.31599910     0.022  
+## 3       b2      top.BE   Y    iX  0.12700095     0.025  
+## 4      ax2       top.A   X     X  0.42359100     0.077 !
+## 5     covA       top.A   X     Y  0.41058422     0.067 !
+## 6      ay2       top.A   Y     Y  0.66931525     0.090 !
+## 7  sigma_x       top.A  iX    iX  0.99900149     0.026  
+## 8      cx2       top.C   X     X  0.66932329     0.074 !
+## 9     covC       top.C   X     Y  0.22077728     0.054 !
+## 10     cy2       top.C   Y     Y  0.42358333     0.080 !
+## 11     ex2       top.E   X     X  0.51847605     0.023  
+## 12     ey2       top.E   Y     Y  0.51848682     0.023 !
+## 13     mX1 top.mean_dz   1  X_T1  0.00000085     0.026  
+## 14     mY2 top.mean_dz   1  Y_T1 -0.00000048     0.027  
+## 15    miX1 top.mean_dz   1 iX_T1 -0.00000751     0.021 !
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:             15                  10985                 32379
+##    Saturated:             NA                     NA                    NA
+## Independence:             NA                     NA                    NA
+## Number of observations/statistics: 2000/11000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:          10409                  32409                    32409
+## BIC:         -51117                  32493                    32445
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:51 
+## Wall clock time: 0.14 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+parameters used for simulation
+g1 = 0.143
+b1 = 0.316
+b2 = 0.127
+Q5: check the results: does MR-DoC model recover correctly the parameters b2,
+g1, and b1? Hint: look at the true values used for simulation
+ANSWER: Yes.
+ MR-DoC: Test g1=0 using a likelihood ratio test   #########
+
+
+```r
+pleio2 <- omxSetParameters(name = "no_causal", pleio, label="g1", free = FALSE,
+                           values = 0)
+pleio2 <- mxRun(pleio2)
+```
+
+```
+## Running no_causal with 14 parameters
+```
+
+```r
+mxCompare(pleio, pleio2)
+```
+
+```
+##     base comparison ep minus2LL    df   AIC diffLL diffdf         p
+## 1 mrdoc1       <NA> 15    32379 10985 32409     NA     NA        NA
+## 2 mrdoc1  no_causal 14    32400 10986 32428     21      1 0.0000043
+```
+
+Let's run in unrelateds: ---------------------------------------------------
+
+
+```r
+# take twin 1 from mz and dz
+dat2 <- rbind(dwpmz[,1:3],dwpdz[,1:3])|>
+  rename(X = X_T1,
+         Y = Y_T1,
+         I = iX_T1)
+
+
+unrel3 <- IVModel + mxData(dat2, type = "raw")
+# in the interest of brevity, let's autostart the model
+unrel3 <- mxAutoStart(unrel3)
+unrel3 <- mxRun(unrel3)
+```
+
+```
+## Running MR with 9 parameters
+```
+
+```r
+summary(unrel3)
+```
+
+```
+## Summary of MR 
+##  
+## free parameters:
+##   name matrix row col    Estimate Std.Error A
+## 1   g1      A   Y   X  0.54484392     0.083 !
+## 2   b1      A   X   I  0.31600496     0.028 !
+## 3   vI      S   I   I  0.99903761     0.032 !
+## 4   vX      S  eX  eX  1.61131910     0.051 !
+## 5   re      S  eX  eY -0.01613821     0.137 !
+## 6   vY      S  eY  eY  1.36412244     0.043 !
+## 7   mX      M   1   X -0.00000021     0.028  
+## 8   mY      M   1   Y -0.00000017     0.026  
+## 9   mI      M   1   I  0.00000305     0.022 !
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:              9                   5991                 18600
+##    Saturated:              9                   5991                    NA
+## Independence:              6                   5994                    NA
+## Number of observations/statistics: 2000/6000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:           6618                  18618                    18618
+## BIC:         -26937                  18669                    18640
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:52 
+## Wall clock time: 0.053 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+parameters used for simulation
+g1 = 0.143
+b1 = 0.316
+b2 = 0.127
+Q6: Does the 2sls model recover correctly the parameters used for simulation?
+ANSWER: No, it overestimated g1
+
+
+```r
+unrel4 <- omxSetParameters(name = "no_causal", unrel3, label="g1", free = FALSE,
+                           values = 0)
+unrel4 <- mxRun(unrel4)
+```
+
+```
+## Running no_causal with 8 parameters
+```
+
+```r
+mxCompare(unrel3,unrel4)
+```
+
+```
+##   base comparison ep minus2LL   df   AIC diffLL diffdf           p
+## 1   MR       <NA>  9    18600 5991 18618     NA     NA          NA
+## 2   MR  no_causal  8    18633 5992 18649     32      1 0.000000014
+```
+
+```r
+## Which model has highest power? (look at chisq difference) -----------------
+
+## MR-DoC in Twins
+chisq_Twins=mxCompare(pleio,pleio2)[2,7]
+chisq_Twins
+```
+
+```
+## [1] 21
+```
+
+```r
+## MR-SEM in unrelateds
+chisq_Unrel=mxCompare(unrel3, unrel4)[2,7]
+chisq_Unrel
+```
+
+```
+## [1] 32
+```
+
+Q7: Conclusion? Larger diff, higher power
+ANSWER: Power in the model with unrelated was  higher.
+
+
+```r
+##  Fit the model using two stage least squares     ####################
+TSLS1=lm(X~I,data=dat2)
+Xhat=predict(TSLS1)
+TSLS2=lm(Y~Xhat,data=dat2)
+summary(TSLS2)
+```
+
+```
+## 
+## Call:
+## lm(formula = Y ~ Xhat, data = dat2)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -4.622 -0.922 -0.037  0.920  4.710 
+## 
+## Coefficients:
+##                          Estimate            Std. Error t value    Pr(>|t|)    
+## (Intercept) 0.0000000000000000135 0.0302219807176829502    0.00           1    
+## Xhat        0.5448987341772134618 0.0956870349706873818    5.69 0.000000014 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.4 on 1998 degrees of freedom
+## Multiple R-squared:  0.016,	Adjusted R-squared:  0.0155 
+## F-statistic: 32.4 on 1 and 1998 DF,  p-value: 0.0000000142
+```
+
+Check above that the 2sls test using either glm or SEM still finds
+same estimates.
+Q8: Do we detect a causal effect if we account for pleiotropy (SEM, 2stage
+least squares)?
+ANSWER: The models using unrelated detects a causal effect but not
+accounting for pleiotropy the estimate was biased.
+Scenario 3. Bidirectional causation -------------------------------------------
+Specifying the mrdoc2 model. This is similar to mrdoc1 except
+larger matrices (one more instrument)
+Matrix for causal paths
+
+
+```r
+BE <-  mxMatrix(name = "BE", type = "Full",nrow=4,  ncol = 4,byrow = TRUE,
+                labels = c(NA,   "g2", "b1", "b4",
+                           "g1", NA,   "b2", "b3",
+                           NA,   NA,   NA,   NA,
+                           NA,   NA,   NA,   NA),
+                free = c(FALSE, TRUE, TRUE, FALSE,
+                         TRUE, FALSE, FALSE, TRUE,
+                         FALSE, FALSE, FALSE, FALSE,
+                         FALSE, FALSE, FALSE, FALSE),
+                dimnames = list(c("X", "Y", "iX", "iY"),
+                                c("X", "Y", "iX", "iY")))
+```
+
+A, C and E decomposition
+
+
+```r
+A <- mxMatrix(name = 'A', type='Symm', nrow=4, ncol = 4,byrow = TRUE,
+              labels=c("ax2","covA",NA,NA,
+                       "covA","ay2",NA,NA,
+                       NA,NA,"x2"  ,"rf",
+                       NA,NA,"rf","y2"),
+              free=c(TRUE,TRUE,FALSE,FALSE,
+                     TRUE,TRUE,FALSE,FALSE,
+                     FALSE,FALSE,TRUE,TRUE,
+                     FALSE,FALSE,TRUE,TRUE),
+              dimnames = list(c("X", "Y", "iX", "iY"),
+                              c("X", "Y", "iX", "iY")))
+
+C <-  mxMatrix(name = 'C', type='Symm',nrow=4, ncol = 4,byrow = TRUE,
+               labels =c("cx2", "covC",NA,NA,
+                         "covC","cy2" ,NA,NA,
+                         NA,    NA,    NA,NA,
+                         NA,    NA,    NA,NA),
+               free=c(TRUE,TRUE,  FALSE,FALSE,
+                      TRUE,TRUE,  FALSE,FALSE,
+                      FALSE,FALSE,FALSE,FALSE,
+                      FALSE,FALSE,FALSE,FALSE),
+               dimnames = list(c("X", "Y", "iX", "iY"),
+                               c("X", "Y", "iX", "iY")))
+
+E <-  mxMatrix(name = 'E', type='Symm', nrow=4, ncol = 4,byrow = TRUE,
+               labels =c("ex2", "covE",NA,NA,
+                         "covE","ey2" ,NA,NA,
+                         NA,    NA,    NA,NA,
+                         NA,    NA,    NA,NA),
+               free= c(TRUE,TRUE,  FALSE,FALSE,
+                       TRUE,TRUE,  FALSE,FALSE,
+                       FALSE,FALSE,FALSE,FALSE,
+                       FALSE,FALSE,FALSE,FALSE),
+               dimnames = list(c("X", "Y", "iX", "iY"),
+                               c("X", "Y", "iX", "iY")))
+```
+
+A filter matrix, as we need to remove the PRSs from twin 2
+
+
+```r
+filter <-  mxMatrix(name = 'filter', type='Full', nrow=6, ncol=8, free=FALSE,
+                    byrow = TRUE,
+                    values=c(1,0,0,0,0,0,0,0,
+                             0,1,0,0,0,0,0,0,
+                             0,0,1,0,0,0,0,0,
+                             0,0,0,1,0,0,0,0,
+                             0,0,0,0,1,0,0,0,
+                             0,0,0,0,0,1,0,0),
+                    dimnames = list(c("X_T1", "Y_T1", "iX_T1","iY_T1",
+                                      "X_T2", "Y_T2"),
+                                    c("X_T1", "Y_T1", "iX_T1","iY_T1","X_T2",
+                                      "Y_T2", "iX_T2","iY_T2")))
+
+LY <-  mxMatrix(name = 'LY', type='Full',nrow=4, ncol = 4, free = FALSE,
+                values = diag(4), labels = NA,
+                dimnames = list(c("X", "Y", "iX", "iY"),
+                                c("X", "Y", "iX", "iY")))
+```
+
+The object with the means
+
+
+```r
+mean_dz <-  mxMatrix(name = 'mean_dz', type='Full', nrow=1, ncol=8, free=TRUE,
+                     byrow = TRUE, values = 0, labels=c('mX1','mY2','miX1','miY2',
+                                                        'mX1','mY2','miX1','miY2') )
+```
+
+Removing the PRS from the MZ means
+
+
+```r
+algebras <- list(  mxAlgebra('mean_mz', expression = mean_dz %*% t(filter)),
+                   # Identity matrix to algebra calculations
+                   mxMatrix(name = 'I', type='Iden', nrow= 4,ncol= 4 ),
+                   # The needed matrices for calculating the variances
+                   mxAlgebra('A_'  , expression =  LY %&% solve(I - BE) %&% A),
+                   mxAlgebra('C_'  , expression =  LY %&%solve(I - BE) %&% C),
+                   mxAlgebra('E_'  , expression =  LY %&%solve(I - BE) %&% E),
+                   mxAlgebra('full_variance' , expression= A_ + C_ + E_),
+                   mxAlgebra('variance_mz_', expression=rbind(
+                     cbind(full_variance, A_ + C_),
+                     cbind(A_ + C_, full_variance))),
+                   mxAlgebra('variance_dz', expression=rbind(
+                     cbind(full_variance, 0.5%x%A_ + C_),
+                     cbind(0.5%x%A_ + C_, full_variance))),
+                   mxAlgebra('variance_mz', expression= filter%&%variance_mz_))
+
+top_mr2 <- mxModel("top", BE, A, C, E, filter, LY, mean_dz,  algebras)
+```
+
+Preparing the objects for the multiple groups (MZ, DZ) analysis
+
+
+```r
+MZ_mr2 = mxModel("MZ", mxFitFunctionML(),
+                 mxExpectationNormal(covariance = "top.variance_mz",means = "top.mean_mz",
+                                     dimnames =  c("X_T1", "Y_T1", "iX_T1", "iY_T1",
+                                                   "X_T2", "Y_T2")))
+
+DZ_mr2 = mxModel("DZ", mxFitFunctionML(),
+                 mxExpectationNormal(covariance = "top.variance_dz", means = "top.mean_dz",
+                                     dimnames =  c("X_T1", "Y_T1", "iX_T1", "iY_T1",
+                                                   "X_T2", "Y_T2", "iX_T2", "iY_T2")))
+```
+
+Combining objects to generate the final model
+
+
+```r
+mrdoc2 = mxModel("mrdoc2", top_mr2, MZ_mr2, DZ_mr2,
+                 mxFitFunctionMultigroup(c("MZ","DZ") ) )
+```
+
+Simulating using mrdoc2, now we are simulating data so that there is an
+effect of X on Y and vice-versa. g1, g2 !=0
+
+
+```r
+sim_data3 <- mrdoc2 |>
+  omxSetParameters(labels =  c("g1","g2", "b1", "b3",
+                               "ax2", "ay2", "cx2", "cy2", "ex2", "ey2",
+                               "covA", "covC", "covE","rf", "x2", "y2"),
+                   values = c(0.184, 0.111, 0.411, 0.519,
+                              0.424, 0.670, 0.670, 0.424, 0.519, 0.519,
+                              0.411,0.221,0.221,0.111, 1,1)) |>
+  mxGenerateData( nrows = 1000, empirical = TRUE)
+```
+
+Remember, we need to duplicate the columns for the second twin
+
+
+```r
+sim_data3$MZ <- mutate(sim_data3$MZ, iX_T2 = iX_T1, iY_T2 = iY_T1)
+
+dg2mz <- sim_data3$MZ
+dg2dz <- sim_data3$DZ
+
+
+dim(dg2dz) #
+```
+
+```
+## [1] 1000    8
+```
+
+```r
+head(dg2dz)
+```
+
+```
+##   X_T1  Y_T1 iX_T1 iY_T1  X_T2   Y_T2 iX_T2 iY_T2
+## 1 1.09  0.83  0.49 -0.84  2.06  1.510  0.51  -1.2
+## 2 0.75 -0.86  1.13 -1.56 -0.40 -1.701 -0.11  -1.6
+## 3 1.24  1.41 -0.85 -0.65 -2.17  1.506 -1.24   1.1
+## 4 2.16  2.24 -1.12  0.26  1.53  1.849 -0.55   1.2
+## 5 0.29  0.40 -0.45  0.68 -0.65  0.032 -1.81   1.0
+## 6 2.65  2.96 -0.69 -0.67  2.66  1.472  0.78  -1.6
+```
+
+```r
+summary(dg2dz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1          iY_T1           X_T2           Y_T2          iX_T2     
+##  Min.   :-5.6   Min.   :-5.0   Min.   :-3.5   Min.   :-2.8   Min.   :-5.0   Min.   :-4.5   Min.   :-2.9  
+##  1st Qu.:-1.0   1st Qu.:-1.0   1st Qu.:-0.6   1st Qu.:-0.7   1st Qu.:-1.0   1st Qu.:-1.1   1st Qu.:-0.7  
+##  Median : 0.0   Median :-0.1   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0  
+##  3rd Qu.: 1.0   3rd Qu.: 1.1   3rd Qu.: 0.7   3rd Qu.: 0.6   3rd Qu.: 0.9   3rd Qu.: 1.1   3rd Qu.: 0.7  
+##  Max.   : 4.3   Max.   : 4.5   Max.   : 3.0   Max.   : 3.4   Max.   : 4.7   Max.   : 4.5   Max.   : 3.2  
+##      iY_T2      
+##  Min.   :-3.12  
+##  1st Qu.:-0.64  
+##  Median : 0.00  
+##  Mean   : 0.00  
+##  3rd Qu.: 0.67  
+##  Max.   : 3.08
+```
+
+```r
+dim(dg2mz) #
+```
+
+```
+## [1] 1000    8
+```
+
+```r
+head(dg2mz)
+```
+
+```
+##    X_T1   Y_T1  iX_T1  iY_T1  X_T2   Y_T2  iX_T2  iY_T2
+## 1  1.59  1.517 -0.498  0.330  2.19  1.234 -0.498  0.330
+## 2  0.40 -0.608 -0.982 -0.358  0.71 -0.108 -0.982 -0.358
+## 3 -0.39 -1.330  0.519 -0.828 -2.66 -3.425  0.519 -0.828
+## 4  1.14  0.557  0.686  0.709 -0.17  0.517  0.686  0.709
+## 5  0.60  0.081  2.273 -0.552  0.37  0.406  2.273 -0.552
+## 6 -0.28 -1.163  0.085  0.033  0.17 -0.097  0.085  0.033
+```
+
+```r
+summary(dg2mz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1           iY_T1           X_T2           Y_T2          iX_T2      
+##  Min.   :-4.9   Min.   :-5.3   Min.   :-2.72   Min.   :-4.0   Min.   :-4.6   Min.   :-5.2   Min.   :-2.72  
+##  1st Qu.:-0.9   1st Qu.:-1.1   1st Qu.:-0.72   1st Qu.:-0.6   1st Qu.:-0.9   1st Qu.:-1.1   1st Qu.:-0.72  
+##  Median : 0.0   Median : 0.0   Median :-0.04   Median : 0.0   Median : 0.0   Median : 0.0   Median :-0.04  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.00   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.00  
+##  3rd Qu.: 1.0   3rd Qu.: 1.0   3rd Qu.: 0.70   3rd Qu.: 0.7   3rd Qu.: 1.0   3rd Qu.: 1.0   3rd Qu.: 0.70  
+##  Max.   : 5.3   Max.   : 5.0   Max.   : 2.97   Max.   : 2.9   Max.   : 5.6   Max.   : 4.3   Max.   : 2.97  
+##      iY_T2     
+##  Min.   :-4.0  
+##  1st Qu.:-0.6  
+##  Median : 0.0  
+##  Mean   : 0.0  
+##  3rd Qu.: 0.7  
+##  Max.   : 2.9
+```
+
+```r
+bidir <- mrdoc2
+bidir$MZ <- bidir$MZ + mxData(dg2mz, type = "raw")
+bidir$DZ <- bidir$DZ + mxData(dg2dz, type = "raw")
+
+bidir <- mxAutoStart(bidir)
+bidir <- mxRun(bidir)
+```
+
+```
+## Running mrdoc2 with 20 parameters
+```
+
+You can check for local identification: (this is slow, do this at home)
+mxCheckIdentification(bidir)$status
+
+
+```r
+summary(bidir)
+```
+
+```
+## Summary of mrdoc2 
+##  
+## free parameters:
+##    name      matrix row   col    Estimate Std.Error A
+## 1    g1      top.BE   Y     X  0.18404298     0.054 !
+## 2    g2      top.BE   X     Y  0.11099381     0.042 !
+## 3    b1      top.BE   X    iX  0.41099670     0.023 !
+## 4    b3      top.BE   Y    iY  0.51899828     0.023 !
+## 5   ax2       top.A   X     X  0.42357732     0.088 !
+## 6  covA       top.A   X     Y  0.41058220     0.076 !
+## 7   ay2       top.A   Y     Y  0.66934882     0.101 !
+## 8    x2       top.A  iX    iX  0.99894780     0.026 !
+## 9    rf       top.A  iX    iY  0.11087160     0.018 !
+## 10   y2       top.A  iY    iY  0.99894780     0.026 !
+## 11  cx2       top.C   X     X  0.66931127     0.080 !
+## 12 covC       top.C   X     Y  0.22074242     0.074 !
+## 13  cy2       top.C   Y     Y  0.42355736     0.085 !
+## 14  ex2       top.E   X     X  0.51847349     0.036 !
+## 15 covE       top.E   X     Y  0.22076944     0.041  
+## 16  ey2       top.E   Y     Y  0.51848643     0.038 !
+## 17  mX1 top.mean_dz   1  X_T1 -0.00000019     0.029  
+## 18  mY2 top.mean_dz   1  Y_T1  0.00000018     0.031  
+## 19 miX1 top.mean_dz   1 iX_T1  0.00000012     0.021  
+## 20 miY2 top.mean_dz   1 iY_T1 -0.00000015     0.021  
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:             20                  13980                 40029
+##    Saturated:             NA                     NA                    NA
+## Independence:             NA                     NA                    NA
+## Number of observations/statistics: 2000/14000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:          12069                  40069                    40070
+## BIC:         -66231                  40181                    40118
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:53 
+## Wall clock time: 0.15 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+simulated parameters
+g1 = 0.184
+g2 = 0.111
+b1 = 0.411
+b3 = 0.519
+Q9: Check the results: does MR-DoC model recover correctly the parameters
+g1, g2, b1, and b3
+ANSWER: Yes, the estimates matches the true values set for the data.
+ MR-DoC: Test g1=0 using a likelihood ratio test
+
+
+```r
+bidir2 <- omxSetParameters(name = "drop_g1g2", bidir, label=c("g1", "g2"),
+                           free = FALSE, values = 0)
+bidir2 <-  mxRun(bidir2)
+```
+
+```
+## Running drop_g1g2 with 18 parameters
+```
+
+```r
+mxCompare(bidir, bidir2)
+```
+
+```
+##     base comparison ep minus2LL    df   AIC diffLL diffdf       p
+## 1 mrdoc2       <NA> 20    40029 13980 40069     NA     NA      NA
+## 2 mrdoc2  drop_g1g2 18    40045 13982 40081     16      2 0.00032
+```
+
+Q10: How many degrees of freedom for this LRT?
+ANSWER: Two degrees of freedom, we dropped both g1 and g2.
+Q11: Are the causal paths significant?
+ANSWER: Dropping g1 and g2 resulted in a significantly worse model, therefore
+the bidirectional relationship is significant.
+
+
+```r
+## Let's run in unrelateds X -> Y: ---------------------------------------------
+```
+
+We are proceeding to check if running 2sls in each direction matches the true
+values we set in the simulation. Remember the model includes indirect
+pleiotropy of type PS2 -> rf -> PS1 -> X
+
+
+```r
+# take twin 1 from mz and dz
+dat4=rbind(dg2mz[,1:4],dg2dz[,1:4]) |>
+  rename(X = X_T1,
+         Y = Y_T1,
+         I = iX_T1)
+
+unrel7 <- IVModel + mxData(dat4, type = "raw")
+# in the interest of brevity, let's autostart the model
+unrel7 <- mxAutoStart(unrel7)
+unrel7 <- mxRun(unrel7)
+```
+
+```
+## Running MR with 9 parameters
+```
+
+```r
+summary(unrel7)
+```
+
+```
+## Summary of MR 
+##  
+## free parameters:
+##   name matrix row col    Estimate Std.Error A
+## 1   g1      A   Y   X  0.31920390     0.067  
+## 2   b1      A   X   I  0.42609788     0.031  
+## 3   vI      S   I   I  0.99899914     0.032  
+## 4   vX      S  eX  eX  1.90053222     0.060  
+## 5   re      S  eX  eY  0.82566402     0.134  
+## 6   vY      S  eY  eY  1.61915635     0.122  
+## 7   mX      M   1   X -0.00000031     0.031  
+## 8   mY      M   1   Y -0.00000026     0.028  
+## 9   mI      M   1   I -0.00000001     0.022  
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:              9                   5991                 18772
+##    Saturated:              9                   5991                    NA
+## Independence:              6                   5994                    NA
+## Number of observations/statistics: 2000/6000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:           6790                  18790                    18791
+## BIC:         -26765                  18841                    18812
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:54 
+## Wall clock time: 0.039 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+```r
+## Let's run in unrelateds Y -> X: ---------------------------------------------
+
+# take twin 1 from mz and dz
+dat5=rbind(dg2mz[,1:4],dg2dz[,1:4]) |>
+  rename(Y = X_T1,  # notice the inversion here
+         X = Y_T1,  # notice the inversion here
+         I = iY_T1)
+```
+
+The inversion above is only necessary so we don't have to rewrite the model
+from scratch.
+Bear with me as I rename the parameters in the base model
+This will help interpreting results
+
+
+```r
+IVModelYX = omxSetParameters(name = "IVModelYX", IVModel, label = c("g1","b1", "vX", "vY", "mX", "mY"),
+                             newlabel = c("g2","b3", "vY", "vX", "mY", "mX"))
+
+unrel8 <- IVModelYX + mxData(dat5, type = "raw")
+# in the interest of brevity, let's autostart the model
+unrel8 <- mxAutoStart(unrel8)
+unrel8 <- mxRun(unrel8)
+```
+
+```
+## Running IVModelYX with 9 parameters
+```
+
+```r
+summary(unrel8)
+```
+
+```
+## Summary of IVModelYX 
+##  
+## free parameters:
+##   name matrix row col     Estimate Std.Error A
+## 1   g2      A   Y   X 0.1957359896     0.052  
+## 2   b3      A   X   I 0.5383903493     0.032  
+## 3   vI      S   I   I 0.9990000291     0.032  
+## 4   vY      S  eX  eX 2.0688193334     0.065  
+## 5   re      S  eX  eY 1.0285950507     0.118  
+## 6   vX      S  eY  eY 1.5888873870     0.119  
+## 7   mY      M   1   X 0.0000005475     0.032  
+## 8   mX      M   1   Y 0.0000004254     0.028  
+## 9   mI      M   1   I 0.0000000055     0.022  
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:              9                   5991                 18628
+##    Saturated:              9                   5991                    NA
+## Independence:              6                   5994                    NA
+## Number of observations/statistics: 2000/6000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:           6646                  18646                    18647
+## BIC:         -26909                  18697                    18668
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:54 
+## Wall clock time: 0.04 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+The result of the summary immediately above is of the relationship of
+Y to X, in other words g2.
+simulated parameters
+g1 = 0.184
+g2 = 0.111
+b1 = 0.411
+b3 = 0.519
+Q12: Does MR-SEM models (unrel7 or X->Y, and model unrel8 Y <- X) recover correctly the parameters used for simulation?
+What happened to the estimates?
+ANSWER: Both g1 and g2 were overestimated in the 2sls solution.
+Scenario 4: Pleiotropy & no causal effect STRETCH GOAL!  -------------------
+We are back to MR-DoC1 and we will be simulating data without
+the causal effect
+Compare the results obtained with MR-DoC, unrelateds SEM, 2SLS, 2-sample MR.
+
+
+```r
+sim_data4 <-  mrdoc1 |>
+  omxSetParameters(labels =  c("g1","b1", "b2",
+                               "ax2", "ay2", "cx2", "cy2", "ex2", "ey2",
+                               "covA", "covC", "covE","sigma_x"),
+                   values = c(0, 0.316, 0.316,
+                              0.424, 0.670, 0.670, 0.424, 0.519, 0.519,
+                              0.411,0.221,0, 1)) |>
+  mxGenerateData( nrows = 1000, empirical = TRUE)
+
+sim_data4$MZ <-  mutate(sim_data4$MZ, iX_T2 = iX_T1)
+
+dg1mz <- sim_data4$MZ
+dg1dz <- sim_data4$DZ
+
+dim(dg1dz) #
+```
+
+```
+## [1] 1000    6
+```
+
+```r
+head(dg1dz)
+```
+
+```
+##      X_T1  Y_T1 iX_T1  X_T2  Y_T2 iX_T2
+## 1  1.4663  3.46 -0.58  0.94  1.08 -0.34
+## 2  1.1069  0.95 -0.82  0.27 -0.72 -0.30
+## 3  0.0035 -0.99 -1.19  0.13 -0.92 -0.77
+## 4  1.2180  2.96  2.56  0.69 -0.87 -0.13
+## 5  0.2032  1.14 -0.32  1.35  0.17 -0.18
+## 6 -0.5218 -0.32  0.42 -1.66 -0.60 -1.00
+```
+
+```r
+summary(dg1dz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1            X_T2           Y_T2          iX_T2     
+##  Min.   :-4.4   Min.   :-3.9   Min.   :-3.05   Min.   :-4.3   Min.   :-4.1   Min.   :-3.2  
+##  1st Qu.:-0.9   1st Qu.:-0.9   1st Qu.:-0.69   1st Qu.:-0.9   1st Qu.:-0.9   1st Qu.:-0.7  
+##  Median : 0.0   Median : 0.0   Median : 0.03   Median : 0.0   Median : 0.0   Median : 0.0  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.00   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0  
+##  3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.68   3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.7  
+##  Max.   : 5.0   Max.   : 3.5   Max.   : 2.79   Max.   : 4.0   Max.   : 4.1   Max.   : 3.2
+```
+
+```r
+dim(dg1mz) #
+```
+
+```
+## [1] 1000    6
+```
+
+```r
+head(dg1mz)
+```
+
+```
+##    X_T1  Y_T1 iX_T1  X_T2   Y_T2 iX_T2
+## 1  1.22  0.95  0.12  1.50  1.355  0.12
+## 2  1.12  1.18 -0.78  0.70  0.932 -0.78
+## 3  0.68  0.56  0.32  1.88  0.046  0.32
+## 4  0.23 -1.34  0.50  0.45 -1.950  0.50
+## 5 -0.37 -0.20  0.33  1.70 -2.129  0.33
+## 6 -0.23 -1.57  1.10 -0.43 -0.576  1.10
+```
+
+```r
+summary(dg1mz)
+```
+
+```
+##       X_T1           Y_T1          iX_T1           X_T2           Y_T2          iX_T2     
+##  Min.   :-4.5   Min.   :-4.7   Min.   :-3.1   Min.   :-3.9   Min.   :-4.4   Min.   :-3.1  
+##  1st Qu.:-0.9   1st Qu.:-0.9   1st Qu.:-0.7   1st Qu.:-0.9   1st Qu.:-0.8   1st Qu.:-0.7  
+##  Median : 0.1   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0   Median : 0.0  
+##  Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0   Mean   : 0.0  
+##  3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.7   3rd Qu.: 0.9   3rd Qu.: 0.9   3rd Qu.: 0.7  
+##  Max.   : 4.1   Max.   : 4.0   Max.   : 3.5   Max.   : 4.6   Max.   : 4.2   Max.   : 3.5
+```
+
+```r
+no_causal <- mrdoc1
+no_causal$MZ <- mrdoc1$MZ + mxData(dg1mz, type = "raw")
+no_causal$DZ <- mrdoc1$DZ + mxData(dg1dz, type = "raw")
+
+no_causal <- mxRun(no_causal)
+```
+
+```
+## Running mrdoc1 with 15 parameters
+```
+
+```r
+summary(no_causal)
+```
+
+```
+## Summary of mrdoc1 
+##  
+## free parameters:
+##       name      matrix row   col    Estimate Std.Error A
+## 1       g1      top.BE   Y     X -0.00000169     0.031  
+## 2       b1      top.BE   X    iX  0.31600043     0.022  
+## 3       b2      top.BE   Y    iX  0.31600035     0.025  
+## 4      ax2       top.A   X     X  0.42356291     0.077  
+## 5     covA       top.A   X     Y  0.41059142     0.067  
+## 6      ay2       top.A   Y     Y  0.66932379     0.090 !
+## 7  sigma_x       top.A  iX    iX  0.99899888     0.026  
+## 8      cx2       top.C   X     X  0.66934112     0.074  
+## 9     covC       top.C   X     Y  0.22078101     0.054  
+## 10     cy2       top.C   Y     Y  0.42358392     0.080  
+## 11     ex2       top.E   X     X  0.51848479     0.023  
+## 12     ey2       top.E   Y     Y  0.51848004     0.023  
+## 13     mX1 top.mean_dz   1  X_T1  0.00000296     0.026  
+## 14     mY2 top.mean_dz   1  Y_T1  0.00000083     0.026  
+## 15    miX1 top.mean_dz   1 iX_T1  0.00000136     0.021  
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:             15                  10985                 32379
+##    Saturated:             NA                     NA                    NA
+## Independence:             NA                     NA                    NA
+## Number of observations/statistics: 2000/11000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:          10409                  32409                    32409
+## BIC:         -51117                  32493                    32445
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:55 
+## Wall clock time: 0.15 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+Q13: Check the results: does MR-DoC model recover correctly the parameters b2,
+g1, and b1?
+ANSWER: Yes, it does.
+
+
+```r
+##  MR-DoC: Test g1=0 using a likelihood ratio test   #########
+
+no_causal2 <- omxSetParameters(name = "drop_g1", no_causal, label="g1",
+                               free = FALSE, values = 0)
+no_causal2 <- mxRun(no_causal2)
+```
+
+```
+## Running drop_g1 with 14 parameters
+```
+
+```r
+mxCompare(no_causal, no_causal2)
+```
+
+```
+##     base comparison ep minus2LL    df   AIC       diffLL diffdf  p
+## 1 mrdoc1       <NA> 15    32379 10985 32409           NA     NA NA
+## 2 mrdoc1    drop_g1 14    32379 10986 32407 -0.000000047      1  1
+```
+
+Q14: Do we detect a causal effect with a true g1 value set to zero?
+ANSWER: As expected, no.
+
+
+```r
+## Let's run in unrelateds: ---------------------------------------------------
+
+# take twin 1 from mz and dz
+dat3 <- rbind(dg1mz[,1:3],dg1dz[,1:3])|>
+  rename(X = X_T1,
+         Y = Y_T1,
+         I = iX_T1)
+
+unrel5 <- IVModel + mxData(dat3, type = "raw")
+# in the interest of brevity, let's autostart the model
+unrel5 <- mxAutoStart(unrel5)
+unrel5 <- mxRun(unrel5)
+```
+
+```
+## Running MR with 9 parameters
+```
+
+parameters used for simulation
+g1 = 0
+b1 = 0.316
+b2 = 0.316
+
+
+```r
+summary(unrel5)
+```
+
+```
+## Summary of MR 
+##  
+## free parameters:
+##   name matrix row col         Estimate Std.Error A
+## 1   g1      A   Y   X  1.0000224830708     0.099  
+## 2   b1      A   X   I  0.3160040126595     0.028 !
+## 3   vI      S   I   I  0.9990013057179     0.032  
+## 4   vX      S  eX  eX  1.6114040656051     0.051 !
+## 5   re      S  eX  eY -0.9800670433984     0.166  
+## 6   vY      S  eY  eY  1.9600849023070     0.204  
+## 7   mX      M   1   X -0.0000046579304     0.028 !
+## 8   mY      M   1   Y -0.0000042512894     0.031 !
+## 9   mI      M   1   I -0.0000000000029     0.022  
+## 
+## Model Statistics: 
+##                |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
+##        Model:              9                   5991                 18600
+##    Saturated:              9                   5991                    NA
+## Independence:              6                   5994                    NA
+## Number of observations/statistics: 2000/6000
+## 
+## Information Criteria: 
+##       |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
+## AIC:           6618                  18618                    18618
+## BIC:         -26937                  18669                    18640
+## CFI: NA 
+## TLI: 1   (also known as NNFI) 
+## RMSEA:  0  [95% CI (NA, NA)]
+## Prob(RMSEA <= 0.05): NA
+## To get additional fit indices, see help(mxRefModels)
+## timestamp: 2024-03-27 14:48:55 
+## Wall clock time: 0.04 secs 
+## optimizer:  SLSQP 
+## OpenMx version number: 2.20 
+## Need help?  See help(mxSummary)
+```
+
+Q15: Does MR-SEM model recover correctly the parameters used for simulation?
+ANSWER: No, g1 = 0 + pleiotropy severily biased the causal path in the models
+that used unrelated data.
+
+
+```r
+unrel6 <- omxSetParameters(name = "no_causal", unrel5, label="g1", free = FALSE,
+                           values = 0)
+unrel6 <- mxRun(unrel6)
+```
+
+```
+## Running no_causal with 8 parameters
+```
+
+```r
+mxCompare(unrel5,unrel6)
+```
+
+```
+##   base comparison ep minus2LL   df   AIC diffLL diffdf                               p
+## 1   MR       <NA>  9    18600 5991 18618     NA     NA                              NA
+## 2   MR  no_causal  8    18720 5992 18736    120      1 0.00000000000000000000000000059
+```
+
+```r
+##  Fit the model using two stage least squares     ####################
+TSLS1=lm(X~I,data=dat3)
+Xhat=predict(TSLS1)
+TSLS2=lm(Y~Xhat,data=dat3)
+summary(TSLS2)
+```
+
+```
+## 
+## Call:
+## lm(formula = Y ~ Xhat, data = dat3)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -4.725 -0.880  0.026  0.831  3.737 
+## 
+## Coefficients:
+##                           Estimate             Std. Error t value            Pr(>|t|)    
+## (Intercept) 0.00000000000000000517 0.02839894364232584470     0.0                   1    
+## Xhat        1.00000000000000177636 0.08991504358428256682    11.1 <0.0000000000000002 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.3 on 1998 degrees of freedom
+## Multiple R-squared:  0.0583,	Adjusted R-squared:  0.0578 
+## F-statistic:  124 on 1 and 1998 DF,  p-value: <0.0000000000000002
+```
+
+The 2sls regression again recover the same biased estimates as MR-SEM. In
+the presence of pleiotropy MR-DoC outperforms the other methods.
