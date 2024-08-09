@@ -269,7 +269,7 @@ eligibleForSufficientDerivs <- function(model){
 }
 
 markExpectationsEligibleForSufficientDerivs <- function(model){
-	#return(NULL)
+	#return(model)
 	wich <- 1
 	#Defvars and multilevel are global disqualifiers:
 	if(imxHasDefinitionVariable(model) || imxIsMultilevel(model)){
