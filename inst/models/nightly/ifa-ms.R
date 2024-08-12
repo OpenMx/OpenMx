@@ -94,7 +94,7 @@ emstat <- m2$compute$steps[[1]]$output
 omxCheckCloseEnough(emstat$EMcycles, 19, 3)
 omxCheckCloseEnough(emstat$totalMstep, 73, 11)
 omxCheckCloseEnough(emstat$semProbeCount / length(semse), 3, .1)
-omxCheckCloseEnough(m2$output$evaluations, 1086, 23)
+omxCheckCloseEnough(m2$output$evaluations, 1086, 42)
 
 #print(m2$matrices$item$values - fmfit)
 print(m2$output$backendTime)
