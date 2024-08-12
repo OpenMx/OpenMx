@@ -1,5 +1,7 @@
 # From http://openmx.ssri.psu.edu/wiki/example-models#MIMIC
 require(OpenMx)
+#When analytic gradients are in use, CSOLNP reaches a solution at which `mxCheckIdentification()` does not find any non-identified parameters:
+if(mxOption(NULL,"Default optimizer")=="CSOLNP"){ mxOption(NULL,"Analytic Gradients","No") }
 
 data = structure(c(1, 0.304, 0.305, 0.1, 0.284, 0.176, 0, 1, 0.344,
                    0.156, 0.192, 0.136, 0, 0, 1, 0.158, 0.324, 0.226, 0, 0, 0, 1,
@@ -41,7 +43,6 @@ MIMIC <- mxModel("MIMIC", type="RAM",
     mxData(data, type = "cov", numObs = 530)
 )
 
-# SLSQP gets a code 5, CSOLNP does not
 MIMIC <- mxRun(MIMIC)
 
 omxCheckCloseEnough(MIMIC$output$fit, 2893.2189, .01)
