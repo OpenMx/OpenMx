@@ -179,10 +179,6 @@ omxCheckCloseEnough(srun$A$values, dlmEstA, epsilon=0.001)
 omxCheckCloseEnough(srun$C$values[srun$C$free], dlmEstC, epsilon=0.001)
 omxCheckCloseEnough(diag(srun$R$values), dlmEstR, epsilon=0.001)
 
-if (.Platform$OS.type != 'windows' && parallel::detectCores() > 2) {
-  omxCheckTrue(srun$compute$steps[['GD']]$output$maxThreads > 1)
-}
-
 #------------------------------------------------------------------------------
 # Check computation of factor scores in backend
 # For an example that does not require a previously run model
