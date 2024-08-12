@@ -23,6 +23,7 @@
 # does not segfault or raise C++ runtime errors.
 
 library(OpenMx)
+unloadNamespace(Matrix)
 #if(mxOption(NULL,"Default optimizer")!="CSOLNP"){stop("SKIP")}
 set.seed(47402087)
 data(HS.ability.data)
