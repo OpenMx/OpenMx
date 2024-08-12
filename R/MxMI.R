@@ -126,7 +126,8 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 					
 					# full MI
 					grad.full <- plusOneParamRun$output$gradient
-					grad.full[is.na(grad.full)] <- 0
+					#grad.full[is.na(grad.full)] <- 0
+					grad.full[which(names(grad.full)!=names(omxGetParameters(gmodel)))] <- 0
 					hess.full <- plusOneParamRun$output$hessian
 					modind.full <- 0.5*t(matrix(grad.full)) %*% solve(hess.full) %*% matrix(grad.full)
 					if(sum(grad.full != 0) == 1){
