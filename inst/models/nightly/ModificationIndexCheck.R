@@ -101,20 +101,20 @@ Rmis <- mxMatrix("Symm", nrow(Rmis), ncol(Rmis), values=mval, labels=mlab, free=
 ssMis <- mxModel(ssModel, Rmis)
 
 set.seed(101)
-ssMisData <- mxGenerateData(ssMis, 200)
+ssMisData <- mxGenerateData(ssMis, 400)
 
 ssMisRun <- mxRun(mxModel(ssModel, mxData(ssMisData, 'raw')))
 
 mi.mis <- mxMI(ssMisRun, full=FALSE)
 
-if( any(mi.mis$MI > qchisq(p=1-0.01, df=1), na.rm=TRUE)){
+if( any(mi.mis$MI > qchisq(p=0.05, df=1, lower.tail=FALSE), na.rm=TRUE)){
 	print("Large modification index found")
 	# Grab the plus.param model that has the highest modification index
 	newModelAttempt <- mi.mis$plusOneParamModels[[which.max(mi.mis$MI)]]
 	newRunAttempt <- mxRun(newModelAttempt)
 	mi.cor <- mxMI(newRunAttempt, full=FALSE)
 	foundFirst <- TRUE
-	if(  any(mi.cor$MI > qchisq(p=1-0.01, df=1), na.rm=TRUE ) ){
+	if(  any(mi.cor$MI > qchisq(p=0.05, df=1, lower.tail=FALSE), na.rm=TRUE ) ){
 		print("Problem.  Model still may need modification")
 		foundSecond <- TRUE
 	} else{
@@ -127,13 +127,12 @@ if( any(mi.mis$MI > qchisq(p=1-0.01, df=1), na.rm=TRUE)){
 
 omxCheckTrue(all( c(foundFirst, foundSecond) == c(TRUE, FALSE) ) )
 
-prevMIsForSS <- c(0.000002, 10.827511, 1.664330, 2.062372, 1.211038,
-	1.428606, 3.021569, 1.749314, 0.752319, 2.663316, 1.167776,
-	0.032929, -0.186243)
+
+prevMIsForSS <- c(0.000000, 5.201267, 1.857374, 0.681598, 1.678599,
+    0.247626, 0.962515, 0.018834, 4.511735, 3.853470, 0.000809, 0.032943)
 
 miSSCheck <- mi.mis$MI[!is.na(mi.mis$MI)]
 miSSCheck <- miSSCheck[-length(miSSCheck)]
-prevMIsForSS <- prevMIsForSS[-length(prevMIsForSS)]
 
 omxCheckCloseEnough(miSSCheck, prevMIsForSS, 0.01)
 
