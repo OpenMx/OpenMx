@@ -559,7 +559,6 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 	return(jac)
 }
 minimumObservations <- function(model){
-   # browser()
 	namespace <- imxGenerateNamespace(model)
 	flatModel <- imxFlattenModel(model, namespace, TRUE)
 	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), flatModel@datasets)
@@ -608,15 +607,28 @@ mxCheckIdentification <- function(model, details=TRUE){
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
 	if(imxHasDefinitionVariable(model)){
-   #  browser()
 		warning("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
 		uniRow <- minimumObservations(model)
-		minRow <- uniRow[[1]][1] # TODO Handle multiple groups/data
-		maxRow <- uniRow[[1]][length(uniRow[[1]])] # TODO What if there's only one non-duplicated value?
-		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=minRow)
-		rownames(jac1) <- paste0(rownames(jac1), 'def', minRow)
-		jac2 <- omxManifestModelByParameterJacobian(model, defvar.row=maxRow)
-		rownames(jac2) <- paste0(rownames(jac2), 'def', maxRow)
+     # OR just cycle through combinations of def vars
+     # 2 group ex with g1 has 1 5 9 13 unique rows
+     #                 g2 has 1 2 4 unique rows
+     # g1=1, g2=1
+     # g1=5, g2=2
+     # g1=9, g2=4
+     # g1=13,g2=1
+		uniMat <- suppressWarnings(do.call(cbind, uniRow))
+		minRow <- 1
+		maxRow <- nrow(uniMat)
+		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[minRow,]) # put in here
+		# TODO Put defvar row that corresponds to group.  If multigroup, check the beginning of strsplit(rownames(), imxSeparatorChar).  This inside omxManifestModelByParameterJacobian() function definition?
+		# paste(names(uniMat[minRow,]), uniMat[minRow,], sep='_')
+		rownames(jac1) <- paste0(rownames(jac1), 'def', paste(uniMat[minRow,], collapse='_'))
+		if(maxRow > minRow){
+			# TODO Add optional argument to mxCheckID that uses more than 3 values of def vars
+        # defaults to 2.  Takes numeric or 'all'?
+			jac2 <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[maxRow,])
+			rownames(jac2) <- paste0(rownames(jac2), 'def', paste(uniMat[maxRow,], collapse='_'))
+		} else {jac2 <- NULL}
 		jac <- rbind(jac1, jac2)
 	} else {
 		jac <- omxManifestModelByParameterJacobian(model)
