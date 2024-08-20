@@ -597,6 +597,20 @@ double trace_prod(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &
 	return sum;
 }
 
+//For the trace of the product of two symmetric matrices:
+template <typename T1, typename T2>
+double trace_prod_symm(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<T2> &t2)
+{
+	int r=0, c=0;
+	double sum = 0.0;
+	for(c=0; c < t1.rows(); c++){
+		for(r=c; r < t1.rows(); r++){
+			sum += (r==c) ? t1(r,c)*t2(r,c) : 2*t1(r,c)*t2(r,c);
+		}
+	}
+	return sum;
+}
+
 void MoorePenroseInverseSq(Eigen::Ref<Eigen::MatrixXd> mat);
 void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> in, Eigen::Ref<Eigen::MatrixXd> out);
 
