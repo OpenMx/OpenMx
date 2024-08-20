@@ -220,7 +220,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					//mxPrintMat("dataMean", ss.dataMean);
 					//mxPrintMat("resid", resid);
 					iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-					double tr1 = trace_prod(iV, ss.dataCov);
+					double tr1 = trace_prod_symm(iV, ss.dataCov);
 					double logDet = 2.0 * covDecomp.log_determinant();
 					double cterm = M_LN_2PI * residSize;
 					//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
@@ -297,23 +297,27 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							if( !(zeroCovDeriv && zeroMeanDeriv) ){ //Analytic derivs start here.
 								if(!zeroCovDeriv){
 									SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
-									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); 
-									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
-									secondTerm = 0.5*(ss.rows)*(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
-									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
-									fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
 								}
-								if(!zeroMeanDeriv){
-									thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
+								if(want & FF_COMPUTE_GRADIENT){
+									if(!zeroCovDeriv){
+										firstTerm = -0.5*SigmaInvDer.trace(); 
+										if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
+										secondTerm = 0.5*trace_prod(SigmaInvDataCov,SigmaInvDer);//(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
+										if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
+										fourthTerm = 0.5*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
+										if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
+									}
+									if(!zeroMeanDeriv){
+										thirdTerm = -0.5*(2*dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
+										if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
+									}
+									ssDerivCurr = ss.rows*(firstTerm + secondTerm + thirdTerm + fourthTerm);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
+									fc->gradZ[px] += Scale * ssDerivCurr;
+									if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
 								}
 							}
-							ssDerivCurr = firstTerm + secondTerm + thirdTerm + fourthTerm;
-							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
-							fc->gradZ[px] += Scale * ssDerivCurr;
-							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
-							
+								
 							if(want & FF_COMPUTE_HESSIAN){
 								for(size_t qx=px; qx < ofiml->dSigma_dtheta.size(); qx++){
 									//1st derivs w/r/t parameter qx...
@@ -342,16 +346,22 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 										SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
 									}
 									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
+									Eigen::MatrixXd SigmaInvDerSigmaInvDer2; SigmaInvDerSigmaInvDer2.setZero(nManifestVar,nManifestVar);
+									if(!zeroCovDeriv && !zeroCovDeriv2){
+										SigmaInvDerSigmaInvDer2 = SigmaInvDer*SigmaInvDer2;
+									}
+									if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDerSigmaInvDer2",SigmaInvDerSigmaInvDer2); }
+									
 									double trace23=0.0, trace23_0=0.0, trace23_1=0.0, trace23_2=0.0, t0=0.0, t1=0.0, t2=0.0, t3=0.0, t4=0.0, t5=0.0;
 									
 									if(!zero2ndCovDeriv){
-										trace23_0 = (SigmaInv2ndDer.array()*C.transpose().array()).sum();
+										trace23_0 = trace_prod(SigmaInv2ndDer,C);//(SigmaInv2ndDer.array()*C.transpose().array()).sum();
 										t1 = 0.5*(resid.transpose()*SigmaInv2ndDer*SigmaInvResid)(0,0);
 									}
 									if(!(zeroCovDeriv || zeroCovDeriv2)){
-										trace23_1 = -1.0*((SigmaInvDer*SigmaInvDer2).array()*C.transpose().array()).sum();
+										trace23_1 = -1.0*trace_prod(SigmaInvDerSigmaInvDer2,C);//((SigmaInvDerSigmaInvDer2).array()*C.transpose().array()).sum();
 										trace23_2 = ((SigmaInvDer2*SigmaInvDer).array()*SigmaInvDataCov.transpose().array()).sum();
-										t0 = -1.0*(resid.transpose()*SigmaInvDer*SigmaInvDer2*SigmaInvResid)(0,0);
+										t0 = -1.0*(resid.transpose()*SigmaInvDerSigmaInvDer2*SigmaInvResid)(0,0);
 									}
 									/*double trace23 = (SigmaInv2ndDer.array()*C.transpose().array()).sum() - 
 										((SigmaInvDer*SigmaInvDer2).array()*C.transpose().array()).sum() + 
@@ -456,9 +466,14 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						Eigen::MatrixXd SigmaInvDer; SigmaInvDer.setZero(nManifestVar,nManifestVar);
 						//Eigen::MatrixXd SigmaInvDer.setZero(nManifestVar,nManifestVar);
 						if(!zeroCovDeriv){
-							SigmaInvDer = iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr;
-							term1=SigmaInvDer.trace() - (SigmaInvDer.array()*SigmaInvResidResidT.transpose().array()).sum();
-							//term1=SigmaInvDer.trace() - (SigmaInvDer.array()*(resid*SigmaInvResid.transpose()).array()).sum();
+							if(want & FF_COMPUTE_HESSIAN){
+								SigmaInvDer = iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr;
+								term1=SigmaInvDer.trace() - trace_prod(SigmaInvDer,SigmaInvResidResidT);//(SigmaInvDer.array()*SigmaInvResidResidT.transpose().array()).sum();
+								//term1=SigmaInvDer.trace() - (SigmaInvDer.array()*(resid*SigmaInvResid.transpose()).array()).sum();
+							}
+							else{
+								term1=trace_prod(iV,dSigma_dtheta_curr) - trace_prod(SigmaInvDer,SigmaInvResidResidT);
+							}
 							if(OMX_DEBUG_ALGEBRA){ mxLog("term1: %f",term1); }
 						}
 						if(!zeroMeanDeriv){
@@ -506,19 +521,23 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 									SigmaInvDer2 = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr2;
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxPrintMat("SigmaInvDer2",SigmaInvDer2); }
+								Eigen::MatrixXd SigmaInvDer2SigmaInvDer; SigmaInvDer2SigmaInvDer.setZero(nManifestVar,nManifestVar);
+								if(!zeroCovDeriv && !zeroCovDeriv2){
+									SigmaInvDer2SigmaInvDer = SigmaInvDer2 * SigmaInvDer;
+								}
 								
 								double tt0=0.0, tt0_0=0.0, tt0_1=0.0, tt0_2=0.0, tt1=0.0, tt2=0.0, tt3=0.0, tt4=0.0, tt5=0.0;
 								
 								if(!(zero2ndCovDeriv && (zeroCovDeriv || zeroCovDeriv2))){
-									tt0_0 = SigmaInv2ndDer.trace() - (SigmaInvDer2.array()*SigmaInvDer.transpose().array()).sum();
+									tt0_0 = SigmaInv2ndDer.trace() - SigmaInvDer2SigmaInvDer.trace();//(SigmaInvDer2.array()*SigmaInvDer.transpose().array()).sum();
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt0_0: %f",tt0_0); }
 								if(!zero2ndCovDeriv){
-									tt0_1 = -1.0*(SigmaInv2ndDer.array()*SigmaInvResidResidT.transpose().array()).sum();
+									tt0_1 = -1.0*trace_prod(SigmaInv2ndDer,SigmaInvResidResidT);//(SigmaInv2ndDer.array()*SigmaInvResidResidT.transpose().array()).sum();
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt0_1: %f",tt0_1); }
 								if(!(zeroCovDeriv || zeroCovDeriv2)){
-									tt0_2 = ((SigmaInvDer2*SigmaInvDer).array()*SigmaInvResidResidT.transpose().array()).sum();
+									tt0_2 = trace_prod(SigmaInvDer2SigmaInvDer,SigmaInvResidResidT);//((SigmaInvDer2*SigmaInvDer).array()*SigmaInvResidResidT.transpose().array()).sum();
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt0_2: %f",tt0_2); }
 								/*tt0 = 
@@ -546,6 +565,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt3: %f",tt3); }
 								if(!(zeroMeanDeriv || zeroCovDeriv2)){
+									//There's a typo in Harvey (1989), fixed here:
 									tt4 = -1.0*(dNu_dtheta_curr.transpose()*dSigma_dtheta_curr2*resid)(0,0);
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt4: %f",tt4); }
