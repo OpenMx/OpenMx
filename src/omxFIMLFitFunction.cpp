@@ -220,7 +220,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 					//mxPrintMat("dataMean", ss.dataMean);
 					//mxPrintMat("resid", resid);
 					iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-					double tr1 = trace_prod(iV, ss.dataCov);
+					double tr1 = trace_prod_symm(iV, ss.dataCov);
 					double logDet = 2.0 * covDecomp.log_determinant();
 					double cterm = M_LN_2PI * residSize;
 					//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
