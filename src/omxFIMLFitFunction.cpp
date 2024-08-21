@@ -297,22 +297,26 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							if( !(zeroCovDeriv && zeroMeanDeriv) ){ //Analytic derivs start here.
 								if(!zeroCovDeriv){
 									SigmaInvDer = iV.selfadjointView<Eigen::Lower>() * dSigma_dtheta_curr;
-									firstTerm = -0.5*(ss.rows)*SigmaInvDer.trace(); 
-									if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
-									secondTerm = 0.5*(ss.rows)*(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
-									if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
-									fourthTerm = 0.5*ss.rows*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
 								}
-								if(!zeroMeanDeriv){
-									thirdTerm = -0.5*ss.rows*(2*dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
-									if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
+								if(want & FF_COMPUTE_GRADIENT){
+									if(!zeroCovDeriv){
+										firstTerm = -0.5*SigmaInvDer.trace(); 
+										if(OMX_DEBUG_ALGEBRA){ mxLog("firstTerm: %f", firstTerm); }
+										secondTerm = 0.5*trace_prod(SigmaInvDataCov,SigmaInvDer);//(SigmaInvDataCov.array() * SigmaInvDer.transpose().array()).sum();
+										if(OMX_DEBUG_ALGEBRA){ mxLog("secondTerm: %f", secondTerm); }
+										fourthTerm = 0.5*(resid.transpose()*SigmaInvDer*SigmaInvResid)(0,0);
+										if(OMX_DEBUG_ALGEBRA){ mxLog("fourthTerm: %f", fourthTerm); }
+									}
+									if(!zeroMeanDeriv){
+										thirdTerm = -0.5*(2*dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
+										if(OMX_DEBUG_ALGEBRA){ mxLog("THIRDTERM: %f", thirdTerm); }
+									}
+									ssDerivCurr = ss.rows*(firstTerm + secondTerm + thirdTerm + fourthTerm);
+									if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
+									fc->gradZ[px] += Scale * ssDerivCurr;
+									if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
 								}
 							}
-							ssDerivCurr = firstTerm + secondTerm + thirdTerm + fourthTerm;
-							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], pre-assignment: %f", fc->gradZ[px]); }
-							fc->gradZ[px] += Scale * ssDerivCurr;
-							if(OMX_DEBUG_ALGEBRA){ mxLog("fc->gradZ[px], post-assignment: %f", fc->gradZ[px]); }
 							
 							if(want & FF_COMPUTE_HESSIAN){
 								for(size_t qx=px; qx < ofiml->dSigma_dtheta.size(); qx++){
@@ -546,6 +550,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt3: %f",tt3); }
 								if(!(zeroMeanDeriv || zeroCovDeriv2)){
+									//There's a typo in Harvey (1989), fixed here:
 									tt4 = -1.0*(dNu_dtheta_curr.transpose()*dSigma_dtheta_curr2*resid)(0,0);
 								}
 								if(OMX_DEBUG_ALGEBRA){ mxLog("tt4: %f",tt4); }
