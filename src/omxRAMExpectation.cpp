@@ -2633,18 +2633,27 @@ void omxRAMExpectation::provideSufficientDerivs(
 	Eigen::MatrixXd eFullCov; eFullCov.setZero(F->rows,F->rows);
 	pcalc.fullCov(fc, eFullCov);
 	if(OMX_DEBUG_ALGEBRA){ mxPrintMat("fullCov:",eFullCov); }
+	Eigen::MatrixXd FE = eF * eFullCov.selfadjointView<Eigen::Lower>();
+	Eigen::MatrixXd BMt; //I_AtMt
+	//mxLog("pcalc.useSparse: %d", pcalc.useSparse);
 	if(!pcalc.useSparse){
 		//N.B. pcalc.I_A is solve(I - t(A)):
 		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse transpose:",pcalc.I_A); }
-		Eigen::MatrixXd I_At = pcalc.I_A.transpose();
-		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse:",I_At); };
+		Eigen::MatrixXd B = pcalc.I_A.transpose(); //I_At; `B` is per von Oertzen & Brick (2014)
+		if(OMX_DEBUG_ALGEBRA){ mxPrintMat("(I-A) inverse:",B); };
+		Eigen::MatrixXd FB = eF * B;
+		if(M){
+			//Remember that eM is a row vector:
+			EigenMatrixAdaptor eM(M);
+			BMt = B*eM.transpose();
+		}
 		for(size_t px=0; px < u_dSigma_dtheta.size(); px++){
 			Eigen::SparseMatrix<double> edA = dA_dtheta[px]; //<--Need to temporarily copy it, since we modify it in-place.
 			edA *= -1.0;  //<--0-dA, in-place.
 			Eigen::SparseMatrix<double> edAt = edA.transpose(); //dA_dtheta[px].transpose();
-			Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov.selfadjointView<Eigen::Lower>();
+			Eigen::MatrixXd firstPart = -1.0*B*edA*eFullCov.selfadjointView<Eigen::Lower>();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
-			Eigen::MatrixXd secondPart = I_At*dS_dtheta[px].selfadjointView<Eigen::Lower>()*pcalc.I_A;
+			Eigen::MatrixXd secondPart = B*dS_dtheta[px].selfadjointView<Eigen::Lower>()*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.I_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
@@ -2653,9 +2662,9 @@ void omxRAMExpectation::provideSufficientDerivs(
 			u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
 			if(M){
-				EigenMatrixAdaptor eM(M);
+				//EigenMatrixAdaptor eM(M);
 				//Remember that eM is a row vector:
-				u_dNu_dtheta[px] = (-1.0*eF*(-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose();
+				u_dNu_dtheta[px] = (-1.0*eF*(-1.0*B*(edA*BMt) + B*dM_dtheta[px].transpose())).transpose();
 				if(OMX_DEBUG_ALGEBRA){ 
 					mxLog("px: %d", int(px));
 					mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]);
@@ -2663,16 +2672,20 @@ void omxRAMExpectation::provideSufficientDerivs(
 			}
 			if(wantHess){
 				for(size_t qx=px; qx < u_dSigma_dtheta.size(); qx++){
-					Eigen::MatrixXd B = I_At; //<--Just to make the code easier to read.
-					//Eigen::MatrixXd FB = eF * B;
+					/*Eigen::MatrixXd BMt;
+					if(M){
+						//Remember that eM is a row vector:
+						EigenMatrixAdaptor eM(M);
+						BMt = B*eM.transpose();
+					}*/
 					//"Part" numbering is per von Oertzen & Brick (2014):
-					Eigen::MatrixXd part10p = eF * B * dA_dtheta[px];
-					Eigen::MatrixXd part11q = B * dA_dtheta[qx] * eFullCov.selfadjointView<Eigen::Lower>() * eF.transpose();
-					Eigen::MatrixXd part10q = eF * B * dA_dtheta[qx];
-					Eigen::MatrixXd part11p = B * dA_dtheta[px] * eFullCov.selfadjointView<Eigen::Lower>() * eF.transpose();
-					Eigen::MatrixXd part12q = B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * B.transpose() * eF.transpose();
-					Eigen::MatrixXd part13 = eFullCov * dA_dtheta[qx].transpose() * B.transpose() * eF.transpose();
-					Eigen::MatrixXd part12p = B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose() * eF.transpose();
+					Eigen::MatrixXd part10p = FB * dA_dtheta[px];
+					Eigen::MatrixXd part11q = B * dA_dtheta[qx] * FE.transpose();
+					Eigen::MatrixXd part10q = FB * dA_dtheta[qx];
+					Eigen::MatrixXd part11p = B * dA_dtheta[px] * FE.transpose();
+					Eigen::MatrixXd part12q = B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * FB.transpose();
+					Eigen::MatrixXd part13 = eFullCov * dA_dtheta[qx].transpose() * FB.transpose();
+					Eigen::MatrixXd part12p = B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * FB.transpose();
 					Eigen::MatrixXd part14q = part11q.transpose(); //eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[qx].transpose() * B.transpose(); //
 					Eigen::MatrixXd part15p = part10p.transpose(); //dA_dtheta[px].transpose() * B.transpose() * eF.transpose(); //
 					Eigen::MatrixXd part14p = part11p.transpose(); //eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[px].transpose() * B.transpose(); //
@@ -2690,14 +2703,13 @@ void omxRAMExpectation::provideSufficientDerivs(
 					u_d2Sigma_dtheta1dtheta2[qx][px] = u_d2Sigma_dtheta1dtheta2[px][qx];
 					
 					if(M){
-						EigenMatrixAdaptor eM(M);
 						//^^^Remember that eM is a row vector.
 						/*u_d2Mu_dtheta1dtheta2[px][qx] = -1.0*eF*B*B*(dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
 							dA_dtheta[px]*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[px]*dM_dtheta[qx].transpose() + 
 							dA_dtheta[qx]*B*dM_dtheta[px].transpose());*/
-						u_d2Mu_dtheta1dtheta2[px][qx] = eF*B*(dA_dtheta[qx]*B*dA_dtheta[px]*B*eM.transpose() + 
-							dA_dtheta[px]*B*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[qx]*B*dM_dtheta[px].transpose() + 
-							dA_dtheta[px]*B*dM_dtheta[qx].transpose());
+						u_d2Mu_dtheta1dtheta2[px][qx] = FB*( dA_dtheta[qx]*(B*(dA_dtheta[px]*BMt)) + 
+							dA_dtheta[px]*(B*(dA_dtheta[qx]*BMt)) + dA_dtheta[qx]*(B*dM_dtheta[px].transpose()) + 
+							dA_dtheta[px]*(B*dM_dtheta[qx].transpose()) );
 						if(OMX_DEBUG_ALGEBRA){ mxPrintMat("u_d2Mu_dtheta1dtheta2[px][qx]:", u_d2Mu_dtheta1dtheta2[px][qx]); }
 						u_d2Mu_dtheta1dtheta2[qx][px] = u_d2Mu_dtheta1dtheta2[px][qx];
 					}
@@ -2707,14 +2719,20 @@ void omxRAMExpectation::provideSufficientDerivs(
 	}
 	else{
 		//N.B. pcalc.I_A is solve(I - t(A)):
-		Eigen::SparseMatrix<double> I_At = pcalc.sparseI_A.transpose();
+		Eigen::SparseMatrix<double> B = pcalc.sparseI_A.transpose(); //I_At; `B` is per von Oertzen & Brick (2014)
+		Eigen::MatrixXd FB = eF * B;
+		if(M){
+			//Remember that eM is a row vector:
+			EigenMatrixAdaptor eM(M);
+			BMt = B*eM.transpose();
+		}
 		for(size_t px=0; px < u_dSigma_dtheta.size(); px++){
 			Eigen::SparseMatrix<double> edA = dA_dtheta[px]; //<--Need to temporarily copy it, since we modify it in-place.
 			edA *= -1.0;  //0-dA, in-place.
 			Eigen::SparseMatrix<double> edAt = edA.transpose();//dA_dtheta[px].transpose();
-			Eigen::MatrixXd firstPart = -1.0*I_At*edA*eFullCov;
+			Eigen::MatrixXd firstPart = -1.0*B*edA*eFullCov;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("firstPart:", firstPart); }
-			Eigen::MatrixXd secondPart = I_At*dS_dtheta[px]*pcalc.sparseI_A;
+			Eigen::MatrixXd secondPart = B*dS_dtheta[px]*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("secondPart:", secondPart); }
 			Eigen::MatrixXd thirdPart = firstPart.transpose();//-1.0*eFullCov*edAt*pcalc.sparseI_A;
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("thirdPart:", thirdPart); }
@@ -2723,9 +2741,9 @@ void omxRAMExpectation::provideSufficientDerivs(
 			u_dSigma_dtheta[px] = eF * (firstPart + secondPart + thirdPart).selfadjointView<Eigen::Lower>() * eF.transpose();
 			if(OMX_DEBUG_ALGEBRA){ mxPrintMat("dSigma_dtheta[px]:", u_dSigma_dtheta[px]); }
 			if(M){
-				EigenMatrixAdaptor eM(M);
+				//EigenMatrixAdaptor eM(M);
 				//Remember that eM is a row vector:
-				u_dNu_dtheta[px] = (-1.0*eF*(-1.0*I_At*edA*I_At*eM.transpose() + I_At*dM_dtheta[px].transpose())).transpose();
+				u_dNu_dtheta[px] = (-1.0*eF*(-1.0*B*(edA*BMt) + B*dM_dtheta[px].transpose())).transpose();
 				if(OMX_DEBUG_ALGEBRA){ 
 					mxLog("px: %d", int(px));
 					mxPrintMat("dNu_dtheta[px]:", u_dNu_dtheta[px]);
@@ -2733,16 +2751,14 @@ void omxRAMExpectation::provideSufficientDerivs(
 			}
 			if(wantHess){
 				for(size_t qx=px; qx < u_dSigma_dtheta.size(); qx++){
-					Eigen::SparseMatrix<double> B = I_At; //<--Just to make the code easier to read.
-					//Eigen::MatrixXd FB = eF * B;
 					//"Part" numbering is per von Oertzen & Brick (2014):
-					Eigen::MatrixXd part10p = eF * B * dA_dtheta[px];
-					Eigen::MatrixXd part11q = B * dA_dtheta[qx] * eFullCov * eF.transpose();
-					Eigen::MatrixXd part10q = eF * B * dA_dtheta[qx];
-					Eigen::MatrixXd part11p = B * dA_dtheta[px] * eFullCov * eF.transpose();
-					Eigen::MatrixXd part12q = B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * B.transpose() * eF.transpose();
-					Eigen::MatrixXd part13 = eFullCov * dA_dtheta[qx].transpose() * B.transpose() * eF.transpose();
-					Eigen::MatrixXd part12p = B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * B.transpose() * eF.transpose();
+					Eigen::MatrixXd part10p = FB * dA_dtheta[px];
+					Eigen::MatrixXd part11q = B * dA_dtheta[qx] * FE.transpose();
+					Eigen::MatrixXd part10q = FB * dA_dtheta[qx];
+					Eigen::MatrixXd part11p = B * dA_dtheta[px] * FE.transpose();
+					Eigen::MatrixXd part12q = B * dS_dtheta[qx].selfadjointView<Eigen::Lower>() * FB.transpose();
+					Eigen::MatrixXd part13 = eFullCov * dA_dtheta[qx].transpose() * FB.transpose();
+					Eigen::MatrixXd part12p = B * dS_dtheta[px].selfadjointView<Eigen::Lower>() * FB.transpose();
 					Eigen::MatrixXd part14q = part11q.transpose(); //eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[qx].transpose() * B.transpose();
 					Eigen::MatrixXd part15p = part10p.transpose(); //dA_dtheta[px].transpose() * B.transpose() * eF.transpose();
 					Eigen::MatrixXd part14p = part11p.transpose(); //eF * eFullCov.selfadjointView<Eigen::Lower>() * dA_dtheta[px].transpose() * B.transpose();
@@ -2761,10 +2777,9 @@ void omxRAMExpectation::provideSufficientDerivs(
 					
 					if(M){
 						EigenMatrixAdaptor eM(M);
-						//^^^Remember that eM is a row vector.
-						//TODO(?): save Bm?
-						u_d2Mu_dtheta1dtheta2[px][qx] = -1.0*eF*B*( dA_dtheta[qx]*B*dA_dtheta[px]*eM.transpose() + 
-							dA_dtheta[px]*dA_dtheta[qx]*B*eM.transpose() + dA_dtheta[px]*dM_dtheta[qx].transpose() + 
+						//Remember that eM is a row vector.
+						u_d2Mu_dtheta1dtheta2[px][qx] = -1.0*FB*( dA_dtheta[qx]*(B*(dA_dtheta[px]*eM.transpose())) + 
+							dA_dtheta[px]*(dA_dtheta[qx]*BMt) + dA_dtheta[px]*dM_dtheta[qx].transpose() + 
 							dA_dtheta[qx]*(B*dM_dtheta[px].transpose()) ); //<--Parens are necessary to keep Eigen from getting confused.
 						u_d2Mu_dtheta1dtheta2[qx][px] = u_d2Mu_dtheta1dtheta2[px][qx];
 					}
