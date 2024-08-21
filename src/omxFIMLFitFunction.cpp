@@ -467,19 +467,23 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						//Eigen::MatrixXd SigmaInvDer.setZero(nManifestVar,nManifestVar);
 						if(!zeroCovDeriv){
 							SigmaInvDer = iV.selfadjointView<Eigen::Lower>()*dSigma_dtheta_curr;
-							term1=SigmaInvDer.trace() - (SigmaInvDer.array()*SigmaInvResidResidT.transpose().array()).sum();
-							//term1=SigmaInvDer.trace() - (SigmaInvDer.array()*(resid*SigmaInvResid.transpose()).array()).sum();
-							if(OMX_DEBUG_ALGEBRA){ mxLog("term1: %f",term1); }
 						}
-						if(!zeroMeanDeriv){
-							term2=2*(dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
-							if(OMX_DEBUG_ALGEBRA){ mxLog("term2: %f",term2); }
-						}
-						fc->gradZ[px] += Scale * -0.5*(term1+term2); 
-						if(OMX_DEBUG_ALGEBRA){
-							mxLog("row: %d",row);
-							mxLog("px: %ld",px);
-							mxLog("fc->gradZ[px]: %f",fc->gradZ[px]);
+						if(want & FF_COMPUTE_GRADIENT){
+							if(!zeroCovDeriv){
+								term1=SigmaInvDer.trace() - trace_prod(SigmaInvDer,SigmaInvResidResidT);//(SigmaInvDer.array()*SigmaInvResidResidT.transpose().array()).sum();
+								//term1=SigmaInvDer.trace() - (SigmaInvDer.array()*(resid*SigmaInvResid.transpose()).array()).sum();
+								if(OMX_DEBUG_ALGEBRA){ mxLog("term1: %f",term1); }
+							}
+							if(!zeroMeanDeriv){
+								term2=2*(dNu_dtheta_curr.transpose()*SigmaInvResid)(0,0);
+								if(OMX_DEBUG_ALGEBRA){ mxLog("term2: %f",term2); }
+							}
+							fc->gradZ[px] += Scale * -0.5*(term1+term2); 
+							if(OMX_DEBUG_ALGEBRA){
+								mxLog("row: %d",row);
+								mxLog("px: %ld",px);
+								mxLog("fc->gradZ[px]: %f",fc->gradZ[px]);
+							}
 						}
 						if(want & FF_COMPUTE_HESSIAN){
 							for(size_t qx=0; qx < ofiml->dSigma_dtheta.size(); qx++){
