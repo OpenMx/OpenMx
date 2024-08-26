@@ -4,7 +4,7 @@ data(demoOneFactor)
 context("268")
 
 body <- function() {
-  E <- mxAlgebra(U%x%1,name="E")
+  E <- mxAlgebra(U%x%1, name="E")
   
   factorModel <- mxModel(
     "One Factor",
@@ -21,7 +21,7 @@ body <- function() {
     mxData(cov(demoOneFactor), type="cov", numObs=500)
   )
   
-  expect_error(mxCheckIdentification(factorModel,details=T),
+  expect_error(mxCheckIdentification(factorModel, details=TRUE),
                "'E' not found")
 }
 

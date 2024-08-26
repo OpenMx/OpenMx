@@ -1126,7 +1126,7 @@ logLik.MxModel <- function(object, ...) {
     for(i in 1:nrow(A_need_pos)){
       Apos[A_need_pos[i,1],A_need_pos[i,2]] <- out$name[j] <- paste(
         model@name,".A[",A_need_pos[i,1],",",A_need_pos[i,2],"]",sep="")
-      if(!all.na(model_A$labels)){
+      if(!isAllNa(model_A$labels)){
         out$label[j] <- model_A$labels[A_need_pos[i,1],A_need_pos[i,2]]
       }
       out$matrix[j] <- "A"
@@ -1140,7 +1140,7 @@ logLik.MxModel <- function(object, ...) {
     for(i in 1:nrow(S_need_pos)){
       Spos[S_need_pos[i,1],S_need_pos[i,2]] <- out$name[j] <- paste(
         model@name,".S[",S_need_pos[i,1],",",S_need_pos[i,2],"]",sep="")
-      if(!all.na(model_S$labels)){
+      if(!isAllNa(model_S$labels)){
         out$label[j] <- model_S$labels[S_need_pos[i,1],S_need_pos[i,2]]
       }
       out$matrix[j] <- "S"
@@ -1154,7 +1154,7 @@ logLik.MxModel <- function(object, ...) {
   	for(i in 1:length(M_need_pos)){
   		Mpos[1,M_need_pos[i]] <- out$name[j] <- paste(
   			model@name,".M[1,",M_need_pos[i],"]",sep="")
-  		if(!is.null(model_M$labels) && !all.na(model_M$labels)){
+  		if(!is.null(model_M$labels) && !isAllNa(model_M$labels)){
   			out$label[j] <- model_M$labels[1,M_need_pos[i]]
   		}
   		out$matrix[j] <- "M"

@@ -1,6 +1,6 @@
 Encoding: UTF-8
 Package: OpenMx
-Date: 2021-07-21
+Date: 2023-10-27
 Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -48,10 +48,10 @@ SystemRequirements: GNU make, C++17
 ByteCompile: no
 Language: en-US
 License: Apache License (== 2.0)
-LinkingTo: Rcpp, RcppEigen, RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45)
+LinkingTo: Rcpp, RcppEigen (>= 0.3.3.9.4), RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45), Matrix
 Imports: digest,
     MASS,
-    Matrix,
+    Matrix (>= 1.2-16),
     methods,
 	Rcpp, RcppParallel,
     parallel, lifecycle
@@ -187,5 +187,4 @@ Collate:
 RdMacros:
     lifecycle
 Biarch: true
-Version: 2.19.6-6
-RoxygenNote: 7.1.1
+Version: 2.21.8-26

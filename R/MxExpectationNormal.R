@@ -509,10 +509,19 @@ imxGetExpectationComponent <- function(model, component, defvar.row=1, subname=m
 	if(is.null(model[[subname]]$expectation) && (class(model[[subname]]$fitfunction) %in% "MxFitFunctionMultigroup") ){
 		submNames <- sapply(strsplit(model$fitfunction$groups, ".", fixed=TRUE), "[", 1)
 		got <- list()
-		for(amod in submNames){
-			got[[amod]] <- imxGetExpectationComponent(model, component, defvar.row, subname=amod)
+		if(length(defvar.row) == length(submNames) && !is.null(names(defvar.row)) && all(names(defvar.row) %in% submNames) && !any(duplicated(names(defvar.row)))){
+			theDefVarRows <- defvar.row
+		} else if(length(defvar.row) == 1) {
+			theDefVarRows <- rep(defvar.row[1], length(submNames))
+			names(theDefVarRows) <- submNames
+		} else {
+			stop("Terribly sorry, but I don't understand your defvar.row argument.\nIt should be a single numeric value, or a named vector that corresponds to each submodel.")
 		}
-		if(component=='vector' || tolower(component)=='standvector'){got <- unlist(got)}
+		for(amod in submNames){
+			got[[amod]] <- imxGetExpectationComponent(model, component,
+				defvar.row=theDefVarRows[[amod]], subname=amod)
+		}
+		if(length(component) == 1 && (component=='vector' || tolower(component)=='standvector')){got <- unlist(got)}
 		got
 	} else if (length(component) == 1 && component == 'vector') {
 		genericGetExpectedVector(model[[subname]]$expectation, model, defvar.row, subname)
@@ -569,20 +578,81 @@ omxManifestModelByParameterJacobian <- function(model, defvar.row=1, standardize
 
 	return(jac)
 }
+minimumObservations <- function(model){
+	namespace <- imxGenerateNamespace(model)
+	flatModel <- imxFlattenModel(model, namespace, TRUE)
+	datalist <- Filter(function(x) !is(x,"MxDataDynamic"), flatModel@datasets)
+	convertArguments <- imxCheckVariables(flatModel, namespace)
+	flatModel <- constraintsToAlgebras(flatModel)
+	flatModel <- eliminateObjectiveFunctions(flatModel)
+	flatModel <- convertAlgebras(flatModel, convertArguments)
+	defVars <- generateDefinitionList(flatModel, list())
+	defVarsData <- sapply(defVars, '[', 1) + 1 # indices of the data for each defvar
+	defVarsCols <- sapply(defVars, '[', 2) + 1 # column indices of the definition variables
+	# Transfer NAMES of submodels as the names of the uniDef to mxCheckID
+	# Then use these as args to defvar.row=c(MZ=1, DZ=3) etc.
+	# Model names of corresponding definition variables
+	smartSel <- function(x){if(length(x) > 0) x[[1]] else NA}
+	defVarsMods <- sapply(strsplit(names(defVarsData), split=imxSeparatorChar, fixed=TRUE), smartSel)
+	# For each unique defVarsData,
+	defVarsDups <- duplicated(defVarsData)
+	uniData <- defVarsData[!defVarsDups]
+	uniMods <- defVarsMods[!defVarsDups]
+	uniDef <- list()
+	for(ind in 1L:length(uniData)){
+		tmpData <- datalist[[ind]]$observed
+		curDefVarCols <- defVarsCols[defVarsData %in% ind]
+		tmpDef <- tmpData[, curDefVarCols, drop=FALSE]
+		uniDef[[ind]] <- which(!duplicated(tmpDef)) # unique(tmpDef, MARGIN=1)
+	}
+	names(uniDef) <- uniMods
+	#  grab tmpData <- datalist[[aUniDefVarData]]$observed
+	#  grab ALL the columns that go with those data:
+	#    s <- defVarsData[defVarsData %in% aUniDefVarData]
+	#    curDefVarCols <- defVarsCols[s]
+	#    tmpDef <- tmpData[,curDefVarCols]
+	#  Find unique patterns of defvar values with unique(tmpDef, margin=??)
+	#return(min(c(as.numeric(dataObservations), as.numeric(fitfunctionObservations)), na.rm=TRUE))
+	return(uniDef)
+}
+
 
 mxCheckIdentification <- function(model, details=TRUE){
-  warnModelCreatedByOldVersion(model)
+	warnModelCreatedByOldVersion(model)
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
 	if( class(model$fitfunction) %in% notAllowedFits ){
 		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
 		stop(msg, call.=FALSE)
 	}
-	if(imxHasDefinitionVariable(model)){
-		stop("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
-	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
-	jac <- omxManifestModelByParameterJacobian(model)
+	if(imxHasDefinitionVariable(model)){
+		warning("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
+		uniRow <- minimumObservations(model)
+     # OR just cycle through combinations of def vars
+     # 2 group ex with g1 has 1 5 9 13 unique rows
+     #                 g2 has 1 2 4 unique rows
+     # g1=1, g2=1
+     # g1=5, g2=2
+     # g1=9, g2=4
+     # g1=13,g2=1
+		uniMat <- suppressWarnings(do.call(cbind, uniRow))
+		minRow <- 1
+		maxRow <- nrow(uniMat)
+		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[minRow,]) # put in here
+		# TODO Put defvar row that corresponds to group.  If multigroup, check the beginning of strsplit(rownames(), imxSeparatorChar).  This inside omxManifestModelByParameterJacobian() function definition?
+		# paste(names(uniMat[minRow,]), uniMat[minRow,], sep='_')
+		rownames(jac1) <- paste0(rownames(jac1), 'def', paste(uniMat[minRow,], collapse='_'))
+		if(maxRow > minRow){
+			# TODO Add optional argument to mxCheckID that uses more than 3 values of def vars
+        # defaults to 2.  Takes numeric or 'all'?
+			jac2 <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[maxRow,])
+			rownames(jac2) <- paste0(rownames(jac2), 'def', paste(uniMat[maxRow,], collapse='_'))
+		} else {jac2 <- NULL}
+		jac <- rbind(jac1, jac2)
+	} else {
+		jac <- omxManifestModelByParameterJacobian(model)
+	}
 	if(imxHasConstraint(model)){
     # Better if there was a separate compute step to estimate the constraintJacobian
 		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(hessian=FALSE), mxComputeReportDeriv())))

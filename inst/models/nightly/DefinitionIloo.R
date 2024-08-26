@@ -23,8 +23,7 @@ model <- mxModel( 'BinCont',
   mxFitFunctionML(vector=TRUE)
 )                                        
 
-expect_error(mxGenerateData(model, 100),
-             "no data is available")
+omxCheckError(mxGenerateData(model, 100), "Definition variable(s) found, but no data are available")
 
 model <- mxModel(model, mxData( data.frame(x,y,u) , type='raw'))
 

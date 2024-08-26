@@ -162,7 +162,7 @@ removeVariablesRAM <- function(model, latent, manifest) {
 	model[['A']] <- A
 	model[['S']] <- S
 	Thresh <- model[['Thresholds']]
-	if(!all.na(Thresh)) {
+	if(!isAllNa(Thresh)) {
 		newCols <- setdiff(colnames(Thresh), manifest)
 		newRows <- nrow(Thresh) - min(colSums(is.na(Thresh@values[,newCols])))
 		model[['Thresholds']] <- Thresh[1:newRows,newCols]
@@ -409,7 +409,7 @@ insertAllThresholdsRAM <- function(model, thresholds) {
 		thisThresh <- thresholds[[i]]
 		values <- thisThresh@values
 		msg = NULL
-		if(all.na(values)) {
+		if(isAllNa(values)) {
 			msg = paste("The thresholds you are attempting to specify",
 				"does not have any starting values, but type='RAM' models require them.")
 		}
@@ -929,16 +929,16 @@ addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) 
 	currentLatent <- length(model@latentVars) - newLatent
 	newSize <- length(model@manifestVars) + length(model@latentVars)
 	if (currentManifest > 0) {
-		manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest]
+		manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest, drop=FALSE]
 	} else {
 		manifestXmanifest <- matrix(value, 0, 0)
 	}
 	if (currentLatent > 0) {
 		latentStart <- currentManifest + 1
 		latentEnd <- currentManifest + currentLatent
-		manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd]
-		latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest]
-		latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd]
+		manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd, drop=FALSE]
+		latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest, drop=FALSE]
+		latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd, drop=FALSE]
 	} else {
 		manifestXlatent <- matrix(value, 0, 0)
 		latentXmanifest <- matrix(value, 0, 0)

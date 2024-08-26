@@ -68,6 +68,7 @@ man/imxHasConstraint.Rd
 man/imxHasDefinitionVariable.Rd
 man/imxHasNPSOL.Rd
 man/imxHasOpenMP.Rd
+man/imxHasPenalty.Rd
 man/imxHasThresholds.Rd
 man/imxHasWLS.Rd
 man/imxIdentifier.Rd
@@ -104,6 +105,7 @@ man/imxSfClient.Rd
 man/imxSimpleRAMPredicate.Rd
 man/imxSparseInvert.Rd
 man/imxSquareMatrix.Rd
+man/imxStanMathMajor.Rd
 man/imxSymmetricMatrix.Rd
 man/imxTypeName.Rd
 man/imxUntitledName.Rd

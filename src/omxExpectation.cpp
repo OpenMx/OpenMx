@@ -33,7 +33,7 @@
 #include "omxExpectation.h"
 #include "glue.h"
 #include "Compute.h"
-#include <Eigen/CholmodSupport>
+#include <RcppEigenCholmod.h>
 #include <RcppEigenWrap.h>
 #include "EnableWarnings.h"
 

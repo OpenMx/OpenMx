@@ -459,6 +459,9 @@ void MLFitState::init()
 	EigenMatrixAdaptor obCov(newObj->observedCov);
 #if STAN_MATH_MAJOR >= 4
 	auto ldlt_obCov = stan::math::make_ldlt_factor(obCov);
+	if(!ldlt_obCov.ldlt().isPositive()) {
+		omxRaiseErrorf("Observed Covariance Matrix is non-positive-definite.");
+	}
 #else
 	stan::math::LDLT_factor<double,Eigen::Dynamic,Eigen::Dynamic> ldlt_obCov(obCov);
 	if (!ldlt_obCov.success()) {

@@ -977,16 +977,17 @@ RET1_asa:
            "index_v parameter_minimum parameter_maximum parameter_value parameter_type \n");
 
 #if ASA_PRINT_INTERMED
-  VFOR (index_v) fprintf (ptr_asa_out,
 #if INT_ALLOC
-                          " %-8d %-*.*g \t\t %-*.*g \t %-*.*g %-7d\n",
+  char *out_format = " %-8d %-*.*g \t\t %-*.*g \t %-*.*g %-7d\n";
 #else
 #if INT_LONG
-                          " %-8ld %-*.*g \t\t %-*.*g \t %-*.*g %-7d\n",
+  char *out_format = " %-8ld %-*.*g \t\t %-*.*g \t %-*.*g %-7d\n";
 #else
-                          " %-8d %-*.*g \t\t %-*.*g \t %-*.*g %-7d\n",
+  char *out_format = " %-8d %-*.*g \t\t %-*.*g \t %-*.*g %-7d\n";
 #endif
 #endif
+  VFOR (index_v) fprintf (ptr_asa_out,
+                          out_format,
                           index_v,
                           G_FIELD, G_PRECISION, parameter_minimum[index_v],
                           G_FIELD, G_PRECISION, parameter_maximum[index_v],
@@ -999,16 +1000,17 @@ RET1_asa:
   /* Print out user-defined OPTIONS */
 
 #if DELTA_PARAMETERS
-  VFOR (index_v) fprintf (ptr_asa_out,
 #if INT_ALLOC
-                          "OPTIONS->User_Delta_Parameter[%d] = %*.*g\n",
+  char *delta_format = "OPTIONS->User_Delta_Parameter[%d] = %*.*g\n";
 #else
 #if INT_LONG
-                          "OPTIONS->User_Delta_Parameter[%ld] = %*.*g\n",
+  char *delta_format = "OPTIONS->User_Delta_Parameter[%ld] = %*.*g\n";
 #else
-                          "OPTIONS->User_Delta_Parameter[%d] = %*.*g\n",
+  char *delta_format = "OPTIONS->User_Delta_Parameter[%d] = %*.*g\n";
 #endif
 #endif
+  VFOR (index_v) fprintf (ptr_asa_out,
+                          delta_format,
                           index_v,
                           G_FIELD, G_PRECISION,
                           OPTIONS->User_Delta_Parameter[index_v]);
@@ -1016,16 +1018,17 @@ RET1_asa:
 #endif /* DELTA_PARAMETERS */
 
 #if QUENCH_PARAMETERS
-  VFOR (index_v) fprintf (ptr_asa_out,
 #if INT_ALLOC
-                          "OPTIONS->User_Quench_Param_Scale[%d] = %*.*g\n",
+  char *quench_format = "OPTIONS->User_Quench_Param_Scale[%d] = %*.*g\n";
 #else
 #if INT_LONG
-                          "OPTIONS->User_Quench_Param_Scale[%ld] = %*.*g\n",
+  char *quench_format = "OPTIONS->User_Quench_Param_Scale[%ld] = %*.*g\n";
 #else
-                          "OPTIONS->User_Quench_Param_Scale[%d] = %*.*g\n",
+  char *quench_format = "OPTIONS->User_Quench_Param_Scale[%d] = %*.*g\n";
 #endif
 #endif
+  VFOR (index_v) fprintf (ptr_asa_out,
+                          quench_format,
                           index_v,
                           G_FIELD, G_PRECISION,
                           OPTIONS->User_Quench_Param_Scale[index_v]);
@@ -1038,32 +1041,34 @@ RET1_asa:
 #endif /* QUENCH_COST */
 
 #if USER_INITIAL_PARAMETERS_TEMPS
-  VFOR (index_v) fprintf (ptr_asa_out,
 #if INT_ALLOC
-                          "OPTIONS->User_Parameter_Temperature[%d] = %*.*g\n",
+  char *temps_format = "OPTIONS->User_Parameter_Temperature[%d] = %*.*g\n";
 #else
 #if INT_LONG
-                          "OPTIONS->User_Parameter_Temperature[%ld] = %*.*g\n",
+  char *temps_format = "OPTIONS->User_Parameter_Temperature[%ld] = %*.*g\n";
 #else
-                          "OPTIONS->User_Parameter_Temperature[%d] = %*.*g\n",
+  char *temps_format = "OPTIONS->User_Parameter_Temperature[%d] = %*.*g\n";
 #endif
 #endif
+  VFOR (index_v) fprintf (ptr_asa_out,
+                          temps_format,
                           index_v,
                           G_FIELD, G_PRECISION,
                           initial_user_parameter_temp[index_v]);
 #endif /* USER_INITIAL_PARAMETERS_TEMPS */
 
 #if RATIO_TEMPERATURE_SCALES
-  VFOR (index_v) fprintf (ptr_asa_out,
 #if INT_ALLOC
-                          "OPTIONS->User_Temperature_Ratio[%d] = %*.*g\n",
+  char *scales_format = "OPTIONS->User_Temperature_Ratio[%d] = %*.*g\n";
 #else
 #if INT_LONG
-                          "OPTIONS->User_Temperature_Ratio[%ld] = %*.*g\n",
+  char *scales_format = "OPTIONS->User_Temperature_Ratio[%ld] = %*.*g\n";
 #else
-                          "OPTIONS->User_Temperature_Ratio[%d] = %*.*g\n",
+  char *scales_format = "OPTIONS->User_Temperature_Ratio[%d] = %*.*g\n";
 #endif
 #endif
+  VFOR (index_v) fprintf (ptr_asa_out,
+                          scales_format,
                           index_v,
                           G_FIELD, G_PRECISION,
                           OPTIONS->User_Temperature_Ratio[index_v]);
@@ -2781,14 +2786,14 @@ RET1_asa:
 
         /* printout the new minimum state and value */
 #if ASA_PRINT
-        fprintf (ptr_asa_out,
 #if INT_LONG
-                 "best...->cost=%-*.*g  *number_accepted=%ld  *number_generated=%ld\n",
-                 G_FIELD, G_PRECISION, best_generated_state->cost,
+  char *bestc_format = "best...->cost=%-*.*g  *number_accepted=%ld  *number_generated=%ld\n";
 #else
-                 "best...->cost=%-*.*g  *number_accepted=%d  *number_generated=%d\n",
-                 G_FIELD, G_PRECISION, best_generated_state->cost,
+  char *bestc_format = "best...->cost=%-*.*g  *number_accepted=%d  *number_generated=%d\n";
 #endif /* INT_LONG */
+        fprintf (ptr_asa_out,
+                 bestc_format,
+                 G_FIELD, G_PRECISION, best_generated_state->cost,
                  *number_accepted, *number_generated);
 #if ASA_PRINT_MORE
         if (best_flag == 1) {
@@ -2796,13 +2801,14 @@ RET1_asa:
         }
 #endif /* ASA_PRINT_MORE */
 #if ASA_PARALLEL
+#if INT_LONG
+  char *asapar_format = "OPTIONS->Gener_Block = %ld\n";
+#else
+  char *asapar_format = "OPTIONS->Gener_Block = %d\n";
+#endif /* INT_LONG */
         /* print OPTIONS->Gener_Block just used */
         fprintf (ptr_asa_out,
-#if INT_LONG
-                 "OPTIONS->Gener_Block = %ld\n",
-#else
-                 "OPTIONS->Gener_Block = %d\n",
-#endif /* INT_LONG */
+                 asapar_format,
                  OPTIONS->Gener_Block);
 #endif /* ASA_PARALLEL */
         if (best_flag == 1) {
@@ -3763,16 +3769,17 @@ asa_exit (user_cost_function,
   case P_TEMP_TOO_SMALL:
     fprintf (ptr_asa_out,
              "\n\n P_TEMP_TOO_SMALL exit_status = %d\n", *exit_status);
-    fprintf (ptr_asa_out,
 #if INT_ALLOC
-             "current_user_parameter_temp[%d] too small = %*.*g\n",
+  char *small_format = "current_user_parameter_temp[%d] too small = %*.*g\n";
 #else
 #if INT_LONG
-             "current_user_parameter_temp[%ld] too small = %*.*g\n",
+  char *small_format = "current_user_parameter_temp[%ld] too small = %*.*g\n";
 #else
-             "current_user_parameter_temp[%d] too small = %*.*g\n",
+  char *small_format = "current_user_parameter_temp[%d] too small = %*.*g\n";
 #endif
 #endif
+    fprintf (ptr_asa_out,
+             small_format,
              *index_exit_v,
              G_FIELD, G_PRECISION,
              current_user_parameter_temp[*index_exit_v]);
@@ -6767,16 +6774,17 @@ print_state (parameter_minimum,
     if (PARAMETER_RANGE_TOO_SMALL (index_v))
       continue;
 #endif
-    fprintf (ptr_asa_out,
 #if INT_ALLOC
-             "%d\t%*.*g\t\t%*.*g\t%*.*g\n",
+  char *dropped_format = "%d\t%*.*g\t\t%*.*g\t%*.*g\n";
 #else
 #if INT_LONG
-             "%ld\t%*.*g\t\t%*.*g\t%*.*g\n",
+  char *dropped_format = "%ld\t%*.*g\t\t%*.*g\t%*.*g\n";
 #else
-             "%d\t%*.*g\t\t%*.*g\t%*.*g\n",
+  char *dropped_format = "%d\t%*.*g\t\t%*.*g\t%*.*g\n";
 #endif
 #endif
+    fprintf (ptr_asa_out,
+             dropped_format,
              index_v,
              G_FIELD, G_PRECISION, best_generated_state->parameter[index_v],
              G_FIELD, G_PRECISION, current_user_parameter_temp[index_v],
@@ -6802,29 +6810,31 @@ print_state (parameter_minimum,
         index_v_vv = ROW_COL_INDEX (index_v, index_vv);
 
         if (index_v == index_vv) {
-          fprintf (ptr_asa_out,
 #if INT_ALLOC
-                   "curvature[%d][%d] = %*.*g\n",
+  char *curvature1_format = "curvature[%d][%d] = %*.*g\n";
 #else
 #if INT_LONG
-                   "curvature[%ld][%ld] = %*.*g\n",
+  char *curvature1_format = "curvature[%ld][%ld] = %*.*g\n";
 #else
-                   "curvature[%d][%d] = %*.*g\n",
+  char *curvature1_format = "curvature[%d][%d] = %*.*g\n";
 #endif
 #endif
+          fprintf (ptr_asa_out,
+                   curvature1_format,
                    index_v, index_vv,
                    G_FIELD, G_PRECISION, curvature[index_v_vv]);
         } else {
-          fprintf (ptr_asa_out,
 #if INT_ALLOC
-                   "curvature[%d][%d] = %*.*g \t = curvature[%d][%d]\n",
+  char *curvature2_format = "curvature[%d][%d] = %*.*g \t = curvature[%d][%d]\n";
 #else
 #if INT_LONG
-                   "curvature[%ld][%ld] = %*.*g \t = curvature[%ld][%ld]\n",
+  char *curvature2_format = "curvature[%ld][%ld] = %*.*g \t = curvature[%ld][%ld]\n";
 #else
-                   "curvature[%d][%d] = %*.*g \t = curvature[%d][%d]\n",
+  char *curvature2_format = "curvature[%d][%d] = %*.*g \t = curvature[%d][%d]\n";
 #endif
 #endif
+          fprintf (ptr_asa_out,
+                   curvature2_format,
                    index_v, index_vv,
                    G_FIELD, G_PRECISION, curvature[index_v_vv],
                    index_vv, index_v);
