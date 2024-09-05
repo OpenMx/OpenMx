@@ -121,6 +121,9 @@ staging-prep: staging-clean
 cran-build: staging-prep
 	+cd staging && sh ./util/prep cran build && $(REXEC) CMD build --resave-data .
 
+build-no-dsym: staging-prep
+	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD INSTALL --build .
+
 build: staging-prep
 	+cd staging && sh ./util/prep npsol build && $(REXEC) CMD INSTALL $(BUILDARGS) --build .
 
