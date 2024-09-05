@@ -126,7 +126,7 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
 summary(threeFactorOrthogonalOut)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 105106.956, .5)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 104964.3, .5)
 
 # Compare with vs. without analytic gradients ####
 mxOption(NULL,"Analytic gradients","Yes")

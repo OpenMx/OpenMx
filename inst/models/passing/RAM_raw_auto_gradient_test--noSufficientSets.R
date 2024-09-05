@@ -62,3 +62,6 @@ omxCheckCloseEnough(fmf6$output$gradient,c(0,0,0),5e-4)
 #Using analytic derivatives should be faster:
 omxCheckTrue(fmf5$output$iterations <= fmf6$output$iterations)
 omxCheckTrue(fmf5$output$evaluations < fmf6$output$evaluations)
+if(0){
+	omxCheckTrue(summary(fmf5)$wallTime < summary(fmf6)$wallTime)
+}

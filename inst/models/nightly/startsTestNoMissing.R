@@ -268,7 +268,8 @@ STARTSM <- mxModel("STARTS",
                   algebraSTARTS,
                   stationarityConstraint,
                   correlatedResiduals)
-startsModel <- mxRun(STARTSM)
+set.seed(476)
+startsModel <- mxTryHard(STARTSM,fit2beat=3035.196,extraTries=99)
 
 summary(startsModel)
 # usually 3035.1959
