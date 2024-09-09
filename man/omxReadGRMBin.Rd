@@ -22,7 +22,7 @@ A GRM calculated in GCTA that is saved to disk in binary format comprises three 
 \code{omxReadGRMBin()} opens three file connections, one for each file.
 }
 \value{
-If \code{returnList=FALSE} (the default), then the GRM itself is returned as a numeric matrix, with each row and column named as the sum of the corresponding participant's family ID and individual ID.  Otherwise, a list of the following four elements is returned:
+If \code{returnList=FALSE} (the default), then the GRM itself is returned as a numeric matrix, with each row and column named as the adhesion of the corresponding participant's family ID and individual ID, separated by an underscore.  Otherwise, a list of the following four elements is returned:
 \enumerate{
 	\item \code{"diag"}: Numeric vector containing the GRM's diagonal elements.
 	\item \code{"off"}: Numeric vector containing the GRM's off-diagonal elements.
