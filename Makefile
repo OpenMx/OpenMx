@@ -201,6 +201,9 @@ test-lisrel:
 test-csolnp:
 	IMX_OPT_ENGINE=CSOLNP $(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args csolnp
 
+test-GREML:
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args GREML
+
 torture:
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args gctorture
 
