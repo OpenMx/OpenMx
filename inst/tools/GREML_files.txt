@@ -1,0 +1,14 @@
+inst/models/passing/AugmentedGREMLfitfunction.R
+inst/models/passing/GREML--151123missingDataRegressionTest.R
+inst/models/passing/GREML_intercept_check.R
+inst/models/passing/GREML--minimal_test_model.R
+inst/models/passing/GREML_partial_gradients_EI.R
+inst/models/passing/GREML_partial_gradients.R
+inst/models/passing/GREML--polyphenotype.R
+inst/models/passing/GREML--testStarterFunctionWithMissingData.R
+inst/models/passing/Tiny_GREML_model_for_full_debug_logging.R
+inst/models/nightly/AnalyticGradientTest.R
+inst/models/nightly/GREML_infoMat_test.R
+inst/models/nightly/GREML_monophenotype_1GRM_GradDesc.R
+inst/models/nightly/GREML_monophenotype_1GRM.R
+inst/models/nightly/InvalidComparisonDetection.R

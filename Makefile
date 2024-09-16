@@ -204,6 +204,9 @@ test-csolnp:
 test-RAMd:
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args RAMd
 
+test-GREML:
+	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args GREML
+
 torture:
 	$(REXEC) $(GDBWRAP) --vanilla --slave -f $(TESTFILE) --args gctorture
 
