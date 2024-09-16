@@ -305,7 +305,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 				}
 				else{ //It's making progress w/r/t the constraints, so re-initialize the simplex with a small edge:
 					nmoc.iniSimplexEdge =
-						sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+						(nmoc.vertices[nmoc.n] - nmoc.vertices[0]).norm();
 					//It's a good idea to reduce the penalty coefficient if the algorithm is making progress.
 					//That helps prevent it from stopping at a non-optimal point:
 					nmoc.rho /= 5.0;
@@ -333,7 +333,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 		nmoc2.maxIter = 2 * nmoc.n;
 		nmoc2.iniSimplexType = 1;
 		nmoc2.iniSimplexEdge =
-			sqrt((nmoc.vertices[nmoc.n] - nmoc.vertices[0]).dot(nmoc.vertices[nmoc.n] - nmoc.vertices[0]));
+			(nmoc.vertices[nmoc.n] - nmoc.vertices[0]).norm();
 		nmoc2.centerIniSimplex = true;
 		nmoc2.fit2beat = nmoc.bestfit;
 		nmoc2.bignum = nmoc.bignum;
@@ -1345,7 +1345,7 @@ void NelderMeadOptimizerContext::invokeNelderMead(){
 
 			needRestart = checkProgress();
 			if(needRestart){
-				initializeSimplex(vertices[0], sqrt((vertices[0]-vertices[1]).dot(vertices[0]-vertices[1])), true);
+				initializeSimplex(vertices[0], (vertices[0]-vertices[1]).norm(), true);
 				needRestart = false;
 				restartsUsed++;
 				needFullSort = true;
