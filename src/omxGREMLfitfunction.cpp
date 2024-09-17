@@ -299,9 +299,9 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			otherwise, extraneous calculations can be avoided:*/
  			if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  				P.setZero(gff->invcov->rows, gff->invcov->cols);
- 				P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * //P = Vinv * (I-Hatmat)
- 					(Eigen::MatrixXd::Identity(Vinv.rows(), Vinv.cols()) -
- 					(EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv))).triangularView<Eigen::Lower>();
+ 				Eigen::MatrixXd Hatmat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv;
+ 				subtractFromIdentityMatrixInPlace(Hatmat);
+ 				P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * Hatmat).triangularView<Eigen::Lower>(); //P = Vinv * (I-Hatmat)
  				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
  				P.triangularView<Eigen::Upper>() = P.triangularView<Eigen::Lower>().transpose();
  				if(want & FF_COMPUTE_FIT){

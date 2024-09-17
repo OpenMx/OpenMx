@@ -614,6 +614,14 @@ double trace_prod_symm(const Eigen::MatrixBase<T1> &t1, const Eigen::MatrixBase<
 void MoorePenroseInverseSq(Eigen::Ref<Eigen::MatrixXd> mat);
 void MoorePenroseInverse(Eigen::Ref<Eigen::MatrixXd> in, Eigen::Ref<Eigen::MatrixXd> out);
 
+template <typename T1>
+void subtractFromIdentityMatrixInPlace(Eigen::MatrixBase<T1> &M)
+{
+	M *= -1.0;
+	M.diagonal().array() += 1.0;
+}
+
+
 // https://forum.kde.org/viewtopic.php?f=74&t=96706
 // https://forum.kde.org/viewtopic.php?f=74&t=124421
 // https://forum.kde.org/viewtopic.php?f=74&t=91271
