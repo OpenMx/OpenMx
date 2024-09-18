@@ -475,7 +475,7 @@ void omxGREMLFitState::gradientAndAIM1(
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
-		int i=0, j=0, t1=0, t2=0, a1=0, a2=0, r=0, c=0;
+		int i=0, j=0, t1=0, t2=0, a1=0, a2=0;
 		double tr=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
@@ -510,15 +510,7 @@ void omxGREMLFitState::gradientAndAIM1(
 				Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(j=i; j < numExplicitFreePar; j++){
 					if(j==i){
-						/*Need trace of u_P*dV_dtheta for gradient element...
-						 Frustratingly, the selfadjointView has no row or column accessor function among its members.
-						 But the trace of a product of two square symmetric matrices is the sum of the elements of
-						 their elementwise product.*/
-						for(c=0; c < cov->rows; c++){
-							for(r=c; r < cov->rows; r++){
-								tr += (r==c) ? u_P(r,c)*dV_dtheta1(r,c) : 2*u_P(r,c)*dV_dtheta1(r,c);
-							}
-						}
+						tr = trace_prod_symm(u_P,dV_dtheta1);
 						gradient(t1) = u_Scale*0.5*(tr - (ytPdV_dtheta1 * u_Py)(0,0)) +
 							u_Scale*pullAugVal(1,a1,0);
 						if(u_want & FF_COMPUTE_GRADIENT){
@@ -582,7 +574,7 @@ void omxGREMLFitState::gradientAndAIM2(
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
-		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, t1, t2;
+		int i=0, hrn=0, hcn=0, a1=0, a2=0, t1, t2;
 		double tr=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
@@ -617,15 +609,7 @@ void omxGREMLFitState::gradientAndAIM2(
 				Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(hcn=hrn; hcn < numExplicitFreePar; hcn++){
 					if(hcn==hrn){
-						/*Need trace of u_P*dV_dtheta for gradient element...
-						 Frustratingly, the selfadjointView has no row or column accessor function among its members.
-						 But the trace of a product of two square symmetric matrices is the sum of the elements of
-						 their elementwise product.*/
-						for(c=0; c < cov->rows; c++){
-							for(r=c; r < cov->rows; r++){
-								tr += (r==c) ? u_P(r,c)*dV_dtheta1(r,c) : 2*u_P(r,c)*dV_dtheta1(r,c);
-							}
-						}
+						tr = trace_prod_symm(u_P,dV_dtheta1);
 						gradient(hrn) = u_Scale*0.5*(tr - (ytPdV_dtheta1 * u_Py)(0,0)) +
 							u_Scale*pullAugVal(1,a1,0);
 						if(u_want & FF_COMPUTE_GRADIENT){
@@ -690,7 +674,7 @@ void omxGREMLFitState::gradientAndAIM3(
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
-		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0, t1, t2;
+		int i=0, hrn=0, hcn=0, a1=0, a2=0, inielem=0, t1, t2;
 		double tr=0;
 		double *ptrToMatrix1=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
@@ -733,11 +717,7 @@ void omxGREMLFitState::gradientAndAIM3(
 				Eigen::Map< Eigen::MatrixXd > dV_dtheta1( ptrToMatrix1, Eigyrows, Eigyrows ); //<--Derivative of V w/r/t parameter hrn.
 				Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				if(hrn==hcn){
-					for(c=0; c < cov->rows; c++){
-						for(r=c; r < cov->rows; r++){
-							tr += (r==c) ? u_P(r,c)*dV_dtheta1(r,c) : 2*u_P(r,c)*dV_dtheta1(r,c);
-						}
-					}
+					tr = trace_prod_symm(u_P,dV_dtheta1);
 					gradient(hrn) = u_Scale*0.5*(tr - (ytPdV_dtheta1 * u_Py)(0,0)) +
 						u_Scale*pullAugVal(1,a1,0);
 					if(u_want & FF_COMPUTE_GRADIENT){
@@ -806,7 +786,7 @@ void omxGREMLFitState::gradientAndEIM1(
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
-		int i=0, t1=0, a1=0, r=0, c=0;
+		int i=0, t1=0, a1=0;
 		double tr1=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
@@ -855,11 +835,7 @@ void omxGREMLFitState::gradientAndEIM1(
 							if(u_want & FF_COMPUTE_GRADIENT){
 								u_fc->gradZ(t1) += gradient(t1);
 							}
-							for(c=0; c < cov->rows; c++){
-								for(r=0; r < cov->rows; r++){
-									tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
-								}
-							}
+							tr2 = trace_prod(dV_dtheta1P,dV_dtheta1P);
 							infoMat(t1,t1) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 						}
 						else{
@@ -883,11 +859,7 @@ void omxGREMLFitState::gradientAndEIM1(
 							}
 							Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2, Eigyrows, Eigyrows);
 							Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;//.template selfadjointView<Eigen::Lower>();
-							for(c=0; c < cov->rows; c++){
-								for(r=0; r < cov->rows; r++){
-									tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
-								}
-							}
+							tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
 							infoMat(t1,t2) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 							infoMat(t2,t1) = infoMat(t1,t2);
 						}
@@ -921,15 +893,7 @@ void omxGREMLFitState::gradientAndEIM1(
 					}
 					Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1, Eigyrows, Eigyrows);
 					Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-					/*Need trace of P*dV_dtheta for gradient element...
-					 Frustratingly, the selfadjointView has no row or column accessor function among its members.
-					 But the trace of a product of two square symmetric matrices is the sum of the elements of
-					 their elementwise product.*/
-					for(c=0; c < cov->rows; c++){
-						for(r=c; r < cov->rows; r++){
-							tr1 += (r==c) ? u_P(r,c)*dV_dtheta1(r,c) : 2*u_P(r,c)*dV_dtheta1(r,c);
-						}
-					}
+					tr1 = trace_prod_symm(u_P,dV_dtheta1);
 					gradient(t1) = u_Scale*0.5*(tr1 - (ytPdV_dtheta1 * u_Py)(0,0)) +
 						u_Scale*pullAugVal(1,a1,0);
 					if(u_want & FF_COMPUTE_GRADIENT){
@@ -963,7 +927,7 @@ void omxGREMLFitState::gradientAndEIM2(
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
-		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, t1, t2;
+		int i=0, hrn=0, hcn=0, a1=0, a2=0, t1, t2;
 		double tr1=0, tr2=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
@@ -1007,11 +971,7 @@ void omxGREMLFitState::gradientAndEIM2(
 							u_fc->gradZ(hrn) += gradient(hrn);
 						}
 						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-							for(c=0; c < cov->rows; c++){
-								for(r=0; r < cov->rows; r++){
-									tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
-								}
-							}
+							tr2 = trace_prod(dV_dtheta1P,dV_dtheta1P);
 							infoMat(hrn,hrn)  = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 						}
 					}
@@ -1038,11 +998,7 @@ void omxGREMLFitState::gradientAndEIM2(
 							}
 							Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2, Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hcn.
 							Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
-							for(c=0; c < cov->rows; c++){
-								for(r=0; r < cov->rows; r++){
-									tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
-								}
-							}
+							tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
 							infoMat(hrn,hcn) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 							infoMat(hcn,hrn) = infoMat(hrn,hcn);
 						}
@@ -1074,7 +1030,7 @@ void omxGREMLFitState::gradientAndEIM3(
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
-		int i=0, hrn=0, hcn=0, a1=0, a2=0, r=0, c=0, inielem=0, t1, t2;
+		int i=0, hrn=0, hcn=0, a1=0, a2=0, inielem=0, t1, t2;
 		double tr1=0, tr2=0;
 		double *ptrToMatrix1=0;
 		Eigen::VectorXd curEst(numExplicitFreePar);
@@ -1124,11 +1080,7 @@ void omxGREMLFitState::gradientAndEIM3(
 						u_fc->gradZ(hrn) += gradient(hrn);
 					}
 					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						for(c=0; c < cov->rows; c++){
-							for(r=0; r < cov->rows; r++){
-								tr2 += dV_dtheta1P(r,c) * dV_dtheta1P(r,c);
-							}
-						}
+						tr2 = trace_prod(dV_dtheta1P,dV_dtheta1P);
 						infoMat(hrn,hrn)  = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 					}
 				}
@@ -1154,11 +1106,7 @@ void omxGREMLFitState::gradientAndEIM3(
 						}
 						Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2, Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hcn.
 						Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
-						for(c=0; c < cov->rows; c++){
-							for(r=0; r < cov->rows; r++){
-								tr2 += dV_dtheta1P(r,c) * dV_dtheta2P(r,c);
-							}
-						}
+						tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
 						infoMat(hrn,hcn) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 						infoMat(hcn,hrn) = infoMat(hrn,hcn);
 					}
