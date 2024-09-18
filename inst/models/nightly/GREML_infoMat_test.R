@@ -93,10 +93,10 @@ mygrad[1] <- tr(I%*%P) - t(P%*%y)%*%I%*%P%*%y
 mygrad[2] <- tr(A%*%P) - t(P%*%y)%*%A%*%P%*%y
 omxCheckCloseEnough(mygrad, testrun$output$gradient, 5e-12)
 
-myEIM[1,1] <- sum((I%*%P)*(I%*%P))
-myEIM[1,2] <- sum((I%*%P)*(A%*%P) )
+myEIM[1,1] <- sum((I%*%P)*t(I%*%P))
+myEIM[1,2] <- sum((I%*%P)*t(A%*%P) )
 myEIM[2,1] <- myEIM[1,2]
-myEIM[2,2] <- sum((A%*%P)*(A%*%P))
+myEIM[2,2] <- sum((A%*%P)*t(A%*%P))
 omxCheckCloseEnough(myEIM, testrun$output$hessian, 1e-10)
 
 
