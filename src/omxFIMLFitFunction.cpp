@@ -258,8 +258,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						//We only need C for second derivatives, but we want to compute it outside the loop across parameters:
 						Eigen::MatrixXd C = SigmaInvDataCov; //<--Copy to modify in-place.
 						if(want & FF_COMPUTE_HESSIAN){
-							C *= -1.0; //First step of I-SigmaInvDataCov.
-							C.diagonal().array() += 1.0; //Second step of I-SigmaInvDataCov.
+							subtractFromIdentityMatrixInPlace(C);
 							if(OMX_DEBUG_ALGEBRA){ mxPrintMat("C",C); }
 						}
 						for(size_t px=0; px < ofiml->dSigma_dtheta.size(); px++){
