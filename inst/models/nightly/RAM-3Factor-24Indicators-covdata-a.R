@@ -125,8 +125,10 @@ threeFactorOrthogonal <- mxModel("threeFactorOrthogonal",
     )
 
 threeFactorOrthogonalOut <- mxRun(threeFactorOrthogonal)
+set.seed(10)
+threeFactorOrthogonalOut <- mxTryHard(threeFactorOrthogonalOut,fit2beat=29350)
 summary(threeFactorOrthogonalOut)
-omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29350.18, .1)
+omxCheckCloseEnough(threeFactorOrthogonalOut$output$fit, 29335.67, .1)
 
 if (mxOption(NULL, "Default optimizer") != 'CSOLNP') {
   # This is a starting point near a local minimum. Without the change in
