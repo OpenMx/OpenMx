@@ -129,7 +129,11 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 					#grad.full[is.na(grad.full)] <- 0
 					grad.full[which(names(grad.full)!=names(omxGetParameters(gmodel)))] <- 0
 					hess.full <- plusOneParamRun$output$hessian
-					modind.full <- 0.5*t(matrix(grad.full)) %*% solve(hess.full) %*% matrix(grad.full)
+					solve_hess_full <- try(solve(hess.full),silent=F)
+					if(is(solve_hess_full,"try-error") && length(grep("computationally singular",solve_hess_full[1]))){
+						solve_hess_full <- chol2inv(chol(hess.full))
+					}
+					modind.full <- 0.5*t(matrix(grad.full)) %*% solve_hess_full %*% matrix(grad.full)
 					if(sum(grad.full != 0) == 1){
 						exppar.full <- - modind.full/grad.full[grad.full != 0]
 					} else {stop("Something strange in the neighborhood.\nFound a one-parameter model with more than one parameter.\nPost this to the OpenMx forums.")}
