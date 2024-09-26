@@ -158,4 +158,23 @@ omxCheckCloseEnough(cmpd[,1], cmpd[,2], 0.015)
 
 
 #------------------------------------------------------------------------------
+# Create/estimate multisubject model with row weights
+# Error checking
+
+indivmodels <- list()
+for(k in 1:nSubj){
+	DataSetForSubjectK <- dataL[[k]]
+	indivmodels[[k]] <- mxModel(name=modNames[k],
+		modL, expSS,
+		mxFitFunctionML(),
+		mxData(DataSetForSubjectK, type='raw', weight='y')) 
+}
+multiSubjGrowth <- mxModel(name="MultiGrowth", indivmodels,
+	mxFitFunctionMultigroup(modNames))
+
+omxCheckError(multiSubjGrowthRun <- mxRun(multiSubjGrowth),
+	"row frequencies or weights provided in 'Subject1LatentGrowth.data' are not supported")
+
+
+#------------------------------------------------------------------------------
 # Done
