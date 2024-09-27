@@ -489,3 +489,4 @@ omxCheckTrue(rms(vech(asym_ovar), vech(obs_ovar)) < 0.05)
 #------------------------------------------------------------------------------
 # Done
 
+try(unloadNamespace(Matrix),silent=T)

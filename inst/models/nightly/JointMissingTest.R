@@ -95,3 +95,5 @@ print(twinmod2$output$fit - twinmod3$output$fit)
 omxCheckCloseEnough(twinmod2$output$fit, twinmod3$output$fit, 1e-3)
 omxCheckCloseEnough(cor(twinmod2$output$gradient, twinmod3$output$gradient), 1, 1e-6)
 omxCheckCloseEnough(cor(vech(twinmod2$output$hessian), vech(twinmod3$output$hessian)), 1, 1e-5)
+
+try(unloadNamespace(Matrix),silent=T)

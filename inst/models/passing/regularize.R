@@ -14,6 +14,9 @@ randomCov <- function() {
   dat
 }
 
+firstCov <- randomCov()
+secondCov <- randomCov()
+
 label <- matrix(NA, D,D)
 diag(label) <- paste0('d',1:D)
 label[lower.tri(label)] <- paste0('c', 1:(D * (D-1)/2))
@@ -23,7 +26,7 @@ levels(regGroup) <- c('lasso', 'ridge', 'elasticNet')
 
 m1 <- mxModel(
   'm1',
-  mxData(randomCov(), type = 'cov', numObs = 100),
+  mxData(firstCov, type = 'cov', numObs = 100),
   mxMatrix('Symm', D,D, TRUE, values=diag(D) + .2,
            labels=label[lower.tri(label,TRUE)],
            dimnames=list(paste0('x',1:D),paste0('x',1:D)),
@@ -59,7 +62,7 @@ expect_equivalent(mxEval(lasso, m1, compute = TRUE), matrix(0.4, 1, 1))
 
 for (rep in 1:10) {
   fit1 <- mxModel(m1,
-                  mxData(randomCov(), type = 'cov', numObs = 100))
+                  mxData(secondCov, type = 'cov', numObs = 100))
 
 
   mxOption(key="Analytic Gradients", value="Yes")
@@ -98,7 +101,7 @@ for (rep in 1:10) {
 m1 <- expect_warning(mxPenaltySearch(m1),
                      "model does not satisfy the first-order optimality conditions")
 expect_equal((-2*logLik(m1))[1],m1$output$fit)
-if(mxOption(NULL,"Default optimizer") != "CSOLNP"){
+if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	expect_equal((-2*logLik(m1))[1],876.4839,5e-5)
 }
 
@@ -140,7 +143,7 @@ expect_equal(fit3$output$fit, 822.757, 5e-5)
 expect_true(mxEval(lasso, fit3, compute = TRUE) != 0)
 
 #Sanity check:
-if(mxOption(NULL,"Default optimizer") != "CSOLNP"){
+if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	expect_equal(
 		as.vector(coef(m1)),
 		c(1.24,-0.25,1.72,-0.01,0.74,1.72,0.01,0.69,-0.37,1.86,0.61,0.09,-0.26,0.53,1.62,-0.44,0.29,-0.32,0.01,0.26,1.89,12.0,0.40),
