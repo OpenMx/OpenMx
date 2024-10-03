@@ -401,20 +401,6 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 						}
 					}
 				}
-				
-				residSize = ss.dataMean.size();
-				//mxPrintMat("dataCov", ss.dataCov);
-				//mxPrintMat("contMean", contMean);
-				//mxPrintMat("dataMean", ss.dataMean);
-				//mxPrintMat("resid", resid);
-				iqf = resid.transpose() * iV.selfadjointView<Eigen::Lower>() * resid;
-				double tr1 = trace_prod_symm(iV, ss.dataCov);
-				double logDet = 2.0 * covDecomp.log_determinant();
-				double cterm = M_LN_2PI * residSize;
-				//mxLog("[%d] iqf %f tr1 %f logDet %f cterm %f", ssx, iqf, tr1, logDet, cterm);
-				double ll = ss.rows * (iqf + logDet + cterm) + (ss.rows-1) * tr1;
-				record(-0.5 * ll + ss.rows * log(ordLik), ss.length);
-				contLogLik = 0.0;
 				continue;
 			}
 
