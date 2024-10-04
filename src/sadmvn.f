@@ -788,49 +788,6 @@
       DOUBLE PRECISION FUNCTN, ABSEPS, RELEPS, FINEST, ABSERR, DIFINT,
      &       FINVAL, VARSQR, VAREST, VARPRD, VALUE
       DOUBLE PRECISION ALPHA(NLIM), X(NLIM), VK(NLIM), ONE
-      PARAMETER ( ONE = 1 )
-      SAVE P, C, SAMPLS, NP, VAREST
-      INFORM = 1
-      INTVLS = 0
-      IF ( MINVLS .GE. 0 ) THEN
-         FINEST = 0
-         VAREST = 0
-         SAMPLS = MINSMP
-         DO I = 1, PLIM
-            NP = I
-            IF ( MINVLS .LT. 2*SAMPLS*P(I) ) GO TO 10
-         END DO
-         SAMPLS = MAX( MINSMP, MINVLS/( 2*P(NP) ) )
-      ENDIF
- 10   VK(1) = ONE/P(NP)
-      DO I = 2, NDIM
-         VK(I) = MOD( C(NP,NDIM-1)*VK(I-1), ONE )
-      END DO
-      FINVAL = 0
-      VARSQR = 0
-      DO I = 1, SAMPLS
-         CALL KROSUM( NDIM, VALUE, P(NP), VK, FUNCTN, ALPHA, X, TID )
-         DIFINT = ( VALUE - FINVAL )/I
-         FINVAL = FINVAL + DIFINT
-         VARSQR = ( I - 2 )*VARSQR/I + DIFINT**2
-      END DO
-      INTVLS = INTVLS + 2*SAMPLS*P(NP)
-      VARPRD = VAREST*VARSQR
-      FINEST = FINEST + ( FINVAL - FINEST )/( 1 + VARPRD )
-      IF ( VARSQR .GT. 0 ) VAREST = ( 1 + VARPRD )/VARSQR
-      ABSERR = 3*SQRT( VARSQR/( 1 + VARPRD ) )
-      IF ( ABSERR .GT. MAX( ABSEPS, ABS(FINEST)*RELEPS ) ) THEN
-         IF ( NP .LT. PLIM ) THEN
-            NP = NP + 1
-         ELSE
-            SAMPLS = MIN( 3*SAMPLS/2, ( MAXVLS - INTVLS )/( 2*P(NP) ) )
-            SAMPLS = MAX( MINSMP, SAMPLS )
-         ENDIF
-         IF ( INTVLS + 2*SAMPLS*P(NP) .LE. MAXVLS ) GO TO 10
-      ELSE
-         INFORM = 0
-      ENDIF
-      MINVLS = INTVLS
       DATA P( 1), ( C( 1,I), I = 1, 99 ) /    113,
      &     42,    54,    55,    32,    13,    26,    26,    13,    26,
      &     14,    13,    26,    35,     2,     2,     2,     2,    56,
@@ -1071,6 +1028,50 @@
      &  51986,110913, 51986, 51986,110913, 82411, 54713, 54713, 22360,
      & 117652, 22360, 78250, 78250, 91996, 22360, 91996, 97781, 91996,
      &  97781, 91996, 97781, 97781, 91996, 97781, 97781, 36249, 39779/
+      PARAMETER ( ONE = 1 )
+      SAVE P, C, SAMPLS, NP, VAREST
+      INFORM = 1
+      INTVLS = 0
+      IF ( MINVLS .GE. 0 ) THEN
+         FINEST = 0
+         VAREST = 0
+         SAMPLS = MINSMP
+         DO I = 1, PLIM
+            NP = I
+            IF ( MINVLS .LT. 2*SAMPLS*P(I) ) GO TO 10
+         END DO
+         SAMPLS = MAX( MINSMP, MINVLS/( 2*P(NP) ) )
+      ENDIF
+ 10   VK(1) = ONE/P(NP)
+      DO I = 2, NDIM
+         VK(I) = MOD( C(NP,NDIM-1)*VK(I-1), ONE )
+      END DO
+      FINVAL = 0
+      VARSQR = 0
+      DO I = 1, SAMPLS
+         CALL KROSUM( NDIM, VALUE, P(NP), VK, FUNCTN, ALPHA, X, TID )
+         DIFINT = ( VALUE - FINVAL )/I
+         FINVAL = FINVAL + DIFINT
+         VARSQR = ( I - 2 )*VARSQR/I + DIFINT**2
+      END DO
+      INTVLS = INTVLS + 2*SAMPLS*P(NP)
+      VARPRD = VAREST*VARSQR
+      FINEST = FINEST + ( FINVAL - FINEST )/( 1 + VARPRD )
+      IF ( VARSQR .GT. 0 ) VAREST = ( 1 + VARPRD )/VARSQR
+      ABSERR = 3*SQRT( VARSQR/( 1 + VARPRD ) )
+      IF ( ABSERR .GT. MAX( ABSEPS, ABS(FINEST)*RELEPS ) ) THEN
+         IF ( NP .LT. PLIM ) THEN
+            NP = NP + 1
+         ELSE
+            SAMPLS = MIN( 3*SAMPLS/2, ( MAXVLS - INTVLS )/( 2*P(NP) ) )
+            SAMPLS = MAX( MINSMP, SAMPLS )
+         ENDIF
+         IF ( INTVLS + 2*SAMPLS*P(NP) .LE. MAXVLS ) GO TO 10
+      ELSE
+         INFORM = 0
+      ENDIF
+      MINVLS = INTVLS
+C	  MCN: Moved Data block to top of function to stop -pedantic getting upset about it
       END
 *
       SUBROUTINE KROSUM( NDIM, SUMKRO, PRIME, VK,
