@@ -27,14 +27,8 @@
 # Factor model check
 
 require(OpenMx)
-# This test script fails when CSOLNP and NPSOL are in use with analytic gradients.  The reason is that they both reach a solution such that, 
-# when it comes time to compute the modification index for the sole fixed parameter in the 'M' matrix, the corresponding 
-# "full Hessian" is just barely uninvertible.  This seems to simply be an edge case, due to "bad luck".
-if(mxOption(NULL,"Default optimizer")!="SLSQP"){
-	vv <- "No"
-} else{
-	vv <- c("No","Yes")
-}
+
+vv <- c("No","Yes")
 
 for(v in vv){
 	mxOption(NULL,"Analytic Gradients",v)
@@ -55,7 +49,14 @@ for(v in vv){
 		mxData(demoOneFactor, type="raw"))
 	factorRun <- mxRun(factorModel)
 	
-	fim <- mxMI(factorRun)
+	# This test script fails when CSOLNP and NPSOL are in use with analytic gradients.  The reason is that they both reach a solution such that, 
+	# when it comes time to compute the modification index for the sole fixed parameter in the 'M' matrix, the corresponding 
+	# "full Hessian" is just barely uninvertible.  This seems to simply be an edge case, due to "bad luck".
+	mm <- c("A","S","M")
+	if(mxOption(NULL,"Analytic gradients")=="Yes" && mxOption(NULL,"Default optimizer")!="SLSQP"){
+		mm <- c("A","S")
+	}
+	fim <- mxMI(factorRun,matrices=mm)
 	
 	
 	mplusON.mi <- c(NA, 0.001, 1.582, .272, .285, NA, 0.001, NA, 1.540, 4.041, .748, NA, 1.582, 1.540, NA, .151, 5.339, NA, .272, 4.042, .151, NA, 3.574, NA, NA, .748, 5.339, 3.574, NA, NA, NA)
