@@ -2,9 +2,9 @@ name: OpenMx Package Check
 
 on:
   push:
-    branches: [ main ]
+    branches: [ analytDerivs ]
   pull_request:
-    branches: [ main ]
+    branches: [ analytDerivs ]
 
 jobs:
   build:
