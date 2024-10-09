@@ -27,7 +27,7 @@ jobs:
           
         # New step: Build the package with 'make build'
       - name: Build package
-        run: make build
+        run: make build; file src/libnpsol.a
         shell: bash
 
       - uses: r-lib/actions/check-r-package@v2
