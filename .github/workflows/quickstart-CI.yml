@@ -25,9 +25,9 @@ jobs:
         with:
           extra-packages: rcmdcheck
           
-        # New step: Build the package with 'make build'
-      - name: Build package
-        run: make build; file src/libnpsol.a
+        # New step: Build the package with 'make install'
+      - name: Install package
+        run: make install
         shell: bash
 
       - uses: r-lib/actions/check-r-package@v2
