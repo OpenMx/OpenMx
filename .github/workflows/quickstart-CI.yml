@@ -25,11 +25,15 @@ jobs:
         with:
           extra-packages: rcmdcheck
           
+       # New step: Build the package with 'make install'
+      - name: Install package
+        run: make install
+        shell: bash
+          
       - name: roxygenize
         run: make roxygen
         shell: bash
           
-        # New step: Build the package with 'make install'
       - name: Install package
         run: make install
         shell: bash
