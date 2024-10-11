@@ -174,7 +174,7 @@ doc.tar.bz2:
 
 install: code-style
 	sh ./util/prep npsol install
-	+$(REXEC) CMD INSTALL --no-test-load --with-keep.source $(BUILDARGS) . ;\
+	+$(REXEC) CMD INSTALL --no-test-load --resave-data --with-keep.source $(BUILDARGS) . ;\
 	git checkout DESCRIPTION
 
 cran-install: code-style
