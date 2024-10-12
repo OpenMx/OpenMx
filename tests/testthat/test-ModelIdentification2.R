@@ -133,6 +133,31 @@ omxCheckTrue(nrow(c3id$jacobian) == 20)
 
 
 #------------------------------------------------------------------------------
+# Check 3a Latent growth curve model with definition variable loadings
+# and almost all unique definition variable values
+
+data(myLongitudinalData)
+mld <- myLongitudinalData
+mv <- names(mld)
+dv <- paste0('t', 1:5)
+lv <- c('L0', 'L1')
+mld[, dv] <- matrix(1:5 + runif(n=nrow(mld)*5, -.25, .25), nrow=nrow(mld), ncol=5, byrow=TRUE)
+c3 <- mxModel('defvar LGM', type='RAM', manifestVars=mv, latentVars=lv,
+              mxData(mld, 'raw'),
+              mxPath(lv, arrows=2, connect='unique.pairs', values=c(1, .5, 1)),
+              mxPath(lv[1], mv, values=1, free=FALSE),
+              mxPath(lv[2], mv, labels=paste0('data.', dv), free=FALSE),
+              mxPath(mv, arrows=2, values=.1, labels='evar'),
+              mxPath('one', lv))
+# c3r <- mxRun(c3)
+# summary(c3r)
+c3id <- mxCheckIdentification(c3, nrows=3, exhaustive=TRUE)
+omxCheckTrue(c3id$status)
+# Check dimensions of Jacobian to verify that mxCheckID only used single values
+omxCheckTrue(nrow(c3id$jacobian) == 60)
+
+
+#------------------------------------------------------------------------------
 # Check 4 Single group ACE model using definition variable for relatedness
 
 data(twinData)
@@ -156,6 +181,9 @@ summary(c4r)
 
 c4id <- mxCheckIdentification(c4r)
 omxCheckTrue(c4id$status)
+
+expect_message(mxCheckIdentification(c4, nrows=1),
+               c('We tried 1 definition variable value rows.\nThe model is not yet locally identified.\nThe model might be identified if you try more definition variable rows, but it will take a while to run.\nUse mxCheckIdentification(YourModel, nrows=Inf, exhaustive=TRUE) to evaluate all possible rows,\nor set nrows to a larger number.'), fixed=TRUE)
 
 
 #------------------------------------------------------------------------------
