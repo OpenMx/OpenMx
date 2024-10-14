@@ -38,10 +38,12 @@ jobs:
         run: make install
         shell: bash
 
-      #- uses: r-lib/actions/check-r-package@v2
-      - name: check
-        run: R CMD check
-        shell: bash
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: '"--resave-data"'
+      #- name: check
+      #  run: R CMD check
+      #  shell: bash
 
       - name: Show testthat output
         if: always()
