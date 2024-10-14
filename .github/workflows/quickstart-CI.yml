@@ -39,7 +39,7 @@ jobs:
         shell: bash
 
       #- uses: r-lib/actions/check-r-package@v2
-        name: check
+      - name: check
         run: R CMD check
         shell: bash
 
