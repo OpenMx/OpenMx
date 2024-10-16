@@ -25,6 +25,12 @@ jobs:
         with:
           extra-packages: rcmdcheck
           
+      - name: Install system dependencies
+        run: |
+        sudo apt-get update
+        sudo apt-get install -y make
+
+          
        # New step: Build the package with 'make install'
       - name: Install package
         run: make install
