@@ -61,10 +61,6 @@ mxTryHard <- function(
 	if("Gradient algorithm" %in%  names(model@options)){relevantOptions[[4]] <- model@options$"Gradient algorithm"}
 	if(!lackOfConstraints){
 		if(imxHasWLS(model)){relevantOptions[[2]] <- "No"}
-		if(checkHess){
-			message("Polite note from mxTryHard: Hessian not checked as model contains mxConstraints")
-			checkHess <- FALSE
-		}
 	}
 	ndgi <- ifelse(hasThresholds,3L,4L)
 	ndgss <- ifelse(hasThresholds,1e-5,1e-7)
