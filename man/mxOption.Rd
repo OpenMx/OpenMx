@@ -105,7 +105,7 @@ OpenMx options
 
 \tabular{rcl}{
 Calculate Hessian \tab [Yes | No]       \tab calculate the Hessian explicitly after optimization. \cr
-Standard Errors   \tab [Yes | No]       \tab return standard error estimates from the explicitly calculate hessian. \cr
+Standard Errors   \tab [Yes | No]       \tab return standard error estimates. \cr
 Default optimizer \tab [NPSOL | SLSQP | CSOLNP] \tab the gradient-descent optimizer to use \cr
 Number of Threads \tab [0|1|2|...|10|...] \tab number of threads used
 for optimization. Default value is taken from the environment variable
