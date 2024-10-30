@@ -66,7 +66,7 @@ Free parameters in the model are reported in a table with columns for the name (
 
 \strong{Additional columns: standard errors, exclamation marks ("!"), and the 'A' (asymmetry) warning column}
 
-When the information matrix is available, either approximated by the Hessian or from bootstrap resampling, standard errors are reported in the column "Std.Error".
+When the covariance matrix of the parameter estimates is available, either via the inverse Hessian, or from bootstrap resampling, or as a function of the full-weight matrix in the case of WLS, standard errors are reported in the column "Std.Error".
 
 An exclamation mark ("!") can appear in two places: after a lower or upper bound, and in the 'A' column.  When an exclamation mark appears after a bound in the lbound or ubound columns, it indicates that the solution was sufficiently close to the bound that the optimizer could not ignore the bound during its last few iterations.
 

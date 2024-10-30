@@ -40,8 +40,6 @@ mxCI(reference, interval = 0.95, type=c("both", "lower", "upper"), ..., boundAdj
 \details{
 The mxCI function creates \link{MxCI} objects, which can be used as arguments in \link{MxModel} objects. When models containing \link{MxCI} objects are optimized using \link{mxRun} with the \sQuote{intervals} argument set to TRUE, likelihood-based confidence intervals are returned. The likelihood-based confidence intervals calculated by \link{MxCI} objects are symmetric with respect to the change in likelihood in either direction, and are not necessarily symmetric around the parameter estimate. Estimation of confidence intervals requires both that an \link{MxCI} object be included in the model and that the \sQuote{intervals} argument of the \link{mxRun} function is set to TRUE. When estimated, confidence intervals can be accessed in the model output at \code{$output$confidenceIntervals} or by using \link{summary} on a fitted \link{MxModel} object. 
 
-A typical use case is when a model includes non-linear constraints,
-and hence, standard errors are not available.
 In all cases, a two-sided hypothesis test is assumed.
 Therefore, the upper bound will
 exclude 2.5\% (for interval=0.95) even though only one bound is

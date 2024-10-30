@@ -2003,6 +2003,7 @@ setMethod("initialize", "MxComputeStandardError",
 ##' Moore T & Sadler B.  (2006).  \emph{Maximum-Likelihood Estimation and
 ##'      Scoring Under Parametric Constraints}.  Army Research Laboratory
 ##'      report ARL-TR-3805.
+##' 
 ##' Schoenberg R.  (1997).  Constrained maximum likelihood.
 ##'      \emph{Computational Economics, 10}, p. 251-266.
 
