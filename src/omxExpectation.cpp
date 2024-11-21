@@ -618,6 +618,8 @@ bool omxExpectation::isTopState() const
 int MVNExpectation::numObservedStats()
 {
   if (strEQ(data->getType(), "raw")) {
+  	/*In SOME cases, when no observations are missing, it is reasonable to reduce a raw dataset 
+  	 down to a set of sufficient statistics (as is done here).  However, that is not justifiable generally.*/
     if (data->hasSummaryStats()) return numSummaryStats();
 
     auto &dc = getDataColumns();
@@ -644,6 +646,8 @@ int MVNExpectation::numObservedStats()
 
 void MVNExpectation::populateAttr(SEXP algebra)
 {
-  IntegerVector RobStat = Rcpp::wrap(numObservedStats());
-  Rf_setAttrib(algebra, Rf_install("numStats"), RobStat);
+	if(0){ //The current implementation is causing issues.
+  	IntegerVector RobStat = Rcpp::wrap(numObservedStats());
+  	Rf_setAttrib(algebra, Rf_install("numStats"), RobStat);
+	}
 }
