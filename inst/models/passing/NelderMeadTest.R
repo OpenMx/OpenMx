@@ -130,3 +130,5 @@ expect_equal(
 
 omxCheckCloseEnough(varrun2$compute$steps$CI$output$detail$fit - varrun2$output$fit,
                     rep(qchisq(0.95,1),4), 1e-4)
+
+mxOption(reset=TRUE)

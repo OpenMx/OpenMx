@@ -152,3 +152,5 @@ if(1) {
 }
 
 print(m2$output$backendTime)
+
+mxOption(reset=TRUE)

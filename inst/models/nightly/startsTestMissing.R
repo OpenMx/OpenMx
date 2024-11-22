@@ -288,3 +288,5 @@ if (mxOption(key="default optimizer") == 'SLSQP') {
   expect_equal(startsCI$compute$steps$CI$output$detail[,'value'],
                c(0.8907887, 0.9795628), 1e-3)
 }
+
+mxOption(reset=TRUE)

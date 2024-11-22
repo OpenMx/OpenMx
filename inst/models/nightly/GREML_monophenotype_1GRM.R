@@ -205,3 +205,5 @@ summary(testrun3)
 #Compare:
 mxEval(h2,testrun3,T)[1,1] + 2*c(-0.07824315,0.07824315) #<--0.07824315 is the SE of h2
 testrun3$output$confidenceIntervals
+
+options(mxCondenseMatrixSlots=FALSE)

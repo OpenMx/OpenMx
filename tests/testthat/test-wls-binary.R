@@ -45,3 +45,4 @@ wlsTest4 <- mxModel("GWAS", type="RAM", manifestVars = c(covariates, DepVar), sn
 # No longer fails. This is hard to test.
 #expect_error(mxRun(wlsTest4),
 #             "correlated gradients: [3,1]", fixed=TRUE)
+mxOption(reset=TRUE)

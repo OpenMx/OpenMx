@@ -155,4 +155,5 @@ testmod4 <- mxModel(
 )
 testrun4 <- mxRun(testmod4) #<--Should run without error.
 
+options(mxCondenseMatrixSlots=FALSE)
 

@@ -155,3 +155,5 @@ omxCheckCloseEnough(emstat$totalMstep, 222, 10)
 }
 
 grp1 <- as.IFAgroup(grpModel$g1)
+
+options(mxCondenseMatrixSlots=FALSE)

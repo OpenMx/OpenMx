@@ -282,3 +282,5 @@ omxCheckCloseEnough(m2$output$estimate, m16$output$estimate, 5e-4)
 m2$output$fit
 m16$output$fit
 omxCheckCloseEnough(m2$output$fit, m16$output$fit, 1e-4)
+
+mxOption(reset=TRUE)

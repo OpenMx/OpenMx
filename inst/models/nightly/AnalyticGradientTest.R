@@ -63,3 +63,6 @@ testrun2 <- mxRun(testmod2)
 
 #One thing that definitely should be smaller with analytic gradient is the number of fitfunction evaluations:
 if(testrun$output$evaluations >= testrun2$output$evaluations){stop("models/passing/AnalyticGradientTest.R failed")}
+
+mxOption(reset=TRUE)
+options(mxCondenseMatrixSlots=FALSE)

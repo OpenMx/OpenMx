@@ -87,3 +87,4 @@ h2se <- sqrt(
 mxEval(h2,testrun,T)[1,1] + 2*c(-h2se,h2se)
 testrun$output$confidenceIntervals
 
+options(mxCondenseMatrixSlots=FALSE)

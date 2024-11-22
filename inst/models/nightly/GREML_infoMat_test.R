@@ -135,3 +135,5 @@ myEIM[1,2] <- t(P%*%y)%*%I%*%P%*%A%*%P%*%y
 myEIM[2,1] <- myEIM[1,2]
 myEIM[2,2] <- t(P%*%y)%*%A%*%P%*%A%*%P%*%y
 omxCheckCloseEnough(myEIM, testrun2$output$hessian, 1e-10)
+
+options(mxCondenseMatrixSlots=FALSE)

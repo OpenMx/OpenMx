@@ -49,3 +49,5 @@ testmod <- mxModel(
 testrun <- mxRun(testmod)
 
 omxCheckEquals(testrun$output$status$code, 0)
+
+options(mxCondenseMatrixSlots=FALSE)

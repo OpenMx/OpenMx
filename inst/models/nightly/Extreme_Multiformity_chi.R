@@ -259,3 +259,5 @@ oneTableMZ <- data.frame(ExtremeMultiformityFit$output$algebras$MZ.MZExpectedPro
 
 omxCheckCloseEnough(sumDZprob, 1, 1e-5)
 omxCheckCloseEnough(sumMZprob, 1, 1e-5)
+
+mxOption(reset=TRUE)

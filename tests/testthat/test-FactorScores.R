@@ -307,4 +307,5 @@ omxCheckEquals(dim(ssDataLisrel), c(200, 6))
 rms <- function(x, y){sqrt(mean((x-y)^2))}
 omxCheckTrue(rms(colMeans(ssDataLisrel), rep(-28, 6)) < 1)
 
+mxOption(reset=TRUE)
 

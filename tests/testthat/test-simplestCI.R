@@ -107,3 +107,5 @@ if (mxOption(NULL, "Default optimizer") != "NPSOL") {
   omxCheckCloseEnough(c(0.3679), ci[1,'lbound'], .02)
   omxCheckCloseEnough(c(0.429), ci[1,'ubound'], .02)
 }
+
+mxOption(reset=TRUE)
