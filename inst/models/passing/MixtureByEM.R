@@ -34,7 +34,7 @@ mm <- mxModel(
 	  mstep=mxComputeGradientDescent(fitfunction="Mixture.fitfunction")))
 
 mmfit <- mxRun(mm)
-summary(mmfit)
+( smm <- summary(mmfit) )
 
 confusion <- table(mmfit$Posteriors$result < .1, c(rep(TRUE,N/2),rep(FALSE,N/2)))
 print(confusion)
@@ -44,3 +44,4 @@ omxCheckCloseEnough(coef(mmfit)[c(1,3)], c(mu1,mu2), .4)
 omxCheckCloseEnough(coef(mmfit)[c(2,4)], rep(1,2), .3)
 
 omxCheckCloseEnough(mmfit$output$fit, 539.1599, .01)
+omxCheckEquals(smm$degreesOfFreedom,196)
