@@ -237,3 +237,5 @@ if (0) {
     }
   }
 }
+
+mxOption(reset=TRUE)

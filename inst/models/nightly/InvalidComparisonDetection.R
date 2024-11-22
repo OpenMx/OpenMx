@@ -185,3 +185,5 @@ oneFactorCovWLSOut <- mxRun(oneFactorCovWLS)
 
 expect_error(mxCompare(oneFactorCov1Out,oneFactorCovWLSOut),
 	     "but MxModel 'WLS' has 'r'Wr' fit units")
+
+options(mxCondenseMatrixSlots=FALSE)

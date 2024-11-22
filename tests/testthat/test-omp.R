@@ -23,3 +23,5 @@ if (nchar(oldONT) == 0) {
 } else {
   Sys.setenv(OMP_NUM_THREADS = oldONT)
 }
+
+mxOption(reset=TRUE)

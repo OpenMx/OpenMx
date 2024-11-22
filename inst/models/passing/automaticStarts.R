@@ -87,4 +87,4 @@ omxCheckCloseEnough(coef(m1s), coef(m2s), 1e-6)
 
 #------------------------------------------------------------------------------
 
-
+mxOption(reset=TRUE)

@@ -67,3 +67,5 @@ omxCheckCloseEnough(sum(goodEntry), 15, 2)
 print(max(abs(ci1[goodEntry] - ci2[goodEntry])))
 omxCheckCloseEnough(ci1[goodEntry], ci2[goodEntry], .1)
 omxCheckCloseEnough(median(abs(ci1[goodEntry] - ci2[goodEntry])), 0, .01)
+
+mxOption(reset=TRUE)

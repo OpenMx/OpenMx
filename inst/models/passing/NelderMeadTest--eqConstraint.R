@@ -141,3 +141,5 @@ m5run <- mxRun(m5)
 #The GDsearch method actually gets the answer:
 summary(m5run)
 omxCheckCloseEnough(m1run$output$estimate, m5run$output$estimate, 1e-4)
+
+mxOption(reset=TRUE)

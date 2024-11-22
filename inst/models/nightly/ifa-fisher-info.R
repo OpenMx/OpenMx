@@ -81,3 +81,5 @@ omxCheckCloseEnough(sum(fi$l), 1, .01)
 se <- sqrt(diag(solve(sample.size * t(fi$g) %*% diag(1/fi$l) %*% fi$g)))
 fm.se <- c(.25, .13, .11, .07, .14, .10, .32, .18, .13, .08)
 omxCheckCloseEnough(se, fm.se, .04)
+
+mxOption(reset=TRUE)

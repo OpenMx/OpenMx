@@ -38,3 +38,5 @@ mod2b <- mxModel(
 mod2b <- omxCheckWarning(
 	mxRun(mod2b),
   "Constraint 'constrLPM.c2' depends on definition variables; This may not do what you expect. See ?mxConstraint")
+
+mxOption(reset=TRUE)

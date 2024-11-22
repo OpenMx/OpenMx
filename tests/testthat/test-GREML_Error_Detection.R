@@ -312,4 +312,5 @@ omxCheckError(
 	mxRun(testmod),
 	"Augmentation derivatives non-conformable (gradient is size 3 and Hessian is 2x2)")
 
+options(mxCondenseMatrixSlots=FALSE)
 mxOption(reset=TRUE)

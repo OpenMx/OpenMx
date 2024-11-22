@@ -132,3 +132,5 @@ expect_equivalent(sapply(fit3$penalties, function(x) x$result[1,1]),
              rep(0,3))
 expect_equal(fit3$fitfunction$result[1,1], fit3$output$fit)
 expect_true(mxEval(lasso, fit3, compute = TRUE) != 0)
+
+mxOption(reset=TRUE)

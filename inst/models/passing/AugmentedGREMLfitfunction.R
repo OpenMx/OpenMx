@@ -128,3 +128,4 @@ testrun4 <- mxRun(testmod4)
 #The difference between 1.0 and the sum of the parameters should be smaller for model #4:
 omxCheckTrue(abs(1-sum(testrun4$output$estimate)) < abs(1-sum(testrun3$output$estimate)))
 
+options(mxCondenseMatrixSlots=FALSE)

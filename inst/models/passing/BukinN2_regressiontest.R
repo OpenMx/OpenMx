@@ -90,3 +90,5 @@ m3 <- mxRun(m3)
 summary(m3)
 omxCheckCloseEnough(coef(m3), c(-15,0), 0.1)
 omxCheckCloseEnough(m3$output$fit, -124.7501, .0002)
+
+mxOption(reset=TRUE)

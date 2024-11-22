@@ -276,4 +276,4 @@ omxCheckError(mxTryHard(model=Laplace_rgsn_mod1, scale=-0.25, finetuneGradient=F
 							"negative value for argument 'scale'")
 
 
-
+mxOption(reset=TRUE)

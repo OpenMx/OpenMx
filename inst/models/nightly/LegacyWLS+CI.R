@@ -67,3 +67,5 @@ omxCheckCloseEnough(median(abs(ci1[goodEntry] - ci2[goodEntry])), 0, .02)
 # and just 2,3, and 4 levels in the ordinal vars!
 # umx_time(jm1) # ContinuousOrdinalData: 00.12 seconds
 # umx_time(jm2) # ContinuousOrdinalData: 08.18 seconds
+
+mxOption(reset=TRUE)

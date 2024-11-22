@@ -353,3 +353,5 @@ omxCheckCloseEnough(test0$output$standardErrors,test6num$output$standardErrors,0
 omxCheckCloseEnough(test0$output$gradient,test6num$output$gradient,5e-4)
 omxCheckCloseEnough(test0$expectation$b,test6num$expectation$b,5e-6)
 omxCheckCloseEnough(test0$expectation$bcov,test6num$expectation$bcov,1e-7)
+
+options(mxCondenseMatrixSlots=FALSE)

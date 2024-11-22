@@ -221,3 +221,5 @@ for (sx in 1:4) {
     omxCheckCloseEnough(fit1$output$fit - fit4$output$fit, 0, 1e-5)
   }
 }
+
+mxOption(reset=TRUE)

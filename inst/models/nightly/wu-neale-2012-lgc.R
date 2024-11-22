@@ -90,3 +90,5 @@ if (0) {
   grid.newpage()
   grid.draw(pair)
 }
+
+mxOption(reset=TRUE)

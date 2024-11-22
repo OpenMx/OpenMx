@@ -78,3 +78,5 @@ lk1 <- omxMnor(cov, mean,
                matrix(1, blocks*perBlock, 1))
 
 omxCheckCloseEnough(log(lk1), -115.15, .1)
+
+mxOption(reset=TRUE)
