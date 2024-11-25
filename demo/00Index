@@ -65,3 +65,4 @@ AlternativeApproaches                  Fitting a range of models using the matri
 mxThreshold			       Example of mxThreshold
 omxConstrainMLThresholds		       Example of omxConstrainMLThresholds
 LDE                                    Latent Differential Equation (LDE) model
+simple_mixture_model_EM.R			Two-Component Mixture Model via Expectation-Maximization
