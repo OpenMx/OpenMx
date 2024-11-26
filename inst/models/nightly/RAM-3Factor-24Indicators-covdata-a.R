@@ -138,4 +138,5 @@ if (mxOption(NULL, "Default optimizer") != 'CSOLNP') {
   diag(threeFactorOrthogonal2$A$lbound) <- 1e-6
   threeFactorOrthogonal2Out <- mxRun(threeFactorOrthogonal2)
   omxCheckCloseEnough(threeFactorOrthogonal2Out$output$fit, 30855.58, .1)
+  #^^^With analytic derivatives, NPSOL can reach a better fit, 29350.18.
 }

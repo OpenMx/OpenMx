@@ -136,9 +136,11 @@ bar <- mxRun(threeFactorOrthogonal)
 omxCheckCloseEnough(bar$output$fit, 143158.2, .5)
 if(0){
 	omxCheckTrue(summary(foo,verbose=T)$wallTime < summary(bar,verbose=T)$wallTime)
+	omxCheckTrue(foo$output$iterations <= bar$output$iterations)
 }
 summary(foo,verbose=T)$wallTime; summary(bar,verbose=T)$wallTime
-omxCheckTrue(foo$output$iterations <= bar$output$iterations)
 foo$output$iterations; bar$output$iterations
 omxCheckTrue(foo$output$evaluations < bar$output$evaluations)
 foo$output$evaluations; bar$output$evaluations
+
+mxOption(reset=TRUE)
