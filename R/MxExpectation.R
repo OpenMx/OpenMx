@@ -271,11 +271,23 @@ eligibleForSufficientDerivs <- function(model){
 markExpectationsEligibleForSufficientDerivs <- function(model){
 	#return(model)
 	wich <- 1
+	isOptSwitchedOff <- FALSE
+	# Conveniently, if the option is not set for `model`, this reads from the global mxOptions:
+	optval <- mxOption(model,"Analytic RAM derivatives")[1]
+	if(identical(optval,TRUE)){ optval <- "Yes" }
+	if(identical(optval,FALSE)){ optval <- "No" }
+	isOptSwitchedOff <- as.logical(length(grep("No",optval,ignore.case=T))) #|| identical(optval,FALSE)
+	if(!isOptSwitchedOff){
+		if( !(as.logical(length(grep("Yes",optval,ignore.case=T)))) ){
+			stop("mxOption 'Analytic RAM derivatives' must be either 'Yes' or 'No'")
+		}
+	}
 	#Defvars and multilevel are global disqualifiers:
-	if(imxHasDefinitionVariable(model) || imxIsMultilevel(model)){
+	if(imxHasDefinitionVariable(model) || imxIsMultilevel(model) || isOptSwitchedOff){
 		wich <- 2
 	}
 	allModNames <- getAllModelNames(model)
+	# TODO: if wich==2, just set the slot to FALSE in each expectation:
 	for(m in allModNames){
 		if(length(model[[m]]$expectation)){
 			model[[m]]$expectation@.canProvideSufficientDerivs <- 

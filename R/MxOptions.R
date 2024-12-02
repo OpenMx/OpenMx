@@ -178,7 +178,8 @@ otherOptions <- list(
     "Debug protect stack" = "No",
     "Nudge zero starts" = "Yes",
     "Status OK"= as.statusCode(c("OK", "OK/green")),
-    "Max minutes"=0
+    "Max minutes"=0,
+	"Analytic RAM derivatives" = "No"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
