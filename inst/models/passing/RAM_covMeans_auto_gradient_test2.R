@@ -53,7 +53,7 @@ gb <- function(m,verbose=FALSE,N=500){
 # Only S paths free ####
 
 plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m1a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -67,7 +67,7 @@ m1a <- mxModel(
 m1a <- mxRun(m1a)
 
 plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m1n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -88,7 +88,7 @@ if(0){
 
 # Only A paths free ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m2a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -103,7 +103,7 @@ m2a <- mxRun(m2a)
 gb(m2a,T)
 m2a$output$gradient
 
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m2n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -125,7 +125,7 @@ if(0){
 
 # Only M paths free ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m3a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -139,7 +139,7 @@ m3a <- mxModel(
 m3a <- mxRun(m3a)
 m3a$output$gradient
 
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m3n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -161,7 +161,7 @@ if(0){
 
 # A & M paths free ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m4a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -175,7 +175,7 @@ m4a <- mxModel(
 m4a <- mxRun(m4a)
 m4a$output$gradient
 
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m4n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -197,7 +197,7 @@ if(0){
 
 ## A paths & m2 free ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m5a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -211,7 +211,7 @@ m5a <- mxModel(
 m5a <- mxRun(m5a)
 m5a$output$gradient
 
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m5n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -233,7 +233,7 @@ if(0){
 
 ## A paths & m1 free ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m6a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -247,7 +247,7 @@ m6a <- mxModel(
 m6a <- mxRun(m6a)
 m6a$output$gradient
 
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m6n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -269,7 +269,7 @@ if(0){
 
 # All paths free ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m7a <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -283,7 +283,7 @@ m7a <- mxModel(
 m7a <- mxRun(m7a)
 m7a$output$gradient
 
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m7n <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -301,3 +301,4 @@ omxCheckCloseEnough(m7a$output$gradient-m7n$output$gradient, rep(0,5), 5e-7)
 if(0){
 	omxCheckTrue(summary(m7a)$wallTime < summary(m7n)$wallTime)
 }
+mxOption(reset=TRUE)

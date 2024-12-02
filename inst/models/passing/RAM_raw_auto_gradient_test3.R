@@ -32,10 +32,10 @@ factorModel <- mxModel(
 
 # First, make sure results match, with versus without analytic derivatives, with complete data ####
 
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 fmf1 <- mxRun(factorModel)
 summary(fmf1)
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 fmf2 <- mxRun(factorModel)
 summary(fmf2)
 omxCheckCloseEnough(coef(fmf1),coef(fmf2),5e-6)
@@ -68,10 +68,10 @@ factorModel <- mxModel(
 	mxPath(from="one",to=manifests,values=0.1),
 	mxData(demoOneFactor, type="raw")
 )
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 fmf3 <- mxRun(factorModel)
 summary(fmf3)
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 fmf4 <- mxRun(factorModel)
 summary(fmf4)
 omxCheckCloseEnough(coef(fmf3),coef(fmf4),5e-6)
@@ -107,10 +107,10 @@ factorModel <- mxModel(
 	mxPath(from="one",to=manifests,values=0.1),
 	mxData(demoOneFactor, type="raw")
 )
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 fmf5 <- mxRun(factorModel)
 summary(fmf5)
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 fmf6 <- mxRun(factorModel)
 summary(fmf6)
 omxCheckCloseEnough(coef(fmf5),coef(fmf6),5e-6)
@@ -122,3 +122,5 @@ omxCheckTrue(fmf5$output$evaluations < fmf6$output$evaluations)
 if(0){
 	omxCheckTrue(summary(fmf5)$wallTime < summary(fmf6)$wallTime) #<--FALSE with SLSQP, NPSOL, & CSOLNP.
 }
+
+mxOption(reset=TRUE)

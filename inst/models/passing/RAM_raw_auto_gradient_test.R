@@ -42,7 +42,7 @@ gv <- function(m,verbose=TRUE,N=500){
 # Check to see if gradient is zero at MLE ####
 
 plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient","hessian")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m1a <- mxModel(
 	"Simple",
 	type="RAM",
@@ -55,7 +55,7 @@ m1a <- mxModel(
 m1a <- mxRun(m1a)
 
 plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=T),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m1n <- mxModel(
 	"Simple",
 	type="RAM",
@@ -79,7 +79,7 @@ omxCheckCloseEnough(m1a$output$hessian[2,2],2*500/0.998,1e-12)
 
 # Check to see if analytic & numeric gradients match when not at MLE ####
 plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m1a <- mxModel(
 	"Simple",
 	type="RAM",
@@ -92,7 +92,7 @@ m1a <- mxModel(
 m1a <- mxRun(m1a)
 
 plan3 <- mxComputeSequence(list(mxComputeNumericDeriv(checkGradient=F,hessian=F),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 m1n <- mxModel(
 	"Simple",
 	type="RAM",
@@ -107,3 +107,5 @@ m1n <- mxRun(m1n)
 omxCheckCloseEnough(gv(m1a)[1],m1a$output$gradient[1],5e-12)
 #More importantly, make sure analytic & numeric gradients match:
 omxCheckCloseEnough(m1a$output$gradient,m1n$output$gradient,2e-8)
+
+mxOption(reset=TRUE)

@@ -65,7 +65,7 @@ for(i in 1:22){
 	
 	
 	plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-	mxOption(NULL,"Analytic gradients","Yes")
+	mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 	m1 <- mxModel(
 		"Simple",
 		type="RAM",
@@ -81,7 +81,7 @@ for(i in 1:22){
 	coef(m1a)
 	
 	
-	mxOption(NULL,"Analytic gradients","No")
+	mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 	m2a <- mxRun(m1)
 	results$m2aBack[i] <- m2a$output$gradient[1]
 	results$m2aFront[i] <- gv(m2a)[1]
@@ -140,7 +140,7 @@ for(i in 1:22){
 	
 	
 	plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-	mxOption(NULL,"Analytic gradients","Yes")
+	mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 	m1 <- mxModel(
 		"Simple",
 		type="RAM",
@@ -156,7 +156,7 @@ for(i in 1:22){
 	coef(m1a)
 	
 	
-	mxOption(NULL,"Analytic gradients","No")
+	mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 	m2a <- mxRun(m1)
 	results$m2aBack[i] <- m2a$output$gradient[1]
 	results$m2aFront[i] <- ga(m2a)[1]
@@ -200,3 +200,5 @@ omxCheckCloseEnough(results$m3aFront[11],0.0,1e-8)
 #Analytic and numeric results should agree:
 omxCheckCloseEnough(results$m1aBack-results$m3aBack,rep(0.0,22),1e-7)
 omxCheckCloseEnough((results$m3aBack/results$m1aBack)[-11],rep(1.0,21),1e-8)
+
+mxOption(reset=TRUE)

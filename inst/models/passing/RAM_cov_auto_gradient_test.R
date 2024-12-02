@@ -48,7 +48,7 @@ for(i in 1:22){
 	
 	
 	plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-	mxOption(NULL,"Analytic gradients","Yes")
+	mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 	m1 <- mxModel(
 		"Simple",
 		type="RAM",
@@ -64,7 +64,7 @@ for(i in 1:22){
 	wallTimes$m1a[i] <- summary(m1a)$wallTime
 	
 	
-	mxOption(NULL,"Analytic gradients","No")
+	mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 	m2a <- mxRun(m1)
 	results$m2aBack[i] <- m2a$output$gradient[1]
 	results$m2aFront[i] <- g(m2a)[1]
@@ -114,3 +114,4 @@ if(0){
 	omxCheckTrue(all(wallTimes$m1a < wallTimes$m2a)) #<--FALSE
 }
 wallTimes$m1a - wallTimes$m2a
+mxOption(reset=TRUE)

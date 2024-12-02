@@ -31,7 +31,7 @@ require(OpenMx)
 vv <- c("No","Yes")
 
 for(v in vv){
-	mxOption(NULL,"Analytic Gradients",v)
+	mxOption(NULL,"Analytic Gradients",v); mxOption(NULL,"Analytic RAM derivatives",v)
 	
 	data(demoOneFactor)
 	manifests <- names(demoOneFactor)
@@ -371,4 +371,4 @@ for(v in vv){
 		}
 	}
 }
-			
+mxOption(reset=TRUE)

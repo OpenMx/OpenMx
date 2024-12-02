@@ -38,7 +38,7 @@ gb <- function(m,verbose=FALSE,N=500){
 }
 
 plan <- mxComputeSequence(list(mxComputeOnce("fitfunction",c("fit","gradient")),mxComputeReportDeriv(),mxComputeReportExpectation()))
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 m1 <- mxModel(
 	"TwoByTwo",
 	type="RAM",
@@ -54,3 +54,4 @@ gb(m1a)
 omxCheckCloseEnough(m1a$output$gradient,0,1e-9)
 omxCheckCloseEnough(0,gb(m1a),1e-9)
 summary(m1a)
+mxOption(reset=TRUE)

@@ -19,7 +19,7 @@ require(OpenMx)
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
 latents <- c("G")
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 factorModel <- mxModel(
 	"One Factor",
 	type="RAM",
@@ -33,7 +33,7 @@ factorModel <- mxModel(
 				 numObs=500)
 )
 f1 <- mxRun(factorModel)
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 f2 <- mxRun(factorModel)
 omxCheckCloseEnough(coef(f1)-coef(f2),rep(0,10),2e-6)
 omxCheckCloseEnough(f1$output$gradient-f2$output$gradient,rep(0,10),1.5e-2)
@@ -48,3 +48,4 @@ if(0){
 	omxCheckTrue(summary(f1)$wallTime < summary(f2)$wallTime)
 }
 summary(f1)$wallTime ; summary(f2)$wallTime
+mxOption(reset=TRUE)

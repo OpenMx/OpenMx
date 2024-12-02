@@ -46,10 +46,10 @@ factorModel <- mxModel(
 	mxPath(from="one",to=manifests,values=0.1,labels="m"),
 	mxData(mydat, type="raw")
 )
-mxOption(NULL,"Analytic gradients","Yes")
+mxOption(NULL,"Analytic gradients","Yes"); mxOption(NULL,"Analytic RAM derivatives","Yes")
 fmf5 <- mxRun(factorModel)
 summary(fmf5)
-mxOption(NULL,"Analytic gradients","No")
+mxOption(NULL,"Analytic gradients","No"); mxOption(NULL,"Analytic RAM derivatives","No")
 fmf6 <- mxRun(factorModel)
 summary(fmf6)
 omxCheckCloseEnough(coef(fmf5),coef(fmf6),5e-6)
@@ -65,3 +65,4 @@ omxCheckTrue(fmf5$output$evaluations < fmf6$output$evaluations)
 if(0){
 	omxCheckTrue(summary(fmf5)$wallTime < summary(fmf6)$wallTime)
 }
+mxOption(reset=TRUE)

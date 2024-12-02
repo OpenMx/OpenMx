@@ -143,3 +143,5 @@ biRegModelRaw3 <- mxRun(biRegModelRaw3)
 
 omxCheckCloseEnough(coef(biRegModelRaw3),
                     unlist(repl3[,names(coef(biRegModelRaw3))]), 1e-5)
+
+mxOption(reset=TRUE)
