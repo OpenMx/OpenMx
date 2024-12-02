@@ -101,7 +101,7 @@ for (rep in 1:10) {
 m1 <- expect_warning(mxPenaltySearch(m1),
                      "model does not satisfy the first-order optimality conditions")
 expect_equal((-2*logLik(m1))[1],m1$output$fit)
-if(mxOption(NULL,"Default optimizer") != "NPSOL"){
+if(mxOption(NULL,"Default optimizer") == "SLSQP"){
 	expect_equal((-2*logLik(m1))[1],876.4839,5e-5)
 }
 
@@ -143,7 +143,7 @@ expect_equal(fit3$output$fit, 822.757, 5e-5)
 expect_true(mxEval(lasso, fit3, compute = TRUE) != 0)
 
 #Sanity check:
-if(mxOption(NULL,"Default optimizer") != "NPSOL"){
+if(mxOption(NULL,"Default optimizer") == "SLSQP"){
 	expect_equal(
 		as.vector(coef(m1)),
 		c(1.24,-0.25,1.72,-0.01,0.74,1.72,0.01,0.69,-0.37,1.86,0.61,0.09,-0.26,0.53,1.62,-0.44,0.29,-0.32,0.01,0.26,1.89,12.0,0.40),
