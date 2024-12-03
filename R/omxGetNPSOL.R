@@ -34,20 +34,21 @@ omxGetNPSOL <- function() {
 	if(.Platform$OS.type=="windows"){
 		message(
 			paste("Windows users must clear R's workspace, restart R, run\n",
-						"source('http://openmx.ssri.psu.edu/getOpenMx.R')\n",
+						"source('https://vipbg.vcu.edu/vipbg/OpenMx2/software/getOpenMx.R')\n",
 						", and then restart R again before trying to load OpenMx.")
 		)
 		return()
 	}
     if(version$major < 3) {
-        message(paste0("You are using R 2.15 or earlier.  ",
-            "OpenMx 2.0 and higher do not support versions ",
-            "of R before 3.0, so I'm fetching OpenMx 1.4 instead.\n",
-            "Getting OpenMx 1.4 from http://openmx.ssri.psu.edu/."))
-        source("http://openmx.ssri.psu.edu/getOpenMx1.4.R")
+    	stop("OpenMx no longer supports R versions 2.15 and earlier")
+        # stop(paste0("You are using R 2.15 or earlier.  ",
+        #     "OpenMx 2.0 and higher do not support versions ",
+        #     "of R before 3.0, so I'm fetching OpenMx 1.4 instead.\n",
+        #     "Getting OpenMx 1.4 from http://openmx.ssri.psu.edu/."))
+        # source("http://openmx.ssri.psu.edu/getOpenMx1.4.R")
     } else {
-        message("Getting OpenMx from http://openmx.ssri.psu.edu/.")
-        source("http://openmx.ssri.psu.edu/getOpenMx.R")
+        message("Getting OpenMx from https://vipbg.vcu.edu/.")
+        source("https://vipbg.vcu.edu/vipbg/OpenMx2/software/getOpenMx.R")
     }
 }
 # nocov end
