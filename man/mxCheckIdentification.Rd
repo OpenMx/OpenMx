@@ -24,12 +24,17 @@
 }
 
 \usage{
-mxCheckIdentification(model, details=TRUE)
+mxCheckIdentification(model, details=TRUE, nrows=2, exhaustive=FALSE, silent=FALSE)
 }
 
 \arguments{
    \item{model}{A MxModel object or list of MxModel objects.}
    \item{details}{logical.}
+   \item{nrows}{numeric. The maximum number of unique definition variable rows used to evaluate identification.}
+   \item{exhaustive}{logical. Whether to use all of nrows (TRUE), or to
+   stop evaluating new rows once the model is identified (FALSE).}
+   \item{silent}{logical. Whether or not to print helpful-but-long
+   messages.  silent=TRUE does not print messages.}
 }
 
 \details{
@@ -39,9 +44,40 @@ The method uses the Jacobian of the model expected means and the unique elements
 
 The Jacobian is evaluated numerically and generally takes a few seconds, but much less than a minute.
 
-The identification may not be accurate for models using definition variables.  Currently, only the first row of the definition variable is evaluated.
+Model identification should be accurate for models with linear or
+nonlinear equality and inequality constraints.  When there are
+constraints, mxCheckIdentification uses the Jacobian of the summary
+statistics with respect to the free parameters and the Jacobian of the
+summary statistics with respect to the constraints.  The combined
+extended Jacobian must have rank equal to the number of free parameters
+for the model to be identified.  So, a model can be identified with
+constraints that is not identified without constraints.
 
-Model identification should be accurate for models with linear or nonlinear equality and inequality constraints.  When there are constraints, mxCheckIdentification uses the Jacobian of the summary statistics with respect to the free parameters and the Jacobian of the summary statistics with respect to the constraints.  The combined extended Jacobian must have rank equal to the number of free parameters for the model to be identified.  So, a model can be identified with constraints that is not identified without constraints.
+Model identification should also be accurate for multiple group models
+and models with definition variables.  In the case of multiple groups,
+the Jacobian is computed for each group and they are concatenated:
+summary statistics for each group go down the rows of the Jacobian; the
+single set of free parameters go across the columns of the Jacobian.  In
+the case of definition variables, a new set of summary statistics is
+computed for each unique set of definition variable values; thus
+creating a kind of pseudo-multiple group model for each set of unique
+definition variable values.
+
+For models using definition variables, the additional arguments 'nrows'
+and 'exhaustive' provide instruction for how to search for
+identification.  In principle, full model identification for models with
+definition variables requires evaluating the Jacobian of the mapping
+between the free parameters and the summary statistics \emph{for every
+	unique combination of definition variable values}.  This evaluation
+can take a long time.  However, in practice, the vast majority of models
+are identified after evaluating one or two definition variable rows.
+The current defaults attempt to capitalize on this practical situation.
+By default 'mxCheckIdentification' will evaluate up to 2 unique definition
+variable rows, but will stop once the model is identified.  To keep
+evaluating unique definition variable values until the model is
+identified or you run out of rows, set \code{nrows=Inf}.  To evaluate
+all unique definition variable values, set \code{nrows=Inf} and
+\code{exhaustive=TRUE}.
 
 When TRUE, the 'details' argument provides the names of the non-identified parameters.  Otherwise, only the status and Jacobian are returned.
 }

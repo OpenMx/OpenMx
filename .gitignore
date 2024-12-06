@@ -212,3 +212,4 @@ man/omxQuotes.Rd
 man/omxRAMtoML.Rd
 man/OpenMx.Rd
 man/predict.MxModel.Rd
+man/imxHasAlgebraOnPath.Rd

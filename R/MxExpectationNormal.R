@@ -597,7 +597,7 @@ minimumObservations <- function(model){
 }
 
 
-mxCheckIdentification <- function(model, details=TRUE){
+mxCheckIdentification <- function(model, details=TRUE, nrows=2, exhaustive=FALSE, silent=FALSE){
 	warnModelCreatedByOldVersion(model)
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
 	if( class(model$fitfunction) %in% notAllowedFits ){
@@ -606,33 +606,6 @@ mxCheckIdentification <- function(model, details=TRUE){
 	}
 	eps <- 1e-17
 	theParams <- omxGetParameters(model)
-	if(imxHasDefinitionVariable(model)){
-		warning("Beep beep ribby ribby.  I found definition variables in your model.\nI might not give you the identification answer you're looking for in this case.  See ?mxCheckIdentification.")
-		uniRow <- minimumObservations(model)
-     # OR just cycle through combinations of def vars
-     # 2 group ex with g1 has 1 5 9 13 unique rows
-     #                 g2 has 1 2 4 unique rows
-     # g1=1, g2=1
-     # g1=5, g2=2
-     # g1=9, g2=4
-     # g1=13,g2=1
-		uniMat <- suppressWarnings(do.call(cbind, uniRow))
-		minRow <- 1
-		maxRow <- nrow(uniMat)
-		jac1 <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[minRow,]) # put in here
-		# TODO Put defvar row that corresponds to group.  If multigroup, check the beginning of strsplit(rownames(), imxSeparatorChar).  This inside omxManifestModelByParameterJacobian() function definition?
-		# paste(names(uniMat[minRow,]), uniMat[minRow,], sep='_')
-		rownames(jac1) <- paste0(rownames(jac1), 'def', paste(uniMat[minRow,], collapse='_'))
-		if(maxRow > minRow){
-			# TODO Add optional argument to mxCheckID that uses more than 3 values of def vars
-        # defaults to 2.  Takes numeric or 'all'?
-			jac2 <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[maxRow,])
-			rownames(jac2) <- paste0(rownames(jac2), 'def', paste(uniMat[maxRow,], collapse='_'))
-		} else {jac2 <- NULL}
-		jac <- rbind(jac1, jac2)
-	} else {
-		jac <- omxManifestModelByParameterJacobian(model)
-	}
 	if(imxHasConstraint(model)){
     # Better if there was a separate compute step to estimate the constraintJacobian
 		tmpModel <- mxModel(model, mxComputeSequence(list(mxComputeNumericDeriv(hessian=FALSE), mxComputeReportDeriv())))
@@ -646,15 +619,47 @@ mxCheckIdentification <- function(model, details=TRUE){
 		cjac <- matrix(, nrow=0, ncol=length(theParams))
 		colnames(cjac) <- names(theParams)
 	}
+	if(imxHasDefinitionVariable(model)){
+		uniRow <- minimumObservations(model)
+     # OR just cycle through combinations of def vars
+     # 2 group ex with g1 has 1 5 9 13 unique rows
+     #                 g2 has 1 2 4 unique rows
+     # g1=1, g2=1
+     # g1=5, g2=2
+     # g1=9, g2=4
+     # g1=13,g2=1
+		uniMat <- suppressWarnings(do.call(cbind, uniRow))
+		minRow <- 1
+		maxRow <- nrow(uniMat)
+		jac <- cjac
+		arow <- 1
+		jdim <- 0
+		jacL <- list()
+		while(arow <= min(maxRow, nrows) && (exhaustive || jdim != length(theParams))){
+			jacL[[arow]] <- omxManifestModelByParameterJacobian(model, defvar.row=uniMat[arow,]) # put in here
+			rownames(jacL[[arow]]) <- paste0(rownames(jacL[[arow]]), 'def', paste(uniMat[arow,], collapse='_'))
+			# TODO Put defvar row that corresponds to group.  If multigroup, check the beginning of strsplit(rownames(), imxSeparatorChar).  This inside omxManifestModelByParameterJacobian() function definition?
+			# paste(names(uniMat[minRow,]), uniMat[minRow,], sep='_')
+			jac <- rbind(jac, jacL[[arow]])
+			arow <- arow + 1
+			if(!exhaustive) jdim <- qr(jac)$rank # Arg.  Doing full QR every time.  Inefficient
+		}
+		if(!silent && !exhaustive && jdim != length(theParams)){
+			message(paste0('We tried ', arow-1, ' definition variable value rows.\nThe model is not yet locally identified.\nThe model might be identified if you try more definition variable rows, but it will take a while to run.\nUse mxCheckIdentification(YourModel, nrows=Inf, exhaustive=TRUE) to evaluate all possible rows,\nor set nrows to a larger number.'))
+		}
+		jac <- do.call(rbind, jacL) # rbind-ing AGAIN
+	} else {
+		jac <- omxManifestModelByParameterJacobian(model)
+	}
 	# Concatenate via rows the model and constraint Jacobians
 	jac <- rbind(jac, cjac)
 	# Check that rank of jac == length(theParams)
 	rank <- qr(jac)$rank
 	if(rank == length(theParams)){
-		message("Model is locally identified")
+		if(!silent) message("Model is locally identified")
 		stat <- TRUE
 	} else {
-		message("Model is not locally identified")
+		if(!silent) message("Model is not locally identified")
 		stat <- FALSE
 	}
 	if(details == TRUE){
