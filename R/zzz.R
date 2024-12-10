@@ -165,7 +165,6 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' m1 = mxRun(m1)
 #' summary(m1)
 #'
-#' @docType package
 #' @name OpenMx
 #' @aliases OpenMx-package
-NULL
+"_PACKAGE"
