@@ -31,11 +31,12 @@ help:
 	@echo "  rcheck    extract and run R code"
 
 clean:
-	-rm -rf build
+	-rm -rf build/*
+	-rm -rf source/ext/__pycache__
 	-rm source/*.R source/*.Rout
 	-rm source/*.omx # from checkpointing in examples
 	-rm source/conf.py
-	-rm -r source/cache
+	-rm source/cache/*.pdf source/cache/*.png
 
 html-initial: rcheck
 	-rm -rf build/doctrees  # latex interferes with html somehow
