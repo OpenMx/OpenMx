@@ -244,6 +244,8 @@ static void omxNPSOL1(double *est, GradientOptimizerContext &rf, int nclin, int 
 		rf.LagrMultipliersOut.conservativeResize(n+ncnln);
 		rf.constraintStatesOut.conservativeResize(n+ncnln);
 	}
+	
+	rf.grad = workingGrad;
 
 	// NPSOL can return the wrong fit and estimates, but hard to
 	// know what to do if there are constraints.
