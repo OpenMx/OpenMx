@@ -158,9 +158,9 @@ computeFitStatistics <- function(likelihood, DoF, chi, chiDoF, numObs,
 			      "or you may be using the wrong independence model, see ?mxRefModels"))
 	}
 	CFI <- (independence - indDoF - likelihood + DoF)/(independence - indDoF - saturated + satDoF)
-	TLI <- 1
+	TLI <- NA
 	rmseaSquared <- 0
-	RMSEA <- 0
+	RMSEA <- NA
 	RMSEACI <- c(lower=NA, upper=NA)
 	RMSEANull <- 0.05
 	RMSEAClose <- NA

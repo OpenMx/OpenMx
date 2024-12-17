@@ -70,8 +70,8 @@ ci <- confint(biRegModelOut)
 
 brmSum <- summary(biRegModelOut)
 omxCheckCloseEnough(brmSum$CFI, 1, 1e-5)
-omxCheckCloseEnough(brmSum$TLI, 1, 1e-6)
-omxCheckCloseEnough(brmSum$RMSEA, 0, 1e-6)
+omxCheckTrue(is.na(brmSum$TLI))
+omxCheckTrue(is.na(brmSum$RMSEA))
 omxCheckTrue(all(is.na(brmSum$RMSEACI)))
 
 # ----------------------------------
