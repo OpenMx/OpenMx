@@ -14,8 +14,7 @@
 #   limitations under the License.
 
 #The quadratic fitfunction in this model has a solution on a parameter boundary, a zero-gradient point outside the feasible space, and a
-#Hessian matrix that is nowhere PD.  OpenMx should warn about status code 5 (non-convex Hessian), but the optimizers themselves should be
-#more-or-less satisfied if they reach the analytically correct solution.
+#Hessian matrix that is nowhere PD.
 
 library(OpenMx)
 library(testthat)
@@ -44,7 +43,7 @@ m1$output$gradient
 omxCheckCloseEnough(coef(m1), c(-15,0), 0.1)
 omxCheckCloseEnough(m1$output$fit, -124.7500, 5e-5)
 omxCheckCloseEnough(m1$output$gradient[1],29.9,0.01)
-omxCheckEquals(m1$output$status$code,5)
+omxCheckTrue(m1$output$status$code %in% c(0,1))
 
 
 m2 <- mxModel(
@@ -90,5 +89,25 @@ m3 <- mxRun(m3)
 summary(m3)
 omxCheckCloseEnough(coef(m3), c(-15,0), 0.1)
 omxCheckCloseEnough(m3$output$fit, -124.7501, .0002)
+
+m4 <- omxSetParameters(model=m1,labels="x2",free=F,values=0)
+m4 <- mxRun(m4)
+# Should still be TRUE if the sole free parameter has an active bound:
+omxCheckTrue(m4$output$infoDefinite)
+
+m5 <- mxModel(
+	"BukinN2",
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=startvals[1],labels="x1",lbound=-15,ubound=-5,name="X1"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=startvals[2],labels="x2",lbound=-3,ubound=3,name="X2"),
+	mxAlgebra( 100*( (X2^2) - 0.01*(X1^2) + 1) + 0.01*(X1+10)^2,
+						 name="BukinN2Func"),
+	#Interestingly, given an analytic gradient to NPSOL and SLSQP makes them FAIL to find the correct solution...
+	mxAlgebra(cbind(-1.98*X1 + 0.2, 200*X2), name="grad", dimnames=list(NULL,c("x1","x2"))),
+	mxFitFunctionAlgebra(algebra="BukinN2Func")#,gradient="grad")
+)
+set.seed(241216); m5 <- mxTryHard(model=m5,greenOK=T,checkHess=T)
+omxCheckTrue(m5$output$status$code %in% c(0,1))
+# Should still be TRUE if the sole free parameter has an active bound:
+omxCheckTrue(m5$output$infoDefinite)
 
 mxOption(reset=TRUE)
