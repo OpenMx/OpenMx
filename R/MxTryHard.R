@@ -261,7 +261,10 @@ mxTryHard <- function(
 				}
 				if(checkHess==TRUE) {
 					fit@output["infoDefinite"] <- TRUE
-					hessEigenval <- try(eigen(fit$output$calculatedHessian, symmetric = T, only.values = T)$values,silent=T)
+					# I wrote `filterHessForActiveBounds()` as a separate function, so it could be encased in `try()`.
+					# Maybe it should be?:
+					hessForEigenDecomp <- filterHessForActiveBounds(fit)
+					hessEigenval <- try(eigen(hessForEigenDecomp, symmetric = T, only.values = T)$values,silent=T)
 					if (inherits(hessEigenval, 'try-error')) {
 						if(!silent){message(paste0(' Eigenvalues of Hessian could not be calculated'))}
 						goodflag <- FALSE
@@ -570,4 +573,15 @@ mxTryHardOrdinal <- function(model, greenOK = TRUE,	checkHess = FALSE, finetuneG
 														 OKstatuscodes=c(0,1,5,6), wtgcsv=c("prev","best"), ...){
 	return(mxTryHard(model=model,greenOK=greenOK,checkHess=checkHess,finetuneGradient=finetuneGradient,
 									 exhaustive=exhaustive,OKstatuscodes=OKstatuscodes,wtgcsv=wtgcsv,...))
+}
+
+filterHessForActiveBounds <- function(fit){
+	sf <- summary(fit)
+	whichInactive <- which(!(sf$parameters$uboundMet | sf$parameters$lboundMet))
+	if(!length(whichInactive)){
+		return(fit$output$calculatedHessian)
+	}
+	else{
+		return(fit$output$calculatedHessian[whichInactive,whichInactive])
+	}
 }
