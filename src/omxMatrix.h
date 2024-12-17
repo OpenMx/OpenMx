@@ -622,6 +622,27 @@ void subtractFromIdentityMatrixInPlace(Eigen::MatrixBase<T1> &M)
 }
 
 
+//N.B. this function assumes that the same row and column indices are being filtered, i.e. if row i is to be filtered, then so is column i:
+template <typename T1, typename T2>
+void copyAndFilterCases(Eigen::MatrixBase<T1> &inMat, Eigen::MatrixBase<T2> &outMat, Eigen::VectorXi &todrop, bool symmetric, int origDim)
+{
+	//Possible TODO : is column- versus row-major order relevant to this function's performance?
+	int nextCol = 0;
+	int nextRow = 0;
+	
+	for(int j = 0; j < origDim; j++){ //<--j indexes columns
+		if(todrop[j]) continue;
+		nextRow = (symmetric ? nextCol : 0);
+		for(int k = (symmetric ? j : 0); k < origDim; k++){ //<--k indexes rows
+			if(todrop[k]) continue;
+			outMat(nextRow,nextCol) = inMat(k,j);
+			nextRow++;
+		}
+		nextCol++;
+	}
+}
+
+
 // https://forum.kde.org/viewtopic.php?f=74&t=96706
 // https://forum.kde.org/viewtopic.php?f=74&t=124421
 // https://forum.kde.org/viewtopic.php?f=74&t=91271

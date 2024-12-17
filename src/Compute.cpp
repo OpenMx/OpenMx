@@ -4014,14 +4014,43 @@ void ComputeHessianQuality::reportResults(FitContext *fc, MxRList *slots, MxRLis
 		}
 		return;
 	}
+	
 	Eigen::Map< Eigen::MatrixXd > hess(hessMem, numParams, numParams);
 	hess.triangularView<Eigen::Lower>() = hess.transpose().triangularView<Eigen::Lower>();
-	Eigen::LDLT< Eigen::MatrixXd > cholH(hess);
-	if (cholH.info() != Eigen::Success || !(cholH.vectorD().array() > 0.0).all()) {
-		if (verbose >= 1) {
-			mxLog("%s: Cholesky decomposition failed", name);
+	Eigen::LDLT< Eigen::MatrixXd > cholH(hess); //<--Needed for ihess further below.
+	
+	//Check for any active bounds:
+	double feasibilityTolerance = Global->feasibilityTolerance;
+	Eigen::ArrayXd curEst = fc->getCurrentFree();
+	Eigen::VectorXi isActive; isActive.setZero(numParams);
+	bool anyActiveBound = false;
+	for (int px=0; px < numParams; ++px) {
+		omxFreeVar &fv = *fc->varGroup->vars[ fc->freeToParamMap[px] ];
+		if(fabs(curEst[px] - fv.lbound) < feasibilityTolerance || fabs(curEst[px] - fv.ubound) < feasibilityTolerance){
+			isActive[px] = 1;
+			anyActiveBound = true;
 		}
-		return;
+	}
+	if(!anyActiveBound){
+		if (cholH.info() != Eigen::Success || !(cholH.vectorD().array() > 0.0).all()) {
+			if (verbose >= 1) {
+				mxLog("%s: Cholesky decomposition failed", name);
+			}
+			return;
+		}
+	}
+	else{
+		Eigen::MatrixXd subHess(numParams-isActive.sum(),numParams-isActive.sum());
+		//We don't filter in-place because hess's data don't belong to it:
+		copyAndFilterCases(hess,subHess,isActive,true,numParams);
+		Eigen::LDLT< Eigen::MatrixXd > cholSubH(subHess);
+		if (cholSubH.info() != Eigen::Success || !(cholSubH.vectorD().array() > 0.0).all()) {
+		//^^^This check does not necessarily fail just because subHess is a 0x0 matrix.
+			if (verbose >= 1) {
+				mxLog("%s: Cholesky decomposition failed", name);
+			}
+			return;
+		}
 	}
 
 	Eigen::MatrixXd ihess(numParams, numParams);
