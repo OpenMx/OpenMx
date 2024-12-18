@@ -18,6 +18,20 @@ setMethod("initialize", "MxExpectationMixture",
 		  .Object
 	  })
 
+setMethod(
+	"genericExpRename", signature("MxExpectationMixture"),
+	function(.Object, oldname, newname) {
+		if(length(.Object@components)){
+			for(i in 1:length(.Object@components)){
+				.Object@components[i] <- renameReference(.Object@components[i], oldname, newname)
+			}
+		}
+		.Object@weights <- renameReference(.Object@weights, oldname, newname)
+		.Object@scale <- renameReference(.Object@scale, oldname, newname)
+		.Object@data <- renameReference(.Object@data, oldname, newname)
+		return(.Object)
+	})
+
 setMethod("genericExpDependencies", signature("MxExpectationMixture"),
 	  function(.Object, dependencies) {
 		  components <- paste(.Object@components, "expectation", sep=".")
