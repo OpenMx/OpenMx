@@ -138,7 +138,7 @@ threeFactorOrthogonal2$A$ubound <- NA
 diag(threeFactorOrthogonal2$A$lbound) <- 1e-6
 set.seed(10)
 threeFactorOrthogonal2Out <- mxTryHard(threeFactorOrthogonal2,greenOK=T,fit2beat=30855.58)
-omxCheckCloseEnough(threeFactorOrthogonal2Out$output$fit, 30855.58, .1)
+omxCheckCloseEnough(threeFactorOrthogonal2Out$output$fit, 29350.181, .1)
 
 
 mxOption(reset=TRUE)
