@@ -19,9 +19,9 @@
 \title{Assign First Available Values to Model Parameters}
 
 \description{
-    Sometimes you may have a free parameter with two different starting values in your model. OpenMx will not run a model until all instances of a free parameter have the same starting value. It is often sufficient to arbitrarily select one of those starting values for optimization. 
+    Sometimes, in your model, you may have a free parameter with two or more different starting values, lower bounds, and/or upper bounds. OpenMx will not run a model until all instances of a free parameter have the same starting value, lower bound, and upper bound. It is often sufficient to arbitrarily select one of those starting values for optimization; bounds may also be selected arbitrarily, but users should do so with more caution.
 
-This function accomplishes that task of assigning valid starting values to the free parameters of a model. It selects an arbitrary current value (the "first" value it finds, where "first" is not defined) for each free parameter and uses that value for all instances of that parameter in the model.
+This function accomplishes that task of assigning valid starting values and bounds to the free parameters of a model. It selects an arbitrary current value (the "first" value it finds, where "first" is not defined) for each free parameter and uses that value for all instances of that parameter in the model.
 }
 
 \usage{

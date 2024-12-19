@@ -217,7 +217,9 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"and matrix", 
 						omxQuotes(simplifyName(loc[[1]], modelname)), 
 						"at location", 
-						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
+						rowColToString(loc[[2]], loc[[3]]),
+						"If you want to randomly select one of these lbounds, call",
+						"model <- omxAssignFirstParameters(model) before running again."), call. = FALSE)
 				} else if (label %in% freeVars && 
 								!identicalNA(ubound, bounds[[label]][[2]])) {
 					loc <- varlocations[[label]]
@@ -230,7 +232,9 @@ checkVariablesHelper <- function(matrix, startVals, freeVars,
 						"and matrix", 
 						omxQuotes(simplifyName(loc[[1]], modelname)), 
 						"at location", 
-						rowColToString(loc[[2]], loc[[3]])), call. = FALSE)
+						rowColToString(loc[[2]], loc[[3]]),
+						"If you want to randomly select one of these ubounds, call",
+						"model <- omxAssignFirstParameters(model) before running again."), call. = FALSE)
 				} else {
 					if (!is.na(value)) startVals[[label]] <- value
 					freeVars <- union(freeVars, label)
