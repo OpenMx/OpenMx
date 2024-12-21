@@ -156,8 +156,9 @@ mxSE <- function(x, model, details=FALSE, cov, forceName=FALSE, silent=FALSE, ..
 	zoutMat <- try(mxEvalByName(x, model, compute=TRUE),silent=silent)
 	if(is(zoutMat, "try-error")) {
 		stop(paste0("Couldn't evaluate expression ", omxQuotes(xorig), ". Might help to check if it works in mxEval.\n",
-		"Recall also that elements of submodels are addressed as submodelName.objectName\n",
-		"For example, to refer to an object called 'bob' in submodel 'sub1', you would say 'sub1.bob'."))
+		"Recall also that elements of submodels are addressed using **dot** syntax (not $), e.g., submodelName.objectName\n",
+		"For example, to refer to an object called 'bob' in submodel 'sub1', you would say 'sub1.bob'.",
+		"Also, you don't need to refer to values: so top.a_cp[1,1] NOT top.a_cp.values[1,1]"))
 	}
 	
 	covParam <- ParamsCov
