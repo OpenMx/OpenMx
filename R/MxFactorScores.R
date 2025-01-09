@@ -117,7 +117,7 @@ mxFactorScores <- function(model, type=c('ML', 'WeightedML', 'Regression'), minM
 		} else {
 			msg <- paste0("factor-score standard errors not available from MxModel '",
 				model$name,"' because calculating SEs is turned off for that ",
-				"model (possibly due to one or more MxConstraints)")
+				"model")
 			warning(msg, sep="")
 		}
 		res <- clearExcessivelyMissingRows(fullData, minManifests, res)

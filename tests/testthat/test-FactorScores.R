@@ -72,10 +72,10 @@ if (mxOption(key="Default optimizer") != 'NPSOL') {
   mxOption(NULL,"Standard Errors","No")
   omxCheckWarning(
     mxFactorScores(factorRunL,"ML"),
-    "factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
+    "factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model")
   omxCheckWarning(
     mxFactorScores(factorRunL,"WeightedML"),
-    "factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model (possibly due to one or more MxConstraints)")
+    "factor-score standard errors not available from MxModel 'OneFactor' because calculating SEs is turned off for that model")
   mxOption(NULL,"Standard Errors","Yes")
 }
 
