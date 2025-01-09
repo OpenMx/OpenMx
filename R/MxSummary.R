@@ -1191,23 +1191,36 @@ logLik.MxModel <- function(object, ...) {
   out$Std.SE <- SEs
   #Pull in raw SEs if requested:
   if(SE){
-    for(i in 1:numelem){
-      if( (out$name[i] %in% paramnames) |
-            (out$label[i] %in% paramnames) ){
-        tdiags <- covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
-                                       ifelse(is.na(out$label[i]),out$name[i],out$label[i])]
-	if (length(tdiags) == 1) {
-		# For diag, R will return a square identity matrix of size given by the scalar
-		if(tdiags < 0 || is.na(tdiags)) {
-			warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
-		}
-	} else {
-		if(any(diag(tdiags) < 0) || any(is.na(tdiags))){
-			warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
-		}
-	}
-        out$Raw.SE[i] <- suppressWarnings(sqrt(tdiags))
-  }}}
+  	for(i in 1:numelem){
+  		if( (out$name[i] %in% paramnames) |
+  				(out$label[i] %in% paramnames) ){
+  			tdiags <- covParam[ifelse(is.na(out$label[i]),out$name[i],out$label[i]),
+  												 ifelse(is.na(out$label[i]),out$name[i],out$label[i])]
+  			if (length(tdiags) == 1) {
+  				# For diag, R will return a square identity matrix of size given by the scalar
+  				if(tdiags < 0 || is.na(tdiags)) {
+  					warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+  				}
+  			} else {
+  				if(any(diag(tdiags) < 0) || any(is.na(tdiags))){
+  					warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+  				}
+  			}
+  			out$Raw.SE[i] <- suppressWarnings(sqrt(tdiags))
+  		}
+  		else{
+  			# # The elements of `out$name` should all reference scalars:
+  			# tmp <- try(mxSE(x=out$name[i],model=model,forceName=TRUE,silent=TRUE))
+  			# if(inherits(tmp,"try-error")){
+  			# 	# Paths with the same label will have the same raw value and raw-value SE:
+  			# 	tmp <- try(mxSE(x=out$label[i],model=model,forceName=TRUE,silent=TRUE))
+  			# }
+  			# if( !inherits(tmp,"try-error") && is.numeric(tmp) ){
+  			# 	out$Raw.SE[i] <- tmp
+  			# }
+  		}
+  	}
+  }
   else{out$Raw.SE <- "not_requested"}
   return(out)
 }
