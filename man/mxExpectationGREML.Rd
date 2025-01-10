@@ -27,16 +27,19 @@ mxExpectationGREML(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPhe
   \item The random effects are normally distributed.
   \item Weighted least-squares regression, using the inverse of 'V' as a weight matrix, is an adequate model for the phenotypic means.  Note that the regression coefficients are not actually free parameters to be numerically optimized.}
   
-Computationally, the chief distinguishing feature of an OpenMx GREML analysis is that the phenotype vector, 'y,' is a single realization of a random vector that, in general, cannot be partitioned into independent subvectors.  For this reason, definition variables are not compatible (and should be unnecessary with) GREML expectation.  GREML expectation can still be used if the covariance matrix is sparse, but as of this writing, OpenMx does not take advantage of the sparseness to improve performance.  Because of the limitations of restricted maximum likelihood, GREML expectation is presently incompatible with ordinal variables.
+Computationally, the chief distinguishing feature of an OpenMx GREML analysis is that the phenotype vector, 'y,' is a single realization of a random vector that, in general, cannot be partitioned into independent subvectors.  For this reason, definition variables are not compatible (and should be unnecessary with) GREML expectation.  GREML expectation can still be used if the covariance matrix is sparse, but as of this writing, OpenMx does not take advantage of the sparseness to improve performance.  Because of the limitations of restricted maximum likelihood, GREML expectation is incompatible with ordinal variables; with GREML expectation, ordinal phenotypes must be treated as though they were continuous.
 }
 \value{
 Returns a new object of class \code{\link{MxExpectationGREML}}.
 }
 \references{
-Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale, MC.  (2021).  Combining structural-equation modeling with genomic-relatedness matrix restricted maximum likelihood in OpenMx.  In press at Behavior Genetics.  https://doi.org/10.1007/s10519-020-10037-5
+Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale MC.  (2021).  Combining structural-equation modeling with genomic-relatedness matrix restricted maximum likelihood in OpenMx.  Behavior Genetics 51: 331-342.  \url{https://doi.org/10.1007/s10519-020-10037-5}
+
+The first software implementation of "GREML":\cr
+Yang J, Lee SH, Goddard ME, Visscher PM.  (2011).  GCTA: a tool for genome-wide complex trait analysis.  American Journal of Human Genetics 88: 76-82.  \url{https://doi.org/10.1016/j.ajhg.2010.11.011}
 
 One of the first uses of the acronym "GREML":\cr
-Benjamin DJ, Cesarini D, van der Loos MJHM, Dawes CT, Koellinger PD, et al. (2012) The genetic architecture of economic and political preferences. Proceedings of the National Academy of Sciences 109: 8026-8031. doi: 10.1073/pnas.1120666109
+Benjamin DJ, Cesarini D, van der Loos MJHM, Dawes CT, Koellinger PD, et al. (2012).  The genetic architecture of economic and political preferences. Proceedings of the National Academy of Sciences 109: 8026-8031. doi: 10.1073/pnas.1120666109
 
 The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }

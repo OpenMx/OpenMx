@@ -22,7 +22,7 @@ mxFitFunctionGREML(dV=character(0), aug=character(0),
   \item{infoMatType}{"Information matrix type."  Character string, either "average" (default) or "expected".  See details below.}
 }
 \details{
-Making effective use of arguments \code{dV}, \code{augGrad}, and \code{augHess} will usually require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  The loglikelihood's first derivatives thus computed will always be exact, but its matrix of second partial derivatives (i.e., its Hessian matrix) will be approximated by either the average or expected information matrix, per the value of argument \code{infoMatType}.  The average information matrix is faster to compute, but may not provide a good approximation to the Hessian if 'V' is not linear in the model's free parameters.  The expected information matrix is slower to compute, but does not assume that 'V' is linear in the free parameters.  Neither information matrix will be a good approximation to the Hessian unless the derivatives of 'V' evaluate to symmetric matrices the same size as 'V'.  Note also that these loglikelihood derivatives do not reflect the influence of any parameter bounds or \code{\link{MxConstraint}}s. Internally, the derivatives of the 'V' matrix are assumed to be symmetric, and the elements above their main diagonals are ignored.
+Making effective use of arguments \code{dV}, \code{augGrad}, and \code{augHess} may require a custom \code{\link{mxComputeSequence}()}.  The derivatives of the REML loglikelihood function with respect to parameters can be internally computed from the derivatives of the 'V' matrix supplied via \code{dV}.  The loglikelihood's first derivatives thus computed will always be exact, but its matrix of second partial derivatives (i.e., its Hessian matrix) will be approximated by either the average or expected information matrix, per the value of argument \code{infoMatType}.  The average information matrix is faster to compute, but may not provide a good approximation to the Hessian if 'V' is not linear in the model's free parameters.  The expected information matrix is slower to compute, but does not assume that 'V' is linear in the free parameters.  Neither information matrix will be a good approximation to the Hessian unless the derivatives of 'V' evaluate to symmetric matrices the same size as 'V'.  Note also that these loglikelihood derivatives do not reflect the influence of any parameter bounds or \code{\link{MxConstraint}}s. Internally, the derivatives of the 'V' matrix are assumed to be symmetric, and the elements above their main diagonals are ignored.
 
 Formerly, if any derivatives were provided via \code{dV}, then derivatives had to be provided for \emph{every} free parameter in the MxModel.  Currently, users may provide derivatives of 'V' via \code{dV} with respect to some or all free parameters.  Note that the gradient and Hessian of the augmentation must be complete, i.e. contain derivatives of the augmentation with respect to every parameter or pair of parameters respectively.
 
@@ -33,7 +33,16 @@ Argument \code{aug} is intended to allow users to provide penalty functions or p
 \value{
 Returns a new object of class \code{\link{MxFitFunctionGREML}}.
 }
+
 \references{
+Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale MC.  (2021).  Combining structural-equation modeling with genomic-relatedness matrix restricted maximum likelihood in OpenMx.  Behavior Genetics 51: 331-342.  \url{https://doi.org/10.1007/s10519-020-10037-5}
+
+The first software implementation of "GREML":\cr
+Yang J, Lee SH, Goddard ME, Visscher PM.  (2011).  GCTA: a tool for genome-wide complex trait analysis.  American Journal of Human Genetics 88: 76-82.  \url{https://doi.org/10.1016/j.ajhg.2010.11.011}
+
+One of the first uses of the acronym "GREML":\cr
+Benjamin DJ, Cesarini D, van der Loos MJHM, Dawes CT, Koellinger PD, et al. (2012).  The genetic architecture of economic and political preferences. Proceedings of the National Academy of Sciences 109: 8026-8031. doi: 10.1073/pnas.1120666109
+
 The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 

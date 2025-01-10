@@ -16,7 +16,7 @@ Objects can be created by calls of the form
 \section{Slots}{
   \describe{
     \item{\code{V}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the 'V' matrix.}
-    \item{\code{yvars}:}{Character vector.  Each string names a column of the raw dataset, to be used as a phenotypes.}
+    \item{\code{yvars}:}{Character vector.  Each string names a column of the raw dataset, to be used as a phenotype.}
     \item{\code{Xvars}:}{A list of data column names, specifying the covariates to be used with each phenotype.}
     \item{\code{addOnes}:}{Logical; pertains to data-handling at runtime.}
     \item{\code{blockByPheno}:}{Logical; pertains to data-handling at runtime.}
@@ -45,8 +45,17 @@ Class \code{"MxExpectation"}, by class "MxBaseExpectation", distance 2.
 \section{Methods}{
 No methods defined with class "MxExpectationGREML" in the signature.
 }
+
 \references{
-The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}.
+Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale MC.  (2021).  Combining structural-equation modeling with genomic-relatedness matrix restricted maximum likelihood in OpenMx.  Behavior Genetics 51: 331-342.  \url{https://doi.org/10.1007/s10519-020-10037-5}
+
+The first software implementation of "GREML":\cr
+Yang J, Lee SH, Goddard ME, Visscher PM.  (2011).  GCTA: a tool for genome-wide complex trait analysis.  American Journal of Human Genetics 88: 76-82.  \url{https://doi.org/10.1016/j.ajhg.2010.11.011}
+
+One of the first uses of the acronym "GREML":\cr
+Benjamin DJ, Cesarini D, van der Loos MJHM, Dawes CT, Koellinger PD, et al. (2012).  The genetic architecture of economic and political preferences. Proceedings of the National Academy of Sciences 109: 8026-8031. doi: 10.1073/pnas.1120666109
+
+The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation/}.
 }
 
 \seealso{
