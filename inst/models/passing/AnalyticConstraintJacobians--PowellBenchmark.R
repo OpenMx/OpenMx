@@ -424,3 +424,5 @@ if(mxOption(NULL,"Default optimizer") == "SLSQP"){
 	nmprun$compute$steps[[1]]$output$constraintFunctionValues
 	omxCheckCloseEnough(coef(powellrun2),coef(nmprun),0.02)
 }
+
+mxOption(reset=TRUE)
