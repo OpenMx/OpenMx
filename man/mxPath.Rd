@@ -31,7 +31,8 @@
 mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
     "all.bivariate", "unique.bivariate"), arrows = 1,
     free = TRUE, values = NA, labels = NA,
-    lbound = NA, ubound = NA, ..., joinKey = as.character(NA), step = c())
+    lbound = NA, ubound = NA, ..., joinKey = as.character(NA), step = c(),
+    strictUnigraph = TRUE)
 }
 
 \arguments{
@@ -51,6 +52,15 @@ mxPath(from, to = NA, connect = c("single", "all.pairs", "unique.pairs",
    factor loading.}
    \item{step}{numeric vector. The priority for processing arrows=0
    paths. For example, step 1 is processed before step 2.}
+   \item{strictUnigraph}{Logical. If \code{TRUE} (default), and 
+   \code{arrows=1}, the resulting one-headed path will overwrite 
+   any two-headed path(s), previously passed to \code{\link{mxModel}()}, 
+   and between the same pair(s) of variables.  If \code{TRUE} (default), and 
+   \code{arrows=2}, the resulting two-headed path will overwrite 
+   any one-headed path(s), previously passed to \code{\link{mxModel}()}, 
+   and between the same pair(s) of variables.  If \code{FALSE}, the resulting 
+   path will NOT overwrite any "pre-existing" paths as described in the 
+   foregoing.}
 }
 
 \note{

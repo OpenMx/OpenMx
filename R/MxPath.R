@@ -25,12 +25,13 @@ setClass(Class = "MxPath",
 		ubound = "numeric",
 	    connect = "character",
     joinKey = "character",
-    step="MxOptionalInteger"
+    step="MxOptionalInteger",
+		strictUnigraph="logical"
 ))
 
 setMethod("initialize", "MxPath",
 	function(.Object, from, to, arrows, values,
-		free, labels, lbound, ubound, connect, joinKey, step) {
+		free, labels, lbound, ubound, connect, joinKey, step, strictUnigraph) {
 		.Object@from <- from
 		.Object@to <- to
 		.Object@arrows <- arrows
@@ -42,6 +43,7 @@ setMethod("initialize", "MxPath",
 		.Object@connect <- connect
 		.Object@joinKey <- joinKey
     .Object@step <- step
+    .Object@strictUnigraph <- strictUnigraph
 		return(.Object)
 	}
 )
@@ -97,7 +99,7 @@ expandPathConnect <- function(from, to, connect) {
 # returns a list of paths
 generatePath <- function(from, to,
 		connect, arrows, values, free,
-		labels, lbound, ubound, joinKey, step) {
+		labels, lbound, ubound, joinKey, step, strictUnigraph) {
 
 	# save exactly what the user typed to pass to mxModel for creation
 	unalteredTo <- to
@@ -116,7 +118,7 @@ generatePath <- function(from, to,
 	to   <- expanded$to
 	if (max(length(from), length(to)) == 0 && length(values) <= 1 &&
 		    length(free) <= 1 && length(labels) <= 1 && length(lbound) <= 1 &&
-		    length(ubound) <= 1 && length(joinKey) <= 1) return(NULL)
+		    length(ubound) <= 1 && length(joinKey) <= 1 && length(strictUnigraph) <= 1) return(NULL)
 
 	# check for a missing to or from
 	pathCheckToAndFrom(from, to)
@@ -130,7 +132,7 @@ generatePath <- function(from, to,
 	lapply(labels, imxVerifyReference, -1)
 
 	# check for length mismatches
-	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, loop)
+	pathCheckLengths(from, to, arrows, values, free, labels, lbound, ubound, strictUnigraph, loop)
 
   numBounds <- max(length(lbound), length(ubound))
   for (bx in 1:numBounds) {
@@ -142,7 +144,7 @@ generatePath <- function(from, to,
   }
 
 	# create a new MxPath in the MxModel
-	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinKey, step))
+	return(new("MxPath", unalteredFrom, unalteredTo, arrows, values, free, labels, lbound, ubound, connect, joinKey, step, strictUnigraph))
 }
 
 pathCheckToAndFrom <- function(from, to){
@@ -153,7 +155,7 @@ pathCheckToAndFrom <- function(from, to){
 }
 
 pathCheckLengths <- function(from, to, arrows, values,
-        free, labels, lbound, ubound, loop) {
+        free, labels, lbound, ubound, strictUnigraph, loop) {
     numPaths <- max(length(from), length(to))
     pathCheckSingleLength(numPaths, length(arrows), "arrows", from, to, loop)
     pathCheckSingleLength(numPaths, length(values), "values", from, to, loop)
@@ -161,6 +163,7 @@ pathCheckLengths <- function(from, to, arrows, values,
     pathCheckSingleLength(numPaths, length(labels), "labels", from, to, loop)
     pathCheckSingleLength(numPaths, length(lbound), "lbounds", from, to, loop)
     pathCheckSingleLength(numPaths, length(ubound), "ubounds", from, to, loop)
+    pathCheckSingleLength(numPaths, length(strictUnigraph), "strictUnigraph", from, to, loop)
 }
 
 pathCheckSingleLength <- function(numPaths, len, lenName, from, to, loop) {
@@ -239,7 +242,8 @@ mxPath <- function(from, to = NA,
 	connect = c("single", "all.pairs", "unique.pairs",
 	            "all.bivariate", "unique.bivariate"), arrows = 1,
 	free = TRUE, values = NA, labels = NA, lbound = NA, ubound = NA, ...,
-  joinKey=as.character(NA), step=c()) {
+  joinKey=as.character(NA), step=c(),
+	strictUnigraph=TRUE) {
 	if (missing(from)) {
 		stop("The 'from' argument to mxPath must have a value.")
 	}
@@ -369,9 +373,10 @@ mxPath <- function(from, to = NA,
 	pathCheckVector(lbound, 'lbound', is.numeric, 'numeric')
 	pathCheckVector(ubound, 'ubound', is.numeric, 'numeric')
 	if (any(arrows==0)) pathCheckVector(step, 'step', is.numeric, 'numeric')
+	pathCheckVector(strictUnigraph, 'strictUnigraph', is.logical, 'logical')
 	generatePath(from, to, connect, arrows,
 		values, free, labels,
-		lbound, ubound, joinKey, step)
+		lbound, ubound, joinKey, step, strictUnigraph)
 }
 
 nchar0 <- function(x){
@@ -408,6 +413,7 @@ displayPath <- function(object) {
 	alllbound <- path@lbound
 	allubound <- path@ubound
 	allstep <- path@step
+	#allstrictUnigraph <- path@strictUnigraph
 	maxlength <- max(length(allfrom), length(allto))
 
 	for(i in 0:(maxlength - 1)) {
@@ -421,6 +427,7 @@ displayPath <- function(object) {
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
     nextjoinkey <- path@joinKey[[i %% length(path@joinKey) + 1]]
     nextstep <- ifelse(length(allstep)==0, NA, allstep[[i %% length(allstep) + 1]])
+    #nextstrictUnigraph <- allstrictUnigraph[[i %% length(alllabels) + 1]]
 
 		cat(from)
 		cat(paste0(' ', ifelse(arrows==1, "->", "<->"), ' '))
