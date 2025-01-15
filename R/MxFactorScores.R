@@ -202,9 +202,11 @@ ramFactorScoreHelper <- function(model){
 	basVal <- fullMean
 	basVal[OFmat$is.manifest] <- 0
 	basNam <- paste0("Base", model$expectation$M)
-	newMean <- mxMatrix("Full", 1, tdim, values=scoreStart, free=!OFmat$is.manifest, name="Score", labels=paste0("fscore", dimnames(Fmat)[[2]]))
+	vnames <- dimnames(Fmat)[[2]]
+	if(!length(vnames)){vnames <- model$expectation@dims}
+	newMean <- mxMatrix("Full", 1, tdim, values=scoreStart, free=!OFmat$is.manifest, name="Score", labels=paste0("fscore", vnames))
 	basMean <- mxMatrix("Full", 1, tdim, values=basVal, free=FALSE, name=basNam)
-	scoreMean <- mxAlgebraFromString(paste("Score -", basNam), name="ScoreMinusM", dimnames=list('one', dimnames(Fmat)[[2]]))
+	scoreMean <- mxAlgebraFromString(paste("Score -", basNam), name="ScoreMinusM", dimnames=list(NULL, vnames))
 	newExpect <- model$expectation
   newExpect@.discreteCheckCount <- FALSE
   newExpect$M <- "ScoreMinusM"
@@ -218,13 +220,23 @@ ramFactorScoreHelper <- function(model){
 }
 
 RAMrfs <- function(model, res, minManifests) {
+	# This function assumes that, in the columns & rows of matrices, from right-to-left and top-to-bottomw, the manifest variables come before
+	# the latent variables   That is not guaranteed to be so if the user specifies his/her RAM model via matrices, but that is how the user 
+	# is instructed to set up his/her matrices in the man page for `mxExpectationRAM()`:
 	i <- j <- 1
+	Fm <- mxEvalByName(model$expectation$F,model,T)
 	manvars <- model@manifestVars
+	if(!length(manvars)){
+		manvars <- model$expectation@dims[1:nrow(Fm)]
+	}
 	latvars <- model@latentVars
+	if(!length(latvars) && ncol(Fm)>nrow(Fm)){
+		latvars <- model$expectation@dims[(nrow(Fm)+1):ncol(Fm)]
+	}
 	defvars <- findIntramodelDefVars(model)
 	relevantDataCols <- c(manvars,defvars)
 	dat <- model@data@observed
-	I <- diag(length(manvars)+length(latvars))
+	I <- diag(ncol(Fm))
 	Ilat <- diag(length(latvars))
 	while(i<=dim(res)[1]){
 		continublockflag <- ifelse(i<dim(res)[1],TRUE,FALSE)
@@ -240,11 +252,22 @@ RAMrfs <- function(model, res, minManifests) {
 			){j <- j+1}
 			else{continublockflag <- FALSE}
 		}
-		unfilt <- solve(I-mxEvalByName("A",model,T,defvar.row=i))%*%mxEvalByName("S",model,T,defvar.row=i)%*%
-			t(solve(I-mxEvalByName("A",model,T,defvar.row=i)))
-		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars)) #<--Necessary?
-		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% t(solve(Ilat-mxEvalByName("A",model,T,defvar.row=i)[latvars,latvars]) %*%
-			matrix(mxEvalByName("M",model,T,defvar.row=i)[,latvars],ncol=1))
+		Am <- mxEvalByName(model$expectation$"A",model,T,defvar.row=i)
+		# We do not elsewhere ensure that user-provided 'A' and 'M' matrices have dimnames, so we must ensure it here:
+		if(!length(colnames(Am))){
+			colnames(Am) <- c(manvars,latvars)
+		}
+		if(!length(rownames(Am))){
+			rownames(Am) <- c(manvars,latvars)
+		}
+		Mm <- mxEvalByName(model$expectation$"M",model,T,defvar.row=i)
+		if(!length(colnames(Mm))){
+			colnames(Mm) <- c(manvars,latvars)
+		}
+		unfilt <- solve(I-Am) %*% mxEvalByName(model$expectation$"S",model,T,defvar.row=i) %*% t(solve(I-Am))
+		dimnames(unfilt) <- list(c(manvars,latvars),c(manvars,latvars))
+		latmeans <- matrix(1,ncol=1,nrow=(j-i+1)) %x% t(solve(Ilat-Am[latvars,latvars]) %*%
+			matrix(Mm[,latvars],ncol=1))
 		missing <- is.na(dat[i,manvars])
 		anyMissing <- any(missing)
 		if (anyMissing && is.na(minManifests)) requireMinManifests(i)
