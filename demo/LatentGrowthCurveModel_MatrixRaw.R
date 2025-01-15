@@ -107,3 +107,14 @@ omxCheckCloseEnough(coef(growthCurveFit)[["cov"]], 0.460, 0.01)
 omxCheckCloseEnough(coef(growthCurveFit)[["residual"]], 2.316, 0.01)
 # Compare OpenMx results to Mx results 
 # -----------------------------------------------------------------------
+
+# Test `mxFactorScores()`:
+fsml <- mxFactorScores(growthCurveFit)
+head(fsml)
+if(0){
+	# TODO why this result??:
+	fswml <- mxFactorScores(growthCurveFit,"WeightedML")
+	head(fswml)
+}
+fsr <- mxFactorScores(growthCurveFit,"Regression")
+head(fsr)
