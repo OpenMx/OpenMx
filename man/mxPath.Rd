@@ -163,4 +163,78 @@ for (i in 1:5) {
 # add single-headed paths to the model
 testModel <- mxModel(model=testModel, singles)
 
+## Suppose you want to have a one-headed path AND a two-headed path
+## between the same pair of variables in a RAM model?
+
+# One approach: use "dummy" latent variables:
+mvars <- c("x1", "x2") #<--Manifest variables.
+lvars <- c("dummy1","dummy2") #<--Latent variables.
+model <- mxModel(
+	type = "RAM",
+	manifestVars=mvars,
+	latentVars=lvars,
+	# One-headed path from 'x1' to 'x2', freely estimated:
+	mxPath(
+		from = "x1", to = "x2", 
+		arrows = 1, 
+		labels = "b_x2_x1", values=0.1),
+	# Each latent variable "causes" its corresponding manifest variable:
+	mxPath(from=lvars,to=mvars,arrows=1,free=FALSE,values=1),
+	# Each latent variable has its variance fixed to 1.0:
+	mxPath(from=lvars,arrows=2,free=FALSE,values=1),
+	# The covariance between the two latent variables is freely estimated;
+	# it is also the covariance between the two manifest variables:
+	mxPath(from=lvars[1],to=lvars[2],arrows=2,free=TRUE,values=0.1)
+)
+
+\dontrun{
+
+# Another approach: directly modify matrices:
+
+# Will raise a warning:
+model <- mxModel(
+	type = "RAM",
+	manifestVars = c("x1", "x2"),
+	mxPath(
+		from = "x1", to = "x2", 
+		arrows = 1, 
+		labels = "b_x2_x1"),
+	mxPath(
+		from = "x1", 
+		to = "x2", 
+		arrows = 2, 
+		labels = "v_x2_x1")
+)
+coef(model) #<--Only the two-headed path is there.
+
+# Directly modify the MxModel's 'A' matrix:
+model$A$free["x2","x1"] <- TRUE
+model$A$labels["x2","x1"] <- "b_x2_x1"
+
+# Alternately:
+
+# Will raise a warning:
+model <- mxModel(
+	type = "RAM",
+	manifestVars = c("x1", "x2"),
+		mxPath(
+		from = "x1", 
+		to = "x2", 
+		arrows = 2, 
+		labels = "v_x2_x1"),
+	mxPath(
+		from = "x1", to = "x2", 
+		arrows = 1, 
+		labels = "b_x2_x1")
+)
+coef(model) #<--Only the one-headed path is there.
+
+# Directly modify the MxModel's 'S' matrix:
+model$S$free["x2","x1"] <- TRUE
+model$S$labels["x2","x1"] <- "v_x2_x1"
+model$S$free["x1","x2"] <- TRUE
+model$S$labels["x1","x2"] <- "v_x2_x1"
+#^^^The 'S' matrix is symmetric, so so if you modify an off-diagonal element of 'S', 
+# you have to likewise modify the corresponding element on the other side of the diagonal.
+}
 }
