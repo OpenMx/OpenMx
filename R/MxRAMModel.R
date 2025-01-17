@@ -500,7 +500,6 @@ insertPathRAM <- function(path, model) {
 	alllbound <- path@lbound
 	allubound <- path@ubound
 	alljoinKey <- path@joinKey
-	allstrictUnigraph <- path@strictUnigraph
 	maxlength <- max(length(allfrom), length(allto))
 	A <- model[['A']]
 	S <- model[['S']]
@@ -533,7 +532,6 @@ insertPathRAM <- function(path, model) {
 		nextlbound <- alllbound[[i %% length(alllbound) + 1]]
 		nextjoinKey <- alljoinKey[[i %% length(alljoinKey) + 1]]
     nextstep <- path@step[[i %% length(path@step) + 1]]
-    nextstrictUnigraph <- allstrictUnigraph[[i %% length(allstrictUnigraph) + 1]]
 
 		if (!is.na(nextjoinKey)) {
 			upperFrom <- strsplit(from, imxSeparatorChar, fixed = TRUE)
@@ -681,14 +679,12 @@ insertPathRAM <- function(path, model) {
 			A_labels[to, from] <- nextlabel
 			A_ubound[to, from] <- nextubound
 			A_lbound[to, from] <- nextlbound
-			if(nextstrictUnigraph){
-				S_values[to, from] <- 0
-				S_labels[to, from] <- as.character(NA)
-				S_free[to, from] <- FALSE
-				S_values[from, to] <- 0
-				S_labels[from, to] <- as.character(NA)
-				S_free[from, to] <- FALSE
-			}
+			S_values[to, from] <- 0
+			S_labels[to, from] <- as.character(NA)
+			S_free[to, from] <- FALSE
+			S_values[from, to] <- 0
+			S_labels[from, to] <- as.character(NA)
+			S_free[from, to] <- FALSE
 		} else if (arrows == 2) {
 			S_free[to, from] <- nextfree
 			S_values[to, from] <- nextvalue
@@ -700,14 +696,12 @@ insertPathRAM <- function(path, model) {
 			S_labels[from, to] <- nextlabel
 			S_ubound[from, to] <- nextubound
 			S_lbound[from, to] <- nextlbound
-			if(nextstrictUnigraph){
-				A_values[to, from] <- 0
-				A_labels[to, from] <- as.character(NA)
-				A_free[to, from] <- FALSE
-				A_values[from, to] <- 0
-				A_labels[from, to] <- as.character(NA)
-				A_free[from, to] <- FALSE
-			}
+			A_values[to, from] <- 0
+			A_labels[to, from] <- as.character(NA)
+			A_free[to, from] <- FALSE
+			A_values[to, from] <- 0
+			A_labels[to, from] <- as.character(NA)
+			A_free[to, from] <- FALSE
 		} else {
 			stop(paste("Unknown arrow type", arrows,
 				   "with source", omxQuotes(from),
