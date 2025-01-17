@@ -679,6 +679,19 @@ insertPathRAM <- function(path, model) {
 			A_labels[to, from] <- nextlabel
 			A_ubound[to, from] <- nextubound
 			A_lbound[to, from] <- nextlbound
+			# Here, we only check the [to,from] elements (and not the [from,to] elements) of the S_* matrices, 
+			# because we assume that 'S' is symmetric, and there's no need to warn about the same thing twice:
+			if(S_values[to, from]!=0 || !is.na(S_labels[to, from]) || S_free[to, from]){
+				msg <- paste(
+					"Looks like there is a pre-existing two-headed path between ",omxQuotes(from)," and ",omxQuotes(to),".\n",
+					"That path is now overwritten by a one-headed path from ",omxQuotes(from)," to ",omxQuotes(to),".\n",
+					"To retain the two-headed path, either use 'dummy' latent variables, or directly modify the MxModel's 'S' matrix;\n",
+					"See the `mxPath()` help page for examples.\n",
+					"Be advised, this overwriting behavior may change in the future, so do not write scripts that rely upon it!",
+					sep=""
+				)
+				warning(msg)
+			}
 			S_values[to, from] <- 0
 			S_labels[to, from] <- as.character(NA)
 			S_free[to, from] <- FALSE
@@ -696,12 +709,34 @@ insertPathRAM <- function(path, model) {
 			S_labels[from, to] <- nextlabel
 			S_ubound[from, to] <- nextubound
 			S_lbound[from, to] <- nextlbound
+			if(A_values[to, from]!=0 || !is.na(A_labels[to, from]) || A_free[to, from]){
+				msg <- paste(
+					"Looks like there is a pre-existing one-headed path from ",omxQuotes(from)," to ",omxQuotes(to),".\n",
+					"That path is now overwritten by a two-headed path between ",omxQuotes(from)," and ",omxQuotes(to),".\n",
+					"To retain the one-headed path, either use 'dummy' latent variables, or directly modify the MxModel's 'A' matrix;\n",
+					"See the `mxPath()` help page for examples.\n",
+					"Be advised, this overwriting behavior may change in the future, so do not write scripts that rely upon it!",
+					sep=""
+				)
+				warning(msg)
+			}
 			A_values[to, from] <- 0
 			A_labels[to, from] <- as.character(NA)
 			A_free[to, from] <- FALSE
-			A_values[to, from] <- 0
-			A_labels[to, from] <- as.character(NA)
-			A_free[to, from] <- FALSE
+			if(A_values[from, to]!=0 || !is.na(A_labels[from, to]) || A_free[from, to]){
+				msg <- paste(
+					"Looks like there is a pre-existing one-headed path from ",omxQuotes(to)," to ",omxQuotes(from),".\n",
+					"That path is now overwritten by a two-headed path between ",omxQuotes(to)," and ",omxQuotes(from),".\n",
+					"To retain the one-headed path, either use 'dummy' latent variables, or directly modify the MxModel's 'A' matrix;\n",
+					"See the `mxPath()` help page for examples.\n",
+					"Be advised, this overwriting behavior may change in the future, so do not write scripts that rely upon it!",
+					sep=""
+				)
+				warning(msg)
+			}
+			A_values[from, to] <- 0
+			A_labels[from, to] <- as.character(NA)
+			A_free[from, to] <- FALSE
 		} else {
 			stop(paste("Unknown arrow type", arrows,
 				   "with source", omxQuotes(from),
