@@ -234,6 +234,9 @@ omxGREMLExpectation::~omxGREMLExpectation()
   omxFreeMatrix(argStruct->logdetV_om);
   omxFreeMatrix(argStruct->cholV_fail_om);
   omxFreeMatrix(argStruct->origVdim_om);
+  omxFreeMatrix(argStruct->y->dataMat);
+  delete argStruct->y;
+  omxFreeMatrix(argStruct->X);
 }
 
 
