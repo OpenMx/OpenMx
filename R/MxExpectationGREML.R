@@ -163,42 +163,81 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 						return(ret)
 					})
 
-mxExpectationGREML <- function(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
-                               staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0)){
-  blockByPheno <- as.logical(blockByPheno)[1]
-  staggerZeroes <- as.logical(staggerZeroes)[1]
-  addOnes <- as.logical(addOnes)[1]
-  dataset.is.yX <- as.logical(dataset.is.yX)[1]
-  if (missing(V) || typeof(V) != "character") {
-    stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
-  }
-  if(!dataset.is.yX){
-    casesToDropFromV <- integer(0) #<--Ignore casesToDropFromV unless dataset.is.yX is true
-    if ( missing(yvars) || typeof(yvars) != "character" )  {
-      stop("argument 'yvars' is not of type 'character' (the data column names of the phenotypes)")
-    }
-    if(!length(yvars)){
-      stop("you must specify at least one phenotype in argument 'yvars'")
-    }
-    if( !is.list(Xvars) ){
-      if(length(yvars)==1){Xvars <- list(Xvars)}
-      else{stop("argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1")}
-    }
-    if(length(Xvars)){
-      if( !all(sapply(Xvars,is.character)) ){
-        stop("elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)")
-      }
-      if( !staggerZeroes && !all(sapply(Xvars,length)==sapply(Xvars,length)[1]) ){
-        stop("all phenotypes must have the same number of covariates when staggerZeroes=FALSE")
-      }
-      if(length(Xvars)!=length(yvars)){
-        #In the polyphenotype case, the same covariates will often be used for all phenotypes:
-        if(length(Xvars)<length(yvars) && length(Xvars)==1){Xvars <- rep(Xvars,length.out=length(yvars))}
-        else{stop("conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'")}
-      }
-  }}
-  return(new("MxExpectationGREML", V, yvars, Xvars, addOnes, blockByPheno, staggerZeroes, dataset.is.yX, 
-             casesToDrop=casesToDropFromV))
+mxExpectationGREML <- function(
+		V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
+		staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0),
+		REML=TRUE, yhat=character(0))
+{
+	blockByPheno <- as.logical(blockByPheno)[1]
+	staggerZeroes <- as.logical(staggerZeroes)[1]
+	addOnes <- as.logical(addOnes)[1]
+	dataset.is.yX <- as.logical(dataset.is.yX)[1]
+	REML <- as.logical(REML)[1]
+	if (missing(V) || typeof(V) != "character") {
+		stop("argument 'V' is not of type 'character' (the name of the expected covariance matrix)")
+	}
+	if(!REML){
+		if(!length(yhat)){
+			if(length(Xvars)){
+				stop("argument 'REML=FALSE', so the phenotypic means must be specified via 'yhat' (the name of the expected mean vector), not 'Xvars'")
+			}
+			else{
+				stop("argument 'REML=FALSE', so the phenotypic means must be specified via 'yhat' (the name of the expected mean vector)")
+			}
+		} #End if(!length(yhat))
+		else{
+			if(typeof(yhat) != "character"){
+				stop("argument 'yhat' is not of type 'character' (the name of the expected mean vector)")
+			}
+			if(dataset.is.yX){
+				warning("'REML=FALSE' when 'dataset.is.yX=TRUE', so all data columns except the first will be ignored")
+			}
+			else if(length(Xvars)){
+				warning("argument 'REML=FALSE', so 'Xvars' is ignored in favor of 'yhat'")
+			}
+		} #End if(length(yhat))
+	} #End if(!REML)
+	else{
+		if(!dataset.is.yX){
+			casesToDropFromV <- integer(0) #<--Ignore casesToDropFromV unless dataset.is.yX is true
+			if ( missing(yvars) || typeof(yvars) != "character" )  {
+				stop("argument 'yvars' is not of type 'character' (the data column names of the phenotypes)")
+			}
+			if(!length(yvars)){
+				stop("you must specify at least one phenotype in argument 'yvars'")
+			}
+			if( !is.list(Xvars) ){
+				if(length(yvars)==1){Xvars <- list(Xvars)}
+				else{stop("argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1")}
+			}
+			if(length(Xvars)){
+				if(length(yhat)){
+					warning("argument 'REML=TRUE', so 'yhat' is ignored in favor of 'Xvars'")
+				}
+				if( !all(sapply(Xvars,is.character)) ){
+					stop("elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)")
+				}
+				if( !staggerZeroes && !all(sapply(Xvars,length)==sapply(Xvars,length)[1]) ){
+					stop("all phenotypes must have the same number of covariates when staggerZeroes=FALSE")
+				}
+				if(length(Xvars)!=length(yvars)){
+					#In the polyphenotype case, the same covariates will often be used for all phenotypes:
+					if(length(Xvars)<length(yvars) && length(Xvars)==1){Xvars <- rep(Xvars,length.out=length(yvars))}
+					else{stop("conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'")}
+				}
+			}
+			if(!length(Xvars) && length(yhat)){
+				stop("argument 'REML=TRUE', so the model for the phenotypic means must be modeled in terms of 'Xvars' (a list of the covariates' column names), not 'yhat'")
+			}
+		}
+		else{ #End if(!dataset.is.yX)
+			if(length(yhat)){
+				warning("argument 'yhat' is ignored when REML=TRUE")
+			}
+		}
+	}
+	return(new("MxExpectationGREML", V, yvars, Xvars, addOnes, blockByPheno, staggerZeroes, dataset.is.yX, 
+						 casesToDrop=casesToDropFromV, REML=REML, yhat=yhat))
 }
 
 
