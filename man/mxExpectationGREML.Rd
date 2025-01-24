@@ -9,14 +9,17 @@ This function creates a new \code{\link{MxExpectationGREML}} object.
 }
 \usage{
 mxExpectationGREML(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
-                  staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0))
+                  staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0),
+                  REML=TRUE, yhat=character(0))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{V}{Character string; the name of the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the 'V' matrix (the model-expected covariance matrix).  Internally, the 'V' matrix is assumed to be symmetric, and its elements above the main diagonal are ignored.}
   \item{yvars, Xvars, addOnes, blockByPheno, staggerZeroes}{Passed to \code{\link{mxGREMLDataHandler}()}.}
    \item{dataset.is.yX}{Logical; defaults to \code{FALSE}.  If \code{TRUE}, then the first column of the raw dataset is taken as-is to be the 'y' phenotype vector, and the remaining columns are taken as-is to be the 'X' matrix of covariates.  In this case, \code{\link{mxGREMLDataHandler}()} is never internally called at runtime, and all other arguments besides \code{V} and \code{casesToDropFromV} are ignored.}
-   \item{casesToDropFromV}{Integer vector.  Its elements are the numbers of the rows and columns of covariance matrix 'V' to be dropped at runtime, usually because they correspond to rows of 'y' or 'X' that contained missing observations.  By default, no cases are dropped from 'V.'  Ignored unless \code{dataset.is.yX=TRUE}. }
+   \item{casesToDropFromV}{Integer vector.  Its elements are the numbers of the rows and columns of covariance matrix 'V' to be dropped at runtime, usually because they correspond to rows of 'y' or 'X' that contained missing observations.  By default, no cases are dropped from 'V.'  Ignored unless \code{dataset.is.yX=TRUE}.}
+   \item{REML}{Logical; defaults to \code{TRUE}.  Should restricted maximum-likelihood estimation be used?  If \code{FALSE}, \code{yhat} must be provided, and \code{Xvars} is ignored; if \code{dataset.is.yX} is \code{TRUE}, then all data columns past the first (the phenotype vector) are ignored.}
+   \item{yhat}{Character string; the name of the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the model-expected phenotypic mean vector.  Must be provided if \code{REML} is \code{FALSE}.}
 }
 
 \details{
