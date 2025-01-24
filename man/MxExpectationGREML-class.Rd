@@ -29,6 +29,8 @@ Objects can be created by calls of the form
     \item{\code{b}:}{A matrix, to contain the vector of regression coefficients calculated at runtime.}
     \item{\code{bcov}:}{A matrix, to contain the sampling covariance matrix of the regression coefficients calculated at runtime.}
     \item{\code{numFixEff}:}{Integer number of covariates in 'X.'}
+    \item{\code{REML}:}{Logical.  Should restricted maximum-likelihood estimation be used?}
+    \item{\code{yhat}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the model-expected phenotypic mean vector.}
     \item{\code{dims}:}{Object of class \code{"character"}.}
     \item{\code{numStats}:}{Numeric; number of observed statistics.}
     \item{\code{dataColumns}:}{Object of class \code{"numeric"}.}

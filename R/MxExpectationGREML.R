@@ -29,6 +29,8 @@ setClass(Class = "MxExpectationGREML",
            b="matrix",
            bcov="matrix",
            numFixEff = "integer",
+           REML = "logical",
+           yhat = "MxCharOrNumber",
            dims = "character",
            numStats = "numeric",
            name = "character"),
@@ -40,7 +42,7 @@ setClass(Class = "MxExpectationGREML",
 setMethod("initialize", "MxExpectationGREML",
           function(.Object, V=character(0), yvars=character(0), Xvars=list(), addOnes=TRUE, 
                    blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDrop=integer(0),
-                   data = as.integer(NA), name = 'expectation') {
+                   data = as.integer(NA), name = 'expectation', REML=TRUE, yhat=character(0)) {
             .Object@name <- name
             .Object@V <- V
             .Object@yvars <- yvars
@@ -53,6 +55,8 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@casesToDrop <- casesToDrop
             .Object@data <- data
             .Object@X <- matrix(as.numeric(NA),1,1)
+            .Object@yhat <- yhat
+            .Object@REML <- REML
             .Object@dims <- "foo"
             return(.Object)
           }
@@ -64,13 +68,14 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
             .Object@name <- imxIdentifier(modelname, .Object@name)
             .Object@V <- imxConvertIdentifier(.Object@V, modelname, namespace)
             .Object@data <- imxConvertIdentifier(.Object@data, modelname, namespace)
+            .Object@yhat <- imxConvertIdentifier(.Object@yhat, modelname, namespace)
             return(.Object)
           })
 
 
 setMethod("genericExpDependencies", signature("MxExpectationGREML"),
           function(.Object, dependencies) {
-            sources <- c(.Object@V)
+            sources <- c(.Object@V,.Object@yhat)
             sources <- sources[!is.na(sources)]
             dependencies <- imxAddDependency(sources, .Object@name, dependencies)
             return(dependencies)
@@ -89,6 +94,7 @@ setMethod("genericExpRename", signature("MxExpectationGREML"),
           function(.Object, oldname, newname) {
             .Object@V <- renameReference(.Object@V, oldname, newname)
             .Object@data <- renameReference(.Object@data, oldname, newname)
+            .Object@yhat <- renameReference(.Object@yhat, oldname, newname)
             return(.Object)
           })
 
