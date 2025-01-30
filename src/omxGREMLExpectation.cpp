@@ -93,14 +93,14 @@ void omxGREMLExpectation::init()
     if(OMX_DEBUG) { mxLog("Preparing GREML expectation to handle missing data."); }
     oge->numcases2drop = Rf_length(casesToDrop);
     casesToDrop_intptr = INTEGER(casesToDrop);
-    oge->dropcase.assign(oge->cov->rows,0);
+    oge->dropcase.assign(oge->cov->rows,false);
     for(i=0; i < Rf_length(casesToDrop); i++){
       if(casesToDrop_intptr[i] > oge->cov->rows){
         Rf_warning("casesToDrop vector in GREML expectation contains indices greater than the number of datapoints");
         oge->numcases2drop--;
       }
       //Need to subtract 1 from the index because R begins array indexing with 1, not 0:
-      else{oge->dropcase[casesToDrop_intptr[i]-1] = 1;}
+      else{oge->dropcase[casesToDrop_intptr[i]-1] = true;}
   }}
   }
   if(Eigy.rows() != oge->cov->rows - oge->numcases2drop){
@@ -120,8 +120,8 @@ void omxGREMLExpectation::init()
   }
 
   //Initially compute everything involved in computing means:
-  oge->alwaysComputeMeans = 1;
-  oge->cholquadX_fail = 0;
+  oge->alwaysComputeMeans = true;
+  oge->cholquadX_fail = false;
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   //Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
@@ -177,7 +177,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
 	omxRecompute(oge->cov, fc);
   int i=0;
   oge->cholV_fail_om->data[0] = 0;
-  oge->cholquadX_fail = 0;
+  oge->cholquadX_fail = false;
   oge->logdetV_om->data[0] = 0;
 
   EigenMatrixAdaptor EigX(oge->X);
@@ -212,7 +212,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
   cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
   if(cholquadX.info() != Eigen::Success){
-    oge->cholquadX_fail = 1;
+    oge->cholquadX_fail = true;
     return;
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();

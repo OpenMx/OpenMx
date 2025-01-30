@@ -18,8 +18,9 @@ struct omxGREMLExpectation : public omxExpectation {
 	typedef omxExpectation super;
   omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, *origVdim_om;
   omxData *y, *data2;
-  int alwaysComputeMeans, numcases2drop, cholquadX_fail;
-  std::vector< int > dropcase;
+  int numcases2drop; 
+  bool alwaysComputeMeans, cholquadX_fail;
+  std::vector< bool > dropcase;
   Eigen::VectorXd cholV_vectorD;
   Eigen::VectorXd cholquadX_vectorD;
   Eigen::MatrixXd XtVinv, quadXinv, EigV_filtered;

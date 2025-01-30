@@ -115,7 +115,7 @@ void omxGREMLFitState::init()
   }
   else{
     omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
-    oge->alwaysComputeMeans = 0;
+    oge->alwaysComputeMeans = false;
   }
 
   newObj->y = omxGetExpectationComponent(expectation, "y");
