@@ -32,9 +32,9 @@ struct omxGREMLFitState : omxFitFunction {
 	omxMatrix *y, *X, *cov, *invcov, *means, *origVdim_om;
 	std::vector< omxMatrix* > dV;
 	std::vector< const char* > dVnames;
-	std::vector<int> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
+	std::vector<bool> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
 	std::vector<int> origdVdim;
-	std::vector<int> didUserGivedV;
+	std::vector<bool> didUserGivedV;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
 	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType;
@@ -1248,12 +1248,12 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	gradient.setZero(numExplicitFreePar);
 	infoMat.setZero(numExplicitFreePar,numExplicitFreePar);
 	didUserGivedV.resize(numExplicitFreePar);
-	didUserGivedV.assign(size_t(numExplicitFreePar),0);
+	didUserGivedV.assign(size_t(numExplicitFreePar),false);
 	gradMap.resize(numExplicitFreePar);
 	dAugMap.resize(numExplicitFreePar);
 	dAugMap.assign(size_t(numExplicitFreePar),-1);
 	indyAlg.resize(numExplicitFreePar);
-	indyAlg.assign(size_t(numExplicitFreePar),0);
+	indyAlg.assign(size_t(numExplicitFreePar),false);
 	int gx=0;
 	if(dVlength){
 		if(dVlength > numExplicitFreePar){
@@ -1277,7 +1277,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					dV[gx] = NULL;
 					dVnames[gx] = NULL;
 					origdVdim[gx] = 0;
-					//Remember that didUserGivedV was set to all zeroes just above, and dAugMap to all -1s.
+					//Remember that didUserGivedV was set to all false just above, and dAugMap to all -1s.
 					++gx;
 					break;
 				}
@@ -1287,8 +1287,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 					dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
 					origdVdim[gx] = origdVdim_temp[nx];
 					dAugMap[gx] = nx;
-					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? 1 : 0;
-					didUserGivedV[gx] = 1;
+					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? true : false;
+					didUserGivedV[gx] = true;
 					++gx;
 					break;
 				}

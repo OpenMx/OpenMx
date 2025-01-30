@@ -50,7 +50,7 @@ void dropCasesAndEigenize(
 		Eigen::MatrixBase<T1> &em,
 		double* &ptrToMatrix, //<--Pointer to data array, for use with Eigen Map subsequent to this function call.
 		int num2drop, //<--How many rows and columns to drop.
-		std::vector< int > &todrop, //<--Should row and column i be dropped?
+		std::vector< bool > &todrop, //<--Should row and column i be dropped?
 		bool symmetric, //<--Is the matrix symmetric?
 		int origDim, //<--Original pre-filtering dimensions of the matrix.
 		bool copyAlg //<--Should the elements of `om` be copied to `em`, even if `om` came from an algebra?
