@@ -440,8 +440,23 @@ mxGREMLDataHandler <- function(data, yvars=character(0), Xvars=list(), addOnes=T
   X <- NULL
   i <- 1
   if(!length(Xvars)){
-    X <- diag(length(yvars)) %x% matrix(1,nrow=nrow(data),ncol=1)
-    colnames(X) <- paste("x",1:length(yvars),sep="")
+  	if(!addOnes){
+  		warning("argument 'addOnes' is FALSE, but no covariates are named in argument 'Xvars'; the 'X' matrix will be constructed for intercept(s)-only")
+  	}
+  	if(staggerZeroes){
+  		if(blockByPheno){
+    		X <- diag(length(yvars)) %x% matrix(1,nrow=nrow(data),ncol=1)
+    		colnames(X) <- paste("x",1:length(yvars),sep="")
+  		}
+  		else{
+  			X <- matrix(1,nrow=nrow(data),ncol=1) %x% diag(length(yvars))
+  			colnames(X) <- paste("x",1:length(yvars),sep="")
+  		}
+  	}
+  	else{
+  		X <- matrix(1,nrow=length(y),ncol=1)
+  		colnames(X) <- "Intrcpt"
+  	}
   }
   else{
     if(staggerZeroes){
