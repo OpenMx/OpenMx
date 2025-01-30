@@ -39,9 +39,6 @@ colnames(dat) <- c("y","x") #<--Column names
 #and that a lead column of ones needs to be appended to the 'X' matrix (for the intercept):
 ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T)
 
-#This is a custom compute plan.  It is necessary because we want to use the Newton-Raphson optimizer, which
-#can use analytic first and second derivatives of the GREML fitfunction to speed up convergence.  It looks
-#especially messy here because we want a profile-likelihood confidence interval for the heritability:
 plan <- mxComputeSequence(steps=list(
 	mxComputeOnce('fitfunction', c('fit','gradient','hessian')),
 	mxComputeReportDeriv(),
