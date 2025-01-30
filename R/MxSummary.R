@@ -399,9 +399,10 @@ computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedD
 	# constraints, parameters, model degrees of freedom
 	retval[['constraints']] <- calculateConstraints(model, flatModel)
 	retval[['estimatedParameters']] <- nrow(retval$parameters)
-  if(any(sapply(obj,function(x){"MxExpectationGREML" %in% class(x)}))){
+  if(any(sapply(obj,function(x){is(x,"MxExpectationGREML")}))){
     retval[['estimatedParameters']] <- retval[['estimatedParameters']] +
-      sum(sapply(obj,imxExtractSlot,name="numFixEff"))
+      # When REML=FALSE and length(yhat)>0, numFixEff will be zero:
+    	sum(sapply(obj,imxExtractSlot,name="numFixEff"))
   }
 	if (is.null(numStats)) {
 		retval[['observedStatistics']] <- observedStatistics(model, flatModel, sum(retval$constraints))

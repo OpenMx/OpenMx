@@ -336,7 +336,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             		stop(msg)
             	}
             	if(!.Object@REML && length(.Object@yhat)){
-            		.Object@numFixEff <- NA_integer_ #<--Not sure what to do about this one.
+            		.Object@numFixEff <- 0
             	}
             	else{
             		if(length(.Object@Xvars)){
