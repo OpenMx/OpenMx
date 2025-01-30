@@ -1,3 +1,4 @@
+tests/testthat/test-GREML_Error_Detection.R
 inst/models/passing/AugmentedGREMLfitfunction.R
 inst/models/passing/GREML--151123missingDataRegressionTest.R
 inst/models/passing/GREML_intercept_check.R
