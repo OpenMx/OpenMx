@@ -15,13 +15,13 @@ mxGREMLDataHandler(data, yvars=character(0), Xvars=list(), addOnes=TRUE,
 \arguments{
  \item{data}{Either a dataframe or matrix, with column names, containing the variables to be used as phenotypes and covariates in 'y' and 'X,' respectively.}
   \item{yvars}{Character vector.  Each string names a column of the raw dataset, to be used as a phenotype.}
-  \item{Xvars}{A list of data column names, specifying the covariates to be used with each phenotype.  The list should have the same length as argument \code{yvars}.}
+  \item{Xvars}{A list of data column names, specifying the covariates to be used with each phenotype.  The list should have the same length as argument \code{yvars}.  If there are no covariates of interest, then the default value (an empty list) should be used, in which case the 'X' matrix will be constructed for estimating the regression intercept(s) only.}
    \item{addOnes}{Logical; should lead columns of ones (for the regression intercepts) be adhered to the covariates when assembling the 'X' matrix?  Defaults to \code{TRUE}.}
    \item{blockByPheno}{Logical; relevant to polyphenotype analyses.  If \code{TRUE} (default), then the resulting 'y' will contain phenotype #1 for individuals 1 thru \emph{n}, phenotype #2 for individuals 1 thru \emph{n}, ...  If \code{FALSE}, then observations are "blocked by individual", and the resulting 'y' will contain individual #1's scores on phenotypes 1 thru \emph{p}, individual #2's scores on phenotypes 1 thru \emph{p}, ...  Note that in either case, 'X' will be structured appropriately for 'y.'}
    \item{staggerZeroes}{Logical; relevant to polyphenotype analyses.  If \code{TRUE} (default), then each phenotype's covariates in 'X' are "staggered," and 'X' is padded out with zeroes.  If \code{FALSE}, then 'X' is formed simply by stacking the phenotypes' covariates; this requires each phenotype to have the same number of covariates (i.e., each character vector in \code{Xvars} must be of the same length).  The default (\code{TRUE}) is intended for instances where the multiple phenotypes truly are different variables, whereas \code{staggerZeroes=FALSE} is intended for instances where the multiple "phenotypes" actually represent multiple observations on the same variable.  One example of the latter case is longitudinal data where the multiple "phenotypes" are repeated measures on a single phenotype.}
 }
 \details{
-For a monophenotype analysis (only), argument \code{Xdata} can be a character vector.  In a polyphenotype analysis, if the same covariates are to be used with all phenotypes, then \code{Xdata} can be a list of length 1.
+For a monophenotype analysis (only), argument \code{Xvars} can be a character vector.  In a polyphenotype analysis, if the same covariates are to be used with all phenotypes, then \code{Xvars} can be a list of length 1.
 
 Note the synergy between the output of \code{mxGREMLDataHandler()} and arguments \code{dataset.is.yX} and \code{casesToDropFromV} to \code{\link{mxExpectationGREML}()}.
 
