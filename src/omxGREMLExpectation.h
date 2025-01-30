@@ -119,4 +119,4 @@ void dropCasesAndEigenize(
 	if(OMX_DEBUG) { mxLog("Finished trimming out cases with missing data..."); }
 }
 
-void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< int > &todrop, int symmetric, int origDim);
+void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< bool > &todrop, int symmetric, int origDim);
