@@ -312,5 +312,87 @@ omxCheckError(
 	mxRun(testmod),
 	"Augmentation derivatives non-conformable (gradient is size 3 and Hessian is 2x2)")
 
+####
+# Test error messages relating to `mxExpectationGREML()`'s arguments, especially `REML`, especially `REML=FALSE`: ####
+####
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=10L),
+	"argument 'yvars' is not of type 'character' (the data column names of the phenotypes)"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=character(0)),
+	"you must specify at least one phenotype in argument 'yvars'"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars="y",yhat="yhat"),
+	"non-NULL values for argument 'yhat' are not accepted when 'REML=TRUE'"
+)
+
+# In the monophenotype case, we accept a character vector for Xvars:
+mxExpectationGREML(V="V",yvars="y",Xvars=c("x1","x2"))
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=c("y1","y2"),Xvars=c("x1","x2")),
+	"argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars="y",Xvars=list(5.5,"foo")),
+	"elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list("x1","x2",c("x3","x4")),staggerZeroes=FALSE),
+	"all phenotypes must have the same number of covariates when staggerZeroes=FALSE"
+)
+
+#In the polyphenotype case, the same covariates will often be used for all phenotypes:
+mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list(c("x1","x2")))
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list("x1","x2")),
+	"conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars="y",Xvars="x",REML=FALSE,yhat="yhat"),
+	"arguments 'REML' and 'dataset.is.yX' are both FALSE, so non-default values are accepted for only one of arguments 'yhat' (the name of the expected mean vector) or 'Xvars' (the data column names of the covariates, if any)"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars="y",REML=FALSE,yhat=200),
+	"argument 'yhat' is not of type 'character' (the name of the expected mean vector)"
+)
+
+# In the monophenotype case, we accept a character vector for Xvars:
+mxExpectationGREML(V="V",yvars="y",Xvars=c("x1","x2"),REML=FALSE)
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=c("y1","y2"),Xvars=c("x1","x2"),REML=FALSE),
+	"argument 'Xvars' must be provided as a list when argument 'yvars' is of length greater than 1"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars="y",Xvars=list(5.5,"foo"),REML=FALSE),
+	"elements of argument 'Xvars' must be of type 'character' (the data column names of the covariates)"
+)
+
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list("x1","x2",c("x3","x4")),staggerZeroes=FALSE,REML=FALSE),
+	"all phenotypes must have the same number of covariates when staggerZeroes=FALSE"
+)
+
+#In the polyphenotype case, the same covariates will often be used for all phenotypes:
+mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list(c("x1","x2")),REML=FALSE)
+omxCheckError(
+	mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list("x1","x2"),REML=FALSE),
+	"conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'"
+)
+
+
+
+
+
+# Reset global options: ####
 options(mxCondenseMatrixSlots=FALSE)
 mxOption(reset=TRUE)
