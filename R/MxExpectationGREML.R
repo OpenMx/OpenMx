@@ -143,10 +143,10 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 								stop(msg, call. = FALSE)
 							}
 							# The following 2 errors should NEVER be triggered unless user has directly modified the expectation's slots with $<- or @<-:
-							if(.Object@REML && length(.Object@yhat)){
+							if(.Object@REML && length(.Object@yhat) && !.Object@dataset.is.yX){
 								stop("MxExpecationGREML: slot 'REML' is TRUE and slot 'dataset.is.yX' is FALSE, so slot 'yhat' must have zero length")
 							}
-							if(!.Object@REML && length(.Object@yhat) && length(.Object@Xvars)){
+							if(!.Object@REML && !.Object@dataset.is.yX && length(.Object@yhat) && length(.Object@Xvars)){
 								stop("MxExpectationGREML: slots 'REML' and 'dataset.is.yX' are both FALSE, so only one of slots 'yhat' and 'Xvars' should have nonzero length")
 							}
 							if(.Object@dataset.is.yX){
@@ -312,10 +312,10 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
               stop(msg, call. = FALSE)
             }
             # The following 2 errors should NEVER be triggered unless user has directly modified the expectation's slots with $<- or @<-:
-            if(.Object@REML && length(.Object@yhat)){
+            if(.Object@REML && length(.Object@yhat) && !.Object@dataset.is.yX){
             	stop("MxExpecationGREML: slot 'REML' is TRUE and slot 'dataset.is.yX' is FALSE, so slot 'yhat' must have zero length")
             }
-            if(!.Object@REML && length(.Object@yhat) && length(.Object@Xvars)){
+            if(!.Object@REML && !.Object@dataset.is.yX && length(.Object@yhat) && length(.Object@Xvars)){
             	stop("MxExpectationGREML: slots 'REML' and 'dataset.is.yX' are both FALSE, so only one of slots 'yhat' and 'Xvars' should have nonzero length")
             }
             if(.Object@dataset.is.yX){
