@@ -357,7 +357,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             			.Object@numFixEff <- as.integer(sum(sapply(.Object@Xvars, length)) + (length(.Object@yvars) * .Object@addOnes))
             		} #If Xvars is length 0, then the only covariates will be 1s (for the intercepts)
             		else{
-            			.Object@numFixEff <- as.integer(length(.Object@yvars))
+            			.Object@numFixEff <- ifelse(.Object@staggerZeroes,as.integer(length(.Object@yvars)),1L)
             		}
             		if( length(.Object@Xvars) && !all(unlist(.Object@Xvars) %in% colnames(mxDataObject@observed)) ){
             			badname <- (unlist(.Object@Xvars)[!(unlist(.Object@Xvars) %in% colnames(mxDataObject@observed))])[1]
