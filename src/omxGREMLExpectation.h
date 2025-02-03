@@ -16,7 +16,7 @@
 
 struct omxGREMLExpectation : public omxExpectation {
 	typedef omxExpectation super;
-  omxMatrix *cov, *invcov, *means, *X, *logdetV_om;
+  omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *yhatFromUser;
   omxData *y, *data2;
   int origVdim, numcases2drop; 
   bool alwaysComputeMeans, cholquadX_fail, cholV_fail, doREML, didUserProvideYhat;
@@ -27,7 +27,7 @@ struct omxGREMLExpectation : public omxExpectation {
   std::vector< const char* > yXcolnames;
 
 	omxGREMLExpectation(omxState *st, int num) :
-    super(st, num), cov(0), invcov(0), means(0), X(0), logdetV_om(0),
+    super(st, num), cov(0), invcov(0), means(0), X(0), logdetV_om(0), yhatFromUser(0),
     y(0), data2(0) {}
   virtual ~omxGREMLExpectation();
   virtual void init() override;

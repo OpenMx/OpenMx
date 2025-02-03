@@ -31,6 +31,7 @@ setClass(Class = "MxExpectationGREML",
            numFixEff = "integer",
            REML = "logical",
            yhat = "MxCharOrNumber",
+           .didUserProvideYhat = "logical",
            # autoXMatrixName = "MxCharOrNumber",
            # autoBetaVectorName = "MxCharOrNumber",
            # autoYhatVectorName = "MxCharOrNumber",
@@ -46,7 +47,7 @@ setMethod("initialize", "MxExpectationGREML",
           function(
 		.Object, V=character(0), yvars=character(0), Xvars=list(), addOnes=TRUE, 
 		blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDrop=integer(0),
-		data = as.integer(NA), name = 'expectation', REML=TRUE, yhat=character(0))#,
+		data = as.integer(NA), name = 'expectation', REML=TRUE, yhat=character(0), didUserProvideYhat=FALSE)#,
 		#autoXMatrixName="Xm",autoBetaVectorName="betav",autoYhatVectorName="yhatv")
 					{
             .Object@name <- name
@@ -63,6 +64,7 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@X <- matrix(as.numeric(NA),1,1)
             .Object@yhat <- yhat
             .Object@REML <- REML
+            .Object@.didUserProvideYhat <- didUserProvideYhat
             # .Object@autoXMatrixName <- autoXMatrixName
             # .Object@autoBetaVectorName <- autoBetaVectorName
             # .Object@autoYhatVectorName <- autoYhatVectorName
@@ -336,6 +338,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             		stop(msg)
             	}
             	if(!.Object@REML && length(.Object@yhat)){ #<--So, the expected phenotypic means are specified in terms of 'yhat', not 'X'.
+            		.Object@.didUserProvideYhat <- TRUE
             		mm <- mxGREMLDataHandler(
             			data=mxDataObject@observed, yvars=.Object@yvars, Xvars=list(), 
             			addOnes=TRUE, #<--To avoid a possible unnecessary warning from `mxGREMLDataHandler()`.
@@ -348,7 +351,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             		.Object@X <- as.matrix(mm$yX[,-1])
             		.Object@yXcolnames <- character(0)
             		.Object@casesToDrop <- mm$casesToDrop
-            		.Object@numFixEff <- 0
+            		.Object@numFixEff <- 0L
             		.Object@dataColumnNames <- colnames(.Object@X)
             		.Object@dataColumns <- 0:(ncol(mxDataObject@observed)-1L)
             	}
