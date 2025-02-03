@@ -110,13 +110,15 @@ void omxGREMLExpectation::init()
 
   //column names of y and X:
   {
-  ScopedProtect p1(RyXcolnames, R_do_slot(rObj, Rf_install("yXcolnames")));
-  oge->yXcolnames.resize(Rf_length(RyXcolnames));
-  for(i=0; i < Rf_length(RyXcolnames); i++){
-    SEXP elem;
-    {ScopedProtect p2(elem, STRING_ELT(RyXcolnames, i));
-  	oge->yXcolnames[i] = CHAR(elem);}
-  }
+  	ScopedProtect p1(RyXcolnames, R_do_slot(rObj, Rf_install("yXcolnames")));
+  	if(Rf_length(RyXcolnames)){
+  		oge->yXcolnames.resize(Rf_length(RyXcolnames));
+  		for(i=0; i < Rf_length(RyXcolnames); i++){
+  			SEXP elem;
+  			{ScopedProtect p2(elem, STRING_ELT(RyXcolnames, i));
+  				oge->yXcolnames[i] = CHAR(elem);}
+  		}
+  	}
   }
 
   //Initially compute everything involved in computing means:
@@ -279,11 +281,13 @@ void omxGREMLExpectation::populateAttr(SEXP algebra) {
 
   //yXcolnames:
   {
-  ScopedProtect p1(RyXcolnames, Rf_allocVector(STRSXP, oge->yXcolnames.size()));
-  for(int i=0; i < (int)(oge->yXcolnames.size()); i++){
-    SET_STRING_ELT(RyXcolnames, i, Rf_mkChar(oge->yXcolnames[i]));
-  }
-  Rf_setAttrib(algebra, Rf_install("yXcolnames"), RyXcolnames);
+  	if(oge->yXcolnames.size()){
+  		ScopedProtect p1(RyXcolnames, Rf_allocVector(STRSXP, oge->yXcolnames.size()));
+  		for(int i=0; i < (int)(oge->yXcolnames.size()); i++){
+  			SET_STRING_ELT(RyXcolnames, i, Rf_mkChar(oge->yXcolnames[i]));
+  		}
+  		Rf_setAttrib(algebra, Rf_install("yXcolnames"), RyXcolnames);
+  	}
   }
 
 }
