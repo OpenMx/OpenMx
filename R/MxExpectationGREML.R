@@ -335,8 +335,22 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             		msg <- paste("'",badname,"' is not among the data column names",sep="")
             		stop(msg)
             	}
-            	if(!.Object@REML && length(.Object@yhat)){
+            	if(!.Object@REML && length(.Object@yhat)){ #<--So, the expected phenotypic means are specified in terms of 'yhat', not 'X'.
+            		mm <- mxGREMLDataHandler(
+            			data=mxDataObject@observed, yvars=.Object@yvars, Xvars=list(), 
+            			addOnes=TRUE, #<--To avoid a possible unnecessary warning from `mxGREMLDataHandler()`.
+            			blockByPheno=.Object@blockByPheno, 
+            			staggerZeroes=.Object@staggerZeroes)
+            		#^^^The 'X' part of the matrix will never actually be used in the present case.
+            		.Object@y <- mxData(
+            			observed=matrix(mm$yX[,1], nrow=1, dimnames=list(NULL,paste("y",1:length(mm$yX[,1]),sep=""))),
+            			type="raw",sort=FALSE)
+            		.Object@X <- as.matrix(mm$yX[,-1])
+            		.Object@yXcolnames <- character(0)
+            		.Object@casesToDrop <- mm$casesToDrop
             		.Object@numFixEff <- 0
+            		.Object@dataColumnNames <- colnames(.Object@X)
+            		.Object@dataColumns <- 0:(ncol(mxDataObject@observed)-1L)
             	}
             	else{
             		if(length(.Object@Xvars)){
@@ -359,6 +373,7 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             											dimnames=list(NULL,paste("y",1:length(mm$yX[,1]),sep=""))),
             			type="raw",sort=FALSE)
             		.Object@X <- as.matrix(mm$yX[,-1])
+            		#print(colnames(mm$yX))
             		.Object@yXcolnames <- colnames(mm$yX)
             		.Object@casesToDrop <- mm$casesToDrop
             		.Object@numFixEff <- ncol(.Object@X)
@@ -371,7 +386,9 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             dataName <- .Object@data
             .Object@data <- imxLocateIndex(flatModel, .Object@data, name)
             .Object@V <- imxLocateIndex(flatModel, .Object@V, name)
-            #TODO: need to imxLocateIndex for yhat, as appropriate.
+            if(!.Object@REML && length(.Object@yhat)){
+            	.Object@yhat <- imxLocateIndex(flatModel, .Object@yhat, name)
+            }
             return(.Object)
           })
 
