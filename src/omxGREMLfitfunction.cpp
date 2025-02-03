@@ -29,7 +29,7 @@
 struct omxGREMLFitState : omxFitFunction {
 	//TODO(?): Some of these members might be redundant with what's stored in the FitContext,
 	//and could therefore be cut
-	omxMatrix *y, *X, *cov, *invcov, *means, *origVdim_om;
+	omxMatrix *y, *X, *cov, *invcov, *means;
 	std::vector< omxMatrix* > dV;
 	std::vector< const char* > dVnames;
 	std::vector<bool> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
@@ -37,7 +37,8 @@ struct omxGREMLFitState : omxFitFunction {
 	std::vector<bool> didUserGivedV;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
-	int dVlength, usingGREMLExpectation, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType;
+	int dVlength, origVdim, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType;
+	bool usingGREMLExpectation;
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd infoMat; //the Average Information matrix or the Expected Information matrix, as the case may be.
@@ -108,22 +109,20 @@ void omxGREMLFitState::init()
   oo->canDuplicate = true;
 
   omxState* currentState = expectation->currentState;
-  newObj->usingGREMLExpectation = (strcmp(expectation->name, "MxExpectationGREML")==0 ? 1 : 0);
+  newObj->usingGREMLExpectation = (strcmp(expectation->name, "MxExpectationGREML")==0 ? true : false);
   if(!newObj->usingGREMLExpectation){
     //Maybe someday GREML fitfunction could be made compatible with another expectation, but not at present:
     mxThrow("GREML fitfunction is currently only compatible with GREML expectation");
   }
-  else{
-    omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
-    oge->alwaysComputeMeans = false;
-  }
+  omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
+  oge->alwaysComputeMeans = false;
 
   newObj->y = omxGetExpectationComponent(expectation, "y");
   newObj->cov = omxGetExpectationComponent(expectation, "cov");
   newObj->invcov = omxGetExpectationComponent(expectation, "invcov");
   newObj->X = omxGetExpectationComponent(expectation, "X");
   newObj->means = omxGetExpectationComponent(expectation, "means");
-  newObj->origVdim_om = omxGetExpectationComponent(expectation, "origVdim_om");
+  newObj->origVdim = oge->origVdim;
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->parallelDerivScheme = 0;
@@ -274,7 +273,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
 
  			//Check that factorizations of V and the quadratic form in X succeeded:
- 			if(oge->cholV_fail_om->data[0]){
+ 			if(oge->cholV_fail){
  				oo->matrix->data[0] = NA_REAL;
  				if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
  				return;
@@ -1557,7 +1556,7 @@ void GRMFIMLFitState::compute2(int want, FitContext* fc){
 	if(want & FF_COMPUTE_FIT){
 		omxExpectationCompute(fc, expectation, NULL);
 		//Check for PD covariance matrix:
-		if(oge->cholV_fail_om->data[0]){
+		if(oge->cholV_fail){
 			oo->matrix->data[0] = NA_REAL;
 			if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
 			return;

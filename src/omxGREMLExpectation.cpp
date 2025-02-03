@@ -74,14 +74,12 @@ void omxGREMLExpectation::init()
   //logdetV_om:
   oge->logdetV_om = omxInitMatrix(1, 1, 1, currentState);
   oge->logdetV_om->data[0] = 0;
-  //cholV_fail_om:
-  oge->cholV_fail_om = omxInitMatrix(1, 1, 1, currentState);
-  oge->cholV_fail_om->data[0] = 0;
+  //cholV_fail:
+  oge->cholV_fail = false;
   //quadXinv:
   oge->quadXinv.setZero(oge->X->cols, oge->X->cols);
   //original dimensions of V:
-  oge->origVdim_om = omxInitMatrix(1, 1, 1, currentState);
-  oge->origVdim_om->data[0] = double(oge->cov->rows);
+  oge->origVdim = oge->cov->rows;
 
 
   //Deal with missing data:
@@ -134,7 +132,7 @@ void omxGREMLExpectation::init()
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
+    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
   }
   else{
   	//EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);
@@ -178,7 +176,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
 	omxGREMLExpectation* oge = this;
 	omxRecompute(oge->cov, fc);
   int i=0;
-  oge->cholV_fail_om->data[0] = 0;
+  oge->cholV_fail = false;
   oge->cholquadX_fail = false;
   oge->logdetV_om->data[0] = 0;
 
@@ -192,7 +190,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, int(oge->origVdim_om->data[0]), false);
+    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
   }
   else{
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
@@ -200,7 +198,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
-    oge->cholV_fail_om->data[0] = 1;
+    oge->cholV_fail = true;
     return;
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
@@ -234,8 +232,6 @@ omxGREMLExpectation::~omxGREMLExpectation()
   omxFreeMatrix(argStruct->means);
   omxFreeMatrix(argStruct->invcov);
   omxFreeMatrix(argStruct->logdetV_om);
-  omxFreeMatrix(argStruct->cholV_fail_om);
-  omxFreeMatrix(argStruct->origVdim_om);
   omxFreeMatrix(argStruct->y->dataMat);
   delete argStruct->y;
   omxFreeMatrix(argStruct->X);
@@ -309,9 +305,6 @@ omxMatrix *omxGREMLExpectation::getComponent(const char* component){
   else if(strEQ("means", component)) {
   	retval = oge->means;
   }
-  else if(strEQ("cholV_fail_om", component)){
-    retval = oge->cholV_fail_om;
-  }
   else if(strEQ("logdetV_om", component)){
     retval = oge->logdetV_om;
   }
@@ -321,9 +314,6 @@ omxMatrix *omxGREMLExpectation::getComponent(const char* component){
   else if(strEQ("X", component)) {
 		retval = oge->X;
 	}
-  else if(strEQ("origVdim_om", component)) {
-  	retval = oge->origVdim_om;
-  }
 
 	if (retval) omxRecompute(retval, NULL);
 

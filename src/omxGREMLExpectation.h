@@ -16,10 +16,10 @@
 
 struct omxGREMLExpectation : public omxExpectation {
 	typedef omxExpectation super;
-  omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *cholV_fail_om, *origVdim_om;
+  omxMatrix *cov, *invcov, *means, *X, *logdetV_om;
   omxData *y, *data2;
-  int numcases2drop; 
-  bool alwaysComputeMeans, cholquadX_fail;
+  int origVdim, numcases2drop; 
+  bool alwaysComputeMeans, cholquadX_fail, cholV_fail, doREML, didUserProvideYhat;
   std::vector< bool > dropcase;
   Eigen::VectorXd cholV_vectorD;
   Eigen::VectorXd cholquadX_vectorD;
@@ -27,8 +27,8 @@ struct omxGREMLExpectation : public omxExpectation {
   std::vector< const char* > yXcolnames;
 
 	omxGREMLExpectation(omxState *st, int num) :
-    super(st, num), cov(0), invcov(0), means(0), X(0), logdetV_om(0), cholV_fail_om(0),
-    origVdim_om(0), y(0), data2(0) {}
+    super(st, num), cov(0), invcov(0), means(0), X(0), logdetV_om(0),
+    y(0), data2(0) {}
   virtual ~omxGREMLExpectation();
   virtual void init() override;
   virtual void connectToData() override;
