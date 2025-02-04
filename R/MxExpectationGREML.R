@@ -31,10 +31,6 @@ setClass(Class = "MxExpectationGREML",
            numFixEff = "integer",
            REML = "logical",
            yhat = "MxCharOrNumber",
-           .didUserProvideYhat = "logical",
-           # autoXMatrixName = "MxCharOrNumber",
-           # autoBetaVectorName = "MxCharOrNumber",
-           # autoYhatVectorName = "MxCharOrNumber",
            dims = "character",
            numStats = "numeric",
            name = "character"),
@@ -47,8 +43,7 @@ setMethod("initialize", "MxExpectationGREML",
           function(
 		.Object, V=character(0), yvars=character(0), Xvars=list(), addOnes=TRUE, 
 		blockByPheno=TRUE, staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDrop=integer(0),
-		data = as.integer(NA), name = 'expectation', REML=TRUE, yhat=character(0), didUserProvideYhat=FALSE)#,
-		#autoXMatrixName="Xm",autoBetaVectorName="betav",autoYhatVectorName="yhatv")
+		data = as.integer(NA), name = 'expectation', REML=TRUE, yhat=character(0))
 					{
             .Object@name <- name
             .Object@V <- V
@@ -64,10 +59,6 @@ setMethod("initialize", "MxExpectationGREML",
             .Object@X <- matrix(as.numeric(NA),1,1)
             .Object@yhat <- yhat
             .Object@REML <- REML
-            .Object@.didUserProvideYhat <- didUserProvideYhat
-            # .Object@autoXMatrixName <- autoXMatrixName
-            # .Object@autoBetaVectorName <- autoBetaVectorName
-            # .Object@autoYhatVectorName <- autoYhatVectorName
             .Object@dims <- "foo"
             return(.Object)
           }
@@ -86,7 +77,7 @@ setMethod("qualifyNames", signature("MxExpectationGREML"),
 
 setMethod("genericExpDependencies", signature("MxExpectationGREML"),
           function(.Object, dependencies) {
-            sources <- c(.Object@V,.Object@yhat)#,.Object@autoXMatrixName,.Object@autoBetaVectorName,.Object@autoYhatVectorName)
+            sources <- c(.Object@V,.Object@yhat)
             sources <- sources[!is.na(sources)]
             dependencies <- imxAddDependency(sources, .Object@name, dependencies)
             return(dependencies)
@@ -96,12 +87,6 @@ setMethod("genericExpDependencies", signature("MxExpectationGREML"),
 setMethod("genericExpAddEntities", "MxExpectationGREML",
 					function(.Object, job, flatJob, labelsData) {
 						#message("Hi, it's genericExpAddEntities!")
-						if(!.Object@REML && !length(.Object@yhat)){
-							# 	job@.newobjects <- TRUE
-							# 	
-							# 	autoXMatrix <- flatJob[[.Object@autoXMatrixName]]
-							# 
-						}
 						return(job)
 					}
 )
@@ -209,8 +194,7 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 mxExpectationGREML <- function(
 		V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
 		staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0),
-		REML=TRUE, yhat=character(0))#,
-		#autoXMatrixName="Xm",autoBetaVectorName="betav",autoYhatVectorName="yhatv")
+		REML=TRUE, yhat=character(0))
 {
 	blockByPheno <- as.logical(blockByPheno)[1]
 	staggerZeroes <- as.logical(staggerZeroes)[1]
@@ -338,7 +322,6 @@ setMethod("genericExpFunConvert", "MxExpectationGREML",
             		stop(msg)
             	}
             	if(!.Object@REML && length(.Object@yhat)){ #<--So, the expected phenotypic means are specified in terms of 'yhat', not 'X'.
-            		.Object@.didUserProvideYhat <- TRUE
             		mm <- mxGREMLDataHandler(
             			data=mxDataObject@observed, yvars=.Object@yvars, Xvars=list(), 
             			addOnes=TRUE, #<--To avoid a possible unnecessary warning from `mxGREMLDataHandler()`.

@@ -41,7 +41,7 @@ void omxGREMLExpectation::init()
 {
 	loadDataColFromR();
 
-  SEXP Rmtx, RdoREML, RdidUserProvideYhat, casesToDrop, RyXcolnames;
+  SEXP Rmtx, RdoREML, RdidUserProvideYhat, Ryhat, casesToDrop, RyXcolnames;
   int i=0;
 
   if(OMX_DEBUG) { mxLog("Initializing GREML expectation."); }
@@ -66,6 +66,7 @@ void omxGREMLExpectation::init()
   {ScopedProtect p1(Rmtx, R_do_slot(rObj, Rf_install("X")));
 	oge->X = omxNewMatrixFromRPrimitive(Rmtx, currentState, 0, 0);
   }
+	oge->didUserProvideYhat = false;
 	//REML:
   {
   	ScopedProtect p1(RdoREML, R_do_slot(rObj, Rf_install("REML")));
@@ -74,15 +75,14 @@ void omxGREMLExpectation::init()
   //Eigy (local) will have however many rows and 1 column:
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   if(oge->X->rows != Eigy.rows()){mxThrow("'X' and 'y' matrices have different numbers of rows");}
-  //Did the user provide yhat AND set REML=FALSE?:
-  {
-  	ScopedProtect p1(RdidUserProvideYhat, R_do_slot(rObj, Rf_install(".didUserProvideYhat")));
-  	oge->didUserProvideYhat = Rf_asLogical(RdidUserProvideYhat);
-  }
   //yhat, provided by user:
-  if(oge->didUserProvideYhat){
-  	oge->yhatFromUser = omxNewMatrixFromSlot(rObj, currentState, "yhat");
-  	mxThrow("the first element of the yhat vector is %f",oge->yhatFromUser->data[0]);
+  if(!oge->doREML){
+  	ScopedProtect p1(Ryhat, R_do_slot(rObj, Rf_install("yhat")));
+  	if(Rf_length(Ryhat)){
+  		oge->didUserProvideYhat = true;
+  		oge->yhatFromUser = omxNewMatrixFromSlot(rObj, currentState, "yhat");
+  		mxThrow("the first element of the yhat vector is %f",oge->yhatFromUser->data[0]);
+  	}
   }
   //means:
   oge->means = omxInitMatrix(Eigy.rows(), 1, 1, currentState);
