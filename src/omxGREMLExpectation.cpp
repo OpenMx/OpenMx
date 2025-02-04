@@ -41,7 +41,7 @@ void omxGREMLExpectation::init()
 {
 	loadDataColFromR();
 
-  SEXP Rmtx, RdoREML, RdidUserProvideYhat, Ryhat, casesToDrop, RyXcolnames;
+  SEXP Rmtx, RdoREML, Ryhat, casesToDrop, RyXcolnames;
   int i=0;
 
   if(OMX_DEBUG) { mxLog("Initializing GREML expectation."); }
