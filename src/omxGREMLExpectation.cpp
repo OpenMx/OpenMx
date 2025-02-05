@@ -152,10 +152,9 @@ void omxGREMLExpectation::init()
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
+    dropCasesAndEigenizeSquareMatrix(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
   }
   else{
-  	//EigV = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(oge->cov), oge->cov->rows, oge->cov->cols);
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
   }
   Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
@@ -210,7 +209,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
   Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenize(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
+    dropCasesAndEigenizeSquareMatrix(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
   }
   else{
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);

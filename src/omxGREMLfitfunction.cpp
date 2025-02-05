@@ -494,7 +494,7 @@ void omxGREMLFitState::gradientAndAIM1(
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[i] = t1;}
 				if(didUserGivedV[t1]){
 					if( u_oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
-						dropCasesAndEigenize(dV[i], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
+						dropCasesAndEigenizeSquareMatrix(dV[i], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
 					}
 					else{
 						ptrToMatrix1 = omxMatrixDataColumnMajor(dV[i]);
@@ -529,7 +529,7 @@ void omxGREMLFitState::gradientAndAIM1(
 							a2 = dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 							if(didUserGivedV[t2]){
 								if( u_oge->numcases2drop && (dV[j]->rows > Eigyrows) ){
-									dropCasesAndEigenize(dV[j], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[j], false);
+									dropCasesAndEigenizeSquareMatrix(dV[j], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[j], false);
 								}
 								else{
 									ptrToMatrix2 = omxMatrixDataColumnMajor(dV[j]);
@@ -593,7 +593,7 @@ void omxGREMLFitState::gradientAndAIM2(
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
 				if(didUserGivedV[t1]){
 					if( u_oge->numcases2drop && (dV[hrn]->rows > Eigyrows) ){
-						dropCasesAndEigenize(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
+						dropCasesAndEigenizeSquareMatrix(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
 					}
 					else{
 						ptrToMatrix1 = omxMatrixDataColumnMajor(dV[hrn]);
@@ -629,7 +629,7 @@ void omxGREMLFitState::gradientAndAIM2(
 							a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 							if(didUserGivedV[t2]){
 								if( u_oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
-									dropCasesAndEigenize(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
+									dropCasesAndEigenizeSquareMatrix(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
 								}
 								else{
 									ptrToMatrix2 = omxMatrixDataColumnMajor(dV[hcn]);
@@ -701,7 +701,7 @@ void omxGREMLFitState::gradientAndAIM3(
 				if(hrn==hcn || i==0){
 					if(didUserGivedV[t1]){
 						if( u_oge->numcases2drop && (dV[hrn]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
+							dropCasesAndEigenizeSquareMatrix(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
 						}
 						else{
 							ptrToMatrix1 = omxMatrixDataColumnMajor(dV[hrn]);
@@ -736,7 +736,7 @@ void omxGREMLFitState::gradientAndAIM3(
 						a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 						if(didUserGivedV[t2]){
 							if( u_oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
-								dropCasesAndEigenize(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
+								dropCasesAndEigenizeSquareMatrix(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
 							}
 							else{
 								ptrToMatrix2 = omxMatrixDataColumnMajor(dV[hcn]);
@@ -811,7 +811,7 @@ void omxGREMLFitState::gradientAndEIM1(
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 					if(didUserGivedV[t1]){
 						if( u_oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[i], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
+							dropCasesAndEigenizeSquareMatrix(dV[i], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
 						}
 						else{
 							ptrToMatrix1 = omxMatrixDataColumnMajor(dV[i]);
@@ -845,7 +845,7 @@ void omxGREMLFitState::gradientAndEIM1(
 							a2 = dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
 							if(didUserGivedV[t2]){
 								if( u_oge->numcases2drop && (dV[j]->rows > Eigyrows) ){
-									dropCasesAndEigenize(dV[j], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[j], false);
+									dropCasesAndEigenizeSquareMatrix(dV[j], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[j], false);
 								}
 								else{
 									ptrToMatrix2 = omxMatrixDataColumnMajor(dV[j]);
@@ -879,7 +879,7 @@ void omxGREMLFitState::gradientAndEIM1(
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
 					if(didUserGivedV[t1]){
 						if( u_oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[i], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
+							dropCasesAndEigenizeSquareMatrix(dV[i], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
 						}
 						else{
 							ptrToMatrix1 = omxMatrixDataColumnMajor(dV[i]);
@@ -946,7 +946,7 @@ void omxGREMLFitState::gradientAndEIM2(
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
 				if(didUserGivedV[t1]){
 					if( u_oge->numcases2drop && (dV[hrn]->rows > Eigyrows)){
-						dropCasesAndEigenize(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
+						dropCasesAndEigenizeSquareMatrix(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
 					}
 					else{
 						ptrToMatrix1 = omxMatrixDataColumnMajor(dV[hrn]);
@@ -984,7 +984,7 @@ void omxGREMLFitState::gradientAndEIM2(
 							a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 							if(didUserGivedV[t2]){
 								if( u_oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
-									dropCasesAndEigenize(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
+									dropCasesAndEigenizeSquareMatrix(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
 								}
 								else{
 									ptrToMatrix2 = omxMatrixDataColumnMajor(dV[hcn]);
@@ -1057,7 +1057,7 @@ void omxGREMLFitState::gradientAndEIM3(
 				if(hrn==hcn || i==0){
 					if(didUserGivedV[t1]){
 						if( u_oge->numcases2drop && (dV[hrn]->rows > Eigyrows) ){
-							dropCasesAndEigenize(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
+							dropCasesAndEigenizeSquareMatrix(dV[hrn], filteredCopy1, ptrToMatrix1, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hrn], false);
 						}
 						else{
 							ptrToMatrix1 = omxMatrixDataColumnMajor(dV[hrn]);
@@ -1092,7 +1092,7 @@ void omxGREMLFitState::gradientAndEIM3(
 						a2 = dAugMap[hcn]; //<--Index of augmentation derivatives to use for parameter hcn.
 						if(didUserGivedV[t2]){
 							if( u_oge->numcases2drop && (dV[hcn]->rows > Eigyrows) ){
-								dropCasesAndEigenize(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
+								dropCasesAndEigenizeSquareMatrix(dV[hcn], filteredCopy2, ptrToMatrix2, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[hcn], false);
 							}
 							else{
 								ptrToMatrix2 = omxMatrixDataColumnMajor(dV[hcn]);
@@ -1168,7 +1168,7 @@ void omxGREMLFitState::crude_numeric_dV(
 	//dV_dtheta_tmp is only needed in the single-threaded case???:
 	if(thrId >= 0){
 		if( ge->numcases2drop && mat->rows > y->cols ){
-			dropCasesAndEigenize(mat, dV_dtheta, ptrToMatrix1, ge->numcases2drop, ge->dropcase, true, mat->rows, true);
+			dropCasesAndEigenizeSquareMatrix(mat, dV_dtheta, ptrToMatrix1, ge->numcases2drop, ge->dropcase, true, mat->rows, true);
 		}
 		else{
 			dV_dtheta = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
@@ -1178,7 +1178,7 @@ void omxGREMLFitState::crude_numeric_dV(
 		{
 			Eigen::MatrixXd dV_dtheta_tmp; //<--Not needed outside this scope.
 			if( ge->numcases2drop && mat->rows > y->cols ){
-				dropCasesAndEigenize(mat, dV_dtheta_tmp, ptrToMatrix2, ge->numcases2drop, ge->dropcase, true, mat->rows, true);
+				dropCasesAndEigenizeSquareMatrix(mat, dV_dtheta_tmp, ptrToMatrix2, ge->numcases2drop, ge->dropcase, true, mat->rows, true);
 			}
 			else{
 				dV_dtheta_tmp = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->rows, mat->cols);
