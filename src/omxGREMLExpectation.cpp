@@ -383,7 +383,7 @@ void dropCasesFromAlgdV(omxMatrix* om, int num2drop, std::vector< bool > &todrop
 		nextRow = (symmetric ? nextCol : 0);
 		for(int k = (symmetric ? j : 0); k < origDim; k++){ //<--k indexes rows
 			if(todrop[k]) continue;
-			omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j, origDim));
+			omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j, origDim, origDim));
 			nextRow++;
 		}
 		nextCol++;

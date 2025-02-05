@@ -39,7 +39,7 @@ struct omxGREMLExpectation : public omxExpectation {
 	virtual int numObservedStats() override { return 1; }
 };
 
-double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim);
+double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origRows, int origCols);
 
 template <typename T1>
 void dropCasesAndEigenize(
@@ -74,7 +74,7 @@ void dropCasesAndEigenize(
 			nextRow = (symmetric ? nextCol : 0);
 			for(int k = (symmetric ? j : 0); k < om->rows; k++) {
 				if(todrop[k]) continue;
-				em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j, origDim);
+				em(nextRow,nextCol) = omxAliasedMatrixElement(om, k, j, origDim, origDim);
 				nextRow++;
 			}
 			nextCol++;
@@ -102,7 +102,7 @@ void dropCasesAndEigenize(
  	nextRow = (symmetric ? nextCol : 0);
  	for(int k = (symmetric ? j : 0); k < origDim; k++){ //<--k indexes rows
  		if(todrop[k]) continue;
- 		omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j, origDim));
+ 		omxSetMatrixElement(om, nextRow, nextCol, omxAliasedMatrixElement(om, k, j, origDim, origDim));
  		nextRow++;
  	}
  	nextCol++;
