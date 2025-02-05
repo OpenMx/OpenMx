@@ -1513,7 +1513,8 @@ void omxGREMLFitState::dVupdate_final(){
 
 struct GRMFIMLFitState : omxFitFunction{
 	int verbose;
-	omxMatrix *y, *invcov, *means;
+	omxMatrix *y, *X, *invcov, *means;
+	bool didUserProvideYhat;
 
 	virtual void init() override;
 	virtual void compute2(int want, FitContext *fc) override;
@@ -1536,10 +1537,18 @@ void GRMFIMLFitState::init()
 
 	ProtectedSEXP Rverbose(R_do_slot(rObj, Rf_install("verbose")));
 	verbose = Rf_asInteger(Rverbose);
+	
+	omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
+	didUserProvideYhat = oge->didUserProvideYhat;
 
 	oo->y = omxGetExpectationComponent(expectation, "y");
 	oo->invcov = omxGetExpectationComponent(expectation, "invcov");
-	oo->means = omxGetExpectationComponent(expectation, "means");
+	if(didUserProvideYhat){
+		oo->means = omxGetExpectationComponent(expectation, "means");
+	}
+	else{
+		oo->X = omxGetExpectationComponent(expectation, "X");
+	}
 
 }
 
@@ -1551,7 +1560,7 @@ void GRMFIMLFitState::compute2(int want, FitContext* fc){
 	omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
 	Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(y), y->cols, 1);
 	Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(invcov), invcov->rows, invcov->cols);
-	Eigen::Map< Eigen::MatrixXd > Yhat(omxMatrixDataColumnMajor(means), means->rows, 1);
+	//Eigen::Map< Eigen::MatrixXd > Yhat(omxMatrixDataColumnMajor(means), means->rows, 1);
 	if (want & (FF_COMPUTE_INITIAL_FIT | FF_COMPUTE_PREOPTIMIZE)) return;
 	if(want & FF_COMPUTE_FIT){
 		omxExpectationCompute(fc, expectation, NULL);
@@ -1561,18 +1570,28 @@ void GRMFIMLFitState::compute2(int want, FitContext* fc){
 			if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
 			return;
 		}
-		/*This function doesn't use the quadratic form in X, but if it's non-PD, then the yhats won't have been recalculated
-		  at the current parameter values:*/
+		/*Even if the quadratic form in X doesn't get used, if it's non-PD, then the yhats won't have been recalculated
+		 at the current parameter values:*/
 		if(oge->cholquadX_fail){
 			oo->matrix->data[0] = NA_REAL;
 			if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
 			return;
 		}
-		Eigen::MatrixXd resids(means->rows,1);
-		resids = Eigy - Yhat;
-		//Compute ML fit:
-		oo->matrix->data[0] = Scale*0.5*( (((double)oo->y->cols)*NATLOG_2PI) + oge->logdetV_om->data[0] +
-			(resids.transpose() * Vinv.selfadjointView<Eigen::Lower>() * resids)(0,0) );
+		if(didUserProvideYhat){
+			Eigen::Map< Eigen::MatrixXd > Yhat(omxMatrixDataColumnMajor(means), means->rows, 1);
+			Eigen::MatrixXd resids(means->rows,1);
+			resids = Eigy - Yhat;
+			//Compute ML fit:
+			oo->matrix->data[0] = Scale*0.5*( (((double)oo->y->cols)*NATLOG_2PI) + oge->logdetV_om->data[0] +
+				(resids.transpose() * Vinv.selfadjointView<Eigen::Lower>() * resids)(0,0) );
+		}
+		else{
+			EigenMatrixAdaptor EigX(X);
+			double ytPy = (( Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * Eigy ) -
+				( Eigy.transpose() * oge->XtVinv.transpose() * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy ))(0,0);
+			if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
+			oo->matrix->data[0] = Scale*0.5*( (((double)oo->y->cols) * NATLOG_2PI) + oge->logdetV_om->data[0] + ytPy);
+		}
 	}
 	return;
 }
