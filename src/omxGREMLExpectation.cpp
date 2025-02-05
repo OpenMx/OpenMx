@@ -342,15 +342,15 @@ omxMatrix *omxGREMLExpectation::getComponent(const char* component){
 
 
 
-double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origDim)
+double omxAliasedMatrixElement(omxMatrix *om, int row, int col, int origRows, int origCols)
 {
   int index = 0;
-  if(row >= origDim || col >= origDim){
+  if(row >= origRows || col >= origCols){
 		mxThrow("Requested improper value (%d, %d) from (%d x %d) matrix %s",
-           row + 1, col + 1, origDim, origDim, om->name());
+           row + 1, col + 1, origRows, origCols, om->name());
 		return (NA_REAL);
 	}
-	index = col * origDim + row; //<--om should always be column-major by this point.
+	index = col * origRows + row; //<--om should always be column-major by this point.
 	return om->data[index];
 }
 
