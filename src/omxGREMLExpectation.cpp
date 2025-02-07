@@ -81,7 +81,7 @@ void omxGREMLExpectation::init()
   	if(Rf_length(Ryhat)){
   		oge->didUserProvideYhat = true;
   		oge->yhatFromUser = omxNewMatrixFromSlot(rObj, currentState, "yhat");
-  		mxThrow("the first element of the yhat vector is %f",oge->yhatFromUser->data[0]);
+  		oge->residual.setZero(Eigy.rows(),1);
   	}
   }
   //means:
@@ -95,6 +95,11 @@ void omxGREMLExpectation::init()
   oge->quadXinv.setZero(oge->X->cols, oge->X->cols);
   //original dimensions of V:
   oge->origVdim = oge->cov->rows;
+  
+  /*if(oge->didUserProvideYhat){
+  	mxThrow("the first element of the yhat vector is %f",oge->yhatFromUser->data[0]);
+  }*/
+		
 
 
   //Deal with missing data:
@@ -139,12 +144,8 @@ void omxGREMLExpectation::init()
   	}
   }
 
-  //Initially compute everything involved in computing means:
-  oge->alwaysComputeMeans = true;
   oge->cholquadX_fail = false;
   EigenMatrixAdaptor EigX(oge->X);
-  Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
-  //Eigen::MatrixXd EigV(Eigy.rows(), Eigy.rows());
   double *ptrToMatrix;
   Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
   //Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
@@ -179,7 +180,19 @@ void omxGREMLExpectation::init()
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
-  yhat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy;
+  
+  if(oge->didUserProvideYhat){
+  	double *ptrToVector;
+  	//Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(oge->yhatFromUser->dataMat), oge->yhatFromUser->dataMat->cols, 1);
+  	if( oge->numcases2drop && (oge->yhatFromUser->rows > Eigy.rows()) ){
+  		dropCasesAndEigenizeColumnVector(oge->yhatFromUser, EigyhatFromUser_filtered, ptrToVector, oge->numcases2drop, oge->dropcase, false, oge->origVdim, false);
+  	}
+  	else{
+  		ptrToVector = omxMatrixDataColumnMajor(oge->yhatFromUser);
+  	}
+  	Eigen::Map< Eigen::MatrixXd > Eigyhat( ptrToVector, Eigy.rows(), 1 );
+  	residual = Eigy - Eigyhat;
+  }
 
   /*Prepare y as the data that the FIML fitfunction will use:*/
   data2 = data;  // for safekeeping
@@ -201,7 +214,6 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
 
   EigenMatrixAdaptor EigX(oge->X);
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
-  Eigen::Map< Eigen::MatrixXd > yhat(omxMatrixDataColumnMajor(oge->means), oge->means->rows, oge->means->cols);
   double *ptrToMatrix;
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
   Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
@@ -236,8 +248,18 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   }
   oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
   oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
-  if(oge->alwaysComputeMeans){
-    yhat = EigX * (oge->quadXinv.selfadjointView<Eigen::Lower>() * (oge->XtVinv * Eigy));
+  if(oge->didUserProvideYhat){
+  	omxRecompute(oge->yhatFromUser, fc);
+  	double *ptrToVector;
+  	//Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(oge->yhatFromUser->dataMat), oge->yhatFromUser->dataMat->cols, 1);
+  	if( oge->numcases2drop && (oge->yhatFromUser->rows > Eigy.rows()) ){
+  		dropCasesAndEigenizeColumnVector(oge->yhatFromUser, EigyhatFromUser_filtered, ptrToVector, oge->numcases2drop, oge->dropcase, false, oge->origVdim, false);
+  	}
+  	else{
+  		ptrToVector = omxMatrixDataColumnMajor(oge->yhatFromUser);
+  	}
+  	Eigen::Map< Eigen::MatrixXd > Eigyhat( ptrToVector, Eigy.rows(), 1 );
+  	residual = Eigy - Eigyhat;
   }
 
 	super::compute(fc, what, how);
@@ -254,6 +276,7 @@ omxGREMLExpectation::~omxGREMLExpectation()
   omxFreeMatrix(argStruct->y->dataMat);
   delete argStruct->y;
   omxFreeMatrix(argStruct->X);
+  //omxFreeMatrix(argStruct->yhatFromUser);
 }
 
 
@@ -263,35 +286,70 @@ void omxGREMLExpectation::populateAttr(SEXP algebra) {
   if(OMX_DEBUG) { mxLog("Populating GREML expectation attributes."); }
 
   omxGREMLExpectation* oge = this;
+  
+  SEXP RyXcolnames, Rresid, Rfitted;
+  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
 
   {
   ProtectedSEXP RnumStat(Rf_ScalarReal(oge->y->dataMat->cols));
   Rf_setAttrib(algebra, Rf_install("numStats"), RnumStat);
-  ProtectedSEXP RnumFixEff(Rf_ScalarInteger(oge->X->cols));
-  Rf_setAttrib(algebra, Rf_install("numFixEff"), RnumFixEff);
   }
-
-  Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
-  SEXP b_ext, bcov_ext, RyXcolnames;
-  oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
-  Eigen::MatrixXd GREML_b = oge->quadXinv * (oge->XtVinv * Eigy);
-
-  {
-  ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
-  for(int row = 0; row < GREML_b.rows(); row++){
-    REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
+  
+  if(!didUserProvideYhat){
+  	{
+  		ProtectedSEXP RnumFixEff(Rf_ScalarInteger(oge->X->cols));
+  		Rf_setAttrib(algebra, Rf_install("numFixEff"), RnumFixEff);
+  	}
+  	
+  	SEXP b_ext, bcov_ext; 
+  	oge->quadXinv = oge->quadXinv.selfadjointView<Eigen::Lower>();
+  	Eigen::MatrixXd GREML_b = oge->quadXinv * (oge->XtVinv * Eigy);
+  	
+  	{
+  		ScopedProtect p1(b_ext, Rf_allocMatrix(REALSXP, GREML_b.rows(), 1));
+  		for(int row = 0; row < GREML_b.rows(); row++){
+  			REAL(b_ext)[0 * GREML_b.rows() + row] = GREML_b(row,0);
+  		}
+  		Rf_setAttrib(algebra, Rf_install("b"), b_ext);
+  	}
+  	
+  	{
+  		ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(),
+                                              oge->quadXinv.cols()));
+  		for(int row = 0; row < oge->quadXinv.rows(); row++){
+  			for(int col = 0; col < oge->quadXinv.cols(); col++){
+  				REAL(bcov_ext)[col * oge->quadXinv.rows() + row] = oge->quadXinv(row,col);
+  			}}
+  		Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
+  	}
+  	
+  	EigenMatrixAdaptor EigX(oge->X);
+  	Eigen::MatrixXd fitted = EigX * GREML_b;
+  	Eigen::MatrixXd resid = Eigy - fitted;
+  	
+  	{
+  		ScopedProtect p1(Rfitted, Rf_allocMatrix(REALSXP, Eigy.rows(), 1));
+  		ScopedProtect p2(Rresid, Rf_allocMatrix(REALSXP, Eigy.rows(), 1));
+  		for(int row=0; row < Eigy.rows(); row++){
+  			REAL(Rfitted)[row] = fitted(row,0);
+  			REAL(Rresid)[row] = resid(row,0);
+  		}
+  		Rf_setAttrib(algebra, Rf_install("fitted.values"), Rfitted);
+  		Rf_setAttrib(algebra, Rf_install("residuals"), Rresid);
+  	}
   }
-  Rf_setAttrib(algebra, Rf_install("b"), b_ext);
-  }
-
-  {
-  ScopedProtect p1(bcov_ext, Rf_allocMatrix(REALSXP, oge->quadXinv.rows(),
-  	oge->quadXinv.cols()));
-  for(int row = 0; row < oge->quadXinv.rows(); row++){
-    for(int col = 0; col < oge->quadXinv.cols(); col++){
-      REAL(bcov_ext)[col * oge->quadXinv.rows() + row] = oge->quadXinv(row,col);
-  }}
-  Rf_setAttrib(algebra, Rf_install("bcov"), bcov_ext);
+  else{
+  	Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(yhatFromUser), Eigy.rows(), 1);
+  	{
+  		ScopedProtect p1(Rfitted, Rf_allocMatrix(REALSXP, Eigy.rows(), 1));
+  		ScopedProtect p2(Rresid, Rf_allocMatrix(REALSXP, Eigy.rows(), 1));
+  		for(int row=0; row < Eigy.rows(); row++){
+  			REAL(Rfitted)[row] = Eigyhat(row,0);
+  			REAL(Rresid)[row] = residual(row,0);
+  		}
+  		Rf_setAttrib(algebra, Rf_install("fitted.values"), Rfitted);
+  		Rf_setAttrib(algebra, Rf_install("residuals"), Rresid);
+  	}
   }
 
   //yXcolnames:
@@ -304,6 +362,7 @@ void omxGREMLExpectation::populateAttr(SEXP algebra) {
   		Rf_setAttrib(algebra, Rf_install("yXcolnames"), RyXcolnames);
   	}
   }
+  
 
 }
 
@@ -333,6 +392,9 @@ omxMatrix *omxGREMLExpectation::getComponent(const char* component){
   else if(strEQ("X", component)) {
 		retval = oge->X;
 	}
+  else if(strEQ("yhatFromUser", component)) {
+  	retval = oge->yhatFromUser;
+  }
 
 	if (retval) omxRecompute(retval, NULL);
 

@@ -19,11 +19,12 @@ struct omxGREMLExpectation : public omxExpectation {
   omxMatrix *cov, *invcov, *means, *X, *logdetV_om, *yhatFromUser;
   omxData *y, *data2;
   int origVdim, numcases2drop; 
-  bool alwaysComputeMeans, cholquadX_fail, cholV_fail, doREML, didUserProvideYhat;
+  bool cholquadX_fail, cholV_fail, doREML;
+  bool didUserProvideYhat; //<--Means REML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
   std::vector< bool > dropcase;
   Eigen::VectorXd cholV_vectorD;
   Eigen::VectorXd cholquadX_vectorD;
-  Eigen::MatrixXd XtVinv, quadXinv, EigV_filtered;
+  Eigen::MatrixXd XtVinv, quadXinv, EigV_filtered, EigyhatFromUser_filtered, residual;
   std::vector< const char* > yXcolnames;
 
 	omxGREMLExpectation(omxState *st, int num) :

@@ -29,7 +29,7 @@
 struct omxGREMLFitState : omxFitFunction {
 	//TODO(?): Some of these members might be redundant with what's stored in the FitContext,
 	//and could therefore be cut
-	omxMatrix *y, *X, *cov, *invcov, *means;
+	omxMatrix *y, *X, *cov, *invcov, *means, *residual;
 	std::vector< omxMatrix* > dV;
 	std::vector< const char* > dVnames;
 	std::vector<bool> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
@@ -38,7 +38,8 @@ struct omxGREMLFitState : omxFitFunction {
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
 	int dVlength, origVdim, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType;
-	bool usingGREMLExpectation;
+	bool usingGREMLExpectation, doREML;
+	bool didUserProvideYhat; //<--Means doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd infoMat; //the Average Information matrix or the Expected Information matrix, as the case may be.
@@ -115,7 +116,6 @@ void omxGREMLFitState::init()
     mxThrow("GREML fitfunction is currently only compatible with GREML expectation");
   }
   omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
-  oge->alwaysComputeMeans = false;
 
   newObj->y = omxGetExpectationComponent(expectation, "y");
   newObj->cov = omxGetExpectationComponent(expectation, "cov");
@@ -131,6 +131,10 @@ void omxGREMLFitState::init()
   newObj->augHess = NULL;
   newObj->dVlength = 0;
   newObj->oldWantHess = 0;
+  newObj->doREML = oge->doREML;
+  newObj->didUserProvideYhat = oge->didUserProvideYhat;
+  
+  newObj->hessianAvailable = doREML ? true : false;
 
 	//autoDerivType:
   {
@@ -188,12 +192,14 @@ void omxGREMLFitState::init()
   		}
   	}
   }
+  
+  /*TODO: Derivatives of yhat, if applicable*/
 
   if(derivType==1 && !newObj->usingGREMLExpectation){
   	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
   }
 
-  if(newObj->dVlength || derivType==1){
+  if( (newObj->dVlength || derivType==1) && doREML ){
     oo->hessianAvailable = true;
   	//^^^Gets changed to false in buildParamMap() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
     newObj->rowbins.resize(Global->numThreads);
@@ -288,15 +294,19 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			logdetV = oge->logdetV_om->data[0];
 
  			//Log determinant of quadX:
+ 			gff->REMLcorrection = 0;
  			for(int i=0; i < gff->X->cols; i++){
  				logdetquadX += log(oge->cholquadX_vectorD[i]);
  			}
  			logdetquadX *= 2;
  			gff->REMLcorrection = Scale*0.5*logdetquadX;
-
- 			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic derivatives in use;
+ 			
+ 			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic or semi-analytic derivatives in use;
  			otherwise, extraneous calculations can be avoided:*/
  			if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+ 				/*if(!doREML){
+ 					mxThrow("analytic and semi-analytic GREML derivatives are Not Yet Implemented for the `REML=FALSE` case");
+ 				}*/
  				P.setZero(gff->invcov->rows, gff->invcov->cols);
  				Eigen::MatrixXd Hatmat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv;
  				subtractFromIdentityMatrixInPlace(Hatmat);
@@ -304,25 +314,43 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
  				P.triangularView<Eigen::Upper>() = P.triangularView<Eigen::Lower>().transpose();
  				if(want & FF_COMPUTE_FIT){
- 					ytPy = (Eigy.transpose() * Py)(0,0);
- 					if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
- 					oo->matrix->data[0] = gff->REMLcorrection +
- 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
- 					gff->nll = oo->matrix->data[0];
- 					if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
+ 					if(!didUserProvideYhat){
+ 						ytPy = (Eigy.transpose() * Py)(0,0);
+ 						if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
+ 						oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
+ 						oo->matrix->data[0] += doREML ? gff->REMLcorrection : 0;
+ 						gff->nll = oo->matrix->data[0];
+ 						if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
+ 						if(!doREML){return;}
+ 					}
+ 					else{
+ 						oo->matrix->data[0] = 
+ 							Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) );
+ 						gff->nll = oo->matrix->data[0];
+ 						return;
+ 					}
  				}
  			}
  			/*ytPy can be calculated so that rate-limiting step is O(2kN^2), where k is the number of covariates,
  			and N is the dimension of Vinv (and typically N>>k):*/
  			else{
- 				ytPy = (( Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * Eigy ) -
- 					( Eigy.transpose() * oge->XtVinv.transpose() * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy ))(0,0);
- 				if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
- 				oo->matrix->data[0] = gff->REMLcorrection +
- 					Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
- 				gff->nll = oo->matrix->data[0];
- 				if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
- 				return; //<--Since only fit value is wanted.
+ 				if(!didUserProvideYhat){//<--Either doREML is true, or doREML is false but we're not using a user-supplied yhat.
+ 					ytPy = (( Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * Eigy ) -
+ 						( Eigy.transpose() * oge->XtVinv.transpose() * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv * Eigy ))(0,0);
+ 					if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
+ 					oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
+ 					oo->matrix->data[0] += doREML ? gff->REMLcorrection : 0;
+ 					gff->nll = oo->matrix->data[0];
+ 					if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
+ 					return; //<--Since only fit value is wanted.
+ 				}
+ 				else{
+ 					//Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(gff->yhatFromUser), gff->yhatFromUser->size(), 1);
+ 					oo->matrix->data[0] = 
+ 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) );
+ 					gff->nll = oo->matrix->data[0];
+ 					return;
+ 				}
  			}
  		}
  		else{ //If not using GREML expectation, deal with means and cov in a general way to compute fit...
@@ -377,6 +405,11 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  	if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		//This part requires GREML expectation:
  		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
+ 		
+ 		if(!doREML){
+ 			return;
+ 			//mxThrow("analytic and semi-analytic GREML derivatives are Not Yet Implemented for the `REML=FALSE` case");
+ 		}
 
  		//Recompute derivatives:
  		gff->dVupdate(fc);
@@ -1226,10 +1259,13 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
   }
 
 	{
-  SEXP mlfitval;
+  SEXP mlfitval, remlfitval;
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
-	REAL(mlfitval)[0] = gff->nll - gff->REMLcorrection;
+	ScopedProtect p2(remlfitval, Rf_allocVector(REALSXP, 1));
+	REAL(mlfitval)[0] = doREML ? gff->nll - gff->REMLcorrection : gff->nll;
+	REAL(remlfitval)[0] = doREML ? gff->nll : gff->nll + gff->REMLcorrection;
 	Rf_setAttrib(algebra, Rf_install("MLfit"), mlfitval);
+	Rf_setAttrib(algebra, Rf_install("REMLfit"), remlfitval);
 	}
 }
 
