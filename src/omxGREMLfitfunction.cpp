@@ -133,8 +133,7 @@ void omxGREMLFitState::init()
   newObj->oldWantHess = 0;
   newObj->doREML = oge->doREML;
   newObj->didUserProvideYhat = oge->didUserProvideYhat;
-  
-  newObj->hessianAvailable = doREML ? true : false;
+  newObj->hessianAvailable = false;
 
 	//autoDerivType:
   {
@@ -142,6 +141,9 @@ void omxGREMLFitState::init()
   	if(strEQ(CHAR(Rf_asChar(adt)),"semiAnalyt")){derivType = 1;}
   	else if(strEQ(CHAR(Rf_asChar(adt)),"numeric")){derivType = 0;}
   	else{mxThrow("unrecognized character string provided for GREML fitfunction 'autoDerivType'");}
+  }
+  if(derivType==1 && !doREML){
+  	mxThrow("semi-analytic derivatives when 'REML' is FALSE are Not Yet Implemented");
   }
 
   //infoMatType:
@@ -182,6 +184,9 @@ void omxGREMLFitState::init()
   			//Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
   			mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
   		}
+  		if(!newObj->doREML){
+  			mxThrow("derivatives of 'V' matrix when 'REML' is FALSE are Not Yet Implemented");
+  		}
   		if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
   		int* dVint = INTEGER(RdV);
   		for(int i=0; i < newObj->dVlength; i++){
@@ -201,7 +206,7 @@ void omxGREMLFitState::init()
 
   if( (newObj->dVlength || derivType==1) && doREML ){
     oo->hessianAvailable = true;
-  	//^^^Gets changed to false in buildParamMap() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
+  	//^^^Gets changed to false in compute2() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
     newObj->rowbins.resize(Global->numThreads);
     newObj->AIMelembins.resize(Global->numThreads);
     for(int i=0; i < newObj->dVlength; i++){
@@ -314,20 +319,20 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
  				P.triangularView<Eigen::Upper>() = P.triangularView<Eigen::Lower>().transpose();
  				if(want & FF_COMPUTE_FIT){
- 					if(!didUserProvideYhat){
+ 					if(!didUserProvideYhat){//<--Either doREML is true, or doREML is false but we're not using a user-supplied yhat.
  						ytPy = (Eigy.transpose() * Py)(0,0);
  						if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
  						oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
  						oo->matrix->data[0] += doREML ? gff->REMLcorrection : 0;
  						gff->nll = oo->matrix->data[0];
  						if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
- 						if(!doREML){return;}
+ 						//if(!doREML){return;}
  					}
  					else{
  						oo->matrix->data[0] = 
  							Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) );
  						gff->nll = oo->matrix->data[0];
- 						return;
+ 						//return;
  					}
  				}
  			}
@@ -406,10 +411,10 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  		//This part requires GREML expectation:
  		omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
  		
- 		if(!doREML){
+ 		/*if(!doREML){
  			return;
  			//mxThrow("analytic and semi-analytic GREML derivatives are Not Yet Implemented for the `REML=FALSE` case");
- 		}
+ 		}*/
 
  		//Recompute derivatives:
  		gff->dVupdate(fc);

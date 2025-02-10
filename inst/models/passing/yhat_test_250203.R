@@ -14,7 +14,6 @@
 #   limitations under the License.
 
 require(OpenMx)
-mxOption(NULL,"Analytic gradients","No")
 
 set.seed(1234)
 dat <- cbind(rnorm(100),rep(1,100))
