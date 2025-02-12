@@ -11,7 +11,8 @@
 \section{Objects from the Class}{
 Objects can be created by calls of the form 
 \code{mxExpectationGREML(V, yvars, Xvars, addOnes, blockByPheno, 
-                        staggerZeroes, dataset.is.yX, casesToDropFromV)}.
+                        staggerZeroes, dataset.is.yX, casesToDropFromV,
+                        REML, yhat)}.
 }
 \section{Slots}{
   \describe{
@@ -31,6 +32,8 @@ Objects can be created by calls of the form
     \item{\code{numFixEff}:}{Integer number of covariates in 'X.'}
     \item{\code{REML}:}{Logical.  Should restricted maximum-likelihood estimation be used?}
     \item{\code{yhat}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the model-expected phenotypic mean vector.}
+    \item{\code{fitted.values}:}{A matrix, specifically, the column vector of model-predicted phenotypic means calculated at runtime.}
+    \item{\code{residuals}:}{A matrix, specifically, the column vector of residuals calculated at runtime.}
     \item{\code{dims}:}{Object of class \code{"character"}.}
     \item{\code{numStats}:}{Numeric; number of observed statistics.}
     \item{\code{dataColumns}:}{Object of class \code{"numeric"}.}
