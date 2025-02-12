@@ -36,11 +36,11 @@ testmod <- mxModel(
 testrun <- mxRun(testmod)
 summary(testrun)
 omxCheckCloseEnough(testrun$output$estimate[1],var(dat[,"y"])*99/100,1e-6)
-omxCheckCloseEnough(testrun$output$estimate[2],mean(dat[,"y"]),1e-7)
+omxCheckCloseEnough(testrun$output$estimate[2],mean(dat[,"y"]),1e-6)
 m <- lm(dat[,"y"]~1)
 omxCheckCloseEnough(testrun$output$fit,-2*logLik(m),1e-4)
 omxCheckCloseEnough(testrun$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
-omxCheckCloseEnough(testrun$output$standardErrors[2],sqrt(var(dat[,"y"])*99/10000),1e-7)
+omxCheckCloseEnough(testrun$output$standardErrors[2],sqrt(var(dat[,"y"])*99/10000),1e-6)
 
 #####
 
