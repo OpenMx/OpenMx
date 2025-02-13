@@ -19,6 +19,8 @@ set.seed(1234)
 dat <- cbind(rnorm(100),rep(1,100))
 colnames(dat) <- c("y","x")
 
+# `REML=FALSE`, 'yhat' provided: ####
+
 ge <- mxExpectationGREML(V="V",yvars="y",REML=FALSE,yhat="foo")
 gff <- mxFitFunctionGREML(autoDerivType="numeric")
 
@@ -42,7 +44,7 @@ omxCheckCloseEnough(testrun$output$fit,-2*logLik(m),1e-4)
 omxCheckCloseEnough(testrun$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
 omxCheckCloseEnough(testrun$output$standardErrors[2],sqrt(var(dat[,"y"])*99/10000),1e-6)
 
-#####
+# `REML=FALSE`, 'yhat' empty: ####
 
 ge2 <- mxExpectationGREML(V="V",yvars="y",Xvars="x",addOnes=F,REML=F)
 
@@ -62,3 +64,22 @@ omxCheckCloseEnough(sm$GREMLfixeff$coeff[1],mean(dat[,"y"]),1e-7)
 omxCheckCloseEnough(testrun2$output$fit,-2*logLik(m),1e-4)
 omxCheckCloseEnough(testrun2$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
 omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])*99/10000),1e-7)
+
+# `REML=TRUE`: ####
+ge3 <- mxExpectationGREML(V="V",yvars="y",Xvars="x",addOnes=F)
+
+testmod3 <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	ge3,
+	gff
+)
+testrun3 <- mxRun(testmod3)
+( sm <- summary(testrun3) )
+omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,"y"]),1e-7)
+omxCheckCloseEnough(sm$GREMLfixeff$coeff[1],mean(dat[,"y"]),1e-7)
+omxCheckCloseEnough(testrun3$output$standardErrors[1],sqrt((2*(var(dat[,"y"]))^2)/100),1e-3)
+omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])/100),1e-7)
