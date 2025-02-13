@@ -1267,10 +1267,12 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
   SEXP mlfitval, remlfitval;
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
 	ScopedProtect p2(remlfitval, Rf_allocVector(REALSXP, 1));
-	REAL(mlfitval)[0] = doREML ? gff->nll - gff->REMLcorrection : gff->nll;
-	REAL(remlfitval)[0] = doREML ? gff->nll : gff->nll + gff->REMLcorrection;
+	REAL(mlfitval)[0] = doREML ? (gff->nll - gff->REMLcorrection) : gff->nll;
+	REAL(remlfitval)[0] = doREML ? gff->nll : (gff->nll + gff->REMLcorrection);
 	Rf_setAttrib(algebra, Rf_install("MLfit"), mlfitval);
 	Rf_setAttrib(algebra, Rf_install("REMLfit"), remlfitval);
+	//mxLog("gff->nll: %f",gff->nll);
+	//mxLog("gff->REMLcorrection: %f",gff->REMLcorrection);
 	}
 }
 
