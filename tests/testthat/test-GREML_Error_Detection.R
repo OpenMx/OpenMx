@@ -163,6 +163,37 @@ omxCheckError(mxRun(testmod),
 							"Expected covariance matrix is non-positive-definite at initial values")
 
 
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=FALSE,yhat="foo"),
+	mxFitFunctionGREML(autoDerivType="semiAnalyt")
+)
+omxCheckWarning(
+	mxRun(testmod),
+	"use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead"
+)
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=FALSE,yhat="foo"),
+	mxFitFunctionGREML(dV=c(ve="I"),autoDerivType="numeric")
+)
+omxCheckWarning(
+	mxRun(testmod),
+	"derivatives of 'V' matrix with 'yhat' are Not Yet Implemented; numeric derivatives will be used instead"
+)
+
 
 z <- matrix(-1,100,2)
 colnames(z) <- c("z1","z2")

@@ -55,35 +55,35 @@ struct omxGREMLFitState : omxFitFunction {
 	JacobianGadget jg;
 
 	//Foundation for separate functions that compute fitfunction derivatives from dV:
-	template <typename T1, typename T2>
+	template <typename T1, typename T2, typename T3>
 	void gradientAndAIM1(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-			double u_Scale, Eigen::MatrixBase<T2> &u_Py);
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv);
 
-	template <typename T1, typename T2>
+	template <typename T1, typename T2, typename T3>
 	void gradientAndAIM2(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-			double u_Scale, Eigen::MatrixBase<T2> &u_Py);
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv);
 
-	template <typename T1, typename T2>
+	template <typename T1, typename T2, typename T3>
 	void gradientAndAIM3(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-			double u_Scale, Eigen::MatrixBase<T2> &u_Py);
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv);
 
-	template <typename T1, typename T2, typename T3>
+	template <typename T1, typename T2, typename T3, typename T4>
 	void gradientAndEIM1(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy);
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv);
 
-	template <typename T1, typename T2, typename T3>
+	template <typename T1, typename T2, typename T3, typename T4>
 	void gradientAndEIM2(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy);
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv);
 
-	template <typename T1, typename T2, typename T3>
+	template <typename T1, typename T2, typename T3, typename T4>
 	void gradientAndEIM3(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy);
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv);
 
 	template <typename T1, typename T2>
 	void crude_numeric_dV(
@@ -142,8 +142,8 @@ void omxGREMLFitState::init()
   	else if(strEQ(CHAR(Rf_asChar(adt)),"numeric")){derivType = 0;}
   	else{mxThrow("unrecognized character string provided for GREML fitfunction 'autoDerivType'");}
   }
-  if(derivType==1 && !doREML){
-  	mxThrow("semi-analytic derivatives when 'REML' is FALSE are Not Yet Implemented");
+  if(derivType==1 && didUserProvideYhat){
+  	Rf_warning("use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead");
   }
 
   //infoMatType:
@@ -184,8 +184,8 @@ void omxGREMLFitState::init()
   			//Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
   			mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
   		}
-  		if(!newObj->doREML){
-  			mxThrow("derivatives of 'V' matrix when 'REML' is FALSE are Not Yet Implemented");
+  		if(didUserProvideYhat){
+  			Rf_warning("derivatives of 'V' matrix with 'yhat' are Not Yet Implemented; numeric derivatives will be used instead");
   		}
   		if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
   		int* dVint = INTEGER(RdV);
@@ -204,7 +204,7 @@ void omxGREMLFitState::init()
   	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
   }
 
-  if( (newObj->dVlength || derivType==1) && doREML ){
+  if( (newObj->dVlength || derivType==1) && !didUserProvideYhat ){
     oo->hessianAvailable = true;
   	//^^^Gets changed to false in compute2() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
     newObj->rowbins.resize(Global->numThreads);
@@ -430,7 +430,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  		if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  			if(gff->dVlength < gff->numExplicitFreePar && derivType==0){
         if (gff->hessianAvailable) mxThrow("%s: sorry, i lied about whether analytic derivs were available", gff->name());
- 				omxRaiseErrorf("GREML fitfunction cannot compute information matrix without analytic derivatives of V with respect to EVERY free parameter");
+ 				omxRaiseErrorf("when 'autoDerivType' is 'numeric', GREML fitfunction cannot compute information matrix without analytic derivatives of V with respect to EVERY free parameter");
  			}
  			hb->vars.resize(gff->numExplicitFreePar);
  			hb->mat.resize(gff->numExplicitFreePar, gff->numExplicitFreePar);
@@ -462,26 +462,26 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  		switch(gff->parallelDerivScheme){
  		case 2: //bin by row
  			if(infoMatType==1){
- 				gradientAndEIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy);
+ 				gradientAndEIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
  			}
  			else{
- 				gradientAndAIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py);
+ 				gradientAndAIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
  			}
  			break;
  		case 3: //bin by cell
  			if(infoMatType==1){
- 				gradientAndEIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy);
+ 				gradientAndEIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
  			}
  			else{
- 				gradientAndAIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py);
+ 				gradientAndAIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
  			}
  			break;
  		default: //bin naively (which is perfectly adequate for gradient-only, or for a single thread)
  			if(infoMatType==1){
- 				gradientAndEIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy);
+ 				gradientAndEIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
  			}
  			else{
- 				gradientAndAIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py);
+ 				gradientAndAIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
  			}
  		break;
  		}
@@ -505,10 +505,10 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
 
 
 //Bin "naively"; Hessian is average information matrix:
-template <typename T1, typename T2>
+template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM1(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-    double u_Scale, Eigen::MatrixBase<T2> &u_Py){
+    double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -525,7 +525,7 @@ void omxGREMLFitState::gradientAndAIM1(
 			tr=0;
 			t1 = gradMap[i]; //<--Parameter number for parameter i.
 			if(t1 < 0){continue;}
-			if(didUserGivedV[t1] || derivType==1){
+			if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
@@ -547,7 +547,7 @@ void omxGREMLFitState::gradientAndAIM1(
 				Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(j=i; j < numExplicitFreePar; j++){
 					if(j==i){
-						tr = trace_prod_symm(u_P,dV_dtheta1);
+						tr = doREML ? trace_prod_symm(u_P,dV_dtheta1) : trace_prod_symm(u_Vinv,dV_dtheta1);
 						gradient(t1) = u_Scale*0.5*(tr - (ytPdV_dtheta1 * u_Py)(0,0)) +
 							u_Scale*pullAugVal(1,a1,0);
 						if(u_want & FF_COMPUTE_GRADIENT){
@@ -604,10 +604,10 @@ void omxGREMLFitState::gradientAndAIM1(
 
 
 //Bin by row; Hessian is average information matrix:
-template <typename T1, typename T2>
+template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM2(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-		double u_Scale, Eigen::MatrixBase<T2> &u_Py){
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -624,7 +624,7 @@ void omxGREMLFitState::gradientAndAIM2(
 			hrn = rowbins[threadID](i); //Current row number of the AIM.
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
-			if(didUserGivedV[t1] || derivType==1){
+			if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 				Eigen::MatrixXd filteredCopy1;
 				double *ptrToMatrix1=0;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
@@ -646,7 +646,7 @@ void omxGREMLFitState::gradientAndAIM2(
 				Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				for(hcn=hrn; hcn < numExplicitFreePar; hcn++){
 					if(hcn==hrn){
-						tr = trace_prod_symm(u_P,dV_dtheta1);
+						tr = doREML ? trace_prod_symm(u_P,dV_dtheta1) : trace_prod_symm(u_Vinv,dV_dtheta1);
 						gradient(hrn) = u_Scale*0.5*(tr - (ytPdV_dtheta1 * u_Py)(0,0)) +
 							u_Scale*pullAugVal(1,a1,0);
 						if(u_want & FF_COMPUTE_GRADIENT){
@@ -704,10 +704,10 @@ void omxGREMLFitState::gradientAndAIM2(
 
 
 //Bin by cells; Hessian is average information matrix
-template <typename T1, typename T2>
+template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM3(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-		double u_Scale, Eigen::MatrixBase<T2> &u_Py){
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -732,7 +732,7 @@ void omxGREMLFitState::gradientAndAIM3(
 			tr=0;
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
-			if(didUserGivedV[t1] || derivType==1){
+			if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
@@ -754,7 +754,7 @@ void omxGREMLFitState::gradientAndAIM3(
 				Eigen::Map< Eigen::MatrixXd > dV_dtheta1( ptrToMatrix1, Eigyrows, Eigyrows ); //<--Derivative of V w/r/t parameter hrn.
 				Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				if(hrn==hcn){
-					tr = trace_prod_symm(u_P,dV_dtheta1);
+					tr = doREML ? trace_prod_symm(u_P,dV_dtheta1) : trace_prod_symm(u_Vinv,dV_dtheta1);
 					gradient(hrn) = u_Scale*0.5*(tr - (ytPdV_dtheta1 * u_Py)(0,0)) +
 						u_Scale*pullAugVal(1,a1,0);
 					if(u_want & FF_COMPUTE_GRADIENT){
@@ -816,10 +816,10 @@ void omxGREMLFitState::gradientAndAIM3(
 
 
 //Bin "naively"; Hessian is expected information matrix:
-template <typename T1, typename T2, typename T3>
+template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM1(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy){
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -843,7 +843,7 @@ void omxGREMLFitState::gradientAndEIM1(
 				int j=0, t2=0, a2=0;
 				double tr2=0;
 				u_hb->vars[i] = t1;
-				if(didUserGivedV[t1] || derivType==1){
+				if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 					double *ptrToMatrix1=0;
 					Eigen::MatrixXd filteredCopy1;
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
@@ -863,7 +863,15 @@ void omxGREMLFitState::gradientAndEIM1(
 					Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1, Eigyrows, Eigyrows);
 					//Eigen does not define a multiplication operator for selfadjointView times selfadjointView:
 					Eigen::MatrixXd dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_P;
-					tr1 = dV_dtheta1P.trace();
+					Eigen::MatrixXd dV_dtheta1Vinv;
+					//dV_dtheta1Vinv.setZero(1,1);
+					if(doREML){
+						tr1 = dV_dtheta1P.trace();
+					}
+					else{
+						dV_dtheta1Vinv = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_Vinv;
+						tr1 = dV_dtheta1Vinv.trace();
+					}
 					for(j=i; j < numExplicitFreePar; j++){
 						tr2=0;
 						if(j==i){
@@ -872,7 +880,7 @@ void omxGREMLFitState::gradientAndEIM1(
 							if(u_want & FF_COMPUTE_GRADIENT){
 								u_fc->gradZ(t1) += gradient(t1);
 							}
-							tr2 = trace_prod(dV_dtheta1P,dV_dtheta1P);
+							tr2 = doREML ? trace_prod(dV_dtheta1P,dV_dtheta1P) : trace_prod(dV_dtheta1Vinv,dV_dtheta1Vinv);
 							infoMat(t1,t1) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 						}
 						else{
@@ -895,8 +903,14 @@ void omxGREMLFitState::gradientAndEIM1(
 								ptrToMatrix2 = filteredCopy2.data();
 							}
 							Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2, Eigyrows, Eigyrows);
-							Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;//.template selfadjointView<Eigen::Lower>();
-							tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
+							if(doREML){
+								Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
+								tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
+							}
+							else{
+								Eigen::MatrixXd dV_dtheta2Vinv = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_Vinv;
+								tr2 = trace_prod(dV_dtheta1Vinv,dV_dtheta2Vinv);
+							}
 							infoMat(t1,t2) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 							infoMat(t2,t1) = infoMat(t1,t2);
 						}
@@ -911,7 +925,7 @@ void omxGREMLFitState::gradientAndEIM1(
 			}
 
 			else{
-				if(didUserGivedV[t1] || derivType==1){
+				if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 					double *ptrToMatrix1=0;
 					Eigen::MatrixXd filteredCopy1;
 					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
@@ -930,7 +944,7 @@ void omxGREMLFitState::gradientAndEIM1(
 					}
 					Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1, Eigyrows, Eigyrows);
 					Eigen::MatrixXd ytPdV_dtheta1 = u_Py.transpose() * dV_dtheta1.selfadjointView<Eigen::Lower>();
-					tr1 = trace_prod_symm(u_P,dV_dtheta1);
+					tr1 = doREML ? trace_prod_symm(u_P,dV_dtheta1) : trace_prod_symm(u_Vinv,dV_dtheta1);
 					gradient(t1) = u_Scale*0.5*(tr1 - (ytPdV_dtheta1 * u_Py)(0,0)) +
 						u_Scale*pullAugVal(1,a1,0);
 					if(u_want & FF_COMPUTE_GRADIENT){
@@ -957,10 +971,10 @@ void omxGREMLFitState::gradientAndEIM1(
 
 
 //Bin by row; Hessian is expected information matrix:
-template <typename T1, typename T2, typename T3>
+template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM2(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy){
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -977,7 +991,7 @@ void omxGREMLFitState::gradientAndEIM2(
 			hrn = rowbins[threadID](i); //Current row number of the AIM.
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
-			if(didUserGivedV[t1] || derivType==1){
+			if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 				double *ptrToMatrix1=0;
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
@@ -998,7 +1012,14 @@ void omxGREMLFitState::gradientAndEIM2(
 				Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1, Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hrn.
 				//Eigen does not define a multiplication operator for selfadjointView times selfadjointView:
 				Eigen::MatrixXd dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_P;
-				tr1 = dV_dtheta1P.trace();
+				Eigen::MatrixXd dV_dtheta1Vinv;
+				if(doREML){
+					tr1 = dV_dtheta1P.trace();
+				}
+				else{
+					dV_dtheta1Vinv = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_Vinv;
+					tr1 = dV_dtheta1Vinv.trace();
+				}
 				for(hcn=hrn; hcn < numExplicitFreePar; hcn++){
 					tr2=0;
 					if(hcn==hrn){
@@ -1008,7 +1029,7 @@ void omxGREMLFitState::gradientAndEIM2(
 							u_fc->gradZ(hrn) += gradient(hrn);
 						}
 						if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-							tr2 = trace_prod(dV_dtheta1P,dV_dtheta1P);
+							tr2 = doREML ? trace_prod(dV_dtheta1P,dV_dtheta1P) : trace_prod(dV_dtheta1Vinv,dV_dtheta1Vinv);
 							infoMat(hrn,hrn)  = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 						}
 					}
@@ -1034,8 +1055,14 @@ void omxGREMLFitState::gradientAndEIM2(
 								ptrToMatrix2 = filteredCopy2.data();
 							}
 							Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2, Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hcn.
-							Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
-							tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
+							if(doREML){
+								Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
+								tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
+							}
+							else{
+								Eigen::MatrixXd dV_dtheta2Vinv = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_Vinv;
+								tr2 = trace_prod(dV_dtheta1Vinv,dV_dtheta2Vinv);
+							}
 							infoMat(hrn,hcn) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 							infoMat(hcn,hrn) = infoMat(hrn,hcn);
 						}
@@ -1060,10 +1087,10 @@ void omxGREMLFitState::gradientAndEIM2(
 
 
 //Bin by cell; Hessian is expected information matrix:
-template <typename T1, typename T2, typename T3>
+template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM3(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
-		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy){
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1088,7 +1115,7 @@ void omxGREMLFitState::gradientAndEIM3(
 			tr2=0;
 			t1 = gradMap[hrn];
 			if(t1 < 0){continue;} //Check for negative parameter number.
-			if(didUserGivedV[t1] || derivType==1){
+			if( (didUserGivedV[t1] || derivType==1) && !didUserProvideYhat){
 				Eigen::MatrixXd filteredCopy1;
 				a1 = dAugMap[hrn]; //<--Index of augmentation derivatives to use for parameter hrn.
 				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[hrn] = t1;}
@@ -1109,7 +1136,14 @@ void omxGREMLFitState::gradientAndEIM3(
 				}
 				Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1, Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hrn.
 				Eigen::MatrixXd dV_dtheta1P = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_P;
-				tr1 = dV_dtheta1P.trace();
+				Eigen::MatrixXd dV_dtheta1Vinv;
+				if(doREML){
+					tr1 = dV_dtheta1P.trace();
+				}
+				else{
+					dV_dtheta1Vinv = dV_dtheta1.selfadjointView<Eigen::Lower>() * u_Vinv;
+					tr1 = dV_dtheta1Vinv.trace();
+				}
 				if(hrn==hcn){
 					gradient(hrn) = u_Scale*0.5*(tr1 - (u_Py.transpose() * dV_dtheta1P * u_Eigy)(0,0)) +
 						u_Scale*pullAugVal(1,a1,0);
@@ -1117,7 +1151,7 @@ void omxGREMLFitState::gradientAndEIM3(
 						u_fc->gradZ(hrn) += gradient(hrn);
 					}
 					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
-						tr2 = trace_prod(dV_dtheta1P,dV_dtheta1P);
+						tr2 = doREML ? trace_prod(dV_dtheta1P,dV_dtheta1P) : trace_prod(dV_dtheta1Vinv,dV_dtheta1Vinv);
 						infoMat(hrn,hrn)  = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a1);
 					}
 				}
@@ -1142,8 +1176,14 @@ void omxGREMLFitState::gradientAndEIM3(
 							ptrToMatrix2 = filteredCopy2.data();
 						}
 						Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2, Eigyrows, Eigyrows); //<--Derivative of V w/r/t parameter hcn.
-						Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
-						tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
+						if(doREML){
+							Eigen::MatrixXd dV_dtheta2P = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_P;
+							tr2 = trace_prod(dV_dtheta1P,dV_dtheta2P);
+						}
+						else{
+							Eigen::MatrixXd dV_dtheta2Vinv = dV_dtheta2.selfadjointView<Eigen::Lower>() * u_Vinv;
+							tr2 = trace_prod(dV_dtheta1Vinv,dV_dtheta2Vinv);
+						}
 						infoMat(hrn,hcn) = u_Scale*0.5*tr2 + u_Scale*pullAugVal(2,a1,a2);
 						infoMat(hcn,hrn) = infoMat(hrn,hcn);
 					}

@@ -66,6 +66,7 @@ omxCheckCloseEnough(testrun2$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99
 omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])*99/10000),1e-7)
 
 # `REML=TRUE`: ####
+
 ge3 <- mxExpectationGREML(V="V",yvars="y",Xvars="x",addOnes=F)
 
 testmod3 <- mxModel(
@@ -83,3 +84,49 @@ omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,"y"]),1e-7)
 omxCheckCloseEnough(sm$GREMLfixeff$coeff[1],mean(dat[,"y"]),1e-7)
 omxCheckCloseEnough(testrun3$output$standardErrors[1],sqrt((2*(var(dat[,"y"]))^2)/100),1e-3)
 omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])/100),1e-7)
+
+####
+#### Re-run the 3 models, now with semi-analytic derivatives: ####
+####
+gff4 <- mxFitFunctionGREML(autoDerivType="semiAnalyt")
+
+# `REML=FALSE`, 'yhat' provided: semi-analytic derivatives Not Yet Implemented ####
+
+# `REML=FALSE`, 'yhat' empty: ####
+
+testmod5 <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	ge2,
+	gff4
+)
+testrun5 <- mxRun(testmod5)
+( sm <- summary(testrun5) )
+omxCheckCloseEnough(testrun5$output$estimate[1],var(dat[,"y"])*99/100,1e-7)
+omxCheckCloseEnough(sm$GREMLfixeff$coeff[1],mean(dat[,"y"]),1e-7)
+omxCheckCloseEnough(testrun5$output$fit,-2*logLik(m),1e-4)
+omxCheckCloseEnough(testrun5$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
+omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])*99/10000),1e-7)
+omxCheckCloseEnough(testrun2$output$fit,testrun5$output$fit,1e-5)
+
+# `REML=TRUE`: ####
+
+testmod6 <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	ge3,
+	gff4
+)
+testrun6 <- mxRun(testmod6)
+( sm <- summary(testrun6) )
+omxCheckCloseEnough(testrun6$output$estimate[1],var(dat[,"y"]),1e-7)
+omxCheckCloseEnough(sm$GREMLfixeff$coeff[1],mean(dat[,"y"]),1e-7)
+omxCheckCloseEnough(testrun6$output$standardErrors[1],sqrt((2*(var(dat[,"y"]))^2)/100),1e-3)
+omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])/100),1e-7)
+omxCheckCloseEnough(testrun3$output$fit,testrun6$output$fit,1e-5)
