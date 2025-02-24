@@ -92,6 +92,21 @@ gff4 <- mxFitFunctionGREML(autoDerivType="semiAnalyt")
 
 # `REML=FALSE`, 'yhat' provided: semi-analytic derivatives Not Yet Implemented ####
 
+testmod4 <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	ge,
+	gff4
+)
+omxCheckWarning(
+	mxRun(testmod4),
+	"use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead"
+)
+
 # `REML=FALSE`, 'yhat' empty: ####
 
 testmod5 <- mxModel(
