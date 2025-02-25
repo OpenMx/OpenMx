@@ -24,7 +24,9 @@ setClass(Class = "MxFitFunctionGREML",
            augGrad = "MxCharOrNumber",
            augHess = "MxCharOrNumber",
            autoDerivType = "character",
-           infoMatType = "character"),
+           infoMatType = "character",
+           dyhat = "MxCharOrNumber",
+           dyhatnames = "character"),
          contains = "MxBaseFitFunction")
 
 
@@ -42,6 +44,8 @@ setMethod("initialize", "MxFitFunctionGREML",
             .Object@augHess <- ..4
             .Object@autoDerivType <- ..5
             .Object@infoMatType <- ..6
+            .Object@dyhat <- ..7
+            .Object@dyhatnames <- as.character(names(..7))
             .Object
           })
 
@@ -59,6 +63,10 @@ setMethod("qualifyNames", signature("MxFitFunctionGREML"),
             if(length(.Object@augHess)){
             	.Object@augHess <- imxConvertIdentifier(.Object@augHess[1],modelname,namespace)
             }
+            if(length(.Object@dyhat)){
+            	.Object@dyhat <- sapply(.Object@dyhat, imxConvertIdentifier, modelname, namespace)
+            	.Object@dyhatnames <- names(.Object@dyhat)
+            }
             return(.Object)
           })
 
@@ -73,6 +81,9 @@ setMethod("genericFitRename", signature("MxFitFunctionGREML"),
           	}
           	if(length(.Object@augHess)){
           		.Object@augHess <- renameReference(.Object@augHess[1], oldname, newname)
+          	}
+          	if(length(.Object@dyhat)){
+          		.Object@dyhat <- sapply(.Object@dyhat, renameReference, oldname, newname)
           	}
             return(.Object)
           })
@@ -113,6 +124,9 @@ setMethod("genericFitFunConvert", "MxFitFunctionGREML",
             if(length(.Object@augHess)){
             	.Object@augHess <- imxLocateIndex(.Object@augHess[1], model=flatModel, referant=name)
             }
+            if(length(.Object@dyhat)){
+            	.Object@dyhat <- sapply(.Object@dyhat, imxLocateIndex, model=flatModel, referant=name)
+            }
             return(.Object)
           })
 
@@ -128,8 +142,8 @@ setMethod("generateReferenceModels", "MxFitFunctionGREML",
 
 mxFitFunctionGREML <- function(
 	dV=character(0), aug=character(0), augGrad=character(0), augHess=character(0), autoDerivType=c("semiAnalyt","numeric"),
-	infoMatType=c("average","expected")){
+	infoMatType=c("average","expected"), dyhat=character(0)){
 	autoDerivType = as.character(match.barg(autoDerivType,c("semiAnalyt","numeric")))
 	infoMatType = as.character(match.barg(infoMatType,c("average","expected")))
-  return(new("MxFitFunctionGREML",dV=dV,aug=aug,augGrad=augGrad,augHess=augHess,autoDerivType=autoDerivType,infoMatType=infoMatType))
+  return(new("MxFitFunctionGREML",dV=dV,aug=aug,augGrad=augGrad,augHess=augHess,autoDerivType=autoDerivType,infoMatType=infoMatType,dyhat=dyhat))
 }

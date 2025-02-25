@@ -30,21 +30,23 @@ struct omxGREMLFitState : omxFitFunction {
 	//TODO(?): Some of these members might be redundant with what's stored in the FitContext,
 	//and could therefore be cut
 	omxMatrix *y, *X, *cov, *invcov, *means, *residual;
-	std::vector< omxMatrix* > dV;
-	std::vector< const char* > dVnames;
-	std::vector<bool> indyAlg; //will keep track of which algebras don't get marked dirty after dropping cases
-	std::vector<int> origdVdim;
-	std::vector<bool> didUserGivedV;
+	std::vector< omxMatrix* > dV, dyhat;
+	std::vector< const char* > dVnames, dyhatnames;
+	std::vector<bool> indyAlg, indyAlg2; //will keep track of which algebras don't get marked dirty after dropping cases
+	std::vector<int> origdVdim, origdyhatdim;
+	std::vector<bool> didUserGivedV, didUserGivedyhat;
 	void dVupdate(FitContext *fc);
 	void dVupdate_final();
-	int dVlength, origVdim, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType;
+	void dyhatupdate(FitContext *fc);
+	void dyhatupdate_final();
+	int dVlength, origVdim, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType, dyhatlength, origyhatdim;
 	bool usingGREMLExpectation, doREML;
 	bool didUserProvideYhat; //<--Means doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd infoMat; //the Average Information matrix or the Expected Information matrix, as the case may be.
 	FreeVarGroup *varGroup;
-	std::vector<int> gradMap;
+	std::vector<int> gradMap, gradMap2;
 	void buildParamMap(FreeVarGroup *newVarGroup);
 	std::vector< Eigen::VectorXi > rowbins, AIMelembins;
 	void planParallelDerivs(int nThreadz, int wantHess, int Vrows);
@@ -180,10 +182,10 @@ void omxGREMLFitState::init()
   	newObj->dVnames.resize(newObj->dVlength);
   	newObj->origdVdim.resize(newObj->dVlength);
   	if(newObj->dVlength){
-  		if(!newObj->usingGREMLExpectation){
+  		/*if(!newObj->usingGREMLExpectation){
   			//Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
   			mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
-  		}
+  		}*/
   		if(didUserProvideYhat){
   			Rf_warning("derivatives of 'V' matrix with 'yhat' are Not Yet Implemented; numeric derivatives will be used instead");
   		}
@@ -198,29 +200,68 @@ void omxGREMLFitState::init()
   	}
   }
   
-  /*TODO: Derivatives of yhat, if applicable*/
+  /*Derivatives of yhat:*/
+  if (R_has_slot(rObj, Rf_install("dyhat"))) {
+  	ProtectedSEXP Rdyhat(R_do_slot(rObj, Rf_install("dyhat")));
+  	ProtectedSEXP Rdyhatnames(R_do_slot(rObj, Rf_install("dyhatnames")));
+  	newObj->dyhatlength = Rf_length(Rdyhat);
+  	newObj->dyhat.resize(newObj->dyhatlength);
+  	newObj->indyAlg2.resize(newObj->dyhatlength);
+  	newObj->dyhatnames.resize(newObj->dyhatlength);
+  	newObj->origdyhatdim.resize(newObj->dyhatlength);
+  	if(newObj->dyhatlength){
+  		/*if(!newObj->usingGREMLExpectation){
+  		 //Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
+  		 mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
+  		 }*/
+  		if(didUserProvideYhat){
+  			//Rf_warning("derivatives of 'yhat' are Not Yet Implemented; numeric derivatives will be used instead");
+  		}
+  		if(OMX_DEBUG) { mxLog("Processing derivatives of yhat."); }
+  		int* dyhatint = INTEGER(Rdyhat);
+  		for(int i=0; i < newObj->dyhatlength; i++){
+  			newObj->dyhat[i] = omxMatrixLookupFromStateByNumber(dyhatint[i], currentState);
+  			SEXP elem;
+  			{ScopedProtect p3(elem, STRING_ELT(Rdyhatnames, i));
+  				newObj->dyhatnames[i] = CHAR(elem);}
+  		}
+  	}
+  }
 
   if(derivType==1 && !newObj->usingGREMLExpectation){
   	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
   }
 
-  if( (newObj->dVlength || derivType==1) && !didUserProvideYhat ){
-    oo->hessianAvailable = true;
-  	//^^^Gets changed to false in compute2() if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
-    newObj->rowbins.resize(Global->numThreads);
-    newObj->AIMelembins.resize(Global->numThreads);
-    for(int i=0; i < newObj->dVlength; i++){
-    	/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the
-    	dimension of V (implying downsizing due to missing observations):*/
-      if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
-          ((newObj->y->cols < newObj->cov->rows)&&(newObj->dV[i]->rows == newObj->y->cols)&&
-          	(newObj->dV[i]->cols == newObj->y->cols)) ){
-      	newObj->origdVdim[i] = newObj->dV[i]->rows;
-      }
-      else{
-        mxThrow("all derivatives of V must have the same dimensions as V");
-  }}}
-
+  if( (newObj->dVlength || newObj->dyhatlength || derivType==1) && !didUserProvideYhat ){
+  	oo->hessianAvailable = true;
+  	//^^^Gets changed to false in `buildParamMap()` if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
+  	newObj->rowbins.resize(Global->numThreads);
+  	newObj->AIMelembins.resize(Global->numThreads);
+  	for(int i=0; i < newObj->dVlength; i++){
+  		/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the
+  		 dimension of V (implying downsizing due to missing observations):*/
+  		if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
+        ((newObj->y->cols < newObj->cov->rows)&&(newObj->dV[i]->rows == newObj->y->cols)&&
+        (newObj->dV[i]->cols == newObj->y->cols)) ){
+  			newObj->origdVdim[i] = newObj->dV[i]->rows;
+  		}
+  		else{
+  			mxThrow("all derivatives of V must have the same dimensions as V");
+  		}
+  	}
+  	for(int i=0; i < newObj->dyhatlength; i++){
+  		/*Each dyhat must either (1) match the dimensions of yhat, OR (2) match the length of y if that is less than the
+  		 dimension of yhat (implying downsizing due to missing observations):*/
+  		if((newObj->dyhat[i]->size() == oge->yhatFromUser->size()) || 
+        ((newObj->y->cols < oge->yhatFromUser->size())&&(newObj->dyhat[i]->size() == newObj->y->cols))){
+  			newObj->origdyhatdim[i] = newObj->dyhat[i]->size();
+  		}
+  		else{
+  			mxThrow("all derivatives of yhat must have the same length as yhat");
+  		}
+  	}
+  }
+  
   //Augmentation derivatives:
   if( (newObj->dVlength || derivType==1) && newObj->aug){
   	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied, or if aug is provided and derivType==1.
@@ -234,9 +275,10 @@ void omxGREMLFitState::init()
   			if(dVlength){
   				mxThrow("if arguments 'dV' and 'aug' have nonzero length, then 'augGrad' must as well");
   			}
-  			else{
-  				mxThrow("if using semi-analytic derivatives and 'aug' has nonzero length, then 'augGrad' must as well");
+  			if(dyhatlength){
+  				mxThrow("if arguments 'dyhat' and 'aug' have nonzero length, then 'augGrad' must as well");	
   			}
+  			mxThrow("if using semi-analytic derivatives and 'aug' has nonzero length, then 'augGrad' must as well");
   		}
   	}
   	else{
@@ -1323,7 +1365,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	varGroup = newVarGroup;
 	numExplicitFreePar = int(varGroup->vars.size());
 	//Now that numExplicitFreePar is known, check to see if derivType=0 and 0 < dVlength < numExplicitFreePar:
-	if(dVlength < numExplicitFreePar && derivType==0){
+	if( (dVlength < numExplicitFreePar || dyhatlength <  numExplicitFreePar) && derivType==0){
 		//The fitfunction is not allowed to claim to be able to provide a Hessian in this case:
 		hessianAvailable = false;
 	}
@@ -1331,75 +1373,133 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	infoMat.setZero(numExplicitFreePar,numExplicitFreePar);
 	didUserGivedV.resize(numExplicitFreePar);
 	didUserGivedV.assign(size_t(numExplicitFreePar),false);
+	didUserGivedyhat.resize(numExplicitFreePar);
+	didUserGivedyhat.assign(size_t(numExplicitFreePar),false);
 	gradMap.resize(numExplicitFreePar);
+	gradMap2.resize(numExplicitFreePar);
 	dAugMap.resize(numExplicitFreePar);
 	dAugMap.assign(size_t(numExplicitFreePar),-1);
 	indyAlg.resize(numExplicitFreePar);
 	indyAlg.assign(size_t(numExplicitFreePar),false);
+	indyAlg2.resize(numExplicitFreePar);
+	indyAlg2.assign(size_t(numExplicitFreePar),false);
 	int gx=0;
-	if(dVlength){
-		if(dVlength > numExplicitFreePar){
-			mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
-		}
-		/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily
-		copied here:*/
-		std::vector< omxMatrix* > dV_temp = dV;
-		std::vector< const char* > dVnames_temp = dVnames;
-		std::vector<int> origdVdim_temp = origdVdim;
-		dV.resize(numExplicitFreePar);
-		dVnames.resize(numExplicitFreePar);
-		origdVdim.resize(numExplicitFreePar);
-		/*gx holds the write location for objects with length equal to numExplicitFreePar,
-		 vx holds the read location for free parameters in varGroup:*/
-		for (int vx=0; vx < numExplicitFreePar; ++vx) {
-			//nx holds the read location for objects with length equal to dVlength:
-			for (int nx=0; nx <= dVlength; ++nx) {
-				if(nx==dVlength){
-					gradMap[gx] = vx;
-					dV[gx] = NULL;
-					dVnames[gx] = NULL;
-					origdVdim[gx] = 0;
-					//Remember that didUserGivedV was set to all false just above, and dAugMap to all -1s.
-					++gx;
-					break;
-				}
-				if (strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)) {
-					gradMap[gx] = vx;
-					dV[gx] = dV_temp[nx];
-					dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
-					origdVdim[gx] = origdVdim_temp[nx];
-					dAugMap[gx] = nx;
-					indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? true : false;
-					didUserGivedV[gx] = true;
-					++gx;
-					break;
+	if(dVlength || dyhatlength){
+		if(dVlength){
+			if(dVlength > numExplicitFreePar){
+				mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
+			}
+			/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily
+			 copied here:*/
+			std::vector< omxMatrix* > dV_temp = dV;
+			std::vector< const char* > dVnames_temp = dVnames;
+			std::vector<int> origdVdim_temp = origdVdim;
+			dV.resize(numExplicitFreePar);
+			dVnames.resize(numExplicitFreePar);
+			origdVdim.resize(numExplicitFreePar);
+			/*gx holds the write location for objects with length equal to numExplicitFreePar,
+			 vx holds the read location for free parameters in varGroup:*/
+			for (int vx=0; vx < numExplicitFreePar; ++vx) {
+				//nx holds the read location for objects with length equal to dVlength:
+				for (int nx=0; nx <= dVlength; ++nx) {
+					if(nx==dVlength){
+						gradMap[gx] = vx;
+						dV[gx] = NULL;
+						dVnames[gx] = NULL;
+						origdVdim[gx] = 0;
+						//Remember that didUserGivedV was set to all false just above, and dAugMap to all -1s.
+						++gx;
+						break;
+					}
+					if (strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)) {
+						gradMap[gx] = vx;
+						dV[gx] = dV_temp[nx];
+						dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
+						origdVdim[gx] = origdVdim_temp[nx];
+						dAugMap[gx] = nx;
+						indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? true : false;
+						didUserGivedV[gx] = true;
+						++gx;
+						break;
+					}
 				}
 			}
-		}
-		if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
-		if(augGrad){
-			int ngradelem = std::max(augGrad->rows, augGrad->cols);
-			if(ngradelem != numExplicitFreePar){
-				mxThrow("matrix referenced by 'augGrad' must have as many elements as there are explicit free parameters");
-			}
-			if(augHess){
-				if (augHess->rows != augHess->cols) {
-					mxThrow("matrix referenced by 'augHess' must be square (instead of %dx%d)",
+			if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
+			if(augGrad){
+				int ngradelem = std::max(augGrad->rows, augGrad->cols);
+				if(ngradelem != numExplicitFreePar){
+					mxThrow("matrix referenced by 'augGrad' must have as many elements as there are explicit free parameters");
+				}
+				if(augHess){
+					if (augHess->rows != augHess->cols) {
+						mxThrow("matrix referenced by 'augHess' must be square (instead of %dx%d)",
               augHess->rows, augHess->cols);
-				}
-				if(augHess->rows != ngradelem){
-					mxThrow("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
+					}
+					if(augHess->rows != ngradelem){
+						mxThrow("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
               ngradelem, augHess->rows, augHess->cols);
-			}}
+					}}
+			}
+		}
+		else{
+			for(gx=0; gx < numExplicitFreePar; ++gx){
+				gradMap[gx] = gx;
+			}
+		}
+		if(dyhatlength){
+			if(dyhatlength > numExplicitFreePar){
+				mxThrow("length of argument 'dyhat' is greater than the number of explicit free parameters");
+			}
+			gx=0;
+			/*The pointers to the derivatives of yhat, their names, and their original dimensions get temporarily
+			 copied here:*/
+			std::vector< omxMatrix* > dyhat_temp = dyhat;
+			std::vector< const char* > dyhatnames_temp = dyhatnames;
+			std::vector<int> origdyhatdim_temp = origdyhatdim;
+			dyhat.resize(numExplicitFreePar);
+			dyhatnames.resize(numExplicitFreePar);
+			origdyhatdim.resize(numExplicitFreePar);
+			/*gx holds the write location for objects with length equal to numExplicitFreePar,
+			 vx holds the read location for free parameters in varGroup:*/
+			for (int vx=0; vx < numExplicitFreePar; ++vx) {
+				//nx holds the read location for objects with length equal to dyhatlength:
+				for (int nx=0; nx <= dyhatlength; ++nx) {
+					if(nx==dyhatlength){
+						gradMap2[gx] = vx;
+						dyhat[gx] = NULL;
+						dyhatnames[gx] = NULL;
+						origdyhatdim[gx] = 0;
+						//Remember that didUserGivedyhat was set to all false above.
+						++gx;
+						break;
+					}
+					if (strEQ(dyhatnames_temp[nx], varGroup->vars[vx]->name)) {
+						gradMap2[gx] = vx;
+						dyhat[gx] = dyhat_temp[nx];
+						dyhatnames[gx] = dyhatnames_temp[nx]; //<--Probably not strictly necessary...
+						origdyhatdim[gx] = origdyhatdim_temp[nx];
+						indyAlg2[gx] = ( dyhat_temp[nx]->algebra && !(dyhat_temp[nx]->dependsOnParameters()) ) ? true : false;
+						didUserGivedyhat[gx] = true;
+						++gx;
+						break;
+					}
+				}
+			}
+			if (gx != numExplicitFreePar) mxThrow("Problem in dyhatnames mapping");
+		}
+		else{
+			for(gx=0; gx < numExplicitFreePar; ++gx){
+				gradMap2[gx] = gx;
+			}
 		}
 	}
 	else{
 		for(gx=0; gx < numExplicitFreePar; ++gx){
 			gradMap[gx] = gx;
+			gradMap2[gx] = gx;
 		}
 	}
 }
-
 
 void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
 	//Note: AIM = Average Information Matrix (Hessian)
