@@ -155,9 +155,9 @@ void omxGREMLFitState::init()
   	else if(strEQ(CHAR(Rf_asChar(adt)),"numeric")){derivType = 0;}
   	else{mxThrow("unrecognized character string provided for GREML fitfunction 'autoDerivType'");}
   }
-  if(derivType==1 && didUserProvideYhat){
+  /*if(derivType==1 && didUserProvideYhat){
   	Rf_warning("use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead");
-  }
+  }*/
 
   //infoMatType:
   {
@@ -1346,7 +1346,7 @@ void omxGREMLFitState::gradientAndOIM1(
 						}
 					}
 					else{
-						filteredCopy1m.setZero(Eigyrows, Eigyrows);
+						filteredCopy1m.setZero(Eigyrows, 1);
 						crude_numeric_dyhat(u_fc, curEst, filteredCopy1m, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
 						ptrToMatrix1m = filteredCopy1m.data();
 					}
@@ -1359,6 +1359,7 @@ void omxGREMLFitState::gradientAndOIM1(
 						term2 = -2*(dyhat_dtheta1.transpose()*u_VinvResid)(0,0);
 						gradient(t1) = u_Scale*0.5*(term1+term2) + u_Scale*pullAugVal(1,a1,0);
 						u_fc->gradZ(t1) += gradient(t1);
+						//mxLog("gradient element %d is %f", t1, gradient(t1));
 					}
 					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
 						for(j=i; j < numExplicitFreePar; j++){
@@ -1395,11 +1396,11 @@ void omxGREMLFitState::gradientAndOIM1(
 									}
 								}
 								else{
-									filteredCopy2m.setZero(Eigyrows, Eigyrows);
+									filteredCopy2m.setZero(Eigyrows, 1);
 									crude_numeric_dyhat(u_fc, curEst, filteredCopy2m, t2, u_oge, (u_nThreadz>1 ? threadID : -1));
 									ptrToMatrix2m = filteredCopy2m.data();
 								}
-								Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, Eigyrows);
+								Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, 1);
 								
 								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta2;
 								Eigen::MatrixXd VinvdV_dtheta2VinvdV_dtheta1 = VinvdV_dtheta2 * VinvdV_dtheta1;
@@ -1412,8 +1413,8 @@ void omxGREMLFitState::gradientAndOIM1(
 								tt2 = -0.5*trace_prod((VinvdV_dtheta1*u_Vinv),2*(dyhat_dtheta2*u_oge->residual.transpose()));
 								tt3 = 0.0; //dyhat_dtheta1dtheta2.transpose() * u_VinvResid;
 								tt4 = (dyhat_dtheta1.transpose() * dV_dtheta2 * u_oge->residual)(0,0);
-								tt5 = (dyhat_dtheta1.transpose() * u_Vinv * dyhat_dtheta2)(0,0);
-								infoMat(t1,t2) = u_Scale*(tt0 + tt1 + tt2 + tt3 + tt4 + tt5) + u_Scale*pullAugVal(2,a1,a2);
+								tt5 = -1.0*(dyhat_dtheta1.transpose() * u_Vinv * dyhat_dtheta2)(0,0);
+								infoMat(t1,t2) = -1.0*u_Scale*(tt0 + tt1 + tt2 + tt3 + tt4 + tt5) + u_Scale*pullAugVal(2,a1,a2);
 								infoMat(t2,t1) = infoMat(t1,t2);
 							}
 						}
@@ -1722,8 +1723,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 						dNames[gx] = dNames_temp[nx]; //<--Probably not strictly necessary...
 						origdVdim[gx] = origdVdim_temp[nx];
 						origdyhatdim[gx] = origdyhatdim_temp[nx];
-						indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? true : false;
-						indyAlg2[gx] = ( dyhat_temp[nx]->algebra && !(dyhat_temp[nx]->dependsOnParameters()) ) ? true : false;
+						if(dV_temp[nx]){ indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? true : false; }
+						if(dyhat_temp[nx]){ indyAlg2[gx] = ( dyhat_temp[nx]->algebra && !(dyhat_temp[nx]->dependsOnParameters()) ) ? true : false; }
 						didUserGivedV[gx] = true;
 						didUserGivedyhat[gx] = true;
 						breakFlag1 = true;

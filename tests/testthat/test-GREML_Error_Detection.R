@@ -173,10 +173,6 @@ testmod <- mxModel(
 	mxExpectationGREML(V="V",yvars="y",REML=FALSE,yhat="foo"),
 	mxFitFunctionGREML(autoDerivType="semiAnalyt")
 )
-omxCheckWarning(
-	mxRun(testmod),
-	"use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead"
-)
 
 
 testmod <- mxModel(
@@ -188,10 +184,6 @@ testmod <- mxModel(
 	mxAlgebra(I %x% Ve,name="V"),
 	mxExpectationGREML(V="V",yvars="y",REML=FALSE,yhat="foo"),
 	mxFitFunctionGREML(dV=c(ve="I"),autoDerivType="numeric")
-)
-omxCheckWarning(
-	mxRun(testmod),
-	"derivatives of 'V' matrix with 'yhat' are Not Yet Implemented; numeric derivatives will be used instead"
 )
 
 
