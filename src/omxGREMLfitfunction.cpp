@@ -31,22 +31,21 @@ struct omxGREMLFitState : omxFitFunction {
 	//and could therefore be cut
 	omxMatrix *y, *X, *cov, *invcov, *means, *residual;
 	std::vector< omxMatrix* > dV, dyhat;
-	std::vector< const char* > dVnames, dyhatnames;
+	std::vector< const char* > dVnames, dNames;
 	std::vector<bool> indyAlg, indyAlg2; //will keep track of which algebras don't get marked dirty after dropping cases
 	std::vector<int> origdVdim, origdyhatdim;
 	std::vector<bool> didUserGivedV, didUserGivedyhat;
-	void dVupdate(FitContext *fc);
-	void dVupdate_final();
-	void dyhatupdate(FitContext *fc);
-	void dyhatupdate_final();
-	int dVlength, origVdim, parallelDerivScheme, numExplicitFreePar, derivType, oldWantHess, infoMatType, dyhatlength, origyhatdim;
+	void dVupdate(FitContext *fc); //<--Also updates dyhat.
+	void dVupdate_final(); //<--Also updates dyhat.
+	int dVnameslength, origVdim, numExplicitFreePar, origyhatdim, dNamesLength, dyhatlength, dVlength;
+	int parallelDerivScheme, derivType, oldWantHess, infoMatType;
 	bool usingGREMLExpectation, doREML;
-	bool didUserProvideYhat; //<--Means doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
+	bool didUserProvideYhat; //<--value of `true` means that doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd infoMat; //the Average Information matrix or the Expected Information matrix, as the case may be.
 	FreeVarGroup *varGroup;
-	std::vector<int> gradMap, gradMap2;
+	std::vector<int> gradMap;
 	void buildParamMap(FreeVarGroup *newVarGroup);
 	std::vector< Eigen::VectorXi > rowbins, AIMelembins;
 	void planParallelDerivs(int nThreadz, int wantHess, int Vrows);
@@ -86,10 +85,19 @@ struct omxGREMLFitState : omxFitFunction {
 	void gradientAndEIM3(
 			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv);
+	
+	template <typename T1, typename T2, typename T3, typename T4,typename T5>
+	void gradientAndOIM1(
+			int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+			double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv, Eigen::MatrixBase<T5> &u_VinvResid);
 
 	template <typename T1, typename T2>
 	void crude_numeric_dV(
 		FitContext *u_fc, Eigen::MatrixBase<T1> &u_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
+	
+	template <typename T1, typename T2>
+	void crude_numeric_dyhat(
+			FitContext *u_fc, Eigen::MatrixBase<T1> &u_curEst, Eigen::MatrixBase<T2> &dyhat_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId);
 
 	omxGREMLFitState() : jg(1) {};
 	virtual void init() override;
@@ -132,6 +140,9 @@ void omxGREMLFitState::init()
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
   newObj->dVlength = 0;
+  newObj->dVnameslength = 0;
+  newObj->dNamesLength = 0;
+  newObj->dyhatlength = 0;
   newObj->oldWantHess = 0;
   newObj->doREML = oge->doREML;
   newObj->didUserProvideYhat = oge->didUserProvideYhat;
@@ -171,28 +182,45 @@ void omxGREMLFitState::init()
 	 * omxGREMLFitState has been initialized, then all code from here to the end of this function would need to be moved
 	 * to buildParamMap().
 	*/
+	
+	//Stuff common to all derivatives:
+	if (R_has_slot(rObj, Rf_install("dNames"))) {
+		ProtectedSEXP RdNames(R_do_slot(rObj, Rf_install("dNames")));
+		newObj->dNamesLength = Rf_length(RdNames);
+		newObj->dNames.resize(newObj->dNamesLength);
+		if(newObj->dNamesLength){
+			if(OMX_DEBUG) { mxLog("Processing common derivative labels."); }
+			for(int i=0; i < newObj->dNamesLength; i++){
+				SEXP elem;
+				{ScopedProtect p3(elem, STRING_ELT(RdNames, i));
+					newObj->dNames[i] = CHAR(elem);}
+			}
+		}
+	}
+	
   //Derivatives of V:
   if (R_has_slot(rObj, Rf_install("dV"))) {
   	ProtectedSEXP RdV(R_do_slot(rObj, Rf_install("dV")));
   	ProtectedSEXP RdVnames(R_do_slot(rObj, Rf_install("dVnames")));
   	newObj->dVlength = Rf_length(RdV);
+  	newObj->dVnameslength = Rf_length(RdVnames);
   	newObj->dV.resize(newObj->dVlength);
-  	//newObj->dV_filtered.resize(newObj->dVlength);
-  	newObj->indyAlg.resize(newObj->dVlength);
-  	newObj->dVnames.resize(newObj->dVlength);
+  	newObj->dVnames.resize(newObj->dVnameslength);
   	newObj->origdVdim.resize(newObj->dVlength);
   	if(newObj->dVlength){
   		/*if(!newObj->usingGREMLExpectation){
   			//Probably best not to allow use of dV if we aren't sure means will be calculated GREML-GLS way:
   			mxThrow("derivatives of 'V' matrix in GREML fitfunction only compatible with GREML expectation");
   		}*/
-  		if(didUserProvideYhat){
+  		/*if(didUserProvideYhat){
   			Rf_warning("derivatives of 'V' matrix with 'yhat' are Not Yet Implemented; numeric derivatives will be used instead");
-  		}
+  		}*/
   		if(OMX_DEBUG) { mxLog("Processing derivatives of V."); }
   		int* dVint = INTEGER(RdV);
   		for(int i=0; i < newObj->dVlength; i++){
-  			newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState);
+  			if(!ISNA(dVint[i])){ newObj->dV[i] = omxMatrixLookupFromStateByNumber(dVint[i], currentState); }
+  		}
+  		for(int i=0; i < newObj->dVnameslength; i++){
   			SEXP elem;
   			{ScopedProtect p3(elem, STRING_ELT(RdVnames, i));
   				newObj->dVnames[i] = CHAR(elem);}
@@ -203,11 +231,11 @@ void omxGREMLFitState::init()
   /*Derivatives of yhat:*/
   if (R_has_slot(rObj, Rf_install("dyhat"))) {
   	ProtectedSEXP Rdyhat(R_do_slot(rObj, Rf_install("dyhat")));
-  	ProtectedSEXP Rdyhatnames(R_do_slot(rObj, Rf_install("dyhatnames")));
+  	//ProtectedSEXP Rdyhatnames(R_do_slot(rObj, Rf_install("dyhatnames")));
   	newObj->dyhatlength = Rf_length(Rdyhat);
   	newObj->dyhat.resize(newObj->dyhatlength);
-  	newObj->indyAlg2.resize(newObj->dyhatlength);
-  	newObj->dyhatnames.resize(newObj->dyhatlength);
+  	//newObj->indyAlg2.resize(newObj->dyhatlength);
+  	//newObj->dyhatnames.resize(newObj->dyhatlength);
   	newObj->origdyhatdim.resize(newObj->dyhatlength);
   	if(newObj->dyhatlength){
   		/*if(!newObj->usingGREMLExpectation){
@@ -220,10 +248,10 @@ void omxGREMLFitState::init()
   		if(OMX_DEBUG) { mxLog("Processing derivatives of yhat."); }
   		int* dyhatint = INTEGER(Rdyhat);
   		for(int i=0; i < newObj->dyhatlength; i++){
-  			newObj->dyhat[i] = omxMatrixLookupFromStateByNumber(dyhatint[i], currentState);
-  			SEXP elem;
+  			if(!ISNA(dyhatint[i])){ newObj->dyhat[i] = omxMatrixLookupFromStateByNumber(dyhatint[i], currentState); }
+  			/*SEXP elem;
   			{ScopedProtect p3(elem, STRING_ELT(Rdyhatnames, i));
-  				newObj->dyhatnames[i] = CHAR(elem);}
+  				newObj->dyhatnames[i] = CHAR(elem);}*/
   		}
   	}
   }
@@ -232,36 +260,42 @@ void omxGREMLFitState::init()
   	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
   }
 
-  if( (newObj->dVlength || newObj->dyhatlength || derivType==1) && !didUserProvideYhat ){
+  if(newObj->dVlength || newObj->dyhatlength || derivType==1){
   	oo->hessianAvailable = true;
   	//^^^Gets changed to false in `buildParamMap()` if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
   	newObj->rowbins.resize(Global->numThreads);
   	newObj->AIMelembins.resize(Global->numThreads);
   	for(int i=0; i < newObj->dVlength; i++){
-  		/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the
-  		 dimension of V (implying downsizing due to missing observations):*/
-  		if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
-        ((newObj->y->cols < newObj->cov->rows)&&(newObj->dV[i]->rows == newObj->y->cols)&&
-        (newObj->dV[i]->cols == newObj->y->cols)) ){
-  			newObj->origdVdim[i] = newObj->dV[i]->rows;
+  		if(newObj->dV[i]){
+  			/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the
+  			 dimension of V (implying downsizing due to missing observations):*/
+  			if( ((newObj->dV[i]->rows == newObj->cov->rows)&&(newObj->dV[i]->cols == newObj->cov->cols)) ||
+         ((newObj->y->cols < newObj->cov->rows)&&(newObj->dV[i]->rows == newObj->y->cols)&&
+         (newObj->dV[i]->cols == newObj->y->cols)) ){
+  				newObj->origdVdim[i] = newObj->dV[i]->rows;
+  			}
+  			else{
+  				mxThrow("all derivatives of V must have the same dimensions as V");
+  			}
   		}
-  		else{
-  			mxThrow("all derivatives of V must have the same dimensions as V");
-  		}
+  		else{ newObj->origdVdim[i] = 0; }
   	}
   	for(int i=0; i < newObj->dyhatlength; i++){
-  		/*Each dyhat must either (1) match the dimensions of yhat, OR (2) match the length of y if that is less than the
-  		 dimension of yhat (implying downsizing due to missing observations):*/
-  		if((newObj->dyhat[i]->size() == oge->yhatFromUser->size()) || 
+  		if(newObj->dyhat[i]){
+  			/*Each dyhat must either (1) match the dimensions of yhat, OR (2) match the length of y if that is less than the
+  			 dimension of yhat (implying downsizing due to missing observations):*/
+  			if((newObj->dyhat[i]->size() == oge->yhatFromUser->size()) || 
         ((newObj->y->cols < oge->yhatFromUser->size())&&(newObj->dyhat[i]->size() == newObj->y->cols))){
-  			newObj->origdyhatdim[i] = newObj->dyhat[i]->size();
+  				newObj->origdyhatdim[i] = newObj->dyhat[i]->size();
+  			}
+  			else{
+  				mxThrow("all derivatives of yhat must have the same length as yhat");
+  			}
   		}
-  		else{
-  			mxThrow("all derivatives of yhat must have the same length as yhat");
-  		}
+  		else{ newObj->origdyhatdim[i] = 0; }
   	}
   }
-  
+  	
   //Augmentation derivatives:
   if( (newObj->dVlength || derivType==1) && newObj->aug){
   	//^^^Ignore derivatives of aug unless aug itself and objective derivatives are supplied, or if aug is provided and derivType==1.
@@ -318,13 +352,13 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  	Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(gff->y), gff->y->cols, 1);
  	Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(gff->invcov), gff->invcov->rows, gff->invcov->cols);
  	EigenMatrixAdaptor EigX(gff->X);
- 	Eigen::MatrixXd P, Py;
+ 	Eigen::MatrixXd P, Py, VinvResid;
  	double logdetV=0, logdetquadX=0, ytPy=0;
 
  	if(want & (FF_COMPUTE_FIT | FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
  		if(gff->usingGREMLExpectation){
  			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
-
+ 			
  			//Check that factorizations of V and the quadratic form in X succeeded:
  			if(oge->cholV_fail){
  				oo->matrix->data[0] = NA_REAL;
@@ -336,10 +370,10 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
  				return;
  			}
-
+ 			
  			//Log determinant of V:
  			logdetV = oge->logdetV_om->data[0];
-
+ 			
  			//Log determinant of quadX:
  			gff->REMLcorrection = 0;
  			for(int i=0; i < gff->X->cols; i++){
@@ -349,37 +383,36 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			gff->REMLcorrection = Scale*0.5*logdetquadX;
  			
  			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic or semi-analytic derivatives in use;
- 			otherwise, extraneous calculations can be avoided:*/
+ 			 otherwise, extraneous calculations can be avoided:*/
  			if(want & (FF_COMPUTE_GRADIENT | FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
- 				/*if(!doREML){
- 					mxThrow("analytic and semi-analytic GREML derivatives are Not Yet Implemented for the `REML=FALSE` case");
- 				}*/
- 				P.setZero(gff->invcov->rows, gff->invcov->cols);
- 				Eigen::MatrixXd Hatmat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv;
- 				subtractFromIdentityMatrixInPlace(Hatmat);
- 				P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * Hatmat).triangularView<Eigen::Lower>(); //P = Vinv * (I-Hatmat)
- 				Py = P.selfadjointView<Eigen::Lower>() * Eigy;
- 				P.triangularView<Eigen::Upper>() = P.triangularView<Eigen::Lower>().transpose();
- 				if(want & FF_COMPUTE_FIT){
- 					if(!didUserProvideYhat){//<--Either doREML is true, or doREML is false but we're not using a user-supplied yhat.
+ 				if(!didUserProvideYhat){ //<--Either doREML is true, or doREML is false but we're not using a user-supplied yhat.
+ 					P.setZero(gff->invcov->rows, gff->invcov->cols);
+ 					Eigen::MatrixXd Hatmat = EigX * oge->quadXinv.selfadjointView<Eigen::Lower>() * oge->XtVinv;
+ 					subtractFromIdentityMatrixInPlace(Hatmat);
+ 					P.triangularView<Eigen::Lower>() = (Vinv.selfadjointView<Eigen::Lower>() * Hatmat).triangularView<Eigen::Lower>(); //P = Vinv * (I-Hatmat)
+ 					Py = P.selfadjointView<Eigen::Lower>() * Eigy;
+ 					P.triangularView<Eigen::Upper>() = P.triangularView<Eigen::Lower>().transpose();
+ 					if(want & FF_COMPUTE_FIT){
  						ytPy = (Eigy.transpose() * Py)(0,0);
  						if(OMX_DEBUG) {mxLog("ytPy is %3.3f",ytPy);}
  						oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
  						oo->matrix->data[0] += doREML ? gff->REMLcorrection : 0;
  						gff->nll = oo->matrix->data[0];
  						if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
- 						//if(!doREML){return;}
  					}
- 					else{
+ 				}
+ 				else{
+ 					VinvResid = Vinv * oge->residual;
+ 					if(want & FF_COMPUTE_FIT){
  						oo->matrix->data[0] = 
- 							Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) );
+ 							Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * VinvResid)(0,0) ) + 
+ 							Scale*gff->pullAugVal(0L,0,0);
  						gff->nll = oo->matrix->data[0];
- 						//return;
  					}
  				}
  			}
  			/*ytPy can be calculated so that rate-limiting step is O(2kN^2), where k is the number of covariates,
- 			and N is the dimension of Vinv (and typically N>>k):*/
+ 			 and N is the dimension of Vinv (and typically N>>k):*/
  			else{
  				if(!didUserProvideYhat){//<--Either doREML is true, or doREML is false but we're not using a user-supplied yhat.
  					ytPy = (( Eigy.transpose() * Vinv.selfadjointView<Eigen::Lower>() * Eigy ) -
@@ -394,9 +427,10 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				else{
  					//Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(gff->yhatFromUser), gff->yhatFromUser->size(), 1);
  					oo->matrix->data[0] = 
- 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) );
+ 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) ) +
+ 						Scale*gff->pullAugVal(0L,0,0);
  					gff->nll = oo->matrix->data[0];
- 					return;
+ 					return; //<--Since only fit value is wanted.
  				}
  			}
  		}
@@ -501,31 +535,36 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
 
 
  		//Begin parallelized evaluation of fitfunction derivatives:
- 		switch(gff->parallelDerivScheme){
- 		case 2: //bin by row
- 			if(infoMatType==1){
- 				gradientAndEIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
+ 		if(didUserProvideYhat){
+ 			gradientAndOIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv, VinvResid);
+ 		}
+ 		else{
+ 			switch(gff->parallelDerivScheme){
+ 			case 2: //bin by row
+ 				if(infoMatType==1){
+ 					gradientAndEIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
+ 				}
+ 				else{
+ 					gradientAndAIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
+ 				}
+ 				break;
+ 			case 3: //bin by cell
+ 				if(infoMatType==1){
+ 					gradientAndEIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
+ 				}
+ 				else{
+ 					gradientAndAIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
+ 				}
+ 				break;
+ 			default: //bin naively (which is perfectly adequate for gradient-only, or for a single thread)
+ 				if(infoMatType==1){
+ 					gradientAndEIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
+ 				}
+ 				else{
+ 					gradientAndAIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
+ 				}
+ 				break;
  			}
- 			else{
- 				gradientAndAIM2(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
- 			}
- 			break;
- 		case 3: //bin by cell
- 			if(infoMatType==1){
- 				gradientAndEIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
- 			}
- 			else{
- 				gradientAndAIM3(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
- 			}
- 			break;
- 		default: //bin naively (which is perfectly adequate for gradient-only, or for a single thread)
- 			if(infoMatType==1){
- 				gradientAndEIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Eigy, Vinv);
- 			}
- 			else{
- 				gradientAndAIM1(nThreadz, Eigy.rows(), fc, want, hb, oge, P, Scale, Py, Vinv);
- 			}
- 		break;
  		}
  			//Assign upper triangle elements of infoMat to the HessianBlock:
  			if(want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
@@ -1255,6 +1294,149 @@ void omxGREMLFitState::gradientAndEIM3(
 }
 
 
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+void omxGREMLFitState::gradientAndOIM1(
+		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
+		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv, Eigen::MatrixBase<T5> &u_VinvResid){
+#pragma omp parallel num_threads(u_nThreadz)
+{
+	try{
+		if(didUserProvideYhat){
+			int i=0, t1=0, a1=0, j=0;
+			double term1=0.0, term2=0.0;
+			Eigen::VectorXd curEst(numExplicitFreePar);
+			u_fc->copyEstToOptimizer(curEst);
+			Eigen::VectorXd curEst1p(1);
+			Eigen::MatrixXd VinvResidResidT = u_VinvResid * u_oge->residual.transpose();
+			int threadID = omx_absolute_thread_num();
+			int istart = threadID * numExplicitFreePar / u_nThreadz;
+			int iend = (threadID+1) * numExplicitFreePar / u_nThreadz;
+			if(threadID == u_nThreadz-1){iend = numExplicitFreePar;}
+			for(i=istart; i < iend; i++){
+				term1=0.0, term2=0.0;
+				t1 = gradMap[i]; //<--Parameter number for parameter i.
+				if(t1 < 0){continue;}
+				if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){u_hb->vars[i] = t1;}
+				if( derivType==1 || (didUserGivedV[t1] && didUserGivedyhat[t1]) ){
+					double *ptrToMatrix1m=0, *ptrToMatrix1v=0;
+					Eigen::MatrixXd filteredCopy1m, filteredCopy1v;
+					a1 = dAugMap[i]; //<--Index of augmentation derivatives to use for parameter i.
+					
+					if(didUserGivedV[t1] && dV[i]){
+						if( u_oge->numcases2drop && (dV[i]->rows > Eigyrows) ){
+							dropCasesAndEigenizeSquareMatrix(dV[i], filteredCopy1v, ptrToMatrix1v, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[i], false);
+						}
+						else{
+							ptrToMatrix1v = omxMatrixDataColumnMajor(dV[i]);
+						}
+					}
+					else{
+						filteredCopy1v.setZero(Eigyrows, Eigyrows);
+						crude_numeric_dV(u_fc, curEst, filteredCopy1v, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
+						ptrToMatrix1v = filteredCopy1v.data();
+					}
+					Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1v, Eigyrows, Eigyrows);
+					
+					if(didUserGivedyhat[t1] && dyhat[i]){
+						if( u_oge->numcases2drop && (dyhat[i]->size() > Eigyrows) ){
+							dropCasesAndEigenizeColumnVector(dyhat[i], filteredCopy1m, ptrToMatrix1m, u_oge->numcases2drop, u_oge->dropcase, false, origdyhatdim[i], false);
+						}
+						else{
+							ptrToMatrix1m = omxMatrixDataColumnMajor(dyhat[i]);
+						}
+					}
+					else{
+						filteredCopy1m.setZero(Eigyrows, Eigyrows);
+						crude_numeric_dyhat(u_fc, curEst, filteredCopy1m, t1, u_oge, (u_nThreadz>1 ? threadID : -1));
+						ptrToMatrix1m = filteredCopy1m.data();
+					}
+					Eigen::Map< Eigen::MatrixXd > dyhat_dtheta1(ptrToMatrix1m, Eigyrows, 1);
+					
+					Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta1;
+					
+					if(u_want & FF_COMPUTE_GRADIENT){
+						term1 = VinvdV_dtheta1.trace() - trace_prod(VinvdV_dtheta1,VinvResidResidT);
+						term2 = -2*(dyhat_dtheta1.transpose()*u_VinvResid)(0,0);
+						gradient(t1) = u_Scale*0.5*(term1+term2) + u_Scale*pullAugVal(1,a1,0);
+						u_fc->gradZ(t1) += gradient(t1);
+					}
+					if(u_want & (FF_COMPUTE_HESSIAN | FF_COMPUTE_IHESSIAN)){
+						for(j=i; j < numExplicitFreePar; j++){
+							double tt0=0.0, tt0_0=0.0, tt0_1=0.0, tt0_2=0.0, tt1=0.0, tt2=0.0, tt3=0.0, tt4=0.0, tt5=0.0;
+							int t2=0, a2;
+							t2 = gradMap[j]; //<--Parameter number for parameter j.
+							if(t2 < 0){continue;}
+							if(didUserGivedV[t1] || didUserGivedyhat[t1] || derivType==1){
+								double *ptrToMatrix2m=0, *ptrToMatrix2v=0;
+								Eigen::MatrixXd filteredCopy2m, filteredCopy2v;
+								a2 = dAugMap[j]; //<--Index of augmentation derivatives to use for parameter j.
+								
+								if(didUserGivedV[t2] && dV[j]){
+									if( u_oge->numcases2drop && (dV[j]->rows > Eigyrows) ){
+										dropCasesAndEigenizeSquareMatrix(dV[j], filteredCopy2v, ptrToMatrix2v, u_oge->numcases2drop, u_oge->dropcase, true, origdVdim[j], false);
+									}
+									else{
+										ptrToMatrix2v = omxMatrixDataColumnMajor(dV[j]);
+									}
+								}
+								else{
+									filteredCopy2v.setZero(Eigyrows, Eigyrows);
+									crude_numeric_dV(u_fc, curEst, filteredCopy2v, t2, u_oge, (u_nThreadz>1 ? threadID : -1));
+									ptrToMatrix2v = filteredCopy2v.data();
+								}
+								Eigen::Map< Eigen::MatrixXd > dV_dtheta2(ptrToMatrix2v, Eigyrows, Eigyrows);
+								
+								if(didUserGivedyhat[t2] && dyhat[j]){
+									if( u_oge->numcases2drop && (dyhat[j]->size() > Eigyrows) ){
+										dropCasesAndEigenizeColumnVector(dyhat[j], filteredCopy2m, ptrToMatrix2m, u_oge->numcases2drop, u_oge->dropcase, false, origdyhatdim[j], false);
+									}
+									else{
+										ptrToMatrix2m = omxMatrixDataColumnMajor(dyhat[j]);
+									}
+								}
+								else{
+									filteredCopy2m.setZero(Eigyrows, Eigyrows);
+									crude_numeric_dyhat(u_fc, curEst, filteredCopy2m, t2, u_oge, (u_nThreadz>1 ? threadID : -1));
+									ptrToMatrix2m = filteredCopy2m.data();
+								}
+								Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, Eigyrows);
+								
+								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta2;
+								Eigen::MatrixXd VinvdV_dtheta2VinvdV_dtheta1 = VinvdV_dtheta2 * VinvdV_dtheta1;
+								
+								tt0_0 = 0.0 - VinvdV_dtheta2VinvdV_dtheta1.trace(); //Vinv2ndDer.trace() - trace_prod(VinvDer2,VinvDer)
+								tt0_1 = -1.0*0.0; //trace_prod(Vinv2ndDer,VinvResidResidT)
+								tt0_2 = trace_prod(VinvdV_dtheta2VinvdV_dtheta1,VinvResidResidT);
+								tt0 = -0.5*(tt0_0+tt0_1+tt0_2);
+								tt1 = -0.5*tt0_2;
+								tt2 = -0.5*trace_prod((VinvdV_dtheta1*u_Vinv),2*(dyhat_dtheta2*u_oge->residual.transpose()));
+								tt3 = 0.0; //dyhat_dtheta1dtheta2.transpose() * u_VinvResid;
+								tt4 = (dyhat_dtheta1.transpose() * dV_dtheta2 * u_oge->residual)(0,0);
+								tt5 = (dyhat_dtheta1.transpose() * u_Vinv * dyhat_dtheta2)(0,0);
+								infoMat(t1,t2) = u_Scale*(tt0 + tt1 + tt2 + tt3 + tt4 + tt5) + u_Scale*pullAugVal(2,a1,a2);
+								infoMat(t2,t1) = infoMat(t1,t2);
+							}
+						}
+					}
+				}
+				else{
+					gradient(t1) = NA_REAL;
+					if(u_want & FF_COMPUTE_GRADIENT){
+						u_fc->gradZ(t1) = NA_REAL;
+					}
+				}
+			}
+		}
+	} catch (const std::exception& e) {
+		omxRaiseErrorf("%s", e.what());
+	} catch (...) {
+		omxRaiseErrorf("%s line %d: unknown exception", __FILE__, __LINE__);
+	}
+}
+	return;
+}
+
+
 template <typename T1, typename T2>
 void omxGREMLFitState::crude_numeric_dV(
 		FitContext *u_fc, Eigen::MatrixBase<T1> &u_curEst, Eigen::MatrixBase<T2> &dV_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId)
@@ -1327,6 +1509,72 @@ void omxGREMLFitState::crude_numeric_dV(
 }
 
 
+template <typename T1, typename T2>
+void omxGREMLFitState::crude_numeric_dyhat(
+		FitContext *u_fc, Eigen::MatrixBase<T1> &u_curEst, Eigen::MatrixBase<T2> &dyhat_dtheta, int Parnum, omxGREMLExpectation *ge, int thrId)
+{
+	int r;
+	FitContext *fc2 = u_fc;
+	double *ptrToMatrix1=0, *ptrToMatrix2=0;
+	if(thrId >= 0){
+		fc2 = u_fc->childList[thrId];
+	}
+	omxState *st = fc2->state;
+	
+	/*
+	 * Store current elements of yhat:
+	 */
+	Eigen::MatrixXd yhatcurr(ge->yhatFromUser->size(), 1);
+	//By this time, `yhat` has most certainly been filtered for missing observations:
+	Eigen::Map< Eigen::MatrixXd > Eigyhatmap(omxMatrixDataColumnMajor(ge->yhatFromUser), ge->yhatFromUser->size(), 1);
+	for(r=0; r < Eigyhatmap.rows(); r++){
+		yhatcurr(r,0) = Eigyhatmap(r,0);
+	}
+
+	//Shift parameter of interest and compute yhat at new point in parameter space:
+	u_curEst[Parnum] += 1e-4;
+	fc2->setEstFromOptimizer(u_curEst);
+	omxMatrix *mat = st->lookupDuplicate(ge->yhatFromUser);
+	omxRecompute(mat, fc2);
+	
+	//dyhat_dtheta_tmp is only needed in the single-threaded case???:
+	if(thrId >= 0){
+		if( ge->numcases2drop && mat->size() > y->cols ){
+			dropCasesAndEigenizeColumnVector(mat, dyhat_dtheta, ptrToMatrix1, ge->numcases2drop, ge->dropcase, false, mat->size(), true);
+		}
+		else{
+			dyhat_dtheta = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->size(), 1);
+		}
+	}
+	else{
+		{
+			Eigen::MatrixXd dyhat_dtheta_tmp; //<--Not needed outside this scope.
+			if( ge->numcases2drop && mat->size() > y->cols ){
+				dropCasesAndEigenizeColumnVector(mat, dyhat_dtheta_tmp, ptrToMatrix2, ge->numcases2drop, ge->dropcase, false, mat->size(), true);
+			}
+			else{
+				dyhat_dtheta_tmp = Eigen::Map< Eigen::MatrixXd >(omxMatrixDataColumnMajor(mat), mat->size(), 1);
+			}
+			dyhat_dtheta.resize(dyhat_dtheta_tmp.rows(), 1);
+			for(r=0; r < dyhat_dtheta.rows(); r++){
+				dyhat_dtheta(r,0) = dyhat_dtheta_tmp(r,0);
+			}
+		}
+	}
+	//Does this actually save memory...?:
+	dyhat_dtheta = (dyhat_dtheta - yhatcurr)/1e-4;
+	
+	//Put things back the way they were:
+	u_curEst[Parnum] -= 1e-4;
+	fc2->setEstFromOptimizer(u_curEst);
+	Eigen::Map< Eigen::MatrixXd > Eigyhat2(omxMatrixDataColumnMajor(mat), mat->size(), 1);
+	for(r=0; r < mat->size(); r++){
+		Eigyhat2(r,0) = yhatcurr(r,0);
+	}
+	return;
+}
+
+
 
 void omxGREMLFitState::populateAttr(SEXP algebra)
 {
@@ -1365,7 +1613,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	varGroup = newVarGroup;
 	numExplicitFreePar = int(varGroup->vars.size());
 	//Now that numExplicitFreePar is known, check to see if derivType=0 and 0 < dVlength < numExplicitFreePar:
-	if( (dVlength < numExplicitFreePar || dyhatlength <  numExplicitFreePar) && derivType==0){
+	if( (dVlength < numExplicitFreePar || (didUserProvideYhat && dyhatlength>0 && dyhatlength<numExplicitFreePar)) && derivType==0 ){
 		//The fitfunction is not allowed to claim to be able to provide a Hessian in this case:
 		hessianAvailable = false;
 	}
@@ -1376,7 +1624,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	didUserGivedyhat.resize(numExplicitFreePar);
 	didUserGivedyhat.assign(size_t(numExplicitFreePar),false);
 	gradMap.resize(numExplicitFreePar);
-	gradMap2.resize(numExplicitFreePar);
+	//gradMap2.resize(numExplicitFreePar);
 	dAugMap.resize(numExplicitFreePar);
 	dAugMap.assign(size_t(numExplicitFreePar),-1);
 	indyAlg.resize(numExplicitFreePar);
@@ -1384,8 +1632,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	indyAlg2.resize(numExplicitFreePar);
 	indyAlg2.assign(size_t(numExplicitFreePar),false);
 	int gx=0;
-	if(dVlength || dyhatlength){
-		if(dVlength){
+	if(dVlength){
+		if(!dyhatlength){
 			if(dVlength > numExplicitFreePar){
 				mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
 			}
@@ -1425,26 +1673,104 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 				}
 			}
 			if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
-			if(augGrad){
-				int ngradelem = std::max(augGrad->rows, augGrad->cols);
-				if(ngradelem != numExplicitFreePar){
-					mxThrow("matrix referenced by 'augGrad' must have as many elements as there are explicit free parameters");
-				}
-				if(augHess){
-					if (augHess->rows != augHess->cols) {
-						mxThrow("matrix referenced by 'augHess' must be square (instead of %dx%d)",
-              augHess->rows, augHess->cols);
+		}
+		if(dyhatlength){
+			if(dVlength > numExplicitFreePar){
+				mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
+			}
+			if(dyhatlength > numExplicitFreePar){
+				mxThrow("length of argument 'dyhat' is greater than the number of explicit free parameters");
+			}
+			/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily
+			 copied here:*/
+			std::vector< omxMatrix* > dV_temp = dV;
+			std::vector< omxMatrix* > dyhat_temp = dyhat;
+			std::vector< const char* > dVnames_temp = dVnames;
+			std::vector< const char* > dNames_temp = dNames;
+			std::vector<int> origdVdim_temp = origdVdim;
+			std::vector<int> origdyhatdim_temp = origdyhatdim;
+			dV.resize(numExplicitFreePar);
+			dyhat.resize(numExplicitFreePar);
+			dVnames.resize(numExplicitFreePar);
+			dNames.resize(numExplicitFreePar);
+			origdVdim.resize(numExplicitFreePar);
+			origdyhatdim.resize(numExplicitFreePar);
+			bool breakFlag1, breakFlag2;
+			/*gx holds the write location for objects with length equal to numExplicitFreePar,
+			 vx holds the read location for free parameters in varGroup:*/
+			for (int vx=0; vx < numExplicitFreePar; ++vx) {
+				breakFlag1 = breakFlag2 = false;
+				//nx holds the read location for objects with length equal to dVlength:
+				for (int nx=0; nx <= dVlength; ++nx) {
+					if(nx==dVlength){
+						if(!breakFlag1){
+							gradMap[gx] = vx;
+							dV[gx] = NULL;
+							dyhat[gx] = NULL;
+							origdVdim[gx] = 0;
+							origdyhatdim[gx] = 0;
+						}
+						if(!breakFlag2){ dVnames[gx] = NULL; }
+						//Remember that didUserGivedV was set to all false just above, and dAugMap to all -1s.
+						++gx;
+						break;
 					}
-					if(augHess->rows != ngradelem){
-						mxThrow("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
-              ngradelem, augHess->rows, augHess->cols);
-					}}
+					if (strEQ(dNames_temp[nx], varGroup->vars[vx]->name)) {
+						gradMap[gx] = vx;
+						dV[gx] = dV_temp[nx];
+						dyhat[gx] = dyhat_temp[nx];
+						dNames[gx] = dNames_temp[nx]; //<--Probably not strictly necessary...
+						origdVdim[gx] = origdVdim_temp[nx];
+						origdyhatdim[gx] = origdyhatdim_temp[nx];
+						indyAlg[gx] = ( dV_temp[nx]->algebra && !(dV_temp[nx]->dependsOnParameters()) ) ? true : false;
+						indyAlg2[gx] = ( dyhat_temp[nx]->algebra && !(dyhat_temp[nx]->dependsOnParameters()) ) ? true : false;
+						didUserGivedV[gx] = true;
+						didUserGivedyhat[gx] = true;
+						breakFlag1 = true;
+					}
+					if(nx < dVnameslength){
+						if(strEQ(dVnames_temp[nx], varGroup->vars[vx]->name)){
+							dVnames[gx] = dVnames_temp[nx]; //<--Probably not strictly necessary...
+							dAugMap[gx] = nx;
+							breakFlag2 = true;
+						}
+					}
+					if(breakFlag1 && breakFlag2){
+						++gx;
+						break;
+					}
+				}
+			}
+			if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
+		}
+		if(augGrad){
+			int ngradelem = std::max(augGrad->rows, augGrad->cols);
+			if(ngradelem != numExplicitFreePar){
+				mxThrow("matrix referenced by 'augGrad' must have as many elements as there are explicit free parameters");
+			}
+			if(augHess){
+				if (augHess->rows != augHess->cols) {
+					mxThrow("matrix referenced by 'augHess' must be square (instead of %dx%d)",
+             augHess->rows, augHess->cols);
+				}
+				if(augHess->rows != ngradelem){
+					mxThrow("Augmentation derivatives non-conformable (gradient is size %d and Hessian is %dx%d)",
+             ngradelem, augHess->rows, augHess->cols);
+				}
 			}
 		}
-		else{
-			for(gx=0; gx < numExplicitFreePar; ++gx){
-				gradMap[gx] = gx;
-			}
+	}
+	/*else{
+		for(gx=0; gx < numExplicitFreePar; ++gx){
+			gradMap[gx] = gx;
+		}
+	}*/
+	if(!dVlength){
+		if(augGrad){
+			mxThrow("if argument 'dV' has length zero, then so must argument 'augGrad'");
+		}
+		if(augGrad){
+			mxThrow("if argument 'dV' has length zero, then so must argument 'augHess'");
 		}
 		if(dyhatlength){
 			if(dyhatlength > numExplicitFreePar){
@@ -1454,10 +1780,10 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 			/*The pointers to the derivatives of yhat, their names, and their original dimensions get temporarily
 			 copied here:*/
 			std::vector< omxMatrix* > dyhat_temp = dyhat;
-			std::vector< const char* > dyhatnames_temp = dyhatnames;
+			std::vector< const char* > dNames_temp = dNames;
 			std::vector<int> origdyhatdim_temp = origdyhatdim;
 			dyhat.resize(numExplicitFreePar);
-			dyhatnames.resize(numExplicitFreePar);
+			dNames.resize(numExplicitFreePar);
 			origdyhatdim.resize(numExplicitFreePar);
 			/*gx holds the write location for objects with length equal to numExplicitFreePar,
 			 vx holds the read location for free parameters in varGroup:*/
@@ -1465,18 +1791,18 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 				//nx holds the read location for objects with length equal to dyhatlength:
 				for (int nx=0; nx <= dyhatlength; ++nx) {
 					if(nx==dyhatlength){
-						gradMap2[gx] = vx;
+						gradMap[gx] = vx;
 						dyhat[gx] = NULL;
-						dyhatnames[gx] = NULL;
+						dNames[gx] = NULL;
 						origdyhatdim[gx] = 0;
 						//Remember that didUserGivedyhat was set to all false above.
 						++gx;
 						break;
 					}
-					if (strEQ(dyhatnames_temp[nx], varGroup->vars[vx]->name)) {
-						gradMap2[gx] = vx;
+					if (strEQ(dNames_temp[nx], varGroup->vars[vx]->name)) {
+						gradMap[gx] = vx;
 						dyhat[gx] = dyhat_temp[nx];
-						dyhatnames[gx] = dyhatnames_temp[nx]; //<--Probably not strictly necessary...
+						dNames[gx] = dNames_temp[nx]; //<--Probably not strictly necessary...
 						origdyhatdim[gx] = origdyhatdim_temp[nx];
 						indyAlg2[gx] = ( dyhat_temp[nx]->algebra && !(dyhat_temp[nx]->dependsOnParameters()) ) ? true : false;
 						didUserGivedyhat[gx] = true;
@@ -1489,14 +1815,8 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 		}
 		else{
 			for(gx=0; gx < numExplicitFreePar; ++gx){
-				gradMap2[gx] = gx;
+				gradMap[gx] = gx;
 			}
-		}
-	}
-	else{
-		for(gx=0; gx < numExplicitFreePar; ++gx){
-			gradMap[gx] = gx;
-			gradMap2[gx] = gx;
 		}
 	}
 }
@@ -1654,19 +1974,31 @@ void omxGREMLFitState::recomputeAug(int thing, FitContext *fc){
 
 void omxGREMLFitState::dVupdate(FitContext *fc){
 	for(int i=0; i < numExplicitFreePar; i++){
-		if(!didUserGivedV[i]){
-			continue;
-		}
-		if(OMX_DEBUG){
-			mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
-			mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
-		}
-		//Recompute if needs update and if NOT a parameter-independent algebra:
-		if( omxNeedsUpdate(dV[i]) && !(indyAlg[i]) ){
+		if(didUserGivedyhat[i] && dyhat[i]){
 			if(OMX_DEBUG){
-				mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
+				mxLog("dyhat %d has matrix number? %s", i, dyhat[i]->hasMatrixNumber ? "True." : "False." );
+				mxLog("dyhat %d is clean? %s", i, omxMatrixIsClean(dyhat[i]) ? "True." : "False." );
 			}
-			omxRecompute(dV[i], fc);
+			//Recompute if needs update and if NOT a parameter-independent algebra:
+			if( omxNeedsUpdate(dyhat[i]) && !(indyAlg2[i]) ){
+				if(OMX_DEBUG){
+					mxLog("Recomputing dyhat %d, %s %s", i, dyhat[i]->getType(), dyhat[i]->name());
+				}
+				omxRecompute(dyhat[i], fc);
+			}
+		}
+		if(didUserGivedV[i] && dV[i]){
+			if(OMX_DEBUG){
+				mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
+				mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
+			}
+			//Recompute if needs update and if NOT a parameter-independent algebra:
+			if( omxNeedsUpdate(dV[i]) && !(indyAlg[i]) ){
+				if(OMX_DEBUG){
+					mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
+				}
+				omxRecompute(dV[i], fc);
+			}
 		}
 	}
 }
@@ -1674,23 +2006,37 @@ void omxGREMLFitState::dVupdate(FitContext *fc){
 
 void omxGREMLFitState::dVupdate_final(){
 	for(int i=0; i < numExplicitFreePar; i++){
-		if(!didUserGivedV[i]){
-			continue;
-		}
-		if(indyAlg[i]){
-			if(OMX_DEBUG){
-				mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
-				mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
-			}
-			if( omxNeedsUpdate(dV[i]) ){
+		if(didUserGivedyhat[i] && dyhat[i]){
+			if(indyAlg2[i]){
 				if(OMX_DEBUG){
-					mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
+					mxLog("dyhat %d has matrix number? %s", i, dyhat[i]->hasMatrixNumber ? "True." : "False." );
+					mxLog("dyhat %d is clean? %s", i, omxMatrixIsClean(dyhat[i]) ? "True." : "False." );
 				}
-				omxRecompute(dV[i], NULL);
+				if( omxNeedsUpdate(dyhat[i]) ){
+					if(OMX_DEBUG){
+						mxLog("Recomputing dyhat %d, %s %s", i, dyhat[i]->getType(), dyhat[i]->name());
+					}
+					omxRecompute(dyhat[i], NULL);
+				}
+			}
+		}
+		if(didUserGivedV[i] && dV[i]){
+			if(indyAlg[i]){
+				if(OMX_DEBUG){
+					mxLog("dV %d has matrix number? %s", i, dV[i]->hasMatrixNumber ? "True." : "False." );
+					mxLog("dV %d is clean? %s", i, omxMatrixIsClean(dV[i]) ? "True." : "False." );
+				}
+				if( omxNeedsUpdate(dV[i]) ){
+					if(OMX_DEBUG){
+						mxLog("Recomputing dV %d, %s %s", i, dV[i]->getType(), dV[i]->name());
+					}
+					omxRecompute(dV[i], NULL);
+				}
 			}
 		}
 	}
 }
+
 
 
 

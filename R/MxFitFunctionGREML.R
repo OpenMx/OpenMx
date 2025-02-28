@@ -26,7 +26,8 @@ setClass(Class = "MxFitFunctionGREML",
            autoDerivType = "character",
            infoMatType = "character",
            dyhat = "MxCharOrNumber",
-           dyhatnames = "character"),
+           dyhatnames = "character",
+           dNames="character"),
          contains = "MxBaseFitFunction")
 
 
@@ -55,6 +56,16 @@ setMethod("qualifyNames", signature("MxFitFunctionGREML"),
             if(length(.Object@dV)){
               .Object@dV <- sapply(.Object@dV, imxConvertIdentifier, modelname, namespace)
               .Object@dVnames <- names(.Object@dV)
+              if(length(.Object@dVnames) != length(unique(.Object@dVnames))){
+              	stop("duplicated element names in argument 'dV'")
+              }
+            }
+            if(length(.Object@dyhat)){
+            	.Object@dyhat <- sapply(.Object@dyhat, imxConvertIdentifier, modelname, namespace)
+            	.Object@dyhatnames <- names(.Object@dyhat)
+            	if(length(.Object@dyhatnames) != length(unique(.Object@dyhatnames))){
+            		stop("duplicated element names in argument 'dyhat'")
+            	}
             }
             if(length(.Object@aug)){.Object@aug <- imxConvertIdentifier(.Object@aug[1],modelname,namespace)}
             if(length(.Object@augGrad)){
@@ -63,9 +74,28 @@ setMethod("qualifyNames", signature("MxFitFunctionGREML"),
             if(length(.Object@augHess)){
             	.Object@augHess <- imxConvertIdentifier(.Object@augHess[1],modelname,namespace)
             }
-            if(length(.Object@dyhat)){
-            	.Object@dyhat <- sapply(.Object@dyhat, imxConvertIdentifier, modelname, namespace)
-            	.Object@dyhatnames <- names(.Object@dyhat)
+            if(length(.Object@dV) || length(.Object@dyhat)){
+            	.Object@dNames <- unique(c(.Object@dVnames,.Object@dyhatnames))
+            	dV_tmp <- .Object@dV
+            	dyhat_tmp <- .Object@dyhat
+            	#.Object@dV <- rep(NA_character_,length(.Object@dNames))
+            	#.Object@dyhat <- rep(NA_character_,length(.Object@dNames))
+            	newdV <- rep(NA_character_,length(.Object@dNames))
+            	newdyhat <- rep(NA_character_,length(.Object@dNames))
+            	for(i in 1:length(.Object@dNames)){
+            		if(.Object@dNames[i] %in% .Object@dVnames){
+            			newdV[i] <- dV_tmp[which(.Object@dVnames==.Object@dNames[i])]
+            		}
+            		if(.Object@dNames[i] %in% .Object@dyhatnames){
+            			newdyhat[i] <- dyhat_tmp[which(.Object@dyhatnames==.Object@dNames[i])]
+            		}
+            	}
+            	if(length(.Object@dV)){
+            		.Object@dV <- newdV
+            	}
+            	if(length(.Object@dyhat)){
+            		.Object@dyhat <- newdyhat
+            	}
             }
             return(.Object)
           })

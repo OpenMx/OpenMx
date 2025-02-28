@@ -102,10 +102,16 @@ testmod4 <- mxModel(
 	ge,
 	gff4
 )
-omxCheckWarning(
-	mxRun(testmod4),
-	"use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead"
-)
+testrun4 <- mxRun(testmod4)
+# There is something wrong with the second derivatives...:
+( sm <- summary(testrun4) )
+omxCheckCloseEnough(testrun4$output$estimate[1],var(dat[,"y"])*99/100,1e-7)
+omxCheckCloseEnough(testrun4$output$estimate[2],mean(dat[,"y"]),1e-7)
+omxCheckCloseEnough(testrun4$output$fit,-2*logLik(m),1e-4)
+# omxCheckWarning(
+# 	mxRun(testmod4),
+# 	"use of semi-analytic derivatives with 'yhat' is Not Yet Implemented; numeric derivatives will be used instead"
+# )
 
 # `REML=FALSE`, 'yhat' empty: ####
 
@@ -145,3 +151,18 @@ omxCheckCloseEnough(sm$GREMLfixeff$coeff[1],mean(dat[,"y"]),1e-7)
 omxCheckCloseEnough(testrun6$output$standardErrors[1],sqrt((2*(var(dat[,"y"]))^2)/100),1e-3)
 omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])/100),1e-7)
 omxCheckCloseEnough(testrun3$output$fit,testrun6$output$fit,1e-5)
+
+# Analytic derivatives with explicit means model: ####
+
+# testmod7 <- mxModel(
+# 	"GREMLtest",
+# 	mxData(observed = dat, type="raw", sort=FALSE),
+# 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+# 	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+# 	mxMatrix(type="Unit",nrow=100,ncol=1,name="Uno",condenseSlots=T),
+# 	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+# 	mxAlgebra(I %x% Ve,name="V"),
+# 	ge,
+# 	mxFitFunctionGREML(dV=c(ve="I"),dyhat=c(bar="Uno"))
+# )
+# testrun7 <- mxRun(testmod7)
