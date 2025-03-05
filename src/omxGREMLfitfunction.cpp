@@ -905,9 +905,9 @@ void omxGREMLFitState::gradientAndAIM3(
 				}
 			}
 			else{
-				gradient(t1) = NA_REAL;
+				gradient(hrn) = NA_REAL;
 				if(u_want & FF_COMPUTE_GRADIENT){
-					u_fc->gradZ(t1) = NA_REAL;
+					u_fc->gradZ(hrn) = NA_REAL;
 				}
 			}
 			hcn++;
@@ -1302,9 +1302,9 @@ void omxGREMLFitState::gradientAndEIM3(
 				}
 			}
 			else{
-				gradient(t1) = NA_REAL;
+				gradient(hrn) = NA_REAL;
 				if(u_want & FF_COMPUTE_GRADIENT){
-					u_fc->gradZ(t1) = NA_REAL;
+					u_fc->gradZ(hrn) = NA_REAL;
 				}
 			}
 			hcn++;
