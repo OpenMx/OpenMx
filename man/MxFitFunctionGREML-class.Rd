@@ -14,7 +14,7 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(dV)}.
 \section{Slots}{
   \describe{
     \item{\code{dV}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the derivatives of 'V' with respect to free parameters.}
-    \item{\code{dVnames}:}{Vector of character strings; names of the free parameters corresponding to slot \code{dV}.}
+    \item{\code{dVnames}:}{Vector of character strings; names of the free parameters corresponding to slot \code{dV}.  Provides the mapping from elements of \code{augGrad} and of rows and columns of \code{augHess} to free parameters.}
     \item{\code{MLfit}:}{Object of class \code{"numeric"}, equal to the maximum-likelihood fitfunction value (as opposed to the restricted maximum-likelihood value).}
     \item{\code{REMLfit}:}{Object of class \code{"numeric"}, equal to the restricted maximum-likelihood fitfunction value (as opposed to the "full" maximum-likelihood value).}
     \item{\code{numObsAdjust}:}{Object of class \code{"integer"}.
@@ -24,6 +24,9 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(dV)}.
     \item{\code{augHess}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the second derivatives of \code{aug} with respect to free parameters.}
     \item{\code{autoDerivType}:}{Object of class \code{"character"}.  Dictates whether fitfunction derivatives automatically calculated by OpenMx should be numerical or "semi-analytic."}
     \item{\code{infoMatType}:}{Object of class \code{"character"}.  Dictates whether to calculate the average- or expected-information matrix.}
+    \item{\code{dyhat}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the derivatives of 'yhat' with respect to free parameters.}
+    \item{\code{dyhatnames}:}{Vector of character strings; names of the free parameters corresponding to slot \code{dyhat}.}
+    \item{\code{dNames}:}{Vector of character strings.  If \code{dV} and/or \code{dyhat} have nonzero length, then populated at runtime by the set of non-redundant free-parameter names appearing in \code{dVnames} and/or \code{dyhatnames}.}
     \item{\code{info}:}{Object of class \code{"list"}.}
     \item{\code{dependencies}:}{Object of class \code{"integer"}.}
     \item{\code{expectation}:}{Object of class \code{"integer"}.}
