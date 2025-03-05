@@ -90,7 +90,7 @@ omxCheckCloseEnough(sm$GREMLfixeff$se[1],sqrt(var(dat[,"y"])/100),1e-7)
 ####
 gff4 <- mxFitFunctionGREML(autoDerivType="semiAnalyt")
 
-# `REML=FALSE`, 'yhat' provided: semi-analytic derivatives Not Yet Implemented ####
+# `REML=FALSE`, 'yhat' provided: ####
 
 testmod4 <- mxModel(
 	"GREMLtest",
@@ -103,7 +103,6 @@ testmod4 <- mxModel(
 	gff4
 )
 testrun4 <- mxRun(testmod4)
-# There is something wrong with the second derivatives...:
 ( sm <- summary(testrun4) )
 omxCheckCloseEnough(testrun4$output$estimate[1],var(dat[,"y"])*99/100,1e-7)
 omxCheckCloseEnough(testrun4$output$estimate[2],mean(dat[,"y"]),1e-7)
@@ -174,3 +173,24 @@ omxCheckCloseEnough(testrun7$output$estimate[2],mean(dat[,"y"]),1e-7)
 omxCheckCloseEnough(testrun7$output$fit,-2*logLik(m),1e-4)
 omxCheckCloseEnough(testrun7$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
 omxCheckCloseEnough(testrun7$output$standardErrors[2],sqrt(var(dat[,"y"])*99/10000),1e-6)
+
+testmod8 <- mxModel(
+	"GREMLtest",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix(type="Unit",nrow=100,ncol=1,name="Uno",condenseSlots=T),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxMatrix(type="Zero",nrow=100,ncol=1,name="Zip"),
+	mxAlgebra(Zip %*% t(Zip),name="Zilch"),
+	ge,
+	mxFitFunctionGREML(dV=c(ve="I",bar="Zilch"),dyhat=c(bar="Uno",ve="Zip"))
+)
+testrun8 <- mxRun(testmod8)
+( sm <- summary(testrun8) )
+omxCheckCloseEnough(testrun8$output$estimate[1],var(dat[,"y"])*99/100,1e-7)
+omxCheckCloseEnough(testrun8$output$estimate[2],mean(dat[,"y"]),1e-7)
+omxCheckCloseEnough(testrun8$output$fit,-2*logLik(m),1e-4)
+omxCheckCloseEnough(testrun8$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
+omxCheckCloseEnough(testrun8$output$standardErrors[2],sqrt(var(dat[,"y"])*99/10000),1e-6)
