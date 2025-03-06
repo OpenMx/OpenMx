@@ -38,8 +38,8 @@ struct omxGREMLFitState : omxFitFunction {
 	void dVupdate(FitContext *fc); //<--Also updates dyhat.
 	void dVupdate_final(); //<--Also updates dyhat.
 	int dVnameslength, origVdim, numExplicitFreePar, origyhatdim, dNamesLength, dyhatlength, dVlength;
-	int parallelDerivScheme, derivType, oldWantHess, infoMatType;
-	bool usingGREMLExpectation, doREML;
+	int parallelDerivScheme, derivType, oldWantHess, infoMatType, parallelDerivSchemeFromFrontend;
+	bool usingGREMLExpectation, doREML, didUserSpecifyParallelDerivScheme;
 	bool didUserProvideYhat; //<--value of `true` means that doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
@@ -156,6 +156,8 @@ void omxGREMLFitState::init()
   newObj->nll = 0;
   newObj->REMLcorrection = 0;
   newObj->parallelDerivScheme = 0;
+  newObj->parallelDerivSchemeFromFrontend = 0;
+  newObj->didUserSpecifyParallelDerivScheme = false;
   newObj->varGroup = NULL;
   newObj->augGrad = NULL;
   newObj->augHess = NULL;
@@ -195,6 +197,19 @@ void omxGREMLFitState::init()
 		  int* augint = INTEGER(Raug);
 		  newObj->aug = omxMatrixLookupFromStateByNumber(augint[0], currentState);
 	  }
+  }
+  
+  //Parallel-derivative scheme:
+  if (R_has_slot(rObj, Rf_install(".parallelDerivScheme"))) {
+  	ProtectedSEXP R_pds(R_do_slot(rObj, Rf_install(".parallelDerivScheme")));
+  	parallelDerivSchemeFromFrontend = Rf_asInteger(R_pds);
+  	if(parallelDerivSchemeFromFrontend!=0){
+  		didUserSpecifyParallelDerivScheme = true;
+  		//`parallelDerivSchemeFromFrontend` will get assigned to `parallelDerivScheme` during the call to `planParallelDerivs()`
+  		if(parallelDerivSchemeFromFrontend<0 || parallelDerivSchemeFromFrontend>3){
+  			Rf_warning("`.parallelDerivScheme` not equal to 1, 2, or 3");
+  		}
+  	}
   }
 
 	/*
@@ -534,7 +549,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			wantHess = 1;
  		}
 
- 		if(oldWantHess != wantHess){
+ 		if(oldWantHess!=wantHess){
  			parallelDerivScheme = 0;
  			oldWantHess = wantHess;
  		}
@@ -621,6 +636,9 @@ template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM1(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
     double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
+	//if(OMX_DEBUG_ALGEBRA){
+		mxLog("Now beginning `gradientAndAIM1()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -720,6 +738,9 @@ template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM2(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndAIM2()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -820,6 +841,9 @@ template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM3(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndAIM3()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -932,6 +956,9 @@ template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM1(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndEIM1()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1087,6 +1114,9 @@ template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM2(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndEIM2()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1203,6 +1233,9 @@ template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM3(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndEIM3()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1474,6 +1507,9 @@ void omxGREMLFitState::gradientAndEIM1_yhat(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, 
 		double u_Scale, Eigen::MatrixBase<T1> &u_Eigy, Eigen::MatrixBase<T2> &u_Vinv, Eigen::MatrixBase<T3> &u_VinvResid, 
 		Eigen::MatrixBase<T4> &u_VinvResidResidT){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndEIM1_yhat()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1613,6 +1649,9 @@ void omxGREMLFitState::gradientAndEIM2_yhat(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, 
 		double u_Scale, Eigen::MatrixBase<T1> &u_Eigy, Eigen::MatrixBase<T2> &u_Vinv, Eigen::MatrixBase<T3> &u_VinvResid, 
 		Eigen::MatrixBase<T4> &u_VinvResidResidT){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndEIM2_yhat()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1756,6 +1795,9 @@ void omxGREMLFitState::gradientAndEIM3_yhat(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, 
 		double u_Scale, Eigen::MatrixBase<T1> &u_Eigy, Eigen::MatrixBase<T2> &u_Vinv, Eigen::MatrixBase<T3> &u_VinvResid, 
 		Eigen::MatrixBase<T4> &u_VinvResidResidT){
+	//if(OMX_DEBUG_ALGEBRA){
+	mxLog("Now beginning `gradientAndEIM3_yhat()`");
+	//}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -2288,7 +2330,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 
 void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows){
 	//Note: AIM = Average Information Matrix (Hessian)
-	if(wantHess==0 || nThreadz<2 || numExplicitFreePar < 2){
+	if( !didUserSpecifyParallelDerivScheme && (wantHess==0 || nThreadz<2 || numExplicitFreePar < 2) ){
 		parallelDerivScheme = 1; //Divvy up parameters the old, naive way.
 		return;
 	}
@@ -2409,6 +2451,11 @@ void omxGREMLFitState::planParallelDerivs(int nThreadz, int wantHess, int Vrows)
 		}
 	}
 	double cellslowest = workbins.maxCoeff();
+	
+	if(didUserSpecifyParallelDerivScheme){
+		parallelDerivScheme = parallelDerivSchemeFromFrontend;
+		return;
+	}
 
 	parallelDerivScheme = (rowslowest<=cellslowest) ? 2 : 3;
 	return;

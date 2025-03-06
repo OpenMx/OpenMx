@@ -27,6 +27,7 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(dV)}.
     \item{\code{dyhat}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the derivatives of 'yhat' with respect to free parameters.}
     \item{\code{dyhatnames}:}{Vector of character strings; names of the free parameters corresponding to slot \code{dyhat}.}
     \item{\code{dNames}:}{Vector of character strings.  If \code{dV} and/or \code{dyhat} have nonzero length, then populated at runtime by the set of non-redundant free-parameter names appearing in \code{dVnames} and/or \code{dyhatnames}.}
+    \item{\code{.parallelDerivScheme}:}{Object of class \code{"integer"}.  Dictates how computation of the information matrix will be distributed across multiple threads.  This slot is intended for use in testing and debugging by the OpenMx developers, and not to be modified by the end user.}
     \item{\code{info}:}{Object of class \code{"list"}.}
     \item{\code{dependencies}:}{Object of class \code{"integer"}.}
     \item{\code{expectation}:}{Object of class \code{"integer"}.}

@@ -27,7 +27,8 @@ setClass(Class = "MxFitFunctionGREML",
            infoMatType = "character",
            dyhat = "MxCharOrNumber",
            dyhatnames = "character",
-           dNames="character"),
+           dNames = "character",
+           .parallelDerivScheme = "integer"),
          contains = "MxBaseFitFunction")
 
 
@@ -47,6 +48,7 @@ setMethod("initialize", "MxFitFunctionGREML",
             .Object@infoMatType <- ..6
             .Object@dyhat <- ..7
             .Object@dyhatnames <- as.character(names(..7))
+            .Object@.parallelDerivScheme <- 0L
             .Object
           })
 
