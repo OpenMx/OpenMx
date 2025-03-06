@@ -417,12 +417,12 @@ computeOptimizationStatistics <- function(model, flatModel, numStats, saturatedD
 		retval[['saturatedDoF']] <- saturatedDoF
 	}
 	#The "saturated model" has no sensible definiton with GREML expectation:
-	if(any(sapply(obj,function(x){"MxExpectationGREML" %in% class(x)}))){
+	if(any(sapply(obj,function(x){is(x,"MxExpectationGREML")}))){
 		retval[['saturatedDoF']] <- NA
 	}
 	# calculate or populate independence degrees of freedom
 	if(is.null(independenceDoF)) {
-		if(!any(sapply(obj,function(x){"MxExpectationGREML" %in% class(x)}))){
+		if(!any(sapply(obj,function(x){is(x,"MxExpectationGREML")}))){
 			# indDoF = 1 df per continuous variable variance + 1 df per continuous mean + 1 df per threshold
 			retval[['independenceDoF']] <- retval$observedStatistics - (continuous*(1+useMeans) + thresh)
 		} else{
