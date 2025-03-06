@@ -19,7 +19,7 @@ mxExpectationGREML(V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPhe
    \item{dataset.is.yX}{Logical; defaults to \code{FALSE}.  If \code{TRUE}, then the first column of the raw dataset is taken as-is to be the 'y' phenotype vector, and the remaining columns are taken as-is to be the 'X' matrix of covariates.  In this case, \code{\link{mxGREMLDataHandler}()} is never internally called at runtime, and all other arguments besides \code{V}, \code{casesToDropFromV}, and \code{REML} are ignored.}
    \item{casesToDropFromV}{Integer vector.  Its elements are the indices of the rows and columns of covariance matrix 'V' (and if applicable, of the rows of 'yhat') to be dropped at runtime, usually because they correspond to rows of 'y' or 'X' that contained missing observations.  By default, no cases are dropped from 'V.'  Ignored unless \code{dataset.is.yX} is \code{TRUE}.}
    \item{REML}{Logical; defaults to \code{TRUE}.  Should restricted maximum-likelihood estimation be used?}
-   \item{yhat}{Character string; the name of the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the model-expected phenotypic mean vector.  Non-empty (i.e., non-default) values should only be provided if \code{REML} is \code{FALSE}.}
+   \item{yhat}{Character string; the name of the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} to serve as the model-expected phenotypic mean vector.  It is recommended that the algebra or matrix be a column-vector, and some of OpenMx's utility functions (e.g., \code{\link{mxAutoStart}()}) assume that to be true.  Non-empty (i.e., non-default) values should only be provided if \code{REML} is \code{FALSE}.}
 }
 
 \details{
