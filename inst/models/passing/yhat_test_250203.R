@@ -216,3 +216,22 @@ omxCheckCloseEnough(testrun9$output$estimate[2],mean(dat[,"y"]),1e-7)
 omxCheckCloseEnough(testrun9$output$fit,-2*logLik(m),1e-4)
 omxCheckCloseEnough(testrun9$output$standardErrors[1],sqrt((2*(var(dat[,"y"])*99/100)^2)/100),1e-5)
 omxCheckCloseEnough(testrun9$output$standardErrors[2],sqrt(var(dat[,"y"])*99/10000),1e-6)
+
+# Test use of `mxAutoStart()` with explicit means model: ####
+
+if(mxOption(NULL,"Default optimizer")=="SLSQP"){
+	testmoda <- mxAutoStart(testmod)
+	omxCheckCloseEnough(coef(testmoda),c(var(dat[,"y"])*99/100,mean(dat[,"y"])),0.03)
+	
+	testmod4a <- mxAutoStart(testmod4)
+	omxCheckCloseEnough(coef(testmod4a),c(var(dat[,"y"])*99/100,mean(dat[,"y"])),0.03)
+	
+	testmod7a <- mxAutoStart(testmod7)
+	omxCheckCloseEnough(coef(testmod7a),c(var(dat[,"y"])*99/100,mean(dat[,"y"])),0.03)
+	
+	testmod8a <- mxAutoStart(testmod8)
+	omxCheckCloseEnough(coef(testmod8a),c(var(dat[,"y"])*99/100,mean(dat[,"y"])),0.03)
+	
+	testmod9a <- mxAutoStart(testmod9)
+	omxCheckCloseEnough(coef(testmod9a),c(var(dat[,"y"])*99/100,mean(dat[,"y"])),0.03)
+}

@@ -164,55 +164,141 @@ autoStartDataHelper <- function(model, subname=model@name, type){
 
 
 autoStartGREML <- function(model){
-	if(model$expectation$dataset.is.yX){
-		y <- model$data$observed[,1]
-		X <- model$data$observed[,-1]
-		casesToDrop <- model$expectation$casesToDrop
-	} else{
-		dat <- mxGREMLDataHandler(
-			data=model$data$observed,
-			yvars=model$expectation$yvars,
-			Xvars=model$expectation$Xvars,
-			addOnes=model$expectation$addOnes,
-			blockByPheno=model$expectation$blockByPheno,
-			staggerZeroes=model$expectation$staggerZeroes
-		)
+	if(!model$expectation$REML && length(model$expectation$yhat) && !model$expectation$dataset.is.yX){
+		yhatdims <- dim(mxEvalByName(model$expectation$yhat,model,T))
+		if( !(yhatdims[1]>=1 && yhatdims[2]==1) ){
+			stop("to use `mxAutoStart()` with GREML expectation that has an explicit means model, 'yhat' must have 1 column and at least 1 row")
+		}
+		Vdims <- dim(mxEvalByName(model$expectation$V,model,T))
+		if(Vdims[1]!=Vdims[2]){
+			stop("'V' must be a square matrix")
+		}
+		dat <- mxGREMLDataHandler(data=model$data$observed,yvars=model$expectation$yvars)
 		y <- dat$yX[,1]
-		X <- dat$yX[,-1]
+		ly <- length(y)
 		casesToDrop <- dat$casesToDrop
 		rm(dat)
+		# Create variable bindings so CRAN check doesn't complain about mxAlgebra expressions
+		filtv <- NULL
+		filtm <- NULL
+		yyT <- NULL
+		V <- NULL
+		yhat <- NULL
+		OKflag <- FALSE
+		if(yhatdims[1]==ly && Vdims[1]==ly){
+			filt_mtx_v <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filtv")
+			filt_mtx_m <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filtm")
+			aff <- mxAlgebra( sum( ( vech(yyT) - vech(V + (yhat%*%t(yhat))) )%^%2 ), name="algfitfunc" )
+			OKflag <- TRUE
+		}
+		if(yhatdims[1]==ly && Vdims[1]>ly){
+			filt_mtx_v <- mxMatrix(type="Full",nrow=1,ncol=Vdims[1],free=F,values=1,name="filtv",condenseSlots=T)
+			filt_mtx_v@values[casesToDrop] <- 0
+			filt_mtx_m <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filtm")
+			aff <- mxAlgebra( sum( ( vech(yyT) - vech(omxSelectRowsAndCols(V,filtv) + (yhat%*%t(yhat))) )%^%2 ), name="algfitfunc" )
+			OKflag <- TRUE
+		}
+		if(yhatdims[1]>ly && Vdims[1]==ly){
+			filt_mtx_m <- mxMatrix(type="Full",nrow=1,ncol=yhatdims[1],free=F,values=1,name="filtm",condenseSlots=T)
+			filt_mtx_m@values[casesToDrop] <- 0
+			filt_mtx_v <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filtv")
+			aff <- mxAlgebra( sum( ( vech(yyT) - vech( V + omxSelectRowsAndCols(yhat%*%t(yhat),filtm) ) )%^%2 ), name="algfitfunc" )
+			OKflag <- TRUE
+		}
+		if(yhatdims[1]>ly && Vdims[1]>ly){
+			filt_mtx_v <- mxMatrix(type="Full",nrow=1,ncol=Vdims[1],free=F,values=1,name="filtv",condenseSlots=T)
+			filt_mtx_v@values[casesToDrop] <- 0
+			filt_mtx_m <- mxMatrix(type="Full",nrow=1,ncol=yhatdims[1],free=F,values=1,name="filtm",condenseSlots=T)
+			filt_mtx_m@values[casesToDrop] <- 0
+			aff <- mxAlgebra( sum( ( vech(yyT) - vech(omxSelectRowsAndCols(V,filtv) + omxSelectRowsAndCols(yhat%*%t(yhat),filtm)) )%^%2 ), name="algfitfunc" )
+			OKflag <- TRUE
+		}
+		if(!OKflag){
+			stop(
+				paste0(
+					"something's wrong;\n",
+					"check the dimensions of 'V', 'yhat', and phenotype vector 'y'\n",
+					"(use `mxGREMLDataHandler()` to construct 'y' prior to runtime)"
+				)
+			)
+		}
+		tempmod <- mxModel(
+			"tmp",
+			model,
+			aff,
+			filt_mtx_v,
+			filt_mtx_m,
+			mxMatrix(type="Symm",nrow=ly,free=F,values=outer(y,y),name="yyT",condenseSlots=T),
+			mxAlgebraFromString(paste(model$name,model$expectation$V,sep="."),name="V"),
+			mxAlgebraFromString(paste(model$name,model$expectation$yhat,sep="."),name="yhat"),
+			mxFitFunctionAlgebra("algfitfunc")
+		)
+		rm(y,filt_mtx_v,filt_mtx_m,aff)
+		tempmod <- mxOption(tempmod,"Calculate Hessian","No")
+		tempmod <- mxOption(tempmod,"Standard Errors","No")
+		tempmod <- mxRun(tempmod,silent=T)
+		newparams <- coef(tempmod)
+		rm(tempmod)
+		oldparams <- coef(model)
+		model <- omxSetParameters(model, values=newparams, labels=names(oldparams))
+		return(model)
 	}
-	olsresids <- lm(y~X+0)$residuals
-	rm(X,y)
-	Vdim <- nrow(mxEvalByName(model$expectation$V,model,T))
-  # Create variable bindings so CRAN check doesn't complain about mxAlgebra expressions
-  filt <- NULL
-  S <- NULL
-  V <- NULL
-	if(length(olsresids) < Vdim){
-		filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=Vdim,free=F,values=1,name="filt")
-		filt_mtx@values[casesToDrop] <- 0
-		aff <- mxAlgebra( sum((vech(S) - vech(omxSelectRowsAndCols(V,filt)))%^%2), name="algfitfunc")
-	} else{
-		filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filt")
-		aff <- mxAlgebra( sum((vech(S)-vech(V))%^%2), name="algfitfunc")
+	else{
+		if(model$expectation$dataset.is.yX){
+			y <- model$data$observed[,1]
+			X <- model$data$observed[,-1]
+			casesToDrop <- model$expectation$casesToDrop
+		} 
+		else{
+			dat <- mxGREMLDataHandler(
+				data=model$data$observed,
+				yvars=model$expectation$yvars,
+				Xvars=model$expectation$Xvars,
+				addOnes=model$expectation$addOnes,
+				blockByPheno=model$expectation$blockByPheno,
+				staggerZeroes=model$expectation$staggerZeroes
+			)
+			y <- dat$yX[,1]
+			X <- dat$yX[,-1]
+			casesToDrop <- dat$casesToDrop
+			rm(dat)
+		}
+		olsresids <- lm(y~X+0)$residuals
+		rm(X,y)
+		Vdim <- dim(mxEvalByName(model$expectation$V,model,T))
+		if(Vdim[1]!=Vdim[2]){
+			stop("'V' must be a square matrix")
+		}
+		Vdim <- Vdim[1]
+		# Create variable bindings so CRAN check doesn't complain about mxAlgebra expressions
+		filt <- NULL
+		S <- NULL
+		V <- NULL
+		if(length(olsresids) < Vdim){
+			filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=Vdim,free=F,values=1,name="filt")
+			filt_mtx@values[casesToDrop] <- 0
+			aff <- mxAlgebra( sum((vech(S) - vech(omxSelectRowsAndCols(V,filt)))%^%2), name="algfitfunc")
+		} else{
+			filt_mtx <- mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=1,name="filt")
+			aff <- mxAlgebra( sum((vech(S)-vech(V))%^%2), name="algfitfunc")
+		}
+		tempmod <- mxModel(
+			"tmp",
+			model,
+			aff,
+			filt_mtx,
+			mxMatrix(type="Symm",nrow=length(olsresids),free=F,values=outer(olsresids,olsresids),name="S",condenseSlots=T),
+			mxAlgebraFromString(paste(model$name,model$expectation$V,sep="."),name="V"),
+			mxFitFunctionAlgebra("algfitfunc")
+		)
+		rm(olsresids,aff,filt_mtx)
+		tempmod <- mxOption(tempmod,"Calculate Hessian","No")
+		tempmod <- mxOption(tempmod,"Standard Errors","No")
+		tempmod <- mxRun(tempmod,silent=T)
+		newparams <- coef(tempmod)
+		rm(tempmod)
+		oldparams <- coef(model)
+		model <- omxSetParameters(model, values=newparams, labels=names(oldparams))
+		return(model)
 	}
-	tempmod <- mxModel(
-		"tmp",
-		model,
-		aff,
-		filt_mtx,
-		mxMatrix(type="Symm",nrow=length(olsresids),free=F,values=outer(olsresids,olsresids),name="S",condenseSlots=T),
-		mxAlgebraFromString(paste(model$name,model$expectation$V,sep="."),name="V"),
-		mxFitFunctionAlgebra("algfitfunc")
-	)
-	rm(olsresids,aff,filt_mtx)
-	tempmod <- mxOption(tempmod,"Calculate Hessian","No")
-	tempmod <- mxOption(tempmod,"Standard Errors","No")
-	tempmod <- mxRun(tempmod,silent=T)
-	newparams <- coef(tempmod)
-	rm(tempmod)
-	oldparams <- coef(model)
-	model <- omxSetParameters(model, values=newparams, labels=names(oldparams))
-	return(model)
 }
