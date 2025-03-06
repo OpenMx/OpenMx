@@ -570,13 +570,16 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	if(length(rfu) && length(ofu) && rfu!=ofu){
 		stop(paste("MxModel '",ref$name,"' has '",rfu,"' fit units, but MxModel '",other$name,"' has '",ofu,"' fit units",sep=""))
 	}
-	#Even though the fit units match, the restricted ML and ordinary ML fit values can't be validly compared:
-	if( is(ref$fitfunction,"MxFitFunctionGREML")!=is(other$fitfunction,"MxFitFunctionGREML") ){
+	#Even though the fit units match, restricted ML and ordinary ML fit values can't be validly compared:
+	#if( is(ref$fitfunction,"MxFitFunctionGREML")!=is(other$fitfunction,"MxFitFunctionGREML") ){
+	if( (is(ref$fitfunction,"MxFitFunctionGREML") && !is(other$fitfunction,"MxFitFunctionGREML") && ref$expectation$REML) || 
+			(is(other$fitfunction,"MxFitFunctionGREML") && !is(ref$fitfunction,"MxFitFunctionGREML") && other$expectation$REML) || 
+			(is(ref$fitfunction,"MxFitFunctionGREML") && is(other$fitfunction,"MxFitFunctionGREML") && ref$expectation$REML!=other$expectation$REML) ){
 		stop(paste("MxModel '",ref$name,"' has a fitfunction of class '",class(ref$fitfunction),"', but MxModel '",other$name,"' has a fitfunction of class '",class(other$fitfunction),"'",sep=""))
 	}
-	rgfe <- refSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
+	rgfe <- refSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation with an implicit means model, and has been run.
 	if(length(rgfe)){rgfe <- paste(rgfe$name,collapse=",")}
-	ogfe <- otherSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation and has been run
+	ogfe <- otherSummary$GREMLfixeff #<--NULL unless model uses a GREML expectation with an implicit means model, and has been run.
 	if(length(ogfe)){ogfe <- paste(ogfe$name,collapse=",")}
 	if( length(rgfe)!=length(ogfe) || (length(rgfe) && length(ogfe) && rgfe!=ogfe) ){
 		#This is a warning, not an error, because it's possible that the user is indeed using the same covariates in both models, but with
