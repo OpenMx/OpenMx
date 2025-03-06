@@ -45,10 +45,10 @@ omxAkaikeWeights <- function(models=list(), type=c("AIC","AICc"), conf.level=0.9
 			stop(paste("MxModel",omxQuotes(models[[i]]@name),"does not have -2lnL fit units"))
 		}
 		currsumm <- summary(models[[i]])
-		if(is(models[[i]]@fitfunction,"MxFitFunctionGREML") ){
+		if(is(models[[i]]@fitfunction,"MxFitFunctionGREML") && models[[i]]@expectation$REML){
 			isGREML <- c(isGREML,TRUE)
 			gfxf <- c(gfxf, paste(currsumm$GREMLfixeff$name,collapse=","))
-			if(length(unique(isGREML))>1){stop("some but not all of 'models' use MxFitFunctionGREML")}
+			if(length(unique(isGREML))>1){stop("some but not all of 'models' use REML")}
 		} 
 		else{
 			isGREML <- c(isGREML,FALSE)
@@ -65,7 +65,7 @@ omxAkaikeWeights <- function(models=list(), type=c("AIC","AICc"), conf.level=0.9
 		}
 	}
 	
-	if(length(gfxf) && length(unique(gfxf))>1){
+	if(length(gfxf) && length(unique(gfxf))>1 && all(isGREML)){
 		#As with mxCompare(), this is a warning, not an error:
 		warning("not all of 'models' have matching names for their fixed effects; results may be invalid")
 	}
