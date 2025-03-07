@@ -167,7 +167,7 @@ autoStartGREML <- function(model){
 	if(!model$expectation$REML && length(model$expectation$yhat) && !model$expectation$dataset.is.yX){
 		yhatdims <- dim(mxEvalByName(model$expectation$yhat,model,T))
 		if( !(yhatdims[1]>=1 && yhatdims[2]==1) ){
-			stop("to use `mxAutoStart()` with GREML expectation that has an explicit means model, 'yhat' must have 1 column and at least 1 row")
+			stop("to use `mxAutoStart()` with a GREML expectation that has an explicit means model, 'yhat' must have 1 column and at least 1 row")
 		}
 		Vdims <- dim(mxEvalByName(model$expectation$V,model,T))
 		if(Vdims[1]!=Vdims[2]){

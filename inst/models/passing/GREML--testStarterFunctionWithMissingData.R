@@ -184,3 +184,60 @@ omxCheckCloseEnough(coef(testmod4_as),coef(testrun4)*99/100,0.001)
 
 testmod5_as <- mxAutoStart(testmod5)
 omxCheckCloseEnough(coef(testmod5_as),coef(testrun5),5e-7)
+
+# Test errors and warnings from `mxAutoStart()`: ####
+
+testmod6 <- mxModel(
+	mxData(observed=dat, type="raw"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="yhat"),
+	mxFitFunctionGREML(),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxMatrix(type="Full",nrow=1,ncol=100,free=T,values=0.12345,labels="m",name="yhat")
+)
+omxCheckError(
+	mxAutoStart(testmod6),
+	"to use `mxAutoStart()` with GREML expectation that has an explicit means model, 'yhat' must have 1 column and at least 1 row"
+)
+
+testmod6 <- mxModel(
+	mxData(observed=dat, type="raw"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="yhat"),
+	mxFitFunctionGREML(),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Unit",nrow=100,ncol=99,free=F,name="V",condenseSlots=T),
+	mxMatrix(type="Full",nrow=100,ncol=1,free=T,values=0.12345,labels="m",name="yhat")
+)
+omxCheckError(
+	mxAutoStart(testmod6),
+	"'V' must be a square matrix"
+)
+
+testmod6 <- mxModel(
+	mxData(observed=dat, type="raw"),
+	mxExpectationGREML(V="V",Xvars="x",yvars="y",addOnes = F),
+	mxFitFunctionGREML(),
+	mxMatrix(type="Unit",nrow=100,ncol=99,free=F,name="V",condenseSlots=T)
+)
+omxCheckError(
+	mxAutoStart(testmod6),
+	"'V' must be a square matrix"
+)
+
+testmod6 <- mxModel(
+	mxData(observed=dat, type="raw"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="yhat"),
+	mxFitFunctionGREML(),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Unit",nrow=95,ncol=95,free=F,name="V"),
+	mxMatrix(type="Full",nrow=95,ncol=1,free=T,values=0.12345,labels="m",name="yhat")
+)
+omxCheckError(
+	mxAutoStart(testmod6),
+	paste0(
+		"something's wrong;\n",
+		"check the dimensions of 'V', 'yhat', and phenotype vector 'y'\n",
+		"(use `mxGREMLDataHandler()` to construct 'y' prior to runtime)"
+	)
+)
