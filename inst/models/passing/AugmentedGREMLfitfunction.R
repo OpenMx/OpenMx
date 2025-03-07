@@ -83,7 +83,7 @@ testmod3 <- mxModel(
 	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
 	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeOnce('fitfunction', c('gradient','hessian')),
 		mxComputeStandardError(),
 		mxComputeReportDeriv(),
 		mxComputeReportExpectation()
@@ -107,7 +107,7 @@ testmod4 <- mxModel(
 	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
 	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeOnce('fitfunction', c('gradient','hessian')),
 		mxComputeStandardError(),
 		mxComputeReportDeriv(),
 		mxComputeReportExpectation()
@@ -127,5 +127,22 @@ testmod4 <- mxModel(
 testrun4 <- mxRun(testmod4)
 #The difference between 1.0 and the sum of the parameters should be smaller for model #4:
 omxCheckTrue(abs(1-sum(testrun4$output$estimate)) < abs(1-sum(testrun3$output$estimate)))
+
+#Test some augmentation-related error-detection:
+testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augGrad="daug1",augHess="daug2")
+omxCheckError(
+	mxRun(testmod4),
+	"if argument 'dV' has length zero, then so must argument 'augGrad'"
+)
+
+# testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augHess="daug2")
+# omxCheckError(
+# 	mxRun(testmod4),
+# 	"if argument 'dV' has length zero, then so must argument 'augHess'"
+# )
+
+
+
+
 
 options(mxCondenseMatrixSlots=FALSE)

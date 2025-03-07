@@ -216,6 +216,50 @@ omxCheckError(mxRun(testmod),
 							"Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient")
 
 
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",addOnes=F),
+	mxFitFunctionGREML()
+)
+omxCheckWarning(
+	mxRun(testmod),
+	"argument 'addOnes' is FALSE, but no covariates are named in argument 'Xvars'; the 'X' matrix will be constructed for intercept(s)-only"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",addOnes=F),
+	mxFitFunctionGREML(dV=c(ve="I",ve="I"))
+)
+omxCheckError(
+	mxRun(testmod),
+	"duplicated element names in argument 'dV'"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",Xvars=list("x"),addOnes=F),
+	mxFitFunctionGREML(dV=c(ve="I"))
+)
+testmod@fitfunction@.parallelDerivScheme <- 4L
+omxCheckWarning(
+	mxRun(testmod),
+	"`.parallelDerivScheme` not equal to 1, 2, or 3"
+)
+
+
 set.seed(476)
 A1 <- matrix(0,100,100)  
 A1[lower.tri(A1)] <- runif(4950, -0.025, 0.025)
@@ -263,6 +307,57 @@ omxCheckError(
 	mxRun(testmod),
 	"length of argument 'dV' is greater than the number of explicit free parameters")
 
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+					 name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat3, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix("Iden",nrow=100,name="I"),
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=0.64,name="aug"),
+	mxMatrix(type="Zero",nrow=1,ncol=1,name="Zilch"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix(type="Unit",nrow=100,ncol=1,name="Uno"),
+	mxFitFunctionGREML(dyhat=c(bar="Uno"),aug="aug",augHess="Zilch")
+)
+omxCheckError(
+	mxRun(testmod),
+	"if argument 'augHess' has nonzero length, then argument 'augGrad' must as well")
+
+testmod$fitfunction <- mxFitFunctionGREML(dyhat=c(bar="Uno"),aug="aug")
+omxCheckError(
+	mxRun(testmod),
+	"if arguments 'dyhat' and 'aug' have nonzero length, then 'augGrad' must as well"
+)
+
+testmod$fitfunction <- mxFitFunctionGREML(aug="aug")
+omxCheckError(
+	mxRun(testmod),
+	"if using semi-analytic derivatives and 'aug' has nonzero length, then 'augGrad' must as well"
+)
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxMatrix(
+		type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+		name = "Ve"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+	mxData(observed = dat3, type="raw", sort=FALSE),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+	mxMatrix("Iden",nrow=100,name="I"),
+	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+	mxFitFunctionGREML(dV=c(va1="A1",va2="A2"),autoDerivType="numeric")
+)
 
 
 testmod <- mxModel(
@@ -410,6 +505,115 @@ mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list(c("x1","x2")),REML=F
 omxCheckError(
 	mxExpectationGREML(V="V",yvars=c("y1","y2","y3"),Xvars=list("x1","x2"),REML=FALSE),
 	"conflicting number of phenotypes specified by arguments 'Xvars' and 'yvars'"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxFitFunctionGREML()
+)
+testmod@expectation@REML <- TRUE
+omxCheckError(
+	mxRun(testmod),
+	"MxExpecationGREML: slot 'REML' is TRUE and slot 'dataset.is.yX' is FALSE, so slot 'yhat' must have zero length"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxFitFunctionGREML()
+)
+testmod@expectation@Xvars <- list("x")
+omxCheckError(
+	mxRun(testmod),
+	"MxExpectationGREML: slots 'REML' and 'dataset.is.yX' are both FALSE, so only one of slots 'yhat' and 'Xvars' should have nonzero length"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix(type="Unit",nrow=100,ncol=1,name="Uno"),
+	mxFitFunctionGREML(dyhat=c(ve="Uno",ve="Uno"))
+)
+omxCheckError(
+	mxRun(testmod),
+	"duplicated element names in argument 'dyhat'"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix(type="Full",nrow=99,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxFitFunctionGREML()
+)
+omxCheckError(
+	mxRun(testmod),
+	"'y' and 'yhat' vectors have different numbers of rows"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix(type="Unit",nrow=99,ncol=1,name="Uno"),
+	mxFitFunctionGREML(dyhat=c(ve="Uno"))
+)
+omxCheckError(
+	mxRun(testmod),
+	"all derivatives of yhat must have the same length as yhat"
+)
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="foo"),
+	mxMatrix(type="Full",nrow=100,ncol=1,name="foo",free=T,values=0.12345,labels="bar"),
+	mxMatrix(type="Unit",nrow=100,ncol=1,name="Uno"),
+	mxMatrix(type="Zero",nrow=100,ncol=1,name="Zip"),
+	mxAlgebra(Zip %*% t(Zip), name="Zilch"),
+	mxFitFunctionGREML(dV=c(ve="I",bar="Zilch",baz="Zilch"),dyhat=c(ve="Zip",bar="Uno",baz="Uno"))
+)
+omxCheckError(
+	mxRun(testmod),
+	"length of argument 'dV' is greater than the number of explicit free parameters"
+)
+
+testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",bar="Zilch"),dyhat=c(ve="Zip",bar="Uno",baz="Uno"))
+omxCheckError(
+	mxRun(testmod),
+	"length of argument 'dV' is greater than the number of explicit free parameters" #<--TODO
+)
+
+testmod$fitfunction <- mxFitFunctionGREML(dyhat=c(ve="Zip",bar="Uno",baz="Uno"))
+omxCheckError(
+	mxRun(testmod),
+	"length of argument 'dyhat' is greater than the number of explicit free parameters" #<--TODO
 )
 
 

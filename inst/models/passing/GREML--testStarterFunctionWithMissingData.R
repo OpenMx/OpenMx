@@ -198,7 +198,7 @@ testmod6 <- mxModel(
 )
 omxCheckError(
 	mxAutoStart(testmod6),
-	"to use `mxAutoStart()` with GREML expectation that has an explicit means model, 'yhat' must have 1 column and at least 1 row"
+	"to use `mxAutoStart()` with a GREML expectation that has an explicit means model, 'yhat' must have 1 column and at least 1 row"
 )
 
 testmod6 <- mxModel(
