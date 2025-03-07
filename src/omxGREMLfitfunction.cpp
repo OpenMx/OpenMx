@@ -2276,7 +2276,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 		if(augGrad){
 			mxThrow("if argument 'dV' has length zero, then so must argument 'augGrad'");
 		}
-		if(augGrad){
+		if(augHess){
 			mxThrow("if argument 'dV' has length zero, then so must argument 'augHess'");
 		}
 		if(dyhatlength){
