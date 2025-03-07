@@ -41,7 +41,7 @@ gff <- mxFitFunctionGREML(dV=c(va="A",ve="I"))
 
 plan <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
-	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+	mxComputeOnce('fitfunction', c('gradient','hessian')),
 	mxComputeStandardError(),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()
@@ -110,7 +110,7 @@ ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=FALSE)
 gff <- mxFitFunctionGREML(dV=c(ve="I"))
 plan <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
-	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+	mxComputeOnce('fitfunction', c('gradient','hessian')),
 	mxComputeStandardError(),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()
@@ -140,9 +140,33 @@ mlrun <- mxRun(mlmod)
 
 omxCheckError(
 	mxCompare(remlrun,mlrun),
-	"MxModel 'GREMLtest' has a fitfunction of class 'MxFitFunctionGREML', but MxModel 'MLtest' has a fitfunction of class 'MxFitFunctionML'"
+	"MxModel 'GREMLtest' has a fitfunction of class 'MxFitFunctionGREML' and `REML` is TRUE, but MxModel 'MLtest' has a fitfunction of class 'MxFitFunctionML'"
+)
+omxCheckError(
+	mxCompare(mlrun,remlrun),
+	"MxModel 'MLtest' has a fitfunction of class 'MxFitFunctionML', but MxModel 'GREMLtest' has a fitfunction of class 'MxFitFunctionGREML' and `REML` is TRUE"
 )
 
+mlmod <- mxModel(
+	"test",
+	mxData(observed = dat, type="raw", sort=FALSE),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix("Iden",nrow=100,name="I",condenseSlots=T),
+	mxAlgebra(I %x% Ve,name="V"),
+	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=FALSE, REML=FALSE),
+	mxFitFunctionGREML(dV=c(ve="I")),
+	plan
+)
+mlrun <- mxRun(mlmod)
+
+omxCheckError(
+	mxCompare(remlrun,mlrun),
+	"Invalid comparison: MxModel 'GREMLtest' uses restricted maximum-likelihood (REML), but MxModel 'test' does not"
+)
+omxCheckError(
+	mxCompare(mlrun,remlrun),
+	"Invalid comparison: MxModel 'GREMLtest' uses restricted maximum-likelihood (REML), but MxModel 'test' does not"
+)
 
 data(factorExample1)
 
