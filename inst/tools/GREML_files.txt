@@ -14,4 +14,5 @@ inst/models/nightly/AnalyticGradientTest.R
 inst/models/nightly/GREML_infoMat_test.R
 inst/models/nightly/GREML_monophenotype_1GRM_GradDesc.R
 inst/models/nightly/GREML_monophenotype_1GRM.R
+inst/models/nightly/grm_in_fiml.R
 inst/models/nightly/InvalidComparisonDetection.R
