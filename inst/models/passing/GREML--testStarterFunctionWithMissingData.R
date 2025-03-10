@@ -60,7 +60,7 @@ omxCheckCloseEnough(testrunsumm$GREMLfixeff$se,
 
 plan <- mxComputeSequence(steps=list(
   mxComputeNewtonRaphson(fitfunction="fitfunction"),
-  mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+  mxComputeOnce('fitfunction', c('gradient','hessian')),
   mxComputeStandardError(),
   mxComputeReportDeriv(),
   mxComputeReportExpectation()

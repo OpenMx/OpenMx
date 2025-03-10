@@ -135,11 +135,11 @@ omxCheckError(
 	"if argument 'dV' has length zero, then so must argument 'augGrad'"
 )
 
-# testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augHess="daug2")
-# omxCheckError(
-# 	mxRun(testmod4),
-# 	"if argument 'dV' has length zero, then so must argument 'augHess'"
-# )
+testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augHess="daug2")
+omxCheckError(
+	mxRun(testmod4),
+	"if argument 'augHess' has nonzero length, then argument 'augGrad' must as well"
+)
 
 
 

@@ -31,19 +31,27 @@ struct omxGREMLFitState : omxFitFunction {
 	//and could therefore be cut
 	omxMatrix *y, *X, *cov, *invcov, *means, *residual;
 	std::vector< omxMatrix* > dV, dyhat;
+	/*`dVnames` provides the mapping from elements of `dV` to free parameters when `dyhat` is empty and `dV` is not; 
+	`dVnames` also provides the mapping to free parameters from rows and rows/columns of the augmentation's gradient and Hessian;
+	`dNames` provides the mapping from elements of `dyhat` and (if applicable) `dV` whenever `dyhat` has nonzero length:*/
 	std::vector< const char* > dVnames, dNames;
-	std::vector<bool> indyAlg, indyAlg2; //will keep track of which algebras don't get marked dirty after dropping cases
+	std::vector<bool> indyAlg, indyAlg2; //<--Will keep track of which algebras don't get marked dirty after dropping cases.
 	std::vector<int> origdVdim, origdyhatdim;
 	std::vector<bool> didUserGivedV, didUserGivedyhat;
 	void dVupdate(FitContext *fc); //<--Also updates dyhat.
 	void dVupdate_final(); //<--Also updates dyhat.
-	int dVnameslength, origVdim, numExplicitFreePar, origyhatdim, dNamesLength, dyhatlength, dVlength;
+	int origVdim, numExplicitFreePar, origyhatdim;
+	int dVnameslength, dyhatnameslength; //<--The lengths of frontend arguments `dV` and `dyhat`, as originally provided by the user.
+	int dNamesLength; //<--Has length equal to the number of unique parameter labels present in the names of `dV` and/or `dyhat`.
+	/*Each has length either equal to zero, if no such user-provided derivatives; or to the number of explicit free parameters,
+	if any such user-provided derivatives:*/
+	int dyhatlength, dVlength; 
 	int parallelDerivScheme, derivType, oldWantHess, infoMatType, parallelDerivSchemeFromFrontend;
 	bool usingGREMLExpectation, doREML, didUserSpecifyParallelDerivScheme;
-	bool didUserProvideYhat; //<--value of `true` means that doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
+	bool didUserProvideYhat; //<--Value of `true` means that doREML is FALSE *and* the user provided a non-empty, valid name for 'yhat'.
 	double nll, REMLcorrection;
 	Eigen::VectorXd gradient;
-	Eigen::MatrixXd infoMat; //the Average Information matrix or the Expected Information matrix, as the case may be.
+	Eigen::MatrixXd infoMat; //<--The Average Information matrix or the Expected Information matrix, as the case may be.
 	FreeVarGroup *varGroup;
 	std::vector<int> gradMap;
 	void buildParamMap(FreeVarGroup *newVarGroup);
@@ -266,11 +274,10 @@ void omxGREMLFitState::init()
   /*Derivatives of yhat:*/
   if (R_has_slot(rObj, Rf_install("dyhat"))) {
   	ProtectedSEXP Rdyhat(R_do_slot(rObj, Rf_install("dyhat")));
-  	//ProtectedSEXP Rdyhatnames(R_do_slot(rObj, Rf_install("dyhatnames")));
+  	ProtectedSEXP Rdyhatnames(R_do_slot(rObj, Rf_install("dyhatnames")));
   	newObj->dyhatlength = Rf_length(Rdyhat);
   	newObj->dyhat.resize(newObj->dyhatlength);
-  	//newObj->indyAlg2.resize(newObj->dyhatlength);
-  	//newObj->dyhatnames.resize(newObj->dyhatlength);
+  	newObj->dyhatnameslength = Rf_length(Rdyhatnames);
   	newObj->origdyhatdim.resize(newObj->dyhatlength);
   	if(newObj->dyhatlength){
   		/*if(!newObj->usingGREMLExpectation){
@@ -2141,7 +2148,9 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 	int gx=0;
 	if(dVlength){
 		if(!dyhatlength){
-			if(dVlength > numExplicitFreePar){
+			/*^^^This is the case where `dV`, but not `dyhat`, has nonzero length; this block of code is how the parameter-mapping was done
+			before `dyhat` was implemented.*/
+			if(dVnameslength > numExplicitFreePar){
 				mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
 			}
 			/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily
@@ -2182,10 +2191,10 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 			if (gx != numExplicitFreePar) mxThrow("Problem in dVnames mapping");
 		}
 		if(dyhatlength){
-			if(dVlength > numExplicitFreePar){
+			if(dVnameslength > numExplicitFreePar){
 				mxThrow("length of argument 'dV' is greater than the number of explicit free parameters");
 			}
-			if(dyhatlength > numExplicitFreePar){
+			if(dyhatnameslength > numExplicitFreePar){
 				mxThrow("length of argument 'dyhat' is greater than the number of explicit free parameters");
 			}
 			/*The pointers to the derivatives of V, their names, and their original dimensions get temporarily
@@ -2280,7 +2289,7 @@ void omxGREMLFitState::buildParamMap(FreeVarGroup *newVarGroup)
 			mxThrow("if argument 'dV' has length zero, then so must argument 'augHess'");
 		}
 		if(dyhatlength){
-			if(dyhatlength > numExplicitFreePar){
+			if(dyhatnameslength > numExplicitFreePar){
 				mxThrow("length of argument 'dyhat' is greater than the number of explicit free parameters");
 			}
 			gx=0;

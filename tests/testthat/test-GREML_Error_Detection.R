@@ -607,13 +607,13 @@ omxCheckError(
 testmod$fitfunction <- mxFitFunctionGREML(dV=c(ve="I",bar="Zilch"),dyhat=c(ve="Zip",bar="Uno",baz="Uno"))
 omxCheckError(
 	mxRun(testmod),
-	"length of argument 'dV' is greater than the number of explicit free parameters" #<--TODO
+	"length of argument 'dyhat' is greater than the number of explicit free parameters"
 )
 
 testmod$fitfunction <- mxFitFunctionGREML(dyhat=c(ve="Zip",bar="Uno",baz="Uno"))
 omxCheckError(
 	mxRun(testmod),
-	"length of argument 'dyhat' is greater than the number of explicit free parameters" #<--TODO
+	"length of argument 'dyhat' is greater than the number of explicit free parameters"
 )
 
 
