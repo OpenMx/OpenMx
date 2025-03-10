@@ -16,7 +16,6 @@ Objects can be created by calls of the form \code{mxFitFunctionGREML(dV)}.
     \item{\code{dV}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object(s) to serve as the derivatives of 'V' with respect to free parameters.}
     \item{\code{dVnames}:}{Vector of character strings; names of the free parameters corresponding to slot \code{dV}.  Provides the mapping from elements of \code{augGrad} and of rows and columns of \code{augHess} to free parameters.}
     \item{\code{MLfit}:}{Object of class \code{"numeric"}, equal to the maximum-likelihood fitfunction value (as opposed to the restricted maximum-likelihood value).}
-    \item{\code{REMLfit}:}{Object of class \code{"numeric"}, equal to the restricted maximum-likelihood fitfunction value (as opposed to the "full" maximum-likelihood value).}
     \item{\code{numObsAdjust}:}{Object of class \code{"integer"}.
       Number of observations adjustment.}
     \item{\code{aug}:}{Object of class \code{"MxCharOrNumber"}.  Identifies the \code{\link{MxAlgebra}} or \code{\link{MxMatrix}} object used to "augment" the fitfunction value at each function evaluation during optimization.}

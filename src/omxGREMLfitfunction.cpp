@@ -407,7 +407,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
  				return;
  			}
- 			if(oge->cholquadX_fail){
+ 			if(!didUserProvideYhat && oge->cholquadX_fail){
  				oo->matrix->data[0] = NA_REAL;
  				if (fc) fc->recordIterationError("Cholesky factorization failed; possibly, the matrix of covariates is rank-deficient");
  				return;
@@ -418,11 +418,13 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			
  			//Log determinant of quadX:
  			gff->REMLcorrection = 0;
- 			for(int i=0; i < gff->X->cols; i++){
- 				logdetquadX += log(oge->cholquadX_vectorD[i]);
+ 			if(doREML){
+ 				for(int i=0; i < gff->X->cols; i++){
+ 					logdetquadX += log(oge->cholquadX_vectorD[i]);
+ 				}
+ 				logdetquadX *= 2;
+ 				gff->REMLcorrection = Scale*0.5*logdetquadX;
  			}
- 			logdetquadX *= 2;
- 			gff->REMLcorrection = Scale*0.5*logdetquadX;
  			
  			/*Finish computing fit (negative loglikelihood) if wanted.  P and Py will be needed later if analytic or semi-analytic derivatives in use;
  			 otherwise, extraneous calculations can be avoided:*/
@@ -586,7 +588,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			case 3: //bin by cell
  				gradientAndEIM3_yhat(nThreadz, Eigy.rows(), fc, want, hb, oge, Scale, Eigy, Vinv, VinvResid, VinvResidResidT);
  				break;
- 			default:
+ 			default: //bin naively (which is perfectly adequate for gradient-only, or for a single thread)
  				gradientAndEIM1_yhat(nThreadz, Eigy.rows(), fc, want, hb, oge, Scale, Eigy, Vinv, VinvResid, VinvResidResidT);
  			break;
  			}
@@ -2108,13 +2110,10 @@ void omxGREMLFitState::populateAttr(SEXP algebra)
   }
 
 	{
-  SEXP mlfitval, remlfitval;
+  SEXP mlfitval;
 	ScopedProtect p1(mlfitval, Rf_allocVector(REALSXP, 1));
-	ScopedProtect p2(remlfitval, Rf_allocVector(REALSXP, 1));
 	REAL(mlfitval)[0] = doREML ? (gff->nll - gff->REMLcorrection) : gff->nll;
-	REAL(remlfitval)[0] = doREML ? gff->nll : (gff->nll + gff->REMLcorrection);
 	Rf_setAttrib(algebra, Rf_install("MLfit"), mlfitval);
-	Rf_setAttrib(algebra, Rf_install("REMLfit"), remlfitval);
 	//mxLog("gff->nll: %f",gff->nll);
 	//mxLog("gff->REMLcorrection: %f",gff->REMLcorrection);
 	}

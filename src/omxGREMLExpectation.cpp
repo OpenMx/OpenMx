@@ -147,13 +147,9 @@ void omxGREMLExpectation::init()
   oge->cholquadX_fail = false;
   EigenMatrixAdaptor EigX(oge->X);
   double *ptrToMatrix;
-  Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
-  //Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
-  quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(Eigy.rows());
-  Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenizeSquareMatrix(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
+  	dropCasesAndEigenizeSquareMatrix(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
   }
   else{
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
@@ -164,22 +160,29 @@ void omxGREMLExpectation::init()
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), EigV.rows(), EigV.cols());
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
-    mxThrow("Expected covariance matrix is non-positive-definite at initial values");
+  	mxThrow("Expected covariance matrix is non-positive-definite at initial values");
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
   for(i=0; i < oge->X->rows; i++){
-    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
+  	oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
   oge->logdetV_om->data[0] *= 2;
   Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
-  oge->XtVinv = EigX.transpose() * Vinv;
-  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
-  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
-  if(cholquadX.info() != Eigen::Success){
-    mxThrow("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
+  if(!oge->didUserProvideYhat){
+  	Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
+  	//Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
+  	quadX.setZero(oge->X->cols, oge->X->cols);
+  	Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
+  	
+  	oge->XtVinv = EigX.transpose() * Vinv;
+  	quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+  	cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
+  	if(cholquadX.info() != Eigen::Success){
+  		mxThrow("Cholesky factorization failed at initial values; possibly, the matrix of covariates is rank-deficient");
+  	}
+  	if(doREML){ oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal(); }
+  	oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
   }
-  oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
   
   if(oge->didUserProvideYhat){
   	double *ptrToVector;
@@ -216,12 +219,9 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   Eigen::Map< Eigen::MatrixXd > Eigy(omxMatrixDataColumnMajor(oge->y->dataMat), oge->y->dataMat->cols, 1);
   double *ptrToMatrix;
   Eigen::Map< Eigen::MatrixXd > Vinv(omxMatrixDataColumnMajor(oge->invcov), oge->invcov->rows, oge->invcov->cols);
-  Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
-  quadX.setZero(oge->X->cols, oge->X->cols);
   Eigen::LLT< Eigen::MatrixXd > cholV(oge->y->dataMat->rows);
-  Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
   if( oge->numcases2drop && (oge->cov->rows > Eigy.rows()) ){
-    dropCasesAndEigenizeSquareMatrix(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
+  	dropCasesAndEigenizeSquareMatrix(oge->cov, EigV_filtered, ptrToMatrix, oge->numcases2drop, oge->dropcase, true, oge->origVdim, false);
   }
   else{
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
@@ -229,25 +229,33 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
-    oge->cholV_fail = true;
-    return;
+  	oge->cholV_fail = true;
+  	return;
   }
   oge->cholV_vectorD = (( Eigen::MatrixXd )(cholV.matrixL())).diagonal();
   for(i=0; i < oge->X->rows; i++){
-    oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
+  	oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
   oge->logdetV_om->data[0] *= 2;
   //V inverse:
   Vinv.triangularView<Eigen::Lower>() = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>();
-  oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
-  quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
-  cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
-  if(cholquadX.info() != Eigen::Success){
-    oge->cholquadX_fail = true;
-    return;
+  
+  if(!oge->didUserProvideYhat){
+  	Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
+  	quadX.setZero(oge->X->cols, oge->X->cols);
+  	Eigen::LLT< Eigen::MatrixXd > cholquadX(oge->X->cols);
+  	
+  	oge->XtVinv = EigX.transpose() * Vinv.selfadjointView<Eigen::Lower>();
+  	quadX.triangularView<Eigen::Lower>() = oge->XtVinv * EigX;
+  	cholquadX.compute(quadX.selfadjointView<Eigen::Lower>());
+  	if(cholquadX.info() != Eigen::Success){
+  		oge->cholquadX_fail = true;
+  		return;
+  	}
+  	if(doREML){ oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal(); }
+  	oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
   }
-  oge->cholquadX_vectorD = (( Eigen::MatrixXd )(cholquadX.matrixL())).diagonal();
-  oge->quadXinv = ( cholquadX.solve(Eigen::MatrixXd::Identity(oge->X->cols, oge->X->cols)) ).triangularView<Eigen::Lower>();
+  
   if(oge->didUserProvideYhat){
   	omxRecompute(oge->yhatFromUser, fc);
   	double *ptrToVector;

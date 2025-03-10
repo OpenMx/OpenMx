@@ -334,7 +334,6 @@ updateModelEntitiesTargetModel <- function(model, entNames, values, modelNameMap
 				} else if (is(candidate,"MxFitFunction")) {
 					if(is(candidate,"MxFitFunctionGREML")){
 						candidate@MLfit <- attr(value,"MLfit")
-						candidate@REMLfit <- attr(value,"REMLfit")
 						candidate@result <- as.matrix(as.numeric(value))
             candidate@numObsAdjust <- attr(value,"numObsAdjust")
 					} else{

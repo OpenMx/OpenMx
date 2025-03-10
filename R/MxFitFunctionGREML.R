@@ -18,7 +18,6 @@ setClass(Class = "MxFitFunctionGREML",
            dV = "MxCharOrNumber",
            dVnames = "character",
            MLfit = "numeric",
-           REMLfit = "numeric",
            numObsAdjust = "integer",
            aug = "MxCharOrNumber",
            augGrad = "MxCharOrNumber",
@@ -38,7 +37,6 @@ setMethod("initialize", "MxFitFunctionGREML",
             .Object@dV <- ..1
             .Object@dVnames <- as.character(names(..1))
             .Object@MLfit <- numeric(0)
-            .Object@REMLfit <- numeric(0)
             .Object@vector <- FALSE
             .Object@numObsAdjust <- 0L
             .Object@aug <- ..2
