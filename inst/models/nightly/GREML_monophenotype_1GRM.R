@@ -52,7 +52,7 @@ gff <- mxFitFunctionGREML(dV=c(va="A",ve="I"))
 #especially messy here because we want a profile-likelihood confidence interval for the heritability:
 plan <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
-	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+	mxComputeOnce('fitfunction', c('gradient','hessian')),
 	mxComputeConfidenceInterval(
 		plan=mxComputeGradientDescent(
 			fitfunction="GREML_1GRM_1trait.fitfunction", nudgeZeroStarts=FALSE, maxMajorIter=150),
@@ -90,7 +90,7 @@ testmod <- mxModel(
 	plan #<--Custom compute plan
 )
 
-testrun <- mxRun(testmod,intervals = T) #<--Run model (Status Red is OK in this case)
+testrun <- mxRun(testmod,intervals = T) 
 summary(testrun) #<--Model summary
 
 #Obtain SE of h2 from delta-method approximation (e.g., Lynch & Walsh, 1998, Appendix 1):
@@ -135,7 +135,7 @@ testmod2 <- mxModel(
 	#We'll do without the CI this time:
 	mxComputeSequence(steps=list(
 		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+		mxComputeOnce('fitfunction', c('gradient','hessian')),
 		mxComputeStandardError(),
 		mxComputeReportDeriv(),
 		mxComputeReportExpectation()
@@ -162,7 +162,7 @@ gff3 <- mxFitFunctionGREML(dV=c(h2="dVdH2",vp="dVdVp")) #<--Need new fitfunction
 #Need new compute plan:
 plan3 <- mxComputeSequence(steps=list(
 	mxComputeNewtonRaphson(fitfunction="fitfunction"),
-	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+	mxComputeOnce('fitfunction', c('gradient','hessian')),
 	mxComputeConfidenceInterval(
 		plan=mxComputeGradientDescent(
 			fitfunction="GREML_1GRM_1trait_altparam.fitfunction", nudgeZeroStarts=FALSE, maxMajorIter=150),
