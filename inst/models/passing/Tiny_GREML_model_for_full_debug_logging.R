@@ -24,8 +24,8 @@ dat[5,1] <- NA
 ge <- mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=FALSE)
 gff <- mxFitFunctionGREML(dV=c(ve="I"))
 plan <- mxComputeSequence(steps=list(
-	mxComputeNewtonRaphson(fitfunction="fitfunction"),
-	mxComputeOnce('fitfunction', c('fit','gradient','hessian','ihessian')),
+	mxComputeNewtonRaphson(),
+	mxComputeOnce('fitfunction', c('gradient','hessian')),
 	mxComputeStandardError(),
 	mxComputeReportDeriv(),
 	mxComputeReportExpectation()
@@ -42,6 +42,13 @@ testmod <- mxModel(
 	gff,
 	plan
 )
+
+xpec <- mxGetExpected(testmod,c("covariance","means"))
+omxCheckEquals(xpec$covariance,diag(2,4))
+omxCheckEquals(xpec$means,matrix(-0.5477233,4,1))
+
+check <- mxCheckIdentification(testmod,T)
+omxCheckTrue(check$status)
 
 testrun <- mxRun(testmod)
 

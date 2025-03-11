@@ -193,6 +193,24 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 						return(ret)
 					})
 
+
+setMethod(
+	"genericGetExpectedVector", signature("MxExpectationGREML"),
+	function(.Object, model, defvar.row=1, subname=model@name) {
+		ret <- genericGetExpected(.Object, model, c('covariance', 'means'), defvar.row=1)
+		cov <- ret[['covariance']]
+		mns <- ret[['means']]
+		if (is.null(mns)) stop("mns is null")
+		nv <- nrow(cov)
+		nm <- length(mns)
+		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
+		mnsNames <- paste0('mean', 1:nm)
+		v <- c(vech(cov), mns[!is.na(mns)])
+		names(v) <- c(covNames, mnsNames[!is.na(mns)])
+		return(v)
+	}
+)
+
 mxExpectationGREML <- function(
 		V, yvars=character(0), Xvars=list(), addOnes=TRUE, blockByPheno=TRUE, 
 		staggerZeroes=TRUE, dataset.is.yX=FALSE, casesToDropFromV=integer(0),
