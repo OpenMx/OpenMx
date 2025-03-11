@@ -168,6 +168,7 @@ void omxGREMLExpectation::init()
   }
   oge->logdetV_om->data[0] *= 2;
   Vinv = cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )); //<-- V inverse
+  
   if(!oge->didUserProvideYhat){
   	Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
   	//Apparently you need to initialize a matrix's elements before you try to write to its lower triangle:
