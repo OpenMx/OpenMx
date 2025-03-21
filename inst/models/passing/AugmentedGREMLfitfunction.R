@@ -36,111 +36,116 @@ x <- rnorm(100)
 dat <- cbind(y,x)
 colnames(dat) <- c("y","x")
 
-#Baseline model:
-testmod <- mxModel(
-	"GREMLtest",
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML()
-)
-testrun <- mxRun(testmod)
-
-#Pointless augmentation that adds a constant to the fitfunction:
-testmod2 <- mxModel(
-	"GREMLtest",
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=0.64,name="aug"),
-	mxFitFunctionGREML(aug="aug",autoDerivType="numeric")
-)
-testrun2 <- mxRun(testmod2)
-omxCheckCloseEnough(a=testrun2$output$fit - testrun$output$fit, b=1.28, epsilon=1e-9)
-
-#Baseline model using N-R:
-testmod3 <- mxModel(
-	"GREMLtest",
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxComputeSequence(steps=list(
-		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('gradient','hessian')),
-		mxComputeStandardError(),
-		mxComputeReportDeriv(),
-		mxComputeReportExpectation()
-	)),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
-)
-testrun3 <- mxRun(testmod3)
-
-#Add augmentation that should nudge free parameters toward summing to 1.0:
-testmod4 <- mxModel(
-	"GREMLtest",
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxComputeSequence(steps=list(
-		mxComputeNewtonRaphson(fitfunction="fitfunction"),
-		mxComputeOnce('fitfunction', c('gradient','hessian')),
-		mxComputeStandardError(),
-		mxComputeReportDeriv(),
-		mxComputeReportExpectation()
-	)),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxAlgebra( 3%x%(Va1+Va2+Ve-1)^2, name="aug"),
-	mxAlgebra( 3%x%rbind(
-		2*Va1 + 2*Va2 + 2*Ve - 2,
-		2*Va1 + 2*Va2 + 2*Ve - 2,
-		2*Va1 + 2*Va2 + 2*Ve - 2), name="daug1"),
-	mxMatrix(type="Full",nrow=3,ncol=3,free=F,values=6,name="daug2"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"),aug="aug",augGrad="daug1",augHess="daug2")
-)
-testrun4 <- mxRun(testmod4)
-#The difference between 1.0 and the sum of the parameters should be smaller for model #4:
-omxCheckTrue(abs(1-sum(testrun4$output$estimate)) < abs(1-sum(testrun3$output$estimate)))
-
-#Test some augmentation-related error-detection:
-testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augGrad="daug1",augHess="daug2")
-omxCheckError(
-	mxRun(testmod4),
-	"if argument 'dV' has length zero, then so must argument 'augGrad'"
-)
-
-testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augHess="daug2")
-omxCheckError(
-	mxRun(testmod4),
-	"if argument 'augHess' has nonzero length, then argument 'augGrad' must as well"
-)
-
+for(pds in 1:3){
+	#Baseline model:
+	testmod <- mxModel(
+		"GREMLtest",
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML()
+	)
+	testmod$fitfunction@.parallelDerivScheme <- pds
+	testrun <- mxRun(testmod)
+	
+	#Pointless augmentation that adds a constant to the fitfunction:
+	testmod2 <- mxModel(
+		"GREMLtest",
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxMatrix(type="Full",nrow=1,ncol=1,free=F,values=0.64,name="aug"),
+		mxFitFunctionGREML(aug="aug",autoDerivType="numeric")
+	)
+	testmod2$fitfunction@.parallelDerivScheme <- pds
+	testrun2 <- mxRun(testmod2)
+	omxCheckCloseEnough(a=testrun2$output$fit - testrun$output$fit, b=1.28, epsilon=1e-9)
+	
+	#Baseline model using N-R:
+	testmod3 <- mxModel(
+		"GREMLtest",
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxComputeSequence(steps=list(
+			mxComputeNewtonRaphson(fitfunction="fitfunction"),
+			mxComputeOnce('fitfunction', c('gradient','hessian')),
+			mxComputeStandardError(),
+			mxComputeReportDeriv(),
+			mxComputeReportExpectation()
+		)),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
+	)
+	testmod3$fitfunction@.parallelDerivScheme <- pds
+	testrun3 <- mxRun(testmod3)
+	
+	#Add augmentation that should nudge free parameters toward summing to 1.0:
+	testmod4 <- mxModel(
+		"GREMLtest",
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001, 
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxComputeSequence(steps=list(
+			mxComputeNewtonRaphson(fitfunction="fitfunction"),
+			mxComputeOnce('fitfunction', c('gradient','hessian')),
+			mxComputeStandardError(),
+			mxComputeReportDeriv(),
+			mxComputeReportExpectation()
+		)),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxAlgebra( 3%x%(Va1+Va2+Ve-1)^2, name="aug"),
+		mxAlgebra( 3%x%rbind(
+			2*Va1 + 2*Va2 + 2*Ve - 2,
+			2*Va1 + 2*Va2 + 2*Ve - 2,
+			2*Va1 + 2*Va2 + 2*Ve - 2), name="daug1"),
+		mxMatrix(type="Full",nrow=3,ncol=3,free=F,values=6,name="daug2"),
+		mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"),aug="aug",augGrad="daug1",augHess="daug2")
+	)
+	testmod4$fitfunction@.parallelDerivScheme <- pds
+	testrun4 <- mxRun(testmod4)
+	#The difference between 1.0 and the sum of the parameters should be smaller for model #4:
+	omxCheckTrue(abs(1-sum(testrun4$output$estimate)) < abs(1-sum(testrun3$output$estimate)))
+	
+	#Test some augmentation-related error-detection:
+	testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augGrad="daug1",augHess="daug2")
+	omxCheckError(
+		mxRun(testmod4),
+		"if argument 'dV' has length zero, then so must argument 'augGrad'"
+	)
+	
+	testmod4$fitfunction <- mxFitFunctionGREML(aug="aug",augHess="daug2")
+	omxCheckError(
+		mxRun(testmod4),
+		"if argument 'augHess' has nonzero length, then argument 'augGrad' must as well"
+	)
+}
 
 
 

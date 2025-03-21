@@ -50,128 +50,142 @@ plan <- mxComputeSequence(
 		mxComputeReportExpectation()
 	))
 
-test0 <- mxModel(
-	"GREMLtest0",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
-)
-test0 <- mxRun(test0)
+for(pds in 1:3){
+	test0 <- mxModel(
+		"GREMLtest0",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
+	)
+	test0$fitfunction@.parallelDerivScheme <- pds
+	test0 <- mxRun(test0)
+	
+	test1 <- mxModel(
+		"GREMLtest1",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars=list(), addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
+	)
+	test1$fitfunction@.parallelDerivScheme <- pds
+	test1 <- mxRun(test1)
+	
+	test2 <- mxModel(
+		"GREMLtest2",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T, REML=F),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
+	)
+	test2$fitfunction@.parallelDerivScheme <- pds
+	test2 <- mxRun(test2)
+	
+	test3 <- mxModel(
+		"GREMLtest3",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va2="A2",ve="I"))
+	)
+	test3$fitfunction@.parallelDerivScheme <- pds
+	test3 <- mxRun(test3)
+	
+	test4 <- mxModel(
+		"GREMLtest4",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxAlgebra((A1%x%Va1) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va1="A1",ve="I"))
+	)
+	test4$fitfunction@.parallelDerivScheme <- pds
+	test4 <- mxRun(test4)
+	
+	test5 <- mxModel(
+		"GREMLtest5",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxAlgebra(I%x%Ve, name="V"),
+		mxFitFunctionGREML(dV=c(ve="I"))
+	)
+	test5$fitfunction@.parallelDerivScheme <- pds
+	test5 <- mxRun(test5)
+	
+	mxModelAverage(reference=c("ve","va1","va2"),models=list(test0,test3,test4,test5)) #<--Should work.
+	omxCheckWarning(
+		mxModelAverage(reference=c("ve","va1","va2"),models=list(test0,test1,test3,test4,test5)),
+		"not all of 'models' have matching names for their fixed effects; results may be invalid"
+	)
+	omxCheckError(
+		mxModelAverage(reference=c("ve","va1","va2"),models=list(test0,test1,test2,test3,test4,test5)),
+		"some but not all of 'models' use REML"
+	)
+	
+	test6 <- mxModel(
+		"GREMLtest6",
+		plan,
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
+						 name = "Ve"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
+		mxData(observed = dat, type="raw", sort=FALSE),
+		mxExpectationGREML(V="V",yvars="y", Xvars=list(), addOnes=T, REML=F),
+		mxMatrix("Iden",nrow=100,name="I"),
+		mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
+		mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
+		mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
+		mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
+	)
+	test6$fitfunction@.parallelDerivScheme <- pds
+	test6 <- mxRun(test6)
+	mxModelAverage(reference=c("ve","va1","va2"),models=list(test2,test6)) #<--Should work.
+}
 
-test1 <- mxModel(
-	"GREMLtest1",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars=list(), addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
-)
-test1 <- mxRun(test1)
 
-test2 <- mxModel(
-	"GREMLtest2",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T, REML=F),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
-)
-test2 <- mxRun(test2)
 
-test3 <- mxModel(
-	"GREMLtest3",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va2="A2",ve="I"))
-)
-test3 <- mxRun(test3)
 
-test4 <- mxModel(
-	"GREMLtest4",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxAlgebra((A1%x%Va1) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va1="A1",ve="I"))
-)
-test4 <- mxRun(test4)
-
-test5 <- mxModel(
-	"GREMLtest5",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=F, values = 0, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars="x", addOnes=T),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxAlgebra(I%x%Ve, name="V"),
-	mxFitFunctionGREML(dV=c(ve="I"))
-)
-test5 <- mxRun(test5)
-
-mxModelAverage(reference=c("ve","va1","va2"),models=list(test0,test3,test4,test5)) #<--Should work.
-omxCheckWarning(
-	mxModelAverage(reference=c("ve","va1","va2"),models=list(test0,test1,test3,test4,test5)),
-	"not all of 'models' have matching names for their fixed effects; results may be invalid"
-)
-omxCheckError(
-	mxModelAverage(reference=c("ve","va1","va2"),models=list(test0,test1,test2,test3,test4,test5)),
-	"some but not all of 'models' use REML"
-)
-
-test6 <- mxModel(
-	"GREMLtest6",
-	plan,
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values =0.5, labels = "ve", lbound = 0.0001,
-					 name = "Ve"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.25, labels = "va1", name = "Va1"),
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 0.20, labels = "va2", name = "Va2"),
-	mxData(observed = dat, type="raw", sort=FALSE),
-	mxExpectationGREML(V="V",yvars="y", Xvars=list(), addOnes=T, REML=F),
-	mxMatrix("Iden",nrow=100,name="I"),
-	mxMatrix("Symm",nrow=100,free=F,values=A1,name="A1"),
-	mxMatrix("Symm",nrow=100,free=F,values=A2,name="A2"),
-	mxAlgebra((A1%x%Va1) + (A2%x%Va2) + (I%x%Ve), name="V"),
-	mxFitFunctionGREML(dV=c(va1="A1",va2="A2",ve="I"))
-)
-test6 <- mxRun(test6)
-mxModelAverage(reference=c("ve","va1","va2"),models=list(test2,test6)) #<--Should work.
+options(mxCondenseMatrixSlots=FALSE)

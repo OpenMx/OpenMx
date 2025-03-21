@@ -27,24 +27,27 @@ famid <- sort(rep(LETTERS,4))
 CRM <- outer(famid,famid,"==") + 0
 ge <- mxExpectationGREML(V="V", yvars="y")
 
-Cmod <- mxModel(
-	"GREMLtest",
-	mxData(observed = Dat, type="raw", sort=FALSE),
-	ge,
-	mxFitFunctionGREML(),
-	mxMatrix(type = "Diag", nrow = 104, ncol=104, free=T, values = 0.5, labels = "ve", 
-					 lbound = 0.0001, name = "Ve"),
-	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.5,labels="vc",name="Vc"),
-	mxMatrix(type="Full",nrow=104,ncol=104,free=F,values=CRM,name="C",condenseSlots = T),
-	mxAlgebra( (Vc%x%C) + Ve, name="V")
-)
-Crun <- mxRun(Cmod)
-Csumm <- summary(Crun)
-
-#Compare to lme4 REML results:
-omxCheckCloseEnough(Csumm$GREMLfixeff$coeff[1],-0.01313328,1e-5)
-omxCheckCloseEnough(Csumm$GREMLfixeff$se[1],0.1533185,1e-4)
-omxCheckCloseEnough(Crun$output$estimate,c(0.3797,0.5162),1e-3)
-
-#Intercept should equal grand mean:
-omxCheckCloseEnough(Csumm$GREMLfixeff$coeff[1],mean(Dat),1e-12)
+for(pds in 1:3){
+	Cmod <- mxModel(
+		"GREMLtest",
+		mxData(observed = Dat, type="raw", sort=FALSE),
+		ge,
+		mxFitFunctionGREML(),
+		mxMatrix(type = "Diag", nrow = 104, ncol=104, free=T, values = 0.5, labels = "ve", 
+						 lbound = 0.0001, name = "Ve"),
+		mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0.5,labels="vc",name="Vc"),
+		mxMatrix(type="Full",nrow=104,ncol=104,free=F,values=CRM,name="C",condenseSlots = T),
+		mxAlgebra( (Vc%x%C) + Ve, name="V")
+	)
+	Cmod$fitfunction@.parallelDerivScheme <- pds
+	Crun <- mxRun(Cmod)
+	Csumm <- summary(Crun)
+	
+	#Compare to lme4 REML results:
+	omxCheckCloseEnough(Csumm$GREMLfixeff$coeff[1],-0.01313328,1e-5)
+	omxCheckCloseEnough(Csumm$GREMLfixeff$se[1],0.1533185,1e-4)
+	omxCheckCloseEnough(Crun$output$estimate,c(0.3797,0.5162),1e-3)
+	
+	#Intercept should equal grand mean:
+	omxCheckCloseEnough(Csumm$GREMLfixeff$coeff[1],mean(Dat),1e-12)
+}

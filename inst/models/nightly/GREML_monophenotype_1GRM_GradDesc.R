@@ -49,42 +49,46 @@ gff <- mxFitFunctionGREML()
 #'dat' and the rows and columns of GRM 'A' are already properly ordered:
 mxdat <- mxData(observed = dat, type="raw", sort=FALSE)
 
-#We will create some of the necessary objects inside the mxModel() statement.  We mainly want to avoid creating 
-#more copies of the GRM than we need to:
-testmod <- mxModel(
-	"GREML_1GRM_1trait", #<--Model name
-	#1x1 matrix containing residual variance component:
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = var(y)/2, labels = "ve", lbound = 0.0001, 
-					 name = "Ve"),
-	#1x1 matrix containing additive-genetic variance component:
-	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = var(y)/2, labels = "va", name = "Va"),
-	#1000x1000 identity matrix--the "relatedness matrix" for the residuals:
-	mxMatrix("Iden",nrow=1000,name="I"),
-	#The GRM:
-	mxMatrix("Symm",nrow=1000,free=F,values=A,name="A"),
-	#The model-expected covariance matrix:
-	mxAlgebra((A%x%Va) + (I%x%Ve), name="V"),
-	#An MxAlgebra for the heritability:
-	mxAlgebra(Va/(Va+Ve), name="h2"),
-	mxCI("h2"), #<--Request confidence interval for heritability
-	mxdat, #<--MxData object
-	ge, #<--GREML expectation
-	gff #<--GREML fitfunction
-)
+for(pds in 1:3){
+	#We will create some of the necessary objects inside the mxModel() statement.  We mainly want to avoid creating 
+	#more copies of the GRM than we need to:
+	testmod <- mxModel(
+		"GREML_1GRM_1trait", #<--Model name
+		#1x1 matrix containing residual variance component:
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = var(y)/2, labels = "ve", lbound = 0.0001, 
+						 name = "Ve"),
+		#1x1 matrix containing additive-genetic variance component:
+		mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = var(y)/2, labels = "va", name = "Va"),
+		#1000x1000 identity matrix--the "relatedness matrix" for the residuals:
+		mxMatrix("Iden",nrow=1000,name="I"),
+		#The GRM:
+		mxMatrix("Symm",nrow=1000,free=F,values=A,name="A"),
+		#The model-expected covariance matrix:
+		mxAlgebra((A%x%Va) + (I%x%Ve), name="V"),
+		#An MxAlgebra for the heritability:
+		mxAlgebra(Va/(Va+Ve), name="h2"),
+		mxCI("h2"), #<--Request confidence interval for heritability
+		mxdat, #<--MxData object
+		ge, #<--GREML expectation
+		gff #<--GREML fitfunction
+	)
+	testmod$fitfunction@.parallelDerivScheme <- pds
+	testrun <- mxRun(testmod,intervals = T) #<--Run model
+	summary(testrun) #<--Model summary
+	
+	#Obtain SE of h2 from delta-method approximation (e.g., Lynch & Walsh, 1998, Appendix 1):
+	scm <- chol2inv(chol(testrun$output$hessian/2)) #<--Sampling covariance matrix for ve and va
+	pointest <- testrun$output$estimate #<--Point estimates of ve and va
+	h2se <- sqrt(
+		(pointest[2]/(pointest[1]+pointest[2]))^2 * (
+			(scm[2,2]/pointest[2]^2) - (2*scm[1,2]/pointest[1]/(pointest[1]+pointest[2])) + 
+				(sum(scm)*(pointest[1]+pointest[2])^-2)
+		))
+	#Compare:
+	mxEval(h2,testrun,T)[1,1] + 2*c(-h2se,h2se)
+	testrun$output$confidenceIntervals
+}
 
-testrun <- mxRun(testmod,intervals = T) #<--Run model
-summary(testrun) #<--Model summary
 
-#Obtain SE of h2 from delta-method approximation (e.g., Lynch & Walsh, 1998, Appendix 1):
-scm <- chol2inv(chol(testrun$output$hessian/2)) #<--Sampling covariance matrix for ve and va
-pointest <- testrun$output$estimate #<--Point estimates of ve and va
-h2se <- sqrt(
-	(pointest[2]/(pointest[1]+pointest[2]))^2 * (
-		(scm[2,2]/pointest[2]^2) - (2*scm[1,2]/pointest[1]/(pointest[1]+pointest[2])) + 
-			(sum(scm)*(pointest[1]+pointest[2])^-2)
-))
-#Compare:
-mxEval(h2,testrun,T)[1,1] + 2*c(-h2se,h2se)
-testrun$output$confidenceIntervals
 
 options(mxCondenseMatrixSlots=FALSE)
