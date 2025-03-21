@@ -301,12 +301,13 @@ void omxGREMLFitState::init()
   if(derivType==1 && !newObj->usingGREMLExpectation){
   	mxThrow("semi-analytic derivatives only compatible with GREML expectation");
   }
+  
+  newObj->rowbins.resize(Global->numThreads);
+  newObj->AIMelembins.resize(Global->numThreads);
 
   if(newObj->dVlength || newObj->dyhatlength || derivType==1){
   	oo->hessianAvailable = true;
   	//^^^Gets changed to false in `buildParamMap()` if it turns out that derivType=0 and 0 < dVlength < numExplicitFreePar.
-  	newObj->rowbins.resize(Global->numThreads);
-  	newObj->AIMelembins.resize(Global->numThreads);
   	for(int i=0; i < newObj->dVlength; i++){
   		if(newObj->dV[i]){
   			/*Each dV must either (1) match the dimensions of V, OR (2) match the length of y if that is less than the
