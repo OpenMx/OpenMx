@@ -447,7 +447,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  					}
  				}
  				else{
- 					VinvResid = Vinv * oge->residual;
+ 					VinvResid = Vinv.selfadjointView<Eigen::Lower>() * oge->residual;
  					if(want & FF_COMPUTE_FIT){
  						oo->matrix->data[0] = 
  							Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * VinvResid)(0,0) ) + 
@@ -472,7 +472,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  				else{
  					//Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(gff->yhatFromUser), gff->yhatFromUser->size(), 1);
  					oo->matrix->data[0] = 
- 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv * oge->residual)(0,0) ) +
+ 						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv.selfadjointView<Eigen::Lower>() * oge->residual)(0,0) ) +
  						Scale*gff->pullAugVal(0L,0,0);
  					gff->nll = oo->matrix->data[0];
  					return; //<--Since only fit value is wanted.
