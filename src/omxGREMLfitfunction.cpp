@@ -1431,7 +1431,7 @@ void omxGREMLFitState::gradientAndOIM1(
 					}
 					Eigen::Map< Eigen::MatrixXd > dyhat_dtheta1(ptrToMatrix1m, Eigyrows, 1);
 					
-					Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta1;
+					Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv * dV_dtheta1.selfadjointView<Eigen::Lower>();
 					
 					if(u_want & FF_COMPUTE_GRADIENT){
 						term1 = VinvdV_dtheta1.trace() - trace_prod(VinvdV_dtheta1,u_VinvResidResidT);
@@ -1481,7 +1481,7 @@ void omxGREMLFitState::gradientAndOIM1(
 								}
 								Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, 1);
 								
-								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta2;
+								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv * dV_dtheta2.selfadjointView<Eigen::Lower>();
 								Eigen::MatrixXd VinvdV_dtheta2VinvdV_dtheta1 = VinvdV_dtheta2 * VinvdV_dtheta1;
 								
 								tt0_0 = 0.0 - VinvdV_dtheta2VinvdV_dtheta1.trace(); //Vinv2ndDer.trace() - trace_prod(VinvDer2,VinvDer)
@@ -1575,7 +1575,7 @@ void omxGREMLFitState::gradientAndEIM1_yhat(
 				}
 				Eigen::Map< Eigen::MatrixXd > dyhat_dtheta1(ptrToMatrix1m, Eigyrows, 1);
 				
-				Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta1;
+				Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				
 				if(u_want & FF_COMPUTE_GRADIENT){
 					double term1 = VinvdV_dtheta1.trace() - trace_prod(VinvdV_dtheta1,u_VinvResidResidT);
@@ -1631,7 +1631,7 @@ void omxGREMLFitState::gradientAndEIM1_yhat(
 								}
 								Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, 1);
 								
-								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta2;
+								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv * dV_dtheta2.selfadjointView<Eigen::Lower>();
 								
 								tt1 = 0.5*trace_prod(VinvdV_dtheta1,VinvdV_dtheta2);
 								tt2 = (dyhat_dtheta1.transpose() * u_Vinv * dyhat_dtheta2)(0,0);
@@ -1719,7 +1719,7 @@ void omxGREMLFitState::gradientAndEIM2_yhat(
 				}
 				Eigen::Map< Eigen::MatrixXd > dyhat_dtheta1(ptrToMatrix1m, Eigyrows, 1);
 				
-				Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta1;
+				Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				
 				for(hcn=hrn; hcn < numExplicitFreePar; hcn++){
 					double tt1=0.0, tt2=0.0;
@@ -1777,7 +1777,7 @@ void omxGREMLFitState::gradientAndEIM2_yhat(
 								}
 								Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, 1);
 								
-								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta2;
+								Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv * dV_dtheta2.selfadjointView<Eigen::Lower>();
 								
 								tt1 = 0.5*trace_prod(VinvdV_dtheta1,VinvdV_dtheta2);
 								tt2 = (dyhat_dtheta1.transpose() * u_Vinv * dyhat_dtheta2)(0,0);
@@ -1871,7 +1871,7 @@ void omxGREMLFitState::gradientAndEIM3_yhat(
 				
 				Eigen::Map< Eigen::MatrixXd > dV_dtheta1(ptrToMatrix1v, Eigyrows, Eigyrows);
 				Eigen::Map< Eigen::MatrixXd > dyhat_dtheta1(ptrToMatrix1m, Eigyrows, 1);
-				Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta1;
+				Eigen::MatrixXd VinvdV_dtheta1 = u_Vinv * dV_dtheta1.selfadjointView<Eigen::Lower>();
 				
 				if(hrn==hcn){
 					if(u_want & FF_COMPUTE_GRADIENT){
@@ -1926,7 +1926,7 @@ void omxGREMLFitState::gradientAndEIM3_yhat(
 							}
 							Eigen::Map< Eigen::MatrixXd > dyhat_dtheta2(ptrToMatrix2m, Eigyrows, 1);
 							
-							Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv.template selfadjointView<Eigen::Lower>() * dV_dtheta2;
+							Eigen::MatrixXd VinvdV_dtheta2 = u_Vinv * dV_dtheta2.selfadjointView<Eigen::Lower>();
 							
 							double tt1 = 0.5*trace_prod(VinvdV_dtheta1,VinvdV_dtheta2);
 							double tt2 = (dyhat_dtheta1.transpose() * u_Vinv * dyhat_dtheta2)(0,0);

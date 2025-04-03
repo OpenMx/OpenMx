@@ -242,6 +242,8 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   if(OMX_DEBUG){mxLog("oge->logdetV_om->data[0] is %3.3f",oge->logdetV_om->data[0]);}
   //V inverse:
   Vinv.triangularView<Eigen::Lower>() = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>();
+  Vinv.triangularView<Eigen::Upper>() = Vinv.triangularView<Eigen::Lower>().transpose();
+  if(OMX_DEBUG){mxPrintMat("Vinv:",Vinv);}
   
   if(!oge->didUserProvideYhat){
   	Eigen::MatrixXd quadX(oge->X->cols, oge->X->cols);
