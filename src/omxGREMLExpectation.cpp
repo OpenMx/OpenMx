@@ -262,7 +262,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   	double *ptrToVector;
   	//Eigen::Map< Eigen::MatrixXd > Eigyhat(omxMatrixDataColumnMajor(oge->yhatFromUser->dataMat), oge->yhatFromUser->dataMat->cols, 1);
   	if( oge->numcases2drop && (oge->yhatFromUser->rows > Eigy.rows()) ){
-  		dropCasesAndEigenizeColumnVector(oge->yhatFromUser, EigyhatFromUser_filtered, ptrToVector, oge->numcases2drop, oge->dropcase, false, oge->origVdim, false);
+  		dropCasesAndEigenizeColumnVector(oge->yhatFromUser, EigyhatFromUser_filtered, ptrToVector, oge->numcases2drop, oge->dropcase, false, oge->yhatFromUser->rows, false);
   	}
   	else{
   		ptrToVector = omxMatrixDataColumnMajor(oge->yhatFromUser);
