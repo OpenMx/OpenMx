@@ -403,6 +403,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  			omxGREMLExpectation* oge = (omxGREMLExpectation*)(expectation);
  			
  			//Check that factorizations of V and the quadratic form in X succeeded:
+ 			if(OMX_DEBUG){mxLog("oge->cholV_fail is %d",oge->cholV_fail);}
  			if(oge->cholV_fail){
  				oo->matrix->data[0] = NA_REAL;
  				if (fc) fc->recordIterationError("expected covariance matrix is non-positive-definite");
@@ -443,6 +444,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  						oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
  						oo->matrix->data[0] += doREML ? gff->REMLcorrection : 0;
  						gff->nll = oo->matrix->data[0];
+ 						if(OMX_DEBUG){mxLog("fit value is %3.3f",oo->matrix->data[0]);}
  						if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
  					}
  				}
@@ -453,6 +455,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  							Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * VinvResid)(0,0) ) + 
  							Scale*gff->pullAugVal(0L,0,0);
  						gff->nll = oo->matrix->data[0];
+ 						if(OMX_DEBUG){mxLog("fit value is %3.3f",oo->matrix->data[0]);}
  					}
  				}
  			}
@@ -466,6 +469,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  					oo->matrix->data[0] = Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + ytPy) + Scale*gff->pullAugVal(0L,0,0);
  					oo->matrix->data[0] += doREML ? gff->REMLcorrection : 0;
  					gff->nll = oo->matrix->data[0];
+ 					if(OMX_DEBUG){mxLog("fit value is %3.3f",oo->matrix->data[0]);}
  					if(OMX_DEBUG){mxLog("augmentation is %3.3f",gff->pullAugVal(0L,0,0));}
  					return; //<--Since only fit value is wanted.
  				}
@@ -475,6 +479,7 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
  						Scale*0.5*( (((double)gff->y->cols) * NATLOG_2PI) + logdetV + (oge->residual.transpose() * Vinv.selfadjointView<Eigen::Lower>() * oge->residual)(0,0) ) +
  						Scale*gff->pullAugVal(0L,0,0);
  					gff->nll = oo->matrix->data[0];
+ 					if(OMX_DEBUG){mxLog("fit value is %3.3f",oo->matrix->data[0]);}
  					return; //<--Since only fit value is wanted.
  				}
  			}
@@ -646,9 +651,9 @@ template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM1(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
     double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 		mxLog("Now beginning `gradientAndAIM1()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -748,9 +753,9 @@ template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM2(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndAIM2()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -851,9 +856,9 @@ template <typename T1, typename T2, typename T3>
 void omxGREMLFitState::gradientAndAIM3(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Vinv){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndAIM3()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -966,9 +971,9 @@ template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM1(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndEIM1()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1124,9 +1129,9 @@ template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM2(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndEIM2()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1243,9 +1248,9 @@ template <typename T1, typename T2, typename T3, typename T4>
 void omxGREMLFitState::gradientAndEIM3(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, Eigen::MatrixBase<T1> &u_P,
 		double u_Scale, Eigen::MatrixBase<T2> &u_Py, Eigen::MatrixBase<T3> &u_Eigy, Eigen::MatrixBase<T4> &u_Vinv){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndEIM3()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1517,9 +1522,9 @@ void omxGREMLFitState::gradientAndEIM1_yhat(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, 
 		double u_Scale, Eigen::MatrixBase<T1> &u_Eigy, Eigen::MatrixBase<T2> &u_Vinv, Eigen::MatrixBase<T3> &u_VinvResid, 
 		Eigen::MatrixBase<T4> &u_VinvResidResidT){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndEIM1_yhat()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1659,9 +1664,9 @@ void omxGREMLFitState::gradientAndEIM2_yhat(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, 
 		double u_Scale, Eigen::MatrixBase<T1> &u_Eigy, Eigen::MatrixBase<T2> &u_Vinv, Eigen::MatrixBase<T3> &u_VinvResid, 
 		Eigen::MatrixBase<T4> &u_VinvResidResidT){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndEIM2_yhat()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{
@@ -1805,9 +1810,9 @@ void omxGREMLFitState::gradientAndEIM3_yhat(
 		int u_nThreadz, int Eigyrows, FitContext *u_fc, int u_want, HessianBlock *u_hb, omxGREMLExpectation *u_oge, 
 		double u_Scale, Eigen::MatrixBase<T1> &u_Eigy, Eigen::MatrixBase<T2> &u_Vinv, Eigen::MatrixBase<T3> &u_VinvResid, 
 		Eigen::MatrixBase<T4> &u_VinvResidResidT){
-	//if(OMX_DEBUG_ALGEBRA){
+	if(OMX_DEBUG){
 	mxLog("Now beginning `gradientAndEIM3_yhat()`");
-	//}
+	}
 #pragma omp parallel num_threads(u_nThreadz)
 {
 	try{

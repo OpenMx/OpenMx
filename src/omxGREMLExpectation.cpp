@@ -228,6 +228,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   	ptrToMatrix = omxMatrixDataColumnMajor(oge->cov);
   }
   Eigen::Map< Eigen::MatrixXd > EigV( ptrToMatrix, Eigy.rows(), Eigy.rows() );
+  if(OMX_DEBUG){mxPrintMat("EigV:",EigV);}
   cholV.compute(EigV.selfadjointView<Eigen::Lower>());
   if(cholV.info() != Eigen::Success){
   	oge->cholV_fail = true;
@@ -238,6 +239,7 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   	oge->logdetV_om->data[0] += log(oge->cholV_vectorD[i]);
   }
   oge->logdetV_om->data[0] *= 2;
+  if(OMX_DEBUG){mxLog("oge->logdetV_om->data[0] is %3.3f",oge->logdetV_om->data[0]);}
   //V inverse:
   Vinv.triangularView<Eigen::Lower>() = ( cholV.solve(Eigen::MatrixXd::Identity( EigV.rows(), EigV.cols() )) ).triangularView<Eigen::Lower>();
   
@@ -268,7 +270,9 @@ void omxGREMLExpectation::compute(FitContext *fc, const char *what, const char *
   		ptrToVector = omxMatrixDataColumnMajor(oge->yhatFromUser);
   	}
   	Eigen::Map< Eigen::MatrixXd > Eigyhat( ptrToVector, Eigy.rows(), 1 );
+  	if(OMX_DEBUG){mxPrintMat("Eigyhat:",Eigyhat);}
   	residual = Eigy - Eigyhat;
+  	if(OMX_DEBUG){mxPrintMat("residual:",residual);}
   }
 
 	super::compute(fc, what, how);
