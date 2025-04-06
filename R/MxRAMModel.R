@@ -945,7 +945,7 @@ addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) 
     # The structure of the old matrix is (current manifest + current latent) *
     # (current manifest + current latent) 
     # We will keep the curret manifest * manifest part:
-    manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest]
+    manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest, drop = FALSE]
   } else {
     # If there are no manifest variables: Just set up an empty matrix
     manifestXmanifest <- matrix(value, currentManifest, currentManifest)
@@ -955,11 +955,11 @@ addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) 
     latentStart <- currentManifest + 1
     latentEnd <- currentManifest + currentLatent
     # (1) manifest * latent
-    manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd]
+    manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd, drop = FALSE]
     # (2) latent * manifest
-    latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest]
+    latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest, drop = FALSE]
     # (3) latent * latent
-    latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd]
+    latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd, drop = FALSE]
   } else {
     manifestXlatent <- matrix(value, currentManifest, currentLatent)
     latentXmanifest <- matrix(value, currentLatent, currentManifest)
@@ -996,12 +996,12 @@ addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, mod
   currentManifest <- length(model@manifestVars) - newManifest
   currentLatent <- length(model@latentVars) - newLatent
   if(currentManifest > 0){
-    oldManifest <- oldmatrix[1, 1:currentManifest]
+    oldManifest <- oldmatrix[1, 1:currentManifest, drop = FALSE]
   }else{
     oldManifest <- matrix(0, 0, 0)
   }
   if(currentLatent > 0){
-    oldLatent <- oldmatrix[1, (currentManifest + 1) : (currentLatent + currentManifest)]
+    oldLatent <- oldmatrix[1, (currentManifest + 1) : (currentLatent + currentManifest), drop = FALSE]
   }else{
     oldLatent <- matrix(0, 0, 0)
   }
