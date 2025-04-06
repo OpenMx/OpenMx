@@ -935,44 +935,81 @@ removeVariablesAS <- function(oldmatrix, variables) {
 
 
 addVariablesMatrix <- function(oldmatrix, value, model, newLatent, newManifest) {
-	currentManifest <- length(model@manifestVars) - newManifest
-	currentLatent <- length(model@latentVars) - newLatent
-	newSize <- length(model@manifestVars) + length(model@latentVars)
-	if (currentManifest > 0) {
-		manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest, drop=FALSE]
-	} else {
-		manifestXmanifest <- matrix(value, 0, 0)
-	}
-	if (currentLatent > 0) {
-		latentStart <- currentManifest + 1
-		latentEnd <- currentManifest + currentLatent
-		manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd, drop=FALSE]
-		latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest, drop=FALSE]
-		latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd, drop=FALSE]
-	} else {
-		manifestXlatent <- matrix(value, 0, 0)
-		latentXmanifest <- matrix(value, 0, 0)
-		latentXlatent <- matrix(value, 0, 0)
-	}
-	newtop <- cbind(manifestXmanifest, matrix(value, currentManifest, newManifest),
-					manifestXlatent, matrix(value, currentManifest, newLatent))
-	newtop <- rbind(newtop, matrix(value, newManifest, newSize))
-	newbottom <- cbind(latentXmanifest, matrix(value, currentLatent, newManifest),
-					latentXlatent, matrix(value, currentLatent, newLatent))
-	newbottom <- rbind(newbottom, matrix(value, newLatent, newSize))
-	newmatrix <- rbind(newtop, newbottom)
-	return(newmatrix)
+  # Get the number of manifest variables that are already in the model
+  currentManifest <- max(c(0, length(model@manifestVars) - newManifest))
+  # Get the number of latent variables that are already in the model
+  currentLatent <- max(c(0, length(model@latentVars) - newLatent))
+  # The matrix will have the dimensions (n_manifest + n_latent) * (n_manifest + n_latent)
+  newSize <- length(model@manifestVars) + length(model@latentVars)
+  if (currentManifest > 0) {
+    # The structure of the old matrix is (current manifest + current latent) *
+    # (current manifest + current latent) 
+    # We will keep the curret manifest * manifest part:
+    manifestXmanifest <- oldmatrix[1 : currentManifest, 1 : currentManifest]
+  } else {
+    # If there are no manifest variables: Just set up an empty matrix
+    manifestXmanifest <- matrix(value, currentManifest, currentManifest)
+  }
+  if (currentLatent > 0) {
+    # If there are latent variables in the model already, we extract the three matrixes
+    latentStart <- currentManifest + 1
+    latentEnd <- currentManifest + currentLatent
+    # (1) manifest * latent
+    manifestXlatent <- oldmatrix[1 : currentManifest, latentStart : latentEnd]
+    # (2) latent * manifest
+    latentXmanifest <- oldmatrix[latentStart : latentEnd, 1 : currentManifest]
+    # (3) latent * latent
+    latentXlatent <- oldmatrix[latentStart : latentEnd, latentStart : latentEnd]
+  } else {
+    manifestXlatent <- matrix(value, currentManifest, currentLatent)
+    latentXmanifest <- matrix(value, currentLatent, currentManifest)
+    latentXlatent <- matrix(value, currentLatent, currentLatent)
+  }
+  
+  newtop <- cbind(
+    # Extend the current manifest * manifest matrix by adding a manifest * new manifest
+    # matrix
+    manifestXmanifest, matrix(value, currentManifest, newManifest),
+    # Extend the current manifest * latent by adding a manifest * new latent matrix
+    manifestXlatent, matrix(value, currentManifest, newLatent))
+  # So far, we have only added columns for the new manifest variables. We also
+  # have to add a row for this new manifest variable. This is a 
+  # new latent * (all variables) matrix.
+  newtop <- rbind(newtop, matrix(value, newManifest, newSize))
+  # The lower part of our matrix is dedicated to the latent variables
+  newbottom <- cbind(
+    # Extend the latent * manifest variables matrix to a latent * (manifest + new manifest)
+    # matrix
+    latentXmanifest, matrix(value, currentLatent, newManifest),
+    # Extend the latent * latent matrix to a latent * (latent + new latent) matrix
+    latentXlatent, matrix(value, currentLatent, newLatent))
+  # Now, we also add a new latent * (all variables) matrix
+  newbottom <- rbind(newbottom, matrix(value, newLatent, newSize))
+  
+  newmatrix <- rbind(newtop, newbottom)
+  return(newmatrix)
 }
 
 addVariablesMatrixM <- function(oldmatrix, newLatentValue, newManifestValue, model, newLatent, newManifest) {
-	newManifest <- length(newManifest)
-	newLatent <- length(newLatent)
-	currentManifest <- length(model@manifestVars) - newManifest
-	currentLatent <- length(model@latentVars) - newLatent
-	values <- c(oldmatrix[1, 1:currentManifest],
-		rep.int(newManifestValue, newManifest),
-		oldmatrix[1, (currentManifest + 1) : (currentLatent + currentManifest)],
-		rep.int(newLatentValue, newLatent))
-	newmatrix <- matrix(values, 1, length(model@manifestVars) + length(model@latentVars))
-	return(newmatrix)
+  newManifest <- length(newManifest)
+  newLatent <- length(newLatent)
+  currentManifest <- length(model@manifestVars) - newManifest
+  currentLatent <- length(model@latentVars) - newLatent
+  if(currentManifest > 0){
+    oldManifest <- oldmatrix[1, 1:currentManifest]
+  }else{
+    oldManifest <- matrix(0, 0, 0)
+  }
+  if(currentLatent > 0){
+    oldLatent <- oldmatrix[1, (currentManifest + 1) : (currentLatent + currentManifest)]
+  }else{
+    oldLatent <- matrix(0, 0, 0)
+  }
+  
+  values <- c(oldManifest,
+              rep.int(newManifestValue, newManifest),
+              oldLatent,
+              rep.int(newLatentValue, newLatent))
+  newmatrix <- matrix(values, 1, length(model@manifestVars) + length(model@latentVars))
+  return(newmatrix)
 }
