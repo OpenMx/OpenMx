@@ -11,6 +11,7 @@ inst/models/passing/GREML--testStarterFunctionWithMissingData.R
 inst/models/passing/Tiny_GREML_model_for_full_debug_logging.R
 inst/models/passing/yhat_test_250203.R
 inst/models/nightly/AnalyticGradientTest.R
+inst/models/nightly/GREML_endo_rgsn_test.R
 inst/models/nightly/GREML_infoMat_test.R
 inst/models/nightly/GREML_monophenotype_1GRM_GradDesc.R
 inst/models/nightly/GREML_monophenotype_1GRM.R
