@@ -122,7 +122,8 @@ messages about use of multiple threads \cr
 Nudge zero starts \tab [TRUE | FALSE] \tab Should OpenMx
 "nudge" starting values of zero to 0.1 at runtime? \cr
 Status OK \tab character vector \tab Status codes that are considered to indicate a successful optimization \cr
-Max minutes \tab numeric \tab Maximum backend elapsed time, in minutes
+Max minutes \tab numeric \tab Maximum backend elapsed time, in minutes \cr
+Analytic RAM derivatives \tab [Yes | No] \tab Should the \link[=mxFitFunctionML]{ML fitfunction} compute analytic first and second derivatives for \link[=mxExpectationRAM]{RAM} models?  Note that mxOption "Analytic Gradients" must also be set to "Yes" for these derivatives to be used.  These derivatives are currently only implemented in the case of all-continuous variables, MxData of \code{type="cov"} or \code{type="raw"}, and absence of the following: definition variables, multilevel data, product nodes, Fellner fitfunction, \link[=mxAlgebra]{MxAlgebras} on \link[=mxPath]{paths}, and \link[=mxPenalty]{penalties}.
 }
 
 
