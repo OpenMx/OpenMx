@@ -197,17 +197,43 @@ setMethod("genericGetExpected", signature("MxExpectationGREML"),
 setMethod(
 	"genericGetExpectedVector", signature("MxExpectationGREML"),
 	function(.Object, model, defvar.row=1, subname=model@name) {
-		ret <- genericGetExpected(.Object, model, c('covariance', 'means'), defvar.row=1)
-		cov <- ret[['covariance']]
-		mns <- ret[['means']]
-		if (is.null(mns)) stop("mns is null")
-		nv <- nrow(cov)
-		nm <- length(mns)
-		covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
-		mnsNames <- paste0('mean', 1:nm)
-		v <- c(vech(cov), mns[!is.na(mns)])
-		names(v) <- c(covNames, mnsNames[!is.na(mns)])
-		return(v)
+		if(!.Object@REML && length(.Object@yhat)){
+			ret <- genericGetExpected(.Object, model, c('covariance', 'means'), defvar.row=1)
+			cov <- ret[['covariance']]
+			mns <- ret[['means']]
+			if (is.null(mns)) stop("mns is null")
+			nv <- nrow(cov)
+			nm <- length(mns)
+			covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
+			mnsNames <- paste0('mean', 1:nm)
+			v <- c(vech(cov), mns[!is.na(mns)])
+			names(v) <- c(covNames, mnsNames[!is.na(mns)])
+			return(v)
+		}
+		else{
+			X <- NULL
+			if(.Object@dataset.is.yX){
+				X <- as.matrix(model@data@observed[,-1])
+			}
+			else{
+				mm <- mxGREMLDataHandler(
+					data=model@data@observed, yvars=.Object@yvars, Xvars=.Object@Xvars, 
+					addOnes=.Object@addOnes, blockByPheno=.Object@blockByPheno, 
+					staggerZeroes=.Object@staggerZeroes)
+				X <- as.matrix(mm$yX[,-1])
+			}
+			qrx <- qr(X)
+			if(qrx$rank != ncol(X)){
+				stop("the matrix of covariates 'X' is rank-deficient; the model is unidentified")
+			}
+			ret <- genericGetExpected(.Object, model, c('covariance'), defvar.row=1)
+			cov <- ret[['covariance']]
+			nv <- nrow(cov)
+			covNames <- paste0('cov', vech(outer(1:nv, 1:nv, FUN=paste, sep='_')))
+			v <- vech(cov)
+			names(v) <- covNames
+			return(v)
+		}
 	}
 )
 

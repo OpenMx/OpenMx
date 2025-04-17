@@ -600,7 +600,7 @@ minimumObservations <- function(model){
 mxCheckIdentification <- function(model, details=TRUE, nrows=2, exhaustive=FALSE, silent=FALSE){
 	warnModelCreatedByOldVersion(model)
 	notAllowedFits <- c("MxFitFunctionAlgebra", "MxFitFunctionRow", "MxFitFunctionR")
-	if( class(model$fitfunction) %in% notAllowedFits ){
+	if( .hasSlot(model,"fitfunction") && (class(model$fitfunction) %in% notAllowedFits) ){
 		msg <- paste("Identification check is not possible for models with", omxQuotes(notAllowedFits), 'fit functions.\n', "If you have a multigroup model, use mxFitFunctionMultigroup.")
 		stop(msg, call.=FALSE)
 	}
