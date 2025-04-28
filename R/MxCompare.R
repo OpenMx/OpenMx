@@ -636,7 +636,7 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 			# the alternative model. We exclude these replications.
 			mask <- (baseData[,'statusCode'] %in% mxOption(other, "Status OK") &
 				 cmpData[,'statusCode'] %in% mxOption(ref, "Status OK") &
-				 baseData[,'fit'] - cmpData[,'fit'] > 0)
+				 baseData[,'fit'] - cmpData[,'fit'] > -1e-7)
 			if (sum(mask) < .95*length(mask)) {
 				pct <- round(100*sum(mask) / length(mask))
 				warning(paste0("Only ",pct,"% of the bootstrap replications ",
