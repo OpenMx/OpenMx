@@ -291,7 +291,7 @@ generatePenaltyList <- function(flatModel, modelname, parameters, labelsData) {
   got
 }
 
-##' imxHasPenalties
+##' imxHasPenalty
 ##'
 ##' This is an internal function exported for those people who know
 ##' what they are doing.  This function checks if a model (or its
