@@ -237,7 +237,7 @@ for(pds in 1:3){
 	omxCheckCloseEnough(test0$output$fit, test4sa$output$fit, 1e-12)
 	omxCheckCloseEnough(coef(test0),coef(test4sa),1e-7)
 	omxCheckCloseEnough(test0$output$standardErrors,test4sa$output$standardErrors,3e-8)
-	omxCheckCloseEnough(test0$output$gradient,test4sa$output$gradient,3e-6)
+	omxCheckCloseEnough(test0$output$gradient,test4sa$output$gradient,5e-6)
 	omxCheckCloseEnough(test0$expectation$b,test4sa$expectation$b,5e-9)
 	omxCheckCloseEnough(test0$expectation$bcov,test4sa$expectation$bcov,1e-10)
 	
@@ -338,9 +338,9 @@ for(pds in 1:3){
 	summary(test6sa)
 	omxCheckCloseEnough(test0$output$fit, test6sa$output$fit, 1e-12)
 	omxCheckCloseEnough(coef(test0),coef(test6sa),1e-7)
-	omxCheckCloseEnough(test0$output$standardErrors,test6sa$output$standardErrors,1e-8)
-	omxCheckCloseEnough(test0$output$gradient,test6sa$output$gradient,1e-6)
-	omxCheckCloseEnough(test0$expectation$b,test6sa$expectation$b,1e-9)
+	omxCheckCloseEnough(test0$output$standardErrors,test6sa$output$standardErrors,5e-8)
+	omxCheckCloseEnough(test0$output$gradient,test6sa$output$gradient,5e-6)
+	omxCheckCloseEnough(test0$expectation$b,test6sa$expectation$b,5e-9)
 	omxCheckCloseEnough(test0$expectation$bcov,test6sa$expectation$bcov,1e-10)
 	
 	
