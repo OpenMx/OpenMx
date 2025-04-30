@@ -279,7 +279,7 @@ void omxData::newDataStatic(omxState *state, SEXP dataObj)
 
     if (dataLoc == R_NilValue) {
       // OK, probably observedStats only
-    } else if (Rf_isFrame(dataLoc)) {
+    } else if (Rf_isDataFrame(dataLoc)) {
       auto &rd = unfiltered;
       rd.rows = Rf_length(VECTOR_ELT(dataLoc, 0));
       importDataFrame(dataLoc, rd.rawCols, od->numNumeric, od->numFactor);

@@ -101,7 +101,7 @@ void omxState::omxProcessMxAlgebraEntities(SEXP algList, FitContext *fc)
 
 	for(int index = 0; index < Rf_length(algList); index++) {
 		ProtectedSEXP nextAlgTuple(VECTOR_ELT(algList, index));
-		if(IS_S4_OBJECT(nextAlgTuple)) {
+		if(Rf_isS4(nextAlgTuple)) {
 			omxMatrix *fm = algebraList[index];
       if (Rf_inherits(nextAlgTuple, "MxPenalty")) {
         SEXP obj = nextAlgTuple;
