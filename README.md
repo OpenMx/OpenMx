@@ -74,7 +74,7 @@ through multiple group, mixture distribution, categorical threshold,
 modern test theory, differential equations, state space, and many others. Models may be specified as RAM or LISREL paths, or directly in matrix algebra. Fit functions include ML (summary and full information) and WLS.
 
 
-The package manual can be accessed online in the [link](https://vipbg.vcu.edu/vipbg/OpenMx2/docs//OpenMx/latest/), and as a pdf from the [link](https://vipbg.vcu.edu/vipbg/OpenMx2/docs//OpenMx/latest/OpenMxUserGuide.pdf). The manual includes example models and scripts for the most common cases.
+The package manual can be accessed online in the [link](https://vipbg.vcu.edu/vipbg/OpenMx2/docs//OpenMx/latest/).
 
 
 
