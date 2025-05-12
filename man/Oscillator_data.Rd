@@ -21,7 +21,7 @@ Data set used in some of OpenMx's examples, for instance the LDE demo. The data 
 The data appear to be sinusoidal with exponential decay on the amplitude.  The rows of data are different times.  The column is the variable.}
 
 \source{
-Simulated.  Pulled from \url{https://openmx.ssri.psu.edu/thread/144}}
+Simulated.  Pulled from \url{https://openmx.ssri.psu.edu/node/144}}
 
 \references{
 

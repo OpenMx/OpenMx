@@ -37,10 +37,10 @@ Returns a new object of class \code{\link{MxFitFunctionGREML}}.
 }
 
 \references{
-Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale MC.  (2021).  Combining structural-equation modeling with genomic-relatedness matrix restricted maximum likelihood in OpenMx.  Behavior Genetics 51: 331-342.  \url{https://doi.org/10.1007/s10519-020-10037-5}
+Kirkpatrick RM, Pritikin JN, Hunter MD, & Neale MC.  (2021).  Combining structural-equation modeling with genomic-relatedness matrix restricted maximum likelihood in OpenMx.  Behavior Genetics 51: 331-342.  \doi{10.1007/s10519-020-10037-5}
 
 The first software implementation of "GREML":\cr
-Yang J, Lee SH, Goddard ME, Visscher PM.  (2011).  GCTA: a tool for genome-wide complex trait analysis.  American Journal of Human Genetics 88: 76-82.  \url{https://doi.org/10.1016/j.ajhg.2010.11.011}
+Yang J, Lee SH, Goddard ME, Visscher PM.  (2011).  GCTA: a tool for genome-wide complex trait analysis.  American Journal of Human Genetics 88: 76-82.  \doi{10.1016/j.ajhg.2010.11.011}
 
 One of the first uses of the acronym "GREML":\cr
 Benjamin DJ, Cesarini D, van der Loos MJHM, Dawes CT, Koellinger PD, et al. (2012).  The genetic architecture of economic and political preferences. Proceedings of the National Academy of Sciences 109: 8026-8031. doi: 10.1073/pnas.1120666109
