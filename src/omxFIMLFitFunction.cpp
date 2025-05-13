@@ -481,7 +481,7 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 							fc->gradZ[px] += Scale * -0.5*(term1+term2); 
 							if(OMX_DEBUG_ALGEBRA){
 								mxLog("row: %d",row);
-								mxLog("px: %ld",px);
+								mxLog("px: %zu",px);
 								mxLog("fc->gradZ[px]: %f",fc->gradZ[px]);
 							}
 						}
