@@ -134,7 +134,7 @@ imxLog <- function(str) .Call(Log_wrapper, str)
 #' Estabrook, Timothy C. Bates, Paras Mehta, Timo von Oertzen, Ross J. Gore, Michael D. Hunter, Daniel C.
 #' Hackett, Julian Karch, Andreas M. Brandmaier, Joshua N. Pritikin, Mahsa Zahery, Robert M. Kirkpatrick, 
 #' Yang Wang, and Charles Driver. (2016) OpenMx 2 User Guide. 
-#' http://openmx.ssri.psu.edu/docs/OpenMx/latest/OpenMxUserGuide.pdf
+#' https://openmx.ssri.psu.edu/docs/OpenMx/latest/OpenMxUserGuide.pdf
 #'
 #' @references The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documentation}
 #'
