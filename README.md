@@ -246,7 +246,7 @@ Need help?  See help(mxSummary)
 # Community and getting help
 
 1. The support communication is centered around the OpenMx [forum](https://openmx.ssri.psu.edu/forums)
-2. Also, but less often, at the StackOverflow OpenMx [tag](https://stackoverflow.com/questions/tagged/openmx/).
+2. Also, but less often, at the StackOverflow OpenMx tag.
 
 
 ## Training
