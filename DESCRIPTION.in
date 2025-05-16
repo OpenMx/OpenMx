@@ -42,7 +42,7 @@ Description: Create structural equation models that can be manipulated programma
     distribution, categorical threshold, modern test theory, differential
     Fit functions include full information maximum likelihood, maximum likelihood, and weighted least squares.
     equations, state space, and many others.
-	Support and advanced package binaries available at <http://openmx.ssri.psu.edu>.
+	Support and advanced package binaries available at <https://openmx.ssri.psu.edu>.
     The software is described in Neale, Hunter, Pritikin, Zahery, Brick,
     Kirkpatrick, Estabrook, Bates, Maes, & Boker (2016) <doi:10.1007/s11336-014-9435-8>.
 SystemRequirements: GNU make, C++17
