@@ -494,7 +494,7 @@ void omxRAMExpectation::init()
   	for(size_t mi=0; mi < Global->globalState->matrixList.size(); mi++){
   		if(strEQ(Global->globalState->matrixList[mi]->name(),S->name())){
   			samPos[0] = mi;
-  			if(OMX_DEBUG_ALGEBRA){ mxLog("mi: %zu", mi); }
+  			if(OMX_DEBUG_ALGEBRA){ mxLog("mi: %ld", static_cast<unsigned long>(mi)); }
   		}
   		if(strEQ(Global->globalState->matrixList[mi]->name(),A->name())){
   			samPos[1] = mi;
