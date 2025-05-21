@@ -535,7 +535,7 @@ void omxMatrix::unshareMemoryWithR()
 {
 	if (!owner) return;
 
-	double *copy = (double*) R_Realloc(NULL, rows * cols, double);
+	double *copy = (double*) R_Calloc(rows * cols, double);
 	memcpy(copy, data, rows * cols * sizeof(double));
 	setData(copy);
 	owner = NULL;
