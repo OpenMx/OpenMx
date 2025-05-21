@@ -533,7 +533,11 @@ void omxMatrix::addPopulate(omxMatrix *from, int srcRow, int srcCol, int destRow
 
 void omxMatrix::unshareMemoryWithR()
 {
-	if (!owner) return;
+	if ( !owner || (rows * cols == 0L) ) return;
+	
+	if(OMX_DEBUG){
+		mxLog("Now unsharing memory for %s, with %d rows and %d columns",name(),rows,cols);
+	}
 
 	double *copy = (double*) R_Calloc(rows * cols, double);
 	memcpy(copy, data, rows * cols * sizeof(double));
