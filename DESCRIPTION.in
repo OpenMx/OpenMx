@@ -56,7 +56,7 @@ Imports: digest,
     methods,
 	Rcpp, RcppParallel,
     parallel, lifecycle
-Depends: R (>= 3.5.0)
+Depends: R (>= 4.5.0)
 Suggests:
     mvtnorm,
     numDeriv,
