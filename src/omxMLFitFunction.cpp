@@ -77,7 +77,7 @@ static void calcExtraLikelihoods(omxFitFunction *oo, double *saturated_out, doub
 	double det = 0.0;
 	omxMatrix* cov = state->observedCov;
 	int ncols = state->observedCov->cols;
-	double crrctn = (double(state->n)-1.0)/double(state->n);
+	//double crrctn = (double(state->n)-1.0)/double(state->n);
 
 	*saturated_out = (state->logDetObserved * state->n) + ncols * (state->n - 1);
 	//*saturated_out = (state->logDetObserved + ncols*log(crrctn))*state->n + ncols*(state->n - 1);
