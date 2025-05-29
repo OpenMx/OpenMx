@@ -474,6 +474,8 @@ void ComputeNR::computeImpl(FitContext *fc)
 
 	numParam = fc->getNumFree();
 	if (numParam <= 0) { complainNoFreeParam(); return; }
+	
+	fc->createChildren(fitMatrix, true);
 
 	fc->setInform(INFORM_UNINITIALIZED);
 
