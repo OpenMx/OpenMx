@@ -39,10 +39,13 @@ mxOption <- function(model=NULL, key=NULL, value, reset = FALSE) {
 		}
 		return(processDefaultOptionList(key, value))
 	}
-	if (length(value) > 1 && key!="No Sort Data" && key != "Status OK") {
+	if (length(value) > 1 && key!="No Sort Data" && key != "Status OK" && key != "evalEnv") {
 		msg <- paste("argument 'value' must be either NULL or of length 1.",
 			"You gave me an object of length", length(value))
 		stop(msg)
+	}
+	if (key == "evalEnv" && !is.environment(value)) {
+		stop("argument 'value' must be an environment.")
 	}
 	if (length(reset) != 1 || !is.logical(reset)) {
 		stop("argument 'reset' must be TRUE or FALSE")
@@ -179,7 +182,8 @@ otherOptions <- list(
     "Nudge zero starts" = "Yes",
     "Status OK"= as.statusCode(c("OK", "OK/green")),
     "Max minutes"=0,
-	"Analytic RAM derivatives" = "No"
+    "Analytic RAM derivatives" = "No",
+    "evalEnv" = globalenv()
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {
