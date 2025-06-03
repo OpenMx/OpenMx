@@ -44,6 +44,9 @@ mxOption <- function(model=NULL, key=NULL, value, reset = FALSE) {
 			"You gave me an object of length", length(value))
 		stop(msg)
 	}
+	if (key == "evalEnv" && !is.environment(value)) {
+		stop("argument 'value' must be an environment.")
+	}
 	if (length(reset) != 1 || !is.logical(reset)) {
 		stop("argument 'reset' must be TRUE or FALSE")
 	}

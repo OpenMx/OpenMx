@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 mxGetEvalEnv <- function() {
-  mxOption(NULL, "evalEnv") %||% globalenv()
+	mxOption(NULL, "evalEnv")
 }
 
 mxEval <- function(expression, model, compute = FALSE, show = FALSE, defvar.row = 1L,
