@@ -187,7 +187,7 @@ double GradientOptimizerContext::solFun(double *myPars, int* mode)
 	}
 
 	if (verbose >= 3) {
-		mxLog("fit %f (mode %d)", fc->getUnscaledFit(), *mode);
+		mxLog("fit %.12f (mode %d)", fc->getUnscaledFit(), *mode);
 	}
 
 	return fc->getUnscaledFit();
