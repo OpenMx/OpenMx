@@ -158,4 +158,25 @@ summary(model, SaturatedLikelihood = -3000)
 model = mxRun(mxModel(model=model, mxCI("b5")), intervals = TRUE)
 summary(model)
 
+## How to use summary() with reference models, to get fit indices:
+
+\dontrun{
+	model <- mxModel(
+		"One Factor",
+		type="RAM",
+		manifestVars = manifests,
+		latentVars = latents,
+		mxPath(from=latents, to=manifests,values=0.8),
+		mxPath(from=manifests, arrows=2,values=1),
+		mxPath(from=latents, arrows=2,
+					 free=FALSE, values=1.0),
+		mxPath(from="one",to=manifests,values=0.1),
+		mxData(demoOneFactor, type="raw")
+	)
+	model <- mxRun(model)
+	summary(model) #<--Some fit indices missing.
+	referenceModelList <- mxRefModels(x=model,run=T)
+	summary(model,refModels=referenceModelList) #<--Fit indices present
+}
+
 }
