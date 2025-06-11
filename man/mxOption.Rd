@@ -124,6 +124,7 @@ Nudge zero starts \tab [TRUE | FALSE] \tab Should OpenMx
 Status OK \tab character vector \tab Status codes that are considered to indicate a successful optimization \cr
 Max minutes \tab numeric \tab Maximum backend elapsed time, in minutes \cr
 Analytic RAM derivatives \tab [Yes | No] \tab Should the \link[=mxFitFunctionML]{ML fitfunction} compute analytic first and second derivatives for \link[=mxExpectationRAM]{RAM} models?  Note that mxOption "Analytic Gradients" must also be set to "Yes" for these derivatives to be used.  These derivatives are currently only implemented in the case of all-continuous variables, MxData of \code{type="cov"} or \code{type="raw"}, and absence of the following: definition variables, multilevel data, product nodes, Fellner fitfunction, \link[=mxAlgebra]{MxAlgebras} on \link[=mxPath]{paths}, and \link[=mxPenalty]{penalties}.
+evalEnv \tab [environment] \tab Where OpenMx expressions should be evaluated. Defaults to the global environment which is fine for interactive use. R packages that use OpenMx may adjust this option to ensure their code works without explicitly calling \code{library(OpenMx)}.
 }
 
 
