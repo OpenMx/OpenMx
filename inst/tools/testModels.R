@@ -53,7 +53,7 @@ if (any(args == 'failing')) {
 }
 
 if (any(args == 'gctorture')) {
-	files <- c('models/passing/AlgebraComputePassing.R',
+	files <- c('tests/testthat/test-AlgebraComputePassing.R',
 		   'models/passing/TestRowObjective.R')
 } else {
 	files <- list.files(directories, pattern = '^.+[.]R$',
