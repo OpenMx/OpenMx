@@ -13,10 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# evalMxObjectAlgebraEnv
+
 getMxEvalEnv <- function() {
-	ee <- getOption("mxEvalEnv")
+	ee <- getOption("evalMxObjectAlgebraEnv")
 	if(!is.environment(ee)){
-		stop("option 'mxEvalEnv' must be an environment")
+		stop("option 'evalMxObjectAlgebraEnv' must be an environment")
 	}
 	return(ee)
 }
