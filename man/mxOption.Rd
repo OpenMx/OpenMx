@@ -16,10 +16,10 @@
 \name{mxOption}
 \alias{mxOption}
 
-\title{Set or Clear an Optimizer Option}
+\title{Set or Clear an OpenMx Option}
 
 \description{
-The function sets, shows, or clears an option that is specific to the optimizer in the back-end.
+The function sets, shows, or clears an option that is specific to OpenMx's backend.  For global \R \link[base:options]{options} that affect OpenMx's frontend, please refer to the "See Also" section below.
 }
 
 \usage{
@@ -35,7 +35,7 @@ mxOption(model=NULL, key=NULL, value, reset = FALSE)
 
 \details{
 mxOption is used to set, clear, or query an option (given in the \sQuote{key} argument)
-in the back-end optimizer. Valid option keys are listed below.
+pertaining to the backend. Valid option keys are listed below.
 
 Use value = NULL to remove an existing option. Leaving value blank will return
 the current value of the option specified by \sQuote{key}.
@@ -43,12 +43,12 @@ the current value of the option specified by \sQuote{key}.
 To reset all options to their default values, use \sQuote{reset = TRUE}.
 When reset = TRUE, \sQuote{key} and \sQuote{value} are ignored.
 
-If the \sQuote{model} argument is set to NULL, the default optimizer option (i.e
-those applying to all models by default) will be set.
+If the \sQuote{model} argument is set to NULL, the option will be set globally (i.e
+applying to all models by default).
 
-To see the defaults, use \code{getOption('mxOptions')}.
+To see the current values of the global options, use \code{getOption('mxOptions')}.
 
-Before the model is submitted to the back-end, all keys and values are converted into
+Before the model is submitted to the backend, all keys and values are converted into
 strings using the \link{as.character} function.
 
 \strong{Optimizer specific options}
@@ -62,7 +62,7 @@ of options to control the numerical estimation of the
 gradient. One option for CSOLNP and SLSQP is
 the gradient algorithm. CSOLNP uses the \code{forward} method
 by default, while SLSQP uses the \code{central} method. The
-\code{forward} method requires 1 time \dQuote{Gradient iterations}
+\code{forward} method requires 1 times \dQuote{Gradient iterations}
 function evaluation per parameter
 per gradient, while \code{central} method requires 2 times
 \dQuote{Gradient iterations} function evaluations per parameter
@@ -82,7 +82,7 @@ it will be used as-is. NPSOL ignores
 \link{mxOption} \dQuote{Function precision} to determine its gradient
 step size.
 
-Option \dQuote{Analytic Gradients} affects all three optimizers, but some options only affect certain optimizers. Option \dQuote{Gradient algorithm} is used by CSOLNP and SLSQP, and ignored by NPSOL. Option \dQuote{Gradient iterations} only affects SLSQP. Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
+Some options only affect certain optimizers. Option \dQuote{Gradient algorithm} is used by CSOLNP and SLSQP, and ignored by NPSOL. Option \dQuote{Gradient iterations} only affects SLSQP. Option \dQuote{Gradient step size} is used slightly differently by SLSQP and CSOLNP, and is ignored by NPSOL (see \code{\link{mxComputeGradientDescent}()} for details).
 
 If an mxModel contains \link[=MxConstraint]{mxConstraints}, NPSOL is given .4 times the value of the option \dQuote{Feasibility tolerance}. If there are no constraints, NPSOL is given a hard-coded value of 1e-5 (its own native default).
 
@@ -192,6 +192,8 @@ The OpenMx User's guide can be found at \url{https://openmx.ssri.psu.edu/documen
 
 \seealso{
 See \code{\link{mxModel}()}, as almost all uses of \code{mxOption()} are via an mxModel whose options are set or cleared.  See \code{\link{mxComputeGradientDescent}()} for details on how different optimizers are affected by different options. See \link{as.statusCode} for information about the \code{Status OK} option.
+
+The OpenMx frontend is affected by five global \R \link[base:options]{options}.  For option "mxDefaultType", see \code{\link[=mxModel]{mxModel}()}.  For options "mxByrow" and "mxCondenseMatrixSlots", see \code{\link[=mxMatrix]{mxMatrix}()}.  Option "evalMxObjectAlgebraEnv" governs the behavior of two internal OpenMx functions--\code{evaluateMxObject()} and \code{evaluateAlgebraWithContext()}--and is primarily of interest to third-party package developers.  Option "swift.initialexpr" is for developer use when testing OpenMx on a computing cluster.
 }
 
 
