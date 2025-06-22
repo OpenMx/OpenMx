@@ -28,6 +28,10 @@
 /inst/models/passing/m1.omx
 /inst/models/passing/testModel.omx
 /inst/models/passing/Rplots.pdf
+/inst/models/passing/cov.csv
+/inst/models/passing/loadMatrix.csv
+/inst/models/passing/mean.csv
+/demo/Rplots.pdf
 /models
 /docs/source/static
 imxJiggle.Rd
