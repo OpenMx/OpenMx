@@ -155,12 +155,26 @@ omxCheckError(mxRun(testmod),
 testmod <- mxModel(
 	"GREMLtest",
 	mxData(observed=dat, type="raw", sort=F),
+	mxMatrix(type="Diag", nrow=100, ncol=100, free=T, values=0.1, labels="v", lbound=0.0001, name="V"),
+	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
+	mxFitFunctionML()
+)
+omxCheckWarning(
+	mxRun(testmod),
+	"use of an ML fitfunction with a GREML expectation is deprecated; instead, try using a GREML fitfunction, with argument `REML=FALSE` provided to `mxExpectationGREML()`")
+
+
+
+testmod <- mxModel(
+	"GREMLtest",
+	mxData(observed=dat, type="raw", sort=F),
 	mxMatrix(type = "Unit", nrow = 100, ncol=100, name = "V", condenseSlots = T),
 	mxExpectationGREML(V="V",Xvars=list("x"),yvars="y",addOnes=F),
 	mxFitFunctionML()
 )
 omxCheckError(mxRun(testmod),
 							"Expected covariance matrix is non-positive-definite at initial values")
+
 
 
 testmod <- mxModel(

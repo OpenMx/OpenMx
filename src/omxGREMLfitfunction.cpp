@@ -2617,6 +2617,10 @@ void GRMFIMLFitState::init()
 	else{
 		oo->X = omxGetExpectationComponent(expectation, "X");
 	}
+	
+	Rf_warning(
+		"use of an ML fitfunction with a GREML expectation is deprecated; " 
+		"instead, try using a GREML fitfunction, with argument `REML=FALSE` provided to `mxExpectationGREML()`");
 
 }
 
