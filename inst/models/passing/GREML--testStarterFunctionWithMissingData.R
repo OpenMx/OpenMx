@@ -230,14 +230,40 @@ testmod6 <- mxModel(
 	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="yhat"),
 	mxFitFunctionGREML(),
 	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
+	mxMatrix(type="Iden",nrow=100,ncol=100,free=F,name="I"),
+	mxAlgebra(I%x%Ve,name="V"),
+	mxMatrix(type="Full",nrow=100,ncol=1,free=T,values=0.12345,labels="m",name="yhat")
+)
+omxCheckWarning(
+	mxAutoStart(testmod6),
+	paste0(
+		"using `mxAutoStart()` with a GREML expectation that has an explicit means model does not work very well,\n",
+		"and may even be counterproductive"
+	)
+)
+
+testmod6 <- mxModel(
+	mxData(observed=dat, type="raw"),
+	mxExpectationGREML(V="V",yvars="y",REML=F,yhat="yhat"),
+	mxFitFunctionGREML(),
+	mxMatrix(type = "Full", nrow = 1, ncol=1, free=T, values = 2, labels = "ve", lbound = 0.0001, name = "Ve"),
 	mxMatrix(type="Unit",nrow=95,ncol=95,free=F,name="V"),
 	mxMatrix(type="Full",nrow=95,ncol=1,free=T,values=0.12345,labels="m",name="yhat")
 )
-omxCheckError(
-	mxAutoStart(testmod6),
+omxCheckWarning(
+	omxCheckError(
+		mxAutoStart(testmod6),
+		paste0(
+			"something's wrong;\n",
+			"check the dimensions of 'V', 'yhat', and phenotype vector 'y'\n",
+			"(use `mxGREMLDataHandler()` to construct 'y' prior to runtime)"
+		)
+	),
 	paste0(
-		"something's wrong;\n",
-		"check the dimensions of 'V', 'yhat', and phenotype vector 'y'\n",
-		"(use `mxGREMLDataHandler()` to construct 'y' prior to runtime)"
+		"using `mxAutoStart()` with a GREML expectation that has an explicit means model does not work very well,\n",
+		"and may even be counterproductive"
 	)
 )
+
+
+

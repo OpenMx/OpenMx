@@ -20,7 +20,8 @@
 
 \description{
     Use the dimension of the null space of the Jacobian to determine whether or not a model is identified local to its current parameter values.
-    The output is a list of the the identification status, the Jacobian, and which parameters are not identified.
+    The output is a list of the the identification status, the Jacobian, and which parameters are not identified.  May give inaccurate results with
+    \link[=mxExpectationGREML]{GREML expectations} (see "Details" below).
 }
 
 \usage{
@@ -80,6 +81,8 @@ all unique definition variable values, set \code{nrows=Inf} and
 \code{exhaustive=TRUE}.
 
 When TRUE, the 'details' argument provides the names of the non-identified parameters.  Otherwise, only the status and Jacobian are returned.
+
+For most models with a \link[=mxExpectationGREML]{GREML expectation}, the function will run slowly, and use of \code{detail=TRUE} is therefore not recommended.  Additionally, for GREML \link[=mxModel]{MxModels} that use an "implicit" (i.e., "specified in terms of covariates via \code{\link{mxExpectationGREML}()} argument \code{Xvars}") model for the phenotypic mean, there are forms of unidentification that the function cannot (yet) detect, and it therefore may give false-positive reports of local identification.
 }
 
 \value{

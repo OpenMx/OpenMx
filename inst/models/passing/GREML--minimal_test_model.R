@@ -104,7 +104,7 @@ testrun3 <- mxRun(testmod3)
 #I had thought this would be obvious, but evidently it wasn't.  The tests below are checking to see if the ML estimate of the variance is
 #close enough to the directly calculated sample variance with N, not N-1, in the denominator.
 #Note that var() uses N-1 in the denominator.
-#In contrast, the REML estimate is supposed to beclose to the directly calculated sample variance with N-1 in the denominator
+#In contrast, the REML estimate is supposed to be close to the directly calculated sample variance with N-1 in the denominator
 #(as in testrun and testrun2 above):
 omxCheckCloseEnough(testrun3$output$estimate[1],var(dat[,1])*99/100,epsilon=10^-5)
 omxCheckCloseEnough(testrun3$expectation$b,mean(dat[,1]),epsilon=10^-5)

@@ -226,6 +226,10 @@ setMethod(
 			if(qrx$rank != ncol(X)){
 				stop("the matrix of covariates 'X' is rank-deficient; the model is unidentified")
 			}
+			# warning(
+			# 	paste0(
+			# 		"using `mxCheckIdentification()` with a GREML expectation that has an implicit means model\n",
+			# 		"may give false-positive reports of local identification"))
 			ret <- genericGetExpected(.Object, model, c('covariance'), defvar.row=1)
 			cov <- ret[['covariance']]
 			nv <- nrow(cov)
