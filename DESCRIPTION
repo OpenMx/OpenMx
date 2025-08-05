@@ -1,6 +1,6 @@
 Encoding: UTF-8
 Package: OpenMx
-Date: 2023-10-27
+Date: 2025-08-05
 Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -11,12 +11,14 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     "Oertzen"), role="ctb"), person(c("Ross", "J."), "Gore", role="aut"),
     person(c("Michael", "D."), "Hunter", role="aut"), person(c("Daniel", "C."), "Hackett", role="ctb"),
     person("Julian", "Karch", role="ctb"), person(c("Andreas", "M."), "Brandmaier", role="ctb"),
-    person(c("Joshua", "N."), "Pritikin", email="jpritikin@pobox.com",
-    role=c("aut", 'cre')), person("Mahsa", "Zahery", role="aut"),
-    person(c("Robert", "M."), "Kirkpatrick", role="aut"),
+    person(c("Joshua", "N."), "Pritikin", role="aut"), 
+    person("Mahsa", "Zahery", role="aut"),
+    person(c("Robert", "M."), "Kirkpatrick", email="rkirkpatrick2@vcu.edu", role=c("aut","cre")),
     person(c("Yang"), "Wang", role="ctb"),
 		person("Ben", "Goodrich", email="goodrich.ben@gmail.com", role="ctb"),
     person(c("Charles"), "Driver", email="driver@mpib-berlin.mpg.de", role="ctb"),
+    person(c("Jannik", "H."), "Orzek", email="jannik.orzek@mailbox.org", role="ctb"),
+    person(c("Don"), "van den Bergh", email="d.vandenbergh@uva.nl", role="ctb"),
     person("Massachusetts Institute of Technology", role="cph"),
     person("S. G.", "Johnson", role="cph"),
     person("Association for Computing Machinery", role="cph"),
@@ -33,19 +35,19 @@ Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person("Jiang", "Yang", role="cph"),
 		person("Gael", "Guennebaud", role="cph"),
 		person("Jitse", "Niesen", role="cph"))
-URL: http://openmx.ssri.psu.edu, https://github.com/OpenMx/OpenMx
-BugReports: http://openmx.ssri.psu.edu/forums
+URL: https://openmx.ssri.psu.edu/, https://github.com/OpenMx/OpenMx
+BugReports: https://openmx.ssri.psu.edu/forums/
 Description: Create structural equation models that can be manipulated programmatically.
     Models may be specified with matrices or paths (LISREL or RAM)
     Example models include confirmatory factor, multiple group, mixture
     distribution, categorical threshold, modern test theory, differential
     Fit functions include full information maximum likelihood, maximum likelihood, and weighted least squares.
     equations, state space, and many others.
-	Support and advanced package binaries available at <http://openmx.ssri.psu.edu>.
+	Support and advanced package binaries available at <https://openmx.ssri.psu.edu>.
     The software is described in Neale, Hunter, Pritikin, Zahery, Brick,
     Kirkpatrick, Estabrook, Bates, Maes, & Boker (2016) <doi:10.1007/s11336-014-9435-8>.
 SystemRequirements: GNU make, C++17
-ByteCompile: no
+ByteCompile: yes
 Language: en-US
 License: Apache License (== 2.0)
 LinkingTo: Rcpp, RcppEigen (>= 0.3.3.9.4), RcppParallel, StanHeaders (>= 2.10.0.2), BH (>= 1.69.0-1), rpf (>= 0.45), Matrix
@@ -55,7 +57,7 @@ Imports: digest,
     methods,
 	Rcpp, RcppParallel,
     parallel, lifecycle
-Depends: R (>= 3.5.0)
+Depends: R (>= 4.5.0)
 Suggests:
     mvtnorm,
     numDeriv,
@@ -187,4 +189,5 @@ Collate:
 RdMacros:
     lifecycle
 Biarch: true
-Version: 2.21.8-26
+Version: 2.22.7-19
+RoxygenNote: 7.3.2
