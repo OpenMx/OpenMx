@@ -67,7 +67,6 @@ Suggests:
     lme4,
     covr,
     testthat,
-    umx,
     ifaTools,
     knitr,
     markdown,
