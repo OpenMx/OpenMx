@@ -319,7 +319,7 @@ static SEXP whatIsStanMathMajorVersion(){
 
 void string_to_Rf_error( const char *str )
 {
-	Rf_error("%s", str);
+	(Rf_error)("%s", str);
 }
 
 void exception_to_Rf_error( const std::exception& ex )
