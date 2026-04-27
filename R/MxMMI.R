@@ -101,14 +101,14 @@ mxModelAverage <- function(
 	}
 	#The list of models is thoroughly checked as part of this function call:
 	tabl1 <- omxAkaikeWeights(models=models, type=type, conf.level=conf.level)
-	#If 'reference' is empty, return tabl1, with a warning:
+	#If `reference` is empty, return tabl1, with a warning:
 	if(!length(reference)){
 		warning("argument 'reference' is NULL; vector of character strings was expected")
 		return(tabl1)
 	}
 	names(models) <- attr(tabl1,"unsortedModelNames")
-	models <- models[tabl1$"model"] #<--Rearrange 'models' in order from best to worst AIC.
-	#if covariances is non-empty, it must either be named, or be of the same length as 'models':
+	models <- models[tabl1$"model"] #<--Rearrange `models` in order from best to worst AIC.
+	#if `covariances` is non-empty, it must either be named, or be of the same length as `models`:
 	if(length(covariances)){
 		if(!length(names(covariances))){
 			if(length(covariances) != length(models)){
@@ -181,7 +181,7 @@ mxModelAverage <- function(
 	#Make labels for elements of matrices and algebras:
 	longlabels <- NULL
 	for(i in 1:nrow(refdims)){
-		#Possible TODO--instead of this error, drop the bad reference and carry on:
+		#Possible TODO--instead of this error, drop the bad reference and carry on?:
 		if(any(is.na(refdims[i,]))){
 			stop(paste("reference ",omxQuotes(rownames(refdims)[i])," could not be evaluated in any model",sep=""))
 		}
@@ -226,18 +226,6 @@ mxModelAverage <- function(
 				else{
 					currmodcovm <- try(vcov(currmod))
 					if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-					# if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
-					# 	currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
-					# 	dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
-					# 	covmAvailable <- TRUE
-					# }
-					# else{
-					# 	currmodcovm <- try(solve(currmod@output$hessian/2))
-					# 	if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-					# }
-					# if(imxHasConstraint(currmod) && covmAvailable){
-					# 	warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"sampling covariance matrix and standard errors for model-average point estimates may not be valid"))
-					# }
 				}
 			}
 			currmod <- mxModel(
@@ -308,7 +296,7 @@ mxModelAverage <- function(
 			return(outlist)
 		}
 	}
-	else{
+	else{ #<--i.e., if refAsBlock=FALSE
 		wivmtx <- matrix(NA_real_,nrow=length(longlabels),ncol=nrow(tabl1),dimnames=list(longlabels,names(models)))
 		for(i in 1:length(models)){
 			currmod <- models[[i]]
@@ -335,23 +323,6 @@ mxModelAverage <- function(
 			else{
 				currmodcovm <- try(vcov(currmod))
 				if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-				# if(!is.na(currmod@output$infoDefinite) && currmod@output$infoDefinite){
-				# 	currmodcovm <- 2*chol2inv(chol(currmod@output$hessian))
-				# 	dimnames(currmodcovm) <- dimnames(currmod@output$hessian)
-				# 	covmAvailable <- TRUE
-				# }
-				# else{
-				# 	currmodcovm <- try(solve(currmod@output$hessian/2))
-				# 	if(!is(currmodcovm,"try-error")){covmAvailable <- TRUE}
-				# }
-				# if(imxHasConstraint(currmod) && covmAvailable){
-				# 	if(SE){
-				# 		warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances, as well as the standard errors for model-average point estimates, may not be valid"))
-				# 	}
-				# 	else{
-				# 		warning(paste("due to presence of MxConstraints in model",omxQuotes(currmod@name),"its model-wise sampling variances may not be valid"))
-				# 	}
-				# }
 			}
 			if(!covmAvailable && SE){
 				#We don't want the subset of models contributing to the model-average point estimates to be different from the subset of models 
@@ -418,7 +389,7 @@ mxModelAverage <- function(
 						else{jac <- numDeriv::jacobian(func=sefun,x=omxGetParameters(currmod),model=currmod,alg=reference[j])}
 						for(k in 1:reflengths[j]){
 							#A row of the Jacobian matrix can only be all zeroes if include="onlyFree":
-							if(all(jac[k,]==0)){next}
+							if(all(jac[k,]==0)){next} #<--Could these comparisons fail due to non-finite values?
 							thetamtx[rownumcurr+(k-1),i] <- x[k]
 						}
 					}
