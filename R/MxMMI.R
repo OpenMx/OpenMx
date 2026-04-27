@@ -121,9 +121,11 @@ mxModelAverage <- function(
 			if(length(unique(names(covariances))) < length(names(covariances))){
 				stop("if a non-empty value for argument 'covariances' has element names, then those names must uniquely identify each element")
 			}
-			if( !all(names(covariances) %in% names(models)) ){
-				#TODO more helpful warning message:
-				warning(paste("an element of argument 'covariances' has a name that does not match the name of any element of 'models'"))
+			#if( !all(names(covariances) %in% names(models)) ){
+			for(jj in 1:length(names(covariances))){
+				if( !(names(covariances)[jj] %in% names(models)) ){
+					warning(paste("element ",jj," of argument 'covariances' has a name that does not match the name of any element of 'models'",sep=""))
+				}
 			}
 		}
 	}
@@ -167,6 +169,9 @@ mxModelAverage <- function(
 			if(all(is.na(refdims[j,]))){refdims[j,] <- c(nrow(xx),ncol(xx))}
 			else if( !(refdims[j,1]==nrow(xx) && refdims[j,2]==ncol(xx)) ){
 				stop(paste("reference ",omxQuotes(reference[j])," is ",nrow(xx),"x",ncol(xx)," in MxModel ",omxQuotes(currmod@name)," but is ",refdims[j,1],"x",refdims[j,2]," in at least one other MxModel",sep=""))
+			}
+			if(any(!is.finite(xx))){
+				stop(paste("reference ",omxQuotes(reference[j])," in MxModel",omxQuotes(currmod@name)," contains a non-finite value",sep=""))
 			}
 			modreflist[[i]][[j]] <- xx
 		}
@@ -246,17 +251,34 @@ mxModelAverage <- function(
 			}
 			if(covmAvailable && SE){
 				refcov <- mxSE(x="onTheFlyAlgebra2",model=currmod,details=T,cov=currmodcovm,silent=T)$Cov
-				#TODO more informative error message:
-				if(include=="onlyFree" && any(diag(refcov) <= .Machine$double.eps)){
-					stop("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+				# if(include=="onlyFree" && any(diag(refcov) < .Machine$double.eps)){ #<--Could these comparisons fail due to non-finite values?
+				# 	#Possible TODO--more informative error message?:
+				# 	stop(paste("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel ",omxQuotes(currmod@name)," is fixed",sep=""))
+				# }
+				fixedFlag <- FALSE
+				for(jj in 1:length(diag(refcov))){
+					if(!is.finite(diag(refcov)[jj])){
+						#This has to be a fatal error:
+						stop(paste("reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," has a non-finite sampling variance",sep=""))
+					}
+					if(abs(diag(refcov)[jj]) < .Machine$double.eps && include=="onlyFree"){
+						warning(paste("reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," is fixed",sep=""))
+						fixedFlag <- TRUE
+					}
+					if(diag(refcov)[jj] < 0){
+						warning(paste("reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," has a negative sampling variance",sep=""))
+					}
+				}
+				if(include=="onlyFree" && fixedFlag){
+					stop(paste("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel ",omxQuotes(currmod@name)," is fixed",sep=""))
 				}
 				refcovlist[[i]] <- refcov
 			}
 			else if(include=="onlyFree"){
 				jac <- numDeriv::jacobian(func=sefun,x=omxGetParameters(currmod),model=currmod,alg="onTheFlyAlgebra2")
-				if( any(apply(X=jac,MARGIN=1,FUN=function(x){all(x==0)})) ){
-					#TODO more informative error message:
-					stop("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+				if( any(apply(X=jac,MARGIN=1,FUN=function(x){all(x==0)})) ){ #<--Could these comparisons fail due to non-finite values?
+					#Possible TODO--more informative error message?:
+					stop(paste("when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel ",omxQuotes(currmod@name)," appears to be fixed",sep=""))
 				}
 			}
 		}
@@ -269,7 +291,12 @@ mxModelAverage <- function(
 				bw <- as.vector(thetamtx[,i]-tabl2[,1])
 				uncondcovm <- uncondcovm + tabl1$AkaikeWeight[i]*(refcovlist[[i]] + outer(bw,bw))
 			}
-			tabl2[,2] <- sqrt(diag(uncondcovm))
+			for(jj in 1:nrow(tabl2)){
+				if(diag(uncondcovm)[jj] < 0){
+					warning(paste("the model-average estimate of reference ",rownames(tabl2)[jj]," has a negative sampling variance; expect standard error of `NaN`",sep=""))
+				}
+			}
+			tabl2[,2] <- suppressWarnings(sqrt(diag(uncondcovm)))
 			outlist <- list(tabl2,thetamtx,uncondcovm,tabl1)
 			names(outlist) <- c("Model-Average Estimates","Model-wise Estimates","Joint Covariance Matrix","Akaike-Weights Table")
 			return(outlist)
@@ -336,7 +363,15 @@ mxModelAverage <- function(
 			for(j in 1:length(reference)){
 				if(reference[j] %in% names(currmodparams$fre)){
 					thetamtx[rownumcurr,i] <- currmodparams$fre[reference[j]]
-					if(covmAvailable){wivmtx[rownumcurr,i] <- currmodcovm[reference[j],reference[j]]}
+					if(covmAvailable){
+						if(!is.finite(currmodcovm[reference[j],reference[j]])){
+							stop(paste("in MxModel ",omxQuotes(currmod@name),", parameter ",omxQuotes(reference[j])," has a non-finite sampling variance",sep=""))
+						}
+						if(currmodcovm[reference[j],reference[j]] < 0){
+							warning(paste("in MxModel ",omxQuotes(currmod@name),", parameter ",omxQuotes(reference[j])," has a negative sampling variance",sep=""))
+						}
+						wivmtx[rownumcurr,i] <- currmodcovm[reference[j],reference[j]]
+					}
 					rownumcurr <- rownumcurr + 1
 					next
 				} 
@@ -364,7 +399,15 @@ mxModelAverage <- function(
 						}
 						xv <- xv$Cov
 						for(k in 1:nrow(xv)){
-							if(include=="onlyFree" && xv[k,k] < .Machine$double.eps){next}
+							if(!is.finite(xv[k,k])){
+								#This has to be a fatal error, because we want to be able to compare `xv[k,k]` to double eps
+								#in order to identify fixed reference quantities, and we can't do that comparison if `xv[k,k]` is non-finite:
+								stop(paste("in MxModel ",omxQuotes(currmod@name),", reference ",omxQuotes(reference[j])," has a non-finite value in element [",k,",",k,"]"," of its repeated-sampling covariance matrix",sep=""))
+							}
+							if(xv[k,k] < 0){
+								warning(paste("in MxModel ",omxQuotes(currmod@name),", reference ",omxQuotes(reference[j])," has a negative value in element [",k,",",k,"]"," of its repeated-sampling covariance matrix",sep=""))
+							}
+							if(include=="onlyFree" && abs(xv[k,k]) < .Machine$double.eps){next}
 							thetamtx[rownumcurr+(k-1),i] <- x[k]
 							wivmtx[rownumcurr+(k-1),i] <- xv[k,k]
 						}
@@ -396,7 +439,11 @@ mxModelAverage <- function(
 					wcurr <- wcurr/sum(wcurr)
 				}
 				tabl2[i,1] <- t(wcurr) %*% thetacurr
-				tabl2[i,2] <- sqrt( t(wcurr) %*% (wivcurr + (tabl2[i,1]-thetacurr)^2) )
+				tabl2[i,2] <- t(wcurr) %*% (wivcurr + (tabl2[i,1]-thetacurr)^2)
+				if(tabl2[i,2] < 0){
+					warning(paste("the model-average estimate of reference ",rownames(tabl2)[i]," has a negative sampling variance; expect standard error of `NaN`",sep=""))
+				}
+				tabl2[i,2] <- suppressWarnings(sqrt(tabl2[i,2]))
 			}
 		}
 		else{

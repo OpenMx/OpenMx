@@ -124,19 +124,20 @@ mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AIC")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AIC")
-omxCheckError(mxModelAverage(
-		reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AIC"),
-		"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+omxCheckWarning(omxCheckError(mxModelAverage(
+	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AIC"),
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model"),"reference 'C11' in MxModel 'oneAEvca' is fixed")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AIC")
 omxCheckError(mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AIC"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneAEvca' appears to be fixed")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AIC")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AIC"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneAEvca' is fixed"),
+	"reference 'C11' in MxModel 'oneAEvca' is fixed")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AIC")
 mxModelAverage(
@@ -151,19 +152,21 @@ mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AICc")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AICc")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AICc"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneAEvca' is fixed"),
+	"reference 'C11' in MxModel 'oneAEvca' is fixed")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AICc")
 omxCheckError(mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AICc"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneAEvca' appears to be fixed")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AICc")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AICc"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneAEvca' is fixed"),
+	"reference 'C11' in MxModel 'oneAEvca' is fixed")
 mxModelAverage(
 	reference=c("b11","b0","A11","C11","E11"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AICc")
 
@@ -174,17 +177,19 @@ mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitC
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=FALSE,type="AIC")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AIC")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AIC")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AIC"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneEvca' is fixed"),
+	"reference 'MZ.expCovMZ[2,1]' in MxModel 'oneEvca' is fixed")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AIC")
 omxCheckError(mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AIC"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneEvca' appears to be fixed")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AIC")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AIC"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneEvca' is fixed"),
+	"reference 'MZ.expCovMZ[2,1]' in MxModel 'oneEvca' is fixed")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AIC")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=FALSE,type="AICc")
 mxModelAverage(reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=FALSE,type="AICc")
@@ -196,18 +201,20 @@ mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=FALSE,type="AICc")
 mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=FALSE,type="AICc")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=NULL,refAsBlock=TRUE,type="AICc"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneEvca' is fixed"),
+	"reference 'MZ.expCovMZ[2,1]' in MxModel 'oneEvca' is fixed")
 mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=NULL,refAsBlock=TRUE,type="AICc")
 omxCheckError(mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=FALSE,refAsBlock=TRUE,type="AICc"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneEvca' appears to be fixed")
 mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=FALSE,refAsBlock=TRUE,type="AICc")
-omxCheckError(mxModelAverage(
+omxCheckWarning(omxCheckError(mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="onlyFree",SE=TRUE,refAsBlock=TRUE,type="AICc"),
-	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model")
+	"when refAsBlock=TRUE and include='onlyFree', no references may be fixed in any model; at least one reference in MxModel 'oneEvca' is fixed"),
+	"reference 'MZ.expCovMZ[2,1]' in MxModel 'oneEvca' is fixed")
 mxModelAverage(
 	reference=c("V","MZ.expCovMZ[2,1]"),models=list(fitACE,fitAE,fitCE,fitE),include="all",SE=TRUE,refAsBlock=TRUE,type="AICc")
