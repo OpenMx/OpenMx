@@ -217,7 +217,7 @@ mxEval(Sigma,m6,T)
 #Interestingly, SLSQP doesn't gain any advantage in function evaluations by adding analytic derivatives
 #for the inequality constraints, but NPSOL does:
 if(mxOption(NULL,"Default optimizer") %in% c("CSOLNP","NPSOL")){
-  omxCheckTrue(m4Eval > m6$output$evaluations)
+  omxCheckTrue(m4Eval > m6$output$evaluations) #<--This test may fail with CSOLNP depending on number of threads!
 }
 omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m6,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
