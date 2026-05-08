@@ -247,14 +247,18 @@ mxModelAverage <- function(
 				for(jj in 1:length(diag(refcov))){
 					if(!is.finite(diag(refcov)[jj])){
 						#This has to be a fatal error:
-						stop(paste("reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," has a non-finite sampling variance",sep=""))
+						stop(paste(
+							"reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," has a non-finite sampling variance\n",
+							"(if ",omxQuotes(longlabels[jj])," is an MxAlgebra, use `mxSE()` with `details=TRUE` to get its sampling covariance matrix)",sep=""))
 					}
 					if(abs(diag(refcov)[jj]) < .Machine$double.eps && include=="onlyFree"){
 						warning(paste("reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," is fixed",sep=""))
 						fixedFlag <- TRUE
 					}
 					if(diag(refcov)[jj] < 0){
-						warning(paste("reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," has a negative sampling variance",sep=""))
+						warning(paste(
+							"reference ",omxQuotes(longlabels[jj])," in MxModel ",omxQuotes(currmod@name)," has a negative sampling variance\n",
+							"(if ",omxQuotes(longlabels[jj])," is an MxAlgebra, use `mxSE()` with `details=TRUE` to get its sampling covariance matrix)",sep=""))
 					}
 				}
 				if(include=="onlyFree" && fixedFlag){
@@ -373,10 +377,16 @@ mxModelAverage <- function(
 							if(!is.finite(xv[k,k])){
 								#This has to be a fatal error, because we want to be able to compare `xv[k,k]` to double eps
 								#in order to identify fixed reference quantities, and we can't do that comparison if `xv[k,k]` is non-finite:
-								stop(paste("in MxModel ",omxQuotes(currmod@name),", reference ",omxQuotes(reference[j])," has a non-finite value in element [",k,",",k,"]"," of its repeated-sampling covariance matrix",sep=""))
+								stop(paste(
+									"in MxModel ",omxQuotes(currmod@name),", reference ",omxQuotes(reference[j]),
+									" has a non-finite value in element [",k,",",k,"]"," of its repeated-sampling covariance matrix\n",
+									"(if ",omxQuotes(reference[j])," is an MxAlgebra, use `mxSE()` with `details=TRUE` to get its sampling covariance matrix)",sep=""))
 							}
 							if(xv[k,k] < 0){
-								warning(paste("in MxModel ",omxQuotes(currmod@name),", reference ",omxQuotes(reference[j])," has a negative value in element [",k,",",k,"]"," of its repeated-sampling covariance matrix",sep=""))
+								warning(paste(
+									"in MxModel ",omxQuotes(currmod@name),", reference ",omxQuotes(reference[j]),
+									" has a negative value in element [",k,",",k,"]"," of its repeated-sampling covariance matrix\n",
+									"(if ",omxQuotes(reference[j])," is an MxAlgebra, use `mxSE()` with `details=TRUE` to get its sampling covariance matrix)",sep=""))
 							}
 							if(include=="onlyFree" && abs(xv[k,k]) < .Machine$double.eps){next}
 							thetamtx[rownumcurr+(k-1),i] <- x[k]
