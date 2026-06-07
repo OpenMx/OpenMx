@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2021 by the individuals mentioned in the source code history
+%   Copyright 2007-2026 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ mxSummary allows the user to set or override the following parameters of the mod
 
 \strong{Standard Output}
 
-The standard output consists of a table of free parameters, tables of model and fit statistics, information on the time taken to run the model, the optimizer used, and the version of OpenMx.
+The standard output consists of a table of free parameters, tables of model and fit statistics, information on the time taken to run the model, the optimizer used, and the version of OpenMx. See \code{\link{as.statusCode}} for helpful information about optimizer status codes (e.g., infeasible linear constraint, iteration limit, infeasible start etc.).
 
 
 \strong{Table of free parameters}

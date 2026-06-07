@@ -63,4 +63,5 @@ a more colloquial, less precise desciption.
 \seealso{
 \code{\link{mxBootstrap}}
 \code{\link{summary.MxModel}}
+\code{\link{mxRun}}
 }

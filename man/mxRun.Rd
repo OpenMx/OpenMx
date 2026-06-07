@@ -1,5 +1,5 @@
 %
-%   Copyright 2007-2019 by the individuals mentioned in the source code history
+%   Copyright 2007-2026 by the individuals mentioned in the source code history
 %
 %   Licensed under the Apache License, Version 2.0 (the "License");
 %   you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ The mxRun function is used to optimize free parameters in \link{MxModel} objects
 
 If the \sQuote{silent} flag is TRUE, then model execution will not print any status messages to the terminal.
 
-If the \sQuote{suppressWarnings} flag is TRUE, then model execution will not issue a warning if NPSOL returns a non-zero status code.
+If the \sQuote{suppressWarnings} flag is TRUE, then model execution will not issue a warning if NPSOL returns a non-zero status code. See \code{\link{as.statusCode}} for helpful information about optimizer status codes (e.g., infeasible linear constraint, iteration limit, infeasible start etc.).
 
 If the \sQuote{unsafe} flag is TRUE, then many error conditions will not
 be detected. Any error condition detected will be downgraded to warnings.  It is strongly recommended to use this feature only for debugging purposes.
@@ -82,7 +82,7 @@ If a model is dependent on or shares parameters with another model, both models 
 }
 
 \seealso{
-\link{mxTryHard} for running models which prove difficult to optimize; \link{summary} to print a summary of a run model; \link{mxModel} for more on the model itself; More information about the OpenMx package may be found \link[=OpenMx]{here}. 
+\link{mxTryHard} for running models which prove difficult to optimize; \link{summary} to print a summary of a run model; \link{mxModel} for more on the model itself; \code{\link{as.statusCode}} for helpful information about optimizer status codes; More information about the OpenMx package may be found \link[=OpenMx]{here}. 
 }
 
 \references{
