@@ -1,6 +1,6 @@
 Encoding: UTF-8
 Package: OpenMx
-Date: 2026-02-13
+Date: 2026-06-08
 Title: Extended Structural Equation Modelling
 Authors@R: c(person(c("Steven", "M."), "Boker", role="aut"),
     person(c("Michael", "C."), "Neale", role="aut"), person(c("Hermine", "H."),
@@ -188,5 +188,4 @@ Collate:
 RdMacros:
     lifecycle
 Biarch: true
-Version: 2.22.10-4
-RoxygenNote: 7.3.3
+Version: 2.22.10-15
