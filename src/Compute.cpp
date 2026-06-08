@@ -1647,7 +1647,7 @@ struct LeaveComputeWithVarGroup {
 	ComputeInform origInform;
 	const char *name;
 
-	LeaveComputeWithVarGroup(FitContext *u_fc, struct omxCompute *compute) : fc(u_fc), name(compute->name) {
+	LeaveComputeWithVarGroup(FitContext *u_fc, class omxCompute *compute) : fc(u_fc), name(compute->name) {
 		origInform = fc->getInform();
 		toResetInform = compute->accumulateInform();
 		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);

@@ -111,7 +111,7 @@ void BA81LatentSummary<T>::end(class ifaGroup *grp, T extraData)
 	++extraData->ElatentVersion;
 }
 
-void ba81AggregateDistributions(std::vector<struct omxExpectation *> &expectation,
+void ba81AggregateDistributions(std::vector<class omxExpectation *> &expectation,
 				int *version, omxMatrix *meanMat, omxMatrix *covMat)
 {
 	int allVer = 0;

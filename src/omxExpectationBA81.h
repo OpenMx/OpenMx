@@ -95,7 +95,7 @@ class BA81Expect : public omxExpectation {
 	enum expectation_type type;
 	int verbose;
 	bool debugInternal;
-	struct omxFitFunction *fit;  // weak pointer
+	class omxFitFunction *fit;  // weak pointer
 
 	BA81Expect(omxState *st, int num) :
 		super(st, num), grp(true)
