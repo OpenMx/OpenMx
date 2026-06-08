@@ -137,8 +137,8 @@ man/MxCharOrList-class.Rd
 man/MxCharOrLogical-class.Rd
 man/MxCharOrNumber-class.Rd
 man/MxCompare-class.Rd
-man/mxComputeCheckpoint.Rd
 man/MxCompute-class.Rd
+man/mxComputeCheckpoint.Rd
 man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
 man/mxComputeEM.Rd
@@ -185,9 +185,9 @@ man/MxOptionalLogical-class.Rd
 man/MxOptionalMatrix-class.Rd
 man/MxOptionalNumeric-class.Rd
 man/MxPenalty-class.Rd
+man/mxPenalty.Rd
 man/mxPenaltyElasticNet.Rd
 man/mxPenaltyLASSO.Rd
-man/mxPenalty.Rd
 man/mxPenaltyRidge.Rd
 man/mxPenaltySearch.Rd
 man/mxPenaltyZap.Rd
