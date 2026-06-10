@@ -2194,7 +2194,7 @@ void ComputePenaltySearch::initFromFrontend(omxState *globalState, SEXP rObj)
   verbose = Rf_asInteger(obj.slot("verbose"));
   IntegerVector ffv = obj.slot("fitfunction");
   if (ffv.size() != 1) mxThrow("%s: can add the regularization penalty to "
-                               "exactly one fit function (not %d of them)", ffv.size());
+                               "exactly one fit function (not %d of them)", name, ffv.size());
 	for (int wx=0; wx < ffv.size(); ++wx) {
     omxMatrix *mat = globalState->algebraList[ ffv[wx] ];
     if (!mat->isFitFunction()) mxThrow("%s: %s is not a fit function", name, mat->name());
@@ -2266,26 +2266,47 @@ void ComputePenaltySearch::computeImpl(FitContext *fc)
     int observedStats = 0;
     fitfunction[0]->fitFunction->traverse([&observedStats](omxMatrix *f1){
       auto ff = f1->fitFunction;
-      if (ff->expectation) observedStats += ff->expectation->numObservedStats();
+      if (ff && ff->expectation) observedStats += ff->expectation->numObservedStats();
     });
     int DF = observedStats - EP;
 
-    // how to extend support to multiple groups? TODO
-    auto ex = fitfunction[0]->fitFunction->expectation;
-    if (!ex) mxThrow("%s: fitfunction '%s' does not have an expectation", fitfunction[0]->name());
-    int np = ex->numManifestVars();
-    int nfac = ex->numLatentVars();
-    if (nfac < 1) nfac = 1;
+    int np = 0;
+    int nfac = 0;
+    double N = 0;
+    bool anyRaw = false;
+
+    fitfunction[0]->fitFunction->traverse([&](omxMatrix *f1){
+      auto ff = f1->fitFunction;
+      if (ff) {
+        auto ex = ff->expectation;
+        if (ex) {
+          if (!ex->data) {
+            mxThrow("%s: expectation '%s' has no associated data", name, ex->name);
+          }
+          np += ex->numManifestVars();
+          int nf = ex->numLatentVars();
+          if (nf < 1) nf = 1;
+          nfac += nf;
+          N += omxDataNumObs(ex->data);
+          if (strEQ(ex->data->getType(), "raw")) {
+            anyRaw = true;
+          }
+        }
+      }
+    });
+
+    if (np == 0) {
+      mxThrow("%s: fitfunction '%s' does not have any expectations in its submodels", name, fitfunction[0]->name());
+    }
+
     double cvDF = ((np*np+1)/2. + np - EP)/DF;
-    if (!ex->data) mxThrow("%s: expectation '%s' has no associated data", ex->name);
     if (fitfunction[0]->fitFunction->units != FIT_UNITS_MINUS2LL) {
       mxThrow("%s: fit function '%s' must be -2ll units (not %s)",
               name, fitfunction[0]->name(), fitUnitsToName(fitfunction[0]->fitFunction->units));
     }
     double ll = fitfunction[0]->data[0];
-    double N = omxDataNumObs(ex->data);
     double EBIC;
-    if (strEQ(ex->data->getType(), "raw")) {
+    if (anyRaw) {
       EBIC = ll * cvDF + (log(N) * EP + 2*EP * ebicGamma * log(np+nfac));
     } else {
       EBIC = ll +         log(N) * EP + 2*EP * ebicGamma * log(np+nfac);
