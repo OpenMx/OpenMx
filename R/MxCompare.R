@@ -538,9 +538,23 @@ collectBaseStatistics <- function(row, ref) {
 
 # Satorra-Bentler Chi-squared fit (Fit Satorra Bentler = FSB)
 fsb <- function(chi0, chi1, df0, df1, chim0, chim1){
-	sb <- (chi0 - chi1)*(df0 - df1) / (df0*chi0/chim0 - df1*chi1/chim1)
+	term0 <- if (is.null(df0) || length(df0) == 0 || is.na(df0) || df0 == 0 || is.null(chim0) || length(chim0) == 0 || is.na(chim0) || chim0 == 0) 0 else (df0 * chi0 / chim0)
+	term1 <- if (is.null(df1) || length(df1) == 0 || is.na(df1) || df1 == 0 || is.null(chim1) || length(chim1) == 0 || is.na(chim1) || chim1 == 0) 0 else (df1 * chi1 / chim1)
+	
+	if (is.null(chi0) || length(chi0) == 0 || is.null(chi1) || length(chi1) == 0 || is.null(df0) || length(df0) == 0 || is.null(df1) || length(df1) == 0) {
+		return(list(chi=numeric(0), df=numeric(0)))
+	}
+	
+	denom <- term0 - term1
+	if (is.na(denom) || denom == 0) {
+		sb <- as.numeric(NA)
+	} else {
+		sb <- (chi0 - chi1)*(df0 - df1) / denom
+	}
 	return(list(chi=sb, df=df0-df1))
 }
+
+
 
 fsb_helper <- function(model0, model1){
 	fsb(model0$output$fit, model1$output$fit, model0$output$chiDoF, model1$output$chiDoF, model0$output$chiM, model1$output$chiM)
@@ -606,9 +620,15 @@ collectStatistics1 <- function(otherStats, ref, other, bootPair) {
 	otherStats[,c('base','comparison')] <-
 		c(refSummary$modelName,
 		  otherSummary$modelName)
-	otherStats[,c('diffLL','diffdf')] <-
-		c(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
-		  otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom)
+	if (rfu[[1]] %in% wlsUnits) {
+		otherStats[,c('diffLL','diffdf')] <-
+			c(other$output$chi - ref$output$chi,
+			  other$output$chiDoF - ref$output$chiDoF)
+	} else {
+		otherStats[,c('diffLL','diffdf')] <-
+			c(otherSummary$Minus2LogLikelihood - refSummary$Minus2LogLikelihood,
+			  otherSummary$degreesOfFreedom - refSummary$degreesOfFreedom)
+	}
 	# TODO ? need to adjust DoF for Chi-sq with WLS?  In Theory these should always be the same.
 	otherStats[,c('SBchisq')] <- fsb_helper(other, ref)$chi
 
