@@ -776,6 +776,7 @@ void omxGlobal::reportProgress(const char *context, FitContext *fc)
 
 bool omxGlobal::interrupted()
 {
+	if (omp_in_parallel()) return false;
 	if (omp_get_thread_num() != 0 && omp_get_num_threads() != 1) {
 		mxLog("omxGlobal::interrupted called from thread %d/%d (report this bug to developers)",
 		      omp_get_thread_num(), omp_get_num_threads());
@@ -794,6 +795,7 @@ bool omxGlobal::interrupted()
 
 void omxGlobal::reportProgress1(const char *context, std::string detail)
 {
+	if (omp_in_parallel()) return;
 	if (omp_get_thread_num() != 0 && omp_get_num_threads() != 1) {
 		mxLog("omxGlobal::reportProgress(%s,%s) called from thread %d/%d (report this bug to developers)",
 		      context, detail.c_str(), omp_get_thread_num(), omp_get_num_threads());
@@ -933,6 +935,9 @@ const char *omxGlobal::getBads()
 
 void omxGlobal::checkpointMessage(FitContext *fc, const char *fmt, ...)
 {
+	if (checkpointList.size() == 0) return;
+	if (omp_in_parallel()) return;
+
 	std::string str;
 	va_list ap;
         va_start(ap, fmt);
@@ -941,15 +946,24 @@ void omxGlobal::checkpointMessage(FitContext *fc, const char *fmt, ...)
 
 	if (OMX_DEBUG) mxLog("checkpointMessage: %s", str.c_str());
 
-	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->message(fc, str.c_str());
+	#pragma omp critical(omxGlobal_checkpointMessage)
+	{
+		for(size_t i = 0; i < checkpointList.size(); i++) {
+			checkpointList[i]->message(fc, str.c_str());
+		}
 	}
 }
 
 void omxGlobal::checkpointPostfit(const char *callerName, FitContext *fc, bool force)
 {
-	for(size_t i = 0; i < checkpointList.size(); i++) {
-		checkpointList[i]->postfit(callerName, fc, force);
+	if (checkpointList.size() == 0) return;
+	if (omp_in_parallel()) return;
+
+	#pragma omp critical(omxGlobal_checkpointPostfit)
+	{
+		for(size_t i = 0; i < checkpointList.size(); i++) {
+			checkpointList[i]->postfit(callerName, fc, force);
+		}
 	}
 }
 

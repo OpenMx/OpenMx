@@ -1200,8 +1200,10 @@ struct ParallelInvalidator : StateInvalidator {
   virtual void doMatrix() override {}
 };
 
-void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
+void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTeam)
 {
+	if (parent) return;
+
 	if (childList.size()) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: ignored, childList already populated");
     return;
@@ -1224,7 +1226,7 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
 
 	if (Global->numThreads <= 1)  return;
 
-  createChildren1();
+  createChildren1(isTeam);
 
   if (alg) {
     for (auto kid : childList) omxAlgebraPreeval(alg, kid);
@@ -1234,7 +1236,7 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
   }
 }
 
-void FitContext::createChildren1()
+void FitContext::createChildren1(bool isTeam)
 {
 	for(size_t j = 0; j < state->expectationList.size(); j++) {
 		if (!state->expectationList[j]->canDuplicate) {
@@ -1267,7 +1269,7 @@ void FitContext::createChildren1()
 
 	for(int ii = 0; ii < numThreads; ii++) {
 		FitContext *kid = new FitContext(this, varGroup);
-		kid->state = new omxState(state, openmpUser);
+		kid->state = new omxState(state, isTeam && openmpUser);
 		kid->state->initialRecalc(kid);
     kid->calcNumFree();
 		childList.push_back(kid);
@@ -1342,7 +1344,9 @@ void CIobjective::checkSolution(FitContext *fc)
 {
 	if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM) return;
 
-	if (getDiag() != DIAG_SUCCESS) {
+	Diagnostic d = getDiag();
+	mxLog("CIobjective::checkSolution %p (%s) calling getDiag: returned %d", this, CI->name.c_str(), (int)d);
+	if (d != DIAG_SUCCESS) {
 		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
 	}
 }
