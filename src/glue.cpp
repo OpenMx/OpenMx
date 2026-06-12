@@ -705,7 +705,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			if (!std::isfinite(fc->getFit())) {
 				std::string diag = fc->getIterationError();
 				if (diag.size()) {
-					omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+					omxRaiseErrorf("fit is not finite; %s", diag.c_str());
 				} else if (fc->getInform() == INFORM_CONVERGED_OPTIMUM ||
 					   fc->getInform() == INFORM_UNCONVERGED_OPTIMUM) {
 					omxRaiseErrorf("fit is not finite");
