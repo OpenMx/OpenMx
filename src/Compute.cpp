@@ -1849,6 +1849,9 @@ class ComputeStandardError : public omxCompute {
 	double x2m, x2mv;
 	double madj, mvadj, dstar;
 
+ public:
+	ComputeStandardError() : fitMat(nullptr), wlsStats(false), x2(0.0), df(0), x2m(0.0), x2mv(0.0), madj(1.0), mvadj(1.0), dstar(0.0) {}
+
 	struct visitEx {
 		ComputeStandardError &top;
 		visitEx(ComputeStandardError *cse) : top(*cse) {};
@@ -3802,6 +3805,15 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
 
+	wlsStats = false;
+	x2 = 0.0;
+	df = 0;
+	x2m = 0.0;
+	x2mv = 0.0;
+	madj = 1.0;
+	mvadj = 1.0;
+	dstar = 0.0;
+
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
 	fitMat->fitFunction->traverse(ve);
@@ -3890,7 +3902,15 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	}
 
 	Eigen::MatrixXd dvd = sense.result.transpose() * Vmat * sense.result;
-	if (InvertSymmetricIndef(dvd, 'L') > 0) return;
+	if (InvertSymmetricIndef(dvd, 'L') != 0) {
+		madj = 1.0;
+		mvadj = 1.0;
+		x2m = x2;
+		x2mv = x2;
+		dstar = df;
+		wlsStats = true;
+		return;
+	}
 
 	fc->vcov = dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
 		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();
