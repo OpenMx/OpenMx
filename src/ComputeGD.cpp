@@ -277,19 +277,20 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 void omxComputeGD::computeImpl(FitContext *fc)
 {
-	omxAlgebraPreeval(fitMatrix, fc);
+	omxMatrix *localFitMatrix = fc->lookupDuplicate(fitMatrix);
+	omxAlgebraPreeval(localFitMatrix, fc);
 
 	int numParam = fc->getNumFree();
 
 	if (numParam <= 0) { complainNoFreeParam(); return; }
 
 	fc->ensureParamWithinBox(nudge);
-	fc->createChildren(fitMatrix, true);
+	fc->createChildren(localFitMatrix, true);
 
 	int beforeEval = fc->getLocalComputeCount();
 
 	if (verbose >= 1) {
-		int numConstr = fitMatrix->currentState->conListX.size();
+		int numConstr = localFitMatrix->currentState->conListX.size();
 		mxLog("%s: engine %d #P=%d tol=%g constraints=%d",
 		      name, engine, int(numParam), optimalityTolerance,
 		      numConstr);
@@ -298,7 +299,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	//if (fc->ciobj) verbose=2;
 	GradientOptimizerContext rf(fc, verbose, this);
 	threads = rf.numOptimizerThreads;
-	rf.fitMatrix = fitMatrix;
+	rf.fitMatrix = localFitMatrix;
 	rf.ControlTolerance = optimalityTolerance;
 	if (maxIter == -1) {
 		rf.maxMajorIterations = -1;
@@ -411,7 +412,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 	}
 
 	// Optimizers can terminate with inconsistent fit and parameters
-	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT, fc);
+	ComputeFit(name, localFitMatrix, FF_COMPUTE_FIT | FF_COMPUTE_BESTFIT, fc);
 
 	if (verbose >= 2) {
 		mxLog("%s: final fit is %2f", name, fc->getFit());
@@ -488,12 +489,28 @@ class ComputeCI : public omxCompute {
 		WU_NEALE_2012
 	};
 
+	struct CIRecord {
+		Method meth;
+		ConfidenceInterval *currentCI;
+		int lower;
+		double val;
+		double fit;
+		int inform;
+		Diagnostic diag;
+		Eigen::VectorXd est;
+	};
+
+	std::vector< std::vector<CIRecord> > threadRecords;
+
 	void regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
 		       double &val, Diagnostic &better);
 	void regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow);
 	void boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow);
 	void recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 		      int &detailRow, double val, Diagnostic diag);
+	void recordCI(Method meth, ConfidenceInterval *currentCI, int lower,
+		      int &detailRow, double val, double fit, int inform, Diagnostic diag,
+		      const Eigen::VectorXd &est);
 	void checkOtherBoxConstraints(FitContext &fc, ConfidenceInterval *currentCI, Diagnostic &diag);
 	void checkBoxConstraints(FitContext &fc, int skip, Diagnostic &diag);
 	void runPlan(FitContext *fc);
@@ -641,29 +658,54 @@ class ciConstraintEq : public ciConstraint {
 void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower, FitContext &fc,
 			 int &detailRow, double val, Diagnostic diag)
 {
+	if (omp_in_parallel()) {
+		int threadId = omp_get_thread_num();
+		if (threadId >= (int)threadRecords.size()) {
+			mxThrow("OMP recordCI threadId %d is out of bounds (size = %d)", threadId, (int)threadRecords.size());
+		}
+		CIRecord rec;
+		rec.meth = meth;
+		rec.currentCI = currentCI;
+		rec.lower = lower;
+		rec.val = val;
+		rec.fit = fc.getFit();
+		rec.inform = fc.wrapInform();
+		rec.diag = diag;
+		rec.est = fc.est;
+		threadRecords[threadId].push_back(rec);
+		++detailRow;
+	} else {
+		recordCI(meth, currentCI, lower, detailRow, val, fc.getFit(), fc.wrapInform(), diag, fc.est);
+	}
+}
+
+void ComputeCI::recordCI(Method meth, ConfidenceInterval *currentCI, int lower,
+			 int &detailRow, double val, double fit, int inform, Diagnostic diag,
+			 const Eigen::VectorXd &est)
+{
 	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
 	std::string &matName = ciMatrix->nameStr;
 
 	if (diag == CIobjective::DIAG_SUCCESS) {
 		currentCI->val[!lower] = val;
-		currentCI->code[!lower] = fc.getInform();
+		currentCI->code[!lower] = inform;
 	}
 
 	if(verbose >= 1) {
 		mxLog("CI[%s,%s] %s[%d,%d] val=%f fit=%f status=%d accepted=%d",
 		      currentCI->name.c_str(), (lower?"lower":"upper"), matName.c_str(),
-		      1+currentCI->row, 1+currentCI->col, val, fc.getFit(), fc.getInform(), diag);
+		      1+currentCI->row, 1+currentCI->col, val, fit, inform, diag);
 	}
 
 	SET_STRING_ELT(VECTOR_ELT(detail, 0), detailRow, Rf_mkChar(currentCI->name.c_str()));
 	INTEGER(VECTOR_ELT(detail, 1))[detailRow] = 1+lower;
 	REAL(VECTOR_ELT(detail, 2))[detailRow] = val;
-	REAL(VECTOR_ELT(detail, 3))[detailRow] = fc.getFit();
+	REAL(VECTOR_ELT(detail, 3))[detailRow] = fit;
 	INTEGER(VECTOR_ELT(detail, 4))[detailRow] = diag;
-	INTEGER(VECTOR_ELT(detail, 5))[detailRow] = fc.wrapInform();
+	INTEGER(VECTOR_ELT(detail, 5))[detailRow] = inform;
 	INTEGER(VECTOR_ELT(detail, 6))[detailRow] = meth;
-	for (int px=0; px < int(fc.numParam); ++px) {
-		REAL(VECTOR_ELT(detail, 7+px))[detailRow] = fc.est[px];
+	for (int px=0; px < int(est.size()); ++px) {
+		REAL(VECTOR_ELT(detail, 7+px))[detailRow] = est[px];
 	}
 	++detailRow;
 }
@@ -737,6 +779,8 @@ struct regularCIobj : CIobjective {
 		if (fabs(diff) > 1e-1) {
 			diag = DIAG_ALPHA_LEVEL;
 		}
+		mxLog("regularCIobj::getDiag %p (%s): diff=%f, targetFit=%f, diag=%d",
+			this, CI->name.c_str(), diff, targetFit, (int)diag);
 		return diag;
 	}
 
@@ -1013,7 +1057,8 @@ struct boundNearCIobj : CIobjective {
 
 void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
 {
-	omxState *state = fitMatrix->currentState;
+	omxMatrix *localFitMat = fc.lookupDuplicate(fitMatrix);
+	omxState *state = localFitMat->currentState;
 	omxMatrix *ciMatrix = currentCI->getMatrix(state);
 	std::string &matName = ciMatrix->nameStr;
 	omxFreeVar *fv = mle->varGroup->vars[currentCI->varIndex];
@@ -1057,24 +1102,24 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 					  matName.c_str(), currentCI->row + 1, currentCI->col + 1);
 		bool useConstr = useInequality;
 		ciConstraintIneq constr(state, 3);
-		constr.fitMat = fitMatrix;
+		constr.fitMat = localFitMat;
 		if (useConstr) {
-      constr.push();
-      fc.calcNumFree();
-    }
+			constr.push();
+			fc.calcNumFree();
+		}
 		// Could set farBox to the regular UB95, but we'd need to optimize to get it
 		fc.est = Mle;
 		fc.ciobj = std::make_unique<boundAwayCIobj>
-      (currentCI,
-       log(1.0 - Rf_pchisq(currentCI->bound[!side], 1, 1, 0)),
-       sqrt(currentCI->bound[!side]), unboundedLL, mle->getFit(), side, useConstr);
+			(currentCI,
+			 log(1.0 - Rf_pchisq(currentCI->bound[!side], 1, 1, 0)),
+			 sqrt(currentCI->bound[!side]), unboundedLL, mle->getFit(), side, useConstr);
 		runPlan(&fc);
 		if (useConstr) constr.pop();
 
 		omxRecompute(ciMatrix, &fc);
 		double val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
-		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
+		ComputeFit(name, localFitMat, FF_COMPUTE_FIT, &fc);
 		Diagnostic diag = fc.ciobj->getDiag();
 		fc.ciobj.reset();
 		checkOtherBoxConstraints(fc, currentCI, diag);
@@ -1092,10 +1137,10 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			fc.est = Mle;
 			fc.est[currentCI->varIndex] = nearBox; // might be infeasible
 			fc.profiledOutZ[currentCI->varIndex] = true;
-      fc.calcNumFree();
+			fc.calcNumFree();
 			runPlan(&fc);
 			fc.profiledOutZ[currentCI->varIndex] = false;
-      fc.calcNumFree();
+			fc.calcNumFree();
 			if (fc.getInform() == 0) {
 				boundLL = fc.getFit();
 			}
@@ -1108,11 +1153,11 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 			if (!std::isfinite(boundLL)) {
 				// Might work if simple approach failed
 				ciConstraintEq constr(state, 1);
-				constr.fitMat = fitMatrix;
+				constr.fitMat = localFitMat;
 				constr.push();
-        fc.calcNumFree();
+				fc.calcNumFree();
 				fc.ciobj = std::make_unique<bound1CIobj>
-          (currentCI, nearBox, useInequality);
+					(currentCI, nearBox, useInequality);
 				fc.est = Mle;
 				runPlan(&fc);
 				constr.pop();
@@ -1155,19 +1200,19 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 		double alphalevel = 1.0 - Rf_pchisq(currentCI->bound[side], 1, 1, 0);
 		bool useConstr = useInequality;
 		ciConstraintIneq constr(state, 3);
-		constr.fitMat = fitMatrix;
+		constr.fitMat = localFitMat;
 		if (useConstr) {
-      constr.push();
-      fc.calcNumFree();
-    }
+			constr.push();
+			fc.calcNumFree();
+		}
 		double boxSave = farBox;
 		farBox = Mle[currentCI->varIndex];
 		fc.est = Mle;
 		// Perspective helps? Optimizer seems to like to start further away
 		fc.est[currentCI->varIndex] = (9*Mle[currentCI->varIndex] + nearBox) / 10.0;
 		fc.ciobj = std::make_unique<boundNearCIobj>
-      (currentCI, d0, log(alphalevel), boundLL, mle->getFit(), !side,
-       useConstr, std::max(d0/2, sqrtCrit90), std::min(d0, sqrtCrit95));
+			(currentCI, d0, log(alphalevel), boundLL, mle->getFit(), !side,
+			 useConstr, std::max(d0/2, sqrtCrit90), std::min(d0, sqrtCrit95));
 		runPlan(&fc);
 		farBox = boxSave;
 		if (useConstr) constr.pop();
@@ -1177,7 +1222,7 @@ void ComputeCI::boundAdjCI(FitContext *mle, FitContext &fc, ConfidenceInterval *
 
 		//mxLog("val=%g", val);
 		//mxPrintMat("bn", bnobj.ineq);
-		ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
+		ComputeFit(name, localFitMat, FF_COMPUTE_FIT, &fc);
 		Diagnostic diag = fc.ciobj->getDiag();
 		fc.ciobj.reset();
 		checkOtherBoxConstraints(fc, currentCI, diag);
@@ -1200,41 +1245,44 @@ void ComputeCI::checkBoxConstraints(FitContext &fc, int skip, Diagnostic &diag)
 void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int lower,
 			  double &val, Diagnostic &diag)
 {
-	omxState *state = fitMatrix->currentState;
+	omxMatrix *localFitMat = fc.lookupDuplicate(fitMatrix);
+	omxState *state = localFitMat->currentState;
 
 	ciConstraintIneq constr(state, 1);
 	bool constrained = useInequality;
 	if (constrained) {
-		constr.fitMat = fitMatrix;
+		constr.fitMat = localFitMat;
 		constr.push();
-    fc.calcNumFree();
+		fc.calcNumFree();
 	}
 
 	fc.est = mle->est;
 	fc.ciobj = std::make_unique<regularCIobj>
-    (currentCI, !constrained, lower, currentCI->bound[!lower] + mle->getFit());
+		(currentCI, !constrained, lower, currentCI->bound[!lower] + mle->getFit());
 	//mxLog("Set target fit to %f (MLE %f)", fc->targetFit, fc->fit);
 
 	runPlan(&fc);
 	if (constrained) constr.pop();
 
-	omxMatrix *ciMatrix = currentCI->getMatrix(fitMatrix->currentState);
+	omxMatrix *ciMatrix = currentCI->getMatrix(state);
 	omxRecompute(ciMatrix, &fc);
 	val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
 	diag = fc.ciobj->getDiag();
+	mxLog("ComputeCI::regularCI calling getDiag: returned %d", (int)diag);
 	fc.ciobj.reset();
 
 	// We check the fit again so we can report it
 	// in the detail data.frame.
-	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, &fc);
+	ComputeFit(name, localFitMat, FF_COMPUTE_FIT, &fc);
 
 	checkBoxConstraints(fc, -1, diag);
 }
 
 void ComputeCI::regularCI2(FitContext *mle, FitContext &fc, ConfidenceInterval *currentCI, int &detailRow)
 {
-	omxState *state = fitMatrix->currentState;
+	omxMatrix *localFitMat = fc.lookupDuplicate(fitMatrix);
+	omxState *state = localFitMat->currentState;
 	omxMatrix *ciMatrix = currentCI->getMatrix(state);
 	std::string &matName = ciMatrix->nameStr;
 
@@ -1261,6 +1309,8 @@ void ComputeCI::computeImpl(FitContext *mle)
 		return;
 	}
 
+	Global->bads.clear();
+
 	omxState *state = fitMatrix->currentState;
 	Global->unpackConfidenceIntervals(state);
 
@@ -1270,7 +1320,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 	omxAlgebraPreeval(fitMatrix, mle);
 	ComputeFit(name, fitMatrix, FF_COMPUTE_FIT, mle);
   auto *ff = fitMatrix->fitFunction;
-  if (!fitUnitsIsChiSq(ff->units)) {
+  if (!fitUnitsIsChiSq(ff->units) && ff->units != FIT_UNITS_PROBABILITY) {
     mxThrow("%s: units '%s' are not supported", name, fitUnitsToName(ff->units));
   }
 
@@ -1350,30 +1400,80 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	markAsDataFrame(detail, totalIntervals);
 
-	FitContext fc(mle, mle->varGroup);
-  fc.calcNumFree();
-	FreeVarGroup *freeVarGroup = fc.varGroup;
-
-	int detailRow = 0;
-	for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
-		ConfidenceInterval *currentCI = Global->intervalList[ii];
-		omxMatrix *ciMatrix = currentCI->getMatrix(state);
-
-		currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
-
-		if (currentCI->boundAdj && currentCI->varIndex < 0) {
-			currentCI->boundAdj = false;
+	mle->createChildren(fitMatrix, true, false);
+	int numThreads = mle->childList.size();
+	if (numThreads > 1) {
+		threadRecords.resize(numThreads);
+		for (int t = 0; t < numThreads; ++t) {
+			threadRecords[t].clear();
 		}
-		if (currentCI->boundAdj) {
-			omxFreeVar *fv = freeVarGroup->vars[currentCI->varIndex];
-			if (!((fv->lbound == NEG_INF) ^ (fv->ubound == INF))) {
-				currentCI->boundAdj = false;
+
+		#pragma omp parallel for schedule(dynamic) num_threads(numThreads)
+		for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
+			int threadId = omp_get_thread_num();
+			if (threadId >= numThreads) {
+				mxThrow("OMP CI loop threadId %d is out of bounds (numThreads = %d)", threadId, numThreads);
+			}
+			if (ii == 0) {
+				mxLog("OMP CI parallel loop starting with %d threads (requested %d)", omp_get_num_threads(), numThreads);
+			}
+			FitContext *kid = mle->childList[threadId];
+			ConfidenceInterval *currentCI = Global->intervalList[ii];
+			omxMatrix *ciMatrix = currentCI->getMatrix(kid->state);
+
+			currentCI->varIndex = kid->varGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
+
+			bool boundAdj = currentCI->boundAdj;
+			if (boundAdj && currentCI->varIndex < 0) {
+				boundAdj = false;
+			}
+			if (boundAdj) {
+				omxFreeVar *fv = kid->varGroup->vars[currentCI->varIndex];
+				if (!((fv->lbound == NEG_INF) ^ (fv->ubound == INF))) {
+					boundAdj = false;
+				}
+			}
+			int dummyDetailRow = 0;
+			if (boundAdj) {
+				boundAdjCI(mle, *kid, currentCI, dummyDetailRow);
+			} else {
+				regularCI2(mle, *kid, currentCI, dummyDetailRow);
 			}
 		}
-		if (currentCI->boundAdj) {
-			boundAdjCI(mle, fc, currentCI, detailRow);
-		} else {
-			regularCI2(mle, fc, currentCI, detailRow);
+
+		// Now sequentially record buffered C++ results to R
+		int mainDetailRow = 0;
+		for (int t = 0; t < numThreads; ++t) {
+			for (auto &rec : threadRecords[t]) {
+				recordCI(rec.meth, rec.currentCI, rec.lower, mainDetailRow, rec.val, rec.fit, rec.inform, rec.diag, rec.est);
+			}
+		}
+	} else {
+		FitContext fc(mle, mle->varGroup);
+		fc.calcNumFree();
+		FreeVarGroup *freeVarGroup = fc.varGroup;
+
+		int detailRow = 0;
+		for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
+			ConfidenceInterval *currentCI = Global->intervalList[ii];
+			omxMatrix *ciMatrix = currentCI->getMatrix(state);
+
+			currentCI->varIndex = freeVarGroup->lookupVar(ciMatrix, currentCI->row, currentCI->col);
+
+			if (currentCI->boundAdj && currentCI->varIndex < 0) {
+				currentCI->boundAdj = false;
+			}
+			if (currentCI->boundAdj) {
+				omxFreeVar *fv = freeVarGroup->vars[currentCI->varIndex];
+				if (!((fv->lbound == NEG_INF) ^ (fv->ubound == INF))) {
+					currentCI->boundAdj = false;
+				}
+			}
+			if (currentCI->boundAdj) {
+				boundAdjCI(mle, fc, currentCI, detailRow);
+			} else {
+				regularCI2(mle, fc, currentCI, detailRow);
+			}
 		}
 	}
 
@@ -1552,8 +1652,8 @@ void ComputeTryH::computeImpl(FitContext *fc)
 		{
 			BorrowRNGState grs;
 			for (int vx=0; vx < numFree; ++vx) {
-				double adj1 = loc + unif_rand() * 2.0 * scale - scale;
-				double adj2 = 0.0 + unif_rand() * 2.0 * scale - scale;
+				double adj1 = loc + omx_unif_rand() * 2.0 * scale - scale;
+				double adj2 = 0.0 + omx_unif_rand() * 2.0 * scale - scale;
 				if (verbose >= 3) {
 					mxLog("%d %g %g", vx, adj1, adj2);
 				}
@@ -1817,9 +1917,9 @@ double ComputeGenSA::visita(double temp)
 	double den = exp((qv - 1.) * log((fabs(y))) / (3. - qv));
 	double ret_val = x / den;
 	if (ret_val > INF) {
-		return INF * unif_rand();
+		return INF * omx_unif_rand();
 	} else if (ret_val < NEG_INF) {
-		return NEG_INF * unif_rand();
+		return NEG_INF * omx_unif_rand();
 	}
 	return ret_val;
 }
@@ -1876,7 +1976,7 @@ double ComputeGenSA::asa_cost(double *x, int *cost_flag, int *exit_code, USER_DE
 
 static double
 asa_random_generator(LONG_INT *)
-{ return unif_rand(); }
+{ return omx_unif_rand(); }
 
 void ComputeGenSA::ingber2012(FitContext *fc)
 {
@@ -2036,7 +2136,7 @@ void ComputeGenSA::tsallis1996(FitContext *fc)
 				double worse2 = (1. + (qa-1.) * worse1);
 				if (worse2 > 0) {
 					double thresh = pow(worse2 / tem, -1./(qa-1.));
-					if (thresh >= 1.0 || thresh > unif_rand()) {
+					if (thresh >= 1.0 || thresh > omx_unif_rand()) {
             fc->copyEstToOptimizer(xMini);
 						curFit = candidateFit;
 						curPenalty = candidatePenalty;
@@ -2090,7 +2190,7 @@ void ComputeGenSA::computeImpl(FitContext *fc)
 		int retries = 5;
 		while (fc->outsideFeasibleSet() && retries-- > 0) {
 			for (int vx=0; vx < attempt.size(); ++vx) {
-				attempt[vx] = lbound[vx] + unif_rand() * range[vx];
+				attempt[vx] = lbound[vx] + omx_unif_rand() * range[vx];
 			}
       fc->setEstFromOptimizer(attempt);
 			ComputeFit(optName, fitMatrix, FF_COMPUTE_FIT, fc);

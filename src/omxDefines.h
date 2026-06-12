@@ -235,7 +235,15 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* __attribute__((unused)) loc
 #ifndef _OPENMP
 static inline int omp_get_thread_num() { return 0; }
 static inline int omp_get_num_threads(void) { return 1; }
+static inline int omp_in_parallel(void) { return 0; }
 #endif
+
+static inline double omx_unif_rand(void) {
+	if (omp_in_parallel()) {
+		return (double)rand() / (double)RAND_MAX;
+	}
+	return ::unif_rand();
+}
 
 #include <stan/math/version.hpp>
 #if STAN_MATH_MAJOR >= 4
