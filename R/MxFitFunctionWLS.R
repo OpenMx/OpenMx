@@ -399,3 +399,60 @@ imxHasWLS <- function(model){
 	}
 	return(FALSE)
 }
+
+setMethod("generateReferenceModels", "MxFitFunctionWLS",
+	function(.Object, model, distribution, equateThresholds) {
+		modelName <- model@name
+		datasource <- model$data
+		if (is.null(datasource)) {
+			stop(paste("Model", omxQuotes(modelName), "does not contain any data"))
+		}
+
+		expectation <- model@expectation
+		if (is(expectation, "MxExpectationBA81")) {
+			stop("WLS with MxExpectationBA81 is not supported")
+		}
+		if(is(expectation, "MxExpectationGREML")){
+			stop("Reference models for GREML expectation are not implemented")
+		}
+
+		datatype <- datasource@type
+		obsdata <- datasource@observed
+		datanobs <- datasource@numObs
+		wasRun <- model@.wasRun
+		weight = datasource$weight 
+
+		if(wasRun) {
+			if (is.null(model@expectation@.runDims)) stop("Not clear which data were used to fit model")
+			if (!is.na(weight)) {
+				selVars <- model@expectation@.runDims
+				selVars <- append(selVars, weight)
+			} else {
+				selVars <- model@expectation@.runDims
+			}
+			if(nrow(obsdata) == ncol(obsdata)){
+				if(!single.na(model@expectation@.runDims)) { obsdata <- obsdata[selVars, selVars] }
+			} else { obsdata <- obsdata[,selVars, drop=FALSE] }
+		} else {
+			message(paste("The model", omxQuotes(modelName), "has not been run. So reference models",
+				"of all the variables in the data will be made.  For reference models",
+				"of only the variables used in the model, provide the model after it has been run."))
+		}
+
+		# Check if the data has ordinal columns
+		if (is.data.frame(obsdata)) {
+			ordinalCols <- sapply(obsdata, is.ordered)
+		} else {
+			ordinalCols <- rep(FALSE, ncol(obsdata))
+		}
+		wlsWithMeans <- any(ordinalCols) || .Object@type == "marginals" || .Object@continuousType == "marginals"
+
+		fitfun <- mxFitFunctionWLS(type = .Object@type,
+					   allContinuousMethod = .Object@continuousType,
+					   fullWeight = .Object@fullWeight)
+
+		generateNormalReferenceModels(modelName, obsdata, datatype, wlsWithMeans,
+			datanobs, datasource@means, distribution=distribution,
+			equateThresholds, weight, fitfun = fitfun)
+	})
+

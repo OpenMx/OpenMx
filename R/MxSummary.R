@@ -633,7 +633,11 @@ setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, r
 		retval$IndependenceLikelihood <- independenceLikelihood
 	}
 	# populate model -2 log likelihood
-	retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	if (!is.null(model@output$fitUnits) && model@output$fitUnits %in% c("r'Wr", "r'wr")) {
+		retval$Minus2LogLikelihood <- model@output$chi
+	} else {
+		retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	}
 	# set NULLs to NAs
 	if (is.null(retval$SaturatedLikelihood)) {
 		retval$SaturatedLikelihood <- NA
@@ -789,7 +793,11 @@ parseDfArg <- function(input, arg) {
 refToLikelihood <- function(model) {
 	if (is(model, "MxModel")) {
 		if (!model@.wasRun) stop("Reference model must be run to obtain fit indices")
-		model$output$Minus2LogLikelihood
+		if (!is.null(model$output$fitUnits) && model$output$fitUnits %in% c("r'Wr", "r'wr")) {
+			model$output$chi
+		} else {
+			model$output$Minus2LogLikelihood
+		}
 	} else if (is.list(model)) {
 		model[[1]]
 	} else {
