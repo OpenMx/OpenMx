@@ -466,7 +466,8 @@ print.summary.mxmodel <- function(x,...) {
 	if (!is.null(x$npsolMessage)) {
 		cat(x$npsolMessage,'\n','\n')
 		if ((x$statusCode == "not convex/red" || x$statusCode == "nonzero gradient/red") &&
-			    (is.na(x$maxRelativeOrdinalError) || x$maxRelativeOrdinalError > 0)) {
+			    (is.na(x$maxRelativeOrdinalError) || x$maxRelativeOrdinalError > 0) &&
+			    (!is.null(x$mvnRelEps) && x$mvnRelEps > 0)) {
 			cat(paste("Your ordinal model may converge if you reduce mvnRelEps\n",
 				"  try: model <- mxOption(model, 'mvnRelEps', mxOption(model, 'mvnRelEps')/5)\n\n"))
 		}
@@ -632,7 +633,11 @@ setLikelihoods <- function(model, saturatedLikelihood, independenceLikelihood, r
 		retval$IndependenceLikelihood <- independenceLikelihood
 	}
 	# populate model -2 log likelihood
-	retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	if (!is.null(model@output$fitUnits) && model@output$fitUnits %in% c("r'Wr", "r'wr")) {
+		retval$Minus2LogLikelihood <- model@output$chi
+	} else {
+		retval$Minus2LogLikelihood <- model@output$Minus2LogLikelihood
+	}
 	# set NULLs to NAs
 	if (is.null(retval$SaturatedLikelihood)) {
 		retval$SaturatedLikelihood <- NA
@@ -788,7 +793,11 @@ parseDfArg <- function(input, arg) {
 refToLikelihood <- function(model) {
 	if (is(model, "MxModel")) {
 		if (!model@.wasRun) stop("Reference model must be run to obtain fit indices")
-		model$output$Minus2LogLikelihood
+		if (!is.null(model$output$fitUnits) && model$output$fitUnits %in% c("r'Wr", "r'wr")) {
+			model$output$chi
+		} else {
+			model$output$Minus2LogLikelihood
+		}
 	} else if (is.list(model)) {
 		model[[1]]
 	} else {
@@ -955,6 +964,7 @@ summary.MxModel.Impl <- function(object, ..., verbose) {
 		retval[['npsolMessage']] <- message
 		retval[['statusCode']] <- as.statusCode(statusCode)
 		retval[['maxRelativeOrdinalError']] <- model@output[['maxRelativeOrdinalError']]
+		retval[['mvnRelEps']] <- as.numeric(mxOption(model, 'mvnRelEps'))
 	}
 	if( .hasSlot(model,"compute") && length(model$compute$steps$CI) ){
 		retval$CIdetail <- model$compute$steps$CI$output$detail
@@ -1430,3 +1440,502 @@ mxBootstrapStdizeRAMpaths <- function(model, bq=c(.25,.75), method=c('bcbci','qu
 
 
 coef.MxModel <- function(object, ...) omxGetParameters(object)
+
+
+.standardizeLISRELParams <- function(x=NULL, model, Apos, Spos, Mpos, GiveMatrices=FALSE) {
+  if (is.null(x)) { x <- omxGetParameters(model) }
+  param <- omxGetParameters(model)
+  paramNames <- names(param)
+  model <- omxSetParameters(model, values=x, labels=paramNames, free=TRUE)
+  
+  expect <- model$expectation
+  
+  getMatrixVal <- function(matName) {
+    if (is.na(matName)) return(NULL)
+    mat <- model[[matName]]
+    if (is.null(mat)) return(NULL)
+    val <- list(mat$values, mat$result)
+    val[[which.max(c(length(val[[1]]), length(val[[2]])))]]
+  }
+  
+  LX <- getMatrixVal(expect@LX)
+  LY <- getMatrixVal(expect@LY)
+  BE <- getMatrixVal(expect@BE)
+  GA <- getMatrixVal(expect@GA)
+  PH <- getMatrixVal(expect@PH)
+  PS <- getMatrixVal(expect@PS)
+  TD <- getMatrixVal(expect@TD)
+  TE <- getMatrixVal(expect@TE)
+  TH <- getMatrixVal(expect@TH)
+  TX <- getMatrixVal(expect@TX)
+  TY <- getMatrixVal(expect@TY)
+  KA <- getMatrixVal(expect@KA)
+  AL <- getMatrixVal(expect@AL)
+  
+  hasX <- !is.null(LX)
+  hasY <- !is.null(LY)
+  
+  if (hasX) {
+    SD_xi <- sqrt(diag(PH))
+    SD_xi <- ifelse(SD_xi <= 0, 0, SD_xi)
+    V_xi <- diag(SD_xi, nrow=length(SD_xi))
+    InvV_xi <- diag(ifelse(SD_xi == 0, 0, 1/SD_xi), nrow=length(SD_xi))
+  } else {
+    V_xi <- matrix(0, 0, 0)
+    InvV_xi <- matrix(0, 0, 0)
+    SD_xi <- numeric(0)
+  }
+  
+  if (hasY) {
+    I_BE <- diag(1, nrow=nrow(BE))
+    InvI_BE <- solve(I_BE - BE)
+    
+    if (hasX) {
+      cov_eta <- InvI_BE %*% (GA %*% PH %*% t(GA) + PS) %*% t(InvI_BE)
+    } else {
+      cov_eta <- InvI_BE %*% PS %*% t(InvI_BE)
+    }
+    
+    SD_eta <- sqrt(diag(cov_eta))
+    SD_eta <- ifelse(SD_eta <= 0, 0, SD_eta)
+    V_eta <- diag(SD_eta, nrow=length(SD_eta))
+    InvV_eta <- diag(ifelse(SD_eta == 0, 0, 1/SD_eta), nrow=length(SD_eta))
+  } else {
+    V_eta <- matrix(0, 0, 0)
+    InvV_eta <- matrix(0, 0, 0)
+    SD_eta <- numeric(0)
+  }
+  
+  if (hasY) {
+    cov_Y <- LY %*% cov_eta %*% t(LY) + TE
+    SD_Y <- sqrt(diag(cov_Y))
+    SD_Y <- ifelse(SD_Y <= 0, 0, SD_Y)
+    V_Y <- diag(SD_Y, nrow=length(SD_Y))
+    InvV_Y <- diag(ifelse(SD_Y == 0, 0, 1/SD_Y), nrow=length(SD_Y))
+  } else {
+    V_Y <- matrix(0, 0, 0)
+    InvV_Y <- matrix(0, 0, 0)
+    SD_Y <- numeric(0)
+  }
+  
+  if (hasX) {
+    cov_X <- LX %*% PH %*% t(LX) + TD
+    SD_X <- sqrt(diag(cov_X))
+    SD_X <- ifelse(SD_X <= 0, 0, SD_X)
+    V_X <- diag(SD_X, nrow=length(SD_X))
+    InvV_X <- diag(ifelse(SD_X == 0, 0, 1/SD_X), nrow=length(SD_X))
+  } else {
+    V_X <- matrix(0, 0, 0)
+    InvV_X <- matrix(0, 0, 0)
+    SD_X <- numeric(0)
+  }
+  
+  Az <- Sz <- Mz <- list()
+  
+  if (hasY) {
+    LYz <- InvV_Y %*% LY %*% V_eta
+    BEz <- InvV_eta %*% BE %*% V_eta
+    PSz <- InvV_eta %*% PS %*% InvV_eta
+    TEz <- InvV_Y %*% TE %*% InvV_Y
+    
+    Az$LY <- LYz
+    Az$BE <- BEz
+    Sz$PS <- PSz
+    Sz$TE <- TEz
+    
+    if (!is.null(TY)) {
+      Mz$TY <- TY %*% InvV_Y
+    }
+    if (!is.null(AL)) {
+      Mz$AL <- AL %*% InvV_eta
+    }
+  }
+  
+  if (hasX) {
+    LXz <- InvV_X %*% LX %*% V_xi
+    PHz <- InvV_xi %*% PH %*% InvV_xi
+    TDz <- InvV_X %*% TD %*% InvV_X
+    
+    Az$LX <- LXz
+    Sz$PH <- PHz
+    Sz$TD <- TDz
+    
+    if (!is.null(TX)) {
+      Mz$TX <- TX %*% InvV_X
+    }
+    if (!is.null(KA)) {
+      Mz$KA <- KA %*% InvV_xi
+    }
+  }
+  
+  if (hasX && hasY) {
+    GAz <- InvV_eta %*% GA %*% V_xi
+    THz <- InvV_X %*% TH %*% InvV_Y
+    
+    Az$GA <- GAz
+    Sz$TH <- THz
+  }
+  
+  sparam <- c()
+  sparamNames <- c()
+  
+  for (matName in names(Apos)) {
+    posMat <- Apos[[matName]]
+    valMat <- Az[[matName]]
+    mask <- !is.na(posMat)
+    if (any(mask)) {
+      sparam <- c(sparam, valMat[mask])
+      sparamNames <- c(sparamNames, posMat[mask])
+    }
+  }
+  
+  for (matName in names(Spos)) {
+    posMat <- Spos[[matName]]
+    valMat <- Sz[[matName]]
+    mask <- !is.na(posMat)
+    if (any(mask)) {
+      sparam <- c(sparam, valMat[mask])
+      sparamNames <- c(sparamNames, posMat[mask])
+    }
+  }
+  
+  for (matName in names(Mpos)) {
+    posMat <- Mpos[[matName]]
+    valMat <- Mz[[matName]]
+    mask <- !is.na(posMat)
+    if (any(mask)) {
+      sparam <- c(sparam, valMat[mask])
+      sparamNames <- c(sparamNames, posMat[mask])
+    }
+  }
+  
+  names(sparam) <- sparamNames
+  
+  if (!GiveMatrices) {
+    return(sparam)
+  } else {
+    return(list(sparam=sparam, Az=Az, Sz=Sz, Mz=Mz))
+  }
+}
+
+
+.mxStandardizeLISRELhelper <- function(model, SE=FALSE, ParamsCov, inde.subs.flag=FALSE, ignoreSubmodels=FALSE) {
+  if(length(model@submodels) && !ignoreSubmodels){
+    return(lapply(
+      model@submodels[which(
+        sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationLISREL" |
+          sapply(model@submodels,function(x){length(x@submodels)>0})
+      )],
+      .mxStandardizeLISRELhelper, SE=SE, ParamsCov=ParamsCov, inde.subs.flag=inde.subs.flag, ignoreSubmodels=FALSE))
+  }
+
+  expect <- model$expectation
+  
+  getMatrixVal <- function(matName) {
+    if (is.na(matName)) return(NULL)
+    mat <- model[[matName]]
+    if (is.null(mat)) return(NULL)
+    val <- list(mat$values, mat$result)
+    val[[which.max(c(length(val[[1]]), length(val[[2]])))]]
+  }
+  
+  getMatrixObj <- function(matName) {
+    if (is.na(matName)) return(NULL)
+    model[[matName]]
+  }
+
+  LX <- getMatrixVal(expect@LX)
+  LY <- getMatrixVal(expect@LY)
+  BE <- getMatrixVal(expect@BE)
+  GA <- getMatrixVal(expect@GA)
+  PH <- getMatrixVal(expect@PH)
+  PS <- getMatrixVal(expect@PS)
+  TD <- getMatrixVal(expect@TD)
+  TE <- getMatrixVal(expect@TE)
+  TH <- getMatrixVal(expect@TH)
+  TX <- getMatrixVal(expect@TX)
+  TY <- getMatrixVal(expect@TY)
+  KA <- getMatrixVal(expect@KA)
+  AL <- getMatrixVal(expect@AL)
+  
+  LXobj <- getMatrixObj(expect@LX)
+  LYobj <- getMatrixObj(expect@LY)
+  BEobj <- getMatrixObj(expect@BE)
+  GAobj <- getMatrixObj(expect@GA)
+  PHobj <- getMatrixObj(expect@PH)
+  PSobj <- getMatrixObj(expect@PS)
+  TDobj <- getMatrixObj(expect@TD)
+  TEobj <- getMatrixObj(expect@TE)
+  THobj <- getMatrixObj(expect@TH)
+  TXobj <- getMatrixObj(expect@TX)
+  TYobj <- getMatrixObj(expect@TY)
+  KAobj <- getMatrixObj(expect@KA)
+  ALobj <- getMatrixObj(expect@AL)
+
+  getNonZeroPos <- function(mat, symmetric=FALSE) {
+    if (is.null(mat)) return(matrix(0, 0, 2))
+    pos <- which(mat != 0, arr.ind=TRUE)
+    if (symmetric) {
+      pos <- subset(pos, pos[,1] >= pos[,2])
+    }
+    pos
+  }
+
+  LXpos_idx <- getNonZeroPos(LX)
+  LYpos_idx <- getNonZeroPos(LY)
+  BEpos_idx <- getNonZeroPos(BE)
+  GApos_idx <- getNonZeroPos(GA)
+  PHpos_idx <- getNonZeroPos(PH, symmetric=TRUE)
+  PSpos_idx <- getNonZeroPos(PS, symmetric=TRUE)
+  TDpos_idx <- getNonZeroPos(TD, symmetric=TRUE)
+  TEpos_idx <- getNonZeroPos(TE, symmetric=TRUE)
+  THpos_idx <- getNonZeroPos(TH)
+  
+  TXpos_idx <- if (!is.null(TX)) which(TX != 0, arr.ind=TRUE) else matrix(0, 0, 2)
+  TYpos_idx <- if (!is.null(TY)) which(TY != 0, arr.ind=TRUE) else matrix(0, 0, 2)
+  KApos_idx <- if (!is.null(KA)) which(KA != 0, arr.ind=TRUE) else matrix(0, 0, 2)
+  ALpos_idx <- if (!is.null(AL)) which(AL != 0, arr.ind=TRUE) else matrix(0, 0, 2)
+
+  Apos <- list()
+  Spos <- list()
+  Mpos <- list()
+
+  initPosMat <- function(mat, matName) {
+    if (is.null(mat)) return(NULL)
+    matrix(NA_character_, nrow=nrow(mat), ncol=ncol(mat), dimnames=dimnames(mat))
+  }
+  
+  Apos$LX <- initPosMat(LX)
+  Apos$LY <- initPosMat(LY)
+  Apos$BE <- initPosMat(BE)
+  Apos$GA <- initPosMat(GA)
+  
+  Spos$PH <- initPosMat(PH)
+  Spos$PS <- initPosMat(PS)
+  Spos$TD <- initPosMat(TD)
+  Spos$TE <- initPosMat(TE)
+  Spos$TH <- initPosMat(TH)
+  
+  Mpos$TX <- initPosMat(TX)
+  Mpos$TY <- initPosMat(TY)
+  Mpos$KA <- initPosMat(KA)
+  Mpos$AL <- initPosMat(AL)
+
+  numelem <- nrow(LXpos_idx) + nrow(LYpos_idx) + nrow(BEpos_idx) + nrow(GApos_idx) +
+             nrow(PHpos_idx) + nrow(PSpos_idx) + nrow(TDpos_idx) + nrow(TEpos_idx) + nrow(THpos_idx) +
+             nrow(TXpos_idx) + nrow(TYpos_idx) + nrow(KApos_idx) + nrow(ALpos_idx)
+             
+  out <- data.frame(name=vector(mode="character",length=numelem),
+                    label=vector(mode="character",length=numelem),
+                    matrix=vector(mode="character",length=numelem),
+                    row=vector(mode="character",length=numelem),
+                    col=vector(mode="character",length=numelem),
+                    Raw.Value=vector(mode="numeric",length=numelem),
+                    Raw.SE=vector(mode="numeric",length=numelem),
+                    Std.Value=vector(mode="numeric",length=numelem),
+                    Std.SE=vector(mode="numeric",length=numelem),
+                    stringsAsFactors=FALSE)
+  out$label <- NA_character_
+  
+  j <- 1
+  
+  populateHelper <- function(pos_idx, mat, matObj, matName, posMat) {
+    if (nrow(pos_idx) == 0) return(posMat)
+    for (i in 1:nrow(pos_idx)) {
+      row_idx <- pos_idx[i, 1]
+      col_idx <- pos_idx[i, 2]
+      pathName <- paste(model@name, ".", matName, "[", row_idx, ",", col_idx, "]", sep="")
+      posMat[row_idx, col_idx] <- pathName
+      out$name[j] <<- pathName
+      if (!is.null(matObj) && !isAllNa(matObj$labels)) {
+        out$label[j] <<- matObj$labels[row_idx, col_idx]
+      }
+      out$matrix[j] <<- matName
+      out$Raw.Value[j] <<- mat[row_idx, col_idx]
+      out$row[j] <<- ifelse(!is.null(rownames(mat)), rownames(mat)[row_idx], row_idx)
+      out$col[j] <<- ifelse(!is.null(colnames(mat)), colnames(mat)[col_idx], col_idx)
+      j <<- j + 1
+    }
+    posMat
+  }
+  
+  Apos$LX <- populateHelper(LXpos_idx, LX, LXobj, "LX", Apos$LX)
+  Apos$LY <- populateHelper(LYpos_idx, LY, LYobj, "LY", Apos$LY)
+  Apos$BE <- populateHelper(BEpos_idx, BE, BEobj, "BE", Apos$BE)
+  Apos$GA <- populateHelper(GApos_idx, GA, GAobj, "GA", Apos$GA)
+  
+  Spos$PH <- populateHelper(PHpos_idx, PH, PHobj, "PH", Spos$PH)
+  Spos$PS <- populateHelper(PSpos_idx, PS, PSobj, "PS", Spos$PS)
+  Spos$TD <- populateHelper(TDpos_idx, TD, TDobj, "TD", Spos$TD)
+  Spos$TE <- populateHelper(TEpos_idx, TE, TEobj, "TE", Spos$TE)
+  Spos$TH <- populateHelper(THpos_idx, TH, THobj, "TH", Spos$TH)
+  
+  Mpos$TX <- populateHelper(TXpos_idx, TX, TXobj, "TX", Mpos$TX)
+  Mpos$TY <- populateHelper(TYpos_idx, TY, TYobj, "TY", Mpos$TY)
+  Mpos$KA <- populateHelper(KApos_idx, KA, KAobj, "KA", Mpos$KA)
+  Mpos$AL <- populateHelper(ALpos_idx, AL, ALobj, "AL", Mpos$AL)
+
+  freeparams <- omxGetParameters(model)
+  paramnames <- names(freeparams)
+  zout <- .standardizeLISRELParams(x=freeparams, model=model, Apos=Apos, Spos=Spos, Mpos=Mpos)
+  
+  if(SE){
+    if(!all(paramnames %in% rownames(ParamsCov))){
+      stop(paste(
+        "some free parameter labels do not appear in the dimnames of the parameter estimates' covariance matrix;\n",
+        "are you running mxStandardizeLISRELpaths() on a dependent submodel instead of on its multigroup container model?\n",
+        "the missing parameter labels are:\n",
+        paste(paramnames[!(paramnames %in% rownames(ParamsCov))],collapse=", "),sep=""))
+    }
+    covParam <- ParamsCov[paramnames, paramnames, drop=FALSE]
+    jacStand <- numDeriv::jacobian(func=.standardizeLISRELParams, x=freeparams, model=model, Apos=Apos, Spos=Spos, Mpos=Mpos)
+    covSparam <- jacStand %*% covParam %*% t(jacStand)
+    dimnames(covSparam) <- list(names(zout), names(zout))
+    SEs <- sqrt(diag(covSparam))
+  } else {
+    SEs <- rep("not_requested", length(zout))
+    names(SEs) <- names(zout)
+  }
+  
+  out$Std.Value <- zout
+  out$Std.SE <- SEs
+  
+  if(SE){
+    for(i in 1:numelem){
+      if( (out$name[i] %in% paramnames) | (out$label[i] %in% paramnames) ){
+        tdiags <- covParam[ifelse(is.na(out$label[i]), out$name[i], out$label[i]),
+                           ifelse(is.na(out$label[i]), out$name[i], out$label[i])]
+        if (length(tdiags) == 1) {
+          if(tdiags < 0 || is.na(tdiags)) {
+            warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+          }
+        } else {
+          if(any(diag(tdiags) < 0) || any(is.na(tdiags))){
+            warning("Some diagonal elements of the repeated-sampling covariance matrix of the point estimates are less than zero or NA.\nThat's weird.  Raise an eyebrow at these standard errors.")
+          }
+        }
+        out$Raw.SE[i] <- suppressWarnings(sqrt(tdiags))
+      }
+    }
+  } else {
+    out$Raw.SE <- "not_requested"
+  }
+  return(out)
+}
+
+
+mxStandardizeLISRELpaths <- function(model, SE=FALSE, cov=NULL){
+	message("Polite note: mxStandardizeLISRELpaths is beta: It works, but is awaiting strong testing.")
+	assertModelFreshlyRun(model)
+
+	if(imxHasDefinitionVariable(model)){
+		warning("'model' (or one of its submodels) contains definition variables; interpret results of mxStandardizeLISRELpaths() cautiously")
+	}
+
+  inde.subs.flag <- FALSE
+  if(SE & length(model$submodels)>0){
+    LISREL.subs <- (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationLISREL" |
+                     sapply(model@submodels,function(x){length(x@submodels)>0}))
+    inde.subs <- sapply(model@submodels,function(x){x@independent})==TRUE &
+      (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationLISREL" |
+         sapply(model@submodels,function(x){length(x@submodels)>0}))
+    if(sum(inde.subs)>0){
+    	out2 <- NULL
+      if(all(LISREL.subs==inde.subs)){
+        out <- lapply(model@submodels[which(inde.subs)],mxStandardizeLISRELpaths,SE=T)
+        if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use LISREL expectation",sep=""))}
+        return(out)
+      }
+      else{out2 <- lapply(model@submodels[which(inde.subs)],mxStandardizeLISRELpaths,SE=T)}
+    inde.subs.flag <- TRUE
+  }}
+  covParam <- NULL
+  if(SE){
+  	if(!length(cov)){
+  		if(SE & length(model@output$vcov)==0){
+  			if(!model@.wasRun){
+  				msg <- paste("standard errors will not be computed because model '",model@name,"' has not yet been run, and no matrix was provided for argument 'cov'",sep="")
+  				warning(msg)
+  				SE <- FALSE
+  			}
+  			else{
+  				warning("argument 'SE=TRUE' requires model to have a nonempty 'vcov' output slot, or a non-NULL value for argument 'cov'; continuing with 'SE' coerced to 'FALSE'")
+  				SE <- FALSE
+  			}}
+  		libraries <- rownames(installed.packages())
+  		pkgcheck <- ("numDeriv" %in% libraries)
+  		if(SE & !pkgcheck){
+  			warning("argument 'SE=TRUE' requires package 'numDeriv' to be installed; continuing with 'SE' coerced to 'FALSE'")
+  			SE <- FALSE
+  		}
+  		if(SE){
+  			covParam <- vcov(model)
+  		}
+  	}
+  	else{
+  		if(!is.matrix(cov)){
+  			cov <- try(as.matrix(cov),silent=T)
+  			if("try-error" %in% class(cov) || !is.matrix(cov)){
+  				stop("non-NULL value to argument 'cov' must be (or be coercible to) a matrix")
+  			}
+  		}
+  		if(nrow(cov)!=ncol(cov)){
+  			msg <- paste("non-NULL value to argument 'cov' must be a square matrix; it has ",nrow(cov)," rows and ",ncol(cov)," columns",sep="")
+  			stop(msg)
+  		}
+  		if(!length(rownames(cov)) || !length(colnames(cov)) || any(rownames(cov) != colnames(cov))){
+  			stop("non-NULL value to argument 'cov' must have matching and complete rownames and colnames")
+  		}
+  		paramnames <- names(omxGetParameters(model))
+  		if(nrow(cov) != length(paramnames)){
+  			msg <- paste("value of argument 'cov' has dimension ",nrow(cov),", but '",model@name,"' has ",length(paramnames)," free parameters",sep="")
+  			stop(msg)
+  		}
+  		covnames <- colnames(cov)
+  		if(any(sort(covnames) != sort(paramnames))){
+  			msg <- paste("the dimnames of the matrix provided for argument 'cov' do not match the free-parameter labels of '",model@name,"'",sep="")
+  			stop(msg)
+  		}
+  		covParam <- cov[paramnames,paramnames]
+  	}
+  }
+  if(length(model@submodels)==0){
+    if (!inherits(model$expectation, "MxExpectationLISREL")) {stop(paste("model '",model@name,"' does not use LISREL expectation",sep=""))}
+    return(.mxStandardizeLISRELhelper(model=model,SE=SE,ParamsCov=covParam))
+  }
+  if(length(model@submodels)>0){
+  	out <- NULL
+  	if (inherits(model$expectation, "MxExpectationLISREL")) {
+  		out <- list(.mxStandardizeLISRELhelper(model=model,SE=SE,ParamsCov=covParam,ignoreSubmodels=TRUE))
+  		names(out)[1] <- model@name
+  	}
+    if(!inde.subs.flag){
+      out <- c(out,lapply(
+        model@submodels[which(
+          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationLISREL" |
+          sapply(model@submodels,function(x){length(x@submodels)>0}))
+          )],
+        .mxStandardizeLISRELhelper,SE=SE,ParamsCov=covParam))
+      if(length(out)==0){stop(paste("model '",model@name,"' does not use LISREL expectation",sep=""))}
+      return(out)
+    }
+    else{
+      out1 <- lapply(
+        model@submodels[which(
+          (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationLISREL" |
+             sapply(model@submodels,function(x){length(x@submodels)>0})) &
+            !sapply(model@submodels,function(x){x@independent})
+        )],
+        .mxStandardizeLISRELhelper,SE=SE,ParamsCov=covParam)
+      out <- c(out,out1,out2)
+      if(length(out)==0){stop(paste("model '",model@name,"' contains no submodels that use LISREL expectation",sep=""))}
+      out <- out[names(model@submodels[which(
+        (sapply(model@submodels,function(x){class(x$expectation)})=="MxExpectationLISREL" |
+           sapply(model@submodels,function(x){length(x@submodels)>0}))
+      )])]
+      return(out)
+    }
+  }
+}
+mxStandardizeLISRELPaths <- mxStandardizeLISRELpaths
+

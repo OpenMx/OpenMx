@@ -1190,17 +1190,44 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 	int numFree = fc->getNumFree();
 
 	if (!builtCache) {
-    if (!fc->isClone()) {
+		if (fc->getParent()) {
+			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
+			if (pfitMat) {
+				auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
+				if (pff && pff->builtCache) {
+					ofiml->indexVector = pff->indexVector;
+					ofiml->rowMult = pff->rowMult;
+					ofiml->sameAsPrevious = pff->sameAsPrevious;
+					ofiml->ordinalMissingSame = pff->ordinalMissingSame;
+					ofiml->continuousMissingSame = pff->continuousMissingSame;
+					ofiml->missingSameOrdinalSame = pff->missingSameOrdinalSame;
+					ofiml->missingSameContinuousSame = pff->missingSameContinuousSame;
+					ofiml->continuousSame = pff->continuousSame;
+					ofiml->missingSame = pff->missingSame;
+					ofiml->ordinalSame = pff->ordinalSame;
+					ofiml->useSufficientSets = pff->useSufficientSets;
+					ofiml->sufficientSets = pff->sufficientSets;
+					ofiml->jointStrat = pff->jointStrat;
+					ofiml->numOrdinal = pff->numOrdinal;
+					ofiml->numContinuous = pff->numContinuous;
+					ofiml->isOrdinal = pff->isOrdinal;
+				}
+			}
+		}
+
+		if (!fc->isClone()) {
 			if (!indexVector.size()) sortData(off);
 			openmpUser = rowwiseParallel && fc->permitParallel;
-      diagParallel(OMX_DEBUG, "%s: openmpUser = %d", name(), openmpUser);
-    } else {
+			diagParallel(OMX_DEBUG, "%s: openmpUser = %d", name(), openmpUser);
+		} else {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
-      auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
-      if (!pff->openmpUser) OOPS;
-      parent = pff;
-      elapsed.resize(ELAPSED_HISTORY_SIZE);
-      curElapsed = NA_INTEGER;
+			auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
+			if (!pff->openmpUser) OOPS;
+			parent = pff;
+			ofiml->sufficientSets = pff->sufficientSets;
+			ofiml->useSufficientSets = pff->useSufficientSets;
+			elapsed.resize(ELAPSED_HISTORY_SIZE);
+			curElapsed = NA_INTEGER;
 		}
 		builtCache = true;
 	}

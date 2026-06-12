@@ -143,7 +143,7 @@ class FitContext {
 	void analyzeHessian();
 	void analyzeHessianBlock(HessianBlock *hb);
 	void testMerge();
-  void createChildren1();
+  void createChildren1(bool isTeam);
 
 	std::string IterationError;
 	double ordinalRelativeError;
@@ -160,7 +160,8 @@ class FitContext {
  public:
 	FreeVarGroup *varGroup;
 	omxState *state;
-	omxState *getParentState() const { return parent->state; };
+	omxState *getParentState() const { return parent ? parent->state : nullptr; };
+	FitContext *getParent() const { return parent; }
 	bool isClone() const;
 	int numParam;
   int getNumFree() const { return u_numFree; }
@@ -223,7 +224,7 @@ class FitContext {
 	FitContext(FitContext *parent, FreeVarGroup *group);
 	bool openmpUser;  // whether some fitfunction/expectation uses OpenMP
   bool permitParallel; // whether openmpUser is permitted
-  void createChildren(omxMatrix *alg=0, bool permitParallel=false);
+  void createChildren(omxMatrix *alg=0, bool permitParallel=false, bool isTeam=true);
   int numOptimizerThreads() { return (childList.size() && !openmpUser)? childList.size() : 1; }
 	void destroyChildren();
 	void calcStderrs();
@@ -387,8 +388,11 @@ class omxCompute {
 };
 
 class PushLoopIndex {
+	bool inParallel;
 	void init(const char *name, int ix, int ii, int last)
 	{
+		inParallel = omp_in_parallel() != 0;
+		if (inParallel) return;
 		Global->computeLoopContext.push_back(name);
 		Global->computeLoopIndex.push_back(ix);
 		Global->computeLoopIter.push_back(ii);
@@ -402,6 +406,7 @@ public:
 	PushLoopIndex(const char *name)
 	{ init(name, NA_INTEGER, 0, 0); }
 	~PushLoopIndex() {
+		if (inParallel) return;
 		Global->computeLoopContext.pop_back();
 		Global->computeLoopIndex.pop_back();
 		Global->computeLoopIter.pop_back();
@@ -411,8 +416,11 @@ public:
 
 class RNGStateManager {
  protected:
+	bool inParallel;
 	void checkOut()
 	{
+		inParallel = omp_in_parallel() != 0;
+		if (inParallel) return;
 		if (Global->RNGCheckedOut) {
 			mxThrow("Attempt to check out RNG but already checked out");
 		}
@@ -421,6 +429,7 @@ class RNGStateManager {
 	}
 	void checkIn()
 	{
+		if (inParallel) return;
 		if (!Global->RNGCheckedOut) {
 			mxThrow("Attempt to return RNG but already returned");
 		}

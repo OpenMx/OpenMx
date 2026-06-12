@@ -43,7 +43,11 @@ extern "C" {
 #define ASA_TEMPLATE_LIB TRUE
 #define ASA_FUZZY TRUE
 #define OPTIONAL_DATA_PTR TRUE
+#ifdef __cplusplus
+#define OPTIONAL_PTR_TYPE class ComputeGenSA
+#else
 #define OPTIONAL_PTR_TYPE struct ComputeGenSA
+#endif
 	//#define ASA_PRINT_MORE TRUE
 #define MAX_DOUBLE DBL_MAX
 #define MIN_DOUBLE DBL_MIN

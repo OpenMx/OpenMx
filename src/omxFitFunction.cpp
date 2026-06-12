@@ -244,7 +244,7 @@ static void numericalGradientApprox(omxFitFunction *ff, FitContext *fc, bool hav
   Eigen::Map< Eigen::RowVectorXd > gradOut(fc->gradZ.data(), fc->gradZ.size());
 
 	(*fc->numericalGradTool)([&](double *myPars, int thrId, Eigen::Ref<Eigen::ArrayXd> result)->void{
-			FitContext *fc2 = thrId >= 0? fc->childList[thrId] : fc;
+			FitContext *fc2 = (thrId >= 0 && thrId < (int)fc->childList.size()) ? fc->childList[thrId] : fc;
 			Eigen::Map< Eigen::VectorXd > Est(myPars, fc2->numParam);
 			// Only 1 parameter is different so we could
 			// update only that parameter instead of all

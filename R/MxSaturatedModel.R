@@ -49,7 +49,7 @@
 # Saturated Model function definition
 
 generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMeans=FALSE, numObs, means=NA,
-					  distribution, equateThresholds, weight = NULL) {
+					  distribution, equateThresholds, weight = NULL, fitfun = mxFitFunctionML()) {
   if (!is.null(weight) && !is.na(weight)) {
 	  datasource <- mxData(observed=obsdata, type=datatype, numObs=numObs, means=means, weight=weight)
     obsdata <- obsdata[,!names(obsdata) %in% weight]
@@ -122,15 +122,15 @@ generateNormalReferenceModels <- function(modelName, obsdata, datatype, withMean
 					ltCov,
 					satCov,
 					mxExpectationNormal("satCov"),
-					mxFitFunctionML())
+					fitfun)
 
 	indCov <- mxMatrix(type="Diag", nrow=numVar, ncol=numVar, values=indepcov, free=!ordinalCols,
 				lbound=0, name="indCov", dimnames=list(varnam, varnam))
 	independenceModel <- mxModel(name=paste("Independence", modelName),
 				     datasource, indCov,
-				     mxExpectationNormal("indCov"), mxFitFunctionML())
+				     mxExpectationNormal("indCov"), fitfun)
 
-	if(datatype == "raw" || withMeans) {
+	if( (datatype == "raw" && !is(fitfun, "MxFitFunctionWLS")) || withMeans ) {
 		saturatedModel <- mxModel(saturatedModel,
 			mxMatrix(nrow=1, ncol=numVar, values=startmea, free=TRUE, name="satMea", dimnames=list(NA, varnam)),
 			mxExpectationNormal("satCov", "satMea")
@@ -296,8 +296,10 @@ mxRefModels <- function(x, run=FALSE, ..., distribution="default", equateThresho
 	models <- lapply(ReferenceModelHelper(x, distribution, equateThresholds), function(model) {
 		if (!isS4(model)) return(model)
 		model <- omxAssignFirstParameters(model)
-		model <- mxOption(model, "Standard Errors", "No")
-		model <- mxOption(model, "Calculate Hessian", "No")
+		if (!imxHasWLS(model)) {
+			model <- mxOption(model, "Standard Errors", "No")
+			model <- mxOption(model, "Calculate Hessian", "No")
+		}
 		if (run) {
 			model <- mxRun(model, silent=FALSE)
 		}

@@ -253,8 +253,10 @@ omxCheckCloseEnough(opmo, lavo, .0005)
 # lmo <- lavaan(lavFull, data=ds1, parameterization='theta', estimator='WLSM')
 # lmt <- lavaan(lavTau, data=ds1, parameterization='theta', estimator='WLSM')
 # anova(lmo, lmt, method='satorra.bentler.2001')
-# cmp
 omxCheckCloseEnough(cmp$SBchisq[2], 52.236, .02)
+omxCheckEquals(cmp$df[1], 2)
+omxCheckEquals(cmp$df[2], 5)
+omxCheckEquals(cmp$diffdf[2], 3)
 
 
 # lno <- lavaan(lavFull, data=ds2, parameterization='theta', estimator='WLSM')
@@ -262,6 +264,9 @@ omxCheckCloseEnough(cmp$SBchisq[2], 52.236, .02)
 # anova(lno, lnt, method='satorra.bentler.2001')
 # ncmp
 omxCheckCloseEnough(ncmp$SBchisq[2], 1.7838, .02)
+omxCheckEquals(ncmp$df[1], 2)
+omxCheckEquals(ncmp$df[2], 5)
+omxCheckEquals(ncmp$diffdf[2], 3)
 
 
 

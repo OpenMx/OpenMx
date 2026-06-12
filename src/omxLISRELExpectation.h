@@ -18,7 +18,7 @@
 #ifndef u_OMXLISRELEXPECTATION_H_
 #define u_OMXLISRELEXPECTATION_H_
 
-void omxCalculateLISRELCovarianceAndMeans(struct omxLISRELExpectation* oro);
+void omxCalculateLISRELCovarianceAndMeans(class omxLISRELExpectation* oro);
 
 /*
 void omxFastLISRELInverse(int numIters, omxMatrix* A, omxMatrix* Z, omxMatrix* Ax, omxMatrix* I ); // same as RAM inverse

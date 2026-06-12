@@ -24,18 +24,17 @@
 #  part of summary that you want to change, then you must add to this test file
 #  before modifying summary.  Once the test has been added, muck around with
 #  summary to your heart's content.
+#
+# 2026-06-10 added "constrain" model with constraint
+# TODO testconstraint to make sure it adds back DoF
 # TODO add multigroup case to make sure this works
-# TODO add model with constraint to make sure it adds back DoF
 #------------------------------------------------------------------------------
 
 
 #------------------------------------------------------------------------------
 # Load package and data
-
 require(OpenMx)
-
 data(demoTwoFactor)
-
 #------------------------------------------------------------------------------
 # Specify raw data model
 
@@ -56,6 +55,13 @@ raw <- mxModel("Raw Test Model to Check MxSummary",
 
 raw.fit <- mxRun(raw)
 
+constrain <- mxModel("Raw Test Model with constraint to Check MxSummary", type="RAM",
+	manifestVars=varnames, latentVars=latnames,
+	fl, fc, mm, rv,
+	mxConstraint(resid_y1 == resid_y2, name="equal_resid"),
+	mxData(demoTwoFactor, "raw")
+)
+constrain.fit <- mxRun(constrain)
 
 #------------------------------------------------------------------------------
 # Specify Saturated raw data model
@@ -79,7 +85,6 @@ omxCheckError(mxCompare(raw.fit, raw), "Model 'Raw Test Model to Check MxSummary
 
 #------------------------------------------------------------------------------
 # Specify a multiple group model
-
 
 data(demoOneFactor)
 manifests <- names(demoOneFactor)
@@ -223,8 +228,8 @@ omxCheckEquals(mg.sum$degreesOfFreedom, 5*500+4*500-27)
 omxCheckWithinPercentError(raw.sum$Minus2LogLikelihood, 9236.675, percent=1e-4)
 omxCheckTrue(is.na(raw.sum$SaturatedLikelihood))
 omxCheckWithinPercentError(raws.sum$SaturatedLikelihood, 9186.911, percent=1e-4)
-omxCheckWithinPercentError(cov.sum$SaturatedLikelihood, -2.464397, percent=1e-4)
-omxCheckWithinPercentError(covs.sum$SaturatedLikelihood, -2.464397, percent=1e-4)
+omxCheckWithinPercentError(cov.sum$SaturatedLikelihood, -2.47441, percent=1e-4)
+omxCheckWithinPercentError(covs.sum$SaturatedLikelihood, -2.47441, percent=1e-4)
 omxCheckEquals(raw.sum$numObs, 500)
 omxCheckEquals(raws.sum$numObs, 500)
 omxCheckEquals(cov.sum$numObs, 500)
@@ -235,8 +240,8 @@ omxCheckEquals(mg.sum$numObs, 1000)
 #	chi-square, chi dof, chi p
 omxCheckTrue(is.na(raw.sum$Chi))
 omxCheckTrue(!is.na(raws.sum$Chi))
-omxCheckCloseEnough(cov.sum$Chi, 49.75399, epsilon=1e-3)
-omxCheckCloseEnough(covs.sum$Chi, 49.75399, epsilon=1e-3)
+omxCheckCloseEnough(cov.sum$Chi, 49.764, epsilon=1e-3)
+omxCheckCloseEnough(covs.sum$Chi, 49.764, epsilon=1e-3)
 
 
 # ChiDoF = df - sat.df, i.e. df = obsStat-ep, sat.df = obsStat-sat.ep, so ChiDoF = sat.ep - ep
@@ -293,11 +298,11 @@ omxCheckCloseEnough(sat.sum$informationCriteria['BIC:','par'], 9590.86, .01)
 omxCheckCloseEnough(raws.sum$informationCriteria['AIC:','par'], 9298.67, .01)
 omxCheckCloseEnough(raws.sum$informationCriteria['BIC:','par'], 9429.32, .01)
 
-omxCheckCloseEnough(cov.sum$informationCriteria['AIC:','par'], 91.75, .01)
-omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.26, .01)
+omxCheckCloseEnough(cov.sum$informationCriteria['AIC:','par'], 91.7640, .01)
+omxCheckCloseEnough(cov.sum$informationCriteria['BIC:','par'], 180.2708, .01)
 
-omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.75, .01)
-omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.40, .01)
+omxCheckCloseEnough(covs.sum$informationCriteria['AIC:','par'], 111.7640, .01)
+omxCheckCloseEnough(covs.sum$informationCriteria['BIC:','par'], 242.4168, .01)
 
 omxCheckCloseEnough(mg.sum$informationCriteria[c(1:4,6)], c(-6936.958, -28889.347, 2063.042, 2195.552, 2109.798), .01)
 

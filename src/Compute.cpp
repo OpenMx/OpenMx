@@ -1200,8 +1200,10 @@ struct ParallelInvalidator : StateInvalidator {
   virtual void doMatrix() override {}
 };
 
-void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
+void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTeam)
 {
+	if (parent) return;
+
 	if (childList.size()) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: ignored, childList already populated");
     return;
@@ -1224,7 +1226,7 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
 
 	if (Global->numThreads <= 1)  return;
 
-  createChildren1();
+  createChildren1(isTeam);
 
   if (alg) {
     for (auto kid : childList) omxAlgebraPreeval(alg, kid);
@@ -1234,7 +1236,7 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel)
   }
 }
 
-void FitContext::createChildren1()
+void FitContext::createChildren1(bool isTeam)
 {
 	for(size_t j = 0; j < state->expectationList.size(); j++) {
 		if (!state->expectationList[j]->canDuplicate) {
@@ -1267,7 +1269,7 @@ void FitContext::createChildren1()
 
 	for(int ii = 0; ii < numThreads; ii++) {
 		FitContext *kid = new FitContext(this, varGroup);
-		kid->state = new omxState(state, openmpUser);
+		kid->state = new omxState(state, isTeam && openmpUser);
 		kid->state->initialRecalc(kid);
     kid->calcNumFree();
 		childList.push_back(kid);
@@ -1342,7 +1344,9 @@ void CIobjective::checkSolution(FitContext *fc)
 {
 	if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM) return;
 
-	if (getDiag() != DIAG_SUCCESS) {
+	Diagnostic d = getDiag();
+	mxLog("CIobjective::checkSolution %p (%s) calling getDiag: returned %d", this, CI->name.c_str(), (int)d);
+	if (d != DIAG_SUCCESS) {
 		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
 	}
 }
@@ -1647,7 +1651,7 @@ struct LeaveComputeWithVarGroup {
 	ComputeInform origInform;
 	const char *name;
 
-	LeaveComputeWithVarGroup(FitContext *u_fc, struct omxCompute *compute) : fc(u_fc), name(compute->name) {
+	LeaveComputeWithVarGroup(FitContext *u_fc, class omxCompute *compute) : fc(u_fc), name(compute->name) {
 		origInform = fc->getInform();
 		toResetInform = compute->accumulateInform();
 		if (toResetInform) fc->setInform(INFORM_UNINITIALIZED);
@@ -1844,6 +1848,9 @@ class ComputeStandardError : public omxCompute {
 	int df;
 	double x2m, x2mv;
 	double madj, mvadj, dstar;
+
+ public:
+	ComputeStandardError() : fitMat(nullptr), wlsStats(false), x2(0.0), df(0), x2m(0.0), x2mv(0.0), madj(1.0), mvadj(1.0), dstar(0.0) {}
 
 	struct visitEx {
 		ComputeStandardError &top;
@@ -2194,7 +2201,7 @@ void ComputePenaltySearch::initFromFrontend(omxState *globalState, SEXP rObj)
   verbose = Rf_asInteger(obj.slot("verbose"));
   IntegerVector ffv = obj.slot("fitfunction");
   if (ffv.size() != 1) mxThrow("%s: can add the regularization penalty to "
-                               "exactly one fit function (not %d of them)", ffv.size());
+                               "exactly one fit function (not %d of them)", name, ffv.size());
 	for (int wx=0; wx < ffv.size(); ++wx) {
     omxMatrix *mat = globalState->algebraList[ ffv[wx] ];
     if (!mat->isFitFunction()) mxThrow("%s: %s is not a fit function", name, mat->name());
@@ -2266,26 +2273,47 @@ void ComputePenaltySearch::computeImpl(FitContext *fc)
     int observedStats = 0;
     fitfunction[0]->fitFunction->traverse([&observedStats](omxMatrix *f1){
       auto ff = f1->fitFunction;
-      if (ff->expectation) observedStats += ff->expectation->numObservedStats();
+      if (ff && ff->expectation) observedStats += ff->expectation->numObservedStats();
     });
     int DF = observedStats - EP;
 
-    // how to extend support to multiple groups? TODO
-    auto ex = fitfunction[0]->fitFunction->expectation;
-    if (!ex) mxThrow("%s: fitfunction '%s' does not have an expectation", fitfunction[0]->name());
-    int np = ex->numManifestVars();
-    int nfac = ex->numLatentVars();
-    if (nfac < 1) nfac = 1;
+    int np = 0;
+    int nfac = 0;
+    double N = 0;
+    bool anyRaw = false;
+
+    fitfunction[0]->fitFunction->traverse([&](omxMatrix *f1){
+      auto ff = f1->fitFunction;
+      if (ff) {
+        auto ex = ff->expectation;
+        if (ex) {
+          if (!ex->data) {
+            mxThrow("%s: expectation '%s' has no associated data", name, ex->name);
+          }
+          np += ex->numManifestVars();
+          int nf = ex->numLatentVars();
+          if (nf < 1) nf = 1;
+          nfac += nf;
+          N += omxDataNumObs(ex->data);
+          if (strEQ(ex->data->getType(), "raw")) {
+            anyRaw = true;
+          }
+        }
+      }
+    });
+
+    if (np == 0) {
+      mxThrow("%s: fitfunction '%s' does not have any expectations in its submodels", name, fitfunction[0]->name());
+    }
+
     double cvDF = ((np*np+1)/2. + np - EP)/DF;
-    if (!ex->data) mxThrow("%s: expectation '%s' has no associated data", ex->name);
     if (fitfunction[0]->fitFunction->units != FIT_UNITS_MINUS2LL) {
       mxThrow("%s: fit function '%s' must be -2ll units (not %s)",
               name, fitfunction[0]->name(), fitUnitsToName(fitfunction[0]->fitFunction->units));
     }
     double ll = fitfunction[0]->data[0];
-    double N = omxDataNumObs(ex->data);
     double EBIC;
-    if (strEQ(ex->data->getType(), "raw")) {
+    if (anyRaw) {
       EBIC = ll * cvDF + (log(N) * EP + 2*EP * ebicGamma * log(np+nfac));
     } else {
       EBIC = ll +         log(N) * EP + 2*EP * ebicGamma * log(np+nfac);
@@ -3777,6 +3805,15 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	      fc->fitUnits == FIT_UNITS_SQUARED_RESIDUAL_CHISQ)) return;
 	if (!fitMat) return;
 
+	wlsStats = false;
+	x2 = 0.0;
+	df = 0;
+	x2m = 0.0;
+	x2mv = 0.0;
+	madj = 1.0;
+	mvadj = 1.0;
+	dstar = 0.0;
+
 	exList.clear();
 	std::function<void(omxMatrix*)> ve = visitEx(this);
 	fitMat->fitFunction->traverse(ve);
@@ -3865,7 +3902,15 @@ void ComputeStandardError::computeImpl(FitContext *fc)
 	}
 
 	Eigen::MatrixXd dvd = sense.result.transpose() * Vmat * sense.result;
-	if (InvertSymmetricIndef(dvd, 'L') > 0) return;
+	if (InvertSymmetricIndef(dvd, 'L') != 0) {
+		madj = 1.0;
+		mvadj = 1.0;
+		x2m = x2;
+		x2mv = x2;
+		dstar = df;
+		wlsStats = true;
+		return;
+	}
 
 	fc->vcov = dvd.selfadjointView<Eigen::Lower>() * sense.result.transpose() *
 		Vmat * Wmat * Vmat * sense.result * dvd.selfadjointView<Eigen::Lower>();

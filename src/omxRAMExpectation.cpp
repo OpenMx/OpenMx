@@ -1055,7 +1055,7 @@ namespace RelationalRAMExpectation {
 		}
 
 		class addr a1;
-		class addrSetup as1;
+		struct addrSetup as1;
 		as1.clumped = false;
 		a1.ig = 0;
 		as1.parent1 = NA_INTEGER;
