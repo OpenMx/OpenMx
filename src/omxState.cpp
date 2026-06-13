@@ -1038,8 +1038,12 @@ omxConstraint *UserConstraint::duplicate(omxState *dest) const
 	uc->opCode = opCode;
   uc->redundant = redundant;
   uc->size = size;
+  uc->origSize = origSize;
+  uc->strict = strict;
+  uc->seenActive = seenActive;
+  uc->initialJac = initialJac;
 	uc->pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, dest); // 10 = binary subtract
-	uc->jacobian = jacobian;
+	uc->jacobian = dest->lookupDuplicate(jacobian);
   uc->jacMap = jacMap;
   uc->verbose = verbose;
 	return uc;
