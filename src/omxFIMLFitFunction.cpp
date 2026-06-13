@@ -1222,12 +1222,15 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 		} else {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
-			if (!pff->openmpUser) OOPS;
-			parent = pff;
-			ofiml->sufficientSets = pff->sufficientSets;
-			ofiml->useSufficientSets = pff->useSufficientSets;
-			elapsed.resize(ELAPSED_HISTORY_SIZE);
-			curElapsed = NA_INTEGER;
+			if (pff->openmpUser) {
+				parent = pff;
+				ofiml->sufficientSets = pff->sufficientSets;
+				ofiml->useSufficientSets = pff->useSufficientSets;
+				elapsed.resize(ELAPSED_HISTORY_SIZE);
+				curElapsed = NA_INTEGER;
+			} else {
+				if (!indexVector.size()) sortData(off);
+			}
 		}
 		builtCache = true;
 	}

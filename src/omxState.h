@@ -373,7 +373,7 @@ class omxState {
 	int getWantStage() const { return wantStage; }
 	void setWantStage(int stage);
 	int getId() const { return stateId; }
-	bool isClone() const { return workBoss != 0; } // rename to isWorkBoss TODO
+	bool isClone() const { return parent != 0; }
   bool isTopState() const { return parent == 0; }
 
 	std::vector< omxMatrix* > matrixList;
