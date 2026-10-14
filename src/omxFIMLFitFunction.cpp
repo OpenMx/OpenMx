@@ -189,7 +189,12 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 		}
 
 		if (rowContinuous) {
-			if (!rowOrdinal && (!parent->continuousMissingSame[row] || firstRow)) {
+			// missingSame, not continuousMissingSame. An ordinal-missing row can
+			// share the continuous pattern with the previous ordinal-observed row,
+			// whose contMean is conditional on that ordinal. missingSame is true
+			// only when the previous row was also ordinal-missing, so contMean
+			// is already the marginal:
+			if (!rowOrdinal && (!parent->missingSame[row] || firstRow)) {
 				op.wantOrdinal = false;
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
 				INCR_COUNTER(invert);
