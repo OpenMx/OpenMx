@@ -2,6 +2,8 @@ library(OpenMx)
 
 if(mxOption(NULL,"Default optimizer")=="CSOLNP"){stop("SKIP")}
 
+mxOption(NULL,"Standard Errors","No")
+
 m1 <- mxModel("dogChain",
               mxMatrix(name="link", nrow=4, ncol=1, free=TRUE, lbound=-1, values=.1),
               mxMatrix(name="dog", nrow=1, ncol=1, free=TRUE, values=-1), # violate constraint
@@ -28,3 +30,8 @@ m2 <- mxTryHard(m2)
 print(summary(m2))
 omxCheckCloseEnough(m2$dog$values, -4.0309, .031)
 omxCheckCloseEnough(m2$link$values[,1], rep(-1.014, 4), .015)
+
+
+
+
+mxOption(reset=TRUE)
