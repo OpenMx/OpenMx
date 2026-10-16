@@ -238,7 +238,7 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
-		tColumn <- thresholds[,i]
+		tColumn <- thresholds[,i,drop=TRUE]
 		values = NA
 		if(dataType=="raw") {
 			observedColumn <- observed[,tName]
