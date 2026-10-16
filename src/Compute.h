@@ -416,7 +416,7 @@ public:
 
 class RNGStateManager {
  protected:
-	bool inParallel;
+	bool inParallel = omp_in_parallel() != 0;
 	void checkOut()
 	{
 		inParallel = omp_in_parallel() != 0;
