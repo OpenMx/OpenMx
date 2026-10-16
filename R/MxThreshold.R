@@ -238,10 +238,10 @@ verifyThresholds <- function(flatModel, model, labelsData, dataName, covNames, t
 
 	for(i in 1:length(threshNames)) {
 		tName <- threshNames[[i]]
-		tColumn <- thresholds[,i,drop=TRUE]
+		tColumn <- thresholds[,i]
 		values = NA
 		if(dataType=="raw") {
-			observedColumn <- observed[,tName]
+			observedColumn <- observed[,tName,drop=TRUE]
 			if(!all(is.na(observedColumn))) {
 				if (!is.ordered(observedColumn)) {
 						stop(paste("In model",
