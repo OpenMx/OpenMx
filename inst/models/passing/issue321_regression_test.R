@@ -47,3 +47,44 @@ omxCheckCloseEnough(sum_cov_ref$Chi, 0.0, 1e-4)
 
 # Confirm they are equal to each other
 omxCheckCloseEnough(sum_cov$Chi, sum_cov_ref$Chi, 1e-6)
+
+
+# More tests, based on Mike Cheung's syntax: #####
+
+## mxModel using the parameter estimates as starting values
+matrA <- mxMatrix(
+	type="Full", nrow=2, ncol=2,
+	free=c(F,F,T,F), values=0,
+	labels=c(NA,NA,"beta1",NA), byrow=TRUE, name="A")
+matrS <- mxMatrix(
+	type="Symm", nrow=2, ncol=2,
+	free=c(T,F,F,T), values=0,
+	labels=c("varx",NA,NA,"sigma2"), byrow=TRUE, name="S")
+matrF <- mxMatrix(type="Iden", nrow=2, ncol=2, name="F")
+matrM <- mxMatrix(
+	type="Full", nrow=1, ncol=2,
+	free=c(T,T), values=0,
+	labels=c("meanx","beta0"), name="M")
+expRAM <- mxExpectationRAM("A","S","F","M", dimnames=c("x","y"))
+funML <- mxFitFunctionML()
+## Raw data as inputs
+uniModel1 <- mxModel(
+	"Simple Regression with raw data",
+	mxData(observed=df, type="raw"),
+	matrA, matrS, matrF, matrM, expRAM, funML)
+fit1 <- mxRun(uniModel1)
+( smm1 <- summary(fit1, refModels=mxRefModels(fit1, run=TRUE)) )
+
+## Covariance matrix as inputs
+uniModel2 <- mxModel(
+	"Simple Regression with covariance matrix",
+	mxData(
+		observed=cov(df), type="cov",
+		means=apply(df, 2, mean),
+		numObs=nrow(df)),
+	matrA, matrS, matrF, matrM, expRAM, funML)
+fit2 <- mxRun(uniModel2)
+( smm2 <- summary(fit2) )
+
+# Chi-square statistics should match very closely:
+omxCheckCloseEnough(smm1$Chi,smm2$Chi,1e-12)
