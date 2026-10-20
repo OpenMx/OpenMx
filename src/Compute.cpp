@@ -1202,8 +1202,6 @@ struct ParallelInvalidator : StateInvalidator {
 
 void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTeam)
 {
-	if (parent) return;
-
 	if (childList.size()) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: ignored, childList already populated");
     return;
@@ -1225,6 +1223,9 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTe
   if (alg) omxAlgebraPreeval(alg, this);
 
 	if (Global->numThreads <= 1)  return;
+
+	// Nested contexts share state: refresh caches above, but never spawn grandchild teams.
+	if (parent) return;
 
   createChildren1(isTeam);
 
