@@ -548,6 +548,11 @@ void omxGREMLFitState::compute2(int want, FitContext *fc)
 
  		//Declare local variables for this scope:
  		int nThreadz = Global->numThreads;
+ 		// Numeric dV/dyhat use one child context per thread; nested
+ 		// contexts (e.g. under parallel CIs) have no children, so cap
+ 		// the team instead of indexing past childList.
+ 		if (int(fc->childList.size()) < nThreadz) nThreadz = int(fc->childList.size());
+ 		if (nThreadz < 1) nThreadz = 1;
  		int wantHess = 0;
  		//GREMLSense sense(this, fc, oge->numcases2drop, oge->dropcase);
 
@@ -662,7 +667,7 @@ void omxGREMLFitState::gradientAndAIM1(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int istart = threadID * numExplicitFreePar / u_nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / u_nThreadz;
 		if(threadID == u_nThreadz-1){iend = numExplicitFreePar;}
@@ -764,7 +769,7 @@ void omxGREMLFitState::gradientAndAIM2(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int istart = 0;
 		int iend = rowbins[threadID].size();
 		for(i=istart; i < iend; i++){
@@ -869,7 +874,7 @@ void omxGREMLFitState::gradientAndAIM3(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int iend = AIMelembins[threadID].size();
 		if(iend){inielem = AIMelembins[threadID](0);}
 		while(inielem > 0){
@@ -982,7 +987,7 @@ void omxGREMLFitState::gradientAndEIM1(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int istart = threadID * numExplicitFreePar / u_nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / u_nThreadz;
 		if(threadID == u_nThreadz-1){iend = numExplicitFreePar;}
@@ -1140,7 +1145,7 @@ void omxGREMLFitState::gradientAndEIM2(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int istart = 0;
 		int iend = rowbins[threadID].size();
 		for(i=istart; i < iend; i++){
@@ -1261,7 +1266,7 @@ void omxGREMLFitState::gradientAndEIM3(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int iend = AIMelembins[threadID].size();
 		if(iend){inielem = AIMelembins[threadID](0);}
 		while(inielem > 0){
@@ -1387,7 +1392,7 @@ void omxGREMLFitState::gradientAndOIM1(
 			Eigen::VectorXd curEst(numExplicitFreePar);
 			u_fc->copyEstToOptimizer(curEst);
 			Eigen::VectorXd curEst1p(1);
-			int threadID = omx_absolute_thread_num();
+			int threadID = omx_innermost_thread_num();
 			int istart = threadID * numExplicitFreePar / u_nThreadz;
 			int iend = (threadID+1) * numExplicitFreePar / u_nThreadz;
 			if(threadID == u_nThreadz-1){iend = numExplicitFreePar;}
@@ -1532,7 +1537,7 @@ void omxGREMLFitState::gradientAndEIM1_yhat(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int istart = threadID * numExplicitFreePar / u_nThreadz;
 		int iend = (threadID+1) * numExplicitFreePar / u_nThreadz;
 		if(threadID == u_nThreadz-1){iend = numExplicitFreePar;}
@@ -1675,7 +1680,7 @@ void omxGREMLFitState::gradientAndEIM2_yhat(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int istart = 0;
 		int iend = rowbins[threadID].size();
 		for(i=istart; i < iend; i++){
@@ -1822,7 +1827,7 @@ void omxGREMLFitState::gradientAndEIM3_yhat(
 		Eigen::VectorXd curEst(numExplicitFreePar);
 		u_fc->copyEstToOptimizer(curEst);
 		Eigen::VectorXd curEst1p(1);
-		int threadID = omx_absolute_thread_num();
+		int threadID = omx_innermost_thread_num();
 		int iend = AIMelembins[threadID].size();
 		if(iend){inielem = AIMelembins[threadID](0);}
 		while(inielem > 0){
