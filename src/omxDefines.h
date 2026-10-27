@@ -181,6 +181,10 @@ static OMXINLINE int omx_absolute_thread_num(void) {
    return(omp_get_thread_num());
 }
 
+static OMXINLINE int omx_innermost_thread_num(void) {
+   return(omp_get_thread_num());
+}
+
 #else  // _OPENMP <= 200505
 
 static OMXINLINE int omx_absolute_thread_num(void) {
@@ -192,6 +196,14 @@ static OMXINLINE int omx_absolute_thread_num(void) {
        scale *= omp_get_team_size(i);
    }
    return(retval);
+}
+
+// Thread number within the innermost (current) team. Use this (not the
+// absolute number) for quantities sized by the current team: per-team work
+// shares and per-FitContext childList indexes. The two agree whenever there
+// is no enclosing OpenMP team.
+static OMXINLINE int omx_innermost_thread_num(void) {
+   return(omp_get_thread_num());
 }
 
 #endif // _OPENMP <= 200505
@@ -217,6 +229,10 @@ static OMXINLINE void omx_omp_unset_lock(omp_lock_t* lock) {
 typedef int omp_lock_t;
 
 static OMXINLINE int omx_absolute_thread_num(void) {
+   return(0);
+}
+
+static OMXINLINE int omx_innermost_thread_num(void) {
    return(0);
 }
 
