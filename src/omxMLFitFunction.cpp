@@ -218,6 +218,7 @@ void MLFitState::compute2(int want, FitContext *fc)
 
 		try {
 			multi_normal_deriv model(fc, fvMask, omo);
+			static thread_local stan::math::ChainableStack ad_stack;
 			stan::math::hessian(model, cont_params, init_log_prob, init_grad, hb->mat);
 		} catch (const std::exception& e) {
 			init_log_prob = NA_REAL;
