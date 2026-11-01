@@ -289,11 +289,11 @@ omxCheckTrue(rms(mxEval(A, doscr)[2,1], tA[2,1]) < .07)
 
 mxEval(R, doscr)
 tR
-omxCheckTrue(rms(mxEval(R, doscr), tR) < .2)
+omxCheckTrue(rms(mxEval(R, doscr), tR) < .12)
 
 mxEval(Q, doscr)
 tQ
-omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .7)
+omxCheckTrue(rms(mxEval(Q, doscr)[2,2], tQ[2,2]) < .95)
 
 
 mxEval(x0, doscr) #poorly estimated, likely due to dynamic error
@@ -310,11 +310,11 @@ omxCheckTrue(all(abs(ex3Tvals) < 0.6))
 s <- solve(kronecker(diag(xdim), mxEval(A, doscr)) + kronecker(mxEval(A, doscr), diag(xdim)))
 (asym_lvar <- matrix(-s %*% matrix(mxEval(Q, doscr)), xdim, xdim))
 (obs_lvar <- var(t(tx)))
-omxCheckTrue(rms(vech(asym_lvar), vech(obs_lvar)) < .7)
+omxCheckTrue(rms(vech(asym_lvar), vech(obs_lvar)) < .2)
 
 (asym_ovar <- mxEval(C, doscr) %*% asym_lvar %*% t(mxEval(C, doscr)) + mxEval(R, doscr))
 (obs_ovar <- var(t(ty)))
-omxCheckTrue(rms(vech(asym_ovar), vech(obs_ovar)) < 1.1)
+omxCheckTrue(rms(vech(asym_ovar), vech(obs_ovar)) < .2)
 
 
 #------------------------------------------------------------------------------
@@ -430,7 +430,7 @@ summary(srun)
 
 
 mxEval(A, srun); tA
-omxCheckTrue(rms(mxEval(A, srun)[tA!=0], tA[tA!=0]) < .02)
+omxCheckTrue(rms(mxEval(A, srun)[tA!=0], tA[tA!=0]) < .022)
 
 mxEval(C, srun)[tC!=0]; tC[tC!=0]
 omxCheckTrue(rms(mxEval(C, srun)[tC!=0], tC[tC!=0]) < .1)

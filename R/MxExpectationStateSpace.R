@@ -798,14 +798,14 @@ kalmanDiscretize <- function(A, B, Q, deltaT, I){
 	intA <- BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
 	
 	# Second Block expm for discretized Q
-	BLOCK[1:(nrow(A)), 1:ncol(A)] <- -t(A)
+	BLOCK[1:(nrow(A)), 1:ncol(A)] <- -A
 	BLOCK[(nrow(A)+1):(2*nrow(A)), 1:ncol(A)] <- 0
 	BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- Q
-	BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
+	BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- t(A)
 	BLOCK <- OpenMx::expm(BLOCK*deltaT)
 	
 	Bd <- intA %*% B
-	Qd <- t(expA) %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
+	Qd <- expA %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
 	return(list(Ad=expA, Bd=Bd, Qd=Qd))
 }
 
