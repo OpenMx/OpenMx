@@ -720,7 +720,9 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		R <- mxEvalByName(model[[subname]]@expectation@R, model, compute=TRUE)
 		u <- mxEvalByName(model[[subname]]@expectation@u, model, compute=TRUE)
 		
-		hasDefVars <- imxHasDefinitionVariable(model)
+		noTmodel <- model
+		noTmodel[[subname]][[noTmodel[[subname]]@expectation@t]] <- NULL
+		hasDefVars <- imxHasDefinitionVariable(noTmodel)
 		continuousTime <- !single.na(model[[subname]]@expectation@t)
 		
 		x0 <- mxEvalByName(model[[subname]]@expectation@x0, model, compute=TRUE)
@@ -733,6 +735,8 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 		ty <- matrix(0, ydim, tdim)
 		I <- diag(1, nrow=nrow(A))
 		Z <- diag(0, nrow=nrow(A))
+		oldDeltaT <- 0
+		kd <- NULL
 		
 		tx[,1] <- t(.rmvnorm(1, x0, P0, empirical))
 		oldT <- 0
@@ -751,10 +755,13 @@ setMethod("genericGenerateData", signature("MxExpectationStateSpace"),
 				newT <- mxEvalByName(model[[subname]]@expectation@t, model, compute=TRUE, defvar.row=i-1)
 				deltaT <- c(newT - oldT)
 				oldT <- newT
-				kd <- kalmanDiscretize(A, B, Q, deltaT, I)
-				Ad <- kd$Ad
-				Bd <- kd$Bd
-				Qd <- kd$Qd
+				if(oldDeltaT == 0 || oldDeltaT != deltaT || is.null(kd)){
+					kd <- kalmanDiscretize(A, B, Q, deltaT, I)
+					Ad <- kd$Ad
+					Bd <- kd$Bd
+					Qd <- kd$Qd
+				}
+				oldDeltaT <- deltaT
 			} else {
 				Ad <- A
 				Bd <- B
@@ -791,14 +798,14 @@ kalmanDiscretize <- function(A, B, Q, deltaT, I){
 	intA <- BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
 	
 	# Second Block expm for discretized Q
-	BLOCK[1:(nrow(A)), 1:ncol(A)] <- -t(A)
+	BLOCK[1:(nrow(A)), 1:ncol(A)] <- -A
 	BLOCK[(nrow(A)+1):(2*nrow(A)), 1:ncol(A)] <- 0
 	BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))] <- Q
-	BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- A
+	BLOCK[(nrow(A)+1):(2*nrow(A)), (nrow(A)+1):(2*nrow(A))] <- t(A)
 	BLOCK <- OpenMx::expm(BLOCK*deltaT)
 	
 	Bd <- intA %*% B
-	Qd <- t(expA) %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
+	Qd <- expA %*% BLOCK[1:nrow(A), (nrow(A)+1):(2*nrow(A))]
 	return(list(Ad=expA, Bd=Bd, Qd=Qd))
 }
 

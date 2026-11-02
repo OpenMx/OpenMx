@@ -757,23 +757,23 @@ void omxKalmanBucyPredict(omxStateSpaceExpectation* ose) {
 	EigenMatrixAdaptor eigenP(P);
 
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	PSI << -1.0*eigenA.transpose(), eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA;
+	PSI << -1.0*eigenA, eigenQ, Eigen::MatrixXd::Zero(A->rows, A->rows), eigenA.transpose();
 	PSI = PSI * deltaT;
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space PSI for Q and P:\n" << PSI << std::endl; }
 	/* PSI = PSI * deltaT */
 	/* PSI = expm(PSI) */
 	PSI = PSI.exp();
 	if(OMX_DEBUG_ALGEBRA) {std::cout << "... State Space expPSI*deltaT:\n" << PSI << std::endl; }
-	eigenIA = eigenExpA.transpose()*PSI.block(0, A->cols, A->rows, A->cols);
+	eigenIA = eigenExpA*PSI.block(0, A->cols, A->rows, A->cols);
 	eigenP.derived() = eigenIA + eigenExpA*eigenP*eigenExpA.transpose();
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 
 	/* SUMMARY */
-	// PSI = 	-A^T  Q
-	//			 0    A
+	// PSI = 	-A  Q
+	//			 0    A^T
 	// PSI = expm(PSI * deltaT)
-	// IA = t(eigenExpA) * UPPER RIGHT BLOCK OF PSI
+	// IA = eigenExpA * UPPER RIGHT BLOCK OF PSI
 	// IA is the discretized dynamic error cov Q_d
 	// P = IA + EA * P * t(EA)
 	// with EA = expEigenA
