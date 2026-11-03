@@ -94,17 +94,21 @@ r4 <- polyserial_with_omx(
 	testdat,'highmiss_binvar','orig_continvar',fitfunction=mxFitFunctionML(jointConditionOn='continuous',rowDiagnostics=T)) 
 omxCheckCloseEnough(r3$rho_hat,r4$rho_hat,5e-5)
 omxCheckCloseEnough(r3$fit$output$fit,r4$fit$output$fit,0.05)
-m3 <- mxRun(r3$model,useOptimizer=F)
-m4 <- mxRun(r4$model,useOptimizer=F)
-omxCheckCloseEnough(
-	cor(m3$fitfunction$info$likelihoods, m4$fitfunction$info$likelihoods), 1, 0.0001
-)
-omxCheckCloseEnough(
-	mean(m3$fitfunction$info$likelihoods - m4$fitfunction$info$likelihoods), 0, 1e-6
-)
+# This part doesn't use the optimizer, so there's no need to run it with all 3 optimizers during 'make test':
+if(mxOption(NULL,"Default optimizer")=="SLSQP"){
+	m3 <- mxRun(r3$model,useOptimizer=F)
+	m4 <- mxRun(r4$model,useOptimizer=F)
+	omxCheckCloseEnough(
+		cor(m3$fitfunction$info$likelihoods, m4$fitfunction$info$likelihoods), 1, 0.0001
+	)
+	omxCheckCloseEnough(
+		mean(m3$fitfunction$info$likelihoods - m4$fitfunction$info$likelihoods), 0, 1e-6
+	)
+}
 
 # Same result when conditioning on ordinal versus continuous variables, with lots of missing data on the continuous variable instead?:
 r5 <- polyserial_with_omx(testdat,'orig_binvar','highmiss_continvar',fitfunction=mxFitFunctionML(jointConditionOn='ordinal'))
 r6 <- polyserial_with_omx(testdat,'orig_binvar','highmiss_continvar',fitfunction=mxFitFunctionML(jointConditionOn='continuous')) 
 omxCheckCloseEnough(r5$rho_hat,r6$rho_hat,1e-4)
 omxCheckCloseEnough(r5$fit$output$fit,r6$fit$output$fit,0.1)
+
