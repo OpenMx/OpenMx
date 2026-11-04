@@ -143,6 +143,9 @@ public:
 	Eigen::MatrixXd iniSimplexMat;
 	Eigen::VectorXd tentativpt;
 	//Eigen::VectorXd gdpt;
+	
+	Eigen::MatrixXd pseudohess2, phpts2, phFvals2, Xout2;
+	Eigen::VectorXi phInfeas2;
 
 	GradientOptimizerContext subsidiarygoc;
 	void *extraData;
