@@ -79,6 +79,7 @@ public:
 	}
 
 	omxComputeNM* NMobj;
+	omxMatrix *fitMatrix2;
 	const int numFree;
 	int verbose;
 	int n; //<--number of free parameters minus number of equality constraints

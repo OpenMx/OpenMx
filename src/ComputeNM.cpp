@@ -263,12 +263,14 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 
 void omxComputeNM::computeImpl(FitContext *fc)
 {
-	omxAlgebraPreeval(fitMatrix, fc);
+	omxMatrix *localFitMatrix = fc->lookupDuplicate(fitMatrix);
+	omxAlgebraPreeval(localFitMatrix, fc);
 
 	fc->ensureParamWithinBox(nudge);
-	fc->createChildren(fitMatrix, true);
+	fc->createChildren(localFitMatrix, true);
 
 	NelderMeadOptimizerContext nmoc(fc, this);
+	nmoc.fitMatrix2 = localFitMatrix;
 
 	if (nmoc.numFree <= 0) { complainNoFreeParam(); return; }
 
@@ -329,6 +331,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 
 	if(validationRestart && nmoc.statuscode==0){
 		NelderMeadOptimizerContext nmoc2(fc, this);
+		nmoc2.fitMatrix2 = localFitMatrix;
 		nmoc2.verbose = verbose;
 		nmoc2.maxIter = 2 * nmoc.n;
 		nmoc2.iniSimplexType = 1;
@@ -604,7 +607,7 @@ void NelderMeadOptimizerContext::evalEqC()
 double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 {
 	copyParamsFromOptimizer(x,fc);
-	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(engineName, fitMatrix2, FF_COMPUTE_FIT, fc);
 	if( fc->outsideFeasibleSet() ){
 		return(bignum);
 	}
@@ -1547,7 +1550,7 @@ void NelderMeadOptimizerContext::finalize()
 	//best parameter values:
 	NMobj->bestfitOut = bestfit;
 	copyParamsFromOptimizer(est,fc);
-	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(engineName, fitMatrix2, FF_COMPUTE_FIT, fc);
 	/*Doing this here ensures (1) that the fit has just been freshly evaluated at the solution, (2) that this check is done as part of the
 	MxComputeNelderMead step (necessary for bootstrapping), and (3) that Nelder-Mead reports status code 3 for solutions that violate
 	MxConstraints, and status code 10 for	all other kinds of infeasible solutions:*/
