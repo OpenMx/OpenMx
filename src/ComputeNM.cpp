@@ -1439,7 +1439,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 				//TODO: export a message about the pseudohessian for the user
 				pseudohess2.resize(0,0);
 				phpts2.resize(0,0);
-				phFvals2(0,0);
+				phFvals2.resize(0,0);
 				phInfeas2.resize(0);
 				return;
 			}
@@ -1506,7 +1506,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		if(qrx.info() != Eigen::Success){
 			pseudohess2.resize(0,0);
 			phpts2.resize(0,0);
-			phFvals2(0,0);
+			phFvals2.resize(0,0);
 			phInfeas2.resize(0);
 			return;
 		}
