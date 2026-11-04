@@ -272,7 +272,11 @@ void omxComputeNM::computeImpl(FitContext *fc)
 	NelderMeadOptimizerContext nmoc(fc, this);
 	nmoc.fitMatrix2 = localFitMatrix;
 
-	if (nmoc.numFree <= 0) { complainNoFreeParam(); return; }
+	if (nmoc.numFree <= 0) {
+		complainNoFreeParam(); 
+		//omxFreeMatrix(localFitMatrix);
+		return;
+	}
 
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;
@@ -433,6 +437,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 	}
 
 	nmoc.finalize();
+	//omxFreeMatrix(localFitMatrix);
 
 	fc->wanted |= FF_COMPUTE_BESTFIT;
 
@@ -518,6 +523,11 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* u_fc, omxComp
 	addPenalty = false;
 	rho = 1;
 }
+
+/*NelderMeadOptimizerContext::~NelderMeadOptimizerContext()
+ {
+ omxFreeMatrix(fitMatrix2);
+ }*/
 
 void NelderMeadOptimizerContext::copyBounds()
 {

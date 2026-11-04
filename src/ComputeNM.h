@@ -70,6 +70,7 @@ private:
 	FitContext *fc;
 public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);
+	//virtual ~NelderMeadOptimizerContext();
 	void countConstraintsAndSetupBounds();
 	void copyParamsFromFitContext(double *ocpars);
 

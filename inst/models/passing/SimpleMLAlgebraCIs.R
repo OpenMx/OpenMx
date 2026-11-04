@@ -15,6 +15,7 @@
 
 
 require(OpenMx)
+#if(mxOption(NULL,"Default optimizer")=="NPSOL"){stop("SKIP")}
 
 if (mxOption(NULL, "Default optimizer") == "SLSQP") {
   mxOption(NULL, "Optimality tolerance", "6e-10")
