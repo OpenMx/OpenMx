@@ -2463,7 +2463,7 @@ namespace RelationalRAMExpectation {
 				Rf_setAttrib(m1, R_NamesSymbol, obsNameVec);
 				out.add("mean", m1);
 			}
-			if (fullCov.nonZeros()) {
+			if (fullCov.size()) {
 				out.add("covariance", Rcpp::wrap(fullCov));
 			}
 			SEXP fmean = Rcpp::wrap(fullMean);
