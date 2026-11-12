@@ -36,7 +36,11 @@ mod <- mxModel(
 	mxPath(man, arrows=2, free=TRUE, values=1),
 	mxData(data.frame(x,m1,y), type="raw"),
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
-fit <- omxCheckWarning(mxRun(mod),"Ignoring constraint 'c.ind0[1]' because it does not depend on any free parameters")
+omxCheckError(
+	omxCheckWarning(mxRun(mod),""),
+	"Expected `expression` to produce warnings."
+)
+fit <- mxRun(mod)
 omxCheckTrue(abs(mxEval(ind,fit)[1,1]) < 1e-12)
 
 
