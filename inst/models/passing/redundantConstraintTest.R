@@ -19,7 +19,6 @@
 # thereby making it redundant.
 
 library(OpenMx)
-library(testthat)
 #library(polycor)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -136,6 +135,8 @@ if(mxOption(NULL,"Default optimizer")!="CSOLNP"){
 	plan$steps <- list(GD=plan$steps$GD)
 	plan$steps$GD <- mxComputeNelderMead(eqConstraintMthd="GDsearch")
 	modelACE <- mxModel(modelACE, plan)
-	fitACE <- expect_warning(mxRun(modelACE),NA)
+	#Both of the following tests should pass if both warnings are raised:
+	fitACE <- omxCheckWarning(mxRun(modelACE),"Ignoring constraint 'MZ.Var1[1]' because it is redundant (|0.000000| < 0.000000)")
+	fitACE <- omxCheckWarning(mxRun(modelACE),"Ignoring constraint 'DZ.Var1[1]' because it is redundant (|0.000000| < 0.000000)")
   summary(fitACE)
 }

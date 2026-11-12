@@ -65,6 +65,9 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'verbose' is %d", verbose);
 	}
 
+	/*Frontend class 'MxComputeNelderMead' has a 'nudgeZeroStarts' slot that does not necessarily
+	 have the same value as the global "Nudge zero starts" mxOption.  Therefore, we must define a`nudge` 
+	 value local to this (i.e., Nelder-Mead) compute step:*/
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = Rf_asLogical(slotValue);
 	if(verbose){
@@ -266,6 +269,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 	omxMatrix *localFitMatrix = fc->lookupDuplicate(fitMatrix);
 	omxAlgebraPreeval(localFitMatrix, fc);
 
+	//Use `nudge` value local to this Nelder-Mead compute step:
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(localFitMatrix, true);
 

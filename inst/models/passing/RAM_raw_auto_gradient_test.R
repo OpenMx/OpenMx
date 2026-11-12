@@ -15,7 +15,8 @@
 
 require(OpenMx)
 #This script does not actually invoke the optimizer, so there's no need to test it with all 3:
-if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")} 
+if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
+mxOption(NULL,"Nudge zero starts","No")
 x <- rnorm(500)
 x <- (x-mean(x))/sd(x)
 

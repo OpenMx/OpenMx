@@ -1152,10 +1152,10 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
       if ((ej.row(cur+kk) == 0.0).all()) {
         con.redundant[kk] = true;
         count -= 1;
-        if (con.getVerbose()) {
-          mxLog("Ignoring constraint '%s[%d]' because it does not depend "
+        //if (con.getVerbose()) {
+        Rf_warning("Ignoring constraint '%s[%d]' because it does not depend "
                 "on any free parameters", con.name, 1+kk);
-        }
+        //}
       }
       if (d1 < cur+kk) ej.row(d1) = ej.row(cur+kk);
       if (!con.redundant[kk]) d1 += 1;
@@ -1184,10 +1184,10 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
       int xx = perm[cur+dx];
       if (abs(qr(xx,xx)) < thr) {
         con.redundant[kk] = true;
-        if (con.getVerbose()) {
-          mxLog("Ignoring constraint '%s[%d]' because it is redundant (|%f| < %f)",
+        //if (con.getVerbose()) {
+        Rf_warning("Ignoring constraint '%s[%d]' because it is redundant (|%f| < %f)",
                 con.name, 1+kk, qr(xx,xx), thr);
-        }
+        //}
       }
       dx += 1;
     }

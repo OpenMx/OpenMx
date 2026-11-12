@@ -475,6 +475,8 @@ static void readOpts(SEXP options)
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Inverse Optimization")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->RAMInverseOpt);
 				//mxLog("inv opt = %s %d", nextOptionValue, Global->RAMInverseOpt);
+			} else if (matchCaseInsensitive(nextOptionName, "Nudge zero starts")) {
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->doNudgeZeroStarts);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Max Depth")) {
 				if (strEQ(nextOptionValue, "NA")) {
 					Global->RAMMaxDepth = NA_INTEGER;
@@ -690,6 +692,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		mxThrow("Protection stack too large; report this problem to the OpenMx forum");
 	}
 
+  //Need to do the nudging of zero starts before trying to detect extraneous constraints (GitHub issue #433):
+  fc->ensureParamWithinBox(Global->doNudgeZeroStarts);
   globalState->hideBadConstraints(fc);
 
 	if (globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT) {

@@ -1064,6 +1064,9 @@ void FitContext::ensureParamWithinBox(bool nudge)
 	for (size_t px = 0; px < varGroup->vars.size(); ++px) {
 		omxFreeVar *fv = varGroup->vars[px];
 		if (nudge && !profiledOutZ[px] && est[px] == 0.0) {
+			if(OMX_DEBUG){
+				mxLog("Nudging!");
+			}
 			est[px] += 0.1;
 		}
 		if (fv->lbound > est[px]) {

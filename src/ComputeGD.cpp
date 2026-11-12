@@ -250,6 +250,9 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
   engine = nameToGradOptEngine(CHAR(Rf_asChar(slotValue)));
 
+	/*Frontend class 'MxComputeGradientDescent' has a 'nudgeZeroStarts' slot that does not necessarily
+	have the same value as the global "Nudge zero starts" mxOption.  Therefore, we must define a`nudge` 
+	value local to this (i.e., gradient-descent) compute step:*/
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = false;
 	friendlyStringToLogical("nudgeZeroStarts", slotValue, &nudge);
@@ -284,6 +287,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (numParam <= 0) { complainNoFreeParam(); return; }
 
+	//Use `nudge` value local to this gradient-descent compute step:
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(localFitMatrix, true);
 
