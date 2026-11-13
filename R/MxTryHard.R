@@ -62,7 +62,7 @@ mxTryHard <- function(
 	if(!lackOfConstraints){
 		if(imxHasWLS(model)){relevantOptions[[2]] <- "No"}
 		if(checkHess){
-			message("Polite note from mxTryHard: Hessian not checked as model contains mxConstraints")
+			message("Polite note from mxTryHard: Hessian not checked in frontend as model contains mxConstraints")
 			checkHess <- FALSE
 		}
 	}
