@@ -1411,6 +1411,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 		for (int t = 0; t < numThreads; ++t) {
 			threadRecords[t].clear();
 		}
+		Global->currentlyDoingParallelConfidenceIntervals = true;
 
 		#pragma omp parallel for schedule(dynamic) num_threads(numThreads)
 		for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
@@ -1444,6 +1445,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 				regularCI2(mle, *kid, currentCI, dummyDetailRow);
 			}
 		}
+		Global->currentlyDoingParallelConfidenceIntervals = false;
 
 		// Now sequentially record buffered C++ results to R
 		int mainDetailRow = 0;

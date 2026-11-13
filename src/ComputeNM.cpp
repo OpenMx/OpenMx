@@ -259,6 +259,8 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	if(verbose){
 		mxLog("omxComputeNM member 'centerIniSimplex' is %d", centerIniSimplex);
 	}
+	
+	bestfitOut = NA_REAL;
 
 	feasTol = Global->feasibilityTolerance;
 }
@@ -405,38 +407,44 @@ void omxComputeNM::computeImpl(FitContext *fc)
 		break;
 	}
 
-	size_t i=0;
-	Eigen::VectorXd xdiffs(nmoc.n);
-	Eigen::MatrixXd fdiffs(nmoc.n,1);
-	Eigen::MatrixXd Q(nmoc.n, nmoc.n);
-	verticesOut.resize(nmoc.vertices.size(), nmoc.vertices[0].size());
-	for(i=0; i < nmoc.vertices.size(); i++){
-		verticesOut.row(i) = nmoc.vertices[i];
-	}
-	fvalsOut = nmoc.fvals;
-	vertexInfeasOut = nmoc.vertexInfeas;
-	for(i=0; i < size_t(nmoc.n); i++){
-		fdiffs(i,0) = fabs(fvalsOut[i+1] - fvalsOut[0]);
-	}
-	fproxOut = fdiffs.array().maxCoeff();
-	for(i=0; i < size_t(nmoc.n); i++){
-		if(!nmoc.EqC.getCount()){
-			Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
-			xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
+	if(!Global->currentlyDoingParallelConfidenceIntervals){
+		/*We don't do this codeblock when doing parallel confidence intervals, because in the parallel-CI case,
+		this block will write to memory shared among threads & engender data races; additionally, even if we were
+		to do this block sequentially, the only results that would make it out to the frontend would be those yielded
+		by the last confidence-limit optimization (with all prior having been clobbered).*/
+		size_t i=0;
+		Eigen::VectorXd xdiffs(nmoc.n);
+		Eigen::MatrixXd fdiffs(nmoc.n,1);
+		Eigen::MatrixXd Q(nmoc.n, nmoc.n);
+		verticesOut.resize(nmoc.vertices.size(), nmoc.vertices[0].size());
+		for(i=0; i < nmoc.vertices.size(); i++){
+			verticesOut.row(i) = nmoc.vertices[i];
 		}
-		else{
-			xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+		fvalsOut = nmoc.fvals;
+		vertexInfeasOut = nmoc.vertexInfeas;
+		for(i=0; i < size_t(nmoc.n); i++){
+			fdiffs(i,0) = fabs(fvalsOut[i+1] - fvalsOut[0]);
 		}
-	}
-	xproxOut = xdiffs.array().maxCoeff();
-	if(!nmoc.vertexInfeas.sum() && !nmoc.EqC.getCount() && !nmoc.addPenalty){
-		Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
-		if(luq.isInvertible()){
-			Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
-			Qinv = luq.inverse();
-			//This is the "simplex gradient" of Kelley (1999):
-			simplexGradient = Qinv.transpose() * fdiffs;
-			if(verbose){mxPrintMat("simplex gradient: ",simplexGradient);}
+		fproxOut = fdiffs.array().maxCoeff();
+		for(i=0; i < size_t(nmoc.n); i++){
+			if(!nmoc.EqC.getCount()){
+				Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
+				xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
+			}
+			else{
+				xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+			}
+		}
+		xproxOut = xdiffs.array().maxCoeff();
+		if(!nmoc.vertexInfeas.sum() && !nmoc.EqC.getCount() && !nmoc.addPenalty){
+			Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
+			if(luq.isInvertible()){
+				Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
+				Qinv = luq.inverse();
+				//This is the "simplex gradient" of Kelley (1999):
+				simplexGradient = Qinv.transpose() * fdiffs;
+				if(verbose){mxPrintMat("simplex gradient: ",simplexGradient);}
+			}
 		}
 	}
 
@@ -1560,14 +1568,17 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 
 void NelderMeadOptimizerContext::finalize()
 {
-	NMobj->pseudohess = pseudohess2;
-	NMobj->phpts = phpts2;
-	NMobj->phFvals = phFvals2;
-	NMobj->Xout = Xout2;
-	NMobj->phInfeas = phInfeas2;
-	//The omxComputeNM object stows the possibly penalized fit value; the FitContext here recomputes the unpenalized fit value, at the
+	if(!Global->currentlyDoingParallelConfidenceIntervals){
+		NMobj->pseudohess = pseudohess2;
+		NMobj->phpts = phpts2;
+		NMobj->phFvals = phFvals2;
+		NMobj->Xout = Xout2;
+		NMobj->phInfeas = phInfeas2;
+		
+		NMobj->bestfitOut = bestfit;
+	}
+	//^^^The omxComputeNM object stows the possibly penalized fit value; the FitContext here recomputes the unpenalized fit value, at the
 	//best parameter values:
-	NMobj->bestfitOut = bestfit;
 	copyParamsFromOptimizer(est,fc);
 	ComputeFit(engineName, fitMatrix2, FF_COMPUTE_FIT, fc);
 	/*Doing this here ensures (1) that the fit has just been freshly evaluated at the solution, (2) that this check is done as part of the

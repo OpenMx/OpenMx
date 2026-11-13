@@ -275,6 +275,7 @@ class omxGlobal {
 	double gradientTolerance;
 	int dataTypeWarningCount;
 	int doNudgeZeroStarts;
+	bool currentlyDoingParallelConfidenceIntervals;
 
   int NPSOL_HACK;
 	int maxOrdinalPerBlock;
