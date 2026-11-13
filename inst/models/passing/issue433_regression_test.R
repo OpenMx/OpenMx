@@ -14,7 +14,7 @@
 #   limitations under the License.
 #   
 #   
-#   Regression test for issue #430, based on syntax contributed by Davood Tofighi.
+#   Regression test for issue #433, based on syntax contributed by Davood Tofighi.
 
 library(OpenMx)
 #SLSQP cannot reach the solution in one try, 
@@ -36,10 +36,13 @@ mod <- mxModel(
 	mxPath(man, arrows=2, free=TRUE, values=1),
 	mxData(data.frame(x,m1,y), type="raw"),
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
-omxCheckError(
-	omxCheckWarning(mxRun(mod),""),
-	"Expected `expression` to produce warnings."
-)
+#Skip with NPSOL, because it warns about status GREEN / status code 1 here:
+if(mxOption(NULL, 'Default optimizer') == "CSOLNP"){
+	omxCheckError(
+		omxCheckWarning(mxRun(mod),""),
+		"Expected `expression` to produce warnings."
+	)
+}
 fit <- mxRun(mod)
 omxCheckTrue(abs(mxEval(ind,fit)[1,1]) < 1e-12)
 
@@ -65,10 +68,13 @@ mod3 <- mxModel(
 	mxPath(man, arrows=2, free=TRUE, values=1),
 	mxData(data.frame(x,m1,y), type="raw"),
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
-omxCheckError(
-	omxCheckWarning(mxRun(mod3),""),
-	"Expected `expression` to produce warnings."
-)
+#Skip with NPSOL, because it warns about status GREEN / status code 1 here:
+if(mxOption(NULL, 'Default optimizer') == "CSOLNP"){
+	omxCheckError(
+		omxCheckWarning(mxRun(mod3),""),
+		"Expected `expression` to produce warnings."
+	)
+}
 fit3 <- mxRun(mod3)
 omxCheckTrue(abs(mxEval(ind,fit3)[1,1]) < 1e-12)
 
