@@ -1141,6 +1141,8 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
   Eigen::ArrayXXd ej(count, fc->getNumFree());
   ej.setConstant(NA_REAL);
   eval(fc, constr.data(), ej.data());
+  
+  if(!Global->dropExtraneousMxConstraints) return;
 
   //mxPrintMat("ej", ej);
   auto *state = fc->state;

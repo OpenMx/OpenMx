@@ -18,8 +18,9 @@
 
 library(OpenMx)
 #SLSQP cannot reach the solution in one try, 
-#and using `mxTryHard*()` would reach the solution on an attempt without any parameters necessarily starting at zero:
-if(mxOption(NULL, 'Default optimizer') == "SLSQP") stop("SKIP")
+#and using `mxTryHard*()` would reach the solution on an attempt without any parameters necessarily starting at zero;
+#NPSOL emits extra warnings about status GREEN / status code 1:
+if(mxOption(NULL, 'Default optimizer') != "CSOLNP") stop("SKIP")
 
 
 #Generate data:
@@ -27,7 +28,8 @@ set.seed(1); n <- 100; x <- rnorm(n); m1 <- rnorm(n); y <- rnorm(n)
 man <- c("x","m1","y")
 
 
-mxOption(NULL,"Nudge zero starts","Yes")
+#Test non-default value of this mxOption:
+mxOption(NULL,"Drop extraneous MxConstraints","No")
 mod <- mxModel(
 	"c", type="RAM", manifestVars=man,
 	mxPath("one", man, free=TRUE, values=0),
@@ -36,18 +38,18 @@ mod <- mxModel(
 	mxPath(man, arrows=2, free=TRUE, values=1),
 	mxData(data.frame(x,m1,y), type="raw"),
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
-#Skip with NPSOL, because it warns about status GREEN / status code 1 here:
-if(mxOption(NULL, 'Default optimizer') == "CSOLNP"){
-	omxCheckError(
-		omxCheckWarning(mxRun(mod),""),
-		"Expected `expression` to produce warnings."
-	)
-}
+#"ind0" is not spuriously dropped:
+omxCheckError(
+	omxCheckWarning(mxRun(mod),""),
+	"Expected `expression` to produce warnings."
+)
 fit <- mxRun(mod)
+#Constraint is respected:
 omxCheckTrue(abs(mxEval(ind,fit)[1,1]) < 1e-12)
 
 
-mxOption(NULL,"Nudge zero starts","No")
+#Restore on-load default value of this mxOption:
+mxOption(NULL,"Drop extraneous MxConstraints","Yes")
 mod2 <- mxModel(
 	"c", type="RAM", manifestVars=man,
 	mxPath("one", man, free=TRUE, values=0),
@@ -56,10 +58,13 @@ mod2 <- mxModel(
 	mxPath(man, arrows=2, free=TRUE, values=1),
 	mxData(data.frame(x,m1,y), type="raw"),
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
+#OpenMx drops the spuriously extraneous constraint, and warns:
 fit2 <- omxCheckWarning(mxRun(mod2), "Ignoring constraint 'c.ind0[1]' because it does not depend on any free parameters")
+#Constraint is not respected:
 omxCheckTrue(abs(mxEval(ind,fit2)[1,1]) > 1e-12)
 
 
+#Use nonzero start values:
 mod3 <- mxModel(
 	"c", type="RAM", manifestVars=man,
 	mxPath("one", man, free=TRUE, values=0.1),
@@ -68,15 +73,36 @@ mod3 <- mxModel(
 	mxPath(man, arrows=2, free=TRUE, values=1),
 	mxData(data.frame(x,m1,y), type="raw"),
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
-#Skip with NPSOL, because it warns about status GREEN / status code 1 here:
-if(mxOption(NULL, 'Default optimizer') == "CSOLNP"){
-	omxCheckError(
-		omxCheckWarning(mxRun(mod3),""),
-		"Expected `expression` to produce warnings."
-	)
-}
+#"ind0" is not dropped:
+omxCheckError(
+	omxCheckWarning(mxRun(mod3),""),
+	"Expected `expression` to produce warnings."
+)
 fit3 <- mxRun(mod3)
+#Constraint is respected:
 omxCheckTrue(abs(mxEval(ind,fit3)[1,1]) < 1e-12)
+
+
+#Jiggling the start values keeps "ind0" from being dropped:
+omxCheckError(
+	omxCheckWarning(mxRun(mxJiggle(model=mod2,classic=T)),""),
+	"Expected `expression` to produce warnings."
+)
+fit2a <- mxRun(mxJiggle(model=mod2,classic=T))
+omxCheckTrue(abs(mxEval(ind,fit2a)[1,1]) < 1e-12)
+set.seed(1); omxCheckError(
+	omxCheckWarning(mxRun(mxJiggle(model=mod2,classic=F)),""),
+	"Expected `expression` to produce warnings."
+)
+set.seed(1); fit2b <- mxRun(mxJiggle(model=mod2,classic=F))
+omxCheckTrue(abs(mxEval(ind,fit2b)[1,1]) < 1e-12)
+
+
+if(0){
+	mxOption(key="Feasibility tolerance",value=1e-5)
+	set.seed(1); fit2c <- mxTryHard(mod2)
+	omxCheckTrue(abs(mxEval(ind,fit2c)[1,1]) < 1e-12)
+}
 
 
 
