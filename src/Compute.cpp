@@ -251,6 +251,18 @@ struct allFiniteHelper {
 		if (i <= j) finite &= std::isfinite(value);
 	};
 };
+namespace Eigen {
+namespace internal {
+template <>
+struct functor_traits<allFiniteHelper> {
+  enum {
+    Cost = 1,
+    PacketAccess = false,
+    LinearAccess = false
+  };
+};
+}
+}
 
 static void InvertSymmetricNR(Eigen::MatrixXd &hess, Eigen::MatrixXd &ihess)
 {
