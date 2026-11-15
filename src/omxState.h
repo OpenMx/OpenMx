@@ -277,6 +277,8 @@ class omxGlobal {
 	int doNudgeZeroStarts;
 	bool currentlyDoingParallelConfidenceIntervals;
 	int dropExtraneousMxConstraints;
+	bool currentlySettingUpConfIntComputePlan;
+	bool isNPSOLInConfIntComputePlan;
 
   int NPSOL_HACK;
 	int maxOrdinalPerBlock;

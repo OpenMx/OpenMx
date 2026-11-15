@@ -251,6 +251,8 @@ omxGlobal::omxGlobal()
 	lastIndexDoneTime=0;
   NPSOL_HACK = 0;
   currentlyDoingParallelConfidenceIntervals = false;
+  currentlySettingUpConfIntComputePlan = false;
+  isNPSOLInConfIntComputePlan = false;
 
   gradientAlgo = GradientAlgorithm_Auto;
   gradientIter = 1;

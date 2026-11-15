@@ -249,6 +249,9 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
   engine = nameToGradOptEngine(CHAR(Rf_asChar(slotValue)));
+  if(Global->currentlySettingUpConfIntComputePlan && engine==OptEngine_NPSOL){
+  	Global->isNPSOLInConfIntComputePlan = true;
+  }
 
 	/*Frontend class 'MxComputeGradientDescent' has a 'nudgeZeroStarts' slot that does not necessarily
 	have the same value as the global "Nudge zero starts" mxOption.  Therefore, we must define a`nudge` 
@@ -487,6 +490,7 @@ class ComputeCI : public omxCompute {
 	SEXP intervals, intervalCodes, detail;
 	const char *ctypeName;
 	bool useInequality;
+	bool isUsingNPSOLInPlan;
 
 	enum Method {
 		NEALE_MILLER_1997=1,
@@ -538,6 +542,7 @@ ComputeCI::ComputeCI()
 	intervalCodes = 0;
 	detail = 0;
 	useInequality = false;
+	isUsingNPSOLInPlan = false;
 }
 
 void ComputeCI::runPlan(FitContext *fc)
@@ -579,11 +584,20 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	PushLoopIndex pli(name);
 
+	Global->currentlySettingUpConfIntComputePlan = true;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	plan->initFromFrontend(globalState, slotValue);
+	if(Global->isNPSOLInConfIntComputePlan){
+		/*We need to record the use of NPSOL in this ComputeCI's compute plan, and store it locally to this ComputeCI.
+		We can't just store it globally...what would happen if the MxModel's compute plan contained 2 confidence-interval steps,
+		one of which used NPSOL and the other didn't??:*/
+		isUsingNPSOLInPlan = true;
+	}
+	Global->currentlySettingUpConfIntComputePlan = false;
+	Global->isNPSOLInConfIntComputePlan = false; //<--Reset value to its "default".
 }
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); }
@@ -1406,7 +1420,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	mle->createChildren(fitMatrix, true, false);
 	int numThreads = mle->childList.size();
-	if (numThreads > 1) {
+	if (numThreads > 1 && !isUsingNPSOLInPlan) {
 		threadRecords.resize(numThreads);
 		for (int t = 0; t < numThreads; ++t) {
 			threadRecords[t].clear();
