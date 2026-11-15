@@ -2861,3 +2861,21 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 	compute@.persist <- TRUE
 	return(compute)
 }
+
+
+detectNPSOLInComputeObject <- function(x){
+	out <- FALSE
+	if(!imxHasNPSOL()){
+		return(out)
+	}
+	if(.hasSlot(x,"steps")){
+		out <- out || any(sapply(x@steps,detectNPSOLInComputeObject))
+	}
+	if(.hasSlot(x,"plan")){
+		out <- out || detectNPSOLInComputeObject(x@plan)
+	}
+	if(is(x,"MxComputeGradientDescent")){
+		out <- out || (x@engine == "NPSOL")
+	}
+	return(out)
+}
