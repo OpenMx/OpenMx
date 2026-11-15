@@ -10,7 +10,7 @@
 # ****************
 
 library(OpenMx)
-
+#if(mxOption(NULL,"Default optimizer")=="NPSOL"){stop("SKIP")}
 mxOption(key="feasibility tolerance", value = .001)
 
 nv                <- 1

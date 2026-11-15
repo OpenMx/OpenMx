@@ -9,7 +9,7 @@
 
 library(OpenMx)
 library(mvtnorm)
-
+#if(mxOption(NULL,"Default optimizer")=="NPSOL"){stop("SKIP")}
 #mxOption(NULL, "Default optimizer", "NPSOL")
 
 if (0) {
