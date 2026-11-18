@@ -1420,7 +1420,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	mle->createChildren(fitMatrix, true, false);
 	int numThreads = mle->childList.size();
-	if (numThreads > 1 && !isUsingNPSOLInPlan) {
+	if (numThreads > 1 && !isUsingNPSOLInPlan && Global->doParallelConfidenceIntervals) {
 		threadRecords.resize(numThreads);
 		for (int t = 0; t < numThreads; ++t) {
 			threadRecords[t].clear();

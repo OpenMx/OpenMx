@@ -180,7 +180,8 @@ otherOptions <- list(
     "Status OK"= as.statusCode(c("OK", "OK/green")),
     "Max minutes"=0,
     "Analytic RAM derivatives" = "No",
-    "Drop extraneous MxConstraints" = "Yes"
+    "Drop extraneous MxConstraints" = "Yes",
+    "Parallelize confidence intervals" = "Yes"
 )
 
 limitMajorIterations <- function(options, numParam, numConstraints) {

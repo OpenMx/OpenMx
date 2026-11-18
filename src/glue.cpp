@@ -479,6 +479,8 @@ static void readOpts(SEXP options)
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->doNudgeZeroStarts);
 			} else if (matchCaseInsensitive(nextOptionName, "Drop extraneous MxConstraints")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->dropExtraneousMxConstraints);
+			} else if (matchCaseInsensitive(nextOptionName, "Parallelize confidence intervals")) {
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->doParallelConfidenceIntervals);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Max Depth")) {
 				if (strEQ(nextOptionValue, "NA")) {
 					Global->RAMMaxDepth = NA_INTEGER;
