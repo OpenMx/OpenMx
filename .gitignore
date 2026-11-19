@@ -139,7 +139,6 @@ man/MxCharOrNumber-class.Rd
 man/MxCompare-class.Rd
 man/mxComputeCheckpoint.Rd
 man/MxCompute-class.Rd
-man/mxComputeConfidenceInterval.Rd
 man/mxComputeDefault.Rd
 man/mxComputeEM.Rd
 man/mxComputeGenerateData.Rd
