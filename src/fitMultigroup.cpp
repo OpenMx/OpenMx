@@ -49,7 +49,7 @@ void FitMultigroup::compute2(int want, FitContext *fc)
 	int inParallel = 0;
 	int threadId = 0;
 	#endif
-	if (inParallel) {
+	if (inParallel && verbose) {
 		mxLog("FitMultigroup::compute2 %p (%s): threadId=%d, fits.size()=%d, currentState=%p, want=%d",
 			mg, fitMatrix->name(), threadId, (int)mg->fits.size(), fitMatrix->currentState, want);
 		for (size_t ex=0; ex < mg->fits.size(); ex++) {
@@ -145,8 +145,10 @@ void FitMultigroup::init()
 	SEXP rObj = oo->rObj;
 	if (!rObj) return;
 
-	mxLog("FitMultigroup::init %p (%s): fits.size()=%d, currentState=%p",
-		mg, oo->matrix->name(), (int)mg->fits.size(), oo->matrix->currentState);
+	if(OMX_DEBUG){
+		mxLog("FitMultigroup::init %p (%s): fits.size()=%d, currentState=%p",
+			mg, oo->matrix->name(), (int)mg->fits.size(), oo->matrix->currentState);
+	}
 
 	if (mg->fits.size()) return; // hack to prevent double initialization, remove TOOD
 

@@ -1237,7 +1237,10 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTe
   permitParallel = u_permitParallel;
   if (alg) omxAlgebraPreeval(alg, this);
 
-	if (Global->numThreads <= 1)  return;
+	if (Global->numThreads <= 1){
+		if(OMX_DEBUG){mxLog("Global->numThreads <= 1");}
+		return;
+	}
 
 	// Nested contexts share state: refresh caches above, but never spawn grandchild teams.
 	if (parent) return;
@@ -1361,7 +1364,9 @@ void CIobjective::checkSolution(FitContext *fc)
 	if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM) return;
 
 	Diagnostic d = getDiag();
-	mxLog("CIobjective::checkSolution %p (%s) calling getDiag: returned %d", this, CI->name.c_str(), (int)d);
+	if(OMX_DEBUG){
+		mxLog("CIobjective::checkSolution %p (%s) calling getDiag: returned %d", this, CI->name.c_str(), (int)d);
+	}
 	if (d != DIAG_SUCCESS) {
 		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
 	}

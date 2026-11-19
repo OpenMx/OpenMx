@@ -797,8 +797,10 @@ struct regularCIobj : CIobjective {
 		if (fabs(diff) > 1e-1) {
 			diag = DIAG_ALPHA_LEVEL;
 		}
-		mxLog("regularCIobj::getDiag %p (%s): diff=%f, targetFit=%f, diag=%d",
-			this, CI->name.c_str(), diff, targetFit, (int)diag);
+		if(OMX_DEBUG){
+			mxLog("regularCIobj::getDiag %p (%s): diff=%f, targetFit=%f, diag=%d",
+				this, CI->name.c_str(), diff, targetFit, (int)diag);
+		}
 		return diag;
 	}
 
@@ -1287,7 +1289,9 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
 	diag = fc.ciobj->getDiag();
-	mxLog("ComputeCI::regularCI calling getDiag: returned %d", (int)diag);
+	if(verbose){
+		mxLog("ComputeCI::regularCI calling getDiag: returned %d", (int)diag);
+	}
 	fc.ciobj.reset();
 
 	// We check the fit again so we can report it
@@ -1434,7 +1438,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 				mxThrow("OMP CI loop threadId %d is out of bounds (numThreads = %d)", threadId, numThreads);
 			}
 			if (ii == 0) {
-				mxLog("OMP CI parallel loop starting with %d threads (requested %d)", omp_get_num_threads(), numThreads);
+				if(verbose){
+					mxLog("OMP CI parallel loop starting with %d threads (requested %d)", omp_get_num_threads(), numThreads);
+				}
 			}
 			FitContext *kid = mle->childList[threadId];
 			ConfidenceInterval *currentCI = Global->intervalList[ii];
