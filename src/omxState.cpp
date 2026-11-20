@@ -253,6 +253,7 @@ omxGlobal::omxGlobal()
   currentlyDoingParallelConfidenceIntervals = false;
   currentlySettingUpConfIntComputePlan = false;
   isNPSOLInConfIntComputePlan = false;
+  effectiveNumEqualityMxConstraints = NA_INTEGER;
 
   gradientAlgo = GradientAlgorithm_Auto;
   gradientIter = 1;
@@ -1137,14 +1138,21 @@ void ConstraintVec::allocJacTool(FitContext *fc)
 // This is called once before the compute plan begins execution
 void ConstraintVec::markUselessConstraints(FitContext *fc)
 {
-  if (!count) return;
+  if(OMX_DEBUG){mxLog("count at start: %d", count);}
+  if (!count){
+  	Global->effectiveNumEqualityMxConstraints = 0;
+  	return;
+  }
 
   Eigen::ArrayXd constr(count);
   Eigen::ArrayXXd ej(count, fc->getNumFree());
   ej.setConstant(NA_REAL);
   eval(fc, constr.data(), ej.data());
   
-  if(!Global->dropExtraneousMxConstraints) return;
+  if(!Global->dropExtraneousMxConstraints){
+  	Global->effectiveNumEqualityMxConstraints = NA_INTEGER;
+  	return;
+  }
 
   //mxPrintMat("ej", ej);
   auto *state = fc->state;
@@ -1169,7 +1177,10 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
     con.recalcSize();
   }
 
-  if (count <= 1) return;
+  if (count <= 1){
+  	Global->effectiveNumEqualityMxConstraints = count;
+  	return;
+  }
 
   // pad with dummy parameters so #constraints <= #param
   Eigen::MatrixXd tmp(std::max(count,ej.cols()), count);
@@ -1189,6 +1200,7 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
       int xx = perm[cur+dx];
       if (abs(qr(xx,xx)) < thr) {
         con.redundant[kk] = true;
+      	count -= 1;
         //if (con.getVerbose()) {
         Rf_warning("Ignoring constraint '%s[%d]' because it is redundant (|%f| < %f)",
                 con.name, 1+kk, qr(xx,xx), thr);
@@ -1199,6 +1211,9 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
     cur += con.size;
     con.recalcSize();
   }
+  if(OMX_DEBUG){mxLog("count at end: %d", count);}
+  Global->effectiveNumEqualityMxConstraints = count;
+  return;
 }
 
 void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)

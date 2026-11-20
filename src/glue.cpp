@@ -811,6 +811,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	result.add("status", backwardCompatStatus.asR());
 	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
+	result.add("effectiveNumEqualityMxConstraints",Rf_ScalarInteger(Global->effectiveNumEqualityMxConstraints));
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 

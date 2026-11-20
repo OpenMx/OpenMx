@@ -280,6 +280,7 @@ class omxGlobal {
 	bool currentlySettingUpConfIntComputePlan;
 	bool isNPSOLInConfIntComputePlan;
 	int doParallelConfidenceIntervals;
+	int effectiveNumEqualityMxConstraints;
 
   int NPSOL_HACK;
 	int maxOrdinalPerBlock;
