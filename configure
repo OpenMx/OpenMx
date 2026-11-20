@@ -35,6 +35,90 @@ else
   version_ge() { false; }
 fi
 
+# --- OpenMP detection (see #426) ---
+# R's SHLIB_OPENMP_* variables are empty on platforms whose toolchain lacks
+# OpenMP (notably CRAN macOS R), so probe for a working setup instead of
+# trusting them blindly. Shape mirrors data.table's configure: try-compile,
+# link, AND run a 2-thread reduction for each candidate; first working
+# combo wins. Falls back to a serial build, never fails configure.
+test_openmp_variant() {
+    # $1 = cxxflags to try, $2 = extra link flags to try
+    rm -f openmx_omp_test.cpp openmx_omp_test.o openmx_omp_test.so openmx_omp_test.dll
+    cat > openmx_omp_test.cpp <<EOF
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+extern "C" void openmx_omp_test(int *result) {
+	int sum = 0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:sum) num_threads(2) schedule(dynamic)
+	for (int i = 1; i <= 2; ++i) sum += i;
+#endif
+	*result = sum;
+}
+EOF
+    printf "%s" "* checking OpenMP with CXXFLAGS='$1' LIBS='$2'... "
+    if ! PKG_CXXFLAGS="$1" PKG_LIBS="$2" "${R_HOME}/bin/R" CMD SHLIB --preclean --clean openmx_omp_test.cpp > /dev/null 2>&1; then
+        echo "no (compile/link failed)"
+        rm -f openmx_omp_test.cpp openmx_omp_test.o openmx_omp_test.so openmx_omp_test.dll
+        return 1
+    fi
+    if ! "${R_HOME}"/bin/Rscript -e 'dll <- paste0("openmx_omp_test", .Platform$dynlib.ext); dyn.load(dll); ans <- .C("openmx_omp_test", ans = integer(1))$ans; stopifnot(identical(ans, 3L))' > /dev/null 2>&1; then
+        echo "no (runtime check failed)"
+        rm -f openmx_omp_test.cpp openmx_omp_test.o openmx_omp_test.so openmx_omp_test.dll
+        return 1
+    fi
+    rm -f openmx_omp_test.cpp openmx_omp_test.o openmx_omp_test.so openmx_omp_test.dll
+    echo "yes"
+    return 0
+}
+
+detect_openmp() {
+    # 1. Flags supplied by R itself (Linux etc.): use as-is.
+    r_openmp_cxxflags=`"${R_HOME}/bin/R" CMD config SHLIB_OPENMP_CXXFLAGS 2>/dev/null`
+    if [ $? -ne 0 ]; then
+        r_openmp_cxxflags=""
+    fi
+    case "$r_openmp_cxxflags" in
+        ERROR*) r_openmp_cxxflags="" ;;
+    esac
+    if [ -n "$r_openmp_cxxflags" ]; then
+        OPENMP_CXXFLAGS="$r_openmp_cxxflags"
+        OPENMP_LDFLAGS=""
+        echo "* using R-provided OpenMP flags: $r_openmp_cxxflags"
+        return 0
+    fi
+    # 2. Raw -fopenmp (GCC everywhere, Clang with system libomp).
+    if test_openmp_variant "-fopenmp" "-fopenmp"; then
+        OPENMP_CXXFLAGS="-fopenmp"
+        OPENMP_LDFLAGS="-fopenmp"
+        return 0
+    fi
+    # 3. macOS with Apple Clang: -Xclang -fopenmp plus a libomp runtime.
+    if [ "$(uname)" = "Darwin" ]; then
+        if test_openmp_variant "-Xclang -fopenmp" "-lomp"; then
+            OPENMP_CXXFLAGS="-Xclang -fopenmp"
+            OPENMP_LDFLAGS="-lomp"
+            return 0
+        fi
+        for omp_prefix in "${R_HOME}" /opt/R/arm64 /opt/R/x86_64 /opt/homebrew/opt/libomp /usr/local/opt/libomp /usr/local; do
+            if [ -e "$omp_prefix/lib/libomp.dylib" ]; then
+                omp_inc=""
+                if [ -d "$omp_prefix/include" ]; then
+                    omp_inc="-I$omp_prefix/include "
+                fi
+                if test_openmp_variant "${omp_inc}-Xclang -fopenmp" "-L$omp_prefix/lib -lomp"; then
+                    OPENMP_CXXFLAGS="${omp_inc}-Xclang -fopenmp"
+                    OPENMP_LDFLAGS="-L$omp_prefix/lib -lomp"
+                    return 0
+                fi
+            fi
+        done
+    fi
+    echo "* no working OpenMP setup found; building serially"
+    return 1
+}
+
 : ${R_HOME:=`R RHOME`}
 if test -z "${R_HOME}"; then
    echo "could not determine R_HOME"
@@ -184,8 +268,10 @@ fi
 # " >> src/Makevars.new
 # fi
 
+OPENMP_CXXFLAGS=""
+OPENMP_LDFLAGS=""
 if [ "${OPENMP-yes}" = yes ]; then
-    OPENMP_CXXFLAGS='$(SHLIB_OPENMP_CXXFLAGS)'
+    detect_openmp
 fi
 
 echo "ARCH_SPECIFIC_LINKER_FLAGS=$arch_LDFLAGS" >> src/Makevars.new
@@ -193,6 +279,7 @@ echo "ARCH_SPECIFIC_COMPILER_FLAGS=$arch_CXXFLAGS" >> src/Makevars.new
 echo "COMPILER_CXXFLAGS=$COMPILER_CXXFLAGS" >> src/Makevars.new
 echo "COMPILER_LDFLAGS=$COMPILER_LDFLAGS" >> src/Makevars.new
 echo "OPENMP_CXXFLAGS=$OPENMP_CXXFLAGS" >> src/Makevars.new
+echo "OPENMP_LDFLAGS=$OPENMP_LDFLAGS" >> src/Makevars.new
 echo "xcheck_CXXFLAGS=$xcheck_CXXFLAGS" >> src/Makevars.new
 echo "xcheck_LDFLAGS=$xcheck_LDFLAGS" >> src/Makevars.new
 
