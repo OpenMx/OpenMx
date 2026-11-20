@@ -254,10 +254,12 @@ static inline int omp_get_num_threads(void) { return 1; }
 static inline int omp_in_parallel(void) { return 0; }
 #endif
 
+//cran-check NOTEs use of C-standard `rand()`...
+//TODO: C-standard `rand()` is not thread-safe, but then R's `unif_rand()` really isn't, either...:
 static inline double omx_unif_rand(void) {
-	if (omp_in_parallel()) {
-		return (double)rand() / (double)RAND_MAX;
-	}
+	/*if (omp_in_parallel()) {
+		return (double)rand() / (double)RAND_MAX;*
+	}*/
 	return ::unif_rand();
 }
 
