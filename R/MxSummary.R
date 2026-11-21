@@ -19,6 +19,10 @@ calculateConstraints <- function(model, flatModel) {
 	if (length(constraints) > 0) {
 		retval <- sapply(constraints, calculateConstraintsHelperForEqualities, model)
 		neq <- sum(retval)
+		if(!neq){
+			#Don't need to worry about counting equality constraints if we know the count is zero:
+			return(retval)
+		}
 		nineq <- sum(sapply(constraints, calculateConstraintsHelperForInequalities, model))
 		if(!grep(pattern=mxOption(model,"Drop extraneous MxConstraints"),x="Yes",ignore.case=T) ||
 			(length(model$output$effectiveNumEqualityMxConstraints) && is.na(model$output$effectiveNumEqualityMxConstraints))
@@ -26,24 +30,20 @@ calculateConstraints <- function(model, flatModel) {
 			if(length(model$output$constraintJacobian)){
 				#If there's a constraint Jacobian available, trim out rows corresponding to inequalities, and find the rank of what's left
 				jacrank <- qr(model$output$constraintJacobian[(nineq+1):(nineq+neq),])$rank
-				retval <- ifelse(sum(retval)==jacrank, retval, c("the set of linearly independent equality MxConstraints"=jacrank))
+				if(sum(retval)!=jacrank){retval <- c("the set of linearly independent equality MxConstraints"=jacrank)} 
 			}
 		}
 		else{ #<--If extraneous equality constraints WERE dropped in backend
 			if(length(model$output$effectiveNumEqualityMxConstraints)){
-				if(sum(retval)==model$output$effectiveNumEqualityMxConstraints){ #<--if `retval` is verified to already be good
-					return(retval) 
-				}
-				else{
-					#This codepath is unlikely...
+				if(sum(retval)!=model$output$effectiveNumEqualityMxConstraints){
 					retval <- c("the set of linearly independent equality MxConstraints"=model$output$effectiveNumEqualityMxConstraints)
 				}
 			}
-			else if(length(model$output$constraintJacobian)){ #<--This codepath is also unlikely...
+			else if(length(model$output$constraintJacobian)){ #<--This codepath is unlikely...
 				#If the number we want was not computed in the backend, we can compute it here, since extraneous equalities
 				#won't be represented in the Jacobian, and we know how many inequality rows to ignore:
 				jacrank <- nrow(model$output$constraintJacobian)-nineq
-				retval <- ifelse(sum(retval)==jacrank, retval, c("the set of linearly independent equality MxConstraints"=jacrank))
+				if(sum(retval)!=jacrank){retval <- c("the set of linearly independent equality MxConstraints"=jacrank)}
 			}
 		}
 	}
