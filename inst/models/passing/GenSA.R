@@ -105,4 +105,5 @@ m1 <- mxModel(
 )
 
 m1 <- mxRun(m1)
+summary(m1)
 omxCheckCloseEnough(coef(m1), c(1,0), 1e-2)

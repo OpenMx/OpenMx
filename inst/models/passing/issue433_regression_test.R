@@ -44,6 +44,7 @@ omxCheckError(
 	"Expected `expression` to produce warnings."
 )
 fit <- mxRun(mod)
+summary(fit)
 #Constraint is respected:
 omxCheckTrue(abs(mxEval(ind,fit)[1,1]) < 1e-12)
 
@@ -60,6 +61,7 @@ mod2 <- mxModel(
 	mxAlgebra(b1*b2, name="ind"), mxConstraint(ind == 0, name="ind0", verbose=0))
 #OpenMx drops the spuriously extraneous constraint, and warns:
 fit2 <- omxCheckWarning(mxRun(mod2), "Ignoring constraint 'c.ind0[1]' because it does not depend on any free parameters")
+summary(fit2)
 #Constraint is not respected:
 omxCheckTrue(abs(mxEval(ind,fit2)[1,1]) > 1e-12)
 
@@ -79,6 +81,7 @@ omxCheckError(
 	"Expected `expression` to produce warnings."
 )
 fit3 <- mxRun(mod3)
+summary(fit3)
 #Constraint is respected:
 omxCheckTrue(abs(mxEval(ind,fit3)[1,1]) < 1e-12)
 
@@ -89,12 +92,14 @@ omxCheckError(
 	"Expected `expression` to produce warnings."
 )
 fit2a <- mxRun(mxJiggle(model=mod2,classic=T))
+summary(fit2a)
 omxCheckTrue(abs(mxEval(ind,fit2a)[1,1]) < 1e-12)
 set.seed(1); omxCheckError(
 	omxCheckWarning(mxRun(mxJiggle(model=mod2,classic=F)),""),
 	"Expected `expression` to produce warnings."
 )
 set.seed(1); fit2b <- mxRun(mxJiggle(model=mod2,classic=F))
+summary(fit2b)
 omxCheckTrue(abs(mxEval(ind,fit2b)[1,1]) < 1e-12)
 
 

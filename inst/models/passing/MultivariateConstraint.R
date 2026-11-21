@@ -42,6 +42,7 @@ model <- mxModel("model", data, s, c,
 		 mxExpectationNormal("s"))
 
 run <- mxRun(model)
+summary(run)
 
 omxCheckCloseEnough((mxEval(s, run)/ origCov), matrix(.9,3,3), 1e-4) # constraint not active
 
@@ -58,6 +59,7 @@ model <- mxModel("model", data, s, c,
 
 # No code 6 warning because constraints are active
 run <- expect_warning(mxRun(model), NA)
+summary(run)
 
 # gradient should not be too close to zero
 expect_equal(max(abs(run$output$gradient)), .267, .01)
