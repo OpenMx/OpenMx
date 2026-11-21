@@ -17,16 +17,56 @@ calculateConstraints <- function(model, flatModel) {
 	constraints <- flatModel@constraints
 	retval <- c()
 	if (length(constraints) > 0) {
-		retval <- sapply(constraints, calculateConstraintsHelper, model)
+		retval <- sapply(constraints, calculateConstraintsHelperForEqualities, model)
+		neq <- sum(retval)
+		if(!neq){
+			#Don't need to worry about counting equality constraints if we know the count is zero:
+			return(retval)
+		}
+		nineq <- sum(sapply(constraints, calculateConstraintsHelperForInequalities, model))
+		if(!grep(pattern=mxOption(model,"Drop extraneous MxConstraints"),x="Yes",ignore.case=T) ||
+			(length(model$output$effectiveNumEqualityMxConstraints) && is.na(model$output$effectiveNumEqualityMxConstraints))
+		){ #<--If extraneous equality constraints were (apparently) not dropped in backend
+			if(length(model$output$constraintJacobian)){
+				#If there's a constraint Jacobian available, trim out rows corresponding to inequalities, and find the rank of what's left
+				jacrank <- qr(model$output$constraintJacobian[(nineq+1):(nineq+neq),])$rank
+				if(sum(retval)!=jacrank){retval <- c("the set of linearly independent equality MxConstraints"=jacrank)} 
+			}
+		}
+		else{ #<--If extraneous equality constraints WERE dropped in backend
+			if(length(model$output$effectiveNumEqualityMxConstraints)){
+				if(sum(retval)!=model$output$effectiveNumEqualityMxConstraints){
+					retval <- c("the set of linearly independent equality MxConstraints"=model$output$effectiveNumEqualityMxConstraints)
+				}
+			}
+			else if(length(model$output$constraintJacobian)){ #<--This codepath is unlikely...
+				#If the number we want was not computed in the backend, we can compute it here, since extraneous equalities
+				#won't be represented in the Jacobian, and we know how many inequality rows to ignore:
+				jacrank <- nrow(model$output$constraintJacobian)-nineq
+				if(sum(retval)!=jacrank){retval <- c("the set of linearly independent equality MxConstraints"=jacrank)}
+			}
+		}
 	}
 	return(retval)
 }
 
-calculateConstraintsHelper <- function(constraint, model) {
+calculateConstraintsHelperForEqualities <- function(constraint, model) {
 	if (constraint@relation == "==") {
 		leftHandSide <- constraint@formula[[2]]
-		value <- eval(substitute(mxEval(x, model, compute=TRUE),
-			list(x = leftHandSide)))
+		value <- eval(substitute(
+			mxEval(x, model, compute=TRUE),list(x = leftHandSide)))
+		value <- as.matrix(value)
+		return(nrow(value) * ncol(value))
+	} else {
+		return(0)
+	}
+}
+
+calculateConstraintsHelperForInequalities <- function(constraint, model) {
+	if (constraint@relation != "==") {
+		leftHandSide <- constraint@formula[[2]]
+		value <- eval(substitute(
+			mxEval(x, model, compute=TRUE),list(x = leftHandSide)))
 		value <- as.matrix(value)
 		return(nrow(value) * ncol(value))
 	} else {
@@ -550,13 +590,22 @@ print.summary.mxmodel <- function(x,...) {
 	cat('Number of observations/statistics: ', x$numObs, "/", x$observedStatistics, '\n\n', sep="")
 	constraints <- x$constraints
 	if(length(constraints) > 0) {
-		for(i in 1:length(constraints)) {
-			name <- names(constraints)[[i]]
-			if (constraints[[i]] == 1) plural <- ''
+		if(length(constraints)==1 && names(constraints)=="the set of linearly independent equality MxConstraints"){
+			if (constraints[[1]] == 1) plural <- ''
 			else plural <- 's'
-			cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
-				constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
-			if(i==length(constraints)){cat("\n")}
+			cat("The set of linearly independent equality MxConstraints contributes",
+					constraints[[1]], paste("observed statistic", plural, '.', sep=''), "\n")
+			cat("\n")
+		}
+		else{
+			for(i in 1:length(constraints)) {
+				name <- names(constraints)[[i]]
+				if (constraints[[i]] == 1) plural <- ''
+				else plural <- 's'
+				cat("Constraint", omxQuotes(simplifyName(name, x$modelName)), "contributes",
+						constraints[[i]], paste("observed statistic", plural, '.', sep=''), "\n")
+				if(i==length(constraints)){cat("\n")}
+			}
 		}
 	}
 	if (!is.null(x$infoDefinite) && !is.na(x$infoDefinite)) {

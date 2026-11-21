@@ -16,10 +16,9 @@
 library(OpenMx)
 library(testthat)
 
-mxOption(key="feasibility tolerance", value = .0001)
-
 #This test involves CIs, so use it with SLSQP, since the inequality-constrained formulation is theoretically more correct:
 if(mxOption(NULL,"Default optimizer")!="SLSQP"){stop("SKIP")}
+mxOption(key="feasibility tolerance", value = .0001)
 #Need to use stricter convergence tolerances to avoid status Red:
 foo <- mxComputeNelderMead(iniSimplexType="smartRight", nudgeZeroStarts=FALSE, xTolProx=1e-8, fTolProx=1e-8,
 													 doPseudoHessian=T)
@@ -43,7 +42,7 @@ varmodGD <- mxModel(
 	"mod",
 	mxData(observed=x,type="raw"),
 	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=0,labels="mu",name="Mu"),
-	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=0),
+	mxMatrix(type="Full",nrow=1,ncol=1,free=T,values=4,labels="sigma2",name="Sigma2",lbound=1e-4),
 	mxExpectationNormal(covariance="Sigma2",means="Mu",dimnames=c("x")),
 	mxAlgebra(sqrt(Sigma2),name="Sigma"),
 	mxCI(c("mu","sigma2")),

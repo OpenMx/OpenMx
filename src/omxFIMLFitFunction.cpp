@@ -189,7 +189,12 @@ bool condOrdByRow::eval() //<--This is what gets called when all manifest variab
 		}
 
 		if (rowContinuous) {
-			if (!rowOrdinal && (!parent->continuousMissingSame[row] || firstRow)) {
+			// missingSame, not continuousMissingSame. An ordinal-missing row can
+			// share the continuous pattern with the previous ordinal-observed row,
+			// whose contMean is conditional on that ordinal. missingSame is true
+			// only when the previous row was also ordinal-missing, so contMean
+			// is already the marginal:
+			if (!rowOrdinal && (!parent->missingSame[row] || firstRow)) {
 				op.wantOrdinal = false;
 				subsetNormalDist(jointMeans, jointCov, op, rowContinuous, contMean, contCov);
 				INCR_COUNTER(invert);
@@ -1222,12 +1227,15 @@ void omxFIMLFitFunction::compute2(int want, FitContext *fc)
 		} else {
 			omxMatrix *pfitMat = fc->getParentState()->getMatrixFromIndex(off->matrix);
 			auto *pff = (omxFIMLFitFunction*) pfitMat->fitFunction;
-			if (!pff->openmpUser) OOPS;
-			parent = pff;
-			ofiml->sufficientSets = pff->sufficientSets;
-			ofiml->useSufficientSets = pff->useSufficientSets;
-			elapsed.resize(ELAPSED_HISTORY_SIZE);
-			curElapsed = NA_INTEGER;
+			if (pff->openmpUser) {
+				parent = pff;
+				ofiml->sufficientSets = pff->sufficientSets;
+				ofiml->useSufficientSets = pff->useSufficientSets;
+				elapsed.resize(ELAPSED_HISTORY_SIZE);
+				curElapsed = NA_INTEGER;
+			} else {
+				if (!indexVector.size()) sortData(off);
+			}
 		}
 		builtCache = true;
 	}

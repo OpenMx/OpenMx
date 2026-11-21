@@ -70,6 +70,7 @@ private:
 	FitContext *fc;
 public:
 	NelderMeadOptimizerContext(FitContext* fc, omxComputeNM* nmo);
+	//virtual ~NelderMeadOptimizerContext();
 	void countConstraintsAndSetupBounds();
 	void copyParamsFromFitContext(double *ocpars);
 
@@ -79,6 +80,7 @@ public:
 	}
 
 	omxComputeNM* NMobj;
+	omxMatrix *fitMatrix2;
 	const int numFree;
 	int verbose;
 	int n; //<--number of free parameters minus number of equality constraints
@@ -142,6 +144,9 @@ public:
 	Eigen::MatrixXd iniSimplexMat;
 	Eigen::VectorXd tentativpt;
 	//Eigen::VectorXd gdpt;
+	
+	Eigen::MatrixXd pseudohess2, phpts2, phFvals2, Xout2;
+	Eigen::VectorXi phInfeas2;
 
 	GradientOptimizerContext subsidiarygoc;
 	void *extraData;

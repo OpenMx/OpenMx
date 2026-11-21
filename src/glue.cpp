@@ -475,6 +475,12 @@ static void readOpts(SEXP options)
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Inverse Optimization")) {
 				friendlyStringToLogical(nextOptionName, rawValue, &Global->RAMInverseOpt);
 				//mxLog("inv opt = %s %d", nextOptionValue, Global->RAMInverseOpt);
+			} else if (matchCaseInsensitive(nextOptionName, "Nudge zero starts")) {
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->doNudgeZeroStarts);
+			} else if (matchCaseInsensitive(nextOptionName, "Drop extraneous MxConstraints")) {
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->dropExtraneousMxConstraints);
+			} else if (matchCaseInsensitive(nextOptionName, "Parallelize confidence intervals")) {
+				friendlyStringToLogical(nextOptionName, rawValue, &Global->doParallelConfidenceIntervals);
 			} else if (matchCaseInsensitive(nextOptionName, "RAM Max Depth")) {
 				if (strEQ(nextOptionValue, "NA")) {
 					Global->RAMMaxDepth = NA_INTEGER;
@@ -690,6 +696,8 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 		mxThrow("Protection stack too large; report this problem to the OpenMx forum");
 	}
 
+  //Nudging of zero starts before trying to detect extraneous constraints (GitHub issue #433):
+  //fc->ensureParamWithinBox(Global->doNudgeZeroStarts);
   globalState->hideBadConstraints(fc);
 
 	if (globalState->getWantStage() != FF_COMPUTE_INITIAL_FIT) {
@@ -705,7 +713,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 			if (!std::isfinite(fc->getFit())) {
 				std::string diag = fc->getIterationError();
 				if (diag.size()) {
-					omxRaiseErrorf("fit is not finite (%s)", diag.c_str());
+					omxRaiseErrorf("fit is not finite; %s", diag.c_str());
 				} else if (fc->getInform() == INFORM_CONVERGED_OPTIMUM ||
 					   fc->getInform() == INFORM_UNCONVERGED_OPTIMUM) {
 					omxRaiseErrorf("fit is not finite");
@@ -803,6 +811,7 @@ SEXP omxBackend2(SEXP constraints, SEXP matList,
 	result.add("status", backwardCompatStatus.asR());
 	result.add("iterations", Rf_ScalarInteger(fc->iterations));
 	result.add("evaluations", evaluations);
+	result.add("effectiveNumEqualityMxConstraints",Rf_ScalarInteger(Global->effectiveNumEqualityMxConstraints));
 
 	if (Global->debugProtectStack) mxLog("Protect depth at line %d: %d", __LINE__, protectManager.getDepth());
 

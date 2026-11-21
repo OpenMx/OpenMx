@@ -47,7 +47,7 @@ omxConstrainMLThresholds <- function(model, dist=.1) {
             varNames <- names(threshData$observed)
         }
         for(i in seq_along(varNames)) {
-            thisColumn <- threshData$observed[,varNames[i]]
+            thisColumn <- threshData$observed[,varNames[i],drop=TRUE]
             if(!is.ordered(thisColumn)) {
                 stop(paste("Non-factor data found; could not constrain",
                         "column", i, "(", varNames[i], ")",

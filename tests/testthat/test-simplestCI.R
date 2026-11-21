@@ -108,4 +108,20 @@ if (mxOption(NULL, "Default optimizer") != "NPSOL") {
   omxCheckCloseEnough(c(0.429), ci[1,'ubound'], .02)
 }
 
+test_that("parallel CIs match serial with 4 threads", {
+	skip_on_cran()
+	ompThreads = suppressWarnings(as.integer(Sys.getenv("OMP_NUM_THREADS", unset = "4")))
+	if (is.na(ompThreads) || ompThreads < 1) ompThreads = 4L
+	nthreads = min(ompThreads, 4L)
+	if (nthreads < 2) skip("needs 2+ OpenMP threads")
+
+	threadedModel = mxOption(cimodel, "Number of Threads", nthreads)
+	threadedFit = mxRun(threadedModel, intervals = TRUE, silent = TRUE, checkpoint = FALSE)
+	gotCI = threadedFit$output$confidenceIntervals[, c("lbound", "estimate", "ubound")]
+	expect_true(all(is.finite(gotCI[!is.na(gotCI)])))
+	expect_equal(gotCI, fit2$output$confidenceIntervals[, c("lbound", "estimate", "ubound")], tolerance = 1e-4)
+	expect_equal(threadedFit$output$fit, fit2$output$fit, tolerance = 1e-6)
+	expect_equal(threadedFit$output$status$code, fit2$output$status$code)
+})
+
 mxOption(reset=TRUE)

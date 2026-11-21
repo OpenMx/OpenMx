@@ -14,7 +14,6 @@
 #   limitations under the License.
 
 library(OpenMx)
-library(testthat)
 
 if(TRUE){
 	m1 <- mxModel(
@@ -58,5 +57,5 @@ if(mxOption(NULL,"Default optimizer")=="SLSQP"){
 		mxConstraint(Pred + Pyellow + Pgreen + Pblue - 1 == 0,name="indentifying",jac="jac"),
 		mxConstraint(2*(Pred + Pyellow + Pgreen + Pblue) - 2 == 0,name="indentifying2",jac="jac2")
 	)
-	expect_warning(mxRun(m1), NA)
+	omxCheckWarning(mxRun(m1), "Ignoring constraint 'MultinomialWithLinearConstraints.indentifying[1]' because it is redundant (|0.000000| < 0.000000)")
 }

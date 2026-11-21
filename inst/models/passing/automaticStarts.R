@@ -45,14 +45,14 @@ badStart <- coef(m1)
 
 mxOption(NULL, "Number of Threads", 1) # otherwise error message changes
 
-errmsg <- "The job for model 'One Factor' exited abnormally with the error message: fit is not finite (The continuous part of the model implied covariance (loc2) is not positive definite in data 'One Factor.data' row 111. Detail:
+errmsg <- "The job for model 'One Factor' exited abnormally with the error message: fit is not finite; The continuous part of the model implied covariance (loc2) is not positive definite in data 'One Factor.data' row 111. Detail:
 covariance =  matrix(c(    # 5x5
  -0.19, 0.01, 0.01, 0.01, 0.01
 , 0.01, -0.19, 0.01, 0.01, 0.01
 , 0.01, 0.01, -0.19, 0.01, 0.01
 , 0.01, 0.01, 0.01, -0.19, 0.01
 , 0.01, 0.01, 0.01, 0.01, -0.19), byrow=TRUE, nrow=5, ncol=5)
-)"
+"
 warnmsg <- "In model 'One Factor' Optimizer returned a non-zero status code 10. Starting values are not feasible. Consider mxTryHard()"
 
 omxCheckWarning( omxCheckError( mxRun(m1), message=errmsg ), warnmsg)

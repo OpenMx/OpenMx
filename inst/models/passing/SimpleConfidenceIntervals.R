@@ -16,6 +16,7 @@
 require(OpenMx)
 
 if (mxOption(NULL,"Default optimizer") == 'CSOLNP') stop("SKIP")
+#if (mxOption(NULL,"Default optimizer") != 'SLSQP') stop("SKIP")
 set.seed(43L)
 
 #mxOption(key="Parallel diagnostics", value = "Yes")

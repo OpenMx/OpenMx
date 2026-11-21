@@ -121,7 +121,7 @@ class PathCalc {
 	}
 
   template <typename T1>
-  void pearsonSelCov1(Eigen::MatrixBase<T1> &cov);
+  void pearsonSelCov1(FitContext *fc, Eigen::MatrixBase<T1> &cov);
   void pearsonSelMean1(Eigen::Ref<Eigen::VectorXd> mean);
 
  public:
@@ -243,7 +243,7 @@ class PathCalc {
 				//sio->copyLowerToUpper();
 				cov.derived() = sparseIA.transpose() * sio->sparse.selfadjointView<Eigen::Lower>() * sparseIA;
 			}
-      if (selSteps.size()) pearsonSelCov1(cov);
+      if (selSteps.size()) pearsonSelCov1(fc, cov);
 		} else {
 			buildPolynomial(fc);
 			auto &symEv = symSolver.eigenvalues();
@@ -304,8 +304,12 @@ class PathCalc {
 #include "Compute.h"
 
 template <typename T1>
-void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
+void PathCalc::pearsonSelCov1(FitContext *fc, Eigen::MatrixBase<T1> &cov)
 {
+  // selVec holds free parameters, so clones must read their own state's
+  // duplicate (else finite-difference gradients w.r.t. selection paths
+  // are exactly zero).
+  omxMatrix *sv = (fc && selVec) ? fc->state->lookupDuplicate(selVec) : selVec;
   int rx=0;
   for (auto &s1 : selSteps) {
   //mxPrintMat("before sel", cov);
@@ -313,7 +317,7 @@ void PathCalc::pearsonSelCov1(Eigen::MatrixBase<T1> &cov)
     Eigen::MatrixXd v12(s1.selDim, cov.cols() - s1.selDim);
     Eigen::MatrixXd v22(cov.rows() - s1.selDim, cov.cols() - s1.selDim);
     partitionCovariance(cov, [&](int xx){ return s1.selFilter[xx]; }, v11, v12, v22);
-    EigenVectorAdaptor EselVec(selVec);
+    EigenVectorAdaptor EselVec(sv);
     int curStep = selPlan[rx].step;
     while (rx < int(selPlan.size()) && selPlan[rx].step == curStep) {
       int from = selPlan[rx].from;
@@ -376,7 +380,7 @@ void PathCalc::cov(FitContext *fc, Eigen::MatrixBase<T> &cov)
     if (selSteps.size()) {
       if (!fullCovAccess) tmpFullCov.resize(numVars, numVars);
       omxMatrix *fca = fullCovAccess;
-      if (fc) fc->state->lookupDuplicate(fullCovAccess);
+      if (fc) fca = fc->state->lookupDuplicate(fullCovAccess);
       Eigen::Map< Eigen::MatrixXd > tmpCov(fca? fca->data : tmpFullCov.data(),
                                            numVars, numVars);
       fullCov(fc, tmpCov);

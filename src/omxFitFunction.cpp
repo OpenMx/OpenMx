@@ -33,6 +33,7 @@
 #include "Compute.h"
 #include "finiteDifferences.h"
 #include "EnableWarnings.h"
+#include <stan/math/rev/core/chainablestack.hpp>
 
 typedef struct omxFitFunctionTableEntry omxFitFunctionTableEntry;
 
@@ -117,6 +118,12 @@ static const omxFitFunctionTableEntry omxFitFunctionSymbolTable[] = {
 
 void omxFitFunction::compute(int want, FitContext *fc)
 {
+  // Stan Math keeps one AD tape per thread (STAN_THREADS) but only the main
+  // thread's tape is created automatically (by Stan's TBB observer at static
+  // init). OpenMP worker threads (e.g. parallel-CI kids) must create their own
+  // tape before any Stan AD call, or start_nested() dereferences a null tape
+  // pointer (SIGSEGV). One persistent tape per thread, freed at thread exit.
+  thread_local stan::math::ChainableStack workerAdTape;
   if (fc) {
     auto &pl = penalties;
     for (auto &p1 : pl) {

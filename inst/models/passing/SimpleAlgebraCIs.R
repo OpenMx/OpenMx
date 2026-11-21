@@ -15,6 +15,7 @@
 
 
 require(OpenMx)
+#if(mxOption(NULL,"Default optimizer")=="NPSOL"){stop("SKIP")}
 
 data(demoOneFactor)
 

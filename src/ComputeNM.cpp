@@ -65,6 +65,9 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 		mxLog("omxComputeNM member 'verbose' is %d", verbose);
 	}
 
+	/*Frontend class 'MxComputeNelderMead' has a 'nudgeZeroStarts' slot that does not necessarily
+	 have the same value as the global "Nudge zero starts" mxOption.  Therefore, we must define a`nudge` 
+	 value local to this (i.e., Nelder-Mead) compute step:*/
 	ScopedProtect p2(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = Rf_asLogical(slotValue);
 	if(verbose){
@@ -256,6 +259,8 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 	if(verbose){
 		mxLog("omxComputeNM member 'centerIniSimplex' is %d", centerIniSimplex);
 	}
+	
+	bestfitOut = NA_REAL;
 
 	feasTol = Global->feasibilityTolerance;
 }
@@ -263,14 +268,21 @@ void omxComputeNM::initFromFrontend(omxState *globalState, SEXP rObj){
 
 void omxComputeNM::computeImpl(FitContext *fc)
 {
-	omxAlgebraPreeval(fitMatrix, fc);
+	omxMatrix *localFitMatrix = fc->lookupDuplicate(fitMatrix);
+	omxAlgebraPreeval(localFitMatrix, fc);
 
+	//Use `nudge` value local to this Nelder-Mead compute step:
 	fc->ensureParamWithinBox(nudge);
-	fc->createChildren(fitMatrix, true);
+	fc->createChildren(localFitMatrix, true);
 
 	NelderMeadOptimizerContext nmoc(fc, this);
+	nmoc.fitMatrix2 = localFitMatrix;
 
-	if (nmoc.numFree <= 0) { complainNoFreeParam(); return; }
+	if (nmoc.numFree <= 0) {
+		complainNoFreeParam(); 
+		//omxFreeMatrix(localFitMatrix);
+		return;
+	}
 
 	nmoc.verbose = verbose;
 	nmoc.maxIter = maxIter;
@@ -329,6 +341,7 @@ void omxComputeNM::computeImpl(FitContext *fc)
 
 	if(validationRestart && nmoc.statuscode==0){
 		NelderMeadOptimizerContext nmoc2(fc, this);
+		nmoc2.fitMatrix2 = localFitMatrix;
 		nmoc2.verbose = verbose;
 		nmoc2.maxIter = 2 * nmoc.n;
 		nmoc2.iniSimplexType = 1;
@@ -394,42 +407,49 @@ void omxComputeNM::computeImpl(FitContext *fc)
 		break;
 	}
 
-	size_t i=0;
-	Eigen::VectorXd xdiffs(nmoc.n);
-	Eigen::MatrixXd fdiffs(nmoc.n,1);
-	Eigen::MatrixXd Q(nmoc.n, nmoc.n);
-	verticesOut.resize(nmoc.vertices.size(), nmoc.vertices[0].size());
-	for(i=0; i < nmoc.vertices.size(); i++){
-		verticesOut.row(i) = nmoc.vertices[i];
-	}
-	fvalsOut = nmoc.fvals;
-	vertexInfeasOut = nmoc.vertexInfeas;
-	for(i=0; i < size_t(nmoc.n); i++){
-		fdiffs(i,0) = fabs(fvalsOut[i+1] - fvalsOut[0]);
-	}
-	fproxOut = fdiffs.array().maxCoeff();
-	for(i=0; i < size_t(nmoc.n); i++){
-		if(!nmoc.EqC.getCount()){
-			Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
-			xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
+	if(!Global->currentlyDoingParallelConfidenceIntervals){
+		/*We don't do this codeblock when doing parallel confidence intervals, because in the parallel-CI case,
+		this block will write to memory shared among threads & engender data races; additionally, even if we were
+		to do this block sequentially, the only results that would make it out to the frontend would be those yielded
+		by the last confidence-limit optimization (with all prior having been clobbered).*/
+		size_t i=0;
+		Eigen::VectorXd xdiffs(nmoc.n);
+		Eigen::MatrixXd fdiffs(nmoc.n,1);
+		Eigen::MatrixXd Q(nmoc.n, nmoc.n);
+		verticesOut.resize(nmoc.vertices.size(), nmoc.vertices[0].size());
+		for(i=0; i < nmoc.vertices.size(); i++){
+			verticesOut.row(i) = nmoc.vertices[i];
 		}
-		else{
-			xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+		fvalsOut = nmoc.fvals;
+		vertexInfeasOut = nmoc.vertexInfeas;
+		for(i=0; i < size_t(nmoc.n); i++){
+			fdiffs(i,0) = fabs(fvalsOut[i+1] - fvalsOut[0]);
 		}
-	}
-	xproxOut = xdiffs.array().maxCoeff();
-	if(!nmoc.vertexInfeas.sum() && !nmoc.EqC.getCount() && !nmoc.addPenalty){
-		Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
-		if(luq.isInvertible()){
-			Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
-			Qinv = luq.inverse();
-			//This is the "simplex gradient" of Kelley (1999):
-			simplexGradient = Qinv.transpose() * fdiffs;
-			if(verbose){mxPrintMat("simplex gradient: ",simplexGradient);}
+		fproxOut = fdiffs.array().maxCoeff();
+		for(i=0; i < size_t(nmoc.n); i++){
+			if(!nmoc.EqC.getCount()){
+				Q.col(i) = verticesOut.row(i+1) - verticesOut.row(0);
+				xdiffs[i] = (Q.col(i)).array().abs().maxCoeff();
+			}
+			else{
+				xdiffs[i] = (verticesOut.row(i+1) - verticesOut.row(0)).array().abs().maxCoeff();
+			}
+		}
+		xproxOut = xdiffs.array().maxCoeff();
+		if(!nmoc.vertexInfeas.sum() && !nmoc.EqC.getCount() && !nmoc.addPenalty){
+			Eigen::FullPivLU< Eigen::MatrixXd > luq(Q);
+			if(luq.isInvertible()){
+				Eigen::MatrixXd Qinv(nmoc.n, nmoc.n);
+				Qinv = luq.inverse();
+				//This is the "simplex gradient" of Kelley (1999):
+				simplexGradient = Qinv.transpose() * fdiffs;
+				if(verbose){mxPrintMat("simplex gradient: ",simplexGradient);}
+			}
 		}
 	}
 
 	nmoc.finalize();
+	//omxFreeMatrix(localFitMatrix);
 
 	fc->wanted |= FF_COMPUTE_BESTFIT;
 
@@ -515,6 +535,11 @@ NelderMeadOptimizerContext::NelderMeadOptimizerContext(FitContext* u_fc, omxComp
 	addPenalty = false;
 	rho = 1;
 }
+
+/*NelderMeadOptimizerContext::~NelderMeadOptimizerContext()
+ {
+ omxFreeMatrix(fitMatrix2);
+ }*/
 
 void NelderMeadOptimizerContext::copyBounds()
 {
@@ -604,7 +629,7 @@ void NelderMeadOptimizerContext::evalEqC()
 double NelderMeadOptimizerContext::evalFit(Eigen::VectorXd &x)
 {
 	copyParamsFromOptimizer(x,fc);
-	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(engineName, fitMatrix2, FF_COMPUTE_FIT, fc);
 	if( fc->outsideFeasibleSet() ){
 		return(bignum);
 	}
@@ -1394,10 +1419,10 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 	bool canDoAnalyt=true;
 	int i, j, k, pminInfeas;
 	double a0, pminfit;
-	NMobj->pseudohess.resize(n, n);
-	NMobj->phpts.resize(numpts, n);
-	NMobj->phFvals.resize(numpts, 1);
-	NMobj->phInfeas.resize(numpts);
+	pseudohess2.resize(n, n);
+	phpts2.resize(numpts, n);
+	phFvals2.resize(numpts, 1);
+	phInfeas2.resize(numpts);
 	Eigen::VectorXd currpt(n);
 	Eigen::VectorXd currpt2(n);
 	Eigen::VectorXi jvec(numpts);
@@ -1405,10 +1430,10 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 	Eigen::VectorXd a(n), pmin(n);
 	Eigen::MatrixXd B(n,n), Q(n, n);
 
-	NMobj->pseudohess.setZero(n, n);
-	NMobj->phpts.setZero(numpts, n);
-	NMobj->phFvals.setZero(numpts, 1);
-	NMobj->phInfeas.setZero(numpts);
+	pseudohess2.setZero(n, n);
+	phpts2.setZero(numpts, n);
+	phFvals2.setZero(numpts, 1);
+	phInfeas2.setZero(numpts);
 
 	for(i=0; i<n; i++){
 		Q.col(i) = vertices[i+1] - vertices[0];
@@ -1417,9 +1442,9 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 
 
 	for(i=0; i<n+1; i++){
-		NMobj->phpts.row(i) = vertices[i];
-		NMobj->phFvals(i,0) = fvals[i];
-		NMobj->phInfeas[i] = 0; //<--Assuming that this function is not called if any vertices are infeasible.
+		phpts2.row(i) = vertices[i];
+		phFvals2(i,0) = fvals[i];
+		phInfeas2[i] = 0; //<--Assuming that this function is not called if any vertices are infeasible.
 		kvec[i] = -1;
 		jvec[i] = -1;
 	}
@@ -1431,25 +1456,25 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			kvec[i] = k;
 			currpt = (vertices[j] + vertices[k])/2;
 			currpt2 = currpt;
-			evalNewPoint(currpt, vertices[j], NMobj->phFvals(i,0), NMobj->phInfeas[i], 0);
-			if(NMobj->phInfeas[i]){
+			evalNewPoint(currpt, vertices[j], phFvals2(i,0), phInfeas2[i], 0);
+			if(phInfeas2[i]){
 				//TODO: export a message about the pseudohessian for the user
-				NMobj->pseudohess.resize(0,0);
-				NMobj->phpts.resize(0,0);
-				NMobj->phFvals(0,0);
-				NMobj->phInfeas.resize(0);
+				pseudohess2.resize(0,0);
+				phpts2.resize(0,0);
+				phFvals2.resize(0,0);
+				phInfeas2.resize(0);
 				return;
 			}
-			else if(NMobj->phFvals(i,0) < bestfit){
+			else if(phFvals2(i,0) < bestfit){
 				est = currpt;
-				bestfit = NMobj->phFvals(i,0);
+				bestfit = phFvals2(i,0);
 				estInfeas = 0;
 			}
 			//We can't use Nelder & Mead's analytic solution if the midpoints of the edges aren't actually such:
 			if( (currpt.array() != currpt2.array()).any() ){
 				canDoAnalyt = false;
 			}
-			NMobj->phpts.row(i) = currpt;
+			phpts2.row(i) = currpt;
 			i++;
 		}
 	}
@@ -1458,13 +1483,13 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		if(verbose){mxLog("analytically calculating pseudoHessian");}
 		a0 = fvals[0];
 		for(i=0; i<n; i++){
-			a[i] = 2*NMobj->phFvals(i+(n+1),0) - (fvals[i+1] + 3*a0)/2;
-			B(i,i) = 2*( fvals[i+1] + a0 - 2*NMobj->phFvals(i+(n+1),0) );
+			a[i] = 2*phFvals2(i+(n+1),0) - (fvals[i+1] + 3*a0)/2;
+			B(i,i) = 2*( fvals[i+1] + a0 - 2*phFvals2(i+(n+1),0) );
 		}
 		for(i=n+n+1; i<numpts; i++){
 			if(jvec[i] == kvec[i]){continue;}
-			B(jvec[i]-1,kvec[i]-1) = 2*( NMobj->phFvals(i,0) + a0 - NMobj->phFvals(jvec[i]+(n+1)-1, 0) -
-				NMobj->phFvals(kvec[i]+(n+1)-1, 0) );
+			B(jvec[i]-1,kvec[i]-1) = 2*( phFvals2(i,0) + a0 - phFvals2(jvec[i]+(n+1)-1, 0) -
+				phFvals2(kvec[i]+(n+1)-1, 0) );
 			B(kvec[i]-1,jvec[i]-1) = B(jvec[i]-1,kvec[i]-1);
 		}
 		Eigen::FullPivLU< Eigen::MatrixXd > lub(B);
@@ -1479,7 +1504,7 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 		}
 		Eigen::MatrixXd Qinv = luq.inverse();
 		//NMobj->pseudohess = luq.inverse().transpose() * B * luq.inverse();
-		NMobj->pseudohess = Qinv.transpose() * B * Qinv;
+		pseudohess2 = Qinv.transpose() * B * Qinv;
 	}
 	else{
 		if(verbose){mxLog("numerically calculating pseudoHessian");}
@@ -1488,12 +1513,12 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 			X(i,0) = 1;
 		}
 		for(i=0; i<n; i++){
-			X.col(i+1) = NMobj->phpts.col(i);
+			X.col(i+1) = phpts2.col(i);
 		}
 		i=n+1;
 		for(j=0; j<n; j++){
 			for(k=j; k<n; k++){
-				X.col(i) = (NMobj->phpts.col(j).array() * NMobj->phpts.col(k).array());
+				X.col(i) = (phpts2.col(j).array() * phpts2.col(k).array());
 				i++;
 			}
 		}
@@ -1501,24 +1526,24 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 
 		Eigen::ColPivHouseholderQR< Eigen::MatrixXd > qrx(X);
 		if(qrx.info() != Eigen::Success){
-			NMobj->pseudohess.resize(0,0);
-			NMobj->phpts.resize(0,0);
-			NMobj->phFvals(0,0);
-			NMobj->phInfeas.resize(0);
+			pseudohess2.resize(0,0);
+			phpts2.resize(0,0);
+			phFvals2.resize(0,0);
+			phInfeas2.resize(0);
 			return;
 		}
-		polynomb = qrx.solve(NMobj->phFvals);
+		polynomb = qrx.solve(phFvals2);
 		if(verbose){mxPrintMat("polynomial coefficients:",polynomb);}
 
 		i=n+1;
 		for(j=0; j<n; j++){
 			for(k=j; k<n; k++){
-				NMobj->pseudohess(j,k) = polynomb(i,0);
-				if(j != k){NMobj->pseudohess(k,j) = polynomb(i,0);}
+				pseudohess2(j,k) = polynomb(i,0);
+				if(j != k){pseudohess2(k,j) = polynomb(i,0);}
 				i++;
 			}
 		}
-		Eigen::FullPivLU< Eigen::MatrixXd > lub(NMobj->pseudohess);
+		Eigen::FullPivLU< Eigen::MatrixXd > lub(pseudohess2);
 		if(lub.isInvertible()){
 			Binv = lub.inverse();
 			for(i=0; i<n; i++){
@@ -1532,10 +1557,10 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 				estInfeas = pminInfeas;
 			}
 		}
-		NMobj->Xout = X;
+		Xout2 = X;
 	}
 	if(verbose){
-		mxPrintMat("pseudoHessian is ", NMobj->pseudohess);
+		mxPrintMat("pseudoHessian is ", pseudohess2);
 	}
 	return;
 }
@@ -1543,11 +1568,19 @@ void NelderMeadOptimizerContext::calculatePseudoHessian()
 
 void NelderMeadOptimizerContext::finalize()
 {
-	//The omxComputeNM object stows the possibly penalized fit value; the FitContext here recomputes the unpenalized fit value, at the
+	if(!Global->currentlyDoingParallelConfidenceIntervals){
+		NMobj->pseudohess = pseudohess2;
+		NMobj->phpts = phpts2;
+		NMobj->phFvals = phFvals2;
+		NMobj->Xout = Xout2;
+		NMobj->phInfeas = phInfeas2;
+		
+		NMobj->bestfitOut = bestfit;
+	}
+	//^^^The omxComputeNM object stows the possibly penalized fit value; the FitContext here recomputes the unpenalized fit value, at the
 	//best parameter values:
-	NMobj->bestfitOut = bestfit;
 	copyParamsFromOptimizer(est,fc);
-	ComputeFit(engineName, NMobj->fitMatrix, FF_COMPUTE_FIT, fc);
+	ComputeFit(engineName, fitMatrix2, FF_COMPUTE_FIT, fc);
 	/*Doing this here ensures (1) that the fit has just been freshly evaluated at the solution, (2) that this check is done as part of the
 	MxComputeNelderMead step (necessary for bootstrapping), and (3) that Nelder-Mead reports status code 3 for solutions that violate
 	MxConstraints, and status code 10 for	all other kinds of infeasible solutions:*/

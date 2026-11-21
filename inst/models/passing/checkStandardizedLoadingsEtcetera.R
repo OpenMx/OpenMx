@@ -88,6 +88,7 @@ omxCheckWarning(
 )
 pointlessConstraint <- mxModel(factorModelPath, mxConstraint(1==1))
 pointlessConstraint <- mxRun(pointlessConstraint)
+summary(pointlessConstraint)
 #NPSOL populates the 'hessian' slot of the output with its own final Hessian when there is no MxComputeNumericDeriv step:
 if(mxOption(NULL,"Default optimizer") != "NPSOL"){
 	plan <- omxDefaultComputePlan()

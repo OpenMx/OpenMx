@@ -250,6 +250,10 @@ omxGlobal::omxGlobal()
 	lastIndexDone=0;
 	lastIndexDoneTime=0;
   NPSOL_HACK = 0;
+  currentlyDoingParallelConfidenceIntervals = false;
+  currentlySettingUpConfIntComputePlan = false;
+  isNPSOLInConfIntComputePlan = false;
+  effectiveNumEqualityMxConstraints = NA_INTEGER;
 
   gradientAlgo = GradientAlgorithm_Auto;
   gradientIter = 1;
@@ -1038,8 +1042,12 @@ omxConstraint *UserConstraint::duplicate(omxState *dest) const
 	uc->opCode = opCode;
   uc->redundant = redundant;
   uc->size = size;
+  uc->origSize = origSize;
+  uc->strict = strict;
+  uc->seenActive = seenActive;
+  uc->initialJac = initialJac;
 	uc->pad = omxNewAlgebraFromOperatorAndArgs(10, args, 2, dest); // 10 = binary subtract
-	uc->jacobian = jacobian;
+	uc->jacobian = dest->lookupDuplicate(jacobian);
   uc->jacMap = jacMap;
   uc->verbose = verbose;
 	return uc;
@@ -1130,12 +1138,21 @@ void ConstraintVec::allocJacTool(FitContext *fc)
 // This is called once before the compute plan begins execution
 void ConstraintVec::markUselessConstraints(FitContext *fc)
 {
-  if (!count) return;
+  if(OMX_DEBUG){mxLog("count at start: %d", count);}
+  if (!count){
+  	Global->effectiveNumEqualityMxConstraints = 0;
+  	return;
+  }
 
   Eigen::ArrayXd constr(count);
   Eigen::ArrayXXd ej(count, fc->getNumFree());
   ej.setConstant(NA_REAL);
   eval(fc, constr.data(), ej.data());
+  
+  if(!Global->dropExtraneousMxConstraints){
+  	Global->effectiveNumEqualityMxConstraints = NA_INTEGER;
+  	return;
+  }
 
   //mxPrintMat("ej", ej);
   auto *state = fc->state;
@@ -1148,10 +1165,10 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
       if ((ej.row(cur+kk) == 0.0).all()) {
         con.redundant[kk] = true;
         count -= 1;
-        if (con.getVerbose()) {
-          mxLog("Ignoring constraint '%s[%d]' because it does not depend "
+        //if (con.getVerbose()) {
+        Rf_warning("Ignoring constraint '%s[%d]' because it does not depend "
                 "on any free parameters", con.name, 1+kk);
-        }
+        //}
       }
       if (d1 < cur+kk) ej.row(d1) = ej.row(cur+kk);
       if (!con.redundant[kk]) d1 += 1;
@@ -1160,7 +1177,10 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
     con.recalcSize();
   }
 
-  if (count <= 1) return;
+  if (count <= 1){
+  	Global->effectiveNumEqualityMxConstraints = count;
+  	return;
+  }
 
   // pad with dummy parameters so #constraints <= #param
   Eigen::MatrixXd tmp(std::max(count,ej.cols()), count);
@@ -1180,16 +1200,20 @@ void ConstraintVec::markUselessConstraints(FitContext *fc)
       int xx = perm[cur+dx];
       if (abs(qr(xx,xx)) < thr) {
         con.redundant[kk] = true;
-        if (con.getVerbose()) {
-          mxLog("Ignoring constraint '%s[%d]' because it is redundant (|%f| < %f)",
+      	count -= 1;
+        //if (con.getVerbose()) {
+        Rf_warning("Ignoring constraint '%s[%d]' because it is redundant (|%f| < %f)",
                 con.name, 1+kk, qr(xx,xx), thr);
-        }
+        //}
       }
       dx += 1;
     }
     cur += con.size;
     con.recalcSize();
   }
+  if(OMX_DEBUG){mxLog("count at end: %d", count);}
+  Global->effectiveNumEqualityMxConstraints = count;
+  return;
 }
 
 void ConstraintVec::eval(FitContext *fc, double *constrOut, double *jacOut)

@@ -181,6 +181,10 @@ static OMXINLINE int omx_absolute_thread_num(void) {
    return(omp_get_thread_num());
 }
 
+static OMXINLINE int omx_innermost_thread_num(void) {
+   return(omp_get_thread_num());
+}
+
 #else  // _OPENMP <= 200505
 
 static OMXINLINE int omx_absolute_thread_num(void) {
@@ -192,6 +196,14 @@ static OMXINLINE int omx_absolute_thread_num(void) {
        scale *= omp_get_team_size(i);
    }
    return(retval);
+}
+
+// Thread number within the innermost (current) team. Use this (not the
+// absolute number) for quantities sized by the current team: per-team work
+// shares and per-FitContext childList indexes. The two agree whenever there
+// is no enclosing OpenMP team.
+static OMXINLINE int omx_innermost_thread_num(void) {
+   return(omp_get_thread_num());
 }
 
 #endif // _OPENMP <= 200505
@@ -220,6 +232,10 @@ static OMXINLINE int omx_absolute_thread_num(void) {
    return(0);
 }
 
+static OMXINLINE int omx_innermost_thread_num(void) {
+   return(0);
+}
+
 static OMXINLINE void omx_omp_init_lock(omp_lock_t* __attribute__((unused)) lock) {}
 
 static OMXINLINE void omx_omp_destroy_lock(omp_lock_t* __attribute__((unused)) lock) {}
@@ -238,10 +254,12 @@ static inline int omp_get_num_threads(void) { return 1; }
 static inline int omp_in_parallel(void) { return 0; }
 #endif
 
+//cran-check NOTEs use of C-standard `rand()`...
+//TODO: C-standard `rand()` is not thread-safe, but then R's `unif_rand()` really isn't, either...:
 static inline double omx_unif_rand(void) {
-	if (omp_in_parallel()) {
-		return (double)rand() / (double)RAND_MAX;
-	}
+	/*if (omp_in_parallel()) {
+		return (double)rand() / (double)RAND_MAX;*
+	}*/
 	return ::unif_rand();
 }
 

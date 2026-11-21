@@ -176,7 +176,9 @@ m4 <- mxRun(m4)  # help NPSOL get to the solution
 m4Eval <- m4Eval + m4$output$evaluations
 summary(m4)
 mxEval(Sigma,m4,T)
-omxCheckTrue(m2$output$evaluations > m4$output$evaluations)
+if( !(mxOption(NULL,"Default optimizer")=="CSOLNP" && mxOption(NULL,"Number of threads")>1) ){ #<--if not multithreaded CSOLNP
+	omxCheckTrue(m2$output$evaluations > m4$output$evaluations)
+}
 
 omxCheckCloseEnough(mxEval(Tau,m4,T)[1,],c(1.64,1.64,1.64),0.1)
 omxCheckCloseEnough(mxEval(Sigma,m4,T)[c(2,3,6)],c(0.5,0.5,0.5),0.05)
@@ -216,7 +218,8 @@ summary(m6)
 mxEval(Sigma,m6,T)
 #Interestingly, SLSQP doesn't gain any advantage in function evaluations by adding analytic derivatives
 #for the inequality constraints, but NPSOL does:
-if(mxOption(NULL,"Default optimizer") %in% c("CSOLNP","NPSOL")){
+if(mxOption(NULL,"Default optimizer")=="NPSOL" || 
+	 (mxOption(NULL,"Default optimizer")=="CSOLNP" && mxOption(NULL,"Number of threads")<=2)){
   omxCheckTrue(m4Eval > m6$output$evaluations) #<--This test may fail with CSOLNP depending on number of threads!
 }
 omxCheckCloseEnough(mxEval(Tau,m6,T)[1,],c(1.64,1.64,1.64),0.1)

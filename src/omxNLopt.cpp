@@ -280,8 +280,10 @@ void omxInvokeNLOPT(GradientOptimizerContext &goc)
 	double fit = 0;
 	int code = nlopt_optimize(opt, est, &fit);
 
-	mxLog("omxNLopt: nlopt_optimize returned %d, iterations=%d, fit=%f, doingCI=%d",
-		code, goc.iterations, fit, goc.doingCI());
+	if(goc.verbose){
+		mxLog("omxNLopt: nlopt_optimize returned %d, iterations=%d, fit=%f, doingCI=%d",
+			code, goc.iterations, fit, goc.doingCI());
+	}
 	if(code > 0){
 		SLSQP::omxExtractSLSQPConstraintInfo(*wkspc, opt, goc);
 	}

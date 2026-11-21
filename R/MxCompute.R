@@ -724,34 +724,6 @@ setMethod("initialize", "MxComputeConfidenceInterval",
 		  .Object
 	  })
 
-##' Find likelihood-based confidence intervals
-##'
-##' There are various equivalent ways to pose the optimization
-##' problems required to estimate confidence intervals. Most accurate
-##' solutions are achieved when the problem is posed using non-linear
-##' constraints. However, the available optimizers (CSOLNP, SLSQP, and NPSOL) often have difficulty with non-linear
-##' constraints.
-##'
-##' @param plan compute plan to optimize the model
-##' @param ...  Not used.  Forces remaining arguments to be specified by name.
-##' @param freeSet names of matrices containing free variables
-##' @template args-verbose
-##' @param engine \lifecycle{deprecated}
-##' @param fitfunction the name of the deviance function
-##' @param tolerance \lifecycle{deprecated}
-##' @param constraintType one of c('ineq', 'none')
-##' @references
-##' Neale, M. C. & Miller M. B. (1997). The use of likelihood based
-##' confidence intervals in genetic models.  \emph{Behavior Genetics,
-##' 27}(2), 113-120.
-##'
-##' Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals and regions for structural equation models.
-##' \emph{Psychometrika, 80}(4), 1123-1145.
-##'
-##' Wu, H. & Neale, M. C. (2012). Adjusted confidence intervals for a
-##' bounded parameter. \emph{Behavior genetics, 42}(6), 886-898.
-##' @aliases
-##' MxComputeConfidenceInterval-class
 
 mxComputeConfidenceInterval <- function(plan, ..., freeSet=NA_character_, verbose=0L,
 					engine=NULL, fitfunction='fitfunction',
@@ -2860,4 +2832,22 @@ omxDefaultComputePlan <- function(modelName=NULL, intervals=FALSE, useOptimizer=
 	}
 	compute@.persist <- TRUE
 	return(compute)
+}
+
+
+detectNPSOLInComputeObject <- function(x){
+	out <- FALSE
+	if(!imxHasNPSOL()){
+		return(out)
+	}
+	if(.hasSlot(x,"steps")){
+		out <- out || any(sapply(x@steps,detectNPSOLInComputeObject))
+	}
+	if(.hasSlot(x,"plan")){
+		out <- out || detectNPSOLInComputeObject(x@plan)
+	}
+	if(is(x,"MxComputeGradientDescent")){
+		out <- out || (x@engine == "NPSOL")
+	}
+	return(out)
 }

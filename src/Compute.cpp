@@ -1064,6 +1064,9 @@ void FitContext::ensureParamWithinBox(bool nudge)
 	for (size_t px = 0; px < varGroup->vars.size(); ++px) {
 		omxFreeVar *fv = varGroup->vars[px];
 		if (nudge && !profiledOutZ[px] && est[px] == 0.0) {
+			if(OMX_DEBUG){
+				mxLog("Nudging!");
+			}
 			est[px] += 0.1;
 		}
 		if (fv->lbound > est[px]) {
@@ -1214,8 +1217,6 @@ struct ParallelInvalidator : StateInvalidator {
 
 void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTeam)
 {
-	if (parent) return;
-
 	if (childList.size()) {
 		diagParallel(OMX_DEBUG, "FitContext::createChildren: ignored, childList already populated");
     return;
@@ -1236,7 +1237,13 @@ void FitContext::createChildren(omxMatrix *alg, bool u_permitParallel, bool isTe
   permitParallel = u_permitParallel;
   if (alg) omxAlgebraPreeval(alg, this);
 
-	if (Global->numThreads <= 1)  return;
+	if (Global->numThreads <= 1){
+		if(OMX_DEBUG){mxLog("Global->numThreads <= 1");}
+		return;
+	}
+
+	// Nested contexts share state: refresh caches above, but never spawn grandchild teams.
+	if (parent) return;
 
   createChildren1(isTeam);
 
@@ -1357,7 +1364,9 @@ void CIobjective::checkSolution(FitContext *fc)
 	if (fc->getInform() > INFORM_UNCONVERGED_OPTIMUM) return;
 
 	Diagnostic d = getDiag();
-	mxLog("CIobjective::checkSolution %p (%s) calling getDiag: returned %d", this, CI->name.c_str(), (int)d);
+	if(OMX_DEBUG){
+		mxLog("CIobjective::checkSolution %p (%s) calling getDiag: returned %d", this, CI->name.c_str(), (int)d);
+	}
 	if (d != DIAG_SUCCESS) {
 		fc->setInform(INFORM_NONLINEAR_CONSTRAINTS_INFEASIBLE);
 	}

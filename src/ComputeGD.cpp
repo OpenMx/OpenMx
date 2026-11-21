@@ -249,7 +249,13 @@ void omxComputeGD::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	ScopedProtect p3(slotValue, R_do_slot(rObj, Rf_install("engine")));
   engine = nameToGradOptEngine(CHAR(Rf_asChar(slotValue)));
+  if(Global->currentlySettingUpConfIntComputePlan && engine==OptEngine_NPSOL){
+  	Global->isNPSOLInConfIntComputePlan = true;
+  }
 
+	/*Frontend class 'MxComputeGradientDescent' has a 'nudgeZeroStarts' slot that does not necessarily
+	have the same value as the global "Nudge zero starts" mxOption.  Therefore, we must define a`nudge` 
+	value local to this (i.e., gradient-descent) compute step:*/
 	ScopedProtect p4(slotValue, R_do_slot(rObj, Rf_install("nudgeZeroStarts")));
 	nudge = false;
 	friendlyStringToLogical("nudgeZeroStarts", slotValue, &nudge);
@@ -284,6 +290,7 @@ void omxComputeGD::computeImpl(FitContext *fc)
 
 	if (numParam <= 0) { complainNoFreeParam(); return; }
 
+	//Use `nudge` value local to this gradient-descent compute step:
 	fc->ensureParamWithinBox(nudge);
 	fc->createChildren(localFitMatrix, true);
 
@@ -483,6 +490,7 @@ class ComputeCI : public omxCompute {
 	SEXP intervals, intervalCodes, detail;
 	const char *ctypeName;
 	bool useInequality;
+	bool isUsingNPSOLInPlan;
 
 	enum Method {
 		NEALE_MILLER_1997=1,
@@ -534,6 +542,7 @@ ComputeCI::ComputeCI()
 	intervalCodes = 0;
 	detail = 0;
 	useInequality = false;
+	isUsingNPSOLInPlan = false;
 }
 
 void ComputeCI::runPlan(FitContext *fc)
@@ -575,11 +584,20 @@ void ComputeCI::initFromFrontend(omxState *globalState, SEXP rObj)
 
 	PushLoopIndex pli(name);
 
+	Global->currentlySettingUpConfIntComputePlan = true;
 	Rf_protect(slotValue = R_do_slot(rObj, Rf_install("plan")));
 	SEXP s4class;
 	Rf_protect(s4class = STRING_ELT(Rf_getAttrib(slotValue, R_ClassSymbol), 0));
 	plan = std::unique_ptr<omxCompute>(omxNewCompute(globalState, CHAR(s4class)));
 	plan->initFromFrontend(globalState, slotValue);
+	if(Global->isNPSOLInConfIntComputePlan){
+		/*We need to record the use of NPSOL in this ComputeCI's compute plan, and store it locally to this ComputeCI.
+		We can't just store it globally...what would happen if the MxModel's compute plan contained 2 confidence-interval steps,
+		one of which used NPSOL and the other didn't??:*/
+		isUsingNPSOLInPlan = true;
+	}
+	Global->currentlySettingUpConfIntComputePlan = false;
+	Global->isNPSOLInConfIntComputePlan = false; //<--Reset value to its "default".
 }
 
 extern "C" { void F77_SUB(npoptn)(char* string, int Rf_length); }
@@ -779,8 +797,10 @@ struct regularCIobj : CIobjective {
 		if (fabs(diff) > 1e-1) {
 			diag = DIAG_ALPHA_LEVEL;
 		}
-		mxLog("regularCIobj::getDiag %p (%s): diff=%f, targetFit=%f, diag=%d",
-			this, CI->name.c_str(), diff, targetFit, (int)diag);
+		if(OMX_DEBUG){
+			mxLog("regularCIobj::getDiag %p (%s): diff=%f, targetFit=%f, diag=%d",
+				this, CI->name.c_str(), diff, targetFit, (int)diag);
+		}
 		return diag;
 	}
 
@@ -1269,7 +1289,9 @@ void ComputeCI::regularCI(FitContext *mle, FitContext &fc, ConfidenceInterval *c
 	val = omxMatrixElement(ciMatrix, currentCI->row, currentCI->col);
 
 	diag = fc.ciobj->getDiag();
-	mxLog("ComputeCI::regularCI calling getDiag: returned %d", (int)diag);
+	if(verbose){
+		mxLog("ComputeCI::regularCI calling getDiag: returned %d", (int)diag);
+	}
 	fc.ciobj.reset();
 
 	// We check the fit again so we can report it
@@ -1402,11 +1424,12 @@ void ComputeCI::computeImpl(FitContext *mle)
 
 	mle->createChildren(fitMatrix, true, false);
 	int numThreads = mle->childList.size();
-	if (numThreads > 1) {
+	if (numThreads > 1 && !isUsingNPSOLInPlan && Global->doParallelConfidenceIntervals) {
 		threadRecords.resize(numThreads);
 		for (int t = 0; t < numThreads; ++t) {
 			threadRecords[t].clear();
 		}
+		Global->currentlyDoingParallelConfidenceIntervals = true;
 
 		#pragma omp parallel for schedule(dynamic) num_threads(numThreads)
 		for(int ii = 0; ii < (int) Global->intervalList.size(); ii++) {
@@ -1415,7 +1438,9 @@ void ComputeCI::computeImpl(FitContext *mle)
 				mxThrow("OMP CI loop threadId %d is out of bounds (numThreads = %d)", threadId, numThreads);
 			}
 			if (ii == 0) {
-				mxLog("OMP CI parallel loop starting with %d threads (requested %d)", omp_get_num_threads(), numThreads);
+				if(verbose){
+					mxLog("OMP CI parallel loop starting with %d threads (requested %d)", omp_get_num_threads(), numThreads);
+				}
 			}
 			FitContext *kid = mle->childList[threadId];
 			ConfidenceInterval *currentCI = Global->intervalList[ii];
@@ -1440,6 +1465,7 @@ void ComputeCI::computeImpl(FitContext *mle)
 				regularCI2(mle, *kid, currentCI, dummyDetailRow);
 			}
 		}
+		Global->currentlyDoingParallelConfidenceIntervals = false;
 
 		// Now sequentially record buffered C++ results to R
 		int mainDetailRow = 0;

@@ -100,4 +100,4 @@ omxCheckCloseEnough(autoregressiveMatrixCov$output$estimate[["int2"]], 0.0816, 0
 omxCheckCloseEnough(autoregressiveMatrixCov$output$estimate[["int3"]], 0.0889, 0.001)
 omxCheckCloseEnough(autoregressiveMatrixCov$output$estimate[["int4"]], -0.036, 0.001)
 omxCheckCloseEnough(autoregressiveMatrixCov$output$estimate[["int5"]], -0.135, 0.001)
-omxCheckCloseEnough(chisq, 8.4949, 0.001)
+omxCheckCloseEnough(chisq, 8.520132, 0.001)

@@ -31,7 +31,7 @@ studentModel <- mxModel(
   mxPath('one', indicators))
 
 studentModel$expectation$.useSufficientSets <- FALSE
-studentModel <- mxRun(studentModel)
+set.seed(1); studentModel <- mxTryHard(studentModel)
 summary(studentModel)
 
 omxCheckCloseEnough(studentModel$output$fit, 14463.33, 1e-2)
