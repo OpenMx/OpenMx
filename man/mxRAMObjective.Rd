@@ -34,7 +34,8 @@ mxFitFunctionML(vector = FALSE)
 }
 
 \usage{
-mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
+mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE, 
+	threshnames = dimnames)
 }
 
 \arguments{
