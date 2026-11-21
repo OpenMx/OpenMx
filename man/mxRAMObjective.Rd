@@ -33,6 +33,9 @@ mxExpectationRAM(A, S, F, M = NA, dimnames = NA, thresholds = NA, threshnames = 
 mxFitFunctionML(vector = FALSE)
 }
 
+\usage{
+mxRAMObjective(A, S, F, M = NA, dimnames = NA, thresholds = NA, vector = FALSE, threshnames = dimnames)
+}
 
 \arguments{
    \item{A}{A character string indicating the name of the 'A' matrix.}

@@ -34,6 +34,9 @@ mxExpectationNormal(covariance, means = NA, dimnames = NA, thresholds = NA, thre
 mxFitFunctionML(vector = FALSE)
 }
 
+\usage{
+mxMLObjective(covariance, means = NA, dimnames = NA, thresholds = NA)
+}
 
 \arguments{
    \item{covariance}{A character string indicating the name of the expected covariance algebra.}

@@ -42,6 +42,10 @@ mxFitFunctionRow(rowAlgebra, reduceAlgebra, dimnames,
    existenceVector = "existenceVector")
 }
 
+\usage{
+mxRowObjective(rowAlgebra, reduceAlgebra, dimnames, rowResults = "rowResults", 
+	filteredDataRow = "filteredDataRow", existenceVector = "existenceVector")
+}
 
 \arguments{
    \item{rowAlgebra}{A character string indicating the name of the algebra to be evaluated row-wise.}
