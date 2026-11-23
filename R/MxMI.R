@@ -19,6 +19,9 @@
 # Date: 2015-03-11
 # Filename: MxMI.R
 # Purpose: Write a function for model modification
+#
+# RevisionHistory:
+#      Julian Karch -- 2026-10-31 fixed EPC being half the expected parameter change
 #------------------------------------------------------------------------------
 
 # TODO
@@ -135,7 +138,7 @@ mxMI <- function(model, matrices=NA, full=TRUE){
 					}
 					modind.full <- 0.5*t(matrix(grad.full)) %*% solve_hess_full %*% matrix(grad.full)
 					if(sum(grad.full != 0) == 1){
-						exppar.full <- - modind.full/grad.full[grad.full != 0]
+						exppar.full <- - 2*modind.full/grad.full[grad.full != 0]
 					} else {stop("Something strange in the neighborhood.\nFound a one-parameter model with more than one parameter.\nPost this to the OpenMx forums.")}
 					# Note: the above should be safe, but assumes only one grad.full is not zero
 				} else {
